@@ -28,8 +28,13 @@
     }
   ],
   "candidate_v0_3_decision": {
-    "selected": null,
-    "activation_allowed": false,
-    "reason": "requires_contract_owner_decision"
+    "selected": "C-finite-retention-scope",
+    "activation_allowed": true,
+    "piko_retry_recovery_deadline_hours_max": 24,
+    "active_record_retention": "until_invocation_terminal",
+    "terminal_digest_tombstone_retention_days_min": 7,
+    "canonical_response_recovery_days_min": 7,
+    "privacy_content_retention_independent": true,
+    "reason": "slinky_v0_3_contract_amendment"
   }
 }

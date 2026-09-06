@@ -4,7 +4,7 @@
     {
       "id": "nonstream-first-success",
       "request": {"stream": false, "first_attempt": true},
-      "expected": {"http_status": 200, "body_schema": "ResponseRetrievalView", "dispatch_count": 1}
+      "expected": {"http_status": 200, "body_schema": "ResponsesResponse", "dispatch_count": 1}
     },
     {
       "id": "nonstream-lost-response-retry-active",
@@ -14,7 +14,22 @@
     {
       "id": "nonstream-lost-response-retry-complete",
       "request": {"stream": false, "same_key_and_digest": true, "existing_status": "Succeeded"},
-      "expected": {"http_status": 200, "body_schema": "ResponseRetrievalView", "dispatch_count": 0}
+      "expected": {"http_status": 200, "body_schema": "ResponsesResponse", "dispatch_count": 0}
+    },
+    {
+      "id": "nonstream-retry-failed-is-error",
+      "request": {"stream": false, "same_key_and_digest": true, "existing_status": "Failed"},
+      "expected": {"http_status_class": "non_2xx", "body_schema": "ErrorEnvelope", "error_code": "invocation_failed", "dispatch_count": 0, "detail_query": "/v1/invocations/{invocation_id}"}
+    },
+    {
+      "id": "nonstream-retry-cancelled-is-error",
+      "request": {"stream": false, "same_key_and_digest": true, "existing_status": "Cancelled"},
+      "expected": {"http_status": 409, "body_schema": "ErrorEnvelope", "error_code": "invocation_cancelled", "dispatch_count": 0, "detail_query": "/v1/invocations/{invocation_id}"}
+    },
+    {
+      "id": "nonstream-retry-unknown-outcome-is-error",
+      "request": {"stream": false, "same_key_and_digest": true, "existing_status": "UnknownOutcome"},
+      "expected": {"http_status": 503, "body_schema": "ErrorEnvelope", "error_code": "invocation_outcome_unknown", "retryable": false, "dispatch_count": 0, "detail_query": "/v1/invocations/{invocation_id}"}
     },
     {
       "id": "stream-first-response",
@@ -22,14 +37,19 @@
       "expected": {"http_status": 200, "content_type": "text/event-stream", "invocation_id_header": "X-LLMTier-Invocation-Id", "dispatch_count": 1, "sdk_status": "pending_piko_capture"}
     },
     {
-      "id": "stream-active-retry-fail-closed",
+      "id": "stream-active-retry-adapter-recovery",
       "request": {"stream": true, "same_key_and_digest": true, "existing_status": "Running"},
-      "expected": {"dispatch_count": 0, "automatic_reattach": false, "activation_allowed": false, "reason": "stream_replay_contract_unverified"}
+      "expected": {"http_status": 202, "body_schema": "InvocationAccepted", "dispatch_count": 0, "automatic_reattach": false, "adapter_required": true, "sdk_status": "pending_piko_capture"}
     },
     {
-      "id": "chat-recovery-without-explicit-normalization",
-      "request": {"endpoint": "/v1/chat/completions", "recovery_requested": true},
-      "expected": {"activation_allowed": false, "reason": "chat_to_responses_mapping_unverified"}
+      "id": "chat-completed-replay-standard-body",
+      "request": {"endpoint": "/v1/chat/completions", "same_key_and_digest": true, "existing_status": "Succeeded"},
+      "expected": {"http_status": 200, "body_schema": "ChatCompletionResponse", "dispatch_count": 0, "responses_projection_required": false, "sdk_status": "pending_piko_capture"}
+    },
+    {
+      "id": "embeddings-completed-replay-standard-body",
+      "request": {"endpoint": "/v1/embeddings", "same_key_and_digest": true, "existing_status": "Succeeded"},
+      "expected": {"http_status": 200, "body_schema": "EmbeddingResponse", "dispatch_count": 0, "sdk_status": "pending_piko_capture"}
     }
   ]
 }

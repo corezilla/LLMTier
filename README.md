@@ -11,10 +11,13 @@ LLMTier 是从 Slinky 中拆出的独立模型服务项目。当前代码基线�
 
 复制来源和工作树差异见 [`docs/migration/source-provenance-v0.1.md`](docs/migration/source-provenance-v0.1.md)。
 
+V0.3 的统一系统范围、责任边界和激活门槛见
+[`docs/design/llmtier-v0.3-design-review.md`](docs/design/llmtier-v0.3-design-review.md)。该文档及关联
+Contract/Schema/Manifest 当前仍是评审候选，不表示生产 Data Plane、Management、Observation 或恢复能力已实现。
+
 ## 本地检查
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest discover -s tests
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m llm_tier --help
 ```
-

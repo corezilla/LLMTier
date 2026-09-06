@@ -141,7 +141,7 @@
         "client_request_id": {"type": "string", "minLength": 1},
         "source_id": {"type": "string", "minLength": 1},
         "source_instance_id": {"type": "string", "minLength": 1},
-        "endpoint": {"enum": ["/v1/responses", "/v1/chat/completions"]},
+        "endpoint": {"enum": ["/v1/responses", "/v1/chat/completions", "/v1/embeddings"]},
         "service_level_id": {"type": "string", "minLength": 1},
         "status": {"enum": ["Pending", "Queued", "Running", "Succeeded", "Failed", "Cancelled", "UnknownOutcome"]},
         "record_version": {"type": "integer", "minimum": 1},
@@ -156,13 +156,28 @@
       },
       "allOf": [
         {
-          "if": {"properties": {"status": {"const": "Succeeded"}}},
+          "if": {
+            "properties": {
+              "status": {"const": "Succeeded"},
+              "endpoint": {"const": "/v1/responses"}
+            },
+            "required": ["status", "endpoint"]
+          },
           "then": {
             "properties": {
               "response_ref": {"type": "string", "pattern": "^/v1/responses/[^/]+$"},
               "error": {"type": "null"}
             }
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "endpoint": {"enum": ["/v1/chat/completions", "/v1/embeddings"]}
+            },
+            "required": ["endpoint"]
+          },
+          "then": {"properties": {"response_ref": {"type": "null"}}}
         }
       ]
     },

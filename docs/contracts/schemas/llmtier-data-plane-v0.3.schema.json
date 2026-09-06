@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://llmtier.local/contracts/v0.3/data-plane-schema.json",
+  "title": "LLMTier V0.3 candidate Data Plane schemas",
+  "$defs": {
+    "Metadata": {
+      "type": "object",
+      "maxProperties": 16,
+      "propertyNames": {"maxLength": 64, "x-utf8-max-bytes": 64},
+      "additionalProperties": {"type": "string", "maxLength": 512, "x-utf8-max-bytes": 512},
+      "x-authoritative-length-unit": "utf8_bytes"
+    },
+    "ErrorDetail": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["message", "type", "code", "param", "retryable"],
+      "properties": {
+        "message": {"type": "string"},
+        "type": {"type": "string", "minLength": 1},
+        "code": {"type": "string", "minLength": 1},
+        "param": {"type": ["string", "null"]},
+        "retryable": {"type": "boolean"},
+        "retry_after_ms": {"type": ["integer", "null"], "minimum": 0},
+        "invocation_id": {"type": ["string", "null"]}
+      }
+    },
+    "ErrorEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["error"],
+      "properties": {"error": {"$ref": "#/$defs/ErrorDetail"}}
+    },
+    "ResponsesRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model", "input"],
+      "properties": {
+        "model": {"type": "string", "minLength": 1, "x-exact-case-service-level-id": true},
+        "input": {"oneOf": [{"type": "string"}, {"type": "array", "minItems": 1, "items": {"type": "object"}}]},
+        "instructions": {"type": "string"},
+        "tools": {"type": "array", "items": {"type": "object"}},
+        "tool_choice": {},
+        "text": {"type": "object"},
+        "max_output_tokens": {"type": "integer", "minimum": 1},
+        "temperature": {"type": "number"},
+        "top_p": {"type": "number"},
+        "reasoning": {"type": "object"},
+        "parallel_tool_calls": {"type": "boolean"},
+        "stream": {"type": "boolean"},
+        "metadata": {"$ref": "#/$defs/Metadata"}
+      }
+    },
+    "ResponsesResponse": {
+      "type": "object",
+      "required": ["id", "object", "created_at", "status", "model", "output"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "object": {"const": "response"},
+        "created_at": {"type": "integer", "minimum": 0},
+        "status": {"enum": ["completed", "incomplete", "failed"]},
+        "model": {"type": "string", "minLength": 1},
+        "output": {"type": "array", "items": {"type": "object"}},
+        "usage": {"type": ["object", "null"]},
+        "error": {"oneOf": [{"$ref": "#/$defs/ErrorDetail"}, {"type": "null"}]},
+        "metadata": {"$ref": "#/$defs/Metadata"}
+      }
+    },
+    "ChatCompletionRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model", "messages"],
+      "properties": {
+        "model": {"type": "string", "minLength": 1, "x-exact-case-service-level-id": true},
+        "messages": {"type": "array", "minItems": 1, "items": {"type": "object"}},
+        "tools": {"type": "array", "items": {"type": "object"}},
+        "tool_choice": {},
+        "response_format": {"type": "object"},
+        "max_tokens": {"type": "integer", "minimum": 1},
+        "temperature": {"type": "number"},
+        "top_p": {"type": "number"},
+        "stream": {"type": "boolean"},
+        "metadata": {"$ref": "#/$defs/Metadata"}
+      }
+    },
+    "ChatCompletionResponse": {
+      "type": "object",
+      "required": ["id", "object", "created", "model", "choices"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "object": {"const": "chat.completion"},
+        "created": {"type": "integer", "minimum": 0},
+        "model": {"type": "string", "minLength": 1},
+        "choices": {"type": "array", "items": {"type": "object"}},
+        "usage": {"type": ["object", "null"]}
+      }
+    },
+    "EmbeddingRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model", "input"],
+      "properties": {
+        "model": {"type": "string", "minLength": 1, "x-exact-case-service-level-id": true},
+        "input": {"oneOf": [{"type": "string"}, {"type": "array", "minItems": 1}]},
+        "encoding_format": {"enum": ["float", "base64"]},
+        "dimensions": {"type": "integer", "minimum": 1},
+        "user": {"type": "string"}
+      }
+    },
+    "EmbeddingResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["object", "data", "model", "usage"],
+      "properties": {
+        "object": {"const": "list"},
+        "data": {"type": "array", "items": {"type": "object"}},
+        "model": {"type": "string", "minLength": 1},
+        "usage": {"type": "object"}
+      }
+    },
+    "Model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "object", "created", "owned_by"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1, "x-exact-case-service-level-id": true},
+        "object": {"const": "model"},
+        "created": {"type": "integer", "minimum": 0},
+        "owned_by": {"const": "llmtier"}
+      }
+    },
+    "ModelList": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["object", "data"],
+      "properties": {
+        "object": {"const": "list"},
+        "data": {"type": "array", "items": {"$ref": "#/$defs/Model"}}
+      }
+    },
+    "ServiceLevelRegistryEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["service_level_id", "contract_version", "slo_version", "effective_at", "valid_until"],
+      "properties": {
+        "service_level_id": {"type": "string", "minLength": 1, "x-exact-case-service-level-id": true},
+        "contract_version": {"type": "string", "minLength": 1},
+        "slo_version": {"type": "string", "minLength": 1},
+        "effective_at": {"type": "string", "format": "date-time"},
+        "valid_until": {"type": "string", "format": "date-time"}
+      }
+    }
+  }
+}

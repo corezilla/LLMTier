@@ -1,35 +1,70 @@
-# llmtier 面向 Slinky 的 Capacity/Observation 契约提案 v0.3
+# LLMTier 面向 Slinky 的 Capacity/Observation 契约提案 v0.3
 
-Last Updated: 2026-09-06 15:34:00 +08:00
+Last Updated: 2026-09-06
 
-Status: Candidate；继承 v0.2 中已通过方向，并补 M4 机器语义验证
+Status: Candidate Amendment；纳入 Slinky V0.3 review，尚无 production wiring 证据
 
-## 1. 保持不变的边界
+## 1. Authority 与唯一推理路径
 
-Authority、共享/重叠 capacity group 的 all-constraints 投影、version/ETag/valid_until 以及 invalidation 不回滚 active IR 的设计保持 v0.2 语义。唯一计量单位仍为 `concurrent_invocation`，burst 不进入 committed Seat。
+Slinky 负责 Project/Plan/IR 和读取 Client-scoped Observation；Piko 负责 Agent Runtime；LLMTier 负责模型服务、admission、routing、Invocation ledger、Service Level Registry 和 Client-scoped observation。唯一 IR-backed inference 路径是 `Runtime -> Piko -> LLMTier`。
 
-## 2. CapacitySnapshot 语义约束（M4）
+Slinky 不取得 Provider credential、physical routing 或 LLMTier Management authority，也不绕过 Piko 执行 inference。Piko 不消费 Observation 分面。
 
-JSON Schema 负责字段类型/必填/枚举；semantic validator 还必须满足：
+## 2. Observation surface
 
-1. `capacity_group_id` 在 snapshot 内唯一。
-2. `service_level_id` 在 snapshot 内唯一。
-3. `available_committed_concurrency <= committed_concurrency`。
-4. group 的 `member_service_level_ids` 与 service level 的 `capacity_group_ids` 双向完全一致，且引用必须存在。
-5. `observed_at < valid_until`；投影时还要求 evaluation time 不晚于 `valid_until`。
-6. `request_quota_remaining=null` 允许作为 snapshot observation，但对该等级的新 committed Seat 投影必须返回 blocked：`client_quota_unknown`，不能按无限处理。
-7. blocking reason 非空或 status 为 `Unavailable` 时，新投影为 blocked。
+- `GET /tier/v1/readiness`
+- `GET /tier/v1/service-levels`
+- `GET /tier/v1/service-levels/{service_level_id}`
+- `GET /tier/v1/capacity/snapshots/current`
+- `GET /tier/v1/invocations/{invocation_id}`
+- `GET /tier/v1/usage/summary`
+- `GET /tier/v1/compatibility`
 
-可执行负例位于 `fixtures/v0.3/capacity-semantic-negative-fixtures.json`；本地 test validator 对每个 mutation 断言预期 code。它证明 candidate 语义算法对这些输入 fail closed，不证明真实 API 已接入该 validator。
+所有响应按 credential scope 过滤。`/tier/v1/service-levels` 与 Data Plane Models、admission、capacity membership 和 Compatibility Manifest 必须由 LLMTier 同一 Registry 生成。
 
-## 3. Metadata UTF-8 byte 语义（M4）
+## 3. Service Level Registry
 
-Manifest 的限制统一为 UTF-8 encoded bytes：key 64 bytes、value 512 bytes。JSON Schema 的 `maxLength` 只作为字符长度粗筛，并增加 `x-utf8-max-bytes` annotation；authoritative semantic validator 必须以 `len(value.encode("utf-8"))` 判断。
+LLMTier 是 catalog authority。`service_level_id` 使用 exact、大小写敏感名称，例如 `Worker`、`Junior`；禁止 lowercasing、alias、Role selector 或跨 Service Level fallback。
 
-多字节正反例位于 `fixtures/v0.3/metadata-utf8-byte-fixtures.json`。超限分别返回 `metadata_key_too_large` 或 `metadata_value_too_large`，不得静默截断。
+Provider/account/pool mapping 与同等级 Backend override 属于 LLMTier。只要能力 Contract/SLO 不变，physical mapping 可替换而不改变 ID；破坏兼容性的语义变化必须创建新 ID 或新 API major。Registry 发布 catalog/version/ETag/`effective_at`/`valid_until`，并在唯一 ID、capacity membership 和 manifest 三方 Contract Test 通过后激活。
 
-## 4. 证据状态
+## 4. CapacitySnapshot 与 Seat
 
-- Planned：真实 Capacity endpoint、admission 与 runtime validation wiring。
-- Implemented：candidate semantic validator test harness 与 fixtures。
-- Verified：duplicate IDs、available 超 committed、反向 membership、时间逆序、quota unknown 和 UTF-8 多字节限制的本地执行检查。
+唯一容量单位是 `concurrent_invocation`。一个 committed Tier Service Seat 表示一个可同时 admission 的 invocation，不表示 token/s、Agent Slot 或 burst entitlement。
+
+投影必须同时满足 direct committed capacity、全部 shared/overlapping Capacity Group、Client quota、service readiness/blocking reason 和 `valid_until`。同一 shared group 不得跨等级重复相加；同属多个 group 时每个约束都必须满足。burst 不计入 committed Seat；`request_quota_remaining=null` 必须以 `client_quota_unknown` 阻断新增 committed Seat。
+
+JSON Schema 负责结构；authoritative semantic validator 还必须检查：
+
+1. `capacity_group_id` 和 exact-case `service_level_id` 各自在 snapshot 内唯一；
+2. `available_committed_concurrency <= committed_concurrency`；
+3. group membership 双向完全一致，引用必须存在；
+4. 每个 service level ID 存在于同一 Registry，case 完全相同；
+5. `observed_at < valid_until`，evaluation time 不晚于 `valid_until`；
+6. quota unknown、Unavailable 或 blocking reason 对新投影 fail closed。
+
+## 5. Version、ETag 与精确 invalidation
+
+`configuration_version`、`inventory_version`、`capacity_version` 和单调 `snapshot_version` 分离；完整 response bytes 使用强 ETag。`valid_until` 是新投影/dispatch 的硬截止时间。
+
+Snapshot 失效时：
+
+1. 关联的 `TierServiceSeat` / `IRBackingSeat` 立即进入 `Invalidated`，不得用于新 dispatch；
+2. IR Management 通知 Plan 更新 Forecast、Risk 和 Action；
+3. 已经被 LLMTier admission 的 in-flight Invocation 不由 Slinky 撤销，也不跨 Stage rollback；
+4. 当前 Attempt 只在该已 admission Invocation 的安全边界内收敛；
+5. 后续 Work 不得继续使用失效 Seat，必须重新投影并 admission。
+
+因此“不回滚 active IR”不表示失效 Seat 仍可继续派发。
+
+## 6. Retention 与 recovery observation
+
+Observation invocation view 与 Data Plane recovery extension 投影自同一 Invocation ledger，不得出现第二状态机。V0.3 采用 M2-C：Piko 自动 retry/recovery deadline 最长 24 小时；active idempotency record 保留到 terminal；terminal 后 content-free digest/tombstone 去重至少 7 天；canonical Response 可恢复至少 7 天。Prompt/output privacy retention 可独立配置，但不能提前删除 digest/tombstone。
+
+## 7. Metadata 与证据状态
+
+Metadata key/value 的权威限制是 64/512 UTF-8 encoded bytes；Schema 的 `maxLength` 不是最终字节检查。多字节和 capacity 负例由 V0.3 fixtures/validator 覆盖。
+
+- Planned：真实 Observation endpoints、Registry、admission 和 invalidation notification wiring。
+- Implemented：candidate Schema、manifest、fixtures、semantic validator test harness。
+- Verified：本地静态/语义测试；尚无 production endpoint、Registry 一致性、公平性或 Slinky E2E 证据。

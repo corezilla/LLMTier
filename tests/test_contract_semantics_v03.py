@@ -59,24 +59,87 @@ class ContractSemanticsV03Tests(unittest.TestCase):
                 self.assertEqual(case["expected"]["valid"], valid)
                 self.assertEqual(case["expected"].get("code"), code)
 
-    def test_forgotten_key_has_no_silent_candidate_selection(self):
+    def test_forgotten_key_selects_finite_window_with_frozen_bounds(self):
         fixture = self.load(FIXTURES / "v0.3" / "idempotency-forgotten-key-options.json")
         decision = fixture["candidate_v0_3_decision"]
-        self.assertIsNone(decision["selected"])
-        self.assertFalse(decision["activation_allowed"])
+        self.assertEqual("C-finite-retention-scope", decision["selected"])
+        self.assertTrue(decision["activation_allowed"])
+        self.assertEqual(24, decision["piko_retry_recovery_deadline_hours_max"])
+        self.assertEqual(7, decision["terminal_digest_tombstone_retention_days_min"])
+        self.assertEqual(7, decision["canonical_response_recovery_days_min"])
         self.assertTrue(any(option["new_mechanism"] for option in fixture["candidate_options"]))
 
     def test_v03_manifest_has_no_verified_endpoint(self):
         manifest = self.load(ROOT / "docs" / "contracts" / "compatibility-manifest-v0.3.json")
         self.assertTrue(manifest["activation"]["planned_or_conditional_fail_closed"])
-        self.assertFalse(any(endpoint["support"] == "verified" for endpoint in manifest["endpoints"]))
-        self.assertFalse(manifest["idempotency_after_complete_deletion"]["activation_allowed"])
+        self.assertFalse(any(endpoint["support"] == "verified" for endpoint in manifest["data_plane_endpoints"]))
+        self.assertTrue(manifest["idempotency_after_complete_deletion"]["activation_allowed"])
+
+    def test_v03_manifest_has_one_complete_surface_and_no_fallback(self):
+        manifest = self.load(ROOT / "docs" / "contracts" / "compatibility-manifest-v0.3.json")
+        endpoints = {(item["method"], item["path"]) for item in manifest["data_plane_endpoints"]}
+        self.assertEqual(
+            {
+                ("POST", "/v1/responses"),
+                ("POST", "/v1/chat/completions"),
+                ("POST", "/v1/embeddings"),
+                ("GET", "/v1/models"),
+                ("GET", "/v1/models/{service_level_id}"),
+                ("GET", "/v1/invocations/{invocation_id}"),
+                ("GET", "/v1/responses/{response_id}"),
+            },
+            endpoints,
+        )
+        self.assertEqual("single_v0_3_surface_no_fallback", manifest["surface_policy"])
+        self.assertFalse(manifest["terminal_replay"]["http_200_invocation_view_allowed"])
+
+    def test_registry_and_management_activation_requirements_are_explicit(self):
+        manifest = self.load(ROOT / "docs" / "contracts" / "compatibility-manifest-v0.3.json")
+        registry = manifest["service_level_registry"]
+        self.assertEqual("llmtier", registry["authority"])
+        self.assertEqual("exact_case_sensitive", registry["id_matching"])
+        self.assertFalse(registry["aliases_allowed"])
+        self.assertFalse(registry["cross_service_level_fallback_allowed"])
+        management = manifest["management"]
+        self.assertEqual("candidate_required", management["api_support"])
+        self.assertEqual("candidate_required", management["admin_web_ui_support"])
+        self.assertEqual("write_only_never_return_value", management["secret_policy"])
+
+    def test_v03_data_plane_schema_definitions_exist(self):
+        schema = self.load(ROOT / "docs" / "contracts" / "schemas" / "llmtier-data-plane-v0.3.schema.json")
+        self.assertTrue(
+            {
+                "ResponsesRequest",
+                "ResponsesResponse",
+                "ChatCompletionRequest",
+                "ChatCompletionResponse",
+                "EmbeddingRequest",
+                "EmbeddingResponse",
+                "Model",
+                "ModelList",
+                "ErrorEnvelope",
+                "ServiceLevelRegistryEntry",
+            }.issubset(schema["$defs"])
+        )
 
     def test_recovery_protocol_never_redispatches_duplicate(self):
         fixture = self.load(FIXTURES / "v0.3" / "recovery-protocol-fixtures.json")
         duplicate_cases = [case for case in fixture["cases"] if case["request"].get("same_key_and_digest")]
         self.assertTrue(duplicate_cases)
         self.assertTrue(all(case["expected"]["dispatch_count"] == 0 for case in duplicate_cases))
+
+    def test_terminal_replay_never_returns_http_200_invocation_view(self):
+        fixture = self.load(FIXTURES / "v0.3" / "recovery-protocol-fixtures.json")
+        terminal = [
+            case for case in fixture["cases"]
+            if case["request"].get("existing_status") in {"Failed", "Cancelled", "UnknownOutcome"}
+        ]
+        self.assertEqual(3, len(terminal))
+        for case in terminal:
+            with self.subTest(case=case["id"]):
+                self.assertEqual("ErrorEnvelope", case["expected"]["body_schema"])
+                self.assertNotEqual(200, case["expected"].get("http_status"))
+                self.assertEqual(0, case["expected"]["dispatch_count"])
 
 
 if __name__ == "__main__":

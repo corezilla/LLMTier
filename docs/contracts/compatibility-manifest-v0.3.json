@@ -1,20 +1,37 @@
 {
-  "manifest_version": "0.3-candidate",
+  "manifest_version": "0.3-candidate-amendment-1",
   "status": "candidate",
+  "surface_policy": "single_v0_3_surface_no_fallback",
   "schema_bundles": [
     "schemas/llmtier-contracts-v0.2.schema.json",
+    "schemas/llmtier-data-plane-v0.3.schema.json",
     "schemas/llmtier-recovery-v0.3.schema.json"
   ],
   "activation": {
     "runtime_supported_status": "verified",
     "requires_all": [
-      "implementation_commit",
+      "production_implementation_commit",
       "positive_and_negative_contract_tests",
-      "pinned_sdk_matrix_pass",
-      "idempotency_retention_option_selected",
-      "service_level_override_resolved"
+      "management_api_ui_positive_negative_tests",
+      "management_secret_non_disclosure_tests",
+      "single_registry_models_observation_admission_manifest_consistency",
+      "multi_client_source_isolation_and_fairness",
+      "capacity_semantic_validator_production_wiring",
+      "piko_pinned_sdk_and_recovery_adapter_capture_matrix",
+      "m2_c_retention_execution_evidence",
+      "legacy_embedded_tier_role_agent_provider_direct_removal_scan"
     ],
     "planned_or_conditional_fail_closed": true
+  },
+  "service_level_registry": {
+    "authority": "llmtier",
+    "id_matching": "exact_case_sensitive",
+    "examples": ["Worker", "Junior"],
+    "aliases_allowed": false,
+    "cross_service_level_fallback_allowed": false,
+    "same_registry_drives": ["models", "observation", "admission", "capacity_membership", "compatibility_manifest"],
+    "publication_fields": ["catalog_version", "etag", "effective_at", "valid_until"],
+    "status": "candidate_unimplemented"
   },
   "metadata_limits": {
     "max_pairs": 16,
@@ -24,75 +41,107 @@
     "authoritative_runtime_unit": "utf8_bytes",
     "semantic_validator_required": true
   },
-  "endpoints": [
+  "data_plane_endpoints": [
     {
       "method": "POST",
       "path": "/v1/responses",
-      "support": "planned",
-      "request_schema_ref": "schemas/llmtier-contracts-v0.2.schema.json#/$defs/ResponsesRequest",
-      "success_response_schema_ref": "schemas/llmtier-recovery-v0.3.schema.json#/$defs/ResponseRetrievalView",
+      "support": "candidate_required",
+      "modes": ["nonstream", "sse"],
+      "request_schema_ref": "schemas/llmtier-data-plane-v0.3.schema.json#/$defs/ResponsesRequest",
+      "success_response_schema_ref": "schemas/llmtier-data-plane-v0.3.schema.json#/$defs/ResponsesResponse",
+      "stock_sdk_first_attempt": "pending_piko_capture",
       "active_duplicate_status": 202,
       "active_duplicate_schema_ref": "schemas/llmtier-recovery-v0.3.schema.json#/$defs/InvocationAccepted",
-      "active_duplicate_sdk_status": "unverified_custom_response",
-      "terminal_duplicate_status": 200,
-      "terminal_duplicate_schema_ref": "schemas/llmtier-contracts-v0.2.schema.json#/$defs/InvocationView",
-      "terminal_duplicate_sdk_status": "unverified_custom_response",
-      "nonstream": "candidate",
-      "streaming": "conditional_pending_piko_capture",
+      "explicit_piko_recovery_adapter_required": true,
+      "terminal_duplicate": "typed_non_2xx_error_envelope",
       "unknown_fields": "reject_unknown_parameter"
-    },
-    {
-      "method": "GET",
-      "path": "/v1/invocations/{invocation_id}",
-      "support": "conditional",
-      "extension": "llmtier_recovery_extension_v1",
-      "automatic_openai_sdk_support": false,
-      "explicit_piko_adapter_call_required": true,
-      "response_schema_ref": "schemas/llmtier-contracts-v0.2.schema.json#/$defs/InvocationView",
-      "errors": ["unauthorized", "source_scope_forbidden", "not_found", "invocation_record_expired"]
-    },
-    {
-      "method": "GET",
-      "path": "/v1/responses/{response_id}",
-      "support": "conditional",
-      "condition": "recovery_extension_enabled_and_retention_policy_frozen",
-      "automatic_openai_sdk_support": "pending_piko_capture",
-      "explicit_piko_adapter_call_required": true,
-      "response_schema_ref": "schemas/llmtier-recovery-v0.3.schema.json#/$defs/ResponseRetrievalView",
-      "errors": ["unauthorized", "source_scope_forbidden", "not_found", "response_record_expired", "response_temporarily_unavailable"]
-    },
-    {
-      "method": "GET",
-      "path": "/v1/models",
-      "support": "planned",
-      "response_schema_ref": "pending"
-    },
-    {
-      "method": "GET",
-      "path": "/v1/models/{service_level_id}",
-      "support": "planned",
-      "response_schema_ref": "pending",
-      "errors": ["model_not_found"]
     },
     {
       "method": "POST",
       "path": "/v1/chat/completions",
-      "support": "conditional",
-      "condition": "pinned_pi_sdk_requires_chat_and_chat_response_event_and_normalization_contract_verified",
-      "fallback": false,
-      "request_schema_ref": "pending_piko_capture",
-      "response_schema_ref": "pending_piko_capture",
-      "canonical_response_mapping": "unverified_fail_closed"
+      "support": "candidate_required",
+      "modes": ["nonstream", "sse"],
+      "request_schema_ref": "schemas/llmtier-data-plane-v0.3.schema.json#/$defs/ChatCompletionRequest",
+      "success_response_schema_ref": "schemas/llmtier-data-plane-v0.3.schema.json#/$defs/ChatCompletionResponse",
+      "stock_sdk_first_attempt": "pending_piko_capture",
+      "explicit_piko_recovery_adapter_required": true,
+      "fallback": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/embeddings",
+      "support": "candidate_required",
+      "modes": ["nonstream"],
+      "request_schema_ref": "schemas/llmtier-data-plane-v0.3.schema.json#/$defs/EmbeddingRequest",
+      "success_response_schema_ref": "schemas/llmtier-data-plane-v0.3.schema.json#/$defs/EmbeddingResponse",
+      "stock_sdk_first_attempt": "pending_piko_capture",
+      "explicit_piko_recovery_adapter_required": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/models",
+      "support": "candidate_required",
+      "response_schema_ref": "schemas/llmtier-data-plane-v0.3.schema.json#/$defs/ModelList",
+      "stock_sdk_support": "pending_piko_capture",
+      "registry_source": "authoritative_service_level_registry"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/models/{service_level_id}",
+      "support": "candidate_required",
+      "response_schema_ref": "schemas/llmtier-data-plane-v0.3.schema.json#/$defs/Model",
+      "stock_sdk_support": "pending_piko_capture",
+      "id_matching": "exact_case_sensitive",
+      "errors": ["model_not_found"]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/invocations/{invocation_id}",
+      "support": "candidate_required_extension",
+      "extension": "llmtier_recovery_extension_v1",
+      "automatic_openai_sdk_support": false,
+      "explicit_piko_recovery_adapter_required": true,
+      "response_schema_ref": "schemas/llmtier-contracts-v0.2.schema.json#/$defs/InvocationView"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/responses/{response_id}",
+      "support": "candidate_required_extension",
+      "automatic_openai_sdk_support": "pending_piko_capture",
+      "explicit_piko_recovery_adapter_required": true,
+      "response_schema_ref": "schemas/llmtier-recovery-v0.3.schema.json#/$defs/ResponseRetrievalView"
     }
   ],
+  "terminal_replay": {
+    "http_200_invocation_view_allowed": false,
+    "error_schema_ref": "schemas/llmtier-data-plane-v0.3.schema.json#/$defs/ErrorEnvelope",
+    "failed": {"http_status_class": "non_2xx", "code": "invocation_failed"},
+    "cancelled": {"http_status": 409, "code": "invocation_cancelled"},
+    "unknown_outcome": {"http_status": 503, "code": "invocation_outcome_unknown", "retryable": false},
+    "detail_query": "/v1/invocations/{invocation_id}"
+  },
   "idempotency_after_complete_deletion": {
-    "selected_option": null,
-    "options_fixture": "fixtures/v0.3/idempotency-forgotten-key-options.json",
-    "activation_allowed": false
+    "selected_option": "C-finite-retention-scope",
+    "selection_frozen": true,
+    "activation_allowed": true,
+    "piko_retry_recovery_deadline_hours_max": 24,
+    "active_record_retention": "until_invocation_terminal",
+    "terminal_digest_tombstone_retention_days_min": 7,
+    "canonical_response_recovery_days_min": 7,
+    "privacy_content_retention_independent": true,
+    "infinite_exactly_once_claimed": false
+  },
+  "management": {
+    "api_prefix": "/admin/v1",
+    "api_support": "candidate_required",
+    "admin_web_ui_support": "candidate_required",
+    "areas": ["provider_account_local_deployment", "model_discovery", "service_level_pool", "client_source_entitlement", "probe_readiness", "capacity_usage_audit_recovery"],
+    "secret_policy": "write_only_never_return_value",
+    "status": "unimplemented"
   },
   "sdk_test_matrix": [
-    {"sdk": "pi-sdk-provider", "version": "pending_piko", "status": "unverified"},
-    {"sdk": "openai-python", "version": "pending", "status": "unverified"}
+    {"sdk": "piko-provider-adapter", "version": "pending_piko", "status": "unverified"},
+    {"sdk": "openai-python", "version": "pending_piko", "status": "unverified"}
   ],
   "fixtures": [
     "fixtures/v0.2/capacity-snapshot-example.json",
