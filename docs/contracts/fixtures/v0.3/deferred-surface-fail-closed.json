@@ -1,0 +1,7 @@
+{
+  "fixture_version": "0.3-candidate-amendment-4",
+  "cases": [
+    {"id": "chat-path-not-implemented", "method": "POST", "path": "/v1/chat/completions", "expected_status": 404, "expected_code": "unsupported_endpoint"},
+    {"id": "responses-streaming-not-implemented", "method": "POST", "path": "/v1/responses", "request_patch": {"stream": true}, "expected_status": 400, "expected_code": "unsupported_feature"}
+  ]
+}

@@ -2,20 +2,20 @@
 
 Last Updated: 2026-09-06
 
-Status: Review Amendment 2；已纳入 Piko baseline/recovery 信息，scope 冲突待裁决，不构成兼容性激活
+Status: Review Amendment 4；已落实 Scope B，不构成兼容性激活
 
 Reviewers: Slinky、Piko
 
-Code baseline: `https://github.com/corezilla/LLMTier`，review base `main@b452b63`
+Code baseline: `https://github.com/corezilla/LLMTier`，Amendment 4 review base `e57a173016b27dd8acaaadf00d0b1b247ae7fb22`
 
 ## 1. V0.3 交付目标
 
 LLMTier 从 Slinky 的旧 embedded Tier 拆分为独立模型服务。V0.3 必须形成一个可管理、可观测、可由 Piko 调用的完整系统范围：
 
-1. 面向 Piko 的统一 OpenAI-compatible Data Plane：Responses、Chat Completions、Embeddings、Models 与 SSE。
+1. 面向 Piko 的 OpenAI-compatible Data Plane：Responses non-stream、Models 与 Responses recovery extension；Embeddings non-stream 面向 Memory/Knowledge Client。
 2. 显式的 `llmtier_recovery_extension_v1`，覆盖 idempotency、lost response、Invocation/Response 查询和 M2-C 有限保证窗口。
 3. 面向 Slinky 的只读、Client-scoped Capacity/Observation，用于投影 Tier Service Seat。
-4. LLMTier Management API 与最小可用 Admin Web UI，管理 Provider/Account/Deployment、Registry/Pool、Client/Source/Entitlement、Probe、Capacity/Usage/Audit/Recovery。
+4. LLMTier Management API 与最小可用 Admin Web UI，管理 Provider/Account/Deployment、Registry/Pool/CapacityGroup、Client/Source/SourceInstance/Entitlement、Probe/Job、aggregate Capacity/Usage/Audit/RecoveryItem。
 5. 单一 authoritative Service Level Registry 驱动 Models、Observation、admission 和 Compatibility Manifest。
 
 V0.3 不授予 Slinky Provider credential 或推理 authority，不让 Piko 理解 physical provider/account/pool/capacity group，不让 LLMTier 获得 Agent/Plan/IR authority，也不保留旧 embedded Tier、Role routing、Agent backend、Provider-direct 或跨 Service Level fallback 路径。
@@ -47,7 +47,8 @@ Admin -> /tier/admin/v1 + Admin Web UI
              |-> admission + capacity membership
              `-> compatibility manifest
 
-Piko -> /v1 Responses | Chat | Embeddings | Models | SSE
+Piko -> /v1 Responses non-stream | Models | Responses recovery
+Memory/Knowledge Client -> /v1 Embeddings non-stream
           -> auth + canonical Client/Source
           -> validation + idempotency/Invocation ledger
           -> exact Service Level admission
@@ -75,14 +76,13 @@ Registry 发布必须包含 catalog version、强 ETag、`effective_at` 和 `val
 
 | Surface | V0.3 scope | Stock SDK / adapter 边界 |
 | --- | --- | --- |
-| `POST /v1/responses` | non-stream + SSE | 标准首次成功/错误/SSE 由 pinned capture 验证；active `202`/recovery 由 Piko adapter 处理 |
-| `POST /v1/chat/completions` | non-stream + SSE | 保持 Chat 标准 body/event；不是 Responses fallback |
-| `POST /v1/embeddings` | 标准 request/response | completed replay 返回原标准 body；recovery 编排仍需 adapter |
+| `POST /v1/responses` | non-stream | 标准首次成功/错误由 pinned capture 验证；active `202`/recovery 由 Piko adapter 处理；`stream=true` fail closed |
+| `POST /v1/embeddings` | non-stream | 面向 Memory/Knowledge Client；由 LLMTier SDK 与实际 Consumer Contract Test 验收 |
 | `GET /v1/models[/...]` | exact Service Level catalog | 目标是 stock models API，来源必须是同一 Registry |
 | `GET /v1/invocations/{id}` | recovery extension | 必须显式 adapter 调用 |
 | `GET /v1/responses/{id}` | Responses recovery read | body 为 canonical Response；恢复策略由 adapter 编排 |
 
-这里不存在 Responses-only 降级面。尚无 Piko capture 的能力保持 candidate、阻止整体 production activation，但不能从 V0.3 scope 静默删除或改走另一 endpoint。
+Chat Completions、Responses/Chat SSE 和全部 streaming contract 已移至 V0.4 future 文档，不出现在 V0.3 OpenAPI。V0.3 不存在 alias、转换入口、inactive parallel endpoint 或 runtime fallback。
 
 “stock SDK”仅描述标准 endpoint 形状。Piko 仍需配置 Source/idempotency headers；只替换 `base_url/api_key` 不会自动处理 `202`、Invocation 查询、lost response 或 `UnknownOutcome`。
 
@@ -92,14 +92,14 @@ Registry 发布必须包含 catalog version、强 ETag、`effective_at` 和 `val
 
 | 情形 | POST 返回 | dispatch |
 | --- | --- | --- |
-| 首次成功 | endpoint 标准 `200` body；SSE 为 `200 text/event-stream` | 一次 |
+| 首次成功 | endpoint 标准 non-stream `200` body | 一次 |
 | active replay | `202 InvocationAccepted` + `Location` + Invocation header + `Retry-After` | 零次 |
 | completed replay | 原 endpoint 标准成功 body | 零次 |
 | Failed/Cancelled/UnknownOutcome replay | typed non-2xx OpenAI-compatible Error envelope | 零次 |
 
 POST 的 HTTP 200 只返回该 endpoint 的标准成功 body，绝不返回 `InvocationView`。terminal 详情通过 `GET /v1/invocations/{id}` 查询；证据不足进入 `UnknownOutcome`，不得盲目重派。
 
-Invocation 已建立后，active `202` 和 terminal non-2xx 都必须返回 `Location: /v1/invocations/{id}` 与 `X-Tier-Invocation-ID`；active `202` 另带 `Retry-After`。Invocation GET 使用 `recovery_ready` 和 `recovery_disposition=wait|retrieve_response|replay_same_request|raise_terminal_error|manual_reconcile` 提供 lost-response readiness，不要求 adapter 从 HTTP 200 猜状态。
+Invocation 已建立后，active `202` 和 terminal non-2xx 都必须返回 `Location: /v1/invocations/{id}` 与 `X-Tier-Invocation-ID`；active `202` 另带 `Retry-After`。Invocation GET 使用 `recovery_ready` 和 `recovery_disposition=wait|retrieve_response|raise_terminal_error|manual_reconcile` 提供 lost-response readiness，不要求 adapter 从 HTTP 200 猜状态。
 
 ### 5.3 M2-C retention
 
@@ -160,7 +160,7 @@ V0.3 只有以下条件全部满足才可从 candidate 激活：
 3. 同一 Registry 驱动 Models、Observation、admission 和 manifest 的一致性测试；
 4. multi-client/source isolation、entitlement 与公平性证据；
 5. Capacity semantic validator 生产接线证据；
-6. Piko pinned SDK/adapter 对首次 200、active 202、terminal error、lost response、UnknownOutcome、Responses/Chat/Embeddings/Models/SSE 的真实 capture；
+6. Piko pinned SDK/adapter 对 Responses non-stream 首次 200、Models、active 202、terminal error、lost response、UnknownOutcome 的真实 capture；Embeddings 由 LLMTier SDK 与实际 Consumer Contract Test 覆盖；
 7. M2-C 24h/7d retention 与 privacy policy 配置/执行证据；
 8. 旧 embedded Tier、Role routing、Agent backend、Provider-direct path 删除扫描；
 9. 文档、Schema、fixtures、manifest 与真实 route 行为一致。
@@ -171,7 +171,7 @@ V0.3 只有以下条件全部满足才可从 candidate 激活：
 
 1. 冻结 Piko SDK/adapter、Source identity、Service Level catalog 与 M2-C 数值。
 2. 建立 authoritative Registry、durable Invocation/idempotency ledger 与 canonical result store。
-3. 实现统一 Data Plane surface 和 recovery extension，补 crash/lost-response tests。
+3. 实现 Scope B 的唯一 Data Plane surface 和 recovery extension，补 crash/lost-response tests。
 4. 实现 Management API/UI、secret-write、inventory/probe/registry publish。
 5. 实现 Observation/capacity snapshot 与 production semantic validation。
 6. 完成三方 conformance、删除旧/直连路径，再激活 manifest。
@@ -184,7 +184,7 @@ V0.3 只有以下条件全部满足才可从 candidate 激活：
 
 已吸收 Slinky Amendment 2 `S-20260906-7f86cf4103bd`：全链统一 Management path 与 canonical headers；用唯一 OpenAPI 3.1 authority 覆盖 Data Plane/SSE/Recovery/Observation/Management；create/retrieve 复用 canonical Response；policy selection 与 runtime activation 分离；移除 V0.3 Manifest 对两份 Data Plane Schema authority 的并列装载。
 
-未决 scope：Piko 请求 V0.3 仅 non-stream Responses 并把 Streaming/Chat 延至 V0.4；Slinky Amendment 1 要求 V0.3 保持 Responses+Chat+Embeddings+Models+SSE。当前保留统一 candidate surface 且 activation=false，等待 Slinky/用户明确裁决，不创建第二路径。
+已吸收 Slinky Scope B `S-20260906-2f9539048493`：V0.3 保留 Responses non-stream、Models、Responses recovery 与 Embeddings non-stream；Chat/SSE/streaming 全部移至 V0.4，且不建立第二路径。
 
 ## 12. 关联材料
 
@@ -194,5 +194,6 @@ V0.3 只有以下条件全部满足才可从 candidate 激活：
 - `docs/contracts/compatibility-manifest-v0.3.json`
 - `docs/contracts/openapi/llmtier-v0.3.openapi.json`
 - `docs/contracts/fixtures/v0.3/data-plane-openapi-fixtures.json`
-- `docs/contracts/fixtures/v0.3/sse-event-sequences.json`
+- `docs/contracts/fixtures/v0.3/observation-management-openapi-fixtures.json`
+- `docs/future/llmtier-v0.4-data-plane.md`
 - `docs/qa/llm-tier-contract-qa-v0.3.md`

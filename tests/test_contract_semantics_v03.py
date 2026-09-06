@@ -87,6 +87,19 @@ class ContractSemanticsV03Tests(unittest.TestCase):
             with self.subTest(ref=ref):
                 self.resolve_pointer(self.openapi, ref)
 
+    def test_openapi_has_no_duplicate_keys_and_operation_ids_are_unique(self):
+        def reject_duplicates(pairs):
+            value = {}
+            for key, item in pairs:
+                if key in value:
+                    raise ValueError(f"duplicate JSON key: {key}")
+                value[key] = item
+            return value
+
+        json.loads(OPENAPI_PATH.read_text(encoding="utf-8"), object_pairs_hook=reject_duplicates)
+        operation_ids = [operation["operationId"] for item in self.openapi["paths"].values() for method, operation in item.items() if method in {"get", "post", "patch", "delete"}]
+        self.assertEqual(len(operation_ids), len(set(operation_ids)))
+
     def test_every_component_schema_is_valid_draft_2020_12(self):
         for name, schema in self.openapi["components"]["schemas"].items():
             with self.subTest(schema=name):
@@ -128,13 +141,10 @@ class ContractSemanticsV03Tests(unittest.TestCase):
                 errors = self.validate_component(case["schema"], case["body"])
                 self.assertEqual(case["valid"], not errors, [error.message for error in errors])
 
-    def test_required_data_plane_fields_and_deprecated_chat_field(self):
+    def test_required_data_plane_fields_and_streaming_fail_closed(self):
         responses = self.openapi["components"]["schemas"]["ResponsesRequest"]["properties"]
-        chat = self.openapi["components"]["schemas"]["ChatCompletionRequest"]["properties"]
         self.assertIn("store", responses)
-        self.assertIn("max_completion_tokens", chat)
-        self.assertIn("stream_options", chat)
-        self.assertNotIn("max_tokens", chat)
+        self.assertEqual(False, responses["stream"]["const"])
 
     def test_create_replay_and_retrieve_use_same_canonical_response_schema(self):
         create_ref = self.openapi["paths"]["/v1/responses"]["post"]["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
@@ -148,24 +158,25 @@ class ContractSemanticsV03Tests(unittest.TestCase):
         self.assertNotIn("invocation_id", schema["properties"])
         self.assertNotIn("retained_until", schema["properties"])
 
-    def test_sse_sequence_fixtures(self):
-        fixture = self.load(FIXTURES / "v0.3" / "sse-event-sequences.json")
-        for case in fixture["cases"]:
-            with self.subTest(case=case["id"]):
-                events = case["events"]
-                if case["protocol"] == "responses":
-                    terminals = [i for i, event in enumerate(events) if event["type"] in {"response.completed", "error"}]
-                    valid = bool(events) and events[0]["type"] == "response.created"
-                    valid = valid and len(terminals) == 1 and terminals[0] == len(events) - 1
-                    valid = valid and [event["sequence_number"] for event in events] == list(range(len(events)))
-                else:
-                    terminals = [i for i, event in enumerate(events) if event["type"] in {"[DONE]", "error"}]
-                    valid = len(terminals) == 1 and terminals[0] == len(events) - 1
-                    if valid and events[-1]["type"] == "[DONE]":
-                        valid = any(event.get("finish_reason") for event in events[:-1])
-                    if valid and case.get("include_usage"):
-                        valid = any("usage" in event for event in events[:-1])
-                self.assertEqual(case["valid"], valid)
+    def test_v03_authority_has_no_chat_or_sse(self):
+        self.assertNotIn("/v1/chat/completions", self.openapi["paths"])
+        text = json.dumps(self.openapi)
+        self.assertNotIn("text/event-stream", text)
+        self.assertFalse(any("Chat" in name or "SSE" in name or "StreamError" in name for name in self.openapi["components"]["schemas"]))
+        deferred = self.load(FIXTURES / "v0.3" / "deferred-surface-fail-closed.json")
+        self.assertEqual({"unsupported_endpoint", "unsupported_feature"}, {case["expected_code"] for case in deferred["cases"]})
+
+    def test_manifest_current_and_deferred_scopes_are_disjoint(self):
+        current = {(entry["method"], entry["path"]) for entry in self.manifest["data_plane_endpoints"]}
+        self.assertEqual({
+            ("POST", "/v1/responses"), ("POST", "/v1/embeddings"),
+            ("GET", "/v1/models"), ("GET", "/v1/models/{service_level_id}"),
+            ("GET", "/v1/invocations/{invocation_id}"), ("GET", "/v1/responses/{response_id}"),
+        }, current)
+        self.assertEqual(["nonstream"], self.manifest["data_plane_endpoints"][0]["modes"])
+        self.assertTrue(all(entry["support"] == "v0.3_required_active_candidate" for entry in self.manifest["data_plane_endpoints"]))
+        self.assertNotIn("chat_completions", {item["name"] for item in self.manifest["capability_activation"]})
+        self.assertEqual(False, self.openapi["x-runtime-activation"])
 
     def test_recovery_protocol_active_and_terminal_contract(self):
         fixture = self.load(FIXTURES / "v0.3" / "recovery-protocol-fixtures.json")
@@ -196,7 +207,7 @@ class ContractSemanticsV03Tests(unittest.TestCase):
 
     def test_data_plane_observation_and_management_endpoint_coverage(self):
         data_plane = {
-            "/v1/responses", "/v1/chat/completions", "/v1/embeddings", "/v1/models",
+            "/v1/responses", "/v1/embeddings", "/v1/models",
             "/v1/models/{service_level_id}", "/v1/invocations/{invocation_id}", "/v1/responses/{response_id}",
         }
         observation = {
@@ -212,9 +223,12 @@ class ContractSemanticsV03Tests(unittest.TestCase):
             "/tier/admin/v1/pools", "/tier/admin/v1/pools/{pool_id}",
             "/tier/admin/v1/clients", "/tier/admin/v1/clients/{client_id}", "/tier/admin/v1/clients/{client_id}/credentials",
             "/tier/admin/v1/sources", "/tier/admin/v1/sources/{source_id}",
+            "/tier/admin/v1/source-instances", "/tier/admin/v1/source-instances/{source_instance_id}",
+            "/tier/admin/v1/capacity-groups", "/tier/admin/v1/capacity-groups/{capacity_group_id}",
             "/tier/admin/v1/entitlements", "/tier/admin/v1/entitlements/{entitlement_id}",
-            "/tier/admin/v1/discovery/jobs", "/tier/admin/v1/probe/jobs", "/tier/admin/v1/jobs/{job_id}",
-            "/tier/admin/v1/capacity", "/tier/admin/v1/usage", "/tier/admin/v1/audit", "/tier/admin/v1/recovery/actions",
+            "/tier/admin/v1/discovery/jobs", "/tier/admin/v1/probe/jobs", "/tier/admin/v1/jobs", "/tier/admin/v1/jobs/{job_id}",
+            "/tier/admin/v1/capacity", "/tier/admin/v1/usage", "/tier/admin/v1/audit",
+            "/tier/admin/v1/recovery-items", "/tier/admin/v1/recovery-items/{recovery_item_id}", "/tier/admin/v1/recovery-items/{recovery_item_id}/actions",
         }
         paths = set(self.openapi["paths"])
         self.assertTrue(data_plane.issubset(paths))
@@ -236,6 +250,34 @@ class ContractSemanticsV03Tests(unittest.TestCase):
             self.assertIn("304", responses, path)
             self.assertIn("ETag", responses["200"]["headers"], path)
 
+    def test_observation_dtos_and_filter_dimensions_are_complete(self):
+        readiness = self.openapi["components"]["schemas"]["ReadinessView"]
+        self.assertTrue({"status", "tier_instance_id", "tier_version", "observation_api_ready", "visible_service_levels", "snapshot_version", "next_refresh_at"}.issubset(readiness["required"]))
+        level = self.openapi["components"]["schemas"]["ServiceLevelView"]
+        self.assertTrue({"kind", "capabilities", "context", "modalities", "compatibility_manifest_ref"}.issubset(level["required"]))
+        compatibility = self.openapi["components"]["schemas"]["CompatibilityEndpoint"]
+        self.assertTrue({"method", "path", "supported_fields", "unsupported_fields", "streaming", "response_schema_version", "error_contract_version", "sdk_matrix"}.issubset(compatibility["required"]))
+
+        invocation_params = {item.get("name") for item in self.openapi["paths"]["/tier/v1/invocations"]["get"]["parameters"] if "name" in item}
+        self.assertTrue({"status", "service_level_id", "source_id", "source_instance_id", "from", "to", "client_request_id"}.issubset(invocation_params))
+        usage_params = {item.get("name") for item in self.openapi["paths"]["/tier/v1/usage/summary"]["get"]["parameters"] if "name" in item}
+        self.assertTrue({"from", "to", "interval", "group_by", "source_id", "source_instance_id", "service_level_id", "endpoint", "status"}.issubset(usage_params))
+        observation_error = self.openapi["components"]["responses"]["ObservationError"]
+        self.assertEqual(["source_error", "contract_mismatch"], observation_error["x-error-codes"])
+
+    def test_models_304_has_if_none_match_precondition(self):
+        for path in ["/v1/models", "/v1/models/{service_level_id}"]:
+            operation = self.openapi["paths"][path]["get"]
+            self.assertIn("304", operation["responses"])
+            self.assertIn("#/components/parameters/IfNoneMatch", {item.get("$ref") for item in operation["parameters"]})
+
+    def test_observation_and_admin_aggregate_fixtures(self):
+        fixture = self.load(FIXTURES / "v0.3" / "observation-management-openapi-fixtures.json")
+        for case in fixture["cases"]:
+            with self.subTest(case=case["id"]):
+                errors = self.validate_component(case["schema"], case["body"])
+                self.assertEqual(case["valid"], not errors, [error.message for error in errors])
+
     def test_management_create_update_async_and_secret_contracts(self):
         for path, item in self.openapi["paths"].items():
             if not path.startswith("/tier/admin/v1"):
@@ -254,8 +296,18 @@ class ContractSemanticsV03Tests(unittest.TestCase):
         self.assertNotIn("secret", account["properties"])
         one_time = self.openapi["components"]["schemas"]["OneTimeCredential"]["properties"]["secret"]
         self.assertTrue(one_time["x-one-time-return"])
-        for path in ["/tier/admin/v1/discovery/jobs", "/tier/admin/v1/probe/jobs", "/tier/admin/v1/registry/publish", "/tier/admin/v1/recovery/actions"]:
+        for path in ["/tier/admin/v1/discovery/jobs", "/tier/admin/v1/probe/jobs", "/tier/admin/v1/registry/publish", "/tier/admin/v1/recovery-items/{recovery_item_id}/actions"]:
             self.assertIn("202", self.openapi["paths"][path]["post"]["responses"])
+
+    def test_management_etag_documentation_matches_openapi(self):
+        for path, item in self.openapi["paths"].items():
+            if not path.startswith("/tier/admin/v1") or "get" not in item:
+                continue
+            operation = item["get"]
+            refs = {parameter.get("$ref") for parameter in operation.get("parameters", [])}
+            self.assertIn("#/components/parameters/IfNoneMatch", refs, path)
+            self.assertIn("304", operation["responses"], path)
+            self.assertIn("ETag", operation["responses"]["200"]["headers"], path)
 
     def test_only_authoritative_path_and_header_names_exist(self):
         files = [
@@ -316,10 +368,11 @@ class ContractSemanticsV03Tests(unittest.TestCase):
                 self.assertEqual(case["expected"]["valid"], valid)
                 self.assertEqual(case["expected"].get("code"), code)
 
-    def test_scope_conflict_blocks_activation_without_fallback(self):
+    def test_scope_resolution_is_frozen_without_fallback(self):
         review = self.manifest["scope_review"]
-        self.assertEqual("pending_slinky_or_user_decision", review["resolution"])
-        self.assertFalse(review["activation_allowed_while_unresolved"])
+        self.assertEqual("B", review["decision"])
+        self.assertEqual("decided_by_slinky_S-20260906-2f9539048493", review["resolution"])
+        self.assertEqual(["chat_completions", "responses_sse", "chat_sse", "all_streaming_replay_and_event_contracts"], review["v0.4_deferred_not_implemented"])
         self.assertFalse(review["parallel_or_fallback_surface_allowed"])
 
 

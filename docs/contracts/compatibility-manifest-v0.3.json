@@ -1,5 +1,5 @@
 {
-  "manifest_version": "0.3-candidate-amendment-3",
+  "manifest_version": "0.3-candidate-amendment-4",
   "status": "candidate",
   "overall": {
     "contract_status": "candidate",
@@ -7,10 +7,10 @@
   },
   "surface_policy": "single_v0_3_surface_no_fallback",
   "scope_review": {
-    "slinky_required": ["responses_nonstream", "responses_sse", "chat_nonstream", "chat_sse", "embeddings", "models"],
-    "piko_requested_amendment": "v0_3_nonstream_responses_only_defer_streaming_and_chat_to_v0_4",
-    "resolution": "pending_slinky_or_user_decision",
-    "activation_allowed_while_unresolved": false,
+    "decision": "B",
+    "resolution": "decided_by_slinky_S-20260906-2f9539048493",
+    "v0.3_required_active_candidate": ["responses_nonstream", "embeddings_nonstream", "models", "responses_recovery"],
+    "v0.4_deferred_not_implemented": ["chat_completions", "responses_sse", "chat_sse", "all_streaming_replay_and_event_contracts"],
     "parallel_or_fallback_surface_allowed": false
   },
   "contract_authority": {
@@ -53,11 +53,10 @@
     "semantic_validator_required": true
   },
   "capability_activation": [
-    {"name": "responses", "contract_status": "candidate", "runtime_activation": false},
-    {"name": "chat_completions", "contract_status": "candidate", "runtime_activation": false},
-    {"name": "embeddings", "contract_status": "candidate", "runtime_activation": false},
-    {"name": "models", "contract_status": "candidate", "runtime_activation": false},
-    {"name": "recovery", "contract_status": "candidate", "runtime_activation": false},
+    {"name": "responses_nonstream", "scope": "v0.3_required_active_candidate", "contract_status": "candidate", "runtime_activation": false},
+    {"name": "embeddings_nonstream", "scope": "v0.3_required_active_candidate", "contract_status": "candidate", "runtime_activation": false},
+    {"name": "models", "scope": "v0.3_required_active_candidate", "contract_status": "candidate", "runtime_activation": false},
+    {"name": "responses_recovery", "scope": "v0.3_required_active_candidate", "contract_status": "candidate", "runtime_activation": false},
     {"name": "observation", "contract_status": "candidate", "runtime_activation": false},
     {"name": "management_api", "contract_status": "candidate", "runtime_activation": false},
     {"name": "admin_web_ui", "contract_status": "candidate", "runtime_activation": false}
@@ -66,8 +65,8 @@
     {
       "method": "POST",
       "path": "/v1/responses",
-      "support": "candidate_required",
-      "modes": ["nonstream", "sse"],
+      "support": "v0.3_required_active_candidate",
+      "modes": ["nonstream"],
       "request_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/ResponsesRequest",
       "success_response_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/ResponsesResponse",
       "stock_sdk_first_attempt": "pending_piko_capture",
@@ -80,29 +79,18 @@
     },
     {
       "method": "POST",
-      "path": "/v1/chat/completions",
-      "support": "candidate_required",
-      "modes": ["nonstream", "sse"],
-      "request_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/ChatCompletionRequest",
-      "success_response_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/ChatCompletionResponse",
-      "stock_sdk_first_attempt": "pending_piko_capture",
-      "explicit_piko_recovery_adapter_required": true,
-      "fallback": false
-    },
-    {
-      "method": "POST",
       "path": "/v1/embeddings",
-      "support": "candidate_required",
+      "support": "v0.3_required_active_candidate",
       "modes": ["nonstream"],
       "request_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/EmbeddingRequest",
       "success_response_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/EmbeddingResponse",
-      "stock_sdk_first_attempt": "pending_piko_capture",
-      "explicit_piko_recovery_adapter_required": true
+      "consumer_contract_test": "required_from_memory_or_knowledge_consumer",
+      "piko_capture_required": false
     },
     {
       "method": "GET",
       "path": "/v1/models",
-      "support": "candidate_required",
+      "support": "v0.3_required_active_candidate",
       "response_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/ModelList",
       "stock_sdk_support": "pending_piko_capture",
       "registry_source": "authoritative_service_level_registry"
@@ -110,7 +98,7 @@
     {
       "method": "GET",
       "path": "/v1/models/{service_level_id}",
-      "support": "candidate_required",
+      "support": "v0.3_required_active_candidate",
       "response_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/Model",
       "stock_sdk_support": "pending_piko_capture",
       "id_matching": "exact_case_sensitive",
@@ -119,7 +107,7 @@
     {
       "method": "GET",
       "path": "/v1/invocations/{invocation_id}",
-      "support": "candidate_required_extension",
+      "support": "v0.3_required_active_candidate",
       "extension": "llmtier_recovery_extension_v1",
       "automatic_openai_sdk_support": false,
       "explicit_piko_recovery_adapter_required": true,
@@ -128,7 +116,7 @@
     {
       "method": "GET",
       "path": "/v1/responses/{response_id}",
-      "support": "candidate_required_extension",
+      "support": "v0.3_required_active_candidate",
       "automatic_openai_sdk_support": "pending_piko_capture",
       "explicit_piko_recovery_adapter_required": true,
       "response_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/ResponsesResponse"
@@ -168,7 +156,6 @@
     "same_key_different_digest": {"http_status": 409, "code": "idempotency_conflict", "retryable": false},
     "active": {"recovery_ready": false, "recovery_disposition": "wait"},
     "succeeded_responses": {"recovery_ready": true, "recovery_disposition": "retrieve_response"},
-    "succeeded_chat_or_embeddings": {"recovery_ready": true, "recovery_disposition": "replay_same_request"},
     "failed_or_cancelled": {"recovery_ready": true, "recovery_disposition": "raise_terminal_error"},
     "unknown_outcome": {"recovery_ready": true, "recovery_disposition": "manual_reconcile", "automatic_redispatch": false}
   },
@@ -207,7 +194,8 @@
     "fixtures/v0.3/idempotency-forgotten-key-options.json",
     "fixtures/v0.3/recovery-protocol-fixtures.json",
     "fixtures/v0.3/data-plane-openapi-fixtures.json",
-    "fixtures/v0.3/sse-event-sequences.json"
+    "fixtures/v0.3/deferred-surface-fail-closed.json",
+    "fixtures/v0.3/observation-management-openapi-fixtures.json"
   ],
   "effective_at": null
 }

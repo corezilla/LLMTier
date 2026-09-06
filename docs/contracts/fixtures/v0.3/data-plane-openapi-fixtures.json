@@ -1,5 +1,5 @@
 {
-  "fixture_version": "0.3-candidate-amendment-3",
+  "fixture_version": "0.3-candidate-amendment-4",
   "cases": [
     {
       "id": "responses-store-positive",
@@ -26,34 +26,10 @@
       "body": {"model": "Worker", "input": "hello", "unknown_option": true}
     },
     {
-      "id": "chat-max-completion-stream-usage-positive",
-      "schema": "ChatCompletionRequest",
-      "valid": true,
-      "body": {"model": "Junior", "messages": [{"role": "user", "content": "hello"}], "max_completion_tokens": 64, "stream": true, "stream_options": {"include_usage": true}}
-    },
-    {
-      "id": "chat-deprecated-max-tokens-negative",
-      "schema": "ChatCompletionRequest",
+      "id": "responses-streaming-deferred-negative",
+      "schema": "ResponsesRequest",
       "valid": false,
-      "body": {"model": "Junior", "messages": [{"role": "user", "content": "hello"}], "max_tokens": 64}
-    },
-    {
-      "id": "chat-arbitrary-message-negative",
-      "schema": "ChatCompletionRequest",
-      "valid": false,
-      "body": {"model": "Junior", "messages": [{"arbitrary": true}]}
-    },
-    {
-      "id": "chat-tool-positive",
-      "schema": "ChatCompletionRequest",
-      "valid": true,
-      "body": {"model": "Junior", "messages": [{"role": "user", "content": "hello"}], "tools": [{"type": "function", "function": {"name": "lookup", "parameters": {"type": "object"}}}], "tool_choice": {"type": "function", "function": {"name": "lookup"}}}
-    },
-    {
-      "id": "chat-flat-tool-negative",
-      "schema": "ChatCompletionRequest",
-      "valid": false,
-      "body": {"model": "Junior", "messages": [{"role": "user", "content": "hello"}], "tools": [{"type": "function", "name": "lookup", "parameters": {}}]}
+      "body": {"model": "Worker", "input": "hello", "stream": true}
     },
     {
       "id": "embedding-string-array-positive",

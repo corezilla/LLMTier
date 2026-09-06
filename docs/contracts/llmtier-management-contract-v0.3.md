@@ -17,9 +17,9 @@ LLMTier 是独立模型服务系统，V0.3 必须提供 Management API 和最小
 - Provider、Account、Local Deployment：list/get/create/update/disable、credential write/rotate、discovery/probe。
 - Model discovery：触发/读取 discovery result，并将 physical capability 映射到 Service Level candidate。
 - Service Level Registry 与 Pool：exact-case ID、Contract/SLO、同等级 Backend override、capacity membership、版本发布。
-- Client、Source、Entitlement：注册、scope、Service Level grant、committed/burst/quota policy。
+- Client、Source、SourceInstance、Entitlement：注册、scope、多 Slinky/Piko Host/test lane identity、Service Level grant、committed/burst/quota policy。
 - Probe/readiness：执行 probe、查看 readiness evidence、隔离或恢复 backend eligibility。
-- Capacity、Usage、Audit、Recovery：查看 scoped/aggregate 状态，执行明确授权的 reconcile/cancel/retention 管理操作。
+- Capacity Group、Capacity、Usage、Audit、Job、Recovery Item：查看 shared/overlapping membership、scoped/aggregate 状态、backlog 和历史 disposition，执行明确授权的 reconcile/cancel 操作。
 
 Management operation 不得创建跨 Service Level fallback、Role selector 或 Provider-direct Data Plane。破坏兼容性的 Service Level 修改必须创建新 ID 或 API major。
 
@@ -34,11 +34,15 @@ Management operation 不得创建跨 Service Level fallback、Role selector 或 
 | Pool | `GET/POST /tier/admin/v1/pools` | `GET/PATCH /tier/admin/v1/pools/{pool_id}` |
 | Client | `GET/POST /tier/admin/v1/clients` | `GET/PATCH /tier/admin/v1/clients/{client_id}`；`POST .../credentials` 创建一次性 credential |
 | Source | `GET/POST /tier/admin/v1/sources` | `GET/PATCH /tier/admin/v1/sources/{source_id}` |
+| SourceInstance | `GET/POST /tier/admin/v1/source-instances` | `GET/PATCH /tier/admin/v1/source-instances/{source_instance_id}` |
+| Capacity Group | `GET /tier/admin/v1/capacity-groups` | `GET /tier/admin/v1/capacity-groups/{capacity_group_id}` |
 | Entitlement | `GET/POST /tier/admin/v1/entitlements` | `GET/PATCH /tier/admin/v1/entitlements/{entitlement_id}` |
-| Discovery / Probe | `POST /tier/admin/v1/discovery/jobs`；`POST /tier/admin/v1/probe/jobs` | `GET /tier/admin/v1/jobs/{job_id}` |
-| Operations | `GET /tier/admin/v1/capacity`、`/usage`、`/audit` | `POST /tier/admin/v1/recovery/actions` |
+| Discovery / Probe / Job | `POST /tier/admin/v1/discovery/jobs`；`POST /tier/admin/v1/probe/jobs`；`GET /tier/admin/v1/jobs` | `GET /tier/admin/v1/jobs/{job_id}` |
+| Operations | `GET /tier/admin/v1/capacity`、`/usage`、`/audit`、`/recovery-items` | `GET /tier/admin/v1/recovery-items/{id}`；`POST .../{id}/actions` |
 
-OpenAPI 为每个 operation 固定 request/response DTO、typed default error 和资源 ID parameter。所有 list 使用 `limit`、`cursor` 与 `PageMeta.next_cursor`；支持快照读取的 list/detail 返回强 `ETag`，`If-None-Match` 命中返回 `304`。所有 create/action `POST` 要求 `Idempotency-Key`；所有资源 `PATCH` 同时要求 `If-Match` 和 body `expected_version`，不匹配返回 `409/412 version_conflict`。Discovery、probe、Registry publish 和 recovery action 返回 `202 AdminJob` 与 `/tier/admin/v1/jobs/{job_id}` Location。
+OpenAPI 为每个 operation 固定 request/response DTO、typed default error 和资源 ID parameter。所有 list 使用 `limit`、`cursor` 与 `PageMeta.next_cursor`。ETag 支持必须逐 endpoint 显式出现：声明 `If-None-Match` 的 GET 同时声明强 `ETag` 和 `304`，未声明的 GET 不声称缓存验证能力。所有 create/action `POST` 要求 `Idempotency-Key`；所有资源 `PATCH` 同时要求 `If-Match` 和 body `expected_version`，不匹配返回 `409/412 version_conflict`。Discovery、probe、Registry publish 和 recovery action 返回 `202 AdminJob` 与 `/tier/admin/v1/jobs/{job_id}` Location。
+
+无 `client_id/source_id` filter 的 `/capacity` 使用 `AdminCapacityPage`，维度可为 null 表示 aggregate；无 `client_id` filter 的 `/usage` 使用 grouped `AdminUsagePage`。Unknown/Partial usage 的 count/token 保持 null，绝不能补零。
 
 Account secret 写入/轮换的 response 只返回状态、secret version 和 rotated timestamp；Client credential 只在创建 response 返回一次 plaintext credential，之后所有 GET/list/audit 都只能返回 fingerprint/status。Recovery action 必须显式提交 `redispatch=false`，只允许 `reconcile` 或 `cancel`，不得绕过 Invocation ledger。
 

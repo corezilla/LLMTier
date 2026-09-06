@@ -1,0 +1,41 @@
+{
+  "fixture_version": "0.3-candidate-amendment-4",
+  "cases": [
+    {
+      "id": "readiness-complete",
+      "schema": "ReadinessView",
+      "valid": true,
+      "body": {"client_id": "slinky", "status": "Ready", "tier_instance_id": "tier-1", "tier_version": "0.3.0", "data_plane_ready": true, "observation_api_ready": true, "visible_service_levels": ["Worker"], "snapshot_version": 12, "configuration_version": "cfg-1", "inventory_version": "inv-1", "observed_at": "2026-09-06T10:00:00Z", "next_refresh_at": "2026-09-06T10:00:30Z", "valid_until": "2026-09-06T10:01:00Z", "blocking_reason_codes": []}
+    },
+    {
+      "id": "readiness-missing-visible-levels",
+      "schema": "ReadinessView",
+      "valid": false,
+      "body": {"client_id": "slinky", "status": "Ready", "tier_instance_id": "tier-1", "tier_version": "0.3.0", "data_plane_ready": true, "observation_api_ready": true, "snapshot_version": 12, "configuration_version": "cfg-1", "inventory_version": "inv-1", "observed_at": "2026-09-06T10:00:00Z", "next_refresh_at": "2026-09-06T10:00:30Z", "valid_until": "2026-09-06T10:01:00Z", "blocking_reason_codes": []}
+    },
+    {
+      "id": "service-level-complete",
+      "schema": "ServiceLevelView",
+      "valid": true,
+      "body": {"service_level_id": "Worker", "kind": "generation", "status": "Available", "contract_version": "c1", "slo_version": "s1", "capabilities": {"responses": true, "embeddings": false, "structured_output": true, "tool_calling": true}, "context": {"max_input_tokens": 131072, "max_output_tokens": 8192}, "modalities": {"input": ["text"], "output": ["text"]}, "capacity_group_ids": ["cg-1"], "compatibility_manifest_ref": "/tier/v1/compatibility", "effective_at": "2026-09-06T00:00:00Z", "valid_until": "2026-09-07T00:00:00Z"}
+    },
+    {
+      "id": "compatibility-complete",
+      "schema": "CompatibilityView",
+      "valid": true,
+      "body": {"manifest_version": "0.3-candidate-amendment-4", "overall_contract_status": "candidate", "overall_runtime_activation": false, "endpoints": [{"method": "POST", "path": "/v1/responses", "support": "v0.3_required_active_candidate", "supported_fields": ["model", "input", "store"], "unsupported_fields": ["stream=true"], "streaming": false, "response_schema_version": "ResponsesResponse/v0.3", "error_contract_version": "ErrorEnvelope/v0.3", "sdk_matrix": ["openai@6.40.0:piko-capture-pending"]}], "effective_at": null}
+    },
+    {
+      "id": "admin-capacity-aggregate-no-client-filter",
+      "schema": "AdminCapacityPage",
+      "valid": true,
+      "body": {"scope": "aggregate", "data": [{"client_id": null, "source_id": null, "service_level_id": "Worker", "capacity_group_id": "cg-1", "unit": "concurrent_invocation", "committed_concurrency": 8, "in_flight_committed": 2, "available_committed_concurrency": 6, "observed_at": "2026-09-06T10:00:00Z", "valid_until": "2026-09-06T10:01:00Z"}], "page": {"next_cursor": null, "has_more": false}}
+    },
+    {
+      "id": "admin-usage-unknown-no-client-filter",
+      "schema": "AdminUsagePage",
+      "valid": true,
+      "body": {"from": "2026-09-06T00:00:00Z", "to": "2026-09-07T00:00:00Z", "data": [{"client_id": null, "source_id": null, "source_instance_id": null, "service_level_id": "Worker", "endpoint": "/v1/responses", "status": null, "invocation_count": null, "input_tokens": null, "output_tokens": null, "usage_status": "Unknown"}], "page": {"next_cursor": null, "has_more": false}}
+    }
+  ]
+}

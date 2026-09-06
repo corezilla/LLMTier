@@ -23,7 +23,9 @@ Slinky 不取得 Provider credential、physical routing 或 LLMTier Management a
 
 所有响应按 credential scope 过滤。`/tier/v1/service-levels` 与 Data Plane Models、admission、capacity membership 和 Compatibility Manifest 必须由 LLMTier 同一 Registry 生成。
 
-各 endpoint 的 query/header、cursor pagination、ETag/`If-None-Match`/`304`、response DTO、typed error 与 Schema ref 以 `openapi/llmtier-v0.3.openapi.json` 为唯一机器权威。Invocation list 支持 `limit/cursor/status/service_level_id`，detail/list 投影同一 Invocation Schema。
+各 endpoint 的 query/header、cursor pagination、ETag/`If-None-Match`/`304`、response DTO、typed error 与 Schema ref 以 `openapi/llmtier-v0.3.openapi.json` 为唯一机器权威。Invocation list 支持 `limit/cursor/status/service_level_id/source_id/source_instance_id/from/to/client_request_id`；Usage 支持 `interval/group_by/source_id/source_instance_id/service_level_id/endpoint/status/limit/cursor`。字段或 Source identity 无法满足时返回 typed `source_error` 或 `contract_mismatch`，Slinky Adapter 不得猜测。
+
+Readiness 显式给出 Ready/Degraded/NotReady、Tier instance/version、Observation readiness、visible Service Levels、snapshot version 与 refresh window。Service Level DTO 包含 kind、capabilities、context、Structured Output、Tool Calling、modalities/limits 和 Compatibility ref。Compatibility endpoint 按 method/path 返回 supported/unsupported fields、streaming、Schema/error version、SDK matrix 与 effective_at。
 
 ## 3. Service Level Registry
 
