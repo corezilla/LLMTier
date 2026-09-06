@@ -19,6 +19,7 @@ CONTRACTS = ROOT / "docs" / "contracts"
 FIXTURES = CONTRACTS / "fixtures"
 OPENAPI_PATH = CONTRACTS / "openapi" / "llmtier-v0.3.openapi.json"
 MANIFEST_PATH = CONTRACTS / "compatibility-manifest-v0.3.json"
+SYSTEM_DESIGN_PATH = ROOT / "docs" / "design" / "llmtier-v0.3-system-design.md"
 
 
 class ContractSemanticsV03Tests(unittest.TestCase):
@@ -204,6 +205,17 @@ class ContractSemanticsV03Tests(unittest.TestCase):
         accepted = self.openapi["components"]["schemas"]["InvocationAccepted"]
         self.assertEqual(["Pending", "Queued", "Running"], accepted["properties"]["status"]["enum"])
         self.assertNotIn("UnknownOutcome", accepted["properties"]["status"]["enum"])
+
+    def test_system_design_uses_canonical_invocation_status_names(self):
+        design = SYSTEM_DESIGN_PATH.read_text(encoding="utf-8")
+        invocation_statuses = set(self.openapi["components"]["schemas"]["InvocationStatus"]["enum"])
+        self.assertEqual(
+            {"Pending", "Queued", "Running", "Succeeded", "Failed", "Cancelled", "UnknownOutcome"},
+            invocation_statuses,
+        )
+        self.assertNotRegex(design, r"\bCompleted\b")
+        self.assertIn("| Succeeded | 原 endpoint canonical `200` body", design)
+        self.assertIn("terminal 为 Succeeded、Failed、Cancelled、", design)
 
     def test_data_plane_observation_and_management_endpoint_coverage(self):
         data_plane = {

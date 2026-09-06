@@ -143,7 +143,7 @@ Slinky -> /tier/v1 readiness | service-levels | capacity | invocations | usage |
 | 状态 | POST replay | 后续动作 |
 |---|---|---|
 | Pending/Queued/Running | `202 InvocationAccepted` + `Location` + `X-Tier-Invocation-ID` + `Retry-After` | Piko 按 Invocation GET readiness 等待 |
-| Completed | 原 endpoint canonical `200` body | 零次 dispatch；必要时 Response GET |
+| Succeeded | 原 endpoint canonical `200` body | 零次 dispatch；必要时 Response GET |
 | Failed | `502 invocation_failed` | typed `retryable=false`，不得重派 |
 | Cancelled | `409 invocation_cancelled` | typed `retryable=false`，不得重派 |
 | UnknownOutcome | `503 invocation_outcome_unknown` | manual reconcile；不得重派 |
@@ -275,7 +275,7 @@ gate 关闭。Responses `stream=true` 返回 `unsupported_feature`；Chat/SSE pa
 核心实体：Client、Source、SourceInstance、Entitlement、ServiceLevel、Pool、CapacityGroup、
 Provider、Account、Deployment、Invocation、CanonicalResponse、Usage、RecoveryItem、AdminJob。
 
-Invocation active 状态仅为 Pending、Queued、Running；terminal 为 Completed、Failed、Cancelled、
+Invocation active 状态仅为 Pending、Queued、Running；terminal 为 Succeeded、Failed、Cancelled、
 UnknownOutcome。`InvocationAccepted` 不得包含 UnknownOutcome。完整字段、oneOf 和错误状态以当前
 OpenAPI 为准。
 
