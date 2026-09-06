@@ -67,28 +67,15 @@ class TierConfig:
         self._last_persist_error = ""
 
         if settings_path:
-            self._settings_path = Path(settings_path).resolve()
+            self._settings_path = Path(settings_path).expanduser().resolve()
         else:
-            env_path = os.environ.get("SLINKY_TIER_CONFIG", "").strip()
-            if env_path:
-                self._settings_path = Path(env_path).resolve()
-
-            if not self._settings_path or not self._settings_path.is_file():
-                cwd = Path.cwd()
-                repo_root = Path(__file__).resolve().parent.parent.parent
-                candidates = [
-                    Path(os.environ.get("SLINKY_WORKSPACES_SETTINGS", "")).expanduser(),
-                    cwd / "workspaces" / "settings.json",
-                    cwd.parent / "workspaces" / "settings.json",
-                    repo_root / "workspaces" / "settings.json",
-                ]
-                default_path = Path(__file__).resolve().parent.parent.parent / "settings.default.json"
-                if default_path.is_file():
-                    candidates.append(default_path)
-                for candidate in candidates:
-                    if str(candidate) and candidate.is_file():
-                        self._settings_path = candidate
-                        break
+            project_root = Path(__file__).resolve().parent.parent.parent
+            configured_path = os.environ.get("LLMTIER_CONFIG", "").strip()
+            self._settings_path = (
+                Path(configured_path).expanduser().resolve()
+                if configured_path
+                else project_root / "config" / "settings.json"
+            )
 
         if self._settings_path and self._settings_path.is_file():
             try:

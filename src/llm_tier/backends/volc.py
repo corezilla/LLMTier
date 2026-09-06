@@ -24,8 +24,8 @@ class VolcClient(BaseBackendClient, ApiBackendMixin):
     # - 无返回值，初始化实例状态
     def __init__(self, api_key: str = "", base_url: str = "", timeout_seconds: int = 300, **kwargs: Any) -> None:
         import os
-        self._api_key = api_key or os.environ.get("SLINKY_VOLC_API_KEY") or ""
-        self._base_url = base_url or os.environ.get("SLINKY_VOLC_BASE_URL", "https://ark.cn-beijing.volces.com/api/coding/v3")
+        self._api_key = api_key or os.environ.get("LLMTIER_VOLC_API_KEY") or ""
+        self._base_url = base_url or os.environ.get("LLMTIER_VOLC_BASE_URL", "https://ark.cn-beijing.volces.com/api/coding/v3")
         self._timeout_seconds = timeout_seconds
         self._current_model = ""
 

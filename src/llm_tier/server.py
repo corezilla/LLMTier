@@ -427,26 +427,23 @@ class TierServer:
     # Outputs: None; unavailable optional Backend modules are skipped.
     @staticmethod
     def _import_backends() -> None:
-        for module_name in ("xfyun", "volc", "deepseek", "local", "minimax", "codex", "claude", "opencode", "opencode_go", "mlexp", "debug"):
+        for module_name in ("xfyun", "volc", "deepseek", "minimax", "opencode_go", "debug"):
             try:
                 __import__(f"llm_tier.backends.{module_name}", fromlist=["llm_tier.backends"])
             except Exception:
                 continue
 
     # 用途：
-    # - 根据 settings.json 位置解析 tier runtime state/stats 目录
+    # - 解析 LLMTier 自有 runtime state/stats 目录
     # 输入：
-    # - 无；读取 TierConfig 内部 settings_path
+    # - 无；读取 LLMTIER_STATE_DIR 或项目内 state 默认目录
     # 输出：
     # - stats/tier_trace 等运行时文件所在目录
     def _resolve_stats_dir(self) -> str:
-        sp = self._config.__dict__.get("_settings_path")
-        if sp and Path(str(sp)).is_file():
-            settings_parent = Path(str(sp)).parent
-            if settings_parent.name == "workspaces":
-                return str(settings_parent / "tier_state")
-            return str(settings_parent / "workspaces" / "tier_state")
-        return "."
+        configured_path = os.environ.get("LLMTIER_STATE_DIR", "").strip()
+        if configured_path:
+            return str(Path(configured_path).expanduser().resolve())
+        return str(Path(__file__).resolve().parent.parent.parent / "state")
 
     # 用途：
     # - 根据环境变量初始化 tier runtime debug/trace 开关

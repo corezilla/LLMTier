@@ -36,13 +36,9 @@ def ensure_backend_registry_loaded() -> None:
         return
     _registry_loaded = True
     for module_name in (
-        "llm_tier.backends.claude",
-        "llm_tier.backends.codex",
         "llm_tier.backends.debug",
         "llm_tier.backends.deepseek",
         "llm_tier.backends.minimax",
-        "llm_tier.backends.mlexp",
-        "llm_tier.backends.opencode",
         "llm_tier.backends.opencode_go",
         "llm_tier.backends.volc",
         "llm_tier.backends.xfyun",

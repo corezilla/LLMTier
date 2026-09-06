@@ -23,7 +23,7 @@ def _resolve_api_key(api_key: str = "", api_key_file: str = "") -> str:
     if api_key:
         return api_key.strip()
 
-    env_key = os.environ.get("SLINKY_MINIMAX_API_KEY") or os.environ.get("ANTHROPIC_API_KEY") or ""
+    env_key = os.environ.get("LLMTIER_MINIMAX_API_KEY") or ""
     if env_key:
         return env_key.strip()
 

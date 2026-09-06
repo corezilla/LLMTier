@@ -12,8 +12,8 @@ from llm_tier.exceptions import BackendCallError
 class XfyunClient(BaseBackendClient, ApiBackendMixin):
     def __init__(self, api_key: str = "", base_url: str = "", timeout_seconds: int = 600, **kwargs: Any) -> None:
         import os
-        self._api_key = api_key or os.environ.get("SLINKY_XFYUN_API_KEY2") or os.environ.get("SLINKY_XFYUN_API_KEY") or ""
-        self._base_url = base_url or os.environ.get("SLINKY_XFYUN_BASE_URL", "https://maas-coding-api.cn-huabei-1.xf-yun.com/v2")
+        self._api_key = api_key or os.environ.get("LLMTIER_XFYUN_API_KEY") or ""
+        self._base_url = base_url or os.environ.get("LLMTIER_XFYUN_BASE_URL", "https://maas-coding-api.cn-huabei-1.xf-yun.com/v2")
         self._timeout_seconds = timeout_seconds
         self._current_model: str = ""
 

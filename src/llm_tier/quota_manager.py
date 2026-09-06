@@ -25,10 +25,12 @@ _QUOTA_STATE_FILE = "quota_state.json"
 # 输入：
 # - 无
 # 输出：
-# - repo/workspaces/tier_state/llm_tier 路径
+# - LLMTier 项目 state/quota 路径
 def _default_quota_state_dir() -> Path:
     repo_root = Path(__file__).resolve().parent.parent.parent
-    return repo_root / "workspaces" / "tier_state" / "llm_tier"
+    configured_path = os.environ.get("LLMTIER_STATE_DIR", "").strip()
+    state_root = Path(configured_path).expanduser() if configured_path else repo_root / "state"
+    return state_root / "quota"
 
 
 # 用途：

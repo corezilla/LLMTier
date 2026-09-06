@@ -34,11 +34,11 @@ class OpenCodeGoClient(BaseBackendClient, ApiBackendMixin):
         self._api_key = (
             str(api_key or "").strip()
             or _read_secret_file(api_key_file)
-            or os.environ.get("SLINKY_OPENCODE_GO_API_KEY", "").strip()
+            or os.environ.get("LLMTIER_OPENCODE_GO_API_KEY", "").strip()
         )
         self._base_url = str(
             base_url
-            or os.environ.get("SLINKY_OPENCODE_GO_BASE_URL")
+            or os.environ.get("LLMTIER_OPENCODE_GO_BASE_URL")
             or "https://opencode.ai/zen/go/v1"
         ).rstrip("/")
         self._timeout_seconds = int(timeout_seconds or 600)
