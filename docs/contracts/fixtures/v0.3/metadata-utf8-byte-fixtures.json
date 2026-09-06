@@ -1,0 +1,24 @@
+{
+  "fixture_version": "0.3-candidate",
+  "limits": {"key_utf8_bytes": 64, "value_utf8_bytes": 512},
+  "cases": [
+    {
+      "id": "ascii-at-byte-limit",
+      "key": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+      "value": "ok",
+      "expected": {"valid": true}
+    },
+    {
+      "id": "multibyte-key-over-byte-limit",
+      "key": "界界界界界界界界界界界界界界界界界界界界界界",
+      "value": "ok",
+      "expected": {"valid": false, "code": "metadata_key_too_large"}
+    },
+    {
+      "id": "multibyte-value-over-byte-limit",
+      "key": "note",
+      "value": "界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界",
+      "expected": {"valid": false, "code": "metadata_value_too_large"}
+    }
+  ]
+}

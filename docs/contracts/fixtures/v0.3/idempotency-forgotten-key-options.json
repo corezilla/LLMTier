@@ -1,0 +1,35 @@
+{
+  "fixture_version": "0.3-candidate",
+  "case": {
+    "id": "replay-after-complete-record-and-tombstone-deletion",
+    "durable_record_present": false,
+    "tombstone_present": false,
+    "request_matches_historical_key": true,
+    "observable_state_equals_first_use": true
+  },
+  "candidate_options": [
+    {
+      "id": "A-indefinite-key-index",
+      "guarantee": "reject_old_key",
+      "cost": "unbounded_or_compacted_durable_key_index",
+      "new_mechanism": true
+    },
+    {
+      "id": "B-server-issued-epoch",
+      "guarantee": "reject_expired_epoch_before_key_lookup",
+      "cost": "new_epoch_token_and_rotation_protocol",
+      "new_mechanism": true
+    },
+    {
+      "id": "C-finite-retention-scope",
+      "guarantee": "only_within_published_retention_window",
+      "cost": "cannot_distinguish_old_key_after_complete_deletion",
+      "new_mechanism": false
+    }
+  ],
+  "candidate_v0_3_decision": {
+    "selected": null,
+    "activation_allowed": false,
+    "reason": "requires_contract_owner_decision"
+  }
+}

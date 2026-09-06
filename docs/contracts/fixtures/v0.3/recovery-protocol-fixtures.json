@@ -1,0 +1,35 @@
+{
+  "fixture_version": "0.3-candidate",
+  "cases": [
+    {
+      "id": "nonstream-first-success",
+      "request": {"stream": false, "first_attempt": true},
+      "expected": {"http_status": 200, "body_schema": "ResponseRetrievalView", "dispatch_count": 1}
+    },
+    {
+      "id": "nonstream-lost-response-retry-active",
+      "request": {"stream": false, "same_key_and_digest": true, "existing_status": "Running"},
+      "expected": {"http_status": 202, "body_schema": "InvocationAccepted", "dispatch_count": 0, "adapter_required": true}
+    },
+    {
+      "id": "nonstream-lost-response-retry-complete",
+      "request": {"stream": false, "same_key_and_digest": true, "existing_status": "Succeeded"},
+      "expected": {"http_status": 200, "body_schema": "ResponseRetrievalView", "dispatch_count": 0}
+    },
+    {
+      "id": "stream-first-response",
+      "request": {"stream": true, "first_attempt": true},
+      "expected": {"http_status": 200, "content_type": "text/event-stream", "invocation_id_header": "X-LLMTier-Invocation-Id", "dispatch_count": 1, "sdk_status": "pending_piko_capture"}
+    },
+    {
+      "id": "stream-active-retry-fail-closed",
+      "request": {"stream": true, "same_key_and_digest": true, "existing_status": "Running"},
+      "expected": {"dispatch_count": 0, "automatic_reattach": false, "activation_allowed": false, "reason": "stream_replay_contract_unverified"}
+    },
+    {
+      "id": "chat-recovery-without-explicit-normalization",
+      "request": {"endpoint": "/v1/chat/completions", "recovery_requested": true},
+      "expected": {"activation_allowed": false, "reason": "chat_to_responses_mapping_unverified"}
+    }
+  ]
+}

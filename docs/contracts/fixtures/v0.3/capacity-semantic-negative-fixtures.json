@@ -1,0 +1,36 @@
+{
+  "fixture_version": "0.3-candidate",
+  "cases": [
+    {
+      "id": "duplicate-capacity-group-id",
+      "mutation": {"duplicate_group_id": "shared-main"},
+      "expected": {"snapshot_valid": false, "code": "duplicate_capacity_group_id"}
+    },
+    {
+      "id": "duplicate-service-level-id",
+      "mutation": {"duplicate_service_level_id": "Junior"},
+      "expected": {"snapshot_valid": false, "code": "duplicate_service_level_id"}
+    },
+    {
+      "id": "available-exceeds-committed",
+      "mutation": {"group": "shared-main", "available_committed_concurrency": 3},
+      "expected": {"snapshot_valid": false, "code": "available_exceeds_committed"}
+    },
+    {
+      "id": "reverse-membership-mismatch",
+      "mutation": {"level": "Senior", "remove_group_ref": "premium-pool"},
+      "expected": {"snapshot_valid": false, "code": "capacity_membership_mismatch"}
+    },
+    {
+      "id": "snapshot-time-reversed",
+      "mutation": {"valid_until": "2026-09-06T14:59:59+08:00"},
+      "expected": {"snapshot_valid": false, "code": "invalid_snapshot_time_window"}
+    },
+    {
+      "id": "quota-unknown-blocks-projection",
+      "mutation": {"level": "Junior", "request_quota_remaining": null},
+      "requested_seats": {"Junior": 1},
+      "expected": {"snapshot_valid": true, "projection_allowed": false, "code": "client_quota_unknown"}
+    }
+  ]
+}

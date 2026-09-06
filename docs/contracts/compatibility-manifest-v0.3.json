@@ -1,0 +1,105 @@
+{
+  "manifest_version": "0.3-candidate",
+  "status": "candidate",
+  "schema_bundles": [
+    "schemas/llmtier-contracts-v0.2.schema.json",
+    "schemas/llmtier-recovery-v0.3.schema.json"
+  ],
+  "activation": {
+    "runtime_supported_status": "verified",
+    "requires_all": [
+      "implementation_commit",
+      "positive_and_negative_contract_tests",
+      "pinned_sdk_matrix_pass",
+      "idempotency_retention_option_selected",
+      "service_level_override_resolved"
+    ],
+    "planned_or_conditional_fail_closed": true
+  },
+  "metadata_limits": {
+    "max_pairs": 16,
+    "key_utf8_bytes": 64,
+    "value_utf8_bytes": 512,
+    "schema_length_unit": "unicode_code_points",
+    "authoritative_runtime_unit": "utf8_bytes",
+    "semantic_validator_required": true
+  },
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "support": "planned",
+      "request_schema_ref": "schemas/llmtier-contracts-v0.2.schema.json#/$defs/ResponsesRequest",
+      "success_response_schema_ref": "schemas/llmtier-recovery-v0.3.schema.json#/$defs/ResponseRetrievalView",
+      "active_duplicate_status": 202,
+      "active_duplicate_schema_ref": "schemas/llmtier-recovery-v0.3.schema.json#/$defs/InvocationAccepted",
+      "active_duplicate_sdk_status": "unverified_custom_response",
+      "terminal_duplicate_status": 200,
+      "terminal_duplicate_schema_ref": "schemas/llmtier-contracts-v0.2.schema.json#/$defs/InvocationView",
+      "terminal_duplicate_sdk_status": "unverified_custom_response",
+      "nonstream": "candidate",
+      "streaming": "conditional_pending_piko_capture",
+      "unknown_fields": "reject_unknown_parameter"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/invocations/{invocation_id}",
+      "support": "conditional",
+      "extension": "llmtier_recovery_extension_v1",
+      "automatic_openai_sdk_support": false,
+      "explicit_piko_adapter_call_required": true,
+      "response_schema_ref": "schemas/llmtier-contracts-v0.2.schema.json#/$defs/InvocationView",
+      "errors": ["unauthorized", "source_scope_forbidden", "not_found", "invocation_record_expired"]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/responses/{response_id}",
+      "support": "conditional",
+      "condition": "recovery_extension_enabled_and_retention_policy_frozen",
+      "automatic_openai_sdk_support": "pending_piko_capture",
+      "explicit_piko_adapter_call_required": true,
+      "response_schema_ref": "schemas/llmtier-recovery-v0.3.schema.json#/$defs/ResponseRetrievalView",
+      "errors": ["unauthorized", "source_scope_forbidden", "not_found", "response_record_expired", "response_temporarily_unavailable"]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/models",
+      "support": "planned",
+      "response_schema_ref": "pending"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/models/{service_level_id}",
+      "support": "planned",
+      "response_schema_ref": "pending",
+      "errors": ["model_not_found"]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "support": "conditional",
+      "condition": "pinned_pi_sdk_requires_chat_and_chat_response_event_and_normalization_contract_verified",
+      "fallback": false,
+      "request_schema_ref": "pending_piko_capture",
+      "response_schema_ref": "pending_piko_capture",
+      "canonical_response_mapping": "unverified_fail_closed"
+    }
+  ],
+  "idempotency_after_complete_deletion": {
+    "selected_option": null,
+    "options_fixture": "fixtures/v0.3/idempotency-forgotten-key-options.json",
+    "activation_allowed": false
+  },
+  "sdk_test_matrix": [
+    {"sdk": "pi-sdk-provider", "version": "pending_piko", "status": "unverified"},
+    {"sdk": "openai-python", "version": "pending", "status": "unverified"}
+  ],
+  "fixtures": [
+    "fixtures/v0.2/capacity-snapshot-example.json",
+    "fixtures/v0.3/capacity-semantic-negative-fixtures.json",
+    "fixtures/v0.3/metadata-utf8-byte-fixtures.json",
+    "fixtures/v0.3/idempotency-forgotten-key-options.json",
+    "fixtures/v0.3/recovery-protocol-fixtures.json"
+  ],
+  "effective_at": null
+}

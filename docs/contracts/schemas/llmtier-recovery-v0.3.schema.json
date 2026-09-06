@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://llmtier.local/contracts/v0.3/recovery-schema.json",
+  "title": "llmtier recovery candidate schemas v0.3",
+  "$defs": {
+    "Metadata": {
+      "type": "object",
+      "maxProperties": 16,
+      "propertyNames": {
+        "maxLength": 64,
+        "x-utf8-max-bytes": 64
+      },
+      "additionalProperties": {
+        "type": "string",
+        "maxLength": 512,
+        "x-utf8-max-bytes": 512
+      },
+      "x-authoritative-length-unit": "utf8_bytes"
+    },
+    "Error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "code", "message", "retryable"],
+      "properties": {
+        "type": {"type": "string", "minLength": 1},
+        "code": {"type": "string", "minLength": 1},
+        "message": {"type": "string"},
+        "param": {"type": ["string", "null"]},
+        "retryable": {"type": "boolean"},
+        "retry_after_ms": {"type": ["integer", "null"], "minimum": 0}
+      }
+    },
+    "InvocationAccepted": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["object", "invocation_id", "status", "record_version", "recovery_url"],
+      "properties": {
+        "object": {"const": "llmtier.invocation"},
+        "invocation_id": {"type": "string", "minLength": 1},
+        "status": {"enum": ["Pending", "Queued", "Running", "UnknownOutcome"]},
+        "record_version": {"type": "integer", "minimum": 1},
+        "recovery_url": {"type": "string", "pattern": "^/v1/invocations/[^/]+$"},
+        "retry_after_ms": {"type": ["integer", "null"], "minimum": 0}
+      }
+    },
+    "ResponseRetrievalView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "object",
+        "invocation_id",
+        "status",
+        "model",
+        "output",
+        "usage",
+        "error",
+        "created_at",
+        "retained_until"
+      ],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "object": {"const": "response"},
+        "invocation_id": {"type": "string", "minLength": 1},
+        "status": {"enum": ["completed", "incomplete", "failed"]},
+        "model": {"type": "string", "minLength": 1},
+        "output": {"type": "array", "items": {"type": "object"}},
+        "usage": {"type": ["object", "null"]},
+        "error": {"oneOf": [{"$ref": "#/$defs/Error"}, {"type": "null"}]},
+        "created_at": {"type": "string", "format": "date-time"},
+        "retained_until": {"type": "string", "format": "date-time"}
+      }
+    }
+  }
+}
