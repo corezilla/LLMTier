@@ -1,0 +1,8 @@
+{
+  "std_version": "0.1.0-draft.1",
+  "source_repository": "corezilla/architecture-standards",
+  "source_revision": null,
+  "manifest_path": "rag/std-ingestion-manifest.jsonl",
+  "adopted_at": "2026-09-07",
+  "enabled_profiles": ["management", "systems", "software"]
+}

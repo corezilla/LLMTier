@@ -1,0 +1,27 @@
+{
+  "project": "LLMTier",
+  "authority": "llmtier",
+  "document_id": "std-tailoring-v0.1",
+  "document_type": "management.tailoring",
+  "title": "LLMTier STD 裁剪清单 v0.1",
+  "std_version": "0.1.0-draft.1",
+  "template_id": "management.tailoring",
+  "template_version": "0.1.0",
+  "template_sha256": "56b9a1b3d5384c891fe08493a6f1eedaaffc7847c782cb07f497f50aaebed962",
+  "design_level": "project",
+  "domain": [
+    "management"
+  ],
+  "status": "review",
+  "visibility": "project",
+  "source_commit": "7607f55f249a2b63d2495566895fb598a5b4eaaa",
+  "parent_document_id": null,
+  "supersedes": null,
+  "profiles": [
+    "management",
+    "systems",
+    "software"
+  ],
+  "created_at": "2026-09-07",
+  "updated_at": "2026-09-07"
+}
