@@ -1,10 +1,37 @@
 {
-  "fixture_version": "0.3-candidate-amendment-4",
+  "fixture_version": "0.3-candidate-std-amendment",
   "cases": [
     {
       "id": "nonstream-first-success",
       "request": {"stream": false, "first_attempt": true},
       "expected": {"http_status": 200, "body_schema": "ResponsesResponse", "dispatch_count": 1}
+    },
+    {
+      "id": "nonstream-response-headers-lost-no-invocation-id",
+      "request": {
+        "stream": false,
+        "transport_failure": "before_response_headers",
+        "invocation_id_known": false,
+        "retry_within_hours": 24,
+        "same_authenticated_client": true,
+        "same_canonical_source": true,
+        "same_request_body": true,
+        "same_key_and_digest": true,
+        "same_client_request_id": true
+      },
+      "expected": {
+        "recovery_action": "replay_same_post",
+        "endpoint": "/v1/responses",
+        "new_attempt": false,
+        "new_recovery_path": false,
+        "new_idempotency_key": false,
+        "backend_dispatch_bound": "at_most_one_per_namespace_key_digest",
+        "additional_dispatch_if_record_exists": 0,
+        "allowed_http_status": [200, 202, 409, 502, 503],
+        "allowed_outcome": ["first", "active", "succeeded", "cancelled", "failed", "unknown_outcome"],
+        "unknown_outcome_redispatch": false,
+        "adapter_required": true
+      }
     },
     {
       "id": "nonstream-lost-response-retry-active",

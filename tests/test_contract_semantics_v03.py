@@ -20,6 +20,7 @@ FIXTURES = CONTRACTS / "fixtures"
 OPENAPI_PATH = CONTRACTS / "openapi" / "llmtier-v0.3.openapi.json"
 MANIFEST_PATH = CONTRACTS / "compatibility-manifest-v0.3.json"
 SYSTEM_DESIGN_PATH = ROOT / "docs" / "design" / "llmtier-v0.3-system-design.md"
+AUTHORIZATION_SCOPE_FIXTURE_PATH = FIXTURES / "v0.3" / "authorization-scope-fixtures.json"
 
 
 class ContractSemanticsV03Tests(unittest.TestCase):
@@ -181,7 +182,7 @@ class ContractSemanticsV03Tests(unittest.TestCase):
 
     def test_recovery_protocol_active_and_terminal_contract(self):
         fixture = self.load(FIXTURES / "v0.3" / "recovery-protocol-fixtures.json")
-        duplicate_cases = [case for case in fixture["cases"] if case["request"].get("same_key_and_digest")]
+        duplicate_cases = [case for case in fixture["cases"] if case["request"].get("existing_status")]
         self.assertTrue(duplicate_cases)
         self.assertTrue(all(case["expected"]["dispatch_count"] == 0 for case in duplicate_cases))
         active = next(case for case in fixture["cases"] if case["id"] == "nonstream-lost-response-retry-active")
@@ -201,6 +202,33 @@ class ContractSemanticsV03Tests(unittest.TestCase):
             self.assertEqual(["Location", "X-Tier-Invocation-ID"], list(responses[name]["headers"]), name)
             self.assertTrue(all(header["$ref"].startswith("#/components/headers/") for header in responses[name]["headers"].values()))
 
+        no_id = next(case for case in fixture["cases"] if case["id"] == "nonstream-response-headers-lost-no-invocation-id")
+        self.assertFalse(no_id["request"]["invocation_id_known"])
+        self.assertTrue(no_id["request"]["same_key_and_digest"])
+        self.assertEqual("replay_same_post", no_id["expected"]["recovery_action"])
+        self.assertEqual("/v1/responses", no_id["expected"]["endpoint"])
+        self.assertFalse(no_id["expected"]["new_attempt"])
+        self.assertFalse(no_id["expected"]["new_recovery_path"])
+        self.assertFalse(no_id["expected"]["new_idempotency_key"])
+        self.assertEqual(0, no_id["expected"]["additional_dispatch_if_record_exists"])
+        self.assertFalse(no_id["expected"]["unknown_outcome_redispatch"])
+
+    def test_authorization_scope_fixtures_preserve_three_surface_boundaries(self):
+        cases = {case["id"]: case for case in self.load(AUTHORIZATION_SCOPE_FIXTURE_PATH)["cases"]}
+        positive = cases["observation-same-client-authorized-multiple-sources-positive"]
+        self.assertTrue(positive["expected"]["allowed"])
+        self.assertEqual(["source-a1", "source-a2"], positive["expected"]["visible_source_ids"])
+        self.assertFalse(positive["expected"]["source_filter_is_authorization_namespace"])
+
+        unauthorized = cases["observation-unauthorized-source-negative"]
+        cross_client = cases["observation-cross-client-negative"]
+        self.assertFalse(unauthorized["expected"]["allowed"])
+        self.assertFalse(cross_client["expected"]["allowed"])
+
+        recovery = cases["data-plane-recovery-remains-source-scoped"]
+        self.assertEqual(["authenticated_client_id", "canonical_source_id"], recovery["expected"]["namespace"])
+        self.assertFalse(recovery["expected"]["source_instance_is_namespace"])
+
     def test_invocation_accepted_excludes_unknown_outcome(self):
         accepted = self.openapi["components"]["schemas"]["InvocationAccepted"]
         self.assertEqual(["Pending", "Queued", "Running"], accepted["properties"]["status"]["enum"])
@@ -216,6 +244,13 @@ class ContractSemanticsV03Tests(unittest.TestCase):
         self.assertNotRegex(design, r"\bCompleted\b")
         self.assertIn("| Succeeded | 原 endpoint canonical `200` body", design)
         self.assertIn("terminal 为 Succeeded、Failed、Cancelled、", design)
+
+    def test_system_design_keeps_registry_etags_and_retention_scopes_distinct(self):
+        design = SYSTEM_DESIGN_PATH.read_text(encoding="utf-8")
+        self.assertIn("ETag 各自校验本 resource representation", design)
+        self.assertIn("live capacity/usage", design)
+        self.assertIn("canonical Response 在冻结的\n168h recovery window 内仍可恢复", design)
+        self.assertIn("短于任一下限的配置无效并阻断 activation", design)
 
     def test_data_plane_observation_and_management_endpoint_coverage(self):
         data_plane = {

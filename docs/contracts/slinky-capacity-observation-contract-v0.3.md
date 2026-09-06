@@ -1,6 +1,6 @@
 # LLMTier 面向 Slinky 的 Capacity/Observation 契约提案 v0.3
 
-Last Updated: 2026-09-06
+Last Updated: 2026-09-07
 
 Status: Candidate Amendment；纳入 Slinky V0.3 review，尚无 production wiring 证据
 
@@ -23,6 +23,12 @@ Slinky 不取得 Provider credential、physical routing 或 LLMTier Management a
 
 所有响应按 credential scope 过滤。`/tier/v1/service-levels` 与 Data Plane Models、admission、capacity membership 和 Compatibility Manifest 必须由 LLMTier 同一 Registry 生成。
 
+同一 authenticated Client 可以在其已授权范围内查询或聚合多个 Source；`source_id` 与
+`source_instance_id` query 只是过滤/分组维度，不创建新的鉴权 namespace。跨 Client 或未授权 Source
+访问必须拒绝。Data Plane recovery 仍严格使用 authenticated `client_id + canonical source_id`，
+Observation 的聚合能力不得扩大该 recovery scope；`source_instance_id` 只用于 correlation、
+observation 和 audit。
+
 各 endpoint 的 query/header、cursor pagination、ETag/`If-None-Match`/`304`、response DTO、typed error 与 Schema ref 以 `openapi/llmtier-v0.3.openapi.json` 为唯一机器权威。Invocation list 支持 `limit/cursor/status/service_level_id/source_id/source_instance_id/from/to/client_request_id`；Usage 支持 `interval/group_by/source_id/source_instance_id/service_level_id/endpoint/status/limit/cursor`。字段或 Source identity 无法满足时返回 typed `source_error` 或 `contract_mismatch`，Slinky Adapter 不得猜测。
 
 Readiness 显式给出 Ready/Degraded/NotReady、Tier instance/version、Observation readiness、visible Service Levels、snapshot version 与 refresh window。Service Level DTO 包含 kind、capabilities、context、Structured Output、Tool Calling、modalities/limits 和 Compatibility ref。Compatibility endpoint 按 method/path 返回 supported/unsupported fields、streaming、Schema/error version、SDK matrix 与 effective_at。
@@ -31,7 +37,7 @@ Readiness 显式给出 Ready/Degraded/NotReady、Tier instance/version、Observa
 
 LLMTier 是 catalog authority。`service_level_id` 使用 exact、大小写敏感名称，例如 `Worker`、`Junior`；禁止 lowercasing、alias、Role selector 或跨 Service Level fallback。
 
-Provider/account/pool mapping 与同等级 Backend override 属于 LLMTier。只要能力 Contract/SLO 不变，physical mapping 可替换而不改变 ID；破坏兼容性的语义变化必须创建新 ID 或新 API major。Registry 发布 catalog/version/ETag/`effective_at`/`valid_until`，并在唯一 ID、capacity membership 和 manifest 三方 Contract Test 通过后激活。
+Provider/account/pool mapping 与同等级 Backend override 属于 LLMTier。只要能力 Contract/SLO 不变，physical mapping 可替换而不改变 ID；破坏兼容性的语义变化必须创建新 ID 或新 API major。Registry 发布 catalog/version/ETag/`effective_at`/`valid_until`，并在唯一 ID、capacity membership 和 manifest 三方 Contract Test 通过后激活。跨分面一致性验证的是 exact ID、catalog version/ref 与兼容语义来自同一 Registry；各 endpoint 的 ETag 只校验自身 representation，capacity/usage 变化不要求 Models 或 Registry ETag 同步变化。
 
 ## 4. CapacitySnapshot 与 Seat
 
@@ -64,7 +70,7 @@ Snapshot 失效时：
 
 ## 6. Retention 与 recovery observation
 
-Observation invocation view 与 Data Plane recovery extension 投影自同一 Invocation ledger，不得出现第二状态机。V0.3 采用 M2-C：最短保证窗口 `W=168h` 从 Invocation terminal 起算；safety margin `M=24h`，其中 clock skew 最多 5 分钟；产品 deadline `D=24h` 满足 `D <= W-M = 144h`。active idempotency record 保留到 terminal；terminal 后 content-free digest/tombstone、Invocation terminal view 与 canonical Response 均至少保留 168h。Prompt/output privacy retention 可独立配置，但不能提前删除 digest/tombstone。
+Observation invocation view 与 Data Plane recovery extension 投影自同一 Invocation ledger，不得出现第二状态机。V0.3 采用 M2-C：最短保证窗口 `W=168h` 从 Invocation terminal 起算；safety margin `M=24h`，其中 clock skew 最多 5 分钟；产品 deadline `D=24h` 满足 `D <= W-M = 144h`。active idempotency record 保留到 terminal；terminal 后 content-free digest/tombstone、Invocation terminal view 与带恢复所需内容的 canonical Response 均至少保留 168h。可独立配置的是原始 Prompt/output 副本的 privacy retention；配置不得提前删除 digest/tombstone，也不得使 canonical Response 在 168h 窗口内不可恢复，否则配置无效并阻断 activation。
 
 ## 7. Metadata 与证据状态
 

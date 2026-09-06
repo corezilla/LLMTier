@@ -1,0 +1,65 @@
+{
+  "fixture_version": "0.3-candidate-std-amendment",
+  "cases": [
+    {
+      "id": "observation-same-client-authorized-multiple-sources-positive",
+      "surface": "observation",
+      "authenticated_client_id": "client-a",
+      "authorized_source_ids": ["source-a1", "source-a2"],
+      "query": {
+        "endpoint": "/tier/v1/usage/summary",
+        "source_id": null,
+        "group_by": ["source_id"]
+      },
+      "expected": {
+        "allowed": true,
+        "visible_source_ids": ["source-a1", "source-a2"],
+        "source_filter_is_authorization_namespace": false
+      }
+    },
+    {
+      "id": "observation-unauthorized-source-negative",
+      "surface": "observation",
+      "authenticated_client_id": "client-a",
+      "authorized_source_ids": ["source-a1", "source-a2"],
+      "query": {
+        "endpoint": "/tier/v1/invocations",
+        "source_id": "source-a3"
+      },
+      "expected": {
+        "allowed": false,
+        "error": "source_error",
+        "reason": "unauthorized_source"
+      }
+    },
+    {
+      "id": "observation-cross-client-negative",
+      "surface": "observation",
+      "authenticated_client_id": "client-a",
+      "authorized_source_ids": ["source-a1", "source-a2"],
+      "query": {
+        "endpoint": "/tier/v1/invocations",
+        "client_id": "client-b"
+      },
+      "expected": {
+        "allowed": false,
+        "error": "not_found",
+        "reason": "cross_client_hidden"
+      }
+    },
+    {
+      "id": "data-plane-recovery-remains-source-scoped",
+      "surface": "data_plane_recovery",
+      "authenticated_client_id": "client-a",
+      "canonical_source_id": "source-a1",
+      "source_instance_id": "host-2",
+      "attempted_invocation_source_id": "source-a2",
+      "expected": {
+        "allowed": false,
+        "error": "not_found",
+        "namespace": ["authenticated_client_id", "canonical_source_id"],
+        "source_instance_is_namespace": false
+      }
+    }
+  ]
+}

@@ -29,7 +29,7 @@
 |---|---|---|---|---|---|---|
 | LT-TL-001 | `design.system` 全部正文与附录 | keep | authority、runtime、recovery、capacity、security、traceability 和 gate 均适用 | 无 | 待项目 review | N/A |
 | LT-TL-002 | `design.system` 部署/物理视图 | simplify | production topology、DB、HA、RPO/RTO 尚未冻结，只记录逻辑部署与 Open Gate | 选型不足可能阻塞 retention/recovery | 待项目 review | 选型时新增 ADR |
-| LT-TL-003 | `requirements.specification` | omit 本轮 | 产品需求 authority 在 Slinky；LLMTier 不复制或替 Slinky 批准需求 | 需求检索跨文档 | 待项目 review | N/A；以 Review ID/Contract traceability 缓解 |
+| LT-TL-003 | `requirements.specification` | omit 本轮 | 本轮只迁移系统设计，并保留 Requirement/Review/Contract 的精确来源映射；Slinky 只拥有其消费需求与已冻结跨项目 Scope 决策，LLMTier 继续拥有本项目服务、管理、安全和部署需求 | 需求检索跨文档 | LLMTier owner；待项目 review | N/A；下一批由 LLMTier owner 决定 requirements 实例 |
 | LT-TL-004 | `design.definition` | omit 本轮 | 当前仅迁移系统级设计；下级模块责任尚未形成稳定实现边界 | 构建块实现细节不足 | 待项目 review | 模块冻结后重新裁剪 |
 | LT-TL-005 | `design.hardware`/`design.fpga` | omit | 项目当前无硬件/FPGA ownership；Provider/Local Deployment 仅为外部资源 | 无 | 待项目 review | N/A |
 | LT-TL-006 | `interfaces.control` | keep，后续迁移 | 三个 API 分面必须保持独立 authority 与演进规则 | 延后期间旧 Markdown 仍是说明 authority | 待项目 review | N/A |
@@ -38,7 +38,7 @@
 | LT-TL-009 | `management.project-plan` | omit | 项目排期/资源管理不在本轮设计迁移范围，现无稳定计划基线 | 实施顺序不等于项目计划 | 待项目 review | N/A |
 | LT-TL-010 | `decisions.adr` | simplify/按需 | 已有决定保留原 Matrix Review ID，不伪造 retrospective ADR | 决策分散 | 待项目 review | 新决定必须使用 ADR |
 | LT-TL-011 | 原文档与 v0.1/v0.2 历史材料 | keep | 首轮 review 前禁止删除；inventory 标注 current/historical/superseded | 误检索历史语义 | 待项目 review | review 后归档建议 |
-| LT-TL-012 | RAG ingestion | omit 到 review 后 | 候选尚未成为 canonical artifact | 暂时不能从项目 RAG 检索新文档 | 待项目 review | N/A |
+| LT-TL-012 | STD 来源清单 / 项目 RAG ingestion | keep source manifest；omit ingestion 到 review 后 | `rag/std-ingestion-manifest.jsonl` 现在记录规范/模板来源及 SHA-256；候选成为 canonical 前不把项目实例写入 RAG | 来源可校验，但暂时不能从项目 RAG 检索新文档 | 待项目 review | N/A |
 
 ## 4. 禁止裁剪项
 
@@ -57,7 +57,9 @@
 ## 5. Review 与生效
 
 本文件和迁移后的系统设计当前状态为 `review`。STD 尚无 immutable source revision，因此
-`docs/std.lock.json.source_revision` 保持 `null`；不得标记 accepted/released。重新评审触发条件：
+`docs/std.lock.json.source_revision` 保持 `null`，同时由其 `manifest_path` 指向的来源清单保存本轮
+读取的 STD 规范/模板 SHA-256。创建来源清单不等于执行项目 RAG ingestion；候选不得标记
+accepted/released。重新评审触发条件：
 
 1. STD 首个 immutable commit/tag；
 2. Slinky 或 Piko 修改已冻结 authority、Scope B、recovery 或 header/path contract；

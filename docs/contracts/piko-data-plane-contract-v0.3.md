@@ -1,6 +1,6 @@
 # LLMTier 面向 Piko 的 Data Plane 契约提案 v0.3
 
-Last Updated: 2026-09-06
+Last Updated: 2026-09-07
 
 Status: Candidate Amendment 4；已落实 Slinky Scope B，未激活
 
@@ -80,6 +80,13 @@ Failed/Cancelled/UnknownOutcome 的详细状态只通过 `GET /v1/invocations/{i
 
 active replay 的 `202` 和两个 recovery GET 都是显式扩展；Compatibility Manifest 必须标记 `explicit_piko_recovery_adapter_required=true`，并由 pinned adapter capture 验证。SDK 不接受 `202` 时由 adapter 截获和查询，不建立另一条 Data Plane。
 
+若 transport failure 发生在响应头到达前，Piko 尚无 Invocation ID，不能直接执行 Invocation GET。
+此时在 `D=24h` 内复用原 authenticated client、canonical source、请求 body、digest、
+`Idempotency-Key` 与 `X-Tier-Client-Request-ID`，向同一 `POST /v1/responses` 重放原请求。若首次请求
+未建立 record，该请求进入既有首次路径；若 record 已建立，则进入上表 active/Succeeded/terminal
+replay，且不增加 Backend dispatch。该分支只是同一 idempotent POST 的 transport recovery，不是
+新 Attempt、新 endpoint、新 key 或 redispatch 授权；UnknownOutcome 仍必须 manual reconcile。
+
 ## 6. Invocation 与 response recovery
 
 Invocation 状态为 `Pending | Queued | Running | Succeeded | Failed | Cancelled | UnknownOutcome`。V0.3 Piko recovery extension 只投影 Responses Invocation；`Succeeded` 发布唯一 `response_ref=/v1/responses/{response_id}`。Embeddings 由实际 Consumer Contract 单独验收，不伪装为 Responses Invocation。
@@ -103,7 +110,10 @@ V0.3 单一选择是 C：有限保证窗口，不新增永久索引或 epoch/tok
 - active idempotency record 至少保留到 Invocation terminal。
 - terminal 后 content-free digest/tombstone 的去重保证至少 7 天。
 - Invocation terminal view 与 canonical Responses 从 terminal 起至少保留 7 天。
-- Prompt/output privacy retention 可独立配置，但不能使 content-free digest/tombstone 提前消失。
+- 原始 Prompt/output 副本的 privacy retention 可独立配置，但不能使 content-free digest/tombstone
+  提前消失，也不能使 recovery 所需 canonical Response 在 terminal 后 168h 内不可恢复。短于任一下限
+  的配置无效并阻断 activation，不允许运行时自动降级。若未来要拆分或缩短 canonical Response 内容
+  retention，必须先通过单独 Contract/Policy amendment。
 - 完全删除后不再保证识别历史 key；V0.3 不声称无限期 exactly-once。
 
 ## 8. Deferred surface 与 Embeddings

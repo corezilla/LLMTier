@@ -18,9 +18,12 @@
 | 路径 | 类型/版本 | Authority | 状态 | 上位/下位与重复冲突 | STD Template ID / 处置 |
 |---|---|---|---|---|---|
 | `README.md` | 项目索引 | LLMTier | current，部分状态需随迁移更新 | 指向 provenance、总体设计、OpenAPI | project index；保留并更新链接 |
+| `docs/std.lock.json` | STD adoption lock | LLMTier | current draft lock | 固定 STD version/profile；source revision 尚为 null | management evidence；保留 |
+| `rag/std-ingestion-manifest.jsonl` | STD 来源清单 | STD source / LLMTier adoption record | current source evidence；非项目 ingestion | 保存本轮规范/模板 SHA-256，使 lock manifest path 可解析 | provenance evidence；保留 |
 | `docs/design/llmtier-v0.3-design-review.md` | 系统设计 v0.3 | LLMTier | current source；Review Amendment 4 | 新 STD design.system 的迁移来源；review 前不删除 | `design.system` → 新候选 |
 | `docs/design/llmtier-v0.3-system-design.md` | 系统设计 v0.3 STD | LLMTier | new review candidate | 结构化承接上一文件，不改变契约 | `design.system`；本轮主交付 |
 | `docs/design/legacy-capability-audit-v0.1.md` | 现状/差距审计 v0.1 | LLMTier | current design input | 支撑 implementation baseline，不是新契约 | `review.packet` evidence；保留 |
+| `docs/management/std-tailoring-v0.1.md` + metadata | STD tailoring v0.1 | LLMTier | review candidate | 本轮模板启用/裁剪 authority | `management.tailoring`；本轮交付 |
 | `docs/migration/source-provenance-v0.1.md` | 迁移 provenance v0.1 | LLMTier | current evidence | 记录从 Slinky 复制的源码边界 | `review.packet` evidence；保留 |
 | `docs/future/llmtier-v0.4-data-plane.md` | future scope | LLMTier/Slinky decision | future/not implemented | 与 V0.3 current OpenAPI 明确分离 | 后续 `design.definition`/`contracts.specification`；保留 |
 | `docs/contracts/piko-data-plane-contract-v0.1.md` | interface v0.1 | LLMTier | historical/superseded | 被 v0.2/v0.3 取代；surface 语义过期 | `interfaces.control`；后续归档 |
@@ -64,4 +67,6 @@
 2. 旧总体设计 §11 同时记录早期全 surface proposal 与后来的 Scope B，历史上正确但容易误读；
    新系统设计只把 Scope B 作为 current，并在决策表保留来源。
 3. README 的“当前状态”应继续强调 candidate 与 production implementation 的区别，并新增新设计入口。
-4. `rag/std-ingestion-manifest.jsonl` 在新候选通过项目 review 成为 canonical artifact 后再生成；当前不索引。
+4. `rag/std-ingestion-manifest.jsonl` 已生成并只记录本轮 STD 规范/模板来源 SHA-256，使
+   `docs/std.lock.json.manifest_path` 可解析。当前不把 LLMTier 候选实例写入项目 RAG；项目 ingestion
+   仍推迟到候选通过 review 并成为 canonical artifact 后执行。

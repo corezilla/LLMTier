@@ -148,10 +148,18 @@ Slinky -> /tier/v1 readiness | service-levels | capacity | invocations | usage |
 | Cancelled | `409 invocation_cancelled` | typed `retryable=false`，不得重派 |
 | UnknownOutcome | `503 invocation_outcome_unknown` | manual reconcile；不得重派 |
 
-lost response 后，Piko 复用同一 key/digest/Invocation obligation，查询
-`GET /v1/invocations/{id}`。`recovery_ready`、`retry_after_ms` 和
-`recovery_disposition=wait|retrieve_response|raise_terminal_error|manual_reconcile` 是唯一恢复判定，
-不能从 HTTP 200 猜测状态。
+lost response 后分两种既有分支，二者都保持原 authenticated client、canonical source、请求 body、
+digest、`Idempotency-Key` 和 `X-Tier-Client-Request-ID`：
+
+1. 已从响应头或 durable obligation 获得 Invocation ID 时，查询
+   `GET /v1/invocations/{id}`；`recovery_ready`、`retry_after_ms` 和
+   `recovery_disposition=wait|retrieve_response|raise_terminal_error|manual_reconcile` 是唯一恢复判定；
+2. 响应头也丢失、尚无 Invocation ID 时，在 `D=24h` 内向同一 `POST /v1/responses` 重放原请求。
+   服务端按同 namespace/key/digest 进入既有首次、active、Succeeded 或 terminal replay 分支，返回
+   outcome 或 recovery reference；若既存 record 已建立，不增加 Backend dispatch。
+
+第二种是同一 POST/idempotency contract 的 transport recovery，不是新查询入口、新 recovery path、
+新 Attempt、换 endpoint、换 key 或重新 dispatch 授权。任何分支进入 UnknownOutcome 后仍不得盲目重派。
 
 ### 6.3 Capacity Snapshot 失效
 
@@ -187,7 +195,9 @@ Registry 和 idempotency namespace。
 ### 8.1 身份与权限
 
 - Authorization 绑定 canonical `client_id`。
-- `X-Tier-Source-ID` 是该 client 下经授权的 canonical `source_id`。
+- `X-Tier-Source-ID` 是该 client 下经授权的 canonical `source_id`。Data Plane recovery namespace 固定为
+  authenticated client + canonical source；Observation 的 `source_id` filter 只是授权范围内的查询维度，
+  不创建新的鉴权或恢复 namespace。
 - `X-Tier-Source-Instance-ID` 仅用于 observation、correlation 和 audit。
 - `Idempotency-Key` 是逻辑 Invocation 的 durable 去重/恢复 identity；
   `X-Tier-Client-Request-ID` 只是调用相关性 ID，不能替代前者。
@@ -198,13 +208,22 @@ LLMTier 独立配置是唯一运行时覆盖入口，不回读 Slinky 配置。�
 ETag/304 和 `valid_until` 必须由 Client 显式处理。所有错误使用机器可判定的 typed envelope；
 unknown/partial usage 保持 unknown/partial，不能折算为零。
 
+Registry provenance 的一致性不要求不同 DTO 的 ETag 字面相同。Models、Service Level Observation、
+admission 和 manifest 必须引用同一 exact ID/catalog version 与兼容语义；Models、Registry、capacity
+snapshot、usage 等 endpoint 的 ETag 各自校验本 resource representation。`configuration_version`、
+`inventory_version`、`capacity_version` 与 `snapshot_version` 继续承担既有独立职责，live capacity/usage
+变化不要求 Models 或 Registry ETag 同步变化。
+
 ### 8.3 幂等、retention 与隐私
 
 namespace 至少覆盖 canonical client/source、endpoint/version 与 Idempotency-Key；digest 覆盖 exact
 Service Level、规范化 body 和影响语义的 headers。同 namespace/key 不同 digest 是不可重试 conflict。
-active record 保留到 terminal；terminal 后 digest/tombstone、Invocation terminal view 和 canonical
-Response 至少保留 168h。Prompt/output privacy retention 可独立配置，但不得提前删除 content-free
-digest/tombstone。
+active record 保留到 terminal；terminal 后 digest/tombstone、Invocation terminal view 和带有恢复所需
+内容的 canonical Response 至少保留 168h。可独立配置的是原始 prompt/output 副本的隐私保留期，
+但配置必须同时满足：content-free digest/tombstone 不得早于 168h 消失，canonical Response 在冻结的
+168h recovery window 内仍可恢复。短于任一下限的配置无效并阻断 activation，不允许运行时降级。
+若未来要把 canonical Response 内容拆分、加密擦除或缩短，必须先形成 privacy/retention policy ADR 与
+Contract amendment；当前没有可把任意短 output retention 解释为满足 M2-C 的优先级例外。
 
 ### 8.4 容量与公平性
 
@@ -239,10 +258,10 @@ gate 关闭。Responses `stream=true` 返回 `unsupported_feature`；Chat/SSE pa
 | LT-QR-001 | 相同 key/digest 并发或重启重试 | Backend dispatch 总数为 1；active 返回 202，terminal 重放 canonical 结果/错误 |
 | LT-QR-002 | lost response 或 UnknownOutcome | adapter 先查询 recovery；UnknownOutcome 不自动重派 |
 | LT-QR-003 | Capacity Snapshot 失效 | 新 dispatch 被阻断；已 admission Invocation 仅安全收敛；后续 Work 重新投影 |
-| LT-QR-004 | exact-case 与 Registry 一致性 | Models、Observation、admission、manifest 对同一 ID/version/ETag 一致；错误大小写 fail closed |
-| LT-QR-005 | Client/Source 隔离 | 跨 client/source 的 invocation、usage、capacity 和 recovery 不可见，返回 typed error |
+| LT-QR-004 | exact-case 与 Registry 一致性 | Models、Observation、admission、manifest 的 exact ID、catalog version/ref 与兼容语义来自同一 Registry；每个 endpoint 的 ETag 只验证自身 representation，错误大小写 fail closed |
+| LT-QR-005 | Client/Source 隔离 | 禁止跨 Client 和未授权 Source；Data Plane recovery 保持 client+canonical source scope；Observation/Management 仅按各自授权与 filter 聚合，同 Client 已授权多 Source 正例可见 |
 | LT-QR-006 | Management Secret | create/rotate 只一次性返回允许的信息；list/detail/UI/log/audit 不含 secret 明文或可逆值 |
-| LT-QR-007 | M2-C retention | terminal 后连续 168h 识别重复 key，并在 24h recovery deadline 内恢复 canonical outcome |
+| LT-QR-007 | M2-C retention | terminal 后连续 168h 识别重复 key 且 canonical Response 可恢复；24h deadline 内恢复 canonical outcome；不满足两项下限的 privacy 配置被拒绝 |
 | LT-QR-008 | unsupported surface | Chat/SSE/streaming 无 route、alias 或 fallback，稳定返回规定 typed error |
 | LT-QR-009 | 管理与观察一致性 | API/UI、aggregate DTO、ETag/304、pagination、unknown/partial 通过正负 Contract Test |
 
@@ -254,7 +273,7 @@ gate 关闭。Responses `stream=true` 返回 `unsupported_feature`；Chat/SSE pa
 | LT-RISK-002 | Piko machine-contract review 未闭环 | SDK/adapter 字段级不兼容 | 使用已发送 bundle 完成 exact fixture capture |
 | LT-RISK-003 | durable store/HA/RPO/RTO 未选型 | 无法证明 crash recovery 与 168h retention | 实现前 ADR 与故障注入证据 |
 | LT-RISK-004 | Admin Web UI 尚无实现证据 | V0.3 required management 不完整 | UI/API 正负、权限和 secret tests |
-| LT-RISK-005 | 公共 STD 仍是 draft、无 immutable revision | 无法冻结模板来源 commit | `docs/std.lock.json.source_revision=null`；STD 首次 tag 后升级 review |
+| LT-RISK-005 | 公共 STD 仍是 draft、无 immutable revision | 无法冻结模板来源 commit | `docs/std.lock.json.source_revision=null`；`rag/std-ingestion-manifest.jsonl` 先保留规范/模板 SHA-256 而不执行项目 ingestion；STD 首次 tag 后升级 review |
 | LT-RISK-006 | 旧 v0.1/v0.2 文档仍在仓库 | 检索/实现可能误取历史语义 | inventory 明确 superseded；迁移 review 前不删除，后续归档并按 authority 过滤 |
 
 ## 12. 术语表
@@ -301,7 +320,8 @@ active/replay/terminal 行为、headers、recovery disposition、retention 与�
 
 三分面 credential 与 scope 分离；least privilege；Management mutation 全审计并带 concurrency check；
 Secret create/rotate 只写不读；metadata key/value 按 64/512 UTF-8 encoded bytes fail closed，不静默截断。
-Prompt/output retention 与 content-free tombstone retention 分离。
+原始 prompt/output 副本的 privacy retention 可独立配置，但 content-free tombstone 与可恢复 canonical
+Response 都必须满足各自冻结的 168h 下限；不满足即配置校验失败并保持 activation=false。
 
 ## E. 可观测性、容量、性能、资源与 SLO
 
