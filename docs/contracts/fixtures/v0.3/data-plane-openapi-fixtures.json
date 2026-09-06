@@ -38,6 +38,24 @@
       "body": {"model": "Worker", "input": ["one", "two"], "encoding_format": "float"}
     },
     {
+      "id": "embedding-sdk-base64-request-positive",
+      "schema": "EmbeddingRequest",
+      "valid": true,
+      "body": {"model": "Worker", "input": "hello", "encoding_format": "base64"}
+    },
+    {
+      "id": "embedding-sdk-base64-response-positive",
+      "schema": "EmbeddingResponse",
+      "valid": true,
+      "body": {"object": "list", "data": [{"object": "embedding", "embedding": "AACAPwAAAEA=", "index": 0}], "model": "Worker", "usage": {"prompt_tokens": 1, "total_tokens": 1}}
+    },
+    {
+      "id": "embedding-invalid-base64-response-negative",
+      "schema": "EmbeddingResponse",
+      "valid": false,
+      "body": {"object": "list", "data": [{"object": "embedding", "embedding": "not-base64!", "index": 0}], "model": "Worker", "usage": {"prompt_tokens": 1, "total_tokens": 1}}
+    },
+    {
       "id": "embedding-object-input-negative",
       "schema": "EmbeddingRequest",
       "valid": false,
