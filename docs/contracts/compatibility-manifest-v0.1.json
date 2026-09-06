@@ -1,0 +1,62 @@
+{
+  "manifest_version": "0.1-candidate",
+  "status": "candidate",
+  "openai_compatibility_version": "unverified",
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "support": "planned_required",
+      "streaming_support": "pending_pinned_sdk_capture",
+      "response_schema_version": "candidate-v0.1"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/models",
+      "support": "planned_required",
+      "streaming_support": "not_applicable",
+      "response_schema_version": "candidate-v0.1"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/models/{service_level_id}",
+      "support": "planned_required",
+      "streaming_support": "not_applicable",
+      "response_schema_version": "candidate-v0.1"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/invocations/{invocation_id}",
+      "support": "candidate_recovery_extension",
+      "streaming_support": "not_applicable",
+      "response_schema_version": "candidate-v0.1"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "support": "conditional_on_pinned_pi_sdk",
+      "streaming_support": "pending_pinned_sdk_capture",
+      "response_schema_version": "candidate-v0.1"
+    }
+  ],
+  "service_level_overrides": [],
+  "error_contract_version": "candidate-v0.1",
+  "sdk_test_matrix": [
+    {
+      "sdk": "pi-sdk-provider",
+      "version": "pending_piko",
+      "status": "unverified"
+    },
+    {
+      "sdk": "openai-python",
+      "version": "pending",
+      "status": "unverified"
+    }
+  ],
+  "effective_at": null,
+  "notes": [
+    "本文件只表示设计提案，不表示 endpoint 已实现。",
+    "Chat Completions 不是 Responses 失败后的 fallback。",
+    "Piko 不消费 Tier Management 或 Observation API。"
+  ]
+}
