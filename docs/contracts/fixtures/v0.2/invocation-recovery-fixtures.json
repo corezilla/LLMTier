@@ -1,0 +1,38 @@
+{
+  "fixture_version": "0.2-candidate",
+  "cases": [
+    {
+      "id": "same-source-new-instance-can-recover",
+      "credential_client_id": "piko-client",
+      "credential_source_id": "piko-runtime",
+      "created_by_source_instance_id": "piko-1",
+      "queried_by_source_instance_id": "piko-2",
+      "scope": "invocation:read:source",
+      "expected": {"status": 200, "visible": true}
+    },
+    {
+      "id": "other-source-hidden",
+      "credential_client_id": "piko-client",
+      "credential_source_id": "other-source",
+      "expected": {"status": 404, "code": "not_found"}
+    },
+    {
+      "id": "unknown-outcome-is-not-not-found",
+      "record_present": true,
+      "invocation_status": "UnknownOutcome",
+      "expected": {"status": 200, "recovery_obligation_required": true}
+    },
+    {
+      "id": "expired-with-authorized-tombstone",
+      "record_present": false,
+      "authorized_tombstone_present": true,
+      "expected": {"status": 410, "code": "invocation_record_expired"}
+    },
+    {
+      "id": "success-response-ref",
+      "invocation_status": "Succeeded",
+      "response_ref": "/v1/responses/resp_01",
+      "expected": {"status": 200, "response_read_scope": "same_client_and_source"}
+    }
+  ]
+}

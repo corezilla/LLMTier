@@ -1,0 +1,104 @@
+{
+  "manifest_version": "0.2-candidate",
+  "status": "candidate",
+  "schema_bundle": "schemas/llmtier-contracts-v0.2.schema.json",
+  "error_contract_version": "candidate-v0.2",
+  "activation": {
+    "runtime_supported_status": "verified",
+    "requires_all": [
+      "implementation_commit",
+      "positive_and_negative_contract_tests",
+      "pinned_sdk_matrix_pass",
+      "service_level_override_resolved"
+    ],
+    "planned_or_conditional_fail_closed": true
+  },
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "support": "planned",
+      "request_schema_ref": "schemas/llmtier-contracts-v0.2.schema.json#/$defs/ResponsesRequest",
+      "response_schema_ref": "pending-v0.3",
+      "supported_request_fields": ["model", "input"],
+      "conditional_request_fields": ["instructions", "tools", "tool_choice", "text", "max_output_tokens", "temperature", "top_p", "reasoning", "parallel_tool_calls", "stream", "metadata"],
+      "unknown_fields": "reject_unknown_parameter",
+      "streaming": {
+        "support": "pending_pinned_sdk_capture",
+        "event_contract_ref": "pending-v0.3",
+        "terminal_event_required": true
+      },
+      "tools": {
+        "support": "pending",
+        "types": ["function"],
+        "parallel_tool_calls": "pending",
+        "argument_schema_strictness": "pending"
+      },
+      "structured_output": {
+        "support": "pending",
+        "format": "json_schema",
+        "supported_keywords": [],
+        "refusal_semantics": "pending",
+        "incomplete_semantics": "pending"
+      },
+      "limits": {
+        "max_request_bytes": "pending",
+        "max_input_tokens": "per_service_level_pending",
+        "max_output_tokens": "per_service_level_pending",
+        "metadata_pairs": 16,
+        "metadata_key_bytes": 64,
+        "metadata_value_bytes": 512
+      },
+      "errors": ["unknown_parameter", "unsupported_parameter", "capability_not_supported", "model_not_found", "source_scope_forbidden", "idempotency_conflict", "idempotency_key_expired", "rate_limit_exceeded", "backend_unavailable"]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/models",
+      "support": "planned",
+      "request_schema_ref": null,
+      "response_schema_ref": "pending-v0.3",
+      "errors": ["unauthorized", "source_scope_forbidden"]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/models/{service_level_id}",
+      "support": "planned",
+      "request_schema_ref": null,
+      "response_schema_ref": "pending-v0.3",
+      "errors": ["unauthorized", "source_scope_forbidden", "model_not_found"]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/invocations/{invocation_id}",
+      "support": "conditional",
+      "extension": "llmtier_recovery_extension_v1",
+      "automatic_openai_sdk_support": false,
+      "explicit_piko_adapter_call_required": true,
+      "request_schema_ref": null,
+      "response_schema_ref": "schemas/llmtier-contracts-v0.2.schema.json#/$defs/InvocationView",
+      "errors": ["unauthorized", "source_scope_forbidden", "not_found", "invocation_record_expired"]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "support": "conditional",
+      "condition": "pinned_pi_sdk_requires_chat_completions",
+      "fallback": false,
+      "request_schema_ref": "pending-pinned-sdk-capture",
+      "response_schema_ref": "pending-pinned-sdk-capture",
+      "streaming": {"support": "pending_pinned_sdk_capture", "event_contract_ref": "pending-v0.3"}
+    }
+  ],
+  "service_level_overrides": [],
+  "sdk_test_matrix": [
+    {"sdk": "pi-sdk-provider", "version": "pending_piko", "status": "unverified"},
+    {"sdk": "openai-python", "version": "pending", "status": "unverified"}
+  ],
+  "fixtures": [
+    "fixtures/v0.2/capacity-snapshot-example.json",
+    "fixtures/v0.2/capacity-projection-fixtures.json",
+    "fixtures/v0.2/idempotency-recovery-fixtures.json",
+    "fixtures/v0.2/invocation-recovery-fixtures.json"
+  ],
+  "effective_at": null
+}

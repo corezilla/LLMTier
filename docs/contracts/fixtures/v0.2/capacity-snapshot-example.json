@@ -1,0 +1,73 @@
+{
+  "snapshot_id": "capsnap_20260906_0001",
+  "snapshot_version": 17,
+  "configuration_version": "sha256:config-v7",
+  "inventory_version": "sha256:inventory-v12",
+  "capacity_version": "sha256:capacity-v4",
+  "client_id": "slinky-client",
+  "source_id": "slinky-runtime",
+  "unit": "concurrent_invocation",
+  "capacity_groups": [
+    {
+      "capacity_group_id": "shared-main",
+      "unit": "concurrent_invocation",
+      "committed_concurrency": 2,
+      "in_flight_committed": 0,
+      "available_committed_concurrency": 2,
+      "member_service_level_ids": ["Junior", "Senior"],
+      "membership_mode": "all_constraints"
+    },
+    {
+      "capacity_group_id": "premium-pool",
+      "unit": "concurrent_invocation",
+      "committed_concurrency": 1,
+      "in_flight_committed": 0,
+      "available_committed_concurrency": 1,
+      "member_service_level_ids": ["Senior", "Expert"],
+      "membership_mode": "all_constraints"
+    }
+  ],
+  "service_levels": [
+    {
+      "service_level_id": "Junior",
+      "status": "Available",
+      "direct_committed_limit": 2,
+      "direct_available_committed": 2,
+      "burst_concurrency": 2,
+      "in_flight_requests": 0,
+      "queued_requests": 0,
+      "estimated_queue_wait_ms": 0,
+      "capacity_group_ids": ["shared-main"],
+      "request_quota_remaining": 10,
+      "blocking_reason_codes": []
+    },
+    {
+      "service_level_id": "Senior",
+      "status": "Available",
+      "direct_committed_limit": 2,
+      "direct_available_committed": 2,
+      "burst_concurrency": 1,
+      "in_flight_requests": 0,
+      "queued_requests": 0,
+      "estimated_queue_wait_ms": 0,
+      "capacity_group_ids": ["shared-main", "premium-pool"],
+      "request_quota_remaining": 10,
+      "blocking_reason_codes": []
+    },
+    {
+      "service_level_id": "Expert",
+      "status": "Pressured",
+      "direct_committed_limit": 1,
+      "direct_available_committed": 1,
+      "burst_concurrency": 0,
+      "in_flight_requests": 0,
+      "queued_requests": 1,
+      "estimated_queue_wait_ms": 250,
+      "capacity_group_ids": ["premium-pool"],
+      "request_quota_remaining": 1,
+      "blocking_reason_codes": []
+    }
+  ],
+  "observed_at": "2026-09-06T15:00:00+08:00",
+  "valid_until": "2026-09-06T15:00:30+08:00"
+}

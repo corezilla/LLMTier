@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://llmtier.local/contracts/v0.2/schema.json",
+  "title": "llmtier candidate contract schemas v0.2",
+  "$defs": {
+    "Error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "code", "message", "retryable"],
+      "properties": {
+        "type": {"type": "string", "minLength": 1},
+        "code": {"type": "string", "minLength": 1},
+        "message": {"type": "string"},
+        "param": {"type": ["string", "null"]},
+        "retryable": {"type": "boolean"},
+        "retry_after_ms": {"type": ["integer", "null"], "minimum": 0}
+      }
+    },
+    "CapacityGroup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "capacity_group_id",
+        "unit",
+        "committed_concurrency",
+        "in_flight_committed",
+        "available_committed_concurrency",
+        "member_service_level_ids",
+        "membership_mode"
+      ],
+      "properties": {
+        "capacity_group_id": {"type": "string", "minLength": 1},
+        "unit": {"const": "concurrent_invocation"},
+        "committed_concurrency": {"type": "integer", "minimum": 0},
+        "in_flight_committed": {"type": "integer", "minimum": 0},
+        "available_committed_concurrency": {"type": "integer", "minimum": 0},
+        "member_service_level_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "membership_mode": {"const": "all_constraints"}
+      }
+    },
+    "ServiceLevelCapacity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "service_level_id",
+        "status",
+        "direct_committed_limit",
+        "direct_available_committed",
+        "burst_concurrency",
+        "in_flight_requests",
+        "queued_requests",
+        "capacity_group_ids",
+        "blocking_reason_codes"
+      ],
+      "properties": {
+        "service_level_id": {"type": "string", "minLength": 1},
+        "status": {"enum": ["Available", "Pressured", "Unavailable"]},
+        "direct_committed_limit": {"type": "integer", "minimum": 0},
+        "direct_available_committed": {"type": "integer", "minimum": 0},
+        "burst_concurrency": {"type": "integer", "minimum": 0},
+        "in_flight_requests": {"type": "integer", "minimum": 0},
+        "queued_requests": {"type": "integer", "minimum": 0},
+        "estimated_queue_wait_ms": {"type": ["integer", "null"], "minimum": 0},
+        "capacity_group_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "request_quota_remaining": {"type": ["integer", "null"], "minimum": 0},
+        "blocking_reason_codes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "CapacitySnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "snapshot_id",
+        "snapshot_version",
+        "configuration_version",
+        "inventory_version",
+        "capacity_version",
+        "client_id",
+        "source_id",
+        "unit",
+        "capacity_groups",
+        "service_levels",
+        "observed_at",
+        "valid_until"
+      ],
+      "properties": {
+        "snapshot_id": {"type": "string", "minLength": 1},
+        "snapshot_version": {"type": "integer", "minimum": 1},
+        "configuration_version": {"type": "string", "minLength": 1},
+        "inventory_version": {"type": "string", "minLength": 1},
+        "capacity_version": {"type": "string", "minLength": 1},
+        "client_id": {"type": "string", "minLength": 1},
+        "source_id": {"type": "string", "minLength": 1},
+        "unit": {"const": "concurrent_invocation"},
+        "capacity_groups": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/CapacityGroup"}
+        },
+        "service_levels": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/ServiceLevelCapacity"}
+        },
+        "observed_at": {"type": "string", "format": "date-time"},
+        "valid_until": {"type": "string", "format": "date-time"}
+      }
+    },
+    "InvocationView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invocation_id",
+        "client_request_id",
+        "source_id",
+        "source_instance_id",
+        "endpoint",
+        "service_level_id",
+        "status",
+        "record_version",
+        "response_ref",
+        "usage_status",
+        "error",
+        "created_at",
+        "updated_at",
+        "retained_until"
+      ],
+      "properties": {
+        "invocation_id": {"type": "string", "minLength": 1},
+        "client_request_id": {"type": "string", "minLength": 1},
+        "source_id": {"type": "string", "minLength": 1},
+        "source_instance_id": {"type": "string", "minLength": 1},
+        "endpoint": {"enum": ["/v1/responses", "/v1/chat/completions"]},
+        "service_level_id": {"type": "string", "minLength": 1},
+        "status": {"enum": ["Pending", "Queued", "Running", "Succeeded", "Failed", "Cancelled", "UnknownOutcome"]},
+        "record_version": {"type": "integer", "minimum": 1},
+        "response_ref": {"type": ["string", "null"]},
+        "usage": {"type": ["object", "null"]},
+        "usage_status": {"enum": ["Known", "Partial", "Unknown"]},
+        "error": {"oneOf": [{"$ref": "#/$defs/Error"}, {"type": "null"}]},
+        "created_at": {"type": "string", "format": "date-time"},
+        "updated_at": {"type": "string", "format": "date-time"},
+        "completed_at": {"type": ["string", "null"], "format": "date-time"},
+        "retained_until": {"type": "string", "format": "date-time"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"status": {"const": "Succeeded"}}},
+          "then": {
+            "properties": {
+              "response_ref": {"type": "string", "pattern": "^/v1/responses/[^/]+$"},
+              "error": {"type": "null"}
+            }
+          }
+        }
+      ]
+    },
+    "ResponsesRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model", "input"],
+      "properties": {
+        "model": {"type": "string", "minLength": 1},
+        "input": {
+          "oneOf": [
+            {"type": "string"},
+            {"type": "array", "minItems": 1, "items": {"type": "object"}}
+          ]
+        },
+        "instructions": {"type": "string"},
+        "tools": {"type": "array", "items": {"type": "object"}},
+        "tool_choice": {},
+        "text": {"type": "object"},
+        "max_output_tokens": {"type": "integer", "minimum": 1},
+        "temperature": {"type": "number"},
+        "top_p": {"type": "number"},
+        "reasoning": {"type": "object"},
+        "parallel_tool_calls": {"type": "boolean"},
+        "stream": {"type": "boolean"},
+        "metadata": {
+          "type": "object",
+          "maxProperties": 16,
+          "propertyNames": {"maxLength": 64},
+          "additionalProperties": {"type": "string", "maxLength": 512}
+        }
+      }
+    }
+  }
+}

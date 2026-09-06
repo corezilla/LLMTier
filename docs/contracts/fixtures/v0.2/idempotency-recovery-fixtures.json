@@ -1,0 +1,50 @@
+{
+  "fixture_version": "0.2-candidate",
+  "cases": [
+    {
+      "id": "concurrent-duplicate-same-digest",
+      "requests": 2,
+      "same_authenticated_namespace": true,
+      "same_idempotency_key": true,
+      "same_digest": true,
+      "expected": {"dispatch_count": 1, "same_invocation_id": true, "duplicate_status": 202}
+    },
+    {
+      "id": "duplicate-different-digest",
+      "same_authenticated_namespace": true,
+      "same_idempotency_key": true,
+      "same_digest": false,
+      "expected": {"dispatch_count": 1, "status": 409, "code": "idempotency_conflict"}
+    },
+    {
+      "id": "duplicate-while-running",
+      "existing_status": "Running",
+      "same_digest": true,
+      "expected": {"dispatch_count": 0, "status": 202, "returns_existing_invocation": true}
+    },
+    {
+      "id": "duplicate-after-success",
+      "existing_status": "Succeeded",
+      "same_digest": true,
+      "expected": {"dispatch_count": 0, "status": 200, "returns_existing_response_ref": true}
+    },
+    {
+      "id": "crash-after-record-before-dispatch",
+      "durable_status": "Pending",
+      "backend_dispatch_evidence": "Absent",
+      "expected": {"automatic_backend_redispatch": false, "recovery_required": true}
+    },
+    {
+      "id": "crash-after-dispatch-before-ack",
+      "durable_status": "Running",
+      "backend_dispatch_evidence": "Unknown",
+      "expected": {"automatic_backend_redispatch": false, "status": "UnknownOutcome", "recovery_required": true}
+    },
+    {
+      "id": "expired-idempotency-tombstone",
+      "active_record_present": false,
+      "tombstone_present": true,
+      "expected": {"dispatch_count": 0, "status": 409, "code": "idempotency_key_expired"}
+    }
+  ]
+}

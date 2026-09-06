@@ -1,0 +1,62 @@
+{
+  "fixture_version": "0.2-candidate",
+  "unit": "concurrent_invocation",
+  "cases": [
+    {
+      "id": "shared-group-positive",
+      "description": "Junior 与 Senior 共享 committed=2，可各分配 1。",
+      "group_available": {"shared-main": 2},
+      "group_members": {"shared-main": ["Junior", "Senior"]},
+      "level_available": {"Junior": 2, "Senior": 2},
+      "burst": {"Junior": 3, "Senior": 3},
+      "request_quota_remaining": {"Junior": 10, "Senior": 10},
+      "requested_seats": {"Junior": 1, "Senior": 1},
+      "expected": {"valid": true, "committed_seats": 2, "burst_seats": 0}
+    },
+    {
+      "id": "shared-group-overallocated-negative",
+      "description": "共享 committed=2，不能让两个等级各自同时分配 2。",
+      "group_available": {"shared-main": 2},
+      "level_available": {"Junior": 2, "Senior": 2},
+      "group_members": {"shared-main": ["Junior", "Senior"]},
+      "requested_seats": {"Junior": 2, "Senior": 2},
+      "expected": {"valid": false, "reason": "capacity_group_constraint_exceeded"}
+    },
+    {
+      "id": "overlapping-groups-negative",
+      "description": "Senior 同时属于 gpu-pool 与 premium-pool，一个 Seat 同时消耗两个约束。",
+      "group_available": {"gpu-pool": 2, "premium-pool": 1},
+      "group_members": {"gpu-pool": ["Junior", "Senior"], "premium-pool": ["Senior", "Expert"]},
+      "level_available": {"Junior": 2, "Senior": 2, "Expert": 1},
+      "requested_seats": {"Junior": 1, "Senior": 1, "Expert": 1},
+      "expected": {"valid": false, "reason": "capacity_group_constraint_exceeded", "group": "premium-pool"}
+    },
+    {
+      "id": "burst-not-committed-negative",
+      "description": "burst 不得计入 committed Tier Service Seat。",
+      "group_available": {"shared-main": 0},
+      "level_available": {"Junior": 0},
+      "burst": {"Junior": 4},
+      "requested_seats": {"Junior": 1},
+      "expected": {"valid": false, "reason": "committed_capacity_unavailable"}
+    },
+    {
+      "id": "client-quota-negative",
+      "description": "容量有余但 Client request quota 为零。",
+      "group_available": {"shared-main": 2},
+      "level_available": {"Junior": 2},
+      "request_quota_remaining": {"Junior": 0},
+      "requested_seats": {"Junior": 1},
+      "expected": {"valid": false, "reason": "client_quota_exhausted"}
+    },
+    {
+      "id": "snapshot-expired-negative",
+      "description": "过期 snapshot 不能用于新增 Seat 投影。",
+      "observed_at": "2026-09-06T14:00:00+08:00",
+      "valid_until": "2026-09-06T14:01:00+08:00",
+      "evaluation_time": "2026-09-06T14:02:00+08:00",
+      "requested_seats": {"Junior": 1},
+      "expected": {"valid": false, "reason": "capacity_snapshot_expired"}
+    }
+  ]
+}
