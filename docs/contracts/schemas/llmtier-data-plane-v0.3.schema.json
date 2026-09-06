@@ -30,6 +30,22 @@
       "required": ["error"],
       "properties": {"error": {"$ref": "#/$defs/ErrorDetail"}}
     },
+    "TerminalErrorEnvelope": {
+      "allOf": [
+        {"$ref": "#/$defs/ErrorEnvelope"},
+        {
+          "properties": {
+            "error": {
+              "properties": {
+                "code": {"enum": ["invocation_failed", "invocation_cancelled", "invocation_outcome_unknown"]},
+                "invocation_id": {"type": "string", "minLength": 1}
+              },
+              "required": ["invocation_id"]
+            }
+          }
+        }
+      ]
+    },
     "ResponsesRequest": {
       "type": "object",
       "additionalProperties": false,

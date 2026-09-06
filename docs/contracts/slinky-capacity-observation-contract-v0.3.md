@@ -59,7 +59,7 @@ Snapshot 失效时：
 
 ## 6. Retention 与 recovery observation
 
-Observation invocation view 与 Data Plane recovery extension 投影自同一 Invocation ledger，不得出现第二状态机。V0.3 采用 M2-C：Piko 自动 retry/recovery deadline 最长 24 小时；active idempotency record 保留到 terminal；terminal 后 content-free digest/tombstone 去重至少 7 天；canonical Response 可恢复至少 7 天。Prompt/output privacy retention 可独立配置，但不能提前删除 digest/tombstone。
+Observation invocation view 与 Data Plane recovery extension 投影自同一 Invocation ledger，不得出现第二状态机。V0.3 采用 M2-C：最短保证窗口 `W=168h` 从 Invocation terminal 起算；safety margin `M=24h`，其中 clock skew 最多 5 分钟；产品 deadline `D=24h` 满足 `D <= W-M = 144h`。active idempotency record 保留到 terminal；terminal 后 content-free digest/tombstone、Invocation terminal view 与 canonical Response 均至少保留 168h。Prompt/output privacy retention 可独立配置，但不能提前删除 digest/tombstone。
 
 ## 7. Metadata 与证据状态
 

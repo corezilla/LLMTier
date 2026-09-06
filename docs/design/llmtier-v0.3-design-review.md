@@ -2,7 +2,7 @@
 
 Last Updated: 2026-09-06
 
-Status: Review Amendment 1；不构成运行时能力声明或兼容性激活
+Status: Review Amendment 2；已纳入 Piko baseline/recovery 信息，scope 冲突待裁决，不构成兼容性激活
 
 Reviewers: Slinky、Piko
 
@@ -93,20 +93,23 @@ Registry 发布必须包含 catalog version、强 ETag、`effective_at` 和 `val
 | 情形 | POST 返回 | dispatch |
 | --- | --- | --- |
 | 首次成功 | endpoint 标准 `200` body；SSE 为 `200 text/event-stream` | 一次 |
-| active replay | `202 InvocationAccepted` + `Location` + Invocation header | 零次 |
+| active replay | `202 InvocationAccepted` + `Location` + Invocation header + `Retry-After` | 零次 |
 | completed replay | 原 endpoint 标准成功 body | 零次 |
 | Failed/Cancelled/UnknownOutcome replay | typed non-2xx OpenAI-compatible Error envelope | 零次 |
 
 POST 的 HTTP 200 只返回该 endpoint 的标准成功 body，绝不返回 `InvocationView`。terminal 详情通过 `GET /v1/invocations/{id}` 查询；证据不足进入 `UnknownOutcome`，不得盲目重派。
 
+Invocation 已建立后，active `202` 和 terminal non-2xx 都必须返回 `Location: /v1/invocations/{id}` 与 `X-LLMTier-Invocation-Id`；active `202` 另带 `Retry-After`。Invocation GET 使用 `recovery_ready` 和 `recovery_disposition=wait|retrieve_response|replay_same_request|raise_terminal_error|manual_reconcile` 提供 lost-response readiness，不要求 adapter 从 HTTP 200 猜状态。
+
 ### 5.3 M2-C retention
 
 V0.3 单一方向冻结为 C：
 
-- Piko 自动 retry/recovery deadline 最长 24 小时；不能满足时必须在实现前提出一个唯一替代值，不得运行时降级。
+- `W=168h`，从 Invocation terminal 起提供连续去重保证；`M=24h`，其中 clock skew 最多 5 分钟，其余为恢复安全余量。
+- 必须满足 `max_client_retry_deadline <= W-M = 144h`；Slinky 产品值 `D=24h` 满足该式。不能满足时必须在实现前提出一个唯一替代值，不得运行时降级。
 - active idempotency record 保留到 Invocation terminal。
 - terminal 后 content-free digest/tombstone 去重保证至少 7 天。
-- canonical Response 可恢复至少 7 天。
+- Invocation terminal view 与 canonical Response 从 terminal 起至少保留 7 天。
 - Prompt/output privacy retention 可独立配置，但 digest/tombstone 不得提前消失。
 - 完全删除后不保证识别历史 key，不宣称无限期 exactly-once。
 
@@ -176,7 +179,9 @@ V0.3 只有以下条件全部满足才可从 candidate 激活：
 
 已吸收 Slinky `S-20260906-59891d73fa13`：authority/Seat 方向接受；invalidation 精确定义；M2-C 24h/7d；LLMTier Registry authority 和 exact-case ID；Management API/UI 恢复为 V0.3 required；统一 Responses+Chat+Embeddings+Models+SSE；terminal replay 改为 non-2xx Error；补齐 activation gates。
 
-仍等待 Piko 对 pinned SDK/provider adapter、真实 capture、canonical Client/Source 和 24 小时 retry deadline 独立答复。该证据到齐前保持 candidate。
+已吸收 Piko `P-20260906-b8a2e107f0b8`：固定 Pi/SDK/OpenAI dependency、provider/adapter 名称、canonical Client/Source、Responses namespace/digest、内建 adapter 五类 capture、202/non-2xx header 和 recovery readiness；LLMTier 冻结 `W=168h`、`M=24h`、Invocation/Response terminal retention 168h。
+
+未决 scope：Piko 请求 V0.3 仅 non-stream Responses 并把 Streaming/Chat 延至 V0.4；Slinky Amendment 1 要求 V0.3 保持 Responses+Chat+Embeddings+Models+SSE。当前保留统一 candidate surface 且 activation=false，等待 Slinky/用户明确裁决，不创建第二路径。
 
 ## 12. 关联材料
 

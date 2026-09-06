@@ -64,9 +64,17 @@ class ContractSemanticsV03Tests(unittest.TestCase):
         decision = fixture["candidate_v0_3_decision"]
         self.assertEqual("C-finite-retention-scope", decision["selected"])
         self.assertTrue(decision["activation_allowed"])
-        self.assertEqual(24, decision["piko_retry_recovery_deadline_hours_max"])
-        self.assertEqual(7, decision["terminal_digest_tombstone_retention_days_min"])
-        self.assertEqual(7, decision["canonical_response_recovery_days_min"])
+        self.assertEqual(168, decision["guarantee_window_hours_min"])
+        self.assertEqual(24, decision["safety_margin_hours"])
+        self.assertEqual(144, decision["formula_deadline_hours_max"])
+        self.assertEqual(24, decision["product_retry_recovery_deadline_hours_max"])
+        self.assertLessEqual(
+            decision["product_retry_recovery_deadline_hours_max"],
+            decision["guarantee_window_hours_min"] - decision["safety_margin_hours"],
+        )
+        self.assertEqual(168, decision["terminal_digest_tombstone_retention_hours_min"])
+        self.assertEqual(168, decision["invocation_terminal_view_retention_hours_min"])
+        self.assertEqual(168, decision["canonical_response_recovery_hours_min"])
         self.assertTrue(any(option["new_mechanism"] for option in fixture["candidate_options"]))
 
     def test_v03_manifest_has_no_verified_endpoint(self):
@@ -118,9 +126,17 @@ class ContractSemanticsV03Tests(unittest.TestCase):
                 "Model",
                 "ModelList",
                 "ErrorEnvelope",
+                "TerminalErrorEnvelope",
                 "ServiceLevelRegistryEntry",
             }.issubset(schema["$defs"])
         )
+
+    def test_recovery_headers_and_readiness_schema_exist(self):
+        recovery = self.load(ROOT / "docs" / "contracts" / "schemas" / "llmtier-recovery-v0.3.schema.json")
+        headers = recovery["$defs"]["RecoveryHeaders"]
+        self.assertEqual(["Location", "X-LLMTier-Invocation-Id"], headers["required"])
+        invocation = self.load(ROOT / "docs" / "contracts" / "schemas" / "llmtier-contracts-v0.2.schema.json")["$defs"]["InvocationView"]
+        self.assertTrue({"recovery_ready", "recovery_disposition", "retry_after_ms"}.issubset(invocation["required"]))
 
     def test_recovery_protocol_never_redispatches_duplicate(self):
         fixture = self.load(FIXTURES / "v0.3" / "recovery-protocol-fixtures.json")
@@ -137,9 +153,17 @@ class ContractSemanticsV03Tests(unittest.TestCase):
         self.assertEqual(3, len(terminal))
         for case in terminal:
             with self.subTest(case=case["id"]):
-                self.assertEqual("ErrorEnvelope", case["expected"]["body_schema"])
+                self.assertEqual("TerminalErrorEnvelope", case["expected"]["body_schema"])
                 self.assertNotEqual(200, case["expected"].get("http_status"))
                 self.assertEqual(0, case["expected"]["dispatch_count"])
+                self.assertEqual(["Location", "X-LLMTier-Invocation-Id"], case["expected"]["headers"])
+
+    def test_scope_conflict_blocks_activation_without_creating_fallback(self):
+        manifest = self.load(ROOT / "docs" / "contracts" / "compatibility-manifest-v0.3.json")
+        review = manifest["scope_review"]
+        self.assertEqual("pending_slinky_or_user_decision", review["resolution"])
+        self.assertFalse(review["activation_allowed_while_unresolved"])
+        self.assertFalse(review["parallel_or_fallback_surface_allowed"])
 
 
 if __name__ == "__main__":

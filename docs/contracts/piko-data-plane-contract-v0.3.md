@@ -2,7 +2,7 @@
 
 Last Updated: 2026-09-06
 
-Status: Candidate Amendment；V0.3 scope 已统一，仍等待 Piko pinned SDK/provider adapter capture，未激活
+Status: Candidate Amendment 2；已纳入 Piko pinned baseline/capture，scope 冲突待 Slinky/用户裁决，未激活
 
 ## 1. Authority 与唯一调用路径
 
@@ -45,7 +45,20 @@ LLMTier 是 Service Level catalog authority。`GET /v1/models`、`GET /v1/models
 - `Idempotency-Key`：同一 logical invocation 的稳定 key。
 - `X-Client-Request-Id`：Piko correlation ID。
 
+Responses 的 idempotency namespace 冻结为：
+
+```text
+llmtier-responses/v0.3
+  + canonical client_id
+  + canonical source_id
+  + Idempotency-Key
+```
+
+canonical request digest 至少覆盖 exact `service_level_id`、完整规范化请求 body 和所有影响推理语义的 header。相同 namespace/key 不同 digest 返回不可重试的 `409 idempotency_conflict`。Piko 在首次 dispatch 前持久化 key、digest、invocation reference 和 recovery obligation；transport retry、agent-level retry 与 restart recovery 必须复用同一 key。
+
 Responses、Chat Completions、Embeddings、Models 和 Error 的候选 Schema 位于 `schemas/llmtier-data-plane-v0.3.schema.json`；recovery Schema 位于 `schemas/llmtier-recovery-v0.3.schema.json`。未知参数拒绝；Metadata 最多 16 对，key/value 权威限制分别为 64/512 UTF-8 encoded bytes，不得按 code point 放宽或静默截断。
+
+Piko V0.3 capture 基线：Pi source `9767ba275f3e9a5ee0f5c5342249b629ab1b2282`；`@earendil-works/pi-coding-agent@0.85.1`；`@earendil-works/pi-ai@0.85.1`；`openai@6.40.0`；provider=`llmtier`；adapter=`piko-llmtier-responses-v0.3`。这些版本只冻结 conformance matrix，不表示 production activation。
 
 ## 5. 首次、重复与 lost-response 协议
 
@@ -54,13 +67,15 @@ LLMTier 在调用 Backend 前持久化 idempotency record、Invocation 和 dispa
 | 情形 | POST 返回 | dispatch |
 | --- | --- | --- |
 | 首次成功 | endpoint 对应的标准 `200` body；SSE 为 `200 text/event-stream` | 一次 |
-| active replay：Pending/Queued/Running | `202 InvocationAccepted`，带 `Location` 与 `X-LLMTier-Invocation-Id` | 零次 |
+| active replay：Pending/Queued/Running | `202 InvocationAccepted`，带 `Location`、`X-LLMTier-Invocation-Id` 与 `Retry-After` | 零次 |
 | completed replay：Succeeded | endpoint 对应的原标准成功 body；不得换成 InvocationView | 零次 |
-| terminal replay：Failed | typed non-2xx `ErrorEnvelope`，code=`invocation_failed` | 零次 |
+| terminal replay：Failed | `502 TerminalErrorEnvelope`，code=`invocation_failed`、`retryable=false` | 零次 |
 | terminal replay：Cancelled | `409 ErrorEnvelope`，code=`invocation_cancelled` | 零次 |
 | terminal replay：UnknownOutcome | `503 ErrorEnvelope`，code=`invocation_outcome_unknown`、`retryable=false` | 零次 |
 
 Failed/Cancelled/UnknownOutcome 的详细状态只通过 `GET /v1/invocations/{id}` 查询。POST 的 HTTP 200 只表示 endpoint 的标准成功结果，绝不返回 `InvocationView`。
+
+一旦 Invocation 已建立，active `202` 与 terminal replay 非 2xx 都必须返回 `Location: /v1/invocations/{id}` 和 `X-LLMTier-Invocation-Id: {id}`；active `202` 还必须返回 `Retry-After`。请求在建立 Invocation 前即因 auth/schema/model/digest conflict 失败时不得伪造 Invocation header 或 Location。Headers Schema 为 `llmtier-recovery-v0.3.schema.json#/$defs/RecoveryHeaders`，terminal body 为 `llmtier-data-plane-v0.3.schema.json#/$defs/TerminalErrorEnvelope`。
 
 active replay 的 `202` 和两个 recovery GET 都是显式扩展；Compatibility Manifest 必须标记 `explicit_piko_recovery_adapter_required=true`，并由 pinned adapter capture 验证。SDK 不接受 `202` 时由 adapter 截获和查询，不建立另一条 Data Plane。
 
@@ -68,16 +83,26 @@ active replay 的 `202` 和两个 recovery GET 都是显式扩展；Compatibilit
 
 Invocation 状态为 `Pending | Queued | Running | Succeeded | Failed | Cancelled | UnknownOutcome`。只有 Responses 的 `Succeeded` Invocation 发布唯一 `response_ref=/v1/responses/{response_id}`；Chat/Embeddings completed replay 由同一 ledger/canonical result store 返回原 endpoint 标准 body，不伪装为 Responses object。
 
+`GET /v1/invocations/{id}` 的 readiness 信号是机器字段而不是 HTTP 状态猜测：
+
+- Pending/Queued/Running：`recovery_ready=false`、`recovery_disposition=wait`、`retry_after_ms>=0`。
+- Succeeded Responses：`recovery_ready=true`、`recovery_disposition=retrieve_response`。
+- Succeeded Chat/Embeddings：`recovery_ready=true`、`recovery_disposition=replay_same_request`，同 key/digest replay 返回保存的标准成功 body，零 dispatch。
+- Failed/Cancelled：`recovery_ready=true`、`recovery_disposition=raise_terminal_error`。
+- UnknownOutcome：`recovery_ready=true`、`recovery_disposition=manual_reconcile`，不得自动重派。
+
 Recovery scope 是 authenticated `client_id + canonical source_id`。hidden、无权或不存在统一为 `404 not_found`；同 scope tombstone 能证明过期时返回 `410`；保留期内暂不可读取为 `503`，且不得重新 dispatch。Canonical Response 不暴露 physical Provider payload。
 
 ## 7. M2-C 有限保证窗口
 
 V0.3 单一选择是 C：有限保证窗口，不新增永久索引或 epoch/token 协议。
 
-- Piko 自动 retry/recovery deadline 最长 24 小时；若 Piko 无法满足，必须在实现前提出一个唯一替代数值，不得运行时自动降级。
+- 最短保证窗口 `W=168h`，从 Invocation terminal 时刻开始，由 active record 与 content-free digest/tombstone 的连续存在共同保证。
+- safety margin `M=24h`，其中允许的 clock skew 最多 5 分钟，其余作为 transport/service recovery safety；约束为 `max_client_retry_deadline <= W-M = 144h`。
+- 产品侧 Piko 自动 retry/recovery deadline `D=24h`，满足 `D <= 144h`；若 Piko 无法满足，必须在实现前提出一个唯一替代数值，不得运行时自动降级。
 - active idempotency record 至少保留到 Invocation terminal。
 - terminal 后 content-free digest/tombstone 的去重保证至少 7 天。
-- canonical Responses 的可恢复窗口至少 7 天。
+- Invocation terminal view 与 canonical Responses 从 terminal 起至少保留 7 天。
 - Prompt/output privacy retention 可独立配置，但不能使 content-free digest/tombstone 提前消失。
 - 完全删除后不再保证识别历史 key；V0.3 不声称无限期 exactly-once。
 
@@ -89,6 +114,12 @@ Streaming、Chat 和 Embeddings 都在唯一 V0.3 scope 内，但 production act
 - active stream replay 不自动 reattach，不宣称 SSE replay；adapter 查询原 Invocation，且不得 redispatch。
 - Chat 使用 Chat 自身标准 response/event Schema；不是 Responses fallback，也不需要伪造 Responses projection。
 - Embeddings completed replay 返回原 Embeddings response；不得跨 Service Level 或 Provider-direct 重试。
+
+Piko 基于上述固定 Pi baseline 的 mock capture 已证明：内建 `openai-responses` 固定 `stream:true`；不识别 active `202 InvocationAccepted`；旧 terminal `200 InvocationView` 会报缺少 terminal event；typed `409` 被压成普通 provider error；lost response 会触发默认最多 3 次 agent-level retry。因此 V0.3 recovery 必须由自定义 adapter 执行，不能退回内建 adapter。Node `22.22.3` 对 `@earendil-works/gondolin@0.12.0` 的 `>=23.6.0` engine warning 尚待完整 Piko runtime matrix 处理。
+
+Piko 已命名 Responses adapter 为 `piko-llmtier-responses-v0.3`，计划经 `registerProvider(..., streamSimple)` 接入并自行执行 non-stream POST、Invocation/Response GET、typed status 和 durable recovery；这是同一 Piko->LLMTier 路径的 adapter，不是第二 inference path。
+
+Piko 请求把 Streaming/Chat normalization 延至 V0.4；Slinky Amendment 1 则要求 V0.3 保持 Responses+Chat+Embeddings+Models+SSE 的唯一 surface。该 scope 冲突超出 LLMTier 单方裁决权：当前 manifest 保留 Slinky 要求的统一 candidate surface，但整体 activation=false；在 Slinky/用户明确 scope amendment 前，不创建 Responses-only 分支，也不把 Chat/SSE 作为 fallback。
 
 ## 9. Activation evidence
 

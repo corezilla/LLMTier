@@ -1,7 +1,14 @@
 {
-  "manifest_version": "0.3-candidate-amendment-1",
+  "manifest_version": "0.3-candidate-amendment-2",
   "status": "candidate",
   "surface_policy": "single_v0_3_surface_no_fallback",
+  "scope_review": {
+    "slinky_required": ["responses_nonstream", "responses_sse", "chat_nonstream", "chat_sse", "embeddings", "models"],
+    "piko_requested_amendment": "v0_3_nonstream_responses_only_defer_streaming_and_chat_to_v0_4",
+    "resolution": "pending_slinky_or_user_decision",
+    "activation_allowed_while_unresolved": false,
+    "parallel_or_fallback_surface_allowed": false
+  },
   "schema_bundles": [
     "schemas/llmtier-contracts-v0.2.schema.json",
     "schemas/llmtier-data-plane-v0.3.schema.json",
@@ -52,6 +59,7 @@
       "stock_sdk_first_attempt": "pending_piko_capture",
       "active_duplicate_status": 202,
       "active_duplicate_schema_ref": "schemas/llmtier-recovery-v0.3.schema.json#/$defs/InvocationAccepted",
+      "active_duplicate_headers_schema_ref": "schemas/llmtier-recovery-v0.3.schema.json#/$defs/RecoveryHeaders",
       "explicit_piko_recovery_adapter_required": true,
       "terminal_duplicate": "typed_non_2xx_error_envelope",
       "unknown_fields": "reject_unknown_parameter"
@@ -114,8 +122,11 @@
   ],
   "terminal_replay": {
     "http_200_invocation_view_allowed": false,
-    "error_schema_ref": "schemas/llmtier-data-plane-v0.3.schema.json#/$defs/ErrorEnvelope",
-    "failed": {"http_status_class": "non_2xx", "code": "invocation_failed"},
+    "error_schema_ref": "schemas/llmtier-data-plane-v0.3.schema.json#/$defs/TerminalErrorEnvelope",
+    "headers_schema_ref": "schemas/llmtier-recovery-v0.3.schema.json#/$defs/RecoveryHeaders",
+    "headers_required_after_invocation_created": ["Location", "X-LLMTier-Invocation-Id"],
+    "headers_for_pre_invocation_failure": [],
+    "failed": {"http_status": 502, "code": "invocation_failed", "retryable": false},
     "cancelled": {"http_status": 409, "code": "invocation_cancelled"},
     "unknown_outcome": {"http_status": 503, "code": "invocation_outcome_unknown", "retryable": false},
     "detail_query": "/v1/invocations/{invocation_id}"
@@ -124,12 +135,28 @@
     "selected_option": "C-finite-retention-scope",
     "selection_frozen": true,
     "activation_allowed": true,
-    "piko_retry_recovery_deadline_hours_max": 24,
+    "guarantee_window_hours_min": 168,
+    "safety_margin_hours": 24,
+    "clock_skew_minutes_max": 5,
+    "deadline_formula": "max_client_retry_deadline_hours <= guarantee_window_hours_min - safety_margin_hours",
+    "formula_deadline_hours_max": 144,
+    "product_retry_recovery_deadline_hours_max": 24,
     "active_record_retention": "until_invocation_terminal",
-    "terminal_digest_tombstone_retention_days_min": 7,
-    "canonical_response_recovery_days_min": 7,
+    "terminal_digest_tombstone_retention_hours_min": 168,
+    "invocation_terminal_view_retention_hours_min": 168,
+    "canonical_response_recovery_hours_min": 168,
     "privacy_content_retention_independent": true,
     "infinite_exactly_once_claimed": false
+  },
+  "recovery_protocol": {
+    "responses_idempotency_namespace_components": ["llmtier-responses/v0.3", "canonical_client_id", "canonical_source_id", "idempotency_key"],
+    "canonical_digest_covers": ["exact_service_level_id", "normalized_request_body", "semantic_headers"],
+    "same_key_different_digest": {"http_status": 409, "code": "idempotency_conflict", "retryable": false},
+    "active": {"recovery_ready": false, "recovery_disposition": "wait"},
+    "succeeded_responses": {"recovery_ready": true, "recovery_disposition": "retrieve_response"},
+    "succeeded_chat_or_embeddings": {"recovery_ready": true, "recovery_disposition": "replay_same_request"},
+    "failed_or_cancelled": {"recovery_ready": true, "recovery_disposition": "raise_terminal_error"},
+    "unknown_outcome": {"recovery_ready": true, "recovery_disposition": "manual_reconcile", "automatic_redispatch": false}
   },
   "management": {
     "api_prefix": "/admin/v1",
@@ -140,8 +167,22 @@
     "status": "unimplemented"
   },
   "sdk_test_matrix": [
-    {"sdk": "piko-provider-adapter", "version": "pending_piko", "status": "unverified"},
-    {"sdk": "openai-python", "version": "pending_piko", "status": "unverified"}
+    {
+      "provider": "llmtier",
+      "adapter": "piko-llmtier-responses-v0.3",
+      "pi_source_commit": "9767ba275f3e9a5ee0f5c5342249b629ab1b2282",
+      "agent_sdk": "@earendil-works/pi-coding-agent@0.85.1",
+      "llm_sdk": "@earendil-works/pi-ai@0.85.1",
+      "openai_dependency": "openai@6.40.0",
+      "capture_node": "22.22.3",
+      "status": "partial_mock_capture_not_activation"
+    },
+    {
+      "dependency": "@earendil-works/gondolin@0.12.0",
+      "required_node": ">=23.6.0",
+      "capture_node": "22.22.3",
+      "status": "engine_warning_pending_full_runtime_matrix"
+    }
   ],
   "fixtures": [
     "fixtures/v0.2/capacity-snapshot-example.json",

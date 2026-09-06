@@ -30,10 +30,15 @@
   "candidate_v0_3_decision": {
     "selected": "C-finite-retention-scope",
     "activation_allowed": true,
-    "piko_retry_recovery_deadline_hours_max": 24,
+    "guarantee_window_hours_min": 168,
+    "safety_margin_hours": 24,
+    "clock_skew_minutes_max": 5,
+    "formula_deadline_hours_max": 144,
+    "product_retry_recovery_deadline_hours_max": 24,
     "active_record_retention": "until_invocation_terminal",
-    "terminal_digest_tombstone_retention_days_min": 7,
-    "canonical_response_recovery_days_min": 7,
+    "terminal_digest_tombstone_retention_hours_min": 168,
+    "invocation_terminal_view_retention_hours_min": 168,
+    "canonical_response_recovery_hours_min": 168,
     "privacy_content_retention_independent": true,
     "reason": "slinky_v0_3_contract_amendment"
   }

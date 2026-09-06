@@ -9,7 +9,7 @@
     {
       "id": "nonstream-lost-response-retry-active",
       "request": {"stream": false, "same_key_and_digest": true, "existing_status": "Running"},
-      "expected": {"http_status": 202, "body_schema": "InvocationAccepted", "dispatch_count": 0, "adapter_required": true}
+      "expected": {"http_status": 202, "body_schema": "InvocationAccepted", "headers": ["Location", "X-LLMTier-Invocation-Id", "Retry-After"], "recovery_ready": false, "recovery_disposition": "wait", "dispatch_count": 0, "adapter_required": true}
     },
     {
       "id": "nonstream-lost-response-retry-complete",
@@ -19,17 +19,17 @@
     {
       "id": "nonstream-retry-failed-is-error",
       "request": {"stream": false, "same_key_and_digest": true, "existing_status": "Failed"},
-      "expected": {"http_status_class": "non_2xx", "body_schema": "ErrorEnvelope", "error_code": "invocation_failed", "dispatch_count": 0, "detail_query": "/v1/invocations/{invocation_id}"}
+      "expected": {"http_status": 502, "body_schema": "TerminalErrorEnvelope", "headers": ["Location", "X-LLMTier-Invocation-Id"], "error_code": "invocation_failed", "retryable": false, "dispatch_count": 0, "detail_query": "/v1/invocations/{invocation_id}"}
     },
     {
       "id": "nonstream-retry-cancelled-is-error",
       "request": {"stream": false, "same_key_and_digest": true, "existing_status": "Cancelled"},
-      "expected": {"http_status": 409, "body_schema": "ErrorEnvelope", "error_code": "invocation_cancelled", "dispatch_count": 0, "detail_query": "/v1/invocations/{invocation_id}"}
+      "expected": {"http_status": 409, "body_schema": "TerminalErrorEnvelope", "headers": ["Location", "X-LLMTier-Invocation-Id"], "error_code": "invocation_cancelled", "dispatch_count": 0, "detail_query": "/v1/invocations/{invocation_id}"}
     },
     {
       "id": "nonstream-retry-unknown-outcome-is-error",
       "request": {"stream": false, "same_key_and_digest": true, "existing_status": "UnknownOutcome"},
-      "expected": {"http_status": 503, "body_schema": "ErrorEnvelope", "error_code": "invocation_outcome_unknown", "retryable": false, "dispatch_count": 0, "detail_query": "/v1/invocations/{invocation_id}"}
+      "expected": {"http_status": 503, "body_schema": "TerminalErrorEnvelope", "headers": ["Location", "X-LLMTier-Invocation-Id"], "error_code": "invocation_outcome_unknown", "retryable": false, "recovery_ready": true, "recovery_disposition": "manual_reconcile", "dispatch_count": 0, "detail_query": "/v1/invocations/{invocation_id}"}
     },
     {
       "id": "stream-first-response",
@@ -39,7 +39,7 @@
     {
       "id": "stream-active-retry-adapter-recovery",
       "request": {"stream": true, "same_key_and_digest": true, "existing_status": "Running"},
-      "expected": {"http_status": 202, "body_schema": "InvocationAccepted", "dispatch_count": 0, "automatic_reattach": false, "adapter_required": true, "sdk_status": "pending_piko_capture"}
+      "expected": {"http_status": 202, "body_schema": "InvocationAccepted", "headers": ["Location", "X-LLMTier-Invocation-Id", "Retry-After"], "recovery_ready": false, "recovery_disposition": "wait", "dispatch_count": 0, "automatic_reattach": false, "adapter_required": true, "sdk_status": "pending_scope_resolution_and_piko_capture"}
     },
     {
       "id": "chat-completed-replay-standard-body",

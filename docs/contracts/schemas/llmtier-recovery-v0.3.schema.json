@@ -33,14 +33,26 @@
     "InvocationAccepted": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["object", "invocation_id", "status", "record_version", "recovery_url"],
+      "required": ["object", "invocation_id", "status", "record_version", "recovery_url", "recovery_ready", "recovery_disposition", "retry_after_ms"],
       "properties": {
         "object": {"const": "llmtier.invocation"},
         "invocation_id": {"type": "string", "minLength": 1},
-        "status": {"enum": ["Pending", "Queued", "Running", "UnknownOutcome"]},
+        "status": {"enum": ["Pending", "Queued", "Running"]},
         "record_version": {"type": "integer", "minimum": 1},
         "recovery_url": {"type": "string", "pattern": "^/v1/invocations/[^/]+$"},
-        "retry_after_ms": {"type": ["integer", "null"], "minimum": 0}
+        "recovery_ready": {"const": false},
+        "recovery_disposition": {"const": "wait"},
+        "retry_after_ms": {"type": "integer", "minimum": 0}
+      }
+    },
+    "RecoveryHeaders": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["Location", "X-LLMTier-Invocation-Id"],
+      "properties": {
+        "Location": {"type": "string", "pattern": "^/v1/invocations/[^/]+$"},
+        "X-LLMTier-Invocation-Id": {"type": "string", "minLength": 1},
+        "Retry-After": {"type": ["integer", "string"]}
       }
     },
     "ResponseRetrievalView": {
