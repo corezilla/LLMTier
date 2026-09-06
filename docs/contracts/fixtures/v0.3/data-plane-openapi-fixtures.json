@@ -1,0 +1,83 @@
+{
+  "fixture_version": "0.3-candidate-amendment-3",
+  "cases": [
+    {
+      "id": "responses-store-positive",
+      "schema": "ResponsesRequest",
+      "valid": true,
+      "body": {"model": "Worker", "input": [{"type": "message", "role": "user", "content": "hello"}], "store": false, "stream": false}
+    },
+    {
+      "id": "responses-typed-item-positive",
+      "schema": "ResponsesRequest",
+      "valid": true,
+      "body": {"model": "Worker", "input": [{"type": "function_call_output", "call_id": "call_1", "output": "ok"}]}
+    },
+    {
+      "id": "responses-arbitrary-item-negative",
+      "schema": "ResponsesRequest",
+      "valid": false,
+      "body": {"model": "Worker", "input": [{"arbitrary": true}]}
+    },
+    {
+      "id": "responses-unknown-field-negative",
+      "schema": "ResponsesRequest",
+      "valid": false,
+      "body": {"model": "Worker", "input": "hello", "unknown_option": true}
+    },
+    {
+      "id": "chat-max-completion-stream-usage-positive",
+      "schema": "ChatCompletionRequest",
+      "valid": true,
+      "body": {"model": "Junior", "messages": [{"role": "user", "content": "hello"}], "max_completion_tokens": 64, "stream": true, "stream_options": {"include_usage": true}}
+    },
+    {
+      "id": "chat-deprecated-max-tokens-negative",
+      "schema": "ChatCompletionRequest",
+      "valid": false,
+      "body": {"model": "Junior", "messages": [{"role": "user", "content": "hello"}], "max_tokens": 64}
+    },
+    {
+      "id": "chat-arbitrary-message-negative",
+      "schema": "ChatCompletionRequest",
+      "valid": false,
+      "body": {"model": "Junior", "messages": [{"arbitrary": true}]}
+    },
+    {
+      "id": "chat-tool-positive",
+      "schema": "ChatCompletionRequest",
+      "valid": true,
+      "body": {"model": "Junior", "messages": [{"role": "user", "content": "hello"}], "tools": [{"type": "function", "function": {"name": "lookup", "parameters": {"type": "object"}}}], "tool_choice": {"type": "function", "function": {"name": "lookup"}}}
+    },
+    {
+      "id": "chat-flat-tool-negative",
+      "schema": "ChatCompletionRequest",
+      "valid": false,
+      "body": {"model": "Junior", "messages": [{"role": "user", "content": "hello"}], "tools": [{"type": "function", "name": "lookup", "parameters": {}}]}
+    },
+    {
+      "id": "embedding-string-array-positive",
+      "schema": "EmbeddingRequest",
+      "valid": true,
+      "body": {"model": "Worker", "input": ["one", "two"], "encoding_format": "float"}
+    },
+    {
+      "id": "embedding-object-input-negative",
+      "schema": "EmbeddingRequest",
+      "valid": false,
+      "body": {"model": "Worker", "input": {"text": "no"}}
+    },
+    {
+      "id": "terminal-error-positive",
+      "schema": "TerminalErrorEnvelope",
+      "valid": true,
+      "body": {"error": {"message": "invocation failed", "type": "server_error", "code": "invocation_failed", "param": null, "retryable": false, "retry_after_ms": null, "invocation_id": "inv_01"}}
+    },
+    {
+      "id": "terminal-error-missing-invocation-negative",
+      "schema": "TerminalErrorEnvelope",
+      "valid": false,
+      "body": {"error": {"message": "invocation failed", "type": "server_error", "code": "invocation_failed", "param": null, "retryable": false}}
+    }
+  ]
+}

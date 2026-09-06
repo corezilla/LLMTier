@@ -17,10 +17,13 @@ Slinky 不取得 Provider credential、physical routing 或 LLMTier Management a
 - `GET /tier/v1/service-levels/{service_level_id}`
 - `GET /tier/v1/capacity/snapshots/current`
 - `GET /tier/v1/invocations/{invocation_id}`
+- `GET /tier/v1/invocations`
 - `GET /tier/v1/usage/summary`
 - `GET /tier/v1/compatibility`
 
 所有响应按 credential scope 过滤。`/tier/v1/service-levels` 与 Data Plane Models、admission、capacity membership 和 Compatibility Manifest 必须由 LLMTier 同一 Registry 生成。
+
+各 endpoint 的 query/header、cursor pagination、ETag/`If-None-Match`/`304`、response DTO、typed error 与 Schema ref 以 `openapi/llmtier-v0.3.openapi.json` 为唯一机器权威。Invocation list 支持 `limit/cursor/status/service_level_id`，detail/list 投影同一 Invocation Schema。
 
 ## 3. Service Level Registry
 

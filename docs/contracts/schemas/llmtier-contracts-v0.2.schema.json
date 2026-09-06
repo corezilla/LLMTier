@@ -129,9 +129,6 @@
         "service_level_id",
         "status",
         "record_version",
-        "recovery_ready",
-        "recovery_disposition",
-        "retry_after_ms",
         "response_ref",
         "usage_status",
         "error",
@@ -144,13 +141,10 @@
         "client_request_id": {"type": "string", "minLength": 1},
         "source_id": {"type": "string", "minLength": 1},
         "source_instance_id": {"type": "string", "minLength": 1},
-        "endpoint": {"enum": ["/v1/responses", "/v1/chat/completions", "/v1/embeddings"]},
+        "endpoint": {"enum": ["/v1/responses", "/v1/chat/completions"]},
         "service_level_id": {"type": "string", "minLength": 1},
         "status": {"enum": ["Pending", "Queued", "Running", "Succeeded", "Failed", "Cancelled", "UnknownOutcome"]},
         "record_version": {"type": "integer", "minimum": 1},
-        "recovery_ready": {"type": "boolean"},
-        "recovery_disposition": {"enum": ["wait", "retrieve_response", "replay_same_request", "raise_terminal_error", "manual_reconcile"]},
-        "retry_after_ms": {"type": ["integer", "null"], "minimum": 0},
         "response_ref": {"type": ["string", "null"]},
         "usage": {"type": ["object", "null"]},
         "usage_status": {"enum": ["Known", "Partial", "Unknown"]},
@@ -162,79 +156,11 @@
       },
       "allOf": [
         {
-          "if": {
-            "properties": {"status": {"enum": ["Pending", "Queued", "Running"]}},
-            "required": ["status"]
-          },
+          "if": {"properties": {"status": {"const": "Succeeded"}}},
           "then": {
             "properties": {
-              "recovery_ready": {"const": false},
-              "recovery_disposition": {"const": "wait"}
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "status": {"const": "Succeeded"},
-              "endpoint": {"const": "/v1/responses"}
-            },
-            "required": ["status", "endpoint"]
-          },
-          "then": {
-            "properties": {
-              "recovery_ready": {"const": true},
-              "recovery_disposition": {"const": "retrieve_response"},
               "response_ref": {"type": "string", "pattern": "^/v1/responses/[^/]+$"},
               "error": {"type": "null"}
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "endpoint": {"enum": ["/v1/chat/completions", "/v1/embeddings"]}
-            },
-            "required": ["endpoint"]
-          },
-          "then": {"properties": {"response_ref": {"type": "null"}}}
-        },
-        {
-          "if": {
-            "properties": {
-              "status": {"const": "Succeeded"},
-              "endpoint": {"enum": ["/v1/chat/completions", "/v1/embeddings"]}
-            },
-            "required": ["status", "endpoint"]
-          },
-          "then": {
-            "properties": {
-              "recovery_ready": {"const": true},
-              "recovery_disposition": {"const": "replay_same_request"}
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {"status": {"enum": ["Failed", "Cancelled"]}},
-            "required": ["status"]
-          },
-          "then": {
-            "properties": {
-              "recovery_ready": {"const": true},
-              "recovery_disposition": {"const": "raise_terminal_error"}
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {"status": {"const": "UnknownOutcome"}},
-            "required": ["status"]
-          },
-          "then": {
-            "properties": {
-              "recovery_ready": {"const": true},
-              "recovery_disposition": {"const": "manual_reconcile"}
             }
           }
         }

@@ -10,9 +10,9 @@ LLMTier 是独立模型服务系统，V0.3 必须提供 Management API 和最小
 
 所有 mutation 必须鉴权、授权、审计并支持并发版本检查。Secret 只写不读：API/UI 只能显示是否已配置、版本/轮换时间和健康状态，绝不回显 secret 明文、密文或可逆导出。
 
-## 2. 最小 Management API surface
+## 2. Management API surface
 
-统一前缀为 `/admin/v1`：
+统一前缀为 `/tier/admin/v1`，唯一机器权威为 `openapi/llmtier-v0.3.openapi.json`：
 
 - Provider、Account、Local Deployment：list/get/create/update/disable、credential write/rotate、discovery/probe。
 - Model discovery：触发/读取 discovery result，并将 physical capability 映射到 Service Level candidate。
@@ -22,6 +22,25 @@ LLMTier 是独立模型服务系统，V0.3 必须提供 Management API 和最小
 - Capacity、Usage、Audit、Recovery：查看 scoped/aggregate 状态，执行明确授权的 reconcile/cancel/retention 管理操作。
 
 Management operation 不得创建跨 Service Level fallback、Role selector 或 Provider-direct Data Plane。破坏兼容性的 Service Level 修改必须创建新 ID 或 API major。
+
+### 2.1 逐 endpoint 契约
+
+| 资源 | Collection | Detail / action |
+| --- | --- | --- |
+| Provider | `GET/POST /tier/admin/v1/providers` | `GET/PATCH /tier/admin/v1/providers/{provider_id}` |
+| Account | `GET/POST /tier/admin/v1/accounts` | `GET/PATCH /tier/admin/v1/accounts/{account_id}`；`POST .../secret` 写入或轮换 secret |
+| Local Deployment | `GET/POST /tier/admin/v1/deployments` | `GET/PATCH /tier/admin/v1/deployments/{deployment_id}` |
+| Service Level | `GET/POST /tier/admin/v1/service-levels` | `GET/PATCH /tier/admin/v1/service-levels/{service_level_id}`；`POST /registry/publish` 发布 Registry |
+| Pool | `GET/POST /tier/admin/v1/pools` | `GET/PATCH /tier/admin/v1/pools/{pool_id}` |
+| Client | `GET/POST /tier/admin/v1/clients` | `GET/PATCH /tier/admin/v1/clients/{client_id}`；`POST .../credentials` 创建一次性 credential |
+| Source | `GET/POST /tier/admin/v1/sources` | `GET/PATCH /tier/admin/v1/sources/{source_id}` |
+| Entitlement | `GET/POST /tier/admin/v1/entitlements` | `GET/PATCH /tier/admin/v1/entitlements/{entitlement_id}` |
+| Discovery / Probe | `POST /tier/admin/v1/discovery/jobs`；`POST /tier/admin/v1/probe/jobs` | `GET /tier/admin/v1/jobs/{job_id}` |
+| Operations | `GET /tier/admin/v1/capacity`、`/usage`、`/audit` | `POST /tier/admin/v1/recovery/actions` |
+
+OpenAPI 为每个 operation 固定 request/response DTO、typed default error 和资源 ID parameter。所有 list 使用 `limit`、`cursor` 与 `PageMeta.next_cursor`；支持快照读取的 list/detail 返回强 `ETag`，`If-None-Match` 命中返回 `304`。所有 create/action `POST` 要求 `Idempotency-Key`；所有资源 `PATCH` 同时要求 `If-Match` 和 body `expected_version`，不匹配返回 `409/412 version_conflict`。Discovery、probe、Registry publish 和 recovery action 返回 `202 AdminJob` 与 `/tier/admin/v1/jobs/{job_id}` Location。
+
+Account secret 写入/轮换的 response 只返回状态、secret version 和 rotated timestamp；Client credential 只在创建 response 返回一次 plaintext credential，之后所有 GET/list/audit 都只能返回 fingerprint/status。Recovery action 必须显式提交 `redispatch=false`，只允许 `reconcile` 或 `cancel`，不得绕过 Invocation ledger。
 
 ## 3. 最小 Admin Web UI
 

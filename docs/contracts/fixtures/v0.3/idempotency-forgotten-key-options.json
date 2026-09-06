@@ -29,7 +29,8 @@
   ],
   "candidate_v0_3_decision": {
     "selected": "C-finite-retention-scope",
-    "activation_allowed": true,
+    "policy_selected": true,
+    "runtime_activation": false,
     "guarantee_window_hours_min": 168,
     "safety_margin_hours": 24,
     "clock_skew_minutes_max": 5,

@@ -10,6 +10,9 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = []
 
+[project.optional-dependencies]
+test = ["jsonschema>=4.23,<5"]
+
 [project.scripts]
 llm-tier = "llm_tier.__main__:main"
 llm-tier-cli = "llm_tier.cli.__main__:main"
@@ -19,4 +22,3 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
-

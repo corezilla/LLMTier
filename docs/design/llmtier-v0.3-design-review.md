@@ -39,7 +39,7 @@ Runtime -> Piko -> LLMTier -> Provider/Local Deployment
 ## 3. 系统分面
 
 ```text
-Admin -> /admin/v1 + Admin Web UI
+Admin -> /tier/admin/v1 + Admin Web UI
           -> inventory / secret-write / probe / registry publish / entitlement
           -> authoritative Service Level Registry
              |-> /v1/models
@@ -99,7 +99,7 @@ Registry 发布必须包含 catalog version、强 ETag、`effective_at` 和 `val
 
 POST 的 HTTP 200 只返回该 endpoint 的标准成功 body，绝不返回 `InvocationView`。terminal 详情通过 `GET /v1/invocations/{id}` 查询；证据不足进入 `UnknownOutcome`，不得盲目重派。
 
-Invocation 已建立后，active `202` 和 terminal non-2xx 都必须返回 `Location: /v1/invocations/{id}` 与 `X-LLMTier-Invocation-Id`；active `202` 另带 `Retry-After`。Invocation GET 使用 `recovery_ready` 和 `recovery_disposition=wait|retrieve_response|replay_same_request|raise_terminal_error|manual_reconcile` 提供 lost-response readiness，不要求 adapter 从 HTTP 200 猜状态。
+Invocation 已建立后，active `202` 和 terminal non-2xx 都必须返回 `Location: /v1/invocations/{id}` 与 `X-Tier-Invocation-ID`；active `202` 另带 `Retry-After`。Invocation GET 使用 `recovery_ready` 和 `recovery_disposition=wait|retrieve_response|replay_same_request|raise_terminal_error|manual_reconcile` 提供 lost-response readiness，不要求 adapter 从 HTTP 200 猜状态。
 
 ### 5.3 M2-C retention
 
@@ -129,7 +129,7 @@ Semantic validator 必须在生产路径检查 ID 唯一、exact-case Registry m
 
 ## 7. Management API 与 Admin Web UI
 
-V0.3 必须交付 `/admin/v1` Management API 和最小 Admin Web UI，覆盖：
+V0.3 必须交付 `/tier/admin/v1` Management API 和最小 Admin Web UI，覆盖：
 
 - Provider、Account、Local Deployment 与 credential write/rotate；
 - Model discovery、Probe/readiness；
@@ -149,6 +149,7 @@ Management 不得创建 Provider-direct Data Plane、Role selector、跨等级 f
 - Metadata 最多 16 对，key/value 权威限制为 64/512 UTF-8 encoded bytes，不得静默截断。
 - Observation 与 Data Plane recovery 投影自同一 Invocation ledger。
 - Prompt/output/usage retention 与 privacy policy 显式配置，但受 M2-C digest/tombstone 下限约束。
+- V0.3 唯一机器权威是 `docs/contracts/openapi/llmtier-v0.3.openapi.json`；历史 standalone Schema 不由当前 Manifest 装载。
 
 ## 9. Activation gates
 
@@ -181,6 +182,8 @@ V0.3 只有以下条件全部满足才可从 candidate 激活：
 
 已吸收 Piko `P-20260906-b8a2e107f0b8`：固定 Pi/SDK/OpenAI dependency、provider/adapter 名称、canonical Client/Source、Responses namespace/digest、内建 adapter 五类 capture、202/non-2xx header 和 recovery readiness；LLMTier 冻结 `W=168h`、`M=24h`、Invocation/Response terminal retention 168h。
 
+已吸收 Slinky Amendment 2 `S-20260906-7f86cf4103bd`：全链统一 Management path 与 canonical headers；用唯一 OpenAPI 3.1 authority 覆盖 Data Plane/SSE/Recovery/Observation/Management；create/retrieve 复用 canonical Response；policy selection 与 runtime activation 分离；移除 V0.3 Manifest 对两份 Data Plane Schema authority 的并列装载。
+
 未决 scope：Piko 请求 V0.3 仅 non-stream Responses 并把 Streaming/Chat 延至 V0.4；Slinky Amendment 1 要求 V0.3 保持 Responses+Chat+Embeddings+Models+SSE。当前保留统一 candidate surface 且 activation=false，等待 Slinky/用户明确裁决，不创建第二路径。
 
 ## 12. 关联材料
@@ -189,6 +192,7 @@ V0.3 只有以下条件全部满足才可从 candidate 激活：
 - `docs/contracts/slinky-capacity-observation-contract-v0.3.md`
 - `docs/contracts/llmtier-management-contract-v0.3.md`
 - `docs/contracts/compatibility-manifest-v0.3.json`
-- `docs/contracts/schemas/llmtier-data-plane-v0.3.schema.json`
-- `docs/contracts/schemas/llmtier-recovery-v0.3.schema.json`
+- `docs/contracts/openapi/llmtier-v0.3.openapi.json`
+- `docs/contracts/fixtures/v0.3/data-plane-openapi-fixtures.json`
+- `docs/contracts/fixtures/v0.3/sse-event-sequences.json`
 - `docs/qa/llm-tier-contract-qa-v0.3.md`

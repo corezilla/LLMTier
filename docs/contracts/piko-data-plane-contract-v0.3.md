@@ -43,7 +43,7 @@ LLMTier 是 Service Level catalog authority。`GET /v1/models`、`GET /v1/models
 - `X-Tier-Source-Id`：canonical、已授权的稳定 Source identity。
 - `X-Tier-Source-Instance-Id`：运行实例 correlation，不作为重启恢复隔离边界。
 - `Idempotency-Key`：同一 logical invocation 的稳定 key。
-- `X-Client-Request-Id`：Piko correlation ID。
+- `X-Tier-Client-Request-ID`：Piko correlation ID。
 
 Responses 的 idempotency namespace 冻结为：
 
@@ -56,18 +56,18 @@ llmtier-responses/v0.3
 
 canonical request digest 至少覆盖 exact `service_level_id`、完整规范化请求 body 和所有影响推理语义的 header。相同 namespace/key 不同 digest 返回不可重试的 `409 idempotency_conflict`。Piko 在首次 dispatch 前持久化 key、digest、invocation reference 和 recovery obligation；transport retry、agent-level retry 与 restart recovery 必须复用同一 key。
 
-Responses、Chat Completions、Embeddings、Models 和 Error 的候选 Schema 位于 `schemas/llmtier-data-plane-v0.3.schema.json`；recovery Schema 位于 `schemas/llmtier-recovery-v0.3.schema.json`。未知参数拒绝；Metadata 最多 16 对，key/value 权威限制分别为 64/512 UTF-8 encoded bytes，不得按 code point 放宽或静默截断。
+V0.3 唯一机器权威是 `openapi/llmtier-v0.3.openapi.json`。Responses、Chat Completions、Embeddings、Models、SSE、RecoveryHeaders、Observation 和 Management 都引用其 `components`；旧 standalone Schema 不由 V0.3 Manifest 装载。未知参数拒绝；Metadata 最多 16 对，key/value 权威限制分别为 64/512 UTF-8 encoded bytes，不得按 code point 放宽或静默截断。
 
 Piko V0.3 capture 基线：Pi source `9767ba275f3e9a5ee0f5c5342249b629ab1b2282`；`@earendil-works/pi-coding-agent@0.85.1`；`@earendil-works/pi-ai@0.85.1`；`openai@6.40.0`；provider=`llmtier`；adapter=`piko-llmtier-responses-v0.3`。这些版本只冻结 conformance matrix，不表示 production activation。
 
 ## 5. 首次、重复与 lost-response 协议
 
-LLMTier 在调用 Backend 前持久化 idempotency record、Invocation 和 dispatch intent。相同 namespace/key/digest 永不产生第二次 dispatch；相同 key、不同 digest 返回 `409` OpenAI-compatible Error envelope。
+LLMTier 在调用 Backend 前持久化 idempotency record、Invocation 和 dispatch intent。相同 namespace/key/digest 永不产生第二次 dispatch；相同 key、不同 digest 返回 `409 TerminalErrorEnvelope`，并用 Location/Invocation header 指向该 key 已绑定的 Invocation。
 
 | 情形 | POST 返回 | dispatch |
 | --- | --- | --- |
 | 首次成功 | endpoint 对应的标准 `200` body；SSE 为 `200 text/event-stream` | 一次 |
-| active replay：Pending/Queued/Running | `202 InvocationAccepted`，带 `Location`、`X-LLMTier-Invocation-Id` 与 `Retry-After` | 零次 |
+| active replay：Pending/Queued/Running | `202 InvocationAccepted`，带 `Location`、`X-Tier-Invocation-ID` 与 `Retry-After` | 零次 |
 | completed replay：Succeeded | endpoint 对应的原标准成功 body；不得换成 InvocationView | 零次 |
 | terminal replay：Failed | `502 TerminalErrorEnvelope`，code=`invocation_failed`、`retryable=false` | 零次 |
 | terminal replay：Cancelled | `409 ErrorEnvelope`，code=`invocation_cancelled` | 零次 |
@@ -75,7 +75,7 @@ LLMTier 在调用 Backend 前持久化 idempotency record、Invocation 和 dispa
 
 Failed/Cancelled/UnknownOutcome 的详细状态只通过 `GET /v1/invocations/{id}` 查询。POST 的 HTTP 200 只表示 endpoint 的标准成功结果，绝不返回 `InvocationView`。
 
-一旦 Invocation 已建立，active `202` 与 terminal replay 非 2xx 都必须返回 `Location: /v1/invocations/{id}` 和 `X-LLMTier-Invocation-Id: {id}`；active `202` 还必须返回 `Retry-After`。请求在建立 Invocation 前即因 auth/schema/model/digest conflict 失败时不得伪造 Invocation header 或 Location。Headers Schema 为 `llmtier-recovery-v0.3.schema.json#/$defs/RecoveryHeaders`，terminal body 为 `llmtier-data-plane-v0.3.schema.json#/$defs/TerminalErrorEnvelope`。
+一旦 Invocation 已建立，active `202` 与 terminal replay 非 2xx 都必须返回 `Location: /v1/invocations/{id}` 和 `X-Tier-Invocation-ID: {id}`；active `202` 还必须返回 `Retry-After`。同 key/different digest conflict 必然已命中该 key 的既存 Invocation，因此同样返回该 Invocation 的 header；auth/schema/model 等尚未建立 Invocation 的错误使用普通 `ErrorEnvelope`，不得伪造 Invocation header 或 Location。机器 Contract 分别为 OpenAPI `components.responses.ActiveReplay`、`TerminalOrConflict`、`TerminalFailure`、`UnknownOutcome`。
 
 active replay 的 `202` 和两个 recovery GET 都是显式扩展；Compatibility Manifest 必须标记 `explicit_piko_recovery_adapter_required=true`，并由 pinned adapter capture 验证。SDK 不接受 `202` 时由 adapter 截获和查询，不建立另一条 Data Plane。
 
@@ -108,9 +108,9 @@ V0.3 单一选择是 C：有限保证窗口，不新增永久索引或 epoch/tok
 
 ## 8. Streaming、Chat 与 Embeddings
 
-Streaming、Chat 和 Embeddings 都在唯一 V0.3 scope 内，但 production activation 取决于 Piko pinned capture：
+Streaming、Chat 和 Embeddings 都在唯一 V0.3 scope 内，但 production activation 取决于 Piko pinned capture。OpenAPI `Response*Event`、`ChatCompletionChunk`、`StreamErrorEvent` 与 `x-sse-sequence` 是 event/body 机器契约，`sse-event-sequences.json` 是顺序正负 fixture：
 
-- SSE 在连接前完成 admission；delta 可重组；有且只有一个 terminal marker；断流不是自动 Failed。
+- SSE 在连接前完成 admission；delta 可重组；Responses 以 `response.completed`、Chat 以 `[DONE]` 作为唯一 terminal marker；terminal 前 `error` event 为流内失败；缺 terminal 的 EOF/disconnect 结果为 `recovery_required`，不能猜测 Failed 或重新 dispatch。
 - active stream replay 不自动 reattach，不宣称 SSE replay；adapter 查询原 Invocation，且不得 redispatch。
 - Chat 使用 Chat 自身标准 response/event Schema；不是 Responses fallback，也不需要伪造 Responses projection。
 - Embeddings completed replay 返回原 Embeddings response；不得跨 Service Level 或 Provider-direct 重试。

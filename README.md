@@ -14,6 +14,8 @@ LLMTier 是从 Slinky 中拆出的独立模型服务项目。当前代码基线�
 V0.3 的统一系统范围、责任边界和激活门槛见
 [`docs/design/llmtier-v0.3-design-review.md`](docs/design/llmtier-v0.3-design-review.md)。该文档及关联
 Contract/Schema/Manifest 当前仍是评审候选，不表示生产 Data Plane、Management、Observation 或恢复能力已实现。
+V0.3 的唯一机器契约为
+[`docs/contracts/openapi/llmtier-v0.3.openapi.json`](docs/contracts/openapi/llmtier-v0.3.openapi.json)；历史 v0.2 Schema 不作为 V0.3 Data Plane authority。
 
 ## 本地检查
 
