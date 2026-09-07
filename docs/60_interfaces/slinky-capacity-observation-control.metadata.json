@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "llmtier-slinky-capacity-observation-control",
   "document_type": "interfaces.control",
-  "document_version": "0.3.0-draft.1",
+  "document_version": "0.3.0-draft.2",
   "title": "LLMTier–Slinky Capacity/Observation Interface Control（V0.3 候选）",
   "document_owner": "LLMTier",
   "authors": ["llmtier"],

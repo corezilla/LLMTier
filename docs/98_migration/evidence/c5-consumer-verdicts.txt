@@ -1,0 +1,29 @@
+LLMTier C1 consumer-boundary audit ledger
+Evidence request: L-20260907-d1f1499518c3
+Original review request: S-20260907-bdb4c497d8e4
+Original immutable input: aa2638283e77bc658e98df8d40396306cad17aa2
+
+[PIKO]
+Current evidence message: P-20260907-e009921eda0a
+Original verdict message referenced by Piko: P-20260907-ad90c27d4f90
+Verdict: ACCEPTED
+Reviewed path: docs/60_interfaces/piko-data-plane-control.md
+Input blob: c1e6096bea9a16669d559fe0dd01f7f909193c58
+Input SHA-256: 877c6046c9e86d3d07d21d99f6d293e09def978cc6e11bd235e846663348b66f
+Conclusion: Piko accepts the consumer/recovery boundary, exact canonical service_level_id, no alias/Role selector/cross-level fallback/provider-direct route, durable identity/recovery obligations and separate Embeddings gate. It permits later Approved status and legacy prose supersession only after LLMTier Owner and atomic promotion gates.
+
+[SLINKY ORIGINAL INPUT]
+Verdict message: S-20260907-8866534be612
+Verdict: AMENDMENT (SLK-BOUNDARY-001)
+Reviewed path: docs/60_interfaces/slinky-capacity-observation-control.md
+Input blob: d68afaaa390cd6e987cccfb45971f231b7a5d32b
+Input SHA-256: 9f7865cba47892fb70de181db65597b524989b62d128e6f8c1339590a53d1034
+Conclusion: the original text did not explicitly distinguish Slinky upstream explicit Service Level reselection from LLMTier in-request implicit cross-level replacement. Other reviewed Observation/Seat/isolation/evidence clauses had no additional blocking conflict.
+
+[SLINKY DRAFT.2 REMEDIATION]
+Changed path: docs/60_interfaces/slinky-capacity-observation-control.md
+Change: §9 now states that LLMTier executes one explicit canonical service_level_id per request without implicit substitution; Slinky same-tier fallback/Upshift is an upstream logical choice that must re-enter Runtime -> Piko -> LLMTier, pass admission, preserve idempotency/recovery identity, and never acquire physical routing authority.
+Status: local candidate; immutable commit/blob/SHA-256 to be recorded after STD pre-commit approval and commit.
+Required next verdict: Slinky ACCEPTED on the new immutable input. Until then C1 decision, Slinky interface Approved status, old Slinky prose supersession, design §6 supersession and QA §1 residual remain PENDING. The future C1 decision_commit and reviewed_commit for the draft.2 Slinky control/revised C1 packet must reference the clarification snapshot, not 962e800.
+
+Runtime note: neither verdict claims that Piko/Slinky runtime integration, routing, production evidence or Runtime Activation is complete.

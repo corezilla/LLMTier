@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | llmtier-std-c1-interface-contract-review |
-| Document Version | 0.1.0-draft.1 |
+| Document Version | 0.1.0-draft.2 |
 | Status | Draft |
 | Project | LLMTier |
 | Authority | LLMTier |
@@ -99,6 +99,10 @@ v0.1/v0.2 historical 文件、原 v0.3 prose、OpenAPI、manifest、fixtures 和
 
 - 终局 C1 review 需要 immutable LLMTier candidate commit、LLMTier 授权 reviewer，并请求 Piko/Slinky
   各自复核消费边界。
+- Piko 对 commit `aa263828...` 的 consumer boundary 为 ACCEPTED，证据见
+  `docs/98_migration/evidence/c5-consumer-verdicts.txt`。Slinky 对同一输入为 AMENDMENT
+  `S-20260907-8866534be612`；draft.2 已按 `SLK-BOUNDARY-001` 澄清责任层，必须冻结新 immutable input
+  并获得 Slinky ACCEPTED 后，C1 才能终局化。
 - production endpoint、ledger/retention、Registry/admission、capacity/fairness、Management API/UI、
   Piko pinned adapter、Embeddings consumer 与真实 isolation evidence 未运行，继续阻塞 activation。
 - 本项目输入 worktree dirty 是已记录的非阻塞条件；本轮未 reset/clean，也未覆盖其他任务修改。
@@ -142,6 +146,9 @@ NOT_RUN/BLOCKED。本轮不启动 service、provider、Piko/Slinky consumer、Ad
 - [x] traceability、fixture 和 tests 路径可打开
 - [x] 未发生静默 fallback、Schema 复制或兼容性扩张
 - [x] 旧文档 residual authority 与后置 promotion 边界明确
+- [x] Piko consumer-boundary verdict 可审计且为 ACCEPTED
+- [x] Slinky `SLK-BOUNDARY-001` 已形成 draft.2 定点修订
+- [ ] Slinky 对新的 immutable draft.2 input 返回 ACCEPTED
 - [ ] STD 已返回精确 pathspec 的 COMMIT_APPROVED
 - [ ] immutable project candidate commit 与终局 reviewer/decision 已登记
 
@@ -149,4 +156,5 @@ NOT_RUN/BLOCKED。本轮不启动 service、provider、Piko/Slinky consumer、Ad
 
 机器 decision 位于 docs/91_reviews/llmtier-std-c1-interface-contract-review.review-decision.json，
 当前为 PENDING。终局 verdict 不自动提升 Document Status，也不授权 promotion、RAG 或 runtime。
-本 packet 当前仅进入 READY_FOR_COMMIT 预提交复核，尚未 commit/push。
+本 packet 保持 PENDING；draft.2 定点修订必须先通过 STD pre-commit Gate、冻结新 immutable commit，再由
+Slinky 复审。尚未执行 Document Status 升级、canonical promotion、RAG publication 或 Runtime Activation。

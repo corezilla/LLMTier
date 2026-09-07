@@ -211,6 +211,83 @@ class StdMigrationTests(unittest.TestCase):
         self.assertIn("NOT_RUN/BLOCKED", text)
         self.assertIn("不创建 retrospective ADR", (ROOT / "docs" / "91_reviews" / "llmtier-std-c4-operations-review.md").read_text(encoding="utf-8"))
 
+    def test_c5_readiness_does_not_promote_or_activate_documents(self):
+        readiness = (ROOT / "docs" / "98_migration" / "canonical-promotion-readiness.md").read_text(encoding="utf-8")
+        packet = (ROOT / "docs" / "91_reviews" / "llmtier-std-c5-canonical-promotion-review.md").read_text(encoding="utf-8")
+        decision = json.loads(
+            (ROOT / "docs" / "91_reviews" / "llmtier-std-c5-canonical-promotion-review.review-decision.json").read_text(encoding="utf-8")
+        )
+        self.assertIn("READY_FOR_REVIEW", readiness)
+        self.assertIn("11 份实质 STD 文档实例、5 份 review packet 和 5 份机器 decision", readiness)
+        self.assertIn("Runtime Activation 始终保持独立", readiness)
+        self.assertIn("不执行 promotion、状态升级或 RAG publication", packet)
+        self.assertEqual("PENDING", decision["verdict"])
+        self.assertFalse(decision["runtime_activation_requested"])
+        self.assertEqual([], decision["reviewers"])
+        self.assertIsNone(decision["decided_at"])
+        self.assertFalse((ROOT / "rag" / "project-ingestion-manifest.jsonl").exists())
+
+        mapping = (ROOT / "docs" / "98_migration" / "legacy-v03-scope-mapping.md").read_text(encoding="utf-8")
+        for legacy in (
+            "docs/design/llmtier-v0.3-design-review.md",
+            "docs/contracts/piko-data-plane-contract-v0.3.md",
+            "docs/contracts/slinky-capacity-observation-contract-v0.3.md",
+            "docs/contracts/llmtier-management-contract-v0.3.md",
+            "docs/qa/llm-tier-contract-qa-v0.3.md",
+        ):
+            self.assertIn(legacy, mapping)
+        self.assertIn("subject to auditable Slinky verdict", mapping)
+        self.assertIn("subject to Piko ACCEPTED evidence", mapping)
+
+        owner = (ROOT / "docs" / "98_migration" / "evidence" / "c5-owner-verdicts.txt").read_text(encoding="utf-8")
+        self.assertIn("C0 Foundation", owner)
+        self.assertIn("C1 Interface + Contract", owner)
+        self.assertIn("C2 Assurance", owner)
+        self.assertIn("C3 Requirements + Traceability", owner)
+        self.assertIn("C4 Decisions + Operations", owner)
+        self.assertIn("CONSUMER CONDITIONS PENDING", owner)
+        self.assertIn("STD reviewer role", owner)
+        self.assertIn("C1 remains PENDING", owner)
+        self.assertIn("must not use 962e8003712738d2cb4e3a0a38173a9fd2bdd0a1", owner)
+        self.assertIn("No reviewed_commit or decision_commit may be filled with a commit that predates", owner)
+
+        substantive = [
+            ROOT / "docs" / "00_management" / "std-tailoring.metadata.json",
+            ROOT / "docs" / "10_requirements" / "llmtier-v0.3-requirements.metadata.json",
+            ROOT / "docs" / "10_requirements" / "llmtier-v0.3-traceability.metadata.json",
+            ROOT / "docs" / "30_subsystem_design" / "llmtier-service-design.metadata.json",
+            ROOT / "docs" / "60_interfaces" / "piko-data-plane-control.metadata.json",
+            ROOT / "docs" / "60_interfaces" / "slinky-capacity-observation-control.metadata.json",
+            ROOT / "docs" / "60_interfaces" / "llmtier-management-control.metadata.json",
+            ROOT / "docs" / "60_interfaces" / "contracts" / "llmtier-v0.3-contract-specification.metadata.json",
+            ROOT / "docs" / "70_verification" / "plans" / "llmtier-v0.3-vv-plan.metadata.json",
+            ROOT / "docs" / "70_verification" / "specifications" / "llmtier-v0.3-contract-test-specification.metadata.json",
+            ROOT / "docs" / "80_operations" / "llmtier-v0.3-release-and-operations.metadata.json",
+        ]
+        self.assertEqual(11, len(substantive))
+        for path in substantive:
+            metadata = json.loads(path.read_text(encoding="utf-8"))
+            self.assertIn(metadata["status"], {"draft", "review"})
+            self.assertIsNone(metadata["reviewed_commit"])
+
+    def test_slinky_boundary_clarification_separates_upstream_choice_from_api_execution(self):
+        path = ROOT / "docs" / "60_interfaces" / "slinky-capacity-observation-control.md"
+        text = path.read_text(encoding="utf-8")
+        metadata = json.loads(path.with_suffix(".metadata.json").read_text(encoding="utf-8"))
+        self.assertEqual("0.3.0-draft.2", metadata["document_version"])
+        self.assertIn("| Document Version | 0.3.0-draft.2 |", text)
+        self.assertIn("适用于 LLMTier API 对单次请求的 Service Level 解析与执行", text)
+        self.assertIn("Slinky 上游逻辑路由层的 same-tier fallback/Upshift", text)
+        self.assertIn("明确 canonical service_level_id 提交并重新接受 admission", text)
+        self.assertIn("不得借此取得 physical routing authority", text)
+        self.assertIn("上游决策不属于 Observation API 的执行能力", text)
+
+        evidence = (ROOT / "docs" / "98_migration" / "evidence" / "c5-consumer-verdicts.txt").read_text(encoding="utf-8")
+        self.assertIn("P-20260907-e009921eda0a", evidence)
+        self.assertIn("S-20260907-8866534be612", evidence)
+        self.assertIn("SLK-BOUNDARY-001", evidence)
+        self.assertIn("Required next verdict: Slinky ACCEPTED", evidence)
+
 
 if __name__ == "__main__":
     unittest.main()

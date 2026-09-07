@@ -46,6 +46,10 @@ SHA-256 `dea984371cb7e552dcf8bb338bd48c35541dac035d496b16122f5315f7ed0471`，组
 | `docs/91_reviews/llmtier-std-c3-requirements-review.md` + metadata/decision | `review.packet` | C3 PENDING | 固定 C3 authority、coverage 与三层验证 |
 | `docs/80_operations/llmtier-v0.3-release-and-operations.md` + metadata | `operations.release` | C4 draft candidate | 承接当前 package/CLI 与 release Gate；production procedure/evidence 保持 BLOCKED |
 | `docs/91_reviews/llmtier-std-c4-operations-review.md` + metadata/decision | `review.packet` | C4 PENDING | 固定 operations scope、ADR omission 与 Open Gate |
+| `docs/98_migration/canonical-promotion-readiness.md` | C5 authority/completion inventory | READY_FOR_REVIEW | 列出 11 份拟 canonical 实例、机器/执行 authority、旧文档 residual scope 和 promotion 原子步骤 |
+| `docs/98_migration/legacy-v03-scope-mapping.md` | C5 old→new mapping | review evidence | 五份旧 V0.3 文档逐章节映射；consumer verdict 未齐前保留条件 residual |
+| `docs/98_migration/evidence/c5-consumer-verdicts.txt` | C1 consumer audit ledger | Piko ACCEPTED / Slinky AMENDMENT | 记录 message ID、immutable commit/blob/hash、结论和 draft.2 re-review 条件 |
+| `docs/91_reviews/llmtier-std-c5-canonical-promotion-review.md` + metadata/decision | `review.packet` | C5 PENDING | 请求独立 promotion review；当前不改变任何 Document Status |
 | `docs/design/llmtier-v0.3-design-review.md` | 原始 V0.3 设计 | retained current residual-scope authority | 在 scope-level canonical promotion 前不删除、不整体 Supersede |
 | `rag/std-ingestion-manifest.jsonl` | legacy draft.12 STD source list | 既有 dirty 文件；非 draft.18 source manifest、非项目 ingestion | 本轮不修改、不装载；后续 promotion packet 决定 historical/exclusion |
 
@@ -110,3 +114,15 @@ SHA-256 `dea984371cb7e552dcf8bb338bd48c35541dac035d496b16122f5315f7ed0471`，组
 4. promotion 后生成项目 RAG manifest，纳入新的 canonical commit，排除旧/历史/候选和 legacy
    STD source list，并验证单一 current authority；
 5. runtime activation 始终保持 `false`，直至独立 authority 与 production evidence Gate 关闭。
+
+## 7. C5 完整度与 residual-authority 结论
+
+当前 HEAD `962e8003712738d2cb4e3a0a38173a9fd2bdd0a1` 已固定 C0-C4 的 11 份实质 STD 候选、5 份
+review packet 和 5 份 PENDING decision。全量 scope、原位机器/执行 authority、旧 V0.3 prose successor、
+historical/future/provenance exclusions 及后续 RAG 边界见
+`docs/98_migration/canonical-promotion-readiness.md`。
+
+逐章节盘点未发现内容层面的未映射 current scope，证据见 `legacy-v03-scope-mapping.md`。但 Piko/Slinky
+consumer verdict 尚未在本任务中形成可审计引用，因此相关 consumer scope 暂时保留条件 residual，旧文件不
+整体 Supersede。V0.1/V0.2、legacy audit、V0.4 future 与 source provenance 继续保留，但不进入 V0.3 current
+authority。若 consumer verdict 为 AMENDMENT 或 review 指出具体未映射 scope，必须保留该 residual authority。

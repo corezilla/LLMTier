@@ -1,0 +1,30 @@
+LLMTier C5 Amendment / Slinky Boundary Clarification payload SHA-256
+Input commit: 962e8003712738d2cb4e3a0a38173a9fd2bdd0a1
+STD: 9841083c4d8d0ed1556bdc413d77b4567ac696b4 / std-v0.1.0-draft.18
+
+0065f6ad96a2d6d61f6a2aecca179ef19bc9e3cffb88d194f3c71cb10a462ad9  docs/60_interfaces/slinky-capacity-observation-control.md
+f8886d0ab208323f766dafdef52f7cec2da605682b50d4437e9b2df9fb085d40  docs/60_interfaces/slinky-capacity-observation-control.metadata.json
+ab9e3804c60cdf1e7282c59fd7051e7cecbd9dad7e7641bb412753df5280e4c5  docs/91_reviews/llmtier-std-c1-interface-contract-review.md
+020b8b2bafaa2138dcd318b344c14659ab21706a94f42f579d7d0e9f0bbea507  docs/91_reviews/llmtier-std-c1-interface-contract-review.metadata.json
+0b5567d90eaee8df6879af75ed536fbb7dff1af564108b0a7a2073ee2172c294  docs/91_reviews/llmtier-std-c1-interface-contract-review.review-decision.json
+0a8976e0388faaf20c168c9b70b8a10ac00bfd4a0b040aa062c187b3d845b7a0  docs/91_reviews/llmtier-std-c5-canonical-promotion-review.md
+1421a1592fb8a131b250899bad50e56e883376c4516a5f4b83f626837ae3971d  docs/91_reviews/llmtier-std-c5-canonical-promotion-review.metadata.json
+273e63c30a1e5a4469916f88b13299f63d6554f70beb515b9da29884b242a405  docs/91_reviews/llmtier-std-c5-canonical-promotion-review.review-decision.json
+f10fc3bd55d176eebe84b5bcd50553c882761ed3b90bc6dc3faf338b2e00d9ef  docs/98_migration/canonical-promotion-readiness.md
+31f2732e01da7ae21a7a77a555954f8776fee28523b412e772ef78b72075d360  docs/98_migration/current-document-inventory.md
+eda232cf84ead8404970cdcd671ec4d1dff12c02980c8617ed0546067d91f556  docs/98_migration/evidence/c5-consumer-verdicts.txt
+8be7a35345f809eabc1cbab9616b5411e378ee65eea3a47e59294ccccbb6084d  docs/98_migration/evidence/c5-owner-verdicts.txt
+28f8e4c258d250ac867ba532ef8cdcea13fa7f7a48633e493003a9ffc1e5c506  docs/98_migration/legacy-v03-scope-mapping.md
+7066a41d9a1acbe8bf66136b4b13c65923f92fe43743aa85dfb75e4ca40d8923  docs/98_migration/llmtier-std-migration-plan.md
+da4c5977b2d2974b8cc145fc61fb25e1e80bcf119e2f65c0b6b5cda66fe09485  tests/test_std_migration.py
+
+Ordered manifest SHA-256:
+0d641fe39a54021852469164d52215cf3c878034dfe3ec6d9607d7692e3463e3
+
+Algorithm: sort the exact core path list by UTF-8 byte order (`LC_ALL=C sort`), emit each line with
+`shasum -a 256`, then hash the emitted lines with `shasum -a 256`.
+
+Exact command:
+files=(docs/60_interfaces/slinky-capacity-observation-control.md docs/60_interfaces/slinky-capacity-observation-control.metadata.json docs/91_reviews/llmtier-std-c1-interface-contract-review.md docs/91_reviews/llmtier-std-c1-interface-contract-review.metadata.json docs/91_reviews/llmtier-std-c1-interface-contract-review.review-decision.json docs/98_migration/canonical-promotion-readiness.md docs/98_migration/legacy-v03-scope-mapping.md docs/91_reviews/llmtier-std-c5-canonical-promotion-review.md docs/91_reviews/llmtier-std-c5-canonical-promotion-review.metadata.json docs/91_reviews/llmtier-std-c5-canonical-promotion-review.review-decision.json docs/98_migration/evidence/c5-owner-verdicts.txt docs/98_migration/evidence/c5-consumer-verdicts.txt docs/98_migration/current-document-inventory.md docs/98_migration/llmtier-std-migration-plan.md tests/test_std_migration.py); printf '%s\n' $files | LC_ALL=C sort | while IFS= read -r file_path; do shasum -a 256 "$file_path"; done | shasum -a 256
+
+Other evidence files are excluded to avoid self-reference.

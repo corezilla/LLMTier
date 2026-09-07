@@ -1,0 +1,36 @@
+LLMTier C5 AMENDMENT readiness scope
+Project HEAD: 962e8003712738d2cb4e3a0a38173a9fd2bdd0a1
+Branch/remote: main / origin
+STD: 9841083c4d8d0ed1556bdc413d77b4567ac696b4 / std-v0.1.0-draft.18
+
+[C1 CLARIFICATION MODIFIED]
+docs/60_interfaces/slinky-capacity-observation-control.md
+docs/60_interfaces/slinky-capacity-observation-control.metadata.json
+docs/91_reviews/llmtier-std-c1-interface-contract-review.md
+docs/91_reviews/llmtier-std-c1-interface-contract-review.metadata.json
+docs/91_reviews/llmtier-std-c1-interface-contract-review.review-decision.json
+
+[C5 NEW]
+docs/98_migration/canonical-promotion-readiness.md
+docs/98_migration/legacy-v03-scope-mapping.md
+docs/91_reviews/llmtier-std-c5-canonical-promotion-review.md
+docs/91_reviews/llmtier-std-c5-canonical-promotion-review.metadata.json
+docs/91_reviews/llmtier-std-c5-canonical-promotion-review.review-decision.json
+docs/98_migration/evidence/c5-candidate-sha256.txt
+docs/98_migration/evidence/c5-ready-for-review.txt
+docs/98_migration/evidence/c5-amendment-ready-for-commit.txt
+docs/98_migration/evidence/c5-std-validation.json
+docs/98_migration/evidence/c5-validation-evidence.txt
+docs/98_migration/evidence/c5-owner-verdicts.txt
+docs/98_migration/evidence/c5-consumer-verdicts.txt
+
+[C5 MODIFIED]
+docs/98_migration/current-document-inventory.md
+docs/98_migration/llmtier-std-migration-plan.md
+tests/test_std_migration.py
+
+[EXCLUDED]
+rag/std-ingestion-manifest.jsonl
+
+Review scope: exactly 20 paths outside [EXCLUDED]. No staging/commit/push, canonical promotion,
+Document Status upgrade, decision finalization, RAG publication, external publication or Runtime Activation yet.

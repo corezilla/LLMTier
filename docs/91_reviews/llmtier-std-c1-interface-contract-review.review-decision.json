@@ -12,8 +12,8 @@
   "decision_commit": null,
   "conditions": [
     "Freeze an immutable LLMTier candidate commit before final review.",
-    "Obtain LLMTier owner review and Piko/Slinky review for their consumer boundaries.",
+    "Preserve the auditable Piko ACCEPTED verdict and obtain Slinky ACCEPTED on the immutable draft.2 clarification.",
     "Keep canonical promotion, RAG publication, and runtime activation behind separate gates."
   ],
-  "rationale": "C1 interface and contract migration candidate prepared; no final project review decision has been made."
+  "rationale": "LLMTier Owner and Piko accept their respective C1 scopes; Slinky returned SLK-BOUNDARY-001 on the original immutable input, so the decision remains pending until the draft.2 clarification is frozen and accepted."
 }

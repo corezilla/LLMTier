@@ -1,0 +1,13 @@
+LLMTier C5 Amendment / Slinky Boundary Clarification READY_FOR_COMMIT
+Input HEAD: 962e8003712738d2cb4e3a0a38173a9fd2bdd0a1
+Branch/remote: main / origin
+STD: 9841083c4d8d0ed1556bdc413d77b4567ac696b4 / std-v0.1.0-draft.18
+
+Purpose: freeze the minimal Slinky SLK-BOUNDARY-001 clarification plus C5-A1/A2/A3/A4 audit evidence so Slinky can review a new immutable input. This is not canonical promotion.
+
+Exact approved path request: the 20 paths listed in c5-ready-for-review.txt, excluding rag/std-ingestion-manifest.jsonl.
+Core files: 15
+Core ordered manifest SHA-256: 0d641fe39a54021852469164d52215cf3c878034dfe3ec6d9607d7692e3463e3
+Digest algorithm and exact command: c5-candidate-sha256.txt
+
+Required post-commit action: report clarification snapshot commit plus the draft.2 Slinky control and revised C1 packet blob/SHA-256 to Slinky for terminal re-review. C1 remains PENDING until Slinky ACCEPTED; its future decision_commit and those two artifacts' reviewed_commit must use that snapshot (or a later immutable commit containing byte-identical approved content), never the older 962e800 input.

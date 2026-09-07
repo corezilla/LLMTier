@@ -1,0 +1,43 @@
+LLMTier Owner C0-C4 immutable candidate review
+Reviewer: llmtier (LLMTier fixed project representative acting for Document Owner role)
+Decision time: 2026-09-07T20:32:00+08:00
+Integrated review input: 962e8003712738d2cb4e3a0a38173a9fd2bdd0a1
+STD reviewer role: structural/source/migration-rule verification only; not LLMTier Owner authority
+Runtime Activation requested: false
+
+C0 Foundation
+Origin commit: aa2638283e77bc658e98df8d40396306cad17aa2
+Verdict: ACCEPTED
+Rationale: software profile, single-service tailoring, service-design authority, immutable STD lock/source manifest and residual boundaries accurately represent LLMTier; no runtime claim is introduced.
+
+C1 Interface + Contract
+Origin commit: aa2638283e77bc658e98df8d40396306cad17aa2
+Verdict: ACCEPTED BY LLMTIER OWNER, CONSUMER CONDITIONS PENDING
+Rationale: LLMTier provider/management and machine-contract boundaries are internally consistent and preserve no-alias/no-Role-selector/no-cross-level-fallback semantics. Final terminal decision and Piko/Slinky-related Approved/supersession remain conditional on auditable consumer ACCEPTED verdicts.
+
+C2 Assurance
+Origin commit: b2e298aadf981283aa52d4764b201400397d1116
+Verdict: ACCEPTED
+Rationale: V&V plan and test specification preserve executable tests/fixtures as authority and distinguish local static PASS from production/runtime evidence gaps.
+
+C3 Requirements + Traceability
+Origin commit: 13b5d02266624b6b662349f0b88de23696c823bb
+Verdict: ACCEPTED
+Rationale: requirements are limited to LLMTier-owned obligations, external Piko/Slinky inputs remain references, and traceability reports blocked runtime evidence honestly.
+
+C4 Decisions + Operations
+Origin commit: 962e8003712738d2cb4e3a0a38173a9fd2bdd0a1
+Verdict: ACCEPTED
+Rationale: the operations candidate records current package/CLI facts and explicit Open Gates without claiming a production runbook; omitting retrospective ADRs is correct because no new authorized decision exists.
+
+Promotion rule:
+- C0, C2, C3 and C4 terminal decisions may use decision_commit=962e8003712738d2cb4e3a0a38173a9fd2bdd0a1 because their reviewed content is present in that integrated immutable input; alternatively each may retain its earlier exact immutable review input when the approved content hash is shown unchanged.
+- C1 remains PENDING. Its terminal decision must use the future clarification snapshot commit that contains the draft.2 Slinky control and revised C1 packet; it must not use 962e8003712738d2cb4e3a0a38173a9fd2bdd0a1.
+- The C1 terminal decision may be generated only after Slinky returns ACCEPTED for that exact clarification commit/blob/SHA-256.
+- All terminal decisions preserve L3 NOT_RUN/BLOCKED and runtime_activation_requested=false.
+
+Document reviewed_commit rule:
+- A document may cite 962e8003712738d2cb4e3a0a38173a9fd2bdd0a1 only if that commit contains the exact approved content.
+- docs/60_interfaces/slinky-capacity-observation-control.md must cite the future clarification snapshot commit or a later immutable commit containing byte-identical draft.2 content.
+- docs/91_reviews/llmtier-std-c1-interface-contract-review.md must likewise cite the clarification snapshot, because its draft.2 content was created after 962e800.
+- No reviewed_commit or decision_commit may be filled with a commit that predates the content being approved.

@@ -31,14 +31,15 @@ STD tag：std-v0.1.0-draft.18
 | C1 Interface + Contract | immutable candidate / Owner ACCEPTED | 三个 v0.3 interface candidate、一个 contract specification、mapping、review packet | C0 结构通过 | Piko/Slinky consumer reviews；终局 decision update |
 | C2 Assurance | immutable candidate / pushed | V&V plan、contract test specification、evidence boundary、review packet | immutable C1 mapping；Owner ACCEPTED | final review/decision 与 promotion 独立 |
 | C3 Requirements + Traceability | immutable candidate / pushed | 独立 requirements specification 与 traceability matrix；全项目 candidate rebaseline 到 draft.18 | Owner 已决定启用；commit `13b5d02` | final review/decision 与 promotion 独立 |
-| C4 Decisions + Operations | READY_FOR_COMMIT | operations.release 候选；无新决定故不生成 retrospective ADR | C3 immutable；当前 package/CLI 与既有 Gate 可映射 | STD pre-commit Gate；production Open Gate 保持 BLOCKED |
-| C5 Canonical Promotion | BLOCKED | scope-level authority 切换、索引与旧文档状态 | 各 cohort ACCEPTED、文档批准、immutable project commit | LLMTier canonical authority |
+| C4 Decisions + Operations | immutable candidate / pushed | operations.release 候选；无新决定故不生成 retrospective ADR | C3 immutable；commit `962e800` | final review/decision 与 promotion 独立 |
+| C5 Canonical Promotion | READY_FOR_REVIEW | 全项目完成度、residual-authority ledger、scope-level authority 切换计划 | C0-C4 immutable commits；当前 HEAD `962e800` | LLMTier authority + STD 独立 promotion review |
 | C6 Publication / Runtime | BLOCKED | 项目 RAG manifest/索引；独立 runtime activation packet | C5 publication commit；production L3 evidence | publication owner；独立 runtime authority |
 
-C0/C1 已由 commit `aa2638283e77bc658e98df8d40396306cad17aa2` 固定；LLMTier Owner 对两者
-ACCEPTED，Piko/Slinky consumer-boundary review 与终局 decision 更新仍独立。C2 assurance 候选与三层
-证据已完成，当前等待 STD pre-commit Gate。Owner 已决定 C3 启用独立 requirements/traceability 实例；C4 仍只在
-已有决定和事实可映射时生成，不预建虚假的 architecture/operations 结论。
+C0/C1 已由 commit `aa2638283e77bc658e98df8d40396306cad17aa2` 固定；C2、C3、C4 分别由
+`b2e298aadf981283aa52d4764b201400397d1116`、`13b5d02266624b6b662349f0b88de23696c823bb`、
+`962e8003712738d2cb4e3a0a38173a9fd2bdd0a1` 固定并推送。所有机器 decision 仍为 PENDING；C5 通过
+`docs/98_migration/canonical-promotion-readiness.md` 请求独立终局 review，不把 immutable candidate commit
+解释为状态升级。
 
 ## 3. C0 Foundation：已完成候选
 
@@ -131,6 +132,11 @@ authority registry、新旧文档状态和 residual map；只有旧文档全部 
 C6 只在 promotion commit 存在后生成 rag/project-ingestion-manifest.jsonl，明确新 canonical inclusion、
 旧/历史/candidate exclusion 和 publication commit。Runtime Activation 需要另一份独立 authority 与
 production L3 evidence；文档 review、RAG publication 或 contract tests 均不能代替。
+
+C5 当前仅完成全项目迁移覆盖与 residual-authority inventory，并形成
+`docs/91_reviews/llmtier-std-c5-canonical-promotion-review.md`。在新的明确批准前，不修改现有 metadata/cover
+状态，不终局化 C0-C4 decisions，不更新 README authority index，不标记旧文档 Superseded，也不生成项目 RAG
+manifest。
 
 ## 9. 每 cohort 的固定证据清单
 

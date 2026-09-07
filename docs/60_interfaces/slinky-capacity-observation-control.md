@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | llmtier-slinky-capacity-observation-control |
-| Document Version | 0.3.0-draft.1 |
+| Document Version | 0.3.0-draft.2 |
 | Status | Draft |
 | Project | LLMTier |
 | Authority | LLMTier |
@@ -108,6 +108,12 @@ Client/Source 隔离。
 service_level_id exact、大小写敏感；禁止 lowercasing、alias、Role selector 和跨等级 fallback。
 physical mapping 在 Contract/SLO 不变时可替换；破坏兼容性的语义变化使用新 ID 或 API major。
 
+本节禁止项适用于 LLMTier API 对单次请求的 Service Level 解析与执行，不授权提供方对请求进行隐式
+跨等级替换。Slinky 上游逻辑路由层的 same-tier fallback/Upshift 如选择另一已授权 Service Level，必须
+通过既有 Runtime → Piko → LLMTier 路径以明确 canonical service_level_id 提交并重新接受 admission；
+不得借此取得 physical routing authority、绕过幂等/recovery Contract、重放已 admitted 的 Invocation
+或扩大 Client/Source scope。上游决策不属于 Observation API 的执行能力。
+
 compatibility endpoint 按 method/path 暴露 supported/unsupported fields、streaming、Schema/error
 version、SDK matrix 和 effective_at。v0.3 当前是 candidate，runtime_activation=false。
 
@@ -126,3 +132,6 @@ version、SDK matrix 和 effective_at。v0.3 当前是 candidate，runtime_activ
 本候选需要 LLMTier owner 审核提供方和安全事实；Slinky reviewer 只审核其 Observation consumer
 boundary 与 Seat 投影义务。进入 promotion 前需要 immutable project commit 和终局 decision；本文
 不请求状态升级或 Runtime Activation，旧 v0.3 文档继续保留 residual authority。
+
+变更记录：0.3.0-draft.2 根据 Slinky verdict `S-20260907-8866534be612` 澄清上游显式重新选择与 LLMTier
+单次 API 请求内禁止隐式换级属于不同责任层；不批准或证明 Slinky runtime routing 已实现。
