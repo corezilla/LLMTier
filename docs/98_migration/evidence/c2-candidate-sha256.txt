@@ -1,0 +1,15 @@
+LLMTier C2 Assurance candidate payload SHA-256
+Input commit: aa2638283e77bc658e98df8d40396306cad17aa2
+
+70e73ede8b819ffea3e16d4aaffaa3b266c5a81d3782407bdc4ad92d1a7ef5ca  docs/70_verification/plans/llmtier-v0.3-vv-plan.md
+26f4fa23411521fdffa99208e3363fe6b848bf69c18f5248e11ac3fad428a9da  docs/70_verification/plans/llmtier-v0.3-vv-plan.metadata.json
+5b1d5d1de2bf4268c528e7e8f37b0613ca23d0fbb90e2f67f4ee9ca8a3540052  docs/70_verification/specifications/llmtier-v0.3-contract-test-specification.md
+ffbe0e273bc56f0cf64b022701d9c49871dde091cbedade6fbe8e70f5d9a177d  docs/70_verification/specifications/llmtier-v0.3-contract-test-specification.metadata.json
+5972285fab9bf8022fbd92920b30690cd7f1d946bdb20d65f38338f4124b98b3  docs/98_migration/llmtier-std-migration-plan.md
+7db77804c849c90300f288429e3b3a6473da8d5b69ce12595e01ab2315cd18c0  docs/98_migration/current-document-inventory.md
+dad2da367da70ba524e1571640c6151ed7cfd34cf5bfd450a32f5cebc0fccbf9  tests/test_std_migration.py
+
+Ordered manifest SHA-256:
+56bc89a5a1b1b76bee3581d10ffb08d8e8af4d7f559ef8002757e5d19fde5c4e
+
+The review packet, decision, validator output and evidence files are excluded to avoid self-reference.

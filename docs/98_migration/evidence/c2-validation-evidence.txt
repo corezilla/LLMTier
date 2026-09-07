@@ -1,0 +1,42 @@
+LLMTier C2 Assurance validation evidence
+Execution date: 2026-09-07 Asia/Hong_Kong
+Workdir: /Users/ben/work/LLMTier
+Project HEAD: aa2638283e77bc658e98df8d40396306cad17aa2
+Branch: main
+STD revision: 94c0262de35b5b989bba9f8d23f212af709c9dbf
+
+[L1 SOURCE]
+Command: /Users/ben/work/STD/scripts/verify-source-manifest /Users/ben/work/LLMTier/docs/std-source-manifest.json --std-root /Users/ben/work/STD
+Exit code: 0
+Output: STD source manifest verification OK: 71 artifacts
+
+[L1 PROJECT ROOT]
+Command: /Users/ben/work/STD/scripts/validate-design --project-root /Users/ben/work/LLMTier --require-immutable-std --json /Users/ben/work/LLMTier/docs/98_migration/evidence/c2-std-validation.json
+Exit code: 0
+Output: ok=true; new_error_count=0; inherited_error_count=0; checked_metadata=11; checked_markdown=11; checked_decisions=3; issues=[]
+Artifact: docs/98_migration/evidence/c2-std-validation.json
+
+[L2 PROJECT TESTS]
+Command: PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest discover -s tests
+Exit code: 0
+Output: Ran 43 tests in 0.075s; OK
+
+[PATCH CHECK]
+Command: git diff --check
+Exit code: 0
+Output: empty
+
+[L3 RUNTIME / EXTERNAL]
+Result: NOT_RUN/BLOCKED
+Reason: C2 migrates assurance planning and case mapping only. Production routes, provider, durable store,
+Piko/Slinky/Embeddings consumers, Admin UI, security/isolation, capacity/fairness and SLO evidence were not run.
+This blocks Runtime Activation but does not block an honest Migration Review candidate.
+
+[DIRTY WORKTREE PRESERVATION]
+Input pre-existing dirty path: rag/std-ingestion-manifest.jsonl
+Input/excluded RAG binary diff SHA-256: 5ecf097f57ec627f36586218d14e8df036467c8466de59e06adc7553c6073234
+Input untracked set SHA-256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 (empty)
+C2 tracked diff SHA-256 before this evidence file: 9c43f7ca52d2b09d5992a90f3437ea7a53217736246538c112d6d00fb16ac31b
+C2 untracked manifest SHA-256 before this evidence file: 9c81a6934105679fbe6153089e1a7c558c9d0891c863c48bc3142b5fa9c20698
+No reset/clean was run. The RAG path remains excluded and unstaged. No canonical promotion, Document Status
+upgrade, project RAG ingestion, external publication or Runtime Activation was performed.

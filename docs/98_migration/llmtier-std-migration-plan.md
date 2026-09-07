@@ -27,18 +27,18 @@ STD tag：std-v0.1.0-draft.17
 
 | Cohort | 状态 | 交付范围 | 启动依赖 | 首要 Owner Gate |
 |---|---|---|---|---|
-| C0 Foundation | candidate complete / decision PENDING | inventory、tailoring、lock/source manifest、单服务 design、review packet | draft.17 immutable STD | LLMTier 授权 reviewer + immutable project commit |
-| C1 Interface + Contract | READY_FOR_COMMIT / pre-commit review | 三个 v0.3 interface candidate、一个 contract specification、mapping、review packet | C0 结构通过；无安全启动 blocker | STD pre-commit Gate；之后才可提交 |
-| C2 Assurance | PLANNED | V&V plan、contract test specification、evidence boundary、review packet | C1 的 ID/path/authority 映射稳定 | LLMTier QA/owner；runtime evidence 如实 NOT_RUN/BLOCKED |
-| C3 Requirements + Traceability | CONDITIONAL | 独立 requirements specification 与 traceability matrix，或批准继续由现有设计/QA 承载 | Owner 决定是否启用两个独立实例 | LLMTier owner；不得复制 Slinky/Piko requirements authority |
+| C0 Foundation | immutable candidate / Owner ACCEPTED | inventory、tailoring、lock/source manifest、单服务 design、review packet | draft.17 immutable STD | consumer-independent final decision update |
+| C1 Interface + Contract | immutable candidate / Owner ACCEPTED | 三个 v0.3 interface candidate、一个 contract specification、mapping、review packet | C0 结构通过 | Piko/Slinky consumer reviews；终局 decision update |
+| C2 Assurance | READY_FOR_COMMIT | V&V plan、contract test specification、evidence boundary、review packet | immutable C1 mapping；Owner ACCEPTED | STD pre-commit Gate；runtime evidence 如实 NOT_RUN/BLOCKED |
+| C3 Requirements + Traceability | ENABLED / PLANNED | 独立 requirements specification 与 traceability matrix | Owner 已决定启用；C2 traceability mapping 稳定 | LLMTier owner；不得复制 Slinky/Piko requirements authority |
 | C4 Decisions + Operations | DEFERRED | persistence/HA/RPO/RTO ADR、deployment/release/operations 文档 | 对应设计决定与实现证据存在 | LLMTier architecture/operations owner |
 | C5 Canonical Promotion | BLOCKED | scope-level authority 切换、索引与旧文档状态 | 各 cohort ACCEPTED、文档批准、immutable project commit | LLMTier canonical authority |
 | C6 Publication / Runtime | BLOCKED | 项目 RAG manifest/索引；独立 runtime activation packet | C5 publication commit；production L3 evidence | publication owner；独立 runtime authority |
 
-C0 的 draft.17 候选与 evidence 增量复用，不重复生成。C1 candidate 和 packet 已固定，当前等待 STD
-只读预提交复核；只有收到明确 COMMIT_APPROVED 后才能按批准的精确 pathspec commit，且不 push。
-C2 在 C1 authority/mapping review Gate 后开始。C3/C4 不预建空模板，只有依赖和 Owner Gate 关闭后
-才生成候选。
+C0/C1 已由 commit `aa2638283e77bc658e98df8d40396306cad17aa2` 固定；LLMTier Owner 对两者
+ACCEPTED，Piko/Slinky consumer-boundary review 与终局 decision 更新仍独立。C2 assurance 候选与三层
+证据已完成，当前等待 STD pre-commit Gate。Owner 已决定 C3 启用独立 requirements/traceability 实例；C4 仍只在
+已有决定和事实可映射时生成，不预建虚假的 architecture/operations 结论。
 
 ## 3. C0 Foundation：已完成候选
 
@@ -92,9 +92,11 @@ Supersedes=none。v0.1/v0.2 继续作为 historical/provenance，不在本 cohor
 | v0.3 fixtures、tests/test_*v03.py、OpenAPI/manifest oracle | docs/70_verification/llmtier-v0.3-contract-test-specification.md | assurance.test-specification | executable tests/fixtures 保持 source authority，Markdown 不复制 oracle |
 | C2 diff 与 execution evidence | docs/91_reviews/llmtier-std-c2-assurance-review.md | review.packet | actual run 与 NOT_RUN/BLOCKED 分开记录 |
 
-依赖 C1 冻结 interface/contract mapping。完成标准是 Requirement/Review→Design/Contract→suite/case→
-execution evidence 可追踪，静态 PASS 不被写成 production evidence。L3 缺口继续阻塞 Runtime Activation，
-但不阻止形成诚实的 Migration Review candidate。
+依赖 C1 冻结 interface/contract mapping。目标路径为
+`docs/70_verification/plans/llmtier-v0.3-vv-plan.md` 和
+`docs/70_verification/specifications/llmtier-v0.3-contract-test-specification.md`。完成标准是
+Requirement/Review→Design/Contract→suite/case→execution evidence 可追踪，静态 PASS 不被写成
+production evidence。L3 缺口继续阻塞 Runtime Activation，但不阻止形成诚实的 Migration Review candidate。
 
 ## 6. C3 Requirements + Traceability（条件 cohort）
 
@@ -103,8 +105,9 @@ docs/10_requirements/llmtier-v0.3-traceability.md / requirements.traceability。
 service requirements、既有 Review ID、C1/C2 contract/test mapping；Slinky/Piko 拥有的需求只作为
 外部输入引用。
 
-Owner Gate：决定独立实例是否比现有 service design + QA mapping 更清晰。若否，继续 tailoring omit
-并记录 rationale；若是，先更新 tailoring，再生成 candidate。不得机械创建空文档。
+Owner Gate 已决定启用独立实例，因为 V0.3 自有 service requirements、external consumer inputs、contract
+cases 和 activation evidence 需要稳定的双向追踪。C3 启动时先更新 tailoring，再生成非空候选；不得把
+Slinky/Piko 拥有的需求复制成本项目 authority。
 
 ## 7. C4 Decisions + Operations（依赖驱动）
 

@@ -1,0 +1,10 @@
+{
+  "schema_version": "std-validation-result.v1",
+  "ok": true,
+  "new_error_count": 0,
+  "inherited_error_count": 0,
+  "checked_metadata": 11,
+  "checked_markdown": 11,
+  "checked_decisions": 3,
+  "issues": []
+}

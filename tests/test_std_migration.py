@@ -124,6 +124,41 @@ class StdMigrationTests(unittest.TestCase):
         self.assertIn("redispatch=false", management)
         self.assertIn("不构成 v0.3 Management compatibility", management)
 
+    def test_c2_assurance_candidates_preserve_executable_authority_and_evidence_gaps(self):
+        candidates = {
+            ROOT / "docs" / "70_verification" / "plans" / "llmtier-v0.3-vv-plan.md": "assurance.vv-plan",
+            ROOT / "docs" / "70_verification" / "specifications" / "llmtier-v0.3-contract-test-specification.md": "assurance.test-specification",
+        }
+        source_hashes = {item["path"]: item["sha256"] for item in self.sources}
+        template_paths = {
+            "assurance.vv-plan": "templates/assurance/verification-validation-plan.md",
+            "assurance.test-specification": "templates/assurance/test-specification.md",
+        }
+        for path, template_id in candidates.items():
+            text = path.read_text(encoding="utf-8")
+            metadata = json.loads(path.with_suffix(".metadata.json").read_text(encoding="utf-8"))
+            self.assertEqual(template_id, metadata["document_type"])
+            self.assertEqual(template_id, metadata["template_id"])
+            self.assertEqual(source_hashes[template_paths[template_id]], metadata["template_sha256"])
+            self.assertEqual("tailored", metadata["template_conformance"])
+            self.assertEqual("std-tailoring", metadata["tailoring_ref"])
+            self.assertEqual("draft", metadata["status"])
+            self.assertIsNone(metadata["reviewed_commit"])
+            self.assertIsNone(metadata["supersedes"])
+            self.assertNotIn("<!-- TODO -->", text)
+            self.assertIn("Runtime Activation", text)
+
+        vv_plan = next(path for path, template_id in candidates.items() if template_id == "assurance.vv-plan")
+        vv_text = vv_plan.read_text(encoding="utf-8")
+        self.assertIn("NOT_RUN/BLOCKED", vv_text)
+        self.assertIn("`tests/` 和 fixtures 是可执行 oracle", vv_text)
+
+        test_spec = next(path for path, template_id in candidates.items() if template_id == "assurance.test-specification")
+        spec_text = test_spec.read_text(encoding="utf-8")
+        self.assertIn("CT-REC-002", spec_text)
+        self.assertIn("tests/test_contract_semantics_v03.py", spec_text)
+        self.assertIn("现有测试源码\n与 fixtures 仍是 executable oracle authority", spec_text)
+
 
 if __name__ == "__main__":
     unittest.main()

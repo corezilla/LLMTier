@@ -38,6 +38,9 @@ SHA-256 `dea984371cb7e552dcf8bb338bd48c35541dac035d496b16122f5315f7ed0471`，组
 | `docs/60_interfaces/llmtier-management-control.md` + metadata | `interfaces.control` | C1 draft candidate | 承接 LLMTier admin、安全、并发和 recovery management scope |
 | `docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.md` + metadata | `contracts.specification` | C1 draft candidate | 索引 OpenAPI/manifest/fixtures；机器 artifact 原位保持字段 authority |
 | `docs/91_reviews/llmtier-std-c1-interface-contract-review.md` + metadata/decision | `review.packet` | C1 PENDING | 固定 C1 mapping、hash、L1/L2 PASS 与 L3 NOT_RUN/BLOCKED |
+| `docs/70_verification/plans/llmtier-v0.3-vv-plan.md` + metadata | `assurance.vv-plan` | C2 draft candidate | 迁移 V0.3 strategy/Gate；区分 static 与 production evidence |
+| `docs/70_verification/specifications/llmtier-v0.3-contract-test-specification.md` + metadata | `assurance.test-specification` | C2 draft candidate | 映射 case/fixture/oracle；tests/fixtures 仍为可执行 authority |
+| `docs/91_reviews/llmtier-std-c2-assurance-review.md` + metadata/decision | `review.packet` | C2 PENDING | 固定 C2 mapping、三层验证和 residual evidence boundary |
 | `docs/design/llmtier-v0.3-design-review.md` | 原始 V0.3 设计 | retained current residual-scope authority | 在 scope-level canonical promotion 前不删除、不整体 Supersede |
 | `rag/std-ingestion-manifest.jsonl` | legacy draft.12 STD source list | 既有 dirty 文件；非 draft.17 source manifest、非项目 ingestion | 本轮不修改、不装载；后续 promotion packet 决定 historical/exclusion |
 
@@ -61,7 +64,7 @@ SHA-256 `dea984371cb7e552dcf8bb338bd48c35541dac035d496b16122f5315f7ed0471`，组
 | `docs/contracts/fixtures/v0.2/` | historical evidence | 后续归档 |
 | `docs/contracts/fixtures/v0.3/` | current candidate evidence | assurance migration 前原位保留 |
 | `docs/qa/llm-tier-contract-qa-v0.1.md`、`v0.2.md` | historical/superseded | 后续归档 |
-| `docs/qa/llm-tier-contract-qa-v0.3.md` | current candidate evidence | 后续迁为 assurance 文档 |
+| `docs/qa/llm-tier-contract-qa-v0.3.md` | current candidate evidence | C2 assurance 候选已承接 strategy/case mapping；promotion 前继续承担历史 review ledger 与 residual evidence |
 
 ## 4. 旧→新映射
 
@@ -73,6 +76,7 @@ SHA-256 `dea984371cb7e552dcf8bb338bd48c35541dac035d496b16122f5315f7ed0471`，组
 | 三份 v0.3 interface Markdown | `docs/60_interfaces/*-control.md` | C1 draft candidate 已形成；旧文档继续说明 residual authority，等待独立 review/promotion |
 | OpenAPI/manifest/error/schema | `docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.md` + 原机器文件 | C1 只建立说明与索引；字段级机器 authority 未改、不复制 |
 | v0.3 QA 与 fixtures/tests | assurance templates + 原 evidence | 未迁移；现有静态证据继续有效 |
+| `docs/qa/llm-tier-contract-qa-v0.3.md` | `docs/70_verification/plans/llmtier-v0.3-vv-plan.md` + `docs/70_verification/specifications/llmtier-v0.3-contract-test-specification.md` | C2 形成计划与 case 候选；旧 QA、tests、fixtures 分别保留 residual ledger 与 executable authority |
 | Matrix review ledger | `docs/91_reviews/llmtier-std-draft16-migration-review.md` | 本轮生成 PENDING packet；原 Review ID 保留，等待独立 reviewer 决定 |
 
 ## 5. 目录与迁移约束
