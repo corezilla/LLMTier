@@ -1,0 +1,36 @@
+LLMTier C6 RAG publication READY_FOR_COMMIT
+Input HEAD: 503d0a03fa92aeeb7657ce7ed54bab8b77efef34
+Input origin/main: 503d0a03fa92aeeb7657ce7ed54bab8b77efef34
+Branch: main
+Canonical promotion commit: 503d0a03fa92aeeb7657ce7ed54bab8b77efef34
+Core path count: 10
+Total requested path count: 12
+Core ordered-manifest SHA-256: cfe5b24c9042c0550f7303311e8ef6fb875915e6250401dc0355515b36d917fe
+Ordering/format: raw UTF-8 byte-order path sort; each data line is SHA-256, two spaces, path, LF
+Tracked candidate path-set SHA-256: 701347d0dffcd20a8c8dfbdb3edda8a4c27dad25bd05c74cd08fd09cb159f9d1 (3 paths, names+LF)
+Untracked candidate path-set SHA-256: 282eeb40fbc2c302ba38c346e5b374c382176e59dc65f1281ffad6464ca2aef4 (9 paths, names+LF)
+Excluded existing dirty: rag/std-ingestion-manifest.jsonl
+Excluded dirty binary-diff SHA-256: 5ecf097f57ec627f36586218d14e8df036467c8466de59e06adc7553c6073234
+Index at evidence capture: empty
+Runtime Activation requested: false
+External RAG deployment requested: false
+
+Exact requested allowlist (12 paths):
+docs/91_reviews/llmtier-std-c6-rag-publication-review.md
+docs/91_reviews/llmtier-std-c6-rag-publication-review.metadata.json
+docs/91_reviews/llmtier-std-c6-rag-publication-review.review-decision.json
+docs/98_migration/current-document-inventory.md
+docs/98_migration/evidence/c6-candidate-sha256.txt
+docs/98_migration/evidence/c6-rag-publication-evidence.txt
+docs/98_migration/evidence/c6-ready-for-commit.txt
+docs/98_migration/evidence/c6-std-validation.json
+docs/98_migration/evidence/c6-validation-evidence.txt
+docs/98_migration/llmtier-std-migration-plan.md
+rag/project-ingestion-manifest.jsonl
+tests/test_std_migration.py
+
+Scope boundary: this allowlist publishes only the commit-bound LLMTier project ingestion manifest and its
+review/validation evidence. It includes 11 Accepted canonical prose paths from promotion commit 503d0a0 and
+records project ACL, inclusion/exclusion, duplicate-authority, content-hash and deterministic retrieval checks.
+It explicitly excludes the pre-existing dirty rag/std-ingestion-manifest.jsonl, source/runtime/config/machine
+contracts, external indexing/deployment and Runtime Activation.

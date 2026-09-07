@@ -1,0 +1,42 @@
+LLMTier C6 RAG publication validation evidence
+Date: 2026-09-07 Asia/Hong_Kong
+Input HEAD: 503d0a03fa92aeeb7657ce7ed54bab8b77efef34
+Input origin/main: 503d0a03fa92aeeb7657ce7ed54bab8b77efef34
+Branch: main
+Canonical promotion input: 503d0a03fa92aeeb7657ce7ed54bab8b77efef34
+
+L1 source verification
+Command: /Users/ben/work/STD/scripts/verify-source-manifest /Users/ben/work/LLMTier/docs/std-source-manifest.json --std-root /Users/ben/work/STD
+Exit code: 0
+Output: STD source manifest verification OK: 71 artifacts
+
+L1 project-root validation
+Command: /Users/ben/work/STD/scripts/validate-design --project-root /Users/ben/work/LLMTier --require-immutable-std --json /tmp/llmtier-c6-validation.json
+Exit code: 0
+Artifact: docs/98_migration/evidence/c6-std-validation.json
+Output summary: STD validation OK; metadata=18 markdown=18 decisions=7 issues=0
+
+L2 project tests
+Command: PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest discover -s tests
+Exit code: 0
+Output: Ran 48 tests; OK
+
+Publication contract evidence
+Artifact: docs/98_migration/evidence/c6-rag-publication-evidence.txt
+Result: manifest/hash/inclusion/exclusion/duplicate-authority/ACL/retrieval PASS
+External index: NOT_RUN / N/A; no external service deployment or Runtime Activation requested
+
+Whitespace
+Command: git diff --check
+Exit code: 0
+Output: empty
+
+Dirty-worktree preservation
+Existing excluded path: rag/std-ingestion-manifest.jsonl
+Binary diff SHA-256 before C6: 5ecf097f57ec627f36586218d14e8df036467c8466de59e06adc7553c6073234
+Binary diff SHA-256 at validation: 5ecf097f57ec627f36586218d14e8df036467c8466de59e06adc7553c6073234
+Preservation: PASS; file remains unstaged, unmodified by C6, and excluded from the requested allowlist.
+
+No reset or clean was run. C6 does not change source, runtime, configuration, machine contracts, fixtures,
+external deployment, or Runtime Activation. The new project manifest is a commit-bound publication candidate;
+it will not be committed or pushed until STD returns COMMIT_APPROVED for the exact path set.

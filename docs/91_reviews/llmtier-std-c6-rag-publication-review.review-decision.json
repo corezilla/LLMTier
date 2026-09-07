@@ -1,0 +1,19 @@
+{
+  "schema_version": "std-review-decision.v1",
+  "review_id": "llmtier-std-c6-rag-publication-review-decision",
+  "packet_id": "llmtier-std-c6-rag-publication-review",
+  "verdict": "PENDING",
+  "document_status_before": "draft",
+  "requested_document_status_after": "unchanged",
+  "runtime_activation_requested": false,
+  "runtime_activation_authority": null,
+  "reviewers": [],
+  "decided_at": null,
+  "decision_commit": null,
+  "conditions": [
+    "Obtain STD pre-commit approval for the exact C6 publication candidate path set.",
+    "Keep rag/std-ingestion-manifest.jsonl excluded and preserve its existing dirty bytes.",
+    "Do not deploy an external RAG service or activate runtime under this decision."
+  ],
+  "rationale": "The project ingestion manifest and static publication evidence are prepared for independent review; no external index deployment or Runtime Activation is requested."
+}

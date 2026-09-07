@@ -225,7 +225,7 @@ class StdMigrationTests(unittest.TestCase):
         self.assertFalse(decision["runtime_activation_requested"])
         self.assertEqual([], decision["reviewers"])
         self.assertIsNone(decision["decided_at"])
-        self.assertFalse((ROOT / "rag" / "project-ingestion-manifest.jsonl").exists())
+        self.assertIn("RAG publication 仍不在本 scope", packet)
 
         mapping = (ROOT / "docs" / "98_migration" / "legacy-v03-scope-mapping.md").read_text(encoding="utf-8")
         for legacy in (
@@ -322,6 +322,79 @@ class StdMigrationTests(unittest.TestCase):
         self.assertIn("SLK-BOUNDARY-001", evidence)
         self.assertIn("S-20260907-45938693e578", evidence)
         self.assertIn("Verdict: ACCEPTED; SLK-BOUNDARY-001 CLOSED", evidence)
+
+    def test_c6_project_rag_manifest_is_commit_bound_acl_scoped_and_authority_unique(self):
+        manifest_path = ROOT / "rag" / "project-ingestion-manifest.jsonl"
+        entries = [json.loads(line) for line in manifest_path.read_text(encoding="utf-8").splitlines() if line]
+        self.assertEqual(11, len(entries))
+
+        expected_paths = set()
+        for metadata_path in ROOT.joinpath("docs").rglob("*.metadata.json"):
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            if metadata["status"] == "accepted" and metadata["document_type"] != "review.packet":
+                expected_paths.add(metadata["source_path"])
+
+        actual_paths = {entry["path"] for entry in entries}
+        self.assertEqual(expected_paths, actual_paths)
+        self.assertEqual(len(entries), len({entry["document_id"] for entry in entries}))
+        self.assertEqual(len(entries), len(actual_paths))
+
+        import hashlib
+
+        for entry in entries:
+            self.assertEqual("llmtier-project-rag.v1", entry["schema_version"])
+            self.assertEqual("corezilla/LLMTier", entry["repository"])
+            self.assertEqual("503d0a03fa92aeeb7657ce7ed54bab8b77efef34", entry["commit"])
+            self.assertEqual("accepted", entry["document_status"])
+            self.assertEqual("project", entry["visibility"])
+            self.assertEqual("llmtier", entry["authority"])
+            self.assertEqual("project/llmtier", entry["namespace"])
+            self.assertTrue(entry["include"])
+            self.assertEqual(
+                hashlib.sha256((ROOT / entry["path"]).read_bytes()).hexdigest(),
+                entry["content_sha256"],
+            )
+
+        excluded = {
+            "docs/design/llmtier-v0.3-design-review.md",
+            "docs/contracts/piko-data-plane-contract-v0.3.md",
+            "docs/contracts/slinky-capacity-observation-contract-v0.3.md",
+            "docs/contracts/llmtier-management-contract-v0.3.md",
+            "docs/qa/llm-tier-contract-qa-v0.3.md",
+            "rag/std-ingestion-manifest.jsonl",
+        }
+        self.assertTrue(excluded.isdisjoint(actual_paths))
+        self.assertFalse(any(path.startswith("docs/91_reviews/") for path in actual_paths))
+        self.assertFalse(any(path.startswith("docs/98_migration/") for path in actual_paths))
+
+        def acl_filter(*, project_scope, authority):
+            if project_scope != "LLMTier" or authority != "llmtier":
+                return []
+            return entries
+
+        self.assertEqual(11, len(acl_filter(project_scope="LLMTier", authority="llmtier")))
+        self.assertEqual([], acl_filter(project_scope="Piko", authority="llmtier"))
+        self.assertEqual([], acl_filter(project_scope="LLMTier", authority="std"))
+
+        def retrieve(terms):
+            allowed = acl_filter(project_scope="LLMTier", authority="llmtier")
+            return {
+                entry["path"]
+                for entry in allowed
+                if all(term in (ROOT / entry["path"]).read_text(encoding="utf-8") for term in terms)
+            }
+
+        self.assertIn(
+            "docs/60_interfaces/piko-data-plane-control.md",
+            retrieve(["model 字段等于 exact", "alias", "Role selector"]),
+        )
+        self.assertIn(
+            "docs/60_interfaces/slinky-capacity-observation-control.md",
+            retrieve(["same-tier fallback/Upshift", "重新接受 admission"]),
+        )
+        runtime_hits = retrieve(["Runtime Activation", "NOT_RUN/BLOCKED"])
+        self.assertIn("docs/70_verification/plans/llmtier-v0.3-vv-plan.md", runtime_hits)
+        self.assertIn("docs/80_operations/llmtier-v0.3-release-and-operations.md", runtime_hits)
 
 
 if __name__ == "__main__":

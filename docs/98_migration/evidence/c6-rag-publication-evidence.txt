@@ -1,0 +1,47 @@
+LLMTier C6 RAG publication static evidence
+Date: 2026-09-07 Asia/Hong_Kong
+Publication input commit: 503d0a03fa92aeeb7657ce7ed54bab8b77efef34
+Manifest: rag/project-ingestion-manifest.jsonl
+Excluded existing dirty: rag/std-ingestion-manifest.jsonl
+
+Evidence implementation:
+tests/test_std_migration.py::StdMigrationTests.test_c6_project_rag_manifest_is_commit_bound_acl_scoped_and_authority_unique
+
+The test independently derives the expected inclusion set from Accepted, non-review metadata; checks every
+manifest commit and content SHA-256; checks unique Document IDs and paths; checks explicit exclusion of five
+Superseded legacy documents, review/migration artifacts, and the legacy STD manifest; applies the project/authority
+ACL before retrieval; and runs deterministic text retrieval contracts over only the ACL-filtered manifest set.
+
+Command:
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.test_std_migration.StdMigrationTests.test_c6_project_rag_manifest_is_commit_bound_acl_scoped_and_authority_unique
+Exit code: 0
+Output:
+.
+----------------------------------------------------------------------
+Ran 1 test
+
+OK
+
+Expanded assertion summary from the same candidate bytes:
+MANIFEST_SCHEMA_COMMIT_HASH=PASS entries=11
+INCLUSION_EXACT=PASS accepted_current_paths=11
+EXCLUSION=PASS legacy=5 review_and_migration=true std_manifest=true
+DUPLICATE_AUTHORITY=PASS document_ids=11 paths=11
+ACL_ALLOW=PASS project=LLMTier authority=llmtier results=11
+ACL_DENY_OTHER_PROJECT=PASS results=0
+ACL_DENY_OTHER_AUTHORITY=PASS results=0
+RETRIEVAL_PIKO=PASS hits=["docs/60_interfaces/piko-data-plane-control.md"]
+RETRIEVAL_SLINKY=PASS hits=["docs/60_interfaces/slinky-capacity-observation-control.md"]
+RETRIEVAL_RUNTIME=PASS hits=["docs/70_verification/plans/llmtier-v0.3-vv-plan.md","docs/70_verification/specifications/llmtier-v0.3-contract-test-specification.md","docs/80_operations/llmtier-v0.3-release-and-operations.md"]
+EXTERNAL_INDEX=NOT_RUN reason=no deployment or Runtime Activation authorized
+
+ACL contract:
+- allow only project_scope=LLMTier AND authority=llmtier into namespace project/llmtier;
+- deny before content retrieval for missing/other project scope, other authority, or cross-namespace requests;
+- visibility remains project; no organization/public widening is requested.
+
+L3 / external evidence:
+- External vector/index ingestion: NOT_RUN / N/A; LLMTier has no project publication runtime configured in this cohort.
+- Online retrieval quality: NOT_RUN; deterministic contract checks above do not claim production recall.
+- External service deployment: NOT_RUN; not authorized.
+- Runtime Activation: false / NOT_RUN; separate authority and production evidence remain required.

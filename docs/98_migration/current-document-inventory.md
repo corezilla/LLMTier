@@ -46,11 +46,13 @@ SHA-256 `dea984371cb7e552dcf8bb338bd48c35541dac035d496b16122f5315f7ed0471`，组
 | `docs/91_reviews/llmtier-std-c3-requirements-review.md` + metadata/decision | `review.packet` | C3 ACCEPTED | 固定 C3 authority、coverage 与三层验证 |
 | `docs/80_operations/llmtier-v0.3-release-and-operations.md` + metadata | `operations.release` | Approved candidate | 承接当前 package/CLI 与 release Gate；production procedure/evidence 保持 BLOCKED |
 | `docs/91_reviews/llmtier-std-c4-operations-review.md` + metadata/decision | `review.packet` | C4 ACCEPTED | 固定 operations scope、ADR omission 与 Open Gate |
-| `docs/98_migration/canonical-promotion-readiness.md` | C5 authority/completion inventory | READY_FOR_COMMIT candidate | 列出 11 份 Approved candidate、机器/执行 authority、旧文档 disposition 和 promotion 原子步骤 |
+| `docs/98_migration/canonical-promotion-readiness.md` | C5 authority/completion inventory | promoted at `503d0a0` | 列出 11 份 Approved、机器/执行 authority、旧文档 disposition 和 promotion 原子步骤 |
 | `docs/98_migration/legacy-v03-scope-mapping.md` | C5 old→new mapping | promotion evidence | 五份旧 V0.3 文档逐章节映射；consumer verdict 均 ACCEPTED，residual=none |
 | `docs/98_migration/evidence/c5-consumer-verdicts.txt` | C1 consumer audit ledger | Piko ACCEPTED / Slinky AMENDMENT | 记录 message ID、immutable commit/blob/hash、结论和 draft.2 re-review 条件 |
-| `docs/91_reviews/llmtier-std-c5-canonical-promotion-review.md` + metadata/decision | `review.packet` | C5 PENDING | 请求独立 promotion pre-commit review；不授权 RAG/runtime |
-| `docs/design/llmtier-v0.3-design-review.md` | 原始 V0.3 设计 | Superseded candidate | 全部 current scope 已迁出；保留 historical provenance |
+| `docs/91_reviews/llmtier-std-c5-canonical-promotion-review.md` + metadata/decision | `review.packet` | C5 review record | promotion 已在 `503d0a0` 完成；该 packet 不授权 RAG/runtime |
+| `docs/91_reviews/llmtier-std-c6-rag-publication-review.md` + metadata/decision | `review.packet` | C6 PENDING | 请求独立 RAG publication pre-commit review；Runtime Activation=false |
+| `rag/project-ingestion-manifest.jsonl` | `llmtier-project-rag.v1` | C6 publication candidate | 仅纳入 promotion commit `503d0a0` 的 11 份 Accepted prose authority |
+| `docs/design/llmtier-v0.3-design-review.md` | 原始 V0.3 设计 | Superseded | 全部 current scope 已迁出；保留 historical provenance |
 | `rag/std-ingestion-manifest.jsonl` | legacy draft.12 STD source list | 既有 dirty 文件；非 draft.18 source manifest、非项目 ingestion | 本轮不修改、不装载；后续 promotion packet 决定 historical/exclusion |
 
 错误候选 `docs/design/llmtier-v0.3-system-design.md` 与旧 tailoring 路径在 READY 输入工作树中已经
@@ -73,7 +75,7 @@ SHA-256 `dea984371cb7e552dcf8bb338bd48c35541dac035d496b16122f5315f7ed0471`，组
 | `docs/contracts/fixtures/v0.2/` | historical evidence | 后续归档 |
 | `docs/contracts/fixtures/v0.3/` | current candidate evidence | assurance migration 前原位保留 |
 | `docs/qa/llm-tier-contract-qa-v0.1.md`、`v0.2.md` | historical/superseded | 后续归档 |
-| `docs/qa/llm-tier-contract-qa-v0.3.md` | Superseded candidate | C2 assurance、traceability 与 review evidence 已承接全部 current scope；保留历史 review ledger |
+| `docs/qa/llm-tier-contract-qa-v0.3.md` | Superseded | C2 assurance、traceability 与 review evidence 已承接全部 current scope；保留历史 review ledger |
 
 ## 4. 旧→新映射
 
@@ -93,12 +95,12 @@ SHA-256 `dea984371cb7e552dcf8bb338bd48c35541dac035d496b16122f5315f7ed0471`，组
 1. 当前不创建 `software/llmtier/`、`services/llmtier/`、`apps/` 或 `packages/`。只有在出现多个
    独立部署、发布和 owner 单元时才重新 tailoring。
 2. `docs/00_management/`、`docs/30_subsystem_design/`、`docs/91_reviews/` 和
-   `docs/98_migration/` 是迁移与 Gate evidence 位置；当前 authority 切换仍是未提交的 promotion candidate。
+   `docs/98_migration/` 是迁移与 Gate evidence 位置；authority 切换已由 promotion commit `503d0a0` 完成。
    原 Contract/QA/Provenance 的批量搬迁留待后续评审，避免无关路径 churn。
 3. `docs/std-source-manifest.json` 是 draft.18 source lock；既有
-   `rag/std-ingestion-manifest.jsonl` 仍是 legacy draft.12 记录。当前不生成
-   `rag/project-ingestion-manifest.jsonl`，不把候选实例加入项目 RAG；只有 canonical promotion
-   后才确定 inclusion/exclusion 和 publication commit。
+   `rag/std-ingestion-manifest.jsonl` 仍是 legacy STD source-list dirty，明确排除且不修改。
+   C6 新建 `rag/project-ingestion-manifest.jsonl`，只绑定 promotion commit `503d0a0` 的 11 份
+   Accepted canonical prose，并记录 inclusion/exclusion、ACL 和 publication commit。
 4. 业务 Contract/OpenAPI/Manifest/fixture 未因分类修正而改变；若后续发现必须改变冻结字段，需先
    报告冲突并走独立接口评审。
 5. 源码 `src/`、机器契约、fixtures 与 runtime 配置均不在本 cohort 的写入范围；本轮只调整文档、
@@ -106,19 +108,20 @@ SHA-256 `dea984371cb7e552dcf8bb338bd48c35541dac035d496b16122f5315f7ed0471`，组
 
 ## 6. Canonical promotion 与后置 publication 边界
 
-本 inventory 随原子 promotion candidate 更新；提交仍需 STD exact-path COMMIT_APPROVED：
+本 inventory 已随原子 promotion commit 更新；C6 publication candidate 仍需新的 STD exact-path COMMIT_APPROVED：
 
 1. LLMTier Owner terminal decisions 与 reviewed commits 已固定；
 2. README、authority index、新旧文档状态及 residual-scope 映射在同一 diff 更新；
 3. 五份旧文档全部 scope 已迁出，因此整体 Superseded；
-4. promotion 后生成项目 RAG manifest，纳入新的 canonical commit，排除旧/历史/候选和 legacy
-   STD source list，并验证单一 current authority；
+4. 当前 C6 manifest 纳入 `503d0a0` 的 11 份 canonical prose，排除旧/历史/candidate 和 legacy
+   STD source list，并验证 ACL、内容 hash、检索合约和单一 current authority；
 5. runtime activation 始终保持 `false`，直至独立 authority 与 production evidence Gate 关闭。
 
 ## 7. C5 完整度与 residual-authority 结论
 
-当前输入 HEAD `e1f9b796368ec5f358e466c7e6299cc16b1bf181` 已固定 C0-C4 的 11 份实质 STD 候选和
-Slinky draft.2 clarification。C0-C4 五份 terminal decision 在本次 promotion candidate 中均为 ACCEPTED。全量 scope、原位机器/执行 authority、旧 V0.3 prose successor、
+当前输入 HEAD `503d0a03fa92aeeb7657ce7ed54bab8b77efef34` 已完成 C5 canonical promotion，并固定
+C0-C4 的 11 份实质 STD 文档和 Slinky draft.2 clarification。C0-C4 五份 terminal decision 均为
+ACCEPTED。全量 scope、原位机器/执行 authority、旧 V0.3 prose successor、
 historical/future/provenance exclusions 及后续 RAG 边界见
 `docs/98_migration/canonical-promotion-readiness.md`。
 

@@ -32,14 +32,15 @@ STD tag：std-v0.1.0-draft.18
 | C2 Assurance | terminal ACCEPTED / pushed | V&V plan、contract test specification、evidence boundary、review packet | immutable C1 mapping | complete |
 | C3 Requirements + Traceability | terminal ACCEPTED / pushed | requirements specification 与 traceability matrix；draft.18 rebaseline | commit `13b5d02` | complete |
 | C4 Decisions + Operations | terminal ACCEPTED / pushed | operations.release；无新决定故不生成 retrospective ADR | commit `962e800` | complete |
-| C5 Canonical Promotion | READY_FOR_COMMIT candidate | 11 份 Approved、五份旧 prose Superseded、README/index/decision/evidence | clarification commit `e1f9b79`；consumer ACCEPTED | STD exact-path pre-commit review |
-| C6 Publication / Runtime | publication pending / runtime BLOCKED | 项目 RAG manifest/索引；Runtime Activation 独立 | C5 promotion commit；production L3 evidence | publication Gate；独立 runtime authority |
+| C5 Canonical Promotion | promoted / pushed | 11 份 Approved、五份旧 prose Superseded、README/index/decision/evidence | clarification commit `e1f9b79`；consumer ACCEPTED | complete at `503d0a0` |
+| C6 Publication / Runtime | publication candidate / runtime BLOCKED | 项目 RAG manifest、ACL/include-exclude/duplicate-authority/retrieval evidence；Runtime Activation 独立 | promotion commit `503d0a0` | STD publication pre-commit Gate；独立 runtime authority |
 
 C0/C1 已由 commit `aa2638283e77bc658e98df8d40396306cad17aa2` 固定；C2、C3、C4 分别由
 `b2e298aadf981283aa52d4764b201400397d1116`、`13b5d02266624b6b662349f0b88de23696c823bb`、
 `962e8003712738d2cb4e3a0a38173a9fd2bdd0a1` 固定并推送；clarification snapshot
 `e1f9b796368ec5f358e466c7e6299cc16b1bf181` 也已推送并获 Slinky exact-input ACCEPTED。C0-C4
-机器 decision 已在 C5 promotion candidate 中终局化；C5 自身仍等待独立 pre-commit Gate。
+机器 decision 已在 C5 promotion commit `503d0a03fa92aeeb7657ce7ed54bab8b77efef34` 中终局化；
+C6 以该已推送 commit 为唯一 publication input。
 
 ## 3. C0 Foundation：已完成候选
 
@@ -133,9 +134,11 @@ C6 只在 promotion commit 存在后生成 rag/project-ingestion-manifest.jsonl�
 旧/历史/candidate exclusion 和 publication commit。Runtime Activation 需要另一份独立 authority 与
 production L3 evidence；文档 review、RAG publication 或 contract tests 均不能代替。
 
-C5 当前已形成完整原子 promotion candidate：11 份 Approved cover/metadata、C0-C4 terminal decisions、
-README canonical index、五份 legacy Superseded forward links、scope mapping 和验证 evidence。收到 STD
-明确 COMMIT_APPROVED 前不提交该 diff；项目 RAG manifest 只在 promotion commit 后生成。
+C5 已由 commit `503d0a03fa92aeeb7657ce7ed54bab8b77efef34` 完成并推送：11 份 Approved
+cover/metadata、C0-C4 terminal decisions、README canonical index、五份 legacy Superseded forward links、
+scope mapping 和验证 evidence 已成为 canonical promotion 基线。C6 现生成独立
+`rag/project-ingestion-manifest.jsonl` 与静态 ACL/include-exclude/duplicate-authority/retrieval evidence；
+收到 STD 明确 COMMIT_APPROVED 前不提交该 C6 diff，也不部署外部 RAG 服务。
 
 ## 9. 每 cohort 的固定证据清单
 
@@ -147,7 +150,7 @@ README canonical index、五份 legacy Superseded forward links、scope mapping 
 6. blockers、Owner/reviewer、requested verdict、Document Status before/after 和
    runtime_activation_requested=false；
 7. 原文档 residual authority、建议的未来 promotion/supersession 范围；
-8. 明确声明未 reset/clean、未 promotion、未项目 RAG ingestion、未外部发布、未 runtime activation。
+8. 明确声明未 reset/clean；逐 cohort 如实记录 promotion/publication 是否发生；未获独立授权时不做外部发布或 runtime activation。
 
 ## 10. 提交前 STD 复核 Gate
 
