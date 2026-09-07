@@ -191,6 +191,26 @@ class StdMigrationTests(unittest.TestCase):
         self.assertIn("open-decision/not-run", traceability)
         self.assertIn("不迁入本仓库", traceability)
 
+    def test_c4_operations_candidate_is_not_a_runtime_or_adr_claim(self):
+        path = ROOT / "docs" / "80_operations" / "llmtier-v0.3-release-and-operations.md"
+        text = path.read_text(encoding="utf-8")
+        metadata = json.loads(path.with_suffix(".metadata.json").read_text(encoding="utf-8"))
+        source_hashes = {item["path"]: item["sha256"] for item in self.sources}
+        self.assertEqual("operations.release", metadata["document_type"])
+        self.assertEqual("operations.release", metadata["template_id"])
+        self.assertEqual(
+            source_hashes["templates/operations/release-and-operations.md"],
+            metadata["template_sha256"],
+        )
+        self.assertEqual("draft", metadata["status"])
+        self.assertIsNone(metadata["reviewed_commit"])
+        self.assertIsNone(metadata["supersedes"])
+        self.assertNotIn("<!-- TODO -->", text)
+        self.assertIn("不是 release approval 或 runtime runbook", text)
+        self.assertIn("overall.runtime_activation=false", text)
+        self.assertIn("NOT_RUN/BLOCKED", text)
+        self.assertIn("不创建 retrospective ADR", (ROOT / "docs" / "91_reviews" / "llmtier-std-c4-operations-review.md").read_text(encoding="utf-8"))
+
 
 if __name__ == "__main__":
     unittest.main()

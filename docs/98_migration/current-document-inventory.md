@@ -44,6 +44,8 @@ SHA-256 `dea984371cb7e552dcf8bb338bd48c35541dac035d496b16122f5315f7ed0471`，组
 | `docs/10_requirements/llmtier-v0.3-requirements.md` + metadata | `requirements.specification` | C3 draft candidate | 只承接 LLMTier 自有 shall statements；外部需求仅引用 |
 | `docs/10_requirements/llmtier-v0.3-traceability.md` + metadata | `requirements.traceability` | C3 draft candidate | 连接 requirement、design/contract、case 与实际 evidence 状态 |
 | `docs/91_reviews/llmtier-std-c3-requirements-review.md` + metadata/decision | `review.packet` | C3 PENDING | 固定 C3 authority、coverage 与三层验证 |
+| `docs/80_operations/llmtier-v0.3-release-and-operations.md` + metadata | `operations.release` | C4 draft candidate | 承接当前 package/CLI 与 release Gate；production procedure/evidence 保持 BLOCKED |
+| `docs/91_reviews/llmtier-std-c4-operations-review.md` + metadata/decision | `review.packet` | C4 PENDING | 固定 operations scope、ADR omission 与 Open Gate |
 | `docs/design/llmtier-v0.3-design-review.md` | 原始 V0.3 设计 | retained current residual-scope authority | 在 scope-level canonical promotion 前不删除、不整体 Supersede |
 | `rag/std-ingestion-manifest.jsonl` | legacy draft.12 STD source list | 既有 dirty 文件；非 draft.18 source manifest、非项目 ingestion | 本轮不修改、不装载；后续 promotion packet 决定 historical/exclusion |
 

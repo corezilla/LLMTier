@@ -1,0 +1,28 @@
+LLMTier C4 Decisions + Operations READY_FOR_COMMIT scope
+Project HEAD: 13b5d02266624b6b662349f0b88de23696c823bb
+Branch/remote: main / origin
+STD: 9841083c4d8d0ed1556bdc413d77b4567ac696b4 / std-v0.1.0-draft.18
+
+[C4 NEW]
+docs/80_operations/llmtier-v0.3-release-and-operations.md
+docs/80_operations/llmtier-v0.3-release-and-operations.metadata.json
+docs/91_reviews/llmtier-std-c4-operations-review.md
+docs/91_reviews/llmtier-std-c4-operations-review.metadata.json
+docs/91_reviews/llmtier-std-c4-operations-review.review-decision.json
+docs/98_migration/evidence/c4-candidate-sha256.txt
+docs/98_migration/evidence/c4-ready-for-commit.txt
+docs/98_migration/evidence/c4-std-validation.json
+docs/98_migration/evidence/c4-validation-evidence.txt
+
+[C4 MODIFIED]
+docs/00_management/std-tailoring.md
+docs/00_management/std-tailoring.metadata.json
+docs/98_migration/current-document-inventory.md
+docs/98_migration/llmtier-std-migration-plan.md
+tests/test_std_migration.py
+
+[EXCLUDED]
+rag/std-ingestion-manifest.jsonl
+
+Requested pathspec: exactly 14 paths outside [EXCLUDED]. No retrospective ADR is generated because no new
+architecture/operations decision exists. No staging/commit/push, promotion, publication or activation yet.

@@ -30,8 +30,8 @@ STD tag：std-v0.1.0-draft.18
 | C0 Foundation | immutable candidate / Owner ACCEPTED | inventory、tailoring、lock/source manifest、单服务 design、review packet | draft.18 immutable STD | consumer-independent final decision update |
 | C1 Interface + Contract | immutable candidate / Owner ACCEPTED | 三个 v0.3 interface candidate、一个 contract specification、mapping、review packet | C0 结构通过 | Piko/Slinky consumer reviews；终局 decision update |
 | C2 Assurance | immutable candidate / pushed | V&V plan、contract test specification、evidence boundary、review packet | immutable C1 mapping；Owner ACCEPTED | final review/decision 与 promotion 独立 |
-| C3 Requirements + Traceability | READY_FOR_COMMIT | 独立 requirements specification 与 traceability matrix；全项目 candidate rebaseline 到 draft.18 | Owner 已决定启用；C2 commit `b2e298a` | STD pre-commit Gate；不得复制 Slinky/Piko requirements authority |
-| C4 Decisions + Operations | DEFERRED | persistence/HA/RPO/RTO ADR、deployment/release/operations 文档 | 对应设计决定与实现证据存在 | LLMTier architecture/operations owner |
+| C3 Requirements + Traceability | immutable candidate / pushed | 独立 requirements specification 与 traceability matrix；全项目 candidate rebaseline 到 draft.18 | Owner 已决定启用；commit `13b5d02` | final review/decision 与 promotion 独立 |
+| C4 Decisions + Operations | READY_FOR_COMMIT | operations.release 候选；无新决定故不生成 retrospective ADR | C3 immutable；当前 package/CLI 与既有 Gate 可映射 | STD pre-commit Gate；production Open Gate 保持 BLOCKED |
 | C5 Canonical Promotion | BLOCKED | scope-level authority 切换、索引与旧文档状态 | 各 cohort ACCEPTED、文档批准、immutable project commit | LLMTier canonical authority |
 | C6 Publication / Runtime | BLOCKED | 项目 RAG manifest/索引；独立 runtime activation packet | C5 publication commit；production L3 evidence | publication owner；独立 runtime authority |
 
@@ -117,6 +117,10 @@ Slinky/Piko 拥有的需求复制成本项目 authority。
   operations.release，必要时再启用 installation/operations/maintenance 模板。
 - Provider measured SLO、Admin UI 技术栈和 production isolation 未决定前只保留 Open Gate，不生成
   假完成文档。
+
+C4 当前只生成 `docs/80_operations/llmtier-v0.3-release-and-operations.md`，承接已有 package/CLI、
+start/stop/diagnostic 与 release Gate；它不是 production runbook。没有新的已批准 architecture decision，
+因此不生成 retrospective ADR。未来 persistence/HA/RPO/RTO/topology 等实际选择形成时再启用 `decisions.adr`。
 
 ## 8. C5/C6 后置 Gate
 

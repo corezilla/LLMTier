@@ -1,0 +1,16 @@
+LLMTier C4 Operations candidate payload SHA-256
+Input commit: 13b5d02266624b6b662349f0b88de23696c823bb
+STD: 9841083c4d8d0ed1556bdc413d77b4567ac696b4 / std-v0.1.0-draft.18
+
+c23e196c7ff426ab7b76be975a97491c91bee504d89fcac4c3d8a77870b596a9  docs/00_management/std-tailoring.md
+0c3edb5bfd472d7d6a98680d011198b0ecc372dd189487174c667e3ffb24e6ea  docs/00_management/std-tailoring.metadata.json
+cf98f17aa7443bd2c8bf7b28e7673bd519620422025c7e509b49a9798d9dcb03  docs/80_operations/llmtier-v0.3-release-and-operations.md
+3363402514cc5a9556534ae63bdcbd24a4dbac54e9d6dfc8ee441ea45eef67ff  docs/80_operations/llmtier-v0.3-release-and-operations.metadata.json
+db06fa330864474b853e3726e87b251c85fa34f28b3b6dcbc7b25678cdb9b069  docs/98_migration/current-document-inventory.md
+fc72698911114453ee3010975452a1793b098e249ef3d1c800d55c7305f9205b  docs/98_migration/llmtier-std-migration-plan.md
+910b1b7e1c55c2e71b1e144f1b9831bb9a081bfb4589a96a42d0763924c61b68  tests/test_std_migration.py
+
+Ordered manifest SHA-256:
+7d8e77b049db548feb4c3d6854f598e40df5e780b547928da25b9fc7f989cae9
+
+C4 packet/decision and evidence files are excluded to avoid self-reference.

@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `std-tailoring` |
-| Document Version | `0.1.0-draft.5` |
+| Document Version | `0.1.0-draft.6` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -52,7 +52,7 @@
 | `assurance.test-specification` | software | 是，C2 candidate | Contract/SDK/recovery/isolation tests | LLMTier |
 | `review.packet` | management/software | 是，本批 | STD migration review packet；不请求 V0.3 activation | LLMTier owner；项目授权 reviewer 待指定 |
 | `decisions.adr` | software | 条件必需 | persistence/HA/deployment 等新重大决定 | LLMTier |
-| `operations.release` | operations/software | production 前必需 | deployment、backup、rollback、retirement | LLMTier |
+| `operations.release` | operations/software | 是，C4 active | `docs/80_operations/llmtier-v0.3-release-and-operations.md`；Open Gate 不伪造 | LLMTier |
 
 ## 3. 裁剪决定
 
@@ -71,6 +71,7 @@
 | LT-TL-011 | 原设计与 v0.1/v0.2 历史材料 | keep | review 前不删除；inventory 标明 current/historical/superseded | 误检索历史语义 | 待项目 review | review 后归档建议 |
 | LT-TL-012 | STD 来源清单 / 项目 RAG ingestion | keep source manifest；omit ingestion 到 canonical promotion 后 | source manifest 记录 draft.18 的 71 个规范、模板、Schema 和工具 SHA-256；不把 review candidate 写入项目 RAG | 来源可校验，候选暂不可由项目 RAG 检索 | 待项目 review | N/A |
 | LT-TL-013 | 多服务目录 `apps/`、`services/`、`packages/` | omit | 当前只有一个部署边界、一个服务 owner，根目录 `src/tests/docs` 已满足 STD | 过早分层会制造虚假 subsystem 与平行路径 | 用户已确认单服务 | ownership/deploy boundary 改变时重新 tailoring |
+| LT-TL-014 | `operations.release` | keep，C4 active | 当前 package/CLI 与 release/rollback/recovery Gate 需要集中，但 production procedure/evidence 尚不存在 | 文档被误作 production runbook；以 Draft/Blocked 和独立 activation Gate 控制 | LLMTier owner；待 review | topology/persistence 等实际决定形成时另建 ADR |
 
 ## 4. 禁止裁剪项
 
