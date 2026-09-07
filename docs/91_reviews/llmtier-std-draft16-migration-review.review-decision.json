@@ -1,0 +1,18 @@
+{
+  "schema_version": "std-review-decision.v1",
+  "review_id": "llmtier-std-draft16-migration-review-decision",
+  "packet_id": "llmtier-std-draft16-migration-review",
+  "verdict": "PENDING",
+  "document_status_before": "review",
+  "requested_document_status_after": "unchanged",
+  "runtime_activation_requested": false,
+  "runtime_activation_authority": null,
+  "reviewers": [],
+  "decided_at": null,
+  "decision_commit": null,
+  "conditions": [
+    "Record an immutable LLMTier candidate commit before final review.",
+    "Keep canonical promotion, RAG publication, and runtime activation behind separate gates."
+  ],
+  "rationale": "Migration Review candidate upgraded to the locked STD draft.17 controls; no final project review decision has been made."
+}

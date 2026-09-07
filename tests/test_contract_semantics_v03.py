@@ -19,7 +19,7 @@ CONTRACTS = ROOT / "docs" / "contracts"
 FIXTURES = CONTRACTS / "fixtures"
 OPENAPI_PATH = CONTRACTS / "openapi" / "llmtier-v0.3.openapi.json"
 MANIFEST_PATH = CONTRACTS / "compatibility-manifest-v0.3.json"
-SYSTEM_DESIGN_PATH = ROOT / "docs" / "design" / "llmtier-v0.3-system-design.md"
+SERVICE_DESIGN_PATH = ROOT / "docs" / "30_subsystem_design" / "llmtier-service-design.md"
 AUTHORIZATION_SCOPE_FIXTURE_PATH = FIXTURES / "v0.3" / "authorization-scope-fixtures.json"
 
 
@@ -234,8 +234,8 @@ class ContractSemanticsV03Tests(unittest.TestCase):
         self.assertEqual(["Pending", "Queued", "Running"], accepted["properties"]["status"]["enum"])
         self.assertNotIn("UnknownOutcome", accepted["properties"]["status"]["enum"])
 
-    def test_system_design_uses_canonical_invocation_status_names(self):
-        design = SYSTEM_DESIGN_PATH.read_text(encoding="utf-8")
+    def test_service_design_uses_canonical_invocation_status_names(self):
+        design = SERVICE_DESIGN_PATH.read_text(encoding="utf-8")
         invocation_statuses = set(self.openapi["components"]["schemas"]["InvocationStatus"]["enum"])
         self.assertEqual(
             {"Pending", "Queued", "Running", "Succeeded", "Failed", "Cancelled", "UnknownOutcome"},
@@ -245,12 +245,13 @@ class ContractSemanticsV03Tests(unittest.TestCase):
         self.assertIn("| Succeeded | 原 endpoint canonical `200` body", design)
         self.assertIn("terminal 为 Succeeded、Failed、Cancelled、", design)
 
-    def test_system_design_keeps_registry_etags_and_retention_scopes_distinct(self):
-        design = SYSTEM_DESIGN_PATH.read_text(encoding="utf-8")
-        self.assertIn("ETag 各自校验本 resource representation", design)
-        self.assertIn("live capacity/usage", design)
-        self.assertIn("canonical Response 在冻结的\n168h recovery window 内仍可恢复", design)
-        self.assertIn("短于任一下限的配置无效并阻断 activation", design)
+    def test_service_design_keeps_registry_etags_and_retention_scopes_distinct(self):
+        design = SERVICE_DESIGN_PATH.read_text(encoding="utf-8")
+        normalized = " ".join(design.split())
+        self.assertIn("ETag 各自校验本 resource representation", normalized)
+        self.assertIn("live capacity/usage", normalized)
+        self.assertIn("canonical Response 在冻结的 168h recovery window 内仍可恢复", normalized)
+        self.assertIn("短于任一下限的配置无效并阻断 activation", normalized)
 
     def test_data_plane_observation_and_management_endpoint_coverage(self):
         data_plane = {

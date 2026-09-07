@@ -1,8 +1,14 @@
 {
-  "std_version": "0.1.0-draft.1",
+  "schema_version": "std-lock.v1",
+  "std_version": "0.1.0-draft.17",
   "source_repository": "corezilla/architecture-standards",
-  "source_revision": null,
-  "manifest_path": "rag/std-ingestion-manifest.jsonl",
+  "source_revision": "94c0262de35b5b989bba9f8d23f212af709c9dbf",
+  "source_tag": "std-v0.1.0-draft.17",
+  "source_manifest_path": "docs/std-source-manifest.json",
   "adopted_at": "2026-09-07",
-  "enabled_profiles": ["management", "systems", "software"]
+  "project_profile": "software",
+  "enabled_domains": [
+    "management",
+    "software"
+  ]
 }

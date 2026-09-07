@@ -1,0 +1,32 @@
+{
+  "project": "LLMTier",
+  "authority": "LLMTier",
+  "document_id": "std-tailoring",
+  "document_type": "management.tailoring",
+  "document_version": "0.1.0-draft.4",
+  "title": "LLMTier STD 裁剪清单",
+  "document_owner": "LLMTier",
+  "authors": [
+    "llmtier"
+  ],
+  "source_repository": "corezilla/LLMTier",
+  "source_path": "docs/00_management/std-tailoring.md",
+  "std_version": "0.1.0-draft.17",
+  "template_id": "management.tailoring",
+  "template_version": "0.1.0-draft.17",
+  "template_sha256": "3f0cd7ecac2977882e1182c7dfefdae78da376c3ee379b96327375ca51b2015f",
+  "template_conformance": "native",
+  "tailoring_ref": null,
+  "migration_map_ref": null,
+  "design_level": "project",
+  "domain": [
+    "management"
+  ],
+  "status": "review",
+  "visibility": "project",
+  "reviewed_commit": null,
+  "parent_document_id": null,
+  "supersedes": null,
+  "created_at": "2026-09-07",
+  "last_modified_at": "2026-09-07"
+}

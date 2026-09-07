@@ -1,0 +1,32 @@
+{
+  "project": "LLMTier",
+  "authority": "LLMTier",
+  "document_id": "llmtier-service-design",
+  "document_type": "design.definition",
+  "document_version": "0.3.0-draft.4",
+  "title": "LLMTier V0.3 单服务设计（STD 迁移候选）",
+  "document_owner": "LLMTier",
+  "authors": [
+    "llmtier"
+  ],
+  "source_repository": "corezilla/LLMTier",
+  "source_path": "docs/30_subsystem_design/llmtier-service-design.md",
+  "std_version": "0.1.0-draft.17",
+  "template_id": "design.definition",
+  "template_version": "0.1.0-draft.17",
+  "template_sha256": "69b1925d1e176845d42d4ea685c530ced0a174ea1a682043fa1c9e3fdfbf0cb1",
+  "template_conformance": "tailored",
+  "tailoring_ref": "std-tailoring",
+  "migration_map_ref": null,
+  "design_level": "subsystem",
+  "domain": [
+    "software"
+  ],
+  "status": "review",
+  "visibility": "project",
+  "reviewed_commit": null,
+  "parent_document_id": null,
+  "supersedes": null,
+  "created_at": "2026-09-06",
+  "last_modified_at": "2026-09-07"
+}

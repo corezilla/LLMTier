@@ -1,0 +1,51 @@
+LLMTier C1 READY_FOR_COMMIT scope classification
+Project HEAD: 8dc6a54c92608ab6373f40c78cc954da7086f30e
+STD revision: 94c0262de35b5b989bba9f8d23f212af709c9dbf
+
+[C1 NEW FILES]
+docs/60_interfaces/piko-data-plane-control.md
+docs/60_interfaces/piko-data-plane-control.metadata.json
+docs/60_interfaces/slinky-capacity-observation-control.md
+docs/60_interfaces/slinky-capacity-observation-control.metadata.json
+docs/60_interfaces/llmtier-management-control.md
+docs/60_interfaces/llmtier-management-control.metadata.json
+docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.md
+docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.metadata.json
+docs/91_reviews/llmtier-std-c1-interface-contract-review.md
+docs/91_reviews/llmtier-std-c1-interface-contract-review.metadata.json
+docs/91_reviews/llmtier-std-c1-interface-contract-review.review-decision.json
+docs/98_migration/llmtier-std-migration-plan.md
+docs/98_migration/evidence/c1-candidate-sha256.txt
+docs/98_migration/evidence/c1-std-validation.json
+docs/98_migration/evidence/c1-ready-for-commit.txt
+
+[SHARED C0 FOUNDATION FILES MODIFIED OR REQUIRED BY C1]
+docs/std.lock.json
+docs/std-source-manifest.json
+docs/00_management/std-tailoring.md
+docs/00_management/std-tailoring.metadata.json
+docs/30_subsystem_design/llmtier-service-design.md
+docs/30_subsystem_design/llmtier-service-design.metadata.json
+docs/91_reviews/llmtier-std-draft16-migration-review.md
+docs/91_reviews/llmtier-std-draft16-migration-review.metadata.json
+docs/91_reviews/llmtier-std-draft16-migration-review.review-decision.json
+docs/98_migration/current-document-inventory.md
+docs/98_migration/evidence/std-validation.json
+tests/test_std_migration.py
+
+[PRE-C0 DIRTY PATHS NOT AUTOMATICALLY AUTHORIZED FOR COMMIT]
+README.md
+rag/std-ingestion-manifest.jsonl
+tests/test_contract_semantics_v03.py
+docs/design/llmtier-v0.3-system-design.md (tracked deletion)
+docs/design/llmtier-v0.3-system-design.metadata.json (tracked deletion)
+docs/management/current-document-inventory.md (tracked deletion)
+docs/management/std-tailoring-v0.1.md (tracked deletion)
+docs/management/std-tailoring-v0.1.metadata.json (tracked deletion)
+
+[IMPORTANT CLEAN-CHECKOUT REPRODUCIBILITY NOTE]
+The current project-root validator sees the five tracked deletions as absent and therefore passes.
+If those pre-C0 deletions are excluded from a commit, a clean checkout of the resulting commit will restore
+the old draft.12/earlier STD-cover documents and may not reproduce the current draft.17 validator result.
+STD pre-commit review must therefore approve an exact self-contained pathspec/sequence or return an amendment.
+No deletion or other pre-C0 dirty path will be staged without that explicit COMMIT_APPROVED scope.
