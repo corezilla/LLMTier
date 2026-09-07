@@ -12,7 +12,7 @@
 | Authors | llmtier |
 | Created Date | `2026-09-07` |
 | Last Modified Date | `2026-09-07` |
-| STD Version | `0.1.0-draft.17` |
+| STD Version | `0.1.0-draft.18` |
 | Template ID | `assurance.vv-plan` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | std-tailoring |
@@ -40,7 +40,7 @@ activation 状态 authority，`tests/` 和 fixtures 是可执行 oracle，运行
 | 基线 | 固定对象 | 当前状态 |
 |---|---|---|
 | 迁移候选 | immutable commit `aa2638283e77bc658e98df8d40396306cad17aa2` | C0/C1 Owner ACCEPTED；consumer review 独立进行 |
-| STD | `94c0262de35b5b989bba9f8d23f212af709c9dbf` / `std-v0.1.0-draft.17` | source verifier 71 artifacts PASS |
+| STD | `9841083c4d8d0ed1556bdc413d77b4567ac696b4` / `std-v0.1.0-draft.18` | source verifier 71 artifacts PASS |
 | 服务设计 | `docs/30_subsystem_design/llmtier-service-design.md` | Draft candidate |
 | 接口说明 | `docs/60_interfaces/` | Draft candidate；OpenAPI 仍为字段 authority |
 | 机器契约 | `docs/contracts/openapi/llmtier-v0.3.openapi.json` | Candidate；runtime 未激活 |

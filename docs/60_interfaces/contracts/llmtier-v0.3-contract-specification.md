@@ -12,7 +12,7 @@
 | Authors | llmtier |
 | Created Date | 2026-09-07 |
 | Last Modified Date | 2026-09-07 |
-| STD Version | 0.1.0-draft.17 |
+| STD Version | 0.1.0-draft.18 |
 | Template ID | contracts.specification |
 | Template Conformance | tailored |
 | Tailoring Reference | std-tailoring |

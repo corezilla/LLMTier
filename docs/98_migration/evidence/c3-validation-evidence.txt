@@ -1,0 +1,38 @@
+LLMTier C3 draft.18 validation evidence
+Execution date: 2026-09-07 Asia/Hong_Kong
+Workdir: /Users/ben/work/LLMTier
+Project HEAD: b2e298aadf981283aa52d4764b201400397d1116
+Branch: main
+STD: 9841083c4d8d0ed1556bdc413d77b4567ac696b4 / std-v0.1.0-draft.18
+
+[L1 SOURCE]
+Command: /Users/ben/work/STD/scripts/verify-source-manifest /Users/ben/work/LLMTier/docs/std-source-manifest.json --std-root /Users/ben/work/STD
+Exit code: 0
+Output: STD source manifest verification OK: 71 artifacts
+Check: .DS_Store entries=[]
+
+[L1 PROJECT ROOT]
+Command: /Users/ben/work/STD/scripts/validate-design --project-root /Users/ben/work/LLMTier --require-immutable-std --json /Users/ben/work/LLMTier/docs/98_migration/evidence/c3-std-validation.json
+Exit code: 0
+Output: ok=true; new_error_count=0; inherited_error_count=0; checked_metadata=14; checked_markdown=14; checked_decisions=4; issues=[]
+
+[L2 PROJECT TESTS]
+Command: PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest discover -s tests
+Exit code: 0
+Output: Ran 44 tests in 0.091s; OK
+
+[PATCH]
+Command: git diff --check
+Exit code: 0
+Output: empty
+
+[L3 RUNTIME / EXTERNAL]
+Result: NOT_RUN/BLOCKED
+Reason: C3 migrates requirements and traceability and rebaselines STD source metadata only. Production routes,
+provider/store, Admin UI, security/isolation, performance and consumer evidence were not run.
+
+[DIRTY PRESERVATION]
+Input/excluded path: rag/std-ingestion-manifest.jsonl
+Excluded RAG binary diff SHA-256: 5ecf097f57ec627f36586218d14e8df036467c8466de59e06adc7553c6073234
+Input untracked set: empty
+No reset/clean. RAG remains excluded and unstaged. No promotion/publication/activation was performed.

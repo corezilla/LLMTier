@@ -1,0 +1,58 @@
+LLMTier C3 Requirements + Traceability READY_FOR_COMMIT scope
+Project HEAD: b2e298aadf981283aa52d4764b201400397d1116
+Branch/remote: main / origin
+STD: 9841083c4d8d0ed1556bdc413d77b4567ac696b4 / std-v0.1.0-draft.18
+
+[C3 NEW REQUIREMENTS]
+docs/10_requirements/llmtier-v0.3-requirements.md
+docs/10_requirements/llmtier-v0.3-requirements.metadata.json
+docs/10_requirements/llmtier-v0.3-traceability.md
+docs/10_requirements/llmtier-v0.3-traceability.metadata.json
+
+[C3 REVIEW]
+docs/91_reviews/llmtier-std-c3-requirements-review.md
+docs/91_reviews/llmtier-std-c3-requirements-review.metadata.json
+docs/91_reviews/llmtier-std-c3-requirements-review.review-decision.json
+
+[DRAFT.18 REBASELINE]
+docs/std.lock.json
+docs/std-source-manifest.json
+docs/00_management/std-tailoring.md
+docs/00_management/std-tailoring.metadata.json
+docs/30_subsystem_design/llmtier-service-design.md
+docs/30_subsystem_design/llmtier-service-design.metadata.json
+docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.md
+docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.metadata.json
+docs/60_interfaces/llmtier-management-control.md
+docs/60_interfaces/llmtier-management-control.metadata.json
+docs/60_interfaces/piko-data-plane-control.md
+docs/60_interfaces/piko-data-plane-control.metadata.json
+docs/60_interfaces/slinky-capacity-observation-control.md
+docs/60_interfaces/slinky-capacity-observation-control.metadata.json
+docs/70_verification/plans/llmtier-v0.3-vv-plan.md
+docs/70_verification/plans/llmtier-v0.3-vv-plan.metadata.json
+docs/70_verification/specifications/llmtier-v0.3-contract-test-specification.md
+docs/70_verification/specifications/llmtier-v0.3-contract-test-specification.metadata.json
+docs/91_reviews/llmtier-std-c1-interface-contract-review.md
+docs/91_reviews/llmtier-std-c1-interface-contract-review.metadata.json
+docs/91_reviews/llmtier-std-c2-assurance-review.md
+docs/91_reviews/llmtier-std-c2-assurance-review.metadata.json
+docs/91_reviews/llmtier-std-draft16-migration-review.md
+docs/91_reviews/llmtier-std-draft16-migration-review.metadata.json
+
+[SHARED MAPPING/TEST]
+docs/98_migration/current-document-inventory.md
+docs/98_migration/llmtier-std-migration-plan.md
+tests/test_std_migration.py
+
+[C3 EVIDENCE]
+docs/98_migration/evidence/c3-candidate-sha256.txt
+docs/98_migration/evidence/c3-ready-for-commit.txt
+docs/98_migration/evidence/c3-std-validation.json
+docs/98_migration/evidence/c3-validation-evidence.txt
+
+[EXCLUDED]
+rag/std-ingestion-manifest.jsonl
+
+Approved scope requested: exactly the 38 paths above outside [EXCLUDED]. No staging/commit/push yet.
+No reset/clean, Document Status upgrade, canonical promotion, project RAG publication or Runtime Activation.

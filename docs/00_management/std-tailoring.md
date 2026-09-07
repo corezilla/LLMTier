@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `std-tailoring` |
-| Document Version | `0.1.0-draft.4` |
+| Document Version | `0.1.0-draft.5` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -12,7 +12,7 @@
 | Authors | llmtier |
 | Created Date | `2026-09-07` |
 | Last Modified Date | `2026-09-07` |
-| STD Version | `0.1.0-draft.17` |
+| STD Version | `0.1.0-draft.18` |
 | Template ID | `management.tailoring` |
 | Template Conformance | `native` |
 | Tailoring Reference | none |
@@ -33,9 +33,9 @@
 - Repository model：单应用、单服务或单库；根目录使用 `src/`、`tests/`、`docs/`
 - 设计层级：`subsystem`，表示 LLMTier 在跨项目链路中的服务层级；不表示本仓库拥有跨项目系统
 - 安全或业务关键性：模型服务控制面和数据面；涉及 credential、跨 Client 隔离、容量与恢复
-- STD 来源：`0.1.0-draft.17`，锁定 commit
-  `94c0262de35b5b989bba9f8d23f212af709c9dbf` 与 annotated tag
-  `std-v0.1.0-draft.17`
+- STD 来源：`0.1.0-draft.18`，锁定 commit
+  `9841083c4d8d0ed1556bdc413d77b4567ac696b4` 与 annotated tag
+  `std-v0.1.0-draft.18`
 - 本轮范围：纠正首轮 `design.system` 误分类并迁移 V0.3 单服务设计；不改变 Scope B 或机器契约
 
 ## 2. 启用模板
@@ -44,10 +44,12 @@
 |---|---|---|---|---|
 | `management.tailoring` | management | 是 | `docs/00_management/std-tailoring.md` | LLMTier |
 | `design.definition` | software | 是 | `docs/30_subsystem_design/llmtier-service-design.md` | LLMTier |
+| `requirements.specification` | software | 是，C3 active | `docs/10_requirements/llmtier-v0.3-requirements.md` | LLMTier；外部需求 authority 不迁入 |
+| `requirements.traceability` | software | 是，C3 active | `docs/10_requirements/llmtier-v0.3-traceability.md` | LLMTier |
 | `interfaces.control` | software | 是，C1 active | Data Plane、Observation、Management interface migration | LLMTier；消费边界由 Piko/Slinky reviewer 复核 |
 | `contracts.specification` | software | 是，C1 active | OpenAPI/manifest/error/schema 说明层；机器文件原位保留 | LLMTier |
-| `assurance.vv-plan` | software | 是，后续批次 | V0.3 activation-gate V&V plan | LLMTier |
-| `assurance.test-specification` | software | 是，后续批次 | Contract/SDK/recovery/isolation tests | LLMTier |
+| `assurance.vv-plan` | software | 是，C2 candidate | V0.3 activation-gate V&V plan | LLMTier |
+| `assurance.test-specification` | software | 是，C2 candidate | Contract/SDK/recovery/isolation tests | LLMTier |
 | `review.packet` | management/software | 是，本批 | STD migration review packet；不请求 V0.3 activation | LLMTier owner；项目授权 reviewer 待指定 |
 | `decisions.adr` | software | 条件必需 | persistence/HA/deployment 等新重大决定 | LLMTier |
 | `operations.release` | operations/software | production 前必需 | deployment、backup、rollback、retirement | LLMTier |
@@ -59,7 +61,7 @@
 | LT-TL-001 | `design.definition` 全部 14 节 | keep | 单服务的 boundary、runtime、recovery、capacity、security、implementation mapping、verification 和 gate 均适用 | 无 | 待项目 review | N/A |
 | LT-TL-002 | `design.definition` deployment/physical detail | simplify | topology、DB、HA、RPO/RTO 尚未冻结，只记录逻辑部署与 Open Gate | 选型不足阻塞 retention/recovery | 待项目 review | 选型时新增 ADR |
 | LT-TL-003 | `design.system` | omit | LLMTier 是单一独立服务；跨项目 system authority 不属于本仓库，不能由 LLMTier 服务设计冒充 | 外部上下文可能被误写为本仓库 ownership | 待项目 review | 若未来指定跨项目 system owner，再由该 owner 建立 |
-| LT-TL-004 | `requirements.specification` | omit 本轮 | 本轮只做服务设计迁移，并保留 Requirement/Review/Contract 的精确来源映射；Slinky 仅拥有消费需求和跨项目 Scope 决策，LLMTier 拥有本服务需求 | 需求检索仍跨文档 | LLMTier owner；待 review | 下一批决定 requirements 实例 |
+| LT-TL-004 | `requirements.specification` + `requirements.traceability` | keep，C3 active | 独立 shall statements 与矩阵能分离 LLMTier 自有需求、外部输入、静态 evidence 和 runtime gap | 若复制外部需求会越权；由引用和 reviewer boundary 控制 | LLMTier owner 已决定启用；文档仍待 review | N/A |
 | LT-TL-005 | `design.hardware`/`design.fpga` | omit | 本项目无硬件/FPGA ownership；Provider/Local Deployment 是外部资源 | 无 | 待项目 review | N/A |
 | LT-TL-006 | `interfaces.control` | keep，C1 active | 三个 API 分面需保持独立 authority 与演进规则 | promotion 前旧 Markdown 仍为说明 authority | 待项目 review | N/A |
 | LT-TL-007 | `contracts.specification` | keep，C1 active | OpenAPI、manifest、fixtures 保持机器可执行 authority | 不得转写出第二契约 | 待项目 review | N/A |
@@ -67,7 +69,7 @@
 | LT-TL-009 | `management.project-plan` | omit | 排期/资源管理不在本轮设计迁移范围，现无稳定计划基线 | 实施顺序不等于项目计划 | 待项目 review | N/A |
 | LT-TL-010 | `decisions.adr` | simplify/按需 | 已有决定保留原 Matrix Review ID，不伪造 retrospective ADR | 决策分散 | 待项目 review | 新决定必须用 ADR |
 | LT-TL-011 | 原设计与 v0.1/v0.2 历史材料 | keep | review 前不删除；inventory 标明 current/historical/superseded | 误检索历史语义 | 待项目 review | review 后归档建议 |
-| LT-TL-012 | STD 来源清单 / 项目 RAG ingestion | keep source manifest；omit ingestion 到 canonical promotion 后 | source manifest 记录 draft.17 的 71 个规范、模板、Schema 和工具 SHA-256；不把 review candidate 写入项目 RAG | 来源可校验，候选暂不可由项目 RAG 检索 | 待项目 review | N/A |
+| LT-TL-012 | STD 来源清单 / 项目 RAG ingestion | keep source manifest；omit ingestion 到 canonical promotion 后 | source manifest 记录 draft.18 的 71 个规范、模板、Schema 和工具 SHA-256；不把 review candidate 写入项目 RAG | 来源可校验，候选暂不可由项目 RAG 检索 | 待项目 review | N/A |
 | LT-TL-013 | 多服务目录 `apps/`、`services/`、`packages/` | omit | 当前只有一个部署边界、一个服务 owner，根目录 `src/tests/docs` 已满足 STD | 过早分层会制造虚假 subsystem 与平行路径 | 用户已确认单服务 | ownership/deploy boundary 改变时重新 tailoring |
 
 ## 4. 禁止裁剪项
@@ -90,7 +92,7 @@
 ## 5. Review 与生效
 
 本文件与迁移后的 service design 当前状态保持为 `review`，没有发生 Document Status 升级。
-`docs/std.lock.json` 锁定 STD draft.17 的完整 commit SHA 与 annotated tag，
+`docs/std.lock.json` 锁定 STD draft.18 的完整 commit SHA 与 annotated tag，
 `docs/std-source-manifest.json` 保存 71 个来源 artifact 的 SHA-256。来源记录不等于项目 RAG
 ingestion，候选不得标记 accepted/released；本轮 review verdict 也不授权 runtime activation。
 

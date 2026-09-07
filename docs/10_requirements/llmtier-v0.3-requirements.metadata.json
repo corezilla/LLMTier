@@ -1,0 +1,13 @@
+{
+  "project": "LLMTier", "authority": "LLMTier",
+  "document_id": "llmtier-v0.3-requirements", "document_type": "requirements.specification",
+  "document_version": "0.3.0-draft.1", "title": "LLMTier V0.3 Requirements Specification（迁移候选）",
+  "document_owner": "LLMTier", "authors": ["llmtier"], "source_repository": "corezilla/LLMTier",
+  "source_path": "docs/10_requirements/llmtier-v0.3-requirements.md", "std_version": "0.1.0-draft.18",
+  "template_id": "requirements.specification", "template_version": "0.1.0-draft.18",
+  "template_sha256": "8b90c3ad7b84663ba1941b993bdb14f37a63d5c57b1e80f64e01735ba38631f6",
+  "template_conformance": "tailored", "tailoring_ref": "std-tailoring", "migration_map_ref": null,
+  "design_level": "subsystem", "domain": ["software"], "status": "draft", "visibility": "project",
+  "reviewed_commit": null, "parent_document_id": "llmtier-service-design", "supersedes": null,
+  "created_at": "2026-09-07", "last_modified_at": "2026-09-07"
+}

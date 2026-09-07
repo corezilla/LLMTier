@@ -12,7 +12,7 @@
 | Authors | llmtier |
 | Created Date | `2026-09-06` |
 | Last Modified Date | `2026-09-07` |
-| STD Version | `0.1.0-draft.17` |
+| STD Version | `0.1.0-draft.18` |
 | Template ID | `design.definition` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
@@ -276,7 +276,7 @@ LLMTier 是单服务软件仓库，采用 STD 单应用/单服务布局：
 | `docs/30_subsystem_design/` | `design.definition` 的 canonical service/subsystem design |
 | `docs/00_management/` | tailoring 与 adoption 管理文档 |
 | `docs/98_migration/` | 迁移 inventory 与映射证据 |
-| `docs/std-source-manifest.json` | 锁定 STD draft.17 的 71 个来源 artifact；不是项目 RAG ingestion |
+| `docs/std-source-manifest.json` | 锁定 STD draft.18 的 71 个来源 artifact；不是项目 RAG ingestion |
 | `rag/` | legacy draft.12 STD source list；本轮不修改、不执行项目文档 ingestion |
 
 本次不新建 `software/llmtier/`、`services/llmtier/` 或多应用 workspace，因为仓库当前只有一个服务
@@ -345,6 +345,6 @@ production implementation、runtime activation 或 SLO。Review→Contract→fix
 - [x] Current Baseline、Approved Delta、Future/Open Gate 分离；
 - [x] authority、接口、状态、recovery、capacity、安全、verification 与 traceability 未裁掉；
 - [x] 原始设计保留，未伪造 production implementation 或 activation；
-- [x] STD draft.16 与本项目迁移结构已获 READY 协调共识；draft.17 只升级 validator discovery/read robustness，未改变本文业务内容；
+- [x] STD draft.16 与本项目迁移结构已获 READY 协调共识；draft.17/draft.18 只升级 validator discovery/read/source robustness，未改变本文业务内容；
 - [ ] LLMTier owner 批准 canonical 替换；
 - [ ] production activation gates 全部关闭。

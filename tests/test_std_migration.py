@@ -15,11 +15,11 @@ class StdMigrationTests(unittest.TestCase):
         cls.manifest = json.loads(cls.manifest_path.read_text(encoding="utf-8"))
         cls.sources = cls.manifest["artifacts"]
 
-    def test_draft17_lock_resolves_to_immutable_source_manifest(self):
+    def test_draft18_lock_resolves_to_immutable_source_manifest(self):
         self.assertEqual("std-lock.v1", self.lock["schema_version"])
-        self.assertEqual("0.1.0-draft.17", self.lock["std_version"])
-        self.assertEqual("94c0262de35b5b989bba9f8d23f212af709c9dbf", self.lock["source_revision"])
-        self.assertEqual("std-v0.1.0-draft.17", self.lock["source_tag"])
+        self.assertEqual("0.1.0-draft.18", self.lock["std_version"])
+        self.assertEqual("9841083c4d8d0ed1556bdc413d77b4567ac696b4", self.lock["source_revision"])
+        self.assertEqual("std-v0.1.0-draft.18", self.lock["source_tag"])
         self.assertTrue(self.manifest_path.is_file())
         self.assertEqual("software", self.lock["project_profile"])
         self.assertEqual(["management", "software"], self.lock["enabled_domains"])
@@ -43,7 +43,7 @@ class StdMigrationTests(unittest.TestCase):
         for metadata_path, source_path in expected.items():
             metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
             self.assertEqual("review", metadata["status"])
-            self.assertEqual("0.1.0-draft.17", metadata["std_version"])
+            self.assertEqual("0.1.0-draft.18", metadata["std_version"])
             self.assertIsNone(metadata["reviewed_commit"])
             self.assertEqual(source_hashes[source_path], metadata["template_sha256"])
 
@@ -158,6 +158,38 @@ class StdMigrationTests(unittest.TestCase):
         self.assertIn("CT-REC-002", spec_text)
         self.assertIn("tests/test_contract_semantics_v03.py", spec_text)
         self.assertIn("现有测试源码\n与 fixtures 仍是 executable oracle authority", spec_text)
+
+    def test_c3_requirements_and_traceability_keep_project_authority_and_honest_status(self):
+        root = ROOT / "docs" / "10_requirements"
+        candidates = {
+            root / "llmtier-v0.3-requirements.md": "requirements.specification",
+            root / "llmtier-v0.3-traceability.md": "requirements.traceability",
+        }
+        template_paths = {
+            "requirements.specification": "templates/requirements/requirements-specification.md",
+            "requirements.traceability": "templates/requirements/traceability-matrix.md",
+        }
+        source_hashes = {item["path"]: item["sha256"] for item in self.sources}
+        for path, template_id in candidates.items():
+            text = path.read_text(encoding="utf-8")
+            metadata = json.loads(path.with_suffix(".metadata.json").read_text(encoding="utf-8"))
+            self.assertEqual(template_id, metadata["document_type"])
+            self.assertEqual(source_hashes[template_paths[template_id]], metadata["template_sha256"])
+            self.assertEqual("tailored", metadata["template_conformance"])
+            self.assertEqual("std-tailoring", metadata["tailoring_ref"])
+            self.assertEqual("draft", metadata["status"])
+            self.assertIsNone(metadata["reviewed_commit"])
+            self.assertNotIn("<!-- TODO -->", text)
+
+        requirements = (root / "llmtier-v0.3-requirements.md").read_text(encoding="utf-8")
+        self.assertIn("LT-FUN-001", requirements)
+        self.assertIn("Piko 的 Agent Runtime/adapter 需求仅作为", requirements)
+        self.assertIn("Runtime Activation", requirements)
+
+        traceability = (root / "llmtier-v0.3-traceability.md").read_text(encoding="utf-8")
+        self.assertIn("blocked-runtime", traceability)
+        self.assertIn("open-decision/not-run", traceability)
+        self.assertIn("不迁入本仓库", traceability)
 
 
 if __name__ == "__main__":

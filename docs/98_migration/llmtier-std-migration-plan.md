@@ -1,12 +1,12 @@
-# LLMTier STD draft.17 分阶段迁移计划
+# LLMTier STD draft.18 分阶段迁移计划
 
 计划状态：ACTIVE
 计划日期：2026-09-07
 项目根：/Users/ben/work/LLMTier
 项目输入 HEAD：8dc6a54c92608ab6373f40c78cc954da7086f30e
 本轮输入 dirty snapshot digest：dfe350dded17c0173f61acb52cba065c1ed307ccf23e7d68710f1861f9c3616c
-STD revision：94c0262de35b5b989bba9f8d23f212af709c9dbf
-STD tag：std-v0.1.0-draft.17
+STD revision：9841083c4d8d0ed1556bdc413d77b4567ac696b4
+STD tag：std-v0.1.0-draft.18
 
 ## 1. 采用范围与不变边界
 
@@ -27,10 +27,10 @@ STD tag：std-v0.1.0-draft.17
 
 | Cohort | 状态 | 交付范围 | 启动依赖 | 首要 Owner Gate |
 |---|---|---|---|---|
-| C0 Foundation | immutable candidate / Owner ACCEPTED | inventory、tailoring、lock/source manifest、单服务 design、review packet | draft.17 immutable STD | consumer-independent final decision update |
+| C0 Foundation | immutable candidate / Owner ACCEPTED | inventory、tailoring、lock/source manifest、单服务 design、review packet | draft.18 immutable STD | consumer-independent final decision update |
 | C1 Interface + Contract | immutable candidate / Owner ACCEPTED | 三个 v0.3 interface candidate、一个 contract specification、mapping、review packet | C0 结构通过 | Piko/Slinky consumer reviews；终局 decision update |
-| C2 Assurance | READY_FOR_COMMIT | V&V plan、contract test specification、evidence boundary、review packet | immutable C1 mapping；Owner ACCEPTED | STD pre-commit Gate；runtime evidence 如实 NOT_RUN/BLOCKED |
-| C3 Requirements + Traceability | ENABLED / PLANNED | 独立 requirements specification 与 traceability matrix | Owner 已决定启用；C2 traceability mapping 稳定 | LLMTier owner；不得复制 Slinky/Piko requirements authority |
+| C2 Assurance | immutable candidate / pushed | V&V plan、contract test specification、evidence boundary、review packet | immutable C1 mapping；Owner ACCEPTED | final review/decision 与 promotion 独立 |
+| C3 Requirements + Traceability | READY_FOR_COMMIT | 独立 requirements specification 与 traceability matrix；全项目 candidate rebaseline 到 draft.18 | Owner 已决定启用；C2 commit `b2e298a` | STD pre-commit Gate；不得复制 Slinky/Piko requirements authority |
 | C4 Decisions + Operations | DEFERRED | persistence/HA/RPO/RTO ADR、deployment/release/operations 文档 | 对应设计决定与实现证据存在 | LLMTier architecture/operations owner |
 | C5 Canonical Promotion | BLOCKED | scope-level authority 切换、索引与旧文档状态 | 各 cohort ACCEPTED、文档批准、immutable project commit | LLMTier canonical authority |
 | C6 Publication / Runtime | BLOCKED | 项目 RAG manifest/索引；独立 runtime activation packet | C5 publication commit；production L3 evidence | publication owner；独立 runtime authority |
@@ -47,7 +47,7 @@ ACCEPTED，Piko/Slinky consumer-boundary review 与终局 decision 更新仍独�
 | 项目现状、旧候选和文档集合 | docs/98_migration/current-document-inventory.md | 原路径在 promotion 前保持各自现有状态 |
 | 项目采用决定 | docs/00_management/std-tailoring.md / management.tailoring | 旧 tailoring deletion 是输入 dirty state，不视为 promotion |
 | docs/design/llmtier-v0.3-design-review.md 的服务设计 scope | docs/30_subsystem_design/llmtier-service-design.md / design.definition | 旧设计继续负责 review 结论、跨项目输入与未迁出 scope |
-| STD draft.17 | docs/std.lock.json + docs/std-source-manifest.json | STD 只管理模板与规则，不取得项目业务 authority |
+| STD draft.18 | docs/std.lock.json + docs/std-source-manifest.json | STD 只管理模板与规则，不取得项目业务 authority |
 | C0 变更和验证 | docs/91_reviews/llmtier-std-draft16-migration-review.md / review.packet | decision 保持 PENDING |
 
 完成标准：source verifier 71 artifacts、project-root validator 0 issue、项目 41 tests PASS；L3
@@ -70,7 +70,7 @@ Supersedes=none。v0.1/v0.2 继续作为 historical/provenance，不在本 cohor
 
 ### 4.2 依赖、验证与完成标准
 
-- 依赖：C0 draft.17 source lock/manifest；当前均已通过，无安全启动 blocker。
+- 依赖：C0 draft.18 source lock/manifest；当前均已通过，无安全启动 blocker。
 - L1：source verifier；project-root validator；cover/sidecar/conformance/path/link/ID 检查。
 - L2：现有 41 项 unittest/contract semantics；新增旧→新关键语义一致性断言；OpenAPI、manifest、
   fixtures 的 JSON/schema/semantic tests。

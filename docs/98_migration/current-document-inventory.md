@@ -26,8 +26,8 @@ SHA-256 `dea984371cb7e552dcf8bb338bd48c35541dac035d496b16122f5315f7ed0471`，组
 
 | 路径 | 类型 | 状态 | 处置 |
 |---|---|---|---|
-| `docs/std.lock.json` | STD adoption lock | draft.17 immutable lock | 固定完整 commit SHA、annotated source tag、software profile 与 management/software domains |
-| `docs/std-source-manifest.json` | STD 来源清单 | source evidence；非项目 ingestion | 保存 71 个 draft.17 规范/模板/Schema/工具 SHA-256 |
+| `docs/std.lock.json` | STD adoption lock | draft.18 immutable lock | 固定完整 commit SHA、annotated source tag、software profile 与 management/software domains |
+| `docs/std-source-manifest.json` | STD 来源清单 | source evidence；非项目 ingestion | 保存 71 个 draft.18 规范/模板/Schema/工具 SHA-256 |
 | `docs/00_management/std-tailoring.md` + metadata | `management.tailoring` | review candidate | 冻结单服务 profile 与裁剪理由 |
 | `docs/30_subsystem_design/llmtier-service-design.md` + metadata | `design.definition` / subsystem | review candidate | 本轮主交付，承接原设计且不改业务契约 |
 | `docs/98_migration/current-document-inventory.md` | migration inventory | review evidence | 当前文件；记录旧→新映射 |
@@ -41,8 +41,11 @@ SHA-256 `dea984371cb7e552dcf8bb338bd48c35541dac035d496b16122f5315f7ed0471`，组
 | `docs/70_verification/plans/llmtier-v0.3-vv-plan.md` + metadata | `assurance.vv-plan` | C2 draft candidate | 迁移 V0.3 strategy/Gate；区分 static 与 production evidence |
 | `docs/70_verification/specifications/llmtier-v0.3-contract-test-specification.md` + metadata | `assurance.test-specification` | C2 draft candidate | 映射 case/fixture/oracle；tests/fixtures 仍为可执行 authority |
 | `docs/91_reviews/llmtier-std-c2-assurance-review.md` + metadata/decision | `review.packet` | C2 PENDING | 固定 C2 mapping、三层验证和 residual evidence boundary |
+| `docs/10_requirements/llmtier-v0.3-requirements.md` + metadata | `requirements.specification` | C3 draft candidate | 只承接 LLMTier 自有 shall statements；外部需求仅引用 |
+| `docs/10_requirements/llmtier-v0.3-traceability.md` + metadata | `requirements.traceability` | C3 draft candidate | 连接 requirement、design/contract、case 与实际 evidence 状态 |
+| `docs/91_reviews/llmtier-std-c3-requirements-review.md` + metadata/decision | `review.packet` | C3 PENDING | 固定 C3 authority、coverage 与三层验证 |
 | `docs/design/llmtier-v0.3-design-review.md` | 原始 V0.3 设计 | retained current residual-scope authority | 在 scope-level canonical promotion 前不删除、不整体 Supersede |
-| `rag/std-ingestion-manifest.jsonl` | legacy draft.12 STD source list | 既有 dirty 文件；非 draft.17 source manifest、非项目 ingestion | 本轮不修改、不装载；后续 promotion packet 决定 historical/exclusion |
+| `rag/std-ingestion-manifest.jsonl` | legacy draft.12 STD source list | 既有 dirty 文件；非 draft.18 source manifest、非项目 ingestion | 本轮不修改、不装载；后续 promotion packet 决定 historical/exclusion |
 
 错误候选 `docs/design/llmtier-v0.3-system-design.md` 与旧 tailoring 路径在 READY 输入工作树中已经
 处于 tracked deletion。本轮只记录这一事实，不恢复、不覆盖，也不将 deletion 视为已批准的 authority
@@ -86,7 +89,7 @@ SHA-256 `dea984371cb7e552dcf8bb338bd48c35541dac035d496b16122f5315f7ed0471`，组
 2. `docs/00_management/`、`docs/30_subsystem_design/`、`docs/91_reviews/` 和
    `docs/98_migration/` 是本批候选位置；在 canonical promotion 前不得称为已切换的项目 authority。
    原 Contract/QA/Provenance 的批量搬迁留待后续评审，避免无关路径 churn。
-3. `docs/std-source-manifest.json` 是 draft.17 source lock；既有
+3. `docs/std-source-manifest.json` 是 draft.18 source lock；既有
    `rag/std-ingestion-manifest.jsonl` 仍是 legacy draft.12 记录。当前不生成
    `rag/project-ingestion-manifest.jsonl`，不把候选实例加入项目 RAG；只有 canonical promotion
    后才确定 inclusion/exclusion 和 publication commit。
