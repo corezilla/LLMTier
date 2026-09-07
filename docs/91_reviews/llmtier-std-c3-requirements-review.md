@@ -29,20 +29,21 @@
 
 | Gate | 请求/结果 |
 |---|---|
-| Review Verdict | PENDING |
+| Review Verdict | ACCEPTED |
 | Document Status before review | Draft |
-| Requested Document Status after review | unchanged |
+| Requested Document Status after review | accepted |
 | Runtime Activation requested | false |
 | Runtime Activation authority | N/A |
 
-请求审查 C3 requirements/traceability 的来源、authority、coverage status 和 residual scope。本 packet 不请求
-Document Status 升级、canonical promotion、RAG publication、外部发布或 Runtime Activation。
+C3 requirements/traceability 的来源、authority、coverage status 和 residual scope 已由 LLMTier Owner
+终局接受。Document Status 仅在独立 promotion Gate 中切换；本 packet 不请求 RAG publication、外部发布或 Runtime Activation。
 
 ## 2. Scope、authority 与 reviewers
 
 - 新增 requirements specification、traceability matrix 及 sidecar；更新 tailoring、inventory、plan 与测试。
 - LLMTier 只提取本服务 shall statements；Piko/Slinky inputs 仅引用，不复制其 Runtime/Project/Plan/IR authority。
-- OpenAPI/manifest/tests/fixtures 继续为机器/可执行 authority；原设计、contract、QA 在 promotion 前保留 residual scope。
+- OpenAPI/manifest/tests/fixtures 继续为机器/可执行 authority；原设计、contract、QA 的 current scope 已逐项
+  映射，本次 promotion 后仅保留 historical provenance。
 - LLMTier owner 审核需求归属和 completeness；consumer-boundary review 仍独立。
 
 ## 3. 冻结基线
@@ -95,9 +96,9 @@ blocked-runtime/not-run/open-decision。
 - [x] static/runtime evidence 状态未混淆
 - [x] 未发生静默 fallback 或兼容性扩张
 - [x] 三层验证固化
-- [ ] STD pre-commit Gate 返回 COMMIT_APPROVED
+- [x] STD pre-commit Gate 返回 COMMIT_APPROVED
 
 ## 9. 决定、条件与签署
 
-机器 decision 位于 `docs/91_reviews/llmtier-std-c3-requirements-review.review-decision.json`，当前 PENDING。
-终局 verdict 与 Document Status、promotion、RAG publication、Runtime Activation 分开。
+机器 decision 位于 `docs/91_reviews/llmtier-std-c3-requirements-review.review-decision.json`，当前为
+`ACCEPTED`。终局 verdict 与 Document Status、promotion、RAG publication、Runtime Activation 分开。

@@ -31,12 +31,12 @@
 |---|---|
 | Review Verdict | PENDING |
 | Document Status before review | Draft / In Review，逐文档见 readiness inventory |
-| Requested Document Status after review | Approved，限 11 份实质 STD 文档；review records 单独终局化 |
+| Requested Document Status after review | Approved，限 11 份实质 STD 文档；C0-C4 review records 单独终局化 |
 | Runtime Activation requested | false |
 | Runtime Activation authority | N/A |
 
 请求 review `docs/98_migration/canonical-promotion-readiness.md` 中的完整迁移覆盖、authority、旧文档
-residual ledger 和拟 promotion 原子变更。本 packet 本身不执行 promotion、状态升级或 RAG publication。
+residual ledger 和当前原子 promotion candidate。该 candidate 尚未提交；RAG publication 仍不在本 scope。
 
 ## 2. Scope、authority 与 reviewers
 
@@ -49,31 +49,28 @@ residual ledger 和拟 promotion 原子变更。本 packet 本身不执行 promo
 
 ## 3. 冻结基线
 
-- Project commit：`962e8003712738d2cb4e3a0a38173a9fd2bdd0a1`；branch `main`；与 `origin/main` 一致。
+- Project input commit：`e1f9b796368ec5f358e466c7e6299cc16b1bf181`；branch `main`；与 `origin/main` 一致。
 - C0+C1/C2/C3/C4 commits：`aa2638283e77bc658e98df8d40396306cad17aa2`、
   `b2e298aadf981283aa52d4764b201400397d1116`、`13b5d02266624b6b662349f0b88de23696c823bb`、
   `962e8003712738d2cb4e3a0a38173a9fd2bdd0a1`。
-- `962e800...` 是 C5 启动时的 integrated input，不是尚未提交的 Slinky/C1 draft.2 内容的
-  `decision_commit` 或 `reviewed_commit`。C1 终局 decision、Slinky control 和 revised C1 packet 必须引用
-  即将冻结且经 Slinky ACCEPTED 的 clarification snapshot。
+- `962e800...` 是 C0/C2/C3/C4 的 integrated Owner review input；C1 终局 decision 与 Slinky control
+  使用已冻结且经 Slinky ACCEPTED 的 clarification snapshot `e1f9b796...`。
 - STD：`9841083c4d8d0ed1556bdc413d77b4567ac696b4` / `std-v0.1.0-draft.18`；71 source artifacts。
 - 唯一既有 dirty：`rag/std-ingestion-manifest.jsonl`；保持未暂存、未覆盖、未纳入本 packet。
 
 ## 4. 变更摘要与设计理由
 
-C5 不新增业务内容，而是证明 C0-C4 已覆盖约定的 management+software cohort，并提出一个原子的 authority
-切换计划：批准当前 11 份实质文档、终局化五份 review decision、更新 README 索引、整体 Supersede 已完全
+C5 不新增业务内容，而是证明 C0-C4 已覆盖约定的 management+software cohort，并构造一个原子的 authority
+切换 candidate：批准当前 11 份实质文档、终局化五份 review decision、更新 README 索引、整体 Supersede 已完全
 映射的旧 V0.3 prose。历史、future、provenance、机器契约和测试仍按各自 authority 原位保留。
 
-逐章节证据位于 `docs/98_migration/legacy-v03-scope-mapping.md`。LLMTier Owner 对 C0/C2/C3/C4 为 ACCEPTED，
-C1 为 Owner ACCEPTED 但 consumer conditions PENDING；证据位于
-`docs/98_migration/evidence/c5-owner-verdicts.txt`。Piko 已以 `P-20260907-e009921eda0a` 重述 ACCEPTED；
-Slinky 以 `S-20260907-8866534be612` 返回 `SLK-BOUNDARY-001`。完整 commit/blob/hash 与结论见
-`docs/98_migration/evidence/c5-consumer-verdicts.txt`。在 draft.2 冻结并获 Slinky ACCEPTED 前不生成 promotion diff。
+逐章节证据位于 `docs/98_migration/legacy-v03-scope-mapping.md`。LLMTier Owner 对 C0-C4 均为 ACCEPTED；
+证据位于 `docs/98_migration/evidence/c5-owner-verdicts.txt`。Piko 以 `P-20260907-e009921eda0a`
+返回 ACCEPTED；Slinky 以 `S-20260907-45938693e578` 接受 exact draft.2 input 并关闭
+`SLK-BOUNDARY-001`。完整 commit/blob/hash 与结论见 `c5-consumer-verdicts.txt`。
 
-Commit binding 规则见 `c5-owner-verdicts.txt`：每个 terminal decision 和 `reviewed_commit` 必须指向实际包含
-被批准字节的 immutable commit；不得用早于相应内容的 commit。C0/C2/C3/C4 可使用内容确实存在的
-`962e800...`，C1 必须等待 clarification snapshot。
+Commit binding 规则见 `c5-owner-verdicts.txt`：每个 terminal decision 和 `reviewed_commit` 指向实际包含
+被批准字节的 immutable commit。C0/C2/C3/C4 使用 `962e800...`，C1/Slinky control 使用 `e1f9b796...`。
 
 ## 5. Requirement、Design、Contract、Test 对齐
 
@@ -85,20 +82,21 @@ Commit binding 规则见 `c5-owner-verdicts.txt`：每个 terminal decision 和 
 
 - 主要风险：旧 prose 与新 canonical 文档同时被当作 current；通过同一 promotion diff 的 status、successor
   links、README index 和后续 RAG exclusion 消除。
-- 当前依赖：冻结 Slinky draft.2 clarification 并获得可审计 ACCEPTED；不是用户新增决策。
+- 当前依赖：none；只等待 STD pre-commit Gate，不需要用户新增决定。
 - 不阻塞文档 promotion：production topology/persistence/HA/RPO/RTO/SLO 尚未决定，因为候选明确保持 Open
   Gate；这些事项继续阻塞 production runbook 和 Runtime Activation。
 
 ## 7. 验证命令与结果
 
-原始结果记录在 `docs/98_migration/evidence/c5-validation-evidence.txt`；validator JSON 位于
-`docs/98_migration/evidence/c5-std-validation.json`。
+原始结果记录在 `docs/98_migration/evidence/c5-promotion-validation-evidence.txt`；validator JSON 位于
+`docs/98_migration/evidence/c5-promotion-std-validation.json`。
 
 - STD source verifier：exit 0；71 artifacts。
 - project-root validator：exit 0；17 metadata / 17 Markdown / 6 decisions，0 issue。
-- project tests：exit 0；46 tests PASS。
+- project tests：exit 0；47 tests PASS，包含 Approved metadata、terminal decisions、legacy forward links、
+  canonical index 和唯一 Document ID/source path 检查。
 - `git diff --check`：exit 0。
-- Runtime/external：NOT_RUN/BLOCKED；本 Gate 不请求 activation。
+- Runtime/external：NOT_RUN/BLOCKED；`overall.runtime_activation=false`，本 Gate 不请求 activation。
 
 ## 8. Review Checklist
 
@@ -110,7 +108,7 @@ Commit binding 规则见 `c5-owner-verdicts.txt`：每个 terminal decision 和 
 - [x] README、Document Status、decision 与后续 RAG publication 的顺序明确
 - [x] Runtime Activation 保持独立
 - [x] readiness packet 三层验证已记录
-- [ ] Piko/Slinky consumer verdict 均可审计且为 ACCEPTED
+- [x] Piko/Slinky consumer verdict 均可审计且为 ACCEPTED
 - [ ] STD 返回 promotion candidate Gate 结论
 
 ## 9. 决定、条件与签署

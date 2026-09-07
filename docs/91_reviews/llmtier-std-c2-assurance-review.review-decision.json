@@ -2,18 +2,18 @@
   "schema_version": "std-review-decision.v1",
   "review_id": "llmtier-std-c2-assurance-review-decision",
   "packet_id": "llmtier-std-c2-assurance-review",
-  "verdict": "PENDING",
+  "verdict": "ACCEPTED",
   "document_status_before": "draft",
-  "requested_document_status_after": "unchanged",
+  "requested_document_status_after": "accepted",
   "runtime_activation_requested": false,
   "runtime_activation_authority": null,
-  "reviewers": [],
-  "decided_at": null,
-  "decision_commit": null,
+  "reviewers": ["llmtier"],
+  "decided_at": "2026-09-07T20:32:00+08:00",
+  "decision_commit": "962e8003712738d2cb4e3a0a38173a9fd2bdd0a1",
   "conditions": [
-    "Pass STD pre-commit review and freeze an immutable C2 candidate commit.",
-    "Keep runtime and external evidence gaps explicitly NOT_RUN or BLOCKED.",
-    "Keep Document Status, canonical promotion, RAG publication, and Runtime Activation behind separate gates."
+    "Runtime and external evidence gaps remain explicitly NOT_RUN or BLOCKED.",
+    "Executable tests and fixtures remain the oracle authority.",
+    "RAG publication and Runtime Activation remain separate gates."
   ],
-  "rationale": "C2 assurance migration candidate is being prepared; no final project review decision has been made."
+  "rationale": "LLMTier Owner accepts the C2 V&V plan and test specification because they preserve executable tests and fixtures as authority and keep local static PASS separate from production and runtime evidence gaps."
 }

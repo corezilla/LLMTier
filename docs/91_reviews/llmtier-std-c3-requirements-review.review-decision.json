@@ -1,13 +1,12 @@
 {
   "schema_version": "std-review-decision.v1", "review_id": "llmtier-std-c3-requirements-review-decision",
-  "packet_id": "llmtier-std-c3-requirements-review", "verdict": "PENDING",
-  "document_status_before": "draft", "requested_document_status_after": "unchanged",
+  "packet_id": "llmtier-std-c3-requirements-review", "verdict": "ACCEPTED",
+  "document_status_before": "draft", "requested_document_status_after": "accepted",
   "runtime_activation_requested": false, "runtime_activation_authority": null,
-  "reviewers": [], "decided_at": null, "decision_commit": null,
+  "reviewers": ["llmtier"], "decided_at": "2026-09-07T20:32:00+08:00", "decision_commit": "962e8003712738d2cb4e3a0a38173a9fd2bdd0a1",
   "conditions": [
-    "Pass STD pre-commit review and freeze an immutable C3 candidate commit.",
     "Keep external Piko and Slinky requirements as referenced inputs, not LLMTier authority.",
     "Keep runtime evidence gaps and Runtime Activation behind independent gates."
   ],
-  "rationale": "C3 requirements and traceability migration candidate is being prepared; no final decision has been made."
+  "rationale": "LLMTier Owner accepts the C3 requirements and traceability because they state only LLMTier-owned obligations, preserve Piko and Slinky authority, and report blocked runtime evidence without converting it to PASS."
 }

@@ -1,8 +1,14 @@
 # LLMTier 面向 Slinky 的 Capacity/Observation 契约提案 v0.3
 
+> **Document Status: Superseded（2026-09-07）** 当前人工可读 consumer-boundary authority 已迁至
+> [`llmtier-slinky-capacity-observation-control`](../60_interfaces/slinky-capacity-observation-control.md)，
+> 机器字段 authority 仍为 [`llmtier-v0.3.openapi.json`](openapi/llmtier-v0.3.openapi.json)。本文件仅保留
+> 历史来源；逐 scope disposition 见
+> [`legacy-v03-scope-mapping.md`](../98_migration/legacy-v03-scope-mapping.md)。
+
 Last Updated: 2026-09-07
 
-Status: Candidate Amendment；纳入 Slinky V0.3 review，尚无 production wiring 证据
+Status: Superseded；历史契约提案，仍无 production wiring 证据
 
 ## 1. Authority 与唯一推理路径
 

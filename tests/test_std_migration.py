@@ -42,9 +42,9 @@ class StdMigrationTests(unittest.TestCase):
         }
         for metadata_path, source_path in expected.items():
             metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-            self.assertEqual("review", metadata["status"])
+            self.assertEqual("accepted", metadata["status"])
             self.assertEqual("0.1.0-draft.18", metadata["std_version"])
-            self.assertIsNone(metadata["reviewed_commit"])
+            self.assertEqual("962e8003712738d2cb4e3a0a38173a9fd2bdd0a1", metadata["reviewed_commit"])
             self.assertEqual(source_hashes[source_path], metadata["template_sha256"])
 
     def test_llmtier_is_classified_as_one_service_not_a_system_or_workspace(self):
@@ -83,13 +83,13 @@ class StdMigrationTests(unittest.TestCase):
 
     def test_c1_interface_and_contract_candidates_preserve_machine_authority(self):
         candidates = {
-            "piko-data-plane-control.md": "interfaces.control",
-            "slinky-capacity-observation-control.md": "interfaces.control",
-            "llmtier-management-control.md": "interfaces.control",
-            "contracts/llmtier-v0.3-contract-specification.md": "contracts.specification",
+            "piko-data-plane-control.md": ("interfaces.control", "962e8003712738d2cb4e3a0a38173a9fd2bdd0a1", "docs/contracts/piko-data-plane-contract-v0.3.md"),
+            "slinky-capacity-observation-control.md": ("interfaces.control", "e1f9b796368ec5f358e466c7e6299cc16b1bf181", "docs/contracts/slinky-capacity-observation-contract-v0.3.md"),
+            "llmtier-management-control.md": ("interfaces.control", "962e8003712738d2cb4e3a0a38173a9fd2bdd0a1", "docs/contracts/llmtier-management-contract-v0.3.md"),
+            "contracts/llmtier-v0.3-contract-specification.md": ("contracts.specification", "962e8003712738d2cb4e3a0a38173a9fd2bdd0a1", None),
         }
         root = ROOT / "docs" / "60_interfaces"
-        for relative_path, template_id in candidates.items():
+        for relative_path, (template_id, reviewed_commit, supersedes) in candidates.items():
             path = root / relative_path
             metadata_path = path.with_suffix(".metadata.json")
             text = path.read_text(encoding="utf-8")
@@ -98,9 +98,9 @@ class StdMigrationTests(unittest.TestCase):
             self.assertEqual(template_id, metadata["template_id"])
             self.assertEqual("tailored", metadata["template_conformance"])
             self.assertEqual("std-tailoring", metadata["tailoring_ref"])
-            self.assertEqual("draft", metadata["status"])
-            self.assertIsNone(metadata["reviewed_commit"])
-            self.assertIsNone(metadata["supersedes"])
+            self.assertEqual("accepted", metadata["status"])
+            self.assertEqual(reviewed_commit, metadata["reviewed_commit"])
+            self.assertEqual(supersedes, metadata["supersedes"])
             self.assertIn("openapi/llmtier-v0.3.openapi.json", text)
             self.assertNotIn("<!-- TODO -->", text)
 
@@ -142,8 +142,8 @@ class StdMigrationTests(unittest.TestCase):
             self.assertEqual(source_hashes[template_paths[template_id]], metadata["template_sha256"])
             self.assertEqual("tailored", metadata["template_conformance"])
             self.assertEqual("std-tailoring", metadata["tailoring_ref"])
-            self.assertEqual("draft", metadata["status"])
-            self.assertIsNone(metadata["reviewed_commit"])
+            self.assertEqual("accepted", metadata["status"])
+            self.assertEqual("962e8003712738d2cb4e3a0a38173a9fd2bdd0a1", metadata["reviewed_commit"])
             self.assertIsNone(metadata["supersedes"])
             self.assertNotIn("<!-- TODO -->", text)
             self.assertIn("Runtime Activation", text)
@@ -177,8 +177,8 @@ class StdMigrationTests(unittest.TestCase):
             self.assertEqual(source_hashes[template_paths[template_id]], metadata["template_sha256"])
             self.assertEqual("tailored", metadata["template_conformance"])
             self.assertEqual("std-tailoring", metadata["tailoring_ref"])
-            self.assertEqual("draft", metadata["status"])
-            self.assertIsNone(metadata["reviewed_commit"])
+            self.assertEqual("accepted", metadata["status"])
+            self.assertEqual("962e8003712738d2cb4e3a0a38173a9fd2bdd0a1", metadata["reviewed_commit"])
             self.assertNotIn("<!-- TODO -->", text)
 
         requirements = (root / "llmtier-v0.3-requirements.md").read_text(encoding="utf-8")
@@ -202,8 +202,8 @@ class StdMigrationTests(unittest.TestCase):
             source_hashes["templates/operations/release-and-operations.md"],
             metadata["template_sha256"],
         )
-        self.assertEqual("draft", metadata["status"])
-        self.assertIsNone(metadata["reviewed_commit"])
+        self.assertEqual("accepted", metadata["status"])
+        self.assertEqual("962e8003712738d2cb4e3a0a38173a9fd2bdd0a1", metadata["reviewed_commit"])
         self.assertIsNone(metadata["supersedes"])
         self.assertNotIn("<!-- TODO -->", text)
         self.assertIn("不是 release approval 或 runtime runbook", text)
@@ -211,16 +211,16 @@ class StdMigrationTests(unittest.TestCase):
         self.assertIn("NOT_RUN/BLOCKED", text)
         self.assertIn("不创建 retrospective ADR", (ROOT / "docs" / "91_reviews" / "llmtier-std-c4-operations-review.md").read_text(encoding="utf-8"))
 
-    def test_c5_readiness_does_not_promote_or_activate_documents(self):
+    def test_c5_promotion_is_atomic_and_does_not_activate_runtime(self):
         readiness = (ROOT / "docs" / "98_migration" / "canonical-promotion-readiness.md").read_text(encoding="utf-8")
         packet = (ROOT / "docs" / "91_reviews" / "llmtier-std-c5-canonical-promotion-review.md").read_text(encoding="utf-8")
         decision = json.loads(
             (ROOT / "docs" / "91_reviews" / "llmtier-std-c5-canonical-promotion-review.review-decision.json").read_text(encoding="utf-8")
         )
-        self.assertIn("READY_FOR_REVIEW", readiness)
-        self.assertIn("11 份实质 STD 文档实例、5 份 review packet 和 5 份机器 decision", readiness)
+        self.assertIn("READY_FOR_COMMIT", readiness)
+        self.assertIn("11 份实质 STD 文档实例、5 份 C0-C4 review packet/terminal decision", readiness)
         self.assertIn("Runtime Activation 始终保持独立", readiness)
-        self.assertIn("不执行 promotion、状态升级或 RAG publication", packet)
+        self.assertIn("当前原子 promotion candidate", packet)
         self.assertEqual("PENDING", decision["verdict"])
         self.assertFalse(decision["runtime_activation_requested"])
         self.assertEqual([], decision["reviewers"])
@@ -236,8 +236,9 @@ class StdMigrationTests(unittest.TestCase):
             "docs/qa/llm-tier-contract-qa-v0.3.md",
         ):
             self.assertIn(legacy, mapping)
-        self.assertIn("subject to auditable Slinky verdict", mapping)
-        self.assertIn("subject to Piko ACCEPTED evidence", mapping)
+        self.assertIn("S-20260907-45938693e578", mapping)
+        self.assertIn("P-20260907-e009921eda0a", mapping)
+        self.assertIn("residual=none", mapping)
 
         owner = (ROOT / "docs" / "98_migration" / "evidence" / "c5-owner-verdicts.txt").read_text(encoding="utf-8")
         self.assertIn("C0 Foundation", owner)
@@ -245,10 +246,9 @@ class StdMigrationTests(unittest.TestCase):
         self.assertIn("C2 Assurance", owner)
         self.assertIn("C3 Requirements + Traceability", owner)
         self.assertIn("C4 Decisions + Operations", owner)
-        self.assertIn("CONSUMER CONDITIONS PENDING", owner)
+        self.assertIn("C1 terminal decision time", owner)
         self.assertIn("STD reviewer role", owner)
-        self.assertIn("C1 remains PENDING", owner)
-        self.assertIn("must not use 962e8003712738d2cb4e3a0a38173a9fd2bdd0a1", owner)
+        self.assertIn("C1 uses decision_commit=e1f9b796368ec5f358e466c7e6299cc16b1bf181", owner)
         self.assertIn("No reviewed_commit or decision_commit may be filled with a commit that predates", owner)
 
         substantive = [
@@ -265,17 +265,51 @@ class StdMigrationTests(unittest.TestCase):
             ROOT / "docs" / "80_operations" / "llmtier-v0.3-release-and-operations.metadata.json",
         ]
         self.assertEqual(11, len(substantive))
+        document_ids = set()
+        canonical_paths = set()
         for path in substantive:
             metadata = json.loads(path.read_text(encoding="utf-8"))
-            self.assertIn(metadata["status"], {"draft", "review"})
-            self.assertIsNone(metadata["reviewed_commit"])
+            self.assertEqual("accepted", metadata["status"])
+            self.assertIsNotNone(metadata["reviewed_commit"])
+            self.assertNotIn(metadata["document_id"], document_ids)
+            self.assertNotIn(metadata["source_path"], canonical_paths)
+            document_ids.add(metadata["document_id"])
+            canonical_paths.add(metadata["source_path"])
+
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        for source_path in canonical_paths:
+            self.assertIn(source_path, readme)
+        self.assertIn("overall.runtime_activation=false", readme)
+
+        for decision_name in (
+            "llmtier-std-draft16-migration-review.review-decision.json",
+            "llmtier-std-c1-interface-contract-review.review-decision.json",
+            "llmtier-std-c2-assurance-review.review-decision.json",
+            "llmtier-std-c3-requirements-review.review-decision.json",
+            "llmtier-std-c4-operations-review.review-decision.json",
+        ):
+            terminal = json.loads((ROOT / "docs" / "91_reviews" / decision_name).read_text(encoding="utf-8"))
+            self.assertEqual("ACCEPTED", terminal["verdict"])
+            self.assertTrue(terminal["reviewers"])
+            self.assertIsNotNone(terminal["decided_at"])
+            self.assertIsNotNone(terminal["decision_commit"])
+            self.assertFalse(terminal["runtime_activation_requested"])
+
+        for legacy in (
+            ROOT / "docs" / "design" / "llmtier-v0.3-design-review.md",
+            ROOT / "docs" / "contracts" / "piko-data-plane-contract-v0.3.md",
+            ROOT / "docs" / "contracts" / "slinky-capacity-observation-contract-v0.3.md",
+            ROOT / "docs" / "contracts" / "llmtier-management-contract-v0.3.md",
+            ROOT / "docs" / "qa" / "llm-tier-contract-qa-v0.3.md",
+        ):
+            self.assertIn("Document Status: Superseded", legacy.read_text(encoding="utf-8"))
 
     def test_slinky_boundary_clarification_separates_upstream_choice_from_api_execution(self):
         path = ROOT / "docs" / "60_interfaces" / "slinky-capacity-observation-control.md"
         text = path.read_text(encoding="utf-8")
         metadata = json.loads(path.with_suffix(".metadata.json").read_text(encoding="utf-8"))
-        self.assertEqual("0.3.0-draft.2", metadata["document_version"])
-        self.assertIn("| Document Version | 0.3.0-draft.2 |", text)
+        self.assertEqual("0.3.0", metadata["document_version"])
+        self.assertIn("| Document Version | 0.3.0 |", text)
         self.assertIn("适用于 LLMTier API 对单次请求的 Service Level 解析与执行", text)
         self.assertIn("Slinky 上游逻辑路由层的 same-tier fallback/Upshift", text)
         self.assertIn("明确 canonical service_level_id 提交并重新接受 admission", text)
@@ -286,7 +320,8 @@ class StdMigrationTests(unittest.TestCase):
         self.assertIn("P-20260907-e009921eda0a", evidence)
         self.assertIn("S-20260907-8866534be612", evidence)
         self.assertIn("SLK-BOUNDARY-001", evidence)
-        self.assertIn("Required next verdict: Slinky ACCEPTED", evidence)
+        self.assertIn("S-20260907-45938693e578", evidence)
+        self.assertIn("Verdict: ACCEPTED; SLK-BOUNDARY-001 CLOSED", evidence)
 
 
 if __name__ == "__main__":

@@ -1,15 +1,18 @@
 <!-- STD_DOCUMENT_COVER_BEGIN -->
-# LLMTier Management Interface Control（V0.3 候选）
+# LLMTier Management Interface Control（V0.3）
 
 | 文档字段 | 值 |
 |---|---|
 | Document ID | llmtier-management-control |
-| Document Version | 0.3.0-draft.1 |
-| Status | Draft |
+| Document Version | 0.3.0 |
+| Status | Approved |
 | Project | LLMTier |
 | Authority | LLMTier |
 | Document Owner | LLMTier |
 | Authors | llmtier |
+| Reviewer | LLMTier |
+| Approver | LLMTier |
+| Approval Date | 2026-09-07 |
 | Created Date | 2026-09-06 |
 | Last Modified Date | 2026-09-07 |
 | STD Version | 0.1.0-draft.18 |
@@ -19,14 +22,15 @@
 | Migration Map Reference | none |
 | Repository | corezilla/LLMTier |
 | Canonical Path | docs/60_interfaces/llmtier-management-control.md |
-| Supersedes | none |
+| Supersedes | docs/contracts/llmtier-management-contract-v0.3.md |
 
 > Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
-> 本文是非破坏迁移候选。原 docs/contracts/llmtier-management-contract-v0.3.md 在 canonical
-> promotion 前继续承担说明 authority；v0.3 OpenAPI 保持字段级机器 authority。
+> 本文是当前 Approved management-boundary prose authority。原
+> docs/contracts/llmtier-management-contract-v0.3.md 已 Superseded 并仅保留历史；v0.3 OpenAPI 保持字段级
+> 机器 authority。
 
 ## 1. 接口目的、范围与双方 authority
 
@@ -120,6 +124,6 @@ v0.3 compatibility manifest 当前 contract_status=candidate、runtime_activatio
 
 ## 11. 未决项与双方批准
 
-LLMTier owner 必须审查全部 Management 和安全事实。persistence/HA、Admin UI 技术栈、deployment、
-backup/RPO/RTO 仍是 Open Gate，应以独立 ADR/operations cohort 处理。进入 promotion 前需要 immutable
-project commit 和终局 decision；本文不请求状态升级或 Runtime Activation。
+LLMTier Owner 已审查全部 Management 和安全事实。persistence/HA、Admin UI 技术栈、deployment、
+backup/RPO/RTO 仍是 Open Gate，应以独立 ADR/operations cohort 处理。本文的 Approved 状态不授权
+Runtime Activation。

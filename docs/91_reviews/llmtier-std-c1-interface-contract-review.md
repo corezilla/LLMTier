@@ -29,14 +29,14 @@
 
 | Gate | 请求/结果 |
 |---|---|
-| Review Verdict | PENDING |
+| Review Verdict | ACCEPTED |
 | Document Status before review | Draft |
-| Requested Document Status after review | unchanged |
+| Requested Document Status after review | accepted |
 | Runtime Activation requested | false |
 | Runtime Activation authority | N/A |
 
-请求审查 C1 interface/contract 的结构化迁移、authority 和 residual-scope 映射。本 packet 不请求
-Document Status 升级、canonical promotion、项目 RAG ingestion、外部发布或 Runtime Activation。
+C1 interface/contract 的结构化迁移、authority 和 residual-scope 映射已完成终局 review。Document Status
+只在独立原子 canonical-promotion Gate 中切换；本 packet 不请求项目 RAG ingestion、外部发布或 Runtime Activation。
 
 ## 2. Scope、authority 与 reviewers
 
@@ -47,8 +47,8 @@ Document Status 升级、canonical promotion、项目 RAG ingestion、外部发�
 - Slinky reviewer 只审核 Observation/Seat consumer obligations；不取得 LLMTier 服务 authority。
 - OpenAPI v0.3 保持字段级机器 authority；compatibility manifest v0.3 保持 capability/activation
   machine authority；tests/fixtures 保持 executable evidence authority。
-- 原三份 v0.3 prose contract 在后续 scope-level canonical promotion 前继续承担说明 residual
-  authority。新候选全部 Supersedes=none。
+- 原三份 v0.3 prose contract 的 current scope 已逐项映射；本次原子 promotion 将其标为
+  Superseded，新 interface controls 明确记录一对一 predecessor，机器契约仍原位保留。
 
 ## 3. 冻结基线
 
@@ -97,12 +97,12 @@ v0.1/v0.2 historical 文件、原 v0.3 prose、OpenAPI、manifest、fixtures 和
 
 ## 6. 风险、未决项和不阻塞项
 
-- 终局 C1 review 需要 immutable LLMTier candidate commit、LLMTier 授权 reviewer，并请求 Piko/Slinky
-  各自复核消费边界。
+- 终局 C1 review 使用 clarification commit `e1f9b796368ec5f358e466c7e6299cc16b1bf181`，并由
+  LLMTier Owner、Piko 与 Slinky 分别完成授权范围内复核。
 - Piko 对 commit `aa263828...` 的 consumer boundary 为 ACCEPTED，证据见
-  `docs/98_migration/evidence/c5-consumer-verdicts.txt`。Slinky 对同一输入为 AMENDMENT
-  `S-20260907-8866534be612`；draft.2 已按 `SLK-BOUNDARY-001` 澄清责任层，必须冻结新 immutable input
-  并获得 Slinky ACCEPTED 后，C1 才能终局化。
+  `docs/98_migration/evidence/c5-consumer-verdicts.txt`。Slinky 对原输入的 AMENDMENT
+  `S-20260907-8866534be612` 已由 draft.2 修正；Slinky 在 `S-20260907-45938693e578` 对 exact
+  commit/blob/SHA-256 返回 ACCEPTED，`SLK-BOUNDARY-001` 已关闭。
 - production endpoint、ledger/retention、Registry/admission、capacity/fairness、Management API/UI、
   Piko pinned adapter、Embeddings consumer 与真实 isolation evidence 未运行，继续阻塞 activation。
 - 本项目输入 worktree dirty 是已记录的非阻塞条件；本轮未 reset/clean，也未覆盖其他任务修改。
@@ -148,13 +148,12 @@ NOT_RUN/BLOCKED。本轮不启动 service、provider、Piko/Slinky consumer、Ad
 - [x] 旧文档 residual authority 与后置 promotion 边界明确
 - [x] Piko consumer-boundary verdict 可审计且为 ACCEPTED
 - [x] Slinky `SLK-BOUNDARY-001` 已形成 draft.2 定点修订
-- [ ] Slinky 对新的 immutable draft.2 input 返回 ACCEPTED
-- [ ] STD 已返回精确 pathspec 的 COMMIT_APPROVED
-- [ ] immutable project candidate commit 与终局 reviewer/decision 已登记
+- [x] Slinky 对新的 immutable draft.2 input 返回 ACCEPTED
+- [x] STD 已返回 clarification snapshot 精确 pathspec 的 COMMIT_APPROVED
+- [x] immutable project candidate commit 与终局 reviewer/decision 已登记
 
 ## 9. 决定、条件与签署
 
 机器 decision 位于 docs/91_reviews/llmtier-std-c1-interface-contract-review.review-decision.json，
-当前为 PENDING。终局 verdict 不自动提升 Document Status，也不授权 promotion、RAG 或 runtime。
-本 packet 保持 PENDING；draft.2 定点修订必须先通过 STD pre-commit Gate、冻结新 immutable commit，再由
-Slinky 复审。尚未执行 Document Status 升级、canonical promotion、RAG publication 或 Runtime Activation。
+当前为 `ACCEPTED`，decision commit 为 `e1f9b796368ec5f358e466c7e6299cc16b1bf181`。终局 verdict
+不自动提升 Document Status，也不授权 promotion、RAG 或 runtime；状态切换仍由独立 promotion Gate 执行。

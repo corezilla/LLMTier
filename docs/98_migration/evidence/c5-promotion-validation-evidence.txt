@@ -1,0 +1,52 @@
+LLMTier C5 canonical promotion validation evidence
+Captured: 2026-09-07T22:47:53+08:00
+Workdir: /Users/ben/work/LLMTier
+Input HEAD: e1f9b796368ec5f358e466c7e6299cc16b1bf181
+Input origin/main: e1f9b796368ec5f358e466c7e6299cc16b1bf181
+Branch: main
+Remote: existing origin (git@github.com:corezilla/LLMTier.git)
+Index: empty
+
+L1 STD source verification
+Command: /Users/ben/work/STD/scripts/verify-source-manifest /Users/ben/work/LLMTier/docs/std-source-manifest.json --std-root /Users/ben/work/STD
+Exit code: 0
+Output: STD source manifest verification OK: 71 artifacts
+
+L1 project-root structural validation
+Command: /Users/ben/work/STD/scripts/validate-design --project-root /Users/ben/work/LLMTier --require-immutable-std --json /Users/ben/work/LLMTier/docs/98_migration/evidence/c5-promotion-std-validation.json
+Exit code: 0
+Output artifact: docs/98_migration/evidence/c5-promotion-std-validation.json
+Output artifact SHA-256: 98a6f9624fe48ef06c41eaea1616247a523ef46531dde72b6dca10405042cfb3
+Result: ok=true; checked_metadata=17; checked_markdown=17; checked_decisions=6; new_error_count=0; inherited_error_count=0; issues=[]
+
+L2 project contract/schema/migration tests
+Command: PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest discover -s tests
+Exit code: 0
+Output: Ran 47 tests; OK
+Coverage added/updated: 11 accepted metadata sidecars; unique Document ID/source path; exact reviewed commits; five terminal ACCEPTED decisions; README canonical index; five Superseded legacy forward links; runtime activation remains false.
+
+L2 authority uniqueness check
+Command: Python read-only assertion over 11 substantive metadata files, five terminal decisions, five legacy prose files, README, and compatibility-manifest-v0.3.json
+Exit code: 0
+Output: authority uniqueness OK: 11 accepted canonical documents, 5 unique terminal decisions, 5 superseded legacy prose files, runtime_activation=false
+
+Whitespace validation
+Command: git diff --check
+Exit code: 0
+Output: empty
+
+L3 runtime/external evidence
+Result: NOT_RUN/BLOCKED
+Reason: production provider, durable store, Management API/UI, Piko/Slinky E2E, recovery, isolation, capacity/SLO and release evidence are not part of document promotion. Approved documents preserve those gaps; overall.runtime_activation=false and runtime_activation_requested=false.
+
+Consumer and Owner gates
+Piko: ACCEPTED, Matrix P-20260907-e009921eda0a, reviewed immutable input recorded in c5-consumer-verdicts.txt.
+Slinky: ACCEPTED, Matrix S-20260907-45938693e578, commit e1f9b796368ec5f358e466c7e6299cc16b1bf181, blob e4232366a24467135c63266f3abbd7ef2616e7f4, SHA-256 0065f6ad96a2d6d61f6a2aecca179ef19bc9e3cffb88d194f3c71cb10a462ad9; SLK-BOUNDARY-001 closed.
+LLMTier Owner: C0-C4 ACCEPTED; decision commits and rationale recorded in five *.review-decision.json files.
+STD reviewer: pending exact-path pre-commit Gate; does not replace Owner authority.
+
+Dirty-worktree preservation
+Existing excluded path: rag/std-ingestion-manifest.jsonl
+Binary diff SHA-256: 5ecf097f57ec627f36586218d14e8df036467c8466de59e06adc7553c6073234
+Action: not modified by C5 promotion work, not staged, not included in requested allowlist.
+No reset or clean was run. No source, machine contract, runtime, configuration, fallback, compatibility path, project RAG manifest, external publication, or Runtime Activation change was made.

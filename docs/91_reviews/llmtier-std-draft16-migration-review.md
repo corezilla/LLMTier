@@ -29,14 +29,14 @@
 
 | Gate | 请求/结果 |
 |---|---|
-| Review Verdict | PENDING |
+| Review Verdict | ACCEPTED |
 | Document Status before review | In Review |
-| Requested Document Status after review | `unchanged` |
+| Requested Document Status after review | `accepted` |
 | Runtime Activation requested | `false` |
 | Runtime Activation authority | N/A |
 
-本 packet 请求审查 draft.17 迁移结构和 scope 映射，不请求把候选提升为 Approved/Released，
-不请求 canonical promotion、项目 RAG ingestion、外部发布或 runtime activation。
+本 packet 的迁移结构和 scope 映射已由 LLMTier Owner 终局接受；Document Status 仅在独立原子
+canonical-promotion Gate 中切换，不请求项目 RAG ingestion、外部发布或 runtime activation。
 文件路径保留早先的 `draft16` 字样，以维持已发送 Matrix review reference；Document ID 同样保持
 稳定。封面、metadata、lock 和 source manifest 是当前 draft.17 authority。
 
@@ -49,9 +49,9 @@
 - LLMTier 保持本服务设计和实现事实 authority；OpenAPI v0.3 保持字段级机器契约 authority；
   compatibility manifest v0.3 保持兼容性/activation 候选 authority且 activation=false；
   `tests/` 与 fixtures 保持可执行源码/证据 authority。
-- 原 `docs/design/llmtier-v0.3-design-review.md` 不整体 Supersede：在 scope-level promotion 前继续
-  承担原始 review 结论、跨项目输入及未迁移内容的 residual-scope authority。
-- Reviewer 尚未由项目 authority 在终局 decision 中登记；当前 decision 必须保持 PENDING。
+- 原 `docs/design/llmtier-v0.3-design-review.md` 的全部 current scope 已在 C5 逐项映射；本次原子
+  promotion 将其标为 Superseded，同时保留为历史 review provenance。
+- LLMTier Owner 已在终局 decision 中登记，decision commit 为集成输入 `962e800...`。
 
 ## 3. 冻结基线
 
@@ -121,10 +121,8 @@
 
 ## 6. 风险、未决项和不阻塞项
 
-- 阻塞终局 review：需要项目授权 reviewer 审查一个 immutable LLMTier candidate commit，并在
-  decision 中填写 reviewer、`decided_at`、rationale 和 decision commit。
-- 阻塞 canonical promotion：独立 Document Status 批准、scope-level authority 切换与单一 current
-  authority 检查尚未发生。
+- 终局 review 已完成：机器 decision 包含授权 reviewer、`decided_at`、rationale 和 immutable decision commit。
+- canonical promotion 仍需独立的精确 pathspec、scope-level authority 切换与单一 current authority Gate。
 - 阻塞项目 RAG publication：promotion commit 尚不存在；不得生成项目 ingestion manifest。
 - 阻塞 runtime activation：production implementation、恢复、隔离、SLO、管理面和 Consumer evidence
   Gate 均未关闭；本 packet 不请求 activation。
@@ -180,11 +178,11 @@
 - [x] 安全与隔离边界保持原设计
 - [x] traceability 和机器 evidence 路径可打开
 - [x] 未发生静默 fallback 或兼容性扩张
-- [ ] immutable project candidate commit 与授权 reviewer 已登记
+- [x] immutable project candidate commit 与授权 reviewer 已登记
 - [ ] canonical promotion、RAG publication 与 runtime activation 已分别授权
 
 ## 9. 决定、条件与签署
 
 机器 decision 见
-`docs/91_reviews/llmtier-std-draft16-migration-review.review-decision.json`，当前为 PENDING。
-终局决定不得由本 packet 自行填写；Review Verdict、Document Status 与 Runtime Activation 必须分开。
+`docs/91_reviews/llmtier-std-draft16-migration-review.review-decision.json` 记录终局 `ACCEPTED`。
+Review Verdict、Document Status 与 Runtime Activation 继续分开。

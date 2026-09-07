@@ -1,13 +1,13 @@
 {
   "schema_version": "std-review-decision.v1", "review_id": "llmtier-std-c4-operations-review-decision",
-  "packet_id": "llmtier-std-c4-operations-review", "verdict": "PENDING",
-  "document_status_before": "draft", "requested_document_status_after": "unchanged",
+  "packet_id": "llmtier-std-c4-operations-review", "verdict": "ACCEPTED",
+  "document_status_before": "draft", "requested_document_status_after": "accepted",
   "runtime_activation_requested": false, "runtime_activation_authority": null,
-  "reviewers": [], "decided_at": null, "decision_commit": null,
+  "reviewers": ["llmtier"], "decided_at": "2026-09-07T20:32:00+08:00", "decision_commit": "962e8003712738d2cb4e3a0a38173a9fd2bdd0a1",
   "conditions": [
-    "Pass STD pre-commit review and freeze an immutable C4 candidate commit.",
     "Do not use the candidate as a production runbook while operations evidence remains blocked.",
-    "Create ADRs only for actual new decisions with authorized owners and evidence."
+    "Create ADRs only for actual new decisions with authorized owners and evidence.",
+    "Runtime Activation remains false and independent."
   ],
-  "rationale": "C4 operations migration candidate is being prepared; no final review or runtime decision has been made."
+  "rationale": "LLMTier Owner accepts the C4 release and operations boundary because it records current package and CLI facts, keeps production topology and operations gaps explicit, and correctly avoids retrospective ADRs for decisions that were never authorized."
 }

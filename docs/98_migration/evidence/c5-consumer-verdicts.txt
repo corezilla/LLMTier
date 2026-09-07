@@ -23,7 +23,14 @@ Conclusion: the original text did not explicitly distinguish Slinky upstream exp
 [SLINKY DRAFT.2 REMEDIATION]
 Changed path: docs/60_interfaces/slinky-capacity-observation-control.md
 Change: §9 now states that LLMTier executes one explicit canonical service_level_id per request without implicit substitution; Slinky same-tier fallback/Upshift is an upstream logical choice that must re-enter Runtime -> Piko -> LLMTier, pass admission, preserve idempotency/recovery identity, and never acquire physical routing authority.
-Status: local candidate; immutable commit/blob/SHA-256 to be recorded after STD pre-commit approval and commit.
-Required next verdict: Slinky ACCEPTED on the new immutable input. Until then C1 decision, Slinky interface Approved status, old Slinky prose supersession, design §6 supersession and QA §1 residual remain PENDING. The future C1 decision_commit and reviewed_commit for the draft.2 Slinky control/revised C1 packet must reference the clarification snapshot, not 962e800.
+Clarification commit: e1f9b796368ec5f358e466c7e6299cc16b1bf181
+Reviewed path: docs/60_interfaces/slinky-capacity-observation-control.md
+Input blob: e4232366a24467135c63266f3abbd7ef2616e7f4
+Input SHA-256: 0065f6ad96a2d6d61f6a2aecca179ef19bc9e3cffb88d194f3c71cb10a462ad9
+Full-text request: L-20260907-917ad7980ed8
+Final verdict message: S-20260907-45938693e578
+Verdict: ACCEPTED; SLK-BOUNDARY-001 CLOSED
+Verification: Slinky extracted the exact 137-line UTF-8/LF text, independently reproduced the SHA-256 and Git blob SHA-1, and accepted the separation between upstream explicit Service Level selection and LLMTier per-request execution.
+Promotion effect: C1 may be terminalized using decision_commit=e1f9b796368ec5f358e466c7e6299cc16b1bf181. Slinky control reviewed_commit uses the same immutable input; related legacy residuals are none after the atomic authority switch.
 
 Runtime note: neither verdict claims that Piko/Slinky runtime integration, routing, production evidence or Runtime Activation is complete.

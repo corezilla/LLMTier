@@ -29,14 +29,14 @@
 
 | Gate | 请求/结果 |
 |---|---|
-| Review Verdict | PENDING |
+| Review Verdict | ACCEPTED |
 | Document Status before review | Draft |
-| Requested Document Status after review | unchanged |
+| Requested Document Status after review | accepted |
 | Runtime Activation requested | false |
 | Runtime Activation authority | N/A |
 
-请求审查 C4 operations 候选、ADR omission rationale、Open Gate 和 residual authority。本 packet 不请求
-Document Status 升级、canonical promotion、RAG publication、外部发布或 Runtime Activation。
+C4 operations boundary、ADR omission rationale、Open Gate 和 residual authority 已由 LLMTier Owner
+终局接受。Document Status 仅在独立 promotion Gate 中切换；本 packet 不请求 RAG publication、外部发布或 Runtime Activation。
 
 ## 2. Scope、authority 与 reviewers
 
@@ -96,9 +96,9 @@ Gate 没有可合法填写的 Decision。凭迁移倒推答案会伪造 authorit
 - [x] 未伪造 ADR、production evidence 或 SLO
 - [x] 未发生兼容性扩张
 - [x] 三层验证固化
-- [ ] STD pre-commit Gate 返回 COMMIT_APPROVED
+- [x] STD pre-commit Gate 返回 COMMIT_APPROVED
 
 ## 9. 决定、条件与签署
 
-机器 decision 位于 `docs/91_reviews/llmtier-std-c4-operations-review.review-decision.json`，当前 PENDING。
-终局 verdict 不自动改变 Document Status、promotion、RAG publication 或 Runtime Activation。
+机器 decision 位于 `docs/91_reviews/llmtier-std-c4-operations-review.review-decision.json`，当前为
+`ACCEPTED`。终局 verdict 不自动改变 Document Status、promotion、RAG publication 或 Runtime Activation。

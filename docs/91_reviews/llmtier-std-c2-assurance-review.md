@@ -29,19 +29,21 @@
 
 | Gate | 请求/结果 |
 |---|---|
-| Review Verdict | PENDING |
+| Review Verdict | ACCEPTED |
 | Document Status before review | Draft |
-| Requested Document Status after review | unchanged |
+| Requested Document Status after review | accepted |
 | Runtime Activation requested | false |
 | Runtime Activation authority | N/A |
 
-请求审查 C2 V&V plan、contract test specification、source→target mapping 和三层 evidence boundary。
-本 packet 不请求 Document Status 升级、canonical promotion、RAG publication、外部发布或 Runtime Activation。
+C2 V&V plan、contract test specification、source→target mapping 和三层 evidence boundary 已由 LLMTier
+Owner 终局接受。Document Status 仅在独立 promotion Gate 中切换；本 packet 不请求 RAG publication、
+外部发布或 Runtime Activation。
 
 ## 2. Scope、authority 与 reviewers
 
 - 新增两份 assurance 候选及 sidecar；更新 migration plan、inventory 与迁移一致性测试。
-- `docs/qa/llm-tier-contract-qa-v0.3.md` 在 promotion 前保留 review ledger/residual evidence authority。
+- `docs/qa/llm-tier-contract-qa-v0.3.md` 的全部 current scope 已迁至 V&V、test specification、traceability
+  与 review evidence；本次 promotion 后仅保留 historical review ledger。
 - OpenAPI、manifest、tests 和 fixtures 的机器/可执行 authority 不变；新文档只描述计划与映射。
 - LLMTier owner/QA 审核整体；Piko/Slinky production evidence 仍由对应 consumer authority 提供。
 
@@ -105,9 +107,9 @@
 - [x] traceability 和 evidence 路径可打开
 - [x] 未发生静默 fallback 或兼容性扩张
 - [x] 三层候选验证完成并固化
-- [ ] STD pre-commit Gate 返回 COMMIT_APPROVED
+- [x] STD pre-commit Gate 返回 COMMIT_APPROVED
 
 ## 9. 决定、条件与签署
 
-机器 decision 位于 `docs/91_reviews/llmtier-std-c2-assurance-review.review-decision.json`，当前 PENDING。
-终局 verdict 不自动提升 Document Status、执行 promotion/RAG publication 或激活 runtime。
+机器 decision 位于 `docs/91_reviews/llmtier-std-c2-assurance-review.review-decision.json`，当前为
+`ACCEPTED`。终局 verdict 不自动执行 promotion/RAG publication 或激活 runtime。

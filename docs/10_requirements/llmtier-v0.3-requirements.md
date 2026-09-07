@@ -1,15 +1,18 @@
 <!-- STD_DOCUMENT_COVER_BEGIN -->
-# LLMTier V0.3 Requirements Specification（迁移候选）
+# LLMTier V0.3 Requirements Specification
 
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-requirements` |
-| Document Version | `0.3.0-draft.1` |
-| Status | `Draft` |
+| Document Version | `0.3.0` |
+| Status | `Approved` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | llmtier |
+| Reviewer | LLMTier |
+| Approver | LLMTier |
+| Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
 | Last Modified Date | `2026-09-07` |
 | STD Version | `0.1.0-draft.18` |

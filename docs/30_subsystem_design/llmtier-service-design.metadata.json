@@ -3,8 +3,8 @@
   "authority": "LLMTier",
   "document_id": "llmtier-service-design",
   "document_type": "design.definition",
-  "document_version": "0.3.0-draft.4",
-  "title": "LLMTier V0.3 单服务设计（STD 迁移候选）",
+  "document_version": "0.3.0",
+  "title": "LLMTier V0.3 单服务设计",
   "document_owner": "LLMTier",
   "authors": [
     "llmtier"
@@ -22,11 +22,11 @@
   "domain": [
     "software"
   ],
-  "status": "review",
+  "status": "accepted",
   "visibility": "project",
-  "reviewed_commit": null,
+  "reviewed_commit": "962e8003712738d2cb4e3a0a38173a9fd2bdd0a1",
   "parent_document_id": null,
-  "supersedes": null,
+  "supersedes": "docs/design/llmtier-v0.3-design-review.md",
   "created_at": "2026-09-06",
   "last_modified_at": "2026-09-07"
 }

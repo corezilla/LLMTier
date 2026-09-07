@@ -1,15 +1,18 @@
 <!-- STD_DOCUMENT_COVER_BEGIN -->
-# LLMTier V0.3 Requirements Traceability Matrix（迁移候选）
+# LLMTier V0.3 Requirements Traceability Matrix
 
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-traceability` |
-| Document Version | `0.3.0-draft.1` |
-| Status | `Draft` |
+| Document Version | `0.3.0` |
+| Status | `Approved` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | llmtier |
+| Reviewer | LLMTier |
+| Approver | LLMTier |
+| Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
 | Last Modified Date | `2026-09-07` |
 | STD Version | `0.1.0-draft.18` |
@@ -69,7 +72,7 @@ production evidence 的行不得标为 covered/accepted。
 
 ## 5. Review、冻结与更新记录
 
-C3 decision 当前 PENDING。冻结前需通过 source verifier、project-root validator、项目 tests 与 STD
-pre-commit Gate。requirements 或 machine contract 变化时同步更新本矩阵；execution evidence 形成时只更新
-对应 evidence/status，不把局部 PASS 推导成 Runtime Activation。canonical promotion、RAG publication 与
+C3 terminal decision 为 ACCEPTED；source verifier、project-root validator、项目 tests 与 STD
+pre-commit Gate 分别保留证据。requirements 或 machine contract 变化时同步更新本矩阵；execution evidence 形成时只更新
+对应 evidence/status，不把局部 PASS 推导成 Runtime Activation。RAG publication 与
 Runtime Activation 保持独立 Gate。

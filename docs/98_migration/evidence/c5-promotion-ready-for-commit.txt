@@ -1,0 +1,66 @@
+LLMTier C5 canonical promotion READY_FOR_COMMIT
+Input HEAD: e1f9b796368ec5f358e466c7e6299cc16b1bf181
+Input origin/main: e1f9b796368ec5f358e466c7e6299cc16b1bf181
+Branch: main
+Core path count: 46
+Total requested path count: 50
+Core ordered-manifest SHA-256: e2a81c58d8b3b3f1b0f7823d991132a8c5780720ee50abfaed1bcf106431f6de
+Ordering/format: raw UTF-8 byte-order path sort; each data line is SHA-256, two spaces, path, LF
+Excluded existing dirty: rag/std-ingestion-manifest.jsonl
+Excluded dirty binary-diff SHA-256: 5ecf097f57ec627f36586218d14e8df036467c8466de59e06adc7553c6073234
+Index at evidence capture: empty
+Runtime Activation requested: false
+
+Exact requested allowlist (50 paths):
+README.md
+docs/00_management/std-tailoring.md
+docs/00_management/std-tailoring.metadata.json
+docs/10_requirements/llmtier-v0.3-requirements.md
+docs/10_requirements/llmtier-v0.3-requirements.metadata.json
+docs/10_requirements/llmtier-v0.3-traceability.md
+docs/10_requirements/llmtier-v0.3-traceability.metadata.json
+docs/30_subsystem_design/llmtier-service-design.md
+docs/30_subsystem_design/llmtier-service-design.metadata.json
+docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.md
+docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.metadata.json
+docs/60_interfaces/llmtier-management-control.md
+docs/60_interfaces/llmtier-management-control.metadata.json
+docs/60_interfaces/piko-data-plane-control.md
+docs/60_interfaces/piko-data-plane-control.metadata.json
+docs/60_interfaces/slinky-capacity-observation-control.md
+docs/60_interfaces/slinky-capacity-observation-control.metadata.json
+docs/70_verification/plans/llmtier-v0.3-vv-plan.md
+docs/70_verification/plans/llmtier-v0.3-vv-plan.metadata.json
+docs/70_verification/specifications/llmtier-v0.3-contract-test-specification.md
+docs/70_verification/specifications/llmtier-v0.3-contract-test-specification.metadata.json
+docs/80_operations/llmtier-v0.3-release-and-operations.md
+docs/80_operations/llmtier-v0.3-release-and-operations.metadata.json
+docs/91_reviews/llmtier-std-c1-interface-contract-review.md
+docs/91_reviews/llmtier-std-c1-interface-contract-review.review-decision.json
+docs/91_reviews/llmtier-std-c2-assurance-review.md
+docs/91_reviews/llmtier-std-c2-assurance-review.review-decision.json
+docs/91_reviews/llmtier-std-c3-requirements-review.md
+docs/91_reviews/llmtier-std-c3-requirements-review.review-decision.json
+docs/91_reviews/llmtier-std-c4-operations-review.md
+docs/91_reviews/llmtier-std-c4-operations-review.review-decision.json
+docs/91_reviews/llmtier-std-c5-canonical-promotion-review.md
+docs/91_reviews/llmtier-std-draft16-migration-review.md
+docs/91_reviews/llmtier-std-draft16-migration-review.review-decision.json
+docs/98_migration/canonical-promotion-readiness.md
+docs/98_migration/current-document-inventory.md
+docs/98_migration/evidence/c5-consumer-verdicts.txt
+docs/98_migration/evidence/c5-owner-verdicts.txt
+docs/98_migration/evidence/c5-promotion-candidate-sha256.txt
+docs/98_migration/evidence/c5-promotion-ready-for-commit.txt
+docs/98_migration/evidence/c5-promotion-std-validation.json
+docs/98_migration/evidence/c5-promotion-validation-evidence.txt
+docs/98_migration/legacy-v03-scope-mapping.md
+docs/98_migration/llmtier-std-migration-plan.md
+docs/contracts/llmtier-management-contract-v0.3.md
+docs/contracts/piko-data-plane-contract-v0.3.md
+docs/contracts/slinky-capacity-observation-contract-v0.3.md
+docs/design/llmtier-v0.3-design-review.md
+docs/qa/llm-tier-contract-qa-v0.3.md
+tests/test_std_migration.py
+
+Scope boundary: this allowlist atomically promotes 11 prose documents to Approved, terminalizes C0-C4 review decisions, switches README/current prose authority, and marks five fully mapped legacy prose files Superseded. It does not include project RAG publication, source/runtime/config/contract machine files, external publication, or Runtime Activation.

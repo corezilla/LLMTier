@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "std-tailoring",
   "document_type": "management.tailoring",
-  "document_version": "0.1.0-draft.6",
+  "document_version": "0.1.0",
   "title": "LLMTier STD 裁剪清单",
   "document_owner": "LLMTier",
   "authors": [
@@ -22,9 +22,9 @@
   "domain": [
     "management"
   ],
-  "status": "review",
+  "status": "accepted",
   "visibility": "project",
-  "reviewed_commit": null,
+  "reviewed_commit": "962e8003712738d2cb4e3a0a38173a9fd2bdd0a1",
   "parent_document_id": null,
   "supersedes": null,
   "created_at": "2026-09-07",

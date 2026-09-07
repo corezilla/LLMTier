@@ -1,15 +1,18 @@
 <!-- STD_DOCUMENT_COVER_BEGIN -->
-# LLMTier–Slinky Capacity/Observation Interface Control（V0.3 候选）
+# LLMTier–Slinky Capacity/Observation Interface Control（V0.3）
 
 | 文档字段 | 值 |
 |---|---|
 | Document ID | llmtier-slinky-capacity-observation-control |
-| Document Version | 0.3.0-draft.2 |
-| Status | Draft |
+| Document Version | 0.3.0 |
+| Status | Approved |
 | Project | LLMTier |
 | Authority | LLMTier |
 | Document Owner | LLMTier |
 | Authors | llmtier |
+| Reviewer | LLMTier; Slinky consumer boundary |
+| Approver | LLMTier |
+| Approval Date | 2026-09-07 |
 | Created Date | 2026-09-07 |
 | Last Modified Date | 2026-09-07 |
 | STD Version | 0.1.0-draft.18 |
@@ -19,14 +22,15 @@
 | Migration Map Reference | none |
 | Repository | corezilla/LLMTier |
 | Canonical Path | docs/60_interfaces/slinky-capacity-observation-control.md |
-| Supersedes | none |
+| Supersedes | docs/contracts/slinky-capacity-observation-contract-v0.3.md |
 
 > Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
-> 本文是非破坏迁移候选。原 docs/contracts/slinky-capacity-observation-contract-v0.3.md 在
-> canonical promotion 前继续承担说明 authority；v0.3 OpenAPI 保持字段级机器 authority。
+> 本文是当前 Approved consumer-boundary prose authority。原
+> docs/contracts/slinky-capacity-observation-contract-v0.3.md 已 Superseded 并仅保留历史；v0.3 OpenAPI
+> 保持字段级机器 authority。
 
 ## 1. 接口目的、范围与双方 authority
 
@@ -129,9 +133,9 @@ version、SDK matrix 和 effective_at。v0.3 当前是 candidate，runtime_activ
 
 ## 11. 未决项与双方批准
 
-本候选需要 LLMTier owner 审核提供方和安全事实；Slinky reviewer 只审核其 Observation consumer
-boundary 与 Seat 投影义务。进入 promotion 前需要 immutable project commit 和终局 decision；本文
-不请求状态升级或 Runtime Activation，旧 v0.3 文档继续保留 residual authority。
+LLMTier Owner 已审核提供方和安全事实；Slinky reviewer 已在 `S-20260907-45938693e578` 对 exact
+draft.2 input 接受其 Observation consumer boundary 与 Seat 投影义务。本文的 Approved 状态不授权
+RAG publication、外部发布或 Runtime Activation。
 
 变更记录：0.3.0-draft.2 根据 Slinky verdict `S-20260907-8866534be612` 澄清上游显式重新选择与 LLMTier
 单次 API 请求内禁止隐式换级属于不同责任层；不批准或证明 Slinky runtime routing 已实现。

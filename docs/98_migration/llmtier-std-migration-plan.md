@@ -27,19 +27,19 @@ STD tag：std-v0.1.0-draft.18
 
 | Cohort | 状态 | 交付范围 | 启动依赖 | 首要 Owner Gate |
 |---|---|---|---|---|
-| C0 Foundation | immutable candidate / Owner ACCEPTED | inventory、tailoring、lock/source manifest、单服务 design、review packet | draft.18 immutable STD | consumer-independent final decision update |
-| C1 Interface + Contract | immutable candidate / Owner ACCEPTED | 三个 v0.3 interface candidate、一个 contract specification、mapping、review packet | C0 结构通过 | Piko/Slinky consumer reviews；终局 decision update |
-| C2 Assurance | immutable candidate / pushed | V&V plan、contract test specification、evidence boundary、review packet | immutable C1 mapping；Owner ACCEPTED | final review/decision 与 promotion 独立 |
-| C3 Requirements + Traceability | immutable candidate / pushed | 独立 requirements specification 与 traceability matrix；全项目 candidate rebaseline 到 draft.18 | Owner 已决定启用；commit `13b5d02` | final review/decision 与 promotion 独立 |
-| C4 Decisions + Operations | immutable candidate / pushed | operations.release 候选；无新决定故不生成 retrospective ADR | C3 immutable；commit `962e800` | final review/decision 与 promotion 独立 |
-| C5 Canonical Promotion | READY_FOR_REVIEW | 全项目完成度、residual-authority ledger、scope-level authority 切换计划 | C0-C4 immutable commits；当前 HEAD `962e800` | LLMTier authority + STD 独立 promotion review |
-| C6 Publication / Runtime | BLOCKED | 项目 RAG manifest/索引；独立 runtime activation packet | C5 publication commit；production L3 evidence | publication owner；独立 runtime authority |
+| C0 Foundation | terminal ACCEPTED | inventory、tailoring、lock/source manifest、单服务 design、review packet | draft.18 immutable STD | complete |
+| C1 Interface + Contract | terminal ACCEPTED | 三个 v0.3 interface candidate、一个 contract specification、mapping、review packet | Piko/Slinky ACCEPTED | complete |
+| C2 Assurance | terminal ACCEPTED / pushed | V&V plan、contract test specification、evidence boundary、review packet | immutable C1 mapping | complete |
+| C3 Requirements + Traceability | terminal ACCEPTED / pushed | requirements specification 与 traceability matrix；draft.18 rebaseline | commit `13b5d02` | complete |
+| C4 Decisions + Operations | terminal ACCEPTED / pushed | operations.release；无新决定故不生成 retrospective ADR | commit `962e800` | complete |
+| C5 Canonical Promotion | READY_FOR_COMMIT candidate | 11 份 Approved、五份旧 prose Superseded、README/index/decision/evidence | clarification commit `e1f9b79`；consumer ACCEPTED | STD exact-path pre-commit review |
+| C6 Publication / Runtime | publication pending / runtime BLOCKED | 项目 RAG manifest/索引；Runtime Activation 独立 | C5 promotion commit；production L3 evidence | publication Gate；独立 runtime authority |
 
 C0/C1 已由 commit `aa2638283e77bc658e98df8d40396306cad17aa2` 固定；C2、C3、C4 分别由
 `b2e298aadf981283aa52d4764b201400397d1116`、`13b5d02266624b6b662349f0b88de23696c823bb`、
-`962e8003712738d2cb4e3a0a38173a9fd2bdd0a1` 固定并推送。所有机器 decision 仍为 PENDING；C5 通过
-`docs/98_migration/canonical-promotion-readiness.md` 请求独立终局 review，不把 immutable candidate commit
-解释为状态升级。
+`962e8003712738d2cb4e3a0a38173a9fd2bdd0a1` 固定并推送；clarification snapshot
+`e1f9b796368ec5f358e466c7e6299cc16b1bf181` 也已推送并获 Slinky exact-input ACCEPTED。C0-C4
+机器 decision 已在 C5 promotion candidate 中终局化；C5 自身仍等待独立 pre-commit Gate。
 
 ## 3. C0 Foundation：已完成候选
 
@@ -49,10 +49,10 @@ C0/C1 已由 commit `aa2638283e77bc658e98df8d40396306cad17aa2` 固定；C2、C3�
 | 项目采用决定 | docs/00_management/std-tailoring.md / management.tailoring | 旧 tailoring deletion 是输入 dirty state，不视为 promotion |
 | docs/design/llmtier-v0.3-design-review.md 的服务设计 scope | docs/30_subsystem_design/llmtier-service-design.md / design.definition | 旧设计继续负责 review 结论、跨项目输入与未迁出 scope |
 | STD draft.18 | docs/std.lock.json + docs/std-source-manifest.json | STD 只管理模板与规则，不取得项目业务 authority |
-| C0 变更和验证 | docs/91_reviews/llmtier-std-draft16-migration-review.md / review.packet | decision 保持 PENDING |
+| C0 变更和验证 | docs/91_reviews/llmtier-std-draft16-migration-review.md / review.packet | terminal decision ACCEPTED |
 
 完成标准：source verifier 71 artifacts、project-root validator 0 issue、项目 41 tests PASS；L3
-NOT_RUN 已显式记录。C0 仍等待 immutable project candidate commit 与授权 reviewer，不能 promotion。
+NOT_RUN 已显式记录。C0 immutable input 与授权 reviewer 已登记，terminal decision 为 ACCEPTED。
 
 ## 4. C1 Interface + Contract：首个活动 cohort
 
@@ -64,10 +64,10 @@ NOT_RUN 已显式记录。C0 仍等待 immutable project candidate commit 与授
 | docs/contracts/slinky-capacity-observation-contract-v0.3.md | docs/60_interfaces/slinky-capacity-observation-control.md | interfaces.control | 保留 read-only observation、capacity/Seat、ETag/invalidation、Client scope；不复制 Slinky Project/Plan/IR authority |
 | docs/contracts/llmtier-management-contract-v0.3.md | docs/60_interfaces/llmtier-management-control.md | interfaces.control | 保留 /tier/admin/v1、Admin UI、secret non-disclosure、audit/concurrency Gate |
 | OpenAPI v0.3、compatibility manifest v0.3、v0.3 fixtures、三份说明 | docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.md | contracts.specification | 只建立 schema/error/evolution/authority 索引；机器文件原位且仍为字段级 authority |
-| 上述 C1 diff、mapping 与验证 | docs/91_reviews/llmtier-std-c1-interface-contract-review.md | review.packet | PENDING decision；不请求状态升级或 activation |
+| 上述 C1 diff、mapping 与验证 | docs/91_reviews/llmtier-std-c1-interface-contract-review.md | review.packet | terminal ACCEPTED；不请求 activation |
 
-旧三份 v0.3 prose contract 在 C1 review 和 C5 promotion 前继续承担其现有说明 authority；新候选
-Supersedes=none。v0.1/v0.2 继续作为 historical/provenance，不在本 cohort 移动或删除。
+旧三份 v0.3 prose contract 的 current scope 已完整映射，并在 C5 promotion candidate 中获得
+Superseded forward links；v0.1/v0.2 继续作为 historical/provenance，不移动或删除。
 
 ### 4.2 依赖、验证与完成标准
 
@@ -82,14 +82,14 @@ Supersedes=none。v0.1/v0.2 继续作为 historical/provenance，不在本 cohor
 - Owner Gate：LLMTier owner 审整体；Piko reviewer 只审 Piko consumer boundary；Slinky reviewer 只审
   Observation consumer boundary。任何跨项目 amendment 单独处理，不藏进格式迁移。
 
-首个可审阅 milestone：C1 四份 candidate + sidecar、migration map 增量、PENDING review packet，L1/L2
-完成，L3 如实标注。
+历史首个可审阅 milestone 已完成：C1 四份 candidate + sidecar、migration map、terminal review packet，
+L1/L2 完成，L3 如实标注。
 
 ## 5. C2 Assurance
 
 | Source | 新候选 | Template ID | residual authority |
 |---|---|---|---|
-| docs/qa/llm-tier-contract-qa-v0.3.md 的 strategy/gates | docs/70_verification/llmtier-v0.3-vv-plan.md | assurance.vv-plan | 旧 QA 在 promotion 前继续为 review/traceability evidence |
+| docs/qa/llm-tier-contract-qa-v0.3.md 的 strategy/gates | docs/70_verification/llmtier-v0.3-vv-plan.md | assurance.vv-plan | current scope 已迁出；旧 QA 在 promotion 中标为 Superseded |
 | v0.3 fixtures、tests/test_*v03.py、OpenAPI/manifest oracle | docs/70_verification/llmtier-v0.3-contract-test-specification.md | assurance.test-specification | executable tests/fixtures 保持 source authority，Markdown 不复制 oracle |
 | C2 diff 与 execution evidence | docs/91_reviews/llmtier-std-c2-assurance-review.md | review.packet | actual run 与 NOT_RUN/BLOCKED 分开记录 |
 
@@ -125,18 +125,17 @@ start/stop/diagnostic 与 release Gate；它不是 production runbook。没有�
 
 ## 8. C5/C6 后置 Gate
 
-C5 只有在对应 packet 终局 ACCEPTED、独立 Document Status 批准、实际 reviewed commit 和 immutable
-candidate commit 均具备后才能开始。promotion 必须在同一个可审查变更中按 scope 更新 README、索引、
+C5 所需的 C0-C4 terminal ACCEPTED、独立 Owner Document Status 批准、实际 reviewed commit 和 immutable
+candidate commit 均已具备。promotion candidate 在同一个可审查变更中按 scope 更新 README、索引、
 authority registry、新旧文档状态和 residual map；只有旧文档全部 scope 迁出后才能整体 Supersede。
 
 C6 只在 promotion commit 存在后生成 rag/project-ingestion-manifest.jsonl，明确新 canonical inclusion、
 旧/历史/candidate exclusion 和 publication commit。Runtime Activation 需要另一份独立 authority 与
 production L3 evidence；文档 review、RAG publication 或 contract tests 均不能代替。
 
-C5 当前仅完成全项目迁移覆盖与 residual-authority inventory，并形成
-`docs/91_reviews/llmtier-std-c5-canonical-promotion-review.md`。在新的明确批准前，不修改现有 metadata/cover
-状态，不终局化 C0-C4 decisions，不更新 README authority index，不标记旧文档 Superseded，也不生成项目 RAG
-manifest。
+C5 当前已形成完整原子 promotion candidate：11 份 Approved cover/metadata、C0-C4 terminal decisions、
+README canonical index、五份 legacy Superseded forward links、scope mapping 和验证 evidence。收到 STD
+明确 COMMIT_APPROVED 前不提交该 diff；项目 RAG manifest 只在 promotion commit 后生成。
 
 ## 9. 每 cohort 的固定证据清单
 

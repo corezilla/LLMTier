@@ -11,17 +11,30 @@ LLMTier 是从 Slinky 中拆出的独立模型服务项目。当前代码基线�
 
 复制来源和工作树差异见 [`docs/migration/source-provenance-v0.1.md`](docs/migration/source-provenance-v0.1.md)。
 
-V0.3 的服务范围、责任边界和激活门槛已按 STD `design.definition`、`subsystem` 层级迁移到
-[`docs/30_subsystem_design/llmtier-service-design.md`](docs/30_subsystem_design/llmtier-service-design.md)。
-LLMTier 按单应用、单服务或单库型软件仓库管理，继续使用根目录 `src/`、`tests/`、`docs/`，不把
-Slinky/Piko/LLMTier 跨项目协作链路误作本仓库拥有的完整系统。旧的
-[`docs/design/llmtier-v0.3-design-review.md`](docs/design/llmtier-v0.3-design-review.md) 在迁移 review
-完成前保留为来源记录；两者及关联 Contract/Schema/Manifest 当前仍是评审候选，不表示生产 Data
-Plane、Management、Observation 或恢复能力已实现。STD 裁剪决定和文档盘点分别见
-[`docs/00_management/std-tailoring.md`](docs/00_management/std-tailoring.md) 与
-[`docs/98_migration/current-document-inventory.md`](docs/98_migration/current-document-inventory.md)。
-V0.3 的唯一机器契约为
-[`docs/contracts/openapi/llmtier-v0.3.openapi.json`](docs/contracts/openapi/llmtier-v0.3.openapi.json)；历史 v0.2 Schema 不作为 V0.3 Data Plane authority。
+## Canonical V0.3 文档
+
+LLMTier 采用 STD `software` profile 与单服务根结构。以下文档是当前 Approved prose authority；批准文档不表示
+production Data Plane、Management、Observation、恢复能力或 Runtime Activation 已完成：
+
+- [STD 裁剪清单](docs/00_management/std-tailoring.md)
+- [V0.3 Requirements](docs/10_requirements/llmtier-v0.3-requirements.md) 与
+  [Traceability](docs/10_requirements/llmtier-v0.3-traceability.md)
+- [单服务设计](docs/30_subsystem_design/llmtier-service-design.md)
+- [Piko Data Plane](docs/60_interfaces/piko-data-plane-control.md)、
+  [Slinky Capacity/Observation](docs/60_interfaces/slinky-capacity-observation-control.md) 与
+  [Management](docs/60_interfaces/llmtier-management-control.md) interface controls
+- [V0.3 Contract Specification](docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.md)
+- [V&V Plan](docs/70_verification/plans/llmtier-v0.3-vv-plan.md) 与
+  [Contract Test Specification](docs/70_verification/specifications/llmtier-v0.3-contract-test-specification.md)
+- [Release and Operations](docs/80_operations/llmtier-v0.3-release-and-operations.md)
+
+V0.3 字段级机器契约仍唯一由
+[`docs/contracts/openapi/llmtier-v0.3.openapi.json`](docs/contracts/openapi/llmtier-v0.3.openapi.json) 定义；
+[`compatibility-manifest-v0.3.json`](docs/contracts/compatibility-manifest-v0.3.json) 保持
+`overall.runtime_activation=false`，测试源码与 fixtures 保持 executable oracle authority。五份旧 V0.3 prose
+已经逐 scope 映射并标为 Superseded，仅保留历史；详见
+[`legacy-v03-scope-mapping.md`](docs/98_migration/legacy-v03-scope-mapping.md)。迁移与批准证据位于
+[`docs/91_reviews/`](docs/91_reviews/) 和 [`docs/98_migration/`](docs/98_migration/)。
 
 ## 本地检查
 

@@ -1,15 +1,18 @@
 <!-- STD_DOCUMENT_COVER_BEGIN -->
-# LLMTier V0.3 单服务设计（STD 迁移候选）
+# LLMTier V0.3 单服务设计
 
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-service-design` |
-| Document Version | `0.3.0-draft.4` |
-| Status | `In Review` |
+| Document Version | `0.3.0` |
+| Status | `Approved` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | llmtier |
+| Reviewer | LLMTier |
+| Approver | LLMTier |
+| Approval Date | `2026-09-07` |
 | Created Date | `2026-09-06` |
 | Last Modified Date | `2026-09-07` |
 | STD Version | `0.1.0-draft.18` |
@@ -19,7 +22,7 @@
 | Migration Map Reference | none |
 | Repository | `corezilla/LLMTier` |
 | Canonical Path | `docs/30_subsystem_design/llmtier-service-design.md` |
-| Supersedes | none |
+| Supersedes | `docs/design/llmtier-v0.3-design-review.md` |
 
 > Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
@@ -28,9 +31,8 @@
 > 本文按 STD 的“单应用、单服务或单库”软件项目模型，将 LLMTier 定义为一个独立部署的
 > 模型服务；`design_level=subsystem` 表示它在 Slinky/Piko/LLMTier 协作链路中的层级，不表示
 > 本仓库拥有该跨项目系统。迁移来源为 `docs/design/llmtier-v0.3-design-review.md`。本次只修正
-> 文档分类与结构，不改变既有 authority、Scope B、接口 ID、评审结论或 activation gate。本文在
-> Migration Review 阶段只是候选；原设计继续负责尚未迁出的 residual scope，任何 authority 切换
-> 均等待独立的 canonical promotion。
+> 文档分类与结构，不改变既有 authority、Scope B、接口 ID、评审结论或 activation gate。本文已通过
+> Owner review 进入 Approved promotion candidate；原设计全部 current scope 已映射并标为 Superseded。
 
 ## 1. 目的、范围与上位输入
 

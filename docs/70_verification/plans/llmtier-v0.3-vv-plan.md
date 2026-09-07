@@ -1,15 +1,18 @@
 <!-- STD_DOCUMENT_COVER_BEGIN -->
-# LLMTier V0.3 Verification and Validation Plan（迁移候选）
+# LLMTier V0.3 Verification and Validation Plan
 
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-vv-plan` |
-| Document Version | `0.3.0-draft.1` |
-| Status | `Draft` |
+| Document Version | `0.3.0` |
+| Status | `Approved` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | llmtier |
+| Reviewer | LLMTier |
+| Approver | LLMTier |
+| Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
 | Last Modified Date | `2026-09-07` |
 | STD Version | `0.1.0-draft.18` |
@@ -28,7 +31,7 @@
 ## 1. 目标、范围与 V&V authority
 
 本计划把 `docs/qa/llm-tier-contract-qa-v0.3.md` 的策略、Gate 和 evidence boundary 迁为 STD
-`assurance.vv-plan` 候选。范围是 V0.3 的 Data Plane、Observation、Management、Registry、capacity、
+`assurance.vv-plan` Approved 实例。范围是 V0.3 的 Data Plane、Observation、Management、Registry、capacity、
 recovery、安全与 activation gate；不覆盖 V0.4 streaming/Chat，也不激活任何 runtime surface。
 
 Authority 保持分层：OpenAPI v0.3 是字段级机器契约，compatibility manifest v0.3 是 capability 与
@@ -39,10 +42,10 @@ activation 状态 authority，`tests/` 和 fixtures 是可执行 oracle，运行
 
 | 基线 | 固定对象 | 当前状态 |
 |---|---|---|
-| 迁移候选 | immutable commit `aa2638283e77bc658e98df8d40396306cad17aa2` | C0/C1 Owner ACCEPTED；consumer review 独立进行 |
+| 迁移基线 | immutable commits `962e8003712738d2cb4e3a0a38173a9fd2bdd0a1` / `e1f9b796368ec5f358e466c7e6299cc16b1bf181` | C0-C4 terminal ACCEPTED；consumer reviews ACCEPTED |
 | STD | `9841083c4d8d0ed1556bdc413d77b4567ac696b4` / `std-v0.1.0-draft.18` | source verifier 71 artifacts PASS |
-| 服务设计 | `docs/30_subsystem_design/llmtier-service-design.md` | Draft candidate |
-| 接口说明 | `docs/60_interfaces/` | Draft candidate；OpenAPI 仍为字段 authority |
+| 服务设计 | `docs/30_subsystem_design/llmtier-service-design.md` | Approved prose authority |
+| 接口说明 | `docs/60_interfaces/` | Approved prose authority；OpenAPI 仍为字段 authority |
 | 机器契约 | `docs/contracts/openapi/llmtier-v0.3.openapi.json` | Candidate；runtime 未激活 |
 | Activation | `docs/contracts/compatibility-manifest-v0.3.json` | `overall.runtime_activation=false` |
 | 可执行验证 | `tests/`、`docs/contracts/fixtures/v0.3/` | 本地静态/语义验证可执行 |
@@ -121,7 +124,7 @@ INVALID。修复后只在同一 immutable baseline 或明确的新 baseline 上�
 ## 10. Evidence package、traceability 与签署
 
 每个 evidence package 包含：commit/dirty digest、环境清单、case selection、原始命令与 exit code、日志/报告
-hash、Requirement→Design/Contract→Case→Evidence 映射、未执行项、问题与 reviewer。C2 review packet 只请求
-Migration Review verdict；Document Status、canonical promotion、RAG publication 与 Runtime Activation 分别签署。
-旧 `docs/qa/llm-tier-contract-qa-v0.3.md` 在 scope-level promotion 前继续承担历史 review ledger 与 residual
-evidence authority。
+hash、Requirement→Design/Contract→Case→Evidence 映射、未执行项、问题与 reviewer。C2 terminal verdict、
+Document Status、RAG publication 与 Runtime Activation 分别签署。旧
+`docs/qa/llm-tier-contract-qa-v0.3.md` 已逐 scope 映射并标为 Superseded，仅保留历史 review ledger；tests 与
+fixtures 继续承担 executable evidence authority。

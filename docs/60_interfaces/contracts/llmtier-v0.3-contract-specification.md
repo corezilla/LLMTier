@@ -1,15 +1,18 @@
 <!-- STD_DOCUMENT_COVER_BEGIN -->
-# LLMTier V0.3 Contract Specification（迁移候选）
+# LLMTier V0.3 Contract Specification
 
 | 文档字段 | 值 |
 |---|---|
 | Document ID | llmtier-v0.3-contract-specification |
-| Document Version | 0.3.0-draft.1 |
-| Status | Draft |
+| Document Version | 0.3.0 |
+| Status | Approved |
 | Project | LLMTier |
 | Authority | LLMTier |
 | Document Owner | LLMTier |
 | Authors | llmtier |
+| Reviewer | LLMTier |
+| Approver | LLMTier |
+| Approval Date | 2026-09-07 |
 | Created Date | 2026-09-07 |
 | Last Modified Date | 2026-09-07 |
 | STD Version | 0.1.0-draft.18 |
@@ -148,6 +151,5 @@ implementation commit、真实正负 Contract Test、Management API/UI、安全�
 capacity/fairness、Piko pinned adapter、Embeddings consumer、lost-response/restart 与 legacy-path
 removal evidence。
 
-本文保持 Draft、reviewed_commit=null、runtime_activation=false。进入 canonical promotion 前需要
-immutable project candidate commit、授权 reviewer 和独立 Document Status 决定；原 v0.3 machine
-artifacts 与 prose contract 均不删除。
+本文为 Approved contract index，实际 reviewed commit 见 sidecar；原 v0.3 machine artifacts 原位保留，
+旧 prose contracts 标为 Superseded 并保留历史。`runtime_activation=false`，本状态不授权项目 RAG publication。

@@ -1,8 +1,15 @@
 # LLMTier 三方契约 QA v0.3
 
+> **Document Status: Superseded（2026-09-07）** 当前 V&V/traceability prose authority 已迁至
+> [`llmtier-v0.3-vv-plan`](../70_verification/plans/llmtier-v0.3-vv-plan.md)、
+> [`llmtier-v0.3-contract-test-specification`](../70_verification/specifications/llmtier-v0.3-contract-test-specification.md)
+> 和 [`llmtier-v0.3-traceability`](../10_requirements/llmtier-v0.3-traceability.md)。测试源码与 fixtures
+> 继续是 executable oracle；本文件仅保留历史 review ledger。逐 scope disposition 见
+> [`legacy-v03-scope-mapping.md`](../98_migration/legacy-v03-scope-mapping.md)。
+
 Last Updated: 2026-09-06
 
-Status: Candidate Amendment 4；正在处理 Slinky `S-20260906-e6490d18c453`，Scope B 已冻结
+Status: Superseded；历史 QA/review ledger，Runtime Activation 未授权
 
 ## 1. Slinky amendment traceability
 

@@ -2,18 +2,18 @@
   "schema_version": "std-review-decision.v1",
   "review_id": "llmtier-std-c1-interface-contract-review-decision",
   "packet_id": "llmtier-std-c1-interface-contract-review",
-  "verdict": "PENDING",
+  "verdict": "ACCEPTED",
   "document_status_before": "draft",
-  "requested_document_status_after": "unchanged",
+  "requested_document_status_after": "accepted",
   "runtime_activation_requested": false,
   "runtime_activation_authority": null,
-  "reviewers": [],
-  "decided_at": null,
-  "decision_commit": null,
+  "reviewers": ["llmtier", "piko", "slinky"],
+  "decided_at": "2026-09-07T22:47:53+08:00",
+  "decision_commit": "e1f9b796368ec5f358e466c7e6299cc16b1bf181",
   "conditions": [
-    "Freeze an immutable LLMTier candidate commit before final review.",
-    "Preserve the auditable Piko ACCEPTED verdict and obtain Slinky ACCEPTED on the immutable draft.2 clarification.",
-    "Keep canonical promotion, RAG publication, and runtime activation behind separate gates."
+    "Preserve Piko verdict P-20260907-e009921eda0a and Slinky verdict S-20260907-45938693e578 as consumer-boundary evidence.",
+    "Canonical promotion and RAG publication remain separate repository gates.",
+    "Runtime Activation remains false; production and external evidence remain NOT_RUN or BLOCKED."
   ],
-  "rationale": "LLMTier Owner and Piko accept their respective C1 scopes; Slinky returned SLK-BOUNDARY-001 on the original immutable input, so the decision remains pending until the draft.2 clarification is frozen and accepted."
+  "rationale": "LLMTier Owner accepts the C1 provider, management and machine-contract boundaries. Piko accepted its immutable consumer boundary, and Slinky independently verified and accepted the exact draft.2 blob in e1f9b79, closing SLK-BOUNDARY-001 while preserving separate upstream selection and per-request LLMTier execution authority."
 }
