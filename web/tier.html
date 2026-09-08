@@ -1,0 +1,2045 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LLM Tier Server</title>
+    <style>
+      :root {
+        --bg: #f8fafc;
+        --panel: #ffffff;
+        --line: #dbe4ee;
+        --text: #1f2937;
+        --muted: #6b7280;
+        --running: #60a5fa;
+        --warn: #d97706;
+        --danger: #dc2626;
+        --disabled: #6b7280;
+        --exhausted: #9ca3af;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--text);
+        background: var(--bg);
+      }
+      .app {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+      .header h1 {
+        margin: 0;
+        font-size: 24px;
+      }
+      .tier-label-summary {
+        display: block;
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 700;
+        margin-top: 4px;
+      }
+      .home-link {
+        margin-right: 10px;
+        color: #475569;
+        text-decoration: none;
+      }
+      .controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .controls input,
+      .controls button,
+      .weight-input {
+        font: inherit;
+      }
+      .controls input {
+        width: 280px;
+        padding: 8px 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+      }
+      .controls button,
+      .mini-button {
+        border: 1px solid #cbd5e1;
+        background: #fff;
+        color: #334155;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      .controls button {
+        padding: 8px 12px;
+        font-weight: 600;
+      }
+      .controls button:disabled,
+      .mini-button:disabled,
+      .weight-input:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 14px 16px;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+      }
+      #tierRoot[data-stale="true"]::before {
+        content: attr(data-stale-message);
+        display: block;
+        margin-bottom: 16px;
+        padding: 10px 12px;
+        border: 1px solid #f59e0b;
+        border-radius: 10px;
+        color: #92400e;
+        background: #fffbeb;
+        font-weight: 600;
+      }
+      .summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+      .summary-item {
+        color: #475569;
+      }
+      .summary-item b {
+        color: var(--text);
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-weight: 700;
+      }
+      .badge.online {
+        background: #dcfce7;
+        color: #166534;
+      }
+      .badge.offline {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        padding: 12px 10px;
+        border-top: 1px solid #eef2f7;
+        vertical-align: middle;
+      }
+      th {
+        text-align: left;
+        color: #475569;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+      tr:first-child th,
+      tr:first-child td {
+        border-top: 0;
+      }
+      .tier-label {
+        width: 100px;
+        font-weight: 700;
+      }
+      .backend-name {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        font-weight: 600;
+      }
+      .backend-model-label {
+        display: inline-flex;
+        align-items: center;
+        min-width: 0;
+        gap: 0;
+      }
+      .model-display {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        max-width: 260px;
+        color: var(--text);
+        cursor: pointer;
+        overflow-wrap: anywhere;
+      }
+      .model-display:hover {
+        color: var(--accent);
+      }
+      .model-display[hidden],
+      .model-select[hidden] {
+        display: none !important;
+      }
+      .model-select {
+        max-width: 220px;
+        min-width: 150px;
+        padding: 4px 8px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        color: var(--text);
+        font: inherit;
+        font-weight: 600;
+      }
+      .type-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 56px;
+        padding: 3px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .type-pill.cli { background: #eef6ff; color: #2563eb; }
+      .type-pill.api { background: #ecfdf5; color: #16a34a; }
+      .type-pill.mlp { background: #fff7ed; color: #c2410c; }
+      .usage-cell {
+        min-width: 260px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.35;
+      }
+      .usage-head {
+        min-width: 260px;
+      }
+      .usage-head-labels {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0;
+        text-transform: none;
+      }
+      .usage-rings {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        align-items: center;
+      }
+      .usage-ring-item {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .usage-ring {
+        --usage-percent: 0;
+        --usage-color: #93c5fd;
+        width: 40px;
+        height: 40px;
+        flex: 0 0 40px;
+        border-radius: 50%;
+        background: conic-gradient(var(--usage-color) calc(var(--usage-percent) * 1%), #e5e7eb 0);
+        display: grid;
+        place-items: center;
+        position: relative;
+        font-variant-numeric: tabular-nums;
+      }
+      .usage-ring.usage-normal { --usage-color: #93c5fd; }
+      .usage-ring.usage-watch { --usage-color: #38bdf8; }
+      .usage-ring.usage-warn { --usage-color: #facc15; }
+      .usage-ring.usage-high { --usage-color: #fb923c; }
+      .usage-ring.usage-critical { --usage-color: #ef4444; }
+      .usage-ring::after {
+        content: "";
+        position: absolute;
+        width: 29px;
+        height: 29px;
+        border-radius: 50%;
+        background: #fff;
+      }
+      .usage-ring-value {
+        position: relative;
+        z-index: 1;
+        color: var(--text);
+        font-weight: 700;
+        font-size: 10px;
+        line-height: 1;
+      }
+      .usage-ring-reset {
+        color: var(--text);
+        font-size: 11px;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      .usage-local-mark {
+        width: 40px;
+        flex: 0 0 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--muted);
+        font-size: 24px;
+        line-height: 1;
+      }
+      .usage-unmetered {
+        width: 40px;
+        flex: 0 0 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--muted);
+        font-size: 20px;
+        font-weight: 700;
+        line-height: 1;
+      }
+      .usage-status {
+        color: var(--muted);
+        font-weight: 600;
+      }
+      .account-usage-cell {
+        min-width: 86px;
+      }
+      .usage-stack {
+        --usage-outer-percent: 0;
+        --usage-middle-percent: 0;
+        --usage-inner-percent: 0;
+        --usage-outer-color: #93c5fd;
+        --usage-middle-color: #93c5fd;
+        --usage-inner-color: #93c5fd;
+        width: 64px;
+        height: 64px;
+        display: grid;
+        place-items: center;
+        position: relative;
+        font-variant-numeric: tabular-nums;
+      }
+      .usage-stack-ring {
+        position: absolute;
+        border-radius: 50%;
+        background: conic-gradient(var(--ring-color) calc(var(--ring-percent) * 1%), #e5e7eb 0);
+        -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - var(--ring-width)), #000 0);
+        mask: radial-gradient(farthest-side, transparent calc(100% - var(--ring-width)), #000 0);
+      }
+      .usage-stack-ring.outer {
+        --ring-color: var(--usage-outer-color);
+        --ring-percent: var(--usage-outer-percent);
+        --ring-width: 6px;
+        width: 64px;
+        height: 64px;
+      }
+      .usage-stack-ring.middle {
+        --ring-color: var(--usage-middle-color);
+        --ring-percent: var(--usage-middle-percent);
+        --ring-width: 6px;
+        width: 48px;
+        height: 48px;
+      }
+      .usage-stack-ring.inner {
+        --ring-color: var(--usage-inner-color);
+        --ring-percent: var(--usage-inner-percent);
+        --ring-width: 6px;
+        width: 32px;
+        height: 32px;
+      }
+      .usage-stack-value {
+        position: relative;
+        z-index: 1;
+        color: var(--text);
+        font-size: 10px;
+        font-weight: 800;
+        line-height: 1;
+      }
+      .usage-stack-value.empty {
+        color: transparent;
+      }
+      .usage-stack-mark {
+        width: 64px;
+        height: 64px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--muted);
+        font-size: 24px;
+        font-weight: 800;
+        line-height: 1;
+      }
+      .state-running { color: var(--running); }
+      .state-disabled { color: var(--disabled); }
+      .state-probing { color: var(--warn); }
+      .state-error { color: var(--danger); }
+      .state-unreachable { color: var(--danger); }
+      .state-exhausted { color: var(--exhausted); }
+      .state-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        font-size: 14px;
+        font-weight: 800;
+      }
+      .state-icon.running { color: var(--running); }
+      .state-icon.disabled { color: var(--disabled); }
+      .state-icon.probing {
+        color: var(--warn);
+        animation: pulse 0.9s ease-in-out infinite;
+      }
+      .state-icon.unreachable { color: var(--danger); }
+      .state-icon.error { color: var(--danger); }
+      .state-icon.exhausted { color: var(--exhausted); }
+      @keyframes pulse {
+        0%, 100% { transform: scale(0.82); opacity: 0.55; }
+        50% { transform: scale(1.12); opacity: 1; }
+      }
+      .weight-input {
+        width: 46px;
+        padding: 5px 6px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        text-align: right;
+      }
+      .weight-display {
+        min-width: 46px;
+        padding: 5px 6px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--text);
+        cursor: pointer;
+        font: inherit;
+        font-variant-numeric: tabular-nums;
+        text-align: right;
+      }
+      .weight-display:hover,
+      .weight-display:focus {
+        border-color: var(--line);
+        background: #f8fafc;
+        outline: none;
+      }
+      .concurrency-input,
+      .concurrency-display {
+        min-width: 0;
+        width: auto;
+        text-align: left;
+      }
+      .weight-input[hidden],
+      .weight-display[hidden] {
+        display: none;
+      }
+      .num {
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+      }
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: nowrap;
+      }
+      .mini-button {
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .mini-button svg {
+        width: 15px;
+        height: 15px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .row-unreachable td { background: #fff5f5; }
+      .row-exhausted td { background: #f8fafc; }
+      .row-disabled td { background: #f8fafc; }
+      .section-title {
+        margin: 22px 0 10px;
+        font-size: 16px;
+        font-weight: 700;
+      }
+      .stats-table th,
+      .stats-table td {
+        padding: 10px 8px;
+      }
+      .stats-table tbody td {
+        font-size: 13px;
+        white-space: nowrap;
+      }
+      .stats-tier-toggle {
+        border: 0;
+        background: transparent;
+        color: var(--text);
+        cursor: pointer;
+        font: inherit;
+        font-weight: 700;
+        padding: 0;
+      }
+      .stats-tier-toggle:hover,
+      .stats-tier-toggle:focus {
+        color: #0f172a;
+        outline: none;
+      }
+      .stats-backend-row td {
+        background: #f8fafc;
+        color: #475569;
+        font-size: 12px;
+      }
+      .stats-backend-name {
+        display: inline-block;
+        max-width: 220px;
+        overflow: hidden;
+        padding-left: 18px;
+        text-overflow: ellipsis;
+        vertical-align: middle;
+      }
+      .error-cell {
+        color: #7f1d1d;
+        font-size: 12px;
+      }
+      .error-time-cell {
+        min-width: 130px;
+        white-space: nowrap;
+      }
+      .empty {
+        color: var(--muted);
+        font-style: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <div class="header">
+        <h1>
+          <a id="tierHomeLink" class="home-link" href="/dashboard/">Home</a>LLM Tier Server
+          <small class="tier-label-summary">{{SLINKY_VERSION}}</small>
+        </h1>
+        <div class="controls">
+          <button id="tierRefreshBtn" type="button">Refresh</button>
+          <button id="tierReloadUsageBtn" type="button">Reload Usage Credentials</button>
+          <button id="tierLoadConfigBtn" type="button">Load Config</button>
+          <button id="tierSaveConfigBtn" type="button">Save Config</button>
+        </div>
+      </div>
+
+      <div id="tierRoot" class="panel"></div>
+    </div>
+
+    <script>
+    const refreshBtn = document.getElementById("tierRefreshBtn");
+    const reloadUsageBtn = document.getElementById("tierReloadUsageBtn");
+    const loadConfigBtn = document.getElementById("tierLoadConfigBtn");
+    const saveConfigBtn = document.getElementById("tierSaveConfigBtn");
+    const root = document.getElementById("tierRoot");
+    const homeLink = document.getElementById("tierHomeLink");
+    let autoProbeRefreshTimer = null;
+    const pendingBackendUpdates = new Set();
+    const expandedStatsTiers = new Set();
+    const sectionHtmlCache = new Map();
+    let rootInitialized = false;
+    let tierStructureRendered = false;
+
+    // Purpose:
+    // - Resolve the Tier API base from the Tier page's own HTTP origin.
+    // Inputs:
+    // - None; reads window.location.origin.
+    // Outputs:
+    // - Current HTTP origin, or an empty string so relative requests fail visibly outside HTTP.
+    function defaultServerUrl() {
+      const origin = String(window.location.origin || "").trim();
+      if (origin && origin !== "null") return origin;
+      return "";
+    }
+
+    function baseUrl() {
+      return defaultServerUrl().replace(/\/+$/, "");
+    }
+
+    function esc(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function formatCount(value) {
+      const n = Number(value || 0);
+      return Number.isFinite(n) ? String(Math.round(n)) : "0";
+    }
+
+    function formatCompactCount(value) {
+      const n = Number(value || 0);
+      if (!Number.isFinite(n)) return "0";
+      if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+      if (Math.abs(n) >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+      return String(Math.round(n));
+    }
+
+    function formatContextTokens(value) {
+      const n = Number(value || 0);
+      if (!Number.isFinite(n) || n <= 0) return "-";
+      if (n >= 1_000_000) return `${Math.round(n / 1_000_000)}M`;
+      if (n >= 1_000) return `${Math.round(n / 1_000)}K`;
+      return String(Math.round(n));
+    }
+
+    function formatIsoTime(value) {
+      const text = String(value || "").trim();
+      if (!text) return "-";
+      const date = new Date(text);
+      if (Number.isNaN(date.getTime())) return text;
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}:${String(date.getSeconds()).padStart(2, "0")}`;
+    }
+
+    function formatShortIsoTime(value) {
+      const text = String(value || "").trim();
+      if (!text) return "-";
+      const date = new Date(text);
+      if (Number.isNaN(date.getTime())) return text;
+      return `${String(date.getFullYear()).slice(-2)}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}:${String(date.getSeconds()).padStart(2, "0")}`;
+    }
+
+    function formatUptimeSeconds(seconds) {
+      const total = Math.max(0, Math.floor(Number(seconds || 0)));
+      const h = Math.floor(total / 3600);
+      const m = Math.floor((total % 3600) / 60);
+      const s = total % 60;
+      return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    }
+
+    function stateIcon(state) {
+      const icon = stateIconText(state);
+      return `<span class="state-icon ${esc(state)}" title="${esc(state)}" aria-label="${esc(state)}">${esc(icon)}</span>`;
+    }
+
+    // Purpose:
+    // - Resolve one stable visible icon for a Backend runtime state.
+    // Inputs:
+    // - Runtime state string.
+    // Outputs:
+    // - Single-character state marker used by initial render and patch refresh.
+    function stateIconText(state) {
+      return {
+        running: "▶",
+        disabled: "●",
+        probing: "◌",
+        error: "×",
+        unreachable: "✕",
+        exhausted: "!",
+      }[state] || "●";
+    }
+
+    function actionIcon(kind) {
+      const icons = {
+        disable: `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10"></path><path d="M13 3L3 13"></path></svg>`,
+        enable: `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8l3 3 7-7"></path></svg>`,
+        probe: `<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"></circle><path d="M10.5 10.5L13 13"></path></svg>`,
+        select: `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h10"></path><path d="M9 4l4 4-4 4"></path></svg>`,
+      };
+      return icons[kind] || icons.select;
+    }
+
+    function apiPath(path) {
+      if (path.startsWith("/stats")) return `/api/llm-stats${path.slice("/stats".length)}`;
+      return `/api/tier${path}`;
+    }
+
+    async function fetchJson(path) {
+      const response = await fetch(`${baseUrl()}${apiPath(path)}`, { cache: "no-store" });
+      const text = await response.text();
+      let data = {};
+      try { data = text ? JSON.parse(text) : {}; } catch { data = { ok: false, error: text || "invalid_json" }; }
+      if (!response.ok || data.ok === false) {
+        throw new Error(String(data.error || data.message || `HTTP ${response.status}`));
+      }
+      return data;
+    }
+
+    async function postJson(path, body) {
+      const response = await fetch(`${baseUrl()}${apiPath(path)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify(body || {}),
+      });
+      const text = await response.text();
+      let data = {};
+      try { data = text ? JSON.parse(text) : {}; } catch { data = { ok: false, error: text || "invalid_json" }; }
+      if (!response.ok || data.ok === false) {
+        throw new Error(String(data.error || data.message || `HTTP ${response.status}`));
+      }
+      return data;
+    }
+
+    function resolveHomeUrl() {
+      const fallback = new URL(window.location.href);
+      fallback.pathname = "/dashboard/";
+      fallback.search = "";
+      fallback.hash = "";
+      return fallback.toString();
+    }
+
+    function renderSummaryShell() {
+      return `<div class="summary">
+        <span class="badge offline" data-summary-field="status">Offline</span>
+        <span class="summary-item">Jobs: <b data-summary-field="jobs-running">…</b> running / <b data-summary-field="jobs-pending">…</b> pending</span>
+        <span class="summary-item">Calls: <b data-summary-field="calls">…</b></span>
+        <span class="summary-item">Tokens: <b data-summary-field="tokens">…</b></span>
+        <span class="summary-item">Exhausted: <b data-summary-field="exhausted">0</b></span>
+        <span class="summary-item">Upshift: <b data-summary-field="upshift">0</b></span>
+        <span class="summary-item">Started: <b data-summary-field="started">…</b></span>
+        <span class="summary-item">Uptime: <b data-summary-field="uptime">…</b></span>
+      </div>`;
+    }
+
+    function setStableText(element, value) {
+      if (!element) return;
+      const nextValue = String(value ?? "");
+      if (element.textContent === nextValue) return;
+      element.textContent = nextValue;
+    }
+
+    function updateSummary(runtime) {
+      ensureRootSections();
+      const section = document.getElementById("tierSummarySection");
+      if (!section) return;
+      if (!section.querySelector("[data-summary-field='status']")) {
+        section.innerHTML = renderSummaryShell();
+      }
+      const s = runtime.summary || {};
+      const jobs = runtime.jobs || {};
+      const badge = section.querySelector("[data-summary-field='status']");
+      const running = Boolean(runtime.running);
+      if (badge) {
+        badge.className = `badge ${running ? "online" : "offline"}`;
+        setStableText(badge, running ? "Online" : "Offline");
+      }
+      const callsText = Object.prototype.hasOwnProperty.call(s, "total_calls") ? formatCount(s.total_calls || 0) : "…";
+      const tokensText = Object.prototype.hasOwnProperty.call(s, "total_tokens") ? formatCompactCount(s.total_tokens || 0) : "…";
+      setStableText(section.querySelector("[data-summary-field='jobs-running']"), formatCount(jobs.running || 0));
+      setStableText(section.querySelector("[data-summary-field='jobs-pending']"), formatCount(jobs.pending || 0));
+      setStableText(section.querySelector("[data-summary-field='calls']"), callsText);
+      setStableText(section.querySelector("[data-summary-field='tokens']"), tokensText);
+      setStableText(section.querySelector("[data-summary-field='exhausted']"), formatCount(s.exhausted_count || 0));
+      setStableText(section.querySelector("[data-summary-field='upshift']"), formatCount(s.upshift_count || 0));
+      setStableText(section.querySelector("[data-summary-field='started']"), formatIsoTime(runtime.started_at || ""));
+      setStableText(section.querySelector("[data-summary-field='uptime']"), formatUptimeSeconds(runtime.uptime_seconds || 0));
+    }
+
+    function activeBackendConcurrency(models) {
+      let running = 0;
+      for (const m of models) {
+        if (!Boolean(m.active)) continue;
+        running += Number(m.running || m.load || 0) || 0;
+      }
+      return { running };
+    }
+
+    function renderTierLabel(tierName, models) {
+      const summary = activeBackendConcurrency(models);
+      return `<div>${esc(tierName)}</div><span class="tier-label-summary" data-tier-running="${esc(tierName)}">${formatCount(summary.running)} running</span>`;
+    }
+
+    function backendModelPrefix(m) {
+      const type = String(m.backend_type || "").trim().toUpperCase();
+      const account = String(m.account || "").trim();
+      const visibleAccount = account || "<missing-account>";
+      if (type === "MLP") return `agent:${visibleAccount}/`;
+      if (type === "CLI") return `cli: ${visibleAccount}/`;
+      return `${visibleAccount}/`;
+    }
+
+    function backendModelDisplayName(m) {
+      const account = String(m.account || "").trim();
+      const type = String(m.backend_type || "").trim().toUpperCase();
+      const backend = String(m.backend || "").trim();
+      const model = String(m.model_name || m.model || m.model_key || "").trim();
+      if (account && model.startsWith(`${account}/`)) return model.slice(account.length + 1);
+      if (!model && backend.includes("/")) return backend.split("/").slice(1).join("/");
+      if (model.includes("/")) return model.split("/").slice(1).join("/");
+      return model;
+    }
+
+    function renderBackendName(m) {
+      const visibleLabel = `${backendModelPrefix(m)}${backendModelDisplayName(m)}`;
+      return `<div class="backend-name">${stateIcon(String(m.state || "unreachable"))}<span class="backend-model-label" data-backend-visible-label="${esc(visibleLabel)}"><span>${esc(backendModelPrefix(m))}</span>${renderModelControl(m)}</span></div>`;
+    }
+
+    function renderModelControl(m) {
+      const profileModels = Array.isArray(m.provider_profile_models) ? m.provider_profile_models : [];
+      if (!profileModels.length) return `<span>${esc(backendModelDisplayName(m))}</span>`;
+      const currentKey = String(m.model_key || "");
+      const currentName = String(m.model_name || "");
+      const currentDisplayName = backendModelDisplayName(m);
+      const hasCurrent = profileModels.some((item) => String(item.model_key || "") === currentKey || String(item.model_name || "") === currentName);
+      const fallback = hasCurrent ? "" : `<option value="${esc(currentKey)}" data-name="${esc(currentName)}" selected>${esc(currentDisplayName || currentName || currentKey || "-")}</option>`;
+      const options = profileModels.map((item) => {
+        const key = String(item.model_key || "");
+        const name = String(item.model_name || key);
+        const selected = key === currentKey || name === currentName;
+        return `<option value="${esc(key)}" data-name="${esc(name)}" ${selected ? "selected" : ""}>${esc(name)}</option>`;
+      }).join("");
+      return `<span class="model-display"
+        data-model-display="1"
+        data-tier="${esc(m.tier || "")}"
+        data-backend="${esc(m.backend || "")}"
+        data-account="${esc(m.account || "")}"
+        data-model="${esc(m.model_name || "")}"
+        title="Click to change model"
+      >${esc(currentDisplayName || currentName || currentKey || "-")}</span><select class="model-select"
+        data-model-select="1"
+        data-tier="${esc(m.tier || "")}"
+        data-backend="${esc(m.backend || "")}"
+        data-account="${esc(m.account || "")}"
+        data-old-model="${esc(m.model_name || "")}"
+        data-current-key="${esc(m.model_key || "")}"
+        title="Model"
+        aria-label="Model"
+        hidden
+      >${fallback}${options}</select>`;
+    }
+
+    function renderTypePill(m) {
+      const type = String(m.backend_type || "-");
+      return `<span class="type-pill ${esc(type.toLowerCase())}">${esc(type)}</span>`;
+    }
+
+    function usageClass(percent) {
+      if (!Number.isFinite(percent)) return "usage-normal";
+      if (percent >= 95) return "usage-critical";
+      if (percent >= 80) return "usage-high";
+      if (percent >= 60) return "usage-warn";
+      if (percent >= 30) return "usage-watch";
+      return "usage-normal";
+    }
+
+    function usageColor(percent) {
+      const cls = usageClass(percent);
+      if (cls === "usage-critical") return "#ef4444";
+      if (cls === "usage-high") return "#fb923c";
+      if (cls === "usage-warn") return "#facc15";
+      if (cls === "usage-watch") return "#38bdf8";
+      return "#93c5fd";
+    }
+
+    function usageWindowMap(usage) {
+      const rawWindows = Array.isArray(usage?.windows) ? usage.windows : [];
+      const windows = new Map(rawWindows.map((w) => [String(w.name || "").trim().toLowerCase(), w]));
+      if (!windows.size && usage?.window) {
+        windows.set(String(usage.window || "").trim().toLowerCase(), usage);
+      }
+      return windows;
+    }
+
+    function formatWindowReset(name, value) {
+      const text = String(value || "").trim();
+      const match = text.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
+      if (!match) return text || "-";
+      if (name === "5hour") return `${match[4]}:${match[5]}`;
+      return `${match[3]} ${match[4]}`;
+    }
+
+    function usageWindowPercent(row) {
+      const used = Number(row?.used);
+      const quota = Number(row?.quota);
+      const percent = Number(row?.percent);
+      if (Number.isFinite(percent)) return Math.max(0, Math.min(100, percent));
+      if (Number.isFinite(used) && Number.isFinite(quota) && quota > 0) {
+        return Math.max(0, Math.min(100, (used / quota) * 100));
+      }
+      return 0;
+    }
+
+    function isLocalUsage(usage, fallbackProvider = "") {
+      const localProviders = new Set(["local", "llama", "llama_cpp", "llamacpp", "llama.cpp", "ollama", "mlexp"]);
+      const usageProvider = String(usage?.provider || "").trim().toLowerCase();
+      const provider = String(fallbackProvider || "").trim().toLowerCase();
+      return localProviders.has(usageProvider) || localProviders.has(provider);
+    }
+
+    function renderAccountProviderUsage(account) {
+      const usage = account.provider_usage || {};
+      const usageStatus = String(usage.status || "").trim().toLowerCase();
+      if (usageStatus === "unlimited") {
+        return `<span class="usage-stack-mark" title="Unlimited quota">∞</span>`;
+      }
+      if (isLocalUsage(usage, account.provider)) {
+        return `<span class="usage-stack-mark" title="Local model">∞</span>`;
+      }
+      const windows = usageWindowMap(usage);
+      const usageError = String(usage.error || "").trim();
+      const hasRefreshedUsage = ["ok", "estimated"].includes(usageStatus) && windows.size > 0 && !usageError;
+      if (!hasRefreshedUsage) {
+        const title = usageError || (usageStatus === "not_refreshed" ? "Usage not refreshed" : "Usage unavailable");
+        const text = usageStatus === "not_refreshed" ? "…" : "!";
+        return `<span class="usage-stack-mark" title="${esc(title)}">${esc(text)}</span>`;
+      }
+      const outer = windows.get("5hour") || null;
+      const middle = windows.get("weekly") || null;
+      const inner = windows.get("monthly") || null;
+      const titleForWindow = (name, row) => {
+        if (!row) return `${name}: no quota limit`;
+        const percent = usageWindowPercent(row);
+        const reset = formatWindowReset(name, row.reset_at || "");
+        return `${name}: ${Math.round(percent)}%, reset ${reset}`;
+      };
+      const title = [
+        titleForWindow("5hour", outer),
+        titleForWindow("weekly", middle),
+        titleForWindow("monthly", inner),
+      ].join(" | ");
+      const center = inner ? "" : "∞";
+      return `<div class="usage-stack" title="${esc(title)}"
+        style="--usage-outer-percent:${esc(outer ? usageWindowPercent(outer) : 0)};
+          --usage-middle-percent:${esc(middle ? usageWindowPercent(middle) : 0)};
+          --usage-inner-percent:${esc(inner ? usageWindowPercent(inner) : 0)};
+          --usage-outer-color:${esc(usageColor(outer ? usageWindowPercent(outer) : 0))};
+          --usage-middle-color:${esc(usageColor(middle ? usageWindowPercent(middle) : 0))};
+          --usage-inner-color:${esc(usageColor(inner ? usageWindowPercent(inner) : 0))};">
+        <span class="usage-stack-ring outer"></span>
+        <span class="usage-stack-ring middle"></span>
+        <span class="usage-stack-ring inner"></span>
+        <span class="usage-stack-value${center ? "" : " empty"}">${esc(center || "0")}</span>
+      </div>`;
+    }
+
+    function renderProviderUsage(m) {
+      const usage = m.provider_usage || {};
+      const usageStatus = String(usage.status || "").trim().toLowerCase();
+      if (usageStatus === "unlimited") {
+        return `<div class="usage-cell" title="Unlimited quota">
+          <div class="usage-rings">
+            <div></div>
+            <div class="usage-ring-item"><span class="usage-local-mark">♾️</span></div>
+            <div></div>
+          </div>
+        </div>`;
+      }
+      const backend = String(m.backend || "").trim().toLowerCase();
+      const modelName = String(m.model_name || "").trim().toLowerCase();
+      const modelKey = String(m.model_key || "").trim().toLowerCase();
+      const isLocalModel = isLocalUsage(usage, backend)
+        || modelName.startsWith("ollama:")
+        || modelName.startsWith("ollama/")
+        || modelKey.startsWith("ollama:")
+        || modelKey.startsWith("ollama/");
+      if (isLocalModel) {
+        return `<div class="usage-cell" title="Local model">
+          <div class="usage-rings">
+            <div></div>
+            <div class="usage-ring-item"><span class="usage-local-mark">♾️</span></div>
+            <div></div>
+          </div>
+        </div>`;
+      }
+      const windows = usageWindowMap(usage);
+      const usageError = String(usage.error || "").trim();
+      const hasRefreshedUsage = ["ok", "estimated"].includes(usageStatus) && windows.size > 0 && !usageError;
+      const renderWindow = (name) => {
+        const row = windows.get(name) || null;
+        if (!row) {
+          if (hasRefreshedUsage) {
+            return `<div class="usage-ring-item" title="No quota limit">
+              <span class="usage-unmetered">∞</span>
+            </div>`;
+          }
+          const title = usageError || (usageStatus === "not_refreshed" ? "Usage not refreshed" : "Usage unavailable");
+          const text = usageStatus === "not_refreshed" ? "…" : "!";
+          return `<div class="usage-ring-item" title="${esc(title)}">
+            <span class="usage-status">${esc(text)}</span>
+          </div>`;
+        }
+        const used = Number(row.used);
+        const quota = Number(row.quota);
+        const ringPercent = usageWindowPercent(row);
+        const resetText = formatWindowReset(name, row.reset_at || "");
+        const hasNumericUsage = (Number.isFinite(used) && Number.isFinite(quota) && quota > 0)
+          || Number.isFinite(Number(row.percent))
+          || Number.isFinite(used);
+        if (!hasNumericUsage && usageError) {
+          return `<div class="usage-ring-item" title="${esc(usageError)}">
+            <span class="usage-status">!</span>
+          </div>`;
+        }
+        let value = "-";
+        let title = "";
+        if (Number.isFinite(used) && Number.isFinite(quota) && quota > 0) {
+          value = `${Math.round(ringPercent)}%`;
+          title = `${formatCompactCount(used)} / ${formatCompactCount(quota)}`;
+        } else if (Number.isFinite(Number(row.percent))) {
+          value = `${Math.round(ringPercent)}%`;
+          title = value;
+        } else if (Number.isFinite(used)) {
+          title = formatCompactCount(used);
+        }
+        return `<div class="usage-ring-item" title="${esc(title)}">
+          <div class="usage-ring ${usageClass(ringPercent)}" style="--usage-percent:${esc(ringPercent)}">
+            <span class="usage-ring-value">${esc(value)}</span>
+          </div>
+          <div class="usage-ring-reset">${esc(resetText)}</div>
+        </div>`;
+      };
+      return `<div class="usage-cell">
+        <div class="usage-rings">
+          ${renderWindow("5hour")}
+          ${renderWindow("weekly")}
+          ${renderWindow("monthly")}
+        </div>
+      </div>`;
+    }
+
+    function renderWeightInput(m) {
+      const value = Math.max(1, Math.round(Number(m.weight || 1)));
+      return `<button class="weight-display"
+        type="button"
+        data-weight-display="1"
+        data-tier="${esc(m.tier || "")}"
+        data-backend="${esc(m.backend || "")}"
+        data-account="${esc(m.account || "")}"
+        data-model="${esc(m.model_name || "")}"
+      >${esc(value)}</button><input class="weight-input"
+        type="number"
+        min="1"
+        step="1"
+        value="${esc(value)}"
+        hidden
+        data-weight-input="1"
+        data-tier="${esc(m.tier || "")}"
+        data-backend="${esc(m.backend || "")}"
+        data-account="${esc(m.account || "")}"
+        data-model="${esc(m.model_name || "")}"
+      />`;
+    }
+
+    function renderAccountConcurrencyInput(account) {
+      const value = Math.max(1, Math.round(Number(account.max_concurrent_requests || 1)));
+      return `<button class="weight-display concurrency-display"
+        type="button"
+        data-concurrency-display="1"
+        data-account="${esc(account.account || "")}"
+      >${esc(value)}</button><input class="weight-input concurrency-input"
+        type="number"
+        min="1"
+        step="1"
+        value="${esc(value)}"
+        hidden
+        data-concurrency-input="1"
+        data-account="${esc(account.account || "")}"
+      />`;
+    }
+
+    function renderAdminButton(m) {
+      const enabled = Boolean(m.enabled);
+      const endpoint = enabled ? "/backend/disable" : "/backend/enable";
+      const icon = enabled ? "disable" : "enable";
+      const title = enabled ? "Disable" : "Enable";
+      const cls = enabled ? "mini-button admin-disable" : "mini-button admin-enable";
+      return `<button type="button"
+        class="${cls}"
+        data-admin-action="1"
+        data-endpoint="${esc(endpoint)}"
+        data-tier="${esc(m.tier || "")}"
+        data-backend="${esc(m.backend || "")}"
+        data-account="${esc(m.account || "")}"
+        data-model="${esc(m.model_name || "")}"
+        title="${esc(title)}"
+        aria-label="${esc(title)}"
+      >${actionIcon(icon)}</button>`;
+    }
+
+    function renderProbeButton(m) {
+      const state = String(m.state || "unreachable");
+      if (!Boolean(m.enabled) || ["probing"].includes(state)) {
+        return `<button type="button"
+          class="mini-button backend-probe-button"
+          data-tier="${esc(m.tier || "")}"
+          data-backend="${esc(m.backend || "")}"
+          data-account="${esc(m.account || "")}"
+          data-model="${esc(m.model_name || "")}"
+          title="Probe"
+          aria-label="Probe"
+          disabled
+        >${actionIcon("probe")}</button>`;
+      }
+      return `<button type="button"
+        class="mini-button backend-probe-button"
+        data-tier="${esc(m.tier || "")}"
+        data-backend="${esc(m.backend || "")}"
+        data-account="${esc(m.account || "")}"
+        data-model="${esc(m.model_name || "")}"
+        title="Probe"
+        aria-label="Probe"
+      >${actionIcon("probe")}</button>`;
+    }
+
+    function renderMainTable(runtime) {
+      const tiers = runtime.tiers || {};
+      const order = ["Senior", "Junior", "Worker", "Associate", "Engineer", "Executor"];
+      let rows = "";
+      for (const tierName of order) {
+        const models = Array.isArray(tiers[tierName]) ? tiers[tierName] : [];
+        if (!models.length) continue;
+        let first = true;
+        for (const m of models) {
+          const state = String(m.state || "unreachable");
+          rows += `<tr class="row-${esc(state)}"
+            data-runtime-backend-row="1"
+            data-tier="${esc(tierName)}"
+            data-backend="${esc(m.backend || "")}"
+            data-account="${esc(m.account || "")}"
+            data-model="${esc(m.model_name || "")}">
+            <td class="tier-label">${first ? renderTierLabel(tierName, models) : ""}</td>
+            <td>${renderBackendName(m)}</td>
+            <td>${renderTypePill(m)}</td>
+            <td class="num">${renderWeightInput(m)}</td>
+            <td class="num">${formatContextTokens(m.max_context_tokens || 0)} / ${formatContextTokens(m.max_output_tokens || m.reserved_completion_tokens || 0)}</td>
+            <td data-runtime-field="usage">${renderProviderUsage(m)}</td>
+            <td class="num" data-runtime-field="running">${formatCount(m.running || m.load || 0)}</td>
+            <td><div class="actions">${renderAdminButton(m)}${renderProbeButton(m)}</div></td>
+          </tr>`;
+          first = false;
+        }
+      }
+      if (!rows) rows = `<tr><td colspan="8" class="empty">No tier backends found.</td></tr>`;
+      return `<table>
+        <thead>
+          <tr>
+            <th>Tier</th>
+            <th>Account/Model</th>
+            <th>Type</th>
+            <th>Weight</th>
+            <th>Context/Out</th>
+            <th class="usage-head">
+              <div class="usage-head-labels">
+                <span>5hour</span>
+                <span>weekly</span>
+                <span>monthly</span>
+              </div>
+            </th>
+            <th>Running</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+    }
+
+    function renderAccountTable(runtime) {
+      const accounts = Array.isArray(runtime.accounts) ? runtime.accounts : [];
+      if (!accounts.length) return "";
+      const rows = accounts.map((account) => {
+        const stats = account.stats || {};
+        return `<tr>
+          <td>${esc(account.account || "")}</td>
+          <td>${esc(account.provider || "-")}</td>
+          <td class="num">${formatCount(account.backend_count || 0)}</td>
+          <td class="account-usage-cell">${renderAccountProviderUsage(account)}</td>
+          <td class="num">${formatCount(stats.calls || 0)}</td>
+          <td class="num">${formatCompactCount(stats.total_tokens || 0)}</td>
+          <td class="num">${formatCount(account.min_request_interval_ms || 0)} ms</td>
+          <td class="num">${account.requests_per_minute ? formatCount(account.requests_per_minute) : "-"}</td>
+          <td class="num">${formatCount(account.running || 0)} / ${renderAccountConcurrencyInput(account)}</td>
+        </tr>`;
+      }).join("");
+      return `<h2>Accounts</h2><table>
+        <thead>
+          <tr>
+            <th>Account</th>
+            <th>Provider</th>
+            <th>Backends</th>
+            <th>Usage</th>
+            <th>Calls</th>
+            <th>Toks</th>
+            <th>Interval</th>
+            <th>RPM</th>
+            <th>R/M</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+    }
+
+    function tokenStats(total, avg, p50, p95, p99) {
+      return `${formatCompactCount(total)} / ${formatCompactCount(avg)} / ${formatCompactCount(p50)} / ${formatCompactCount(p95)} / ${formatCompactCount(p99)}`;
+    }
+
+    function lengthStats(avg, p50, p95, p99) {
+      return `${formatCompactCount(avg)} / ${formatCompactCount(p50)} / ${formatCompactCount(p95)} / ${formatCompactCount(p99)}`;
+    }
+
+    function latencyStats(stats) {
+      const avg = Number(stats.latency_avg_ms || 0) / 1000;
+      const p50 = Number(stats.latency_p50_ms || 0) / 1000;
+      const p95 = Number(stats.latency_p95_ms || 0) / 1000;
+      const p99 = Number(stats.latency_p99_ms || 0) / 1000;
+      return `${avg.toFixed(1)} / ${p50.toFixed(1)} / ${p95.toFixed(1)} / ${p99.toFixed(1)}`;
+    }
+
+    function decodeTokPerSecond(stats) {
+      const completionTokens = Number(stats.completion_tokens || 0);
+      const calls = Number(stats.calls || 0);
+      const avgLatencyMs = Number(stats.latency_avg_ms || 0);
+      if (!Number.isFinite(completionTokens) || completionTokens <= 0) return "-";
+      if (!Number.isFinite(calls) || calls <= 0) return "-";
+      if (!Number.isFinite(avgLatencyMs) || avgLatencyMs <= 0) return "-";
+      const speed = completionTokens / ((avgLatencyMs * calls) / 1000);
+      if (!Number.isFinite(speed) || speed <= 0) return "-";
+      return speed >= 100 ? speed.toFixed(0) : speed.toFixed(1);
+    }
+
+    function llmStatsCellValues(stats) {
+      return {
+        calls: formatCount(stats.calls),
+        failures: formatCount(stats.fail_count),
+        tokens: formatCompactCount(stats.total_tokens),
+        promptTokens: tokenStats(stats.prompt_tokens, stats.prompt_tokens_avg, stats.prompt_tokens_p50, stats.prompt_tokens_p95, stats.prompt_tokens_p99),
+        promptLength: lengthStats(stats.prompt_chars_avg, stats.prompt_chars_p50, stats.prompt_chars_p95, stats.prompt_chars_p99),
+        completionTokens: tokenStats(stats.completion_tokens, stats.completion_tokens_avg, stats.completion_tokens_p50, stats.completion_tokens_p95, stats.completion_tokens_p99),
+        completionLength: lengthStats(stats.completion_chars_avg, stats.completion_chars_p50, stats.completion_chars_p95, stats.completion_chars_p99),
+        latency: latencyStats(stats),
+        speed: decodeTokPerSecond(stats),
+      };
+    }
+
+    function renderLlmStatsCells(stats, bold = false) {
+      const wrap = (value) => bold ? `<b>${value}</b>` : value;
+      const values = llmStatsCellValues(stats);
+      return `
+          <td class="num" data-stats-value="calls">${wrap(values.calls)}</td>
+          <td class="num" data-stats-value="failures">${wrap(values.failures)}</td>
+          <td class="num" data-stats-value="tokens">${wrap(values.tokens)}</td>
+          <td data-stats-value="prompt-tokens">${wrap(values.promptTokens)}</td>
+          <td data-stats-value="prompt-length">${wrap(values.promptLength)}</td>
+          <td data-stats-value="completion-tokens">${wrap(values.completionTokens)}</td>
+          <td data-stats-value="completion-length">${wrap(values.completionLength)}</td>
+          <td data-stats-value="latency">${wrap(values.latency)}</td>
+          <td data-stats-value="speed">${wrap(values.speed)}</td>`;
+    }
+
+    // Purpose:
+    // - Format one stats Backend row using the account-aware identity contract.
+    // Inputs:
+    // - stats: Tier stats row containing backend_type, backend, account, and model.
+    // Outputs:
+    // - API `account/model`, CLI `cli: account/model`, or MLP `agent:account/model` label.
+    function statsBackendLabel(stats) {
+      const type = String(stats.backend_type || "").trim().toUpperCase();
+      const account = String(stats.account || "").trim();
+      const rawModel = String(stats.model_name || stats.model || "").trim();
+      const model = backendModelDisplayName({ account, model_name: rawModel });
+      const visibleAccount = account || "<missing-account>";
+      if (type === "MLP") return `agent:${visibleAccount}/${model || "-"}`;
+      const prefix = type === "CLI" ? "cli: " : "";
+      return `${prefix}${visibleAccount}/${model || "-"}`;
+    }
+
+    function renderBackendLlmStatsRows(tierName, statsData) {
+      if (!expandedStatsTiers.has(tierName)) return "";
+      const rows = Array.isArray(statsData?.backendsByTier?.[tierName]) ? statsData.backendsByTier[tierName] : [];
+      return rows.map((stats) => {
+        const label = statsBackendLabel(stats);
+        return `<tr class="stats-backend-row" data-stats-row="backend" data-tier="${esc(tierName)}" data-backend="${esc(String(stats.backend || ""))}" data-account="${esc(String(stats.account || ""))}" data-model="${esc(String(stats.model_name || stats.model || ""))}">
+          <td><span class="stats-backend-name" title="${esc(label)}">${esc(label)}</span></td>
+          ${renderLlmStatsCells(stats)}
+        </tr>`;
+      }).join("");
+    }
+
+    function renderLlmStatsPanel(runtime, statsData) {
+      const tierRowsByName = statsData?.tierRowsByName || {};
+      const order = ["Senior", "Junior", "Worker", "Associate", "Engineer", "Executor"];
+      let rows = "";
+      for (const tierName of order) {
+        const stats = tierRowsByName[tierName];
+        if (!stats) continue;
+        const expanded = expandedStatsTiers.has(tierName);
+        rows += `<tr data-stats-row="tier" data-tier="${esc(tierName)}">
+          <td><button class="stats-tier-toggle" type="button" data-stats-tier="${esc(tierName)}" aria-expanded="${expanded ? "true" : "false"}">${expanded ? "▾" : "▸"} ${esc(tierName)}</button></td>
+          ${renderLlmStatsCells(stats)}
+        </tr>${renderBackendLlmStatsRows(tierName, statsData)}`;
+      }
+      if (!rows && statsData?.totalMissing) {
+        return `<div class="section-title">LLM Stats By Tier</div><div class="empty">No LLM stats found.</div>`;
+      }
+      if (!rows) return "";
+      const total = statsData?.total || {};
+      const totalRow = statsData?.totalMissing
+        ? `<tr><td colspan="10" class="error-cell">LLM stats total group is unavailable. Restart tier to load the current stats API.</td></tr>`
+        : `<tr data-stats-row="total">
+            <td><b>Total</b></td>
+            ${renderLlmStatsCells(total, true)}
+          </tr>`;
+      return `<div class="section-title">LLM Stats By Tier</div>
+      <table class="stats-table">
+        <thead>
+          <tr>
+            <th>Tier</th>
+            <th>Calls</th>
+            <th>Fail</th>
+            <th>Total</th>
+            <th>Prompt total/avg/p50/p95/p99</th>
+            <th>Prompt len avg/p50/p95/p99</th>
+            <th>Completion total/avg/p50/p95/p99</th>
+            <th>Completion len avg/p50/p95/p99</th>
+            <th>Latency avg/p50/p95/p99 (s)</th>
+            <th>tok/s</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${totalRow}
+          ${rows}
+        </tbody>
+      </table>`;
+    }
+
+    // Purpose: Patch one existing stats row through stable leaf bindings.
+    // Inputs: Live row and latest grouped Tier stats authority.
+    // Outputs: True after all metric leaves are updated; false when the row shape is incomplete.
+    function patchLlmStatsRow(row, stats) {
+      if (!row) return false;
+      const values = llmStatsCellValues(stats);
+      const fields = {
+        calls: values.calls,
+        failures: values.failures,
+        tokens: values.tokens,
+        "prompt-tokens": values.promptTokens,
+        "prompt-length": values.promptLength,
+        "completion-tokens": values.completionTokens,
+        "completion-length": values.completionLength,
+        latency: values.latency,
+        speed: values.speed,
+      };
+      for (const [name, value] of Object.entries(fields)) {
+        const cell = row.querySelector(`[data-stats-value="${name}"]`);
+        if (!cell) return false;
+        setStableText(cell.querySelector("b") || cell, value);
+      }
+      return true;
+    }
+
+    // Purpose: Patch existing Tier stats rows without invoking a structure renderer.
+    // Inputs: Latest total, Tier, and Backend grouped stats authority.
+    // Outputs: True for a complete leaf patch; structural drift is exposed as stale.
+    function patchLlmStatsPanel(statsData) {
+      const section = document.getElementById("tierStatsSection");
+      if (!section) return false;
+      const tierNames = Object.keys(statsData?.tierRowsByName || {});
+      if (statsData?.totalMissing && tierNames.length === 0) {
+        const empty = section.querySelector(".empty");
+        const matches = Boolean(empty && empty.textContent.includes("No LLM stats found."));
+        if (matches) {
+          delete section.dataset.stale;
+          section.removeAttribute("title");
+          return true;
+        }
+        section.dataset.stale = "true";
+        section.title = "Stats structure changed; use explicit Refresh to rebuild it.";
+        return false;
+      }
+      const totalRow = section.querySelector('[data-stats-row="total"]');
+      const liveTierRows = Array.from(section.querySelectorAll('[data-stats-row="tier"]'));
+      const expectedTierNames = [...tierNames].sort();
+      const liveTierNames = liveTierRows.map((row) => String(row.dataset.tier || "")).sort();
+      let complete = JSON.stringify(liveTierNames) === JSON.stringify(expectedTierNames);
+      complete = patchLlmStatsRow(totalRow, statsData?.total || {}) && complete;
+      for (const tierName of tierNames) {
+        const row = section.querySelector(`[data-stats-row="tier"][data-tier="${CSS.escape(tierName)}"]`);
+        complete = patchLlmStatsRow(row, statsData.tierRowsByName[tierName]) && complete;
+      }
+      if (complete) {
+        delete section.dataset.stale;
+        section.removeAttribute("title");
+        return true;
+      }
+      section.dataset.stale = "true";
+      section.title = "Stats structure changed; use explicit Refresh to rebuild it.";
+      return false;
+    }
+
+    function renderErrorsPanel(runtime) {
+      const errors = Array.isArray(runtime.recent_errors) ? runtime.recent_errors : [];
+      if (!errors.length) return "";
+      const rows = errors.map((entry) => `<tr>
+        <td class="error-time-cell">${esc(formatShortIsoTime(entry.ts || ""))}</td>
+        <td>${esc(entry.tier || "-")} / ${esc(statsBackendLabel(entry))}</td>
+        <td>${esc(entry.role || "-")}</td>
+        <td>${esc(entry.task_id || "-")}</td>
+        <td>${esc(String(entry.error_code || "-"))}</td>
+        <td class="error-cell">${esc(entry.error_message || "-")}</td>
+      </tr>`).join("");
+      return `<div class="section-title">Recent Errors</div>
+      <table>
+        <thead>
+          <tr>
+            <th class="error-time-cell">Time</th>
+            <th>Tier / Backend</th>
+            <th>Role</th>
+            <th>Task</th>
+            <th>Code</th>
+            <th>Error</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+    }
+
+    async function loadStatsGroup(groupBy) {
+      const payload = await fetchJson(`/stats?include_events=false&group_by=${encodeURIComponent(groupBy)}`);
+      return Array.isArray(payload?.stats?.groups) ? payload.stats.groups : [];
+    }
+
+    async function loadLlmStatsForTierPanel() {
+      const [totalRows, tierRows, backendRows] = await Promise.all([
+        loadStatsGroup("total"),
+        loadStatsGroup("tier"),
+        loadStatsGroup("backend"),
+      ]);
+      const tierRowsByName = {};
+      for (const row of tierRows) {
+        const tierName = String(row.tier || "").trim();
+        if (tierName) tierRowsByName[tierName] = row;
+      }
+      const backendsByTier = {};
+      for (const row of backendRows) {
+        const tierName = String(row.tier || "").trim();
+        if (!tierName) continue;
+        if (!backendsByTier[tierName]) backendsByTier[tierName] = [];
+        backendsByTier[tierName].push(row);
+      }
+      return {
+        total: totalRows[0] || {},
+        totalMissing: totalRows.length === 0,
+        tierRowsByName,
+        backendsByTier,
+      };
+    }
+
+    async function loadRecentErrors() {
+      const payload = await fetchJson("/recent-errors");
+      return Array.isArray(payload.recent_errors) ? payload.recent_errors : [];
+    }
+
+    function runtimeWithLlmSummary(runtime, llmStats) {
+      const total = llmStats?.total || {};
+      const summary = {
+        ...(runtime.summary || {}),
+        total_calls: Number(total.calls || 0),
+        total_tokens: Number(total.total_tokens || 0),
+      };
+      return { ...runtime, summary };
+    }
+
+    function ensureRootSections() {
+      if (rootInitialized) return;
+      root.innerHTML = `
+        <div id="tierSummarySection"></div>
+        <div id="tierMainSection"></div>
+        <div id="tierAccountsSection"></div>
+        <div id="tierStatsSection"></div>
+        <div id="tierErrorsSection"></div>
+      `;
+      rootInitialized = true;
+    }
+
+    function updateSection(sectionId, html) {
+      ensureRootSections();
+      const section = document.getElementById(sectionId);
+      if (!section) return false;
+      const nextHtml = String(html || "");
+      if (sectionHtmlCache.get(sectionId) === nextHtml) return false;
+      section.innerHTML = nextHtml;
+      sectionHtmlCache.set(sectionId, nextHtml);
+      return true;
+    }
+
+    function bindRuntimeControls() {
+      bindWeightInputs();
+      bindConcurrencyInputs();
+      bindModelSelects();
+      bindAdminButtons();
+      bindProbeButtons();
+    }
+
+    function bindStatsControls() {
+      bindStatsToggles();
+    }
+
+    function renderRuntimeOnly(runtime, statsPanelHtml = "", errorsPanelHtml = "") {
+      updateSummary(runtime);
+      const mainChanged = updateSection("tierMainSection", renderMainTable(runtime));
+      const accountsChanged = updateSection("tierAccountsSection", renderAccountTable(runtime));
+      const statsChanged = updateSection("tierStatsSection", statsPanelHtml);
+      updateSection("tierErrorsSection", `${renderErrorsPanel(runtime)}${errorsPanelHtml}`);
+      if (mainChanged || accountsChanged) bindRuntimeControls();
+      if (statsChanged) bindStatsControls();
+      scheduleProbeRefresh(Boolean(runtime.probe_running) || hasBackendProbing(runtime));
+      tierStructureRendered = true;
+    }
+
+    // Purpose:
+    // - Patch one same-shape DOM subtree without replacing any existing live node.
+    // Inputs:
+    // - Current live element and detached next-state element.
+    // Outputs:
+    // - True when attributes and leaf text were patched; false on structural mismatch.
+    function patchSameShapeElement(current, next) {
+      if (!current || !next || current.tagName !== next.tagName || current.children.length !== next.children.length) return false;
+      for (const attribute of Array.from(current.attributes)) {
+        if (!next.hasAttribute(attribute.name)) current.removeAttribute(attribute.name);
+      }
+      for (const attribute of Array.from(next.attributes)) current.setAttribute(attribute.name, attribute.value);
+      if (!current.children.length) {
+        setStableText(current, next.textContent || "");
+        return true;
+      }
+      const currentChildren = Array.from(current.children);
+      const nextChildren = Array.from(next.children);
+      return currentChildren.every((child, index) => patchSameShapeElement(child, nextChildren[index]));
+    }
+
+    // Purpose:
+    // - Patch provider-usage values while preserving the existing usage DOM structure.
+    // Inputs:
+    // - Live usage cell and latest Backend runtime model.
+    // Outputs:
+    // - Updated fields, or a visible stale marker when a manual structural refresh is required.
+    function patchProviderUsage(container, model) {
+      if (!container) return;
+      const template = document.createElement("template");
+      template.innerHTML = renderProviderUsage(model).trim();
+      const current = container.firstElementChild;
+      const next = template.content.firstElementChild;
+      if (patchSameShapeElement(current, next)) {
+        delete container.dataset.stale;
+        container.removeAttribute("title");
+        return;
+      }
+      container.dataset.stale = "true";
+      container.title = "Usage structure changed; use explicit Refresh to rebuild it.";
+    }
+
+    // Purpose:
+    // - Move one existing Backend row to its new Tier group without recreating the row body.
+    // Inputs:
+    // - Live row, target Tier, target index, and latest target Tier models.
+    // Outputs:
+    // - The same row relocated with existing Tier-label nodes transferred and patched.
+    function moveExistingBackendRow(row, targetTier, targetIndex, targetModels) {
+      const tbody = row?.parentElement;
+      if (!tbody) return null;
+      const sourceTier = String(row.dataset.tier || "");
+      const sourceRows = Array.from(tbody.querySelectorAll(`[data-runtime-backend-row="1"][data-tier="${CSS.escape(sourceTier)}"]`));
+      const targetRows = Array.from(tbody.querySelectorAll(`[data-runtime-backend-row="1"][data-tier="${CSS.escape(targetTier)}"]`));
+      const rowLabel = row.querySelector(".tier-label");
+
+      if (sourceRows[0] === row && sourceRows[1]) {
+        const nextLabel = sourceRows[1].querySelector(".tier-label");
+        while (rowLabel?.firstChild) nextLabel?.appendChild(rowLabel.firstChild);
+      }
+      if (targetRows.length && targetIndex === 0) {
+        const targetLabel = targetRows[0].querySelector(".tier-label");
+        while (targetLabel?.firstChild) rowLabel?.appendChild(targetLabel.firstChild);
+      }
+
+      row.dataset.tier = targetTier;
+      for (const element of row.querySelectorAll("[data-tier]")) element.dataset.tier = targetTier;
+      tbody.appendChild(row);
+      const anchor = targetRows[targetIndex] || null;
+      if (anchor) tbody.insertBefore(row, anchor);
+
+      const tierName = rowLabel?.querySelector("div");
+      const tierRunning = rowLabel?.querySelector("[data-tier-running]");
+      setStableText(tierName, targetTier);
+      if (tierRunning) {
+        tierRunning.dataset.tierRunning = targetTier;
+        const summary = activeBackendConcurrency(targetModels);
+        setStableText(tierRunning, `${formatCount(summary.running)} running`);
+      }
+      return row;
+    }
+
+    function patchRuntimeOnly(runtime) {
+      updateSummary(runtime);
+      for (const [tierName, models] of Object.entries(runtime.tiers || {})) {
+        const tierRunning = document.querySelector(`[data-tier-running="${CSS.escape(tierName)}"]`);
+        if (tierRunning) {
+          const summary = activeBackendConcurrency(Array.isArray(models) ? models : []);
+          setStableText(tierRunning, `${formatCount(summary.running)} running`);
+        }
+        for (const [modelIndex, model] of (Array.isArray(models) ? models : []).entries()) {
+          const selector = `[data-runtime-backend-row="1"][data-tier="${CSS.escape(tierName)}"][data-backend="${CSS.escape(String(model.backend || ""))}"][data-account="${CSS.escape(String(model.account || ""))}"][data-model="${CSS.escape(String(model.model_name || ""))}"]`;
+          let row = document.querySelector(selector);
+          if (!row) {
+            const identitySelector = `[data-runtime-backend-row="1"][data-backend="${CSS.escape(String(model.backend || ""))}"][data-account="${CSS.escape(String(model.account || ""))}"][data-model="${CSS.escape(String(model.model_name || ""))}"]`;
+            const existingRow = document.querySelector(identitySelector);
+            if (existingRow) row = moveExistingBackendRow(existingRow, tierName, modelIndex, models);
+          }
+          if (!row) continue;
+          const state = String(model.state || "unreachable");
+          row.className = `row-${state}`;
+          const icon = row.querySelector(".state-icon");
+          if (icon) {
+            icon.className = `state-icon ${state}`;
+            icon.title = state;
+            icon.setAttribute("aria-label", state);
+            setStableText(icon, stateIconText(state));
+          }
+          const usage = row.querySelector('[data-runtime-field="usage"]');
+          patchProviderUsage(usage, model);
+          setStableText(row.querySelector('[data-runtime-field="running"]'), formatCount(model.running || model.load || 0));
+          const probe = row.querySelector(".backend-probe-button");
+          if (probe) probe.disabled = !Boolean(model.enabled) || state === "probing";
+        }
+      }
+      scheduleProbeRefresh(Boolean(runtime.probe_running) || hasBackendProbing(runtime));
+    }
+
+    // Purpose: Refresh Tier runtime state without rebuilding structure during automatic polling.
+    // Inputs: Options selecting patch-only automatic refresh or explicit provider-usage refresh.
+    // Outputs: Patched or rendered runtime DOM; patch failures preserve DOM and expose a stale banner.
+    async function refresh(options) {
+      options = options || {};
+      const requestedPatchOnly = Boolean(options.patchOnly);
+      try {
+        const forceUsage = Boolean(options.forceUsage);
+        const patchOnly = requestedPatchOnly && tierStructureRendered && !forceUsage;
+        const runtimePath = forceUsage ? "/runtime?include_stats=0&refresh_usage=1" : "/runtime?include_stats=0";
+        let currentRuntime = await fetchJson(runtimePath);
+        if (patchOnly) {
+          const llmStats = await loadLlmStatsForTierPanel();
+          currentRuntime = runtimeWithLlmSummary(currentRuntime, llmStats);
+          patchRuntimeOnly(currentRuntime);
+          patchLlmStatsPanel(llmStats);
+          delete root.dataset.stale;
+          delete root.dataset.staleMessage;
+          root.removeAttribute("title");
+          return;
+        }
+        let statsPanelHtml = `<div class="section-title">LLM Stats By Tier</div><div class="empty">Loading LLM stats...</div>`;
+        let errorsPanelHtml = "";
+        const updateRuntimeView = () => {
+          renderRuntimeOnly(currentRuntime, statsPanelHtml, errorsPanelHtml);
+        };
+        updateRuntimeView();
+        const statsPromise = loadLlmStatsForTierPanel()
+          .then((llmStats) => {
+            currentRuntime = runtimeWithLlmSummary(currentRuntime, llmStats);
+            statsPanelHtml = renderLlmStatsPanel(currentRuntime, llmStats);
+            updateRuntimeView();
+          })
+          .catch((error) => {
+            statsPanelHtml = `<div class="section-title">LLM Stats By Tier</div><div class="error-cell">Cannot load LLM stats: ${esc(error.message)}</div>`;
+            updateRuntimeView();
+          });
+        const errorsPromise = loadRecentErrors()
+          .then((recentErrors) => {
+            currentRuntime = { ...currentRuntime, recent_errors: recentErrors };
+            errorsPanelHtml = "";
+            updateRuntimeView();
+          })
+          .catch((error) => {
+            errorsPanelHtml = `<div class="section-title">Recent Errors</div><div class="error-cell">Cannot load recent errors: ${esc(error.message)}</div>`;
+            updateRuntimeView();
+          });
+        await Promise.allSettled([statsPromise, errorsPromise]);
+      } catch (error) {
+        if (requestedPatchOnly && tierStructureRendered) {
+          const staleMessage = `Automatic refresh failed: ${error.message}`;
+          root.dataset.stale = "true";
+          root.dataset.staleMessage = staleMessage;
+          root.title = staleMessage;
+          return;
+        }
+        rootInitialized = false;
+        tierStructureRendered = false;
+        sectionHtmlCache.clear();
+        root.innerHTML = `<div class="error-cell">Cannot connect: ${esc(error.message)}</div>`;
+      }
+    }
+
+    // Purpose: Clear provider usage cache and reload the configured provider credential files.
+    // Inputs: None; the Tier Server owns provider/account credential selection.
+    // Outputs: Re-rendered authority runtime, or a visible reload failure with the control restored.
+    async function reloadUsageCredentials() {
+      try {
+        reloadUsageBtn.disabled = true;
+        reloadUsageBtn.textContent = "Reloading...";
+        const runtime = await postJson("/usage/reload", {});
+        renderRuntimeOnly(runtime);
+      } catch (error) {
+        rootInitialized = false;
+        sectionHtmlCache.clear();
+        root.innerHTML = `<div class="error-cell">Cannot reload usage credentials: ${esc(error.message)}</div>`;
+      } finally {
+        reloadUsageBtn.disabled = false;
+        reloadUsageBtn.textContent = "Reload Usage Credentials";
+      }
+    }
+
+    function hasBackendProbing(runtime) {
+      for (const models of Object.values(runtime.tiers || {})) {
+        if (!Array.isArray(models)) continue;
+        if (models.some((model) => String(model.state || "") === "probing")) return true;
+      }
+      return false;
+    }
+
+    function scheduleProbeRefresh(active) {
+      if (autoProbeRefreshTimer) {
+        clearTimeout(autoProbeRefreshTimer);
+        autoProbeRefreshTimer = null;
+      }
+      if (!active) return;
+      autoProbeRefreshTimer = setTimeout(() => {
+        autoProbeRefreshTimer = null;
+        refresh({ patchOnly: true });
+      }, 1000);
+    }
+
+    function bindWeightInputs() {
+      for (const display of Array.from(document.querySelectorAll("[data-weight-display='1']"))) {
+        display.addEventListener("click", () => editWeight(display));
+      }
+      for (const input of Array.from(document.querySelectorAll("[data-weight-input='1']"))) {
+        input.addEventListener("blur", () => trackBackendUpdate(updateWeight(input)));
+        input.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") input.blur();
+          if (event.key === "Escape") cancelWeightEdit(input);
+        });
+      }
+    }
+
+    function bindConcurrencyInputs() {
+      for (const display of Array.from(document.querySelectorAll("[data-concurrency-display='1']"))) {
+        display.addEventListener("click", () => editConcurrency(display));
+      }
+      for (const input of Array.from(document.querySelectorAll("[data-concurrency-input='1']"))) {
+        input.addEventListener("blur", () => trackBackendUpdate(updateConcurrency(input)));
+        input.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") input.blur();
+          if (event.key === "Escape") cancelConcurrencyEdit(input);
+        });
+      }
+    }
+
+    function bindModelSelects() {
+      for (const display of Array.from(document.querySelectorAll("[data-model-display='1']"))) {
+        display.addEventListener("click", () => editModel(display));
+      }
+      for (const select of Array.from(document.querySelectorAll("[data-model-select='1']"))) {
+        select.addEventListener("change", () => updateModelSelection(select));
+        select.addEventListener("blur", () => finishModelEdit(select));
+        select.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") {
+            cancelModelEdit(select);
+          }
+        });
+      }
+    }
+
+    function bindAdminButtons() {
+      for (const button of Array.from(document.querySelectorAll("[data-admin-action='1']"))) {
+        button.addEventListener("click", () => updateAdminState(button));
+      }
+    }
+
+    function bindProbeButtons() {
+      for (const button of Array.from(document.querySelectorAll(".backend-probe-button"))) {
+        button.addEventListener("click", () => probeBackend(button));
+      }
+    }
+
+    function bindStatsToggles() {
+      for (const button of Array.from(document.querySelectorAll("[data-stats-tier]"))) {
+        button.addEventListener("click", () => {
+          const tierName = String(button.dataset.statsTier || "");
+          if (!tierName) return;
+          if (expandedStatsTiers.has(tierName)) {
+            expandedStatsTiers.delete(tierName);
+          } else {
+            expandedStatsTiers.add(tierName);
+          }
+          refresh();
+        });
+      }
+    }
+
+    // Purpose: Validate and persist one Backend weight through the same-origin Tier API.
+    // Inputs: Active weight input carrying Tier, Backend, account, model, and original value.
+    // Outputs: Updated authority-backed display, or a visible validation/service error without an invalid request.
+    async function updateWeight(input) {
+      const tierName = input.dataset.tier || "";
+      const backend = input.dataset.backend || "";
+      const account = input.dataset.account || "";
+      const modelName = input.dataset.model || "";
+      const original = Math.max(1, Math.round(Number(input.dataset.original || input.value || 1)));
+      const parsedWeight = Number(input.value);
+      if (!Number.isFinite(parsedWeight) || parsedWeight < 1) {
+        alert("Update weight failed: validation_error");
+        input.value = String(original);
+        const display = findWeightDisplay(input);
+        if (display) display.textContent = String(original);
+        finishWeightEdit(input);
+        return;
+      }
+      const weight = Math.round(parsedWeight);
+      input.value = String(weight);
+      const display = findWeightDisplay(input);
+      if (display) display.textContent = String(weight);
+      if (weight === original || !tierName || !backend || !modelName) {
+        finishWeightEdit(input);
+        return;
+      }
+      input.disabled = true;
+      try {
+        await postJson("/backend/weight", { tier_name: tierName, backend, account, model_name: modelName, weight });
+        await refresh();
+      } catch (error) {
+        alert(`Update weight failed: ${error.message}`);
+        input.value = String(original);
+        if (display) display.textContent = String(original);
+        finishWeightEdit(input);
+      } finally {
+        input.disabled = false;
+      }
+    }
+
+    async function updateConcurrency(input) {
+      const account = input.dataset.account || "";
+      const maxConcurrent = Math.max(1, Math.round(Number(input.value || 1)));
+      const original = Math.max(1, Math.round(Number(input.dataset.original || input.value || 1)));
+      input.value = String(maxConcurrent);
+      const display = findConcurrencyDisplay(input);
+      if (display) display.textContent = String(maxConcurrent);
+      if (maxConcurrent === original || !account) {
+        finishConcurrencyEdit(input);
+        return;
+      }
+      input.disabled = true;
+      try {
+        await postJson("/account/concurrency", {
+          account,
+          max_concurrent_requests: maxConcurrent,
+        });
+        await refresh();
+      } catch (error) {
+        alert(`Update max concurrency failed: ${error.message}`);
+        input.value = String(original);
+        if (display) display.textContent = String(original);
+        finishConcurrencyEdit(input);
+      } finally {
+        input.disabled = false;
+      }
+    }
+
+    function trackBackendUpdate(promise) {
+      pendingBackendUpdates.add(promise);
+      promise.finally(() => pendingBackendUpdates.delete(promise));
+      return promise;
+    }
+
+    async function waitForBackendUpdates() {
+      while (pendingBackendUpdates.size > 0) {
+        await Promise.all(Array.from(pendingBackendUpdates));
+      }
+    }
+
+    function findWeightDisplay(input) {
+      return document.querySelector(`[data-weight-display='1'][data-tier="${CSS.escape(input.dataset.tier || "")}"][data-backend="${CSS.escape(input.dataset.backend || "")}"][data-model="${CSS.escape(input.dataset.model || "")}"]`);
+    }
+
+    function findConcurrencyDisplay(input) {
+      return document.querySelector(`[data-concurrency-display='1'][data-account="${CSS.escape(input.dataset.account || "")}"]`);
+    }
+
+    function editWeight(display) {
+      const input = document.querySelector(`[data-weight-input='1'][data-tier="${CSS.escape(display.dataset.tier || "")}"][data-backend="${CSS.escape(display.dataset.backend || "")}"][data-model="${CSS.escape(display.dataset.model || "")}"]`);
+      if (!input) return;
+      input.dataset.original = String(input.value || "1");
+      display.hidden = true;
+      input.hidden = false;
+      input.focus();
+      input.select();
+    }
+
+    function editConcurrency(display) {
+      const input = document.querySelector(`[data-concurrency-input='1'][data-account="${CSS.escape(display.dataset.account || "")}"]`);
+      if (!input) return;
+      input.dataset.original = String(input.value || "1");
+      display.hidden = true;
+      input.hidden = false;
+      input.focus();
+      input.select();
+    }
+
+    function finishWeightEdit(input) {
+      const display = findWeightDisplay(input);
+      if (display) display.hidden = false;
+      input.hidden = true;
+    }
+
+    function finishConcurrencyEdit(input) {
+      const display = findConcurrencyDisplay(input);
+      if (display) display.hidden = false;
+      input.hidden = true;
+    }
+
+    function cancelWeightEdit(input) {
+      input.value = String(input.dataset.original || input.value || "1");
+      const display = findWeightDisplay(input);
+      if (display) display.textContent = input.value;
+      finishWeightEdit(input);
+      input.blur();
+    }
+
+    function cancelConcurrencyEdit(input) {
+      input.value = String(input.dataset.original || input.value || "1");
+      const display = findConcurrencyDisplay(input);
+      if (display) display.textContent = input.value;
+      finishConcurrencyEdit(input);
+      input.blur();
+    }
+
+    function findModelDisplay(select) {
+      return document.querySelector(`[data-model-display='1'][data-tier="${CSS.escape(select.dataset.tier || "")}"][data-backend="${CSS.escape(select.dataset.backend || "")}"][data-model="${CSS.escape(select.dataset.oldModel || "")}"]`);
+    }
+
+    function findModelSelect(display) {
+      return document.querySelector(`[data-model-select='1'][data-tier="${CSS.escape(display.dataset.tier || "")}"][data-backend="${CSS.escape(display.dataset.backend || "")}"][data-old-model="${CSS.escape(display.dataset.model || "")}"]`);
+    }
+
+    function editModel(display) {
+      const select = findModelSelect(display);
+      if (!select) return;
+      display.hidden = true;
+      select.hidden = false;
+      select.focus();
+    }
+
+    function finishModelEdit(select) {
+      const display = findModelDisplay(select);
+      if (display) display.hidden = false;
+      select.hidden = true;
+    }
+
+    function cancelModelEdit(select) {
+      select.value = String(select.dataset.currentKey || select.value || "");
+      finishModelEdit(select);
+      select.blur();
+    }
+
+    async function updateModelSelection(select) {
+      const tierName = select.dataset.tier || "";
+      const backend = select.dataset.backend || "";
+      const account = select.dataset.account || "";
+      const oldModelName = select.dataset.oldModel || "";
+      const option = select.selectedOptions && select.selectedOptions[0] ? select.selectedOptions[0] : null;
+      const modelKey = select.value || "";
+      const modelName = option?.dataset.name || "";
+      if (!tierName || !backend || !modelName || !modelKey) return;
+      select.disabled = true;
+      try {
+        await postJson("/model-name", {
+          tier_name: tierName,
+          backend,
+          account,
+          old_model_name: oldModelName,
+          model_name: modelName,
+          model_key: modelKey,
+        });
+        await refresh();
+      } catch (error) {
+        alert(`Update model failed: ${error.message}`);
+        await refresh();
+      } finally {
+        select.disabled = false;
+      }
+    }
+
+    async function updateAdminState(button) {
+      const endpoint = button.dataset.endpoint || "";
+      const tierName = button.dataset.tier || "";
+      const backend = button.dataset.backend || "";
+      const account = button.dataset.account || "";
+      const modelName = button.dataset.model || "";
+      if (!endpoint || !tierName || !backend || !modelName) return;
+      button.disabled = true;
+      try {
+        await postJson(endpoint, { tier_name: tierName, backend, account, model_name: modelName });
+        await refresh();
+      } catch (error) {
+        alert(`Backend state update failed: ${error.message}`);
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    async function probeBackend(button) {
+      const tierName = button.dataset.tier || "";
+      const backend = button.dataset.backend || "";
+      const account = button.dataset.account || "";
+      const modelName = button.dataset.model || "";
+      if (!tierName || !backend || !modelName) return;
+      button.disabled = true;
+      try {
+        await postJson("/backend/probe", { tier_name: tierName, backend, account, model_name: modelName });
+        await refresh({ patchOnly: true });
+      } catch (error) {
+        alert(`Backend probe failed: ${error.message}`);
+        button.disabled = false;
+      }
+    }
+
+    async function loadConfig() {
+      loadConfigBtn.disabled = true;
+      try {
+        await postJson("/config/load", {});
+        await refresh();
+      } catch (error) {
+        alert(`Load config failed: ${error.message}`);
+      } finally {
+        loadConfigBtn.disabled = false;
+      }
+    }
+
+    async function saveConfig() {
+      saveConfigBtn.disabled = true;
+      try {
+        const active = document.activeElement;
+        if (active && active.matches && active.matches("[data-weight-input='1']")) active.blur();
+        if (active && active.matches && active.matches("[data-concurrency-input='1']")) active.blur();
+        await waitForBackendUpdates();
+        await postJson("/config/save", {});
+        await refresh();
+      } catch (error) {
+        alert(`Save config failed: ${error.message}`);
+      } finally {
+        saveConfigBtn.disabled = false;
+      }
+    }
+
+    refreshBtn.addEventListener("click", () => refresh({ forceUsage: true }));
+    reloadUsageBtn.addEventListener("click", reloadUsageCredentials);
+    loadConfigBtn.addEventListener("click", loadConfig);
+    saveConfigBtn.addEventListener("click", saveConfig);
+    homeLink.href = resolveHomeUrl();
+    setTimeout(refresh, 300);
+    setInterval(() => refresh({ patchOnly: true }), 30000);
+    </script>
+  </body>
+</html>
