@@ -4,10 +4,10 @@ import os
 from pathlib import Path
 from typing import Any
 
-from llm_tier.backends import register_backend
-from llm_tier.backends.deepseek import _api_call
-from llm_tier.backends.base import BaseBackendClient
-from llm_tier.backends.api_backend import ApiBackendMixin
+from backends import register_backend
+from backends.deepseek import _api_call
+from backends.base import BaseBackendClient
+from backends.api_backend import ApiBackendMixin
 
 
 # 用途：

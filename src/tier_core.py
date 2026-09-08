@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from llm_tier.client import TierClient
-from llm_tier.tier_model import TierCallRequest, TierCallResult, TierStatsQuery, TierStatsRow
+from client import TierClient
+from tier_model import TierCallRequest, TierCallResult, TierStatsQuery, TierStatsRow
 
 
 _TIER_INSTANCE: TierCore | None = None

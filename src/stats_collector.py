@@ -9,7 +9,7 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
-from llm_tier.tier_model import TierStatsQuery, TierStatsRow
+from tier_model import TierStatsQuery, TierStatsRow
 from utils.sqlite import load_sqlite_module, sqlite_operation_lock
 
 

@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from llm_tier.tier_config import TierConfig
+from tier_config import TierConfig
 
 _QUOTA_ERROR_MARKERS = (
     "accountquotaexceeded", "quota", "rate limit", "rate_limit",
@@ -27,7 +27,7 @@ _QUOTA_STATE_FILE = "quota_state.json"
 # 输出：
 # - LLMTier 项目 state/quota 路径
 def _default_quota_state_dir() -> Path:
-    repo_root = Path(__file__).resolve().parent.parent.parent
+    repo_root = Path(__file__).resolve().parent.parent
     configured_path = os.environ.get("LLMTIER_STATE_DIR", "").strip()
     state_root = Path(configured_path).expanduser() if configured_path else repo_root / "state"
     return state_root / "quota"

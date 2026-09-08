@@ -42,7 +42,7 @@ V0.3 production Open Gate。它是 operations candidate，不是 release approva
 
 ## 2. 构建、制品、SBOM/BOM 与来源证明
 
-当前 build source 是 Git commit、`pyproject.toml`、`src/llm_tier/` 和 Python `>=3.11`；test extra 为
+当前 build source 是 Git commit、`pyproject.toml`、`src/` 和 Python `>=3.11`；test extra 为
 `jsonschema>=4.23,<5`。项目使用 setuptools build backend，console scripts 为 `llm-tier` 与
 `llm-tier-cli`。
 
@@ -55,9 +55,9 @@ artifact SHA-256 与签署结果。当前仓库没有已批准的 V0.3 wheel/con
 当前可验证的开发入口：
 
 1. 在固定 commit 的隔离 Python 环境安装本项目及需要的 test extra；
-2. 运行 `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m llm_tier --help`；
+2. 运行 `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m tier_service --help`；
 3. 运行全部 tests 与 contract/STD validators；
-4. 仅在独立环境授权后，使用明确 `--host`、`--port`、`--settings` 启动 `python3 -m llm_tier`；
+4. 仅在独立环境授权后，使用明确 `--host`、`--port`、`--settings` 启动 `python3 -m tier_service`；
 5. SIGINT/SIGTERM 触发当前进程的 bounded graceful shutdown。
 
 上述入口只证明当前 baseline CLI 形状。旧 `settings.json`、`/health`、`/runtime`、`/stats` 等实现不得被

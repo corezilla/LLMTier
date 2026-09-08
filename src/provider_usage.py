@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta, timezone
 from typing import Any
 
-from llm_tier.tier_model import TierModel
+from tier_model import TierModel
 
 
 VOLC_SERVICE = "ark"

@@ -1,15 +1,24 @@
 from __future__ import annotations
 
+from pathlib import Path
 import unittest
 
 
-class StandaloneImportTests(unittest.TestCase):
-    def test_public_package_and_entrypoints_import(self) -> None:
-        import llm_tier
-        from llm_tier.client import TierClient
-        from llm_tier.server import TierServer
+ROOT = Path(__file__).resolve().parents[1]
 
-        self.assertIsNotNone(llm_tier)
+
+class StandaloneImportTests(unittest.TestCase):
+    def test_flat_source_layout(self) -> None:
+        self.assertFalse((ROOT / "src" / "llm_tier").exists())
+        self.assertFalse((ROOT / "web").exists())
+        self.assertTrue((ROOT / "src" / "web" / "tier.html").is_file())
+
+    def test_public_package_and_entrypoints_import(self) -> None:
+        import tier
+        from client import TierClient
+        from server import TierServer
+
+        self.assertIsNotNone(tier)
         self.assertIsNotNone(TierClient)
         self.assertIsNotNone(TierServer)
 

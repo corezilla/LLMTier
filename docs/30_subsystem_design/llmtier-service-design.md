@@ -272,7 +272,7 @@ LLMTier 是单服务软件仓库，采用 STD 单应用/单服务布局：
 
 | 位置 | 作用 |
 |---|---|
-| `src/llm_tier/` | 单服务 Python 当前实现基线 |
+| `src/` | 单服务 Python 当前实现基线 |
 | `tests/` | 单元、contract semantic 与迁移一致性测试 |
 | `docs/` | 设计、接口、QA、迁移和 provenance |
 | `docs/30_subsystem_design/` | `design.definition` 的 canonical service/subsystem design |

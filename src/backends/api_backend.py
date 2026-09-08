@@ -6,8 +6,8 @@ import urllib.error
 import urllib.request
 from typing import Any
 
-from llm_tier.exceptions import BackendCallError, QuotaExhaustedError
-from llm_tier.quota_manager import QuotaManager
+from exceptions import BackendCallError, QuotaExhaustedError
+from quota_manager import QuotaManager
 
 
 # 用途：

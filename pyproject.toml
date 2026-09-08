@@ -14,11 +14,29 @@ dependencies = []
 test = ["jsonschema>=4.23,<5"]
 
 [project.scripts]
-llm-tier = "llm_tier.__main__:main"
-llm-tier-cli = "llm_tier.cli.__main__:main"
+llm-tier = "tier_service:main"
+llm-tier-cli = "cli.__main__:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
+py-modules = [
+  "client",
+  "concurrency",
+  "exceptions",
+  "execution_identity",
+  "mlexp_contract",
+  "provider_usage",
+  "quota_manager",
+  "redaction",
+  "router_core",
+  "server",
+  "stats_collector",
+  "tier",
+  "tier_config",
+  "tier_core",
+  "tier_model",
+  "tier_service",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]

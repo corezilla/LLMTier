@@ -6,10 +6,10 @@ import urllib.error
 from pathlib import Path
 from typing import Any
 
-from llm_tier.backends import register_backend
-from llm_tier.backends.api_backend import ApiBackendMixin
-from llm_tier.backends.base import BaseBackendClient
-from llm_tier.exceptions import BackendCallError
+from backends import register_backend
+from backends.api_backend import ApiBackendMixin
+from backends.base import BaseBackendClient
+from exceptions import BackendCallError
 
 
 # 用途：

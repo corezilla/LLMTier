@@ -8,14 +8,14 @@ import urllib.parse
 from pathlib import Path
 from typing import Any
 
-from llm_tier.client import TierClient
+from client import TierClient
 
 
 # Purpose: Build the sole operator command tree for existing Tier HTTP operations.
 # Inputs: None.
 # Outputs: Configured argparse parser.
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="python -m llm_tier.cli", description="Slinky Tier operator CLI")
+    parser = argparse.ArgumentParser(prog="python -m cli", description="LLMTier operator CLI")
     parser.add_argument("--server-url", default="", help="Credential-free trusted Tier origin.")
     parser.add_argument("--output", choices=("json", "human"), default="json")
     subparsers = parser.add_subparsers(dest="command", required=True)

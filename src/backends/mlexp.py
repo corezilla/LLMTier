@@ -10,9 +10,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from llm_tier.backends import register_backend
-from llm_tier.backends.base import BaseBackendClient
-from llm_tier.exceptions import BackendCallError
+from backends import register_backend
+from backends.base import BaseBackendClient
+from exceptions import BackendCallError
 
 
 DEFAULT_MLEXP_BASE_URL = "http://192.168.1.10:8001"

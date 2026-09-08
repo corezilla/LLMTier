@@ -6,9 +6,9 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from llm_tier.backends import register_backend
-from llm_tier.backends.base import BaseBackendClient
-from llm_tier.exceptions import BackendCallError, QuotaExhaustedError
+from backends import register_backend
+from backends.base import BaseBackendClient
+from exceptions import BackendCallError, QuotaExhaustedError
 
 
 # 用途：

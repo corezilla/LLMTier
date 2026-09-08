@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from llm_tier.backends.mlexp import (
+from backends.mlexp import (
     DEFAULT_MLEXP_AI_BACKEND,
     DEFAULT_MLEXP_AI_MODEL_NAME,
     DEFAULT_MLEXP_BASE_URL,

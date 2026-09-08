@@ -3,7 +3,7 @@ from __future__ import annotations
 import importlib
 from typing import Any
 
-from llm_tier.backends.base import BaseBackendClient
+from backends.base import BaseBackendClient
 
 _registry: dict[str, type[BaseBackendClient]] = {}
 _registry_loaded = False
@@ -36,12 +36,12 @@ def ensure_backend_registry_loaded() -> None:
         return
     _registry_loaded = True
     for module_name in (
-        "llm_tier.backends.debug",
-        "llm_tier.backends.deepseek",
-        "llm_tier.backends.minimax",
-        "llm_tier.backends.opencode_go",
-        "llm_tier.backends.volc",
-        "llm_tier.backends.xfyun",
+        "backends.debug",
+        "backends.deepseek",
+        "backends.minimax",
+        "backends.opencode_go",
+        "backends.volc",
+        "backends.xfyun",
     ):
         importlib.import_module(module_name)
 

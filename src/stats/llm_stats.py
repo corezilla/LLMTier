@@ -5,8 +5,8 @@ import time
 from datetime import datetime
 from typing import Any, Callable
 
-from llm_tier.stats_collector import StatsCollector
-from llm_tier.tier_model import TierStatsQuery
+from stats_collector import StatsCollector
+from tier_model import TierStatsQuery
 
 
 StatsEventFormatter = Callable[[dict[str, Any]], dict[str, Any]]

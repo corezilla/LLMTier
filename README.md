@@ -40,5 +40,5 @@ V0.3 字段级机器契约仍唯一由
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest discover -s tests
-PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m llm_tier --help
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m tier_service --help
 ```

@@ -9,12 +9,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from llm_tier.backends import register_backend
-from llm_tier.backends.agent_backend import AgentBackendMixin
-from llm_tier.backends.base import BaseBackendClient
-from llm_tier.backends.cli_io import build_cli_log_paths, run_cli_with_live_logs
-from llm_tier.exceptions import BackendCallError, QuotaExhaustedError
-from llm_tier.quota_manager import QuotaManager
+from backends import register_backend
+from backends.agent_backend import AgentBackendMixin
+from backends.base import BaseBackendClient
+from backends.cli_io import build_cli_log_paths, run_cli_with_live_logs
+from exceptions import BackendCallError, QuotaExhaustedError
+from quota_manager import QuotaManager
 
 
 def _resolve_default_claude_cli_path() -> str:

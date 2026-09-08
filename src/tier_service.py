@@ -5,7 +5,7 @@ from __future__ import annotations
 llm_tier server - 独立 LLM 路由守护进程
 
 启动:
-    python -m llm_tier --port 8765 --settings workspaces/my_project/settings.json
+    python -m tier_service --port 8765 --settings workspaces/my_project/settings.json
 
 配置:
     --host        监听地址 (默认 127.0.0.1；可指定 private IP)
@@ -38,7 +38,7 @@ def main() -> int:
                         help="settings.json 路径")
     args = parser.parse_args()
 
-    from llm_tier.server import TierServer
+    from server import TierServer
 
     server = TierServer(
         host=args.host,

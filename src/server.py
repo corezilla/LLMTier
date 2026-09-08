@@ -14,14 +14,14 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse, parse_qs
 
-from llm_tier.client import (
+from client import (
     BUSY_MAX_RETRY_INTERVAL_SECONDS,
     BUSY_RETRY_INTERVAL_SECONDS,
     _busy_retry_schedule_seconds,
     is_trusted_tier_host,
 )
-from llm_tier.provider_usage import ProviderUsageManager, provider_usage_key, resolved_quota_provider
-from llm_tier.redaction import redact_sensitive_text, redact_sensitive_value
+from provider_usage import ProviderUsageManager, provider_usage_key, resolved_quota_provider
+from redaction import redact_sensitive_text, redact_sensitive_value
 
 RUNTIME_STATS_CACHE_SECONDS = 2.0
 MAX_JSON_BODY_BYTES = 2 * 1024 * 1024
@@ -157,10 +157,10 @@ def _parse_exhausted_probe_epoch(value: Any) -> float | None:
         return scheduled.timestamp()
     return None
 
-from llm_tier.tier_config import TierConfig
-from llm_tier.router_core import LLMRouter
-from llm_tier.stats_collector import StatsCollector
-from llm_tier.tier_model import (
+from tier_config import TierConfig
+from router_core import LLMRouter
+from stats_collector import StatsCollector
+from tier_model import (
     TierCallRequest,
     TierCallResult,
     TierModel,
@@ -168,8 +168,8 @@ from llm_tier.tier_model import (
     backend_call_model_name,
     backend_client_name,
 )
-from llm_tier.exceptions import QuotaExhaustedError, BackendCallError
-from llm_tier.quota_manager import QuotaManager
+from exceptions import QuotaExhaustedError, BackendCallError
+from quota_manager import QuotaManager
 
 
 def _log(msg: str, *args: Any) -> None:
@@ -429,7 +429,7 @@ class TierServer:
     def _import_backends() -> None:
         for module_name in ("xfyun", "volc", "deepseek", "minimax", "opencode_go", "debug"):
             try:
-                __import__(f"llm_tier.backends.{module_name}", fromlist=["llm_tier.backends"])
+                __import__(f"backends.{module_name}", fromlist=["backends"])
             except Exception:
                 continue
 
@@ -443,7 +443,7 @@ class TierServer:
         configured_path = os.environ.get("LLMTIER_STATE_DIR", "").strip()
         if configured_path:
             return str(Path(configured_path).expanduser().resolve())
-        return str(Path(__file__).resolve().parent.parent.parent / "state")
+        return str(Path(__file__).resolve().parent.parent / "state")
 
     # 用途：
     # - 根据环境变量初始化 tier runtime debug/trace 开关
@@ -1666,7 +1666,7 @@ class TierServer:
         probe_id: str,
     ) -> None:
         try:
-            from llm_tier.backends import get_backend_client
+            from backends import get_backend_client
             client_name = backend_client_name(model)
             client = get_backend_client(client_name, **creds)
             if client is None:
@@ -3481,7 +3481,7 @@ class TierServer:
                         continue
 
                     try:
-                        from llm_tier.backends import get_backend_client
+                        from backends import get_backend_client
                         creds = self._get_cred(
                             model.backend,
                             model.provider,

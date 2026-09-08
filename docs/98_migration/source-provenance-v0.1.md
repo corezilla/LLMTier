@@ -11,7 +11,7 @@ Last Updated: 2026-09-06 13:22:57 +08:00
 
 ## 复制清单
 
-- `src/llm_tier/`：33 个 Python 源文件，完整复制现有 Tier 实现
+- `src/`：33 个 Python 源文件，完整复制现有 Tier 实现
 - `src/utils/__init__.py`
 - `src/utils/response_parser.py`
 - `src/utils/sqlite.py`
@@ -22,9 +22,9 @@ Last Updated: 2026-09-06 13:22:57 +08:00
 
 ## 必要依赖
 
-- `llm_tier.client` 直接依赖 `utils.response_parser`
-- `llm_tier.stats_collector` 直接依赖 `utils.sqlite`
-- `stats.llm_stats` 是旧统计入口，对 `llm_tier.stats_collector` 和 `llm_tier.tier_model` 构成反向依赖
+- `client` 直接依赖 `utils.response_parser`
+- `stats_collector` 直接依赖 `utils.sqlite`
+- `stats.llm_stats` 是旧统计入口，对 `stats_collector` 和 `tier_model` 构成反向依赖
 
 目标代码已用仅指向 `/Users/ben/work/LLMTier/src` 的 `PYTHONPATH` 验证可导入，不需要把 Slinky `src` 加入 `PYTHONPATH`。
 
@@ -32,7 +32,7 @@ Last Updated: 2026-09-06 13:22:57 +08:00
 
 复制时 Tier 范围存在一项未提交源工作树差异：
 
-- `src/llm_tier/backends/volc.py` 相对 HEAD 增加模型名称 `doubao-seed-2.1-turbo`
+- `src/backends/volc.py` 相对 HEAD 增加模型名称 `doubao-seed-2.1-turbo`
 - 源工作树文件 SHA-256：`80c07c5e99fcb16fa4dab450bfd0332703cd78f27838efef30a9a20d45b118b7`
 - HEAD 版本 SHA-256：`93717ea96bf3acc39bb5ff86c77315aaef348dd568951736501451591e38cf71`
 - 目标复制的是源工作树版本；目标文件 SHA-256 与源工作树一致

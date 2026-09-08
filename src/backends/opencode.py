@@ -8,13 +8,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from llm_tier.backends import register_backend
-from llm_tier.backends.agent_backend import AgentBackendMixin
-from llm_tier.backends.base import BaseBackendClient
-from llm_tier.backends.cli_io import build_cli_log_paths, run_cli_with_live_logs
-from llm_tier.exceptions import BackendCallError, QuotaExhaustedError
-from llm_tier.quota_manager import QuotaManager
-from llm_tier.redaction import redact_sensitive_text, redact_sensitive_value
+from backends import register_backend
+from backends.agent_backend import AgentBackendMixin
+from backends.base import BaseBackendClient
+from backends.cli_io import build_cli_log_paths, run_cli_with_live_logs
+from exceptions import BackendCallError, QuotaExhaustedError
+from quota_manager import QuotaManager
+from redaction import redact_sensitive_text, redact_sensitive_value
 
 
 # 用途：
@@ -30,7 +30,7 @@ def _resolve_default_opencode_cli_path() -> str:
     path_match = shutil.which("opencode")
     if path_match:
         return path_match
-    repo_tool_path = Path(__file__).resolve().parents[3] / "tools" / "opencode"
+    repo_tool_path = Path(__file__).resolve().parents[2] / "tools" / "opencode"
     if repo_tool_path.exists():
         return str(repo_tool_path)
     return os.path.expanduser("~/.local/bin/opencode")

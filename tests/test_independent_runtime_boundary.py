@@ -6,9 +6,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from llm_tier.backends import list_backends
-from llm_tier.quota_manager import _default_quota_state_dir
-from llm_tier.tier_config import TierConfig
+from backends import list_backends
+from quota_manager import _default_quota_state_dir
+from tier_config import TierConfig
 
 
 class IndependentRuntimeBoundaryTests(unittest.TestCase):

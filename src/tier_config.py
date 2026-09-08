@@ -6,7 +6,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from llm_tier.tier_model import TierAccount, TierModel
+from tier_model import TierAccount, TierModel
 
 
 # Purpose: Validate the single settings authority before it can replace live Tier configuration.
@@ -69,7 +69,7 @@ class TierConfig:
         if settings_path:
             self._settings_path = Path(settings_path).expanduser().resolve()
         else:
-            project_root = Path(__file__).resolve().parent.parent.parent
+            project_root = Path(__file__).resolve().parent.parent
             configured_path = os.environ.get("LLMTIER_CONFIG", "").strip()
             self._settings_path = (
                 Path(configured_path).expanduser().resolve()

@@ -10,11 +10,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from llm_tier.backends import register_backend
-from llm_tier.backends.agent_backend import AgentBackendMixin
-from llm_tier.backends.base import BaseBackendClient
-from llm_tier.exceptions import BackendCallError, QuotaExhaustedError
-from llm_tier.quota_manager import QuotaManager
+from backends import register_backend
+from backends.agent_backend import AgentBackendMixin
+from backends.base import BaseBackendClient
+from exceptions import BackendCallError, QuotaExhaustedError
+from quota_manager import QuotaManager
 
 
 def _resolve_default_codex_cli_path() -> str:
@@ -22,7 +22,7 @@ def _resolve_default_codex_cli_path() -> str:
     if env_path:
         return env_path
     script_dir = Path(__file__).resolve().parent
-    project_root = script_dir.parent.parent.parent
+    project_root = script_dir.parent.parent
     tools_codex = project_root / "tools" / "codex"
     if tools_codex.is_file():
         return str(tools_codex)

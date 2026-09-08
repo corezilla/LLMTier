@@ -77,7 +77,7 @@ class StdMigrationTests(unittest.TestCase):
         for section in range(1, 15):
             self.assertTrue(any(line.startswith(f"## {section}.") for line in headings), section)
         self.assertNotIn("<!-- TODO -->", text)
-        self.assertIn("| `src/llm_tier/` | 单服务 Python 当前实现基线 |", text)
+        self.assertIn("| `src/` | 单服务 Python 当前实现基线 |", text)
         self.assertIn("| `tests/` | 单元、contract semantic 与迁移一致性测试 |", text)
         self.assertIn("| `docs/` | 设计、接口、QA、迁移和 provenance |", text)
         self.assertIn("不新建 `software/llmtier/`、`services/llmtier/`", text)
