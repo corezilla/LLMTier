@@ -50,7 +50,6 @@
 | `docs/91_reviews/llmtier-std-c5-canonical-promotion-review.md` + metadata/decision | `review.packet` | C5 review record | promotion 已在 `503d0a0` 完成；该 packet 不授权 RAG/runtime |
 | `docs/91_reviews/llmtier-std-c6-rag-publication-review.md` + metadata/decision | `review.packet` | C6 review record | publication 已在 `9c554f7` 完成；Runtime Activation=false |
 | `rag/project-ingestion-manifest.jsonl` | `llmtier-project-rag.v1` | published at `9c554f7` | 绑定 promotion commit `503d0a0` 的 11 份 Accepted prose authority |
-| `docs/91_reviews/llmtier-std-c7-repository-layout-review.md` + metadata/decision | `review.packet` | C7 PENDING | 一次性目录迁移、引用同步、byte-preservation 与测试 Gate |
 | `docs/99_reference/design/llmtier-v0.3-design-review.md` | 原始 V0.3 设计 | Superseded | 全部 current scope 已迁出；保留 historical provenance |
 | `rag/std-ingestion-manifest.jsonl` | legacy draft.12 STD source list | 既有 dirty 文件；非 draft.18 source manifest、非项目 ingestion | 本轮不修改、不装载；后续 promotion packet 决定 historical/exclusion |
 
