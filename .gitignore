@@ -4,6 +4,8 @@ __pycache__/
 .venv/
 .env
 .env.*
+/config/settings.json
+/config/secrets/
 dist/
 build/
 *.egg-info/
