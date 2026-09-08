@@ -5,6 +5,9 @@ Promotion 输入：`e1f9b796368ec5f358e466c7e6299cc16b1bf181`
 STD：`9841083c4d8d0ed1556bdc413d77b4567ac696b4` / `std-v0.1.0-draft.18`
 结论：`READY_FOR_COMMIT` candidate；已构造原子 canonical-promotion diff，尚未提交或执行 RAG publication。
 
+> 本文件是 C5 review snapshot。2026-09-08 的 C7 只把其中引用的机器/历史 artifact 迁至
+> `interfaces/`、`docs/99_reference/` 和 `docs/98_migration/`；C5 的原始输入与 verdict 不变。
+
 ## 1. 完成度结论
 
 - C0-C4 已分别冻结为四个 immutable candidate commits：`aa2638283e77bc658e98df8d40396306cad17aa2`、
@@ -48,23 +51,23 @@ terminal decision 使用包含 draft.2 Slinky control 与 revised C1 packet 的 
 
 | Scope | Canonical artifact | Promotion 处置 |
 |---|---|---|
-| V0.3 字段、path、header、error、schema | `docs/contracts/openapi/llmtier-v0.3.openapi.json` | 原位保留为唯一字段级 authority；新文档只索引 |
-| activation candidate | `docs/contracts/compatibility-manifest-v0.3.json` | 原位保留；`overall.runtime_activation=false` 不变 |
-| V0.3 vectors | `docs/contracts/fixtures/v0.3/` | 原位保留为小型冻结 evidence/oracle |
+| V0.3 字段、path、header、error、schema | `interfaces/openapi/llmtier-v0.3.openapi.json` | 原位保留为唯一字段级 authority；新文档只索引 |
+| activation candidate | `interfaces/compatibility/compatibility-manifest-v0.3.json` | 原位保留；`overall.runtime_activation=false` 不变 |
+| V0.3 vectors | `interfaces/vectors/v0.3/` | 原位保留为小型冻结 evidence/oracle |
 | executable contract semantics | `tests/` | 原位保留为测试源码 authority |
 | current implementation | `src/` | 原位保留；promotion 不修改 runtime/config/fallback/compatibility path |
-| source provenance | `docs/migration/source-provenance-v0.1.md` | 保留为 migration provenance，不作为 current design authority |
+| source provenance | `docs/98_migration/source-provenance-v0.1.md` | 保留为 migration provenance，不作为 current design authority |
 
 ## 4. 旧文档 residual-authority ledger
 
 | Legacy scope | 当前 residual authority | Promotion 后处置 | 完成判据 |
 |---|---|---|---|
-| `docs/design/llmtier-v0.3-design-review.md` | 所有 current scope 已映射 | 本次整体 Superseded，保留 historical provenance | `legacy-v03-scope-mapping.md` §1；residual=none |
-| 三份 `docs/contracts/*-v0.3.md` prose | 所有 current scope 已映射 | 本次整体 Superseded，保留 historical prose | `legacy-v03-scope-mapping.md` §2-§4；residual=none |
-| `docs/qa/llm-tier-contract-qa-v0.3.md` | 所有 current scope 已映射 | 本次整体 Superseded，保留 historical review ledger | `legacy-v03-scope-mapping.md` §5；residual=none |
+| `docs/99_reference/design/llmtier-v0.3-design-review.md` | 所有 current scope 已映射 | 本次整体 Superseded，保留 historical provenance | `legacy-v03-scope-mapping.md` §1；residual=none |
+| 三份 `docs/99_reference/contracts/*-v0.3.md` prose | 所有 current scope 已映射 | 整体 Superseded，保留 historical prose | `legacy-v03-scope-mapping.md` §2-§4；residual=none |
+| `docs/99_reference/verification/llm-tier-contract-qa-v0.3.md` | 所有 current scope 已映射 | 本次整体 Superseded，保留 historical review ledger | `legacy-v03-scope-mapping.md` §5；residual=none |
 | V0.1/V0.2 prose、manifest、fixture、schema | historical/provenance only | 保留历史，不进入 current authority 或项目 RAG current set | README/manifest 明确排除，不删除 Git history |
-| `docs/design/legacy-capability-audit-v0.1.md` | source-baseline evidence | 保留为 historical reference，排除 current RAG | service design 已承接当前边界；审计不被写成实现验收 |
-| `docs/future/llmtier-v0.4-data-plane.md` | future/deferred scope | 保留 Future，排除 V0.3 current RAG | 不生成 inactive endpoint、fallback 或 V0.3 authority |
+| `docs/99_reference/design/legacy-capability-audit-v0.1.md` | source-baseline evidence | 保留为 historical reference，排除 current RAG | service design 已承接当前边界；审计不被写成实现验收 |
+| `docs/99_reference/future/llmtier-v0.4-data-plane.md` | future/deferred scope | 保留 Future，排除 V0.3 current RAG | 不生成 inactive endpoint、fallback 或 V0.3 authority |
 | `rag/std-ingestion-manifest.jsonl` | legacy draft.12 STD source list；且为既有 dirty | 不纳入 C5 promotion commit；新 project manifest 明确排除它 | 不覆盖/暂存当前 dirty，不把 STD source list冒充项目 publication |
 
 逐 scope 盘点未发现未映射 current scope；Piko/Slinky auditable verdict 均已收齐且为 ACCEPTED。

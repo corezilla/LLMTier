@@ -123,7 +123,7 @@ V0.3 单一选择是 C：有限保证窗口，不新增永久索引或 epoch/tok
 
 ## 8. Deferred surface 与 Embeddings
 
-Chat 和全部 streaming contract 已裁决移至 V0.4，详见 `docs/future/llmtier-v0.4-data-plane.md`；它们不进入 V0.3 OpenAPI、Manifest current endpoints 或 Piko capture gate。Embeddings non-stream 保留在 V0.3，面向 Memory/Knowledge 等模型服务 Client，由实际 Consumer Contract Test 验收；Piko 不为未使用 endpoint 制造 capture。
+Chat 和全部 streaming contract 已裁决移至 V0.4，详见 `docs/99_reference/future/llmtier-v0.4-data-plane.md`；它们不进入 V0.3 OpenAPI、Manifest current endpoints 或 Piko capture gate。Embeddings non-stream 保留在 V0.3，面向 Memory/Knowledge 等模型服务 Client，由实际 Consumer Contract Test 验收；Piko 不为未使用 endpoint 制造 capture。
 
 Piko 基于上述固定 Pi baseline 的 mock capture 已证明：内建 `openai-responses` 固定 `stream:true`；不识别 active `202 InvocationAccepted`；旧 terminal `200 InvocationView` 会报缺少 terminal event；typed `409` 被压成普通 provider error；lost response 会触发默认最多 3 次 agent-level retry。因此 V0.3 recovery 必须由自定义 adapter 执行，不能退回内建 adapter。Node `22.22.3` 对 `@earendil-works/gondolin@0.12.0` 的 `>=23.6.0` engine warning 尚待完整 Piko runtime matrix 处理。
 

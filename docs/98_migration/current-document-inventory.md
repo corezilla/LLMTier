@@ -1,14 +1,12 @@
 # LLMTier 当前文档盘点与 STD 映射
 
-盘点日期：2026-09-07
-盘点基线：`8dc6a54c92608ab6373f40c78cc954da7086f30e`
-范围：项目 README 与 `docs/` 下人工/机器文档；源码和测试代码不列为设计文档。
+盘点日期：2026-09-08
+盘点基线：`9c554f79942bf574a2bddf5dc6110293d6b21240`
+范围：项目 README、`docs/`、顶层 `interfaces/`、RAG manifests 和相关可执行测试。
 
-输入工作树：dirty；tracked diff SHA-256
-`1887324d647667196f4a38db2eb1f002e826fae714834a4750e48962a008fd8f`，untracked content set
-SHA-256 `dea984371cb7e552dcf8bb338bd48c35541dac035d496b16122f5315f7ed0471`，组合 digest
-`0e290688a8d378727434c842e4fe072fb197946c20c6dc07db0c7efe73ec0b63`。本轮保留这些既有修改，
-不 reset、不 clean，也不把它们冒充为本轮独占变更。
+输入工作树唯一既有 dirty 是 `rag/std-ingestion-manifest.jsonl`，binary diff SHA-256 为
+`5ecf097f57ec627f36586218d14e8df036467c8466de59e06adc7553c6073234`。C7 保留其路径和字节，
+不 reset、不 clean，也不把它纳入目录迁移 candidate。
 
 ## 1. 分类、Authority 与状态
 
@@ -18,7 +16,7 @@ SHA-256 `dea984371cb7e552dcf8bb338bd48c35541dac035d496b16122f5315f7ed0471`，组
   `design.system` 把跨项目上下文误写为 LLMTier 所拥有系统，现已由本次候选替换。
 - LLMTier 是本服务设计、接口实现和模型服务事实的 authority；Slinky 的 Project/Plan/IR/Scope
   决策与 Piko 的 Agent Runtime/adapter 事实仍由各自项目负责。
-- V0.3 字段级机器接口 authority 是 `docs/contracts/openapi/llmtier-v0.3.openapi.json`；
+- V0.3 字段级机器接口 authority 是 `interfaces/openapi/llmtier-v0.3.openapi.json`；
   compatibility activation authority 是 v0.3 manifest。v0.1/v0.2 只作历史输入。
 - 本次迁移不会把未实现能力提升为 accepted、released、Implemented、Verified 或 active。
 
@@ -50,9 +48,10 @@ SHA-256 `dea984371cb7e552dcf8bb338bd48c35541dac035d496b16122f5315f7ed0471`，组
 | `docs/98_migration/legacy-v03-scope-mapping.md` | C5 old→new mapping | promotion evidence | 五份旧 V0.3 文档逐章节映射；consumer verdict 均 ACCEPTED，residual=none |
 | `docs/98_migration/evidence/c5-consumer-verdicts.txt` | C1 consumer audit ledger | Piko ACCEPTED / Slinky AMENDMENT | 记录 message ID、immutable commit/blob/hash、结论和 draft.2 re-review 条件 |
 | `docs/91_reviews/llmtier-std-c5-canonical-promotion-review.md` + metadata/decision | `review.packet` | C5 review record | promotion 已在 `503d0a0` 完成；该 packet 不授权 RAG/runtime |
-| `docs/91_reviews/llmtier-std-c6-rag-publication-review.md` + metadata/decision | `review.packet` | C6 PENDING | 请求独立 RAG publication pre-commit review；Runtime Activation=false |
-| `rag/project-ingestion-manifest.jsonl` | `llmtier-project-rag.v1` | C6 publication candidate | 仅纳入 promotion commit `503d0a0` 的 11 份 Accepted prose authority |
-| `docs/design/llmtier-v0.3-design-review.md` | 原始 V0.3 设计 | Superseded | 全部 current scope 已迁出；保留 historical provenance |
+| `docs/91_reviews/llmtier-std-c6-rag-publication-review.md` + metadata/decision | `review.packet` | C6 review record | publication 已在 `9c554f7` 完成；Runtime Activation=false |
+| `rag/project-ingestion-manifest.jsonl` | `llmtier-project-rag.v1` | published at `9c554f7` | 绑定 promotion commit `503d0a0` 的 11 份 Accepted prose authority |
+| `docs/91_reviews/llmtier-std-c7-repository-layout-review.md` + metadata/decision | `review.packet` | C7 PENDING | 一次性目录迁移、引用同步、byte-preservation 与测试 Gate |
+| `docs/99_reference/design/llmtier-v0.3-design-review.md` | 原始 V0.3 设计 | Superseded | 全部 current scope 已迁出；保留 historical provenance |
 | `rag/std-ingestion-manifest.jsonl` | legacy draft.12 STD source list | 既有 dirty 文件；非 draft.18 source manifest、非项目 ingestion | 本轮不修改、不装载；后续 promotion packet 决定 historical/exclusion |
 
 错误候选 `docs/design/llmtier-v0.3-system-design.md` 与旧 tailoring 路径在 READY 输入工作树中已经
@@ -63,31 +62,31 @@ SHA-256 `dea984371cb7e552dcf8bb338bd48c35541dac035d496b16122f5315f7ed0471`，组
 
 | 路径/集合 | 状态 | STD 目标/处置 |
 |---|---|---|
-| `docs/design/legacy-capability-audit-v0.1.md` | current design input | `review.packet` evidence；保留 |
-| `docs/migration/source-provenance-v0.1.md` | current provenance | 后续迁入 `docs/98_migration/` 时另行 review；本轮不扩大改动 |
-| `docs/future/llmtier-v0.4-data-plane.md` | future/not implemented | 后续 design/contract；与 V0.3 current authority 分离 |
-| `docs/contracts/*-v0.1.md`、`*-v0.2.md` | historical/superseded | 后续归档并排除 current 检索 |
-| 三份 `docs/contracts/*-v0.3.md` | current candidate/not active | 后续迁为 `interfaces.control` |
-| `docs/contracts/openapi/llmtier-v0.3.openapi.json` | current machine authority/candidate | 原位保留；后续补 `contracts.specification` 说明层 |
-| `docs/contracts/compatibility-manifest-v0.3.json` | current activation authority；false | 原位保留 |
-| `docs/contracts/compatibility-manifest-v0.1.json`、`v0.2.json` | historical/superseded | 后续归档 |
-| `docs/contracts/schemas/llmtier-contracts-v0.2.schema.json` | historical，非 V0.3 authority | 后续归档，不装载到 V0.3 manifest |
-| `docs/contracts/fixtures/v0.2/` | historical evidence | 后续归档 |
-| `docs/contracts/fixtures/v0.3/` | current candidate evidence | assurance migration 前原位保留 |
-| `docs/qa/llm-tier-contract-qa-v0.1.md`、`v0.2.md` | historical/superseded | 后续归档 |
-| `docs/qa/llm-tier-contract-qa-v0.3.md` | Superseded | C2 assurance、traceability 与 review evidence 已承接全部 current scope；保留历史 review ledger |
+| `docs/99_reference/design/legacy-capability-audit-v0.1.md` | historical design input | 已归位；保留为 review/source-baseline evidence |
+| `docs/98_migration/source-provenance-v0.1.md` | migration provenance | 已归位；不是 current design authority |
+| `docs/99_reference/future/llmtier-v0.4-data-plane.md` | future/not implemented | 已归位；与 V0.3 current authority 分离 |
+| `docs/99_reference/contracts/*-v0.1.md`、`*-v0.2.md` | historical/superseded | 已归位并排除 current 检索 |
+| 三份 `docs/99_reference/contracts/*-v0.3.md` | Superseded prose | 已归位；current successor 位于 `docs/60_interfaces/` |
+| `interfaces/openapi/llmtier-v0.3.openapi.json` | current machine authority/candidate | 顶层机器契约 canonical path |
+| `interfaces/compatibility/compatibility-manifest-v0.3.json` | current activation authority；false | 顶层 compatibility canonical path |
+| `interfaces/compatibility/compatibility-manifest-v0.1.json`、`v0.2.json` | historical/superseded | 保留历史机器记录 |
+| `interfaces/schemas/llmtier-contracts-v0.2.schema.json` | historical，非 V0.3 authority | 保留历史 Schema，不由 V0.3 manifest 装载 |
+| `interfaces/vectors/v0.2/` | historical evidence | 保留历史 vectors |
+| `interfaces/vectors/v0.3/` | current candidate evidence | 顶层 machine/executable oracle path |
+| `docs/99_reference/verification/llm-tier-contract-qa-v0.1.md`、`v0.2.md` | historical/superseded | 已归位并排除 current 检索 |
+| `docs/99_reference/verification/llm-tier-contract-qa-v0.3.md` | Superseded | C2 assurance、traceability 与 review evidence 已承接全部 current scope；保留历史 review ledger |
 
 ## 4. 旧→新映射
 
 | 旧 authority/内容 | 新候选/目标 | 本轮结果 |
 |---|---|---|
-| `docs/design/llmtier-v0.3-design-review.md` | `docs/30_subsystem_design/llmtier-service-design.md` | 14 节及关联 requirements/interfaces 已覆盖全部 current scope；旧文件 residual=none，标为 Superseded candidate |
+| `docs/99_reference/design/llmtier-v0.3-design-review.md` | `docs/30_subsystem_design/llmtier-service-design.md` | 14 节及关联 requirements/interfaces 已覆盖全部 current scope；旧文件 residual=none，标为 Superseded candidate |
 | `docs/design/llmtier-v0.3-system-design.md` | 不保留 | 错误的 `design.system` candidate 已删除，Git 历史可追溯 |
 | `docs/management/std-tailoring-v0.1.md` | `docs/00_management/std-tailoring.md` | 升级 draft.12，并改为单服务 profile |
 | 三份 v0.3 interface Markdown | `docs/60_interfaces/*-control.md` | C1 terminal ACCEPTED；新 controls 为 Approved candidate，旧 prose 为 Superseded candidate |
 | OpenAPI/manifest/error/schema | `docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.md` + 原机器文件 | C1 只建立说明与索引；字段级机器 authority 未改、不复制 |
 | v0.3 QA 与 fixtures/tests | assurance templates + 原 evidence | QA prose 已迁移；tests/fixtures 继续保持 executable authority |
-| `docs/qa/llm-tier-contract-qa-v0.3.md` | `docs/70_verification/plans/llmtier-v0.3-vv-plan.md` + `docs/70_verification/specifications/llmtier-v0.3-contract-test-specification.md` | C2/traceability/review evidence 已覆盖全部 current scope；旧 QA residual=none，标为 Superseded candidate |
+| `docs/99_reference/verification/llm-tier-contract-qa-v0.3.md` | `docs/70_verification/plans/llmtier-v0.3-vv-plan.md` + `docs/70_verification/specifications/llmtier-v0.3-contract-test-specification.md` | C2/traceability/review evidence 已覆盖全部 current scope；旧 QA residual=none，标为 Superseded candidate |
 | Matrix review ledger | `docs/91_reviews/llmtier-std-draft16-migration-review.md` | C0-C4 terminal decisions 已记录；原 Review ID 保留 |
 
 ## 5. 目录与迁移约束
@@ -96,26 +95,27 @@ SHA-256 `dea984371cb7e552dcf8bb338bd48c35541dac035d496b16122f5315f7ed0471`，组
    独立部署、发布和 owner 单元时才重新 tailoring。
 2. `docs/00_management/`、`docs/30_subsystem_design/`、`docs/91_reviews/` 和
    `docs/98_migration/` 是迁移与 Gate evidence 位置；authority 切换已由 promotion commit `503d0a0` 完成。
-   原 Contract/QA/Provenance 的批量搬迁留待后续评审，避免无关路径 churn。
+   Contract/QA/Provenance 已在 C7 一次性归位，不建立重复正文。
 3. `docs/std-source-manifest.json` 是 draft.18 source lock；既有
    `rag/std-ingestion-manifest.jsonl` 仍是 legacy STD source-list dirty，明确排除且不修改。
    C6 新建 `rag/project-ingestion-manifest.jsonl`，只绑定 promotion commit `503d0a0` 的 11 份
    Accepted canonical prose，并记录 inclusion/exclusion、ACL 和 publication commit。
 4. 业务 Contract/OpenAPI/Manifest/fixture 未因分类修正而改变；若后续发现必须改变冻结字段，需先
    报告冲突并走独立接口评审。
-5. 源码 `src/`、机器契约、fixtures 与 runtime 配置均不在本 cohort 的写入范围；本轮只调整文档、
-   adoption metadata 和迁移一致性测试，不引入新 runtime/config/fallback/compatibility path。
+5. 源码 `src/` 与 runtime 配置不在 C7 写入范围；机器契约和 vectors 只移动路径、不改变字节，
+   不引入新 runtime/config/fallback/compatibility path。
 
 ## 6. Canonical promotion 与后置 publication 边界
 
-本 inventory 已随原子 promotion commit 更新；C6 publication candidate 仍需新的 STD exact-path COMMIT_APPROVED：
+本 inventory 已随 C5/C6 完成状态及 C7 repository-layout candidate 更新：
 
 1. LLMTier Owner terminal decisions 与 reviewed commits 已固定；
 2. README、authority index、新旧文档状态及 residual-scope 映射在同一 diff 更新；
 3. 五份旧文档全部 scope 已迁出，因此整体 Superseded；
-4. 当前 C6 manifest 纳入 `503d0a0` 的 11 份 canonical prose，排除旧/历史/candidate 和 legacy
+4. C6 manifest 纳入 `503d0a0` 的 11 份 canonical prose，排除旧/历史/candidate 和 legacy
    STD source list，并验证 ACL、内容 hash、检索合约和单一 current authority；
 5. runtime activation 始终保持 `false`，直至独立 authority 与 production evidence Gate 关闭。
+6. C7 只改变 repository paths 与引用；提交后如需索引当前字节，另走 commit-bound RAG refresh。
 
 ## 7. C5 完整度与 residual-authority 结论
 

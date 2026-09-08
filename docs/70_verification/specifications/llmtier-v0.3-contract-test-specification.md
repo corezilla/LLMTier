@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-07` |
+| Last Modified Date | `2026-09-08` |
 | STD Version | `0.1.0-draft.18` |
 | Template ID | `assurance.test-specification` |
 | Template Conformance | `tailored` |
@@ -39,9 +39,9 @@ OpenAPI、compatibility manifest、v0.3 fixtures、当前 Python package boundar
 ## 2. 引用基线、环境与前置条件
 
 - Project candidate：`aa2638283e77bc658e98df8d40396306cad17aa2`；C2 在此后形成未提交候选。
-- Contract：`docs/contracts/openapi/llmtier-v0.3.openapi.json`。
-- Activation：`docs/contracts/compatibility-manifest-v0.3.json`，必须保持 false。
-- Fixtures：`docs/contracts/fixtures/v0.3/`；历史 v0.2 只作 provenance，不是 V0.3 Schema authority。
+- Contract：`interfaces/openapi/llmtier-v0.3.openapi.json`。
+- Activation：`interfaces/compatibility/compatibility-manifest-v0.3.json`，必须保持 false。
+- Fixtures：`interfaces/vectors/v0.3/`；历史 v0.2 只作 provenance，不是 V0.3 Schema authority。
 - Tests：`tests/test_contract_fixtures.py`、`tests/test_contract_semantics_v03.py`、
   `tests/test_independent_runtime_boundary.py`、`tests/test_standalone_imports.py`、
   `tests/test_std_migration.py`。

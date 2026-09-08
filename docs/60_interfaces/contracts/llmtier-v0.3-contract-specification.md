@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | 2026-09-07 |
 | Created Date | 2026-09-07 |
-| Last Modified Date | 2026-09-07 |
+| Last Modified Date | 2026-09-08 |
 | STD Version | 0.1.0-draft.18 |
 | Template ID | contracts.specification |
 | Template Conformance | tailored |
@@ -29,8 +29,8 @@
 <!-- STD_DOCUMENT_COVER_END -->
 
 > 本文只建立 V0.3 machine contract 的 scope、authority、演进和验证索引，不转写字段定义。
-> docs/contracts/openapi/llmtier-v0.3.openapi.json 与
-> docs/contracts/compatibility-manifest-v0.3.json 原位保持各自机器 authority。
+> interfaces/openapi/llmtier-v0.3.openapi.json 与
+> interfaces/compatibility/compatibility-manifest-v0.3.json 原位保持各自机器 authority。
 
 ## 1. Contract scope 与 authority
 
@@ -123,7 +123,7 @@ Registry、fixtures 和 SDK matrix 同步。本文的 STD 迁移不改变任何 
 
 v0.3 fixtures 包括 authorization scope、capacity semantic negative、Data Plane OpenAPI、
 deferred-surface fail-closed、idempotency policy、metadata UTF-8 byte、Observation/Management OpenAPI
-和 recovery protocol。它们保持在 docs/contracts/fixtures/v0.3/。
+和 recovery protocol。它们保持在 interfaces/vectors/v0.3/。
 
 tests/test_contract_semantics_v03.py 验证 semantic invariants；
 tests/test_contract_consistency.py 验证 manifest/contract consistency；其他 tests 验证当前实现基线。
@@ -141,7 +141,7 @@ fixture PASS 只说明 candidate artifact consistency，不是 production endpoi
 | secret non-disclosure/concurrency | Management schemas + If-Match/version | Management semantic tests | Candidate PASS；UI/runtime BLOCKED |
 | activation separation | compatibility overall/activation fields | manifest consistency tests | Candidate PASS；activation false |
 
-原 Review ID 和更细 traceability 继续由 docs/qa/llm-tier-contract-qa-v0.3.md 保留，直到 C2 assurance
+原 Review ID 和更细 traceability 继续由 docs/99_reference/verification/llm-tier-contract-qa-v0.3.md 保留，直到 C2 assurance
 candidate 和后续 promotion 完成。
 
 ## 11. Activation Gate 与未决项

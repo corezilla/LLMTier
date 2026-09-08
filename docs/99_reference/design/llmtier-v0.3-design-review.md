@@ -147,7 +147,7 @@ V0.3 必须交付 `/tier/admin/v1` Management API 和最小 Admin Web UI，覆�
 
 Secret 只写不读；API/UI/日志只显示配置状态、版本/轮换时间和健康证据。所有 mutation 鉴权、授权、审计并带并发版本检查。UI 至少支持 list/detail/edit/disable/rotate/probe/publish/recovery、明确确认、typed result、状态和 audit 展示。
 
-Management 不得创建 Provider-direct Data Plane、Role selector、跨等级 fallback 或第二 Registry。详细 required scope 见 `docs/contracts/llmtier-management-contract-v0.3.md`。
+Management 不得创建 Provider-direct Data Plane、Role selector、跨等级 fallback 或第二 Registry。详细 required scope 见 `docs/99_reference/contracts/llmtier-management-contract-v0.3.md`。
 
 ## 8. Schema、安全与状态
 
@@ -157,7 +157,7 @@ Management 不得创建 Provider-direct Data Plane、Role selector、跨等级 f
 - Metadata 最多 16 对，key/value 权威限制为 64/512 UTF-8 encoded bytes，不得静默截断。
 - Observation 与 Data Plane recovery 投影自同一 Invocation ledger。
 - Prompt/output/usage retention 与 privacy policy 显式配置，但受 M2-C digest/tombstone 下限约束。
-- V0.3 唯一机器权威是 `docs/contracts/openapi/llmtier-v0.3.openapi.json`；历史 standalone Schema 不由当前 Manifest 装载。
+- V0.3 唯一机器权威是 `interfaces/openapi/llmtier-v0.3.openapi.json`；历史 standalone Schema 不由当前 Manifest 装载。
 
 ## 9. Activation gates
 
@@ -196,12 +196,12 @@ V0.3 只有以下条件全部满足才可从 candidate 激活：
 
 ## 12. 关联材料
 
-- `docs/contracts/piko-data-plane-contract-v0.3.md`
-- `docs/contracts/slinky-capacity-observation-contract-v0.3.md`
-- `docs/contracts/llmtier-management-contract-v0.3.md`
-- `docs/contracts/compatibility-manifest-v0.3.json`
-- `docs/contracts/openapi/llmtier-v0.3.openapi.json`
-- `docs/contracts/fixtures/v0.3/data-plane-openapi-fixtures.json`
-- `docs/contracts/fixtures/v0.3/observation-management-openapi-fixtures.json`
-- `docs/future/llmtier-v0.4-data-plane.md`
-- `docs/qa/llm-tier-contract-qa-v0.3.md`
+- `docs/99_reference/contracts/piko-data-plane-contract-v0.3.md`
+- `docs/99_reference/contracts/slinky-capacity-observation-contract-v0.3.md`
+- `docs/99_reference/contracts/llmtier-management-contract-v0.3.md`
+- `interfaces/compatibility/compatibility-manifest-v0.3.json`
+- `interfaces/openapi/llmtier-v0.3.openapi.json`
+- `interfaces/vectors/v0.3/data-plane-openapi-fixtures.json`
+- `interfaces/vectors/v0.3/observation-management-openapi-fixtures.json`
+- `docs/99_reference/future/llmtier-v0.4-data-plane.md`
+- `docs/99_reference/verification/llm-tier-contract-qa-v0.3.md`

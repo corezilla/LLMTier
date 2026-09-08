@@ -1,4 +1,5 @@
 import json
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -83,9 +84,9 @@ class StdMigrationTests(unittest.TestCase):
 
     def test_c1_interface_and_contract_candidates_preserve_machine_authority(self):
         candidates = {
-            "piko-data-plane-control.md": ("interfaces.control", "962e8003712738d2cb4e3a0a38173a9fd2bdd0a1", "docs/contracts/piko-data-plane-contract-v0.3.md"),
-            "slinky-capacity-observation-control.md": ("interfaces.control", "e1f9b796368ec5f358e466c7e6299cc16b1bf181", "docs/contracts/slinky-capacity-observation-contract-v0.3.md"),
-            "llmtier-management-control.md": ("interfaces.control", "962e8003712738d2cb4e3a0a38173a9fd2bdd0a1", "docs/contracts/llmtier-management-contract-v0.3.md"),
+            "piko-data-plane-control.md": ("interfaces.control", "962e8003712738d2cb4e3a0a38173a9fd2bdd0a1", "docs/99_reference/contracts/piko-data-plane-contract-v0.3.md"),
+            "slinky-capacity-observation-control.md": ("interfaces.control", "e1f9b796368ec5f358e466c7e6299cc16b1bf181", "docs/99_reference/contracts/slinky-capacity-observation-contract-v0.3.md"),
+            "llmtier-management-control.md": ("interfaces.control", "962e8003712738d2cb4e3a0a38173a9fd2bdd0a1", "docs/99_reference/contracts/llmtier-management-contract-v0.3.md"),
             "contracts/llmtier-v0.3-contract-specification.md": ("contracts.specification", "962e8003712738d2cb4e3a0a38173a9fd2bdd0a1", None),
         }
         root = ROOT / "docs" / "60_interfaces"
@@ -229,11 +230,11 @@ class StdMigrationTests(unittest.TestCase):
 
         mapping = (ROOT / "docs" / "98_migration" / "legacy-v03-scope-mapping.md").read_text(encoding="utf-8")
         for legacy in (
-            "docs/design/llmtier-v0.3-design-review.md",
-            "docs/contracts/piko-data-plane-contract-v0.3.md",
-            "docs/contracts/slinky-capacity-observation-contract-v0.3.md",
-            "docs/contracts/llmtier-management-contract-v0.3.md",
-            "docs/qa/llm-tier-contract-qa-v0.3.md",
+            "docs/99_reference/design/llmtier-v0.3-design-review.md",
+            "docs/99_reference/contracts/piko-data-plane-contract-v0.3.md",
+            "docs/99_reference/contracts/slinky-capacity-observation-contract-v0.3.md",
+            "docs/99_reference/contracts/llmtier-management-contract-v0.3.md",
+            "docs/99_reference/verification/llm-tier-contract-qa-v0.3.md",
         ):
             self.assertIn(legacy, mapping)
         self.assertIn("S-20260907-45938693e578", mapping)
@@ -296,11 +297,11 @@ class StdMigrationTests(unittest.TestCase):
             self.assertFalse(terminal["runtime_activation_requested"])
 
         for legacy in (
-            ROOT / "docs" / "design" / "llmtier-v0.3-design-review.md",
-            ROOT / "docs" / "contracts" / "piko-data-plane-contract-v0.3.md",
-            ROOT / "docs" / "contracts" / "slinky-capacity-observation-contract-v0.3.md",
-            ROOT / "docs" / "contracts" / "llmtier-management-contract-v0.3.md",
-            ROOT / "docs" / "qa" / "llm-tier-contract-qa-v0.3.md",
+            ROOT / "docs" / "99_reference" / "design" / "llmtier-v0.3-design-review.md",
+            ROOT / "docs" / "99_reference" / "contracts" / "piko-data-plane-contract-v0.3.md",
+            ROOT / "docs" / "99_reference" / "contracts" / "slinky-capacity-observation-contract-v0.3.md",
+            ROOT / "docs" / "99_reference" / "contracts" / "llmtier-management-contract-v0.3.md",
+            ROOT / "docs" / "99_reference" / "verification" / "llm-tier-contract-qa-v0.3.md",
         ):
             self.assertIn("Document Status: Superseded", legacy.read_text(encoding="utf-8"))
 
@@ -350,17 +351,21 @@ class StdMigrationTests(unittest.TestCase):
             self.assertEqual("llmtier", entry["authority"])
             self.assertEqual("project/llmtier", entry["namespace"])
             self.assertTrue(entry["include"])
+            published_bytes = subprocess.check_output(
+                ["git", "show", f'{entry["commit"]}:{entry["path"]}'],
+                cwd=ROOT,
+            )
             self.assertEqual(
-                hashlib.sha256((ROOT / entry["path"]).read_bytes()).hexdigest(),
+                hashlib.sha256(published_bytes).hexdigest(),
                 entry["content_sha256"],
             )
 
         excluded = {
-            "docs/design/llmtier-v0.3-design-review.md",
-            "docs/contracts/piko-data-plane-contract-v0.3.md",
-            "docs/contracts/slinky-capacity-observation-contract-v0.3.md",
-            "docs/contracts/llmtier-management-contract-v0.3.md",
-            "docs/qa/llm-tier-contract-qa-v0.3.md",
+            "docs/99_reference/design/llmtier-v0.3-design-review.md",
+            "docs/99_reference/contracts/piko-data-plane-contract-v0.3.md",
+            "docs/99_reference/contracts/slinky-capacity-observation-contract-v0.3.md",
+            "docs/99_reference/contracts/llmtier-management-contract-v0.3.md",
+            "docs/99_reference/verification/llm-tier-contract-qa-v0.3.md",
             "rag/std-ingestion-manifest.jsonl",
         }
         self.assertTrue(excluded.isdisjoint(actual_paths))
@@ -381,7 +386,14 @@ class StdMigrationTests(unittest.TestCase):
             return {
                 entry["path"]
                 for entry in allowed
-                if all(term in (ROOT / entry["path"]).read_text(encoding="utf-8") for term in terms)
+                if all(
+                    term in subprocess.check_output(
+                        ["git", "show", f'{entry["commit"]}:{entry["path"]}'],
+                        cwd=ROOT,
+                        text=True,
+                    )
+                    for term in terms
+                )
             }
 
         self.assertIn(
@@ -395,6 +407,39 @@ class StdMigrationTests(unittest.TestCase):
         runtime_hits = retrieve(["Runtime Activation", "NOT_RUN/BLOCKED"])
         self.assertIn("docs/70_verification/plans/llmtier-v0.3-vv-plan.md", runtime_hits)
         self.assertIn("docs/80_operations/llmtier-v0.3-release-and-operations.md", runtime_hits)
+
+    def test_c7_repository_layout_uses_interfaces_and_reference_trees_without_duplicate_paths(self):
+        expected = {
+            ROOT / "interfaces" / "openapi" / "llmtier-v0.3.openapi.json",
+            ROOT / "interfaces" / "compatibility" / "compatibility-manifest-v0.3.json",
+            ROOT / "interfaces" / "schemas" / "llmtier-contracts-v0.2.schema.json",
+            ROOT / "interfaces" / "vectors" / "v0.3" / "recovery-protocol-fixtures.json",
+            ROOT / "docs" / "99_reference" / "design" / "llmtier-v0.3-design-review.md",
+            ROOT / "docs" / "99_reference" / "contracts" / "piko-data-plane-contract-v0.3.md",
+            ROOT / "docs" / "99_reference" / "verification" / "llm-tier-contract-qa-v0.3.md",
+            ROOT / "docs" / "99_reference" / "future" / "llmtier-v0.4-data-plane.md",
+            ROOT / "docs" / "98_migration" / "source-provenance-v0.1.md",
+        }
+        self.assertTrue(all(path.is_file() for path in expected))
+
+        old_roots = [
+            ROOT / "docs" / "contracts",
+            ROOT / "docs" / "design",
+            ROOT / "docs" / "qa",
+            ROOT / "docs" / "future",
+            ROOT / "docs" / "migration",
+        ]
+        self.assertFalse(any(path.is_file() for root in old_roots for path in root.rglob("*") if root.exists()))
+
+        manifest = json.loads(
+            (ROOT / "interfaces" / "compatibility" / "compatibility-manifest-v0.3.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual("openapi/llmtier-v0.3.openapi.json", manifest["contract_authority"]["path"])
+        self.assertFalse(manifest["overall"]["runtime_activation"])
+
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("interfaces/openapi/llmtier-v0.3.openapi.json", readme)
+        self.assertIn("docs/98_migration/source-provenance-v0.1.md", readme)
 
 
 if __name__ == "__main__":

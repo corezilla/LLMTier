@@ -15,10 +15,10 @@ from tools.contract_semantic_validator_v03 import (
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CONTRACTS = ROOT / "docs" / "contracts"
-FIXTURES = CONTRACTS / "fixtures"
-OPENAPI_PATH = CONTRACTS / "openapi" / "llmtier-v0.3.openapi.json"
-MANIFEST_PATH = CONTRACTS / "compatibility-manifest-v0.3.json"
+INTERFACES = ROOT / "interfaces"
+FIXTURES = INTERFACES / "vectors"
+OPENAPI_PATH = INTERFACES / "openapi" / "llmtier-v0.3.openapi.json"
+MANIFEST_PATH = INTERFACES / "compatibility" / "compatibility-manifest-v0.3.json"
 SERVICE_DESIGN_PATH = ROOT / "docs" / "30_subsystem_design" / "llmtier-service-design.md"
 AUTHORIZATION_SCOPE_FIXTURE_PATH = FIXTURES / "v0.3" / "authorization-scope-fixtures.json"
 
@@ -361,11 +361,11 @@ class ContractSemanticsV03Tests(unittest.TestCase):
         files = [
             MANIFEST_PATH,
             OPENAPI_PATH,
-            CONTRACTS / "piko-data-plane-contract-v0.3.md",
-            CONTRACTS / "slinky-capacity-observation-contract-v0.3.md",
-            CONTRACTS / "llmtier-management-contract-v0.3.md",
-            ROOT / "docs" / "design" / "llmtier-v0.3-design-review.md",
-            ROOT / "docs" / "qa" / "llm-tier-contract-qa-v0.3.md",
+            ROOT / "docs" / "99_reference" / "contracts" / "piko-data-plane-contract-v0.3.md",
+            ROOT / "docs" / "99_reference" / "contracts" / "slinky-capacity-observation-contract-v0.3.md",
+            ROOT / "docs" / "99_reference" / "contracts" / "llmtier-management-contract-v0.3.md",
+            ROOT / "docs" / "99_reference" / "design" / "llmtier-v0.3-design-review.md",
+            ROOT / "docs" / "99_reference" / "verification" / "llm-tier-contract-qa-v0.3.md",
             FIXTURES / "v0.3" / "recovery-protocol-fixtures.json",
         ]
         text = "\n".join(path.read_text(encoding="utf-8") for path in files)

@@ -4,8 +4,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CONTRACTS = ROOT / "docs" / "contracts"
-FIXTURES = CONTRACTS / "fixtures" / "v0.2"
+INTERFACES = ROOT / "interfaces"
+FIXTURES = INTERFACES / "vectors" / "v0.2"
 
 
 class ContractFixtureTests(unittest.TestCase):
@@ -13,7 +13,7 @@ class ContractFixtureTests(unittest.TestCase):
         return json.loads(path.read_text(encoding="utf-8"))
 
     def test_manifest_does_not_advertise_unverified_surface(self):
-        manifest = self.load(CONTRACTS / "compatibility-manifest-v0.2.json")
+        manifest = self.load(INTERFACES / "compatibility" / "compatibility-manifest-v0.2.json")
         self.assertTrue(manifest["activation"]["planned_or_conditional_fail_closed"])
         self.assertFalse(any(endpoint["support"] == "verified" for endpoint in manifest["endpoints"]))
 

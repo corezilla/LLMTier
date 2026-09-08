@@ -4,7 +4,10 @@ Promotion 输入：`e1f9b796368ec5f358e466c7e6299cc16b1bf181`
 规则：每个旧文档有效章节必须指向 successor Document ID/path、保留的机器 authority，并给出 residual。
 `residual=none` 只表示正式 current prose 已有唯一 successor；旧 Git 历史和 review provenance 仍保留。
 
-## 1. `docs/design/llmtier-v0.3-design-review.md`
+2026-09-08 C7 repository-layout migration 将这些 Superseded 文件从原路径移动到下列
+`docs/99_reference/` 路径；本表的 scope、blob/hash、successor 和 residual 结论不变。
+
+## 1. `docs/99_reference/design/llmtier-v0.3-design-review.md`
 
 旧文件 blob=`31370940272e51125c7c0900dcc30038c35eea9e`，SHA-256=
 `ab0e305086e2cf73269efa06f3b3fb9bfc5908f99bbb9a902ad051b87ead5b08`。
@@ -29,7 +32,7 @@ Promotion 输入：`e1f9b796368ec5f358e466c7e6299cc16b1bf181`
 处置：全部有效 scope 均有 successor；Slinky 已接受 exact draft.2 immutable input，因此 residual=none，
 旧文件在本次原子 promotion 中整体标为 Superseded。
 
-## 2. `docs/contracts/piko-data-plane-contract-v0.3.md`
+## 2. `docs/99_reference/contracts/piko-data-plane-contract-v0.3.md`
 
 旧文件 blob=`0504fe4f977a6840ee8feeedf646183b81e210a6`，SHA-256=
 `d22c494410cc9039afea7df6c3e49ea44921c3f40db1053898bd2b81e6621461`。
@@ -48,7 +51,7 @@ Promotion 输入：`e1f9b796368ec5f358e466c7e6299cc16b1bf181`
 
 处置：Piko verdict 已为 ACCEPTED，authority uniqueness 检查纳入 promotion Gate；residual=none，旧文件整体 Superseded。
 
-## 3. `docs/contracts/slinky-capacity-observation-contract-v0.3.md`
+## 3. `docs/99_reference/contracts/slinky-capacity-observation-contract-v0.3.md`
 
 旧文件 blob=`67dba4b033b184936de639684c48ac71693b41ee`，SHA-256=
 `06167acbaa18f86c56ca094b650e6700b8a42ae86182cc81e3986e8becfebaf3`。
@@ -65,7 +68,7 @@ Promotion 输入：`e1f9b796368ec5f358e466c7e6299cc16b1bf181`
 
 处置：Slinky verdict 已为 ACCEPTED，authority uniqueness 检查纳入 promotion Gate；residual=none，旧文件整体 Superseded。
 
-## 4. `docs/contracts/llmtier-management-contract-v0.3.md`
+## 4. `docs/99_reference/contracts/llmtier-management-contract-v0.3.md`
 
 旧文件 blob=`fa30007750463b70943408042f1c212d8efa0445`，SHA-256=
 `d4ff45c073b13a90533b91559831ed42ead6bfad38ed06c60e17a7f5d3c1433e`。
@@ -79,7 +82,7 @@ Promotion 输入：`e1f9b796368ec5f358e466c7e6299cc16b1bf181`
 
 处置：全部正式 prose scope 已映射，旧文件整体 Superseded；未实现 UI 是 successor 中的 Open Gate，不是旧文档 residual。
 
-## 5. `docs/qa/llm-tier-contract-qa-v0.3.md`
+## 5. `docs/99_reference/verification/llm-tier-contract-qa-v0.3.md`
 
 旧文件 blob=`24f42a02eb9012631f54dfe217ae578e18262062`，SHA-256=
 `7ce467ab0c5c4bd5d4ef25bbf708f4b2d9dac786217c57113d994bc37da70277`。

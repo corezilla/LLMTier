@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | `2026-09-07` |
 | Created Date | `2026-09-06` |
-| Last Modified Date | `2026-09-07` |
+| Last Modified Date | `2026-09-08` |
 | STD Version | `0.1.0-draft.18` |
 | Template ID | `design.definition` |
 | Template Conformance | `tailored` |
@@ -22,7 +22,7 @@
 | Migration Map Reference | none |
 | Repository | `corezilla/LLMTier` |
 | Canonical Path | `docs/30_subsystem_design/llmtier-service-design.md` |
-| Supersedes | `docs/design/llmtier-v0.3-design-review.md` |
+| Supersedes | `docs/99_reference/design/llmtier-v0.3-design-review.md` |
 
 > Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
@@ -30,7 +30,7 @@
 
 > 本文按 STD 的“单应用、单服务或单库”软件项目模型，将 LLMTier 定义为一个独立部署的
 > 模型服务；`design_level=subsystem` 表示它在 Slinky/Piko/LLMTier 协作链路中的层级，不表示
-> 本仓库拥有该跨项目系统。迁移来源为 `docs/design/llmtier-v0.3-design-review.md`。本次只修正
+> 本仓库拥有该跨项目系统。迁移来源为 `docs/99_reference/design/llmtier-v0.3-design-review.md`。本次只修正
 > 文档分类与结构，不改变既有 authority、Scope B、接口 ID、评审结论或 activation gate。本文已通过
 > Owner review 进入 Approved promotion candidate；原设计全部 current scope 已映射并标为 Superseded。
 
@@ -148,14 +148,14 @@ Slinky -> /tier/v1 readiness | service-levels | capacity | invocations | usage |
 
 | 分面 | Provided interface | Authority |
 |---|---|---|
-| Data Plane | `POST /v1/responses`、`POST /v1/embeddings`、Models list/detail、Invocation/Response GET | `docs/contracts/openapi/llmtier-v0.3.openapi.json` |
+| Data Plane | `POST /v1/responses`、`POST /v1/embeddings`、Models list/detail、Invocation/Response GET | `interfaces/openapi/llmtier-v0.3.openapi.json` |
 | Observation | `/tier/v1` readiness、service-levels、capacity、invocations、usage、compatibility | 同一 V0.3 OpenAPI；说明见 Slinky contract |
 | Management | `/tier/admin/v1` 与最小 Admin Web UI | 同一 V0.3 OpenAPI；说明见 Management contract |
-| Compatibility | overall/per-capability candidate 与 activation | `docs/contracts/compatibility-manifest-v0.3.json` |
+| Compatibility | overall/per-capability candidate 与 activation | `interfaces/compatibility/compatibility-manifest-v0.3.json` |
 
-说明文档为 `docs/contracts/piko-data-plane-contract-v0.3.md`、
-`docs/contracts/slinky-capacity-observation-contract-v0.3.md` 和
-`docs/contracts/llmtier-management-contract-v0.3.md`；正负样例在 `docs/contracts/fixtures/v0.3/`。
+说明文档为 `docs/99_reference/contracts/piko-data-plane-contract-v0.3.md`、
+`docs/99_reference/contracts/slinky-capacity-observation-contract-v0.3.md` 和
+`docs/99_reference/contracts/llmtier-management-contract-v0.3.md`；正负样例在 `interfaces/vectors/v0.3/`。
 Markdown 负责范围、rationale 与 authority；OpenAPI/manifest/fixtures 负责字段级机器契约。发生冲突
 必须通过 review 修正，Consumer 不得自选解释。
 
@@ -304,7 +304,7 @@ deploy/config/schema/migration/ops 文件在实现需要与 ADR/评审关闭后�
 | LT-QR-009：管理与观察一致性 | §5-6、§9 | pagination、aggregate、ETag、unknown/partial tests | OpenAPI semantic tests；UI evidence 待补 | Candidate |
 | STD-LT-001：单服务分类 | §1、§12 | metadata/path/tailoring/inventory consistency test | `tests/test_std_migration.py` | Candidate |
 
-`docs/qa/llm-tier-contract-qa-v0.3.md` 和 tests 只证明文档、Schema、fixture 的静态一致性，不证明
+`docs/99_reference/verification/llm-tier-contract-qa-v0.3.md` 和 tests 只证明文档、Schema、fixture 的静态一致性，不证明
 production implementation、runtime activation 或 SLO。Review→Contract→fixture/test→execution evidence
 必须保留原 Review ID。
 

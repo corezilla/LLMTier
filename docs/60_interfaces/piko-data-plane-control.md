@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | 2026-09-07 |
 | Created Date | 2026-09-07 |
-| Last Modified Date | 2026-09-07 |
+| Last Modified Date | 2026-09-08 |
 | STD Version | 0.1.0-draft.18 |
 | Template ID | interfaces.control |
 | Template Conformance | tailored |
@@ -22,14 +22,14 @@
 | Migration Map Reference | none |
 | Repository | corezilla/LLMTier |
 | Canonical Path | docs/60_interfaces/piko-data-plane-control.md |
-| Supersedes | docs/contracts/piko-data-plane-contract-v0.3.md |
+| Supersedes | docs/99_reference/contracts/piko-data-plane-contract-v0.3.md |
 
 > Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
 > 本文是当前 Approved consumer-boundary prose authority。原
-> docs/contracts/piko-data-plane-contract-v0.3.md 已 Superseded 并仅保留历史；字段级机器 authority
+> docs/99_reference/contracts/piko-data-plane-contract-v0.3.md 已 Superseded 并仅保留历史；字段级机器 authority
 > 始终是 v0.3 OpenAPI。
 
 ## 1. 接口目的、范围与双方 authority
@@ -66,7 +66,7 @@ route 或 credential。
 
 ## 4. 数据、命令与 Schema
 
-docs/contracts/openapi/llmtier-v0.3.openapi.json 是 request、response、header、status、typed error 和
+interfaces/openapi/llmtier-v0.3.openapi.json 是 request、response、header、status、typed error 和
 Schema 的唯一字段级 authority。model 字段等于 exact、大小写敏感的 service_level_id；Worker 和
 Junior 是示例合法 ID，lowercase、alias、Role selector 均无效。
 
@@ -125,8 +125,8 @@ pi-ai 0.85.1、openai 6.40.0、provider llmtier 和 adapter piko-llmtier-respons
 
 ## 10. Contract fixture、验证与证据
 
-- 字段 authority：docs/contracts/openapi/llmtier-v0.3.openapi.json。
-- activation 状态：docs/contracts/compatibility-manifest-v0.3.json。
+- 字段 authority：interfaces/openapi/llmtier-v0.3.openapi.json。
+- activation 状态：interfaces/compatibility/compatibility-manifest-v0.3.json。
 - fixtures：data-plane-openapi-fixtures、recovery-protocol-fixtures、
   idempotency-forgotten-key-options、authorization-scope-fixtures、
   deferred-surface-fail-closed 和 metadata-utf8-byte-fixtures。

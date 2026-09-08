@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-07` |
+| Last Modified Date | `2026-09-08` |
 | STD Version | `0.1.0-draft.18` |
 | Template ID | `assurance.vv-plan` |
 | Template Conformance | `tailored` |
@@ -30,7 +30,7 @@
 
 ## 1. 目标、范围与 V&V authority
 
-本计划把 `docs/qa/llm-tier-contract-qa-v0.3.md` 的策略、Gate 和 evidence boundary 迁为 STD
+本计划把 `docs/99_reference/verification/llm-tier-contract-qa-v0.3.md` 的策略、Gate 和 evidence boundary 迁为 STD
 `assurance.vv-plan` Approved 实例。范围是 V0.3 的 Data Plane、Observation、Management、Registry、capacity、
 recovery、安全与 activation gate；不覆盖 V0.4 streaming/Chat，也不激活任何 runtime surface。
 
@@ -46,9 +46,9 @@ activation 状态 authority，`tests/` 和 fixtures 是可执行 oracle，运行
 | STD | `9841083c4d8d0ed1556bdc413d77b4567ac696b4` / `std-v0.1.0-draft.18` | source verifier 71 artifacts PASS |
 | 服务设计 | `docs/30_subsystem_design/llmtier-service-design.md` | Approved prose authority |
 | 接口说明 | `docs/60_interfaces/` | Approved prose authority；OpenAPI 仍为字段 authority |
-| 机器契约 | `docs/contracts/openapi/llmtier-v0.3.openapi.json` | Candidate；runtime 未激活 |
-| Activation | `docs/contracts/compatibility-manifest-v0.3.json` | `overall.runtime_activation=false` |
-| 可执行验证 | `tests/`、`docs/contracts/fixtures/v0.3/` | 本地静态/语义验证可执行 |
+| 机器契约 | `interfaces/openapi/llmtier-v0.3.openapi.json` | Candidate；runtime 未激活 |
+| Activation | `interfaces/compatibility/compatibility-manifest-v0.3.json` | `overall.runtime_activation=false` |
+| 可执行验证 | `tests/`、`interfaces/vectors/v0.3/` | 本地静态/语义验证可执行 |
 | Production 环境 | provider、durable store、Admin UI、Piko/Slinky consumers | NOT_RUN/BLOCKED |
 
 每次执行必须记录 project commit、dirty worktree、Python/依赖版本、命令、exit code、关键输出和 artifact。
@@ -126,5 +126,5 @@ INVALID。修复后只在同一 immutable baseline 或明确的新 baseline 上�
 每个 evidence package 包含：commit/dirty digest、环境清单、case selection、原始命令与 exit code、日志/报告
 hash、Requirement→Design/Contract→Case→Evidence 映射、未执行项、问题与 reviewer。C2 terminal verdict、
 Document Status、RAG publication 与 Runtime Activation 分别签署。旧
-`docs/qa/llm-tier-contract-qa-v0.3.md` 已逐 scope 映射并标为 Superseded，仅保留历史 review ledger；tests 与
+`docs/99_reference/verification/llm-tier-contract-qa-v0.3.md` 已逐 scope 映射并标为 Superseded，仅保留历史 review ledger；tests 与
 fixtures 继续承担 executable evidence authority。

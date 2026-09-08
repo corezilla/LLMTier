@@ -9,7 +9,7 @@ LLMTier 是从 Slinky 中拆出的独立模型服务项目。当前代码基线�
 - OpenAI-compatible Data Plane、capacity/observation 新契约和 conformance 尚未完成。
 - 不应将旧 Role routing、Agent backend、mlexp、CLI runner 或 fallback 语义视为新架构已接受的行为。
 
-复制来源和工作树差异见 [`docs/migration/source-provenance-v0.1.md`](docs/migration/source-provenance-v0.1.md)。
+复制来源和工作树差异见 [`docs/98_migration/source-provenance-v0.1.md`](docs/98_migration/source-provenance-v0.1.md)。
 
 ## Canonical V0.3 文档
 
@@ -29,8 +29,8 @@ production Data Plane、Management、Observation、恢复能力或 Runtime Activ
 - [Release and Operations](docs/80_operations/llmtier-v0.3-release-and-operations.md)
 
 V0.3 字段级机器契约仍唯一由
-[`docs/contracts/openapi/llmtier-v0.3.openapi.json`](docs/contracts/openapi/llmtier-v0.3.openapi.json) 定义；
-[`compatibility-manifest-v0.3.json`](docs/contracts/compatibility-manifest-v0.3.json) 保持
+[`interfaces/openapi/llmtier-v0.3.openapi.json`](interfaces/openapi/llmtier-v0.3.openapi.json) 定义；
+[`compatibility-manifest-v0.3.json`](interfaces/compatibility/compatibility-manifest-v0.3.json) 保持
 `overall.runtime_activation=false`，测试源码与 fixtures 保持 executable oracle authority。五份旧 V0.3 prose
 已经逐 scope 映射并标为 Superseded，仅保留历史；详见
 [`legacy-v03-scope-mapping.md`](docs/98_migration/legacy-v03-scope-mapping.md)。迁移与批准证据位于

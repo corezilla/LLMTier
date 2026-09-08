@@ -1,0 +1,32 @@
+READY_FOR_COMMIT: LLMTier C7 repository-layout migration
+
+Input
+- project root: /Users/ben/work/LLMTier
+- HEAD/origin/main: 9c554f79942bf574a2bddf5dc6110293d6b21240
+- locked STD: 0.1.0-draft.18 / 9841083c4d8d0ed1556bdc413d77b4567ac696b4
+
+Exact scope
+- 31 source-to-destination moves are enumerated in c7-move-map-sha256.txt; staging must include both each old source and new destination.
+- Exact final-path allowlist is the 63 paths in c7-candidate-sha256.txt plus:
+  - docs/98_migration/evidence/c7-candidate-sha256.txt
+  - docs/98_migration/evidence/c7-ready-for-commit.txt
+- final-path count: 65
+- non-self-referential hashed files: 63
+- hash algorithm: SHA-256 per file; manifest lines sorted by UTF-8 path bytes; aggregate hashes the 63 data lines including LF
+- aggregate: d1d5dee3e7d7a33348740c004297a4987682795b393b8a4013aed89b49ba52b4
+
+Excluded
+- rag/std-ingestion-manifest.jsonl (pre-existing dirty; binary diff SHA-256 5ecf097f57ec627f36586218d14e8df036467c8466de59e06adc7553c6073234)
+- all files outside the exact scope above
+
+Verification
+- locked STD source verifier: PASS (71 artifacts)
+- project-root validator: PASS (19 metadata / 19 Markdown / 8 decisions / 0 issue)
+- project L2: PASS (49/49 tests)
+- machine authority byte preservation: PASS (17/17)
+- git diff --check and isolated-index cached diff check: PASS
+- L3: N/A / NOT_RUN; Runtime Activation remains false
+
+Decision boundary
+- C7 decision remains PENDING until immutable review.
+- The existing RAG manifest remains the immutable C6 snapshot; current-byte refresh is a separate post-C7 Gate.

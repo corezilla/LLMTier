@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-07` |
+| Last Modified Date | `2026-09-08` |
 | STD Version | `0.1.0-draft.18` |
 | Template ID | `operations.release` |
 | Template Conformance | `tailored` |
@@ -35,7 +35,7 @@ V0.3 production Open Gate。它是 operations candidate，不是 release approva
 
 - 当前 Python package 版本是 `pyproject.toml` 的 `0.1.0`；不能把它称为 V0.3 production release。
 - V0.3 contract/design 仍为 candidate，`overall.runtime_activation=false`。
-- 兼容性唯一机器 authority 是 `docs/contracts/compatibility-manifest-v0.3.json`；接口字段 authority 是
+- 兼容性唯一机器 authority 是 `interfaces/compatibility/compatibility-manifest-v0.3.json`；接口字段 authority 是
   OpenAPI v0.3。本文不新增 compatibility path。
 - V0.3 Scope B、exact Service Level、canonical headers/path、M2-C 与 no cross-level fallback 均不可由
   release 操作放宽。

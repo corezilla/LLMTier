@@ -15,8 +15,8 @@ STD tag：std-v0.1.0-draft.18
   services/llmtier/、software/llmtier/、apps/ 或 packages/ 平行 ownership。
 - LLMTier 只拥有本服务设计、实现与接口提供方事实。Slinky 的 Project/Plan/IR 和 Piko 的 Agent
   Runtime/adapter authority 不迁入本项目。
-- docs/contracts/openapi/llmtier-v0.3.openapi.json 保持字段级机器契约 authority；
-  docs/contracts/compatibility-manifest-v0.3.json 保持 capability/runtime-activation candidate
+- interfaces/openapi/llmtier-v0.3.openapi.json 保持字段级机器契约 authority；
+  interfaces/compatibility/compatibility-manifest-v0.3.json 保持 capability/runtime-activation candidate
   authority；tests/ 与 fixtures 保持可执行源码和 oracle authority。
 - 迁移只生成可审阅候选，不 reset/clean，不覆盖其他任务修改，不改变业务 ID、错误、状态、恢复、
   capacity、quota、安全或无 fallback 语义。
@@ -34,13 +34,15 @@ STD tag：std-v0.1.0-draft.18
 | C4 Decisions + Operations | terminal ACCEPTED / pushed | operations.release；无新决定故不生成 retrospective ADR | commit `962e800` | complete |
 | C5 Canonical Promotion | promoted / pushed | 11 份 Approved、五份旧 prose Superseded、README/index/decision/evidence | clarification commit `e1f9b79`；consumer ACCEPTED | complete at `503d0a0` |
 | C6 Publication / Runtime | publication candidate / runtime BLOCKED | 项目 RAG manifest、ACL/include-exclude/duplicate-authority/retrieval evidence；Runtime Activation 独立 | promotion commit `503d0a0` | STD publication pre-commit Gate；独立 runtime authority |
+| C7 Repository Layout | candidate / runtime unchanged | 机器契约移入 `interfaces/`；历史/future 移入 `docs/99_reference/`；provenance 移入 `docs/98_migration/` | C6 commit `9c554f7`；用户直接要求一次性搬迁 | 精确 path/ref/test Gate；Runtime Activation 不在范围 |
 
 C0/C1 已由 commit `aa2638283e77bc658e98df8d40396306cad17aa2` 固定；C2、C3、C4 分别由
 `b2e298aadf981283aa52d4764b201400397d1116`、`13b5d02266624b6b662349f0b88de23696c823bb`、
 `962e8003712738d2cb4e3a0a38173a9fd2bdd0a1` 固定并推送；clarification snapshot
 `e1f9b796368ec5f358e466c7e6299cc16b1bf181` 也已推送并获 Slinky exact-input ACCEPTED。C0-C4
 机器 decision 已在 C5 promotion commit `503d0a03fa92aeeb7657ce7ed54bab8b77efef34` 中终局化；
-C6 以该已推送 commit 为唯一 publication input。
+C6 已由 commit `9c554f79942bf574a2bddf5dc6110293d6b21240` 发布并推送。C7 以该 commit
+为输入，只重排 repository path、同步引用和测试，不改变契约 JSON 字节或 runtime 行为。
 
 ## 3. C0 Foundation：已完成候选
 
@@ -48,7 +50,7 @@ C6 以该已推送 commit 为唯一 publication input。
 |---|---|---|
 | 项目现状、旧候选和文档集合 | docs/98_migration/current-document-inventory.md | 原路径在 promotion 前保持各自现有状态 |
 | 项目采用决定 | docs/00_management/std-tailoring.md / management.tailoring | 旧 tailoring deletion 是输入 dirty state，不视为 promotion |
-| docs/design/llmtier-v0.3-design-review.md 的服务设计 scope | docs/30_subsystem_design/llmtier-service-design.md / design.definition | 旧设计继续负责 review 结论、跨项目输入与未迁出 scope |
+| docs/99_reference/design/llmtier-v0.3-design-review.md 的服务设计 scope | docs/30_subsystem_design/llmtier-service-design.md / design.definition | 旧设计继续负责 review 结论、跨项目输入与未迁出 scope |
 | STD draft.18 | docs/std.lock.json + docs/std-source-manifest.json | STD 只管理模板与规则，不取得项目业务 authority |
 | C0 变更和验证 | docs/91_reviews/llmtier-std-draft16-migration-review.md / review.packet | terminal decision ACCEPTED |
 
@@ -61,9 +63,9 @@ NOT_RUN 已显式记录。C0 immutable input 与授权 reviewer 已登记，term
 
 | Source authority / evidence | 新候选 | Template ID | 迁移规则 |
 |---|---|---|---|
-| docs/contracts/piko-data-plane-contract-v0.3.md | docs/60_interfaces/piko-data-plane-control.md | interfaces.control | 保留 Responses/Embeddings、exact-case ID、idempotency/recovery、M2-C、deferred surface；不复制 Piko runtime authority |
-| docs/contracts/slinky-capacity-observation-contract-v0.3.md | docs/60_interfaces/slinky-capacity-observation-control.md | interfaces.control | 保留 read-only observation、capacity/Seat、ETag/invalidation、Client scope；不复制 Slinky Project/Plan/IR authority |
-| docs/contracts/llmtier-management-contract-v0.3.md | docs/60_interfaces/llmtier-management-control.md | interfaces.control | 保留 /tier/admin/v1、Admin UI、secret non-disclosure、audit/concurrency Gate |
+| docs/99_reference/contracts/piko-data-plane-contract-v0.3.md | docs/60_interfaces/piko-data-plane-control.md | interfaces.control | 保留 Responses/Embeddings、exact-case ID、idempotency/recovery、M2-C、deferred surface；不复制 Piko runtime authority |
+| docs/99_reference/contracts/slinky-capacity-observation-contract-v0.3.md | docs/60_interfaces/slinky-capacity-observation-control.md | interfaces.control | 保留 read-only observation、capacity/Seat、ETag/invalidation、Client scope；不复制 Slinky Project/Plan/IR authority |
+| docs/99_reference/contracts/llmtier-management-contract-v0.3.md | docs/60_interfaces/llmtier-management-control.md | interfaces.control | 保留 /tier/admin/v1、Admin UI、secret non-disclosure、audit/concurrency Gate |
 | OpenAPI v0.3、compatibility manifest v0.3、v0.3 fixtures、三份说明 | docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.md | contracts.specification | 只建立 schema/error/evolution/authority 索引；机器文件原位且仍为字段级 authority |
 | 上述 C1 diff、mapping 与验证 | docs/91_reviews/llmtier-std-c1-interface-contract-review.md | review.packet | terminal ACCEPTED；不请求 activation |
 
@@ -90,7 +92,7 @@ L1/L2 完成，L3 如实标注。
 
 | Source | 新候选 | Template ID | residual authority |
 |---|---|---|---|
-| docs/qa/llm-tier-contract-qa-v0.3.md 的 strategy/gates | docs/70_verification/llmtier-v0.3-vv-plan.md | assurance.vv-plan | current scope 已迁出；旧 QA 在 promotion 中标为 Superseded |
+| docs/99_reference/verification/llm-tier-contract-qa-v0.3.md 的 strategy/gates | docs/70_verification/llmtier-v0.3-vv-plan.md | assurance.vv-plan | current scope 已迁出；旧 QA 在 promotion 中标为 Superseded |
 | v0.3 fixtures、tests/test_*v03.py、OpenAPI/manifest oracle | docs/70_verification/llmtier-v0.3-contract-test-specification.md | assurance.test-specification | executable tests/fixtures 保持 source authority，Markdown 不复制 oracle |
 | C2 diff 与 execution evidence | docs/91_reviews/llmtier-std-c2-assurance-review.md | review.packet | actual run 与 NOT_RUN/BLOCKED 分开记录 |
 
@@ -138,7 +140,20 @@ C5 已由 commit `503d0a03fa92aeeb7657ce7ed54bab8b77efef34` 完成并推送：11
 cover/metadata、C0-C4 terminal decisions、README canonical index、五份 legacy Superseded forward links、
 scope mapping 和验证 evidence 已成为 canonical promotion 基线。C6 现生成独立
 `rag/project-ingestion-manifest.jsonl` 与静态 ACL/include-exclude/duplicate-authority/retrieval evidence；
-收到 STD 明确 COMMIT_APPROVED 前不提交该 C6 diff，也不部署外部 RAG 服务。
+并由 C6 commit `9c554f79942bf574a2bddf5dc6110293d6b21240` 完成项目 manifest publication。
+外部 RAG 服务仍未部署，Runtime Activation 仍为 false/NOT_RUN。
+
+### 8.1 C7 一次性 repository layout 迁移
+
+- `docs/contracts/openapi|schemas|fixtures` 与 compatibility manifests 分别迁至
+  `interfaces/openapi|schemas|vectors|compatibility`；文件字节保持不变。
+- 旧 contract/design/QA/future prose 迁至 `docs/99_reference/contracts|design|verification|future`；
+  Superseded、historical、future 状态和 residual=none 结论不变。
+- `docs/migration/source-provenance-v0.1.md` 迁至 `docs/98_migration/`。
+- 根 `src/`、`tests/`、`tools/` 继续按单服务 tailoring 保留，不创建 `apps/services/packages` 双重树。
+- 既有 `rag/std-ingestion-manifest.jsonl` dirty 修改保持原位，不纳入 C7。
+- C7 提交后，`rag/project-ingestion-manifest.jsonl` 仍是绑定 `503d0a0` 的不可变 publication snapshot；
+  当前文档字节如需重新索引，必须在 C7 immutable commit 后走独立 RAG refresh Gate。
 
 ## 9. 每 cohort 的固定证据清单
 

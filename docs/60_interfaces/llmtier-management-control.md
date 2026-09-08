@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | 2026-09-07 |
 | Created Date | 2026-09-06 |
-| Last Modified Date | 2026-09-07 |
+| Last Modified Date | 2026-09-08 |
 | STD Version | 0.1.0-draft.18 |
 | Template ID | interfaces.control |
 | Template Conformance | tailored |
@@ -22,14 +22,14 @@
 | Migration Map Reference | none |
 | Repository | corezilla/LLMTier |
 | Canonical Path | docs/60_interfaces/llmtier-management-control.md |
-| Supersedes | docs/contracts/llmtier-management-contract-v0.3.md |
+| Supersedes | docs/99_reference/contracts/llmtier-management-contract-v0.3.md |
 
 > Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
 > 本文是当前 Approved management-boundary prose authority。原
-> docs/contracts/llmtier-management-contract-v0.3.md 已 Superseded 并仅保留历史；v0.3 OpenAPI 保持字段级
+> docs/99_reference/contracts/llmtier-management-contract-v0.3.md 已 Superseded 并仅保留历史；v0.3 OpenAPI 保持字段级
 > 机器 authority。
 
 ## 1. 接口目的、范围与双方 authority
@@ -115,7 +115,7 @@ v0.3 compatibility manifest 当前 contract_status=candidate、runtime_activatio
 
 ## 10. Contract fixture、验证与证据
 
-- 字段 authority：docs/contracts/openapi/llmtier-v0.3.openapi.json。
+- 字段 authority：interfaces/openapi/llmtier-v0.3.openapi.json。
 - fixtures：observation-management-openapi-fixtures、authorization-scope-fixtures、
   capacity-semantic-negative-fixtures 和 metadata-utf8-byte-fixtures。
 - 静态/语义验证：tests/test_contract_semantics_v03.py、tests/test_contract_consistency.py。
