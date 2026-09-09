@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-independent-project-doc-refresh` |
-| Document Version | `0.1.0-draft.4` |
+| Document Version | `0.1.0-draft.5` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -50,6 +50,9 @@ Registry/ledger/identity，不把 logical building block 误写成 subsystem，�
 draft.4 根据用户反馈和 C4/arc42 官方指导重画架构视图：废弃混合抽象层级的单张模块连线图，改为有
 标题、范围、图例、类型和关系标签的 System Context、Container、Service Component 三级缩放视图；运行时
 与部署图继续作为独立 supporting views。该调整只改变文档表达，不改变系统、接口或部署决策。
+
+draft.5 修复 Codex/GitHub Mermaid 渲染兼容性：节点标签不再使用会被部分 renderer 原样显示的
+`small` HTML element，只保留 Mermaid 支持的纯文本与 `br` 换行；新增源码扫描防止该标签回归。
 
 ## 2. 当前事实基线
 
@@ -116,5 +119,5 @@ PASS 不得向上推导为 runtime capability。
 机器决定记录在
 `docs/91_reviews/llmtier-independent-project-doc-refresh.review-decision.json`。当前为 PENDING；review
 target 由 Git/Matrix 提供 immutable commit，避免文档自引用。draft.1 commit `8c8f8b2` 与此前 draft.21
-review target、draft.2 commit `21794e2` 和初版补图 commit `000dc01` 均由本候选后继 commit supersede，
-但 STD lock/source 与机器契约事实不变。
+review target、draft.2 commit `21794e2`、初版补图 commit `000dc01` 和 C4 重画 commit `73d45da` 均由
+本候选后继 commit supersede，但 STD lock/source 与机器契约事实不变。

@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.3.1-draft.3` |
+| Document Version | `0.3.1-draft.4` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -79,15 +79,15 @@ implementation/verification 声明。§7 另行标识当前可确认的开发部
 
 ```mermaid
 flowchart LR
-    Piko["Piko<br/><small>外部软件系统</small>"]
-    Slinky["Slinky<br/><small>外部软件系统</small>"]
-    Memory["Memory / Knowledge Client<br/><small>外部软件系统</small>"]
-    Admin(["LLMTier Administrator<br/><small>人员角色</small>"])
+    Piko["Piko<br/>外部软件系统"]
+    Slinky["Slinky<br/>外部软件系统"]
+    Memory["Memory / Knowledge Client<br/>外部软件系统"]
+    Admin(["LLMTier Administrator<br/>人员角色"])
 
-    LLMTier["LLMTier<br/><small>本设计的软件系统</small><br/>受管理、可观察、可恢复的模型服务"]
+    LLMTier["LLMTier<br/>本设计的软件系统<br/>受管理、可观察、可恢复的模型服务"]
 
-    Provider["Remote Model Provider<br/><small>外部软件系统</small>"]
-    Local["Local Model Deployment<br/><small>外部执行系统</small>"]
+    Provider["Remote Model Provider<br/>外部软件系统"]
+    Local["Local Model Deployment<br/>外部执行系统"]
 
     Piko -->|"Responses inference 与 recovery · HTTPS/JSON"| LLMTier
     Slinky -->|"readiness、capacity、invocation、usage · HTTPS/JSON"| LLMTier
@@ -134,18 +134,18 @@ LLMTier 当前是一个系统、一个服务进程边界。框内 logical buildi
 
 ```mermaid
 flowchart LR
-    Users["External Consumers<br/><small>Piko · Slinky · Memory · Admin Browser</small>"]
+    Users["External Consumers<br/>Piko · Slinky · Memory · Admin Browser"]
 
     subgraph LT["LLMTier software system"]
-        App["LLMTier Service<br/><small>Python 3.11+ application</small><br/>提供 Data、Observation、Management API 与 Admin UI"]
-        State[("Operational State Store<br/><small>Invocation · idempotency · response<br/>capacity · usage · audit · jobs</small>")]
-        Files[("Controlled Artifacts<br/><small>settings · secret references<br/>OpenAPI · manifest · schemas</small>")]
+        App["LLMTier Service<br/>Python 3.11+ application<br/>提供 Data、Observation、Management API 与 Admin UI"]
+        State[("Operational State Store<br/>Invocation · idempotency · response<br/>capacity · usage · audit · jobs")]
+        Files[("Controlled Artifacts<br/>settings · secret references<br/>OpenAPI · manifest · schemas")]
 
         App -->|"事务性读写 Invocation 与运行状态"| State
         Files -->|"启动加载、版本校验、只写 Secret 引用"| App
     end
 
-    Targets["Model Execution Targets<br/><small>remote providers / local deployments</small>"]
+    Targets["Model Execution Targets<br/>remote providers / local deployments"]
 
     Users -->|"HTTPS/JSON 与 Web UI"| App
     App -->|"provider/local model protocol"| Targets
@@ -168,15 +168,15 @@ flowchart LR
 
 ```mermaid
 flowchart TB
-    Consumers["External callers<br/><small>Piko · Slinky · Memory · Admin</small>"]
+    Consumers["External callers<br/>Piko · Slinky · Memory · Admin"]
 
     subgraph Service["LLMTier Service application — 单一进程边界"]
         direction TB
 
         subgraph Delivery["1 · Delivery / Interface Layer"]
-            DP["Data Plane Controller<br/><small>/v1</small>"]
-            OBS["Observation Controller<br/><small>/tier/v1</small>"]
-            MGT["Management Controller + Admin UI<br/><small>/tier/admin/v1</small>"]
+            DP["Data Plane Controller<br/>/v1"]
+            OBS["Observation Controller<br/>/tier/v1"]
+            MGT["Management Controller + Admin UI<br/>/tier/admin/v1"]
         end
 
         subgraph Application["2 · Application Services"]

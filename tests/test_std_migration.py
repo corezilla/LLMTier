@@ -128,9 +128,9 @@ class StdMigrationTests(unittest.TestCase):
         self.assertIn("### 5.2 LLMTier Service Component View（C4 Level 3 / arc42 Level-1 Whitebox）", text)
         self.assertIn('subgraph LT["LLMTier software system"]', text)
         self.assertIn('subgraph Service["LLMTier Service application — 单一进程边界"]', text)
-        self.assertIn('DP["Data Plane Controller<br/><small>/v1</small>"]', text)
-        self.assertIn('OBS["Observation Controller<br/><small>/tier/v1</small>"]', text)
-        self.assertIn('MGT["Management Controller + Admin UI<br/><small>/tier/admin/v1</small>"]', text)
+        self.assertIn('DP["Data Plane Controller<br/>/v1"]', text)
+        self.assertIn('OBS["Observation Controller<br/>/tier/v1"]', text)
+        self.assertIn('MGT["Management Controller + Admin UI<br/>/tier/admin/v1"]', text)
         self.assertIn('REG["Service Level Registry"]', text)
         self.assertIn('LEDGER["Invocation / Idempotency State Machine"]', text)
         self.assertIn("图例：深蓝是接口层", text)
@@ -140,6 +140,8 @@ class StdMigrationTests(unittest.TestCase):
         self.assertIn('subgraph LLHost["LLMTier host — current development topology"]', text)
         self.assertIn("logical building block 不是已拆分的子系统", text)
         self.assertIn("独立部署的 subsystem", text)
+        self.assertNotIn("<small>", text)
+        self.assertNotIn("</small>", text)
 
     def test_c1_interface_and_contract_candidates_preserve_machine_authority(self):
         candidates = {
