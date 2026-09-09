@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.3.1-draft.2` |
+| Document Version | `0.3.1-draft.3` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -71,93 +71,189 @@ LLMTier 拥有本系统的 Data Plane、Observation、Management/Admin UI、Regi
 Invocation ledger、capacity、usage、audit 和 recovery。它不执行 Agent tool loop，不组合 Project/Plan/IR，
 不取得外部项目的业务 authority。外部 reviewer 只复核其 consumer boundary，不取得 LLMTier 系统 ownership。
 
-## 4. 解决方案策略
+### 3.1 System Context（C4 Level 1）
 
-下图是 LLMTier 的完整系统逻辑架构。大框表示单一 LLMTier 系统/服务边界；框内各模块是 logical
-building block，不代表独立部署的 subsystem。
+**范围：** LLMTier 是中央黑盒；本图只显示使用者、相邻软件系统及双方关系，不展示内部实现。
+§3.1、§5.1 和 §5.2 描述的是已批准但尚未激活的 V0.3 target architecture；它们不是 production
+implementation/verification 声明。§7 另行标识当前可确认的开发部署。
 
 ```mermaid
 flowchart LR
-    subgraph Consumers["外部 consumer 与 operator"]
-        Piko["Piko Agent Runtime"]
-        Memory["Memory / Knowledge Client"]
-        Slinky["Slinky Project / Plan / IR"]
-        Admin["LLMTier Administrator"]
-    end
+    Piko["Piko<br/><small>外部软件系统</small>"]
+    Slinky["Slinky<br/><small>外部软件系统</small>"]
+    Memory["Memory / Knowledge Client<br/><small>外部软件系统</small>"]
+    Admin(["LLMTier Administrator<br/><small>人员角色</small>"])
 
-    subgraph LLMTier["LLMTier system boundary — 单一可部署服务"]
-        direction TB
-        subgraph Interfaces["接口层"]
-            DP["Data Plane<br/>/v1"]
-            OBS["Observation API<br/>/tier/v1"]
-            MGT["Management API + Admin Web UI<br/>/tier/admin/v1"]
-        end
+    LLMTier["LLMTier<br/><small>本设计的软件系统</small><br/>受管理、可观察、可恢复的模型服务"]
 
-        IAM["Identity / Entitlement<br/>Client · Source · quota"]
+    Provider["Remote Model Provider<br/><small>外部软件系统</small>"]
+    Local["Local Model Deployment<br/><small>外部执行系统</small>"]
 
-        subgraph Control["共享控制与执行核心"]
-            REG["Authoritative Service Level Registry"]
-            ADM["Admission / Capacity<br/>Seat · shared groups · readiness"]
-            ROUTER["Backend Router / Connectors"]
-            REC["Admin Jobs / Recovery"]
-        end
+    Piko -->|"Responses inference 与 recovery · HTTPS/JSON"| LLMTier
+    Slinky -->|"readiness、capacity、invocation、usage · HTTPS/JSON"| LLMTier
+    Memory -->|"Embeddings · HTTPS/JSON"| LLMTier
+    Admin -->|"配置、运维、审计、recovery · Web UI/HTTPS"| LLMTier
+    LLMTier -->|"同等级模型调用 · Provider protocol"| Provider
+    LLMTier -->|"同等级模型调用 · local connector"| Local
 
-        subgraph Durable["持久状态与投影视图"]
-            LEDGER["Invocation + Idempotency Ledger"]
-            RESULT["Canonical Response Store"]
-            USAGE["Usage / Audit"]
-            CFG["Configuration + write-only Secret references"]
-        end
-
-        READY["Readiness / Compatibility projection"]
-    end
-
-    subgraph Backends["Provider / Local deployment boundary"]
-        PROVIDER["Provider APIs"]
-        LOCAL["Local Model Deployments"]
-    end
-
-    Piko --> DP
-    Memory --> DP
-    Slinky --> OBS
-    Admin --> MGT
-
-    DP --> IAM
-    OBS --> IAM
-    MGT --> IAM
-    IAM --> LEDGER
-    DP --> LEDGER
-    DP --> ADM
-    ADM --> REG
-    ADM --> ROUTER
-    ROUTER --> PROVIDER
-    ROUTER --> LOCAL
-    ROUTER --> LEDGER
-    LEDGER --> RESULT
-    LEDGER --> USAGE
-
-    OBS --> REG
-    OBS --> LEDGER
-    OBS --> USAGE
-    OBS --> READY
-    MGT --> REG
-    MGT --> CFG
-    MGT --> REC
-    MGT --> USAGE
-    REC --> LEDGER
-    REG --> READY
-    LEDGER --> READY
+    classDef focal fill:#1168bd,color:#fff,stroke:#0b4884,stroke-width:3px;
+    classDef external fill:#e8f1fb,color:#172b4d,stroke:#6b9ac4,stroke-width:1.5px;
+    classDef person fill:#fff3cd,color:#4a3b00,stroke:#c9a227,stroke-width:1.5px;
+    class LLMTier focal;
+    class Piko,Slinky,Memory,Provider,Local external;
+    class Admin person;
 ```
+
+图例：深蓝框是本次设计范围；浅蓝框是外部软件系统；黄色圆角框是人员角色；箭头文字同时说明目的与
+跨进程协议。所有外部调用都终止于 LLMTier，不存在 consumer 到 Provider 的直连路径。
+
+## 4. 解决方案策略
 
 策略是单一事实来源、分面权限、共享 Registry/ledger、dispatch 前持久化、fail closed 和有限恢复保证。
 Data Plane、Observation、Management 使用不同 credential 与 DTO，但不得复制核心状态机。
 
-图中的三种入口不形成三套实现：它们共享 identity、Registry、ledger 和审计事实，但按权限分别暴露
-执行、只读观察与管理能力。Provider/Local Deployment 永远位于 LLMTier 后方，consumer 不得直连。
+本文按 C4/arc42 的缩放顺序阅读：§3.1 看系统与外界的关系；§5.1 看系统内可运行单元与数据存储；
+§5.2 再放大唯一服务进程，解释分层和关键构件；§6、§7 分别描述动态行为与物理部署。这样不会在一张图中
+混用 software system、process、component 和 datastore 四种抽象层级。
+
+视图方法参考 [C4 System Context](https://c4model.com/diagrams/system-context)、
+[C4 Container](https://c4model.com/diagrams/container)、
+[C4 Component](https://c4model.com/diagrams/component) 和
+[arc42 Building Block View](https://docs.arc42.org/section-5/)；这些来源只规定表达方法，不取得
+LLMTier 的业务或设计 authority。
 
 ## 5. 构建块视图
 
-LLMTier 当前是一个系统、一个服务进程边界。下表是进程内 logical building blocks，不是已拆分的子系统：
+LLMTier 当前是一个系统、一个服务进程边界。框内 logical building block 不是已拆分的子系统，也不代表
+独立部署的 subsystem。
+
+### 5.1 Container View（C4 Level 2）
+
+**范围：** 放大 LLMTier 系统边界，只显示可运行应用和 data store。C4 的 container 是应用或数据存储，
+不是 Docker container，也不等同于本项目的 subsystem。
+
+```mermaid
+flowchart LR
+    Users["External Consumers<br/><small>Piko · Slinky · Memory · Admin Browser</small>"]
+
+    subgraph LT["LLMTier software system"]
+        App["LLMTier Service<br/><small>Python 3.11+ application</small><br/>提供 Data、Observation、Management API 与 Admin UI"]
+        State[("Operational State Store<br/><small>Invocation · idempotency · response<br/>capacity · usage · audit · jobs</small>")]
+        Files[("Controlled Artifacts<br/><small>settings · secret references<br/>OpenAPI · manifest · schemas</small>")]
+
+        App -->|"事务性读写 Invocation 与运行状态"| State
+        Files -->|"启动加载、版本校验、只写 Secret 引用"| App
+    end
+
+    Targets["Model Execution Targets<br/><small>remote providers / local deployments</small>"]
+
+    Users -->|"HTTPS/JSON 与 Web UI"| App
+    App -->|"provider/local model protocol"| Targets
+
+    classDef external fill:#e8f1fb,color:#172b4d,stroke:#6b9ac4;
+    classDef app fill:#1168bd,color:#fff,stroke:#0b4884,stroke-width:2px;
+    classDef store fill:#6f42c1,color:#fff,stroke:#4c2a85,stroke-width:2px;
+    class Users,Targets external;
+    class App app;
+    class State,Files store;
+```
+
+图例：蓝色矩形是可运行 application；紫色圆柱是 data store/artifact store；浅蓝框是边界外系统。
+当前开发部署可由同一 host 上的目录承载两类 store；production persistence 技术仍是 Open Gate。
+
+### 5.2 LLMTier Service Component View（C4 Level 3 / arc42 Level-1 Whitebox）
+
+**范围：** 只放大上图的 `LLMTier Service` application。横向是请求来源和执行目标，纵向是接口、应用编排、
+领域核心与基础设施适配层；持久状态放在服务边界外侧，以明确依赖方向。
+
+```mermaid
+flowchart TB
+    Consumers["External callers<br/><small>Piko · Slinky · Memory · Admin</small>"]
+
+    subgraph Service["LLMTier Service application — 单一进程边界"]
+        direction TB
+
+        subgraph Delivery["1 · Delivery / Interface Layer"]
+            DP["Data Plane Controller<br/><small>/v1</small>"]
+            OBS["Observation Controller<br/><small>/tier/v1</small>"]
+            MGT["Management Controller + Admin UI<br/><small>/tier/admin/v1</small>"]
+        end
+
+        subgraph Application["2 · Application Services"]
+            IAM["Identity & Entitlement"]
+            INV["Invocation Orchestrator"]
+            OVIEW["Observation Projection"]
+            ADMIN["Administration / Recovery Jobs"]
+        end
+
+        subgraph Domain["3 · Domain Core"]
+            REG["Service Level Registry"]
+            ADM["Admission & Capacity"]
+            LEDGER["Invocation / Idempotency State Machine"]
+            ROUTER["Routing Policy"]
+            METER["Usage / Audit Policy"]
+        end
+
+        subgraph Infrastructure["4 · Infrastructure Adapters"]
+            REPO["Repositories"]
+            CONNECT["Provider / Local Connectors"]
+        end
+
+        DP -->|"认证后的 inference/recovery command"| IAM
+        OBS -->|"认证后的 read query"| IAM
+        MGT -->|"认证后的 admin command/query"| IAM
+        IAM -->|"授权 execution scope"| INV
+        IAM -->|"授权 observation scope"| OVIEW
+        IAM -->|"授权 management scope"| ADMIN
+        INV -->|"创建或 replay Invocation"| LEDGER
+        INV -->|"申请 concurrent_invocation Seat"| ADM
+        ADM -->|"读取 exact Service Level 与 group rules"| REG
+        INV -->|"选择同等级 backend"| ROUTER
+        OVIEW -->|"投影 catalog/capacity"| REG
+        OVIEW -->|"投影 Invocation/recovery"| LEDGER
+        ADMIN -->|"管理 catalog/entitlement"| REG
+        ADMIN -->|"执行受审计的 reconcile"| LEDGER
+        LEDGER -->|"保存状态与 canonical outcome"| REPO
+        REG -->|"保存 catalog/config version"| REPO
+        METER -->|"保存 usage/audit"| REPO
+        ROUTER -->|"执行 provider call"| CONNECT
+        CONNECT -->|"记录 outcome/usage"| LEDGER
+        CONNECT -->|"计量事件"| METER
+    end
+
+    State[("Operational State Store")]
+    Artifacts[("Config / Contract Artifacts")]
+    Backends["Remote Providers / Local Deployments"]
+
+    Consumers -->|"inference/recovery · HTTPS/JSON"| DP
+    Consumers -->|"read-only observation · HTTPS/JSON"| OBS
+    Consumers -->|"administration · Web UI/HTTPS"| MGT
+    REPO -->|"durable read/write"| State
+    Artifacts -->|"validated startup input"| REG
+    Artifacts -->|"settings 与 Secret references"| ADMIN
+    CONNECT -->|"provider/local protocol"| Backends
+
+    classDef external fill:#e8f1fb,color:#172b4d,stroke:#6b9ac4;
+    classDef interface fill:#1168bd,color:#fff,stroke:#0b4884;
+    classDef application fill:#2f80c9,color:#fff,stroke:#1d5f99;
+    classDef domain fill:#f2b134,color:#302400,stroke:#b77b00;
+    classDef adapter fill:#2f855a,color:#fff,stroke:#1f5b3d;
+    classDef store fill:#6f42c1,color:#fff,stroke:#4c2a85;
+    class Consumers,Backends external;
+    class DP,OBS,MGT interface;
+    class IAM,INV,OVIEW,ADMIN application;
+    class REG,ADM,LEDGER,ROUTER,METER domain;
+    class REPO,CONNECT adapter;
+    class State,Artifacts store;
+```
+
+图例：深蓝是接口层；浅蓝是应用编排；黄色是无 transport/persistence 细节的领域核心；绿色是基础设施
+adapter；紫色圆柱是持久数据或受控 artifact；浅蓝外框是相邻系统。箭头表示调用/依赖方向，不表示数据
+复制。三种 API 分面共享 IAM、Registry、Ledger 和审计事实，不形成三套实现。
+
+### 5.3 Building Block Catalog
+
+下表补充 Component View 的职责与禁止项：
 
 | Building block | 职责 | 禁止项 |
 |---|---|---|

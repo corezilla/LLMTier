@@ -119,21 +119,27 @@ class StdMigrationTests(unittest.TestCase):
         self.assertIn("不是已拆分的子系统", text)
         self.assertIn("当前没有内部 subsystem design", text)
 
-    def test_system_design_contains_complete_architecture_runtime_and_deployment_diagrams(self):
+    def test_system_design_contains_c4_hierarchy_runtime_and_deployment_diagrams(self):
         path = ROOT / "docs" / "20_system_design" / "llmtier-system-design.md"
         text = path.read_text(encoding="utf-8")
-        self.assertEqual(3, text.count("```mermaid"))
-        self.assertIn('subgraph LLMTier["LLMTier system boundary — 单一可部署服务"]', text)
-        self.assertIn('DP["Data Plane<br/>/v1"]', text)
-        self.assertIn('OBS["Observation API<br/>/tier/v1"]', text)
-        self.assertIn('MGT["Management API + Admin Web UI<br/>/tier/admin/v1"]', text)
-        self.assertIn('REG["Authoritative Service Level Registry"]', text)
-        self.assertIn('LEDGER["Invocation + Idempotency Ledger"]', text)
+        self.assertEqual(5, text.count("```mermaid"))
+        self.assertIn("### 3.1 System Context（C4 Level 1）", text)
+        self.assertIn("### 5.1 Container View（C4 Level 2）", text)
+        self.assertIn("### 5.2 LLMTier Service Component View（C4 Level 3 / arc42 Level-1 Whitebox）", text)
+        self.assertIn('subgraph LT["LLMTier software system"]', text)
+        self.assertIn('subgraph Service["LLMTier Service application — 单一进程边界"]', text)
+        self.assertIn('DP["Data Plane Controller<br/><small>/v1</small>"]', text)
+        self.assertIn('OBS["Observation Controller<br/><small>/tier/v1</small>"]', text)
+        self.assertIn('MGT["Management Controller + Admin UI<br/><small>/tier/admin/v1</small>"]', text)
+        self.assertIn('REG["Service Level Registry"]', text)
+        self.assertIn('LEDGER["Invocation / Idempotency State Machine"]', text)
+        self.assertIn("图例：深蓝是接口层", text)
+        self.assertIn('Piko -->|"Responses inference 与 recovery · HTTPS/JSON"| LLMTier', text)
         self.assertIn("sequenceDiagram", text)
         self.assertIn("same POST + same key + same digest within D=24h", text)
         self.assertIn('subgraph LLHost["LLMTier host — current development topology"]', text)
-        self.assertIn("框内各模块是 logical", text)
-        self.assertIn("building block，不代表独立部署的 subsystem", text)
+        self.assertIn("logical building block 不是已拆分的子系统", text)
+        self.assertIn("独立部署的 subsystem", text)
 
     def test_c1_interface_and_contract_candidates_preserve_machine_authority(self):
         candidates = {
