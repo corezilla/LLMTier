@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.3.1-draft.1` |
+| Document Version | `0.3.1-draft.2` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -73,23 +73,87 @@ Invocation ledger、capacity、usage、audit 和 recovery。它不执行 Agent t
 
 ## 4. 解决方案策略
 
-```text
-Admin -> Management API/UI -> inventory/registry/entitlement/recovery
-                              -> authoritative Registry
-                                 |-> Models
-                                 |-> Observation
-                                 |-> admission/capacity
-                                 `-> compatibility manifest
+下图是 LLMTier 的完整系统逻辑架构。大框表示单一 LLMTier 系统/服务边界；框内各模块是 logical
+building block，不代表独立部署的 subsystem。
 
-Piko / Memory Client -> Data Plane -> identity -> ledger -> admission -> router -> backend
-                                         |                      |
-                                         `-> recovery/result <--'
+```mermaid
+flowchart LR
+    subgraph Consumers["外部 consumer 与 operator"]
+        Piko["Piko Agent Runtime"]
+        Memory["Memory / Knowledge Client"]
+        Slinky["Slinky Project / Plan / IR"]
+        Admin["LLMTier Administrator"]
+    end
 
-Slinky -> Observation -> filtered Registry/ledger/capacity/usage views
+    subgraph LLMTier["LLMTier system boundary — 单一可部署服务"]
+        direction TB
+        subgraph Interfaces["接口层"]
+            DP["Data Plane<br/>/v1"]
+            OBS["Observation API<br/>/tier/v1"]
+            MGT["Management API + Admin Web UI<br/>/tier/admin/v1"]
+        end
+
+        IAM["Identity / Entitlement<br/>Client · Source · quota"]
+
+        subgraph Control["共享控制与执行核心"]
+            REG["Authoritative Service Level Registry"]
+            ADM["Admission / Capacity<br/>Seat · shared groups · readiness"]
+            ROUTER["Backend Router / Connectors"]
+            REC["Admin Jobs / Recovery"]
+        end
+
+        subgraph Durable["持久状态与投影视图"]
+            LEDGER["Invocation + Idempotency Ledger"]
+            RESULT["Canonical Response Store"]
+            USAGE["Usage / Audit"]
+            CFG["Configuration + write-only Secret references"]
+        end
+
+        READY["Readiness / Compatibility projection"]
+    end
+
+    subgraph Backends["Provider / Local deployment boundary"]
+        PROVIDER["Provider APIs"]
+        LOCAL["Local Model Deployments"]
+    end
+
+    Piko --> DP
+    Memory --> DP
+    Slinky --> OBS
+    Admin --> MGT
+
+    DP --> IAM
+    OBS --> IAM
+    MGT --> IAM
+    IAM --> LEDGER
+    DP --> LEDGER
+    DP --> ADM
+    ADM --> REG
+    ADM --> ROUTER
+    ROUTER --> PROVIDER
+    ROUTER --> LOCAL
+    ROUTER --> LEDGER
+    LEDGER --> RESULT
+    LEDGER --> USAGE
+
+    OBS --> REG
+    OBS --> LEDGER
+    OBS --> USAGE
+    OBS --> READY
+    MGT --> REG
+    MGT --> CFG
+    MGT --> REC
+    MGT --> USAGE
+    REC --> LEDGER
+    REG --> READY
+    LEDGER --> READY
 ```
 
 策略是单一事实来源、分面权限、共享 Registry/ledger、dispatch 前持久化、fail closed 和有限恢复保证。
 Data Plane、Observation、Management 使用不同 credential 与 DTO，但不得复制核心状态机。
+
+图中的三种入口不形成三套实现：它们共享 identity、Registry、ledger 和审计事实，但按权限分别暴露
+执行、只读观察与管理能力。Provider/Local Deployment 永远位于 LLMTier 后方，consumer 不得直连。
 
 ## 5. 构建块视图
 
@@ -120,6 +184,45 @@ owner、部署或发布边界为依据，不能仅按类或目录命名。
 5. router 只在同一 Service Level 内执行一次 dispatch；
 6. 成功时保存并返回 canonical `ResponsesResponse`。
 
+```mermaid
+sequenceDiagram
+    autonumber
+    participant P as Piko
+    participant D as Data Plane
+    participant I as Identity / Entitlement
+    participant L as Invocation Ledger
+    participant A as Admission / Capacity
+    participant R as Registry
+    participant B as Router / Backend
+
+    P->>D: POST /v1/responses<br/>key + source + exact service_level_id
+    D->>I: authenticate and authorize Client / Source
+    I-->>D: entitlement and quota scope
+    D->>L: lookup or persist digest + Invocation + dispatch intent
+    L-->>D: new or existing Invocation state
+    D->>A: admit concurrent_invocation Seat
+    A->>R: validate exact ID, membership, readiness, valid_until
+    R-->>A: catalog and capacity semantics
+    A-->>D: admitted
+    D->>B: dispatch once within assigned Service Level
+    B-->>D: provider result
+    D->>L: persist terminal state + canonical response
+    L-->>D: durable outcome
+    D-->>P: 200 ResponsesResponse
+
+    alt transport response lost but Invocation ID known
+        P->>D: GET /v1/invocations/{id}
+        D->>L: read existing obligation
+        L-->>D: state + recovery disposition
+        D-->>P: InvocationView / canonical recovery reference
+    else response headers also lost
+        P->>D: same POST + same key + same digest within D=24h
+        D->>L: replay existing obligation
+        L-->>D: active, succeeded, or typed terminal outcome
+        D-->>P: 202, canonical 200, or typed non-2xx
+    end
+```
+
 ### 6.2 replay 与 lost response
 
 | Invocation 状态 | 同一 POST replay | 后续动作 |
@@ -143,6 +246,38 @@ Backend redispatch 授权。
 ## 7. 部署与物理视图
 
 当前可确认的开发部署是一个 Python 3.11+ LLMTier 进程：
+
+```mermaid
+flowchart LR
+    subgraph ClientHosts["Consumer / operator hosts"]
+        P["Piko"]
+        S["Slinky"]
+        M["Memory / Knowledge Client"]
+        Browser["Admin Browser"]
+    end
+
+    subgraph LLHost["LLMTier host — current development topology"]
+        Service["LLMTier Python 3.11+ process<br/>Data · Observation · Management/UI"]
+        Config["config/settings.json<br/>config/secrets/"]
+        State["state/<br/>ledger · responses · usage · audit"]
+        Contract["interfaces/<br/>OpenAPI · manifest · schemas · vectors"]
+        Config --> Service
+        Contract --> Service
+        Service <--> State
+    end
+
+    subgraph ModelTargets["Execution targets"]
+        Remote["Remote Provider API"]
+        Local["Local Model Deployment"]
+    end
+
+    P -->|HTTPS production / trusted HTTP development| Service
+    S -->|Observation HTTP| Service
+    M -->|Embeddings HTTP| Service
+    Browser -->|Management UI/API| Service
+    Service --> Remote
+    Service --> Local
+```
 
 | 位置/入口 | 作用 |
 |---|---|

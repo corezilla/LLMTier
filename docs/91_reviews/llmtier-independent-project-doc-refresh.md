@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-independent-project-doc-refresh` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -43,6 +43,10 @@ draft.2 修正 draft.1 的设计层级错误：LLMTier 是本仓库完整 `syste
 `subsystem`。主设计从 `docs/30_subsystem_design/` 移至 `docs/20_system_design/`，并改用
 `design.system`；当前没有内部 subsystem design。
 
+draft.3 补齐此前缺失的完整系统架构表达：新增系统边界与 logical building blocks 全景图、Responses
+首次调用及两种 lost-response 恢复分支时序图，以及当前单进程开发部署图。图中明确三类 API 分面共享
+Registry/ledger/identity，不把 logical building block 误写成 subsystem，也不新增实现路径。
+
 ## 2. 当前事实基线
 
 | 范围 | 当前事实 |
@@ -67,7 +71,8 @@ Slinky/Piko 只通过其受控 HTTP consumer boundary 使用 LLMTier，不 impor
 2. tailoring 增加 `LT-TL-016`，固定单服务的 `src/config/state/interfaces` ownership。
 3. requirements 增加 `LT-FUN-007`、`LT-DEP-003/004`，traceability 增加 `CT-OPS-001` 映射。
 4. system design 使用 STD `design.system` 的 12 节与 A-H 附录，更新 system context、building blocks、
-   runtime、deployment、横切概念、质量、风险与当前 entry points。
+   runtime、deployment、横切概念、质量、风险与当前 entry points；并提供系统逻辑架构、运行时恢复时序和
+   当前物理部署三张 Mermaid 图。
 5. 三份 interface control 明确 consumer 只走 HTTP/artifact，不共享 LLMTier filesystem。
 6. contract specification 明确 `interfaces/` 是唯一机器 authority，并记录本轮 machine bytes 不变。
 7. V&V/test specification 增加当前路径、CLI、旧 workspace 回流检查。
@@ -93,7 +98,7 @@ Slinky/Piko 只通过其受控 HTTP consumer boundary 使用 LLMTier，不 impor
 | 检查 | 结果 |
 |---|---|
 | STD source manifest | PASS；73 artifacts |
-| STD project validator | PASS；19 metadata、19 Markdown、8 decisions、0 issues |
+| STD project validator | PASS；20 metadata、20 Markdown、9 decisions、0 issues |
 | Project tests | PASS；最终用例数由 immutable commit 验证，新增 client state-path regression |
 | Service/operator CLI help | PASS |
 | Machine contract diff against base | empty |
@@ -107,4 +112,5 @@ PASS 不得向上推导为 runtime capability。
 机器决定记录在
 `docs/91_reviews/llmtier-independent-project-doc-refresh.review-decision.json`。当前为 PENDING；review
 target 由 Git/Matrix 提供 immutable commit，避免文档自引用。draft.1 commit `8c8f8b2` 与此前 draft.21
-review target 均由本候选后继 commit supersede，但 STD lock/source 与机器契约事实不变。
+review target、draft.2 commit `21794e2` 均由本候选后继 commit supersede，但 STD lock/source 与机器契约
+事实不变。

@@ -119,6 +119,22 @@ class StdMigrationTests(unittest.TestCase):
         self.assertIn("不是已拆分的子系统", text)
         self.assertIn("当前没有内部 subsystem design", text)
 
+    def test_system_design_contains_complete_architecture_runtime_and_deployment_diagrams(self):
+        path = ROOT / "docs" / "20_system_design" / "llmtier-system-design.md"
+        text = path.read_text(encoding="utf-8")
+        self.assertEqual(3, text.count("```mermaid"))
+        self.assertIn('subgraph LLMTier["LLMTier system boundary — 单一可部署服务"]', text)
+        self.assertIn('DP["Data Plane<br/>/v1"]', text)
+        self.assertIn('OBS["Observation API<br/>/tier/v1"]', text)
+        self.assertIn('MGT["Management API + Admin Web UI<br/>/tier/admin/v1"]', text)
+        self.assertIn('REG["Authoritative Service Level Registry"]', text)
+        self.assertIn('LEDGER["Invocation + Idempotency Ledger"]', text)
+        self.assertIn("sequenceDiagram", text)
+        self.assertIn("same POST + same key + same digest within D=24h", text)
+        self.assertIn('subgraph LLHost["LLMTier host — current development topology"]', text)
+        self.assertIn("框内各模块是 logical", text)
+        self.assertIn("building block，不代表独立部署的 subsystem", text)
+
     def test_c1_interface_and_contract_candidates_preserve_machine_authority(self):
         candidates = {
             "piko-data-plane-control.md": ("interfaces.control", "962e8003712738d2cb4e3a0a38173a9fd2bdd0a1", "docs/99_reference/contracts/piko-data-plane-contract-v0.3.md"),
