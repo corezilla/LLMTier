@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | `2026-09-07` |
 | Created Date | `2026-09-06` |
-| Last Modified Date | `2026-09-08` |
+| Last Modified Date | `2026-09-09` |
 | Template Version | `0.1.0` |
 | Template ID | `design.definition` |
 | Template Conformance | `tailored` |
@@ -28,15 +28,14 @@
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
-> 本文按 STD 的“单应用、单服务或单库”软件项目模型，将 LLMTier 定义为一个独立部署的
-> 模型服务；`design_level=subsystem` 表示它在 Slinky/Piko/LLMTier 协作链路中的层级，不表示
-> 本仓库拥有该跨项目系统。迁移来源为 `docs/99_reference/design/llmtier-v0.3-design-review.md`。本次只修正
-> 文档分类与结构，不改变既有 authority、Scope B、接口 ID、评审结论或 activation gate。本文已通过
-> Owner review 进入 Approved promotion candidate；原设计全部 current scope 已映射并标为 Superseded。
+> 本文按 STD 的“单应用、单服务或单库”软件项目模型定义 LLMTier。它是独立部署、独立配置、独立保存
+> 状态并独立发布的单服务；`design_level=subsystem` 只表示它在跨项目协作链路中的服务层级。本仓库拥有
+> LLMTier 本身，不拥有 Slinky 或 Piko。迁移来源只作为历史证据保存在
+> `docs/99_reference/design/llmtier-v0.3-design-review.md`，不再描述当前项目身份。
 
 ## 1. 目的、范围与上位输入
 
-LLMTier 从 Slinky 的旧 embedded Tier 拆分为单一、独立部署的模型服务。V0.3 目标是提供可管理、
+LLMTier 是单一、独立部署的模型服务。V0.3 目标是提供可管理、
 可观测、可由 Piko 调用的模型服务边界，同时不取得 Agent、Project、Plan 或 IR authority。
 
 本服务的 V0.3 范围是：
@@ -76,10 +75,12 @@ LLMTier 从 Slinky 的旧 embedded Tier 拆分为单一、独立部署的模型�
 
 ### 3.1 Current Baseline
 
-仓库当前保留从 Slinky 复制的 Python Tier 基线，可复用服务生命周期、路由、并发、配额、统计和
-Provider adapter。它尚未证明 V0.3 Data Plane、Management、Observation、Registry、durable ledger
-或 Admin UI 已生产接线。旧私有 Tier API、Role routing、Agent backend、mlexp、CLI runner 和
-fallback 语义不是新服务的兼容承诺。
+仓库当前实现是 LLMTier 自有的 Python 单服务基线：源码位于 `src/`，默认配置位于
+`config/settings.json`，默认状态位于 `state/`，服务和 operator CLI 分别由 `llm-tier`、
+`llm-tier-cli` 启动。它已能独立启动并提供现有 trusted-network HTTP 操作，但尚未证明 V0.3 Data Plane、
+Management、Observation、Registry、durable ledger 或 Admin UI 已生产接线。现有 `/call`、`/health`、
+`/runtime`、`/stats` 等接口以及 Role routing、Agent backend、mlexp 和旧 fallback 语义只属于 legacy
+implementation baseline，不是 V0.3 兼容承诺，也不得成为并行 production path。
 
 ### 3.2 Approved Delta
 
@@ -153,9 +154,10 @@ Slinky -> /tier/v1 readiness | service-levels | capacity | invocations | usage |
 | Management | `/tier/admin/v1` 与最小 Admin Web UI | 同一 V0.3 OpenAPI；说明见 Management contract |
 | Compatibility | overall/per-capability candidate 与 activation | `interfaces/compatibility/compatibility-manifest-v0.3.json` |
 
-说明文档为 `docs/99_reference/contracts/piko-data-plane-contract-v0.3.md`、
-`docs/99_reference/contracts/slinky-capacity-observation-contract-v0.3.md` 和
-`docs/99_reference/contracts/llmtier-management-contract-v0.3.md`；正负样例在 `interfaces/vectors/v0.3/`。
+当前说明 authority 为 `docs/60_interfaces/piko-data-plane-control.md`、
+`docs/60_interfaces/slinky-capacity-observation-control.md` 和
+`docs/60_interfaces/llmtier-management-control.md`；旧 contracts 只在 `docs/99_reference/contracts/` 保存历史。
+正负样例在 `interfaces/vectors/v0.3/`。
 Markdown 负责范围、rationale 与 authority；OpenAPI/manifest/fixtures 负责字段级机器契约。发生冲突
 必须通过 review 修正，Consumer 不得自选解释。
 
@@ -274,12 +276,17 @@ LLMTier 是单服务软件仓库，采用 STD 单应用/单服务布局：
 |---|---|
 | `src/` | 单服务 Python 当前实现基线 |
 | `tests/` | 单元、contract semantic 与迁移一致性测试 |
-| `docs/` | 设计、接口、QA、迁移和 provenance |
+| `config/settings.json` | 默认本地配置；Git ignored；由 `LLMTIER_CONFIG` 或 `--settings` 显式覆盖 |
+| `config/secrets/` | Git ignored 的本地 Secret 文件；只写不读，不进入证据/RAG |
+| `state/` | Git ignored 的默认运行状态、统计和 trace；由 `LLMTIER_STATE_DIR` 显式覆盖 |
+| `interfaces/` | 唯一 V0.3 OpenAPI、compatibility、Schema 与 vectors authority |
+| `docs/` | requirements、设计、接口、验证、运维、迁移和 provenance |
 | `docs/30_subsystem_design/` | `design.definition` 的 canonical service/subsystem design |
 | `docs/00_management/` | tailoring 与 adoption 管理文档 |
 | `docs/98_migration/` | 迁移 inventory 与映射证据 |
-| `docs/std-source-manifest.json` | 锁定 STD draft.18 的 71 个来源 artifact；不是项目 RAG ingestion |
-| `rag/` | legacy draft.12 STD source list；本轮不修改、不执行项目文档 ingestion |
+| `docs/99_reference/` | historical/superseded/future-only 文档；不参与当前 authority |
+| `docs/std-source-manifest.json` | 锁定 STD draft.21 的 73 个来源 artifact；不是项目 RAG ingestion |
+| `rag/project-ingestion-manifest.jsonl` | 已发布 accepted 文档的 commit-bound 清单；候选修改评审前不重写 |
 
 本次不新建 `software/llmtier/`、`services/llmtier/` 或多应用 workspace，因为仓库当前只有一个服务
 ownership 和一个部署边界。未来若出现两个以上可独立部署、独立发布、独立 owner 的产品单元，必须
@@ -287,7 +294,10 @@ ownership 和一个部署边界。未来若出现两个以上可独立部署、�
 
 允许的实现变更仅限扩展本服务现有机制以满足批准契约；不得未经批准引入新 config path、selector、
 fallback、兼容 alias、第二 inference/recovery path 或新旧并行 implementation。具体 production
-deploy/config/schema/migration/ops 文件在实现需要与 ADR/评审关闭后添加。
+deploy/config/schema/migration/ops 文件在实现需要与 ADR/评审关闭后添加。当前安装入口是
+`python3 -m pip install -e .`；安装后使用 `llm-tier` 与 `llm-tier-cli`，源码 checkout 的等价入口是
+`PYTHONPATH=src python3 -m tier_service` 与 `PYTHONPATH=src python3 -m cli`。这些现行入口不得被解释为
+V0.3 endpoint 已激活。
 
 ## 13. Verification、测试义务与证据
 
@@ -318,7 +328,8 @@ production implementation、runtime activation 或 SLO。Review→Contract→fix
 | M2-C：`W=168h`、`M=24h`、`D=24h` | Candidate frozen | `L-20260906-12940a96e148`、`P-20260906-c14b4af35ac3` |
 | Scope B：V0.3 non-stream；Chat/SSE 延至 V0.4 | Authoritative scope decision | `S-20260906-2f9539048493` |
 | Amendment 4 design/contract candidate | Slinky ACCEPTED | `S-20260906-1e12f5e61d73` |
-| STD 分类修正为单服务 `design.definition` | 本轮 review candidate | 用户 2026-09-07 指示 |
+| STD 分类为单服务 `design.definition` | Owner accepted | 用户 2026-09-07 指示 |
+| 独立 repo/config/state/CLI 使用边界 | 本轮文档维护候选 | 用户 2026-09-09 指示 |
 
 ### 14.2 Activation gates
 
@@ -347,6 +358,6 @@ production implementation、runtime activation 或 SLO。Review→Contract→fix
 - [x] Current Baseline、Approved Delta、Future/Open Gate 分离；
 - [x] authority、接口、状态、recovery、capacity、安全、verification 与 traceability 未裁掉；
 - [x] 原始设计保留，未伪造 production implementation 或 activation；
-- [x] STD draft.16 与本项目迁移结构已获 READY 协调共识；draft.17/draft.18 只升级 validator discovery/read/source robustness，未改变本文业务内容；
+- [x] STD 当前锁定 draft.21；来源 commit 与 73 个 artifact 摘要可验证；
 - [ ] LLMTier owner 批准 canonical 替换；
 - [ ] production activation gates 全部关闭。

@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-07` |
+| Last Modified Date | `2026-09-09` |
 | Template Version | `0.1.0` |
 | Template ID | `requirements.specification` |
 | Template Conformance | `tailored` |
@@ -48,6 +48,10 @@ Memory/Knowledge Client 是 Embeddings consumer，管理员使用 Management API
 生命周期覆盖配置、Registry publish、启动、admission/dispatch、recovery、Observation、管理、升级、回滚
 与退役。当前仅冻结 contract/design candidate；production implementation 和 Runtime Activation 尚未完成。
 
+服务源码、安装制品、配置、Secret、状态与运维入口全部属于 LLMTier。当前 repo 路径分别为 `src/`、
+`config/settings.json`、`config/secrets/`、`state/` 和 `interfaces/`；外部 consumer 不直接 import 本仓库源码，
+不读写这些目录，也不控制服务进程。
+
 ## 3. 假设、约束与术语
 
 - 已确认：V0.3 Scope B、exact-case Service Level、唯一 OpenAPI、M2-C `W=168h`/`M=24h`、
@@ -69,6 +73,7 @@ Memory/Knowledge Client 是 Embeddings consumer，管理员使用 Management API
 | LT-FUN-004 | LLMTier shall 提供 Client-scoped、只读 Observation，并表达 readiness、capacity、Invocation、usage 与 compatibility | Slinky control | P0 | CT-OBS-001 | Static PASS；Slinky E2E BLOCKED |
 | LT-FUN-005 | LLMTier shall 通过 `/tier/admin/v1` 与最小 Admin UI 管理 Registry、Provider、Client/Source、capacity、Job、audit 与 recovery | Management control | P0 | CT-MGT-001 | Static PASS；implementation BLOCKED |
 | LT-FUN-006 | LLMTier shall 对 UnknownOutcome 只允许 manual reconcile，不自动 redispatch | Piko/Management controls | P0 | CT-REC-002 | Fixture PASS；runtime BLOCKED |
+| LT-FUN-007 | LLMTier shall 作为独立 Python 服务提供唯一 service/operator entry point，并将现有 legacy API 与未激活 V0.3 API 明确区分 | service design §3/12；operations | P1 | CT-PKG-001/CT-OPS-001 | Current CLI PASS；V0.3 runtime BLOCKED |
 
 ## 5. 接口需求
 
@@ -110,6 +115,10 @@ Memory/Knowledge Client 是 Embeddings consumer，管理员使用 Management API
 - 硬件制造不适用。
 - LT-DEP-001：部署 shall 保持 LLMTier 独立配置 authority，不回读 Slinky config，也不创建 Provider-direct、
   Role routing、跨等级 fallback 或第二 API path。
+- LT-DEP-003：默认配置 shall 为 `config/settings.json`，默认运行状态 shall 位于 `state/`；只允许现有
+  `LLMTIER_CONFIG`、`--settings` 和 `LLMTIER_STATE_DIR` 覆盖机制，不得为旧 workspace 建兼容副本。
+- LT-DEP-004：安装后的 entry points shall 为 `llm-tier` 与 `llm-tier-cli`；源码 checkout 的等价入口 shall
+  为 `PYTHONPATH=src python3 -m tier_service` 与 `PYTHONPATH=src python3 -m cli`。
 - LT-DEP-002：production release/rollback/backup/recovery/retirement shall 在 C4 operations 文档中引用真实
   topology、artifact、migration 与 evidence；未决定项保持 Open Gate。
 - 当前两项均为 design constraint；production procedure/evidence 为 BLOCKED。
@@ -128,3 +137,4 @@ Piko/Slinky/Embeddings consumer evidence。它们不阻止 requirements migratio
 Document Status/operations conclusion 或 Runtime Activation。
 
 - 2026-09-07：C3 首版从现有 V0.3 design/contract/QA authority 提取；未新增业务语义。
+- 2026-09-09：按独立项目现状补齐 repo path、配置/状态 authority 与 CLI 使用约束；机器契约不变。

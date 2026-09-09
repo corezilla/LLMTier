@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | 2026-09-07 |
 | Created Date | 2026-09-07 |
-| Last Modified Date | 2026-09-08 |
+| Last Modified Date | 2026-09-09 |
 | Template Version | `0.1.0` |
 | Template ID | interfaces.control |
 | Template Conformance | tailored |
@@ -63,6 +63,11 @@ canonical Source、Idempotency-Key 和 client request correlation。active repla
 
 physical Provider、account、pool 和 deployment 完全位于 LLMTier 边界内；Piko 不获得 provider-direct
 route 或 credential。
+
+LLMTier 作为独立进程部署；Piko 不 import `src/`，不读取 `config/` 或 `state/`，也不负责启动服务。
+当前 `TIER_SERVER_URL` 和 `llm-tier-cli --server-url` 只用于现有 trusted-network client/operator 连接，
+不是 V0.3 consumer activation 或协议协商机制。V0.3 base URL 的启用必须通过 compatibility manifest 和
+独立 activation gate。
 
 ## 4. 数据、命令与 Schema
 
@@ -133,6 +138,7 @@ pi-ai 0.85.1、openai 6.40.0、provider llmtier 和 adapter piko-llmtier-respons
 - 静态/语义验证：tests/test_contract_semantics_v03.py、tests/test_contract_consistency.py。
 - production evidence：Piko pinned adapter capture、lost-response/restart、UnknownOutcome 和真实 LLMTier
   endpoint 尚未完成，状态为 BLOCKED/NOT_RUN。
+- 当前 repo paths：机器契约在 `interfaces/`，服务源码在 `src/`；Piko 不通过文件路径消费接口。
 
 ## 11. 未决项与双方批准
 

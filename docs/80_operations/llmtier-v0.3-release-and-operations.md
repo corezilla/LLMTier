@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-08` |
+| Last Modified Date | `2026-09-09` |
 | Template Version | `0.1.0` |
 | Template ID | `operations.release` |
 | Template Conformance | `tailored` |
@@ -30,8 +30,9 @@
 
 ## 1. Release scope、版本与兼容性
 
-本文迁移当前仓库可确认的 build/start/stop/health、配置、安全、回滚和 acceptance 边界，并显式列出
-V0.3 production Open Gate。它是 operations candidate，不是 release approval 或 runtime runbook。
+本文定义独立 LLMTier 仓库当前可确认的 build/start/stop/health、配置、安全、回滚和 acceptance 边界，
+并显式列出 V0.3 production Open Gate。它不是 release approval 或 runtime runbook，也不表示 production
+部署已获批准。
 
 - 当前 Python package 版本是 `pyproject.toml` 的 `0.1.0`；不能把它称为 V0.3 production release。
 - V0.3 contract/design 仍为 candidate，`overall.runtime_activation=false`。
@@ -52,24 +53,30 @@ artifact SHA-256 与签署结果。当前仓库没有已批准的 V0.3 wheel/con
 
 ## 3. 部署/安装/烧录/装配步骤
 
-当前可验证的开发入口：
+当前可验证的开发/本地运行入口：
 
-1. 在固定 commit 的隔离 Python 环境安装本项目及需要的 test extra；
-2. 运行 `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m tier_service --help`；
-3. 运行全部 tests 与 contract/STD validators；
-4. 仅在独立环境授权后，使用明确 `--host`、`--port`、`--settings` 启动 `python3 -m tier_service`；
-5. SIGINT/SIGTERM 触发当前进程的 bounded graceful shutdown。
+1. 在固定 commit 的隔离 Python 3.11+ 环境运行 `python3 -m pip install -e .`；
+2. 安装后以 `llm-tier --host 127.0.0.1 --port 8765 --settings config/settings.json` 启动；
+3. 以 `llm-tier-cli --server-url http://127.0.0.1:8765 health` 执行 operator health 检查；
+4. 未安装 package 时使用 `PYTHONPATH=src python3 -m tier_service` 和 `PYTHONPATH=src python3 -m cli`；
+5. 运行全部 tests 与 contract/STD validators；SIGINT/SIGTERM 触发 bounded graceful shutdown。
 
-上述入口只证明当前 baseline CLI 形状。旧 `settings.json`、`/health`、`/runtime`、`/stats` 等实现不得被
+上述入口只证明当前 baseline CLI 形状。现有 `/health`、`/runtime`、`/stats` 等实现不得被
 误称为 V0.3 Data Plane/Observation/Management 已接线。production service manager、container image、
 network/TLS、filesystem owner、resource limit 和 multi-instance topology 均是 Open Gate。无烧录/装配步骤。
 
 ## 4. 配置、Secret、校准数据与环境
 
-- 配置必须属于 LLMTier，不回读 Slinky config；每个环境记录配置 version/digest 和 non-secret diff。
+- 默认配置是 repo root 下 Git-ignored 的 `config/settings.json`；显式 `--settings` 优先，未提供时读取
+  `LLMTIER_CONFIG`，再回落到该默认路径。配置属于 LLMTier，不回读 Slinky config。
+- 文件型 Secret 位于 Git-ignored 的 `config/secrets/`，相对路径从 repo root 解析；目录和文件使用
+  owner-only 权限，验证只记录存在性/摘要，不读取或输出内容。
+- 默认运行状态、统计和 trace 位于 Git-ignored 的 `state/`；`LLMTIER_STATE_DIR` 可为部署选择唯一替代目录，
+  server/client 同步解析该目录；既有 `TIER_TRACE_STATE_PATH` 只用于显式选择单个 debug-state 文件。
 - Provider credential 只写不读，不进入日志、DTO、backup 明文、CLI output 或 evidence。
 - 环境至少区分 development/test/staging/production；禁止用未激活 endpoint 或旧 alias 代替目标 surface。
 - `TIER_SERVER_URL` 只是当前 client 连接位置，不是 authority、routing policy 或 compatibility selector。
+- 当前 server 只接受 localhost、loopback、RFC1918 或 IPv6 ULA bind/origin；credential 不得嵌入 URL。
 - production config schema、secret store、rotation、encryption、retention 和 migration 尚未批准，状态 BLOCKED。
 
 ## 5. Preflight、Bring-up 与健康检查
@@ -82,6 +89,9 @@ consistency、Management/Observation/Data Plane probes 后才可进入独立 act
 当前 `/health`、`/runtime`、`/stats` 可用于 legacy baseline 诊断，但不是 V0.3 readiness contract。
 V0.3 health/readiness 的 machine authority 是 OpenAPI；production route evidence 未提供，故 bring-up 为
 NOT_RUN/BLOCKED。
+
+当前 operator CLI 还提供 `debug`、`invoke`、`reset`、`reload` 和 `probe`。这些命令只覆盖现有实现；
+不得把它们当成 `/tier/admin/v1`、`/tier/v1` 或 `/v1` V0.3 surface 的替代入口。
 
 ## 6. 升级、迁移、回滚和恢复
 

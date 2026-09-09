@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | 2026-09-07 |
 | Created Date | 2026-09-06 |
-| Last Modified Date | 2026-09-08 |
+| Last Modified Date | 2026-09-09 |
 | Template Version | `0.1.0` |
 | Template ID | interfaces.control |
 | Template Conformance | tailored |
@@ -61,6 +61,11 @@ concurrency 或 audit。
 
 physical Provider credential 只在 LLMTier 管理边界内 write-only 保存；API、UI、浏览器响应、日志和
 audit 均不得含 secret value。
+
+Management 是 LLMTier 自有服务分面，不依赖 Slinky/Piko 文件系统。当前本地配置 authority 是
+`config/settings.json`，Secret 文件目录是 `config/secrets/`，运行状态目录是 `state/`；三者均不属于
+Management V0.3 HTTP contract，也不得被远程 API 以 path 或明文内容暴露。`LLMTIER_CONFIG`、`--settings`
+和 `LLMTIER_STATE_DIR` 是现有部署选择机制，不新增旧 workspace alias。
 
 ## 4. 数据、命令与 Schema
 
@@ -121,6 +126,8 @@ v0.3 compatibility manifest 当前 contract_status=candidate、runtime_activatio
 - 静态/语义验证：tests/test_contract_semantics_v03.py、tests/test_contract_consistency.py。
 - production evidence：API/UI positive/deny/secret/concurrency、Registry publish、provider probe、
   fairness/audit 和 recovery safety 尚未完成，状态为 BLOCKED/NOT_RUN。
+- 当前 operator 入口 `llm-tier-cli`/`python3 -m cli` 只操作 legacy baseline endpoints；它不是未实现
+  `/tier/admin/v1` 的替代接口，后续接线必须扩展唯一 Management contract 而非建立第二管理面。
 
 ## 11. 未决项与双方批准
 

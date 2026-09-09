@@ -2,10 +2,11 @@
 from __future__ import annotations
 
 """
-llm_tier server - 独立 LLM 路由守护进程
+LLMTier server - 独立 LLM 路由守护进程
 
 启动:
-    python -m tier_service --port 8765 --settings workspaces/my_project/settings.json
+    llm-tier --host 127.0.0.1 --port 8765 --settings config/settings.json
+    PYTHONPATH=src python3 -m tier_service --host 127.0.0.1 --port 8765 --settings config/settings.json
 
 配置:
     --host        监听地址 (默认 127.0.0.1；可指定 private IP)
@@ -25,7 +26,7 @@ import threading
 # Outputs: Process exit code after bounded listener shutdown.
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="llm_tier server - 独立 LLM 路由守护进程",
+        description="LLMTier server - 独立 LLM 路由守护进程",
     )
     parser.add_argument(
         "--host",
@@ -46,7 +47,7 @@ def main() -> int:
         settings_path=args.settings,
     )
 
-    print(f"llm_tier server starting on {args.host}:{args.port}",
+    print(f"LLMTier server starting on {args.host}:{args.port}",
           file=sys.stderr)
     if args.settings:
         print(f"  settings: {args.settings}", file=sys.stderr)

@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-08` |
+| Last Modified Date | `2026-09-09` |
 | Template Version | `0.1.0` |
 | Template ID | `assurance.vv-plan` |
 | Template Conformance | `tailored` |
@@ -42,8 +42,8 @@ activation 状态 authority，`tests/` 和 fixtures 是可执行 oracle，运行
 
 | 基线 | 固定对象 | 当前状态 |
 |---|---|---|
-| 迁移基线 | immutable commits `962e8003712738d2cb4e3a0a38173a9fd2bdd0a1` / `e1f9b796368ec5f358e466c7e6299cc16b1bf181` | C0-C4 terminal ACCEPTED；consumer reviews ACCEPTED |
-| STD | `9841083c4d8d0ed1556bdc413d77b4567ac696b4` / `std-v0.1.0-draft.18` | source verifier 71 artifacts PASS |
+| 已发布文档基线 | `rag/project-ingestion-manifest.jsonl` 中的 immutable commit | accepted authority；本轮候选不覆盖已发布字节 |
+| STD | `docs/std.lock.json`：`274ef0a67eda080baa0063ae27ede7ee129aa32a` / `0.1.0-draft.21` | source verifier 73 artifacts PASS |
 | 服务设计 | `docs/30_subsystem_design/llmtier-service-design.md` | Approved prose authority |
 | 接口说明 | `docs/60_interfaces/` | Approved prose authority；OpenAPI 仍为字段 authority |
 | 机器契约 | `interfaces/openapi/llmtier-v0.3.openapi.json` | Candidate；runtime 未激活 |
@@ -83,6 +83,7 @@ activation 状态 authority，`tests/` 和 fixtures 是可执行 oracle，运行
 | 层级 | 当前覆盖 | Owner | 当前判定 |
 |---|---|---|---|
 | Unit/Module | Python utility、backend、独立包导入 | LLMTier | PASS（本地） |
+| Packaging/Usage | `pyproject.toml` entry points、源码模块入口、config/state path | LLMTier | PASS（静态与 CLI help）；安装制品未发布 |
 | Contract/Schema | OpenAPI、manifest、fixtures、接口语义 | LLMTier | PASS（本地 candidate） |
 | Subsystem | 路由、ledger、Registry、Management/Observation wiring | LLMTier | NOT_RUN/BLOCKED |
 | Consumer | Piko adapter；Slinky Observation consumer；Embeddings consumer | 各 consumer authority | NOT_RUN/BLOCKED，独立 review/evidence |
@@ -92,7 +93,10 @@ activation 状态 authority，`tests/` 和 fixtures 是可执行 oracle，运行
 
 ## 6. 环境、fixture、oracle 与数据治理
 
-- 静态环境使用项目锁定 commit、`PYTHONPATH=src` 和项目既有 Python 依赖，不读取其他项目源码。
+- 静态环境使用项目锁定 commit、Python `>=3.11`、`PYTHONPATH=src` 和项目既有 Python 依赖，不读取其他项目源码。
+- 当前路径 oracle 是 `src/`、`config/settings.json`、`config/secrets/`、`state/` 和 `interfaces/`；
+  当前 entry-point oracle 是 `llm-tier`/`llm-tier-cli` 及其 `python3 -m` 等价入口。测试不得依赖旧
+  Slinky workspace path。
 - v0.3 fixtures 覆盖 authorization scope、capacity negative、UTF-8 digest、idempotency policy、recovery、
   Data Plane fail-closed 与 Observation/Management；fixture 是测试输入，不是 production capture。
 - OpenAPI schema、manifest selection 和明确 expected result 组成静态 oracle。生产 oracle 必须来自真实

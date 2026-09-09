@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | 2026-09-07 |
 | Created Date | 2026-09-07 |
-| Last Modified Date | 2026-09-08 |
+| Last Modified Date | 2026-09-09 |
 | Template Version | `0.1.0` |
 | Template ID | interfaces.control |
 | Template Conformance | tailored |
@@ -59,6 +59,10 @@ ETag/If-None-Match/304、response DTO 和 typed error 由 v0.3 OpenAPI 定义。
 
 physical Provider、account、pool、deployment 和 Management mutation 不跨该边界。Slinky adapter
 不能根据缺失字段猜测，也不能将 Observation filter 变成新的权限或 recovery namespace。
+
+Slinky 只通过已激活的 `/tier/v1` HTTP 分面消费 Observation；不 import LLMTier `src/`，不读取
+`config/`/`state/`，不共享 filesystem path，也不控制 LLMTier 进程。当前 `/health`、`/runtime`、
+`/stats` 是 LLMTier legacy implementation diagnostics，不是 Observation alias 或兼容入口。
 
 ## 4. 数据、命令与 Schema
 
@@ -130,6 +134,8 @@ version、SDK matrix 和 effective_at。v0.3 当前是 candidate，runtime_activ
 - 静态/语义验证：tests/test_contract_semantics_v03.py、tests/test_contract_consistency.py。
 - production evidence：真实 endpoints、Registry/admission wiring、公平性、invalidation notification 和
   Slinky E2E 尚未完成，状态为 BLOCKED/NOT_RUN。
+- 当前 repo paths：Observation 机器契约在 `interfaces/openapi/`，fixtures 在
+  `interfaces/vectors/v0.3/`；跨项目交付使用 immutable contract artifact，不使用共享源码路径。
 
 ## 11. 未决项与双方批准
 

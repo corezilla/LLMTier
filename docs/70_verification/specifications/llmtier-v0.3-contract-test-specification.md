@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-08` |
+| Last Modified Date | `2026-09-09` |
 | Template Version | `0.1.0` |
 | Template ID | `assurance.test-specification` |
 | Template Conformance | `tailored` |
@@ -38,7 +38,7 @@ OpenAPI、compatibility manifest、v0.3 fixtures、当前 Python package boundar
 
 ## 2. 引用基线、环境与前置条件
 
-- Project candidate：`aa2638283e77bc658e98df8d40396306cad17aa2`；C2 在此后形成未提交候选。
+- Project candidate：每次执行记录当前 immutable review commit；不得继续使用历史固定 commit 代表新候选。
 - Contract：`interfaces/openapi/llmtier-v0.3.openapi.json`。
 - Activation：`interfaces/compatibility/compatibility-manifest-v0.3.json`，必须保持 false。
 - Fixtures：`interfaces/vectors/v0.3/`；历史 v0.2 只作 provenance，不是 V0.3 Schema authority。
@@ -62,6 +62,7 @@ OpenAPI、compatibility manifest、v0.3 fixtures、当前 Python package boundar
 | CT-SEC-001 | secret non-disclosure 与 Client isolation | read secret、cross-client/source | auth/management fixtures | deny/no secret material | static shape PASS；runtime security BLOCKED | P0 |
 | CT-REG-001 | 单一 Registry/manifest/admission consistency | catalog/version/ETag change | manifest/OpenAPI | same exact catalog + activation false | semantic tests；runtime consistency BLOCKED | P1 |
 | CT-PKG-001 | 独立 package/import boundary | import public package/entrypoints | `src/` package | imports without Slinky source | standalone tests | P1 |
+| CT-OPS-001 | 当前路径与使用方式 | package entry points、module help、config/state defaults、旧路径扫描 | `pyproject.toml`、`src/`、README/current docs | only `llm-tier`/`llm-tier-cli`; config/state owned by LLMTier; no shared Slinky path | CLI help + independent-boundary tests | P1 |
 | CT-MIG-001 | STD metadata/path/source integrity | project-root discovery | docs/std lock/sidecars | STD validator/source verifier | JSON result + unittest | P1 |
 | CT-PERF-001 | capacity/fairness/SLO | concurrent load and limits | fixed provider/model/config | approved SLO and capacity oracle | NOT_RUN/BLOCKED | P0 activation |
 
@@ -89,8 +90,10 @@ Capacity Group、并发、样本数、预热、超时和失败计数，报告 ad
 1. 验证 STD source：`/Users/ben/work/STD/scripts/verify-source-manifest /Users/ben/work/LLMTier/docs/std-source-manifest.json --std-root /Users/ben/work/STD`。
 2. 验证项目文档：`/Users/ben/work/STD/scripts/validate-design --project-root /Users/ben/work/LLMTier --require-immutable-std --json <artifact>`。
 3. 执行项目测试：`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest discover -s tests`。
-4. 检查 patch：`git diff --check`；记录 HEAD、dirty path、digest 和所有 exit code。
-5. production case 只在独立环境授权后执行；不由本文创建 runtime/config/fallback 路径。
+4. 验证两个源码入口：`PYTHONPATH=src python3 -m tier_service --help` 与
+   `PYTHONPATH=src python3 -m cli --help`；安装验证另检查 `llm-tier`、`llm-tier-cli`。
+5. 检查 patch：`git diff --check`；记录 HEAD、dirty path、digest 和所有 exit code。
+6. production case 只在独立环境授权后执行；不由本文创建 runtime/config/fallback 路径。
 
 ## 8. Pass/Fail/Blocked/Invalid 判定
 

@@ -112,7 +112,10 @@ class StdMigrationTests(unittest.TestCase):
         self.assertNotIn("<!-- TODO -->", text)
         self.assertIn("| `src/` | 单服务 Python 当前实现基线 |", text)
         self.assertIn("| `tests/` | 单元、contract semantic 与迁移一致性测试 |", text)
-        self.assertIn("| `docs/` | 设计、接口、QA、迁移和 provenance |", text)
+        self.assertIn("| `config/settings.json` | 默认本地配置", text)
+        self.assertIn("| `state/` | Git ignored 的默认运行状态", text)
+        self.assertIn("| `interfaces/` | 唯一 V0.3 OpenAPI", text)
+        self.assertIn("STD draft.21", text)
         self.assertIn("不新建 `software/llmtier/`、`services/llmtier/`", text)
 
     def test_c1_interface_and_contract_candidates_preserve_machine_authority(self):
@@ -241,6 +244,10 @@ class StdMigrationTests(unittest.TestCase):
         self.assertIsNone(metadata["supersedes"])
         self.assertNotIn("<!-- TODO -->", text)
         self.assertIn("不是 release approval 或 runtime runbook", text)
+        self.assertIn("llm-tier --host 127.0.0.1", text)
+        self.assertIn("llm-tier-cli --server-url", text)
+        self.assertIn("config/settings.json", text)
+        self.assertIn("LLMTIER_STATE_DIR", text)
         self.assertIn("overall.runtime_activation=false", text)
         self.assertIn("NOT_RUN/BLOCKED", text)
         self.assertIn("不创建 retrospective ADR", (ROOT / "docs" / "91_reviews" / "llmtier-std-c4-operations-review.md").read_text(encoding="utf-8"))
@@ -473,6 +480,32 @@ class StdMigrationTests(unittest.TestCase):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("interfaces/openapi/llmtier-v0.3.openapi.json", readme)
         self.assertIn("docs/98_migration/source-provenance-v0.1.md", readme)
+
+    def test_current_docs_describe_independent_paths_and_usage_without_shared_workspace(self):
+        current_docs = [
+            ROOT / "README.md",
+            ROOT / "docs" / "00_management" / "std-tailoring.md",
+            *sorted((ROOT / "docs" / "10_requirements").glob("*.md")),
+            *sorted((ROOT / "docs" / "30_subsystem_design").glob("*.md")),
+            *sorted((ROOT / "docs" / "60_interfaces").glob("*.md")),
+            *sorted((ROOT / "docs" / "60_interfaces" / "contracts").glob("*.md")),
+            *sorted((ROOT / "docs" / "70_verification" / "plans").glob("*.md")),
+            *sorted((ROOT / "docs" / "70_verification" / "specifications").glob("*.md")),
+            *sorted((ROOT / "docs" / "80_operations").glob("*.md")),
+        ]
+        combined = "\n".join(path.read_text(encoding="utf-8") for path in current_docs)
+        self.assertNotIn("workspaces/", combined)
+        self.assertNotIn("STD draft.18", combined)
+        self.assertIn("config/settings.json", combined)
+        self.assertIn("LLMTIER_CONFIG", combined)
+        self.assertIn("LLMTIER_STATE_DIR", combined)
+        self.assertIn("llm-tier-cli", combined)
+        self.assertIn("独立进程", combined)
+
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("LLMTier 是一个独立的、单服务 Python 项目", readme)
+        self.assertIn("PYTHONPATH=src python3 -m tier_service", readme)
+        self.assertIn("PYTHONPATH=src python3 -m cli", readme)
 
 
 if __name__ == "__main__":

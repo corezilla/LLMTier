@@ -1,0 +1,17 @@
+{
+  "schema_version": "std-review-decision.v1",
+  "review_id": "LT-INDEPENDENT-PROJECT-DOC-REFRESH",
+  "packet_id": "llmtier-independent-project-doc-refresh",
+  "verdict": "PENDING",
+  "document_status_before": "accepted",
+  "requested_document_status_after": "unchanged",
+  "runtime_activation_requested": false,
+  "runtime_activation_authority": null,
+  "reviewers": [],
+  "decided_at": null,
+  "decision_commit": null,
+  "conditions": [
+    "Slinky and Piko verify that the independent repository paths and usage clarification do not alter their accepted V0.3 consumer contracts."
+  ],
+  "rationale": "Pending cross-project review of independent path and usage clarification plus removal of the residual client trace workspace default; no machine contract or runtime activation change is requested."
+}

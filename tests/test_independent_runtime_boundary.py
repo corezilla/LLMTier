@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from backends import list_backends
+from client import DEFAULT_TRACE_PATH, DEFAULT_TRACE_STATE_PATH, TierClient
 from quota_manager import _default_quota_state_dir
 from tier_config import TierConfig
 
@@ -40,6 +41,19 @@ class IndependentRuntimeBoundaryTests(unittest.TestCase):
             state_dir = _default_quota_state_dir()
 
         self.assertEqual(state_dir, Path(__file__).resolve().parents[1] / "state" / "quota")
+
+    def test_client_trace_defaults_use_project_state_not_legacy_workspace(self) -> None:
+        expected_state_dir = Path(__file__).resolve().parents[1] / "state"
+        self.assertEqual(Path(DEFAULT_TRACE_STATE_PATH), expected_state_dir / "tier_debug.json")
+        self.assertEqual(Path(DEFAULT_TRACE_PATH), expected_state_dir / "tier_trace.jsonl")
+        self.assertNotIn("workspaces", DEFAULT_TRACE_STATE_PATH)
+        self.assertNotIn("workspaces", DEFAULT_TRACE_PATH)
+
+    def test_client_trace_follows_llmtier_state_dir_without_new_config_path(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_dir:
+            with patch.dict(os.environ, {"LLMTIER_STATE_DIR": temporary_dir}, clear=True):
+                client = TierClient()
+        self.assertEqual(Path(client._trace_state_path), Path(temporary_dir).resolve() / "tier_debug.json")
 
     def test_authoritative_registry_excludes_agent_and_cli_runners(self) -> None:
         self.assertEqual(

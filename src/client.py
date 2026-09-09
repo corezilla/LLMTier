@@ -33,8 +33,9 @@ TRACE_LEVELS = {
     "warning": 30,
     "error": 40,
 }
-DEFAULT_TRACE_STATE_PATH = "workspaces/tier_state/tier_debug.json"
-DEFAULT_TRACE_PATH = "workspaces/tier_state/tier_trace.jsonl"
+_PROJECT_STATE_DIR = Path(__file__).resolve().parent.parent / "state"
+DEFAULT_TRACE_STATE_PATH = str(_PROJECT_STATE_DIR / "tier_debug.json")
+DEFAULT_TRACE_PATH = str(_PROJECT_STATE_DIR / "tier_trace.jsonl")
 REPLAY_RESPONSE_PATH_ENV = "SLINKY_TIER_CLIENT_REPLAY_RESPONSE_PATH"
 REPLAY_MAP_PATH_ENV = "SLINKY_TIER_CLIENT_REPLAY_MAP_PATH"
 REPLAY_ROLE_ENV = "SLINKY_TIER_CLIENT_REPLAY_ROLE"
@@ -94,7 +95,13 @@ class TierClient:
             "TIER_BUSY_RETRY_INTERVAL_SECONDS",
             BUSY_RETRY_INTERVAL_SECONDS,
         )
-        self._trace_state_path = os.environ.get("TIER_TRACE_STATE_PATH", DEFAULT_TRACE_STATE_PATH).strip()
+        configured_state_dir = os.environ.get("LLMTIER_STATE_DIR", "").strip()
+        default_trace_state_path = (
+            str(Path(configured_state_dir).expanduser().resolve() / "tier_debug.json")
+            if configured_state_dir
+            else DEFAULT_TRACE_STATE_PATH
+        )
+        self._trace_state_path = os.environ.get("TIER_TRACE_STATE_PATH", default_trace_state_path).strip()
 
     # =========================================================================
     # Role 调用 — 外部唯一需要的接口
@@ -693,7 +700,7 @@ class TierClient:
     # 用途：
     # - 读取 server 写出的 debug state，判断 client 侧是否需要写 trace
     # 输入：
-    # - 无；读取 TIER_TRACE_STATE_PATH 或默认 workspaces/tier_state/tier_debug.json
+    # - 无；读取 TIER_TRACE_STATE_PATH 或 LLMTier 项目 state/tier_debug.json
     # 输出：
     # - debug state 字典；未开启或文件不存在时返回 disabled state
     def _client_trace_state(self) -> dict[str, Any]:

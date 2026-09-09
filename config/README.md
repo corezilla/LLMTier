@@ -10,3 +10,8 @@ LLMTier 的默认本地运行配置位于 `config/settings.json`，文件型凭�
 - 验证和审计只记录配置结构、文件存在性及摘要，不输出密钥、Token 或 Cookie 内容。
 
 可使用 `LLMTIER_CONFIG` 或服务的 `--settings` 参数显式选择另一份配置；不要为旧 Slinky 路径建立并行配置或兼容副本。
+
+运行状态不放在 `config/`。服务和 client 默认使用项目根的 `state/`，部署可用 `LLMTIER_STATE_DIR`
+整体覆盖；`TIER_TRACE_STATE_PATH` 仅显式选择单个 debug-state 文件。安装后使用 `llm-tier` 启动服务、
+`llm-tier-cli` 执行 operator 操作；源码 checkout 使用 `PYTHONPATH=src python3 -m tier_service` 和
+`PYTHONPATH=src python3 -m cli`。

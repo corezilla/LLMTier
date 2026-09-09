@@ -35,6 +35,8 @@
 - 产品类型：single-service software
 - Repository model：单应用、单服务或单库；根目录使用 `src/`、`tests/`、`docs/` 和
   多 consumer 机器契约 authority `interfaces/`
+- Runtime ownership：`config/` 和 `state/` 均属于 LLMTier；Piko/Slinky 只通过受控 HTTP contract 使用服务，
+  不共享源码、配置文件、状态目录或进程生命周期
 - 设计层级：`subsystem`，表示 LLMTier 在跨项目链路中的服务层级；不表示本仓库拥有跨项目系统
 - 安全或业务关键性：模型服务控制面和数据面；涉及 credential、跨 Client 隔离、容量与恢复
 - STD 采用来源由 README 与 `docs/std.lock.json` 管理；当前锁定 `0.1.0-draft.21`、完整 commit
@@ -76,7 +78,8 @@
 | LT-TL-012 | STD 来源清单 / 项目 RAG ingestion | keep source manifest；RAG publication 独立 Gate | `docs/std-source-manifest.json` 记录 draft.21 的 73 个规范、模板、Schema 和工具 SHA-256；它不是 RAG manifest | 来源可校验；project ingestion 仍由既有 publication manifest 管理 | Owner ACCEPTED | N/A |
 | LT-TL-013 | 多服务目录 `apps/`、`services/`、`packages/` | omit | 当前只有一个部署边界、一个服务 owner，根目录 `src/tests/docs` 已满足 STD | 过早分层会制造虚假 subsystem 与平行路径 | 用户已确认单服务 | ownership/deploy boundary 改变时重新 tailoring |
 | LT-TL-014 | `operations.release` | keep，C4 complete | 当前 package/CLI 与 release/rollback/recovery Gate 需要集中，但 production procedure/evidence 尚不存在 | 文档被误作 production runbook；以 Approved/Blocked 和独立 activation Gate 控制 | Owner ACCEPTED；L3 blocked | topology/persistence 等实际决定形成时另建 ADR |
-| LT-TL-015 | 顶层 `interfaces/` 与 `docs/99_reference/` | keep，C7 candidate | HTTP/OpenAPI、compatibility、Schema 和 vectors 是多 consumer 机器 authority；历史 prose/future 不应继续占用非标准 `docs/contracts|design|qa|future` 路径 | 路径断链或双 authority | 用户要求一次性目录迁移；待 pre-commit review | 不适用 |
+| LT-TL-015 | 顶层 `interfaces/` 与 `docs/99_reference/` | keep，C7 complete | HTTP/OpenAPI、compatibility、Schema 和 vectors 是多 consumer 机器 authority；历史 prose/future 不应继续占用非标准 `docs/contracts|design|qa|future` 路径 | 路径断链或双 authority | Owner ACCEPTED | 不适用 |
+| LT-TL-016 | `config/`、`state/` 与 flat `src/` | keep | 当前项目是一个独立 Python 服务：配置、Secret、状态和 entry point 均由本仓库拥有；无须多服务 workspace | 把历史 Slinky path 当成当前路径会造成双 authority | 用户 2026-09-09 指示；本轮文档 review | ownership/deploy boundary 改变时重审 |
 
 ## 4. 禁止裁剪项
 
@@ -112,6 +115,6 @@ ingestion；Approved 不等于 Released，本轮 review verdict 也不授权 run
 5. activation gate 关闭或重新打开；
 6. 下一批接口、contract、assurance 或 repository layout 迁移。
 
-批准 commit、生效日期与 reviewer 结论在项目 review 后填写。本轮保留原始设计对未迁移 scope 的
-authority；此前错误的 `design.system` 迁移候选在本次输入 dirty worktree 中已处于删除状态，
-本轮不 reset、不恢复，也不把该删除解释为 canonical promotion。
+2026-09-09 的独立项目文档维护统一采用当前路径和入口：`src/`、`config/settings.json`、
+`config/secrets/`、`state/`、`interfaces/`、`llm-tier` 与 `llm-tier-cli`。历史 Slinky 路径只可出现在
+`docs/99_reference/` 或 provenance/evidence 中。本轮不改变机器契约或 Runtime Activation。

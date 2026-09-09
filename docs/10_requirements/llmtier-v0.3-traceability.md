@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-07` |
+| Last Modified Date | `2026-09-09` |
 | Template Version | `0.1.0` |
 | Template ID | `requirements.traceability` |
 | Template Conformance | `tailored` |
@@ -31,8 +31,8 @@
 ## 1. 范围与基线
 
 本矩阵固定 LLMTier V0.3 requirements、service design、C1 interfaces/contract、C2 assurance 与现有
-OpenAPI/manifest/tests/fixtures 的追踪关系。输入基线是 C2 commit
-`b2e298aadf981283aa52d4764b201400397d1116` 和 STD draft.18。外部 Piko/Slinky needs 只作为输入，
+OpenAPI/manifest/tests/fixtures 的追踪关系。当前标准基线由 `docs/std.lock.json` 锁定为 STD draft.21；
+业务 baseline 由 accepted documents、OpenAPI、manifest 与 review decisions 共同限定。外部 Piko/Slinky needs 只作为输入，
 其实现与验收 authority 不迁入本仓库。
 
 状态只描述该行 evidence：`static-covered`、`blocked-runtime`、`not-run` 或 `open-decision`；没有实际
@@ -50,8 +50,8 @@ production evidence 的行不得标为 covered/accepted。
 | Client/Source 与 secret 安全 | LT-SEC-001/002、LT-REL-002 | service design §11 | three controls；OpenAPI | auth/store/log wiring 未证明 | CT-AUTH-001、CT-SEC-001 | authorization fixtures | static-covered；security run blocked |
 | 可观测且不误激活 | LT-OPS-001/002/003 | service design §9/12/14 | Observation/contract spec；manifest | runtime telemetry 未证明 | CT-OBS-001、CT-REG-001 | activation/static tests | static-covered；blocked-runtime |
 | 可重复容量与 SLO | LT-PERF-001 | service design §10 | Slinky control | provider/model baseline 未批准 | CT-PERF-001 | none | open-decision/not-run |
-| 独立部署与安全退役 | LT-DEP-001/002 | service design §13 | Management/operations future | topology/procedure 未批准 | C4 operations Gate | none | open-decision/not-run |
-| STD 结构与来源完整 | all migrated docs | tailoring + inventory | metadata/source manifest | docs/tests | CT-MIG-001 | source verifier、validator、43+ tests | static-covered |
+| 独立部署与安全退役 | LT-FUN-007、LT-DEP-001/002/003/004 | service design §3/12 | Management/operations | `pyproject.toml`、`src/tier_service.py`、`src/cli/`、`src/tier_config.py`、`src/server.py` | CT-PKG-001、CT-OPS-001；C4 operations Gate | CLI help与独立边界测试；production topology未批准 | static-covered；open-decision/not-run |
+| STD 结构与来源完整 | all canonical docs | tailoring + inventory | metadata/source manifest | docs/tests | CT-MIG-001 | source verifier、validator、project tests | static-covered |
 
 ## 3. Coverage Rules
 
@@ -76,3 +76,6 @@ C3 terminal decision 为 ACCEPTED；source verifier、project-root validator、�
 pre-commit Gate 分别保留证据。requirements 或 machine contract 变化时同步更新本矩阵；execution evidence 形成时只更新
 对应 evidence/status，不把局部 PASS 推导成 Runtime Activation。RAG publication 与
 Runtime Activation 保持独立 Gate。
+
+2026-09-09 的维护把当前路径/CLI/配置状态映射加入 LT-FUN-007、LT-DEP-003/004；没有修改
+`interfaces/` 下的字段级机器契约，production gaps 和 activation 判定保持不变。

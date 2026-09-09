@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | 2026-09-07 |
 | Created Date | 2026-09-07 |
-| Last Modified Date | 2026-09-08 |
+| Last Modified Date | 2026-09-09 |
 | Template Version | `0.1.0` |
 | Template ID | contracts.specification |
 | Template Conformance | tailored |
@@ -39,8 +39,13 @@ request/response、status、typed error 与 Schema 唯一字段级 authority。c
 capability support、SDK matrix、overall contract status 和 runtime activation 的机器 authority；
 当前 overall.contract_status=candidate 且 overall.runtime_activation=false。
 
-三份 interface candidate 解释双方职责和 failure/recovery rationale，不得覆盖机器字段。fixtures 与
+三份 `docs/60_interfaces/` interface control 解释双方职责和 failure/recovery rationale，不得覆盖机器字段。fixtures 与
 tests 是 oracle/evidence，不能取代 Contract 定义。v0.1/v0.2 文件只作 historical/provenance。
+
+机器 authority 的当前 repo paths 固定为 `interfaces/openapi/`、`interfaces/compatibility/`、
+`interfaces/schemas/` 和 `interfaces/vectors/v0.3/`。`src/` 中的 legacy route、operator CLI 或历史
+Markdown 不得生成第二份 V0.3 contract。跨项目 consumer 通过版本化 HTTP/artifact 使用 contract，
+不通过 LLMTier 源码或共享配置路径耦合。
 
 ## 2. Operation / Message / Event Catalog
 
@@ -153,3 +158,6 @@ removal evidence。
 
 本文为 Approved contract index，实际 reviewed commit 见 sidecar；原 v0.3 machine artifacts 原位保留，
 旧 prose contracts 标为 Superseded 并保留历史。`runtime_activation=false`，本状态不授权项目 RAG publication。
+
+2026-09-09 的独立项目维护只更新路径和使用说明；`interfaces/` 下机器契约字节、Scope B、header/path、
+recovery 状态与 activation 值均不变。
