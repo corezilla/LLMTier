@@ -36,6 +36,17 @@ V0.3 字段级机器契约仍唯一由
 [`legacy-v03-scope-mapping.md`](docs/98_migration/legacy-v03-scope-mapping.md)。迁移与批准证据位于
 [`docs/91_reviews/`](docs/91_reviews/) 和 [`docs/98_migration/`](docs/98_migration/)。
 
+## Engineering Standard
+
+本项目采用 STD `0.1.0-draft.21`，由 [`docs/std.lock.json`](docs/std.lock.json) 固定完整来源 commit；
+仅在用户明确要求时升级。各文档独立记录 Template Version 与 template hash；项目采用版本不写入
+单篇文档封面或 sidecar。
+
+目录继续采用单服务裁剪：`src/`、`tests/`、`interfaces/` 与编号化 `docs/`。本次标准升级不改变
+既有运行配置路径、V0.3 业务契约、Document Version、Approved 状态或 Runtime Activation。
+升级差异和三层验证见
+[`docs/91_reviews/llmtier-std-draft21-upgrade-review.md`](docs/91_reviews/llmtier-std-draft21-upgrade-review.md)。
+
 ## 本地检查
 
 ```bash

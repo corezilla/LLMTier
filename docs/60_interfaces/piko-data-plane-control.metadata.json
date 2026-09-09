@@ -6,18 +6,21 @@
   "document_version": "0.3.0",
   "title": "LLMTier–Piko Data Plane Interface Control（V0.3）",
   "document_owner": "LLMTier",
-  "authors": ["llmtier"],
+  "authors": [
+    "llmtier"
+  ],
   "source_repository": "corezilla/LLMTier",
   "source_path": "docs/60_interfaces/piko-data-plane-control.md",
-  "std_version": "0.1.0-draft.18",
   "template_id": "interfaces.control",
-  "template_version": "0.1.0-draft.18",
-  "template_sha256": "b36173b46983fb93da0f7427d7af124c33c9f952f2540673082d64b99f7027b1",
+  "template_version": "0.1.0",
+  "template_sha256": "ed812fc7a7cd97f4484040690137c2be42c70f45cf03b5ec7d6dc3c66f5ef98d",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,
   "design_level": "subsystem",
-  "domain": ["software"],
+  "domain": [
+    "software"
+  ],
   "status": "accepted",
   "visibility": "project",
   "reviewed_commit": "962e8003712738d2cb4e3a0a38173a9fd2bdd0a1",

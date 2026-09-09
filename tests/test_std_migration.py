@@ -16,11 +16,12 @@ class StdMigrationTests(unittest.TestCase):
         cls.manifest = json.loads(cls.manifest_path.read_text(encoding="utf-8"))
         cls.sources = cls.manifest["artifacts"]
 
-    def test_draft18_lock_resolves_to_immutable_source_manifest(self):
+    def test_draft21_lock_resolves_to_immutable_source_manifest(self):
         self.assertEqual("std-lock.v1", self.lock["schema_version"])
-        self.assertEqual("0.1.0-draft.18", self.lock["std_version"])
-        self.assertEqual("9841083c4d8d0ed1556bdc413d77b4567ac696b4", self.lock["source_revision"])
-        self.assertEqual("std-v0.1.0-draft.18", self.lock["source_tag"])
+        self.assertEqual("0.1.0-draft.21", self.lock["std_version"])
+        self.assertEqual("corezilla/STD", self.lock["source_repository"])
+        self.assertEqual("274ef0a67eda080baa0063ae27ede7ee129aa32a", self.lock["source_revision"])
+        self.assertIsNone(self.lock["source_tag"])
         self.assertTrue(self.manifest_path.is_file())
         self.assertEqual("software", self.lock["project_profile"])
         self.assertEqual(["management", "software"], self.lock["enabled_domains"])
@@ -29,7 +30,7 @@ class StdMigrationTests(unittest.TestCase):
         self.assertEqual(self.lock["source_tag"], self.manifest["source_tag"])
 
     def test_source_manifest_records_only_std_sources_with_sha256(self):
-        self.assertEqual(71, len(self.sources))
+        self.assertEqual(73, len(self.sources))
         self.assertEqual(len(self.sources), len({item["path"] for item in self.sources}))
         for item in self.sources:
             self.assertIn(item["role"], {"example", "guidance", "schema", "template", "tool"})
@@ -44,9 +45,41 @@ class StdMigrationTests(unittest.TestCase):
         for metadata_path, source_path in expected.items():
             metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
             self.assertEqual("accepted", metadata["status"])
-            self.assertEqual("0.1.0-draft.18", metadata["std_version"])
+            self.assertNotIn("std_version", metadata)
+            self.assertEqual("0.1.0", metadata["template_version"])
             self.assertEqual("962e8003712738d2cb4e3a0a38173a9fd2bdd0a1", metadata["reviewed_commit"])
             self.assertEqual(source_hashes[source_path], metadata["template_sha256"])
+
+    def test_document_instances_track_templates_not_project_std_version(self):
+        for metadata_path in ROOT.joinpath("docs").rglob("*.metadata.json"):
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            self.assertNotIn("std_version", metadata, metadata_path)
+            self.assertEqual("0.1.0", metadata["template_version"], metadata_path)
+            document = metadata_path.with_name(metadata_path.name.removesuffix(".metadata.json") + ".md")
+            text = document.read_text(encoding="utf-8")
+            cover = text.split("<!-- STD_DOCUMENT_COVER_END -->", 1)[0]
+            self.assertNotIn("| STD Version |", cover, document)
+            self.assertIn("| Template Version |", cover, document)
+
+    def test_legacy_std_rag_source_list_is_removed(self):
+        self.assertFalse((ROOT / "rag" / "std-ingestion-manifest.jsonl").exists())
+        self.assertTrue((ROOT / "docs" / "std-source-manifest.json").is_file())
+        self.assertTrue((ROOT / "rag" / "project-ingestion-manifest.jsonl").is_file())
+
+    def test_draft21_upgrade_review_is_pending_without_activation(self):
+        review_root = ROOT / "docs" / "91_reviews"
+        packet = review_root / "llmtier-std-draft21-upgrade-review.md"
+        metadata = json.loads(packet.with_suffix(".metadata.json").read_text(encoding="utf-8"))
+        decision = json.loads(
+            (review_root / "llmtier-std-draft21-upgrade-review.review-decision.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual("review.packet", metadata["document_type"])
+        self.assertEqual(["management", "software"], metadata["domain"])
+        self.assertEqual("review", metadata["status"])
+        self.assertEqual("PENDING", decision["verdict"])
+        self.assertEqual("unchanged", decision["requested_document_status_after"])
+        self.assertFalse(decision["runtime_activation_requested"])
+        self.assertIsNone(decision["decided_at"])
 
     def test_llmtier_is_classified_as_one_service_not_a_system_or_workspace(self):
         design_metadata = json.loads(

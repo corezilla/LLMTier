@@ -1,12 +1,12 @@
 # LLMTier 当前文档盘点与 STD 映射
 
-盘点日期：2026-09-08
-盘点基线：`9c554f79942bf574a2bddf5dc6110293d6b21240`
+盘点日期：2026-09-09
+盘点基线：`2c01e36`（STD draft.21 升级前）
 范围：项目 README、`docs/`、顶层 `interfaces/`、RAG manifests 和相关可执行测试。
 
-输入工作树唯一既有 dirty 是 `rag/std-ingestion-manifest.jsonl`，binary diff SHA-256 为
-`5ecf097f57ec627f36586218d14e8df036467c8466de59e06adc7553c6073234`。C7 保留其路径和字节，
-不 reset、不 clean，也不把它纳入目录迁移 candidate。
+STD draft.21 升级按用户 2026-09-09 明确要求执行。旧 `rag/std-ingestion-manifest.jsonl` 是 draft.12
+时期误作 RAG 的 STD 来源清单；新标准要求使用独立 `docs/std-source-manifest.json`，因此本轮删除旧文件，
+不影响已经发布且 commit-bound 的 `rag/project-ingestion-manifest.jsonl`。
 
 ## 1. 分类、Authority 与状态
 
@@ -24,8 +24,8 @@
 
 | 路径 | 类型 | 状态 | 处置 |
 |---|---|---|---|
-| `docs/std.lock.json` | STD adoption lock | draft.18 immutable lock | 固定完整 commit SHA、annotated source tag、software profile 与 management/software domains |
-| `docs/std-source-manifest.json` | STD 来源清单 | source evidence；非项目 ingestion | 保存 71 个 draft.18 规范/模板/Schema/工具 SHA-256 |
+| `docs/std.lock.json` | STD adoption lock | draft.21 immutable lock | 固定完整 commit SHA、`source_tag=null`、software profile 与 management/software domains |
+| `docs/std-source-manifest.json` | STD 来源清单 | source evidence；非项目 ingestion | 保存 73 个 draft.21 规范/模板/Schema/工具 SHA-256 |
 | `docs/00_management/std-tailoring.md` + metadata | `management.tailoring` | review candidate | 冻结单服务 profile 与裁剪理由 |
 | `docs/30_subsystem_design/llmtier-service-design.md` + metadata | `design.definition` / subsystem | review candidate | 本轮主交付，承接原设计且不改业务契约 |
 | `docs/98_migration/current-document-inventory.md` | migration inventory | review evidence | 当前文件；记录旧→新映射 |
@@ -49,9 +49,10 @@
 | `docs/98_migration/evidence/c5-consumer-verdicts.txt` | C1 consumer audit ledger | Piko ACCEPTED / Slinky AMENDMENT | 记录 message ID、immutable commit/blob/hash、结论和 draft.2 re-review 条件 |
 | `docs/91_reviews/llmtier-std-c5-canonical-promotion-review.md` + metadata/decision | `review.packet` | C5 review record | promotion 已在 `503d0a0` 完成；该 packet 不授权 RAG/runtime |
 | `docs/91_reviews/llmtier-std-c6-rag-publication-review.md` + metadata/decision | `review.packet` | C6 review record | publication 已在 `9c554f7` 完成；Runtime Activation=false |
+| `docs/91_reviews/llmtier-std-draft21-upgrade-review.md` + metadata/decision | `review.packet` | PENDING | 当前项目采用升级；不改变业务文档状态或 Runtime Activation |
 | `rag/project-ingestion-manifest.jsonl` | `llmtier-project-rag.v1` | published at `9c554f7` | 绑定 promotion commit `503d0a0` 的 11 份 Accepted prose authority |
 | `docs/99_reference/design/llmtier-v0.3-design-review.md` | 原始 V0.3 设计 | Superseded | 全部 current scope 已迁出；保留 historical provenance |
-| `rag/std-ingestion-manifest.jsonl` | legacy draft.12 STD source list | 既有 dirty 文件；非 draft.18 source manifest、非项目 ingestion | 本轮不修改、不装载；后续 promotion packet 决定 historical/exclusion |
+| `rag/std-ingestion-manifest.jsonl` | legacy draft.12 STD source list | removed in draft.21 upgrade | 由独立 source manifest 取代；不属于项目 RAG |
 
 错误候选 `docs/design/llmtier-v0.3-system-design.md` 与旧 tailoring 路径在 READY 输入工作树中已经
 处于 tracked deletion。本轮只记录这一事实，不恢复、不覆盖，也不将 deletion 视为已批准的 authority
@@ -95,9 +96,9 @@
 2. `docs/00_management/`、`docs/30_subsystem_design/`、`docs/91_reviews/` 和
    `docs/98_migration/` 是迁移与 Gate evidence 位置；authority 切换已由 promotion commit `503d0a0` 完成。
    Contract/QA/Provenance 已在 C7 一次性归位，不建立重复正文。
-3. `docs/std-source-manifest.json` 是 draft.18 source lock；既有
-   `rag/std-ingestion-manifest.jsonl` 仍是 legacy STD source-list dirty，明确排除且不修改。
-   C6 新建 `rag/project-ingestion-manifest.jsonl`，只绑定 promotion commit `503d0a0` 的 11 份
+3. `docs/std-source-manifest.json` 是 draft.21 immutable source lock；legacy
+   `rag/std-ingestion-manifest.jsonl` 已删除。C6 的 `rag/project-ingestion-manifest.jsonl` 仍只绑定
+   promotion commit `503d0a0` 的 11 份
    Accepted canonical prose，并记录 inclusion/exclusion、ACL 和 publication commit。
 4. 业务 Contract/OpenAPI/Manifest/fixture 未因分类修正而改变；若后续发现必须改变冻结字段，需先
    报告冲突并走独立接口评审。

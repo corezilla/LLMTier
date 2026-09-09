@@ -1,0 +1,40 @@
+LLMTier STD draft.21 upgrade validation evidence
+Date: 2026-09-09
+LLMTier base: 2c01e36
+STD version: 0.1.0-draft.21
+STD revision: 274ef0a67eda080baa0063ae27ede7ee129aa32a
+Runtime Activation requested: false
+
+L1 STD structural validation
+Command: /Users/ben/work/STD/scripts/validate-design --project-root /Users/ben/work/LLMTier --require-immutable-std --json /Users/ben/work/LLMTier/docs/98_migration/evidence/draft21-std-validation.json
+Raw exit code: 0
+Key output: ok=true; new_error_count=0; inherited_error_count=0; checked_metadata=19; checked_markdown=19; checked_decisions=8
+Artifact: docs/98_migration/evidence/draft21-std-validation.json
+
+L1 source-manifest verification
+Command: /Users/ben/work/STD/scripts/verify-source-manifest docs/std-source-manifest.json --std-root /Users/ben/work/STD
+Raw exit code: 0
+Key output: STD source manifest verification OK: 73 artifacts
+Artifact: docs/std-source-manifest.json
+
+L2 project contract/schema validation
+Command: PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest discover -s tests -v
+Raw exit code: 0
+Key output: Ran 53 tests; OK
+
+L2 STD JSON Schema validation
+Command: local jsonschema Draft202012Validator over all *.metadata.json, *.review-decision.json, docs/std.lock.json, docs/std-source-manifest.json
+Raw exit code: 0
+Key output: metadata=19; review-decision=8; std-lock=1; source-manifest=1, all OK
+
+L2 CLI smoke
+Command: PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m tier_service --help
+Raw exit code: 0
+
+L2 whitespace
+Command: git diff --check
+Raw exit code: 0
+
+L3 runtime/external dependency evidence
+Status: NOT_RUN
+Reason: This upgrade changes only project STD adoption, document covers/sidecars, source locking, review evidence, and migration tests. It does not modify runtime code, external providers, V0.3 machine contracts, or activation state.

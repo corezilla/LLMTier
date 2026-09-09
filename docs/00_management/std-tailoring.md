@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `std-tailoring` |
-| Document Version | `0.1.0` |
+| Document Version | `0.1.1` |
 | Status | `Approved` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -14,8 +14,8 @@
 | Approver | LLMTier |
 | Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-08` |
-| STD Version | `0.1.0-draft.18` |
+| Last Modified Date | `2026-09-09` |
+| Template Version | `0.1.0` |
 | Template ID | `management.tailoring` |
 | Template Conformance | `native` |
 | Tailoring Reference | none |
@@ -37,9 +37,8 @@
   多 consumer 机器契约 authority `interfaces/`
 - 设计层级：`subsystem`，表示 LLMTier 在跨项目链路中的服务层级；不表示本仓库拥有跨项目系统
 - 安全或业务关键性：模型服务控制面和数据面；涉及 credential、跨 Client 隔离、容量与恢复
-- STD 来源：`0.1.0-draft.18`，锁定 commit
-  `9841083c4d8d0ed1556bdc413d77b4567ac696b4` 与 annotated tag
-  `std-v0.1.0-draft.18`
+- STD 采用来源由 README 与 `docs/std.lock.json` 管理；当前锁定 `0.1.0-draft.21`、完整 commit
+  `274ef0a67eda080baa0063ae27ede7ee129aa32a`，无 annotated tag
 - 当前目录裁剪：正式 prose 使用编号化 `docs/`，机器契约集中到 `interfaces/`，历史/非权威资料
   集中到 `docs/99_reference/`；不改变 Scope B 或任何机器契约字节
 
@@ -74,7 +73,7 @@
 | LT-TL-009 | `management.project-plan` | omit | 排期/资源管理不在本轮设计迁移范围，现无稳定计划基线 | 实施顺序不等于项目计划 | Owner ACCEPTED | N/A |
 | LT-TL-010 | `decisions.adr` | simplify/按需 | 已有决定保留原 Matrix Review ID，不伪造 retrospective ADR | 决策分散 | Owner ACCEPTED | 新决定必须用 ADR |
 | LT-TL-011 | 原设计与 v0.1/v0.2 历史材料 | keep | 不删除；统一移入 `docs/99_reference/`，inventory 标明 historical/superseded/future | 误检索历史语义 | Owner ACCEPTED | publication manifest 排除历史 |
-| LT-TL-012 | STD 来源清单 / 项目 RAG ingestion | keep source manifest；RAG publication 独立 Gate | source manifest 记录 draft.18 的 71 个规范、模板、Schema 和工具 SHA-256；Approved 项目文档只在 promotion commit 后生成 project manifest | 来源可校验；publication 尚未执行 | Owner ACCEPTED | N/A |
+| LT-TL-012 | STD 来源清单 / 项目 RAG ingestion | keep source manifest；RAG publication 独立 Gate | `docs/std-source-manifest.json` 记录 draft.21 的 73 个规范、模板、Schema 和工具 SHA-256；它不是 RAG manifest | 来源可校验；project ingestion 仍由既有 publication manifest 管理 | Owner ACCEPTED | N/A |
 | LT-TL-013 | 多服务目录 `apps/`、`services/`、`packages/` | omit | 当前只有一个部署边界、一个服务 owner，根目录 `src/tests/docs` 已满足 STD | 过早分层会制造虚假 subsystem 与平行路径 | 用户已确认单服务 | ownership/deploy boundary 改变时重新 tailoring |
 | LT-TL-014 | `operations.release` | keep，C4 complete | 当前 package/CLI 与 release/rollback/recovery Gate 需要集中，但 production procedure/evidence 尚不存在 | 文档被误作 production runbook；以 Approved/Blocked 和独立 activation Gate 控制 | Owner ACCEPTED；L3 blocked | topology/persistence 等实际决定形成时另建 ADR |
 | LT-TL-015 | 顶层 `interfaces/` 与 `docs/99_reference/` | keep，C7 candidate | HTTP/OpenAPI、compatibility、Schema 和 vectors 是多 consumer 机器 authority；历史 prose/future 不应继续占用非标准 `docs/contracts|design|qa|future` 路径 | 路径断链或双 authority | 用户要求一次性目录迁移；待 pre-commit review | 不适用 |
@@ -98,9 +97,10 @@
 
 ## 5. Review 与生效
 
-本文件与迁移后的 service design 在原子 promotion candidate 中升级为 `accepted`；尚未提交时不视为已发布。
-`docs/std.lock.json` 锁定 STD draft.18 的完整 commit SHA 与 annotated tag，
-`docs/std-source-manifest.json` 保存 71 个来源 artifact 的 SHA-256。来源记录不等于项目 RAG
+本文件与迁移后的 service design 已在既有 canonical promotion 中升级为 `accepted`。本次 draft.21
+项目采用升级只更新标准来源与模板字段，不回退或重新推导既有业务 approval。
+`docs/std.lock.json` 锁定 STD draft.21 的完整 commit SHA，`source_tag=null`；
+`docs/std-source-manifest.json` 保存 73 个来源 artifact 的 SHA-256。来源记录不等于项目 RAG
 ingestion；Approved 不等于 Released，本轮 review verdict 也不授权 runtime activation。
 
 重新评审触发条件：

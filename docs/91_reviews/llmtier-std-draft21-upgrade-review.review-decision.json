@@ -1,0 +1,17 @@
+{
+  "schema_version": "std-review-decision.v1",
+  "review_id": "LT-STD-DRAFT21-UPGRADE-REVIEW",
+  "packet_id": "llmtier-std-draft21-upgrade-review",
+  "verdict": "PENDING",
+  "document_status_before": "accepted",
+  "requested_document_status_after": "unchanged",
+  "runtime_activation_requested": false,
+  "runtime_activation_authority": null,
+  "reviewers": [],
+  "decided_at": null,
+  "decision_commit": null,
+  "conditions": [
+    "Slinky and Piko independently verify that the STD upgrade does not alter their V0.3 consumer contracts."
+  ],
+  "rationale": "Pending cross-project review; no runtime activation or document status transition is requested."
+}

@@ -15,7 +15,7 @@
 | Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
 | Last Modified Date | `2026-09-08` |
-| STD Version | `0.1.0-draft.18` |
+| Template Version | `0.1.0` |
 | Template ID | `operations.release` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | std-tailoring |
