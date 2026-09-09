@@ -17,7 +17,7 @@
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,
-  "design_level": "subsystem",
+  "design_level": "system",
   "domain": [
     "software"
   ],

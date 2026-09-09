@@ -37,7 +37,8 @@
   多 consumer 机器契约 authority `interfaces/`
 - Runtime ownership：`config/` 和 `state/` 均属于 LLMTier；Piko/Slinky 只通过受控 HTTP contract 使用服务，
   不共享源码、配置文件、状态目录或进程生命周期
-- 设计层级：`subsystem`，表示 LLMTier 在跨项目链路中的服务层级；不表示本仓库拥有跨项目系统
+- 设计层级：`system`；表示本仓库拥有完整 LLMTier 软件系统。Slinky/Piko 是外部相邻项目，不用于
+  把 LLMTier 降级为其内部 subsystem
 - 安全或业务关键性：模型服务控制面和数据面；涉及 credential、跨 Client 隔离、容量与恢复
 - STD 采用来源由 README 与 `docs/std.lock.json` 管理；当前锁定 `0.1.0-draft.21`、完整 commit
   `274ef0a67eda080baa0063ae27ede7ee129aa32a`，无 annotated tag
@@ -49,7 +50,8 @@
 | Template ID | Profile | 是否必需 | 计划文档 | Owner |
 |---|---|---|---|---|
 | `management.tailoring` | management | 是 | `docs/00_management/std-tailoring.md` | LLMTier |
-| `design.definition` | software | 是 | `docs/30_subsystem_design/llmtier-service-design.md` | LLMTier |
+| `design.system` | software | 是 | `docs/20_system_design/llmtier-system-design.md` | LLMTier |
+| `design.definition` | software | 条件必需，当前 omit | 仅在 LLMTier 内部出现真实 subsystem/module/component 时建立 | 对应内部 owner |
 | `requirements.specification` | software | 是，C3 active | `docs/10_requirements/llmtier-v0.3-requirements.md` | LLMTier；外部需求 authority 不迁入 |
 | `requirements.traceability` | software | 是，C3 active | `docs/10_requirements/llmtier-v0.3-traceability.md` | LLMTier |
 | `interfaces.control` | software | 是，C1 active | Data Plane、Observation、Management interface migration | LLMTier；消费边界由 Piko/Slinky reviewer 复核 |
@@ -64,9 +66,9 @@
 
 | ID | 模板/章节 | keep / simplify / omit | 理由 | 风险 | 批准人 | ADR |
 |---|---|---|---|---|---|---|
-| LT-TL-001 | `design.definition` 全部 14 节 | keep | 单服务的 boundary、runtime、recovery、capacity、security、implementation mapping、verification 和 gate 均适用 | 无 | Owner ACCEPTED | N/A |
-| LT-TL-002 | `design.definition` deployment/physical detail | simplify | topology、DB、HA、RPO/RTO 尚未冻结，只记录逻辑部署与 Open Gate | 选型不足阻塞 retention/recovery | Owner ACCEPTED；Open Gate 保留 | 选型时新增 ADR |
-| LT-TL-003 | `design.system` | omit | LLMTier 是单一独立服务；跨项目 system authority 不属于本仓库，不能由 LLMTier 服务设计冒充 | 外部上下文可能被误写为本仓库 ownership | Owner ACCEPTED | 若未来指定跨项目 system owner，再由该 owner 建立 |
+| LT-TL-001 | `design.system` 全部 12 节与 A-H 附录 | keep | LLMTier 是本仓库完整软件系统，需要覆盖 context、building blocks、runtime、deployment、cross-cutting、quality 与 gates | 无 | 用户 2026-09-09 指示；本轮 review | N/A |
+| LT-TL-002 | `design.system` deployment/physical detail | simplify | topology、DB、HA、RPO/RTO 尚未冻结，只记录当前单进程事实与 Open Gate | 选型不足阻塞 retention/recovery | Open Gate 保留 | 选型时新增 ADR |
+| LT-TL-003 | `design.definition` / `docs/30_subsystem_design/` | omit | 当前没有 LLMTier 内部 subsystem；跨项目协作角色不等于仓库内部设计层级 | 过早分解会制造虚假 subsystem | 用户 2026-09-09 指示；本轮 review | 真实内部边界形成时重新 tailoring |
 | LT-TL-004 | `requirements.specification` + `requirements.traceability` | keep，C3 complete | 独立 shall statements 与矩阵能分离 LLMTier 自有需求、外部输入、静态 evidence 和 runtime gap | 若复制外部需求会越权；由引用和 reviewer boundary 控制 | Owner ACCEPTED | N/A |
 | LT-TL-005 | `design.hardware`/`design.fpga` | omit | 本项目无硬件/FPGA ownership；Provider/Local Deployment 是外部资源 | 无 | Owner ACCEPTED | N/A |
 | LT-TL-006 | `interfaces.control` | keep，C1 complete | 三个 API 分面需保持独立 authority 与演进规则 | 旧 Markdown 已逐 scope 映射并 Superseded | Owner/consumer ACCEPTED | N/A |
@@ -100,7 +102,8 @@
 
 ## 5. Review 与生效
 
-本文件与迁移后的 service design 已在既有 canonical promotion 中升级为 `accepted`。本次 draft.21
+本文件与既有设计曾在 canonical promotion 中升级为 `accepted`。本轮把误分类的 service/subsystem design
+改为 LLMTier system design；draft.21
 项目采用升级只更新标准来源与模板字段，不回退或重新推导既有业务 approval。
 `docs/std.lock.json` 锁定 STD draft.21 的完整 commit SHA，`source_tag=null`；
 `docs/std-source-manifest.json` 保存 73 个来源 artifact 的 SHA-256。来源记录不等于项目 RAG
@@ -114,6 +117,7 @@ ingestion；Approved 不等于 Released，本轮 review verdict 也不授权 run
 4. 服务拆成多个独立部署/发布/owner 单元；
 5. activation gate 关闭或重新打开；
 6. 下一批接口、contract、assurance 或 repository layout 迁移。
+7. LLMTier 内部形成真实 subsystem、module owner 或独立 deploy/release boundary。
 
 2026-09-09 的独立项目文档维护统一采用当前路径和入口：`src/`、`config/settings.json`、
 `config/secrets/`、`state/`、`interfaces/`、`llm-tier` 与 `llm-tier-cli`。历史 Slinky 路径只可出现在

@@ -34,7 +34,7 @@ STD：`9841083c4d8d0ed1556bdc413d77b4567ac696b4` / `std-v0.1.0-draft.18`
 | adoption/tailoring | `docs/00_management/std-tailoring.md` | Approved candidate | `reviewed_commit=962e800...` |
 | LLMTier requirements | `docs/10_requirements/llmtier-v0.3-requirements.md` | Approved candidate | Owner ACCEPTED；runtime gaps 保留 |
 | requirement traceability | `docs/10_requirements/llmtier-v0.3-traceability.md` | Approved candidate | Owner ACCEPTED；blocked-runtime 状态保留 |
-| service design | `docs/30_subsystem_design/llmtier-service-design.md` | Approved candidate | Owner ACCEPTED；旧 design prose Superseded |
+| system design | `docs/20_system_design/llmtier-system-design.md` | In Review | 用户纠正 system-level 分类；旧 subsystem path 被本候选取代 |
 | Piko consumer boundary | `docs/60_interfaces/piko-data-plane-control.md` | Approved candidate | Piko `P-20260907-e009921eda0a` ACCEPTED |
 | Slinky consumer boundary | `docs/60_interfaces/slinky-capacity-observation-control.md` | Approved candidate | Slinky `S-20260907-45938693e578` ACCEPTED exact draft.2 |
 | LLMTier management boundary | `docs/60_interfaces/llmtier-management-control.md` | Approved candidate | Owner ACCEPTED；实现 Open Gate 保留 |

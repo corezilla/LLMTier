@@ -14,16 +14,16 @@ Promotion 输入：`e1f9b796368ec5f358e466c7e6299cc16b1bf181`
 
 | Old scope | Successor Document ID / path | Retained machine or execution authority | Disposition | Residual |
 |---|---|---|---|---|
-| §1 V0.3 交付目标 | `llmtier-v0.3-requirements` / `docs/10_requirements/llmtier-v0.3-requirements.md`; `llmtier-service-design` / `docs/30_subsystem_design/llmtier-service-design.md` | compatibility manifest v0.3 | canonical prose moves to successors | none |
-| §2 责任与 authority | `llmtier-service-design`; three interface-control documents | OpenAPI/manifest remain LLMTier machine authority; Piko/Slinky keep external authority | canonical ownership prose moves | none |
-| §3 系统分面 | `llmtier-service-design` | `src/` current implementation | canonical service decomposition moves | none |
-| §4 Service Level Registry | `llmtier-service-design`; `llmtier-v0.3-contract-specification` / `docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.md` | OpenAPI and compatibility manifest | canonical registry prose moves | none |
+| §1 V0.3 交付目标 | `llmtier-v0.3-requirements` / `docs/10_requirements/llmtier-v0.3-requirements.md`; `llmtier-system-design` / `docs/20_system_design/llmtier-system-design.md` | compatibility manifest v0.3 | canonical prose moves to successors | none |
+| §2 责任与 authority | `llmtier-system-design`; three interface-control documents | OpenAPI/manifest remain LLMTier machine authority; Piko/Slinky keep external authority | canonical ownership prose moves | none |
+| §3 系统分面 | `llmtier-system-design` | `src/` current implementation | canonical building-block view moves | none |
+| §4 Service Level Registry | `llmtier-system-design`; `llmtier-v0.3-contract-specification` / `docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.md` | OpenAPI and compatibility manifest | canonical registry prose moves | none |
 | §5.1 Data Plane surface | `llmtier-piko-data-plane-control` / `docs/60_interfaces/piko-data-plane-control.md`; `llmtier-v0.3-contract-specification` | OpenAPI v0.3 | canonical interface prose moves | none |
 | §5.2 first/repeat/terminal | `llmtier-piko-data-plane-control`; `llmtier-v0.3-contract-test-specification` / `docs/70_verification/specifications/llmtier-v0.3-contract-test-specification.md` | recovery fixtures and tests | canonical recovery prose moves | none |
 | §5.3 M2-C retention | `llmtier-piko-data-plane-control`; `llmtier-v0.3-requirements`; `llmtier-v0.3-traceability` | OpenAPI/manifest/fixtures/tests | canonical retention requirement moves; runtime evidence stays blocked | none |
 | §6 Slinky Capacity/Observation | `llmtier-slinky-capacity-observation-control` / `docs/60_interfaces/slinky-capacity-observation-control.md` | OpenAPI and v0.3 capacity fixtures | canonical consumer boundary moves | none；Slinky `S-20260907-45938693e578` ACCEPTED exact draft.2 input |
 | §7 Management API/Admin UI | `llmtier-management-control` / `docs/60_interfaces/llmtier-management-control.md` | OpenAPI and management fixtures/tests | canonical management prose moves | none |
-| §8 Schema、安全与状态 | `llmtier-service-design`; three interface controls; `llmtier-v0.3-contract-specification` | OpenAPI/manifest/fixtures/tests | canonical cross-cutting prose moves | none |
+| §8 Schema、安全与状态 | `llmtier-system-design`; three interface controls; `llmtier-v0.3-contract-specification` | OpenAPI/manifest/fixtures/tests | canonical cross-cutting prose moves | none |
 | §9 Activation gates | `llmtier-v0.3-traceability`; `llmtier-v0.3-vv-plan` / `docs/70_verification/plans/llmtier-v0.3-vv-plan.md`; `llmtier-v0.3-release-and-operations` / `docs/80_operations/llmtier-v0.3-release-and-operations.md` | compatibility manifest keeps activation=false | gate prose moves; runtime remains independent | none |
 | §10 实现顺序 | `llmtier-std-migration-plan` / `docs/98_migration/llmtier-std-migration-plan.md`; requirements traceability | source/tests remain implementation authority | historical planning sequence only | none |
 | §11 本轮评审闭环 | C0-C4 review packets and machine decisions in `docs/91_reviews/` | Matrix messages and Git commits remain evidence | historical review provenance | none |

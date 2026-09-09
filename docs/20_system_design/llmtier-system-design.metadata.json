@@ -1,0 +1,31 @@
+{
+  "project": "LLMTier",
+  "authority": "LLMTier",
+  "document_id": "llmtier-system-design",
+  "document_type": "design.system",
+  "document_version": "0.3.1-draft.1",
+  "title": "LLMTier V0.3 系统设计",
+  "document_owner": "LLMTier",
+  "authors": [
+    "llmtier"
+  ],
+  "source_repository": "corezilla/LLMTier",
+  "source_path": "docs/20_system_design/llmtier-system-design.md",
+  "template_id": "design.system",
+  "template_version": "0.1.0",
+  "template_sha256": "96d14c6b43e990a5362aab8f90e46aa51d13a59ec93e814dbfda98294c4f25c5",
+  "template_conformance": "tailored",
+  "tailoring_ref": "std-tailoring",
+  "migration_map_ref": null,
+  "design_level": "system",
+  "domain": [
+    "software"
+  ],
+  "status": "review",
+  "visibility": "project",
+  "reviewed_commit": null,
+  "parent_document_id": null,
+  "supersedes": "docs/30_subsystem_design/llmtier-service-design.md",
+  "created_at": "2026-09-06",
+  "last_modified_at": "2026-09-09"
+}

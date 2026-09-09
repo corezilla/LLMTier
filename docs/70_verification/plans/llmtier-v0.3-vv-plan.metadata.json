@@ -17,14 +17,14 @@
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,
-  "design_level": "subsystem",
+  "design_level": "system",
   "domain": [
     "software"
   ],
   "status": "accepted",
   "visibility": "project",
   "reviewed_commit": "962e8003712738d2cb4e3a0a38173a9fd2bdd0a1",
-  "parent_document_id": "llmtier-service-design",
+  "parent_document_id": "llmtier-system-design",
   "supersedes": null,
   "created_at": "2026-09-07",
   "last_modified_at": "2026-09-09"

@@ -30,7 +30,7 @@
 
 ## 1. 范围与基线
 
-本矩阵固定 LLMTier V0.3 requirements、service design、C1 interfaces/contract、C2 assurance 与现有
+本矩阵固定 LLMTier V0.3 requirements、system design、C1 interfaces/contract、C2 assurance 与现有
 OpenAPI/manifest/tests/fixtures 的追踪关系。当前标准基线由 `docs/std.lock.json` 锁定为 STD draft.21；
 业务 baseline 由 accepted documents、OpenAPI、manifest 与 review decisions 共同限定。外部 Piko/Slinky needs 只作为输入，
 其实现与验收 authority 不迁入本仓库。
@@ -42,15 +42,15 @@ production evidence 的行不得标为 covered/accepted。
 
 | Need | Requirement | Design | Interface/Contract | Implementation | Verification/Test | Evidence | Status |
 |---|---|---|---|---|---|---|---|
-| 唯一安全推理入口 | LT-FUN-001、LT-INT-001 | service design §1/3/5 | Piko control；OpenAPI；manifest | V0.3 route wiring 未证明 | CT-DP-001、CT-ID-001 | fixture/semantic tests | static-covered；blocked-runtime |
-| 单一 catalog 与准确选择 | LT-FUN-002、LT-INT-001 | service design §5 | contract spec；OpenAPI/manifest | Registry/admission wiring 未证明 | CT-REG-001 | manifest/ref/authority tests | static-covered；blocked-runtime |
-| durable recovery | LT-FUN-003/006、LT-INT-004、LT-REL-001 | service design §7-9 | Piko control；OpenAPI | durable ledger/store 未证明 | CT-REC-001/002 | recovery fixtures | static-covered；blocked-runtime |
-| 只读 Seat/Observation | LT-FUN-004、LT-INT-005、LT-CAP-001/002 | service design §8/10 | Slinky control；OpenAPI | Observation routes 未证明 | CT-OBS-001 | capacity/observation fixtures | static-covered；Slinky E2E blocked |
-| 可管理服务 | LT-FUN-005、LT-INT-002 | service design §5/6/11 | Management control；OpenAPI | API/UI 未证明 | CT-MGT-001 | management fixture/semantic tests | static-covered；blocked-runtime |
-| Client/Source 与 secret 安全 | LT-SEC-001/002、LT-REL-002 | service design §11 | three controls；OpenAPI | auth/store/log wiring 未证明 | CT-AUTH-001、CT-SEC-001 | authorization fixtures | static-covered；security run blocked |
-| 可观测且不误激活 | LT-OPS-001/002/003 | service design §9/12/14 | Observation/contract spec；manifest | runtime telemetry 未证明 | CT-OBS-001、CT-REG-001 | activation/static tests | static-covered；blocked-runtime |
-| 可重复容量与 SLO | LT-PERF-001 | service design §10 | Slinky control | provider/model baseline 未批准 | CT-PERF-001 | none | open-decision/not-run |
-| 独立部署与安全退役 | LT-FUN-007、LT-DEP-001/002/003/004 | service design §3/12 | Management/operations | `pyproject.toml`、`src/tier_service.py`、`src/cli/`、`src/tier_config.py`、`src/server.py` | CT-PKG-001、CT-OPS-001；C4 operations Gate | CLI help与独立边界测试；production topology未批准 | static-covered；open-decision/not-run |
+| 唯一安全推理入口 | LT-FUN-001、LT-INT-001 | system design §1-5 | Piko control；OpenAPI；manifest | V0.3 route wiring 未证明 | CT-DP-001、CT-ID-001 | fixture/semantic tests | static-covered；blocked-runtime |
+| 单一 catalog 与准确选择 | LT-FUN-002、LT-INT-001 | system design §4/5/8 | contract spec；OpenAPI/manifest | Registry/admission wiring 未证明 | CT-REG-001 | manifest/ref/authority tests | static-covered；blocked-runtime |
+| durable recovery | LT-FUN-003/006、LT-INT-004、LT-REL-001 | system design §6/8、附录 C | Piko control；OpenAPI | durable ledger/store 未证明 | CT-REC-001/002 | recovery fixtures | static-covered；blocked-runtime |
+| 只读 Seat/Observation | LT-FUN-004、LT-INT-005、LT-CAP-001/002 | system design §3-6、附录 E | Slinky control；OpenAPI | Observation routes 未证明 | CT-OBS-001 | capacity/observation fixtures | static-covered；Slinky E2E blocked |
+| 可管理服务 | LT-FUN-005、LT-INT-002 | system design §3-5/8 | Management control；OpenAPI | API/UI 未证明 | CT-MGT-001 | management fixture/semantic tests | static-covered；blocked-runtime |
+| Client/Source 与 secret 安全 | LT-SEC-001/002、LT-REL-002 | system design §8、附录 D | three controls；OpenAPI | auth/store/log wiring 未证明 | CT-AUTH-001、CT-SEC-001 | authorization fixtures | static-covered；security run blocked |
+| 可观测且不误激活 | LT-OPS-001/002/003 | system design §8/10、附录 E/G | Observation/contract spec；manifest | runtime telemetry 未证明 | CT-OBS-001、CT-REG-001 | activation/static tests | static-covered；blocked-runtime |
+| 可重复容量与 SLO | LT-PERF-001 | system design §10、附录 E | Slinky control | provider/model baseline 未批准 | CT-PERF-001 | none | open-decision/not-run |
+| 独立部署与安全退役 | LT-FUN-007、LT-DEP-001/002/003/004 | system design §5/7、附录 G | Management/operations | `pyproject.toml`、`src/tier_service.py`、`src/cli/`、`src/tier_config.py`、`src/server.py` | CT-PKG-001、CT-OPS-001；C4 operations Gate | CLI help与独立边界测试；production topology未批准 | static-covered；open-decision/not-run |
 | STD 结构与来源完整 | all canonical docs | tailoring + inventory | metadata/source manifest | docs/tests | CT-MIG-001 | source verifier、validator、project tests | static-covered |
 
 ## 3. Coverage Rules

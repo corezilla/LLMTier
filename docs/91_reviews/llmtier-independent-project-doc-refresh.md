@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-independent-project-doc-refresh` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -39,6 +39,10 @@
 本 packet 请求复核“LLMTier 已是独立单服务项目”的当前路径和使用说明，不重开 V0.3 Scope B、
 authority、M2-C、capacity、header/path 或 activation 决策。
 
+draft.2 修正 draft.1 的设计层级错误：LLMTier 是本仓库完整 `system`，不是跨项目系统的内部
+`subsystem`。主设计从 `docs/30_subsystem_design/` 移至 `docs/20_system_design/`，并改用
+`design.system`；当前没有内部 subsystem design。
+
 ## 2. 当前事实基线
 
 | 范围 | 当前事实 |
@@ -62,7 +66,8 @@ Slinky/Piko 只通过其受控 HTTP consumer boundary 使用 LLMTier，不 impor
 1. README 改为当前项目入口，补齐安装、启动、operator CLI、路径和能力边界。
 2. tailoring 增加 `LT-TL-016`，固定单服务的 `src/config/state/interfaces` ownership。
 3. requirements 增加 `LT-FUN-007`、`LT-DEP-003/004`，traceability 增加 `CT-OPS-001` 映射。
-4. service design 更新 Current Baseline、repository map、STD draft.21 来源和当前 entry points。
+4. system design 使用 STD `design.system` 的 12 节与 A-H 附录，更新 system context、building blocks、
+   runtime、deployment、横切概念、质量、风险与当前 entry points。
 5. 三份 interface control 明确 consumer 只走 HTTP/artifact，不共享 LLMTier filesystem。
 6. contract specification 明确 `interfaces/` 是唯一机器 authority，并记录本轮 machine bytes 不变。
 7. V&V/test specification 增加当前路径、CLI、旧 workspace 回流检查。
@@ -101,5 +106,5 @@ PASS 不得向上推导为 runtime capability。
 
 机器决定记录在
 `docs/91_reviews/llmtier-independent-project-doc-refresh.review-decision.json`。当前为 PENDING；review
-target 由 Git/Matrix 提供 immutable commit，避免文档自引用。此前 draft.21 review request 的 commit 将由
-本候选后继 commit supersede，但 draft.21 lock/source 事实不变。
+target 由 Git/Matrix 提供 immutable commit，避免文档自引用。draft.1 commit `8c8f8b2` 与此前 draft.21
+review target 均由本候选后继 commit supersede，但 STD lock/source 与机器契约事实不变。

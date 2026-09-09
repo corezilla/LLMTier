@@ -72,7 +72,7 @@ LLMTier 采用 STD `software` profile 与单服务根结构：
 - [STD 裁剪清单](docs/00_management/std-tailoring.md)
 - [V0.3 Requirements](docs/10_requirements/llmtier-v0.3-requirements.md) 与
   [Traceability](docs/10_requirements/llmtier-v0.3-traceability.md)
-- [单服务设计](docs/30_subsystem_design/llmtier-service-design.md)
+- [系统设计](docs/20_system_design/llmtier-system-design.md)
 - [Piko Data Plane](docs/60_interfaces/piko-data-plane-control.md)、
   [Slinky Capacity/Observation](docs/60_interfaces/slinky-capacity-observation-control.md) 与
   [Management](docs/60_interfaces/llmtier-management-control.md) interface controls

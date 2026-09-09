@@ -12,8 +12,8 @@ STD draft.21 升级按用户 2026-09-09 明确要求执行。旧 `rag/std-ingest
 
 - LLMTier 是 STD 所称的单应用、单服务或单库型软件项目；当前只有一个服务 owner、部署边界和
   release boundary，根目录 `src/`、`tests/`、`docs/` 是 canonical repository layout。
-- 本仓库使用 `design.definition`、`design_level=subsystem` 表达 LLMTier 服务设计。此前
-  `design.system` 把跨项目上下文误写为 LLMTier 所拥有系统，现已由本次候选替换。
+- 本仓库使用 `design.system`、`design_level=system` 表达完整 LLMTier 软件系统。此前把跨项目角色层级
+  误作仓库内部 subsystem 的分类已由用户在 2026-09-09 纠正；当前没有 LLMTier 内部 subsystem design。
 - LLMTier 是本服务设计、接口实现和模型服务事实的 authority；Slinky 的 Project/Plan/IR/Scope
   决策与 Piko 的 Agent Runtime/adapter 事实仍由各自项目负责。
 - V0.3 字段级机器接口 authority 是 `interfaces/openapi/llmtier-v0.3.openapi.json`；
@@ -27,7 +27,7 @@ STD draft.21 升级按用户 2026-09-09 明确要求执行。旧 `rag/std-ingest
 | `docs/std.lock.json` | STD adoption lock | draft.21 immutable lock | 固定完整 commit SHA、`source_tag=null`、software profile 与 management/software domains |
 | `docs/std-source-manifest.json` | STD 来源清单 | source evidence；非项目 ingestion | 保存 73 个 draft.21 规范/模板/Schema/工具 SHA-256 |
 | `docs/00_management/std-tailoring.md` + metadata | `management.tailoring` | review candidate | 冻结单服务 profile 与裁剪理由 |
-| `docs/30_subsystem_design/llmtier-service-design.md` + metadata | `design.definition` / subsystem | review candidate | 本轮主交付，承接原设计且不改业务契约 |
+| `docs/20_system_design/llmtier-system-design.md` + metadata | `design.system` / system | review candidate | 本轮主交付，承接原设计且不改业务契约 |
 | `docs/98_migration/current-document-inventory.md` | migration inventory | review evidence | 当前文件；记录旧→新映射 |
 | `docs/91_reviews/llmtier-std-draft16-migration-review.md` + metadata/decision | `review.packet` | C0 ACCEPTED | 汇总三层验证、authority 边界与后置 Gate |
 | `docs/98_migration/llmtier-std-migration-plan.md` | phased migration plan | active | 定义 C0-C6 mapping、依赖、Owner Gate、residual authority 和完成标准 |
@@ -54,9 +54,9 @@ STD draft.21 升级按用户 2026-09-09 明确要求执行。旧 `rag/std-ingest
 | `docs/99_reference/design/llmtier-v0.3-design-review.md` | 原始 V0.3 设计 | Superseded | 全部 current scope 已迁出；保留 historical provenance |
 | `rag/std-ingestion-manifest.jsonl` | legacy draft.12 STD source list | removed in draft.21 upgrade | 由独立 source manifest 取代；不属于项目 RAG |
 
-错误候选 `docs/design/llmtier-v0.3-system-design.md` 与旧 tailoring 路径在 READY 输入工作树中已经
-处于 tracked deletion。本轮只记录这一事实，不恢复、不覆盖，也不将 deletion 视为已批准的 authority
-切换；Git 历史继续提供可追溯性。
+历史错误候选 `docs/design/llmtier-v0.3-system-design.md` 使用非 STD 路径且越界取得跨项目 ownership，
+仍保持删除。当前 `docs/20_system_design/llmtier-system-design.md` 是新的 LLMTier 自有 system design，
+两者不是恢复关系。
 
 ## 3. 现有设计、接口与证据
 
@@ -80,8 +80,8 @@ STD draft.21 升级按用户 2026-09-09 明确要求执行。旧 `rag/std-ingest
 
 | 旧 authority/内容 | 新候选/目标 | 本轮结果 |
 |---|---|---|
-| `docs/99_reference/design/llmtier-v0.3-design-review.md` | `docs/30_subsystem_design/llmtier-service-design.md` | 14 节及关联 requirements/interfaces 已覆盖全部 current scope；旧文件 residual=none，标为 Superseded candidate |
-| `docs/design/llmtier-v0.3-system-design.md` | 不保留 | 错误的 `design.system` candidate 已删除，Git 历史可追溯 |
+| `docs/99_reference/design/llmtier-v0.3-design-review.md` | `docs/20_system_design/llmtier-system-design.md` | 12 节与 A-H 附录及关联 requirements/interfaces 覆盖全部 current scope；旧文件 residual=none |
+| `docs/design/llmtier-v0.3-system-design.md` | 不保留 | 非 STD 路径且误取跨项目 authority 的历史候选保持删除；不等同当前 LLMTier system design |
 | `docs/management/std-tailoring-v0.1.md` | `docs/00_management/std-tailoring.md` | 升级 draft.12，并改为单服务 profile |
 | 三份 v0.3 interface Markdown | `docs/60_interfaces/*-control.md` | C1 terminal ACCEPTED；新 controls 为 Approved candidate，旧 prose 为 Superseded candidate |
 | OpenAPI/manifest/error/schema | `docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.md` + 原机器文件 | C1 只建立说明与索引；字段级机器 authority 未改、不复制 |
@@ -93,7 +93,7 @@ STD draft.21 升级按用户 2026-09-09 明确要求执行。旧 `rag/std-ingest
 
 1. 当前不创建 `software/llmtier/`、`services/llmtier/`、`apps/` 或 `packages/`。只有在出现多个
    独立部署、发布和 owner 单元时才重新 tailoring。
-2. `docs/00_management/`、`docs/30_subsystem_design/`、`docs/91_reviews/` 和
+2. `docs/00_management/`、`docs/20_system_design/`、`docs/91_reviews/` 和
    `docs/98_migration/` 是迁移与 Gate evidence 位置；authority 切换已由 promotion commit `503d0a0` 完成。
    Contract/QA/Provenance 已在 C7 一次性归位，不建立重复正文。
 3. `docs/std-source-manifest.json` 是 draft.21 immutable source lock；legacy

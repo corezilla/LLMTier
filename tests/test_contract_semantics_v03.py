@@ -19,7 +19,7 @@ INTERFACES = ROOT / "interfaces"
 FIXTURES = INTERFACES / "vectors"
 OPENAPI_PATH = INTERFACES / "openapi" / "llmtier-v0.3.openapi.json"
 MANIFEST_PATH = INTERFACES / "compatibility" / "compatibility-manifest-v0.3.json"
-SERVICE_DESIGN_PATH = ROOT / "docs" / "30_subsystem_design" / "llmtier-service-design.md"
+SERVICE_DESIGN_PATH = ROOT / "docs" / "20_system_design" / "llmtier-system-design.md"
 AUTHORIZATION_SCOPE_FIXTURE_PATH = FIXTURES / "v0.3" / "authorization-scope-fixtures.json"
 
 

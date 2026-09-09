@@ -50,7 +50,7 @@ C6 已由 commit `9c554f79942bf574a2bddf5dc6110293d6b21240` 发布并推送。C7
 |---|---|---|
 | 项目现状、旧候选和文档集合 | docs/98_migration/current-document-inventory.md | 原路径在 promotion 前保持各自现有状态 |
 | 项目采用决定 | docs/00_management/std-tailoring.md / management.tailoring | 旧 tailoring deletion 是输入 dirty state，不视为 promotion |
-| docs/99_reference/design/llmtier-v0.3-design-review.md 的服务设计 scope | docs/30_subsystem_design/llmtier-service-design.md / design.definition | 旧设计继续负责 review 结论、跨项目输入与未迁出 scope |
+| docs/99_reference/design/llmtier-v0.3-design-review.md 的系统设计 scope | docs/20_system_design/llmtier-system-design.md / design.system | 旧设计只保留 review 结论与历史输入；当前 authority 属于独立 LLMTier system design |
 | STD draft.18 | docs/std.lock.json + docs/std-source-manifest.json | STD 只管理模板与规则，不取得项目业务 authority |
 | C0 变更和验证 | docs/91_reviews/llmtier-std-draft16-migration-review.md / review.packet | terminal decision ACCEPTED |
 

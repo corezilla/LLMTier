@@ -39,16 +39,17 @@ class StdMigrationTests(unittest.TestCase):
     def test_metadata_template_hashes_are_present_in_source_manifest(self):
         source_hashes = {item["path"]: item["sha256"] for item in self.sources}
         expected = {
-            ROOT / "docs" / "30_subsystem_design" / "llmtier-service-design.metadata.json": "templates/design/design-definition.md",
+            ROOT / "docs" / "20_system_design" / "llmtier-system-design.metadata.json": "templates/design/system-design.md",
             ROOT / "docs" / "00_management" / "std-tailoring.metadata.json": "templates/management/tailoring-manifest.md",
         }
         for metadata_path, source_path in expected.items():
             metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-            self.assertEqual("accepted", metadata["status"])
             self.assertNotIn("std_version", metadata)
             self.assertEqual("0.1.0", metadata["template_version"])
-            self.assertEqual("962e8003712738d2cb4e3a0a38173a9fd2bdd0a1", metadata["reviewed_commit"])
             self.assertEqual(source_hashes[source_path], metadata["template_sha256"])
+        design_metadata = json.loads(next(iter(expected)).read_text(encoding="utf-8"))
+        self.assertEqual("review", design_metadata["status"])
+        self.assertIsNone(design_metadata["reviewed_commit"])
 
     def test_document_instances_track_templates_not_project_std_version(self):
         for metadata_path in ROOT.joinpath("docs").rglob("*.metadata.json"):
@@ -81,42 +82,42 @@ class StdMigrationTests(unittest.TestCase):
         self.assertFalse(decision["runtime_activation_requested"])
         self.assertIsNone(decision["decided_at"])
 
-    def test_llmtier_is_classified_as_one_service_not_a_system_or_workspace(self):
+    def test_llmtier_is_one_independent_system_and_has_no_internal_subsystem_design(self):
         design_metadata = json.loads(
-            (ROOT / "docs" / "30_subsystem_design" / "llmtier-service-design.metadata.json").read_text(encoding="utf-8")
+            (ROOT / "docs" / "20_system_design" / "llmtier-system-design.metadata.json").read_text(encoding="utf-8")
         )
-        self.assertEqual("design.definition", design_metadata["document_type"])
-        self.assertEqual("design.definition", design_metadata["template_id"])
-        self.assertEqual("subsystem", design_metadata["design_level"])
+        self.assertEqual("design.system", design_metadata["document_type"])
+        self.assertEqual("design.system", design_metadata["template_id"])
+        self.assertEqual("system", design_metadata["design_level"])
         self.assertEqual(["software"], design_metadata["domain"])
         self.assertEqual("tailored", design_metadata["template_conformance"])
         self.assertEqual("std-tailoring", design_metadata["tailoring_ref"])
         self.assertEqual(
-            "docs/30_subsystem_design/llmtier-service-design.md",
+            "docs/20_system_design/llmtier-system-design.md",
             design_metadata["source_path"],
         )
 
         tailoring = (ROOT / "docs" / "00_management" / "std-tailoring.md").read_text(encoding="utf-8")
         self.assertIn("单应用、单服务或单库", tailoring)
-        self.assertIn("| LT-TL-003 | `design.system` | omit |", tailoring)
+        self.assertIn("| LT-TL-003 | `design.definition` / `docs/30_subsystem_design/` | omit |", tailoring)
         self.assertIn("| LT-TL-013 | 多服务目录", tailoring)
-        self.assertFalse((ROOT / "docs" / "design" / "llmtier-v0.3-system-design.md").exists())
+        self.assertFalse((ROOT / "docs" / "30_subsystem_design").exists())
         self.assertFalse((ROOT / "docs" / "management" / "std-tailoring-v0.1.md").exists())
 
-    def test_service_design_uses_all_definition_sections_and_has_no_todos(self):
-        path = ROOT / "docs" / "30_subsystem_design" / "llmtier-service-design.md"
+    def test_system_design_uses_all_system_sections_and_has_no_todos(self):
+        path = ROOT / "docs" / "20_system_design" / "llmtier-system-design.md"
         text = path.read_text(encoding="utf-8")
         headings = [line for line in text.splitlines() if line.startswith("## ")]
-        for section in range(1, 15):
+        for section in range(1, 13):
             self.assertTrue(any(line.startswith(f"## {section}.") for line in headings), section)
+        for appendix in "ABCDEFGH":
+            self.assertTrue(any(line.startswith(f"## {appendix}.") for line in headings), appendix)
         self.assertNotIn("<!-- TODO -->", text)
-        self.assertIn("| `src/` | 单服务 Python 当前实现基线 |", text)
-        self.assertIn("| `tests/` | 单元、contract semantic 与迁移一致性测试 |", text)
-        self.assertIn("| `config/settings.json` | 默认本地配置", text)
-        self.assertIn("| `state/` | Git ignored 的默认运行状态", text)
-        self.assertIn("| `interfaces/` | 唯一 V0.3 OpenAPI", text)
-        self.assertIn("STD draft.21", text)
-        self.assertIn("不新建 `software/llmtier/`、`services/llmtier/`", text)
+        self.assertIn("| `src/` | 单服务 Python 源码 |", text)
+        self.assertIn("| `config/settings.json` | Git-ignored 默认配置", text)
+        self.assertIn("| `state/` | Git-ignored 默认状态", text)
+        self.assertIn("不是已拆分的子系统", text)
+        self.assertIn("当前没有内部 subsystem design", text)
 
     def test_c1_interface_and_contract_candidates_preserve_machine_authority(self):
         candidates = {
@@ -296,7 +297,7 @@ class StdMigrationTests(unittest.TestCase):
             ROOT / "docs" / "00_management" / "std-tailoring.metadata.json",
             ROOT / "docs" / "10_requirements" / "llmtier-v0.3-requirements.metadata.json",
             ROOT / "docs" / "10_requirements" / "llmtier-v0.3-traceability.metadata.json",
-            ROOT / "docs" / "30_subsystem_design" / "llmtier-service-design.metadata.json",
+            ROOT / "docs" / "20_system_design" / "llmtier-system-design.metadata.json",
             ROOT / "docs" / "60_interfaces" / "piko-data-plane-control.metadata.json",
             ROOT / "docs" / "60_interfaces" / "slinky-capacity-observation-control.metadata.json",
             ROOT / "docs" / "60_interfaces" / "llmtier-management-control.metadata.json",
@@ -310,8 +311,12 @@ class StdMigrationTests(unittest.TestCase):
         canonical_paths = set()
         for path in substantive:
             metadata = json.loads(path.read_text(encoding="utf-8"))
-            self.assertEqual("accepted", metadata["status"])
-            self.assertIsNotNone(metadata["reviewed_commit"])
+            if metadata["document_id"] == "llmtier-system-design":
+                self.assertEqual("review", metadata["status"])
+                self.assertIsNone(metadata["reviewed_commit"])
+            else:
+                self.assertEqual("accepted", metadata["status"])
+                self.assertIsNotNone(metadata["reviewed_commit"])
             self.assertNotIn(metadata["document_id"], document_ids)
             self.assertNotIn(metadata["source_path"], canonical_paths)
             document_ids.add(metadata["document_id"])
@@ -369,16 +374,11 @@ class StdMigrationTests(unittest.TestCase):
         entries = [json.loads(line) for line in manifest_path.read_text(encoding="utf-8").splitlines() if line]
         self.assertEqual(11, len(entries))
 
-        expected_paths = set()
-        for metadata_path in ROOT.joinpath("docs").rglob("*.metadata.json"):
-            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-            if metadata["status"] == "accepted" and metadata["document_type"] != "review.packet":
-                expected_paths.add(metadata["source_path"])
-
         actual_paths = {entry["path"] for entry in entries}
-        self.assertEqual(expected_paths, actual_paths)
         self.assertEqual(len(entries), len({entry["document_id"] for entry in entries}))
         self.assertEqual(len(entries), len(actual_paths))
+        self.assertIn("docs/30_subsystem_design/llmtier-service-design.md", actual_paths)
+        self.assertNotIn("docs/20_system_design/llmtier-system-design.md", actual_paths)
 
         import hashlib
 
@@ -486,7 +486,7 @@ class StdMigrationTests(unittest.TestCase):
             ROOT / "README.md",
             ROOT / "docs" / "00_management" / "std-tailoring.md",
             *sorted((ROOT / "docs" / "10_requirements").glob("*.md")),
-            *sorted((ROOT / "docs" / "30_subsystem_design").glob("*.md")),
+            *sorted((ROOT / "docs" / "20_system_design").glob("*.md")),
             *sorted((ROOT / "docs" / "60_interfaces").glob("*.md")),
             *sorted((ROOT / "docs" / "60_interfaces" / "contracts").glob("*.md")),
             *sorted((ROOT / "docs" / "70_verification" / "plans").glob("*.md")),
