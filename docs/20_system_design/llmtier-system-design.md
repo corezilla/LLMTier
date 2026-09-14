@@ -4,15 +4,15 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.3.1-draft.4` |
+| Document Version | `0.3.1-draft.5` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | llmtier |
 | Created Date | `2026-09-06` |
-| Last Modified Date | `2026-09-09` |
-| Template Version | `0.1.0` |
+| Last Modified Date | `2026-09-15` |
+| Template Version | `4.0.0` |
 | Template ID | `design.system` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
@@ -30,7 +30,20 @@
 > `docs/30_subsystem_design/` 文档。未来只有在
 > LLMTier 内部形成可独立定义的真实子系统时，才新增 subsystem design。
 
-## 1. 引言与目标
+## 1. 文档说明
+
+本版按 STD `0.1.0-draft.26` 的 `design.system` `4.0.0` 采用 `software-system` profile。
+§1–6、§8、§10–15、§17–18 适用；本项目不拥有板卡、FPGA、机箱或生产工艺设计，
+故 §7、§9、§16 记录裁剪依据而不虚构硬件内容。§8.4 Admin Web UI 适用。
+文档是 V0.3 候选目标设计，非生产实现证明；§3.2、§5 与 §8.1 的图整体是 Target 视图，
+并非图内每个逻辑单元都已在现有源码中实现。
+当前实现证据只在明确标为 Current 的段落中陈述。字段级权威仍为
+`interfaces/openapi/llmtier-v0.3.openapi.json`，本文不自行创建第二套协议。
+
+读者包括 LLMTier owner/实现者、Piko 与 Slinky consumer reviewer、Knowledge consumer 和运维。
+外部项目只复核接口边界；LLMTier 对自身服务设计、部署、安全和管理事实负责。
+
+## 2. 系统概览
 
 LLMTier 是独立部署的单服务模型系统，目标是向外部 consumer 提供受管理、可观察、可恢复的模型服务，
 同时保持 Provider、Account、Pool、capacity、routing 和 credential 位于自身边界内。
@@ -45,7 +58,15 @@ V0.3 成功标准：
 6. idempotency、lost response、UnknownOutcome、capacity invalidation 与 M2-C 有可执行契约；
 7. production evidence 未齐时，`overall.runtime_activation=false`。
 
-## 2. 架构约束
+当前 `src/` 是一个 Python 3.11+ 服务的 legacy baseline，尚不能以现有静态契约测试证明
+V0.3 Data Plane、Registry、ledger、Observation、Management 或 UI 已完成 production wiring。
+目标 V0.3 的一句话结构是：外部 Client 经三种受权 API 分面进入同一服务进程，
+由统一 Registry、admission 和 durable Invocation ledger 控制同等级后端调用；
+模型执行目标与运行状态存储都在服务边界之外。完整系统边界、软件结构和运行流程分别见 §3、§5、§6。
+
+## 3. 产品应用与设计目标
+
+### 3.1 使用场景、边界与设计约束
 
 - V0.3 Scope B 仅含 Responses/Embeddings non-stream、Models、recovery、Observation 和 Management；
   Chat Completions、SSE 与 streaming recovery 属于 V0.4。
@@ -56,8 +77,6 @@ V0.3 成功标准：
 - V0.3 字段级机器 authority 只有 `interfaces/openapi/llmtier-v0.3.openapi.json`。
 - 当前实现与批准目标必须分开陈述；静态 PASS 不等于 production 实现或 Runtime Activation。
 - 不得新增 config path、selector、alias、fallback、第二 inference/recovery/management path。
-
-## 3. 系统范围与上下文
 
 | 参与者/相邻系统 | 权威职责 | 与 LLMTier 的边界 |
 |---|---|---|
@@ -71,11 +90,11 @@ LLMTier 拥有本系统的 Data Plane、Observation、Management/Admin UI、Regi
 Invocation ledger、capacity、usage、audit 和 recovery。它不执行 Agent tool loop，不组合 Project/Plan/IR，
 不取得外部项目的业务 authority。外部 reviewer 只复核其 consumer boundary，不取得 LLMTier 系统 ownership。
 
-### 3.1 System Context（C4 Level 1）
+### 3.2 System Context（C4 Level 1）
 
 **范围：** LLMTier 是中央黑盒；本图只显示使用者、相邻软件系统及双方关系，不展示内部实现。
-§3.1、§5.1 和 §5.2 描述的是已批准但尚未激活的 V0.3 target architecture；它们不是 production
-implementation/verification 声明。§7 另行标识当前可确认的开发部署。
+§3.2、§5.1 和 §5.2 描述的是已批准但尚未激活的 V0.3 target architecture；它们不是 production
+implementation/verification 声明。§8.2 另行标识当前可确认的源码基线。
 
 ```mermaid
 flowchart LR
@@ -107,13 +126,34 @@ flowchart LR
 图例：深蓝框是本次设计范围；浅蓝框是外部软件系统；黄色圆角框是人员角色；箭头文字同时说明目的与
 跨进程协议。所有外部调用都终止于 LLMTier，不存在 consumer 到 Provider 的直连路径。
 
-## 4. 解决方案策略
+## 4. 功能与需求实现概览
+
+以下是对 Slinky L1–L8 的**设计可满足性**答复，不是 Implemented、Verified 或 runtime active 声明。
+“建议调整”表示目标设计可支持，但冻结接口前仍需双方确认精确语义；不授权增加新 V0.3 endpoint。
+
+| ID | 设计结论 | 目标方案与现有契约 | 待确认/验收边界 |
+|---|---|---|---|
+| L1 统一调用 | 可满足 | `POST /v1/responses` 使用 exact-case `model`=`service_level_id`；Registry 隐藏 Provider、Account、Pool；Piko 唯一 generation 路径为 Runtime → Piko → LLMTier | 以 pinned adapter capture 验证；不引入别名、Role selector 或跨等级 fallback |
+| L2 能力目录 | 可满足 | `/v1/models`、detail 与 `/tier/v1/service-levels` 来自同一 Registry；`ServiceLevelView` 声明 kind、availability、context、modalities、structured_output、tool_calling、contract/SLO 与有效期 | 实际能力须由可验证 backend profile 支持；不可把两个等级做纯名称 alias |
+| L3 Agent 必需能力 | 可满足（non-stream） | V0.3 Responses schema 已有多条 `message`、`function_call`、`function_call_output`、`tools`；LLMTier 只传递模型工具调用与工具结果，不执行工具 | Piko 须按 §11.2 的 `call_id`/`name`/`arguments`/`output` 形状对齐；如必须 streaming，先做 V0.3 scope amendment，不能暗启 SSE |
+| L4 容量与排队 | 建议调整 | admission 同时检验 committed Seat、全部共享/重叠 Capacity Group、Client quota、readiness、有效期；`Queued`、`queued_requests` 与 `estimated_queue_wait_ms` 已在候选契约中 | 尚需冻结新调用的排队准入、最大等待时间、到期/取消状态及对应 HTTP/错误/Retry-After；超时必须有界，不能无限等候或悄悄换等级；active replay `202` 不等于新请求排队承诺 |
+| L5 多调用方隔离 | 可满足 | authenticated Client + authorized canonical Source 为调用与恢复范围；SourceInstance 只作关联/观察；Entitlement/配额与公平调度在同一 admission 边界 | 多 Client/Source 和公平性 production evidence 是 activation gate；不接收项目 IR 或团队配置 |
+| L6 用量与观察 | 建议调整 | Invocation 状态/错误、token usage、Service Level capacity 的 in-flight/queued/estimated wait、按 Source/Instance/Level/endpoint/status 的 usage 聚合已有候选 DTO；Unknown/Partial 保持 null | 费用/币种/计价来源与队列历史统计目前未在 V0.3 机器契约冻结；如 Slinky 必需，先修订单一 OpenAPI、fixture 与隐私/授权规则，未知费用不得写零 |
+| L7 故障与恢复 | 可满足 | 未受理不产生已 dispatch Invocation；已受理的 Pending/Queued/Running、Failed、UnknownOutcome 分离；同 client/source/key/digest 恢复，已知 ID 用 GET，丢失头部用原 POST replay；UnknownOutcome 不重派 | M2-C `W=168h`、`M=24h`、`D=24h` 不变；crash/lost-response 零重复 dispatch 尚需 runtime 证据 |
+| L8 独立管理 | 可满足 | `/tier/admin/v1` 与最小 Admin Web UI 管理 Provider/Account/Local Deployment、Registry/Pool、Client/Source/Entitlement、配额、Probe、Capacity、Usage、Audit、Recovery；Secret 只写不读 | 仍为 required target，不能因 Scope B 延后；实现、权限和 UI 正负测试尚未完成 |
+
+LLMTier 不接收任务、Prompt 模板、STD 文档或 IR 团队配置。Slinky 管 Project/Plan/IR；
+Piko 管 Agent Runtime、tool loop 和 durable adapter obligation；LLMTier 只管模型服务及其通用 Client/Source
+identity、capacity/admission、routing、ledger 和观察。Knowledge 使用 Embeddings non-stream。
+V0.3 仅含 non-stream Responses/Embeddings、Models、Responses recovery 查询；Chat 与全部 SSE 在 V0.4。
+
+### 4.1 解决方案策略
 
 策略是单一事实来源、分面权限、共享 Registry/ledger、dispatch 前持久化、fail closed 和有限恢复保证。
 Data Plane、Observation、Management 使用不同 credential 与 DTO，但不得复制核心状态机。
 
-本文按 C4/arc42 的缩放顺序阅读：§3.1 看系统与外界的关系；§5.1 看系统内可运行单元与数据存储；
-§5.2 再放大唯一服务进程，解释分层和关键构件；§6、§7 分别描述动态行为与物理部署。这样不会在一张图中
+本文按 C4/arc42 的缩放顺序阅读：§3.2 看系统与外界的关系；§5.1 看系统内可运行单元与数据存储；
+§5.2 再放大唯一服务进程，解释分层和关键构件；§6、§8.1 分别描述动态行为与目标部署。这样不会在一张图中
 混用 software system、process、component 和 datastore 四种抽象层级。
 
 视图方法参考 [C4 System Context](https://c4model.com/diagrams/system-context)、
@@ -122,7 +162,7 @@ Data Plane、Observation、Management 使用不同 credential 与 DTO，但不�
 [arc42 Building Block View](https://docs.arc42.org/section-5/)；这些来源只规定表达方法，不取得
 LLMTier 的业务或设计 authority。
 
-## 5. 构建块视图
+## 5. 总体结构
 
 LLMTier 当前是一个系统、一个服务进程边界。框内 logical building block 不是已拆分的子系统，也不代表
 独立部署的 subsystem。
@@ -269,7 +309,11 @@ adapter；紫色圆柱是持久数据或受控 artifact；浅蓝外框是相邻�
 源码目前采用 flat `src/` module/package layout。是否把 logical building block 拆成真正 subsystem，必须以独立
 owner、部署或发布边界为依据，不能仅按类或目录命名。
 
-## 6. 运行时视图
+## 6. 工作模式与端到端流程
+
+运行模式分为启动校验、Ready admission、Degraded/NotReady 拒绝新 Seat、受控关闭和
+durable recovery。模式切换不得清除已持久化的 Invocation obligation；capacity snapshot
+失效立即禁止关联 Seat 的新 dispatch，已 admission 的 in-flight Invocation 仅在安全边界收敛。
 
 ### 6.1 首次 Responses 调用
 
@@ -339,9 +383,18 @@ Backend redispatch 授权。
 优雅关闭先停止新 admission，再受控收敛 in-flight Invocation。非优雅退出依赖 durable intent/ledger
 恢复，不默认重派。升级与回滚必须保持唯一 Registry/ledger 和单路径，不能运行新旧并行 inference。
 
-## 7. 部署与物理视图
+## 7. 硬件实现方案
 
-当前可确认的开发部署是一个 Python 3.11+ LLMTier 进程：
+不适用：LLMTier 是独立软件服务，当前设计不拥有板卡、器件选型、时钟、电源或信号完整性。
+运行 host 与远程/本地模型执行目标是外部基础设施依赖，软件部署、资源与故障域写于 §8.6；
+若未来拥有专用硬件设计责任，应重新裁剪并建立硬件设计基线。
+
+## 8. 软件实现方案
+
+### 8.1 软件架构与部署
+
+当前可确认的开发运行边界是一个 Python 3.11+ LLMTier 进程；下图在该单进程边界上展示尚未接线的
+V0.3 目标 API、状态与执行依赖：
 
 ```mermaid
 flowchart LR
@@ -352,7 +405,7 @@ flowchart LR
         Browser["Admin Browser"]
     end
 
-    subgraph LLHost["LLMTier host — current development topology"]
+    subgraph LLHost["LLMTier host — Target single-node topology"]
         Service["LLMTier Python 3.11+ process<br/>Data · Observation · Management/UI"]
         Config["config/settings.json<br/>config/secrets/"]
         State["state/<br/>ledger · responses · usage · audit"]
@@ -385,10 +438,18 @@ flowchart LR
 | `llm-tier` / `python3 -m tier_service` | 安装后/checkout 服务入口 |
 | `llm-tier-cli` / `python3 -m cli` | 安装后/checkout operator 入口 |
 
+上图是 V0.3 单节点目标映射，不是现有 server 已提供 Data/Observation/Management/UI 的证明。
 当前 server 仅接受 localhost、loopback、RFC1918 或 IPv6 ULA bind/origin。production service manager、
 TLS/auth、container、database、HA、RPO/RTO、故障域和多实例 topology 仍是 Open Gate。
 
-## 8. 横切概念
+### 8.2 模块设计与代码映射
+
+§5.2 是目标 logical component view，不代表这些模块已在源码实现。Current `src/server.py`、
+`src/router_core.py`、`src/tier.py`、`src/quota_manager.py`、`src/provider_usage.py`、
+`src/backends/` 与 `src/web/tier.html` 构成旧接口与路由基线；目标 Registry、durable ledger、
+三个受权 Controller 和 Admin UI 需按同一服务边界接线。不得仅凭现有目录名称宣称目标能力已实现。
+
+### 8.3 通信、配置与状态管理
 
 - 身份：authenticated `client_id`；`X-Tier-Source-ID` 必须在该 Client 下获授权。
 - correlation：`X-Tier-Source-Instance-ID` 不形成 recovery namespace；client request ID 不替代幂等 key。
@@ -400,19 +461,103 @@ TLS/auth、container、database、HA、RPO/RTO、故障域和多实例 topology 
 - 保留：active record 至 terminal；terminal 后 digest/tombstone、Invocation view 与 canonical Response
   至少 168h。canonical Response 在冻结的 168h recovery window 内仍可恢复；短于任一下限的配置无效并阻断 activation。
 
-## 9. 架构决策
+### 8.4 页面与交互
 
-| Decision | 状态 | 来源 |
+Admin Web UI 是 V0.3 required target，与 `/tier/admin/v1` 使用同一权限和资源语义：
+Provider/Account/Local Deployment、Model discovery、Service Level/Pool、Client/Source/SourceInstance、
+Entitlement、Probe/readiness、Capacity/Usage/Audit/Recovery。Secret create/rotate 只能一次性写入，
+页面不得回显；危险 recovery action 需要受权、并发校验、审计和明确结果。
+现有 `src/web/tier.html` 不证明该目标 UI 已接线。
+
+### 8.5 软件可靠性与开发平台
+
+实现须在 backend dispatch 前持久化 Invocation、digest、dispatch intent 与 recovery obligation；
+重启后不盲派，store 不可用时 fail closed。开发基线为 Python 3.11+，安装与 CLI 入口见 §17；
+production service manager、HA、备份和恢复演练尚无已批准证据。
+
+### 8.6 部署与运行环境
+
+§8.1 图为目标单节点拓扑；production 节点数、TLS termination、状态存储、故障域、容量/性能预算
+仍是 Open Gate。无论最终如何部署，三个 API 分面不得形成第二套 Registry 或 ledger。
+
+## 9. 可编程逻辑与专用处理单元
+
+不适用：LLMTier 本项目没有 FPGA、RTL、DSP 或自有专用处理单元。远程 Provider 或本地模型硬件
+是被调用的执行目标，不归 LLMTier 本设计的可编程逻辑责任范围。
+
+## 10. 数据、描述符与存储结构
+
+核心业务数据为 Client/Source/SourceInstance、ServiceLevel、Pool/CapacityGroup、Invocation、
+CanonicalResponse、Usage、RecoveryItem、AdminJob；Schema authority 见 §11 和附录 A。
+Invocation active 状态 Pending/Queued/Running；terminal 状态 Succeeded/Failed/Cancelled/UnknownOutcome。
+只有真实测得或可归属的 token、费用和队列估计才可写数值；Unknown/Partial 必须保留 null/状态，
+不能补零。持久化引擎、事务实现、备份和清理策略需符合 M2-C 保留下限，详见附录 C。
+
+## 11. 接口与通信协议
+
+### 11.1 接口总表
+
+| 分面 | V0.3 目标接口 | 权威 |
 |---|---|---|
-| LLMTier 是独立 system、单服务 repo | Owner directed | 用户 2026-09-09 指示 |
-| Authority 分离与唯一 inference path | Candidate accepted | `S-20260906-59891d73fa13` |
-| Scope B；Chat/SSE 移到 V0.4 | Frozen | `S-20260906-2f9539048493` |
-| M2-C `W=168h`、`M=24h`、`D=24h` | Frozen | `L-20260906-12940a96e148`、`P-20260906-c14b4af35ac3` |
-| Amendment 4 contract candidate | Slinky accepted | `S-20260906-1e12f5e61d73` |
+| Data Plane | `POST /v1/responses` non-stream、`POST /v1/embeddings` non-stream、Models list/detail、Invocation/Response GET | `interfaces/openapi/llmtier-v0.3.openapi.json` |
+| Observation | `/tier/v1` readiness、Service Level、capacity、Invocation list/detail、usage、compatibility | 同一 OpenAPI |
+| Management | `/tier/admin/v1` 配置、目录、授权、容量、审计、Job、Recovery | 同一 OpenAPI |
+| V0.4 | Chat Completions、Responses/Chat SSE 与 streaming replay | 非 V0.3 current path；必须 fail closed |
 
-新 persistence/HA/deployment 等重大选择必须建立 ADR；本文不伪造 retrospective ADR。
+### 11.2 Data Plane 与 Agent tool loop
 
-## 10. 质量要求
+Piko 的 `model` 必须是 Registry 返回的 exact `service_level_id`，不做 lowercase 或别名映射。
+`ResponsesRequest.input` 可为字符串或有序输入项；多轮消息使用 `type=message`、
+`role=system|developer|user|assistant` 和 content。可用 `tools[]`、`tool_choice` 与
+`parallel_tool_calls` 请求模型生成 `type=function_call`，其 `call_id`、`name`、`arguments`
+返回 Piko；Piko 执行工具后以 `type=function_call_output`、相同 `call_id` 和字符串 `output`
+在后续 Responses 请求中回传。LLMTier 仅验证、透传和调用模型，不执行工具、不储存 Prompt 模板。
+同一逻辑 Invocation 的 transport recovery 复用原 key/digest；下一轮新的模型调用需要新的 logical
+Invocation，但工具结果格式与上下文组装由 Piko adapter 的 pinned capture 确认。V0.3 `stream:true`
+和 Chat 请求须按 unsupported feature/endpoint fail closed；若 Piko 必须 streaming，先做 scope amendment。
+
+### 11.3 控制、管理与观测协议
+
+`Idempotency-Key` 标识同一 logical Invocation；`X-Tier-Client-Request-ID` 只用于关联，不可代替前者。
+`X-Tier-Source-ID` 是已授权的 canonical Source；SourceInstance 仅用于 observation/correlation/audit。
+Observation 可在已授权范围按 Source/Instance/Service Level/endpoint/status 过滤与聚合；
+Management 只接受独立管理权限。ETag 验证各 resource 的自身表示，不要求不同 DTO 的 ETag 相等。
+
+### 11.4 排队、拒绝与超时待冻结项
+
+现有候选契约有 `Queued`、`queued_requests`、`estimated_queue_wait_ms`，但没有足以让调用方
+实现新请求排队的完整有界等待协议。V0.3 activation 前必须在**现有单一 OpenAPI** 中冻结：
+是否允许新请求排队、准入/队列上限、最大等待与超时起点、取消/超时后的 Invocation 状态、
+HTTP status 与 typed error、`Retry-After` 的适用场景、队列公平性及观察字段。不能把 active replay
+的 `202` 借作未定义的新请求排队响应。未冻结时不能承诺“等待”能力；容量不足应明确、有限地拒绝，
+且不得改变 Service Level。费用字段同样待计价来源、币种、未知语义和授权范围冻结后进入单一 Schema。
+
+## 12. 可靠性、维护与升级
+
+§6.2 和附录 C 定义 lost-response recovery；无 ID 用原 namespace/key/digest replay，有 ID 查询原
+Invocation，UnknownOutcome 只能人工 reconcile，不因 HTTP 5xx 盲派。capacity snapshot 失效后新 Seat
+不可用，但不撤销已 admission 的 in-flight 调用。关闭、升级与回滚必须保护 ledger 与 canonical response；
+若存储/Provider 健康未知，readiness 不能假报 Ready。故障定位需保留 Invocation/Client/Source/Backend
+关联、typed error、usage status 和审计，且不泄漏 Secret 或跨 Client 记录。
+
+## 13. 性能、扩展与兼容性
+
+唯一容量单位 `concurrent_invocation`；direct 与全部共享/重叠 Capacity Group、Client quota、
+readiness、`valid_until` 同时成立才可新增 committed Seat。`request_quota_remaining=null` 阻断新增
+committed Seat；burst 不计入 committed capacity。`in_flight_requests`、`queued_requests` 和
+`estimated_queue_wait_ms` 是观察数据，不等同预留容量或吞吐承诺。throughput、latency、
+fairness、backend SLO、队列等待预算与生产 topology 均须在固定 workload 后测量和冻结；
+无实测时不得声明达标。Service Level 兼容语义变化须新 ID 或 API major，禁止暗中跨等级替换。
+
+## 14. 可测试性与验收设计
+
+### 14.1 设计与运行证据边界
+
+静态 OpenAPI/manifest/fixture/STD 检查只证明候选文档自洽。runtime activation 还需 pinned Piko
+adapter、Knowledge Embeddings consumer、Slinky Observation、Management API/UI、安全隔离、
+容量语义、实际公平性、crash/lost-response 零重复 dispatch、168h retention 和 legacy removal 证据。
+
+### 14.2 质量场景与判定
 
 | Quality ID | 场景与 oracle | 当前状态 |
 |---|---|---|
@@ -429,15 +574,64 @@ TLS/auth、container、database、HA、RPO/RTO、故障域和多实例 topology 
 throughput、latency、fairness 和 Provider measured SLO 必须在固定 provider/model/config/topology/workload
 后测量；当前无 production baseline。
 
-## 11. 风险与技术债
+### 14.3 L1–L8 设计验收重点
+
+Piko 的 Responses 正负 capture 应包括多轮 message、function_call、`call_id` 关联的
+function_call_output、structured output、工具能力为 false 时的 typed rejection、non-stream 与
+`stream:true` fail closed；不能以 stock SDK 支持为 LLMTier runtime 已实现的证据。
+排队须测试有界等待、到期、拒绝、取消与同 key replay 的零重复 dispatch；Observer 须测试
+queued/in-flight/estimated wait、token 与费用 Unknown/Partial、按 Source/Level 聚合以及跨 Client 负例。
+L4/L6 的未冻结字段不能以“测试将来补”代替单一 OpenAPI 设计修订。
+
+## 15. 信息安全架构
+
+LLMTier 的保护资产是 Client/Source 凭据、Provider Secret、请求/输出内容、Invocation ledger、
+usage/audit 和 Admin mutation。Data Plane、Observation、Management 是不同授权面，但共享统一
+身份、Entitlement 与审计事实。Client 不能跨 Client 或未授权 Source 查看记录；同一 Client 已授权
+多个 Source 的 Observation 聚合可见范围由授权和过滤契约限定，不把 Source filter 当成新的
+recovery namespace。Admin credential、Secret create/rotate、Job/Recovery action 只对相应管理权限开放；
+Secret 不可回显到 API/UI/log/audit。TLS、secret storage、backup encryption、供应链与运行态权限
+是 production Open Gate；静态 Schema 无法证明这些安全性质。
+
+## 16. 结构、热、工艺与安全设计
+
+不适用：本项目不拥有机箱结构、热设计、PCB 工艺、EMC 或硬件制造测试。
+host 资源、功耗和 Provider 运行环境属于部署/采购约束，待 §8.6/§13 的 production topology 确定。
+
+## 17. 实现计划
+
+当前只确认设计，不请求 runtime activation。下一步依次关闭：
+（1）Piko pinned adapter 的多轮工具与 non-stream capture；（2）L4 有界排队/超时和 L6 费用观察的
+跨方需求裁决及单一 OpenAPI 修订；（3）Registry/admission/ledger/Management/UI 的生产接线；
+（4）isolation/fairness、retention、recovery、安全和 legacy removal 验证。每个阶段必须保存独立
+Review、Contract Test 和 runtime evidence，不能用本文状态替代。当前安装/入口为
+`python3 -m pip install -e .`、`llm-tier`/`llm-tier-cli` 或 checkout 下
+`PYTHONPATH=src python3 -m tier_service`/`python3 -m cli`。
+
+## 18. 设计决策、风险与未决项
+
+| Decision | 状态 | 来源 |
+|---|---|---|
+| LLMTier 是独立 system、单服务 repo | Owner directed | 用户 2026-09-09 指示 |
+| Authority 分离与唯一 inference path | Candidate accepted | `S-20260906-59891d73fa13` |
+| Scope B；Chat/SSE 移到 V0.4 | Frozen | `S-20260906-2f9539048493` |
+| M2-C `W=168h`、`M=24h`、`D=24h` | Frozen | `L-20260906-12940a96e148`、`P-20260906-c14b4af35ac3` |
+| Amendment 4 contract candidate | Slinky accepted | `S-20260906-1e12f5e61d73` |
+
+新 persistence/HA/deployment、队列超时及费用计价等重大选择必须建立 ADR/Contract amendment；
+本文不伪造 retrospective ADR。
+
+### 18.1 风险与技术债
 
 - 现有 `/call`、`/health`、`/runtime`、`/stats`、Role routing、Agent backend、mlexp 和旧 fallback 仅为
   legacy implementation baseline；不得成为 V0.3 parallel path。
 - V0.3 Data Plane、Observation、Management、Registry、durable ledger 与 Admin UI 尚无 production wiring。
 - persistence/HA/backup/RPO/RTO、Admin UI 技术栈与 production topology 尚未决定。
 - Piko adapter、Slinky Observation、Embeddings consumer、isolation/fairness 与长时 retention evidence 待补。
+- L3 多轮工具格式虽已有 schema，Piko adapter 对真实 LLMTier 的双向 capture 未完成。
+- L4 新调用有界排队/超时和 L6 费用字段未冻结；不能宣称这两项已完全具备 V0.3 机器契约。
 
-## 12. 术语表
+### 18.2 术语
 
 | 术语 | 定义 |
 |---|---|

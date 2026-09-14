@@ -87,7 +87,7 @@ LLMTier 采用 STD `software` profile 与单服务根结构：
 
 ## Engineering Standard 与本地检查
 
-本项目采用 STD `0.1.0-draft.21`，由 [`docs/std.lock.json`](docs/std.lock.json) 固定完整来源 commit，
+本项目采用 STD `0.1.0-draft.26`，由 [`docs/std.lock.json`](docs/std.lock.json) 固定完整来源 commit，
 并由 [`docs/std-source-manifest.json`](docs/std-source-manifest.json) 记录来源 artifact 摘要。
 
 ```bash

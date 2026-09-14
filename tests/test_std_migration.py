@@ -16,12 +16,12 @@ class StdMigrationTests(unittest.TestCase):
         cls.manifest = json.loads(cls.manifest_path.read_text(encoding="utf-8"))
         cls.sources = cls.manifest["artifacts"]
 
-    def test_draft21_lock_resolves_to_immutable_source_manifest(self):
+    def test_draft26_lock_resolves_to_immutable_source_manifest(self):
         self.assertEqual("std-lock.v1", self.lock["schema_version"])
-        self.assertEqual("0.1.0-draft.21", self.lock["std_version"])
+        self.assertEqual("0.1.0-draft.26", self.lock["std_version"])
         self.assertEqual("corezilla/STD", self.lock["source_repository"])
-        self.assertEqual("274ef0a67eda080baa0063ae27ede7ee129aa32a", self.lock["source_revision"])
-        self.assertIsNone(self.lock["source_tag"])
+        self.assertEqual("f892b167b9fc7b8beb9dbdebb9209009d4334ce1", self.lock["source_revision"])
+        self.assertEqual("std-v0.1.0-draft.26", self.lock["source_tag"])
         self.assertTrue(self.manifest_path.is_file())
         self.assertEqual("software", self.lock["project_profile"])
         self.assertEqual(["management", "software"], self.lock["enabled_domains"])
@@ -30,7 +30,7 @@ class StdMigrationTests(unittest.TestCase):
         self.assertEqual(self.lock["source_tag"], self.manifest["source_tag"])
 
     def test_source_manifest_records_only_std_sources_with_sha256(self):
-        self.assertEqual(73, len(self.sources))
+        self.assertEqual(75, len(self.sources))
         self.assertEqual(len(self.sources), len({item["path"] for item in self.sources}))
         for item in self.sources:
             self.assertIn(item["role"], {"example", "guidance", "schema", "template", "tool"})
@@ -39,13 +39,16 @@ class StdMigrationTests(unittest.TestCase):
     def test_metadata_template_hashes_are_present_in_source_manifest(self):
         source_hashes = {item["path"]: item["sha256"] for item in self.sources}
         expected = {
-            ROOT / "docs" / "20_system_design" / "llmtier-system-design.metadata.json": "templates/design/system-design.md",
+            ROOT / "docs" / "20_system_design" / "llmtier-system-design.metadata.json": "templates/design/architecture-design.md",
             ROOT / "docs" / "00_management" / "std-tailoring.metadata.json": "templates/management/tailoring-manifest.md",
         }
         for metadata_path, source_path in expected.items():
             metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
             self.assertNotIn("std_version", metadata)
-            self.assertEqual("0.1.0", metadata["template_version"])
+            self.assertEqual(
+                "4.0.0" if metadata["template_id"] == "design.system" else "0.1.0",
+                metadata["template_version"],
+            )
             self.assertEqual(source_hashes[source_path], metadata["template_sha256"])
         design_metadata = json.loads(next(iter(expected)).read_text(encoding="utf-8"))
         self.assertEqual("review", design_metadata["status"])
@@ -55,7 +58,10 @@ class StdMigrationTests(unittest.TestCase):
         for metadata_path in ROOT.joinpath("docs").rglob("*.metadata.json"):
             metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
             self.assertNotIn("std_version", metadata, metadata_path)
-            self.assertEqual("0.1.0", metadata["template_version"], metadata_path)
+            self.assertEqual(
+                "4.0.0" if metadata["template_id"] == "design.system" else "0.1.0",
+                metadata["template_version"], metadata_path,
+            )
             document = metadata_path.with_name(metadata_path.name.removesuffix(".metadata.json") + ".md")
             text = document.read_text(encoding="utf-8")
             cover = text.split("<!-- STD_DOCUMENT_COVER_END -->", 1)[0]
@@ -108,7 +114,7 @@ class StdMigrationTests(unittest.TestCase):
         path = ROOT / "docs" / "20_system_design" / "llmtier-system-design.md"
         text = path.read_text(encoding="utf-8")
         headings = [line for line in text.splitlines() if line.startswith("## ")]
-        for section in range(1, 13):
+        for section in range(1, 19):
             self.assertTrue(any(line.startswith(f"## {section}.") for line in headings), section)
         for appendix in "ABCDEFGH":
             self.assertTrue(any(line.startswith(f"## {appendix}.") for line in headings), appendix)
@@ -118,12 +124,15 @@ class StdMigrationTests(unittest.TestCase):
         self.assertIn("| `state/` | Git-ignored 默认状态", text)
         self.assertIn("不是已拆分的子系统", text)
         self.assertIn("当前没有内部 subsystem design", text)
+        self.assertIn("software-system", text)
+        self.assertIn("§7、§9、§16", text)
+        self.assertIn("信息安全架构", text)
 
     def test_system_design_contains_c4_hierarchy_runtime_and_deployment_diagrams(self):
         path = ROOT / "docs" / "20_system_design" / "llmtier-system-design.md"
         text = path.read_text(encoding="utf-8")
         self.assertEqual(5, text.count("```mermaid"))
-        self.assertIn("### 3.1 System Context（C4 Level 1）", text)
+        self.assertIn("### 3.2 System Context（C4 Level 1）", text)
         self.assertIn("### 5.1 Container View（C4 Level 2）", text)
         self.assertIn("### 5.2 LLMTier Service Component View（C4 Level 3 / arc42 Level-1 Whitebox）", text)
         self.assertIn('subgraph LT["LLMTier software system"]', text)
@@ -137,11 +146,23 @@ class StdMigrationTests(unittest.TestCase):
         self.assertIn('Piko -->|"Responses inference 与 recovery · HTTPS/JSON"| LLMTier', text)
         self.assertIn("sequenceDiagram", text)
         self.assertIn("same POST + same key + same digest within D=24h", text)
-        self.assertIn('subgraph LLHost["LLMTier host — current development topology"]', text)
+        self.assertIn('subgraph LLHost["LLMTier host — Target single-node topology"]', text)
         self.assertIn("logical building block 不是已拆分的子系统", text)
         self.assertIn("独立部署的 subsystem", text)
         self.assertNotIn("<small>", text)
         self.assertNotIn("</small>", text)
+
+    def test_l1_l8_design_confirmation_keeps_contract_and_activation_boundary(self):
+        text = (ROOT / "docs" / "20_system_design" / "llmtier-system-design.md").read_text(encoding="utf-8")
+        for requirement in range(1, 9):
+            self.assertIn(f"| L{requirement} ", text)
+        self.assertIn("function_call_output", text)
+        self.assertIn("相同 `call_id`", text)
+        self.assertIn("最大等待与超时起点", text)
+        self.assertIn("Unknown/Partial", text)
+        self.assertIn("无 ID 用原 namespace/key/digest replay", text)
+        self.assertIn("不请求 runtime activation", text)
+        self.assertIn("V0.3 `stream:true`", text)
 
     def test_c1_interface_and_contract_candidates_preserve_machine_authority(self):
         candidates = {

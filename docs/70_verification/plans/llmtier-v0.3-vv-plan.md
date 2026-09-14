@@ -43,7 +43,7 @@ activation 状态 authority，`tests/` 和 fixtures 是可执行 oracle，运行
 | 基线 | 固定对象 | 当前状态 |
 |---|---|---|
 | 已发布文档基线 | `rag/project-ingestion-manifest.jsonl` 中的 immutable commit | accepted authority；本轮候选不覆盖已发布字节 |
-| STD | `docs/std.lock.json`：`274ef0a67eda080baa0063ae27ede7ee129aa32a` / `0.1.0-draft.21` | source verifier 73 artifacts PASS |
+| STD | `docs/std.lock.json`：`f892b167b9fc7b8beb9dbdebb9209009d4334ce1` / `0.1.0-draft.26` | source verifier 75 artifacts PASS；设计迁移仍为 review |
 | 系统设计 | `docs/20_system_design/llmtier-system-design.md` | In Review；替代误分类的 subsystem design |
 | 接口说明 | `docs/60_interfaces/` | Approved prose authority；OpenAPI 仍为字段 authority |
 | 机器契约 | `interfaces/openapi/llmtier-v0.3.openapi.json` | Candidate；runtime 未激活 |
