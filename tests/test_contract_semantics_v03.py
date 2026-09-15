@@ -247,6 +247,15 @@ class ContractSemanticsV03Tests(unittest.TestCase):
         self.assertFalse(expired["oracle"]["new_idempotency_key"])
         self.assertFalse(expired["oracle"]["cross_level_fallback"])
 
+    def test_candidate_prose_tracks_amendment_five_without_approved_claims(self):
+        contract = (ROOT / "docs" / "60_interfaces" / "contracts" / "llmtier-v0.3-contract-specification.md").read_text()
+        piko = (ROOT / "docs" / "60_interfaces" / "piko-data-plane-control.md").read_text()
+        self.assertIn("candidate Amendment 5", contract)
+        self.assertNotIn("candidate Amendment 4", contract)
+        self.assertIn("In Review contract index", contract)
+        self.assertIn("In Review consumer-boundary prose candidate", piko)
+        self.assertNotIn("本文的 Approved 状态", contract + piko)
+
     def test_authorization_scope_fixtures_preserve_three_surface_boundaries(self):
         cases = {case["id"]: case for case in self.load(AUTHORIZATION_SCOPE_FIXTURE_PATH)["cases"]}
         positive = cases["observation-same-client-authorized-multiple-sources-positive"]

@@ -12,9 +12,9 @@
 | Authors | llmtier |
 | Reviewer | LLMTier |
 | Approver | LLMTier |
-| Approval Date | `2026-09-07` |
+| Approval Date | — |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-15` |
+| Last Modified Date | `2026-09-16` |
 | Template Version | `0.1.0` |
 | Template ID | `requirements.traceability` |
 | Template Conformance | `tailored` |
@@ -31,7 +31,7 @@
 ## 1. 范围与基线
 
 本矩阵固定 LLMTier V0.3 requirements、system design、C1 interfaces/contract、C2 assurance 与现有
-OpenAPI/manifest/tests/fixtures 的追踪关系。当前标准基线由 `docs/std.lock.json` 锁定为 STD draft.21；
+OpenAPI/manifest/tests/fixtures 的追踪关系。当前标准基线由 `docs/std.lock.json` 锁定为 STD draft.26；
 业务 baseline 由 accepted documents、OpenAPI、manifest 与 review decisions 共同限定。外部 Piko/Slinky needs 只作为输入，
 其实现与验收 authority 不迁入本仓库。
 

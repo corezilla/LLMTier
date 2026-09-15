@@ -228,6 +228,8 @@ class StdMigrationTests(unittest.TestCase):
             expected_review = template_id == "assurance.test-specification"
             self.assertEqual("review" if expected_review else "accepted", metadata["status"])
             self.assertEqual(None if expected_review else "962e8003712738d2cb4e3a0a38173a9fd2bdd0a1", metadata["reviewed_commit"])
+            if expected_review:
+                self.assertIn("| Approval Date | — |", text)
             self.assertIsNone(metadata["supersedes"])
             self.assertNotIn("<!-- TODO -->", text)
             self.assertIn("Runtime Activation", text)
@@ -263,6 +265,7 @@ class StdMigrationTests(unittest.TestCase):
             self.assertEqual("std-tailoring", metadata["tailoring_ref"])
             self.assertEqual("review", metadata["status"])
             self.assertIsNone(metadata["reviewed_commit"])
+            self.assertIn("| Approval Date | — |", text)
             self.assertNotIn("<!-- TODO -->", text)
 
         requirements = (root / "llmtier-v0.3-requirements.md").read_text(encoding="utf-8")
@@ -271,6 +274,7 @@ class StdMigrationTests(unittest.TestCase):
         self.assertIn("Runtime Activation", requirements)
 
         traceability = (root / "llmtier-v0.3-traceability.md").read_text(encoding="utf-8")
+        self.assertIn("STD draft.26", traceability)
         self.assertIn("blocked-runtime", traceability)
         self.assertIn("open-decision/not-run", traceability)
         self.assertIn("不迁入本仓库", traceability)
@@ -368,6 +372,9 @@ class StdMigrationTests(unittest.TestCase):
             if metadata["document_id"] in review_documents:
                 self.assertEqual("review", metadata["status"])
                 self.assertIsNone(metadata["reviewed_commit"])
+                text = (ROOT / metadata["source_path"]).read_text(encoding="utf-8")
+                if metadata["document_id"] != "llmtier-system-design":
+                    self.assertIn("| Approval Date | — |", text)
             else:
                 self.assertEqual("accepted", metadata["status"])
                 self.assertIsNotNone(metadata["reviewed_commit"])

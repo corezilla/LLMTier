@@ -12,9 +12,9 @@
 | Authors | llmtier |
 | Reviewer | LLMTier |
 | Approver | LLMTier |
-| Approval Date | 2026-09-07 |
+| Approval Date | — |
 | Created Date | 2026-09-07 |
-| Last Modified Date | 2026-09-15 |
+| Last Modified Date | 2026-09-16 |
 | Template Version | `0.1.0` |
 | Template ID | contracts.specification |
 | Template Conformance | tailored |
@@ -124,7 +124,7 @@ Management credential 与 Data Plane/Observation 分离。Account secret 只写�
 
 ## 8. 版本、兼容性与迁移
 
-当前 contract version 是 0.3 candidate Amendment 4。Scope B 只含 Responses non-stream、Embeddings
+当前 contract version 是 0.3 candidate Amendment 5。Scope B 只含 Responses non-stream、Embeddings
 non-stream、Models、Invocation/Response recovery、Observation 和 Management。Chat/SSE/streaming
 属于 V0.4，不能以 alias、translation、provider passthrough 或 inactive endpoint 进入 V0.3。
 
@@ -163,7 +163,7 @@ implementation commit、真实正负 Contract Test、Management API/UI、安全�
 capacity/fairness、Piko pinned adapter、Embeddings consumer、lost-response/restart 与 legacy-path
 removal evidence。
 
-本文为 Approved contract index，实际 reviewed commit 见 sidecar；原 v0.3 machine artifacts 原位保留，
+本文为 In Review contract index；本轮 review commit 形成后再记录不可变评审基线。原 v0.3 machine artifacts 原位保留，
 旧 prose contracts 标为 Superseded 并保留历史。`runtime_activation=false`，本状态不授权项目 RAG publication。
 
 2026-09-09 的独立项目维护只更新路径和使用说明；`interfaces/` 下机器契约字节、Scope B、header/path、

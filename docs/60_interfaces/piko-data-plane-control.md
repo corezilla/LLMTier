@@ -12,9 +12,9 @@
 | Authors | llmtier |
 | Reviewer | LLMTier; Piko consumer boundary |
 | Approver | LLMTier |
-| Approval Date | 2026-09-07 |
+| Approval Date | — |
 | Created Date | 2026-09-07 |
-| Last Modified Date | 2026-09-15 |
+| Last Modified Date | 2026-09-16 |
 | Template Version | `0.1.0` |
 | Template ID | interfaces.control |
 | Template Conformance | tailored |
@@ -28,7 +28,7 @@
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
-> 本文是当前 Approved consumer-boundary prose authority。原
+> 本文是当前 In Review consumer-boundary prose candidate。原
 > docs/99_reference/contracts/piko-data-plane-contract-v0.3.md 已 Superseded 并仅保留历史；字段级机器 authority
 > 始终是 v0.3 OpenAPI。
 
@@ -149,5 +149,6 @@ pi-ai 0.85.1、openai 6.40.0、provider llmtier 和 adapter piko-llmtier-respons
 
 ## 11. 未决项与双方批准
 
-LLMTier Owner 已审核提供方事实，Piko reviewer 已在 `P-20260907-e009921eda0a` 接受其
-consumer/recovery obligations。本文的 Approved 状态不请求 RAG publication 或 Runtime Activation。
+LLMTier Owner 已审核提供方事实，Piko reviewer 已在 `P-20260907-e009921eda0a` 接受此前冻结的
+consumer/recovery obligations。该接受不自动覆盖本轮 Amendment 5；本文保持 In Review，且不请求
+RAG publication 或 Runtime Activation。

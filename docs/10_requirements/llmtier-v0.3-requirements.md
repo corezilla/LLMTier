@@ -12,9 +12,9 @@
 | Authors | llmtier |
 | Reviewer | LLMTier |
 | Approver | LLMTier |
-| Approval Date | `2026-09-07` |
+| Approval Date | — |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-15` |
+| Last Modified Date | `2026-09-16` |
 | Template Version | `0.1.0` |
 | Template ID | `requirements.specification` |
 | Template Conformance | `tailored` |
