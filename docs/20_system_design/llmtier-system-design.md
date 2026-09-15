@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.3.1-draft.7` |
+| Document Version | `0.3.1-draft.8` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -194,9 +194,9 @@ flowchart LR
 | L1 统一调用 | 可满足 | `POST /v1/responses` 使用 exact-case `model`=`service_level_id`；Registry 隐藏 Provider、Account、Pool；Piko 唯一 generation 路径为 Runtime → Piko → LLMTier | 以 pinned adapter capture 验证；不引入别名、Role selector 或跨等级 fallback |
 | L2 能力目录 | 可满足 | `/v1/models`、detail 与 `/tier/v1/service-levels` 来自同一 Registry；`ServiceLevelView` 声明 kind、availability、context、modalities、structured_output、tool_calling、contract/SLO 与有效期 | 实际能力须由可验证 backend profile 支持；不可把两个等级做纯名称 alias |
 | L3 Agent 必需能力 | 可满足（non-stream） | V0.3 Responses schema 已有多条 `message`、`function_call`、`function_call_output`、`tools`；LLMTier 只传递模型工具调用与工具结果，不执行工具 | Piko 须按 §11.2 的 `call_id`/`name`/`arguments`/`output` 形状对齐；如必须 streaming，先做 V0.3 scope amendment，不能暗启 SSE |
-| L4 容量与排队 | 可满足（Amendment 6 candidate） | admission 同时检验 committed Seat、全部共享/重叠 Capacity Group、Client quota、readiness、有效期；V0.3 pre-admission 不排队，不满足时立即 429 且零 Seat/Invocation/dispatch | `X-Tier-Deadline-At`、queue-expiry/dispatch CAS、Seat 释放证据和 weighted dispatch 已定义；具体 catalog 数值及 runtime evidence 仍需 review |
+| L4 容量与排队 | 可满足（Amendment 7 candidate） | admission 同时检验 committed Seat、全部共享/重叠 Capacity Group、Client quota、readiness、有效期；V0.3 pre-admission 不排队，不满足时立即 429 且零 Seat/Invocation/dispatch | deadline canonicalization/digest、queue-expiry/dispatch CAS、Seat 释放证据和可推演 WRR 已定义；具体 catalog 数值及 runtime evidence 仍需 review |
 | L5 多调用方隔离 | 可满足 | authenticated Client + authorized canonical Source 为调用与恢复范围；SourceInstance 只作关联/观察；Entitlement/配额与公平调度在同一 admission 边界 | 多 Client/Source 和公平性 production evidence 是 activation gate；不接收项目 IR 或团队配置 |
-| L6 用量与观察 | 可满足（Amendment 6 candidate） | Invocation 状态/错误、token usage、逐约束 next-seat facts、queue estimate freshness、按 Source/Instance/Level/endpoint/status 的 usage 与 CostEvidence 已进入候选 DTO；Unknown/Partial 保持 null | 费用可 Unknown；不换汇、不把估算当实付；production pricing/queue evidence 仍是 activation gate |
+| L6 用量与观察 | 可满足（Amendment 7 candidate） | Invocation 状态/错误、token usage、完整 next-seat constraint facts+blocker 子集、queue estimate freshness、usage 与统一 CostEvidence 已进入候选 DTO；Unknown/Partial 保持 null | 费用可 Unknown；Partial 仅为覆盖项小计；不换汇、不把估算当实付；production evidence 仍是 activation gate |
 | L7 故障与恢复 | 可满足 | 未受理不产生已 dispatch Invocation；已受理的 Pending/Queued/Running、Failed、UnknownOutcome 分离；同 client/source/key/digest 恢复，已知 ID 用 GET，丢失头部用原 POST replay；UnknownOutcome 不重派 | M2-C `W=168h`、`M=24h`、`D=24h` 不变；crash/lost-response 零重复 dispatch 尚需 runtime 证据 |
 | L8 独立管理 | 可满足 | `/tier/admin/v1` 与最小 Admin Web UI 管理 Provider/Account/Local Deployment、Registry/Pool、Client/Source/Entitlement、配额、Probe、Capacity、Usage、Audit、Recovery；Secret 只写不读 | 仍为 required target，不能因 Scope B 延后；实现、权限和 UI 正负测试尚未完成 |
 
@@ -418,7 +418,7 @@ durable recovery。模式切换不得清除已持久化的 Invocation obligation
    尚无 dispatch authority 时进入 `Cancelled/deadline_before_dispatch` 并释放 Seat，dispatch 先胜则进入
    backend execution accounting；
 8. router 只在同一 Service Level 内执行一次 dispatch；成功时保存 canonical `ResponsesResponse`，取得
-   backend terminal 或明确 cancel acknowledgement 后才释放 Seat。
+   backend terminal 或明确证明 execution stopped 的 acknowledgement 后才释放 Seat。
 
 ```mermaid
 sequenceDiagram
@@ -487,13 +487,30 @@ sequenceDiagram
 client/source/body/digest/key 重放同一 POST；这是 transport recovery，不是新 Attempt、endpoint、key 或
 Backend redispatch 授权。如果首次 POST 根本未到达，重放可能成为同一 logical request 的首次 admission；
 deadline 到达后禁止新 admission，只允许恢复已存在的 Invocation。不能证明 backend terminal/cancel 的
-Running timeout 进入 UnknownOutcome，Seat 保持占用直到 backend terminal、明确 cancel acknowledgement 或
+Running timeout 进入 UnknownOutcome，Seat 保持占用直到 backend terminal、明确证明 execution stopped 的 acknowledgement 或
 授权人工 reconcile 提供释放证据；本地 timeout、连接断开或给调用方返回 deadline error 都不是释放证据。
 
 deadline persistence 同时保存绝对 UTC instant、接收时 monotonic remaining budget 和最后观察的 UTC。
 进程恢复以 `max(current_utc,last_observed_utc)` 保守重建剩余预算，不得因 wall-clock 回拨延长期限；时钟
-可信度不足时保持 obligation/Seat 并使 admission NotReady，而不是猜测释放。Piko task deadline 必须不晚于
-`X-Tier-Deadline-At`；LLMTier 的 queue/backend deadline 取调用方 deadline 与 catalog 上限的较早者。
+可信度不足时保持 obligation/Seat 并使 admission NotReady，而不是猜测释放。每次模型请求必须满足
+`X-Tier-Deadline-At <= Piko task deadline`，允许模型请求期限更短；恢复必须原样重放该 header，不得推进。
+LLMTier 的 effective deadline 取 caller deadline 与 catalog 上限的较早者。
+
+#### 6.3.1 Deadline、backend fact 与调用方结果组合
+
+| 竞争/事实 | Invocation 与 caller outcome | Backend fact / Seat | 同 key POST 或 GET 最终行为 |
+|---|---|---|---|
+| Queued，deadline CAS 先胜 | `Cancelled`；`DeadlineExceeded`；reason=`deadline_before_dispatch` | `NotDispatched` / `Released` | 409 `invocation_cancelled`；Piko 将本次模型调用映射为 task `Failed/DeadlineExceeded`，不改变 Piko task 本体 authority |
+| dispatch CAS 先胜，caller deadline 到达，backend 仍运行 | Invocation 保持 `Running`；caller outcome=`DeadlineExceeded` | `Running` / `Held` | existing-obligation recovery 返回 202；不得新 dispatch |
+| caller 已超时，backend 后来成功 | `Succeeded`；caller outcome 更新为 `ResponseAvailable` | `Terminal` / `Released` | 同 POST 返回 canonical 200；Responses GET 返回同一 canonical body |
+| caller 已超时，backend 后来明确失败/取消 | `Failed` 或 `Cancelled`；`TerminalError` | `Terminal` / `Released` | 502 或 409 typed terminal |
+| backend deadline 后仍无法证明结果/停止 | `UnknownOutcome`；`TerminalError` | `Unknown` / `Held` | 503；manual reconcile；不得盲重派 |
+| provider 仅接受 cancel request | 状态不因“已受理取消”改变 | 原 backend fact / `Held` | 继续恢复/对账；不能释放 |
+| provider 明确证明执行已停止或已终态 | 对应 `Cancelled`/其他终态 | `Terminal` / `Released` | 返回对应 terminal/canonical outcome |
+
+`Failed`/`Cancelled` 标签自身不是容量释放证据；释放必须引用 durable `release_evidence_type` 与
+`release_evidence_at`。UnknownOutcome 是 client-visible terminal error，但其 unresolved recovery obligation
+和 Held Seat 不因 168h 自动清除；只有 reconcile 后才开始 resolved-terminal retention 时钟。
 
 ### 6.4 模式切换与状态迁移
 
@@ -681,45 +698,72 @@ V0.3 candidate 选择 pre-admission 不排队：约束不满足立即返回 `429
 `decision_created_at`、`decision_expires_at`、`request_deadline_at`；`Retry-After` 是响应时刻至 decision
 expiry 的向上取整秒数。`now < decision_expires_at` 重放原决定；`now >= decision_expires_at` 通过
 record-version CAS 只允许一个竞争者重新 admission。expiry 只使决定可重评，不删除原 digest：key/digest
-binding 至少保留到 `max(first_seen+24h, request_deadline_at)`；异 digest 始终 409。request deadline 到达后
-无既有 Invocation 时返回 408 且禁止新 admission，不得换 key 绕过。
+binding 至少保留到 `max(first_seen+24h, request_deadline_at)`；digest 必须包含 canonicalized
+`X-Tier-Deadline-At`，同 key 改 deadline 是 409 conflict，不能延长期限。处理优先级固定为：先按 namespace/key
+读取 durable record 并校验 digest；异 digest 409；已有 Invocation 恢复原义务（不受 deadline 阻止）；无
+Invocation 且 `now >= request_deadline_at` 返回 408；其余才根据 decision expiry 重放 429 或 CAS 重新 admission。
+因此 deadline 到达优先于重放旧 429。并发、expiry、deadline 和服务重启都使用同一 durable record version；
+只有一个 CAS winner 可把 unbound decision 转为 admitted Invocation，不得换 key 绕过。
 `Queued` 只表示 admission 成功并已有 Seat/Invocation 后的内部 execution wait；active replay 可对其返回
-202，但不能把 202 借作新请求 admission queue。公平调度单位为一次 Invocation dispatch，适用于同一
-Capacity Group/Service Level 的 eligible admitted queue；不是 token 计费。每个 Entitlement 必须提供正整数
-`scheduling_weight`，缺失/非法时配置 NotReady 并在 admission 前拒绝，不使用隐式默认值；同 Client/Source/
-Service Level 内 FIFO，跨 Client 按 weight 分配 dispatch opportunity。deadline 在选取前再次检查。只有 Seat
-释放、backend eligible 且配置持续有效时才保证有限轮次内获得一次选择机会；长调用占满全部 Seat 时可能阻塞，
-不承诺无条件等待上限或成功服务。
+202，但不能把 202 借作新请求 admission queue。Registry 为每个 Service Level 指定唯一
+`scheduling_domain_id`；公平性只在竞争同一 backend dispatch domain 的 eligible queue 内计算。调度 lane 为
+`client_id + source_id + exact service_level_id`，lane 内严格 FIFO；不同 Source/Level 是独立 lane，不合并或
+偷用 weight。每个 Entitlement 必须提供正整数 `scheduling_weight`，缺失/非法时配置 NotReady 并在 admission
+前拒绝，不使用隐式默认值。
+
+算法为固定轮次 weighted round robin：在一个 round 开始时冻结 active eligible lane 集合与 stable cursor，
+每 lane 在该 round 获得 `scheduling_weight` 个 dispatch slot，slot cost 恒为一个 Invocation，不按 token
+计费；新 lane 下一 round 加入，空/过期/不再 eligible lane 跳过，未用 slot 不转给同 Client 的其他 lane。
+在 active set/weight 不变、lane 持续 eligible、每次 opportunity 前 all-constraints 成立且 backend/Seat 持续
+释放的前提下，每个 lane 最迟在一个完整 round（不超过该 round 全部 weight 之和个 dispatch opportunity）
+获得至少一次选择。deadline 在选取前复验。长调用占满所有 Seat、backend 不释放、lane 失去 eligibility、
+配置或 active set 变化时不产生 wall-clock/成功保证；下一稳定 round 重新计算可推演边界。
 
 由此，内部 queue/deadline 上限的结构语义已固定；具体 catalog 数值仍须随 Service Level 配置与 consumer
 review 冻结，未配置不得运行时默认。
 
 调用方 deadline 到达可先形成 typed caller outcome，但不得篡改 backend fact。Invocation 分别记录
 `client_outcome`、`backend_execution_status` 与 `capacity_hold_status`；只有 NotDispatched 证明、backend
-terminal、明确 cancel acknowledgement 或授权 reconcile 能把 Held 改为 Released。
+terminal、明确证明 execution stopped 的 acknowledgement 或授权 reconcile 能把 Held 改为 Released。
 
 ### 11.5 容量缺口、队列估计与费用语义
 
-CapacitySnapshot 只发布 LLMTier 权威资源事实。`blocking_constraints` 仅回答“按当前 entitlement 新增一个
-`concurrent_invocation` Seat”所需的逐约束 availability/shortfall，不接收或推断 Project 目标；非并发 quota
-放在独立 `quota_constraints`，不得换算成 concurrency。共享/重叠 group 各自报告，gap 不相加。Slinky 以
-自身需求和全部约束计算 N-Seat 计划影响。队列估计含 Known/Partial/Unknown、estimated_at 和 valid_until；
-Unknown 保持 null，估计不是预留或保证。
+CapacitySnapshot 只发布 LLMTier 权威资源事实。`constraint_facts` 必须列出同一 snapshot 中当前 entitlement
+对应的 direct 与全部 shared/overlapping group；每项回答“新增一个 `concurrent_invocation` Seat”的
+availability/shortfall。`blocking_constraints` 只列 `shortfall_for_next_seat > 0` 的 constraint ID，是
+`constraint_facts` 的严格子集；无阻塞时为空。不接收或推断 Project 目标。非并发 quota 放在独立
+`quota_constraints`，不得换算成 concurrency。共享/重叠 group 各自报告，gap 不相加。Slinky 用
+`direct_available_committed`、完整 `constraint_facts` 和自身 N-Seat 需求做 all-constraints 规划计算。
+队列估计含 Known/Partial/Unknown、estimated_at 和 valid_until；Unknown 保持 null，估计不是预留或保证。
 
 费用金额使用非负 decimal string（最多 20 位整数、12 位小数）、ISO-4217 currency、pricing catalog version、
 cost source 与 priced_at。Known 表示权威账单覆盖全部声明 component；Estimated 表示 catalog 估算且不得
-伪装实付；Partial 必须列 covered/missing components；Unknown 的 amount/currency 为 null。同币种且同 pricing
+伪装实付；Partial 的 amount 仅为 `covered_components` 小计，绝不是总额，并必须列 missing components；
+Unknown 的 amount/currency 为 null。Invocation、Observation Usage 和 Admin Usage 消费 DTO 使用同一
+CostEvidence；同币种且同 pricing
 version 方可汇总，混合币种或版本分组返回，禁止自动换汇。
 
 ### 11.6 Embeddings 幂等恢复候选
 
-Embeddings 不新增 GET recovery path，只复用原 `POST /v1/embeddings` 的 namespace/key/digest。首次或成功
-重放为标准 `200 EmbeddingResponse`；active duplicate 为 `202 EmbeddingInvocationAccepted`（无 Responses
-Location/recovery URL）；Failed/Cancelled/UnknownOutcome 分别为 502/409/503 typed non-2xx，且不盲重派。
+Embeddings 不新增 GET recovery path，只复用原 `POST /v1/embeddings` 的 namespace/key/digest。返回的
+`X-Tier-Invocation-ID` 只用于关联、审计和同 POST ledger lookup，不能拼接或授权 Responses Invocation/Response
+GET。首次或成功重放为标准 `200 EmbeddingResponse`；active duplicate 为 `202 EmbeddingInvocationAccepted`
+（无 Responses Location/recovery URL）；Failed/Cancelled/UnknownOutcome 分别为 502/409/503 typed non-2xx，
+且不盲重派。
 无 ID 丢响应按 §6.3 原 POST 重放，超出 request deadline 禁止首次 admission。建议 Knowledge consumer 采用
 D=24h、terminal result 与 digest/tombstone 至少 168h；这是本轮唯一新增的待 Slinky/Knowledge 确认建议，
-不是把 Responses 已冻结窗口自动扩展到 Embeddings。保证窗口过后仍有 tombstone 时返回 410；不得复用旧 key
-创建新的 logical Embedding invocation。
+不是把 Responses 已冻结窗口自动扩展到 Embeddings。active record 保留到 provable terminal；UnknownOutcome
+obligation 保留到人工 reconcile，不以 168h 自动清除。resolved terminal 起至少保留 168h；保证窗口后仍有
+tombstone 时返回 410；不得复用旧 key 创建新的 logical Embedding invocation。
+
+| Embeddings 状态 | HTTP/body | Headers | 恢复/保留行为 |
+|---|---|---|---|
+| 首次/成功 replay | 200 `EmbeddingResponse` | `X-Tier-Invocation-ID` | 标准成功 body；ID 仅关联 |
+| Pending/Queued/Running | 202 `EmbeddingInvocationAccepted` | Invocation ID、Retry-After；无 Location | 同 POST、同 key/digest；additional dispatch=0 |
+| Failed | 502 `TerminalErrorEnvelope` | Invocation ID；无 Location | `retryable=false`；不自动重派 |
+| Cancelled | 409 `TerminalErrorEnvelope` | Invocation ID；无 Location | `retryable=false`；不自动重派 |
+| UnknownOutcome | 503 `TerminalErrorEnvelope` | Invocation ID；无 Location | obligation 持续到 reconcile；不因 168h 删除 |
+| resolved terminal 保证窗口后且 tombstone 可证明 | 410 `ErrorEnvelope` | 无 Responses Location | 不允许旧 key 创建新 logical invocation |
 
 ## 12. 可靠性、维护与升级
 
@@ -916,7 +960,7 @@ evidence，不能用本文状态替代。
 | Scope B；Chat/SSE 移到 V0.4 | Frozen | `S-20260906-2f9539048493` |
 | M2-C `W=168h`、`M=24h`、`D=24h` | Frozen | `L-20260906-12940a96e148`、`P-20260906-c14b4af35ac3` |
 | Amendment 4 contract candidate | Slinky accepted | `S-20260906-1e12f5e61d73` |
-| Admission/deadline/observation/Embeddings amendment | Candidate; not active | 本设计 draft.7 / OpenAPI amendment 6，待 Slinky/Piko/Knowledge review |
+| Admission/deadline/observation/Embeddings amendment | Candidate; not active | 本设计 draft.8 / OpenAPI amendment 7；Slinky 已支持 Embeddings 建议基线，待 Piko deadline 与 Knowledge 独立签署 |
 
 新 persistence/HA/deployment、队列超时及费用计价等重大选择必须建立 ADR/Contract amendment；
 本文不伪造 retrospective ADR。
@@ -929,7 +973,7 @@ evidence，不能用本文状态替代。
 | LT-RISK-002 | V0.3 Registry/Ledger/API/UI 未接线 | 目标能力不可用 | 按 §17 实现 | LLMTier | runtime contract tests |
 | LT-RISK-003 | persistence/HA/RPO/RTO 未决定 | M2-C/多实例无法证明 | ADR、fault/restore test | LLMTier | activation review |
 | LT-RISK-004 | consumer capture 未完成 | L3/L7/Embeddings 兼容性未知 | Piko/Knowledge/Slinky 分别提供 evidence | 接口 Owner | consumer gates PASS |
-| LT-RISK-005 | queue/deadline candidate 尚未获 consumer 接受 | L4 不能激活 | 复审 Amendment 6；catalog 数值禁止运行时默认 | LLMTier+consumer review | contract ACCEPTED |
+| LT-RISK-005 | queue/deadline candidate 尚未获 consumer 接受 | L4 不能激活 | 复审 Amendment 7；catalog 数值禁止运行时默认 | LLMTier+consumer review | contract ACCEPTED |
 | LT-RISK-006 | CostEvidence candidate 尚未获 Slinky 接受 | L6 不能激活 | 复审 precision/grouping/source；Unknown 不填零 | LLMTier+Slinky | contract ACCEPTED |
 | LT-RISK-007 | security/supply-chain controls 未实现 | Secret、租户、产物风险 | §15 controls + negative/fault evidence | LLMTier | CT-SEC + release gate |
 

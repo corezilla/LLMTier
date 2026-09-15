@@ -247,43 +247,59 @@ class ContractSemanticsV03Tests(unittest.TestCase):
         self.assertFalse(expired["oracle"]["new_idempotency_key"])
         self.assertFalse(expired["oracle"]["cross_level_fallback"])
 
-    def test_candidate_prose_tracks_amendment_six_without_approved_claims(self):
+    def test_candidate_prose_tracks_amendment_seven_without_approved_claims(self):
         contract = (ROOT / "docs" / "60_interfaces" / "contracts" / "llmtier-v0.3-contract-specification.md").read_text()
         piko = (ROOT / "docs" / "60_interfaces" / "piko-data-plane-control.md").read_text()
-        self.assertIn("candidate Amendment 6", contract)
-        self.assertNotIn("candidate Amendment 5", contract)
+        self.assertIn("candidate Amendment 7", contract)
+        self.assertNotIn("candidate Amendment 6", contract)
         self.assertIn("In Review contract index", contract)
         self.assertIn("In Review consumer-boundary prose candidate", piko)
         self.assertNotIn("本文的 Approved 状态", contract + piko)
 
-    def test_amendment_six_deadline_and_seat_oracles(self):
+    def test_amendment_seven_deadline_and_seat_oracles(self):
         fixture = self.load(FIXTURES / "v0.3" / "deadline-seat-fairness-fixtures.json")
         cases = {case["id"]: case for case in fixture["cases"]}
         self.assertEqual("Released", cases["queued-expiry-wins-cas"]["expected"]["capacity_hold_status"])
         self.assertEqual(0, cases["queued-expiry-wins-cas"]["expected"]["backend_dispatch_count"])
         self.assertEqual("Held", cases["dispatch-wins-before-deadline-check"]["expected"]["capacity_hold_status"])
+        self.assertEqual("Running", cases["dispatch-wins-before-deadline-check"]["expected"]["status"])
         self.assertFalse(cases["dispatch-wins-before-deadline-check"]["expected"]["release_without_evidence"])
+        self.assertEqual(200, cases["backend-succeeds-after-caller-timeout"]["expected"]["same_post_http_status"])
+        self.assertFalse(cases["cancel-request-accepted-not-stopped"]["expected"]["release_allowed"])
         self.assertFalse(cases["restart-clock-rollback"]["expected"]["deadline_extended"])
         self.assertEqual(408, cases["no-id-replay-after-deadline"]["expected"]["http_status"])
+        self.assertFalse(cases["no-id-replay-after-deadline"]["expected"]["replay_old_429"])
+        self.assertEqual(409, cases["changed-deadline-conflicts"]["expected"]["http_status"])
         self.assertFalse(cases["fairness-weight-missing"]["expected"]["implicit_default"])
+        fair = cases["weighted-round-robin-finite-round"]["expected"]
+        self.assertEqual(sum(lane["weight"] for lane in cases["weighted-round-robin-finite-round"]["active_lanes"]), fair["max_opportunities_per_stable_round"])
+        self.assertTrue(fair["each_continuously_eligible_lane_selected_at_least_once"])
 
-    def test_amendment_six_observation_and_cost_oracles(self):
+    def test_amendment_seven_observation_and_cost_oracles(self):
         fixture = self.load(FIXTURES / "v0.3" / "observation-cost-fixtures.json")
         cases = {case["id"]: case for case in fixture["cases"]}
         self.assertFalse(cases["next-seat-resource-facts"]["oracle"]["project_requirement_inferred"])
         self.assertFalse(cases["next-seat-resource-facts"]["oracle"]["shared_group_shortfalls_summed"])
+        self.assertTrue(cases["next-seat-resource-facts"]["oracle"]["constraint_facts_complete"])
+        blockers = set(cases["next-seat-resource-facts"]["blocking_constraints"])
+        expected_blockers = {fact["constraint_id"] for fact in cases["next-seat-resource-facts"]["constraint_facts"] if fact["shortfall_for_next_seat"] > 0}
+        self.assertEqual(expected_blockers, blockers)
         self.assertFalse(cases["unknown-request-quota"]["oracle"]["converted_to_concurrency"])
         for case_id in ["known-provider-cost", "estimated-cost-not-actual", "partial-cost"]:
             self.assertEqual([], self.validate_component("CostEvidence", cases[case_id]["cost"]))
+        self.assertFalse(cases["partial-cost"]["oracle"]["amount_is_total"])
         self.assertFalse(cases["mixed-currency-version"]["oracle"]["automatic_fx"])
 
-    def test_amendment_six_embedding_recovery_is_post_local(self):
+    def test_amendment_seven_embedding_recovery_is_post_local(self):
         fixture = self.load(FIXTURES / "v0.3" / "embedding-recovery-fixtures.json")
         cases = {case["id"]: case for case in fixture["cases"]}
         self.assertFalse(fixture["recommended_windows"]["frozen"])
+        self.assertFalse(fixture["recommended_windows"]["unknown_obligation_auto_expires"])
         self.assertEqual("EmbeddingResponse", cases["success"]["expected"]["body_schema"])
         self.assertEqual("EmbeddingInvocationAccepted", cases["active-duplicate"]["expected"]["body_schema"])
         self.assertFalse(cases["active-duplicate"]["expected"]["location_header_present"])
+        self.assertFalse(cases["active-duplicate"]["expected"]["responses_get_allowed"])
+        self.assertFalse(cases["unknown-outcome"]["expected"]["auto_delete_after_168h"])
         self.assertEqual("POST /v1/embeddings", cases["headers-lost-before-deadline"]["expected"]["operation"])
         self.assertFalse(cases["headers-lost-before-deadline"]["expected"]["responses_get_used"])
 
@@ -292,7 +308,7 @@ class ContractSemanticsV03Tests(unittest.TestCase):
         self.assertEqual("#/components/responses/RequestDeadlineExpired", operation["responses"]["408"]["$ref"])
         self.assertNotIn("Location", self.openapi["components"]["responses"]["EmbeddingActiveReplay"]["headers"])
 
-    def test_amendment_six_deadline_header_and_decision_fields_are_machine_required(self):
+    def test_amendment_seven_deadline_header_and_decision_fields_are_machine_required(self):
         for path in ["/v1/responses", "/v1/embeddings"]:
             refs = {item["$ref"] for item in self.openapi["paths"][path]["post"]["parameters"]}
             self.assertIn("#/components/parameters/RequestDeadlineAt", refs)
@@ -305,6 +321,36 @@ class ContractSemanticsV03Tests(unittest.TestCase):
         entitlement = self.openapi["components"]["schemas"]["EntitlementCreate"]
         self.assertIn("scheduling_weight", entitlement["required"])
         self.assertEqual(1, entitlement["properties"]["scheduling_weight"]["minimum"])
+        deadline = self.openapi["components"]["parameters"]["RequestDeadlineAt"]
+        self.assertEqual("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$", deadline["schema"]["pattern"])
+        self.assertIn("canonical digest", deadline["description"])
+        invocation = self.openapi["components"]["schemas"]["InvocationView"]
+        self.assertTrue({"cost", "effective_deadline_at", "release_evidence_type", "release_evidence_at"}.issubset(invocation["required"]))
+        capacity = self.openapi["components"]["schemas"]["ServiceLevelCapacity"]
+        self.assertIn("constraint_facts", capacity["required"])
+        self.assertEqual("string", capacity["properties"]["blocking_constraints"]["items"]["type"])
+
+    def test_amendment_seven_rejection_priority_survives_restart_and_concurrency(self):
+        fixture = self.load(FIXTURES / "v0.3" / "admission-rejection-fixtures.json")
+        case = next(item for item in fixture["cases"] if item["id"] == "expiry-deadline-restart-concurrency-boundary")
+        self.assertEqual(
+            ["digest_conflict", "existing_invocation_recovery", "request_deadline", "rejection_decision_expiry"],
+            case["oracle"]["priority"],
+        )
+        self.assertEqual(408, case["oracle"]["http_status_for_all_same_digest_retries"])
+        self.assertEqual(0, case["oracle"]["cas_admission_winners"])
+        self.assertTrue(case["oracle"]["digest_binding_retained"])
+
+    def test_amendment_seven_cost_is_shared_by_all_observation_consumers(self):
+        schemas = self.openapi["components"]["schemas"]
+        for schema_name in ["InvocationView", "UsageBucket", "AdminUsageItem"]:
+            with self.subTest(schema=schema_name):
+                self.assertIn("cost", schemas[schema_name]["required"])
+                self.assertEqual("#/components/schemas/CostEvidence", schemas[schema_name]["properties"]["cost"]["$ref"])
+        self.assertEqual(
+            "same_currency_and_pricing_catalog_version_only_no_fx",
+            schemas["CostEvidence"]["x-aggregation-rule"],
+        )
 
     def test_authorization_scope_fixtures_preserve_three_surface_boundaries(self):
         cases = {case["id"]: case for case in self.load(AUTHORIZATION_SCOPE_FIXTURE_PATH)["cases"]}

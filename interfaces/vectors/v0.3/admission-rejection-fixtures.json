@@ -107,6 +107,30 @@
         "digest_binding_retained": true,
         "new_key_bypass_allowed": false
       }
+    },
+    {
+      "id": "expiry-deadline-restart-concurrency-boundary",
+      "durable_record": {
+        "same_key_and_digest": true,
+        "decision_record_version": 9,
+        "decision_expires_at": "2026-09-16T01:00:02.000Z",
+        "request_deadline_at": "2026-09-16T01:00:02.000Z",
+        "existing_invocation": false
+      },
+      "event": {
+        "service_restarted": true,
+        "concurrent_retry_count": 4,
+        "now": "2026-09-16T01:00:02.000Z"
+      },
+      "oracle": {
+        "priority": ["digest_conflict", "existing_invocation_recovery", "request_deadline", "rejection_decision_expiry"],
+        "http_status_for_all_same_digest_retries": 408,
+        "old_429_replayed": false,
+        "cas_admission_winners": 0,
+        "invocation_create_count": 0,
+        "backend_dispatch_count": 0,
+        "digest_binding_retained": true
+      }
     }
   ]
 }

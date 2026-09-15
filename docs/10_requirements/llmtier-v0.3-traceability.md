@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-traceability` |
-| Document Version | `0.3.1-draft.2` |
+| Document Version | `0.3.1-draft.3` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |

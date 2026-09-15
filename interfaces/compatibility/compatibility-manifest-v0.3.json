@@ -1,5 +1,5 @@
 {
-  "manifest_version": "0.3-candidate-amendment-6",
+  "manifest_version": "0.3-candidate-amendment-7",
   "status": "candidate",
   "overall": {
     "contract_status": "candidate",
@@ -52,6 +52,16 @@
     "authoritative_runtime_unit": "utf8_bytes",
     "semantic_validator_required": true
   },
+  "deadline_policy": {
+    "header": "X-Tier-Deadline-At",
+    "status": "candidate_pending_piko_confirmation",
+    "required": true,
+    "format": "RFC3339_UTC_millisecond_precision",
+    "included_in_canonical_digest": true,
+    "replay": "byte_identical_no_extension",
+    "caller_deadline_relation": "model_request_deadline_lte_piko_task_deadline",
+    "effective_deadline": "min(caller_deadline,catalog_limit)"
+  },
   "capability_activation": [
     {"name": "responses_nonstream", "scope": "v0.3_required_active_candidate", "contract_status": "candidate", "runtime_activation": false},
     {"name": "embeddings_nonstream", "scope": "v0.3_required_active_candidate", "contract_status": "candidate", "runtime_activation": false},
@@ -90,7 +100,8 @@
       "active_duplicate_response_ref": "openapi/llmtier-v0.3.openapi.json#/components/responses/EmbeddingActiveReplay",
       "terminal_response_refs": ["openapi/llmtier-v0.3.openapi.json#/components/responses/EmbeddingTerminalOrConflict", "openapi/llmtier-v0.3.openapi.json#/components/responses/EmbeddingTerminalFailure", "openapi/llmtier-v0.3.openapi.json#/components/responses/EmbeddingUnknownOutcome"],
       "responses_get_recovery_allowed": false,
-      "retention_policy": "candidate_D24h_terminal168h_pending_slinky_knowledge_confirmation",
+      "retention_policy": "candidate_D24h_resolved_terminal168h_slinky_need_supported_pending_knowledge_signature",
+      "unknown_obligation_auto_expiry": false,
       "pre_admission_rejection_response_ref": "openapi/llmtier-v0.3.openapi.json#/components/responses/AdmissionRejected",
       "consumer_contract_test": "required_from_memory_or_knowledge_consumer",
       "piko_capture_required": false
