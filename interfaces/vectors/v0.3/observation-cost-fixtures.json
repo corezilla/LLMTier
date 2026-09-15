@@ -1,0 +1,13 @@
+{
+  "schema_version": "llmtier.observation-cost-fixtures.v0.3",
+  "contract_status": "candidate_not_active",
+  "cases": [
+    {"id": "next-seat-resource-facts", "blocking_constraints": [{"constraint_type": "direct", "constraint_id": "Worker", "unit": "concurrent_invocation", "required_for_next_seat": 1, "available": 1, "shortfall_for_next_seat": 0, "reason_code": null}, {"constraint_type": "capacity_group", "constraint_id": "cg-a", "unit": "concurrent_invocation", "required_for_next_seat": 1, "available": 0, "shortfall_for_next_seat": 1, "reason_code": "group_exhausted"}, {"constraint_type": "capacity_group", "constraint_id": "cg-b", "unit": "concurrent_invocation", "required_for_next_seat": 1, "available": 0, "shortfall_for_next_seat": 1, "reason_code": "group_exhausted"}], "oracle": {"project_requirement_inferred": false, "shared_group_shortfalls_summed": false}},
+    {"id": "unknown-request-quota", "quota_constraints": [{"constraint_id": "daily-request-quota", "unit": "request", "remaining": null, "status": "Unknown", "reason_code": "quota_source_unavailable"}], "oracle": {"converted_to_concurrency": false, "unknown_filled_with_zero": false}},
+    {"id": "unknown-queue-estimate", "queue_estimate_status": "Unknown", "estimated_queue_wait_ms": null, "queue_estimated_at": null, "queue_estimate_valid_until": null, "oracle": {"reservation_or_guarantee": false}},
+    {"id": "known-provider-cost", "cost": {"cost_status": "Known", "amount_decimal": "12.340000000001", "currency": "USD", "pricing_catalog_version": "provider-bill-2026-09", "cost_source": "provider_reported", "priced_at": "2026-09-16T01:00:00Z", "covered_components": ["input_tokens", "output_tokens"], "missing_components": []}},
+    {"id": "estimated-cost-not-actual", "cost": {"cost_status": "Estimated", "amount_decimal": "0.42", "currency": "USD", "pricing_catalog_version": "catalog-7", "cost_source": "catalog_estimate", "priced_at": "2026-09-16T01:00:00Z", "covered_components": ["input_tokens"], "missing_components": []}, "oracle": {"reported_as_actual": false}},
+    {"id": "partial-cost", "cost": {"cost_status": "Partial", "amount_decimal": "0.10", "currency": "USD", "pricing_catalog_version": "catalog-7", "cost_source": "mixed_partial", "priced_at": "2026-09-16T01:00:00Z", "covered_components": ["input_tokens"], "missing_components": ["output_tokens"]}},
+    {"id": "mixed-currency-version", "groups": [{"currency": "USD", "pricing_catalog_version": "catalog-7"}, {"currency": "EUR", "pricing_catalog_version": "catalog-7"}, {"currency": "USD", "pricing_catalog_version": "catalog-8"}], "oracle": {"group_count": 3, "automatic_fx": false}}
+  ]
+}

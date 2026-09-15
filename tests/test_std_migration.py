@@ -145,7 +145,7 @@ class StdMigrationTests(unittest.TestCase):
         self.assertIn("图例：深蓝是接口层", text)
         self.assertIn('Piko -->|"Responses inference 与 recovery · HTTPS/JSON"| LLMTier', text)
         self.assertIn("sequenceDiagram", text)
-        self.assertIn("same POST + same key + same digest within D=24h", text)
+        self.assertIn("same POST + same key + same digest before request deadline", text)
         self.assertIn('subgraph LLHost["LLMTier host — Target single-node topology"]', text)
         self.assertIn("logical building block 不是已拆分的子系统", text)
         self.assertIn("独立部署的 subsystem", text)

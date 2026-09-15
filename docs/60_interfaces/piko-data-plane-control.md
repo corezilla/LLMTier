@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | llmtier-piko-data-plane-control |
-| Document Version | 0.3.1-draft.1 |
+| Document Version | 0.3.1-draft.2 |
 | Status | In Review |
 | Project | LLMTier |
 | Authority | LLMTier |
@@ -77,7 +77,8 @@ Junior 是示例合法 ID，lowercase、alias、Role selector 均无效。
 
 Authorization 绑定服务端 client_id；X-Tier-Source-Id 是已授权 canonical source；
 X-Tier-Source-Instance-Id 只用于 correlation/observation；Idempotency-Key 标识 logical invocation；
-X-Tier-Client-Request-ID 是 Piko correlation ID。Metadata 最多 16 对，key/value 的最终限制为
+X-Tier-Client-Request-ID 是 Piko correlation ID；X-Tier-Deadline-At 是调用方 UTC absolute deadline，
+用于禁止超期首次 admission。Metadata 最多 16 对，key/value 的最终限制为
 64/512 UTF-8 encoded bytes。
 
 ## 5. 状态机、顺序和时序
@@ -105,15 +106,18 @@ Failed/Cancelled/UnknownOutcome 不得盲重派。
 
 pre-admission capacity/quota/readiness/validity 不满足返回 429 AdmissionRejectedEnvelope + Retry-After，
 不返回 Location/Invocation ID，且 Seat/Invocation/backend dispatch 均为零。同 key/digest 在 decision expiry
-前重放相同拒绝；到期后只允许重新 admission，不允许绕过约束或换等级。
+前重放相同拒绝；到期边界由 record-version CAS 原子重评，expiry 不删除 digest。调用方 deadline 到达后，
+无既有 Invocation 时返回 408 且禁止新 admission；已有 Invocation 仍可查询/恢复。Running timeout 不能单凭
+本地时钟释放 Seat；需 backend terminal、cancel acknowledgement 或授权 reconcile 证据。
 
 ## 7. 并发、流控、容量与性能
 
 唯一 Seat 单位是 concurrent_invocation。LLMTier admission 同时检查 direct capacity、全部
 shared/overlapping groups、Client quota、readiness、blocking reason 和 valid_until。Piko 不预测或覆盖
 admission，active replay 的 Retry-After 也不授权新 dispatch。
-V0.3 不提供 pre-admission 等待队列；不满足 admission 立即 429。admission 后的内部 execution queue 必须
-受尚待冻结的 Invocation deadline 约束，在该数值和 terminal mapping 接受前 runtime activation=false。
+V0.3 不提供 pre-admission 等待队列；不满足 admission 立即 429。admission 后 queue expiry 与 dispatch
+authorization 原子竞争。公平调度以同一 Capacity Group/Service Level 的 Invocation dispatch 为单位，
+Entitlement 必须给正整数 scheduling_weight；长调用占满 Seat 时不承诺无条件成功或固定等待上限。
 
 当前没有 production throughput/latency evidence；静态 contract tests 不能转写为 measured SLO。
 
@@ -150,5 +154,5 @@ pi-ai 0.85.1、openai 6.40.0、provider llmtier 和 adapter piko-llmtier-respons
 ## 11. 未决项与双方批准
 
 LLMTier Owner 已审核提供方事实，Piko reviewer 已在 `P-20260907-e009921eda0a` 接受此前冻结的
-consumer/recovery obligations。该接受不自动覆盖本轮 Amendment 5；本文保持 In Review，且不请求
+consumer/recovery obligations。该接受不自动覆盖本轮 Amendment 6；本文保持 In Review，且不请求
 RAG publication 或 Runtime Activation。

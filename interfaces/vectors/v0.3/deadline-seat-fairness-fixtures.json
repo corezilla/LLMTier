@@ -1,0 +1,14 @@
+{
+  "schema_version": "llmtier.deadline-seat-fairness-fixtures.v0.3",
+  "contract_status": "candidate_not_active",
+  "cases": [
+    {"id": "queued-expiry-wins-cas", "state": {"invocation_status": "Queued", "backend_execution_status": "NotDispatched", "capacity_hold_status": "Held"}, "race": {"winner": "deadline_expiry", "record_version": 7}, "expected": {"status": "Cancelled", "reason": "deadline_before_dispatch", "backend_dispatch_count": 0, "capacity_hold_status": "Released"}},
+    {"id": "dispatch-wins-before-deadline-check", "state": {"invocation_status": "Running", "backend_execution_status": "Unknown", "capacity_hold_status": "Held"}, "race": {"winner": "dispatch_authorization", "record_version": 8}, "expected": {"client_outcome": "DeadlineExceeded", "status": "UnknownOutcome", "capacity_hold_status": "Held", "release_without_evidence": false}},
+    {"id": "backend-cancel-ack-releases", "state": {"invocation_status": "Running", "capacity_hold_status": "Held"}, "evidence": "backend_cancel_acknowledged", "expected": {"status": "Cancelled", "capacity_hold_status": "Released"}},
+    {"id": "restart-clock-rollback", "persisted": {"request_deadline_at": "2026-09-16T02:00:00Z", "last_observed_utc": "2026-09-16T01:59:30Z", "monotonic_remaining_ms": 30000}, "restart": {"current_utc": "2026-09-16T01:58:00Z", "clock_trusted": false}, "expected": {"deadline_extended": false, "capacity_hold_status": "Held", "admission_readiness": "NotReady"}},
+    {"id": "no-id-replay-before-deadline-first-arrival", "existing_decision": false, "now_before_request_deadline": true, "expected": {"may_run_first_admission": true, "logical_request_identity_unchanged": true}},
+    {"id": "no-id-replay-after-deadline", "existing_invocation": false, "now_at_or_after_request_deadline": true, "expected": {"http_status": 408, "may_run_first_admission": false, "backend_dispatch_count": 0}},
+    {"id": "fairness-weight-missing", "entitlement": {"scheduling_weight": null}, "expected": {"configuration_status": "NotReady", "admission_allowed": false, "implicit_default": false}},
+    {"id": "long-calls-occupy-all-seats", "eligible_clients": 2, "available_seats": 0, "expected": {"dispatch_opportunity_guaranteed_now": false, "unconditional_wait_bound": false}}
+  ]
+}

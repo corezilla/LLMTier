@@ -231,7 +231,7 @@ class ContractSemanticsV03Tests(unittest.TestCase):
                 )
 
         for case in fixture["cases"]:
-            if "response" not in case:
+            if "response" not in case or case["response"]["http_status"] != 429:
                 continue
             with self.subTest(case=case["id"]):
                 self.assertEqual(429, case["response"]["http_status"])
@@ -247,14 +247,64 @@ class ContractSemanticsV03Tests(unittest.TestCase):
         self.assertFalse(expired["oracle"]["new_idempotency_key"])
         self.assertFalse(expired["oracle"]["cross_level_fallback"])
 
-    def test_candidate_prose_tracks_amendment_five_without_approved_claims(self):
+    def test_candidate_prose_tracks_amendment_six_without_approved_claims(self):
         contract = (ROOT / "docs" / "60_interfaces" / "contracts" / "llmtier-v0.3-contract-specification.md").read_text()
         piko = (ROOT / "docs" / "60_interfaces" / "piko-data-plane-control.md").read_text()
-        self.assertIn("candidate Amendment 5", contract)
-        self.assertNotIn("candidate Amendment 4", contract)
+        self.assertIn("candidate Amendment 6", contract)
+        self.assertNotIn("candidate Amendment 5", contract)
         self.assertIn("In Review contract index", contract)
         self.assertIn("In Review consumer-boundary prose candidate", piko)
         self.assertNotIn("本文的 Approved 状态", contract + piko)
+
+    def test_amendment_six_deadline_and_seat_oracles(self):
+        fixture = self.load(FIXTURES / "v0.3" / "deadline-seat-fairness-fixtures.json")
+        cases = {case["id"]: case for case in fixture["cases"]}
+        self.assertEqual("Released", cases["queued-expiry-wins-cas"]["expected"]["capacity_hold_status"])
+        self.assertEqual(0, cases["queued-expiry-wins-cas"]["expected"]["backend_dispatch_count"])
+        self.assertEqual("Held", cases["dispatch-wins-before-deadline-check"]["expected"]["capacity_hold_status"])
+        self.assertFalse(cases["dispatch-wins-before-deadline-check"]["expected"]["release_without_evidence"])
+        self.assertFalse(cases["restart-clock-rollback"]["expected"]["deadline_extended"])
+        self.assertEqual(408, cases["no-id-replay-after-deadline"]["expected"]["http_status"])
+        self.assertFalse(cases["fairness-weight-missing"]["expected"]["implicit_default"])
+
+    def test_amendment_six_observation_and_cost_oracles(self):
+        fixture = self.load(FIXTURES / "v0.3" / "observation-cost-fixtures.json")
+        cases = {case["id"]: case for case in fixture["cases"]}
+        self.assertFalse(cases["next-seat-resource-facts"]["oracle"]["project_requirement_inferred"])
+        self.assertFalse(cases["next-seat-resource-facts"]["oracle"]["shared_group_shortfalls_summed"])
+        self.assertFalse(cases["unknown-request-quota"]["oracle"]["converted_to_concurrency"])
+        for case_id in ["known-provider-cost", "estimated-cost-not-actual", "partial-cost"]:
+            self.assertEqual([], self.validate_component("CostEvidence", cases[case_id]["cost"]))
+        self.assertFalse(cases["mixed-currency-version"]["oracle"]["automatic_fx"])
+
+    def test_amendment_six_embedding_recovery_is_post_local(self):
+        fixture = self.load(FIXTURES / "v0.3" / "embedding-recovery-fixtures.json")
+        cases = {case["id"]: case for case in fixture["cases"]}
+        self.assertFalse(fixture["recommended_windows"]["frozen"])
+        self.assertEqual("EmbeddingResponse", cases["success"]["expected"]["body_schema"])
+        self.assertEqual("EmbeddingInvocationAccepted", cases["active-duplicate"]["expected"]["body_schema"])
+        self.assertFalse(cases["active-duplicate"]["expected"]["location_header_present"])
+        self.assertEqual("POST /v1/embeddings", cases["headers-lost-before-deadline"]["expected"]["operation"])
+        self.assertFalse(cases["headers-lost-before-deadline"]["expected"]["responses_get_used"])
+
+        operation = self.openapi["paths"]["/v1/embeddings"]["post"]
+        self.assertEqual("#/components/responses/EmbeddingActiveReplay", operation["responses"]["202"]["$ref"])
+        self.assertEqual("#/components/responses/RequestDeadlineExpired", operation["responses"]["408"]["$ref"])
+        self.assertNotIn("Location", self.openapi["components"]["responses"]["EmbeddingActiveReplay"]["headers"])
+
+    def test_amendment_six_deadline_header_and_decision_fields_are_machine_required(self):
+        for path in ["/v1/responses", "/v1/embeddings"]:
+            refs = {item["$ref"] for item in self.openapi["paths"][path]["post"]["parameters"]}
+            self.assertIn("#/components/parameters/RequestDeadlineAt", refs)
+            self.assertIn("408", self.openapi["paths"][path]["post"]["responses"])
+        required = set(
+            self.openapi["components"]["schemas"]["AdmissionRejectedEnvelope"]
+            ["properties"]["error"]["allOf"][1]["required"]
+        )
+        self.assertTrue({"decision_created_at", "decision_expires_at", "request_deadline_at", "decision_record_version"}.issubset(required))
+        entitlement = self.openapi["components"]["schemas"]["EntitlementCreate"]
+        self.assertIn("scheduling_weight", entitlement["required"])
+        self.assertEqual(1, entitlement["properties"]["scheduling_weight"]["minimum"])
 
     def test_authorization_scope_fixtures_preserve_three_surface_boundaries(self):
         cases = {case["id"]: case for case in self.load(AUTHORIZATION_SCOPE_FIXTURE_PATH)["cases"]}

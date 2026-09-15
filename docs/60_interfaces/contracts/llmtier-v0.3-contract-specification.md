@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | llmtier-v0.3-contract-specification |
-| Document Version | 0.3.1-draft.1 |
+| Document Version | 0.3.1-draft.2 |
 | Status | In Review |
 | Project | LLMTier |
 | Authority | LLMTier |
@@ -82,7 +82,8 @@ Pre-admission rejection 不属于 Invocation terminal state。服务先保存 co
 IdempotencyDecisionRecord；capacity、quota、readiness、Registry 或 snapshot validity 不满足时返回
 `429 AdmissionRejectedEnvelope` 与 `Retry-After`，正文含 `admission_decision_id`、typed reason、
 retryability 和 retry delay，且 `invocation_id=null`。该结果授予 Seat=0、创建 Invocation=0、
-backend dispatch=0；同 key/digest 在 decision expiry 前重复相同决定，到期后可重新执行 admission。
+backend dispatch=0；同 key/digest 在 decision expiry 前重复相同决定，到期后以 record-version CAS 重新执行
+admission。decision expiry 不删除 digest；request deadline 到达后无既有 Invocation 时返回 408，禁止新 admission。
 
 通用错误包括 model_not_found、unsupported_endpoint、unsupported_feature、not_found、
 idempotency_conflict、source_error、contract_mismatch、client_quota_unknown 和 version_conflict。
@@ -112,6 +113,15 @@ M2-C 固定 W=168h、M=24h、D=24h。active record 保留到 terminal；terminal
 digest/tombstone、Invocation terminal view 和可恢复 canonical Response 至少 168h。privacy retention
 不能破坏这些下限，短配置无效并阻断 activation。
 
+CapacitySnapshot 的 blocking_constraints 只表达当前 entitlement 下增加一个 concurrent_invocation Seat 的
+逐约束权威事实；quota 使用独立 request 单位，重叠 group gap 不相加。Usage/AdminUsage 的 CostEvidence
+以非负 decimal string、ISO currency、pricing version/source 与 Known/Estimated/Partial/Unknown 表达；只允许
+同 currency + pricing version 聚合，禁止自动换汇。
+
+Responses 已冻结 D=24h/terminal 168h。Embeddings 采用原 POST 本地幂等：200 标准 EmbeddingResponse、
+active 202 EmbeddingInvocationAccepted、502/409/503 typed terminal；不使用 Responses GET。将相同 24h/168h
+用于 Embeddings 是 Amendment 6 的唯一 consumer 待确认建议，在 Slinky/Knowledge 接受前不标为 frozen。
+
 ## 7. 身份、权限、Secret 与多项目隔离
 
 Authorization 绑定 canonical client_id；X-Tier-Source-Id 必须被该 Client 授权；
@@ -124,7 +134,7 @@ Management credential 与 Data Plane/Observation 分离。Account secret 只写�
 
 ## 8. 版本、兼容性与迁移
 
-当前 contract version 是 0.3 candidate Amendment 5。Scope B 只含 Responses non-stream、Embeddings
+当前 contract version 是 0.3 candidate Amendment 6。Scope B 只含 Responses non-stream、Embeddings
 non-stream、Models、Invocation/Response recovery、Observation 和 Management。Chat/SSE/streaming
 属于 V0.4，不能以 alias、translation、provider passthrough 或 inactive endpoint 进入 V0.3。
 

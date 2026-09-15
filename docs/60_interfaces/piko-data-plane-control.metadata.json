@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "llmtier-piko-data-plane-control",
   "document_type": "interfaces.control",
-  "document_version": "0.3.1-draft.1",
+  "document_version": "0.3.1-draft.2",
   "title": "LLMTier–Piko Data Plane Interface Control（V0.3）",
   "document_owner": "LLMTier",
   "authors": [
