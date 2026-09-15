@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | llmtier-piko-data-plane-control |
-| Document Version | 0.3.1-draft.3 |
+| Document Version | 0.3.1-draft.4 |
 | Status | In Review |
 | Project | LLMTier |
 | Authority | LLMTier |
@@ -81,6 +81,9 @@ X-Tier-Client-Request-ID 是 Piko correlation ID；X-Tier-Deadline-At 是调用�
 固定为 RFC3339 UTC 毫秒格式 `YYYY-MM-DDTHH:mm:ss.SSSZ`，且必须小于等于 Piko task deadline。
 它是 semantic header，进入 canonical digest；replay 必须逐字节相同，不得推进。缺失/非法分别返回
 400 `missing_required_header`/`invalid_deadline`，同 key 改 deadline 返回 409 idempotency conflict。
+Piko task deadline、header 的 request deadline 与 LLMTier catalog deadline 是三个不同事实；LLMTier 计算
+effective deadline 为 request/catalog 较早者，只报告模型调用结果，不规定 Piko task 终态。Invocation 保留
+deadline_status/deadline_exceeded_at，backend 后续成功也不覆盖此前 deadline-exceeded 事实。
 Metadata 最多 16 对，key/value 的最终限制为
 64/512 UTF-8 encoded bytes。
 
@@ -121,10 +124,11 @@ backend terminal、明确证明 execution stopped 的 acknowledgement 或授权 
 shared/overlapping groups、Client quota、readiness、blocking reason 和 valid_until。Piko 不预测或覆盖
 admission，active replay 的 Retry-After 也不授权新 dispatch。
 V0.3 不提供 pre-admission 等待队列；不满足 admission 立即 429。admission 后 queue expiry 与 dispatch
-authorization 原子竞争。公平调度使用 Registry scheduling_domain 内固定轮次 weighted round robin：lane 是
-client+source+exact level，lane 内 FIFO，每轮每 lane 获得 scheduling_weight 个、cost=1 Invocation 的 slot。
-稳定 eligible set 下每 lane 最迟在总 weight 个 opportunity 内被选择至少一次；长调用占满 Seat 时不承诺
-wall-clock 等待或成功服务。
+authorization 原子竞争。公平调度使用两级固定轮次 weighted round robin：Client 是拥有总
+scheduling_weight 的外层主体；Source+exact level lane 只在该 Client 内轮转且 lane 内 FIFO，增加 lane 不会
+放大 Client 份额。共享 Capacity Group 跨 scheduling domain 时由 group 层以同一 Client 总 weight 仲裁并
+原子取得全部 grant。稳定 eligible set 下每个 Client 最迟在一个 outer round 获得一次 opportunity；长调用
+占满 Seat 时不承诺 wall-clock 等待或成功服务。
 
 当前没有 production throughput/latency evidence；静态 contract tests 不能转写为 measured SLO。
 
@@ -161,5 +165,5 @@ pi-ai 0.85.1、openai 6.40.0、provider llmtier 和 adapter piko-llmtier-respons
 ## 11. 未决项与双方批准
 
 LLMTier Owner 已审核提供方事实，Piko reviewer 已在 `P-20260907-e009921eda0a` 接受此前冻结的
-consumer/recovery obligations。该接受不自动覆盖本轮 Amendment 7；本文保持 In Review，且不请求
+consumer/recovery obligations。该接受不自动覆盖本轮 Amendment 8；本文保持 In Review，且不请求
 RAG publication 或 Runtime Activation。

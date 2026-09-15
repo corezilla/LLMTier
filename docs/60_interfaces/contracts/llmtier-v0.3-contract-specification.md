@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | llmtier-v0.3-contract-specification |
-| Document Version | 0.3.1-draft.3 |
+| Document Version | 0.3.1-draft.4 |
 | Status | In Review |
 | Project | LLMTier |
 | Authority | LLMTier |
@@ -116,14 +116,15 @@ digest/tombstone、Invocation terminal view 和可恢复 canonical Response 至�
 不能破坏这些下限，短配置无效并阻断 activation。
 
 CapacitySnapshot 的 constraint_facts 完整表达当前 entitlement 下增加一个 concurrent_invocation Seat 的
-direct 与全部 group 权威事实；blocking_constraints 仅是 shortfall>0 的 ID 子集。quota 使用独立 request
+direct 与全部 group 权威事实；blocking_constraints 是 Known shortfall>0 或 Unknown 的 blocker ID 子集，
+可以等于全部 constraint facts。Unknown capacity 的数值为 null 且 fail closed。quota 使用独立 request
 单位，重叠 group gap 不相加。Usage/AdminUsage/Invocation 的 CostEvidence
 以非负 decimal string、ISO currency、pricing version/source 与 Known/Estimated/Partial/Unknown 表达；只允许
 同 currency + pricing version 聚合，禁止自动换汇。
 
 Responses 已冻结 D=24h/terminal 168h。Embeddings 采用原 POST 本地幂等：200 标准 EmbeddingResponse、
 active 202 EmbeddingInvocationAccepted、502/409/503 typed terminal；不使用 Responses GET。将相同 24h/168h
-用于 Embeddings 是 Amendment 7 的 consumer 待确认建议；Slinky 已确认满足 Knowledge 需求，但在独立
+用于 Embeddings 是 Amendment 8 的 consumer 待确认建议；Slinky 已确认满足 Knowledge 需求，但在独立
 Knowledge consumer 签署前不标为 frozen。UnknownOutcome obligation 不由 168h 自动清除。
 
 ## 7. 身份、权限、Secret 与多项目隔离
@@ -138,7 +139,7 @@ Management credential 与 Data Plane/Observation 分离。Account secret 只写�
 
 ## 8. 版本、兼容性与迁移
 
-当前 contract version 是 0.3 candidate Amendment 7。Scope B 只含 Responses non-stream、Embeddings
+当前 contract version 是 0.3 candidate Amendment 8。Scope B 只含 Responses non-stream、Embeddings
 non-stream、Models、Invocation/Response recovery、Observation 和 Management。Chat/SSE/streaming
 属于 V0.4，不能以 alias、translation、provider passthrough 或 inactive endpoint 进入 V0.3。
 

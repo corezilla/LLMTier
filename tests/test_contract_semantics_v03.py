@@ -247,16 +247,16 @@ class ContractSemanticsV03Tests(unittest.TestCase):
         self.assertFalse(expired["oracle"]["new_idempotency_key"])
         self.assertFalse(expired["oracle"]["cross_level_fallback"])
 
-    def test_candidate_prose_tracks_amendment_seven_without_approved_claims(self):
+    def test_candidate_prose_tracks_amendment_eight_without_approved_claims(self):
         contract = (ROOT / "docs" / "60_interfaces" / "contracts" / "llmtier-v0.3-contract-specification.md").read_text()
         piko = (ROOT / "docs" / "60_interfaces" / "piko-data-plane-control.md").read_text()
-        self.assertIn("candidate Amendment 7", contract)
-        self.assertNotIn("candidate Amendment 6", contract)
+        self.assertIn("candidate Amendment 8", contract)
+        self.assertNotIn("candidate Amendment 7", contract)
         self.assertIn("In Review contract index", contract)
         self.assertIn("In Review consumer-boundary prose candidate", piko)
         self.assertNotIn("本文的 Approved 状态", contract + piko)
 
-    def test_amendment_seven_deadline_and_seat_oracles(self):
+    def test_amendment_eight_deadline_and_client_fairness_oracles(self):
         fixture = self.load(FIXTURES / "v0.3" / "deadline-seat-fairness-fixtures.json")
         cases = {case["id"]: case for case in fixture["cases"]}
         self.assertEqual("Released", cases["queued-expiry-wins-cas"]["expected"]["capacity_hold_status"])
@@ -265,25 +265,36 @@ class ContractSemanticsV03Tests(unittest.TestCase):
         self.assertEqual("Running", cases["dispatch-wins-before-deadline-check"]["expected"]["status"])
         self.assertFalse(cases["dispatch-wins-before-deadline-check"]["expected"]["release_without_evidence"])
         self.assertEqual(200, cases["backend-succeeds-after-caller-timeout"]["expected"]["same_post_http_status"])
+        self.assertTrue(cases["backend-succeeds-after-caller-timeout"]["expected"]["deadline_exceeded_at_retained"])
+        self.assertFalse(cases["queued-expiry-wins-cas"]["expected"]["piko_task_terminal_prescribed"])
         self.assertFalse(cases["cancel-request-accepted-not-stopped"]["expected"]["release_allowed"])
         self.assertFalse(cases["restart-clock-rollback"]["expected"]["deadline_extended"])
         self.assertEqual(408, cases["no-id-replay-after-deadline"]["expected"]["http_status"])
         self.assertFalse(cases["no-id-replay-after-deadline"]["expected"]["replay_old_429"])
         self.assertEqual(409, cases["changed-deadline-conflicts"]["expected"]["http_status"])
         self.assertFalse(cases["fairness-weight-missing"]["expected"]["implicit_default"])
-        fair = cases["weighted-round-robin-finite-round"]["expected"]
-        self.assertEqual(sum(lane["weight"] for lane in cases["weighted-round-robin-finite-round"]["active_lanes"]), fair["max_opportunities_per_stable_round"])
-        self.assertTrue(fair["each_continuously_eligible_lane_selected_at_least_once"])
+        self.assertFalse(cases["request-deadline-earlier-than-task"]["expected"]["llmtier_prescribes_task_terminal"])
+        self.assertEqual("2026-09-16T09:58:00.000Z", cases["catalog-deadline-earlier-than-request"]["expected"]["effective_deadline_at"])
+        fair = cases["client-weight-not-multiplied-by-lanes"]["expected"]
+        self.assertEqual({"client-a": 1, "client-b": 1}, fair["client_opportunity_ratio"])
+        self.assertFalse(fair["source_count_amplifies_client_share"])
+        self.assertTrue(cases["shared-group-cross-domain-arbitration"]["expected"]["local_and_group_grants_atomic"])
 
-    def test_amendment_seven_observation_and_cost_oracles(self):
+    def test_amendment_eight_observation_unknown_and_cost_oracles(self):
         fixture = self.load(FIXTURES / "v0.3" / "observation-cost-fixtures.json")
         cases = {case["id"]: case for case in fixture["cases"]}
         self.assertFalse(cases["next-seat-resource-facts"]["oracle"]["project_requirement_inferred"])
         self.assertFalse(cases["next-seat-resource-facts"]["oracle"]["shared_group_shortfalls_summed"])
         self.assertTrue(cases["next-seat-resource-facts"]["oracle"]["constraint_facts_complete"])
         blockers = set(cases["next-seat-resource-facts"]["blocking_constraints"])
-        expected_blockers = {fact["constraint_id"] for fact in cases["next-seat-resource-facts"]["constraint_facts"] if fact["shortfall_for_next_seat"] > 0}
+        expected_blockers = {fact["constraint_id"] for fact in cases["next-seat-resource-facts"]["constraint_facts"] if fact["is_blocking"]}
         self.assertEqual(expected_blockers, blockers)
+        all_blocked = cases["all-capacity-constraints-block"]
+        self.assertEqual({fact["constraint_id"] for fact in all_blocked["constraint_facts"]}, set(all_blocked["blocking_constraints"]))
+        unknown = cases["unknown-capacity-blocks"]
+        self.assertIsNone(unknown["constraint_facts"][0]["available"])
+        self.assertIsNone(unknown["constraint_facts"][0]["shortfall_for_next_seat"])
+        self.assertFalse(unknown["oracle"]["admission_allowed"])
         self.assertFalse(cases["unknown-request-quota"]["oracle"]["converted_to_concurrency"])
         for case_id in ["known-provider-cost", "estimated-cost-not-actual", "partial-cost"]:
             self.assertEqual([], self.validate_component("CostEvidence", cases[case_id]["cost"]))
@@ -308,7 +319,7 @@ class ContractSemanticsV03Tests(unittest.TestCase):
         self.assertEqual("#/components/responses/RequestDeadlineExpired", operation["responses"]["408"]["$ref"])
         self.assertNotIn("Location", self.openapi["components"]["responses"]["EmbeddingActiveReplay"]["headers"])
 
-    def test_amendment_seven_deadline_header_and_decision_fields_are_machine_required(self):
+    def test_amendment_eight_deadline_header_and_decision_fields_are_machine_required(self):
         for path in ["/v1/responses", "/v1/embeddings"]:
             refs = {item["$ref"] for item in self.openapi["paths"][path]["post"]["parameters"]}
             self.assertIn("#/components/parameters/RequestDeadlineAt", refs)
@@ -318,17 +329,25 @@ class ContractSemanticsV03Tests(unittest.TestCase):
             ["properties"]["error"]["allOf"][1]["required"]
         )
         self.assertTrue({"decision_created_at", "decision_expires_at", "request_deadline_at", "decision_record_version"}.issubset(required))
+        client = self.openapi["components"]["schemas"]["ClientCreate"]
         entitlement = self.openapi["components"]["schemas"]["EntitlementCreate"]
-        self.assertIn("scheduling_weight", entitlement["required"])
-        self.assertEqual(1, entitlement["properties"]["scheduling_weight"]["minimum"])
+        self.assertIn("scheduling_weight", client["required"])
+        self.assertEqual(1, client["properties"]["scheduling_weight"]["minimum"])
+        self.assertNotIn("scheduling_weight", entitlement["properties"])
         deadline = self.openapi["components"]["parameters"]["RequestDeadlineAt"]
         self.assertEqual("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$", deadline["schema"]["pattern"])
         self.assertIn("canonical digest", deadline["description"])
         invocation = self.openapi["components"]["schemas"]["InvocationView"]
-        self.assertTrue({"cost", "effective_deadline_at", "release_evidence_type", "release_evidence_at"}.issubset(invocation["required"]))
+        self.assertTrue({"cost", "catalog_deadline_at", "effective_deadline_at", "deadline_status", "deadline_exceeded_at", "release_evidence_type", "release_evidence_at"}.issubset(invocation["required"]))
+        for accepted_name in ["InvocationAccepted", "EmbeddingInvocationAccepted"]:
+            accepted_required = set(self.openapi["components"]["schemas"][accepted_name]["required"])
+            self.assertTrue({"request_deadline_at", "catalog_deadline_at", "effective_deadline_at", "deadline_status", "deadline_exceeded_at"}.issubset(accepted_required))
         capacity = self.openapi["components"]["schemas"]["ServiceLevelCapacity"]
         self.assertIn("constraint_facts", capacity["required"])
         self.assertEqual("string", capacity["properties"]["blocking_constraints"]["items"]["type"])
+        self.assertIn("may equal the full set", capacity["properties"]["blocking_constraints"]["description"])
+        constraint = self.openapi["components"]["schemas"]["CapacityConstraintFact"]
+        self.assertTrue({"status", "is_blocking"}.issubset(constraint["required"]))
 
     def test_amendment_seven_rejection_priority_survives_restart_and_concurrency(self):
         fixture = self.load(FIXTURES / "v0.3" / "admission-rejection-fixtures.json")

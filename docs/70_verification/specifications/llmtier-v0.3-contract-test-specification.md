@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-contract-test-specification` |
-| Document Version | `0.3.1-draft.3` |
+| Document Version | `0.3.1-draft.4` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -59,8 +59,8 @@ OpenAPI、compatibility manifest、v0.3 fixtures、当前 Python package boundar
 | CT-REC-002 | lost response、UnknownOutcome、M2-C | timeout/restart/forgotten key | recovery/policy fixtures | no blind redispatch；24h/168h | static PASS；crash evidence BLOCKED | P0 |
 | CT-OBS-001 | Observation/Seat、ETag、pagination、invalidation | current/stale/invalid/unknown quota | observation/capacity fixtures | OpenAPI + capacity rules | semantic tests；Slinky E2E 待补 | P0 |
 | CT-ADM-001 | pre-admission rejection 与 decision replay | capacity/quota/readiness/validity reject、同 key replay/expiry | admission fixtures | 429 + Retry-After；无 Location/Invocation/Seat/dispatch | schema/static candidate；runtime BLOCKED | P0 |
-| CT-DEADLINE-001 | queue/dispatch 原子边界与 Seat 释放证据 | expiry race、Running timeout、crash clock rollback、无 ID 超期 replay | deadline-seat-fairness fixtures | no dispatch 或保留 UnknownOutcome/Held；不因 timeout 猜测释放 | static candidate；故障注入 BLOCKED | P0 |
-| CT-COST-001 | 资源事实与费用可解释性 | next-seat constraint、unknown queue、known/estimated/partial cost、mixed currency/version | observation-cost fixtures | 不隐含 Project 需求、不求和 group gap、不换汇、不补零 | schema/static candidate；Slinky E2E BLOCKED | P1 |
+| CT-DEADLINE-001 | queue/dispatch 原子边界、期限分层、Seat 释放证据与 Client 公平性 | expiry race、request/catalog/task deadline、晚到成功、A 两 lane/B 一 lane、跨 domain shared group、无 ID 超期 replay | deadline-seat-fairness fixtures | 不规定 Piko task 终态；deadline fact 保留；Client 份额不随 lane 数放大；无证据不释放 | static candidate；故障注入 BLOCKED | P0 |
+| CT-COST-001 | 资源事实与费用可解释性 | next-seat constraint、全部阻塞、unknown capacity/queue、known/estimated/partial cost、mixed currency/version | observation-cost fixtures | Unknown capacity 显式阻塞且数值 null；blocker 可等于全部 facts；不隐含 Project 需求、不求和 group gap、不换汇、不补零 | schema/static candidate；Slinky E2E BLOCKED | P1 |
 | CT-EMB-REC-001 | Embeddings POST-local recovery | active/terminal/无 ID/过期 | embedding-recovery fixtures | 标准 200 与 recovery envelope 可区分；无 Responses GET | candidate；Knowledge review BLOCKED | P0 |
 | CT-MGT-001 | Management method/path/DTO/concurrency | create/update/list/job/recovery | management fixtures | OpenAPI + typed errors | semantic tests；API/UI run BLOCKED | P0 |
 | CT-SEC-001 | secret non-disclosure 与 Client isolation | read secret、cross-client/source | auth/management fixtures | deny/no secret material | static shape PASS；runtime security BLOCKED | P0 |
