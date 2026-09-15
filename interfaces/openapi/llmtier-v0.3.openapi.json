@@ -1,6 +1,6 @@
 {
   "openapi": "3.1.0",
-  "info": {"title": "LLMTier V0.3 Contract", "version": "0.3-candidate-amendment-4"},
+  "info": {"title": "LLMTier V0.3 Contract", "version": "0.3-candidate-amendment-5"},
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
   "x-contract-status": "candidate_not_active",
   "x-runtime-activation": false,
@@ -23,6 +23,7 @@
         "responses": {
           "200": {"description": "Canonical OpenAI-compatible non-stream Response", "headers": {"X-Tier-Invocation-ID": {"$ref": "#/components/headers/InvocationID"}}, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ResponsesResponse"}}}},
           "202": {"$ref": "#/components/responses/ActiveReplay"},
+          "429": {"$ref": "#/components/responses/AdmissionRejected"},
           "409": {"$ref": "#/components/responses/TerminalOrConflict"},
           "502": {"$ref": "#/components/responses/TerminalFailure"},
           "503": {"$ref": "#/components/responses/UnknownOutcome"},
@@ -42,7 +43,7 @@
           {"$ref": "#/components/parameters/SourceInstanceID"}
         ],
         "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/EmbeddingRequest"}}}},
-        "responses": {"200": {"description": "Embedding result", "headers": {"X-Tier-Invocation-ID": {"$ref": "#/components/headers/InvocationID"}}, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/EmbeddingResponse"}}}}, "202": {"$ref": "#/components/responses/ActiveReplay"}, "409": {"$ref": "#/components/responses/TerminalOrConflict"}, "502": {"$ref": "#/components/responses/TerminalFailure"}, "503": {"$ref": "#/components/responses/UnknownOutcome"}, "default": {"$ref": "#/components/responses/Error"}}
+        "responses": {"200": {"description": "Embedding result", "headers": {"X-Tier-Invocation-ID": {"$ref": "#/components/headers/InvocationID"}}, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/EmbeddingResponse"}}}}, "202": {"$ref": "#/components/responses/ActiveReplay"}, "429": {"$ref": "#/components/responses/AdmissionRejected"}, "409": {"$ref": "#/components/responses/TerminalOrConflict"}, "502": {"$ref": "#/components/responses/TerminalFailure"}, "503": {"$ref": "#/components/responses/UnknownOutcome"}, "default": {"$ref": "#/components/responses/Error"}}
       }
     },
     "/v1/models": {
@@ -234,6 +235,7 @@
     },
     "responses": {
       "ActiveReplay": {"description": "Existing active Invocation", "headers": {"Location": {"$ref": "#/components/headers/Location"}, "X-Tier-Invocation-ID": {"$ref": "#/components/headers/InvocationID"}, "Retry-After": {"$ref": "#/components/headers/RetryAfter"}}, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/InvocationAccepted"}}}},
+      "AdmissionRejected": {"description": "Pre-dispatch admission rejection; no Seat, Invocation, Location, or backend dispatch exists", "headers": {"Retry-After": {"$ref": "#/components/headers/RetryAfter"}}, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/AdmissionRejectedEnvelope"}}}},
       "TerminalOrConflict": {"description": "Cancelled terminal replay or digest conflict tied to the already existing invocation", "headers": {"Location": {"$ref": "#/components/headers/Location"}, "X-Tier-Invocation-ID": {"$ref": "#/components/headers/InvocationID"}}, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/TerminalErrorEnvelope"}}}},
       "TerminalFailure": {"description": "Failed terminal replay", "headers": {"Location": {"$ref": "#/components/headers/Location"}, "X-Tier-Invocation-ID": {"$ref": "#/components/headers/InvocationID"}}, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/TerminalErrorEnvelope"}}}},
       "UnknownOutcome": {"description": "Outcome requires manual reconciliation", "headers": {"Location": {"$ref": "#/components/headers/Location"}, "X-Tier-Invocation-ID": {"$ref": "#/components/headers/InvocationID"}}, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/TerminalErrorEnvelope"}}}},
@@ -243,8 +245,9 @@
       "ObservationError": {"description": "Source identity or requested Contract cannot be resolved", "x-error-codes": ["source_error", "contract_mismatch"], "content": {"application/json": {"schema": {"oneOf": [{"$ref": "#/components/schemas/SourceError"}, {"$ref": "#/components/schemas/ContractMismatch"}]}}}}
     },
     "schemas": {
-      "ErrorDetail": {"type": "object", "additionalProperties": false, "required": ["message", "type", "code", "param", "retryable"], "properties": {"message": {"type": "string"}, "type": {"type": "string", "minLength": 1}, "code": {"type": "string", "minLength": 1}, "param": {"type": ["string", "null"]}, "retryable": {"type": "boolean"}, "retry_after_ms": {"type": ["integer", "null"], "minimum": 0}, "invocation_id": {"type": ["string", "null"]}}},
+      "ErrorDetail": {"type": "object", "additionalProperties": false, "required": ["message", "type", "code", "param", "retryable"], "properties": {"message": {"type": "string"}, "type": {"type": "string", "minLength": 1}, "code": {"type": "string", "minLength": 1}, "param": {"type": ["string", "null"]}, "retryable": {"type": "boolean"}, "retry_after_ms": {"type": ["integer", "null"], "minimum": 0}, "invocation_id": {"type": ["string", "null"]}, "admission_decision_id": {"type": ["string", "null"]}}},
       "ErrorEnvelope": {"type": "object", "additionalProperties": false, "required": ["error"], "properties": {"error": {"$ref": "#/components/schemas/ErrorDetail"}}},
+      "AdmissionRejectedEnvelope": {"type": "object", "additionalProperties": false, "required": ["error"], "properties": {"error": {"allOf": [{"$ref": "#/components/schemas/ErrorDetail"}, {"type": "object", "required": ["admission_decision_id", "retry_after_ms"], "properties": {"admission_decision_id": {"type": "string", "minLength": 1}, "invocation_id": {"type": "null"}, "retry_after_ms": {"type": "integer", "minimum": 0}, "code": {"enum": ["capacity_exhausted", "quota_exhausted", "client_quota_unknown", "service_level_unavailable", "capacity_snapshot_invalid"]}}}]}}},
       "SourceError": {"type": "object", "additionalProperties": false, "required": ["error"], "properties": {"error": {"allOf": [{"$ref": "#/components/schemas/ErrorDetail"}, {"type": "object", "properties": {"code": {"const": "source_error"}}}]}}},
       "ContractMismatch": {"type": "object", "additionalProperties": false, "required": ["error"], "properties": {"error": {"allOf": [{"$ref": "#/components/schemas/ErrorDetail"}, {"type": "object", "properties": {"code": {"const": "contract_mismatch"}}}]}}},
       "TerminalErrorEnvelope": {"type": "object", "additionalProperties": false, "required": ["error"], "properties": {"error": {"allOf": [{"$ref": "#/components/schemas/ErrorDetail"}, {"type": "object", "required": ["invocation_id"], "properties": {"invocation_id": {"type": "string", "minLength": 1}, "code": {"enum": ["invocation_failed", "invocation_cancelled", "invocation_outcome_unknown"]}}}]}}},

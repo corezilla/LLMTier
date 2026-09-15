@@ -1,5 +1,5 @@
 {
-  "fixture_version": "0.3-candidate-amendment-4",
+  "fixture_version": "0.3-candidate-amendment-5",
   "cases": [
     {
       "id": "readiness-complete",
@@ -23,7 +23,7 @@
       "id": "compatibility-complete",
       "schema": "CompatibilityView",
       "valid": true,
-      "body": {"manifest_version": "0.3-candidate-amendment-4", "overall_contract_status": "candidate", "overall_runtime_activation": false, "endpoints": [{"method": "POST", "path": "/v1/responses", "support": "v0.3_required_active_candidate", "supported_fields": ["model", "input", "store"], "unsupported_fields": ["stream=true"], "streaming": false, "response_schema_version": "ResponsesResponse/v0.3", "error_contract_version": "ErrorEnvelope/v0.3", "sdk_matrix": ["openai@6.40.0:piko-capture-pending"]}], "effective_at": null}
+      "body": {"manifest_version": "0.3-candidate-amendment-5", "overall_contract_status": "candidate", "overall_runtime_activation": false, "endpoints": [{"method": "POST", "path": "/v1/responses", "support": "v0.3_required_active_candidate", "supported_fields": ["model", "input", "store"], "unsupported_fields": ["stream=true"], "streaming": false, "response_schema_version": "ResponsesResponse/v0.3", "error_contract_version": "ErrorEnvelope/v0.3", "sdk_matrix": ["openai@6.40.0:piko-capture-pending"]}], "effective_at": null}
     },
     {
       "id": "admin-capacity-aggregate-no-client-filter",

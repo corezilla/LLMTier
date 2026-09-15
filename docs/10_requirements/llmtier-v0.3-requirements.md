@@ -4,8 +4,8 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-requirements` |
-| Document Version | `0.3.0` |
-| Status | `Approved` |
+| Document Version | `0.3.1-draft.1` |
+| Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-09` |
+| Last Modified Date | `2026-09-15` |
 | Template Version | `0.1.0` |
 | Template ID | `requirements.specification` |
 | Template Conformance | `tailored` |
@@ -69,11 +69,12 @@ Memory/Knowledge Client 是 Embeddings consumer，管理员使用 Management API
 |---|---|---|---|---|---|
 | LT-FUN-001 | LLMTier shall 仅提供 V0.3 Scope B 的 Responses/Embeddings non-stream、Models 与 recovery surface，并对 Chat/SSE/streaming fail closed | design §1/3；Piko control | P0 | CT-DP-001 | Candidate/static PASS；runtime BLOCKED |
 | LT-FUN-002 | LLMTier shall 使用单一 Service Level Registry 驱动 Models、Observation、admission、capacity membership 与 manifest | design §5 | P0 | CT-REG-001 | Candidate/static PASS；runtime BLOCKED |
-| LT-FUN-003 | LLMTier shall 在 backend dispatch 前持久化 idempotency digest、Invocation 与 dispatch intent，并支持 canonical recovery | design §7-9；Piko control | P0 | CT-REC-001/002 | Fixture PASS；runtime BLOCKED |
+| LT-FUN-003 | LLMTier shall 先持久化 idempotency decision；仅 admission 成功才原子授予 Seat 并创建 Invocation/dispatch intent，且在 backend dispatch 前形成 recovery obligation | design §6/10；Piko control | P0 | CT-ADM-001/CT-REC-001/002 | Candidate/static PASS；runtime BLOCKED |
 | LT-FUN-004 | LLMTier shall 提供 Client-scoped、只读 Observation，并表达 readiness、capacity、Invocation、usage 与 compatibility | Slinky control | P0 | CT-OBS-001 | Static PASS；Slinky E2E BLOCKED |
 | LT-FUN-005 | LLMTier shall 通过 `/tier/admin/v1` 与最小 Admin UI 管理 Registry、Provider、Client/Source、capacity、Job、audit 与 recovery | Management control | P0 | CT-MGT-001 | Static PASS；implementation BLOCKED |
 | LT-FUN-006 | LLMTier shall 对 UnknownOutcome 只允许 manual reconcile，不自动 redispatch | Piko/Management controls | P0 | CT-REC-002 | Fixture PASS；runtime BLOCKED |
 | LT-FUN-007 | LLMTier shall 作为独立 Python 服务提供唯一 service/operator entry point，并将现有 legacy API 与未激活 V0.3 API 明确区分 | system design §5/7；operations | P1 | CT-PKG-001/CT-OPS-001 | Current CLI PASS；V0.3 runtime BLOCKED |
+| LT-FUN-008 | V0.3 Responses non-stream shall 接受多轮 message、声明 function tools、返回 function_call，并接受相同 call_id 的 function_call_output；LLMTier shall 不执行工具 | Slinky L3；Piko control；design §11.2 | P0 | CT-DP-001/Piko capture | Schema candidate PASS；consumer/runtime BLOCKED |
 
 ## 5. 接口需求
 
@@ -91,6 +92,7 @@ Memory/Knowledge Client 是 Embeddings consumer，管理员使用 Management API
 |---|---|---|---|
 | LT-CAP-001 | committed capacity shall 以 `concurrent_invocation` 计量，并同时满足 direct、全部 shared/overlapping group、Client quota、readiness 与 `valid_until` | CT-OBS-001/CT-PERF-001 | Fixture PASS；production BLOCKED |
 | LT-CAP-002 | unknown quota、过期 snapshot 或不一致 membership shall 阻止新增 committed Seat，不得折算为零或可用 | CT-OBS-001 | Fixture PASS；runtime BLOCKED |
+| LT-CAP-003 | pre-admission 不满足 shall 返回 429 typed rejection，Seat/Invocation/dispatch 均为零；同 key/digest 只可按 decision expiry 重新 admission | CT-ADM-001 | Candidate amendment；runtime BLOCKED |
 | LT-PERF-001 | production SLO shall 固定 provider/model/config、拓扑、工作负载、样本和统计口径后测量 | CT-PERF-001 | BLOCKED：baseline 未批准 |
 
 ## 7. 安全、可靠性与合规需求

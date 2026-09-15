@@ -213,6 +213,40 @@ class ContractSemanticsV03Tests(unittest.TestCase):
         self.assertEqual(0, no_id["expected"]["additional_dispatch_if_record_exists"])
         self.assertFalse(no_id["expected"]["unknown_outcome_redispatch"])
 
+    def test_pre_admission_rejection_has_no_invocation_or_dispatch(self):
+        fixture = self.load(FIXTURES / "v0.3" / "admission-rejection-fixtures.json")
+        responses = self.openapi["paths"]["/v1/responses"]["post"]["responses"]
+        embeddings = self.openapi["paths"]["/v1/embeddings"]["post"]["responses"]
+        self.assertEqual("#/components/responses/AdmissionRejected", responses["429"]["$ref"])
+        self.assertEqual(responses["429"], embeddings["429"])
+        admission_response = self.openapi["components"]["responses"]["AdmissionRejected"]
+        self.assertEqual(["Retry-After"], list(admission_response["headers"]))
+        self.assertNotIn("Location", admission_response["headers"])
+        self.assertNotIn("X-Tier-Invocation-ID", admission_response["headers"])
+        for endpoint in self.manifest["data_plane_endpoints"]:
+            if endpoint["method"] == "POST":
+                self.assertEqual(
+                    "openapi/llmtier-v0.3.openapi.json#/components/responses/AdmissionRejected",
+                    endpoint["pre_admission_rejection_response_ref"],
+                )
+
+        for case in fixture["cases"]:
+            if "response" not in case:
+                continue
+            with self.subTest(case=case["id"]):
+                self.assertEqual(429, case["response"]["http_status"])
+                errors = self.validate_component("AdmissionRejectedEnvelope", case["response"]["body"])
+                self.assertEqual([], errors, [error.message for error in errors])
+                self.assertIsNone(case["response"]["body"]["error"]["invocation_id"])
+                self.assertEqual(0, case["oracle"]["seat_grant_count"])
+                self.assertEqual(0, case["oracle"]["invocation_create_count"])
+                self.assertEqual(0, case["oracle"]["backend_dispatch_count"])
+
+        expired = next(case for case in fixture["cases"] if case["id"] == "re-evaluate-after-decision-expiry")
+        self.assertEqual(1, expired["oracle"]["admission_evaluation_count"])
+        self.assertFalse(expired["oracle"]["new_idempotency_key"])
+        self.assertFalse(expired["oracle"]["cross_level_fallback"])
+
     def test_authorization_scope_fixtures_preserve_three_surface_boundaries(self):
         cases = {case["id"]: case for case in self.load(AUTHORIZATION_SCOPE_FIXTURE_PATH)["cases"]}
         positive = cases["observation-same-client-authorized-multiple-sources-positive"]

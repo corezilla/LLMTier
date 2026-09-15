@@ -1,0 +1,82 @@
+{
+  "schema_version": "llmtier.admission-rejection-fixtures.v0.3",
+  "contract_status": "candidate_not_active",
+  "cases": [
+    {
+      "id": "pre-admission-capacity-exhausted",
+      "request": {
+        "same_key_and_digest": true,
+        "existing_decision": false,
+        "capacity_available": false
+      },
+      "response": {
+        "http_status": 429,
+        "headers": {"Retry-After": 2},
+        "body": {
+          "error": {
+            "message": "No committed invocation seat is currently available.",
+            "type": "admission_error",
+            "code": "capacity_exhausted",
+            "param": null,
+            "retryable": true,
+            "retry_after_ms": 2000,
+            "invocation_id": null,
+            "admission_decision_id": "admit_dec_01"
+          }
+        }
+      },
+      "oracle": {
+        "seat_grant_count": 0,
+        "invocation_create_count": 0,
+        "backend_dispatch_count": 0,
+        "location_header_present": false,
+        "invocation_header_present": false
+      }
+    },
+    {
+      "id": "same-rejection-before-decision-expiry",
+      "request": {
+        "same_key_and_digest": true,
+        "existing_decision": true,
+        "decision_expired": false
+      },
+      "response": {
+        "http_status": 429,
+        "headers": {"Retry-After": 2},
+        "body": {
+          "error": {
+            "message": "No committed invocation seat is currently available.",
+            "type": "admission_error",
+            "code": "capacity_exhausted",
+            "param": null,
+            "retryable": true,
+            "retry_after_ms": 2000,
+            "invocation_id": null,
+            "admission_decision_id": "admit_dec_01"
+          }
+        }
+      },
+      "oracle": {
+        "same_decision_id": true,
+        "admission_evaluation_count": 0,
+        "seat_grant_count": 0,
+        "invocation_create_count": 0,
+        "backend_dispatch_count": 0
+      }
+    },
+    {
+      "id": "re-evaluate-after-decision-expiry",
+      "request": {
+        "same_key_and_digest": true,
+        "existing_decision": true,
+        "decision_expired": true
+      },
+      "oracle": {
+        "admission_evaluation_count": 1,
+        "may_create_invocation_only_if_admitted": true,
+        "cross_level_fallback": false,
+        "new_idempotency_key": false
+      }
+    }
+  ]
+}

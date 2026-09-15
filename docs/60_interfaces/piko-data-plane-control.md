@@ -4,8 +4,8 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | llmtier-piko-data-plane-control |
-| Document Version | 0.3.0 |
-| Status | Approved |
+| Document Version | 0.3.1-draft.1 |
+| Status | In Review |
 | Project | LLMTier |
 | Authority | LLMTier |
 | Document Owner | LLMTier |
@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | 2026-09-07 |
 | Created Date | 2026-09-07 |
-| Last Modified Date | 2026-09-09 |
+| Last Modified Date | 2026-09-15 |
 | Template Version | `0.1.0` |
 | Template ID | interfaces.control |
 | Template Conformance | tailored |
@@ -83,7 +83,8 @@ X-Tier-Client-Request-ID 是 Piko correlation ID。Metadata 最多 16 对，key/
 ## 5. 状态机、顺序和时序
 
 Invocation active 状态为 Pending、Queued、Running；terminal 为 Succeeded、Failed、Cancelled、
-UnknownOutcome。首次请求在 backend dispatch 前必须持久化 digest、Invocation 和 dispatch intent。
+UnknownOutcome。首次请求先保存 key/digest decision record；admission 成功后才原子授予 Seat、创建
+Invocation/dispatch intent/recovery obligation，随后允许 backend dispatch。
 
 同 namespace/key/digest 的 active replay 返回 202 InvocationAccepted；Succeeded replay 返回原 endpoint
 canonical 200 body；其他 terminal replay 返回 typed non-2xx。Succeeded 通过 response_ref 指向唯一
@@ -102,11 +103,17 @@ digest 覆盖 exact Service Level、规范化 body 和影响语义的 headers。
 hidden/无权/不存在统一为 404；保留窗口内暂不可读为 503；能证明过期的同 scope tombstone 为 410。
 Failed/Cancelled/UnknownOutcome 不得盲重派。
 
+pre-admission capacity/quota/readiness/validity 不满足返回 429 AdmissionRejectedEnvelope + Retry-After，
+不返回 Location/Invocation ID，且 Seat/Invocation/backend dispatch 均为零。同 key/digest 在 decision expiry
+前重放相同拒绝；到期后只允许重新 admission，不允许绕过约束或换等级。
+
 ## 7. 并发、流控、容量与性能
 
 唯一 Seat 单位是 concurrent_invocation。LLMTier admission 同时检查 direct capacity、全部
 shared/overlapping groups、Client quota、readiness、blocking reason 和 valid_until。Piko 不预测或覆盖
 admission，active replay 的 Retry-After 也不授权新 dispatch。
+V0.3 不提供 pre-admission 等待队列；不满足 admission 立即 429。admission 后的内部 execution queue 必须
+受尚待冻结的 Invocation deadline 约束，在该数值和 terminal mapping 接受前 runtime activation=false。
 
 当前没有 production throughput/latency evidence；静态 contract tests 不能转写为 measured SLO。
 

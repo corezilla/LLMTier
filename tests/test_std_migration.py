@@ -132,7 +132,7 @@ class StdMigrationTests(unittest.TestCase):
         path = ROOT / "docs" / "20_system_design" / "llmtier-system-design.md"
         text = path.read_text(encoding="utf-8")
         self.assertEqual(5, text.count("```mermaid"))
-        self.assertIn("### 3.2 System Context（C4 Level 1）", text)
+        self.assertIn("#### System Context（C4 Level 1）", text)
         self.assertIn("### 5.1 Container View（C4 Level 2）", text)
         self.assertIn("### 5.2 LLMTier Service Component View（C4 Level 3 / arc42 Level-1 Whitebox）", text)
         self.assertIn('subgraph LT["LLMTier software system"]', text)
@@ -158,7 +158,7 @@ class StdMigrationTests(unittest.TestCase):
             self.assertIn(f"| L{requirement} ", text)
         self.assertIn("function_call_output", text)
         self.assertIn("相同 `call_id`", text)
-        self.assertIn("最大等待与超时起点", text)
+        self.assertIn("内部 queue/deadline 上限", text)
         self.assertIn("Unknown/Partial", text)
         self.assertIn("无 ID 用原 namespace/key/digest replay", text)
         self.assertIn("不请求 runtime activation", text)
@@ -166,13 +166,13 @@ class StdMigrationTests(unittest.TestCase):
 
     def test_c1_interface_and_contract_candidates_preserve_machine_authority(self):
         candidates = {
-            "piko-data-plane-control.md": ("interfaces.control", "962e8003712738d2cb4e3a0a38173a9fd2bdd0a1", "docs/99_reference/contracts/piko-data-plane-contract-v0.3.md"),
-            "slinky-capacity-observation-control.md": ("interfaces.control", "e1f9b796368ec5f358e466c7e6299cc16b1bf181", "docs/99_reference/contracts/slinky-capacity-observation-contract-v0.3.md"),
-            "llmtier-management-control.md": ("interfaces.control", "962e8003712738d2cb4e3a0a38173a9fd2bdd0a1", "docs/99_reference/contracts/llmtier-management-contract-v0.3.md"),
-            "contracts/llmtier-v0.3-contract-specification.md": ("contracts.specification", "962e8003712738d2cb4e3a0a38173a9fd2bdd0a1", None),
+            "piko-data-plane-control.md": ("interfaces.control", "review", None, "docs/99_reference/contracts/piko-data-plane-contract-v0.3.md"),
+            "slinky-capacity-observation-control.md": ("interfaces.control", "accepted", "e1f9b796368ec5f358e466c7e6299cc16b1bf181", "docs/99_reference/contracts/slinky-capacity-observation-contract-v0.3.md"),
+            "llmtier-management-control.md": ("interfaces.control", "accepted", "962e8003712738d2cb4e3a0a38173a9fd2bdd0a1", "docs/99_reference/contracts/llmtier-management-contract-v0.3.md"),
+            "contracts/llmtier-v0.3-contract-specification.md": ("contracts.specification", "review", None, None),
         }
         root = ROOT / "docs" / "60_interfaces"
-        for relative_path, (template_id, reviewed_commit, supersedes) in candidates.items():
+        for relative_path, (template_id, status, reviewed_commit, supersedes) in candidates.items():
             path = root / relative_path
             metadata_path = path.with_suffix(".metadata.json")
             text = path.read_text(encoding="utf-8")
@@ -181,7 +181,7 @@ class StdMigrationTests(unittest.TestCase):
             self.assertEqual(template_id, metadata["template_id"])
             self.assertEqual("tailored", metadata["template_conformance"])
             self.assertEqual("std-tailoring", metadata["tailoring_ref"])
-            self.assertEqual("accepted", metadata["status"])
+            self.assertEqual(status, metadata["status"])
             self.assertEqual(reviewed_commit, metadata["reviewed_commit"])
             self.assertEqual(supersedes, metadata["supersedes"])
             self.assertIn("openapi/llmtier-v0.3.openapi.json", text)
@@ -225,8 +225,9 @@ class StdMigrationTests(unittest.TestCase):
             self.assertEqual(source_hashes[template_paths[template_id]], metadata["template_sha256"])
             self.assertEqual("tailored", metadata["template_conformance"])
             self.assertEqual("std-tailoring", metadata["tailoring_ref"])
-            self.assertEqual("accepted", metadata["status"])
-            self.assertEqual("962e8003712738d2cb4e3a0a38173a9fd2bdd0a1", metadata["reviewed_commit"])
+            expected_review = template_id == "assurance.test-specification"
+            self.assertEqual("review" if expected_review else "accepted", metadata["status"])
+            self.assertEqual(None if expected_review else "962e8003712738d2cb4e3a0a38173a9fd2bdd0a1", metadata["reviewed_commit"])
             self.assertIsNone(metadata["supersedes"])
             self.assertNotIn("<!-- TODO -->", text)
             self.assertIn("Runtime Activation", text)
@@ -260,8 +261,8 @@ class StdMigrationTests(unittest.TestCase):
             self.assertEqual(source_hashes[template_paths[template_id]], metadata["template_sha256"])
             self.assertEqual("tailored", metadata["template_conformance"])
             self.assertEqual("std-tailoring", metadata["tailoring_ref"])
-            self.assertEqual("accepted", metadata["status"])
-            self.assertEqual("962e8003712738d2cb4e3a0a38173a9fd2bdd0a1", metadata["reviewed_commit"])
+            self.assertEqual("review", metadata["status"])
+            self.assertIsNone(metadata["reviewed_commit"])
             self.assertNotIn("<!-- TODO -->", text)
 
         requirements = (root / "llmtier-v0.3-requirements.md").read_text(encoding="utf-8")
@@ -356,7 +357,15 @@ class StdMigrationTests(unittest.TestCase):
         canonical_paths = set()
         for path in substantive:
             metadata = json.loads(path.read_text(encoding="utf-8"))
-            if metadata["document_id"] == "llmtier-system-design":
+            review_documents = {
+                "llmtier-system-design",
+                "llmtier-v0.3-requirements",
+                "llmtier-v0.3-traceability",
+                "llmtier-piko-data-plane-control",
+                "llmtier-v0.3-contract-specification",
+                "llmtier-v0.3-contract-test-specification",
+            }
+            if metadata["document_id"] in review_documents:
                 self.assertEqual("review", metadata["status"])
                 self.assertIsNone(metadata["reviewed_commit"])
             else:

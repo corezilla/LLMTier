@@ -4,8 +4,8 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | llmtier-v0.3-contract-specification |
-| Document Version | 0.3.0 |
-| Status | Approved |
+| Document Version | 0.3.1-draft.1 |
+| Status | In Review |
 | Project | LLMTier |
 | Authority | LLMTier |
 | Document Owner | LLMTier |
@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | 2026-09-07 |
 | Created Date | 2026-09-07 |
-| Last Modified Date | 2026-09-09 |
+| Last Modified Date | 2026-09-15 |
 | Template Version | `0.1.0` |
 | Template ID | contracts.specification |
 | Template Conformance | tailored |
@@ -78,6 +78,12 @@ UnknownOutcome。POST active replay 是 202 InvocationAccepted；Succeeded repla
 body；Failed 为 502 invocation_failed；Cancelled 为 409 invocation_cancelled；UnknownOutcome 为
 503 invocation_outcome_unknown 且 retryable=false。
 
+Pre-admission rejection 不属于 Invocation terminal state。服务先保存 content-free
+IdempotencyDecisionRecord；capacity、quota、readiness、Registry 或 snapshot validity 不满足时返回
+`429 AdmissionRejectedEnvelope` 与 `Retry-After`，正文含 `admission_decision_id`、typed reason、
+retryability 和 retry delay，且 `invocation_id=null`。该结果授予 Seat=0、创建 Invocation=0、
+backend dispatch=0；同 key/digest 在 decision expiry 前重复相同决定，到期后可重新执行 admission。
+
 通用错误包括 model_not_found、unsupported_endpoint、unsupported_feature、not_found、
 idempotency_conflict、source_error、contract_mismatch、client_quota_unknown 和 version_conflict。
 具体 HTTP mapping、envelope 和 header 以 OpenAPI 为准。
@@ -88,9 +94,10 @@ Embeddings consumer 和 production SLO evidence 缺失。
 
 ## 5. 幂等、并发、事务与一致性
 
-Responses 在 backend dispatch 前事务性持久化 request digest、Invocation、dispatch intent 和 recovery
-obligation。同 namespace/key/digest 的所有 replay additional dispatch=0；同 key/different digest
-为不可重试 conflict。
+Responses 先持久化 key/digest IdempotencyDecisionRecord；只有 admission 成功时才在同一原子事务中
+授予 Seat 并创建 Invocation、dispatch intent 和 recovery obligation，随后才允许 backend dispatch。
+同 namespace/key/digest 的 Invocation replay additional dispatch=0；同 key/different digest 为不可重试
+conflict。pre-admission rejection 不建立 Invocation/Location，不能被误当成 terminal recovery。
 
 Management create/action POST 使用 Idempotency-Key；PATCH 同时使用 If-Match 和 expected_version；
 async mutation 返回 AdminJob。Registry/manifest/Models/Observation/admission 对 exact ID、catalog

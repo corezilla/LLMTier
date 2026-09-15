@@ -4,8 +4,8 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-traceability` |
-| Document Version | `0.3.0` |
-| Status | `Approved` |
+| Document Version | `0.3.1-draft.1` |
+| Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-09` |
+| Last Modified Date | `2026-09-15` |
 | Template Version | `0.1.0` |
 | Template ID | `requirements.traceability` |
 | Template Conformance | `tailored` |
@@ -43,9 +43,10 @@ production evidence 的行不得标为 covered/accepted。
 | Need | Requirement | Design | Interface/Contract | Implementation | Verification/Test | Evidence | Status |
 |---|---|---|---|---|---|---|---|
 | 唯一安全推理入口 | LT-FUN-001、LT-INT-001 | system design §1-5 | Piko control；OpenAPI；manifest | V0.3 route wiring 未证明 | CT-DP-001、CT-ID-001 | fixture/semantic tests | static-covered；blocked-runtime |
+| Piko 多轮工具交互 | LT-FUN-008 | system design §4/11.2 | Piko control；Responses schemas | LLMTier 不执行工具；真实 adapter capture 未证明 | CT-DP-001 | schema fixture + Piko capture | static-covered；consumer/runtime blocked |
 | 单一 catalog 与准确选择 | LT-FUN-002、LT-INT-001 | system design §4/5/8 | contract spec；OpenAPI/manifest | Registry/admission wiring 未证明 | CT-REG-001 | manifest/ref/authority tests | static-covered；blocked-runtime |
 | durable recovery | LT-FUN-003/006、LT-INT-004、LT-REL-001 | system design §6/8、附录 C | Piko control；OpenAPI | durable ledger/store 未证明 | CT-REC-001/002 | recovery fixtures | static-covered；blocked-runtime |
-| 只读 Seat/Observation | LT-FUN-004、LT-INT-005、LT-CAP-001/002 | system design §3-6、附录 E | Slinky control；OpenAPI | Observation routes 未证明 | CT-OBS-001 | capacity/observation fixtures | static-covered；Slinky E2E blocked |
+| admission 与只读 Seat/Observation | LT-FUN-004、LT-INT-005、LT-CAP-001/002/003 | system design §3-6/10-13、附录 E | Piko/Slinky controls；OpenAPI | admission/Observation routes 未证明 | CT-ADM-001、CT-OBS-001 | admission/capacity/observation fixtures | static-covered；runtime/Slinky E2E blocked |
 | 可管理服务 | LT-FUN-005、LT-INT-002 | system design §3-5/8 | Management control；OpenAPI | API/UI 未证明 | CT-MGT-001 | management fixture/semantic tests | static-covered；blocked-runtime |
 | Client/Source 与 secret 安全 | LT-SEC-001/002、LT-REL-002 | system design §8、附录 D | three controls；OpenAPI | auth/store/log wiring 未证明 | CT-AUTH-001、CT-SEC-001 | authorization fixtures | static-covered；security run blocked |
 | 可观测且不误激活 | LT-OPS-001/002/003 | system design §8/10、附录 E/G | Observation/contract spec；manifest | runtime telemetry 未证明 | CT-OBS-001、CT-REG-001 | activation/static tests | static-covered；blocked-runtime |

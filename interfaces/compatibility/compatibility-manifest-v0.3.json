@@ -1,5 +1,5 @@
 {
-  "manifest_version": "0.3-candidate-amendment-4",
+  "manifest_version": "0.3-candidate-amendment-5",
   "status": "candidate",
   "overall": {
     "contract_status": "candidate",
@@ -73,6 +73,7 @@
       "active_duplicate_status": 202,
       "active_duplicate_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/InvocationAccepted",
       "active_duplicate_response_ref": "openapi/llmtier-v0.3.openapi.json#/components/responses/ActiveReplay",
+      "pre_admission_rejection_response_ref": "openapi/llmtier-v0.3.openapi.json#/components/responses/AdmissionRejected",
       "explicit_piko_recovery_adapter_required": true,
       "terminal_duplicate": "typed_non_2xx_error_envelope",
       "unknown_fields": "reject_unknown_parameter"
@@ -84,6 +85,7 @@
       "modes": ["nonstream"],
       "request_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/EmbeddingRequest",
       "success_response_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/EmbeddingResponse",
+      "pre_admission_rejection_response_ref": "openapi/llmtier-v0.3.openapi.json#/components/responses/AdmissionRejected",
       "consumer_contract_test": "required_from_memory_or_knowledge_consumer",
       "piko_capture_required": false
     },

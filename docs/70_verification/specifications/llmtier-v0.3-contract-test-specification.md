@@ -4,8 +4,8 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-contract-test-specification` |
-| Document Version | `0.3.0` |
-| Status | `Approved` |
+| Document Version | `0.3.1-draft.1` |
+| Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-09` |
+| Last Modified Date | `2026-09-15` |
 | Template Version | `0.1.0` |
 | Template ID | `assurance.test-specification` |
 | Template Conformance | `tailored` |
@@ -58,6 +58,7 @@ OpenAPI、compatibility manifest、v0.3 fixtures、当前 Python package boundar
 | CT-REC-001 | idempotency、202、terminal 与 canonical response | same/different digest、active/terminal | recovery fixtures | OpenAPI statuses/headers/body | semantic tests；durable-store run 待补 | P0 |
 | CT-REC-002 | lost response、UnknownOutcome、M2-C | timeout/restart/forgotten key | recovery/policy fixtures | no blind redispatch；24h/168h | static PASS；crash evidence BLOCKED | P0 |
 | CT-OBS-001 | Observation/Seat、ETag、pagination、invalidation | current/stale/invalid/unknown quota | observation/capacity fixtures | OpenAPI + capacity rules | semantic tests；Slinky E2E 待补 | P0 |
+| CT-ADM-001 | pre-admission rejection 与 decision replay | capacity/quota/readiness/validity reject、同 key replay/expiry | admission fixtures | 429 + Retry-After；无 Location/Invocation/Seat/dispatch | schema/static candidate；runtime BLOCKED | P0 |
 | CT-MGT-001 | Management method/path/DTO/concurrency | create/update/list/job/recovery | management fixtures | OpenAPI + typed errors | semantic tests；API/UI run BLOCKED | P0 |
 | CT-SEC-001 | secret non-disclosure 与 Client isolation | read secret、cross-client/source | auth/management fixtures | deny/no secret material | static shape PASS；runtime security BLOCKED | P0 |
 | CT-REG-001 | 单一 Registry/manifest/admission consistency | catalog/version/ETag change | manifest/OpenAPI | same exact catalog + activation false | semantic tests；runtime consistency BLOCKED | P1 |
@@ -69,7 +70,7 @@ OpenAPI、compatibility manifest、v0.3 fixtures、当前 Python package boundar
 ## 4. 正常、边界、负向与并发场景
 
 每个 P0 surface 至少覆盖一个正常、一个边界和一个负向 case。并发覆盖相同 idempotency key、不同 key、
-同/不同 Client、Capacity Group overlap、Management ETag 冲突和 recovery poll。unknown、expired、missing
+同/不同 Client、Capacity Group overlap、pre-admission decision replay/expiry、Management ETag 冲突和 recovery poll。unknown、expired、missing
 或 malformed input 必须 fail closed；不得自动 lowercasing、alias、Role mapping 或跨等级 fallback。
 
 ## 5. Recovery、重放、幂等与故障注入
