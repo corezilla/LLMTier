@@ -1,5 +1,5 @@
 {
-  "manifest_version": "0.3-finalization-candidate.4",
+  "manifest_version": "0.3-finalization-candidate.5",
   "status": "candidate",
   "overall": {
     "contract_status": "candidate",
@@ -192,8 +192,7 @@
     "active": {"recovery_ready": false, "recovery_disposition": "wait"},
     "succeeded_responses": {"recovery_ready": true, "recovery_disposition": "retrieve_response"},
     "failed_or_cancelled": {"recovery_ready": true, "recovery_disposition": "raise_terminal_error"},
-    "unknown_outcome": {"recovery_ready": true, "recovery_disposition": "manual_reconcile", "automatic_redispatch": false},
-    "source_instance_policy": "optional_observation_correlation_only_not_namespace_or_digest"
+    "unknown_outcome": {"recovery_ready": true, "recovery_disposition": "manual_reconcile", "automatic_redispatch": false}
   },
   "management": {
     "api_prefix": "/tier/admin/v1",
@@ -202,8 +201,6 @@
     "areas": ["provider_account_local_deployment", "model_discovery", "service_level_pool", "credential_binding_source_registration_no_dedicated_ui", "probe_readiness", "capacity_usage_audit_recovery"],
     "admin_web_ui_pages": ["service_levels", "providers_models", "usage_cost", "recovery", "audit"],
     "caller_or_session_management_page": false,
-    "source_instance_registration_or_management": false,
-    "source_instance_policy": "optional_unregistered_observation_label_no_admission_or_recovery_effect",
     "secret_policy": "write_only_never_return_value",
     "status": "candidate_not_active",
     "runtime_activation": false,

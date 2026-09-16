@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | llmtier-slinky-capacity-observation-control |
-| Document Version | 0.3.0 |
+| Document Version | 0.3.1 |
 | Status | Approved |
 | Project | LLMTier |
 | Authority | LLMTier |
@@ -66,9 +66,9 @@ Slinky 只通过已激活的 `/tier/v1` HTTP 分面消费 Observation；不 impo
 
 ## 4. 数据、命令与 Schema
 
-同一 authenticated Client 可在已授权范围内查询/聚合多个 Source。source_id 和
-source_instance_id 只是 filter/grouping dimension；Data Plane recovery 仍严格使用 authenticated
-client_id + canonical source_id。source_instance_id 只用于 correlation、observation 和 audit。
+同一 authenticated Client 可在已授权范围内查询/聚合多个 Source。source_id 是授权范围内的
+filter/grouping dimension；Data Plane recovery 严格使用 authenticated client_id + canonical source_id。
+V0.3 不定义 SourceInstance 字段或过滤维度；诊断关联使用 Client Request ID、Invocation ID 与标准 trace/correlation。
 
 Readiness 显示 Ready/Degraded/NotReady、Tier instance/version、Observation readiness、visible
 Service Levels、snapshot version 与 refresh window。Service Level DTO 描述 kind、capabilities、

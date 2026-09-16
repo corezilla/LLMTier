@@ -1,13 +1,12 @@
 {
-  "fixture_version": "0.3-finalization-candidate.4",
+  "fixture_version": "0.3-finalization-candidate.5",
   "cases": [
     {
       "id": "caller-supplies-complete-current-input",
       "request": {
         "endpoint": "/v1/responses",
         "model": "Worker",
-        "input_contains_current_call_context": true,
-        "source_instance_id": null
+        "input_contains_current_call_context": true
       },
       "expected": {
         "llmtier_loads_prior_agent_history": false,
@@ -30,24 +29,10 @@
       }
     },
     {
-      "id": "source-instance-is-optional-observation-label",
-      "requests": [
-        {"source_instance_id": null},
-        {"source_instance_id": "piko-host-1"}
-      ],
-      "expected": {
-        "both_contract_valid": true,
-        "authorization_scope_unchanged": true,
-        "idempotency_namespace_unchanged": true,
-        "recovery_scope_unchanged": true,
-        "conversation_or_kv_identity_created": false,
-        "managed_resource_created": false,
-        "admission_or_capacity_policy_selected": false
-      }
-    },
-    {
-      "id": "source-instance-has-no-management-lifecycle",
+      "id": "legacy-source-instance-contract-is-rejected",
       "request": {
+        "header": "X-Tier-Source-Instance-ID",
+        "public_field": "source_instance_id",
         "management_paths": [
           "/tier/admin/v1/source-instances",
           "/tier/admin/v1/source-instances/{source_instance_id}"
@@ -55,8 +40,11 @@
         "proposed_fields": ["enabled", "capacity_policy"]
       },
       "expected": {
+        "header_accepted": false,
+        "public_field_present": false,
         "paths_present": false,
         "schemas_present": false,
+        "replacement_identity_added": false,
         "can_authorize_or_block_admission": false,
         "can_change_idempotency_or_recovery_scope": false,
         "can_select_isolated_capacity": false

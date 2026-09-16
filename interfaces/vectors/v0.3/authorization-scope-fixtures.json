@@ -52,13 +52,11 @@
       "surface": "data_plane_recovery",
       "authenticated_client_id": "client-a",
       "canonical_source_id": "source-a1",
-      "source_instance_id": "host-2",
       "attempted_invocation_source_id": "source-a2",
       "expected": {
         "allowed": false,
         "error": "not_found",
-        "namespace": ["authenticated_client_id", "canonical_source_id"],
-        "source_instance_is_namespace": false
+        "namespace": ["authenticated_client_id", "canonical_source_id"]
       }
     }
   ]

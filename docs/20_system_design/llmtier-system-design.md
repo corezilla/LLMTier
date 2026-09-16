@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.3.1-draft.16` |
+| Document Version | `0.3.1-draft.17` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -77,9 +77,9 @@ conversation：LLMTier 不保存或补齐 Agent 历史，不压缩上下文，�
 provider continuation 字段若属于冻结兼容面，只作为 opaque 字段传递，不成为 LLMTier conversation authority。
 
 Invocation、IdempotencyDecision 和 CanonicalResult 是**单次模型调用**的准入、计量和丢响应恢复记录，
-不是会话记录。Client/Source 只用于认证后授权、配额、统计和恢复访问范围；SourceInstance 是可选的运维观察
-标签，不参与 Agent 上下文、幂等 namespace 或恢复隔离。不存在从 Piko Run、Slinky Session、Client、Source
-或 SourceInstance 到模型 conversation/KV 的映射。
+不是会话记录。Client/Source 只用于认证后授权、配额、统计和恢复访问范围。V0.3 不定义跨系统实例身份；
+诊断使用 Client Request ID、Invocation ID 与标准 trace/correlation，LLMTier 自身副本标签只存在内部 telemetry。
+不存在从 Piko Run、Slinky Session、Client 或 Source 到模型 conversation/KV 的映射。
 
 V0.3 Target 仅含 Responses/Embeddings non-stream、Models、Responses recovery、Observation 和 Management。
 Chat/SSE 属于 V0.4。Current `src/` 仍是 legacy baseline，目标 Controller、Registry、durable Ledger、
@@ -212,7 +212,7 @@ flowchart LR
 | L2 能力目录 | 可满足 | `/v1/models`、detail 与 `/tier/v1/service-levels` 来自同一 Registry；`ServiceLevelView` 声明 kind、availability、context、modalities、structured_output、tool_calling、contract/SLO 与有效期 | 实际能力须由可验证 backend profile 支持；不可把两个等级做纯名称 alias |
 | L3 Agent 必需能力 | 可满足（non-stream） | Piko 为每个调用提供完整当前 input；V0.3 Responses schema 支持 `message`、`function_call`、`function_call_output`、`tools`；LLMTier 只校验和透传，不保存历史、不执行工具 | Piko 按 §11.2 的 `call_id`/`name`/`arguments`/`output` 形状对齐；后端 KV/cache 不进入协议；如必须 streaming，先做 scope amendment |
 | L4 容量与排队 | 可满足（Amendment 8 candidate） | admission 同时检验 committed Seat、全部共享/重叠 Capacity Group、Client quota、readiness、有效期；V0.3 pre-admission 不排队，不满足时立即 429 且零 Seat/Invocation/dispatch | deadline canonicalization/digest、queue-expiry/dispatch CAS、Seat 释放证据和 Client 总权重两级 WRR 已定义；具体 catalog 数值及 runtime evidence 仍需 review |
-| L5 多调用方边界 | 可满足 | authenticated Client + authorized canonical Source 只界定授权、配额、统计和调用级恢复访问；SourceInstance 是可选关联/观察标签 | 不形成 Agent Session、多租户产品或独立调用方管理页面；公平性 production evidence 是 activation gate |
+| L5 多调用方边界 | 可满足 | authenticated Client + authorized canonical Source 只界定授权、配额、统计和调用级恢复访问；标准 trace/correlation 只用于诊断 | 不形成 Agent Session、多租户产品、实例身份或独立调用方管理页面；公平性 production evidence 是 activation gate |
 | L6 用量与观察 | 可满足（Amendment 8 candidate） | Invocation 状态/错误、token usage、完整 next-seat constraint facts+blocker 子集、queue estimate freshness、usage 与统一 CostEvidence 已进入候选 DTO；Unknown/Partial 保持 null | Unknown capacity 显式阻塞；费用可 Unknown；Partial 仅为覆盖项小计；不换汇、不把估算当实付；production evidence 仍是 activation gate |
 | L7 故障与恢复 | 可满足 | 未受理不产生已 dispatch Invocation；已受理的 Pending/Queued/Running、Failed、UnknownOutcome 分离；同 client/source/key/digest 恢复，已知 ID 用 GET，丢失头部用原 POST replay；UnknownOutcome 不重派 | M2-C `W=168h`、`M=24h`、`D=24h` 不变；crash/lost-response 零重复 dispatch 尚需 runtime 证据 |
 | L8 独立管理 | 可满足 | `/tier/admin/v1` 与最小 Admin Web UI 管理 Provider/Account/Local Deployment、Registry/Pool、Probe、Capacity、Usage、Audit、Recovery；Secret 只写不读 | Client/Source credential binding 是服务端配置/授权事实，不新增调用方管理页面；实现和 UI 正负测试尚未完成 |
@@ -394,7 +394,7 @@ adapter；紫色圆柱是持久数据或受控 artifact；浅蓝外框是相邻�
 |---|---|---|---|
 | LT-BB-API / LLMTier | 三个 HTTP API 分面；不复制领域状态机 | `/v1`、`/tier/v1`、`/tier/admin/v1`；依赖 IAM/Application Services | Target：计划在 `src/tier_service.py`/`src/server.py` 收敛；runtime BLOCKED |
 | LT-BB-WEB / LLMTier | Admin Web UI presentation、导航、表单和用户可见状态；不保存领域事实、不直连 Provider | `/admin/`；只调用同一服务的 `/tier/admin/v1` 和获授权 `/tier/v1` | Current：`src/web/tier.html` 使用 legacy `/api/tier/*`；Target：计划 `src/web/admin/`，runtime BLOCKED |
-| LT-BB-IAM / LLMTier | credential→Client、canonical Source 授权/Entitlement；不把 SourceInstance 当 recovery namespace | authz decision；依赖配置/credential store | Target：计划 `src/identity/`；未创建，runtime BLOCKED |
+| LT-BB-IAM / LLMTier | credential→Client、canonical Source 授权/Entitlement；不定义跨系统实例身份 | authz decision；依赖配置/credential store | Target：计划 `src/identity/`；未创建，runtime BLOCKED |
 | LT-BB-REG / LLMTier | exact ID、catalog/version、capability、membership；不做 alias/Role mapping | Registry query/publish；依赖 Repository | Target：计划 `src/registry/`；runtime BLOCKED |
 | LT-BB-ADM / LLMTier | all-constraints admission、Seat 与有界内部等待；不把 unknown quota 当可用 | admit/release/reject；依赖 IAM、Registry、Ledger | Target：计划 `src/admission/`；runtime BLOCKED |
 | LT-BB-LEDGER / LLMTier | digest、decision record、Invocation、dispatch intent、canonical response、tombstone；不对 UnknownOutcome 重派 | invocation/recovery repository | Target：计划 `src/ledger/`；durability BLOCKED |
@@ -623,7 +623,7 @@ V0.3 激活时必须一次性把旧 `/api/tier/*` 页面调用退役或切断，
 ### 8.3 通信、配置与状态管理
 
 - 身份：authenticated `client_id`；`X-Tier-Source-ID` 必须在该 Client 下获授权。
-- correlation：`X-Tier-Source-Instance-ID` 不形成 recovery namespace；client request ID 不替代幂等 key。
+- correlation：使用 Client Request ID、Invocation ID 与标准 trace/correlation；client request ID 不替代幂等 key。
 - 配置：只有 `--settings`/`LLMTIER_CONFIG`、`LLMTIER_STATE_DIR` 和既有 trace override；不回读 Slinky。
 - Secret：create/rotate 只写不读；DTO、UI、log、audit、backup report 不得包含可逆值。
 - ETag：Models、Observation、admission、manifest 引用同一 exact ID/catalog version 与语义；各 endpoint 的
@@ -739,7 +739,7 @@ sequenceDiagram
 Secret create/rotate：表单只接受新值和目标 Account；提交后立即清空输入和内存副本，成功响应只显示 secret
 reference/version/fingerprint metadata，不提供“查看原值”，也不写入 toast history、clipboard 自动复制或缓存。
 Client/Source credential binding 没有独立页面；其配置由部署/受控 Management 操作管理，不能被解释为
-Agent conversation、商业租户目录或 SourceInstance 生命周期。
+Agent conversation、商业租户目录或实例身份生命周期。
 
 Recovery 流程：管理员先查看 RecoveryItem、Invocation、backend execution 和 Seat evidence；UI 明示
 `redispatch=false`。提交 action 时必须选择冻结 action、填写原因、确认 expected record version，并再次展示
@@ -788,7 +788,7 @@ Response，再对 Client 返回；Observation 只读取投影，Management mutat
 
 ### 10.2 描述符与元数据流
 
-每条业务事实至少携带 authenticated client、canonical source、可选 source instance、exact Service Level、
+每条业务事实至少携带 authenticated client、canonical source、exact Service Level、
 client request ID、record/config/catalog version 和时间。Idempotency namespace 另含 endpoint/version/key；
 digest 覆盖规范化 body 与影响语义的 header。Provider/account identity 仅在 LLMTier 内部关联，不进入
 普通 consumer response。
@@ -822,7 +822,6 @@ Invocation active 状态 Pending/Queued/Running；terminal 状态 Succeeded/Fail
 ```mermaid
 erDiagram
     CLIENT ||--o{ SOURCE : authorizes
-    SOURCE ||--o{ SOURCE_INSTANCE : observes
     CLIENT ||--o{ ENTITLEMENT : owns
     SOURCE ||--o{ ENTITLEMENT : scopes
     SERVICE_LEVEL ||--o{ ENTITLEMENT : grants
@@ -913,10 +912,8 @@ Invocation，但工具结果格式与上下文组装由 Piko adapter 的 pinned 
 ### 11.3 控制、管理与观测协议
 
 `Idempotency-Key` 标识同一 logical Invocation；`X-Tier-Client-Request-ID` 只用于关联，不可代替前者。
-`X-Tier-Source-ID` 是已授权的 canonical Source；SourceInstance 仅用于 observation/correlation/audit。
-它不是可注册资源，也没有 `enabled`、`capacity_policy` 或独立生命周期；Management 不提供其 CRUD。
-缺失或变化均不能改变 authorization、admission、capacity、quota、digest、幂等或恢复范围。
-Observation 可在已授权范围按 Source/Instance/Service Level/endpoint/status 过滤与聚合；
+`X-Tier-Source-ID` 是已授权的 canonical Source。V0.3 不定义 SourceInstance header、字段或 filter/grouping；
+Observation 可在已授权范围按 Source/Service Level/endpoint/status 过滤与聚合；
 Management 只接受独立管理权限。ETag 验证各 resource 的自身表示，不要求不同 DTO 的 ETag 相等。
 
 ### 11.4 排队、拒绝、超时与公平调度
@@ -986,7 +983,7 @@ GET。首次或成功重放为标准 `200 EmbeddingResponse`；active duplicate 
 且不盲重派。
 无 ID 丢响应按 §6.3 原 POST 重放，超出 request deadline 禁止首次 admission。Knowledge consumer 固定采用
 D=24h、terminal result 与 digest/tombstone 至少 168h；Slinky Knowledge/Observation 已对
-`0.3-finalization-candidate.4` 的该消费语义给出设计确认；这不是把 Responses GET 自动扩展到 Embeddings。
+`0.3-finalization-candidate.5` 的该消费语义给出设计确认；这不是把 Responses GET 自动扩展到 Embeddings。
 active record 保留到 provable terminal；UnknownOutcome
 obligation 保留到人工 reconcile，不以 168h 自动清除。resolved terminal 起至少保留 168h；保证窗口后仍有
 tombstone 时返回 410；不得复用旧 key 创建新的 logical Embedding invocation。
@@ -1123,8 +1120,8 @@ throughput、latency、fairness 和 Provider measured SLO 必须在固定 provid
 | LLMTier Admin | 被授予的资源和危险 action | 独立 admin credential、resource version、审计；默认拒绝 | 会话/credential 撤销和权限负测；CT-MGT/SEC |
 | Service/Connector | 最小范围的 Provider/Store access | workload identity 或受控本地权限；依赖不可用时 fail closed | rotation/restart test；production BLOCKED |
 
-authenticated Client + canonical Source 是 Data Plane recovery namespace；SourceInstance 仅用于规定的
-correlation/observation/audit。同一 Client 多 Source 的 Observation 由授权范围决定，filter 不建立新权限。
+authenticated Client + canonical Source 是 Data Plane recovery namespace。同一 Client 多 Source 的
+Observation 由授权范围决定，filter 不建立新权限。
 
 ### 15.3 密钥、凭据与敏感数据
 
@@ -1201,7 +1198,7 @@ evidence，不能用本文状态替代。
 | Scope B；Chat/SSE 移到 V0.4 | Frozen | `S-20260906-2f9539048493` |
 | M2-C `W=168h`、`M=24h`、`D=24h` | Frozen | `L-20260906-12940a96e148`、`P-20260906-c14b4af35ac3` |
 | Amendment 4 contract candidate | Slinky accepted | `S-20260906-1e12f5e61d73` |
-| V0.3 cross-system finalization | `0.3-finalization-candidate.4`；not active | 在 candidate.3 上删除 SourceInstance Management CRUD、`enabled` 与 `capacity_policy`，只保留可选关联标签；工件 hash 由 immutable review commit 固定；需 Piko/Slinky 对 candidate.4 定向复核 |
+| V0.3 cross-system finalization | `0.3-finalization-candidate.5`；not active | 在 candidate.4 上从全部 public contract 删除 SourceInstance header/DTO/filter/grouping/management/compatibility 语义；工件 hash 由 immutable review commit 固定；需 Piko/Slinky 对 candidate.5 定向复核 |
 | V0.3 单节点 Operational Store 与事务边界 | Proposed；not active | [`llmtier-v0.3-operational-store`](../90_decisions/llmtier-v0.3-operational-store.md)；待 LLMTier owner review |
 
 新 persistence/HA/deployment、队列超时及费用计价等重大选择必须建立 ADR/Contract amendment；
@@ -1214,7 +1211,7 @@ evidence，不能用本文状态替代。
 | LT-RISK-001 | legacy path 在 V0.3 activation 时仍可达 | parallel inference/selector | route/scan evidence 后删除或禁用 | LLMTier | legacy removal PASS |
 | LT-RISK-002 | V0.3 Registry/Ledger/API/UI 未接线 | 目标能力不可用 | 按 §17 实现 | LLMTier | runtime contract tests |
 | LT-RISK-003 | V0.3 persistence 已提出；HA/RPO/RTO 与生产证据未关闭 | M2-C 单节点实现可下钻，多实例/灾备仍无法证明 | 评审 Operational Store ADR；完成 fault/backup/restore test；多实例时重开 ADR | LLMTier | ADR accepted + activation review |
-| LT-RISK-004 | consumer 设计语义已部分确认，但 candidate.4 签署及真实 capture/组合执行未完成 | L3/L7/Embeddings 不能激活 | Piko/Knowledge/Slinky 按 candidate.4 复核后提供 runtime evidence | 接口 Owner | consumer review + runtime gates PASS |
+| LT-RISK-004 | consumer 设计语义已部分确认，但 candidate.5 签署及真实 capture/组合执行未完成 | L3/L7/Embeddings 不能激活 | Piko/Knowledge/Slinky 按 candidate.5 复核后提供 runtime evidence | 接口 Owner | consumer review + runtime gates PASS |
 | LT-RISK-005 | deadline/recovery 消费设计已确认；catalog 限值与运行证据未冻结 | L4 不能激活 | 固定 catalog 数值并执行 deadline/queue/dispatch race tests | LLMTier+consumer | runtime contract/activation PASS |
 | LT-RISK-006 | CostEvidence 精度和 Slinky 消费规则已确认；真实计价/聚合未验证 | L6 硬预算不能激活 | 执行 pricing source、decimal aggregation、Unknown/Partial production tests | LLMTier+Slinky | runtime cost evidence PASS |
 | LT-RISK-008 | V0.3 Admin Web UI 尚未实现且 legacy `/api/tier/*` 页面仍存在 | 双 UI/双写、Secret 与 recovery 操作风险 | 先完成 Web UI 模块设计/ISD，再一次性切换并做 route/security scan | LLMTier | LT-QR-011..014 + legacy removal PASS |
@@ -1236,8 +1233,8 @@ evidence，不能用本文状态替代。
 核心实体：Client、Source、Entitlement、ServiceLevel、Pool、CapacityGroup、Provider、
 Account、Deployment、Invocation、CanonicalResponse、Usage、RecoveryItem、AdminJob。
 
-`source_instance_id` 只是 Invocation/Usage 上的可选 observation/correlation 值，不是受管理实体，
-也不是 Agent Session、Conversation、KV、authorization、admission、capacity 或 recovery identity。
+V0.3 不存在 SourceInstance public entity 或占位字段。服务自身 replica/process 标签只存在内部 telemetry，
+不进入跨系统 API、授权、admission、capacity、usage grouping、digest 或 recovery。
 
 Invocation active 状态为 Pending、Queued、Running；terminal 为 Succeeded、Failed、Cancelled、
 UnknownOutcome。`InvocationAccepted` 不得包含 UnknownOutcome；成功 create、Succeeded replay 与 Response GET

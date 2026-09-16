@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-vv-plan` |
-| Document Version | `0.3.0` |
+| Document Version | `0.3.1` |
 | Status | `Approved` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -74,7 +74,7 @@ activation 状态 authority，`tests/` 和 fixtures 是可执行 oracle，运行
 2. Memory/Knowledge consumer 能使用 Embeddings non-stream，且不形成 Provider-direct generation path。
 3. Slinky 能只读观察 readiness、capacity、Invocation 与 usage，正确投影 Seat；无效或过期数据 fail closed。
 4. 管理员能安全管理 Registry、Provider、Client/Source、capacity、Job 与 recovery，secret 只写不读。
-5. 不同 Client/Source/SourceInstance 的数据、quota、usage 和 error evidence 隔离；并发与 capacity
+5. 不同 Client/Source 的数据、quota、usage 和 error evidence 隔离；并发与 capacity
    约束可审计。
 6. production evidence 未齐时，manifest 必须继续报告 candidate/false，不得由文档或静态测试激活。
 

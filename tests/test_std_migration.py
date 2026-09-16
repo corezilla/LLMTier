@@ -417,8 +417,8 @@ class StdMigrationTests(unittest.TestCase):
         path = ROOT / "docs" / "60_interfaces" / "slinky-capacity-observation-control.md"
         text = path.read_text(encoding="utf-8")
         metadata = json.loads(path.with_suffix(".metadata.json").read_text(encoding="utf-8"))
-        self.assertEqual("0.3.0", metadata["document_version"])
-        self.assertIn("| Document Version | 0.3.0 |", text)
+        self.assertEqual("0.3.1", metadata["document_version"])
+        self.assertIn("| Document Version | 0.3.1 |", text)
         self.assertIn("适用于 LLMTier API 对单次请求的 Service Level 解析与执行", text)
         self.assertIn("Slinky 上游逻辑路由层的 same-tier fallback/Upshift", text)
         self.assertIn("明确 canonical service_level_id 提交并重新接受 admission", text)

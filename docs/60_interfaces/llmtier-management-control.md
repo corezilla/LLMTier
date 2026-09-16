@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | llmtier-management-control |
-| Document Version | 0.3.1 |
+| Document Version | 0.3.2 |
 | Status | Approved |
 | Project | LLMTier |
 | Authority | LLMTier |
@@ -107,9 +107,8 @@ dimension 可为 null，Unknown/Partial usage 的 count/token 保持 null，不�
 每项 mutation 必须有 authenticated admin、authorization decision、audit record 和 concurrency check。
 secret create/rotate 只写不读；list/detail/UI/log/audit 不返回明文、密文或可逆导出。
 
-Client/Source/Entitlement 管理不能扩大 Data Plane recovery namespace。`source_instance_id` 不是注册资源：
-Management 不提供 SourceInstance CRUD、`enabled` 或 `capacity_policy`，也不能据该值授权、拒绝 admission、
-选择独立容量或改变 Data Plane recovery namespace。跨 Client 数据、
+Client/Source/Entitlement 管理不能扩大 Data Plane recovery namespace。V0.3 不定义 SourceInstance
+Management resource、CRUD、`enabled` 或 `capacity_policy`，也不提供替代实例身份。跨 Client 数据、
 Provider secret 和 physical mapping 不能出现在 Observation/Data Plane。
 
 ## 9. 版本协商、兼容矩阵与弃用

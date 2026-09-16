@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "llmtier-v0.3-operational-store",
   "document_type": "decisions.adr",
-  "document_version": "0.1.0-draft.1",
+  "document_version": "0.1.0-draft.2",
   "title": "LLMTier V0.3 Operational Store 与事务边界",
   "document_owner": "LLMTier",
   "authors": [

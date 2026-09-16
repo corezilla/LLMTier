@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-traceability` |
-| Document Version | `0.3.1-draft.5` |
+| Document Version | `0.3.1-draft.6` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -80,4 +80,4 @@ Runtime Activation 保持独立 Gate。
 
 2026-09-09 的维护把当前路径/CLI/配置状态映射加入 LT-FUN-007、LT-DEP-003/004。
 2026-09-16 将无 Agent Session/Conversation/KV mapping 的主流网关边界加入 LT-FUN-009/LT-INT-006，
-并以 CT-BOUNDARY-001 固定 SourceInstance 的可选观察用途；production gaps 和 activation 判定保持不变。
+并以 CT-BOUNDARY-001 固定 V0.3 不含跨系统实例身份；production gaps 和 activation 判定保持不变。

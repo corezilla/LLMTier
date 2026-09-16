@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | llmtier-v0.3-cross-system-finalization |
-| Document Version | 0.3.0-rc.4 |
+| Document Version | 0.3.0-rc.5 |
 | Status | In Review |
 | Project | LLMTier |
 | Authority | LLMTier |
@@ -32,7 +32,7 @@
 
 本包关闭 Slinky `S-20260916-191ab7c8184c` 要求的 LLMTier 跨系统设计。唯一机器权威是
 `interfaces/openapi/llmtier-v0.3.openapi.json` 与
-`interfaces/compatibility/compatibility-manifest-v0.3.json` 的 `0.3-finalization-candidate.4`；本文只给出
+`interfaces/compatibility/compatibility-manifest-v0.3.json` 的 `0.3-finalization-candidate.5`；本文只给出
 字段生产方、消费用途和不可由 Schema 单独表达的恢复语义。fixtures 是正负 oracle，不替代 OpenAPI。
 
 V0.3 唯一 surface 为 Responses non-stream、Embeddings non-stream、Models、Responses recovery、Observation
@@ -50,7 +50,7 @@ message/tool-call/tool-result/provider-continuation 只作为冻结请求/响应
 
 | Operation | Producer / consumer | 鉴权与 identity scope | 幂等、恢复与保留 |
 |---|---|---|---|
-| `POST /v1/responses` | Piko → LLMTier | authenticated `client_id` + authorized canonical `X-Tier-Source-ID`；Instance 仅观察 | namespace + `Idempotency-Key` + canonical digest；D=24h；active 到 terminal；terminal view/response/digest 至少168h |
+| `POST /v1/responses` | Piko → LLMTier | authenticated `client_id` + authorized canonical `X-Tier-Source-ID` | namespace + `Idempotency-Key` + canonical digest；D=24h；active 到 terminal；terminal view/response/digest 至少168h |
 | `GET /v1/invocations/{id}` | LLMTier → Piko | 原 client+source recovery scope | 只恢复原 Invocation；不得 admission/dispatch |
 | `GET /v1/responses/{id}` | LLMTier → Piko | 原 client+source recovery scope | 只返回同一 canonical `ResponsesResponse` |
 | `POST /v1/embeddings` | Slinky Knowledge → LLMTier | 与 Data Plane 相同；独立 endpoint namespace | 只用原 POST 恢复；D=24h；resolved terminal 后 result/digest 至少168h；无 Responses GET |
@@ -63,17 +63,15 @@ message/tool-call/tool-result/provider-continuation 只作为冻结请求/响应
 | `Idempotency-Key` | caller 产生；LLMTier namespace lookup | POST required，1..255 bytes；无 default | namespace identity；重启、无 ID 重放逐字节复用；换 key 不是恢复 |
 | `X-Tier-Client-Request-ID` | caller correlation；日志/观察定位 | required，1..255 | 不替代 idempotency key；按 OpenAPI canonical digest policy处理 |
 | `X-Tier-Source-ID` | caller 提供、LLMTier 授权；恢复 scope | required，1..255，exact authorized value | namespace/digest identity；不得在重放时改变 |
-| `X-Tier-Source-Instance-ID` | caller 可选 runtime label；观察/audit | optional，缺失或 1..255；无 default | correlation only；不进入 digest/namespace；不建立 Session/Conversation/KV 或重启恢复隔离边界 |
 | `X-Tier-Deadline-At` | Piko/Knowledge 首次请求产生；LLMTier deadline | required；RFC3339 UTC exactly `YYYY-MM-DDTHH:mm:ss.SSSZ` | semantic digest；重试/重启 byte-identical；同 key 改值=409；不得推进 |
 | `Location` | LLMTier Responses Invocation reference | Invocation 已建立的 Responses 202/terminal required | 只为 `/v1/invocations/{id}`；Embeddings 禁止返回 |
 | `X-Tier-Invocation-ID` | LLMTier durable ledger identity | Invocation 已建立后 required | Responses 可 query；Embeddings 仅 correlation/POST lookup |
 | `Retry-After` | LLMTier admission/active observation | integer seconds >=0 | 建议，不是 reservation；不会改变原 deadline |
 | `ETag` / `If-None-Match` | 各 endpoint representation | endpoint 声明处使用 | 仅校验本 DTO；不得要求不同 DTO ETag 字面相同 |
 
-`source_instance_id` 无独立生命周期或 policy authority。candidate.4 删除 SourceInstance Management paths、
-schemas、`enabled` 与 `capacity_policy`；该标签不能授权或阻断调用、选择隔离容量、改变 quota、公平调度、
-digest、幂等 namespace 或 recovery scope。Observation 中 required-but-nullable 的字段用于区分“本次未提供”
-与“不合约地缺字段”；有值过滤只是已授权结果集内的相关性过滤，不形成新的授权边界。
+candidate.5 从全部 V0.3 public contract 删除 SourceInstance header、DTO 字段、filter/grouping、Management
+resource 与兼容占位；Piko/Knowledge 不发送、保存、重放或解析该概念。跨系统诊断只使用 Client Request ID、
+Invocation ID 与标准 trace/correlation；没有替代实例 identity、fallback 或第二条 inference path。
 
 ## 3. Responses、tool loop 与恢复逐字段表
 
@@ -102,7 +100,7 @@ OpenAPI 的 `required`、nullability、enum、range 与 `additionalProperties:fa
 | `.recovery_url/recovery_ready/recovery_disposition/retry_after_ms` | LLMTier → Piko recovery | required；active 为 false/wait；只 query 原义务 |
 | `.request_deadline_at/.catalog_deadline_at/.effective_deadline_at` | caller/catalog/LLMTier min | required RFC3339；effective=min(request,catalog) |
 | `.deadline_status/.deadline_exceeded_at` | LLMTier 永久 deadline fact | required；事实一旦 Exceeded 不因晚到成功消失 |
-| `InvocationView.invocation_id/client_request_id/source_id/source_instance_id/endpoint/service_level_id` | ledger identity | required；endpoint 固定 `/v1/responses`；原 scope 授权 |
+| `InvocationView.invocation_id/client_request_id/source_id/endpoint/service_level_id` | ledger identity | required；endpoint 固定 `/v1/responses`；原 scope 授权 |
 | `.status/record_version/recovery_ready/recovery_disposition/retry_after_ms/response_ref` | LLMTier recovery state | terminal status Succeeded/Failed/Cancelled/UnknownOutcome；nullable 按 Schema |
 | `.usage/.usage_status/.cost/.error` | metering/cost/terminal evidence | unknown/partial 不填0；CostEvidence 规则见§5 |
 | `.request_deadline_at/.catalog_deadline_at/.effective_deadline_at/.deadline_status/.deadline_exceeded_at` | deadline audit | 永久保留已发生 deadline fact |
@@ -187,7 +185,7 @@ sequenceDiagram
 | `QuotaConstraintFact.constraint_id/status/unit/remaining/reason_code` | quota authority | Unknown remaining=null；fail closed |
 | `UsageSummaryPage.client_id/from/to/interval/group_by/data/page` | ledger / Slinky趋势与预警 | 只聚合授权 scope；cursor/page 稳定 |
 | `UsageBucket.interval_start/interval_end/dimensions/invocation_count/input_tokens/output_tokens/usage_status/cost` | ledger/metering | Unknown/Partial 数值不补0 |
-| `UsageDimensions.source_id/source_instance_id/service_level_id/endpoint/status` | ledger | group/filter；Source filter不是鉴权namespace |
+| `UsageDimensions.source_id/service_level_id/endpoint/status` | ledger | group/filter；Source filter不是鉴权namespace |
 | `CostEvidence.cost_status/amount_decimal/currency/pricing_catalog_version/cost_source/priced_at` | pricing/metering | amount非负 decimal(20,12)；Known/Estimated/Partial/Unknown |
 | `.covered_components/.missing_components` | metering | Partial amount仅覆盖小计；非总额；Estimated不伪装实付 |
 | `CompatibilityView.manifest_version/overall_contract_status/overall_runtime_activation/endpoints/effective_at` | manifest authority | candidate + activation=false；consumer startup gate |

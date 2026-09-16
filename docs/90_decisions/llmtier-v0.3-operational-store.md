@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-operational-store` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -86,7 +86,7 @@ NFS/共享文件系统上，也不得由多个进程以“共享单文件”方�
 
 以下 V0.3 authoritative facts 必须位于同一 Operational Store，并通过同一 repository layer 访问：
 
-- authenticated Client/Source/SourceInstance projection、Entitlement 和有效 Registry snapshot；
+- authenticated Client/Source projection、Entitlement 和有效 Registry snapshot；
 - IdempotencyDecisionRecord、Invocation、DispatchIntent、RecoveryObligation；
 - direct/group Capacity fact、Seat grant/hold/release、quota decision；
 - canonical Response/Embedding result、terminal error、digest/tombstone 和 retention boundary；

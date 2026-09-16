@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | llmtier-v0.3-contract-specification |
-| Document Version | 0.3.1-draft.8 |
+| Document Version | 0.3.1-draft.9 |
 | Status | In Review |
 | Project | LLMTier |
 | Authority | LLMTier |
@@ -73,9 +73,8 @@ ErrorEnvelope、TerminalErrorEnvelope、InvocationCancelledEnvelope 和 Idempote
 
 Metadata 的 Schema maxLength 之外还必须执行 64/512 UTF-8 encoded-byte validator。canonical
 Service Level ID exact、大小写敏感；Client/Source identity 由 authenticated binding 和授权决定。
-SourceInstance 是 optional observation/correlation metadata，不是 Session/Conversation/KV identity，也不进入
-idempotency/recovery namespace。它不是可注册的 Management resource；V0.3 不提供 SourceInstance CRUD，
-也没有 `enabled` 或 `capacity_policy` 可影响 authorization、admission、capacity selection 或 recovery。
+V0.3 不定义 SourceInstance header、公开 DTO 字段、filter/grouping、Management resource 或替代实例 identity。
+跨系统诊断使用 Client Request ID、Invocation ID 与标准 trace/correlation；LLMTier 副本标签只属于内部 telemetry。
 示例不能放宽 required、additionalProperties、enum、range 或 encoded-byte 约束。
 
 ## 4. 状态、错误和 blocker catalog
@@ -145,8 +144,7 @@ consumer 签署方，不存在未定义第四方。UnknownOutcome obligation 不
 ## 7. 身份、权限、Secret 与调用边界
 
 Authorization 绑定 canonical client_id；X-Tier-Source-Id 必须被该 Client 授权；
-source_instance_id 只用于可选 correlation/observation/audit。Data Plane recovery scope 固定为
-authenticated client + canonical source。Observation multi-source aggregate 不扩大 recovery scope。
+Data Plane recovery scope 固定为 authenticated client + canonical source。Observation multi-source aggregate 不扩大 recovery scope。
 这些字段不建立 Agent 会话或商业多租户模型；Admin Web UI 不提供调用方/会话生命周期页面。
 
 Management credential 与 Data Plane/Observation 分离。Account secret 只写不读；Client credential
@@ -155,7 +153,7 @@ Management credential 与 Data Plane/Observation 分离。Account secret 只写�
 
 ## 8. 版本、兼容性与迁移
 
-当前 contract version 是 `0.3-finalization-candidate.4`。Scope B 只含 Responses non-stream、Embeddings
+当前 contract version 是 `0.3-finalization-candidate.5`。Scope B 只含 Responses non-stream、Embeddings
 non-stream、Models、Invocation/Response recovery、Observation 和 Management。Chat/SSE/streaming
 属于 V0.4，不能以 alias、translation、provider passthrough 或 inactive endpoint 进入 V0.3。
 

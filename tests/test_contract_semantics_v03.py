@@ -274,7 +274,7 @@ class ContractSemanticsV03Tests(unittest.TestCase):
     def test_candidate_prose_tracks_finalization_candidate_without_approved_claims(self):
         contract = (ROOT / "docs" / "60_interfaces" / "contracts" / "llmtier-v0.3-contract-specification.md").read_text()
         piko = (ROOT / "docs" / "60_interfaces" / "piko-data-plane-control.md").read_text()
-        self.assertIn("0.3-finalization-candidate.4", contract)
+        self.assertIn("0.3-finalization-candidate.5", contract)
         self.assertNotIn("candidate Amendment 7", contract)
         self.assertIn("In Review contract index", contract)
         self.assertIn("In Review consumer-boundary prose candidate", piko)
@@ -429,7 +429,6 @@ class ContractSemanticsV03Tests(unittest.TestCase):
 
         recovery = cases["data-plane-recovery-remains-source-scoped"]
         self.assertEqual(["authenticated_client_id", "canonical_source_id"], recovery["expected"]["namespace"])
-        self.assertFalse(recovery["expected"]["source_instance_is_namespace"])
 
     def test_invocation_accepted_excludes_unknown_outcome(self):
         accepted = self.openapi["components"]["schemas"]["InvocationAccepted"]
@@ -487,9 +486,12 @@ class ContractSemanticsV03Tests(unittest.TestCase):
             "llmtier_manages_backend_kv_cache",
         ]:
             self.assertFalse(boundary[key])
-        source_instance = self.openapi["components"]["parameters"]["SourceInstanceID"]
-        self.assertFalse(source_instance["required"])
-        self.assertEqual(["string", "null"], self.openapi["components"]["schemas"]["InvocationView"]["properties"]["source_instance_id"]["type"])
+        self.assertNotIn("source_instance", json.dumps(self.openapi).lower())
+        self.assertNotIn("source_instance", json.dumps(self.manifest).lower())
+        self.assertNotIn("SourceInstanceID", self.openapi["components"]["parameters"])
+        self.assertNotIn("source_instance_id", self.openapi["components"]["schemas"]["InvocationView"]["properties"])
+        self.assertNotIn("source_instance_id", self.openapi["components"]["schemas"]["UsageDimensions"]["properties"])
+        self.assertNotIn("source_instance_id", self.openapi["components"]["schemas"]["AdminUsageItem"]["properties"])
         self.assertNotIn("/tier/admin/v1/source-instances", self.openapi["paths"])
         self.assertNotIn("/tier/admin/v1/source-instances/{source_instance_id}", self.openapi["paths"])
         for schema_name in ["SourceInstanceCreate", "SourceInstanceUpdate", "SourceInstanceView", "SourceInstancePage"]:
@@ -498,8 +500,11 @@ class ContractSemanticsV03Tests(unittest.TestCase):
         cases = {case["id"]: case for case in fixture["cases"]}
         self.assertFalse(cases["caller-supplies-complete-current-input"]["expected"]["llmtier_loads_prior_agent_history"])
         self.assertFalse(cases["tool-result-is-next-call-input-not-tier-session"]["expected"]["llmtier_executes_tool"])
-        self.assertTrue(cases["source-instance-is-optional-observation-label"]["expected"]["both_contract_valid"])
-        self.assertFalse(cases["source-instance-has-no-management-lifecycle"]["expected"]["paths_present"])
+        deletion = cases["legacy-source-instance-contract-is-rejected"]["expected"]
+        self.assertFalse(deletion["header_accepted"])
+        self.assertFalse(deletion["public_field_present"])
+        self.assertFalse(deletion["paths_present"])
+        self.assertFalse(deletion["replacement_identity_added"])
         self.assertEqual(0, cases["lost-response-recovery-is-single-call-only"]["expected"]["additional_backend_dispatch_count"])
 
     def test_system_design_uses_machine_recovery_item_dispositions(self):
@@ -563,9 +568,11 @@ class ContractSemanticsV03Tests(unittest.TestCase):
         self.assertTrue({"method", "path", "supported_fields", "unsupported_fields", "streaming", "response_schema_version", "error_contract_version", "sdk_matrix"}.issubset(compatibility["required"]))
 
         invocation_params = {item.get("name") for item in self.openapi["paths"]["/tier/v1/invocations"]["get"]["parameters"] if "name" in item}
-        self.assertTrue({"status", "service_level_id", "source_id", "source_instance_id", "from", "to", "client_request_id"}.issubset(invocation_params))
+        self.assertTrue({"status", "service_level_id", "source_id", "from", "to", "client_request_id"}.issubset(invocation_params))
+        self.assertNotIn("source_instance_id", invocation_params)
         usage_params = {item.get("name") for item in self.openapi["paths"]["/tier/v1/usage/summary"]["get"]["parameters"] if "name" in item}
-        self.assertTrue({"from", "to", "interval", "group_by", "source_id", "source_instance_id", "service_level_id", "endpoint", "status"}.issubset(usage_params))
+        self.assertTrue({"from", "to", "interval", "group_by", "source_id", "service_level_id", "endpoint", "status"}.issubset(usage_params))
+        self.assertNotIn("source_instance_id", usage_params)
         observation_error = self.openapi["components"]["responses"]["ObservationError"]
         self.assertEqual(["source_error", "contract_mismatch"], observation_error["x-error-codes"])
 

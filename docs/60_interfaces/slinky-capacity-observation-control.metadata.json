@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "llmtier-slinky-capacity-observation-control",
   "document_type": "interfaces.control",
-  "document_version": "0.3.0",
+  "document_version": "0.3.1",
   "title": "LLMTier–Slinky Capacity/Observation Interface Control（V0.3）",
   "document_owner": "LLMTier",
   "authors": [
@@ -27,5 +27,5 @@
   "parent_document_id": "llmtier-system-design",
   "supersedes": "docs/99_reference/contracts/slinky-capacity-observation-contract-v0.3.md",
   "created_at": "2026-09-07",
-  "last_modified_at": "2026-09-09"
+  "last_modified_at": "2026-09-16"
 }

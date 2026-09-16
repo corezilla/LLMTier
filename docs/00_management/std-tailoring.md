@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `std-tailoring` |
-| Document Version | `0.1.1` |
+| Document Version | `0.1.2` |
 | Status | `Approved` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -96,7 +96,7 @@
 - Scope B 与 Chat/SSE V0.4 deferred/fail-closed 边界；
 - `concurrent_invocation`、shared/overlapping Capacity Group、quota unknown 和 Seat invalidation；
 - durable idempotency、lost-response recovery、UnknownOutcome 不盲重派、M2-C 24h/168h；
-- Client/Source/SourceInstance 隔离语义、Secret 只写不读、audit；
+- Client/Source 授权与恢复隔离语义、Secret 只写不读、audit；
 - candidate 与 runtime activation=false 的区别；
 - Current Baseline、Approved Delta 与 Future/Open Gate 的边界；
 - 单服务 repo layout，不未经批准增加新机制、config path、selector、fallback 或并行实现。

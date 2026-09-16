@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-requirements` |
-| Document Version | `0.3.1-draft.7` |
+| Document Version | `0.3.1-draft.8` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -65,8 +65,8 @@ Memory/Knowledge Client 是 Embeddings consumer，管理员使用 Management API
   backend set 内发生，禁止跨等级替换。
 - `PASS` 只表示指定 evidence 层；static PASS 不等于 runtime 或 acceptance PASS。
 - Invocation/IdempotencyDecision 只描述单次模型调用及其丢响应恢复，不是 Agent conversation。Client/Source
-  只用于明确的授权、配额、统计和恢复访问范围；SourceInstance 是可选且不注册的运维观察标签，不参与幂等或恢复 namespace，
-  不具有 `enabled`/`capacity_policy`，也不影响 authorization、admission 或 capacity selection。
+  只用于明确的授权、配额、统计和恢复访问范围。V0.3 不定义跨系统实例身份；诊断使用 Client Request ID、
+  Invocation ID 和标准 trace/correlation，LLMTier 自身副本标签只留在内部 telemetry。
 
 ## 4. 功能需求
 
@@ -91,7 +91,7 @@ Memory/Knowledge Client 是 Embeddings consumer，管理员使用 Management API
 | LT-INT-003 | OpenAPI v0.3 shall 是字段级唯一机器接口 authority；Markdown 不得形成第二 Schema | OpenAPI + contract spec | CT-MIG-001 | Static PASS |
 | LT-INT-004 | active `202`、terminal response/error、Location、Invocation ID 与 Retry-After shall 符合 recovery contract | OpenAPI | CT-REC-001 | Fixture PASS；runtime BLOCKED |
 | LT-INT-005 | Observation list/detail shall 支持冻结的 filter、pagination、ETag/304 与 typed errors | OpenAPI | CT-OBS-001 | Static PASS；runtime BLOCKED |
-| LT-INT-006 | `X-Tier-Source-Instance-ID` shall 为可选 observation/correlation metadata；缺失不得改变授权、幂等、恢复或模型上下文，存在时不得被解释为 Session/Conversation/KV identity | OpenAPI + manifest | CT-BOUNDARY-001/CT-AUTH-001 | Static PASS；runtime BLOCKED |
+| LT-INT-006 | V0.3 shall 不定义 SourceInstance header、DTO 字段、filter/grouping、Management resource 或替代实例 identity；跨系统诊断复用 Client Request ID、Invocation ID 与标准 trace/correlation | OpenAPI + manifest | CT-BOUNDARY-001/CT-AUTH-001 | Static PASS；runtime BLOCKED |
 
 ## 6. 性能与容量需求
 
@@ -152,4 +152,4 @@ Document Status/operations conclusion 或 Runtime Activation。
 
 - 2026-09-07：C3 首版从现有 V0.3 design/contract/QA authority 提取；未新增业务语义。
 - 2026-09-09：按独立项目现状补齐 repo path、配置/状态 authority 与 CLI 使用约束；机器契约不变。
-- 2026-09-16：明确无 Agent 会话状态的主流网关边界；SourceInstance 降为可选运维观察标签；删除调用方管理页面假设。
+- 2026-09-16：明确无 Agent 会话状态的主流网关边界；从 V0.3 跨系统契约删除 SourceInstance；删除调用方管理页面假设。
