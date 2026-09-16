@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "llmtier-v0.3-contract-test-specification",
   "document_type": "assurance.test-specification",
-  "document_version": "0.3.1-draft.5",
+  "document_version": "0.3.2-draft.1",
   "title": "LLMTier V0.3 Contract Test Specification",
   "document_owner": "LLMTier",
   "authors": [
@@ -12,8 +12,8 @@
   "source_repository": "corezilla/LLMTier",
   "source_path": "docs/70_verification/specifications/llmtier-v0.3-contract-test-specification.md",
   "template_id": "assurance.test-specification",
-  "template_version": "0.1.0",
-  "template_sha256": "20fa56ae44c44cae9b47ba2806df79ea8592f0a4e8208f2c5deefd32f022b619",
+  "template_version": "0.2.0",
+  "template_sha256": "5996b6a0a5d752cf4cd1a5a0930f889c46546895c451615feedf2de1ecf97373",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,
@@ -27,5 +27,5 @@
   "parent_document_id": "llmtier-v0.3-contract-specification",
   "supersedes": null,
   "created_at": "2026-09-07",
-  "last_modified_at": "2026-09-16"
+  "last_modified_at": "2026-09-17"
 }

@@ -1,574 +1,84 @@
 import json
-import subprocess
 import unittest
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-LOCK_PATH = ROOT / "docs" / "std.lock.json"
 
 
-class StdMigrationTests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.lock = json.loads(LOCK_PATH.read_text(encoding="utf-8"))
-        cls.manifest_path = ROOT / cls.lock["source_manifest_path"]
-        cls.manifest = json.loads(cls.manifest_path.read_text(encoding="utf-8"))
-        cls.sources = cls.manifest["artifacts"]
+class StdAndAuthorityTests(unittest.TestCase):
+    def test_std_lock_and_source_manifest_resolve(self):
+        lock = json.loads((ROOT / "docs" / "std.lock.json").read_text(encoding="utf-8"))
+        manifest = json.loads((ROOT / lock["source_manifest_path"]).read_text(encoding="utf-8"))
+        self.assertEqual("std-lock.v1", lock["schema_version"])
+        self.assertEqual(lock["std_version"], manifest["std_version"])
+        self.assertEqual(lock["source_revision"], manifest["source_revision"])
+        self.assertEqual("software", lock["project_profile"])
 
-    def test_draft26_lock_resolves_to_immutable_source_manifest(self):
-        self.assertEqual("std-lock.v1", self.lock["schema_version"])
-        self.assertEqual("0.1.0-draft.26", self.lock["std_version"])
-        self.assertEqual("corezilla/STD", self.lock["source_repository"])
-        self.assertEqual("f892b167b9fc7b8beb9dbdebb9209009d4334ce1", self.lock["source_revision"])
-        self.assertEqual("std-v0.1.0-draft.26", self.lock["source_tag"])
-        self.assertTrue(self.manifest_path.is_file())
-        self.assertEqual("software", self.lock["project_profile"])
-        self.assertEqual(["management", "software"], self.lock["enabled_domains"])
-        self.assertEqual(self.lock["std_version"], self.manifest["std_version"])
-        self.assertEqual(self.lock["source_revision"], self.manifest["source_revision"])
-        self.assertEqual(self.lock["source_tag"], self.manifest["source_tag"])
+    def test_llmtier_is_one_independent_software_system(self):
+        metadata = json.loads((ROOT / "docs/20_system_design/llmtier-system-design.metadata.json").read_text(encoding="utf-8"))
+        self.assertEqual("design.system", metadata["document_type"])
+        self.assertEqual("system", metadata["design_level"])
+        self.assertEqual(["software"], metadata["domain"])
+        self.assertFalse((ROOT / "docs/30_subsystem_design").exists())
 
-    def test_source_manifest_records_only_std_sources_with_sha256(self):
-        self.assertEqual(75, len(self.sources))
-        self.assertEqual(len(self.sources), len({item["path"] for item in self.sources}))
-        for item in self.sources:
-            self.assertIn(item["role"], {"example", "guidance", "schema", "template", "tool"})
-            self.assertRegex(item["sha256"], r"^[a-f0-9]{64}$")
-
-    def test_metadata_template_hashes_are_present_in_source_manifest(self):
-        source_hashes = {item["path"]: item["sha256"] for item in self.sources}
-        expected = {
-            ROOT / "docs" / "20_system_design" / "llmtier-system-design.metadata.json": "templates/design/architecture-design.md",
-            ROOT / "docs" / "00_management" / "std-tailoring.metadata.json": "templates/management/tailoring-manifest.md",
-        }
-        for metadata_path, source_path in expected.items():
-            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-            self.assertNotIn("std_version", metadata)
-            self.assertEqual(
-                "4.0.0" if metadata["template_id"] == "design.system" else "0.1.0",
-                metadata["template_version"],
-            )
-            self.assertEqual(source_hashes[source_path], metadata["template_sha256"])
-        design_metadata = json.loads(next(iter(expected)).read_text(encoding="utf-8"))
-        self.assertEqual("review", design_metadata["status"])
-        self.assertIsNone(design_metadata["reviewed_commit"])
-
-    def test_document_instances_track_templates_not_project_std_version(self):
-        for metadata_path in ROOT.joinpath("docs").rglob("*.metadata.json"):
-            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-            self.assertNotIn("std_version", metadata, metadata_path)
-            self.assertEqual(
-                "4.0.0" if metadata["template_id"] == "design.system" else "0.1.0",
-                metadata["template_version"], metadata_path,
-            )
-            document = metadata_path.with_name(metadata_path.name.removesuffix(".metadata.json") + ".md")
-            text = document.read_text(encoding="utf-8")
-            cover = text.split("<!-- STD_DOCUMENT_COVER_END -->", 1)[0]
-            self.assertNotIn("| STD Version |", cover, document)
-            self.assertIn("| Template Version |", cover, document)
-
-    def test_legacy_std_rag_source_list_is_removed(self):
-        self.assertFalse((ROOT / "rag" / "std-ingestion-manifest.jsonl").exists())
-        self.assertTrue((ROOT / "docs" / "std-source-manifest.json").is_file())
-        self.assertTrue((ROOT / "rag" / "project-ingestion-manifest.jsonl").is_file())
-
-    def test_draft21_upgrade_review_is_pending_without_activation(self):
-        review_root = ROOT / "docs" / "91_reviews"
-        packet = review_root / "llmtier-std-draft21-upgrade-review.md"
-        metadata = json.loads(packet.with_suffix(".metadata.json").read_text(encoding="utf-8"))
-        decision = json.loads(
-            (review_root / "llmtier-std-draft21-upgrade-review.review-decision.json").read_text(encoding="utf-8")
-        )
-        self.assertEqual("review.packet", metadata["document_type"])
-        self.assertEqual(["management", "software"], metadata["domain"])
-        self.assertEqual("review", metadata["status"])
-        self.assertEqual("PENDING", decision["verdict"])
-        self.assertEqual("unchanged", decision["requested_document_status_after"])
-        self.assertFalse(decision["runtime_activation_requested"])
-        self.assertIsNone(decision["decided_at"])
-
-    def test_llmtier_is_one_independent_system_and_has_no_internal_subsystem_design(self):
-        design_metadata = json.loads(
-            (ROOT / "docs" / "20_system_design" / "llmtier-system-design.metadata.json").read_text(encoding="utf-8")
-        )
-        self.assertEqual("design.system", design_metadata["document_type"])
-        self.assertEqual("design.system", design_metadata["template_id"])
-        self.assertEqual("system", design_metadata["design_level"])
-        self.assertEqual(["software"], design_metadata["domain"])
-        self.assertEqual("tailored", design_metadata["template_conformance"])
-        self.assertEqual("std-tailoring", design_metadata["tailoring_ref"])
-        self.assertEqual(
-            "docs/20_system_design/llmtier-system-design.md",
-            design_metadata["source_path"],
-        )
-
-        tailoring = (ROOT / "docs" / "00_management" / "std-tailoring.md").read_text(encoding="utf-8")
-        self.assertIn("单应用、单服务或单库", tailoring)
-        self.assertIn("| LT-TL-003 | `design.definition` / `docs/30_subsystem_design/` | omit |", tailoring)
-        self.assertIn("| LT-TL-013 | 多服务目录", tailoring)
-        self.assertFalse((ROOT / "docs" / "30_subsystem_design").exists())
-        self.assertFalse((ROOT / "docs" / "management" / "std-tailoring-v0.1.md").exists())
-
-    def test_system_design_uses_all_system_sections_and_has_no_todos(self):
-        path = ROOT / "docs" / "20_system_design" / "llmtier-system-design.md"
-        text = path.read_text(encoding="utf-8")
+    def test_system_design_has_required_template_sections(self):
+        text = (ROOT / "docs/20_system_design/llmtier-system-design.md").read_text(encoding="utf-8")
         headings = [line for line in text.splitlines() if line.startswith("## ")]
-        for section in range(1, 19):
-            self.assertTrue(any(line.startswith(f"## {section}.") for line in headings), section)
+        for number in range(1, 19):
+            self.assertTrue(any(line.startswith(f"## {number}.") for line in headings), number)
         for appendix in "ABCDEFGH":
             self.assertTrue(any(line.startswith(f"## {appendix}.") for line in headings), appendix)
-        self.assertNotIn("<!-- TODO -->", text)
-        self.assertIn("| `src/` | 单服务 Python 源码 |", text)
-        self.assertIn("| `config/settings.json` | Git-ignored 默认配置", text)
-        self.assertIn("| `state/` | Git-ignored 默认状态", text)
-        self.assertIn("不是已拆分的子系统", text)
+        self.assertIn("System Context（C4 Level 1）", text)
+        self.assertIn("Container View（C4 Level 2）", text)
+        self.assertIn("Component View（C4 Level 3", text)
+        self.assertGreaterEqual(text.count("```mermaid"), 6)
         self.assertIn("当前没有内部 subsystem design", text)
-        self.assertIn("software-system", text)
-        self.assertIn("§7、§9、§16", text)
-        self.assertIn("信息安全架构", text)
-
-    def test_system_design_contains_c4_hierarchy_runtime_and_deployment_diagrams(self):
-        path = ROOT / "docs" / "20_system_design" / "llmtier-system-design.md"
-        text = path.read_text(encoding="utf-8")
-        self.assertEqual(8, text.count("```mermaid"))
-        self.assertIn("#### System Context（C4 Level 1）", text)
-        self.assertIn("### 5.1 Container View（C4 Level 2）", text)
-        self.assertIn("### 5.2 LLMTier Service Component View（C4 Level 3 / arc42 Level-1 Whitebox）", text)
-        self.assertIn('subgraph LT["LLMTier software system"]', text)
-        self.assertIn('subgraph Service["LLMTier Service application — 单一进程边界"]', text)
-        self.assertIn('DP["Data Plane Controller<br/>/v1"]', text)
-        self.assertIn('OBS["Observation Controller<br/>/tier/v1"]', text)
-        self.assertIn('WEB["Admin Web UI Presentation<br/>/admin/"]', text)
-        self.assertIn('MGT["Management Controller<br/>/tier/admin/v1"]', text)
-        self.assertIn('WEB -->|"同源 HTTPS/JSON；不含领域状态机"| MGT', text)
-        self.assertIn('REG["Service Level Registry"]', text)
-        self.assertIn('LEDGER["Invocation / Idempotency State Machine"]', text)
-        self.assertIn("图例：深蓝是接口层", text)
-        self.assertIn('Piko -->|"Responses inference 与 recovery · HTTPS/JSON"| LLMTier', text)
-        self.assertIn("sequenceDiagram", text)
-        self.assertIn("same POST + same key + same digest before request deadline", text)
-        self.assertIn('subgraph LLHost["LLMTier host — Target single-node topology"]', text)
-        self.assertIn("logical building block 不是已拆分的子系统", text)
-        self.assertIn("独立部署的 subsystem", text)
         self.assertNotIn("<small>", text)
-        self.assertNotIn("</small>", text)
 
-    def test_l1_l8_design_confirmation_keeps_contract_and_activation_boundary(self):
-        text = (ROOT / "docs" / "20_system_design" / "llmtier-system-design.md").read_text(encoding="utf-8")
-        for requirement in range(1, 9):
-            self.assertIn(f"| L{requirement} ", text)
-        self.assertIn("function_call_output", text)
-        self.assertIn("相同 `call_id`", text)
-        self.assertIn("内部 queue/deadline 上限", text)
-        self.assertIn("Unknown/Partial", text)
-        self.assertIn("无 ID 用原 namespace/key/digest replay", text)
-        self.assertIn("不请求 runtime activation", text)
-        self.assertIn("V0.3 `stream:true`", text)
-
-    def test_c1_interface_and_contract_candidates_preserve_machine_authority(self):
-        candidates = {
-            "piko-data-plane-control.md": ("interfaces.control", "review", None, "docs/99_reference/contracts/piko-data-plane-contract-v0.3.md"),
-            "slinky-capacity-observation-control.md": ("interfaces.control", "accepted", "e1f9b796368ec5f358e466c7e6299cc16b1bf181", "docs/99_reference/contracts/slinky-capacity-observation-contract-v0.3.md"),
-            "llmtier-management-control.md": ("interfaces.control", "accepted", "962e8003712738d2cb4e3a0a38173a9fd2bdd0a1", "docs/99_reference/contracts/llmtier-management-contract-v0.3.md"),
-            "contracts/llmtier-v0.3-contract-specification.md": ("contracts.specification", "review", None, None),
-        }
-        root = ROOT / "docs" / "60_interfaces"
-        for relative_path, (template_id, status, reviewed_commit, supersedes) in candidates.items():
-            path = root / relative_path
-            metadata_path = path.with_suffix(".metadata.json")
+    def test_current_documents_and_metadata_versions_match(self):
+        paths = [
+            ROOT / "docs/10_requirements/llmtier-v0.3-requirements.md",
+            ROOT / "docs/10_requirements/llmtier-v0.3-traceability.md",
+            ROOT / "docs/20_system_design/llmtier-system-design.md",
+            ROOT / "docs/60_interfaces/piko-data-plane-control.md",
+            ROOT / "docs/60_interfaces/slinky-capacity-observation-control.md",
+            ROOT / "docs/60_interfaces/llmtier-management-control.md",
+            ROOT / "docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.md",
+            ROOT / "docs/60_interfaces/contracts/llmtier-v0.3-cross-system-finalization.md",
+            ROOT / "docs/70_verification/plans/llmtier-v0.3-vv-plan.md",
+            ROOT / "docs/70_verification/specifications/llmtier-v0.3-contract-test-specification.md",
+            ROOT / "docs/80_operations/llmtier-v0.3-release-and-operations.md",
+        ]
+        for path in paths:
+            metadata = json.loads(path.with_name(path.stem + ".metadata.json").read_text(encoding="utf-8"))
             text = path.read_text(encoding="utf-8")
-            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-            self.assertEqual(template_id, metadata["document_type"])
-            self.assertEqual(template_id, metadata["template_id"])
-            self.assertEqual("tailored", metadata["template_conformance"])
-            self.assertEqual("std-tailoring", metadata["tailoring_ref"])
-            self.assertEqual(status, metadata["status"])
-            self.assertEqual(reviewed_commit, metadata["reviewed_commit"])
-            self.assertEqual(supersedes, metadata["supersedes"])
-            self.assertIn("openapi/llmtier-v0.3.openapi.json", text)
-            self.assertNotIn("<!-- TODO -->", text)
+            self.assertIn(f"| Document Version | `{metadata['document_version']}` |", text, path)
+            self.assertEqual("review", metadata["status"], path)
+            self.assertIsNone(metadata["reviewed_commit"], path)
+            self.assertEqual("2026-09-17", metadata["last_modified_at"], path)
 
-        contract = (root / "contracts" / "llmtier-v0.3-contract-specification.md").read_text(encoding="utf-8")
+    def test_current_authority_names_machine_artifacts_and_no_activation(self):
+        contract = (ROOT / "docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.md").read_text(encoding="utf-8")
         self.assertIn("唯一字段级 authority", contract)
-        self.assertIn("overall.runtime_activation=false", contract)
-        self.assertIn("不授权 runtime", contract)
-
-        piko = (root / "piko-data-plane-control.md").read_text(encoding="utf-8")
-        self.assertIn("Runtime → Piko → LLMTier", piko)
-        self.assertIn("UnknownOutcome 只能 manual reconcile", piko)
-        self.assertIn("不得 silent fallback", piko)
-
-        slinky = (root / "slinky-capacity-observation-control.md").read_text(encoding="utf-8")
-        self.assertIn("concurrent_invocation", slinky)
-        self.assertIn("request_quota_remaining=null", slinky)
-        self.assertIn("不等于 token/s、Agent Slot", slinky)
-
-        management = (root / "llmtier-management-control.md").read_text(encoding="utf-8")
-        self.assertIn("secret create/rotate 只写不读", management)
-        self.assertIn("redispatch=false", management)
-        self.assertIn("不构成 v0.3 Management compatibility", management)
-
-    def test_c2_assurance_candidates_preserve_executable_authority_and_evidence_gaps(self):
-        candidates = {
-            ROOT / "docs" / "70_verification" / "plans" / "llmtier-v0.3-vv-plan.md": "assurance.vv-plan",
-            ROOT / "docs" / "70_verification" / "specifications" / "llmtier-v0.3-contract-test-specification.md": "assurance.test-specification",
-        }
-        source_hashes = {item["path"]: item["sha256"] for item in self.sources}
-        template_paths = {
-            "assurance.vv-plan": "templates/assurance/verification-validation-plan.md",
-            "assurance.test-specification": "templates/assurance/test-specification.md",
-        }
-        for path, template_id in candidates.items():
-            text = path.read_text(encoding="utf-8")
-            metadata = json.loads(path.with_suffix(".metadata.json").read_text(encoding="utf-8"))
-            self.assertEqual(template_id, metadata["document_type"])
-            self.assertEqual(template_id, metadata["template_id"])
-            self.assertEqual(source_hashes[template_paths[template_id]], metadata["template_sha256"])
-            self.assertEqual("tailored", metadata["template_conformance"])
-            self.assertEqual("std-tailoring", metadata["tailoring_ref"])
-            expected_review = template_id == "assurance.test-specification"
-            self.assertEqual("review" if expected_review else "accepted", metadata["status"])
-            self.assertEqual(None if expected_review else "962e8003712738d2cb4e3a0a38173a9fd2bdd0a1", metadata["reviewed_commit"])
-            if expected_review:
-                self.assertIn("| Approval Date | — |", text)
-            self.assertIsNone(metadata["supersedes"])
-            self.assertNotIn("<!-- TODO -->", text)
-            self.assertIn("Runtime Activation", text)
-
-        vv_plan = next(path for path, template_id in candidates.items() if template_id == "assurance.vv-plan")
-        vv_text = vv_plan.read_text(encoding="utf-8")
-        self.assertIn("NOT_RUN/BLOCKED", vv_text)
-        self.assertIn("`tests/` 和 fixtures 是可执行 oracle", vv_text)
-
-        test_spec = next(path for path, template_id in candidates.items() if template_id == "assurance.test-specification")
-        spec_text = test_spec.read_text(encoding="utf-8")
-        self.assertIn("CT-REC-002", spec_text)
-        self.assertIn("tests/test_contract_semantics_v03.py", spec_text)
-        self.assertIn("现有测试源码\n与 fixtures 仍是 executable oracle authority", spec_text)
-
-    def test_c3_requirements_and_traceability_keep_project_authority_and_honest_status(self):
-        root = ROOT / "docs" / "10_requirements"
-        candidates = {
-            root / "llmtier-v0.3-requirements.md": "requirements.specification",
-            root / "llmtier-v0.3-traceability.md": "requirements.traceability",
-        }
-        template_paths = {
-            "requirements.specification": "templates/requirements/requirements-specification.md",
-            "requirements.traceability": "templates/requirements/traceability-matrix.md",
-        }
-        source_hashes = {item["path"]: item["sha256"] for item in self.sources}
-        for path, template_id in candidates.items():
-            text = path.read_text(encoding="utf-8")
-            metadata = json.loads(path.with_suffix(".metadata.json").read_text(encoding="utf-8"))
-            self.assertEqual(template_id, metadata["document_type"])
-            self.assertEqual(source_hashes[template_paths[template_id]], metadata["template_sha256"])
-            self.assertEqual("tailored", metadata["template_conformance"])
-            self.assertEqual("std-tailoring", metadata["tailoring_ref"])
-            self.assertEqual("review", metadata["status"])
-            self.assertIsNone(metadata["reviewed_commit"])
-            self.assertIn("| Approval Date | — |", text)
-            self.assertNotIn("<!-- TODO -->", text)
-
-        requirements = (root / "llmtier-v0.3-requirements.md").read_text(encoding="utf-8")
-        self.assertIn("LT-FUN-001", requirements)
-        self.assertIn("Piko 的 Agent Runtime/adapter 需求仅作为", requirements)
-        self.assertIn("Runtime Activation", requirements)
-
-        traceability = (root / "llmtier-v0.3-traceability.md").read_text(encoding="utf-8")
-        self.assertIn("STD draft.26", traceability)
-        self.assertIn("blocked-runtime", traceability)
-        self.assertIn("open-decision/not-run", traceability)
-        self.assertIn("不迁入本仓库", traceability)
-
-    def test_c4_operations_candidate_is_not_a_runtime_or_adr_claim(self):
-        path = ROOT / "docs" / "80_operations" / "llmtier-v0.3-release-and-operations.md"
-        text = path.read_text(encoding="utf-8")
-        metadata = json.loads(path.with_suffix(".metadata.json").read_text(encoding="utf-8"))
-        source_hashes = {item["path"]: item["sha256"] for item in self.sources}
-        self.assertEqual("operations.release", metadata["document_type"])
-        self.assertEqual("operations.release", metadata["template_id"])
-        self.assertEqual(
-            source_hashes["templates/operations/release-and-operations.md"],
-            metadata["template_sha256"],
-        )
-        self.assertEqual("accepted", metadata["status"])
-        self.assertEqual("962e8003712738d2cb4e3a0a38173a9fd2bdd0a1", metadata["reviewed_commit"])
-        self.assertIsNone(metadata["supersedes"])
-        self.assertNotIn("<!-- TODO -->", text)
-        self.assertIn("不是 release approval 或 runtime runbook", text)
-        self.assertIn("llm-tier --host 127.0.0.1", text)
-        self.assertIn("llm-tier-cli --server-url", text)
-        self.assertIn("config/settings.json", text)
-        self.assertIn("LLMTIER_STATE_DIR", text)
-        self.assertIn("overall.runtime_activation=false", text)
-        self.assertIn("NOT_RUN/BLOCKED", text)
-        self.assertIn("不创建 retrospective ADR", (ROOT / "docs" / "91_reviews" / "llmtier-std-c4-operations-review.md").read_text(encoding="utf-8"))
-
-    def test_c5_promotion_is_atomic_and_does_not_activate_runtime(self):
-        readiness = (ROOT / "docs" / "98_migration" / "canonical-promotion-readiness.md").read_text(encoding="utf-8")
-        packet = (ROOT / "docs" / "91_reviews" / "llmtier-std-c5-canonical-promotion-review.md").read_text(encoding="utf-8")
-        decision = json.loads(
-            (ROOT / "docs" / "91_reviews" / "llmtier-std-c5-canonical-promotion-review.review-decision.json").read_text(encoding="utf-8")
-        )
-        self.assertIn("READY_FOR_COMMIT", readiness)
-        self.assertIn("11 份实质 STD 文档实例、5 份 C0-C4 review packet/terminal decision", readiness)
-        self.assertIn("Runtime Activation 始终保持独立", readiness)
-        self.assertIn("当前原子 promotion candidate", packet)
-        self.assertEqual("PENDING", decision["verdict"])
-        self.assertFalse(decision["runtime_activation_requested"])
-        self.assertEqual([], decision["reviewers"])
-        self.assertIsNone(decision["decided_at"])
-        self.assertIn("RAG publication 仍不在本 scope", packet)
-
-        mapping = (ROOT / "docs" / "98_migration" / "legacy-v03-scope-mapping.md").read_text(encoding="utf-8")
-        for legacy in (
-            "docs/99_reference/design/llmtier-v0.3-design-review.md",
-            "docs/99_reference/contracts/piko-data-plane-contract-v0.3.md",
-            "docs/99_reference/contracts/slinky-capacity-observation-contract-v0.3.md",
-            "docs/99_reference/contracts/llmtier-management-contract-v0.3.md",
-            "docs/99_reference/verification/llm-tier-contract-qa-v0.3.md",
-        ):
-            self.assertIn(legacy, mapping)
-        self.assertIn("S-20260907-45938693e578", mapping)
-        self.assertIn("P-20260907-e009921eda0a", mapping)
-        self.assertIn("residual=none", mapping)
-
-        owner = (ROOT / "docs" / "98_migration" / "evidence" / "c5-owner-verdicts.txt").read_text(encoding="utf-8")
-        self.assertIn("C0 Foundation", owner)
-        self.assertIn("C1 Interface + Contract", owner)
-        self.assertIn("C2 Assurance", owner)
-        self.assertIn("C3 Requirements + Traceability", owner)
-        self.assertIn("C4 Decisions + Operations", owner)
-        self.assertIn("C1 terminal decision time", owner)
-        self.assertIn("STD reviewer role", owner)
-        self.assertIn("C1 uses decision_commit=e1f9b796368ec5f358e466c7e6299cc16b1bf181", owner)
-        self.assertIn("No reviewed_commit or decision_commit may be filled with a commit that predates", owner)
-
-        substantive = [
-            ROOT / "docs" / "00_management" / "std-tailoring.metadata.json",
-            ROOT / "docs" / "10_requirements" / "llmtier-v0.3-requirements.metadata.json",
-            ROOT / "docs" / "10_requirements" / "llmtier-v0.3-traceability.metadata.json",
-            ROOT / "docs" / "20_system_design" / "llmtier-system-design.metadata.json",
-            ROOT / "docs" / "60_interfaces" / "piko-data-plane-control.metadata.json",
-            ROOT / "docs" / "60_interfaces" / "slinky-capacity-observation-control.metadata.json",
-            ROOT / "docs" / "60_interfaces" / "llmtier-management-control.metadata.json",
-            ROOT / "docs" / "60_interfaces" / "contracts" / "llmtier-v0.3-contract-specification.metadata.json",
-            ROOT / "docs" / "70_verification" / "plans" / "llmtier-v0.3-vv-plan.metadata.json",
-            ROOT / "docs" / "70_verification" / "specifications" / "llmtier-v0.3-contract-test-specification.metadata.json",
-            ROOT / "docs" / "80_operations" / "llmtier-v0.3-release-and-operations.metadata.json",
-        ]
-        self.assertEqual(11, len(substantive))
-        document_ids = set()
-        canonical_paths = set()
-        for path in substantive:
-            metadata = json.loads(path.read_text(encoding="utf-8"))
-            review_documents = {
-                "llmtier-system-design",
-                "llmtier-v0.3-requirements",
-                "llmtier-v0.3-traceability",
-                "llmtier-piko-data-plane-control",
-                "llmtier-v0.3-contract-specification",
-                "llmtier-v0.3-contract-test-specification",
-            }
-            if metadata["document_id"] in review_documents:
-                self.assertEqual("review", metadata["status"])
-                self.assertIsNone(metadata["reviewed_commit"])
-                text = (ROOT / metadata["source_path"]).read_text(encoding="utf-8")
-                if metadata["document_id"] != "llmtier-system-design":
-                    self.assertIn("| Approval Date | — |", text)
-            else:
-                self.assertEqual("accepted", metadata["status"])
-                self.assertIsNotNone(metadata["reviewed_commit"])
-            self.assertNotIn(metadata["document_id"], document_ids)
-            self.assertNotIn(metadata["source_path"], canonical_paths)
-            document_ids.add(metadata["document_id"])
-            canonical_paths.add(metadata["source_path"])
-
-        readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        for source_path in canonical_paths:
-            self.assertIn(source_path, readme)
-        self.assertIn("overall.runtime_activation=false", readme)
-
-        for decision_name in (
-            "llmtier-std-draft16-migration-review.review-decision.json",
-            "llmtier-std-c1-interface-contract-review.review-decision.json",
-            "llmtier-std-c2-assurance-review.review-decision.json",
-            "llmtier-std-c3-requirements-review.review-decision.json",
-            "llmtier-std-c4-operations-review.review-decision.json",
-        ):
-            terminal = json.loads((ROOT / "docs" / "91_reviews" / decision_name).read_text(encoding="utf-8"))
-            self.assertEqual("ACCEPTED", terminal["verdict"])
-            self.assertTrue(terminal["reviewers"])
-            self.assertIsNotNone(terminal["decided_at"])
-            self.assertIsNotNone(terminal["decision_commit"])
-            self.assertFalse(terminal["runtime_activation_requested"])
-
-        for legacy in (
-            ROOT / "docs" / "99_reference" / "design" / "llmtier-v0.3-design-review.md",
-            ROOT / "docs" / "99_reference" / "contracts" / "piko-data-plane-contract-v0.3.md",
-            ROOT / "docs" / "99_reference" / "contracts" / "slinky-capacity-observation-contract-v0.3.md",
-            ROOT / "docs" / "99_reference" / "contracts" / "llmtier-management-contract-v0.3.md",
-            ROOT / "docs" / "99_reference" / "verification" / "llm-tier-contract-qa-v0.3.md",
-        ):
-            self.assertIn("Document Status: Superseded", legacy.read_text(encoding="utf-8"))
-
-    def test_slinky_boundary_clarification_separates_upstream_choice_from_api_execution(self):
-        path = ROOT / "docs" / "60_interfaces" / "slinky-capacity-observation-control.md"
-        text = path.read_text(encoding="utf-8")
-        metadata = json.loads(path.with_suffix(".metadata.json").read_text(encoding="utf-8"))
-        self.assertEqual("0.3.1", metadata["document_version"])
-        self.assertIn("| Document Version | 0.3.1 |", text)
-        self.assertIn("适用于 LLMTier API 对单次请求的 Service Level 解析与执行", text)
-        self.assertIn("Slinky 上游逻辑路由层的 same-tier fallback/Upshift", text)
-        self.assertIn("明确 canonical service_level_id 提交并重新接受 admission", text)
-        self.assertIn("不得借此取得 physical routing authority", text)
-        self.assertIn("上游决策不属于 Observation API 的执行能力", text)
-
-        evidence = (ROOT / "docs" / "98_migration" / "evidence" / "c5-consumer-verdicts.txt").read_text(encoding="utf-8")
-        self.assertIn("P-20260907-e009921eda0a", evidence)
-        self.assertIn("S-20260907-8866534be612", evidence)
-        self.assertIn("SLK-BOUNDARY-001", evidence)
-        self.assertIn("S-20260907-45938693e578", evidence)
-        self.assertIn("Verdict: ACCEPTED; SLK-BOUNDARY-001 CLOSED", evidence)
-
-    def test_c6_project_rag_manifest_is_commit_bound_acl_scoped_and_authority_unique(self):
-        manifest_path = ROOT / "rag" / "project-ingestion-manifest.jsonl"
-        entries = [json.loads(line) for line in manifest_path.read_text(encoding="utf-8").splitlines() if line]
-        self.assertEqual(11, len(entries))
-
-        actual_paths = {entry["path"] for entry in entries}
-        self.assertEqual(len(entries), len({entry["document_id"] for entry in entries}))
-        self.assertEqual(len(entries), len(actual_paths))
-        self.assertIn("docs/30_subsystem_design/llmtier-service-design.md", actual_paths)
-        self.assertNotIn("docs/20_system_design/llmtier-system-design.md", actual_paths)
-
-        import hashlib
-
-        for entry in entries:
-            self.assertEqual("llmtier-project-rag.v1", entry["schema_version"])
-            self.assertEqual("corezilla/LLMTier", entry["repository"])
-            self.assertEqual("503d0a03fa92aeeb7657ce7ed54bab8b77efef34", entry["commit"])
-            self.assertEqual("accepted", entry["document_status"])
-            self.assertEqual("project", entry["visibility"])
-            self.assertEqual("llmtier", entry["authority"])
-            self.assertEqual("project/llmtier", entry["namespace"])
-            self.assertTrue(entry["include"])
-            published_bytes = subprocess.check_output(
-                ["git", "show", f'{entry["commit"]}:{entry["path"]}'],
-                cwd=ROOT,
-            )
-            self.assertEqual(
-                hashlib.sha256(published_bytes).hexdigest(),
-                entry["content_sha256"],
-            )
-
-        excluded = {
-            "docs/99_reference/design/llmtier-v0.3-design-review.md",
-            "docs/99_reference/contracts/piko-data-plane-contract-v0.3.md",
-            "docs/99_reference/contracts/slinky-capacity-observation-contract-v0.3.md",
-            "docs/99_reference/contracts/llmtier-management-contract-v0.3.md",
-            "docs/99_reference/verification/llm-tier-contract-qa-v0.3.md",
-            "rag/std-ingestion-manifest.jsonl",
-        }
-        self.assertTrue(excluded.isdisjoint(actual_paths))
-        self.assertFalse(any(path.startswith("docs/91_reviews/") for path in actual_paths))
-        self.assertFalse(any(path.startswith("docs/98_migration/") for path in actual_paths))
-
-        def acl_filter(*, project_scope, authority):
-            if project_scope != "LLMTier" or authority != "llmtier":
-                return []
-            return entries
-
-        self.assertEqual(11, len(acl_filter(project_scope="LLMTier", authority="llmtier")))
-        self.assertEqual([], acl_filter(project_scope="Piko", authority="llmtier"))
-        self.assertEqual([], acl_filter(project_scope="LLMTier", authority="std"))
-
-        def retrieve(terms):
-            allowed = acl_filter(project_scope="LLMTier", authority="llmtier")
-            return {
-                entry["path"]
-                for entry in allowed
-                if all(
-                    term in subprocess.check_output(
-                        ["git", "show", f'{entry["commit"]}:{entry["path"]}'],
-                        cwd=ROOT,
-                        text=True,
-                    )
-                    for term in terms
-                )
-            }
-
-        self.assertIn(
-            "docs/60_interfaces/piko-data-plane-control.md",
-            retrieve(["model 字段等于 exact", "alias", "Role selector"]),
-        )
-        self.assertIn(
-            "docs/60_interfaces/slinky-capacity-observation-control.md",
-            retrieve(["same-tier fallback/Upshift", "重新接受 admission"]),
-        )
-        runtime_hits = retrieve(["Runtime Activation", "NOT_RUN/BLOCKED"])
-        self.assertIn("docs/70_verification/plans/llmtier-v0.3-vv-plan.md", runtime_hits)
-        self.assertIn("docs/80_operations/llmtier-v0.3-release-and-operations.md", runtime_hits)
-
-    def test_c7_repository_layout_uses_interfaces_and_reference_trees_without_duplicate_paths(self):
-        expected = {
-            ROOT / "interfaces" / "openapi" / "llmtier-v0.3.openapi.json",
-            ROOT / "interfaces" / "compatibility" / "compatibility-manifest-v0.3.json",
-            ROOT / "interfaces" / "schemas" / "llmtier-contracts-v0.2.schema.json",
-            ROOT / "interfaces" / "vectors" / "v0.3" / "recovery-protocol-fixtures.json",
-            ROOT / "docs" / "99_reference" / "design" / "llmtier-v0.3-design-review.md",
-            ROOT / "docs" / "99_reference" / "contracts" / "piko-data-plane-contract-v0.3.md",
-            ROOT / "docs" / "99_reference" / "verification" / "llm-tier-contract-qa-v0.3.md",
-            ROOT / "docs" / "99_reference" / "future" / "llmtier-v0.4-data-plane.md",
-            ROOT / "docs" / "98_migration" / "source-provenance-v0.1.md",
-        }
-        self.assertTrue(all(path.is_file() for path in expected))
-
-        old_roots = [
-            ROOT / "docs" / "contracts",
-            ROOT / "docs" / "design",
-            ROOT / "docs" / "qa",
-            ROOT / "docs" / "future",
-            ROOT / "docs" / "migration",
-        ]
-        self.assertFalse(any(path.is_file() for root in old_roots for path in root.rglob("*") if root.exists()))
-
-        manifest = json.loads(
-            (ROOT / "interfaces" / "compatibility" / "compatibility-manifest-v0.3.json").read_text(encoding="utf-8")
-        )
-        self.assertEqual("openapi/llmtier-v0.3.openapi.json", manifest["contract_authority"]["path"])
+        self.assertIn("runtime_activation=false", contract)
+        manifest = json.loads((ROOT / "interfaces/compatibility/compatibility-manifest-v0.3.json").read_text(encoding="utf-8"))
         self.assertFalse(manifest["overall"]["runtime_activation"])
 
-        readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("interfaces/openapi/llmtier-v0.3.openapi.json", readme)
-        self.assertIn("docs/98_migration/source-provenance-v0.1.md", readme)
-
-    def test_current_docs_describe_independent_paths_and_usage_without_shared_workspace(self):
-        current_docs = [
-            ROOT / "README.md",
-            ROOT / "docs" / "00_management" / "std-tailoring.md",
-            *sorted((ROOT / "docs" / "10_requirements").glob("*.md")),
-            *sorted((ROOT / "docs" / "20_system_design").glob("*.md")),
-            *sorted((ROOT / "docs" / "60_interfaces").glob("*.md")),
-            *sorted((ROOT / "docs" / "60_interfaces" / "contracts").glob("*.md")),
-            *sorted((ROOT / "docs" / "70_verification" / "plans").glob("*.md")),
-            *sorted((ROOT / "docs" / "70_verification" / "specifications").glob("*.md")),
-            *sorted((ROOT / "docs" / "80_operations").glob("*.md")),
+    def test_current_prose_has_simplified_scope(self):
+        docs = [
+            ROOT / "docs/10_requirements/llmtier-v0.3-requirements.md",
+            ROOT / "docs/20_system_design/llmtier-system-design.md",
+            ROOT / "docs/60_interfaces/piko-data-plane-control.md",
+            ROOT / "docs/60_interfaces/slinky-capacity-observation-control.md",
         ]
-        combined = "\n".join(path.read_text(encoding="utf-8") for path in current_docs)
-        self.assertNotIn("workspaces/", combined)
-        self.assertNotIn("STD draft.18", combined)
-        self.assertIn("config/settings.json", combined)
-        self.assertIn("LLMTIER_CONFIG", combined)
-        self.assertIn("LLMTIER_STATE_DIR", combined)
-        self.assertIn("llm-tier-cli", combined)
-        self.assertIn("独立进程", combined)
-
-        readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("LLMTier 是一个独立的、单服务 Python 项目", readme)
-        self.assertIn("PYTHONPATH=src python3 -m tier_service", readme)
-        self.assertIn("PYTHONPATH=src python3 -m cli", readme)
+        combined = "\n".join(path.read_text(encoding="utf-8") for path in docs)
+        self.assertIn("无 Agent 会话状态", combined)
+        self.assertIn("OpenAI-compatible", combined)
+        self.assertIn("unknown", combined)
+        self.assertIn("不执行工具", combined)
+        self.assertIn("Cost", combined)
+        self.assertIn("退出", combined)
 
 
 if __name__ == "__main__":

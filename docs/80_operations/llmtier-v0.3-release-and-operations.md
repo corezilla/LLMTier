@@ -4,8 +4,8 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-release-and-operations` |
-| Document Version | `0.3.0` |
-| Status | `Approved` |
+| Document Version | `0.3.1-draft.1` |
+| Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-09` |
+| Last Modified Date | `2026-09-17` |
 | Template Version | `0.1.0` |
 | Template ID | `operations.release` |
 | Template Conformance | `tailored` |
@@ -38,8 +38,8 @@
 - V0.3 contract/design 仍为 candidate，`overall.runtime_activation=false`。
 - 兼容性唯一机器 authority 是 `interfaces/compatibility/compatibility-manifest-v0.3.json`；接口字段 authority 是
   OpenAPI v0.3。本文不新增 compatibility path。
-- V0.3 Scope B、exact Service Level、canonical headers/path、M2-C 与 no cross-level fallback 均不可由
-  release 操作放宽。
+- V0.3 simplified candidate 保留 exact Service Level 与 no cross-level fallback；不再对外承诺 M2-C、
+  custom Invocation/idempotency recovery、capacity/Seat、Cost 或专用 compatibility negotiation。
 
 ## 2. 构建、制品、SBOM/BOM 与来源证明
 
@@ -82,9 +82,9 @@ network/TLS、filesystem owner、resource limit 和 multi-instance topology 均�
 ## 5. Preflight、Bring-up 与健康检查
 
 Preflight 必须固定 commit/artifact/config digest，验证 Python/dependencies、port/filesystem 权限、secret
-availability、Registry/manifest version、durable store、required Service Levels、consumer identity 和
-`runtime_activation`。Bring-up 先阻断流量，完成 schema/config check、store recovery、Registry/admission
-consistency、Management/Observation/Data Plane probes 后才可进入独立 activation Gate。
+availability、model registry、Usage/Audit store、required logical models、credential 和 `runtime_activation`。
+Bring-up 先阻断流量，完成 schema/config check、store recovery、model availability、Admin/Data Plane checks
+后才可进入独立 activation Gate。
 
 当前 `/health`、`/runtime`、`/stats` 可用于 legacy baseline 诊断，但不是 V0.3 readiness contract。
 V0.3 health/readiness 的 machine authority 是 OpenAPI；production route evidence 未提供，故 bring-up 为
@@ -97,19 +97,19 @@ NOT_RUN/BLOCKED。
 
 - upgrade input：immutable artifact、config/schema migration、compatibility assessment、backup/restore test、
   consumer matrix 和 rollback trigger。
-- rollout 必须保持单一 Registry/ledger 与唯一 `Runtime -> Piko -> LLMTier` path；不运行旧/新并行
-  inference 或 recovery path。
+- rollout 必须保持单一 model registry 与唯一 `Runtime -> Piko -> LLMTier` inference path；不运行 legacy
+  `/call` 与目标 `/v1` 的consumer fallback。
 - rollback 只能回到明确兼容的 artifact/config/data state；不能通过 alias、Role selector、跨等级 fallback
   或缩短 retention 绕过问题。
-- in-flight Invocation、idempotency/dispatch intent、canonical response 与 tombstone 必须按 M2-C 恢复。
+- Piko Agent session/任务恢复不属于 LLMTier；LLMTier只恢复自身配置、Usage/Audit store和服务进程。
 - 当前没有已批准的 database schema、backup format、HA、RPO/RTO、blue-green/canary 或 disaster recovery
   procedure，相关步骤保持 Open Gate，不能执行 production migration。
 
 ## 7. 操作、监控、告警与 SLO
 
-运行时应监控 readiness、request/error、queue/admission、capacity/quota、provider health、Invocation state、
-recovery、usage、audit、store health 与 secret access denial，并按 Client/Source/Service Level 隔离。告警不得
-泄露 prompt/output/credential。
+运行时应监控 health/readiness、request/error、内部 queue/concurrency、provider health、token usage、audit、
+store health 与 secret access denial。内部资源指标不形成外部 Seat/capacity contract；告警不得泄露
+prompt/output/credential。
 
 当前没有 production latency/throughput/error budget 或 provider measured SLO。开发日志和 mock/static
 fixture 不能作为 SLO evidence。SLO、告警阈值、on-call owner、dashboard 和 escalation 在 production
@@ -117,26 +117,25 @@ baseline 冻结前为 BLOCKED。
 
 ## 8. 故障诊断、维护与更换
 
-诊断顺序：固定 incident/commit/config；检查 readiness/store/Registry；按 Invocation ID 与 canonical
-Client/Source 查询；区分 validation、auth、capacity、provider、store、UnknownOutcome；保留脱敏 evidence。
-UnknownOutcome 只允许 manual reconcile，不盲重派。维护不得直接编辑持久化状态或跨 Client 查看数据。
+诊断顺序：固定 incident/commit/config；检查 health/readiness/store/model registry；按 request ID 与标准 trace
+查询；区分 validation、auth、rate-limit、provider、store；保留脱敏 evidence。网络结果不明由调用方按其任务
+策略处理，LLMTier不提供custom Invocation reconcile。维护不得直接编辑持久化状态。
 
 当前可替换对象仅是同一 Service Level 的 approved backend/deployment；不得换为其他 Service Level。
 正式 maintenance window、data repair、provider replacement 和 operator authorization 尚未定义。
 
 ## 9. 数据保留、备份、审计与安全
 
-- active record 保留至 terminal；terminal digest/tombstone、Invocation view 与 canonical Response 至少 168h；
-  自动恢复 deadline 24h，clock skew 上限 5m。
-- prompt/output privacy retention 可独立配置，但不得破坏上述 recovery 下限。
-- backup 必须加密、最小权限、可审计，并验证 restore 后 idempotency/Invocation/Registry 一致性。
+- Usage/Audit retention 由LLMTier运营策略定义；unknown token不能在过期或聚合时变成0。
+- prompt/output默认不持久化；若因明确诊断需求保存，必须有独立批准和retention。
+- backup 必须加密、最小权限、可审计，并验证restore后配置、model registry和Usage/Audit一致性。
 - Secret 不得可读或出现在 backup report；audit 必须记录管理 mutation、publish/rollback 和 recovery action。
 - 当前 backup/restore、key management、retention enforcement 与 security run evidence 均为 BLOCKED。
 
 ## 10. Acceptance、交接与退役
 
-production acceptance 至少要求：immutable artifact/provenance、全部 P0 contract/runtime/security/recovery/
-capacity cases PASS、consumer captures、operations owner、backup/restore、rollback rehearsal、SLO/alert、
+production acceptance 至少要求：immutable artifact/provenance、全部 P0 contract/runtime/security/operations
+cases PASS、Piko/Embedding consumer captures、operations owner、backup/restore、rollback rehearsal、SLO/alert、
 single-authority scan、manifest 与 routes 一致，以及独立 Runtime Activation approval。
 
 交接包包含 runbook、artifact/config/schema、contacts、dashboard/alert、known issues、backup/restore、rollback、

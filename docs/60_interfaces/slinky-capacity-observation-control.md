@@ -1,147 +1,75 @@
 <!-- STD_DOCUMENT_COVER_BEGIN -->
-# LLMTier–Slinky Capacity/Observation Interface Control（V0.3）
+# Slinky ↔ LLMTier Usage and Embeddings Interface Control
 
 | 文档字段 | 值 |
 |---|---|
-| Document ID | llmtier-slinky-capacity-observation-control |
-| Document Version | 0.3.1 |
-| Status | Approved |
-| Project | LLMTier |
-| Authority | LLMTier |
+| Document ID | `llmtier-slinky-capacity-observation-control` |
+| Document Version | `0.3.2-draft.1` |
+| Status | `In Review` |
+| Project | `LLMTier` |
+| Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | llmtier |
-| Reviewer | LLMTier; Slinky consumer boundary |
-| Approver | LLMTier |
-| Approval Date | 2026-09-07 |
-| Created Date | 2026-09-07 |
-| Last Modified Date | 2026-09-09 |
-| Template Version | `0.1.0` |
-| Template ID | interfaces.control |
-| Template Conformance | tailored |
-| Tailoring Reference | std-tailoring |
+| Reviewer | Slinky |
+| Approver | 待定 |
+| Approval Date | 待定 |
+| Created Date | `2026-09-07` |
+| Last Modified Date | `2026-09-17` |
+| Template Version | `0.3.0` |
+| Template ID | `interfaces.control` |
+| Template Conformance | `tailored` |
+| Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |
-| Repository | corezilla/LLMTier |
-| Canonical Path | docs/60_interfaces/slinky-capacity-observation-control.md |
-| Supersedes | docs/99_reference/contracts/slinky-capacity-observation-contract-v0.3.md |
-
-> Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
-> 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
+| Repository | `corezilla/LLMTier` |
+| Canonical Path | `docs/60_interfaces/slinky-capacity-observation-control.md` |
+| Supersedes | `docs/99_reference/contracts/slinky-capacity-observation-contract-v0.3.md` |
 <!-- STD_DOCUMENT_COVER_END -->
-
-> 本文是当前 Approved consumer-boundary prose authority。原
-> docs/99_reference/contracts/slinky-capacity-observation-contract-v0.3.md 已 Superseded 并仅保留历史；v0.3 OpenAPI
-> 保持字段级机器 authority。
 
 ## 1. 接口目的、范围与双方 authority
 
-Slinky 负责 Project、Plan、IR 和把 LLMTier Observation 投影为 Forecast/Risk/Action；LLMTier 负责
-模型服务、admission、routing、Invocation ledger、Service Level Registry 和 Client-scoped
-Observation。唯一 inference 路径仍是 Runtime → Piko → LLMTier。
-
-Slinky 不取得 Provider credential、physical routing、Management authority，也不绕过 Piko 执行
-inference。Piko 不消费 Observation 分面。
+Slinky Memory只消费标准Embeddings与token Usage。Slinky拥有材料分块、向量库、索引、检索、正式记忆和业务验收；LLMTier只做向量化和模型服务。文件名保留以维持文档引用，但“capacity observation”旧范围已经退出current authority。
 
 ## 2. 接口注册表
 
-| Interface ID | Provider | Consumer | 类型 | Version | Status |
-|---|---|---|---|---|---|
-| LT-SLK-READINESS | LLMTier | Slinky | GET /tier/v1/readiness | v0.3 | Candidate / not active |
-| LT-SLK-SERVICE-LEVELS | LLMTier | Slinky | GET /tier/v1/service-levels 与 detail | v0.3 | Candidate / not active |
-| LT-SLK-CAPACITY | LLMTier | Slinky | GET /tier/v1/capacity/snapshots/current | v0.3 | Candidate / not active |
-| LT-SLK-INVOCATIONS | LLMTier | Slinky | GET /tier/v1/invocations 与 detail | v0.3 | Candidate / not active |
-| LT-SLK-USAGE | LLMTier | Slinky | GET /tier/v1/usage/summary | v0.3 | Candidate / not active |
-| LT-SLK-COMPATIBILITY | LLMTier | Slinky | GET /tier/v1/compatibility | v0.3 | Candidate / not active |
+- `POST /v1/embeddings`
+- `GET /v1/models` / detail：选择 `capabilities.embeddings=true` 的 exact model
+- `GET /tier/v1/usage`：只读token事实
+- `GET /healthz` / `/readyz`：环境检查
+
+没有capacity snapshot、Seat、Invocation、recovery、Cost或compatibility endpoint。
 
 ## 3. 传输与物理边界
 
-接口是 authenticated、Client-scoped 的只读 HTTP Observation boundary。query/header、cursor、
-ETag/If-None-Match/304、response DTO 和 typed error 由 v0.3 OpenAPI 定义。
-
-physical Provider、account、pool、deployment 和 Management mutation 不跨该边界。Slinky adapter
-不能根据缺失字段猜测，也不能将 Observation filter 变成新的权限或 recovery namespace。
-
-Slinky 只通过已激活的 `/tier/v1` HTTP 分面消费 Observation；不 import LLMTier `src/`，不读取
-`config/`/`state/`，不共享 filesystem path，也不控制 LLMTier 进程。当前 `/health`、`/runtime`、
-`/stats` 是 LLMTier legacy implementation diagnostics，不是 Observation alias 或兼容入口。
+HTTPS/JSON/Bearer auth。Memory调用不进入Piko的模型调用控制面，也不传Project/Memory对象给LLMTier；只发送标准embedding request内容。
 
 ## 4. 数据、命令与 Schema
 
-同一 authenticated Client 可在已授权范围内查询/聚合多个 Source。source_id 是授权范围内的
-filter/grouping dimension；Data Plane recovery 严格使用 authenticated client_id + canonical source_id。
-V0.3 不定义 SourceInstance 字段或过滤维度；诊断关联使用 Client Request ID、Invocation ID 与标准 trace/correlation。
-
-Readiness 显示 Ready/Degraded/NotReady、Tier instance/version、Observation readiness、visible
-Service Levels、snapshot version 与 refresh window。Service Level DTO 描述 kind、capabilities、
-context、Structured Output、Tool Calling、modalities/limits 和 compatibility ref。
+`EmbeddingRequest`含exact `model`、`input`、可选`encoding_format/dimensions/user`。`EmbeddingResponse`含vectors、model和可空usage。UsageRecord含request/model/endpoint/time、measurement status/source以及可空token字段；unknown不得补零。Cost不在Schema中。
 
 ## 5. 状态机、顺序和时序
 
-Registry publish 原子更新 catalog/version/ETag/effective_at/valid_until。Models、Observation、
-admission、capacity membership 和 compatibility manifest 必须来自同一个 Registry，但每个 endpoint
-的 ETag 只校验其自身 representation。
-
-CapacitySnapshot 失效时关联 TierServiceSeat/IRBackingSeat 立即 Invalidated，不得用于新 dispatch；
-Slinky 通知 Plan 更新 Forecast/Risk/Action。已被 LLMTier admission 的 in-flight Invocation 不撤销、
-不跨 Stage rollback；后续 Work 必须重新投影和 admission。
+每个embedding POST独立。Slinky在本地把有效结果原子关联到自己的index generation；LLMTier不持有Memory generation或索引状态。
 
 ## 6. 错误、timeout、重试、幂等和恢复
 
-字段或 Source identity 不满足时返回 typed source_error 或 contract_mismatch，adapter 不得猜测。
-跨 Client、未授权 Source 或 hidden resource 必须 fail closed。
-
-Observation invocation view 与 Data Plane recovery extension 投影自同一 ledger，不得建立第二状态机。
-M2-C 固定 W=168h、M=24h、D=24h；digest/tombstone、terminal view 与可恢复 canonical Response 的
-最短窗口均为 168h。短于冻结下限的配置无效并阻断 activation。
+使用标准400/401/404/429/502/503。重试由Slinky Memory按标准HTTP/client policy决定；无custom Idempotency、Invocation、202 active、410 tombstone或Responses GET recovery。
 
 ## 7. 并发、流控、容量与性能
 
-唯一容量单位是 concurrent_invocation。committed Seat 同时受 direct capacity、全部
-shared/overlapping Capacity Group、Client quota、readiness/blocking reason 和 valid_until 约束；
-burst 不计入 committed Seat，request_quota_remaining=null 以 client_quota_unknown 阻断新投影。
-
-semantic validator 必须检查 ID 唯一、exact-case Registry membership、双向 group membership、
-available <= committed、时间顺序和所有 fail-closed blocking reason。Seat 不等于 token/s、Agent Slot
-或性能保证；当前没有 production capacity/fairness evidence。
+内部保护可返回429/Retry-After。Slinky不读取或计算Tier Seat/capacity；向量维数、batch限制和输入上限由Models能力与请求校验表达。
 
 ## 8. 安全、身份、权限和隔离
 
-所有响应按 credential scope 过滤。Observation 的 multi-source aggregate 不能扩大 Data Plane
-recovery scope，不能暴露 secret、physical credential、Provider payload 或其他 Client 数据。
-
-Usage 的 unknown/partial count/token 保持 null，不得补零。日志、metrics 和 audit 必须保持
-Client/Source 隔离。
+credential只标识获授权调用主体；不引入SourceInstance。Memory内容不得进入普通日志；向量输出的存储权限由Slinky管理。
 
 ## 9. 版本协商、兼容矩阵与弃用
 
-service_level_id exact、大小写敏感；禁止 lowercasing、alias、Role selector 和跨等级 fallback。
-physical mapping 在 Contract/SLO 不变时可替换；破坏兼容性的语义变化使用新 ID 或 API major。
-
-本节禁止项适用于 LLMTier API 对单次请求的 Service Level 解析与执行，不授权提供方对请求进行隐式
-跨等级替换。Slinky 上游逻辑路由层的 same-tier fallback/Upshift 如选择另一已授权 Service Level，必须
-通过既有 Runtime → Piko → LLMTier 路径以明确 canonical service_level_id 提交并重新接受 admission；
-不得借此取得 physical routing authority、绕过幂等/recovery Contract、重放已 admitted 的 Invocation
-或扩大 Client/Source scope。上游决策不属于 Observation API 的执行能力。
-
-compatibility endpoint 按 method/path 暴露 supported/unsupported fields、streaming、Schema/error
-version、SDK matrix 和 effective_at。v0.3 当前是 candidate，runtime_activation=false。
+无专用协商endpoint。旧Observation/Capacity/Cost contract与fixtures退出current authority；不作为fallback。
 
 ## 10. Contract fixture、验证与证据
 
-- 字段 authority：interfaces/openapi/llmtier-v0.3.openapi.json。
-- activation 状态：interfaces/compatibility/compatibility-manifest-v0.3.json。
-- fixtures：capacity-semantic-negative-fixtures、observation-management-openapi-fixtures、
-  authorization-scope-fixtures、metadata-utf8-byte-fixtures。
-- 静态/语义验证：tests/test_contract_semantics_v03.py、tests/test_contract_consistency.py。
-- production evidence：真实 endpoints、Registry/admission wiring、公平性、invalidation notification 和
-  Slinky E2E 尚未完成，状态为 BLOCKED/NOT_RUN。
-- 当前 repo paths：Observation 机器契约在 `interfaces/openapi/`，fixtures 在
-  `interfaces/vectors/v0.3/`；跨项目交付使用 immutable contract artifact，不使用共享源码路径。
+正例覆盖float/base64、batch index、usage measured/estimated/unknown；负例覆盖非embedding model、维数不支持、unknown field、旧path不存在。production embedding deployment/capture尚未完成。
 
 ## 11. 未决项与双方批准
 
-LLMTier Owner 已审核提供方和安全事实；Slinky reviewer 已在 `S-20260907-45938693e578` 对 exact
-draft.2 input 接受其 Observation consumer boundary 与 Seat 投影义务。本文的 Approved 状态不授权
-RAG publication、外部发布或 Runtime Activation。
-
-变更记录：0.3.0-draft.2 根据 Slinky verdict `S-20260907-8866534be612` 澄清上游显式重新选择与 LLMTier
-单次 API 请求内禁止隐式换级属于不同责任层；不批准或证明 Slinky runtime routing 已实现。
+LLMTier内部待选择并配置dedicated embedding deployment；Slinky需在实现阶段验证实际维数、输入上限和结果入库。没有新的跨系统协议待定。

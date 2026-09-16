@@ -3,197 +3,68 @@
 
 | 文档字段 | 值 |
 |---|---|
-| Document ID | llmtier-v0.3-contract-specification |
-| Document Version | 0.3.1-draft.9 |
-| Status | In Review |
-| Project | LLMTier |
-| Authority | LLMTier |
+| Document ID | `llmtier-v0.3-contract-specification` |
+| Document Version | `0.3.2-draft.1` |
+| Status | `In Review` |
+| Project | `LLMTier` |
+| Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | llmtier |
-| Reviewer | LLMTier |
-| Approver | LLMTier |
-| Approval Date | — |
-| Created Date | 2026-09-07 |
-| Last Modified Date | 2026-09-16 |
-| Template Version | `0.1.0` |
-| Template ID | contracts.specification |
-| Template Conformance | tailored |
-| Tailoring Reference | std-tailoring |
+| Reviewer | Piko, Slinky |
+| Approver | 待定 |
+| Approval Date | 待定 |
+| Created Date | `2026-09-07` |
+| Last Modified Date | `2026-09-17` |
+| Template Version | `0.3.0` |
+| Template ID | `contracts.specification` |
+| Template Conformance | `tailored` |
+| Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |
-| Repository | corezilla/LLMTier |
-| Canonical Path | docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.md |
+| Repository | `corezilla/LLMTier` |
+| Canonical Path | `docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.md` |
 | Supersedes | none |
-
-> Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
-> 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
-
-> 本文只建立 V0.3 machine contract 的 scope、authority、演进和验证索引，不转写字段定义。
-> interfaces/openapi/llmtier-v0.3.openapi.json 与
-> interfaces/compatibility/compatibility-manifest-v0.3.json 原位保持各自机器 authority。
 
 ## 1. Contract scope 与 authority
 
-OpenAPI 3.1 文件是 Data Plane、Observation 和 Management 的 method/path、header、parameter、
-request/response、status、typed error 与 Schema 唯一字段级 authority。compatibility manifest 是
-capability support、SDK matrix、overall contract status 和 runtime activation 的机器 authority；
-当前 overall.contract_status=candidate 且 overall.runtime_activation=false。
-
-V0.3 的默认模型调用边界是无 Agent 会话状态的 OpenAI-compatible gateway：consumer 为每次 logical call
-提交完整当前 input；LLMTier 不持有 Agent history/Conversation、不开 tool loop、不管理或匹配 backend KV。
-Invocation/idempotency 仅用于单次调用准入、计量和丢响应恢复。
-
-三份 `docs/60_interfaces/` interface control 解释双方职责和 failure/recovery rationale，不得覆盖机器字段。fixtures 与
-tests 是 oracle/evidence，不能取代 Contract 定义。v0.1/v0.2 文件只作 historical/provenance。
-
-机器 authority 的当前 repo paths 固定为 `interfaces/openapi/`、`interfaces/compatibility/`、
-`interfaces/schemas/` 和 `interfaces/vectors/v0.3/`。`src/` 中的 legacy route、operator CLI 或历史
-Markdown 不得生成第二份 V0.3 contract。跨项目 consumer 通过版本化 HTTP/artifact 使用 contract，
-不通过 LLMTier 源码或共享配置路径耦合。
+唯一字段级 authority 是 `interfaces/openapi/llmtier-v0.3.openapi.json` version `0.3-simplified-candidate.1`。Manifest只描述范围和activation，不复制字段。`runtime_activation=false`，本候选不授权runtime。
 
 ## 2. Operation / Message / Event Catalog
 
-| ID | Kind | Producer | Consumer | Sync/Async | Idempotency |
-|---|---|---|---|---|---|
-| LT-OP-RESPONSES | HTTP operation | LLMTier | Piko | sync + explicit recovery | required logical invocation key |
-| LT-OP-EMBEDDINGS | HTTP operation | LLMTier | Memory/Knowledge Client | sync | OpenAPI contract |
-| LT-OP-MODELS | HTTP operation | LLMTier | Piko/authorized clients | sync | read-only |
-| LT-OP-DP-RECOVERY | HTTP operation | LLMTier | Piko adapter | sync polling/read | original invocation key/identity |
-| LT-OP-OBSERVATION | HTTP operations | LLMTier | Slinky | sync read | read-only, ETag where declared |
-| LT-OP-MANAGEMENT | HTTP operations | LLMTier | LLMTier Admin | sync + async AdminJob | POST key; PATCH If-Match/version |
-
-完整 operationId 与 path catalog 直接引用 OpenAPI paths，不在 Markdown 复制一份可漂移列表。
+Current consumer operations：Responses、Embeddings、Models、token Usage、health/readiness。Current operator operations：Provider/Deployment/ServiceLevel CRUD、Probe、Usage、Audit。没有跨系统event或调用恢复operation。
 
 ## 3. Request、Response、Event 与数据对象
 
-OpenAPI components 是所有 DTO 和 Schema ref 的唯一字段定义，包括 ResponsesRequest/Response、
-EmbeddingRequest/Response、Model/List、InvocationAccepted/View/Page、CapacitySnapshot、
-ReadinessView、ServiceLevelView/Page、CompatibilityView、Management resource/page、AdminJob、
-ErrorEnvelope、TerminalErrorEnvelope、InvocationCancelledEnvelope 和 IdempotencyConflictEnvelope。
-
-Metadata 的 Schema maxLength 之外还必须执行 64/512 UTF-8 encoded-byte validator。canonical
-Service Level ID exact、大小写敏感；Client/Source identity 由 authenticated binding 和授权决定。
-V0.3 不定义 SourceInstance header、公开 DTO 字段、filter/grouping、Management resource 或替代实例 identity。
-跨系统诊断使用 Client Request ID、Invocation ID 与标准 trace/correlation；LLMTier 副本标签只属于内部 telemetry。
-示例不能放宽 required、additionalProperties、enum、range 或 encoded-byte 约束。
+Responses支持message/function tool/function call/function result；每次完整输入。Embeddings支持string或string array与float/base64。Models发布exact ID和真实能力。Usage仅token计数、measurement status/source和request/model/time；无Cost。
 
 ## 4. 状态、错误和 blocker catalog
 
-Invocation active 状态仅 Pending、Queued、Running；terminal 仅 Succeeded、Failed、Cancelled、
-UnknownOutcome。POST active replay 是 202 InvocationAccepted；Succeeded replay 是原 canonical 200
-body；Failed 为 502 invocation_failed；Cancelled 为 409 invocation_cancelled；UnknownOutcome 为
-503 invocation_outcome_unknown 且 retryable=false。
-
-409 必须按是否已有 Invocation 严格分支。已有 Invocation 的 Cancelled replay 使用
-`InvocationCancelledEnvelope`，正文要求真实非空 `invocation_id`；Responses 同时要求
-`Location` 与 `X-Tier-Invocation-ID`，Embeddings 只要求 `X-Tier-Invocation-ID` 且禁止
-Responses `Location`。同 key 不同 digest 在 pre-admission 阶段使用
-`IdempotencyConflictEnvelope`，code 固定 `idempotency_conflict`、`retryable=false`，正文禁止
-`invocation_id`，且禁止 `Location` 与 `X-Tier-Invocation-ID`。不得为冲突伪造 Invocation。
-
-Pre-admission rejection 不属于 Invocation terminal state。服务先保存 content-free
-IdempotencyDecisionRecord；capacity、quota、readiness、Registry 或 snapshot validity 不满足时返回
-`429 AdmissionRejectedEnvelope` 与 `Retry-After`，正文含 `admission_decision_id`、typed reason、
-retryability 和 retry delay，且 `invocation_id=null`。该结果授予 Seat=0、创建 Invocation=0、
-backend dispatch=0；同 key/digest 在 decision expiry 前重复相同决定，到期后以 record-version CAS 重新执行
-admission。deadline header 使用 RFC3339 UTC 毫秒格式并进入 digest；同 key 改 deadline 是 409 conflict。
-处理优先级为 digest、已有 Invocation、deadline、decision expiry；deadline 到达后无既有 Invocation 返回 408，
-禁止新 admission，但不阻止已有义务恢复。
-
-通用错误包括 model_not_found、unsupported_endpoint、unsupported_feature、not_found、
-idempotency_conflict、source_error、contract_mismatch、client_quota_unknown 和 version_conflict。
-具体 HTTP mapping、envelope 和 header 以 OpenAPI 为准。
-
-runtime blockers 包括 implementation、durable ledger/retention、Registry 多分面 wiring、
-capacity semantic validator、multi-client isolation/fairness、Management/API UI、Piko adapter、
-Embeddings consumer 和 production SLO evidence 缺失。
+标准错误：invalid_request、authentication_error、model_not_found、rate_limit_exceeded、provider_error、service_unavailable、conflict。不存在InvocationStatus、Seat状态、RecoveryDisposition或compatibility status。
 
 ## 5. 幂等、并发、事务与一致性
 
-Responses 先持久化 key/digest IdempotencyDecisionRecord；只有 admission 成功时才在同一原子事务中
-授予 Seat 并创建 Invocation、dispatch intent 和 recovery obligation，随后才允许 backend dispatch。
-同 namespace/key/digest 的 Invocation replay additional dispatch=0；同 key/different digest 为不可重试
-conflict。pre-admission rejection 不建立 Invocation/Location，不能被误当成 terminal recovery。
-
-Management create/action POST 使用 Idempotency-Key；PATCH 同时使用 If-Match 和 expected_version；
-async mutation 返回 AdminJob。Registry/manifest/Models/Observation/admission 对 exact ID、catalog
-version/ref 和 capability semantics 一致，但各 endpoint ETag 只绑定自身 representation。
+外部契约不承诺custom idempotency/exactly-once。内部admission/queue/concurrency不暴露资源状态。管理CRUD须一致地校验引用并审计；实现并发控制不得扩展consumer协议。
 
 ## 6. Pagination、filter、ordering 与 retention
 
-list operations 使用 limit、cursor 与 PageMeta.next_cursor；允许的 filter、group_by 和 ordering 由
-各 OpenAPI operation 定义。unknown/partial Usage 数值保持 null，不得补零。
-
-M2-C 固定 W=168h、M=24h、D=24h。active record 保留到 terminal；terminal 后 content-free
-digest/tombstone、Invocation terminal view 和可恢复 canonical Response 至少 168h。privacy retention
-不能破坏这些下限，短配置无效并阻断 activation。
-
-CapacitySnapshot 的 constraint_facts 完整表达当前 entitlement 下增加一个 concurrent_invocation Seat 的
-direct 与全部 group 权威事实；blocking_constraints 是 Known shortfall>0 或 Unknown 的 blocker ID 子集，
-可以等于全部 constraint facts。Unknown capacity 的数值为 null 且 fail closed。quota 使用独立 request
-单位，重叠 group gap 不相加。Usage/AdminUsage/Invocation 的 CostEvidence
-以非负 decimal string、ISO currency、pricing version/source 与 Known/Estimated/Partial/Unknown 表达；只允许
-同 currency + pricing version 聚合，禁止自动换汇。
-
-Responses 已冻结 D=24h/terminal 168h。Embeddings 采用原 POST 本地幂等：200 标准 EmbeddingResponse、
-active 202 EmbeddingInvocationAccepted、502/409/503 typed terminal；不使用 Responses GET。Embeddings
-同样固定 D=24h、从 resolved terminal 起 result 与 digest/tombstone 至少168h；Slinky 是 Knowledge
-consumer 签署方，不存在未定义第四方。UnknownOutcome obligation 不由168h自动清除；保证期后 tombstone
-证明旧 key 时返回410 `IdempotencyRecordExpiredEnvelope`，不得创建新 logical invocation。
+Usage按from/to必填，可选model/request_id，cursor不跨filter复用。模型列表不分页。Retention是LLMTier内部政策，未决/未知不得伪造成零；不对消费者承诺旧M2-C窗口。
 
 ## 7. 身份、权限、Secret 与调用边界
 
-Authorization 绑定 canonical client_id；X-Tier-Source-Id 必须被该 Client 授权；
-Data Plane recovery scope 固定为 authenticated client + canonical source。Observation multi-source aggregate 不扩大 recovery scope。
-这些字段不建立 Agent 会话或商业多租户模型；Admin Web UI 不提供调用方/会话生命周期页面。
-
-Management credential 与 Data Plane/Observation 分离。Account secret 只写不读；Client credential
-仅在创建时返回一次，之后只暴露 fingerprint/status。所有 list/detail/UI/log/audit 禁止 secret 和
-跨 Client 内容。
+Bearer credential只用于授权，不形成Client/Source/SourceInstance DTO。Admin credential独立。Secret只写引用、view仅`has_secret`。不传Agent/Run/Project/IR/STD/Session。
 
 ## 8. 版本、兼容性与迁移
 
-当前 contract version 是 `0.3-finalization-candidate.5`。Scope B 只含 Responses non-stream、Embeddings
-non-stream、Models、Invocation/Response recovery、Observation 和 Management。Chat/SSE/streaming
-属于 V0.4，不能以 alias、translation、provider passthrough 或 inactive endpoint 进入 V0.3。
-
-破坏兼容性的 Service Level 语义使用新 ID 或 API major。compatibility manifest 必须与 OpenAPI、
-Registry、fixtures 和 SDK matrix 同步。本文的 STD 迁移不改变任何 API 兼容承诺。
+本候选一次性替代`0.3-finalization-candidate.5`，旧custom endpoints/headers/schemas/fixtures成为历史，无runtime fallback或alias。legacy `/call`不属于current contract。
 
 ## 9. Positive/Negative fixture 与 validator
 
-v0.3 fixtures 包括 stateless gateway boundary、authorization scope、capacity semantic negative、Data Plane OpenAPI、
-deferred-surface fail-closed、idempotency policy、metadata UTF-8 byte、Observation/Management OpenAPI
-和 recovery protocol。它们保持在 interfaces/vectors/v0.3/。
-
-tests/test_contract_semantics_v03.py 验证 semantic invariants；
-tests/test_contract_consistency.py 验证 manifest/contract consistency；其他 tests 验证当前实现基线。
-fixture PASS 只说明 candidate artifact consistency，不是 production endpoint evidence。
+Current fixtures：`openai-surface-fixtures.json`、`usage-fixtures.json`、`admin-model-fixtures.json`、`stateless-gateway-boundary-fixtures.json`。Validator必须解析全部refs并验证旧custom术语/path absence。
 
 ## 10. Requirement → Contract → Test traceability
 
-| Requirement / Review scope | Contract element | Test/evidence | 当前证据状态 |
-|---|---|---|---|
-| exact-case Service Level、无 fallback | Models/Registry/admission enums与refs | semantic tests + manifest | Candidate PASS |
-| Scope B 与 deferred surface | OpenAPI path set + surface_policy | deferred-surface fixture | Candidate PASS |
-| zero duplicate dispatch/recovery | Responses/Invocation responses + recovery_protocol | recovery/idempotency fixtures | Candidate PASS；runtime BLOCKED |
-| capacity all-constraints | CapacitySnapshot + groups/quota/readiness | capacity negative fixtures | Candidate PASS；production BLOCKED |
-| Client/Source isolation | auth headers、filters、404/typed errors | authorization fixtures | Candidate PASS；runtime BLOCKED |
-| secret non-disclosure/concurrency | Management schemas + If-Match/version | Management semantic tests | Candidate PASS；UI/runtime BLOCKED |
-| activation separation | compatibility overall/activation fields | manifest consistency tests | Candidate PASS；activation false |
-
-原 Review ID 和更细 traceability 继续由 docs/99_reference/verification/llm-tier-contract-qa-v0.3.md 保留，直到 C2 assurance
-candidate 和后续 promotion 完成。
+CT-DP-001、CT-MODEL-001、CT-EMB-001、CT-USAGE-001、CT-ADMIN-001、CT-OPS-001、CT-BOUNDARY-001、CT-SCOPE-001映射见requirements traceability。
 
 ## 11. Activation Gate 与未决项
 
-Document migration、OpenAPI validation、fixtures 和 local tests 不授权 runtime。激活仍要求 production
-implementation commit、真实正负 Contract Test、Management API/UI、安全隔离、Registry/admission、
-capacity/fairness、Piko pinned adapter、Embeddings consumer、lost-response/restart 与 legacy-path
-removal evidence。
-
-本文为 In Review contract index；本轮 review commit 形成后再记录不可变评审基线。原 v0.3 machine artifacts 原位保留，
-旧 prose contracts 标为 Superseded 并保留历史。`runtime_activation=false`，本状态不授权项目 RAG publication。
-
-2026-09-09 的独立项目维护只更新路径和使用说明；`interfaces/` 下机器契约字节、Scope B、header/path、
-recovery 状态与 activation 值均不变。
+需要实现、provider capture、Piko surface确认、Embedding consumer test、auth/TLS/operations、Admin UI test。唯一跨方设计未决是首版是否需要standard streaming。

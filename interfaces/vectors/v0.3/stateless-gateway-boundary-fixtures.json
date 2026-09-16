@@ -1,80 +1,9 @@
 {
-  "fixture_version": "0.3-finalization-candidate.5",
+  "fixture_version": "0.3-simplified-candidate.1",
   "cases": [
-    {
-      "id": "caller-supplies-complete-current-input",
-      "request": {
-        "endpoint": "/v1/responses",
-        "model": "Worker",
-        "input_contains_current_call_context": true
-      },
-      "expected": {
-        "llmtier_loads_prior_agent_history": false,
-        "llmtier_compresses_context": false,
-        "llmtier_creates_conversation": false,
-        "llmtier_manages_kv_cache": false,
-        "backend_dispatch_count": 1
-      }
-    },
-    {
-      "id": "tool-result-is-next-call-input-not-tier-session",
-      "request": {
-        "endpoint": "/v1/responses",
-        "input_item_types": ["message", "function_call", "function_call_output"]
-      },
-      "expected": {
-        "tool_executed_by": "caller_agent_runtime",
-        "llmtier_executes_tool": false,
-        "llmtier_retains_agent_conversation": false
-      }
-    },
-    {
-      "id": "legacy-source-instance-contract-is-rejected",
-      "request": {
-        "header": "X-Tier-Source-Instance-ID",
-        "public_field": "source_instance_id",
-        "management_paths": [
-          "/tier/admin/v1/source-instances",
-          "/tier/admin/v1/source-instances/{source_instance_id}"
-        ],
-        "proposed_fields": ["enabled", "capacity_policy"]
-      },
-      "expected": {
-        "header_accepted": false,
-        "public_field_present": false,
-        "paths_present": false,
-        "schemas_present": false,
-        "replacement_identity_added": false,
-        "can_authorize_or_block_admission": false,
-        "can_change_idempotency_or_recovery_scope": false,
-        "can_select_isolated_capacity": false
-      }
-    },
-    {
-      "id": "lost-response-recovery-is-single-call-only",
-      "request": {
-        "same_endpoint": true,
-        "same_idempotency_key": true,
-        "same_digest": true,
-        "same_deadline": true
-      },
-      "expected": {
-        "recovers_original_invocation": true,
-        "additional_backend_dispatch_count": 0,
-        "agent_history_restored_by_llmtier": false,
-        "conversation_resumed_by_llmtier": false
-      }
-    },
-    {
-      "id": "forbid-session-or-kv-selector",
-      "request": {
-        "unknown_fields": ["agent_session_id", "conversation_owner", "kv_cache_id"]
-      },
-      "expected": {
-        "accepted": false,
-        "error": "unknown_parameter",
-        "fallback_or_alias": false
-      }
-    }
+    {"id": "complete-input-per-call", "expect": {"agent_session_state": false, "context_compression": false, "tool_execution": false, "backend_kv_identity": false}},
+    {"id": "removed-public-concepts", "forbidden_terms": ["SourceInstance", "X-Tier-Source-Instance-ID", "X-Tier-Invocation-ID", "Idempotency-Key", "CapacitySnapshot", "CostEvidence", "RecoveryItem", "execution_released"]},
+    {"id": "removed-public-paths", "forbidden_paths": ["/v1/invocations/{invocation_id}", "/v1/responses/{response_id}", "/tier/v1/capacity/snapshots/current", "/tier/v1/compatibility", "/tier/admin/v1/recovery-items", "/tier/admin/v1/clients", "/tier/admin/v1/sources"]},
+    {"id": "minimal-extension-justification", "path": "/tier/v1/usage", "confirmed_need": "unified token usage query", "standard_gap": "OpenAI API has per-response usage but no cross-request query", "scope": "token facts only", "compatibility_cost": "one authenticated read endpoint"}
   ]
 }

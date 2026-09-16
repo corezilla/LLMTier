@@ -6,11 +6,14 @@ Slinky 和 Piko 是外部 consumer/协作项目，不是 LLMTier 的源码目录
 ## 当前能力边界
 
 - 当前实现可作为独立进程启动，提供现有 trusted-network Tier HTTP API 与 operator CLI。
-- V0.3 已批准的目标接口包含 Responses/Embeddings non-stream、Models、recovery、Observation、
-  Management API 和最小 Admin Web UI。
-- V0.3 OpenAPI 和设计已经冻结为 contract candidate，但 production wiring、consumer capture 和
+- V0.3 简化候选目标接口包含 OpenAI-compatible Responses、Embeddings、Models、token Usage、
+  health/readiness、精简 Management API 和中文 Admin Web UI。
+- V0.3 OpenAPI 和设计是 review candidate，但 production wiring、consumer capture 和
   Runtime Activation 尚未完成；`overall.runtime_activation=false`。
-- Chat Completions、Responses/Chat SSE 和 streaming recovery 属于 V0.4，在 V0.3 必须 fail closed。
+- 首个实现是否包含标准 Responses streaming 仍待 Piko/LLMTier 确认；不得以自定义恢复或 legacy path 作 fallback。
+- LLMTier 不持有 Agent Session/Conversation，不压缩上下文、不执行工具、不管理后端 KV identity。
+- SourceInstance、外部 capacity/Seat/claim、自定义 Invocation/idempotency recovery、Cost 与专用 compatibility
+  negotiation 已退出 current external contract。
 - 旧 Role routing、Agent backend、mlexp、CLI runner 或 fallback 只属于当前 legacy implementation
   baseline，不构成 V0.3 兼容承诺。
 
@@ -60,7 +63,7 @@ PYTHONPATH=src python3 -m cli --server-url http://127.0.0.1:8765 health
 RFC1918 或 IPv6 ULA origin。当前 transport 不等同于 production TLS/auth 部署批准。
 
 当前 operator CLI 提供 `health`、`runtime`、`debug`、`stats`、`invoke`、`reset`、`reload` 和 `probe`。
-这些命令对应现有实现接口；V0.3 consumer 应以
+这些命令对应 legacy 实现接口，不是目标 OpenAI-compatible consumer surface；V0.3 consumer 应以
 [`interfaces/openapi/llmtier-v0.3.openapi.json`](interfaces/openapi/llmtier-v0.3.openapi.json) 和
 [`interfaces/compatibility/compatibility-manifest-v0.3.json`](interfaces/compatibility/compatibility-manifest-v0.3.json)
 为准，并在 activation gate 关闭前不得按 production capability 使用。

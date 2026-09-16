@@ -1,239 +1,40 @@
 {
-  "manifest_version": "0.3-finalization-candidate.5",
+  "manifest_version": "0.3-simplified-candidate.1",
   "status": "candidate",
-  "overall": {
-    "contract_status": "candidate",
-    "runtime_activation": false
-  },
-  "surface_policy": "single_v0_3_surface_no_fallback",
-  "scope_review": {
-    "decision": "B",
-    "resolution": "decided_by_slinky_S-20260906-2f9539048493",
-    "v0.3_required_active_candidate": ["responses_nonstream", "embeddings_nonstream", "models", "responses_recovery"],
-    "v0.4_deferred_not_implemented": ["chat_completions", "responses_sse", "chat_sse", "all_streaming_replay_and_event_contracts"],
-    "parallel_or_fallback_surface_allowed": false
-  },
-  "contract_authority": {
-    "format": "openapi-3.1-json",
-    "path": "openapi/llmtier-v0.3.openapi.json",
-    "runtime_activation": false
-  },
+  "overall": {"contract_status": "candidate", "runtime_activation": false},
+  "surface_policy": "single_openai_compatible_surface_no_fallback",
+  "contract_authority": {"format": "openapi-3.1-json", "path": "openapi/llmtier-v0.3.openapi.json", "version": "0.3-simplified-candidate.1"},
   "architecture_boundary": {
-    "default_pattern": "stateless_openai_compatible_gateway",
-    "caller_supplies_complete_input_per_logical_call": true,
-    "llmtier_agent_session_or_conversation_state": false,
-    "llmtier_context_compression": false,
-    "llmtier_tool_execution": false,
-    "llmtier_backend_kv_cache_management": false,
-    "provider_continuation_fields": "opaque_contract_fields_only",
-    "invocation_purpose": "single_call_admission_metering_and_lost_response_recovery",
-    "custom_extension_rule": "document_specific_need_standard_gap_minimal_scope_and_compatibility_cost_before_contract_change"
+    "pattern": "stateless_openai_compatible_model_gateway",
+    "caller_supplies_complete_input": true,
+    "agent_session_or_conversation_state": false,
+    "context_compression": false,
+    "tool_execution": false,
+    "backend_kv_identity_management": false
   },
-  "activation": {
-    "capability_contract_status_required_for_activation": "verified",
-    "requires_all": [
-      "production_implementation_commit",
-      "positive_and_negative_contract_tests",
-      "management_api_ui_positive_negative_tests",
-      "management_secret_non_disclosure_tests",
-      "single_registry_models_observation_admission_manifest_consistency",
-      "multi_client_source_isolation_and_fairness",
-      "capacity_semantic_validator_production_wiring",
-      "piko_pinned_sdk_and_recovery_adapter_capture_matrix",
-      "m2_c_retention_execution_evidence",
-      "legacy_embedded_tier_role_agent_provider_direct_removal_scan"
-    ],
-    "planned_or_conditional_fail_closed": true
-  },
-  "service_level_registry": {
-    "authority": "llmtier",
-    "id_matching": "exact_case_sensitive",
-    "examples": ["Worker", "Junior"],
-    "aliases_allowed": false,
-    "cross_service_level_fallback_allowed": false,
-    "same_registry_drives": ["models", "observation", "admission", "capacity_membership", "compatibility_manifest"],
-    "publication_fields": ["catalog_version", "etag", "effective_at", "valid_until"],
-    "status": "candidate_unimplemented"
-  },
-  "metadata_limits": {
-    "max_pairs": 16,
-    "key_utf8_bytes": 64,
-    "value_utf8_bytes": 512,
-    "schema_length_unit": "unicode_code_points",
-    "authoritative_runtime_unit": "utf8_bytes",
-    "semantic_validator_required": true
-  },
-  "deadline_policy": {
-    "header": "X-Tier-Deadline-At",
-    "status": "consumer_design_confirmed_P-20260916-80ab3d2fa007",
-    "required": true,
-    "format": "RFC3339_UTC_millisecond_precision",
-    "included_in_canonical_digest": true,
-    "replay": "byte_identical_no_extension",
-    "caller_deadline_relation": "model_request_deadline_lte_piko_task_deadline",
-    "effective_deadline": "min(caller_deadline,catalog_limit)"
-  },
-  "capability_activation": [
-    {"name": "responses_nonstream", "scope": "v0.3_required_active_candidate", "contract_status": "candidate", "runtime_activation": false},
-    {"name": "embeddings_nonstream", "scope": "v0.3_required_active_candidate", "contract_status": "candidate", "runtime_activation": false},
-    {"name": "models", "scope": "v0.3_required_active_candidate", "contract_status": "candidate", "runtime_activation": false},
-    {"name": "responses_recovery", "scope": "v0.3_required_active_candidate", "contract_status": "candidate", "runtime_activation": false},
-    {"name": "observation", "contract_status": "candidate", "runtime_activation": false},
-    {"name": "management_api", "contract_status": "candidate", "runtime_activation": false},
-    {"name": "admin_web_ui", "contract_status": "candidate", "runtime_activation": false}
+  "capabilities": [
+    {"name": "responses", "path": "/v1/responses", "mode": "nonstream_candidate", "contract_status": "candidate", "runtime_activation": false},
+    {"name": "embeddings", "path": "/v1/embeddings", "mode": "standard", "contract_status": "candidate", "runtime_activation": false},
+    {"name": "models", "path": "/v1/models", "mode": "standard", "contract_status": "candidate", "runtime_activation": false},
+    {"name": "token_usage_query", "path": "/tier/v1/usage", "mode": "minimal_extension", "contract_status": "candidate", "runtime_activation": false},
+    {"name": "admin_model_management", "path": "/tier/admin/v1", "mode": "operator_only", "contract_status": "candidate", "runtime_activation": false}
   ],
-  "data_plane_endpoints": [
-    {
-      "method": "POST",
-      "path": "/v1/responses",
-      "support": "v0.3_required_active_candidate",
-      "modes": ["nonstream"],
-      "request_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/ResponsesRequest",
-      "success_response_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/ResponsesResponse",
-      "stock_sdk_first_attempt": "pending_piko_capture",
-      "active_duplicate_status": 202,
-      "active_duplicate_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/InvocationAccepted",
-      "active_duplicate_response_ref": "openapi/llmtier-v0.3.openapi.json#/components/responses/ActiveReplay",
-      "pre_admission_rejection_response_ref": "openapi/llmtier-v0.3.openapi.json#/components/responses/AdmissionRejected",
-      "explicit_piko_recovery_adapter_required": true,
-      "terminal_duplicate": "typed_non_2xx_error_envelope",
-      "unknown_fields": "reject_unknown_parameter"
-    },
-    {
-      "method": "POST",
-      "path": "/v1/embeddings",
-      "support": "v0.3_required_active_candidate",
-      "modes": ["nonstream"],
-      "request_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/EmbeddingRequest",
-      "success_response_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/EmbeddingResponse",
-      "active_duplicate_status": 202,
-      "active_duplicate_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/EmbeddingInvocationAccepted",
-      "active_duplicate_response_ref": "openapi/llmtier-v0.3.openapi.json#/components/responses/EmbeddingActiveReplay",
-      "terminal_response_refs": ["openapi/llmtier-v0.3.openapi.json#/components/responses/EmbeddingTerminalOrConflict", "openapi/llmtier-v0.3.openapi.json#/components/responses/EmbeddingTerminalFailure", "openapi/llmtier-v0.3.openapi.json#/components/responses/EmbeddingUnknownOutcome"],
-      "cancelled_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/InvocationCancelledEnvelope",
-      "idempotency_conflict_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/IdempotencyConflictEnvelope",
-      "responses_get_recovery_allowed": false,
-      "retention_policy": "frozen_candidate_D24h_resolved_terminal168h_slinky_knowledge_consumer_signature_requested",
-      "unknown_obligation_auto_expiry": false,
-      "pre_admission_rejection_response_ref": "openapi/llmtier-v0.3.openapi.json#/components/responses/AdmissionRejected",
-      "consumer_contract_test": "required_from_slinky_knowledge_consumer",
-      "piko_capture_required": false
-    },
-    {
-      "method": "GET",
-      "path": "/v1/models",
-      "support": "v0.3_required_active_candidate",
-      "response_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/ModelList",
-      "stock_sdk_support": "pending_piko_capture",
-      "registry_source": "authoritative_service_level_registry"
-    },
-    {
-      "method": "GET",
-      "path": "/v1/models/{service_level_id}",
-      "support": "v0.3_required_active_candidate",
-      "response_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/Model",
-      "stock_sdk_support": "pending_piko_capture",
-      "id_matching": "exact_case_sensitive",
-      "errors": ["model_not_found"]
-    },
-    {
-      "method": "GET",
-      "path": "/v1/invocations/{invocation_id}",
-      "support": "v0.3_required_active_candidate",
-      "extension": "llmtier_recovery_extension_v1",
-      "automatic_openai_sdk_support": false,
-      "explicit_piko_recovery_adapter_required": true,
-      "response_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/InvocationView"
-    },
-    {
-      "method": "GET",
-      "path": "/v1/responses/{response_id}",
-      "support": "v0.3_required_active_candidate",
-      "automatic_openai_sdk_support": "pending_piko_capture",
-      "explicit_piko_recovery_adapter_required": true,
-      "response_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/ResponsesResponse"
-    }
+  "explicitly_not_in_external_contract": [
+    "source_instance",
+    "capacity_snapshot",
+    "shared_capacity_pool",
+    "seat_or_execution_claim",
+    "custom_idempotency_or_invocation_recovery",
+    "cross_system_close_drain_or_release",
+    "compatibility_negotiation_endpoint",
+    "cost_or_billing",
+    "caller_or_session_management"
   ],
-  "terminal_replay": {
-    "http_200_invocation_view_allowed": false,
-    "error_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/TerminalErrorEnvelope",
-    "cancelled_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/InvocationCancelledEnvelope",
-    "idempotency_conflict_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/IdempotencyConflictEnvelope",
-    "response_contract_refs": ["openapi/llmtier-v0.3.openapi.json#/components/responses/TerminalOrConflict", "openapi/llmtier-v0.3.openapi.json#/components/responses/TerminalFailure", "openapi/llmtier-v0.3.openapi.json#/components/responses/UnknownOutcome"],
-    "headers_required_after_invocation_created": ["Location", "X-Tier-Invocation-ID"],
-    "headers_for_pre_invocation_failure": [],
-    "failed": {"http_status": 502, "code": "invocation_failed", "retryable": false},
-    "cancelled": {"http_status": 409, "code": "invocation_cancelled", "required_headers": ["Location", "X-Tier-Invocation-ID"]},
-    "idempotency_conflict": {"http_status": 409, "code": "idempotency_conflict", "retryable": false, "required_headers": [], "forbidden_headers": ["Location", "X-Tier-Invocation-ID"], "invocation_created": false},
-    "unknown_outcome": {"http_status": 503, "code": "invocation_outcome_unknown", "retryable": false},
-    "detail_query": "/v1/invocations/{invocation_id}"
-  },
-  "idempotency_after_complete_deletion": {
-    "selected_option": "C-finite-retention-scope",
-    "policy_selected": true,
-    "runtime_activation": false,
-    "guarantee_window_hours_min": 168,
-    "safety_margin_hours": 24,
-    "clock_skew_minutes_max": 5,
-    "deadline_formula": "max_client_retry_deadline_hours <= guarantee_window_hours_min - safety_margin_hours",
-    "formula_deadline_hours_max": 144,
-    "product_retry_recovery_deadline_hours_max": 24,
-    "active_record_retention": "until_invocation_terminal",
-    "terminal_digest_tombstone_retention_hours_min": 168,
-    "invocation_terminal_view_retention_hours_min": 168,
-    "canonical_response_recovery_hours_min": 168,
-    "privacy_content_retention_independent": true,
-    "infinite_exactly_once_claimed": false
-  },
-  "recovery_protocol": {
-    "responses_idempotency_namespace_components": ["llmtier-responses/v0.3", "canonical_client_id", "canonical_source_id", "idempotency_key"],
-    "canonical_digest_covers": ["exact_service_level_id", "normalized_request_body", "semantic_headers"],
-    "same_key_different_digest": {"http_status": 409, "code": "idempotency_conflict", "retryable": false},
-    "active": {"recovery_ready": false, "recovery_disposition": "wait"},
-    "succeeded_responses": {"recovery_ready": true, "recovery_disposition": "retrieve_response"},
-    "failed_or_cancelled": {"recovery_ready": true, "recovery_disposition": "raise_terminal_error"},
-    "unknown_outcome": {"recovery_ready": true, "recovery_disposition": "manual_reconcile", "automatic_redispatch": false}
-  },
-  "management": {
-    "api_prefix": "/tier/admin/v1",
-    "api_support": "candidate_required",
-    "admin_web_ui_support": "candidate_required",
-    "areas": ["provider_account_local_deployment", "model_discovery", "service_level_pool", "credential_binding_source_registration_no_dedicated_ui", "probe_readiness", "capacity_usage_audit_recovery"],
-    "admin_web_ui_pages": ["service_levels", "providers_models", "usage_cost", "recovery", "audit"],
-    "caller_or_session_management_page": false,
-    "secret_policy": "write_only_never_return_value",
-    "status": "candidate_not_active",
-    "runtime_activation": false,
-    "openapi_ref": "openapi/llmtier-v0.3.openapi.json"
-  },
-  "sdk_test_matrix": [
-    {
-      "provider": "llmtier",
-      "adapter": "piko-llmtier-responses-v0.3",
-      "pi_source_commit": "9767ba275f3e9a5ee0f5c5342249b629ab1b2282",
-      "agent_sdk": "@earendil-works/pi-coding-agent@0.85.1",
-      "llm_sdk": "@earendil-works/pi-ai@0.85.1",
-      "openai_dependency": "openai@6.40.0",
-      "capture_node": "22.22.3",
-      "status": "partial_mock_capture_not_activation"
-    },
-    {
-      "dependency": "@earendil-works/gondolin@0.12.0",
-      "required_node": ">=23.6.0",
-      "capture_node": "22.22.3",
-      "status": "engine_warning_pending_full_runtime_matrix"
-    }
-  ],
-  "fixtures": [
-    "fixtures/v0.2/capacity-snapshot-example.json",
-    "fixtures/v0.3/capacity-semantic-negative-fixtures.json",
-    "fixtures/v0.3/metadata-utf8-byte-fixtures.json",
-    "fixtures/v0.3/idempotency-forgotten-key-options.json",
-    "fixtures/v0.3/recovery-protocol-fixtures.json",
-    "fixtures/v0.3/data-plane-openapi-fixtures.json",
-    "fixtures/v0.3/deferred-surface-fail-closed.json",
-    "fixtures/v0.3/observation-management-openapi-fixtures.json",
-    "fixtures/v0.3/stateless-gateway-boundary-fixtures.json"
-  ],
+  "logical_model_policy": {"exact_case_sensitive": true, "aliases_allowed": false, "cross_level_fallback_allowed": false},
+  "usage_policy": {"facts": ["input_tokens", "output_tokens", "total_tokens", "cached_input_tokens"], "statuses": ["measured", "estimated", "unknown"], "unknown_is_zero": false, "cost_supported": false},
+  "admin_web_ui": {"language": "zh-CN", "pages": ["模型与等级", "添加模型", "运行状态", "用量", "审计"], "excluded_pages": ["访问控制", "容量", "恢复", "费用", "调用方"]},
+  "activation_requires": ["implementation", "provider_capture", "piko_surface_confirmation", "embedding_consumer_test", "auth_tls_operations_evidence", "admin_ui_test"],
+  "open_questions": [{"id": "LT-OPEN-01", "question": "Does Piko require standard Responses streaming in the first implementation?", "owner": ["piko", "llmtier"]}],
+  "legacy_authority": {"call_endpoint": "retire_from_consumer_authority", "old_custom_contracts": "historical_only_no_runtime_fallback"},
   "effective_at": null
 }

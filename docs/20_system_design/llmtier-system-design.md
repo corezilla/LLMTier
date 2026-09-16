@@ -4,15 +4,18 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.3.1-draft.17` |
+| Document Version | `0.3.2-draft.1` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | llmtier |
+| Reviewer | 待定 |
+| Approver | 待定 |
+| Approval Date | 待定 |
 | Created Date | `2026-09-06` |
-| Last Modified Date | `2026-09-16` |
-| Template Version | `4.0.0` |
+| Last Modified Date | `2026-09-17` |
+| Template Version | `8.3.0` |
 | Template ID | `design.system` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
@@ -20,1275 +23,272 @@
 | Repository | `corezilla/LLMTier` |
 | Canonical Path | `docs/20_system_design/llmtier-system-design.md` |
 | Supersedes | `docs/30_subsystem_design/llmtier-service-design.md` |
-
-> Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
-> 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
-
-> LLMTier 是本仓库完整的软件系统，不是 Slinky、Piko 或其他仓库内部的 subsystem。当前只有一个
-> 部署、配置、状态、发布和 owner 边界；当前没有内部 subsystem design，因此不创建
-> `docs/30_subsystem_design/` 文档。未来只有在
-> LLMTier 内部形成可独立定义的真实子系统时，才新增 subsystem design。
 
 ## 1. 文档说明
 
-本版按 STD `0.1.0-draft.26` 的 `design.system` `4.0.0` 采用 `software-system` profile。
-§1–6、§8、§10–15、§17–18 适用；本项目不拥有板卡、FPGA、机箱或生产工艺设计，
-故 §7、§9、§16 记录裁剪依据而不虚构硬件内容。§8.4 Admin Web UI 适用。
-文档是 V0.3 候选目标设计，非生产实现证明；§3.3、§5 与 §8.1 的图整体是 Target 视图，
-并非图内每个逻辑单元都已在现有源码中实现。
-当前实现证据只在明确标为 Current 的段落中陈述。字段级权威仍为
-`interfaces/openapi/llmtier-v0.3.openapi.json`，本文不自行创建第二套协议。
+本文定义 LLMTier 作为一个独立、单应用、单服务的软件系统。它描述 V0.3 的目标设计，不表示目标接口已经实现或激活。字段级 authority 是 `interfaces/openapi/llmtier-v0.3.openapi.json`；能力状态由 compatibility manifest 给出，始终保持 `runtime_activation=false`，直到实现与运行门禁另行批准。
 
-读者包括 LLMTier owner/实现者、Piko 与 Slinky consumer reviewer、Knowledge consumer 和运维。
-外部项目只复核接口边界；LLMTier 对自身服务设计、部署、安全和管理事实负责。
+本次设计以主流机制优先：没有已确认特殊需求时采用标准 OpenAI-compatible 请求/响应，不增加自定义 header、恢复端点、调用方层级、会话状态机或并行兼容路径。
 
 ## 2. 系统概览
 
-LLMTier 为 Piko、Knowledge 等调用方解决“逻辑服务等级与物理模型供应解耦”的问题。调用方只选择
-exact-case Service Level，例如 `Worker` 或 `Junior`；LLMTier 在自身边界内管理 Provider、Account、
-Local Deployment、Pool、credential、容量和路由。没有该边界时，调用方会直接依赖供应商账号和模型名，
-无法统一执行配额、公平调度、故障恢复和用量观察。
+LLMTier 是无 Agent 会话状态的模型网关：调用方在每次请求中提交完成该次推理所需的全部输入；LLMTier 认证、校验、按 exact `model` 选择逻辑等级、调用已配置的云端或本地模型，并返回标准响应与 token Usage。
 
-系统位于 Piko/Knowledge 与远程 Provider/本地模型之间，并向 Slinky 提供只读 Observation，向管理员
-提供独立 Management API/Web UI。它不接收任务、Prompt 模板、STD 文档或 Project/Plan/IR 配置；
-不执行 Agent 工具。外部输入是经过认证的 inference、recovery、observation 或 management request；
-输出是 canonical model response、typed error/recovery state、Client-scoped observation 或受审计的管理结果。
+LLMTier 不保存或补齐 Agent 历史，不做上下文压缩，不执行工具，不拥有 Agent Session/Conversation，不理解 Project、IR、STD、Matrix room/topic，也不创建或匹配后端 KV identity。provider/local runtime 的 cache/KV 是后端内部实现。
 
-代表主路径为：Piko 自行保存 Agent 历史并完成裁剪/压缩和工具循环，以当次调用所需的完整 input、
-exact Service Level、canonical Source 和幂等 key 提交 non-stream Responses；
-服务完成身份授权、digest/idempotency lookup、admission 和同等级 routing，在首次 backend dispatch 前保存
-durable obligation，完成后保存 canonical Response 并返回。最主要等待点是 admission 后的受控 backend
-执行；容量不足在 admission 前立即返回 typed rejection，未获得 Seat、未创建 Invocation、未 dispatch。
-若响应丢失，Piko 用已知 Invocation ID 查询，或在 ID 也丢失时用原 namespace/key/digest 重放原 POST；
-UnknownOutcome 只进入人工 reconcile。
-
-目标系统是一个 Python 3.11+ 服务进程，内部由三个 API Controller、Identity/Entitlement、Registry、
-Admission/Capacity、Invocation Ledger、Router/Connector、Usage/Audit 与 Admin/Recovery 构件协作；
-Operational State Store 持有 Invocation、idempotency、canonical response、capacity、usage、audit 和 job。
-Registry 是逻辑等级和兼容语义的唯一来源，Ledger 是调用事实与恢复义务的唯一来源。
-
-### 2.1 无 Agent 会话状态的默认边界
-
-LLMTier 采用业界主流的 OpenAI-compatible 无状态模型网关边界。这里的“无状态”专指不拥有 Agent
-conversation：LLMTier 不保存或补齐 Agent 历史，不压缩上下文，不执行 tool loop，不创建 Agent Session，
-也不创建、匹配、迁移或暴露 Provider/Local Deployment 的 KV cache identity。每个新的 logical model call
-由 Piko/Knowledge 提交完整的当次输入；LLMTier 对 input/tool-call/tool-result 只做契约校验、能力校验与转发。
-provider continuation 字段若属于冻结兼容面，只作为 opaque 字段传递，不成为 LLMTier conversation authority。
-
-Invocation、IdempotencyDecision 和 CanonicalResult 是**单次模型调用**的准入、计量和丢响应恢复记录，
-不是会话记录。Client/Source 只用于认证后授权、配额、统计和恢复访问范围。V0.3 不定义跨系统实例身份；
-诊断使用 Client Request ID、Invocation ID 与标准 trace/correlation，LLMTier 自身副本标签只存在内部 telemetry。
-不存在从 Piko Run、Slinky Session、Client 或 Source 到模型 conversation/KV 的映射。
-
-V0.3 Target 仅含 Responses/Embeddings non-stream、Models、Responses recovery、Observation 和 Management。
-Chat/SSE 属于 V0.4。Current `src/` 仍是 legacy baseline，目标 Controller、Registry、durable Ledger、
-Management/UI 尚无 production wiring；因此 contract candidate 与 `overall.runtime_activation=false` 同时成立。
-当前静态测试不构成 production evidence。
-
-三项关键取舍：
-
-1. 选择 exact Service Level + 单一 Registry，而不是 consumer 直接选择 Provider；收益是策略与凭据封装，
-   代价是 Registry/admission 成为关键依赖；Registry 不可用时新调用 fail closed。
-2. 选择 dispatch 前 durable obligation + M2-C，而不是 transport 失败后新 key 重派；收益是避免重复计费和
-   重复副作用，代价是需要强一致 ledger 与至少 168h 结果/去重保留；存储不可用时不得 dispatch。
-3. 选择 V0.3 non-stream Scope B，而不是同时引入 Chat/SSE；收益是先冻结唯一恢复语义，代价是 Piko 若确认
-   Agent 必须 streaming 则需显式 scope amendment，不能暗建第二路径。
+Piko 管理 Agent session、上下文、工具循环、模型调用与执行内重试；Slinky 管理业务任务、材料、记忆、流程和验收。Embedding 只提供向量化；分块、索引、向量库和检索属于 Slinky 记忆系统。
 
 ## 3. 产品应用与设计目标
 
-### 3.1 问题与业务背景
+| 目标 | 设计决定 |
+|---|---|
+| 标准模型调用 | `POST /v1/responses`，首先冻结 Piko 所需的 non-stream subset；是否增加标准 streaming 由双方另行确认 |
+| 模型发现 | `GET /v1/models` 与 exact-case detail；`model` 是逻辑等级 ID，不暴露物理账号 |
+| 向量化 | 标准 `POST /v1/embeddings`；使用明确配置的 embedding-capable deployment |
+| 工具调用 | 模型可返回 function call；Piko 执行工具并在下一次完整请求中带回 tool result |
+| Usage | 响应内返回本次 token Usage；最小只读 `/tier/v1/usage` 提供同一授权主体的统一查询 |
+| 自主管理 | Admin API + 中文 Web UI 管理云模型、本地模型、逻辑等级、探测、Usage 与审计 |
+| 运维 | 提供无副作用健康/就绪检查；有费用或改变状态的探测、reload、restart 必须获运维授权 |
 
-现有 legacy 服务能路由部分模型调用，但尚未形成统一逻辑等级、必要的调用级 durable recovery、
-Client-scoped Observation 和独立 Management contract。V0.3 目标是把这些职责收敛到 LLMTier 自身，
-同时避免把 Slinky 的 Plan/IR 或 Piko 的 Agent/tool loop 引入模型服务边界。
-
-### 3.2 用户与使用场景
-
-| Use Case ID | 角色/触发 | 系统响应与可观察结果 | 失败结果 |
-|---|---|---|---|
-| LT-UC-001 | Piko 提交 Responses | exact-level admission、同等级 dispatch、canonical response/recovery reference | typed auth/admission/terminal error；UnknownOutcome 不重派 |
-| LT-UC-002 | Knowledge 提交 Embeddings | non-stream embedding 与 usage | typed reject/error；不进入 Piko mandatory capture |
-| LT-UC-003 | Slinky 查询规划影响 | Client-scoped readiness、capacity、Invocation、usage、compatibility | stale/unknown/unauthorized 显式返回，不补零 |
-| LT-UC-004 | Admin 管理 Provider/Account/Deployment 和 Secret | version/ETag 检查、只写 Secret、probe/discovery Job 与审计 | 权限/版本冲突；Secret 不回显；Job 失败可定位 |
-| LT-UC-005 | Piko 在响应丢失后恢复 | 查询原 Invocation 或同 key/digest POST replay | 只返回既有 outcome；UnknownOutcome 进入人工处理 |
-| LT-UC-006 | 新调用超过容量/配额 | admission 前立即 `429 AdmissionRejected` | 无 Seat、无 Invocation、无 backend dispatch；可按 Retry-After 重新 admission |
-| LT-UC-007 | Admin 编辑并发布 Registry/Pool/Entitlement | 草稿校验、差异预览、If-Match/版本检查、原子发布 | 校验/冲突失败不改变 current snapshot |
-| LT-UC-008 | Admin 查看容量、用量、费用与审计 | 保留 Unknown/Partial、有效期、币种和 pricing version | stale/无权限/部分数据显式显示，不补零 |
-| LT-UC-009 | Admin 处理 RecoveryItem | 查看证据和 Seat hold，提交受审计且 `redispatch=false` 的 reconcile action | 证据不足保持 RecoveryRequired/Held，不以 UI 确认代替 backend fact |
-
-### 3.3 应用环境与系统边界
-
-- V0.3 Scope B 仅含 Responses/Embeddings non-stream、Models、recovery、Observation 和 Management；
-  Chat Completions、SSE 与 streaming recovery 属于 V0.4。
-- Service Level ID exact、大小写敏感；禁止 lowercase、alias、Role selector 和跨等级 fallback。
-- 唯一容量单位为 `concurrent_invocation`；direct、全部 shared/overlapping group、Client quota、
-  readiness 和 `valid_until` 必须同时满足。
-- M2-C 固定 `W=168h`、`M=24h`、产品自动恢复 deadline `D=24h`。
-- V0.3 字段级机器 authority 只有 `interfaces/openapi/llmtier-v0.3.openapi.json`。
-- 当前实现与批准目标必须分开陈述；静态 PASS 不等于 production 实现或 Runtime Activation。
-- 不得新增 config path、selector、alias、fallback、第二 inference/recovery/management path。
-
-| 参与者/相邻系统 | 权威职责 | 与 LLMTier 的边界 |
-|---|---|---|
-| Piko | Agent Runtime、assigned Service Level、SDK/recovery obligation | Data Plane HTTP consumer；不读取源码、配置或状态 |
-| Slinky | Project、Plan、IR、Forecast/Risk/Action、Seat projection | Observation HTTP consumer；不做 admission 或 inference |
-| Memory/Knowledge Client | Embeddings consumer | 只使用 Embeddings non-stream |
-| LLMTier Admin | Provider、Registry、capacity、usage、audit、recovery 管理 | 独立 Management credential/API/UI；无调用方/会话管理页面 |
-| Provider/Local Deployment | 执行物理模型调用 | 只由 LLMTier router/connector 访问 |
-
-LLMTier 拥有本系统的 Data Plane、Observation、Management/Admin UI、Registry、admission、routing、
-Invocation ledger、capacity、usage、audit 和 recovery。它不执行 Agent tool loop，不组合 Project/Plan/IR，
-不取得外部项目的业务 authority。外部 reviewer 只复核其 consumer boundary，不取得 LLMTier 系统 ownership。
-
-#### System Context（C4 Level 1）
-
-**范围：** LLMTier 是中央黑盒；本图只显示使用者、相邻软件系统及双方关系，不展示内部实现。
-本节、§5.1 和 §5.2 描述的是已批准但尚未激活的 V0.3 target architecture；它们不是 production
-implementation/verification 声明。§8.2 另行标识当前可确认的源码基线。
-
-```mermaid
-flowchart LR
-    Piko["Piko<br/>外部软件系统"]
-    Slinky["Slinky<br/>外部软件系统"]
-    Memory["Memory / Knowledge Client<br/>外部软件系统"]
-    Admin(["LLMTier Administrator<br/>人员角色"])
-
-    LLMTier["LLMTier<br/>本设计的软件系统<br/>受管理、可观察、可恢复的模型服务"]
-
-    Provider["Remote Model Provider<br/>外部软件系统"]
-    Local["Local Model Deployment<br/>外部执行系统"]
-
-    Piko -->|"Responses inference 与 recovery · HTTPS/JSON"| LLMTier
-    Slinky -->|"readiness、capacity、invocation、usage · HTTPS/JSON"| LLMTier
-    Memory -->|"Embeddings · HTTPS/JSON"| LLMTier
-    Admin -->|"配置、运维、审计、recovery · Web UI/HTTPS"| LLMTier
-    LLMTier -->|"同等级模型调用 · Provider protocol"| Provider
-    LLMTier -->|"同等级模型调用 · local connector"| Local
-
-    classDef focal fill:#1168bd,color:#fff,stroke:#0b4884,stroke-width:3px;
-    classDef external fill:#e8f1fb,color:#172b4d,stroke:#6b9ac4,stroke-width:1.5px;
-    classDef person fill:#fff3cd,color:#4a3b00,stroke:#c9a227,stroke-width:1.5px;
-    class LLMTier focal;
-    class Piko,Slinky,Memory,Provider,Local external;
-    class Admin person;
-```
-
-图例：深蓝框是本次设计范围；浅蓝框是外部软件系统；黄色圆角框是人员角色；箭头文字同时说明目的与
-跨进程协议。所有外部调用都终止于 LLMTier，不存在 consumer 到 Provider 的直连路径。
-
-### 3.4 设计目标与成功条件
-
-| Goal ID | 目标与边界 | 度量/目标值 | 验证方式与当前状态 |
-|---|---|---|---|
-| LT-G-001 | 唯一 inference path 和 exact Service Level | 跨等级 fallback=0；provider-direct path=0 | Contract/legacy scan；static covered，runtime BLOCKED |
-| LT-G-002 | 零重复 recovery | 同 namespace/key/digest replay additional dispatch=0 | CT-REC-001/002；fixture PASS，runtime BLOCKED |
-| LT-G-003 | 有限恢复保证 | D=24h；W=168h；M=24h | retention/crash test；policy frozen，long-run BLOCKED |
-| LT-G-004 | 容量安全 | 每次新 Seat 满足 direct+all groups+quota+readiness+validity | CT-ADM-001/CT-OBS-001；static covered，runtime BLOCKED |
-| LT-G-005 | 多调用方隔离 | 跨 Client 或未授权 Source 可见记录=0 | CT-AUTH/CT-SEC；runtime BLOCKED |
-| LT-G-006 | V0.3 范围可判定 | Chat/SSE 成功响应=0；runtime activation=false 直到 gates 完成 | negative fixture/manifest；static PASS |
+不在范围：Cost/账单；SourceInstance；外部容量 snapshot/shared pool/Seat/claim；自定义 Idempotency/Invocation/result recovery；跨系统 close/drain/release；专用 compatibility negotiation；调用方或业务会话管理页面。
 
 ## 4. 功能与需求实现概览
 
-### 4.1 功能总表
-
-| Function ID | 输入→处理→输出 | 实现责任 | 状态/验收 |
-|---|---|---|---|
-| LT-F-001 | Responses/Embeddings request → auth、admission、routing → canonical response/error | Data Plane、Invocation Orchestrator、Router | Target；CT-DP-001/consumer capture BLOCKED |
-| LT-F-002 | Registry data → exact-level catalog/compatibility → Models/ServiceLevel views | Registry、Observation Projection | Target；CT-REG-001 runtime BLOCKED |
-| LT-F-003 | capacity/quota/readiness → all-constraints decision → Seat 或 admission rejection | Admission/Capacity | Target；CT-ADM-001 runtime BLOCKED |
-| LT-F-004 | key/digest/Invocation → replay/recovery state → canonical outcome/manual reconcile | Invocation Ledger | Target；CT-REC runtime BLOCKED |
-| LT-F-005 | runtime facts → Client-scoped projection → readiness/capacity/usage/audit | Meter、Observation Projection | Target；CT-OBS runtime BLOCKED |
-| LT-F-006 | admin command → authorization/version/audit → config/job/recovery result | Administration、Management UI/API | Target；CT-MGT/UI BLOCKED |
-
-### 4.2 功能详细说明与 L1–L8 判定
-
-以下是对 Slinky L1–L8 的**设计可满足性**答复，不是 Implemented、Verified 或 runtime active 声明。
-“建议调整”表示目标设计可支持，但冻结接口前仍需双方确认精确语义；不授权增加新 V0.3 endpoint。
-
-| ID | 设计结论 | 目标方案与现有契约 | 待确认/验收边界 |
-|---|---|---|---|
-| L1 统一调用 | 可满足 | `POST /v1/responses` 使用 exact-case `model`=`service_level_id`；Registry 隐藏 Provider、Account、Pool；Piko 唯一 generation 路径为 Runtime → Piko → LLMTier | 以 pinned adapter capture 验证；不引入别名、Role selector 或跨等级 fallback |
-| L2 能力目录 | 可满足 | `/v1/models`、detail 与 `/tier/v1/service-levels` 来自同一 Registry；`ServiceLevelView` 声明 kind、availability、context、modalities、structured_output、tool_calling、contract/SLO 与有效期 | 实际能力须由可验证 backend profile 支持；不可把两个等级做纯名称 alias |
-| L3 Agent 必需能力 | 可满足（non-stream） | Piko 为每个调用提供完整当前 input；V0.3 Responses schema 支持 `message`、`function_call`、`function_call_output`、`tools`；LLMTier 只校验和透传，不保存历史、不执行工具 | Piko 按 §11.2 的 `call_id`/`name`/`arguments`/`output` 形状对齐；后端 KV/cache 不进入协议；如必须 streaming，先做 scope amendment |
-| L4 容量与排队 | 可满足（Amendment 8 candidate） | admission 同时检验 committed Seat、全部共享/重叠 Capacity Group、Client quota、readiness、有效期；V0.3 pre-admission 不排队，不满足时立即 429 且零 Seat/Invocation/dispatch | deadline canonicalization/digest、queue-expiry/dispatch CAS、Seat 释放证据和 Client 总权重两级 WRR 已定义；具体 catalog 数值及 runtime evidence 仍需 review |
-| L5 多调用方边界 | 可满足 | authenticated Client + authorized canonical Source 只界定授权、配额、统计和调用级恢复访问；标准 trace/correlation 只用于诊断 | 不形成 Agent Session、多租户产品、实例身份或独立调用方管理页面；公平性 production evidence 是 activation gate |
-| L6 用量与观察 | 可满足（Amendment 8 candidate） | Invocation 状态/错误、token usage、完整 next-seat constraint facts+blocker 子集、queue estimate freshness、usage 与统一 CostEvidence 已进入候选 DTO；Unknown/Partial 保持 null | Unknown capacity 显式阻塞；费用可 Unknown；Partial 仅为覆盖项小计；不换汇、不把估算当实付；production evidence 仍是 activation gate |
-| L7 故障与恢复 | 可满足 | 未受理不产生已 dispatch Invocation；已受理的 Pending/Queued/Running、Failed、UnknownOutcome 分离；同 client/source/key/digest 恢复，已知 ID 用 GET，丢失头部用原 POST replay；UnknownOutcome 不重派 | M2-C `W=168h`、`M=24h`、`D=24h` 不变；crash/lost-response 零重复 dispatch 尚需 runtime 证据 |
-| L8 独立管理 | 可满足 | `/tier/admin/v1` 与最小 Admin Web UI 管理 Provider/Account/Local Deployment、Registry/Pool、Probe、Capacity、Usage、Audit、Recovery；Secret 只写不读 | Client/Source credential binding 是服务端配置/授权事实，不新增调用方管理页面；实现和 UI 正负测试尚未完成 |
-
-LLMTier 不接收任务、Prompt 模板、STD 文档或 IR 团队配置。Slinky 管 Project/Plan/IR；
-Piko 管 Agent Runtime、完整调用上下文、压缩/裁剪、tool loop 和 durable adapter obligation；LLMTier 只管
-模型服务的 credential binding、capacity/admission、routing、单调用 ledger 和观察。Knowledge 使用 Embeddings non-stream。
-V0.3 仅含 non-stream Responses/Embeddings、Models、Responses recovery 查询；Chat 与全部 SSE 在 V0.4。
-
-### 4.3 需求追溯
-
-| 外部要求 | 本设计功能/章节 | LLMTier requirement | Contract/验证 |
-|---|---|---|---|
-| L1–L3 | LT-F-001/002；§11.2 | LT-FUN-001/002/008、LT-INT-001 | Piko control、OpenAPI、CT-DP-001/CT-REG-001 |
-| L4 | LT-F-003；§6.3、§11.4、§13 | LT-CAP-001/002/003 | OpenAPI AdmissionRejected amendment、CT-ADM-001/CT-PERF-001 |
-| L5 | LT-F-003/005；§15 | LT-SEC-001 | CT-AUTH/CT-SEC/CT-PERF |
-| L6 | LT-F-005；§10、§11.3 | LT-OPS-001 | Slinky control、CT-OBS；cost schema Open Gate |
-| L7 | LT-F-004；§6.3、附录 C | LT-REL-001/002 | recovery fixtures、CT-REC |
-| L8 | LT-F-006；§8.4、§15.4 | LT-FUN-005、LT-SEC-002 | Management control、CT-MGT/UI |
-
-完整 requirement-to-test 状态由 `docs/10_requirements/llmtier-v0.3-traceability.md` 管理；本表不替代它。
-
-### 4.4 解决方案策略
-
-策略是单一事实来源、分面权限、共享 Registry/ledger、dispatch 前持久化、fail closed 和有限恢复保证。
-Data Plane、Observation、Management 使用不同 credential 与 DTO，但不得复制核心状态机。
-
-本文按 C4/arc42 的缩放顺序阅读：§3.3 看系统与外界的关系；§5.1 看系统内可运行单元与数据存储；
-§5.2 再放大唯一服务进程，解释分层和关键构件；§6、§8.1 分别描述动态行为与目标部署。这样不会在一张图中
-混用 software system、process、component 和 datastore 四种抽象层级。
-
-视图方法参考 [C4 System Context](https://c4model.com/diagrams/system-context)、
-[C4 Container](https://c4model.com/diagrams/container)、
-[C4 Component](https://c4model.com/diagrams/component) 和
-[arc42 Building Block View](https://docs.arc42.org/section-5/)；这些来源只规定表达方法，不取得
-LLMTier 的业务或设计 authority。
+| 用例 | LLMTier 行为 | 非职责 |
+|---|---|---|
+| Piko 请求推理 | 校验标准请求，按 exact model 路由，返回文本/tool call/Usage/error | Agent 历史、工具执行、任务重试策略 |
+| Slinky 请求 embedding | 校验输入和 embedding 模型，返回向量与 Usage | chunk、索引、检索、正式记忆写入 |
+| Consumer 查询模型 | 返回逻辑等级、能力、上下文/输出限制和 availability | 项目选人或业务计划决策 |
+| Consumer 查询 Usage | 返回 measured/estimated/unknown token 事实 | 金额、币种、定价、结算 |
+| Operator 管理模型 | CRUD provider/deployment/service level，探测并审计 | 调用方、Session、SourceInstance 管理 |
 
 ## 5. 总体结构
 
-LLMTier 当前是一个系统、一个服务进程边界。框内 logical building block 不是已拆分的子系统，也不代表
-独立部署的 subsystem。
+#### System Context（C4 Level 1）
+
+```mermaid
+flowchart LR
+  P[Piko Agent Runtime] -->|OpenAI-compatible Responses| L[LLMTier]
+  K[Slinky Memory] -->|OpenAI-compatible Embeddings| L
+  O[Operator] -->|中文 Admin Web UI / Admin API| L
+  L -->|provider-native API| C[Cloud Models]
+  L -->|local inference API| M[Local Models]
+```
 
 ### 5.1 Container View（C4 Level 2）
 
-**范围：** 放大 LLMTier 系统边界，只显示可运行应用和 data store。C4 的 container 是应用或数据存储，
-不是 Docker container，也不等同于本项目的 subsystem。
-
 ```mermaid
-flowchart LR
-    Users["External Consumers<br/>Piko · Slinky · Memory · Admin Browser"]
-
-    subgraph LT["LLMTier software system"]
-        App["LLMTier Service<br/>Python 3.11+ application<br/>提供 Data、Observation、Management API 与 Admin UI"]
-        State[("Operational State Store<br/>Invocation · idempotency · response<br/>capacity · usage · audit · jobs")]
-        Files[("Controlled Artifacts<br/>settings · secret references<br/>OpenAPI · manifest · schemas")]
-
-        App -->|"事务性读写 Invocation 与运行状态"| State
-        Files -->|"启动加载、版本校验、只写 Secret 引用"| App
-    end
-
-    Targets["Model Execution Targets<br/>remote providers / local deployments"]
-
-    Users -->|"HTTPS/JSON 与 Web UI"| App
-    App -->|"provider/local model protocol"| Targets
-
-    classDef external fill:#e8f1fb,color:#172b4d,stroke:#6b9ac4;
-    classDef app fill:#1168bd,color:#fff,stroke:#0b4884,stroke-width:2px;
-    classDef store fill:#6f42c1,color:#fff,stroke:#4c2a85,stroke-width:2px;
-    class Users,Targets external;
-    class App app;
-    class State,Files store;
+flowchart TB
+  subgraph LT[LLMTier software system]
+    API[OpenAI-compatible API]
+    ADM[Admin API + 中文 Web UI]
+    REG[Logical Model Registry]
+    ROUTER[Router and Provider Adapters]
+    METER[Usage Meter]
+    STORE[(Config / Runtime State / Usage / Audit)]
+    API --> REG --> ROUTER
+    API --> METER --> STORE
+    ADM --> REG
+    ADM --> ROUTER
+    ADM --> STORE
+  end
 ```
-
-图例：蓝色矩形是可运行 application；紫色圆柱是 data store/artifact store；浅蓝框是边界外系统。
-当前开发部署可由同一 host 上的目录承载两类 store；production persistence 技术仍是 Open Gate。
 
 ### 5.2 LLMTier Service Component View（C4 Level 3 / arc42 Level-1 Whitebox）
 
-**范围：** 只放大上图的 `LLMTier Service` application。横向是请求来源和执行目标，纵向是接口、应用编排、
-领域核心与基础设施适配层；持久状态放在服务边界外侧，以明确依赖方向。
-
 ```mermaid
-flowchart TB
-    Consumers["External API callers<br/>Piko · Slinky · Memory"]
-    AdminBrowser["Admin Browser"]
-
-    subgraph Service["LLMTier Service application — 单一进程边界"]
-        direction TB
-
-        subgraph Delivery["1 · Delivery / Interface Layer"]
-            DP["Data Plane Controller<br/>/v1"]
-            OBS["Observation Controller<br/>/tier/v1"]
-            WEB["Admin Web UI Presentation<br/>/admin/"]
-            MGT["Management Controller<br/>/tier/admin/v1"]
-        end
-
-        subgraph Application["2 · Application Services"]
-            IAM["Identity & Entitlement"]
-            INV["Invocation Orchestrator"]
-            OVIEW["Observation Projection"]
-            ADMIN["Administration / Recovery Jobs"]
-        end
-
-        subgraph Domain["3 · Domain Core"]
-            REG["Service Level Registry"]
-            ADM["Admission & Capacity"]
-            LEDGER["Invocation / Idempotency State Machine"]
-            ROUTER["Routing Policy"]
-            METER["Usage / Audit Policy"]
-        end
-
-        subgraph Infrastructure["4 · Infrastructure Adapters"]
-            REPO["Repositories"]
-            CONNECT["Provider / Local Connectors"]
-        end
-
-        DP -->|"认证后的 inference/recovery command"| IAM
-        OBS -->|"认证后的 read query"| IAM
-        WEB -->|"同源 HTTPS/JSON；不含领域状态机"| MGT
-        MGT -->|"认证后的 admin command/query"| IAM
-        IAM -->|"授权 execution scope"| INV
-        IAM -->|"授权 observation scope"| OVIEW
-        IAM -->|"授权 management scope"| ADMIN
-        INV -->|"创建或 replay Invocation"| LEDGER
-        INV -->|"申请 concurrent_invocation Seat"| ADM
-        IAM -->|"认证/授权决定"| METER
-        INV -->|"生命周期事件"| METER
-        ADM -->|"admit/reject/Seat 事件"| METER
-        ADM -->|"读取 exact Service Level 与 group rules"| REG
-        INV -->|"选择同等级 backend"| ROUTER
-        OVIEW -->|"投影 catalog/capacity"| REG
-        OVIEW -->|"投影 Invocation/recovery"| LEDGER
-        ADMIN -->|"管理 catalog/entitlement"| REG
-        ADMIN -->|"执行受审计的 reconcile"| LEDGER
-        ADMIN -->|"管理操作与结果"| METER
-        LEDGER -->|"保存状态与 canonical outcome"| REPO
-        REG -->|"保存 catalog/config version"| REPO
-        METER -->|"保存 usage/audit"| REPO
-        ROUTER -->|"执行 provider call"| CONNECT
-        CONNECT -->|"记录 outcome/usage"| LEDGER
-        CONNECT -->|"计量事件"| METER
-    end
-
-    State[("Operational State Store")]
-    Artifacts[("Config / Contract Artifacts")]
-    Backends["Remote Providers / Local Deployments"]
-
-    Consumers -->|"inference/recovery · HTTPS/JSON"| DP
-    Consumers -->|"read-only observation · HTTPS/JSON"| OBS
-    AdminBrowser -->|"same-origin HTML/CSS/JS + HTTPS"| WEB
-    REPO -->|"durable read/write"| State
-    Artifacts -->|"validated startup input"| REG
-    Artifacts -->|"settings 与 Secret references"| ADMIN
-    CONNECT -->|"provider/local protocol"| Backends
-
-    classDef external fill:#e8f1fb,color:#172b4d,stroke:#6b9ac4;
-    classDef interface fill:#1168bd,color:#fff,stroke:#0b4884;
-    classDef application fill:#2f80c9,color:#fff,stroke:#1d5f99;
-    classDef domain fill:#f2b134,color:#302400,stroke:#b77b00;
-    classDef adapter fill:#2f855a,color:#fff,stroke:#1f5b3d;
-    classDef store fill:#6f42c1,color:#fff,stroke:#4c2a85;
-    class Consumers,AdminBrowser,Backends external;
-    class DP,OBS,WEB,MGT interface;
-    class IAM,INV,OVIEW,ADMIN application;
-    class REG,ADM,LEDGER,ROUTER,METER domain;
-    class REPO,CONNECT adapter;
-    class State,Artifacts store;
+flowchart LR
+  AUTH[Bearer Auth] --> VALIDATE[OpenAI Schema Validation]
+  VALIDATE --> CATALOG[Logical Model Catalog]
+  CATALOG --> SCHED[Internal Queue / Concurrency Guard]
+  SCHED --> ADAPTER[Cloud / Local Adapter]
+  ADAPTER --> NORMALIZE[Response + Usage Normalizer]
+  NORMALIZE --> CLIENT[Caller]
+  ADAPTER --> HEALTH[Health / Probe Facts]
 ```
 
-图例：深蓝是接口层；浅蓝是应用编排；黄色是无 transport/persistence 细节的领域核心；绿色是基础设施
-adapter；紫色圆柱是持久数据或受控 artifact；浅蓝外框是相邻系统。箭头表示调用/依赖方向，不表示数据
-复制。三种 API 分面共享 IAM、Registry、Ledger 和审计事实，不形成三套实现。
-
-### 5.3 物理与逻辑对应关系（Building Block Catalog）
-
-下表补充 Component View 的职责与禁止项：
-
-| Block ID / Owner | 负责；不负责 | Provided interface / 依赖 | 实现位置与状态 |
-|---|---|---|---|
-| LT-BB-API / LLMTier | 三个 HTTP API 分面；不复制领域状态机 | `/v1`、`/tier/v1`、`/tier/admin/v1`；依赖 IAM/Application Services | Target：计划在 `src/tier_service.py`/`src/server.py` 收敛；runtime BLOCKED |
-| LT-BB-WEB / LLMTier | Admin Web UI presentation、导航、表单和用户可见状态；不保存领域事实、不直连 Provider | `/admin/`；只调用同一服务的 `/tier/admin/v1` 和获授权 `/tier/v1` | Current：`src/web/tier.html` 使用 legacy `/api/tier/*`；Target：计划 `src/web/admin/`，runtime BLOCKED |
-| LT-BB-IAM / LLMTier | credential→Client、canonical Source 授权/Entitlement；不定义跨系统实例身份 | authz decision；依赖配置/credential store | Target：计划 `src/identity/`；未创建，runtime BLOCKED |
-| LT-BB-REG / LLMTier | exact ID、catalog/version、capability、membership；不做 alias/Role mapping | Registry query/publish；依赖 Repository | Target：计划 `src/registry/`；runtime BLOCKED |
-| LT-BB-ADM / LLMTier | all-constraints admission、Seat 与有界内部等待；不把 unknown quota 当可用 | admit/release/reject；依赖 IAM、Registry、Ledger | Target：计划 `src/admission/`；runtime BLOCKED |
-| LT-BB-LEDGER / LLMTier | digest、decision record、Invocation、dispatch intent、canonical response、tombstone；不对 UnknownOutcome 重派 | invocation/recovery repository | Target：计划 `src/ledger/`；durability BLOCKED |
-| LT-BB-ROUTER / LLMTier | 同一等级内选择 backend 并调用 connector；不跨等级 fallback | backend dispatch；依赖 Registry/Admission | Current legacy：`src/router_core.py`、`src/backends/`；V0.3 wiring BLOCKED |
-| LT-BB-METER / LLMTier | 接收 auth/admission/invocation/backend/admin 事实，生成 usage/audit；不将 unknown 补零 | meter/audit sink；依赖 Ledger/Repository | Current partial：`src/provider_usage.py`、`src/stats*`；Target wiring BLOCKED |
-| LT-BB-OBS / LLMTier | Client-scoped readiness/capacity/invocation/usage；不暴露 physical credential | `/tier/v1` projection；依赖 REG/ADM/LEDGER/METER | Target：计划 `src/observation/`；runtime BLOCKED |
-| LT-BB-ADMIN / LLMTier | inventory、secret-write、probe、publish、job、recovery；不回显 Secret | Management API/UI；依赖 IAM/REG/LEDGER/METER | Current legacy UI：`src/web/tier.html`；V0.3 target BLOCKED |
-| LT-BB-REPO / LLMTier | 事务、retention、版本与恢复；不允许 dispatch 绕过 durable write | repository ports；依赖 Operational State Store | Target：计划 `src/repositories/`；engine/HA Open Gate |
-
-源码目前采用 flat `src/` module/package layout。是否把 logical building block 拆成真正 subsystem，必须以独立
-owner、部署或发布边界为依据，不能仅按类或目录命名。
+这些是同一进程内的 logical building block，不是已拆分的子系统。当前没有内部 subsystem design；模块与 ISD 应在本系统设计下展开。
 
 ## 6. 工作模式与端到端流程
 
-运行模式分为启动校验、Ready admission、Degraded/NotReady 拒绝新 Seat、受控关闭和
-durable recovery。模式切换不得清除已持久化的 Invocation obligation；capacity snapshot
-失效立即禁止关联 Seat 的新 dispatch，已 admission 的 in-flight Invocation 仅在安全边界收敛。
-
-### 6.1 工作模式矩阵
-
-| Mode ID | 模式 | 输入/处理/输出 | 容量与限制 | 进入/退出条件 |
-|---|---|---|---|---|
-| LT-MODE-START | 启动校验 | config/contract/store → validate → readiness | 不允许新 Seat | 全部 required dependency Ready 后进入 READY；失败进入 NOT_READY |
-| LT-MODE-READY | 正常服务 | request → auth/admission/dispatch → response | all-constraints；pre-admission 不等待 | readiness 有效；依赖失效转 DEGRADED/NOT_READY |
-| LT-MODE-DEGRADED | 降级/拒绝 | observation 可读；新 inference fail closed | 新 Seat=0；不撤销已 admission 调用 | 依赖恢复并重新验证后回 READY |
-| LT-MODE-RECOVERY | 恢复 | original identity → ledger/replay → existing outcome | 不授权新 backend dispatch | obligation terminal/reconciled 后退出 |
-| LT-MODE-DRAIN | 受控关闭/升级 | stop admission → drain in-flight → persist/stop | 新 Seat=0；有界 drain 待部署决策 | drain 完成后 STOPPED；失败保留 durable obligation |
-
-### 6.2 正常数据流：首次 Responses 调用
-
-1. Piko 提交 credential、canonical Source、`Idempotency-Key`、`X-Tier-Client-Request-ID`、
-   `X-Tier-Deadline-At` 和 exact model；deadline 是 UTC absolute instant，并受 catalog 上限约束；
-2. LLMTier 认证、授权、规范化请求并计算 digest，创建或读取 content-free IdempotencyDecisionRecord；
-3. 若该 key 已绑定 Invocation，直接进入 replay；若为可重试的既有 admission rejection 且尚未到
-   `Retry-After`，重复返回相同 rejection；不得创建第二 Invocation；
-4. 对未绑定 Invocation 的请求联合检查 Registry、entitlement、capacity groups、quota、readiness 和有效期；
-5. admission 未通过时保存 reason/retryability、`decision_created_at`、`decision_expires_at`、
-   `request_deadline_at` 和 record version，立即返回 `429 AdmissionRejected`；
-   不授予 Seat、不创建 Invocation、不保存 dispatch intent、不调用 backend；
-6. admission 通过时，在一个原子事务中授予 Seat 并创建 Invocation、dispatch intent 和 recovery obligation；
-7. `Queued` 的 deadline expiry 与 dispatch authorization 以同一 record-version CAS 原子竞争；expiry 先胜且
-   尚无 dispatch authority 时进入 `Cancelled/deadline_before_dispatch` 并释放 Seat，dispatch 先胜则进入
-   backend execution accounting；
-8. router 只在同一 Service Level 内执行一次 dispatch；成功时保存 canonical `ResponsesResponse`，取得
-   backend terminal 或明确证明 execution stopped 的 acknowledgement 后才释放 Seat。
+### 6.1 Responses 与 tool loop
 
 ```mermaid
 sequenceDiagram
-    autonumber
-    participant P as Piko
-    participant D as Data Plane
-    participant I as Identity / Entitlement
-    participant L as Invocation Ledger
-    participant A as Admission / Capacity
-    participant R as Registry
-    participant B as Router / Backend
-
-    P->>D: POST /v1/responses<br/>key + source + exact service_level_id
-    D->>I: authenticate and authorize Client / Source
-    I-->>D: entitlement and quota scope
-    D->>L: lookup/persist key + digest decision record
-    L-->>D: rejection record, existing Invocation, or unbound decision
-    alt existing Invocation
-        D-->>P: replay per §6.3
-    else admission candidate
-        D->>A: validate exact ID, groups, quota, readiness, valid_until
-        A->>R: read catalog and capacity semantics
-        R-->>A: registry facts
-        alt rejected before Seat
-            A-->>D: reason + retryability + Retry-After
-            D->>L: persist admission rejection decision
-            D-->>P: 429 AdmissionRejected (no Invocation ID)
-        else admitted
-            A->>L: atomically grant Seat + create Invocation/dispatch intent
-            L-->>D: durable recovery obligation
-            D->>B: dispatch once within assigned Service Level
-            B-->>D: provider result
-            D->>L: persist terminal state + canonical response
-            L-->>D: durable outcome
-            D-->>P: 200 ResponsesResponse
-        end
-    end
-
-    opt transport response lost after an Invocation exists
-      alt Invocation ID known
-        P->>D: GET /v1/invocations/{id}
-        D->>L: read existing obligation
-        L-->>D: state + recovery disposition
-        D-->>P: InvocationView / canonical recovery reference
-      else response headers also lost
-        P->>D: same POST + same key + same digest before request deadline
-        D->>L: find existing obligation or prove first request never arrived
-        L-->>D: existing outcome or unbound decision
-        D-->>P: replay, or first admission only while deadline remains
-      end
-    end
+  participant P as Piko
+  participant L as LLMTier
+  participant B as Model Backend
+  P->>L: POST /v1/responses (complete input, exact model)
+  L->>L: auth + schema + exact model + internal admission
+  L->>B: provider-native request
+  B-->>L: text or function call + usage/error
+  L-->>P: standard response + usage + X-Request-ID
+  Note over P: Piko executes tool and submits a new complete request
 ```
 
-### 6.3 异常、过载与恢复流程
+每个 HTTP 请求是独立模型调用。网络结果不明时，Piko 按标准 client retry policy 处理；V0.3 不承诺跨系统 exactly-once，也不提供 Invocation 查询或结果恢复。LLMTier 内部可保留防重、队列或 provider 可靠性机制，但不得形成对外会话或恢复契约。
 
-| Invocation 状态 | 同一 POST replay | 后续动作 |
-|---|---|---|
-| Pending/Queued/Running | `202 InvocationAccepted` + Location/Invocation ID/Retry-After | 查询 Invocation readiness |
-| Succeeded | 原 endpoint canonical `200` body | 零次 dispatch；必要时 Response GET |
-| Failed | `502 invocation_failed` | `retryable=false` |
-| Cancelled | `409 invocation_cancelled` | `retryable=false` |
-| UnknownOutcome | `503 invocation_outcome_unknown` | manual reconcile；不得重派 |
+### 6.2 Embeddings
 
-已有 Invocation ID 时查询 `GET /v1/invocations/{id}`。响应头也丢失、没有 ID 时，在 `D=24h` 且
-`X-Tier-Deadline-At` 尚未到达时使用原
-client/source/body/digest/key 重放同一 POST；这是 transport recovery，不是新 Attempt、endpoint、key 或
-Backend redispatch 授权。如果首次 POST 根本未到达，重放可能成为同一 logical request 的首次 admission；
-deadline 到达后禁止新 admission，只允许恢复已存在的 Invocation。不能证明 backend terminal/cancel 的
-Running timeout 进入 UnknownOutcome，Seat 保持占用直到 backend terminal、明确证明 execution stopped 的 acknowledgement 或
-授权人工 reconcile 提供释放证据；本地 timeout、连接断开或给调用方返回 deadline error 都不是释放证据。
+```mermaid
+sequenceDiagram
+  participant K as Slinky Memory
+  participant L as LLMTier
+  participant E as Embedding Backend
+  K->>L: POST /v1/embeddings (model, input)
+  L->>E: provider-native embedding request
+  E-->>L: vectors + token usage
+  L-->>K: EmbeddingResponse + X-Request-ID
+```
 
-deadline persistence 同时保存绝对 UTC instant、接收时 monotonic remaining budget 和最后观察的 UTC。
-进程恢复以 `max(current_utc,last_observed_utc)` 保守重建剩余预算，不得因 wall-clock 回拨延长期限；时钟
-可信度不足时保持 obligation/Seat 并使 admission NotReady，而不是猜测释放。期限分为三个不同事实：
-Piko 拥有且不传给 LLMTier 的 task deadline；`request_deadline_at` 是调用方通过
-`X-Tier-Deadline-At` 传入并进入 digest 的不可变模型请求期限，允许早于 task deadline；
-`catalog_deadline_at` 是 LLMTier 根据受理时刻与 exact Service Level 的最大调用时长计算的服务侧上限。
-`effective_deadline_at=min(request_deadline_at,catalog_deadline_at)`。恢复必须原样重放 header，不得推进。
-LLMTier 只返回调用事实和原因，不规定 Piko task 的终态或后续策略。
+### 6.3 运维恢复
 
-#### 6.3.1 Deadline、backend fact 与调用方结果组合
-
-| 竞争/事实 | Invocation 与 caller outcome | Backend fact / Seat | 同 key POST 或 GET 最终行为 |
-|---|---|---|---|
-| Queued，deadline CAS 先胜 | `Cancelled`；`DeadlineExceeded`；reason=`deadline_before_dispatch` | `NotDispatched` / `Released` | 409 `invocation_cancelled`；Piko 独立决定 task 是否继续、改用其他已授权动作或终止 |
-| dispatch CAS 先胜，caller deadline 到达，backend 仍运行 | Invocation 保持 `Running`；caller outcome=`DeadlineExceeded` | `Running` / `Held` | existing-obligation recovery 返回 202；不得新 dispatch |
-| caller 已超时，backend 后来成功 | `Succeeded`；当前 caller outcome 为 `ResponseAvailable`，同时保留 `deadline_status=ExceededAfterDispatch` 与 `deadline_exceeded_at` | `Terminal` / `Released` | 同 POST 返回 canonical 200；Responses GET 返回同一 canonical body；历史 deadline fact 不可覆盖 |
-| caller 已超时，backend 后来明确失败/取消 | `Failed` 或 `Cancelled`；`TerminalError` | `Terminal` / `Released` | 502 或 409 typed terminal |
-| backend deadline 后仍无法证明结果/停止 | `UnknownOutcome`；`TerminalError` | `Unknown` / `Held` | 503；manual reconcile；不得盲重派 |
-| provider 仅接受 cancel request | 状态不因“已受理取消”改变 | 原 backend fact / `Held` | 继续恢复/对账；不能释放 |
-| provider 明确证明执行已停止或已终态 | 对应 `Cancelled`/其他终态 | `Terminal` / `Released` | 返回对应 terminal/canonical outcome |
-
-`Failed`/`Cancelled` 标签自身不是容量释放证据；释放必须引用 durable `release_evidence_type` 与
-`release_evidence_at`。UnknownOutcome 是 client-visible terminal error，但其 unresolved recovery obligation
-和 Held Seat 不因 168h 自动清除；只有 reconcile 后才开始 resolved-terminal retention 时钟。
-
-两个边界例：若 Piko task deadline 是 `10:05:00.000Z`、header 是 `10:00:00.000Z`，Queued 调用在
-10:00 到期时 LLMTier 返回上述 409 调用事实，但不宣告 task 终态。若 header 是 `10:00:00.000Z`，
-catalog 上限算得 `09:58:00.000Z`，则 effective deadline 是 09:58；到期事实仍记录在 Invocation，
-即使 backend 后来成功并使 canonical Response 可恢复也不删除。
-
-### 6.4 模式切换与状态迁移
-
-启动验证 config、Registry/manifest、ledger readiness、required Service Levels 与 Observation readiness。
-优雅关闭先停止新 admission，再受控收敛 in-flight Invocation。非优雅退出依赖 durable intent/ledger
-恢复，不默认重派。升级与回滚必须保持唯一 Registry/ledger 和单路径，不能运行新旧并行 inference。
+服务启动、reload、restart、backend probe 是环境运维，不是 Piko 任务或模型调用状态机。健康检查可自动读取；真实 provider probe 可能计费，配置变更和 restart 改变状态，必须通过受授权 operator 执行。恢复后以 health/readiness、配置版本、目标模型可用性及受控 smoke request 分层确认；环境恢复不等于上层任务成功。
 
 ## 7. 硬件实现方案
 
-不适用：LLMTier 是独立软件服务，当前设计不拥有板卡、器件选型、时钟、电源或信号完整性。
-运行 host 与远程/本地模型执行目标是外部基础设施依赖，软件部署、资源与故障域写于 §8.6；
-若未来拥有专用硬件设计责任，应重新裁剪并建立硬件设计基线。
+LLMTier 不规定专用硬件。部署可连接云 provider 或本地主机上的推理服务。本地 GPU/CPU、驱动、模型文件与资源限制由 deployment 配置和运行环境管理，不能从逻辑等级 ID 推断。
 
 ## 8. 软件实现方案
 
-### 8.1 软件架构与部署
-
-当前可确认的开发运行边界是一个 Python 3.11+ LLMTier 进程；下图在该单进程边界上展示尚未接线的
-V0.3 目标 API、状态与执行依赖：
-
-```mermaid
-flowchart LR
-    subgraph ClientHosts["Consumer / operator hosts"]
-        P["Piko"]
-        S["Slinky"]
-        M["Memory / Knowledge Client"]
-        Browser["Admin Browser"]
-    end
-
-    subgraph LLHost["LLMTier host — Target single-node topology"]
-        Service["LLMTier Python 3.11+ process<br/>Data · Observation · Management API<br/>Admin Web UI /admin/"]
-        Config["config/settings.json<br/>config/secrets/"]
-        State["state/<br/>ledger · responses · usage · audit"]
-        Contract["interfaces/<br/>OpenAPI · manifest · schemas · vectors"]
-        Config --> Service
-        Contract --> Service
-        Service <--> State
-    end
-
-    subgraph ModelTargets["Execution targets"]
-        Remote["Remote Provider API"]
-        Local["Local Model Deployment"]
-    end
-
-    P -->|HTTPS production / trusted HTTP development| Service
-    S -->|Observation HTTP| Service
-    M -->|Embeddings HTTP| Service
-    Browser -->|same-origin Admin Web UI/HTTPS| Service
-    Service --> Remote
-    Service --> Local
-```
-
-| 位置/入口 | 作用 |
+| 路径 | 职责 |
 |---|---|
 | `src/` | 单服务 Python 源码 |
-| `config/settings.json` | Git-ignored 默认配置；`--settings`/`LLMTIER_CONFIG` 覆盖 |
-| `config/secrets/` | Git-ignored、本机 owner-only Secret 文件 |
-| `state/` | Git-ignored 默认状态、统计和 trace；`LLMTIER_STATE_DIR` 覆盖 |
-| `interfaces/` | OpenAPI、compatibility、Schema 和 vectors authority |
-| `llm-tier` / `python3 -m tier_service` | 安装后/checkout 服务入口 |
-| `llm-tier-cli` / `python3 -m cli` | 安装后/checkout operator 入口 |
+| `config/settings.json` | Git-ignored 默认配置；provider Secret 使用引用 |
+| `state/` | Git-ignored runtime state、Usage 与 audit |
+| `interfaces/openapi/` | 唯一当前机器接口候选 |
+| `interfaces/compatibility/` | 候选能力与 activation 状态，不承担协商协议 |
+| `interfaces/vectors/` | 当前正负 contract fixtures |
 
-上图是 V0.3 单节点目标映射，不是现有 server 已提供 Data/Observation/Management/UI 的证明。
-当前 server 仅接受 localhost、loopback、RFC1918 或 IPv6 ULA bind/origin。单节点 SQLite/WAL Operational
-Store 已由 ADR 提出但尚待接受；production service manager、TLS/auth、container、HA、RPO/RTO、故障域和
-多实例 topology 仍是 Open Gate。
-
-### 8.2 模块设计与代码映射
-
-§5.2 是目标 logical component view，不代表这些模块已在源码实现。Current `src/server.py`、
-`src/router_core.py`、`src/tier.py`、`src/quota_manager.py`、`src/provider_usage.py`、
-`src/backends/` 与 `src/web/tier.html` 构成旧接口与路由基线。现有 Web UI 是单页、无独立 frontend
-deployment 的真实资产，可展示 Tier/Backend/Account、usage/stats/error，并执行 probe、启停、权重、并发和
-模型调整；它调用 legacy `/api/tier/*`，所以不等于 V0.3 Admin UI。
-
-Target 继续采用同一 Python 服务托管、无需 Node/CDN 的 HTML/CSS/JavaScript Web UI，但页面和操作只消费
-唯一 `/tier/admin/v1` Management contract 以及当前 admin principal 被明确授权的 `/tier/v1` read-only
-Observation。目标 Registry、durable ledger、三个受权 Controller 和 Admin UI 需按同一服务边界接线。
-V0.3 激活时必须一次性把旧 `/api/tier/*` 页面调用退役或切断，禁止新旧 UI 双写或以 legacy route fallback。
-
-### 8.3 通信、配置与状态管理
-
-- 身份：authenticated `client_id`；`X-Tier-Source-ID` 必须在该 Client 下获授权。
-- correlation：使用 Client Request ID、Invocation ID 与标准 trace/correlation；client request ID 不替代幂等 key。
-- 配置：只有 `--settings`/`LLMTIER_CONFIG`、`LLMTIER_STATE_DIR` 和既有 trace override；不回读 Slinky。
-- Secret：create/rotate 只写不读；DTO、UI、log、audit、backup report 不得包含可逆值。
-- ETag：Models、Observation、admission、manifest 引用同一 exact ID/catalog version 与语义；各 endpoint 的
-  ETag 各自校验本 resource representation，live capacity/usage 变化不要求其他 DTO ETag 同步。
-- 兼容：破坏兼容性的 Service Level 语义使用新 ID 或 API major；unsupported surface fail closed。
-- 保留：active record 至 terminal；terminal 后 digest/tombstone、Invocation view 与 canonical Response
-  至少 168h。canonical Response 在冻结的 168h recovery window 内仍可恢复；短于任一下限的配置无效并阻断 activation。
-
-### 8.4 页面与交互
-
-Admin Web UI 是 V0.3 required target。它由 LLMTier 同源托管在 `/admin/`，没有独立部署、浏览器到
-Provider 的直连、第二套管理 API 或外部 CDN；领域读写只通过 `/tier/admin/v1`，readiness、compatibility、
-Invocation 等只读事实仅在当前 admin principal 同时拥有 Observation scope 时通过 `/tier/v1` 读取。
-
-#### 8.4.1 Current、Target 与唯一迁移边界
-
-| 范围 | Current `src/web/tier.html` | V0.3 Target | 迁移规则 |
-|---|---|---|---|
-| 页面形态 | 单页 dashboard | `/admin/` shell + route-based pages | 可复用样式/组件，不复用 legacy authority |
-| 数据来源 | `/api/tier/*` legacy runtime/config endpoints | 唯一 `/tier/admin/v1` + 获授权 `/tier/v1` | 激活时旧 route 不得作为 fallback |
-| 配置修改 | Load/Save Config、行内 backend/model 调整 | version/ETag/If-Match、typed mutation、Registry publish | 禁止整文件覆盖 current snapshot |
-| Secret/usage | reload credential files | account secret write/rotate、probe/discovery Job | Provider Secret 永不回显或落浏览器存储 |
-| Recovery/audit | 无完整 V0.3 workflow | RecoveryItem/Job/Audit pages | `redispatch=false`，动作必须审计 |
-
-#### 8.4.2 页面信息架构
-
-| Page ID | 唯一路由 | 展示内容 | 主要操作 | 后端契约 |
-|---|---|---|---|---|
-| LT-UI-001 | `/admin/service-levels` | exact Service Level、capability、backend mapping、Pool、direct/全部 overlapping Capacity Group、Seat/in-flight/queue、quota、validity 与 Unknown blockers | create/edit、校验草稿、预览差异、publish；点击并发数打开容量详情，不在浏览器预留 Seat | service-levels、pools、capacity-groups、`registry/publish`、admin capacity；获授权时关联 Observation snapshot |
-| LT-UI-002 | `/admin/providers` | Provider、Account、Local Deployment、discovered models、probe/usage status | create/edit/disable、secret rotate、start discovery/probe | providers/accounts/deployments、`discovery/jobs`、`probe/jobs` |
-| LT-UI-003 | `/admin/usage` | usage bucket、token、CostEvidence、currency/pricing version、Known/Estimated/Partial/Unknown | filter/group/page、导出当前受权视图 | admin usage；不得自动换汇或 Unknown 补零 |
-| LT-UI-004 | `/admin/recovery` | RecoveryItem detail、Invocation/backend/deadline/Seat facts、Admin Job 状态 | evidence-backed reconcile action、查看 Job；不得 redispatch | recovery items/actions、jobs；获授权 Invocation detail |
-| LT-UI-005 | `/admin/audit` | actor、action/resource、result、version、request/Invocation correlation 和时间 | filter/page、查看脱敏 detail | admin audit；只读 |
-
-页面不提供通用“编辑 JSON/SQL/ledger”、Provider-direct test、跨 Service Level fallback、删除未决 obligation
-或绕过 audit 的按钮。Model discovery/probe 是 Job，不把浏览器等待连接保持为执行 authority。
-
-#### 8.4.3 全局页面框架与导航
-
-```text
-+--------------------------------------------------------------------------------+
-| LLMTier Admin | environment | contract candidate | activation=false | principal |
-+----------------------+---------------------------------------------------------+
-| 服务等级           | Page title                         [primary action]       |
-| 模型供应           | readiness / stale / blocker banner                      |
-| 用量与费用         | filters / version / effective_at / valid_until          |
-| 故障恢复           | table or detail drawer                                  |
-| 审计日志           |                                                         |
-+----------------------+---------------------------------------------------------+
-| request ID / last refresh / observed_at / source version / typed error          |
-+--------------------------------------------------------------------------------+
-```
-
-导航只展示 principal 可访问的页面，但隐藏菜单不替代 API 授权。直接输入无权路由显示 Forbidden，不加载或
-短暂渲染资源内容。全局顶部状态始终显示 `contract_status` 与 `runtime_activation`，candidate 不得使用绿色
-“Production Ready”语义。页面保存自己的 filter/cursor 可用 URL query 表达，但不得把 credential、Secret、
-Prompt、Response 或 recovery evidence 内容写入 URL。
-
-#### 8.4.4 浏览器身份、会话与安全行为
-
-V0.3 不新增未冻结的 cookie/session API。管理员在 Connect 对话框提交既有 Management credential；credential
-只保存在当前页面内存，作为 `Authorization` header 发送给同源 API，不进入 URL、DOM 回显、
-`localStorage`、`sessionStorage`、IndexedDB、日志或错误上报。刷新/关闭/显式 Disconnect 清除 credential，
-401 立即清除并回到 Connect；403 保留已认证状态但显示缺失 scope，不自动换身份。
-
-UI 只加载仓库内受控静态资源，禁止第三方脚本、`eval` 和 inline event handler；目标响应使用严格 CSP、
-`frame-ancestors 'none'`、`Referrer-Policy: no-referrer`、MIME sniffing 防护和 output encoding。production 只在
-TLS 下传 credential。因为 Authorization header 不是 ambient cookie，V0.3 不建立 cookie-CSRF 机制；若未来
-改为 OIDC/cookie session，必须先以 ADR 和机器契约替换本节，不能并行保留两种登录路径。
-
-#### 8.4.5 通用页面状态与错误行为
-
-| 状态/错误 | 用户可见行为 | 是否允许操作 | 恢复规则 |
-|---|---|---|---|
-| Loading | skeleton/行级 loading；保留页面标题和作用域 | 禁用依赖未加载版本的 mutation | 成功后原位替换，不闪现空值 |
-| Empty | 说明“当前授权范围无记录”或“尚未配置”，区分二者 | 仅有 create 权限时显示 CTA | create 成功后按 receipt/version 刷新 |
-| NotReady/SourceError | 红/黄 blocker banner，显示 typed code、request ID、last known version/time | 危险 mutation 禁用；只读旧值必须标 Stale | 不以缓存值覆盖错误；显式重试 |
-| Unknown/Partial | 字段显示 Unknown/Partial 和原因/缺口，绝不显示 `0` | 不允许据此确认容量/费用充足 | 等待新 snapshot 或修复来源 |
-| 401/403 | Connect 或 Forbidden；不显示资源内容 | 否 | 401 清 credential；403 由授权管理员修复 |
-| 404 | 对不可见资源使用统一 Not Found | 否 | 返回列表重新选择，不泄露存在性 |
-| 409/412 | 显示版本冲突，保留本地草稿并提供 current-vs-draft diff | 禁止盲覆盖 | 重新读取新 ETag/version 后由用户重做确认 |
-| 422/typed validation | 错误绑定到字段/规则，同时给全局 summary | 仅修正后重试 | 不改变 Idempotency-Key 对应 digest |
-| 429/503/network unknown | 显示 Retry-After/typed code；mutation intent 状态为 Unknown 时不得生成新 key | 只允许查询原 Job/receipt 或同 key 恢复 | 不把“没收到响应”当未执行 |
-| Job Pending/Running | 显示 job ID、阶段、开始/更新时间 | 禁止重复启动同一 intent | 查询 `jobs/{id}`；terminal 后刷新资源 |
-
-所有 list 页面支持 server cursor pagination；filter 变化使旧 cursor 失效。自动刷新只更新只读区域，不覆盖
-正在编辑的表单。每次 mutation 在发送前固定 Idempotency-Key、request ID、If-Match/expected version 和
-请求摘要；响应未知时恢复同一 intent，不自动提交第二次。
-
-#### 8.4.6 关键交互流程
-
-Registry 发布流程：
-
-```mermaid
-sequenceDiagram
-    actor A as Admin
-    participant UI as Admin Web UI
-    participant API as Management API
-    participant REG as Registry/Admin Service
-    participant STORE as Operational Store
-    A->>UI: 编辑 Service Level/Pool membership
-    UI->>API: PATCH + If-Match + Idempotency-Key
-    API->>REG: validate exact IDs/capability/groups
-    REG->>STORE: commit new draft version + audit
-    STORE-->>UI: receipt + new version/ETag
-    UI->>API: POST registry/publish + expected draft version
-    API->>REG: validate full snapshot and effective time
-    REG->>STORE: atomically publish snapshot + audit
-    STORE-->>UI: publish receipt/version
-    UI->>UI: refresh; show effective/valid time
-```
-
-Secret create/rotate：表单只接受新值和目标 Account；提交后立即清空输入和内存副本，成功响应只显示 secret
-reference/version/fingerprint metadata，不提供“查看原值”，也不写入 toast history、clipboard 自动复制或缓存。
-Client/Source credential binding 没有独立页面；其配置由部署/受控 Management 操作管理，不能被解释为
-Agent conversation、商业租户目录或实例身份生命周期。
-
-Recovery 流程：管理员先查看 RecoveryItem、Invocation、backend execution 和 Seat evidence；UI 明示
-`redispatch=false`。提交 action 时必须选择冻结 action、填写原因、确认 expected record version，并再次展示
-该动作不会创建新 Invocation。只有 durable terminal/`execution_stopped_ack`/authorized reconcile evidence
-可产生 Released；cancel accepted、local timeout、Run/Session 终态或 UI 确认均不构成释放证据。
-
-#### 8.4.7 UI 验收边界
-
-五个页面必须覆盖 Loading、Empty、Error、Forbidden、Stale/Conflict 和正常状态；keyboard navigation、
-focus management、label/error association、非颜色状态表达和窄屏表格可用性是验收项。测试必须证明：
-
-- 页面只调用声明的 Management/Observation operation，没有 legacy `/api/tier/*`、Provider-direct 或隐藏写入口；
-- Secret/credential 不进入 DOM snapshot、URL、browser storage、console、network error body 或 audit；
-- 409/412 保留草稿但不自动覆盖，网络未知不生成新 mutation intent；
-- Unknown/Partial/stale/activation=false 均有显式视觉语义，不补零、不显示 Production Ready；
-- Recovery action 不 redispatch，UI/Session 生命周期不释放 Seat 或改写 Invocation；
-- 无权限直接路由、分页/filter、Job 轮询、logout/refresh 和浏览器 back/forward 均保持确定行为。
-
-现有 `src/web/tier.html` 仅证明 Current UI 资产存在，不证明上述 Target 已实现、Verified 或 active。详细组件、
-文件、函数、DOM state、CSS token 和 browser automation case 在 Admin Web UI 模块设计与 ISD 中承接。
-
-### 8.5 软件可靠性与开发平台
-
-实现须先持久化 key/digest decision；admission 成功后在 backend dispatch 前原子持久化 Seat、Invocation、
-dispatch intent 与 recovery obligation；
-重启后不盲派，store 不可用时 fail closed。开发基线为 Python 3.11+，安装与 CLI 入口见 §17；
-production service manager、HA、备份和恢复演练尚无已批准证据。
-
-### 8.6 部署与运行环境
-
-§8.1 图为目标单节点拓扑；production 节点数、TLS termination、状态存储、故障域、容量/性能预算
-仍是 Open Gate。无论最终如何部署，三个 API 分面不得形成第二套 Registry 或 ledger。
+目标实现只保留一条 OpenAI-compatible inference path。现有 `/call`、Role routing、CLI/agent/mlexp backend 是 legacy implementation baseline，迁移完成后退出 consumer authority；不得作为 fallback。
 
 ## 9. 可编程逻辑与专用处理单元
 
-不适用：LLMTier 本项目没有 FPGA、RTL、DSP 或自有专用处理单元。远程 Provider 或本地模型硬件
-是被调用的执行目标，不归 LLMTier 本设计的可编程逻辑责任范围。
+不适用。LLMTier 不含 FPGA、ASIC 或自定义加速逻辑；本地模型服务器的加速实现属于外部 deployment。
 
 ## 10. 数据、描述符与存储结构
 
-### 10.1 业务数据流
-
-Inference request 进入 Data Plane 后只形成两类持久事实：pre-admission 的 IdempotencyDecisionRecord，
-以及 admission 成功后与其一一绑定的 Invocation。Provider result 先提交为 terminal Invocation/canonical
-Response，再对 Client 返回；Observation 只读取投影，Management mutation 通过审计事务改变配置事实。
-
-### 10.2 描述符与元数据流
-
-每条业务事实至少携带 authenticated client、canonical source、exact Service Level、
-client request ID、record/config/catalog version 和时间。Idempotency namespace 另含 endpoint/version/key；
-digest 覆盖规范化 body 与影响语义的 header。Provider/account identity 仅在 LLMTier 内部关联，不进入
-普通 consumer response。
-
-### 10.3 状态表、缓存与持久化
-
-核心业务数据为 Client/Source、ServiceLevel、Pool/CapacityGroup、Invocation、
-CanonicalResponse、Usage、RecoveryItem、AdminJob；Schema authority 见 §11 和附录 A。
-Invocation active 状态 Pending/Queued/Running；terminal 状态 Succeeded/Failed/Cancelled/UnknownOutcome。
-只有真实测得或可归属的 token、费用和队列估计才可写数值；Unknown/Partial 必须保留 null/状态，
-不能补零。V0.3 单节点 Operational Store 与事务边界采用
-[`llmtier-v0.3-operational-store`](../90_decisions/llmtier-v0.3-operational-store.md) 的 Proposed 方案：
-单一 SQLite/WAL authority、关键写入 `synchronous=FULL`、admission/Seat/Invocation/dispatch intent
-同事务，backend dispatch 只能发生在 durable claim 后；该 ADR 未获接受及运行证据前不构成 activation。
-备份和清理策略仍须符合 M2-C 保留下限，详见附录 C。
-
-| Record | Owner/写入点 | 一致性与生命周期 |
+| 数据 | 最小内容 | 生命周期 |
 |---|---|---|
-| IdempotencyDecisionRecord | Ledger；digest 计算后 | key/digest 唯一；rejection 可按 decision expiry 重试；绑定 Invocation 后不可换绑 |
-| Invocation/DispatchIntent | Ledger + Admission 原子事务 | admission 成功才创建；active 到 terminal；UnknownOutcome 不自动改写 |
-| CanonicalResponse/Tombstone | Ledger | terminal 后至少 168h；privacy 配置不得破坏冻结下限 |
-| Capacity/Seat | Admission | 同一原子边界 grant/release；snapshot validity 与全部 group 同时校验 |
-| Usage/Audit | Meter | auth/admission/invocation/backend/admin 事件均可关联；Unknown/Partial 不补零 |
-| Config/Registry | Admin/Registry | version/ETag/effective_at；Secret 只保存受控引用或加密值，不回读 |
+| Provider | type、endpoint、secret reference、enabled | operator 管理 |
+| Deployment | provider/local、model name、capabilities、health | operator 管理 |
+| ServiceLevel | exact ID、deployment binding、limits/capabilities | operator 管理与 Models 发布 |
+| UsageRecord | request ID、model、token values、measurement status/source、time | 按 LLMTier retention policy |
+| AuditEvent | actor、action、target、result、time；不含 Secret/prompt/output | 按审计策略 |
 
-#### 10.3.1 概念数据关系
-
-下图定义系统级 ownership 和基数；具体列、索引与 migration 由 Operational Store 模块设计/ISD 决定，
-外部字段仍以 OpenAPI 为 authority。
-
-```mermaid
-erDiagram
-    CLIENT ||--o{ SOURCE : authorizes
-    CLIENT ||--o{ ENTITLEMENT : owns
-    SOURCE ||--o{ ENTITLEMENT : scopes
-    SERVICE_LEVEL ||--o{ ENTITLEMENT : grants
-    SERVICE_LEVEL }o--o{ CAPACITY_GROUP : constrained_by
-    SERVICE_LEVEL }o--o{ POOL : routes_within
-    POOL }o--o{ DEPLOYMENT : contains
-    DEPLOYMENT }o--|| ACCOUNT : uses
-    ACCOUNT }o--|| PROVIDER : belongs_to
-    IDEMPOTENCY_DECISION ||--o| INVOCATION : binds_once
-    INVOCATION ||--|| DISPATCH_INTENT : authorizes_once
-    INVOCATION ||--|| RECOVERY_OBLIGATION : preserves
-    INVOCATION ||--o{ SEAT_HOLD : consumes
-    CAPACITY_GROUP ||--o{ SEAT_HOLD : constrains
-    INVOCATION ||--o| CANONICAL_RESULT : resolves_to
-    INVOCATION ||--o{ USAGE_RECORD : meters
-    INVOCATION ||--o{ RECOVERY_ITEM : reconciles
-    INVOCATION ||--o{ AUDIT_EVENT : records
-    ADMIN_JOB ||--o{ AUDIT_EVENT : records
-```
-
-关键约束：一个 idempotency decision 最多绑定一个 Invocation；一个 Invocation 只有一个 dispatch intent 和
-一个 recovery obligation，可同时占用 direct 与多个 overlapping Capacity Group 的 Seat hold；所有 hold
-必须逐项有 Released 证据，不能只释放一个聚合计数。CanonicalResult 对成功 Invocation 至多一份且内容/摘要
-与 response reference 一致。RecoveryItem 和 AuditEvent 是附属事实，不能反向授权 dispatch 或修改 Client scope。
-
-#### 10.3.2 状态机与合法转换
-
-```mermaid
-stateDiagram-v2
-    [*] --> Pending: admission commit
-    Pending --> Queued: internal wait required
-    Pending --> Running: dispatch claim wins
-    Queued --> Running: dispatch claim wins
-    Pending --> Cancelled: deadline/cancel wins before dispatch
-    Queued --> Cancelled: deadline/cancel wins before dispatch
-    Running --> Succeeded: canonical result committed
-    Running --> Failed: terminal provider failure
-    Running --> Cancelled: execution-stopped evidence
-    Running --> UnknownOutcome: outcome/stop cannot be proved
-    UnknownOutcome --> Succeeded: evidence-backed reconcile
-    UnknownOutcome --> Failed: evidence-backed reconcile
-    UnknownOutcome --> Cancelled: execution-stopped reconcile
-```
-
-`UnknownOutcome` 是 client-visible terminal error，但其 backend/release obligation 仍未解决；只有授权的、
-带 evidence 的 reconcile 可以把它细化为已知 terminal fact，不能由 timer、UI、Run/Session 状态或自动 retry
-改写。除该 reconcile 外，Succeeded/Failed/Cancelled 不允许相互覆盖。
-
-| 内部对象 | 合法转换 | 原子竞争/不变量 |
-|---|---|---|
-| IdempotencyDecision | unbound rejection → 同 rejection replay；expiry 后 CAS → bound Invocation；无 Invocation 且 deadline 到达 → deadline tombstone | digest binding 永不因 rejection expiry 遗忘；一个 CAS winner |
-| DispatchIntent | Prepared → Dispatching → OutcomeRecorded；Dispatching → UnknownEvidencePending | Prepared commit 前 backend call=0；claim 后不得自动第二次 dispatch |
-| SeatHold | Held → Released | 仅 `not_dispatched`、`backend_terminal`、`execution_stopped_ack`、`authorized_reconcile` 可释放；每个约束分别记证据 |
-| CanonicalResult | absent → committed；保证窗口后 → content-free tombstone | result 与 Invocation terminal/usage/release 在规定事务边界提交；active/Unknown 不清理 |
-| RecoveryItem | Pending → Reconciled 或 Pending → Cancelled | 状态名与 `RecoveryItemView.disposition` 一致；action 永远 `redispatch=false`；record version 冲突不得盲覆盖；证据不足时继续 Pending，不另造 UI-only 状态 |
-
-### 10.4 容量与带宽计算
-
-容量单位只有 `concurrent_invocation`。可新增 committed Seat 的上限是 direct availability、每个
-shared/overlapping Capacity Group availability、Client/Source entitlement quota 和 readiness/validity
-共同约束的最小可行集合，而不是各值相加。吞吐、token/s、费用和排队等待不能从 Seat 数直接推导；
-它们需按固定 Provider/model/config/workload 实测。存储容量需覆盖 active obligations 以及 terminal 后
-至少 168h 的 tombstone、Invocation view 和 canonical Response；具体字节预算待真实流量/内容保留策略冻结。
+不保存 Agent conversation、tool state、project/task content、正式记忆或后端 KV identity。Prompt/output 日志默认关闭；诊断只保存必要的脱敏关联信息。
 
 ## 11. 接口与通信协议
 
-### 11.1 接口总表
+### 11.1 Consumer API
 
-| 分面 | V0.3 目标接口 | 权威 |
-|---|---|---|
-| Data Plane | `POST /v1/responses` non-stream、`POST /v1/embeddings` non-stream、Models list/detail、Invocation/Response GET | `interfaces/openapi/llmtier-v0.3.openapi.json` |
-| Observation | `/tier/v1` readiness、Service Level、capacity、Invocation list/detail、usage、compatibility | 同一 OpenAPI |
-| Management | `/tier/admin/v1` 配置、目录、授权、容量、审计、Job、Recovery | 同一 OpenAPI |
-| V0.4 | Chat Completions、Responses/Chat SSE 与 streaming replay | 非 V0.3 current path；必须 fail closed |
+- `POST /v1/responses`
+- `POST /v1/embeddings`
+- `GET /v1/models`
+- `GET /v1/models/{model}`
+- `GET /tier/v1/usage`：标准 OpenAI API 没有统一跨请求 token 查询；这是唯一最小扩展，只返回 token 事实，不返回 Cost、容量或执行状态。
+- `GET /healthz`、`GET /readyz`：环境探针，不参与模型协议协商。
 
-### 11.2 Data Plane 与 Agent tool loop
+Bearer credential 只标识获授权调用主体；不暴露 Client/Source/SourceInstance 产品模型。`X-Request-ID` 是服务端响应关联 ID，调用方可发送标准 trace context；它们不是幂等键或会话 ID。
 
-Piko 的 `model` 必须是 Registry 返回的 exact `service_level_id`，不做 lowercase 或别名映射。
-`ResponsesRequest.input` 可为字符串或有序输入项；多轮消息使用 `type=message`、
-`role=system|developer|user|assistant` 和 content。可用 `tools[]`、`tool_choice` 与
-`parallel_tool_calls` 请求模型生成 `type=function_call`，其 `call_id`、`name`、`arguments`
-返回 Piko；Piko 执行工具后以 `type=function_call_output`、相同 `call_id` 和字符串 `output`
-在后续 Responses 请求中回传。LLMTier 仅验证、透传和调用模型，不执行工具、不储存 Prompt 模板。
-同一逻辑 Invocation 的 transport recovery 复用原 key/digest；下一轮新的模型调用需要新的 logical
-Invocation，但工具结果格式与上下文组装由 Piko adapter 的 pinned capture 确认。V0.3 `stream:true`
-和 Chat 请求须按 unsupported feature/endpoint fail closed；若 Piko 必须 streaming，先做 scope amendment。
+### 11.2 Admin API 与中文 Web UI
 
-### 11.3 控制、管理与观测协议
+```mermaid
+flowchart LR
+  NAV[侧栏] --> MODELS[模型与等级]
+  NAV --> ADD[添加模型]
+  NAV --> HEALTHUI[运行状态]
+  NAV --> USAGEUI[用量]
+  NAV --> AUDITUI[审计]
+  MODELS -->|编辑 / 删除| MAPI[Admin API]
+  ADD -->|云模型或本地模型| MAPI
+  HEALTHUI -->|只读检查 / 授权探测| MAPI
+```
 
-`Idempotency-Key` 标识同一 logical Invocation；`X-Tier-Client-Request-ID` 只用于关联，不可代替前者。
-`X-Tier-Source-ID` 是已授权的 canonical Source。V0.3 不定义 SourceInstance header、字段或 filter/grouping；
-Observation 可在已授权范围按 Source/Service Level/endpoint/status 过滤与聚合；
-Management 只接受独立管理权限。ETag 验证各 resource 的自身表示，不要求不同 DTO 的 ETag 相等。
+页面保持短而单一职责：
 
-### 11.4 排队、拒绝、超时与公平调度
+1. **模型与等级**：表格列出逻辑等级、类型（云/本地）、后端模型、状态和能力；提供编辑、删除。
+2. **添加模型**：选择云模型或本地模型，填写 endpoint/model、Secret 引用、能力和逻辑等级映射；保存前校验，Secret 不回显。
+3. **运行状态**：展示服务、deployment 健康与最后探测；真实探测需二次确认并提示可能费用。
+4. **用量**：按时间和逻辑等级展示 token measured/estimated/unknown；不显示 Cost。
+5. **审计**：展示管理变更和探测结果；不含 prompt/output/credential。
 
-V0.3 candidate 选择 pre-admission 不排队：约束不满足立即返回 `429 AdmissionRejectedEnvelope` 与
-`Retry-After`，不返回 Location/Invocation ID，Seat/Invocation/backend dispatch 都为零。拒绝正文给出
-`decision_created_at`、`decision_expires_at`、`request_deadline_at`；`Retry-After` 是响应时刻至 decision
-expiry 的向上取整秒数。`now < decision_expires_at` 重放原决定；`now >= decision_expires_at` 通过
-record-version CAS 只允许一个竞争者重新 admission。expiry 只使决定可重评，不删除原 digest：key/digest
-binding 至少保留到 `max(first_seen+24h, request_deadline_at)`；digest 必须包含 canonicalized
-`X-Tier-Deadline-At`，同 key 改 deadline 是 409 conflict，不能延长期限。处理优先级固定为：先按 namespace/key
-读取 durable record 并校验 digest；异 digest 409；已有 Invocation 恢复原义务（不受 deadline 阻止）；无
-Invocation 且 `now >= request_deadline_at` 返回 408；其余才根据 decision expiry 重放 429 或 CAS 重新 admission。
-因此 deadline 到达优先于重放旧 429。并发、expiry、deadline 和服务重启都使用同一 durable record version；
-只有一个 CAS winner 可把 unbound decision 转为 admitted Invocation，不得换 key 绕过。
-`Queued` 只表示 admission 成功并已有 Seat/Invocation 后的内部 execution wait；active replay 可对其返回
-202，但不能把 202 借作新请求 admission queue。Registry 为每个 Service Level 指定唯一
-`scheduling_domain_id`。公平性采用两级固定轮次 WRR：外层主体是 Client，`scheduling_weight` 只存在于
-Client scheduling policy；同一 Client 增加 Source 或 Service Level 不能放大其总份额。内层 lane 为
-`source_id + exact service_level_id`，按 stable round robin 选 lane，lane 内严格 FIFO。Client weight 缺失或
-非法时配置 NotReady 并在 admission 前拒绝，不使用隐式默认值。
-
-外层 round 开始时冻结 eligible Client 集合与 cursor，每个 Client 获得其 weight 个、cost=1 Invocation 的
-dispatch opportunity；其内层从 eligible lane 轮转选一个。新 Client/lane 下一 round 加入，空、过期或不再
-eligible 的项跳过，unused opportunity 不转给其他 Client。等权 Client A 有 A/source-1、A/source-2 两个 lane，
-Client B 只有 B/source-1 时，两轮选择可为 `A1,B1,A2,B1`，Client 总机会仍为 1:1，而非 2:1。
-
-共享/重叠 Capacity Group 跨 `scheduling_domain_id` 时，由 group 层以相同 Client 总 weight 做确定性外层仲裁；
-dispatch 必须按排序后的 `capacity_group_id` 原子取得 local domain slot 与全部 group grant，任一失败即不消耗
-local slot。各 Client 内部仍轮转 Source/Level lane，不能通过跨 domain 增加份额。deadline 在选取前复验。
-在 active set/weight 不变、持续 eligible、每次 opportunity 前 all-constraints 成立且 backend/Seat 持续释放
-的前提下，每个 eligible Client 最迟在一个完整 outer round 获得至少一次选择。长调用占满全部 Seat、backend
-不释放、eligibility/config/active set 变化时不产生 wall-clock 或成功保证。
-
-由此，内部 queue/deadline 上限的结构语义已固定；具体 catalog 数值仍须随 Service Level 配置与 consumer
-review 冻结，未配置不得运行时默认。
-
-调用方 deadline 到达可先形成 typed caller outcome，但不得篡改 backend fact。Invocation 分别记录
-`client_outcome`、`backend_execution_status` 与 `capacity_hold_status`；只有 NotDispatched 证明、backend
-terminal、明确证明 execution stopped 的 acknowledgement 或授权 reconcile 能把 Held 改为 Released。
-
-### 11.5 容量缺口、队列估计与费用语义
-
-CapacitySnapshot 只发布 LLMTier 权威资源事实。`constraint_facts` 必须列出同一 snapshot 中当前 entitlement
-对应的 direct 与全部 shared/overlapping group；每项回答“新增一个 `concurrent_invocation` Seat”的
-availability/shortfall。`blocking_constraints` 是 `constraint_facts` 的子集：Known 且
-`shortfall_for_next_seat > 0`，或 status=Unknown 的约束都必须列入；所有约束均阻塞时两者 ID 集合可以相等，
-无阻塞时为空。Unknown fact 的 available/shortfall 必须为 null、`is_blocking=true`、
-reason_code=`capacity_unknown`，admission 和 Slinky N-Seat 可用性计算都 fail closed。不接收或推断 Project 目标。非并发 quota 放在独立
-`quota_constraints`，不得换算成 concurrency。共享/重叠 group 各自报告，gap 不相加。Slinky 用
-`direct_available_committed`、完整 `constraint_facts` 和自身 N-Seat 需求做 all-constraints 规划计算。
-队列估计含 Known/Partial/Unknown、estimated_at 和 valid_until；Unknown 保持 null，估计不是预留或保证。
-
-费用金额使用非负 decimal string（最多 20 位整数、12 位小数）、ISO-4217 currency、pricing catalog version、
-cost source 与 priced_at。Known 表示权威账单覆盖全部声明 component；Estimated 表示 catalog 估算且不得
-伪装实付；Partial 的 amount 仅为 `covered_components` 小计，绝不是总额，并必须列 missing components；
-Unknown 的 amount/currency 为 null。Invocation、Observation Usage 和 Admin Usage 消费 DTO 使用同一
-CostEvidence；同币种且同 pricing
-version 方可汇总，混合币种或版本分组返回，禁止自动换汇。
-
-### 11.6 Embeddings 幂等恢复定型候选
-
-Embeddings 不新增 GET recovery path，只复用原 `POST /v1/embeddings` 的 namespace/key/digest。返回的
-`X-Tier-Invocation-ID` 只用于关联、审计和同 POST ledger lookup，不能拼接或授权 Responses Invocation/Response
-GET。首次或成功重放为标准 `200 EmbeddingResponse`；active duplicate 为 `202 EmbeddingInvocationAccepted`
-（无 Responses Location/recovery URL）；Failed/Cancelled/UnknownOutcome 分别为 502/409/503 typed non-2xx，
-且不盲重派。
-无 ID 丢响应按 §6.3 原 POST 重放，超出 request deadline 禁止首次 admission。Knowledge consumer 固定采用
-D=24h、terminal result 与 digest/tombstone 至少 168h；Slinky Knowledge/Observation 已对
-`0.3-finalization-candidate.5` 的该消费语义给出设计确认；这不是把 Responses GET 自动扩展到 Embeddings。
-active record 保留到 provable terminal；UnknownOutcome
-obligation 保留到人工 reconcile，不以 168h 自动清除。resolved terminal 起至少保留 168h；保证窗口后仍有
-tombstone 时返回 410；不得复用旧 key 创建新的 logical Embedding invocation。
-
-| Embeddings 状态 | HTTP/body | Headers | 恢复/保留行为 |
-|---|---|---|---|
-| 首次/成功 replay | 200 `EmbeddingResponse` | `X-Tier-Invocation-ID` | 标准成功 body；ID 仅关联 |
-| Pending/Queued/Running | 202 `EmbeddingInvocationAccepted` | Invocation ID、Retry-After；无 Location | 同 POST、同 key/digest；additional dispatch=0 |
-| Failed | 502 `TerminalErrorEnvelope` | Invocation ID；无 Location | `retryable=false`；不自动重派 |
-| Cancelled | 409 `InvocationCancelledEnvelope` | Invocation ID；无 Location | `retryable=false`；不自动重派 |
-| pre-admission same-key/different-digest | 409 `IdempotencyConflictEnvelope` | 无 Invocation ID、无 Location | `retryable=false`；不得伪造 Invocation 或 dispatch |
-| UnknownOutcome | 503 `TerminalErrorEnvelope` | Invocation ID；无 Location | obligation 持续到 reconcile；不因 168h 删除 |
-| resolved terminal 保证窗口后且 tombstone 可证明 | 410 `IdempotencyRecordExpiredEnvelope` | 无 Responses Location | `idempotency_record_expired`、retryable=false；不允许旧 key 创建新 logical invocation |
+不提供访问控制、容量、恢复、调用方、SourceInstance 或费用页面。
 
 ## 12. 可靠性、维护与升级
 
-### 12.1 故障模型与可靠性机制
+标准 HTTP 错误区分 validation/auth/model_not_found/rate_limit/provider_unavailable/internal_error。429 可带 `Retry-After`；调用方决定重试。未知 token 数用 `usage=null` 或字段 null + `measurement_status=unknown`，不得填零。
 
-| Failure ID | 触发/检测 | 系统响应与数据影响 | 恢复/验证 |
-|---|---|---|---|
-| LT-FAIL-001 | auth/entitlement 失败 | fail closed，记录无 Secret 审计；无 Invocation/dispatch | 修复授权后新 admission；CT-AUTH |
-| LT-FAIL-002 | capacity/quota/readiness 不满足 | 429 AdmissionRejected；无 Seat/Invocation/dispatch | Retry-After 后原 key/digest 可重新 admission；CT-ADM-001 |
-| LT-FAIL-003 | transport response lost | 保留原 obligation，不以新 key 重派 | §6.3 recovery；CT-REC |
-| LT-FAIL-004 | backend 失败/结果未知 | Failed 或 UnknownOutcome；后者只人工 reconcile | terminal fixture/crash injection |
-| LT-FAIL-005 | ledger/store 不可用 | readiness NotReady、停止新 admission/dispatch | store 恢复和一致性检查后重开；durability test |
-| LT-FAIL-006 | snapshot/Registry 失效 | 新 Seat=0；已 admission 调用仅安全收敛 | refresh/revalidate；CT-OBS/REG |
-
-### 12.2 状态指示、监控与故障定位
-
-Readiness、capacity、Invocation、usage、provider health、recovery backlog、audit/store health 均提供
-机器可读状态。诊断以 client request ID、Invocation ID、Client/Source、Service Level、backend reference
-和 record version 关联；unknown/partial 独立标识。日志、metric、trace 和 audit 不得泄漏 Secret、Prompt/
-output 内容或跨 Client 数据。告警阈值、刷新周期和 production retention 随部署/SLO 冻结。
-
-### 12.3 维护、升级与回滚
-
-§6.3 和附录 C 定义 lost-response recovery；无 ID 用原 namespace/key/digest replay，有 ID 查询原
-Invocation。升级先停止新 admission、排空或持久化 in-flight obligation，再校验 schema/config/Registry
-兼容；失败只回到兼容且未撤销的已知版本。回滚不得丢弃 ledger/canonical response、缩短 M2-C 保留期或
-同时运行两条 inference path。所有管理/恢复动作必须授权、version checked、审计且可判定终态。
+内部队列、并发保护、超时、provider failover 只能在同一 exact service level 的已配置后端集合内工作；不得静默跨等级。内部实现不得向 consumer 暴露 Seat、claim、Invocation 或恢复状态。
 
 ## 13. 性能、扩展与兼容性
 
-### 13.1 性能模型与预算
-
-唯一容量单位 `concurrent_invocation`；direct 与全部共享/重叠 Capacity Group、Client quota、
-readiness、`valid_until` 同时成立才可新增 committed Seat。`request_quota_remaining=null` 阻断新增
-committed Seat；burst 不计入 committed capacity。`in_flight_requests`、`queued_requests` 和
-`estimated_queue_wait_ms` 是观察数据，不等同预留容量或吞吐承诺。throughput、latency、
-fairness、backend SLO、队列等待预算与生产 topology 均须在固定 workload 后测量和冻结；
-无实测时不得声明达标。Service Level 兼容语义变化须新 ID 或 API major，禁止暗中跨等级替换。
-
-### 13.2 瓶颈与资源余量
-
-关键瓶颈依次是 Provider/local backend 并发、各重叠 Capacity Group、Client quota、ledger transaction、
-connection pool 和 response retention store。任何一项 unknown 或过期均不能当作余量。admission 拒绝、
-internal queue wait、backend latency 和 store latency 必须分项测量，避免用端到端均值掩盖容量瓶颈。
-
-### 13.3 扩容方案与兼容矩阵
-
-扩容只可在同一 Service Level 的 approved backend set 内增加 Provider/Account/Deployment 或调整 Pool/
-Capacity Group，并重新发布 Registry/capacity version。跨等级 fallback 禁止。多实例 deployment 在选择
-共享 ledger、Seat 原子性、leader/fencing 和故障域前仍是 Open Gate。破坏 Service Level 兼容语义的变更
-创建新 ID 或 API major；V0.3 consumer 不协商 Chat/SSE。
+V0.3 不承诺尚未测量的吞吐/延迟 SLO。扩展先增加同一 service level 的 deployment，再通过内部调度保护资源。兼容以标准 OpenAI shape 和显式版本变更为准，不提供专用 compatibility endpoint 或运行时协商。
 
 ## 14. 可测试性与验收设计
 
-### 14.1 测试支持与观测点
+静态验收覆盖：OpenAPI 引用解析、Responses/tool-call/tool-result、Embeddings、Models、Usage unknown、429/5xx、Admin CRUD/Secret 不回显、旧路径不存在。运行验收另覆盖 provider capture、token truth、健康/重启、探测授权和 Web UI。
 
-静态 OpenAPI/manifest/fixture/STD 检查只证明候选文档自洽。runtime activation 还需 pinned Piko
-adapter、Knowledge Embeddings consumer、Slinky Observation、Management API/UI、安全隔离、
-容量语义、实际公平性、crash/lost-response 零重复 dispatch、168h retention 和 legacy removal 证据。
-测试通过受权的 Data Plane/Observation/Management 接口、mock Provider/local connector、可控 clock/
-store fault 和审计读取点注入/观察；测试身份不能绕过正常授权，fixture 不使用真实 credential/Prompt。
-
-### 14.2 测试数据源、自检与环回
-
-OpenAPI/vectors 提供标准正负输入；mock backend 覆盖成功、timeout、lost response、Failed 和
-UnknownOutcome；capacity fixture 覆盖 direct/group/quota/validity 组合；重启测试重放 durable store。
-startup self-check 只证明 config/Registry/store schema 可加载，不证明 Provider、consumer 或 168h retention；
-退出测试模式后必须清理临时 Client/Source/credential 并保留无敏感内容的 evidence。
-
-### 14.3 验证与验收矩阵
-
-| Quality ID | 场景与 oracle | 当前状态 |
-|---|---|---|
-| LT-QR-001 | 同 namespace/key/digest replay additional dispatch=0 | Fixture PASS；runtime BLOCKED |
-| LT-QR-002 | UnknownOutcome 只 manual reconcile | Contract PASS；runtime BLOCKED |
-| LT-QR-003 | Snapshot 失效立即阻止新 Seat/dispatch | Fixture PASS；production BLOCKED |
-| LT-QR-004 | Registry provenance 一致，各 resource ETag/304 自洽 | Static PASS；runtime BLOCKED |
-| LT-QR-005 | 同 Client 已授权多 Source 正例；未授权 Source/跨 Client 负例 | Static PASS；runtime BLOCKED |
-| LT-QR-006 | Secret 在 API/UI/log/audit 中不可读 | Schema PASS；runtime BLOCKED |
-| LT-QR-007 | 24h recovery 与 terminal 后 168h retention | Policy frozen；长时证据 BLOCKED |
-| LT-QR-008 | Chat/SSE/stream V0.3 fail closed | Fixture PASS；runtime BLOCKED |
-| LT-QR-009 | Management/Observation pagination、ETag、unknown/partial 正确 | Static PASS；runtime BLOCKED |
-| LT-QR-010 | pre-admission reject 无 Seat/Invocation/dispatch，decision replay 自洽 | Schema/fixture PASS；runtime BLOCKED |
-| LT-QR-011 | 五个 Admin 页面均覆盖 Loading/Empty/Error/Forbidden/Stale/Conflict/normal | System design complete；browser tests BLOCKED |
-| LT-QR-012 | Admin UI 只调用 `/tier/admin/v1` 和获授权 `/tier/v1`，legacy `/api/tier/*` 调用=0 | Design fixed；route/browser evidence BLOCKED |
-| LT-QR-013 | credential/Secret 不进入 DOM snapshot、URL、browser storage、console/audit | Design fixed；browser security tests BLOCKED |
-| LT-QR-014 | Registry publish、Job、unknown mutation recovery 与 RecoveryItem action 保持同 key/version 且不 redispatch | Design fixed；UI/API integration BLOCKED |
-
-Piko 的 Responses 正负 capture 应包括由 Piko 组装、含多条 message 的完整当次 input、function_call、`call_id` 关联的
-function_call_output、structured output、工具能力为 false 时的 typed rejection、non-stream 与
-`stream:true` fail closed；不能以 stock SDK 支持为 LLMTier runtime 已实现的证据。
-排队须测试有界等待、到期、拒绝、取消与同 key replay 的零重复 dispatch；Observer 须测试
-queued/in-flight/estimated wait、token 与费用 Unknown/Partial、按 Source/Level 聚合以及跨 Client 负例。
-L4/L6 的未冻结字段不能以“测试将来补”代替单一 OpenAPI 设计修订。
-
-throughput、latency、fairness 和 Provider measured SLO 必须在固定 provider/model/config/topology/workload
-后测量；当前无 production baseline。
+静态 Contract PASS 不代表实现上线；production capture、故障注入和部署证据属于后续 Gate。
 
 ## 15. 信息安全架构
 
-### 15.1 资产、入口与信任边界
-
-| Asset ID | 资产/入口 | 信任边界与保护目标 | Owner/状态 |
-|---|---|---|---|
-| LT-ASSET-001 | Client/Source credential；三个 HTTP 分面 | 每次跨网络进入 LLMTier 均认证、授权、限额；网络可达性不等于可信 | IAM / Target |
-| LT-ASSET-002 | Provider/Local credential；Management secret-write | 仅 Connector/secret manager 可读；consumer、UI、log、audit 不得回显 | Admin/Connector / Target |
-| LT-ASSET-003 | Prompt/output/canonical response；Data Plane | Client/Source scope、传输保护、retention/delete policy | Ledger / Target |
-| LT-ASSET-004 | Registry/config/capacity；Management | version/ETag、授权发布、审计、回滚 | Registry/Admin / Target |
-| LT-ASSET-005 | Invocation/idempotency/usage/audit；store | 完整性、隔离、保留、备份恢复和防未授权修改 | Repository / Open Gate |
-
-外部 Client、Admin Browser、Provider/Local Deployment 和 host/store 是不同信任域；同一内网不自动合并。
-跨域连接由 §11 的 IF path 标识。Target 图未画出的 TLS termination/secret manager/store encryption
-仍是 production Open Gate，不得以“内网部署”关闭。
-
-### 15.2 身份认证与授权
-
-| 主体 | 允许范围 | 决定点与拒绝行为 | 撤销/验证 |
-|---|---|---|---|
-| Piko/Knowledge Client | 已授权 Source、Service Level 和 Data Plane | IAM 在创建 decision/Invocation 前校验；默认拒绝，无 dispatch | credential/Entitlement 撤销后新请求拒绝；CT-AUTH |
-| Slinky Observer | Client 下已授权 Source 的只读 Observation | IAM + Observation Projection；禁止 mutation/跨 Client | scope/credential 失效即拒绝；CT-OBS/SEC |
-| LLMTier Admin | 被授予的资源和危险 action | 独立 admin credential、resource version、审计；默认拒绝 | 会话/credential 撤销和权限负测；CT-MGT/SEC |
-| Service/Connector | 最小范围的 Provider/Store access | workload identity 或受控本地权限；依赖不可用时 fail closed | rotation/restart test；production BLOCKED |
-
-authenticated Client + canonical Source 是 Data Plane recovery namespace。同一 Client 多 Source 的
-Observation 由授权范围决定，filter 不建立新权限。
-
-### 15.3 密钥、凭据与敏感数据
-
-Provider/API Secret 通过 Management create/rotate 一次性提交，响应只返回引用和 metadata；存储层只向
-授权 Connector 解封。日志、trace、audit、fixture、backup report 和 UI 不保存可逆 Secret。
-传输必须使用 production TLS；开发 trusted HTTP 只允许已限定的本地/私网环境且不构成 production 模式。
-轮换失败阻断依赖该 credential 的新 dispatch，不静默使用未知旧值；撤销后 Connector 内存缓存与长连接的失效规则、
-at-rest encryption、backup key 和恢复流程需在 production security baseline 冻结。
-原始 Prompt/output retention 可以独立配置，但 canonical Response 在 M2-C 168h 窗口内必须可恢复；
-不满足冻结下限的配置无效并阻断 activation。
-
-### 15.4 控制面、管理面与调试面防护
-
-| 入口 | 允许操作 | Target 防护/关闭条件 | 负向验证 |
-|---|---|---|---|
-| `/tier/admin/v1` | inventory、Registry、Entitlement、capacity、Job、Recovery | 独立认证、RBAC、version/If-Match、Idempotency-Key、审计；依赖不健康时危险写入 fail closed | 未授权、跨 scope、stale version、重放 |
-| Admin Web UI | 同一 Management API 的交互 | 不另建后门接口；credential 仅存页面内存并以同源 Authorization header 传递；无 cookie/session/CSRF 路径；CSP、origin、input/output encoding、Loading/Empty/Error；Secret 不回显 | browser auth/storage/CSP/secret tests |
-| `llm-tier-cli` | 本机 operator action | OS owner 权限与同一 domain policy；不得绕过 Registry/Ledger | 非 owner、非法参数、audit failure |
-| debug/trace | 受控诊断 | production 默认关闭敏感 payload；启用/退出需授权和审计 | Prompt/Secret 泄漏扫描 |
-
-### 15.5 启动、升级、回滚与供应链信任
-
-发布 artifact、dependency lock、OpenAPI/manifest/schema/config 均需版本与摘要；启动在开放 admission 前验证
-兼容性和来源。升级只接受受批准来源，迁移前保存可恢复 backup，失败只回到兼容且未撤销的已知版本；
-不得回滚到会缩短 retention、破坏 ledger schema 或重新启用 legacy inference path 的版本。
-签名机制、SBOM/dependency policy、artifact registry 和信任根尚未选型，是 activation Open Gate。
-
-### 15.6 威胁、审计与安全验证
-
-| Threat ID / 路径 | 缓解/审计 | 验证与剩余风险 |
-|---|---|---|
-| LT-THR-001 未授权/跨 Client 访问 | IAM default-deny；记录主体、scope、结果，不记录 Secret/content | CT-AUTH/SEC；runtime BLOCKED |
-| LT-THR-002 畸形 Prompt/tool/schema 或资源耗尽 | strict schema、大小/并发/配额限制、typed rejection | negative/fuzz/load；阈值待冻结 |
-| LT-THR-003 Secret/Prompt/output 泄漏 | scoped access、redaction、只写 Secret、retention policy | DTO/log/backup scan；storage encryption Open Gate |
-| LT-THR-004 idempotency collision/replay | client+source+endpoint+key namespace、digest conflict、ledger uniqueness | CT-REC/AUTH；runtime BLOCKED |
-| LT-THR-005 Registry/config 越权或回滚 | admin authz、version、audit、artifact provenance | CT-MGT/REG；supply-chain机制 Open Gate |
-| LT-THR-006 audit/store 失败后继续执行 | mutation/admission fail closed，readiness NotReady | fault injection；runtime BLOCKED |
-
-审计记录至少包含可信时间、主体、Client/Source、action/resource、request/Invocation correlation、决定与版本；
-写审计失败时不得执行相应危险 mutation 或新 dispatch。审计访问本身需要授权和记录，保留期随安全/
-合规基线冻结。上述 Target 控制均未以静态 Schema 冒充已实现或已验证。
+Data Plane 与 Admin 使用不同 credential/权限。Provider Secret 只通过 secret reference 解析，不进入普通响应、日志或 UI 回显。默认 bind 为 loopback/private network；production TLS、认证、Secret store、rotation 和审计保留仍需实现证据。
 
 ## 16. 结构、热、工艺与安全设计
 
-不适用：本项目不拥有机箱结构、热设计、PCB 工艺、EMC 或硬件制造测试。
-host 资源、功耗和 Provider 运行环境属于部署/采购约束，待 §8.6/§13 的 production topology 确定。
+硬件结构、热与工艺不适用。软件安全依赖资源限制、请求大小限制、timeout、进程隔离和本地模型部署边界；不得因本节不适用而省略信息安全架构。
 
 ## 17. 实现计划
 
-当前只确认设计，不请求 runtime activation。每项完成后保存独立 Review、Contract Test 和 runtime
-evidence，不能用本文状态替代。
-
-| 顺序 | Function/Block | 变更与交付物 | 依赖 | Owner | 完成条件 | 回滚边界 |
-|---:|---|---|---|---|---|---|
-| 0 | LT-F-006 / LT-BB-WEB | 冻结 Admin Web UI 模块设计与 ISD：页面、同源 credential、状态模型、唯一 API、legacy UI 退役 | 本系统设计、Management OpenAPI | LLMTier | 模块/ISD review 通过；页面/operation/状态/测试逐项可追溯 | 仅撤回未激活 Target UI，不恢复双 authority |
-| 1 | LT-F-003 / ADM+LEDGER | 在唯一 OpenAPI/fixture 冻结 AdmissionRejected；实现 decision record 与原子 Seat/Invocation | Slinky/Piko review、[`llmtier-v0.3-operational-store`](../90_decisions/llmtier-v0.3-operational-store.md) 接受 | LLMTier | admission 正负/重放/零 dispatch contract tests PASS | 不改变现有 terminal recovery 状态；可撤回未激活 candidate |
-| 2 | LT-F-001/004 / API+LEDGER | `src/` 实现 Responses/Embeddings/Models/recovery 与 durable obligation | 1、persistence decision | LLMTier | crash/lost-response additional dispatch=0 | 保持 legacy 与 V0.3 不同时激活 |
-| 3 | LT-F-002/003/005 / REG+ADM+OBS | Registry、capacity、Client/Source isolation 和 Observation wiring | 1–2 | LLMTier | CT-REG-001、CT-OBS-001、CT-AUTH-001、CT-PERF-001 所需 runtime evidence PASS | Registry/version/store 可回退且不复活旧 selector |
-| 4 | LT-F-006 / ADMIN+METER | Management API、Admin UI、Secret、usage/audit/recovery jobs | security baseline、1–3 | LLMTier | CT-MGT/UI/SEC PASS；audit failure fail closed | 关闭 UI/management mutation，不影响 recovery read |
-| 5 | Consumer/activation | Piko tool/recovery capture、Knowledge Embeddings、Slinky observation、168h retention/fairness | 1–4 | 各接口 Owner | manifest 所列 production gates 全部有不可变 evidence | activation 保持 false；不建 fallback |
-
-当前安装入口为 `python3 -m pip install -e .`、`llm-tier`/`llm-tier-cli`；checkout 等价入口为
-`PYTHONPATH=src python3 -m tier_service`/`python3 -m cli`。具体新 package 路径在实现 PR 中按 §5.3
-计划位置建立；若实际边界不同，先更新设计而不是悄悄形成第二结构。
+1. 冻结 Piko 实际需要的标准 Responses subset（含是否需要 standard streaming）。
+2. 实现 OpenAI-compatible Responses/Models 和 exact service-level routing。
+3. 实现 dedicated Embeddings deployment 与 `/v1/embeddings`。
+4. 实现统一 token Usage 记录/查询，明确 measured/estimated/unknown。
+5. 将 legacy `/call` 从 consumer authority 退役。
+6. 实现精简 Admin API/中文 Web UI 和安全运维流程。
+7. 完成 provider/Piko/Knowledge capture 后另行决定 runtime activation。
 
 ## 18. 设计决策、风险与未决项
 
-### 18.1 设计决策
-
-| Decision | 状态 | 来源 |
+| ID | 状态 | 决策/问题 |
 |---|---|---|
-| LLMTier 是独立 system、单服务 repo | Owner directed | 用户 2026-09-09 指示 |
-| Authority 分离与唯一 inference path | Candidate accepted | `S-20260906-59891d73fa13` |
-| Scope B；Chat/SSE 移到 V0.4 | Frozen | `S-20260906-2f9539048493` |
-| M2-C `W=168h`、`M=24h`、`D=24h` | Frozen | `L-20260906-12940a96e148`、`P-20260906-c14b4af35ac3` |
-| Amendment 4 contract candidate | Slinky accepted | `S-20260906-1e12f5e61d73` |
-| V0.3 cross-system finalization | `0.3-finalization-candidate.5`；not active | 在 candidate.4 上从全部 public contract 删除 SourceInstance header/DTO/filter/grouping/management/compatibility 语义；工件 hash 由 immutable review commit 固定；需 Piko/Slinky 对 candidate.5 定向复核 |
-| V0.3 单节点 Operational Store 与事务边界 | Proposed；not active | [`llmtier-v0.3-operational-store`](../90_decisions/llmtier-v0.3-operational-store.md)；待 LLMTier owner review |
-
-新 persistence/HA/deployment、队列超时及费用计价等重大选择必须建立 ADR/Contract amendment；
-本文不伪造 retrospective ADR。
-
-### 18.2 风险、技术债与未决项
-
-| ID | 类型/触发 | 影响 | 缓解/下一步 | Owner | 关闭 Gate |
-|---|---|---|---|---|---|
-| LT-RISK-001 | legacy path 在 V0.3 activation 时仍可达 | parallel inference/selector | route/scan evidence 后删除或禁用 | LLMTier | legacy removal PASS |
-| LT-RISK-002 | V0.3 Registry/Ledger/API/UI 未接线 | 目标能力不可用 | 按 §17 实现 | LLMTier | runtime contract tests |
-| LT-RISK-003 | V0.3 persistence 已提出；HA/RPO/RTO 与生产证据未关闭 | M2-C 单节点实现可下钻，多实例/灾备仍无法证明 | 评审 Operational Store ADR；完成 fault/backup/restore test；多实例时重开 ADR | LLMTier | ADR accepted + activation review |
-| LT-RISK-004 | consumer 设计语义已部分确认，但 candidate.5 签署及真实 capture/组合执行未完成 | L3/L7/Embeddings 不能激活 | Piko/Knowledge/Slinky 按 candidate.5 复核后提供 runtime evidence | 接口 Owner | consumer review + runtime gates PASS |
-| LT-RISK-005 | deadline/recovery 消费设计已确认；catalog 限值与运行证据未冻结 | L4 不能激活 | 固定 catalog 数值并执行 deadline/queue/dispatch race tests | LLMTier+consumer | runtime contract/activation PASS |
-| LT-RISK-006 | CostEvidence 精度和 Slinky 消费规则已确认；真实计价/聚合未验证 | L6 硬预算不能激活 | 执行 pricing source、decimal aggregation、Unknown/Partial production tests | LLMTier+Slinky | runtime cost evidence PASS |
-| LT-RISK-008 | V0.3 Admin Web UI 尚未实现且 legacy `/api/tier/*` 页面仍存在 | 双 UI/双写、Secret 与 recovery 操作风险 | 先完成 Web UI 模块设计/ISD，再一次性切换并做 route/security scan | LLMTier | LT-QR-011..014 + legacy removal PASS |
-| LT-RISK-007 | security/supply-chain controls 未实现 | Secret、租户、产物风险 | §15 controls + negative/fault evidence | LLMTier | CT-SEC + release gate |
-
-### 18.3 术语
-
-| 术语 | 定义 |
-|---|---|
-| System | 本仓库拥有的完整 LLMTier 软件产品与运行边界 |
-| Building block | LLMTier 进程内逻辑职责块；不自动等同 subsystem |
-| Service Level | exact-case catalog ID 及其 capability/SLO contract |
-| Invocation | 一次有 durable identity、状态和 recovery obligation 的调用 |
-| Capacity Group | shared/overlapping committed-capacity 约束组 |
-| Runtime Activation | production capability 的独立机器/审批状态，不由文档 PASS 推导 |
+| LT-ADR-01 | decided | 无 Agent 会话状态的 OpenAI-compatible gateway |
+| LT-ADR-02 | decided | Cost、SourceInstance、外部容量/Seat、Invocation recovery 退出 V0.3 外部契约 |
+| LT-ADR-03 | decided | Usage 只提供 token 事实与来源状态；未知不补零 |
+| LT-OPEN-01 | cross-party | Piko 最终采用 Responses non-stream 还是标准 streaming；确认前只冻结共同 non-stream subset，不实现双路径 fallback |
+| LT-OPEN-02 | implementation | 选择并配置至少一个 dedicated embedding-capable deployment |
+| LT-OPEN-03 | implementation | production auth/TLS/service manager/restart/backup/runbook |
 
 ## A. 数据模型与状态机
 
-核心实体：Client、Source、Entitlement、ServiceLevel、Pool、CapacityGroup、Provider、
-Account、Deployment、Invocation、CanonicalResponse、Usage、RecoveryItem、AdminJob。
-
-V0.3 不存在 SourceInstance public entity 或占位字段。服务自身 replica/process 标签只存在内部 telemetry，
-不进入跨系统 API、授权、admission、capacity、usage grouping、digest 或 recovery。
-
-Invocation active 状态为 Pending、Queued、Running；terminal 为 Succeeded、Failed、Cancelled、
-UnknownOutcome。`InvocationAccepted` 不得包含 UnknownOutcome；成功 create、Succeeded replay 与 Response GET
-使用同一 canonical response body。
+核心资源只有 Provider、Deployment、ServiceLevel、UsageRecord、AuditEvent。请求生命周期仅为 HTTP request → validate → internal admit → backend call → response/error；内部状态不作为跨系统状态机。
 
 ## B. API、Schema、Event、寄存器与错误契约
 
-- Data Plane、Observation、Management：`interfaces/openapi/llmtier-v0.3.openapi.json`。
-- capability/activation：`interfaces/compatibility/compatibility-manifest-v0.3.json`。
-- vectors：`interfaces/vectors/v0.3/`。
-- current prose controls：`docs/60_interfaces/`。
-
-Markdown 不复制字段 Schema。Failed、Cancelled、UnknownOutcome 使用冻结 typed non-2xx envelope；
-hidden/unauthorized/unsupported 均 fail closed。
+OpenAPI 是唯一字段级 authority。错误统一为 `{error:{message,type,code,param}}`。没有寄存器或跨系统 event bus。
 
 ## C. 持久化、一致性、幂等与恢复
 
-namespace 至少覆盖 authenticated client、canonical source、endpoint/version 和 `Idempotency-Key`；digest
-覆盖 exact Service Level、规范化 body 和语义 headers。同 key/different digest 为不可重试 conflict。
-先持久化 key/digest decision；只有 admission 成功才在 Backend dispatch 前原子授予 Seat 并持久化
-Invocation、dispatch intent 和 recovery obligation。pre-admission rejection 不创建 Invocation。单节点 SQLite/WAL
-持久化方案见 Proposed ADR `llmtier-v0.3-operational-store`；其接受、transaction implementation、
-backup/restore、HA 和 production evidence 仍是独立 Gate。
+V0.3 不承诺跨系统调用幂等或结果恢复。配置与 Usage/Audit 使用 LLMTier 自身存储；内部可靠性不得改变标准 API 语义。环境恢复只恢复服务配置和内部状态，不恢复 Piko Agent session。
 
 ## D. 安全、隐私、Secret 与审计
 
-禁止跨 Client 和未授权 Source；Observation 的 source filter 不建立新的鉴权或 recovery namespace。
-Management credential 与 Data Plane/Observation 分离。所有 mutation 需要认证、授权、并发检查和 audit。
-原始 prompt/output privacy retention 可独立配置，但不能破坏已冻结 recovery 下限。
+最小权限、Secret 引用、脱敏 audit、prompt/output 默认不落日志。管理变更记录 actor/action/target/result；Secret 值永不记录。
 
 ## E. 可观测性、容量、性能、资源与 SLO
 
-Readiness、usage、Invocation、capacity、provider health、recovery、audit 和 store health 必须可观测。
-`request_quota_remaining=null` 阻止新增 committed Seat；unknown/partial usage 不补零。capacity semantic
-validator 与真实 multi-client fairness/SLO evidence 是 activation gate。
+外部只发布 health/readiness、Models、token Usage 和标准错误。内部可观察 queue/concurrency/provider quota，但不形成 Slinky capacity/Seat contract。SLO 需实测后批准。
 
 ## F. 测试设计与需求 traceability
 
-requirements、traceability、V&V 与 contract test specification 分别位于 `docs/10_requirements/` 和
-`docs/70_verification/`。静态验证覆盖 OpenAPI refs、manifest、fixtures、路径、metadata 与 CLI；production
-还需 crash/lost-response、durability、安全隔离、Admin UI、consumer capture、capacity/fairness 和 SLO。
+需求 ID、OpenAPI operation、fixture 和测试 case 在 traceability 文档中一对一映射。删除的旧扩展必须有“path/schema absent”负例。
 
 ## G. 集成、部署、迁移、回滚与发布 Gate
 
-当前安装使用 `python3 -m pip install -e .`；安装后入口为 `llm-tier`/`llm-tier-cli`，checkout 入口为
-`PYTHONPATH=src python3 -m tier_service`/`python3 -m cli`。发布必须固定 artifact/config/schema、验证
-backup/restore 与 rollback，并保持单一路径。文档 review、RAG publication、release 与 Runtime Activation
-分别决定。
+迁移为一次性 authority 替换：旧 candidate 和 legacy `/call` 可留作历史/实现迁移输入，但不作为运行 fallback。runtime activation 独立审批。
 
 ## H. 未决问题、外部依赖和后续版本
 
-未决：Operational Store ADR 接受、production HA/RPO/RTO、Provider SLO、真实 consumer capture、
-isolation/fairness、Admin Web UI 模块/ISD 和 runtime wiring。Web UI 已固定为同服务、无独立 frontend
-deployment、无外部 CDN 的 HTML/CSS/JavaScript Target；具体文件/组件在下级设计展开。V0.4 才设计
-Chat Completions、Responses/Chat SSE 与 streaming recovery。
-如果未来 LLMTier 内部出现两个以上独立 owner/deploy/release 单元，再新增 subsystem design 并重新 tailoring；
-在此之前 `docs/30_subsystem_design/` 不承担当前设计 authority。
+跨方仅剩 Piko 所需 standard streaming 决策。其余是 LLMTier 内部实现：embedding deployment、provider adapter、Web UI、auth/TLS、service manager、测量与运维证据。

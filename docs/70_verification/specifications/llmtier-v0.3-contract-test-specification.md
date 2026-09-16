@@ -4,120 +4,76 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-contract-test-specification` |
-| Document Version | `0.3.1-draft.5` |
+| Document Version | `0.3.2-draft.1` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | llmtier |
-| Reviewer | LLMTier |
-| Approver | LLMTier |
-| Approval Date | — |
+| Reviewer | LLMTier, Piko, Slinky |
+| Approver | 待定 |
+| Approval Date | 待定 |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-16` |
-| Template Version | `0.1.0` |
+| Last Modified Date | `2026-09-17` |
+| Template Version | `0.2.0` |
 | Template ID | `assurance.test-specification` |
 | Template Conformance | `tailored` |
-| Tailoring Reference | std-tailoring |
+| Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |
 | Repository | `corezilla/LLMTier` |
 | Canonical Path | `docs/70_verification/specifications/llmtier-v0.3-contract-test-specification.md` |
 | Supersedes | none |
-
-> Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
-> 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 目标、范围与被测对象
 
-本规格描述 V0.3 candidate 的可执行 contract/schema/fixture 测试与 production-required case。被测对象为
-OpenAPI、compatibility manifest、v0.3 fixtures、当前 Python package boundary 和迁移文档映射。现有测试源码
-与 fixtures 仍是 executable oracle authority；本文不复制测试逻辑，也不表示 endpoint 已实现。
-
-不在范围：V0.4 Chat/SSE/streaming、Provider-specific 准入策略、未批准的 persistence/HA/topology 方案。
+被测对象是OpenAPI/manifest、current fixtures、authority docs和legacy-removal rules；不把未实现runtime当PASS。
 
 ## 2. 引用基线、环境与前置条件
 
-- Project candidate：每次执行记录当前 immutable review commit；不得继续使用历史固定 commit 代表新候选。
-- Contract：`interfaces/openapi/llmtier-v0.3.openapi.json`。
-- Activation：`interfaces/compatibility/compatibility-manifest-v0.3.json`，必须保持 false。
-- Fixtures：`interfaces/vectors/v0.3/`；历史 v0.2 只作 provenance，不是 V0.3 Schema authority。
-- Tests：`tests/test_contract_fixtures.py`、`tests/test_contract_semantics_v03.py`、
-  `tests/test_independent_runtime_boundary.py`、`tests/test_standalone_imports.py`、
-  `tests/test_std_migration.py`。
-- 本地命令要求 `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src`；production case 另需固定部署、provider、store、
-  consumer version 和脱敏 evidence 位置。
+使用candidate.1机器字节、Draft 2020-12 validator和Python unit tests。生产adapter、credential和模型不可作为静态前置。
 
 ## 3. Case Matrix
 
-| Case ID | Requirement | 场景 | 输入 | Oracle | Evidence | Priority |
-|---|---|---|---|---|---|---|
-| CT-AUTH-001 | 三分面 authority 与唯一调用路径 | 合法/越权 Client、Source、surface | authorization fixtures | OpenAPI scopes + expected result | semantic tests；production auth logs 待补 | P0 |
-| CT-ID-001 | exact-case；无 alias/Role/cross-level fallback | Worker、worker、Role 与未知 ID | OpenAPI/manifest | only exact ID accepted | semantic tests；runtime capture 待补 | P0 |
-| CT-DP-001 | Scope B Data Plane；deferred fail closed | Responses/Embeddings/Models/Chat/stream | data-plane/deferred fixtures | OpenAPI + manifest | fixture tests；Piko/consumer capture 待补 | P0 |
-| CT-REC-001 | idempotency、202、terminal 与 canonical response | same/different digest、active/terminal | recovery fixtures | OpenAPI statuses/headers/body | semantic tests；durable-store run 待补 | P0 |
-| CT-REC-002 | lost response、UnknownOutcome、M2-C | timeout/restart/forgotten key | recovery/policy fixtures | no blind redispatch；24h/168h | static PASS；crash evidence BLOCKED | P0 |
-| CT-OBS-001 | Observation/Seat、ETag、pagination、invalidation | current/stale/invalid/unknown quota | observation/capacity fixtures | OpenAPI + capacity rules | semantic tests；Slinky E2E 待补 | P0 |
-| CT-ADM-001 | pre-admission rejection 与 decision replay | capacity/quota/readiness/validity reject、同 key replay/expiry | admission fixtures | 429 + Retry-After；无 Location/Invocation/Seat/dispatch | schema/static candidate；runtime BLOCKED | P0 |
-| CT-DEADLINE-001 | queue/dispatch 原子边界、期限分层、Seat 释放证据与 Client 公平性 | expiry race、request/catalog/task deadline、晚到成功、A 两 lane/B 一 lane、跨 domain shared group、无 ID 超期 replay | deadline-seat-fairness fixtures | 不规定 Piko task 终态；deadline fact 保留；Client 份额不随 lane 数放大；无证据不释放 | static candidate；故障注入 BLOCKED | P0 |
-| CT-COST-001 | 资源事实与费用可解释性 | next-seat constraint、全部阻塞、unknown capacity/queue、known/estimated/partial cost、mixed currency/version | observation-cost fixtures | Unknown capacity 显式阻塞且数值 null；blocker 可等于全部 facts；不隐含 Project 需求、不求和 group gap、不换汇、不补零 | schema/static candidate；Slinky E2E BLOCKED | P1 |
-| CT-EMB-REC-001 | Embeddings POST-local recovery | active/terminal/无 ID/过期 | embedding-recovery fixtures | 标准200与recovery envelope可区分；D=24h/terminal168h；410 typed；无 Responses GET | finalization candidate static PASS；Slinky Knowledge signature/runtime BLOCKED | P0 |
-| CT-MGT-001 | Management method/path/DTO/concurrency | create/update/list/job/recovery | management fixtures | OpenAPI + typed errors | semantic tests；API/UI run BLOCKED | P0 |
-| CT-SEC-001 | secret non-disclosure 与 Client isolation | read secret、cross-client/source | auth/management fixtures | deny/no secret material | static shape PASS；runtime security BLOCKED | P0 |
-| CT-REG-001 | 单一 Registry/manifest/admission consistency | catalog/version/ETag change | manifest/OpenAPI | same exact catalog + activation false | semantic tests；runtime consistency BLOCKED | P1 |
-| CT-PKG-001 | 独立 package/import boundary | import public package/entrypoints | `src/` package | imports without Slinky source | standalone tests | P1 |
-| CT-OPS-001 | 当前路径与使用方式 | package entry points、module help、config/state defaults、旧路径扫描 | `pyproject.toml`、`src/`、README/current docs | only `llm-tier`/`llm-tier-cli`; config/state owned by LLMTier; no shared Slinky path | CLI help + independent-boundary tests | P1 |
-| CT-MIG-001 | STD metadata/path/source integrity | project-root discovery | docs/std lock/sidecars | STD validator/source verifier | JSON result + unittest | P1 |
-| CT-PERF-001 | capacity/fairness/SLO | concurrent load and limits | fixed provider/model/config | approved SLO and capacity oracle | NOT_RUN/BLOCKED | P0 activation |
+| ID | Subject | Oracle | Runtime state |
+|---|---|---|---|
+| CT-DP-001 | Responses text/tool call/tool result | OpenAPI + fixture valid；LLMTier不执行tool | BLOCKED |
+| CT-MODEL-001 | Models exact ID/capabilities | case-sensitive；no alias/fallback | BLOCKED |
+| CT-EMB-001 | Embeddings float/base64/batch | dedicated capability；standard response | BLOCKED |
+| CT-USAGE-001 | per-call/query usage | measured/estimated/unknown；unknown null；no Cost | BLOCKED |
+| CT-ADMIN-001 | cloud/local CRUD/probe/audit | Secret not returned；probe confirmation | BLOCKED |
+| CT-OPS-001 | health/readiness/restart confirmation | no-cost probe separation | BLOCKED |
+| CT-BOUNDARY-001 | stateless gateway | no Agent session/context/tool/KV ownership | STATIC PASS candidate |
+| CT-SCOPE-001 | removed extensions | forbidden path/header/schema absent | STATIC PASS candidate |
 
 ## 4. 正常、边界、负向与并发场景
 
-每个 P0 surface 至少覆盖一个正常、一个边界和一个负向 case。并发覆盖相同 idempotency key、不同 key、
-同/不同 Client、Capacity Group overlap、pre-admission decision replay/expiry、Management ETag 冲突和 recovery poll。unknown、expired、missing
-或 malformed input 必须 fail closed；不得自动 lowercasing、alias、Role mapping 或跨等级 fallback。
+正常：text、function roundtrip、embedding batch、model list、measured usage、CRUD。边界：unknown usage、max limit、exact case、local provider without secret。负向：unknown field、wrong model capability、stream=true before decision、missing auth、probe without confirmation、delete referenced resource。并发编辑使用409；不测试外部Seat/claim。
 
 ## 5. Recovery、重放、幂等与故障注入
 
-测试顺序包含：首次请求、dispatch intent 持久化、backend 前/后 crash、响应丢失、同 key 同 digest 重试、
-同 key 异 digest 冲突、active 202 查询、terminal canonical response/error、UnknownOutcome manual reconcile、
-retention 边界。要求 `W=168h`、`M=24h`、产品 retry deadline `D=24h` 满足 `D<=W-M`。静态 fixture
-只能验证规则；零重复 dispatch 必须由真实 durable-store/server evidence 证明。
+V0.3不定义custom model-call recovery/idempotency。测试标准client retry下的429/502/503和网络不明，不声称exactly-once。运维故障注入覆盖config/provider/store/restart；不创建跨系统恢复状态机。
 
 ## 6. 性能、容量、功耗或时序测试
 
-本软件项目不适用功耗/硬件时序。performance/capacity 需固定 provider/model、Service Level、Client quota、
-Capacity Group、并发、样本数、预热、超时和失败计数，报告 admission、queue、latency、throughput、fairness
-与过期行为。当前没有可接受的 production baseline，CT-PERF-001 为 BLOCKED，不能用 fixture PASS 替代。
+功耗/硬件时序不适用。性能和内部保护需固定provider/model/config实测；不发布外部capacity snapshot或SLO前置结论。
 
 ## 7. 执行步骤与自动化入口
 
-1. 验证 STD source：`/Users/ben/work/STD/scripts/verify-source-manifest /Users/ben/work/LLMTier/docs/std-source-manifest.json --std-root /Users/ben/work/STD`。
-2. 验证项目文档：`/Users/ben/work/STD/scripts/validate-design --project-root /Users/ben/work/LLMTier --require-immutable-std --json <artifact>`。
-3. 执行项目测试：`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest discover -s tests`。
-4. 验证两个源码入口：`PYTHONPATH=src python3 -m tier_service --help` 与
-   `PYTHONPATH=src python3 -m cli --help`；安装验证另检查 `llm-tier`、`llm-tier-cli`。
-5. 检查 patch：`git diff --check`；记录 HEAD、dirty path、digest 和所有 exit code。
-6. production case 只在独立环境授权后执行；不由本文创建 runtime/config/fallback 路径。
+1. JSON parse + OpenAPI ref resolution。
+2. fixture schema/semantic validation。
+3. forbidden term/path/header scan。
+4. `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest discover -s tests`。
+5. CLI help、STD validator和diff-check。
 
 ## 8. Pass/Fail/Blocked/Invalid 判定
 
-- PASS：在固定 baseline 和有效环境下，实际结果全部满足 oracle，证据完整。
-- FAIL：有效执行产生与 oracle 不一致结果；不得用重试隐藏。
-- BLOCKED：required dependency/environment/authority 缺失，且 case 无法安全执行。
-- NOT_RUN：本 cohort 未安排执行；不能写成 PASS。
-- INVALID：baseline、fixture、环境或证据损坏，结果不可判定，修正后重跑。
-
-Migration Review 要求结构/source 与本地测试 PASS；Runtime Activation 要求所有 production-required P0 case
-PASS 且独立 authority 批准。
+Static PASS仅表示候选一致；runtime未执行为BLOCKED。旧custom机制仍在current machine authority为FAIL。用legacy `/call`替代目标API为INVALID。
 
 ## 9. Artifact、日志、测量与证据保存
 
-保存 commit、dirty digest、环境版本、case selection、raw stdout/stderr、exit code、JSON/JUnit 或等价报告、
-capture/log/metric hash、问题与重测关联。敏感 payload 必须脱敏；credential 永不进入 artifact。C2 evidence
-位于 `docs/98_migration/evidence/`，未来 production evidence 使用独立获批位置并在 packet 中引用。
+保存commit/hash、命令、exit code、validator结果和合成fixture；不保存Secret、生产prompt/output或provider payload。
 
 ## 10. 安全、清理与可重复性
 
-测试不得 reset/clean 用户工作树，不读取其他项目源码或凭据，不对 production 写入，除非另有明确环境授权。
-临时文件使用系统临时目录并在成功后删除。重复执行必须固定 commit/config/dependency；随机或时间相关 case
-记录 seed/clock。测试失败保持原始证据，不通过 fallback 或放宽 oracle 获得 PASS。
+测试credential独立；probe需明确授权并记录费用可能性；清理测试资源但保留脱敏audit。重复执行不得依赖旧candidate或另一条fallback。

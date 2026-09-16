@@ -4,17 +4,17 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `std-tailoring` |
-| Document Version | `0.1.2` |
-| Status | `Approved` |
+| Document Version | `0.1.3-draft.1` |
+| Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | llmtier |
-| Reviewer | LLMTier |
-| Approver | LLMTier |
-| Approval Date | `2026-09-07` |
+| Reviewer |  |
+| Approver |  |
+| Approval Date |  |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-09` |
+| Last Modified Date | `2026-09-17` |
 | Template Version | `0.1.0` |
 | Template ID | `management.tailoring` |
 | Template Conformance | `native` |
@@ -92,11 +92,11 @@
 本项目还不得删除或弱化：
 
 - Slinky/Piko/LLMTier authority 与唯一 `Runtime -> Piko -> LLMTier` inference path；
+- 无 Agent 会话状态的 OpenAI-compatible 网关边界：Piko 提供完整调用输入并拥有上下文与工具循环；
 - exact-case Service Level ID、单一 Registry、单一 OpenAPI authority；
-- Scope B 与 Chat/SSE V0.4 deferred/fail-closed 边界；
-- `concurrent_invocation`、shared/overlapping Capacity Group、quota unknown 和 Seat invalidation；
-- durable idempotency、lost-response recovery、UnknownOutcome 不盲重派、M2-C 24h/168h；
-- Client/Source 授权与恢复隔离语义、Secret 只写不读、audit；
+- 标准 Responses、Models、Embeddings 与统一 Token Usage；
+- Provider/本地模型配置、内部并发保护、健康诊断、Secret 只写不读与 audit；
+- 不恢复 SourceInstance、Seat、跨系统 capacity/claim、Invocation recovery、Cost 或业务 Session 语义；
 - candidate 与 runtime activation=false 的区别；
 - Current Baseline、Approved Delta 与 Future/Open Gate 的边界；
 - 单服务 repo layout，不未经批准增加新机制、config path、selector、fallback 或并行实现。
