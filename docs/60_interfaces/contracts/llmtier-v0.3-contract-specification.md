@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | llmtier-v0.3-contract-specification |
-| Document Version | 0.3.1-draft.4 |
+| Document Version | 0.3.1-draft.5 |
 | Status | In Review |
 | Project | LLMTier |
 | Authority | LLMTier |
@@ -123,9 +123,10 @@ direct 与全部 group 权威事实；blocking_constraints 是 Known shortfall>0
 同 currency + pricing version 聚合，禁止自动换汇。
 
 Responses 已冻结 D=24h/terminal 168h。Embeddings 采用原 POST 本地幂等：200 标准 EmbeddingResponse、
-active 202 EmbeddingInvocationAccepted、502/409/503 typed terminal；不使用 Responses GET。将相同 24h/168h
-用于 Embeddings 是 Amendment 8 的 consumer 待确认建议；Slinky 已确认满足 Knowledge 需求，但在独立
-Knowledge consumer 签署前不标为 frozen。UnknownOutcome obligation 不由 168h 自动清除。
+active 202 EmbeddingInvocationAccepted、502/409/503 typed terminal；不使用 Responses GET。Embeddings
+同样固定 D=24h、从 resolved terminal 起 result 与 digest/tombstone 至少168h；Slinky 是 Knowledge
+consumer 签署方，不存在未定义第四方。UnknownOutcome obligation 不由168h自动清除；保证期后 tombstone
+证明旧 key 时返回410 `IdempotencyRecordExpiredEnvelope`，不得创建新 logical invocation。
 
 ## 7. 身份、权限、Secret 与多项目隔离
 
@@ -139,7 +140,7 @@ Management credential 与 Data Plane/Observation 分离。Account secret 只写�
 
 ## 8. 版本、兼容性与迁移
 
-当前 contract version 是 0.3 candidate Amendment 8。Scope B 只含 Responses non-stream、Embeddings
+当前 contract version 是 `0.3-finalization-candidate.1`。Scope B 只含 Responses non-stream、Embeddings
 non-stream、Models、Invocation/Response recovery、Observation 和 Management。Chat/SSE/streaming
 属于 V0.4，不能以 alias、translation、provider passthrough 或 inactive endpoint 进入 V0.3。
 

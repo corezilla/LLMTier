@@ -1,16 +1,14 @@
 {
   "project": "LLMTier",
   "authority": "LLMTier",
-  "document_id": "llmtier-v0.3-contract-specification",
+  "document_id": "llmtier-v0.3-cross-system-finalization",
   "document_type": "contracts.specification",
-  "document_version": "0.3.1-draft.5",
-  "title": "LLMTier V0.3 Contract Specification",
+  "document_version": "0.3.0-rc.1",
+  "title": "LLMTier V0.3 Cross-System Finalization Package",
   "document_owner": "LLMTier",
-  "authors": [
-    "llmtier"
-  ],
+  "authors": ["llmtier"],
   "source_repository": "corezilla/LLMTier",
-  "source_path": "docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.md",
+  "source_path": "docs/60_interfaces/contracts/llmtier-v0.3-cross-system-finalization.md",
   "template_id": "contracts.specification",
   "template_version": "0.1.0",
   "template_sha256": "d7e40a9a6940375cfcfe8793e24943f48ab7d2b48e2e204735c3cb814bcae909",
@@ -18,14 +16,12 @@
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,
   "design_level": "system",
-  "domain": [
-    "software"
-  ],
+  "domain": ["software"],
   "status": "review",
   "visibility": "project",
   "reviewed_commit": null,
-  "parent_document_id": "llmtier-system-design",
+  "parent_document_id": "llmtier-v0.3-contract-specification",
   "supersedes": null,
-  "created_at": "2026-09-07",
+  "created_at": "2026-09-16",
   "last_modified_at": "2026-09-16"
 }

@@ -247,10 +247,10 @@ class ContractSemanticsV03Tests(unittest.TestCase):
         self.assertFalse(expired["oracle"]["new_idempotency_key"])
         self.assertFalse(expired["oracle"]["cross_level_fallback"])
 
-    def test_candidate_prose_tracks_amendment_eight_without_approved_claims(self):
+    def test_candidate_prose_tracks_finalization_candidate_without_approved_claims(self):
         contract = (ROOT / "docs" / "60_interfaces" / "contracts" / "llmtier-v0.3-contract-specification.md").read_text()
         piko = (ROOT / "docs" / "60_interfaces" / "piko-data-plane-control.md").read_text()
-        self.assertIn("candidate Amendment 8", contract)
+        self.assertIn("0.3-finalization-candidate.1", contract)
         self.assertNotIn("candidate Amendment 7", contract)
         self.assertIn("In Review contract index", contract)
         self.assertIn("In Review consumer-boundary prose candidate", piko)
@@ -304,7 +304,7 @@ class ContractSemanticsV03Tests(unittest.TestCase):
     def test_amendment_seven_embedding_recovery_is_post_local(self):
         fixture = self.load(FIXTURES / "v0.3" / "embedding-recovery-fixtures.json")
         cases = {case["id"]: case for case in fixture["cases"]}
-        self.assertFalse(fixture["recommended_windows"]["frozen"])
+        self.assertTrue(fixture["recommended_windows"]["frozen"])
         self.assertFalse(fixture["recommended_windows"]["unknown_obligation_auto_expires"])
         self.assertEqual("EmbeddingResponse", cases["success"]["expected"]["body_schema"])
         self.assertEqual("EmbeddingInvocationAccepted", cases["active-duplicate"]["expected"]["body_schema"])
@@ -313,11 +313,27 @@ class ContractSemanticsV03Tests(unittest.TestCase):
         self.assertFalse(cases["unknown-outcome"]["expected"]["auto_delete_after_168h"])
         self.assertEqual("POST /v1/embeddings", cases["headers-lost-before-deadline"]["expected"]["operation"])
         self.assertFalse(cases["headers-lost-before-deadline"]["expected"]["responses_get_used"])
+        self.assertEqual("IdempotencyRecordExpiredEnvelope", cases["expired-with-tombstone"]["expected"]["body_schema"])
+        self.assertEqual("idempotency_record_expired", cases["expired-with-tombstone"]["expected"]["code"])
+        self.assertFalse(cases["expired-with-tombstone"]["expected"]["retryable"])
 
         operation = self.openapi["paths"]["/v1/embeddings"]["post"]
         self.assertEqual("#/components/responses/EmbeddingActiveReplay", operation["responses"]["202"]["$ref"])
         self.assertEqual("#/components/responses/RequestDeadlineExpired", operation["responses"]["408"]["$ref"])
+        self.assertEqual("#/components/responses/IdempotencyRecordExpired", operation["responses"]["410"]["$ref"])
         self.assertNotIn("Location", self.openapi["components"]["responses"]["EmbeddingActiveReplay"]["headers"])
+        expired_schema = self.openapi["components"]["schemas"]["IdempotencyRecordExpiredEnvelope"]
+        refinement = expired_schema["properties"]["error"]["allOf"][1]
+        self.assertEqual("idempotency_record_expired", refinement["properties"]["code"]["const"])
+        self.assertFalse(refinement["properties"]["retryable"]["const"])
+        self.assertEqual(
+            "#/components/responses/RecoveryRecordExpired",
+            self.openapi["paths"]["/v1/invocations/{invocation_id}"]["get"]["responses"]["410"]["$ref"],
+        )
+        self.assertEqual(
+            "#/components/responses/RecoveryRecordExpired",
+            self.openapi["paths"]["/v1/responses/{response_id}"]["get"]["responses"]["410"]["$ref"],
+        )
 
     def test_amendment_eight_deadline_header_and_decision_fields_are_machine_required(self):
         for path in ["/v1/responses", "/v1/embeddings"]:

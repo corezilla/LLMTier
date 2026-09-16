@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | llmtier-piko-data-plane-control |
-| Document Version | 0.3.1-draft.4 |
+| Document Version | 0.3.1-draft.5 |
 | Status | In Review |
 | Project | LLMTier |
 | Authority | LLMTier |
@@ -162,8 +162,11 @@ pi-ai 0.85.1、openai 6.40.0、provider llmtier 和 adapter piko-llmtier-respons
   endpoint 尚未完成，状态为 BLOCKED/NOT_RUN。
 - 当前 repo paths：机器契约在 `interfaces/`，服务源码在 `src/`；Piko 不通过文件路径消费接口。
 
-## 11. 未决项与双方批准
+## 11. 定型候选与双方批准
 
 LLMTier Owner 已审核提供方事实，Piko reviewer 已在 `P-20260907-e009921eda0a` 接受此前冻结的
-consumer/recovery obligations。该接受不自动覆盖本轮 Amendment 8；本文保持 In Review，且不请求
-RAG publication 或 Runtime Activation。
+consumer/recovery obligations，并在 `P-20260916-80ab3d2fa007` 确认三位毫秒 deadline、408 优先级和
+单调用先到期映射。当前精确机器版本是 `0.3-finalization-candidate.1`；完整逐字段用途、tool loop、
+terminal/Seat 和退役版本由 `llmtier-v0.3-cross-system-finalization` 0.3.0-rc.1 索引。Piko 仍需对该精确
+package version 签署；真实 adapter capture 属于联调 gate，不再作为跨系统字段设计待定。本文保持 In Review，
+且不请求 RAG publication 或 Runtime Activation。

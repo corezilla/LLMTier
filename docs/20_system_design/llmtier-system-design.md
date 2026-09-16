@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.3.1-draft.9` |
+| Document Version | `0.3.1-draft.10` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -757,16 +757,16 @@ Unknown 的 amount/currency 为 null。Invocation、Observation Usage 和 Admin 
 CostEvidence；同币种且同 pricing
 version 方可汇总，混合币种或版本分组返回，禁止自动换汇。
 
-### 11.6 Embeddings 幂等恢复候选
+### 11.6 Embeddings 幂等恢复定型候选
 
 Embeddings 不新增 GET recovery path，只复用原 `POST /v1/embeddings` 的 namespace/key/digest。返回的
 `X-Tier-Invocation-ID` 只用于关联、审计和同 POST ledger lookup，不能拼接或授权 Responses Invocation/Response
 GET。首次或成功重放为标准 `200 EmbeddingResponse`；active duplicate 为 `202 EmbeddingInvocationAccepted`
 （无 Responses Location/recovery URL）；Failed/Cancelled/UnknownOutcome 分别为 502/409/503 typed non-2xx，
 且不盲重派。
-无 ID 丢响应按 §6.3 原 POST 重放，超出 request deadline 禁止首次 admission。建议 Knowledge consumer 采用
-D=24h、terminal result 与 digest/tombstone 至少 168h；这是本轮唯一新增的待 Slinky/Knowledge 确认建议，
-不是把 Responses 已冻结窗口自动扩展到 Embeddings。active record 保留到 provable terminal；UnknownOutcome
+无 ID 丢响应按 §6.3 原 POST 重放，超出 request deadline 禁止首次 admission。Knowledge consumer 固定采用
+D=24h、terminal result 与 digest/tombstone 至少 168h；这是 Slinky Knowledge 待签署的唯一 V0.3 候选，
+不是把 Responses GET 自动扩展到 Embeddings。active record 保留到 provable terminal；UnknownOutcome
 obligation 保留到人工 reconcile，不以 168h 自动清除。resolved terminal 起至少保留 168h；保证窗口后仍有
 tombstone 时返回 410；不得复用旧 key 创建新的 logical Embedding invocation。
 
@@ -777,7 +777,7 @@ tombstone 时返回 410；不得复用旧 key 创建新的 logical Embedding inv
 | Failed | 502 `TerminalErrorEnvelope` | Invocation ID；无 Location | `retryable=false`；不自动重派 |
 | Cancelled | 409 `TerminalErrorEnvelope` | Invocation ID；无 Location | `retryable=false`；不自动重派 |
 | UnknownOutcome | 503 `TerminalErrorEnvelope` | Invocation ID；无 Location | obligation 持续到 reconcile；不因 168h 删除 |
-| resolved terminal 保证窗口后且 tombstone 可证明 | 410 `ErrorEnvelope` | 无 Responses Location | 不允许旧 key 创建新 logical invocation |
+| resolved terminal 保证窗口后且 tombstone 可证明 | 410 `IdempotencyRecordExpiredEnvelope` | 无 Responses Location | `idempotency_record_expired`、retryable=false；不允许旧 key 创建新 logical invocation |
 
 ## 12. 可靠性、维护与升级
 
@@ -974,7 +974,7 @@ evidence，不能用本文状态替代。
 | Scope B；Chat/SSE 移到 V0.4 | Frozen | `S-20260906-2f9539048493` |
 | M2-C `W=168h`、`M=24h`、`D=24h` | Frozen | `L-20260906-12940a96e148`、`P-20260906-c14b4af35ac3` |
 | Amendment 4 contract candidate | Slinky accepted | `S-20260906-1e12f5e61d73` |
-| Admission/deadline/observation/Embeddings amendment | Candidate; not active | 本设计 draft.9 / OpenAPI amendment 8；Slinky 已支持 Embeddings 建议基线，待 Piko deadline 与 Knowledge 独立签署 |
+| V0.3 cross-system finalization | Candidate; not active | 本设计 draft.10 / OpenAPI finalization candidate 1；Piko 已确认 deadline；待 Piko 对 exact package 与 Slinky Knowledge 对 Embeddings 签署 |
 
 新 persistence/HA/deployment、队列超时及费用计价等重大选择必须建立 ADR/Contract amendment；
 本文不伪造 retrospective ADR。

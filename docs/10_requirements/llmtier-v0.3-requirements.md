@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-requirements` |
-| Document Version | `0.3.1-draft.4` |
+| Document Version | `0.3.1-draft.5` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -106,7 +106,7 @@ Memory/Knowledge Client 是 Embeddings consumer，管理员使用 Management API
 | LT-REL-001 | terminal digest/tombstone、Invocation view 与 canonical Response shall 在 terminal 后至少保留 168h；自动恢复 deadline 为 24h | CT-REC-002 | Fixture PASS；durability BLOCKED |
 | LT-REL-002 | 不支持、未知、未授权、过期或未激活的输入 shall fail closed，不得 silent compatibility expansion | negative cases | Static PASS；runtime BLOCKED |
 | LT-REL-003 | 模型 request deadline shall 不晚于 Piko task deadline、进入 digest 且 replay 不推进；effective deadline shall 取 request/catalog 较早者；LLMTier shall 保留 deadline fact 且不得规定 Piko task 终态 | CT-DEADLINE-001/CT-ADM-001 | Amendment 8 fixture PASS；Piko review BLOCKED |
-| LT-REL-004 | Embeddings recovery shall 只复用原 POST，不扩展 Responses GET；24h/168h 候选窗口须经 Slinky/Knowledge 接受后才冻结 | CT-EMB-REC-001 | Candidate；consumer review BLOCKED |
+| LT-REL-004 | Embeddings recovery shall 只复用原 POST，不扩展 Responses GET；D=24h，resolved terminal 后 result/digest 至少168h，Unknown 不自动过期，旧 key tombstone 返回410 | CT-EMB-REC-001 | Finalization candidate；Slinky Knowledge signature requested；runtime BLOCKED |
 
 ## 8. 运维、诊断与可观测性需求
 
