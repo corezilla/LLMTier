@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-piko-data-plane-control` |
-| Document Version | `0.3.2-draft.1` |
+| Document Version | `0.3.2-draft.2` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -33,7 +33,7 @@ Piko 拥有 Agent session、完整输入装配、压缩、tool loop、任务 dea
 
 | Method | Path | Purpose |
 |---|---|---|
-| POST | `/v1/responses` | 完整输入的一次模型调用；当前候选冻结 non-stream subset |
+| POST | `/v1/responses` | 完整输入的一次模型调用；`stream:true` 为标准 SSE，`stream:false` 为标准 JSON |
 | GET | `/v1/models` | 逻辑模型列表 |
 | GET | `/v1/models/{model}` | exact-case 模型能力 |
 | GET | `/tier/v1/usage` | 调用主体自己的 token Usage 查询；Piko可按 request ID 汇总任务用量 |
@@ -78,4 +78,4 @@ Bearer credential控制Data Plane访问；不定义Client/Source/SourceInstance�
 
 ## 11. 定型候选与双方批准
 
-唯一跨方未决：Piko首个实现是否要求标准Responses streaming。确认前只冻结共同non-stream subset，不建立第二条自定义路径。runtime activation=false。
+固定 Pi `9767ba275f3e9a5ee0f5c5342249b629ab1b2282` 的 `openai-responses.ts::buildParams` 固定发送 `stream:true`；首版契约据此包含标准 Responses SSE。必需事件为 created、output item added/done、text delta、function arguments delta/done、completed/incomplete/failed 与 error；terminal response携带Usage。Piko消费签署与真实capture仍是activation gate，runtime activation=false。

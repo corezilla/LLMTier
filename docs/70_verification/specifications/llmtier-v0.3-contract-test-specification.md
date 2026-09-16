@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-contract-test-specification` |
-| Document Version | `0.3.2-draft.1` |
+| Document Version | `0.3.2-draft.2` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -48,7 +48,7 @@
 
 ## 4. 正常、边界、负向与并发场景
 
-正常：text、function roundtrip、embedding batch、model list、measured usage、CRUD。边界：unknown usage、max limit、exact case、local provider without secret。负向：unknown field、wrong model capability、stream=true before decision、missing auth、probe without confirmation、delete referenced resource。并发编辑使用409；不测试外部Seat/claim。
+正常：JSON text、标准 SSE text/function/terminal Usage、function result roundtrip、embedding batch、model list、measured usage、CRUD。边界：unknown usage、max limit、exact case、local provider without secret。负向：SSE event缺少必需字段、terminal event缺失、wrong model capability、missing auth、probe without confirmation、delete referenced resource。并发编辑使用409；不测试外部Seat/claim。
 
 ## 5. Recovery、重放、幂等与故障注入
 

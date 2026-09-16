@@ -1,5 +1,5 @@
 {
-  "fixture_version": "0.3-simplified-candidate.1",
+  "fixture_version": "0.3-simplified-candidate.2",
   "cases": [
     {
       "id": "responses-text-success",
@@ -32,12 +32,40 @@
       "oracle": {"alias_or_case_fold": false}
     },
     {
-      "id": "streaming-not-yet-frozen",
+      "id": "responses-sse-text-success",
       "operation": "POST /v1/responses",
       "request": {"model": "Worker", "input": "x", "stream": true},
-      "expected_status": 400,
-      "expected_code": "unsupported_parameter",
-      "oracle": {"temporary_candidate_boundary": true, "fallback": false}
+      "content_type": "text/event-stream",
+      "events": [
+        {"type": "response.created", "sequence_number": 0, "response": {"id": "resp_sse_01", "object": "response", "status": "in_progress", "model": "Worker", "output": [], "usage": null, "error": null}},
+        {"type": "response.output_item.added", "sequence_number": 1, "output_index": 0, "item": {"type": "message", "role": "assistant", "content": []}},
+        {"type": "response.output_text.delta", "sequence_number": 2, "output_index": 0, "content_index": 0, "delta": "Hello"},
+        {"type": "response.output_item.done", "sequence_number": 3, "output_index": 0, "item": {"type": "message", "role": "assistant", "content": [{"type": "output_text", "text": "Hello"}]}},
+        {"type": "response.completed", "sequence_number": 4, "response": {"id": "resp_sse_01", "object": "response", "status": "completed", "model": "Worker", "output": [{"type": "message", "role": "assistant", "content": [{"type": "output_text", "text": "Hello"}]}], "usage": {"input_tokens": 1, "output_tokens": 1, "total_tokens": 2, "cached_input_tokens": null, "measurement_status": "measured", "source": "provider"}, "error": null}}
+      ],
+      "oracle": {"valid": true, "terminal_event_required": true, "usage_source": "terminal_response", "fallback": false}
+    },
+    {
+      "id": "responses-sse-function-call",
+      "operation": "POST /v1/responses",
+      "request": {"model": "Worker", "input": "read status", "stream": true, "tools": [{"type": "function", "name": "read_status", "parameters": {"type": "object"}}]},
+      "events": [
+        {"type": "response.created", "sequence_number": 0, "response": {"id": "resp_sse_02", "object": "response", "status": "in_progress", "model": "Worker", "output": [], "usage": null, "error": null}},
+        {"type": "response.output_item.added", "sequence_number": 1, "output_index": 0, "item": {"type": "function_call", "call_id": "call_02", "name": "read_status", "arguments": ""}},
+        {"type": "response.function_call_arguments.delta", "sequence_number": 2, "output_index": 0, "item_id": "fc_02", "delta": "{}"},
+        {"type": "response.function_call_arguments.done", "sequence_number": 3, "output_index": 0, "item_id": "fc_02", "arguments": "{}"},
+        {"type": "response.output_item.done", "sequence_number": 4, "output_index": 0, "item": {"type": "function_call", "call_id": "call_02", "name": "read_status", "arguments": "{}"}},
+        {"type": "response.completed", "sequence_number": 5, "response": {"id": "resp_sse_02", "object": "response", "status": "completed", "model": "Worker", "output": [{"type": "function_call", "call_id": "call_02", "name": "read_status", "arguments": "{}"}], "usage": {"input_tokens": 3, "output_tokens": 2, "total_tokens": 5, "cached_input_tokens": 0, "measurement_status": "measured", "source": "provider"}, "error": null}}
+      ],
+      "next_request_input": [{"type": "message", "role": "user", "content": "read status"}, {"type": "function_call", "call_id": "call_02", "name": "read_status", "arguments": "{}"}, {"type": "function_call_output", "call_id": "call_02", "output": "ok"}],
+      "oracle": {"tool_executed_by": "piko", "llmtier_history_state": false}
+    },
+    {
+      "id": "responses-sse-missing-terminal",
+      "operation": "POST /v1/responses",
+      "request": {"model": "Worker", "input": "x", "stream": true},
+      "events": [{"type": "response.created", "sequence_number": 0, "response": {"id": "resp_sse_bad", "object": "response", "status": "in_progress", "model": "Worker", "output": [], "usage": null, "error": null}}],
+      "oracle": {"valid": false, "error": "stream_ended_without_terminal_event", "retry_policy_owner": "piko"}
     }
   ]
 }

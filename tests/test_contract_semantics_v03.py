@@ -35,8 +35,8 @@ class SimplifiedV03ContractTests(unittest.TestCase):
 
     def test_unique_simplified_machine_authority(self):
         self.assertEqual("3.1.0", self.openapi["openapi"])
-        self.assertEqual("0.3-simplified-candidate.1", self.openapi["info"]["version"])
-        self.assertEqual("0.3-simplified-candidate.1", self.manifest["manifest_version"])
+        self.assertEqual("0.3-simplified-candidate.2", self.openapi["info"]["version"])
+        self.assertEqual("0.3-simplified-candidate.2", self.manifest["manifest_version"])
         self.assertFalse(self.openapi["x-llmtier-runtime-activation"])
         self.assertFalse(self.manifest["overall"]["runtime_activation"])
         self.assertEqual("openapi/llmtier-v0.3.openapi.json", self.manifest["contract_authority"]["path"])
@@ -77,10 +77,29 @@ class SimplifiedV03ContractTests(unittest.TestCase):
         self.assertEqual("piko", tool["oracle"]["tool_executed_by"])
         self.assertFalse(tool["oracle"]["llmtier_history_state"])
 
-    def test_stream_true_is_rejected_by_current_candidate(self):
-        case = next(case for case in self.load("openai-surface-fixtures.json")["cases"] if case["id"] == "streaming-not-yet-frozen")
-        self.assertTrue(list(self.validator("ResponsesRequest").iter_errors(case["request"])))
-        self.assertFalse(case["oracle"]["fallback"])
+    def test_standard_responses_sse_matches_pinned_pi_subset(self):
+        cases = {case["id"]: case for case in self.load("openai-surface-fixtures.json")["cases"]}
+        for name in ("responses-sse-text-success", "responses-sse-function-call"):
+            case = cases[name]
+            self.assert_valid("ResponsesRequest", case["request"])
+            for event in case["events"]:
+                self.assert_valid("ResponseStreamEvent", event)
+            self.assertIn(case["events"][-1]["type"], {"response.completed", "response.incomplete", "response.failed", "error"})
+        tool = cases["responses-sse-function-call"]
+        self.assert_valid("ResponsesRequest", {"model": "Worker", "input": tool["next_request_input"], "stream": True})
+        self.assertEqual("piko", tool["oracle"]["tool_executed_by"])
+        incomplete = cases["responses-sse-missing-terminal"]
+        for event in incomplete["events"]:
+            self.assert_valid("ResponseStreamEvent", event)
+        self.assertFalse(incomplete["oracle"]["valid"])
+        self.assertEqual("stream_ended_without_terminal_event", incomplete["oracle"]["error"])
+        self.assertFalse(cases["responses-sse-text-success"]["oracle"]["fallback"])
+
+    def test_responses_sse_is_same_endpoint_not_parallel_path(self):
+        response = self.openapi["paths"]["/v1/responses"]["post"]["responses"]["200"]
+        self.assertEqual({"application/json", "text/event-stream"}, set(response["content"]))
+        self.assertEqual("standard_json_and_sse", self.manifest["capabilities"][0]["mode"])
+        self.assertEqual([], self.manifest["open_questions"])
 
     def test_embeddings_fixture_validates(self):
         case = next(case for case in self.load("openai-surface-fixtures.json")["cases"] if case["id"] == "embedding-success")

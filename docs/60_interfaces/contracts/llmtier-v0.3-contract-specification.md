@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-contract-specification` |
-| Document Version | `0.3.2-draft.1` |
+| Document Version | `0.3.2-draft.2` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -27,7 +27,7 @@
 
 ## 1. Contract scope 与 authority
 
-唯一字段级 authority 是 `interfaces/openapi/llmtier-v0.3.openapi.json` version `0.3-simplified-candidate.1`。Manifest只描述范围和activation，不复制字段。`runtime_activation=false`，本候选不授权runtime。
+唯一字段级 authority 是 `interfaces/openapi/llmtier-v0.3.openapi.json` version `0.3-simplified-candidate.2`。Manifest只描述范围和activation，不复制字段。`runtime_activation=false`，本候选不授权runtime。
 
 ## 2. Operation / Message / Event Catalog
 
@@ -67,4 +67,4 @@ CT-DP-001、CT-MODEL-001、CT-EMB-001、CT-USAGE-001、CT-ADMIN-001、CT-OPS-001
 
 ## 11. Activation Gate 与未决项
 
-需要实现、provider capture、Piko surface确认、Embedding consumer test、auth/TLS/operations、Admin UI test。唯一跨方设计未决是首版是否需要standard streaming。
+需要实现、provider capture、Piko对标准SSE事件子集的消费签署、Embedding consumer test、auth/TLS/operations、Admin UI test。streaming设计范围不再待决。

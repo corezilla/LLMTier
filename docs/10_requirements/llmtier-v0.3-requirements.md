@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-requirements` |
-| Document Version | `0.3.2-draft.1` |
+| Document Version | `0.3.2-draft.2` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -49,7 +49,7 @@ V0.3 外部范围：Responses、Embeddings、Models、token Usage、health/readi
 
 | ID | 需求 | 优先级 | 验证 |
 |---|---|---|---|
-| LT-FUN-001 | shall 提供 OpenAI-compatible `POST /v1/responses`，至少支持 Piko 所需的 non-stream text、message、function tool、function call 与 function result shape | P0 | CT-DP-001 |
+| LT-FUN-001 | shall 提供 OpenAI-compatible `POST /v1/responses`，支持固定 Pi adapter 所需的标准 SSE text、function tool/call/result 与 terminal Usage；同 endpoint 可按标准 `stream:false` 返回 JSON | P0 | CT-DP-001 |
 | LT-FUN-002 | shall 提供 `GET /v1/models` 与 exact-case detail，返回真实逻辑等级、能力、上下文/输出限制和 availability | P0 | CT-MODEL-001 |
 | LT-FUN-003 | shall 提供标准 `POST /v1/embeddings`，只路由到明确标记 embedding-capable 的 deployment | P0 | CT-EMB-001 |
 | LT-FUN-004 | shall 返回 per-call token Usage，并提供统一只读 token Usage 查询；measured、estimated、unknown 必须可区分 | P0 | CT-USAGE-001 |
@@ -67,7 +67,7 @@ V0.3 外部范围：Responses、Embeddings、Models、token Usage、health/readi
 | LT-INT-003 | shall 不定义 SourceInstance、custom Idempotency-Key、Invocation、response recovery、Seat/claim/capacity snapshot、Cost 或 compatibility negotiation path/header/schema |
 | LT-INT-004 | `/tier/v1/usage` 是唯一 consumer extension；原因是 OpenAI API 没有统一跨请求 token 查询。它不得承载任务、项目、会话、费用或执行状态 |
 | LT-INT-005 | unknown token 数不得填零；响应 usage 可为 null，UsageRecord 数值字段在 unknown 时为 null |
-| LT-INT-006 | standard streaming 是否进入首个实现版本由 Piko/LLMTier另行确认；确认前不得同时实现自定义 non-stream recovery 与 streaming fallback |
+| LT-INT-006 | `stream:true` 使用标准 Responses SSE；`stream:false` 使用标准 JSON。二者共享同 endpoint、认证、model routing 和错误语义，不得增加自定义 streaming/recovery endpoint 或 legacy fallback |
 
 ## 6. 性能与容量需求
 
@@ -110,7 +110,6 @@ V0.3 外部范围：Responses、Embeddings、Models、token Usage、health/readi
 
 | ID | Owner | 问题 | 最晚阶段 |
 |---|---|---|---|
-| LT-OPEN-01 | Piko + LLMTier | Piko 实际所需 Responses 是否包含 standard streaming | 开始 adapter 实现前 |
 | LT-OPEN-02 | LLMTier | dedicated embedding deployment/model 配置 | Embeddings 实现前 |
 | LT-OPEN-03 | LLMTier | production auth/TLS/service manager/runbook | runtime activation 前 |
 

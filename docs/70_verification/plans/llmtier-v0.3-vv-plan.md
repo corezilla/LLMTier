@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-vv-plan` |
-| Document Version | `0.3.2-draft.1` |
+| Document Version | `0.3.2-draft.2` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -31,7 +31,7 @@
 
 ## 2. 被验证基线与环境
 
-基线：OpenAPI/manifest `0.3-simplified-candidate.1`、requirements/system/interface docs `0.3.2-draft.1`、v0.3 current fixtures。静态环境不等于production。
+基线：OpenAPI/manifest `0.3-simplified-candidate.2`、requirements/system/interface docs `0.3.2-draft.2`、v0.3 current fixtures。静态环境不等于production。
 
 ## 3. Verification 方法
 

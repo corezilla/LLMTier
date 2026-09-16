@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.3.2-draft.1` |
+| Document Version | `0.3.2-draft.2` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -43,7 +43,7 @@ Piko 管理 Agent session、上下文、工具循环、模型调用与执行内�
 
 | 目标 | 设计决定 |
 |---|---|
-| 标准模型调用 | `POST /v1/responses`，首先冻结 Piko 所需的 non-stream subset；是否增加标准 streaming 由双方另行确认 |
+| 标准模型调用 | 同一 `POST /v1/responses` 支持标准 JSON 与 SSE；Piko 固定 Pi adapter 使用 `stream:true` |
 | 模型发现 | `GET /v1/models` 与 exact-case detail；`model` 是逻辑等级 ID，不暴露物理账号 |
 | 向量化 | 标准 `POST /v1/embeddings`；使用明确配置的 embedding-capable deployment |
 | 工具调用 | 模型可返回 function call；Piko 执行工具并在下一次完整请求中带回 tool result |
@@ -57,7 +57,7 @@ Piko 管理 Agent session、上下文、工具循环、模型调用与执行内�
 
 | 用例 | LLMTier 行为 | 非职责 |
 |---|---|---|
-| Piko 请求推理 | 校验标准请求，按 exact model 路由，返回文本/tool call/Usage/error | Agent 历史、工具执行、任务重试策略 |
+| Piko 请求推理 | 校验标准请求，按 exact model 路由，通过标准 SSE 返回文本/tool call/terminal Usage/error | Agent 历史、工具执行、任务重试策略 |
 | Slinky 请求 embedding | 校验输入和 embedding 模型，返回向量与 Usage | chunk、索引、检索、正式记忆写入 |
 | Consumer 查询模型 | 返回逻辑等级、能力、上下文/输出限制和 availability | 项目选人或业务计划决策 |
 | Consumer 查询 Usage | 返回 measured/estimated/unknown token 事实 | 金额、币种、定价、结算 |
@@ -126,6 +126,16 @@ sequenceDiagram
   L-->>P: standard response + usage + X-Request-ID
   Note over P: Piko executes tool and submits a new complete request
 ```
+
+Piko 固定依赖 `pi@9767ba275f3e9a5ee0f5c5342249b629ab1b2282` 的
+`packages/ai/src/api/openai-responses.ts::buildParams` 固定生成 `stream:true`，并由
+`processResponsesStream` 消费标准 Responses SSE。LLMTier 因此在同一 endpoint 上提供标准 SSE；
+`stream:false` 仍是同一 OpenAI-compatible endpoint 的普通 JSON 模式，不是第二 inference path 或 fallback。
+
+首版必需事件子集为 `response.created`、`response.output_item.added`、
+`response.output_text.delta`、`response.function_call_arguments.delta|done`、
+`response.output_item.done`、`response.completed|incomplete|failed` 和 `error`。
+Usage 位于 terminal response；tool result 由 Piko 执行后以新请求中的 `function_call_output` 传回。
 
 每个 HTTP 请求是独立模型调用。网络结果不明时，Piko 按标准 client retry policy 处理；V0.3 不承诺跨系统 exactly-once，也不提供 Invocation 查询或结果恢复。LLMTier 内部可保留防重、队列或 provider 可靠性机制，但不得形成对外会话或恢复契约。
 
@@ -242,7 +252,7 @@ Data Plane 与 Admin 使用不同 credential/权限。Provider Secret 只通过 
 
 ## 17. 实现计划
 
-1. 冻结 Piko 实际需要的标准 Responses subset（含是否需要 standard streaming）。
+1. 以固定 Pi adapter 的标准 Responses SSE 子集实现 Piko 调用，并保留同 endpoint 的标准 JSON 模式。
 2. 实现 OpenAI-compatible Responses/Models 和 exact service-level routing。
 3. 实现 dedicated Embeddings deployment 与 `/v1/embeddings`。
 4. 实现统一 token Usage 记录/查询，明确 measured/estimated/unknown。
@@ -257,7 +267,7 @@ Data Plane 与 Admin 使用不同 credential/权限。Provider Secret 只通过 
 | LT-ADR-01 | decided | 无 Agent 会话状态的 OpenAI-compatible gateway |
 | LT-ADR-02 | decided | Cost、SourceInstance、外部容量/Seat、Invocation recovery 退出 V0.3 外部契约 |
 | LT-ADR-03 | decided | Usage 只提供 token 事实与来源状态；未知不补零 |
-| LT-OPEN-01 | cross-party | Piko 最终采用 Responses non-stream 还是标准 streaming；确认前只冻结共同 non-stream subset，不实现双路径 fallback |
+| LT-ADR-04 | decided | 固定 Pi adapter 使用 `stream:true`；同一 Responses endpoint 支持标准 SSE 与 JSON，不增加 fallback |
 | LT-OPEN-02 | implementation | 选择并配置至少一个 dedicated embedding-capable deployment |
 | LT-OPEN-03 | implementation | production auth/TLS/service manager/restart/backup/runbook |
 
@@ -291,4 +301,4 @@ V0.3 不承诺跨系统调用幂等或结果恢复。配置与 Usage/Audit 使�
 
 ## H. 未决问题、外部依赖和后续版本
 
-跨方仅剩 Piko 所需 standard streaming 决策。其余是 LLMTier 内部实现：embedding deployment、provider adapter、Web UI、auth/TLS、service manager、测量与运维证据。
+Responses streaming 范围已按固定 Pi 调用方式选择标准 SSE。剩余是 LLMTier 内部实现：embedding deployment、provider adapter、Web UI、auth/TLS、service manager、测量与运维证据；Piko仍需对同一机器 candidate 完成消费签署。

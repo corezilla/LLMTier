@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-traceability` |
-| Document Version | `0.3.2-draft.1` |
+| Document Version | `0.3.2-draft.2` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -27,7 +27,7 @@
 
 ## 1. 范围与基线
 
-基线是 requirements `0.3.2-draft.1`、system design `0.3.2-draft.1`、OpenAPI `0.3-simplified-candidate.1` 与 compatibility manifest 同版本。
+基线是 requirements `0.3.2-draft.2`、system design `0.3.2-draft.2`、OpenAPI `0.3-simplified-candidate.2` 与 compatibility manifest 同版本。
 
 ## 2. Traceability Matrix
 
@@ -47,7 +47,7 @@
 
 ## 4. Orphan、Gap 与冲突
 
-- Cross-system open：Piko 是否需要 standard streaming。
+- Standard Responses SSE 已由固定 Pi adapter 的 `stream:true` 调用方式确定；Piko消费签署与真实capture属于后续证据。
 - LLMTier implementation gaps：目标 `/v1` routes、embedding deployment、Usage query、Admin UI/API、production auth/TLS/runbook。
 - legacy `/call` 实现仍在源码但不属于 current contract；迁移完成前不得暴露为 fallback。
 - 旧 review/历史文件仅作 provenance，不参与当前 traceability。

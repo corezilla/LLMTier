@@ -10,7 +10,7 @@ Slinky 和 Piko 是外部 consumer/协作项目，不是 LLMTier 的源码目录
   health/readiness、精简 Management API 和中文 Admin Web UI。
 - V0.3 OpenAPI 和设计是 review candidate，但 production wiring、consumer capture 和
   Runtime Activation 尚未完成；`overall.runtime_activation=false`。
-- 首个实现是否包含标准 Responses streaming 仍待 Piko/LLMTier 确认；不得以自定义恢复或 legacy path 作 fallback。
+- Piko 固定 Pi `9767ba2` 的 `openai-responses` adapter 固定发送 `stream:true`；首个实现因此采用标准 Responses SSE，不另建 endpoint、fallback 或自定义恢复路径。
 - LLMTier 不持有 Agent Session/Conversation，不压缩上下文、不执行工具、不管理后端 KV identity。
 - SourceInstance、外部 capacity/Seat/claim、自定义 Invocation/idempotency recovery、Cost 与专用 compatibility
   negotiation 已退出 current external contract。
