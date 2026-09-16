@@ -68,7 +68,7 @@ Piko V0.3 capture 基线：Pi source `9767ba275f3e9a5ee0f5c5342249b629ab1b2282`�
 
 ## 5. 首次、重复与 lost-response 协议
 
-LLMTier 在调用 Backend 前持久化 idempotency record、Invocation 和 dispatch intent。相同 namespace/key/digest 永不产生第二次 dispatch；相同 key、不同 digest 返回 `409 TerminalErrorEnvelope`，并用 Location/Invocation header 指向该 key 已绑定的 Invocation。
+LLMTier 在调用 Backend 前持久化 idempotency record、Invocation 和 dispatch intent。相同 namespace/key/digest 永不产生第二次 dispatch；相同 key、不同 digest 返回 `409 IdempotencyConflictEnvelope`。若冲突发生在 pre-admission 且没有 Invocation，响应禁止 `invocation_id`、Location 与 Invocation header；不得伪造 Invocation。
 
 | 情形 | POST 返回 | dispatch |
 | --- | --- | --- |
@@ -76,12 +76,12 @@ LLMTier 在调用 Backend 前持久化 idempotency record、Invocation 和 dispa
 | active replay：Pending/Queued/Running | `202 InvocationAccepted`，带 `Location`、`X-Tier-Invocation-ID` 与 `Retry-After` | 零次 |
 | completed replay：Succeeded | endpoint 对应的原标准成功 body；不得换成 InvocationView | 零次 |
 | terminal replay：Failed | `502 TerminalErrorEnvelope`，code=`invocation_failed`、`retryable=false` | 零次 |
-| terminal replay：Cancelled | `409 ErrorEnvelope`，code=`invocation_cancelled` | 零次 |
+| terminal replay：Cancelled | `409 InvocationCancelledEnvelope`，code=`invocation_cancelled` | 零次 |
 | terminal replay：UnknownOutcome | `503 ErrorEnvelope`，code=`invocation_outcome_unknown`、`retryable=false` | 零次 |
 
 Failed/Cancelled/UnknownOutcome 的详细状态只通过 `GET /v1/invocations/{id}` 查询。POST 的 HTTP 200 只表示 endpoint 的标准成功结果，绝不返回 `InvocationView`。
 
-一旦 Invocation 已建立，active `202` 与 terminal replay 非 2xx 都必须返回 `Location: /v1/invocations/{id}` 和 `X-Tier-Invocation-ID: {id}`；active `202` 还必须返回 `Retry-After`。同 key/different digest conflict 必然已命中该 key 的既存 Invocation，因此同样返回该 Invocation 的 header；auth/schema/model 等尚未建立 Invocation 的错误使用普通 `ErrorEnvelope`，不得伪造 Invocation header 或 Location。机器 Contract 分别为 OpenAPI `components.responses.ActiveReplay`、`TerminalOrConflict`、`TerminalFailure`、`UnknownOutcome`。
+一旦 Invocation 已建立，active `202` 与 terminal replay 非 2xx 都必须返回 `Location: /v1/invocations/{id}` 和 `X-Tier-Invocation-ID: {id}`；active `202` 还必须返回 `Retry-After`。pre-admission 的 same key/different digest conflict 没有 Invocation，必须使用 `IdempotencyConflictEnvelope` 且不返回上述 header；auth/schema/model 等尚未建立 Invocation 的错误使用普通 `ErrorEnvelope`，同样不得伪造 Invocation header 或 Location。机器 Contract 分别为 OpenAPI `components.responses.ActiveReplay`、`TerminalOrConflict`、`TerminalFailure`、`UnknownOutcome`。
 
 active replay 的 `202` 和两个 recovery GET 都是显式扩展；Compatibility Manifest 必须标记 `explicit_piko_recovery_adapter_required=true`，并由 pinned adapter capture 验证。SDK 不接受 `202` 时由 adapter 截获和查询，不建立另一条 Data Plane。
 

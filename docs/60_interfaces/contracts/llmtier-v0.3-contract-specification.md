@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | llmtier-v0.3-contract-specification |
-| Document Version | 0.3.1-draft.5 |
+| Document Version | 0.3.1-draft.6 |
 | Status | In Review |
 | Project | LLMTier |
 | Authority | LLMTier |
@@ -65,7 +65,7 @@ Markdown 不得生成第二份 V0.3 contract。跨项目 consumer 通过版本�
 OpenAPI components 是所有 DTO 和 Schema ref 的唯一字段定义，包括 ResponsesRequest/Response、
 EmbeddingRequest/Response、Model/List、InvocationAccepted/View/Page、CapacitySnapshot、
 ReadinessView、ServiceLevelView/Page、CompatibilityView、Management resource/page、AdminJob、
-ErrorEnvelope 和 TerminalErrorEnvelope。
+ErrorEnvelope、TerminalErrorEnvelope、InvocationCancelledEnvelope 和 IdempotencyConflictEnvelope。
 
 Metadata 的 Schema maxLength 之外还必须执行 64/512 UTF-8 encoded-byte validator。canonical
 Service Level ID exact、大小写敏感；Client/Source identity 由 authenticated binding 和授权决定。
@@ -77,6 +77,13 @@ Invocation active 状态仅 Pending、Queued、Running；terminal 仅 Succeeded�
 UnknownOutcome。POST active replay 是 202 InvocationAccepted；Succeeded replay 是原 canonical 200
 body；Failed 为 502 invocation_failed；Cancelled 为 409 invocation_cancelled；UnknownOutcome 为
 503 invocation_outcome_unknown 且 retryable=false。
+
+409 必须按是否已有 Invocation 严格分支。已有 Invocation 的 Cancelled replay 使用
+`InvocationCancelledEnvelope`，正文要求真实非空 `invocation_id`；Responses 同时要求
+`Location` 与 `X-Tier-Invocation-ID`，Embeddings 只要求 `X-Tier-Invocation-ID` 且禁止
+Responses `Location`。同 key 不同 digest 在 pre-admission 阶段使用
+`IdempotencyConflictEnvelope`，code 固定 `idempotency_conflict`、`retryable=false`，正文禁止
+`invocation_id`，且禁止 `Location` 与 `X-Tier-Invocation-ID`。不得为冲突伪造 Invocation。
 
 Pre-admission rejection 不属于 Invocation terminal state。服务先保存 content-free
 IdempotencyDecisionRecord；capacity、quota、readiness、Registry 或 snapshot validity 不满足时返回
@@ -140,7 +147,7 @@ Management credential 与 Data Plane/Observation 分离。Account secret 只写�
 
 ## 8. 版本、兼容性与迁移
 
-当前 contract version 是 `0.3-finalization-candidate.1`。Scope B 只含 Responses non-stream、Embeddings
+当前 contract version 是 `0.3-finalization-candidate.2`。Scope B 只含 Responses non-stream、Embeddings
 non-stream、Models、Invocation/Response recovery、Observation 和 Management。Chat/SSE/streaming
 属于 V0.4，不能以 alias、translation、provider passthrough 或 inactive endpoint 进入 V0.3。
 

@@ -1,5 +1,5 @@
 {
-  "fixture_version": "0.3-finalization-candidate.1",
+  "fixture_version": "0.3-finalization-candidate.2",
   "cases": [
     {
       "id": "responses-store-positive",
@@ -72,6 +72,30 @@
       "schema": "TerminalErrorEnvelope",
       "valid": false,
       "body": {"error": {"message": "invocation failed", "type": "server_error", "code": "invocation_failed", "param": null, "retryable": false}}
+    },
+    {
+      "id": "cancelled-invocation-positive",
+      "schema": "InvocationCancelledEnvelope",
+      "valid": true,
+      "body": {"error": {"message": "invocation cancelled", "type": "conflict", "code": "invocation_cancelled", "param": null, "retryable": false, "invocation_id": "inv_01"}}
+    },
+    {
+      "id": "cancelled-missing-invocation-negative",
+      "schema": "InvocationCancelledEnvelope",
+      "valid": false,
+      "body": {"error": {"message": "invocation cancelled", "type": "conflict", "code": "invocation_cancelled", "param": null, "retryable": false}}
+    },
+    {
+      "id": "idempotency-conflict-before-invocation-positive",
+      "schema": "IdempotencyConflictEnvelope",
+      "valid": true,
+      "body": {"error": {"message": "Digest mismatch", "type": "conflict", "code": "idempotency_conflict", "param": null, "retryable": false}}
+    },
+    {
+      "id": "idempotency-conflict-fabricated-invocation-negative",
+      "schema": "IdempotencyConflictEnvelope",
+      "valid": false,
+      "body": {"error": {"message": "Digest mismatch", "type": "conflict", "code": "idempotency_conflict", "param": null, "retryable": false, "invocation_id": "inv_fabricated"}}
     }
   ]
 }

@@ -1,5 +1,5 @@
 {
-  "fixture_version": "0.3-candidate-std-amendment",
+  "fixture_version": "0.3-finalization-candidate.2",
   "cases": [
     {
       "id": "nonstream-first-success",
@@ -51,7 +51,12 @@
     {
       "id": "nonstream-retry-cancelled-is-error",
       "request": {"stream": false, "same_key_and_digest": true, "existing_status": "Cancelled"},
-      "expected": {"http_status": 409, "body_schema": "TerminalErrorEnvelope", "headers": ["Location", "X-Tier-Invocation-ID"], "error_code": "invocation_cancelled", "dispatch_count": 0, "detail_query": "/v1/invocations/{invocation_id}"}
+      "expected": {"http_status": 409, "body_schema": "InvocationCancelledEnvelope", "headers": ["Location", "X-Tier-Invocation-ID"], "error_code": "invocation_cancelled", "retryable": false, "dispatch_count": 0, "detail_query": "/v1/invocations/{invocation_id}"}
+    },
+    {
+      "id": "nonstream-same-key-different-digest-before-invocation",
+      "request": {"stream": false, "same_key": true, "same_digest": false, "existing_invocation": false},
+      "expected": {"http_status": 409, "body_schema": "IdempotencyConflictEnvelope", "headers": [], "forbidden_headers": ["Location", "X-Tier-Invocation-ID"], "error_code": "idempotency_conflict", "retryable": false, "invocation_count": 0, "dispatch_count": 0}
     },
     {
       "id": "nonstream-retry-unknown-outcome-is-error",

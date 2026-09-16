@@ -190,7 +190,8 @@ class ContractSemanticsV03Tests(unittest.TestCase):
         terminal = [case for case in fixture["cases"] if case["request"].get("existing_status") in {"Failed", "Cancelled", "UnknownOutcome"}]
         self.assertEqual({502, 409, 503}, {case["expected"]["http_status"] for case in terminal})
         for case in terminal:
-            self.assertEqual("TerminalErrorEnvelope", case["expected"]["body_schema"])
+            expected_schema = "InvocationCancelledEnvelope" if case["request"]["existing_status"] == "Cancelled" else "TerminalErrorEnvelope"
+            self.assertEqual(expected_schema, case["expected"]["body_schema"])
             self.assertEqual(["Location", "X-Tier-Invocation-ID"], case["expected"]["headers"])
 
         responses = self.openapi["components"]["responses"]
@@ -198,9 +199,32 @@ class ContractSemanticsV03Tests(unittest.TestCase):
             ["Location", "X-Tier-Invocation-ID", "Retry-After"],
             list(responses["ActiveReplay"]["headers"]),
         )
-        for name in ["TerminalOrConflict", "TerminalFailure", "UnknownOutcome"]:
+        for name in ["TerminalFailure", "UnknownOutcome"]:
             self.assertEqual(["Location", "X-Tier-Invocation-ID"], list(responses[name]["headers"]), name)
             self.assertTrue(all(header["$ref"].startswith("#/components/headers/") for header in responses[name]["headers"].values()))
+
+        for name, cancelled_headers in [
+            ("TerminalOrConflict", ["Location", "X-Tier-Invocation-ID"]),
+            ("EmbeddingTerminalOrConflict", ["X-Tier-Invocation-ID"]),
+        ]:
+            branch_response = responses[name]
+            self.assertEqual(
+                {"#/components/schemas/InvocationCancelledEnvelope", "#/components/schemas/IdempotencyConflictEnvelope"},
+                {entry["$ref"] for entry in branch_response["content"]["application/json"]["schema"]["oneOf"]},
+            )
+            self.assertEqual(cancelled_headers, branch_response["x-response-branches"]["invocation_cancelled"]["required_headers"])
+            self.assertEqual([], branch_response["x-response-branches"]["idempotency_conflict"]["required_headers"])
+            self.assertIn("X-Tier-Invocation-ID", branch_response["x-response-branches"]["idempotency_conflict"]["forbidden_headers"])
+            self.assertTrue(all(
+                self.openapi["components"]["headers"][header["$ref"].rsplit("/", 1)[-1]]["required"] is False
+                for header in branch_response["headers"].values()
+            ))
+
+        conflict = next(case for case in fixture["cases"] if case["id"] == "nonstream-same-key-different-digest-before-invocation")
+        self.assertEqual("IdempotencyConflictEnvelope", conflict["expected"]["body_schema"])
+        self.assertEqual([], conflict["expected"]["headers"])
+        self.assertEqual(0, conflict["expected"]["invocation_count"])
+        self.assertEqual(0, conflict["expected"]["dispatch_count"])
 
         no_id = next(case for case in fixture["cases"] if case["id"] == "nonstream-response-headers-lost-no-invocation-id")
         self.assertFalse(no_id["request"]["invocation_id_known"])
@@ -250,7 +274,7 @@ class ContractSemanticsV03Tests(unittest.TestCase):
     def test_candidate_prose_tracks_finalization_candidate_without_approved_claims(self):
         contract = (ROOT / "docs" / "60_interfaces" / "contracts" / "llmtier-v0.3-contract-specification.md").read_text()
         piko = (ROOT / "docs" / "60_interfaces" / "piko-data-plane-control.md").read_text()
-        self.assertIn("0.3-finalization-candidate.1", contract)
+        self.assertIn("0.3-finalization-candidate.2", contract)
         self.assertNotIn("candidate Amendment 7", contract)
         self.assertIn("In Review contract index", contract)
         self.assertIn("In Review consumer-boundary prose candidate", piko)
@@ -310,6 +334,10 @@ class ContractSemanticsV03Tests(unittest.TestCase):
         self.assertEqual("EmbeddingInvocationAccepted", cases["active-duplicate"]["expected"]["body_schema"])
         self.assertFalse(cases["active-duplicate"]["expected"]["location_header_present"])
         self.assertFalse(cases["active-duplicate"]["expected"]["responses_get_allowed"])
+        self.assertEqual("InvocationCancelledEnvelope", cases["cancelled"]["expected"]["body_schema"])
+        self.assertEqual("IdempotencyConflictEnvelope", cases["digest-conflict-before-invocation"]["expected"]["body_schema"])
+        self.assertEqual([], cases["digest-conflict-before-invocation"]["expected"]["headers"])
+        self.assertEqual(0, cases["digest-conflict-before-invocation"]["expected"]["invocation_count"])
         self.assertFalse(cases["unknown-outcome"]["expected"]["auto_delete_after_168h"])
         self.assertEqual("POST /v1/embeddings", cases["headers-lost-before-deadline"]["expected"]["operation"])
         self.assertFalse(cases["headers-lost-before-deadline"]["expected"]["responses_get_used"])

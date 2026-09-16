@@ -1,5 +1,5 @@
 {
-  "manifest_version": "0.3-finalization-candidate.1",
+  "manifest_version": "0.3-finalization-candidate.2",
   "status": "candidate",
   "overall": {
     "contract_status": "candidate",
@@ -99,6 +99,8 @@
       "active_duplicate_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/EmbeddingInvocationAccepted",
       "active_duplicate_response_ref": "openapi/llmtier-v0.3.openapi.json#/components/responses/EmbeddingActiveReplay",
       "terminal_response_refs": ["openapi/llmtier-v0.3.openapi.json#/components/responses/EmbeddingTerminalOrConflict", "openapi/llmtier-v0.3.openapi.json#/components/responses/EmbeddingTerminalFailure", "openapi/llmtier-v0.3.openapi.json#/components/responses/EmbeddingUnknownOutcome"],
+      "cancelled_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/InvocationCancelledEnvelope",
+      "idempotency_conflict_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/IdempotencyConflictEnvelope",
       "responses_get_recovery_allowed": false,
       "retention_policy": "frozen_candidate_D24h_resolved_terminal168h_slinky_knowledge_consumer_signature_requested",
       "unknown_obligation_auto_expiry": false,
@@ -144,11 +146,14 @@
   "terminal_replay": {
     "http_200_invocation_view_allowed": false,
     "error_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/TerminalErrorEnvelope",
+    "cancelled_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/InvocationCancelledEnvelope",
+    "idempotency_conflict_schema_ref": "openapi/llmtier-v0.3.openapi.json#/components/schemas/IdempotencyConflictEnvelope",
     "response_contract_refs": ["openapi/llmtier-v0.3.openapi.json#/components/responses/TerminalOrConflict", "openapi/llmtier-v0.3.openapi.json#/components/responses/TerminalFailure", "openapi/llmtier-v0.3.openapi.json#/components/responses/UnknownOutcome"],
     "headers_required_after_invocation_created": ["Location", "X-Tier-Invocation-ID"],
     "headers_for_pre_invocation_failure": [],
     "failed": {"http_status": 502, "code": "invocation_failed", "retryable": false},
-    "cancelled": {"http_status": 409, "code": "invocation_cancelled"},
+    "cancelled": {"http_status": 409, "code": "invocation_cancelled", "required_headers": ["Location", "X-Tier-Invocation-ID"]},
+    "idempotency_conflict": {"http_status": 409, "code": "idempotency_conflict", "retryable": false, "required_headers": [], "forbidden_headers": ["Location", "X-Tier-Invocation-ID"], "invocation_created": false},
     "unknown_outcome": {"http_status": 503, "code": "invocation_outcome_unknown", "retryable": false},
     "detail_query": "/v1/invocations/{invocation_id}"
   },

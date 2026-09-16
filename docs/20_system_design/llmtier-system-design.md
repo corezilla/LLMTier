@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.3.1-draft.10` |
+| Document Version | `0.3.1-draft.11` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -775,7 +775,8 @@ tombstone 时返回 410；不得复用旧 key 创建新的 logical Embedding inv
 | 首次/成功 replay | 200 `EmbeddingResponse` | `X-Tier-Invocation-ID` | 标准成功 body；ID 仅关联 |
 | Pending/Queued/Running | 202 `EmbeddingInvocationAccepted` | Invocation ID、Retry-After；无 Location | 同 POST、同 key/digest；additional dispatch=0 |
 | Failed | 502 `TerminalErrorEnvelope` | Invocation ID；无 Location | `retryable=false`；不自动重派 |
-| Cancelled | 409 `TerminalErrorEnvelope` | Invocation ID；无 Location | `retryable=false`；不自动重派 |
+| Cancelled | 409 `InvocationCancelledEnvelope` | Invocation ID；无 Location | `retryable=false`；不自动重派 |
+| pre-admission same-key/different-digest | 409 `IdempotencyConflictEnvelope` | 无 Invocation ID、无 Location | `retryable=false`；不得伪造 Invocation 或 dispatch |
 | UnknownOutcome | 503 `TerminalErrorEnvelope` | Invocation ID；无 Location | obligation 持续到 reconcile；不因 168h 删除 |
 | resolved terminal 保证窗口后且 tombstone 可证明 | 410 `IdempotencyRecordExpiredEnvelope` | 无 Responses Location | `idempotency_record_expired`、retryable=false；不允许旧 key 创建新 logical invocation |
 

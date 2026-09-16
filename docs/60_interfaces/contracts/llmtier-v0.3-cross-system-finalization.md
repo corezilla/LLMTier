@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | llmtier-v0.3-cross-system-finalization |
-| Document Version | 0.3.0-rc.1 |
+| Document Version | 0.3.0-rc.2 |
 | Status | In Review |
 | Project | LLMTier |
 | Authority | LLMTier |
@@ -32,7 +32,7 @@
 
 本包关闭 Slinky `S-20260916-191ab7c8184c` 要求的 LLMTier 跨系统设计。唯一机器权威是
 `interfaces/openapi/llmtier-v0.3.openapi.json` 与
-`interfaces/compatibility/compatibility-manifest-v0.3.json` 的 `0.3-finalization-candidate.1`；本文只给出
+`interfaces/compatibility/compatibility-manifest-v0.3.json` 的 `0.3-finalization-candidate.2`；本文只给出
 字段生产方、消费用途和不可由 Schema 单独表达的恢复语义。fixtures 是正负 oracle，不替代 OpenAPI。
 
 V0.3 唯一 surface 为 Responses non-stream、Embeddings non-stream、Models、Responses recovery、Observation
@@ -110,7 +110,9 @@ admission。无 Invocation 且 deadline 已到返回408，优先于缓存429；�
 | active duplicate | 202 `InvocationAccepted` + Location/ID/Retry-After | additional dispatch=0；Seat Held | wait/query/replay original |
 | pre-admission capacity/quota/readiness reject | 429 `AdmissionRejectedEnvelope`，无 Location/Invocation | dispatch=0、Seat=0 | deadline 前同 key/digest/header；expiry 后 CAS 单赢家重评 |
 | deadline before any Invocation | 408 `RequestDeadlineExpiredEnvelope` | dispatch=0、Seat=0 | 终止本次 model obligation；不换 key |
-| Failed / Cancelled / UnknownOutcome | 502 / 409 / 503 `TerminalErrorEnvelope` | release only by durable evidence；Unknown Held | 不 blind redispatch |
+| Failed / UnknownOutcome | 502 / 503 `TerminalErrorEnvelope` | release only by durable evidence；Unknown Held | 不 blind redispatch |
+| Cancelled replay | 409 `InvocationCancelledEnvelope` + real Invocation headers | only durable stop/release evidence releases Seat | 不 blind redispatch |
+| same key / different digest before Invocation | 409 `IdempotencyConflictEnvelope`；无 Invocation/Location headers | dispatch=0、Seat=0 | 不换 key 绕过 conflict |
 | header/body response 全丢失 | 原 POST、原 key/digest/header | 若已有 Invocation只 recovery；未到服务可首次 admission | 不创建第二 logical call |
 | caller deadline 后 backend 晚到成功 | 200 canonical body 可恢复；Invocation 保留 Exceeded fact | backend terminal evidence 后 release | 保存 outcome/usage；Piko 决定 Run，不由 Tier 改写 |
 
@@ -202,7 +204,9 @@ opportunity；不承诺 wall-clock 或成功服务。
 |---|---|---|
 | success/replay | 200 `EmbeddingResponse` + Invocation ID | original POST；additional dispatch=0 |
 | active | 202 `EmbeddingInvocationAccepted` + ID/Retry-After；无 Location | same POST/key/digest/header |
-| Failed/Cancelled/UnknownOutcome | 502/409/503 `TerminalErrorEnvelope` + ID | retryable=false；Unknown不盲重派、不自动过期 |
+| Failed/UnknownOutcome | 502/503 `TerminalErrorEnvelope` + ID | retryable=false；Unknown不盲重派、不自动过期 |
+| Cancelled | 409 `InvocationCancelledEnvelope` + ID | retryable=false；无 Responses Location |
+| same key / different digest before Invocation | 409 `IdempotencyConflictEnvelope`；无 ID/Location | retryable=false；不得伪造 Invocation |
 | response headers/body lost | original POST，原 key/digest/header | 有记录恢复；未到服务且deadline未过可首次 admission |
 | resolved terminal guarantee expired while tombstone proves old key | 410 `IdempotencyRecordExpiredEnvelope` | old key 禁止新 logical invocation；无 Responses GET |
 
