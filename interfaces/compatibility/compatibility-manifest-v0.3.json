@@ -1,5 +1,5 @@
 {
-  "manifest_version": "0.3-finalization-candidate.3",
+  "manifest_version": "0.3-finalization-candidate.4",
   "status": "candidate",
   "overall": {
     "contract_status": "candidate",
@@ -202,6 +202,8 @@
     "areas": ["provider_account_local_deployment", "model_discovery", "service_level_pool", "credential_binding_source_registration_no_dedicated_ui", "probe_readiness", "capacity_usage_audit_recovery"],
     "admin_web_ui_pages": ["service_levels", "providers_models", "usage_cost", "recovery", "audit"],
     "caller_or_session_management_page": false,
+    "source_instance_registration_or_management": false,
+    "source_instance_policy": "optional_unregistered_observation_label_no_admission_or_recovery_effect",
     "secret_policy": "write_only_never_return_value",
     "status": "candidate_not_active",
     "runtime_activation": false,

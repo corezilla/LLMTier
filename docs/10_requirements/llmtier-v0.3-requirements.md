@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-requirements` |
-| Document Version | `0.3.1-draft.6` |
+| Document Version | `0.3.1-draft.7` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -65,7 +65,8 @@ Memory/Knowledge Client 是 Embeddings consumer，管理员使用 Management API
   backend set 内发生，禁止跨等级替换。
 - `PASS` 只表示指定 evidence 层；static PASS 不等于 runtime 或 acceptance PASS。
 - Invocation/IdempotencyDecision 只描述单次模型调用及其丢响应恢复，不是 Agent conversation。Client/Source
-  只用于明确的授权、配额、统计和恢复访问范围；SourceInstance 是可选运维观察标签，不参与幂等或恢复 namespace。
+  只用于明确的授权、配额、统计和恢复访问范围；SourceInstance 是可选且不注册的运维观察标签，不参与幂等或恢复 namespace，
+  不具有 `enabled`/`capacity_policy`，也不影响 authorization、admission 或 capacity selection。
 
 ## 4. 功能需求
 

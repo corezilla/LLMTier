@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.3.1-draft.15` |
+| Document Version | `0.3.1-draft.16` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -795,7 +795,7 @@ digest 覆盖规范化 body 与影响语义的 header。Provider/account identit
 
 ### 10.3 状态表、缓存与持久化
 
-核心业务数据为 Client/Source/SourceInstance、ServiceLevel、Pool/CapacityGroup、Invocation、
+核心业务数据为 Client/Source、ServiceLevel、Pool/CapacityGroup、Invocation、
 CanonicalResponse、Usage、RecoveryItem、AdminJob；Schema authority 见 §11 和附录 A。
 Invocation active 状态 Pending/Queued/Running；terminal 状态 Succeeded/Failed/Cancelled/UnknownOutcome。
 只有真实测得或可归属的 token、费用和队列估计才可写数值；Unknown/Partial 必须保留 null/状态，
@@ -914,6 +914,8 @@ Invocation，但工具结果格式与上下文组装由 Piko adapter 的 pinned 
 
 `Idempotency-Key` 标识同一 logical Invocation；`X-Tier-Client-Request-ID` 只用于关联，不可代替前者。
 `X-Tier-Source-ID` 是已授权的 canonical Source；SourceInstance 仅用于 observation/correlation/audit。
+它不是可注册资源，也没有 `enabled`、`capacity_policy` 或独立生命周期；Management 不提供其 CRUD。
+缺失或变化均不能改变 authorization、admission、capacity、quota、digest、幂等或恢复范围。
 Observation 可在已授权范围按 Source/Instance/Service Level/endpoint/status 过滤与聚合；
 Management 只接受独立管理权限。ETag 验证各 resource 的自身表示，不要求不同 DTO 的 ETag 相等。
 
@@ -984,7 +986,7 @@ GET。首次或成功重放为标准 `200 EmbeddingResponse`；active duplicate 
 且不盲重派。
 无 ID 丢响应按 §6.3 原 POST 重放，超出 request deadline 禁止首次 admission。Knowledge consumer 固定采用
 D=24h、terminal result 与 digest/tombstone 至少 168h；Slinky Knowledge/Observation 已对
-`0.3-finalization-candidate.3` 的该消费语义给出设计确认；这不是把 Responses GET 自动扩展到 Embeddings。
+`0.3-finalization-candidate.4` 的该消费语义给出设计确认；这不是把 Responses GET 自动扩展到 Embeddings。
 active record 保留到 provable terminal；UnknownOutcome
 obligation 保留到人工 reconcile，不以 168h 自动清除。resolved terminal 起至少保留 168h；保证窗口后仍有
 tombstone 时返回 410；不得复用旧 key 创建新的 logical Embedding invocation。
@@ -1199,7 +1201,7 @@ evidence，不能用本文状态替代。
 | Scope B；Chat/SSE 移到 V0.4 | Frozen | `S-20260906-2f9539048493` |
 | M2-C `W=168h`、`M=24h`、`D=24h` | Frozen | `L-20260906-12940a96e148`、`P-20260906-c14b4af35ac3` |
 | Amendment 4 contract candidate | Slinky accepted | `S-20260906-1e12f5e61d73` |
-| V0.3 cross-system finalization | `0.3-finalization-candidate.3`；not active | OpenAPI SHA-256 `915123b66a85a8401d51e1de4f9fc80daf252b3149eb45e828cacf8634dc47d5`；在 candidate.2 上收缩为无 Agent 会话状态网关，并将 SourceInstance 降为可选观察标签；需 Piko/Slinky 对 candidate.3 定向复核 |
+| V0.3 cross-system finalization | `0.3-finalization-candidate.4`；not active | 在 candidate.3 上删除 SourceInstance Management CRUD、`enabled` 与 `capacity_policy`，只保留可选关联标签；工件 hash 由 immutable review commit 固定；需 Piko/Slinky 对 candidate.4 定向复核 |
 | V0.3 单节点 Operational Store 与事务边界 | Proposed；not active | [`llmtier-v0.3-operational-store`](../90_decisions/llmtier-v0.3-operational-store.md)；待 LLMTier owner review |
 
 新 persistence/HA/deployment、队列超时及费用计价等重大选择必须建立 ADR/Contract amendment；
@@ -1212,7 +1214,7 @@ evidence，不能用本文状态替代。
 | LT-RISK-001 | legacy path 在 V0.3 activation 时仍可达 | parallel inference/selector | route/scan evidence 后删除或禁用 | LLMTier | legacy removal PASS |
 | LT-RISK-002 | V0.3 Registry/Ledger/API/UI 未接线 | 目标能力不可用 | 按 §17 实现 | LLMTier | runtime contract tests |
 | LT-RISK-003 | V0.3 persistence 已提出；HA/RPO/RTO 与生产证据未关闭 | M2-C 单节点实现可下钻，多实例/灾备仍无法证明 | 评审 Operational Store ADR；完成 fault/backup/restore test；多实例时重开 ADR | LLMTier | ADR accepted + activation review |
-| LT-RISK-004 | consumer 设计语义已部分确认，但 candidate.3 签署及真实 capture/组合执行未完成 | L3/L7/Embeddings 不能激活 | Piko/Knowledge/Slinky 按 candidate.3 复核后提供 runtime evidence | 接口 Owner | consumer review + runtime gates PASS |
+| LT-RISK-004 | consumer 设计语义已部分确认，但 candidate.4 签署及真实 capture/组合执行未完成 | L3/L7/Embeddings 不能激活 | Piko/Knowledge/Slinky 按 candidate.4 复核后提供 runtime evidence | 接口 Owner | consumer review + runtime gates PASS |
 | LT-RISK-005 | deadline/recovery 消费设计已确认；catalog 限值与运行证据未冻结 | L4 不能激活 | 固定 catalog 数值并执行 deadline/queue/dispatch race tests | LLMTier+consumer | runtime contract/activation PASS |
 | LT-RISK-006 | CostEvidence 精度和 Slinky 消费规则已确认；真实计价/聚合未验证 | L6 硬预算不能激活 | 执行 pricing source、decimal aggregation、Unknown/Partial production tests | LLMTier+Slinky | runtime cost evidence PASS |
 | LT-RISK-008 | V0.3 Admin Web UI 尚未实现且 legacy `/api/tier/*` 页面仍存在 | 双 UI/双写、Secret 与 recovery 操作风险 | 先完成 Web UI 模块设计/ISD，再一次性切换并做 route/security scan | LLMTier | LT-QR-011..014 + legacy removal PASS |
@@ -1231,8 +1233,11 @@ evidence，不能用本文状态替代。
 
 ## A. 数据模型与状态机
 
-核心实体：Client、Source、SourceInstance、Entitlement、ServiceLevel、Pool、CapacityGroup、Provider、
+核心实体：Client、Source、Entitlement、ServiceLevel、Pool、CapacityGroup、Provider、
 Account、Deployment、Invocation、CanonicalResponse、Usage、RecoveryItem、AdminJob。
+
+`source_instance_id` 只是 Invocation/Usage 上的可选 observation/correlation 值，不是受管理实体，
+也不是 Agent Session、Conversation、KV、authorization、admission、capacity 或 recovery identity。
 
 Invocation active 状态为 Pending、Queued、Running；terminal 为 Succeeded、Failed、Cancelled、
 UnknownOutcome。`InvocationAccepted` 不得包含 UnknownOutcome；成功 create、Succeeded replay 与 Response GET

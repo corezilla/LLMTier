@@ -1,5 +1,5 @@
 {
-  "fixture_version": "0.3-finalization-candidate.3",
+  "fixture_version": "0.3-finalization-candidate.4",
   "cases": [
     {
       "id": "caller-supplies-complete-current-input",
@@ -40,7 +40,26 @@
         "authorization_scope_unchanged": true,
         "idempotency_namespace_unchanged": true,
         "recovery_scope_unchanged": true,
-        "conversation_or_kv_identity_created": false
+        "conversation_or_kv_identity_created": false,
+        "managed_resource_created": false,
+        "admission_or_capacity_policy_selected": false
+      }
+    },
+    {
+      "id": "source-instance-has-no-management-lifecycle",
+      "request": {
+        "management_paths": [
+          "/tier/admin/v1/source-instances",
+          "/tier/admin/v1/source-instances/{source_instance_id}"
+        ],
+        "proposed_fields": ["enabled", "capacity_policy"]
+      },
+      "expected": {
+        "paths_present": false,
+        "schemas_present": false,
+        "can_authorize_or_block_admission": false,
+        "can_change_idempotency_or_recovery_scope": false,
+        "can_select_isolated_capacity": false
       }
     },
     {

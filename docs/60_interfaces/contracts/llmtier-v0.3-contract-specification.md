@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | llmtier-v0.3-contract-specification |
-| Document Version | 0.3.1-draft.7 |
+| Document Version | 0.3.1-draft.8 |
 | Status | In Review |
 | Project | LLMTier |
 | Authority | LLMTier |
@@ -74,7 +74,8 @@ ErrorEnvelope、TerminalErrorEnvelope、InvocationCancelledEnvelope 和 Idempote
 Metadata 的 Schema maxLength 之外还必须执行 64/512 UTF-8 encoded-byte validator。canonical
 Service Level ID exact、大小写敏感；Client/Source identity 由 authenticated binding 和授权决定。
 SourceInstance 是 optional observation/correlation metadata，不是 Session/Conversation/KV identity，也不进入
-idempotency/recovery namespace。
+idempotency/recovery namespace。它不是可注册的 Management resource；V0.3 不提供 SourceInstance CRUD，
+也没有 `enabled` 或 `capacity_policy` 可影响 authorization、admission、capacity selection 或 recovery。
 示例不能放宽 required、additionalProperties、enum、range 或 encoded-byte 约束。
 
 ## 4. 状态、错误和 blocker catalog
@@ -154,7 +155,7 @@ Management credential 与 Data Plane/Observation 分离。Account secret 只写�
 
 ## 8. 版本、兼容性与迁移
 
-当前 contract version 是 `0.3-finalization-candidate.3`。Scope B 只含 Responses non-stream、Embeddings
+当前 contract version 是 `0.3-finalization-candidate.4`。Scope B 只含 Responses non-stream、Embeddings
 non-stream、Models、Invocation/Response recovery、Observation 和 Management。Chat/SSE/streaming
 属于 V0.4，不能以 alias、translation、provider passthrough 或 inactive endpoint 进入 V0.3。
 

@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | llmtier-v0.3-cross-system-finalization |
-| Document Version | 0.3.0-rc.3 |
+| Document Version | 0.3.0-rc.4 |
 | Status | In Review |
 | Project | LLMTier |
 | Authority | LLMTier |
@@ -32,7 +32,7 @@
 
 本包关闭 Slinky `S-20260916-191ab7c8184c` 要求的 LLMTier 跨系统设计。唯一机器权威是
 `interfaces/openapi/llmtier-v0.3.openapi.json` 与
-`interfaces/compatibility/compatibility-manifest-v0.3.json` 的 `0.3-finalization-candidate.3`；本文只给出
+`interfaces/compatibility/compatibility-manifest-v0.3.json` 的 `0.3-finalization-candidate.4`；本文只给出
 字段生产方、消费用途和不可由 Schema 单独表达的恢复语义。fixtures 是正负 oracle，不替代 OpenAPI。
 
 V0.3 唯一 surface 为 Responses non-stream、Embeddings non-stream、Models、Responses recovery、Observation
@@ -69,6 +69,11 @@ message/tool-call/tool-result/provider-continuation 只作为冻结请求/响应
 | `X-Tier-Invocation-ID` | LLMTier durable ledger identity | Invocation 已建立后 required | Responses 可 query；Embeddings 仅 correlation/POST lookup |
 | `Retry-After` | LLMTier admission/active observation | integer seconds >=0 | 建议，不是 reservation；不会改变原 deadline |
 | `ETag` / `If-None-Match` | 各 endpoint representation | endpoint 声明处使用 | 仅校验本 DTO；不得要求不同 DTO ETag 字面相同 |
+
+`source_instance_id` 无独立生命周期或 policy authority。candidate.4 删除 SourceInstance Management paths、
+schemas、`enabled` 与 `capacity_policy`；该标签不能授权或阻断调用、选择隔离容量、改变 quota、公平调度、
+digest、幂等 namespace 或 recovery scope。Observation 中 required-but-nullable 的字段用于区分“本次未提供”
+与“不合约地缺字段”；有值过滤只是已授权结果集内的相关性过滤，不形成新的授权边界。
 
 ## 3. Responses、tool loop 与恢复逐字段表
 

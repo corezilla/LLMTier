@@ -274,7 +274,7 @@ class ContractSemanticsV03Tests(unittest.TestCase):
     def test_candidate_prose_tracks_finalization_candidate_without_approved_claims(self):
         contract = (ROOT / "docs" / "60_interfaces" / "contracts" / "llmtier-v0.3-contract-specification.md").read_text()
         piko = (ROOT / "docs" / "60_interfaces" / "piko-data-plane-control.md").read_text()
-        self.assertIn("0.3-finalization-candidate.3", contract)
+        self.assertIn("0.3-finalization-candidate.4", contract)
         self.assertNotIn("candidate Amendment 7", contract)
         self.assertIn("In Review contract index", contract)
         self.assertIn("In Review consumer-boundary prose candidate", piko)
@@ -490,11 +490,16 @@ class ContractSemanticsV03Tests(unittest.TestCase):
         source_instance = self.openapi["components"]["parameters"]["SourceInstanceID"]
         self.assertFalse(source_instance["required"])
         self.assertEqual(["string", "null"], self.openapi["components"]["schemas"]["InvocationView"]["properties"]["source_instance_id"]["type"])
+        self.assertNotIn("/tier/admin/v1/source-instances", self.openapi["paths"])
+        self.assertNotIn("/tier/admin/v1/source-instances/{source_instance_id}", self.openapi["paths"])
+        for schema_name in ["SourceInstanceCreate", "SourceInstanceUpdate", "SourceInstanceView", "SourceInstancePage"]:
+            self.assertNotIn(schema_name, self.openapi["components"]["schemas"])
         fixture = self.load(FIXTURES / "v0.3" / "stateless-gateway-boundary-fixtures.json")
         cases = {case["id"]: case for case in fixture["cases"]}
         self.assertFalse(cases["caller-supplies-complete-current-input"]["expected"]["llmtier_loads_prior_agent_history"])
         self.assertFalse(cases["tool-result-is-next-call-input-not-tier-session"]["expected"]["llmtier_executes_tool"])
         self.assertTrue(cases["source-instance-is-optional-observation-label"]["expected"]["both_contract_valid"])
+        self.assertFalse(cases["source-instance-has-no-management-lifecycle"]["expected"]["paths_present"])
         self.assertEqual(0, cases["lost-response-recovery-is-single-call-only"]["expected"]["additional_backend_dispatch_count"])
 
     def test_system_design_uses_machine_recovery_item_dispositions(self):
@@ -523,7 +528,6 @@ class ContractSemanticsV03Tests(unittest.TestCase):
             "/tier/admin/v1/pools", "/tier/admin/v1/pools/{pool_id}",
             "/tier/admin/v1/clients", "/tier/admin/v1/clients/{client_id}", "/tier/admin/v1/clients/{client_id}/credentials",
             "/tier/admin/v1/sources", "/tier/admin/v1/sources/{source_id}",
-            "/tier/admin/v1/source-instances", "/tier/admin/v1/source-instances/{source_instance_id}",
             "/tier/admin/v1/capacity-groups", "/tier/admin/v1/capacity-groups/{capacity_group_id}",
             "/tier/admin/v1/entitlements", "/tier/admin/v1/entitlements/{entitlement_id}",
             "/tier/admin/v1/discovery/jobs", "/tier/admin/v1/probe/jobs", "/tier/admin/v1/jobs", "/tier/admin/v1/jobs/{job_id}",
