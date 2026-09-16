@@ -131,7 +131,7 @@ class StdMigrationTests(unittest.TestCase):
     def test_system_design_contains_c4_hierarchy_runtime_and_deployment_diagrams(self):
         path = ROOT / "docs" / "20_system_design" / "llmtier-system-design.md"
         text = path.read_text(encoding="utf-8")
-        self.assertEqual(5, text.count("```mermaid"))
+        self.assertEqual(8, text.count("```mermaid"))
         self.assertIn("#### System Context（C4 Level 1）", text)
         self.assertIn("### 5.1 Container View（C4 Level 2）", text)
         self.assertIn("### 5.2 LLMTier Service Component View（C4 Level 3 / arc42 Level-1 Whitebox）", text)
@@ -139,7 +139,9 @@ class StdMigrationTests(unittest.TestCase):
         self.assertIn('subgraph Service["LLMTier Service application — 单一进程边界"]', text)
         self.assertIn('DP["Data Plane Controller<br/>/v1"]', text)
         self.assertIn('OBS["Observation Controller<br/>/tier/v1"]', text)
-        self.assertIn('MGT["Management Controller + Admin UI<br/>/tier/admin/v1"]', text)
+        self.assertIn('WEB["Admin Web UI Presentation<br/>/admin/"]', text)
+        self.assertIn('MGT["Management Controller<br/>/tier/admin/v1"]', text)
+        self.assertIn('WEB -->|"同源 HTTPS/JSON；不含领域状态机"| MGT', text)
         self.assertIn('REG["Service Level Registry"]', text)
         self.assertIn('LEDGER["Invocation / Idempotency State Machine"]', text)
         self.assertIn("图例：深蓝是接口层", text)

@@ -1,5 +1,5 @@
 {
-  "manifest_version": "0.3-finalization-candidate.2",
+  "manifest_version": "0.3-finalization-candidate.3",
   "status": "candidate",
   "overall": {
     "contract_status": "candidate",
@@ -17,6 +17,17 @@
     "format": "openapi-3.1-json",
     "path": "openapi/llmtier-v0.3.openapi.json",
     "runtime_activation": false
+  },
+  "architecture_boundary": {
+    "default_pattern": "stateless_openai_compatible_gateway",
+    "caller_supplies_complete_input_per_logical_call": true,
+    "llmtier_agent_session_or_conversation_state": false,
+    "llmtier_context_compression": false,
+    "llmtier_tool_execution": false,
+    "llmtier_backend_kv_cache_management": false,
+    "provider_continuation_fields": "opaque_contract_fields_only",
+    "invocation_purpose": "single_call_admission_metering_and_lost_response_recovery",
+    "custom_extension_rule": "document_specific_need_standard_gap_minimal_scope_and_compatibility_cost_before_contract_change"
   },
   "activation": {
     "capability_contract_status_required_for_activation": "verified",
@@ -181,13 +192,16 @@
     "active": {"recovery_ready": false, "recovery_disposition": "wait"},
     "succeeded_responses": {"recovery_ready": true, "recovery_disposition": "retrieve_response"},
     "failed_or_cancelled": {"recovery_ready": true, "recovery_disposition": "raise_terminal_error"},
-    "unknown_outcome": {"recovery_ready": true, "recovery_disposition": "manual_reconcile", "automatic_redispatch": false}
+    "unknown_outcome": {"recovery_ready": true, "recovery_disposition": "manual_reconcile", "automatic_redispatch": false},
+    "source_instance_policy": "optional_observation_correlation_only_not_namespace_or_digest"
   },
   "management": {
     "api_prefix": "/tier/admin/v1",
     "api_support": "candidate_required",
     "admin_web_ui_support": "candidate_required",
-    "areas": ["provider_account_local_deployment", "model_discovery", "service_level_pool", "client_source_entitlement", "probe_readiness", "capacity_usage_audit_recovery"],
+    "areas": ["provider_account_local_deployment", "model_discovery", "service_level_pool", "credential_binding_source_registration_no_dedicated_ui", "probe_readiness", "capacity_usage_audit_recovery"],
+    "admin_web_ui_pages": ["service_levels", "providers_models", "usage_cost", "recovery", "audit"],
+    "caller_or_session_management_page": false,
     "secret_policy": "write_only_never_return_value",
     "status": "candidate_not_active",
     "runtime_activation": false,
@@ -219,7 +233,8 @@
     "fixtures/v0.3/recovery-protocol-fixtures.json",
     "fixtures/v0.3/data-plane-openapi-fixtures.json",
     "fixtures/v0.3/deferred-surface-fail-closed.json",
-    "fixtures/v0.3/observation-management-openapi-fixtures.json"
+    "fixtures/v0.3/observation-management-openapi-fixtures.json",
+    "fixtures/v0.3/stateless-gateway-boundary-fixtures.json"
   ],
   "effective_at": null
 }

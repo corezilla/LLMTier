@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | llmtier-v0.3-contract-specification |
-| Document Version | 0.3.1-draft.6 |
+| Document Version | 0.3.1-draft.7 |
 | Status | In Review |
 | Project | LLMTier |
 | Authority | LLMTier |
@@ -39,6 +39,10 @@ request/response、status、typed error 与 Schema 唯一字段级 authority。c
 capability support、SDK matrix、overall contract status 和 runtime activation 的机器 authority；
 当前 overall.contract_status=candidate 且 overall.runtime_activation=false。
 
+V0.3 的默认模型调用边界是无 Agent 会话状态的 OpenAI-compatible gateway：consumer 为每次 logical call
+提交完整当前 input；LLMTier 不持有 Agent history/Conversation、不开 tool loop、不管理或匹配 backend KV。
+Invocation/idempotency 仅用于单次调用准入、计量和丢响应恢复。
+
 三份 `docs/60_interfaces/` interface control 解释双方职责和 failure/recovery rationale，不得覆盖机器字段。fixtures 与
 tests 是 oracle/evidence，不能取代 Contract 定义。v0.1/v0.2 文件只作 historical/provenance。
 
@@ -69,6 +73,8 @@ ErrorEnvelope、TerminalErrorEnvelope、InvocationCancelledEnvelope 和 Idempote
 
 Metadata 的 Schema maxLength 之外还必须执行 64/512 UTF-8 encoded-byte validator。canonical
 Service Level ID exact、大小写敏感；Client/Source identity 由 authenticated binding 和授权决定。
+SourceInstance 是 optional observation/correlation metadata，不是 Session/Conversation/KV identity，也不进入
+idempotency/recovery namespace。
 示例不能放宽 required、additionalProperties、enum、range 或 encoded-byte 约束。
 
 ## 4. 状态、错误和 blocker catalog
@@ -135,11 +141,12 @@ active 202 EmbeddingInvocationAccepted、502/409/503 typed terminal；不使用 
 consumer 签署方，不存在未定义第四方。UnknownOutcome obligation 不由168h自动清除；保证期后 tombstone
 证明旧 key 时返回410 `IdempotencyRecordExpiredEnvelope`，不得创建新 logical invocation。
 
-## 7. 身份、权限、Secret 与多项目隔离
+## 7. 身份、权限、Secret 与调用边界
 
 Authorization 绑定 canonical client_id；X-Tier-Source-Id 必须被该 Client 授权；
-source_instance_id 只用于 correlation/observation/audit。Data Plane recovery scope 固定为
+source_instance_id 只用于可选 correlation/observation/audit。Data Plane recovery scope 固定为
 authenticated client + canonical source。Observation multi-source aggregate 不扩大 recovery scope。
+这些字段不建立 Agent 会话或商业多租户模型；Admin Web UI 不提供调用方/会话生命周期页面。
 
 Management credential 与 Data Plane/Observation 分离。Account secret 只写不读；Client credential
 仅在创建时返回一次，之后只暴露 fingerprint/status。所有 list/detail/UI/log/audit 禁止 secret 和
@@ -147,7 +154,7 @@ Management credential 与 Data Plane/Observation 分离。Account secret 只写�
 
 ## 8. 版本、兼容性与迁移
 
-当前 contract version 是 `0.3-finalization-candidate.2`。Scope B 只含 Responses non-stream、Embeddings
+当前 contract version 是 `0.3-finalization-candidate.3`。Scope B 只含 Responses non-stream、Embeddings
 non-stream、Models、Invocation/Response recovery、Observation 和 Management。Chat/SSE/streaming
 属于 V0.4，不能以 alias、translation、provider passthrough 或 inactive endpoint 进入 V0.3。
 
@@ -156,7 +163,7 @@ Registry、fixtures 和 SDK matrix 同步。本文的 STD 迁移不改变任何 
 
 ## 9. Positive/Negative fixture 与 validator
 
-v0.3 fixtures 包括 authorization scope、capacity semantic negative、Data Plane OpenAPI、
+v0.3 fixtures 包括 stateless gateway boundary、authorization scope、capacity semantic negative、Data Plane OpenAPI、
 deferred-surface fail-closed、idempotency policy、metadata UTF-8 byte、Observation/Management OpenAPI
 和 recovery protocol。它们保持在 interfaces/vectors/v0.3/。
 

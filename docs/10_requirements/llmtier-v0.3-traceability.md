@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-traceability` |
-| Document Version | `0.3.1-draft.4` |
+| Document Version | `0.3.1-draft.5` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -43,7 +43,7 @@ production evidence 的行不得标为 covered/accepted。
 | Need | Requirement | Design | Interface/Contract | Implementation | Verification/Test | Evidence | Status |
 |---|---|---|---|---|---|---|---|
 | 唯一安全推理入口 | LT-FUN-001、LT-INT-001 | system design §1-5 | Piko control；OpenAPI；manifest | V0.3 route wiring 未证明 | CT-DP-001、CT-ID-001 | fixture/semantic tests | static-covered；blocked-runtime |
-| Piko 多轮工具交互 | LT-FUN-008 | system design §4/11.2 | Piko control；Responses schemas | LLMTier 不执行工具；真实 adapter capture 未证明 | CT-DP-001 | schema fixture + Piko capture | static-covered；consumer/runtime blocked |
+| 无 Agent 会话状态的模型调用与工具交互 | LT-FUN-008/009、LT-INT-006 | system design §2.1/§4/§11.2 | Piko control；OpenAPI boundary extension；Responses schemas | LLMTier 不保存历史、不执行工具、不管理 KV；真实 adapter capture 未证明 | CT-BOUNDARY-001、CT-DP-001 | stateless boundary fixture + schema fixture + Piko capture | static-covered；consumer/runtime blocked |
 | 单一 catalog 与准确选择 | LT-FUN-002、LT-INT-001 | system design §4/5/8 | contract spec；OpenAPI/manifest | Registry/admission wiring 未证明 | CT-REG-001 | manifest/ref/authority tests | static-covered；blocked-runtime |
 | durable recovery | LT-FUN-003/006、LT-INT-004、LT-REL-001/003/004 | system design §6/8/11、附录 C | Piko control；OpenAPI | durable ledger/store 未证明 | CT-REC-001/002、CT-DEADLINE-001、CT-EMB-REC-001 | recovery/deadline/Embedding fixtures | static-covered；consumer/runtime blocked |
 | admission 与只读 Seat/Observation | LT-FUN-004、LT-INT-005、LT-CAP-001/002/003/004/005 | system design §3-6/10-13、附录 E | Piko/Slinky controls；OpenAPI | admission/Observation routes 未证明 | CT-ADM-001、CT-OBS-001、CT-DEADLINE-001 | admission/capacity/deadline fixtures | static-covered；runtime/Slinky E2E blocked |
@@ -78,5 +78,6 @@ pre-commit Gate 分别保留证据。requirements 或 machine contract 变化时
 对应 evidence/status，不把局部 PASS 推导成 Runtime Activation。RAG publication 与
 Runtime Activation 保持独立 Gate。
 
-2026-09-09 的维护把当前路径/CLI/配置状态映射加入 LT-FUN-007、LT-DEP-003/004；没有修改
-`interfaces/` 下的字段级机器契约，production gaps 和 activation 判定保持不变。
+2026-09-09 的维护把当前路径/CLI/配置状态映射加入 LT-FUN-007、LT-DEP-003/004。
+2026-09-16 将无 Agent Session/Conversation/KV mapping 的主流网关边界加入 LT-FUN-009/LT-INT-006，
+并以 CT-BOUNDARY-001 固定 SourceInstance 的可选观察用途；production gaps 和 activation 判定保持不变。

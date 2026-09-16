@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-requirements` |
-| Document Version | `0.3.1-draft.5` |
+| Document Version | `0.3.1-draft.6` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -43,7 +43,9 @@ admission/capacity、idempotency/retention、安全、可观测性与 activation
 LLMTier 是单一独立模型服务。Piko 是 Agent Runtime consumer，Slinky 是只读 Observation consumer，
 Memory/Knowledge Client 是 Embeddings consumer，管理员使用 Management API/UI。唯一 IR-backed inference
 链路是 `Runtime -> Piko -> LLMTier -> Provider/Local Deployment`。LLMTier 不执行 Agent tool loop，
-不组合 Project/Plan/IR，也不向 consumer 暴露 Provider credential 或 physical routing。
+不组合 Project/Plan/IR，也不向 consumer 暴露 Provider credential 或 physical routing。Piko/Knowledge 为每次
+模型调用提交完整的当前输入；LLMTier 不拥有 Agent Session/Conversation、不保存或压缩 Agent 历史，且不管理、
+匹配、迁移或暴露后端 KV cache identity。
 
 生命周期覆盖配置、Registry publish、启动、admission/dispatch、recovery、Observation、管理、升级、回滚
 与退役。当前仅冻结 contract/design candidate；production implementation 和 Runtime Activation 尚未完成。
@@ -62,6 +64,8 @@ Memory/Knowledge Client 是 Embeddings consumer，管理员使用 Management API
 - Service Level ID 是 catalog ID，不是 Role；fallback 仅可在 LLMTier 内同一 Service Level 的 approved
   backend set 内发生，禁止跨等级替换。
 - `PASS` 只表示指定 evidence 层；static PASS 不等于 runtime 或 acceptance PASS。
+- Invocation/IdempotencyDecision 只描述单次模型调用及其丢响应恢复，不是 Agent conversation。Client/Source
+  只用于明确的授权、配额、统计和恢复访问范围；SourceInstance 是可选运维观察标签，不参与幂等或恢复 namespace。
 
 ## 4. 功能需求
 
@@ -71,10 +75,11 @@ Memory/Knowledge Client 是 Embeddings consumer，管理员使用 Management API
 | LT-FUN-002 | LLMTier shall 使用单一 Service Level Registry 驱动 Models、Observation、admission、capacity membership 与 manifest | design §5 | P0 | CT-REG-001 | Candidate/static PASS；runtime BLOCKED |
 | LT-FUN-003 | LLMTier shall 先持久化 idempotency decision；仅 admission 成功才原子授予 Seat 并创建 Invocation/dispatch intent，且在 backend dispatch 前形成 recovery obligation | design §6/10；Piko control | P0 | CT-ADM-001/CT-REC-001/002 | Candidate/static PASS；runtime BLOCKED |
 | LT-FUN-004 | LLMTier shall 提供 Client-scoped、只读 Observation，并表达 readiness、capacity、Invocation、usage 与 compatibility | Slinky control | P0 | CT-OBS-001 | Static PASS；Slinky E2E BLOCKED |
-| LT-FUN-005 | LLMTier shall 通过 `/tier/admin/v1` 与最小 Admin UI 管理 Registry、Provider、Client/Source、capacity、Job、audit 与 recovery | Management control | P0 | CT-MGT-001 | Static PASS；implementation BLOCKED |
+| LT-FUN-005 | LLMTier shall 通过 `/tier/admin/v1` 与最小 Admin UI 管理 Registry、Provider、capacity、Job、usage、audit 与 recovery；Client/Source credential binding 不形成独立调用方/会话管理页面 | Management control | P0 | CT-MGT-001 | Static PASS；implementation BLOCKED |
 | LT-FUN-006 | LLMTier shall 对 UnknownOutcome 只允许 manual reconcile，不自动 redispatch | Piko/Management controls | P0 | CT-REC-002 | Fixture PASS；runtime BLOCKED |
 | LT-FUN-007 | LLMTier shall 作为独立 Python 服务提供唯一 service/operator entry point，并将现有 legacy API 与未激活 V0.3 API 明确区分 | system design §5/7；operations | P1 | CT-PKG-001/CT-OPS-001 | Current CLI PASS；V0.3 runtime BLOCKED |
-| LT-FUN-008 | V0.3 Responses non-stream shall 接受多轮 message、声明 function tools、返回 function_call，并接受相同 call_id 的 function_call_output；LLMTier shall 不执行工具 | Slinky L3；Piko control；design §11.2 | P0 | CT-DP-001/Piko capture | Schema candidate PASS；consumer/runtime BLOCKED |
+| LT-FUN-008 | V0.3 Responses non-stream shall 接受调用方为当次 logical call 提交的完整 input，包括 message、function tools、function_call 与相同 call_id 的 function_call_output；LLMTier shall 只校验/透传且不保存历史、不执行工具 | Slinky L3；Piko control；design §2.1/§11.2 | P0 | CT-DP-001/Piko capture | Schema candidate PASS；consumer/runtime BLOCKED |
+| LT-FUN-009 | LLMTier shall 采用无 Agent 会话状态的 OpenAI-compatible 网关边界，不创建 Session/Conversation/KV mapping；任何偏离主流接口的扩展 shall 记录具体需求、标准不足、最小范围及兼容成本 | 用户设计原则；design §2.1 | P0 | CT-BOUNDARY-001 | Candidate/static PASS；runtime BLOCKED |
 
 ## 5. 接口需求
 
@@ -85,6 +90,7 @@ Memory/Knowledge Client 是 Embeddings consumer，管理员使用 Management API
 | LT-INT-003 | OpenAPI v0.3 shall 是字段级唯一机器接口 authority；Markdown 不得形成第二 Schema | OpenAPI + contract spec | CT-MIG-001 | Static PASS |
 | LT-INT-004 | active `202`、terminal response/error、Location、Invocation ID 与 Retry-After shall 符合 recovery contract | OpenAPI | CT-REC-001 | Fixture PASS；runtime BLOCKED |
 | LT-INT-005 | Observation list/detail shall 支持冻结的 filter、pagination、ETag/304 与 typed errors | OpenAPI | CT-OBS-001 | Static PASS；runtime BLOCKED |
+| LT-INT-006 | `X-Tier-Source-Instance-ID` shall 为可选 observation/correlation metadata；缺失不得改变授权、幂等、恢复或模型上下文，存在时不得被解释为 Session/Conversation/KV identity | OpenAPI + manifest | CT-BOUNDARY-001/CT-AUTH-001 | Static PASS；runtime BLOCKED |
 
 ## 6. 性能与容量需求
 
@@ -101,7 +107,7 @@ Memory/Knowledge Client 是 Embeddings consumer，管理员使用 Management API
 
 | Requirement ID | Shall statement | Verification | Status |
 |---|---|---|---|
-| LT-SEC-001 | authenticated Client 与 canonical Source shall 构成授权/恢复隔离边界，禁止跨 Client/Source 数据泄露 | CT-AUTH-001/CT-SEC-001 | Static PASS；runtime BLOCKED |
+| LT-SEC-001 | authenticated Client 与 canonical Source shall 构成授权、配额、统计及调用级恢复访问边界，禁止跨授权读取；该边界不得被解释为 Agent 会话或 KV/cache 隔离 | CT-AUTH-001/CT-SEC-001 | Static PASS；runtime BLOCKED |
 | LT-SEC-002 | Provider credential shall 只写不读，且不得进入 consumer DTO、日志或 evidence | CT-MGT-001/CT-SEC-001 | Static shape PASS；runtime BLOCKED |
 | LT-REL-001 | terminal digest/tombstone、Invocation view 与 canonical Response shall 在 terminal 后至少保留 168h；自动恢复 deadline 为 24h | CT-REC-002 | Fixture PASS；durability BLOCKED |
 | LT-REL-002 | 不支持、未知、未授权、过期或未激活的输入 shall fail closed，不得 silent compatibility expansion | negative cases | Static PASS；runtime BLOCKED |
@@ -139,9 +145,10 @@ Memory/Knowledge Client 是 Embeddings consumer，管理员使用 Management API
 
 ## 11. 未决问题与变更历史
 
-未决：production persistence/HA/RPO/RTO、Admin UI 技术栈、provider measured SLO、真实多 Client 隔离、
+未决：production persistence/HA/RPO/RTO、Admin UI 实现细节、provider measured SLO、真实授权边界、
 Piko/Slinky/Embeddings consumer evidence。它们不阻止 requirements migration candidate，但阻止相关
 Document Status/operations conclusion 或 Runtime Activation。
 
 - 2026-09-07：C3 首版从现有 V0.3 design/contract/QA authority 提取；未新增业务语义。
 - 2026-09-09：按独立项目现状补齐 repo path、配置/状态 authority 与 CLI 使用约束；机器契约不变。
+- 2026-09-16：明确无 Agent 会话状态的主流网关边界；SourceInstance 降为可选运维观察标签；删除调用方管理页面假设。

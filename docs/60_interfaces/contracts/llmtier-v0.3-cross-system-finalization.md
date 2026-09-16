@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | llmtier-v0.3-cross-system-finalization |
-| Document Version | 0.3.0-rc.2 |
+| Document Version | 0.3.0-rc.3 |
 | Status | In Review |
 | Project | LLMTier |
 | Authority | LLMTier |
@@ -32,12 +32,19 @@
 
 本包关闭 Slinky `S-20260916-191ab7c8184c` 要求的 LLMTier 跨系统设计。唯一机器权威是
 `interfaces/openapi/llmtier-v0.3.openapi.json` 与
-`interfaces/compatibility/compatibility-manifest-v0.3.json` 的 `0.3-finalization-candidate.2`；本文只给出
+`interfaces/compatibility/compatibility-manifest-v0.3.json` 的 `0.3-finalization-candidate.3`；本文只给出
 字段生产方、消费用途和不可由 Schema 单独表达的恢复语义。fixtures 是正负 oracle，不替代 OpenAPI。
 
 V0.3 唯一 surface 为 Responses non-stream、Embeddings non-stream、Models、Responses recovery、Observation
 和 Management。Chat、SSE、streaming、跨等级 fallback、alias、Provider-direct path 均不存在。所有 runtime
 activation 继续为 false。
+
+### 1.1 主流无状态网关边界
+
+Piko/Knowledge 为每个 logical model call 提交完整当前 input。LLMTier 不拥有 Agent Session/Conversation，
+不保存、拼接或压缩 Agent 历史，不执行工具，也不创建、匹配、迁移或暴露 backend KV cache identity。
+message/tool-call/tool-result/provider-continuation 只作为冻结请求/响应字段校验和透传。Invocation、幂等记录与
+结果保留只解决单次调用的准入、计量和响应丢失恢复；不得承载 Agent 上下文或恢复 conversation。
 
 ## 2. Operation、鉴权与公共字段
 
@@ -56,7 +63,7 @@ activation 继续为 false。
 | `Idempotency-Key` | caller 产生；LLMTier namespace lookup | POST required，1..255 bytes；无 default | namespace identity；重启、无 ID 重放逐字节复用；换 key 不是恢复 |
 | `X-Tier-Client-Request-ID` | caller correlation；日志/观察定位 | required，1..255 | 不替代 idempotency key；按 OpenAPI canonical digest policy处理 |
 | `X-Tier-Source-ID` | caller 提供、LLMTier 授权；恢复 scope | required，1..255，exact authorized value | namespace/digest identity；不得在重放时改变 |
-| `X-Tier-Source-Instance-ID` | caller runtime instance；观察/audit | POST required，1..255 | correlation only；不建立重启恢复隔离边界 |
+| `X-Tier-Source-Instance-ID` | caller 可选 runtime label；观察/audit | optional，缺失或 1..255；无 default | correlation only；不进入 digest/namespace；不建立 Session/Conversation/KV 或重启恢复隔离边界 |
 | `X-Tier-Deadline-At` | Piko/Knowledge 首次请求产生；LLMTier deadline | required；RFC3339 UTC exactly `YYYY-MM-DDTHH:mm:ss.SSSZ` | semantic digest；重试/重启 byte-identical；同 key 改值=409；不得推进 |
 | `Location` | LLMTier Responses Invocation reference | Invocation 已建立的 Responses 202/terminal required | 只为 `/v1/invocations/{id}`；Embeddings 禁止返回 |
 | `X-Tier-Invocation-ID` | LLMTier durable ledger identity | Invocation 已建立后 required | Responses 可 query；Embeddings 仅 correlation/POST lookup |
@@ -71,11 +78,11 @@ OpenAPI 的 `required`、nullability、enum、range 与 `additionalProperties:fa
 | Schema.field | 生产方 / 消费用途 | 值与行为 |
 |---|---|---|
 | `ResponsesRequest.model` | Piko 选取 Registry exact ID；LLMTier routing | required exact-case；进入 digest；禁止 alias/fallback |
-| `.input` | Piko 多轮上下文；LLMTier provider normalization | required string 或非空 `ResponseInputItem[]`；完整进入 digest |
+| `.input` | Piko 生成的当次完整 input；LLMTier 只做 contract/capability validation 与 provider normalization | required string 或非空 `ResponseInputItem[]`；完整进入 digest；LLMTier 不补历史 |
 | `.instructions`, `.temperature`, `.top_p`, `.max_output_tokens`, `.reasoning` | Piko inference semantics | optional、无隐式跨 provider 降级；存在时进入 digest |
 | `.tools`, `.tool_choice`, `.parallel_tool_calls` | Piko 声明工具；模型只输出 tool call | optional；LLMTier 不执行工具；存在时进入 digest |
 | `.text`, `.store`, `.metadata`, `.stream` | response format/storage/correlation/mode | `stream` 只能 false；metadata 最多16项且 key/value 64/512 UTF-8 bytes；均按 canonicalizer 入 digest |
-| `ResponseMessageInput.type/role/content` | Piko 产生多轮 message | type=`message`；role user/assistant/system/developer；content 为 text/image parts；required |
+| `ResponseMessageInput.type/role/content` | Piko 从本地 Agent history 组装进当次 input | type=`message`；role user/assistant/system/developer；content 为 text/image parts；required；不形成 Tier 会话 |
 | `ResponseFunctionCallInput.type/call_id/name/arguments` | Piko 回放 assistant tool call | required；arguments 为 JSON string；call_id 关联 result |
 | `ResponseFunctionOutputInput.type/call_id/output` | Piko 执行工具后回传 | required；LLMTier 仅传模型，不解释/执行 tool |
 | `FunctionTool.type/name/description/parameters/strict` | Piko tool schema | type=`function`；name/parameters required；全部进入 digest |
@@ -228,6 +235,11 @@ alias 和旧 standalone Data Plane schema 一次性从 supported contract 删除
 | A 跨系统设计 | CLOSED BY CANDIDATE | endpoint/header/schema/error、deadline/digest、tool loop、recovery、capacity/usage/cost/fairness、Embeddings窗口与退役版本均有唯一候选；等待 Piko/Slinky 对精确版本签署 |
 | B LLMTier内部下游设计 | 后续内部工作 | durable store物理模型、provider adapter、scheduler数据结构、Admin UI页面、部署/HA/密钥后端；不得改变A |
 | C 联调验证 | NOT RUN | Piko/Knowledge exact fixture capture、crash/lost response、retention clock、fairness/isolation、legacy removal、production wiring |
+
+偏离标准同步 OpenAI-compatible 调用的 V0.3 扩展只有 exact Service Level、服务端 admission/capacity、统一
+usage/cost 和调用级丢响应恢复。其特殊需求分别是隐藏物理 Provider、保护有限并发、统一运营证据及避免
+transport failure 后重复 backend dispatch/计费；最小兼容成本是 exact model ID、429/202/typed terminal 与
+两个 Responses recovery GET。它们不授权 Session、KV、项目字段、调用方管理页面或第二 inference path。
 
 A 类没有“实现时再确认”的字段。Reviewer 如发现跨方字段冲突，必须针对本候选提出一个替代值；不能把设计选择
 转移到 C。C 未运行只阻止 `runtime_activation=true`，不阻止设计候选签署。

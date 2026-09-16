@@ -1,0 +1,73 @@
+{
+  "fixture_version": "0.3-finalization-candidate.3",
+  "cases": [
+    {
+      "id": "caller-supplies-complete-current-input",
+      "request": {
+        "endpoint": "/v1/responses",
+        "model": "Worker",
+        "input_contains_current_call_context": true,
+        "source_instance_id": null
+      },
+      "expected": {
+        "llmtier_loads_prior_agent_history": false,
+        "llmtier_compresses_context": false,
+        "llmtier_creates_conversation": false,
+        "llmtier_manages_kv_cache": false,
+        "backend_dispatch_count": 1
+      }
+    },
+    {
+      "id": "tool-result-is-next-call-input-not-tier-session",
+      "request": {
+        "endpoint": "/v1/responses",
+        "input_item_types": ["message", "function_call", "function_call_output"]
+      },
+      "expected": {
+        "tool_executed_by": "caller_agent_runtime",
+        "llmtier_executes_tool": false,
+        "llmtier_retains_agent_conversation": false
+      }
+    },
+    {
+      "id": "source-instance-is-optional-observation-label",
+      "requests": [
+        {"source_instance_id": null},
+        {"source_instance_id": "piko-host-1"}
+      ],
+      "expected": {
+        "both_contract_valid": true,
+        "authorization_scope_unchanged": true,
+        "idempotency_namespace_unchanged": true,
+        "recovery_scope_unchanged": true,
+        "conversation_or_kv_identity_created": false
+      }
+    },
+    {
+      "id": "lost-response-recovery-is-single-call-only",
+      "request": {
+        "same_endpoint": true,
+        "same_idempotency_key": true,
+        "same_digest": true,
+        "same_deadline": true
+      },
+      "expected": {
+        "recovers_original_invocation": true,
+        "additional_backend_dispatch_count": 0,
+        "agent_history_restored_by_llmtier": false,
+        "conversation_resumed_by_llmtier": false
+      }
+    },
+    {
+      "id": "forbid-session-or-kv-selector",
+      "request": {
+        "unknown_fields": ["agent_session_id", "conversation_owner", "kv_cache_id"]
+      },
+      "expected": {
+        "accepted": false,
+        "error": "unknown_parameter",
+        "fallback_or_alias": false
+      }
+    }
+  ]
+}

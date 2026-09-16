@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | llmtier-piko-data-plane-control |
-| Document Version | 0.3.1-draft.6 |
+| Document Version | 0.3.1-draft.7 |
 | Status | In Review |
 | Project | LLMTier |
 | Authority | LLMTier |
@@ -42,6 +42,10 @@ routing、Invocation ledger 和 canonical response。
 Piko 不调用 Management/Observation，不理解 Provider、Account、Deployment、Pool 或 Capacity Group。
 LLMTier 不执行 Agent Tool Loop，不接受 Role/IR selector，不提供跨 Service Level fallback。
 
+Piko 为每个新的 logical model call 生成完整的当前 input，并在本地拥有 Agent 历史、压缩/裁剪、tool loop
+和 Run 状态。LLMTier 不保存或补齐历史，不建立 Agent Session/Conversation，不管理或匹配 KV cache。
+Responses 中的 message、tool call、tool result 与 provider continuation 只按冻结 Schema 校验和透传。
+
 ## 2. 接口注册表
 
 | Interface ID | Provider | Consumer | 类型 | Version | Status |
@@ -76,7 +80,8 @@ Schema 的唯一字段级 authority。model 字段等于 exact、大小写敏感
 Junior 是示例合法 ID，lowercase、alias、Role selector 均无效。
 
 Authorization 绑定服务端 client_id；X-Tier-Source-Id 是已授权 canonical source；
-X-Tier-Source-Instance-Id 只用于 correlation/observation；Idempotency-Key 标识 logical invocation；
+X-Tier-Source-Instance-Id 是可选 correlation/observation metadata，缺失不改变授权、配额、幂等或恢复；
+它不是 Agent/Run/Session/Conversation/KV identity。Idempotency-Key 标识单次 logical invocation；
 X-Tier-Client-Request-ID 是 Piko correlation ID；X-Tier-Deadline-At 是调用方 UTC absolute deadline，
 固定为 RFC3339 UTC 毫秒格式 `YYYY-MM-DDTHH:mm:ss.SSSZ`，且必须小于等于 Piko task deadline。
 它是 semantic header，进入 canonical digest；replay 必须逐字节相同，不得推进。缺失/非法分别返回
@@ -99,7 +104,8 @@ canonical Response。UnknownOutcome 只能 manual reconcile。
 
 ## 6. 错误、timeout、重试、幂等和恢复
 
-idempotency namespace 固定覆盖 canonical client_id、canonical source_id、endpoint/version 和 key；
+idempotency namespace 固定覆盖 canonical client_id、canonical source_id、endpoint/version 和 key；可选
+source_instance_id 不进入 namespace 或 semantic digest。该 namespace 是调用级访问边界，不是模型会话。
 digest 覆盖 exact Service Level、规范化 body 和影响语义的 headers。同 key 不同 digest 返回不可重试
 409 idempotency_conflict，并引用既存 Invocation。
 
@@ -166,7 +172,7 @@ pi-ai 0.85.1、openai 6.40.0、provider llmtier 和 adapter piko-llmtier-respons
 
 LLMTier Owner 已审核提供方事实，Piko reviewer 已在 `P-20260907-e009921eda0a` 接受此前冻结的
 consumer/recovery obligations，并在 `P-20260916-80ab3d2fa007` 确认三位毫秒 deadline、408 优先级和
-单调用先到期映射。当前精确机器版本是 `0.3-finalization-candidate.2`；完整逐字段用途、tool loop、
-terminal/Seat 和退役版本由 `llmtier-v0.3-cross-system-finalization` 0.3.0-rc.2 索引。Piko 仍需对该精确
+单调用先到期映射。当前精确机器版本是 `0.3-finalization-candidate.3`；完整逐字段用途、tool loop、
+terminal/Seat 和退役版本由 `llmtier-v0.3-cross-system-finalization` 0.3.0-rc.3 索引。Piko 仍需对该精确
 package version 签署；真实 adapter capture 属于联调 gate，不再作为跨系统字段设计待定。本文保持 In Review，
 且不请求 RAG publication 或 Runtime Activation。

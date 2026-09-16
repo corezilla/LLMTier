@@ -274,7 +274,7 @@ class ContractSemanticsV03Tests(unittest.TestCase):
     def test_candidate_prose_tracks_finalization_candidate_without_approved_claims(self):
         contract = (ROOT / "docs" / "60_interfaces" / "contracts" / "llmtier-v0.3-contract-specification.md").read_text()
         piko = (ROOT / "docs" / "60_interfaces" / "piko-data-plane-control.md").read_text()
-        self.assertIn("0.3-finalization-candidate.2", contract)
+        self.assertIn("0.3-finalization-candidate.3", contract)
         self.assertNotIn("candidate Amendment 7", contract)
         self.assertIn("In Review contract index", contract)
         self.assertIn("In Review consumer-boundary prose candidate", piko)
@@ -454,6 +454,56 @@ class ContractSemanticsV03Tests(unittest.TestCase):
         self.assertIn("live capacity/usage", normalized)
         self.assertIn("canonical Response 在冻结的 168h recovery window 内仍可恢复", normalized)
         self.assertIn("短于任一下限的配置无效并阻断 activation", normalized)
+
+    def test_system_design_defines_admin_web_ui_as_one_api_consumer(self):
+        design = SERVICE_DESIGN_PATH.read_text(encoding="utf-8")
+        for ui_id in [f"LT-UI-{number:03d}" for number in range(1, 6)]:
+            self.assertIn(ui_id, design)
+        self.assertIn('WEB["Admin Web UI Presentation<br/>/admin/"]', design)
+        self.assertIn('MGT["Management Controller<br/>/tier/admin/v1"]', design)
+        self.assertIn('WEB -->|"同源 HTTPS/JSON；不含领域状态机"| MGT', design)
+        self.assertIn("legacy `/api/tier/*` 调用=0", design)
+        self.assertNotIn("`/admin/overview`", design)
+        self.assertNotIn("`/admin/capacity`", design)
+        self.assertIn("`/admin/service-levels`", design)
+        self.assertNotIn("`/admin/clients`", design)
+        self.assertIn("无调用方/会话管理页面", design)
+        self.assertIn("无 cookie/session/CSRF 路径", design)
+        self.assertIn("`localStorage`、`sessionStorage`、IndexedDB", design)
+        for state in ["Loading", "Empty", "NotReady/SourceError", "Unknown/Partial", "401", "403", "409/412", "429/503"]:
+            self.assertIn(state, design)
+        for quality_id in [f"LT-QR-{number:03d}" for number in range(11, 15)]:
+            self.assertIn(quality_id, design)
+
+    def test_stateless_gateway_boundary_is_machine_readable(self):
+        boundary = self.openapi["x-agent-context-boundary"]
+        self.assertEqual("stateless_openai_compatible_gateway", boundary["mode"])
+        self.assertTrue(boundary["caller_supplies_complete_input_per_logical_call"])
+        for key in [
+            "llmtier_owns_agent_history",
+            "llmtier_compresses_context",
+            "llmtier_executes_tools",
+            "llmtier_owns_conversation",
+            "llmtier_manages_backend_kv_cache",
+        ]:
+            self.assertFalse(boundary[key])
+        source_instance = self.openapi["components"]["parameters"]["SourceInstanceID"]
+        self.assertFalse(source_instance["required"])
+        self.assertEqual(["string", "null"], self.openapi["components"]["schemas"]["InvocationView"]["properties"]["source_instance_id"]["type"])
+        fixture = self.load(FIXTURES / "v0.3" / "stateless-gateway-boundary-fixtures.json")
+        cases = {case["id"]: case for case in fixture["cases"]}
+        self.assertFalse(cases["caller-supplies-complete-current-input"]["expected"]["llmtier_loads_prior_agent_history"])
+        self.assertFalse(cases["tool-result-is-next-call-input-not-tier-session"]["expected"]["llmtier_executes_tool"])
+        self.assertTrue(cases["source-instance-is-optional-observation-label"]["expected"]["both_contract_valid"])
+        self.assertEqual(0, cases["lost-response-recovery-is-single-call-only"]["expected"]["additional_backend_dispatch_count"])
+
+    def test_system_design_uses_machine_recovery_item_dispositions(self):
+        design = SERVICE_DESIGN_PATH.read_text(encoding="utf-8")
+        dispositions = self.openapi["components"]["schemas"]["RecoveryItemView"]["properties"]["disposition"]["enum"]
+        self.assertEqual(["Pending", "Reconciled", "Cancelled"], dispositions)
+        self.assertIn("RecoveryItem | Pending → Reconciled 或 Pending → Cancelled", design)
+        self.assertNotIn("Open → InReview → Resolved", design)
+        self.assertNotIn("ManualHold", design)
 
     def test_data_plane_observation_and_management_endpoint_coverage(self):
         data_plane = {
