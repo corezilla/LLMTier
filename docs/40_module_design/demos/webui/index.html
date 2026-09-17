@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LLMTier 管理台设计 Demo</title>
+    <style>
+      :root {
+        --bg: #f5f6f8;
+        --panel: #ffffff;
+        --soft: #f8f9fb;
+        --strong: #f1f3f6;
+        --text: #2f343b;
+        --muted: #7c838d;
+        --accent: #2563eb;
+        --accent-soft: #dbeafe;
+        --success: #0f766e;
+        --success-soft: #ccfbf1;
+        --warning: #b7791f;
+        --warning-soft: #fef3c7;
+        --danger: #c2410c;
+        --danger-soft: #ffedd5;
+        --border: #e4e7ec;
+        --shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "IBM Plex Sans", "Noto Sans SC", "Segoe UI", sans-serif;
+        font-size: 14px;
+      }
+      button, input, select { font: inherit; }
+      .shell { min-height: 100vh; display: grid; grid-template-columns: 206px minmax(0, 1fr); }
+      .sidebar {
+        background: #fcfcfd;
+        border-right: 1px solid var(--border);
+        padding: 24px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+      .brand { display: flex; align-items: center; gap: 10px; padding: 0 8px; }
+      .brand-mark {
+        width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center;
+        background: var(--accent); color: #fff; font-weight: 800; letter-spacing: -1px;
+        box-shadow: 0 6px 16px rgba(37, 99, 235, .18);
+      }
+      .brand strong { display: block; font-size: 16px; }
+      .brand small { color: var(--muted); font-size: 11px; }
+      nav { display: grid; gap: 5px; }
+      .nav-item {
+        display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 11px;
+        border: 1px solid transparent; border-radius: 8px; background: transparent;
+        color: #5d6671; text-decoration: none; cursor: pointer; text-align: left;
+      }
+      .nav-item:hover { background: var(--soft); color: var(--text); }
+      .nav-item.active { background: var(--accent-soft); border-color: #bfdbfe; color: var(--accent); font-weight: 700; }
+      .nav-icon { width: 18px; text-align: center; font-size: 15px; }
+      .sidebar-foot { margin-top: auto; padding: 12px 9px 0; border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; }
+      .main { min-width: 0; }
+      .topbar {
+        height: 74px; padding: 0 28px; display: flex; align-items: center; justify-content: space-between;
+        background: #fcfcfd; border-bottom: 1px solid var(--border);
+      }
+      .title h1 { margin: 0; font-size: 21px; letter-spacing: .1px; }
+      .title p { margin: 5px 0 0; color: var(--muted); font-size: 12px; }
+      .top-status { display: flex; align-items: center; gap: 10px; }
+      .env { color: var(--muted); font-size: 12px; }
+      .status-pill, .pill {
+        display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 5px 9px;
+        font-size: 12px; font-weight: 700;
+      }
+      .status-pill { color: var(--warning); background: var(--warning-soft); }
+      .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+      .content { padding: 24px 28px; max-width: 1120px; }
+      .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+      .filters { display: flex; gap: 8px; align-items: center; }
+      input, select {
+        min-height: 36px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px;
+        background: #fff; color: var(--text); outline: none;
+      }
+      input:focus, select:focus { border-color: #93b4ff; box-shadow: 0 0 0 3px rgba(37,99,235,.09); }
+      .search { width: 220px; }
+      .btn { min-height: 36px; padding: 7px 13px; border-radius: 8px; border: 1px solid var(--border); background: #fff; color: #46505c; font-weight: 700; cursor: pointer; }
+      .btn:hover { background: var(--soft); }
+      .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+      .btn.danger { color: var(--danger); }
+      .btn.tiny { min-height: 30px; padding: 5px 9px; font-size: 12px; }
+      .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; }
+      .card-head { padding: 15px 17px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+      .card-head h2 { margin: 0; font-size: 15px; }
+      .card-head span { color: var(--muted); font-size: 12px; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { padding: 13px 16px; border-bottom: 1px solid #eef0f3; text-align: left; vertical-align: middle; }
+      th { background: var(--soft); color: #66707d; font-size: 11px; letter-spacing: .02em; }
+      tbody tr:last-child td { border-bottom: 0; }
+      .name strong { display: block; font-size: 13px; }
+      .sub { margin-top: 3px; color: var(--muted); font-size: 11px; }
+      .pill.green { color: var(--success); background: var(--success-soft); }
+      .pill.blue { color: var(--accent); background: var(--accent-soft); }
+      .pill.gray { color: #66707d; background: #eef1f4; }
+      .pill.orange { color: var(--warning); background: var(--warning-soft); }
+      .actions { white-space: nowrap; display: flex; gap: 6px; }
+      .pager { display: flex; justify-content: flex-end; align-items: center; gap: 10px; padding: 11px 16px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); }
+      .form-card { padding: 18px; }
+      .progress { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 18px; }
+      .step { padding: 9px 11px; border-radius: 8px; background: var(--soft); color: var(--muted); font-size: 12px; border: 1px solid var(--border); }
+      .step.active { color: var(--accent); border-color: #93b4ff; background: #eff6ff; font-weight: 700; }
+      .step.done { color: var(--success); background: var(--success-soft); border-color: #99e6d8; }
+      .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; }
+      label { display: grid; gap: 6px; color: #5e6672; font-size: 12px; }
+      label.full { grid-column: 1 / -1; }
+      .choice-row { display: flex; gap: 8px; }
+      .choice { flex: 1; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: #fff; }
+      .choice.active { border-color: var(--accent); background: #eff6ff; color: var(--accent); font-weight: 700; }
+      .checks { display: flex; gap: 16px; min-height: 36px; align-items: center; color: var(--text); }
+      .form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; padding-top: 15px; border-top: 1px solid var(--border); }
+      .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px; }
+      .stat { padding: 14px 15px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); }
+      .stat span { color: var(--muted); font-size: 11px; }
+      .stat strong { display: block; margin-top: 7px; font-size: 20px; }
+      .health-name { display: flex; gap: 10px; align-items: center; }
+      .health-icon { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 8px; background: var(--success-soft); color: var(--success); }
+      .meter { width: 118px; height: 7px; background: #edf0f3; border-radius: 8px; overflow: hidden; margin-top: 5px; }
+      .meter i { display: block; height: 100%; width: var(--w); border-radius: inherit; background: var(--accent); }
+      .unknown { color: var(--muted); font-weight: 700; }
+      .audit-result { font-weight: 700; }
+      .audit-result.ok { color: var(--success); }
+      .audit-result.fail { color: var(--danger); }
+      .page { display: none; }
+      .page.active { display: block; }
+      .demo-note { margin-top: 10px; color: var(--muted); font-size: 11px; }
+      @media (max-width: 900px) {
+        .shell { grid-template-columns: 1fr; }
+        .sidebar { position: static; padding: 12px; gap: 12px; }
+        nav { grid-template-columns: repeat(5, 1fr); }
+        .nav-item { justify-content: center; padding: 8px; }
+        .nav-item span:last-child { display: none; }
+        .sidebar-foot { display: none; }
+        .form-grid { grid-template-columns: 1fr; }
+        label.full { grid-column: auto; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand"><div class="brand-mark">LT</div><div><strong>LLMTier</strong><small>模型网关管理台</small></div></div>
+        <nav id="nav">
+          <a class="nav-item" data-page="models"><span class="nav-icon">▦</span><span>模型与等级</span></a>
+          <a class="nav-item" data-page="add"><span class="nav-icon">＋</span><span>添加模型</span></a>
+          <a class="nav-item" data-page="health"><span class="nav-icon">●</span><span>运行状态</span></a>
+          <a class="nav-item" data-page="usage"><span class="nav-icon">▥</span><span>用量</span></a>
+          <a class="nav-item" data-page="audit"><span class="nav-icon">≡</span><span>审计</span></a>
+        </nav>
+        <div class="sidebar-foot">设计演示 · runtime 未激活<br />不显示访问控制、容量和费用页面</div>
+      </aside>
+      <main class="main">
+        <header class="topbar">
+          <div class="title"><h1 id="pageTitle">模型与等级</h1><p id="pageSubtitle">管理云端与本地模型的逻辑等级映射</p></div>
+          <div class="top-status"><span class="env">单节点 · 本地环境</span><span class="status-pill"><span class="dot"></span>运行未激活</span></div>
+        </header>
+        <div class="content">
+          <section class="page" id="page-models">
+            <div class="toolbar"><div class="filters"><input class="search" value="" placeholder="搜索逻辑等级或模型" /><select><option>全部类型</option><option>云端</option><option>本地</option></select><select><option>全部状态</option><option>可用</option></select></div><button class="btn primary" data-go="add">添加模型</button></div>
+            <div class="card"><div class="card-head"><h2>模型目录</h2><span>3 个逻辑等级</span></div><table><thead><tr><th>逻辑等级</th><th>类型</th><th>后端模型</th><th>状态</th><th>能力</th><th>操作</th></tr></thead><tbody>
+              <tr><td class="name"><strong>Worker</strong><div class="sub">标准推理</div></td><td><span class="pill blue">云端</span></td><td class="name"><strong>cloud-chat-model</strong><div class="sub">cloud-primary</div></td><td><span class="pill green">可用</span></td><td>Responses · Tools</td><td><div class="actions"><button class="btn tiny">编辑</button><button class="btn tiny danger">删除</button></div></td></tr>
+              <tr><td class="name"><strong>Local-Code</strong><div class="sub">本地代码模型</div></td><td><span class="pill gray">本地</span></td><td class="name"><strong>local-code-model</strong><div class="sub">local-gpu-01</div></td><td><span class="pill green">可用</span></td><td>Responses · Tools</td><td><div class="actions"><button class="btn tiny">编辑</button><button class="btn tiny danger">删除</button></div></td></tr>
+              <tr><td class="name"><strong>Embedding-v1</strong><div class="sub">bge-m3-dense-1024-v1</div></td><td><span class="pill gray">本地</span></td><td class="name"><strong>BAAI/bge-m3</strong><div class="sub">1024 维 · batch 32</div></td><td><span class="pill orange">待探测</span></td><td>Embeddings</td><td><div class="actions"><button class="btn tiny">编辑</button><button class="btn tiny danger">删除</button></div></td></tr>
+            </tbody></table><div class="pager"><button class="btn tiny">上一页</button><span>第 1 页</span><button class="btn tiny">下一页</button></div></div>
+          </section>
+
+          <section class="page" id="page-add">
+            <div class="card"><div class="card-head"><h2>添加模型</h2><span>保存配置不代表模型已经可用</span></div><div class="form-card">
+              <div class="progress"><div class="step done">1　Provider 已保存</div><div class="step active">2　配置 Deployment</div><div class="step">3　绑定逻辑等级</div></div>
+              <div class="form-grid">
+                <label class="full">模型类型<div class="choice-row"><div class="choice">云端模型</div><div class="choice active">本地模型</div></div></label>
+                <label>显示名称<input value="本地 Embedding" /></label><label>Endpoint<input value="http://127.0.0.1:8010/v1" /></label>
+                <label>后端模型<input value="BAAI/bge-m3" /></label><label>Secret 引用<input placeholder="本地模型可留空" /></label>
+                <label>逻辑等级<input value="Embedding-v1" /></label><label>向量空间 ID<input value="bge-m3-dense-1024-v1" /></label>
+                <label>维数<input value="1024" /></label><label>批量 / Token 上限<input value="32 / 8192" /></label>
+                <label class="full">能力<div class="checks"><span>□ Responses</span><span>□ Tools</span><span>☑ Embeddings</span><span>☑ L2 归一化</span></div></label>
+              </div>
+              <div class="form-actions"><button class="btn">取消</button><button class="btn">保存草稿</button><button class="btn primary">继续保存</button></div>
+            </div></div><div class="demo-note">步骤失败后从首个未完成步骤继续；不会重复创建或自动删除已经保存的资源。</div>
+          </section>
+
+          <section class="page" id="page-health">
+            <div class="stats"><div class="stat"><span>服务状态</span><strong style="color:var(--success)">正常</strong></div><div class="stat"><span>配置存储</span><strong style="color:var(--success)">可读写</strong></div><div class="stat"><span>可用 Deployment</span><strong>2 / 3</strong></div></div>
+            <div class="toolbar"><div class="filters"><span style="color:var(--muted)">普通刷新不会调用模型</span></div><button class="btn">刷新状态</button></div>
+            <div class="card"><div class="card-head"><h2>Deployment 状态</h2><span>最后刷新：10:32:18</span></div><table><thead><tr><th>Deployment</th><th>类型</th><th>健康状态</th><th>最后检查</th><th>操作</th></tr></thead><tbody>
+              <tr><td><div class="health-name"><span class="health-icon">✓</span><div class="name"><strong>cloud-primary</strong><div class="sub">cloud-chat-model</div></div></div></td><td>云端</td><td><span class="pill green">健康</span></td><td>10:31:54</td><td><button class="btn tiny">探测</button></td></tr>
+              <tr><td><div class="health-name"><span class="health-icon">✓</span><div class="name"><strong>local-gpu-01</strong><div class="sub">local-code-model</div></div></div></td><td>本地</td><td><span class="pill green">健康</span></td><td>10:31:49</td><td><button class="btn tiny">探测</button></td></tr>
+              <tr><td><div class="health-name"><span class="health-icon" style="background:var(--warning-soft);color:var(--warning)">?</span><div class="name"><strong>local-embed-01</strong><div class="sub">BAAI/bge-m3</div></div></div></td><td>本地</td><td><span class="pill orange">未探测</span></td><td>—</td><td><button class="btn tiny">探测</button></td></tr>
+            </tbody></table></div>
+          </section>
+
+          <section class="page" id="page-usage">
+            <div class="toolbar"><div class="filters"><select><option>今天</option><option>最近 7 天</option></select><select><option>全部模型</option><option>Worker</option><option>Embedding-v1</option></select><select><option>全部质量</option><option>实测</option><option>估算</option><option>未知</option></select></div><button class="btn primary">查询</button></div>
+            <div class="stats"><div class="stat"><span>输入 Token</span><strong>38,420</strong></div><div class="stat"><span>输出 Token</span><strong>7,681</strong></div><div class="stat"><span>未知记录</span><strong style="color:var(--warning)">1</strong></div></div>
+            <div class="card"><div class="card-head"><h2>Token 用量</h2><span>同一请求只展示最高版本</span></div><table><thead><tr><th>请求 ID</th><th>模型</th><th>输入 / 输出 / 总计</th><th>质量</th><th>更新时间</th></tr></thead><tbody>
+              <tr><td class="name"><strong>req_8f31…2c</strong><div class="sub">v2 · final</div></td><td>Worker</td><td><strong>20 / 5 / 25</strong><div class="meter"><i style="--w:72%"></i></div></td><td><span class="pill green">实测</span></td><td>10:29:41</td></tr>
+              <tr><td class="name"><strong>req_a219…91</strong><div class="sub">v1</div></td><td>Local-Code</td><td><strong>18 / 4 / 22</strong><div class="meter"><i style="--w:60%"></i></div></td><td><span class="pill blue">估算</span></td><td>10:27:08</td></tr>
+              <tr><td class="name"><strong>req_c04e…77</strong><div class="sub">v1</div></td><td>Embedding-v1</td><td><span class="unknown">未知</span></td><td><span class="pill orange">未知</span></td><td>10:24:16</td></tr>
+            </tbody></table><div class="pager"><button class="btn tiny">上一页</button><span>第 1 页 · 快照剩余 14 分钟</span><button class="btn tiny">下一页</button></div></div>
+          </section>
+
+          <section class="page" id="page-audit">
+            <div class="toolbar"><div class="filters"><select><option>最近 24 小时</option><option>最近 7 天</option></select><select><option>全部操作</option><option>添加</option><option>更新</option><option>删除</option><option>探测</option></select><input class="search" placeholder="搜索对象或请求 ID" /></div><button class="btn primary">查询</button></div>
+            <div class="card"><div class="card-head"><h2>管理审计</h2><span>不记录 Prompt、输出或 Secret</span></div><table><thead><tr><th>时间</th><th>操作者</th><th>操作</th><th>对象</th><th>结果</th><th>请求 ID</th></tr></thead><tbody>
+              <tr><td>10:31:54</td><td>operator.li</td><td>探测 Deployment</td><td>cloud-primary</td><td class="audit-result ok">成功</td><td>adm_d101…</td></tr>
+              <tr><td>10:18:02</td><td>operator.li</td><td>更新逻辑等级</td><td>Worker</td><td class="audit-result ok">成功</td><td>adm_91ba…</td></tr>
+              <tr><td>09:52:27</td><td>operator.chen</td><td>删除 Provider</td><td>cloud-old</td><td class="audit-result fail">引用冲突</td><td>adm_043c…</td></tr>
+              <tr><td>09:21:10</td><td>operator.chen</td><td>添加 Deployment</td><td>local-embed-01</td><td class="audit-result ok">成功</td><td>adm_fe80…</td></tr>
+            </tbody></table><div class="pager"><button class="btn tiny">上一页</button><span>第 1 页</span><button class="btn tiny">下一页</button></div></div>
+          </section>
+        </div>
+      </main>
+    </div>
+    <script>
+      const meta = {
+        models: ["模型与等级", "管理云端与本地模型的逻辑等级映射"],
+        add: ["添加模型", "分步添加 Provider、Deployment 和逻辑等级"],
+        health: ["运行状态", "区分配置保存、服务健康与主动探测"],
+        usage: ["用量", "查询 Token 事实；未知不显示为零"],
+        audit: ["审计", "查看脱敏的管理变更与探测记录"]
+      };
+      function show(page) {
+        if (!meta[page]) page = "models";
+        document.querySelectorAll(".page").forEach(el => el.classList.toggle("active", el.id === `page-${page}`));
+        document.querySelectorAll(".nav-item").forEach(el => el.classList.toggle("active", el.dataset.page === page));
+        document.querySelector("#pageTitle").textContent = meta[page][0];
+        document.querySelector("#pageSubtitle").textContent = meta[page][1];
+        const url = new URL(location.href); url.searchParams.set("page", page); history.replaceState({}, "", url);
+      }
+      document.querySelectorAll("[data-page]").forEach(el => el.addEventListener("click", () => show(el.dataset.page)));
+      document.querySelectorAll("[data-go]").forEach(el => el.addEventListener("click", () => show(el.dataset.go)));
+      show(new URL(location.href).searchParams.get("page") || "models");
+    </script>
+  </body>
+</html>
