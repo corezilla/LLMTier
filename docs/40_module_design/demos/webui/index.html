@@ -118,6 +118,7 @@
       .checks { display: flex; gap: 16px; min-height: 36px; align-items: center; color: var(--text); }
       .form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; padding-top: 15px; border-top: 1px solid var(--border); }
       .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px; }
+      .stats.four { grid-template-columns: repeat(4, 1fr); }
       .stat { padding: 14px 15px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); }
       .stat span { color: var(--muted); font-size: 11px; }
       .stat strong { display: block; margin-top: 7px; font-size: 20px; }
@@ -129,13 +130,64 @@
       .audit-result { font-weight: 700; }
       .audit-result.ok { color: var(--success); }
       .audit-result.fail { color: var(--danger); }
+      #page-home .stats { gap: 8px; margin-bottom: 8px; }
+      #page-home .stat { padding: 8px 12px; }
+      #page-home .stat strong { margin-top: 3px; font-size: 18px; }
+      #page-home .toolbar { margin-bottom: 8px; }
+      #page-home .card-head { padding: 10px 17px; }
+      .home-table th, .home-table td { padding: 5px 12px; }
+      .home-table .name .sub { margin-top: 1px; }
+      .backend { line-height: 1.08; }
+      .backend strong { display: block; font-size: 12px; }
+      .backend .sub { margin-top: 2px; white-space: nowrap; }
+      .backend-state { display: inline-flex; align-items: center; gap: 5px; margin-top: 3px; color: var(--muted); font-size: 10px; }
+      .backend-state::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+      .backend-state.warn::before { background: var(--warning); }
+      .backend-state.down::before { background: var(--danger); }
+      .tier-tree { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; }
+      .tree-grid { display: grid; grid-template-columns: minmax(230px,1.55fr) .55fr .75fr .65fr .65fr .45fr .65fr; align-items: center; column-gap: 10px; }
+      .tree-head { min-height: 32px; padding: 0 12px; background: var(--soft); color: #66707d; font-size: 11px; font-weight: 700; border-bottom: 1px solid var(--border); }
+      .tier-node { border-bottom: 1px solid #eef0f3; }
+      .tier-node:last-child { border-bottom: 0; }
+      .tier-node summary { min-height: 45px; padding: 5px 12px; cursor: pointer; list-style: none; }
+      .tier-node summary::-webkit-details-marker { display: none; }
+      .tier-node[open] summary { background: #f8fbff; border-bottom: 1px solid #dbe7f7; }
+      .tier-title { display: flex; align-items: center; min-width: 0; }
+      .tier-chevron { width: 20px; color: #64748b; font-size: 12px; }
+      .tier-node[open] .tier-chevron { transform: rotate(90deg); }
+      .tier-title strong { font-size: 13px; }
+      .backend-dots { display: flex; gap: 10px; margin-top: 2px; color: var(--muted); font-size: 10px; white-space: nowrap; }
+      .backend-dots span::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 4px; border-radius: 50%; background: var(--success); }
+      .backend-dots .warn::before { background: var(--warning); }
+      .backend-dots .down::before { background: var(--danger); }
+      .tree-muted { color: var(--muted); font-size: 11px; }
+      .backend-child { min-height: 42px; padding: 4px 12px 4px 32px; background: #fcfdff; border-bottom: 1px dashed #e5e9ef; font-size: 12px; }
+      .backend-child:last-child { border-bottom: 0; }
+      .tree-branch { color: #9aa3af; margin-right: 8px; font-family: ui-monospace, monospace; }
+      .backend-identity { display: inline-flex; align-items: center; min-width: 0; }
+      .backend-identity strong { display: block; font-size: 12px; }
+      .backend-identity .sub { margin-top: 1px; }
+      .usage-mini { font-size: 11px; color: #4b5563; }
+      .log-level { width: 56px; justify-content: center; }
+      .log-message { max-width: 390px; }
+      .tabs { display: flex; gap: 4px; margin-bottom: 14px; padding: 4px; width: fit-content; border: 1px solid var(--border); border-radius: 9px; background: var(--strong); }
+      .tab { min-height: 30px; padding: 5px 15px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-weight: 700; cursor: pointer; }
+      .tab.active { background: #fff; color: var(--accent); box-shadow: var(--shadow); }
+      .subview { display: none; }
+      .subview.active { display: block; }
+      .drawer-mask { display: none; position: fixed; inset: 0; z-index: 20; background: rgba(15,23,42,.28); }
+      .drawer-mask.open { display: block; }
+      .drawer { position: absolute; top: 0; right: 0; width: min(560px, 92vw); height: 100%; overflow: auto; padding: 22px; background: #fff; box-shadow: -12px 0 35px rgba(15,23,42,.14); }
+      .drawer-head { display: flex; justify-content: space-between; align-items: start; margin-bottom: 18px; }
+      .drawer-head h2 { margin: 0; font-size: 18px; }
+      .drawer-head p { margin: 5px 0 0; color: var(--muted); font-size: 12px; }
       .page { display: none; }
       .page.active { display: block; }
       .demo-note { margin-top: 10px; color: var(--muted); font-size: 11px; }
       @media (max-width: 900px) {
         .shell { grid-template-columns: 1fr; }
         .sidebar { position: static; padding: 12px; gap: 12px; }
-        nav { grid-template-columns: repeat(5, 1fr); }
+        nav { grid-template-columns: repeat(3, 1fr); }
         .nav-item { justify-content: center; padding: 8px; }
         .nav-item span:last-child { display: none; }
         .sidebar-foot { display: none; }
@@ -149,86 +201,117 @@
       <aside class="sidebar">
         <div class="brand"><div class="brand-mark">LT</div><div><strong>LLMTier</strong><small>模型网关管理台</small></div></div>
         <nav id="nav">
-          <a class="nav-item" data-page="models"><span class="nav-icon">▦</span><span>模型与等级</span></a>
-          <a class="nav-item" data-page="add"><span class="nav-icon">＋</span><span>添加模型</span></a>
-          <a class="nav-item" data-page="health"><span class="nav-icon">●</span><span>运行状态</span></a>
-          <a class="nav-item" data-page="usage"><span class="nav-icon">▥</span><span>用量</span></a>
-          <a class="nav-item" data-page="audit"><span class="nav-icon">≡</span><span>审计</span></a>
+          <a class="nav-item" data-page="home"><span class="nav-icon">⌂</span><span>主页</span></a>
+          <a class="nav-item" data-page="records"><span class="nav-icon">▥</span><span>用量与审计</span></a>
+          <a class="nav-item" data-page="logs"><span class="nav-icon">≣</span><span>日志</span></a>
         </nav>
         <div class="sidebar-foot">设计演示 · runtime 未激活<br />不显示访问控制、容量和费用页面</div>
       </aside>
       <main class="main">
         <header class="topbar">
-          <div class="title"><h1 id="pageTitle">模型与等级</h1><p id="pageSubtitle">管理云端与本地模型的逻辑等级映射</p></div>
+          <div class="title"><h1 id="pageTitle">主页</h1><p id="pageSubtitle">一页查看全部模型、Tier 与当前状态</p></div>
           <div class="top-status"><span class="env">单节点 · 本地环境</span><span class="status-pill"><span class="dot"></span>运行未激活</span></div>
         </header>
         <div class="content">
-          <section class="page" id="page-models">
-            <div class="toolbar"><div class="filters"><input class="search" value="" placeholder="搜索逻辑等级或模型" /><select><option>全部类型</option><option>云端</option><option>本地</option></select><select><option>全部状态</option><option>可用</option></select></div><button class="btn primary" data-go="add">添加模型</button></div>
-            <div class="card"><div class="card-head"><h2>模型目录</h2><span>3 个逻辑等级</span></div><table><thead><tr><th>逻辑等级</th><th>类型</th><th>后端模型</th><th>状态</th><th>能力</th><th>操作</th></tr></thead><tbody>
-              <tr><td class="name"><strong>Worker</strong><div class="sub">标准推理</div></td><td><span class="pill blue">云端</span></td><td class="name"><strong>cloud-chat-model</strong><div class="sub">cloud-primary</div></td><td><span class="pill green">可用</span></td><td>Responses · Tools</td><td><div class="actions"><button class="btn tiny">编辑</button><button class="btn tiny danger">删除</button></div></td></tr>
-              <tr><td class="name"><strong>Local-Code</strong><div class="sub">本地代码模型</div></td><td><span class="pill gray">本地</span></td><td class="name"><strong>local-code-model</strong><div class="sub">local-gpu-01</div></td><td><span class="pill green">可用</span></td><td>Responses · Tools</td><td><div class="actions"><button class="btn tiny">编辑</button><button class="btn tiny danger">删除</button></div></td></tr>
-              <tr><td class="name"><strong>Embedding-v1</strong><div class="sub">bge-m3-dense-1024-v1</div></td><td><span class="pill gray">本地</span></td><td class="name"><strong>BAAI/bge-m3</strong><div class="sub">1024 维 · batch 32</div></td><td><span class="pill orange">待探测</span></td><td>Embeddings</td><td><div class="actions"><button class="btn tiny">编辑</button><button class="btn tiny danger">删除</button></div></td></tr>
-            </tbody></table><div class="pager"><button class="btn tiny">上一页</button><span>第 1 页</span><button class="btn tiny">下一页</button></div></div>
+          <section class="page" id="page-home">
+            <div class="stats four"><div class="stat"><span>网关状态</span><strong style="color:var(--success)">正常</strong></div><div class="stat"><span>逻辑模型 / Tier</span><strong>7</strong></div><div class="stat"><span>后端总数</span><strong>21</strong></div><div class="stat"><span>健康 / 需关注</span><strong>17 / 4</strong></div></div>
+            <div class="toolbar"><div class="filters"><input class="search" value="" placeholder="搜索 Tier 或模型" /><select><option>全部状态</option><option>健康</option><option>降级</option><option>不可用</option></select></div><div class="actions"><button class="btn">刷新状态</button><button class="btn primary" data-open-model>添加模型</button></div></div>
+            <div class="tier-tree">
+              <div class="card-head"><h2>Tier / 后端树</h2><span>7 Tier · 21 后端 · 最后刷新 10:32:18</span></div>
+              <div class="tree-grid tree-head"><span>Tier / Account / Model</span><span>类型</span><span>状态</span><span>5hour</span><span>Weekly</span><span>Running</span><span>操作</span></div>
+              <details class="tier-node"><summary class="tree-grid"><div class="tier-title"><span class="tier-chevron">▶</span><div><strong>Senior</strong><div class="backend-dots"><span>OpenAI</span><span>Anthropic</span><span>Google</span></div></div></div><span class="tree-muted">3 后端</span><span class="pill green">可用 3/3</span><span class="tree-muted">展开查看</span><span class="tree-muted">展开查看</span><b>1</b><div class="actions"><button class="btn tiny">编辑</button></div></summary>
+                <div class="tree-grid backend-child"><div class="backend-identity"><span class="tree-branch">├─</span><div><strong>openai/reasoning-model</strong><div class="sub">OpenAI · senior-openai</div></div></div><span>API</span><span class="backend-state">健康</span><span class="usage-mini">42% · 2h14m</span><span class="usage-mini">18% · 3d</span><b>1</b><button class="btn tiny">探测</button></div>
+                <div class="tree-grid backend-child"><div class="backend-identity"><span class="tree-branch">├─</span><div><strong>anthropic/reasoning-model</strong><div class="sub">Anthropic · senior-claude</div></div></div><span>API</span><span class="backend-state">健康</span><span class="usage-mini">31% · 1h48m</span><span class="usage-mini">12% · 4d</span><b>0</b><button class="btn tiny">探测</button></div>
+                <div class="tree-grid backend-child"><div class="backend-identity"><span class="tree-branch">└─</span><div><strong>google/reasoning-model</strong><div class="sub">Google · senior-google</div></div></div><span>API</span><span class="backend-state">健康</span><span class="usage-mini">28% · 3h02m</span><span class="usage-mini">9% · 5d</span><b>0</b><button class="btn tiny">探测</button></div>
+              </details>
+              <details class="tier-node"><summary class="tree-grid"><div class="tier-title"><span class="tier-chevron">▶</span><div><strong>Junior</strong><div class="backend-dots"><span>OpenAI</span><span>Anthropic</span><span>Google</span></div></div></div><span class="tree-muted">3 后端</span><span class="pill green">可用 3/3</span><span class="tree-muted">展开查看</span><span class="tree-muted">展开查看</span><b>0</b><div class="actions"><button class="btn tiny">编辑</button></div></summary>
+                <div class="tree-grid backend-child"><div class="backend-identity"><span class="tree-branch">├─</span><div><strong>openai/general-model</strong><div class="sub">OpenAI · junior-openai</div></div></div><span>API</span><span class="backend-state">健康</span><span class="usage-mini">38% · 2h</span><span class="usage-mini">16% · 3d</span><b>0</b><button class="btn tiny">探测</button></div>
+                <div class="tree-grid backend-child"><div class="backend-identity"><span class="tree-branch">├─</span><div><strong>anthropic/general-model</strong><div class="sub">Anthropic · junior-claude</div></div></div><span>API</span><span class="backend-state">健康</span><span class="usage-mini">24% · 3h</span><span class="usage-mini">10% · 5d</span><b>0</b><button class="btn tiny">探测</button></div>
+                <div class="tree-grid backend-child"><div class="backend-identity"><span class="tree-branch">└─</span><div><strong>google/fast-model</strong><div class="sub">Google · junior-google</div></div></div><span>API</span><span class="backend-state">健康</span><span class="usage-mini">21% · 4h</span><span class="usage-mini">8% · 5d</span><b>0</b><button class="btn tiny">探测</button></div>
+              </details>
+              <details class="tier-node" open><summary class="tree-grid"><div class="tier-title"><span class="tier-chevron">▶</span><div><strong>Worker</strong><div class="backend-dots"><span>OpenAI</span><span>DeepSeek</span><span class="warn">Local vLLM</span></div></div></div><span class="tree-muted">3 后端</span><span class="pill green">可用 2/3</span><span class="tree-muted">分别统计</span><span class="tree-muted">分别统计</span><b>2</b><div class="actions"><button class="btn tiny">编辑</button></div></summary>
+                <div class="tree-grid backend-child"><div class="backend-identity"><span class="tree-branch">├─</span><div><strong>openai/general-model</strong><div class="sub">OpenAI · worker-openai</div></div></div><span>API</span><span class="backend-state">健康</span><span class="usage-mini">57% · 1h26m</span><span class="usage-mini">34% · 2d</span><b>1</b><button class="btn tiny">探测</button></div>
+                <div class="tree-grid backend-child"><div class="backend-identity"><span class="tree-branch">├─</span><div><strong>deepseek/chat-model</strong><div class="sub">DeepSeek · worker-ds</div></div></div><span>API</span><span class="backend-state">健康</span><span class="usage-mini">63% · 0h54m</span><span class="usage-mini">41% · 1d</span><b>1</b><button class="btn tiny">探测</button></div>
+                <div class="tree-grid backend-child"><div class="backend-identity"><span class="tree-branch">└─</span><div><strong>local/qwen-general</strong><div class="sub">Local vLLM · worker-local</div></div></div><span>MLP</span><span class="backend-state warn">降级</span><span class="usage-mini">本地</span><span class="usage-mini">本地</span><b>0</b><button class="btn tiny">探测</button></div>
+              </details>
+              <details class="tier-node"><summary class="tree-grid"><div class="tier-title"><span class="tier-chevron">▶</span><div><strong>Associate</strong><div class="backend-dots"><span>Google</span><span>DeepSeek</span><span class="down">Local vLLM</span></div></div></div><span class="tree-muted">3 后端</span><span class="pill green">可用 2/3</span><span class="tree-muted">展开查看</span><span class="tree-muted">展开查看</span><b>0</b><div class="actions"><button class="btn tiny">编辑</button></div></summary>
+                <div class="tree-grid backend-child"><div class="backend-identity"><span class="tree-branch">├─</span><div><strong>google/flash-model</strong><div class="sub">Google · associate-google</div></div></div><span>API</span><span class="backend-state">健康</span><span class="usage-mini">19%</span><span class="usage-mini">7%</span><b>0</b><button class="btn tiny">探测</button></div>
+                <div class="tree-grid backend-child"><div class="backend-identity"><span class="tree-branch">├─</span><div><strong>deepseek/fast-chat</strong><div class="sub">DeepSeek · associate-ds</div></div></div><span>API</span><span class="backend-state">健康</span><span class="usage-mini">23%</span><span class="usage-mini">11%</span><b>0</b><button class="btn tiny">探测</button></div>
+                <div class="tree-grid backend-child"><div class="backend-identity"><span class="tree-branch">└─</span><div><strong>local/qwen-fast</strong><div class="sub">Local vLLM · associate-local</div></div></div><span>MLP</span><span class="backend-state down">不可用</span><span class="usage-mini">本地</span><span class="usage-mini">本地</span><b>0</b><button class="btn tiny">探测</button></div>
+              </details>
+              <details class="tier-node"><summary class="tree-grid"><div class="tier-title"><span class="tier-chevron">▶</span><div><strong>Engineer</strong><div class="backend-dots"><span>OpenAI</span><span>Anthropic</span><span>Local vLLM</span></div></div></div><span class="tree-muted">3 后端</span><span class="pill green">可用 3/3</span><span class="tree-muted">展开查看</span><span class="tree-muted">展开查看</span><b>1</b><div class="actions"><button class="btn tiny">编辑</button></div></summary>
+                <div class="tree-grid backend-child"><div class="backend-identity"><span class="tree-branch">├─</span><div><strong>openai/coding-model</strong><div class="sub">OpenAI · engineer-openai</div></div></div><span>API</span><span class="backend-state">健康</span><span class="usage-mini">46%</span><span class="usage-mini">29%</span><b>1</b><button class="btn tiny">探测</button></div>
+                <div class="tree-grid backend-child"><div class="backend-identity"><span class="tree-branch">├─</span><div><strong>anthropic/coding-model</strong><div class="sub">Anthropic · engineer-claude</div></div></div><span>CLI</span><span class="backend-state">健康</span><span class="usage-mini">33%</span><span class="usage-mini">20%</span><b>0</b><button class="btn tiny">探测</button></div>
+                <div class="tree-grid backend-child"><div class="backend-identity"><span class="tree-branch">└─</span><div><strong>local/qwen-coder</strong><div class="sub">Local vLLM · engineer-local</div></div></div><span>MLP</span><span class="backend-state">健康</span><span class="usage-mini">本地</span><span class="usage-mini">本地</span><b>0</b><button class="btn tiny">探测</button></div>
+              </details>
+              <details class="tier-node"><summary class="tree-grid"><div class="tier-title"><span class="tier-chevron">▶</span><div><strong>Executor</strong><div class="backend-dots"><span>OpenAI</span><span class="warn">DeepSeek</span><span>Local vLLM</span></div></div></div><span class="tree-muted">3 后端</span><span class="pill green">可用 2/3</span><span class="tree-muted">展开查看</span><span class="tree-muted">展开查看</span><b>0</b><div class="actions"><button class="btn tiny">编辑</button></div></summary>
+                <div class="tree-grid backend-child"><div class="backend-identity"><span class="tree-branch">├─</span><div><strong>openai/coding-fast</strong><div class="sub">OpenAI · executor-openai</div></div></div><span>API</span><span class="backend-state">健康</span><span class="usage-mini">17%</span><span class="usage-mini">8%</span><b>0</b><button class="btn tiny">探测</button></div>
+                <div class="tree-grid backend-child"><div class="backend-identity"><span class="tree-branch">├─</span><div><strong>deepseek/coder-model</strong><div class="sub">DeepSeek · executor-ds</div></div></div><span>API</span><span class="backend-state warn">降级</span><span class="usage-mini">71%</span><span class="usage-mini">48%</span><b>0</b><button class="btn tiny">探测</button></div>
+                <div class="tree-grid backend-child"><div class="backend-identity"><span class="tree-branch">└─</span><div><strong>local/local-code</strong><div class="sub">Local vLLM · executor-local</div></div></div><span>MLP</span><span class="backend-state">健康</span><span class="usage-mini">本地</span><span class="usage-mini">本地</span><b>0</b><button class="btn tiny">探测</button></div>
+              </details>
+              <details class="tier-node"><summary class="tree-grid"><div class="tier-title"><span class="tier-chevron">▶</span><div><strong>Embedding-v1</strong><div class="backend-dots"><span>Private Cloud</span><span class="warn">GPU Cloud</span><span>Local vLLM</span></div></div></div><span class="tree-muted">同一space</span><span class="pill green">可用 2/3</span><span class="tree-muted">展开查看</span><span class="tree-muted">展开查看</span><b>0</b><div class="actions"><button class="btn tiny">编辑</button></div></summary>
+                <div class="tree-grid backend-child"><div class="backend-identity"><span class="tree-branch">├─</span><div><strong>private/BAAI/bge-m3</strong><div class="sub">Private Cloud · embed-private</div></div></div><span>API</span><span class="backend-state">健康</span><span class="usage-mini">29%</span><span class="usage-mini">13%</span><b>0</b><button class="btn tiny">探测</button></div>
+                <div class="tree-grid backend-child"><div class="backend-identity"><span class="tree-branch">├─</span><div><strong>gpu-cloud/BAAI/bge-m3</strong><div class="sub">GPU Cloud · embed-cloud</div></div></div><span>API</span><span class="backend-state warn">降级</span><span class="usage-mini">54%</span><span class="usage-mini">24%</span><b>0</b><button class="btn tiny">探测</button></div>
+                <div class="tree-grid backend-child"><div class="backend-identity"><span class="tree-branch">└─</span><div><strong>local/BAAI/bge-m3</strong><div class="sub">Local vLLM · embed-local</div></div></div><span>MLP</span><span class="backend-state">健康</span><span class="usage-mini">本地</span><span class="usage-mini">本地</span><b>0</b><button class="btn tiny">探测</button></div>
+              </details>
+            </div><div class="demo-note">父节点聚合Tier状态；展开后按当前LLMTier的Account/Model、Type、provider用量、Running和Action字段显示真实后端状态。添加和修改模型均在主页抽屉内完成。</div>
           </section>
 
-          <section class="page" id="page-add">
-            <div class="card"><div class="card-head"><h2>添加模型</h2><span>保存配置不代表模型已经可用</span></div><div class="form-card">
-              <div class="progress"><div class="step done">1　Provider 已保存</div><div class="step active">2　配置 Deployment</div><div class="step">3　绑定逻辑等级</div></div>
-              <div class="form-grid">
-                <label class="full">模型类型<div class="choice-row"><div class="choice">云端模型</div><div class="choice active">本地模型</div></div></label>
-                <label>显示名称<input value="本地 Embedding" /></label><label>Endpoint<input value="http://127.0.0.1:8010/v1" /></label>
-                <label>后端模型<input value="BAAI/bge-m3" /></label><label>Secret 引用<input placeholder="本地模型可留空" /></label>
-                <label>逻辑等级<input value="Embedding-v1" /></label><label>向量空间 ID<input value="bge-m3-dense-1024-v1" /></label>
-                <label>维数<input value="1024" /></label><label>批量 / Token 上限<input value="32 / 8192" /></label>
-                <label class="full">能力<div class="checks"><span>□ Responses</span><span>□ Tools</span><span>☑ Embeddings</span><span>☑ L2 归一化</span></div></label>
-              </div>
-              <div class="form-actions"><button class="btn">取消</button><button class="btn">保存草稿</button><button class="btn primary">继续保存</button></div>
-            </div></div><div class="demo-note">步骤失败后从首个未完成步骤继续；不会重复创建或自动删除已经保存的资源。</div>
-          </section>
-
-          <section class="page" id="page-health">
-            <div class="stats"><div class="stat"><span>服务状态</span><strong style="color:var(--success)">正常</strong></div><div class="stat"><span>配置存储</span><strong style="color:var(--success)">可读写</strong></div><div class="stat"><span>可用 Deployment</span><strong>2 / 3</strong></div></div>
-            <div class="toolbar"><div class="filters"><span style="color:var(--muted)">普通刷新不会调用模型</span></div><button class="btn">刷新状态</button></div>
-            <div class="card"><div class="card-head"><h2>Deployment 状态</h2><span>最后刷新：10:32:18</span></div><table><thead><tr><th>Deployment</th><th>类型</th><th>健康状态</th><th>最后检查</th><th>操作</th></tr></thead><tbody>
-              <tr><td><div class="health-name"><span class="health-icon">✓</span><div class="name"><strong>cloud-primary</strong><div class="sub">cloud-chat-model</div></div></div></td><td>云端</td><td><span class="pill green">健康</span></td><td>10:31:54</td><td><button class="btn tiny">探测</button></td></tr>
-              <tr><td><div class="health-name"><span class="health-icon">✓</span><div class="name"><strong>local-gpu-01</strong><div class="sub">local-code-model</div></div></div></td><td>本地</td><td><span class="pill green">健康</span></td><td>10:31:49</td><td><button class="btn tiny">探测</button></td></tr>
-              <tr><td><div class="health-name"><span class="health-icon" style="background:var(--warning-soft);color:var(--warning)">?</span><div class="name"><strong>local-embed-01</strong><div class="sub">BAAI/bge-m3</div></div></div></td><td>本地</td><td><span class="pill orange">未探测</span></td><td>—</td><td><button class="btn tiny">探测</button></td></tr>
-            </tbody></table></div>
-          </section>
-
-          <section class="page" id="page-usage">
+          <section class="page" id="page-records">
+            <div class="tabs"><button class="tab active" data-subview="usage">Token 用量</button><button class="tab" data-subview="audit">管理审计</button></div>
+            <div class="subview active" id="subview-usage">
             <div class="toolbar"><div class="filters"><select><option>今天</option><option>最近 7 天</option></select><select><option>全部模型</option><option>Worker</option><option>Embedding-v1</option></select><select><option>全部质量</option><option>实测</option><option>估算</option><option>未知</option></select></div><button class="btn primary">查询</button></div>
             <div class="stats"><div class="stat"><span>输入 Token</span><strong>38,420</strong></div><div class="stat"><span>输出 Token</span><strong>7,681</strong></div><div class="stat"><span>未知记录</span><strong style="color:var(--warning)">1</strong></div></div>
             <div class="card"><div class="card-head"><h2>Token 用量</h2><span>同一请求只展示最高版本</span></div><table><thead><tr><th>请求 ID</th><th>模型</th><th>输入 / 输出 / 总计</th><th>质量</th><th>更新时间</th></tr></thead><tbody>
               <tr><td class="name"><strong>req_8f31…2c</strong><div class="sub">v2 · final</div></td><td>Worker</td><td><strong>20 / 5 / 25</strong><div class="meter"><i style="--w:72%"></i></div></td><td><span class="pill green">实测</span></td><td>10:29:41</td></tr>
               <tr><td class="name"><strong>req_a219…91</strong><div class="sub">v1</div></td><td>Local-Code</td><td><strong>18 / 4 / 22</strong><div class="meter"><i style="--w:60%"></i></div></td><td><span class="pill blue">估算</span></td><td>10:27:08</td></tr>
               <tr><td class="name"><strong>req_c04e…77</strong><div class="sub">v1</div></td><td>Embedding-v1</td><td><span class="unknown">未知</span></td><td><span class="pill orange">未知</span></td><td>10:24:16</td></tr>
-            </tbody></table><div class="pager"><button class="btn tiny">上一页</button><span>第 1 页 · 快照剩余 14 分钟</span><button class="btn tiny">下一页</button></div></div>
-          </section>
-
-          <section class="page" id="page-audit">
+            </tbody></table><div class="pager"><button class="btn tiny">上一页</button><span>第 1 页 · 快照剩余 14 分钟</span><button class="btn tiny">下一页</button></div></div></div>
+            <div class="subview" id="subview-audit">
             <div class="toolbar"><div class="filters"><select><option>最近 24 小时</option><option>最近 7 天</option></select><select><option>全部操作</option><option>添加</option><option>更新</option><option>删除</option><option>探测</option></select><input class="search" placeholder="搜索对象或请求 ID" /></div><button class="btn primary">查询</button></div>
             <div class="card"><div class="card-head"><h2>管理审计</h2><span>不记录 Prompt、输出或 Secret</span></div><table><thead><tr><th>时间</th><th>操作者</th><th>操作</th><th>对象</th><th>结果</th><th>请求 ID</th></tr></thead><tbody>
               <tr><td>10:31:54</td><td>operator.li</td><td>探测 Deployment</td><td>cloud-primary</td><td class="audit-result ok">成功</td><td>adm_d101…</td></tr>
               <tr><td>10:18:02</td><td>operator.li</td><td>更新逻辑等级</td><td>Worker</td><td class="audit-result ok">成功</td><td>adm_91ba…</td></tr>
               <tr><td>09:52:27</td><td>operator.chen</td><td>删除 Provider</td><td>cloud-old</td><td class="audit-result fail">引用冲突</td><td>adm_043c…</td></tr>
               <tr><td>09:21:10</td><td>operator.chen</td><td>添加 Deployment</td><td>local-embed-01</td><td class="audit-result ok">成功</td><td>adm_fe80…</td></tr>
-            </tbody></table><div class="pager"><button class="btn tiny">上一页</button><span>第 1 页</span><button class="btn tiny">下一页</button></div></div>
+            </tbody></table><div class="pager"><button class="btn tiny">上一页</button><span>第 1 页</span><button class="btn tiny">下一页</button></div></div></div>
+          </section>
+
+          <section class="page" id="page-logs">
+            <div class="toolbar"><div class="filters"><select><option>最近 1 小时</option><option>最近 24 小时</option></select><select><option>全部级别</option><option>错误</option><option>警告</option><option>信息</option></select><select><option>全部模块</option><option>gateway</option><option>provider</option><option>usage</option></select><input class="search" placeholder="请求 ID" /></div><button class="btn primary">查询</button></div>
+            <div class="card"><div class="card-head"><h2>运行日志</h2><span>脱敏结构化事件 · 不含 Prompt、输出或 Secret</span></div><table><thead><tr><th>时间</th><th>级别</th><th>模块</th><th>事件 / 消息</th><th>请求 ID</th></tr></thead><tbody>
+              <tr><td>10:32:16.482</td><td><span class="pill green log-level">信息</span></td><td>gateway</td><td class="log-message"><strong>request.completed</strong><div class="sub">标准 Responses 请求完成 · 200</div></td><td>req_8f31…2c</td></tr>
+              <tr><td>10:31:49.117</td><td><span class="pill orange log-level">警告</span></td><td>provider</td><td class="log-message"><strong>health.degraded</strong><div class="sub">local-associate 响应时间超过阈值</div></td><td>—</td></tr>
+              <tr><td>10:30:04.905</td><td><span class="pill green log-level">信息</span></td><td>usage</td><td class="log-message"><strong>usage.recorded</strong><div class="sub">Token 事实已保存 · record v2</div></td><td>req_a219…91</td></tr>
+              <tr><td>10:28:37.221</td><td><span class="pill orange log-level">错误</span></td><td>provider</td><td class="log-message"><strong>request.failed</strong><div class="sub">local-executor 连接不可用</div></td><td>req_d884…10</td></tr>
+              <tr><td>10:25:12.038</td><td><span class="pill green log-level">信息</span></td><td>embedding</td><td class="log-message"><strong>embedding.completed</strong><div class="sub">返回 8 个 1024 维向量</div></td><td>req_c04e…77</td></tr>
+            </tbody></table><div class="pager"><button class="btn tiny">上一页</button><span>第 1 页 · 快照剩余 14 分钟</span><button class="btn tiny">下一页</button></div></div>
           </section>
         </div>
       </main>
     </div>
+    <div class="drawer-mask" id="modelDrawer"><aside class="drawer">
+      <div class="drawer-head"><div><h2>添加模型</h2><p>在主页配置Provider、Deployment并绑定固定Tier</p></div><button class="btn tiny" data-close-model>关闭</button></div>
+      <div class="progress"><div class="step done">1　Provider 已保存</div><div class="step active">2　配置 Deployment</div><div class="step">3　绑定逻辑等级</div></div>
+      <div class="form-grid">
+        <label class="full">模型类型<div class="choice-row"><div class="choice">云端模型</div><div class="choice active">本地模型</div></div></label>
+        <label>显示名称<input value="本地 Embedding" /></label><label>Endpoint<input value="http://127.0.0.1:8010/v1" /></label>
+        <label>后端模型<input value="BAAI/bge-m3" /></label><label>Secret 引用<input placeholder="本地模型可留空" /></label>
+        <label>逻辑等级<select><option>Embedding-v1</option><option>Senior</option><option>Junior</option><option>Worker</option><option>Associate</option><option>Engineer</option><option>Executor</option></select></label><label>向量空间 ID<input value="bge-m3-dense-1024-v1" /></label>
+        <label>维数<input value="1024" /></label><label>批量 / Token 上限<input value="32 / 8192" /></label>
+        <label class="full">能力<div class="checks"><span>□ Responses</span><span>□ Tools</span><span>☑ Embeddings</span><span>☑ L2 归一化</span></div></label>
+      </div>
+      <div class="form-actions"><button class="btn" data-close-model>取消</button><button class="btn">保存草稿</button><button class="btn primary">继续保存</button></div>
+      <div class="demo-note">保存配置不代表模型可用；保存后回到主页查看并探测状态。</div>
+    </aside></div>
     <script>
       const meta = {
-        models: ["模型与等级", "管理云端与本地模型的逻辑等级映射"],
-        add: ["添加模型", "分步添加 Provider、Deployment 和逻辑等级"],
-        health: ["运行状态", "区分配置保存、服务健康与主动探测"],
-        usage: ["用量", "查询 Token 事实；未知不显示为零"],
-        audit: ["审计", "查看脱敏的管理变更与探测记录"]
+        home: ["主页", "一页查看全部模型、Tier 与当前状态"],
+        records: ["用量与审计", "在一个页面切换Token事实与管理操作记录"],
+        logs: ["日志", "查询脱敏的服务运行与故障诊断事件"]
       };
       function show(page) {
-        if (!meta[page]) page = "models";
+        if (!meta[page]) page = "home";
         document.querySelectorAll(".page").forEach(el => el.classList.toggle("active", el.id === `page-${page}`));
         document.querySelectorAll(".nav-item").forEach(el => el.classList.toggle("active", el.dataset.page === page));
         document.querySelector("#pageTitle").textContent = meta[page][0];
@@ -236,8 +319,17 @@
         const url = new URL(location.href); url.searchParams.set("page", page); history.replaceState({}, "", url);
       }
       document.querySelectorAll("[data-page]").forEach(el => el.addEventListener("click", () => show(el.dataset.page)));
-      document.querySelectorAll("[data-go]").forEach(el => el.addEventListener("click", () => show(el.dataset.go)));
-      show(new URL(location.href).searchParams.get("page") || "models");
+      const drawer = document.querySelector("#modelDrawer");
+      document.querySelectorAll("[data-open-model]").forEach(el => el.addEventListener("click", () => drawer.classList.add("open")));
+      document.querySelectorAll("[data-close-model]").forEach(el => el.addEventListener("click", () => drawer.classList.remove("open")));
+      document.querySelectorAll("[data-subview]").forEach(el => el.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach(tab => tab.classList.toggle("active", tab === el));
+        document.querySelectorAll(".subview").forEach(view => view.classList.toggle("active", view.id === `subview-${el.dataset.subview}`));
+      }));
+      show(new URL(location.href).searchParams.get("page") || "home");
+      const initialSubview = new URL(location.href).searchParams.get("view");
+      if (initialSubview) document.querySelector(`[data-subview="${initialSubview}"]`)?.click();
+      if (new URL(location.href).searchParams.get("modal") === "add") drawer.classList.add("open");
     </script>
   </body>
 </html>

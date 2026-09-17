@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.3.2-draft.4` |
+| Document Version | `0.3.2-draft.5` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -199,6 +199,7 @@ LLMTier 不规定专用硬件。部署可连接云 provider 或本地主机上�
 | ServiceLevel | exact ID、deployment binding、limits/capabilities；embedding含space ID | operator 管理与 Models 发布 |
 | UsageRecord | principal+request ID、record version/final、model、token values、quality、time | 按 LLMTier retention policy |
 | AuditEvent | actor、action、target、result、time；不含 Secret/prompt/output | 按审计策略 |
+| OperationalLog | level、module、event、脱敏短消息、可空request ID、time | 7天；稳定分页快照到期后清理 |
 
 不保存 Agent conversation、tool state、project/task content、正式记忆或后端 KV identity。Prompt/output 日志默认关闭；诊断只保存必要的脱敏关联信息。
 
@@ -221,23 +222,19 @@ Bearer credential 只标识获授权调用主体；不暴露 Client/Source/Sourc
 
 ```mermaid
 flowchart LR
-  NAV[侧栏] --> MODELS[模型与等级]
-  NAV --> ADD[添加模型]
-  NAV --> HEALTHUI[运行状态]
-  NAV --> USAGEUI[用量]
-  NAV --> AUDITUI[审计]
-  MODELS -->|编辑 / 删除| MAPI[Admin API]
-  ADD -->|云模型或本地模型| MAPI
-  HEALTHUI -->|只读检查 / 授权探测| MAPI
+  NAV[侧栏] --> HOME[主页]
+  NAV --> RECORDS[用量与审计]
+  NAV --> LOGUI[日志]
+  HOME -->|添加模型 / 编辑绑定 / 状态与探测| MAPI[Admin API]
+  RECORDS -->|Token事实 / 管理操作| MAPI
 ```
 
 页面保持短而单一职责；逐页线框、状态、字段与交互以`docs/40_module_design/webui-design.md`为authority：
 
-1. **模型与等级**：表格列出逻辑等级、类型（云/本地）、后端模型、状态和能力；提供编辑、删除。
-2. **添加模型**：选择云模型或本地模型，填写 endpoint/model、Secret 引用、能力和逻辑等级映射；保存前校验，Secret 不回显。
-3. **运行状态**：展示服务、deployment 健康与最后探测；真实探测需二次确认并提示可能费用。
-4. **用量**：按时间和逻辑等级展示 token measured/estimated/unknown；不显示 Cost。
-5. **审计**：展示管理变更和探测结果；不含 prompt/output/credential。
+1. **主页**：以Tier父节点、后端子节点的两层树一屏列出全部逻辑Tier。父节点常驻显示三个后端的供应商标签与状态点、可用数和Running汇总；展开后分别显示每个后端的`Account / Model`、类型、健康、provider用量窗口、Running与探测操作。provider配额不得在Tier层合并。Tier是固定逻辑等级，主页只允许编辑其后端绑定，不提供删除Tier。当前目录完整显示`Senior`、`Junior`、`Worker`、`Associate`、`Engineer`、`Executor`和`Embedding-v1`，实际映射以Registry为准。Embedding三个后端必须保持同一向量空间。
+2. **主页模型操作**：添加/修改模型使用主页右侧抽屉，选择云模型或本地模型，填写endpoint/model、Secret引用、能力和固定逻辑等级映射；保存前校验，Secret不回显。运行状态和授权探测也在Tier树的后端行完成，不设独立状态页。
+3. **用量与审计**：在同一短页面用页签切换Token用量与管理审计，一次只显示一张表；用量展示measured/estimated/unknown且不显示Cost，审计不含prompt/output/credential，两者数据语义保持分离。
+4. **日志**：查询脱敏的服务运行与故障诊断事件；与operator审计分离，不含prompt/output/reasoning/vector/credential。
 
 不提供访问控制、容量、恢复、调用方、SourceInstance 或费用页面。
 
@@ -281,7 +278,7 @@ Data Plane 与 Admin 使用不同 credential/权限。Provider Secret 只通过 
 3. 实现 dedicated Embeddings deployment 与 `/v1/embeddings`。
 4. 实现统一 token Usage 记录/查询，明确 measured/estimated/unknown。
 5. 将 legacy `/call` 从 consumer authority 退役。
-6. 按内部module/ISD及五页中文UI设计实现精简Admin面和安全运维流程。
+6. 按内部module/ISD及三页中文UI设计实现精简Admin面和安全运维流程。
 7. 完成 provider/Piko/Knowledge capture 后另行决定 runtime activation。
 
 ## 18. 设计决策、风险与未决项
@@ -327,4 +324,4 @@ V0.3 不承诺跨系统调用幂等或结果恢复。配置与 Usage/Audit 使�
 
 ## H. 未决问题、外部依赖和后续版本
 
-Responses streaming范围已按固定Pi调用方式选择标准SSE，内部module/ISD和五页Web UI设计已建立。Piko已接受candidate.5的refusal消费范围，Slinky已接受Usage/存储/验证声明范围。当前没有待两方裁决的字段级设计项；剩余工作是实现与运行证据：固定embedding权重和runtime digest、provider adapter、Web UI、auth/TLS、systemd、备份恢复、测量与运维。`runtime_activation`继续为false。
+Responses streaming范围已按固定Pi调用方式选择标准SSE，内部module/ISD和三页Web UI设计已建立。candidate.6在已接受candidate.5语义上增加主页全量状态布局与只读脱敏日志查询；不改变模型调用或Usage语义。当前剩余工作是实现与运行证据：固定embedding权重和runtime digest、provider adapter、Web UI、auth/TLS、systemd、备份恢复、测量与运维。`runtime_activation`继续为false。

@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-release-and-operations` |
-| Document Version | `0.3.1-draft.3` |
+| Document Version | `0.3.1-draft.4` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -128,7 +128,7 @@ fixture 不能作为 SLO evidence。首版内部保护固定为每deployment并�
 ## 9. 数据保留、备份、审计与安全
 
 - QuerySnapshot TTL固定15分钟；后台每小时清理过期snapshot，清理前不得删除其引用的Usage版本。
-- Usage head及其版本保留30天，Audit保留90天；unknown token不能在过期或聚合时变成0。到期删除按UTC日界执行并写Audit。
+- Usage head及其版本保留30天，Audit保留90天，写入前脱敏的Operational Log保留7天；unknown token不能在过期或聚合时变成0。到期删除按UTC日界执行并写Audit；不得删除仍由未过期查询快照引用的日志项。
 - prompt/output默认不持久化；若因明确诊断需求保存，必须有独立批准和retention。
 - backup 必须加密、最小权限、可审计，并验证restore后配置、model registry和Usage/Audit一致性。
 - Secret 不得可读或出现在 backup report；audit 必须记录管理 mutation、publish/rollback 和 recovery action。

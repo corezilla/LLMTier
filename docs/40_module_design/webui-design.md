@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-webui-module-design` |
-| Document Version | `0.3.0-draft.3` |
+| Document Version | `0.3.0-draft.5` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -27,61 +27,69 @@
 
 ## 1. 设计原则
 
-Web UI 是LLMTier自己的中文operator界面，同源调用`/tier/admin/v1`，不直读SQLite、settings或Secret。沿用Slinky式框架：固定窄侧栏、顶部标题/状态、单页主卡片；页面短、一次只完成一个目标。只有五页：模型与等级、添加模型、运行状态、用量、审计。
+Web UI 是LLMTier自己的中文operator界面，同源调用`/tier/admin/v1`，不直读SQLite、settings或Secret。沿用Slinky式框架：固定窄侧栏、顶部标题/状态、单页主卡片；页面短、一次只完成一个目标。只有三页：主页、用量与审计、日志。添加/修改模型是主页内抽屉，不作为独立页面；运行状态直接显示在主页Tier树中。
 
 [打开可切换的静态 Demo](demos/webui/index.html)。以下图片由该Demo在1280×760视口生成，作为布局和信息层级基线；它们不是已经接线的产品截图。
 
-不提供访问控制、容量、恢复、费用、调用方页面。宽度小于960px时侧栏折叠为顶部菜单；表格允许横向滚动，不把五页拼成长页。
+不提供访问控制、容量、恢复、费用、调用方页面。宽度小于960px时侧栏折叠为顶部菜单；表格允许横向滚动，不把三个页面拼成长页。
 
-## 2. 页面一：模型与等级
+## 2. 页面一：主页
 
-![模型与等级页面](assets/webui/models.png)
+![主页](assets/webui/home.png)
 
-- 数据：Provider/Deployment/ServiceLevel分页视图合成；物理凭据不展示。
+- 主页使用两层树形表格，而不是把三个后端横向塞进同一行。Tier是父节点，父节点常驻显示三个后端的供应商标签与状态点、`可用后端数/总后端数`以及该Tier的Running汇总；默认折叠时一屏可看完全部Tier状态。展开父节点后，每个后端成为独立子节点，显示`Account / Model`、provider/deployment、类型、健康状态、5hour/Weekly用量、Running及探测操作。各provider用量分别显示，不合并成虚假的Tier配额。摘要同时显示网关状态、Tier总数、后端总数与需关注项。V0.3当前Tier集合为`Senior`、`Junior`、`Worker`、`Associate`、`Engineer`、`Executor`与独立的`Embedding-v1`，不分页隐藏当前目录项。
+- Tier集合和映射来自Registry；演示中的后端模型名仅用于布局，不构成生产配置。物理凭据不展示。
+- 推理Tier可绑定不同供应商但必须能力兼容且保持同一exact Tier；`Embedding-v1`的三个deployment必须是同一`BAAI/bge-m3`模型版本、预处理和`embedding_space_id`，不能把不同向量空间挂在同一Tier下。
 - 编辑先GET item保存ETag，PATCH携带If-Match。412显示“配置已被他人修改”，保留用户输入并提供重新载入，不自动覆盖。
-- 删除弹窗显示被引用资源；携带If-Match。409显示引用列表摘要，禁止强删。
+- Tier是固定逻辑等级，主页不提供删除Tier；只允许编辑其后端绑定。Provider或Deployment等可删除资源仍须在对应编辑流程显示引用关系、携带If-Match；409显示引用列表摘要，禁止强删。
 - Loading用表格骨架；空状态提供“添加模型”；401跳登录，403显示无operator权限；503保留旧画面并标“数据可能过期”。
 
-## 3. 页面二：添加/修改模型
+### 2.1 主页内添加/修改模型
 
-![添加模型页面](assets/webui/add.png)
+![主页内模型编辑抽屉](assets/webui/home-model-editor.png)
 
 - 添加按Provider→Deployment→ServiceLevel顺序提交；任一步失败显示已完成步骤，不谎称整体成功。后续实现可用单次页面编排，但不新增外部聚合endpoint。
 - 页面先在浏览器内存创建`ModelDraft`，只保存非Secret表单值和本次已创建资源的ID/ETag。每一步成功后立即更新进度：
   `Provider已保存 → Deployment已保存 → ServiceLevel已保存`。失败后“继续保存”从第一个未完成步骤开始，
   已完成步骤改用GET+ETag核对，不重复POST。刷新或关闭页面会丢弃草稿，但不会删除已落库资源；重新进入时可从
-  模型与等级页继续编辑。取消也不自动补偿删除，避免误删已被其他等级引用的资源；用户只能通过已有带If-Match
+  主页继续编辑。取消也不自动补偿删除，避免误删已被其他等级引用的资源；用户只能通过已有带If-Match
   的显式删除操作清理。这样没有伪原子事务，也不新增聚合endpoint。
 - 修改时Secret空白=保持；用户选择“移除Secret”才发null。页面不读取原值。
 - Embedding必须填写space ID、允许维数、batch/input token上限；同逻辑等级绑定不兼容space时保存前阻止并提示新建逻辑model ID。
 - 保存成功只说明配置落库，不说明probe或ready成功。
 
-## 4. 页面三：运行状态
+主页的“刷新状态”只读health/readiness，不触发模型请求；后端行的“探测”先显示二次确认：“可能产生费用并改变最后探测状态”，确认后发送`confirm_external_call=true`。探测中仅禁用对应后端；网络结果未知时提示刷新核对，不自动重复。保存成功、health成功和probe成功仍是三个不同状态。
 
-![运行状态页面](assets/webui/health.png)
+## 3. 页面二：用量与审计
 
-- 普通刷新只读health/readiness，不触发模型请求。
-- “探测”先显示二次确认：“可能产生费用并改变最后探测状态”；确认后发送`confirm_external_call=true`。
-- 探测中逐行禁用；网络结果未知时显示“结果未知，请刷新核对”，不自动重复。
-- 保存成功、health成功和probe成功为三个不同状态。
+![用量与审计页面](assets/webui/records.png)
 
-## 5. 页面四：用量
+![用量与审计页面的审计页签](assets/webui/records-audit.png)
 
-![用量页面](assets/webui/usage.png)
+页面顶部用页签切换`Token用量`和`管理审计`，一次只显示一张表，避免页面过长。页签切换不改变查询条件之外的服务状态，也不把用量事实与审计事件混成同一数据集。
+
+### 3.1 Token用量
 
 - 同request ID只展示最高record_version；版本更新替换原行，不累计。
 - Unknown显示“未知”，绝不显示0；cache read/write和reasoning token在展开行展示。
 - cursor绑定筛选与snapshot；翻页期间的新记录下次查询显示。503显示“用量存储不可用”，不能显示空表。
 - 不显示Cost、币种或估算金额。
 
-## 6. 页面五：审计
-
-![审计页面](assets/webui/audit.png)
+### 3.2 管理审计
 
 - 只显示脱敏actor/action/target/result/time/request ID；无prompt/output/token/Secret。
 - Audit只读；过滤与cursor保留在URL query，刷新可恢复同一视图。
 
-## 7. 通用交互状态
+## 4. 页面三：日志
+
+![日志页面](assets/webui/logs.png)
+
+- 日志是服务运行与故障诊断事件；审计是operator管理动作，两者不混用。
+- 只返回服务端先行脱敏的结构化字段：时间、级别、模块、事件、短消息和可空request ID。禁止Prompt、模型输出、reasoning正文、Embedding向量、Authorization、Secret或完整请求头进入日志记录和API。
+- 支持时间、级别、模块和request ID过滤；游标绑定稳定快照。日志存储不可读时返回503，不用空页伪装“没有日志”。
+- 日志详情文本有长度上限；UI不渲染HTML。保留期限和清理由运维设计控制，不提供浏览器下载全量日志。
+
+## 5. 通用交互状态
 
 | 状态 | 规则 |
 |---|---|
@@ -90,14 +98,14 @@ Web UI 是LLMTier自己的中文operator界面，同源调用`/tier/admin/v1`，
 | Validation | 字段旁中文错误，首个错误获焦点 |
 | 401 | 清除UI会话并要求重新认证，不回显token |
 | 403 | 显示无operator权限，不猜资源是否存在 |
-| 409 | 显示引用冲突，可跳回模型与等级 |
+| 409 | 显示引用冲突，可跳回主页 |
 | 412 | 显示stale edit，允许复制未保存输入后重新载入 |
 | 429/503 | 显示Retry-After（若有）；不自动无限重试 |
 | Unknown result | 先GET核对，不盲目重发mutation |
 
 所有按钮可用键盘操作，有可见焦点；状态不只依赖颜色；删除/收费probe必须二次确认。页面文本使用简体中文，机器错误码保留在“详情”中便于诊断。
 
-## 8. 认证与浏览器安全
+## 6. 认证与浏览器安全
 
 Web UI本身不提供“访问控制”业务页，也不实现账号库。production由同源TLS反向代理完成operator SSO/MFA，
 浏览器只持有代理签发的`Secure; HttpOnly; SameSite=Strict`短期会话cookie；代理在服务端换取/注入Admin bearer，
@@ -106,14 +114,12 @@ bearer不进入JavaScript、URL、localStorage或sessionStorage。所有mutation
 接受现有`AdminBearerAuth`，不新增登录endpoint、用户管理Schema或第二认证路径。development若没有认证代理，
 Web UI保持disabled，operator使用CLI/API；不提供把长期token粘贴进浏览器的降级模式。
 
-## 9. API字段映射
+## 7. API字段映射
 
 | UI | Read | Mutation |
 |---|---|---|
-| 模型与等级 | provider/deployment/service-level pages + ETag | PATCH/DELETE + If-Match |
-| 添加模型 | item GET（编辑时） | POST或partial PATCH |
-| 运行状态 | healthz/readyz、deployment health | POST probes |
-| 用量 | admin usage page | 无 |
-| 审计 | audit page | 无 |
+| 主页 | provider/deployment/service-level pages、healthz/readyz、deployment health + ETag | 模型抽屉POST/partial PATCH；Tier仅PATCH；后端资源按其管理流程PATCH/DELETE + If-Match；授权probe |
+| 用量与审计 | admin usage page、audit page | 无 |
+| 日志 | sanitized log page | 无 |
 
 `runtime_activation=false`；本文是设计，不是浏览器实现或capture。

@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-core-module-design` |
-| Document Version | `0.3.0-draft.2` |
+| Document Version | `0.3.0-draft.3` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -27,7 +27,7 @@
 
 ## 1. 目的与边界
 
-本文把单一 LLMTier 软件系统拆成可独立实现和测试的内部模块，不建立虚构 subsystem。外部字段仍以 OpenAPI `0.3-simplified-candidate.5` 为唯一 authority。LLMTier 无 Agent 会话状态：Piko 每次提供完整输入并执行工具；Slinky 管业务与 Memory。
+本文把单一 LLMTier 软件系统拆成可独立实现和测试的内部模块，不建立虚构 subsystem。外部字段仍以 OpenAPI `0.3-simplified-candidate.6` 为唯一 authority。LLMTier 无 Agent 会话状态：Piko 每次提供完整输入并执行工具；Slinky 管业务与 Memory。
 
 ## 2. 模块图
 
@@ -50,6 +50,8 @@ flowchart LR
   C --> R
   ADM --> AU[Audit Writer]
   AU --> S
+  ADM --> LG[Sanitized Log Reader]
+  LG --> S
   HC[Health / Readiness] --> C
   HC --> S
 ```
@@ -66,8 +68,9 @@ flowchart LR
 | Usage Recorder | request ID、provider事实 | 每request唯一record、版本替换、unknown | Cost、业务任务汇总 |
 | Registry/Config | Admin command | provider/deployment/level事务、embedding space约束 | 调用方管理 |
 | Audit Writer | 管理动作结果 | 脱敏审计 | prompt/output/Secret |
+| Sanitized Log Reader | operator filter/cursor | 查询写入前已脱敏的有界运行事件、稳定分页、503故障显式化 | 原始日志、prompt/output/reasoning/vector/credential、mutation |
 | Health/Readiness | store/registry/provider状态 | 无副作用健康、可接流量判断 | 主动收费probe |
-| Web UI | Admin API | 五个中文短页 | 直读DB/config/Secret |
+| Web UI | Admin API | 六个中文短页；主页全量状态、独立日志页 | 直读DB/config/Secret |
 
 ## 4. 唯一配置 authority
 

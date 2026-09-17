@@ -6,7 +6,7 @@
 
 > 本文件主体保存历史迁移证据，不是当前范围或版本清单。2026-09-17 当前入口是仓库 `README.md`、
 > `docs/00_management/std-tailoring.md`、`docs/20_system_design/llmtier-system-design.md`、
-> `docs/40_module_design/`、`docs/50_implementation_design/llmtier-runtime.isd.md` 与 candidate.5
+> `docs/40_module_design/`、`docs/50_implementation_design/llmtier-runtime.isd.md` 与 candidate.6
 > OpenAPI/manifest。以下draft.21、73文件、Seat/Recovery等表述仅描述当时快照，不能作为当前实施依据。
 
 STD draft.21 升级按用户 2026-09-09 明确要求执行。旧 `rag/std-ingestion-manifest.jsonl` 是 draft.12

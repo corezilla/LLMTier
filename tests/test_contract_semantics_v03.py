@@ -44,8 +44,8 @@ class SimplifiedV03ContractTests(unittest.TestCase):
 
     def test_unique_simplified_machine_authority(self):
         self.assertEqual("3.1.0", self.openapi["openapi"])
-        self.assertEqual("0.3-simplified-candidate.5", self.openapi["info"]["version"])
-        self.assertEqual("0.3-simplified-candidate.5", self.manifest["manifest_version"])
+        self.assertEqual("0.3-simplified-candidate.6", self.openapi["info"]["version"])
+        self.assertEqual("0.3-simplified-candidate.6", self.manifest["manifest_version"])
         self.assertFalse(self.openapi["x-llmtier-runtime-activation"])
         self.assertFalse(self.manifest["overall"]["runtime_activation"])
         self.assertEqual("openapi/llmtier-v0.3.openapi.json", self.manifest["contract_authority"]["path"])
@@ -237,6 +237,8 @@ class SimplifiedV03ContractTests(unittest.TestCase):
         self.assertIn("/tier/admin/v1/probes", paths)
         self.assertIn("/tier/admin/v1/usage", paths)
         self.assertIn("/tier/admin/v1/audit", paths)
+        self.assertIn("/tier/admin/v1/logs", paths)
+        self.assertEqual(["主页", "添加模型", "运行状态", "用量", "审计", "日志"], self.manifest["admin_web_ui"]["pages"])
         excluded = set(self.manifest["admin_web_ui"]["excluded_pages"])
         self.assertEqual({"访问控制", "容量", "恢复", "费用", "调用方"}, excluded)
 
@@ -257,6 +259,19 @@ class SimplifiedV03ContractTests(unittest.TestCase):
             refs = [parameter.get("$ref") for parameter in provider_path[operation]["parameters"]]
             self.assertIn("#/components/parameters/IfMatch", refs)
             self.assertIn("412", provider_path[operation]["responses"])
+
+        log_case = cases["sanitized-operational-log-page"]
+        self.assert_valid("LogPage", log_case["page"])
+        serialized = json.dumps(log_case["page"], ensure_ascii=False).lower()
+        for forbidden in log_case["oracle"]["forbidden_content_absent"]:
+            self.assertNotIn(forbidden, serialized)
+        logs = self.openapi["paths"]["/tier/admin/v1/logs"]["get"]
+        self.assertEqual("listSanitizedLogs", logs["operationId"])
+        self.assertEqual({"200", "400", "401", "403", "503"}, set(logs["responses"]))
+        self.assertEqual(
+            {"from", "to", "level", "module", "request_id", "cursor", "limit"},
+            {parameter.get("name", parameter.get("$ref", "").rsplit("/", 1)[-1].replace("Page", "").lower()) for parameter in logs["parameters"]},
+        )
 
     def test_stateless_boundary_and_minimal_extension_are_explicit(self):
         boundary = self.openapi["x-llmtier-architecture-boundary"]

@@ -22,7 +22,7 @@ class CurrentFixtureInventoryTests(unittest.TestCase):
     def test_all_current_fixtures_parse_and_share_version(self):
         for path in V03.glob("*.json"):
             payload = json.loads(path.read_text(encoding="utf-8"))
-            self.assertEqual("0.3-simplified-candidate.5", payload["fixture_version"], path)
+            self.assertEqual("0.3-simplified-candidate.6", payload["fixture_version"], path)
             self.assertTrue(payload["cases"], path)
 
     def test_removed_contract_fixtures_are_absent(self):

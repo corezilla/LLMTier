@@ -1,5 +1,5 @@
 {
-  "fixture_version": "0.3-simplified-candidate.5",
+  "fixture_version": "0.3-simplified-candidate.6",
   "cases": [
     {
       "id": "create-cloud-provider",
@@ -46,6 +46,48 @@
       "id": "operator-permission-denied",
       "expected_status": 403,
       "expected_code": "permission_denied"
+    },
+    {
+      "id": "sanitized-operational-log-page",
+      "page": {
+        "data": [
+          {
+            "id": "log_01",
+            "created_at": "2026-09-17T10:32:16.482Z",
+            "level": "info",
+            "module": "gateway",
+            "event": "request.completed",
+            "message": "Standard Responses request completed with status 200",
+            "request_id": "req_8f312c"
+          },
+          {
+            "id": "log_02",
+            "created_at": "2026-09-17T10:31:49.117Z",
+            "level": "warning",
+            "module": "provider",
+            "event": "health.degraded",
+            "message": "Deployment response time exceeded the configured threshold",
+            "request_id": null
+          }
+        ],
+        "page": {
+          "has_more": false,
+          "next_cursor": null
+        }
+      },
+      "oracle": {
+        "read_only": true,
+        "stable_snapshot": true,
+        "forbidden_content_absent": [
+          "prompt",
+          "model_output",
+          "reasoning_content",
+          "embedding_vector",
+          "authorization",
+          "secret",
+          "raw_headers"
+        ]
+      }
     }
   ]
 }

@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-vv-plan` |
-| Document Version | `0.3.2-draft.6` |
+| Document Version | `0.3.2-draft.7` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -31,7 +31,7 @@
 
 ## 2. 被验证基线与环境
 
-基线：OpenAPI/manifest `0.3-simplified-candidate.5`、requirements/system/interface docs当前draft、v0.3 current fixtures。静态环境不等于production。
+基线：OpenAPI/manifest `0.3-simplified-candidate.6`、requirements/system/interface docs当前draft、v0.3 current fixtures。静态环境不等于production。
 
 ## 3. Verification 方法
 
@@ -39,7 +39,7 @@ JSON/OpenAPI解析、internal `$ref` resolution、Schema正负例、path/header/
 
 ## 4. Validation 场景与用户目标
 
-Piko完成完整输入的text/tool loop；Slinky Memory获得embedding；Piko/Slinky获得不重复计数的token事实；Operator在中文Web UI添加/编辑/删除云/本地模型并安全探测；服务恢复后分层确认。
+Piko完成完整输入的text/tool loop；Slinky Memory获得embedding；Piko/Slinky获得不重复计数的token事实；Operator在中文Web UI主页一屏查看全部Tier状态、添加/编辑/删除云/本地模型、安全探测并查询脱敏日志；服务恢复后分层确认。
 
 ## 5. 测试层级和责任边界
 
@@ -53,7 +53,7 @@ Piko完成完整输入的text/tool loop；Slinky Memory获得embedding；Piko/Sl
 
 ## 6. 环境、fixture、oracle 与数据治理
 
-使用合成prompt/vector/usage，不使用生产credential或内容。probe测试必须用授权测试账号并记录可能费用。日志脱敏。
+使用合成prompt/vector/usage/log，不使用生产credential或内容。probe测试必须用授权测试账号并记录可能费用。日志禁入内容使用合成canary验证，不能在证据中保存真实敏感值。
 
 ## 7. 覆盖、采样、统计和判定规则
 

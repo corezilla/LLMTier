@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-management-control` |
-| Document Version | `0.3.3-draft.2` |
+| Document Version | `0.3.3-draft.3` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -27,11 +27,11 @@
 
 ## 1. 接口目的、范围与双方 authority
 
-Management是LLMTier自己的operator面，不是Slinky/Piko控制面。只管理云/本地模型、deployment、逻辑等级、健康探测、token Usage和审计。
+Management是LLMTier自己的operator面，不是Slinky/Piko控制面。只管理云/本地模型、deployment、逻辑等级、健康探测、token Usage和审计，并提供只读的脱敏运行日志查询。
 
 ## 2. 接口注册表
 
-`/tier/admin/v1/providers*`、`deployments*`、`service-levels*`提供list/get/create/update/delete；`POST /probes`执行获授权探测；`GET /usage`和`GET /audit`只读。无clients/sources/SourceInstance/entitlements/capacity-groups/recovery-items/Cost。
+`/tier/admin/v1/providers*`、`deployments*`、`service-levels*`提供list/get/create/update/delete；`POST /probes`执行获授权探测；`GET /usage`、`GET /audit`和`GET /logs`只读。Logs仅返回服务端脱敏的level/module/event/message/request ID/time。无clients/sources/SourceInstance/entitlements/capacity-groups/recovery-items/Cost。
 
 ## 3. 传输与物理边界
 
@@ -51,11 +51,11 @@ Provider区分cloud/local，保存endpoint和Secret引用；view只返回`has_se
 
 ## 7. 并发、流控、容量与性能
 
-使用ETag/If-Match/412防止覆盖并发编辑；列表统一使用 `limit`、opaque `cursor`、稳定snapshot和 `has_more/next_cursor`，cursor绑定principal及原filter。不得创建外部capacity product。
+使用ETag/If-Match/412防止覆盖并发编辑；列表统一使用 `limit`、opaque `cursor`、稳定snapshot和 `has_more/next_cursor`，cursor绑定principal及原filter。日志支持level/module/request ID过滤，store不可读返回503。不得创建外部capacity product。
 
 ## 8. 安全、身份、权限和隔离
 
-Secret值只写不读、不回显、不进日志/audit/backup report。probe可能产生费用，必须`confirm_external_call=true`且由operator授权。reload/restart/delete属于状态变更操作。
+Secret值只写不读、不回显、不进日志/audit/backup report。运行日志还禁止prompt、模型输出、reasoning、向量、Authorization和原始headers，message最长512字符。probe可能产生费用，必须`confirm_external_call=true`且由operator授权。reload/restart/delete属于状态变更操作。
 
 ## 9. 版本协商、兼容矩阵与弃用
 
@@ -63,7 +63,7 @@ Admin API随OpenAPI显式版本变更；无运行时兼容协商。旧访问控�
 
 ## 10. Contract fixture、验证与证据
 
-验证CRUD、If-Match缺失/过期、partial PATCH原子性、401/403/409/412、稳定分页、引用冲突、Secret不回显、cloud/local字段、exact model、probe确认、Usage store 503、Usage无Cost、审计脱敏和旧path absence。
+验证CRUD、If-Match缺失/过期、partial PATCH原子性、401/403/409/412、稳定分页、引用冲突、Secret不回显、cloud/local字段、exact model、probe确认、Usage store 503、Usage无Cost、审计脱敏、LogPage/禁入内容/日志store 503和旧path absence。
 
 ## 11. 未决项与双方批准
 

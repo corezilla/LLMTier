@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-cross-system-finalization` |
-| Document Version | `0.3.1-draft.3` |
+| Document Version | `0.3.1-draft.4` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -27,7 +27,7 @@
 
 ## 1. 定型范围与机器权威
 
-Current candidate是`0.3-simplified-candidate.5`。OpenAPI和manifest是唯一current machine artifacts；旧candidate只作历史审计。
+Current candidate是`0.3-simplified-candidate.6`。OpenAPI和manifest是唯一current machine artifacts；旧candidate只作历史审计。
 
 ## 2. Operation、鉴权与公共字段
 
@@ -64,7 +64,7 @@ Piko主要聚合response usage形成任务usage；必要时按request_id查询`/
 
 ## 8. A/B/C 分栏与剩余项
 
-- A跨系统：标准 Responses SSE 已按固定 Pi adapter 的 `stream:true/store:false` 和真实历史shape确定；剩余仅为Piko/Slinky对精确candidate.5字节的复审与联调证据。
+- A跨系统：标准 Responses SSE 沿用已接受candidate.5语义；candidate.6只增加LLMTier operator主页与只读脱敏日志面，不改变Piko/Slinky模型消费字段。
 - B LLMTier内部：provider adapters、embedding deployment、queue/concurrency、Usage store、Admin UI、auth/TLS/runbook。
 - C联调：SDK capture、真实token、429/5xx、embedding维数、health/restart、UI安全。
 

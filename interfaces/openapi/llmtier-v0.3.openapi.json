@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "LLMTier V0.3 Simplified Contract",
-    "version": "0.3-simplified-candidate.5",
+    "version": "0.3-simplified-candidate.6",
     "description": "OpenAI-compatible stateless model gateway candidate. Not runtime active."
   },
   "servers": [
@@ -1121,6 +1121,97 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/tier/admin/v1/logs": {
+      "get": {
+        "operationId": "listSanitizedLogs",
+        "description": "Read-only query of bounded, sanitized operational events. Prompt, model output, reasoning content, vectors, credentials, authorization values, secrets, and raw headers are forbidden.",
+        "security": [
+          {
+            "AdminBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "info",
+                "warning",
+                "error"
+              ]
+            }
+          },
+          {
+            "name": "module",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          },
+          {
+            "name": "request_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          },
+          {
+            "$ref": "#/components/parameters/PageCursor"
+          },
+          {
+            "$ref": "#/components/parameters/PageLimit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stable page of sanitized operational events",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
           }
         }
       }
@@ -3499,6 +3590,75 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/AuditEvent"
+            }
+          },
+          "page": {
+            "$ref": "#/components/schemas/AdminPageMeta"
+          }
+        }
+      },
+      "LogEntry": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "created_at",
+          "level",
+          "module",
+          "event",
+          "message",
+          "request_id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "level": {
+            "enum": [
+              "info",
+              "warning",
+              "error"
+            ]
+          },
+          "module": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "event": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "message": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Server-sanitized diagnostic summary; never contains prompt, model output, reasoning content, vectors, credentials, authorization values, secrets, or raw headers"
+          },
+          "request_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 128
+          }
+        }
+      },
+      "LogPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data",
+          "page"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogEntry"
             }
           },
           "page": {

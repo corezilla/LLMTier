@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "llmtier-management-control",
   "document_type": "interfaces.control",
-  "document_version": "0.3.3-draft.2",
+  "document_version": "0.3.3-draft.3",
   "title": "LLMTier Management Interface Control（V0.3）",
   "document_owner": "LLMTier",
   "authors": [

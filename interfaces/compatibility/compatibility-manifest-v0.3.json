@@ -1,5 +1,5 @@
 {
-  "manifest_version": "0.3-simplified-candidate.5",
+  "manifest_version": "0.3-simplified-candidate.6",
   "status": "candidate",
   "overall": {
     "contract_status": "candidate",
@@ -9,7 +9,7 @@
   "contract_authority": {
     "format": "openapi-3.1-json",
     "path": "openapi/llmtier-v0.3.openapi.json",
-    "version": "0.3-simplified-candidate.5"
+    "version": "0.3-simplified-candidate.6"
   },
   "architecture_boundary": {
     "pattern": "stateless_openai_compatible_model_gateway",
@@ -121,11 +121,12 @@
   "admin_web_ui": {
     "language": "zh-CN",
     "pages": [
-      "模型与等级",
+      "主页",
       "添加模型",
       "运行状态",
       "用量",
-      "审计"
+      "审计",
+      "日志"
     ],
     "excluded_pages": [
       "访问控制",

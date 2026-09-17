@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-contract-specification` |
-| Document Version | `0.3.2-draft.3` |
+| Document Version | `0.3.2-draft.4` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -27,11 +27,11 @@
 
 ## 1. Contract scope 与 authority
 
-唯一字段级 authority 是 `interfaces/openapi/llmtier-v0.3.openapi.json` version `0.3-simplified-candidate.5`。Manifest只描述范围和activation，不复制字段。`runtime_activation=false`，本候选不授权runtime。
+唯一字段级 authority 是 `interfaces/openapi/llmtier-v0.3.openapi.json` version `0.3-simplified-candidate.6`。Manifest只描述范围和activation，不复制字段。`runtime_activation=false`，本候选不授权runtime。
 
 ## 2. Operation / Message / Event Catalog
 
-Current consumer operations：Responses、Embeddings、Models、token Usage、health/readiness。Current operator operations：Provider/Deployment/ServiceLevel CRUD、Probe、Usage、Audit。没有跨系统event或调用恢复operation。
+Current consumer operations：Responses、Embeddings、Models、token Usage、health/readiness。Current operator operations：Provider/Deployment/ServiceLevel CRUD、Probe、Usage、Audit及只读Sanitized Logs。没有跨系统event或调用恢复operation。
 
 ## 3. Request、Response、Event 与数据对象
 
@@ -51,6 +51,8 @@ Usage按from/to必填，可选model/request_id，按 `(recorded_at,request_id)` 
 
 ## 7. 身份、权限、Secret 与调用边界
 
+`GET /tier/admin/v1/logs`按level/module/request ID过滤写入前已脱敏的运行事件，使用稳定快照与逐页授权；store不可读返回503。日志消息有长度上限，不得包含prompt、模型输出、reasoning、向量、credential、Secret或原始header。该接口只读，和管理动作Audit分离。
+
 Bearer credential只用于授权，不形成Client/Source/SourceInstance DTO。Admin credential独立。Secret只写引用、view仅`has_secret`。不传Agent/Run/Project/IR/STD/Session。
 
 ## 8. 版本、兼容性与迁移
@@ -59,7 +61,7 @@ Bearer credential只用于授权，不形成Client/Source/SourceInstance DTO。A
 
 ## 9. Positive/Negative fixture 与 validator
 
-Current fixtures：`openai-surface-fixtures.json`、`usage-fixtures.json`、`admin-model-fixtures.json`、`stateless-gateway-boundary-fixtures.json`。Validator必须解析全部refs，执行SSE sequence/delta/done/terminal identity及refusal形状、Embedding float/base64表示与维数、Usage unknown/source/subset/单调版本、分页snapshot及崩溃顺序、Admin并发条件和旧custom术语/path absence检查；不能用“文件可解析”冒充语义通过。
+Current fixtures：`openai-surface-fixtures.json`、`usage-fixtures.json`、`admin-model-fixtures.json`、`stateless-gateway-boundary-fixtures.json`；Admin fixture同时覆盖脱敏日志页。Validator必须解析全部refs，执行SSE sequence/delta/done/terminal identity及refusal形状、Embedding float/base64表示与维数、Usage unknown/source/subset/单调版本、分页snapshot及崩溃顺序、Admin并发条件、LogPage/禁入内容和旧custom术语/path absence检查；不能用“文件可解析”冒充语义通过。
 
 ## 10. Requirement → Contract → Test traceability
 

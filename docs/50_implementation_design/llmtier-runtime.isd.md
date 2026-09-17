@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-runtime-isd` |
-| Document Version | `0.3.0-draft.4` |
+| Document Version | `0.3.0-draft.5` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -27,7 +27,7 @@
 
 ## 1. 实现范围
 
-本文规定V0.3目标实现的内部数据、事务、关键函数边界和启动顺序；不是当前legacy代码已经实现的声明。外部形状以candidate.5 OpenAPI为准，模块职责以`llmtier-core-module-design`为准。
+本文规定V0.3目标实现的内部数据、事务、关键函数边界和启动顺序；不是当前legacy代码已经实现的声明。外部形状以candidate.6 OpenAPI为准，模块职责以`llmtier-core-module-design`为准。
 
 ## 2. 目标包结构
 
@@ -48,7 +48,8 @@ src/llmtier_v03/
   admin.py               # Admin API
   health.py              # health/readiness
   audit.py               # 脱敏审计
-  webui/                 # 五页静态资源和组件
+  logs.py                # 写入前脱敏的有界运行日志与只读查询
+  webui/                 # 三页静态资源和组件
 ```
 
 不得让legacy `/call` router与上述目标surface并行成为consumer路径。迁移完成前目标包保持未激活；切换必须一次性更新唯一入口。
@@ -71,6 +72,7 @@ src/llmtier_v03/
 | query_snapshot_items | (snapshot_id,ordinal)；unique(snapshot_id,request_id) | request_id,record_version；Admin项另存frozen_view_json,etag |
 | probe_results | deployment_id | status,checked_at,request_id |
 | audit_events | id | actor,action,target,result,created_at,request_id |
+| operational_logs | id | created_at,level,module,event,message,request_id；message<=512且写入前脱敏 |
 
 所有外键开启；WAL模式；配置mutation使用`BEGIN IMMEDIATE`。Usage事实只追加`usage_record_versions`，不得原位覆盖旧版本；同一事务仅把`usage_heads`推进到严格更高版本。final记录不得被低质量或低版本替代。未到期`query_snapshot_items`引用的版本不得清理；snapshot到期后先删除items和snapshot，之后才允许按保留策略清理不再被引用的旧版本。Admin snapshot item以冻结view/ETag而非活动表行作为分页内容。
 
@@ -143,21 +145,21 @@ revision、runtime image digest与normalization；缺一则该deployment保持un
 
 Web UI与Admin API同源；production反向代理完成operator SSO/MFA、短期HttpOnly会话、CSRF和Admin bearer注入，
 浏览器JavaScript不接触bearer。没有认证代理时Web UI不启用。所有mutation使用最近GET的ETag。添加模型只在内存保存
-`ModelDraft`并按Provider→Deployment→ServiceLevel续作；不自动回滚或重发已完成POST。组件状态和五页布局见
+`ModelDraft`并按Provider→Deployment→ServiceLevel续作；不自动回滚或重发已完成POST。组件状态和三页布局见
 `llmtier-webui-module-design`。前端不得把HTTP 200配置保存解释为provider健康。
 
 ## 10. 日志与安全
 
-结构化日志只含request ID、route、logical model、status、latency、typed error和脱敏principal。禁止Authorization、Secret、prompt、response、embedding vector和opaque reasoning。主动probe、Secret变化、restart/restore都需要operator权限并写Audit。
+结构化日志写入`operational_logs`前先投影为level/module/event/有界message/request ID；只含route、logical model、status、latency、typed error和脱敏principal。禁止Authorization、Secret、prompt、response、embedding vector、opaque reasoning和原始headers。`GET /tier/admin/v1/logs`只读，首个页面在SQLite事务中冻结精确log ID并复用QuerySnapshot；每页重新鉴权，过期cursor返回400，store不可读返回503。日志保留7天；清理不得删除未过期snapshot引用项。主动probe、Secret变化、restart/restore都需要operator权限并写Audit。
 
 ## 11. 实现门禁
 
-1. candidate.5 Schema/semantic tests通过的范围包括标准refusal history、delta/done/terminal完整item一致、Usage subset/source/version、Embedding float/base64，以及纯设计模型中的快照成员冻结、unknown义务跨模型restart保留和无obligation禁止dispatch；Admin删除、cursor过期、terminal后Usage store失败以及真实SQLite/crash行为为`NOT_RUN`，不得由本项PASS推导；
+1. candidate.6 Schema/semantic tests通过的范围包括candidate.5既有语义以及脱敏LogEntry/LogPage、只读Admin日志path；真实日志持久化、清理和浏览器接线为`NOT_RUN`；
 2. 固定Pi golden request和SSE parser capture通过；
 3. SQLite bootstrap唯一authority及崩溃事务测试通过；
 4. Admin ETag并发、Secret、引用删除测试通过；
 5. Embedding same-space与索引重建边界通过；
-6. 五页浏览器状态/可访问性测试通过；
+6. 三页浏览器状态/可访问性测试通过，主页在目标视口完整显示当前Registry全部Tier；
 7. production auth/TLS/backup/restore另行验收。
 
 在这些门禁和独立activation批准前，`runtime_activation=false`。
