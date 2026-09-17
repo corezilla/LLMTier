@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-requirements` |
-| Document Version | `0.3.2-draft.5` |
+| Document Version | `0.3.2-draft.6` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | 待定 |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-17` |
+| Last Modified Date | `2026-09-18` |
 | Template Version | `0.1.0` |
 | Template ID | `requirements.specification` |
 | Template Conformance | `tailored` |
@@ -35,7 +35,7 @@ V0.3 外部范围：Responses、Embeddings、Models、token Usage、health/readi
 
 - Piko 是 Responses consumer，并对每次调用提供完整当前输入。
 - Slinky Memory 是 Embeddings consumer；分块、索引、向量库和检索不属于 LLMTier。
-- Operator 使用中文 Web UI/Admin API 管理云模型、本地模型和逻辑等级。
+- Operator 使用英文 Web UI/Admin API 管理云模型、本地模型和逻辑等级。
 - Provider/local inference server 是 LLMTier 的外部依赖。
 
 ## 3. 假设、约束与术语
@@ -53,7 +53,7 @@ V0.3 外部范围：Responses、Embeddings、Models、token Usage、health/readi
 | LT-FUN-002 | shall 提供 `GET /v1/models` 与 exact-case detail，返回真实逻辑等级、能力、上下文/输出限制和 availability | P0 | CT-MODEL-001 |
 | LT-FUN-003 | shall 提供标准 `POST /v1/embeddings` 字符串输入子集；首版`Embedding-v1`固定为本地`BAAI/bge-m3` dense、space `bge-m3-dense-1024-v1`、1024维、单项8192 tokens、batch 32和L2 normalization；支持与请求一致的float数组或RFC4648 little-endian float32 base64表示并验证有限值/维数；同一逻辑model只能绑定同一向量空间，非兼容模型/版本/预处理变更必须使用新逻辑model ID | P0 | CT-EMB-001 |
 | LT-FUN-004 | shall 在模型响应保留标准token Usage结构，并提供统一只读token Usage查询；measured、estimated、unknown及原始字段存在性必须可区分 | P0 | CT-USAGE-001 |
-| LT-FUN-005 | shall 通过 Admin API/中文 Web UI 在主页一屏展示全部逻辑Tier、模型映射和状态，支持添加、修改、删除云模型、本地模型和逻辑等级，并提供健康探测、Usage、审计与脱敏运行日志 | P1 | CT-ADMIN-001/CT-UI-001/CT-LOG-001 |
+| LT-FUN-005 | shall 通过 Admin API/英文 Web UI 在主页一屏展示全部逻辑Tier、模型映射和状态，支持添加、修改、删除云模型、本地模型和逻辑等级，并提供健康探测、Usage、审计与脱敏运行日志 | P1 | CT-ADMIN-001/CT-UI-001/CT-LOG-001 |
 | LT-FUN-006 | shall 提供无副作用 health/readiness；真实 provider probe、reload、restart 等潜在费用/状态变更操作必须要求 operator 授权 | P0 | CT-OPS-001 |
 | LT-FUN-007 | shall 不保存/压缩 Agent 历史、不执行工具、不创建 Agent Session/Conversation、不管理或匹配 backend KV | P0 | CT-BOUNDARY-001 |
 | LT-FUN-008 | function call 仅由模型输出；Piko 执行工具并在后续完整请求中提交结果 | P0 | CT-DP-001 |
@@ -120,4 +120,4 @@ V0.3 外部范围：Responses、Embeddings、Models、token Usage、health/readi
 | LT-OPEN-02 | LLMTier | **设计已关闭，实施待证据**：`Embedding-v1`=`BAAI/bge-m3` dense、space `bge-m3-dense-1024-v1`、1024维、batch 32、单项8192 tokens；部署需固定权重/tokenizer/runtime digest | Embeddings activation 前 |
 | LT-OPEN-03 | LLMTier | **设计已关闭，实施待证据**：单节点Linux、TLS反向代理operator SSO/MFA、systemd、加密SQLite备份与Operations runbook | runtime activation 前 |
 
-2026-09-17：以主流标准接口替代旧复杂 candidate；删除 SourceInstance、外部容量/Seat、custom idempotency/Invocation recovery、Cost、compatibility negotiation 和跨系统 release 要求；保留 exact model、内部保护、token Usage、模型管理与运维。candidate.6在既有标准调用语义上增加中文主页全量状态视图与只读脱敏日志查询。
+2026-09-17：以主流标准接口替代旧复杂 candidate；删除 SourceInstance、外部容量/Seat、custom idempotency/Invocation recovery、Cost、compatibility negotiation 和跨系统 release 要求；保留 exact model、内部保护、token Usage、模型管理与运维。candidate.6在既有标准调用语义上增加主页全量状态视图与只读脱敏日志查询。2026-09-18按用户决定将整个Web UI可见文本统一为英文。

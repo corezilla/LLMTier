@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.3.2-draft.6` |
+| Document Version | `0.3.2-draft.7` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | 待定 |
 | Created Date | `2026-09-06` |
-| Last Modified Date | `2026-09-17` |
+| Last Modified Date | `2026-09-18` |
 | Template Version | `4.0.0` |
 | Template ID | `design.system` |
 | Template Conformance | `tailored` |
@@ -48,7 +48,7 @@ Piko 管理 Agent session、上下文、工具循环、模型调用与执行内�
 | 向量化 | 标准 `POST /v1/embeddings`；使用明确配置的 embedding-capable deployment |
 | 工具调用 | 模型可返回 function call；Piko 执行工具并在下一次完整请求中带回 tool result |
 | Usage | 响应内返回本次 token Usage；最小只读 `/tier/v1/usage` 提供同一授权主体的统一查询 |
-| 自主管理 | Admin API + 中文 Web UI 管理云模型、本地模型、逻辑等级、探测、Usage 与审计 |
+| 自主管理 | Admin API + English Web UI 管理云模型、本地模型、逻辑等级、探测、Usage 与审计 |
 | 运维 | 提供无副作用健康/就绪检查；有费用或改变状态的探测、reload、restart 必须获运维授权 |
 
 不在范围：Cost/账单；SourceInstance；外部容量 snapshot/shared pool/Seat/claim；自定义 Idempotency/Invocation/result recovery；跨系统 close/drain/release；专用 compatibility negotiation；调用方或业务会话管理页面。
@@ -71,7 +71,7 @@ Piko 管理 Agent session、上下文、工具循环、模型调用与执行内�
 flowchart LR
   P[Piko Agent Runtime] -->|OpenAI-compatible Responses| L[LLMTier]
   K[Slinky Memory] -->|OpenAI-compatible Embeddings| L
-  O[Operator] -->|中文 Admin Web UI / Admin API| L
+  O[Operator] -->|English Admin Web UI / Admin API| L
   L -->|provider-native API| C[Cloud Models]
   L -->|local inference API| M[Local Models]
 ```
@@ -82,7 +82,7 @@ flowchart LR
 flowchart TB
   subgraph LT[LLMTier software system]
     API[OpenAI-compatible API]
-    ADM[Admin API + 中文 Web UI]
+    ADM[Admin API + English Web UI]
     REG[Logical Model Registry]
     ROUTER[Router and Provider Adapters]
     METER[Usage Meter]
@@ -218,7 +218,7 @@ Bearer credential 只标识获授权调用主体；不暴露 Client/Source/Sourc
 
 任何provider dispatch前先持久化该server request ID的unknown Usage义务；计量版本只追加并单调推进head，因此terminal后写入失败或崩溃也不会在重启后变成“没有调用”。Usage查询按`[from,to)`及`(recorded_at,request_id)`稳定排序；首个页面持久冻结精确record version，cursor绑定principal、当前授权和原filter。页间更正/插入只进入新snapshot；Admin分页同样冻结view/ETag。相同request ID的版本绝不累计；store不可用返回typed 503，不用空页冒充无记录。成功模型结果不会仅因usage未知而改成失败，但unknown不得显示为0。
 
-### 11.2 Admin API 与中文 Web UI
+### 11.2 Admin API 与 English Web UI
 
 ```mermaid
 flowchart LR
@@ -278,7 +278,7 @@ Data Plane 与 Admin 使用不同 credential/权限。Provider Secret 只通过 
 3. 实现 dedicated Embeddings deployment 与 `/v1/embeddings`。
 4. 实现统一 token Usage 记录/查询，明确 measured/estimated/unknown。
 5. 将 legacy `/call` 从 consumer authority 退役。
-6. 按内部module/ISD及三页中文UI设计实现精简Admin面和安全运维流程。
+6. 按内部module/ISD及三页英文UI设计实现精简Admin面和安全运维流程。
 7. 完成 provider/Piko/Knowledge capture 后另行决定 runtime activation。
 
 ## 18. 设计决策、风险与未决项

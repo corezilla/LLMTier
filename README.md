@@ -7,7 +7,7 @@ Slinky 和 Piko 是外部 consumer/协作项目，不是 LLMTier 的源码目录
 
 - 当前实现可作为独立进程启动，提供现有 trusted-network Tier HTTP API 与 operator CLI。
 - V0.3 简化候选目标接口包含 OpenAI-compatible Responses、Embeddings、Models、token Usage、
-  health/readiness、精简 Management API 和中文 Admin Web UI。
+  health/readiness、精简 Management API 和 English Admin Web UI。
 - V0.3 目标包的编码、开发调试和Gate U正式单元测试已完成；consumer capture、部署和
   Runtime Activation 尚未完成；`overall.runtime_activation=false`。
 - Piko 固定 Pi `9767ba2` 的 `openai-responses` adapter 固定发送 `stream:true`；首个实现因此采用标准 Responses SSE，不另建 endpoint、fallback 或自定义恢复路径。
@@ -69,7 +69,7 @@ LLMTIER_ADMIN_TOKEN='...' LLMTIER_DATA_TOKEN='...' \
   --settings config/settings.json
 ```
 
-仅限loopback合成调试时可设置`LLMTIER_DEV_MODE=1`；这会启用固定开发凭据并允许同源Web UI在loopback免Bearer访问，禁止用于共享或生产监听地址。明确采用可信局域网免登录部署时，可设置`LLMTIER_TRUSTED_LAN_MODE=1`并把`--host`绑定到一块RFC1918/IPv6 ULA网卡；只有来自loopback、RFC1918或ULA的无Authorization请求获得共享operator/data权限，公网地址不会绕过Bearer。该模式意味着同一可信局域网内任何主机均可调用模型和修改配置，不提供用户级审计隔离。中文Web UI位于`/ui/`。开发期Fake Provider和冒烟入口分别为`tools/v03_fake_provider.py`与`tools/v03_smoke.py`。
+仅限loopback合成调试时可设置`LLMTIER_DEV_MODE=1`；这会启用固定开发凭据并允许同源Web UI在loopback免Bearer访问，禁止用于共享或生产监听地址。明确采用可信局域网免登录部署时，可设置`LLMTIER_TRUSTED_LAN_MODE=1`并把`--host`绑定到一块RFC1918/IPv6 ULA网卡；只有来自loopback、RFC1918或ULA的无Authorization请求获得共享operator/data权限，公网地址不会绕过Bearer。该模式意味着同一可信局域网内任何主机均可调用模型和修改配置，不提供用户级审计隔离。English Web UI位于`/ui/`。开发期Fake Provider和冒烟入口分别为`tools/v03_fake_provider.py`与`tools/v03_smoke.py`。
 
 默认监听 `127.0.0.1:8765`。client 可用 `TIER_SERVER_URL` 选择 credential-free 的 localhost、loopback、
 RFC1918 或 IPv6 ULA origin。当前 transport 不等同于 production TLS/auth 部署批准。
@@ -89,7 +89,7 @@ LLMTier 采用 STD `software` profile 与单服务根结构：
 - [V0.3 Requirements](docs/10_requirements/llmtier-v0.3-requirements.md) 与
   [Traceability](docs/10_requirements/llmtier-v0.3-traceability.md)
 - [系统设计](docs/20_system_design/llmtier-system-design.md)
-- [核心模块设计](docs/40_module_design/llmtier-core-design.md)、[中文 Web UI 设计](docs/40_module_design/webui-design.md) 与
+- [核心模块设计](docs/40_module_design/llmtier-core-design.md)、[English Web UI Design](docs/40_module_design/webui-design.md) 与
   [Runtime ISD](docs/50_implementation_design/llmtier-runtime.isd.md)
 - [Piko Data Plane](docs/60_interfaces/piko-data-plane-control.md)、
   [Slinky Capacity/Observation](docs/60_interfaces/slinky-capacity-observation-control.md) 与

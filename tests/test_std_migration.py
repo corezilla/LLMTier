@@ -61,7 +61,7 @@ class StdAndAuthorityTests(unittest.TestCase):
             self.assertIn(f"| Document Version | `{metadata['document_version']}` |", text, path)
             self.assertEqual("review", metadata["status"], path)
             self.assertIsNone(metadata["reviewed_commit"], path)
-            self.assertEqual("2026-09-17", metadata["last_modified_at"], path)
+            self.assertIn(f"| Last Modified Date | `{metadata['last_modified_at']}` |", text, path)
 
     def test_current_authority_names_machine_artifacts_and_no_activation(self):
         contract = (ROOT / "docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.md").read_text(encoding="utf-8")

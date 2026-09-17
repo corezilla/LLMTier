@@ -1,10 +1,10 @@
 <!-- STD_DOCUMENT_COVER_BEGIN -->
-# LLMTier V0.3 中文 Web UI 设计
+# LLMTier V0.3 English Web UI Design
 
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-webui-module-design` |
-| Document Version | `0.3.0-draft.6` |
+| Document Version | `0.3.0-draft.7` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | 待定 |
 | Created Date | `2026-09-17` |
-| Last Modified Date | `2026-09-17` |
+| Last Modified Date | `2026-09-18` |
 | Template Version | `1.0.0` |
 | Template ID | `design.definition` |
 | Template Conformance | `tailored` |
@@ -27,7 +27,7 @@
 
 ## 1. 设计原则
 
-Web UI 是LLMTier自己的中文operator界面，同源调用`/tier/admin/v1`，不直读SQLite、settings或Secret。沿用Slinky式框架：固定窄侧栏、顶部标题/状态、单页主卡片；页面短、一次只完成一个目标。只有三页：主页、用量与审计、日志。添加/修改模型是主页内抽屉，不作为独立页面；运行状态直接显示在主页Tier树中。
+Web UI is LLMTier's English-language operator console. It calls `/tier/admin/v1` on the same origin and never reads SQLite, settings, or Secrets directly. It keeps the established compact frame: fixed narrow sidebar, page title and status header, and one primary card per short page. It has three pages only: Home, Usage & Audit, and Logs. Add/Edit Model uses a drawer on Home rather than a separate page; runtime status is visible directly in the Tier tree.
 
 [打开可切换的静态 Demo](demos/webui/index.html)。以下图片由该Demo在1280×760视口生成，作为布局和信息层级基线；它们不是已经接线的产品截图。
 
@@ -37,7 +37,7 @@ Web UI 是LLMTier自己的中文operator界面，同源调用`/tier/admin/v1`，
 
 ![主页](assets/webui/home.png)
 
-- 主页使用两层树形表格，而不是把三个后端横向塞进同一行。Tier是父节点，父节点常驻显示三个后端的供应商标签与状态点、`可用后端数/总后端数`以及该Tier的Running汇总；默认折叠时一屏可看完全部Tier状态。展开父节点后，每个后端成为独立子节点，显示`Account / Model`、provider/deployment、类型、健康状态、5hour/Weekly用量、Running及探测操作。各provider用量分别显示，不合并成虚假的Tier配额。摘要同时显示网关状态、Tier总数、后端总数与需关注项。V0.3当前Tier集合为`Senior`、`Junior`、`Worker`、`Associate`、`Engineer`、`Executor`与独立的`Embedding-v1`，不分页隐藏当前目录项。
+- 主页使用两层树形表格，而不是把三个后端横向塞进同一行。Tier是父节点；展开后每个后端成为独立子节点，显示provider、model、类型、健康状态与版本。主页不再显示重复的Gateway/Tier/Backend/Health统计卡，也不显示搜索或手工刷新工具栏；网关状态保留在全局页头，`Add Model`紧邻状态放在右上角。V0.3当前Tier集合为`Senior`、`Junior`、`Worker`、`Associate`、`Engineer`、`Executor`与独立的`Embedding-v1`，不分页隐藏当前目录项。
 - Tier集合和映射来自Registry；演示中的后端模型名仅用于布局，不构成生产配置。物理凭据不展示。
 - 推理Tier可绑定不同供应商但必须能力兼容且保持同一exact Tier；`Embedding-v1`的三个deployment必须是同一`BAAI/bge-m3`模型版本、预处理和`embedding_space_id`，不能把不同向量空间挂在同一Tier下。物理Provider模型ID按各runtime实际API ID展示，不要求字符串都写成`BAAI/bge-m3`。
 - 编辑先GET item保存ETag，PATCH携带If-Match。412显示“配置已被他人修改”，保留用户输入并提供重新载入，不自动覆盖。
@@ -59,7 +59,7 @@ Web UI 是LLMTier自己的中文operator界面，同源调用`/tier/admin/v1`，
 - Embedding必须填写space ID、允许维数、batch/input token上限；同逻辑等级绑定不兼容space时保存前阻止并提示新建逻辑model ID。
 - 保存成功只说明配置落库，不说明probe或ready成功。
 
-主页的“刷新状态”只读health/readiness，不触发模型请求；后端行的“探测”先显示二次确认：“可能产生费用并改变最后探测状态”，确认后发送`confirm_external_call=true`。探测中仅禁用对应后端；网络结果未知时提示刷新核对，不自动重复。保存成功、health成功和probe成功仍是三个不同状态。
+主页首次进入和从其他页面返回时自动读取health/readiness，不触发模型请求。后端行的“探测”先显示二次确认：“可能产生费用并改变最后探测状态”，确认后发送`confirm_external_call=true`。探测中仅禁用对应后端；网络结果未知时提示重新进入主页核对，不自动重复。保存成功、health成功和probe成功仍是三个不同状态。
 
 ## 3. 页面二：用量与审计
 
@@ -96,7 +96,7 @@ Web UI 是LLMTier自己的中文operator界面，同源调用`/tier/admin/v1`，
 |---|---|
 | Loading | 保持页面框架，局部骨架；不清空上次成功数据 |
 | Empty | 说明是“无数据”而不是“加载失败” |
-| Validation | 字段旁中文错误，首个错误获焦点 |
+| Validation | English field-level error beside the field; focus the first error |
 | 401 | 清除UI会话并要求重新认证，不回显token |
 | 403 | 显示无operator权限，不猜资源是否存在 |
 | 409 | 显示引用冲突，可跳回主页 |
@@ -104,7 +104,7 @@ Web UI 是LLMTier自己的中文operator界面，同源调用`/tier/admin/v1`，
 | 429/503 | 显示Retry-After（若有）；不自动无限重试 |
 | Unknown result | 先GET核对，不盲目重发mutation |
 
-所有按钮可用键盘操作，有可见焦点；状态不只依赖颜色；删除/收费probe必须二次确认。页面文本使用简体中文，机器错误码保留在“详情”中便于诊断。
+All buttons support keyboard operation and visible focus; status never relies on color alone; delete and chargeable probes require confirmation. All visible page copy, labels, status values, provider types, and empty/error states use English. Machine error codes remain available in Details for diagnosis.
 
 ## 6. 认证与浏览器安全
 

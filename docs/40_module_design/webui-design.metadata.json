@@ -3,8 +3,8 @@
   "authority": "LLMTier",
   "document_id": "llmtier-webui-module-design",
   "document_type": "design.definition",
-  "document_version": "0.3.0-draft.6",
-  "title": "LLMTier V0.3 中文 Web UI 设计",
+  "document_version": "0.3.0-draft.7",
+  "title": "LLMTier V0.3 English Web UI Design",
   "document_owner": "LLMTier",
   "authors": ["llmtier"],
   "source_repository": "corezilla/LLMTier",
@@ -23,5 +23,5 @@
   "parent_document_id": "llmtier-system-design",
   "supersedes": null,
   "created_at": "2026-09-17",
-  "last_modified_at": "2026-09-17"
+  "last_modified_at": "2026-09-18"
 }
