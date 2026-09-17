@@ -17,12 +17,12 @@
     <header><div><h1 id="title">Home</h1><p id="subtitle">View every model, tier, backend, and status on one page</p></div><span id="gateway" class="pill warn">● Connecting</span></header>
 
     <section id="home" class="page active">
-      <div class="card"><div class="cardhead"><b>Tier / Backend Tree</b><span id="stamp">Not refreshed</span></div><div id="tree" class="tree empty">Loading…</div></div>
+      <div class="card"><div class="cardhead"><b>Tier / Backend Tree</b><span id="stamp">Not refreshed</span></div><div class="tree-head"><span>Tier / Backend</span><span>Status</span><span>Provider</span><span>Type</span><span>Actions</span></div><div id="tree" class="tree empty">Loading…</div></div>
     </section>
 
     <section id="providers" class="page">
       <div class="toolbar"><span id="provider-error" class="error"></span><div class="actions"><button id="refresh-providers">Refresh</button><button class="primary" id="add-provider">Add Provider</button></div></div>
-      <div class="card"><div class="cardhead"><b>Provider Management</b><span>Tier members can only use providers listed here</span></div><div class="tablewrap"><table><thead><tr><th>Provider</th><th>Type</th><th>API Root</th><th>Secret</th><th>Status</th><th>Deployments</th><th>Actions</th></tr></thead><tbody id="provider-body"></tbody></table></div></div>
+      <div class="card"><div class="cardhead"><b>Provider Management</b><span>Tier members can only use providers listed here</span></div><div class="tablewrap"><table><thead><tr><th>Provider</th><th>Type</th><th>API Root</th><th>API Key</th><th>Status</th><th>Deployments</th><th>Actions</th></tr></thead><tbody id="provider-body"></tbody></table></div></div>
     </section>
 
     <section id="records" class="page">
@@ -46,7 +46,7 @@
       <label>Provider Name<input name="name" required></label>
       <label>Type<select name="kind"><option value="cloud">Cloud Provider</option><option value="local">Local Backend</option></select></label>
       <label class="full">API Root URL<input name="endpoint" type="url" placeholder="https://api.example.com/v1" required></label>
-      <label class="full">Secret Reference<input name="secret_ref" placeholder="env:PROVIDER_TOKEN"><span id="provider-secret-help" class="field-help"></span></label>
+      <label class="full">API Key Reference<input name="secret_ref" placeholder="env:PROVIDER_API_KEY"><span id="provider-secret-help" class="field-help"></span></label>
       <label class="check full"><input name="enabled" type="checkbox" checked> Enabled</label>
       <p id="provider-form-error" class="error"></p>
       <div class="formactions"><button type="button" id="cancel-provider">Cancel</button><button class="primary">Save Provider</button></div>

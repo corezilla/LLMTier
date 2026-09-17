@@ -11,10 +11,19 @@ class WebUIContractTests(unittest.TestCase):
     def test_four_pages(self):self.assertEqual(self.html.count('class="page'),4)
     def test_home_is_default(self):self.assertIn('id="home" class="page active"',self.html)
     def test_fixed_tier_tree_target(self):self.assertIn('id="tree"',self.html)
+    def test_home_shows_authoritative_backend_status(self):
+        for value in ('Running','Probing','Exhausted','Unreachable','Disabled','Unknown'):
+            self.assertIn(value,self.js)
+        self.assertIn('class="tiny backend-probe"',self.js)
+        self.assertIn("'/tier/admin/v1/probes'",self.js)
+    def test_root_route_assets_remain_same_origin(self):
+        self.assertIn('href="/ui/styles.css"',self.html)
+        self.assertIn('src="/ui/app.js"',self.html)
     def test_provider_management_page(self):
         self.assertIn('data-page="providers"',self.html)
         self.assertIn('id="provider-form"',self.html)
         self.assertIn('id="add-provider"',self.html)
+        self.assertIn('API Key Reference',self.html)
     def test_tier_member_editor_uses_existing_provider(self):
         self.assertIn('id="tier-mask"',self.html)
         self.assertIn('id="member-provider"',self.html)

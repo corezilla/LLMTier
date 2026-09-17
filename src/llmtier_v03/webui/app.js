@@ -15,7 +15,23 @@ const caps=kind=>({responses:kind==='responses',embeddings:kind==='embeddings',t
 let state={providers:[],deployments:[],tiers:[]};
 let editingTierId=null;
 
-function healthStatus(value){return value==='healthy'?['Healthy','ok']:value==='degraded'||value==='unknown'?['Attention','warn']:['Unavailable','bad']}
+function backendState(deployment,provider){
+  if(!provider?.enabled||!deployment.enabled)return ['Disabled','muted'];
+  const value=String(deployment.health||'unknown').toLowerCase();
+  if(value==='healthy'||value==='running')return ['Running','ok'];
+  if(value==='probing')return ['Probing','warn'];
+  if(value==='exhausted')return ['Exhausted','warn'];
+  if(value==='unhealthy'||value==='unreachable')return ['Unreachable','bad'];
+  return ['Unknown','muted'];
+}
+function tierState(tier,deployments){
+  if(!tier.enabled)return ['Disabled','muted'];
+  if(!deployments.length)return ['Empty','muted'];
+  const states=deployments.map(deployment=>backendState(deployment,state.providers.find(item=>item.id===deployment.provider_id))[0]);
+  for(const name of ['Running','Probing','Exhausted','Unreachable'])if(states.includes(name))return [name,name==='Running'?'ok':name==='Unreachable'?'bad':'warn'];
+  if(states.every(name=>name==='Disabled'))return ['Disabled','muted'];
+  return ['Unknown','muted'];
+}
 function providerOptions(selected){return state.providers.map(provider=>`<option value="${esc(provider.id)}" ${provider.id===selected?'selected':''}>${esc(provider.name)} · ${esc(provider.kind)}</option>`).join('')}
 
 async function loadRegistry(){
@@ -41,14 +57,23 @@ function renderTree(){
   $('#tree').className='tree';
   $('#tree').innerHTML=state.tiers.map(tier=>{
     const deployments=tier.deployment_ids.map(id=>state.deployments.find(item=>item.id===id)).filter(Boolean);
-    const overall=deployments.some(item=>item.health==='healthy')?['Available','ok']:deployments.length?['Attention','warn']:['Unavailable','bad'];
+    const overall=tierState(tier,deployments);
     const rows=deployments.map(deployment=>{
-      const owner=provider(deployment.provider_id),status=healthStatus(deployment.health);
-      return `<div class="backend"><span>└ <b>${esc(owner?.name||'Unknown provider')}</b><div class="subline">${esc(deployment.backend_model)}</div></span><span><i class="pill ${status[1]}">${status[0]}</i></span><span>${owner?.kind==='cloud'?'Cloud':'Local'}</span><span>v${deployment.version}</span><span></span></div>`;
+      const owner=provider(deployment.provider_id),status=backendState(deployment,owner);
+      return `<div class="backend"><span>└ <b>${esc(deployment.name)}</b><div class="subline">${esc(deployment.backend_model)} · v${deployment.version}</div></span><span><i class="pill ${status[1]}">${status[0]}</i></span><span>${esc(owner?.name||'Unknown provider')}</span><span>${owner?.kind==='cloud'?'Cloud':'Local'}</span><span><button type="button" class="tiny backend-probe" data-deployment="${esc(deployment.id)}" ${status[0]==='Disabled'?'disabled':''}>Probe</button></span></div>`;
     }).join('');
-    return `<details open><summary><span class="tiername"><b>${esc(tier.id)}</b><div class="subline">${deployments.length} members</div></span><span><i class="pill ${overall[1]}">${overall[0]}</i></span><span>${tier.capabilities.responses?'Responses':'Embeddings'}</span><span>v${tier.version}</span><span><button type="button" class="tiny tier-edit" data-tier="${esc(tier.id)}">Edit</button></span></summary>${rows}</details>`;
+    return `<details open><summary><span class="tiername"><b>${esc(tier.id)}</b><div class="subline">${deployments.length} members · v${tier.version}</div></span><span><i class="pill ${overall[1]}">${overall[0]}</i></span><span>—</span><span>${tier.capabilities.responses?'Responses':'Embeddings'}</span><span><button type="button" class="tiny tier-edit" data-tier="${esc(tier.id)}">Edit</button></span></summary>${rows}</details>`;
   }).join('')||'<div class="empty">No tiers configured</div>';
   $$('#tree .tier-edit').forEach(button=>button.onclick=event=>{event.preventDefault();event.stopPropagation();openTierEditor(button.dataset.tier)});
+  $$('#tree .backend-probe').forEach(button=>button.onclick=()=>probeDeployment(button));
+}
+
+async function probeDeployment(button){
+  const deploymentId=button.dataset.deployment;if(!deploymentId)return;
+  if(!window.confirm('Probe this backend now? This makes one provider request.'))return;
+  button.disabled=true;button.textContent='Probing…';
+  try{await api('/tier/admin/v1/probes',{method:'POST',body:{deployment_id:deploymentId,confirm_external_call:true}});await loadHome()}
+  catch(error){window.alert(`Probe failed: ${error.message}`);button.disabled=false;button.textContent='Probe'}
 }
 
 async function loadProviders(){
@@ -75,7 +100,7 @@ function openProviderEditor(id=null){
   form.elements.secret_ref.value='';
   form.elements.enabled.checked=provider?.enabled??true;
   $('#provider-drawer-title').textContent=provider?'Edit Provider':'Add Provider';
-  $('#provider-secret-help').textContent=provider&&provider.has_secret?'Leave blank to keep the configured secret.':'Use an env: or file: reference; never paste a secret value.';
+  $('#provider-secret-help').textContent=provider&&provider.has_secret?'API key configured. Leave blank to keep it.':'Use an env: or file: API key reference; never paste the key value.';
   $('#provider-form-error').textContent='';
   $('#provider-mask').classList.add('open');
 }
@@ -110,7 +135,7 @@ function openTierEditor(id){
 function renderTierMembers(){
   const tier=state.tiers.find(item=>item.id===editingTierId);if(!tier)return;
   const deployments=tier.deployment_ids.map(id=>state.deployments.find(item=>item.id===id)).filter(Boolean);
-  $('#tier-members').innerHTML=deployments.map(deployment=>`<form class="member-card" data-deployment="${esc(deployment.id)}"><div class="member-heading"><b>${esc(deployment.name)}</b><span>${esc(deployment.id)} · v${deployment.version}</span></div><label>Provider<select name="provider_id">${providerOptions(deployment.provider_id)}</select></label><label>Deployment Name<input name="name" value="${esc(deployment.name)}" required></label><label>Backend Model ID<input name="backend_model" value="${esc(deployment.backend_model)}" required></label><div class="member-actions"><button type="button" class="danger member-remove">Remove from Tier</button><button class="primary">Save Changes</button></div></form>`).join('')||'<div class="empty compact">This tier has no members.</div>';
+  $('#tier-members').innerHTML=deployments.map(deployment=>`<form class="member-card" data-deployment="${esc(deployment.id)}"><div class="member-heading"><b>${esc(deployment.name)}</b><span>${esc(deployment.id)} · ${esc(backendState(deployment,state.providers.find(item=>item.id===deployment.provider_id))[0])} · v${deployment.version}</span></div><label>Provider<select name="provider_id">${providerOptions(deployment.provider_id)}</select></label><label>Deployment Name<input name="name" value="${esc(deployment.name)}" required></label><label>Backend Model ID<input name="backend_model" value="${esc(deployment.backend_model)}" required></label><label class="check"><input name="enabled" type="checkbox" ${deployment.enabled?'checked':''}> Enabled</label><div class="member-actions"><button type="button" class="danger member-remove">Remove from Tier</button><button class="primary">Save Changes</button></div></form>`).join('')||'<div class="empty compact">This tier has no members.</div>';
   $$('#tier-members .member-card').forEach(form=>{form.onsubmit=saveMember;form.querySelector('.member-remove').onclick=()=>removeMember(form.dataset.deployment)});
   $('#member-provider').innerHTML=providerOptions();
   $('#member-capability').textContent=tier.id==='Embedding-v1'?'Embeddings':'Responses';
@@ -123,7 +148,7 @@ async function saveMember(event){
   event.preventDefault();
   const form=event.currentTarget,deployment=state.deployments.find(item=>item.id===form.dataset.deployment);
   try{
-    await api(`/tier/admin/v1/deployments/${encodeURIComponent(deployment.id)}`,{method:'PATCH',headers:{'If-Match':etag(deployment)},body:{provider_id:form.elements.provider_id.value,name:form.elements.name.value,backend_model:form.elements.backend_model.value}});
+    await api(`/tier/admin/v1/deployments/${encodeURIComponent(deployment.id)}`,{method:'PATCH',headers:{'If-Match':etag(deployment)},body:{provider_id:form.elements.provider_id.value,name:form.elements.name.value,backend_model:form.elements.backend_model.value,enabled:form.elements.enabled.checked}});
     await loadRegistry();renderTree();renderTierMembers();
   }catch(error){$('#tier-form-error').textContent=error.message}
 }
