@@ -8,7 +8,7 @@ Slinky 和 Piko 是外部 consumer/协作项目，不是 LLMTier 的源码目录
 - 当前实现可作为独立进程启动，提供现有 trusted-network Tier HTTP API 与 operator CLI。
 - V0.3 简化候选目标接口包含 OpenAI-compatible Responses、Embeddings、Models、token Usage、
   health/readiness、精简 Management API 和中文 Admin Web UI。
-- V0.3 目标包的编码与开发调试已完成；正式单元测试、consumer capture、部署和
+- V0.3 目标包的编码、开发调试和Gate U正式单元测试已完成；consumer capture、部署和
   Runtime Activation 尚未完成；`overall.runtime_activation=false`。
 - Piko 固定 Pi `9767ba2` 的 `openai-responses` adapter 固定发送 `stream:true`；首个实现因此采用标准 Responses SSE，不另建 endpoint、fallback 或自定义恢复路径。
 - LLMTier 不持有 Agent Session/Conversation，不压缩上下文、不执行工具、不管理后端 KV identity。
@@ -100,7 +100,7 @@ LLMTier 采用 STD `software` profile 与单服务根结构：
 - [Release and Operations](docs/80_operations/llmtier-v0.3-release-and-operations.md)
 
 批准的 prose authority 不表示 production endpoint、durable recovery、Admin UI 或 Runtime Activation 已完成。
-其中V0.3代码完成只表示Gate C开发调试通过，不表示Gate U单元测试或production activation通过。
+其中V0.3 Gate C/Gate U通过不表示production activation通过；真实provider capture、浏览器E2E、部署和三方联调仍是后续门禁。
 旧 V0.3 prose 已逐 scope 映射并移至 `docs/99_reference/`；迁移和批准证据位于 `docs/91_reviews/` 与
 `docs/98_migration/`。
 
