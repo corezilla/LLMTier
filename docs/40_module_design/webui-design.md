@@ -4,14 +4,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-webui-module-design` |
-| Document Version | `0.3.0-draft.1` |
+| Document Version | `0.3.0-draft.2` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | llmtier |
-| Reviewer | 待定 |
-| Approver | 待定 |
+| Reviewer | Piko、Slinky、LLMTier |
+| Approver | LLMTier |
 | Approval Date | 待定 |
 | Created Date | `2026-09-17` |
 | Last Modified Date | `2026-09-17` |
@@ -75,6 +75,11 @@ Web UI 是LLMTier自己的中文operator界面，同源调用`/tier/admin/v1`，
 ```
 
 - 添加按Provider→Deployment→ServiceLevel顺序提交；任一步失败显示已完成步骤，不谎称整体成功。后续实现可用单次页面编排，但不新增外部聚合endpoint。
+- 页面先在浏览器内存创建`ModelDraft`，只保存非Secret表单值和本次已创建资源的ID/ETag。每一步成功后立即更新进度：
+  `Provider已保存 → Deployment已保存 → ServiceLevel已保存`。失败后“继续保存”从第一个未完成步骤开始，
+  已完成步骤改用GET+ETag核对，不重复POST。刷新或关闭页面会丢弃草稿，但不会删除已落库资源；重新进入时可从
+  模型与等级页继续编辑。取消也不自动补偿删除，避免误删已被其他等级引用的资源；用户只能通过已有带If-Match
+  的显式删除操作清理。这样没有伪原子事务，也不新增聚合endpoint。
 - 修改时Secret空白=保持；用户选择“移除Secret”才发null。页面不读取原值。
 - Embedding必须填写space ID、允许维数、batch/input token上限；同逻辑等级绑定不兼容space时保存前阻止并提示新建逻辑model ID。
 - 保存成功只说明配置落库，不说明probe或ready成功。
@@ -144,7 +149,16 @@ Web UI 是LLMTier自己的中文operator界面，同源调用`/tier/admin/v1`，
 
 所有按钮可用键盘操作，有可见焦点；状态不只依赖颜色；删除/收费probe必须二次确认。页面文本使用简体中文，机器错误码保留在“详情”中便于诊断。
 
-## 8. API字段映射
+## 8. 认证与浏览器安全
+
+Web UI本身不提供“访问控制”业务页，也不实现账号库。production由同源TLS反向代理完成operator SSO/MFA，
+浏览器只持有代理签发的`Secure; HttpOnly; SameSite=Strict`短期会话cookie；代理在服务端换取/注入Admin bearer，
+bearer不进入JavaScript、URL、localStorage或sessionStorage。所有mutation还必须校验同源`Origin`和代理CSRF token。
+401跳转到外部登录，403留在当前页并显示权限不足；logout由代理撤销会话后清空内存草稿。LLMTier Admin API仍只
+接受现有`AdminBearerAuth`，不新增登录endpoint、用户管理Schema或第二认证路径。development若没有认证代理，
+Web UI保持disabled，operator使用CLI/API；不提供把长期token粘贴进浏览器的降级模式。
+
+## 9. API字段映射
 
 | UI | Read | Mutation |
 |---|---|---|

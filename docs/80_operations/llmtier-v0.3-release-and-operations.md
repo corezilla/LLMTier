@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-release-and-operations` |
-| Document Version | `0.3.1-draft.2` |
+| Document Version | `0.3.1-draft.3` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -31,8 +31,8 @@
 ## 1. Release scope、版本与兼容性
 
 本文定义独立 LLMTier 仓库当前可确认的 build/start/stop/health、配置、安全、回滚和 acceptance 边界，
-并显式列出 V0.3 production Open Gate。它不是 release approval 或 runtime runbook，也不表示 production
-部署已获批准。
+并显式列出 V0.3 production Open Gate。它包含目标单节点runbook，但不是release approval、已执行证据或
+production部署授权。
 
 - 当前 Python package 版本是 `pyproject.toml` 的 `0.1.0`；不能把它称为 V0.3 production release。
 - V0.3 contract/design 仍为 candidate，`overall.runtime_activation=false`。
@@ -62,8 +62,9 @@ artifact SHA-256 与签署结果。当前仓库没有已批准的 V0.3 wheel/con
 5. 运行全部 tests 与 contract/STD validators；SIGINT/SIGTERM 触发 bounded graceful shutdown。
 
 上述入口只证明当前 baseline CLI 形状。现有 `/health`、`/runtime`、`/stats` 等实现不得被
-误称为 V0.3 Data Plane/Observation/Management 已接线。production service manager、container image、
-network/TLS、filesystem owner、resource limit 和 multi-instance topology 均是 Open Gate。无烧录/装配步骤。
+误称为 V0.3 Data Plane/Observation/Management 已接线。V0.3 production参考拓扑固定为单节点Linux：
+TLS/SSO反向代理监听外部地址，LLMTier systemd service只绑定loopback，独立非登录用户运行，SQLite/日志/备份
+目录分别最小授权；不设计多实例或共享SQLite。container image仍不是首版必要条件。无烧录/装配步骤。
 
 ## 4. 配置、Secret、校准数据与环境
 
@@ -76,7 +77,8 @@ network/TLS、filesystem owner、resource limit 和 multi-instance topology 均�
 - 环境至少区分 development/test/staging/production；禁止用未激活 endpoint 或旧 alias 代替目标 surface。
 - `TIER_SERVER_URL` 只是当前 client 连接位置，不是 authority、routing policy 或 compatibility selector。
 - 当前 server 只接受 localhost、loopback、RFC1918 或 IPv6 ULA bind/origin；credential 不得嵌入 URL。
-- production config schema、secret store、rotation、encryption、retention 和 migration 尚未批准，状态 BLOCKED。
+- production Secret backend、credential rotation、磁盘/备份加密和migration必须按下述单节点基线实现并留证；
+  在证据完成前状态仍为BLOCKED，而不是设计未定义。
 
 ## 5. Preflight、Bring-up 与健康检查
 
@@ -111,8 +113,8 @@ store health 与 secret access denial。内部资源指标不形成外部 Seat/c
 prompt/output/credential。
 
 当前没有 production latency/throughput/error budget 或 provider measured SLO。开发日志和 mock/static
-fixture 不能作为 SLO evidence。SLO、告警阈值、on-call owner、dashboard 和 escalation 在 production
-baseline 冻结前为 BLOCKED。
+fixture 不能作为 SLO evidence。首版内部保护固定为每deployment并发1、每level FIFO 32、排队30秒、连接/首字节
+30秒、SSE空闲60秒；这些是安全上限而非SLO。on-call owner、测量后的告警阈值和dashboard在activation前仍为BLOCKED。
 
 ## 8. 故障诊断、维护与更换
 
@@ -125,13 +127,30 @@ baseline 冻结前为 BLOCKED。
 
 ## 9. 数据保留、备份、审计与安全
 
-- Usage/Audit retention 由LLMTier运营策略定义；unknown token不能在过期或聚合时变成0。
+- QuerySnapshot TTL固定15分钟；后台每小时清理过期snapshot，清理前不得删除其引用的Usage版本。
+- Usage head及其版本保留30天，Audit保留90天；unknown token不能在过期或聚合时变成0。到期删除按UTC日界执行并写Audit。
 - prompt/output默认不持久化；若因明确诊断需求保存，必须有独立批准和retention。
 - backup 必须加密、最小权限、可审计，并验证restore后配置、model registry和Usage/Audit一致性。
 - Secret 不得可读或出现在 backup report；audit 必须记录管理 mutation、publish/rollback 和 recovery action。
-- 当前 backup/restore、key management、retention enforcement 与 security run evidence 均为 BLOCKED。
+- SQLite使用在线backup API每日生成一次加密备份，保留7份每日和4份每周副本；备份落到与活动state不同的受控卷，
+  Secret值不进入SQLite或备份。首版目标RPO 24小时、RTO 4小时；每次release前必须在隔离目录恢复最近备份，
+  执行integrity check、schema version、Registry/Usage/Audit抽样和readyz检查。key management、retention enforcement、
+  restore rehearsal与security run evidence完成前仍为BLOCKED。
 
-## 10. Acceptance、交接与退役
+## 10. 单节点启动、重启与恢复Runbook
+
+1. operator固定artifact SHA、bootstrap/store路径、代理配置和Secret reference；先验证磁盘权限与最近备份。
+2. systemd以专用用户启动LLMTier，`Restart=on-failure`且限制重启速率；进程只监听loopback，外部TLS由反向代理终止。
+3. `/healthz`仅证明进程和事件循环；`/readyz`必须同时通过SQLite integrity、Registry、所需deployment配置与adapter检查。
+4. 普通重启先在代理摘流，等待最多60秒完成已dispatch请求；超时终止后由调用方处理连接结果，LLMTier不恢复调用。
+5. 恢复顺序为停止服务→保全故障state→在新目录恢复加密备份→离线integrity/migration检查→只读启动→
+   Registry/Usage/Audit抽样→受授权smoke probe→代理重新加流。环境恢复不等于Piko任务成功。
+6. 任何真实provider probe、credential rotation、restore、migration和重新加流都需operator显式批准并写Audit；
+   无副作用health/readiness读取可自动执行。
+
+上述为目标runbook；真实systemd unit、代理/SSO配置、备份密钥和restore rehearsal尚未交付，因此activation仍BLOCKED。
+
+## 11. Acceptance、交接与退役
 
 production acceptance 至少要求：immutable artifact/provenance、全部 P0 contract/runtime/security/operations
 cases PASS、Piko/Embedding consumer captures、operations owner、backup/restore、rollback rehearsal、SLO/alert、

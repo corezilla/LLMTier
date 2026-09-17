@@ -4,14 +4,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-runtime-isd` |
-| Document Version | `0.3.0-draft.3` |
+| Document Version | `0.3.0-draft.4` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | llmtier |
-| Reviewer | 待定 |
-| Approver | 待定 |
+| Reviewer | Piko、Slinky、LLMTier |
+| Approver | LLMTier |
 | Approval Date | 待定 |
 | Created Date | `2026-09-17` |
 | Last Modified Date | `2026-09-17` |
@@ -62,6 +62,8 @@ src/llmtier_v03/
 | deployments | id | provider_id FK, backend_model, capabilities_json, enabled, health, version |
 | service_levels | id exact/case-sensitive | enabled, capabilities_json, version |
 | service_level_deployments | (level_id,deployment_id) | ordinal |
+| deployment_runtime_profiles | deployment_id FK | max_in_flight=1,connect_timeout_ms=30000,stream_idle_timeout_ms=60000,version |
+| admission_queues | 仅内存、非SQLite authority | level_id,FIFO request refs；每level上限32、等待上限30000ms |
 | usage_obligations | (principal_id,request_id) | model,endpoint,recorded_at,dispatch_authorized_at |
 | usage_record_versions | (principal_id,request_id,record_version)；FK obligation | is_final,token fields,quality,source,timestamps |
 | usage_heads | (principal_id,request_id)；FK immutable version | head_record_version,updated_at |
@@ -102,6 +104,11 @@ only after explicit activation gate expose Data/Admin traffic
 6. Adapter才可发起provider dispatch并输出标准SSE；emitter检查sequence、item ID、done与terminal完整item一致及单terminal，不实现未消费的JSON并行模式。terminal usage按标准结构返回后追加更高版本并原子推进`UsageHead`。更新失败不篡改已成功模型结果，原unknown版本继续可查并触发store告警；进程在terminal后更新前崩溃，重启后也仍返回该unknown事实而非空页。
 7. Piko执行工具并以新HTTP调用发送完整历史；服务端不保存conversation。
 
+`InternalAdmission.acquire(level_id, registry_version)`在单进程事件循环内维护每level FIFO和每deployment semaphore。
+它先拒绝超过32项的队列，再等待最多30000ms；出队时重新读取同一或更高RegistrySnapshot，只选择enabled、healthy、
+能力匹配且in-flight最少的deployment，相同按ordinal。没有候选时503，有候选但无许可/等待到期时429。
+进程重启会丢弃未dispatch的内存队列，客户端得到连接失败并按自己的任务策略处理；队列不是durable任务或恢复协议。
+
 ## 6. Usage归一与更新
 
 `normalize_usage(provider_usage)`保留字段存在性：没有字段为null，真实0才为0。标准响应只输出标准数字结构；无法提供可信usage时响应可省略/置null，由Piko标任务Usage unknown，但模型成功本身不改为失败。
@@ -127,9 +134,17 @@ ETag格式为`"<resource-id>.v<version>"`。PATCH/DELETE事务先验证Admin权�
 
 任一不满足则配置发布失败。非兼容升级必须新建level ID；无alias或静默切换。
 
+首版bootstrap必须创建`Embedding-v1`并绑定本地`BAAI/bge-m3` dense deployment；固定
+`embedding_space_id=bge-m3-dense-1024-v1`、dimensions `[1024]`、batch 32、single-input 8192 tokens、
+provider tokenizer、无文本改写/无query instruction、L2 normalization。启动校验同时核对已配置的model/tokenizer
+revision、runtime image digest与normalization；缺一则该deployment保持unhealthy，`readyz`不得把Embedding能力报为可用。
+
 ## 9. Web UI装配
 
-Web UI与Admin API同源，浏览器只持有短期Admin会话；不保存Provider Secret。所有mutation使用最近GET的ETag。组件状态和五页布局见`llmtier-webui-module-design`。前端不得把HTTP 200配置保存解释为provider健康。
+Web UI与Admin API同源；production反向代理完成operator SSO/MFA、短期HttpOnly会话、CSRF和Admin bearer注入，
+浏览器JavaScript不接触bearer。没有认证代理时Web UI不启用。所有mutation使用最近GET的ETag。添加模型只在内存保存
+`ModelDraft`并按Provider→Deployment→ServiceLevel续作；不自动回滚或重发已完成POST。组件状态和五页布局见
+`llmtier-webui-module-design`。前端不得把HTTP 200配置保存解释为provider健康。
 
 ## 10. 日志与安全
 

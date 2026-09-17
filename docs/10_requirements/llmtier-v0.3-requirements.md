@@ -4,14 +4,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-requirements` |
-| Document Version | `0.3.2-draft.3` |
+| Document Version | `0.3.2-draft.4` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | llmtier |
-| Reviewer | 待定 |
-| Approver | 待定 |
+| Reviewer | Piko、Slinky、LLMTier |
+| Approver | LLMTier |
 | Approval Date | 待定 |
 | Created Date | `2026-09-07` |
 | Last Modified Date | `2026-09-17` |
@@ -51,7 +51,7 @@ V0.3 外部范围：Responses、Embeddings、Models、token Usage、health/readi
 |---|---|---|---|
 | LT-FUN-001 | shall 提供 OpenAI-compatible `POST /v1/responses`，接受固定 Pi 0.85.1 实际发送的 `stream=true`、`store=false`、easy message、assistant/function/reasoning历史、function result及所选reasoning字段；支持标准 SSE text/function/reasoning/refusal/terminal Usage，refusal最终content保持标准`type=refusal`；首阶段不增加未消费的JSON并行模式 | P0 | CT-DP-001 |
 | LT-FUN-002 | shall 提供 `GET /v1/models` 与 exact-case detail，返回真实逻辑等级、能力、上下文/输出限制和 availability | P0 | CT-MODEL-001 |
-| LT-FUN-003 | shall 提供标准 `POST /v1/embeddings` 字符串输入子集；支持与请求一致的float数组或RFC4648 little-endian float32 base64表示并验证有限值/维数；同一逻辑model只能绑定同一向量空间，非兼容模型/版本/预处理变更必须使用新逻辑model ID | P0 | CT-EMB-001 |
+| LT-FUN-003 | shall 提供标准 `POST /v1/embeddings` 字符串输入子集；首版`Embedding-v1`固定为本地`BAAI/bge-m3` dense、space `bge-m3-dense-1024-v1`、1024维、单项8192 tokens、batch 32和L2 normalization；支持与请求一致的float数组或RFC4648 little-endian float32 base64表示并验证有限值/维数；同一逻辑model只能绑定同一向量空间，非兼容模型/版本/预处理变更必须使用新逻辑model ID | P0 | CT-EMB-001 |
 | LT-FUN-004 | shall 在模型响应保留标准token Usage结构，并提供统一只读token Usage查询；measured、estimated、unknown及原始字段存在性必须可区分 | P0 | CT-USAGE-001 |
 | LT-FUN-005 | shall 通过 Admin API/中文 Web UI 添加、修改、删除云模型、本地模型和逻辑等级，并提供健康探测、Usage 与审计 | P1 | CT-ADMIN-001/CT-UI-001 |
 | LT-FUN-006 | shall 提供无副作用 health/readiness；真实 provider probe、reload、restart 等潜在费用/状态变更操作必须要求 operator 授权 | P0 | CT-OPS-001 |
@@ -75,7 +75,7 @@ V0.3 外部范围：Responses、Embeddings、Models、token Usage、health/readi
 
 | ID | 需求 |
 |---|---|
-| LT-PERF-001 | 内部 queue/concurrency guard shall 防止资源过载，并以标准 429/Retry-After 或 503 暴露失败 |
+| LT-PERF-001 | 首版内部guard shall按deployment限制并发1、按exact level FIFO排队最多32项/30秒；queue full/等待到期返回429，全部候选不可用返回503；连接/首字节和SSE空闲timeout分别为30/60秒 |
 | LT-PERF-002 | 同一逻辑等级内可选择已配置 deployment；不得因容量不足跨等级替换 |
 | LT-PERF-003 | 未测量前不得宣称 production latency、throughput 或 availability SLO |
 
@@ -87,6 +87,7 @@ V0.3 外部范围：Responses、Embeddings、Models、token Usage、health/readi
 |---|---|
 | LT-SEC-001 | Data Plane 和 Admin credential shall 分权；Provider Secret 只写/引用，不回显、不记录 |
 | LT-SEC-002 | prompt/output 默认不进入普通日志、Usage 或 Audit；诊断使用脱敏 request ID/trace |
+| LT-SEC-003 | production Web UI shall 由同源TLS反向代理完成operator SSO/MFA、短期HttpOnly会话、CSRF和Admin bearer注入；浏览器不得保存或读取bearer，且不得新增账号/访问控制页面或LLMTier登录API |
 | LT-REL-001 | LLMTier shall 返回真实 HTTP/typed error；调用方按其任务策略重试，LLMTier不承诺跨系统 exactly-once |
 | LT-REL-002 | 内部可靠性、provider retry 或防重不得创建对外 Invocation/recovery/session contract |
 | LT-REL-003 | 未知 Usage、健康或 provider fact shall 显式 unknown/unavailable，不得伪造零或成功 |
@@ -100,6 +101,7 @@ V0.3 外部范围：Responses、Embeddings、Models、token Usage、health/readi
 | LT-OPS-002 | provider probe 应显示可能费用/副作用并要求明确 operator 授权；结果进入 Audit |
 | LT-OPS-003 | restart/reload/restore shall 使用 LLMTier 自有 runbook，不建立统一跨系统恢复状态机 |
 | LT-OPS-004 | 恢复确认 shall 分层检查 process、config、model availability、Usage store，并仅在授权后运行 smoke request |
+| LT-OPS-005 | 单节点基线 shall 由systemd管理loopback服务，优雅摘流最长60秒；QuerySnapshot TTL为15分钟，Usage/Audit分别保留30/90天；每日加密SQLite备份保留7日+4周，目标RPO 24小时、RTO 4小时，并在release前执行隔离restore rehearsal |
 
 ## 9. 制造、部署、维护与退役需求
 
@@ -113,7 +115,7 @@ V0.3 外部范围：Responses、Embeddings、Models、token Usage、health/readi
 
 | ID | Owner | 问题 | 最晚阶段 |
 |---|---|---|---|
-| LT-OPEN-02 | LLMTier | 选择实际embedding deployment并给出其space ID、维数、batch和input token限制 | Embeddings 实现前 |
-| LT-OPEN-03 | LLMTier | production auth/TLS/service manager/runbook | runtime activation 前 |
+| LT-OPEN-02 | LLMTier | **设计已关闭，实施待证据**：`Embedding-v1`=`BAAI/bge-m3` dense、space `bge-m3-dense-1024-v1`、1024维、batch 32、单项8192 tokens；部署需固定权重/tokenizer/runtime digest | Embeddings activation 前 |
+| LT-OPEN-03 | LLMTier | **设计已关闭，实施待证据**：单节点Linux、TLS反向代理operator SSO/MFA、systemd、加密SQLite备份与Operations runbook | runtime activation 前 |
 
 2026-09-17：以主流标准接口替代旧复杂 candidate；删除 SourceInstance、外部容量/Seat、custom idempotency/Invocation recovery、Cost、compatibility negotiation 和跨系统 release 要求；保留 exact model、内部保护、token Usage、模型管理与运维。三方评审后将固定Pi真实request/SSE/usage、Usage替换语义、Admin条件更新、Embedding同space和SQLite唯一authority固化为candidate.5。

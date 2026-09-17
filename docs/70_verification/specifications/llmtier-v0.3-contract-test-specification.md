@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-contract-test-specification` |
-| Document Version | `0.3.2-draft.5` |
+| Document Version | `0.3.2-draft.6` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -39,9 +39,11 @@
 |---|---|---|---|
 | CT-DP-001 | 固定Pi Responses SSE/text/tool/history/reasoning/refusal | 真实请求shape有效；delta/done/terminal identity、标准refusal content及terminal语义通过；LLMTier不执行tool | BLOCKED |
 | CT-MODEL-001 | Models exact ID/capabilities | case-sensitive；no alias/fallback | BLOCKED |
-| CT-EMB-001 | Embeddings float/base64/batch/space | 请求/响应表示一致；base64严格解码为little-endian float32；数量/index/维数/有限数；同logical model同space | BLOCKED |
+| CT-EMB-001 | Embeddings float/base64/batch/space | 请求/响应表示一致；base64严格解码为little-endian float32；数量/index/维数/有限数；`Embedding-v1`固定BGE-M3/1024/8192/batch32/L2及immutable revisions；同logical model同space | BLOCKED |
 | CT-USAGE-001 | per-call/query usage | 标准details；unknown null；record替换不相加；store 503；no Cost | BLOCKED |
 | CT-ADMIN-001 | cloud/local CRUD/probe/audit | Secret不返回；probe确认；If-Match/partial PATCH/分页 | BLOCKED |
+| CT-ADM-001 | 内部admission与routing | 并发1、FIFO 32/30秒、least-in-flight+ordinal、429/503、30/60秒timeout、无跨等级/space fallback | BLOCKED |
+| CT-WEBSEC-001 | Web UI认证与分步保存 | TLS代理SSO/MFA、HttpOnly/CSRF、browser无bearer；三步失败续作不重复POST或自动删除 | BLOCKED |
 | CT-OPS-001 | health/readiness/restart confirmation | no-cost probe separation | BLOCKED |
 | CT-BOUNDARY-001 | stateless gateway | no Agent session/context/tool/KV ownership | STATIC PASS candidate |
 | CT-SCOPE-001 | removed extensions | forbidden path/header/schema absent | STATIC PASS candidate |
@@ -50,7 +52,7 @@
 
 已执行的静态场景：标准 SSE text/function/reasoning/refusal、assistant-history refusal、function result roundtrip、embedding float/base64、model list、measured/unknown Usage；快照模型执行更正和插入后旧snapshot成员不变，unknown obligation在模型restart后仍可查，无obligation dispatch被拒绝。已执行负例包括SSE event必填/identity/content/terminal冲突、embedding表示/解码/数量/index/维数、Usage source/subset/version降级。
 
-仅定义而`NOT_RUN`的场景：Admin配置删除期间继续读取冻结snapshot、cursor过期、terminal后Usage store失败、真实SQLite写入/清理以及进程crash/restart。它们保留为实现/联调门禁；fixture中的`expired_cursor_error`等oracle标签只是预期，不是已执行证据。并发编辑规划使用If-Match/412，引用冲突规划使用409；不测试外部Seat/claim。
+仅定义而`NOT_RUN`的场景：Admin配置删除期间继续读取冻结snapshot、cursor过期、terminal后Usage store失败、真实SQLite写入/清理以及进程crash/restart；BGE-M3实际向量、admission并发/超时、浏览器SSO/CSRF和分步保存恢复；systemd、加密backup/restore及60秒摘流。它们保留为实现/联调门禁；fixture中的`expired_cursor_error`等oracle标签只是预期，不是已执行证据。并发编辑规划使用If-Match/412，引用冲突规划使用409；不测试外部Seat/claim。
 
 ## 5. Recovery、重放、幂等与故障注入
 

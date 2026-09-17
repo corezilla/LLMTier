@@ -29,8 +29,8 @@ STD draft.21 升级按用户 2026-09-09 明确要求执行。旧 `rag/std-ingest
 
 | 路径 | 类型 | 状态 | 处置 |
 |---|---|---|---|
-| `docs/std.lock.json` | STD adoption lock | draft.21 immutable lock | 固定完整 commit SHA、`source_tag=null`、software profile 与 management/software domains |
-| `docs/std-source-manifest.json` | STD 来源清单 | source evidence；非项目 ingestion | 保存 73 个 draft.21 规范/模板/Schema/工具 SHA-256 |
+| `docs/std.lock.json` | STD adoption lock | draft.26 immutable lock | 固定完整 commit SHA、tag、software profile 与 management/software domains |
+| `docs/std-source-manifest.json` | STD 来源清单 | source evidence；非项目 ingestion | 保存当前draft.26规范/模板/Schema/工具 SHA-256 |
 | `docs/00_management/std-tailoring.md` + metadata | `management.tailoring` | review candidate | 冻结单服务 profile 与裁剪理由 |
 | `docs/20_system_design/llmtier-system-design.md` + metadata | `design.system` / system | review candidate | 本轮主交付，承接原设计且不改业务契约 |
 | `docs/98_migration/current-document-inventory.md` | migration inventory | review evidence | 当前文件；记录旧→新映射 |
@@ -101,7 +101,7 @@ STD draft.21 升级按用户 2026-09-09 明确要求执行。旧 `rag/std-ingest
 2. `docs/00_management/`、`docs/20_system_design/`、`docs/91_reviews/` 和
    `docs/98_migration/` 是迁移与 Gate evidence 位置；authority 切换已由 promotion commit `503d0a0` 完成。
    Contract/QA/Provenance 已在 C7 一次性归位，不建立重复正文。
-3. `docs/std-source-manifest.json` 是 draft.21 immutable source lock；legacy
+3. `docs/std-source-manifest.json` 是 draft.26 immutable source lock；legacy
    `rag/std-ingestion-manifest.jsonl` 已删除。C6 的 `rag/project-ingestion-manifest.jsonl` 仍只绑定
    promotion commit `503d0a0` 的 11 份
    Accepted canonical prose，并记录 inclusion/exclusion、ACL 和 publication commit。

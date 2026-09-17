@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-vv-plan` |
-| Document Version | `0.3.2-draft.5` |
+| Document Version | `0.3.2-draft.6` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -57,7 +57,7 @@ Piko完成完整输入的text/tool loop；Slinky Memory获得embedding；Piko/Sl
 
 ## 7. 覆盖、采样、统计和判定规则
 
-每个current operation规划覆盖成功、validation、auth和provider failure。当前静态PASS范围：固定Pi请求的easy message、assistant文本/refusal历史、function call/output、image result和opaque reasoning；SSE的delta/done/terminal完整item identity、顺序、terminal/status、标准refusal content及terminal-only refusal改写负例；Usage的measured/estimated/unknown、source与token子集、单调版本、纯设计模型中的快照成员冻结、unknown义务跨模型restart保留和无obligation禁止dispatch；Embedding的float/base64表示与维数/有限数；Models exact-case。Admin删除期间稳定分页、cursor过期、terminal后Usage store失败、真实SQLite持久化与进程crash/restart均为`NOT_RUN`，仍属后续行为验证；unknown值必须null。旧path/header/schema出现即FAIL。
+每个current operation规划覆盖成功、validation、auth和provider failure。当前静态PASS范围：固定Pi请求的easy message、assistant文本/refusal历史、function call/output、image result和opaque reasoning；SSE的delta/done/terminal完整item identity、顺序、terminal/status、标准refusal content及terminal-only refusal改写负例；Usage的measured/estimated/unknown、source与token子集、单调版本、纯设计模型中的快照成员冻结、unknown义务跨模型restart保留和无obligation禁止dispatch；Embedding的float/base64表示与维数/有限数；Models exact-case。Admin删除期间稳定分页、cursor过期、terminal后Usage store失败、真实SQLite持久化与进程crash/restart、BGE-M3实际部署、admission并发/timeout、浏览器SSO/CSRF/三步保存以及systemd/backup/restore均为`NOT_RUN`，仍属后续行为验证；unknown值必须null。旧path/header/schema出现即FAIL。
 
 ## 8. 故障注入、恢复和非正常路径
 

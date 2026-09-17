@@ -4,14 +4,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.3.2-draft.3` |
+| Document Version | `0.3.2-draft.4` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | llmtier |
-| Reviewer | 待定 |
-| Approver | 待定 |
+| Reviewer | Piko、Slinky、LLMTier |
+| Approver | LLMTier |
 | Approval Date | 待定 |
 | Created Date | `2026-09-06` |
 | Last Modified Date | `2026-09-17` |
@@ -154,6 +154,17 @@ L-->>K: EmbeddingResponse + X-Request-ID
 
 同一embedding逻辑model只允许绑定同一`embedding_space_id`、模型版本与预处理契约。`float`返回有限JSON number array；`base64`返回RFC4648编码的连续little-endian float32，且必须与请求表示一致并核验长度、有限值和维数。维数相同不代表向量空间兼容；非兼容变更必须新建逻辑model ID，Slinky据此新建索引generation。Models同时发布允许维数、batch和单项input token上限。
 
+V0.3 首个 dedicated embedding deployment 固定为本地 OpenAI-compatible 服务承载的
+`BAAI/bge-m3` dense embedding：逻辑 model ID 为 `Embedding-v1`，
+`embedding_space_id=bge-m3-dense-1024-v1`，输出维数固定 1024，单项输入上限 8192 tokens，
+单请求最多 32 个 input。32 是 LLMTier 首版资源保护上限，不是模型固有限制。预处理固定为 provider tokenizer、
+dense output、L2 normalization；LLMTier 不改写正文、不增加 query instruction。部署前必须把模型权重 revision、
+tokenizer revision、runtime image digest 和 normalization 设置固定到部署记录；其中任一改变都不得沿用该 space ID。
+首版没有云端 embedding fallback，也不把另一个 1024 维模型视为同一向量空间。
+模型维数和最大序列长度的来源记录为
+[`FlagOpen/FlagEmbedding` BGE-M3官方说明](https://github.com/FlagOpen/FlagEmbedding/blob/master/research/BGE_M3/README.md)；
+运行批量、预处理和space ID是本项目设计决定，不从模型说明推导。
+
 ### 6.3 运维恢复
 
 服务启动、reload、restart、backend probe 是环境运维，不是 Piko 任务或模型调用状态机。健康检查可自动读取；真实 provider probe 可能计费，配置变更和 restart 改变状态，必须通过受授权 operator 执行。恢复后以 health/readiness、配置版本、目标模型可用性及受控 smoke request 分层确认；环境恢复不等于上层任务成功。
@@ -238,6 +249,13 @@ Admin item读取返回强ETag；PATCH/DELETE必须携带`If-Match`。stale edit�
 
 内部队列、并发保护、超时、provider failover 只能在同一 exact service level 的已配置后端集合内工作；不得静默跨等级。内部实现不得向 consumer 暴露 Seat、claim、Invocation 或恢复状态。
 
+V0.3 内部 admission 使用每个 deployment 一个许可的保守基线，每个 exact service level 使用最多 32 项的
+FIFO 等待队列。Router 只在 `enabled && healthy` 且能力匹配的 deployment 中选择当前 in-flight 最少者，
+相同时按 `service_level_deployments.ordinal`；不做跨等级或跨 embedding space fallback。队列已满立即返回429；
+排队超过30秒仍无许可也返回429，并以秒为单位返回保守的 `Retry-After`。provider 建连/首字节和SSE空闲超时
+分别固定为30秒和60秒；超时只结束本次HTTP调用，不创建可恢复 Invocation。上述值是首版单节点保护参数，
+调整属于LLMTier内部部署配置变更，必须审计并经负载验证，不改变外部DTO。
+
 ## 13. 性能、扩展与兼容性
 
 V0.3 不承诺尚未测量的吞吐/延迟 SLO。扩展先增加同一 service level 的 deployment，再通过内部调度保护资源。兼容以标准 OpenAI shape 和显式版本变更为准，不提供专用 compatibility endpoint 或运行时协商。
@@ -276,8 +294,8 @@ Data Plane 与 Admin 使用不同 credential/权限。Provider Secret 只通过 
 | LT-ADR-04 | decided | 固定 Pi adapter 使用 `stream:true/store:false`；首阶段只支持标准SSE，不增加JSON或自定义fallback |
 | LT-ADR-05 | decided | SQLite是初始化后唯一配置authority；settings仅一次性bootstrap |
 | LT-ADR-06 | decided | embedding同逻辑model固定同一向量空间；非兼容变更新model ID |
-| LT-OPEN-02 | implementation | 选择并配置至少一个 dedicated embedding-capable deployment |
-| LT-OPEN-03 | implementation | production auth/TLS/service manager/restart/backup/runbook |
+| LT-OPEN-02 | design closed / implementation gate | `Embedding-v1`固定为本地`BAAI/bge-m3` dense 1024维、space `bge-m3-dense-1024-v1`、8192 tokens、batch 32；权重/runtime digest仍须在部署证据中填写 |
+| LT-OPEN-03 | design closed / implementation gate | 单节点Linux基线使用TLS反向代理、外部operator SSO、systemd、加密SQLite备份和本文/Operations定义的恢复门禁；真实环境证据仍未执行 |
 
 ## A. 数据模型与状态机
 
@@ -309,4 +327,4 @@ V0.3 不承诺跨系统调用幂等或结果恢复。配置与 Usage/Audit 使�
 
 ## H. 未决问题、外部依赖和后续版本
 
-Responses streaming范围已按固定Pi调用方式选择标准SSE，内部module/ISD和五页Web UI设计已建立。剩余是实现与运行证据：实际embedding deployment、provider adapter、Web UI、auth/TLS、service manager、测量与运维；Piko仍需对candidate.5字节完成复审。
+Responses streaming范围已按固定Pi调用方式选择标准SSE，内部module/ISD和五页Web UI设计已建立。Piko已接受candidate.5的refusal消费范围，Slinky已接受Usage/存储/验证声明范围。当前没有待两方裁决的字段级设计项；剩余工作是实现与运行证据：固定embedding权重和runtime digest、provider adapter、Web UI、auth/TLS、systemd、备份恢复、测量与运维。`runtime_activation`继续为false。

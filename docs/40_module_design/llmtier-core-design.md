@@ -4,14 +4,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-core-module-design` |
-| Document Version | `0.3.0-draft.1` |
+| Document Version | `0.3.0-draft.2` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | llmtier |
-| Reviewer | 待定 |
-| Approver | 待定 |
+| Reviewer | Piko、Slinky、LLMTier |
+| Approver | LLMTier |
 | Approval Date | 待定 |
 | Created Date | `2026-09-17` |
 | Last Modified Date | `2026-09-17` |
@@ -122,7 +122,34 @@ sequenceDiagram
 
 配置发布事务先验证所有引用与上述不变量，再原子推进Registry version和Audit；失败不改变active snapshot。
 
-## 8. Admin并发与授权
+首版Registry必须包含唯一的embedding逻辑等级：
+
+| 字段 | 固定值/规则 |
+|---|---|
+| service level | `Embedding-v1` |
+| backend | 本地OpenAI-compatible `BAAI/bge-m3` dense endpoint |
+| space | `bge-m3-dense-1024-v1` |
+| dimensions | 仅1024；省略`dimensions`等价于1024 |
+| max input | 单项8192 provider tokens |
+| max batch | 32 inputs/request（LLMTier运行上限） |
+| preprocessing | provider tokenizer；不改写正文；无query instruction；dense + L2 normalization |
+| immutable evidence | model/tokenizer revision、runtime image digest、normalization设置 |
+
+immutable evidence未固定或与Registry不一致时deployment不得变为healthy。模型、tokenizer、pooling或normalization
+变化必须新建space ID；只有batch资源上限变化可以保持space ID。
+
+## 8. 内部Admission与路由
+
+- admission scope是单个deployment；首版`max_in_flight=1`，一个exact service level最多排队32项，FIFO。
+- 只将请求放入其exact service level队列；没有任何alias、跨等级或provider-direct旁路。
+- eligible deployment必须enabled、healthy、能力覆盖请求；Embedding还必须匹配同一space及维数。
+- 选择最少in-flight者；相同按持久`ordinal`，保证重启后策略不漂移。请求出队后再次核验Registry version和健康。
+- 队列满或等待30秒无许可返回标准429；`Retry-After`为1至30秒的保守整数。全部候选unhealthy返回503。
+- provider connect/first-byte timeout为30秒，SSE idle timeout为60秒。超时释放内部许可并记录Usage/Audit事实，
+  不生成外部Invocation或结果恢复状态。
+- 许可、队列深度和timeout只作内部指标；它们不是外部容量承诺。未来调高并发必须有同backend负载证据和审计变更。
+
+## 9. Admin并发与授权
 
 - GET item返回强ETag；PATCH/DELETE必须提供`If-Match`。
 - ETag不匹配返回412 `version_conflict`；引用占用返回409 `resource_in_use`。
@@ -131,11 +158,11 @@ sequenceDiagram
 - 401表示凭据无效，403表示凭据有效但无operator权限；两者不泄露资源存在性。
 - 列表采用limit/cursor，并复用§6的持久`QuerySnapshot`；cursor绑定当前权限、filter和snapshot。资源在第一页后更新或删除时，旧snapshot仍返回第一页冻结的view；新snapshot才看到变化。权限每页复核，snapshot到期或权限缩小返回400 `invalid_request`。
 
-## 9. 失败与恢复
+## 10. 失败与恢复
 
 Provider连接失败、timeout或SSE缺terminal由Adapter映射标准typed error并记录脱敏request ID。LLMTier不提供Invocation恢复；Piko按任务策略处理。内部队列和provider failover仅限同exact logical level，Embedding还需满足同space约束。重启先恢复SQLite、Registry snapshot和审计连续性，再通过readyz；不得以legacy settings覆盖Store。
 
-## 10. 验证分配
+## 11. 验证分配
 
 | Oracle | Owner测试 |
 |---|---|
