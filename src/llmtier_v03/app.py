@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import mimetypes
-import os
 import re
 import traceback
 import uuid
@@ -14,7 +13,7 @@ from urllib.parse import parse_qs, urlparse
 from . import __version__
 from .admin import AdminService
 from .audit import AuditLog
-from .auth import Principal, authenticate
+from .auth import authenticate, unauthenticated_principal
 from .embeddings import EmbeddingsService
 from .errors import ApiError
 from .health import health_view, readiness_view
@@ -73,8 +72,9 @@ def handler_factory(app: Application):
             raw = target.read_bytes(); self.send_response(200); self.send_header("Content-Type", mimetypes.guess_type(target.name)[0] or "application/octet-stream"); self.send_header("Content-Length", str(len(raw))); self.end_headers(); self.wfile.write(raw)
 
         def _auth(self, role="data"):
-            if os.environ.get("LLMTIER_DEV_MODE") == "1" and self.client_address[0] in {"127.0.0.1", "::1"} and not self.headers.get("Authorization"):
-                return Principal("loopback-operator" if role == "admin" else "loopback-consumer", role)
+            principal = unauthenticated_principal(self.client_address[0], self.headers, role)
+            if principal is not None:
+                return principal
             return authenticate(self.headers, role)
 
         def _dispatch(self):

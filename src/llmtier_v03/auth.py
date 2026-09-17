@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hmac
+import ipaddress
 import os
 from dataclasses import dataclass
 
@@ -11,6 +12,29 @@ from .errors import ApiError
 class Principal:
     principal_id: str
     role: str
+
+
+_TRUSTED_LAN_NETWORKS = tuple(
+    ipaddress.ip_network(value)
+    for value in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "fc00::/7")
+)
+
+
+def unauthenticated_principal(client_address: str, headers, role: str) -> Principal | None:
+    """Return the explicitly enabled no-login principal for local test deployments."""
+    if headers.get("Authorization"):
+        return None
+    try:
+        address = ipaddress.ip_address(client_address.split("%", 1)[0])
+    except ValueError:
+        return None
+    if os.environ.get("LLMTIER_DEV_MODE") == "1" and address.is_loopback:
+        return Principal("loopback-operator" if role == "admin" else "loopback-consumer", role)
+    if os.environ.get("LLMTIER_TRUSTED_LAN_MODE") == "1" and (
+        address.is_loopback or any(address in network for network in _TRUSTED_LAN_NETWORKS)
+    ):
+        return Principal("trusted-lan-operator" if role == "admin" else "trusted-lan-consumer", role)
+    return None
 
 
 def _configured_token(role: str) -> str | None:

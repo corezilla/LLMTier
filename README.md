@@ -69,7 +69,7 @@ LLMTIER_ADMIN_TOKEN='...' LLMTIER_DATA_TOKEN='...' \
   --settings config/settings.json
 ```
 
-仅限loopback合成调试时可设置`LLMTIER_DEV_MODE=1`；这会启用固定开发凭据并允许同源Web UI在loopback免Bearer访问，禁止用于共享或生产监听地址。中文Web UI位于`/ui/`。开发期Fake Provider和冒烟入口分别为`tools/v03_fake_provider.py`与`tools/v03_smoke.py`。
+仅限loopback合成调试时可设置`LLMTIER_DEV_MODE=1`；这会启用固定开发凭据并允许同源Web UI在loopback免Bearer访问，禁止用于共享或生产监听地址。明确采用可信局域网免登录部署时，可设置`LLMTIER_TRUSTED_LAN_MODE=1`并把`--host`绑定到一块RFC1918/IPv6 ULA网卡；只有来自loopback、RFC1918或ULA的无Authorization请求获得共享operator/data权限，公网地址不会绕过Bearer。该模式意味着同一可信局域网内任何主机均可调用模型和修改配置，不提供用户级审计隔离。中文Web UI位于`/ui/`。开发期Fake Provider和冒烟入口分别为`tools/v03_fake_provider.py`与`tools/v03_smoke.py`。
 
 默认监听 `127.0.0.1:8765`。client 可用 `TIER_SERVER_URL` 选择 credential-free 的 localhost、loopback、
 RFC1918 或 IPv6 ULA origin。当前 transport 不等同于 production TLS/auth 部署批准。
