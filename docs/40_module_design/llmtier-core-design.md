@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-core-module-design` |
-| Document Version | `0.3.0-draft.3` |
+| Document Version | `0.3.0-draft.4` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -130,7 +130,7 @@ sequenceDiagram
 | 字段 | 固定值/规则 |
 |---|---|
 | service level | `Embedding-v1` |
-| backend | 本地OpenAI-compatible `BAAI/bge-m3` dense endpoint |
+| backend | 本地OpenAI-compatible `BAAI/bge-m3` dense family endpoint；物理Provider模型ID按runtime实际ID配置 |
 | space | `bge-m3-dense-1024-v1` |
 | dimensions | 仅1024；省略`dimensions`等价于1024 |
 | max input | 单项8192 provider tokens |

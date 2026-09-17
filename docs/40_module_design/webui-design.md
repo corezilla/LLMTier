@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-webui-module-design` |
-| Document Version | `0.3.0-draft.5` |
+| Document Version | `0.3.0-draft.6` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -39,7 +39,7 @@ Web UI 是LLMTier自己的中文operator界面，同源调用`/tier/admin/v1`，
 
 - 主页使用两层树形表格，而不是把三个后端横向塞进同一行。Tier是父节点，父节点常驻显示三个后端的供应商标签与状态点、`可用后端数/总后端数`以及该Tier的Running汇总；默认折叠时一屏可看完全部Tier状态。展开父节点后，每个后端成为独立子节点，显示`Account / Model`、provider/deployment、类型、健康状态、5hour/Weekly用量、Running及探测操作。各provider用量分别显示，不合并成虚假的Tier配额。摘要同时显示网关状态、Tier总数、后端总数与需关注项。V0.3当前Tier集合为`Senior`、`Junior`、`Worker`、`Associate`、`Engineer`、`Executor`与独立的`Embedding-v1`，不分页隐藏当前目录项。
 - Tier集合和映射来自Registry；演示中的后端模型名仅用于布局，不构成生产配置。物理凭据不展示。
-- 推理Tier可绑定不同供应商但必须能力兼容且保持同一exact Tier；`Embedding-v1`的三个deployment必须是同一`BAAI/bge-m3`模型版本、预处理和`embedding_space_id`，不能把不同向量空间挂在同一Tier下。
+- 推理Tier可绑定不同供应商但必须能力兼容且保持同一exact Tier；`Embedding-v1`的三个deployment必须是同一`BAAI/bge-m3`模型版本、预处理和`embedding_space_id`，不能把不同向量空间挂在同一Tier下。物理Provider模型ID按各runtime实际API ID展示，不要求字符串都写成`BAAI/bge-m3`。
 - 编辑先GET item保存ETag，PATCH携带If-Match。412显示“配置已被他人修改”，保留用户输入并提供重新载入，不自动覆盖。
 - Tier是固定逻辑等级，主页不提供删除Tier；只允许编辑其后端绑定。Provider或Deployment等可删除资源仍须在对应编辑流程显示引用关系、携带If-Match；409显示引用列表摘要，禁止强删。
 - Loading用表格骨架；空状态提供“添加模型”；401跳登录，403显示无operator权限；503保留旧画面并标“数据可能过期”。
@@ -49,6 +49,7 @@ Web UI 是LLMTier自己的中文operator界面，同源调用`/tier/admin/v1`，
 ![主页内模型编辑抽屉](assets/webui/home-model-editor.png)
 
 - 添加按Provider→Deployment→ServiceLevel顺序提交；任一步失败显示已完成步骤，不谎称整体成功。后续实现可用单次页面编排，但不新增外部聚合endpoint。
+- Provider“接口根地址”填写OpenAI-compatible API root（通常以`/v1`结尾；供应商若使用等价版本根则填写该根），运行时在其后调用`/models`、`/responses`或`/embeddings`，页面不得猜测或重复拼接版本段。
 - 页面先在浏览器内存创建`ModelDraft`，只保存非Secret表单值和本次已创建资源的ID/ETag。每一步成功后立即更新进度：
   `Provider已保存 → Deployment已保存 → ServiceLevel已保存`。失败后“继续保存”从第一个未完成步骤开始，
   已完成步骤改用GET+ETag核对，不重复POST。刷新或关闭页面会丢弃草稿，但不会删除已落库资源；重新进入时可从

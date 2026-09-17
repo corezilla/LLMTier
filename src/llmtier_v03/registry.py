@@ -227,8 +227,6 @@ class Registry:
             require(capabilities.get("embeddings") is True and capabilities.get("responses") is False, 409, "embedding_space_conflict", "Embedding-v1 requires embedding-only deployments")
             require(capabilities.get("embedding_space_id") == "bge-m3-dense-1024-v1" and capabilities.get("embedding_dimensions") == [1024], 409, "embedding_space_conflict", "Embedding-v1 requires the frozen BGE-M3 vector space")
             require(capabilities.get("embedding_max_batch_inputs") == 32 and capabilities.get("embedding_max_input_tokens") == 8192, 409, "embedding_space_conflict", "Embedding-v1 limits do not match the frozen contract")
-            models = [self.get_deployment(rid)[0]["backend_model"] for rid in deployment_ids]
-            require(all(model == "BAAI/bge-m3" for model in models), 409, "embedding_space_conflict", "Embedding-v1 requires BAAI/bge-m3")
         else:
             require(capabilities.get("responses") is True, 409, "capability_conflict", "Inference Tier requires Responses support")
 

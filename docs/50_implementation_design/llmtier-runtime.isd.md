@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-runtime-isd` |
-| Document Version | `0.3.0-draft.5` |
+| Document Version | `0.3.0-draft.6` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -136,7 +136,7 @@ ETag格式为`"<resource-id>.v<version>"`。PATCH/DELETE事务先验证Admin权�
 
 任一不满足则配置发布失败。非兼容升级必须新建level ID；无alias或静默切换。
 
-首版bootstrap必须创建`Embedding-v1`并绑定本地`BAAI/bge-m3` dense deployment；固定
+首版bootstrap必须创建`Embedding-v1`并绑定本地`BAAI/bge-m3` dense family deployment；物理Provider模型ID按runtime实际API ID配置，固定
 `embedding_space_id=bge-m3-dense-1024-v1`、dimensions `[1024]`、batch 32、single-input 8192 tokens、
 provider tokenizer、无文本改写/无query instruction、L2 normalization。启动校验同时核对已配置的model/tokenizer
 revision、runtime image digest与normalization；缺一则该deployment保持unhealthy，`readyz`不得把Embedding能力报为可用。

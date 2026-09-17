@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-management-control` |
-| Document Version | `0.3.3-draft.3` |
+| Document Version | `0.3.3-draft.4` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -39,7 +39,7 @@ Admin Bearer auth与Data Plane credential分离；生产使用TLS。中文Web UI
 
 ## 4. 数据、命令与 Schema
 
-Provider区分cloud/local，保存endpoint和Secret引用；view只返回`has_secret`。Deployment绑定backend model和能力。ServiceLevel用exact ID绑定一个或多个同等级deployment。删除有引用的资源返回409。
+Provider区分cloud/local，保存OpenAI-compatible API root endpoint（适配器在其后使用`/models`、`/responses`、`/embeddings`）和Secret引用；view只返回`has_secret`。Deployment绑定backend model和能力。ServiceLevel用exact ID绑定一个或多个同等级deployment。删除有引用的资源返回409。
 
 ## 5. 状态机、顺序和时序
 

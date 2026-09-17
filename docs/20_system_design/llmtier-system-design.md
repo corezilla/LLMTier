@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.3.2-draft.5` |
+| Document Version | `0.3.2-draft.6` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -155,7 +155,7 @@ L-->>K: EmbeddingResponse + X-Request-ID
 同一embedding逻辑model只允许绑定同一`embedding_space_id`、模型版本与预处理契约。`float`返回有限JSON number array；`base64`返回RFC4648编码的连续little-endian float32，且必须与请求表示一致并核验长度、有限值和维数。维数相同不代表向量空间兼容；非兼容变更必须新建逻辑model ID，Slinky据此新建索引generation。Models同时发布允许维数、batch和单项input token上限。
 
 V0.3 首个 dedicated embedding deployment 固定为本地 OpenAI-compatible 服务承载的
-`BAAI/bge-m3` dense embedding：逻辑 model ID 为 `Embedding-v1`，
+`BAAI/bge-m3` dense embedding family：逻辑 model ID 为 `Embedding-v1`，物理Provider模型ID按部署的标准API实际ID配置（例如`BAAI/bge-m3`或本地runtime的`bge-m3`），
 `embedding_space_id=bge-m3-dense-1024-v1`，输出维数固定 1024，单项输入上限 8192 tokens，
 单请求最多 32 个 input。32 是 LLMTier 首版资源保护上限，不是模型固有限制。预处理固定为 provider tokenizer、
 dense output、L2 normalization；LLMTier 不改写正文、不增加 query instruction。部署前必须把模型权重 revision、
@@ -194,7 +194,7 @@ LLMTier 不规定专用硬件。部署可连接云 provider 或本地主机上�
 
 | 数据 | 最小内容 | 生命周期 |
 |---|---|---|
-| Provider | type、endpoint、secret reference、enabled | operator 管理 |
+| Provider | type、OpenAI-compatible API root endpoint（例如`.../v1`或供应商等价根）、secret reference、enabled | operator 管理 |
 | Deployment | provider/local、model name、capabilities、health | operator 管理 |
 | ServiceLevel | exact ID、deployment binding、limits/capabilities；embedding含space ID | operator 管理与 Models 发布 |
 | UsageRecord | principal+request ID、record version/final、model、token values、quality、time | 按 LLMTier retention policy |
@@ -291,7 +291,7 @@ Data Plane 与 Admin 使用不同 credential/权限。Provider Secret 只通过 
 | LT-ADR-04 | decided | 固定 Pi adapter 使用 `stream:true/store:false`；首阶段只支持标准SSE，不增加JSON或自定义fallback |
 | LT-ADR-05 | decided | SQLite是初始化后唯一配置authority；settings仅一次性bootstrap |
 | LT-ADR-06 | decided | embedding同逻辑model固定同一向量空间；非兼容变更新model ID |
-| LT-OPEN-02 | design closed / implementation gate | `Embedding-v1`固定为本地`BAAI/bge-m3` dense 1024维、space `bge-m3-dense-1024-v1`、8192 tokens、batch 32；权重/runtime digest仍须在部署证据中填写 |
+| LT-OPEN-02 | design closed / implementation gate | `Embedding-v1`固定为`BAAI/bge-m3` dense family、1024维、space `bge-m3-dense-1024-v1`、8192 tokens、batch 32；物理Provider模型ID可按runtime命名，但权重/runtime digest与预处理一致性须在部署证据中填写 |
 | LT-OPEN-03 | design closed / implementation gate | 单节点Linux基线使用TLS反向代理、外部operator SSO、systemd、加密SQLite备份和本文/Operations定义的恢复门禁；真实环境证据仍未执行 |
 
 ## A. 数据模型与状态机

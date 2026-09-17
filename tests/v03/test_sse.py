@@ -23,6 +23,9 @@ class SSETests(unittest.TestCase):
     def test_sequence_is_monotonic(self): self.assertEqual([x["sequence_number"] for x in events(response())],list(range(5)))
     def test_created_is_first(self): self.assertEqual(events(response())[0]["type"],"response.created")
     def test_completed_is_last_event(self): self.assertEqual(events(response())[-1]["type"],"response.completed")
+    def test_incomplete_terminal_is_preserved(self):
+        value=response(); value["status"]="incomplete"; value["incomplete_details"]={"reason":"max_output_tokens"}
+        self.assertEqual(events(value)[-1]["type"],"response.incomplete")
     def test_text_delta(self): self.assertEqual([x for x in events(response()) if x["type"]=="response.output_text.delta"][0]["delta"],"ok")
     def test_refusal_delta(self): self.assertEqual([x for x in events(response({"type":"refusal","refusal":"no"})) if x["type"]=="response.refusal.delta"][0]["delta"],"no")
     def test_function_arguments_done(self):

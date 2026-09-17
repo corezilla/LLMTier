@@ -49,19 +49,34 @@ class OpenAIProvider:
         headers = {"Content-Type": "application/json", "Accept": "text/event-stream"}
         secret = self._secret()
         if secret: headers["Authorization"] = f"Bearer {secret}"
-        req = urllib.request.Request(self.endpoint + "/v1/responses", data=json.dumps(upstream).encode(), headers=headers, method="POST")
+        req = urllib.request.Request(self.endpoint + "/responses", data=json.dumps(upstream).encode(), headers=headers, method="POST")
         try:
             with urllib.request.urlopen(req, timeout=self.timeout) as response:
                 content_type = response.headers.get_content_type()
                 if content_type != "text/event-stream": raise ApiError(502, "provider_contract_error", "Provider did not return Responses SSE")
                 terminal = None
+                terminal_type = None
                 for block in response.read().decode("utf-8").split("\n\n"):
                     for line in block.splitlines():
                         if line.startswith("data: ") and line != "data: [DONE]":
                             event = json.loads(line[6:])
-                            if event.get("type") in {"response.completed", "response.failed", "response.incomplete"}: terminal = event.get("response")
+                            if event.get("type") in {"response.completed", "response.failed", "response.incomplete"}:
+                                if terminal is not None:
+                                    raise ApiError(502, "provider_contract_error", "Provider SSE has more than one terminal response")
+                                terminal_type = event["type"]
+                                terminal = event.get("response")
                 if not isinstance(terminal, dict) or not isinstance(terminal.get("output"), list): raise ApiError(502, "provider_contract_error", "Provider SSE has no valid terminal response")
-                return ProviderResult(terminal["output"], terminal.get("usage"), response.headers.get("X-Request-ID"))
+                expected_status = terminal_type.removeprefix("response.") if terminal_type else None
+                if terminal.get("status") != expected_status:
+                    raise ApiError(502, "provider_contract_error", "Provider terminal event and response status disagree")
+                return ProviderResult(
+                    terminal["output"],
+                    terminal.get("usage"),
+                    response.headers.get("X-Request-ID"),
+                    status=terminal["status"],
+                    error=terminal.get("error"),
+                    incomplete_details=terminal.get("incomplete_details"),
+                )
         except ApiError: raise
         except urllib.error.HTTPError as exc:
             raise ApiError(exc.code, "provider_error", f"Provider returned HTTP {exc.code}", retryable=exc.code in {408,429,500,502,503,504}) from exc
@@ -71,15 +86,22 @@ class OpenAIProvider:
     def embed(self, model: str, request: dict[str, Any]) -> dict[str, Any]:
         upstream = dict(request)
         upstream["model"] = model
-        data, _ = self._request("/v1/embeddings", upstream)
+        data, _ = self._request("/embeddings", upstream)
         if data.get("object") != "list" or not isinstance(data.get("data"), list):
             raise ApiError(502, "provider_contract_error", "Provider returned an invalid Embeddings payload")
         return data
 
     def probe(self) -> bool:
         try:
-            req = urllib.request.Request(self.endpoint + "/healthz", method="GET")
+            headers = {"Accept": "application/json"}
+            secret = self._secret()
+            if secret:
+                headers["Authorization"] = f"Bearer {secret}"
+            req = urllib.request.Request(self.endpoint + "/models", headers=headers, method="GET")
             with urllib.request.urlopen(req, timeout=min(self.timeout, 5.0)) as response:
-                return 200 <= response.status < 300
+                if not 200 <= response.status < 300:
+                    return False
+                payload = json.loads(response.read())
+                return payload.get("object") == "list" and isinstance(payload.get("data"), list)
         except Exception:
             return False

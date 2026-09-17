@@ -32,5 +32,6 @@ def response_stream(response: dict) -> Iterable[bytes]:
             yield event("response.function_call_arguments.delta", {"type": "response.function_call_arguments.delta", "item_id": item["id"], "output_index": index, "delta": item.get("arguments", "")})
             yield event("response.function_call_arguments.done", {"type": "response.function_call_arguments.done", "item_id": item["id"], "output_index": index, "arguments": item.get("arguments", "")})
         yield event("response.output_item.done", {"type": "response.output_item.done", "output_index": index, "item": item})
-    yield event("response.completed", {"type": "response.completed", "response": response})
+    terminal_type = f"response.{response['status']}"
+    yield event(terminal_type, {"type": terminal_type, "response": response})
     yield b"data: [DONE]\n\n"

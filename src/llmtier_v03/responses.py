@@ -35,7 +35,17 @@ class ResponsesService:
             with self.router.admit(model) as candidate:
                 result = self._adapter(candidate).complete(candidate.backend_model, body)
             self.usage.finish(principal, request_id, result.usage)
-            return {"id": f"resp_{uuid.uuid4().hex}", "object": "response", "created_at": int(time.time()), "status": "completed", "model": model, "output": result.output, "usage": result.usage, "error": None}
+            return {
+                "id": f"resp_{uuid.uuid4().hex}",
+                "object": "response",
+                "created_at": int(time.time()),
+                "status": result.status,
+                "model": model,
+                "output": result.output,
+                "usage": result.usage,
+                "error": result.error,
+                "incomplete_details": result.incomplete_details,
+            }
         except Exception:
             self.usage.finish(principal, request_id, None)
             raise

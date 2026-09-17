@@ -19,7 +19,10 @@ class Handler(BaseHTTPRequestHandler):
     def reply_sse(self, response):
         event={"type":"response.completed","sequence_number":0,"response":response}; raw=("event: response.completed\ndata: "+json.dumps(event,separators=(",", ":"))+"\n\ndata: [DONE]\n\n").encode()
         self.send_response(200); self.send_header("Content-Type","text/event-stream"); self.send_header("Content-Length",str(len(raw))); self.send_header("X-Request-ID",f"fake_{uuid.uuid4().hex[:8]}"); self.end_headers(); self.wfile.write(raw)
-    def do_GET(self): self.reply(200,{"status":"ok"}) if self.path=="/healthz" else self.reply(404,{"error":"not found"})
+    def do_GET(self):
+        if self.path == "/healthz": self.reply(200,{"status":"ok"})
+        elif self.path == "/v1/models": self.reply(200,{"object":"list","data":[{"id":"synthetic-chat","object":"model"},{"id":"BAAI/bge-m3","object":"model"}]})
+        else: self.reply(404,{"error":"not found"})
     def do_POST(self):
         body=json.loads(self.rfile.read(int(self.headers.get("Content-Length","0"))) or b"{}")
         delay = int(body.get("metadata", {}).get("synthetic_delay_ms", "0")) if isinstance(body.get("metadata"), dict) else 0

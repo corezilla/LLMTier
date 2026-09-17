@@ -11,6 +11,11 @@ class ResponsesTests(unittest.TestCase):
     def test_success(self): self.assertEqual(self.service.create("p","r1",self.body)["status"],"completed")
     def test_model_is_logical_id(self): self.assertEqual(self.service.create("p","r2",self.body)["model"],"Worker")
     def test_usage_is_preserved(self): self.assertEqual(self.service.create("p","r3",self.body)["usage"]["total_tokens"],3)
+    def test_incomplete_status_is_preserved(self):
+        self.service._adapter=lambda _:FakeAdapter(status="incomplete")
+        value=self.service.create("p","r-incomplete",self.body)
+        self.assertEqual(value["status"],"incomplete")
+        self.assertEqual(value["incomplete_details"],{"reason":"max_output_tokens"})
     def test_missing_required_rejected(self):
         with self.assertRaises(ApiError):self.service.create("p","r4",{"model":"Worker"})
     def test_nonstream_rejected(self):

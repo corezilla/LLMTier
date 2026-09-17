@@ -33,6 +33,12 @@ class RegistryTests(unittest.TestCase):
         p,_=self.r.create_provider({"name":"p","kind":"local","endpoint":"http://x","secret_ref":None,"enabled":True}); caps=embedding_capabilities();caps["embedding_space_id"]="wrong"
         d,_=self.r.create_deployment({"name":"d","provider_id":p["id"],"backend_model":"BAAI/bge-m3","capabilities":caps,"enabled":True}); _,etag=self.r.get_service_level("Embedding-v1")
         with self.assertRaises(ApiError):self.r.update_service_level("Embedding-v1",{"deployment_ids":[d["id"]]},etag)
+    def test_embedding_provider_model_alias_is_allowed(self):
+        p,_=self.r.create_provider({"name":"p","kind":"local","endpoint":"http://x/v1","secret_ref":None,"enabled":True})
+        d,_=self.r.create_deployment({"name":"d","provider_id":p["id"],"backend_model":"bge-m3","capabilities":embedding_capabilities(),"enabled":True})
+        _,etag=self.r.get_service_level("Embedding-v1")
+        value,_=self.r.update_service_level("Embedding-v1",{"deployment_ids":[d["id"]]},etag)
+        self.assertEqual(value["deployment_ids"],[d["id"]])
     def test_fixed_tier_delete_rejected(self):
         with self.assertRaises(ApiError) as cm:self.r.delete_service_level("Worker",None)
         self.assertEqual(cm.exception.code,"fixed_service_level")

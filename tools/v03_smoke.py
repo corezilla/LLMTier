@@ -29,7 +29,7 @@ def main():
         if not ok: raise AssertionError(name)
         passed.append(name); print(f"PASS {len(passed):02d} {name}")
     check("health",c.call('/healthz',admin=False)[0]==200)
-    s,pv,h=c.call('/tier/admin/v1/providers','POST',{'name':'Synthetic Local','kind':'local','endpoint':a.provider,'secret_ref':None,'enabled':True}); check("provider CRUD create",s==201 and pv['kind']=='local')
+    s,pv,h=c.call('/tier/admin/v1/providers','POST',{'name':'Synthetic Local','kind':'local','endpoint':a.provider.rstrip('/')+'/v1','secret_ref':None,'enabled':True}); check("provider CRUD create",s==201 and pv['kind']=='local')
     capabilities={'responses':True,'embeddings':False,'tools':True,'structured_outputs':False,'input_modalities':['text'],'output_modalities':['text'],'context_window':128000,'max_output_tokens':16384,'embedding_space_id':None,'embedding_dimensions':None,'embedding_max_batch_inputs':None,'embedding_max_input_tokens':None}
     s,dv,_=c.call('/tier/admin/v1/deployments','POST',{'name':'Synthetic Responses','provider_id':pv['id'],'backend_model':'synthetic-chat','capabilities':capabilities,'enabled':True}); check("deployment CRUD create",s==201)
     ep=dict(capabilities); ep.update(responses=False,embeddings=True,tools=False,output_modalities=['embedding'],context_window=None,max_output_tokens=None,embedding_space_id='bge-m3-dense-1024-v1',embedding_dimensions=[1024],embedding_max_batch_inputs=32,embedding_max_input_tokens=8192)
