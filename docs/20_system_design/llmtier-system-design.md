@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.3.2-draft.7` |
+| Document Version | `0.3.2-draft.8` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -223,18 +223,21 @@ Bearer credential 只标识获授权调用主体；不暴露 Client/Source/Sourc
 ```mermaid
 flowchart LR
   NAV[侧栏] --> HOME[主页]
+  NAV --> PROVIDERS[供应商]
   NAV --> RECORDS[用量与审计]
   NAV --> LOGUI[日志]
-  HOME -->|添加模型 / 编辑绑定 / 状态与探测| MAPI[Admin API]
+  HOME -->|编辑Tier成员 / 状态| MAPI[Admin API]
+  PROVIDERS -->|新增 / 修改 / 删除Provider| MAPI
   RECORDS -->|Token事实 / 管理操作| MAPI
 ```
 
 页面保持短而单一职责；逐页线框、状态、字段与交互以`docs/40_module_design/webui-design.md`为authority：
 
 1. **主页**：以Tier父节点、后端子节点的两层树一屏列出全部逻辑Tier。父节点常驻显示三个后端的供应商标签与状态点、可用数和Running汇总；展开后分别显示每个后端的`Account / Model`、类型、健康、provider用量窗口、Running与探测操作。provider配额不得在Tier层合并。Tier是固定逻辑等级，主页只允许编辑其后端绑定，不提供删除Tier。当前目录完整显示`Senior`、`Junior`、`Worker`、`Associate`、`Engineer`、`Executor`和`Embedding-v1`，实际映射以Registry为准。Embedding三个后端必须保持同一向量空间。
-2. **主页模型操作**：添加/修改模型使用主页右侧抽屉，选择云模型或本地模型，填写endpoint/model、Secret引用、能力和固定逻辑等级映射；保存前校验，Secret不回显。运行状态和授权探测也在Tier树的后端行完成，不设独立状态页。
-3. **用量与审计**：在同一短页面用页签切换Token用量与管理审计，一次只显示一张表；用量展示measured/estimated/unknown且不显示Cost，审计不含prompt/output/credential，两者数据语义保持分离。
-4. **日志**：查询脱敏的服务运行与故障诊断事件；与operator审计分离，不含prompt/output/reasoning/vector/credential。
+2. **Tier成员操作**：每个Tier行提供`Edit`抽屉，可修改现有Deployment、从已有Provider添加成员、从当前Tier解绑成员；不删除固定Tier。添加成员的Provider只能来自供应商页，避免在Tier编辑中重复创建连接和Secret。
+3. **供应商管理**：独立短页面维护cloud/local Provider名称、API root、Secret reference和enabled；删除受ETag及引用409保护，不级联删除Deployment或Tier成员。
+4. **用量与审计**：在同一短页面用页签切换Token用量与管理审计，一次只显示一张表；用量展示measured/estimated/unknown且不显示Cost，审计不含prompt/output/credential，两者数据语义保持分离。
+5. **日志**：查询脱敏的服务运行与故障诊断事件；与operator审计分离，不含prompt/output/reasoning/vector/credential。
 
 不提供访问控制、容量、恢复、调用方、SourceInstance 或费用页面。
 

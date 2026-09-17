@@ -1,11 +1,74 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LLMTier Console</title><link rel="stylesheet" href="/ui/styles.css"></head>
-<body><div class="shell">
-<aside><div class="brand"><b>LT</b><span><strong>LLMTier</strong><small>Model Gateway Console</small></span></div><nav><button class="active" data-page="home">⌂　Home</button><button data-page="records">▥　Usage & Audit</button><button data-page="logs">≣　Logs</button></nav><footer>Single-node console<br>OpenAI-compatible API</footer></aside>
-<main><header><div><h1 id="title">Home</h1><p id="subtitle">View every model, tier, backend, and status on one page</p></div><div class="header-actions"><span id="gateway" class="pill warn">● Connecting</span><button class="primary" id="add">Add Model</button></div></header>
-<section id="home" class="page active"><div class="card"><div class="cardhead"><b>Tier / Backend Tree</b><span id="stamp">Not refreshed</span></div><div id="tree" class="tree empty">Loading…</div></div></section>
-<section id="records" class="page"><div class="tabs"><button class="active" data-tab="usage">Token Usage</button><button data-tab="audit">Audit Log</button></div><div id="usage" class="sub active"><div class="card"><div class="cardhead"><b>Unified Token Usage</b><button id="refresh-usage">Refresh</button></div><div class="tablewrap"><table><thead><tr><th>Request</th><th>Model</th><th>Endpoint</th><th>Input</th><th>Output</th><th>Total</th><th>Status</th></tr></thead><tbody id="usage-body"></tbody></table></div></div></div><div id="audit" class="sub"><div class="card"><div class="cardhead"><b>Administrative Audit</b><button id="refresh-audit">Refresh</button></div><div class="tablewrap"><table><thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Target</th><th>Result</th></tr></thead><tbody id="audit-body"></tbody></table></div></div></div></section>
-<section id="logs" class="page"><div class="toolbar"><select id="log-level"><option value="">All levels</option><option>info</option><option>warning</option><option>error</option></select><input id="log-module" placeholder="Module"><button id="refresh-logs">Refresh</button></div><div class="card"><div class="cardhead"><b>Runtime Logs</b><span>Request bodies, model outputs, and credentials are never shown</span></div><div class="tablewrap"><table><thead><tr><th>Time</th><th>Level</th><th>Module</th><th>Event</th><th>Summary</th><th>Request ID</th></tr></thead><tbody id="log-body"></tbody></table></div></div></section>
-</main></div>
-<div id="drawer-mask" class="mask"><aside class="drawer"><div class="drawerhead"><div><h2>Add Model</h2><p>Create a provider and deployment, then attach it to a fixed tier.</p></div><button id="close">×</button></div><form id="model-form"><label>Provider Name<input name="provider_name" required></label><label>Type<select name="kind"><option value="cloud">Cloud Provider</option><option value="local">Local Backend</option></select></label><label>API Root URL<input name="endpoint" type="url" placeholder="http://127.0.0.1:9001/v1" required></label><label>Secret Reference<input name="secret_ref" placeholder="env:PROVIDER_TOKEN"></label><label>Deployment Name<input name="deployment_name" required></label><label>Backend Model ID<input name="backend_model" required></label><label>Attach to Tier<select name="tier" id="tier-select"></select></label><label>Capability<select name="capability"><option value="responses">Responses</option><option value="embeddings">Embeddings</option></select></label><p id="form-error" class="error"></p><div class="formactions"><button type="button" id="cancel">Cancel</button><button class="primary">Save and Attach</button></div></form></aside></div>
-<script src="/ui/app.js"></script></body></html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LLMTier Console</title><link rel="stylesheet" href="/ui/styles.css"></head>
+<body>
+<div class="shell">
+  <aside>
+    <div class="brand"><b>LT</b><span><strong>LLMTier</strong><small>Model Gateway Console</small></span></div>
+    <nav>
+      <button class="active" data-page="home">⌂　Home</button>
+      <button data-page="providers">◇　Providers</button>
+      <button data-page="records">▥　Usage & Audit</button>
+      <button data-page="logs">≣　Logs</button>
+    </nav>
+    <footer>Single-node console<br>OpenAI-compatible API</footer>
+  </aside>
+  <main>
+    <header><div><h1 id="title">Home</h1><p id="subtitle">View every model, tier, backend, and status on one page</p></div><span id="gateway" class="pill warn">● Connecting</span></header>
+
+    <section id="home" class="page active">
+      <div class="card"><div class="cardhead"><b>Tier / Backend Tree</b><span id="stamp">Not refreshed</span></div><div id="tree" class="tree empty">Loading…</div></div>
+    </section>
+
+    <section id="providers" class="page">
+      <div class="toolbar"><span id="provider-error" class="error"></span><div class="actions"><button id="refresh-providers">Refresh</button><button class="primary" id="add-provider">Add Provider</button></div></div>
+      <div class="card"><div class="cardhead"><b>Provider Management</b><span>Tier members can only use providers listed here</span></div><div class="tablewrap"><table><thead><tr><th>Provider</th><th>Type</th><th>API Root</th><th>Secret</th><th>Status</th><th>Deployments</th><th>Actions</th></tr></thead><tbody id="provider-body"></tbody></table></div></div>
+    </section>
+
+    <section id="records" class="page">
+      <div class="tabs"><button class="active" data-tab="usage">Token Usage</button><button data-tab="audit">Audit Log</button></div>
+      <div id="usage" class="sub active"><div class="card"><div class="cardhead"><b>Unified Token Usage</b><button id="refresh-usage">Refresh</button></div><div class="tablewrap"><table><thead><tr><th>Request</th><th>Model</th><th>Endpoint</th><th>Input</th><th>Output</th><th>Total</th><th>Status</th></tr></thead><tbody id="usage-body"></tbody></table></div></div></div>
+      <div id="audit" class="sub"><div class="card"><div class="cardhead"><b>Administrative Audit</b><button id="refresh-audit">Refresh</button></div><div class="tablewrap"><table><thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Target</th><th>Result</th></tr></thead><tbody id="audit-body"></tbody></table></div></div></div>
+    </section>
+
+    <section id="logs" class="page">
+      <div class="toolbar"><select id="log-level"><option value="">All levels</option><option>info</option><option>warning</option><option>error</option></select><input id="log-module" placeholder="Module"><button id="refresh-logs">Refresh</button></div>
+      <div class="card"><div class="cardhead"><b>Runtime Logs</b><span>Request bodies, model outputs, and credentials are never shown</span></div><div class="tablewrap"><table><thead><tr><th>Time</th><th>Level</th><th>Module</th><th>Event</th><th>Summary</th><th>Request ID</th></tr></thead><tbody id="log-body"></tbody></table></div></div>
+    </section>
+  </main>
+</div>
+
+<div id="provider-mask" class="mask">
+  <aside class="drawer narrow">
+    <div class="drawerhead"><div><h2 id="provider-drawer-title">Add Provider</h2><p>Configure a cloud or local OpenAI-compatible API root.</p></div><button id="close-provider">×</button></div>
+    <form id="provider-form">
+      <input type="hidden" name="provider_id"><input type="hidden" name="provider_version">
+      <label>Provider Name<input name="name" required></label>
+      <label>Type<select name="kind"><option value="cloud">Cloud Provider</option><option value="local">Local Backend</option></select></label>
+      <label class="full">API Root URL<input name="endpoint" type="url" placeholder="https://api.example.com/v1" required></label>
+      <label class="full">Secret Reference<input name="secret_ref" placeholder="env:PROVIDER_TOKEN"><span id="provider-secret-help" class="field-help"></span></label>
+      <label class="check full"><input name="enabled" type="checkbox" checked> Enabled</label>
+      <p id="provider-form-error" class="error"></p>
+      <div class="formactions"><button type="button" id="cancel-provider">Cancel</button><button class="primary">Save Provider</button></div>
+    </form>
+  </aside>
+</div>
+
+<div id="tier-mask" class="mask">
+  <aside class="drawer wide">
+    <div class="drawerhead"><div><h2 id="tier-drawer-title">Edit Tier</h2><p>Add, remove, or modify members. Providers are managed separately.</p></div><button id="close-tier">×</button></div>
+    <div id="tier-members" class="member-list"></div>
+    <div class="section-title"><b>Add Member</b><span id="member-capability"></span></div>
+    <form id="add-member-form" class="add-member-form">
+      <label>Existing Provider<select id="member-provider" name="provider_id" required></select></label>
+      <label>Deployment Name<input name="name" required></label>
+      <label>Backend Model ID<input name="backend_model" required></label>
+      <button class="primary">Add Member</button>
+    </form>
+    <p id="tier-form-error" class="error"></p>
+  </aside>
+</div>
+
+<script src="/ui/app.js"></script>
+</body>
+</html>

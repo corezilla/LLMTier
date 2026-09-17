@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-requirements` |
-| Document Version | `0.3.2-draft.6` |
+| Document Version | `0.3.2-draft.7` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -53,7 +53,7 @@ V0.3 外部范围：Responses、Embeddings、Models、token Usage、health/readi
 | LT-FUN-002 | shall 提供 `GET /v1/models` 与 exact-case detail，返回真实逻辑等级、能力、上下文/输出限制和 availability | P0 | CT-MODEL-001 |
 | LT-FUN-003 | shall 提供标准 `POST /v1/embeddings` 字符串输入子集；首版`Embedding-v1`固定为本地`BAAI/bge-m3` dense、space `bge-m3-dense-1024-v1`、1024维、单项8192 tokens、batch 32和L2 normalization；支持与请求一致的float数组或RFC4648 little-endian float32 base64表示并验证有限值/维数；同一逻辑model只能绑定同一向量空间，非兼容模型/版本/预处理变更必须使用新逻辑model ID | P0 | CT-EMB-001 |
 | LT-FUN-004 | shall 在模型响应保留标准token Usage结构，并提供统一只读token Usage查询；measured、estimated、unknown及原始字段存在性必须可区分 | P0 | CT-USAGE-001 |
-| LT-FUN-005 | shall 通过 Admin API/英文 Web UI 在主页一屏展示全部逻辑Tier、模型映射和状态，支持添加、修改、删除云模型、本地模型和逻辑等级，并提供健康探测、Usage、审计与脱敏运行日志 | P1 | CT-ADMIN-001/CT-UI-001/CT-LOG-001 |
+| LT-FUN-005 | shall 通过 Admin API/英文 Web UI 在主页一屏展示全部逻辑Tier、模型映射和状态；每个固定Tier可编辑成员，新增成员只能选择供应商管理页已有Provider；Provider可独立添加、修改和在无引用时删除；并提供Usage、审计与脱敏运行日志 | P1 | CT-ADMIN-001/CT-UI-001/CT-LOG-001 |
 | LT-FUN-006 | shall 提供无副作用 health/readiness；真实 provider probe、reload、restart 等潜在费用/状态变更操作必须要求 operator 授权 | P0 | CT-OPS-001 |
 | LT-FUN-007 | shall 不保存/压缩 Agent 历史、不执行工具、不创建 Agent Session/Conversation、不管理或匹配 backend KV | P0 | CT-BOUNDARY-001 |
 | LT-FUN-008 | function call 仅由模型输出；Piko 执行工具并在后续完整请求中提交结果 | P0 | CT-DP-001 |

@@ -1,16 +1,169 @@
-const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-async function api(path,{method='GET',body,headers={}}={}){const r=await fetch(path,{method,credentials:'same-origin',headers:{'Content-Type':'application/json',...headers},body:body?JSON.stringify(body):undefined});if(!r.ok){let e={};try{e=await r.json()}catch{}throw new Error(e.error?.message||`${r.status} ${r.statusText}`)}return r.status===204?null:r.json()}
-function windowQuery(){const to=new Date(),from=new Date(to.getTime()-7*86400000);return `from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`}
+const $=selector=>document.querySelector(selector);
+const $$=selector=>[...document.querySelectorAll(selector)];
+
+async function api(path,{method='GET',body,headers={}}={}){
+  const response=await fetch(path,{method,credentials:'same-origin',headers:{'Content-Type':'application/json',...headers},body:body?JSON.stringify(body):undefined});
+  if(!response.ok){let error={};try{error=await response.json()}catch{}throw new Error(error.error?.message||`${response.status} ${response.statusText}`)}
+  return response.status===204?null:response.json();
+}
+
+const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+const etag=item=>`"${item.id}.v${item.version}"`;
+const windowQuery=()=>{const to=new Date(),from=new Date(to.getTime()-7*86400000);return `from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`};
 const caps=kind=>({responses:kind==='responses',embeddings:kind==='embeddings',tools:kind==='responses',structured_outputs:false,input_modalities:['text'],output_modalities:kind==='embeddings'?['embedding']:['text'],context_window:kind==='responses'?128000:null,max_output_tokens:kind==='responses'?16384:null,embedding_space_id:kind==='embeddings'?'bge-m3-dense-1024-v1':null,embedding_dimensions:kind==='embeddings'?[1024]:null,embedding_max_batch_inputs:kind==='embeddings'?32:null,embedding_max_input_tokens:kind==='embeddings'?8192:null});
+
 let state={providers:[],deployments:[],tiers:[]};
-function status(h){return h==='healthy'?['Healthy','ok']:h==='degraded'||h==='unknown'?['Attention','warn']:['Unavailable','bad']}
-async function loadHome(){try{const [p,d,t,ready]=await Promise.all([api('/tier/admin/v1/providers'),api('/tier/admin/v1/deployments'),api('/tier/admin/v1/service-levels'),fetch('/readyz',{credentials:'same-origin'}).then(async r=>({ok:r.ok,...await r.json()}))]);state={providers:p.data,deployments:d.data,tiers:t.data};const gateway=ready.status==='ready'?'Ready':ready.status==='degraded'?'Degraded':'Not ready';$('#gateway').className=`pill ${ready.status==='ready'?'ok':'warn'}`;$('#gateway').textContent=`● ${gateway}`;renderTree();$('#stamp').textContent=`Last refreshed ${new Date().toLocaleTimeString()}`;$('#tier-select').innerHTML=state.tiers.map(x=>`<option>${x.id}</option>`).join('')}catch(e){$('#tree').textContent=e.message;$('#gateway').textContent='● Connection failed';$('#gateway').className='pill bad'}}
-function renderTree(){const provider=id=>state.providers.find(x=>x.id===id);$('#tree').className='tree';$('#tree').innerHTML=state.tiers.map(t=>{const ds=t.deployment_ids.map(id=>state.deployments.find(x=>x.id===id)).filter(Boolean), overall=ds.some(d=>d.health==='healthy')?['Available','ok']:ds.length?['Attention','warn']:['Unavailable','bad'];return `<details open><summary><span class="tiername"><b>${t.id}</b><div class="subline">${ds.length} backends</div></span><span><i class="pill ${overall[1]}">${overall[0]}</i></span><span>${t.capabilities.responses?'Responses':'Embeddings'}</span><span>v${t.version}</span></summary>${ds.map(d=>{const p=provider(d.provider_id),s=status(d.health);return `<div class="backend"><span>└ <b>${p?.name||'Unknown provider'}</b><div class="subline">${d.backend_model}</div></span><span><i class="pill ${s[1]}">${s[0]}</i></span><span>${p?.kind==='cloud'?'Cloud':'Local'}</span><span>v${d.version}</span></div>`}).join('')}</details>`}).join('')||'<div class="empty">No tiers configured</div>'}
-async function loadUsage(){const p=await api('/tier/admin/v1/usage?'+windowQuery());$('#usage-body').innerHTML=p.data.map(x=>`<tr><td>${x.request_id}</td><td>${x.model}</td><td>${x.endpoint}</td><td>${x.input_tokens??'Unknown'}</td><td>${x.output_tokens??'Unknown'}</td><td>${x.total_tokens??'Unknown'}</td><td><i class="pill ${x.measurement_status==='measured'?'ok':'warn'}">${x.measurement_status}</i></td></tr>`).join('')||'<tr><td colspan="7">No records</td></tr>'}
-async function loadAudit(){const p=await api('/tier/admin/v1/audit');$('#audit-body').innerHTML=p.data.map(x=>`<tr><td>${new Date(x.created_at).toLocaleString()}</td><td>${x.actor}</td><td>${x.action}</td><td>${x.target}</td><td>${x.result}</td></tr>`).join('')||'<tr><td colspan="5">No records</td></tr>'}
-async function loadLogs(){const q=new URLSearchParams(windowQuery());if($('#log-level').value)q.set('level',$('#log-level').value);if($('#log-module').value)q.set('module',$('#log-module').value);const p=await api('/tier/admin/v1/logs?'+q);$('#log-body').innerHTML=p.data.map(x=>`<tr><td>${new Date(x.created_at).toLocaleString()}</td><td>${x.level}</td><td>${x.module}</td><td>${x.event}</td><td>${x.message}</td><td>${x.request_id||'—'}</td></tr>`).join('')||'<tr><td colspan="6">No records</td></tr>'}
-$$('nav button').forEach(b=>b.onclick=()=>{$$('nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');$$('.page').forEach(x=>x.classList.remove('active'));$('#'+b.dataset.page).classList.add('active');const m={home:['Home','View every model, tier, backend, and status on one page'],records:['Usage & Audit','Review token usage and administrative changes'],logs:['Logs','Review sanitized gateway runtime events']}[b.dataset.page];$('#title').textContent=m[0];$('#subtitle').textContent=m[1];if(b.dataset.page==='home')loadHome();if(b.dataset.page==='records')loadUsage();if(b.dataset.page==='logs')loadLogs()});
-$$('[data-tab]').forEach(b=>b.onclick=()=>{$$('[data-tab]').forEach(x=>x.classList.remove('active'));b.classList.add('active');$$('.sub').forEach(x=>x.classList.remove('active'));$('#'+b.dataset.tab).classList.add('active');b.dataset.tab==='audit'?loadAudit():loadUsage()});
-$('#refresh-usage').onclick=loadUsage;$('#refresh-audit').onclick=loadAudit;$('#refresh-logs').onclick=loadLogs;$('#add').onclick=()=>$('#drawer-mask').classList.add('open');$('#close').onclick=$('#cancel').onclick=()=>$('#drawer-mask').classList.remove('open');
-$('#model-form').onsubmit=async e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target));$('#form-error').textContent='';try{const provider=await api('/tier/admin/v1/providers',{method:'POST',body:{name:f.provider_name,kind:f.kind,endpoint:f.endpoint,secret_ref:f.secret_ref||null,enabled:true}});const deployment=await api('/tier/admin/v1/deployments',{method:'POST',body:{name:f.deployment_name,provider_id:provider.id,backend_model:f.backend_model,capabilities:caps(f.capability),enabled:true}});const tier=state.tiers.find(x=>x.id===f.tier);await api(`/tier/admin/v1/service-levels/${encodeURIComponent(f.tier)}`,{method:'PATCH',headers:{'If-Match':`"${tier.id}.v${tier.version}"`},body:{deployment_ids:[...tier.deployment_ids,deployment.id]}});$('#drawer-mask').classList.remove('open');e.target.reset();await loadHome()}catch(err){$('#form-error').textContent=err.message}};
+let editingTierId=null;
+
+function healthStatus(value){return value==='healthy'?['Healthy','ok']:value==='degraded'||value==='unknown'?['Attention','warn']:['Unavailable','bad']}
+function providerOptions(selected){return state.providers.map(provider=>`<option value="${esc(provider.id)}" ${provider.id===selected?'selected':''}>${esc(provider.name)} · ${esc(provider.kind)}</option>`).join('')}
+
+async function loadRegistry(){
+  const [providers,deployments,tiers]=await Promise.all([api('/tier/admin/v1/providers'),api('/tier/admin/v1/deployments'),api('/tier/admin/v1/service-levels')]);
+  state={providers:providers.data,deployments:deployments.data,tiers:tiers.data};
+}
+
+async function loadHome(){
+  try{
+    const readyPromise=fetch('/readyz',{credentials:'same-origin'}).then(async response=>({ok:response.ok,...await response.json()}));
+    await loadRegistry();
+    const ready=await readyPromise;
+    const gateway=ready.status==='ready'?'Ready':ready.status==='degraded'?'Degraded':'Not ready';
+    $('#gateway').className=`pill ${ready.status==='ready'?'ok':'warn'}`;
+    $('#gateway').textContent=`● ${gateway}`;
+    renderTree();
+    $('#stamp').textContent=`Last refreshed ${new Date().toLocaleTimeString()}`;
+  }catch(error){$('#tree').textContent=error.message;$('#gateway').textContent='● Connection failed';$('#gateway').className='pill bad'}
+}
+
+function renderTree(){
+  const provider=id=>state.providers.find(item=>item.id===id);
+  $('#tree').className='tree';
+  $('#tree').innerHTML=state.tiers.map(tier=>{
+    const deployments=tier.deployment_ids.map(id=>state.deployments.find(item=>item.id===id)).filter(Boolean);
+    const overall=deployments.some(item=>item.health==='healthy')?['Available','ok']:deployments.length?['Attention','warn']:['Unavailable','bad'];
+    const rows=deployments.map(deployment=>{
+      const owner=provider(deployment.provider_id),status=healthStatus(deployment.health);
+      return `<div class="backend"><span>└ <b>${esc(owner?.name||'Unknown provider')}</b><div class="subline">${esc(deployment.backend_model)}</div></span><span><i class="pill ${status[1]}">${status[0]}</i></span><span>${owner?.kind==='cloud'?'Cloud':'Local'}</span><span>v${deployment.version}</span><span></span></div>`;
+    }).join('');
+    return `<details open><summary><span class="tiername"><b>${esc(tier.id)}</b><div class="subline">${deployments.length} members</div></span><span><i class="pill ${overall[1]}">${overall[0]}</i></span><span>${tier.capabilities.responses?'Responses':'Embeddings'}</span><span>v${tier.version}</span><span><button type="button" class="tiny tier-edit" data-tier="${esc(tier.id)}">Edit</button></span></summary>${rows}</details>`;
+  }).join('')||'<div class="empty">No tiers configured</div>';
+  $$('#tree .tier-edit').forEach(button=>button.onclick=event=>{event.preventDefault();event.stopPropagation();openTierEditor(button.dataset.tier)});
+}
+
+async function loadProviders(){
+  try{await loadRegistry();renderProviders()}catch(error){$('#provider-error').textContent=error.message}
+}
+
+function renderProviders(){
+  $('#provider-body').innerHTML=state.providers.map(provider=>{
+    const count=state.deployments.filter(item=>item.provider_id===provider.id).length;
+    return `<tr><td><b>${esc(provider.name)}</b><div class="subline">${esc(provider.id)}</div></td><td>${provider.kind==='cloud'?'Cloud':'Local'}</td><td>${esc(provider.endpoint)}</td><td>${provider.has_secret?'Configured':'None'}</td><td>${provider.enabled?'Enabled':'Disabled'}</td><td>${count}</td><td class="row-actions"><button class="tiny provider-edit" data-provider="${esc(provider.id)}">Edit</button><button class="tiny danger provider-delete" data-provider="${esc(provider.id)}">Delete</button></td></tr>`;
+  }).join('')||'<tr><td colspan="7">No providers configured</td></tr>';
+  $$('.provider-edit').forEach(button=>button.onclick=()=>openProviderEditor(button.dataset.provider));
+  $$('.provider-delete').forEach(button=>button.onclick=()=>deleteProvider(button.dataset.provider));
+}
+
+function openProviderEditor(id=null){
+  const provider=state.providers.find(item=>item.id===id);
+  const form=$('#provider-form');form.reset();
+  form.elements.provider_id.value=provider?.id||'';
+  form.elements.provider_version.value=provider?.version||'';
+  form.elements.name.value=provider?.name||'';
+  form.elements.kind.value=provider?.kind||'cloud';
+  form.elements.endpoint.value=provider?.endpoint||'';
+  form.elements.secret_ref.value='';
+  form.elements.enabled.checked=provider?.enabled??true;
+  $('#provider-drawer-title').textContent=provider?'Edit Provider':'Add Provider';
+  $('#provider-secret-help').textContent=provider&&provider.has_secret?'Leave blank to keep the configured secret.':'Use an env: or file: reference; never paste a secret value.';
+  $('#provider-form-error').textContent='';
+  $('#provider-mask').classList.add('open');
+}
+
+async function saveProvider(event){
+  event.preventDefault();
+  const form=event.currentTarget,id=form.elements.provider_id.value;
+  const body={name:form.elements.name.value,kind:form.elements.kind.value,endpoint:form.elements.endpoint.value,enabled:form.elements.enabled.checked};
+  if(form.elements.secret_ref.value)body.secret_ref=form.elements.secret_ref.value;
+  try{
+    if(id)await api(`/tier/admin/v1/providers/${encodeURIComponent(id)}`,{method:'PATCH',headers:{'If-Match':`"${id}.v${form.elements.provider_version.value}"`},body});
+    else await api('/tier/admin/v1/providers',{method:'POST',body:{...body,secret_ref:form.elements.secret_ref.value||null}});
+    $('#provider-mask').classList.remove('open');await loadProviders();
+  }catch(error){$('#provider-form-error').textContent=error.message}
+}
+
+async function deleteProvider(id){
+  const provider=state.providers.find(item=>item.id===id);if(!provider)return;
+  if(!window.confirm(`Delete provider “${provider.name}”?`))return;
+  try{await api(`/tier/admin/v1/providers/${encodeURIComponent(id)}`,{method:'DELETE',headers:{'If-Match':etag(provider)}});await loadProviders()}
+  catch(error){$('#provider-error').textContent=error.message}
+}
+
+function openTierEditor(id){
+  editingTierId=id;
+  $('#tier-drawer-title').textContent=`Edit ${id}`;
+  $('#tier-form-error').textContent='';
+  renderTierMembers();
+  $('#tier-mask').classList.add('open');
+}
+
+function renderTierMembers(){
+  const tier=state.tiers.find(item=>item.id===editingTierId);if(!tier)return;
+  const deployments=tier.deployment_ids.map(id=>state.deployments.find(item=>item.id===id)).filter(Boolean);
+  $('#tier-members').innerHTML=deployments.map(deployment=>`<form class="member-card" data-deployment="${esc(deployment.id)}"><div class="member-heading"><b>${esc(deployment.name)}</b><span>${esc(deployment.id)} · v${deployment.version}</span></div><label>Provider<select name="provider_id">${providerOptions(deployment.provider_id)}</select></label><label>Deployment Name<input name="name" value="${esc(deployment.name)}" required></label><label>Backend Model ID<input name="backend_model" value="${esc(deployment.backend_model)}" required></label><div class="member-actions"><button type="button" class="danger member-remove">Remove from Tier</button><button class="primary">Save Changes</button></div></form>`).join('')||'<div class="empty compact">This tier has no members.</div>';
+  $$('#tier-members .member-card').forEach(form=>{form.onsubmit=saveMember;form.querySelector('.member-remove').onclick=()=>removeMember(form.dataset.deployment)});
+  $('#member-provider').innerHTML=providerOptions();
+  $('#member-capability').textContent=tier.id==='Embedding-v1'?'Embeddings':'Responses';
+  const addButton=$('#add-member-form button');
+  addButton.disabled=!state.providers.length;
+  addButton.title=state.providers.length?'':'Add a provider before adding a tier member';
+}
+
+async function saveMember(event){
+  event.preventDefault();
+  const form=event.currentTarget,deployment=state.deployments.find(item=>item.id===form.dataset.deployment);
+  try{
+    await api(`/tier/admin/v1/deployments/${encodeURIComponent(deployment.id)}`,{method:'PATCH',headers:{'If-Match':etag(deployment)},body:{provider_id:form.elements.provider_id.value,name:form.elements.name.value,backend_model:form.elements.backend_model.value}});
+    await loadRegistry();renderTree();renderTierMembers();
+  }catch(error){$('#tier-form-error').textContent=error.message}
+}
+
+async function removeMember(deploymentId){
+  const tier=state.tiers.find(item=>item.id===editingTierId);if(!tier)return;
+  const deployment=state.deployments.find(item=>item.id===deploymentId);
+  if(!window.confirm(`Remove “${deployment?.name||deploymentId}” from ${tier.id}? The deployment will not be deleted.`))return;
+  try{
+    await api(`/tier/admin/v1/service-levels/${encodeURIComponent(tier.id)}`,{method:'PATCH',headers:{'If-Match':etag(tier)},body:{deployment_ids:tier.deployment_ids.filter(id=>id!==deploymentId)}});
+    await loadRegistry();renderTree();renderTierMembers();
+  }catch(error){$('#tier-form-error').textContent=error.message}
+}
+
+async function addMember(event){
+  event.preventDefault();
+  const form=event.currentTarget,tier=state.tiers.find(item=>item.id===editingTierId);if(!tier)return;
+  const kind=tier.id==='Embedding-v1'?'embeddings':'responses';
+  try{
+    const deployment=await api('/tier/admin/v1/deployments',{method:'POST',body:{name:form.elements.name.value,provider_id:form.elements.provider_id.value,backend_model:form.elements.backend_model.value,capabilities:caps(kind),enabled:true}});
+    await api(`/tier/admin/v1/service-levels/${encodeURIComponent(tier.id)}`,{method:'PATCH',headers:{'If-Match':etag(tier)},body:{deployment_ids:[...tier.deployment_ids,deployment.id]}});
+    form.reset();await loadRegistry();renderTree();renderTierMembers();
+  }catch(error){$('#tier-form-error').textContent=error.message}
+}
+
+async function loadUsage(){const page=await api('/tier/admin/v1/usage?'+windowQuery());$('#usage-body').innerHTML=page.data.map(item=>`<tr><td>${esc(item.request_id)}</td><td>${esc(item.model)}</td><td>${esc(item.endpoint)}</td><td>${item.input_tokens??'Unknown'}</td><td>${item.output_tokens??'Unknown'}</td><td>${item.total_tokens??'Unknown'}</td><td><i class="pill ${item.measurement_status==='measured'?'ok':'warn'}">${esc(item.measurement_status)}</i></td></tr>`).join('')||'<tr><td colspan="7">No records</td></tr>'}
+async function loadAudit(){const page=await api('/tier/admin/v1/audit');$('#audit-body').innerHTML=page.data.map(item=>`<tr><td>${new Date(item.created_at).toLocaleString()}</td><td>${esc(item.actor)}</td><td>${esc(item.action)}</td><td>${esc(item.target)}</td><td>${esc(item.result)}</td></tr>`).join('')||'<tr><td colspan="5">No records</td></tr>'}
+async function loadLogs(){const query=new URLSearchParams(windowQuery());if($('#log-level').value)query.set('level',$('#log-level').value);if($('#log-module').value)query.set('module',$('#log-module').value);const page=await api('/tier/admin/v1/logs?'+query);$('#log-body').innerHTML=page.data.map(item=>`<tr><td>${new Date(item.created_at).toLocaleString()}</td><td>${esc(item.level)}</td><td>${esc(item.module)}</td><td>${esc(item.event)}</td><td>${esc(item.message)}</td><td>${esc(item.request_id||'—')}</td></tr>`).join('')||'<tr><td colspan="6">No records</td></tr>'}
+
+$$('nav button').forEach(button=>button.onclick=()=>{
+  $$('nav button').forEach(item=>item.classList.remove('active'));button.classList.add('active');
+  $$('.page').forEach(item=>item.classList.remove('active'));$('#'+button.dataset.page).classList.add('active');
+  const meta={home:['Home','View every model, tier, backend, and status on one page'],providers:['Providers','Manage cloud and local provider connections'],records:['Usage & Audit','Review token usage and administrative changes'],logs:['Logs','Review sanitized gateway runtime events']}[button.dataset.page];
+  $('#title').textContent=meta[0];$('#subtitle').textContent=meta[1];
+  if(button.dataset.page==='home')loadHome();if(button.dataset.page==='providers')loadProviders();if(button.dataset.page==='records')loadUsage();if(button.dataset.page==='logs')loadLogs();
+});
+$$('[data-tab]').forEach(button=>button.onclick=()=>{$$('[data-tab]').forEach(item=>item.classList.remove('active'));button.classList.add('active');$$('.sub').forEach(item=>item.classList.remove('active'));$('#'+button.dataset.tab).classList.add('active');button.dataset.tab==='audit'?loadAudit():loadUsage()});
+
+$('#refresh-providers').onclick=loadProviders;$('#add-provider').onclick=()=>openProviderEditor();$('#provider-form').onsubmit=saveProvider;$('#close-provider').onclick=$('#cancel-provider').onclick=()=>$('#provider-mask').classList.remove('open');
+$('#add-member-form').onsubmit=addMember;$('#close-tier').onclick=()=>$('#tier-mask').classList.remove('open');
+$('#refresh-usage').onclick=loadUsage;$('#refresh-audit').onclick=loadAudit;$('#refresh-logs').onclick=loadLogs;
+
 loadHome();
