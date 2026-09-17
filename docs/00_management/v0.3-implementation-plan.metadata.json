@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "llmtier-v0.3-implementation-plan",
   "document_type": "management.development-plan",
-  "document_version": "0.1.0-draft.1",
+  "document_version": "0.1.0-draft.2",
   "title": "LLMTier V0.3 编码、调试与单元测试开发计划",
   "document_owner": "LLMTier",
   "authors": ["llmtier"],
