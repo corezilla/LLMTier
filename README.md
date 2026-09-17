@@ -73,6 +73,7 @@ RFC1918 或 IPv6 ULA origin。当前 transport 不等同于 production TLS/auth 
 LLMTier 采用 STD `software` profile 与单服务根结构：
 
 - [STD 裁剪清单](docs/00_management/std-tailoring.md)
+- [V0.3 编码、调试与单元测试开发计划](docs/00_management/v0.3-implementation-plan.md)
 - [V0.3 Requirements](docs/10_requirements/llmtier-v0.3-requirements.md) 与
   [Traceability](docs/10_requirements/llmtier-v0.3-traceability.md)
 - [系统设计](docs/20_system_design/llmtier-system-design.md)

@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `std-tailoring` |
-| Document Version | `0.1.3-draft.2` |
+| Document Version | `0.1.3-draft.3` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -50,6 +50,7 @@
 | Template ID | Profile | 是否必需 | 计划文档 | Owner |
 |---|---|---|---|---|
 | `management.tailoring` | management | 是 | `docs/00_management/std-tailoring.md` | LLMTier |
+| `management.development-plan` | management/software | 是，V0.3 implementation active | `docs/00_management/v0.3-implementation-plan.md`；编码调试与正式单元测试分Gate | LLMTier |
 | `design.system` | software | 是 | `docs/20_system_design/llmtier-system-design.md` | LLMTier |
 | `design.definition` | software | 条件必需，当前 omit | 仅在 LLMTier 内部出现真实 subsystem/module/component 时建立 | 对应内部 owner |
 | `requirements.specification` | software | 是，C3 active | `docs/10_requirements/llmtier-v0.3-requirements.md` | LLMTier；外部需求 authority 不迁入 |
