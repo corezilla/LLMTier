@@ -42,11 +42,13 @@ async function loadRegistry(){
 async function loadHome(){
   try{
     const readyPromise=fetch('/readyz',{credentials:'same-origin'}).then(async response=>({ok:response.ok,...await response.json()}));
+    const healthPromise=api('/healthz');
     await loadRegistry();
-    const ready=await readyPromise;
+    const [ready,health]=await Promise.all([readyPromise,healthPromise]);
     const gateway=ready.status==='ready'?'Ready':ready.status==='degraded'?'Degraded':'Not ready';
     $('#gateway').className=`pill ${ready.status==='ready'?'ok':'warn'}`;
     $('#gateway').textContent=`● ${gateway}`;
+    $('#build-meta').textContent=`Version ${health.version} · Updated ${new Date(document.lastModified).toLocaleString()}`;
     renderTree();
     $('#stamp').textContent=`Last refreshed ${new Date().toLocaleTimeString()}`;
   }catch(error){$('#tree').textContent=error.message;$('#gateway').textContent='● Connection failed';$('#gateway').className='pill bad'}

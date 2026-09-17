@@ -16,6 +16,8 @@ nav button.active{background:#dbeafe;color:var(--blue);font-weight:700}
 footer{margin-top:auto;border-top:1px solid var(--border);padding:12px 8px}
 main{min-width:0}
 header{height:74px;background:#fcfcfd;border-bottom:1px solid var(--border);padding:0 28px;display:flex;align-items:center;justify-content:space-between}
+.header-status{display:flex;align-items:flex-end;flex-direction:column;gap:5px}
+.header-status>span:last-child{color:var(--muted);font-size:11px}
 h1{font-size:21px;margin:0}
 header p,.drawer p{color:var(--muted);margin:4px 0 0;font-size:12px}
 .page{display:none;max-width:1160px;padding:22px 28px}

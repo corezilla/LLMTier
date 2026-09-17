@@ -5,6 +5,7 @@ import mimetypes
 import re
 import traceback
 import uuid
+from email.utils import formatdate
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -69,7 +70,9 @@ def handler_factory(app: Application):
             target = (root / name).resolve()
             if root.resolve() not in target.parents and target != root.resolve(): raise ApiError(404, "not_found", "Not found")
             if not target.is_file(): raise ApiError(404, "not_found", "Not found")
-            raw = target.read_bytes(); self.send_response(200); self.send_header("Content-Type", mimetypes.guess_type(target.name)[0] or "application/octet-stream"); self.send_header("Content-Length", str(len(raw))); self.end_headers(); self.wfile.write(raw)
+            raw = target.read_bytes(); self.send_response(200); self.send_header("Content-Type", mimetypes.guess_type(target.name)[0] or "application/octet-stream"); self.send_header("Content-Length", str(len(raw)))
+            self.send_header("Cache-Control", "no-store"); self.send_header("Last-Modified", formatdate(target.stat().st_mtime, usegmt=True))
+            self.end_headers(); self.wfile.write(raw)
 
         def _auth(self, role="data"):
             principal = unauthenticated_principal(self.client_address[0], self.headers, role)

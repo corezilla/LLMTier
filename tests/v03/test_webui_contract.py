@@ -16,6 +16,10 @@ class WebUIContractTests(unittest.TestCase):
             self.assertIn(value,self.js)
         self.assertIn('class="tiny backend-probe"',self.js)
         self.assertIn("'/tier/admin/v1/probes'",self.js)
+    def test_header_shows_runtime_version_and_ui_update_time(self):
+        self.assertIn('id="build-meta"',self.html)
+        self.assertIn("api('/healthz')",self.js)
+        self.assertIn('document.lastModified',self.js)
     def test_root_route_assets_remain_same_origin(self):
         self.assertIn('href="/ui/styles.css"',self.html)
         self.assertIn('src="/ui/app.js"',self.html)
