@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-requirements` |
-| Document Version | `0.3.2-draft.2` |
+| Document Version | `0.3.2-draft.3` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -49,10 +49,10 @@ V0.3 外部范围：Responses、Embeddings、Models、token Usage、health/readi
 
 | ID | 需求 | 优先级 | 验证 |
 |---|---|---|---|
-| LT-FUN-001 | shall 提供 OpenAI-compatible `POST /v1/responses`，支持固定 Pi adapter 所需的标准 SSE text、function tool/call/result 与 terminal Usage；同 endpoint 可按标准 `stream:false` 返回 JSON | P0 | CT-DP-001 |
+| LT-FUN-001 | shall 提供 OpenAI-compatible `POST /v1/responses`，接受固定 Pi 0.85.1 实际发送的 `stream=true`、`store=false`、easy message、assistant/function/reasoning历史、function result及所选reasoning字段；支持标准 SSE text/function/reasoning/refusal/terminal Usage，refusal最终content保持标准`type=refusal`；首阶段不增加未消费的JSON并行模式 | P0 | CT-DP-001 |
 | LT-FUN-002 | shall 提供 `GET /v1/models` 与 exact-case detail，返回真实逻辑等级、能力、上下文/输出限制和 availability | P0 | CT-MODEL-001 |
-| LT-FUN-003 | shall 提供标准 `POST /v1/embeddings`，只路由到明确标记 embedding-capable 的 deployment | P0 | CT-EMB-001 |
-| LT-FUN-004 | shall 返回 per-call token Usage，并提供统一只读 token Usage 查询；measured、estimated、unknown 必须可区分 | P0 | CT-USAGE-001 |
+| LT-FUN-003 | shall 提供标准 `POST /v1/embeddings` 字符串输入子集；支持与请求一致的float数组或RFC4648 little-endian float32 base64表示并验证有限值/维数；同一逻辑model只能绑定同一向量空间，非兼容模型/版本/预处理变更必须使用新逻辑model ID | P0 | CT-EMB-001 |
+| LT-FUN-004 | shall 在模型响应保留标准token Usage结构，并提供统一只读token Usage查询；measured、estimated、unknown及原始字段存在性必须可区分 | P0 | CT-USAGE-001 |
 | LT-FUN-005 | shall 通过 Admin API/中文 Web UI 添加、修改、删除云模型、本地模型和逻辑等级，并提供健康探测、Usage 与审计 | P1 | CT-ADMIN-001/CT-UI-001 |
 | LT-FUN-006 | shall 提供无副作用 health/readiness；真实 provider probe、reload、restart 等潜在费用/状态变更操作必须要求 operator 授权 | P0 | CT-OPS-001 |
 | LT-FUN-007 | shall 不保存/压缩 Agent 历史、不执行工具、不创建 Agent Session/Conversation、不管理或匹配 backend KV | P0 | CT-BOUNDARY-001 |
@@ -66,8 +66,10 @@ V0.3 外部范围：Responses、Embeddings、Models、token Usage、health/readi
 | LT-INT-002 | V0.3 current paths 仅包括 `/v1/responses`、`/v1/embeddings`、`/v1/models`、`/v1/models/{model}`、`/tier/v1/usage`、`/healthz`、`/readyz` 及精简 Admin paths |
 | LT-INT-003 | shall 不定义 SourceInstance、custom Idempotency-Key、Invocation、response recovery、Seat/claim/capacity snapshot、Cost 或 compatibility negotiation path/header/schema |
 | LT-INT-004 | `/tier/v1/usage` 是唯一 consumer extension；原因是 OpenAI API 没有统一跨请求 token 查询。它不得承载任务、项目、会话、费用或执行状态 |
-| LT-INT-005 | unknown token 数不得填零；响应 usage 可为 null，UsageRecord 数值字段在 unknown 时为 null |
-| LT-INT-006 | `stream:true` 使用标准 Responses SSE；`stream:false` 使用标准 JSON。二者共享同 endpoint、认证、model routing 和错误语义，不得增加自定义 streaming/recovery endpoint 或 legacy fallback |
+| LT-INT-005 | unknown token数不得填零；usage缺失不得把成功模型结果改为失败，但Piko必须能识别任务Usage unknown；UsageRecord数值字段在unknown时为null |
+| LT-INT-006 | 首阶段固定`stream:true/store:false`并使用标准 Responses SSE；`stream:false`不在当前契约。不得增加自定义 streaming/recovery endpoint、JSON并行模式或legacy fallback |
+| LT-INT-007 | 每个鉴权主体+server request ID最多一个逻辑UsageRecord；dispatch前持久unknown义务，更高record_version以不可变版本追加并替换旧事实而不累计；分页snapshot固定精确版本/view且每页复核权限，过期/冲突返回400，store不可用返回typed 503 |
+| LT-INT-008 | Admin item更新/删除shall使用强ETag/If-Match；stale version返回412，引用冲突返回409；PATCH只修改出现字段 |
 
 ## 6. 性能与容量需求
 
@@ -88,6 +90,7 @@ V0.3 外部范围：Responses、Embeddings、Models、token Usage、health/readi
 | LT-REL-001 | LLMTier shall 返回真实 HTTP/typed error；调用方按其任务策略重试，LLMTier不承诺跨系统 exactly-once |
 | LT-REL-002 | 内部可靠性、provider retry 或防重不得创建对外 Invocation/recovery/session contract |
 | LT-REL-003 | 未知 Usage、健康或 provider fact shall 显式 unknown/unavailable，不得伪造零或成功 |
+| LT-REL-004 | 初始化后SQLite Operational Store shall 是唯一配置authority；settings文件只允许空库首次bootstrap，不得监听、双写或在重启时覆盖Admin变更 |
 
 ## 8. 运维、诊断与可观测性需求
 
@@ -110,7 +113,7 @@ V0.3 外部范围：Responses、Embeddings、Models、token Usage、health/readi
 
 | ID | Owner | 问题 | 最晚阶段 |
 |---|---|---|---|
-| LT-OPEN-02 | LLMTier | dedicated embedding deployment/model 配置 | Embeddings 实现前 |
+| LT-OPEN-02 | LLMTier | 选择实际embedding deployment并给出其space ID、维数、batch和input token限制 | Embeddings 实现前 |
 | LT-OPEN-03 | LLMTier | production auth/TLS/service manager/runbook | runtime activation 前 |
 
-2026-09-17：以主流标准接口替代旧复杂 candidate；删除 SourceInstance、外部容量/Seat、custom idempotency/Invocation recovery、Cost、compatibility negotiation 和跨系统 release 要求；保留 exact model、内部保护、token Usage、模型管理与运维。
+2026-09-17：以主流标准接口替代旧复杂 candidate；删除 SourceInstance、外部容量/Seat、custom idempotency/Invocation recovery、Cost、compatibility negotiation 和跨系统 release 要求；保留 exact model、内部保护、token Usage、模型管理与运维。三方评审后将固定Pi真实request/SSE/usage、Usage替换语义、Admin条件更新、Embedding同space和SQLite唯一authority固化为candidate.5。

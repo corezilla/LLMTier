@@ -27,7 +27,7 @@ Slinky 和 Piko 是外部 consumer/协作项目，不是 LLMTier 的源码目录
 |---|---|
 | `src/` | 单服务 Python 源码；采用 flat module/package layout |
 | `tests/` | 单元、边界、契约语义和 STD 一致性测试 |
-| `config/settings.json` | 默认本地配置；被 Git 忽略，可用 `LLMTIER_CONFIG` 或 `--settings` 覆盖 |
+| `config/settings.json` | 空SQLite首次启动的一次性bootstrap输入；初始化后不再是运行authority |
 | `config/secrets/` | 本地只写凭据文件目录；被 Git 忽略，禁止进入日志、证据或 RAG |
 | `state/` | 默认本地运行状态、统计和 trace；被 Git 忽略，可用 `LLMTIER_STATE_DIR` 覆盖；单文件 debug-state 可再由既有 `TIER_TRACE_STATE_PATH` 显式选择 |
 | `interfaces/` | V0.3 OpenAPI、compatibility manifest、Schema 与 contract vectors |
@@ -76,6 +76,8 @@ LLMTier 采用 STD `software` profile 与单服务根结构：
 - [V0.3 Requirements](docs/10_requirements/llmtier-v0.3-requirements.md) 与
   [Traceability](docs/10_requirements/llmtier-v0.3-traceability.md)
 - [系统设计](docs/20_system_design/llmtier-system-design.md)
+- [核心模块设计](docs/40_module_design/llmtier-core-design.md)、[中文 Web UI 设计](docs/40_module_design/webui-design.md) 与
+  [Runtime ISD](docs/50_implementation_design/llmtier-runtime.isd.md)
 - [Piko Data Plane](docs/60_interfaces/piko-data-plane-control.md)、
   [Slinky Capacity/Observation](docs/60_interfaces/slinky-capacity-observation-control.md) 与
   [Management](docs/60_interfaces/llmtier-management-control.md) interface controls

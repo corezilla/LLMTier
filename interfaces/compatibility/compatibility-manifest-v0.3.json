@@ -1,9 +1,16 @@
 {
-  "manifest_version": "0.3-simplified-candidate.2",
+  "manifest_version": "0.3-simplified-candidate.5",
   "status": "candidate",
-  "overall": {"contract_status": "candidate", "runtime_activation": false},
+  "overall": {
+    "contract_status": "candidate",
+    "runtime_activation": false
+  },
   "surface_policy": "single_openai_compatible_surface_no_fallback",
-  "contract_authority": {"format": "openapi-3.1-json", "path": "openapi/llmtier-v0.3.openapi.json", "version": "0.3-simplified-candidate.2"},
+  "contract_authority": {
+    "format": "openapi-3.1-json",
+    "path": "openapi/llmtier-v0.3.openapi.json",
+    "version": "0.3-simplified-candidate.5"
+  },
   "architecture_boundary": {
     "pattern": "stateless_openai_compatible_model_gateway",
     "caller_supplies_complete_input": true,
@@ -13,11 +20,65 @@
     "backend_kv_identity_management": false
   },
   "capabilities": [
-    {"name": "responses", "path": "/v1/responses", "mode": "standard_json_and_sse", "streaming_required_by": "pi@9767ba275f3e9a5ee0f5c5342249b629ab1b2282", "sse_events": ["response.created", "response.output_item.added", "response.output_text.delta", "response.function_call_arguments.delta", "response.function_call_arguments.done", "response.output_item.done", "response.completed", "response.incomplete", "response.failed", "error"], "contract_status": "candidate", "runtime_activation": false},
-    {"name": "embeddings", "path": "/v1/embeddings", "mode": "standard", "contract_status": "candidate", "runtime_activation": false},
-    {"name": "models", "path": "/v1/models", "mode": "standard", "contract_status": "candidate", "runtime_activation": false},
-    {"name": "token_usage_query", "path": "/tier/v1/usage", "mode": "minimal_extension", "contract_status": "candidate", "runtime_activation": false},
-    {"name": "admin_model_management", "path": "/tier/admin/v1", "mode": "operator_only", "contract_status": "candidate", "runtime_activation": false}
+    {
+      "name": "responses",
+      "path": "/v1/responses",
+      "mode": "standard_sse",
+      "streaming_required_by": "pi@9767ba275f3e9a5ee0f5c5342249b629ab1b2282",
+      "sse_events": [
+        "response.created",
+        "response.output_item.added",
+        "response.output_text.delta",
+        "response.refusal.delta",
+        "response.reasoning_summary_text.delta",
+        "response.reasoning_summary_part.done",
+        "response.reasoning_text.delta",
+        "response.function_call_arguments.delta",
+        "response.function_call_arguments.done",
+        "response.output_item.done",
+        "response.completed",
+        "response.incomplete",
+        "response.failed",
+        "error"
+      ],
+      "contract_status": "candidate",
+      "runtime_activation": false
+    },
+    {
+      "name": "embeddings",
+      "path": "/v1/embeddings",
+      "mode": "standard",
+      "input_subset": "string_or_string_array",
+      "encoding_formats": {
+        "float": "finite_json_number_array",
+        "base64": "rfc4648_little_endian_ieee754_float32"
+      },
+      "vector_space_policy": "one logical model id maps only to one embedding space; incompatible changes require a new logical model id",
+      "contract_status": "candidate",
+      "runtime_activation": false
+    },
+    {
+      "name": "models",
+      "path": "/v1/models",
+      "mode": "standard",
+      "contract_status": "candidate",
+      "runtime_activation": false
+    },
+    {
+      "name": "token_usage_query",
+      "path": "/tier/v1/usage",
+      "mode": "minimal_extension",
+      "contract_status": "candidate",
+      "runtime_activation": false
+    },
+    {
+      "name": "admin_model_management",
+      "path": "/tier/admin/v1",
+      "mode": "operator_only",
+      "conditional_mutation": "strong_etag_if_match",
+      "contract_status": "candidate",
+      "runtime_activation": false
+    }
   ],
   "explicitly_not_in_external_contract": [
     "source_instance",
@@ -30,11 +91,62 @@
     "cost_or_billing",
     "caller_or_session_management"
   ],
-  "logical_model_policy": {"exact_case_sensitive": true, "aliases_allowed": false, "cross_level_fallback_allowed": false},
-  "usage_policy": {"facts": ["input_tokens", "output_tokens", "total_tokens", "cached_input_tokens"], "statuses": ["measured", "estimated", "unknown"], "unknown_is_zero": false, "cost_supported": false},
-  "admin_web_ui": {"language": "zh-CN", "pages": ["模型与等级", "添加模型", "运行状态", "用量", "审计"], "excluded_pages": ["访问控制", "容量", "恢复", "费用", "调用方"]},
-  "activation_requires": ["implementation", "provider_capture", "piko_surface_confirmation", "embedding_consumer_test", "auth_tls_operations_evidence", "admin_ui_test"],
+  "logical_model_policy": {
+    "exact_case_sensitive": true,
+    "aliases_allowed": false,
+    "cross_level_fallback_allowed": false
+  },
+  "usage_policy": {
+    "facts": [
+      "input_tokens",
+      "output_tokens",
+      "total_tokens",
+      "cached_input_tokens"
+      ,
+      "cache_write_tokens",
+      "reasoning_tokens"
+    ],
+    "statuses": [
+      "measured",
+      "estimated",
+      "unknown"
+    ],
+    "unknown_is_zero": false,
+    "cost_supported": false,
+    "record_identity": "authenticated_principal_plus_request_id",
+    "record_update": "append_immutable_higher_record_version_and_advance_head_never_add_revisions",
+    "durability": "persist_unknown_obligation_before_provider_dispatch",
+    "pagination": "persisted_expiring_snapshot_of_exact_record_versions_with_per_page_authorization"
+  },
+  "admin_web_ui": {
+    "language": "zh-CN",
+    "pages": [
+      "模型与等级",
+      "添加模型",
+      "运行状态",
+      "用量",
+      "审计"
+    ],
+    "excluded_pages": [
+      "访问控制",
+      "容量",
+      "恢复",
+      "费用",
+      "调用方"
+    ]
+  },
+  "activation_requires": [
+    "implementation",
+    "provider_capture",
+    "piko_surface_confirmation",
+    "embedding_consumer_test",
+    "auth_tls_operations_evidence",
+    "admin_ui_test"
+  ],
   "open_questions": [],
-  "legacy_authority": {"call_endpoint": "retire_from_consumer_authority", "old_custom_contracts": "historical_only_no_runtime_fallback"},
+  "legacy_authority": {
+    "call_endpoint": "retire_from_consumer_authority",
+    "old_custom_contracts": "historical_only_no_runtime_fallback"
+  },
   "effective_at": null
 }

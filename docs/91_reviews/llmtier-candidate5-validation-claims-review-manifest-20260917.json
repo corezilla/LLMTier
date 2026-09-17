@@ -1,0 +1,23 @@
+{
+  "package": "0.3-simplified-candidate.5-validation-claims-r2",
+  "repository": "/Users/ben/work/LLMTier",
+  "branch": "docs/std-draft21-upgrade",
+  "base_head": "0398f5633edbef53cba29578ce1c592000ca8cd9",
+  "base_manifest_path": "docs/91_reviews/llmtier-candidate5-review-manifest-20260917.json",
+  "base_manifest_sha256": "35e9e2cf6894fad879655f4c287242de93f908290634a95af1fb0cd070a11729",
+  "worktree": "dirty_uncommitted_review_snapshot",
+  "runtime_activation": false,
+  "review_scope": [
+    "LT-R4-SL-02/03-R2 validation-claim correction"
+  ],
+  "files": [
+    {"path": "docs/50_implementation_design/llmtier-runtime.isd.md", "bytes": 9491, "sha256": "2f3fe4156e15a8689d0d8f5146489e7efa78a106e759434f0295ed398cd159eb"},
+    {"path": "docs/50_implementation_design/llmtier-runtime.isd.metadata.json", "bytes": 930, "sha256": "4a2c388891722c614d580de16b593ae8440e4a2fb3c4109b965813b08dec50ae"},
+    {"path": "docs/70_verification/plans/llmtier-v0.3-vv-plan.md", "bytes": 3929, "sha256": "1b6a60ef06f24a596e966255c9d2cc0408d2b90b1c986c9a3c92d8bbbe8e99a6"},
+    {"path": "docs/70_verification/plans/llmtier-v0.3-vv-plan.metadata.json", "bytes": 949, "sha256": "74e1cc4e538754495a9979b84cb671f49b2c19917600bb920769d6377d260d79"},
+    {"path": "docs/70_verification/specifications/llmtier-v0.3-contract-test-specification.md", "bytes": 4698, "sha256": "639716edb1b01ad420136247bf0903738394f83c002e90ad1ca446afd87eb086"},
+    {"path": "docs/70_verification/specifications/llmtier-v0.3-contract-test-specification.metadata.json", "bytes": 1029, "sha256": "e0142e9d8adb33136eda0c941f5bf778edd0e8df508f02953eb7307bd6f87d94"},
+    {"path": "docs/91_reviews/llmtier-round3-remediation-20260917.md", "bytes": 8398, "sha256": "5927327196d30528135a9f7edf035becfb67e9a08f77343ae2a70f642a31b23b"},
+    {"path": "docs/91_reviews/llmtier-round3-remediation-20260917.metadata.json", "bytes": 948, "sha256": "4fed3f8b2e5be895e396c240623d72018ff5454d0a5e9d4100ff0853bf7ec850"}
+  ]
+}

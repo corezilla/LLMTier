@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-release-and-operations` |
-| Document Version | `0.3.1-draft.1` |
+| Document Version | `0.3.1-draft.2` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -67,8 +67,7 @@ network/TLS、filesystem owner、resource limit 和 multi-instance topology 均�
 
 ## 4. 配置、Secret、校准数据与环境
 
-- 默认配置是 repo root 下 Git-ignored 的 `config/settings.json`；显式 `--settings` 优先，未提供时读取
-  `LLMTIER_CONFIG`，再回落到该默认路径。配置属于 LLMTier，不回读 Slinky config。
+- `config/settings.json`、显式 `--settings` 或 `LLMTIER_CONFIG` 只允许在空SQLite首次启动时提供一次性bootstrap输入；初始化成功后SQLite Operational Store是唯一运行配置authority，后续启动不得自动重导、覆盖或双写JSON。配置属于 LLMTier，不回读 Slinky config。
 - 文件型 Secret 位于 Git-ignored 的 `config/secrets/`，相对路径从 repo root 解析；目录和文件使用
   owner-only 权限，验证只记录存在性/摘要，不读取或输出内容。
 - 默认运行状态、统计和 trace 位于 Git-ignored 的 `state/`；`LLMTIER_STATE_DIR` 可为部署选择唯一替代目录，
@@ -102,8 +101,8 @@ NOT_RUN/BLOCKED。
 - rollback 只能回到明确兼容的 artifact/config/data state；不能通过 alias、Role selector、跨等级 fallback
   或缩短 retention 绕过问题。
 - Piko Agent session/任务恢复不属于 LLMTier；LLMTier只恢复自身配置、Usage/Audit store和服务进程。
-- 当前没有已批准的 database schema、backup format、HA、RPO/RTO、blue-green/canary 或 disaster recovery
-  procedure，相关步骤保持 Open Gate，不能执行 production migration。
+- SQLite schema与迁移边界由Runtime ISD定义；backup format、HA、RPO/RTO、blue-green/canary 或 disaster recovery
+  procedure仍是 Open Gate，不能执行 production migration。
 
 ## 7. 操作、监控、告警与 SLO
 

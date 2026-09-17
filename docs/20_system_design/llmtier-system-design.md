@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.3.2-draft.2` |
+| Document Version | `0.3.2-draft.3` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -15,7 +15,7 @@
 | Approval Date | 待定 |
 | Created Date | `2026-09-06` |
 | Last Modified Date | `2026-09-17` |
-| Template Version | `8.3.0` |
+| Template Version | `4.0.0` |
 | Template ID | `design.system` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
@@ -43,7 +43,7 @@ Piko 管理 Agent session、上下文、工具循环、模型调用与执行内�
 
 | 目标 | 设计决定 |
 |---|---|
-| 标准模型调用 | 同一 `POST /v1/responses` 支持标准 JSON 与 SSE；Piko 固定 Pi adapter 使用 `stream:true` |
+| 标准模型调用 | `POST /v1/responses` 使用固定 Pi 实际需要的标准 SSE；不增加未消费的JSON并行模式 |
 | 模型发现 | `GET /v1/models` 与 exact-case detail；`model` 是逻辑等级 ID，不暴露物理账号 |
 | 向量化 | 标准 `POST /v1/embeddings`；使用明确配置的 embedding-capable deployment |
 | 工具调用 | 模型可返回 function call；Piko 执行工具并在下一次完整请求中带回 tool result |
@@ -108,7 +108,7 @@ flowchart LR
   ADAPTER --> HEALTH[Health / Probe Facts]
 ```
 
-这些是同一进程内的 logical building block，不是已拆分的子系统。当前没有内部 subsystem design；模块与 ISD 应在本系统设计下展开。
+这些是同一进程内的logical building block，不是已拆分的子系统。当前不建立虚构subsystem；内部模块设计见`docs/40_module_design/llmtier-core-design.md`，实现设计见`docs/50_implementation_design/llmtier-runtime.isd.md`。
 
 ## 6. 工作模式与端到端流程
 
@@ -127,15 +127,15 @@ sequenceDiagram
   Note over P: Piko executes tool and submits a new complete request
 ```
 
-Piko 固定依赖 `pi@9767ba275f3e9a5ee0f5c5342249b629ab1b2282` 的
+Piko 固定依赖 `pi@9767ba275f3e9a5ee0f5c5342249b629ab1b2282`（0.85.1）的
 `packages/ai/src/api/openai-responses.ts::buildParams` 固定生成 `stream:true`，并由
-`processResponsesStream` 消费标准 Responses SSE。LLMTier 因此在同一 endpoint 上提供标准 SSE；
-`stream:false` 仍是同一 OpenAI-compatible endpoint 的普通 JSON 模式，不是第二 inference path 或 fallback。
+`processResponsesStream` 消费标准 Responses SSE。LLMTier 因此要求 `stream:true/store:false`，只提供这条实际消费路径；
+`stream:false` 不在首阶段契约中，也不建立JSON并行模式或fallback。
 
-首版必需事件子集为 `response.created`、`response.output_item.added`、
-`response.output_text.delta`、`response.function_call_arguments.delta|done`、
+首版固定请求含`store:false`、easy message、assistant/function/reasoning历史、普通function result和所选reasoning字段；不启用grammar/deferred/custom tools或prompt cache协议。必需事件子集为`response.created`、`response.output_item.added`、
+`response.output_text.delta`、`response.refusal.delta`、reasoning summary/text事件、`response.function_call_arguments.delta|done`、
 `response.output_item.done`、`response.completed|incomplete|failed` 和 `error`。
-Usage 位于 terminal response；tool result 由 Piko 执行后以新请求中的 `function_call_output` 传回。
+每个message/function/reasoning output item有稳定`id`，所有delta、added/done/terminal保持一致。refusal最终content使用标准`{type:"refusal",refusal}`，不伪装为`output_text`。Usage位于terminal response并保持标准嵌套details；tool result由Piko执行后以新请求中的`function_call_output`传回。
 
 每个 HTTP 请求是独立模型调用。网络结果不明时，Piko 按标准 client retry policy 处理；V0.3 不承诺跨系统 exactly-once，也不提供 Invocation 查询或结果恢复。LLMTier 内部可保留防重、队列或 provider 可靠性机制，但不得形成对外会话或恢复契约。
 
@@ -149,8 +149,10 @@ sequenceDiagram
   K->>L: POST /v1/embeddings (model, input)
   L->>E: provider-native embedding request
   E-->>L: vectors + token usage
-  L-->>K: EmbeddingResponse + X-Request-ID
+L-->>K: EmbeddingResponse + X-Request-ID
 ```
+
+同一embedding逻辑model只允许绑定同一`embedding_space_id`、模型版本与预处理契约。`float`返回有限JSON number array；`base64`返回RFC4648编码的连续little-endian float32，且必须与请求表示一致并核验长度、有限值和维数。维数相同不代表向量空间兼容；非兼容变更必须新建逻辑model ID，Slinky据此新建索引generation。Models同时发布允许维数、batch和单项input token上限。
 
 ### 6.3 运维恢复
 
@@ -165,8 +167,8 @@ LLMTier 不规定专用硬件。部署可连接云 provider 或本地主机上�
 | 路径 | 职责 |
 |---|---|
 | `src/` | 单服务 Python 源码 |
-| `config/settings.json` | Git-ignored 默认配置；provider Secret 使用引用 |
-| `state/` | Git-ignored runtime state、Usage 与 audit |
+| `config/settings.json` | 仅空SQLite首次启动的一次性bootstrap输入；provider Secret使用引用 |
+| `state/` | Git-ignored SQLite Operational Store，是初始化后唯一配置、Usage与audit authority |
 | `interfaces/openapi/` | 唯一当前机器接口候选 |
 | `interfaces/compatibility/` | 候选能力与 activation 状态，不承担协商协议 |
 | `interfaces/vectors/` | 当前正负 contract fixtures |
@@ -183,8 +185,8 @@ LLMTier 不规定专用硬件。部署可连接云 provider 或本地主机上�
 |---|---|---|
 | Provider | type、endpoint、secret reference、enabled | operator 管理 |
 | Deployment | provider/local、model name、capabilities、health | operator 管理 |
-| ServiceLevel | exact ID、deployment binding、limits/capabilities | operator 管理与 Models 发布 |
-| UsageRecord | request ID、model、token values、measurement status/source、time | 按 LLMTier retention policy |
+| ServiceLevel | exact ID、deployment binding、limits/capabilities；embedding含space ID | operator 管理与 Models 发布 |
+| UsageRecord | principal+request ID、record version/final、model、token values、quality、time | 按 LLMTier retention policy |
 | AuditEvent | actor、action、target、result、time；不含 Secret/prompt/output | 按审计策略 |
 
 不保存 Agent conversation、tool state、project/task content、正式记忆或后端 KV identity。Prompt/output 日志默认关闭；诊断只保存必要的脱敏关联信息。
@@ -202,6 +204,8 @@ LLMTier 不规定专用硬件。部署可连接云 provider 或本地主机上�
 
 Bearer credential 只标识获授权调用主体；不暴露 Client/Source/SourceInstance 产品模型。`X-Request-ID` 是服务端响应关联 ID，调用方可发送标准 trace context；它们不是幂等键或会话 ID。
 
+任何provider dispatch前先持久化该server request ID的unknown Usage义务；计量版本只追加并单调推进head，因此terminal后写入失败或崩溃也不会在重启后变成“没有调用”。Usage查询按`[from,to)`及`(recorded_at,request_id)`稳定排序；首个页面持久冻结精确record version，cursor绑定principal、当前授权和原filter。页间更正/插入只进入新snapshot；Admin分页同样冻结view/ETag。相同request ID的版本绝不累计；store不可用返回typed 503，不用空页冒充无记录。成功模型结果不会仅因usage未知而改成失败，但unknown不得显示为0。
+
 ### 11.2 Admin API 与中文 Web UI
 
 ```mermaid
@@ -216,7 +220,7 @@ flowchart LR
   HEALTHUI -->|只读检查 / 授权探测| MAPI
 ```
 
-页面保持短而单一职责：
+页面保持短而单一职责；逐页线框、状态、字段与交互以`docs/40_module_design/webui-design.md`为authority：
 
 1. **模型与等级**：表格列出逻辑等级、类型（云/本地）、后端模型、状态和能力；提供编辑、删除。
 2. **添加模型**：选择云模型或本地模型，填写 endpoint/model、Secret 引用、能力和逻辑等级映射；保存前校验，Secret 不回显。
@@ -229,6 +233,8 @@ flowchart LR
 ## 12. 可靠性、维护与升级
 
 标准 HTTP 错误区分 validation/auth/model_not_found/rate_limit/provider_unavailable/internal_error。429 可带 `Retry-After`；调用方决定重试。未知 token 数用 `usage=null` 或字段 null + `measurement_status=unknown`，不得填零。
+
+Admin item读取返回强ETag；PATCH/DELETE必须携带`If-Match`。stale edit返回412，引用冲突返回409；partial PATCH只更新出现字段。SQLite是初始化后唯一配置authority，settings文件不再自动重载或双写。
 
 内部队列、并发保护、超时、provider failover 只能在同一 exact service level 的已配置后端集合内工作；不得静默跨等级。内部实现不得向 consumer 暴露 Seat、claim、Invocation 或恢复状态。
 
@@ -252,12 +258,12 @@ Data Plane 与 Admin 使用不同 credential/权限。Provider Secret 只通过 
 
 ## 17. 实现计划
 
-1. 以固定 Pi adapter 的标准 Responses SSE 子集实现 Piko 调用，并保留同 endpoint 的标准 JSON 模式。
+1. 以固定Pi 0.85.1真实request/标准Responses SSE子集实现Piko调用，不增加未消费的JSON并行模式。
 2. 实现 OpenAI-compatible Responses/Models 和 exact service-level routing。
 3. 实现 dedicated Embeddings deployment 与 `/v1/embeddings`。
 4. 实现统一 token Usage 记录/查询，明确 measured/estimated/unknown。
 5. 将 legacy `/call` 从 consumer authority 退役。
-6. 实现精简 Admin API/中文 Web UI 和安全运维流程。
+6. 按内部module/ISD及五页中文UI设计实现精简Admin面和安全运维流程。
 7. 完成 provider/Piko/Knowledge capture 后另行决定 runtime activation。
 
 ## 18. 设计决策、风险与未决项
@@ -267,7 +273,9 @@ Data Plane 与 Admin 使用不同 credential/权限。Provider Secret 只通过 
 | LT-ADR-01 | decided | 无 Agent 会话状态的 OpenAI-compatible gateway |
 | LT-ADR-02 | decided | Cost、SourceInstance、外部容量/Seat、Invocation recovery 退出 V0.3 外部契约 |
 | LT-ADR-03 | decided | Usage 只提供 token 事实与来源状态；未知不补零 |
-| LT-ADR-04 | decided | 固定 Pi adapter 使用 `stream:true`；同一 Responses endpoint 支持标准 SSE 与 JSON，不增加 fallback |
+| LT-ADR-04 | decided | 固定 Pi adapter 使用 `stream:true/store:false`；首阶段只支持标准SSE，不增加JSON或自定义fallback |
+| LT-ADR-05 | decided | SQLite是初始化后唯一配置authority；settings仅一次性bootstrap |
+| LT-ADR-06 | decided | embedding同逻辑model固定同一向量空间；非兼容变更新model ID |
 | LT-OPEN-02 | implementation | 选择并配置至少一个 dedicated embedding-capable deployment |
 | LT-OPEN-03 | implementation | production auth/TLS/service manager/restart/backup/runbook |
 
@@ -301,4 +309,4 @@ V0.3 不承诺跨系统调用幂等或结果恢复。配置与 Usage/Audit 使�
 
 ## H. 未决问题、外部依赖和后续版本
 
-Responses streaming 范围已按固定 Pi 调用方式选择标准 SSE。剩余是 LLMTier 内部实现：embedding deployment、provider adapter、Web UI、auth/TLS、service manager、测量与运维证据；Piko仍需对同一机器 candidate 完成消费签署。
+Responses streaming范围已按固定Pi调用方式选择标准SSE，内部module/ISD和五页Web UI设计已建立。剩余是实现与运行证据：实际embedding deployment、provider adapter、Web UI、auth/TLS、service manager、测量与运维；Piko仍需对candidate.5字节完成复审。

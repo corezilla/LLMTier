@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-operational-store` |
-| Document Version | `0.2.0-draft.1` |
+| Document Version | `0.2.0-draft.2` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -75,13 +75,13 @@ Operational Store 保存：
 
 ### 2. 单节点事务边界
 
-V0.3 使用 `LLMTIER_STATE_DIR` 下的 SQLite 数据库，启用 WAL、foreign keys 和显式 schema version。配置变更、Usage 写入和审计记录分别在单库事务内提交。数据库提交不与 Provider HTTP 调用构成分布式事务，也不对外承诺 exactly-once。
+V0.3 使用 `LLMTIER_STATE_DIR` 下的 SQLite 数据库，启用 WAL、foreign keys 和显式 schema version。空库可从一个经过校验的settings文件一次性bootstrap；bootstrap提交成功后SQLite成为唯一运行配置authority，后续启动不得自动重导、覆盖或双写JSON。配置变更、Usage 写入和审计记录分别在单库事务内提交。数据库提交不与 Provider HTTP 调用构成分布式事务，也不对外承诺 exactly-once。
 
 Provider Secret 明文不进入数据库；只保存受控 Secret reference、版本和非敏感 metadata。对 Secret 的新增或替换是只写操作，查询和 UI 仅显示是否配置以及引用版本。
 
 ### 3. Usage 与请求关联
 
-Usage 只保存标准响应或 Provider 可验证事实中的 token 计数：`input_tokens`、`output_tokens`、`total_tokens` 和可获得的 cache token。关联使用普通调用方身份与请求关联 ID；不引入 SourceInstance、Agent Session 或业务项目字段。未知值保持 null 并标记 unknown，不写成零。
+Usage 只保存标准响应或 Provider 可验证事实中的 token 计数：`input_tokens`、`output_tokens`、`total_tokens` 和可获得的 cached/cache-write/reasoning tokens。关联使用认证principal与服务端request ID；不引入 SourceInstance、Agent Session 或业务项目字段。每个request至多有一个逻辑记录，迟到事实以单调`record_version`替换旧版本而不累计；内部provider attempts的实际总量先归并到该request事实。未知值保持null并标记unknown，不写成零；存储不可用不得以空查询结果掩盖。
 
 ### 4. 健康、恢复与授权
 

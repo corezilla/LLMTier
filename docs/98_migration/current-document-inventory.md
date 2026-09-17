@@ -1,8 +1,13 @@
-# LLMTier 当前文档盘点与 STD 映射
+# LLMTier 历史迁移盘点与当前 Authority 索引
 
-盘点日期：2026-09-09
-盘点基线：`2c01e36`（STD draft.21 升级前）
+历史盘点日期：2026-09-09
+历史盘点基线：`2c01e36`（STD draft.21 升级前）
 范围：项目 README、`docs/`、顶层 `interfaces/`、RAG manifests 和相关可执行测试。
+
+> 本文件主体保存历史迁移证据，不是当前范围或版本清单。2026-09-17 当前入口是仓库 `README.md`、
+> `docs/00_management/std-tailoring.md`、`docs/20_system_design/llmtier-system-design.md`、
+> `docs/40_module_design/`、`docs/50_implementation_design/llmtier-runtime.isd.md` 与 candidate.5
+> OpenAPI/manifest。以下draft.21、73文件、Seat/Recovery等表述仅描述当时快照，不能作为当前实施依据。
 
 STD draft.21 升级按用户 2026-09-09 明确要求执行。旧 `rag/std-ingestion-manifest.jsonl` 是 draft.12
 时期误作 RAG 的 STD 来源清单；新标准要求使用独立 `docs/std-source-manifest.json`，因此本轮删除旧文件，
@@ -12,8 +17,8 @@ STD draft.21 升级按用户 2026-09-09 明确要求执行。旧 `rag/std-ingest
 
 - LLMTier 是 STD 所称的单应用、单服务或单库型软件项目；当前只有一个服务 owner、部署边界和
   release boundary，根目录 `src/`、`tests/`、`docs/` 是 canonical repository layout。
-- 本仓库使用 `design.system`、`design_level=system` 表达完整 LLMTier 软件系统。此前把跨项目角色层级
-  误作仓库内部 subsystem 的分类已由用户在 2026-09-09 纠正；当前没有 LLMTier 内部 subsystem design。
+- 本仓库使用 `design.system`、`design_level=system` 表达完整 LLMTier 软件系统；当前不建立虚构subsystem，
+  真实内部模块与实现设计位于 `docs/40_module_design/` 和 `docs/50_implementation_design/`。
 - LLMTier 是本服务设计、接口实现和模型服务事实的 authority；Slinky 的 Project/Plan/IR/Scope
   决策与 Piko 的 Agent Runtime/adapter 事实仍由各自项目负责。
 - V0.3 字段级机器接口 authority 是 `interfaces/openapi/llmtier-v0.3.openapi.json`；

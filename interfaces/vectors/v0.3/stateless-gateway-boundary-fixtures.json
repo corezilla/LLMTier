@@ -1,9 +1,47 @@
 {
-  "fixture_version": "0.3-simplified-candidate.2",
+  "fixture_version": "0.3-simplified-candidate.5",
   "cases": [
-    {"id": "complete-input-per-call", "expect": {"agent_session_state": false, "context_compression": false, "tool_execution": false, "backend_kv_identity": false}},
-    {"id": "removed-public-concepts", "forbidden_terms": ["SourceInstance", "X-Tier-Source-Instance-ID", "X-Tier-Invocation-ID", "Idempotency-Key", "CapacitySnapshot", "CostEvidence", "RecoveryItem", "execution_released"]},
-    {"id": "removed-public-paths", "forbidden_paths": ["/v1/invocations/{invocation_id}", "/v1/responses/{response_id}", "/tier/v1/capacity/snapshots/current", "/tier/v1/compatibility", "/tier/admin/v1/recovery-items", "/tier/admin/v1/clients", "/tier/admin/v1/sources"]},
-    {"id": "minimal-extension-justification", "path": "/tier/v1/usage", "confirmed_need": "unified token usage query", "standard_gap": "OpenAI API has per-response usage but no cross-request query", "scope": "token facts only", "compatibility_cost": "one authenticated read endpoint"}
+    {
+      "id": "complete-input-per-call",
+      "expect": {
+        "agent_session_state": false,
+        "context_compression": false,
+        "tool_execution": false,
+        "backend_kv_identity": false
+      }
+    },
+    {
+      "id": "removed-public-concepts",
+      "forbidden_terms": [
+        "SourceInstance",
+        "X-Tier-Source-Instance-ID",
+        "X-Tier-Invocation-ID",
+        "Idempotency-Key",
+        "CapacitySnapshot",
+        "CostEvidence",
+        "RecoveryItem",
+        "execution_released"
+      ]
+    },
+    {
+      "id": "removed-public-paths",
+      "forbidden_paths": [
+        "/v1/invocations/{invocation_id}",
+        "/v1/responses/{response_id}",
+        "/tier/v1/capacity/snapshots/current",
+        "/tier/v1/compatibility",
+        "/tier/admin/v1/recovery-items",
+        "/tier/admin/v1/clients",
+        "/tier/admin/v1/sources"
+      ]
+    },
+    {
+      "id": "minimal-extension-justification",
+      "path": "/tier/v1/usage",
+      "confirmed_need": "unified token usage query",
+      "standard_gap": "OpenAI API has per-response usage but no cross-request query",
+      "scope": "token facts only",
+      "compatibility_cost": "one authenticated read endpoint"
+    }
   ]
 }

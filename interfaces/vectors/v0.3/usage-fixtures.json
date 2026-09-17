@@ -1,9 +1,78 @@
 {
-  "fixture_version": "0.3-simplified-candidate.2",
+  "fixture_version": "0.3-simplified-candidate.5",
   "cases": [
-    {"id": "measured", "record": {"request_id": "req_01", "model": "Worker", "endpoint": "/v1/responses", "recorded_at": "2026-09-17T00:00:00Z", "measurement_status": "measured", "source": "provider", "input_tokens": 20, "output_tokens": 5, "total_tokens": 25, "cached_input_tokens": 4}, "valid": true},
-    {"id": "estimated", "record": {"request_id": "req_02", "model": "Worker", "endpoint": "/v1/responses", "recorded_at": "2026-09-17T00:01:00Z", "measurement_status": "estimated", "source": "gateway_estimate", "input_tokens": 18, "output_tokens": 4, "total_tokens": 22, "cached_input_tokens": null}, "valid": true},
-    {"id": "unknown", "record": {"request_id": "req_03", "model": "Embedding", "endpoint": "/v1/embeddings", "recorded_at": "2026-09-17T00:02:00Z", "measurement_status": "unknown", "source": "unavailable", "input_tokens": null, "output_tokens": null, "total_tokens": null, "cached_input_tokens": null}, "valid": true, "oracle": {"unknown_filled_with_zero": false}},
-    {"id": "invalid-unknown-zero", "record": {"request_id": "req_04", "model": "Worker", "endpoint": "/v1/responses", "recorded_at": "2026-09-17T00:03:00Z", "measurement_status": "unknown", "source": "unavailable", "input_tokens": 0, "output_tokens": 0, "total_tokens": 0, "cached_input_tokens": null}, "valid": false, "semantic_error": "unknown_tokens_must_be_null"}
+    {
+      "id": "measured",
+      "record": {"request_id": "req_01", "record_version": 2, "is_final": true, "model": "Worker", "endpoint": "/v1/responses", "recorded_at": "2026-09-17T00:00:00Z", "updated_at": "2026-09-17T00:00:02Z", "measurement_status": "measured", "source": "provider", "input_tokens": 20, "output_tokens": 5, "total_tokens": 25, "cached_input_tokens": 4, "cache_write_tokens": 0, "reasoning_tokens": 1},
+      "valid": true
+    },
+    {
+      "id": "estimated",
+      "record": {"request_id": "req_02", "record_version": 1, "is_final": false, "model": "Worker", "endpoint": "/v1/responses", "recorded_at": "2026-09-17T00:01:00Z", "updated_at": "2026-09-17T00:01:00Z", "measurement_status": "estimated", "source": "gateway_estimate", "input_tokens": 18, "output_tokens": 4, "total_tokens": 22, "cached_input_tokens": null, "cache_write_tokens": null, "reasoning_tokens": null},
+      "valid": true
+    },
+    {
+      "id": "unknown",
+      "record": {"request_id": "req_03", "record_version": 1, "is_final": false, "model": "Embedding-v1", "endpoint": "/v1/embeddings", "recorded_at": "2026-09-17T00:02:00Z", "updated_at": "2026-09-17T00:02:00Z", "measurement_status": "unknown", "source": "unavailable", "input_tokens": null, "output_tokens": null, "total_tokens": null, "cached_input_tokens": null, "cache_write_tokens": null, "reasoning_tokens": null},
+      "valid": true,
+      "oracle": {"unknown_filled_with_zero": false}
+    },
+    {
+      "id": "invalid-unknown-zero",
+      "record": {"request_id": "req_04", "record_version": 1, "is_final": false, "model": "Worker", "endpoint": "/v1/responses", "recorded_at": "2026-09-17T00:03:00Z", "updated_at": "2026-09-17T00:03:00Z", "measurement_status": "unknown", "source": "unavailable", "input_tokens": 0, "output_tokens": 0, "total_tokens": 0, "cached_input_tokens": null, "cache_write_tokens": null, "reasoning_tokens": null},
+      "valid": false,
+      "semantic_error": "unknown_tokens_must_be_null"
+    },
+    {
+      "id": "replacement-not-addition",
+      "records": [
+        {"request_id": "req_05", "record_version": 1, "is_final": false, "measurement_status": "estimated"},
+        {"request_id": "req_05", "record_version": 2, "is_final": true, "measurement_status": "measured"}
+      ],
+      "oracle": {"selected_record_version": 2, "aggregation_operation": "replace", "counted_records": 1}
+    },
+    {
+      "id": "stable-page",
+      "page": {"data": [], "next_cursor": null, "has_more": false, "snapshot_id": "usage-snapshot-01", "snapshot_at": "2026-09-17T00:04:00Z"},
+      "oracle": {"cursor_bound_to_principal_and_filters": true}
+    },
+    {
+      "id": "invalid-cached-input-subset",
+      "record": {"request_id": "req_06", "record_version": 1, "is_final": true, "model": "Worker", "endpoint": "/v1/responses", "recorded_at": "2026-09-17T00:05:00Z", "updated_at": "2026-09-17T00:05:00Z", "measurement_status": "measured", "source": "provider", "input_tokens": 10, "output_tokens": 5, "total_tokens": 15, "cached_input_tokens": 11, "cache_write_tokens": 0, "reasoning_tokens": 1},
+      "valid": false,
+      "semantic_error": "cached_input_exceeds_input"
+    },
+    {
+      "id": "invalid-reasoning-output-subset",
+      "record": {"request_id": "req_07", "record_version": 1, "is_final": true, "model": "Worker", "endpoint": "/v1/responses", "recorded_at": "2026-09-17T00:06:00Z", "updated_at": "2026-09-17T00:06:00Z", "measurement_status": "measured", "source": "provider", "input_tokens": 10, "output_tokens": 5, "total_tokens": 15, "cached_input_tokens": 0, "cache_write_tokens": 0, "reasoning_tokens": 6},
+      "valid": false,
+      "semantic_error": "reasoning_exceeds_output"
+    },
+    {
+      "id": "invalid-measured-source",
+      "record": {"request_id": "req_08", "record_version": 1, "is_final": true, "model": "Worker", "endpoint": "/v1/responses", "recorded_at": "2026-09-17T00:07:00Z", "updated_at": "2026-09-17T00:07:00Z", "measurement_status": "measured", "source": "unavailable", "input_tokens": 10, "output_tokens": 5, "total_tokens": 15, "cached_input_tokens": 0, "cache_write_tokens": 0, "reasoning_tokens": 1},
+      "valid": false,
+      "semantic_error": "measurement_source_mismatch"
+    },
+    {
+      "id": "snapshot-freezes-record-versions",
+      "steps": [
+        {"action": "create_snapshot", "members": [{"request_id": "req_a", "record_version": 1}, {"request_id": "req_b", "record_version": 1}], "snapshot_id": "usage-snapshot-02"},
+        {"action": "append_revision", "request_id": "req_b", "record_version": 2},
+        {"action": "append_record", "request_id": "req_c", "record_version": 1},
+        {"action": "read_next_page", "snapshot_id": "usage-snapshot-02", "expected_members": [{"request_id": "req_b", "record_version": 1}]}
+      ],
+      "oracle": {"revision_visible_only_to_new_snapshot": true, "insert_visible_only_to_new_snapshot": true, "expired_cursor_error": "invalid_request"}
+    },
+    {
+      "id": "durable-unknown-before-provider-dispatch",
+      "steps": [
+        {"action": "insert_usage_obligation", "request_id": "req_09", "measurement_status": "unknown", "source": "unavailable"},
+        {"action": "provider_dispatch"},
+        {"action": "process_crash_before_measurement_update"},
+        {"action": "restart_and_query", "expected_record": {"request_id": "req_09", "measurement_status": "unknown", "source": "unavailable"}}
+      ],
+      "oracle": {"empty_page_allowed": false, "model_result_forced_failed": false}
+    }
   ]
 }

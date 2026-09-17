@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-vv-plan` |
-| Document Version | `0.3.2-draft.2` |
+| Document Version | `0.3.2-draft.5` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -31,7 +31,7 @@
 
 ## 2. 被验证基线与环境
 
-基线：OpenAPI/manifest `0.3-simplified-candidate.2`、requirements/system/interface docs `0.3.2-draft.2`、v0.3 current fixtures。静态环境不等于production。
+基线：OpenAPI/manifest `0.3-simplified-candidate.5`、requirements/system/interface docs当前draft、v0.3 current fixtures。静态环境不等于production。
 
 ## 3. Verification 方法
 
@@ -57,11 +57,11 @@ Piko完成完整输入的text/tool loop；Slinky Memory获得embedding；Piko/Sl
 
 ## 7. 覆盖、采样、统计和判定规则
 
-每个current operation覆盖成功、validation、auth和provider failure。Usage覆盖measured/estimated/unknown；unknown值必须null。Models exact-case。旧path/header/schema出现即FAIL。
+每个current operation规划覆盖成功、validation、auth和provider failure。当前静态PASS范围：固定Pi请求的easy message、assistant文本/refusal历史、function call/output、image result和opaque reasoning；SSE的delta/done/terminal完整item identity、顺序、terminal/status、标准refusal content及terminal-only refusal改写负例；Usage的measured/estimated/unknown、source与token子集、单调版本、纯设计模型中的快照成员冻结、unknown义务跨模型restart保留和无obligation禁止dispatch；Embedding的float/base64表示与维数/有限数；Models exact-case。Admin删除期间稳定分页、cursor过期、terminal后Usage store失败、真实SQLite持久化与进程crash/restart均为`NOT_RUN`，仍属后续行为验证；unknown值必须null。旧path/header/schema出现即FAIL。
 
 ## 8. 故障注入、恢复和非正常路径
 
-覆盖429/Retry-After、provider timeout/502、service unavailable、Usage store failure、config invalid、restart。调用方retry不被声称exactly-once；LLMTier运维恢复不改变Piko任务状态。
+计划覆盖429/Retry-After、provider timeout/502、service unavailable、Usage store failure、config invalid、restart；其中真实Usage store failure与进程restart当前为`NOT_RUN`。调用方retry不被声称exactly-once；LLMTier运维恢复不改变Piko任务状态。
 
 ## 9. 偏差、waiver、问题与重测
 

@@ -1,32 +1,58 @@
 {
-  "fixture_version": "0.3-simplified-candidate.2",
+  "fixture_version": "0.3-simplified-candidate.5",
   "cases": [
     {
       "id": "responses-text-success",
       "operation": "POST /v1/responses",
-      "request": {"model": "Worker", "input": "Summarize this text", "stream": false},
-      "response": {"id": "resp_01", "object": "response", "created_at": 1789603200, "status": "completed", "model": "Worker", "output": [{"type": "message", "role": "assistant", "content": [{"type": "output_text", "text": "Summary"}]}], "usage": {"input_tokens": 12, "output_tokens": 3, "total_tokens": 15, "cached_input_tokens": null, "measurement_status": "measured", "source": "provider"}, "error": null},
+      "request": {"model": "Worker", "input": [{"role": "system", "content": "Be concise"}, {"role": "user", "content": [{"type": "input_text", "text": "Summarize"}]}], "stream": true, "store": false},
+      "response": {"id": "resp_01", "object": "response", "created_at": 1789603200, "status": "completed", "model": "Worker", "output": [{"type": "message", "id": "msg_01", "role": "assistant", "status": "completed", "content": [{"type": "output_text", "text": "Summary", "annotations": []}]}], "usage": {"input_tokens": 12, "output_tokens": 3, "total_tokens": 15, "input_tokens_details": {"cached_tokens": 2, "cache_write_tokens": 0}, "output_tokens_details": {"reasoning_tokens": 0}}, "error": null},
       "oracle": {"valid": true, "agent_session_created": false}
     },
     {
       "id": "responses-tool-roundtrip",
       "operation": "POST /v1/responses",
-      "first_request": {"model": "Worker", "input": [{"type": "message", "role": "user", "content": "Read status"}], "tools": [{"type": "function", "name": "read_status", "parameters": {"type": "object"}}]},
-      "first_output": {"type": "function_call", "call_id": "call_01", "name": "read_status", "arguments": "{}"},
-      "next_request_input": [{"type": "message", "role": "user", "content": "Read status"}, {"type": "function_call", "call_id": "call_01", "name": "read_status", "arguments": "{}"}, {"type": "function_call_output", "call_id": "call_01", "output": "ok"}],
+      "first_request": {"model": "Worker", "input": [{"role": "user", "content": [{"type": "input_text", "text": "Read status"}]}], "stream": true, "store": false, "tools": [{"type": "function", "name": "read_status", "parameters": {"type": "object"}}]},
+      "first_output": {"type": "function_call", "id": "fc_01", "call_id": "call_01", "name": "read_status", "arguments": "{}", "status": "completed"},
+      "next_request_input": [{"role": "user", "content": [{"type": "input_text", "text": "Read status"}]}, {"type": "function_call", "id": "fc_01", "call_id": "call_01", "name": "read_status", "arguments": "{}"}, {"type": "function_call_output", "call_id": "call_01", "output": "ok"}],
+      "image_result_input": [{"type": "function_call_output", "call_id": "call_01", "output": [{"type": "input_text", "text": "screen"}, {"type": "input_image", "detail": "auto", "image_url": "data:image/png;base64,AA=="}]}],
       "oracle": {"tool_executed_by": "piko", "llmtier_history_state": false}
+    },
+    {
+      "id": "responses-assistant-history",
+      "operation": "POST /v1/responses",
+      "request": {"model": "Worker", "input": [{"type": "message", "id": "msg_pi_0", "role": "assistant", "status": "completed", "phase": "final_answer", "content": [{"type": "output_text", "text": "Earlier answer", "annotations": []}]}, {"role": "user", "content": [{"type": "input_text", "text": "Continue"}]}], "stream": true, "store": false},
+      "oracle": {"history_owned_by": "piko", "provider_continuation_used": false}
+    },
+    {
+      "id": "responses-assistant-refusal-history",
+      "operation": "POST /v1/responses",
+      "request": {"model": "Worker", "input": [{"type": "message", "id": "msg_pi_refusal", "role": "assistant", "status": "completed", "phase": "final_answer", "content": [{"type": "refusal", "refusal": "Cannot comply"}]}, {"role": "user", "content": [{"type": "input_text", "text": "Continue with a safe alternative"}]}], "stream": true, "store": false},
+      "oracle": {"history_owned_by": "piko", "refusal_shape_preserved": true, "provider_continuation_used": false}
+    },
+    {
+      "id": "responses-reasoning-request",
+      "operation": "POST /v1/responses",
+      "request": {"model": "Junior", "input": [{"role": "developer", "content": "Solve carefully"}, {"role": "user", "content": "2+2?"}], "stream": true, "store": false, "reasoning": {"effort": "medium", "summary": "auto"}, "include": ["reasoning.encrypted_content"]},
+      "oracle": {"opaque_reasoning_replayed_by": "piko", "agent_session_created": false}
     },
     {
       "id": "embedding-success",
       "operation": "POST /v1/embeddings",
-      "request": {"model": "Embedding", "input": ["a", "b"], "encoding_format": "float"},
-      "response": {"object": "list", "data": [{"object": "embedding", "index": 0, "embedding": [0.1, 0.2]}, {"object": "embedding", "index": 1, "embedding": [0.3, 0.4]}], "model": "Embedding", "usage": {"prompt_tokens": 2, "total_tokens": 2, "measurement_status": "measured", "source": "provider"}},
-      "oracle": {"valid": true, "index_owned_by": "slinky"}
+      "request": {"model": "Embedding-v1", "input": ["a", "b"], "encoding_format": "float", "dimensions": 2},
+      "response": {"object": "list", "data": [{"object": "embedding", "index": 0, "embedding": [0.1, 0.2]}, {"object": "embedding", "index": 1, "embedding": [0.3, 0.4]}], "model": "Embedding-v1", "usage": {"prompt_tokens": 2, "total_tokens": 2}},
+      "oracle": {"valid": true, "index_owned_by": "slinky", "embedding_space_id": "space-embed-v1"}
+    },
+    {
+      "id": "embedding-base64-success",
+      "operation": "POST /v1/embeddings",
+      "request": {"model": "Embedding-v1", "input": ["a", "b"], "encoding_format": "base64", "dimensions": 2},
+      "response": {"object": "list", "data": [{"object": "embedding", "index": 0, "embedding": "zczMPc3MTD4="}, {"object": "embedding", "index": 1, "embedding": "mpmZPs3MzD4="}], "model": "Embedding-v1", "usage": {"prompt_tokens": 2, "total_tokens": 2}},
+      "oracle": {"valid": true, "decoded_format": "little_endian_float32", "decoded_dimensions": 2}
     },
     {
       "id": "exact-model-not-found",
       "operation": "POST /v1/responses",
-      "request": {"model": "worker", "input": "x"},
+      "request": {"model": "worker", "input": "x", "stream": true, "store": false},
       "expected_status": 404,
       "expected_code": "model_not_found",
       "oracle": {"alias_or_case_fold": false}
@@ -34,38 +60,61 @@
     {
       "id": "responses-sse-text-success",
       "operation": "POST /v1/responses",
-      "request": {"model": "Worker", "input": "x", "stream": true},
+      "request": {"model": "Worker", "input": "x", "stream": true, "store": false},
       "content_type": "text/event-stream",
       "events": [
         {"type": "response.created", "sequence_number": 0, "response": {"id": "resp_sse_01", "object": "response", "status": "in_progress", "model": "Worker", "output": [], "usage": null, "error": null}},
-        {"type": "response.output_item.added", "sequence_number": 1, "output_index": 0, "item": {"type": "message", "role": "assistant", "content": []}},
+        {"type": "response.output_item.added", "sequence_number": 1, "output_index": 0, "item": {"type": "message", "id": "msg_01", "role": "assistant", "status": "in_progress", "content": []}},
         {"type": "response.output_text.delta", "sequence_number": 2, "output_index": 0, "content_index": 0, "delta": "Hello"},
-        {"type": "response.output_item.done", "sequence_number": 3, "output_index": 0, "item": {"type": "message", "role": "assistant", "content": [{"type": "output_text", "text": "Hello"}]}},
-        {"type": "response.completed", "sequence_number": 4, "response": {"id": "resp_sse_01", "object": "response", "status": "completed", "model": "Worker", "output": [{"type": "message", "role": "assistant", "content": [{"type": "output_text", "text": "Hello"}]}], "usage": {"input_tokens": 1, "output_tokens": 1, "total_tokens": 2, "cached_input_tokens": null, "measurement_status": "measured", "source": "provider"}, "error": null}}
+        {"type": "response.output_item.done", "sequence_number": 3, "output_index": 0, "item": {"type": "message", "id": "msg_01", "role": "assistant", "status": "completed", "content": [{"type": "output_text", "text": "Hello", "annotations": []}]}},
+        {"type": "response.completed", "sequence_number": 4, "response": {"id": "resp_sse_01", "object": "response", "status": "completed", "model": "Worker", "output": [{"type": "message", "id": "msg_01", "role": "assistant", "status": "completed", "content": [{"type": "output_text", "text": "Hello", "annotations": []}]}], "usage": {"input_tokens": 1, "output_tokens": 1, "total_tokens": 2, "input_tokens_details": {"cached_tokens": 0, "cache_write_tokens": 0}, "output_tokens_details": {"reasoning_tokens": 0}}, "error": null}}
       ],
       "oracle": {"valid": true, "terminal_event_required": true, "usage_source": "terminal_response", "fallback": false}
     },
     {
       "id": "responses-sse-function-call",
       "operation": "POST /v1/responses",
-      "request": {"model": "Worker", "input": "read status", "stream": true, "tools": [{"type": "function", "name": "read_status", "parameters": {"type": "object"}}]},
+      "request": {"model": "Worker", "input": "read status", "stream": true, "store": false, "tools": [{"type": "function", "name": "read_status", "parameters": {"type": "object"}}]},
       "events": [
         {"type": "response.created", "sequence_number": 0, "response": {"id": "resp_sse_02", "object": "response", "status": "in_progress", "model": "Worker", "output": [], "usage": null, "error": null}},
-        {"type": "response.output_item.added", "sequence_number": 1, "output_index": 0, "item": {"type": "function_call", "call_id": "call_02", "name": "read_status", "arguments": ""}},
+        {"type": "response.output_item.added", "sequence_number": 1, "output_index": 0, "item": {"type": "function_call", "id": "fc_02", "call_id": "call_02", "name": "read_status", "arguments": "", "status": "in_progress"}},
         {"type": "response.function_call_arguments.delta", "sequence_number": 2, "output_index": 0, "item_id": "fc_02", "delta": "{}"},
         {"type": "response.function_call_arguments.done", "sequence_number": 3, "output_index": 0, "item_id": "fc_02", "arguments": "{}"},
-        {"type": "response.output_item.done", "sequence_number": 4, "output_index": 0, "item": {"type": "function_call", "call_id": "call_02", "name": "read_status", "arguments": "{}"}},
-        {"type": "response.completed", "sequence_number": 5, "response": {"id": "resp_sse_02", "object": "response", "status": "completed", "model": "Worker", "output": [{"type": "function_call", "call_id": "call_02", "name": "read_status", "arguments": "{}"}], "usage": {"input_tokens": 3, "output_tokens": 2, "total_tokens": 5, "cached_input_tokens": 0, "measurement_status": "measured", "source": "provider"}, "error": null}}
+        {"type": "response.output_item.done", "sequence_number": 4, "output_index": 0, "item": {"type": "function_call", "id": "fc_02", "call_id": "call_02", "name": "read_status", "arguments": "{}", "status": "completed"}},
+        {"type": "response.completed", "sequence_number": 5, "response": {"id": "resp_sse_02", "object": "response", "status": "completed", "model": "Worker", "output": [{"type": "function_call", "id": "fc_02", "call_id": "call_02", "name": "read_status", "arguments": "{}", "status": "completed"}], "usage": {"input_tokens": 3, "output_tokens": 2, "total_tokens": 5, "input_tokens_details": {"cached_tokens": 0, "cache_write_tokens": 0}, "output_tokens_details": {"reasoning_tokens": 0}}, "error": null}}
       ],
-      "next_request_input": [{"type": "message", "role": "user", "content": "read status"}, {"type": "function_call", "call_id": "call_02", "name": "read_status", "arguments": "{}"}, {"type": "function_call_output", "call_id": "call_02", "output": "ok"}],
-      "oracle": {"tool_executed_by": "piko", "llmtier_history_state": false}
+      "next_request_input": [{"role": "user", "content": [{"type": "input_text", "text": "read status"}]}, {"type": "function_call", "id": "fc_02", "call_id": "call_02", "name": "read_status", "arguments": "{}"}, {"type": "function_call_output", "call_id": "call_02", "output": "ok"}],
+      "oracle": {"tool_executed_by": "piko", "llmtier_history_state": false, "item_identity": "fc_02"}
+    },
+    {
+      "id": "responses-sse-reasoning-refusal",
+      "operation": "POST /v1/responses",
+      "request": {"model": "Junior", "input": "unsafe request", "stream": true, "store": false, "reasoning": {"effort": "medium", "summary": "auto"}, "include": ["reasoning.encrypted_content"]},
+      "events": [
+        {"type": "response.created", "sequence_number": 0, "response": {"id": "resp_sse_03", "object": "response", "status": "in_progress", "model": "Junior", "output": [], "usage": null, "error": null}},
+        {"type": "response.output_item.added", "sequence_number": 1, "output_index": 0, "item": {"type": "reasoning", "id": "rs_03", "summary": [], "encrypted_content": null}},
+        {"type": "response.reasoning_summary_text.delta", "sequence_number": 2, "output_index": 0, "delta": "Reviewed"},
+        {"type": "response.reasoning_summary_part.done", "sequence_number": 3, "output_index": 0},
+        {"type": "response.output_item.done", "sequence_number": 4, "output_index": 0, "item": {"type": "reasoning", "id": "rs_03", "summary": [{"type": "summary_text", "text": "Reviewed"}], "encrypted_content": "opaque"}},
+        {"type": "response.output_item.added", "sequence_number": 5, "output_index": 1, "item": {"type": "message", "id": "msg_03", "role": "assistant", "status": "in_progress", "content": []}},
+        {"type": "response.refusal.delta", "sequence_number": 6, "output_index": 1, "content_index": 0, "delta": "Cannot comply"},
+        {"type": "response.output_item.done", "sequence_number": 7, "output_index": 1, "item": {"type": "message", "id": "msg_03", "role": "assistant", "status": "completed", "content": [{"type": "refusal", "refusal": "Cannot comply"}]}},
+        {"type": "response.completed", "sequence_number": 8, "response": {"id": "resp_sse_03", "object": "response", "status": "completed", "model": "Junior", "output": [{"type": "reasoning", "id": "rs_03", "summary": [{"type": "summary_text", "text": "Reviewed"}], "encrypted_content": "opaque"}, {"type": "message", "id": "msg_03", "role": "assistant", "status": "completed", "content": [{"type": "refusal", "refusal": "Cannot comply"}]}], "usage": {"input_tokens": 4, "output_tokens": 5, "total_tokens": 9, "input_tokens_details": {"cached_tokens": 0}, "output_tokens_details": {"reasoning_tokens": 2}}, "error": null}}
+      ],
+      "oracle": {"valid": true, "opaque_reasoning": true}
     },
     {
       "id": "responses-sse-missing-terminal",
       "operation": "POST /v1/responses",
-      "request": {"model": "Worker", "input": "x", "stream": true},
+      "request": {"model": "Worker", "input": "x", "stream": true, "store": false},
       "events": [{"type": "response.created", "sequence_number": 0, "response": {"id": "resp_sse_bad", "object": "response", "status": "in_progress", "model": "Worker", "output": [], "usage": null, "error": null}}],
       "oracle": {"valid": false, "error": "stream_ended_without_terminal_event", "retry_policy_owner": "piko"}
+    },
+    {
+      "id": "responses-sse-terminal-status-mismatch",
+      "operation": "POST /v1/responses",
+      "events": [{"type": "response.completed", "sequence_number": 0, "response": {"id": "resp_bad", "object": "response", "status": "in_progress", "model": "Worker", "output": [], "usage": null, "error": null}}],
+      "oracle": {"valid": false, "error": "terminal_event_status_mismatch"}
     }
   ]
 }

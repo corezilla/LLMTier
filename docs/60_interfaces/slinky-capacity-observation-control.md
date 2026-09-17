@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-slinky-capacity-observation-control` |
-| Document Version | `0.3.2-draft.1` |
+| Document Version | `0.3.2-draft.2` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -15,7 +15,7 @@
 | Approval Date | 待定 |
 | Created Date | `2026-09-07` |
 | Last Modified Date | `2026-09-17` |
-| Template Version | `0.3.0` |
+| Template Version | `0.1.0` |
 | Template ID | `interfaces.control` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
@@ -44,7 +44,9 @@ HTTPS/JSON/Bearer auth。Memory调用不进入Piko的模型调用控制面，也
 
 ## 4. 数据、命令与 Schema
 
-`EmbeddingRequest`含exact `model`、`input`、可选`encoding_format/dimensions/user`。`EmbeddingResponse`含vectors、model和可空usage。UsageRecord含request/model/endpoint/time、measurement status/source以及可空token字段；unknown不得补零。Cost不在Schema中。
+`EmbeddingRequest`含exact `model`、`input`、可选`encoding_format/dimensions/user`。`EmbeddingResponse`含vectors、model和标准 `prompt_tokens/total_tokens` usage。Models能力同时发布稳定的 `embedding_space_id`、输出维数、batch与输入上限；同一个逻辑model ID在兼容期内必须保持同一向量空间，任何不兼容变化必须使用新逻辑model ID并由Slinky重建索引。
+
+UsageRecord含request/model/endpoint/time、record version/finality、measurement status/source以及标准token字段和可用的cached/cache-write/reasoning细分。`unknown`时token均为null，不得补零；更高record version替换较低版本。Cost不在Schema中。
 
 ## 5. 状态机、顺序和时序
 
@@ -68,8 +70,8 @@ credential只标识获授权调用主体；不引入SourceInstance。Memory内�
 
 ## 10. Contract fixture、验证与证据
 
-正例覆盖float/base64、batch index、usage measured/estimated/unknown；负例覆盖非embedding model、维数不支持、unknown field、旧path不存在。production embedding deployment/capture尚未完成。
+正例覆盖float/base64、batch index/数量/有限数、向量空间稳定、usage measured/estimated/unknown与版本替换；负例覆盖非embedding model、维数不支持、向量数量/索引/维数错误、同ID空间漂移、unknown field、旧path不存在。production embedding deployment/capture尚未完成。
 
 ## 11. 未决项与双方批准
 
-LLMTier内部待选择并配置dedicated embedding deployment；Slinky需在实现阶段验证实际维数、输入上限和结果入库。没有新的跨系统协议待定。
+LLMTier内部待选择并配置dedicated embedding deployment；Slinky需在实现阶段验证实际维数、输入上限、空间ID和结果入库。字段与行为已经闭合，没有新的跨系统协议待定。

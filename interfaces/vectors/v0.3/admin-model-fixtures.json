@@ -1,9 +1,51 @@
 {
-  "fixture_version": "0.3-simplified-candidate.2",
+  "fixture_version": "0.3-simplified-candidate.5",
   "cases": [
-    {"id": "create-cloud-provider", "request": {"name": "cloud-a", "kind": "cloud", "endpoint": "https://provider.example/v1", "secret_ref": "secret://cloud-a", "enabled": true}, "response": {"id": "provider_01", "name": "cloud-a", "kind": "cloud", "endpoint": "https://provider.example/v1", "has_secret": true, "enabled": true, "version": 1}, "oracle": {"secret_value_returned": false}},
-    {"id": "create-local-provider", "request": {"name": "local-a", "kind": "local", "endpoint": "http://127.0.0.1:9000/v1", "secret_ref": null, "enabled": true}, "oracle": {"valid": true}},
-    {"id": "probe-requires-confirmation", "request": {"deployment_id": "deployment_01", "confirm_external_call": false}, "expected_status": 400, "oracle": {"external_call_performed": false}},
-    {"id": "delete-referenced-provider", "expected_status": 409, "expected_code": "resource_in_use"}
+    {
+      "id": "create-cloud-provider",
+      "request": {"name": "cloud-a", "kind": "cloud", "endpoint": "https://provider.example/v1", "secret_ref": "secret://cloud-a", "enabled": true},
+      "response": {"id": "provider_01", "name": "cloud-a", "kind": "cloud", "endpoint": "https://provider.example/v1", "has_secret": true, "enabled": true, "version": 1},
+      "response_headers": {"ETag": "\"provider_01.v1\""},
+      "oracle": {"secret_value_returned": false}
+    },
+    {
+      "id": "create-local-provider",
+      "request": {"name": "local-a", "kind": "local", "endpoint": "http://127.0.0.1:9000/v1", "secret_ref": null, "enabled": true},
+      "oracle": {"valid": true}
+    },
+    {
+      "id": "partial-provider-update",
+      "request_headers": {"If-Match": "\"provider_01.v1\""},
+      "request": {"enabled": false},
+      "expected_status": 200,
+      "response_headers": {"ETag": "\"provider_01.v2\""},
+      "oracle": {"omitted_secret_kept": true, "new_version": 2}
+    },
+    {
+      "id": "stale-provider-update",
+      "request_headers": {"If-Match": "\"provider_01.v1\""},
+      "request": {"name": "stale edit"},
+      "current_etag": "\"provider_01.v2\"",
+      "expected_status": 412,
+      "expected_code": "version_conflict"
+    },
+    {
+      "id": "probe-requires-confirmation",
+      "request": {"deployment_id": "deployment_01", "confirm_external_call": false},
+      "expected_status": 400,
+      "oracle": {"external_call_performed": false}
+    },
+    {
+      "id": "delete-referenced-provider",
+      "request_headers": {"If-Match": "\"provider_01.v2\""},
+      "expected_status": 409,
+      "expected_code": "resource_in_use",
+      "oracle": {"reference_check_and_delete_atomic": true}
+    },
+    {
+      "id": "operator-permission-denied",
+      "expected_status": 403,
+      "expected_code": "permission_denied"
+    }
   ]
 }

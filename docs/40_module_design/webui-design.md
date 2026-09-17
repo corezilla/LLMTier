@@ -1,0 +1,157 @@
+<!-- STD_DOCUMENT_COVER_BEGIN -->
+# LLMTier V0.3 中文 Web UI 设计
+
+| 文档字段 | 值 |
+|---|---|
+| Document ID | `llmtier-webui-module-design` |
+| Document Version | `0.3.0-draft.1` |
+| Status | `In Review` |
+| Project | `LLMTier` |
+| Authority | `LLMTier` |
+| Document Owner | LLMTier |
+| Authors | llmtier |
+| Reviewer | 待定 |
+| Approver | 待定 |
+| Approval Date | 待定 |
+| Created Date | `2026-09-17` |
+| Last Modified Date | `2026-09-17` |
+| Template Version | `1.0.0` |
+| Template ID | `design.definition` |
+| Template Conformance | `tailored` |
+| Tailoring Reference | `std-tailoring` |
+| Migration Map Reference | none |
+| Repository | `corezilla/LLMTier` |
+| Canonical Path | `docs/40_module_design/webui-design.md` |
+| Supersedes | none |
+<!-- STD_DOCUMENT_COVER_END -->
+
+## 1. 设计原则
+
+Web UI 是LLMTier自己的中文operator界面，同源调用`/tier/admin/v1`，不直读SQLite、settings或Secret。沿用Slinky式框架：固定窄侧栏、顶部标题/状态、单页主卡片；页面短、一次只完成一个目标。只有五页：模型与等级、添加模型、运行状态、用量、审计。
+
+```text
+┌──────────────┬──────────────────────────────────────────┐
+│ LLMTier      │ 页面标题                    服务：未激活 │
+│ 模型与等级   ├──────────────────────────────────────────┤
+│ 添加模型     │                                          │
+│ 运行状态     │              当前页面                    │
+│ 用量         │                                          │
+│ 审计         │                                          │
+└──────────────┴──────────────────────────────────────────┘
+```
+
+不提供访问控制、容量、恢复、费用、调用方页面。宽度小于960px时侧栏折叠为顶部菜单；表格允许横向滚动，不把五页拼成长页。
+
+## 2. 页面一：模型与等级
+
+```text
+┌ 模型与等级 ─────────────────────────── [添加模型] ┐
+│ 搜索 [________]  类型[全部▼]  状态[全部▼]          │
+│ 逻辑等级  类型  后端模型       状态   能力   操作   │
+│ Worker    云端  gpt-x          可用   对话   编辑 删除│
+│ Emb-v1    本地  embed-v1       可用   向量   编辑 删除│
+│                         [上一页] 1 / 3 [下一页]     │
+└─────────────────────────────────────────────────────┘
+```
+
+- 数据：Provider/Deployment/ServiceLevel分页视图合成；物理凭据不展示。
+- 编辑先GET item保存ETag，PATCH携带If-Match。412显示“配置已被他人修改”，保留用户输入并提供重新载入，不自动覆盖。
+- 删除弹窗显示被引用资源；携带If-Match。409显示引用列表摘要，禁止强删。
+- Loading用表格骨架；空状态提供“添加模型”；401跳登录，403显示无operator权限；503保留旧画面并标“数据可能过期”。
+
+## 3. 页面二：添加/修改模型
+
+```text
+┌ 添加模型 ─────────────────────────────────────────┐
+│ 类型  (●云端 ○本地)                               │
+│ 名称          [____________________________]       │
+│ Endpoint      [____________________________]       │
+│ 后端模型      [____________________________]       │
+│ Secret引用    [仅写入；已有值不回显________]       │
+│ 逻辑等级      [Worker______________________]       │
+│ 能力          ☑Responses ☑Tools □Embeddings        │
+│                                    [取消] [保存]   │
+└────────────────────────────────────────────────────┘
+```
+
+- 添加按Provider→Deployment→ServiceLevel顺序提交；任一步失败显示已完成步骤，不谎称整体成功。后续实现可用单次页面编排，但不新增外部聚合endpoint。
+- 修改时Secret空白=保持；用户选择“移除Secret”才发null。页面不读取原值。
+- Embedding必须填写space ID、允许维数、batch/input token上限；同逻辑等级绑定不兼容space时保存前阻止并提示新建逻辑model ID。
+- 保存成功只说明配置落库，不说明probe或ready成功。
+
+## 4. 页面三：运行状态
+
+```text
+┌ 运行状态 ───────────────────────────── [刷新] ┐
+│ 服务       ● Ready     Store ● 正常           │
+│ Deployment         最后检查            操作   │
+│ cloud-a / gpt-x    未探测               [探测] │
+│ local-a / embed    健康  10:32           [探测] │
+└───────────────────────────────────────────────┘
+```
+
+- 普通刷新只读health/readiness，不触发模型请求。
+- “探测”先显示二次确认：“可能产生费用并改变最后探测状态”；确认后发送`confirm_external_call=true`。
+- 探测中逐行禁用；网络结果未知时显示“结果未知，请刷新核对”，不自动重复。
+- 保存成功、health成功和probe成功为三个不同状态。
+
+## 5. 页面四：用量
+
+```text
+┌ 用量 ─────────────────────────────────────────┐
+│ 时间 [今天▼]  模型[全部▼]             [查询] │
+│ 请求ID      模型      输入/输出/总计    质量  │
+│ req_01      Worker    20 / 5 / 25       实测  │
+│ req_02      Worker    18 / 4 / 22       估算  │
+│ req_03      Emb-v1    未知               未知  │
+│                       [上一页] [下一页]       │
+└────────────────────────────────────────────────┘
+```
+
+- 同request ID只展示最高record_version；版本更新替换原行，不累计。
+- Unknown显示“未知”，绝不显示0；cache read/write和reasoning token在展开行展示。
+- cursor绑定筛选与snapshot；翻页期间的新记录下次查询显示。503显示“用量存储不可用”，不能显示空表。
+- 不显示Cost、币种或估算金额。
+
+## 6. 页面五：审计
+
+```text
+┌ 审计 ─────────────────────────────────────────┐
+│ 时间[最近24小时▼]  操作[全部▼]        [查询] │
+│ 时间      操作者   操作       对象      结果  │
+│ 10:31     admin    更新       Worker    成功  │
+│ 10:32     admin    探测       cloud-a   失败  │
+│                       [上一页] [下一页]       │
+└────────────────────────────────────────────────┘
+```
+
+- 只显示脱敏actor/action/target/result/time/request ID；无prompt/output/token/Secret。
+- Audit只读；过滤与cursor保留在URL query，刷新可恢复同一视图。
+
+## 7. 通用交互状态
+
+| 状态 | 规则 |
+|---|---|
+| Loading | 保持页面框架，局部骨架；不清空上次成功数据 |
+| Empty | 说明是“无数据”而不是“加载失败” |
+| Validation | 字段旁中文错误，首个错误获焦点 |
+| 401 | 清除UI会话并要求重新认证，不回显token |
+| 403 | 显示无operator权限，不猜资源是否存在 |
+| 409 | 显示引用冲突，可跳回模型与等级 |
+| 412 | 显示stale edit，允许复制未保存输入后重新载入 |
+| 429/503 | 显示Retry-After（若有）；不自动无限重试 |
+| Unknown result | 先GET核对，不盲目重发mutation |
+
+所有按钮可用键盘操作，有可见焦点；状态不只依赖颜色；删除/收费probe必须二次确认。页面文本使用简体中文，机器错误码保留在“详情”中便于诊断。
+
+## 8. API字段映射
+
+| UI | Read | Mutation |
+|---|---|---|
+| 模型与等级 | provider/deployment/service-level pages + ETag | PATCH/DELETE + If-Match |
+| 添加模型 | item GET（编辑时） | POST或partial PATCH |
+| 运行状态 | healthz/readyz、deployment health | POST probes |
+| 用量 | admin usage page | 无 |
+| 审计 | audit page | 无 |
+
+`runtime_activation=false`；本文是设计，不是浏览器实现或capture。
