@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.3.2-draft.8` |
+| Document Version | `0.3.2-draft.9` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -194,10 +194,12 @@ LLMTier 不规定专用硬件。部署可连接云 provider 或本地主机上�
 
 | 数据 | 最小内容 | 生命周期 |
 |---|---|---|
-| Provider | type、OpenAI-compatible API root endpoint（例如`.../v1`或供应商等价根）、secret reference、enabled | operator 管理 |
+| Provider | type、OpenAI-compatible API root、推理secret reference、usage source/secret refs、账号并发/间隔/RPM、enabled | operator 管理 |
 | Deployment | provider/local、model name、capabilities、health | operator 管理 |
 | ServiceLevel | exact ID、deployment binding、limits/capabilities；embedding含space ID | operator 管理与 Models 发布 |
 | UsageRecord | principal+request ID、record version/final、model、token values、quality、time | 按 LLMTier retention policy |
+| ProviderRequestBinding | principal+request ID、最终provider/deployment、dispatch time | 与UsageRecord一致 |
+| ProviderUsageSnapshot | provider账号的窗口、percent/used/quota/reset、source/status、checked_at | operator显式刷新后替换 |
 | AuditEvent | actor、action、target、result、time；不含 Secret/prompt/output | 按审计策略 |
 | OperationalLog | level、module、event、脱敏短消息、可空request ID、time | 7天；稳定分页快照到期后清理 |
 
@@ -213,6 +215,8 @@ LLMTier 不规定专用硬件。部署可连接云 provider 或本地主机上�
 - `GET /v1/models/{model}`
 - `GET /tier/v1/usage`：标准 OpenAI API 没有统一跨请求 token 查询；这是唯一最小扩展，只返回 token 事实，不返回 Cost、容量或执行状态。
 - `GET /healthz`、`GET /readyz`：环境探针，不参与模型协议协商。
+
+Admin提供Provider账号用量的最后快照读取和显式刷新。MiniMax使用API Key访问官方Token Plan接口，不使用console cookie；火山读取Coding Plan必须使用独立OpenAPI AK/SK签名。该能力只管理LLMTier自己的Provider账号，不引入调用方、SourceInstance或跨系统容量产品。
 
 Bearer credential 只标识获授权调用主体；不暴露 Client/Source/SourceInstance 产品模型。`X-Request-ID` 是服务端响应关联 ID，调用方可发送标准 trace context；它们不是幂等键或会话 ID。
 
@@ -239,7 +243,7 @@ flowchart LR
 4. **用量与审计**：在同一短页面用页签切换Token用量与管理审计，一次只显示一张表；用量展示measured/estimated/unknown且不显示Cost，审计不含prompt/output/credential，两者数据语义保持分离。
 5. **日志**：查询脱敏的服务运行与故障诊断事件；与operator审计分离，不含prompt/output/reasoning/vector/credential。
 
-不提供访问控制、容量、恢复、调用方、SourceInstance 或费用页面。
+不提供独立访问控制、跨系统容量产品、恢复、调用方、SourceInstance 或费用页面；Provider账号限流是本网关内部运行保护，随Provider配置。
 
 ## 12. 可靠性、维护与升级
 
@@ -299,7 +303,7 @@ Data Plane 与 Admin 使用不同 credential/权限。Provider Secret 只通过 
 
 ## A. 数据模型与状态机
 
-核心资源只有 Provider、Deployment、ServiceLevel、UsageRecord、AuditEvent。请求生命周期仅为 HTTP request → validate → internal admit → backend call → response/error；内部状态不作为跨系统状态机。
+核心资源只有 Provider、ProviderUsageProfile、ProviderUsageSnapshot、Deployment、ServiceLevel、UsageRecord、ProviderRequestBinding、AuditEvent。请求生命周期仅为 HTTP request → validate → internal admit → backend call → response/error；内部状态不作为跨系统状态机。
 
 ## B. API、Schema、Event、寄存器与错误契约
 

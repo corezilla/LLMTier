@@ -12,7 +12,7 @@ const etag=item=>`"${item.id}.v${item.version}"`;
 const windowQuery=()=>{const to=new Date(),from=new Date(to.getTime()-7*86400000);return `from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`};
 const caps=kind=>({responses:kind==='responses',embeddings:kind==='embeddings',tools:kind==='responses',structured_outputs:false,input_modalities:['text'],output_modalities:kind==='embeddings'?['embedding']:['text'],context_window:kind==='responses'?128000:null,max_output_tokens:kind==='responses'?16384:null,embedding_space_id:kind==='embeddings'?'bge-m3-dense-1024-v1':null,embedding_dimensions:kind==='embeddings'?[1024]:null,embedding_max_batch_inputs:kind==='embeddings'?32:null,embedding_max_input_tokens:kind==='embeddings'?8192:null});
 
-let state={providers:[],deployments:[],tiers:[],runtime:{deployments:{},queues:{}},usage:[],tierAvailability:{}};
+let state={providers:[],deployments:[],tiers:[],runtime:{deployments:{},providers:{},queues:{}},usage:[],providerUsage:{},tierAvailability:{}};
 let editingTierId=null;
 
 const iconSvg=name=>`<svg viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-${esc(name)}"></use></svg>`;
@@ -117,7 +117,18 @@ async function probeDeployment(button){
 }
 
 async function loadProviders(){
-  try{await Promise.all([loadRegistry(),loadUsageSnapshot()]);renderProviders()}catch(error){$('#provider-error').textContent=error.message}
+  try{
+    await Promise.all([loadRegistry(),loadUsageSnapshot()]);
+    const entries=await Promise.all(state.providers.map(async provider=>[provider.id,await api(`/tier/admin/v1/providers/${encodeURIComponent(provider.id)}/usage`)]));
+    state.providerUsage=Object.fromEntries(entries);renderProviders()
+  }catch(error){$('#provider-error').textContent=error.message}
+}
+
+function usageSummary(snapshot){
+  if(!snapshot||snapshot.status==='not_refreshed')return '<span class="unknown">Not refreshed</span>';
+  if(snapshot.status==='unlimited')return '<span class="metric">Unlimited</span>';
+  if(snapshot.status!=='ok')return `<span class="unknown" title="${esc(snapshot.error||'Usage unavailable')}">Unavailable</span>`;
+  return (snapshot.windows||[]).map(item=>`<span class="usage-window" title="${esc(item.reset_at?`Resets ${item.reset_at}`:'Reset time unavailable')}"><b>${esc(item.name)}</b> ${item.percent==null?'Unknown':`${esc(item.percent)}%`}</span>`).join(' ')||metric(snapshot.percent==null?null:`${snapshot.percent}%`);
 }
 
 function renderProviders(){
@@ -126,10 +137,26 @@ function renderProviders(){
     const load=deployments.reduce((sum,item)=>{const current=state.runtime.deployments[item.id]||{};sum.running+=current.running||0;sum.max+=current.max_concurrent||0;return sum},{running:0,max:0});
     const available=provider.enabled&&deployments.some(item=>['Idle','Running'].includes(backendState(item,provider,state.runtime.deployments[item.id])[0]));
     const providerStatus=!provider.enabled?'Disabled':load.running>0?'Running':available?'Idle':'Attention';
-    return `<tr><td><b>${esc(provider.name)}</b><div class="subline">${esc(provider.id)}</div></td><td>${provider.kind==='cloud'?'Cloud':'Local'}</td><td>${esc(provider.endpoint)}</td><td>${provider.has_secret?'Configured':'None'}</td><td>${statusMarkup(providerStatus,providerStatus==='Running'||providerStatus==='Idle'?'ok':providerStatus==='Attention'?'warn':'muted')}</td><td>${metric(null)}</td><td><span class="unknown" title="Current usage records identify Tier, not provider account">Unknown</span></td><td>${metric(`${load.running} / ${load.max}`)}</td><td class="row-actions">${iconButton('pencil','Edit provider','provider-edit',`data-provider="${esc(provider.id)}"`)}${iconButton('trash-2','Delete provider','provider-delete danger',`data-provider="${esc(provider.id)}"`)}</td></tr>`;
+    const requestUsage=provider.request_usage||{},providerRuntime=state.runtime.providers?.[provider.id]||{};
+    return `<tr><td><b>${esc(provider.name)}</b><div class="subline">${esc(provider.id)}</div></td><td>${provider.kind==='cloud'?'Cloud':'Local'}</td><td>${esc(provider.endpoint)}</td><td>${provider.has_secret?'Configured':'None'}</td><td>${statusMarkup(providerStatus,providerStatus==='Running'||providerStatus==='Idle'?'ok':providerStatus==='Attention'?'warn':'muted')}</td><td>${usageSummary(state.providerUsage[provider.id])}</td><td>${metric(`${requestUsage.calls||0} calls · ${requestUsage.total_tokens??'Unknown'} tok`)}</td><td>${metric(`${providerRuntime.running??0} / ${providerRuntime.max_concurrent??provider.usage.max_concurrent_requests}`)}</td><td class="row-actions">${iconButton('refresh-cw','Refresh account usage','provider-usage-refresh',`data-provider="${esc(provider.id)}"`)}${iconButton('pencil','Edit provider','provider-edit',`data-provider="${esc(provider.id)}"`)}${iconButton('trash-2','Delete provider','provider-delete danger',`data-provider="${esc(provider.id)}"`)}</td></tr>`;
   }).join('')||'<tr><td colspan="9">No providers configured</td></tr>';
   $$('.provider-edit').forEach(button=>button.onclick=()=>openProviderEditor(button.dataset.provider));
   $$('.provider-delete').forEach(button=>button.onclick=()=>deleteProvider(button.dataset.provider));
+  $$('.provider-usage-refresh').forEach(button=>button.onclick=()=>refreshProviderUsage(button));
+}
+
+async function refreshProviderUsage(button){
+  const provider=state.providers.find(item=>item.id===button.dataset.provider);if(!provider)return;
+  if(!window.confirm(`Refresh account usage for “${provider.name}” now? This contacts the provider API.`))return;
+  button.disabled=true;
+  try{state.providerUsage[provider.id]=await api(`/tier/admin/v1/providers/${encodeURIComponent(provider.id)}/usage`,{method:'POST',body:{confirm_external_call:true}});renderProviders()}
+  catch(error){window.alert(`Usage refresh failed: ${error.message}`);button.disabled=false}
+}
+
+function showUsageFields(){
+  const source=$('#provider-form').elements.usage_provider.value;
+  $$('.usage-minimax').forEach(item=>item.hidden=source!=='minimax');
+  $$('.usage-volc').forEach(item=>item.hidden=source!=='volc');
 }
 
 function openProviderEditor(id=null){
@@ -141,17 +168,25 @@ function openProviderEditor(id=null){
   form.elements.kind.value=provider?.kind||'cloud';
   form.elements.endpoint.value=provider?.endpoint||'';
   form.elements.secret_ref.value='';
+  form.elements.usage_provider.value=provider?.usage?.usage_provider||(provider?.kind==='local'?'local':'none');
+  form.elements.max_concurrent_requests.value=provider?.usage?.max_concurrent_requests??1;
+  form.elements.min_request_interval_ms.value=provider?.usage?.min_request_interval_ms??0;
+  form.elements.requests_per_minute.value=provider?.usage?.requests_per_minute??0;
+  form.elements.usage_api_key_ref.value='';form.elements.usage_access_key_ref.value='';form.elements.usage_secret_key_ref.value='';
   form.elements.enabled.checked=provider?.enabled??true;
   $('#provider-drawer-title').textContent=provider?'Edit Provider':'Add Provider';
   $('#provider-secret-help').textContent=provider&&provider.has_secret?'API key configured. Leave blank to keep it.':'Use an env: or file: API key reference; never paste the key value.';
   $('#provider-form-error').textContent='';
+  showUsageFields();
   $('#provider-mask').classList.add('open');
 }
 
 async function saveProvider(event){
   event.preventDefault();
   const form=event.currentTarget,id=form.elements.provider_id.value;
-  const body={name:form.elements.name.value,kind:form.elements.kind.value,endpoint:form.elements.endpoint.value,enabled:form.elements.enabled.checked};
+  const usage={usage_provider:form.elements.usage_provider.value,max_concurrent_requests:Number(form.elements.max_concurrent_requests.value),min_request_interval_ms:Number(form.elements.min_request_interval_ms.value),requests_per_minute:Number(form.elements.requests_per_minute.value)};
+  for(const name of ['usage_api_key_ref','usage_access_key_ref','usage_secret_key_ref'])if(form.elements[name].value)usage[name]=form.elements[name].value;
+  const body={name:form.elements.name.value,kind:form.elements.kind.value,endpoint:form.elements.endpoint.value,enabled:form.elements.enabled.checked,usage};
   if(form.elements.secret_ref.value)body.secret_ref=form.elements.secret_ref.value;
   try{
     if(id)await api(`/tier/admin/v1/providers/${encodeURIComponent(id)}`,{method:'PATCH',headers:{'If-Match':`"${id}.v${form.elements.provider_version.value}"`},body});
@@ -231,6 +266,7 @@ $$('nav button').forEach(button=>button.onclick=()=>{
 $$('[data-tab]').forEach(button=>button.onclick=()=>{$$('[data-tab]').forEach(item=>item.classList.remove('active'));button.classList.add('active');$$('.sub').forEach(item=>item.classList.remove('active'));$('#'+button.dataset.tab).classList.add('active');button.dataset.tab==='audit'?loadAudit():loadUsage()});
 
 $('#refresh-providers').onclick=loadProviders;$('#add-provider').onclick=()=>openProviderEditor();$('#provider-form').onsubmit=saveProvider;$('#close-provider').onclick=$('#cancel-provider').onclick=()=>$('#provider-mask').classList.remove('open');
+$('#provider-form').elements.usage_provider.onchange=showUsageFields;
 $('#add-member-form').onsubmit=addMember;$('#close-tier').onclick=()=>$('#tier-mask').classList.remove('open');
 $('#refresh-usage').onclick=loadUsage;$('#refresh-audit').onclick=loadAudit;$('#refresh-logs').onclick=loadLogs;
 

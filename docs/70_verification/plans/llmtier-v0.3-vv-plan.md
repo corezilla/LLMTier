@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-vv-plan` |
-| Document Version | `0.3.2-draft.7` |
+| Document Version | `0.3.2-draft.8` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -14,7 +14,7 @@
 | Approver | 待定 |
 | Approval Date | 待定 |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-17` |
+| Last Modified Date | `2026-09-18` |
 | Template Version | `0.1.0` |
 | Template ID | `assurance.vv-plan` |
 | Template Conformance | `tailored` |
@@ -31,7 +31,7 @@
 
 ## 2. 被验证基线与环境
 
-基线：OpenAPI/manifest `0.3-simplified-candidate.6`、requirements/system/interface docs当前draft、v0.3 current fixtures。静态环境不等于production。
+基线：OpenAPI/manifest `0.3-simplified-candidate.7`、requirements/system/interface docs当前draft、v0.3 current fixtures。静态环境不等于production。
 
 ## 3. Verification 方法
 

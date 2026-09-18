@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-webui-module-design` |
-| Document Version | `0.3.0-draft.14` |
+| Document Version | `0.3.0-draft.15` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -31,7 +31,7 @@ Web UI is LLMTier's English-language operator console. It calls `/tier/admin/v1`
 
 [打开可切换的静态 Demo](demos/webui/index.html)。以下图片由该Demo在1280×760视口生成，作为布局和信息层级基线；它们不是已经接线的产品截图。
 
-不提供访问控制、容量配置、恢复、费用、调用方页面；主页只读显示当前running/max并发事实。宽度小于960px时侧栏折叠为顶部菜单；表格允许横向滚动，不把三个页面拼成长页。状态与高频操作优先使用紧凑图标，并用`title`、`aria-label`和非颜色文字保留可理解性。
+不提供独立访问控制、容量产品、恢复、费用或调用方页面；Provider编辑器只配置本网关执行所需的账号并发、最小间隔与RPM保护，主页只读显示当前running/max事实。宽度小于960px时侧栏折叠为顶部菜单；表格允许横向滚动，不把三个页面拼成长页。状态与高频操作优先使用紧凑图标，并用`title`、`aria-label`和非颜色文字保留可理解性。
 
 ### 1.1 图标系统
 
@@ -83,8 +83,10 @@ Web UI is LLMTier's English-language operator console. It calls `/tier/admin/v1`
 
 ## 3. 页面二：供应商管理
 
-- 页面列出Provider名称、类型、OpenAI-compatible API root、Secret是否已配置、运行状态、账号用量、Calls/Tokens、聚合`running/max`和操作。当前v0.3 provider adapter未提供账号quota且Usage记录不能可靠归属到最终Provider，因此对应账号用量及Provider Calls/Tokens必须显示`Unknown`，不能从Tier总量猜测；并发可由该Provider下Deployment runtime snapshot安全聚合。
-- `Add Provider`仅在本页出现。新增/编辑支持cloud/local、名称、API root、Secret reference和enabled；Secret只写不回显，编辑时空白表示保持已有Secret。
+- 页面列出Provider名称、类型、OpenAI-compatible API root、Secret是否已配置、运行状态、账号用量、Calls/Tokens、账号级`running/max`和操作。每次实际dispatch会把request绑定到最终Provider/Deployment，因此Calls/Tokens只聚合真实绑定后的最高Usage版本；任一token事实未知时不填0。
+- 账号用量普通GET只读取SQLite最后快照，不自动触网。刷新图标要求operator确认后才调用Provider usage API并持久化结果；窗口按Provider实际返回显示5-hour/weekly/monthly、已用百分比和reset tooltip，缺失字段保持Unknown。
+- `Add Provider`仅在本页出现。新增/编辑支持cloud/local、名称、API root、推理Secret reference、enabled、usage source、账号最大并发、最小请求间隔及RPM。Secret只写不回显，编辑时空白表示保持已有Secret。
+- MiniMax Token Plan使用Provider API Key调用官方`GET https://www.minimaxi.com/v1/token_plan/remains`，可复用推理Secret reference，不需要console cookie。火山Coding Plan用独立OpenAPI AK/SK签名调用`GetCodingPlanUsage`；推理API Key不能代替AK/SK。
 - 删除携带当前ETag。Provider仍被任何Deployment引用时，服务端409拒绝删除；UI显示错误，不级联删除Deployment或Tier成员。
 - Provider API root通常以`/v1`结尾；运行时在其后调用`/models`、`/responses`或`/embeddings`，页面不得猜测或重复拼接版本段。
 
@@ -147,7 +149,7 @@ Web UI保持disabled，operator使用CLI/API；不提供把长期token粘贴进�
 | UI | Read | Mutation |
 |---|---|---|
 | 主页 | provider/deployment/service-level pages、healthz/readyz、admin runtime snapshot、admin usage page、deployment health + ETag | Tier抽屉POST Deployment、PATCH Deployment、PATCH Tier membership + If-Match；后端Pause/Resume使用现有Deployment PATCH切换enabled；不创建Provider |
-| Providers | provider/deployment pages、admin runtime snapshot + ETag；账号quota和Provider归属Usage不可得时显示Unknown | Provider POST/PATCH/DELETE + If-Match；引用中的Provider由409保护 |
+| Providers | provider/deployment pages、admin runtime snapshot、provider usage snapshot + ETag | Provider POST/PATCH/DELETE + If-Match；显式POST usage refresh；引用中的Provider由409保护 |
 | 用量与审计 | admin usage page、audit page | 无 |
 | 日志 | sanitized log page | 无 |
 

@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-core-module-design` |
-| Document Version | `0.3.0-draft.4` |
+| Document Version | `0.3.0-draft.5` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | 待定 |
 | Created Date | `2026-09-17` |
-| Last Modified Date | `2026-09-17` |
+| Last Modified Date | `2026-09-18` |
 | Template Version | `1.0.0` |
 | Template ID | `design.definition` |
 | Template Conformance | `tailored` |
@@ -27,7 +27,7 @@
 
 ## 1. 目的与边界
 
-本文把单一 LLMTier 软件系统拆成可独立实现和测试的内部模块，不建立虚构 subsystem。外部字段仍以 OpenAPI `0.3-simplified-candidate.6` 为唯一 authority。LLMTier 无 Agent 会话状态：Piko 每次提供完整输入并执行工具；Slinky 管业务与 Memory。
+本文把单一 LLMTier 软件系统拆成可独立实现和测试的内部模块，不建立虚构 subsystem。外部字段仍以 OpenAPI `0.3-simplified-candidate.7` 为唯一 authority。LLMTier 无 Agent 会话状态：Piko 每次提供完整输入并执行工具；Slinky 管业务与 Memory。
 
 ## 2. 模块图
 
@@ -63,14 +63,15 @@ flowchart LR
 | HTTP/SSE Adapter | OpenAPI request/标准SSE | content type、SSE顺序、terminal、request ID | Agent history、工具执行、未消费JSON并行模式 |
 | Auth/Validation | bearer、body、trace | principal、schema、exact model可见性 | SourceInstance、业务Session |
 | Exact Model Router | logical model、Registry snapshot | 大小写精确选择；同等级后端 | alias、跨等级fallback |
-| Internal Admission | 已验证请求 | 并发、队列、provider timeout、429 | 外部Seat/capacity产品 |
+| Internal Admission | 已验证请求 | Deployment并发、Provider账号并发/最小间隔/RPM、队列、timeout、429 | 外部Seat/capacity产品 |
 | Provider Adapter | 标准内部调用DTO | 云/本地协议映射、标准usage归一 | provider KV identity对外化 |
-| Usage Recorder | request ID、provider事实 | 每request唯一record、版本替换、unknown | Cost、业务任务汇总 |
+| Usage Recorder | request ID、provider事实 | 每request唯一record、版本替换、unknown、最终Provider归属 | Cost、业务任务汇总 |
+| Account Usage Reader | operator显式刷新 | MiniMax API Key与火山AK/SK只读用量、持久快照 | 自动轮询、cookie抓取、计费结算 |
 | Registry/Config | Admin command | provider/deployment/level事务、embedding space约束 | 调用方管理 |
 | Audit Writer | 管理动作结果 | 脱敏审计 | prompt/output/Secret |
 | Sanitized Log Reader | operator filter/cursor | 查询写入前已脱敏的有界运行事件、稳定分页、503故障显式化 | 原始日志、prompt/output/reasoning/vector/credential、mutation |
 | Health/Readiness | store/registry/provider状态 | 无副作用健康、可接流量判断 | 主动收费probe |
-| Web UI | Admin API | 六个中文短页；主页全量状态、独立日志页 | 直读DB/config/Secret |
+| Web UI | Admin API | 四个英文短页；主页全量状态、Provider账号用量、独立日志页 | 直读DB/config/Secret |
 
 ## 4. 唯一配置 authority
 

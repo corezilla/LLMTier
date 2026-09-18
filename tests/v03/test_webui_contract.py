@@ -50,6 +50,11 @@ class WebUIContractTests(unittest.TestCase):
         self.assertIn('id="provider-form"',self.html)
         self.assertIn('id="add-provider"',self.html)
         self.assertIn('API Key Reference',self.html)
+        self.assertIn('Usage Source',self.html)
+        self.assertIn('Max Concurrent Requests',self.html)
+        self.assertIn('MiniMax uses its API key; no console cookie is required.',self.html)
+        self.assertIn("'provider-usage-refresh'",self.js)
+        self.assertIn('/usage`,{method:\'POST\'',self.js)
     def test_tier_member_editor_uses_existing_provider(self):
         self.assertIn('id="tier-mask"',self.html)
         self.assertIn('id="member-provider"',self.html)

@@ -47,6 +47,13 @@
       <label>Type<select name="kind"><option value="cloud">Cloud Provider</option><option value="local">Local Backend</option></select></label>
       <label class="full">API Root URL<input name="endpoint" type="url" placeholder="https://api.example.com/v1" required></label>
       <label class="full">API Key Reference<input name="secret_ref" placeholder="env:PROVIDER_API_KEY"><span id="provider-secret-help" class="field-help"></span></label>
+      <label>Usage Source<select name="usage_provider"><option value="none">Not configured</option><option value="local">Local / unlimited</option><option value="minimax">MiniMax Token Plan</option><option value="volc">Volcengine Coding Plan</option></select></label>
+      <label>Max Concurrent Requests<input name="max_concurrent_requests" type="number" min="1" value="1" required></label>
+      <label>Minimum Request Interval (ms)<input name="min_request_interval_ms" type="number" min="0" value="0" required></label>
+      <label>Requests per Minute<input name="requests_per_minute" type="number" min="0" value="0" required></label>
+      <label class="full usage-minimax">Usage API Key Reference<input name="usage_api_key_ref" placeholder="Leave blank to reuse the provider API key"><span class="field-help">MiniMax uses its API key; no console cookie is required.</span></label>
+      <label class="usage-volc">Volcengine Access Key Reference<input name="usage_access_key_ref" placeholder="file:/path/to/volc_ak.txt"></label>
+      <label class="usage-volc">Volcengine Secret Key Reference<input name="usage_secret_key_ref" placeholder="file:/path/to/volc_sk.txt"></label>
       <label class="check full"><input name="enabled" type="checkbox" checked> Enabled</label>
       <p id="provider-form-error" class="error"></p>
       <div class="formactions"><button type="button" id="cancel-provider"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-x"></use></svg>Cancel</button><button class="primary"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-save"></use></svg>Save Provider</button></div>

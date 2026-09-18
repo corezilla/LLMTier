@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-traceability` |
-| Document Version | `0.3.2-draft.5` |
+| Document Version | `0.3.2-draft.6` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | 待定 |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-17` |
+| Last Modified Date | `2026-09-18` |
 | Template Version | `0.1.0` |
 | Template ID | `requirements.traceability` |
 | Template Conformance | `tailored` |
@@ -27,7 +27,7 @@
 
 ## 1. 范围与基线
 
-基线是 requirements `0.3.2-draft.5`、system design `0.3.2-draft.5`、OpenAPI `0.3-simplified-candidate.6` 与 compatibility manifest 同版本。
+基线是 requirements `0.3.2-draft.5`、system design `0.3.2-draft.5`、OpenAPI `0.3-simplified-candidate.7` 与 compatibility manifest 同版本。
 
 ## 2. Traceability Matrix
 

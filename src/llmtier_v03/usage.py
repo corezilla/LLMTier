@@ -25,6 +25,13 @@ class UsageRecorder:
                 conn.execute("INSERT INTO usage_record_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (principal, request_id, 1, 0, model, endpoint, stamp, stamp, "unknown", "unavailable", None, None, None, None, None, None))
                 conn.execute("INSERT INTO usage_heads VALUES(?,?,?,?)", (principal, request_id, 1, stamp))
 
+    def bind_backend(self, principal: str, request_id: str, provider_id: str, deployment_id: str) -> None:
+        with self.store.transaction(True) as conn:
+            conn.execute(
+                "INSERT INTO provider_request_bindings VALUES(?,?,?,?,?) ON CONFLICT(principal_id,request_id) DO NOTHING",
+                (principal, request_id, provider_id, deployment_id, now()),
+            )
+
     def finish(self, principal: str, request_id: str, usage: dict[str, Any] | None) -> None:
         row = self.store.one("SELECT model,endpoint,recorded_at FROM usage_obligations WHERE principal_id=? AND request_id=?", (principal, request_id))
         if row is None: return

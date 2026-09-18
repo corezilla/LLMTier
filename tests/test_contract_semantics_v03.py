@@ -44,8 +44,8 @@ class SimplifiedV03ContractTests(unittest.TestCase):
 
     def test_unique_simplified_machine_authority(self):
         self.assertEqual("3.1.0", self.openapi["openapi"])
-        self.assertEqual("0.3-simplified-candidate.6", self.openapi["info"]["version"])
-        self.assertEqual("0.3-simplified-candidate.6", self.manifest["manifest_version"])
+        self.assertEqual("0.3-simplified-candidate.7", self.openapi["info"]["version"])
+        self.assertEqual("0.3-simplified-candidate.7", self.manifest["manifest_version"])
         self.assertFalse(self.openapi["x-llmtier-runtime-activation"])
         self.assertFalse(self.manifest["overall"]["runtime_activation"])
         self.assertEqual("openapi/llmtier-v0.3.openapi.json", self.manifest["contract_authority"]["path"])

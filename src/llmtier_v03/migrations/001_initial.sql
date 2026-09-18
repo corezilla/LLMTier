@@ -25,6 +25,25 @@ CREATE TABLE IF NOT EXISTS deployment_runtime_profiles (
   max_in_flight INTEGER NOT NULL DEFAULT 1, connect_timeout_ms INTEGER NOT NULL DEFAULT 30000,
   stream_idle_timeout_ms INTEGER NOT NULL DEFAULT 60000, version INTEGER NOT NULL DEFAULT 1
 );
+CREATE TABLE IF NOT EXISTS provider_usage_profiles (
+  provider_id TEXT PRIMARY KEY REFERENCES providers(id) ON DELETE CASCADE,
+  usage_provider TEXT NOT NULL DEFAULT 'none', usage_api_key_ref TEXT,
+  usage_access_key_ref TEXT, usage_secret_key_ref TEXT,
+  max_concurrent_requests INTEGER NOT NULL DEFAULT 1,
+  min_request_interval_ms INTEGER NOT NULL DEFAULT 0,
+  requests_per_minute INTEGER NOT NULL DEFAULT 0,
+  version INTEGER NOT NULL DEFAULT 1
+);
+CREATE TABLE IF NOT EXISTS provider_usage_snapshots (
+  provider_id TEXT PRIMARY KEY REFERENCES providers(id) ON DELETE CASCADE,
+  snapshot_json TEXT NOT NULL, checked_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS provider_request_bindings (
+  principal_id TEXT NOT NULL, request_id TEXT NOT NULL,
+  provider_id TEXT NOT NULL REFERENCES providers(id),
+  deployment_id TEXT NOT NULL REFERENCES deployments(id), bound_at TEXT NOT NULL,
+  PRIMARY KEY(principal_id,request_id)
+);
 CREATE TABLE IF NOT EXISTS usage_obligations (
   principal_id TEXT NOT NULL, request_id TEXT NOT NULL, model TEXT NOT NULL, endpoint TEXT NOT NULL,
   recorded_at TEXT NOT NULL, dispatch_authorized_at TEXT, PRIMARY KEY(principal_id,request_id)
@@ -66,3 +85,5 @@ CREATE TABLE IF NOT EXISTS operational_logs (
   event TEXT NOT NULL, message TEXT NOT NULL CHECK(length(message)<=512), request_id TEXT
 );
 INSERT OR IGNORE INTO schema_meta(singleton,schema_version,initialized_at) VALUES(1,1,strftime('%Y-%m-%dT%H:%M:%fZ','now'));
+INSERT OR IGNORE INTO provider_usage_profiles(provider_id,usage_provider)
+  SELECT id, CASE WHEN kind='local' THEN 'local' ELSE 'none' END FROM providers;

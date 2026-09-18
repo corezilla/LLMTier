@@ -1,10 +1,10 @@
 {
-  "fixture_version": "0.3-simplified-candidate.6",
+  "fixture_version": "0.3-simplified-candidate.7",
   "cases": [
     {
       "id": "create-cloud-provider",
       "request": {"name": "cloud-a", "kind": "cloud", "endpoint": "https://provider.example/v1", "secret_ref": "secret://cloud-a", "enabled": true},
-      "response": {"id": "provider_01", "name": "cloud-a", "kind": "cloud", "endpoint": "https://provider.example/v1", "has_secret": true, "enabled": true, "version": 1},
+      "response": {"id": "provider_01", "name": "cloud-a", "kind": "cloud", "endpoint": "https://provider.example/v1", "has_secret": true, "enabled": true, "usage": {"usage_provider": "minimax", "has_usage_api_key": false, "has_usage_access_key": false, "has_usage_secret_key": false, "max_concurrent_requests": 3, "min_request_interval_ms": 0, "requests_per_minute": 0}, "request_usage": {"calls": 0, "input_tokens": null, "output_tokens": null, "total_tokens": null}, "version": 1},
       "response_headers": {"ETag": "\"provider_01.v1\""},
       "oracle": {"secret_value_returned": false}
     },

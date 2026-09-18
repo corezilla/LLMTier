@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-m5air-operations-manual` |
-| Document Version | `0.2.0-draft.1` |
+| Document Version | `0.2.0-draft.2` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -65,7 +65,7 @@
 
 ### 3.1 Provider
 
-Provider表示一个云服务商或本地OpenAI-compatible服务，包含名称、类型、API Root、Secret引用、启用状态和版本。
+Provider表示一个云服务商账号或本地OpenAI-compatible服务，包含名称、类型、API Root、Secret引用、启用状态、账号用量源、账号并发/最小间隔/RPM和版本。
 Provider本身不等于模型，也不定义Tier。
 
 ### 3.2 Deployment（页面上的Tier Member或Model）
@@ -85,7 +85,7 @@ Tier下面按顺序挂载一个或多个Deployment。Tier不能删除；可以�
 
 请求只在指定Tier内选择已启用Provider、已启用Deployment且健康状态为`healthy`的成员。选择策略先比较当前
 运行数，再按Tier成员顺序选择。当前每个Deployment的默认最大并发为1；每个Tier队列最多32个请求，排队等待
-最长30秒。达到限制返回429，全部后端不可用返回503。
+最长30秒。路由同时遵守Deployment最大并发及Provider账号最大并发、最小请求间隔和RPM；达到限制返回429，全部后端不可用返回503。
 
 暂停某个模型只阻止后续请求路由到该Deployment；已经运行的请求继续执行。Tier状态和各成员状态相互独立显示。
 
@@ -114,6 +114,13 @@ chmod 600 /Users/mlp/LLMTier-dev/secrets/*
 
 Web UI编辑已有Provider时，API Key Reference留空表示保留当前引用；输入新引用会替换旧引用。页面只显示
 `Configured`或`None`，永不回显Key。不要把Key粘贴到API Key Reference字段。
+
+Provider账号用量凭据规则：
+
+- MiniMax Token Plan直接复用API Key或单独的API Key reference，调用`https://www.minimaxi.com/v1/token_plan/remains`；不需要、也不应配置console cookie；
+- 火山Coding Plan用OpenAPI AK与SK签名读取，分别配置`usage_access_key_ref`和`usage_secret_key_ref`；推理API Key不能替代它们；
+- 本地Provider显示Unlimited；未配置用量源时显示Not refreshed/Unavailable，不填0；
+- 页面刷新按钮会访问外部Provider，必须由operator显式确认；普通页面刷新只读取最后持久快照。
 
 ## 5. 首次部署和空库初始化
 
@@ -263,14 +270,14 @@ Tier不能删除。移除成员只解除Tier关联，不删除Deployment。不�
 ### 9.2 Providers
 
 Providers页面管理Cloud Provider和Local Backend。字段包括Provider Name、Type、API Root、API Key Reference、
-Enabled。添加Tier成员前必须先有Provider。
+Usage Source、账号最大并发、最小请求间隔、RPM和Enabled。添加Tier成员前必须先有Provider。
 
 - Edit：修改Provider名称、类型、API Root、Secret引用或启用状态；
 - Delete：只有未被任何Deployment引用时才能删除，否则返回resource in use；
 - Status：由Provider启用状态及其Deployment状态汇总；
-- Account Usage：当前实现不调用供应商账单/余额API，显示Unknown；
-- Calls/Tokens：当前Usage按Tier model记录，不能可靠归因到Provider账号，显示Unknown；
-- Running/Max：汇总该Provider全部Deployment的当前运行数和并发上限。
+- Account Usage：普通显示最后持久快照；点击刷新并确认后，MiniMax用API Key读取Token Plan，火山用AK/SK读取Coding Plan；
+- Calls/Tokens：请求真正选定后记录Provider/Deployment绑定，并聚合该Provider的最高Usage版本；unknown不填0；
+- Running/Max：显示该Provider账号当前运行数和配置的账号最大并发；Deployment自身上限仍独立生效。
 
 配置保存成功不代表Provider健康；保存后由operator决定是否执行Probe。
 

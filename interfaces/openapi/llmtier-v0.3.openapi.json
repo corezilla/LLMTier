@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "LLMTier V0.3 Simplified Contract",
-    "version": "0.3-simplified-candidate.6",
+    "version": "0.3-simplified-candidate.7",
     "description": "OpenAI-compatible stateless model gateway candidate. Not runtime active."
   },
   "servers": [
@@ -541,6 +541,34 @@
           "412": {
             "$ref": "#/components/responses/PreconditionFailed"
           }
+        }
+      }
+    },
+    "/tier/admin/v1/providers/{provider_id}/usage": {
+      "parameters": [
+        {"name": "provider_id", "in": "path", "required": true, "schema": {"type": "string"}}
+      ],
+      "get": {
+        "operationId": "getProviderAccountUsage",
+        "security": [{"AdminBearerAuth": []}],
+        "responses": {
+          "200": {"description": "Last persisted provider-account usage snapshot", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ProviderAccountUsageSnapshot"}}}},
+          "401": {"$ref": "#/components/responses/Unauthorized"},
+          "403": {"$ref": "#/components/responses/Forbidden"},
+          "404": {"$ref": "#/components/responses/NotFound"}
+        }
+      },
+      "post": {
+        "operationId": "refreshProviderAccountUsage",
+        "description": "Explicit operator action that contacts the provider usage API; never called by automatic UI polling.",
+        "security": [{"AdminBearerAuth": []}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "additionalProperties": false, "required": ["confirm_external_call"], "properties": {"confirm_external_call": {"const": true}}}}}},
+        "responses": {
+          "200": {"description": "Refreshed provider-account usage snapshot", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ProviderAccountUsageSnapshot"}}}},
+          "400": {"$ref": "#/components/responses/BadRequest"},
+          "401": {"$ref": "#/components/responses/Unauthorized"},
+          "403": {"$ref": "#/components/responses/Forbidden"},
+          "404": {"$ref": "#/components/responses/NotFound"}
         }
       }
     },
@@ -3180,6 +3208,9 @@
           },
           "enabled": {
             "type": "boolean"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/ProviderUsageProfileWrite"
           }
         }
       },
@@ -3210,6 +3241,9 @@
           },
           "enabled": {
             "type": "boolean"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/ProviderUsageProfileWrite"
           }
         }
       },
@@ -3223,6 +3257,8 @@
           "endpoint",
           "has_secret",
           "enabled",
+          "usage",
+          "request_usage",
           "version"
         ],
         "properties": {
@@ -3248,10 +3284,64 @@
           "enabled": {
             "type": "boolean"
           },
+          "usage": {
+            "$ref": "#/components/schemas/ProviderUsageProfileView"
+          },
+          "request_usage": {
+            "$ref": "#/components/schemas/ProviderRequestUsageView"
+          },
           "version": {
             "type": "integer",
             "minimum": 1
           }
+        }
+      },
+      "ProviderUsageProfileWrite": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "usage_provider": {"enum": ["none", "local", "minimax", "volc"]},
+          "usage_api_key_ref": {"type": ["string", "null"], "description": "Write-only. MiniMax may omit this to reuse Provider.secret_ref."},
+          "usage_access_key_ref": {"type": ["string", "null"], "description": "Write-only Volcengine OpenAPI AK reference."},
+          "usage_secret_key_ref": {"type": ["string", "null"], "description": "Write-only Volcengine OpenAPI SK reference."},
+          "max_concurrent_requests": {"type": "integer", "minimum": 1},
+          "min_request_interval_ms": {"type": "integer", "minimum": 0},
+          "requests_per_minute": {"type": "integer", "minimum": 0}
+        }
+      },
+      "ProviderUsageProfileView": {
+        "type": "object", "additionalProperties": false,
+        "required": ["usage_provider", "has_usage_api_key", "has_usage_access_key", "has_usage_secret_key", "max_concurrent_requests", "min_request_interval_ms", "requests_per_minute"],
+        "properties": {
+          "usage_provider": {"enum": ["none", "local", "minimax", "volc"]},
+          "has_usage_api_key": {"type": "boolean"},
+          "has_usage_access_key": {"type": "boolean"},
+          "has_usage_secret_key": {"type": "boolean"},
+          "max_concurrent_requests": {"type": "integer", "minimum": 1},
+          "min_request_interval_ms": {"type": "integer", "minimum": 0},
+          "requests_per_minute": {"type": "integer", "minimum": 0}
+        }
+      },
+      "ProviderRequestUsageView": {
+        "type": "object", "additionalProperties": false,
+        "required": ["calls", "input_tokens", "output_tokens", "total_tokens"],
+        "properties": {
+          "calls": {"type": "integer", "minimum": 0},
+          "input_tokens": {"type": ["integer", "null"], "minimum": 0},
+          "output_tokens": {"type": ["integer", "null"], "minimum": 0},
+          "total_tokens": {"type": ["integer", "null"], "minimum": 0}
+        }
+      },
+      "ProviderAccountUsageSnapshot": {
+        "type": "object", "additionalProperties": false,
+        "required": ["provider", "source", "status", "used", "quota", "remaining", "percent", "reset_at", "window", "windows", "checked_at", "error"],
+        "properties": {
+          "provider": {"type": "string"}, "source": {"type": "string"},
+          "status": {"enum": ["ok", "unavailable", "unsupported", "unlimited", "not_refreshed"]},
+          "used": {"type": ["number", "null"]}, "quota": {"type": ["number", "null"]}, "remaining": {"type": ["number", "null"]}, "percent": {"type": ["number", "null"]},
+          "reset_at": {"type": "string"}, "window": {"type": "string"},
+          "windows": {"type": "array", "items": {"type": "object", "additionalProperties": true}},
+          "checked_at": {"type": "string"}, "error": {"type": "string"}
         }
       },
       "DeploymentWrite": {

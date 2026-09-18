@@ -13,6 +13,7 @@ from urllib.parse import parse_qs, urlparse
 
 from . import __version__
 from .admin import AdminService
+from .account_usage import AccountUsageService
 from .audit import AuditLog
 from .auth import authenticate, unauthenticated_principal
 from .embeddings import EmbeddingsService
@@ -37,6 +38,7 @@ class Application:
         except ApiError as exc:
             self.bootstrap_error = exc
         self.router = Router(self.registry); self.usage = UsageRecorder(self.store)
+        self.account_usage = AccountUsageService(self.store)
         self.audit = AuditLog(self.store); self.logs = OperationalLog(self.store)
         self.models = ModelCatalog(self.registry)
         self.responses = ResponsesService(self.registry, self.router, self.usage)
@@ -119,6 +121,15 @@ def handler_factory(app: Application):
                     return self._json(201, view, {"ETag": etag})
             if path == "/tier/admin/v1/runtime" and method == "GET":
                 return self._json(200, app.router.snapshot())
+            match = re.fullmatch(r"/tier/admin/v1/providers/([^/]+)/usage", path)
+            if match:
+                provider_id = match.group(1)
+                if method == "GET": return self._json(200, app.account_usage.latest(provider_id))
+                if method == "POST":
+                    body = self._body()
+                    if set(body) != {"confirm_external_call"}: raise ApiError(400, "invalid_request", "Usage refresh accepts only confirm_external_call")
+                    result = app.admin.mutate(principal.principal_id, "provider.usage.refresh", provider_id, self.request_id, lambda: app.account_usage.refresh(provider_id, body.get("confirm_external_call") is True))
+                    return self._json(200, result)
             for kind, plural, getter, updater, deleter in (
                 ("provider", "providers", app.registry.get_provider, app.registry.update_provider, app.registry.delete_provider),
                 ("deployment", "deployments", app.registry.get_deployment, app.registry.update_deployment, app.registry.delete_deployment),

@@ -31,6 +31,7 @@ class EmbeddingsService:
         self.usage.authorize_dispatch(principal, request_id, model, "/v1/embeddings")
         try:
             with self.router.admit(model) as candidate:
+                self.usage.bind_backend(principal, request_id, candidate.provider_id, candidate.deployment_id)
                 result = self._adapter(candidate).embed(candidate.backend_model, body)
             for item in result["data"]:
                 vector = item.get("embedding")

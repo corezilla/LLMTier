@@ -14,6 +14,7 @@ from .store import Store
 
 FIXED_TIERS = ("Senior", "Junior", "Worker", "Associate", "Engineer", "Executor", "Embedding-v1")
 CAPABILITY_KEYS = {"responses", "embeddings", "tools", "structured_outputs", "input_modalities", "output_modalities", "context_window", "max_output_tokens", "embedding_space_id", "embedding_dimensions", "embedding_max_batch_inputs", "embedding_max_input_tokens"}
+USAGE_PROVIDERS = {"none", "local", "minimax", "volc"}
 
 
 def _id(prefix: str) -> str:
@@ -74,6 +75,7 @@ class Registry:
                 for item in providers:
                     require(set(item) == {"id", "name", "kind", "endpoint", "secret_ref", "enabled"}, 503, "bootstrap_invalid", "Invalid provider entry")
                     conn.execute("INSERT INTO providers VALUES(?,?,?,?,?,?,?)", (item["id"], item["name"], item["kind"], item["endpoint"], item["secret_ref"], int(item["enabled"]), 1))
+                    self._write_usage_profile(conn, item["id"], self._usage_values(None, item["kind"]), 1)
                 for item in deployments:
                     require(set(item) == {"id", "name", "provider_id", "backend_model", "capabilities", "enabled"}, 503, "bootstrap_invalid", "Invalid deployment entry")
                     conn.execute("INSERT INTO deployments VALUES(?,?,?,?,?,?,?,?)", (item["id"], item["name"], item["provider_id"], item["backend_model"], json.dumps(item["capabilities"], separators=(",", ":")), int(item["enabled"]), "unknown", 1))
@@ -111,13 +113,15 @@ class Registry:
                 conn.execute("INSERT OR IGNORE INTO service_levels VALUES(?,?,?,?)", (tier, 1, json.dumps(empty, separators=(",", ":")), 1))
 
     def create_provider(self, body: dict[str, Any]) -> tuple[dict[str, Any], str]:
-        allowed = {"name", "kind", "endpoint", "secret_ref", "enabled"}
-        require(set(body) == allowed, 400, "invalid_request", "Provider fields are incomplete or unknown")
+        required = {"name", "kind", "endpoint", "secret_ref", "enabled"}
+        require(required <= set(body) and set(body) <= required | {"usage"}, 400, "invalid_request", "Provider fields are incomplete or unknown")
         require(body["kind"] in {"cloud", "local"}, 400, "invalid_request", "Invalid provider kind", "kind")
+        usage = self._usage_values(body.get("usage"), body["kind"])
         rid = _id("provider")
         try:
             with self.store.transaction(True) as conn:
                 conn.execute("INSERT INTO providers VALUES(?,?,?,?,?,?,?)", (rid, body["name"], body["kind"], body["endpoint"], body["secret_ref"], int(body["enabled"]), 1))
+                self._write_usage_profile(conn, rid, usage, 1)
         except Exception as exc:
             if "UNIQUE" in str(exc):
                 raise ApiError(409, "resource_conflict", "Provider name already exists") from exc
@@ -128,24 +132,77 @@ class Registry:
         row = self.store.one("SELECT * FROM providers WHERE id=?", (rid,))
         if row is None:
             raise ApiError(404, "not_found", "Provider not found")
-        view = {"id": row["id"], "name": row["name"], "kind": row["kind"], "endpoint": row["endpoint"], "has_secret": row["secret_ref"] is not None, "enabled": _bool(row["enabled"]), "version": row["version"]}
+        profile = self.store.one("SELECT * FROM provider_usage_profiles WHERE provider_id=?", (rid,))
+        usage = self._usage_view(profile, row["kind"])
+        totals = self.store.one(
+            "SELECT count(*) calls,count(v.input_tokens) input_known,count(v.output_tokens) output_known,count(v.total_tokens) total_known,sum(v.input_tokens) input_tokens,sum(v.output_tokens) output_tokens,sum(v.total_tokens) total_tokens "
+            "FROM provider_request_bindings b JOIN usage_heads h ON h.principal_id=b.principal_id AND h.request_id=b.request_id "
+            "JOIN usage_record_versions v ON v.principal_id=h.principal_id AND v.request_id=h.request_id AND v.record_version=h.head_record_version WHERE b.provider_id=?",
+            (rid,),
+        )
+        calls = int(totals["calls"] or 0)
+        view = {"id": row["id"], "name": row["name"], "kind": row["kind"], "endpoint": row["endpoint"], "has_secret": row["secret_ref"] is not None, "enabled": _bool(row["enabled"]), "usage": usage, "request_usage": {"calls": calls, "input_tokens": totals["input_tokens"] if calls and totals["input_known"] == calls else None, "output_tokens": totals["output_tokens"] if calls and totals["output_known"] == calls else None, "total_tokens": totals["total_tokens"] if calls and totals["total_known"] == calls else None}, "version": row["version"]}
         return view, _etag(row["id"], row["version"])
 
     def list_providers(self) -> list[dict[str, Any]]:
         return [self.get_provider(row["id"])[0] for row in self.store.all("SELECT id FROM providers ORDER BY name,id")]
 
     def update_provider(self, rid: str, body: dict[str, Any], if_match: str | None) -> tuple[dict[str, Any], str]:
-        allowed = {"name", "kind", "endpoint", "secret_ref", "enabled"}
+        allowed = {"name", "kind", "endpoint", "secret_ref", "enabled", "usage"}
         require(body and set(body) <= allowed, 400, "invalid_request", "Unknown or empty provider patch")
         with self.store.transaction(True) as conn:
             row = conn.execute("SELECT * FROM providers WHERE id=?", (rid,)).fetchone()
             if row is None: raise ApiError(404, "not_found", "Provider not found")
             if if_match != _etag(rid, row["version"]): raise ApiError(412, "version_conflict", "Provider version changed")
             values = {k: row[k] for k in ("name", "kind", "endpoint", "secret_ref", "enabled")}
-            values.update(body)
+            values.update({k: v for k, v in body.items() if k != "usage"})
             version = row["version"] + 1
             conn.execute("UPDATE providers SET name=?,kind=?,endpoint=?,secret_ref=?,enabled=?,version=? WHERE id=?", (values["name"], values["kind"], values["endpoint"], values["secret_ref"], int(values["enabled"]), version, rid))
+            current = conn.execute("SELECT * FROM provider_usage_profiles WHERE provider_id=?", (rid,)).fetchone()
+            usage = self._usage_values(body.get("usage"), values["kind"], current)
+            self._write_usage_profile(conn, rid, usage, int(current["version"] + 1) if current else 1)
+            if "usage" in body:
+                conn.execute("DELETE FROM provider_usage_snapshots WHERE provider_id=?", (rid,))
         return self.get_provider(rid)
+
+    @staticmethod
+    def _usage_values(value: Any, kind: str, current=None) -> dict[str, Any]:
+        defaults = {
+            "usage_provider": "local" if kind == "local" else "none",
+            "usage_api_key_ref": None,
+            "usage_access_key_ref": None,
+            "usage_secret_key_ref": None,
+            "max_concurrent_requests": 1,
+            "min_request_interval_ms": 0,
+            "requests_per_minute": 0,
+        }
+        if current is not None:
+            defaults.update({key: current[key] for key in defaults})
+        if value is None:
+            return defaults
+        require(isinstance(value, dict) and set(value) <= set(defaults), 400, "invalid_request", "Unknown provider usage field", "usage")
+        defaults.update(value)
+        require(defaults["usage_provider"] in USAGE_PROVIDERS, 400, "invalid_request", "Unsupported usage provider", "usage.usage_provider")
+        for key in ("usage_api_key_ref", "usage_access_key_ref", "usage_secret_key_ref"):
+            ref = defaults[key]
+            require(ref is None or (isinstance(ref, str) and ref.startswith(("env:", "file:"))), 400, "invalid_request", "Credential references must use env: or file:", f"usage.{key}")
+        for key, minimum in (("max_concurrent_requests", 1), ("min_request_interval_ms", 0), ("requests_per_minute", 0)):
+            require(isinstance(defaults[key], int) and defaults[key] >= minimum, 400, "invalid_request", "Invalid provider account limit", f"usage.{key}")
+        return defaults
+
+    @staticmethod
+    def _write_usage_profile(conn, provider_id: str, value: dict[str, Any], version: int) -> None:
+        conn.execute(
+            "INSERT INTO provider_usage_profiles VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(provider_id) DO UPDATE SET "
+            "usage_provider=excluded.usage_provider,usage_api_key_ref=excluded.usage_api_key_ref,usage_access_key_ref=excluded.usage_access_key_ref,usage_secret_key_ref=excluded.usage_secret_key_ref,max_concurrent_requests=excluded.max_concurrent_requests,min_request_interval_ms=excluded.min_request_interval_ms,requests_per_minute=excluded.requests_per_minute,version=excluded.version",
+            (provider_id, value["usage_provider"], value["usage_api_key_ref"], value["usage_access_key_ref"], value["usage_secret_key_ref"], value["max_concurrent_requests"], value["min_request_interval_ms"], value["requests_per_minute"], version),
+        )
+
+    @staticmethod
+    def _usage_view(row, kind: str) -> dict[str, Any]:
+        if row is None:
+            return {"usage_provider": "local" if kind == "local" else "none", "has_usage_api_key": False, "has_usage_access_key": False, "has_usage_secret_key": False, "max_concurrent_requests": 1, "min_request_interval_ms": 0, "requests_per_minute": 0}
+        return {"usage_provider": row["usage_provider"], "has_usage_api_key": row["usage_api_key_ref"] is not None, "has_usage_access_key": row["usage_access_key_ref"] is not None, "has_usage_secret_key": row["usage_secret_key_ref"] is not None, "max_concurrent_requests": row["max_concurrent_requests"], "min_request_interval_ms": row["min_request_interval_ms"], "requests_per_minute": row["requests_per_minute"]}
 
     def delete_provider(self, rid: str, if_match: str | None) -> None:
         with self.store.transaction(True) as conn:

@@ -1,5 +1,5 @@
 {
-  "manifest_version": "0.3-simplified-candidate.6",
+  "manifest_version": "0.3-simplified-candidate.7",
   "status": "candidate",
   "overall": {
     "contract_status": "candidate",
@@ -9,7 +9,7 @@
   "contract_authority": {
     "format": "openapi-3.1-json",
     "path": "openapi/llmtier-v0.3.openapi.json",
-    "version": "0.3-simplified-candidate.6"
+    "version": "0.3-simplified-candidate.7"
   },
   "architecture_boundary": {
     "pattern": "stateless_openai_compatible_model_gateway",
@@ -78,6 +78,16 @@
       "conditional_mutation": "strong_etag_if_match",
       "contract_status": "candidate",
       "runtime_activation": false
+    },
+    {
+      "name": "provider_account_usage",
+      "path": "/tier/admin/v1/providers/{provider_id}/usage",
+      "mode": "operator_explicit_refresh",
+      "credential_policy": "minimax_api_key_or_volc_openapi_ak_sk",
+      "automatic_polling": false,
+      "cost_or_billing": false,
+      "contract_status": "candidate",
+      "runtime_activation": false
     }
   ],
   "explicitly_not_in_external_contract": [
@@ -119,14 +129,12 @@
     "pagination": "persisted_expiring_snapshot_of_exact_record_versions_with_per_page_authorization"
   },
   "admin_web_ui": {
-    "language": "zh-CN",
+    "language": "en",
     "pages": [
-      "主页",
-      "添加模型",
-      "运行状态",
-      "用量",
-      "审计",
-      "日志"
+      "Home",
+      "Providers",
+      "Usage & Audit",
+      "Logs"
     ],
     "excluded_pages": [
       "访问控制",

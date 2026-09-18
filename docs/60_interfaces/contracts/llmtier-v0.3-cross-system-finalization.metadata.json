@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "llmtier-v0.3-cross-system-finalization",
   "document_type": "contracts.specification",
-  "document_version": "0.3.1-draft.4",
+  "document_version": "0.3.1-draft.5",
   "title": "LLMTier V0.3 Cross-System Finalization Package",
   "document_owner": "LLMTier",
   "authors": ["llmtier"],
@@ -23,5 +23,5 @@
   "parent_document_id": "llmtier-v0.3-contract-specification",
   "supersedes": null,
   "created_at": "2026-09-16",
-  "last_modified_at": "2026-09-17"
+  "last_modified_at": "2026-09-18"
 }

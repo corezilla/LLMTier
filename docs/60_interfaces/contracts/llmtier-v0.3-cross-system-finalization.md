@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-cross-system-finalization` |
-| Document Version | `0.3.1-draft.4` |
+| Document Version | `0.3.1-draft.5` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -14,7 +14,7 @@
 | Approver | 待定 |
 | Approval Date | 待定 |
 | Created Date | `2026-09-16` |
-| Last Modified Date | `2026-09-17` |
+| Last Modified Date | `2026-09-18` |
 | Template Version | `0.1.0` |
 | Template ID | `contracts.specification` |
 | Template Conformance | `tailored` |
@@ -27,7 +27,7 @@
 
 ## 1. 定型范围与机器权威
 
-Current candidate是`0.3-simplified-candidate.6`。OpenAPI和manifest是唯一current machine artifacts；旧candidate只作历史审计。
+Current candidate是`0.3-simplified-candidate.7`。OpenAPI和manifest是唯一current machine artifacts；旧candidate只作历史审计。
 
 ## 2. Operation、鉴权与公共字段
 
