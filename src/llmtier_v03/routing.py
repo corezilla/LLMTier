@@ -23,6 +23,22 @@ class Router:
         profile = self.registry.store.one("SELECT max_in_flight FROM deployment_runtime_profiles WHERE deployment_id=?", (candidate.deployment_id,))
         return int(profile["max_in_flight"]) if profile else 1
 
+    def snapshot(self) -> dict[str, object]:
+        """Return a read-only, point-in-time view of gateway concurrency."""
+        profiles = self.registry.store.all(
+            "SELECT deployment_id,max_in_flight FROM deployment_runtime_profiles ORDER BY deployment_id"
+        )
+        with self._condition:
+            deployments = {
+                row["deployment_id"]: {
+                    "running": int(self._inflight[row["deployment_id"]]),
+                    "max_concurrent": int(row["max_in_flight"]),
+                }
+                for row in profiles
+            }
+            queues = {level_id: len(queue) for level_id, queue in self._queues.items() if queue}
+        return {"deployments": deployments, "queues": queues}
+
     @contextmanager
     def admit(self, level_id: str):
         candidates = self.registry.candidates(level_id)

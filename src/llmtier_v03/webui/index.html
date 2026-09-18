@@ -6,23 +6,23 @@
   <aside>
     <div class="brand"><b>LT</b><span><strong>LLMTier</strong><small>Model Gateway Console</small></span></div>
     <nav>
-      <button class="active" data-page="home">⌂　Home</button>
-      <button data-page="providers">◇　Providers</button>
-      <button data-page="records">▥　Usage & Audit</button>
-      <button data-page="logs">≣　Logs</button>
+      <button class="active" data-page="home"><span class="navicon">⌂</span>Home</button>
+      <button data-page="providers"><span class="navicon">◇</span>Providers</button>
+      <button data-page="records"><span class="navicon">▥</span>Usage & Audit</button>
+      <button data-page="logs"><span class="navicon">≣</span>Logs</button>
     </nav>
     <footer>Single-node console<br>OpenAI-compatible API</footer>
   </aside>
   <main>
-    <header><div><h1 id="title">Home</h1><p id="subtitle">View every model, tier, backend, and status on one page</p></div><div class="header-status"><span id="gateway" class="pill warn">● Connecting</span><span id="build-meta">Version — · Updated —</span></div></header>
+    <header><div><h1 id="title">Home</h1><p id="subtitle">View every model, tier, backend, and status on one page</p></div><div class="header-status"><div class="header-facts"><span id="gateway" class="status-chip warn"><i></i>Connecting</span><span id="tier-summary" class="status-chip neutral" title="Available tiers">Tiers —</span><span id="model-summary" class="status-chip neutral" title="Running backends">Models —</span><span id="load-summary" class="status-chip neutral" title="Running requests and configured concurrency">Load —</span></div><span id="build-meta">Version — · Updated —</span></div></header>
 
     <section id="home" class="page active">
-      <div class="card"><div class="cardhead"><b>Tier / Backend Tree</b><span id="stamp">Not refreshed</span></div><div class="tree-head"><span>Tier / Backend</span><span>Status</span><span>Provider</span><span>Type</span><span>Actions</span></div><div id="tree" class="tree empty">Loading…</div></div>
+      <div class="card"><div class="cardhead"><b>Tier / Backend Tree</b><span id="stamp">Not refreshed</span></div><div class="tree-head"><span>Tier / Backend</span><span>Status</span><span>Concurrency</span><span>Usage</span><span>Provider</span><span>Type</span><span>Actions</span></div><div id="tree" class="tree empty">Loading…</div></div>
     </section>
 
     <section id="providers" class="page">
-      <div class="toolbar"><span id="provider-error" class="error"></span><div class="actions"><button id="refresh-providers">Refresh</button><button class="primary" id="add-provider">Add Provider</button></div></div>
-      <div class="card"><div class="cardhead"><b>Provider Management</b><span>Tier members can only use providers listed here</span></div><div class="tablewrap"><table><thead><tr><th>Provider</th><th>Type</th><th>API Root</th><th>API Key</th><th>Status</th><th>Deployments</th><th>Actions</th></tr></thead><tbody id="provider-body"></tbody></table></div></div>
+      <div class="toolbar"><span id="provider-error" class="error"></span><div class="actions"><button id="refresh-providers" class="icon-button" title="Refresh providers" aria-label="Refresh providers">↻</button><button class="primary" id="add-provider">＋ Add Provider</button></div></div>
+      <div class="card"><div class="cardhead"><b>Provider Management</b><span>Tier members can only use providers listed here</span></div><div class="tablewrap"><table><thead><tr><th>Provider</th><th>Type</th><th>API Root</th><th>API Key</th><th>Status</th><th>Account Usage</th><th>Calls / Tokens</th><th>Running / Max</th><th>Actions</th></tr></thead><tbody id="provider-body"></tbody></table></div></div>
     </section>
 
     <section id="records" class="page">

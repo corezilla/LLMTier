@@ -117,6 +117,8 @@ def handler_factory(app: Application):
                 if method == "POST":
                     view, etag = app.admin.mutate(principal.principal_id, "service_level.create", "service_level", self.request_id, lambda: app.registry.create_service_level(self._body()))
                     return self._json(201, view, {"ETag": etag})
+            if path == "/tier/admin/v1/runtime" and method == "GET":
+                return self._json(200, app.router.snapshot())
             for kind, plural, getter, updater, deleter in (
                 ("provider", "providers", app.registry.get_provider, app.registry.update_provider, app.registry.delete_provider),
                 ("deployment", "deployments", app.registry.get_deployment, app.registry.update_deployment, app.registry.delete_deployment),

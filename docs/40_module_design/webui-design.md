@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-webui-module-design` |
-| Document Version | `0.3.0-draft.8` |
+| Document Version | `0.3.0-draft.9` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -31,13 +31,14 @@ Web UI is LLMTier's English-language operator console. It calls `/tier/admin/v1`
 
 [打开可切换的静态 Demo](demos/webui/index.html)。以下图片由该Demo在1280×760视口生成，作为布局和信息层级基线；它们不是已经接线的产品截图。
 
-不提供访问控制、容量、恢复、费用、调用方页面。宽度小于960px时侧栏折叠为顶部菜单；表格允许横向滚动，不把三个页面拼成长页。
+不提供访问控制、容量配置、恢复、费用、调用方页面；主页只读显示当前running/max并发事实。宽度小于960px时侧栏折叠为顶部菜单；表格允许横向滚动，不把三个页面拼成长页。状态与高频操作优先使用紧凑图标，并用`title`、`aria-label`和非颜色文字保留可理解性。
 
 ## 2. 页面一：主页
 
 ![主页](assets/webui/home.png)
 
-- 主页使用两层树形表格，而不是把三个后端横向塞进同一行。Tier是父节点；展开后每个后端成为独立子节点，显示provider、model、类型、健康状态与版本。主页不显示重复的Gateway/Tier/Backend/Health统计卡，也不显示搜索、手工刷新或全局`Add Model`；网关状态保留在全局页头。每个Tier行右侧提供`Edit`。V0.3当前Tier集合为`Senior`、`Junior`、`Worker`、`Associate`、`Engineer`、`Executor`与独立的`Embedding-v1`，不分页隐藏当前目录项。
+- 主页使用两层树形表格，而不是把三个后端横向塞进同一行。Tier是父节点；展开后每个后端成为独立子节点，显示provider、model、类型、健康状态、版本与`running/max`并发。Tier行显示聚合状态、聚合并发及最近七日Tier级Calls/Tokens；token事实存在Unknown时不填0。由于当前Usage记录只保存逻辑Tier而不保存最终选中的Deployment，后端行不得虚构单模型用量，显示`—`并说明数据边界。
+- 主页不显示重复的Gateway/Tier/Backend/Health统计卡，也不显示搜索、手工刷新或全局`Add Model`。全局页头紧凑显示Gateway总状态、可用Tier/总Tier、Running模型/总模型、当前请求/配置并发上限以及Version/Updated。每个Tier行右侧使用图标`Edit`。V0.3当前Tier集合为`Senior`、`Junior`、`Worker`、`Associate`、`Engineer`、`Executor`与独立的`Embedding-v1`，不分页隐藏当前目录项。
 - Tier集合和映射来自Registry；演示中的后端模型名仅用于布局，不构成生产配置。物理凭据不展示。
 - 推理Tier可绑定不同供应商但必须能力兼容且保持同一exact Tier；`Embedding-v1`的三个deployment必须是同一`BAAI/bge-m3`模型版本、预处理和`embedding_space_id`，不能把不同向量空间挂在同一Tier下。物理Provider模型ID按各runtime实际API ID展示，不要求字符串都写成`BAAI/bge-m3`。
 - 编辑先GET item保存ETag，PATCH携带If-Match。412显示“配置已被他人修改”，保留用户输入并提供重新载入，不自动覆盖。
@@ -59,7 +60,7 @@ Web UI is LLMTier's English-language operator console. It calls `/tier/admin/v1`
 
 ## 3. 页面二：供应商管理
 
-- 页面列出Provider名称、类型、OpenAI-compatible API root、Secret是否已配置、启用状态、Deployment引用数和操作。
+- 页面列出Provider名称、类型、OpenAI-compatible API root、Secret是否已配置、运行状态、账号用量、Calls/Tokens、聚合`running/max`和操作。当前v0.3 provider adapter未提供账号quota且Usage记录不能可靠归属到最终Provider，因此对应账号用量及Provider Calls/Tokens必须显示`Unknown`，不能从Tier总量猜测；并发可由该Provider下Deployment runtime snapshot安全聚合。
 - `Add Provider`仅在本页出现。新增/编辑支持cloud/local、名称、API root、Secret reference和enabled；Secret只写不回显，编辑时空白表示保持已有Secret。
 - 删除携带当前ETag。Provider仍被任何Deployment引用时，服务端409拒绝删除；UI显示错误，不级联删除Deployment或Tier成员。
 - Provider API root通常以`/v1`结尾；运行时在其后调用`/models`、`/responses`或`/embeddings`，页面不得猜测或重复拼接版本段。
@@ -122,8 +123,8 @@ Web UI保持disabled，operator使用CLI/API；不提供把长期token粘贴进�
 
 | UI | Read | Mutation |
 |---|---|---|
-| 主页 | provider/deployment/service-level pages、healthz/readyz、deployment health + ETag | Tier抽屉POST Deployment、PATCH Deployment、PATCH Tier membership + If-Match；不创建Provider |
-| Providers | provider/deployment pages + ETag | Provider POST/PATCH/DELETE + If-Match；引用中的Provider由409保护 |
+| 主页 | provider/deployment/service-level pages、healthz/readyz、admin runtime snapshot、admin usage page、deployment health + ETag | Tier抽屉POST Deployment、PATCH Deployment、PATCH Tier membership + If-Match；不创建Provider |
+| Providers | provider/deployment pages、admin runtime snapshot + ETag；账号quota和Provider归属Usage不可得时显示Unknown | Provider POST/PATCH/DELETE + If-Match；引用中的Provider由409保护 |
 | 用量与审计 | admin usage page、audit page | 无 |
 | 日志 | sanitized log page | 无 |
 

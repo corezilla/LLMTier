@@ -12,8 +12,13 @@ const etag=item=>`"${item.id}.v${item.version}"`;
 const windowQuery=()=>{const to=new Date(),from=new Date(to.getTime()-7*86400000);return `from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`};
 const caps=kind=>({responses:kind==='responses',embeddings:kind==='embeddings',tools:kind==='responses',structured_outputs:false,input_modalities:['text'],output_modalities:kind==='embeddings'?['embedding']:['text'],context_window:kind==='responses'?128000:null,max_output_tokens:kind==='responses'?16384:null,embedding_space_id:kind==='embeddings'?'bge-m3-dense-1024-v1':null,embedding_dimensions:kind==='embeddings'?[1024]:null,embedding_max_batch_inputs:kind==='embeddings'?32:null,embedding_max_input_tokens:kind==='embeddings'?8192:null});
 
-let state={providers:[],deployments:[],tiers:[]};
+let state={providers:[],deployments:[],tiers:[],runtime:{deployments:{},queues:{}},usage:[]};
 let editingTierId=null;
+
+const icons={edit:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l11-11-4-4L4 16v4zm12-16 4 4 1-1a2 2 0 0 0 0-3l-1-1a2 2 0 0 0-3 0l-1 1z"/></svg>',probe:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7L20 9M20 4v5h-5"/></svg>',delete:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m-9 0 1 13h10l1-13M10 11v5m4-5v5"/></svg>'};
+const statusMarkup=(label,tone='muted')=>`<i class="pill ${tone}" title="${esc(label)}"><span aria-hidden="true">●</span>&nbsp;${esc(label)}</i>`;
+const iconButton=(name,label,className,data='')=>`<button type="button" class="icon-action ${className}" ${data} title="${esc(label)}" aria-label="${esc(label)}">${icons[name]}</button>`;
+const metric=value=>value==null?'<span class="unknown">Unknown</span>':`<span class="metric">${esc(value)}</span>`;
 
 function backendState(deployment,provider){
   if(!provider?.enabled||!deployment.enabled)return ['Disabled','muted'];
@@ -35,19 +40,32 @@ function tierState(tier,deployments){
 function providerOptions(selected){return state.providers.map(provider=>`<option value="${esc(provider.id)}" ${provider.id===selected?'selected':''}>${esc(provider.name)} · ${esc(provider.kind)}</option>`).join('')}
 
 async function loadRegistry(){
-  const [providers,deployments,tiers]=await Promise.all([api('/tier/admin/v1/providers'),api('/tier/admin/v1/deployments'),api('/tier/admin/v1/service-levels')]);
-  state={providers:providers.data,deployments:deployments.data,tiers:tiers.data};
+  const [providers,deployments,tiers,runtime]=await Promise.all([api('/tier/admin/v1/providers'),api('/tier/admin/v1/deployments'),api('/tier/admin/v1/service-levels'),api('/tier/admin/v1/runtime')]);
+  state={...state,providers:providers.data,deployments:deployments.data,tiers:tiers.data,runtime};
+}
+
+async function loadUsageSnapshot(){
+  const page=await api('/tier/admin/v1/usage?'+windowQuery()+'&limit=100');
+  state.usage=page.data;
+  return page;
 }
 
 async function loadHome(){
   try{
     const readyPromise=fetch('/readyz',{credentials:'same-origin'}).then(async response=>({ok:response.ok,...await response.json()}));
     const healthPromise=api('/healthz');
-    await loadRegistry();
+    const [,usagePage]=await Promise.all([loadRegistry(),loadUsageSnapshot()]);
     const [ready,health]=await Promise.all([readyPromise,healthPromise]);
     const gateway=ready.status==='ready'?'Ready':ready.status==='degraded'?'Degraded':'Not ready';
-    $('#gateway').className=`pill ${ready.status==='ready'?'ok':'warn'}`;
-    $('#gateway').textContent=`● ${gateway}`;
+    $('#gateway').className=`status-chip ${ready.status==='ready'?'ok':ready.status==='degraded'?'warn':'bad'}`;
+    $('#gateway').innerHTML=`<i></i>${esc(gateway)}`;
+    const running=Object.values(state.runtime.deployments).reduce((sum,item)=>sum+item.running,0);
+    const maximum=Object.values(state.runtime.deployments).reduce((sum,item)=>sum+item.max_concurrent,0);
+    const available=(ready.models||[]).filter(item=>item.status==='available').length;
+    const activeModels=state.deployments.filter(item=>backendState(item,state.providers.find(provider=>provider.id===item.provider_id))[0]==='Running').length;
+    $('#tier-summary').textContent=`Tiers ${available}/${state.tiers.length}`;
+    $('#model-summary').textContent=`Models ${activeModels}/${state.deployments.length}`;
+    $('#load-summary').textContent=`Load ${running}/${maximum}${usagePage.has_more?' · Usage 100+':''}`;
     $('#build-meta').textContent=`Version ${health.version} · Updated ${new Date(document.lastModified).toLocaleString()}`;
     renderTree();
     $('#stamp').textContent=`Last refreshed ${new Date().toLocaleTimeString()}`;
@@ -60,11 +78,15 @@ function renderTree(){
   $('#tree').innerHTML=state.tiers.map(tier=>{
     const deployments=tier.deployment_ids.map(id=>state.deployments.find(item=>item.id===id)).filter(Boolean);
     const overall=tierState(tier,deployments);
+    const tierRuntime=deployments.reduce((sum,item)=>{const current=state.runtime.deployments[item.id]||{};sum.running+=current.running||0;sum.max+=current.max_concurrent||0;return sum},{running:0,max:0});
+    const usage=state.usage.filter(item=>item.model===tier.id);
+    const tierTokens=usage.some(item=>item.total_tokens==null)?null:usage.reduce((sum,item)=>sum+item.total_tokens,0);
     const rows=deployments.map(deployment=>{
       const owner=provider(deployment.provider_id),status=backendState(deployment,owner);
-      return `<div class="backend"><span>└ <b>${esc(deployment.name)}</b><div class="subline">${esc(deployment.backend_model)} · v${deployment.version}</div></span><span><i class="pill ${status[1]}">${status[0]}</i></span><span>${esc(owner?.name||'Unknown provider')}</span><span>${owner?.kind==='cloud'?'Cloud':'Local'}</span><span><button type="button" class="tiny backend-probe" data-deployment="${esc(deployment.id)}" ${status[0]==='Disabled'?'disabled':''}>Probe</button></span></div>`;
+      const runtime=state.runtime.deployments[deployment.id]||{};
+      return `<div class="backend"><span>└ <b>${esc(deployment.name)}</b><div class="subline">${esc(deployment.backend_model)} · v${deployment.version}</div></span><span>${statusMarkup(status[0],status[1])}</span><span>${metric(`${runtime.running??0} / ${runtime.max_concurrent??'?'}`)}</span><span class="unknown" title="Usage is recorded by Tier; the selected backend is not persisted">—</span><span>${esc(owner?.name||'Unknown provider')}</span><span>${owner?.kind==='cloud'?'Cloud':'Local'}</span><span>${iconButton('probe','Probe backend','backend-probe',`data-deployment="${esc(deployment.id)}" ${status[0]==='Disabled'?'disabled':''}`)}</span></div>`;
     }).join('');
-    return `<details open><summary><span class="tiername"><b>${esc(tier.id)}</b><div class="subline">${deployments.length} members · v${tier.version}</div></span><span><i class="pill ${overall[1]}">${overall[0]}</i></span><span>—</span><span>${tier.capabilities.responses?'Responses':'Embeddings'}</span><span><button type="button" class="tiny tier-edit" data-tier="${esc(tier.id)}">Edit</button></span></summary>${rows}</details>`;
+    return `<details open><summary><span class="tiername"><b>${esc(tier.id)}</b><div class="subline">${deployments.length} members · v${tier.version}</div></span><span>${statusMarkup(overall[0],overall[1])}</span><span>${metric(`${tierRuntime.running} / ${tierRuntime.max}`)}</span><span>${metric(usage.length?`${usage.length} calls · ${tierTokens??'Unknown'} tok`:'No calls')}</span><span>—</span><span>${tier.capabilities.responses?'Responses':'Embeddings'}</span><span>${iconButton('edit',`Edit ${tier.id}`,'tier-edit',`data-tier="${esc(tier.id)}"`)}</span></summary>${rows}</details>`;
   }).join('')||'<div class="empty">No tiers configured</div>';
   $$('#tree .tier-edit').forEach(button=>button.onclick=event=>{event.preventDefault();event.stopPropagation();openTierEditor(button.dataset.tier)});
   $$('#tree .backend-probe').forEach(button=>button.onclick=()=>probeDeployment(button));
@@ -73,20 +95,22 @@ function renderTree(){
 async function probeDeployment(button){
   const deploymentId=button.dataset.deployment;if(!deploymentId)return;
   if(!window.confirm('Probe this backend now? This makes one provider request.'))return;
-  button.disabled=true;button.textContent='Probing…';
+  button.disabled=true;button.textContent='…';
   try{await api('/tier/admin/v1/probes',{method:'POST',body:{deployment_id:deploymentId,confirm_external_call:true}});await loadHome()}
-  catch(error){window.alert(`Probe failed: ${error.message}`);button.disabled=false;button.textContent='Probe'}
+  catch(error){window.alert(`Probe failed: ${error.message}`);button.disabled=false;button.innerHTML=icons.probe}
 }
 
 async function loadProviders(){
-  try{await loadRegistry();renderProviders()}catch(error){$('#provider-error').textContent=error.message}
+  try{await Promise.all([loadRegistry(),loadUsageSnapshot()]);renderProviders()}catch(error){$('#provider-error').textContent=error.message}
 }
 
 function renderProviders(){
   $('#provider-body').innerHTML=state.providers.map(provider=>{
-    const count=state.deployments.filter(item=>item.provider_id===provider.id).length;
-    return `<tr><td><b>${esc(provider.name)}</b><div class="subline">${esc(provider.id)}</div></td><td>${provider.kind==='cloud'?'Cloud':'Local'}</td><td>${esc(provider.endpoint)}</td><td>${provider.has_secret?'Configured':'None'}</td><td>${provider.enabled?'Enabled':'Disabled'}</td><td>${count}</td><td class="row-actions"><button class="tiny provider-edit" data-provider="${esc(provider.id)}">Edit</button><button class="tiny danger provider-delete" data-provider="${esc(provider.id)}">Delete</button></td></tr>`;
-  }).join('')||'<tr><td colspan="7">No providers configured</td></tr>';
+    const deployments=state.deployments.filter(item=>item.provider_id===provider.id);
+    const load=deployments.reduce((sum,item)=>{const current=state.runtime.deployments[item.id]||{};sum.running+=current.running||0;sum.max+=current.max_concurrent||0;return sum},{running:0,max:0});
+    const live=provider.enabled&&deployments.some(item=>backendState(item,provider)[0]==='Running');
+    return `<tr><td><b>${esc(provider.name)}</b><div class="subline">${esc(provider.id)}</div></td><td>${provider.kind==='cloud'?'Cloud':'Local'}</td><td>${esc(provider.endpoint)}</td><td>${provider.has_secret?'Configured':'None'}</td><td>${statusMarkup(provider.enabled?(live?'Running':'Attention'):'Disabled',provider.enabled?(live?'ok':'warn'):'muted')}</td><td>${metric(null)}</td><td><span class="unknown" title="Current usage records identify Tier, not provider account">Unknown</span></td><td>${metric(`${load.running} / ${load.max}`)}</td><td class="row-actions">${iconButton('edit','Edit provider','provider-edit',`data-provider="${esc(provider.id)}"`)}${iconButton('delete','Delete provider','provider-delete danger',`data-provider="${esc(provider.id)}"`)}</td></tr>`;
+  }).join('')||'<tr><td colspan="9">No providers configured</td></tr>';
   $$('.provider-edit').forEach(button=>button.onclick=()=>openProviderEditor(button.dataset.provider));
   $$('.provider-delete').forEach(button=>button.onclick=()=>deleteProvider(button.dataset.provider));
 }
