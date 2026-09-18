@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-webui-module-design` |
-| Document Version | `0.3.0-draft.12` |
+| Document Version | `0.3.0-draft.14` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -59,7 +59,7 @@ Web UI is LLMTier's English-language operator console. It calls `/tier/admin/v1`
 
 ![主页](assets/webui/home.png)
 
-- 主页使用两层树形表格，而不是把三个后端横向塞进同一行。Tier是父节点；展开后每个后端成为独立子节点，显示provider、model、类型、健康状态、版本与`running/max`并发。健康、允许路由且`running=0`显示Idle；只有`running>0`才显示Running；单个Deployment的`enabled=false`显示Paused。Tier与Provider沿用同一聚合语义。Tier行显示聚合并发及最近七日Tier级Calls/Tokens；token事实存在Unknown时不填0。由于当前Usage记录只保存逻辑Tier而不保存最终选中的Deployment，后端行不得虚构单模型用量，显示`—`并说明数据边界。
+- 主页使用无背景的两层树形布局，不显示额外的列标题行、Tier行底色、成员行底色或横向行框；层级只用缩进、展开箭头和浅色树枝线表达。Tier是父节点；展开后每个后端成为独立子节点，显示provider、model、类型、健康状态、版本与`running/max`并发。Tier状态直接采用`/readyz.models[].availability`：available显示Ready、degraded显示Attention、unavailable显示Unreachable；它不从成员状态聚合。成员状态独立来自Deployment health/runtime：健康、允许路由且`running=0`显示Idle，只有`running>0`才显示Running，单个Deployment的`enabled=false`显示Paused。Tier与成员状态互不覆盖。Tier行显示聚合并发及最近七日Tier级Calls/Tokens；token事实存在Unknown时不填0。由于当前Usage记录只保存逻辑Tier而不保存最终选中的Deployment，后端行不得虚构单模型用量，显示`—`并说明数据边界。
 - 主页不显示重复的Gateway/Tier/Backend/Health统计卡，也不显示搜索、手工刷新或全局`Add Model`。全局页头紧凑显示Gateway总状态、可用Tier/总Tier、Running模型/总模型、当前请求/配置并发上限以及Version/Updated。每个Tier行右侧使用图标`Edit`。Tier父行的Type单元格完全留空，不显示Responses、Embeddings或占位符；Cloud/Local只在后端子行显示。V0.3当前Tier集合为`Senior`、`Junior`、`Worker`、`Associate`、`Engineer`、`Executor`与独立的`Embedding-v1`，不分页隐藏当前目录项。
 - Tier集合和映射来自Registry；演示中的后端模型名仅用于布局，不构成生产配置。物理凭据不展示。
 - 推理Tier可绑定不同供应商但必须能力兼容且保持同一exact Tier；`Embedding-v1`的三个deployment必须是同一`BAAI/bge-m3`模型版本、预处理和`embedding_space_id`，不能把不同向量空间挂在同一Tier下。物理Provider模型ID按各runtime实际API ID展示，不要求字符串都写成`BAAI/bge-m3`。

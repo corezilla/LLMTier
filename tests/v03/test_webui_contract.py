@@ -11,6 +11,14 @@ class WebUIContractTests(unittest.TestCase):
     def test_four_pages(self):self.assertEqual(self.html.count('class="page'),4)
     def test_home_is_default(self):self.assertIn('id="home" class="page active"',self.html)
     def test_fixed_tier_tree_target(self):self.assertIn('id="tree"',self.html)
+    def test_tree_has_no_column_title_row(self):
+        self.assertNotIn('class="tree-head"',self.html)
+        self.assertNotIn('Tier / Backend</span><span>Status',self.html)
+        self.assertIn('class="tree-card"',self.html)
+        self.assertIn('.tree-card{background:transparent;border:0',self.css)
+        self.assertIn('details[open] summary{background:transparent}',self.css)
+        self.assertIn('.backend:before',self.css)
+        self.assertNotIn('background:#fcfdff;border-top',self.css)
     def test_home_shows_authoritative_backend_status(self):
         for value in ('Idle','Running','Paused','Probing','Exhausted','Unreachable','Disabled','Unknown'):
             self.assertIn(value,self.js)
@@ -50,6 +58,11 @@ class WebUIContractTests(unittest.TestCase):
     def test_tier_parent_type_cell_is_empty(self):
         self.assertIn("</span><span>—</span><span></span><span>${iconButton('pencil'",self.js)
         self.assertNotIn("tier.capabilities.responses?'Responses':'Embeddings'",self.js)
+    def test_tier_and_member_status_sources_are_independent(self):
+        self.assertIn('state.tierAvailability=Object.fromEntries',self.js)
+        self.assertIn("if(availability==='available')return ['Ready','ok']",self.js)
+        self.assertIn('const overall=tierState(tier);',self.js)
+        self.assertNotIn('tierState(tier,deployments)',self.js)
     def test_no_global_add_model(self):
         self.assertNotIn('Add Model',self.html)
         self.assertNotIn('id="model-form"',self.html)
@@ -70,7 +83,7 @@ class WebUIContractTests(unittest.TestCase):
         self.assertIn("Paused:'circle-pause'",self.js)
         self.assertIn("Running:'activity'",self.js)
     def test_provider_and_tree_operational_fields(self):
-        for value in ('Concurrency','Account Usage','Calls / Tokens','Running / Max'):
+        for value in ('Account Usage','Calls / Tokens','Running / Max'):
             self.assertIn(value,self.html)
         self.assertIn('max_concurrent',self.js)
         self.assertIn('Unknown',self.js)

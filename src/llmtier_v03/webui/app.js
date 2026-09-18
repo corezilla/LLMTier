@@ -12,7 +12,7 @@ const etag=item=>`"${item.id}.v${item.version}"`;
 const windowQuery=()=>{const to=new Date(),from=new Date(to.getTime()-7*86400000);return `from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`};
 const caps=kind=>({responses:kind==='responses',embeddings:kind==='embeddings',tools:kind==='responses',structured_outputs:false,input_modalities:['text'],output_modalities:kind==='embeddings'?['embedding']:['text'],context_window:kind==='responses'?128000:null,max_output_tokens:kind==='responses'?16384:null,embedding_space_id:kind==='embeddings'?'bge-m3-dense-1024-v1':null,embedding_dimensions:kind==='embeddings'?[1024]:null,embedding_max_batch_inputs:kind==='embeddings'?32:null,embedding_max_input_tokens:kind==='embeddings'?8192:null});
 
-let state={providers:[],deployments:[],tiers:[],runtime:{deployments:{},queues:{}},usage:[]};
+let state={providers:[],deployments:[],tiers:[],runtime:{deployments:{},queues:{}},usage:[],tierAvailability:{}};
 let editingTierId=null;
 
 const iconSvg=name=>`<svg viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-${esc(name)}"></use></svg>`;
@@ -31,15 +31,13 @@ function backendState(deployment,provider,runtime={}){
   if(value==='unhealthy'||value==='unreachable')return ['Unreachable','bad'];
   return ['Unknown','muted'];
 }
-function tierState(tier,deployments){
+function tierState(tier){
   if(!tier.enabled)return ['Disabled','muted'];
-  if(!deployments.length)return ['Empty','muted'];
-  const states=deployments.map(deployment=>backendState(deployment,state.providers.find(item=>item.id===deployment.provider_id),state.runtime.deployments[deployment.id])[0]);
-  if(states.includes('Running'))return ['Running','ok'];
-  if(states.includes('Idle'))return ['Idle','ok'];
-  for(const name of ['Probing','Exhausted','Unreachable'])if(states.includes(name))return [name,name==='Unreachable'?'bad':'warn'];
-  if(states.includes('Paused')&&states.every(name=>name==='Paused'||name==='Disabled'))return ['Paused','muted'];
-  if(states.every(name=>name==='Disabled'))return ['Disabled','muted'];
+  if(!tier.deployment_ids.length)return ['Empty','muted'];
+  const availability=state.tierAvailability[tier.id];
+  if(availability==='available')return ['Ready','ok'];
+  if(availability==='degraded')return ['Attention','warn'];
+  if(availability==='unavailable')return ['Unreachable','bad'];
   return ['Unknown','muted'];
 }
 function providerOptions(selected){return state.providers.map(provider=>`<option value="${esc(provider.id)}" ${provider.id===selected?'selected':''}>${esc(provider.name)} · ${esc(provider.kind)}</option>`).join('')}
@@ -61,6 +59,7 @@ async function loadHome(){
     const healthPromise=api('/healthz');
     const [,usagePage]=await Promise.all([loadRegistry(),loadUsageSnapshot()]);
     const [ready,health]=await Promise.all([readyPromise,healthPromise]);
+    state.tierAvailability=Object.fromEntries((ready.models||[]).map(item=>[item.id,item.availability]));
     const gateway=ready.status==='ready'?'Ready':ready.status==='degraded'?'Degraded':'Not ready';
     $('#gateway').className=`status-chip ${ready.status==='ready'?'ok':ready.status==='degraded'?'warn':'bad'}`;
     $('#gateway').innerHTML=statusMarkup(gateway,ready.status==='ready'?'ok':ready.status==='degraded'?'warn':'bad');
@@ -83,7 +82,7 @@ function renderTree(){
   $('#tree').className='tree';
   $('#tree').innerHTML=state.tiers.map(tier=>{
     const deployments=tier.deployment_ids.map(id=>state.deployments.find(item=>item.id===id)).filter(Boolean);
-    const overall=tierState(tier,deployments);
+    const overall=tierState(tier);
     const tierRuntime=deployments.reduce((sum,item)=>{const current=state.runtime.deployments[item.id]||{};sum.running+=current.running||0;sum.max+=current.max_concurrent||0;return sum},{running:0,max:0});
     const usage=state.usage.filter(item=>item.model===tier.id);
     const tierTokens=usage.some(item=>item.total_tokens==null)?null:usage.reduce((sum,item)=>sum+item.total_tokens,0);
@@ -91,7 +90,7 @@ function renderTree(){
       const runtime=state.runtime.deployments[deployment.id]||{};
       const owner=provider(deployment.provider_id),status=backendState(deployment,owner,runtime);
       const toggleName=deployment.enabled?'pause':'play',toggleLabel=deployment.enabled?'Pause model':'Resume model';
-      return `<div class="backend"><span>└ <b>${esc(deployment.name)}</b><div class="subline">${esc(deployment.backend_model)} · v${deployment.version}</div></span><span>${statusMarkup(status[0],status[1])}</span><span>${metric(`${runtime.running??0} / ${runtime.max_concurrent??'?'}`)}</span><span class="unknown" title="Usage is recorded by Tier; the selected backend is not persisted">—</span><span>${esc(owner?.name||'Unknown provider')}</span><span>${owner?.kind==='cloud'?'Cloud':'Local'}</span><span class="backend-actions">${iconButton(toggleName,toggleLabel,'backend-toggle',`data-deployment="${esc(deployment.id)}"`)}${iconButton('refresh-cw','Probe backend','backend-probe',`data-deployment="${esc(deployment.id)}" ${status[0]==='Disabled'||status[0]==='Paused'?'disabled':''}`)}</span></div>`;
+      return `<div class="backend"><span><b>${esc(deployment.name)}</b><div class="subline">${esc(deployment.backend_model)} · v${deployment.version}</div></span><span>${statusMarkup(status[0],status[1])}</span><span>${metric(`${runtime.running??0} / ${runtime.max_concurrent??'?'}`)}</span><span class="unknown" title="Usage is recorded by Tier; the selected backend is not persisted">—</span><span>${esc(owner?.name||'Unknown provider')}</span><span>${owner?.kind==='cloud'?'Cloud':'Local'}</span><span class="backend-actions">${iconButton(toggleName,toggleLabel,'backend-toggle',`data-deployment="${esc(deployment.id)}"`)}${iconButton('refresh-cw','Probe backend','backend-probe',`data-deployment="${esc(deployment.id)}" ${status[0]==='Disabled'||status[0]==='Paused'?'disabled':''}`)}</span></div>`;
     }).join('');
     return `<details open><summary><span class="tiername"><b>${esc(tier.id)}</b><div class="subline">${deployments.length} members · v${tier.version}</div></span><span>${statusMarkup(overall[0],overall[1])}</span><span>${metric(`${tierRuntime.running} / ${tierRuntime.max}`)}</span><span>${metric(usage.length?`${usage.length} calls · ${tierTokens??'Unknown'} tok`:'No calls')}</span><span>—</span><span></span><span>${iconButton('pencil',`Edit ${tier.id}`,'tier-edit',`data-tier="${esc(tier.id)}"`)}</span></summary>${rows}</details>`;
   }).join('')||'<div class="empty">No tiers configured</div>';
