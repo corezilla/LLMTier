@@ -39,9 +39,9 @@ config/state/contract authority。
 
 ## 安装与启动
 
-m5air测试环境不配置开机自启；机器重启后按
-[`docs/80_operations/m5air-manual-start-runbook.md`](docs/80_operations/m5air-manual-start-runbook.md)
-手工启动、检查和停止服务。
+m5air测试环境不配置开机自启；部署、启动停止、Web UI、Provider/Tier管理、状态与并发、日志、备份恢复、
+更新回滚和故障处理见
+[`docs/80_operations/m5air-operations-manual.md`](docs/80_operations/m5air-operations-manual.md)。
 
 要求 Python 3.11 或更高版本。在独立虚拟环境中从仓库根目录安装：
 
