@@ -12,8 +12,9 @@ class WebUIContractTests(unittest.TestCase):
     def test_home_is_default(self):self.assertIn('id="home" class="page active"',self.html)
     def test_fixed_tier_tree_target(self):self.assertIn('id="tree"',self.html)
     def test_home_shows_authoritative_backend_status(self):
-        for value in ('Running','Probing','Exhausted','Unreachable','Disabled','Unknown'):
+        for value in ('Idle','Running','Probing','Exhausted','Unreachable','Disabled','Unknown'):
             self.assertIn(value,self.js)
+        self.assertIn("(runtime.running||0)>0?'Running':'Idle'",self.js)
         self.assertIn("'backend-probe'",self.js)
         self.assertIn("'/tier/admin/v1/probes'",self.js)
     def test_header_shows_runtime_version_and_ui_update_time(self):
@@ -47,6 +48,10 @@ class WebUIContractTests(unittest.TestCase):
         self.assertIn('class="icon-button"',self.html)
         self.assertIn('iconButton(',self.js)
         self.assertIn('aria-label=',self.js)
+        self.assertIn('class="ui-icon"',self.html)
+        self.assertIn('class="status-icon',self.js)
+        self.assertIn('title="${esc(label)}"',self.js)
+        self.assertNotIn('&nbsp;${esc(label)}',self.js)
     def test_provider_and_tree_operational_fields(self):
         for value in ('Concurrency','Account Usage','Calls / Tokens','Running / Max'):
             self.assertIn(value,self.html)
