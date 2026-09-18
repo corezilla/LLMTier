@@ -47,6 +47,9 @@ class WebUIContractTests(unittest.TestCase):
         self.assertIn('id="member-provider"',self.html)
         self.assertIn("'tier-edit'",self.js)
         self.assertIn("providerOptions()",self.js)
+    def test_tier_parent_type_cell_is_empty(self):
+        self.assertIn("</span><span>—</span><span></span><span>${iconButton('pencil'",self.js)
+        self.assertNotIn("tier.capabilities.responses?'Responses':'Embeddings'",self.js)
     def test_no_global_add_model(self):
         self.assertNotIn('Add Model',self.html)
         self.assertNotIn('id="model-form"',self.html)
