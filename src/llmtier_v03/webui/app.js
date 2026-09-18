@@ -61,7 +61,7 @@ async function loadHome(){
     $('#gateway').innerHTML=`<i></i>${esc(gateway)}`;
     const running=Object.values(state.runtime.deployments).reduce((sum,item)=>sum+item.running,0);
     const maximum=Object.values(state.runtime.deployments).reduce((sum,item)=>sum+item.max_concurrent,0);
-    const available=(ready.models||[]).filter(item=>item.status==='available').length;
+    const available=(ready.models||[]).filter(item=>item.availability==='available').length;
     const activeModels=state.deployments.filter(item=>backendState(item,state.providers.find(provider=>provider.id===item.provider_id))[0]==='Running').length;
     $('#tier-summary').textContent=`Tiers ${available}/${state.tiers.length}`;
     $('#model-summary').textContent=`Models ${activeModels}/${state.deployments.length}`;

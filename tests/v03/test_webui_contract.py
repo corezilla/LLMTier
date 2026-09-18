@@ -23,6 +23,7 @@ class WebUIContractTests(unittest.TestCase):
         self.assertIn('id="load-summary"',self.html)
         self.assertIn("api('/healthz')",self.js)
         self.assertIn("api('/tier/admin/v1/runtime')",self.js)
+        self.assertIn("item.availability==='available'",self.js)
         self.assertIn('document.lastModified',self.js)
     def test_root_route_assets_remain_same_origin(self):
         self.assertIn('href="/ui/styles.css"',self.html)
