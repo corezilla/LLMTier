@@ -15,25 +15,15 @@ const caps=kind=>({responses:kind==='responses',embeddings:kind==='embeddings',t
 let state={providers:[],deployments:[],tiers:[],runtime:{deployments:{},queues:{}},usage:[]};
 let editingTierId=null;
 
-const icons={
-  edit:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4z"/></svg>',
-  probe:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7L20 9M20 4v5h-5"/></svg>',
-  delete:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m-9 0 1 13h10l1-13M10 11v5m4-5v5"/></svg>',
-  ok:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/></svg>',
-  warn:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 3.8 2.4 18a2 2 0 0 0 1.8 3h15.6a2 2 0 0 0 1.8-3L13.7 3.8a2 2 0 0 0-3.4 0zM12 9v4m0 4h.01"/></svg>',
-  bad:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6m0-6-6 6"/></svg>',
-  disabled:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>',
-  idle:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 9v6m4-6v6"/></svg>',
-  unknown:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.8 9a2.4 2.4 0 0 1 4.6 1c0 1.7-2.4 2-2.4 3.5M12 17h.01"/></svg>',
-  empty:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v13H4zM8 4h8v3"/></svg>'
-};
-const statusIconName=label=>label==='Running'||label==='Ready'||label==='measured'?'ok':label==='Idle'?'idle':label==='Probing'||label==='Exhausted'||label==='Attention'||label==='Degraded'?'warn':label==='Unreachable'||label==='Not ready'||label==='Connection failed'?'bad':label==='Disabled'?'disabled':label==='Empty'?'empty':'unknown';
-const statusMarkup=(label,tone='muted')=>`<span class="status-icon ${tone}" role="img" tabindex="0" title="${esc(label)}" aria-label="${esc(label)}">${icons[statusIconName(label)]}</span>`;
-const iconButton=(name,label,className,data='')=>`<button type="button" class="icon-action ${className}" ${data} title="${esc(label)}" aria-label="${esc(label)}">${icons[name]}</button>`;
+const iconSvg=name=>`<svg viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-${esc(name)}"></use></svg>`;
+const statusIconName=label=>({Running:'activity',Ready:'circle-check',measured:'circle-check',Idle:'circle-dot',Paused:'circle-pause',Probing:'scan-search',Exhausted:'gauge',Attention:'triangle-alert',Degraded:'triangle-alert',Unreachable:'cloud-off','Not ready':'triangle-alert','Connection failed':'cloud-off',Disabled:'circle-off',Empty:'package-open'}[label]||'circle-help');
+const statusMarkup=(label,tone='muted')=>`<span class="status-icon ${tone}" role="img" tabindex="0" title="${esc(label)}" aria-label="${esc(label)}">${iconSvg(statusIconName(label))}</span>`;
+const iconButton=(name,label,className,data='')=>`<button type="button" class="icon-action ${className}" ${data} title="${esc(label)}" aria-label="${esc(label)}">${iconSvg(name)}</button>`;
 const metric=value=>value==null?'<span class="unknown">Unknown</span>':`<span class="metric">${esc(value)}</span>`;
 
 function backendState(deployment,provider,runtime={}){
-  if(!provider?.enabled||!deployment.enabled)return ['Disabled','muted'];
+  if(!provider?.enabled)return ['Disabled','muted'];
+  if(!deployment.enabled)return ['Paused','muted'];
   const value=String(deployment.health||'unknown').toLowerCase();
   if(value==='healthy'||value==='running')return [(runtime.running||0)>0?'Running':'Idle','ok'];
   if(value==='probing')return ['Probing','warn'];
@@ -48,6 +38,7 @@ function tierState(tier,deployments){
   if(states.includes('Running'))return ['Running','ok'];
   if(states.includes('Idle'))return ['Idle','ok'];
   for(const name of ['Probing','Exhausted','Unreachable'])if(states.includes(name))return [name,name==='Unreachable'?'bad':'warn'];
+  if(states.includes('Paused')&&states.every(name=>name==='Paused'||name==='Disabled'))return ['Paused','muted'];
   if(states.every(name=>name==='Disabled'))return ['Disabled','muted'];
   return ['Unknown','muted'];
 }
@@ -99,12 +90,23 @@ function renderTree(){
     const rows=deployments.map(deployment=>{
       const runtime=state.runtime.deployments[deployment.id]||{};
       const owner=provider(deployment.provider_id),status=backendState(deployment,owner,runtime);
-      return `<div class="backend"><span>└ <b>${esc(deployment.name)}</b><div class="subline">${esc(deployment.backend_model)} · v${deployment.version}</div></span><span>${statusMarkup(status[0],status[1])}</span><span>${metric(`${runtime.running??0} / ${runtime.max_concurrent??'?'}`)}</span><span class="unknown" title="Usage is recorded by Tier; the selected backend is not persisted">—</span><span>${esc(owner?.name||'Unknown provider')}</span><span>${owner?.kind==='cloud'?'Cloud':'Local'}</span><span>${iconButton('probe','Probe backend','backend-probe',`data-deployment="${esc(deployment.id)}" ${status[0]==='Disabled'?'disabled':''}`)}</span></div>`;
+      const toggleName=deployment.enabled?'pause':'play',toggleLabel=deployment.enabled?'Pause model':'Resume model';
+      return `<div class="backend"><span>└ <b>${esc(deployment.name)}</b><div class="subline">${esc(deployment.backend_model)} · v${deployment.version}</div></span><span>${statusMarkup(status[0],status[1])}</span><span>${metric(`${runtime.running??0} / ${runtime.max_concurrent??'?'}`)}</span><span class="unknown" title="Usage is recorded by Tier; the selected backend is not persisted">—</span><span>${esc(owner?.name||'Unknown provider')}</span><span>${owner?.kind==='cloud'?'Cloud':'Local'}</span><span class="backend-actions">${iconButton(toggleName,toggleLabel,'backend-toggle',`data-deployment="${esc(deployment.id)}"`)}${iconButton('refresh-cw','Probe backend','backend-probe',`data-deployment="${esc(deployment.id)}" ${status[0]==='Disabled'||status[0]==='Paused'?'disabled':''}`)}</span></div>`;
     }).join('');
-    return `<details open><summary><span class="tiername"><b>${esc(tier.id)}</b><div class="subline">${deployments.length} members · v${tier.version}</div></span><span>${statusMarkup(overall[0],overall[1])}</span><span>${metric(`${tierRuntime.running} / ${tierRuntime.max}`)}</span><span>${metric(usage.length?`${usage.length} calls · ${tierTokens??'Unknown'} tok`:'No calls')}</span><span>—</span><span>${tier.capabilities.responses?'Responses':'Embeddings'}</span><span>${iconButton('edit',`Edit ${tier.id}`,'tier-edit',`data-tier="${esc(tier.id)}"`)}</span></summary>${rows}</details>`;
+    return `<details open><summary><span class="tiername"><b>${esc(tier.id)}</b><div class="subline">${deployments.length} members · v${tier.version}</div></span><span>${statusMarkup(overall[0],overall[1])}</span><span>${metric(`${tierRuntime.running} / ${tierRuntime.max}`)}</span><span>${metric(usage.length?`${usage.length} calls · ${tierTokens??'Unknown'} tok`:'No calls')}</span><span>—</span><span>${tier.capabilities.responses?'Responses':'Embeddings'}</span><span>${iconButton('pencil',`Edit ${tier.id}`,'tier-edit',`data-tier="${esc(tier.id)}"`)}</span></summary>${rows}</details>`;
   }).join('')||'<div class="empty">No tiers configured</div>';
   $$('#tree .tier-edit').forEach(button=>button.onclick=event=>{event.preventDefault();event.stopPropagation();openTierEditor(button.dataset.tier)});
+  $$('#tree .backend-toggle').forEach(button=>button.onclick=()=>toggleDeployment(button));
   $$('#tree .backend-probe').forEach(button=>button.onclick=()=>probeDeployment(button));
+}
+
+async function toggleDeployment(button){
+  const deployment=state.deployments.find(item=>item.id===button.dataset.deployment);if(!deployment)return;
+  const runtime=state.runtime.deployments[deployment.id]||{};
+  if(deployment.enabled&&(runtime.running||0)>0&&!window.confirm('Pause this model? New requests will stop, but active requests will continue.'))return;
+  button.disabled=true;
+  try{await api(`/tier/admin/v1/deployments/${encodeURIComponent(deployment.id)}`,{method:'PATCH',headers:{'If-Match':etag(deployment)},body:{enabled:!deployment.enabled}});await loadHome()}
+  catch(error){window.alert(`${deployment.enabled?'Pause':'Resume'} failed: ${error.message}`);button.disabled=false}
 }
 
 async function probeDeployment(button){
@@ -112,7 +114,7 @@ async function probeDeployment(button){
   if(!window.confirm('Probe this backend now? This makes one provider request.'))return;
   button.disabled=true;button.textContent='…';
   try{await api('/tier/admin/v1/probes',{method:'POST',body:{deployment_id:deploymentId,confirm_external_call:true}});await loadHome()}
-  catch(error){window.alert(`Probe failed: ${error.message}`);button.disabled=false;button.innerHTML=icons.probe}
+  catch(error){window.alert(`Probe failed: ${error.message}`);button.disabled=false;button.innerHTML=iconSvg('refresh-cw')}
 }
 
 async function loadProviders(){
@@ -125,7 +127,7 @@ function renderProviders(){
     const load=deployments.reduce((sum,item)=>{const current=state.runtime.deployments[item.id]||{};sum.running+=current.running||0;sum.max+=current.max_concurrent||0;return sum},{running:0,max:0});
     const available=provider.enabled&&deployments.some(item=>['Idle','Running'].includes(backendState(item,provider,state.runtime.deployments[item.id])[0]));
     const providerStatus=!provider.enabled?'Disabled':load.running>0?'Running':available?'Idle':'Attention';
-    return `<tr><td><b>${esc(provider.name)}</b><div class="subline">${esc(provider.id)}</div></td><td>${provider.kind==='cloud'?'Cloud':'Local'}</td><td>${esc(provider.endpoint)}</td><td>${provider.has_secret?'Configured':'None'}</td><td>${statusMarkup(providerStatus,providerStatus==='Running'||providerStatus==='Idle'?'ok':providerStatus==='Attention'?'warn':'muted')}</td><td>${metric(null)}</td><td><span class="unknown" title="Current usage records identify Tier, not provider account">Unknown</span></td><td>${metric(`${load.running} / ${load.max}`)}</td><td class="row-actions">${iconButton('edit','Edit provider','provider-edit',`data-provider="${esc(provider.id)}"`)}${iconButton('delete','Delete provider','provider-delete danger',`data-provider="${esc(provider.id)}"`)}</td></tr>`;
+    return `<tr><td><b>${esc(provider.name)}</b><div class="subline">${esc(provider.id)}</div></td><td>${provider.kind==='cloud'?'Cloud':'Local'}</td><td>${esc(provider.endpoint)}</td><td>${provider.has_secret?'Configured':'None'}</td><td>${statusMarkup(providerStatus,providerStatus==='Running'||providerStatus==='Idle'?'ok':providerStatus==='Attention'?'warn':'muted')}</td><td>${metric(null)}</td><td><span class="unknown" title="Current usage records identify Tier, not provider account">Unknown</span></td><td>${metric(`${load.running} / ${load.max}`)}</td><td class="row-actions">${iconButton('pencil','Edit provider','provider-edit',`data-provider="${esc(provider.id)}"`)}${iconButton('trash-2','Delete provider','provider-delete danger',`data-provider="${esc(provider.id)}"`)}</td></tr>`;
   }).join('')||'<tr><td colspan="9">No providers configured</td></tr>';
   $$('.provider-edit').forEach(button=>button.onclick=()=>openProviderEditor(button.dataset.provider));
   $$('.provider-delete').forEach(button=>button.onclick=()=>deleteProvider(button.dataset.provider));
@@ -177,7 +179,7 @@ function openTierEditor(id){
 function renderTierMembers(){
   const tier=state.tiers.find(item=>item.id===editingTierId);if(!tier)return;
   const deployments=tier.deployment_ids.map(id=>state.deployments.find(item=>item.id===id)).filter(Boolean);
-  $('#tier-members').innerHTML=deployments.map(deployment=>{const status=backendState(deployment,state.providers.find(item=>item.id===deployment.provider_id),state.runtime.deployments[deployment.id]);return `<form class="member-card" data-deployment="${esc(deployment.id)}"><div class="member-heading"><b>${esc(deployment.name)}</b><span>${statusMarkup(status[0],status[1])}${esc(deployment.id)} · v${deployment.version}</span></div><label>Provider<select name="provider_id">${providerOptions(deployment.provider_id)}</select></label><label>Deployment Name<input name="name" value="${esc(deployment.name)}" required></label><label>Backend Model ID<input name="backend_model" value="${esc(deployment.backend_model)}" required></label><label class="check"><input name="enabled" type="checkbox" ${deployment.enabled?'checked':''}> Enabled</label><div class="member-actions"><button type="button" class="danger member-remove">Remove from Tier</button><button class="primary">Save Changes</button></div></form>`}).join('')||'<div class="empty compact">This tier has no members.</div>';
+  $('#tier-members').innerHTML=deployments.map(deployment=>{const status=backendState(deployment,state.providers.find(item=>item.id===deployment.provider_id),state.runtime.deployments[deployment.id]);return `<form class="member-card" data-deployment="${esc(deployment.id)}"><div class="member-heading"><b>${esc(deployment.name)}</b><span>${statusMarkup(status[0],status[1])}${esc(deployment.id)} · v${deployment.version}</span></div><label>Provider<select name="provider_id">${providerOptions(deployment.provider_id)}</select></label><label>Deployment Name<input name="name" value="${esc(deployment.name)}" required></label><label>Backend Model ID<input name="backend_model" value="${esc(deployment.backend_model)}" required></label><label class="check"><input name="enabled" type="checkbox" ${deployment.enabled?'checked':''}> Available for routing</label><div class="member-actions"><button type="button" class="danger member-remove">${iconSvg('unlink')}<span>Remove</span></button><button class="primary">${iconSvg('save')}<span>Save</span></button></div></form>`}).join('')||'<div class="empty compact">This tier has no members.</div>';
   $$('#tier-members .member-card').forEach(form=>{form.onsubmit=saveMember;form.querySelector('.member-remove').onclick=()=>removeMember(form.dataset.deployment)});
   $('#member-provider').innerHTML=providerOptions();
   $('#member-capability').textContent=tier.id==='Embedding-v1'?'Embeddings':'Responses';

@@ -6,33 +6,33 @@
   <aside>
     <div class="brand"><b>LT</b><span><strong>LLMTier</strong><small>Model Gateway Console</small></span></div>
     <nav>
-      <button class="active" data-page="home"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-8 9 8M5 10v10h14V10M9 20v-6h6v6"/></svg>Home</button>
-      <button data-page="providers"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 9h8m-8 4h5"/></svg>Providers</button>
-      <button data-page="records"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM8 8h8m-8 4h8m-8 4h5"/></svg>Usage & Audit</button>
-      <button data-page="logs"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Logs</button>
+      <button class="active" data-page="home"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-house"></use></svg>Home</button>
+      <button data-page="providers"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-server"></use></svg>Providers</button>
+      <button data-page="records"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-chart-no-axes-combined"></use></svg>Usage & Audit</button>
+      <button data-page="logs"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-logs"></use></svg>Logs</button>
     </nav>
     <footer>Single-node console<br>OpenAI-compatible API</footer>
   </aside>
   <main>
-    <header><div><h1 id="title">Home</h1><p id="subtitle">View every model, tier, backend, and status on one page</p></div><div class="header-status"><div class="header-facts"><span id="gateway" class="status-chip warn" title="Connecting" aria-label="Connecting"><span class="status-icon warn"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.8 9a2.4 2.4 0 0 1 4.6 1c0 1.7-2.4 2-2.4 3.5M12 17h.01"/></svg></span></span><span id="tier-summary" class="status-chip neutral" title="Available tiers">Tiers —</span><span id="model-summary" class="status-chip neutral" title="Running backends">Models —</span><span id="load-summary" class="status-chip neutral" title="Running requests and configured concurrency">Load —</span></div><span id="build-meta">Version — · Updated —</span></div></header>
+    <header><div><h1 id="title">Home</h1><p id="subtitle">View every model, tier, backend, and status on one page</p></div><div class="header-status"><div class="header-facts"><span id="gateway" class="status-chip warn" title="Connecting" aria-label="Connecting"><span class="status-icon warn"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-circle-help"></use></svg></span></span><span id="tier-summary" class="status-chip neutral" title="Available tiers">Tiers —</span><span id="model-summary" class="status-chip neutral" title="Available models">Models —</span><span id="load-summary" class="status-chip neutral" title="Running requests and configured concurrency">Load —</span></div><span id="build-meta">Version — · Updated —</span></div></header>
 
     <section id="home" class="page active">
       <div class="card"><div class="cardhead"><b>Tier / Backend Tree</b><span id="stamp">Not refreshed</span></div><div class="tree-head"><span>Tier / Backend</span><span>Status</span><span>Concurrency</span><span>Usage</span><span>Provider</span><span>Type</span><span>Actions</span></div><div id="tree" class="tree empty">Loading…</div></div>
     </section>
 
     <section id="providers" class="page">
-      <div class="toolbar"><span id="provider-error" class="error"></span><div class="actions"><button id="refresh-providers" class="icon-button" title="Refresh providers" aria-label="Refresh providers"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7L20 9M20 4v5h-5"/></svg></button><button class="primary" id="add-provider"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add Provider</button></div></div>
+      <div class="toolbar"><span id="provider-error" class="error"></span><div class="actions"><button id="refresh-providers" class="icon-button" title="Refresh providers" aria-label="Refresh providers"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-refresh-cw"></use></svg></button><button class="primary" id="add-provider"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-plus"></use></svg>Add Provider</button></div></div>
       <div class="card"><div class="cardhead"><b>Provider Management</b><span>Tier members can only use providers listed here</span></div><div class="tablewrap"><table><thead><tr><th>Provider</th><th>Type</th><th>API Root</th><th>API Key</th><th>Status</th><th>Account Usage</th><th>Calls / Tokens</th><th>Running / Max</th><th>Actions</th></tr></thead><tbody id="provider-body"></tbody></table></div></div>
     </section>
 
     <section id="records" class="page">
       <div class="tabs"><button class="active" data-tab="usage">Token Usage</button><button data-tab="audit">Audit Log</button></div>
-      <div id="usage" class="sub active"><div class="card"><div class="cardhead"><b>Unified Token Usage</b><button id="refresh-usage" class="icon-button" title="Refresh usage" aria-label="Refresh usage"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7L20 9M20 4v5h-5"/></svg></button></div><div class="tablewrap"><table><thead><tr><th>Request</th><th>Model</th><th>Endpoint</th><th>Input</th><th>Output</th><th>Total</th><th>Status</th></tr></thead><tbody id="usage-body"></tbody></table></div></div></div>
-      <div id="audit" class="sub"><div class="card"><div class="cardhead"><b>Administrative Audit</b><button id="refresh-audit" class="icon-button" title="Refresh audit" aria-label="Refresh audit"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7L20 9M20 4v5h-5"/></svg></button></div><div class="tablewrap"><table><thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Target</th><th>Result</th></tr></thead><tbody id="audit-body"></tbody></table></div></div></div>
+      <div id="usage" class="sub active"><div class="card"><div class="cardhead"><b>Unified Token Usage</b><button id="refresh-usage" class="icon-button" title="Refresh usage" aria-label="Refresh usage"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-refresh-cw"></use></svg></button></div><div class="tablewrap"><table><thead><tr><th>Request</th><th>Model</th><th>Endpoint</th><th>Input</th><th>Output</th><th>Total</th><th>Status</th></tr></thead><tbody id="usage-body"></tbody></table></div></div></div>
+      <div id="audit" class="sub"><div class="card"><div class="cardhead"><b>Administrative Audit</b><button id="refresh-audit" class="icon-button" title="Refresh audit" aria-label="Refresh audit"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-refresh-cw"></use></svg></button></div><div class="tablewrap"><table><thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Target</th><th>Result</th></tr></thead><tbody id="audit-body"></tbody></table></div></div></div>
     </section>
 
     <section id="logs" class="page">
-      <div class="toolbar"><select id="log-level"><option value="">All levels</option><option>info</option><option>warning</option><option>error</option></select><input id="log-module" placeholder="Module"><button id="refresh-logs" class="icon-button" title="Refresh logs" aria-label="Refresh logs"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7L20 9M20 4v5h-5"/></svg></button></div>
+      <div class="toolbar"><select id="log-level"><option value="">All levels</option><option>info</option><option>warning</option><option>error</option></select><input id="log-module" placeholder="Module"><button id="refresh-logs" class="icon-button" title="Refresh logs" aria-label="Refresh logs"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-refresh-cw"></use></svg></button></div>
       <div class="card"><div class="cardhead"><b>Runtime Logs</b><span>Request bodies, model outputs, and credentials are never shown</span></div><div class="tablewrap"><table><thead><tr><th>Time</th><th>Level</th><th>Module</th><th>Event</th><th>Summary</th><th>Request ID</th></tr></thead><tbody id="log-body"></tbody></table></div></div>
     </section>
   </main>
@@ -40,7 +40,7 @@
 
 <div id="provider-mask" class="mask">
   <aside class="drawer narrow">
-    <div class="drawerhead"><div><h2 id="provider-drawer-title">Add Provider</h2><p>Configure a cloud or local OpenAI-compatible API root.</p></div><button id="close-provider">×</button></div>
+    <div class="drawerhead"><div><h2 id="provider-drawer-title">Add Provider</h2><p>Configure a cloud or local OpenAI-compatible API root.</p></div><button id="close-provider" class="icon-button" title="Close" aria-label="Close"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-x"></use></svg></button></div>
     <form id="provider-form">
       <input type="hidden" name="provider_id"><input type="hidden" name="provider_version">
       <label>Provider Name<input name="name" required></label>
@@ -49,21 +49,21 @@
       <label class="full">API Key Reference<input name="secret_ref" placeholder="env:PROVIDER_API_KEY"><span id="provider-secret-help" class="field-help"></span></label>
       <label class="check full"><input name="enabled" type="checkbox" checked> Enabled</label>
       <p id="provider-form-error" class="error"></p>
-      <div class="formactions"><button type="button" id="cancel-provider">Cancel</button><button class="primary">Save Provider</button></div>
+      <div class="formactions"><button type="button" id="cancel-provider"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-x"></use></svg>Cancel</button><button class="primary"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-save"></use></svg>Save Provider</button></div>
     </form>
   </aside>
 </div>
 
 <div id="tier-mask" class="mask">
   <aside class="drawer wide">
-    <div class="drawerhead"><div><h2 id="tier-drawer-title">Edit Tier</h2><p>Add, remove, or modify members. Providers are managed separately.</p></div><button id="close-tier">×</button></div>
+    <div class="drawerhead"><div><h2 id="tier-drawer-title">Edit Tier</h2><p>Add, remove, or modify members. Providers are managed separately.</p></div><button id="close-tier" class="icon-button" title="Close" aria-label="Close"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-x"></use></svg></button></div>
     <div id="tier-members" class="member-list"></div>
     <div class="section-title"><b>Add Member</b><span id="member-capability"></span></div>
     <form id="add-member-form" class="add-member-form">
       <label>Existing Provider<select id="member-provider" name="provider_id" required></select></label>
       <label>Deployment Name<input name="name" required></label>
       <label>Backend Model ID<input name="backend_model" required></label>
-      <button class="primary">Add Member</button>
+      <button class="primary"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-plus"></use></svg>Add Member</button>
     </form>
     <p id="tier-form-error" class="error"></p>
   </aside>

@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-webui-module-design` |
-| Document Version | `0.3.0-draft.10` |
+| Document Version | `0.3.0-draft.11` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -33,23 +33,46 @@ Web UI is LLMTier's English-language operator console. It calls `/tier/admin/v1`
 
 不提供访问控制、容量配置、恢复、费用、调用方页面；主页只读显示当前running/max并发事实。宽度小于960px时侧栏折叠为顶部菜单；表格允许横向滚动，不把三个页面拼成长页。状态与高频操作优先使用紧凑图标，并用`title`、`aria-label`和非颜色文字保留可理解性。
 
+### 1.1 图标系统
+
+![LLMTier Web UI图标系统](assets/webui/icon-set.svg)
+
+运行页面只使用项目内固定的单线SVG图标库`src/llmtier_v03/webui/icons.svg`，不从CDN加载字体或图标，也不以emoji表达状态。图标在表格中只显示图形；鼠标悬停、键盘聚焦时通过`title`显示英文名称，辅助技术通过`aria-label`读取同一名称。颜色只是补充信息，不能改变图标语义。
+
+| 图标名称 | 状态语义 |
+|---|---|
+| Idle / `circle-dot` | Deployment健康、允许路由且当前没有活动请求；Idle不是暂停 |
+| Running / `activity` | 当前至少有一个活动请求；请求结束后回到Idle |
+| Paused / `circle-pause` | operator暂停单个Deployment，阻止新请求；配置仍保留 |
+| Probing / `scan-search` | 显式健康探测正在执行 |
+| Exhausted / `gauge` | 当前没有可用并发槽位 |
+| Attention / `triangle-alert` | 数据或配置需要operator检查 |
+| Unreachable / `cloud-off` | Provider或后端不可达 |
+| Disabled / `circle-off` | 上级Provider或Tier被禁用，不是单模型暂停 |
+| Unknown / `circle-help` | 没有足够事实判定状态 |
+| Empty / `package-open` | Tier当前没有成员 |
+| Ready / `circle-check` | 网关readiness成功 |
+
+导航和操作统一使用同一图标库：Home、Providers、Usage、Logs、Refresh/Probe、Add、Edit、Save、Pause、Resume、Delete、Unlink和Close。Pause与Resume是同一Deployment的可逆操作，不创建新模型、不改变Tier成员关系。
+
 ## 2. 页面一：主页
 
 ![主页](assets/webui/home.png)
 
-- 主页使用两层树形表格，而不是把三个后端横向塞进同一行。Tier是父节点；展开后每个后端成为独立子节点，显示provider、model、类型、健康状态、版本与`running/max`并发。健康且`running=0`显示Idle；只有`running>0`才显示Running。Tier与Provider沿用同一聚合语义。Tier行显示聚合并发及最近七日Tier级Calls/Tokens；token事实存在Unknown时不填0。由于当前Usage记录只保存逻辑Tier而不保存最终选中的Deployment，后端行不得虚构单模型用量，显示`—`并说明数据边界。
+- 主页使用两层树形表格，而不是把三个后端横向塞进同一行。Tier是父节点；展开后每个后端成为独立子节点，显示provider、model、类型、健康状态、版本与`running/max`并发。健康、允许路由且`running=0`显示Idle；只有`running>0`才显示Running；单个Deployment的`enabled=false`显示Paused。Tier与Provider沿用同一聚合语义。Tier行显示聚合并发及最近七日Tier级Calls/Tokens；token事实存在Unknown时不填0。由于当前Usage记录只保存逻辑Tier而不保存最终选中的Deployment，后端行不得虚构单模型用量，显示`—`并说明数据边界。
 - 主页不显示重复的Gateway/Tier/Backend/Health统计卡，也不显示搜索、手工刷新或全局`Add Model`。全局页头紧凑显示Gateway总状态、可用Tier/总Tier、Running模型/总模型、当前请求/配置并发上限以及Version/Updated。每个Tier行右侧使用图标`Edit`。V0.3当前Tier集合为`Senior`、`Junior`、`Worker`、`Associate`、`Engineer`、`Executor`与独立的`Embedding-v1`，不分页隐藏当前目录项。
 - Tier集合和映射来自Registry；演示中的后端模型名仅用于布局，不构成生产配置。物理凭据不展示。
 - 推理Tier可绑定不同供应商但必须能力兼容且保持同一exact Tier；`Embedding-v1`的三个deployment必须是同一`BAAI/bge-m3`模型版本、预处理和`embedding_space_id`，不能把不同向量空间挂在同一Tier下。物理Provider模型ID按各runtime实际API ID展示，不要求字符串都写成`BAAI/bge-m3`。
 - 编辑先GET item保存ETag，PATCH携带If-Match。412显示“配置已被他人修改”，保留用户输入并提供重新载入，不自动覆盖。
 - Tier是固定逻辑等级，主页不提供删除Tier；只允许编辑其后端绑定。Provider或Deployment等可删除资源仍须在对应编辑流程显示引用关系、携带If-Match；409显示引用列表摘要，禁止强删。
+- 每个后端行提供图标化Pause/Resume。操作使用现有Deployment partial PATCH与`If-Match`切换`enabled`，不新增控制接口。Pause阻止新请求进入该Deployment，但不取消已开始的请求；若`running>0`，UI必须在暂停前确认并明确该边界。Resume只恢复参与路由的资格，不等于probe成功或健康状态已恢复。Provider被禁用时显示Disabled，不显示为Paused。
 - Loading用表格骨架；空Tier显示“no members”并仍可进入`Edit`；401跳登录，403显示无operator权限；503保留旧画面并标“data may be stale”。
 
 ### 2.1 Tier成员编辑抽屉
 
 ![主页内模型编辑抽屉](assets/webui/home-model-editor.png)
 
-- 抽屉列出当前Tier全部成员，每项可修改已有Deployment的Provider、显示名和backend model ID；保存使用Deployment当前ETag与partial PATCH。
+- 抽屉列出当前Tier全部成员，每项可修改已有Deployment的Provider、显示名、backend model ID与`Available for routing`；保存使用Deployment当前ETag与partial PATCH。该开关与主页Pause/Resume操作同源，关闭后状态为Paused。
 - `Add Member`的Provider下拉框只列出Providers页面中已存在的Provider。页面不在此处创建Provider、Secret或第二套连接配置；没有Provider时禁用添加并提示先进入Providers页面。
 - 添加成员先POST Deployment，再以Tier当前ETag PATCH ServiceLevel的`deployment_ids`。第一步成功、第二步失败时保留真实错误和已创建Deployment，不谎称原子成功，也不自动删除可能已被引用的资源。
 - `Remove`只从当前Tier解绑Deployment，不删除Deployment或Provider。共享Deployment可继续被其他Tier使用；资源删除由其专属管理流程和409引用保护处理。
@@ -123,7 +146,7 @@ Web UI保持disabled，operator使用CLI/API；不提供把长期token粘贴进�
 
 | UI | Read | Mutation |
 |---|---|---|
-| 主页 | provider/deployment/service-level pages、healthz/readyz、admin runtime snapshot、admin usage page、deployment health + ETag | Tier抽屉POST Deployment、PATCH Deployment、PATCH Tier membership + If-Match；不创建Provider |
+| 主页 | provider/deployment/service-level pages、healthz/readyz、admin runtime snapshot、admin usage page、deployment health + ETag | Tier抽屉POST Deployment、PATCH Deployment、PATCH Tier membership + If-Match；后端Pause/Resume使用现有Deployment PATCH切换enabled；不创建Provider |
 | Providers | provider/deployment pages、admin runtime snapshot + ETag；账号quota和Provider归属Usage不可得时显示Unknown | Provider POST/PATCH/DELETE + If-Match；引用中的Provider由409保护 |
 | 用量与审计 | admin usage page、audit page | 无 |
 | 日志 | sanitized log page | 无 |
