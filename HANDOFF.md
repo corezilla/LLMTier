@@ -53,6 +53,7 @@ git diff --check
 - 操作、启动/停止、备份、回滚、Provider/Tier 管理的完整步骤见上述运维手册。更新源码后必须核对部署文件版本、浏览器页面、`/healthz`、`/readyz`，并复跑适当测试；不要仅凭 push 声称 m5air 已更新。
 
 > 2026-09-19 17:30 HKT 补做：sync commit `1c026e7`（5 docs + 1 test，共 6 文件）至 m5air；冷备份 `state.sqlite3.*.cold-pre-1c026e7-20260919-124217` 已留存于 `/Users/mlp/LLMTier-dev/backups/`；当前 LLMTier PID 6663；OMLX PID 698（operator 重启，配置已变化）。FD 泄漏与 OMLX auth 不匹配见 §5.3。
+> 2026-09-19 21:00 HKT：repo 升 commit `5fb137a`（STD draft.26+HEAD 目录重构、tests/ 重组成 unit/contract/integration/fixtures、tools/ 中 v03_smoke / v03_fake_provider 搬到 tests/）。**m5air 部署未同步**：`/Users/mlp/LLMTier-dev` 仍为 commit `0acf0f4` + flat 老路径（`tests/v03/` 不存在，LD PID 10051 跑老二进制）。FS 共享路径（NFS / SMB）操作遇 `sudo` 缺 tty + UID 502/501 不匹配 + macOS 文件共享不开 guest + nfsd mountd 未注册，三条路都失败。下次独立 sync 窗口处理：建议 `sudo nfsd enable && sudo nfsd restart` 后人工 verify `showmount -e`，再 mount。期间 m5air 上 §5.2 系统测试路径下走 fake provider（`tests/fixtures/v03_fake_provider.py` 路径在 m5air 上不存在，需先 sync）。
 
 ## 5. 下一步工作与完成判据
 
