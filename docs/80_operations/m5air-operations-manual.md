@@ -465,7 +465,7 @@ backups/
 | SQLite locked/corrupt | 停止服务，保全数据库/WAL/SHM；不要直接编辑或删除；按备份恢复流程处理 |
 | 磁盘空间不足 | 停止写入压力，检查日志、数据库和备份；不直接删除活动数据库文件 |
 | 周期性 503 / Empty reply / "Too many open files" 反复出现 | 2026-09-19 commit `b89ba4d` 已修：`src/llmtier_v03/app.py:_run` finally 加 `app.store.close()`，关闭每线程缓存的 SQLite 连接（db+wal+shm 三 fd）。如再发生，先 `lsof -p $(cat /Users/mlp/LLMTier-dev/llmtier.pid) | wc -l` 与 `ulimit -n` 对比，看 SQLite fds 是否仍按 1+1+1 增长；如是新的 fd 路径，重新定位 |
-| 本地 Provider（provider_local）调用返回 401 | 当前 OMLX 进程需 `Authorization: Bearer`，但 `provider_local.has_secret=false` 时 `src/llmtier_v03/providers/openai.py` 不发送 Authorization 头；二选一对齐：让 OMLX 接受匿名访问 / 为 `provider_local` 配 `file:` 或 `env:` 形式的 secret_ref（需 operator 提供 OMLX API key） |
+| 本地 Provider（provider_local）调用返回 401 | 当前 OMLX 进程（PID 698）`/Users/mlp/.omlx/settings.json` 的 `auth.api_key` 为动态生成的短串（如 `9832`），LLMTier 需配置 `provider_local.secret_ref` 为 `file:/Users/mlp/LLMTier-dev/secrets/omlx-secret-key.txt`（写入 `api_key`，chmod 600），PATCH provider_local 后无需重启（`responses.py:20` 每请求现读）。OMLX secret_key 是 JWT 签名密钥，不能用作 Bearer。 |
 
 故障证据至少保留：发生时间、部署版本、Request ID、health/readiness结果、脱敏日志、受影响Tier/Provider和已执行动作。
 任何日志中若出现Credential、Prompt、模型输出或Embedding内容，停止传播并按安全事件处理。
