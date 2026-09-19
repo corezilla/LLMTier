@@ -21,6 +21,9 @@ const statusMarkup=(label,tone='muted')=>`<span class="status-icon ${tone}" role
 const iconButton=(name,label,className,data='')=>`<button type="button" class="icon-action ${className}" ${data} title="${esc(label)}" aria-label="${esc(label)}">${iconSvg(name)}</button>`;
 const metric=value=>value==null?'<span class="unknown">Unknown</span>':`<span class="metric">${esc(value)}</span>`;
 
+const TIER_DISPLAY_NAMES = {"Embedding-v1":"Embedding"};
+const tierLabel=id=>TIER_DISPLAY_NAMES[id]||id;
+
 function backendState(deployment,provider,runtime={}){
   if(!provider?.enabled)return ['Disabled','muted'];
   if(!deployment.enabled)return ['Paused','muted'];
@@ -92,7 +95,7 @@ function renderTree(){
       const toggleName=deployment.enabled?'pause':'play',toggleLabel=deployment.enabled?'Pause model':'Resume model';
       return `<div class="backend"><span title="${esc(deployment.backend_model)} · v${deployment.version}" class="backend-name">${statusMarkup(status[0],status[1])}<b>${esc(deployment.name)}</b></span><span></span><span>${metric(`${runtime.running??0} / ${runtime.max_concurrent??'?'}`)}</span><span class="unknown" title="Usage is recorded by Tier; the selected backend is not persisted">—</span><span>${esc(owner?.name||'Unknown provider')}</span><span>${owner?.kind==='cloud'?'Cloud':'Local'}</span><span class="backend-actions">${iconButton(toggleName,toggleLabel,'backend-toggle',`data-deployment="${esc(deployment.id)}"`)}${iconButton('refresh-cw','Probe backend','backend-probe',`data-deployment="${esc(deployment.id)}" ${status[0]==='Disabled'||status[0]==='Paused'?'disabled':''}`)}</span></div>`;
     }).join('');
-    return `<details open><summary><span class="tiername">${statusMarkup(overall[0],overall[1])}<b>${esc(tier.id)}</b><div class="subline">${deployments.length} members · v${tier.version}</div></span><span></span><span>${metric(`${tierRuntime.running} / ${tierRuntime.max}`)}</span><span>${metric(usage.length?`${usage.length} calls · ${tierTokens??'Unknown'} tok`:'No calls')}</span><span>—</span><span></span><span>${iconButton('pencil',`Edit ${tier.id}`,'tier-edit',`data-tier="${esc(tier.id)}"`)}</span></summary>${rows}</details>`;
+    return `<details open><summary><span class="tiername">${statusMarkup(overall[0],overall[1])}<b title="${esc(tier.id)}">${esc(tierLabel(tier.id))}</b><div class="subline">${deployments.length} members · v${tier.version}</div></span><span></span><span>${metric(`${tierRuntime.running} / ${tierRuntime.max}`)}</span><span>${metric(usage.length?`${usage.length} calls · ${tierTokens??'Unknown'} tok`:'No calls')}</span><span>—</span><span></span><span>${iconButton('pencil',`Edit ${tier.id}`,'tier-edit',`data-tier="${esc(tier.id)}"`)}</span></summary>${rows}</details>`;
   }).join('')||'<div class="empty">No tiers configured</div>';
   $$('#tree .tier-edit').forEach(button=>button.onclick=event=>{event.preventDefault();event.stopPropagation();openTierEditor(button.dataset.tier)});
   $$('#tree .backend-toggle').forEach(button=>button.onclick=()=>toggleDeployment(button));
