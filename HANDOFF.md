@@ -75,11 +75,13 @@ git diff --check
 
    测试过程中已临时创建 / 删除若干测试 Provider（id 含 `provider_test` 或类似随机后缀），不留存。
 
-6. **§5.3 §5.2 测试中暴露的阻塞（pre-existing，与本次 sync commit `1c026e7` 无关）**：
+6. **§5.3 §5.2 测试中暴露的阻塞（pre-existing）**：
 
-   1. **FD 泄漏**：LLMTier PID 6663 运行约 3h 已达 118/256 fds（macOS 默认 `ulimit -n=256`）。日志反复出现 `OSError: [Errno 24] Too many open files: '.../webui/{index.html,app.js,styles.css,icons.svg}'` 并触发级联 `sqlite3.OperationalError: unable to open database file`（错误处理路径 `logs.record → store.connection` 在 FD 耗尽时连日志都写不进）。影响：~3h uptime 后所有请求开始 503 / Empty reply；当前缓解是定期重启。定位方向：`src/llmtier_v03/app.py` 的 `_static` 与 `_run` 路径，需调查文件句柄 / 连接缓存是否泄漏。属 §5.3 长期并发/性能门禁项，单独 follow-up。
+   1. **FD 泄漏**（commit `b89ba4d` 已修）：LLMTier 原 PID 6663 运行约 3h 已达 118/256 fds（macOS 默认 `ulimit -n=256`）。日志反复出现 `OSError: [Errno 24] Too many open files: '.../webui/{index.html,app.js,styles.css,icons.svg}'` 并触发级联 `sqlite3.OperationalError: unable to open database file`。根因：每个请求由 `ThreadingHTTPServer` 起新线程，`BaseHTTPRequestHandler.finish()` 关闭 rfile/wfile 但不动 `Store._local` 缓存的 SQLite 连接；连接持有的 db+wal+shm 三 fd 在 Python 延迟的 thread-local 清理之前一直滞留。修复：在 `src/llmtier_v03/app.py:_run` finally 加 `app.store.close()`。本地与 m5air 验证：250 个 mixed 请求后 FD 数恒为 40（修复前每请求 +3），SQLite fds 恒为 5（1 db + 1 wal + 1 shm + lsof artifact）。同时顺手修 `src/llmtier_v03/registry.py:144` `has_secret` 判定从 `is not None` 改为 `bool(...)`，让空字符串 `secret_ref` 正确显示 `False`（之前误报 `True`）。回归风险：LOW——per-request 开连接的开销本来就在（每请求一个线程），仅是把 close 提前到 finally。
 
-   2. **OMLX auth 不匹配**：当前 OMLX（PID 698）`GET /v1/models` 返回 401，要求 `Authorization: Bearer`；LLMTier `provider_local.has_secret=false`，`src/llmtier_v03/providers/openai.py:_secret` 在 secret_ref 为空时不发送 Authorization 头（line 31–33）。影响：本地 Provider 路径当前不可用，T6 / T7 measured 路径阻塞。解决方向（部署层）：让 OMLX 接受匿名 / 为 `provider_local` 配置 `file:` 或 `env:` 形式的 secret_ref。属部署 / 配置调整，不属代码改动。
+   2. **OMLX auth 不匹配**（仍 open）：当前 OMLX（PID 698）`GET /v1/models` 返回 401，要求 `Authorization: Bearer`；LLMTier `provider_local.has_secret=false`，`src/llmtier_v03/providers/openai.py:_secret` 在 secret_ref 为空时不发送 Authorization 头（line 31–33）。影响：本地 Provider 路径当前不可用，T6 / T7 measured 路径阻塞。解决方向（部署层）：让 OMLX 接受匿名 / 为 `provider_local` 配置 `file:` 或 `env:` 形式的 secret_ref。属部署 / 配置调整，不属代码改动。
+
+   2026-09-19 17:45 HKT 更新：FD 泄漏已在 m5air（PID 7079，commit `b89ba4d`）验证修复，250 个 mixed 请求 FD 数稳定。OMLX auth 仍未解决。
 
 ## 6. 不要恢复的旧设计
 
