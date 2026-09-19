@@ -118,3 +118,20 @@ PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest discover -s tests
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m tier_service --help
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m cli --help
 ```
+
+### STD 合规规则（prose 文档）
+
+任何新增或修改的 `docs/**/*.md` 必须满足：
+
+1. **Cover 必填**。每个 prose 文档必须以 `<!-- STD_DOCUMENT_COVER_BEGIN -->` 块开头，包含 `Document ID`、`Template ID`、`Template Conformance`、`Canonical Path` 至少这四列。模板见 STD 仓库 `templates/` 下对应领域的 `<template>.md`。
+2. **Template ID 不得发明**。`Template ID` 必须来自本项目 [`docs/00_management/std-tailoring.md`](docs/00_management/std-tailoring.md) §2「启用模板」表中的真实 template id（如 `assurance.test-plan`、`contracts.specification`、`design.system`），不得自行编造。
+3. **命名遵循模板**。文件名沿用 STD 模板基名，例如：
+   - `verification-validation-plan.md` → 本仓库文件应命名为 `*-vv-plan.md`
+   - `test-plan.md` → `*-test-plan.md`
+   - `test-specification.md` → `*-test-specification.md`
+   - `design.system` → `*-system-design.md`
+   - 不允许自造如 `*-system-test-plan.md` 这样的不存在的模板基名。
+4. **覆盖裁剪有引用**。如果 `Template Conformance = tailored`，`Tailoring Reference` 必须指向 `std-tailoring.md` §3 裁剪表中的具体 LT-TL-XXX 条目；`native` 则不需要裁剪引用。
+5. **路径与 cover 自洽**。`Canonical Path` 必须与文件实际路径一致（相对仓库根）。
+
+不满足以上规则的 prose 文档视为非合规，review 时退回作者按 STD 模板重写。机器契约层（OpenAPI / manifest / fixtures / Schema）由 `tools/contract_semantic_validator_v03.py` 校验，不在本节范围。
