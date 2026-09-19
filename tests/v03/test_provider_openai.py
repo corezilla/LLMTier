@@ -27,7 +27,7 @@ class OpenAIProviderTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             secret=Path(root)/"key"; secret.write_text("secret-value")
             seen={}
-            def open_url(req, timeout):
+            def open_url(req, timeout, **kwargs):
                 seen["url"],seen["auth"]=req.full_url,req.headers.get("Authorization")
                 return FakeResponse(json.dumps({"object":"list","data":[]}))
             with patch("urllib.request.urlopen",side_effect=open_url):
