@@ -31,7 +31,7 @@ Web UI is LLMTier's English-language operator console. It calls `/tier/admin/v1`
 
 [打开可切换的静态 Demo](demos/webui/index.html)。以下图片由该Demo在1280×760视口生成，作为布局和信息层级基线；它们不是已经接线的产品截图。
 
-不提供独立访问控制、容量产品、恢复、费用或调用方页面；Provider编辑器只配置本网关执行所需的账号并发、最小间隔与RPM保护，主页只读显示当前running/max事实。宽度小于960px时侧栏折叠为顶部菜单；表格允许横向滚动，不把三个页面拼成长页。状态与高频操作优先使用紧凑图标，并用`title`、`aria-label`和非颜色文字保留可理解性。
+不提供独立访问控制、容量产品、恢复、费用或调用方页面；Provider编辑器只配置本网关执行所需的账号并发、最小间隔与RPM保护，主页只读显示当前running/max事实。宽度小于960px时侧栏折叠为顶部菜单；表格允许横向滚动，不把四个页面拼成长页。状态与高频操作优先使用紧凑图标，并用`title`、`aria-label`和非颜色文字保留可理解性。
 
 ### 1.1 图标系统
 

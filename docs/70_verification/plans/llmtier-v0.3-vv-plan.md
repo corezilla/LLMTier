@@ -39,7 +39,7 @@ JSON/OpenAPI解析、internal `$ref` resolution、Schema正负例、path/header/
 
 ## 4. Validation 场景与用户目标
 
-Piko完成完整输入的text/tool loop；Slinky Memory获得embedding；Piko/Slinky获得不重复计数的token事实；Operator在中文Web UI主页一屏查看全部Tier状态、添加/编辑/删除云/本地模型、安全探测并查询脱敏日志；服务恢复后分层确认。
+Piko完成完整输入的text/tool loop；Slinky Memory获得embedding；Piko/Slinky获得不重复计数的token事实；Operator在英文Web UI主页一屏查看全部Tier状态、添加/编辑/删除云/本地模型、安全探测并查询脱敏日志；服务恢复后分层确认。
 
 ## 5. 测试层级和责任边界
 

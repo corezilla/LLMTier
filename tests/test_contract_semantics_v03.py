@@ -238,7 +238,7 @@ class SimplifiedV03ContractTests(unittest.TestCase):
         self.assertIn("/tier/admin/v1/usage", paths)
         self.assertIn("/tier/admin/v1/audit", paths)
         self.assertIn("/tier/admin/v1/logs", paths)
-        self.assertEqual(["主页", "添加模型", "运行状态", "用量", "审计", "日志"], self.manifest["admin_web_ui"]["pages"])
+        self.assertEqual(["Home", "Providers", "Usage & Audit", "Logs"], self.manifest["admin_web_ui"]["pages"])
         excluded = set(self.manifest["admin_web_ui"]["excluded_pages"])
         self.assertEqual({"访问控制", "容量", "恢复", "费用", "调用方"}, excluded)
 

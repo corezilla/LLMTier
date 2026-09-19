@@ -226,10 +226,10 @@ Bearer credential 只标识获授权调用主体；不暴露 Client/Source/Sourc
 
 ```mermaid
 flowchart LR
-  NAV[侧栏] --> HOME[主页]
-  NAV --> PROVIDERS[供应商]
-  NAV --> RECORDS[用量与审计]
-  NAV --> LOGUI[日志]
+  NAV[侧栏] --> HOME[Home]
+  NAV --> PROVIDERS[Providers]
+  NAV --> RECORDS[Usage & Audit]
+  NAV --> LOGUI[Logs]
   HOME -->|编辑Tier成员 / 状态| MAPI[Admin API]
   PROVIDERS -->|新增 / 修改 / 删除Provider| MAPI
   RECORDS -->|Token事实 / 管理操作| MAPI
@@ -285,7 +285,7 @@ Data Plane 与 Admin 使用不同 credential/权限。Provider Secret 只通过 
 3. 实现 dedicated Embeddings deployment 与 `/v1/embeddings`。
 4. 实现统一 token Usage 记录/查询，明确 measured/estimated/unknown。
 5. 将 legacy `/call` 从 consumer authority 退役。
-6. 按内部module/ISD及三页英文UI设计实现精简Admin面和安全运维流程。
+6. 按内部module/ISD及四页英文UI设计实现精简Admin面和安全运维流程。
 7. 完成 provider/Piko/Knowledge capture 后另行决定 runtime activation。
 
 ## 18. 设计决策、风险与未决项
@@ -331,4 +331,4 @@ V0.3 不承诺跨系统调用幂等或结果恢复。配置与 Usage/Audit 使�
 
 ## H. 未决问题、外部依赖和后续版本
 
-Responses streaming范围已按固定Pi调用方式选择标准SSE，内部module/ISD和三页Web UI设计已建立。candidate.6在已接受candidate.5语义上增加主页全量状态布局与只读脱敏日志查询；不改变模型调用或Usage语义。当前剩余工作是实现与运行证据：固定embedding权重和runtime digest、provider adapter、Web UI、auth/TLS、systemd、备份恢复、测量与运维。`runtime_activation`继续为false。
+Responses streaming范围已按固定Pi调用方式选择标准SSE，内部module/ISD和四页Web UI设计已建立。candidate.6在已接受candidate.5语义上增加主页全量状态布局与只读脱敏日志查询；不改变模型调用或Usage语义。当前剩余工作是实现与运行证据：固定embedding权重和runtime digest、provider adapter、Web UI、auth/TLS、systemd、备份恢复、测量与运维。`runtime_activation`继续为false。

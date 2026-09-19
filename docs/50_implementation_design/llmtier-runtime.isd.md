@@ -49,7 +49,7 @@ src/llmtier_v03/
   health.py              # health/readiness
   audit.py               # 脱敏审计
   logs.py                # 写入前脱敏的有界运行日志与只读查询
-  webui/                 # 三页静态资源和组件
+  webui/                 # 四页英文静态资源和组件
 ```
 
 不得让legacy `/call` router与上述目标surface并行成为consumer路径。迁移完成前目标包保持未激活；切换必须一次性更新唯一入口。
@@ -145,7 +145,7 @@ revision、runtime image digest与normalization；缺一则该deployment保持un
 
 Web UI与Admin API同源；production反向代理完成operator SSO/MFA、短期HttpOnly会话、CSRF和Admin bearer注入，
 浏览器JavaScript不接触bearer。没有认证代理时Web UI不启用。所有mutation使用最近GET的ETag。添加模型只在内存保存
-`ModelDraft`并按Provider→Deployment→ServiceLevel续作；不自动回滚或重发已完成POST。组件状态和三页布局见
+`ModelDraft`并按Provider→Deployment→ServiceLevel续作；不自动回滚或重发已完成POST。组件状态和四页布局见
 `llmtier-webui-module-design`。前端不得把HTTP 200配置保存解释为provider健康。
 
 ## 10. 日志与安全
@@ -159,7 +159,7 @@ Web UI与Admin API同源；production反向代理完成operator SSO/MFA、短期
 3. SQLite bootstrap唯一authority及崩溃事务测试通过；
 4. Admin ETag并发、Secret、引用删除测试通过；
 5. Embedding same-space与索引重建边界通过；
-6. 三页浏览器状态/可访问性测试通过，主页在目标视口完整显示当前Registry全部Tier；
+6. 四页浏览器状态/可访问性测试通过，主页在目标视口完整显示当前Registry全部Tier；
 7. production auth/TLS/backup/restore另行验收。
 
 在这些门禁和独立activation批准前，`runtime_activation=false`。
