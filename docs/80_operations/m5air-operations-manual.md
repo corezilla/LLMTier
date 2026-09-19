@@ -464,6 +464,8 @@ backups/
 | Provider无法删除 | 仍被Deployment引用；先在Tier移除并处理Deployment引用 |
 | SQLite locked/corrupt | 停止服务，保全数据库/WAL/SHM；不要直接编辑或删除；按备份恢复流程处理 |
 | 磁盘空间不足 | 停止写入压力，检查日志、数据库和备份；不直接删除活动数据库文件 |
+| 周期性 503 / Empty reply / "Too many open files" 反复出现 | 疑似 FD 泄漏；先 `lsof -p $(cat /Users/mlp/LLMTier-dev/llmtier.pid) | wc -l` 与 `ulimit -n`（默认 256）对比，超过 ~200 重启清空；`llmtier.log` 反复出现 `OSError: [Errno 24]` 或 `sqlite3.OperationalError: unable to open database file` 是征兆；定位 `src/llmtier_v03/app.py` 的 `_static` 与 `_run`；属 §17 长期能力限制项，单独 follow-up |
+| 本地 Provider（provider_local）调用返回 401 | 当前 OMLX 进程需 `Authorization: Bearer`，但 `provider_local.has_secret=false` 时 `src/llmtier_v03/providers/openai.py` 不发送 Authorization 头；二选一对齐：让 OMLX 接受匿名访问 / 为 `provider_local` 配 `file:` 或 `env:` 形式的 secret_ref |
 
 故障证据至少保留：发生时间、部署版本、Request ID、health/readiness结果、脱敏日志、受影响Tier/Provider和已执行动作。
 任何日志中若出现Credential、Prompt、模型输出或Embedding内容，停止传播并按安全事件处理。

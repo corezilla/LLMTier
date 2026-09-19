@@ -52,12 +52,34 @@ git diff --check
 - 目前 `LLMTIER_TRUSTED_LAN_MODE=1`：可信局域网主机无需登录即可获得共享 operator/data 权限。不得暴露到公网、访客 Wi-Fi 或不可信 LAN；它也不提供用户级管理审计隔离。生产认证/TLS/CSRF 仍是独立门禁。
 - 操作、启动/停止、备份、回滚、Provider/Tier 管理的完整步骤见上述运维手册。更新源码后必须核对部署文件版本、浏览器页面、`/healthz`、`/readyz`，并复跑适当测试；不要仅凭 push 声称 m5air 已更新。
 
+> 2026-09-19 17:30 HKT 补做：sync commit `1c026e7`（5 docs + 1 test，共 6 文件）至 m5air；冷备份 `state.sqlite3.*.cold-pre-1c026e7-20260919-124217` 已留存于 `/Users/mlp/LLMTier-dev/backups/`；当前 LLMTier PID 6663；OMLX PID 698（operator 重启，配置已变化）。FD 泄漏与 OMLX auth 不匹配见 §5.3。
+
 ## 5. 下一步工作与完成判据
 
 1. **先消除当前回归**：英文四页 UI 与 manifest/test/当前文档达成一致，完整本机测试与 contract validator 通过；记录命令和计数。当前 README、实现计划与 V&V 中的旧页面、旧阶段文字需要逐项审视，但不要把历史 review 文件机械改成 current。
 2. **单系统补测**：对账号用量解析错误、缺凭据、外部超时、手动刷新授权、快照失效、账号并发/间隔/RPM、Provider 绑定后 Usage Unknown/Partial、UI 状态进行定向测试。真实供应商请求可能计费或改变 quota，运行前遵循用户授权和运维手册。
 3. **设计/实现门禁继续分离**：浏览器 E2E、进程 crash/SQLite 恢复、长期并发/性能、Piko 固定 Pi consumer、Slinky Embedding consumer、生产 TLS/auth/CSRF 与 `runtime_activation=true` 均未由本 handoff 宣称完成。联调和生产激活须分别获得明确决定，不自行扩大范围。
 4. **提交纪律**：先查 `AGENTS.md`；任何函数/方法改动前对该 symbol 做 GitNexus upstream impact 并报告直接调用方、流程和风险；HIGH/CRITICAL 先告知用户；提交前运行 `detect_changes()`、测试和 `git diff --check`。只 add 本任务文件，保留其他未跟踪项。需要部署或 push 时分别核对远端 SHA 与实际 m5air 状态。
+5. **§5.2 单系统补测进度（2026-09-19 17:30 HKT，operator=ben，全真实路径）**：
+
+   | # | 项目 | 结果 |
+   |---|---|---|
+   | T8 | UI 状态 | ✓ Home / Providers / Usage & Audit / Logs 四页 200，7 Tiers available，3 Providers，4 Deployments |
+   | T4 | 手动刷新授权 | ✓ 不带 `confirm_external_call` → 400 `invalid_request: Usage refresh accepts only confirm_external_call` |
+   | T2 | 缺凭据 | ✓ 带 confirm 但 secret_ref 为空 → snapshot 200, `source=credentials_missing`, `error=minimax_usage_requires_api_key`，零真实 quota 调用 |
+   | T1 | 解析 / 4xx | ✓ `file:` 引用 junk key → 真实 MiniMax 返回 401-style 错误 → snapshot 200, `source=provider_api_error`，上游错误原文保留（≤160 字符） |
+   | T5 | 快照一致性 | ✓ 同参数两次读产生不同 snapshot_id；cursor 命中 frozen view；bad cursor → 400 `cursor_expired` |
+   | T7 | Usage Unknown | ◐ 失败 Responses（OMLX 暂不可用时）→ obligation 已写：`measurement_status=unknown, source=unavailable, record_version=2, is_final=true, tokens=null`；成功路径未跑通（OMLX auth 阻塞） |
+   | T6 | 账号并发/间隔/RPM | ✗ 未做（FD 泄漏 + OMLX auth 阻塞） |
+   | T3 | 外部超时 | — 按 operator 决定跳过 |
+
+   测试过程中已临时创建 / 删除若干测试 Provider（id 含 `provider_test` 或类似随机后缀），不留存。
+
+6. **§5.3 §5.2 测试中暴露的阻塞（pre-existing，与本次 sync commit `1c026e7` 无关）**：
+
+   1. **FD 泄漏**：LLMTier PID 6663 运行约 3h 已达 118/256 fds（macOS 默认 `ulimit -n=256`）。日志反复出现 `OSError: [Errno 24] Too many open files: '.../webui/{index.html,app.js,styles.css,icons.svg}'` 并触发级联 `sqlite3.OperationalError: unable to open database file`（错误处理路径 `logs.record → store.connection` 在 FD 耗尽时连日志都写不进）。影响：~3h uptime 后所有请求开始 503 / Empty reply；当前缓解是定期重启。定位方向：`src/llmtier_v03/app.py` 的 `_static` 与 `_run` 路径，需调查文件句柄 / 连接缓存是否泄漏。属 §5.3 长期并发/性能门禁项，单独 follow-up。
+
+   2. **OMLX auth 不匹配**：当前 OMLX（PID 698）`GET /v1/models` 返回 401，要求 `Authorization: Bearer`；LLMTier `provider_local.has_secret=false`，`src/llmtier_v03/providers/openai.py:_secret` 在 secret_ref 为空时不发送 Authorization 头（line 31–33）。影响：本地 Provider 路径当前不可用，T6 / T7 measured 路径阻塞。解决方向（部署层）：让 OMLX 接受匿名 / 为 `provider_local` 配置 `file:` 或 `env:` 形式的 secret_ref。属部署 / 配置调整，不属代码改动。
 
 ## 6. 不要恢复的旧设计
 
