@@ -156,12 +156,23 @@ def handler_factory(app: Application):
 
         def _run(self):
             self.request_id = f"req_{uuid.uuid4().hex}"
-            try: self._dispatch()
-            except ApiError as exc: self._json(exc.status, exc.envelope(), exc.headers)
-            except (BrokenPipeError, ConnectionResetError): pass
-            except Exception:
-                app.logs.record("error", "http", "unhandled_error", traceback.format_exc(limit=1), self.request_id)
-                self._json(500, ApiError(500, "internal_error", "Internal server error").envelope())
+            try:
+                try: self._dispatch()
+                except ApiError as exc: self._json(exc.status, exc.envelope(), exc.headers)
+                except (BrokenPipeError, ConnectionResetError): pass
+                except Exception:
+                    app.logs.record("error", "http", "unhandled_error", traceback.format_exc(limit=1), self.request_id)
+                    self._json(500, ApiError(500, "internal_error", "Internal server error").envelope())
+            finally:
+                # ThreadingHTTPServer spawns a fresh thread per request.
+                # BaseHTTPRequestHandler.finish() closes rfile/wfile, but
+                # does not touch the per-thread SQLite connection cached in
+                # Store._local. Without this close, each request leaks the
+                # db + wal + shm fds (~3) until Python's deferred
+                # thread-local cleanup eventually runs, which exhausts the
+                # default 256-fd macOS ulimit within minutes of modest traffic.
+                try: app.store.close()
+                except Exception: pass
 
         do_GET = _run; do_POST = _run; do_PATCH = _run; do_DELETE = _run
     return Handler

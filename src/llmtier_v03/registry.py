@@ -141,7 +141,7 @@ class Registry:
             (rid,),
         )
         calls = int(totals["calls"] or 0)
-        view = {"id": row["id"], "name": row["name"], "kind": row["kind"], "endpoint": row["endpoint"], "has_secret": row["secret_ref"] is not None, "enabled": _bool(row["enabled"]), "usage": usage, "request_usage": {"calls": calls, "input_tokens": totals["input_tokens"] if calls and totals["input_known"] == calls else None, "output_tokens": totals["output_tokens"] if calls and totals["output_known"] == calls else None, "total_tokens": totals["total_tokens"] if calls and totals["total_known"] == calls else None}, "version": row["version"]}
+        view = {"id": row["id"], "name": row["name"], "kind": row["kind"], "endpoint": row["endpoint"], "has_secret": bool(row["secret_ref"]), "enabled": _bool(row["enabled"]), "usage": usage, "request_usage": {"calls": calls, "input_tokens": totals["input_tokens"] if calls and totals["input_known"] == calls else None, "output_tokens": totals["output_tokens"] if calls and totals["output_known"] == calls else None, "total_tokens": totals["total_tokens"] if calls and totals["total_known"] == calls else None}, "version": row["version"]}
         return view, _etag(row["id"], row["version"])
 
     def list_providers(self) -> list[dict[str, Any]]:
