@@ -87,8 +87,19 @@ git diff --check
    - **T6 并发限速** ◐（部分）：临时禁 dep_volc_deepseek 让 Worker 仅 dep_minimax → dep_local 顺序路由，6 个并发 `Responses` 请求得到 4×200 / 2×503（OMLX localhost 并发连接受限 + provider_minimax `max_in_flight=1` 排队）；FD 数 41 → 46，稳。完整 RPM / interval 验证需要 cloud provider 突发流量（已超出本轮范围）。`routing.py:_provider_ready_in` 的 interval / RPM 计算与 `_limit` / `_inflight` 的 in-flight 计数也已实现并在生产路径生效。
    - **T3 外部超时** — 按 operator 决定跳过（fake-only）；不入 commit。
 
+8. **Piko 接入前 SSE / SSL 调试（2026-09-19 18:30 HKT, commit `a6f06af`）**：
+
+   跑全 `/v1/responses` smoke 后暴露出两个 pre-existing bug，piko-data-plane-control §11 必需事件未全：
+
+   1. **HTTPS SSL state 间歇性失败**：Worker tier 调 MiniMax `https://api.minimaxi.com/v1/responses` 时约 50% 概率 `ssl.SSLCertVerificationError: self-signed certificate in certificate chain` / `unable to get local issuer certificate`。CLI `python3` 单独跑同一 default context 始终 401（cert OK）；LLMTier 进程内反复间歇。定位为 `urllib.request` 的 HTTPS handler 维持 per-thread 连接池，socket 复用时 SSL state 偶发校验失败。修复 `src/llmtier_v03/providers/openai.py`：`_ssl_context()` 优先 `certifi.where()` 回落 system default；`_request / complete / probe` 三处显式 `urlopen(req, timeout, context=self._ssl)` 并加 `Connection: close` 让每次重连。10 次顺序 Worker 从 4/10 升到 10/10。
+
+   2. **SSE 缺 reasoning 事件 + 缺 `.done` pair**：`src/llmtier_v03/sse.py` 只对 `message`（output_text / refusal）和 `function_call` 发事件，且只有 `.delta` 没有 `.done`。OMLX gemma 4 E2B 启用 reasoning，会在 message 之前发 `{"type":"reasoning", content:[{type:"reasoning_text",...}]}`，之前 LLMTier 透传 `output_item.added/done` 但中间没有 text/done/... 事件。Piko §11 必需 `reasoning summary/text delta/done`。补全：text.done、refusal.done、reasoning_text.delta+done、reasoning_summary_text.delta+done；terminal 仍按 `response['status']` 取 `completed / incomplete / failed`。测试 `test_sse.test_sequence_is_monotonic` 把期望长度从 5 改成 6（多一个 text.done）；`test_provider_openai.test_probe_uses_authenticated_models_endpoint` 的 urlopen mock 加 `**kwargs` 接 `context=` 关键字。
+
+   m5air PID 8382（commit `a6f06af`）Piko smoke 48/50 通过：必需 SSE 事件齐全、item_id/output_index 跨 delta 一致、terminal `response.completed` 带 `usage={input_tokens:45, output_tokens:47, total_tokens:92, input_tokens_details.cached_tokens:15}`、8 个并发 Worker 全部 200、`/v1/responses` 校验错全部 400/404、Embeddings 1024-dim、所有 admin endpoint 200、Usage cursor roundtrip OK、Retry-After 已随 429 一并发出（`routing.py:89/96`）。剩 2 个 smoke 失败是脚本解析器对多 item 输出（reasoning + message）的 set() 处理，不是 LLMTier 问题。FD 数稳 ≤80。
+
    2026-09-19 17:45 HKT 更新：FD 泄漏已在 m5air（PID 7079，commit `b89ba4d`）验证修复，250 个 mixed 请求 FD 数稳定。
    2026-09-19 18:00 HKT 更新：OMLX auth 通过部署层 secret_ref 已修复，T7 measured 路径打通，T6 并发部分验证。
+   2026-09-19 18:30 HKT 更新：Piko 接入前 smoke 发现两个 pre-existing bug（SSL state、SSE 事件），commit `a6f06af` 已修并部署 m5air，48/50 smoke 通过。可进入 Piko 联调。
 
 ## 6. 不要恢复的旧设计
 
