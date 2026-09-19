@@ -51,8 +51,6 @@ summary{list-style:none;display:grid;grid-template-columns:1.35fr .62fr .62fr .6
 summary{cursor:pointer}
 summary::-webkit-details-marker{display:none}
 details[open] summary{background:transparent}
-.tiername b:before{content:"▸";display:inline-block;width:18px;color:#738091}
-details[open] .tiername b:before{content:"▾"}
 .tiername,.backend>span:first-child{display:inline-flex;align-items:center;gap:9px;min-height:25px}
 .tiername>.status-icon,.backend>span:first-child>.status-icon{flex-shrink:0}
 .tiername b,.backend>span:first-child b{font-weight:600}
