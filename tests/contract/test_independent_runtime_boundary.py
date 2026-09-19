@@ -17,7 +17,7 @@ class IndependentRuntimeBoundaryTests(unittest.TestCase):
         with patch.dict(os.environ, {}, clear=True):
             config = TierConfig()
 
-        expected = Path(__file__).resolve().parents[1] / "config" / "settings.json"
+        expected = Path(__file__).resolve().parents[2] / "config" / "settings.json"
         self.assertEqual(config._settings_path, expected)
 
     def test_explicit_llmtier_config_is_the_only_environment_override(self) -> None:
@@ -40,10 +40,10 @@ class IndependentRuntimeBoundaryTests(unittest.TestCase):
         with patch.dict(os.environ, {}, clear=True):
             state_dir = _default_quota_state_dir()
 
-        self.assertEqual(state_dir, Path(__file__).resolve().parents[1] / "state" / "quota")
+        self.assertEqual(state_dir, Path(__file__).resolve().parents[2] / "state" / "quota")
 
     def test_client_trace_defaults_use_project_state_not_legacy_workspace(self) -> None:
-        expected_state_dir = Path(__file__).resolve().parents[1] / "state"
+        expected_state_dir = Path(__file__).resolve().parents[2] / "state"
         self.assertEqual(Path(DEFAULT_TRACE_STATE_PATH), expected_state_dir / "tier_debug.json")
         self.assertEqual(Path(DEFAULT_TRACE_PATH), expected_state_dir / "tier_trace.jsonl")
         self.assertNotIn("workspaces", DEFAULT_TRACE_STATE_PATH)

@@ -14,7 +14,7 @@ from tools.contract_semantic_validator_v03 import (
 )
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 INTERFACES = ROOT / "interfaces"
 OPENAPI_PATH = INTERFACES / "openapi" / "llmtier-v0.3.openapi.json"
 MANIFEST_PATH = INTERFACES / "compatibility" / "compatibility-manifest-v0.3.json"

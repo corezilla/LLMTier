@@ -40,8 +40,8 @@
 - 设计层级：`system`；表示本仓库拥有完整 LLMTier 软件系统。Slinky/Piko 是外部相邻项目，不用于
   把 LLMTier 降级为其内部 subsystem
 - 安全或业务关键性：模型服务控制面和数据面；涉及 credential、跨 Client 隔离、容量与恢复
-- STD 采用来源由 README 与 `docs/std.lock.json` 管理；当前锁定 `0.1.0-draft.26`、完整 commit
-  `f892b167b9fc7b8beb9dbdebb9209009d4334ce1` 和 annotated tag `std-v0.1.0-draft.26`
+- STD 采用来源由 README 与 `docs/std.lock.json` 管理；当前锁定 `0.1.0-draft.26` 开发行、完整 commit
+  `5a1e71f4e2baa6e6761b685e91deecbd58cf0649`（draft.26 tag 之后再 22 commits；`VERSION` 仍为 0.1.0-draft.26，尚未打新 annotated tag）
 - 当前目录裁剪：正式 prose 使用编号化 `docs/`，机器契约集中到 `interfaces/`，历史/非权威资料
   集中到 `docs/99_reference/`；不改变 Scope B 或任何机器契约字节
 
@@ -52,14 +52,22 @@
 | `management.tailoring` | management | 是 | `docs/00_management/std-tailoring.md` | LLMTier |
 | `management.development-plan` | management/software | 是，V0.3 implementation active | `docs/00_management/v0.3-implementation-plan.md`；编码调试与正式单元测试分Gate | LLMTier |
 | `design.system` | software | 是 | `docs/20_system_design/llmtier-system-design.md` | LLMTier |
-| `design.definition` | software | 条件必需，当前 omit | 仅在 LLMTier 内部出现真实 subsystem/module/component 时建立 | 对应内部 owner |
+| `design.software-system` | software | 条件必需，当前 omit | 单服务 LLMTier 暂用 `design.system` 覆盖；订阅服务分支时启用 | 对应 owner |
+| `design.subsystem` | software | 条件必需，当前 omit | 仅在 LLMTier 出现独立子系统时建立；当前所有模块归 `design.definition` | 对应 owner |
+| `design.definition` | software | 是 | `docs/40_module_design/`与`docs/50_implementation_design/`；不建立虚构subsystem | LLMTier |
+| `design.implementation` | software | 条件必需，当前 omit | 模块设计已包含实现细节（`docs/50_implementation_design/llmtier-runtime.isd.md`）；需要独立 ISD 时启用 | 对应 owner |
 | `requirements.specification` | software | 是，C3 active | `docs/10_requirements/llmtier-v0.3-requirements.md` | LLMTier；外部需求 authority 不迁入 |
 | `requirements.traceability` | software | 是，C3 active | `docs/10_requirements/llmtier-v0.3-traceability.md` | LLMTier |
 | `interfaces.control` | software | 是，C1 active | Data Plane、Observation、Management interface migration | LLMTier；消费边界由 Piko/Slinky reviewer 复核 |
 | `contracts.specification` | software | 是，C1 active | OpenAPI/manifest/error/schema 说明层；机器文件在 `interfaces/` 保持唯一 authority | LLMTier |
-| `design.definition` | software | 是，当前模块/实现设计 | `docs/40_module_design/`与`docs/50_implementation_design/`；不建立虚构subsystem | LLMTier |
 | `assurance.vv-plan` | software | 是，C2 candidate | V0.3 activation-gate V&V plan | LLMTier |
+| `assurance.test-plan` | software | 是，C2 candidate | Runtime 端到端系统测试计划与策略；与 contract test specification 互补 | LLMTier |
 | `assurance.test-specification` | software | 是，C2 candidate | Contract/SDK/recovery/isolation tests | LLMTier |
+| `assurance.test-procedure` | software | 条件必需，当前 omit | 单次可复现 case 的逐步执行步骤文档；与 `tests/system/` 落地同步 | LLMTier |
+| `assurance.test-report` | software | 条件必需，当前 omit | 测试实际发生什么；按最新 STD 路径存于 `tests/{level}/reports/<run-id>/`（与 case 同级，不集中到根 `tests/reports/`） | LLMTier |
+| `assurance.acceptance-plan` | software | 条件必需，当前 omit | release 前正式验收自动化计划 | LLMTier + Piko + Slinky |
+| `assurance.acceptance-report` | software | 条件必需，当前 omit | release 前正式验收报告；按最新 STD 路径存于 `tests/acceptance/reports/` | LLMTier + Piko + Slinky |
+| `assurance.fpga-implementation-report` | software | omit | LLMTier 不拥有 FPGA；保留以备跨项目扩展 | N/A |
 | `review.packet` | management/software | 是，本批 | STD migration review packet；不请求 V0.3 activation | LLMTier owner；项目授权 reviewer 待指定 |
 | `decisions.adr` | software | 条件必需 | persistence/HA/deployment 等新重大决定 | LLMTier |
 | `operations.release` | operations/software | 是，C4 active | `docs/80_operations/llmtier-v0.3-release-and-operations.md`；Open Gate 不伪造 | LLMTier |
@@ -106,10 +114,33 @@
 ## 5. Review 与生效
 
 本文件与既有设计曾在 canonical promotion 中升级为 `accepted`。本轮把误分类的 service/subsystem design
-改为 LLMTier system design；draft.26
+改为 LLMTier system design；draft.26。
+
+### 5.1 STD 升级记录
+
+| 日期 | 从 | 到 | 变更要点 | commit |
+|---|---|---|---|---|
+| 2026-09-15 | (初始) | draft.26 | 首次采用 STD `software` profile | `f892b167b9fc7b8beb9dbdebb9209009d4334ce1` |
+| 2026-09-19 | draft.26 (tag) | draft.26 + HEAD `5a1e71f`（22 commits，含 path-policy 0.2.0） | 见下 | `5a1e71f4e2baa6e6761b685e91deecbd58cf0649` |
+
+**draft.26 tag → HEAD 变更要点**（22 commits）：
+- `tests/` 子目录加 `unit/<module-id>/`、`{contract,integration,system,acceptance}/reports/`；测试报告（`assurance.test-report`）路径由 `docs/70_verification/reports/` 改为 `tests/{level}/reports/<run-id>/`
+- `acceptance-report` 路径由 `docs/70_verification/acceptance/` 改为 `tests/acceptance/reports/`
+- 新增启用模板候选：`design.software-system`、`design.subsystem`、`design.implementation`（按 §3 条件必需策略，当前 omit）
+- 现有模板版本号提升：`design.definition` 2.1.1、`contracts.specification` 0.3.1、`interfaces.control` 0.3.1、`assurance.test-specification` 0.2.1 等（详见 `templates/catalog.json`）
+- `path-policy.json` 升至 `0.2.0-draft.1`
+- 新增 `ISD` 设计专项目录（`software/<component>/docs/isd/`）
+- 大量软件/固件/FPGA 设计 strengthening 与示例补全（与 LLMTier 不直接相关）
+
+**对本项目的影响**（已落地）：
+- LLMTier 25 个 unit test 从 `tests/v03/` 与 `tests/` flat 重组为 `tests/unit/v03/` + `tests/contract/`
+- `tools/v03_smoke.py`（集成测试）→ `tests/integration/`
+- `tools/v03_fake_provider.py`（测试 fixture）→ `tests/fixtures/`
+- `tools/contract_semantic_validator_v03.py` 保留在 `tools/`（operational validator，不是 test case）
+- `tests/system/` 仍是空目录（M3 milestone，待 system test plan §5.1 落地）
 项目采用升级只更新标准来源与模板字段，不回退或重新推导既有业务 approval。
-`docs/std.lock.json` 锁定 STD draft.26 的完整 commit SHA 与 annotated tag；
-`docs/std-source-manifest.json` 保存 75 个来源 artifact 的 SHA-256。来源记录不等于项目 RAG
+`docs/std.lock.json` 锁定 STD 开发行 HEAD `5a1e71f`（draft.26 tag + 22 commits，2026-09-19 升级）的完整 commit SHA；该 commit 未打新 annotated tag，故 `source_tag` 为 null；
+`docs/std-source-manifest.json` 保存 189 个来源 artifact 的 SHA-256（draft.26 为 75 个）。来源记录不等于项目 RAG
 ingestion；Approved 不等于 Released，本轮 review verdict 也不授权 runtime activation。
 
 重新评审触发条件：

@@ -3,7 +3,7 @@ import unittest
 from datetime import datetime, timedelta, timezone
 
 from llmtier_v03.usage import UsageRecorder
-from tests.v03.fakes import AppFixture
+from tests.unit.v03.fakes import AppFixture
 
 
 class StatsEndpointTests(unittest.TestCase):
