@@ -99,7 +99,8 @@ LLMTier 采用 STD `software` profile 与单服务根结构：
   [Slinky Capacity/Observation](docs/60_interfaces/slinky-capacity-observation-control.md) 与
   [Management](docs/60_interfaces/llmtier-management-control.md) interface controls
 - [V0.3 Contract Specification](docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.md)
-- [V&V Plan](docs/70_verification/plans/llmtier-v0.3-vv-plan.md) 与
+- [V&V Plan](docs/70_verification/plans/llmtier-v0.3-vv-plan.md)、
+  [Test Plan](docs/70_verification/plans/llmtier-v0.3-test-plan.md) 与
   [Contract Test Specification](docs/70_verification/specifications/llmtier-v0.3-contract-test-specification.md)
 - [Release and Operations](docs/80_operations/llmtier-v0.3-release-and-operations.md)
 
