@@ -69,6 +69,10 @@ details[open] summary{background:transparent}
 .pill.muted{color:#5f6874;background:#eef1f4}
 .tabs{display:flex;gap:4px;margin-bottom:12px}
 .tabs button.active{color:var(--blue);background:#dbeafe}
+.stats-toolbar{flex-wrap:wrap;gap:14px;align-items:center}
+.stats-toolbar .stats-range{display:flex;gap:4px;margin-left:8px;padding:3px;border:1px solid var(--border);border-radius:8px;background:white}
+.stats-toolbar .stats-range button{border:0;background:transparent;padding:4px 10px;border-radius:6px;color:var(--muted);font-size:12px}
+.stats-toolbar .stats-range button.active{background:var(--blue);color:white;font-weight:500}
 .sub{display:none}
 .sub.active{display:block}
 .tablewrap{overflow:auto}

@@ -8,6 +8,7 @@
     <nav>
       <button class="active" data-page="home"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-house"></use></svg>Home</button>
       <button data-page="providers"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-server"></use></svg>Providers</button>
+      <button data-page="stats"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-chart-bar-increasing"></use></svg>Stats</button>
       <button data-page="records"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-chart-no-axes-combined"></use></svg>Usage & Audit</button>
       <button data-page="logs"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-logs"></use></svg>Logs</button>
     </nav>
@@ -29,6 +30,29 @@
       <div class="tabs"><button class="active" data-tab="usage">Token Usage</button><button data-tab="audit">Audit Log</button></div>
       <div id="usage" class="sub active"><div class="card"><div class="cardhead"><b>Unified Token Usage</b><button id="refresh-usage" class="icon-button" title="Refresh usage" aria-label="Refresh usage"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-refresh-cw"></use></svg></button></div><div class="tablewrap"><table><thead><tr><th>Request</th><th>Model</th><th>Endpoint</th><th>Input</th><th>Output</th><th>Total</th><th>Status</th></tr></thead><tbody id="usage-body"></tbody></table></div></div></div>
       <div id="audit" class="sub"><div class="card"><div class="cardhead"><b>Administrative Audit</b><button id="refresh-audit" class="icon-button" title="Refresh audit" aria-label="Refresh audit"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-refresh-cw"></use></svg></button></div><div class="tablewrap"><table><thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Target</th><th>Result</th></tr></thead><tbody id="audit-body"></tbody></table></div></div></div>
+    </section>
+
+    <section id="stats" class="page">
+      <div class="toolbar stats-toolbar">
+        <div class="tabs">
+          <button class="active" data-group="tier">By Tier</button>
+          <button data-group="deployment">By Deployment</button>
+        </div>
+        <div class="stats-range">
+          <button class="active" data-range="24h">Last 24h</button>
+          <button data-range="7d">Last 7d</button>
+          <button data-range="today">Today (UTC)</button>
+          <button data-range="all">All Time</button>
+        </div>
+        <div class="actions"><button id="refresh-stats" class="icon-button" title="Refresh stats" aria-label="Refresh stats"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-refresh-cw"></use></svg></button></div>
+      </div>
+      <div class="card">
+        <div class="cardhead"><b id="stats-title">Token Usage by Tier</b><span id="stats-window"></span></div>
+        <div class="tablewrap"><table>
+          <thead id="stats-thead"></thead>
+          <tbody id="stats-body"></tbody>
+        </table></div>
+      </div>
     </section>
 
     <section id="logs" class="page">

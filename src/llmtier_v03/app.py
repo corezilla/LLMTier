@@ -121,6 +121,12 @@ def handler_factory(app: Application):
                     return self._json(201, view, {"ETag": etag})
             if path == "/tier/admin/v1/runtime" and method == "GET":
                 return self._json(200, app.router.snapshot())
+            match = re.fullmatch(r"/tier/admin/v1/stats", path)
+            if match and method == "GET":
+                since, until = query.get("from", [None])[0], query.get("to", [None])[0]
+                if not since or not until: raise ApiError(400, "invalid_request", "from and to are required")
+                group_by = (query.get("group_by", ["tier"])[0] or "tier").lower()
+                return self._json(200, app.admin.stats(since, until, group_by))
             match = re.fullmatch(r"/tier/admin/v1/providers/([^/]+)/usage", path)
             if match:
                 provider_id = match.group(1)

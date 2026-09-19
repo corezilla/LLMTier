@@ -8,7 +8,8 @@ ROOT=Path(__file__).parents[2]/"src/llmtier_v03/webui"
 class WebUIContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):cls.html=(ROOT/"index.html").read_text();cls.js=(ROOT/"app.js").read_text();cls.css=(ROOT/"styles.css").read_text();cls.icons=(ROOT/"icons.svg").read_text()
-    def test_four_pages(self):self.assertEqual(self.html.count('class="page'),4)
+    def test_four_pages(self):self.assertEqual(self.html.count('class="page'),5)
+    def test_stats_page_present(self):self.assertIn('data-page="stats"',self.html);self.assertIn('id="stats-thead"',self.html);self.assertIn('id="stats-body"',self.html);self.assertIn('/tier/admin/v1/stats',self.js)
     def test_home_is_default(self):self.assertIn('id="home" class="page active"',self.html)
     def test_fixed_tier_tree_target(self):self.assertIn('id="tree"',self.html)
     def test_tree_has_no_column_title_row(self):

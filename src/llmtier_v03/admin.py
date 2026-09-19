@@ -33,6 +33,64 @@ class AdminService:
         rows = self.registry.store.all("SELECT frozen_view_json FROM query_snapshot_items WHERE snapshot_id=? AND ordinal>=? ORDER BY ordinal LIMIT ?", (sid, offset, limit + 1)); more = len(rows) > limit
         return {"data": [json.loads(r["frozen_view_json"]) for r in rows[:limit]], "page": {"has_more": more, "next_cursor": f"{sid}:{offset+limit}" if more else None}}
 
+    def stats(self, from_ts: str, to_ts: str, group_by: str) -> dict:
+        require(group_by in {"tier", "deployment"}, 400, "invalid_request", "group_by must be 'tier' or 'deployment'")
+        principal_filter = None
+        if group_by == "tier":
+            sql = """
+              SELECT v.model AS key,
+                     COUNT(*) AS calls,
+                     SUM(CASE WHEN v.measurement_status='measured' THEN 1 ELSE 0 END) AS measured_calls,
+                     SUM(CASE WHEN v.measurement_status='unknown'  THEN 1 ELSE 0 END) AS unknown_calls,
+                     COALESCE(SUM(v.input_tokens), 0) AS input_tokens,
+                     COALESCE(SUM(v.output_tokens), 0) AS output_tokens,
+                     COALESCE(SUM(v.total_tokens), 0) AS total_tokens,
+                     COALESCE(SUM(v.cached_input_tokens), 0) AS cached_tokens,
+                     COALESCE(SUM(v.cache_write_tokens), 0) AS cache_write_tokens,
+                     COALESCE(SUM(v.reasoning_tokens), 0) AS reasoning_tokens
+              FROM usage_record_versions v
+              JOIN usage_heads h ON h.principal_id=v.principal_id AND h.request_id=v.request_id AND h.head_record_version=v.record_version
+              WHERE v.recorded_at>=? AND v.recorded_at<=?
+                AND (? IS NULL OR v.principal_id=?)
+              GROUP BY v.model
+              ORDER BY calls DESC, total_tokens DESC, v.model ASC
+            """
+            rows = self.registry.store.all(sql, (from_ts, to_ts, principal_filter, principal_filter))
+            data = [{"tier": r["key"], "calls": int(r["calls"] or 0), "measured_calls": int(r["measured_calls"] or 0), "unknown_calls": int(r["unknown_calls"] or 0),
+                     "input_tokens": int(r["input_tokens"]), "output_tokens": int(r["output_tokens"]), "total_tokens": int(r["total_tokens"]),
+                     "cached_tokens": int(r["cached_tokens"]), "cache_write_tokens": int(r["cache_write_tokens"]), "reasoning_tokens": int(r["reasoning_tokens"])} for r in rows]
+        else:
+            sql = """
+              SELECT b.deployment_id AS deployment_id,
+                     d.name AS deployment_name, d.backend_model AS backend_model,
+                     p.id AS provider_id, p.name AS provider_name, p.kind AS provider_kind,
+                     COUNT(*) AS calls,
+                     SUM(CASE WHEN v.measurement_status='measured' THEN 1 ELSE 0 END) AS measured_calls,
+                     SUM(CASE WHEN v.measurement_status='unknown'  THEN 1 ELSE 0 END) AS unknown_calls,
+                     COALESCE(SUM(v.input_tokens), 0) AS input_tokens,
+                     COALESCE(SUM(v.output_tokens), 0) AS output_tokens,
+                     COALESCE(SUM(v.total_tokens), 0) AS total_tokens,
+                     COALESCE(SUM(v.cached_input_tokens), 0) AS cached_tokens,
+                     COALESCE(SUM(v.cache_write_tokens), 0) AS cache_write_tokens,
+                     COALESCE(SUM(v.reasoning_tokens), 0) AS reasoning_tokens
+              FROM usage_record_versions v
+              JOIN usage_heads h ON h.principal_id=v.principal_id AND h.request_id=v.request_id AND h.head_record_version=v.record_version
+              JOIN provider_request_bindings b ON b.principal_id=v.principal_id AND b.request_id=v.request_id
+              JOIN deployments d ON d.id=b.deployment_id
+              JOIN providers p ON p.id=b.provider_id
+              WHERE v.recorded_at>=? AND v.recorded_at<=?
+                AND (? IS NULL OR v.principal_id=?)
+              GROUP BY b.deployment_id, d.name, d.backend_model, p.id, p.name, p.kind
+              ORDER BY calls DESC, total_tokens DESC, b.deployment_id ASC
+            """
+            rows = self.registry.store.all(sql, (from_ts, to_ts, principal_filter, principal_filter))
+            data = [{"deployment_id": r["deployment_id"], "deployment_name": r["deployment_name"], "backend_model": r["backend_model"],
+                     "provider_id": r["provider_id"], "provider_name": r["provider_name"], "provider_kind": r["provider_kind"],
+                     "calls": int(r["calls"] or 0), "measured_calls": int(r["measured_calls"] or 0), "unknown_calls": int(r["unknown_calls"] or 0),
+                     "input_tokens": int(r["input_tokens"]), "output_tokens": int(r["output_tokens"]), "total_tokens": int(r["total_tokens"]),
+                     "cached_tokens": int(r["cached_tokens"]), "cache_write_tokens": int(r["cache_write_tokens"]), "reasoning_tokens": int(r["reasoning_tokens"])} for r in rows]
+        return {"from": from_ts, "to": to_ts, "group_by": group_by, "data": data}
+
     def mutate(self, actor: str, action: str, target: str, request_id: str, fn):
         try:
             result = fn()

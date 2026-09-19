@@ -256,15 +256,42 @@ async function addMember(event){
 }
 
 async function loadUsage(){const page=await api('/tier/admin/v1/usage?'+windowQuery());$('#usage-body').innerHTML=page.data.map(item=>`<tr><td>${esc(item.request_id)}</td><td>${esc(item.model)}</td><td>${esc(item.endpoint)}</td><td>${item.input_tokens??'Unknown'}</td><td>${item.output_tokens??'Unknown'}</td><td>${item.total_tokens??'Unknown'}</td><td>${statusMarkup(item.measurement_status,item.measurement_status==='measured'?'ok':'warn')}</td></tr>`).join('')||'<tr><td colspan="7">No records</td></tr>'}
+
+const statsState={group_by:'tier',range:'24h'};
+function statsRange(){
+  const now=new Date();
+  if(statsState.range==='24h') return {from:new Date(now.getTime()-86400000).toISOString(),to:now.toISOString()};
+  if(statsState.range==='7d')  return {from:new Date(now.getTime()-7*86400000).toISOString(),to:now.toISOString()};
+  if(statsState.range==='today'){const d=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate()));return {from:d.toISOString(),to:now.toISOString()};}
+  return {from:'2000-01-01T00:00:00Z',to:'2999-12-31T23:59:59Z'};
+}
+const statsTierThead=`<tr><th>Tier</th><th>Calls</th><th>Measured</th><th>Input</th><th>Output</th><th>Total</th><th>Cached</th><th>Reasoning</th></tr>`;
+const statsDeploymentThead=`<tr><th>Deployment</th><th>Provider</th><th>Backend model</th><th>Calls</th><th>Measured</th><th>Input</th><th>Output</th><th>Total</th><th>Cached</th><th>Reasoning</th></tr>`;
+async function loadStats(){
+  const {from,to}=statsRange();
+  const group=statsState.group_by;
+  const data=await api(`/tier/admin/v1/stats?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&group_by=${group}`);
+  $('#stats-title').textContent=group==='tier'?'Token Usage by Tier':'Token Usage by Deployment';
+  $('#stats-window').textContent=`${new Date(from).toLocaleString()} → ${new Date(to).toLocaleString()}`;
+  $('#stats-thead').innerHTML=group==='tier'?statsTierThead:statsDeploymentThead;
+  const rows=data.data||[];
+  if(!rows.length){$('#stats-body').innerHTML=`<tr><td colspan="${group==='tier'?7:9}" class="empty compact">No calls recorded in this window.</td></tr>`;return;}
+  $('#stats-body').innerHTML=rows.map(row=>{
+    if(group==='tier'){
+      return `<tr><td><b>${esc(row.tier)}</b></td><td>${metric(row.calls)}</td><td>${metric(row.measured_calls)}</td><td>${metric(row.input_tokens)}</td><td>${metric(row.output_tokens)}</td><td>${metric(row.total_tokens)}</td><td>${metric(row.cached_tokens)}</td><td>${metric(row.reasoning_tokens)}</td></tr>`;
+    }
+    return `<tr><td><b>${esc(row.deployment_name)}</b><div class="subline">${esc(row.deployment_id)}</div></td><td>${esc(row.provider_name)}<div class="subline">${esc(row.provider_kind)}</div></td><td><code>${esc(row.backend_model)}</code></td><td>${metric(row.calls)}</td><td>${metric(row.measured_calls)}</td><td>${metric(row.input_tokens)}</td><td>${metric(row.output_tokens)}</td><td>${metric(row.total_tokens)}</td><td>${metric(row.cached_tokens)}</td><td>${metric(row.reasoning_tokens)}</td></tr>`;
+  }).join('');
+}
 async function loadAudit(){const page=await api('/tier/admin/v1/audit');$('#audit-body').innerHTML=page.data.map(item=>`<tr><td>${new Date(item.created_at).toLocaleString()}</td><td>${esc(item.actor)}</td><td>${esc(item.action)}</td><td>${esc(item.target)}</td><td>${esc(item.result)}</td></tr>`).join('')||'<tr><td colspan="5">No records</td></tr>'}
 async function loadLogs(){const query=new URLSearchParams(windowQuery());if($('#log-level').value)query.set('level',$('#log-level').value);if($('#log-module').value)query.set('module',$('#log-module').value);const page=await api('/tier/admin/v1/logs?'+query);$('#log-body').innerHTML=page.data.map(item=>`<tr><td>${new Date(item.created_at).toLocaleString()}</td><td>${esc(item.level)}</td><td>${esc(item.module)}</td><td>${esc(item.event)}</td><td>${esc(item.message)}</td><td>${esc(item.request_id||'—')}</td></tr>`).join('')||'<tr><td colspan="6">No records</td></tr>'}
 
 $$('nav button').forEach(button=>button.onclick=()=>{
   $$('nav button').forEach(item=>item.classList.remove('active'));button.classList.add('active');
   $$('.page').forEach(item=>item.classList.remove('active'));$('#'+button.dataset.page).classList.add('active');
-  const meta={home:['Home','View every model, tier, backend, and status on one page'],providers:['Providers','Manage cloud and local provider connections'],records:['Usage & Audit','Review token usage and administrative changes'],logs:['Logs','Review sanitized gateway runtime events']}[button.dataset.page];
+  const meta={home:['Home','View every model, tier, backend, and status on one page'],providers:['Providers','Manage cloud and local provider connections'],stats:['Stats','Aggregated token usage grouped by tier or deployment'],records:['Usage & Audit','Review token usage and administrative changes'],logs:['Logs','Review sanitized gateway runtime events']}[button.dataset.page];
   $('#title').textContent=meta[0];$('#subtitle').textContent=meta[1];
-  if(button.dataset.page==='home')loadHome();if(button.dataset.page==='providers')loadProviders();if(button.dataset.page==='records')loadUsage();if(button.dataset.page==='logs')loadLogs();
+  if(button.dataset.page==='home')loadHome();if(button.dataset.page==='providers')loadProviders();if(button.dataset.page==='stats')loadStats();if(button.dataset.page==='records')loadUsage();if(button.dataset.page==='logs')loadLogs();
 });
 $$('[data-tab]').forEach(button=>button.onclick=()=>{$$('[data-tab]').forEach(item=>item.classList.remove('active'));button.classList.add('active');$$('.sub').forEach(item=>item.classList.remove('active'));$('#'+button.dataset.tab).classList.add('active');button.dataset.tab==='audit'?loadAudit():loadUsage()});
 
@@ -272,5 +299,9 @@ $('#refresh-providers').onclick=loadProviders;$('#add-provider').onclick=()=>ope
 $('#provider-form').elements.usage_provider.onchange=showUsageFields;
 $('#add-member-form').onsubmit=addMember;$('#close-tier').onclick=()=>$('#tier-mask').classList.remove('open');
 $('#refresh-usage').onclick=loadUsage;$('#refresh-audit').onclick=loadAudit;$('#refresh-logs').onclick=loadLogs;
+
+$$('.stats-toolbar .tabs button').forEach(button=>button.onclick=()=>{$$('.stats-toolbar .tabs button').forEach(item=>item.classList.remove('active'));button.classList.add('active');statsState.group_by=button.dataset.group;loadStats();});
+$$('.stats-range button').forEach(button=>button.onclick=()=>{$$('.stats-range button').forEach(item=>item.classList.remove('active'));button.classList.add('active');statsState.range=button.dataset.range;loadStats();});
+$('#refresh-stats').onclick=loadStats;
 
 loadHome();
