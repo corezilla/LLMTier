@@ -93,11 +93,11 @@ ssh m5air "ps aux | grep 'llmtier_v03.*8181' | grep -v grep"
 ssh m5air "kill <PID>"
 
 # 用 Python 3.14 启动（不要用系统 python3）
-ssh m5air "cd /Users/mlp/LLMTier-dev && PYTHONPATH=src /Library/Frameworks/Python.framework/Versions/3.14/bin/python3 -m llmtier_v03 --host 0.0.0.0 --port 8181 --database /Users/mlp/LLMTier-dev/state.sqlite3 >> /Users/mlp/LLMTier-dev/llmtier.log 2>&1 &"
+ssh m5air "cd /Users/mlp/LLMTier-dev && LLMTIER_ADMIN_TOKEN=dev-admin LLMTIER_DATA_TOKEN=dev-data PYTHONPATH=src /Library/Frameworks/Python.framework/Versions/3.14/bin/python3 -m llmtier_v03 --host 0.0.0.0 --port 8181 --database /Users/mlp/LLMTier-dev/state.sqlite3 >> /Users/mlp/LLMTier-dev/llmtier.log 2>&1 &"
 ```
 
 ### 验证
 ```bash
 ssh m5air "curl http://localhost:8181/healthz"
-ssh m5air "curl http://localhost:8181/ui/app.js | grep -c 'fetchProviderModels'"
+ssh m5air "curl http://localhost:8181/tier/admin/v1/providers -H 'Authorization: Bearer dev-admin'"
 ```
