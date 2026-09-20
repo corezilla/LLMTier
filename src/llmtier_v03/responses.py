@@ -28,7 +28,12 @@ class ResponsesService:
         forbidden = {"prompt_cache_key", "prompt_cache_retention", "previous_response_id"}
         require(not (forbidden & set(body)), 400, "unsupported_field", "Unsupported provider continuation or cache field")
         model = body["model"]
-        caps = self.registry.get_service_level(model)[0]["capabilities"]
+        try:
+            caps = self.registry.get_service_level(model)[0]["capabilities"]
+        except ApiError as exc:
+            if exc.status == 404:
+                raise ApiError(404, "model_not_found", "Model not found") from exc
+            raise
         require(caps.get("responses") is True, 400, "unsupported_model", "Selected model does not support Responses", "model")
         self.usage.authorize_dispatch(principal, request_id, model, "/v1/responses")
         try:

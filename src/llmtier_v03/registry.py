@@ -153,7 +153,7 @@ class Registry:
         with self.store.transaction(True) as conn:
             row = conn.execute("SELECT * FROM providers WHERE id=?", (rid,)).fetchone()
             if row is None: raise ApiError(404, "not_found", "Provider not found")
-            if if_match != _etag(rid, row["version"]): raise ApiError(412, "version_conflict", "Provider version changed")
+            if if_match != _etag(rid, row["version"]): raise ApiError(412, "version_conflict", "Provider version changed", extra={"current_version": row["version"]})
             values = {k: row[k] for k in ("name", "kind", "endpoint", "secret_ref", "enabled")}
             values.update({k: v for k, v in body.items() if k != "usage"})
             version = row["version"] + 1
@@ -208,7 +208,7 @@ class Registry:
         with self.store.transaction(True) as conn:
             row = conn.execute("SELECT version FROM providers WHERE id=?", (rid,)).fetchone()
             if row is None: raise ApiError(404, "not_found", "Provider not found")
-            if if_match != _etag(rid, row["version"]): raise ApiError(412, "version_conflict", "Provider version changed")
+            if if_match != _etag(rid, row["version"]): raise ApiError(412, "version_conflict", "Provider version changed", extra={"current_version": row["version"]})
             if conn.execute("SELECT 1 FROM deployments WHERE provider_id=? LIMIT 1", (rid,)).fetchone():
                 raise ApiError(409, "resource_in_use", "Provider is referenced by a deployment")
             conn.execute("DELETE FROM providers WHERE id=?", (rid,))
@@ -244,7 +244,7 @@ class Registry:
         with self.store.transaction(True) as conn:
             row = conn.execute("SELECT * FROM deployments WHERE id=?", (rid,)).fetchone()
             if row is None: raise ApiError(404, "not_found", "Deployment not found")
-            if if_match != _etag(rid, row["version"]): raise ApiError(412, "version_conflict", "Deployment version changed")
+            if if_match != _etag(rid, row["version"]): raise ApiError(412, "version_conflict", "Deployment version changed", extra={"current_version": row["version"]})
             values = {"name": row["name"], "provider_id": row["provider_id"], "backend_model": row["backend_model"], "capabilities": json.loads(row["capabilities_json"]), "enabled": _bool(row["enabled"])}
             values.update(body)
             require(conn.execute("SELECT 1 FROM providers WHERE id=?", (values["provider_id"],)).fetchone() is not None, 400, "invalid_request", "Unknown provider", "provider_id")
@@ -256,7 +256,7 @@ class Registry:
         with self.store.transaction(True) as conn:
             row = conn.execute("SELECT version FROM deployments WHERE id=?", (rid,)).fetchone()
             if row is None: raise ApiError(404, "not_found", "Deployment not found")
-            if if_match != _etag(rid, row["version"]): raise ApiError(412, "version_conflict", "Deployment version changed")
+            if if_match != _etag(rid, row["version"]): raise ApiError(412, "version_conflict", "Deployment version changed", extra={"current_version": row["version"]})
             if conn.execute("SELECT 1 FROM service_level_deployments WHERE deployment_id=? LIMIT 1", (rid,)).fetchone():
                 raise ApiError(409, "resource_in_use", "Deployment is referenced by a service level")
             conn.execute("DELETE FROM deployments WHERE id=?", (rid,))
@@ -317,7 +317,7 @@ class Registry:
         with self.store.transaction(True) as conn:
             row = conn.execute("SELECT * FROM service_levels WHERE id=?", (rid,)).fetchone()
             if row is None: raise ApiError(404, "not_found", "Service level not found")
-            if if_match != _etag(rid, row["version"]): raise ApiError(412, "version_conflict", "Service level version changed")
+            if if_match != _etag(rid, row["version"]): raise ApiError(412, "version_conflict", "Service level version changed", extra={"current_version": row["version"]})
             current_ids = [r["deployment_id"] for r in conn.execute("SELECT deployment_id FROM service_level_deployments WHERE level_id=? ORDER BY ordinal", (rid,))]
             ids = body.get("deployment_ids", current_ids)
             capabilities = self._capability_intersection(ids)

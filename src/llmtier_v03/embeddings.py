@@ -24,7 +24,12 @@ class EmbeddingsService:
     def create(self, principal: str, request_id: str, body: dict[str, Any]) -> dict[str, Any]:
         require(set(body) <= {"model", "input", "encoding_format", "dimensions", "user"} and {"model", "input"} <= set(body), 400, "invalid_request", "Invalid embedding request")
         model, encoding = body["model"], body.get("encoding_format", "float")
-        caps = self.registry.get_service_level(model)[0]["capabilities"]
+        try:
+            caps = self.registry.get_service_level(model)[0]["capabilities"]
+        except ApiError as exc:
+            if exc.status == 404:
+                raise ApiError(404, "model_not_found", "Model not found") from exc
+            raise
         require(caps.get("embeddings") is True, 400, "unsupported_model", "Selected model does not support embeddings", "model")
         if body.get("dimensions") is not None and caps.get("embedding_dimensions"):
             require(body["dimensions"] in caps["embedding_dimensions"], 400, "unsupported_dimensions", "Unsupported embedding dimensions", "dimensions")
