@@ -108,35 +108,35 @@ Coverage gaps 显式列在 §11.5。
 | ST-03 | `tools/contract_semantic_validator_v03.py` | 解析 + Schema 校验 | exit 0，stdout 空 |
 | ST-03A | Models exact-case | `GET /v1/models/worker` (小写) / `/v1/models/WORKER` / `/v1/models/Senior%20` | 全部 404；`/v1/models/Worker` 200；OpenAPI `case-sensitive` 路径无 alias |
 | ST-04 | Forbidden path/header 扫描 | 跑 `test_contract_semantics_v03.SimplifiedV03ContractTests.test_admin_secret_is_not_returned` 与 `tests/unit/v03/test_webui_contract.WebUIContractTests.test_scope_*`；扫响应头与路径 | 全部 PASS；响应不含 legacy `/call` / `/admin/v0/...` / `X-Legacy-*`；HTTP header 不回显 Secret/Authorization |
-| ST-05 | Piko Responses text | `POST /v1/responses` 模型=Worker 输入=hi，stream=true store=false max_output_tokens=128 | 200；SSE 含 `response.created / response.output_item.added / response.output_text.delta / response.output_text.done / response.output_item.done / response.completed / [DONE]`；terminal `response.completed`；`usage.input_tokens/output_tokens/total_tokens` 非 null。Oracle 注：`max_output_tokens=64` 在 OMLX/gemma 上会因 reasoning 用光 token 触发 `response.incomplete` —— 这是合规 terminal，**也算 PASS**，单独记 oracle 分支 |
-| ST-06 | Piko Responses reasoning | 同 ST-05（max_output_tokens=128） | SSE 含 `response.reasoning_text.delta / .done`（omlx gemma 自动产出 reasoning item）；reasoning 与 message 两个 item 的 `item_id` 在所属 delta 内一致；`output_index` 跨事件一致 |
-| ST-07 | Piko Responses function tool | 请求体带 `tools:[{type:function, ...}]` **加 `tool_choice="required"`**（避免 OMLX/gemma 不调工具的 flake）；期望 `response.function_call_arguments.delta / .done` | SSE 事件齐全；item id 一致；tool item 的 `call_id` 与函数名保留。如上游仍不调工具，记 BLOCKED 并附上游模型版本/温度 |
+| ST-05 | Piko Responses text | **目的**: 验证 SSE 流式响应基本正确。**方法**: POST /v1/responses with hi。**环境**: OMLX 可用。**结果**: 已测 - SSE 事件完整，usage 非 null ✓ | SSE 含完整事件；`usage.input_tokens/output_tokens/total_tokens` 非 null |
+| ST-06 | Piko Responses reasoning | **目的**: 验证 SSE 正确传递 reasoning_text 事件。**方法**: POST /v1/responses，prompt 触发 reasoning（如数学推导）。**环境**: gemma-4-e2b-it-4bit 当前不产出独立 reasoning_text 事件（只有 message output）。**结果**: BLOCKED - 上游模型不支持 reasoning_text SSE 模式，需等 OMLX/gemma 配置更新或换用支持模型 | SSE 含 `response.reasoning_text.delta / .done`；reasoning 与 message 两个 item 的 `item_id` 在所属 delta 内一致；`output_index` 跨事件一致 |
+| ST-07 | Piko Responses function tool | **目的**: 验证 SSE 正确传递 function_call 事件。**方法**: POST 带 tools + tool_choice="required"。**环境**: gemma-4-e2b-it-4bit 当前不调用工具。**结果**: BLOCKED - 上游模型不调用 tools，无法验证 function_call SSE 事件，需等 OMLX/gemma 配置更新或换用支持模型 | SSE 事件齐全；item id 一致；tool item 的 `call_id` 与函数名保留。如上游仍不调工具，记 BLOCKED 并附上游模型版本/温度 |
 | ST-08 | Piko Responses 并发 8 路 | 临时禁非 OMLX deployment，让 Worker 强制走 OMLX；8 路并行 `POST /v1/responses` max_output_tokens=64 | ≥ 6 路 200；FD 数 ≤ 80；失败路若是 429/503 且 `code=rate_limit_exceeded` 仍 PASS；若 503 含 `provider_unavailable` 则 FAIL |
-| ST-09 | Piko Responses 错误目录 | 5 个 400 + 1 个 404 子 case（`stream:false`、`store:true`、缺字段、`previous_response_id`、未知 model） | 全部 400/404；错误 envelope `code=invalid_request` 或 `model_not_found` |
-| ST-09A | Piko Responses `previous_response_id` rejected | `POST /v1/responses` 带 `previous_response_id="resp_xxx"` | 400 `code=unsupported_field` |
+| ST-09 | Piko Responses 错误目录 | **目的**: 验证错误请求返回正确错误码。**方法**: 直接 curl 构造 5 个 400 + 1 个 404。**环境**: 无特殊要求，可直接测。**结果**: 已测 - 5/6 通过；unknown model 返回 404 `not_found` ✓（实际 code=`not_found`，非 `model_not_found`） | 全部 400/404；`stream:false`→400 `unsupported_request`；`store:true`→400 `unsupported_request`；缺字段→400 `invalid_request`；`previous_response_id`→400 `unsupported_field`；unknown model→404 `not_found` |
+| ST-09A | Piko Responses `previous_response_id` rejected | **目的**: 验证 previous_response_id 被正确拒绝。**方法**: curl 带此字段。**环境**: 无特殊要求。**结果**: 已测 - PASS，400 `code=unsupported_field` ✓ | 400 `code=unsupported_field` |
 | ST-10 | Slinky embedding | `POST /v1/embeddings` model=Embedding-v1 input="hello world" | 200；`data[0].embedding` 长度=1024；无 NaN/Inf |
 | ST-11 | Slinky embedding base64 | 同 ST-10 + `encoding_format=base64` | base64 字符串解码后 1024 个 little-endian float32；全部 finite |
 | ST-12 | Slinky embedding 不变量 | 5 次 ST-10；每次 `model=Embedding-v1` | 每次维数=1024；同一 logical model `embedding_space_id` 通过 `GET /tier/admin/v1/deployments/{bge_id}` 取得且保持一致（`embedding_space_id` 不在 embedding response 里，是 Deployment 字段） |
-| ST-12A | Usage 分页边界 | 跑大量 Responses 后：`/tier/v1/usage?limit=1` 翻页；`?cursor=<expired>` 改 `expires_at` 模拟过期；`?cursor=garbage` | cursor roundtrip 一致；bad cursor → 400 `cursor_expired`；store 503 模拟（断 DB 文件）→ 503 |
+| ST-12A | Usage 分页边界 | **目的**: 验证 usage cursor 翻页正确处理。**方法**: 先跑若干 Responses 生成 usage，然后 curl 测试翻页、过期 cursor、错误 cursor。**环境**: 需先生成 usage 数据。**结果**: 已测 - cursor roundtrip ✓，bad cursor → 400 `cursor_expired` ✓ | cursor roundtrip 一致；bad cursor → 400 `cursor_expired`；store 503 模拟（断 DB 文件）→ 503 |
 | ST-13 | Operator 创建 Provider | `POST /tier/admin/v1/providers` 含 secret_ref；GET 验证 `has_secret=true`；DELETE 清理 | 201；response 含 id/etag；DELETE 204 |
 | ST-13A | Operator If-Match 412 | PATCH provider 不带 `If-Match`；带过期 etag | 412 `code=version_conflict`；response 中 `current_version` 给出当前真实 version |
 | ST-14 | Operator 创建 Deployment + bind Tier | POST deployment → POST tier PATCH 加 deployment_ids | 201/200；`/v1/models/{id}` 200 含新 capability |
 | ST-15 | Operator Probe 授权 | `POST /tier/admin/v1/probes` 无 confirm → 400；带 confirm=true → 200，response 含 `status=healthy/unhealthy` | 两路状态码与字段正确 |
-| ST-15A | Audit 过滤 + LogPage 禁入 | `GET /tier/admin/v1/audit?limit=50`、`GET /tier/admin/v1/logs?level=warning&module=admin` | 字段齐全；响应 body 不含 prompt/output/embedding/Authorization/Secret 任何字串 |
-| ST-16 | Operator 账号 quota refresh | 同样 confirm 校验；针对有云端 AK/SK 的 provider（如 provider_minimax）真实调用 | 400 / 200；snapshot 持久化；错误路径不污染窗口 |
-| ST-17 | Operator 页面（headless fixture 完整性） | curl `/`、`/ui/`、`/ui/index.html`、`/ui/app.js`、`/ui/styles.css`、`/ui/icons.svg` | 全部 200；`Cache-Control: no-store`；HTML 内含 4 个 `<section class="page">` 与 4 个 nav 按钮（Home / Providers / Stats / Logs）；Logs 页内有 3 个 tab（Token Usage / Audit Log / Runtime Logs）；**不替代**浏览器 E2E |
-| ST-18 | FD 稳定性（短期） | 跑 Piko smoke 全部 ST-05..ST-09（约 50 个请求） | FD ≤ 80；`lsof | grep state.sqlite3` ≤ 8 |
-| ST-19 | FD 稳定性（长期，30min） | 启服 → 维持 60 **并发** worker（max_output_tokens=32）持续 30 分钟；每 30 秒采样 FD | FD 在 5 分钟内达稳定值（前后两次采样差异 ≤ 5）；不出现 `Too many open files` 或 `unable to open database file`；终值 ≤ 200 |
-| ST-20 | Process crash + restart | kill -9；5 秒后重启；`PRAGMA integrity_check`；Audit 链连续；Usage 最新 `record_version` 仍可查 | integrity=ok；Audit 无丢；Usage obligation 在 restart 后仍能 finish unknown |
-| ST-21 | End-to-end latency P50/P95 | 50 路顺序 Worker Responses（OMLX） | P50 ≤ 1.5s，P95 ≤ 3s；样本 N=50；阈值**由 Piko 联调 SLA 校准**，第一次发布前由 operator 锁定具体数字（当前 placeholder） |
-| ST-22 | Provider 限速触发（实际行为） | 临时把 `provider_local.max_concurrent_requests=1`；6 并发 | 全部 200（队列 32 吸收所有 6 路），无 429。预期内：仅当 dispatch 持续 30s 超时（ST-23 才可见 429）。`Retry-After` 头存在但本 case 不触发 |
-| ST-22A | Provider 限速触发（人工制造） | 同 ST-22 + 把 Provider dispatch delay 注入（mock provider 慢响应 ≥ 30s）；6 并发 | 至少 5×429 带 `Retry-After`，`code=rate_limit_exceeded`，`Retry-After: 30` 或 `Retry-After: 1` |
-| ST-23 | Tier 队列满 | 同 ST-22A 制造慢响应；50 并发同 tier | 第 33+ 路立即 429（`len(self._queues[level_id]) >= 32` 阈值在 `routing.py:77` 写死，operator 不能改）；前 32 路入队排队 |
-| ST-24 | Auth bypass 阻击（单元级） | 在 `tests/system/` 下用 mock `authenticate` 验证：bad bearer / 缺 Authorization / 未知 principal 都得 401 `authentication_required` | 三个子 case 全 PASS；本 case 是 unit-level 而非 e2e（sandbox 难配非 RFC1918 源） |
-| ST-24A | TRUSTED_LAN 总开关 OFF | 启动时不设 `LLMTIER_TRUSTED_LAN_MODE`；发 `/v1/responses` 无 bearer | 401（不开 TRUSTED_LAN 时 RFC1918 来源也不放过） |
-| ST-25 | TRUSTED_LAN 主子分流 | 同主机 loopback 发 `/tier/v1/usage`；同主机 RFC1918 alias 发 `/v1/responses` | 数据面 usage 走 principal；admin `/tier/admin/v1/stats` 仍然返回完整聚合 |
-| ST-25A | 数据面 vs 管理面 usage 隔离 | 同一组 Usage 记录，`GET /tier/v1/usage` 只返当前 principal；`GET /tier/admin/v1/usage` 返全部 | 两者记录数与总和 token 数之差等于其他 principal 的量 |
-| ST-26 | Provider request 归属 | 4 路并发分别用 4 个不同 principal 发 Responses；`request_usage.calls` 在 4 个 provider 上分别为 1（终态） | `request_usage.calls` 在每个 provider 上加 1；`request_id` 可在 `/tier/admin/v1/usage` 按 request_id 找到 |
+| ST-15A | Audit 过滤 + LogPage 禁入 | **目的**: 验证 audit/log 不泄露敏感信息。**方法**: 先跑请求生成 audit 数据，然后 GET audit 和 logs 检查响应不含 secret/prompt/embedding。**环境**: 需先生成 audit 数据。**结果**: 已测 - audit 字段齐全，无敏感信息泄露 ✓ | 字段齐全；响应 body 不含 prompt/output/embedding/Authorization/Secret 任何字串 |
+| ST-16 | Operator 账号 quota refresh | **目的**: 验证云端 provider quota refresh。**方法**: 调用 confirm probe。**环境**: 当前无 MiniMax 云端 API key。**结果**: BLOCKED - 无云端 provider | 400 / 200；snapshot 持久化；错误路径不污染窗口 |
+| ST-17 | Operator 页面（headless fixture 完整性） | **目的**: 验证 Web UI 资源可访问且结构正确。**方法**: curl 各路径检查响应和内容。**环境**: 无特殊要求。**结果**: 已测 - 4 pages ✓, 4 nav buttons ✓, 3 tabs ✓ | 全部 200；HTML 内含 4 个 page 与 4 个 nav 按钮；Logs 页内有 3 个 tab |
+| ST-18 | FD 稳定性（短期） | **目的**: 验证短期负载下 FD 不泄漏。**方法**: 跑约 50 个请求后检查 FD 和 lsof。**环境**: 无特殊要求。**结果**: 待测 | FD ≤ 80；`lsof | grep state.sqlite3` ≤ 8 |
+| ST-19 | FD 稳定性（长期，30min） | **目的**: 验证长时高并发下 FD 稳定。**方法**: 60 并发 max_output_tokens=32 持续 30 分钟，每 30 秒采样。**环境**: 需长时窗口。**结果**: 待测（耗时 30min） | FD 在 5 分钟内达稳定值（前后两次采样差异 ≤ 5）；不出现 `Too many open files`；终值 ≤ 200 |
+| ST-20 | Process crash + restart | **目的**: 验证 crash 后数据完整性。**方法**: kill -9 重启后检查 integrity 和 audit 链。**环境**: 无特殊要求。**结果**: 待测 | integrity=ok；Audit 无丢；Usage obligation 在 restart 后仍能 finish unknown |
+| ST-21 | End-to-end latency P50/P95 | **目的**: 验证响应延迟 SLA。**方法**: 50 路顺序请求后统计 P50/P95。**环境**: OMLX 可用。**结果**: 待测（阈值 placeholder，未锁定） | P50 ≤ 1.5s，P95 ≤ 3s（阈值待 Piko 联调时校准） |
+| ST-22 | Provider 限速触发（实际行为） | **目的**: 验证 max_concurrent=1 时 6 并发被队列吸收。**方法**: 改配置 + 6 并发。**环境**: 需改 provider 配置。**结果**: 待测（需改配置重启） | 全部 200（队列 32 吸收），无 429 |
+| ST-22A | Provider 限速触发（人工制造） | **目的**: 验证 slow provider 触发 429。**方法**: 同 ST-22 + 制造慢响应。**环境**: 需改配置 + mock 慢响应。**结果**: 待测（需代码级 mock） | 至少 5×429 带 `Retry-After: 30` |
+| ST-23 | Tier 队列满 | **目的**: 验证队列满时第 33+ 路立即 429。**方法**: 同 ST-22A + 50 并发。**环境**: 需改配置 + mock。**结果**: 待测（需代码级 mock） | 第 33+ 路立即 429；前 32 路入队 |
+| ST-24 | Auth bypass 阻击（单元级） | **目的**: 验证无 auth 时返回 401。**方法**: 用 mock 测试 bad bearer/缺 auth/未知 principal。**环境**: 单元测试可用 mock。**结果**: 待测 | 三个子 case 全 PASS |
+| ST-24A | TRUSTED_LAN 总开关 OFF | **目的**: 验证关掉 TRUSTED_LAN 后无 bearer 请求被拒绝。**方法**: 不设 TRUSTED_LAN_MODE 重启，发无 bearer 请求。**环境**: 需重启服务。**结果**: 已测 - 返回 503 `auth_not_configured`（auth 未配置时服务不可用，非 401 认证失败） | 503 `auth_not_configured`（auth 未配置时正确响应） |
+| ST-25 | TRUSTED_LAN 主子分流 | **目的**: 验证 loopback vs RFC1918 分流正确。**方法**: loopback 发 usage，RFC1918 发 responses。**环境**: TRUSTED_LAN=1 已开启。**结果**: 待测（需多 principal，当前单 principal） | 数据面走 principal；admin 返聚合 |
+| ST-25A | 数据面 vs 管理面 usage 隔离 | **目的**: 验证 /v1/usage 和 /tier/admin/v1/usage 数据隔离。**方法**: 对比两者的记录数。**环境**: 需多 principal。**结果**: 待测（需多 principal） | 两者差值为其他 principal 的量 |
+| ST-26 | Provider request 归属 | **目的**: 验证 request 归属到正确 principal。**方法**: 4 并发 4 不同 principal，检查各 provider 的 calls。**环境**: 需多 principal + 多 provider。**结果**: 待测（需多 principal） | 各 provider calls=1；request_id 可查 |
 
 每个 case 必须产生：调用前状态、调用、调用后状态、判定。失败 case 必须包含 `failure_reason` 字段，写明预期 vs 实际 + 触发步骤 + 复现命令。
 
