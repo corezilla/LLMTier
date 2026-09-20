@@ -22,7 +22,9 @@
 
     <section id="providers" class="page">
       <div class="toolbar"><span id="provider-error" class="error"></span><div class="actions"><button id="refresh-providers" class="icon-button" title="Refresh providers" aria-label="Refresh providers"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-refresh-cw"></use></svg></button><button class="primary" id="add-provider"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-plus"></use></svg>Add Provider</button></div></div>
-      <div class="card"><div class="cardhead"><b>Provider Management</b><span>Tier members can only use providers listed here</span></div><div class="tablewrap"><table><thead><tr><th>Provider</th><th>Type</th><th>API Root</th><th>API Key</th><th>Status</th><th>Account Usage</th><th>Calls / Tokens</th><th>Running / Max</th><th>Actions</th></tr></thead><tbody id="provider-body"></tbody></table></div></div>
+      <div class="card"><div class="cardhead"><b>Provider Management</b><span>Tier members can only use providers listed here</span></div>
+        <div id="provider-tree" class="tree"></div>
+      </div>
     </section>
 
     <section id="stats" class="page">
@@ -88,7 +90,8 @@
     <form id="add-member-form" class="add-member-form">
       <label>Existing Provider<select id="member-provider" name="provider_id" required></select></label>
       <label>Deployment Name<input name="name" required></label>
-      <label>Backend Model ID<input name="backend_model" required></label>
+      <label>Backend Model ID<select id="member-model" name="backend_model" list="model-list-new" required><option value="">Select a provider first</option></select><span class="field-help">Choose from provider models or type a custom model ID</span></label>
+      <datalist id="model-list-new"></datalist>
       <button class="primary"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-plus"></use></svg>Add Member</button>
     </form>
     <p id="tier-form-error" class="error"></p>

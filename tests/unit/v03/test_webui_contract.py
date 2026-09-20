@@ -89,8 +89,12 @@ class WebUIContractTests(unittest.TestCase):
         self.assertIn("Paused:'circle-pause'",self.js)
         self.assertIn("Running:'activity'",self.js)
     def test_provider_and_tree_operational_fields(self):
-        for value in ('Account Usage','Calls / Tokens','Running / Max'):
-            self.assertIn(value,self.html)
+        self.assertIn('id="provider-tree"',self.html)
+        self.assertIn('class="tree"',self.html)
+        self.assertIn('class="provider-row"',self.js)
+        self.assertIn('class="backend"',self.js)
+        self.assertIn('provider-usage-refresh',self.js)
+        self.assertIn('provider-deployment-edit',self.js)
         self.assertIn('max_concurrent',self.js)
         self.assertIn('Unknown',self.js)
     def test_no_bearer_storage(self):self.assertNotIn('localStorage',self.js);self.assertNotIn('Bearer ',self.js)

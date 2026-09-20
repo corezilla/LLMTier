@@ -12,7 +12,7 @@ const etag=item=>`"${item.id}.v${item.version}"`;
 const windowQuery=()=>{const to=new Date(),from=new Date(to.getTime()-7*86400000);return `from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`};
 const caps=kind=>({responses:kind==='responses',embeddings:kind==='embeddings',tools:kind==='responses',structured_outputs:false,input_modalities:['text'],output_modalities:kind==='embeddings'?['embedding']:['text'],context_window:kind==='responses'?128000:null,max_output_tokens:kind==='responses'?16384:null,embedding_space_id:kind==='embeddings'?'bge-m3-dense-1024-v1':null,embedding_dimensions:kind==='embeddings'?[1024]:null,embedding_max_batch_inputs:kind==='embeddings'?32:null,embedding_max_input_tokens:kind==='embeddings'?8192:null});
 
-let state={providers:[],deployments:[],tiers:[],runtime:{deployments:{},providers:{},queues:{}},usage:[],providerUsage:{},tierAvailability:{}};
+let state={providers:[],deployments:[],tiers:[],runtime:{deployments:{},providers:{},queues:{}},usage:[],providerUsage:{},tierAvailability:{},modelCache:{}};
 let editingTierId=null;
 
 const iconSvg=name=>`<svg viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-${esc(name)}"></use></svg>`;
@@ -44,6 +44,26 @@ function tierState(tier){
   return ['Unknown','muted'];
 }
 function providerOptions(selected){return state.providers.map(provider=>`<option value="${esc(provider.id)}" ${provider.id===selected?'selected':''}>${esc(provider.name)} · ${esc(provider.kind)}</option>`).join('')}
+
+async function fetchProviderModels(providerId){
+  if(state.modelCache[providerId]) return state.modelCache[providerId];
+  const provider=state.providers.find(p=>p.id===providerId);
+  if(!provider?.endpoint) return [];
+  try{
+    const res=await fetch(`${provider.endpoint.replace(/\/$/,'')}/models`,{credentials:'same-origin'});
+    if(!res.ok) return [];
+    const data=await res.json();
+    const models=(data.data||[]).map(m=>m.id);
+    state.modelCache[providerId]=models;
+    return models;
+  }catch{return []}
+}
+
+function modelOptions(models,selected){
+  const opts=models.map(m=>`<option value="${esc(m)}">${esc(m)}</option>`).join('');
+  if(selected&&!models.includes(selected)) opts+=`<option value="${esc(selected)}">${esc(selected)} (current)</option>`;
+  return opts;
+}
 
 async function loadRegistry(){
   const [providers,deployments,tiers,runtime]=await Promise.all([api('/tier/admin/v1/providers'),api('/tier/admin/v1/deployments'),api('/tier/admin/v1/service-levels'),api('/tier/admin/v1/runtime')]);
@@ -135,17 +155,29 @@ function usageSummary(snapshot){
 }
 
 function renderProviders(){
-  $('#provider-body').innerHTML=state.providers.map(provider=>{
+  if(!state.providers.length){$('#provider-tree').innerHTML='<div class="empty">No providers configured</div>';return}
+  $('#provider-tree').innerHTML=state.providers.map(provider=>{
     const deployments=state.deployments.filter(item=>item.provider_id===provider.id);
     const load=deployments.reduce((sum,item)=>{const current=state.runtime.deployments[item.id]||{};sum.running+=current.running||0;sum.max+=current.max_concurrent||0;return sum},{running:0,max:0});
     const available=provider.enabled&&deployments.some(item=>['Idle','Running'].includes(backendState(item,provider,state.runtime.deployments[item.id])[0]));
     const providerStatus=!provider.enabled?'Disabled':load.running>0?'Running':available?'Idle':'Attention';
-    const requestUsage=provider.request_usage||{},providerRuntime=state.runtime.providers?.[provider.id]||{};
-    return `<tr><td><b>${esc(provider.name)}</b><div class="subline">${esc(provider.id)}</div></td><td>${provider.kind==='cloud'?'Cloud':'Local'}</td><td>${esc(provider.endpoint)}</td><td>${provider.has_secret?'Configured':'None'}</td><td>${statusMarkup(providerStatus,providerStatus==='Running'||providerStatus==='Idle'?'ok':providerStatus==='Attention'?'warn':'muted')}</td><td>${usageSummary(state.providerUsage[provider.id])}</td><td>${metric(`${requestUsage.calls||0} calls · ${requestUsage.total_tokens??'Unknown'} tok`)}</td><td>${metric(`${providerRuntime.running??0} / ${providerRuntime.max_concurrent??provider.usage.max_concurrent_requests}`)}</td><td class="row-actions">${iconButton('refresh-cw','Refresh account usage','provider-usage-refresh',`data-provider="${esc(provider.id)}"`)}${iconButton('pencil','Edit provider','provider-edit',`data-provider="${esc(provider.id)}"`)}${iconButton('trash-2','Delete provider','provider-delete danger',`data-provider="${esc(provider.id)}"`)}</td></tr>`;
-  }).join('')||'<tr><td colspan="9">No providers configured</td></tr>';
+    const statusTone=providerStatus==='Running'||providerStatus==='Idle'?'ok':providerStatus==='Attention'?'warn':'muted';
+    const summaryCols=[
+      `<span class="providername">${statusMarkup(providerStatus,statusTone)}<b>${esc(provider.name)}</b><span class="subline">${esc(provider.id)}</span></span>`,
+      `<span>${provider.kind==='cloud'?'Cloud':'Local'}</span>`,
+      `<code class="endpoint-code">${esc(provider.endpoint)}</code>`,
+      `<span>${provider.has_secret?'Configured':'None'}</span>`,
+      `<span>${usageSummary(state.providerUsage[provider.id])}</span>`,
+      `<span class="row-actions">${iconButton('refresh-cw','Refresh account usage','provider-usage-refresh',`data-provider="${esc(provider.id)}"`)}${iconButton('pencil','Edit provider','provider-edit',`data-provider="${esc(provider.id)}"`)}${iconButton('trash-2','Delete provider','provider-delete danger',`data-provider="${esc(provider.id)}"`)}</span>`,
+    ].join('');
+    if(!deployments.length) return `<details class="provider-row"><summary>${summaryCols}</summary><div class="empty compact">This provider has no deployments.</div></details>`;
+    return `<details class="provider-row"><summary>${summaryCols}</summary>${deployments.map(deployment=>{const runtime=state.runtime.deployments[deployment.id]||{};const status=backendState(deployment,provider,runtime);return `<div class="backend"><span>${statusMarkup(status[0],status[1])}<b title="${esc(deployment.backend_model)}">${esc(deployment.name)}</b></span><span>${esc(deployment.backend_model)}</span><span>${metric(`${runtime.running??0} / ${runtime.max_concurrent??'?'}`)}</span><span></span><span></span><span class="backend-actions">${iconButton('pencil','Edit deployment','provider-deployment-edit',`data-deployment="${esc(deployment.id)}"`)}</span></div>`}).join('')}</details>`;
+  }).join('');
+
   $$('.provider-edit').forEach(button=>button.onclick=()=>openProviderEditor(button.dataset.provider));
   $$('.provider-delete').forEach(button=>button.onclick=()=>deleteProvider(button.dataset.provider));
   $$('.provider-usage-refresh').forEach(button=>button.onclick=()=>refreshProviderUsage(button));
+  $$('.provider-deployment-edit').forEach(button=>button.onclick=()=>{const deployment=state.deployments.find(d=>d.id===button.dataset.deployment);if(!deployment)return;const tier=state.tiers.find(t=>t.deployment_ids.includes(deployment.id));if(tier)openTierEditor(tier.id)});
 }
 
 async function refreshProviderUsage(button){
@@ -213,16 +245,29 @@ function openTierEditor(id){
   $('#tier-mask').classList.add('open');
 }
 
-function renderTierMembers(){
+async function renderTierMembers(){
   const tier=state.tiers.find(item=>item.id===editingTierId);if(!tier)return;
   const deployments=tier.deployment_ids.map(id=>state.deployments.find(item=>item.id===id)).filter(Boolean);
-  $('#tier-members').innerHTML=deployments.map(deployment=>{const status=backendState(deployment,state.providers.find(item=>item.id===deployment.provider_id),state.runtime.deployments[deployment.id]);return `<form class="member-card" data-deployment="${esc(deployment.id)}"><div class="member-heading"><b>${esc(deployment.name)}</b><span>${statusMarkup(status[0],status[1])}${esc(deployment.id)} · v${deployment.version}</span></div><label>Provider<select name="provider_id">${providerOptions(deployment.provider_id)}</select></label><label>Deployment Name<input name="name" value="${esc(deployment.name)}" required></label><label>Backend Model ID<input name="backend_model" value="${esc(deployment.backend_model)}" required></label><label class="check"><input name="enabled" type="checkbox" ${deployment.enabled?'checked':''}> Available for routing</label><div class="member-actions"><button type="button" class="danger member-remove">${iconSvg('unlink')}<span>Remove</span></button><button class="primary">${iconSvg('save')}<span>Save</span></button></div></form>`}).join('')||'<div class="empty compact">This tier has no members.</div>';
+  await Promise.all(deployments.map(d=>fetchProviderModels(d.provider_id)));
+  $('#tier-members').innerHTML=deployments.map(deployment=>{const status=backendState(deployment,state.providers.find(item=>item.id===deployment.provider_id),state.runtime.deployments[deployment.id]);const models=state.modelCache[deployment.provider_id]||[];const currentModel=deployment.backend_model;return `<form class="member-card" data-deployment="${esc(deployment.id)}"><div class="member-heading"><b>${esc(deployment.name)}</b><span>${statusMarkup(status[0],status[1])}${esc(deployment.id)} · v${deployment.version}</span></div><label>Provider<select name="provider_id" onchange="reloadMemberModels(this)">${providerOptions(deployment.provider_id)}</select></label><label>Deployment Name<input name="name" value="${esc(deployment.name)}" required></label><label>Backend Model ID<select name="backend_model" list="model-list-${esc(deployment.id)}" required>${modelOptions(models,currentModel)}</select><span class="field-help">Choose from provider models or type a custom model ID</span></label><datalist id="model-list-${esc(deployment.id)}">${[...new Set([...models,currentModel])].map(m=>`<option value="${esc(m)}">`)}</datalist><label class="check"><input name="enabled" type="checkbox" ${deployment.enabled?'checked':''}> Available for routing</label><div class="member-actions"><button type="button" class="danger member-remove">${iconSvg('unlink')}<span>Remove</span></button><button class="primary">${iconSvg('save')}<span>Save</span></button></div></form>`}).join('')||'<div class="empty compact">This tier has no members.</div>';
   $$('#tier-members .member-card').forEach(form=>{form.onsubmit=saveMember;form.querySelector('.member-remove').onclick=()=>removeMember(form.dataset.deployment)});
   $('#member-provider').innerHTML=providerOptions();
+  $('#member-model').innerHTML='<option value="">Select a provider first</option>';
+  $('#model-list-new').innerHTML='';
   $('#member-capability').textContent=tier.id==='Embedding-v1'?'Embeddings':'Responses';
   const addButton=$('#add-member-form button');
   addButton.disabled=!state.providers.length;
   addButton.title=state.providers.length?'':'Add a provider before adding a tier member';
+}
+
+async function reloadMemberModels(providerSelect){
+  const form=providerSelect.closest('form');
+  const deploymentId=form.dataset.deployment;
+  const models=await fetchProviderModels(providerSelect.value);
+  const currentModel=form.querySelector('[name="backend_model"]').value;
+  const mergedModels=[...new Set([...models,currentModel])];
+  form.querySelector('[name="backend_model"]').innerHTML=modelOptions(models,currentModel);
+  document.getElementById(`model-list-${deploymentId}`).innerHTML=mergedModels.map(m=>`<option value="${esc(m)}">`).join('');
 }
 
 async function saveMember(event){
