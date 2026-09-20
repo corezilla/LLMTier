@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-test-plan` |
-| Document Version | `0.3.2-draft.3` |
+| Document Version | `0.3.2-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -14,7 +14,7 @@
 | Approver | 待定 |
 | Approval Date | 待定 |
 | Created Date | `2026-09-19` |
-| Last Modified Date | `2026-09-19` |
+| Last Modified Date | `2026-09-20` |
 | Template Version | `0.1.0` |
 | Template ID | `assurance.test-plan` |
 | Template Conformance | `native` |
@@ -56,11 +56,24 @@ authority：OpenAPI 是字段层 machine authority；本 plan 是 runtime 行为
 | SQLite | 启动时执行 `001_initial.sql` migration；`PRAGMA integrity_check` 输出 `ok` |
 | FD baseline | 进程启服后 60 秒 idle 状态下 `lsof -p $PID | wc -l` ≤ 60 |
 
-### 2.2 排除条件
+### 2.2 测试环境约束
+
+**m5air 不是测试环境**。m5air（`192.168.1.9`）是 LLMTier 运维环境，运行生产级服务（`LLMTIER_TRUSTED_LAN_MODE=1`），供人工验证、调试和 Web UI 确认用。自动化系统测试必须跑在**开发机**（如 m5mac）上的临时 SQLite + 临时端口，避免污染 m5air 的运行状态和干扰其服务。
+
+| 环境 | 用途 | 可跑 ST-XX |
+|---|---|---|
+| m5air (`192.168.1.9`) | 运维、人工验证、Web UI 确认 | 人工确认、smoke |
+| 开发机 (m5mac) | 自动化系统测试 | ST-01..ST-26（全部） |
+| CI/CD runner | 单元测试 + contract static | ST-02, ST-03 |
+
+ST-05..ST-09、ST-10..ST-12 需要 OMLX 可达：开发机上跑时用 `provider_local`（`127.0.0.1:9100`，m5air 上的 OMLX）或 `provider_omlx_m5mac`（`192.168.1.8:9000`，m5mac 本地 OMLX）。
+
+### 2.3 排除条件
 
 - 当前 commit 缺 `b89ba4d` 或 `a6f06af` 时，**禁止**执行 ST-19；runner 必须先 `git rev-parse HEAD` 验证。
 - 任何带 `confirm_external_call=true` 的真实云端 refresh 必须在 operator 显式授权下执行；测试固件中如使用真实云 key，必须先离线 `confirm_external_call` mock 化（跑 ST-15 / ST-16 时 mock 与真实各跑一遍）。
 - 真 Piko / 真 Slinky Memory 联调：本 plan 仅覆盖 Mock 路径；真 consumer 联调是 §11.5 M5/M6 缺口。
+- ST-16 依赖云端 quota refresh，m5air 上 `provider_volc` 已删除；应在有云端 provider 的独立测试环境跑，或用 mock 替代。
 
 ## 3. Test Strategy 与 Coverage Model
 
@@ -110,8 +123,8 @@ Coverage gaps 显式列在 §11.5。
 | ST-14 | Operator 创建 Deployment + bind Tier | POST deployment → POST tier PATCH 加 deployment_ids | 201/200；`/v1/models/{id}` 200 含新 capability |
 | ST-15 | Operator Probe 授权 | `POST /tier/admin/v1/probes` 无 confirm → 400；带 confirm=true → 200，response 含 `status=healthy/unhealthy` | 两路状态码与字段正确 |
 | ST-15A | Audit 过滤 + LogPage 禁入 | `GET /tier/admin/v1/audit?limit=50`、`GET /tier/admin/v1/logs?level=warning&module=admin` | 字段齐全；响应 body 不含 prompt/output/embedding/Authorization/Secret 任何字串 |
-| ST-16 | Operator 账号 quota refresh | 同样 confirm 校验；针对已有 AK/SK 的 provider_volc 真实调用 | 400 / 200；snapshot 持久化；错误路径不污染窗口 |
-| ST-17 | Operator 页面（headless fixture 完整性） | curl `/`、`/ui/`、`/ui/index.html`、`/ui/app.js`、`/ui/styles.css`、`/ui/icons.svg` | 全部 200；`Cache-Control: no-store`；HTML 内含 5 个 `<section class="page">` 与 5 个 nav 按钮（Home / Providers / Stats / Usage & Audit / Logs）；**不替代**浏览器 E2E |
+| ST-16 | Operator 账号 quota refresh | 同样 confirm 校验；针对有云端 AK/SK 的 provider（如 provider_minimax）真实调用 | 400 / 200；snapshot 持久化；错误路径不污染窗口 |
+| ST-17 | Operator 页面（headless fixture 完整性） | curl `/`、`/ui/`、`/ui/index.html`、`/ui/app.js`、`/ui/styles.css`、`/ui/icons.svg` | 全部 200；`Cache-Control: no-store`；HTML 内含 4 个 `<section class="page">` 与 4 个 nav 按钮（Home / Providers / Stats / Logs）；Logs 页内有 3 个 tab（Token Usage / Audit Log / Runtime Logs）；**不替代**浏览器 E2E |
 | ST-18 | FD 稳定性（短期） | 跑 Piko smoke 全部 ST-05..ST-09（约 50 个请求） | FD ≤ 80；`lsof | grep state.sqlite3` ≤ 8 |
 | ST-19 | FD 稳定性（长期，30min） | 启服 → 维持 60 **并发** worker（max_output_tokens=32）持续 30 分钟；每 30 秒采样 FD | FD 在 5 分钟内达稳定值（前后两次采样差异 ≤ 5）；不出现 `Too many open files` 或 `unable to open database file`；终值 ≤ 200 |
 | ST-20 | Process crash + restart | kill -9；5 秒后重启；`PRAGMA integrity_check`；Audit 链连续；Usage 最新 `record_version` 仍可查 | integrity=ok；Audit 无丢；Usage obligation 在 restart 后仍能 finish unknown |
@@ -133,7 +146,7 @@ Coverage gaps 显式列在 §11.5。
 
 待新增：
 
-- `tools/system_test_runner.py`：编排器（operational tool，跑测试但不属于 `tests/` 的 case），参数 `--port`, `--database`, `--provider`, `--commit`, `--cases ST-01,ST-05,...`，按依赖顺序执行；调 `tests/system/` 下 case 并捕获 stdout/stderr/exitcode，写入 `tests/system/reports/<run-id>/<case>.json`。**落地：M2-milestone；当前 PR 阶段用 `bash` + `ssh m5air` 直接跑关键 case。**
+- `tools/system_test_runner.py`：编排器（operational tool，跑测试但不属于 `tests/` 的 case），参数 `--port`, `--database`, `--provider`, `--commit`, `--cases ST-01,ST-05,...`，按依赖顺序执行；调 `tests/system/` 下 case 并捕获 stdout/stderr/exitcode，写入 `tests/system/reports/<run-id>/<case>.json`。**落地：M2-milestone；当前 PR 阶段在开发机（m5mac）上用 `bash` 直接跑关键 case，不在 m5air 上跑。**
 - `tests/system/st_*.py`：每个 case 一个文件，例如 `st05_responses_text.py`、`st18_fd_short.py`、`st22a_provider_429_inject.py`。**落地：M2。**（case 本身属 `tests/system/`，不是 earlier 版本的 `tools/system_test_cases/` —— 按 STD draft.26 HEAD 布局修正）
 - `tests/system/reports/<run-id>/`：系统测试报告，按 Run ID 分开（STD 最新 `tests/{level}/reports/<run-id>/` 规则）；不在 `docs/70_verification/` 集中。
 - `tests/system/`：firewall 把系统测试连进 `python3 -m unittest`，路径 `tests.system.test_st_*`；可与现有 191 个单元测试合并跑。**落地：M3。**
@@ -200,18 +213,18 @@ ST-19 与 ST-20 是 §5.3 阻塞项的解封步骤；只有当 ST-19 PASS 才能
 
 | 项 | Owner | 资源 | 排期 |
 |---|---|---|---|
-| ST-01..ST-04（启服 + 静态 smoke） | LLMTier author | dev / m5air 任一环境 | 每个 PR 必跑，< 30s 完成 |
-| ST-05..ST-09A（Piko Responses） | LLMTier author + Mock-Piko | m5air + OMLX | 每个 PR 必跑；接入真 Piko 后替换（§11.5 M5） |
-| ST-10..ST-12A（Slinky embedding） | LLMTier author + Mock-Slinky | m5air + OMLX bge-m3 | 每个 PR 必跑；接入 Slinky Memory 后替换（§11.5 M6） |
+| ST-01..ST-04（启服 + 静态 smoke） | LLMTier author | dev 机器 | 每个 PR 必跑，< 30s 完成 |
+| ST-05..ST-09A（Piko Responses） | LLMTier author + Mock-Piko | dev + OMLX (m5air:9100 或 m5mac:9000) | 每个 PR 必跑；接入真 Piko 后替换（§11.5 M5） |
+| ST-10..ST-12A（Slinky embedding） | LLMTier author + Mock-Slinky | dev + OMLX bge-m3 | 每个 PR 必跑；接入 Slinky Memory 后替换（§11.5 M6） |
 | ST-13..ST-17（Admin operator） | LLMTier author | dev 临时 SQLite 即可 | 每个 PR 必跑 |
 | ST-15A / ST-04 / ST-13A（负例） | LLMTier author | 同上 | 与所属 family 同步跑 |
-| ST-18 / ST-19（FD 稳定性） | LLMTier author + operator | m5air；ST-19 需预发独立窗口 | ST-18 每个 PR；ST-19 仅 release 前 + 修复后 |
-| ST-20（crash + restart） | LLMTier author + operator | m5air；可制造 SIGKILL | 每个 PR 跑短版本；完整 restart 流程仅 release 前 |
-| ST-21（latency） | LLMTier author | m5air | 阈值待 Piko SLA 锁定后纳入 PR gate |
+| ST-18 / ST-19（FD 稳定性） | LLMTier author + operator | dev；ST-19 需预发独立窗口 | ST-18 每个 PR；ST-19 仅 release 前 + 修复后 |
+| ST-20（crash + restart） | LLMTier author + operator | dev；可制造 SIGKILL | 每个 PR 跑短版本；完整 restart 流程仅 release 前 |
+| ST-21（latency） | LLMTier author | dev + OMLX | 阈值待 Piko SLA 锁定后纳入 PR gate |
 | ST-22 / ST-22A / ST-23（限速） | LLMTier author | dev 临时 SQLite + Mock-Piko 注入 delay | 每个 PR 必跑 |
 | ST-24 / ST-24A / ST-25 / ST-25A（安全） | LLMTier author | dev 临时 SQLite + unit-level mock auth | 每个 PR 必跑 |
 | ST-26（request 归属） | LLMTier author | dev 临时 SQLite | 每个 PR 必跑 |
-| acceptance gate | LLMTier owner + Piko reviewer + Slinky reviewer | m5air + 真 Piko + 真 Slinky Memory | release 前完整跑一次 ST-01..ST-26 |
+| acceptance gate | LLMTier owner + Piko reviewer + Slinky reviewer | dev + 真 Piko + 真 Slinky Memory | release 前完整跑一次 ST-01..ST-26 |
 
 资源依赖：1 台 m5air 测试机 + 1 个 OMLX 进程 + (release 前) 真 Piko 与真 Slinky Memory；不含人员排期细节（按 §11 缺口走）。
 
@@ -251,9 +264,9 @@ ST-19 与 ST-20 是 §5.3 阻塞项的解封步骤；只有当 ST-19 PASS 才能
 
 ### 11.1 测试环境隔离
 
-- 每个 ST-XX 在 `/tmp/llmtier_system_<uuid>.sqlite3` 上独立启服；`/Users/mlp/LLMTier-dev/state.sqlite3` 不被 ST 改写。
+- 每个 ST-XX 在开发机上用 `/tmp/llmtier_system_<uuid>.sqlite3` 独立启服；**不在 m5air 上跑自动化测试**，避免干扰其运行服务。
 - 不在 ST 执行期间手动 PATCH m5air production-like 配置；ST-08/ST-22/ST-22A/ST-23/ST-26 的 PATCH-post 列表由 runner 在 teardown 时统一撤销。
-- OMLX 进程是 m5air 共享资源；ST-05..ST-09 等使用只读流量，不改 OMLX 配置；如 OMLX 异常（PID 死了 / api_key 改了）→ 全局 BLOCKED，operator 按 `docs/80_operations/m5air-operations-manual.md` §15 恢复。
+- OMLX 进程（`127.0.0.1:9100` on m5air 或 `192.168.1.8:9000` on m5mac）是共享资源；ST-05..ST-09 等使用只读流量，不改 OMLX 配置；如 OMLX 异常 → 全局 BLOCKED，operator 按 `docs/80_operations/m5air-operations-manual.md` §15 恢复。
 
 ### 11.2 真实云端调用风险
 
@@ -265,7 +278,7 @@ ST-19 与 ST-20 是 §5.3 阻塞项的解封步骤；只有当 ST-19 PASS 才能
 
 - 测试固件 secret 写到 `/tmp/llmtier_system_<uuid>_secrets/`、mode 600；不在 evidence 目录里。
 - 不打印、不重发受 payload 影响的请求（§10 evidence 只写 oracle diff）。
-- operator secret（如 OMLX api_key、provider_volc AK/SK、provider_minimax api_key）从 m5air `/Users/mlp/LLMTier-dev/secrets/` 借链，不复制到测试 artifacts。
+- operator secret（如 OMLX api_key、provider_minimax api_key）从 m5air `/Users/mlp/LLMTier-dev/secrets/` 借链，不复制到测试 artifacts。
 
 ### 11.4 资源限制与清理
 
