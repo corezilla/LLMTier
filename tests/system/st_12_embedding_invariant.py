@@ -5,11 +5,13 @@ Runs /v1/embeddings 5 times and asserts:
 - no NaN/Inf in any finite response
 - if the path is unavailable, skipTest BLOCKED
 
-The in-process fixture seeds a provider_local + bge-m3 deployment bound
-to the Embedding-v1 tier. The DB default for deployments.health is
-"unknown"; routing.admit only considers "healthy" candidates. The
-fixture must therefore UPDATE deployments.health='healthy' after
-bootstrap so the embedding path is exercised.
+The in-process fixture reads the api_key from ~/.omlx/settings.json on
+m5air, then configures a provider_local pointing to m5air's OMLX
+(http://192.168.1.9:9000) with the bge-m3 embedding model.
+The DB default for deployments.health is "unknown"; routing.admit only
+considers "healthy" candidates. The fixture must therefore UPDATE
+deployments.health='healthy' after bootstrap so the embedding path
+is exercised.
 """
 from __future__ import annotations
 
@@ -28,31 +30,36 @@ import urllib.request
 from pathlib import Path
 
 
+M5AIR_IP = "192.168.1.9"
+OMLX_PORT = 9000
+OMLX_API_ENDPOINT = f"http://{M5AIR_IP}:{OMLX_PORT}/v1"
+
+
 def _free_port() -> int:
-    s = socket.socket(); s.bind(("127.0.0.1", 0)); p = s.getsockname()[1]; s.close()
+    s = socket.socket()
+    s.bind(("127.0.0.1", 0))
+    p = s.getsockname()[1]
+    s.close()
     return p
 
 
-# Settings template; secret_ref is patched in setUpClass once the
-# key file path is known (it lives in a tempdir).
-EMBEDDING_SETTINGS = {
-    "providers": [
-        {
-            "id": "provider_local",
-            "name": "Local OMLX",
-            "kind": "local",
-            "endpoint": "http://127.0.0.1:9100",
-            "secret_ref": "file:SET_AT_RUNTIME",
-            "enabled": True,
-            "usage": {"usage_provider": "local"},
-        },
-    ],
+def _omlx_key():
+    """Read OMLX api_key from ~/.omlx/settings.json."""
+    try:
+        settings = json.loads((Path.home() / ".omlx" / "settings.json").read_text())
+        return settings.get("auth", {}).get("api_key", "")
+    except Exception:
+        return ""
+
+
+_EMBEDDING_MODEL = "bge-m3"
+_EMBEDDING_SETTINGS_BASE = {
     "deployments": [
         {
             "id": "dep_local_bge_m3",
             "name": "BGE-M3 Embedding",
             "provider_id": "provider_local",
-            "backend_model": "bge-m3",
+            "backend_model": _EMBEDDING_MODEL,
             "capabilities": {
                 "responses": False,
                 "embeddings": True,
@@ -83,51 +90,40 @@ EMBEDDING_SETTINGS = {
 class ST12EmbeddingInvariant(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        # OMLX must be reachable with the configured api_key. Skip
-        # BLOCKED otherwise. The probe uses the same key that the case
-        # fixture will install for LLMTier.
-        omlx_key = ""
-        for cand in (Path("/Users/mp/LLMTier-dev/secrets/omlx-secret-key.txt"),
-                     Path("/Users/mlp/LLMTier-dev/secrets/omlx-secret-key.txt"),
-                     Path.home() / ".omlx" / "settings.json",
-                     Path("/Users/ben/.omlx/settings.json")):
-            if cand.exists():
-                try:
-                    if cand.name == "settings.json":
-                        settings = json.loads(cand.read_text())
-                        omlx_key = settings.get("auth", {}).get("api_key", "")
-                    else:
-                        omlx_key = cand.read_text().strip()
-                except Exception:
-                    omlx_key = ""
-                if omlx_key:
-                    break
+        omlx_key = _omlx_key()
         if not omlx_key:
             raise unittest.SkipTest(
-                "OMLX api_key not found; cannot exercise real embedding path")
-        cls.omlx_key = omlx_key
+                "Cannot read OMLX api_key from m5air; "
+                "ST-12 requires SSH access to m5air")
+
         try:
             req = urllib.request.Request(
-                "http://127.0.0.1:9100/v1/models",
+                f"http://{M5AIR_IP}:{OMLX_PORT}/v1/models",
                 headers={"Authorization": f"Bearer {omlx_key}"})
-            with urllib.request.urlopen(req, timeout=3) as r:
+            with urllib.request.urlopen(req, timeout=5) as r:
                 if r.status != 200:
                     raise unittest.SkipTest(
                         f"OMLX /v1/models with configured key returned {r.status}")
         except (urllib.error.URLError, ConnectionError) as e:
             raise unittest.SkipTest(
-                f"OMLX unreachable on 127.0.0.1:9100 ({e}); "
-                "ST-12 requires OMLX to exercise real embedding path")
+                f"OMLX unreachable at http://{M5AIR_IP}:{OMLX_PORT}/v1 ({e}); "
+                "ST-12 requires OMLX on m5air to exercise real embedding path")
 
         cls.work = tempfile.TemporaryDirectory()
         root = Path(cls.work.name)
-        # Write the key file FIRST so the bootstrap path check
-        # (line 70 in registry.py) finds it when LLMTier starts.
-        (root / "llmtier_test_bge_key.txt").write_text(cls.omlx_key)
-        # Now write settings pointing at the existing key file.
+        (root / "llmtier_test_bge_key.txt").write_text(omlx_key)
         abs_key = str(root / "llmtier_test_bge_key.txt")
-        tmp_settings = dict(EMBEDDING_SETTINGS)
-        tmp_settings["providers"][0]["secret_ref"] = f"file:{abs_key}"
+
+        tmp_settings = dict(_EMBEDDING_SETTINGS_BASE)
+        tmp_settings["providers"] = [{
+            "id": "provider_local",
+            "name": "Local OMLX",
+            "kind": "local",
+            "endpoint": OMLX_API_ENDPOINT,
+            "secret_ref": f"file:{abs_key}",
+            "enabled": True,
+        }]
+
         (root / "settings.json").write_text(json.dumps(tmp_settings))
         cls.db = root / "state.sqlite3"
 
@@ -153,9 +149,6 @@ class ST12EmbeddingInvariant(unittest.TestCase):
             cls.proc.kill()
             raise RuntimeError("LLMTier did not start within 30s")
 
-        # Bootstrap defaults deployments.health='unknown'; routing.admit
-        # only dispatches to health='healthy'. Mark bge-m3 healthy so
-        # the admission path is exercised.
         with sqlite3.connect(str(cls.db)) as con:
             con.execute("UPDATE deployments SET health='healthy' WHERE id='dep_local_bge_m3'")
             con.commit()
@@ -193,8 +186,7 @@ class ST12EmbeddingInvariant(unittest.TestCase):
                         "expected 200 with data, or 404/503/400/401 when provider is unconfigured")
             raise unittest.SkipTest(
                 f"no usable provider response (statuses="
-                f"{[s for s, _ in results]}); likely OMLX bearer not configured. "
-                "Run on m5air where the api_key is properly mounted.")
+                f"{[s for s, _ in results]}); likely OMLX not reachable on m5air")
         self.assertEqual(len(ok_results), 5)
         for s, b in ok_results:
             data = b["data"]
