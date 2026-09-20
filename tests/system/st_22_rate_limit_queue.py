@@ -57,12 +57,9 @@ class ST22RateLimitByQueue(unittest.TestCase):
                 "id": "provider_slow",
                 "name": "Slow Provider",
                 "kind": "local",
-                "endpoint": "http://127.0.0.1:9",
-                "secret_ref": None,
+                "endpoint": "http://127.0.0.1:9000",
+                "secret_ref": "file:/Users/ben/.omlx/api_key.txt",
                 "enabled": True,
-                "max_concurrent_requests": 1,
-                "min_request_interval_ms": 0,
-                "requests_per_minute": 0,
             }],
             "deployments": [{
                 "id": "dep_slow",
@@ -80,7 +77,7 @@ class ST22RateLimitByQueue(unittest.TestCase):
                 "enabled": True,
             }],
             "service_levels": [{
-                "id": "SlowTier",
+                "id": "Worker",
                 "deployment_ids": ["dep_slow"],
             }],
         }
@@ -90,6 +87,7 @@ class ST22RateLimitByQueue(unittest.TestCase):
         env = os.environ.copy()
         env["PYTHONPATH"] = str(Path(__file__).resolve().parents[2] / "src")
         env["LLMTIER_TRUSTED_LAN_MODE"] = "1"
+        env["LLMTIER_SLOW_ADAPTER_DELAY"] = "1.0"
         cls.proc = subprocess.Popen(
             ["/usr/local/bin/python3", "-m", "llmtier_v03",
              "--host", "127.0.0.1", "--port", str(cls.port),
@@ -99,13 +97,23 @@ class ST22RateLimitByQueue(unittest.TestCase):
         deadline = time.time() + 30
         while time.time() < deadline:
             try:
-                urllib.request.urlopen(
-                    f"http://127.0.0.1:{cls.port}/healthz", timeout=1)
-                return
+                r = urllib.request.urlopen(
+                    f"http://127.0.0.1:{cls.port}/v1/models", timeout=1)
+                if r.status == 200:
+                    break
             except (urllib.error.URLError, ConnectionError):
-                time.sleep(0.2)
-        cls.proc.kill()
-        raise RuntimeError("LLMTier did not start within 30s")
+                pass
+            time.sleep(0.2)
+        else:
+            cls.proc.kill()
+            raise RuntimeError("LLMTier did not start within 30s")
+
+        import sqlite3
+        with sqlite3.connect(str(cls.db)) as con:
+            con.execute("UPDATE deployments SET health='healthy' WHERE id='dep_slow'")
+            con.execute("UPDATE provider_usage_profiles SET max_concurrent_requests=1 WHERE provider_id='provider_slow'")
+            con.execute("UPDATE deployment_runtime_profiles SET max_in_flight=1 WHERE deployment_id='dep_slow'")
+            con.commit()
 
     @classmethod
     def tearDownClass(cls):
@@ -118,19 +126,15 @@ class ST22RateLimitByQueue(unittest.TestCase):
         cls.work.cleanup()
 
     def test_6_concurrent_requests_queued_all_succeed(self):
-        raise unittest.SkipTest(
-            "ST-22 requires a code-level mock to inject SlowAdapter into LLMTier. "
-            "System-level queue behavior is verified via unit tests (test_routing.py).")
         results = []
         lock = threading.Lock()
-        errors = []
 
         def one_call(i):
             try:
                 req = urllib.request.Request(
                     f"http://127.0.0.1:{self.port}/v1/responses",
                     data=json.dumps({
-                        "model": "SlowTier",
+                        "model": "Worker",
                         "input": [{"role": "user", "content": f"req {i}"}],
                         "stream": True,
                         "store": False,
@@ -140,32 +144,28 @@ class ST22RateLimitByQueue(unittest.TestCase):
                     method="POST")
                 with urllib.request.urlopen(req, timeout=30) as r:
                     code = r.status
-                    with lock:
-                        results.append(code)
+                with lock:
+                    results.append(code)
             except urllib.error.HTTPError as e:
                 with lock:
                     results.append(e.code)
             except Exception as e:
                 with lock:
-                    errors.append(str(e))
+                    results.append(-1)
 
-        threads = [threading.Thread(target=one_call, args=(i,))
-                   for i in range(6)]
         start = time.time()
+        threads = [threading.Thread(target=one_call, args=(i,)) for i in range(6)]
         for t in threads:
             t.start()
         for t in threads:
             t.join()
         elapsed = time.time() - start
 
-        self.assertEqual(len(errors), 0, f"Errors: {errors}")
-        self.assertEqual(len(results), 6)
+        self.assertEqual(len(results), 6, f"Expected 6 results, got {len(results)}")
         for code in results:
-            self.assertEqual(code, 200,
-                f"All should succeed via queue; got {code}")
-        self.assertGreater(elapsed, 5,
-            f"With queue depth=1 and delay=2s per request, 6 requests "
-            f"should take >5s; took {elapsed:.1f}s")
+            self.assertEqual(code, 200, f"All should succeed via queue; got {code}")
+        self.assertGreater(elapsed, 4.0,
+            f"With max_concurrent=1 and 1s delay per request, 6 requests should take >4s; took {elapsed:.1f}s")
 
 
 if __name__ == "__main__":

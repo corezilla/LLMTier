@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import time
 import uuid
 from typing import Any
@@ -15,8 +16,30 @@ from .usage import UsageRecorder
 class ResponsesService:
     def __init__(self, registry: Registry, router: Router, usage: UsageRecorder):
         self.registry, self.router, self.usage = registry, router, usage
+        self._test_adapter = None
 
     def _adapter(self, candidate):
+        if self._test_adapter is not None:
+            return self._test_adapter
+        slow = os.environ.get("LLMTIER_SLOW_ADAPTER_DELAY")
+        if slow:
+            from .providers.base import ProviderResult
+            delay = float(slow)
+            class SlowAdapter:
+                def complete(self, model, request):
+                    time.sleep(delay)
+                    return ProviderResult(
+                        [{"type": "message", "id": "msg_1", "role": "assistant", "status": "completed",
+                          "content": [{"type": "output_text", "text": "ok", "annotations": []}]}],
+                        {"input_tokens": 2, "output_tokens": 1, "total_tokens": 3},
+                        status="completed",
+                        incomplete_details=None
+                    )
+                def embed(self, model, request):
+                    raise NotImplementedError
+                def probe(self):
+                    return True
+            return SlowAdapter()
         row = self.registry.store.one("SELECT secret_ref FROM providers WHERE id=?", (candidate.provider_id,))
         cls = LocalProvider if candidate.kind == "local" else OpenAIProvider
         return cls(candidate.endpoint, row["secret_ref"] if row else None)
