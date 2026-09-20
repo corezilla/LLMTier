@@ -68,36 +68,9 @@ This project is indexed by GitNexus as **LLMTier** (3305 symbols, 6238 relations
 
 **m5air** (`192.168.1.9`) 是 LLMTier 生产环境。
 
-### 目录结构
-- 代码目录：`/Users/mlp/LLMTier-dev/`（非 git repo，是源码快照）
-- 另一个空目录已删除：`/Users/mlp/llmtier-src/`
+**详细指南**：[m5air-deploy-guide.md](docs/80_operations/manuals/m5air-deploy-guide.md)
 
-### 同步代码到 m5air
-
-修改 webui 后，用 rsync 同步到 m5air：
-
-```bash
-rsync -avz src/llmtier_v03/webui/app.js m5air:/Users/mlp/LLMTier-dev/src/llmtier_v03/webui/app.js
-rsync -avz src/llmtier_v03/webui/index.html m5air:/Users/mlp/LLMTier-dev/src/llmtier_v03/webui/index.html
-rsync -avz src/llmtier_v03/webui/styles.css m5air:/Users/mlp/LLMTier-dev/src/llmtier_v03/webui/styles.css
-rsync -avz tests/unit/v03/test_webui_contract.py m5air:/Users/mlp/LLMTier-dev/tests/unit/v03/test_webui_contract.py
-```
-
-### 重启服务
-
-```bash
-# 找到进程 PID（监听 0.0.0.0:8181）
-ssh m5air "ps aux | grep 'llmtier_v03.*8181' | grep -v grep"
-
-# kill 旧进程
-ssh m5air "kill <PID>"
-
-# 用 Python 3.14 启动（不要用系统 python3）
-ssh m5air "cd /Users/mlp/LLMTier-dev && LLMTIER_ADMIN_TOKEN=dev-admin LLMTIER_DATA_TOKEN=dev-data PYTHONPATH=src /Library/Frameworks/Python.framework/Versions/3.14/bin/python3 -m llmtier_v03 --host 0.0.0.0 --port 8181 --database /Users/mlp/LLMTier-dev/state.sqlite3 >> /Users/mlp/LLMTier-dev/llmtier.log 2>&1 &"
-```
-
-### 验证
-```bash
-ssh m5air "curl http://localhost:8181/healthz"
-ssh m5air "curl http://localhost:8181/tier/admin/v1/providers -H 'Authorization: Bearer dev-admin'"
-```
+修改代码后：
+1. `rsync` 同步文件到 m5air
+2. kill 旧进程并重启（用 Python 3.14）
+3. 验证 `curl http://localhost:8181/healthz`
