@@ -1,13 +1,21 @@
 """ST-12 Slinky embedding invariant (System test plan §4, CT-EMB-001).
 
+IMPORTANT: LLMTier is a LAN service. Tests must use LAN IP (192.168.1.9),
+not 127.0.0.1 — because piko calls LLMTier over LAN.
+
 Runs /v1/embeddings 5 times and asserts:
 - every response has data[0].embedding of length 1024
 - no NaN/Inf in any finite response
 - if the path is unavailable, skipTest BLOCKED
 
+This test depends on:
+- m5air OMLX at http://192.168.1.9:9000/v1
+- Model: bge-m3 (1024 dimensions)
+- API key: from ~/.omlx/settings.json (same key on m5mac and m5air)
+
 The in-process fixture reads the api_key from ~/.omlx/settings.json on
-m5air, then configures a provider_local pointing to m5air's OMLX
-(http://192.168.1.9:9000) with the bge-m3 embedding model.
+m5mac, then configures a provider_local pointing to m5air's OMLX
+(http://192.168.1.9:9000/v1) with the bge-m3 embedding model.
 The DB default for deployments.health is "unknown"; routing.admit only
 considers "healthy" candidates. The fixture must therefore UPDATE
 deployments.health='healthy' after bootstrap so the embedding path
@@ -90,10 +98,12 @@ _EMBEDDING_SETTINGS_BASE = {
 class ST12EmbeddingInvariant(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        assert "192.168.1" in OMLX_API_ENDPOINT, \
+            "LLMTier is LAN service, OMLX endpoint must use LAN IP"
         omlx_key = _omlx_key()
         if not omlx_key:
             raise unittest.SkipTest(
-                "Cannot read OMLX api_key from m5air; "
+                "Cannot read OMLX api_key; "
                 "ST-12 requires SSH access to m5air")
 
         try:

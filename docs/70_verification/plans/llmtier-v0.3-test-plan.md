@@ -50,7 +50,7 @@ authority：OpenAPI 是字段层 machine authority；本 plan 是 runtime 行为
 | `tests/` 单元测试 | `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest discover -s tests` exit 0；baseline ≥191 PASS |
 | 进程可启服 | `python3 -m llmtier_v03 --host 127.0.0.1 --port <port> --database <db> --settings <bootstrap>` 60 秒内 listen；`/healthz` 200，`/readyz` 200 且 7 个 tier 全部 `available` |
 | TRUSTED_LAN_MODE | 默认 `LLMTIER_TRUSTED_LAN_MODE=1`；ST-24A 单独验 OFF |
-| OMLX 必须存活 | `127.0.0.1:9100`；其 `auth.api_key` 与 LLMTier `provider_local.secret_ref` 一致。OMLX down → 全部依赖 ST-05..ST-09、ST-12 的 case BLOCKED，恢复路径见 `docs/80_operations/m5air-operations-manual.md` §15 |
+| OMLX 必须存活 | m5air: `http://192.168.1.9:9000/v1` (bge-m3, 1024维)；m5mac: `http://192.168.1.8:9000` (Qwen3-Embedding, 1024维)。OMLX down → 全部依赖 ST-05..ST-09、ST-12 的 case BLOCKED，恢复路径见 `docs/80_operations/m5air-operations-manual.md` §15 |
 | Provider adapter | 至少一个 `local`（fake 或真 OMLX）+ 一个 `cloud`（Piko 端点或受控云）真实可达；调用超时 ≤ 30s |
 | Mock-Piko 接入 | `tests/fixtures/v03_fake_provider.py`（已存在）；ST-22A/ST-23 注入 dispatch delay 用此 fake provider。**当前 fake provider 不支持 SSE streaming 模拟**——ST-07 涉及 stream 时需先扩展 fake provider 或换用真 OMLX + 增加 sleep |
 | SQLite | 启动时执行 `001_initial.sql` migration；`PRAGMA integrity_check` 输出 `ok` |
@@ -66,7 +66,15 @@ authority：OpenAPI 是字段层 machine authority；本 plan 是 runtime 行为
 | 开发机 (m5mac) | 自动化系统测试 | ST-01..ST-26（全部） |
 | CI/CD runner | 单元测试 + contract static | ST-02, ST-03 |
 
-ST-05..ST-09、ST-10..ST-12 需要 OMLX 可达：开发机上跑时用 `provider_local`（`127.0.0.1:9100`，m5air 上的 OMLX）或 `provider_omlx_m5mac`（`192.168.1.8:9000`，m5mac 本地 OMLX）。
+ST-05..ST-09、ST-10..ST-12 需要 OMLX 可达：开发机上跑时用 `provider_local`（`http://192.168.1.9:9000/v1`，m5air 上的 OMLX，bge-m3 模型）或 `provider_omlx_m5mac`（`http://192.168.1.8:9000`，m5mac 本地 OMLX，Qwen3-Embedding 模型）。
+
+### 2.4 架构设计检查项
+
+PR Review 时需确认：
+1. **LLMTier 是 LAN 服务** — 测试代码使用局域网 IP（192.168.1.x），不用 127.0.0.1
+2. **Provider endpoint 配置** — 确认指向正确环境（m5mac: 9000, m5air: 9000）
+3. **测试依赖的服务** — 测试文件头部写清依赖哪个环境的什么服务
+4. **环境约束** — m5air 不是测试环境，自动化测试跑在 m5mac
 
 ### 2.3 排除条件
 
