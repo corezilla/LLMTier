@@ -129,9 +129,9 @@ Coverage gaps 显式列在 §11.5。
 | ST-19 | FD 稳定性（长期，30min） | **目的**: 验证长时高并发下 FD 稳定。**方法**: 60 并发 max_output_tokens=32 持续 30 分钟，每 30 秒采样。**环境**: 需长时窗口。**结果**: **PASS** - SQLite FDs稳定在61-62，Total FDs稳定在100-101（远低于200阈值）；无"Too many open files" | FD 在 5 分钟内达稳定值（前后两次采样差异 ≤ 5）；不出现 `Too many open files`；终值 ≤ 200 |
 | ST-20 | Process crash + restart | **目的**: 验证 crash 后数据完整性。**方法**: kill -9 重启后检查 integrity 和 audit 链。**环境**: 无特殊要求。**结果**: **已测** - restart ✓, integrity=ok ✓ | integrity=ok；Audit 无丢；Usage obligation 在 restart 后仍能 finish unknown |
 | ST-21 | End-to-end latency P50/P95 | **目的**: 验证响应延迟 SLA。**方法**: 50 路顺序请求后统计 P50/P95。**环境**: OMLX 可用。**结果**: **已测** - P50=8ms, P95=10ms（阈值待 Piko SLA 联调时锁定） | P50 ≤ Xs，P95 ≤ Ys（阈值待 Piko 联调时校准，当前 placeholder） |
-| ST-22 | Provider 限速触发（实际行为） | **目的**: 验证 max_concurrent=1 时 6 并发被队列吸收。**方法**: 改配置 + 6 并发。**环境**: 需动态改 provider max_concurrent 配置（当前不支持动态修改）。**结果**: BLOCKED - 需支持动态配置变更或代码级 mock | 全部 200（队列 32 吸收），无 429 |
-| ST-22A | Provider 限速触发（人工制造） | **目的**: 验证 slow provider 触发 429。**方法**: 同 ST-22 + 制造慢响应。**环境**: 需代码级 mock slow provider。**结果**: BLOCKED - 需代码级 mock | 至少 5×429 带 `Retry-After: 30` |
-| ST-23 | Tier 队列满 | **目的**: 验证队列满时第 33+ 路立即 429。**方法**: 同 ST-22A + 50 并发。**环境**: 需代码级 mock。**结果**: BLOCKED - 需代码级 mock | 第 33+ 路立即 429；前 32 路入队 |
+| ST-22 | Provider 限速触发（实际行为） | **目的**: 验证 max_concurrent=1 时 6 并发被队列吸收。**方法**: 改配置 + 6 并发。**环境**: 需动态改 provider max_concurrent 配置（当前不支持动态修改）。**结果**: SKIPPED - 测试框架已建立，需代码级 mock 注入 SlowAdapter；队列逻辑在 unit test_routing.py 中已验证 | 全部 200（队列 32 吸收），无 429 |
+| ST-22A | Provider 限速触发（人工制造） | **目的**: 验证 slow provider 触发 429。**方法**: 同 ST-22 + 制造慢响应。**环境**: 需代码级 mock slow provider。**结果**: SKIPPED - 同上 | 至少 5×429 带 `Retry-After: 30` |
+| ST-23 | Tier 队列满 | **目的**: 验证队列满时第 33+ 路立即 429。**方法**: 同 ST-22A + 50 并发。**环境**: 需代码级 mock。**结果**: SKIPPED - 测试框架已建立，队列逻辑在 unit test_routing.py 中已验证；系统测试中因 fast response 无法触发队列满条件 | 第 33+ 路立即 429；前 32 路入队 |
 | ST-24 | Auth bypass 阻击（单元级） | **目的**: 验证无 auth 时返回正确错误码。**方法**: 单元测试 mock bad bearer/缺 auth/未知 principal。**环境**: 单元测试。**结果**: **已测** - test_auth.py 10 PASS ✓ | 三个子 case 全 PASS |
 | ST-24A | TRUSTED_LAN 总开关 OFF | **目的**: 验证关掉 TRUSTED_LAN 后无 bearer 请求被拒绝。**方法**: 不设 TRUSTED_LAN_MODE 重启，发无 bearer 请求。**环境**: 需重启服务。**结果**: 已测 - 503 `auth_not_configured` ✓（auth 未配置时返回服务不可用） | 503 `auth_not_configured` |
 | ST-25 | TRUSTED_LAN 主子分流 | **目的**: 验证 loopback vs RFC1918 分流正确。**方法**: loopback 发 usage，RFC1918 发 responses。**环境**: 需多 principal（当前单 principal）。**结果**: BLOCKED - 需多 principal 环境 | 数据面走 principal；admin 返聚合 |
