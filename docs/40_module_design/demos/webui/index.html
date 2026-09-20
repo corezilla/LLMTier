@@ -202,7 +202,7 @@
         <div class="brand"><div class="brand-mark">LT</div><div><strong>LLMTier</strong><small>模型网关管理台</small></div></div>
         <nav id="nav">
           <a class="nav-item" data-page="home"><span class="nav-icon">⌂</span><span>主页</span></a>
-          <a class="nav-item" data-page="records"><span class="nav-icon">▥</span><span>用量与审计</span></a>
+          <a class="nav-item" data-page="stats"><span class="nav-icon">▥</span><span>统计</span></a>
           <a class="nav-item" data-page="logs"><span class="nav-icon">≣</span><span>日志</span></a>
         </nav>
         <div class="sidebar-foot">设计演示 · runtime 未激活<br />不显示访问控制、容量和费用页面</div>
@@ -257,8 +257,8 @@
             </div><div class="demo-note">父节点聚合Tier状态；展开后按当前LLMTier的Account/Model、Type、provider用量、Running和Action字段显示真实后端状态。添加和修改模型均在主页抽屉内完成。</div>
           </section>
 
-          <section class="page" id="page-records">
-            <div class="tabs"><button class="tab active" data-subview="usage">Token 用量</button><button class="tab" data-subview="audit">管理审计</button></div>
+          <section class="page" id="page-logs">
+            <div class="tabs"><button class="tab active" data-subview="usage">Token 用量</button><button class="tab" data-subview="audit">管理审计</button><button class="tab" data-subview="events">运行日志</button></div>
             <div class="subview active" id="subview-usage">
             <div class="toolbar"><div class="filters"><select><option>今天</option><option>最近 7 天</option></select><select><option>全部模型</option><option>Worker</option><option>Embedding-v1</option></select><select><option>全部质量</option><option>实测</option><option>估算</option><option>未知</option></select></div><button class="btn primary">查询</button></div>
             <div class="stats"><div class="stat"><span>输入 Token</span><strong>38,420</strong></div><div class="stat"><span>输出 Token</span><strong>7,681</strong></div><div class="stat"><span>未知记录</span><strong style="color:var(--warning)">1</strong></div></div>
@@ -275,9 +275,7 @@
               <tr><td>09:52:27</td><td>operator.chen</td><td>删除 Provider</td><td>cloud-old</td><td class="audit-result fail">引用冲突</td><td>adm_043c…</td></tr>
               <tr><td>09:21:10</td><td>operator.chen</td><td>添加 Deployment</td><td>local-embed-01</td><td class="audit-result ok">成功</td><td>adm_fe80…</td></tr>
             </tbody></table><div class="pager"><button class="btn tiny">上一页</button><span>第 1 页</span><button class="btn tiny">下一页</button></div></div></div>
-          </section>
-
-          <section class="page" id="page-logs">
+            <div class="subview" id="subview-events">
             <div class="toolbar"><div class="filters"><select><option>最近 1 小时</option><option>最近 24 小时</option></select><select><option>全部级别</option><option>错误</option><option>警告</option><option>信息</option></select><select><option>全部模块</option><option>gateway</option><option>provider</option><option>usage</option></select><input class="search" placeholder="请求 ID" /></div><button class="btn primary">查询</button></div>
             <div class="card"><div class="card-head"><h2>运行日志</h2><span>脱敏结构化事件 · 不含 Prompt、输出或 Secret</span></div><table><thead><tr><th>时间</th><th>级别</th><th>模块</th><th>事件 / 消息</th><th>请求 ID</th></tr></thead><tbody>
               <tr><td>10:32:16.482</td><td><span class="pill green log-level">信息</span></td><td>gateway</td><td class="log-message"><strong>request.completed</strong><div class="sub">标准 Responses 请求完成 · 200</div></td><td>req_8f31…2c</td></tr>
@@ -307,7 +305,7 @@
     <script>
       const meta = {
         home: ["主页", "一页查看全部模型、Tier 与当前状态"],
-        records: ["用量与审计", "在一个页面切换Token事实与管理操作记录"],
+        stats: ["统计", "Token 用量、管理审计与运行日志"],
         logs: ["日志", "查询脱敏的服务运行与故障诊断事件"]
       };
       function show(page) {

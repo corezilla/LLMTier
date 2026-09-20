@@ -3,7 +3,18 @@
 LLMTier 是一个独立的、单服务 Python 项目，拥有自己的源码、配置、运行状态、接口契约、发布与运维边界。
 Slinky 和 Piko 是外部 consumer/协作项目，不是 LLMTier 的源码目录、配置 authority、父进程或部署容器。
 
-## 当前能力边界
+<a id="std-entry"></a>
+
+## 工程文档标准：STD
+
+本项目采用 STD `0.1.0-draft.26`，固定来源见 [std.lock.json](docs/std.lock.json)。
+STD 提供工程文档模板、编写规范、AI 指南与检查工具；它不代替项目设计决定。
+编写或修改文档前，先读 [STD 主说明与执行流程](https://github.com/corezilla/STD/blob/5a1e71f4e2baa6e6761b685e91deecbd58cf0649/README.md)，
+再按任务选择已采用的模板、通用指南及专项指南，依据项目事实完成正文、图和适用检查。
+不自动检查或跟随最新 STD/模板；只有用户明确要求升级才重新对齐。
+结构检查通过不等于设计质量、实现或运行验证通过；提交和发布仍需遵循用户授权。
+
+## 当前范围与状态
 
 - 当前实现可作为独立进程启动，提供现有 trusted-network Tier HTTP API 与 operator CLI。
 - V0.3 简化候选目标接口包含 OpenAI-compatible Responses、Embeddings、Models、token Usage、
@@ -21,27 +32,7 @@ Slinky 和 Piko 是外部 consumer/协作项目，不是 LLMTier 的源码目录
 [`docs/98_migration/source-provenance-v0.1.md`](docs/98_migration/source-provenance-v0.1.md)；它们不定义当前
 项目身份或使用方式。
 
-## 仓库布局
-
-| 路径 | 当前职责 |
-|---|---|
-| `src/` | 单服务 Python 源码；采用 flat module/package layout |
-| `tests/` | 单元、边界、契约语义和 STD 一致性测试 |
-| `config/settings.json` | 空SQLite首次启动的一次性bootstrap输入；初始化后不再是运行authority |
-| `config/secrets/` | 本地只写凭据文件目录；被 Git 忽略，禁止进入日志、证据或 RAG |
-| `state/` | 默认本地运行状态、统计和 trace；被 Git 忽略，可用 `LLMTIER_STATE_DIR` 覆盖；单文件 debug-state 可再由既有 `TIER_TRACE_STATE_PATH` 显式选择 |
-| `interfaces/` | V0.3 OpenAPI、compatibility manifest、Schema 与 contract vectors |
-| `docs/` | 当前 requirements、设计、接口、验证、运维与受控历史 |
-| `docs/99_reference/` | 历史、superseded 或 future-only 资料；不是当前 authority |
-
-项目不使用 Slinky workspace 路径，也不从 Slinky 配置目录读取配置。不要创建旧路径副本、alias 或第二套
-config/state/contract authority。
-
-## 安装与启动
-
-m5air测试环境不配置开机自启；部署、启动停止、Web UI、Provider/Tier管理、状态与并发、日志、备份恢复、
-更新回滚和故障处理见
-[`docs/80_operations/m5air-operations-manual.md`](docs/80_operations/m5air-operations-manual.md)。
+## 快速开始
 
 要求 Python 3.11 或更高版本。在独立虚拟环境中从仓库根目录安装：
 
@@ -73,46 +64,47 @@ LLMTIER_ADMIN_TOKEN='...' LLMTIER_DATA_TOKEN='...' \
   --settings config/settings.json
 ```
 
-仅限loopback合成调试时可设置`LLMTIER_DEV_MODE=1`；这会启用固定开发凭据并允许同源Web UI在loopback免Bearer访问，禁止用于共享或生产监听地址。明确采用可信局域网免登录部署时，可设置`LLMTIER_TRUSTED_LAN_MODE=1`并把`--host`绑定到一块RFC1918/IPv6 ULA网卡；只有来自loopback、RFC1918或ULA的无Authorization请求获得共享operator/data权限，公网地址不会绕过Bearer。该模式意味着同一可信局域网内任何主机均可调用模型和修改配置，不提供用户级审计隔离。English Web UI位于`/ui/`。开发期Fake Provider和冒烟入口分别为`tests/fixtures/v03_fake_provider.py`与`tests/integration/v03_smoke.py`。
+仅限loopback合成调试时可设置`LLMTIER_DEV_MODE=1`；这会启用固定开发凭据并允许同源Web UI在loopback免Bearer访问，禁止用于共享或生产监听地址。English Web UI位于`/ui/`。开发期Fake Provider和冒烟入口分别为`tests/fixtures/v03_fake_provider.py`与`tests/integration/v03_smoke.py`。
 
 默认监听 `127.0.0.1:8765`。client 可用 `TIER_SERVER_URL` 选择 credential-free 的 localhost、loopback、
 RFC1918 或 IPv6 ULA origin。当前 transport 不等同于 production TLS/auth 部署批准。
 
-当前 operator CLI 提供 `health`、`runtime`、`debug`、`stats`、`invoke`、`reset`、`reload` 和 `probe`。
-这些命令对应 legacy 实现接口，不是目标 OpenAI-compatible consumer surface；V0.3 consumer 应以
-[`interfaces/openapi/llmtier-v0.3.openapi.json`](interfaces/openapi/llmtier-v0.3.openapi.json) 和
-[`interfaces/compatibility/compatibility-manifest-v0.3.json`](interfaces/compatibility/compatibility-manifest-v0.3.json)
-为准，并在 activation gate 关闭前不得按 production capability 使用。
+## 文档导航
 
-## Canonical V0.3 文档
-
-LLMTier 采用 STD `software` profile 与单服务根结构：
-
-- [STD 裁剪清单](docs/00_management/std-tailoring.md)
-- [V0.3 编码、调试与单元测试开发计划](docs/00_management/v0.3-implementation-plan.md)
-- [V0.3 Requirements](docs/10_requirements/llmtier-v0.3-requirements.md) 与
-  [Traceability](docs/10_requirements/llmtier-v0.3-traceability.md)
-- [系统设计](docs/20_system_design/llmtier-system-design.md)
-- [核心模块设计](docs/40_module_design/llmtier-core-design.md)、[English Web UI Design](docs/40_module_design/webui-design.md) 与
-  [Runtime ISD](docs/50_implementation_design/llmtier-runtime.isd.md)
-- [Piko Data Plane](docs/60_interfaces/piko-data-plane-control.md)、
-  [Slinky Capacity/Observation](docs/60_interfaces/slinky-capacity-observation-control.md) 与
-  [Management](docs/60_interfaces/llmtier-management-control.md) interface controls
-- [V0.3 Contract Specification](docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.md)
-- [V&V Plan](docs/70_verification/plans/llmtier-v0.3-vv-plan.md)、
-  [Test Plan](docs/70_verification/plans/llmtier-v0.3-test-plan.md) 与
-  [Contract Test Specification](docs/70_verification/specifications/llmtier-v0.3-contract-test-specification.md)
-- [Release and Operations](docs/80_operations/llmtier-v0.3-release-and-operations.md)
+| 类别 | 文档 |
+|---|---|
+| 裁剪与计划 | [STD 裁剪清单](docs/00_management/std-tailoring.md)、[V0.3 编码与测试计划](docs/00_management/v0.3-implementation-plan.md) |
+| 需求 | [V0.3 Requirements](docs/10_requirements/llmtier-v0.3-requirements.md)、[Traceability](docs/10_requirements/llmtier-v0.3-traceability.md) |
+| 系统设计 | [系统设计](docs/20_system_design/llmtier-system-design.md) |
+| 模块设计 | [核心模块设计](docs/40_module_design/llmtier-core-design.md)、[Web UI Design](docs/40_module_design/webui-design.md)、[Runtime ISD](docs/50_implementation_design/llmtier-runtime.isd.md) |
+| 接口 | [Piko Data Plane](docs/60_interfaces/piko-data-plane-control.md)、[Slinky Capacity/Observation](docs/60_interfaces/slinky-capacity-observation-control.md)、[Management API](docs/60_interfaces/llmtier-management-control.md)、[Contract Specification](docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.md) |
+| 验证 | [V&V Plan](docs/70_verification/plans/llmtier-v0.3-vv-plan.md)、[Test Plan](docs/70_verification/plans/llmtier-v0.3-test-plan.md)、[Contract Test Specification](docs/70_verification/specifications/llmtier-v0.3-contract-test-specification.md) |
+| 运维 | [Release and Operations](docs/80_operations/llmtier-v0.3-release-and-operations.md)、**[m5air 调试环境手册](docs/80_operations/m5air-operations-manual.md)** |
 
 批准的 prose authority 不表示 production endpoint、durable recovery、Admin UI 或 Runtime Activation 已完成。
 其中V0.3 Gate C/Gate U通过不表示production activation通过；真实provider capture、浏览器E2E、部署和三方联调仍是后续门禁。
 旧 V0.3 prose 已逐 scope 映射并移至 `docs/99_reference/`；迁移和批准证据位于 `docs/91_reviews/` 与
 `docs/98_migration/`。
 
-## Engineering Standard 与本地检查
+## 开发与验证
 
-本项目采用 STD `0.1.0-draft.26`，由 [`docs/std.lock.json`](docs/std.lock.json) 固定完整来源 commit，
-并由 [`docs/std-source-manifest.json`](docs/std-source-manifest.json) 记录来源 artifact 摘要。
+### 仓库布局
+
+| 路径 | 当前职责 |
+|---|---|
+| `src/` | 单服务 Python 源码；采用 flat module/package layout |
+| `tests/` | 单元、边界、契约语义和 STD 一致性测试 |
+| `config/settings.json` | 空SQLite首次启动的一次性bootstrap输入；初始化后不再是运行authority |
+| `config/secrets/` | 本地只写凭据文件目录；被 Git 忽略，禁止进入日志、证据或 RAG |
+| `state/` | 默认本地运行状态、统计和 trace；被 Git 忽略，可用 `LLMTIER_STATE_DIR` 覆盖 |
+| `interfaces/` | V0.3 OpenAPI、compatibility manifest、Schema 与 contract vectors |
+| `docs/` | 当前 requirements、设计、接口、验证、运维与受控历史 |
+| `docs/99_reference/` | 历史、superseded 或 future-only 资料；不是当前 authority |
+
+项目不使用 Slinky workspace 路径，也不从 Slinky 配置目录读取配置。不要创建旧路径副本、alias 或第二套
+config/state/contract authority。
+
+### 本地检查
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest discover -s tests
@@ -136,3 +128,11 @@ PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m cli --help
 5. **路径与 cover 自洽**。`Canonical Path` 必须与文件实际路径一致（相对仓库根）。
 
 不满足以上规则的 prose 文档视为非合规，review 时退回作者按 STD 模板重写。机器契约层（OpenAPI / manifest / fixtures / Schema）由 `tools/contract_semantic_validator_v03.py` 校验，不在本节范围。
+
+## 贡献与维护
+
+当前 operator CLI 提供 `health`、`runtime`、`debug`、`stats`、`invoke`、`reset`、`reload` 和 `probe`。
+这些命令对应 legacy 实现接口，不是目标 OpenAI-compatible consumer surface；V0.3 consumer 应以
+[`interfaces/openapi/llmtier-v0.3.openapi.json`](interfaces/openapi/llmtier-v0.3.openapi.json) 和
+[`interfaces/compatibility/compatibility-manifest-v0.3.json`](interfaces/compatibility/compatibility-manifest-v0.3.json)
+为准，并在 activation gate 关闭前不得按 production capability 使用。

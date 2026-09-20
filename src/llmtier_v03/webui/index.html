@@ -8,8 +8,7 @@
     <nav>
       <button class="active" data-page="home"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-house"></use></svg>Home</button>
       <button data-page="providers"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-server"></use></svg>Providers</button>
-      <button data-page="stats"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-chart-bar-increasing"></use></svg>Stats</button>
-      <button data-page="records"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-chart-no-axes-combined"></use></svg>Usage & Audit</button>
+      <button data-page="stats"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-chart-no-axes-combined"></use></svg>Stats</button>
       <button data-page="logs"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-logs"></use></svg>Logs</button>
     </nav>
     <footer>Single-node console<br>OpenAI-compatible API</footer>
@@ -24,12 +23,6 @@
     <section id="providers" class="page">
       <div class="toolbar"><span id="provider-error" class="error"></span><div class="actions"><button id="refresh-providers" class="icon-button" title="Refresh providers" aria-label="Refresh providers"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-refresh-cw"></use></svg></button><button class="primary" id="add-provider"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-plus"></use></svg>Add Provider</button></div></div>
       <div class="card"><div class="cardhead"><b>Provider Management</b><span>Tier members can only use providers listed here</span></div><div class="tablewrap"><table><thead><tr><th>Provider</th><th>Type</th><th>API Root</th><th>API Key</th><th>Status</th><th>Account Usage</th><th>Calls / Tokens</th><th>Running / Max</th><th>Actions</th></tr></thead><tbody id="provider-body"></tbody></table></div></div>
-    </section>
-
-    <section id="records" class="page">
-      <div class="tabs"><button class="active" data-tab="usage">Token Usage</button><button data-tab="audit">Audit Log</button></div>
-      <div id="usage" class="sub active"><div class="card"><div class="cardhead"><b>Unified Token Usage</b><button id="refresh-usage" class="icon-button" title="Refresh usage" aria-label="Refresh usage"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-refresh-cw"></use></svg></button></div><div class="tablewrap"><table><thead><tr><th>Request</th><th>Model</th><th>Endpoint</th><th>Input</th><th>Output</th><th>Total</th><th>Status</th></tr></thead><tbody id="usage-body"></tbody></table></div></div></div>
-      <div id="audit" class="sub"><div class="card"><div class="cardhead"><b>Administrative Audit</b><button id="refresh-audit" class="icon-button" title="Refresh audit" aria-label="Refresh audit"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-refresh-cw"></use></svg></button></div><div class="tablewrap"><table><thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Target</th><th>Result</th></tr></thead><tbody id="audit-body"></tbody></table></div></div></div>
     </section>
 
     <section id="stats" class="page">
@@ -56,8 +49,10 @@
     </section>
 
     <section id="logs" class="page">
-      <div class="toolbar"><select id="log-level"><option value="">All levels</option><option>info</option><option>warning</option><option>error</option></select><input id="log-module" placeholder="Module"><button id="refresh-logs" class="icon-button" title="Refresh logs" aria-label="Refresh logs"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-refresh-cw"></use></svg></button></div>
-      <div class="card"><div class="cardhead"><b>Runtime Logs</b><span>Request bodies, model outputs, and credentials are never shown</span></div><div class="tablewrap"><table><thead><tr><th>Time</th><th>Level</th><th>Module</th><th>Event</th><th>Summary</th><th>Request ID</th></tr></thead><tbody id="log-body"></tbody></table></div></div>
+      <div class="tabs"><button class="active" data-tab="usage">Token Usage</button><button data-tab="audit">Audit Log</button><button data-tab="events">Runtime Logs</button></div>
+      <div id="usage" class="sub active"><div class="card"><div class="cardhead"><b>Token Usage</b><button id="refresh-usage" class="icon-button" title="Refresh usage" aria-label="Refresh usage"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-refresh-cw"></use></svg></button></div><div class="tablewrap"><table><thead><tr><th>Request</th><th>Model</th><th>Endpoint</th><th>Input</th><th>Output</th><th>Total</th><th>Status</th></tr></thead><tbody id="usage-body"></tbody></table></div></div></div>
+      <div id="audit" class="sub"><div class="card"><div class="cardhead"><b>Administrative Audit</b><button id="refresh-audit" class="icon-button" title="Refresh audit" aria-label="Refresh audit"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-refresh-cw"></use></svg></button></div><div class="tablewrap"><table><thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Target</th><th>Result</th></tr></thead><tbody id="audit-body"></tbody></table></div></div></div>
+      <div id="events" class="sub"><div class="toolbar"><select id="log-level"><option value="">All levels</option><option>info</option><option>warning</option><option>error</option></select><input id="log-module" placeholder="Module"></div><div class="card"><div class="cardhead"><b>Runtime Logs</b><span>Request bodies, model outputs, and credentials are never shown</span><button id="refresh-logs" class="icon-button" title="Refresh logs" aria-label="Refresh logs"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-refresh-cw"></use></svg></button></div><div class="tablewrap"><table><thead><tr><th>Time</th><th>Level</th><th>Module</th><th>Event</th><th>Summary</th><th>Request ID</th></tr></thead><tbody id="log-body"></tbody></table></div></div></div>
     </section>
   </main>
 </div>

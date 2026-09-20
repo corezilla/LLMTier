@@ -289,11 +289,11 @@ async function loadLogs(){const query=new URLSearchParams(windowQuery());if($('#
 $$('nav button').forEach(button=>button.onclick=()=>{
   $$('nav button').forEach(item=>item.classList.remove('active'));button.classList.add('active');
   $$('.page').forEach(item=>item.classList.remove('active'));$('#'+button.dataset.page).classList.add('active');
-  const meta={home:['Home','View every model, tier, backend, and status on one page'],providers:['Providers','Manage cloud and local provider connections'],stats:['Stats','Aggregated token usage grouped by tier or deployment'],records:['Usage & Audit','Review token usage and administrative changes'],logs:['Logs','Review sanitized gateway runtime events']}[button.dataset.page];
+  const meta={home:['Home','View every model, tier, backend, and status on one page'],providers:['Providers','Manage cloud and local provider connections'],stats:['Stats','Aggregated token usage grouped by tier or deployment'],logs:['Logs','Token usage, audit and runtime logs']}[button.dataset.page];
   $('#title').textContent=meta[0];$('#subtitle').textContent=meta[1];
-  if(button.dataset.page==='home')loadHome();if(button.dataset.page==='providers')loadProviders();if(button.dataset.page==='stats')loadStats();if(button.dataset.page==='records')loadUsage();if(button.dataset.page==='logs')loadLogs();
+  if(button.dataset.page==='home')loadHome();if(button.dataset.page==='providers')loadProviders();if(button.dataset.page==='stats')loadStats();if(button.dataset.page==='logs'){loadUsage();loadAudit();loadLogs();}
 });
-$$('[data-tab]').forEach(button=>button.onclick=()=>{$$('[data-tab]').forEach(item=>item.classList.remove('active'));button.classList.add('active');$$('.sub').forEach(item=>item.classList.remove('active'));$('#'+button.dataset.tab).classList.add('active');button.dataset.tab==='audit'?loadAudit():loadUsage()});
+$$('[data-tab]').forEach(button=>button.onclick=()=>{$$('[data-tab]').forEach(item=>item.classList.remove('active'));button.classList.add('active');$$('.sub').forEach(item=>item.classList.remove('active'));$('#'+button.dataset.tab).classList.add('active');if(button.dataset.tab==='usage')loadUsage();if(button.dataset.tab==='audit')loadAudit();if(button.dataset.tab==='events')loadLogs()});
 
 $('#refresh-providers').onclick=loadProviders;$('#add-provider').onclick=()=>openProviderEditor();$('#provider-form').onsubmit=saveProvider;$('#close-provider').onclick=$('#cancel-provider').onclick=()=>$('#provider-mask').classList.remove('open');
 $('#provider-form').elements.usage_provider.onchange=showUsageFields;
