@@ -112,3 +112,9 @@ class AdminService:
         result = apply_probe_result(self.registry, deployment["id"], status, request_id)
         self.audit.record(actor, "deployment.probe", deployment["id"], status, request_id)
         return {"deployment_id": deployment["id"], "status": status, "checked_at": result["checked_at"], "may_have_incurred_cost": False}
+
+    def list_provider_models(self, provider_id: str) -> list[str]:
+        provider = self.registry.get_provider(provider_id)[0]
+        row = self.registry.store.one("SELECT secret_ref FROM providers WHERE id=?", (provider_id,))
+        adapter = (LocalProvider if provider["kind"] == "local" else OpenAIProvider)(provider["endpoint"], row["secret_ref"] if row else None)
+        return adapter.list_models()

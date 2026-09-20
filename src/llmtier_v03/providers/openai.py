@@ -125,3 +125,14 @@ class OpenAIProvider:
                 return payload.get("object") == "list" and isinstance(payload.get("data"), list)
         except Exception:
             return False
+
+    def list_models(self) -> list[str]:
+        headers = {"Accept": "application/json"}
+        secret = self._secret()
+        if secret:
+            headers["Authorization"] = f"Bearer {secret}"
+        req = urllib.request.Request(self.endpoint + "/models", headers=headers, method="GET")
+        req.add_header("Connection", "close")
+        with urllib.request.urlopen(req, timeout=min(self.timeout, 10.0), context=self._ssl) as response:
+            payload = json.loads(response.read())
+        return [m["id"] for m in payload.get("data", []) if isinstance(m.get("id"), str)]

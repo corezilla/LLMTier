@@ -47,13 +47,9 @@ function providerOptions(selected){return state.providers.map(provider=>`<option
 
 async function fetchProviderModels(providerId){
   if(state.modelCache[providerId]) return state.modelCache[providerId];
-  const provider=state.providers.find(p=>p.id===providerId);
-  if(!provider?.endpoint) return [];
   try{
-    const res=await fetch(`${provider.endpoint.replace(/\/$/,'')}/models`,{credentials:'same-origin'});
-    if(!res.ok) return [];
-    const data=await res.json();
-    const models=(data.data||[]).map(m=>m.id);
+    const data=await api(`/tier/admin/v1/providers/${encodeURIComponent(providerId)}/models`);
+    const models=data.data||[];
     state.modelCache[providerId]=models;
     return models;
   }catch{return []}

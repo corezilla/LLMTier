@@ -136,6 +136,12 @@ def handler_factory(app: Application):
                     if set(body) != {"confirm_external_call"}: raise ApiError(400, "invalid_request", "Usage refresh accepts only confirm_external_call")
                     result = app.admin.mutate(principal.principal_id, "provider.usage.refresh", provider_id, self.request_id, lambda: app.account_usage.refresh(provider_id, body.get("confirm_external_call") is True))
                     return self._json(200, result)
+            match = re.fullmatch(r"/tier/admin/v1/providers/([^/]+)/models", path)
+            if match:
+                provider_id = match.group(1)
+                if method == "GET":
+                    models = app.admin.list_provider_models(provider_id)
+                    return self._json(200, {"data": models})
             for kind, plural, getter, updater, deleter in (
                 ("provider", "providers", app.registry.get_provider, app.registry.update_provider, app.registry.delete_provider),
                 ("deployment", "deployments", app.registry.get_deployment, app.registry.update_deployment, app.registry.delete_deployment),
