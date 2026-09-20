@@ -30,9 +30,7 @@ def unauthenticated_principal(client_address: str, headers, role: str) -> Princi
         return None
     if os.environ.get("LLMTIER_DEV_MODE") == "1" and address.is_loopback:
         return Principal("loopback-operator" if role == "admin" else "loopback-consumer", role)
-    if os.environ.get("LLMTIER_TRUSTED_LAN_MODE") == "1" and (
-        address.is_loopback or any(address in network for network in _TRUSTED_LAN_NETWORKS)
-    ):
+    if address.is_loopback or any(address in network for network in _TRUSTED_LAN_NETWORKS):
         return Principal("trusted-lan-operator" if role == "admin" else "trusted-lan-consumer", role)
     return None
 
