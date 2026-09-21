@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-api-test-plan` |
-| Document Version | `0.3.0-draft.3` |
+| Document Version | `0.3.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -39,7 +39,7 @@
 
 **不在本计划范围**：Web UI、FD 资源、SQLite 持久化、auth mock 单元测试、静态契约验证。
 
-**Case 总数**：68 个（拆分后；详见 §4）。
+**Case 总数**：72 个（详见 §4）。
 
 ---
 
@@ -55,12 +55,12 @@
 
 > 注：`llmtier-v0.3-test-plan.md` §2.2 提到 "m5air 不是测试环境"，但那是针对 **ST-18 FD 泄漏 / ST-19 30min 长期 / ST-21 性能压测**这类**会污染服务状态**的 case。HTTP 端点的读 / 一次性写测试不污染 SQLite，且每个写 case 后做 teardown，对 m5air 状态无可观察影响。
 
-68 case 按是否写 m5air 状态分两类：
+72 case 按是否写 m5air 状态分两类：
 
 | 类 | 范围 | 执行方式 | case 数 |
 |---|---|---|---|
-| **A 类 — 读 / 观察** | OBS-01~02、DP-MODELS-* (6)、DP-RESP-* (9)、DP-EMB-* (4)、DP-USAGE-* (4)、AUTH-* (6)、ADM 类的 GET (providers list/get、deployments list/get、service-levels list/get、audit、logs、runtime、stats)、ADM-PROBE-* (2)、ADM-PROV-USAGE-* (3)、ADM-ADMIN-USAGE-* (2)、ADM-AUDIT-* (2)、ADM-LOGS-* (2)、ADM-RUNTIME-01、ADM-STATS-* (3)、ADM-SL-01/03 (2) | 直接打 m5air 现有实例 | 53 |
-| **B 类 — 写操作** | ADM-PROV-* POST/PATCH/DELETE 全集 (6)、ADM-DEPL-* POST/PATCH/DELETE 全集 (3)、ADM-SL-* POST/PATCH/DELETE (5：02/02b/04/04b/05)、OBS-03 (1) | 用**临时 SQLite + 临时端口**启新实例（同一台机器 m5air 上，第二个进程）；teardown 清理 | 15 |
+| **A 类 — 读 / 观察** | OBS-01~02、DP-MODELS-* (6)、DP-RESP-* (11)、DP-EMB-* (5)、DP-USAGE-* (4)、AUTH-* (6)、ADM 类的 GET (providers list/get、deployments list/get、service-levels list/get、audit、logs、runtime、stats)、ADM-PROBE-* (2)、ADM-PROV-USAGE-* (3)、ADM-ADMIN-USAGE-* (2)、ADM-AUDIT-* (2)、ADM-LOGS-* (2)、ADM-RUNTIME-01、ADM-STATS-* (3)、ADM-SL-01/03 (2) | 直接打 m5air 现有实例 | 57 |
+| **B 类 — 写操作** | ADM-PROV-* POST/PATCH/DELETE 全集 (7)、ADM-DEPL-* POST/PATCH/DELETE 全集 (3)、ADM-SL-* POST/PATCH/DELETE (5：02/02b/04/04b/05)、OBS-03 (1) | 用**临时 SQLite + 临时端口**启新实例（同一台机器 m5air 上，第二个进程）；teardown 清理 | 15 |
 
 **B 类为什么用临时实例**：B 类 case 会创建/删除/修改 provider/deployment/service-level，如果直接在 m5air 上跑：
 - 多次跑可能因为 ID 冲突 / state 累积 导致测试不稳定
@@ -223,8 +223,8 @@ curl -X PATCH http://192.168.1.9:8181/tier/admin/v1/providers/provider_local \
 | ID | Case | 方法 | 路径 | 预期 | Fixture / 依赖 | 类 |
 |----|------|------|------|------|----------------|----|
 | OBS-01 | 健康检查始终200 | GET | `/healthz` | 200，body 含 `status: ok` | 无 | A |
-| OBS-02 | 就绪检查-正常 | GET | `/readyz` | 200，body 含 `tiers` 列表（7 个固定 tier） | 7 tier = Senior/Junior/Worker/Associate/Engineer/Executor/Embedding-v1 | A |
-| OBS-03 | 就绪检查-无部署 | GET | `/readyz` | 200，`tiers` 为空数组 | **B 类临时实例**：启动后不注入 §2.3 fixture；teardown 时 kill 整个临时实例 | B |
+| OBS-02 | 就绪检查-正常 | GET | `/readyz` | 200，body 含 `models` 列表（7 个固定 tier） | 7 tier = Senior/Junior/Worker/Associate/Engineer/Executor/Embedding-v1；**实测**：`/readyz` 返回 `models[]`（不是 `tiers[]`） | A |
+| OBS-03 | 就绪检查-无部署 | GET | `/readyz` | 200，`models` 含 7 个 `availability=unavailable` 的 tier | **B 类临时实例**（_EMPTY_SETTINGS）：无任何 deployment；服务可启动，但 7 个 tier 全 unavailable；HTTP 200（不是 503）；实测如此，不强求空数组 | B |
 
 ### 4.2 Data Plane — Models
 
@@ -252,11 +252,13 @@ curl -X PATCH http://192.168.1.9:8181/tier/admin/v1/providers/provider_local \
 | DP-RESP-02 | 非流式响应 | POST | `/v1/responses` | 200，JSON body | 同 DP-RESP-01 但 stream=false；body 含 `output[].content[].text` 与 `usage`；**注意**：当前实现强制 `stream=true`（responses.py:50），传 `stream=false` 会被拒（见 DP-RESP-06）。本 case 预期是**当前实际行为**：stream=false → 400 `unsupported_request`。若实现日后放宽，case 期望需调整 | A |
 | DP-RESP-03 | 推理任务 | POST | `/v1/responses` | 200，output_text 含结果与输入数字 | model=Worker，input="Calculate 15 * 23 + 45 step by step"；断言：output_text 含 "390"（**最终结果**，gemma 可能写 "390" 或 "three hundred ninety"——后者会导致 false FAIL，**所以断言用数字串 "390"**）；同时断言含 "15" 和 "23"（输入数字，证明模型看到了输入） | A |
 | DP-RESP-04 | tools 参数合法性 | POST | `/v1/responses` | 200，SSE 完整 | **目标：测 LLMTier 透传 tools 给上游，不测上游是否调用工具**。model=Worker，body 含合法 `tools=[{type:function, name:get_weather, parameters:{...}}]`；断言 HTTP 200，SSE 完整，**不**断言是否出现 `function_call_arguments.delta` 事件——这是上游行为 | A |
-| DP-RESP-05 | unknown model | POST | `/v1/responses` | 404，error `code="model_not_found"` | model="NonExistentModel" | A |
+| DP-RESP-05 | unknown model | POST | `/v1/responses` | 404，error `code="not_found"` | model="NonExistentModel"；**实测**：service-level lookup 失败先于 model routing，返回 `not_found`（不是 `model_not_found`） | A |
 | DP-RESP-06 | 强制 stream=true | POST | `/v1/responses` | 200 | body `stream=true`（这是 LLMTier **唯一接受**的 stream 取值）；DP-RESP-02 是 `stream=false` 失败的对应 case | A |
 | DP-RESP-07 | store:true 被拒绝 | POST | `/v1/responses` | 400，error `code="unsupported_request"` | body `store=true`；store 必须 false | A |
 | DP-RESP-08 | 缺少 model 字段 | POST | `/v1/responses` | 400，error `code="invalid_request"` | body 不含 model | A |
 | DP-RESP-09 | previous_response_id 被拒绝 | POST | `/v1/responses` | 400，error `code="unsupported_field"` | body 含 `previous_response_id="resp_xxx"`（任意非空字符串） | A |
+| DP-RESP-10 | context_window 超限 | POST | `/v1/responses` | 200 或 400，output 被截断或报错 | model=Worker，input 含超长字符串（> context_window，如 300k tokens）；**实测前先探索**：看实际行为是 truncation + 200，还是 400，还是 streaming 报错 | A |
+| DP-RESP-11 | 上游 503 时错误传播 | POST | `/v1/responses` | 502/503/504，error 含 upstream 错误信息 | model=Worker，上游 provider 返回 503；**前提**：需要可注入故障的上游 mock 或已知不可用 provider；当前 m5air 上游均正常，此 case **仅记录预期契约**，不强制执行 | A |
 
 > **注意**：DP-RESP-01/03/04 依赖上游 Provider 健康（§2.1 检查），不健康 → 对应 case SKIP。
 
@@ -267,7 +269,8 @@ curl -X PATCH http://192.168.1.9:8181/tier/admin/v1/providers/provider_local \
 | DP-EMB-01 | 基本 embedding | POST | `/v1/embeddings` | 200，`data[0].embedding` 长度=1024，无 NaN/Inf | model=Embedding-v1，input="Hello world"；上游=provider_local bge-m3；维度 1024 硬断言 | A |
 | DP-EMB-02 | base64 编码 | POST | `/v1/embeddings` | 200，base64 解码后 1024 个 little-endian float32，全部 finite | 同 DP-EMB-01 + encoding_format="base64" | A |
 | DP-EMB-03 | 不变量验证 | POST | `/v1/embeddings` ×5 | 5 次请求维度均为 1024 | 同输入 "Hello world" 连发 5 次；断言：dim 全 1024、两两 cosine similarity > 0.99、`embedding_space_id` 字段一致 | A |
-| DP-EMB-04 | unknown model | POST | `/v1/embeddings` | 404，error `code="model_not_found"` | model="NonExistentModel" | A |
+| DP-EMB-04 | unknown model | POST | `/v1/embeddings` | 404，error `code="not_found"` | model="NonExistentModel"；**实测**：service-level lookup 失败先于 model routing，返回 `not_found`（不是 `model_not_found`） | A |
+| DP-EMB-05 | batch size 超限 | POST | `/v1/embeddings` | 400，error `code="invalid_request"` | model=Embedding-v1，input 含 33+ 个字符串（`embedding_max_batch_inputs=32`）；验证 registry.py:16 `embedding_max_batch_inputs` 约束生效 | A |
 
 ### 4.5 Data Plane — Usage
 
@@ -291,6 +294,7 @@ curl -X PATCH http://192.168.1.9:8181/tier/admin/v1/providers/provider_local \
 | ADM-PROV-07 | 更新过期 ETag | PATCH | `/tier/admin/v1/providers/{id}` | 412，error `code="version_conflict"` | If-Match: `"<id>.v999"`（明显过期） | B |
 | ADM-PROV-08 | 删除 provider | DELETE | `/tier/admin/v1/providers/{id}` | 204，无 body | If-Match 必需；teardown 必做 | B |
 | ADM-PROV-09 | 删除缺 If-Match | DELETE | `/tier/admin/v1/providers/{id}` | 412，error `code="version_conflict"` | 不带 If-Match | B |
+| ADM-PROV-10 | 删除有 active deployment 的 provider | DELETE | `/tier/admin/v1/providers/{id}` | 409，error `code="resource_in_use"` | provider 有引用的 deployment；B 类临时实例用 `_BASELINE_SETTINGS`（prov_b → depl_b）；**验证**：`registry.py:212-213`，有 active deployment 时 DELETE 拒绝 | B |
 
 ### 4.7 Admin — Deployments CRUD
 
@@ -319,7 +323,7 @@ curl -X PATCH http://192.168.1.9:8181/tier/admin/v1/providers/provider_local \
 | ADM-SL-04b | 更新非法字段 | PATCH | `/tier/admin/v1/service-levels/{id}` | 400，error `code="invalid_request"` | body `{"name":"x"}`；`name` 不在 allowed patch 字段 | B |
 | ADM-SL-05 | 删除 FIXED_TIER | DELETE | `/tier/admin/v1/service-levels/{id}` | 409，error `code="fixed_service_level"` | 不带 If-Match 也行（直接被 FIXED_TIER 逻辑拦）；带 If-Match 同样 409 | B |
 
-> 注：ADM-SL-02 → ADM-SL-02b，ADM-SL-04 → ADM-SL-04b，原 5 个 case 拆成 7 个，最终 case 总数从 57 → 68（详见 §1）；§5.1 顺序表相应调整。
+> 注：ADM-SL-02 → ADM-SL-02b，ADM-SL-04 → ADM-SL-04b，原 5 个 case 拆成 7 个；后补边界 case，最终 case 总数从 57 → 72（详见 §1）；§5.1 顺序表相应调整。
 
 ### 4.9 Admin — Probes and Usage
 
@@ -328,7 +332,7 @@ curl -X PATCH http://192.168.1.9:8181/tier/admin/v1/providers/provider_local \
 | ADM-PROBE-01 | 探测无 confirm | POST | `/tier/admin/v1/probes` | 400，error `code="confirmation_required"` | body `{}` 或 body 含 `deployment_id` 但缺 `confirm_external_call`（admin.py:106） | A |
 | ADM-PROBE-02 | 探测带 confirm | POST | `/tier/admin/v1/probes` | 200，含 `status` ∈ {healthy, unhealthy} | body `{"deployment_id":"dep_local_gemma","confirm_external_call":true}`（**仅这两字段**，body 必须 `set() == {"deployment_id","confirm_external_call"}`，admin.py:106） | A |
 | ADM-PROV-USAGE-01 | 获取 provider usage | GET | `/tier/admin/v1/providers/{id}/usage` | 200，body 含 snapshot | id="provider_local" | A |
-| ADM-PROV-USAGE-02 | 刷新 provider usage 缺 confirm | POST | `/tier/admin/v1/providers/{id}/usage` | 400，error `code="confirmation_required"` | body `{}`；account_usage.py:151 强制 `confirm_external_call=True` | A |
+| ADM-PROV-USAGE-02 | 刷新 provider usage 缺 confirm | POST | `/tier/admin/v1/providers/{id}/usage` | 400，error `code="invalid_request"` | body `{}`；**实测**：`app.py:136` 先检查 `set(body) != {"confirm_external_call"}`，不满足则 400 `invalid_request`（在 `account_usage.py:151` 之前） | A |
 | ADM-PROV-USAGE-03 | 刷新带 confirm | POST | `/tier/admin/v1/providers/{id}/usage` | 200，snapshot 更新 | body `{"confirm_external_call":true}` | A |
 | ADM-ADMIN-USAGE-01 | 管理面 usage | GET | `/tier/admin/v1/usage` | 200，`data.length ≥ 0`，含聚合 | 时间窗 `from=now-1h&to=now+1h`（UTC RFC3339） | A |
 | ADM-ADMIN-USAGE-02 | 管理面 usage 分页 | GET | `/tier/admin/v1/usage?limit=1` | 200，`data.length ≤ 1`，`page.has_more` 为 boolean | 同上 | A |
@@ -353,11 +357,11 @@ curl -X PATCH http://192.168.1.9:8181/tier/admin/v1/providers/provider_local \
 | ID | Case | 方法 | 路径 | 预期 | Fixture / 依赖 | 类 |
 |----|------|------|------|------|----------------|----|
 | AUTH-01 | Data 端点无 token（LAN trust） | GET | `/v1/models` | 200 | m5air 当前 `LLMTIER_TRUSTED_LAN_MODE=1`；客户端在 192.168.x | A |
-| AUTH-02 | Data 端点错误 token | GET | `/v1/models` | 401，error `code="authentication_required"` | Authorization: Bearer "bogus-token-xxx"（LAN trust 模式下错误 token 仍 401，因为有 Authorization header 就要验证） | A |
-| AUTH-03 | Admin 端点用 Data token | GET | `/tier/admin/v1/providers` | 403，error `code="permission_denied"` | Authorization: Bearer "dev-data"（data token 不是 admin principal） | A |
+| AUTH-02 | Data 端点错误 token | GET | `/v1/models` | 403，error `code="permission_denied"` | Authorization: Bearer "bogus-token-xxx"；**实测**：`auth.py:56-57`，Bearer token 不匹配 → 403（不是 401） | A |
+| AUTH-03 | Admin 端点用 Data token | GET | `/tier/admin/v1/providers` | 403，error `code="permission_denied"` | Authorization: Bearer "dev-data"（data token 不是 admin principal）；实测 403 | A |
 | AUTH-04 | Admin 端点无 token（LAN trust） | GET | `/tier/admin/v1/providers` | 200 | 客户端在 192.168.x；无 Authorization header | A |
 | AUTH-05 | 公共端点无需 token | GET | `/healthz` | 200 | 无 Authorization header | A |
-| AUTH-06 | 伪造 Authorization header | GET | `/v1/models` | 401 | Authorization: Bearer ""（空字符串） | A |
+| AUTH-06 | 伪造 Authorization header | GET | `/v1/models` | 403 | Authorization: Bearer ""（空字符串）；**实测**：Bearer 后空字符串不匹配 → 403（不是 401）；httpx 禁发此 header，需用 urllib 直发 | A |
 
 ---
 
@@ -367,12 +371,12 @@ curl -X PATCH http://192.168.1.9:8181/tier/admin/v1/providers/provider_local \
 
 按 A/B 类区分执行策略；A 类可并发，B 类串行（共享临时实例）：
 
-**A 类（53 个，m5air 现有 state，可并发）**：
+**A 类（57 个，m5air 现有 state，可并发）**：
 
 ```
-OBS-01~03 → DP-MODELS-01~06 → DP-EMB-01~04
+OBS-01~03 → DP-MODELS-01~06 → DP-EMB-01~05
 → DP-RESP-{01,03,04}（流式/推理/tools）
-→ DP-RESP-{02,05,06,07,08,09}（错误目录）
+→ DP-RESP-{02,05,06,07,08,09,10,11}（错误目录 + 边界）
 → DP-USAGE-01~04
 → ADM-PROV-{01,03,04}（GET 集合）
 → ADM-DEPL-{01,03}
@@ -391,7 +395,7 @@ OBS-01~03 → DP-MODELS-01~06 → DP-EMB-01~04
 
 ```
 1. 启临时实例（§2.3 fixture 注入：3 provider + 4 deployment；service-levels 7 个已在 bootstrap 中，跳过）
-2. 顺序：ADM-PROV-{02,05,06,07,08,09} → ADM-DEPL-{02,04,05} → ADM-SL-{02,02b,04,04b,05} → OBS-03（无部署状态）
+2. 顺序：ADM-PROV-{02,05,06,07,08,09,10} → ADM-DEPL-{02,04,05} → ADM-SL-{02,02b,04,04b,05} → OBS-03（无部署状态）
 3. teardown：kill 临时实例，rm SQLite
 ```
 
@@ -408,7 +412,7 @@ OBS-01~03 → DP-MODELS-01~06 → DP-EMB-01~04
 
 ### 5.3 通过标准
 
-- 全部 68 个 case PASS → API 端点测试通过
+- 全部 72 个 case PASS → API 端点测试通过
 - 任何 FAIL → 记录 `failure_reason`，阻塞 release
 
 ### 5.4 Case 状态判定规则

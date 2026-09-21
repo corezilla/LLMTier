@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-api-test-execution` |
-| Document Version | `0.2.0-draft.2` |
+| Document Version | `0.2.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -26,7 +26,7 @@
 
 ## 1. 目标与定位
 
-把 [`llmtier-v0.3-api-test-plan.md`](./llmtier-v0.3-api-test-plan.md) §4 的 **68 个 case** 从"设计"落到"可执行 + 可回归"。
+把 [`llmtier-v0.3-api-test-plan.md`](./llmtier-v0.3-api-test-plan.md) §4 的 **72 个 case** 从"设计"落到"可执行 + 可回归"。
 
 - 每个 case 有一个 pytest 文件（或 at_*.py）
 - 每个 case 跑前自动做环境就绪检查（test plan §2.1），失败则 SKIP
@@ -43,7 +43,7 @@
 
 | 类 | 含义 | 数量 | 执行方式 |
 |---|---|---|---|
-| **A** | 读 / 观察 / 无状态写 | 53 | 直接打 m5air (`192.168.1.9:8181`) 现有实例 |
+| **A** | 读 / 观察 / 无状态写 | 57 | 直接打 m5air (`192.168.1.9:8181`) 现有实例 |
 | **B** | 创建/修改/删除 provider / deployment / service-level | 15 | 临时 SQLite + 临时端口（**m5air 同机第二个进程**），teardown 清理 |
 
 A 类与 B 类不能共享同一进程的 SQLite（写干扰），所以分两阶段跑。
@@ -146,7 +146,7 @@ A 类与 B 类不能共享同一进程的 SQLite（写干扰），所以分两�
 1. `./runner_a.sh && ./runner_b.sh`，捕获所有 case 结果
 2. 按 test plan §5.4 判定 PASS/FAIL/SKIP/BLOCKED
 3. 写 `docs/70_verification/reports/llmtier-v0.3-api-test-report.md`：
-   - 总览（68 case 状态分布；A 类 53 / B 类 15）
+   - 总览（72 case 状态分布；A 类 57 / B 类 15）
    - 失败 case 详情（`failure_reason` + `reproduction_cmd`）
    - 跳过 case 列表（`skip_reason` + `fix_owner` + `eta`）
    - 阻塞 case 列表（`block_reason` + `required_resolution`）
@@ -177,7 +177,7 @@ A 类与 B 类不能共享同一进程的 SQLite（写干扰），所以分两�
 | provider_omlx_m5mac.secret_ref | `file:/Users/mlp/LLMTier-dev/secrets/omlx-secret-key.txt` | ✅ 已修（9-21 上午） |
 | m5air sqlite3 直连权限 | DP-USAGE-04 fixture 需要 | ⚠️ 待 P1 验证 |
 | Python 3.14 | m5air + m5mac 临时实例启动 | ✅ handoff §1 |
-| 68 case 在测试计划中明确 | v0.3.0-draft.3（拆分后） | ✅ |
+| 72 case 在测试计划中明确 | v0.3.0-draft.4（新增边界 case 后） | ✅ |
 | 测试机在 192.168.x LAN 内 | TS-003 | ✅ m5air 自带 |
 | 临时实例启停权限 | /tmp 写、端口 bind | ✅ mlp 用户 |
 
@@ -210,7 +210,7 @@ A 类与 B 类不能共享同一进程的 SQLite（写干扰），所以分两�
 | DP-RESP-03 fixture 改 390 关键词 | 原 "345" 关键词脆性——gemma 输出格式不固定 |
 | DP-USAGE-04 改 sqlite3 UPDATE | 原 cursor="expired" 字面值是骗测试；现在真造 expired cursor |
 | §6 缺口从 13 项压到 5 项 | 大部分已被 v0.3 fixture 解决 |
-| case 总数 57 → 68 | ADM-SL 拆分 + AUTH/PROBE 之前漏算 |
+| case 总数 68 → 72 | 新增边界 case（DP-RESP-10/11, ADM-PROV-10, DP-EMB-05）|
 
 ---
 
@@ -237,7 +237,7 @@ Day 4（可选）：P4
 
 报告 `docs/70_verification/reports/llmtier-v0.3-api-test-report.md` 必须满足：
 
-- [ ] 68 个 case 每个都有明确状态（PASS/FAIL/SKIP/BLOCKED）
+- [ ] 72 个 case 每个都有明确状态（PASS/FAIL/SKIP/BLOCKED）
 - [ ] 0 个"未跑"
 - [ ] FAIL + BLOCKED 总数 = 0
 - [ ] SKIP ≤ 5，每个 SKIP 都有 §2.1 检查项引用 + fix_owner + ETA
