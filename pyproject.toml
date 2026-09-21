@@ -41,3 +41,12 @@ py-modules = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+python_files = ["test_*.py", "*_test.py", "at_*.py", "st_*.py"]
+python_classes = ["Test*", "ST*"]
+python_functions = ["test_*"]
+markers = [
+  "api_a: A 类 case（m5air 现有 state 直接打）",
+  "api_b: B 类 case（临时 SQLite 实例）",
+]
