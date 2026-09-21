@@ -235,7 +235,6 @@ async function deleteProvider(id){
 
 async function openTierEditor(id){
   editingTierId=id;
-  $('#tier-drawer-title').textContent=`Edit ${id}`;
   $('#tier-form-error').textContent='';
   await loadRegistry();
   renderTierMembers();
