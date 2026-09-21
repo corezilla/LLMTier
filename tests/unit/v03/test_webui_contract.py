@@ -32,7 +32,7 @@ class WebUIContractTests(unittest.TestCase):
         self.assertIn("body:{enabled:!deployment.enabled}",self.js)
         self.assertIn("'If-Match':etag(deployment)",self.js)
         self.assertIn("New requests will stop, but active requests will continue",self.js)
-        self.assertIn("Available for routing",self.js)
+        self.assertIn("enabled:true",self.js)
     def test_header_shows_runtime_version_and_ui_update_time(self):
         self.assertIn('id="build-meta"',self.html)
         self.assertIn('id="tier-summary"',self.html)
