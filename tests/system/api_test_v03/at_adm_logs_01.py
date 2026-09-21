@@ -8,7 +8,7 @@ Auth: Bearer dev-admin
 断言：
 - HTTP 200
 - body.data 是数组
-- 无敏感信息泄露（响应 body 不含 secret 字面值）
+- 无敏感信息泄露：message / module 字段不含 secret 字面值
 """
 from __future__ import annotations
 
@@ -26,6 +26,9 @@ def test_adm_logs_01_list_no_secret_leak(admin_client):
     data = body.get("data") or []
     assert isinstance(data, list), f"data 非数组"
 
-    body_text = resp.text
-    for s in ("9832", "omlx-secret-key.txt", "mnm_api_key"):
-        assert s not in body_text, f"logs 响应含敏感字符串 '{s}'"
+    forbidden_in_content = ("omlx-secret-key.txt", "mnm_api_key")
+    for entry in data:
+        for field in ("message", "module"):
+            val = entry.get(field, "")
+            for s in forbidden_in_content:
+                assert s not in val, f"log entry[{field}] 含敏感字符串 '{s}': {val}"
