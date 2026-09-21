@@ -1,0 +1,286 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://llmtier.local/schemas/v0.3/settings.json",
+  "title": "LLMTier Settings Configuration v0.3",
+  "description": "LLMTier 启动配置文件 JSON Schema。用于 `--settings <path>` 或 `LLMTIER_SETTINGS` 环境变量指定。启动时系统将配置内容导入 SQLite 数据库，此后数据库独立运行，修改此文件不会自动同步。",
+  "type": "object",
+  "required": ["providers", "deployments", "service_levels"],
+  "additionalProperties": false,
+  "properties": {
+    "providers": {
+      "description": "上游推理服务端点列表（Provider）。每个 Provider 代表一个本地 OMLX 部署或云端 API。",
+      "type": "array",
+      "default": [],
+      "items": { "$ref": "#/$defs/Provider" }
+    },
+    "deployments": {
+      "description": "模型实例列表（Deployment）。每个 Deployment 绑定到一个 Provider，代表一个具体的模型。",
+      "type": "array",
+      "default": [],
+      "items": { "$ref": "#/$defs/Deployment" }
+    },
+    "service_levels": {
+      "description": "服务层级列表（Service Level / Tier）。每个 Tier ID 精确对应一个逻辑模型名称，客户端按 model 字段精确路由。系统内置 7 个固定 Tier，不可新增/删除。",
+      "type": "array",
+      "default": [],
+      "items": { "$ref": "#/$defs/ServiceLevel" }
+    }
+  },
+  "$defs": {
+    "Provider": {
+      "description": "上游推理服务端点。代表一个本地 OMLX 部署或云端 API 服务。",
+      "type": "object",
+      "required": ["name", "kind", "endpoint", "secret_ref", "enabled"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "Provider ID。系统自动生成（API 创建时格式 `provider_<8位hex>`），也可在 settings.json 中手动指定（如同机多实例场景用 `prov_b`）。创建后不可更改。",
+          "type": "string",
+          "readOnly": true,
+          "pattern": "^[a-z][a-z0-9_]{0,47}$"
+        },
+        "name": {
+          "description": "显示名称。同一 LLMTier 实例内必须唯一；冲突时创建返回 409 `resource_conflict`。",
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "description": "上游类型。决定默认 usage_provider 和认证方式。",
+          "type": "string",
+          "enum": ["local", "cloud"],
+          "default": "local"
+        },
+        "endpoint": {
+          "description": "上游 API 基础 URL。LLMTier 会将请求透传到此地址。必须包含完整路径前缀（如 `/v1`）。",
+          "type": "string",
+          "format": "uri",
+          "examples": ["http://192.168.1.8:9000/v1", "https://api.minimax.io/v1"]
+        },
+        "secret_ref": {
+          "description": "API key 引用路径。格式：`env:VARIABLE_NAME`（从环境变量读取）或 `file:/absolute/path/to/key.txt`（从文件读取）。设为 `null` 表示无 key。",
+          "type": ["string", "null"],
+          "anyOf": [
+            { "type": "null" },
+            { "pattern": "^env:" },
+            { "pattern": "^file:" }
+          ],
+          "examples": ["env:OMLX_TOKEN", "file:/run/secrets/omlx_key.txt", null]
+        },
+        "enabled": {
+          "description": "是否启用。禁用后该 Provider 及其所有 Deployment 不会被调度。",
+          "type": "boolean",
+          "default": true
+        },
+        "usage": {
+          "description": "用量限制配置。可选，创建后通过 PATCH `/tier/admin/v1/providers/{id}` 更新。",
+          "$ref": "#/$defs/ProviderUsage"
+        }
+      }
+    },
+
+    "ProviderUsage": {
+      "description": "Provider 用量限制配置。通过 PATCH Provider 时以 `usage` 子对象传入。",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "usage_provider": {
+          "description": "用量记录来源。决定 LLMTier 如何获取用量数据。",
+          "type": "string",
+          "enum": ["none", "local", "minimax", "volc"],
+          "default": "local（kind=local）或 none（kind=cloud）"
+        },
+        "usage_api_key_ref": {
+          "description": "API key 引用。格式要求同 Provider.secret_ref（必须 `env:` 或 `file:` 前缀）。",
+          "type": ["string", "null"],
+          "anyOf": [
+            { "type": "null" },
+            { "pattern": "^env:" },
+            { "pattern": "^file:" }
+          ]
+        },
+        "usage_access_key_ref": {
+          "description": "Access key 引用。格式要求同 Provider.secret_ref。",
+          "type": ["string", "null"],
+          "anyOf": [
+            { "type": "null" },
+            { "pattern": "^env:" },
+            { "pattern": "^file:" }
+          ]
+        },
+        "usage_secret_key_ref": {
+          "description": "Secret key 引用。格式要求同 Provider.secret_ref。",
+          "type": ["string", "null"],
+          "anyOf": [
+            { "type": "null" },
+            { "pattern": "^env:" },
+            { "pattern": "^file:" }
+          ]
+        },
+        "max_concurrent_requests": {
+          "description": "该 Provider 同时处理的最大请求数。必须 ≥ 1。",
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        },
+        "min_request_interval_ms": {
+          "description": "两次请求之间的最小间隔（毫秒）。必须 ≥ 0。0 表示不限制。",
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "requests_per_minute": {
+          "description": "每分钟请求数上限。0 表示不限制。",
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        }
+      }
+    },
+
+    "Deployment": {
+      "description": "模型实例。绑定到一个 Provider，代表一个具体的上游模型。",
+      "type": "object",
+      "required": ["name", "provider_id", "backend_model", "capabilities", "enabled"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "Deployment ID。系统自动生成（API 创建时格式 `deployment_<8位hex>`），也可在 settings.json 中手动指定。创建后不可更改。",
+          "type": "string",
+          "readOnly": true,
+          "pattern": "^[a-z][a-z0-9_]{0,47}$"
+        },
+        "name": {
+          "description": "显示名称。同一 LLMTier 实例内必须唯一；冲突时创建返回 409 `resource_conflict`。",
+          "type": "string",
+          "minLength": 1
+        },
+        "provider_id": {
+          "description": "绑定的 Provider ID。该 Provider 必须已存在（通过 Admin API 先创建或在 settings.json 中先定义）。",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,47}$"
+        },
+        "backend_model": {
+          "description": "上游模型名称。LLMTier 将此字段透传给上游 Provider（作为 OMLX API 的 model 参数）。",
+          "type": "string",
+          "examples": ["Qwen3.6", "gemma-4-2b-it", "text-embedding-3-large"]
+        },
+        "capabilities": {
+          "description": "模型能力声明。必须包含全部 12 个标准 key，缺一不可，多一个也不行。",
+          "$ref": "#/$defs/Capabilities"
+        },
+        "enabled": {
+          "description": "是否启用。禁用后不会被任何 Service Level 调度。",
+          "type": "boolean",
+          "default": true
+        },
+        "health": {
+          "description": "健康状态。由系统探测写入，管理员不可直接修改（只读）。",
+          "type": "string",
+          "enum": ["unknown", "healthy", "degraded", "unhealthy"],
+          "readOnly": true,
+          "default": "unknown"
+        }
+      }
+    },
+
+    "Capabilities": {
+      "description": "模型能力声明。12 个固定 key，全部必须存在且类型正确。系统以此判断模型是否满足某 Service Level 的要求。",
+      "type": "object",
+      "required": ["responses", "embeddings", "tools", "structured_outputs", "input_modalities", "output_modalities", "context_window", "max_output_tokens", "embedding_space_id", "embedding_dimensions", "embedding_max_batch_inputs", "embedding_max_input_tokens"],
+      "additionalProperties": false,
+      "properties": {
+        "responses": {
+          "description": "是否支持 /v1/responses 推理接口。",
+          "type": "boolean"
+        },
+        "embeddings": {
+          "description": "是否支持 /v1/embeddings 接口。",
+          "type": "boolean"
+        },
+        "tools": {
+          "description": "是否支持 Tools（函数调用）功能。",
+          "type": "boolean"
+        },
+        "structured_outputs": {
+          "description": "是否支持结构化输出（JSON mode / response_format）。",
+          "type": "boolean"
+        },
+        "input_modalities": {
+          "description": "支持的输入模态列表。如 `[\"text\"]` 表示仅支持文本，`[\"text\", \"image\"]` 表示支持文本和图片。",
+          "type": "array",
+          "items": { "type": "string" },
+          "examples": [["text"], ["text", "image"]]
+        },
+        "output_modalities": {
+          "description": "支持的输出模态列表。如 `[\"text\"]` 或 `[\"text\", \"image\"]`。",
+          "type": "array",
+          "items": { "type": "string" },
+          "examples": [["text"], ["text", "image"]]
+        },
+        "context_window": {
+          "description": "模型上下文窗口最大 token 数。null 表示无限制或未知。用于判断单请求 token 上限。",
+          "type": ["integer", "null"],
+          "examples": [128000, 4096, null]
+        },
+        "max_output_tokens": {
+          "description": "单次输出最大 token 数上限。null 表示无限制。",
+          "type": ["integer", "null"],
+          "examples": [16384, 2048, null]
+        },
+        "embedding_space_id": {
+          "description": "Embedding 向量空间标识符。Embedding-v1 Tier 要求固定值 `\"bge-m3-dense-1024-v1\"`。非 embedding 模型设为 null。",
+          "type": ["string", "null"],
+          "examples": ["bge-m3-dense-1024-v1", null]
+        },
+        "embedding_dimensions": {
+          "description": "Embedding 向量维度。Embedding-v1 Tier 要求 `[1024]`。非 embedding 模型设为 null。",
+          "type": ["array", "null"],
+          "items": { "type": "integer" },
+          "examples": [[1024], null]
+        },
+        "embedding_max_batch_inputs": {
+          "description": "每次 Embedding 请求最大输入文本条数。Embedding-v1 Tier 要求 32。非 embedding 模型设为 null。",
+          "type": ["integer", "null"],
+          "minimum": 1,
+          "examples": [32, null]
+        },
+        "embedding_max_input_tokens": {
+          "description": "每次 Embedding 请求单条最大输入 token 数。Embedding-v1 Tier 要求 8192。非 embedding 模型设为 null。",
+          "type": ["integer", "null"],
+          "minimum": 1,
+          "examples": [8192, null]
+        }
+      }
+    },
+
+    "ServiceLevel": {
+      "description": "服务层级（Tier）。Tier ID 精确对应客户端请求时的 model 字段值，按精确匹配路由到对应 Deployment。系统内置 7 个固定 Tier，不可新增/删除。",
+      "type": "object",
+      "required": ["id", "deployment_ids", "enabled"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "Tier 标识符。必须是 7 个固定值之一：Senior、Junior、Worker、Associate、Engineer、Executor、Embedding-v1。其他值创建时返回 400 `invalid_request`。",
+          "type": "string",
+          "enum": ["Senior", "Junior", "Worker", "Associate", "Engineer", "Executor", "Embedding-v1"]
+        },
+        "deployment_ids": {
+          "description": "该 Tier 的候选 Deployment 列表（按优先级排序）。系统会自动计算所有 Deployment 的 capabilities 交集，用于判断该 Tier 是否可用。必须非空。",
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,47}$" },
+          "minItems": 1
+        },
+        "enabled": {
+          "description": "是否启用。禁用后该 Tier 不会被路由匹配（请求会返回 404）。",
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+
+    "Capabilities_intersection_rules": {
+      "description": "【informational，不写入配置】Service Level 的 capabilities 由系统根据 deployment_ids 自动计算，规则如下：对 boolean 字段（responses/embeddings/tools/structured_outputs）取 all()；对 non-boolean 字段（context_window/input_modalities 等）要求所有值完全一致，不一致则该字段被丢弃。交集结果必须恰好包含全部 12 个 key，否则 Tier 不可用（409 capability_conflict）。Embedding-v1 有额外的向量空间锁定约束（见 spec）。",
+      "type": "object"
+    }
+  }
+}
