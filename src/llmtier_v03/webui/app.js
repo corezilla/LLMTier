@@ -139,7 +139,9 @@ async function loadProviders(){
   try{
     await Promise.all([loadRegistry(),loadUsageSnapshot()]);
     const entries=await Promise.all(state.providers.map(async provider=>[provider.id,await api(`/tier/admin/v1/providers/${encodeURIComponent(provider.id)}/usage`)]));
-    state.providerUsage=Object.fromEntries(entries);renderProviders()
+    state.providerUsage=Object.fromEntries(entries);
+    await Promise.all(state.providers.map(async provider=>{await fetchProviderModels(provider.id)}));
+    renderProviders()
   }catch(error){$('#provider-error').textContent=error.message}
 }
 
@@ -150,8 +152,9 @@ function usageSummary(snapshot){
   return (snapshot.windows||[]).map(item=>`<span class="usage-window" title="${esc(item.reset_at?`Resets ${item.reset_at}`:'Reset time unavailable')}"><b>${esc(item.name)}</b> ${item.percent==null?'Unknown':`${esc(item.percent)}%`}</span>`).join(' ')||metric(snapshot.percent==null?null:`${snapshot.percent}%`);
 }
 
-function renderProviders(){
+async function renderProviders(){
   if(!state.providers.length){$('#provider-tree').innerHTML='<div class="empty">No providers configured</div>';return}
+  await Promise.all(state.providers.map(async provider=>{await fetchProviderModels(provider.id)}));
   $('#provider-tree').innerHTML=state.providers.map(provider=>{
     const deployments=state.deployments.filter(item=>item.provider_id===provider.id);
     const load=deployments.reduce((sum,item)=>{const current=state.runtime.deployments[item.id]||{};sum.running+=current.running||0;sum.max+=current.max_concurrent||0;return sum},{running:0,max:0});
@@ -166,14 +169,20 @@ function renderProviders(){
       `<span>${usageSummary(state.providerUsage[provider.id])}</span>`,
       `<span class="row-actions">${iconButton('refresh-cw','Refresh account usage','provider-usage-refresh',`data-provider="${esc(provider.id)}"`)}${iconButton('pencil','Edit provider','provider-edit',`data-provider="${esc(provider.id)}"`)}${iconButton('trash-2','Delete provider','provider-delete danger',`data-provider="${esc(provider.id)}"`)}</span>`,
     ].join('');
-    if(!deployments.length) return `<details class="provider-row"><summary>${summaryCols}</summary><div class="empty compact">This provider has no deployments.</div></details>`;
-    return `<details class="provider-row"><summary>${summaryCols}</summary>${deployments.map(deployment=>{const runtime=state.runtime.deployments[deployment.id]||{};const status=backendState(deployment,provider,runtime);return `<div class="backend"><span>${statusMarkup(status[0],status[1])}<b title="${esc(deployment.backend_model)}">${esc(deployment.name)}</b></span><span>${esc(deployment.backend_model)}</span><span>${metric(`${runtime.running??0} / ${runtime.max_concurrent??'?'}`)}</span><span></span><span></span><span class="backend-actions">${iconButton('pencil','Edit deployment','provider-deployment-edit',`data-deployment="${esc(deployment.id)}"`)}</span></div>`}).join('')}</details>`;
+    const configuredModels=new Set(deployments.map(d=>d.backend_model));
+    const allModels=state.modelCache[provider.id]||[];
+    const availableModels=allModels.filter(m=>!configuredModels.has(m));
+    const deploymentRows=deployments.map(deployment=>{const runtime=state.runtime.deployments[deployment.id]||{};const status=backendState(deployment,provider,runtime);return `<div class="backend"><span>${statusMarkup(status[0],status[1])}<b title="${esc(deployment.backend_model)}">${esc(deployment.name)}</b></span><span>${esc(deployment.backend_model)}</span><span>${metric(`${runtime.running??0} / ${runtime.max_concurrent??'?'}`)}</span><span></span><span></span><span class="backend-actions">${iconButton('pencil','Edit deployment','provider-deployment-edit',`data-deployment="${esc(deployment.id)}"`)}</span></div>`}).join('');
+    const availableRows=availableModels.length?availableModels.map(model=>`<div class="backend"><span>○<b class="muted">${esc(model)}</b></span><span class="muted">${esc(model)}</span><span>—</span><span></span><span></span><span class="backend-actions">${iconButton('plus','Add as deployment','provider-add-model',`data-provider="${esc(provider.id)}" data-model="${esc(model)}"`)}</span></div>`).join(''):'';
+    if(!deployments.length&&!availableRows) return `<details class="provider-row"><summary>${summaryCols}</summary><div class="empty compact">No models available.</div></details>`;
+    return `<details class="provider-row"><summary>${summaryCols}</summary>${deploymentRows}${availableRows}</details>`;
   }).join('');
 
   $$('.provider-edit').forEach(button=>button.onclick=()=>openProviderEditor(button.dataset.provider));
   $$('.provider-delete').forEach(button=>button.onclick=()=>deleteProvider(button.dataset.provider));
   $$('.provider-usage-refresh').forEach(button=>button.onclick=()=>refreshProviderUsage(button));
   $$('.provider-deployment-edit').forEach(button=>button.onclick=()=>{const deployment=state.deployments.find(d=>d.id===button.dataset.deployment);if(!deployment)return;const tier=state.tiers.find(t=>t.deployment_ids.includes(deployment.id));if(tier)openTierEditor(tier.id)});
+  $$('.provider-add-model').forEach(button=>button.onclick=()=>addModelAsDeployment(button.dataset.provider,button.dataset.model));
 }
 
 async function refreshProviderUsage(button){
@@ -182,6 +191,15 @@ async function refreshProviderUsage(button){
   button.disabled=true;
   try{state.providerUsage[provider.id]=await api(`/tier/admin/v1/providers/${encodeURIComponent(provider.id)}/usage`,{method:'POST',body:{confirm_external_call:true}});renderProviders()}
   catch(error){window.alert(`Usage refresh failed: ${error.message}`);button.disabled=false}
+}
+
+async function addModelAsDeployment(providerId,model){
+  const provider=state.providers.find(p=>p.id===providerId);if(!provider)return;
+  const caps=provider.kind==='local'?{responses:true,embeddings:true,tools:false,structured_outputs:false,input_modalities:['text'],output_modalities:['text'],context_window:128000,max_output_tokens:16384}:{responses:true,embeddings:false,tools:false,structured_outputs:false,input_modalities:['text'],output_modalities:['text'],context_window:128000,max_output_tokens:16384};
+  try{
+    await api('/tier/admin/v1/deployments',{method:'POST',body:{name:model,provider_id:providerId,backend_model:model,capabilities:caps,enabled:true}});
+    await loadProviders();
+  }catch(error){window.alert(`Failed to add deployment: ${error.message}`)}
 }
 
 function showUsageFields(){
