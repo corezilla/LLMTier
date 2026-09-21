@@ -85,15 +85,16 @@
 <div id="tier-mask" class="mask">
   <aside class="drawer wide">
     <div class="drawerhead"><button id="close-tier" class="icon-button" title="Close" aria-label="Close"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-x"></use></svg></button></div>
-    <div id="tier-members" class="member-list"></div>
-    <div class="section-title"><b>Add Member</b><span id="member-capability"></span></div>
-    <form id="add-member-form" class="add-member-form">
-      <label>Existing Provider<select id="member-provider" name="provider_id" onchange="reloadAddMemberModels(this)" required></select></label>
-      <label>Deployment Name<input name="name" required></label>
-      <label>Backend Model ID<select id="member-model" name="backend_model" list="model-list-new" required><option value="">Select a provider first</option></select></label>
-      <datalist id="model-list-new"></datalist>
-      <button class="primary"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-plus"></use></svg>Add Member</button>
+    <table class="member-table">
+      <tbody id="tier-members"></tbody>
+    </table>
+    <form id="add-member-form" class="add-row">
+      <input name="name" placeholder="Name" required>
+      <select id="member-provider" name="provider_id" onchange="reloadAddMemberModels(this)" required></select>
+      <select id="member-model" name="backend_model" list="model-list-new" required><option value="">Select a provider first</option></select>
+      <button type="submit" class="primary" title="Add"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-plus"></use></svg></button>
     </form>
+    <datalist id="model-list-new"></datalist>
     <p id="tier-form-error" class="error"></p>
   </aside>
 </div>

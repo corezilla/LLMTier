@@ -95,7 +95,16 @@ th{font-size:11px;color:#66707d;background:var(--soft)}
 .formactions,.error{grid-column:1/-1}
 .error{color:var(--red);min-height:18px}
 .member-list{display:grid;gap:12px;margin:20px 0 24px}
-.drawer .member-card{margin:0;padding:14px;border:1px solid var(--border);border-radius:10px;background:var(--soft);grid-template-columns:repeat(4,1fr);align-items:end;row-gap:10px}
+.member-table{width:100%;border-collapse:separate;border-spacing:0 6px;table-layout:fixed}
+.member-table .member-card td{padding:8px 10px;background:var(--soft);vertical-align:middle}
+.member-table .member-card td:first-child{border-radius:8px 0 0 8px;padding-left:14px}
+.member-table .member-card td:last-child{border-radius:0 8px 8px 0;padding-right:10px;width:80px}
+.member-table input,.member-table select{width:100%;border:1px solid var(--border);border-radius:7px;padding:7px 9px;background:white;font-size:13px;box-sizing:border-box}
+.member-table .row-actions{display:flex;gap:5px;justify-content:flex-end}
+.drawer .add-row{display:grid;grid-template-columns:1fr 1fr 1fr 80px;gap:10px;margin-top:14px;align-items:end}
+.drawer .add-row input,.drawer .add-row select{width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;background:white;box-sizing:border-box}
+.drawer .add-row button{padding:8px 12px;height:fit-content;align-self:end}
+.drawer .add-row button svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .member-heading{grid-column:1/-1;display:flex;justify-content:space-between;gap:12px}
 .member-heading span,.section-title span{color:var(--muted);font-size:11px}
 .member-heading span{display:flex;align-items:center;gap:7px}.member-heading .status-icon{width:21px;height:21px}.member-heading .status-icon svg{width:14px;height:14px}
