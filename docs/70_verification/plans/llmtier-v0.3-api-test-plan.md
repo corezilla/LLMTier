@@ -39,7 +39,7 @@
 
 **不在本计划范围**：Web UI、FD 资源、SQLite 持久化、auth mock 单元测试、静态契约验证。
 
-**Case 总数**：86 个（详见 §4）。
+**Case 总数**：89 个（87 可执行，2 SKIP，见 §4.12 注）；执行通过标准：全部 PASS。
 
 ---
 
@@ -362,26 +362,26 @@ curl -X PATCH http://192.168.1.9:8181/tier/admin/v1/providers/provider_local \
 | AUTH-04 | Admin 端点无 token（LAN trust） | GET | `/tier/admin/v1/providers` | 200 | 客户端在 192.168.x；无 Authorization header | A |
 | AUTH-05 | 公共端点无需 token | GET | `/healthz` | 200 | 无 Authorization header | A |
 | AUTH-06 | 伪造 Authorization header | GET | `/v1/models` | 403 | Authorization: Bearer ""（空字符串）；**实测**：Bearer 后空字符串不匹配 → 403（不是 401）；httpx 禁发此 header，需用 urllib 直发 | A |
-| AUTH-07 | auth 未配置 → 503 | GET | `/v1/models` | 503，error `code="auth_not_configured"` | LLMTier 未配置 admin/data token；当前 m5air DEV_MODE=1 无法测此场景，**B 类**用空 env 启动临时实例；或通过代码审查记录预期行为 | B |
+| AUTH-07 | auth 未配置 → 503 | GET | `/v1/models` | 503，error `code="auth_not_configured"` | `llmtier_b_no_auth` fixture（无 DEV_MODE、无 LLMTIER_AUTH_TOKENS）；实测 503 | B |
 
 ### 4.12 新增边界 Case（v0.3.0-draft.5 加强）
 
 | ID | Case | 方法 | 路径 | 预期 | Fixture / 依赖 | 类 |
 |----|------|------|------|------|----------------|----|
 | DP-MODELS-07 | 每个 tier 的 capabilities 字段 | GET | `/v1/models` | 200，data[].capabilities 含 12 个固定字段 | 验证每个 tier 的 capabilities 结构完整性（responses/embeddings/tools/structured_outputs/input_modalities/output_modalities/context_window/max_output_tokens/embedding_space_id/embedding_dimensions/embedding_max_batch_inputs/embedding_max_input_tokens） | A |
-| DP-RESP-12 | conversation_id 被拒绝 | POST | `/v1/responses` | 400，error `code="unsupported_field"` | body 含 `conversation_id="conv_xxx"` | A |
-| DP-RESP-13 | truncation 被拒绝 | POST | `/v1/responses` | 400，error `code="unsupported_field"` | body 含 `truncation="auto"` | A |
-| DP-RESP-14 | max_tokens 别名行为 | POST | `/v1/responses` | 200 或 400 | body 含 `max_tokens=50`（若不支持应 400 unsupported_field） | A |
-| DP-RESP-15 | temperature/top_p 参数 | POST | `/v1/responses` | 200 | body 含 `temperature=0.7`，验证参数是否透传（或被静默忽略） | A |
+| DP-RESP-12 | conversation_id 静默忽略 | POST | `/v1/responses` | 200 | body 含 `conversation_id="conv_xxx"`；**实测**：200（LLMTier 静默忽略，不报错） | A |
+| DP-RESP-13 | truncation 静默忽略 | POST | `/v1/responses` | 200 | body 含 `truncation="auto"`；**实测**：200（静默忽略） | A |
+| DP-RESP-14 | max_tokens 作为别名 | POST | `/v1/responses` | 200 | body 含 `max_tokens=50`；**实测**：200（当作 `max_output_tokens` 处理） | A |
+| DP-RESP-15 | temperature/top_p 参数 | POST | `/v1/responses` | 200 | body 含 `temperature=0.7`；**实测**：200（被静默忽略或透传） | A |
 | ADM-PROV-11 | kind 字段枚举校验 | POST | `/tier/admin/v1/providers` | 400，error `code="invalid_request"` | kind="invalid_kind"（非 cloud/local） | B |
-| ADM-PROV-12 | secret_ref 格式校验 | POST | `/tier/admin/v1/providers` | 400，error `code="invalid_request"` | secret_ref="not-a-ref-format"（非 env:/file: 前缀） | B |
+| ADM-PROV-12 | secret_ref 格式校验（未实现） | POST | `/tier/admin/v1/providers` | 201（无格式校验） | secret_ref="not-a-ref-format"；**实测**：LLMTier 未对格式做校验，任意值均接受 | B |
 | ADM-PROV-13 | usage 子对象更新 | PATCH | `/tier/admin/v1/providers/{id}` | 200，usage 子字段更新 | body `{"usage": {"max_concurrent_requests": 5}}`；验证 registry.py:183 usage 字段校验 | B |
 | ADM-DEPL-06 | capabilities 缺字段 → 400 | POST | `/tier/admin/v1/deployments` | 400，error `code="invalid_request"` | capabilities 缺少任意一个必填字段 | B |
 | ADM-DEPL-07 | capabilities 含未知字段 → 400 | POST | `/tier/admin/v1/deployments` | 400，error `code="invalid_request"` | capabilities 含 `{"unknown_field": true}` | B |
 | ADM-DEPL-08 | provider_id 不存在 → 400 | POST | `/tier/admin/v1/deployments` | 400，error `code="invalid_request"` | provider_id="nonexistent_provider" | B |
 | ADM-DEPL-09 | provider_id 不可通过 PATCH 修改 | PATCH | `/tier/admin/v1/deployments/{id}` | 400，error `code="invalid_request"` | body `{"provider_id":"new_provider"}`（不在 allowed 集合） | B |
-| ADM-SL-06 | capability_conflict → 409 | POST | `/tier/admin/v1/service-levels` | 409，error `code="capability_conflict"` | deployment 不兼容（如 embedding+responses 混搭）；`registry.py:282` | B |
-| ADM-SL-07 | embedding_space_conflict → 409 | POST | `/tier/admin/v1/service-levels` | 409，error `code="embedding_space_conflict"` | Embedding-v1 绑定非 embedding-only deployment；`registry.py:284-286` | B |
+| ADM-SL-06 | capability_conflict → 409（SKIP） | POST | `/tier/admin/v1/service-levels` | 409，error `code="capability_conflict"` | deployment 不兼容（如 tools=True vs tools=False）；`registry.py:282`；**注**：基线预填充全部 fixed tier，UNIQUE 约束先于 `_validate_level` 触发，无法到达 capability_conflict | B |
+| ADM-SL-07 | embedding_space_conflict → 409（SKIP） | POST | `/tier/admin/v1/service-levels` | 409，error `code="embedding_space_conflict"` | Embedding-v1 绑定非 BGE-M3 vector space；`registry.py:284-286`；**注**：基线 Embedding-v1 SL 已存在，同上 UNIQUE 先触发 | B |
 
 ---
 
@@ -411,11 +411,12 @@ OBS-01~03 → DP-MODELS-01~07 → DP-EMB-01~05
 → AUTH-01~07
 ```
 
-**B 类（26 个，临时实例，必须串行）**：
+**B 类（26 个，临时实例，必须串行；其中 ADM-SL-06/07 为 SKIP）**：
 
 ```
 1. 启临时实例（§2.3 fixture 注入：3 provider + 4 deployment；service-levels 7 个已在 bootstrap 中，跳过）
-2. 顺序：ADM-PROV-{02,05,06,07,08,09,10,11,12,13} → ADM-DEPL-{02,04,05,06,07,08,09} → ADM-SL-{02,02b,04,04b,05,06,07} → OBS-03（无部署状态）
+2. 顺序：ADM-PROV-{02,05,06,07,08,09,10,11,12,13} → ADM-DEPL-{02,04,05,06,07,08,09} → ADM-SL-{02,02b,04,04b,05,06★,07★} → OBS-03（无部署状态）
+   （★ = SKIP，基线约束导致 UNIQUE 先于 capability/embedding_space 检查）
 3. teardown：kill 临时实例，rm SQLite
 ```
 

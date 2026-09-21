@@ -210,7 +210,7 @@ def _find_free_port() -> int:
 class LLMTierInstance:
     """Manage a temporary LLMTier v0.3 process with an isolated SQLite DB."""
 
-    def __init__(self, settings: dict | None = None):
+    def __init__(self, settings: dict | None = None, dev_mode: bool = True):
         self.port = _find_free_port()
         self.base_url = f"http://127.0.0.1:{self.port}"
         self._tmpdir = Path(tempfile.mkdtemp(prefix="llmtier_b_"))
@@ -221,7 +221,8 @@ class LLMTierInstance:
             self._settings_path.write_text(json.dumps(settings))
 
         env = os.environ.copy()
-        env["LLMTIER_DEV_MODE"] = "1"
+        if dev_mode:
+            env["LLMTIER_DEV_MODE"] = "1"
         env["LLMTIER_DATABASE"] = str(self._db_path)
         env["PYTHONPATH"] = "src"
         if settings is not None:
@@ -325,6 +326,12 @@ _EMPTY_SETTINGS = {
     "service_levels": [],
 }
 
+_NO_AUTH_SETTINGS = {
+    "providers": [],
+    "deployments": [],
+    "service_levels": [],
+}
+
 
 @pytest.fixture(scope="session")
 def llmtier_b() -> Generator[LLMTierInstance, None, None]:
@@ -364,5 +371,20 @@ def api_client_b(llmtier_b: LLMTierInstance) -> Generator[httpx.Client, None, No
 @pytest.fixture(scope="session")
 def admin_client_b_empty(llmtier_b_empty: LLMTierInstance) -> Generator[httpx.Client, None, None]:
     client = llmtier_b_empty.admin_client()
+    yield client
+    client.close()
+
+
+@pytest.fixture(scope="session")
+def llmtier_b_no_auth() -> Generator[LLMTierInstance, None, None]:
+    inst = LLMTierInstance(_NO_AUTH_SETTINGS, dev_mode=False)
+    inst.start()
+    yield inst
+    inst.stop()
+
+
+@pytest.fixture(scope="session")
+def admin_client_b_no_auth(llmtier_b_no_auth: LLMTierInstance) -> Generator[httpx.Client, None, None]:
+    client = llmtier_b_no_auth.admin_client()
     yield client
     client.close()
