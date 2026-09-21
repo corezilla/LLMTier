@@ -4,15 +4,24 @@
   Endpoint: http://192.168.1.9:8181
   Auth: Bearer dev-data / dev-admin
   上游: m5air OMLX 9000, m5mac OMLX 9000
+
+B 类 fixtures（_b suffix）—— 临时 LLMTier 实例（session-scope）：
+  llmtier_b: 基线实例（prov_b + depl_b）
+  llmtier_b_empty: 空实例（无任何资源）
 """
 from __future__ import annotations
 
 import json
 import os
+import socket
 import subprocess
 import sys
+import tempfile
+import time
 import urllib.error
 import urllib.request
+from pathlib import Path
+from typing import Generator
 
 import httpx
 import pytest
@@ -55,7 +64,6 @@ def _check_m5air_readyz() -> tuple[bool, str]:
         return False, f"/readyz returned {status}: {body[:120]}"
     try:
         data = json.loads(body)
-        # /readyz 返回 {"status":"ready", "models":[{"id":...}]}（实测）
         models = data.get("models") or data.get("tiers") or []
         ids = {m.get("id") if isinstance(m, dict) else m for m in models}
         missing = set(FIXED_TIERS) - ids
@@ -74,7 +82,6 @@ def _check_omlx(url: str, name: str) -> tuple[bool, str]:
 
 
 def _check_provider_omlx_m5mac_secret_ref() -> tuple[bool, str]:
-    """验证 provider_omlx_m5mac.secret_ref 不是 env:OMLX_API_KEY（2026-09-21 上午修复）。"""
     req = urllib.request.Request(
         f"{M5AIR_BASE}/tier/admin/v1/providers/provider_omlx_m5mac",
         headers={"Authorization": "Bearer dev-admin"},
@@ -86,11 +93,6 @@ def _check_provider_omlx_m5mac_secret_ref() -> tuple[bool, str]:
         return False, f"/providers/provider_omlx_m5mac returned {e.code}"
     except Exception as e:
         return False, f"{type(e).__name__}: {e}"
-
-    # 实际字段：has_secret bool；要看具体 secret_ref 值需要 PATCH 或查 PATCH 入口
-    # 当前实现下，has_secret=True 即认为有 secret 配上了；但要确认不是 env:OMLX_API_KEY
-    # 通过 PATCH 行为间接验证：尝试传 env: 看是否被拒
-    # 这里简化：只要 has_secret=True 即视为已修（2026-09-21 已 PATCH 为 file: 路径）
     if not data.get("has_secret"):
         return False, "provider_omlx_m5mac.has_secret=False (expect True)"
     return True, "ok (has_secret=True)"
@@ -129,7 +131,6 @@ def pytest_configure(config):
 
     if failed:
         msg = "§2.1 环境就绪检查失败，整个 A 类 suite skip:\n  " + "\n  ".join(failed)
-        # pytest 机制：config._env_checks_failed 标记，根 conftest 决定是否 skip
         config._env_checks_failed = msg
 
 
@@ -194,3 +195,174 @@ def parse_sse(response: httpx.Response) -> list[dict]:
 def parse_sse_raw(response: httpx.Response) -> list[tuple[str, dict]]:
     """同 parse_sse 但返回 (event_name, data) 元组。"""
     return [(e["event"], e["data"]) for e in parse_sse(response)]
+
+
+# ---------------------------------------------------------------------------
+# B-class fixtures — 临时 LLMTier 实例（session-scope）
+# ---------------------------------------------------------------------------
+
+def _find_free_port() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
+
+class LLMTierInstance:
+    """Manage a temporary LLMTier v0.3 process with an isolated SQLite DB."""
+
+    def __init__(self, settings: dict | None = None):
+        self.port = _find_free_port()
+        self.base_url = f"http://127.0.0.1:{self.port}"
+        self._tmpdir = Path(tempfile.mkdtemp(prefix="llmtier_b_"))
+        self._db_path = self._tmpdir / "test.sqlite3"
+        self._settings_path = self._tmpdir / "settings.json"
+
+        if settings is not None:
+            self._settings_path.write_text(json.dumps(settings))
+
+        env = os.environ.copy()
+        env["LLMTIER_DEV_MODE"] = "1"
+        env["LLMTIER_DATABASE"] = str(self._db_path)
+        env["PYTHONPATH"] = "src"
+        if settings is not None:
+            env["LLMTIER_SETTINGS"] = str(self._settings_path)
+
+        self._proc = subprocess.Popen(
+            [sys.executable, "-m", "llmtier_v03",
+             "--host", "127.0.0.1",
+             "--port", str(self.port)],
+            env=env,
+            cwd="/Users/ben/work/LLMTier",
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
+    def start(self) -> None:
+        for _ in range(40):
+            try:
+                req = urllib.request.Request(f"{self.base_url}/healthz")
+                with urllib.request.urlopen(req, timeout=2) as resp:
+                    if resp.status == 200:
+                        return
+            except (urllib.error.URLError, socket.error, OSError):
+                pass
+            time.sleep(0.25)
+        raise RuntimeError(f"LLMTier did not become healthy on port {self.port}")
+
+    def stop(self) -> None:
+        if self._proc is not None:
+            self._proc.terminate()
+            try:
+                self._proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                self._proc.kill()
+                self._proc.wait()
+            self._proc = None
+        try:
+            import shutil
+            shutil.rmtree(self._tmpdir)
+        except OSError:
+            pass
+
+    def admin_client(self) -> httpx.Client:
+        return httpx.Client(
+            base_url=self.base_url,
+            headers={"Authorization": "Bearer dev-admin"},
+            timeout=httpx.Timeout(30.0, connect=5.0),
+        )
+
+    def api_client(self) -> httpx.Client:
+        return httpx.Client(
+            base_url=self.base_url,
+            headers={"Authorization": "Bearer dev-data"},
+            timeout=httpx.Timeout(30.0, connect=5.0),
+        )
+
+
+_BASELINE_SETTINGS = {
+    "providers": [
+        {
+            "id": "prov_b",
+            "name": "Baseline Provider B",
+            "kind": "local",
+            "endpoint": "http://127.0.0.1:9000/v1",
+            "secret_ref": None,
+            "enabled": True,
+        }
+    ],
+    "deployments": [
+        {
+            "id": "depl_b",
+            "name": "Baseline Deployment B",
+            "provider_id": "prov_b",
+            "backend_model": "test-model",
+            "capabilities": {
+                "responses": True,
+                "embeddings": False,
+                "tools": False,
+                "structured_outputs": False,
+                "input_modalities": ["text"],
+                "output_modalities": ["text"],
+                "context_window": 4096,
+                "max_output_tokens": 2048,
+                "embedding_space_id": None,
+                "embedding_dimensions": None,
+                "embedding_max_batch_inputs": None,
+                "embedding_max_input_tokens": None,
+            },
+            "enabled": True,
+        }
+    ],
+    "service_levels": [
+        {"id": tier, "deployment_ids": ["depl_b"], "enabled": True}
+        for tier in ("Senior", "Junior", "Worker", "Associate", "Engineer", "Executor", "Embedding-v1")
+    ],
+}
+
+_EMPTY_SETTINGS = {
+    "providers": [],
+    "deployments": [],
+    "service_levels": [],
+}
+
+
+@pytest.fixture(scope="session")
+def llmtier_b() -> Generator[LLMTierInstance, None, None]:
+    inst = LLMTierInstance(_BASELINE_SETTINGS)
+    inst.start()
+    yield inst
+    inst.stop()
+
+
+@pytest.fixture(scope="session")
+def llmtier_b_empty() -> Generator[LLMTierInstance, None, None]:
+    inst = LLMTierInstance(_EMPTY_SETTINGS)
+    inst.start()
+    yield inst
+    inst.stop()
+
+
+@pytest.fixture(scope="session")
+def base_url_b(llmtier_b: LLMTierInstance) -> str:
+    return llmtier_b.base_url
+
+
+@pytest.fixture(scope="session")
+def admin_client_b(llmtier_b: LLMTierInstance) -> Generator[httpx.Client, None, None]:
+    client = llmtier_b.admin_client()
+    yield client
+    client.close()
+
+
+@pytest.fixture(scope="session")
+def api_client_b(llmtier_b: LLMTierInstance) -> Generator[httpx.Client, None, None]:
+    client = llmtier_b.api_client()
+    yield client
+    client.close()
+
+
+@pytest.fixture(scope="session")
+def admin_client_b_empty(llmtier_b_empty: LLMTierInstance) -> Generator[httpx.Client, None, None]:
+    client = llmtier_b_empty.admin_client()
+    yield client
+    client.close()
