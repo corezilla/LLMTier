@@ -380,8 +380,8 @@ curl -X PATCH http://192.168.1.9:8181/tier/admin/v1/providers/provider_local \
 | ADM-DEPL-07 | capabilities 含未知字段 → 400 | POST | `/tier/admin/v1/deployments` | 400，error `code="invalid_request"` | capabilities 含 `{"unknown_field": true}` | B |
 | ADM-DEPL-08 | provider_id 不存在 → 400 | POST | `/tier/admin/v1/deployments` | 400，error `code="invalid_request"` | provider_id="nonexistent_provider" | B |
 | ADM-DEPL-09 | provider_id 不可通过 PATCH 修改 | PATCH | `/tier/admin/v1/deployments/{id}` | 400，error `code="invalid_request"` | body `{"provider_id":"new_provider"}`（不在 allowed 集合） | B |
-| ADM-SL-06 | capability_conflict → 409（SKIP） | POST | `/tier/admin/v1/service-levels` | 409，error `code="capability_conflict"` | deployment 不兼容（如 tools=True vs tools=False）；`registry.py:282`；**注**：基线预填充全部 fixed tier，UNIQUE 约束先于 `_validate_level` 触发，无法到达 capability_conflict | B |
-| ADM-SL-07 | embedding_space_conflict → 409（SKIP） | POST | `/tier/admin/v1/service-levels` | 409，error `code="embedding_space_conflict"` | Embedding-v1 绑定非 BGE-M3 vector space；`registry.py:284-286`；**注**：基线 Embedding-v1 SL 已存在，同上 UNIQUE 先触发 | B |
+| ADM-SL-06 | capability_conflict → 409 | PATCH | `/tier/admin/v1/service-levels/{id}` | 409，error `code="capability_conflict"` | PATCH 现有 fixed tier（Senior），改 deployment_ids → 含不同 context_window 的两个 deployment；`_capability_intersection` 因 non-boolean 值不同丢失 key → `set(capabilities) != CAPABILITY_KEYS` → registry.py:282 → 409 | B |
+| ADM-SL-07 | embedding_space_conflict → 409 | PATCH | `/tier/admin/v1/service-levels/Embedding-v1` | 409，error `code="embedding_space_conflict"` | PATCH Embedding-v1，改 deployment_ids → 含错误 embedding_space_id 的 embedding deployment；`capabilities.embedding_space_id != "bge-m3-dense-1024-v1"` → registry.py:285 → 409 | B |
 
 ---
 
@@ -411,12 +411,11 @@ OBS-01~03 → DP-MODELS-01~07 → DP-EMB-01~05
 → AUTH-01~07
 ```
 
-**B 类（26 个，临时实例，必须串行；其中 ADM-SL-06/07 为 SKIP）**：
+**B 类（26 个，临时实例，必须串行）**：
 
 ```
 1. 启临时实例（§2.3 fixture 注入：3 provider + 4 deployment；service-levels 7 个已在 bootstrap 中，跳过）
-2. 顺序：ADM-PROV-{02,05,06,07,08,09,10,11,12,13} → ADM-DEPL-{02,04,05,06,07,08,09} → ADM-SL-{02,02b,04,04b,05,06★,07★} → OBS-03（无部署状态）
-   （★ = SKIP，基线约束导致 UNIQUE 先于 capability/embedding_space 检查）
+2. 顺序：ADM-PROV-{02,05,06,07,08,09,10,11,12,13} → ADM-DEPL-{02,04,05,06,07,08,09} → ADM-SL-{02,02b,04,04b,05,06,07} → OBS-03（无部署状态）
 3. teardown：kill 临时实例，rm SQLite
 ```
 
