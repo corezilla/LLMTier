@@ -233,10 +233,11 @@ async function deleteProvider(id){
   catch(error){$('#provider-error').textContent=error.message}
 }
 
-function openTierEditor(id){
+async function openTierEditor(id){
   editingTierId=id;
   $('#tier-drawer-title').textContent=`Edit ${id}`;
   $('#tier-form-error').textContent='';
+  await loadRegistry();
   renderTierMembers();
   $('#tier-mask').classList.add('open');
 }
@@ -264,6 +265,14 @@ async function reloadMemberModels(providerSelect){
   const mergedModels=[...new Set([...models,currentModel])];
   form.querySelector('[name="backend_model"]').innerHTML=modelOptions(models,currentModel);
   document.getElementById(`model-list-${deploymentId}`).innerHTML=mergedModels.map(m=>`<option value="${esc(m)}">`).join('');
+}
+
+async function reloadAddMemberModels(providerSelect){
+  const models=await fetchProviderModels(providerSelect.value);
+  const modelSelect=$('#member-model');
+  const currentModel=modelSelect.value;
+  modelSelect.innerHTML=(models.length?'<option value="">Select a model</option>':'')+modelOptions(models,currentModel);
+  document.getElementById('model-list-new').innerHTML=models.map(m=>`<option value="${esc(m)}">`).join('');
 }
 
 async function saveMember(event){
