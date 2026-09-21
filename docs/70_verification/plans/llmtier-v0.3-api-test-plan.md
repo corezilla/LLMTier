@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-api-test-plan` |
-| Document Version | `0.3.0-draft.4` |
+| Document Version | `0.3.0-draft.5` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -39,7 +39,7 @@
 
 **不在本计划范围**：Web UI、FD 资源、SQLite 持久化、auth mock 单元测试、静态契约验证。
 
-**Case 总数**：72 个（详见 §4）。
+**Case 总数**：86 个（详见 §4）。
 
 ---
 
@@ -55,12 +55,12 @@
 
 > 注：`llmtier-v0.3-test-plan.md` §2.2 提到 "m5air 不是测试环境"，但那是针对 **ST-18 FD 泄漏 / ST-19 30min 长期 / ST-21 性能压测**这类**会污染服务状态**的 case。HTTP 端点的读 / 一次性写测试不污染 SQLite，且每个写 case 后做 teardown，对 m5air 状态无可观察影响。
 
-72 case 按是否写 m5air 状态分两类：
+89 case 按是否写 m5air 状态分两类：
 
 | 类 | 范围 | 执行方式 | case 数 |
 |---|---|---|---|
-| **A 类 — 读 / 观察** | OBS-01~02、DP-MODELS-* (6)、DP-RESP-* (11)、DP-EMB-* (5)、DP-USAGE-* (4)、AUTH-* (6)、ADM 类的 GET (providers list/get、deployments list/get、service-levels list/get、audit、logs、runtime、stats)、ADM-PROBE-* (2)、ADM-PROV-USAGE-* (3)、ADM-ADMIN-USAGE-* (2)、ADM-AUDIT-* (2)、ADM-LOGS-* (2)、ADM-RUNTIME-01、ADM-STATS-* (3)、ADM-SL-01/03 (2) | 直接打 m5air 现有实例 | 57 |
-| **B 类 — 写操作** | ADM-PROV-* POST/PATCH/DELETE 全集 (7)、ADM-DEPL-* POST/PATCH/DELETE 全集 (3)、ADM-SL-* POST/PATCH/DELETE (5：02/02b/04/04b/05)、OBS-03 (1) | 用**临时 SQLite + 临时端口**启新实例（同一台机器 m5air 上，第二个进程）；teardown 清理 | 15 |
+| **A 类 — 读 / 观察** | OBS-01~02、DP-MODELS-* (7)、DP-RESP-* (15)、DP-EMB-* (5)、DP-USAGE-* (4)、AUTH-* (6)、ADM 类的 GET (providers list/get、deployments list/get、service-levels list/get、audit、logs、runtime、stats)、ADM-PROBE-* (2)、ADM-PROV-USAGE-* (3)、ADM-ADMIN-USAGE-* (2)、ADM-AUDIT-* (2)、ADM-LOGS-* (2)、ADM-RUNTIME-01、ADM-STATS-* (3)、ADM-SL-01/03 (2) | 直接打 m5air 现有实例 | 63 |
+| **B 类 — 写操作** | ADM-PROV-* POST/PATCH/DELETE 全集 (10)、ADM-DEPL-* POST/PATCH/DELETE 全集 (6)、ADM-SL-* POST/PATCH/DELETE (7：02/02b/04/04b/05/06/07)、OBS-03 (1)、AUTH-07 (1) | 用**临时 SQLite + 临时端口**启新实例（同一台机器 m5air 上，第二个进程）；teardown 清理 | 26 |
 
 **B 类为什么用临时实例**：B 类 case 会创建/删除/修改 provider/deployment/service-level，如果直接在 m5air 上跑：
 - 多次跑可能因为 ID 冲突 / state 累积 导致测试不稳定
@@ -323,7 +323,7 @@ curl -X PATCH http://192.168.1.9:8181/tier/admin/v1/providers/provider_local \
 | ADM-SL-04b | 更新非法字段 | PATCH | `/tier/admin/v1/service-levels/{id}` | 400，error `code="invalid_request"` | body `{"name":"x"}`；`name` 不在 allowed patch 字段 | B |
 | ADM-SL-05 | 删除 FIXED_TIER | DELETE | `/tier/admin/v1/service-levels/{id}` | 409，error `code="fixed_service_level"` | 不带 If-Match 也行（直接被 FIXED_TIER 逻辑拦）；带 If-Match 同样 409 | B |
 
-> 注：ADM-SL-02 → ADM-SL-02b，ADM-SL-04 → ADM-SL-04b，原 5 个 case 拆成 7 个；后补边界 case，最终 case 总数从 57 → 72（详见 §1）；§5.1 顺序表相应调整。
+> 注：v0.3.0-draft.5 新增加强 case 17 个（DP-MODELS-07, DP-RESP-12~15, ADM-PROV-11~13, ADM-DEPL-06~09, ADM-SL-06~07, AUTH-07），case 总数从 72 → 89（详见 §4.12）；§5.1 顺序表相应调整。
 
 ### 4.9 Admin — Probes and Usage
 
@@ -362,6 +362,26 @@ curl -X PATCH http://192.168.1.9:8181/tier/admin/v1/providers/provider_local \
 | AUTH-04 | Admin 端点无 token（LAN trust） | GET | `/tier/admin/v1/providers` | 200 | 客户端在 192.168.x；无 Authorization header | A |
 | AUTH-05 | 公共端点无需 token | GET | `/healthz` | 200 | 无 Authorization header | A |
 | AUTH-06 | 伪造 Authorization header | GET | `/v1/models` | 403 | Authorization: Bearer ""（空字符串）；**实测**：Bearer 后空字符串不匹配 → 403（不是 401）；httpx 禁发此 header，需用 urllib 直发 | A |
+| AUTH-07 | auth 未配置 → 503 | GET | `/v1/models` | 503，error `code="auth_not_configured"` | LLMTier 未配置 admin/data token；当前 m5air DEV_MODE=1 无法测此场景，**B 类**用空 env 启动临时实例；或通过代码审查记录预期行为 | B |
+
+### 4.12 新增边界 Case（v0.3.0-draft.5 加强）
+
+| ID | Case | 方法 | 路径 | 预期 | Fixture / 依赖 | 类 |
+|----|------|------|------|------|----------------|----|
+| DP-MODELS-07 | 每个 tier 的 capabilities 字段 | GET | `/v1/models` | 200，data[].capabilities 含 12 个固定字段 | 验证每个 tier 的 capabilities 结构完整性（responses/embeddings/tools/structured_outputs/input_modalities/output_modalities/context_window/max_output_tokens/embedding_space_id/embedding_dimensions/embedding_max_batch_inputs/embedding_max_input_tokens） | A |
+| DP-RESP-12 | conversation_id 被拒绝 | POST | `/v1/responses` | 400，error `code="unsupported_field"` | body 含 `conversation_id="conv_xxx"` | A |
+| DP-RESP-13 | truncation 被拒绝 | POST | `/v1/responses` | 400，error `code="unsupported_field"` | body 含 `truncation="auto"` | A |
+| DP-RESP-14 | max_tokens 别名行为 | POST | `/v1/responses` | 200 或 400 | body 含 `max_tokens=50`（若不支持应 400 unsupported_field） | A |
+| DP-RESP-15 | temperature/top_p 参数 | POST | `/v1/responses` | 200 | body 含 `temperature=0.7`，验证参数是否透传（或被静默忽略） | A |
+| ADM-PROV-11 | kind 字段枚举校验 | POST | `/tier/admin/v1/providers` | 400，error `code="invalid_request"` | kind="invalid_kind"（非 cloud/local） | B |
+| ADM-PROV-12 | secret_ref 格式校验 | POST | `/tier/admin/v1/providers` | 400，error `code="invalid_request"` | secret_ref="not-a-ref-format"（非 env:/file: 前缀） | B |
+| ADM-PROV-13 | usage 子对象更新 | PATCH | `/tier/admin/v1/providers/{id}` | 200，usage 子字段更新 | body `{"usage": {"max_concurrent_requests": 5}}`；验证 registry.py:183 usage 字段校验 | B |
+| ADM-DEPL-06 | capabilities 缺字段 → 400 | POST | `/tier/admin/v1/deployments` | 400，error `code="invalid_request"` | capabilities 缺少任意一个必填字段 | B |
+| ADM-DEPL-07 | capabilities 含未知字段 → 400 | POST | `/tier/admin/v1/deployments` | 400，error `code="invalid_request"` | capabilities 含 `{"unknown_field": true}` | B |
+| ADM-DEPL-08 | provider_id 不存在 → 400 | POST | `/tier/admin/v1/deployments` | 400，error `code="invalid_request"` | provider_id="nonexistent_provider" | B |
+| ADM-DEPL-09 | provider_id 不可通过 PATCH 修改 | PATCH | `/tier/admin/v1/deployments/{id}` | 400，error `code="invalid_request"` | body `{"provider_id":"new_provider"}`（不在 allowed 集合） | B |
+| ADM-SL-06 | capability_conflict → 409 | POST | `/tier/admin/v1/service-levels` | 409，error `code="capability_conflict"` | deployment 不兼容（如 embedding+responses 混搭）；`registry.py:282` | B |
+| ADM-SL-07 | embedding_space_conflict → 409 | POST | `/tier/admin/v1/service-levels` | 409，error `code="embedding_space_conflict"` | Embedding-v1 绑定非 embedding-only deployment；`registry.py:284-286` | B |
 
 ---
 
@@ -371,12 +391,12 @@ curl -X PATCH http://192.168.1.9:8181/tier/admin/v1/providers/provider_local \
 
 按 A/B 类区分执行策略；A 类可并发，B 类串行（共享临时实例）：
 
-**A 类（57 个，m5air 现有 state，可并发）**：
+**A 类（63 个，m5air 现有 state，可并发）**：
 
 ```
-OBS-01~03 → DP-MODELS-01~06 → DP-EMB-01~05
+OBS-01~03 → DP-MODELS-01~07 → DP-EMB-01~05
 → DP-RESP-{01,03,04}（流式/推理/tools）
-→ DP-RESP-{02,05,06,07,08,09,10,11}（错误目录 + 边界）
+→ DP-RESP-{02,05,06,07,08,09,10,11,12,13,14,15}（错误目录 + 边界）
 → DP-USAGE-01~04
 → ADM-PROV-{01,03,04}（GET 集合）
 → ADM-DEPL-{01,03}
@@ -388,14 +408,14 @@ OBS-01~03 → DP-MODELS-01~06 → DP-EMB-01~05
 → ADM-LOGS-01~02
 → ADM-RUNTIME-01
 → ADM-STATS-01~03
-→ AUTH-01~06
+→ AUTH-01~07
 ```
 
-**B 类（15 个，临时实例，必须串行）**：
+**B 类（26 个，临时实例，必须串行）**：
 
 ```
 1. 启临时实例（§2.3 fixture 注入：3 provider + 4 deployment；service-levels 7 个已在 bootstrap 中，跳过）
-2. 顺序：ADM-PROV-{02,05,06,07,08,09,10} → ADM-DEPL-{02,04,05} → ADM-SL-{02,02b,04,04b,05} → OBS-03（无部署状态）
+2. 顺序：ADM-PROV-{02,05,06,07,08,09,10,11,12,13} → ADM-DEPL-{02,04,05,06,07,08,09} → ADM-SL-{02,02b,04,04b,05,06,07} → OBS-03（无部署状态）
 3. teardown：kill 临时实例，rm SQLite
 ```
 
@@ -412,7 +432,7 @@ OBS-01~03 → DP-MODELS-01~06 → DP-EMB-01~05
 
 ### 5.3 通过标准
 
-- 全部 72 个 case PASS → API 端点测试通过
+- 全部 89 个 case PASS → API 端点测试通过
 - 任何 FAIL → 记录 `failure_reason`，阻塞 release
 
 ### 5.4 Case 状态判定规则
