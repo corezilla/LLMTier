@@ -57,8 +57,8 @@ async function fetchProviderModels(providerId){
 
 function modelOptions(models,selected){
   const opts=models.map(m=>`<option value="${esc(m)}">${esc(m)}</option>`).join('');
-  if(selected&&!models.includes(selected)) opts+=`<option value="${esc(selected)}">${esc(selected)} (current)</option>`;
-  return opts;
+  const extra=selected&&!models.includes(selected)?`<option value="${esc(selected)}">${esc(selected)} (current)</option>`:'';
+  return opts+extra;
 }
 
 async function loadRegistry(){
