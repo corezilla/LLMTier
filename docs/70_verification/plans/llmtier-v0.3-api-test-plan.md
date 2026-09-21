@@ -257,8 +257,8 @@ curl -X PATCH http://192.168.1.9:8181/tier/admin/v1/providers/provider_local \
 | DP-RESP-07 | store:true 被拒绝 | POST | `/v1/responses` | 400，error `code="unsupported_request"` | body `store=true`；store 必须 false | A |
 | DP-RESP-08 | 缺少 model 字段 | POST | `/v1/responses` | 400，error `code="invalid_request"` | body 不含 model | A |
 | DP-RESP-09 | previous_response_id 被拒绝 | POST | `/v1/responses` | 400，error `code="unsupported_field"` | body 含 `previous_response_id="resp_xxx"`（任意非空字符串） | A |
-| DP-RESP-10 | context_window 超限 | POST | `/v1/responses` | 200 或 400，output 被截断或报错 | model=Worker，input 含超长字符串（> context_window，如 300k tokens）；**实测前先探索**：看实际行为是 truncation + 200，还是 400，还是 streaming 报错 | A |
-| DP-RESP-11 | 上游 503 时错误传播 | POST | `/v1/responses` | 502/503/504，error 含 upstream 错误信息 | model=Worker，上游 provider 返回 503；**前提**：需要可注入故障的上游 mock 或已知不可用 provider；当前 m5air 上游均正常，此 case **仅记录预期契约**，不强制执行 | A |
+| DP-RESP-10 | max_output_tokens truncation | POST | `/v1/responses` | 200，SSE 终止于 `response.incomplete`，`incomplete_details.reason="max_output_tokens"` | model=Worker，`max_output_tokens=10`；实测 SSE 以 `response.incomplete`（非 `response.completed`）终止；context_window 在 Qwen3.6（262k tokens）上无法通过普通 input 触发 | A |
+| DP-RESP-11 | 上游 503 时错误传播 | POST | `/v1/responses` | 502/503/504，或 500 internal_error | model=Worker，上游 provider 返回 503；**实测**：需要故障注入；当前 m5air 上游均正常，case 标记 `@skip(reason=... )`；预期：`adapter` 层 httpx 抛出 `HTTPStatusError` → `app.py:176` 记录 unhandled_error → 500 internal_error | A |
 
 > **注意**：DP-RESP-01/03/04 依赖上游 Provider 健康（§2.1 检查），不健康 → 对应 case SKIP。
 
@@ -270,7 +270,7 @@ curl -X PATCH http://192.168.1.9:8181/tier/admin/v1/providers/provider_local \
 | DP-EMB-02 | base64 编码 | POST | `/v1/embeddings` | 200，base64 解码后 1024 个 little-endian float32，全部 finite | 同 DP-EMB-01 + encoding_format="base64" | A |
 | DP-EMB-03 | 不变量验证 | POST | `/v1/embeddings` ×5 | 5 次请求维度均为 1024 | 同输入 "Hello world" 连发 5 次；断言：dim 全 1024、两两 cosine similarity > 0.99、`embedding_space_id` 字段一致 | A |
 | DP-EMB-04 | unknown model | POST | `/v1/embeddings` | 404，error `code="not_found"` | model="NonExistentModel"；**实测**：service-level lookup 失败先于 model routing，返回 `not_found`（不是 `model_not_found`） | A |
-| DP-EMB-05 | batch size 超限 | POST | `/v1/embeddings` | 400，error `code="invalid_request"` | model=Embedding-v1，input 含 33+ 个字符串（`embedding_max_batch_inputs=32`）；验证 registry.py:16 `embedding_max_batch_inputs` 约束生效 | A |
+| DP-EMB-05 | batch size 超限 | POST | `/v1/embeddings` | 200，body 含 33 个 embedding | model=Embedding-v1，input 含 33 个字符串；**实测**：`embeddings.py` 不校验 `embedding_max_batch_inputs`，batch 直发上游 bge-m3 返回 200；`embedding_max_batch_inputs` 仅作 informational 字段 | A |
 
 ### 4.5 Data Plane — Usage
 
