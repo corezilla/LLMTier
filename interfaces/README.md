@@ -34,5 +34,5 @@ Agent 读取后可理解：
 ```bash
 # 用 jsonschema 验证配置文件
 pip install jsonschema
-jsonschema --instance config/settings.json interfaces/schemas/llmtier-settings-v0.3.schema.json
+jsonschema -i config/settings.json interfaces/schemas/llmtier-settings-v0.3.schema.json
 ```

@@ -64,7 +64,7 @@
             { "pattern": "^env:" },
             { "pattern": "^file:" }
           ],
-          "examples": ["env:OMLX_TOKEN", "file:/run/secrets/omlx_key.txt", null]
+          "examples": ["env:OMLX_TOKEN", "file:/run/secrets/omlx_key.txt"]
         },
         "enabled": {
           "description": "是否启用。禁用后该 Provider 及其所有 Deployment 不会被调度。",
@@ -230,25 +230,25 @@
         "embedding_space_id": {
           "description": "Embedding 向量空间标识符。Embedding-v1 Tier 要求固定值 `\"bge-m3-dense-1024-v1\"`。非 embedding 模型设为 null。",
           "type": ["string", "null"],
-          "examples": ["bge-m3-dense-1024-v1", null]
+          "examples": ["bge-m3-dense-1024-v1"]
         },
         "embedding_dimensions": {
           "description": "Embedding 向量维度。Embedding-v1 Tier 要求 `[1024]`。非 embedding 模型设为 null。",
           "type": ["array", "null"],
           "items": { "type": "integer" },
-          "examples": [[1024], null]
+          "examples": [[1024]]
         },
         "embedding_max_batch_inputs": {
           "description": "每次 Embedding 请求最大输入文本条数。Embedding-v1 Tier 要求 32。非 embedding 模型设为 null。",
           "type": ["integer", "null"],
           "minimum": 1,
-          "examples": [32, null]
+          "examples": [32]
         },
         "embedding_max_input_tokens": {
           "description": "每次 Embedding 请求单条最大输入 token 数。Embedding-v1 Tier 要求 8192。非 embedding 模型设为 null。",
           "type": ["integer", "null"],
           "minimum": 1,
-          "examples": [8192, null]
+          "examples": [8192]
         }
       }
     },
@@ -276,11 +276,6 @@
           "default": true
         }
       }
-    },
-
-    "Capabilities_intersection_rules": {
-      "description": "【informational，不写入配置】Service Level 的 capabilities 由系统根据 deployment_ids 自动计算，规则如下：对 boolean 字段（responses/embeddings/tools/structured_outputs）取 all()；对 non-boolean 字段（context_window/input_modalities 等）要求所有值完全一致，不一致则该字段被丢弃。交集结果必须恰好包含全部 12 个 key，否则 Tier 不可用（409 capability_conflict）。Embedding-v1 有额外的向量空间锁定约束（见 spec）。",
-      "type": "object"
     }
   }
 }
