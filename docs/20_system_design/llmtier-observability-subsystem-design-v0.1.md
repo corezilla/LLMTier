@@ -5,7 +5,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-observability-subsystem-design-v0.1` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -417,12 +417,33 @@ Authorization: Bearer {admin_token}
 
 | 路由 | 方法 | 描述 |
 |---|---|---|
-| `/tier/admin/v1/diagnostics/snapshots` | GET | LT-OBS-1 快照查询（分页） |
-| `/tier/admin/v1/diagnostics/stats` | GET | LT-OBS-2 统计查询 |
-| `/tier/admin/v1/deployments/{id}/diagnostics` | GET, PATCH | LT-OBS-5 注入配置管理 |
-| `/tier/admin/v1/trace/{request_id}` | GET | LT-OBS-6 trace 查询 |
+| `GET /tier/admin/v1/diagnostics` | GET, PATCH | **全局调试开关**（LT-OBS-1 快照总开关、LT-OBS-2 统计开关） |
+| `GET /tier/admin/v1/diagnostics/snapshots` | GET | LT-OBS-1 快照查询（分页） |
+| `GET /tier/admin/v1/diagnostics/stats` | GET | LT-OBS-2 统计查询 |
+| `GET /tier/admin/v1/deployments/{id}/diagnostics` | GET, PATCH | LT-OBS-5 注入配置管理 |
+| `GET /tier/admin/v1/trace/{request_id}` | GET | LT-OBS-6 trace 查询 |
 
-### 5.2 快照/trace 查询分页
+### 5.2 全局调试开关接口
+
+```
+GET /tier/admin/v1/diagnostics
+  → 返回 {"snapshots_enabled": true/false, "stats_enabled": true/false}
+
+PATCH /tier/admin/v1/diagnostics
+  Authorization: Bearer {admin_token}
+
+  {"snapshots_enabled": true, "stats_enabled": true}
+
+  → 返回更新后的状态
+```
+
+**说明：**
+- 开关状态存储在 `settings` 的 `diagnostics` 节（或独立小表）
+- `snapshots_enabled`：控制 LT-OBS-1 快照捕获（默认 `false`）
+- `stats_enabled`：控制 LT-OBS-2 统计聚合（默认 `false`）
+- Piko 联调脚本可通过此接口开关调试
+
+### 5.3 快照/trace 查询分页
 
 所有列表查询支持 cursor-based 分页：
 
@@ -443,7 +464,7 @@ GET /tier/admin/v1/diagnostics/snapshots?limit=50&cursor=snap_xxx
 - `has_more=false` 时 `next_cursor` 为 null
 - 最大 `limit=500`，默认 `50`
 
-### 5.3 快照查询接口
+### 5.4 快照查询接口
 
 ```
 GET /tier/admin/v1/diagnostics/snapshots
@@ -455,7 +476,7 @@ GET /tier/admin/v1/diagnostics/snapshots
   &cursor=...
 ```
 
-### 5.4 统计查询接口
+### 5.5 统计查询接口
 
 ```
 GET /tier/admin/v1/diagnostics/stats
@@ -465,7 +486,7 @@ GET /tier/admin/v1/diagnostics/stats
   &model=Worker
 ```
 
-### 5.5 注入配置管理接口
+### 5.6 注入配置管理接口
 
 ```
 GET /tier/admin/v1/deployments/{id}/diagnostics
@@ -482,7 +503,7 @@ PATCH /tier/admin/v1/deployments/{id}/diagnostics
   → 部分更新：列表中有该 type 则 upsert，无该 type 则保持现状
 ```
 
-### 5.6 trace 查询接口
+### 5.7 trace 查询接口
 
 ```
 GET /tier/admin/v1/trace/{request_id}

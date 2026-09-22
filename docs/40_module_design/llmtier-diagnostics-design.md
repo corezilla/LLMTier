@@ -5,7 +5,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-diagnostics-module-design` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -76,6 +76,20 @@ flowchart TD
 
 ```python
 class DiagnosticService:
+    # ---- 全局开关（LT-OBS-1/2 总开关）----
+    def get_diagnostics_settings(self) -> dict:
+        """获取全局调试开关状态 {snapshots_enabled, stats_enabled}。"""
+
+    def update_diagnostics_settings(self, snapshots_enabled: bool | None = None,
+                                     stats_enabled: bool | None = None) -> dict:
+        """更新全局调试开关（部分更新，None 表示保持原值）。"""
+
+    def snapshots_enabled(self) -> bool:
+        """当前快照捕获是否开启。"""
+
+    def stats_enabled(self) -> bool:
+        """当前统计聚合是否开启。"""
+
     # ---- 快照（LT-OBS-1）----
     def capture_snapshot(
         self,
@@ -153,11 +167,44 @@ class DiagnosticService:
 
 | 路由 | 方法 | 描述 |
 |---|---|---|
+| `GET /tier/admin/v1/diagnostics` | GET, PATCH | **全局调试开关**（snapshots_enabled / stats_enabled） |
 | `GET /tier/admin/v1/diagnostics/snapshots` | GET | LT-OBS-1 快照查询（分页） |
 | `GET /tier/admin/v1/diagnostics/stats` | GET | LT-OBS-2 统计查询 |
-| `GET /tier/admin/v1/deployments/{id}/diagnostics` | GET | LT-OBS-5 注入配置查询 |
-| `PATCH /tier/admin/v1/deployments/{id}/diagnostics` | PATCH | LT-OBS-5 注入配置修改 |
+| `GET /tier/admin/v1/deployments/{id}/diagnostics` | GET, PATCH | LT-OBS-5 注入配置查询/修改 |
 | `GET /tier/admin/v1/trace/{request_id}` | GET | LT-OBS-6 trace 查询 |
+
+### 4.3 WebUI 诊断页面
+
+**路由**：`/ui/diagnostics`（与 `/ui/usage` 并列）
+
+**Tabs**：
+
+| Tab | 内容 | 对应 API |
+|---|---|---|
+| 快照 | 快照列表查询、分页、筛选 | `GET /tier/admin/v1/diagnostics/snapshots` |
+| 统计 | P50/P95/请求数/错误数 图表 | `GET /tier/admin/v1/diagnostics/stats` |
+| 注入 | per-deployment 注入配置开关 | `GET/PATCH /tier/admin/v1/deployments/{id}/diagnostics` |
+| Trace | request_id 查询 trace | `GET /tier/admin/v1/trace/{request_id}` |
+
+**全局开关**：`/ui/diagnostics` 页面顶部有全局调试开关 toggle：
+- `快照捕获：`ON/OFF
+- `统计聚合：`ON/OFF
+- 对应 `GET/PATCH /tier/admin/v1/diagnostics`
+
+**布局参考**：
+```
+┌─────────────────────────────────────────────────────────────┐
+│  LLMTier Diagnostics                          [Usage][Diag] │
+├─────────────────────────────────────────────────────────────┤
+│  全局开关: [快照捕获 ●──○] [统计聚合 ●──○]                   │
+├─────────────────────────────────────────────────────────────┤
+│  [快照] [统计] [注入配置] [Trace]                            │
+├─────────────────────────────────────────────────────────────┤
+│  │                                                      │   │
+│  │  （Tab 内容区）                                        │   │
+│  │                                                      │   │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ## 5. 数据结构
 
@@ -241,17 +288,21 @@ diagnostics 模块
 
 - [ ] `migrations/002_diagnostics.sql` 创建 4 张表
 - [ ] `diagnostics.py` 实现 `DiagnosticService` 及各子组件
-- [ ] `logs.py` 的 `MODULE_KEYS` 注册 `'diagnostics'`（`logs.py` 中 `OperationalLog.MODULE_KEYS` 需包含 `'diagnostics'` 字符串）
+- [ ] `logs.py` 的 `MODULE_KEYS` 注册 `'diagnostics'`
 - [ ] `app.py` 创建 `DiagnosticService` 实例并注册管理面路由
+- [ ] 全局调试开关存储（settings 或独立小表 `diagnostic_settings`）
 - [ ] `BaseHandler._run()` 集成 trace received + correlation_id 提取
 - [ ] `responses.py` 集成 trace 各阶段 + snapshot + record_latency
 - [ ] 注入检查集成（Phase 5a：delay/fault/rate_limit）
 - [ ] TTL cleanup job（应用内 24h 定时）
+- [ ] WebUI 新增 `/ui/diagnostics` 页面（4 tabs：快照/统计/注入/Trace）
+- [ ] WebUI 全局开关 toggle 组件
 - [ ] 单元测试
-- [ ] B-class 系统测试
+- [ ] B-class 系统测试（API + WebUI）
 
 ## 10. 参考
 
 - [可观测性子系统系统设计](../20_system_design/llmtier-observability-subsystem-design-v0.1.md)
 - [Diagnostics ISD](../50_implementation_design/llmtier-diagnostics.isd.md)
 - `docs/40_module_design/llmtier-core-design.md` — 核心模块设计参考
+- `docs/40_module_design/webui-design.md` — WebUI 设计参考

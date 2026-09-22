@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-webui-module-design` |
-| Document Version | `0.3.0-draft.15` |
+| Document Version | `0.3.0-draft.16` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -27,7 +27,7 @@
 
 ## 1. 设计原则
 
-Web UI is LLMTier's English-language operator console. It calls `/tier/admin/v1` on the same origin and never reads SQLite, settings, or Secrets directly. It keeps the established compact frame: fixed narrow sidebar, page title and status header, and one primary card per short page. It has four pages only: Home, Providers, Usage & Audit, and Logs. Runtime status and Tier membership are managed from the Tier tree; provider connections are managed on the Providers page. There is no global Add Model action.
+Web UI is LLMTier's English-language operator console. It calls `/tier/admin/v1` on the same origin and never reads SQLite, settings, or Secrets directly. It keeps the established compact frame: fixed narrow sidebar, page title and status header, and one primary card per short page. It has five pages only: Home, Providers, Usage & Audit, Logs, and Diagnostics. Runtime status and Tier membership are managed from the Tier tree; provider connections are managed on the Providers page. There is no global Add Model action.
 
 [打开可切换的静态 Demo](demos/webui/index.html)。以下图片由该Demo在1280×760视口生成，作为布局和信息层级基线；它们不是已经接线的产品截图。
 
@@ -53,7 +53,7 @@ Web UI is LLMTier's English-language operator console. It calls `/tier/admin/v1`
 | Empty / `package-open` | Tier当前没有成员 |
 | Ready / `circle-check` | 网关readiness成功 |
 
-导航和操作统一使用同一图标库：Home、Providers、Usage、Logs、Refresh/Probe、Add、Edit、Save、Pause、Resume、Delete、Unlink和Close。Pause与Resume是同一Deployment的可逆操作，不创建新模型、不改变Tier成员关系。
+导航和操作统一使用同一图标库：Home、Providers、Usage、Logs、Diagnostics、Refresh/Probe、Add、Edit、Save、Pause、Resume、Delete、Unlink和Close。Pause与Resume是同一Deployment的可逆操作，不创建新模型、不改变Tier成员关系。
 
 ## 2. 页面一：主页
 
@@ -119,12 +119,104 @@ Web UI is LLMTier's English-language operator console. It calls `/tier/admin/v1`
 - 支持时间、级别、模块和request ID过滤；游标绑定稳定快照。日志存储不可读时返回503，不用空页伪装“没有日志”。
 - 日志详情文本有长度上限；UI不渲染HTML。保留期限和清理由运维设计控制，不提供浏览器下载全量日志。
 
-## 6. 通用交互状态
+## 6. 页面五：诊断（Diagnostics）
+
+Diagnostics 页面用于 Piko 联调的可观测性调试，包含 4 个 tabs：Snapshots、Stats、Injection、Trace。页面顶部有全局调试开关。
+
+### 6.1 全局调试开关
+
+页面顶部始终显示全局调试开关状态栏：
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  Diagnostics Switches:  [● Snapshot Capture] [○ Stats Aggregation]  │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+- Toggle 开关调用 `PATCH /tier/admin/v1/diagnostics` 实时切换
+- 状态反映 `GET /tier/admin/v1/diagnostics` 的 `snapshots_enabled` / `stats_enabled`
+- 关闭时对应 tab 内容显示"Disabled"提示
+
+### 6.2 Tab 1：Snapshots（快照）
+
+调用 `GET /tier/admin/v1/diagnostics/snapshots`，显示上游调用快照列表：
+
+| 列 | 说明 |
+|---|---|
+| Time | `captured_at`（本地时间） |
+| Request ID | `request_id`（可点击跳转 Trace） |
+| Deployment | `deployment_id` |
+| Model | 请求的 model |
+| Upstream URL | `upstream_url`（已脱敏） |
+| Status | `http_status`（颜色编码：2xx=绿，4xx=黄，5xx=红） |
+| Latency (ms) | `latency_ms` |
+| Error | `error_summary`（如有） |
+
+- 支持时间范围筛选（since/until）
+- 支持 deployment_id / model 筛选
+- 分页（cursor-based），每页 50 条
+- 点击行展开显示完整 snapshot 详情（JSON viewer）
+
+### 6.3 Tab 2：Stats（统计）
+
+调用 `GET /tier/admin/v1/diagnostics/stats`，显示数据面聚合统计：
+
+- **数字卡片**：`Request Count`、`Error 4xx`、`Error 5xx`
+- **延迟分布**：`P50`、`P95`、`Min`、`Max`、`Avg`
+- 支持时间范围和 deployment_id/model 筛选
+- 显示"数据仅供参考，对账以 Usage 账本为准"提示
+
+### 6.4 Tab 3：Injection（注入配置）
+
+按 deployment 显示注入配置。调用 `GET /tier/admin/v1/deployments` 列表 + `GET /tier/admin/v1/deployments/{id}/diagnostics`：
+
+| Deployment | Type | Config | Enabled |
+|---|---|---|---|
+| depl_a | delay | delay_ms: 500 | [●──○] |
+| depl_a | fault_502 | body: "backend error" | [○──●] |
+| depl_b | rate_limit | retry_after_sec: 30 | [●──○] |
+
+- 每行有 Edit 按钮，点击弹出 PATCH 对话框
+- Edit 调用 `PATCH /tier/admin/v1/deployments/{id}/diagnostics`
+- 新增注入：选择 type 后填写 config，保存后 POST
+
+### 6.5 Tab 4：Trace（链路追踪）
+
+输入 Request ID 调用 `GET /tier/admin/v1/trace/{request_id}`，显示请求全链路：
+
+```
+Request ID: req_abc123
+Correlation ID: corr_xyz (if present)
+
+Stages:
+  [✓] received     2026-09-22T10:00:00.000Z
+  [✓] validated    2026-09-22T10:00:00.050Z
+  [✓] routed       2026-09-22T10:00:00.100Z  → depl_a
+  [✓] upstream_started  2026-09-22T10:00:00.150Z
+  [✓] upstream_ended    2026-09-22T10:00:00.650Z  (snapshot: snap_xxx)
+  [✓] completed    2026-09-22T10:00:01.000Z
+
+Usage:
+  Model: Worker | Version: 1 | Final: Yes
+  Input Tokens: 120 | Output Tokens: 340 | Total: 460
+```
+
+- 每个 stage 显示时间戳和耗时
+- `upstream_ended` 阶段可点击查看关联的 snapshot
+- Usage 部分关联 `usage_record_versions`
+
+### 6.6 API 字段映射
+
+| UI | Read | Mutation |
+|---|---|---|
+| Diagnostics | `GET /diagnostics`（开关）、`GET /diagnostics/snapshots`、`GET /diagnostics/stats`、`GET /deployments/{id}/diagnostics`、`GET /trace/{request_id}` | `PATCH /diagnostics`（开关）、`PATCH /deployments/{id}/diagnostics`（注入配置） |
+
+## 7. 通用交互状态
 
 | 状态 | 规则 |
 |---|---|
 | Loading | 保持页面框架，局部骨架；不清空上次成功数据 |
-| Empty | 说明是“无数据”而不是“加载失败” |
+| Empty | 说明是"无数据"而不是"加载失败" |
 | Validation | English field-level error beside the field; focus the first error |
 | 401 | 清除UI会话并要求重新认证，不回显token |
 | 403 | 显示无operator权限，不猜资源是否存在 |
@@ -135,16 +227,16 @@ Web UI is LLMTier's English-language operator console. It calls `/tier/admin/v1`
 
 All buttons support keyboard operation and visible focus. Status cells show only one consistent line-icon set; the English status label is exposed by hover tooltip, keyboard focus and `aria-label`, so status never relies on color alone. Delete and chargeable probes require confirmation. All visible page copy, labels, tooltip values, provider types, and empty/error states use English. Machine error codes remain available in Details for diagnosis.
 
-## 7. 认证与浏览器安全
+## 8. 认证与浏览器安全
 
-Web UI本身不提供“访问控制”业务页，也不实现账号库。production由同源TLS反向代理完成operator SSO/MFA，
+Web UI本身不提供"访问控制"业务页，也不实现账号库。production由同源TLS反向代理完成operator SSO/MFA，
 浏览器只持有代理签发的`Secure; HttpOnly; SameSite=Strict`短期会话cookie；代理在服务端换取/注入Admin bearer，
 bearer不进入JavaScript、URL、localStorage或sessionStorage。所有mutation还必须校验同源`Origin`和代理CSRF token。
 401跳转到外部登录，403留在当前页并显示权限不足；logout由代理撤销会话后清空内存草稿。LLMTier Admin API仍只
 接受现有`AdminBearerAuth`，不新增登录endpoint、用户管理Schema或第二认证路径。development若没有认证代理，
 Web UI保持disabled，operator使用CLI/API；不提供把长期token粘贴进浏览器的降级模式。
 
-## 8. API字段映射
+## 9. API字段映射
 
 | UI | Read | Mutation |
 |---|---|---|
@@ -152,5 +244,6 @@ Web UI保持disabled，operator使用CLI/API；不提供把长期token粘贴进�
 | Providers | provider/deployment pages、admin runtime snapshot、provider usage snapshot + ETag | Provider POST/PATCH/DELETE + If-Match；显式POST usage refresh；引用中的Provider由409保护 |
 | 用量与审计 | admin usage page、audit page | 无 |
 | 日志 | sanitized log page | 无 |
+| Diagnostics | `GET /diagnostics`、`GET /diagnostics/snapshots`、`GET /diagnostics/stats`、`GET /deployments/{id}/diagnostics`、`GET /trace/{request_id}` | `PATCH /diagnostics`、`PATCH /deployments/{id}/diagnostics` |
 
 `runtime_activation=false`；本文是设计，不是浏览器实现或capture。
