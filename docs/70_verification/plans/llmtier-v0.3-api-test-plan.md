@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-api-test-plan` |
-| Document Version | `0.3.0-draft.5` |
+| Document Version | `0.3.0-draft.6` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -39,7 +39,7 @@
 
 **不在本计划范围**：Web UI、FD 资源、SQLite 持久化、auth mock 单元测试、静态契约验证。
 
-**Case 总数**：89 个（87 可执行，2 SKIP，见 §4.12 注）；执行通过标准：全部 PASS。
+**Case 总数**：90 个（88 可执行，2 SKIP，见 §4.12 注）；执行通过标准：全部 PASS。
 
 ---
 
@@ -59,7 +59,7 @@
 
 | 类 | 范围 | 执行方式 | case 数 |
 |---|---|---|---|
-| **A 类 — 读 / 观察** | OBS-01~02、DP-MODELS-* (7)、DP-RESP-* (15)、DP-EMB-* (5)、DP-USAGE-* (4)、AUTH-* (6)、ADM 类的 GET (providers list/get、deployments list/get、service-levels list/get、audit、logs、runtime、stats)、ADM-PROBE-* (2)、ADM-PROV-USAGE-* (3)、ADM-ADMIN-USAGE-* (2)、ADM-AUDIT-* (2)、ADM-LOGS-* (2)、ADM-RUNTIME-01、ADM-STATS-* (3)、ADM-SL-01/03 (2) | 直接打 m5air 现有实例 | 63 |
+| **A 类 — 读 / 观察** | OBS-01~02、DP-MODELS-* (7)、DP-RESP-* (15)、DP-EMB-* (5)、DP-USAGE-* (4)、AUTH-* (6)、ADM 类的 GET (providers list/get、deployments list/get、service-levels list/get、audit、logs、runtime、stats)、ADM-PROBE-* (2)、ADM-PROV-USAGE-* (3)、ADM-ADMIN-USAGE-* (3)、ADM-AUDIT-* (2)、ADM-LOGS-* (2)、ADM-RUNTIME-01、ADM-STATS-* (3)、ADM-SL-01/03 (2) | 直接打 m5air 现有实例 | 64 |
 | **B 类 — 写操作** | ADM-PROV-* POST/PATCH/DELETE 全集 (10)、ADM-DEPL-* POST/PATCH/DELETE 全集 (6)、ADM-SL-* POST/PATCH/DELETE (7：02/02b/04/04b/05/06/07)、OBS-03 (1)、AUTH-07 (1) | 用**临时 SQLite + 临时端口**启新实例（同一台机器 m5air 上，第二个进程）；teardown 清理 | 26 |
 
 **B 类为什么用临时实例**：B 类 case 会创建/删除/修改 provider/deployment/service-level，如果直接在 m5air 上跑：
@@ -336,6 +336,7 @@ curl -X PATCH http://192.168.1.9:8181/tier/admin/v1/providers/provider_local \
 | ADM-PROV-USAGE-03 | 刷新带 confirm | POST | `/tier/admin/v1/providers/{id}/usage` | 200，snapshot 更新 | body `{"confirm_external_call":true}` | A |
 | ADM-ADMIN-USAGE-01 | 管理面 usage | GET | `/tier/admin/v1/usage` | 200，`data.length ≥ 0`，含聚合 | 时间窗 `from=now-1h&to=now+1h`（UTC RFC3339） | A |
 | ADM-ADMIN-USAGE-02 | 管理面 usage 分页 | GET | `/tier/admin/v1/usage?limit=1` | 200，`data.length ≤ 1`，`page.has_more` 为 boolean | 同上 | A |
+| ADM-ADMIN-USAGE-03 | 清空 usage 统计 | DELETE | `/tier/admin/v1/usage` | 200，`{"deleted": N}` | DELETE 无参数清空全部；可选 `?model=Worker` 或 `?deployment_id=xxx` 限定范围；`usage.py:reset_usage()` | A |
 
 ### 4.10 Admin — Audit, Logs, Runtime, Stats
 
@@ -391,7 +392,7 @@ curl -X PATCH http://192.168.1.9:8181/tier/admin/v1/providers/provider_local \
 
 按 A/B 类区分执行策略；A 类可并发，B 类串行（共享临时实例）：
 
-**A 类（63 个，m5air 现有 state，可并发）**：
+**A 类（64 个，m5air 现有 state，可并发）**：
 
 ```
 OBS-01~03 → DP-MODELS-01~07 → DP-EMB-01~05
@@ -403,7 +404,7 @@ OBS-01~03 → DP-MODELS-01~07 → DP-EMB-01~05
 → ADM-SL-{01,03}
 → ADM-PROBE-01~02
 → ADM-PROV-USAGE-01~03
-→ ADM-ADMIN-USAGE-01~02
+→ ADM-ADMIN-USAGE-01~03
 → ADM-AUDIT-01~02
 → ADM-LOGS-01~02
 → ADM-RUNTIME-01

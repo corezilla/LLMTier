@@ -57,6 +57,7 @@ HTTP 能力**（`/v1/models`、`/v1/responses`、Bearer），后端观测不足�
 | LT-OBS-3（审计语义） | LLMTier shall 在管理控制文档中**明示** audit 覆盖范围：当前仅管理面动作（provider/deployment/service-level/probe），数据面请求不产生 audit 事件 | 文档声明与实现一致；consumer 可据此选择追踪手段 |
 | LT-OBS-4（readyz 语义） | LLMTier shall 使 `readyz` 全局状态反映**实际可用能力**：未启用对应部署的占位 service level 不得将全局状态降级为 `degraded`（应在模型级标注 unavailable，全局 status 由已启用能力决定） | 仅启用 chat 部署时，`readyz.status` 为 `ok`（或 `ready`），占位 embedding 模型级仍标 unavailable |
 | LT-OBS-5（故障/时延注入开关） | LLMTier shall 提供**运行时可切的注入开关**（admin 控制、按 deployment 生效、可随时关闭）：① 注入上游故障（502/503 带错误体）② 注入时延（+N ms）③ 注入限流（429+Retry-After），使 consumer 侧故障路径可**确定性**触达 | 注入 502 → consumer 收到 502 及错误体；注入时延 → 响应时延按设定增加；注入 429 → consumer 收到 429+Retry-After；关闭后立即恢复且非注入流量不受影响；注入事件在 logs/audit 可见 |
+| LT-OBS-6（统计清空） | LLMTier shall 提供管理面接口**清空指定范围的 usage 统计记录**（按 model 和/或 deployment_id 过滤；支持全文清空） | DELETE `/tier/admin/v1/usage?model=Worker&deployment_id=dep_xxx` 返回 `{"deleted": N}`；不带过滤参数清空全部统计；清空后 GET /stats 不再包含已删除记录 |
 
 ## 5. 接口需求
 
@@ -87,6 +88,6 @@ HTTP 能力**（`/v1/models`、`/v1/responses`、Bearer），后端观测不足�
 ## 10. 验收与 traceability
 
 - 验收：按 §4 验收标准逐条验证（人工或集成脚本）；来源 traceability：
-  Piko `piko-llmtier-joint-report-v0.1` F-2/F-4/F-5 ↔ LT-OBS-1..4。
+  Piko `piko-llmtier-joint-report-v0.1` F-2/F-4/F-5 ↔ LT-OBS-1..4；联调补充需求 ↔ LT-OBS-5..6。
 - 实现完成后由 Piko 联调方 review（对应 Piko 规格 `piko-llmtier-joint-test-specification-v0.1`
   §3.1 复核记录）。

@@ -85,3 +85,51 @@ class UsageRecorder:
         data = [json.loads(r["frozen_view_json"]) for r in rows[:limit]]
         snap = self.store.one("SELECT created_at FROM query_snapshots WHERE snapshot_id=?", (sid,))
         return {"data": data, "next_cursor": f"{sid}:{offset+limit}" if more else None, "has_more": more, "snapshot_id": sid, "snapshot_at": snap["created_at"]}
+
+    def reset_usage(self, model: str | None = None, deployment_id: str | None = None) -> dict[str, int]:
+        """Delete usage records. Scopes by model (tier) and/or deployment_id.
+
+        - model only:       delete all records for that tier (model column = tier name)
+        - deployment_id only: delete all records joined to that deployment
+        - both:             delete records that match both
+        - neither:          delete ALL usage records (full reset)
+        """
+        with self.store.transaction(True) as conn:
+            if model and deployment_id:
+                deleted = conn.execute("""
+                    DELETE FROM usage_record_versions
+                    WHERE (principal_id, request_id) IN (
+                        SELECT v.principal_id, v.request_id
+                        FROM usage_record_versions v
+                        JOIN usage_heads h ON h.principal_id=v.principal_id AND h.request_id=v.request_id AND h.head_record_version=v.record_version
+                        JOIN provider_request_bindings b ON b.principal_id=v.principal_id AND b.request_id=v.request_id
+                        WHERE v.model=? AND b.deployment_id=?
+                    )
+                """, (model, deployment_id)).rowcount
+            elif model:
+                deleted = conn.execute("""
+                    DELETE FROM usage_record_versions
+                    WHERE (principal_id, request_id) IN (
+                        SELECT h.principal_id, h.request_id
+                        FROM usage_heads h
+                        JOIN usage_record_versions v ON v.principal_id=h.principal_id AND v.request_id=h.request_id AND v.record_version=h.head_record_version
+                        WHERE v.model=?
+                    )
+                """, (model,)).rowcount
+            elif deployment_id:
+                deleted = conn.execute("""
+                    DELETE FROM usage_record_versions
+                    WHERE (principal_id, request_id) IN (
+                        SELECT b.principal_id, b.request_id
+                        FROM provider_request_bindings b
+                        WHERE b.deployment_id=?
+                    )
+                """, (deployment_id,)).rowcount
+            else:
+                deleted = conn.execute("DELETE FROM usage_record_versions").rowcount
+
+            conn.execute("DELETE FROM usage_heads WHERE (principal_id, request_id) NOT IN (SELECT principal_id, request_id FROM usage_record_versions)")
+            conn.execute("DELETE FROM provider_request_bindings WHERE (principal_id, request_id) NOT IN (SELECT principal_id, request_id FROM usage_record_versions)")
+            conn.execute("DELETE FROM usage_obligations WHERE (principal_id, request_id) NOT IN (SELECT principal_id, request_id FROM usage_record_versions)")
+
+        return {"deleted": deleted}

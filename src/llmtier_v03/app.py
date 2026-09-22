@@ -159,6 +159,9 @@ def handler_factory(app: Application):
                         self.send_response(204); self.end_headers(); return
             if path == "/tier/admin/v1/probes" and method == "POST": return self._json(200, app.admin.probe(principal.principal_id, self._body(), self.request_id))
             if path == "/tier/admin/v1/usage" and method == "GET": return self._json(200, app.usage.page(principal.principal_id, query.get("cursor", [None])[0], int(query.get("limit", [100])[0]), admin=True, since=query.get("from", [None])[0], until=query.get("to", [None])[0]))
+            if path == "/tier/admin/v1/usage" and method == "DELETE":
+                result = app.admin.mutate(principal.principal_id, "usage.reset", "all", self.request_id, lambda: app.usage.reset_usage(model=query.get("model", [None])[0], deployment_id=query.get("deployment_id", [None])[0]))
+                return self._json(200, result)
             if path == "/tier/admin/v1/audit" and method == "GET": return self._json(200, app.audit.page(int(query.get("limit", [50])[0])))
             if path == "/tier/admin/v1/logs" and method == "GET":
                 since, until = query.get("from", [None])[0], query.get("to", [None])[0]
