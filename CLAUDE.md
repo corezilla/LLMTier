@@ -42,35 +42,3 @@ This project is indexed by GitNexus as **LLMTier** (4313 symbols, 7550 relations
 | Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
 
 <!-- gitnexus:end -->
-
-<!-- std:start -->
-## STD 项目规范（强制）
-
-**必须先读**：[项目规范总索引](docs/00_management/standards/README.md)
-
-本项目已采用 STD `0.1.0-draft.26`（见 `docs/std.lock.json`）。所有文档必须遵循 STD 模板。
-
-### 项目规范索引
-
-项目自定义规范位于 `docs/00_management/standards/`，包括：
-- `testing-standard.md` — 测试规范（编写测试、PR review 前必读）
-
-### 关键规则
-
-1. **先读规范索引**：开始任务前先读 `docs/00_management/standards/README.md`
-2. **遵循测试规范**（TS-003）：LLMTier 是 LAN 服务，测试的 provider endpoint 必须使用 LAN IP（192.168.1.x），禁止使用 127.0.0.1
-3. **测试依赖必须写清**：测试文件头部必须写明依赖的服务地址、端口、模型
-4. **所有测试通过才能提交**：`PYTHONPATH=src python3 -m pytest tests/ tests/system/st_*.py -q` 必须 221 pass
-
-<!-- std:end -->
-
-## m5air 部署（强制）
-
-**m5air** (`192.168.1.9`) 是 LLMTier 生产环境。
-
-**详细指南**：[m5air-deploy-guide.md](docs/80_operations/manuals/m5air-deploy-guide.md)
-
-修改代码后：
-1. `rsync` 同步文件到 m5air
-2. kill 旧进程并重启（用 Python 3.14）
-3. 验证 `curl http://localhost:8181/healthz`
