@@ -1,6 +1,6 @@
 """Case ID: ADM-ADMIN-USAGE-03
 
-Endpoint: DELETE /tier/admin/v1/usage
+Endpoint: DELETE /v1/usage
 Upstream Provider: 无（直接写 SQLite 造测试数据）
 Model: 无
 Auth: Bearer dev-admin
@@ -8,7 +8,7 @@ Auth: Bearer dev-admin
 目标：验证清空 usage 统计记录功能，4 种过滤 scope。
 
 原理：用 admin_client_b 直接 SQL 写入 test usage 记录，
-reset 后通过 GET /tier/admin/v1/usage 验证记录已清空。
+reset 后通过 GET /v1/usage 验证记录已清空。
 
 断言：
 - 无参数 DELETE → 全部清空（deleted == 插入数）
@@ -47,7 +47,7 @@ def test_adm_admin_usage_03_reset_all(admin_client_b, llmtier_b):
     conn.close()
 
     # Reset all
-    resp = admin_client_b.delete("/tier/admin/v1/usage")
+    resp = admin_client_b.delete("/v1/usage")
     assert resp.status_code == 200, f"期望 200，实际 {resp.status_code}: {resp.text}"
     body = resp.json()
     assert body["deleted"] == before, f"deleted={body['deleted']} expected {before}"
@@ -79,7 +79,7 @@ def test_adm_admin_usage_03_reset_by_model(admin_client_b, llmtier_b):
     conn.commit()
 
     # Reset only Worker
-    resp = admin_client_b.delete("/tier/admin/v1/usage", params={"model": "Worker"})
+    resp = admin_client_b.delete("/v1/usage", params={"model": "Worker"})
     assert resp.status_code == 200, f"期望 200，实际 {resp.status_code}: {resp.text}"
     body = resp.json()
     assert body["deleted"] == 2, f"deleted={body['deleted']} expected 2 (2 Worker records)"
@@ -98,8 +98,13 @@ def test_adm_admin_usage_03_reset_by_deployment(admin_client_b, llmtier_b):
     import sqlite3
     db_path = llmtier_b._db_path
 
+    # Ensure a clean slate: earlier cases share this session DB and may leave
+    # Senior provider_request_bindings bound to depl_b, which would inflate the
+    # deployment-scoped deletion count.
+    assert admin_client_b.delete("/v1/usage").status_code == 200
+
     # Create a second deployment
-    depl_resp = admin_client_b.post("/tier/admin/v1/deployments", json={
+    depl_resp = admin_client_b.post("/v1/deployments", json={
         "name": "Reset Test Depl 2",
         "provider_id": "prov_b",
         "backend_model": "test-model-2",
@@ -130,7 +135,7 @@ def test_adm_admin_usage_03_reset_by_deployment(admin_client_b, llmtier_b):
     conn.commit()
 
     # Reset only depl_b
-    resp = admin_client_b.delete("/tier/admin/v1/usage", params={"deployment_id": "depl_b"})
+    resp = admin_client_b.delete("/v1/usage", params={"deployment_id": "depl_b"})
     assert resp.status_code == 200, f"期望 200，实际 {resp.status_code}: {resp.text}"
     body = resp.json()
     assert body["deleted"] == 2, f"deleted={body['deleted']} expected 2 (depl_b records)"

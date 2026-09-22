@@ -109,13 +109,13 @@ class ST26ProviderRequestAttribution(unittest.TestCase):
                 f"unexpected code {code}; admission should fail with 400/404/503")
 
     def test_admin_usage_endpoint_shape(self):
-        # /tier/admin/v1/usage is admin-only. Under TRUSTED_LAN loopback
+        # /v1/usage is admin-only. Under TRUSTED_LAN loopback
         # gets admin. Verify envelope shape. /usage requires from+to.
         from urllib.parse import urlencode
         q = urlencode({"from": "2020-01-01T00:00:00Z",
                       "to": "2999-12-31T23:59:59Z"})
         with urllib.request.urlopen(
-                f"http://127.0.0.1:{self.port}/tier/admin/v1/usage?{q}",
+                f"http://127.0.0.1:{self.port}/v1/usage?{q}",
                 timeout=5) as r:
             body = json.loads(r.read())
         # The actual envelope is flat, not nested under "page":

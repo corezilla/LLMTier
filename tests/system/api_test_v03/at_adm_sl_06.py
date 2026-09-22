@@ -1,6 +1,6 @@
 """Case ID: ADM-SL-06
 
-Endpoint: PATCH /tier/admin/v1/service-levels/{id}
+Endpoint: PATCH /v1/service-levels/{id}
 Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-admin
@@ -24,11 +24,11 @@ import pytest
 
 @pytest.mark.api_b
 def test_adm_sl_06_capability_conflict(admin_client_b):
-    get_resp = admin_client_b.get("/tier/admin/v1/service-levels/Senior")
+    get_resp = admin_client_b.get("/v1/service-levels/Senior")
     assert get_resp.status_code == 200
     etag = get_resp.headers.get("ETag")
 
-    new_depl = admin_client_b.post("/tier/admin/v1/deployments", json={
+    new_depl = admin_client_b.post("/v1/deployments", json={
         "name": "Deployment Different Context",
         "provider_id": "prov_b",
         "backend_model": "model-diff-context",
@@ -52,7 +52,7 @@ def test_adm_sl_06_capability_conflict(admin_client_b):
     new_depl_id = new_depl.json()["id"]
 
     patch_resp = admin_client_b.patch(
-        "/tier/admin/v1/service-levels/Senior",
+        "/v1/service-levels/Senior",
         json={"deployment_ids": ["depl_b", new_depl_id]},
         headers={"If-Match": etag},
     )

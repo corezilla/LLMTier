@@ -200,7 +200,7 @@ curl http://localhost:8180/v1/models \
 ### 6.1 添加新的 Provider
 
 ```bash
-curl -X POST http://localhost:8180/tier/admin/v1/providers \
+curl -X POST http://localhost:8180/v1/providers \
   -H "Authorization: Bearer <admin_token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -215,7 +215,7 @@ curl -X POST http://localhost:8180/tier/admin/v1/providers \
 ### 6.2 添加新的 Deployment
 
 ```bash
-curl -X POST http://localhost:8180/tier/admin/v1/deployments \
+curl -X POST http://localhost:8180/v1/deployments \
   -H "Authorization: Bearer <admin_token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -239,7 +239,7 @@ curl -X POST http://localhost:8180/tier/admin/v1/deployments \
 ### 6.3 创建 Service Level
 
 ```bash
-curl -X POST http://localhost:8180/tier/admin/v1/service-levels \
+curl -X POST http://localhost:8180/v1/service-levels \
   -H "Authorization: Bearer <admin_token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -253,11 +253,11 @@ curl -X POST http://localhost:8180/tier/admin/v1/service-levels \
 
 ```bash
 # 用户使用量
-curl "http://localhost:8180/tier/v1/usage?from=2026-01-01T00:00:00Z&to=2026-12-31T23:59:59Z" \
+curl "http://localhost:8180/v1/usage?from=2026-01-01T00:00:00Z&to=2026-12-31T23:59:59Z" \
   -H "Authorization: Bearer <data_token>"
 
 # Admin 使用量统计
-curl "http://localhost:8180/tier/admin/v1/usage?from=2026-01-01T00:00:00Z&to=2026-12-31T23:59:59Z" \
+curl "http://localhost:8180/v1/usage?from=2026-01-01T00:00:00Z&to=2026-12-31T23:59:59Z" \
   -H "Authorization: Bearer <admin_token>"
 ```
 
@@ -301,7 +301,7 @@ Provider 代表一个上游推理服务端点（本地 OMLX 部署或云端 API�
 
 #### 7.2.2 Provider.usage 子对象
 
-通过 Admin API 的 PATCH `/tier/admin/v1/providers/{id}` 更新（不支持 POST 时传入）。
+通过 Admin API 的 PATCH `/v1/providers/{id}` 更新（不支持 POST 时传入）。
 
 | 字段 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|

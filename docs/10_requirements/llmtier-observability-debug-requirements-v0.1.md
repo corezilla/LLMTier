@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-observability-debug-requirements-v0.1` |
-| Document Version | `0.1.0-draft.8` |
+| Document Version | `0.1.0-draft.9` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -57,7 +57,7 @@ HTTP 能力**（`/v1/models`、`/v1/responses`、Bearer），后端观测不足�
 | LT-OBS-3（审计语义） | LLMTier shall 在管理控制文档中**明示** audit 覆盖范围：当前仅管理面动作（provider/deployment/service-level/probe），数据面请求不产生 audit 事件 | 文档声明与实现一致；consumer 可据此选择追踪手段 |
 | LT-OBS-4（readyz 语义） | LLMTier shall 使 `readyz` 全局状态反映**实际可用能力**：未启用对应部署的占位 service level 不得将全局状态降级为 `degraded`（应在模型级标注 unavailable，全局 status 由已启用能力决定） | 仅启用 chat 部署时，`readyz.status` 为 `ok`（或 `ready`），占位 embedding 模型级仍标 unavailable |
 | LT-OBS-5（故障/时延/限流/流注入开关） | LLMTier shall 提供**运行时可切的注入开关**（admin 控制、按 deployment 生效、可随时关闭）：① 上游故障（502/503 带错误体）② 时延（+N ms）③ 限流（429+Retry-After）④ **上游流提前终止**（SSE 已开头发一半即断）⑤ **畸形流事件**（违反 Responses 事件序/非法 JSON 事件），使 consumer 侧的故障、重试、流处理路径可**确定性**触达 | ① consumer 收到 502 及错误体 ② 时延按设定增加 ③ 收到 429+Retry-After ④ consumer 收到不完整流并有明确错误处置（不得悬挂/伪报）⑤ consumer 收到畸形事件并有明确错误处置；关闭后立即恢复；非注入流量不受影响；注入事件在 logs/audit 可见 |
-| LT-OBS-8（统计清空） | LLMTier shall 提供管理面接口**清空指定范围的 usage 统计记录**（按 model 和/或 deployment_id 过滤；支持全文清空）；清空时同步清理关联表孤儿记录 | DELETE `/tier/admin/v1/usage?model=Worker&deployment_id=dep_xxx` 返回 `{"deleted": N}`；不带过滤参数清空全部统计；清空后 GET /stats 不再含已删除记录；`usage_obligations` 中无对应 `usage_record_versions` 的孤儿记录同步清理 |
+| LT-OBS-8（统计清空） | LLMTier shall 提供管理面接口**清空指定范围的 usage 统计记录**（按 model 和/或 deployment_id 过滤；支持全文清空）；清空时同步清理关联表孤儿记录 | DELETE `/v1/usage?model=Worker&deployment_id=dep_xxx` 返回 `{"deleted": N}`；不带过滤参数清空全部统计；清空后 GET /stats 不再含已删除记录；`usage_obligations` 中无对应 `usage_record_versions` 的孤儿记录同步清理 |
 
 | LT-OBS-6（单请求 trace 查询） | LLMTier shall 支持**按 `request_id` 一次查询该请求的全生命周期记录**（范围：通过鉴权的 `/v1/responses` 请求；embeddings/管理面不 trace），且包含**逐阶段时间戳**（received / validated / routed / upstream_started / upstream_ended / completed|error）：接收时间、校验结果、路由（service level/deployment）、上游调用快照（LT-OBS-1）、SSE 终止原因（completed/error/aborted）、usage 记录（含 record_version）；管理面可查；支持导出 JSON；观测数据保留期 ≥ 7 天（与既有 retention 对齐） | 对任一已发生请求，单次查询返回上述全部字段（或明确的缺失标注）；`request_id` 与 Data Plane 响应头 `x-request-id` 一致；逐阶段时间戳可计算各跳时延；导出为合法 JSON |
 | LT-OBS-7（consumer 关联标识透传） | LLMTier shall **可选接收** consumer 侧关联标识（`X-Correlation-ID` 或 `traceparent`，非强制），并在该请求的 **logs 与 trace 查询结果中回显**；缺失时行为不变（自动生成 request_id）。**决策（Piko 联调方确认）**：usage 账本不标注 correlation_id——双向定位以 `request_id` 关联替代 | 带/不带标识的请求行为均符合上述语义 |
@@ -69,7 +69,7 @@ HTTP 能力**（`/v1/models`、`/v1/responses`、Bearer），后端观测不足�
 
 ### 5.1 注入开关（LT-OBS-5）
 
-**PATCH** `/tier/admin/v1/deployments/{deployment_id}/diagnostics`（admin Bearer）
+**PATCH** `/v1/deployments/{deployment_id}/diagnostics`（admin Bearer）
 
 - 请求体：JSON 数组，每项 `{"type": <string>, "config": <object>, "enabled": <boolean>}`
 - type 枚举与 config（shall 完全支持）：
@@ -87,23 +87,23 @@ HTTP 能力**（`/v1/models`、`/v1/responses`、Bearer），后端观测不足�
   PATCH 返回 200 + 该 deployment **全量**注入配置（type/config/enabled）；未知 type/缺必填 config →
   `400 invalid_injection`；未知 deployment → `404`；配置变更写 audit；注入期间请求的 usage 账本标注 injected。
 
-**GET** `/tier/admin/v1/deployments/{deployment_id}/diagnostics`（admin Bearer）
+**GET** `/v1/deployments/{deployment_id}/diagnostics`（admin Bearer）
 - 200 + 全量注入配置数组；未知 deployment → 404。
 
 ### 5.2 快照查询（LT-OBS-1）
 
-**GET** `/tier/admin/v1/diagnostics/snapshots?since=&until=&deployment_id=&model=&limit=&cursor=`（admin Bearer）
+**GET** `/v1/diagnostics/snapshots?since=&until=&deployment_id=&model=&limit=&cursor=`（admin Bearer）
 - 200 + `{"items":[{id,request_id,captured_at,upstream_url,backend_model,http_status,latency_ms,error_summary,model,deployment_id}], "next_cursor", "has_more"}`；`limit≤500` 默认 50；cursor 为上页末条 id。
 
 ### 5.3 统计查询（LT-OBS-2）
 
-**GET** `/tier/admin/v1/diagnostics/stats?since=&until=&deployment_id=&model=`（admin Bearer）
+**GET** `/v1/diagnostics/stats?since=&until=&deployment_id=&model=`（admin Bearer）
 - 200 + `{"windows":[{stat_hour,deployment_id,model,status_breakdown:{"200":n,"503":m,…},request_count,error_count,latency_p50_ms,latency_p95_ms,latency_min_ms,latency_max_ms,latency_sum_ms}]}`
 - **status_breakdown（按 HTTP status 分列）为 shall**——仅 error_count 不满足需求。
 
 ### 5.4 单请求 trace（LT-OBS-6）
 
-**GET** `/tier/admin/v1/trace/{request_id}`（admin Bearer）
+**GET** `/v1/trace/{request_id}`（admin Bearer）
 - 200 + `{"request_id","correlation_id","stages":[{stage,timestamp,detail}…],"snapshot":{…},"usage":{…}}`
   （stages 覆盖 received/validated/routed/upstream_started/upstream_ended/completed|error|aborted，含逐阶段时间戳；snapshot 为 LT-OBS-1 快照；usage 含 record_version）
 - 404 未知 request_id。

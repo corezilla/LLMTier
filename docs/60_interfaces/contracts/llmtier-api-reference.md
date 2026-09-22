@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-api-reference` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-21` |
-| Last Modified Date | `2026-09-21` |
+| Last Modified Date | `2026-09-22` |
 | Template ID | `contracts.specification` |
 | Template Version | `0.3.1` |
 | Template Conformance | `tailored` |
@@ -29,7 +29,7 @@
 
 ## 1. Contract scope 与 authority
 
-**API 版本**: `0.3-simplified-candidate.7`
+**API 版本**: `0.3-simplified-candidate.8`
 
 **机器契约权威源**: `interfaces/openapi/llmtier-v0.3.openapi.json`
 
@@ -40,8 +40,8 @@ LLMTier 提供 OpenAI-compatible HTTP API，供局域网上的 consumer（如 Pi
 | 分类 | 说明 | Auth |
 |------|------|------|
 | **Data Plane** | `/v1/responses`, `/v1/embeddings`, `/v1/models` | Data Bearer Token |
-| **Observation** | `/healthz`, `/readyz`, `/tier/v1/usage` | Data Bearer Token |
-| **Management** | `/tier/admin/v1/*` | Admin Bearer Token |
+| **Observation** | `/healthz`, `/readyz`, `/v1/usage` | Data Bearer Token |
+| **Management** | `/v1/*` | Admin Bearer Token |
 
 ### 1.2 服务器信息
 
@@ -71,33 +71,33 @@ Base URL: http://<host>:<port>
 |--------|------|---------|
 | `GET` | `/healthz` | 服务健康检查（总是 200） |
 | `GET` | `/readyz` | 服务就绪状态（依赖部署健康） |
-| `GET` | `/tier/v1/usage` | 当前用户的 token 使用量 |
+| `GET` | `/v1/usage` | 当前用户的 token 使用量 |
 
 ### 2.3 Management (Admin)
 
 | Method | Path | Summary |
 |--------|------|---------|
-| `GET` | `/tier/admin/v1/providers` | 列出所有 provider |
-| `POST` | `/tier/admin/v1/providers` | 创建 provider |
-| `GET` | `/tier/admin/v1/providers/{provider_id}` | 获取 provider 详情 |
-| `PATCH` | `/tier/admin/v1/providers/{provider_id}` | 更新 provider |
-| `DELETE` | `/tier/admin/v1/providers/{provider_id}` | 删除 provider |
-| `GET` | `/tier/admin/v1/providers/{provider_id}/usage` | 获取 provider 使用量 |
-| `POST` | `/tier/admin/v1/providers/{provider_id}/usage` | 刷新 provider 使用量 |
-| `GET` | `/tier/admin/v1/deployments` | 列出所有 deployment |
-| `POST` | `/tier/admin/v1/deployments` | 创建 deployment |
-| `GET` | `/tier/admin/v1/deployments/{deployment_id}` | 获取 deployment 详情 |
-| `PATCH` | `/tier/admin/v1/deployments/{deployment_id}` | 更新 deployment |
-| `DELETE` | `/tier/admin/v1/deployments/{deployment_id}` | 删除 deployment |
-| `GET` | `/tier/admin/v1/service-levels` | 列出所有服务等级 |
-| `POST` | `/tier/admin/v1/service-levels` | 创建服务等级 |
-| `GET` | `/tier/admin/v1/service-levels/{service_level_id}` | 获取服务等级详情 |
-| `PATCH` | `/tier/admin/v1/service-levels/{service_level_id}` | 更新服务等级 |
-| `DELETE` | `/tier/admin/v1/service-levels/{service_level_id}` | 删除服务等级 |
-| `POST` | `/tier/admin/v1/probes` | 执行 provider 探测 |
-| `GET` | `/tier/admin/v1/usage` | 管理面使用量统计 |
-| `GET` | `/tier/admin/v1/audit` | 审计事件列表 |
-| `GET` | `/tier/admin/v1/logs` | 脱敏日志列表 |
+| `GET` | `/v1/providers` | 列出所有 provider |
+| `POST` | `/v1/providers` | 创建 provider |
+| `GET` | `/v1/providers/{provider_id}` | 获取 provider 详情 |
+| `PATCH` | `/v1/providers/{provider_id}` | 更新 provider |
+| `DELETE` | `/v1/providers/{provider_id}` | 删除 provider |
+| `GET` | `/v1/providers/{provider_id}/usage` | 获取 provider 使用量 |
+| `POST` | `/v1/providers/{provider_id}/usage` | 刷新 provider 使用量 |
+| `GET` | `/v1/deployments` | 列出所有 deployment |
+| `POST` | `/v1/deployments` | 创建 deployment |
+| `GET` | `/v1/deployments/{deployment_id}` | 获取 deployment 详情 |
+| `PATCH` | `/v1/deployments/{deployment_id}` | 更新 deployment |
+| `DELETE` | `/v1/deployments/{deployment_id}` | 删除 deployment |
+| `GET` | `/v1/service-levels` | 列出所有服务等级 |
+| `POST` | `/v1/service-levels` | 创建服务等级 |
+| `GET` | `/v1/service-levels/{service_level_id}` | 获取服务等级详情 |
+| `PATCH` | `/v1/service-levels/{service_level_id}` | 更新服务等级 |
+| `DELETE` | `/v1/service-levels/{service_level_id}` | 删除服务等级 |
+| `POST` | `/v1/probes` | 执行 provider 探测 |
+| `GET` | `/v1/usage` | 管理面使用量统计 |
+| `GET` | `/v1/audit` | 审计事件列表 |
+| `GET` | `/v1/logs` | 脱敏日志列表 |
 
 ---
 
@@ -275,7 +275,7 @@ Base URL: http://<host>:<port>
 列表接口使用游标分页：
 
 ```
-GET /tier/admin/v1/providers?limit=10&cursor=xxx
+GET /v1/providers?limit=10&cursor=xxx
 ```
 
 响应：

@@ -64,7 +64,7 @@ def test_dp_resp_11_upstream_503_propagation(admin_client_b):
     try:
         fault_url = f"http://127.0.0.1:{fault.port}"
         admin_client_b.patch(
-            "/tier/admin/v1/providers/prov_b",
+            "/v1/providers/prov_b",
             json={"endpoint": fault_url},
             headers={"If-Match": '"prov_b.v1"'},
         )

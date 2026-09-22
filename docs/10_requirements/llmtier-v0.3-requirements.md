@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-requirements` |
-| Document Version | `0.3.2-draft.7` |
+| Document Version | `0.3.2-draft.8` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | 待定 |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-18` |
+| Last Modified Date | `2026-09-22` |
 | Template Version | `0.1.0` |
 | Template ID | `requirements.specification` |
 | Template Conformance | `tailored` |
@@ -63,9 +63,9 @@ V0.3 外部范围：Responses、Embeddings、Models、token Usage、health/readi
 | ID | 需求 |
 |---|---|
 | LT-INT-001 | Data Plane shall 使用 Bearer auth、JSON 和标准 OpenAI error shape；响应生成 `X-Request-ID` 仅作关联 |
-| LT-INT-002 | V0.3 current paths 仅包括 `/v1/responses`、`/v1/embeddings`、`/v1/models`、`/v1/models/{model}`、`/tier/v1/usage`、`/healthz`、`/readyz` 及精简 Admin paths；日志仅通过只读`GET /tier/admin/v1/logs`提供 |
+| LT-INT-002 | V0.3 current paths 仅包括 `/v1/responses`、`/v1/embeddings`、`/v1/models`、`/v1/models/{model}`、`/v1/usage`、`/healthz`、`/readyz` 及精简 Admin paths；日志仅通过只读`GET /v1/logs`提供 |
 | LT-INT-003 | shall 不定义 SourceInstance、custom Idempotency-Key、Invocation、response recovery、Seat/claim/capacity snapshot、Cost 或 compatibility negotiation path/header/schema |
-| LT-INT-004 | `/tier/v1/usage` 是唯一 consumer extension；原因是 OpenAI API 没有统一跨请求 token 查询。它不得承载任务、项目、会话、费用或执行状态 |
+| LT-INT-004 | `/v1/usage` 是唯一 consumer extension；原因是 OpenAI API 没有统一跨请求 token 查询。它不得承载任务、项目、会话、费用或执行状态 |
 | LT-INT-005 | unknown token数不得填零；usage缺失不得把成功模型结果改为失败，但Piko必须能识别任务Usage unknown；UsageRecord数值字段在unknown时为null |
 | LT-INT-006 | 首阶段固定`stream:true/store:false`并使用标准 Responses SSE；`stream:false`不在当前契约。不得增加自定义 streaming/recovery endpoint、JSON并行模式或legacy fallback |
 | LT-INT-007 | 每个鉴权主体+server request ID最多一个逻辑UsageRecord；dispatch前持久unknown义务，更高record_version以不可变版本追加并替换旧事实而不累计；分页snapshot固定精确版本/view且每页复核权限，过期/冲突返回400，store不可用返回typed 503 |

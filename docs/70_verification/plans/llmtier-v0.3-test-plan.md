@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-test-plan` |
-| Document Version | `0.3.2-draft.4` |
+| Document Version | `0.3.2-draft.5` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -14,7 +14,7 @@
 | Approver | 待定 |
 | Approval Date | 待定 |
 | Created Date | `2026-09-19` |
-| Last Modified Date | `2026-09-20` |
+| Last Modified Date | `2026-09-22` |
 | Template Version | `0.1.0` |
 | Template ID | `assurance.test-plan` |
 | Template Conformance | `native` |
@@ -34,7 +34,7 @@
 
 测试层级：system（HTTP/SSE 真实启服 + 真实或受控 provider + 真实 SQLite）。**不**替代 unit（24 个文件，191 cases）和 contract static 测试。
 
-被测：运行中的 `llmtier_v03` 进程、OpenAI-compatible data plane（`/v1/responses`、`/v1/embeddings`、`/v1/models`、`/tier/v1/usage`）、admin（`/tier/admin/v1/*`）、SQLite 持久化、FD 资源约束、auth 与 TRUSTED_LAN。
+被测：运行中的 `llmtier_v03` 进程、OpenAI-compatible data plane（`/v1/responses`、`/v1/embeddings`、`/v1/models`、`/v1/usage`）、admin（`/v1/*`）、SQLite 持久化、FD 资源约束、auth 与 TRUSTED_LAN。
 
 不被测（§11 列缺口）：浏览器自动化 E2E、生产 TLS/auth/CSRF、`runtime_activation=true`、多实例 / HA / 跨系统恢复、单元 / 静态契约（既有测试覆盖）。
 
@@ -126,10 +126,10 @@ Coverage gaps 显式列在 §11.5。
 | ST-11 | Slinky embedding base64 | 同 ST-10 + `encoding_format=base64` | **已测 PASS** - 200 ✓，base64 解码后 1024 个 float32 ✓，全部 finite ✓ | 200；base64 解码后 1024 个 little-endian float32；全部 finite |
 | ST-12 | Slinky embedding 不变量 | 5 次 ST-10；验证维数和 embedding_space_id 一致性 | **已测 PASS** - 5 次请求维度均为 1024 ✓ | 每次维数=1024；`embedding_space_id` 一致 |
 | ST-12A | Usage 分页边界 | **目的**: 验证 usage cursor 翻页正确处理。**方法**: 先跑若干 Responses 生成 usage，然后 curl 测试翻页、过期 cursor、错误 cursor。**环境**: 需先生成 usage 数据。**结果**: 已测 - cursor roundtrip ✓，bad cursor → 400 `cursor_expired` ✓ | cursor roundtrip 一致；bad cursor → 400 `cursor_expired`；store 503 模拟（断 DB 文件）→ 503 |
-| ST-13 | Operator 创建 Provider | `POST /tier/admin/v1/providers` 含 secret_ref；GET 验证 `has_secret=true`；DELETE 清理 | **已测** - POST 201 ✓；has_secret=true ✓；DELETE 需正确 If-Match 格式才返回 204 ✓ |
+| ST-13 | Operator 创建 Provider | `POST /v1/providers` 含 secret_ref；GET 验证 `has_secret=true`；DELETE 清理 | **已测** - POST 201 ✓；has_secret=true ✓；DELETE 需正确 If-Match 格式才返回 204 ✓ |
 | ST-13A | Operator If-Match 412 | PATCH provider 不带 `If-Match`；带过期 etag | **已测 PASS** - 无 If-Match → 412 ✓；过期 etag → 412 ✓；**已修复**: response 现在包含 `current_version` 字段 ✓ |
 | ST-14 | Operator 创建 Deployment + bind Tier | POST deployment → POST tier PATCH 加 deployment_ids | **已测 PASS** - Deployment 创建成功 (需完整 CAPABILITY_KEYS) ✓；已创建 bge-m3 embedding deployment 并绑定到 Embedding-v1 ✓ |
-| ST-15 | Operator Probe 授权 | `POST /tier/admin/v1/probes` 无 confirm → 400；带 confirm=true → 200，response 含 `status=healthy/unhealthy` | **已测 PASS** - 无 confirm → 400 `confirmation_required` ✓；带 `confirm_external_call=true` → 200 `status=healthy/unhealthy` ✓ |
+| ST-15 | Operator Probe 授权 | `POST /v1/probes` 无 confirm → 400；带 confirm=true → 200，response 含 `status=healthy/unhealthy` | **已测 PASS** - 无 confirm → 400 `confirmation_required` ✓；带 `confirm_external_call=true` → 200 `status=healthy/unhealthy` ✓ |
 | ST-15A | Audit 过滤 + LogPage 禁入 | **目的**: 验证 audit/log 不泄露敏感信息。**方法**: 先跑请求生成 audit 数据，然后 GET audit 和 logs 检查响应不含 secret/prompt/embedding。**环境**: 需先生成 audit 数据。**结果**: 已测 - audit 字段齐全，无敏感信息泄露 ✓ | 字段齐全；响应 body 不含 prompt/output/embedding/Authorization/Secret 任何字串 |
 | ST-16 | Operator 账号 quota refresh | **目的**: 验证云端 provider quota refresh。**方法**: 调用 confirm probe。**环境**: MiniMax API key 已配置（file:/Users/mlp/LLMTier-dev/.mnm_api_key）。**结果**: **PASS** - `confirm_external_call=true` → 200 quota数据；无confirm → 400 `invalid_request` | 400 / 200；snapshot 持久化；错误路径不污染窗口 |
 | ST-17 | Operator 页面（headless fixture 完整性） | **目的**: 验证 Web UI 资源可访问且结构正确。**方法**: curl 各路径检查响应和内容。**环境**: 无特殊要求。**结果**: 已测 - 4 pages ✓, 4 nav buttons ✓, 3 tabs ✓ | 全部 200；HTML 内含 4 个 page 与 4 个 nav 按钮；Logs 页内有 3 个 tab |
@@ -143,7 +143,7 @@ Coverage gaps 显式列在 §11.5。
 | ST-24 | Auth bypass 阻击（单元级） | **目的**: 验证无 auth 时返回正确错误码。**方法**: 单元测试 mock bad bearer/缺 auth/未知 principal。**环境**: 单元测试。**结果**: **已测** - test_auth.py 10 PASS ✓ | 三个子 case 全 PASS |
 | ST-24A | TRUSTED_LAN 总开关 OFF | **目的**: 验证关掉 TRUSTED_LAN 后无 bearer 请求被拒绝。**方法**: 不设 TRUSTED_LAN_MODE 重启，发无 bearer 请求。**环境**: 需重启服务。**结果**: 已测 - 503 `auth_not_configured` ✓（auth 未配置时返回服务不可用） | 503 `auth_not_configured` |
 | ST-25 | TRUSTED_LAN 主子分流 | **目的**: 验证 loopback vs RFC1918 分流正确。**方法**: loopback 发 usage，RFC1918 发 responses。**环境**: 需多 principal（当前单 principal）。**结果**: BLOCKED - 需多 principal 环境 | 数据面走 principal；admin 返聚合 |
-| ST-25A | 数据面 vs 管理面 usage 隔离 | **目的**: 验证 /v1/usage 和 /tier/admin/v1/usage 数据隔离。**方法**: 对比两者的记录数。**环境**: 需多 principal。**结果**: BLOCKED - 需多 principal 环境 | 两者差值为其他 principal 的量 |
+| ST-25A | 数据面 vs 管理面 usage 隔离 | **目的**: 验证 /v1/usage 和 /v1/usage 数据隔离。**方法**: 对比两者的记录数。**环境**: 需多 principal。**结果**: BLOCKED - 需多 principal 环境 | 两者差值为其他 principal 的量 |
 | ST-26 | Provider request 归属 | **目的**: 验证 request 归属到正确 principal。**方法**: 4 并发 4 不同 principal，检查各 provider 的 calls。**环境**: 需多 principal + 多 provider。**结果**: BLOCKED - 需多 principal 环境 | 各 provider calls=1；request_id 可查 |
 
 每个 case 必须产生：调用前状态、调用、调用后状态、判定。失败 case 必须包含 `failure_reason` 字段，写明预期 vs 实际 + 触发步骤 + 复现命令。

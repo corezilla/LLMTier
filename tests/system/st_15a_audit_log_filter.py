@@ -2,8 +2,8 @@
 (System test plan §4, CT-LOG-001).
 
 Verifies:
-- /tier/admin/v1/audit returns the expected envelope (data + page)
-- /tier/admin/v1/logs accepts level + module query params
+- /v1/audit returns the expected envelope (data + page)
+- /v1/logs accepts level + module query params
 - response bodies never echo forbidden tokens (Authorization, Bearer,
   prompt, response content, embedding)
 """
@@ -78,7 +78,7 @@ class ST15AAuditLogFilter(unittest.TestCase):
         cls.work.cleanup()
 
     def _get_json(self, path, query=None):
-        # /tier/admin/v1/usage and /tier/admin/v1/logs both require
+        # /v1/usage and /v1/logs both require
         # from + to; supply a 1-second window so the test is self-contained.
         url = f"http://127.0.0.1:{self.port}{path}"
         if query is None:
@@ -92,7 +92,7 @@ class ST15AAuditLogFilter(unittest.TestCase):
             return r.status, json.loads(r.read())
 
     def test_audit_envelope(self):
-        s, body = self._get_json("/tier/admin/v1/audit")
+        s, body = self._get_json("/v1/audit")
         self.assertEqual(s, 200)
         self.assertIn("data", body)
         self.assertIsInstance(body["data"], list)
@@ -105,14 +105,14 @@ class ST15AAuditLogFilter(unittest.TestCase):
     def test_logs_filtered_by_level(self):
         # query string parameters must be honored; the response data
         # shape is independent of how many rows match.
-        s, body = self._get_json("/tier/admin/v1/logs",
+        s, body = self._get_json("/v1/logs",
                                   {"level": "info", "limit": "5"})
         self.assertEqual(s, 200)
         self.assertIn("data", body)
         self.assertIsInstance(body["data"], list)
 
     def test_logs_filtered_by_module(self):
-        s, body = self._get_json("/tier/admin/v1/logs",
+        s, body = self._get_json("/v1/logs",
                                   {"module": "http", "limit": "5"})
         self.assertEqual(s, 200)
         self.assertIn("data", body)
@@ -121,8 +121,8 @@ class ST15AAuditLogFilter(unittest.TestCase):
         # Hit the audit + logs endpoints and the healthz; in none of
         # the response bodies (or the tested status pages) should any
         # of the forbidden tokens appear.
-        for path in ("/healthz", "/tier/admin/v1/audit",
-                     "/tier/admin/v1/logs?limit=5"):
+        for path in ("/healthz", "/v1/audit",
+                     "/v1/logs?limit=5"):
             s, body = self._get_json(path.split("?")[0],
                                       {"limit": "5"} if "?" in path else None)
             text = json.dumps(body)

@@ -1,6 +1,6 @@
 """Case ID: ADM-DEPL-01
 
-Endpoint: GET /tier/admin/v1/deployments
+Endpoint: GET /v1/deployments
 Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-admin
@@ -16,7 +16,7 @@ import pytest
 
 @pytest.mark.api_a
 def test_adm_depl_01_list_deployments(admin_client):
-    resp = admin_client.get("/tier/admin/v1/deployments")
+    resp = admin_client.get("/v1/deployments")
     assert resp.status_code == 200, f"返回 {resp.status_code}: {resp.text}"
     body = resp.json()
     data = body.get("data") or []

@@ -1,6 +1,6 @@
 """Case ID: ADM-SL-04b
 
-Endpoint: PATCH /tier/admin/v1/service-levels/{id}
+Endpoint: PATCH /v1/service-levels/{id}
 Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-admin
@@ -18,12 +18,12 @@ import pytest
 
 @pytest.mark.api_b
 def test_adm_sl_04b_update_with_unknown_field(admin_client_b):
-    get_resp = admin_client_b.get("/tier/admin/v1/service-levels/Worker")
+    get_resp = admin_client_b.get("/v1/service-levels/Worker")
     assert get_resp.status_code == 200
     etag = get_resp.headers.get("ETag")
 
     patch_resp = admin_client_b.patch(
-        "/tier/admin/v1/service-levels/Worker",
+        "/v1/service-levels/Worker",
         json={"unknown_field": "value"},
         headers={"If-Match": etag},
     )

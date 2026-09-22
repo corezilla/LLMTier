@@ -55,7 +55,7 @@ LLMTier 信任局域网（`192.168.0.0/16`、`10.0.0.0/8`、`172.16.0.0/12`）�
 curl http://192.168.1.9:8181/v1/models
 
 # 带 token
-curl http://192.168.1.9:8181/tier/admin/v1/providers \
+curl http://192.168.1.9:8181/v1/providers \
   -H 'Authorization: Bearer dev-admin'
 ```
 
@@ -106,7 +106,7 @@ Embedding-v1 只包含 dep_local_bge_m3。
 | GET | `/v1/models/{model}` |
 | POST | `/v1/responses` |
 | POST | `/v1/embeddings` |
-| GET | `/tier/v1/usage` |
+| GET | `/v1/usage` |
 
 ### Observation
 | Method | Path |
@@ -117,30 +117,30 @@ Embedding-v1 只包含 dep_local_bge_m3。
 ### Admin Management
 | Method | Path |
 |---|---|
-| GET | `/tier/admin/v1/providers` |
-| POST | `/tier/admin/v1/providers` |
-| GET | `/tier/admin/v1/providers/{id}` |
-| PATCH | `/tier/admin/v1/providers/{id}` |
-| DELETE | `/tier/admin/v1/providers/{id}` |
-| GET | `/tier/admin/v1/providers/{id}/usage` |
-| POST | `/tier/admin/v1/providers/{id}/usage` |
-| GET | `/tier/admin/v1/providers/{id}/models` |
-| GET | `/tier/admin/v1/deployments` |
-| POST | `/tier/admin/v1/deployments` |
-| GET | `/tier/admin/v1/deployments/{id}` |
-| PATCH | `/tier/admin/v1/deployments/{id}` |
-| DELETE | `/tier/admin/v1/deployments/{id}` |
-| GET | `/tier/admin/v1/service-levels` |
-| POST | `/tier/admin/v1/service-levels` |
-| GET | `/tier/admin/v1/service-levels/{id}` |
-| PATCH | `/tier/admin/v1/service-levels/{id}` |
-| DELETE | `/tier/admin/v1/service-levels/{id}` |
-| POST | `/tier/admin/v1/probes` |
-| GET | `/tier/admin/v1/usage` |
-| GET | `/tier/admin/v1/audit` |
-| GET | `/tier/admin/v1/logs` |
-| GET | `/tier/admin/v1/runtime` |
-| GET | `/tier/admin/v1/stats` |
+| GET | `/v1/providers` |
+| POST | `/v1/providers` |
+| GET | `/v1/providers/{id}` |
+| PATCH | `/v1/providers/{id}` |
+| DELETE | `/v1/providers/{id}` |
+| GET | `/v1/providers/{id}/usage` |
+| POST | `/v1/providers/{id}/usage` |
+| GET | `/v1/providers/{id}/models` |
+| GET | `/v1/deployments` |
+| POST | `/v1/deployments` |
+| GET | `/v1/deployments/{id}` |
+| PATCH | `/v1/deployments/{id}` |
+| DELETE | `/v1/deployments/{id}` |
+| GET | `/v1/service-levels` |
+| POST | `/v1/service-levels` |
+| GET | `/v1/service-levels/{id}` |
+| PATCH | `/v1/service-levels/{id}` |
+| DELETE | `/v1/service-levels/{id}` |
+| POST | `/v1/probes` |
+| GET | `/v1/usage` |
+| GET | `/v1/audit` |
+| GET | `/v1/logs` |
+| GET | `/v1/runtime` |
+| GET | `/v1/stats` |
 
 ---
 
@@ -249,10 +249,10 @@ curl -X POST http://192.168.1.9:8181/v1/embeddings \
 
 ```bash
 # 列出
-curl -s http://192.168.1.9:8181/tier/admin/v1/providers | python3 -m json.tool
+curl -s http://192.168.1.9:8181/v1/providers | python3 -m json.tool
 
 # 创建（带 secret_ref）
-curl -X POST http://192.168.1.9:8181/tier/admin/v1/providers \
+curl -X POST http://192.168.1.9:8181/v1/providers \
   -H 'Authorization: Bearer dev-admin' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -264,12 +264,12 @@ curl -X POST http://192.168.1.9:8181/tier/admin/v1/providers \
   }'
 
 # 获取特定 provider 的模型列表（需要 admin auth）
-curl -s http://192.168.1.9:8181/tier/admin/v1/providers/provider_minimax/models \
+curl -s http://192.168.1.9:8181/v1/providers/provider_minimax/models \
   -H 'Authorization: Bearer dev-admin' | python3 -m json.tool
 
 # 更新（需要 If-Match ETag）
-ETAG=$(curl -sI http://192.168.1.9:8181/tier/admin/v1/providers/provider_minimax | grep -i etag | awk '{print \$2}' | tr -d '\r')
-curl -X PATCH http://192.168.1.9:8181/tier/admin/v1/providers/provider_minimax \
+ETAG=$(curl -sI http://192.168.1.9:8181/v1/providers/provider_minimax | grep -i etag | awk '{print \$2}' | tr -d '\r')
+curl -X PATCH http://192.168.1.9:8181/v1/providers/provider_minimax \
   -H 'Authorization: Bearer dev-admin' \
   -H "If-Match: $ETAG" \
   -H 'Content-Type: application/json' \
@@ -280,10 +280,10 @@ curl -X PATCH http://192.168.1.9:8181/tier/admin/v1/providers/provider_minimax \
 
 ```bash
 # 列出
-curl -s http://192.168.1.9:8181/tier/admin/v1/deployments | python3 -m json.tool
+curl -s http://192.168.1.9:8181/v1/deployments | python3 -m json.tool
 
 # 创建
-curl -X POST http://192.168.1.9:8181/tier/admin/v1/deployments \
+curl -X POST http://192.168.1.9:8181/v1/deployments \
   -H 'Authorization: Bearer dev-admin' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -305,14 +305,14 @@ curl -X POST http://192.168.1.9:8181/tier/admin/v1/deployments \
 ### Admin — Service Levels
 
 ```bash
-curl -s http://192.168.1.9:8181/tier/admin/v1/service-levels | python3 -m json.tool
+curl -s http://192.168.1.9:8181/v1/service-levels | python3 -m json.tool
 ```
 
 ### Admin — Stats
 
 ```bash
 # Stats 需要 from/to 参数
-curl -s "http://192.168.1.9:8181/tier/admin/v1/stats?from=2026-01-01T00:00:00Z&to=2026-12-31T23:59:59Z&group_by=tier" \
+curl -s "http://192.168.1.9:8181/v1/stats?from=2026-01-01T00:00:00Z&to=2026-12-31T23:59:59Z&group_by=tier" \
   -H 'Authorization: Bearer dev-admin' | python3 -m json.tool
 ```
 
@@ -320,15 +320,15 @@ curl -s "http://192.168.1.9:8181/tier/admin/v1/stats?from=2026-01-01T00:00:00Z&t
 
 ```bash
 # Audit
-curl -s http://192.168.1.9:8181/tier/admin/v1/audit \
+curl -s http://192.168.1.9:8181/v1/audit \
   -H 'Authorization: Bearer dev-admin' | python3 -m json.tool
 
 # Logs（需要 from/to）
-curl -s "http://192.168.1.9:8181/tier/admin/v1/logs?from=2026-01-01T00:00:00Z&to=2026-12-31T23:59:59Z" \
+curl -s "http://192.168.1.9:8181/v1/logs?from=2026-01-01T00:00:00Z&to=2026-12-31T23:59:59Z" \
   -H 'Authorization: Bearer dev-admin' | python3 -m json.tool
 
 # Runtime
-curl -s http://192.168.1.9:8181/tier/admin/v1/runtime \
+curl -s http://192.168.1.9:8181/v1/runtime \
   -H 'Authorization: Bearer dev-admin' | python3 -m json.tool
 ```
 

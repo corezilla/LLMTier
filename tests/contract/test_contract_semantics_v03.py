@@ -44,8 +44,8 @@ class SimplifiedV03ContractTests(unittest.TestCase):
 
     def test_unique_simplified_machine_authority(self):
         self.assertEqual("3.1.0", self.openapi["openapi"])
-        self.assertEqual("0.3-simplified-candidate.7", self.openapi["info"]["version"])
-        self.assertEqual("0.3-simplified-candidate.7", self.manifest["manifest_version"])
+        self.assertEqual("0.3-simplified-candidate.8", self.openapi["info"]["version"])
+        self.assertEqual("0.3-simplified-candidate.8", self.manifest["manifest_version"])
         self.assertFalse(self.openapi["x-llmtier-runtime-activation"])
         self.assertFalse(self.manifest["overall"]["runtime_activation"])
         self.assertEqual("openapi/llmtier-v0.3.openapi.json", self.manifest["contract_authority"]["path"])
@@ -54,14 +54,14 @@ class SimplifiedV03ContractTests(unittest.TestCase):
         paths = set(self.openapi["paths"])
         required = {
             "/v1/responses", "/v1/embeddings", "/v1/models", "/v1/models/{model}",
-            "/tier/v1/usage", "/healthz", "/readyz",
+            "/v1/usage", "/healthz", "/readyz",
         }
         self.assertTrue(required.issubset(paths))
         forbidden = {
             "/v1/invocations/{invocation_id}", "/v1/responses/{response_id}",
-            "/tier/v1/capacity/snapshots/current", "/tier/v1/invocations",
-            "/tier/v1/compatibility", "/tier/admin/v1/recovery-items",
-            "/tier/admin/v1/clients", "/tier/admin/v1/sources",
+            "/v1/capacity/snapshots/current", "/v1/invocations",
+            "/v1/compatibility", "/v1/recovery-items",
+            "/v1/clients", "/v1/sources",
         }
         self.assertTrue(forbidden.isdisjoint(paths))
 
@@ -233,11 +233,11 @@ class SimplifiedV03ContractTests(unittest.TestCase):
     def test_admin_surface_is_model_focused(self):
         paths = set(self.openapi["paths"])
         for resource in ("providers", "deployments", "service-levels"):
-            self.assertIn(f"/tier/admin/v1/{resource}", paths)
-        self.assertIn("/tier/admin/v1/probes", paths)
-        self.assertIn("/tier/admin/v1/usage", paths)
-        self.assertIn("/tier/admin/v1/audit", paths)
-        self.assertIn("/tier/admin/v1/logs", paths)
+            self.assertIn(f"/v1/{resource}", paths)
+        self.assertIn("/v1/probes", paths)
+        self.assertIn("/v1/usage", paths)
+        self.assertIn("/v1/audit", paths)
+        self.assertIn("/v1/logs", paths)
         self.assertEqual(["Home", "Providers", "Usage & Audit", "Logs"], self.manifest["admin_web_ui"]["pages"])
         excluded = set(self.manifest["admin_web_ui"]["excluded_pages"])
         self.assertEqual({"访问控制", "容量", "恢复", "费用", "调用方"}, excluded)
@@ -254,7 +254,7 @@ class SimplifiedV03ContractTests(unittest.TestCase):
         cases = {case["id"]: case for case in self.load("admin-model-fixtures.json")["cases"]}
         self.assert_valid("ProviderPatch", cases["partial-provider-update"]["request"])
         self.assertTrue(list(self.validator("ProbeRequest").iter_errors(cases["probe-requires-confirmation"]["request"])))
-        provider_path = self.openapi["paths"]["/tier/admin/v1/providers/{provider_id}"]
+        provider_path = self.openapi["paths"]["/v1/providers/{provider_id}"]
         for operation in ("patch", "delete"):
             refs = [parameter.get("$ref") for parameter in provider_path[operation]["parameters"]]
             self.assertIn("#/components/parameters/IfMatch", refs)
@@ -265,7 +265,7 @@ class SimplifiedV03ContractTests(unittest.TestCase):
         serialized = json.dumps(log_case["page"], ensure_ascii=False).lower()
         for forbidden in log_case["oracle"]["forbidden_content_absent"]:
             self.assertNotIn(forbidden, serialized)
-        logs = self.openapi["paths"]["/tier/admin/v1/logs"]["get"]
+        logs = self.openapi["paths"]["/v1/logs"]["get"]
         self.assertEqual("listSanitizedLogs", logs["operationId"])
         self.assertEqual({"200", "400", "401", "403", "503"}, set(logs["responses"]))
         self.assertEqual(
@@ -278,7 +278,7 @@ class SimplifiedV03ContractTests(unittest.TestCase):
         self.assertTrue(all(value is False for value in boundary.values()))
         fixture = {case["id"]: case for case in self.load("stateless-gateway-boundary-fixtures.json")["cases"]}
         extension = fixture["minimal-extension-justification"]
-        self.assertEqual("/tier/v1/usage", extension["path"])
+        self.assertEqual("/v1/usage", extension["path"])
         self.assertEqual("token facts only", extension["scope"])
 
     def test_all_internal_openapi_refs_resolve(self):

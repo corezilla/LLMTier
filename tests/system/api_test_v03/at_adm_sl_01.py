@@ -1,6 +1,6 @@
 """Case ID: ADM-SL-01
 
-Endpoint: GET /tier/admin/v1/service-levels
+Endpoint: GET /v1/service-levels
 Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-admin
@@ -18,7 +18,7 @@ import pytest
 
 @pytest.mark.api_a
 def test_adm_sl_01_list_service_levels(admin_client):
-    resp = admin_client.get("/tier/admin/v1/service-levels")
+    resp = admin_client.get("/v1/service-levels")
     assert resp.status_code == 200, f"返回 {resp.status_code}: {resp.text}"
     body = resp.json()
     data = body.get("data") or []

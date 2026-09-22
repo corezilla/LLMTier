@@ -1,6 +1,6 @@
 """Case ID: ADM-SL-05
 
-Endpoint: DELETE /tier/admin/v1/service-levels/{id}
+Endpoint: DELETE /v1/service-levels/{id}
 Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-admin
@@ -18,12 +18,12 @@ import pytest
 
 @pytest.mark.api_b
 def test_adm_sl_05_delete_fixed_tier(admin_client_b):
-    get_resp = admin_client_b.get("/tier/admin/v1/service-levels/Engineer")
+    get_resp = admin_client_b.get("/v1/service-levels/Engineer")
     assert get_resp.status_code == 200
     etag = get_resp.headers.get("ETag")
 
     del_resp = admin_client_b.delete(
-        "/tier/admin/v1/service-levels/Engineer",
+        "/v1/service-levels/Engineer",
         headers={"If-Match": etag},
     )
     assert del_resp.status_code == 409, f"期望 409，实际 {del_resp.status_code}: {del_resp.text}"

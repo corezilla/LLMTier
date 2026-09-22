@@ -1,6 +1,6 @@
 """Case ID: ADM-ADMIN-USAGE-02
 
-Endpoint: GET /tier/admin/v1/usage?limit=1
+Endpoint: GET /v1/usage?limit=1
 Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-admin
@@ -17,7 +17,7 @@ import pytest
 @pytest.mark.api_a
 def test_adm_admin_usage_02_pagination(admin_client):
     resp = admin_client.get(
-        "/tier/admin/v1/usage",
+        "/v1/usage",
         params={
             "from": "2026-09-20T00:00:00Z",
             "to": "2026-09-22T00:00:00Z",

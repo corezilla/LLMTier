@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.3.2-draft.9` |
+| Document Version | `0.3.2-draft.10` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | 待定 |
 | Created Date | `2026-09-06` |
-| Last Modified Date | `2026-09-18` |
+| Last Modified Date | `2026-09-22` |
 | Template Version | `4.0.0` |
 | Template ID | `design.system` |
 | Template Conformance | `tailored` |
@@ -47,7 +47,7 @@ Piko 管理 Agent session、上下文、工具循环、模型调用与执行内�
 | 模型发现 | `GET /v1/models` 与 exact-case detail；`model` 是逻辑等级 ID，不暴露物理账号 |
 | 向量化 | 标准 `POST /v1/embeddings`；使用明确配置的 embedding-capable deployment |
 | 工具调用 | 模型可返回 function call；Piko 执行工具并在下一次完整请求中带回 tool result |
-| Usage | 响应内返回本次 token Usage；最小只读 `/tier/v1/usage` 提供同一授权主体的统一查询 |
+| Usage | 响应内返回本次 token Usage；最小只读 `/v1/usage` 提供同一授权主体的统一查询 |
 | 自主管理 | Admin API + English Web UI 管理云模型、本地模型、逻辑等级、探测、Usage 与审计 |
 | 运维 | 提供无副作用健康/就绪检查；有费用或改变状态的探测、reload、restart 必须获运维授权 |
 
@@ -76,39 +76,36 @@ flowchart LR
   L -->|local inference API| M[Local Models]
 ```
 
-### 5.1 Container View（C4 Level 2）
+### 5.1 Container View（C4 Level 2）— 软件系统架构
 
-```mermaid
-flowchart TB
-  subgraph LT[LLMTier software system]
-    API[OpenAI-compatible API]
-    ADM[Admin API + English Web UI]
-    REG[Logical Model Registry]
-    ROUTER[Router and Provider Adapters]
-    METER[Usage Meter]
-    DIAG[Diagnostic Service<br/>observation 机制]
-    STORE[(Config / Runtime State / Usage / Audit / Diagnostics)]
-    API --> REG --> ROUTER
-    API --> METER --> STORE
-    API --> DIAG --> STORE
-    DIAG --> ROUTER
-    DIAG --> METER
-    ADM --> REG
-    ADM --> ROUTER
-    ADM --> STORE
-    ADM --> DIAG
-  end
-```
-
-Diagnostic Service 是 §E.2 机制方案规定的内部观察容器：订阅 Data Plane 与 Routing 的执行事件，记录 snapshot/stats/injection/trace；详见 §E.2.4..E.2.7。
-
-#### 5.1.1 静态组成图（STD SVG 约定）
-
-![LLMTier Container View - C4 Level 2 with Observability Subsystem](./assets/diagrams/llmtier-architecture-container.png)
+![LLMTier layered composition: UI / Logic / Foundation](./assets/diagrams/llmtier-architecture-container.png)
 
 [可编辑 SVG 源](./assets/diagrams/llmtier-architecture-container.svg)
 
-图 A1｜EX-LLMTIER/v3 · Target · LLMTier v0.3.0-draft。本图按 C4 Level 2 表达 LLMTier 各容器组成及依赖关系，**不**规定独立进程或运行调用栈。运行载体见 §6，调用/时序图见 §7。新增的 `Diagnostic Service` 容器（黄色填充）与 4 张新表（diagnostic_snapshots / diagnostic_injections / data_plane_stats / trace_events）详见 §E.2 机制方案。
+图 A1｜EX-LLMTIER/v3 · Target · LLMTier v0.3.0-draft。本图只表达 LLMTier 自身的三层静态组成（UI / Logic / Foundation），**不**绘制外部系统（Piko、Slinky、模型后端见 §6 运行环境），也**不**规定独立进程或运行调用栈（调用/时序见 §7）。
+
+- **UI 层**：单一入口。`HTTP API`（`app.py`）承载统一 `/v1/*` 命名空间，consumer 与 operator 端点由 credential 区分权限，不设路径前缀；`English Web UI`（`webui/`）是 operator 控制台，同源调用 `/v1/*`。
+- **Logic 层**：`Logical Model Registry`（`registry.py`）、`Routing + Provider Adapters`（`routing.py`、`providers/`）、`Usage Meter`（`usage.py`）、`Diagnostic Service`（`diagnostics.py`，新增）。
+- **Foundation 层**：`Store`（SQLite，`store.py`）、`auth.py`、`audit.py`、`logs.py`；Store 保存已有账本表与新增观测表（`diagnostic_snapshots` / `diagnostic_injections` / `data_plane_stats` / `trace_events`，详见 §E.2）。
+
+Diagnostic Service 是 §E.2 机制方案规定的内部观察容器：订阅 Data Plane 与 Routing 的执行事件，记录 snapshot/stats/injection/trace；详见 §E.2.4..E.2.7。
+
+**模块依赖视图**（与上方组成图分离；箭头表示调用/依赖，不代表进程边界）：
+
+```mermaid
+flowchart LR
+  API[HTTP API / Web UI] --> AUTH[auth]
+  API --> RES[responses / embeddings]
+  RES --> ROUTER[routing]
+  RES --> USAGE[usage]
+  ROUTER --> ADAPTERS[provider adapters]
+  DIAG[diagnostics] -.订阅事件.-> RES
+  DIAG -.订阅事件.-> ROUTER
+  DIAG --> STORE[(store)]
+  USAGE --> STORE
+  ROUTER --> STORE
+  AUTH --> STORE
+```
 
 ### 5.2 LLMTier Service Component View（C4 Level 3 / arc42 Level-1 Whitebox）
 
@@ -222,13 +219,15 @@ LLMTier 不规定专用硬件。部署可连接云 provider 或本地主机上�
 
 ## 11. 接口与通信协议
 
+全部 HTTP 接口位于单一 `/v1/*` 命名空间；consumer 端点与 operator 端点通过 credential 与资源名区分，不另设路径前缀。字段级 authority 是 `interfaces/openapi/llmtier-v0.3.openapi.json`。
+
 ### 11.1 Consumer API
 
 - `POST /v1/responses`
 - `POST /v1/embeddings`
 - `GET /v1/models`
 - `GET /v1/models/{model}`
-- `GET /tier/v1/usage`：标准 OpenAI API 没有统一跨请求 token 查询；这是唯一最小扩展，只返回 token 事实，不返回 Cost、容量或执行状态。
+- `GET /v1/usage`：标准 OpenAI API 没有统一跨请求 token 查询；这是唯一最小扩展，只返回 token 事实，不返回 Cost、容量或执行状态。
 - `GET /healthz`、`GET /readyz`：环境探针，不参与模型协议协商。
 
 Admin提供Provider账号用量的最后快照读取和显式刷新。MiniMax使用API Key访问官方Token Plan接口，不使用console cookie；火山读取Coding Plan必须使用独立OpenAPI AK/SK签名。该能力只管理LLMTier自己的Provider账号，不引入调用方、SourceInstance或跨系统容量产品。
@@ -239,13 +238,25 @@ Bearer credential 只标识获授权调用主体；不暴露 Client/Source/Sourc
 
 ### 11.2 Admin API 与 English Web UI
 
+LLMTier 对外提供**单一 HTTP surface**，全部位于 `/v1/*` 命名空间；资源由路径标识，权限由 credential 标识（data credential 只能访问推理与自身 Usage，admin credential 可访问管理资源）。管理端点：
+
+- `GET/POST /v1/providers`、`GET/PATCH/DELETE /v1/providers/{provider_id}`
+- `GET/POST /v1/providers/{provider_id}/usage`（账号用量快照读取/显式刷新）
+- `GET /v1/providers/{provider_id}/models`
+- `GET/POST /v1/deployments`、`GET/PATCH/DELETE /v1/deployments/{deployment_id}`
+- `GET/POST /v1/service-levels`、`GET/PATCH/DELETE /v1/service-levels/{service_level_id}`
+- `GET /v1/runtime`、`POST /v1/probes`
+- `GET /v1/usage`（admin 见全部；DELETE 清空，仅 admin）
+- `GET /v1/audit`、`GET /v1/logs`
+- `GET/PATCH /v1/diagnostics`、`GET /v1/diagnostics/snapshots`、`GET /v1/diagnostics/stats`、`GET/PATCH /v1/deployments/{id}/diagnostics`、`GET /v1/trace/{request_id}`（LT-OBS，详见 §E.2）
+
 ```mermaid
 flowchart LR
   NAV[侧栏] --> HOME[Home]
   NAV --> PROVIDERS[Providers]
   NAV --> RECORDS[Usage & Audit]
   NAV --> LOGUI[Logs]
-  HOME -->|编辑Tier成员 / 状态| MAPI[Admin API]
+  HOME -->|编辑Tier成员 / 状态| MAPI["管理端点 /v1/*"]
   PROVIDERS -->|新增 / 修改 / 删除Provider| MAPI
   RECORDS -->|Token事实 / 管理操作| MAPI
 ```
@@ -469,16 +480,16 @@ for inj in injections:
 
 | 路由 | 方法 | 描述 |
 |---|---|---|
-| `/tier/admin/v1/diagnostics` | GET, PATCH | 全局调试开关（snapshots_enabled, stats_enabled） |
-| `/tier/admin/v1/diagnostics/snapshots` | GET | 快照查询（分页 cursor-based） |
-| `/tier/admin/v1/diagnostics/stats` | GET | 统计查询 |
-| `/tier/admin/v1/deployments/{id}/diagnostics` | GET, PATCH | 注入配置管理 |
-| `/tier/admin/v1/trace/{request_id}` | GET | 单请求 trace 查询 |
+| `/v1/diagnostics` | GET, PATCH | 全局调试开关（snapshots_enabled, stats_enabled） |
+| `/v1/diagnostics/snapshots` | GET | 快照查询（分页 cursor-based） |
+| `/v1/diagnostics/stats` | GET | 统计查询 |
+| `/v1/deployments/{id}/diagnostics` | GET, PATCH | 注入配置管理 |
+| `/v1/trace/{request_id}` | GET | 单请求 trace 查询 |
 | `/ui/diagnostics` | GET | WebUI 诊断页面 |
 
 **Piko 联调脚本** (`joint-diagnose.sh <run_id>`) 通过 `x-request-id` 调用：
-- `GET /tier/admin/v1/trace/{request_id}` — 全生命周期 trace
-- `GET /tier/admin/v1/diagnostics/snapshots?request_id=xxx` — 上游快照
+- `GET /v1/trace/{request_id}` — 全生命周期 trace
+- `GET /v1/diagnostics/snapshots?request_id=xxx` — 上游快照
 
 #### E.2.8 三方定位场景（联调失败 → Piko/LLMTier/oMLX 归属判定）
 

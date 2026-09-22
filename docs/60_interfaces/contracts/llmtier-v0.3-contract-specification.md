@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-contract-specification` |
-| Document Version | `0.3.2-draft.5` |
+| Document Version | `0.3.2-draft.6` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -14,7 +14,7 @@
 | Approver | 待定 |
 | Approval Date | 待定 |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-18` |
+| Last Modified Date | `2026-09-22` |
 | Template Version | `0.1.0` |
 | Template ID | `contracts.specification` |
 | Template Conformance | `tailored` |
@@ -27,7 +27,7 @@
 
 ## 1. Contract scope 与 authority
 
-唯一字段级 authority 是 `interfaces/openapi/llmtier-v0.3.openapi.json` version `0.3-simplified-candidate.7`。Manifest只描述范围和activation，不复制字段。`runtime_activation=false`，本候选不授权runtime。
+唯一字段级 authority 是 `interfaces/openapi/llmtier-v0.3.openapi.json` version `0.3-simplified-candidate.8`。Manifest只描述范围和activation，不复制字段。`runtime_activation=false`，本候选不授权runtime。
 
 ## 2. Operation / Message / Event Catalog
 
@@ -51,11 +51,11 @@ Usage按from/to必填，可选model/request_id，按 `(recorded_at,request_id)` 
 
 ## 7. 身份、权限、Secret 与调用边界
 
-`GET /tier/admin/v1/logs`按level/module/request ID过滤写入前已脱敏的运行事件，使用稳定快照与逐页授权；store不可读返回503。日志消息有长度上限，不得包含prompt、模型输出、reasoning、向量、credential、Secret或原始header。该接口只读，和管理动作Audit分离。
+`GET /v1/logs`按level/module/request ID过滤写入前已脱敏的运行事件，使用稳定快照与逐页授权；store不可读返回503。日志消息有长度上限，不得包含prompt、模型输出、reasoning、向量、credential、Secret或原始header。该接口只读，和管理动作Audit分离。
 
 Bearer credential只用于授权，不形成Client/Source/SourceInstance DTO。Admin credential独立。Secret只写引用、view仅`has_secret`。不传Agent/Run/Project/IR/STD/Session。
 
-Provider账号用量只在operator对`POST /tier/admin/v1/providers/{provider_id}/usage`提交`confirm_external_call=true`时触网；GET只返回最后持久快照。MiniMax使用Provider API Key或独立API Key reference调用官方Token Plan API，不接受console cookie；火山使用独立OpenAPI AK/SK调用`GetCodingPlanUsage`。响应只含窗口、用量/比例、reset、source/status/checked_at和脱敏错误，不回显credential。Provider profile同时承载本网关内部账号并发、最小请求间隔和RPM，不形成外部capacity/Seat产品。
+Provider账号用量只在operator对`POST /v1/providers/{provider_id}/usage`提交`confirm_external_call=true`时触网；GET只返回最后持久快照。MiniMax使用Provider API Key或独立API Key reference调用官方Token Plan API，不接受console cookie；火山使用独立OpenAPI AK/SK调用`GetCodingPlanUsage`。响应只含窗口、用量/比例、reset、source/status/checked_at和脱敏错误，不回显credential。Provider profile同时承载本网关内部账号并发、最小请求间隔和RPM，不形成外部capacity/Seat产品。
 
 ## 8. 版本、兼容性与迁移
 

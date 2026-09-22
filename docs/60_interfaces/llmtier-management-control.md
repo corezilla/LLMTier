@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-management-control` |
-| Document Version | `0.3.3-draft.4` |
+| Document Version | `0.3.3-draft.5` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -14,7 +14,7 @@
 | Approver | 待定 |
 | Approval Date | 待定 |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-17` |
+| Last Modified Date | `2026-09-22` |
 | Template Version | `0.1.0` |
 | Template ID | `interfaces.control` |
 | Template Conformance | `tailored` |
@@ -31,7 +31,7 @@ Management是LLMTier自己的operator面，不是Slinky/Piko控制面。只管�
 
 ## 2. 接口注册表
 
-`/tier/admin/v1/providers*`、`deployments*`、`service-levels*`提供list/get/create/update/delete；`POST /probes`执行获授权探测；`GET /usage`、`GET /audit`和`GET /logs`只读。Logs仅返回服务端脱敏的level/module/event/message/request ID/time。无clients/sources/SourceInstance/entitlements/capacity-groups/recovery-items/Cost。
+`/v1/providers*`、`/v1/deployments*`、`/v1/service-levels*`提供list/get/create/update/delete；`POST /v1/probes`执行获授权探测；`GET /v1/usage`（data credential仅见自身，admin credential见全部）、`DELETE /v1/usage`（仅admin，清空用量）、`GET /v1/runtime`、`GET /v1/audit`和`GET /v1/logs`只读。Logs仅返回服务端脱敏的level/module/event/message/request ID/time。无clients/sources/SourceInstance/entitlements/capacity-groups/recovery-items/Cost。
 
 ## 3. 传输与物理边界
 

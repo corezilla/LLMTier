@@ -1,6 +1,6 @@
 """Case ID: ADM-PROV-03
 
-Endpoint: GET /tier/admin/v1/providers/{id}
+Endpoint: GET /v1/providers/{id}
 Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-admin
@@ -16,7 +16,7 @@ import pytest
 
 @pytest.mark.api_a
 def test_adm_prov_03_get_existing(admin_client):
-    resp = admin_client.get("/tier/admin/v1/providers/provider_local")
+    resp = admin_client.get("/v1/providers/provider_local")
     assert resp.status_code == 200, f"返回 {resp.status_code}: {resp.text}"
     body = resp.json()
     for field in ("id", "name", "kind", "endpoint", "has_secret", "enabled", "version"):

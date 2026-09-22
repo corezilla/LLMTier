@@ -1,6 +1,6 @@
 """Case ID: ADM-PROV-USAGE-01
 
-Endpoint: GET /tier/admin/v1/providers/{id}/usage
+Endpoint: GET /v1/providers/{id}/usage
 Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-admin
@@ -16,7 +16,7 @@ import pytest
 
 @pytest.mark.api_a
 def test_adm_prov_usage_01_get_snapshot(admin_client):
-    resp = admin_client.get("/tier/admin/v1/providers/provider_local/usage")
+    resp = admin_client.get("/v1/providers/provider_local/usage")
     assert resp.status_code == 200, f"返回 {resp.status_code}: {resp.text}"
     body = resp.json()
     for field in ("provider", "source", "status", "checked_at"):

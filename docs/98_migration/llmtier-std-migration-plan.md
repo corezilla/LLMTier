@@ -65,7 +65,7 @@ NOT_RUN 已显式记录。C0 immutable input 与授权 reviewer 已登记，term
 |---|---|---|---|
 | docs/99_reference/contracts/piko-data-plane-contract-v0.3.md | docs/60_interfaces/piko-data-plane-control.md | interfaces.control | 保留 Responses/Embeddings、exact-case ID、idempotency/recovery、M2-C、deferred surface；不复制 Piko runtime authority |
 | docs/99_reference/contracts/slinky-capacity-observation-contract-v0.3.md | docs/60_interfaces/slinky-capacity-observation-control.md | interfaces.control | 保留 read-only observation、capacity/Seat、ETag/invalidation、Client scope；不复制 Slinky Project/Plan/IR authority |
-| docs/99_reference/contracts/llmtier-management-contract-v0.3.md | docs/60_interfaces/llmtier-management-control.md | interfaces.control | 保留 /tier/admin/v1、Admin UI、secret non-disclosure、audit/concurrency Gate |
+| docs/99_reference/contracts/llmtier-management-contract-v0.3.md | docs/60_interfaces/llmtier-management-control.md | interfaces.control | 保留 /v1 Management surface、Admin UI、secret non-disclosure、audit/concurrency Gate |
 | OpenAPI v0.3、compatibility manifest v0.3、v0.3 fixtures、三份说明 | docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.md | contracts.specification | 只建立 schema/error/evolution/authority 索引；机器文件原位且仍为字段级 authority |
 | 上述 C1 diff、mapping 与验证 | docs/91_reviews/llmtier-std-c1-interface-contract-review.md | review.packet | terminal ACCEPTED；不请求 activation |
 

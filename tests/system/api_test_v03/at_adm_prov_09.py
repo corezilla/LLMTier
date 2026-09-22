@@ -1,6 +1,6 @@
 """Case ID: ADM-PROV-09
 
-Endpoint: DELETE /tier/admin/v1/providers/{id}
+Endpoint: DELETE /v1/providers/{id}
 Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-admin
@@ -20,7 +20,7 @@ import pytest
 
 @pytest.mark.api_b
 def test_adm_prov_09_delete_missing_if_match(admin_client_b):
-    create_resp = admin_client_b.post("/tier/admin/v1/providers", json={
+    create_resp = admin_client_b.post("/v1/providers", json={
         "name": f"Provider To Delete Without Etag {uuid.uuid4().hex[:8]}",
         "kind": "local",
         "endpoint": "http://localhost:5555/v1",
@@ -30,7 +30,7 @@ def test_adm_prov_09_delete_missing_if_match(admin_client_b):
     assert create_resp.status_code == 201
     rid = create_resp.json()["id"]
 
-    del_resp = admin_client_b.delete(f"/tier/admin/v1/providers/{rid}")
+    del_resp = admin_client_b.delete(f"/v1/providers/{rid}")
     assert del_resp.status_code == 412, f"期望 412，实际 {del_resp.status_code}: {del_resp.text}"
     err = del_resp.json().get("error") or {}
     assert err.get("code") == "version_conflict"

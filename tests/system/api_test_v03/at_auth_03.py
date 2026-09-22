@@ -1,6 +1,6 @@
 """Case ID: AUTH-03
 
-Endpoint: GET /tier/admin/v1/providers
+Endpoint: GET /v1/providers
 Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-data (data token, 不应授权 admin)
@@ -21,7 +21,7 @@ import pytest
 def test_auth_03_admin_endpoint_with_data_token():
     with httpx.Client(base_url="http://192.168.1.9:8181", timeout=10.0) as client:
         resp = client.get(
-            "/tier/admin/v1/providers",
+            "/v1/providers",
             headers={"Authorization": "Bearer dev-data"},
         )
     assert resp.status_code == 403, f"返回 {resp.status_code}（期望 403）: {resp.text}"

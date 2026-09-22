@@ -3,10 +3,12 @@
   "authority": "LLMTier",
   "document_id": "llmtier-v0.3-test-plan",
   "document_type": "assurance.test-plan",
-  "document_version": "0.3.2-draft.4",
+  "document_version": "0.3.2-draft.5",
   "title": "LLMTier V0.3 Test Plan",
   "document_owner": "LLMTier",
-  "authors": ["llmtier"],
+  "authors": [
+    "llmtier"
+  ],
   "source_repository": "corezilla/LLMTier",
   "source_path": "docs/70_verification/plans/llmtier-v0.3-test-plan.md",
   "template_id": "assurance.test-plan",
@@ -16,12 +18,14 @@
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": "llmtier-v0.3-vv-plan, llmtier-v0.3-contract-test-specification",
   "design_level": "cross-level",
-  "domain": ["software"],
+  "domain": [
+    "software"
+  ],
   "status": "draft",
   "visibility": "project",
   "reviewed_commit": null,
   "parent_document_id": "llmtier-v0.3-vv-plan",
   "supersedes": null,
   "created_at": "2026-09-19",
-  "last_modified_at": "2026-09-20"
+  "last_modified_at": "2026-09-22"
 }

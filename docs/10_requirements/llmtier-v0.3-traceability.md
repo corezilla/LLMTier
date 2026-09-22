@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-traceability` |
-| Document Version | `0.3.2-draft.6` |
+| Document Version | `0.3.2-draft.7` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | 待定 |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-18` |
+| Last Modified Date | `2026-09-22` |
 | Template Version | `0.1.0` |
 | Template ID | `requirements.traceability` |
 | Template Conformance | `tailored` |
@@ -27,7 +27,7 @@
 
 ## 1. 范围与基线
 
-基线是 requirements `0.3.2-draft.5`、system design `0.3.2-draft.5`、OpenAPI `0.3-simplified-candidate.7` 与 compatibility manifest 同版本。
+基线是 requirements `0.3.2-draft.5`、system design `0.3.2-draft.5`、OpenAPI `0.3-simplified-candidate.8` 与 compatibility manifest 同版本。
 
 ## 2. Traceability Matrix
 
@@ -36,9 +36,9 @@
 | Stateless Responses/tool loop | LT-FUN-001/007/008 | §2/6/11、core module §5 | `/v1/responses` | CT-DP-001/CT-BOUNDARY-001 | STATIC COVERED；runtime BLOCKED |
 | Models/exact level | LT-FUN-002 | §3/4 | `/v1/models*` | CT-MODEL-001 | BLOCKED |
 | Embeddings | LT-FUN-003 | §6.2、core module §7、ISD §8 | `/v1/embeddings` + ModelCapabilities embedding fields | CT-EMB-001 | DESIGN/STATIC COVERED；deployment BLOCKED |
-| Token Usage | LT-FUN-004、LT-INT-004/005/007 | §10/11、core module §6 | standard response usage + `/tier/v1/usage` | CT-USAGE-001 | STATIC COVERED；runtime BLOCKED |
-| Admin UI/API | LT-FUN-005、LT-INT-008、LT-SEC-001/003 | §11.2、Web UI design §§2..10 | `/tier/admin/v1/*` | CT-ADMIN-001/CT-UI-001/CT-WEBSEC-001 | DESIGN COVERED；runtime BLOCKED |
-| Sanitized operational logs | LT-FUN-005、LT-SEC-004、LT-OPS-006 | §11.2、Web UI design §7、ISD §10 | `GET /tier/admin/v1/logs` | CT-LOG-001 | STATIC CONTRACT COVERED；runtime BLOCKED |
+| Token Usage | LT-FUN-004、LT-INT-004/005/007 | §10/11、core module §6 | standard response usage + `/v1/usage` | CT-USAGE-001 | STATIC COVERED；runtime BLOCKED |
+| Admin UI/API | LT-FUN-005、LT-INT-008、LT-SEC-001/003 | §11.2、Web UI design §§2..10 | `/v1/*` | CT-ADMIN-001/CT-UI-001/CT-WEBSEC-001 | DESIGN COVERED；runtime BLOCKED |
+| Sanitized operational logs | LT-FUN-005、LT-SEC-004、LT-OPS-006 | §11.2、Web UI design §7、ISD §10 | `GET /v1/logs` | CT-LOG-001 | STATIC CONTRACT COVERED；runtime BLOCKED |
 | Internal admission | LT-PERF-001/002 | §12、core module §8、ISD §5 | standard 429/503 only | CT-ADM-001 | DESIGN COVERED；runtime BLOCKED |
 | Config authority | LT-REL-004 | module §4、ISD §3/4 | internal store contract | CT-STORE-001 | DESIGN COVERED；runtime BLOCKED |
 | Health/operations | LT-FUN-006、LT-OPS-001..005 | §6.3/12、Operations §§3/9/10 | `/healthz`、`/readyz`、probe | CT-OPS-001 | DESIGN COVERED；runtime BLOCKED |

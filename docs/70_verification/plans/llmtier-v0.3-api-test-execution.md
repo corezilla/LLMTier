@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-api-test-execution` |
-| Document Version | `0.2.0-draft.4` |
+| Document Version | `0.2.0-draft.5` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-21` |
-| Last Modified Date | `2026-09-21` |
+| Last Modified Date | `2026-09-22` |
 | Template ID | `assurance.test-execution-plan` |
 | Template Version | `0.1.0` |
 | Template Conformance | `tailored` |

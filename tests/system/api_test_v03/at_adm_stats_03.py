@@ -1,6 +1,6 @@
 """Case ID: ADM-STATS-03
 
-Endpoint: GET /tier/admin/v1/stats (缺 from/to)
+Endpoint: GET /v1/stats (缺 from/to)
 Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-admin
@@ -16,7 +16,7 @@ import pytest
 
 @pytest.mark.api_a
 def test_adm_stats_03_missing_time_range(admin_client):
-    resp = admin_client.get("/tier/admin/v1/stats")
+    resp = admin_client.get("/v1/stats")
     assert resp.status_code == 400, f"返回 {resp.status_code}（期望 400）: {resp.text}"
     body = resp.json()
     err = body.get("error") or {}

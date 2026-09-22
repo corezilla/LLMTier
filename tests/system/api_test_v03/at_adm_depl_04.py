@@ -1,6 +1,6 @@
 """Case ID: ADM-DEPL-04
 
-Endpoint: PATCH /tier/admin/v1/deployments/{id}
+Endpoint: PATCH /v1/deployments/{id}
 Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-admin
@@ -22,7 +22,7 @@ BASELINE_PROVIDER_ID = "prov_b"
 
 @pytest.mark.api_b
 def test_adm_depl_04_update_deployment(admin_client_b):
-    create_resp = admin_client_b.post("/tier/admin/v1/deployments", json={
+    create_resp = admin_client_b.post("/v1/deployments", json={
         "name": "Deployment To Update",
         "provider_id": BASELINE_PROVIDER_ID,
         "backend_model": "test-model-update",
@@ -48,7 +48,7 @@ def test_adm_depl_04_update_deployment(admin_client_b):
     original_etag = create_resp.headers["ETag"]
 
     patch_resp = admin_client_b.patch(
-        f"/tier/admin/v1/deployments/{rid}",
+        f"/v1/deployments/{rid}",
         json={"name": "Updated Deployment Name", "enabled": False},
         headers={"If-Match": original_etag},
     )

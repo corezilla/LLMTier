@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-api-test-plan` |
-| Document Version | `0.3.0-draft.6` |
+| Document Version | `0.3.0-draft.7` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-21` |
-| Last Modified Date | `2026-09-21` |
+| Last Modified Date | `2026-09-22` |
 | Template ID | `assurance.test-plan` |
 | Template Version | `0.1.0` |
 | Template Conformance | `tailored` |
@@ -88,7 +88,7 @@
      curl -sf http://192.168.1.8:9000/v1/models -H 'Authorization: Bearer 9832'  →  200
 
 [OK] provider_omlx_m5mac.secret_ref 不是 env:OMLX_API_KEY（2026-09-21 上午修复）
-     ssh m5air 'curl -sf http://localhost:8181/tier/admin/v1/providers/provider_omlx_m5mac -H "Authorization: Bearer dev-admin" | python3 -c "import json,sys;print(json.load(sys.stdin)[\"has_secret\"])"'  →  True
+     ssh m5air 'curl -sf http://localhost:8181/v1/providers/provider_omlx_m5mac -H "Authorization: Bearer dev-admin" | python3 -c "import json,sys;print(json.load(sys.stdin)[\"has_secret\"])"'  →  True
 ```
 
 > 注：Python 3.14、LAN trust、TS-003 等约束已经在 m5air 当前部署上成立，不需要每次检查。
@@ -132,7 +132,7 @@
 | `GET` | `/v1/models/{model}` | 获取指定模型（精确大小写） | Data Bearer Token |
 | `POST` | `/v1/responses` | 创建模型响应（SSE 流式） | Data Bearer Token |
 | `POST` | `/v1/embeddings` | 创建 embedding 向量 | Data Bearer Token |
-| `GET` | `/tier/v1/usage` | 当前用户的 token 使用量（分页） | Data Bearer Token |
+| `GET` | `/v1/usage` | 当前用户的 token 使用量（分页） | Data Bearer Token |
 
 ### 3.2 Observation
 
@@ -146,29 +146,29 @@
 
 | Method | Path | 说明 | Auth |
 |--------|------|------|------|
-| `GET` | `/tier/admin/v1/providers` | 列出所有 provider（分页） | Admin Bearer Token |
-| `POST` | `/tier/admin/v1/providers` | 创建 provider | Admin Bearer Token |
-| `GET` | `/tier/admin/v1/providers/{id}` | 获取 provider 详情 | Admin Bearer Token |
-| `PATCH` | `/tier/admin/v1/providers/{id}` | 更新 provider（**If-Match 必需**） | Admin Bearer Token |
-| `DELETE` | `/tier/admin/v1/providers/{id}` | 删除 provider（**If-Match 必需**） | Admin Bearer Token |
-| `GET` | `/tier/admin/v1/providers/{id}/usage` | 获取 provider 使用量快照 | Admin Bearer Token |
-| `POST` | `/tier/admin/v1/providers/{id}/usage` | 刷新 provider 使用量（**confirm_external_call:true 必需**） | Admin Bearer Token |
-| `GET` | `/tier/admin/v1/deployments` | 列出所有 deployment（分页） | Admin Bearer Token |
-| `POST` | `/tier/admin/v1/deployments` | 创建 deployment | Admin Bearer Token |
-| `GET` | `/tier/admin/v1/deployments/{id}` | 获取 deployment 详情 | Admin Bearer Token |
-| `PATCH` | `/tier/admin/v1/deployments/{id}` | 更新 deployment（**If-Match 必需**） | Admin Bearer Token |
-| `DELETE` | `/tier/admin/v1/deployments/{id}` | 删除 deployment（**If-Match 必需**） | Admin Bearer Token |
-| `GET` | `/tier/admin/v1/service-levels` | 列出所有服务等级（分页） | Admin Bearer Token |
-| `POST` | `/tier/admin/v1/service-levels` | 创建 service level（**id 必须在 FIXED_TIERS 内**） | Admin Bearer Token |
-| `GET` | `/tier/admin/v1/service-levels/{id}` | 获取 service level 详情 | Admin Bearer Token |
-| `PATCH` | `/tier/admin/v1/service-levels/{id}` | 更新 service level（**If-Match 必需**；仅 `deployment_ids`/`enabled` 可改） | Admin Bearer Token |
-| `DELETE` | `/tier/admin/v1/service-levels/{id}` | 删除 service level（**If-Match 必需**；7 个固定 tier 拒绝 → 409） | Admin Bearer Token |
-| `POST` | `/tier/admin/v1/probes` | 探测 deployment 健康状态（**confirm_external_call:true 必需**） | Admin Bearer Token |
-| `GET` | `/tier/admin/v1/usage` | 管理面使用量统计（**需 from/to**） | Admin Bearer Token |
-| `GET` | `/tier/admin/v1/audit` | 审计事件列表（分页） | Admin Bearer Token |
-| `GET` | `/tier/admin/v1/logs` | 脱敏日志列表（**需 from/to**） | Admin Bearer Token |
-| `GET` | `/tier/admin/v1/runtime` | 运行时状态快照 | Admin Bearer Token |
-| `GET` | `/tier/admin/v1/stats` | 统计聚合（**需 from/to**；支持 group_by=tier|deployment） | Admin Bearer Token |
+| `GET` | `/v1/providers` | 列出所有 provider（分页） | Admin Bearer Token |
+| `POST` | `/v1/providers` | 创建 provider | Admin Bearer Token |
+| `GET` | `/v1/providers/{id}` | 获取 provider 详情 | Admin Bearer Token |
+| `PATCH` | `/v1/providers/{id}` | 更新 provider（**If-Match 必需**） | Admin Bearer Token |
+| `DELETE` | `/v1/providers/{id}` | 删除 provider（**If-Match 必需**） | Admin Bearer Token |
+| `GET` | `/v1/providers/{id}/usage` | 获取 provider 使用量快照 | Admin Bearer Token |
+| `POST` | `/v1/providers/{id}/usage` | 刷新 provider 使用量（**confirm_external_call:true 必需**） | Admin Bearer Token |
+| `GET` | `/v1/deployments` | 列出所有 deployment（分页） | Admin Bearer Token |
+| `POST` | `/v1/deployments` | 创建 deployment | Admin Bearer Token |
+| `GET` | `/v1/deployments/{id}` | 获取 deployment 详情 | Admin Bearer Token |
+| `PATCH` | `/v1/deployments/{id}` | 更新 deployment（**If-Match 必需**） | Admin Bearer Token |
+| `DELETE` | `/v1/deployments/{id}` | 删除 deployment（**If-Match 必需**） | Admin Bearer Token |
+| `GET` | `/v1/service-levels` | 列出所有服务等级（分页） | Admin Bearer Token |
+| `POST` | `/v1/service-levels` | 创建 service level（**id 必须在 FIXED_TIERS 内**） | Admin Bearer Token |
+| `GET` | `/v1/service-levels/{id}` | 获取 service level 详情 | Admin Bearer Token |
+| `PATCH` | `/v1/service-levels/{id}` | 更新 service level（**If-Match 必需**；仅 `deployment_ids`/`enabled` 可改） | Admin Bearer Token |
+| `DELETE` | `/v1/service-levels/{id}` | 删除 service level（**If-Match 必需**；7 个固定 tier 拒绝 → 409） | Admin Bearer Token |
+| `POST` | `/v1/probes` | 探测 deployment 健康状态（**confirm_external_call:true 必需**） | Admin Bearer Token |
+| `GET` | `/v1/usage` | 管理面使用量统计（**需 from/to**） | Admin Bearer Token |
+| `GET` | `/v1/audit` | 审计事件列表（分页） | Admin Bearer Token |
+| `GET` | `/v1/logs` | 脱敏日志列表（**需 from/to**） | Admin Bearer Token |
+| `GET` | `/v1/runtime` | 运行时状态快照 | Admin Bearer Token |
+| `GET` | `/v1/stats` | 统计聚合（**需 from/to**；支持 group_by=tier|deployment） | Admin Bearer Token |
 
 #### 3.3.1 If-Match 头格式（必读，9-20 [P7]）
 
@@ -183,11 +183,11 @@ def _etag(resource_id: str, version: int) -> str:
 
 ```bash
 # 1. GET 拿到当前 ETag（响应头 ETag 字段）
-ETAG=$(curl -sI http://192.168.1.9:8181/tier/admin/v1/providers/provider_local \
+ETAG=$(curl -sI http://192.168.1.9:8181/v1/providers/provider_local \
   -H 'Authorization: Bearer dev-admin' | awk -F': ' 'tolower($1)=="etag"{gsub(/\r/,"");print $2}')
 
 # 2. PATCH 带上 If-Match（**值带双引号**）
-curl -X PATCH http://192.168.1.9:8181/tier/admin/v1/providers/provider_local \
+curl -X PATCH http://192.168.1.9:8181/v1/providers/provider_local \
   -H 'Authorization: Bearer dev-admin' \
   -H "If-Match: $ETAG" \
   -H 'Content-Type: application/json' \
@@ -204,7 +204,7 @@ curl -X PATCH http://192.168.1.9:8181/tier/admin/v1/providers/provider_local \
 
 #### 3.3.2 confirm_external_call 必读（9-21 [P4]）
 
-`/tier/admin/v1/providers/{id}/usage` POST 和 `/tier/admin/v1/probes` POST 要求 body 为：
+`/v1/providers/{id}/usage` POST 和 `/v1/probes` POST 要求 body 为：
 
 ```json
 {"confirm_external_call": true, "<其他字段>"}
@@ -212,7 +212,7 @@ curl -X PATCH http://192.168.1.9:8181/tier/admin/v1/providers/provider_local \
 
 - `Usage refresh`：`confirm_external_call` 必须为 `True`（account_usage.py:151），否则 400 `confirmation_required`
 - `Probes`：`confirm_external_call=True` 且 body 仅含 `deployment_id` + `confirm_external_call`（admin.py:106），否则 400 `confirmation_required`
-- 注：`/tier/admin/v1/usage` POST 的 body 限制更严（app.py:136）：只接受 `{confirm_external_call}` 单字段
+- 注：`/v1/usage` POST 的 body 限制更严（app.py:136）：只接受 `{confirm_external_call}` 单字段
 
 ---
 
@@ -276,35 +276,35 @@ curl -X PATCH http://192.168.1.9:8181/tier/admin/v1/providers/provider_local \
 
 | ID | Case | 方法 | 路径 | 预期 | Fixture / 依赖 | 类 |
 |----|------|------|------|------|----------------|----|
-| DP-USAGE-01 | usage 可查询 | GET | `/tier/v1/usage` | 200，body 含 `data` 数组与 `page` 元数据；data 可能为空（m5air 历史清空时）或非空 | 时间窗 `from=now-1h&to=now+1h`（UTC RFC3339）；**断言 data 是数组**（不强求空——m5air 上可能有历史 usage） | A |
-| DP-USAGE-02 | 有 usage 数据 | GET | `/tier/v1/usage` | 200，`data.length ≥ 1` | m5air 上跑过 DP-RESP-01 后查；时间窗 `from=now-5m&to=now+5m` 紧贴响应时间 | A |
-| DP-USAGE-03 | 分页游标 | GET | `/tier/v1/usage?limit=1` | 200，`data.length ≤ 1`，`page.has_more` 为 boolean，`page.next_cursor` 与 `has_more` 同步：has_more=true 时非空 | 时间窗同上 | A |
-| DP-USAGE-04 | 过期 cursor | GET | `/tier/v1/usage?cursor=<expired>` | 400，error `code="cursor_expired"` | **fixture**：跑 DP-RESP-01 拿到 cursor=`"sid:offset"`，再 sqlite3 直连 m5air `/Users/mlp/LLMTier-dev/state.sqlite3` 执行 `UPDATE query_snapshots SET expires_at='2020-01-01T00:00:00Z' WHERE snapshot_id='<sid>'`，然后用原 cursor 请求；cursor 格式必须严格是 `"<sid>:<offset>"`（usage.py:62） | A（需要 sqlite3 直连权限） |
+| DP-USAGE-01 | usage 可查询 | GET | `/v1/usage` | 200，body 含 `data` 数组与 `page` 元数据；data 可能为空（m5air 历史清空时）或非空 | 时间窗 `from=now-1h&to=now+1h`（UTC RFC3339）；**断言 data 是数组**（不强求空——m5air 上可能有历史 usage） | A |
+| DP-USAGE-02 | 有 usage 数据 | GET | `/v1/usage` | 200，`data.length ≥ 1` | m5air 上跑过 DP-RESP-01 后查；时间窗 `from=now-5m&to=now+5m` 紧贴响应时间 | A |
+| DP-USAGE-03 | 分页游标 | GET | `/v1/usage?limit=1` | 200，`data.length ≤ 1`，`page.has_more` 为 boolean，`page.next_cursor` 与 `has_more` 同步：has_more=true 时非空 | 时间窗同上 | A |
+| DP-USAGE-04 | 过期 cursor | GET | `/v1/usage?cursor=<expired>` | 400，error `code="cursor_expired"` | **fixture**：跑 DP-RESP-01 拿到 cursor=`"sid:offset"`，再 sqlite3 直连 m5air `/Users/mlp/LLMTier-dev/state.sqlite3` 执行 `UPDATE query_snapshots SET expires_at='2020-01-01T00:00:00Z' WHERE snapshot_id='<sid>'`，然后用原 cursor 请求；cursor 格式必须严格是 `"<sid>:<offset>"`（usage.py:62） | A（需要 sqlite3 直连权限） |
 
 ### 4.6 Admin — Providers CRUD
 
 | ID | Case | 方法 | 路径 | 预期 | Fixture / 依赖 | 类 |
 |----|------|------|------|------|----------------|----|
-| ADM-PROV-01 | 列出 providers | GET | `/tier/admin/v1/providers` | 200，`data[]` 含 m5air 现有 3 个 provider，`page.has_more=false` | m5air 现有 state | A |
-| ADM-PROV-02 | 创建 provider | POST | `/tier/admin/v1/providers` | 201，`id` 自动生成（hex 16 位），`has_secret=true` | body: `{name, kind, endpoint, secret_ref, enabled}`；**禁止传 `id`**（ProviderWrite schema `additionalProperties:false` 验证）；**禁止传 usage 子对象**（ProviderWrite 仅在 base + usage 嵌套允许；为简化，case 用最小集）；teardown DELETE | B |
-| ADM-PROV-03 | 获取存在的 provider | GET | `/tier/admin/v1/providers/{id}` | 200，含 `name`、`kind`、`endpoint`、`enabled`、`has_secret`、`usage.*`、`request_usage.*`、`version` | 用 m5air 现有 `provider_local` | A |
-| ADM-PROV-04 | 获取不存在的 provider | GET | `/tier/admin/v1/providers/{id}` | 404，error `code="not_found"` | id="provider_does_not_exist_xyz" | A |
-| ADM-PROV-05 | 更新 provider | PATCH | `/tier/admin/v1/providers/{id}` | 200，新 ETag `"<id>.v<N+1>"`，version+1 | **If-Match: `"<id>.v<N>"`**（带双引号，registry.py:25）；body `{"name":"at-updated"}`；teardown 恢复原名 | B |
-| ADM-PROV-06 | 更新缺 If-Match | PATCH | `/tier/admin/v1/providers/{id}` | 412，error `code="version_conflict"`，**body 含 `current_version` 字段** | **9-20 API-001 修复点**：若 current_version 缺失 → FAIL（不应再退化） | B |
-| ADM-PROV-07 | 更新过期 ETag | PATCH | `/tier/admin/v1/providers/{id}` | 412，error `code="version_conflict"` | If-Match: `"<id>.v999"`（明显过期） | B |
-| ADM-PROV-08 | 删除 provider | DELETE | `/tier/admin/v1/providers/{id}` | 204，无 body | If-Match 必需；teardown 必做 | B |
-| ADM-PROV-09 | 删除缺 If-Match | DELETE | `/tier/admin/v1/providers/{id}` | 412，error `code="version_conflict"` | 不带 If-Match | B |
-| ADM-PROV-10 | 删除有 active deployment 的 provider | DELETE | `/tier/admin/v1/providers/{id}` | 409，error `code="resource_in_use"` | provider 有引用的 deployment；B 类临时实例用 `_BASELINE_SETTINGS`（prov_b → depl_b）；**验证**：`registry.py:212-213`，有 active deployment 时 DELETE 拒绝 | B |
+| ADM-PROV-01 | 列出 providers | GET | `/v1/providers` | 200，`data[]` 含 m5air 现有 3 个 provider，`page.has_more=false` | m5air 现有 state | A |
+| ADM-PROV-02 | 创建 provider | POST | `/v1/providers` | 201，`id` 自动生成（hex 16 位），`has_secret=true` | body: `{name, kind, endpoint, secret_ref, enabled}`；**禁止传 `id`**（ProviderWrite schema `additionalProperties:false` 验证）；**禁止传 usage 子对象**（ProviderWrite 仅在 base + usage 嵌套允许；为简化，case 用最小集）；teardown DELETE | B |
+| ADM-PROV-03 | 获取存在的 provider | GET | `/v1/providers/{id}` | 200，含 `name`、`kind`、`endpoint`、`enabled`、`has_secret`、`usage.*`、`request_usage.*`、`version` | 用 m5air 现有 `provider_local` | A |
+| ADM-PROV-04 | 获取不存在的 provider | GET | `/v1/providers/{id}` | 404，error `code="not_found"` | id="provider_does_not_exist_xyz" | A |
+| ADM-PROV-05 | 更新 provider | PATCH | `/v1/providers/{id}` | 200，新 ETag `"<id>.v<N+1>"`，version+1 | **If-Match: `"<id>.v<N>"`**（带双引号，registry.py:25）；body `{"name":"at-updated"}`；teardown 恢复原名 | B |
+| ADM-PROV-06 | 更新缺 If-Match | PATCH | `/v1/providers/{id}` | 412，error `code="version_conflict"`，**body 含 `current_version` 字段** | **9-20 API-001 修复点**：若 current_version 缺失 → FAIL（不应再退化） | B |
+| ADM-PROV-07 | 更新过期 ETag | PATCH | `/v1/providers/{id}` | 412，error `code="version_conflict"` | If-Match: `"<id>.v999"`（明显过期） | B |
+| ADM-PROV-08 | 删除 provider | DELETE | `/v1/providers/{id}` | 204，无 body | If-Match 必需；teardown 必做 | B |
+| ADM-PROV-09 | 删除缺 If-Match | DELETE | `/v1/providers/{id}` | 412，error `code="version_conflict"` | 不带 If-Match | B |
+| ADM-PROV-10 | 删除有 active deployment 的 provider | DELETE | `/v1/providers/{id}` | 409，error `code="resource_in_use"` | provider 有引用的 deployment；B 类临时实例用 `_BASELINE_SETTINGS`（prov_b → depl_b）；**验证**：`registry.py:212-213`，有 active deployment 时 DELETE 拒绝 | B |
 
 ### 4.7 Admin — Deployments CRUD
 
 | ID | Case | 方法 | 路径 | 预期 | Fixture / 依赖 | 类 |
 |----|------|------|------|------|----------------|----|
-| ADM-DEPL-01 | 列出 deployments | GET | `/tier/admin/v1/deployments` | 200，`data[]` 含 m5air 现有 4 个 deployment | m5air 现有 state | A |
-| ADM-DEPL-02 | 创建 deployment | POST | `/tier/admin/v1/deployments` | 201，`id` 自动生成，含完整 `capabilities` | body: `{name, provider_id, backend_model, capabilities, enabled}`；**capabilities 必填全集**（registry.py:16 `CAPABILITY_KEYS`，12 个字段）：`{responses, embeddings, tools, structured_outputs, input_modalities, output_modalities, context_window, max_output_tokens, embedding_space_id, embedding_dimensions, embedding_max_batch_inputs, embedding_max_input_tokens}`；缺一个即 400 | B |
-| ADM-DEPL-03 | 获取 deployment | GET | `/tier/admin/v1/deployments/{id}` | 200 | 用 m5air 现有 `dep_local_gemma` | A |
-| ADM-DEPL-04 | 更新 deployment | PATCH | `/tier/admin/v1/deployments/{id}` | 200，新 ETag | **If-Match: `"<id>.v<N>"`**（带双引号）；body 只含 allowed 字段（`name`/`enabled`/`backend_model`/`capabilities`），其他如 `provider_id` 不在 patch allowed 集合（registry.py:243） | B |
-| ADM-DEPL-05 | 删除 deployment | DELETE | `/tier/admin/v1/deployments/{id}` | 204 | If-Match 必需；teardown | B |
+| ADM-DEPL-01 | 列出 deployments | GET | `/v1/deployments` | 200，`data[]` 含 m5air 现有 4 个 deployment | m5air 现有 state | A |
+| ADM-DEPL-02 | 创建 deployment | POST | `/v1/deployments` | 201，`id` 自动生成，含完整 `capabilities` | body: `{name, provider_id, backend_model, capabilities, enabled}`；**capabilities 必填全集**（registry.py:16 `CAPABILITY_KEYS`，12 个字段）：`{responses, embeddings, tools, structured_outputs, input_modalities, output_modalities, context_window, max_output_tokens, embedding_space_id, embedding_dimensions, embedding_max_batch_inputs, embedding_max_input_tokens}`；缺一个即 400 | B |
+| ADM-DEPL-03 | 获取 deployment | GET | `/v1/deployments/{id}` | 200 | 用 m5air 现有 `dep_local_gemma` | A |
+| ADM-DEPL-04 | 更新 deployment | PATCH | `/v1/deployments/{id}` | 200，新 ETag | **If-Match: `"<id>.v<N>"`**（带双引号）；body 只含 allowed 字段（`name`/`enabled`/`backend_model`/`capabilities`），其他如 `provider_id` 不在 patch allowed 集合（registry.py:243） | B |
+| ADM-DEPL-05 | 删除 deployment | DELETE | `/v1/deployments/{id}` | 204 | If-Match 必需；teardown | B |
 
 ### 4.8 Admin — Service Levels CRUD
 
@@ -315,13 +315,13 @@ curl -X PATCH http://192.168.1.9:8181/tier/admin/v1/providers/provider_local \
 
 | ID | Case | 方法 | 路径 | 预期 | Fixture / 依赖 | 类 |
 |----|------|------|------|------|----------------|----|
-| ADM-SL-01 | 列出 service-levels | GET | `/tier/admin/v1/service-levels` | 200，`data.length=7`，含全部 7 个 FIXED_TIERS | m5air 现有 state | A |
-| ADM-SL-02 | 创建非固定 tier | POST | `/tier/admin/v1/service-levels` | 400，error `code="invalid_request"` | body `{"id":"at-test-tier", "deployment_ids":["dep_local_gemma"], "enabled":true}`；非 FIXED_TIERS 一律拒；**9-21 [P4] 覆盖** | B |
-| ADM-SL-02b | 创建 FIXED_TIERS 已存在 | POST | `/tier/admin/v1/service-levels` | 409，error `code="resource_conflict"` | body `{"id":"Worker", ...}`；Worker 已存在 | B |
-| ADM-SL-03 | 获取 service-level | GET | `/tier/admin/v1/service-levels/{id}` | 200 | id="Worker" | A |
-| ADM-SL-04 | 更新 service-level | PATCH | `/tier/admin/v1/service-levels/{id}` | 200，新 ETag | If-Match 必需；body `{"enabled":false}`（allowed 字段）；teardown 恢复 true | B |
-| ADM-SL-04b | 更新非法字段 | PATCH | `/tier/admin/v1/service-levels/{id}` | 400，error `code="invalid_request"` | body `{"name":"x"}`；`name` 不在 allowed patch 字段 | B |
-| ADM-SL-05 | 删除 FIXED_TIER | DELETE | `/tier/admin/v1/service-levels/{id}` | 409，error `code="fixed_service_level"` | 不带 If-Match 也行（直接被 FIXED_TIER 逻辑拦）；带 If-Match 同样 409 | B |
+| ADM-SL-01 | 列出 service-levels | GET | `/v1/service-levels` | 200，`data.length=7`，含全部 7 个 FIXED_TIERS | m5air 现有 state | A |
+| ADM-SL-02 | 创建非固定 tier | POST | `/v1/service-levels` | 400，error `code="invalid_request"` | body `{"id":"at-test-tier", "deployment_ids":["dep_local_gemma"], "enabled":true}`；非 FIXED_TIERS 一律拒；**9-21 [P4] 覆盖** | B |
+| ADM-SL-02b | 创建 FIXED_TIERS 已存在 | POST | `/v1/service-levels` | 409，error `code="resource_conflict"` | body `{"id":"Worker", ...}`；Worker 已存在 | B |
+| ADM-SL-03 | 获取 service-level | GET | `/v1/service-levels/{id}` | 200 | id="Worker" | A |
+| ADM-SL-04 | 更新 service-level | PATCH | `/v1/service-levels/{id}` | 200，新 ETag | If-Match 必需；body `{"enabled":false}`（allowed 字段）；teardown 恢复 true | B |
+| ADM-SL-04b | 更新非法字段 | PATCH | `/v1/service-levels/{id}` | 400，error `code="invalid_request"` | body `{"name":"x"}`；`name` 不在 allowed patch 字段 | B |
+| ADM-SL-05 | 删除 FIXED_TIER | DELETE | `/v1/service-levels/{id}` | 409，error `code="fixed_service_level"` | 不带 If-Match 也行（直接被 FIXED_TIER 逻辑拦）；带 If-Match 同样 409 | B |
 
 > 注：v0.3.0-draft.5 新增加强 case 17 个（DP-MODELS-07, DP-RESP-12~15, ADM-PROV-11~13, ADM-DEPL-06~09, ADM-SL-06~07, AUTH-07），case 总数从 72 → 89（详见 §4.12）；§5.1 顺序表相应调整。
 
@@ -329,27 +329,27 @@ curl -X PATCH http://192.168.1.9:8181/tier/admin/v1/providers/provider_local \
 
 | ID | Case | 方法 | 路径 | 预期 | Fixture / 依赖 | 类 |
 |----|------|------|------|------|----------------|----|
-| ADM-PROBE-01 | 探测无 confirm | POST | `/tier/admin/v1/probes` | 400，error `code="confirmation_required"` | body `{}` 或 body 含 `deployment_id` 但缺 `confirm_external_call`（admin.py:106） | A |
-| ADM-PROBE-02 | 探测带 confirm | POST | `/tier/admin/v1/probes` | 200，含 `status` ∈ {healthy, unhealthy} | body `{"deployment_id":"dep_local_gemma","confirm_external_call":true}`（**仅这两字段**，body 必须 `set() == {"deployment_id","confirm_external_call"}`，admin.py:106） | A |
-| ADM-PROV-USAGE-01 | 获取 provider usage | GET | `/tier/admin/v1/providers/{id}/usage` | 200，body 含 snapshot | id="provider_local" | A |
-| ADM-PROV-USAGE-02 | 刷新 provider usage 缺 confirm | POST | `/tier/admin/v1/providers/{id}/usage` | 400，error `code="invalid_request"` | body `{}`；**实测**：`app.py:136` 先检查 `set(body) != {"confirm_external_call"}`，不满足则 400 `invalid_request`（在 `account_usage.py:151` 之前） | A |
-| ADM-PROV-USAGE-03 | 刷新带 confirm | POST | `/tier/admin/v1/providers/{id}/usage` | 200，snapshot 更新 | body `{"confirm_external_call":true}` | A |
-| ADM-ADMIN-USAGE-01 | 管理面 usage | GET | `/tier/admin/v1/usage` | 200，`data.length ≥ 0`，含聚合 | 时间窗 `from=now-1h&to=now+1h`（UTC RFC3339） | A |
-| ADM-ADMIN-USAGE-02 | 管理面 usage 分页 | GET | `/tier/admin/v1/usage?limit=1` | 200，`data.length ≤ 1`，`page.has_more` 为 boolean | 同上 | A |
-| ADM-ADMIN-USAGE-03 | 清空 usage 统计 | DELETE | `/tier/admin/v1/usage` | 200，`{"deleted": N}` | DELETE 无参数清空全部；可选 `?model=Worker` 或 `?deployment_id=xxx` 限定范围；`usage.py:reset_usage()` | A |
+| ADM-PROBE-01 | 探测无 confirm | POST | `/v1/probes` | 400，error `code="confirmation_required"` | body `{}` 或 body 含 `deployment_id` 但缺 `confirm_external_call`（admin.py:106） | A |
+| ADM-PROBE-02 | 探测带 confirm | POST | `/v1/probes` | 200，含 `status` ∈ {healthy, unhealthy} | body `{"deployment_id":"dep_local_gemma","confirm_external_call":true}`（**仅这两字段**，body 必须 `set() == {"deployment_id","confirm_external_call"}`，admin.py:106） | A |
+| ADM-PROV-USAGE-01 | 获取 provider usage | GET | `/v1/providers/{id}/usage` | 200，body 含 snapshot | id="provider_local" | A |
+| ADM-PROV-USAGE-02 | 刷新 provider usage 缺 confirm | POST | `/v1/providers/{id}/usage` | 400，error `code="invalid_request"` | body `{}`；**实测**：`app.py:136` 先检查 `set(body) != {"confirm_external_call"}`，不满足则 400 `invalid_request`（在 `account_usage.py:151` 之前） | A |
+| ADM-PROV-USAGE-03 | 刷新带 confirm | POST | `/v1/providers/{id}/usage` | 200，snapshot 更新 | body `{"confirm_external_call":true}` | A |
+| ADM-ADMIN-USAGE-01 | 管理面 usage | GET | `/v1/usage` | 200，`data.length ≥ 0`，含聚合 | 时间窗 `from=now-1h&to=now+1h`（UTC RFC3339） | A |
+| ADM-ADMIN-USAGE-02 | 管理面 usage 分页 | GET | `/v1/usage?limit=1` | 200，`data.length ≤ 1`，`page.has_more` 为 boolean | 同上 | A |
+| ADM-ADMIN-USAGE-03 | 清空 usage 统计 | DELETE | `/v1/usage` | 200，`{"deleted": N}` | DELETE 无参数清空全部；可选 `?model=Worker` 或 `?deployment_id=xxx` 限定范围；`usage.py:reset_usage()` | A |
 
 ### 4.10 Admin — Audit, Logs, Runtime, Stats
 
 | ID | Case | 方法 | 路径 | 预期 | Fixture / 依赖 | 类 |
 |----|------|------|------|------|----------------|----|
-| ADM-AUDIT-01 | 列出 audit 事件 | GET | `/tier/admin/v1/audit` | 200，字段齐全，**无敏感信息泄露** | m5air 上跑过若干 admin 操作（PATCH provider、POST deployment、刷新 usage）会留下 audit；**断言响应 body 不含 secret 字面值 "9832"、不含 .mnm_api_key 文件内容、不含 omlx-secret-key.txt 字面值**（**9-21 [P1]** 思路） | A |
-| ADM-AUDIT-02 | audit 分页 | GET | `/tier/admin/v1/audit?limit=1` | 200，`data.length=1`，`page.has_more=true` | m5air 上有 audit 历史 | A |
-| ADM-LOGS-01 | 列出 logs | GET | `/tier/admin/v1/logs?from=...&to=...` | 200，**无敏感信息泄露** | 时间窗 `from=now-1h&to=now+1h`；断言不含 secret 字面值 | A |
-| ADM-LOGS-02 | logs 缺时间范围 | GET | `/tier/admin/v1/logs` | 400，error `code="invalid_request"` | 不带 from/to query（app.py:127） | A |
-| ADM-RUNTIME-01 | 运行时状态 | GET | `/tier/admin/v1/runtime` | 200，body 含 runtime 快照 | 无 | A |
-| ADM-STATS-01 | 统计数据 | GET | `/tier/admin/v1/stats?from=...&to=...` | 200，含聚合 | 时间窗 `from=now-1h&to=now+1h`（RFC3339） | A |
-| ADM-STATS-02 | stats 分组 | GET | `/tier/admin/v1/stats?group_by=tier` | 200，按 tier 聚合 | 同 ADM-STATS-01 + group_by=tier（admin.py:37 允许 `tier`/`deployment`） | A |
-| ADM-STATS-03 | stats 缺时间范围 | GET | `/tier/admin/v1/stats` | 400，error `code="invalid_request"` | 不带 from/to query | A |
+| ADM-AUDIT-01 | 列出 audit 事件 | GET | `/v1/audit` | 200，字段齐全，**无敏感信息泄露** | m5air 上跑过若干 admin 操作（PATCH provider、POST deployment、刷新 usage）会留下 audit；**断言响应 body 不含 secret 字面值 "9832"、不含 .mnm_api_key 文件内容、不含 omlx-secret-key.txt 字面值**（**9-21 [P1]** 思路） | A |
+| ADM-AUDIT-02 | audit 分页 | GET | `/v1/audit?limit=1` | 200，`data.length=1`，`page.has_more=true` | m5air 上有 audit 历史 | A |
+| ADM-LOGS-01 | 列出 logs | GET | `/v1/logs?from=...&to=...` | 200，**无敏感信息泄露** | 时间窗 `from=now-1h&to=now+1h`；断言不含 secret 字面值 | A |
+| ADM-LOGS-02 | logs 缺时间范围 | GET | `/v1/logs` | 400，error `code="invalid_request"` | 不带 from/to query（app.py:127） | A |
+| ADM-RUNTIME-01 | 运行时状态 | GET | `/v1/runtime` | 200，body 含 runtime 快照 | 无 | A |
+| ADM-STATS-01 | 统计数据 | GET | `/v1/stats?from=...&to=...` | 200，含聚合 | 时间窗 `from=now-1h&to=now+1h`（RFC3339） | A |
+| ADM-STATS-02 | stats 分组 | GET | `/v1/stats?group_by=tier` | 200，按 tier 聚合 | 同 ADM-STATS-01 + group_by=tier（admin.py:37 允许 `tier`/`deployment`） | A |
+| ADM-STATS-03 | stats 缺时间范围 | GET | `/v1/stats` | 400，error `code="invalid_request"` | 不带 from/to query | A |
 
 ### 4.11 Auth — 认证与授权
 
@@ -359,8 +359,8 @@ curl -X PATCH http://192.168.1.9:8181/tier/admin/v1/providers/provider_local \
 |----|------|------|------|------|----------------|----|
 | AUTH-01 | Data 端点无 token（LAN trust） | GET | `/v1/models` | 200 | m5air 当前 `LLMTIER_TRUSTED_LAN_MODE=1`；客户端在 192.168.x | A |
 | AUTH-02 | Data 端点错误 token | GET | `/v1/models` | 403，error `code="permission_denied"` | Authorization: Bearer "bogus-token-xxx"；**实测**：`auth.py:56-57`，Bearer token 不匹配 → 403（不是 401） | A |
-| AUTH-03 | Admin 端点用 Data token | GET | `/tier/admin/v1/providers` | 403，error `code="permission_denied"` | Authorization: Bearer "dev-data"（data token 不是 admin principal）；实测 403 | A |
-| AUTH-04 | Admin 端点无 token（LAN trust） | GET | `/tier/admin/v1/providers` | 200 | 客户端在 192.168.x；无 Authorization header | A |
+| AUTH-03 | Admin 端点用 Data token | GET | `/v1/providers` | 403，error `code="permission_denied"` | Authorization: Bearer "dev-data"（data token 不是 admin principal）；实测 403 | A |
+| AUTH-04 | Admin 端点无 token（LAN trust） | GET | `/v1/providers` | 200 | 客户端在 192.168.x；无 Authorization header | A |
 | AUTH-05 | 公共端点无需 token | GET | `/healthz` | 200 | 无 Authorization header | A |
 | AUTH-06 | 伪造 Authorization header | GET | `/v1/models` | 403 | Authorization: Bearer ""（空字符串）；**实测**：Bearer 后空字符串不匹配 → 403（不是 401）；httpx 禁发此 header，需用 urllib 直发 | A |
 | AUTH-07 | auth 未配置 → 503 | GET | `/v1/models` | 503，error `code="auth_not_configured"` | `llmtier_b_no_auth` fixture（无 DEV_MODE、无 LLMTIER_AUTH_TOKENS）；实测 503 | B |
@@ -374,15 +374,15 @@ curl -X PATCH http://192.168.1.9:8181/tier/admin/v1/providers/provider_local \
 | DP-RESP-13 | truncation 静默忽略 | POST | `/v1/responses` | 200 | body 含 `truncation="auto"`；**实测**：200（静默忽略） | A |
 | DP-RESP-14 | max_tokens 作为别名 | POST | `/v1/responses` | 200 | body 含 `max_tokens=50`；**实测**：200（当作 `max_output_tokens` 处理） | A |
 | DP-RESP-15 | temperature/top_p 参数 | POST | `/v1/responses` | 200 | body 含 `temperature=0.7`；**实测**：200（被静默忽略或透传） | A |
-| ADM-PROV-11 | kind 字段枚举校验 | POST | `/tier/admin/v1/providers` | 400，error `code="invalid_request"` | kind="invalid_kind"（非 cloud/local） | B |
-| ADM-PROV-12 | secret_ref 格式校验（未实现） | POST | `/tier/admin/v1/providers` | 201（无格式校验） | secret_ref="not-a-ref-format"；**实测**：LLMTier 未对格式做校验，任意值均接受 | B |
-| ADM-PROV-13 | usage 子对象更新 | PATCH | `/tier/admin/v1/providers/{id}` | 200，usage 子字段更新 | body `{"usage": {"max_concurrent_requests": 5}}`；验证 registry.py:183 usage 字段校验 | B |
-| ADM-DEPL-06 | capabilities 缺字段 → 400 | POST | `/tier/admin/v1/deployments` | 400，error `code="invalid_request"` | capabilities 缺少任意一个必填字段 | B |
-| ADM-DEPL-07 | capabilities 含未知字段 → 400 | POST | `/tier/admin/v1/deployments` | 400，error `code="invalid_request"` | capabilities 含 `{"unknown_field": true}` | B |
-| ADM-DEPL-08 | provider_id 不存在 → 400 | POST | `/tier/admin/v1/deployments` | 400，error `code="invalid_request"` | provider_id="nonexistent_provider" | B |
-| ADM-DEPL-09 | provider_id 不可通过 PATCH 修改 | PATCH | `/tier/admin/v1/deployments/{id}` | 400，error `code="invalid_request"` | body `{"provider_id":"new_provider"}`（不在 allowed 集合） | B |
-| ADM-SL-06 | capability_conflict → 409 | PATCH | `/tier/admin/v1/service-levels/{id}` | 409，error `code="capability_conflict"` | PATCH 现有 fixed tier（Senior），改 deployment_ids → 含不同 context_window 的两个 deployment；`_capability_intersection` 因 non-boolean 值不同丢失 key → `set(capabilities) != CAPABILITY_KEYS` → registry.py:282 → 409 | B |
-| ADM-SL-07 | embedding_space_conflict → 409 | PATCH | `/tier/admin/v1/service-levels/Embedding-v1` | 409，error `code="embedding_space_conflict"` | PATCH Embedding-v1，改 deployment_ids → 含错误 embedding_space_id 的 embedding deployment；`capabilities.embedding_space_id != "bge-m3-dense-1024-v1"` → registry.py:285 → 409 | B |
+| ADM-PROV-11 | kind 字段枚举校验 | POST | `/v1/providers` | 400，error `code="invalid_request"` | kind="invalid_kind"（非 cloud/local） | B |
+| ADM-PROV-12 | secret_ref 格式校验（未实现） | POST | `/v1/providers` | 201（无格式校验） | secret_ref="not-a-ref-format"；**实测**：LLMTier 未对格式做校验，任意值均接受 | B |
+| ADM-PROV-13 | usage 子对象更新 | PATCH | `/v1/providers/{id}` | 200，usage 子字段更新 | body `{"usage": {"max_concurrent_requests": 5}}`；验证 registry.py:183 usage 字段校验 | B |
+| ADM-DEPL-06 | capabilities 缺字段 → 400 | POST | `/v1/deployments` | 400，error `code="invalid_request"` | capabilities 缺少任意一个必填字段 | B |
+| ADM-DEPL-07 | capabilities 含未知字段 → 400 | POST | `/v1/deployments` | 400，error `code="invalid_request"` | capabilities 含 `{"unknown_field": true}` | B |
+| ADM-DEPL-08 | provider_id 不存在 → 400 | POST | `/v1/deployments` | 400，error `code="invalid_request"` | provider_id="nonexistent_provider" | B |
+| ADM-DEPL-09 | provider_id 不可通过 PATCH 修改 | PATCH | `/v1/deployments/{id}` | 400，error `code="invalid_request"` | body `{"provider_id":"new_provider"}`（不在 allowed 集合） | B |
+| ADM-SL-06 | capability_conflict → 409 | PATCH | `/v1/service-levels/{id}` | 409，error `code="capability_conflict"` | PATCH 现有 fixed tier（Senior），改 deployment_ids → 含不同 context_window 的两个 deployment；`_capability_intersection` 因 non-boolean 值不同丢失 key → `set(capabilities) != CAPABILITY_KEYS` → registry.py:282 → 409 | B |
+| ADM-SL-07 | embedding_space_conflict → 409 | PATCH | `/v1/service-levels/Embedding-v1` | 409，error `code="embedding_space_conflict"` | PATCH Embedding-v1，改 deployment_ids → 含错误 embedding_space_id 的 embedding deployment；`capabilities.embedding_space_id != "bge-m3-dense-1024-v1"` → registry.py:285 → 409 | B |
 
 ---
 
@@ -522,7 +522,7 @@ OBS-01~03 → DP-MODELS-01~07 → DP-EMB-01~05
 | **P5** | `capabilities` 必填字段缺失导致 400 | 9-20 ST-14 PARTIAL, 9-21 smoke | ADM-DEPL-02 | §4.7 fixture 模板列 12 字段全集 |
 | **P6 / API-001** | PATCH 412 响应缺 `current_version` 字段 | 9-20 ST-13A | ADM-PROV-06 | §4.6 断言 body 含 `current_version`；registry.py:156 已实现 |
 | **P7** | If-Match ETag 格式 `id.vN` 未文档化 | 9-20 ST-13A | 所有 PATCH/DELETE 9 个 case | §3.3.1 给完整 curl 示例 + 测试头部注释 |
-| **P8** | `/tier/v1/usage` 缺 RFC3339 时间参数 | 9-20 smoke, 9-21 smoke | DP-USAGE-*, ADM-ADMIN-USAGE-* | §4.5/§4.9 fixture 列时间窗 RFC3339 字符串 |
+| **P8** | `/v1/usage` 缺 RFC3339 时间参数 | 9-20 smoke, 9-21 smoke | DP-USAGE-*, ADM-ADMIN-USAGE-* | §4.5/§4.9 fixture 列时间窗 RFC3339 字符串 |
 | **P9** | Provider create 多传 `id` 字段（auto-generated） | 9-21 smoke | ADM-PROV-02 | §4.6 fixture 模板明确禁止传 id（schema `additionalProperties:false` 也会拦） |
 | **P10** | 并发测试 `grep "error"` 误匹配 `"error":null` | 9-20 ST-22/23 | ADM-PROBE-02（并发场景） | 用 JSON 解析而非字符串 grep |
 | **P11 / FD-001** | FD 泄漏（50 req 后 FD=89） | 9-20 ST-18 | 不在本 plan 范围 | 引用 `llmtier-v0.3-test-plan.md` ST-18/ST-19 |

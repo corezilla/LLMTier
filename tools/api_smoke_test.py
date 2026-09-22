@@ -149,8 +149,8 @@ def test_data_endpoints():
     print(f"POST /v1/responses -> {code}")
     assert code in (200, 400, 404, 503), f"Expected 200/400/404/503, got {code}"
 
-    code, body = api_get("/tier/v1/usage?from=2020-01-01T00:00:00Z&to=2099-12-31T23:59:59Z", DATA_TOKEN)
-    print(f"GET /tier/v1/usage -> {code}")
+    code, body = api_get("/v1/usage?from=2020-01-01T00:00:00Z&to=2099-12-31T23:59:59Z", DATA_TOKEN)
+    print(f"GET /v1/usage -> {code}")
     assert code == 200, f"Expected 200, got {code}"
 
 
@@ -158,8 +158,8 @@ def test_admin_providers():
     print("\n=== Admin: Providers ===")
     global PROVIDER_ID, PROVIDER_ETAG
 
-    code, body = api_get("/tier/admin/v1/providers", ADMIN_TOKEN)
-    print(f"GET /tier/admin/v1/providers -> {code}")
+    code, body = api_get("/v1/providers", ADMIN_TOKEN)
+    print(f"GET /v1/providers -> {code}")
     assert code == 200, f"Expected 200, got {code}"
 
     data = {
@@ -169,14 +169,14 @@ def test_admin_providers():
         "secret_ref": None,
         "enabled": True
     }
-    code, body = api_post("/tier/admin/v1/providers", data, ADMIN_TOKEN)
-    print(f"POST /tier/admin/v1/providers -> {code}")
+    code, body = api_post("/v1/providers", data, ADMIN_TOKEN)
+    print(f"POST /v1/providers -> {code}")
     assert code == 201, f"Expected 201, got {code}"
     PROVIDER_ID = body["id"]
     PROVIDER_ETAG = '"' + PROVIDER_ID + '.v1"'
 
-    code, body = api_get("/tier/admin/v1/providers/" + PROVIDER_ID, ADMIN_TOKEN)
-    print(f"GET /tier/admin/v1/providers/{PROVIDER_ID} -> {code}")
+    code, body = api_get("/v1/providers/" + PROVIDER_ID, ADMIN_TOKEN)
+    print(f"GET /v1/providers/{PROVIDER_ID} -> {code}")
     assert code == 200, f"Expected 200, got {code}"
 
     # Note: PATCH would change the ETag, so skip it to keep DELETE working
@@ -186,8 +186,8 @@ def test_admin_deployments():
     print("\n=== Admin: Deployments ===")
     global DEPLOYMENT_ID, DEPLOYMENT_ETAG
 
-    code, body = api_get("/tier/admin/v1/deployments", ADMIN_TOKEN)
-    print(f"GET /tier/admin/v1/deployments -> {code}")
+    code, body = api_get("/v1/deployments", ADMIN_TOKEN)
+    print(f"GET /v1/deployments -> {code}")
     assert code == 200, f"Expected 200, got {code}"
 
     data = {
@@ -206,14 +206,14 @@ def test_admin_deployments():
         },
         "enabled": True
     }
-    code, body = api_post("/tier/admin/v1/deployments", data, ADMIN_TOKEN)
-    print(f"POST /tier/admin/v1/deployments -> {code}")
+    code, body = api_post("/v1/deployments", data, ADMIN_TOKEN)
+    print(f"POST /v1/deployments -> {code}")
     assert code == 201, f"Expected 201, got {code}"
     DEPLOYMENT_ID = body["id"]
     DEPLOYMENT_ETAG = '"' + DEPLOYMENT_ID + '.v1"'
 
-    code, body = api_get("/tier/admin/v1/deployments/" + DEPLOYMENT_ID, ADMIN_TOKEN)
-    print(f"GET /tier/admin/v1/deployments/{DEPLOYMENT_ID} -> {code}")
+    code, body = api_get("/v1/deployments/" + DEPLOYMENT_ID, ADMIN_TOKEN)
+    print(f"GET /v1/deployments/{DEPLOYMENT_ID} -> {code}")
     assert code == 200, f"Expected 200, got {code}"
 
     # Note: PATCH would change the ETag, so skip it to keep DELETE working
@@ -222,16 +222,16 @@ def test_admin_deployments():
 def test_admin_service_levels():
     print("\n=== Admin: Service Levels ===")
 
-    code, body = api_get("/tier/admin/v1/service-levels", ADMIN_TOKEN)
-    print(f"GET /tier/admin/v1/service-levels -> {code}")
+    code, body = api_get("/v1/service-levels", ADMIN_TOKEN)
+    print(f"GET /v1/service-levels -> {code}")
     assert code == 200, f"Expected 200, got {code}"
 
 
 def test_admin_runtime():
     print("\n=== Admin: Runtime ===")
 
-    code, body = api_get("/tier/admin/v1/runtime", ADMIN_TOKEN)
-    print(f"GET /tier/admin/v1/runtime -> {code}")
+    code, body = api_get("/v1/runtime", ADMIN_TOKEN)
+    print(f"GET /v1/runtime -> {code}")
     assert code == 200, f"Expected 200, got {code}"
 
 
@@ -239,8 +239,8 @@ def test_admin_probes():
     print("\n=== Admin: Probes ===")
 
     data = {"confirm_external_call": False}
-    code, body = api_post("/tier/admin/v1/probes", data, ADMIN_TOKEN)
-    print(f"POST /tier/admin/v1/probes (no confirm) -> {code}")
+    code, body = api_post("/v1/probes", data, ADMIN_TOKEN)
+    print(f"POST /v1/probes (no confirm) -> {code}")
     assert code == 400, f"Expected 400, got {code}"
 
 
@@ -248,8 +248,8 @@ def test_admin_usage():
     print("\n=== Admin: Usage ===")
 
     params = "?from=2020-01-01T00:00:00Z&to=2099-12-31T23:59:59Z"
-    code, body = api_get("/tier/admin/v1/usage" + params, ADMIN_TOKEN)
-    print(f"GET /tier/admin/v1/usage -> {code}")
+    code, body = api_get("/v1/usage" + params, ADMIN_TOKEN)
+    print(f"GET /v1/usage -> {code}")
     assert code == 200, f"Expected 200, got {code}"
 
 
@@ -257,8 +257,8 @@ def test_admin_audit():
     print("\n=== Admin: Audit ===")
 
     params = "?from=2020-01-01T00:00:00Z&to=2099-12-31T23:59:59Z&limit=10"
-    code, body = api_get("/tier/admin/v1/audit" + params, ADMIN_TOKEN)
-    print(f"GET /tier/admin/v1/audit -> {code}")
+    code, body = api_get("/v1/audit" + params, ADMIN_TOKEN)
+    print(f"GET /v1/audit -> {code}")
     assert code == 200, f"Expected 200, got {code}"
 
 
@@ -266,20 +266,20 @@ def test_admin_logs():
     print("\n=== Admin: Logs ===")
 
     params = "?from=2020-01-01T00:00:00Z&to=2099-12-31T23:59:59Z&limit=10"
-    code, body = api_get("/tier/admin/v1/logs" + params, ADMIN_TOKEN)
-    print(f"GET /tier/admin/v1/logs -> {code}")
+    code, body = api_get("/v1/logs" + params, ADMIN_TOKEN)
+    print(f"GET /v1/logs -> {code}")
     assert code == 200, f"Expected 200, got {code}"
 
 
 def test_delete_cleanup():
     print("\n=== Cleanup: DELETE ===")
 
-    code, _ = api_delete("/tier/admin/v1/deployments/" + DEPLOYMENT_ID, DEPLOYMENT_ETAG, ADMIN_TOKEN)
-    print(f"DELETE /tier/admin/v1/deployments/{DEPLOYMENT_ID} -> {code}")
+    code, _ = api_delete("/v1/deployments/" + DEPLOYMENT_ID, DEPLOYMENT_ETAG, ADMIN_TOKEN)
+    print(f"DELETE /v1/deployments/{DEPLOYMENT_ID} -> {code}")
     assert code == 204, f"Expected 204, got {code}"
 
-    code, _ = api_delete("/tier/admin/v1/providers/" + PROVIDER_ID, PROVIDER_ETAG, ADMIN_TOKEN)
-    print(f"DELETE /tier/admin/v1/providers/{PROVIDER_ID} -> {code}")
+    code, _ = api_delete("/v1/providers/" + PROVIDER_ID, PROVIDER_ETAG, ADMIN_TOKEN)
+    print(f"DELETE /v1/providers/{PROVIDER_ID} -> {code}")
     assert code == 204, f"Expected 204, got {code}"
 
 

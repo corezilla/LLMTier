@@ -1,6 +1,6 @@
 """Case ID: ADM-PROV-USAGE-02
 
-Endpoint: POST /tier/admin/v1/providers/{id}/usage (body 不是 {confirm_external_call})
+Endpoint: POST /v1/providers/{id}/usage (body 不是 {confirm_external_call})
 Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-admin
@@ -20,7 +20,7 @@ import pytest
 @pytest.mark.api_a
 def test_adm_prov_usage_02_invalid_body(admin_client):
     resp = admin_client.post(
-        "/tier/admin/v1/providers/provider_local/usage", json={},
+        "/v1/providers/provider_local/usage", json={},
     )
     assert resp.status_code == 400, f"返回 {resp.status_code}（期望 400）: {resp.text}"
     body = resp.json()

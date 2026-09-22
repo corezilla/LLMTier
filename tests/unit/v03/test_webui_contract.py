@@ -9,7 +9,7 @@ class WebUIContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):cls.html=(ROOT/"index.html").read_text();cls.js=(ROOT/"app.js").read_text();cls.css=(ROOT/"styles.css").read_text();cls.icons=(ROOT/"icons.svg").read_text()
     def test_four_pages(self):self.assertEqual(self.html.count('class="page'),4)
-    def test_stats_page_present(self):self.assertIn('data-page="stats"',self.html);self.assertIn('id="stats-thead"',self.html);self.assertIn('id="stats-body"',self.html);self.assertIn('/tier/admin/v1/stats',self.js)
+    def test_stats_page_present(self):self.assertIn('data-page="stats"',self.html);self.assertIn('id="stats-thead"',self.html);self.assertIn('id="stats-body"',self.html);self.assertIn('/v1/stats',self.js)
     def test_home_is_default(self):self.assertIn('id="home" class="page active"',self.html)
     def test_fixed_tier_tree_target(self):self.assertIn('id="tree"',self.html)
     def test_tree_has_no_column_title_row(self):
@@ -25,7 +25,7 @@ class WebUIContractTests(unittest.TestCase):
             self.assertIn(value,self.js)
         self.assertIn("(runtime.running||0)>0?'Running':'Idle'",self.js)
         self.assertIn("'backend-probe'",self.js)
-        self.assertIn("'/tier/admin/v1/probes'",self.js)
+        self.assertIn("'/v1/probes'",self.js)
         self.assertIn("if(!deployment.enabled)return ['Paused','muted']",self.js)
     def test_model_pause_resume_uses_existing_deployment_patch(self):
         self.assertIn("'backend-toggle'",self.js)
@@ -39,7 +39,7 @@ class WebUIContractTests(unittest.TestCase):
         self.assertIn('id="model-summary"',self.html)
         self.assertIn('id="load-summary"',self.html)
         self.assertIn("api('/healthz')",self.js)
-        self.assertIn("api('/tier/admin/v1/runtime')",self.js)
+        self.assertIn("api('/v1/runtime')",self.js)
         self.assertIn("item.availability==='available'",self.js)
         self.assertIn('document.lastModified',self.js)
     def test_root_route_assets_remain_same_origin(self):

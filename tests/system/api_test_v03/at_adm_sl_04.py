@@ -1,6 +1,6 @@
 """Case ID: ADM-SL-04
 
-Endpoint: PATCH /tier/admin/v1/service-levels/{id}
+Endpoint: PATCH /v1/service-levels/{id}
 Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-admin
@@ -20,14 +20,14 @@ import pytest
 
 @pytest.mark.api_b
 def test_adm_sl_04_update_service_level(admin_client_b):
-    get_resp = admin_client_b.get("/tier/admin/v1/service-levels/Junior")
+    get_resp = admin_client_b.get("/v1/service-levels/Junior")
     assert get_resp.status_code == 200
     tier = get_resp.json()
     original_etag = get_resp.headers.get("ETag")
     assert tier["enabled"] is True, "期望 baseline Junior 为 enabled=True"
 
     patch_resp = admin_client_b.patch(
-        "/tier/admin/v1/service-levels/Junior",
+        "/v1/service-levels/Junior",
         json={"enabled": False},
         headers={"If-Match": original_etag},
     )

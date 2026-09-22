@@ -1,6 +1,6 @@
 """Case ID: ADM-PROV-11
 
-Endpoint: POST /tier/admin/v1/providers
+Endpoint: POST /v1/providers
 Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-admin
@@ -27,7 +27,7 @@ def test_adm_prov_11_kind_enum_validation(admin_client_b):
         "secret_ref": None,
         "enabled": True,
     }
-    resp = admin_client_b.post("/tier/admin/v1/providers", json=body)
+    resp = admin_client_b.post("/v1/providers", json=body)
     assert resp.status_code == 400, f"期望 400，实际 {resp.status_code}: {resp.text}"
     err = resp.json().get("error") or {}
     assert err.get("code") == "invalid_request"

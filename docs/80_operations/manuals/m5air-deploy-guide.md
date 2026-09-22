@@ -84,10 +84,10 @@ ssh m5air "cd /Users/mlp/LLMTier-dev && \
 ssh m5air "curl http://localhost:8181/healthz"
 
 # 带 token 的 API 调用
-ssh m5air "curl http://localhost:8181/tier/admin/v1/providers -H 'Authorization: Bearer dev-admin'"
+ssh m5air "curl http://localhost:8181/v1/providers -H 'Authorization: Bearer dev-admin'"
 
 # 验证新功能（以 provider models 为例）
-ssh m5air "curl http://localhost:8181/tier/admin/v1/providers/provider_minimax/models -H 'Authorization: Bearer dev-admin'"
+ssh m5air "curl http://localhost:8181/v1/providers/provider_minimax/models -H 'Authorization: Bearer dev-admin'"
 
 # 查看日志
 ssh m5air "tail -5 /Users/mlp/LLMTier-dev/llmtier.log"

@@ -2,7 +2,7 @@
 
 With LLMTIER_TRUSTED_LAN_MODE=1, loopback / RFC1918 sources get
 auto-assigned principal. Verify:
-- /tier/v1/usage from loopback returns 200 (or 404 with auto principal
+- /v1/usage from loopback returns 200 (or 404 with auto principal
   in trace, not 401)
 - /v1/responses from loopback without Authorization is not rejected on
   auth (TRUSTED_LAN mode grants the consumer principal)
@@ -105,7 +105,7 @@ class ST25TrustedLanRouting(unittest.TestCase):
                 f"unexpected code {e.code}; expected admission failure, not auth")
 
     def test_admin_stats_without_bearer_works(self):
-        # /tier/admin/v1/* requires admin principal; in TRUSTED_LAN mode
+        # /v1/* requires admin principal; in TRUSTED_LAN mode
         # loopback source gets trusted-lan-operator. So the call is not
         # rejected on auth.
         with urllib.request.urlopen(

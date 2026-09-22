@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-release-and-operations` |
-| Document Version | `0.3.1-draft.4` |
+| Document Version | `0.3.1-draft.5` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-17` |
+| Last Modified Date | `2026-09-22` |
 | Template Version | `0.1.0` |
 | Template ID | `operations.release` |
 | Template Conformance | `tailored` |
@@ -92,7 +92,7 @@ V0.3 health/readiness 的 machine authority 是 OpenAPI；production route evide
 NOT_RUN/BLOCKED。
 
 当前 operator CLI 还提供 `debug`、`invoke`、`reset`、`reload` 和 `probe`。这些命令只覆盖现有实现；
-不得把它们当成 `/tier/admin/v1`、`/tier/v1` 或 `/v1` V0.3 surface 的替代入口。
+不得把它们当成 `/v1` V0.3 surface 的替代入口。
 
 ## 6. 升级、迁移、回滚和恢复
 

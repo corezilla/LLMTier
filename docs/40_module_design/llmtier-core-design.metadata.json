@@ -3,10 +3,12 @@
   "authority": "LLMTier",
   "document_id": "llmtier-core-module-design",
   "document_type": "design.definition",
-  "document_version": "0.3.0-draft.5",
+  "document_version": "0.3.0-draft.6",
   "title": "LLMTier V0.3 内部模块设计",
   "document_owner": "LLMTier",
-  "authors": ["llmtier"],
+  "authors": [
+    "llmtier"
+  ],
   "source_repository": "corezilla/LLMTier",
   "source_path": "docs/40_module_design/llmtier-core-design.md",
   "template_id": "design.definition",
@@ -16,12 +18,14 @@
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,
   "design_level": "module",
-  "domain": ["software"],
+  "domain": [
+    "software"
+  ],
   "status": "review",
   "visibility": "project",
   "reviewed_commit": null,
   "parent_document_id": "llmtier-system-design",
   "supersedes": null,
   "created_at": "2026-09-17",
-  "last_modified_at": "2026-09-18"
+  "last_modified_at": "2026-09-22"
 }

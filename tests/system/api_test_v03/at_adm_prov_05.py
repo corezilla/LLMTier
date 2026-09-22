@@ -1,6 +1,6 @@
 """Case ID: ADM-PROV-05
 
-Endpoint: PATCH /tier/admin/v1/providers/{id}
+Endpoint: PATCH /v1/providers/{id}
 Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-admin
@@ -22,7 +22,7 @@ import pytest
 
 @pytest.mark.api_b
 def test_adm_prov_05_update_provider(admin_client_b):
-    create_resp = admin_client_b.post("/tier/admin/v1/providers", json={
+    create_resp = admin_client_b.post("/v1/providers", json={
         "name": f"Provider To Update {uuid.uuid4().hex[:8]}",
         "kind": "cloud",
         "endpoint": "http://example.com/v1",
@@ -36,7 +36,7 @@ def test_adm_prov_05_update_provider(admin_client_b):
     original_etag = create_resp.headers["ETag"]
 
     patch_resp = admin_client_b.patch(
-        f"/tier/admin/v1/providers/{rid}",
+        f"/v1/providers/{rid}",
         json={"name": "Provider Updated Name", "enabled": False},
         headers={"If-Match": original_etag},
     )

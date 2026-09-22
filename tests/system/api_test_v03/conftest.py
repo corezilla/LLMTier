@@ -83,7 +83,7 @@ def _check_omlx(url: str, name: str) -> tuple[bool, str]:
 
 def _check_provider_omlx_m5mac_secret_ref() -> tuple[bool, str]:
     req = urllib.request.Request(
-        f"{M5AIR_BASE}/tier/admin/v1/providers/provider_omlx_m5mac",
+        f"{M5AIR_BASE}/v1/providers/provider_omlx_m5mac",
         headers={"Authorization": "Bearer dev-admin"},
     )
     try:

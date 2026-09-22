@@ -1,6 +1,6 @@
 """Case ID: ADM-SL-02b
 
-Endpoint: POST /tier/admin/v1/service-levels
+Endpoint: POST /v1/service-levels
 Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-admin
@@ -19,7 +19,7 @@ import pytest
 
 @pytest.mark.api_b
 def test_adm_sl_02b_create_duplicate_fixed_tier(admin_client_b):
-    resp = admin_client_b.post("/tier/admin/v1/service-levels", json={
+    resp = admin_client_b.post("/v1/service-levels", json={
         "id": "Senior",
         "deployment_ids": ["depl_b"],
         "enabled": True,

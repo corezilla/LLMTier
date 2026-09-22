@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-slinky-capacity-observation-control` |
-| Document Version | `0.3.2-draft.2` |
+| Document Version | `0.3.2-draft.3` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -14,7 +14,7 @@
 | Approver | 待定 |
 | Approval Date | 待定 |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-17` |
+| Last Modified Date | `2026-09-22` |
 | Template Version | `0.1.0` |
 | Template ID | `interfaces.control` |
 | Template Conformance | `tailored` |
@@ -33,7 +33,7 @@ Slinky Memory只消费标准Embeddings与token Usage。Slinky拥有材料分块�
 
 - `POST /v1/embeddings`
 - `GET /v1/models` / detail：选择 `capabilities.embeddings=true` 的 exact model
-- `GET /tier/v1/usage`：只读token事实
+- `GET /v1/usage`：只读token事实
 - `GET /healthz` / `/readyz`：环境检查
 
 没有capacity snapshot、Seat、Invocation、recovery、Cost或compatibility endpoint。

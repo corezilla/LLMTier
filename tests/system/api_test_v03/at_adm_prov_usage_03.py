@@ -1,6 +1,6 @@
 """Case ID: ADM-PROV-USAGE-03
 
-Endpoint: POST /tier/admin/v1/providers/{id}/usage (带 confirm)
+Endpoint: POST /v1/providers/{id}/usage (带 confirm)
 Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-admin
@@ -19,7 +19,7 @@ import pytest
 @pytest.mark.api_a
 def test_adm_prov_usage_03_refresh_with_confirm(admin_client):
     resp = admin_client.post(
-        "/tier/admin/v1/providers/provider_local/usage",
+        "/v1/providers/provider_local/usage",
         json={"confirm_external_call": True},
     )
     assert resp.status_code == 200, f"返回 {resp.status_code}: {resp.text}"

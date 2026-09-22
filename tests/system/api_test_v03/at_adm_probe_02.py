@@ -1,6 +1,6 @@
 """Case ID: ADM-PROBE-02
 
-Endpoint: POST /tier/admin/v1/probes (带 confirm + deployment_id)
+Endpoint: POST /v1/probes (带 confirm + deployment_id)
 Upstream Provider: 取决于 deployment
 Model: 取决于 deployment
 Auth: Bearer dev-admin
@@ -19,7 +19,7 @@ import pytest
 @pytest.mark.api_a
 def test_adm_probe_02_with_confirm(admin_client):
     resp = admin_client.post(
-        "/tier/admin/v1/probes",
+        "/v1/probes",
         json={"deployment_id": "dep_local_gemma", "confirm_external_call": True},
     )
     assert resp.status_code == 200, f"返回 {resp.status_code}: {resp.text}"

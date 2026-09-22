@@ -1,6 +1,6 @@
 """Case ID: DP-USAGE-04
 
-Endpoint: GET /tier/v1/usage?cursor=expired
+Endpoint: GET /v1/usage?cursor=expired
 Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-data
@@ -20,7 +20,7 @@ import pytest
 @pytest.mark.api_a
 def test_dp_usage_04_expired_cursor(api_client):
     resp = api_client.get(
-        "/tier/v1/usage",
+        "/v1/usage",
         params={
             "from": "2026-09-20T00:00:00Z",
             "to": "2026-09-22T00:00:00Z",

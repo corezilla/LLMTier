@@ -31,7 +31,7 @@
 
 ## 2. 被验证基线与环境
 
-基线：OpenAPI/manifest `0.3-simplified-candidate.7`、requirements/system/interface docs当前draft、v0.3 current fixtures。静态环境不等于production。
+基线：OpenAPI/manifest `0.3-simplified-candidate.8`、requirements/system/interface docs当前draft、v0.3 current fixtures。静态环境不等于production。
 
 ## 3. Verification 方法
 

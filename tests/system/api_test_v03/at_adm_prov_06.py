@@ -1,6 +1,6 @@
 """Case ID: ADM-PROV-06
 
-Endpoint: PATCH /tier/admin/v1/providers/{id}
+Endpoint: PATCH /v1/providers/{id}
 Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-admin
@@ -22,7 +22,7 @@ import pytest
 
 @pytest.mark.api_b
 def test_adm_prov_06_patch_missing_if_match(admin_client_b):
-    create_resp = admin_client_b.post("/tier/admin/v1/providers", json={
+    create_resp = admin_client_b.post("/v1/providers", json={
         "name": f"Provider For Patch Test {uuid.uuid4().hex[:8]}",
         "kind": "local",
         "endpoint": "http://localhost:8888/v1",
@@ -33,7 +33,7 @@ def test_adm_prov_06_patch_missing_if_match(admin_client_b):
     rid = create_resp.json()["id"]
 
     patch_resp = admin_client_b.patch(
-        f"/tier/admin/v1/providers/{rid}",
+        f"/v1/providers/{rid}",
         json={"name": "Should Not Be Applied"},
     )
     assert patch_resp.status_code == 412, f"期望 412，实际 {patch_resp.status_code}: {patch_resp.text}"

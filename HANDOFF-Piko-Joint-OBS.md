@@ -38,7 +38,7 @@ LLMTier 上游(oMLX)连接被拒（503 provider_unavailable）。当时只能靠
 
 ### 2.1 探针（probe）——现状已满足，要求不回归
 
-- **现状**：`GET /healthz`、`GET /readyz`、`POST /tier/admin/v1/probes`（按 deployment 探活）。
+- **现状**：`GET /healthz`、`GET /readyz`、`POST /v1/probes`（按 deployment 探活）。
 - **实现要求**：
   - LT-OBS 落地过程中**不得回归**：探针保持现有语义与性能；
   - probe 结果继续进入 audit（现状已满足）；
@@ -71,7 +71,7 @@ LLMTier 上游(oMLX)连接被拒（503 provider_unavailable）。当时只能靠
 
 ### 2.4 日志（logs）——现有 + LT-OBS-1 细化
 
-- **现状**：`/tier/admin/v1/logs`（HTTP 访问行：时间/level/module/message/request_id）+ service stdout。
+- **现状**：`/v1/logs`（HTTP 访问行：时间/level/module/message/request_id）+ service stdout。
 - **实现要求**：
   - LT-OBS-1 落地时，上游调用失败/异常的**错误体摘要**进入日志或快照查询（截断，见 §3 约束）；
   - `request_id` 保持贯穿（现状已满足）；

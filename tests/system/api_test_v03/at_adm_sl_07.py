@@ -1,6 +1,6 @@
 """Case ID: ADM-SL-07
 
-Endpoint: PATCH /tier/admin/v1/service-levels/Embedding-v1
+Endpoint: PATCH /v1/service-levels/Embedding-v1
 Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-admin
@@ -23,11 +23,11 @@ import pytest
 
 @pytest.mark.api_b
 def test_adm_sl_07_embedding_space_conflict(admin_client_b):
-    get_resp = admin_client_b.get("/tier/admin/v1/service-levels/Embedding-v1")
+    get_resp = admin_client_b.get("/v1/service-levels/Embedding-v1")
     assert get_resp.status_code == 200
     etag = get_resp.headers.get("ETag")
 
-    new_depl = admin_client_b.post("/tier/admin/v1/deployments", json={
+    new_depl = admin_client_b.post("/v1/deployments", json={
         "name": "Embedding Wrong Space",
         "provider_id": "prov_b",
         "backend_model": "embedding-model",
@@ -51,7 +51,7 @@ def test_adm_sl_07_embedding_space_conflict(admin_client_b):
     new_depl_id = new_depl.json()["id"]
 
     patch_resp = admin_client_b.patch(
-        "/tier/admin/v1/service-levels/Embedding-v1",
+        "/v1/service-levels/Embedding-v1",
         json={"deployment_ids": [new_depl_id]},
         headers={"If-Match": etag},
     )

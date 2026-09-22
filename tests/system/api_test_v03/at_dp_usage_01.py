@@ -1,6 +1,6 @@
 """Case ID: DP-USAGE-01
 
-Endpoint: GET /tier/v1/usage
+Endpoint: GET /v1/usage
 Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-data
@@ -19,7 +19,7 @@ import pytest
 @pytest.mark.api_a
 def test_dp_usage_01_queryable(api_client):
     resp = api_client.get(
-        "/tier/v1/usage",
+        "/v1/usage",
         params={"from": "2026-09-20T00:00:00Z", "to": "2026-09-22T00:00:00Z"},
     )
     assert resp.status_code == 200, f"返回 {resp.status_code}: {resp.text}"

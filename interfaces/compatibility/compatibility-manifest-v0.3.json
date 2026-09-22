@@ -1,5 +1,5 @@
 {
-  "manifest_version": "0.3-simplified-candidate.7",
+  "manifest_version": "0.3-simplified-candidate.8",
   "status": "candidate",
   "overall": {
     "contract_status": "candidate",
@@ -9,7 +9,7 @@
   "contract_authority": {
     "format": "openapi-3.1-json",
     "path": "openapi/llmtier-v0.3.openapi.json",
-    "version": "0.3-simplified-candidate.7"
+    "version": "0.3-simplified-candidate.8"
   },
   "architecture_boundary": {
     "pattern": "stateless_openai_compatible_model_gateway",
@@ -66,14 +66,14 @@
     },
     {
       "name": "token_usage_query",
-      "path": "/tier/v1/usage",
+      "path": "/v1/usage",
       "mode": "minimal_extension",
       "contract_status": "candidate",
       "runtime_activation": false
     },
     {
       "name": "admin_model_management",
-      "path": "/tier/admin/v1",
+      "path": "/v1",
       "mode": "operator_only",
       "conditional_mutation": "strong_etag_if_match",
       "contract_status": "candidate",
@@ -81,7 +81,7 @@
     },
     {
       "name": "provider_account_usage",
-      "path": "/tier/admin/v1/providers/{provider_id}/usage",
+      "path": "/v1/providers/{provider_id}/usage",
       "mode": "operator_explicit_refresh",
       "credential_policy": "minimax_api_key_or_volc_openapi_ak_sk",
       "automatic_polling": false,

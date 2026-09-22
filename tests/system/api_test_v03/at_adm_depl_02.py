@@ -1,6 +1,6 @@
 """Case ID: ADM-DEPL-02
 
-Endpoint: POST /tier/admin/v1/deployments
+Endpoint: POST /v1/deployments
 Upstream Provider: 无（测试 CRUD 路由）
 Model: 无
 Auth: Bearer dev-admin
@@ -40,7 +40,7 @@ def test_adm_depl_02_create_deployment(admin_client_b):
         },
         "enabled": True,
     }
-    resp = admin_client_b.post("/tier/admin/v1/deployments", json=body)
+    resp = admin_client_b.post("/v1/deployments", json=body)
     assert resp.status_code == 201, f"期望 201，实际 {resp.status_code}: {resp.text}"
     data = resp.json()
     assert data["name"] == body["name"]
@@ -54,6 +54,6 @@ def test_adm_depl_02_create_deployment(admin_client_b):
 
     rid = data["id"]
     etag = resp.headers["ETag"]
-    get_resp = admin_client_b.get(f"/tier/admin/v1/deployments/{rid}")
+    get_resp = admin_client_b.get(f"/v1/deployments/{rid}")
     assert get_resp.status_code == 200
     assert get_resp.headers.get("ETag") == etag

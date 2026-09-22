@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-core-module-design` |
-| Document Version | `0.3.0-draft.5` |
+| Document Version | `0.3.0-draft.6` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | 待定 |
 | Created Date | `2026-09-17` |
-| Last Modified Date | `2026-09-18` |
+| Last Modified Date | `2026-09-22` |
 | Template Version | `1.0.0` |
 | Template ID | `design.definition` |
 | Template Conformance | `tailored` |
@@ -27,7 +27,7 @@
 
 ## 1. 目的与边界
 
-本文把单一 LLMTier 软件系统拆成可独立实现和测试的内部模块，不建立虚构 subsystem。外部字段仍以 OpenAPI `0.3-simplified-candidate.7` 为唯一 authority。LLMTier 无 Agent 会话状态：Piko 每次提供完整输入并执行工具；Slinky 管业务与 Memory。
+本文把单一 LLMTier 软件系统拆成可独立实现和测试的内部模块，不建立虚构 subsystem。外部字段仍以 OpenAPI `0.3-simplified-candidate.8` 为唯一 authority。LLMTier 无 Agent 会话状态：Piko 每次提供完整输入并执行工具；Slinky 管业务与 Memory。
 
 ## 2. 模块图
 

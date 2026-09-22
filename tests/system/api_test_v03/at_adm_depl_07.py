@@ -1,6 +1,6 @@
 """Case ID: ADM-DEPL-07
 
-Endpoint: POST /tier/admin/v1/deployments
+Endpoint: POST /v1/deployments
 Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-admin
@@ -41,7 +41,7 @@ def test_adm_depl_07_capabilities_unknown_field(admin_client_b):
         },
         "enabled": True,
     }
-    resp = admin_client_b.post("/tier/admin/v1/deployments", json=body)
+    resp = admin_client_b.post("/v1/deployments", json=body)
     assert resp.status_code == 400, f"期望 400，实际 {resp.status_code}: {resp.text}"
     err = resp.json().get("error") or {}
     assert err.get("code") == "invalid_request"

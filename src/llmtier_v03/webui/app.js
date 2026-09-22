@@ -48,7 +48,7 @@ function providerOptions(selected){return state.providers.map(provider=>`<option
 async function fetchProviderModels(providerId){
   if(state.modelCache[providerId]) return state.modelCache[providerId];
   try{
-    const data=await api(`/tier/admin/v1/providers/${encodeURIComponent(providerId)}/models`);
+    const data=await api(`/v1/providers/${encodeURIComponent(providerId)}/models`);
     const models=data.data||[];
     state.modelCache[providerId]=models;
     return models;
@@ -62,12 +62,12 @@ function modelOptions(models,selected){
 }
 
 async function loadRegistry(){
-  const [providers,deployments,tiers,runtime]=await Promise.all([api('/tier/admin/v1/providers'),api('/tier/admin/v1/deployments'),api('/tier/admin/v1/service-levels'),api('/tier/admin/v1/runtime')]);
+  const [providers,deployments,tiers,runtime]=await Promise.all([api('/v1/providers'),api('/v1/deployments'),api('/v1/service-levels'),api('/v1/runtime')]);
   state={...state,providers:providers.data,deployments:deployments.data,tiers:tiers.data,runtime};
 }
 
 async function loadUsageSnapshot(){
-  const page=await api('/tier/admin/v1/usage?'+windowQuery()+'&limit=100');
+  const page=await api('/v1/usage?'+windowQuery()+'&limit=100');
   state.usage=page.data;
   return page;
 }
@@ -123,7 +123,7 @@ async function toggleDeployment(button){
   const runtime=state.runtime.deployments[deployment.id]||{};
   if(deployment.enabled&&(runtime.running||0)>0&&!window.confirm('Pause this model? New requests will stop, but active requests will continue.'))return;
   button.disabled=true;
-  try{await api(`/tier/admin/v1/deployments/${encodeURIComponent(deployment.id)}`,{method:'PATCH',headers:{'If-Match':etag(deployment)},body:{enabled:!deployment.enabled}});await loadHome()}
+  try{await api(`/v1/deployments/${encodeURIComponent(deployment.id)}`,{method:'PATCH',headers:{'If-Match':etag(deployment)},body:{enabled:!deployment.enabled}});await loadHome()}
   catch(error){window.alert(`${deployment.enabled?'Pause':'Resume'} failed: ${error.message}`);button.disabled=false}
 }
 
@@ -131,14 +131,14 @@ async function probeDeployment(button){
   const deploymentId=button.dataset.deployment;if(!deploymentId)return;
   if(!window.confirm('Probe this backend now? This makes one provider request.'))return;
   button.disabled=true;button.textContent='…';
-  try{await api('/tier/admin/v1/probes',{method:'POST',body:{deployment_id:deploymentId,confirm_external_call:true}});await loadHome()}
+  try{await api('/v1/probes',{method:'POST',body:{deployment_id:deploymentId,confirm_external_call:true}});await loadHome()}
   catch(error){window.alert(`Probe failed: ${error.message}`);button.disabled=false;button.innerHTML=iconSvg('refresh-cw')}
 }
 
 async function loadProviders(){
   try{
     await Promise.all([loadRegistry(),loadUsageSnapshot()]);
-    const entries=await Promise.all(state.providers.map(async provider=>[provider.id,await api(`/tier/admin/v1/providers/${encodeURIComponent(provider.id)}/usage`)]));
+    const entries=await Promise.all(state.providers.map(async provider=>[provider.id,await api(`/v1/providers/${encodeURIComponent(provider.id)}/usage`)]));
     state.providerUsage=Object.fromEntries(entries);
     await Promise.all(state.providers.map(async provider=>{await fetchProviderModels(provider.id)}));
     renderProviders()
@@ -189,7 +189,7 @@ async function refreshProviderUsage(button){
   const provider=state.providers.find(item=>item.id===button.dataset.provider);if(!provider)return;
   if(!window.confirm(`Refresh account usage for “${provider.name}” now? This contacts the provider API.`))return;
   button.disabled=true;
-  try{state.providerUsage[provider.id]=await api(`/tier/admin/v1/providers/${encodeURIComponent(provider.id)}/usage`,{method:'POST',body:{confirm_external_call:true}});renderProviders()}
+  try{state.providerUsage[provider.id]=await api(`/v1/providers/${encodeURIComponent(provider.id)}/usage`,{method:'POST',body:{confirm_external_call:true}});renderProviders()}
   catch(error){window.alert(`Usage refresh failed: ${error.message}`);button.disabled=false}
 }
 
@@ -197,7 +197,7 @@ async function addModelAsDeployment(providerId,model){
   const provider=state.providers.find(p=>p.id===providerId);if(!provider)return;
   const caps=provider.kind==='local'?{responses:true,embeddings:true,tools:false,structured_outputs:false,input_modalities:['text'],output_modalities:['text'],context_window:128000,max_output_tokens:16384}:{responses:true,embeddings:false,tools:false,structured_outputs:false,input_modalities:['text'],output_modalities:['text'],context_window:128000,max_output_tokens:16384};
   try{
-    await api('/tier/admin/v1/deployments',{method:'POST',body:{name:model,provider_id:providerId,backend_model:model,capabilities:caps,enabled:true}});
+    await api('/v1/deployments',{method:'POST',body:{name:model,provider_id:providerId,backend_model:model,capabilities:caps,enabled:true}});
     await loadProviders();
   }catch(error){window.alert(`Failed to add deployment: ${error.message}`)}
 }
@@ -238,8 +238,8 @@ async function saveProvider(event){
   const body={name:form.elements.name.value,kind:form.elements.kind.value,endpoint:form.elements.endpoint.value,enabled:form.elements.enabled.checked,usage};
   if(form.elements.secret_ref.value)body.secret_ref=form.elements.secret_ref.value;
   try{
-    if(id)await api(`/tier/admin/v1/providers/${encodeURIComponent(id)}`,{method:'PATCH',headers:{'If-Match':`"${id}.v${form.elements.provider_version.value}"`},body});
-    else await api('/tier/admin/v1/providers',{method:'POST',body:{...body,secret_ref:form.elements.secret_ref.value||null}});
+    if(id)await api(`/v1/providers/${encodeURIComponent(id)}`,{method:'PATCH',headers:{'If-Match':`"${id}.v${form.elements.provider_version.value}"`},body});
+    else await api('/v1/providers',{method:'POST',body:{...body,secret_ref:form.elements.secret_ref.value||null}});
     $('#provider-mask').classList.remove('open');await loadProviders();
   }catch(error){$('#provider-form-error').textContent=error.message}
 }
@@ -247,7 +247,7 @@ async function saveProvider(event){
 async function deleteProvider(id){
   const provider=state.providers.find(item=>item.id===id);if(!provider)return;
   if(!window.confirm(`Delete provider “${provider.name}”?`))return;
-  try{await api(`/tier/admin/v1/providers/${encodeURIComponent(id)}`,{method:'DELETE',headers:{'If-Match':etag(provider)}});await loadProviders()}
+  try{await api(`/v1/providers/${encodeURIComponent(id)}`,{method:'DELETE',headers:{'If-Match':etag(provider)}});await loadProviders()}
   catch(error){$('#provider-error').textContent=error.message}
 }
 
@@ -297,7 +297,7 @@ async function saveMember(event){
   const form=event.currentTarget.closest('form')||event.currentTarget,deployment=state.deployments.find(item=>item.id===form.dataset.deployment);
   if(!deployment)return;
   try{
-    await api(`/tier/admin/v1/deployments/${encodeURIComponent(deployment.id)}`,{method:'PATCH',headers:{'If-Match':etag(deployment)},body:{provider_id:form.elements.provider_id.value,name:form.elements.name.value,backend_model:form.elements.backend_model.value,enabled:true}});
+    await api(`/v1/deployments/${encodeURIComponent(deployment.id)}`,{method:'PATCH',headers:{'If-Match':etag(deployment)},body:{provider_id:form.elements.provider_id.value,name:form.elements.name.value,backend_model:form.elements.backend_model.value,enabled:true}});
     await loadRegistry();renderTree();renderTierMembers();
   }catch(error){$('#tier-form-error').textContent=error.message}
 }
@@ -307,7 +307,7 @@ async function removeMember(deploymentId){
   const deployment=state.deployments.find(item=>item.id===deploymentId);
   if(!window.confirm(`Remove “${deployment?.name||deploymentId}” from ${tier.id}? The deployment will not be deleted.`))return;
   try{
-    await api(`/tier/admin/v1/service-levels/${encodeURIComponent(tier.id)}`,{method:'PATCH',headers:{'If-Match':etag(tier)},body:{deployment_ids:tier.deployment_ids.filter(id=>id!==deploymentId)}});
+    await api(`/v1/service-levels/${encodeURIComponent(tier.id)}`,{method:'PATCH',headers:{'If-Match':etag(tier)},body:{deployment_ids:tier.deployment_ids.filter(id=>id!==deploymentId)}});
     await loadRegistry();renderTree();renderTierMembers();
   }catch(error){$('#tier-form-error').textContent=error.message}
 }
@@ -317,13 +317,13 @@ async function addMember(event){
   const form=event.currentTarget,tier=state.tiers.find(item=>item.id===editingTierId);if(!tier)return;
   const kind=tier.id==='Embedding-v1'?'embeddings':'responses';
   try{
-    const deployment=await api('/tier/admin/v1/deployments',{method:'POST',body:{name:form.elements.name.value,provider_id:form.elements.provider_id.value,backend_model:form.elements.backend_model.value,capabilities:caps(kind),enabled:true}});
-    await api(`/tier/admin/v1/service-levels/${encodeURIComponent(tier.id)}`,{method:'PATCH',headers:{'If-Match':etag(tier)},body:{deployment_ids:[...tier.deployment_ids,deployment.id]}});
+    const deployment=await api('/v1/deployments',{method:'POST',body:{name:form.elements.name.value,provider_id:form.elements.provider_id.value,backend_model:form.elements.backend_model.value,capabilities:caps(kind),enabled:true}});
+    await api(`/v1/service-levels/${encodeURIComponent(tier.id)}`,{method:'PATCH',headers:{'If-Match':etag(tier)},body:{deployment_ids:[...tier.deployment_ids,deployment.id]}});
     form.reset();await loadRegistry();renderTree();renderTierMembers();
   }catch(error){$('#tier-form-error').textContent=error.message}
 }
 
-async function loadUsage(){const page=await api('/tier/admin/v1/usage?'+windowQuery());$('#usage-body').innerHTML=page.data.map(item=>`<tr><td>${esc(item.request_id)}</td><td>${esc(item.model)}</td><td>${esc(item.endpoint)}</td><td>${item.input_tokens??'Unknown'}</td><td>${item.output_tokens??'Unknown'}</td><td>${item.total_tokens??'Unknown'}</td><td>${statusMarkup(item.measurement_status,item.measurement_status==='measured'?'ok':'warn')}</td></tr>`).join('')||'<tr><td colspan="7">No records</td></tr>'}
+async function loadUsage(){const page=await api('/v1/usage?'+windowQuery());$('#usage-body').innerHTML=page.data.map(item=>`<tr><td>${esc(item.request_id)}</td><td>${esc(item.model)}</td><td>${esc(item.endpoint)}</td><td>${item.input_tokens??'Unknown'}</td><td>${item.output_tokens??'Unknown'}</td><td>${item.total_tokens??'Unknown'}</td><td>${statusMarkup(item.measurement_status,item.measurement_status==='measured'?'ok':'warn')}</td></tr>`).join('')||'<tr><td colspan="7">No records</td></tr>'}
 
 const statsState={group_by:'tier',range:'24h'};
 function statsRange(){
@@ -338,7 +338,7 @@ const statsDeploymentThead=`<tr><th>Deployment</th><th>Provider</th><th>Backend 
 async function loadStats(){
   const {from,to}=statsRange();
   const group=statsState.group_by;
-  const data=await api(`/tier/admin/v1/stats?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&group_by=${group}`);
+  const data=await api(`/v1/stats?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&group_by=${group}`);
   $('#stats-title').textContent=group==='tier'?'Token Usage by Tier':'Token Usage by Deployment';
   $('#stats-window').textContent=`${new Date(from).toLocaleString()} → ${new Date(to).toLocaleString()}`;
   $('#stats-thead').innerHTML=group==='tier'?statsTierThead:statsDeploymentThead;
@@ -351,8 +351,8 @@ async function loadStats(){
     return `<tr><td><b>${esc(row.deployment_name)}</b><div class="subline">${esc(row.deployment_id)}</div></td><td>${esc(row.provider_name)}<div class="subline">${esc(row.provider_kind)}</div></td><td><code>${esc(row.backend_model)}</code></td><td>${metric(row.calls)}</td><td>${metric(row.measured_calls)}</td><td>${metric(row.input_tokens)}</td><td>${metric(row.output_tokens)}</td><td>${metric(row.total_tokens)}</td><td>${metric(row.cached_tokens)}</td><td>${metric(row.reasoning_tokens)}</td></tr>`;
   }).join('');
 }
-async function loadAudit(){const page=await api('/tier/admin/v1/audit');$('#audit-body').innerHTML=page.data.map(item=>`<tr><td>${new Date(item.created_at).toLocaleString()}</td><td>${esc(item.actor)}</td><td>${esc(item.action)}</td><td>${esc(item.target)}</td><td>${esc(item.result)}</td></tr>`).join('')||'<tr><td colspan="5">No records</td></tr>'}
-async function loadLogs(){const query=new URLSearchParams(windowQuery());if($('#log-level').value)query.set('level',$('#log-level').value);if($('#log-module').value)query.set('module',$('#log-module').value);const page=await api('/tier/admin/v1/logs?'+query);$('#log-body').innerHTML=page.data.map(item=>`<tr><td>${new Date(item.created_at).toLocaleString()}</td><td>${esc(item.level)}</td><td>${esc(item.module)}</td><td>${esc(item.event)}</td><td>${esc(item.message)}</td><td>${esc(item.request_id||'—')}</td></tr>`).join('')||'<tr><td colspan="6">No records</td></tr>'}
+async function loadAudit(){const page=await api('/v1/audit');$('#audit-body').innerHTML=page.data.map(item=>`<tr><td>${new Date(item.created_at).toLocaleString()}</td><td>${esc(item.actor)}</td><td>${esc(item.action)}</td><td>${esc(item.target)}</td><td>${esc(item.result)}</td></tr>`).join('')||'<tr><td colspan="5">No records</td></tr>'}
+async function loadLogs(){const query=new URLSearchParams(windowQuery());if($('#log-level').value)query.set('level',$('#log-level').value);if($('#log-module').value)query.set('module',$('#log-module').value);const page=await api('/v1/logs?'+query);$('#log-body').innerHTML=page.data.map(item=>`<tr><td>${new Date(item.created_at).toLocaleString()}</td><td>${esc(item.level)}</td><td>${esc(item.module)}</td><td>${esc(item.event)}</td><td>${esc(item.message)}</td><td>${esc(item.request_id||'—')}</td></tr>`).join('')||'<tr><td colspan="6">No records</td></tr>'}
 
 $$('nav button').forEach(button=>button.onclick=()=>{
   $$('nav button').forEach(item=>item.classList.remove('active'));button.classList.add('active');

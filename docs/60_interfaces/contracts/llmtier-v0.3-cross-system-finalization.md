@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-v0.3-cross-system-finalization` |
-| Document Version | `0.3.1-draft.5` |
+| Document Version | `0.3.1-draft.6` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -14,7 +14,7 @@
 | Approver | 待定 |
 | Approval Date | 待定 |
 | Created Date | `2026-09-16` |
-| Last Modified Date | `2026-09-18` |
+| Last Modified Date | `2026-09-22` |
 | Template Version | `0.1.0` |
 | Template ID | `contracts.specification` |
 | Template Conformance | `tailored` |
@@ -27,7 +27,7 @@
 
 ## 1. 定型范围与机器权威
 
-Current candidate是`0.3-simplified-candidate.7`。OpenAPI和manifest是唯一current machine artifacts；旧candidate只作历史审计。
+Current candidate是`0.3-simplified-candidate.8`。OpenAPI和manifest是唯一current machine artifacts；旧candidate只作历史审计。
 
 ## 2. Operation、鉴权与公共字段
 
@@ -52,7 +52,7 @@ Model只发布id、availability及responses/embeddings/tools/structured output/m
 
 ## 5. Usage 与 Slinky/Piko 消费
 
-Piko主要聚合response usage形成任务usage；必要时按request_id查询`/tier/v1/usage`。同request的更高record version替换旧值，response和query不得重复相加；store失败为typed 503。Slinky可为Memory/运维读取相同token事实。没有Cost、capacity或执行状态。
+Piko主要聚合response usage形成任务usage；必要时按request_id查询`/v1/usage`。同request的更高record version替换旧值，response和query不得重复相加；store失败为typed 503。Slinky可为Memory/运维读取相同token事实。没有Cost、capacity或执行状态。
 
 ## 6. Embeddings 完整契约
 

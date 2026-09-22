@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-runtime-isd` |
-| Document Version | `0.3.0-draft.6` |
+| Document Version | `0.3.0-draft.7` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | 待定 |
 | Created Date | `2026-09-17` |
-| Last Modified Date | `2026-09-17` |
+| Last Modified Date | `2026-09-22` |
 | Template Version | `1.0.0` |
 | Template ID | `design.definition` |
 | Template Conformance | `tailored` |
@@ -150,7 +150,7 @@ Web UI与Admin API同源；production反向代理完成operator SSO/MFA、短期
 
 ## 10. 日志与安全
 
-结构化日志写入`operational_logs`前先投影为level/module/event/有界message/request ID；只含route、logical model、status、latency、typed error和脱敏principal。禁止Authorization、Secret、prompt、response、embedding vector、opaque reasoning和原始headers。`GET /tier/admin/v1/logs`只读，首个页面在SQLite事务中冻结精确log ID并复用QuerySnapshot；每页重新鉴权，过期cursor返回400，store不可读返回503。日志保留7天；清理不得删除未过期snapshot引用项。主动probe、Secret变化、restart/restore都需要operator权限并写Audit。
+结构化日志写入`operational_logs`前先投影为level/module/event/有界message/request ID；只含route、logical model、status、latency、typed error和脱敏principal。禁止Authorization、Secret、prompt、response、embedding vector、opaque reasoning和原始headers。`GET /v1/logs`只读，首个页面在SQLite事务中冻结精确log ID并复用QuerySnapshot；每页重新鉴权，过期cursor返回400，store不可读返回503。日志保留7天；清理不得删除未过期snapshot引用项。主动probe、Secret变化、restart/restore都需要operator权限并写Audit。
 
 ## 11. 实现门禁
 

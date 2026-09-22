@@ -1,5 +1,5 @@
 {
-  "fixture_version": "0.3-simplified-candidate.7",
+  "fixture_version": "0.3-simplified-candidate.8",
   "cases": [
     {
       "id": "complete-input-per-call",
@@ -28,16 +28,16 @@
       "forbidden_paths": [
         "/v1/invocations/{invocation_id}",
         "/v1/responses/{response_id}",
-        "/tier/v1/capacity/snapshots/current",
-        "/tier/v1/compatibility",
-        "/tier/admin/v1/recovery-items",
-        "/tier/admin/v1/clients",
-        "/tier/admin/v1/sources"
+        "/v1/capacity/snapshots/current",
+        "/v1/compatibility",
+        "/v1/recovery-items",
+        "/v1/clients",
+        "/v1/sources"
       ]
     },
     {
       "id": "minimal-extension-justification",
-      "path": "/tier/v1/usage",
+      "path": "/v1/usage",
       "confirmed_need": "unified token usage query",
       "standard_gap": "OpenAI API has per-response usage but no cross-request query",
       "scope": "token facts only",

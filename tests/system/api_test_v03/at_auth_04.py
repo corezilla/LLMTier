@@ -1,6 +1,6 @@
 """Case ID: AUTH-04
 
-Endpoint: GET /tier/admin/v1/providers
+Endpoint: GET /v1/providers
 Upstream Provider: 无
 Model: 无
 Auth: 无（LAN trust）
@@ -19,7 +19,7 @@ import pytest
 @pytest.mark.api_a
 def test_auth_04_admin_endpoint_no_token_lan_trust():
     with httpx.Client(base_url="http://192.168.1.9:8181", timeout=10.0) as client:
-        resp = client.get("/tier/admin/v1/providers")
+        resp = client.get("/v1/providers")
     assert resp.status_code == 200, f"返回 {resp.status_code}（期望 200，LAN trust）: {resp.text}"
     body = resp.json()
     assert "data" in body

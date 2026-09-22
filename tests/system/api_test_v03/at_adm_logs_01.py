@@ -1,6 +1,6 @@
 """Case ID: ADM-LOGS-01
 
-Endpoint: GET /tier/admin/v1/logs?from=...&to=...
+Endpoint: GET /v1/logs?from=...&to=...
 Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-admin
@@ -18,7 +18,7 @@ import pytest
 @pytest.mark.api_a
 def test_adm_logs_01_list_no_secret_leak(admin_client):
     resp = admin_client.get(
-        "/tier/admin/v1/logs",
+        "/v1/logs",
         params={"from": "2026-09-20T00:00:00Z", "to": "2026-09-22T00:00:00Z"},
     )
     assert resp.status_code == 200, f"返回 {resp.status_code}: {resp.text}"

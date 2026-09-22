@@ -1,6 +1,6 @@
 """Case ID: DP-USAGE-03
 
-Endpoint: GET /tier/v1/usage?limit=1
+Endpoint: GET /v1/usage?limit=1
 Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-data
@@ -19,7 +19,7 @@ import pytest
 @pytest.mark.api_a
 def test_dp_usage_03_pagination(api_client):
     resp = api_client.get(
-        "/tier/v1/usage",
+        "/v1/usage",
         params={
             "from": "2026-09-20T00:00:00Z",
             "to": "2026-09-22T00:00:00Z",

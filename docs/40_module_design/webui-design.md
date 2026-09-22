@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-webui-module-design` |
-| Document Version | `0.3.0-draft.16` |
+| Document Version | `0.3.0-draft.17` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -14,7 +14,7 @@
 | Approver | LLMTier |
 | Approval Date | 待定 |
 | Created Date | `2026-09-17` |
-| Last Modified Date | `2026-09-18` |
+| Last Modified Date | `2026-09-22` |
 | Template Version | `1.0.0` |
 | Template ID | `design.definition` |
 | Template Conformance | `tailored` |
@@ -27,7 +27,7 @@
 
 ## 1. 设计原则
 
-Web UI is LLMTier's English-language operator console. It calls `/tier/admin/v1` on the same origin and never reads SQLite, settings, or Secrets directly. It keeps the established compact frame: fixed narrow sidebar, page title and status header, and one primary card per short page. It has five pages only: Home, Providers, Usage & Audit, Logs, and Diagnostics. Runtime status and Tier membership are managed from the Tier tree; provider connections are managed on the Providers page. There is no global Add Model action.
+Web UI is LLMTier's English-language operator console. It calls `/v1` on the same origin and never reads SQLite, settings, or Secrets directly. It keeps the established compact frame: fixed narrow sidebar, page title and status header, and one primary card per short page. It has five pages only: Home, Providers, Usage & Audit, Logs, and Diagnostics. Runtime status and Tier membership are managed from the Tier tree; provider connections are managed on the Providers page. There is no global Add Model action.
 
 [打开可切换的静态 Demo](demos/webui/index.html)。以下图片由该Demo在1280×760视口生成，作为布局和信息层级基线；它们不是已经接线的产品截图。
 
@@ -143,13 +143,13 @@ flowchart LR
 | Snapshot Capture | ● / ○ | ON / OFF |
 | Stats Aggregation | ● / ○ | ON / OFF |
 
-- Toggle 开关调用 `PATCH /tier/admin/v1/diagnostics` 实时切换
-- 状态反映 `GET /tier/admin/v1/diagnostics` 的 `snapshots_enabled` / `stats_enabled`
+- Toggle 开关调用 `PATCH /v1/diagnostics` 实时切换
+- 状态反映 `GET /v1/diagnostics` 的 `snapshots_enabled` / `stats_enabled`
 - 关闭时对应 tab 内容显示"Disabled"提示
 
 ### 6.2 Tab 1：Snapshots（快照）
 
-调用 `GET /tier/admin/v1/diagnostics/snapshots`，显示上游调用快照列表：
+调用 `GET /v1/diagnostics/snapshots`，显示上游调用快照列表：
 
 | 列 | 说明 |
 |---|---|
@@ -169,7 +169,7 @@ flowchart LR
 
 ### 6.3 Tab 2：Stats（统计）
 
-调用 `GET /tier/admin/v1/diagnostics/stats`，显示数据面聚合统计：
+调用 `GET /v1/diagnostics/stats`，显示数据面聚合统计：
 
 - **数字卡片**：`Request Count`、`Error 4xx`、`Error 5xx`
 - **延迟分布**：`P50`、`P95`、`Min`、`Max`、`Avg`
@@ -178,7 +178,7 @@ flowchart LR
 
 ### 6.4 Tab 3：Injection（注入配置）
 
-按 deployment 显示注入配置。调用 `GET /tier/admin/v1/deployments` 列表 + `GET /tier/admin/v1/deployments/{id}/diagnostics`：
+按 deployment 显示注入配置。调用 `GET /v1/deployments` 列表 + `GET /v1/deployments/{id}/diagnostics`：
 
 | Deployment | Type | Config | Enabled |
 |---|---|---|---|
@@ -187,12 +187,12 @@ flowchart LR
 | depl_b | rate_limit | retry_after_sec: 30 | [●──○] |
 
 - 每行有 Edit 按钮，点击弹出 PATCH 对话框
-- Edit 调用 `PATCH /tier/admin/v1/deployments/{id}/diagnostics`
+- Edit 调用 `PATCH /v1/deployments/{id}/diagnostics`
 - 新增注入：选择 type 后填写 config，保存后 POST
 
 ### 6.5 Tab 4：Trace（链路追踪）
 
-输入 Request ID 调用 `GET /tier/admin/v1/trace/{request_id}`，显示请求全链路：
+输入 Request ID 调用 `GET /v1/trace/{request_id}`，显示请求全链路：
 
 ```
 Request ID: req_abc123

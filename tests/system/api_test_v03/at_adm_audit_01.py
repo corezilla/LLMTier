@@ -1,6 +1,6 @@
 """Case ID: ADM-AUDIT-01
 
-Endpoint: GET /tier/admin/v1/audit
+Endpoint: GET /v1/audit
 Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-admin
@@ -17,7 +17,7 @@ import pytest
 
 @pytest.mark.api_a
 def test_adm_audit_01_list_no_secret_leak(admin_client):
-    resp = admin_client.get("/tier/admin/v1/audit")
+    resp = admin_client.get("/v1/audit")
     assert resp.status_code == 200, f"返回 {resp.status_code}: {resp.text}"
     body = resp.json()
     data = body.get("data") or []

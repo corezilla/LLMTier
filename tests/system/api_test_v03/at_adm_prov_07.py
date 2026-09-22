@@ -1,6 +1,6 @@
 """Case ID: ADM-PROV-07
 
-Endpoint: PATCH /tier/admin/v1/providers/{id}
+Endpoint: PATCH /v1/providers/{id}
 Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-admin
@@ -20,7 +20,7 @@ import pytest
 
 @pytest.mark.api_b
 def test_adm_prov_07_patch_wrong_etag(admin_client_b):
-    create_resp = admin_client_b.post("/tier/admin/v1/providers", json={
+    create_resp = admin_client_b.post("/v1/providers", json={
         "name": f"Provider For ETag Test {uuid.uuid4().hex[:8]}",
         "kind": "local",
         "endpoint": "http://localhost:7777/v1",
@@ -32,7 +32,7 @@ def test_adm_prov_07_patch_wrong_etag(admin_client_b):
 
     bad_etag = '"' + rid + '.v99"'
     patch_resp = admin_client_b.patch(
-        f"/tier/admin/v1/providers/{rid}",
+        f"/v1/providers/{rid}",
         json={"name": "Stale Update"},
         headers={"If-Match": bad_etag},
     )

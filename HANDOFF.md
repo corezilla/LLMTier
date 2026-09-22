@@ -8,7 +8,7 @@
 - 当前分支：`docs/std-draft21-upgrade`；HEAD 与该远端分支在交接检查时均为 `868a3eecbc929ea8218a5cd8c3ef7780a1750187`。不是 `main`。
 - 本机工作树的 `.claude/`、`AGENTS.md`、`CLAUDE.md` 是已有未跟踪项；不要顺手加入、覆盖或清理。
 - 开发目标是 `src/llmtier_v03/` 的单节点 OpenAI-compatible 网关。`src/` 中的 legacy Tier 实现及 `docs/99_reference/` 仅作历史参考，不是并行 consumer 路径或配置 authority。
-- 当前 OpenAPI/compatibility manifest 版本为 `0.3-simplified-candidate.7`，`overall.runtime_activation=false`。已有局域网测试服务不等于生产激活。
+- 当前 OpenAPI/compatibility manifest 版本为 `0.3-simplified-candidate.8`，`overall.runtime_activation=false`。已有局域网测试服务不等于生产激活。
 - 当前锁定 STD 为 `0.1.0-draft.26`、revision `f892b167b9fc7b8beb9dbdebb9209009d4334ce1`（`docs/std.lock.json`）。不要因为本机 STD checkout 不匹配而擅自升级锁。
 
 阅读顺序：`README.md` → 本文件 → `docs/80_operations/m5air-operations-manual.md` → `docs/20_system_design/llmtier-system-design.md` → `docs/40_module_design/llmtier-core-design.md`、`docs/40_module_design/webui-design.md` → `interfaces/openapi/llmtier-v0.3.openapi.json` 与 `interfaces/compatibility/compatibility-manifest-v0.3.json` → 相关测试。字段以 OpenAPI 为准；历史文档或旧 UI 不得覆盖它。`README.md` 和部分计划/验证文档仍有旧“中文三页 UI”“/ui/ 为入口”等叙述，修改相关功能前应与实际代码及手册核对。
@@ -86,7 +86,7 @@ git diff --check
 
 7. **§5.2 测试补完（2026-09-19 18:00 HKT）**：
 
-   - **T7 measured** ✓（OMLX 修复后）：临时禁用 Worker 路由中排在前面的 dep_minimax_m27 / dep_volc_deepseek（routes 经 dep_local_gemma 走 OMLX），发送 `{"model":"Worker","input":"say hi in one word","stream":true,"store":false,"max_output_tokens":16}`，得到 200 + SSE 含 `"usage":{"input_tokens":14,"output_tokens":3,"total_tokens":17}`；`/tier/admin/v1/usage` 出现 `measurement_status="measured" source="provider"` 记录。之后 PATCH 回 enabled=true 还原。
+   - **T7 measured** ✓（OMLX 修复后）：临时禁用 Worker 路由中排在前面的 dep_minimax_m27 / dep_volc_deepseek（routes 经 dep_local_gemma 走 OMLX），发送 `{"model":"Worker","input":"say hi in one word","stream":true,"store":false,"max_output_tokens":16}`，得到 200 + SSE 含 `"usage":{"input_tokens":14,"output_tokens":3,"total_tokens":17}`；`/v1/usage` 出现 `measurement_status="measured" source="provider"` 记录。之后 PATCH 回 enabled=true 还原。
    - **T6 并发限速** ◐（部分）：临时禁 dep_volc_deepseek 让 Worker 仅 dep_minimax → dep_local 顺序路由，6 个并发 `Responses` 请求得到 4×200 / 2×503（OMLX localhost 并发连接受限 + provider_minimax `max_in_flight=1` 排队）；FD 数 41 → 46，稳。完整 RPM / interval 验证需要 cloud provider 突发流量（已超出本轮范围）。`routing.py:_provider_ready_in` 的 interval / RPM 计算与 `_limit` / `_inflight` 的 in-flight 计数也已实现并在生产路径生效。
    - **T3 外部超时** — 按 operator 决定跳过（fake-only）；不入 commit。
 

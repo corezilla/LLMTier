@@ -72,7 +72,7 @@
           "default": true
         },
         "usage": {
-          "description": "用量限制配置。可选，创建后通过 PATCH `/tier/admin/v1/providers/{id}` 更新。",
+          "description": "用量限制配置。可选，创建后通过 PATCH `/v1/providers/{id}` 更新。",
           "$ref": "#/$defs/ProviderUsage"
         }
       }

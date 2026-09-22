@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-diagnostics-module-design` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -173,11 +173,11 @@ class DiagnosticService:
 
 | 路由 | 方法 | 描述 |
 |---|---|---|
-| `GET /tier/admin/v1/diagnostics` | GET, PATCH | **全局调试开关**（snapshots_enabled / stats_enabled） |
-| `GET /tier/admin/v1/diagnostics/snapshots` | GET | LT-OBS-1 快照查询（分页） |
-| `GET /tier/admin/v1/diagnostics/stats` | GET | LT-OBS-2 统计查询 |
-| `GET /tier/admin/v1/deployments/{id}/diagnostics` | GET, PATCH | LT-OBS-5 注入配置查询/修改 |
-| `GET /tier/admin/v1/trace/{request_id}` | GET | LT-OBS-6 trace 查询 |
+| `GET /v1/diagnostics` | GET, PATCH | **全局调试开关**（snapshots_enabled / stats_enabled） |
+| `GET /v1/diagnostics/snapshots` | GET | LT-OBS-1 快照查询（分页） |
+| `GET /v1/diagnostics/stats` | GET | LT-OBS-2 统计查询 |
+| `GET /v1/deployments/{id}/diagnostics` | GET, PATCH | LT-OBS-5 注入配置查询/修改 |
+| `GET /v1/trace/{request_id}` | GET | LT-OBS-6 trace 查询 |
 
 ### 4.3 WebUI 诊断页面
 
@@ -187,15 +187,15 @@ class DiagnosticService:
 
 | Tab | 内容 | 对应 API |
 |---|---|---|
-| 快照 | 快照列表查询、分页、筛选 | `GET /tier/admin/v1/diagnostics/snapshots` |
-| 统计 | P50/P95/请求数/错误数 图表 | `GET /tier/admin/v1/diagnostics/stats` |
-| 注入 | per-deployment 注入配置开关 | `GET/PATCH /tier/admin/v1/deployments/{id}/diagnostics` |
-| Trace | request_id 查询 trace | `GET /tier/admin/v1/trace/{request_id}` |
+| 快照 | 快照列表查询、分页、筛选 | `GET /v1/diagnostics/snapshots` |
+| 统计 | P50/P95/请求数/错误数 图表 | `GET /v1/diagnostics/stats` |
+| 注入 | per-deployment 注入配置开关 | `GET/PATCH /v1/deployments/{id}/diagnostics` |
+| Trace | request_id 查询 trace | `GET /v1/trace/{request_id}` |
 
 **全局开关**：`/ui/diagnostics` 页面顶部有全局调试开关 toggle：
 - `快照捕获：`ON/OFF
 - `统计聚合：`ON/OFF
-- 对应 `GET/PATCH /tier/admin/v1/diagnostics`
+- 对应 `GET/PATCH /v1/diagnostics`
 
 **布局参考**：
 

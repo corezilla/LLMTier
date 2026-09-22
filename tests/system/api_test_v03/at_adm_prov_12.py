@@ -1,6 +1,6 @@
 """Case ID: ADM-PROV-12
 
-Endpoint: POST /tier/admin/v1/providers
+Endpoint: POST /v1/providers
 Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-admin
@@ -29,5 +29,5 @@ def test_adm_prov_12_secret_ref_format_validation(admin_client_b):
         "secret_ref": "not-a-ref-format",
         "enabled": True,
     }
-    resp = admin_client_b.post("/tier/admin/v1/providers", json=body)
+    resp = admin_client_b.post("/v1/providers", json=body)
     assert resp.status_code == 201, f"期望 201，实际 {resp.status_code}: {resp.text}"

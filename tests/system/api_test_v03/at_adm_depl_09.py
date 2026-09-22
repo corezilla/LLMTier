@@ -1,6 +1,6 @@
 """Case ID: ADM-DEPL-09
 
-Endpoint: PATCH /tier/admin/v1/deployments/{id}
+Endpoint: PATCH /v1/deployments/{id}
 Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-admin
@@ -20,12 +20,12 @@ BASELINE_PROVIDER_ID = "prov_b"
 
 @pytest.mark.api_b
 def test_adm_depl_09_provider_id_immutable(admin_client_b):
-    depl_resp = admin_client_b.get("/tier/admin/v1/deployments/depl_b")
+    depl_resp = admin_client_b.get("/v1/deployments/depl_b")
     assert depl_resp.status_code == 200
     etag = depl_resp.headers.get("ETag")
 
     patch_resp = admin_client_b.patch(
-        "/tier/admin/v1/deployments/depl_b",
+        "/v1/deployments/depl_b",
         json={"provider_id": "nonexistent_provider"},
         headers={"If-Match": etag},
     )

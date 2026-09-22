@@ -15,7 +15,7 @@ from . import __version__
 from .admin import AdminService
 from .account_usage import AccountUsageService
 from .audit import AuditLog
-from .auth import authenticate, unauthenticated_principal
+from .auth import Principal, authenticate, authenticate_any, unauthenticated_principal
 from .embeddings import EmbeddingsService
 from .errors import ApiError
 from .health import health_view, readiness_view
@@ -82,6 +82,10 @@ def handler_factory(app: Application):
                 return principal
             return authenticate(self.headers, role)
 
+        def _auth_either(self) -> tuple[Principal, bool]:
+            principal = authenticate_any(self.headers, self.client_address[0])
+            return principal, principal.role == "admin"
+
         def _dispatch(self):
             parsed = urlparse(self.path); path, query = parsed.path, parse_qs(parsed.query)
             method = self.command
@@ -101,33 +105,39 @@ def handler_factory(app: Application):
                 return
             if path == "/v1/embeddings" and method == "POST":
                 principal = self._auth(); return self._json(200, app.embeddings.create(principal.principal_id, self.request_id, self._body()))
-            if path == "/tier/v1/usage" and method == "GET":
-                principal = self._auth(); return self._json(200, app.usage.page(principal.principal_id, query.get("cursor", [None])[0], int(query.get("limit", [100])[0]), since=query.get("from", [None])[0], until=query.get("to", [None])[0], model=query.get("model", [None])[0], request_id=query.get("request_id", [None])[0]))
+            if path == "/v1/usage":
+                principal, is_admin = self._auth_either()
+                if method == "GET":
+                    return self._json(200, app.usage.page(principal.principal_id, query.get("cursor", [None])[0], int(query.get("limit", [100])[0]), admin=is_admin, since=query.get("from", [None])[0], until=query.get("to", [None])[0], model=query.get("model", [None])[0], request_id=query.get("request_id", [None])[0]))
+                if method == "DELETE":
+                    if not is_admin: raise ApiError(403, "permission_denied", "Admin credential required")
+                    result = app.admin.mutate(principal.principal_id, "usage.reset", "all", self.request_id, lambda: app.usage.reset_usage(model=query.get("model", [None])[0], deployment_id=query.get("deployment_id", [None])[0]))
+                    return self._json(200, result)
             principal = self._auth("admin")
-            if path == "/tier/admin/v1/providers":
+            if path == "/v1/providers":
                 if method == "GET": return self._json(200, app.admin.page(app.registry.list_providers(), principal.principal_id, "providers", query.get("cursor", [None])[0], int(query.get("limit", [100])[0])))
                 if method == "POST":
                     view, etag = app.admin.mutate(principal.principal_id, "provider.create", "provider", self.request_id, lambda: app.registry.create_provider(self._body()))
                     return self._json(201, view, {"ETag": etag})
-            if path == "/tier/admin/v1/deployments":
+            if path == "/v1/deployments":
                 if method == "GET": return self._json(200, app.admin.page(app.registry.list_deployments(), principal.principal_id, "deployments", query.get("cursor", [None])[0], int(query.get("limit", [100])[0])))
                 if method == "POST":
                     view, etag = app.admin.mutate(principal.principal_id, "deployment.create", "deployment", self.request_id, lambda: app.registry.create_deployment(self._body()))
                     return self._json(201, view, {"ETag": etag})
-            if path == "/tier/admin/v1/service-levels":
+            if path == "/v1/service-levels":
                 if method == "GET": return self._json(200, app.admin.page(app.registry.list_service_levels(), principal.principal_id, "service-levels", query.get("cursor", [None])[0], int(query.get("limit", [100])[0])))
                 if method == "POST":
                     view, etag = app.admin.mutate(principal.principal_id, "service_level.create", "service_level", self.request_id, lambda: app.registry.create_service_level(self._body()))
                     return self._json(201, view, {"ETag": etag})
-            if path == "/tier/admin/v1/runtime" and method == "GET":
+            if path == "/v1/runtime" and method == "GET":
                 return self._json(200, app.router.snapshot())
-            match = re.fullmatch(r"/tier/admin/v1/stats", path)
+            match = re.fullmatch(r"/v1/stats", path)
             if match and method == "GET":
                 since, until = query.get("from", [None])[0], query.get("to", [None])[0]
                 if not since or not until: raise ApiError(400, "invalid_request", "from and to are required")
                 group_by = (query.get("group_by", ["tier"])[0] or "tier").lower()
                 return self._json(200, app.admin.stats(since, until, group_by))
-            match = re.fullmatch(r"/tier/admin/v1/providers/([^/]+)/usage", path)
+            match = re.fullmatch(r"/v1/providers/([^/]+)/usage", path)
             if match:
                 provider_id = match.group(1)
                 if method == "GET": return self._json(200, app.account_usage.latest(provider_id))
@@ -136,7 +146,7 @@ def handler_factory(app: Application):
                     if set(body) != {"confirm_external_call"}: raise ApiError(400, "invalid_request", "Usage refresh accepts only confirm_external_call")
                     result = app.admin.mutate(principal.principal_id, "provider.usage.refresh", provider_id, self.request_id, lambda: app.account_usage.refresh(provider_id, body.get("confirm_external_call") is True))
                     return self._json(200, result)
-            match = re.fullmatch(r"/tier/admin/v1/providers/([^/]+)/models", path)
+            match = re.fullmatch(r"/v1/providers/([^/]+)/models", path)
             if match:
                 provider_id = match.group(1)
                 if method == "GET":
@@ -147,7 +157,7 @@ def handler_factory(app: Application):
                 ("deployment", "deployments", app.registry.get_deployment, app.registry.update_deployment, app.registry.delete_deployment),
                 ("service_level", "service-levels", app.registry.get_service_level, app.registry.update_service_level, app.registry.delete_service_level),
             ):
-                match = re.fullmatch(fr"/tier/admin/v1/{plural}/([^/]+)", path)
+                match = re.fullmatch(fr"/v1/{plural}/([^/]+)", path)
                 if match:
                     rid = match.group(1)
                     if method == "GET": view, etag = getter(rid); return self._json(200, view, {"ETag": etag})
@@ -157,13 +167,9 @@ def handler_factory(app: Application):
                     if method == "DELETE":
                         app.admin.mutate(principal.principal_id, f"{kind}.delete", rid, self.request_id, lambda: deleter(rid, self.headers.get("If-Match")))
                         self.send_response(204); self.end_headers(); return
-            if path == "/tier/admin/v1/probes" and method == "POST": return self._json(200, app.admin.probe(principal.principal_id, self._body(), self.request_id))
-            if path == "/tier/admin/v1/usage" and method == "GET": return self._json(200, app.usage.page(principal.principal_id, query.get("cursor", [None])[0], int(query.get("limit", [100])[0]), admin=True, since=query.get("from", [None])[0], until=query.get("to", [None])[0]))
-            if path == "/tier/admin/v1/usage" and method == "DELETE":
-                result = app.admin.mutate(principal.principal_id, "usage.reset", "all", self.request_id, lambda: app.usage.reset_usage(model=query.get("model", [None])[0], deployment_id=query.get("deployment_id", [None])[0]))
-                return self._json(200, result)
-            if path == "/tier/admin/v1/audit" and method == "GET": return self._json(200, app.audit.page(int(query.get("limit", [50])[0])))
-            if path == "/tier/admin/v1/logs" and method == "GET":
+            if path == "/v1/probes" and method == "POST": return self._json(200, app.admin.probe(principal.principal_id, self._body(), self.request_id))
+            if path == "/v1/audit" and method == "GET": return self._json(200, app.audit.page(int(query.get("limit", [50])[0])))
+            if path == "/v1/logs" and method == "GET":
                 since, until = query.get("from", [None])[0], query.get("to", [None])[0]
                 if not since or not until: raise ApiError(400, "invalid_request", "from and to are required")
                 return self._json(200, app.logs.page(int(query.get("limit", [100])[0]), query.get("level", [None])[0], query.get("module", [None])[0], query.get("request_id", [None])[0], since, until))

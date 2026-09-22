@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-piko-data-plane-control` |
-| Document Version | `0.3.2-draft.3` |
+| Document Version | `0.3.2-draft.4` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -14,7 +14,7 @@
 | Approver | 待定 |
 | Approval Date | 待定 |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-17` |
+| Last Modified Date | `2026-09-22` |
 | Template Version | `0.1.0` |
 | Template ID | `interfaces.control` |
 | Template Conformance | `tailored` |
@@ -36,7 +36,7 @@ Piko 拥有 Agent session、完整输入装配、压缩、tool loop、任务 dea
 | POST | `/v1/responses` | 完整输入的一次模型调用；首阶段固定 `stream:true/store:false` 标准 SSE |
 | GET | `/v1/models` | 逻辑模型列表 |
 | GET | `/v1/models/{model}` | exact-case 模型能力 |
-| GET | `/tier/v1/usage` | 调用主体自己的 token Usage 查询；Piko可按 request ID 汇总任务用量 |
+| GET | `/v1/usage` | 调用主体自己的 token Usage 查询；Piko可按 request ID 汇总任务用量 |
 
 无 Invocation、response retrieval、custom recovery、capacity、compatibility 或 caller-management endpoint。
 
@@ -48,7 +48,7 @@ HTTPS + JSON + Bearer auth；production TLS/auth 尚未激活。标准 `tracepar
 
 Piko 每次发送 `ResponsesRequest.model`、`stream:true`、`store:false` 和该轮所需的完整 `input`；`model` 是 exact service-level ID。固定 Pi 0.85.1 的真实请求形状是本契约的兼容证据：首轮 `system|developer|user` easy message 不要求 `type`；历史 assistant message 可带 `id/status/phase` 和 `output_text.annotations`；function call 同时保留 item `id` 与 `call_id`；`function_call_output.output` 可以是 string，或由 `input_text|input_image` 构成的数组；opaque reasoning item 原样进入下一轮历史。模型输出 tool call 后，Piko 自行执行工具，并在新的完整请求中提交相同 `call_id` 的 result。LLMTier只透传/规范化，不保存 Agent conversation。
 
-`ResponsesResponse.usage` 使用标准字段 `input_tokens/output_tokens/total_tokens`，并在存在时保留 `input_tokens_details.cached_tokens/cache_write_tokens` 与 `output_tokens_details.reasoning_tokens`。`input_tokens`包含cached token，`cached_tokens`是其子集；`cache_write_tokens`是额外观测细分，不再加进`input_tokens`或`total_tokens`；`reasoning_tokens`是`output_tokens`子集。缺失 usage 不会把成功模型结果改成失败；Piko将该调用记为 Unknown。`GET /tier/v1/usage` 中同一 `request_id` 的较高 `record_version` 替换较低版本，不能和响应usage重复相加。Piko可按自身 task/run 聚合不同 request 的最新事实，LLMTier不接收 task identity。
+`ResponsesResponse.usage` 使用标准字段 `input_tokens/output_tokens/total_tokens`，并在存在时保留 `input_tokens_details.cached_tokens/cache_write_tokens` 与 `output_tokens_details.reasoning_tokens`。`input_tokens`包含cached token，`cached_tokens`是其子集；`cache_write_tokens`是额外观测细分，不再加进`input_tokens`或`total_tokens`；`reasoning_tokens`是`output_tokens`子集。缺失 usage 不会把成功模型结果改成失败；Piko将该调用记为 Unknown。`GET /v1/usage` 中同一 `request_id` 的较高 `record_version` 替换较低版本，不能和响应usage重复相加。Piko可按自身 task/run 聚合不同 request 的最新事实，LLMTier不接收 task identity。
 
 ## 5. 状态机、顺序和时序
 

@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "llmtier-v0.3-contract-specification",
   "document_type": "contracts.specification",
-  "document_version": "0.3.2-draft.5",
+  "document_version": "0.3.2-draft.6",
   "title": "LLMTier V0.3 Contract Specification",
   "document_owner": "LLMTier",
   "authors": [
@@ -27,5 +27,5 @@
   "parent_document_id": "llmtier-system-design",
   "supersedes": null,
   "created_at": "2026-09-07",
-  "last_modified_at": "2026-09-18"
+  "last_modified_at": "2026-09-22"
 }

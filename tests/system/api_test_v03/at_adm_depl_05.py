@@ -1,6 +1,6 @@
 """Case ID: ADM-DEPL-05
 
-Endpoint: DELETE /tier/admin/v1/deployments/{id}
+Endpoint: DELETE /v1/deployments/{id}
 Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-admin
@@ -21,7 +21,7 @@ BASELINE_PROVIDER_ID = "prov_b"
 
 @pytest.mark.api_b
 def test_adm_depl_05_delete_deployment(admin_client_b):
-    create_resp = admin_client_b.post("/tier/admin/v1/deployments", json={
+    create_resp = admin_client_b.post("/v1/deployments", json={
         "name": "Deployment To Delete",
         "provider_id": BASELINE_PROVIDER_ID,
         "backend_model": "test-model-delete",
@@ -46,10 +46,10 @@ def test_adm_depl_05_delete_deployment(admin_client_b):
     etag = create_resp.headers["ETag"]
 
     del_resp = admin_client_b.delete(
-        f"/tier/admin/v1/deployments/{rid}",
+        f"/v1/deployments/{rid}",
         headers={"If-Match": etag},
     )
     assert del_resp.status_code == 204, f"期望 204，实际 {del_resp.status_code}: {del_resp.text}"
 
-    get_resp = admin_client_b.get(f"/tier/admin/v1/deployments/{rid}")
+    get_resp = admin_client_b.get(f"/v1/deployments/{rid}")
     assert get_resp.status_code == 404

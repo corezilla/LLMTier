@@ -1,6 +1,6 @@
 """Case ID: ADM-PROV-08
 
-Endpoint: DELETE /tier/admin/v1/providers/{id}
+Endpoint: DELETE /v1/providers/{id}
 Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-admin
@@ -21,7 +21,7 @@ import pytest
 
 @pytest.mark.api_b
 def test_adm_prov_08_delete_provider(admin_client_b):
-    create_resp = admin_client_b.post("/tier/admin/v1/providers", json={
+    create_resp = admin_client_b.post("/v1/providers", json={
         "name": f"Provider To Delete {uuid.uuid4().hex[:8]}",
         "kind": "local",
         "endpoint": "http://localhost:6666/v1",
@@ -33,10 +33,10 @@ def test_adm_prov_08_delete_provider(admin_client_b):
     etag = create_resp.headers["ETag"]
 
     del_resp = admin_client_b.delete(
-        f"/tier/admin/v1/providers/{rid}",
+        f"/v1/providers/{rid}",
         headers={"If-Match": etag},
     )
     assert del_resp.status_code == 204, f"期望 204，实际 {del_resp.status_code}: {del_resp.text}"
 
-    get_resp = admin_client_b.get(f"/tier/admin/v1/providers/{rid}")
+    get_resp = admin_client_b.get(f"/v1/providers/{rid}")
     assert get_resp.status_code == 404, f"期望 404，实际 {get_resp.status_code}"
