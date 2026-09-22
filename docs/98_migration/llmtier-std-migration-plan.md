@@ -104,8 +104,8 @@ production evidence。L3 缺口继续阻塞 Runtime Activation，但不阻止形
 
 ## 6. C3 Requirements + Traceability（条件 cohort）
 
-候选映射为 docs/10_requirements/llmtier-v0.3-requirements.md / requirements.specification 和
-docs/10_requirements/llmtier-v0.3-traceability.md / requirements.traceability。来源仅限 LLMTier
+候选映射为 docs/10_requirements/llmtier-requirements.md / requirements.specification 和
+docs/10_requirements/llmtier-traceability.md / requirements.traceability。来源仅限 LLMTier
 service requirements、既有 Review ID、C1/C2 contract/test mapping；Slinky/Piko 拥有的需求只作为
 外部输入引用。
 

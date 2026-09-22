@@ -1,7 +1,7 @@
 {
   "project": "LLMTier",
   "authority": "LLMTier",
-  "document_id": "llmtier-v0.3-requirements",
+  "document_id": "llmtier-requirements",
   "document_type": "requirements.specification",
   "document_version": "0.3.2-draft.8",
   "title": "LLMTier V0.3 Requirements Specification",
@@ -10,7 +10,7 @@
     "llmtier"
   ],
   "source_repository": "corezilla/LLMTier",
-  "source_path": "docs/10_requirements/llmtier-v0.3-requirements.md",
+  "source_path": "docs/10_requirements/llmtier-requirements.md",
   "template_id": "requirements.specification",
   "template_version": "0.1.0",
   "template_sha256": "1e386e54db98fcfb1c248fa56abe6150caa605aef959053d887eab6453f13384",

@@ -1,103 +1,73 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="760" viewBox="0 0 1280 760" role="img" aria-labelledby="title desc">
-  <title id="title">LLMTier System Architecture (internal layered composition)</title>
-  <desc id="desc">LLMTier internal layered composition. UI layer: HTTP API (app.py) serving the unified /v1 namespace, and English Web UI (webui) serving /ui. Logic layer: Logical Model Registry, Routing + Provider Adapters, Usage Meter, Diagnostic Service. Foundation layer: Store SQLite (existing and new tables), authentication, audit and operational logs. External systems are not drawn here; see the deployment and runtime section. The diagram expresses composition only, not processes or call order.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">LLMTier System Architecture — UI / Business / Foundation</title>
+  <desc id="desc">LLMTier internal layered composition with three layers and eight modules. UI layer: HTTP API and Web UI. Business layer (transaction processing): Inference, Management, Observability. Foundation layer (shared capabilities): libdiag, util, log. External systems are not drawn here; see the runtime/environment section. Composition only; no processes or call order implied.</desc>
   <style>
     text {font-family:'PingFang SC','Helvetica Neue',Arial,sans-serif;fill:#20364e}
     .title {font-size:28px;font-weight:600}
     .subtitle {font-size:14px;fill:#65788b}
     .layer {font-size:20px;font-weight:600;text-anchor:end}
-    .name {font-size:17px;font-weight:600;text-anchor:middle}
+    .name {font-size:18px;font-weight:600;text-anchor:middle}
+    .modnote {font-size:12px;fill:#65788b;text-anchor:middle}
     .note {font-size:13px;fill:#65788b}
     .panel {stroke-width:1.5}
     .component {stroke-width:1.3}
     .new-component {fill:#fff3cd;stroke:#856404;stroke-width:1.5}
     .new-label {fill:#856404;font-weight:600;font-size:12px}
   </style>
-  <rect width="1280" height="760" fill="#ffffff"/>
+  <rect width="1280" height="720" fill="#ffffff"/>
 
   <text x="60" y="50" class="title">LLMTier System Architecture</text>
-  <text x="60" y="73" class="subtitle">Internal layered composition — UI / Logic / Foundation</text>
+  <text x="60" y="73" class="subtitle">Three layers · eight modules — UI / Business / Foundation</text>
   <text x="1220" y="50" class="note" text-anchor="end">EX-LLMTIER/v3 · Target</text>
   <text x="1220" y="68" class="note" text-anchor="end">LLMTier v0.3.0-draft</text>
-  <text x="1220" y="86" class="note" text-anchor="end">no external systems · see §6 deployment/runtime</text>
+  <text x="1220" y="86" class="note" text-anchor="end">no external systems · see runtime section</text>
 
-  <!-- ===== UI layer ===== -->
-  <text x="195" y="150" class="layer">UI</text>
-  <rect x="230" y="110" width="990" height="100" rx="12" fill="#f0f6fd" stroke="#bccfe5" class="panel"/>
-  <rect x="250" y="132" width="465" height="58" rx="8" fill="#dceafb" stroke="#9dbbdb" class="component"/>
-  <text x="482.5" y="158" class="name">HTTP API</text>
-  <text x="482.5" y="178" class="subtitle">app.py · unified /v1/* namespace (credential-scoped)</text>
-  <rect x="735" y="132" width="465" height="58" rx="8" fill="#dceafb" stroke="#9dbbdb" class="component"/>
-  <text x="967.5" y="158" class="name">English Web UI</text>
-  <text x="967.5" y="178" class="subtitle">webui/ · /ui/* operator console</text>
+  <!-- Layer 1: UI -->
+  <text x="195" y="160" class="layer">入口层<br/>UI</text>
+  <rect x="230" y="118" width="990" height="96" rx="12" fill="#f0f6fd" stroke="#bccfe5" class="panel"/>
+  <rect x="250" y="140" width="465" height="54" rx="8" fill="#dceafb" stroke="#9dbbdb" class="component"/>
+  <text x="482.5" y="174" class="name">HTTP API</text>
+  <rect x="735" y="140" width="465" height="54" rx="8" fill="#dceafb" stroke="#9dbbdb" class="component"/>
+  <text x="967.5" y="174" class="name">Web UI</text>
 
-  <!-- ===== Logic layer ===== -->
-  <text x="195" y="278" class="layer">Logic</text>
-  <rect x="230" y="248" width="990" height="100" rx="12" fill="#eef5fa" stroke="#b6ccdc" class="panel"/>
-  <rect x="250" y="270" width="220" height="58" rx="8" fill="#c8deef" stroke="#8aafcb" class="component"/>
-  <text x="360" y="296" class="name">Logical Model Registry</text>
-  <text x="360" y="315" class="subtitle">registry.py</text>
-  <rect x="490" y="270" width="240" height="58" rx="8" fill="#c8deef" stroke="#8aafcb" class="component"/>
-  <text x="610" y="296" class="name">Routing + Provider Adapters</text>
-  <text x="610" y="315" class="subtitle">routing.py · providers/</text>
-  <rect x="750" y="270" width="180" height="58" rx="8" fill="#c8deef" stroke="#8aafcb" class="component"/>
-  <text x="840" y="296" class="name">Usage Meter</text>
-  <text x="840" y="315" class="subtitle">usage.py</text>
-  <rect x="950" y="270" width="250" height="58" rx="8" class="new-component"/>
-  <text x="1075" y="296" class="name">Diagnostic Service</text>
-  <text x="1075" y="314" class="subtitle">diagnostics.py</text>
-  <text x="1075" y="341" class="new-label">new — LT-OBS-1..7</text>
+  <!-- Layer 2: Business -->
+  <text x="195" y="288" class="layer">业务层<br/>Business</text>
+  <rect x="230" y="246" width="990" height="96" rx="12" fill="#eef5fa" stroke="#b6ccdc" class="panel"/>
+  <rect x="250" y="268" width="300" height="54" rx="8" fill="#c8deef" stroke="#8aafcb" class="component"/>
+  <text x="400" y="302" class="name">Inference</text>
+  <rect x="570" y="268" width="300" height="54" rx="8" fill="#c8deef" stroke="#8aafcb" class="component"/>
+  <text x="720" y="302" class="name">Management</text>
+  <rect x="890" y="268" width="310" height="54" rx="8" class="new-component"/>
+  <text x="1045" y="302" class="name">Observability</text>
+  <text x="1045" y="331" class="new-label">新模块</text>
 
-  <!-- ===== Foundation layer ===== -->
-  <text x="195" y="400" class="layer">Foundation</text>
-  <rect x="230" y="370" width="990" height="300" rx="12" fill="#f3f5f7" stroke="#c1cbd4" class="panel"/>
+  <!-- Layer 3: Foundation -->
+  <text x="195" y="436" class="layer">基础层<br/>Foundation</text>
+  <rect x="230" y="394" width="990" height="120" rx="12" fill="#f3f5f7" stroke="#c1cbd4" class="panel"/>
+  <rect x="250" y="416" width="300" height="76" rx="8" class="new-component"/>
+  <text x="400" y="450" class="name">libdiag</text>
+  <text x="400" y="472" class="modnote">调试开关 · 注入 · 观测记录</text>
+  <rect x="570" y="416" width="300" height="76" rx="8" fill="#dce2e8" stroke="#a4b2c0" class="component"/>
+  <text x="720" y="450" class="name">util</text>
+  <text x="720" y="472" class="modnote">配置 · 存储 · 信任 · 杂项</text>
+  <rect x="890" y="416" width="310" height="76" rx="8" fill="#dce2e8" stroke="#a4b2c0" class="component"/>
+  <text x="1045" y="450" class="name">log</text>
+  <text x="1045" y="472" class="modnote">日志 · 可扩展</text>
 
-  <rect x="260" y="392" width="300" height="44" rx="8" fill="#dce2e8" stroke="#a4b2c0"/>
-  <text x="410" y="419" class="name">auth.py · Bearer + LAN trust</text>
-  <rect x="580" y="392" width="300" height="44" rx="8" fill="#dce2e8" stroke="#a4b2c0"/>
-  <text x="730" y="419" class="name">audit.py · logs.py</text>
+  <!-- Dependency description (no arrows across modules; layering only) -->
+  <text x="240" y="556" class="note">依赖方向：入口层 → 业务层 → 基础层（只向下）。同层模块不互相调用。</text>
+  <text x="240" y="578" class="note">业务层三模块平级；基础层三模块被业务层共同依赖，libdiag 可依赖 util/log。</text>
+  <text x="240" y="600" class="note">外部系统（consumer、模型后端）与部署形态见运行环境章，不在此图。</text>
 
-  <text x="240" y="470" class="subtitle">Store (SQLite) — store.py</text>
-
-  <text x="240" y="494" class="note">existing tables</text>
-  <rect x="260" y="504" width="160" height="34" rx="6" fill="#dce2e8" stroke="#a4b2c0"/>
-  <text x="340" y="526" class="name">usage_obligations</text>
-  <rect x="430" y="504" width="160" height="34" rx="6" fill="#dce2e8" stroke="#a4b2c0"/>
-  <text x="510" y="526" class="name">usage_record_versions</text>
-  <rect x="600" y="504" width="160" height="34" rx="6" fill="#dce2e8" stroke="#a4b2c0"/>
-  <text x="680" y="526" class="name">usage_heads</text>
-  <rect x="770" y="504" width="170" height="34" rx="6" fill="#dce2e8" stroke="#a4b2c0"/>
-  <text x="855" y="526" class="name">provider_request_bindings</text>
-  <rect x="950" y="504" width="125" height="34" rx="6" fill="#dce2e8" stroke="#a4b2c0"/>
-  <text x="1012" y="526" class="name">audit_events</text>
-  <rect x="1085" y="504" width="115" height="34" rx="6" fill="#dce2e8" stroke="#a4b2c0"/>
-  <text x="1142" y="526" class="name">op_logs</text>
-
-  <text x="240" y="580" class="new-label">new tables — LT-OBS-1..6</text>
-  <rect x="260" y="590" width="220" height="46" rx="6" class="new-component"/>
-  <text x="370" y="609" class="name">diagnostic_snapshots</text>
-  <text x="370" y="626" class="subtitle">LT-OBS-1</text>
-  <rect x="490" y="590" width="220" height="46" rx="6" class="new-component"/>
-  <text x="600" y="609" class="name">diagnostic_injections</text>
-  <text x="600" y="626" class="subtitle">LT-OBS-5</text>
-  <rect x="720" y="590" width="220" height="46" rx="6" class="new-component"/>
-  <text x="830" y="609" class="name">data_plane_stats</text>
-  <text x="830" y="626" class="subtitle">LT-OBS-2</text>
-  <rect x="950" y="590" width="250" height="46" rx="6" class="new-component"/>
-  <text x="1075" y="609" class="name">trace_events</text>
-  <text x="1075" y="626" class="subtitle">LT-OBS-6</text>
-
-  <text x="240" y="660" class="note">UI 层为统一入口；consumer 与 operator 由 credential 区分，不设路径前缀。运行载体与外部依赖见部署/运行章。</text>
-
-  <!-- ===== Legend ===== -->
-  <rect x="60" y="690" width="1160" height="46" rx="6" fill="#fafafa" stroke="#ddd"/>
-  <text x="80" y="717" class="subtitle">legend</text>
-  <rect x="140" y="706" width="20" height="14" rx="3" class="new-component"/>
-  <text x="165" y="720" class="note">new module / new table (LT-OBS-1..7)</text>
-  <rect x="440" y="706" width="20" height="14" rx="3" fill="#dce2e8" stroke="#a4b2c0"/>
-  <text x="465" y="720" class="note">existing module / table</text>
-  <rect x="680" y="706" width="20" height="14" rx="3" fill="#dceafb" stroke="#9dbbdb" class="component"/>
-  <text x="705" y="720" class="note">UI layer</text>
-  <rect x="820" y="706" width="20" height="14" rx="3" fill="#c8deef" stroke="#8aafcb" class="component"/>
-  <text x="845" y="720" class="note">Logic layer</text>
+  <!-- Legend -->
+  <rect x="60" y="630" width="1160" height="46" rx="6" fill="#fafafa" stroke="#ddd"/>
+  <text x="80" y="657" class="subtitle">图例</text>
+  <rect x="140" y="646" width="20" height="14" rx="3" class="new-component"/>
+  <text x="165" y="660" class="note">新增/本次涉及（Observability · libdiag）</text>
+  <rect x="480" y="646" width="20" height="14" rx="3" fill="#dceafb" stroke="#9dbbdb" class="component"/>
+  <text x="505" y="660" class="note">入口层</text>
+  <rect x="620" y="646" width="20" height="14" rx="3" fill="#c8deef" stroke="#8aafcb" class="component"/>
+  <text x="645" y="660" class="note">业务层</text>
+  <rect x="760" y="646" width="20" height="14" rx="3" fill="#dce2e8" stroke="#a4b2c0" class="component"/>
+  <text x="785" y="660" class="note">基础层</text>
 </svg>

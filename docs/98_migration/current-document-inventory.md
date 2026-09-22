@@ -44,8 +44,8 @@ STD draft.21 升级按用户 2026-09-09 明确要求执行。旧 `rag/std-ingest
 | `docs/70_verification/plans/llmtier-v0.3-vv-plan.md` + metadata | `assurance.vv-plan` | C2 draft candidate | 迁移 V0.3 strategy/Gate；区分 static 与 production evidence |
 | `docs/70_verification/specifications/llmtier-v0.3-contract-test-specification.md` + metadata | `assurance.test-specification` | C2 draft candidate | 映射 case/fixture/oracle；tests/fixtures 仍为可执行 authority |
 | `docs/91_reviews/llmtier-std-c2-assurance-review.md` + metadata/decision | `review.packet` | C2 ACCEPTED | 固定 C2 mapping、三层验证和 evidence boundary |
-| `docs/10_requirements/llmtier-v0.3-requirements.md` + metadata | `requirements.specification` | C3 draft candidate | 只承接 LLMTier 自有 shall statements；外部需求仅引用 |
-| `docs/10_requirements/llmtier-v0.3-traceability.md` + metadata | `requirements.traceability` | C3 draft candidate | 连接 requirement、design/contract、case 与实际 evidence 状态 |
+| `docs/10_requirements/llmtier-requirements.md` + metadata | `requirements.specification` | C3 draft candidate | 只承接 LLMTier 自有 shall statements；外部需求仅引用 |
+| `docs/10_requirements/llmtier-traceability.md` + metadata | `requirements.traceability` | C3 draft candidate | 连接 requirement、design/contract、case 与实际 evidence 状态 |
 | `docs/91_reviews/llmtier-std-c3-requirements-review.md` + metadata/decision | `review.packet` | C3 ACCEPTED | 固定 C3 authority、coverage 与三层验证 |
 | `docs/80_operations/llmtier-v0.3-release-and-operations.md` + metadata | `operations.release` | Approved candidate | 承接当前 package/CLI 与 release Gate；production procedure/evidence 保持 BLOCKED |
 | `docs/91_reviews/llmtier-std-c4-operations-review.md` + metadata/decision | `review.packet` | C4 ACCEPTED | 固定 operations scope、ADR omission 与 Open Gate |

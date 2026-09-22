@@ -3,12 +3,12 @@
 - 日期：2026-09-22
 - 提出方/验收方：Piko 联调方（corezilla/piko，branch `docs/piko-system-design-std26`）
 - 实现方：LLMTier
-- 需求 authority：`docs/10_requirements/llmtier-observability-debug-requirements-v0.1`（draft.3，LT-OBS-1..6）
+- 需求 authority：`docs/10_requirements/llmtier-observability-debug-requirements`（draft.3，LT-OBS-1..6）
 - 联调证据：Piko `tests/integration/reports/piko-llmtier-joint-report-v0.1.md`（发现 F-2/F-4/F-5/F-6）
 
 ## 0. 一句话任务
 
-按 `llmtier-observability-debug-requirements-v0.1` 实现 **LT-OBS-1..6**（可观测性与调试能力），
+按 `llmtier-observability-debug-requirements` 实现 **LT-OBS-1..6**（可观测性与调试能力），
 实现后由 Piko 联调方 **review 代码 → 联调复核（JT-07/08/13/17、S0-2）→ 双方关闭**。
 本文件解释为什么要做、六类白盒手段各自的要求，以及验收与协作方式。
 

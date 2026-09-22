@@ -3,7 +3,7 @@
 
 | 文档字段 | 值 |
 |---|---|
-| Document ID | `llmtier-v0.3-traceability` |
+| Document ID | `llmtier-traceability` |
 | Document Version | `0.3.2-draft.7` |
 | Status | `In Review` |
 | Project | `LLMTier` |
@@ -21,7 +21,7 @@
 | Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |
 | Repository | `corezilla/LLMTier` |
-| Canonical Path | `docs/10_requirements/llmtier-v0.3-traceability.md` |
+| Canonical Path | `docs/10_requirements/llmtier-traceability.md` |
 | Supersedes | none |
 <!-- STD_DOCUMENT_COVER_END -->
 

@@ -51,13 +51,13 @@
 |---|---|---|---|---|
 | `management.tailoring` | management | 是 | `docs/00_management/std-tailoring.md` | LLMTier |
 | `management.development-plan` | management/software | 是，V0.3 implementation active | `docs/00_management/v0.3-implementation-plan.md`；编码调试与正式单元测试分Gate | LLMTier |
-| `design.system` | software | 是 | `docs/20_system_design/llmtier-system-design.md` | LLMTier |
-| `design.software-system` | software | 条件必需，当前 omit | 单服务 LLMTier 暂用 `design.system` 覆盖；订阅服务分支时启用 | 对应 owner |
+| `design.system` | software | omit | LLMTier 为纯软件单服务；顶层设计与系统概览改由 `design.software-system` 承担，不另建总体系统文档 | LLMTier |
+| `design.software-system` | software | 是 | `docs/20_system_design/llmtier-system-design.md` | LLMTier |
 | `design.subsystem` | software | 条件必需，当前 omit | 仅在 LLMTier 出现独立子系统时建立；当前所有模块归 `design.definition` | 对应 owner |
 | `design.definition` | software | 是 | `docs/40_module_design/`与`docs/50_implementation_design/`；不建立虚构subsystem | LLMTier |
 | `design.implementation` | software | 条件必需，当前 omit | 模块设计已包含实现细节（`docs/50_implementation_design/llmtier-runtime.isd.md`）；需要独立 ISD 时启用 | 对应 owner |
-| `requirements.specification` | software | 是，C3 active | `docs/10_requirements/llmtier-v0.3-requirements.md` | LLMTier；外部需求 authority 不迁入 |
-| `requirements.traceability` | software | 是，C3 active | `docs/10_requirements/llmtier-v0.3-traceability.md` | LLMTier |
+| `requirements.specification` | software | 是，C3 active | `docs/10_requirements/llmtier-requirements.md` | LLMTier；外部需求 authority 不迁入 |
+| `requirements.traceability` | software | 是，C3 active | `docs/10_requirements/llmtier-traceability.md` | LLMTier |
 | `interfaces.control` | software | 是，C1 active | Data Plane、Observation、Management interface migration | LLMTier；消费边界由 Piko/Slinky reviewer 复核 |
 | `contracts.specification` | software | 是，C1 active | OpenAPI/manifest/error/schema 说明层；机器文件在 `interfaces/` 保持唯一 authority | LLMTier |
 | `assurance.vv-plan` | software | 是，C2 candidate | V0.3 activation-gate V&V plan | LLMTier |
@@ -78,6 +78,7 @@
 |---|---|---|---|---|---|---|
 | LT-TL-001 | `design.system` 4.0.0 的 §1–6、§8、§10–15、§17–18 与既有 A-H 附录 | keep | LLMTier 是本仓库完整软件系统；系统概览、总体结构、运行流程、软件、数据、接口、可靠性、安全和验收均须覆盖 | 无 | 本轮 review | N/A |
 | LT-TL-017 | `design.system` §7、§9、§16 | omit with rationale | `software-system` profile；本项目不拥有硬件、FPGA/专用处理单元、结构/热/工艺设计，正文保留章节及 N/A 依据 | 未来拥有硬件责任时需重新裁剪 | 本轮 review | ownership 变化时重新评审 |
+| LT-TL-018 | 系统设计模板切换 `design.system` → `design.software-system` | keep（切换） | LLMTier 是纯软件、单服务、单进程项目；STD 规定纯软件项目顶层使用《软件系统设计说明书》`design.software-system`，不必另建重复的总体系统文档。原 `design.system` 文档非规范选择 | 需同步 tailoring、metadata 与 contract test；旧文档内容整体迁入新模板结构 | 用户 2026-09-22 指示 | N/A |
 | LT-TL-002 | `design.system` deployment/physical detail | simplify | topology、DB、HA、RPO/RTO 尚未冻结，只记录当前单进程事实与 Open Gate | 选型不足阻塞 retention/recovery | Open Gate 保留 | 选型时新增 ADR |
 | LT-TL-003 | `design.definition` / `docs/30_subsystem_design/` | keep module/ISD；omit subsystem | 当前仍无独立subsystem，但HTTP/SSE、provider adapter、Registry、Usage、Admin/Web UI已形成真实内部模块和实现边界 | 不设计会把事务与authority留到编码期；虚构subsystem同样有风险 | 用户2026-09-09单系统边界；三方2026-09-17整改 | 部署/owner边界变化时重审subsystem |
 | LT-TL-004 | `requirements.specification` + `requirements.traceability` | keep，C3 complete | 独立 shall statements 与矩阵能分离 LLMTier 自有需求、外部输入、静态 evidence 和 runtime gap | 若复制外部需求会越权；由引用和 reviewer boundary 控制 | Owner ACCEPTED | N/A |

@@ -17,31 +17,33 @@ class StdAndAuthorityTests(unittest.TestCase):
 
     def test_llmtier_is_one_independent_software_system(self):
         metadata = json.loads((ROOT / "docs/20_system_design/llmtier-system-design.metadata.json").read_text(encoding="utf-8"))
-        self.assertEqual("design.system", metadata["document_type"])
+        self.assertEqual("design.software-system", metadata["document_type"])
+        self.assertEqual("design.software-system", metadata["template_id"])
         self.assertEqual("system", metadata["design_level"])
         self.assertEqual(["software"], metadata["domain"])
+        self.assertIsNone(metadata["parent_document_id"])
         self.assertFalse((ROOT / "docs/30_subsystem_design").exists())
 
     def test_system_design_has_required_template_sections(self):
         text = (ROOT / "docs/20_system_design/llmtier-system-design.md").read_text(encoding="utf-8")
         headings = [line for line in text.splitlines() if line.startswith("## ")]
-        for number in range(1, 19):
+        for number in range(1, 18):
             self.assertTrue(any(line.startswith(f"## {number}.") for line in headings), number)
-        for appendix in "ABCDEFGH":
-            self.assertTrue(any(line.startswith(f"## {appendix}.") for line in headings), appendix)
-        self.assertIn("System Context（C4 Level 1）", text)
-        self.assertIn("Container View（C4 Level 2）", text)
-        self.assertIn("Component View（C4 Level 3", text)
-        self.assertGreaterEqual(text.count("```mermaid"), 6)
-        self.assertIn("当前不建立虚构subsystem", text)
+        for appendix in ("A", "B"):
+            self.assertTrue(any(line.startswith(f"## 附录 {appendix}.") for line in headings), appendix)
+        self.assertIn("design.software-system", text)
+        self.assertIn("软件系统架构", text)
+        self.assertIn("组成与职责", text)
+        self.assertIn("不建立软件子系统", text)
         self.assertIn("docs/40_module_design/llmtier-core-design.md", text)
         self.assertIn("docs/50_implementation_design/llmtier-runtime.isd.md", text)
+        self.assertIn("assets/diagrams/llmtier-architecture-container.png", text)
         self.assertNotIn("<small>", text)
 
     def test_current_documents_and_metadata_versions_match(self):
         paths = [
-            ROOT / "docs/10_requirements/llmtier-v0.3-requirements.md",
-            ROOT / "docs/10_requirements/llmtier-v0.3-traceability.md",
+            ROOT / "docs/10_requirements/llmtier-requirements.md",
+            ROOT / "docs/10_requirements/llmtier-traceability.md",
             ROOT / "docs/20_system_design/llmtier-system-design.md",
             ROOT / "docs/40_module_design/llmtier-core-design.md",
             ROOT / "docs/40_module_design/webui-design.md",
@@ -72,7 +74,7 @@ class StdAndAuthorityTests(unittest.TestCase):
 
     def test_current_prose_has_simplified_scope(self):
         docs = [
-            ROOT / "docs/10_requirements/llmtier-v0.3-requirements.md",
+            ROOT / "docs/10_requirements/llmtier-requirements.md",
             ROOT / "docs/20_system_design/llmtier-system-design.md",
             ROOT / "docs/60_interfaces/piko-data-plane-control.md",
             ROOT / "docs/60_interfaces/slinky-capacity-observation-control.md",

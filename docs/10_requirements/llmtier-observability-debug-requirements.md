@@ -5,7 +5,7 @@
 
 | 文档字段 | 值 |
 |---|---|
-| Document ID | `llmtier-observability-debug-requirements-v0.1` |
+| Document ID | `llmtier-observability-debug-requirements` |
 | Document Version | `0.1.0-draft.9` |
 | Status | `Draft` |
 | Project | `LLMTier` |
@@ -20,7 +20,7 @@
 | Tailoring Reference | std-tailoring |
 | Migration Map Reference | none |
 | Repository | `corezilla/LLMTier` |
-| Canonical Path | `docs/10_requirements/llmtier-observability-debug-requirements-v0.1.md` |
+| Canonical Path | `docs/10_requirements/llmtier-observability-debug-requirements.md` |
 | Supersedes | none |
 
 > Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是

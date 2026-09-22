@@ -1,7 +1,7 @@
 {
   "project": "LLMTier",
   "authority": "LLMTier",
-  "document_id": "llmtier-v0.3-traceability",
+  "document_id": "llmtier-traceability",
   "document_type": "requirements.traceability",
   "document_version": "0.3.2-draft.7",
   "title": "LLMTier V0.3 Requirements Traceability Matrix",
@@ -10,7 +10,7 @@
     "llmtier"
   ],
   "source_repository": "corezilla/LLMTier",
-  "source_path": "docs/10_requirements/llmtier-v0.3-traceability.md",
+  "source_path": "docs/10_requirements/llmtier-traceability.md",
   "template_id": "requirements.traceability",
   "template_version": "0.1.0",
   "template_sha256": "36de8b0d99021f57d0dc214e7ce9644761336fc6548be36c4e29ae38486acc17",
@@ -24,7 +24,7 @@
   "status": "review",
   "visibility": "project",
   "reviewed_commit": null,
-  "parent_document_id": "llmtier-v0.3-requirements",
+  "parent_document_id": "llmtier-requirements",
   "supersedes": null,
   "created_at": "2026-09-07",
   "last_modified_at": "2026-09-22"

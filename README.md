@@ -74,7 +74,7 @@ RFC1918 或 IPv6 ULA origin。当前 transport 不等同于 production TLS/auth 
 | 类别 | 文档 |
 |---|---|
 | 裁剪与计划 | [STD 裁剪清单](docs/00_management/std-tailoring.md)、[V0.3 编码与测试计划](docs/00_management/v0.3-implementation-plan.md) |
-| 需求 | [V0.3 Requirements](docs/10_requirements/llmtier-v0.3-requirements.md)、[Traceability](docs/10_requirements/llmtier-v0.3-traceability.md) |
+| 需求 | [V0.3 Requirements](docs/10_requirements/llmtier-requirements.md)、[Traceability](docs/10_requirements/llmtier-traceability.md) |
 | 系统设计 | [系统设计](docs/20_system_design/llmtier-system-design.md) |
 | 模块设计 | [核心模块设计](docs/40_module_design/llmtier-core-design.md)、[Web UI Design](docs/40_module_design/webui-design.md)、[Runtime ISD](docs/50_implementation_design/llmtier-runtime.isd.md) |
 | 接口 | [Piko Data Plane](docs/60_interfaces/piko-data-plane-control.md)、[Slinky Capacity/Observation](docs/60_interfaces/slinky-capacity-observation-control.md)、[Management API](docs/60_interfaces/llmtier-management-control.md)、[Contract Specification](docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.md) |
