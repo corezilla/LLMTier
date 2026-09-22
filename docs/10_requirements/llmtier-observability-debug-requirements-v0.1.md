@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-observability-debug-requirements-v0.1` |
-| Document Version | `0.1.0-draft.4` |
+| Document Version | `0.1.0-draft.5` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -68,6 +68,10 @@ HTTP 能力**（`/v1/models`、`/v1/responses`、Bearer），后端观测不足�
   `/tier/admin/v1/diagnostics/*`），遵循既有 admin Bearer 鉴权与 ETag 约定；具体形状由实现设计定。
 - 开关形式：settings 项或 admin API 亦可，但必须**运行时可切换**且默认关闭（LT-OBS-5 同）。
 - LT-OBS-6 查询入口建议 `GET /tier/admin/v1/trace/{request_id}`，遵循 admin Bearer 鉴权；字段命名稳定并文档化。
+- **调试开关的控制面（Piko 联调澄清，2026-09-22）**：
+  - LT-OBS-1 快照开关与 LT-OBS-5 注入开关都必须**支持运行时切换**（admin API 优先；settings+重启仅可作为兜底并须文档化语义）——联调需按 case 逐个开/关；
+  - LT-OBS-5 注入 API 契约（路由/PATCH 体/GET 回读）实现时**冻结并提供可执行示例**（curl 级），consumer 侧将据此编写自动化步骤；
+  - 每个开关须支持"**打开→回读确认→关闭→回读确认**"的完整闭环，回读所见即生效状态。
 - LT-OBS-5 的注入范围仅限调试用途：注入期间的真实上游调用仍正常计量，注入语义不得写入 usage 账本造成对账歧义（账本可标注 injected）。
 
 ## 6. 性能与容量需求
