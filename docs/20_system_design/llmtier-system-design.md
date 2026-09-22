@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.4.0-draft.13` |
+| Document Version | `0.4.0-draft.14` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -541,7 +541,19 @@ Web UI（`/ui/*`）是 operator 控制台，同源调用上表管理接口，不
 
 ### 12.1 预算、瓶颈与扩展边界
 
-V0.3 不承诺尚未测量的吞吐/延迟 SLO。扩展先增加同一 level 的 deployment，再通过内部调度保护资源。兼容以标准 OpenAI shape 和显式版本变更为准，不提供专用 compatibility endpoint 或运行时协商。
+V0.3 **不承诺尚未测量的吞吐/延迟 SLO**，但已固定首版单节点保护预算：
+
+| 预算 | 值 | 依据 |
+|---|---|---|
+| 每 deployment 并发许可 | 1 | 保守基线（§6.1）|
+| 每 exact 等级 FIFO 队列上限 | 32 | 资源保护 |
+| 排队等待上限 | 30 秒 | 超时返回 429 |
+| provider 建连 / 首字节超时 | 30 秒 | 单节点基线 |
+| SSE 空闲超时 | 60 秒 | 单节点基线 |
+| 请求体上限 | 2 MB | 入口校验 |
+| 观测记录保留期 | 7 天 | §11.3 |
+
+**瓶颈**：单节点单进程；SQLite 串行写；上游 provider 时延与配额。**扩展边界**：先增加同一 service level 的 deployment，再通过内部调度保护资源；不做跨等级或跨 embedding space fallback。**兼容**：以标准 OpenAI shape 和显式版本变更为准，不提供专用 compatibility endpoint 或运行时协商。
 
 ## 13. 可测试性与验收设计
 
@@ -656,7 +668,7 @@ python -m build            # 产出 sdist + wheel（可复现，无公网隐含�
 
 ## 附录 B. 文档控制、修订与交付检查
 
-- **版本**：`0.4.0-draft.1`（模板迁移至 `design.software-system`）。
+- **版本**：见封面（本文档已迁移至 `design.software-system` 模板）。
 - **状态**：In Review。
 - **修订**：见 Git 历史。
-- **交付检查**：模板章节完整；组成图与职责表一致；机制清单指向模块/ISD；旧路径负例存在。
+- **交付检查**：模板章节完整；组成图与职责表一致；机制清单指向机制/模块/ISD；旧路径负例存在；图为 SVG/PNG（无 mermaid 代码块）。
