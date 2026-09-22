@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "llmtier-observability-debug-requirements-v0.1",
   "document_type": "requirements.specification",
-  "document_version": "0.1.0-draft.5",
+  "document_version": "0.1.0-draft.6",
   "title": "LLMTier 可观测性与调试能力需求（Piko 联调输入）",
   "document_owner": "LLMTier",
   "authors": [

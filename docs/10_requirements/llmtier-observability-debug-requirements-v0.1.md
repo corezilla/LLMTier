@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-observability-debug-requirements-v0.1` |
-| Document Version | `0.1.0-draft.5` |
+| Document Version | `0.1.0-draft.6` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -62,19 +62,59 @@ HTTP 能力**（`/v1/models`、`/v1/responses`、Bearer），后端观测不足�
 | LT-OBS-6（单请求 trace 查询） | LLMTier shall 支持**按 `request_id` 一次查询该请求的全生命周期记录**，且包含**逐阶段时间戳**（received / validated / routed / upstream_started / upstream_ended / completed|error）：接收时间、校验结果、路由（service level/deployment）、上游调用快照（LT-OBS-1）、SSE 终止原因（completed/error/aborted）、usage 记录（含 record_version）；管理面可查；支持导出 JSON；观测数据保留期 ≥ 7 天（与既有 retention 对齐） | 对任一已发生请求，单次查询返回上述全部字段（或明确的缺失标注）；`request_id` 与 Data Plane 响应头 `x-request-id` 一致；逐阶段时间戳可计算各跳时延；导出为合法 JSON |
 | LT-OBS-7（consumer 关联标识透传） | LLMTier shall **可选接收** consumer 侧关联标识（`X-Correlation-ID` 或 `traceparent`，非强制），并在该请求的 logs、usage 账本标注与 trace 查询结果中**回显**；缺失时行为不变（自动生成 request_id） | 带 consumer 关联标识的请求，其 logs/usage/trace 中均可见该标识；不带标识的请求不受影响 |
 
-## 5. 接口需求
+## 5. 接口需求（契约级——LLMTier shall 按此实现，consumer 侧 case 按此编写）
 
-- LT-OBS-1/LT-OBS-2 的查询入口扩展管理面（如 `/tier/admin/v1/logs` 增强、或新增
-  `/tier/admin/v1/diagnostics/*`），遵循既有 admin Bearer 鉴权与 ETag 约定；具体形状由实现设计定。
-- 开关形式：settings 项或 admin API 亦可，但必须**运行时可切换**且默认关闭（LT-OBS-5 同）。
-- LT-OBS-6 查询入口建议 `GET /tier/admin/v1/trace/{request_id}`，遵循 admin Bearer 鉴权；字段命名稳定并文档化。
-- **调试开关的控制面（Piko 联调澄清，2026-09-22）**：
-  - LT-OBS-1 快照开关与 LT-OBS-5 注入开关都必须**支持运行时切换**（admin API 优先；settings+重启仅可作为兜底并须文档化语义）——联调需按 case 逐个开/关；
-  - LT-OBS-5 注入 API 契约（路由/PATCH 体/GET 回读）实现时**冻结并提供可执行示例**（curl 级），consumer 侧将据此编写自动化步骤；
-  - 每个开关须支持"**打开→回读确认→关闭→回读确认**"的完整闭环，回读所见即生效状态。
-- LT-OBS-5 的注入范围仅限调试用途：注入期间的真实上游调用仍正常计量，注入语义不得写入 usage 账本造成对账歧义（账本可标注 injected）。
+> 本节为**接口契约需求**：路由、方法、请求/响应体、状态码与语义均为 shall。
+> LLMTier 可扩展字段/端点，不得与本节矛盾；实现完成后冻结并附 curl 级示例。
 
-## 6. 性能与容量需求
+### 5.1 注入开关（LT-OBS-5）
+
+**PATCH** `/tier/admin/v1/deployments/{deployment_id}/diagnostics`（admin Bearer）
+
+- 请求体：JSON 数组，每项 `{"type": <string>, "config": <object>, "enabled": <boolean>}`
+- type 枚举与 config（shall 完全支持）：
+
+| type | config | consumer 可见效果 |
+|---|---|---|
+| `fault_502` | `{"error_body": string}` | HTTP 502 + 该错误体 |
+| `fault_503` | `{"error_body": string}` | HTTP 503 + 该错误体 |
+| `delay` | `{"delay_ms": int≥0}` | 上游调用前延迟 N ms |
+| `rate_limit` | `{"retry_after_sec": int≥0}` | HTTP 429 + Retry-After 头 |
+| `stream_terminate` | `{"stream_terminate_after_events": int≥1}` | SSE 发出 N 个事件后断连 |
+| `malformed_event` | `{"malformed_after_events": int≥0, "malformed_event_type": string}` | 第 N 事件后注入畸形事件 |
+
+- 行为（shall）：enabled=true 对路由到该 deployment 的**后续请求**确定性生效；enabled=false/删除项立即恢复；
+  PATCH 返回 200 + 该 deployment **全量**注入配置（type/config/enabled）；未知 type/缺必填 config →
+  `400 invalid_injection`；未知 deployment → `404`；配置变更写 audit；注入期间请求的 usage 账本标注 injected。
+
+**GET** `/tier/admin/v1/deployments/{deployment_id}/diagnostics`（admin Bearer）
+- 200 + 全量注入配置数组；未知 deployment → 404。
+
+### 5.2 快照查询（LT-OBS-1）
+
+**GET** `/tier/admin/v1/diagnostics/snapshots?since=&until=&deployment_id=&model=&limit=&cursor=`（admin Bearer）
+- 200 + `{"items":[{id,request_id,captured_at,upstream_url,backend_model,http_status,latency_ms,error_summary,model,deployment_id}], "next_cursor", "has_more"}`；`limit≤500` 默认 50；cursor 为上页末条 id。
+
+### 5.3 统计查询（LT-OBS-2）
+
+**GET** `/tier/admin/v1/diagnostics/stats?since=&until=&deployment_id=&model=`（admin Bearer）
+- 200 + `{"windows":[{stat_hour,deployment_id,model,status_breakdown:{"200":n,"503":m,…},request_count,error_count,latency_p50_ms,latency_p95_ms,latency_min_ms,latency_max_ms,latency_sum_ms}]}`
+- **status_breakdown（按 HTTP status 分列）为 shall**——仅 error_count 不满足需求。
+
+### 5.4 单请求 trace（LT-OBS-6）
+
+**GET** `/tier/admin/v1/trace/{request_id}`（admin Bearer）
+- 200 + `{"request_id","correlation_id","stages":[{stage,timestamp,detail}…],"snapshot":{…},"usage":{…}}`
+  （stages 覆盖 received/validated/routed/upstream_started/upstream_ended/completed|error|aborted，含逐阶段时间戳；snapshot 为 LT-OBS-1 快照；usage 含 record_version）
+- 404 未知 request_id。
+
+### 5.5 通用约定
+
+- 全部诊断接口：admin Bearer；错误响应沿用既有 error 形状（`{error:{message,type,code,param,retryable}}`）；
+- 本节契约即联调 case（JT-13/14/15/17）与 consumer 定位工具（`joint-diagnose.sh`）的对接面；
+  实现后 LLMTier 提供 curl 级示例，consumer 不因实现重构而改步骤。
+
+## 6. 性能与容量需求## 6. 性能与容量需求
 
 开关关闭时：请求路径不得增加可测开销（无锁、无 IO）；开关开启时：捕获写入不得阻塞推理流
 （异步/尽力而为），磁盘用量有上限或轮转。
