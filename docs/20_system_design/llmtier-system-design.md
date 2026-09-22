@@ -86,14 +86,29 @@ flowchart TB
     REG[Logical Model Registry]
     ROUTER[Router and Provider Adapters]
     METER[Usage Meter]
-    STORE[(Config / Runtime State / Usage / Audit)]
+    DIAG[Diagnostic Service<br/>observation 机制]
+    STORE[(Config / Runtime State / Usage / Audit / Diagnostics)]
     API --> REG --> ROUTER
     API --> METER --> STORE
+    API --> DIAG --> STORE
+    DIAG --> ROUTER
+    DIAG --> METER
     ADM --> REG
     ADM --> ROUTER
     ADM --> STORE
+    ADM --> DIAG
   end
 ```
+
+Diagnostic Service 是 §E.2 机制方案规定的内部观察容器：订阅 Data Plane 与 Routing 的执行事件，记录 snapshot/stats/injection/trace；详见 §E.2.4..E.2.7。
+
+#### 5.1.1 静态组成图（STD SVG 约定）
+
+![LLMTier Container View - C4 Level 2 with Observability Subsystem](./assets/diagrams/llmtier-architecture-container.png)
+
+[可编辑 SVG 源](./assets/diagrams/llmtier-architecture-container.svg)
+
+图 A1｜EX-LLMTIER/v3 · Target · LLMTier v0.3.0-draft。本图按 C4 Level 2 表达 LLMTier 各容器组成及依赖关系，**不**规定独立进程或运行调用栈。运行载体见 §6，调用/时序图见 §7。新增的 `Diagnostic Service` 容器（黄色填充）与 4 张新表（diagnostic_snapshots / diagnostic_injections / data_plane_stats / trace_events）详见 §E.2 机制方案。
 
 ### 5.2 LLMTier Service Component View（C4 Level 3 / arc42 Level-1 Whitebox）
 
@@ -300,6 +315,8 @@ Data Plane 与 Admin 使用不同 credential/权限。Provider Secret 只通过 
 | LT-ADR-06 | decided | embedding同逻辑model固定同一向量空间；非兼容变更新model ID |
 | LT-OPEN-02 | design closed / implementation gate | `Embedding-v1`固定为`BAAI/bge-m3` dense family、1024维、space `bge-m3-dense-1024-v1`、8192 tokens、batch 32；物理Provider模型ID可按runtime命名，但权重/runtime digest与预处理一致性须在部署证据中填写 |
 | LT-OPEN-03 | design closed / implementation gate | 单节点Linux基线使用TLS反向代理、外部operator SSO、systemd、加密SQLite备份和本文/Operations定义的恢复门禁；真实环境证据仍未执行 |
+| LT-OPEN-04 | decided | 内部可观测性机制（§E.2）订阅 Data Plane 与 Routing 的执行事件；snapshot/stats/injection/trace 四类数据各归 1 张新表（diagnostic_snapshots / data_plane_stats / diagnostic_injections / trace_events），保留期 7 天与 operational_logs 对齐；注入事件写 audit，账本 source 标注 `injected` 不污染 Usage 语义 |
+| LT-OPEN-05 | design closed / implementation gate | Phase 5b SSE 流注入（`stream_terminate`/`malformed_event`）需改造 `sse.py`；开工前 piko 再确认方案 A（`SSEmitter.put()` 回调）还是 B（SSE 循环中检查） |
 
 ## A. 数据模型与状态机
 
@@ -319,7 +336,184 @@ V0.3 不承诺跨系统调用幂等或结果恢复。配置与 Usage/Audit 使�
 
 ## E. 可观测性、容量、性能、资源与 SLO
 
+### E.1 外部可观测性
+
 外部只发布 health/readiness、Models、token Usage 和标准错误。内部可观察 queue/concurrency/provider quota，但不形成 Slinky capacity/Seat contract。SLO 需实测后批准。
+
+### E.2 内部可观测性机制方案（Observability Subsystem）
+
+Piko ↔ LLMTier 联调定位需求（见 `HANDOFF-Piko-Joint-OBS.md`）：需要**白盒调试六法**支持，包括环回、统计、日志、数据快照、流程改变开关、探针。本节规定 LLMTier 内部的可观测性子模块。
+
+#### E.2.1 目的与边界
+
+- **目的**：为 Piko 联调提供 LT-OBS-1..7 七项能力，覆盖上游调用快照、数据面统计、运行时故障注入、单请求 trace、consumer 关联标识透传
+- **范围**：Data Plane（`/v1/responses`）与 Admin API；不改变 Data Plane 功能契约与 Slinky capacity 边界
+- **不重复做**：Consumer API + 现有 `healthz/readyz/probes` 不重做；观测子系统故障 fail-open 不影响 Data Plane
+
+#### E.2.2 Piko 联调环境
+
+| 项 | 值 |
+|---|---|
+| LLMTier joint | `192.168.1.8:8180` |
+| Piko joint | `127.0.0.1:8788` |
+| admin token | `~/piko-secrets/llmtier-joint-admin-token` |
+| consumer 定位工具 | `piko/scripts/joint-diagnose.sh <run_id>` |
+
+#### E.2.3 总体设计原则
+
+- **开关控制**：所有捕获默认关闭，关闭时零开销
+- **数据安全**：不记录 Provider Secret、consumer credential、完整 prompt/输出正文（长度、哈希、截断摘要允许）
+- **非阻塞**：捕获写入不得阻塞推理路径（尽力而为同步写入，fail-open）
+- **观测子系统故障**：fail-open，不影响 Data Plane 可用性
+
+#### E.2.4 数据模型（新增 4 张表）
+
+```sql
+-- LT-OBS-1：上游调用环回快照
+CREATE TABLE diagnostic_snapshots (
+    id              TEXT PRIMARY KEY,
+    request_id      TEXT NOT NULL,           -- 普通列（非 FK；生命周期独立于账本）
+    captured_at     TEXT NOT NULL,
+    upstream_url    TEXT NOT NULL,           -- 移除 query string
+    backend_model   TEXT,
+    http_status     INTEGER,
+    latency_ms      REAL,
+    error_summary   TEXT,                    -- UTF-8 安全字节截断 256 字节
+    model           TEXT,
+    deployment_id   TEXT,
+    snapshot_type   TEXT DEFAULT 'upstream'
+);
+
+-- LT-OBS-5：注入配置（按 deployment）
+CREATE TABLE diagnostic_injections (
+    id              TEXT PRIMARY KEY,
+    deployment_id   TEXT NOT NULL,
+    injection_type  TEXT NOT NULL,           -- fault_502/fault_503/delay/rate_limit/stream_terminate/malformed_event
+    fault_status    INTEGER,
+    fault_body      TEXT,
+    delay_ms        INTEGER,
+    retry_after_sec INTEGER,
+    stream_terminate_after_events INTEGER,
+    malformed_after_events INTEGER,
+    malformed_event_type TEXT,
+    config_json     TEXT NOT NULL,
+    enabled         INTEGER NOT NULL DEFAULT 0,
+    created_at      TEXT NOT NULL,
+    updated_at      TEXT NOT NULL,
+    UNIQUE(deployment_id, injection_type),
+    FOREIGN KEY (deployment_id) REFERENCES deployments(id) ON DELETE CASCADE
+);
+
+-- LT-OBS-2：数据面统计聚合（小时）
+CREATE TABLE data_plane_stats (
+    id              TEXT PRIMARY KEY,        -- "stat_{deployment_id}_{model}_{stat_hour}"; NULL 用 "_global_" 替代
+    deployment_id   TEXT,
+    model           TEXT,
+    stat_hour       TEXT NOT NULL,           -- ISO hour YYYY-MM-DDTHH
+    request_count   INTEGER NOT NULL DEFAULT 0,
+    error_4xx_count INTEGER NOT NULL DEFAULT 0,
+    error_5xx_count INTEGER NOT NULL DEFAULT 0,
+    latency_p50_ms  REAL,
+    latency_p95_ms  REAL,
+    latency_min_ms  REAL,
+    latency_max_ms  REAL,
+    latency_sum_ms  REAL NOT NULL DEFAULT 0,
+    created_at      TEXT NOT NULL,
+    updated_at      TEXT NOT NULL
+);
+
+-- LT-OBS-6：单请求 trace 事件
+CREATE TABLE trace_events (
+    id              TEXT PRIMARY KEY,
+    request_id      TEXT NOT NULL,
+    stage           TEXT NOT NULL,           -- received/validated/routed/upstream_started/upstream_ended/completed/error/aborted
+    stage_timestamp TEXT NOT NULL,
+    detail          TEXT,                    -- JSON
+    correlation_id  TEXT,                    -- X-Correlation-ID 或 traceparent
+    created_at      TEXT NOT NULL
+);
+```
+
+**保留期**：所有观测数据 7 天（与 `operational_logs` 对齐），TTL cleanup job 自动执行。
+
+#### E.2.5 集成点
+
+| 阶段 | 触发位置 | 调用 |
+|---|---|---|
+| `received` | `BaseHandler._run()` | `diagnostics.record_trace(stage=received)` + `X-Correlation-ID` 提取 |
+| `validated` | `ResponsesService.create()` | `diagnostics.record_trace(stage=validated)` |
+| `routed` | `Router.admit()` | `diagnostics.record_trace(stage=routed)` + 注入检查 |
+| `upstream_started` | `adapter.complete()` 前 | `diagnostics.record_trace(stage=upstream_started)` |
+| `upstream_ended` | `adapter.complete()` 后 | `diagnostics.capture_snapshot()` + `record_trace(stage=upstream_ended)` |
+| `completed`/`error`/`aborted` | SSE 流结束后 | `diagnostics.record_trace(stage=...)` + `record_latency()` |
+
+#### E.2.6 注入检查（LT-OBS-5）
+
+在 `Router.admit()` 成功、调用 `adapter.complete()` **前**执行：
+
+```python
+injections = app.diagnostics.get_enabled_injections(deployment_id)
+for inj in injections:
+    if inj.injection_type == "delay":
+        time.sleep(inj.delay_ms / 1000)
+    elif inj.injection_type in ("fault_502", "fault_503"):
+        return error_response(inj.fault_status, inj.fault_body)
+    elif inj.injection_type == "rate_limit":
+        return rate_limit_response(retry_after=inj.retry_after_sec)
+    # stream_terminate / malformed_event 在 Phase 5b 实施
+```
+
+**注入语义**：注入调用在 `usage_record_versions.source` 标注 `injected`，不污染账本语义。
+
+#### E.2.7 管理面 API（LT-OBS-1/2/5/6）
+
+| 路由 | 方法 | 描述 |
+|---|---|---|
+| `/tier/admin/v1/diagnostics` | GET, PATCH | 全局调试开关（snapshots_enabled, stats_enabled） |
+| `/tier/admin/v1/diagnostics/snapshots` | GET | 快照查询（分页 cursor-based） |
+| `/tier/admin/v1/diagnostics/stats` | GET | 统计查询 |
+| `/tier/admin/v1/deployments/{id}/diagnostics` | GET, PATCH | 注入配置管理 |
+| `/tier/admin/v1/trace/{request_id}` | GET | 单请求 trace 查询 |
+| `/ui/diagnostics` | GET | WebUI 诊断页面 |
+
+**Piko 联调脚本** (`joint-diagnose.sh <run_id>`) 通过 `x-request-id` 调用：
+- `GET /tier/admin/v1/trace/{request_id}` — 全生命周期 trace
+- `GET /tier/admin/v1/diagnostics/snapshots?request_id=xxx` — 上游快照
+
+#### E.2.8 三方定位场景（联调失败 → Piko/LLMTier/oMLX 归属判定）
+
+| 症状（consumer 视角） | LLMTier 侧证据（LT-OBS-1/2/6） | 归属判定 |
+|---|---|---|
+| `Failed/ModelUnavailable` + B 窗口内有 5xx/上游错误快照 | 上游调用快照可见失败 | **oMLX**（或 B→C 网络） |
+| `Failed/ModelUnavailable` + B 窗口内**无任何**该请求记录 | 请求未到 B | **网络 / B 未启动**（B 侧） |
+| B logs 出现 400/404 校验拒绝 | 请求被 B 校验拒绝 | 请求形状问题：对照 Piko 会话 JSONL 判 **Piko 装配**；形状合法 → **B 校验过严** |
+| B 返回 200 但 consumer 解析 SSE 失败/流异常 | B 侧响应体/流快照异常 | **LLMTier 内部**（序列化/流处理） |
+| `Failed/ToolFailure`、`Budget/Deadline`、`UnsafeRetryBlocked` | Piko 自身语义 | **Piko** |
+
+#### E.2.9 自定位用途链（LLMTier 自身出问题）
+
+**LT-OBS-2 统计**（错误率/时延异常先被发现）→ **LT-OBS-6 trace**（按 request_id 看单请求全生命周期与逐跳时间戳）→ **LT-OBS-1 上游快照**（上游交互定格）→ **LT-OBS-5 注入开关**（修复后在同类故障下复现验证）→ logs/audit 佐证。
+
+#### E.2.10 决策与状态
+
+| 决策 | 结论 | 依据 |
+|---|---|---|
+| LT-OBS-2 统计粒度 | 小时 | 更灵活支持时间窗查询 |
+| trace / snapshot 保留期 | 7 天 | 与 logs 对齐 |
+| 流注入实现 | Phase 5a 先做 delay/fault/rate_limit，Phase 5b 再做 SSE 流注入 | SSE 注入侵入 `sse.py`，需单独 review |
+| `diagnostic_injections` 配置存储 | 拆列 | 便于 SQL 查询 |
+| `diagnostic_injections` 唯一性 | `UNIQUE(deployment_id, injection_type)` | 防止同一 deployment 同一 type 重复 |
+| `error_summary` 截断 | UTF-8 安全字节截断 256 字节 | piko review 接受 |
+| `data_plane_stats` 内存缓存 LRU | 100000 条 | piko review 接受 |
+| `usage_record_versions.correlation_id` | 暂不添加 | Piko 已用 `x-request-id` 关联 |
+| 模板 ID | `design.system`（并入本文 §E） | LLMTier 无独立 subsystem（见 `std-tailoring.md` LT-TL-003） |
+
+待 piko 确认：Phase 5b SSE 注入方案 A（`SSEmitter.put()` 回调）vs B（SSE 循环中检查）。
+
+#### E.2.11 模块设计入口
+
+- 模块设计：`docs/40_module_design/llmtier-diagnostics-design.md`（`design.definition` 模板）
+- 实现设计：`docs/50_implementation_design/llmtier-diagnostics.isd.md`
 
 ## F. 测试设计与需求 traceability
 
