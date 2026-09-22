@@ -1,0 +1,31 @@
+{
+  "project": "LLMTier",
+  "authority": "LLMTier",
+  "document_id": "llmtier-observability-debug-requirements-v0.1",
+  "document_type": "requirements.specification",
+  "document_version": "0.1.0-draft.1",
+  "title": "LLMTier 可观测性与调试能力需求（Piko 联调输入）",
+  "document_owner": "LLMTier",
+  "authors": [
+    "llmtier"
+  ],
+  "template_id": "requirements.specification",
+  "template_version": "0.1.1",
+  "template_sha256": "b66c172f3d72cdcf0c55a9b2fb8fef450d19df4087ea4aa604e0e13aefe6b533",
+  "template_conformance": "tailored",
+  "tailoring_ref": "std-tailoring",
+  "migration_map_ref": null,
+  "design_level": "cross-level",
+  "domain": [
+    "mixed"
+  ],
+  "status": "draft",
+  "visibility": "project",
+  "source_repository": "corezilla/LLMTier",
+  "source_path": "docs/10_requirements/llmtier-observability-debug-requirements-v0.1.md",
+  "reviewed_commit": null,
+  "parent_document_id": null,
+  "supersedes": null,
+  "created_at": "2026-09-22",
+  "last_modified_at": "2026-09-22"
+}
