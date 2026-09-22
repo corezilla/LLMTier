@@ -83,8 +83,7 @@ RFC1918 或 IPv6 ULA origin。当前 transport 不等同于 production TLS/auth 
 
 批准的 prose authority 不表示 production endpoint、durable recovery、Admin UI 或 Runtime Activation 已完成。
 其中V0.3 Gate C/Gate U通过不表示production activation通过；真实provider capture、浏览器E2E、部署和三方联调仍是后续门禁。
-旧 V0.3 prose 已逐 scope 映射并移至 `docs/99_reference/`；迁移和批准证据位于 `docs/91_reviews/` 与
-`docs/98_migration/`。
+旧 V0.3 prose 已逐 scope 映射并移至 `docs/99_reference/`。
 
 ## 开发与验证
 

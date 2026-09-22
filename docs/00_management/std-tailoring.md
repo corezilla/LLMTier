@@ -68,7 +68,7 @@
 | `assurance.acceptance-plan` | software | 条件必需，当前 omit | release 前正式验收自动化计划 | LLMTier + Piko + Slinky |
 | `assurance.acceptance-report` | software | 条件必需，当前 omit | release 前正式验收报告；按最新 STD 路径存于 `tests/acceptance/reports/` | LLMTier + Piko + Slinky |
 | `assurance.fpga-implementation-report` | software | omit | LLMTier 不拥有 FPGA；保留以备跨项目扩展 | N/A |
-| `review.packet` | management/software | 是，本批 | STD migration review packet；不请求 V0.3 activation | LLMTier owner；项目授权 reviewer 待指定 |
+| `review.packet` | management/software | omit（迁移批次已完成） | 原迁移 review packet 记录已随版本演进删除；新的重大评审再按需建立 | 无 |
 | `decisions.adr` | software | 条件必需 | persistence/HA/deployment 等新重大决定 | LLMTier |
 | `operations.release` | operations/software | 是，C4 active | `docs/80_operations/llmtier-release-and-operations.md`；Open Gate 不伪造 | LLMTier |
 

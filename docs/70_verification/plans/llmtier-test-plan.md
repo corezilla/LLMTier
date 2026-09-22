@@ -158,7 +158,7 @@ Coverage gaps 显式列在 §11.5。
 - `tests/system/st_*.py`：每个 case 一个文件，例如 `st05_responses_text.py`、`st18_fd_short.py`、`st22a_provider_429_inject.py`。**落地：M2。**（case 本身属 `tests/system/`，不是 earlier 版本的 `tools/system_test_cases/` —— 按 STD draft.26 HEAD 布局修正）
 - `tests/system/reports/<run-id>/`：系统测试报告，按 Run ID 分开（STD 最新 `tests/{level}/reports/<run-id>/` 规则）；不在 `docs/70_verification/` 集中。
 - `tests/system/`：firewall 把系统测试连进 `python3 -m unittest`，路径 `tests.system.test_st_*`；可与现有 191 个单元测试合并跑。**落地：M3。**
-- 当前可立刻跑的 baseline（无需新工具）：`/tmp/piko_smoke.sh` 模式（已在 docs/99_reference/handoff.md §5.2 验证用过）+ `tests/unit/v03/test_admin_stats.py` 模式 → 拷成 `tests/system/st_*.py` 即可。
+- 当前可立刻跑的 baseline（无需新工具）：`/tmp/piko_smoke.sh` 模式（已在早期联调中验证用过）+ `tests/unit/v03/test_admin_stats.py` 模式 → 拷成 `tests/system/st_*.py` 即可。
 
 ### 5.2 执行顺序与依赖
 
