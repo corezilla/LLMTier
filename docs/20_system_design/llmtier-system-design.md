@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.4.0-draft.1` |
+| Document Version | `0.4.0-draft.2` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -147,9 +147,13 @@ LLMTier 不保存或补齐 Agent 历史，不做上下文压缩，不执行工�
 
 ### 3.5 机制清单与文档映射
 
-| Mechanism ID | Document ID | 计划文件名 | 范围 | 状态 |
-|---|---|---|---|---|
-| LT-OBS | `llmtier-observability-mechanism` | `docs/20_system_design/mechanisms/observability.md` | 上游快照、数据面统计、故障注入、单请求 trace、关联标识透传 | 设计已定（本文 §11.3 + 模块/ISD） |
+| Mechanism ID | 上级 | Document ID | 文件名 | 范围 | Owner | 前置依赖 | 写作状态 |
+|---|---|---|---|---|---|---|---|
+| M-TRUST | — | `llmtier-access-trust-mechanism` | `mechanisms/access-trust.md` | 访问信任：内网免登录 + 可选 Bearer 区分角色 | LLMTier | — | 成文 |
+| M-INFER | M-TRUST | `llmtier-inference-stream-mechanism` | `mechanisms/inference-stream.md` | 推理与流式返回：校验→路由→准入→后端→SSE→终态 | LLMTier | M-TRUST | 成文 |
+| M-METER | M-INFER | `llmtier-usage-metering-mechanism` | `mechanisms/usage-metering.md` | 用量计量与账本：义务/版本/head/unknown | LLMTier | M-INFER | 成文 |
+| M-CONFIG | — | `llmtier-config-lifecycle-mechanism` | `mechanisms/config-lifecycle.md` | 配置引导与变更：bootstrap → SQLite 权威 | LLMTier | — | 成文 |
+| M-OBS | M-INFER | `llmtier-observability-mechanism` | `mechanisms/observability.md` | 上游快照、数据面统计、故障注入、单请求 trace、关联标识透传 | LLMTier | M-INFER | 成文 |
 
 模块与实现设计入口：
 
@@ -320,7 +324,7 @@ SQLite 是初始化后唯一配置 authority；`config/settings.json` 仅作空�
 
 ### 11.3 自检与诊断设计
 
-内部可观测性机制（Mechanism `LT-OBS`，见 §3.5）提供：上游调用快照、数据面统计、运行时故障注入、单请求 trace、consumer 关联标识透传。默认关闭，关闭时零开销；开启时尽力而为写入，故障 fail-open。不记录 Provider Secret、consumer credential 或完整 prompt/输出正文。详细设计见模块设计 `llmtier-diagnostics-design.md` 与实现设计 `llmtier-diagnostics.isd.md`。
+内部可观测性机制（Mechanism `M-OBS`，见 §3.5 与 `mechanisms/observability.md`）提供：上游调用快照、数据面统计、运行时故障注入、单请求 trace、consumer 关联标识透传。默认关闭，关闭时零开销；开启时尽力而为写入，故障 fail-open。不记录 Provider Secret、consumer credential 或完整 prompt/输出正文。详细设计见机制文档 `mechanisms/observability.md`、模块设计 `llmtier-diagnostics-design.md` 与实现设计 `llmtier-diagnostics.isd.md`。
 
 ### 11.4 升级与回滚
 
