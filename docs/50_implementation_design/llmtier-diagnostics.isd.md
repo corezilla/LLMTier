@@ -1,8 +1,30 @@
+<!-- STD_DOCUMENT_COVER_BEGIN -->
 # LLMTier Diagnostics ISD
 
-> 参考：[模块设计](../40_module_design/llmtier-diagnostics-design.md)
+> STD 使用入口：[项目采用说明与标准导航](../../README.md#std-entry）
+
+| 文档字段 | 值 |
+|---|---|
+| Document ID | `llmtier-diagnostics-isd` |
+| Document Version | `0.1.0-draft.1` |
+| Status | `Draft` |
+| Project | `LLMTier` |
+| Authority | `LLMTier` |
+| Document Owner | LLMTier |
+| Authors | llmtier |
+| Created Date | `2026-09-22` |
+| Last Modified Date | `2026-09-22` |
+| Template ID | `design.definition` |
+| Template Version | `1.0.0` |
+| Template Conformance | `tailored` |
+| Tailoring Reference | `std-tailoring` |
+
+## 1. 文档说明
+
+参考：[LLMTier Diagnostics 模块设计](../40_module_design/llmtier-diagnostics-design.md)
 
 本文规定 diagnostics 模块的 SQLite Schema 和类实现细节。
+<!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. SQLite Schema
 
