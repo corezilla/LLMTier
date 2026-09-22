@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.4.0-draft.7` |
+| Document Version | `0.4.0-draft.8` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -395,7 +395,28 @@ Embedding 路径同理：Consumer 提交 `POST /v1/embeddings`，系统校验并
 
 ### 10.1 配置来源、校验与生效范围
 
-配置来源：空库首次启动的 `config/settings.json`（bootstrap）→ SQLite（唯一运行权威）。bootstrap 校验完整配置、引用和 Secret 引用可用性；任一步失败回滚并保持 not_ready。Secret 明文不进入 SQLite，只保存引用与其非敏感版本。
+配置来源：空库首次启动的 `config/settings.json`（bootstrap）→ SQLite（唯一运行权威）。bootstrap 校验完整配置、引用和 Secret 引用可用性；任一步失败回滚并保持 not_ready。
+
+### 10.2 Secret（API Key）的存储与管理
+
+**存储形式**：Secret 一律以**引用**保存，明文永不入库。引用只允许两种形式：
+
+- `env:<VAR>`：从进程环境变量读取；
+- `file:<path>`：从文件读取（`read_text().strip()`）。
+
+`providers.secret_ref` 存引用本身（非明文）；上游账号用量凭据同理，各有 `usage_api_key_ref` / `usage_access_key_ref` / `usage_secret_key_ref`。
+
+**存放位置**：仓库内约定 `config/secrets/`（目录 `0700`、文件 `0600`），并写入 `.gitignore`（`/config/secrets/`）；生产亦可改由外部 secret manager 挂载为文件后以 `file:` 引用，或注入环境变量以 `env:` 引用。
+
+**校验**：bootstrap 与配置写入时校验引用可用性——`env:` 要求变量存在，`file:` 要求是常规文件；否则回滚并保持 not_ready（错误 `bootstrap_invalid`）。
+
+**解析时机**：**调用时按引用解析**（每次请求读取 env/file），不把明文缓存进 SQLite 或长期内存；`env:` 与 `file:` 均无值/不可读时返回 `provider_secret_unavailable`(503)。
+
+**回显与日志**：读接口只返回布尔 `has_secret`（账号用量为 `has_usage_api_key` 等），**绝不回显**引用或明文；`Authorization` 与 secret 值在写日志前脱敏，错误消息不含 secret。
+
+**轮换**：轮换方式是改文件内容（`file:`）或改环境变量（`env:`），再重启进程；引用本身变更走管理面 PATCH（携带 `If-Match`，stale 返回 412）。运行时不热载 Secret，不双写。
+
+**权限与边界**：Secret 文件权限随部署由运维保证；LLMTier 只读引用，不生成、不导出、不写入 Secret 内容到响应、日志、审计或 UI。
 
 ## 11. 可靠性、维护与升级
 
