@@ -96,40 +96,44 @@ class UsageRecorder:
         """
         with self.store.transaction(True) as conn:
             if model and deployment_id:
-                deleted = conn.execute("""
-                    DELETE FROM usage_record_versions
-                    WHERE (principal_id, request_id) IN (
-                        SELECT v.principal_id, v.request_id
-                        FROM usage_record_versions v
-                        JOIN usage_heads h ON h.principal_id=v.principal_id AND h.request_id=v.request_id AND h.head_record_version=v.record_version
-                        JOIN provider_request_bindings b ON b.principal_id=v.principal_id AND b.request_id=v.request_id
-                        WHERE v.model=? AND b.deployment_id=?
-                    )
-                """, (model, deployment_id)).rowcount
+                conn.execute("""
+                    CREATE TEMP TABLE _del_pairs AS
+                    SELECT DISTINCT v.principal_id, v.request_id
+                    FROM usage_record_versions v
+                    JOIN usage_heads h ON h.principal_id=v.principal_id AND h.request_id=v.request_id AND h.head_record_version=v.record_version
+                    JOIN provider_request_bindings b ON b.principal_id=v.principal_id AND b.request_id=v.request_id
+                    WHERE v.model=? AND b.deployment_id=?
+                """, (model, deployment_id))
             elif model:
-                deleted = conn.execute("""
-                    DELETE FROM usage_record_versions
-                    WHERE (principal_id, request_id) IN (
-                        SELECT h.principal_id, h.request_id
-                        FROM usage_heads h
-                        JOIN usage_record_versions v ON v.principal_id=h.principal_id AND v.request_id=h.request_id AND v.record_version=h.head_record_version
-                        WHERE v.model=?
-                    )
-                """, (model,)).rowcount
+                conn.execute("""
+                    CREATE TEMP TABLE _del_pairs AS
+                    SELECT DISTINCT v.principal_id, v.request_id
+                    FROM usage_record_versions v
+                    JOIN usage_heads h ON h.principal_id=v.principal_id AND h.request_id=v.request_id AND h.head_record_version=v.record_version
+                    WHERE v.model=?
+                """, (model,))
             elif deployment_id:
-                deleted = conn.execute("""
-                    DELETE FROM usage_record_versions
-                    WHERE (principal_id, request_id) IN (
-                        SELECT b.principal_id, b.request_id
-                        FROM provider_request_bindings b
-                        WHERE b.deployment_id=?
-                    )
-                """, (deployment_id,)).rowcount
+                conn.execute("""
+                    CREATE TEMP TABLE _del_pairs AS
+                    SELECT DISTINCT b.principal_id, b.request_id
+                    FROM provider_request_bindings b
+                    WHERE b.deployment_id=?
+                """, (deployment_id,))
             else:
-                deleted = conn.execute("DELETE FROM usage_record_versions").rowcount
+                conn.execute("CREATE TEMP TABLE _del_pairs AS SELECT DISTINCT principal_id, request_id FROM usage_record_versions")
 
-            conn.execute("DELETE FROM usage_heads WHERE (principal_id, request_id) NOT IN (SELECT principal_id, request_id FROM usage_record_versions)")
-            conn.execute("DELETE FROM provider_request_bindings WHERE (principal_id, request_id) NOT IN (SELECT principal_id, request_id FROM usage_record_versions)")
-            conn.execute("DELETE FROM usage_obligations WHERE (principal_id, request_id) NOT IN (SELECT principal_id, request_id FROM usage_record_versions)")
+            if model or deployment_id:
+                deleted = conn.execute("SELECT COUNT(*) FROM _del_pairs").fetchone()[0]
+                conn.execute("DELETE FROM usage_heads WHERE (principal_id, request_id) IN (SELECT principal_id, request_id FROM _del_pairs)")
+                conn.execute("DELETE FROM usage_record_versions WHERE (principal_id, request_id) IN (SELECT principal_id, request_id FROM _del_pairs)")
+                conn.execute("DELETE FROM usage_obligations WHERE (principal_id, request_id) IN (SELECT principal_id, request_id FROM _del_pairs)")
+                conn.execute("DELETE FROM provider_request_bindings WHERE (principal_id, request_id) IN (SELECT principal_id, request_id FROM _del_pairs)")
+                conn.execute("DROP TABLE _del_pairs")
+            else:
+                conn.execute("DELETE FROM usage_heads")
+                conn.execute("DELETE FROM provider_request_bindings")
+                deleted = conn.execute("DELETE FROM usage_record_versions").rowcount
+                conn.execute("DELETE FROM usage_obligations")
+                conn.execute("DROP TABLE IF EXISTS _del_pairs")
 
         return {"deleted": deleted}
