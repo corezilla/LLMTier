@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.4.0-draft.6` |
+| Document Version | `0.4.0-draft.7` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -207,32 +207,19 @@ LLMTier 有自有图形界面（英文 operator 控制台）。本节在系统�
 
 抽屉：`DRW-TIER`（Tier 成员编辑，属 PG-HOME）；`DRW-PROVIDER`（属 PG-PROVIDERS）。切换页面不改变服务状态；跨作用域（等级/供应商）切换时清除旧查询结果。
 
-```mermaid
-flowchart LR
-  NAV[侧栏] --> PG_HOME[PG-HOME · Home]
-  NAV --> PG_PROV[PG-PROVIDERS · Providers]
-  NAV --> PG_REC[PG-RECORDS · Usage & Audit]
-  NAV --> PG_LOGS[PG-LOGS · Logs]
-  NAV --> PG_DIAG[PG-DIAG · Diagnostics]
-  PG_HOME -.打开.-> DRW_TIER[DRW-TIER 抽屉]
-  PG_PROV -.打开.-> DRW_PROV[DRW-PROVIDER 抽屉]
-```
+![Web UI 导航（Page ID 与抽屉）](../assets/diagrams/diagram-webui-nav.png)
+
+[可编辑 SVG 源](../assets/diagrams/diagram-webui-nav.svg)
+
+图 A3 · PG 导航：侧栏 5 个入口 + 两个抽屉（DRW-TIER / DRW-PROVIDER）。
 
 **共享框架**：固定窄侧栏 + 页头（全局状态、版本）+ 单主卡片区；小屏侧栏收拢为顶部菜单，表格横向滚动。状态与高频操作用单线图标，配 `title`/`aria-label`，不只用颜色表达。
 
-```mermaid
-flowchart TB
-  subgraph Frame[控制台框架]
-    direction TB
-    SIDE[侧栏：5 个入口]
-    HEAD[页头：Gateway 状态 / 版本]
-    MAIN[主区：当前页面]
-    FB[反馈区：错误 / 冲突 / 未知结果]
-  end
-  SIDE --> MAIN
-  HEAD --> MAIN
-  MAIN --> FB
-```
+![Web UI 共享框架](../assets/diagrams/diagram-webui-frame.png)
+
+[可编辑 SVG 源](../assets/diagrams/diagram-webui-frame.svg)
+
+图 A4 · 共享框架：侧栏 / 页头 / 主区 / 反馈区。
 
 **逐主要页面**（每页一份布局图；组合总览见 [webui-page-layouts.png](../assets/diagrams/webui-page-layouts.png)）。图中每页画共享框架（窄侧栏 + 页头 + 主卡片 + 反馈条）与页面专属主内容；仅表达布局分区，颜色/字体/像素交模块设计。
 
@@ -268,25 +255,11 @@ flowchart TB
 
 **重要用户任务**（发布配置变更）：
 
-```mermaid
-sequenceDiagram
-  participant O as Operator
-  participant UI as Web UI
-  participant API as /v1/*
-  O->>UI: 编辑 Provider 并保存
-  UI->>API: GET item（取 ETag）
-  UI->>API: PATCH + If-Match
-  alt 成功
-    API-->>UI: 200 + 新 ETag
-  else 412 stale
-    API-->>UI: 412
-    UI-->>O: 提示已变更，保留输入并提供重新载入
-  else 409 引用冲突
-    API-->>UI: 409
-    UI-->>O: 显示引用列表摘要
-  end
-  Note over O,API: 保存成功只说明配置落库，不代表 probe/health/ready 成功
-```
+![发布配置变更时序](../assets/diagrams/diagram-webui-config-change.png)
+
+[可编辑 SVG 源](../assets/diagrams/diagram-webui-config-change.svg)
+
+图 A5 · 发布配置变更（含 412 stale / 409 引用分支）。
 
 **数据、状态与操作映射**：
 
@@ -346,35 +319,17 @@ sequenceDiagram
 
 ### 7.1 启动与就绪过程
 
-```mermaid
-flowchart TB
-  S([进程启动]) --> M[迁移 schema]
-  M --> C{已 bootstrap?}
-  C -- 否 --> B[读 settings 并校验引用/Secret]
-  B -- 失败 --> R[回滚事务] --> NR([/readyz = not_ready])
-  B -- 成功 --> W[单事务写入 + store_initialized]
-  C -- 是 --> T[确保固定等级存在]
-  W --> T
-  T --> RD([/readyz = ready])
-```
+![P-BOOT 启动与就绪流程](../assets/diagrams/diagram-flow-startup.png)
+
+[可编辑 SVG 源](../assets/diagrams/diagram-flow-startup.svg)
 
 图 P1 · P-BOOT 冷启动。`/healthz` 只表示进程存活；`/readyz` 由 schema、bootstrap 与固定等级共同决定。bootstrap 任一步失败即回滚并保持 not_ready，不接流量。
 
 ### 7.2 一次业务处理的完整过程
 
-```mermaid
-sequenceDiagram
-  participant P as Consumer
-  participant L as LLMTier
-  participant B as Model Backend
-  P->>L: POST /v1/responses (完整 input, exact model)
-  L->>L: 信任 + 校验 + exact model + admission
-  L->>B: provider-native request
-  B-->>L: 文本或 function call + usage/error
-  L-->>P: 标准响应 + usage + X-Request-ID
-  Note over P: Consumer 执行工具并以新完整请求提交
-  Note over L: 失败：429 / provider_unavailable / 断开 → 释放许可，不重放
-```
+![P-INFER 模型调用时序](../assets/diagrams/diagram-flow-inference.png)
+
+[可编辑 SVG 源](../assets/diagrams/diagram-flow-inference.svg)
 
 图 P2 · P-INFER 模型调用。每个 HTTP 请求是独立模型调用。网络结果不明时，Consumer 按标准 client retry policy 处理；本系统不承诺跨系统 exactly-once，也不提供 Invocation 查询或结果恢复。异常出口：准入失败 429、后端失败 provider_unavailable、客户端断开（结束本次调用，不创建可恢复 Invocation）。
 
@@ -382,28 +337,17 @@ Embedding 路径同理：Consumer 提交 `POST /v1/embeddings`，系统校验并
 
 ### 7.3 配置生效与模式切换过程
 
-```mermaid
-flowchart TB
-  O([operator 在线变更]) --> G[GET item 取 ETag] --> P[PATCH + If-Match]
-  P --> V{校验 + 事务}
-  V -- 412 stale --> X[拒绝，保留输入，不改] 
-  V -- 409 引用冲突 --> Y[拒绝，显示引用摘要]
-  V -- 成功 --> N[写新版本 + 审计] --> A([配置生效])
-  O2([离线再导入]) --> BK[先备份] --> MG[单一版本迁移命令] --> A
-```
+![P-CONFIG 配置变更流程](../assets/diagrams/diagram-flow-config.png)
+
+[可编辑 SVG 源](../assets/diagrams/diagram-flow-config.svg)
 
 图 P3 · P-CONFIG 配置变更。SQLite 是初始化后唯一配置 authority；`config/settings.json` 仅作空库首次启动的一次性 bootstrap 输入。初始化后即使文件变化也不自动重导入，管理写入只落 SQLite；再导入必须是 operator 显式离线迁移，先备份并使用单一版本迁移命令，不双写。
 
 ### 7.4 停止、取消、重启与异常恢复
 
-```mermaid
-flowchart TB
-  ST([运维停止]) --> CL[关闭入口] --> DR[在途请求退出]
-  DR --> CK{确认已退出?}
-  CK -- 否 --> W[继续等待，不重启]
-  CK -- 是 --> RS[重启进程]
-  RS --> RDY[/readyz = ready/] --> SM[受控 smoke request] --> OK([恢复确认])
-```
+![P-RESTART 停止/重启/恢复流程](../assets/diagrams/diagram-flow-stop-restart.png)
+
+[可编辑 SVG 源](../assets/diagrams/diagram-flow-stop-restart.svg)
 
 图 P4 · P-RESTART。服务停止、reload、restart、backend probe 是环境运维，不是任务或模型调用状态机。恢复后以 health/readiness、配置版本、目标模型可用性及受控 smoke request 分层确认；环境恢复不等于上层任务成功。
 
