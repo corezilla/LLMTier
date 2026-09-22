@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "llmtier-access-trust-mechanism",
   "document_type": "design.system-mechanism",
-  "document_version": "0.1.0-draft.1",
+  "document_version": "0.1.0-draft.2",
   "title": "LLMTier 访问信任机制",
   "document_owner": "LLMTier",
   "authors": [

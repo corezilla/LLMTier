@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "llmtier-usage-metering-mechanism",
   "document_type": "design.system-mechanism",
-  "document_version": "0.1.0-draft.1",
+  "document_version": "0.1.0-draft.2",
   "title": "LLMTier 用量计量机制",
   "document_owner": "LLMTier",
   "authors": [

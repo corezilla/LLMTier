@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-access-trust-mechanism` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -77,6 +77,12 @@ Principal 不持久化，仅随请求在内存传递。
 ## 6. 正常端到端流程
 
 请求进入 → 解析客户端地址 → 若命中受信网络且无 Authorization，返回免登录 Principal → 否则校验 Bearer 凭据 → 产出 Principal → 交由业务层使用。
+
+![访问信任判定时序](../../assets/diagrams/diagram-mech-trust-sequence.png)
+
+[可编辑 SVG 源](../../assets/diagrams/diagram-mech-trust-sequence.svg)
+
+图 M · 访问信任判定时序（实线=请求，虚线=响应；先后关系非时间比例）。
 
 ### 6.1 生命周期过程与交叠操作
 

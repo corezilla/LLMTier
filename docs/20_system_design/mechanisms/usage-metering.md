@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-usage-metering-mechanism` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -73,6 +73,12 @@
 ## 6. 正常端到端流程
 
 dispatch 前写 unknown 义务 → 绑定最终后端 → 后端返回 → 归一 token → 追加版本并推进 head → 查询按 `[from,to)` 与 `(recorded_at,request_id)` 稳定排序。
+
+![用量计量时序](../../assets/diagrams/diagram-mech-meter-sequence.png)
+
+[可编辑 SVG 源](../../assets/diagrams/diagram-mech-meter-sequence.svg)
+
+图 M · 用量计量时序（实线=请求，虚线=响应；先后关系非时间比例）。
 
 ### 6.1 生命周期过程与交叠操作
 

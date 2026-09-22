@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-config-lifecycle-mechanism` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -72,6 +72,12 @@ Provider、Deployment、ServiceLevel 版本化记录；`schema_meta` 记录 boot
 ## 6. 正常端到端流程
 
 启动 → 迁移 schema → 若无 bootstrap hash 则读 settings 校验并写入 → 否则跳过 → 服务就绪。
+
+![配置引导与变更时序](../../assets/diagrams/diagram-mech-config-sequence.png)
+
+[可编辑 SVG 源](../../assets/diagrams/diagram-mech-config-sequence.svg)
+
+图 M · 配置引导与变更时序（实线=请求，虚线=响应；先后关系非时间比例）。
 
 ### 6.1 生命周期过程与交叠操作
 

@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-inference-stream-mechanism` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -73,6 +73,12 @@ Consumer 提交 `POST /v1/responses`（`stream:true/store:false`）或 `POST /v1
 ## 6. 正常端到端流程
 
 信任判定 → schema 校验 → exact model 选择 → 准入排队 → 选择后端 → 调用 → 归一为 SSE/JSON → 终态事件 → 关闭。
+
+![推理与流式返回时序](../../assets/diagrams/diagram-mech-infer-sequence.png)
+
+[可编辑 SVG 源](../../assets/diagrams/diagram-mech-infer-sequence.svg)
+
+图 M · 推理与流式返回时序（实线=请求，虚线=响应；先后关系非时间比例）。
 
 ### 6.1 生命周期过程与交叠操作
 

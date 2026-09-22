@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-observability-mechanism` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -78,6 +78,12 @@
 ## 6. 正常端到端流程
 
 请求进入（received）→ 校验（validated）→ 路由（routed，读注入配置）→ 上游开始/结束（写快照）→ 终态（completed/error/aborted）→ 统计累积。
+
+![可观测性记录与查询时序](../../assets/diagrams/diagram-mech-obs-sequence.png)
+
+[可编辑 SVG 源](../../assets/diagrams/diagram-mech-obs-sequence.svg)
+
+图 M · 可观测性记录与查询时序（实线=请求，虚线=响应；先后关系非时间比例）。
 
 ### 6.1 生命周期过程与交叠操作
 
