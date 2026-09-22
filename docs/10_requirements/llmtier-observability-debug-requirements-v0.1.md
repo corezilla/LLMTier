@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-observability-debug-requirements-v0.1` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -56,14 +56,17 @@ HTTP 能力**（`/v1/models`、`/v1/responses`、Bearer），后端观测不足�
 | LT-OBS-2（统计） | LLMTier shall 提供数据面统计查询：按 model 与 HTTP status 的请求数、错误数、时延分布（P50/P95），管理面可查、支持时间窗 | 两次不同结果的请求后，统计计数可区分并累加；时间窗外不计入 |
 | LT-OBS-3（审计语义） | LLMTier shall 在管理控制文档中**明示** audit 覆盖范围：当前仅管理面动作（provider/deployment/service-level/probe），数据面请求不产生 audit 事件 | 文档声明与实现一致；consumer 可据此选择追踪手段 |
 | LT-OBS-4（readyz 语义） | LLMTier shall 使 `readyz` 全局状态反映**实际可用能力**：未启用对应部署的占位 service level 不得将全局状态降级为 `degraded`（应在模型级标注 unavailable，全局 status 由已启用能力决定） | 仅启用 chat 部署时，`readyz.status` 为 `ok`（或 `ready`），占位 embedding 模型级仍标 unavailable |
-| LT-OBS-5（故障/时延注入开关） | LLMTier shall 提供**运行时可切的注入开关**（admin 控制、按 deployment 生效、可随时关闭）：① 注入上游故障（502/503 带错误体）② 注入时延（+N ms）③ 注入限流（429+Retry-After），使 consumer 侧故障路径可**确定性**触达 | 注入 502 → consumer 收到 502 及错误体；注入时延 → 响应时延按设定增加；注入 429 → consumer 收到 429+Retry-After；关闭后立即恢复且非注入流量不受影响；注入事件在 logs/audit 可见 |
-| LT-OBS-6（统计清空） | LLMTier shall 提供管理面接口**清空指定范围的 usage 统计记录**（按 model 和/或 deployment_id 过滤；支持全文清空） | DELETE `/tier/admin/v1/usage?model=Worker&deployment_id=dep_xxx` 返回 `{"deleted": N}`；不带过滤参数清空全部统计；清空后 GET /stats 不再包含已删除记录 |
+| LT-OBS-5（故障/时延/限流/流注入开关） | LLMTier shall 提供**运行时可切的注入开关**（admin 控制、按 deployment 生效、可随时关闭）：① 上游故障（502/503 带错误体）② 时延（+N ms）③ 限流（429+Retry-After）④ **上游流提前终止**（SSE 已开头发一半即断）⑤ **畸形流事件**（违反 Responses 事件序/非法 JSON 事件），使 consumer 侧的故障、重试、流处理路径可**确定性**触达 | ① consumer 收到 502 及错误体 ② 时延按设定增加 ③ 收到 429+Retry-After ④ consumer 收到不完整流并有明确错误处置（不得悬挂/伪报）⑤ consumer 收到畸形事件并有明确错误处置；关闭后立即恢复；非注入流量不受影响；注入事件在 logs/audit 可见 |
+| LT-OBS-6（统计清空） | LLMTier shall 提供管理面接口**清空指定范围的 usage 统计记录**（按 model 和/或 deployment_id 过滤；支持全文清空）；清空时同步清理关联表孤儿记录 | DELETE `/tier/admin/v1/usage?model=Worker&deployment_id=dep_xxx` 返回 `{"deleted": N}`；不带过滤参数清空全部统计；清空后 GET /stats 不再含已删除记录；`usage_obligations` 中无对应 `usage_record_versions` 的孤儿记录同步清理 |
+
+| LT-OBS-6（单请求 trace 查询） | LLMTier shall 支持**按 `request_id` 一次查询该请求的全生命周期记录**：接收时间、校验结果、路由（service level/deployment）、上游调用快照（LT-OBS-1）、SSE 终止原因（completed/error/aborted）、usage 记录（含 record_version），管理面可查 | 对任一已发生请求，单次查询返回上述全部字段（或明确的缺失标注）；`request_id` 与 Data Plane 响应头 `x-request-id` 一致 |
 
 ## 5. 接口需求
 
 - LT-OBS-1/LT-OBS-2 的查询入口扩展管理面（如 `/tier/admin/v1/logs` 增强、或新增
   `/tier/admin/v1/diagnostics/*`），遵循既有 admin Bearer 鉴权与 ETag 约定；具体形状由实现设计定。
 - 开关形式：settings 项或 admin API 亦可，但必须**运行时可切换**且默认关闭（LT-OBS-5 同）。
+- LT-OBS-6 查询入口建议 `GET /tier/admin/v1/trace/{request_id}`，遵循 admin Bearer 鉴权；字段命名稳定并文档化。
 - LT-OBS-5 的注入范围仅限调试用途：注入期间的真实上游调用仍正常计量，注入语义不得写入 usage 账本造成对账歧义（账本可标注 injected）。
 
 ## 6. 性能与容量需求
