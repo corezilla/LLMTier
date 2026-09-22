@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.4.0-draft.8` |
+| Document Version | `0.4.0-draft.9` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -379,17 +379,79 @@ Embedding 路径同理：Consumer 提交 `POST /v1/embeddings`，系统校验并
 
 ## 9. 接口与通信协议
 
-### 9.1 外部入口与内部接口权威
+全部 HTTP 接口位于单一 `/v1/*` 命名空间；consumer 与 operator 端点通过凭据与资源名区分，不另设路径前缀。字段级 authority 是 `interfaces/openapi/llmtier.openapi.json`。
 
-全部 HTTP 接口位于单一 `/v1/*` 命名空间；consumer 端点与 operator 端点通过凭据与资源名区分，不另设路径前缀。字段级 authority 是 `interfaces/openapi/llmtier.openapi.json`。Bearer 凭据只标识获授权调用主体；`X-Request-ID` 是服务端响应关联 ID，可接收标准 trace context；它们不是幂等键或会话 ID。
+### 9.1 OpenAI-compatible 接口（consumer）
 
-### 9.2 单项操作、类型与错误实例（按接口展开）
+LLMTier 对外暴露 OpenAI 兼容子集，consumer 可直接用 OpenAI SDK / 协议调用：
 
-错误统一为 `{error:{message,type,code,param}}`。分页基于 cursor；管理读返回强 ETag，PATCH/DELETE 必须携带 `If-Match`，stale edit 返回 412，引用冲突返回 409，partial PATCH 只更新出现字段。
+| Method | Path | 说明 |
+|---|---|---|
+| POST | `/v1/responses` | Responses API；固定 `stream:true` / `store:false`，返回标准 SSE |
+| POST | `/v1/embeddings` | Embeddings API；支持 float / base64 |
+| GET | `/v1/models` | 逻辑等级（模型）目录 |
+| GET | `/v1/models/{model}` | exact-case 模型能力与限额 |
+| GET | `/v1/usage` | token 用量查询（见"最小扩展"） |
 
-### 9.3 维护调试入口与访问方式
+**协议要点**：
 
-`GET/PATCH /v1/diagnostics` 提供全局调试开关（快照捕获、统计聚合）；`GET/PATCH /v1/deployments/{id}/diagnostics` 提供按 deployment 的故障注入配置；`GET /v1/trace/{request_id}` 提供单请求全生命周期；`GET /v1/diagnostics/snapshots`、`GET /v1/diagnostics/stats` 提供观测查询。以上均需 operator 凭据。
+- `/v1/responses` 只支持流式；SSE 事件子集：`response.created`、`response.output_item.added`、`response.output_text.delta`、`response.refusal.delta`、reasoning summary/text、`response.function_call_arguments.delta|done`、`response.output_item.done`、`response.completed|incomplete|failed`、`error`。
+- 每个 output item 有稳定 `id`；delta / added / done / terminal 一致；每请求恰好一个 terminal 事件。
+- Usage 位于 terminal response 内：`input_tokens` / `output_tokens` / `total_tokens`，含 `*_details`；未知不补零。
+- refusal 使用标准 `{type:"refusal",refusal}`，不伪装为 `output_text`。
+- 响应头 `X-Request-ID`；可接收标准 trace context（见 §9.6）。
+
+**最小扩展**：`GET /v1/usage` —— 标准 OpenAI API 没有统一跨请求 token 查询；只返回 token 事实，不返回 Cost、容量或执行状态。
+
+### 9.2 LLMTier 管理接口（operator）
+
+| Method | Path | 说明 |
+|---|---|---|
+| GET, POST | `/v1/providers` | 列 / 建 provider |
+| GET, PATCH, DELETE | `/v1/providers/{provider_id}` | 取 / 改 / 删 provider |
+| GET, POST | `/v1/providers/{provider_id}/usage` | 账号用量：读快照 / 显式刷新（二次确认）|
+| GET | `/v1/providers/{provider_id}/models` | 列上游可用模型 |
+| GET, POST | `/v1/deployments` | 列 / 建 deployment |
+| GET, PATCH, DELETE | `/v1/deployments/{deployment_id}` | 取 / 改 / 删 deployment（含 Pause/Resume）|
+| GET, POST | `/v1/service-levels` | 列 / 建逻辑等级 |
+| GET, PATCH, DELETE | `/v1/service-levels/{service_level_id}` | 取 / 改 / 删等级成员绑定 |
+| GET | `/v1/runtime` | 运行时并发 / 队列快照 |
+| GET | `/v1/stats` | 用量聚合（时间窗 `from`/`to` + `group_by`）|
+| POST | `/v1/probes` | 部署探测（需二次确认 `confirm_external_call`）|
+| GET, DELETE | `/v1/usage` | 用量查询（operator 见全部）/ 按 model、deployment 或全部清空 |
+| GET | `/v1/audit` | 管理审计（脱敏）|
+| GET | `/v1/logs` | 运行日志（脱敏）|
+
+### 9.3 可观测性接口（LT-OBS，operator）
+
+| Method | Path | 说明 |
+|---|---|---|
+| GET, PATCH | `/v1/diagnostics` | 全局调试开关（快照捕获 / 统计聚合）|
+| GET | `/v1/diagnostics/snapshots` | 上游快照查询（分页）|
+| GET | `/v1/diagnostics/stats` | 数据面统计（P50/P95）|
+| GET, PATCH | `/v1/deployments/{id}/diagnostics` | 按 deployment 的注入配置 |
+| GET | `/v1/trace/{request_id}` | 单请求全生命周期 |
+
+以上为设计已定、**实现待落地**（见 §11.3 与 `mechanisms/observability.md`），尚未进入当前 OpenAPI candidate。
+
+### 9.4 探针（无凭据）
+
+| Method | Path | 说明 |
+|---|---|---|
+| GET | `/healthz` | 进程存活 |
+| GET | `/readyz` | 可接流量判断 + 模型级 availability |
+
+### 9.5 键控入口
+
+Web UI（`/ui/*`）是 operator 控制台，同源调用上表管理接口，不新增业务接口。`POST /v1/responses` 的流式事件子集是唯一 Data Plane 协议；不提供 JSON 非流式并行模式。
+
+### 9.6 通用约定
+
+- **错误**：统一 `{error:{message,type,code,param}}`，区分 validation / auth / model_not_found / rate_limit / provider_unavailable / internal_error；429 可带 `Retry-After`。
+- **分页**：基于 cursor；游标绑定筛选、授权与稳定快照。
+- **并发控制**：管理读返回强 ETag；PATCH / DELETE 必须携带 `If-Match`；stale edit 返回 412，引用冲突返回 409，partial PATCH 只更新出现字段。
+- **凭据**：Bearer 只标识获授权调用主体；不暴露 Client/Source/SourceInstance。
+- **关联**：`X-Request-ID` 是服务端响应关联 ID；可接收标准 trace context；二者不是幂等键或会话 ID。
 
 ## 10. 配置与环境管理设计
 

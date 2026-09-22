@@ -936,6 +936,35 @@
         }
       }
     },
+    "/v1/runtime": {
+      "get": {
+        "operationId": "getRuntimeSnapshot",
+        "summary": "Runtime concurrency and queue snapshot",
+        "security": [
+          {
+            "AdminBearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Runtime snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
     "/v1/service-levels": {
       "get": {
         "operationId": "listServiceLevels",
@@ -1152,6 +1181,70 @@
           },
           "412": {
             "$ref": "#/components/responses/PreconditionFailed"
+          }
+        }
+      }
+    },
+    "/v1/stats": {
+      "get": {
+        "operationId": "getUsageStats",
+        "summary": "Aggregated token usage by tier or deployment over a time window",
+        "security": [
+          {
+            "AdminBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "group_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "tier",
+                "deployment"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Usage stats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         }
       }
