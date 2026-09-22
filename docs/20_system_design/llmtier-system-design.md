@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.4.0-draft.2` |
+| Document Version | `0.4.0-draft.4` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -193,13 +193,94 @@ LLMTier 不保存或补齐 Agent 历史，不做上下文压缩，不执行工�
 
 ### 4.3 UI 设计（适用时）
 
-Web UI 是英文 operator 控制台，含 **5 个页面**：Home、Providers、Usage & Audit、Logs、Diagnostics；同源调用 `/v1/*`，不直读 SQLite/配置/密钥。逐页线框、状态、字段与交互以 `docs/40_module_design/llmtier-webui-design.md` 为 authority：
+LLMTier 有自有图形界面（英文 operator 控制台）。本节在系统阶段决定**信息架构、导航、共享框架、主要页面布局与交互**；颜色/字体/像素与前端的逐字段细节交 `docs/40_module_design/llmtier-webui-design.md`。控制台同源调用 `/v1/*`，不直读 SQLite/配置/密钥。
 
-1. **Home 主页**：以逻辑等级为父节点、后端为子节点的两层树；显示各后端 provider、model、类型、健康、版本与并发。含 **Tier 成员编辑抽屉**（修改/添加/解绑后端；不删除固定等级）。
-2. **Providers 供应商管理**：维护 cloud/local provider、API root、Secret 引用与 enabled。
-3. **Usage & Audit 用量与审计**：同页页签切换 token 用量与管理审计，两者数据语义分离。
-4. **Logs 日志**：查询脱敏的运行与故障诊断事件。
-5. **Diagnostics 诊断**：观测查询与调试开关。
+**信息架构与导航**（Page ID 稳定；页面不是软件模块）：
+
+| Page ID | 页面 | 用户任务 / 角色 | 入口 / 返回 / 上下文保留 |
+|---|---|---|---|
+| PG-HOME | Home | 查看等级与后端状态、编辑等级成员 | 侧栏；返回保留展开状态 |
+| PG-PROVIDERS | Providers | 管理 cloud/local provider 与账号用量 | 侧栏 |
+| PG-RECORDS | Usage & Audit | 查 token 用量与管理审计 | 侧栏；页签状态保留 |
+| PG-LOGS | Logs | 查脱敏运行日志 | 侧栏；筛选保留在 URL |
+| PG-DIAG | Diagnostics | 观测查询、调试开关、注入配置 | 侧栏 |
+
+抽屉：`DRW-TIER`（Tier 成员编辑，属 PG-HOME）；`DRW-PROVIDER`（属 PG-PROVIDERS）。切换页面不改变服务状态；跨作用域（等级/供应商）切换时清除旧查询结果。
+
+```mermaid
+flowchart LR
+  NAV[侧栏] --> PG_HOME[PG-HOME · Home]
+  NAV --> PG_PROV[PG-PROVIDERS · Providers]
+  NAV --> PG_REC[PG-RECORDS · Usage & Audit]
+  NAV --> PG_LOGS[PG-LOGS · Logs]
+  NAV --> PG_DIAG[PG-DIAG · Diagnostics]
+  PG_HOME -.打开.-> DRW_TIER[DRW-TIER 抽屉]
+  PG_PROV -.打开.-> DRW_PROV[DRW-PROVIDER 抽屉]
+```
+
+**共享框架**：固定窄侧栏 + 页头（全局状态、版本）+ 单主卡片区；小屏侧栏收拢为顶部菜单，表格横向滚动。状态与高频操作用单线图标，配 `title`/`aria-label`，不只用颜色表达。
+
+```mermaid
+flowchart TB
+  subgraph Frame[控制台框架]
+    direction TB
+    SIDE[侧栏：5 个入口]
+    HEAD[页头：Gateway 状态 / 版本]
+    MAIN[主区：当前页面]
+    FB[反馈区：错误 / 冲突 / 未知结果]
+  end
+  SIDE --> MAIN
+  HEAD --> MAIN
+  MAIN --> FB
+```
+
+**逐主要页面**（布局线框）：
+
+![LLMTier Web UI 逐页布局线框（5 页 + 2 抽屉）](../assets/diagrams/webui-page-layouts.png)
+
+[可编辑 SVG 源](../assets/diagrams/webui-page-layouts.svg)
+
+图 A2｜EX-LLMTIER-WEBUI/v1 · Target。图中每个页面画共享框架（窄侧栏 + 页头 + 主卡片 + 反馈条）与页面专属主内容；仅表达布局分区，颜色/字体/像素交模块设计。
+
+1. **PG-HOME**：以逻辑等级为父节点、后端为子节点的两层树；后端行显示 provider、model、类型、健康、版本、`running/max`。等级状态取 `/readyz.models[].availability`，成员状态独立取 Deployment health/runtime（不互相覆盖）。行右侧图标操作：编辑（开 `DRW-TIER`）、探测（二次确认后 `POST /v1/probes`）。
+2. **PG-PROVIDERS**：列表显示名称、类型、API root、Secret 是否已配置、运行状态、账号用量、`running/max`；`Add Provider` 仅在此页；Secret 只写不回显。
+3. **PG-RECORDS**：页签切换 `Token 用量` 与 `管理审计`，一次只显示一张表；用量显示 measured/estimated/unknown（unknown 绝不显示 0），审计不含 prompt/output/Secret。
+4. **PG-LOGS**：脱敏运行日志，支持时间/级别/模块/request_id 过滤；存储不可读返回 503，不用空页伪装。
+5. **PG-DIAG**：4 个页签（Snapshots / Stats / Injection / Trace）+ 顶部全局开关；开关调用 `GET/PATCH /v1/diagnostics`；Injection 按 deployment 编辑（`PATCH /v1/deployments/{id}/diagnostics`）。
+
+**重要用户任务**（发布配置变更）：
+
+```mermaid
+sequenceDiagram
+  participant O as Operator
+  participant UI as Web UI
+  participant API as /v1/*
+  O->>UI: 编辑 Provider 并保存
+  UI->>API: GET item（取 ETag）
+  UI->>API: PATCH + If-Match
+  alt 成功
+    API-->>UI: 200 + 新 ETag
+  else 412 stale
+    API-->>UI: 412
+    UI-->>O: 提示已变更，保留输入并提供重新载入
+  else 409 引用冲突
+    API-->>UI: 409
+    UI-->>O: 显示引用列表摘要
+  end
+  Note over O,API: 保存成功只说明配置落库，不代表 probe/health/ready 成功
+```
+
+**数据、状态与操作映射**：
+
+| 页面/区域/动作 | 权威 Owner | 查询/命令成员 | 权限/前置 | 生效/失败反馈 |
+|---|---|---|---|---|
+| PG-HOME 树 | Management | provider/deployment/level pages、readyz | operator | 状态取自服务端；加载失败保留旧画面并标 stale |
+| PG-HOME 探测 | Management | `POST /v1/probes` | operator + 二次确认 | 探测中禁用该行；结果未知提示复核 |
+| PG-PROVIDERS 保存 | Management | `POST/PATCH /v1/providers` + If-Match | operator | 412/409 见上 |
+| PG-RECORDS | Management | `GET /v1/usage`、`GET /v1/audit` | operator | 503 显示"存储不可用"，不显示空表 |
+| PG-DIAG 开关 | Observability（经 `libdiag`） | `GET/PATCH /v1/diagnostics` | operator | 立即生效；关闭后对应页签显示 Disabled |
+
+**一致性与可用性**：区分 Loading / 合法 Empty / Error / Partial / Stale / 无权限 / 提交中 / 冲突 / 结果未知；重复点击与晚到响应不得覆盖新作用域数据；401 跳登录、403 提示无权限、503 标数据可能过期。基本键盘操作与焦点可用。
 
 不提供独立访问控制、容量、恢复、调用方或费用页面。
 

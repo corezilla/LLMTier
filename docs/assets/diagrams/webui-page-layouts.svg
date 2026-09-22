@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="1180" viewBox="0 0 1300 1180" role="img" aria-labelledby="title desc">
+  <title id="title">LLMTier Web UI 逐页布局线框</title>
+  <desc id="desc">Wireframe layouts: five operator-console pages (PG-HOME tier tree, PG-PROVIDERS table, PG-RECORDS usage/audit tabs, PG-LOGS log list, PG-DIAG diagnostics) plus two drawers (DRW-TIER, DRW-PROVIDER). Each page shows the shared frame (narrow sidebar, header, main card, feedback strip) and page-specific main content. Layout only; visual detail lives in the webui module design.</desc>
+  <style>
+    text {font-family:'PingFang SC','Helvetica Neue',Arial,sans-serif;fill:#20364e}
+    .pagetitle {font-size:16px;font-weight:700}
+    .lbl {font-size:12px;fill:#5a6b7b}
+    .blk {fill:#eef3f9;stroke:#b6c6d7;stroke-width:1}
+    .blk2 {fill:#e2ecf6;stroke:#9db8d3;stroke-width:1}
+    .side {fill:#dbe7f4;stroke:#a9c1da;stroke-width:1}
+    .head {fill:#d3e2f2;stroke:#9db8d3;stroke-width:1}
+    .fb {fill:#f7f3e8;stroke:#d8c9a3;stroke-width:1}
+    .frame {fill:#ffffff;stroke:#8fa3b8;stroke-width:1.5}
+    .switch {fill:#fff3cd;stroke:#856404;stroke-width:1}
+  </style>
+  <rect width="1300" height="1180" fill="#ffffff"/>
+  <text x="40" y="40" class="pagetitle">LLMTier Web UI · 逐页布局线框</text>
+  <text x="40" y="62" class="lbl">EX-LLMTIER-WEBUI/v1 · Target · 仅表达布局分区；视觉细节见模块设计 llmtier-webui-design.md</text>
+
+  <!-- PG-HOME -->
+  <text x="60" y="100" class="pagetitle">PG-HOME · Home</text>
+  <rect x="60" y="112" width="560" height="250" class="frame"/>
+  <rect x="66" y="118" width="86" height="238" class="side"/><text x="109" y="150" class="lbl" text-anchor="middle">侧栏</text>
+  <rect x="72" y="160" width="74" height="15" class="blk"/><rect x="72" y="181" width="74" height="15" class="blk"/>
+  <rect x="72" y="202" width="74" height="15" class="blk"/><rect x="72" y="223" width="74" height="15" class="blk"/>
+  <rect x="72" y="244" width="74" height="15" class="blk"/>
+  <rect x="158" y="118" width="456" height="34" class="head"/><text x="170" y="140" class="lbl">页头：Gateway 状态 · 版本</text>
+  <rect x="158" y="158" width="456" height="150" class="blk"/>
+  <text x="170" y="178" class="lbl">等级树（父=逻辑等级 / 子=后端；行尾：编辑 / 探测）</text>
+  <rect x="170" y="188" width="432" height="22" class="blk2"/><text x="178" y="203" class="lbl">Senior ▸ provider · model · 健康 · running/max</text>
+  <rect x="170" y="216" width="432" height="22" class="blk2"/><text x="178" y="231" class="lbl">Junior ▸ …</text>
+  <rect x="170" y="244" width="432" height="22" class="blk2"/><text x="178" y="259" class="lbl">Worker ▸ …</text>
+  <rect x="170" y="272" width="200" height="24" class="fb"/><text x="178" y="289" class="lbl">编辑 → 打开 DRW-TIER</text>
+  <rect x="158" y="314" width="456" height="42" class="fb"/><text x="170" y="339" class="lbl">反馈区：错误 / 412 冲突 / 503 数据可能过期</text>
+
+  <!-- PG-PROVIDERS -->
+  <text x="60" y="400" class="pagetitle">PG-PROVIDERS · Providers</text>
+  <rect x="60" y="412" width="560" height="250" class="frame"/>
+  <rect x="66" y="418" width="86" height="238" class="side"/><text x="109" y="450" class="lbl" text-anchor="middle">侧栏</text>
+  <rect x="158" y="418" width="456" height="34" class="head"/><text x="170" y="440" class="lbl">页头 · [Add Provider]（仅本页）</text>
+  <rect x="158" y="458" width="456" height="150" class="blk"/>
+  <text x="170" y="478" class="lbl">Provider 表：名称·类型·API root·Secret 已配置·运行·账号用量·Calls/Tokens·running/max·操作</text>
+  <rect x="170" y="488" width="432" height="20" class="blk2"/><text x="178" y="502" class="lbl">MiniMax · cloud · … · has_secret ✓ · 刷新用量</text>
+  <rect x="170" y="514" width="432" height="20" class="blk2"/><text x="178" y="528" class="lbl">omlx_m5mac · local · …</text>
+  <rect x="170" y="540" width="432" height="20" class="blk2"/><text x="178" y="554" class="lbl">…</text>
+  <rect x="158" y="614" width="456" height="42" class="fb"/><text x="170" y="639" class="lbl">反馈区：409 引用冲突（禁止强删，不级联）</text>
+
+  <!-- PG-RECORDS -->
+  <text x="60" y="700" class="pagetitle">PG-RECORDS · Usage &amp; Audit</text>
+  <rect x="60" y="712" width="560" height="250" class="frame"/>
+  <rect x="66" y="718" width="86" height="238" class="side"/><text x="109" y="750" class="lbl" text-anchor="middle">侧栏</text>
+  <rect x="158" y="718" width="456" height="34" class="head"/><text x="170" y="740" class="lbl">页头 · 时间窗 from/to</text>
+  <rect x="158" y="758" width="222" height="24" class="blk2"/><text x="168" y="775" class="lbl">页签：Token 用量</text>
+  <rect x="392" y="758" width="222" height="24" class="blk"/><text x="402" y="775" class="lbl">页签：管理审计</text>
+  <rect x="158" y="790" width="456" height="120" class="blk"/>
+  <text x="170" y="812" class="lbl">表（一次只显示一张）：用量记录（同 request_id 只留最高 record_version）</text>
+  <rect x="170" y="824" width="432" height="20" class="blk2"/><text x="178" y="838" class="lbl">request_id · model · tokens(measured/estimated/unknown) · 展开详情</text>
+  <rect x="170" y="850" width="432" height="20" class="blk2"/><text x="178" y="864" class="lbl">…</text>
+  <rect x="170" y="876" width="432" height="24" class="fb"/><text x="178" y="893" class="lbl">审计页签：脱敏 actor/action/target/result/time/request_id</text>
+
+  <!-- PG-LOGS -->
+  <text x="680" y="100" class="pagetitle">PG-LOGS · Logs</text>
+  <rect x="680" y="112" width="560" height="250" class="frame"/>
+  <rect x="686" y="118" width="86" height="238" class="side"/><text x="729" y="150" class="lbl" text-anchor="middle">侧栏</text>
+  <rect x="778" y="118" width="456" height="34" class="head"/><text x="790" y="140" class="lbl">页头</text>
+  <rect x="778" y="158" width="456" height="30" class="blk2"/><text x="790" y="178" class="lbl">筛选：时间 · 级别 · 模块 · request_id</text>
+  <rect x="778" y="196" width="456" height="170" class="blk"/>
+  <text x="790" y="218" class="lbl">日志表：时间·级别·模块·事件·短消息·request_id（不含 prompt/output/Secret）</text>
+  <rect x="790" y="228" width="432" height="20" class="blk2"/><text x="798" y="242" class="lbl">…</text>
+  <rect x="790" y="254" width="432" height="20" class="blk2"/><text x="798" y="268" class="lbl">…</text>
+  <rect x="790" y="280" width="432" height="24" class="fb"/><text x="798" y="297" class="lbl">存储不可读 → 503，不用空页伪装</text>
+  <rect x="790" y="312" width="432" height="46" class="fb"/><text x="798" y="339" class="lbl">保留期限与清理由运维策略控制，不提供浏览器下载全量日志</text>
+
+  <!-- PG-DIAG -->
+  <text x="680" y="400" class="pagetitle">PG-DIAG · Diagnostics</text>
+  <rect x="680" y="412" width="560" height="250" class="frame"/>
+  <rect x="686" y="418" width="86" height="238" class="side"/><text x="729" y="450" class="lbl" text-anchor="middle">侧栏</text>
+  <rect x="778" y="418" width="456" height="34" class="head"/><text x="790" y="440" class="lbl">页头</text>
+  <rect x="778" y="458" width="456" height="30" class="switch"/>
+  <text x="790" y="478" class="lbl">全局开关：快照捕获 ●──○ · 统计聚合 ●──○（PATCH /v1/diagnostics）</text>
+  <rect x="778" y="496" width="112" height="24" class="blk2"/><text x="786" y="513" class="lbl">Snapshots</text>
+  <rect x="894" y="496" width="112" height="24" class="blk"/><text x="902" y="513" class="lbl">Stats</text>
+  <rect x="1010" y="496" width="112" height="24" class="blk"/><text x="1018" y="513" class="lbl">Injection</text>
+  <rect x="1126" y="496" width="108" height="24" class="blk"/><text x="1134" y="513" class="lbl">Trace</text>
+  <rect x="778" y="528" width="456" height="120" class="blk"/>
+  <text x="790" y="550" class="lbl">页签内容区：快照表 / 统计卡(P50/P95) / 注入配置(按 deployment) / trace 阶段</text>
+  <rect x="790" y="560" width="432" height="20" class="blk2"/><text x="798" y="574" class="lbl">…</text>
+  <rect x="790" y="586" width="432" height="20" class="blk2"/><text x="798" y="600" class="lbl">…</text>
+  <rect x="790" y="612" width="432" height="24" class="fb"/><text x="798" y="629" class="lbl">关闭开关 → 对应页签显示 Disabled</text>
+
+  <!-- Drawers row -->
+  <text x="60" y="990" class="pagetitle">DRW-TIER · 抽屉（属 PG-HOME）</text>
+  <rect x="60" y="1002" width="560" height="150" class="frame"/>
+  <text x="72" y="1028" class="lbl">编辑当前等级全部成员：Provider · 显示名 · backend model · 路由开关</text>
+  <rect x="72" y="1038" width="536" height="20" class="blk2"/><text x="80" y="1052" class="lbl">成员行 1 …（Remove = 仅解绑，不删资源）</text>
+  <rect x="72" y="1064" width="536" height="20" class="blk2"/><text x="80" y="1078" class="lbl">Add Member：Provider 下拉（仅列已存在 Provider）</text>
+  <rect x="72" y="1092" width="240" height="24" class="fb"/><text x="80" y="1109" class="lbl">保存（If-Match + partial PATCH）</text>
+  <rect x="332" y="1092" width="120" height="24" class="fb"/><text x="340" y="1109" class="lbl">取消</text>
+
+  <text x="680" y="990" class="pagetitle">DRW-PROVIDER · 抽屉（属 PG-PROVIDERS）</text>
+  <rect x="680" y="1002" width="560" height="150" class="frame"/>
+  <text x="692" y="1028" class="lbl">表单：类型(cloud/local) · 名称 · API root · Secret 引用 · enabled · 账号并发/间隔/RPM</text>
+  <rect x="692" y="1038" width="536" height="20" class="blk2"/><text x="700" y="1052" class="lbl">Secret：只写不回显（空白 = 保持已有）</text>
+  <rect x="692" y="1064" width="536" height="20" class="blk2"/><text x="700" y="1078" class="lbl">usage source：MiniMax API Key / 火山 OpenAPI AK-SK</text>
+  <rect x="692" y="1092" width="536" height="24" class="fb"/><text x="700" y="1109" class="lbl">删除携带 ETag；被 Deployment 引用 → 409，不级联删除</text>
+</svg>
