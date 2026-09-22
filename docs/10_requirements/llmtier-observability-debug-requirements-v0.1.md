@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-observability-debug-requirements-v0.1` |
-| Document Version | `0.1.0-draft.6` |
+| Document Version | `0.1.0-draft.7` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -111,6 +111,54 @@ HTTP 能力**（`/v1/models`、`/v1/responses`、Bearer），后端观测不足�
 ### 5.5 通用约定
 
 - 全部诊断接口：admin Bearer；错误响应沿用既有 error 形状（`{error:{message,type,code,param,retryable}}`）；
+### 5.6 字段与语义定稿（凡本节未定义的字段不得自行发明）
+
+**通用**：时间戳一律 ISO 8601 UTC（`Z` 后缀）；鉴权一律 admin Bearer（data token → `403`）；
+错误响应沿用既有形状 `{error:{message,type,code,param,retryable}}`；诊断端点**不使用 If-Match**
+（最后写入生效）；snapshots/trace_events/stats 保留期均 7 天（cleanup job）；trace 与 correlation
+仅覆盖 `/v1/responses`（embeddings 不记录）；`x-request-id` 响应头行为维持现状。
+
+**注入 PATCH（§5.1）字段定稿**：
+- `config` 取值范围：`delay_ms` 0–60000；`retry_after_sec` 0–300；`stream_terminate_after_events`
+  1–10000；`malformed_after_events` 0–10000；`error_body` ≤512 字节。越界/缺失/未知 type →
+  `400 invalid_injection`；未知 deployment → `404`。
+- 响应 `200`：`[{"type","config","enabled","updated_at"} …]`（全量）；**不使用 If-Match**；
+  配置变更 shall 写 audit（action=`diagnostics.injection.update`）。
+- 同 deployment 多开关同时 enabled 的**确定性优先级**：前置阶段按
+  `fault_502 → fault_503 → rate_limit → delay` 首个命中即触发（互不叠加）；流阶段按
+  `stream_terminate → malformed_event` 首个命中（前置通过后才评估）。
+- 注入响应体（normative envelope）：HTTP=`fault_status`，体=
+  `{"error":{"message":"<error_body>","type":"server_error","code":"<fault_502→provider_failure｜fault_503→provider_unavailable>","param":null,"retryable":true}}`。
+- 注入请求不产生上游调用、不产生正常计量；如记 usage 账本则 `source=injected` 可区分。
+- `stream_terminate`：转发 N 个事件后**直接断连**（无 terminal 事件/无 [DONE]）；
+  `malformed_event`：转发 N 个事件后注入 1 个畸形事件（`invalid_json`=非 JSON data 行；
+  `unknown_event_type`=未定义 event 名）再断连（无 terminal 事件/无 [DONE]）。
+
+**快照 GET（§5.2）字段定稿**：
+- 过滤：`since`/`until` 为 `captured_at` 闭区间（UTC）；`deployment_id`/`model` 精确匹配；
+  `limit` 1–500（默认 50）；`cursor` = 上页末条 `id`（keyset）。
+- 排序：`captured_at DESC, id DESC`。响应：`{"items":[…],"next_cursor":str|null,"has_more":bool}`。
+- 字段可空性：`backend_model` NULL=上游未返回；`http_status` NULL=连接/异常失败（此时
+  `snapshot_type='error'` 且 `error_summary` 非空）；`snapshot_type ∈ {'upstream','error'}`。
+
+**统计 GET（§5.3）字段定稿**：
+- `windows[]` 项：`stat_hour`（UTC，按**请求完成时间**截断到小时）；`deployment_id`/`model`
+  为 null 表示全局聚合行；`status_breakdown`：key=HTTP status 十进制字符串，**无 HTTP 状态的
+  上游失败 key=`"upstream_error"`**；`error_count` = status≥400 各项之和 + `upstream_error`；
+  时延单位 ms（REAL）；百分位 nearest-rank，样本数=1 时取该值。
+- 合并：[since,until] 内**已完结小时**读表；当前未落盘小时读内存缓存；空结果 `windows:[]`。
+
+**trace GET（§5.4）字段定稿**：
+- 仅记录**通过鉴权**的 `/v1/responses` 请求；鉴权失败不产生 trace。
+- `correlation_id`：consumer 提供（`X-Correlation-ID` 优先于 `traceparent`）则记录并经
+  `X-Correlation-ID` 响应头回显；未提供 → `null` 且不回显。
+- `stages[].detail` 白名单（R-3）：`received` 仅记录 `x-correlation-id`/`traceparent` 的**键值**
+  与 `content-type`/`content-length` 的**长度**，其余 header 一律不落。
+- `usage` 对象字段：`record_version,is_final,model,input_tokens,output_tokens,total_tokens,
+  measurement_status,source`（最新 record）。
+- 无 `trace_events` 记录的 `request_id` → `404`。
+- 保留期：7 天（cleanup job）。
+
 - 本节契约即联调 case（JT-13/14/15/17）与 consumer 定位工具（`joint-diagnose.sh`）的对接面；
   实现后 LLMTier 提供 curl 级示例，consumer 不因实现重构而改步骤。
 
