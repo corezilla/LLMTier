@@ -1,3 +1,4 @@
+<!-- STD_DOCUMENT_COVER_BEGIN -->
 # LLMTier Diagnostics 模块设计
 
 > STD 使用入口：[项目采用说明与标准导航](../../README.md#std-entry）
@@ -17,6 +18,11 @@
 | Template Version | `1.0.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
+| Migration Map Reference | none |
+| Repository | `corezilla/LLMTier` |
+| Canonical Path | `docs/40_module_design/llmtier-diagnostics-design.md` |
+| Supersedes | none |
+<!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 目的与边界
 

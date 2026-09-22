@@ -11,6 +11,7 @@
   "source_path": "docs/50_implementation_design/llmtier-diagnostics.isd.md",
   "template_id": "design.definition",
   "template_version": "1.0.0",
+  "template_sha256": "db6d4d2031754a39692f6a4435d63802e89273b64a84f2a23c38fb58e08775ec",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,

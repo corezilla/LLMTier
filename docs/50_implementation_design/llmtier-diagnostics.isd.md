@@ -18,13 +18,17 @@
 | Template Version | `1.0.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
+| Migration Map Reference | none |
+| Repository | `corezilla/LLMTier` |
+| Canonical Path | `docs/50_implementation_design/llmtier-diagnostics.isd.md` |
+| Supersedes | none |
+<!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 文档说明
 
 参考：[LLMTier Diagnostics 模块设计](../40_module_design/llmtier-diagnostics-design.md)
 
 本文规定 diagnostics 模块的 SQLite Schema 和类实现细节。
-<!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. SQLite Schema
 
