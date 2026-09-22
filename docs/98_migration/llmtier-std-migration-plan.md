@@ -15,7 +15,7 @@ STD tag：std-v0.1.0-draft.18
   services/llmtier/、software/llmtier/、apps/ 或 packages/ 平行 ownership。
 - LLMTier 只拥有本服务设计、实现与接口提供方事实。Slinky 的 Project/Plan/IR 和 Piko 的 Agent
   Runtime/adapter authority 不迁入本项目。
-- interfaces/openapi/llmtier-v0.3.openapi.json 保持字段级机器契约 authority；
+- interfaces/openapi/llmtier.openapi.json 保持字段级机器契约 authority；
   interfaces/compatibility/compatibility-manifest-v0.3.json 保持 capability/runtime-activation candidate
   authority；tests/ 与 fixtures 保持可执行源码和 oracle authority。
 - 迁移只生成可审阅候选，不 reset/clean，不覆盖其他任务修改，不改变业务 ID、错误、状态、恢复、

@@ -31,7 +31,7 @@
 - 每个 case 有一个 pytest 文件（或 at_*.py）
 - 每个 case 跑前自动做环境就绪检查（test plan §2.1），失败则 SKIP
 - 每个 case 跑后产出 PASS/FAIL/SKIP/BLOCKED + 必要字段
-- 全量结果落 `docs/70_verification/reports/llmtier-v0.3-api-test-report.md`
+- 全量结果落 `tests/system/reports/2026-09-21/2026-09-21-api-test-report.md`
 
 **不在本执行计划范围**：单元测试、contract static、UI E2E、performance SLA 校准。
 
@@ -145,7 +145,7 @@ A 类与 B 类不能共享同一进程的 SQLite（写干扰），所以分两�
 
 1. `./runner_a.sh && ./runner_b.sh`，捕获所有 case 结果
 2. 按 test plan §5.4 判定 PASS/FAIL/SKIP/BLOCKED
-3. 写 `docs/70_verification/reports/llmtier-v0.3-api-test-report.md`：
+3. 写 `tests/system/reports/2026-09-21/2026-09-21-api-test-report.md`：
    - 总览（89 case 状态分布；A 类 63 / B 类 26）
    - 失败 case 详情（`failure_reason` + `reproduction_cmd`）
    - 跳过 case 列表（`skip_reason` + `fix_owner` + `eta`）
@@ -235,7 +235,7 @@ Day 4（可选）：P4
 
 ## 8. 验收标准（P3 阶段交付）
 
-报告 `docs/70_verification/reports/llmtier-v0.3-api-test-report.md` 必须满足：
+报告 `tests/system/reports/2026-09-21/2026-09-21-api-test-report.md` 必须满足：
 
 - [ ] 89 个 case 每个都有明确状态（PASS/FAIL/SKIP/BLOCKED）
 - [ ] 0 个"未跑"
@@ -251,7 +251,7 @@ Day 4（可选）：P4
 - 测试设计：[`llmtier-v0.3-api-test-plan.md`](./llmtier-v0.3-api-test-plan.md)（**v0.3.0-draft.3**）
 - 高层 V&V：[`llmtier-v0.3-vv-plan.md`](./llmtier-v0.3-vv-plan.md)
 - 系统测试：[`llmtier-v0.3-test-plan.md`](./llmtier-v0.3-test-plan.md)（ST-01~ST-26）
-- 历史报告：`docs/70_verification/reports/2026-09-2{0,1}-test-report.md`
+- 历史报告：`tests/system/reports/2026-09-21/2026-09-2{0,1}-test-report.md`
 - m5air 部署：`docs/80_operations/manuals/m5air-deploy-guide.md`
 - m5air 操作：`docs/80_operations/m5air-operations-manual.md`
 - API handoff：`docs/80_operations/manuals/api-testing-handoff.md`

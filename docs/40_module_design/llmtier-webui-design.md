@@ -21,7 +21,7 @@
 | Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |
 | Repository | `corezilla/LLMTier` |
-| Canonical Path | `docs/40_module_design/webui-design.md` |
+| Canonical Path | `docs/40_module_design/llmtier-webui-design.md` |
 | Supersedes | none |
 <!-- STD_DOCUMENT_COVER_END -->
 

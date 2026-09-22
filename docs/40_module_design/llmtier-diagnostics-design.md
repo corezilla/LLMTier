@@ -325,4 +325,4 @@ flowchart TB
 - [可观测性子系统系统设计](../20_system_design/llmtier-observability-subsystem-design-v0.1.md)
 - [Diagnostics ISD](../50_implementation_design/llmtier-diagnostics.isd.md)
 - `docs/40_module_design/llmtier-core-design.md` — 核心模块设计参考
-- `docs/40_module_design/webui-design.md` — WebUI 设计参考
+- `docs/40_module_design/llmtier-webui-design.md` — WebUI 设计参考

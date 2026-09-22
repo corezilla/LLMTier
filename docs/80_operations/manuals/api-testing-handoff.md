@@ -413,7 +413,7 @@ print("Embedding:", post("/v1/embeddings", {"model": "Embedding-v1", "input": "h
 
 - API 测试计划：`docs/70_verification/plans/llmtier-v0.3-api-test-plan.md`（57 个测试用例）
 - API Reference：`docs/60_interfaces/contracts/llmtier-api-reference.md`
-- OpenAPI 机器契约：`interfaces/openapi/llmtier-v0.3.openapi.json`
+- OpenAPI 机器契约：`interfaces/openapi/llmtier.openapi.json`
 - m5air 部署指南：`docs/80_operations/manuals/m5air-deploy-guide.md`
 - 系统测试 ST：`tests/system/st_*.py`
 - smoke test：`tools/api_smoke_test.py`

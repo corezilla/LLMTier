@@ -8,7 +8,7 @@
   "surface_policy": "single_openai_compatible_surface_no_fallback",
   "contract_authority": {
     "format": "openapi-3.1-json",
-    "path": "openapi/llmtier-v0.3.openapi.json",
+    "path": "openapi/llmtier.openapi.json",
     "version": "0.3-simplified-candidate.8"
   },
   "architecture_boundary": {

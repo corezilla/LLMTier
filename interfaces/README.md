@@ -8,7 +8,7 @@
 
 | 文件 | 说明 | 适用场景 |
 |------|------|----------|
-| `openapi/llmtier-v0.3.openapi.json` | Admin + Data Plane REST API 完整定义 | Agent 解析 API 端点、请求/响应结构、错误码 |
+| `openapi/llmtier.openapi.json` | Admin + Data Plane REST API 完整定义 | Agent 解析 API 端点、请求/响应结构、错误码 |
 
 ---
 

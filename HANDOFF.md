@@ -11,7 +11,7 @@
 - 当前 OpenAPI/compatibility manifest 版本为 `0.3-simplified-candidate.8`，`overall.runtime_activation=false`。已有局域网测试服务不等于生产激活。
 - 当前锁定 STD 为 `0.1.0-draft.26`、revision `f892b167b9fc7b8beb9dbdebb9209009d4334ce1`（`docs/std.lock.json`）。不要因为本机 STD checkout 不匹配而擅自升级锁。
 
-阅读顺序：`README.md` → 本文件 → `docs/80_operations/m5air-operations-manual.md` → `docs/20_system_design/llmtier-system-design.md` → `docs/40_module_design/llmtier-core-design.md`、`docs/40_module_design/webui-design.md` → `interfaces/openapi/llmtier-v0.3.openapi.json` 与 `interfaces/compatibility/compatibility-manifest-v0.3.json` → 相关测试。字段以 OpenAPI 为准；历史文档或旧 UI 不得覆盖它。`README.md` 和部分计划/验证文档仍有旧“中文三页 UI”“/ui/ 为入口”等叙述，修改相关功能前应与实际代码及手册核对。
+阅读顺序：`README.md` → 本文件 → `docs/80_operations/m5air-operations-manual.md` → `docs/20_system_design/llmtier-system-design.md` → `docs/40_module_design/llmtier-core-design.md`、`docs/40_module_design/llmtier-webui-design.md` → `interfaces/openapi/llmtier.openapi.json` 与 `interfaces/compatibility/compatibility-manifest-v0.3.json` → 相关测试。字段以 OpenAPI 为准；历史文档或旧 UI 不得覆盖它。`README.md` 和部分计划/验证文档仍有旧“中文三页 UI”“/ui/ 为入口”等叙述，修改相关功能前应与实际代码及手册核对。
 
 ## 2. 当前已实现和已验证范围
 

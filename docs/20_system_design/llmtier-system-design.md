@@ -29,7 +29,7 @@
 
 ## 1. 文档说明
 
-本文定义 LLMTier 作为纯软件、单进程、单服务的模型网关的完整软件设计：从产品用途到整体软件架构、运行组织与验收。字段级 authority 是 `interfaces/openapi/llmtier-v0.3.openapi.json`；能力状态由 compatibility manifest 给出，始终保持 `runtime_activation=false`，直到实现与运行门禁另行批准。
+本文定义 LLMTier 作为纯软件、单进程、单服务的模型网关的完整软件设计：从产品用途到整体软件架构、运行组织与验收。字段级 authority 是 `interfaces/openapi/llmtier.openapi.json`；能力状态由 compatibility manifest 给出，始终保持 `runtime_activation=false`，直到实现与运行门禁另行批准。
 
 本次设计以主流机制优先：没有已确认特殊需求时采用标准 OpenAI-compatible 请求/响应，不增加自定义 header、恢复端点、调用方层级、会话状态机或并行兼容路径。本文是设计，不表示目标接口已经实现或激活。
 
@@ -153,7 +153,7 @@ LLMTier 不保存或补齐 Agent 历史，不做上下文压缩，不执行工�
 
 模块与实现设计入口：
 
-- 模块设计：`docs/40_module_design/llmtier-core-design.md`、`llmtier-diagnostics-design.md`、`webui-design.md`
+- 模块设计：`docs/40_module_design/llmtier-core-design.md`、`llmtier-diagnostics-design.md`、`llmtier-webui-design.md`
 - 实现设计：`docs/50_implementation_design/llmtier-runtime.isd.md`、`llmtier-diagnostics.isd.md`
 
 ## 4. 功能与用户交互设计
@@ -187,7 +187,7 @@ LLMTier 不保存或补齐 Agent 历史，不做上下文压缩，不执行工�
 
 ### 4.3 UI 设计（适用时）
 
-Web UI 是英文 operator 控制台，同源调用 `/v1/*`，不直读 SQLite/配置/密钥。页面保持短而单一职责；逐页线框、状态、字段与交互以 `docs/40_module_design/webui-design.md` 为 authority：
+Web UI 是英文 operator 控制台，同源调用 `/v1/*`，不直读 SQLite/配置/密钥。页面保持短而单一职责；逐页线框、状态、字段与交互以 `docs/40_module_design/llmtier-webui-design.md` 为 authority：
 
 1. **主页**：以逻辑等级为父节点、后端为子节点的两层树；显示各后端 provider、model、类型、健康、版本与并发。
 2. **Tier 成员操作**：每个等级提供编辑抽屉，修改或添加后端绑定，不删除固定等级。
@@ -292,7 +292,7 @@ SQLite 是初始化后唯一配置 authority；`config/settings.json` 仅作空�
 
 ### 9.1 外部入口与内部接口权威
 
-全部 HTTP 接口位于单一 `/v1/*` 命名空间；consumer 端点与 operator 端点通过凭据与资源名区分，不另设路径前缀。字段级 authority 是 `interfaces/openapi/llmtier-v0.3.openapi.json`。Bearer 凭据只标识获授权调用主体；`X-Request-ID` 是服务端响应关联 ID，可接收标准 trace context；它们不是幂等键或会话 ID。
+全部 HTTP 接口位于单一 `/v1/*` 命名空间；consumer 端点与 operator 端点通过凭据与资源名区分，不另设路径前缀。字段级 authority 是 `interfaces/openapi/llmtier.openapi.json`。Bearer 凭据只标识获授权调用主体；`X-Request-ID` 是服务端响应关联 ID，可接收标准 trace context；它们不是幂等键或会话 ID。
 
 ### 9.2 单项操作、类型与错误实例（按接口展开）
 
@@ -396,7 +396,7 @@ admission 队列与并发上限可被并发请求验证；测试实例相互隔�
 
 ### 17.1 下级设计与组合验收任务
 
-- 模块设计：`llmtier-core-design.md`、`llmtier-diagnostics-design.md`、`webui-design.md`
+- 模块设计：`llmtier-core-design.md`、`llmtier-diagnostics-design.md`、`llmtier-webui-design.md`
 - 实现设计：`llmtier-runtime.isd.md`、`llmtier-diagnostics.isd.md`
 - 接口契约：`docs/60_interfaces/` + `interfaces/`
 - 组合验收：见 `docs/70_verification/`
@@ -406,7 +406,7 @@ admission 队列与并发上限可被并发请求验证；测试实例相互隔�
 - **设计输入**：`docs/10_requirements/llmtier-requirements.md`、`llmtier-traceability.md`、已采用 OpenAPI/manifest。
 - **适用性**：纯软件、单服务、局域网部署。不适用硬件、FPGA、结构/热/工艺设计（本系统不含）。
 - **派生**：本模板从总体系统设计方法派生；不建立递归软件子系统。
-- **Authority 边界**：字段级 authority 是 `interfaces/openapi/llmtier-v0.3.openapi.json`；本文件不复制字段级契约。
+- **Authority 边界**：字段级 authority 是 `interfaces/openapi/llmtier.openapi.json`；本文件不复制字段级契约。
 
 ## 附录 B. 文档控制、修订与交付检查
 

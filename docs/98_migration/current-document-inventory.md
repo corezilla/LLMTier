@@ -21,7 +21,7 @@ STD draft.21 升级按用户 2026-09-09 明确要求执行。旧 `rag/std-ingest
   真实内部模块与实现设计位于 `docs/40_module_design/` 和 `docs/50_implementation_design/`。
 - LLMTier 是本服务设计、接口实现和模型服务事实的 authority；Slinky 的 Project/Plan/IR/Scope
   决策与 Piko 的 Agent Runtime/adapter 事实仍由各自项目负责。
-- V0.3 字段级机器接口 authority 是 `interfaces/openapi/llmtier-v0.3.openapi.json`；
+- V0.3 字段级机器接口 authority 是 `interfaces/openapi/llmtier.openapi.json`；
   compatibility activation authority 是 v0.3 manifest。v0.1/v0.2 只作历史输入。
 - 本次迁移不会把未实现能力提升为 accepted、released、Implemented、Verified 或 active。
 
@@ -72,7 +72,7 @@ STD draft.21 升级按用户 2026-09-09 明确要求执行。旧 `rag/std-ingest
 | `docs/99_reference/future/llmtier-v0.4-data-plane.md` | future/not implemented | 已归位；与 V0.3 current authority 分离 |
 | `docs/99_reference/contracts/*-v0.1.md`、`*-v0.2.md` | historical/superseded | 已归位并排除 current 检索 |
 | 三份 `docs/99_reference/contracts/*-v0.3.md` | Superseded prose | 已归位；current successor 位于 `docs/60_interfaces/` |
-| `interfaces/openapi/llmtier-v0.3.openapi.json` | current machine authority/candidate | 顶层机器契约 canonical path |
+| `interfaces/openapi/llmtier.openapi.json` | current machine authority/candidate | 顶层机器契约 canonical path |
 | `interfaces/compatibility/compatibility-manifest-v0.3.json` | current activation authority；false | 顶层 compatibility canonical path |
 | `interfaces/compatibility/compatibility-manifest-v0.1.json`、`v0.2.json` | historical/superseded | 保留历史机器记录 |
 | `interfaces/schemas/llmtier-contracts-v0.2.schema.json` | historical，非 V0.3 authority | 保留历史 Schema，不由 V0.3 manifest 装载 |

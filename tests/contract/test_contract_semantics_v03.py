@@ -16,7 +16,7 @@ from tools.contract_semantic_validator_v03 import (
 
 ROOT = Path(__file__).resolve().parents[2]
 INTERFACES = ROOT / "interfaces"
-OPENAPI_PATH = INTERFACES / "openapi" / "llmtier-v0.3.openapi.json"
+OPENAPI_PATH = INTERFACES / "openapi" / "llmtier.openapi.json"
 MANIFEST_PATH = INTERFACES / "compatibility" / "compatibility-manifest-v0.3.json"
 FIXTURES = INTERFACES / "vectors" / "v0.3"
 
@@ -48,7 +48,7 @@ class SimplifiedV03ContractTests(unittest.TestCase):
         self.assertEqual("0.3-simplified-candidate.8", self.manifest["manifest_version"])
         self.assertFalse(self.openapi["x-llmtier-runtime-activation"])
         self.assertFalse(self.manifest["overall"]["runtime_activation"])
-        self.assertEqual("openapi/llmtier-v0.3.openapi.json", self.manifest["contract_authority"]["path"])
+        self.assertEqual("openapi/llmtier.openapi.json", self.manifest["contract_authority"]["path"])
 
     def test_current_consumer_paths_are_minimal(self):
         paths = set(self.openapi["paths"])

@@ -23,7 +23,7 @@ from pathlib import Path
 
 
 REPO = Path(__file__).resolve().parents[2]
-OPENAPI = REPO / "interfaces" / "openapi" / "llmtier-v0.3.openapi.json"
+OPENAPI = REPO / "interfaces" / "openapi" / "llmtier.openapi.json"
 MANIFEST = REPO / "interfaces" / "compatibility" / "compatibility-manifest-v0.3.json"
 
 FORBIDDEN_PATH_PATTERNS = [

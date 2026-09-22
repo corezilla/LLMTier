@@ -51,7 +51,7 @@ terminal decision 使用包含 draft.2 Slinky control 与 revised C1 packet 的 
 
 | Scope | Canonical artifact | Promotion 处置 |
 |---|---|---|
-| V0.3 字段、path、header、error、schema | `interfaces/openapi/llmtier-v0.3.openapi.json` | 原位保留为唯一字段级 authority；新文档只索引 |
+| V0.3 字段、path、header、error、schema | `interfaces/openapi/llmtier.openapi.json` | 原位保留为唯一字段级 authority；新文档只索引 |
 | activation candidate | `interfaces/compatibility/compatibility-manifest-v0.3.json` | 原位保留；`overall.runtime_activation=false` 不变 |
 | V0.3 vectors | `interfaces/vectors/v0.3/` | 原位保留为小型冻结 evidence/oracle |
 | executable contract semantics | `tests/` | 原位保留为测试源码 authority |

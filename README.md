@@ -76,7 +76,7 @@ RFC1918 或 IPv6 ULA origin。当前 transport 不等同于 production TLS/auth 
 | 裁剪与计划 | [STD 裁剪清单](docs/00_management/std-tailoring.md)、[V0.3 编码与测试计划](docs/00_management/v0.3-implementation-plan.md) |
 | 需求 | [V0.3 Requirements](docs/10_requirements/llmtier-requirements.md)、[Traceability](docs/10_requirements/llmtier-traceability.md) |
 | 系统设计 | [系统设计](docs/20_system_design/llmtier-system-design.md) |
-| 模块设计 | [核心模块设计](docs/40_module_design/llmtier-core-design.md)、[Web UI Design](docs/40_module_design/webui-design.md)、[Runtime ISD](docs/50_implementation_design/llmtier-runtime.isd.md) |
+| 模块设计 | [核心模块设计](docs/40_module_design/llmtier-core-design.md)、[Web UI Design](docs/40_module_design/llmtier-webui-design.md)、[Runtime ISD](docs/50_implementation_design/llmtier-runtime.isd.md) |
 | 接口 | [Piko Data Plane](docs/60_interfaces/piko-data-plane-control.md)、[Slinky Capacity/Observation](docs/60_interfaces/slinky-capacity-observation-control.md)、[Management API](docs/60_interfaces/llmtier-management-control.md)、[Contract Specification](docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.md) |
 | 验证 | [V&V Plan](docs/70_verification/plans/llmtier-v0.3-vv-plan.md)、[Test Plan](docs/70_verification/plans/llmtier-v0.3-test-plan.md)、[Contract Test Specification](docs/70_verification/specifications/llmtier-v0.3-contract-test-specification.md) |
 | 运维 | [Release and Operations](docs/80_operations/llmtier-v0.3-release-and-operations.md)、**[m5air 调试环境手册](docs/80_operations/m5air-operations-manual.md)** |
@@ -133,6 +133,6 @@ PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m cli --help
 
 当前 operator CLI 提供 `health`、`runtime`、`debug`、`stats`、`invoke`、`reset`、`reload` 和 `probe`。
 这些命令对应 legacy 实现接口，不是目标 OpenAI-compatible consumer surface；V0.3 consumer 应以
-[`interfaces/openapi/llmtier-v0.3.openapi.json`](interfaces/openapi/llmtier-v0.3.openapi.json) 和
+[`interfaces/openapi/llmtier.openapi.json`](interfaces/openapi/llmtier.openapi.json) 和
 [`interfaces/compatibility/compatibility-manifest-v0.3.json`](interfaces/compatibility/compatibility-manifest-v0.3.json)
 为准，并在 activation gate 关闭前不得按 production capability 使用。

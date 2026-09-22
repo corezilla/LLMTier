@@ -46,7 +46,7 @@ class StdAndAuthorityTests(unittest.TestCase):
             ROOT / "docs/10_requirements/llmtier-traceability.md",
             ROOT / "docs/20_system_design/llmtier-system-design.md",
             ROOT / "docs/40_module_design/llmtier-core-design.md",
-            ROOT / "docs/40_module_design/webui-design.md",
+            ROOT / "docs/40_module_design/llmtier-webui-design.md",
             ROOT / "docs/50_implementation_design/llmtier-runtime.isd.md",
             ROOT / "docs/60_interfaces/piko-data-plane-control.md",
             ROOT / "docs/60_interfaces/slinky-capacity-observation-control.md",

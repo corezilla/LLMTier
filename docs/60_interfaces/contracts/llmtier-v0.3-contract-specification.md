@@ -27,7 +27,7 @@
 
 ## 1. Contract scope 与 authority
 
-唯一字段级 authority 是 `interfaces/openapi/llmtier-v0.3.openapi.json` version `0.3-simplified-candidate.8`。Manifest只描述范围和activation，不复制字段。`runtime_activation=false`，本候选不授权runtime。
+唯一字段级 authority 是 `interfaces/openapi/llmtier.openapi.json` version `0.3-simplified-candidate.8`。Manifest只描述范围和activation，不复制字段。`runtime_activation=false`，本候选不授权runtime。
 
 ## 2. Operation / Message / Event Catalog
 

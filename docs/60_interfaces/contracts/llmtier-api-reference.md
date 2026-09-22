@@ -31,7 +31,7 @@
 
 **API 版本**: `0.3-simplified-candidate.8`
 
-**机器契约权威源**: `interfaces/openapi/llmtier-v0.3.openapi.json`
+**机器契约权威源**: `interfaces/openapi/llmtier.openapi.json`
 
 LLMTier 提供 OpenAI-compatible HTTP API，供局域网上的 consumer（如 Piko）调用。
 

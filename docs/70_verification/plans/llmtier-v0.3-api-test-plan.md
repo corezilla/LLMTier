@@ -530,4 +530,4 @@ OBS-01~03 → DP-MODELS-01~07 → DP-EMB-01~05
 | **P13** | 之前没在测试代码头部写明依赖（TS-002） | 9-21 隐含 | 所有 case | 测试文件头部按 TS-002 写明 endpoint / provider / 模型 / auth |
 | **P14** | 测试期望错：DP-RESP-02 期望 200，实际 stream=false 必拒 | 本轮 review | DP-RESP-02 / DP-RESP-06 | §4.3 已修正预期 |
 
-**执行前必读**：`docs/70_verification/reports/2026-09-20-summary.md`、`docs/70_verification/reports/2026-09-21-summary.md`。
+**执行前必读**：`tests/system/reports/2026-09-21/2026-09-20-summary.md`、`tests/system/reports/2026-09-21/2026-09-21-summary.md`。
