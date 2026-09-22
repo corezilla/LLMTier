@@ -147,13 +147,15 @@ LLMTier 不保存或补齐 Agent 历史，不做上下文压缩，不执行工�
 
 ### 3.5 机制清单与文档映射
 
-| Mechanism ID | 上级 | Document ID | 文件名 | 范围 | Owner | 前置依赖 | 写作状态 |
+| Mechanism ID | 上级 Mechanism ID | Document ID | 文件名 | 范围 | Owner | 前置依赖（类别） | 写作状态 |
 |---|---|---|---|---|---|---|---|
-| M-TRUST | — | `llmtier-access-trust-mechanism` | `mechanisms/access-trust.md` | 访问信任：内网免登录 + 可选 Bearer 区分角色 | LLMTier | — | 成文 |
-| M-INFER | M-TRUST | `llmtier-inference-stream-mechanism` | `mechanisms/inference-stream.md` | 推理与流式返回：校验→路由→准入→后端→SSE→终态 | LLMTier | M-TRUST | 成文 |
-| M-METER | M-INFER | `llmtier-usage-metering-mechanism` | `mechanisms/usage-metering.md` | 用量计量与账本：义务/版本/head/unknown | LLMTier | M-INFER | 成文 |
-| M-CONFIG | — | `llmtier-config-lifecycle-mechanism` | `mechanisms/config-lifecycle.md` | 配置引导与变更：bootstrap → SQLite 权威 | LLMTier | — | 成文 |
-| M-OBS | M-INFER | `llmtier-observability-mechanism` | `mechanisms/observability.md` | 上游快照、数据面统计、故障注入、单请求 trace、关联标识透传 | LLMTier | M-INFER | 成文 |
+| M-TRUST | none | `llmtier-access-trust-mechanism` | `mechanisms/access-trust.md` | 访问信任：内网免登录 + 可选 Bearer 区分角色 | LLMTier | — | 成文 |
+| M-INFER | none | `llmtier-inference-stream-mechanism` | `mechanisms/inference-stream.md` | 推理与流式返回：校验→路由→准入→后端→SSE→终态 | LLMTier | M-TRUST（行为） | 成文 |
+| M-METER | none | `llmtier-usage-metering-mechanism` | `mechanisms/usage-metering.md` | 用量计量与账本：义务/版本/head/unknown | LLMTier | M-INFER（行为） | 成文 |
+| M-CONFIG | none | `llmtier-config-lifecycle-mechanism` | `mechanisms/config-lifecycle.md` | 配置引导与变更：bootstrap → SQLite 权威 | LLMTier | — | 成文 |
+| M-OBS | none | `llmtier-observability-mechanism` | `mechanisms/observability.md` | 上游快照、数据面统计、故障注入、单请求 trace、关联标识透传 | LLMTier | M-INFER（行为） | 成文 |
+
+均为顶层机制（无设计分解上级）；`M-INFER` 依赖 `M-TRUST` 的行为，`M-METER`/`M-OBS` 依赖 `M-INFER` 的行为。
 
 模块与实现设计入口：
 
@@ -191,14 +193,13 @@ LLMTier 不保存或补齐 Agent 历史，不做上下文压缩，不执行工�
 
 ### 4.3 UI 设计（适用时）
 
-Web UI 是英文 operator 控制台，同源调用 `/v1/*`，不直读 SQLite/配置/密钥。页面保持短而单一职责；逐页线框、状态、字段与交互以 `docs/40_module_design/llmtier-webui-design.md` 为 authority：
+Web UI 是英文 operator 控制台，含 **5 个页面**：Home、Providers、Usage & Audit、Logs、Diagnostics；同源调用 `/v1/*`，不直读 SQLite/配置/密钥。逐页线框、状态、字段与交互以 `docs/40_module_design/llmtier-webui-design.md` 为 authority：
 
-1. **主页**：以逻辑等级为父节点、后端为子节点的两层树；显示各后端 provider、model、类型、健康、版本与并发。
-2. **Tier 成员操作**：每个等级提供编辑抽屉，修改或添加后端绑定，不删除固定等级。
-3. **供应商管理**：独立短页维护 cloud/local provider、API root、Secret 引用与 enabled。
-4. **用量与审计**：同页页签切换 token 用量与管理审计，两者数据语义分离。
-5. **日志**：查询脱敏的运行与故障诊断事件。
-6. **诊断（Diagnostics）**：观测查询与调试开关。
+1. **Home 主页**：以逻辑等级为父节点、后端为子节点的两层树；显示各后端 provider、model、类型、健康、版本与并发。含 **Tier 成员编辑抽屉**（修改/添加/解绑后端；不删除固定等级）。
+2. **Providers 供应商管理**：维护 cloud/local provider、API root、Secret 引用与 enabled。
+3. **Usage & Audit 用量与审计**：同页页签切换 token 用量与管理审计，两者数据语义分离。
+4. **Logs 日志**：查询脱敏的运行与故障诊断事件。
+5. **Diagnostics 诊断**：观测查询与调试开关。
 
 不提供独立访问控制、容量、恢复、调用方或费用页面。
 
