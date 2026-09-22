@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.4.0-draft.5` |
+| Document Version | `0.4.0-draft.6` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -335,9 +335,30 @@ sequenceDiagram
 
 ## 7. 重要过程
 
+过程事实由服务端产生；状态事实的 Owner 是 LLMTier。过程总表逐项绑定机制与图号，正文保留端到端原理与代表失败。
+
+| Process ID / 模式 | 触发 / 目标 | 统筹者 / 参与方 | 前提事实来源 | 阶段 / 结果可见点 | 失败及清理 / 机制引用 | 图号 / 正文位置 |
+|---|---|---|---|---|---|---|
+| P-BOOT 冷启动 | 进程启动 / 进入可接流量 | 入口层统筹；Management、util | settings 文件、SQLite | 迁移→bootstrap→固定等级→ready | bootstrap 失败 → 回滚 → not_ready | 图 P1 / §7.1；M-CONFIG |
+| P-INFER 模型调用 | Consumer 请求 / 返回响应 + Usage | Inference 统筹；入口层、libdiag | 请求体、Registry | 校验→路由→准入→后端→SSE→终态 | 429 / 5xx / 断开 → 释放许可；M-INFER、M-METER、M-TRUST | 图 P2 / §7.2 |
+| P-CONFIG 配置变更 | operator PATCH / 配置生效 | Management 统筹；util | ETag、Registry | 校验→事务→新版本→审计 | 412 stale / 409 引用 → 不改 | 图 P3 / §7.3；M-CONFIG |
+| P-RESTART 停止/重启/恢复 | 运维动作 / 服务恢复 | 运维统筹；入口层 | 进程、SQLite | 停入口→在途退出→重启→ready→smoke | 未确认退出不重启 | 图 P4 / §7.4；M-CONFIG |
+
 ### 7.1 启动与就绪过程
 
-服务启动先迁移 schema，再从配置初始化（空库首次启动）并确保固定等级存在。初始化失败时服务保持 not_ready。`/healthz` 返回进程存活；`/readyz` 返回可接流量判断。
+```mermaid
+flowchart TB
+  S([进程启动]) --> M[迁移 schema]
+  M --> C{已 bootstrap?}
+  C -- 否 --> B[读 settings 并校验引用/Secret]
+  B -- 失败 --> R[回滚事务] --> NR([/readyz = not_ready])
+  B -- 成功 --> W[单事务写入 + store_initialized]
+  C -- 是 --> T[确保固定等级存在]
+  W --> T
+  T --> RD([/readyz = ready])
+```
+
+图 P1 · P-BOOT 冷启动。`/healthz` 只表示进程存活；`/readyz` 由 schema、bootstrap 与固定等级共同决定。bootstrap 任一步失败即回滚并保持 not_ready，不接流量。
 
 ### 7.2 一次业务处理的完整过程
 
@@ -352,19 +373,39 @@ sequenceDiagram
   B-->>L: 文本或 function call + usage/error
   L-->>P: 标准响应 + usage + X-Request-ID
   Note over P: Consumer 执行工具并以新完整请求提交
+  Note over L: 失败：429 / provider_unavailable / 断开 → 释放许可，不重放
 ```
 
-每个 HTTP 请求是独立模型调用。网络结果不明时，Consumer 按标准 client retry policy 处理；本系统不承诺跨系统 exactly-once，也不提供 Invocation 查询或结果恢复。
+图 P2 · P-INFER 模型调用。每个 HTTP 请求是独立模型调用。网络结果不明时，Consumer 按标准 client retry policy 处理；本系统不承诺跨系统 exactly-once，也不提供 Invocation 查询或结果恢复。异常出口：准入失败 429、后端失败 provider_unavailable、客户端断开（结束本次调用，不创建可恢复 Invocation）。
 
 Embedding 路径同理：Consumer 提交 `POST /v1/embeddings`，系统校验并按 embedding 模型路由，返回向量与 token Usage。同一 embedding 逻辑 model 只允许绑定同一 `embedding_space_id`、模型版本与预处理契约；非兼容变更必须新建逻辑 model ID。
 
 ### 7.3 配置生效与模式切换过程
 
-SQLite 是初始化后唯一配置 authority；`config/settings.json` 仅作空库首次启动的一次性 bootstrap 输入。初始化后即使文件变化也不自动重导入，管理写入只落 SQLite。再导入必须是 operator 显式离线迁移，先备份并使用单一版本迁移命令，不双写。
+```mermaid
+flowchart TB
+  O([operator 在线变更]) --> G[GET item 取 ETag] --> P[PATCH + If-Match]
+  P --> V{校验 + 事务}
+  V -- 412 stale --> X[拒绝，保留输入，不改] 
+  V -- 409 引用冲突 --> Y[拒绝，显示引用摘要]
+  V -- 成功 --> N[写新版本 + 审计] --> A([配置生效])
+  O2([离线再导入]) --> BK[先备份] --> MG[单一版本迁移命令] --> A
+```
+
+图 P3 · P-CONFIG 配置变更。SQLite 是初始化后唯一配置 authority；`config/settings.json` 仅作空库首次启动的一次性 bootstrap 输入。初始化后即使文件变化也不自动重导入，管理写入只落 SQLite；再导入必须是 operator 显式离线迁移，先备份并使用单一版本迁移命令，不双写。
 
 ### 7.4 停止、取消、重启与异常恢复
 
-服务停止、reload、restart、backend probe 是环境运维，不是任务或模型调用状态机。恢复后以 health/readiness、配置版本、目标模型可用性及受控 smoke request 分层确认；环境恢复不等于上层任务成功。
+```mermaid
+flowchart TB
+  ST([运维停止]) --> CL[关闭入口] --> DR[在途请求退出]
+  DR --> CK{确认已退出?}
+  CK -- 否 --> W[继续等待，不重启]
+  CK -- 是 --> RS[重启进程]
+  RS --> RDY[/readyz = ready/] --> SM[受控 smoke request] --> OK([恢复确认])
+```
+
+图 P4 · P-RESTART。服务停止、reload、restart、backend probe 是环境运维，不是任务或模型调用状态机。恢复后以 health/readiness、配置版本、目标模型可用性及受控 smoke request 分层确认；环境恢复不等于上层任务成功。
 
 ## 8. 数据与存储设计
 
