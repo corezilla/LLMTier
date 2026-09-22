@@ -1,6 +1,6 @@
 # LLMTier V0.3 API Test Suite — A Class
 
-> 配套：[`llmtier-v0.3-api-test-plan.md`](../../../../docs/70_verification/plans/llmtier-v0.3-api-test-plan.md) §4
+> 配套：[`llmtier-api-test-plan.md`](../../../../docs/70_verification/plans/llmtier-api-test-plan.md) §4
 
 A 类 case（53 个）：直接打 m5air (`192.168.1.9:8181`) 现有实例。读操作 / 无状态写。
 

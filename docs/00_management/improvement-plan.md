@@ -1,4 +1,28 @@
-# 改进计划 — 2026-09-21
+<!-- STD_DOCUMENT_COVER_BEGIN -->
+# LLMTier 改进计划
+
+> STD 使用入口：[项目采用说明与标准导航](../../README.md#std-entry)
+
+| 文档字段 | 值 |
+|---|---|
+| Document ID | `llmtier-improvement-plan` |
+| Document Version | `0.1.0-draft.1` |
+| Status | `Draft` |
+| Project | `LLMTier` |
+| Authority | `LLMTier` |
+| Document Owner | LLMTier |
+| Authors | llmtier |
+| Created Date | `2026-09-21` |
+| Last Modified Date | `2026-09-22` |
+| Template ID | `management.quality-plan` |
+| Template Version | `0.1.1` |
+| Template Conformance | `tailored` |
+| Tailoring Reference | `std-tailoring` |
+| Migration Map Reference | none |
+| Repository | `corezilla/LLMTier` |
+| Canonical Path | `docs/00_management/improvement-plan.md` |
+| Supersedes | none |
+<!-- STD_DOCUMENT_COVER_END -->
 
 ## 改进项清单
 
@@ -43,7 +67,7 @@
 
 ### 改进项 2：更新测试计划 §2.2
 
-**文件位置**：`docs/70_verification/plans/llmtier-v0.3-test-plan.md`
+**文件位置**：`docs/70_verification/plans/llmtier-test-plan.md`
 
 **添加内容**：
 ```
@@ -93,7 +117,7 @@ PR Review 时需确认：
 |---|--------|----------|
 | 1 | PR Review Guide 文件存在 | `ls docs/20_arch_and_design/PR-REVIEW-GUIDE.md` |
 | 2 | PR Review Guide 包含 LAN 服务检查项 | `grep -c "127.0.0.1" docs/20_arch_and_design/PR-REVIEW-GUIDE.md` 应为 0 |
-| 3 | 测试计划 §2.2 包含 OMLX 环境信息 | `grep -c "192.168.1.9" docs/70_verification/plans/llmtier-v0.3-test-plan.md` > 0 |
+| 3 | 测试计划 §2.2 包含 OMLX 环境信息 | `grep -c "192.168.1.9" docs/70_verification/plans/llmtier-test-plan.md` > 0 |
 | 4 | ST-12 注释包含 LAN 服务说明 | `grep -c "LAN service" tests/system/st_12_embedding_invariant.py` > 0 |
 | 5 | ST-12 不使用 127.0.0.1 | `grep "127.0.0.1" tests/system/st_12_embedding_invariant.py` 应无输出 |
 | 6 | 所有测试仍然通过 | `PYTHONPATH=src python3 -m pytest tests/ tests/system/st_*.py -q` 221 pass |

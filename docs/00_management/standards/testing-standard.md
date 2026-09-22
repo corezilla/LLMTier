@@ -28,7 +28,7 @@
 ## 与STD的关系、例外及冲突
 
 - 本规范补充 `assurance.test-specification` 模板的项目特定实现要求
-- 测试计划详见 `docs/70_verification/plans/llmtier-v0.3-test-plan.md`
+- 测试计划详见 `docs/70_verification/plans/llmtier-test-plan.md`
 
 ## 修订与替代记录
 

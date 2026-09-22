@@ -17,7 +17,7 @@
 | Approval Date | 待定 |
 | Created Date | `2026-09-06` |
 | Last Modified Date | `2026-09-22` |
-| Template Version | `0.3.1` |
+| Template Version | `0.4.1` |
 | Template ID | `design.software-system` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
@@ -364,7 +364,7 @@ admission 队列与并发上限可被并发请求验证；测试实例相互隔�
 
 ### 15.1 构建复现、依赖与发布物
 
-目标实现只保留一条 OpenAI-compatible inference path。现有 `/call`、Role routing、CLI/agent/mlexp backend 是 legacy implementation baseline，迁移完成后退出 consumer authority，不作为 fallback。发布物、版本与部署步骤由 `docs/80_operations/llmtier-v0.3-release-and-operations.md` 承接。
+目标实现只保留一条 OpenAI-compatible inference path。现有 `/call`、Role routing、CLI/agent/mlexp backend 是 legacy implementation baseline，迁移完成后退出 consumer authority，不作为 fallback。发布物、版本与部署步骤由 `docs/80_operations/llmtier-release-and-operations.md` 承接。
 
 ## 16. 实现计划与集成顺序
 

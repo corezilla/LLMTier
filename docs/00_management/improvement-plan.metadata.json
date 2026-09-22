@@ -1,0 +1,31 @@
+{
+  "project": "LLMTier",
+  "authority": "LLMTier",
+  "document_id": "llmtier-improvement-plan",
+  "document_type": "management.quality-plan",
+  "document_version": "0.1.0-draft.1",
+  "title": "LLMTier 改进计划",
+  "document_owner": "LLMTier",
+  "authors": [
+    "llmtier"
+  ],
+  "source_repository": "corezilla/LLMTier",
+  "source_path": "docs/00_management/improvement-plan.md",
+  "template_id": "management.quality-plan",
+  "template_version": "0.1.1",
+  "template_sha256": "e43ce506499155f97be0b279ab33197483da437ef2412d52dd7e66ea463192cb",
+  "template_conformance": "tailored",
+  "tailoring_ref": "std-tailoring",
+  "migration_map_ref": null,
+  "design_level": "cross-level",
+  "domain": [
+    "management"
+  ],
+  "status": "draft",
+  "visibility": "project",
+  "reviewed_commit": null,
+  "parent_document_id": null,
+  "supersedes": null,
+  "created_at": "2026-09-21",
+  "last_modified_at": "2026-09-22"
+}

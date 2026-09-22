@@ -1,4 +1,28 @@
-# API Testing Handoff
+<!-- STD_DOCUMENT_COVER_BEGIN -->
+# LLMTier API 测试交接
+
+> STD 使用入口：[项目采用说明与标准导航](../../README.md#std-entry)
+
+| 文档字段 | 值 |
+|---|---|
+| Document ID | `api-testing-handoff` |
+| Document Version | `0.1.0-draft.1` |
+| Status | `Draft` |
+| Project | `LLMTier` |
+| Authority | `LLMTier` |
+| Document Owner | LLMTier |
+| Authors | llmtier |
+| Created Date | `2026-09-22` |
+| Last Modified Date | `2026-09-22` |
+| Template ID | `operations.maintenance` |
+| Template Version | `0.1.1` |
+| Template Conformance | `tailored` |
+| Tailoring Reference | `std-tailoring` |
+| Migration Map Reference | none |
+| Repository | `corezilla/LLMTier` |
+| Canonical Path | `docs/80_operations/manuals/api-testing-handoff.md` |
+| Supersedes | none |
+<!-- STD_DOCUMENT_COVER_END -->
 
 > 创建日期：2026-09-21。下一次进行 LLMTier API 测试时的交接记录。
 
@@ -144,7 +168,7 @@ Embedding-v1 只包含 dep_local_bge_m3。
 
 ---
 
-## 5. 测试用例清单（57 个，来自 `docs/70_verification/plans/llmtier-v0.3-api-test-plan.md`）
+## 5. 测试用例清单（57 个，来自 `docs/70_verification/plans/llmtier-api-test-plan.md`）
 
 | 分组 | Case IDs | 数量 |
 |---|---|---|
@@ -160,7 +184,7 @@ Embedding-v1 只包含 dep_local_bge_m3。
 | Admin Audit/Logs/Runtime/Stats | ADM-AUDIT-01~02, ADM-LOGS-01~02, ADM-RUNTIME-01, ADM-STATS-01~03 | 7 |
 | Auth | AUTH-01~06 | 6 |
 
-详细测试计划：`docs/70_verification/plans/llmtier-v0.3-api-test-plan.md`
+详细测试计划：`docs/70_verification/plans/llmtier-api-test-plan.md`
 
 ---
 
@@ -411,7 +435,7 @@ print("Embedding:", post("/v1/embeddings", {"model": "Embedding-v1", "input": "h
 
 ## 12. 文档索引
 
-- API 测试计划：`docs/70_verification/plans/llmtier-v0.3-api-test-plan.md`（57 个测试用例）
+- API 测试计划：`docs/70_verification/plans/llmtier-api-test-plan.md`（57 个测试用例）
 - API Reference：`docs/60_interfaces/contracts/llmtier-api-reference.md`
 - OpenAPI 机器契约：`interfaces/openapi/llmtier.openapi.json`
 - m5air 部署指南：`docs/80_operations/manuals/m5air-deploy-guide.md`

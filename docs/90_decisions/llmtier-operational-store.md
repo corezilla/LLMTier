@@ -3,7 +3,7 @@
 
 | 文档字段 | 值 |
 |---|---|
-| Document ID | `llmtier-v0.3-operational-store` |
+| Document ID | `llmtier-operational-store` |
 | Document Version | `0.2.0-draft.2` |
 | Status | `In Review` |
 | Project | `LLMTier` |
@@ -18,7 +18,7 @@
 | Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |
 | Repository | `corezilla/LLMTier` |
-| Canonical Path | `docs/90_decisions/llmtier-v0.3-operational-store.md` |
+| Canonical Path | `docs/90_decisions/llmtier-operational-store.md` |
 | Supersedes | `0.1.0-draft.2` |
 
 > Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
@@ -116,5 +116,5 @@ Usage 只保存标准响应或 Provider 可验证事实中的 token 计数：`in
 - System design：`docs/20_system_design/llmtier-system-design.md`；
 - Requirements：`LT-FUN-001..004`、`LT-OPS-001..003`；
 - Machine authority：`interfaces/openapi/llmtier.openapi.json`、`interfaces/compatibility/compatibility-manifest-v0.3.json`；
-- Verification：`docs/70_verification/plans/llmtier-v0.3-vv-plan.md`；
+- Verification：`docs/70_verification/plans/llmtier-vv-plan.md`；
 - Tailoring：`docs/00_management/std-tailoring.md`。

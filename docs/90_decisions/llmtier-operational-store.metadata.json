@@ -1,7 +1,7 @@
 {
   "project": "LLMTier",
   "authority": "LLMTier",
-  "document_id": "llmtier-v0.3-operational-store",
+  "document_id": "llmtier-operational-store",
   "document_type": "decisions.adr",
   "document_version": "0.2.0-draft.2",
   "title": "LLMTier V0.3 Operational Store 与事务边界",
@@ -10,7 +10,7 @@
     "llmtier"
   ],
   "source_repository": "corezilla/LLMTier",
-  "source_path": "docs/90_decisions/llmtier-v0.3-operational-store.md",
+  "source_path": "docs/90_decisions/llmtier-operational-store.md",
   "template_id": "decisions.adr",
   "template_version": "0.1.0",
   "template_sha256": "dc129c6965d09141da003d4a07b68b79e59a59073fe4d8f178696c5cd8aaf9e8",

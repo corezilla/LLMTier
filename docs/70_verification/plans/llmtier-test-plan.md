@@ -3,7 +3,7 @@
 
 | 文档字段 | 值 |
 |---|---|
-| Document ID | `llmtier-v0.3-test-plan` |
+| Document ID | `llmtier-test-plan` |
 | Document Version | `0.3.2-draft.5` |
 | Status | `Draft` |
 | Project | `LLMTier` |
@@ -19,9 +19,9 @@
 | Template ID | `assurance.test-plan` |
 | Template Conformance | `native` |
 | Tailoring Reference | std-tailoring |
-| Migration Map Reference | `llmtier-v0.3-vv-plan`, `llmtier-v0.3-contract-test-specification` |
+| Migration Map Reference | `llmtier-vv-plan`, `llmtier-contract-test-specification` |
 | Repository | `corezilla/LLMTier` |
-| Canonical Path | `docs/70_verification/plans/llmtier-v0.3-test-plan.md` |
+| Canonical Path | `docs/70_verification/plans/llmtier-test-plan.md` |
 | Supersedes | none |
 <!-- STD_DOCUMENT_COVER_END -->
 
@@ -29,8 +29,8 @@
 
 本文件按 STD `assurance.test-plan` 模板覆盖 **runtime** 端到端测试。区别于：
 
-- `llmtier-v0.3-contract-test-specification.md`：静态契约 + case matrix（CT-*）；本 plan 是其在 runtime 上的落地与扩展。
-- `llmtier-v0.3-vv-plan.md`：高层 V&V 方法论；本 plan 是其 system 层的执行细节。
+- `llmtier-contract-test-specification.md`：静态契约 + case matrix（CT-*）；本 plan 是其在 runtime 上的落地与扩展。
+- `llmtier-vv-plan.md`：高层 V&V 方法论；本 plan 是其 system 层的执行细节。
 
 测试层级：system（HTTP/SSE 真实启服 + 真实或受控 provider + 真实 SQLite）。**不**替代 unit（24 个文件，191 cases）和 contract static 测试。
 
@@ -158,7 +158,7 @@ Coverage gaps 显式列在 §11.5。
 - `tests/system/st_*.py`：每个 case 一个文件，例如 `st05_responses_text.py`、`st18_fd_short.py`、`st22a_provider_429_inject.py`。**落地：M2。**（case 本身属 `tests/system/`，不是 earlier 版本的 `tools/system_test_cases/` —— 按 STD draft.26 HEAD 布局修正）
 - `tests/system/reports/<run-id>/`：系统测试报告，按 Run ID 分开（STD 最新 `tests/{level}/reports/<run-id>/` 规则）；不在 `docs/70_verification/` 集中。
 - `tests/system/`：firewall 把系统测试连进 `python3 -m unittest`，路径 `tests.system.test_st_*`；可与现有 191 个单元测试合并跑。**落地：M3。**
-- 当前可立刻跑的 baseline（无需新工具）：`/tmp/piko_smoke.sh` 模式（已在 HANDOFF §5.2 验证用过）+ `tests/unit/v03/test_admin_stats.py` 模式 → 拷成 `tests/system/st_*.py` 即可。
+- 当前可立刻跑的 baseline（无需新工具）：`/tmp/piko_smoke.sh` 模式（已在 docs/99_reference/handoff.md §5.2 验证用过）+ `tests/unit/v03/test_admin_stats.py` 模式 → 拷成 `tests/system/st_*.py` 即可。
 
 ### 5.2 执行顺序与依赖
 

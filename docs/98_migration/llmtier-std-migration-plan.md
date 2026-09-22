@@ -66,7 +66,7 @@ NOT_RUN 已显式记录。C0 immutable input 与授权 reviewer 已登记，term
 | docs/99_reference/contracts/piko-data-plane-contract-v0.3.md | docs/60_interfaces/piko-data-plane-control.md | interfaces.control | 保留 Responses/Embeddings、exact-case ID、idempotency/recovery、M2-C、deferred surface；不复制 Piko runtime authority |
 | docs/99_reference/contracts/slinky-capacity-observation-contract-v0.3.md | docs/60_interfaces/slinky-capacity-observation-control.md | interfaces.control | 保留 read-only observation、capacity/Seat、ETag/invalidation、Client scope；不复制 Slinky Project/Plan/IR authority |
 | docs/99_reference/contracts/llmtier-management-contract-v0.3.md | docs/60_interfaces/llmtier-management-control.md | interfaces.control | 保留 /v1 Management surface、Admin UI、secret non-disclosure、audit/concurrency Gate |
-| OpenAPI v0.3、compatibility manifest v0.3、v0.3 fixtures、三份说明 | docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.md | contracts.specification | 只建立 schema/error/evolution/authority 索引；机器文件原位且仍为字段级 authority |
+| OpenAPI v0.3、compatibility manifest v0.3、v0.3 fixtures、三份说明 | docs/60_interfaces/contracts/llmtier-contract-specification.md | contracts.specification | 只建立 schema/error/evolution/authority 索引；机器文件原位且仍为字段级 authority |
 | 上述 C1 diff、mapping 与验证 | docs/91_reviews/llmtier-std-c1-interface-contract-review.md | review.packet | terminal ACCEPTED；不请求 activation |
 
 旧三份 v0.3 prose contract 的 current scope 已完整映射，并在 C5 promotion candidate 中获得
@@ -92,13 +92,13 @@ L1/L2 完成，L3 如实标注。
 
 | Source | 新候选 | Template ID | residual authority |
 |---|---|---|---|
-| docs/99_reference/verification/llm-tier-contract-qa-v0.3.md 的 strategy/gates | docs/70_verification/llmtier-v0.3-vv-plan.md | assurance.vv-plan | current scope 已迁出；旧 QA 在 promotion 中标为 Superseded |
-| v0.3 fixtures、tests/test_*v03.py、OpenAPI/manifest oracle | docs/70_verification/llmtier-v0.3-contract-test-specification.md | assurance.test-specification | executable tests/fixtures 保持 source authority，Markdown 不复制 oracle |
+| docs/99_reference/verification/llm-tier-contract-qa-v0.3.md 的 strategy/gates | docs/70_verification/llmtier-vv-plan.md | assurance.vv-plan | current scope 已迁出；旧 QA 在 promotion 中标为 Superseded |
+| v0.3 fixtures、tests/test_*v03.py、OpenAPI/manifest oracle | docs/70_verification/llmtier-contract-test-specification.md | assurance.test-specification | executable tests/fixtures 保持 source authority，Markdown 不复制 oracle |
 | C2 diff 与 execution evidence | docs/91_reviews/llmtier-std-c2-assurance-review.md | review.packet | actual run 与 NOT_RUN/BLOCKED 分开记录 |
 
 依赖 C1 冻结 interface/contract mapping。目标路径为
-`docs/70_verification/plans/llmtier-v0.3-vv-plan.md` 和
-`docs/70_verification/specifications/llmtier-v0.3-contract-test-specification.md`。完成标准是
+`docs/70_verification/plans/llmtier-vv-plan.md` 和
+`docs/70_verification/specifications/llmtier-contract-test-specification.md`。完成标准是
 Requirement/Review→Design/Contract→suite/case→execution evidence 可追踪，静态 PASS 不被写成
 production evidence。L3 缺口继续阻塞 Runtime Activation，但不阻止形成诚实的 Migration Review candidate。
 
@@ -122,7 +122,7 @@ Slinky/Piko 拥有的需求复制成本项目 authority。
 - Provider measured SLO、Admin UI 技术栈和 production isolation 未决定前只保留 Open Gate，不生成
   假完成文档。
 
-C4 当前只生成 `docs/80_operations/llmtier-v0.3-release-and-operations.md`，承接已有 package/CLI、
+C4 当前只生成 `docs/80_operations/llmtier-release-and-operations.md`，承接已有 package/CLI、
 start/stop/diagnostic 与 release Gate；它不是 production runbook。没有新的已批准 architecture decision，
 因此不生成 retrospective ADR。未来 persistence/HA/RPO/RTO/topology 等实际选择形成时再启用 `decisions.adr`。
 
@@ -149,7 +149,7 @@ scope mapping 和验证 evidence 已成为 canonical promotion 基线。C6 现�
   `interfaces/openapi|schemas|vectors|compatibility`；文件字节保持不变。
 - 旧 contract/design/QA/future prose 迁至 `docs/99_reference/contracts|design|verification|future`；
   Superseded、historical、future 状态和 residual=none 结论不变。
-- `docs/migration/source-provenance-v0.1.md` 迁至 `docs/98_migration/`。
+- `docs/migration/source-provenance.md` 迁至 `docs/98_migration/`。
 - 根 `src/`、`tests/`、`tools/` 继续按单服务 tailoring 保留，不创建 `apps/services/packages` 双重树。
 - 既有 `rag/std-ingestion-manifest.jsonl` dirty 修改保持原位，不纳入 C7。
 - C7 提交后，`rag/project-ingestion-manifest.jsonl` 仍是绑定 `503d0a0` 的不可变 publication snapshot；

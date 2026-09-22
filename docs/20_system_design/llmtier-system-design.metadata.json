@@ -12,7 +12,7 @@
   "source_repository": "corezilla/LLMTier",
   "source_path": "docs/20_system_design/llmtier-system-design.md",
   "template_id": "design.software-system",
-  "template_version": "0.3.1",
+  "template_version": "0.4.1",
   "template_sha256": "65a05db43337784ed5e87a71aecf90bce30607c0e58abf792ad6a56c87703ba5",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",

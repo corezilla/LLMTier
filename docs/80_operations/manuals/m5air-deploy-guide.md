@@ -1,4 +1,28 @@
+<!-- STD_DOCUMENT_COVER_BEGIN -->
 # m5air 代码更新与重启指南
+
+> STD 使用入口：[项目采用说明与标准导航](../../README.md#std-entry)
+
+| 文档字段 | 值 |
+|---|---|
+| Document ID | `m5air-deploy-guide` |
+| Document Version | `0.1.0-draft.1` |
+| Status | `Draft` |
+| Project | `LLMTier` |
+| Authority | `LLMTier` |
+| Document Owner | LLMTier |
+| Authors | llmtier |
+| Created Date | `2026-09-22` |
+| Last Modified Date | `2026-09-22` |
+| Template ID | `operations.maintenance` |
+| Template Version | `0.1.1` |
+| Template Conformance | `tailored` |
+| Tailoring Reference | `std-tailoring` |
+| Migration Map Reference | none |
+| Repository | `corezilla/LLMTier` |
+| Canonical Path | `docs/80_operations/manuals/m5air-deploy-guide.md` |
+| Supersedes | none |
+<!-- STD_DOCUMENT_COVER_END -->
 
 ## 环境信息
 

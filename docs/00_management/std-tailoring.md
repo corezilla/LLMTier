@@ -50,7 +50,7 @@
 | Template ID | Profile | 是否必需 | 计划文档 | Owner |
 |---|---|---|---|---|
 | `management.tailoring` | management | 是 | `docs/00_management/std-tailoring.md` | LLMTier |
-| `management.development-plan` | management/software | 是，V0.3 implementation active | `docs/00_management/v0.3-implementation-plan.md`；编码调试与正式单元测试分Gate | LLMTier |
+| `management.development-plan` | management/software | 是，V0.3 implementation active | `docs/00_management/llmtier-implementation-plan.md`；编码调试与正式单元测试分Gate | LLMTier |
 | `design.system` | software | omit | LLMTier 为纯软件单服务；顶层设计与系统概览改由 `design.software-system` 承担，不另建总体系统文档 | LLMTier |
 | `design.software-system` | software | 是 | `docs/20_system_design/llmtier-system-design.md` | LLMTier |
 | `design.subsystem` | software | 条件必需，当前 omit | 仅在 LLMTier 出现独立子系统时建立；当前所有模块归 `design.definition` | 对应 owner |
@@ -70,7 +70,7 @@
 | `assurance.fpga-implementation-report` | software | omit | LLMTier 不拥有 FPGA；保留以备跨项目扩展 | N/A |
 | `review.packet` | management/software | 是，本批 | STD migration review packet；不请求 V0.3 activation | LLMTier owner；项目授权 reviewer 待指定 |
 | `decisions.adr` | software | 条件必需 | persistence/HA/deployment 等新重大决定 | LLMTier |
-| `operations.release` | operations/software | 是，C4 active | `docs/80_operations/llmtier-v0.3-release-and-operations.md`；Open Gate 不伪造 | LLMTier |
+| `operations.release` | operations/software | 是，C4 active | `docs/80_operations/llmtier-release-and-operations.md`；Open Gate 不伪造 | LLMTier |
 
 ## 3. 裁剪决定
 

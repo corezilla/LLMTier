@@ -1,11 +1,11 @@
 <!-- STD_DOCUMENT_COVER_BEGIN -->
 # LLMTier V0.3 API Test Execution Plan
 
-> 配套文档：[`llmtier-v0.3-api-test-plan.md`](./llmtier-v0.3-api-test-plan.md)（测试设计 + case 矩阵）。本文件是**执行层面**的计划：分阶段、产出物、依赖、人/工时估算、风险与回滚。
+> 配套文档：[`llmtier-api-test-plan.md`](./llmtier-api-test-plan.md)（测试设计 + case 矩阵）。本文件是**执行层面**的计划：分阶段、产出物、依赖、人/工时估算、风险与回滚。
 
 | 文档字段 | 值 |
 |---|---|
-| Document ID | `llmtier-v0.3-api-test-execution` |
+| Document ID | `llmtier-api-test-execution` |
 | Document Version | `0.2.0-draft.5` |
 | Status | `Draft` |
 | Project | `LLMTier` |
@@ -18,15 +18,15 @@
 | Template Version | `0.1.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
-| Migration Map Reference | `llmtier-v0.3-api-test-plan` |
+| Migration Map Reference | `llmtier-api-test-plan` |
 | Repository | `corezilla/LLMTier` |
-| Canonical Path | `docs/70_verification/plans/llmtier-v0.3-api-test-execution.md` |
+| Canonical Path | `docs/70_verification/plans/llmtier-api-test-execution.md` |
 | Supersedes | none |
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 目标与定位
 
-把 [`llmtier-v0.3-api-test-plan.md`](./llmtier-v0.3-api-test-plan.md) §4 的 **89 个 case** 从"设计"落到"可执行 + 可回归"。
+把 [`llmtier-api-test-plan.md`](./llmtier-api-test-plan.md) §4 的 **89 个 case** 从"设计"落到"可执行 + 可回归"。
 
 - 每个 case 有一个 pytest 文件（或 at_*.py）
 - 每个 case 跑前自动做环境就绪检查（test plan §2.1），失败则 SKIP
@@ -248,9 +248,9 @@ Day 4（可选）：P4
 
 ## 9. 文档索引
 
-- 测试设计：[`llmtier-v0.3-api-test-plan.md`](./llmtier-v0.3-api-test-plan.md)（**v0.3.0-draft.3**）
-- 高层 V&V：[`llmtier-v0.3-vv-plan.md`](./llmtier-v0.3-vv-plan.md)
-- 系统测试：[`llmtier-v0.3-test-plan.md`](./llmtier-v0.3-test-plan.md)（ST-01~ST-26）
+- 测试设计：[`llmtier-api-test-plan.md`](./llmtier-api-test-plan.md)（**v0.3.0-draft.3**）
+- 高层 V&V：[`llmtier-vv-plan.md`](./llmtier-vv-plan.md)
+- 系统测试：[`llmtier-test-plan.md`](./llmtier-test-plan.md)（ST-01~ST-26）
 - 历史报告：`tests/system/reports/2026-09-21/2026-09-2{0,1}-test-report.md`
 - m5air 部署：`docs/80_operations/manuals/m5air-deploy-guide.md`
 - m5air 操作：`docs/80_operations/m5air-operations-manual.md`

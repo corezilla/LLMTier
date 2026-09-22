@@ -51,11 +51,11 @@ class StdAndAuthorityTests(unittest.TestCase):
             ROOT / "docs/60_interfaces/piko-data-plane-control.md",
             ROOT / "docs/60_interfaces/slinky-capacity-observation-control.md",
             ROOT / "docs/60_interfaces/llmtier-management-control.md",
-            ROOT / "docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.md",
-            ROOT / "docs/60_interfaces/contracts/llmtier-v0.3-cross-system-finalization.md",
-            ROOT / "docs/70_verification/plans/llmtier-v0.3-vv-plan.md",
-            ROOT / "docs/70_verification/specifications/llmtier-v0.3-contract-test-specification.md",
-            ROOT / "docs/80_operations/llmtier-v0.3-release-and-operations.md",
+            ROOT / "docs/60_interfaces/contracts/llmtier-contract-specification.md",
+            ROOT / "docs/60_interfaces/contracts/llmtier-cross-system-finalization.md",
+            ROOT / "docs/70_verification/plans/llmtier-vv-plan.md",
+            ROOT / "docs/70_verification/specifications/llmtier-contract-test-specification.md",
+            ROOT / "docs/80_operations/llmtier-release-and-operations.md",
         ]
         for path in paths:
             metadata = json.loads(path.with_name(path.stem + ".metadata.json").read_text(encoding="utf-8"))
@@ -66,7 +66,7 @@ class StdAndAuthorityTests(unittest.TestCase):
             self.assertIn(f"| Last Modified Date | `{metadata['last_modified_at']}` |", text, path)
 
     def test_current_authority_names_machine_artifacts_and_no_activation(self):
-        contract = (ROOT / "docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.md").read_text(encoding="utf-8")
+        contract = (ROOT / "docs/60_interfaces/contracts/llmtier-contract-specification.md").read_text(encoding="utf-8")
         self.assertIn("唯一字段级 authority", contract)
         self.assertIn("runtime_activation=false", contract)
         manifest = json.loads((ROOT / "interfaces/compatibility/compatibility-manifest-v0.3.json").read_text(encoding="utf-8"))

@@ -29,7 +29,7 @@ STD 提供工程文档模板、编写规范、AI 指南与检查工具；它不�
   baseline，不构成 V0.3 兼容承诺。
 
 历史来源与拆分证据只保留在
-[`docs/98_migration/source-provenance-v0.1.md`](docs/98_migration/source-provenance-v0.1.md)；它们不定义当前
+[`docs/98_migration/source-provenance.md`](docs/98_migration/source-provenance.md)；它们不定义当前
 项目身份或使用方式。
 
 ## 快速开始
@@ -73,13 +73,13 @@ RFC1918 或 IPv6 ULA origin。当前 transport 不等同于 production TLS/auth 
 
 | 类别 | 文档 |
 |---|---|
-| 裁剪与计划 | [STD 裁剪清单](docs/00_management/std-tailoring.md)、[V0.3 编码与测试计划](docs/00_management/v0.3-implementation-plan.md) |
+| 裁剪与计划 | [STD 裁剪清单](docs/00_management/std-tailoring.md)、[V0.3 编码与测试计划](docs/00_management/llmtier-implementation-plan.md) |
 | 需求 | [V0.3 Requirements](docs/10_requirements/llmtier-requirements.md)、[Traceability](docs/10_requirements/llmtier-traceability.md) |
 | 系统设计 | [系统设计](docs/20_system_design/llmtier-system-design.md) |
 | 模块设计 | [核心模块设计](docs/40_module_design/llmtier-core-design.md)、[Web UI Design](docs/40_module_design/llmtier-webui-design.md)、[Runtime ISD](docs/50_implementation_design/llmtier-runtime.isd.md) |
-| 接口 | [Piko Data Plane](docs/60_interfaces/piko-data-plane-control.md)、[Slinky Capacity/Observation](docs/60_interfaces/slinky-capacity-observation-control.md)、[Management API](docs/60_interfaces/llmtier-management-control.md)、[Contract Specification](docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.md) |
-| 验证 | [V&V Plan](docs/70_verification/plans/llmtier-v0.3-vv-plan.md)、[Test Plan](docs/70_verification/plans/llmtier-v0.3-test-plan.md)、[Contract Test Specification](docs/70_verification/specifications/llmtier-v0.3-contract-test-specification.md) |
-| 运维 | [Release and Operations](docs/80_operations/llmtier-v0.3-release-and-operations.md)、**[m5air 调试环境手册](docs/80_operations/m5air-operations-manual.md)** |
+| 接口 | [Piko Data Plane](docs/60_interfaces/piko-data-plane-control.md)、[Slinky Capacity/Observation](docs/60_interfaces/slinky-capacity-observation-control.md)、[Management API](docs/60_interfaces/llmtier-management-control.md)、[Contract Specification](docs/60_interfaces/contracts/llmtier-contract-specification.md) |
+| 验证 | [V&V Plan](docs/70_verification/plans/llmtier-vv-plan.md)、[Test Plan](docs/70_verification/plans/llmtier-test-plan.md)、[Contract Test Specification](docs/70_verification/specifications/llmtier-contract-test-specification.md) |
+| 运维 | [Release and Operations](docs/80_operations/llmtier-release-and-operations.md)、**[m5air 调试环境手册](docs/80_operations/m5air-operations-manual.md)** |
 
 批准的 prose authority 不表示 production endpoint、durable recovery、Admin UI 或 Runtime Activation 已完成。
 其中V0.3 Gate C/Gate U通过不表示production activation通过；真实provider capture、浏览器E2E、部署和三方联调仍是后续门禁。

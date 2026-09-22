@@ -17,14 +17,14 @@ Promotion 输入：`e1f9b796368ec5f358e466c7e6299cc16b1bf181`
 | §1 V0.3 交付目标 | `llmtier-requirements` / `docs/10_requirements/llmtier-requirements.md`; `llmtier-system-design` / `docs/20_system_design/llmtier-system-design.md` | compatibility manifest v0.3 | canonical prose moves to successors | none |
 | §2 责任与 authority | `llmtier-system-design`; three interface-control documents | OpenAPI/manifest remain LLMTier machine authority; Piko/Slinky keep external authority | canonical ownership prose moves | none |
 | §3 系统分面 | `llmtier-system-design` | `src/` current implementation | canonical building-block view moves | none |
-| §4 Service Level Registry | `llmtier-system-design`; `llmtier-v0.3-contract-specification` / `docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.md` | OpenAPI and compatibility manifest | canonical registry prose moves | none |
-| §5.1 Data Plane surface | `llmtier-piko-data-plane-control` / `docs/60_interfaces/piko-data-plane-control.md`; `llmtier-v0.3-contract-specification` | OpenAPI v0.3 | canonical interface prose moves | none |
-| §5.2 first/repeat/terminal | `llmtier-piko-data-plane-control`; `llmtier-v0.3-contract-test-specification` / `docs/70_verification/specifications/llmtier-v0.3-contract-test-specification.md` | recovery fixtures and tests | canonical recovery prose moves | none |
+| §4 Service Level Registry | `llmtier-system-design`; `llmtier-contract-specification` / `docs/60_interfaces/contracts/llmtier-contract-specification.md` | OpenAPI and compatibility manifest | canonical registry prose moves | none |
+| §5.1 Data Plane surface | `llmtier-piko-data-plane-control` / `docs/60_interfaces/piko-data-plane-control.md`; `llmtier-contract-specification` | OpenAPI v0.3 | canonical interface prose moves | none |
+| §5.2 first/repeat/terminal | `llmtier-piko-data-plane-control`; `llmtier-contract-test-specification` / `docs/70_verification/specifications/llmtier-contract-test-specification.md` | recovery fixtures and tests | canonical recovery prose moves | none |
 | §5.3 M2-C retention | `llmtier-piko-data-plane-control`; `llmtier-requirements`; `llmtier-traceability` | OpenAPI/manifest/fixtures/tests | canonical retention requirement moves; runtime evidence stays blocked | none |
 | §6 Slinky Capacity/Observation | `llmtier-slinky-capacity-observation-control` / `docs/60_interfaces/slinky-capacity-observation-control.md` | OpenAPI and v0.3 capacity fixtures | canonical consumer boundary moves | none；Slinky `S-20260907-45938693e578` ACCEPTED exact draft.2 input |
 | §7 Management API/Admin UI | `llmtier-management-control` / `docs/60_interfaces/llmtier-management-control.md` | OpenAPI and management fixtures/tests | canonical management prose moves | none |
-| §8 Schema、安全与状态 | `llmtier-system-design`; three interface controls; `llmtier-v0.3-contract-specification` | OpenAPI/manifest/fixtures/tests | canonical cross-cutting prose moves | none |
-| §9 Activation gates | `llmtier-traceability`; `llmtier-v0.3-vv-plan` / `docs/70_verification/plans/llmtier-v0.3-vv-plan.md`; `llmtier-v0.3-release-and-operations` / `docs/80_operations/llmtier-v0.3-release-and-operations.md` | compatibility manifest keeps activation=false | gate prose moves; runtime remains independent | none |
+| §8 Schema、安全与状态 | `llmtier-system-design`; three interface controls; `llmtier-contract-specification` | OpenAPI/manifest/fixtures/tests | canonical cross-cutting prose moves | none |
+| §9 Activation gates | `llmtier-traceability`; `llmtier-vv-plan` / `docs/70_verification/plans/llmtier-vv-plan.md`; `llmtier-release-and-operations` / `docs/80_operations/llmtier-release-and-operations.md` | compatibility manifest keeps activation=false | gate prose moves; runtime remains independent | none |
 | §10 实现顺序 | `llmtier-std-migration-plan` / `docs/98_migration/llmtier-std-migration-plan.md`; requirements traceability | source/tests remain implementation authority | historical planning sequence only | none |
 | §11 本轮评审闭环 | C0-C4 review packets and machine decisions in `docs/91_reviews/` | Matrix messages and Git commits remain evidence | historical review provenance | none |
 | §12 关联材料 | `current-document-inventory` / `docs/98_migration/current-document-inventory.md`; successor documents above | referenced artifacts remain at their canonical paths | navigation moves to README/inventory | none |
@@ -40,10 +40,10 @@ Promotion 输入：`e1f9b796368ec5f358e466c7e6299cc16b1bf181`
 | Old scope | Successor Document ID / path | Retained machine or execution authority | Disposition | Residual |
 |---|---|---|---|---|
 | §1 authority/unique path | `llmtier-piko-data-plane-control` | compatibility manifest | canonical prose moves | none；Piko `P-20260907-e009921eda0a` ACCEPTED |
-| §2 V0.3 surface | `llmtier-piko-data-plane-control`; `llmtier-v0.3-contract-specification` | OpenAPI v0.3 | canonical prose moves | none |
+| §2 V0.3 surface | `llmtier-piko-data-plane-control`; `llmtier-contract-specification` | OpenAPI v0.3 | canonical prose moves | none |
 | §3 Service Level Registry | same two successors | OpenAPI/manifest | canonical prose moves | none |
 | §4 identity/request/schema | same two successors | OpenAPI + authorization/metadata fixtures | canonical prose moves | none |
-| §5 first/repeat/lost-response | `llmtier-piko-data-plane-control`; `llmtier-v0.3-contract-test-specification` | recovery fixtures/tests | canonical prose moves | none |
+| §5 first/repeat/lost-response | `llmtier-piko-data-plane-control`; `llmtier-contract-test-specification` | recovery fixtures/tests | canonical prose moves | none |
 | §6 invocation/response recovery | same successors | OpenAPI + recovery fixtures/tests | canonical prose moves | none |
 | §7 M2-C window | `llmtier-piko-data-plane-control`; requirements/traceability | OpenAPI/manifest/fixtures/tests | canonical prose moves | none |
 | §8 deferred/Embeddings | `llmtier-piko-data-plane-control`; requirements/traceability | OpenAPI/manifest deferred-surface fixture | canonical fail-closed prose moves | none |
@@ -59,7 +59,7 @@ Promotion 输入：`e1f9b796368ec5f358e466c7e6299cc16b1bf181`
 | Old scope | Successor Document ID / path | Retained machine or execution authority | Disposition | Residual |
 |---|---|---|---|---|
 | §1 authority/unique inference path | `llmtier-slinky-capacity-observation-control` | compatibility manifest | canonical prose moves | none；Slinky `S-20260907-45938693e578` ACCEPTED |
-| §2 Observation surface | same successor; `llmtier-v0.3-contract-specification` | OpenAPI v0.3 | canonical prose moves | none |
+| §2 Observation surface | same successor; `llmtier-contract-specification` | OpenAPI v0.3 | canonical prose moves | none |
 | §3 Service Level Registry | same successors | OpenAPI/manifest | canonical prose moves | none |
 | §4 CapacitySnapshot/Seat | same successor; test specification | OpenAPI + capacity fixtures/tests | canonical prose moves | none |
 | §5 version/ETag/invalidation | same successor; test specification | OpenAPI + fixtures/tests | canonical prose moves | none |
@@ -76,7 +76,7 @@ Promotion 输入：`e1f9b796368ec5f358e466c7e6299cc16b1bf181`
 | Old scope | Successor Document ID / path | Retained machine or execution authority | Disposition | Residual |
 |---|---|---|---|---|
 | §1 authority/access boundary | `llmtier-management-control` | compatibility manifest | canonical prose moves | none |
-| §2/§2.1 API surface/endpoints | `llmtier-management-control`; `llmtier-v0.3-contract-specification` | OpenAPI v0.3 + management fixtures/tests | canonical prose moves | none |
+| §2/§2.1 API surface/endpoints | `llmtier-management-control`; `llmtier-contract-specification` | OpenAPI v0.3 + management fixtures/tests | canonical prose moves | none |
 | §3 minimum Admin UI | `llmtier-management-control`; requirements/traceability | no current UI implementation evidence | required/open-gate prose moves | none; implementation remains blocked |
 | §4 consistency/activation | management control, V&V plan, release/operations | compatibility manifest keeps activation=false | gate prose moves | none |
 
@@ -90,7 +90,7 @@ Promotion 输入：`e1f9b796368ec5f358e466c7e6299cc16b1bf181`
 | Old scope | Successor Document ID / path | Retained machine or execution authority | Disposition | Residual |
 |---|---|---|---|---|
 | §1 Slinky amendment traceability | `llmtier-traceability`; C1/C2 review packets | Matrix verdict IDs and Git commits | traceability moves; message IDs retained as evidence | none；Slinky `S-20260907-45938693e578` ACCEPTED |
-| §2 machine-readable consistency | `llmtier-v0.3-contract-specification`; test specification | OpenAPI/manifest/fixtures/tests | canonical validation index moves | none |
+| §2 machine-readable consistency | `llmtier-contract-specification`; test specification | OpenAPI/manifest/fixtures/tests | canonical validation index moves | none |
 | §3 Piko review traceability | `llmtier-traceability`; C1/C2 review packets | Matrix verdict IDs and Git commits | traceability moves; message IDs retained as evidence | none；Piko `P-20260907-e009921eda0a` ACCEPTED |
 | §4 evidence boundary | V&V plan, test specification, traceability | tests/fixtures and future runtime artifacts | canonical evidence boundary moves | none |
 | §5 remaining blockers | requirements/traceability, V&V plan, release/operations | runtime/external evidence remains NOT_RUN/BLOCKED | blocker ledger moves without converting to PASS | none |

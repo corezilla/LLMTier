@@ -3,7 +3,7 @@
 
 | 文档字段 | 值 |
 |---|---|
-| Document ID | `llmtier-v0.3-cross-system-finalization` |
+| Document ID | `llmtier-cross-system-finalization` |
 | Document Version | `0.3.1-draft.6` |
 | Status | `In Review` |
 | Project | `LLMTier` |
@@ -21,7 +21,7 @@
 | Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |
 | Repository | `corezilla/LLMTier` |
-| Canonical Path | `docs/60_interfaces/contracts/llmtier-v0.3-cross-system-finalization.md` |
+| Canonical Path | `docs/60_interfaces/contracts/llmtier-cross-system-finalization.md` |
 | Supersedes | none |
 <!-- STD_DOCUMENT_COVER_END -->
 

@@ -5,7 +5,7 @@
 
 | 文档字段 | 值 |
 |---|---|
-| Document ID | `llmtier-v0.3-api-test-plan` |
+| Document ID | `llmtier-api-test-plan` |
 | Document Version | `0.3.0-draft.7` |
 | Status | `Draft` |
 | Project | `LLMTier` |
@@ -18,9 +18,9 @@
 | Template Version | `0.1.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
-| Migration Map Reference | `llmtier-v0.3-test-plan`, `llmtier-v0.3-vv-plan` |
+| Migration Map Reference | `llmtier-test-plan`, `llmtier-vv-plan` |
 | Repository | `corezilla/LLMTier` |
-| Canonical Path | `docs/70_verification/plans/llmtier-v0.3-api-test-plan.md` |
+| Canonical Path | `docs/70_verification/plans/llmtier-api-test-plan.md` |
 | Supersedes | none |
 
 > Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
@@ -31,8 +31,8 @@
 
 本文件是 LLMTier V0.3 API 的专项测试计划，聚焦 **HTTP 端点的行为验证**，区别于：
 
-- `llmtier-v0.3-test-plan.md`：ST-01~ST-26 系统测试（部分覆盖 API）
-- `llmtier-v0.3-vv-plan.md`：高层 V&V 方法论
+- `llmtier-test-plan.md`：ST-01~ST-26 系统测试（部分覆盖 API）
+- `llmtier-vv-plan.md`：高层 V&V 方法论
 - `llmtier-api-reference.md`：API 契约的人类可读说明
 
 **被测范围**：所有 Data Plane、Observation、Admin Management HTTP 端点（见 §3）。
@@ -53,7 +53,7 @@
 - m5air 当前已部署完成，3 provider / 4 deployment / 7 tier 状态完整可用
 - m5air OMLX (`192.168.1.9:9000`) 也在本机，无网络依赖
 
-> 注：`llmtier-v0.3-test-plan.md` §2.2 提到 "m5air 不是测试环境"，但那是针对 **ST-18 FD 泄漏 / ST-19 30min 长期 / ST-21 性能压测**这类**会污染服务状态**的 case。HTTP 端点的读 / 一次性写测试不污染 SQLite，且每个写 case 后做 teardown，对 m5air 状态无可观察影响。
+> 注：`llmtier-test-plan.md` §2.2 提到 "m5air 不是测试环境"，但那是针对 **ST-18 FD 泄漏 / ST-19 30min 长期 / ST-21 性能压测**这类**会污染服务状态**的 case。HTTP 端点的读 / 一次性写测试不污染 SQLite，且每个写 case 后做 teardown，对 m5air 状态无可观察影响。
 
 89 case 按是否写 m5air 状态分两类：
 
@@ -468,7 +468,7 @@ OBS-01~03 → DP-MODELS-01~07 → DP-EMB-01~05
 | 并发请求归属验证 | 多并发请求 → 验证每个 provider 的 calls 计数（不属于本 plan 单 case 范围） | 低 | — |
 | Admin DELETE 后列表清理验证 | 当前 case 只验 204；补一条"DELETE 后 GET → 404" | 中 | ADM-PROV-08, ADM-DEPL-05 |
 | Provider `secret_ref` 三种格式子 case | `file:`/`env:`/`raw:` 各一条；目前只测 `file:`（9-21 [P4]） | 中 | ADM-PROV-02 |
-| 多 principal 环境 | ST-25/25A 缺口，本 plan 不重复；引用 `llmtier-v0.3-test-plan.md` §11 | — | — |
+| 多 principal 环境 | ST-25/25A 缺口，本 plan 不重复；引用 `llmtier-test-plan.md` §11 | — | — |
 | `usage` 时间窗默认值 | 当前所有 usage case 显式带 from/to；缺省行为未测（9-20 [P8]） | 低 | — |
 
 ---
@@ -525,7 +525,7 @@ OBS-01~03 → DP-MODELS-01~07 → DP-EMB-01~05
 | **P8** | `/v1/usage` 缺 RFC3339 时间参数 | 9-20 smoke, 9-21 smoke | DP-USAGE-*, ADM-ADMIN-USAGE-* | §4.5/§4.9 fixture 列时间窗 RFC3339 字符串 |
 | **P9** | Provider create 多传 `id` 字段（auto-generated） | 9-21 smoke | ADM-PROV-02 | §4.6 fixture 模板明确禁止传 id（schema `additionalProperties:false` 也会拦） |
 | **P10** | 并发测试 `grep "error"` 误匹配 `"error":null` | 9-20 ST-22/23 | ADM-PROBE-02（并发场景） | 用 JSON 解析而非字符串 grep |
-| **P11 / FD-001** | FD 泄漏（50 req 后 FD=89） | 9-20 ST-18 | 不在本 plan 范围 | 引用 `llmtier-v0.3-test-plan.md` ST-18/ST-19 |
+| **P11 / FD-001** | FD 泄漏（50 req 后 FD=89） | 9-20 ST-18 | 不在本 plan 范围 | 引用 `llmtier-test-plan.md` ST-18/ST-19 |
 | **P12** | 50% BLOCKED（环境缺）当成"失败" | 9-20 争议 | 全局 | §5.4 PASS/FAIL/SKIP/BLOCKED 四状态判定；SKIP ≤ 5 个 |
 | **P13** | 之前没在测试代码头部写明依赖（TS-002） | 9-21 隐含 | 所有 case | 测试文件头部按 TS-002 写明 endpoint / provider / 模型 / auth |
 | **P14** | 测试期望错：DP-RESP-02 期望 200，实际 stream=false 必拒 | 本轮 review | DP-RESP-02 / DP-RESP-06 | §4.3 已修正预期 |

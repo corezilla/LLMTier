@@ -39,18 +39,18 @@ STD draft.21 升级按用户 2026-09-09 明确要求执行。旧 `rag/std-ingest
 | `docs/60_interfaces/piko-data-plane-control.md` + metadata | `interfaces.control` | C1 draft candidate | 承接 Piko Data Plane/adapter consumer boundary；不复制 Piko runtime authority |
 | `docs/60_interfaces/slinky-capacity-observation-control.md` + metadata | `interfaces.control` | C1 draft candidate | 承接 Observation/Seat consumer boundary；不复制 Slinky Project/Plan/IR authority |
 | `docs/60_interfaces/llmtier-management-control.md` + metadata | `interfaces.control` | C1 draft candidate | 承接 LLMTier admin、安全、并发和 recovery management scope |
-| `docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.md` + metadata | `contracts.specification` | C1 draft candidate | 索引 OpenAPI/manifest/fixtures；机器 artifact 原位保持字段 authority |
+| `docs/60_interfaces/contracts/llmtier-contract-specification.md` + metadata | `contracts.specification` | C1 draft candidate | 索引 OpenAPI/manifest/fixtures；机器 artifact 原位保持字段 authority |
 | `docs/91_reviews/llmtier-std-c1-interface-contract-review.md` + metadata/decision | `review.packet` | C1 ACCEPTED | 固定 C1 mapping、consumer verdict、L1/L2 PASS 与 L3 NOT_RUN/BLOCKED |
-| `docs/70_verification/plans/llmtier-v0.3-vv-plan.md` + metadata | `assurance.vv-plan` | C2 draft candidate | 迁移 V0.3 strategy/Gate；区分 static 与 production evidence |
-| `docs/70_verification/specifications/llmtier-v0.3-contract-test-specification.md` + metadata | `assurance.test-specification` | C2 draft candidate | 映射 case/fixture/oracle；tests/fixtures 仍为可执行 authority |
+| `docs/70_verification/plans/llmtier-vv-plan.md` + metadata | `assurance.vv-plan` | C2 draft candidate | 迁移 V0.3 strategy/Gate；区分 static 与 production evidence |
+| `docs/70_verification/specifications/llmtier-contract-test-specification.md` + metadata | `assurance.test-specification` | C2 draft candidate | 映射 case/fixture/oracle；tests/fixtures 仍为可执行 authority |
 | `docs/91_reviews/llmtier-std-c2-assurance-review.md` + metadata/decision | `review.packet` | C2 ACCEPTED | 固定 C2 mapping、三层验证和 evidence boundary |
 | `docs/10_requirements/llmtier-requirements.md` + metadata | `requirements.specification` | C3 draft candidate | 只承接 LLMTier 自有 shall statements；外部需求仅引用 |
 | `docs/10_requirements/llmtier-traceability.md` + metadata | `requirements.traceability` | C3 draft candidate | 连接 requirement、design/contract、case 与实际 evidence 状态 |
 | `docs/91_reviews/llmtier-std-c3-requirements-review.md` + metadata/decision | `review.packet` | C3 ACCEPTED | 固定 C3 authority、coverage 与三层验证 |
-| `docs/80_operations/llmtier-v0.3-release-and-operations.md` + metadata | `operations.release` | Approved candidate | 承接当前 package/CLI 与 release Gate；production procedure/evidence 保持 BLOCKED |
+| `docs/80_operations/llmtier-release-and-operations.md` + metadata | `operations.release` | Approved candidate | 承接当前 package/CLI 与 release Gate；production procedure/evidence 保持 BLOCKED |
 | `docs/91_reviews/llmtier-std-c4-operations-review.md` + metadata/decision | `review.packet` | C4 ACCEPTED | 固定 operations scope、ADR omission 与 Open Gate |
 | `docs/98_migration/canonical-promotion-readiness.md` | C5 authority/completion inventory | promoted at `503d0a0` | 列出 11 份 Approved、机器/执行 authority、旧文档 disposition 和 promotion 原子步骤 |
-| `docs/98_migration/legacy-v03-scope-mapping.md` | C5 old→new mapping | promotion evidence | 五份旧 V0.3 文档逐章节映射；consumer verdict 均 ACCEPTED，residual=none |
+| `docs/98_migration/legacy-scope-mapping.md` | C5 old→new mapping | promotion evidence | 五份旧 V0.3 文档逐章节映射；consumer verdict 均 ACCEPTED，residual=none |
 | `docs/98_migration/evidence/c5-consumer-verdicts.txt` | C1 consumer audit ledger | Piko ACCEPTED / Slinky AMENDMENT | 记录 message ID、immutable commit/blob/hash、结论和 draft.2 re-review 条件 |
 | `docs/91_reviews/llmtier-std-c5-canonical-promotion-review.md` + metadata/decision | `review.packet` | C5 review record | promotion 已在 `503d0a0` 完成；该 packet 不授权 RAG/runtime |
 | `docs/91_reviews/llmtier-std-c6-rag-publication-review.md` + metadata/decision | `review.packet` | C6 review record | publication 已在 `9c554f7` 完成；Runtime Activation=false |
@@ -68,7 +68,7 @@ STD draft.21 升级按用户 2026-09-09 明确要求执行。旧 `rag/std-ingest
 | 路径/集合 | 状态 | STD 目标/处置 |
 |---|---|---|
 | `docs/99_reference/design/legacy-capability-audit-v0.1.md` | historical design input | 已归位；保留为 review/source-baseline evidence |
-| `docs/98_migration/source-provenance-v0.1.md` | migration provenance | 已归位；不是 current design authority |
+| `docs/98_migration/source-provenance.md` | migration provenance | 已归位；不是 current design authority |
 | `docs/99_reference/future/llmtier-v0.4-data-plane.md` | future/not implemented | 已归位；与 V0.3 current authority 分离 |
 | `docs/99_reference/contracts/*-v0.1.md`、`*-v0.2.md` | historical/superseded | 已归位并排除 current 检索 |
 | 三份 `docs/99_reference/contracts/*-v0.3.md` | Superseded prose | 已归位；current successor 位于 `docs/60_interfaces/` |
@@ -89,9 +89,9 @@ STD draft.21 升级按用户 2026-09-09 明确要求执行。旧 `rag/std-ingest
 | `docs/design/llmtier-v0.3-system-design.md` | 不保留 | 非 STD 路径且误取跨项目 authority 的历史候选保持删除；不等同当前 LLMTier system design |
 | `docs/management/std-tailoring-v0.1.md` | `docs/00_management/std-tailoring.md` | 升级 draft.12，并改为单服务 profile |
 | 三份 v0.3 interface Markdown | `docs/60_interfaces/*-control.md` | C1 terminal ACCEPTED；新 controls 为 Approved candidate，旧 prose 为 Superseded candidate |
-| OpenAPI/manifest/error/schema | `docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.md` + 原机器文件 | C1 只建立说明与索引；字段级机器 authority 未改、不复制 |
+| OpenAPI/manifest/error/schema | `docs/60_interfaces/contracts/llmtier-contract-specification.md` + 原机器文件 | C1 只建立说明与索引；字段级机器 authority 未改、不复制 |
 | v0.3 QA 与 fixtures/tests | assurance templates + 原 evidence | QA prose 已迁移；tests/fixtures 继续保持 executable authority |
-| `docs/99_reference/verification/llm-tier-contract-qa-v0.3.md` | `docs/70_verification/plans/llmtier-v0.3-vv-plan.md` + `docs/70_verification/specifications/llmtier-v0.3-contract-test-specification.md` | C2/traceability/review evidence 已覆盖全部 current scope；旧 QA residual=none，标为 Superseded candidate |
+| `docs/99_reference/verification/llm-tier-contract-qa-v0.3.md` | `docs/70_verification/plans/llmtier-vv-plan.md` + `docs/70_verification/specifications/llmtier-contract-test-specification.md` | C2/traceability/review evidence 已覆盖全部 current scope；旧 QA residual=none，标为 Superseded candidate |
 | Matrix review ledger | `docs/91_reviews/llmtier-std-draft16-migration-review.md` | C0-C4 terminal decisions 已记录；原 Review ID 保留 |
 
 ## 5. 目录与迁移约束
@@ -130,7 +130,7 @@ ACCEPTED。全量 scope、原位机器/执行 authority、旧 V0.3 prose success
 historical/future/provenance exclusions 及后续 RAG 边界见
 `docs/98_migration/canonical-promotion-readiness.md`。
 
-逐章节盘点未发现未映射 current scope，证据见 `legacy-v03-scope-mapping.md`。Piko/Slinky consumer verdict
+逐章节盘点未发现未映射 current scope，证据见 `legacy-scope-mapping.md`。Piko/Slinky consumer verdict
 均具备 immutable commit/blob/SHA-256 与 ACCEPTED Matrix 证据，因此五份旧文件 residual=none，并在本次
 原子 promotion 中整体标为 Superseded。V0.1/V0.2、legacy audit、V0.4 future 与 source provenance 继续保留，
 但不进入 V0.3 current authority。

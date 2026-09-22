@@ -1,14 +1,16 @@
 {
   "project": "LLMTier",
   "authority": "LLMTier",
-  "document_id": "llmtier-v0.3-implementation-plan",
+  "document_id": "llmtier-implementation-plan",
   "document_type": "management.development-plan",
   "document_version": "0.1.0-draft.4",
   "title": "LLMTier V0.3 编码、调试与单元测试开发计划",
   "document_owner": "LLMTier",
-  "authors": ["llmtier"],
+  "authors": [
+    "llmtier"
+  ],
   "source_repository": "corezilla/LLMTier",
-  "source_path": "docs/00_management/v0.3-implementation-plan.md",
+  "source_path": "docs/00_management/llmtier-implementation-plan.md",
   "template_id": "management.development-plan",
   "template_version": "0.1.0",
   "template_sha256": "376958f5cd31d7f5bedbe2dcbac681f3f560449ac0fd072d74388626d77708c4",
@@ -16,7 +18,10 @@
   "tailoring_ref": null,
   "migration_map_ref": null,
   "design_level": "project",
-  "domain": ["management", "software"],
+  "domain": [
+    "management",
+    "software"
+  ],
   "status": "review",
   "visibility": "project",
   "reviewed_commit": null,

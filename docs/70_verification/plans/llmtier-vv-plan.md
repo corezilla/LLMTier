@@ -3,7 +3,7 @@
 
 | 文档字段 | 值 |
 |---|---|
-| Document ID | `llmtier-v0.3-vv-plan` |
+| Document ID | `llmtier-vv-plan` |
 | Document Version | `0.3.2-draft.8` |
 | Status | `In Review` |
 | Project | `LLMTier` |
@@ -21,7 +21,7 @@
 | Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |
 | Repository | `corezilla/LLMTier` |
-| Canonical Path | `docs/70_verification/plans/llmtier-v0.3-vv-plan.md` |
+| Canonical Path | `docs/70_verification/plans/llmtier-vv-plan.md` |
 | Supersedes | none |
 <!-- STD_DOCUMENT_COVER_END -->
 

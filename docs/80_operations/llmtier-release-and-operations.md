@@ -3,7 +3,7 @@
 
 | 文档字段 | 值 |
 |---|---|
-| Document ID | `llmtier-v0.3-release-and-operations` |
+| Document ID | `llmtier-release-and-operations` |
 | Document Version | `0.3.1-draft.5` |
 | Status | `In Review` |
 | Project | `LLMTier` |
@@ -21,7 +21,7 @@
 | Tailoring Reference | std-tailoring |
 | Migration Map Reference | none |
 | Repository | `corezilla/LLMTier` |
-| Canonical Path | `docs/80_operations/llmtier-v0.3-release-and-operations.md` |
+| Canonical Path | `docs/80_operations/llmtier-release-and-operations.md` |
 | Supersedes | none |
 
 > Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是

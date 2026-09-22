@@ -568,4 +568,4 @@ A: `/readyz` 返回 503，调用该模型的 API 返回 503。
 
 - API Reference: `docs/60_interfaces/contracts/llmtier-api-reference.md`
 - OpenAPI Spec: `interfaces/openapi/llmtier.openapi.json`
-- Test Plan: `docs/70_verification/plans/llmtier-v0.3-test-plan.md`
+- Test Plan: `docs/70_verification/plans/llmtier-test-plan.md`

@@ -1,22 +1,22 @@
 {
   "project": "LLMTier",
   "authority": "LLMTier",
-  "document_id": "llmtier-v0.3-api-test-plan",
+  "document_id": "llmtier-test-plan",
   "document_type": "assurance.test-plan",
-  "document_version": "0.3.0-draft.7",
-  "title": "LLMTier V0.3 API Test Plan",
+  "document_version": "0.3.2-draft.5",
+  "title": "LLMTier V0.3 Test Plan",
   "document_owner": "LLMTier",
   "authors": [
-    "LLMTier"
+    "llmtier"
   ],
   "source_repository": "corezilla/LLMTier",
-  "source_path": "docs/70_verification/plans/llmtier-v0.3-api-test-plan.md",
+  "source_path": "docs/70_verification/plans/llmtier-test-plan.md",
   "template_id": "assurance.test-plan",
   "template_version": "0.1.0",
   "template_sha256": "f5d2df786caa8c27c3142918b4d969d6b481173ee190bfdb8b70610045646d5d",
-  "template_conformance": "tailored",
+  "template_conformance": "native",
   "tailoring_ref": "std-tailoring",
-  "migration_map_ref": "llmtier-v0.3-test-plan, llmtier-v0.3-vv-plan",
+  "migration_map_ref": "llmtier-vv-plan, llmtier-contract-test-specification",
   "design_level": "cross-level",
   "domain": [
     "software"
@@ -24,8 +24,8 @@
   "status": "draft",
   "visibility": "project",
   "reviewed_commit": null,
-  "parent_document_id": "llmtier-v0.3-test-plan",
+  "parent_document_id": "llmtier-vv-plan",
   "supersedes": null,
-  "created_at": "2026-09-21",
+  "created_at": "2026-09-19",
   "last_modified_at": "2026-09-22"
 }

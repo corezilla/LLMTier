@@ -18,7 +18,7 @@ STD：`9841083c4d8d0ed1556bdc413d77b4567ac696b4` / `std-v0.1.0-draft.18`
   中升级为 Approved，并继续由 draft.18 lock/source manifest 约束。
 - requirements、service design、三个 interface control、contract specification、V&V plan、test specification、
   release/operations 和 tailoring 已覆盖本轮约定的 management+software scope。
-- 五份旧 V0.3 prose 的逐章节 old→new 证据见 `docs/98_migration/legacy-v03-scope-mapping.md`。
+- 五份旧 V0.3 prose 的逐章节 old→new 证据见 `docs/98_migration/legacy-scope-mapping.md`。
 - LLMTier Owner 对 C0-C4 均为 ACCEPTED；Piko 与 Slinky consumer-boundary verdict 均可审计且为
   ACCEPTED，审查记录见 `docs/98_migration/evidence/c5-owner-verdicts.txt` 和 `c5-consumer-verdicts.txt`。
   STD reviewer 不替代 Owner authority。
@@ -38,10 +38,10 @@ STD：`9841083c4d8d0ed1556bdc413d77b4567ac696b4` / `std-v0.1.0-draft.18`
 | Piko consumer boundary | `docs/60_interfaces/piko-data-plane-control.md` | Approved candidate | Piko `P-20260907-e009921eda0a` ACCEPTED |
 | Slinky consumer boundary | `docs/60_interfaces/slinky-capacity-observation-control.md` | Approved candidate | Slinky `S-20260907-45938693e578` ACCEPTED exact draft.2 |
 | LLMTier management boundary | `docs/60_interfaces/llmtier-management-control.md` | Approved candidate | Owner ACCEPTED；实现 Open Gate 保留 |
-| contract index | `docs/60_interfaces/contracts/llmtier-v0.3-contract-specification.md` | Approved candidate | 不复制机器字段 authority |
-| verification strategy | `docs/70_verification/plans/llmtier-v0.3-vv-plan.md` | Approved candidate | L3 gap 保持原样 |
-| executable case specification | `docs/70_verification/specifications/llmtier-v0.3-contract-test-specification.md` | Approved candidate | tests/fixtures 仍是 oracle |
-| release/operations boundary | `docs/80_operations/llmtier-v0.3-release-and-operations.md` | Approved candidate | 不等于 release/activation |
+| contract index | `docs/60_interfaces/contracts/llmtier-contract-specification.md` | Approved candidate | 不复制机器字段 authority |
+| verification strategy | `docs/70_verification/plans/llmtier-vv-plan.md` | Approved candidate | L3 gap 保持原样 |
+| executable case specification | `docs/70_verification/specifications/llmtier-contract-test-specification.md` | Approved candidate | tests/fixtures 仍是 oracle |
+| release/operations boundary | `docs/80_operations/llmtier-release-and-operations.md` | Approved candidate | 不等于 release/activation |
 
 C0/C2/C3/C4 terminal decisions 使用包含其 exact reviewed content 的 integrated input `962e800...`；C1
 terminal decision 使用包含 draft.2 Slinky control 与 revised C1 packet 的 clarification snapshot
@@ -56,15 +56,15 @@ terminal decision 使用包含 draft.2 Slinky control 与 revised C1 packet 的 
 | V0.3 vectors | `interfaces/vectors/v0.3/` | 原位保留为小型冻结 evidence/oracle |
 | executable contract semantics | `tests/` | 原位保留为测试源码 authority |
 | current implementation | `src/` | 原位保留；promotion 不修改 runtime/config/fallback/compatibility path |
-| source provenance | `docs/98_migration/source-provenance-v0.1.md` | 保留为 migration provenance，不作为 current design authority |
+| source provenance | `docs/98_migration/source-provenance.md` | 保留为 migration provenance，不作为 current design authority |
 
 ## 4. 旧文档 residual-authority ledger
 
 | Legacy scope | 当前 residual authority | Promotion 后处置 | 完成判据 |
 |---|---|---|---|
-| `docs/99_reference/design/llmtier-v0.3-design-review.md` | 所有 current scope 已映射 | 本次整体 Superseded，保留 historical provenance | `legacy-v03-scope-mapping.md` §1；residual=none |
-| 三份 `docs/99_reference/contracts/*-v0.3.md` prose | 所有 current scope 已映射 | 整体 Superseded，保留 historical prose | `legacy-v03-scope-mapping.md` §2-§4；residual=none |
-| `docs/99_reference/verification/llm-tier-contract-qa-v0.3.md` | 所有 current scope 已映射 | 本次整体 Superseded，保留 historical review ledger | `legacy-v03-scope-mapping.md` §5；residual=none |
+| `docs/99_reference/design/llmtier-v0.3-design-review.md` | 所有 current scope 已映射 | 本次整体 Superseded，保留 historical provenance | `legacy-scope-mapping.md` §1；residual=none |
+| 三份 `docs/99_reference/contracts/*-v0.3.md` prose | 所有 current scope 已映射 | 整体 Superseded，保留 historical prose | `legacy-scope-mapping.md` §2-§4；residual=none |
+| `docs/99_reference/verification/llm-tier-contract-qa-v0.3.md` | 所有 current scope 已映射 | 本次整体 Superseded，保留 historical review ledger | `legacy-scope-mapping.md` §5；residual=none |
 | V0.1/V0.2 prose、manifest、fixture、schema | historical/provenance only | 保留历史，不进入 current authority 或项目 RAG current set | README/manifest 明确排除，不删除 Git history |
 | `docs/99_reference/design/legacy-capability-audit-v0.1.md` | source-baseline evidence | 保留为 historical reference，排除 current RAG | service design 已承接当前边界；审计不被写成实现验收 |
 | `docs/99_reference/future/llmtier-v0.4-data-plane.md` | future/deferred scope | 保留 Future，排除 V0.3 current RAG | 不生成 inactive endpoint、fallback 或 V0.3 authority |
