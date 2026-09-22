@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.4.0-draft.12` |
+| Document Version | `0.4.0-draft.13` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -310,7 +310,8 @@ LLMTier 有自有图形界面（英文 operator 控制台）。本节在系统�
 
 图 D1｜EX-LLMTIER-DEPLOY/v1 · Target。链路：**用户 → Slinky（业务/记忆）→ 多个 Piko（Agent 运行时）→ 单一 LLMTier → 云 Provider / 本地推理引擎**。外部系统（用户、Slinky、Piko、云/本地模型）**只在本图出现**；内部架构见 §3.1。
 
-- **LLMTier 是单一实例**（单进程、单节点）；Slinky 与各 Piko 通过局域网调用它。
+- **链序**：用户 → Slinky（业务/记忆）→ 多个 Piko（Agent 运行时）→ LLMTier。Slinky 驱动 Piko 的 Agent 任务；Piko 经局域网调用 LLMTier 的 Responses；Slinky 另可直调 Embeddings。
+- **LLMTier 是单一实例**（单进程、单节点）；上图的多个 Piko 共享同一 LLMTier。
 - **默认绑定 loopback/私网**；生产基线在其前置 TLS 反向代理（operator SSO），进程由 systemd 托管，SQLite 加密备份。
 - **上游是外部依赖**：LLMTier 只经 provider API（OpenAI-compatible）访问云/本地模型，不拥有其内部实现。
 - **故障域**：LLMTier 自身为单故障域；各 provider/本地引擎为独立外部故障域。provider 建连/首字节与 SSE 空闲超时分别固定 30 秒 / 60 秒；超时只结束本次 HTTP 调用，不创建可恢复 Invocation。
