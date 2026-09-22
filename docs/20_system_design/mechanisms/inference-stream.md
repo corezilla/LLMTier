@@ -36,6 +36,8 @@ Consumer 提交 `POST /v1/responses`（`stream:true/store:false`）或 `POST /v1
 
 ### 3.1 系统约束与参与方承接
 
+本机制为顶层机制（上级 Mechanism ID = none），约束继承自系统设计 §3。
+
 参与方：入口层（HTTP/SSE）、Inference（编排）、基础层（信任/供应商适配/计量）。Authority 为 LLMTier。
 
 ### 3.2 运行时统筹与确认责任

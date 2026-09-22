@@ -40,6 +40,8 @@
 
 ### 3.1 系统约束与参与方承接
 
+本机制为顶层机制（上级 Mechanism ID = none），约束继承自系统设计 §3。
+
 参与方：Inference（事件产生）、Observability（查询/呈现/切换开关）、`libdiag`（底层能力）。Authority 为 LLMTier。
 
 ### 3.2 运行时统筹与确认责任
