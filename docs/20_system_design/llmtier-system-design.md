@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.4.0-draft.4` |
+| Document Version | `0.4.0-draft.5` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -234,19 +234,37 @@ flowchart TB
   MAIN --> FB
 ```
 
-**逐主要页面**（布局线框）：
+**逐主要页面**（每页一份布局图；组合总览见 [webui-page-layouts.png](../assets/diagrams/webui-page-layouts.png)）。图中每页画共享框架（窄侧栏 + 页头 + 主卡片 + 反馈条）与页面专属主内容；仅表达布局分区，颜色/字体/像素交模块设计。
 
-![LLMTier Web UI 逐页布局线框（5 页 + 2 抽屉）](../assets/diagrams/webui-page-layouts.png)
+**PG-HOME · Home**
 
-[可编辑 SVG 源](../assets/diagrams/webui-page-layouts.svg)
+![PG-HOME 布局](../assets/diagrams/webui-view-home.png)
 
-图 A2｜EX-LLMTIER-WEBUI/v1 · Target。图中每个页面画共享框架（窄侧栏 + 页头 + 主卡片 + 反馈条）与页面专属主内容；仅表达布局分区，颜色/字体/像素交模块设计。
+以逻辑等级为父节点、后端为子节点的两层树；后端行显示 provider、model、类型、健康、版本、`running/max`。等级状态取 `/readyz.models[].availability`，成员状态独立取 Deployment health/runtime（不互相覆盖）。行右侧图标操作：编辑（开 `DRW-TIER`）、探测（二次确认后 `POST /v1/probes`）。
 
-1. **PG-HOME**：以逻辑等级为父节点、后端为子节点的两层树；后端行显示 provider、model、类型、健康、版本、`running/max`。等级状态取 `/readyz.models[].availability`，成员状态独立取 Deployment health/runtime（不互相覆盖）。行右侧图标操作：编辑（开 `DRW-TIER`）、探测（二次确认后 `POST /v1/probes`）。
-2. **PG-PROVIDERS**：列表显示名称、类型、API root、Secret 是否已配置、运行状态、账号用量、`running/max`；`Add Provider` 仅在此页；Secret 只写不回显。
-3. **PG-RECORDS**：页签切换 `Token 用量` 与 `管理审计`，一次只显示一张表；用量显示 measured/estimated/unknown（unknown 绝不显示 0），审计不含 prompt/output/Secret。
-4. **PG-LOGS**：脱敏运行日志，支持时间/级别/模块/request_id 过滤；存储不可读返回 503，不用空页伪装。
-5. **PG-DIAG**：4 个页签（Snapshots / Stats / Injection / Trace）+ 顶部全局开关；开关调用 `GET/PATCH /v1/diagnostics`；Injection 按 deployment 编辑（`PATCH /v1/deployments/{id}/diagnostics`）。
+**PG-PROVIDERS · Providers**
+
+![PG-PROVIDERS 布局](../assets/diagrams/webui-view-providers.png)
+
+列表显示名称、类型、API root、Secret 是否已配置、运行状态、账号用量、`running/max`；`Add Provider` 仅在此页；Secret 只写不回显（`DRW-PROVIDER`）。
+
+**PG-RECORDS · Usage & Audit**
+
+![PG-RECORDS 布局](../assets/diagrams/webui-view-records.png)
+
+页签切换 `Token 用量` 与 `管理审计`，一次只显示一张表；用量显示 measured/estimated/unknown（unknown 绝不显示 0），审计不含 prompt/output/Secret。
+
+**PG-LOGS · Logs**
+
+![PG-LOGS 布局](../assets/diagrams/webui-view-logs.png)
+
+脱敏运行日志，支持时间/级别/模块/request_id 过滤；存储不可读返回 503，不用空页伪装。
+
+**PG-DIAG · Diagnostics**
+
+![PG-DIAG 布局](../assets/diagrams/webui-view-diag.png)
+
+4 个页签（Snapshots / Stats / Injection / Trace）+ 顶部全局开关；开关调用 `GET/PATCH /v1/diagnostics`；Injection 按 deployment 编辑（`PATCH /v1/deployments/{id}/diagnostics`）。
 
 **重要用户任务**（发布配置变更）：
 
