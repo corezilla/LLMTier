@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-webui-module-design` |
-| Document Version | `0.3.0-draft.17` |
+| Document Version | `0.3.0-draft.18` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -127,14 +127,9 @@ Diagnostics 页面用于 Piko 联调的可观测性调试，包含 4 个 tabs：
 
 页面顶部始终显示全局调试开关状态栏：
 
-```mermaid
-flowchart LR
-    subgraph Switches[Diagnostics Switches]
-        direction LR
-        snapshot[Snapshot Capture ●]
-        stats[Stats Aggregation ○]
-    end
-```
+![全局调试开关控件](../assets/diagrams/diagram-webui-diag-switches.png)
+
+[可编辑 SVG 源](../assets/diagrams/diagram-webui-diag-switches.svg)
 
 实际控件渲染：
 

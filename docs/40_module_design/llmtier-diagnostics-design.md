@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-diagnostics-module-design` |
-| Document Version | `0.1.0-draft.4` |
+| Document Version | `0.1.0-draft.5` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -37,33 +37,9 @@
 
 ## 2. 模块图
 
-```mermaid
-flowchart TD
-    subgraph diagnostics[diagnostics 模块]
-        DS[DiagnosticService]
-        DC[数据类]
-        INJ[InjectionCtrl]
-        STAT[StatsAggregator]
-        TRACE[TraceRecorder]
-        SNAP[SnapshotCapture]
-    end
+![Diagnostics 模块图](../assets/diagrams/diagram-diag-module-graph.png)
 
-    DS --> DC
-    DS --> INJ
-    DS --> STAT
-    DS --> TRACE
-    DS --> SNAP
-
-    DS --> S[(Store)]
-    DS --> LG[OperationalLog]
-    DS --> AU[AuditLog]
-
-    subgraph 集成点
-        H[BaseHandler] --> DS
-        RS[ResponsesService] --> DS
-        RT[Router] --> DS
-    end
-```
+[可编辑 SVG 源](../assets/diagrams/diagram-diag-module-graph.svg)
 
 ## 3. 模块职责
 
@@ -199,19 +175,9 @@ class DiagnosticService:
 
 **布局参考**：
 
-```mermaid
-flowchart TB
-    subgraph Page["LLMTier Diagnostics Page /ui/diagnostics"]
-        direction TB
-        header["页头<br/>[Usage] [Diag] 切换"]
-        switches["全局开关栏<br/>[快照捕获 ●──○] [统计聚合 ●──○]"]
-        tabs["Tab 栏<br/>[快照] [统计] [注入配置] [Trace]"]
-        content["Tab 内容区<br/>（随选中 tab 切换）"]
-        header --> switches
-        switches --> tabs
-        tabs --> content
-    end
-```
+![Diagnostics 页面布局](../assets/diagrams/diagram-diag-webui-layout.png)
+
+[可编辑 SVG 源](../assets/diagrams/diagram-diag-webui-layout.svg)
 
 ## 5. 数据结构
 
@@ -257,32 +223,9 @@ class DiagnosticInjection:
 
 ## 6. 模块依赖
 
-```mermaid
-flowchart TB
-    diag[diagnostics 模块]
+![Diagnostics 模块依赖](../assets/diagrams/diagram-diag-module-deps.png)
 
-    subgraph Deps[依赖]
-        store[Store<br/>数据库读写]
-        logs[OperationalLog<br/>降级告警]
-        audit[AuditLog<br/>注入配置变更审计]
-    end
-
-    subgraph Callers[被以下模块调用]
-        handler[BaseHandler<br/>trace received + correlation_id]
-        resp[ResponsesService<br/>trace + snapshot + record_latency]
-        router[Router<br/>注入检查点]
-        admin[AdminService 或独立路由<br/>管理面接口]
-    end
-
-    diag --> store
-    diag --> logs
-    diag --> audit
-
-    handler -.-> diag
-    resp -.-> diag
-    router -.-> diag
-    admin -.-> diag
-```
+[可编辑 SVG 源](../assets/diagrams/diagram-diag-module-deps.svg)
 
 ## 7. 错误处理策略
 

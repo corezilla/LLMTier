@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-core-module-design` |
-| Document Version | `0.3.0-draft.6` |
+| Document Version | `0.3.0-draft.7` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -31,30 +31,9 @@
 
 ## 2. 模块图
 
-```mermaid
-flowchart LR
-  P[Piko] --> H[HTTP / SSE Adapter]
-  K[Slinky Memory] --> H
-  H --> A[Auth + Request Validation]
-  A --> R[Exact Model Router]
-  R --> Q[Internal Admission]
-  Q --> PA[Provider Adapters]
-  PA --> CP[Cloud Provider]
-  PA --> LP[Local Model]
-  PA --> U[Usage Recorder]
-  A --> U
-  U --> S[(SQLite Operational Store)]
-  ADM[Admin API] --> C[Registry / Config Service]
-  UI[中文 Web UI] --> ADM
-  C --> S
-  C --> R
-  ADM --> AU[Audit Writer]
-  AU --> S
-  ADM --> LG[Sanitized Log Reader]
-  LG --> S
-  HC[Health / Readiness] --> C
-  HC --> S
-```
+![LLMTier V0.3 模块图](../assets/diagrams/diagram-core-module-graph.png)
+
+[可编辑 SVG 源](../assets/diagrams/diagram-core-module-graph.svg)
 
 ## 3. 模块职责
 
@@ -88,22 +67,9 @@ Secret明文不进入SQLite；只保存Secret reference与其非敏感版本。
 
 ## 5. Responses 与 SSE 内部流程
 
-```mermaid
-sequenceDiagram
-  participant P as Piko
-  participant H as HTTP/SSE Adapter
-  participant R as Router
-  participant B as Provider Adapter
-  participant U as Usage Recorder
-  P->>H: POST /v1/responses (完整input, store=false)
-  H->>H: auth + schema + exact model
-  H->>R: validated call DTO
-  R->>B: chosen deployment + request
-  B-->>H: standard SSE events
-  H-->>P: stable item id + one terminal event
-  B-->>U: provider usage or unknown fact
-  U->>U: upsert by principal + request_id
-```
+![Responses 与 SSE 内部流程](../assets/diagrams/diagram-core-responses-flow.png)
+
+[可编辑 SVG 源](../assets/diagrams/diagram-core-responses-flow.svg)
 
 固定Pi首阶段：`stream=true`、`store=false`；允许普通function tools、assistant/function/reasoning历史和标准reasoning/refusal事件。不启用grammar/deferred/custom tools或prompt cache协议。Opaque reasoning由Piko保存并在后续完整输入中重放；LLMTier不把它变成Conversation。
 
