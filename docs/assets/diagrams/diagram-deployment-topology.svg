@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="720" viewBox="0 0 1300 720" role="img" aria-labelledby="title desc">
+  <title id="title">LLMTier 运行环境与部署拓扑</title>
+  <desc id="desc">Deployment topology. A user drives Slinky (business and memory); multiple Piko agent runtimes and Slinky connect to a single LLMTier instance over the LAN; LLMTier calls cloud model providers (OpenAI-compatible) and local inference engines (OpenAI-compatible). External systems are drawn here, not in the internal architecture figure.</desc>
+  <style>
+    text {font-family:'PingFang SC','Helvetica Neue',Arial,sans-serif;fill:#20364e}
+    .title {font-size:24px;font-weight:700}
+    .sub {font-size:13px;fill:#65788b}
+    .box {fill:#eef3f9;stroke:#8fa3b8;stroke-width:1.4}
+    .boxlt {fill:#dceafb;stroke:#9dbbdb;stroke-width:1.4}
+    .boxext {fill:#f5f5f5;stroke:#999;stroke-width:1.2}
+    .boxmod {fill:#c8deef;stroke:#8aafcb;stroke-width:1.4}
+    .name {font-size:15px;font-weight:600;text-anchor:middle}
+    .note {font-size:12px;fill:#65788b;text-anchor:middle}
+    .lbl {font-size:12px;fill:#3a6fa0}
+    .arrow {stroke:#3a6fa0;stroke-width:1.5;fill:none}
+    .arrowd {stroke:#8a4baf;stroke-width:1.5;stroke-dasharray:5,4;fill:none}
+  </style>
+  <rect width="1300" height="720" fill="#ffffff"/>
+  <text x="40" y="44" class="title">LLMTier 运行环境与部署拓扑</text>
+  <text x="40" y="68" class="sub">EX-LLMTIER-DEPLOY/v1 · Target · 外部系统只在运行环境出现（内部架构见 §3.1）</text>
+
+  <!-- 用户 -->
+  <rect x="40" y="150" width="150" height="70" rx="10" class="boxext"/>
+  <text x="115" y="182" class="name">用户</text>
+  <text x="115" y="202" class="note">human operator/author</text>
+
+  <!-- Slinky -->
+  <rect x="280" y="140" width="200" height="90" rx="10" class="boxext"/>
+  <text x="380" y="172" class="name">Slinky</text>
+  <text x="380" y="192" class="note">业务 / 记忆 / 流程</text>
+  <text x="380" y="210" class="note">→ POST /v1/embeddings</text>
+
+  <!-- Piko x N -->
+  <rect x="280" y="300" width="200" height="150" rx="10" class="boxext"/>
+  <text x="380" y="326" class="name">Piko 1</text>
+  <rect x="292" y="338" width="176" height="30" rx="6" class="box"/>
+  <text x="380" y="358" class="note">Agent runtime → POST /v1/responses</text>
+  <rect x="292" y="374" width="176" height="30" rx="6" class="box"/>
+  <text x="380" y="394" class="note">Agent runtime</text>
+  <rect x="292" y="410" width="176" height="30" rx="6" class="box"/>
+  <text x="380" y="430" class="note">… Piko N</text>
+
+  <!-- LLMTier (single) -->
+  <rect x="580" y="190" width="280" height="240" rx="12" class="boxmod"/>
+  <text x="720" y="222" class="name">LLMTier</text>
+  <text x="720" y="242" class="note">单一实例（单进程）· 局域网</text>
+  <text x="720" y="262" class="note">默认 loopback/私网；生产前置 TLS 反代</text>
+  <rect x="600" y="280" width="240" height="34" rx="6" class="boxlt"/>
+  <text x="720" y="302" class="name">HTTP API · 统一 /v1/*</text>
+  <rect x="600" y="322" width="240" height="34" rx="6" class="boxlt"/>
+  <text x="720" y="344" class="name">Web UI · /ui/*</text>
+  <rect x="600" y="364" width="240" height="34" rx="6" class="boxlt"/>
+  <text x="720" y="386" class="name">Store · SQLite（WAL）</text>
+
+  <!-- cloud models -->
+  <rect x="980" y="150" width="280" height="110" rx="10" class="boxext"/>
+  <text x="1120" y="182" class="name">云模型 Provider</text>
+  <text x="1120" y="204" class="note">OpenAI-compatible API</text>
+  <text x="1120" y="224" class="note">/v1/responses · /v1/embeddings · /v1/models</text>
+  <text x="1120" y="244" class="note">Bearer secret_ref</text>
+
+  <!-- local engine -->
+  <rect x="980" y="330" width="280" height="110" rx="10" class="boxext"/>
+  <text x="1120" y="362" class="name">本地推理引擎</text>
+  <text x="1120" y="384" class="note">OpenAI-compatible server</text>
+  <text x="1120" y="404" class="note">/v1/responses · /v1/embeddings · /v1/models</text>
+  <text x="1120" y="424" class="note">如 oMLX / llama.cpp / vLLM</text>
+
+  <!-- arrows -->
+  <line x1="190" y1="185" x2="280" y2="185" class="arrow"/><polygon points="280,185 272,181 272,189" fill="#3a6fa0"/>
+  <text x="200" y="178" class="lbl">业务任务</text>
+
+  <line x1="480" y1="180" x2="580" y2="230" class="arrow"/><polygon points="580,230 572,226 575,233" fill="#3a6fa0"/>
+  <text x="492" y="200" class="lbl">向量化</text>
+
+  <line x1="480" y1="360" x2="580" y2="300" class="arrow"/><polygon points="580,300 572,296 575,303" fill="#3a6fa0"/>
+  <text x="490" y="340" class="lbl">推理</text>
+
+  <line x1="860" y1="240" x2="980" y2="200" class="arrow"/><polygon points="980,200 972,196 973,203" fill="#3a6fa0"/>
+  <text x="890" y="215" class="lbl">provider API</text>
+
+  <line x1="860" y1="350" x2="980" y2="380" class="arrow"/><polygon points="980,380 972,376 973,384" fill="#3a6fa0"/>
+  <text x="884" y="358" class="lbl">provider API</text>
+
+  <text x="40" y="560" class="sub">链路：用户 → Slinky（业务/记忆）→ 多个 Piko（Agent 运行时）→ 单一 LLMTier → 云 Provider / 本地推理引擎。</text>
+  <text x="40" y="584" class="sub">Slinky 调 Embeddings；Piko 调 Responses；LLMTier 只经 provider API 访问上游，不拥有上游内部。</text>
+  <text x="40" y="608" class="sub">外部系统（用户、Slinky、Piko、云/本地模型）只在本图出现；内部架构（UI/业务/基础三层八模块）见 §3.1。</text>
+</svg>

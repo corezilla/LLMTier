@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.4.0-draft.9` |
+| Document Version | `0.4.0-draft.10` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -304,7 +304,45 @@ LLMTier 有自有图形界面（英文 operator 控制台）。本节在系统�
 
 ### 6.3 部署拓扑、资源与故障域
 
-单节点部署，默认绑定 loopback/私网。生产基线使用 TLS 反向代理、operator SSO、systemd、加密 SQLite 备份。provider 建连/首字节和 SSE 空闲超时分别固定为 30 秒和 60 秒；超时只结束本次 HTTP 调用，不创建可恢复 Invocation。外部依赖（模型后端、网络）属于部署环境。
+![LLMTier 运行环境与部署拓扑](../assets/diagrams/diagram-deployment-topology.png)
+
+[可编辑 SVG 源](../assets/diagrams/diagram-deployment-topology.svg)
+
+图 D1｜EX-LLMTIER-DEPLOY/v1 · Target。链路：**用户 → Slinky（业务/记忆）→ 多个 Piko（Agent 运行时）→ 单一 LLMTier → 云 Provider / 本地推理引擎**。外部系统（用户、Slinky、Piko、云/本地模型）**只在本图出现**；内部架构见 §3.1。
+
+- **LLMTier 是单一实例**（单进程、单节点）；Slinky 与各 Piko 通过局域网调用它。
+- **默认绑定 loopback/私网**；生产基线在其前置 TLS 反向代理（operator SSO），进程由 systemd 托管，SQLite 加密备份。
+- **上游是外部依赖**：LLMTier 只经 provider API（OpenAI-compatible）访问云/本地模型，不拥有其内部实现。
+- **故障域**：LLMTier 自身为单故障域；各 provider/本地引擎为独立外部故障域。provider 建连/首字节与 SSE 空闲超时分别固定 30 秒 / 60 秒；超时只结束本次 HTTP 调用，不创建可恢复 Invocation。
+
+### 6.4 软件环境与依赖
+
+**运行平台**：
+
+| 项 | 值 |
+|---|---|
+| 操作系统 | Linux（生产单节点基线）或 macOS（开发/联调）；POSIX 文件系统 |
+| 运行时 | Python ≥ 3.11（当前部署 3.14） |
+| 进程托管 | systemd（生产）或前台进程（开发） |
+| 网络 | 局域网；生产前置 TLS 反向代理 |
+
+**对外/对上接口（LLMTier 作为客户端）**：
+
+| 上游类型 | 接口 | 说明 |
+|---|---|---|
+| 云模型 Provider | OpenAI-compatible HTTP：`/v1/models`、`/v1/responses`、`/v1/embeddings` | 经 `provider.endpoint` 拼接；`Authorization: Bearer <secret>`，secret 由 `secret_ref` 解析（见 §10.2）|
+| 本地推理引擎 | OpenAI-compatible HTTP：同上 | 例如 oMLX / llama.cpp server / vLLM 等暴露标准 `/v1/*` 的本地服务 |
+| Provider 账号用量 | MiniMax Token Plan 官方 API（API Key）；火山 GetCodingPlanUsage（独立 OpenAPI AK/SK）| operator 显式刷新，不自动轮询 |
+
+**软件依赖**：
+
+| 依赖 | 用途 | 说明 |
+|---|---|---|
+| Python 标准库 | HTTP 服务（`http.server`）、SQLite（`sqlite3`）、HTTP 客户端（`urllib`）、TLS（`ssl`）、加密（`hmac`）、并发（`threading`）等 | **无第三方运行时依赖**（`pyproject.toml` `dependencies = []`）|
+| SQLite | 唯一持久化 | stdlib `sqlite3`，WAL 模式；无需外部数据库服务 |
+| `jsonschema`（可选，仅测试） | 契约与 fixture 校验 | 不进入运行时 |
+
+**部署外部依赖**：TLS 证书与反向代理、operator SSO、systemd、备份/恢复工具、Secret 文件或 secret manager（见 §10.2）。以上由部署环境提供，不在 LLMTier 内部实现。
 
 ## 7. 重要过程
 
