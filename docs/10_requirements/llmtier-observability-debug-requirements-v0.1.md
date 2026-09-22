@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-observability-debug-requirements-v0.1` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -56,12 +56,14 @@ HTTP 能力**（`/v1/models`、`/v1/responses`、Bearer），后端观测不足�
 | LT-OBS-2（统计） | LLMTier shall 提供数据面统计查询：按 model 与 HTTP status 的请求数、错误数、时延分布（P50/P95），管理面可查、支持时间窗 | 两次不同结果的请求后，统计计数可区分并累加；时间窗外不计入 |
 | LT-OBS-3（审计语义） | LLMTier shall 在管理控制文档中**明示** audit 覆盖范围：当前仅管理面动作（provider/deployment/service-level/probe），数据面请求不产生 audit 事件 | 文档声明与实现一致；consumer 可据此选择追踪手段 |
 | LT-OBS-4（readyz 语义） | LLMTier shall 使 `readyz` 全局状态反映**实际可用能力**：未启用对应部署的占位 service level 不得将全局状态降级为 `degraded`（应在模型级标注 unavailable，全局 status 由已启用能力决定） | 仅启用 chat 部署时，`readyz.status` 为 `ok`（或 `ready`），占位 embedding 模型级仍标 unavailable |
+| LT-OBS-5（故障/时延注入开关） | LLMTier shall 提供**运行时可切的注入开关**（admin 控制、按 deployment 生效、可随时关闭）：① 注入上游故障（502/503 带错误体）② 注入时延（+N ms）③ 注入限流（429+Retry-After），使 consumer 侧故障路径可**确定性**触达 | 注入 502 → consumer 收到 502 及错误体；注入时延 → 响应时延按设定增加；注入 429 → consumer 收到 429+Retry-After；关闭后立即恢复且非注入流量不受影响；注入事件在 logs/audit 可见 |
 
 ## 5. 接口需求
 
 - LT-OBS-1/LT-OBS-2 的查询入口扩展管理面（如 `/tier/admin/v1/logs` 增强、或新增
   `/tier/admin/v1/diagnostics/*`），遵循既有 admin Bearer 鉴权与 ETag 约定；具体形状由实现设计定。
-- 开关形式：settings 项或 admin API 亦可，但必须**运行时可切换**且默认关闭。
+- 开关形式：settings 项或 admin API 亦可，但必须**运行时可切换**且默认关闭（LT-OBS-5 同）。
+- LT-OBS-5 的注入范围仅限调试用途：注入期间的真实上游调用仍正常计量，注入语义不得写入 usage 账本造成对账歧义（账本可标注 injected）。
 
 ## 6. 性能与容量需求
 
