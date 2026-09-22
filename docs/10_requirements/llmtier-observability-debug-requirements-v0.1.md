@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-observability-debug-requirements-v0.1` |
-| Document Version | `0.1.0-draft.7` |
+| Document Version | `0.1.0-draft.8` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -53,14 +53,14 @@ HTTP 能力**（`/v1/models`、`/v1/responses`、Bearer），后端观测不足�
 | ID | 需求（shall） | 验收标准 |
 |---|---|---|
 | LT-OBS-1（环回） | 调试开关开启时，LLMTier shall 为每个 Data Plane 请求记录**上游调用快照**：上游 URL、backend_model、HTTP status、时延 ms、错误体摘要（截断）；关闭时不记录 | 开关开启：一次 `/v1/responses` 后可在管理面查到该请求的上游快照（含 status 与时延）；关闭：无新增快照且无开销 |
-| LT-OBS-2（统计） | LLMTier shall 提供数据面统计查询：按 model 与 HTTP status 的请求数、错误数、时延分布（P50/P95），管理面可查、支持时间窗 | 两次不同结果的请求后，统计计数可区分并累加；时间窗外不计入 |
+| LT-OBS-2（统计） | LLMTier shall 提供数据面统计查询：按 model 与 HTTP status 的请求数、错误数、时延分布（P50/P95），管理面可查、支持时间窗；**响应含 `status_breakdown` 按 HTTP status 分列**（契约 §5.3） | 两次不同结果的请求后，`status_breakdown` 分列可区分并累加；时间窗外不计入 |
 | LT-OBS-3（审计语义） | LLMTier shall 在管理控制文档中**明示** audit 覆盖范围：当前仅管理面动作（provider/deployment/service-level/probe），数据面请求不产生 audit 事件 | 文档声明与实现一致；consumer 可据此选择追踪手段 |
 | LT-OBS-4（readyz 语义） | LLMTier shall 使 `readyz` 全局状态反映**实际可用能力**：未启用对应部署的占位 service level 不得将全局状态降级为 `degraded`（应在模型级标注 unavailable，全局 status 由已启用能力决定） | 仅启用 chat 部署时，`readyz.status` 为 `ok`（或 `ready`），占位 embedding 模型级仍标 unavailable |
 | LT-OBS-5（故障/时延/限流/流注入开关） | LLMTier shall 提供**运行时可切的注入开关**（admin 控制、按 deployment 生效、可随时关闭）：① 上游故障（502/503 带错误体）② 时延（+N ms）③ 限流（429+Retry-After）④ **上游流提前终止**（SSE 已开头发一半即断）⑤ **畸形流事件**（违反 Responses 事件序/非法 JSON 事件），使 consumer 侧的故障、重试、流处理路径可**确定性**触达 | ① consumer 收到 502 及错误体 ② 时延按设定增加 ③ 收到 429+Retry-After ④ consumer 收到不完整流并有明确错误处置（不得悬挂/伪报）⑤ consumer 收到畸形事件并有明确错误处置；关闭后立即恢复；非注入流量不受影响；注入事件在 logs/audit 可见 |
-| LT-OBS-6（统计清空） | LLMTier shall 提供管理面接口**清空指定范围的 usage 统计记录**（按 model 和/或 deployment_id 过滤；支持全文清空）；清空时同步清理关联表孤儿记录 | DELETE `/tier/admin/v1/usage?model=Worker&deployment_id=dep_xxx` 返回 `{"deleted": N}`；不带过滤参数清空全部统计；清空后 GET /stats 不再含已删除记录；`usage_obligations` 中无对应 `usage_record_versions` 的孤儿记录同步清理 |
+| LT-OBS-8（统计清空） | LLMTier shall 提供管理面接口**清空指定范围的 usage 统计记录**（按 model 和/或 deployment_id 过滤；支持全文清空）；清空时同步清理关联表孤儿记录 | DELETE `/tier/admin/v1/usage?model=Worker&deployment_id=dep_xxx` 返回 `{"deleted": N}`；不带过滤参数清空全部统计；清空后 GET /stats 不再含已删除记录；`usage_obligations` 中无对应 `usage_record_versions` 的孤儿记录同步清理 |
 
-| LT-OBS-6（单请求 trace 查询） | LLMTier shall 支持**按 `request_id` 一次查询该请求的全生命周期记录**，且包含**逐阶段时间戳**（received / validated / routed / upstream_started / upstream_ended / completed|error）：接收时间、校验结果、路由（service level/deployment）、上游调用快照（LT-OBS-1）、SSE 终止原因（completed/error/aborted）、usage 记录（含 record_version）；管理面可查；支持导出 JSON；观测数据保留期 ≥ 7 天（与既有 retention 对齐） | 对任一已发生请求，单次查询返回上述全部字段（或明确的缺失标注）；`request_id` 与 Data Plane 响应头 `x-request-id` 一致；逐阶段时间戳可计算各跳时延；导出为合法 JSON |
-| LT-OBS-7（consumer 关联标识透传） | LLMTier shall **可选接收** consumer 侧关联标识（`X-Correlation-ID` 或 `traceparent`，非强制），并在该请求的 logs、usage 账本标注与 trace 查询结果中**回显**；缺失时行为不变（自动生成 request_id） | 带 consumer 关联标识的请求，其 logs/usage/trace 中均可见该标识；不带标识的请求不受影响 |
+| LT-OBS-6（单请求 trace 查询） | LLMTier shall 支持**按 `request_id` 一次查询该请求的全生命周期记录**（范围：通过鉴权的 `/v1/responses` 请求；embeddings/管理面不 trace），且包含**逐阶段时间戳**（received / validated / routed / upstream_started / upstream_ended / completed|error）：接收时间、校验结果、路由（service level/deployment）、上游调用快照（LT-OBS-1）、SSE 终止原因（completed/error/aborted）、usage 记录（含 record_version）；管理面可查；支持导出 JSON；观测数据保留期 ≥ 7 天（与既有 retention 对齐） | 对任一已发生请求，单次查询返回上述全部字段（或明确的缺失标注）；`request_id` 与 Data Plane 响应头 `x-request-id` 一致；逐阶段时间戳可计算各跳时延；导出为合法 JSON |
+| LT-OBS-7（consumer 关联标识透传） | LLMTier shall **可选接收** consumer 侧关联标识（`X-Correlation-ID` 或 `traceparent`，非强制），并在该请求的 **logs 与 trace 查询结果中回显**；缺失时行为不变（自动生成 request_id）。**决策（Piko 联调方确认）**：usage 账本不标注 correlation_id——双向定位以 `request_id` 关联替代 | 带/不带标识的请求行为均符合上述语义 |
 
 ## 5. 接口需求（契约级——LLMTier shall 按此实现，consumer 侧 case 按此编写）
 
@@ -162,7 +162,7 @@ HTTP 能力**（`/v1/models`、`/v1/responses`、Bearer），后端观测不足�
 - 本节契约即联调 case（JT-13/14/15/17）与 consumer 定位工具（`joint-diagnose.sh`）的对接面；
   实现后 LLMTier 提供 curl 级示例，consumer 不因实现重构而改步骤。
 
-## 6. 性能与容量需求## 6. 性能与容量需求
+## 6. 性能与容量需求
 
 开关关闭时：请求路径不得增加可测开销（无锁、无 IO）；开关开启时：捕获写入不得阻塞推理流
 （异步/尽力而为），磁盘用量有上限或轮转。
@@ -184,6 +184,8 @@ HTTP 能力**（`/v1/models`、`/v1/responses`、Bearer），后端观测不足�
 ## 10. 验收与 traceability
 
 - 验收：按 §4 验收标准逐条验证（人工或集成脚本）；来源 traceability：
-  Piko `piko-llmtier-joint-report-v0.1` F-2/F-4/F-5 ↔ LT-OBS-1..4；联调补充需求 ↔ LT-OBS-5..6。
+  Piko 联调报告 `piko-llmtier-joint-report-v0.1` 发现 F-2→LT-OBS-4、F-4→LT-OBS-3、
+  F-5→LT-OBS-1/6/7、F-6→LT-OBS-5；统计清空（运维）→LT-OBS-8。
+- 接口契约：§5（含 §5.6 字段定稿）为 normative；实现后冻结并附 curl 级示例。
 - 实现完成后由 Piko 联调方 review（对应 Piko 规格 `piko-llmtier-joint-test-specification-v0.1`
   §3.1 复核记录）。
