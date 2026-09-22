@@ -22,13 +22,6 @@
   "reviewed_commit": null,
   "parent_document_id": "llmtier-system-design",
   "supersedes": null,
-  "implementation_specification": {
-    "mode": "combined",
-    "document_id": "llmtier-diagnostics-isd",
-    "coverage_mapping": [],
-    "reason": "ISD co-located in docs/50_implementation_design/llmtier-diagnostics.isd.md",
-    "decision_ref": null
-  },
   "created_at": "2026-09-22",
   "last_modified_at": "2026-09-22"
 }
