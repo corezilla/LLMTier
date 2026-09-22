@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.4.0-draft.10` |
+| Document Version | `0.4.0-draft.11` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -578,14 +578,20 @@ admission 队列与并发上限可被并发请求验证；测试实例相互隔�
 
 ## 16. 实现计划与集成顺序
 
-1. 以固定 Pi 0.85.1 真实 request/标准 Responses SSE 子集实现 Consumer 调用，不增加未消费的 JSON 并行模式。
-2. 实现 OpenAI-compatible Responses/Models 和 exact service-level routing。
-3. 实现 dedicated Embeddings deployment 与 `/v1/embeddings`。
-4. 实现统一 token Usage 记录/查询，明确 measured/estimated/unknown。
-5. 将 legacy `/call` 从 consumer authority 退役。
-6. 实现精简管理面与英文 UI，及安全运维流程。
-7. 实现内部可观测性机制（`LT-OBS`）。
-8. 完成 provider/Piko/Knowledge capture 后另行决定 runtime activation。
+接口语义、错误行为与测试向量评审后，两端可并行实现；分别通过契约测试后集成，端到端验证后关闭系统目标。
+
+| 阶段 / 能力 | 输入与前置依赖 | 任务 / 承接对象 / Owner | 交付物 | 局部及集成出口 | 未决项 / 影响 |
+|---|---|---|---|---|---|
+| S1 契约冻结 | 已采用需求、OpenAPI/manifest/fixtures | 冻结 `interfaces/*`；LLMTier | candidate OpenAPI + compat manifest + vectors | 契约测试（静态）PASS | `runtime_activation=false` |
+| S2 Data Plane 核心 | S1；固定 Pi 0.85.1 真实 request | Responses/Models + exact 等级路由 + 准入 + 适配器；Inference | `/v1/responses`（标准 SSE 子集）、`/v1/models` | 契约 + 系统测试；m5air smoke | 未消费 JSON 模式不实现 |
+| S3 Embeddings | S1 | dedicated Embedding deployment + `/v1/embeddings`；Inference | `/v1/embeddings`、`Embedding-v1` space | 契约 + 系统测试 | `LT-OPEN-02` 权重/runtime digest |
+| S4 Usage 账本 | S2/S3 | 义务/版本/head/unknown；Inference、Management | `GET/DELETE /v1/usage`、账本表 | 系统测试（版本替换、unknown、清空） | 对账以账本为准 |
+| S5 管理面 + Web UI | S4；Registry 事务 | CRUD/探测/审计/日志 + 5 页控制台；Management | `/v1/{providers,deployments,service-levels,...}`、`/ui/*` | 契约 + 系统 + WebUI 契约测试 | 生产 SSO 由反代承接 |
+| S6 可观测性（LT-OBS） | S2；`libdiag` | 快照/统计/注入/trace + 开关；Observability | `/v1/diagnostics/*`、`/v1/trace/{id}` | 系统测试；联调复核 | `LT-OPEN-05` 流注入 |
+| S7 legacy 退役 | S2/S5 | 将 `/call`、Role routing、旧 CLI/agent 移出 consumer authority | 退役声明 + 负例 | 旧路径不存在负例 | 保留历史输入，不作 fallback |
+| S8 运行门禁 | S2–S7 | 部署证据、provider capture、Piko/Knowledge 联调 | activation 记录 | 第三方联调 | 另行审批才置 `runtime_activation=true` |
+
+依赖不循环；S2 与 S3 在 S1 后可并行；S4–S6 依赖 S2；S8 依赖全部。未决项只阻塞真正受影响的任务。
 
 ## 17. 设计决策、风险与下游承接
 
