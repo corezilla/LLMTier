@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.4.0-draft.11` |
+| Document Version | `0.4.0-draft.12` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -572,9 +572,38 @@ admission 队列与并发上限可被并发请求验证；测试实例相互隔�
 
 ## 15. 开发、构建与交付设计
 
+**语言与运行时**：Python ≥ 3.11（当前 3.14），仅用标准库。选择依据：局域网单服务、零第三方运行时依赖、易部署（无需编译工具链或外部数据库）。目标实现只保留一条 OpenAI-compatible inference path。
+
 ### 15.1 构建复现、依赖与发布物
 
-目标实现只保留一条 OpenAI-compatible inference path。现有 `/call`、Role routing、CLI/agent/mlexp backend 是 legacy implementation baseline，迁移完成后退出 consumer authority，不作为 fallback。发布物、版本与部署步骤由 `docs/80_operations/llmtier-release-and-operations.md` 承接。
+**构建**：纯 Python，无编译步骤。构建工具 setuptools ≥ 68（`pyproject.toml`）；`package-dir = src`。构建命令（cwd = 仓库根）：
+
+```
+python -m build            # 产出 sdist + wheel（可复现，无公网隐含下载）
+```
+
+**交付物**：
+
+| 交付物 | 内容 | 身份 |
+|---|---|---|
+| Python 包 `llm-tier` | `llmtier_v03` 包（业务层 + 基础层代码） | wheel/sdist，含版本号 |
+| WebUI 静态资源 | `llmtier_v03/webui/`（HTML/JS/CSS/图标），随包分发 | 包内资源 |
+| 数据库迁移 | `llmtier_v03/migrations/*.sql`，随包分发 | 包内资源 |
+| 默认配置样板 | `config/settings.json`（bootstrap 样例）+ 设置 Schema | 与 `interfaces/schemas/` 同源 |
+| 机器契约 | `interfaces/{openapi,compatibility,schemas,vectors}` | candidate 版本标识（见下） |
+| 启动入口 | `python -m llmtier_v03 --host --port --database [--settings]`；entry point `llmtier-v03` | 包 console script |
+| 部署件（Planned） | systemd unit；TLS 反代与 SSO 配置（部署环境提供） | `deploy/` |
+| 文档 | `docs/`（设计、接口、验证、运维） | 随仓库发布 |
+
+**无编译产物的说明**：与 C 项目产出目标文件不同，LLMTier 的交付物是**可分发的 Python 包 + 随包静态资源 + 迁移 SQL + 配置样板/契约**；运行时由解释器加载，无独立二进制。
+
+**配置样板与默认值**：默认配置只含 `config/settings.json` 样例（空库首次 bootstrap 用），不含 Secret；字段类型与约束由 `interfaces/schemas/llmtier-settings-v0.3.schema.json` 定义。Secret 经引用注入（§10.2），**不进入交付物**。
+
+**版本与组合一致**：软件版本（`__version__`）、OpenAPI/manifest candidate 版本、契约 fixture 版本三者必须指向同一基线；发布时一并记录。
+
+**构建/内容/发布三者区分**：构建可重复（同输入同产物）、内容可追溯（制品 hash + 源码基线 + 锁定依赖）、已验证发布（目标平台安装与启动验证）分属不同门禁；本地构建成功不代表已发布。发布操作按 `docs/80_operations/llmtier-release-and-operations.md` 的 Gate 执行，本设计不授权部署或运行激活。
+
+**安装入口与兼容**：安装 `pip install <wheel>` 后以 `python -m llmtier_v03` 或 `llmtier-v03` 启动；不隐含公网下载；跨平台（Linux/macOS）以纯 Python + stdlib sqlite3 保证。
 
 ## 16. 实现计划与集成顺序
 
