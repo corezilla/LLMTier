@@ -79,9 +79,9 @@ LLMTier 不保存或补齐 Agent 历史，不做上下文压缩，不执行工�
 
 ### 3.1 软件系统架构
 
-![LLMTier 三层八模块组成](./assets/diagrams/llmtier-architecture-container.png)
+![LLMTier 三层八模块组成](../assets/diagrams/llmtier-architecture-container.png)
 
-[可编辑 SVG 源](./assets/diagrams/llmtier-architecture-container.svg)
+[可编辑 SVG 源](../assets/diagrams/llmtier-architecture-container.svg)
 
 图 A1｜EX-LLMTIER/v3 · Target · LLMTier v0.3.0-draft。本图表达 LLMTier 自身的静态层次与包含关系，**不**绘制外部系统（Consumer、模型后端见 §2.1/§6），也**不**表示进程或调用顺序（重要过程见 §7）。
 

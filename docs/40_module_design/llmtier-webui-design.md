@@ -29,13 +29,13 @@
 
 Web UI is LLMTier's English-language operator console. It calls `/v1` on the same origin and never reads SQLite, settings, or Secrets directly. It keeps the established compact frame: fixed narrow sidebar, page title and status header, and one primary card per short page. It has five pages only: Home, Providers, Usage & Audit, Logs, and Diagnostics. Runtime status and Tier membership are managed from the Tier tree; provider connections are managed on the Providers page. There is no global Add Model action.
 
-[打开可切换的静态 Demo](demos/webui/index.html)。以下图片由该Demo在1280×760视口生成，作为布局和信息层级基线；它们不是已经接线的产品截图。
+[打开可切换的静态 Demo](../assets/webui-demo/index.html)。以下图片由该Demo在1280×760视口生成，作为布局和信息层级基线；它们不是已经接线的产品截图。
 
 不提供独立访问控制、容量产品、恢复、费用或调用方页面；Provider编辑器只配置本网关执行所需的账号并发、最小间隔与RPM保护，主页只读显示当前running/max事实。宽度小于960px时侧栏折叠为顶部菜单；表格允许横向滚动，不把四个页面拼成长页。状态与高频操作优先使用紧凑图标，并用`title`、`aria-label`和非颜色文字保留可理解性。
 
 ### 1.1 图标系统
 
-![LLMTier Web UI图标系统](assets/webui/icon-set.svg)
+![LLMTier Web UI图标系统](../assets/webui/icon-set.svg)
 
 运行页面只使用项目内固定的单线SVG图标库`src/llmtier_v03/webui/icons.svg`，不从CDN加载字体或图标，也不以emoji表达状态。图标在表格中只显示图形；鼠标悬停、键盘聚焦时通过`title`显示英文名称，辅助技术通过`aria-label`读取同一名称。颜色只是补充信息，不能改变图标语义。
 
@@ -57,7 +57,7 @@ Web UI is LLMTier's English-language operator console. It calls `/v1` on the sam
 
 ## 2. 页面一：主页
 
-![主页](assets/webui/home.png)
+![主页](../assets/webui/home.png)
 
 - 主页使用无背景的两层树形布局，不显示额外的列标题行、Tier行底色、成员行底色或横向行框；层级只用缩进、展开箭头和浅色树枝线表达。Tier是父节点；展开后每个后端成为独立子节点，显示provider、model、类型、健康状态、版本与`running/max`并发。Tier状态直接采用`/readyz.models[].availability`：available显示Ready、degraded显示Attention、unavailable显示Unreachable；它不从成员状态聚合。成员状态独立来自Deployment health/runtime：健康、允许路由且`running=0`显示Idle，只有`running>0`才显示Running，单个Deployment的`enabled=false`显示Paused。Tier与成员状态互不覆盖。Tier行显示聚合并发及最近七日Tier级Calls/Tokens；token事实存在Unknown时不填0。由于当前Usage记录只保存逻辑Tier而不保存最终选中的Deployment，后端行不得虚构单模型用量，显示`—`并说明数据边界。
 - 主页不显示重复的Gateway/Tier/Backend/Health统计卡，也不显示搜索、手工刷新或全局`Add Model`。全局页头紧凑显示Gateway总状态、可用Tier/总Tier、Running模型/总模型、当前请求/配置并发上限以及Version/Updated。每个Tier行右侧使用图标`Edit`。Tier父行的Type单元格完全留空，不显示Responses、Embeddings或占位符；Cloud/Local只在后端子行显示。V0.3当前Tier集合为`Senior`、`Junior`、`Worker`、`Associate`、`Engineer`、`Executor`与独立的`Embedding-v1`，不分页隐藏当前目录项。
@@ -70,7 +70,7 @@ Web UI is LLMTier's English-language operator console. It calls `/v1` on the sam
 
 ### 2.1 Tier成员编辑抽屉
 
-![主页内模型编辑抽屉](assets/webui/home-model-editor.png)
+![主页内模型编辑抽屉](../assets/webui/home-model-editor.png)
 
 - 抽屉列出当前Tier全部成员，每项可修改已有Deployment的Provider、显示名、backend model ID与`Available for routing`；保存使用Deployment当前ETag与partial PATCH。该开关与主页Pause/Resume操作同源，关闭后状态为Paused。
 - `Add Member`的Provider下拉框只列出Providers页面中已存在的Provider。页面不在此处创建Provider、Secret或第二套连接配置；没有Provider时禁用添加并提示先进入Providers页面。
@@ -92,9 +92,9 @@ Web UI is LLMTier's English-language operator console. It calls `/v1` on the sam
 
 ## 4. 页面三：用量与审计
 
-![用量与审计页面](assets/webui/records.png)
+![用量与审计页面](../assets/webui/records.png)
 
-![用量与审计页面的审计页签](assets/webui/records-audit.png)
+![用量与审计页面的审计页签](../assets/webui/records-audit.png)
 
 页面顶部用页签切换`Token用量`和`管理审计`，一次只显示一张表，避免页面过长。页签切换不改变查询条件之外的服务状态，也不把用量事实与审计事件混成同一数据集。
 
@@ -112,7 +112,7 @@ Web UI is LLMTier's English-language operator console. It calls `/v1` on the sam
 
 ## 5. 页面四：日志
 
-![日志页面](assets/webui/logs.png)
+![日志页面](../assets/webui/logs.png)
 
 - 日志是服务运行与故障诊断事件；审计是operator管理动作，两者不混用。
 - 只返回服务端先行脱敏的结构化字段：时间、级别、模块、事件、短消息和可空request ID。禁止Prompt、模型输出、reasoning正文、Embedding向量、Authorization、Secret或完整请求头进入日志记录和API。
