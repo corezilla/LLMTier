@@ -5,7 +5,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-observability-subsystem-design-v0.1` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -13,7 +13,10 @@
 | Authors | llmtier |
 | Created Date | `2026-09-22` |
 | Last Modified Date | `2026-09-22` |
-| Template ID | `design.specification` |
+| Reviewer | Piko联调方 |
+| Approver | |
+| Approval Date | |
+| Template ID | `design.subsystem` |
 | Template Version | `0.1.1` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | std-tailoring |
@@ -99,15 +102,15 @@ Piko ↔ LLMTier 首次联合调试（见 `piko-llmtier-joint-report-v0.1` §5.2
 ```sql
 CREATE TABLE diagnostic_snapshots (
     id              TEXT PRIMARY KEY,        -- "snap_{uuid}"
-    request_id      TEXT NOT NULL,           -- 关联 usage_record_versions.request_id
+    request_id      TEXT NOT NULL,           -- 普通列（可关联 usage_record_versions.request_id，非 FK）
     captured_at     TEXT NOT NULL,           -- ISO 8601 时间戳
 
     -- 上游信息
-    upstream_url    TEXT NOT NULL,           -- 完整上游 URL
+    upstream_url    TEXT NOT NULL,           -- 完整上游 URL（不含 Query String）
     backend_model   TEXT,                    -- upstream 返回的 model 名
     http_status     INTEGER,                 -- HTTP 状态码
     latency_ms      REAL,                    -- 上游时延（ms）
-    error_summary   TEXT,                    -- 错误体摘要（截断 256 字节）
+    error_summary   TEXT,                    -- 错误体摘要（UTF-8 安全截断 256 字节）
 
     -- 请求信息
     model           TEXT,                    -- 请求的 model
@@ -118,7 +121,9 @@ CREATE TABLE diagnostic_snapshots (
 );
 ```
 
-**索引：**
+**说明：**
+- `request_id` **非 FK**（快照生命周期独立于账本；注入/失败请求可能无 usage 记录）
+- 索引保留用于查询：
 ```sql
 CREATE INDEX idx_snapshots_request_id ON diagnostic_snapshots(request_id);
 CREATE INDEX idx_snapshots_captured_at ON diagnostic_snapshots(captured_at);
@@ -173,9 +178,10 @@ CREATE TABLE data_plane_stats (
     model           TEXT,                   -- NULL 表示全局
     stat_hour       TEXT NOT NULL,          -- ISO hour (YYYY-MM-DDTHH)
 
-    -- 计数
+    -- 计数（按 status 分类）
     request_count   INTEGER NOT NULL DEFAULT 0,
-    error_count     INTEGER NOT NULL DEFAULT 0,
+    error_4xx_count INTEGER NOT NULL DEFAULT 0,  -- HTTP 400-499
+    error_5xx_count INTEGER NOT NULL DEFAULT 0,  -- HTTP 500+
 
     -- 时延（毫秒）— 用于计算 P50/P95
     latency_p50_ms  REAL,                   -- 直接存储计算结果
@@ -192,10 +198,10 @@ CREATE INDEX idx_stats_deployment_model ON data_plane_stats(deployment_id, model
 CREATE INDEX idx_stats_stat_hour ON data_plane_stats(stat_hour);
 ```
 
-**P50/P95 计算方法：**
-- 每次请求完成后，将 latency 追加到该小时的时延列表（存储在内存中的 `defaultdict` 字典，按 `(deployment_id, model, stat_hour)` key）
-- 每小时结束时（或按需），对列表排序，计算 P50/P95 并 UPSERT 到 `data_plane_stats`
-- 若需要实时 P50/P95（查询时计算），则保留原始时延列表的内存缓存（TTL 1 小时，LRU 淘汰）
+**error_count 口径：**
+- `error_4xx_count`：HTTP status 400-499（客户端错误）
+- `error_5xx_count`：HTTP status ≥500（服务端错误，含上游失败/注入产生的错误）
+- `error_count`（汇总）：查询时计算 `error_4xx_count + error_5xx_count`
 
 ### 3.4 `trace_events`（LT-OBS-6 trace）
 
@@ -228,15 +234,15 @@ CREATE INDEX idx_trace_correlation_id ON trace_events(correlation_id);
 ### 4.1 LT-OBS-1：环回捕获
 
 **触发时机：**
-- `ResponsesService.complete()` 或 `adapter.complete()` 返回后
-- 无论成功/失败均捕获
+- 调试开关开启时，**每个** Data Plane 请求均捕获（无论成功/失败/注入）
+- 调试开关关闭时，零开销（不写入）
 
 **捕获内容：**
-- 上游 URL（不含 Query String 中的 API Key）
+- 上游 URL（不含 Query String）
 - `backend_model`（上游返回的实际模型名）
 - HTTP status code
 - latency_ms（`upstream_ended - upstream_started`）
-- error_summary（仅错误时，截断 256 字节）
+- error_summary（仅错误时，UTF-8 安全截断 256 字节）
 
 **存储策略：**
 - **尽力而为同步写入**：直接写入 `diagnostic_snapshots` 表（SQLite WAL 模式，写入 P99 < 5ms）
@@ -253,20 +259,24 @@ CREATE INDEX idx_trace_correlation_id ON trace_events(correlation_id);
 
 ### 4.2 LT-OBS-2：数据面统计
 
-**聚合方式：**
+**聚合维度：**
 - 统计粒度：**小时**（`stat_hour = YYYY-MM-DDTHH`）
+- 维度：`deployment_id` + `model` + `http_status`（HTTP status 400-499 / 500+ 分别计数）
+
+**聚合方式：**
 - 每次 Data Plane 请求完成后，将 latency 追加到内存缓存（`defaultdict` 按 `(deployment_id, model, stat_hour)` 索引）
 - **实时查询**：在内存中计算 P50/P95（基于缓存的原始时延列表）
 - **持久化**：每小时结束时对列表排序计算 P50/P95，UPSERT 到 `data_plane_stats`
+- **对账说明**：统计仅作参考，对账以 `usage_record_versions` 账本为准（统计进程崩溃最多丢 ≤1 小时数据）
 
 **内存缓存策略：**
 - TTL：1 小时（小时结束后再保留 1 小时用于跨小时查询）
-- 淘汰：LRU，max 10000 条记录
+- 淘汰：LRU，max 100000 条记录
 - fail-open：缓存满或初始化失败时，记录 warning 并继续运行（不影响 Data Plane）
 
 **查询接口：**
 - `GET /tier/admin/v1/diagnostics/stats?since=2026-09-22T00:00:00Z&until=2026-09-22T23:59:59Z&deployment_id=xxx&model=Worker`
-- 返回：request_count、error_count、P50/P95/min/max
+- 返回：request_count、error_4xx_count、error_5xx_count、P50/P95/min/max
 - 时间窗外优先查 `data_plane_stats` 表，小时内查内存缓存
 
 ### 4.3 LT-OBS-5：故障注入开关
@@ -311,9 +321,10 @@ GET /tier/admin/v1/deployments/{id}/diagnostics
 - 多次 PATCH 相同 deployment 以最后一次为准
 - 删除某注入：将 `enabled` 设为 `false` 或删除该 type
 
-**日志模块注册：**
-- `operational_logs` 表的 `module` 字段需新增 `'diagnostics'` 值
-- 在 `DiagnosticService` 初始化时检查并注册：`logs.py` 的 `MODULE_KEYS` 需包含 `'diagnostics'`
+**日志与审计：**
+- 注入配置启停：写入 `audit_events`（action=`diagnostics.injection_enabled` / `diagnostics.injection_disabled`）
+- 注入事件触发：写入 `operational_logs`（module=`diagnostics`）
+- 在 `DiagnosticService` 初始化时注册：`logs.py` 的 `MODULE_KEYS` 需包含 `'diagnostics'`
 
 ### 4.4 LT-OBS-6 trace 查询
 
@@ -321,7 +332,7 @@ GET /tier/admin/v1/deployments/{id}/diagnostics
 
 | 阶段 | 记录位置 | 内容 |
 |---|---|---|
-| `received` | `BaseHandler._run()` | 接收时间、headers |
+| `received` | `BaseHandler._run()` | 接收时间、**白名单 headers**（`X-Correlation-ID`、`traceparent`、`content-type`、`content-length`） |
 | `validated` | `ResponsesService.create()` | 校验结果 |
 | `routed` | `Router.admit()` | 选中的 deployment/provider |
 | `upstream_started` | `adapter.complete()` 前 | 上游调用开始时间 |
@@ -362,7 +373,28 @@ Authorization: Bearer {admin_token}
 - `diagnostic_snapshots` 后写入（尽力而为同步）
 - 查询时若 snapshot 尚未写入，`stages[].snapshot` 为 `null`（不等待）
 
-### 4.5 LT-OBS-7：Consumer 关联标识透传
+### 4.5 LT-OBS-3：Audit 语义明示
+
+**需求**：管理控制文档中明示 audit 覆盖范围（当前仅管理面动作，数据面请求不产生 audit 事件）
+
+**本设计行动**：
+- 在 `docs/10_requirements/llmtier-observability-debug-requirements-v0.1.md` 中 §4 表格增加 audit 覆盖说明脚注
+- `audit_events` 表不新增数据面事件（LT-OBS-3 是文档澄清，非代码实现）
+- 实现计划（§8）列入文档任务
+
+### 4.6 LT-OBS-4：readyz 语义
+
+**需求**：`readyz` 全局状态应反映**实际可用能力**，未启用对应部署的占位 service level 不得将全局状态降级为 `degraded`
+
+**本设计行动**：
+- `readyz` 全局 status 计算规则：
+  - 扫描所有已启用（`enabled=true`）的 `deployments`
+  - 若存在至少 1 个已启用 deployment，则全局 status 为 `ok`
+  - 未启用部署在模型级标注 `unavailable`，不计入全局降级
+- 在 `health.py` 的 `readiness_view()` 中调整计算逻辑
+- 实现计划（§8）列入代码改动任务
+
+### 4.7 LT-OBS-7：Consumer 关联标识透传
 
 **提取规则（优先级）：**
 1. `X-Correlation-ID` header
@@ -487,12 +519,12 @@ GET /tier/admin/v1/trace/{request_id}
 ### 7.1 容量估算
 
 假设：
-- Data Plane QPS：100 req/s
-- 快照捕获率：10%（仅 LT-OBS-1 开启时）
+- Data Plane QPS：100 req/s（ops 参数，实际按需配置）
+- 快照捕获率：100%（开关开启时全量）
 - 平均每个快照：~1 KB
 - 保留期：7 天
 
-存储：100 × 0.1 × 86400 × 7 × 1 KB ≈ 6 GB（可接受）
+存储：100 × 86400 × 7 × 1 KB ≈ 60 GB（可接受，建议监控磁盘并设置告警阈值）
 
 ### 7.2 性能目标
 
@@ -558,8 +590,13 @@ GET /tier/admin/v1/trace/{request_id}
 1. 在 `BaseHandler._dispatch()` 提取 `X-Correlation-ID`（优先）或 `traceparent`（W3C Trace Context）
 2. 透传到 `trace_events.correlation_id`（已在 trace_events 表设计中包含）
 3. Data Plane 响应头回显 `X-Correlation-ID`（若 consumer 提供）
-4. 可选：`usage_record_versions` 新增 `correlation_id` 字段（需 migration）
+4. ~~`usage_record_versions` 新增 `correlation_id` 字段~~（**已确认：暂不加**，Piko 已用 `x-request-id` 关联）
 5. **Review 输出**：LT-OBS-7 实现说明
+
+### 8.7 文档任务（不阻塞开工）
+
+- LT-OBS-3：在需求文档 `llmtier-observability-debug-requirements-v0.1.md` §4 表格添加 audit 覆盖脚注
+- LT-OBS-4：在 `health.py` 调整 `readyz` 全局 status 计算逻辑（已启用 deployment 才计入全局状态）
 
 ---
 
@@ -588,20 +625,16 @@ diagnostics.py (DiagnosticService)
 | 流注入实现 | **Phase 5a 先做 delay/fault/rate_limit，Phase 5b 再做 SSE 流注入** | SSE 注入侵入 `sse.py`，需单独 review |
 | `diagnostic_injections` 配置存储 | **拆列**（不存储 JSON） | 便于 SQL 查询 |
 | `diagnostic_injections` 唯一性 | **UNIQUE(deployment_id, injection_type)** | 防止同一 deployment 同一 type 重复 |
+| `error_summary` 截断 | **UTF-8 安全字节截断 256 字节** | piko review 接受 |
+| `data_plane_stats` 内存缓存 LRU 上限 | **100000 条** | piko review 接受 |
+| `usage_record_versions.correlation_id` | **暂不添加** | piko review：Piko 已用 `x-request-id` 关联 |
 
 ### 10.2 待确认事项
 
-1. **`error_summary` 截断规则**：按**字节**截断（UTF-8 安全截断，避免截断在多字节字符中间）。是否接受？
-
-2. **Phase 5b SSE 注入改造方案**：
+1. **Phase 5b SSE 注入改造方案**：
    - 方案 A：给 `SSEmitter.put()` 添加 `injection_check()` 回调
    - 方案 B：改造 `ResponsesService.create()` 在 SSE 循环中插入注入检查点
-   - 方案 C：暂时不做 SSE 注入（标记为 wontfix）
-   - **请确认采用哪个方案**
-
-3. **`usage_record_versions.correlation_id` 字段**：是否需要添加？（LT-OBS-7 透传只需要在 `trace_events` 中记录即可，账本层面不必须）建议**暂不添加**，避免 migration
-
-4. **`data_plane_stats` 内存缓存 LRU 上限**：10000 条记录是否足够？（每条记录一个 latency 值，按 100 QPS × 3600s = 360000 条/小时）建议改为 **max 100000 条**
+   - **请选择 A 或 B**（piko 明确不接受 C = wontfix）
 
 ---
 
