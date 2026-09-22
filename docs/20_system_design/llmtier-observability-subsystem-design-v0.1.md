@@ -5,7 +5,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-observability-subsystem-design-v0.1` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.5` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -32,7 +32,18 @@ Piko ↔ LLMTier 首次联合调试（见 `piko-llmtier-joint-report-v0.1` §5.2
 - 单请求 trace 查询（LT-OBS-6 trace）
 - Consumer 关联标识透传（LT-OBS-7）
 
-### 1.2 目标
+### 1.2 Piko 联调环境
+
+| 项 | 值 |
+|---|---|
+| LLMTier joint | `192.168.1.8:8180` |
+| Piko joint | `127.0.0.1:8788` |
+| admin token | `~/piko-secrets/llmtier-joint-admin-token` |
+| data token | `~/piko-secrets/llmtier-joint-data-token` |
+| consumer 证据 | `x-request-id` == usage 账本 `request_id` |
+| Piko 定位工具 | `piko/scripts/joint-diagnose.sh <run_id>` |
+
+### 1.3 目标
 
 实现一个轻量、可插拔的**可观测性子系统**（`diagnostics`），提供：
 - 上游快照捕获（LT-OBS-1）
@@ -54,26 +65,29 @@ Piko ↔ LLMTier 首次联合调试（见 `piko-llmtier-joint-report-v0.1` §5.2
 
 ### 2.1 子系统边界
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    LLMTier Application                       │
-│  ┌─────────────┐  ┌─────────────┐  ┌────────────────────┐  │
-│  │   app.py    │  │ responses.py│  │   diagnostics.py   │  │
-│  │  (Handler)  │  │(ResponsesSvc)│ │ (DiagnosticSvc)    │  │
-│  └─────────────┘  └─────────────┘  └────────────────────┘  │
-│         │                │                    │             │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │                    Store (SQLite)                    │   │
-│  │  ┌─────────────┐  ┌──────────────┐  ┌───────────┐  │   │
-│  │  │diagnostic_  │  │diagnostic_    │  │ trace_    │  │   │
-│  │  │snapshots    │  │injections     │  │ events    │  │   │
-│  │  └─────────────┘  └──────────────┘  └───────────┘  │   │
-│  │  ┌─────────────┐  ┌──────────────────────────────┐  │   │
-│  │  │data_plane   │  │  operational_logs (已有)     │  │   │
-│  │  │_stats       │  └──────────────────────────────┘  │   │
-│  │  └─────────────┘                                    │   │
-│  └──────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph App[LLMTier Application]
+        direction TB
+        app_py[app.py<br/>Handler]
+        resp_py[responses.py<br/>ResponsesService]
+        diag_py[diagnostics.py<br/>DiagnosticService]
+    end
+
+    subgraph Store[Store SQLite]
+        direction TB
+        snap[diagnostic_snapshots<br/>LT-OBS-1]
+        inj[diagnostic_injections<br/>LT-OBS-5]
+        trace[trace_events<br/>LT-OBS-6]
+        stats[data_plane_stats<br/>LT-OBS-2]
+        logs[operational_logs<br/>已有]
+    end
+
+    app_py --> Store
+    resp_py --> Store
+    resp_py --> diag_py
+    diag_py --> Store
+    diag_py --> logs
 ```
 
 ### 2.2 新增模块
@@ -392,7 +406,7 @@ Authorization: Bearer {admin_token}
   - 若存在至少 1 个已启用 deployment，则全局 status 为 `ok`
   - 未启用部署在模型级标注 `unavailable`，不计入全局降级
 - 在 `health.py` 的 `readiness_view()` 中调整计算逻辑
-- 实现计划（§8）列入代码改动任务
+- 实现计划（§9）列入代码改动任务
 
 ### 4.7 LT-OBS-7：Consumer 关联标识透传
 
@@ -411,7 +425,47 @@ Authorization: Bearer {admin_token}
 
 ---
 
-## 5. 接口设计
+## 5. 三方定位场景（Piko 联调用）
+
+### 5.1 LLMTier 自身出问题 → 快速自定位
+
+用途链：**LT-OBS-2 统计**（错误率/时延异常先被发现）→ **LT-OBS-6 trace**（按 request_id 看单请求全生命周期与逐跳时间戳）→ **LT-OBS-1 上游快照**（上游交互定格）→ **LT-OBS-5 注入开关**（修复后在同类故障下复现验证）→ logs/audit 佐证。
+
+### 5.2 联调失败 → 快速定位是 Piko / LLMTier / oMLX 哪一层
+
+| 症状（consumer 视角） | LLMTier 侧证据（LT-OBS-1/2/6） | 归属判定 |
+|---|---|---|
+| `Failed/ModelUnavailable` + B 窗口内有 5xx/上游错误快照 | 上游调用快照可见失败 | **oMLX**（或 B→C 网络） |
+| `Failed/ModelUnavailable` + B 窗口内**无任何**该请求记录 | 请求未到 B | **网络 / B 未启动**（B 侧） |
+| B logs 出现 400/404 校验拒绝 | 请求被 B 校验拒绝 | 请求形状问题：对照 Piko 会话 JSONL 判 **Piko 装配**；形状合法 → **B 校验过严** |
+| B 返回 200 但 consumer 解析 SSE 失败/流异常 | B 侧响应体/流快照异常 | **LLMTier 内部**（序列化/流处理） |
+| `Failed/ToolFailure`、`Budget/Deadline`、`UnsafeRetryBlocked` | Piko 自身语义 | **Piko** |
+
+**逐阶段时间戳**：`received/validated/routed/upstream_started/upstream_ended/completed|error|aborted` 使每跳时延可计算。
+
+### 5.3 Piko joint-diagnose.sh 工具
+
+```mermaid
+sequenceDiagram
+    participant Piko as Piko joint-diagnose.sh
+    participant LLMTier as LLMTier (192.168.1.8:8180)
+
+    Piko->>LLMTier: GET /tier/admin/v1/trace/{request_id}
+    LLMTier-->>Piko: trace_events + usage_record_versions JOIN 结果
+
+    Piko->>LLMTier: GET /tier/admin/v1/diagnostics/snapshots?request_id=xxx
+    LLMTier-->>Piko: 上游调用快照列表
+
+    Piko->>Piko: 按 §5.2 定位矩阵判定归属
+```
+
+Piko 的 `joint-diagnose.sh <run_id>` 脚本通过 `x-request-id` 调用：
+- `GET /tier/admin/v1/trace/{request_id}` — 全生命周期 trace
+- `GET /tier/admin/v1/diagnostics/snapshots?request_id={request_id}` — 上游快照
+
+---
+
+## 6. 接口设计
 
 ### 5.1 管理面路由
 
@@ -512,7 +566,7 @@ GET /tier/admin/v1/trace/{request_id}
 
 ---
 
-## 6. 安全与隐私
+## 7. 安全与隐私
 
 ### 6.1 禁止记录
 
@@ -535,7 +589,7 @@ GET /tier/admin/v1/trace/{request_id}
 
 ---
 
-## 7. 性能与容量
+## 8. 性能与容量
 
 ### 7.1 容量估算
 
@@ -563,7 +617,7 @@ GET /tier/admin/v1/trace/{request_id}
 
 ---
 
-## 8. 实现计划
+## 9. 实现计划
 
 ### 8.1 Phase 1：基础设施
 
@@ -621,21 +675,27 @@ GET /tier/admin/v1/trace/{request_id}
 
 ---
 
-## 9. 依赖关系
+## 10. 依赖关系
 
-```
-diagnostics.py (DiagnosticService)
-       │
-       ├── store.py (Database)
-       ├── app.py (Application 注册路由)
-       ├── responses.py (捕获点)
-       ├── usage.py (关联 usage 账本)
-       └── logs.py (降级告警)
+```mermaid
+flowchart LR
+    diag[diagnostics.py<br/>DiagnosticService]
+    store[store.py<br/>Database]
+    app[app.py<br/>Application 注册路由]
+    resp[responses.py<br/>捕获点]
+    usage[usage.py<br/>关联 usage 账本]
+    logs[logs.py<br/>降级告警]
+
+    diag --> store
+    diag --> app
+    diag --> resp
+    diag --> usage
+    diag --> logs
 ```
 
 ---
 
-## 10. 关键决策与待确认事项
+## 11. 关键决策与待确认事项
 
 ### 10.1 已确认决策
 
@@ -659,9 +719,10 @@ diagnostics.py (DiagnosticService)
 
 ---
 
-## 11. 参考
+## 12. 参考
 
 - [LLMTier 可观测性与调试能力需求](../10_requirements/llmtier-observability-debug-requirements-v0.1.md) — LT-OBS-1..7 需求原文
+- [HANDOFF-Piko-Joint-OBS.md](../../HANDOFF-Piko-Joint-OBS.md) — Piko 联调输入，含三方定位矩阵与验收流程
 - `src/llmtier_v03/app.py` — 现有 HTTP Handler 结构
 - `src/llmtier_v03/store.py` — 数据库 Store 实现
 - `src/llmtier_v03/usage.py` — UsageRecorder 参考

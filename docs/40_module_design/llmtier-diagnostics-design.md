@@ -5,7 +5,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-diagnostics-module-design` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -192,18 +192,19 @@ class DiagnosticService:
 - 对应 `GET/PATCH /tier/admin/v1/diagnostics`
 
 **布局参考**：
-```
-┌─────────────────────────────────────────────────────────────┐
-│  LLMTier Diagnostics                          [Usage][Diag] │
-├─────────────────────────────────────────────────────────────┤
-│  全局开关: [快照捕获 ●──○] [统计聚合 ●──○]                   │
-├─────────────────────────────────────────────────────────────┤
-│  [快照] [统计] [注入配置] [Trace]                            │
-├─────────────────────────────────────────────────────────────┤
-│  │                                                      │   │
-│  │  （Tab 内容区）                                        │   │
-│  │                                                      │   │
-└─────────────────────────────────────────────────────────────┘
+
+```mermaid
+flowchart TB
+    subgraph Page["LLMTier Diagnostics Page /ui/diagnostics"]
+        direction TB
+        header["页头<br/>[Usage] [Diag] 切换"]
+        switches["全局开关栏<br/>[快照捕获 ●──○] [统计聚合 ●──○]"]
+        tabs["Tab 栏<br/>[快照] [统计] [注入配置] [Trace]"]
+        content["Tab 内容区<br/>（随选中 tab 切换）"]
+        header --> switches
+        switches --> tabs
+        tabs --> content
+    end
 ```
 
 ## 5. 数据结构
@@ -250,18 +251,31 @@ class DiagnosticInjection:
 
 ## 6. 模块依赖
 
-```
-diagnostics 模块
-    │
-    ├── Store（数据库读写）
-    ├── OperationalLog（降级告警）
-    ├── AuditLog（注入配置变更审计）
-    │
-    └── 被以下模块调用（集成点）：
-        ├── BaseHandler（trace received + correlation_id 提取）
-        ├── ResponsesService（trace validated/routed/upstream_started/upstream_ended + snapshot + record_latency）
-        ├── Router（注入检查点）
-        └── AdminService 或独立路由（管理面接口）
+```mermaid
+flowchart TB
+    diag[diagnostics 模块]
+
+    subgraph Deps[依赖]
+        store[Store<br/>数据库读写]
+        logs[OperationalLog<br/>降级告警]
+        audit[AuditLog<br/>注入配置变更审计]
+    end
+
+    subgraph Callers[被以下模块调用]
+        handler[BaseHandler<br/>trace received + correlation_id]
+        resp[ResponsesService<br/>trace + snapshot + record_latency]
+        router[Router<br/>注入检查点]
+        admin[AdminService 或独立路由<br/>管理面接口]
+    end
+
+    diag --> store
+    diag --> logs
+    diag --> audit
+
+    handler -.-> diag
+    resp -.-> diag
+    router -.-> diag
+    admin -.-> diag
 ```
 
 ## 7. 错误处理策略

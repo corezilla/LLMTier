@@ -127,11 +127,21 @@ Diagnostics 页面用于 Piko 联调的可观测性调试，包含 4 个 tabs：
 
 页面顶部始终显示全局调试开关状态栏：
 
+```mermaid
+flowchart LR
+    subgraph Switches[Diagnostics Switches]
+        direction LR
+        snapshot[Snapshot Capture ●]
+        stats[Stats Aggregation ○]
+    end
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│  Diagnostics Switches:  [● Snapshot Capture] [○ Stats Aggregation]  │
-└──────────────────────────────────────────────────────────────────┘
-```
+
+实际控件渲染：
+
+| 控件 | 状态 | 含义 |
+|---|---|---|
+| Snapshot Capture | ● / ○ | ON / OFF |
+| Stats Aggregation | ● / ○ | ON / OFF |
 
 - Toggle 开关调用 `PATCH /tier/admin/v1/diagnostics` 实时切换
 - 状态反映 `GET /tier/admin/v1/diagnostics` 的 `snapshots_enabled` / `stats_enabled`
