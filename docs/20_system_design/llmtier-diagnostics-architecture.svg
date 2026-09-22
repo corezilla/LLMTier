@@ -1,0 +1,192 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900" role="img" aria-labelledby="title desc">
+  <title id="title">LLMTier 可观测性子系统架构图</title>
+  <desc id="desc">LLMTier diagnostics subsystem architecture. LLMTier Application contains Data Plane (HTTP/SSE Handler, ResponsesService, EmbeddingsService), Shared Services (Router, UsageRecorder, Auth), Control Plane (AdminService, DiagnosticService 新模块), and Store SQLite (existing tables + 4 new diagnostic tables). External actors: Piko (consumer), oMLX (provider backend). Diagrams show composition by responsibility layer; runtime processes and call sequences are in §6/§7.</desc>
+  <style>
+    text {font-family:'PingFang SC','Helvetica Neue',Arial,sans-serif;fill:#20364e}
+    .title {font-size:30px;font-weight:600}
+    .subtitle {font-size:15px;fill:#65788b}
+    .layer {font-size:22px;font-weight:600;text-anchor:end}
+    .name {font-size:20px;font-weight:600;text-anchor:middle}
+    .note {font-size:14px;fill:#65788b}
+    .arrow {stroke:#3a6fa0;stroke-width:1.6;fill:none}
+    .arrow-config {stroke:#8a4baf;stroke-width:1.6;stroke-dasharray:5,4;fill:none}
+    .panel {stroke-width:1.5}
+    .component {stroke-width:1.3}
+    .new-component {fill:#fff3cd;stroke:#856404;stroke-width:1.5}
+    .new-label {fill:#856404;font-weight:600;font-size:13px}
+    .external {fill:#f5f5f5;stroke:#999;stroke-width:1.2}
+  </style>
+  <rect width="1440" height="900" fill="#ffffff"/>
+
+  <!-- Title block -->
+  <text x="60" y="50" class="title">LLMTier 可观测性子系统架构图</text>
+  <text x="60" y="74" class="subtitle">diagnostics subsystem · 第 0 层整体架构</text>
+  <text x="1380" y="50" class="note" text-anchor="end">EX-LLMTIER-DIAG/v1 · Target / Planned / NOT_RUN</text>
+  <text x="1380" y="68" class="note" text-anchor="end">LLMTier v0.3.0-draft</text>
+
+  <!-- LLMTier Container boundary -->
+  <rect x="350" y="100" width="900" height="700" rx="14" fill="#f8fafc" stroke="#a4b2c0" class="panel"/>
+  <text x="370" y="128" class="subtitle">LLMTier Application</text>
+
+  <!-- ===== Layer 1: Data Plane ===== -->
+  <text x="335" y="178" class="layer">Data Plane</text>
+  <rect x="370" y="148" width="860" height="110" rx="12" fill="#f0f6fd" stroke="#bccfe5" class="panel"/>
+  <rect x="390" y="170" width="265" height="68" rx="8" fill="#dceafb" stroke="#9dbbdb" class="component"/>
+  <text x="522.5" y="208" class="name">app.py</text>
+  <text x="522.5" y="226" class="subtitle">HTTP/SSE Handler</text>
+  <rect x="675" y="170" width="265" height="68" rx="8" fill="#dceafb" stroke="#9dbbdb" class="component"/>
+  <text x="807.5" y="208" class="name">responses.py</text>
+  <text x="807.5" y="226" class="subtitle">ResponsesService</text>
+  <rect x="960" y="170" width="250" height="68" rx="8" fill="#dceafb" stroke="#9dbbdb" class="component"/>
+  <text x="1085" y="208" class="name">embeddings.py</text>
+  <text x="1085" y="226" class="subtitle">EmbeddingsService</text>
+
+  <!-- ===== Layer 2: Shared Services ===== -->
+  <text x="335" y="298" class="layer">Shared Services</text>
+  <rect x="370" y="268" width="860" height="80" rx="12" fill="#eef5fa" stroke="#b6ccdc" class="panel"/>
+  <rect x="390" y="290" width="265" height="38" rx="8" fill="#c8deef" stroke="#8aafcb" class="component"/>
+  <text x="522.5" y="315" class="name">routing.py</text>
+  <rect x="675" y="290" width="265" height="38" rx="8" fill="#c8deef" stroke="#8aafcb" class="component"/>
+  <text x="807.5" y="315" class="name">usage.py</text>
+  <rect x="960" y="290" width="250" height="38" rx="8" fill="#c8deef" stroke="#8aafcb" class="component"/>
+  <text x="1085" y="315" class="name">auth.py</text>
+
+  <!-- ===== Layer 3: Control Plane ===== -->
+  <text x="335" y="408" class="layer">Control Plane</text>
+  <rect x="370" y="378" width="860" height="80" rx="12" fill="#eaf3ee" stroke="#a4c8a4" class="panel"/>
+  <rect x="390" y="400" width="395" height="38" rx="8" fill="#c8e6c8" stroke="#8aaf8b" class="component"/>
+  <text x="587.5" y="425" class="name">admin.py</text>
+  <text x="587.5" y="466" class="subtitle">AdminService</text>
+  <rect x="805" y="400" width="395" height="38" rx="8" class="new-component"/>
+  <text x="1002.5" y="425" class="name">diagnostics.py</text>
+  <text x="1002.5" y="466" class="new-label">新模块 — LT-OBS-1..7</text>
+
+  <!-- ===== Layer 4: Store ===== -->
+  <text x="335" y="608" class="layer">Store</text>
+  <text x="335" y="630" class="note" text-anchor="end">SQLite</text>
+  <rect x="370" y="498" width="860" height="240" rx="12" fill="#f3f5f7" stroke="#c1cbd4" class="panel"/>
+
+  <!-- Existing tables -->
+  <text x="370" y="525" class="subtitle">已有表</text>
+  <rect x="390" y="535" width="160" height="35" rx="6" fill="#dce2e8" stroke="#a4b2c0"/>
+  <text x="470" y="558" class="name">usage_obligations</text>
+  <rect x="560" y="535" width="160" height="35" rx="6" fill="#dce2e8" stroke="#a4b2c0"/>
+  <text x="640" y="558" class="name">usage_record_versions</text>
+  <rect x="730" y="535" width="160" height="35" rx="6" fill="#dce2e8" stroke="#a4b2c0"/>
+  <text x="810" y="558" class="name">usage_heads</text>
+  <rect x="900" y="535" width="160" height="35" rx="6" fill="#dce2e8" stroke="#a4b2c0"/>
+  <text x="980" y="558" class="name">provider_request_bindings</text>
+  <rect x="1070" y="535" width="140" height="35" rx="6" fill="#dce2e8" stroke="#a4b2c0"/>
+  <text x="1140" y="558" class="name">audit_events</text>
+
+  <rect x="390" y="580" width="160" height="35" rx="6" fill="#dce2e8" stroke="#a4b2c0"/>
+  <text x="470" y="603" class="name">operational_logs</text>
+
+  <!-- New tables (yellow highlight) -->
+  <text x="370" y="650" class="new-label">新增表 — LT-OBS-1..6</text>
+  <rect x="390" y="660" width="200" height="50" rx="6" class="new-component"/>
+  <text x="490" y="681" class="name">diagnostic_snapshots</text>
+  <text x="490" y="699" class="subtitle">LT-OBS-1</text>
+  <rect x="610" y="660" width="200" height="50" rx="6" class="new-component"/>
+  <text x="710" y="681" class="name">diagnostic_injections</text>
+  <text x="710" y="699" class="subtitle">LT-OBS-5</text>
+  <rect x="830" y="660" width="180" height="50" rx="6" class="new-component"/>
+  <text x="920" y="681" class="name">data_plane_stats</text>
+  <text x="920" y="699" class="subtitle">LT-OBS-2</text>
+  <rect x="1030" y="660" width="180" height="50" rx="6" class="new-component"/>
+  <text x="1120" y="681" class="name">trace_events</text>
+  <text x="1120" y="699" class="subtitle">LT-OBS-6</text>
+
+  <!-- ===== External Actors ===== -->
+  <rect x="80" y="240" width="200" height="100" rx="10" fill="#f5f5f5" stroke="#999" class="external"/>
+  <text x="180" y="270" class="name">Piko</text>
+  <text x="180" y="290" class="subtitle">Consumer</text>
+  <text x="180" y="308" class="subtitle">127.0.0.1:8788</text>
+  <text x="180" y="325" class="subtitle">joint-diagnose.sh</text>
+
+  <rect x="80" y="500" width="200" height="100" rx="10" fill="#f5f5f5" stroke="#999" class="external"/>
+  <text x="180" y="530" class="name">oMLX</text>
+  <text x="180" y="550" class="subtitle">Provider Backend</text>
+  <text x="180" y="568" class="subtitle">local inference</text>
+  <text x="180" y="586" class="subtitle">127.0.0.1:9000</text>
+
+  <rect x="80" y="660" width="200" height="80" rx="10" fill="#f5f5f5" stroke="#999" class="external"/>
+  <text x="180" y="688" class="name">Slinky</text>
+  <text x="180" y="708" class="subtitle">Memory</text>
+  <text x="180" y="725" class="subtitle">外部 — 不在本仓库</text>
+
+  <!-- ===== Arrows ===== -->
+  <!-- Piko -> app.py: 数据 /v1/responses -->
+  <line x1="280" y1="290" x2="370" y2="200" class="arrow"/>
+  <polygon points="370,200 362,196 362,204" fill="#3a6fa0"/>
+  <text x="295" y="240" class="subtitle">/v1/responses</text>
+
+  <!-- app.py -> responses.py -->
+  <line x1="655" y1="205" x2="675" y2="205" class="arrow"/>
+  <polygon points="675,205 667,201 667,209" fill="#3a6fa0"/>
+
+  <!-- app.py -> embeddings.py -->
+  <line x1="655" y1="225" x2="960" y2="225" class="arrow"/>
+  <polygon points="960,225 952,221 952,229" fill="#3a6fa0"/>
+
+  <!-- responses.py -> routing.py -->
+  <line x1="755" y1="240" x2="540" y2="290" class="arrow"/>
+  <polygon points="540,290 547,283 548,289" fill="#3a6fa0"/>
+
+  <!-- routing.py -> oMLX -->
+  <line x1="395" y1="313" x2="280" y2="540" class="arrow"/>
+  <polygon points="280,540 287,533 286,540" fill="#3a6fa0"/>
+  <text x="298" y="430" class="subtitle">/v1/responses</text>
+
+  <!-- responses.py -> usage.py -->
+  <line x1="755" y1="245" x2="810" y2="290" class="arrow"/>
+  <polygon points="810,290 802,286 803,292" fill="#3a6fa0"/>
+
+  <!-- usage.py -> existing usage tables -->
+  <line x1="807" y1="328" x2="640" y2="535" class="arrow"/>
+
+  <!-- Piko -> admin.py (紫色虚线: 配置/管理) -->
+  <line x1="280" y1="320" x2="385" y2="420" class="arrow-config"/>
+  <polygon points="385,420 378,414 378,420" fill="#8a4baf"/>
+  <text x="282" y="370" class="subtitle">/tier/admin/v1/*</text>
+
+  <!-- Piko -> diagnostics.py -->
+  <line x1="280" y1="280" x2="800" y2="420" class="arrow-config"/>
+  <polygon points="800,420 793,414 793,420" fill="#8a4baf"/>
+  <text x="510" y="350" class="subtitle">/tier/admin/v1/diagnostics/*</text>
+
+  <!-- diagnostics.py -> new tables -->
+  <line x1="900" y1="438" x2="490" y2="660" class="arrow"/>
+  <line x1="1000" y1="438" x2="710" y2="660" class="arrow"/>
+  <line x1="1075" y1="438" x2="920" y2="660" class="arrow"/>
+  <line x1="1145" y1="438" x2="1120" y2="660" class="arrow"/>
+
+  <!-- app.py -> auth.py (Data Plane authentication) -->
+  <line x1="500" y1="240" x2="1080" y2="290" class="arrow"/>
+  <polygon points="1080,290 1073,284 1073,290" fill="#3a6fa0"/>
+
+  <!-- admin.py -> audit_events -->
+  <line x1="585" y1="438" x2="1140" y2="570" class="arrow"/>
+
+  <!-- Slinky -> Piko (业务与 Memory 虚线) -->
+  <line x1="180" y1="660" x2="180" y2="340" class="arrow-config"/>
+  <polygon points="180,340 176,348 184,348" fill="#8a4baf"/>
+
+  <!-- ===== Legend ===== -->
+  <rect x="60" y="820" width="1200" height="60" rx="6" fill="#fafafa" stroke="#ddd"/>
+  <text x="80" y="845" class="subtitle">图例</text>
+  <line x1="130" y1="842" x2="170" y2="842" class="arrow"/>
+  <polygon points="170,842 162,838 162,846" fill="#3a6fa0"/>
+  <text x="180" y="847" class="note">数据/调用（实线）</text>
+  <line x1="320" y1="842" x2="360" y2="842" class="arrow-config"/>
+  <polygon points="360,842 352,838 352,846" fill="#8a4baf"/>
+  <text x="370" y="847" class="note">配置/管理（紫色虚线）</text>
+  <rect x="540" y="833" width="20" height="14" rx="3" class="new-component"/>
+  <text x="565" y="847" class="note">新模块/新表（LT-OBS-1..7）</text>
+  <rect x="800" y="833" width="20" height="14" rx="3" fill="#dce2e8" stroke="#a4b2c0"/>
+  <text x="825" y="847" class="note">已有模块/表</text>
+  <rect x="940" y="833" width="20" height="14" rx="3" fill="#f5f5f5" stroke="#999"/>
+  <text x="965" y="847" class="note">外部依赖</text>
+
+  <text x="80" y="870" class="subtitle">说明：本图表达分层组成，不规定独立进程或运行调用栈。运行部署见 §6，调用/数据流见 §7。</text>
+</svg>

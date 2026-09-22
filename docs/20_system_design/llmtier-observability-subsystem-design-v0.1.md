@@ -5,7 +5,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-observability-subsystem-design-v0.1` |
-| Document Version | `0.1.0-draft.5` |
+| Document Version | `0.1.0-draft.6` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -63,7 +63,39 @@ Piko ↔ LLMTier 首次联合调试（见 `piko-llmtier-joint-report-v0.1` §5.2
 
 ## 2. 架构概览
 
-### 2.1 子系统边界
+### 2.1 系统架构图（STD SVG 约定）
+
+按照 STD 设计模板约定，§2 系统架构图使用 SVG 表达**层次和包含关系**（无调用线、无图标、不强制四层），调用/数据流另图展开（§7）。
+
+![§3.1 系统架构图 — 分层组成（EX-LLMTIER-DIAG/v1）](./llmtier-diagnostics-architecture.svg)
+
+[可编辑 SVG 源](./llmtier-diagnostics-architecture.svg)
+
+图 A1｜EX-LLMTIER-DIAG/v1 · Target / Planned / NOT_RUN · LLMTier v0.3.0-draft。LLMTier Application 由四个职责层组成：
+
+| 层 | 模块 | 职责 / 非职责 |
+|---|---|---|
+| Data Plane | `app.py`（HTTP/SSE Handler）、`responses.py`、`embeddings.py` | 接收 Piko/Slinky 的 `/v1/responses` / `/v1/embeddings` 请求并转发到 Shared Services；**不**记录可观测性数据（由 `diagnostics.py` 订阅） |
+| Shared Services | `routing.py`、`usage.py`、`auth.py` | 路由调度、usage 账本、Bearer Token 校验；usage 是 diagnostics 的依赖（提供 request_id 关联） |
+| Control Plane | `admin.py`、`diagnostics.py`（**新模块**） | 管理面 API；diagnostics 提供快照/统计/注入/trace 查询 |
+| Store（SQLite） | 6 个已有表 + 4 个**新增表**（黄色高亮） | 持久化所有数据；diagnostics 4 张新表独立于账本 |
+
+**外部依赖**（左侧灰底）：Piko（Consumer，127.0.0.1:8788，joint-diagnose.sh 工具）、Slinky（Memory，外部项目）、oMLX（Provider Backend，127.0.0.1:9000）。
+
+**图例**：
+- **蓝色实线**：数据/调用
+- **紫色虚线**：配置/管理（consumer 触发）
+- **黄色填充**：新模块/新表（LT-OBS-1..7）
+- **灰色填充**：已有模块/表
+- **灰白边框**：外部依赖
+
+**说明**：
+- 本图表达分层组成，**不**规定独立进程或运行调用栈
+- 运行部署见 §6；调用/数据流见 §7
+- EX-LLMTIER-DIAG/v1 标识对应 STD 模板的"机制示例"命名（仿 `EX-INSPECT/v1`/`EX-JOB/v2` 模式）
+- 组件名严格使用项目实际英文命名（`app.py`、`responses.py` 等）
+
+### 2.2 子系统边界（简洁版）
 
 ```mermaid
 flowchart TB
