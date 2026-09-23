@@ -14,8 +14,8 @@ from .usage import UsageRecorder
 
 
 class ResponsesService:
-    def __init__(self, registry: Registry, router: Router, usage: UsageRecorder):
-        self.registry, self.router, self.usage = registry, router, usage
+    def __init__(self, registry: Registry, router: Router, usage: UsageRecorder, diagnostics=None):
+        self.registry, self.router, self.usage, self.diagnostics = registry, router, usage, diagnostics
         self._test_adapter = None
 
     def _adapter(self, candidate):
@@ -44,25 +44,74 @@ class ResponsesService:
         cls = LocalProvider if candidate.kind == "local" else OpenAIProvider
         return cls(candidate.endpoint, row["secret_ref"] if row else None)
 
-    def create(self, principal: str, request_id: str, body: dict[str, Any]) -> dict[str, Any]:
-        required = {"model", "input", "stream", "store"}
-        require(required <= set(body), 400, "invalid_request", "model, input, stream, and store are required")
-        require(body.get("stream") is True and body.get("store") is False, 400, "unsupported_request", "Only stream=true and store=false are supported")
-        forbidden = {"prompt_cache_key", "prompt_cache_retention", "previous_response_id"}
-        require(not (forbidden & set(body)), 400, "unsupported_field", "Unsupported provider continuation or cache field")
-        model = body["model"]
+    def create(self, principal: str, request_id: str, body: dict[str, Any], diagnostics=None,
+               correlation_id: str | None = None, out: dict[str, Any] | None = None) -> dict[str, Any]:
+        diag = diagnostics if diagnostics is not None else self.diagnostics
+        t0 = time.monotonic()
+
+        def _trace(stage: str, detail: dict[str, Any] | None = None) -> None:
+            if diag: diag.record_trace(request_id, stage, detail, correlation_id)
+
+        def _stats(status: int | None, deployment_id: str | None = None) -> None:
+            if diag: diag.record_latency(deployment_id, body.get("model"), status, (time.monotonic() - t0) * 1000)
+
         try:
-            caps = self.registry.get_service_level(model)[0]["capabilities"]
+            require({"model", "input", "stream", "store"} <= set(body), 400, "invalid_request", "model, input, stream, and store are required")
+            require(body.get("stream") is True and body.get("store") is False, 400, "unsupported_request", "Only stream=true and store=false are supported")
+            forbidden = {"prompt_cache_key", "prompt_cache_retention", "previous_response_id"}
+            require(not (forbidden & set(body)), 400, "unsupported_field", "Unsupported provider continuation or cache field")
+            model = body["model"]
+            try:
+                caps = self.registry.get_service_level(model)[0]["capabilities"]
+            except ApiError as exc:
+                if exc.status == 404:
+                    raise ApiError(404, "model_not_found", "Model not found") from exc
+                raise
+            require(caps.get("responses") is True, 400, "unsupported_model", "Selected model does not support Responses", "model")
         except ApiError as exc:
-            if exc.status == 404:
-                raise ApiError(404, "model_not_found", "Model not found") from exc
+            _trace("validated", {"ok": False, "code": exc.code, "status": exc.status}); _stats(exc.status)
             raise
-        require(caps.get("responses") is True, 400, "unsupported_model", "Selected model does not support Responses", "model")
+        _trace("validated", {"ok": True})
         self.usage.authorize_dispatch(principal, request_id, model, "/v1/responses")
         try:
             with self.router.admit(model) as candidate:
+                if out is not None: out.update({"deployment_id": candidate.deployment_id, "backend_model": candidate.backend_model})
+                _trace("routed", {"deployment_id": candidate.deployment_id, "provider_id": candidate.provider_id})
+                injection = diag.enabled_injection(candidate.deployment_id) if diag else None
+                if injection:
+                    kind = injection["injection_type"]
+                    if kind in ("fault_502", "fault_503"):
+                        status = injection["fault_status"] or (502 if kind == "fault_502" else 503)
+                        code = "provider_failure" if kind == "fault_502" else "provider_unavailable"
+                        fault = ApiError(status, code, injection["fault_body"] or "injected upstream failure", retryable=True)
+                        fault.piko_injected = {"deployment_id": candidate.deployment_id, "type": kind}
+                        _stats(status, candidate.deployment_id); raise fault
+                    if kind == "rate_limit":
+                        retry = injection["retry_after_sec"] or 1
+                        limit = ApiError(429, "rate_limit_exceeded", "Injected rate limit", retryable=True, headers={"Retry-After": str(retry)})
+                        limit.piko_injected = {"deployment_id": candidate.deployment_id, "type": kind}
+                        _stats(429, candidate.deployment_id); raise limit
+                    if kind == "delay":
+                        time.sleep((injection["delay_ms"] or 0) / 1000)
                 self.usage.bind_backend(principal, request_id, candidate.provider_id, candidate.deployment_id)
-                result = self._adapter(candidate).complete(candidate.backend_model, body)
+                provider_row = self.registry.store.one("SELECT endpoint FROM providers WHERE id=?", (candidate.provider_id,))
+                upstream_url = provider_row["endpoint"] if provider_row else candidate.provider_id
+                _trace("upstream_started", {"deployment_id": candidate.deployment_id, "upstream_url": upstream_url})
+                upstream_started = time.monotonic()
+                try:
+                    result = self._adapter(candidate).complete(candidate.backend_model, body)
+                except Exception as exc:
+                    latency = (time.monotonic() - upstream_started) * 1000
+                    if diag:
+                        diag.capture_snapshot(request_id, candidate.deployment_id, model, upstream_url, candidate.backend_model, None, latency, str(exc))
+                        diag.record_trace(request_id, "upstream_ended", {"deployment_id": candidate.deployment_id, "status": None})
+                    _stats(503, candidate.deployment_id)
+                    raise
+                latency = (time.monotonic() - upstream_started) * 1000
+                if diag:
+                    snap_id = diag.capture_snapshot(request_id, candidate.deployment_id, model, upstream_url, candidate.backend_model, 200, latency, None)
+                    diag.record_trace(request_id, "upstream_ended", {"deployment_id": candidate.deployment_id, "status": 200, "snapshot_id": snap_id})
+                _stats(200, candidate.deployment_id)
             self.usage.finish(principal, request_id, result.usage)
             return {
                 "id": f"resp_{uuid.uuid4().hex}",
@@ -75,6 +124,7 @@ class ResponsesService:
                 "error": result.error,
                 "incomplete_details": result.incomplete_details,
             }
-        except Exception:
-            self.usage.finish(principal, request_id, None)
+        except Exception as exc:
+            source = "injected" if getattr(exc, "piko_injected", False) else None
+            self.usage.finish(principal, request_id, None, source)
             raise

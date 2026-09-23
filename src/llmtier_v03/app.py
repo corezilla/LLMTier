@@ -25,6 +25,7 @@ from .registry import Registry
 from .responses import ResponsesService
 from .routing import Router
 from .sse import response_stream
+from .diagnostics import DiagnosticsService
 from .store import Store
 from .usage import UsageRecorder
 
@@ -41,9 +42,12 @@ class Application:
         self.account_usage = AccountUsageService(self.store)
         self.audit = AuditLog(self.store); self.logs = OperationalLog(self.store)
         self.models = ModelCatalog(self.registry)
-        self.responses = ResponsesService(self.registry, self.router, self.usage)
+        self.diagnostics = DiagnosticsService(self.store, self.logs)
+        self.responses = ResponsesService(self.registry, self.router, self.usage, self.diagnostics)
         self.embeddings = EmbeddingsService(self.registry, self.router, self.usage)
         self.admin = AdminService(self.registry, self.audit, self.logs, self.usage)
+        try: self.diagnostics.cleanup(7)
+        except Exception: pass
 
 
 def handler_factory(app: Application):
@@ -99,9 +103,26 @@ def handler_factory(app: Application):
             match = re.fullmatch(r"/v1/models/([^/]+)", path)
             if match and method == "GET": self._auth(); return self._json(200, app.models.get(match.group(1)))
             if path == "/v1/responses" and method == "POST":
-                principal = self._auth(); response = app.responses.create(principal.principal_id, self.request_id, self._body())
+                principal = self._auth()
+                correlation = self.headers.get("X-Correlation-ID") or self.headers.get("traceparent")
+                app.diagnostics.record_trace(self.request_id, "received", {"x_correlation_id": correlation, "content_length": self.headers.get("Content-Length")}, correlation_id=correlation)
+                out: dict[str, Any] = {}
+                try:
+                    response = app.responses.create(principal.principal_id, self.request_id, self._body(), diagnostics=app.diagnostics, correlation_id=correlation, out=out)
+                except ApiError as exc:
+                    err_headers = dict(exc.headers or {})
+                    if correlation: err_headers["X-Correlation-ID"] = correlation
+                    self._json(exc.status, exc.envelope(), err_headers); return
                 self.send_response(200); self.send_header("Content-Type", "text/event-stream"); self.send_header("Cache-Control", "no-cache"); self.send_header("X-Request-ID", self.request_id); self.end_headers()
-                for chunk in response_stream(response): self.wfile.write(chunk); self.wfile.flush()
+                for key, value in ({"X-Correlation-ID": correlation} if correlation else {}).items(): self.send_header(key, value)
+                self.end_headers()
+                try:
+                    for chunk in app.diagnostics.stream_wrapper(out.get("deployment_id"), response_stream(response)):
+                        self.wfile.write(chunk); self.wfile.flush()
+                except (BrokenPipeError, ConnectionResetError):
+                    app.diagnostics.record_trace(self.request_id, "aborted", {"reason": "client disconnected"}, correlation_id=correlation)
+                    return
+                app.diagnostics.record_trace(self.request_id, "completed", {"deployment_id": out.get("deployment_id")}, correlation_id=correlation)
                 return
             if path == "/v1/embeddings" and method == "POST":
                 principal = self._auth(); return self._json(200, app.embeddings.create(principal.principal_id, self.request_id, self._body()))
@@ -173,6 +194,26 @@ def handler_factory(app: Application):
                 since, until = query.get("from", [None])[0], query.get("to", [None])[0]
                 if not since or not until: raise ApiError(400, "invalid_request", "from and to are required")
                 return self._json(200, app.logs.page(int(query.get("limit", [100])[0]), query.get("level", [None])[0], query.get("module", [None])[0], query.get("request_id", [None])[0], since, until))
+            if path == "/tier/admin/v1/diagnostics" and method == "GET": return self._json(200, app.diagnostics.switches())
+            if path == "/tier/admin/v1/diagnostics" and method == "PATCH":
+                body = self._body()
+                result = app.admin.mutate(principal.principal_id, "diagnostics.switch.update", "diagnostics", self.request_id, lambda: app.diagnostics.set_switches(body.get("snapshots_enabled"), body.get("stats_enabled")))
+                return self._json(200, result)
+            if path == "/tier/admin/v1/diagnostics/snapshots" and method == "GET":
+                return self._json(200, app.diagnostics.snapshots_page(query.get("since", [None])[0], query.get("until", [None])[0], query.get("deployment_id", [None])[0], query.get("model", [None])[0], int(query.get("limit", [50])[0]), query.get("cursor", [None])[0]))
+            if path == "/tier/admin/v1/diagnostics/stats" and method == "GET":
+                since, until = query.get("since", [None])[0], query.get("until", [None])[0]
+                if not since or not until: raise ApiError(400, "invalid_request", "since and until are required")
+                return self._json(200, app.diagnostics.stats(since, until, query.get("deployment_id", [None])[0], query.get("model", [None])[0]))
+            match = re.fullmatch(r"/tier/admin/v1/deployments/([^/]+)/diagnostics", path)
+            if match:
+                did = match.group(1)
+                if method == "GET": return self._json(200, app.diagnostics.injections(did))
+                if method == "PATCH":
+                    result = app.admin.mutate(principal.principal_id, "diagnostics.injection.update", did, self.request_id, lambda: app.diagnostics.set_injections(did, self._body()))
+                    return self._json(200, result)
+            match = re.fullmatch(r"/tier/admin/v1/trace/([^/]+)", path)
+            if match and method == "GET": return self._json(200, app.diagnostics.trace(match.group(1)))
             raise ApiError(404, "not_found", "Endpoint not found")
 
         def _run(self):

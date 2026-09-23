@@ -24,8 +24,9 @@ class Store:
         return conn
 
     def migrate(self) -> None:
-        sql = Path(__file__).with_name("migrations").joinpath("001_initial.sql").read_text()
-        self.connection().executescript(sql)
+        migrations = Path(__file__).with_name("migrations")
+        for sql_file in sorted(migrations.glob("*.sql")):
+            self.connection().executescript(sql_file.read_text())
         result = self.connection().execute("PRAGMA integrity_check").fetchone()[0]
         if result != "ok":
             raise RuntimeError(f"sqlite_integrity_check_failed:{result}")

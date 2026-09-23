@@ -32,7 +32,7 @@ class UsageRecorder:
                 (principal, request_id, provider_id, deployment_id, now()),
             )
 
-    def finish(self, principal: str, request_id: str, usage: dict[str, Any] | None) -> None:
+    def finish(self, principal: str, request_id: str, usage: dict[str, Any] | None, source_override: str | None = None) -> None:
         row = self.store.one("SELECT model,endpoint,recorded_at FROM usage_obligations WHERE principal_id=? AND request_id=?", (principal, request_id))
         if row is None: return
         stamp = now()
@@ -45,7 +45,7 @@ class UsageRecorder:
         details_i = usage.get("input_tokens_details", {}) if measured else {}
         details_o = usage.get("output_tokens_details", {}) if measured else {}
         with self.store.transaction(True) as conn:
-            conn.execute("INSERT INTO usage_record_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (principal, request_id, version, 1, row["model"], row["endpoint"], row["recorded_at"], stamp, "measured" if measured else "unknown", "provider" if measured else "unavailable", inp, out, total, details_i.get("cached_tokens"), details_i.get("cache_write_tokens"), details_o.get("reasoning_tokens")))
+            conn.execute("INSERT INTO usage_record_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (principal, request_id, version, 1, row["model"], row["endpoint"], row["recorded_at"], stamp, "measured" if measured else "unknown", source_override or ("provider" if measured else "unavailable"), inp, out, total, details_i.get("cached_tokens"), details_i.get("cache_write_tokens"), details_o.get("reasoning_tokens")))
             conn.execute("UPDATE usage_heads SET head_record_version=?,updated_at=? WHERE principal_id=? AND request_id=?", (version, stamp, principal, request_id))
 
     def _record(self, row) -> dict[str, Any]:
