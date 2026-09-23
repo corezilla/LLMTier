@@ -7,6 +7,7 @@
     .subtitle {font-size:14px;fill:#65788b}
     .layer {font-size:20px;font-weight:600;text-anchor:end}
     .name {font-size:18px;font-weight:600;text-anchor:middle}
+    .mid {font-size:13px;fill:#65788b;font-weight:400}
     .modnote {font-size:12px;fill:#65788b;text-anchor:middle}
     .note {font-size:13px;fill:#65788b}
     .panel {stroke-width:1.5}
@@ -26,32 +27,32 @@
   <text x="195" y="160" class="layer">入口层<br/>UI</text>
   <rect x="230" y="118" width="990" height="96" rx="12" fill="#f0f6fd" stroke="#bccfe5" class="panel"/>
   <rect x="250" y="140" width="465" height="54" rx="8" fill="#dceafb" stroke="#9dbbdb" class="component"/>
-  <text x="482.5" y="174" class="name">HTTP API</text>
+  <text x="482.5" y="174" class="name">HTTP API<tspan class="mid"> M001</tspan></text>
   <rect x="735" y="140" width="465" height="54" rx="8" fill="#dceafb" stroke="#9dbbdb" class="component"/>
-  <text x="967.5" y="174" class="name">Web UI</text>
+  <text x="967.5" y="174" class="name">Web UI<tspan class="mid"> M002</tspan></text>
 
   <!-- Layer 2: Business -->
   <text x="195" y="288" class="layer">业务层<br/>Business</text>
   <rect x="230" y="246" width="990" height="96" rx="12" fill="#eef5fa" stroke="#b6ccdc" class="panel"/>
   <rect x="250" y="268" width="300" height="54" rx="8" fill="#c8deef" stroke="#8aafcb" class="component"/>
-  <text x="400" y="302" class="name">Inference</text>
+  <text x="400" y="302" class="name">Inference<tspan class="mid"> M003</tspan></text>
   <rect x="570" y="268" width="300" height="54" rx="8" fill="#c8deef" stroke="#8aafcb" class="component"/>
-  <text x="720" y="302" class="name">Management</text>
+  <text x="720" y="302" class="name">Management<tspan class="mid"> M004</tspan></text>
   <rect x="890" y="268" width="310" height="54" rx="8" class="new-component"/>
-  <text x="1045" y="302" class="name">Observability</text>
+  <text x="1045" y="302" class="name">Observability<tspan class="mid"> M005</tspan></text>
   <text x="1045" y="331" class="new-label">新模块</text>
 
   <!-- Layer 3: Foundation -->
   <text x="195" y="436" class="layer">基础层<br/>Foundation</text>
   <rect x="230" y="394" width="990" height="120" rx="12" fill="#f3f5f7" stroke="#c1cbd4" class="panel"/>
   <rect x="250" y="416" width="300" height="76" rx="8" class="new-component"/>
-  <text x="400" y="450" class="name">libdiag</text>
+  <text x="400" y="450" class="name">libdiag<tspan class="mid"> M006</tspan></text>
   <text x="400" y="472" class="modnote">调试开关 · 注入 · 观测记录</text>
   <rect x="570" y="416" width="300" height="76" rx="8" fill="#dce2e8" stroke="#a4b2c0" class="component"/>
-  <text x="720" y="450" class="name">util</text>
+  <text x="720" y="450" class="name">util<tspan class="mid"> M007</tspan></text>
   <text x="720" y="472" class="modnote">配置 · 存储 · 信任 · 杂项</text>
   <rect x="890" y="416" width="310" height="76" rx="8" fill="#dce2e8" stroke="#a4b2c0" class="component"/>
-  <text x="1045" y="450" class="name">log</text>
+  <text x="1045" y="450" class="name">log<tspan class="mid"> M008</tspan></text>
   <text x="1045" y="472" class="modnote">日志 · 可扩展</text>
 
   <!-- Dependency description (no arrows across modules; layering only) -->

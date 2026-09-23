@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.4.0-draft.15` |
+| Document Version | `0.4.0-draft.16` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -83,13 +83,13 @@ LLMTier 不保存或补齐 Agent 历史，不做上下文压缩，不执行工�
 
 [可编辑 SVG 源](../assets/diagrams/llmtier-architecture-container.svg)
 
-图 A1｜EX-LLMTIER/v3 · Target · LLMTier v0.3.0-draft。本图表达 LLMTier 自身的静态层次与包含关系，**不**绘制外部系统（Consumer、模型后端见 §2.1/§6），也**不**表示进程或调用顺序（重要过程见 §7）。
+图 A1｜EX-LLMTIER/v3 · Target · LLMTier v0.3.0-draft。本图表达 LLMTier 自身的静态层次与包含关系，**不**绘制外部系统（Consumer、模型后端见 §2.1/§6），也**不**表示进程或调用顺序（重要过程见 §7）。图中每个模块标注正式对象 ID（`M001`–`M008`），与 §3.2 登记表一致。
 
 系统按职责分为三层、八个模块：
 
-- **入口层（UI）**：`HTTP API` 与 `Web UI`。HTTP API 是统一入口，承载全部接口；Web UI 是 operator 控制台，同源调用 HTTP API。
-- **业务层（事务处理）**：`Inference`、`Management`、`Observability`。三者平级，承接入口请求，向下消费基础层能力。
-- **基础层（通用能力）**：`libdiag`、`util`、`log`。打包被业务层共同依赖的通用能力。
+- **入口层（UI）**：`HTTP API`（M001）与 `Web UI`（M002）。HTTP API 是统一入口，承载全部接口；Web UI 是 operator 控制台，同源调用 HTTP API。
+- **业务层（事务处理）**：`Inference`（M003）、`Management`（M004）、`Observability`（M005）。三者平级，承接入口请求，向下消费基础层能力。
+- **基础层（通用能力）**：`libdiag`（M006）、`util`（M007）、`log`（M008）。打包被业务层共同依赖的通用能力。
 
 **分层与依赖规则**：
 
@@ -106,28 +106,30 @@ LLMTier 不保存或补齐 Agent 历史，不做上下文压缩，不执行工�
 
 ### 3.2 组成与职责
 
-**入口层**
+LLMTier 无软件子系统（`std-tailoring` LT-TL-003 / LT-TL-013），三层八模块均为**软件系统直属模块**，按 STD 软件设计对象编码规范使用 `M0` 段（`M001`–`M008`），父对象均为 LLMTier 软件系统。此处是本项目模块对象的**唯一登记表**：对象 ID / 名称 / 类型 / 直属父对象 / Document ID / 文件路径 / 状态在此维护，§5、系统机制设计 §14、模块设计与测试均引用同一编号，不另造清单。对象 ID 与文档 ID、章节号、代码符号解耦，移动或改名不重编号。
 
-| 模块 | 职责 | 非职责 |
-|---|---|---|
-| HTTP API | 终止 HTTP/SSE；路由分发；局域网访问信任（内网放行；可选凭据仅作纵深，不建用户/会话/SSO 体系） | 不含业务规则；不直接访问持久化 |
-| Web UI | operator 控制台：展示与操作管理面 | 不直读配置或密钥；不承载推理 |
+**入口层（UI）** — 承担用户交互与协议终止，不裁定业务规则。
 
-**业务层**
+| 对象 ID / 类型 / 父对象 | 职责 / 非职责 | 状态与资源 | 提供 / 消费接口 | Document ID / 文件名 / 状态 |
+|---|---|---|---|---|
+| M001 HTTP API / 直属模块 / LLMTier | 终止 HTTP/SSE；路由分发；局域网访问信任（内网放行；可选凭据仅作纵深，不建用户/会话/SSO）。非职责：不含业务规则；不直接访问持久化 | 请求级状态；无自有持久状态 | 提供：全部 `/v1/*` 接口与 SSE；消费：M003–M005 业务接口 | `llmtier-core-module-design` / `docs/40_module_design/llmtier-core-design.md` / 已采用（tailored）|
+| M002 Web UI / 直属模块 / LLMTier | operator 控制台：展示与操作管理面。非职责：不直读配置或密钥；不承载推理 | 无自有持久状态 | 提供：浏览器页面；消费：M001（同源调用）| `llmtier-webui-module-design` / `docs/40_module_design/llmtier-webui-design.md` / 已采用（tailored）|
 
-| 模块 | 职责 | 非职责 |
-|---|---|---|
-| Inference | 推理、向量化、模型目录：校验输入 → 按逻辑等级选择后端 → 调用 → 返回标准响应与 token Usage | 配置管理；Agent 会话；工具执行 |
-| Management | 维护 provider / deployment / 逻辑等级配置；执行探测；提供审计与运行日志查询 | 不承载模型推理 |
-| Observability | 观测数据的查询与呈现；调试开关的展现与切换；故障注入的配置入口（通过 `libdiag`） | 不改变推理契约；自身故障 fail-open，不影响推理可用性 |
+**业务层（事务处理）** — 承接入口请求，向下消费基础层能力；三模块平级、接口边界互斥。
 
-**基础层**
+| 对象 ID / 类型 / 父对象 | 职责 / 非职责 | 状态与资源 | 提供 / 消费接口 | Document ID / 文件名 / 状态 |
+|---|---|---|---|---|
+| M003 Inference / 直属模块 / LLMTier | 推理、向量化、模型目录：校验输入 → 按逻辑等级选择后端 → 调用 → 返回标准响应与 token Usage。非职责：配置管理；Agent 会话；工具执行 | 无自有持久状态（账本经 M007）| 提供：推理/向量化接口；消费：M004（配置读取）、M006（观测）、M007（存储）| `llmtier-core-module-design` / `docs/40_module_design/llmtier-core-design.md` / 已采用（tailored）|
+| M004 Management / 直属模块 / LLMTier | 维护 provider / deployment / 逻辑等级配置；执行探测；提供审计与运行日志查询。非职责：不承载模型推理 | 配置权威（经 M007 持久化）| 提供：管理面接口；消费：M007（存储/审计）| `llmtier-core-module-design` / `docs/40_module_design/llmtier-core-design.md` / 已采用（tailored）|
+| M005 Observability / 直属模块 / LLMTier | 观测数据的查询与呈现；调试开关的展现与切换；故障注入的配置入口（通过 M006）。非职责：不改变推理契约；自身故障 fail-open | 无自有持久状态（记录经 M006 / M007）| 提供：诊断接口；消费：M006（观测能力）、M007（存储）| `llmtier-diagnostics-module-design` / `docs/40_module_design/llmtier-diagnostics-design.md` / 已采用（tailored）|
 
-| 模块 | 职责 | 拥有的状态/资源 |
-|---|---|---|
-| `libdiag` | 调试开关、注入配置、观测记录（上游快照 / 数据面统计 / 单请求 trace）的底层读写 | 观测记录、开关与注入配置 |
-| `util` | 配置、存储（唯一持久化）、访问信任、杂项工具 | 全部持久化数据的存取（配置、账本、审计、日志、观测） |
-| `log` | 运行日志的记录、写入前脱敏与查询接口 | 日志语义（持久化由 `util` 承担；独立模块，后续可扩展） |
+**基础层（通用能力）** — 被业务层共同依赖；`libdiag` 可依赖 `util`/`log`，反向不允许。
+
+| 对象 ID / 类型 / 父对象 | 职责 / 非职责 | 状态与资源 | 提供 / 消费接口 | Document ID / 文件名 / 状态 |
+|---|---|---|---|---|
+| M006 `libdiag` / 直属模块 / LLMTier | 调试开关、注入配置、观测记录（上游快照 / 数据面统计 / 单请求 trace）的底层读写。非职责：不呈现、不改推理契约 | 拥有观测记录、开关与注入配置 | 提供：诊断能力接口；消费：M007、M008 | `llmtier-diagnostics-module-design` / `docs/40_module_design/llmtier-diagnostics-design.md` / 已采用（tailored）|
+| M007 `util` / 直属模块 / LLMTier | 配置、存储（唯一持久化）、访问信任、杂项工具。非职责：不含业务规则 | 拥有全部持久化数据的存取（配置、账本、审计、日志、观测）| 提供：存储/工具接口；消费：— | `llmtier-core-module-design` / `docs/40_module_design/llmtier-core-design.md` / 已采用（tailored）|
+| M008 `log` / 直属模块 / LLMTier | 运行日志的记录、写入前脱敏与查询接口。非职责：持久化由 M007 承担 | 拥有日志语义；无独立持久化 | 提供：日志接口；消费：M007 | `llmtier-core-module-design` / `docs/40_module_design/llmtier-core-design.md` / 已采用（tailored）|
 
 ### 3.3 总体方案、选择依据与替代方案
 
@@ -149,11 +151,11 @@ LLMTier 不保存或补齐 Agent 历史，不做上下文压缩，不执行工�
 
 | Mechanism ID / 用途 | 上级 Mechanism ID | 参与对象 / Process或Constraint | 前置依赖 | Document ID / 计划文件名 | Planned或实际基线 / 未决项 |
 |---|---|---|---|---|---|
-| M-TRUST / 访问信任：内网免登录 + 可选 Bearer 区分角色 | none | HTTP API、业务模块；C-TRUST-1..5 | — | `llmtier-access-trust-mechanism` / `mechanisms/access-trust.md` | 实际：成文（`0.1.0-draft.4`）|
-| M-INFER / 推理与流式返回：校验→路由→准入→后端→SSE→终态 | none | HTTP API、Inference、Router、Provider Adapter、Usage、Registry；P-INFER；C-INFER-1..5 | M-TRUST（行为）| `llmtier-inference-stream-mechanism` / `mechanisms/inference-stream.md` | 实际：成文（`0.1.0-draft.4`）|
-| M-METER / 用量计量与账本：义务/版本/head/unknown | none | Usage Recorder、Usage Reader、Admin、Store；C-METER-1..5 | M-INFER（行为）| `llmtier-usage-metering-mechanism` / `mechanisms/usage-metering.md` | 实际：成文（`0.1.0-draft.4`）|
-| M-CONFIG / 配置引导与变更：bootstrap → SQLite 权威 | none | 启动、Management（Registry/Config）、Store、Audit；C-CFG-1..5 | — | `llmtier-config-lifecycle-mechanism` / `mechanisms/config-lifecycle.md` | 实际：成文（`0.1.0-draft.4`）|
-| M-OBS / 上游快照、数据面统计、故障注入、单请求 trace、关联标识透传 | none | `libdiag`、Observability、Inference、HTTP Adapter、Store；C-OBS-1..5 | M-INFER（行为）| `llmtier-observability-mechanism` / `mechanisms/observability.md` | 实际：成文（`0.1.0-draft.4`）；流注入见 LT-OPEN-05 |
+| M-TRUST / 访问信任：内网免登录 + 可选 Bearer 区分角色 | none | HTTP API (M001)、业务模块 (M003–M005)；C-TRUST-1..5 | — | `llmtier-access-trust-mechanism` / `mechanisms/access-trust.md` | 实际：成文（`0.1.0-draft.4`）|
+| M-INFER / 推理与流式返回：校验→路由→准入→后端→SSE→终态 | none | HTTP API (M001)、Inference (M003)、Management (M004)；P-INFER；C-INFER-1..5 | M-TRUST（行为）| `llmtier-inference-stream-mechanism` / `mechanisms/inference-stream.md` | 实际：成文（`0.1.0-draft.4`）|
+| M-METER / 用量计量与账本：义务/版本/head/unknown | none | Inference (M003)、Management (M004)、util (M007)；C-METER-1..5 | M-INFER（行为）| `llmtier-usage-metering-mechanism` / `mechanisms/usage-metering.md` | 实际：成文（`0.1.0-draft.4`）|
+| M-CONFIG / 配置引导与变更：bootstrap → SQLite 权威 | none | HTTP API (M001)、Management (M004)、util (M007)；C-CFG-1..5 | — | `llmtier-config-lifecycle-mechanism` / `mechanisms/config-lifecycle.md` | 实际：成文（`0.1.0-draft.4`）|
+| M-OBS / 上游快照、数据面统计、故障注入、单请求 trace、关联标识透传 | none | HTTP API (M001)、Inference (M003)、Observability (M005)、`libdiag` (M006)、util (M007)；C-OBS-1..5 | M-INFER（行为）| `llmtier-observability-mechanism` / `mechanisms/observability.md` | 实际：成文（`0.1.0-draft.4`）；流注入见 LT-OPEN-05 |
 
 均为顶层机制（无设计分解上级）；`M-INFER` 依赖 `M-TRUST` 的行为，`M-METER`/`M-OBS` 依赖 `M-INFER` 的行为。Owner 均为 LLMTier。机制文档 `§14`（跨责任单元分解与接口分配）为下级模块设计的输入，模块设计以附录"机制承接表"逐条承接。
 
@@ -279,16 +281,18 @@ LLMTier 有自有图形界面（英文 operator 控制台）。本节在系统�
 
 ### 5.1 直属对象概要设计（按子系统或直属模块展开）
 
-本系统不建立软件子系统；三个业务模块与三个基础模块均为软件系统直属模块。
+本系统不建立软件子系统；八个模块均为软件系统直属模块（`M001`–`M008`，登记见 §3.2）。
 
-| 模块 | 输入 | 主要处理 | 输出 |
+| 对象 | 输入 | 主要处理 | 输出 |
 |---|---|---|---|
-| Inference | 标准模型请求 | 校验 → 按 exact 等级路由 → 调用后端 → 归一响应与 Usage | 标准响应 + token Usage |
-| Management | operator 配置命令 | 事务化更新配置、探测、审计落库 | 配置版本 + 审计事件 |
-| Observability | 调试命令 / 观测查询 | 读观测记录、聚合、展现；切换开关 | 快照/统计/trace 视图 |
-| `libdiag` | 上层调用 | 开关与注入配置读写、观测记录写入与读取 | 观测事实 |
-| `util` | 上层调用 | 配置、持久化、信任判定 | 持久化事实 |
-| `log` | 上层调用 | 脱敏后写入/读取日志 | 运行日志 |
+| HTTP API (M001) | HTTP/SSE 请求 | 信任判定 → 路由 → 边界校验 → 转发业务接口 | 标准响应 / SSE |
+| Web UI (M002) | 浏览器操作 | 调用管理面接口并呈现 | 控制台页面 |
+| Inference (M003) | 标准模型请求 | 校验 → 按 exact 等级路由 → 调用后端 → 归一响应与 Usage | 标准响应 + token Usage |
+| Management (M004) | operator 配置命令 | 事务化更新配置、探测、审计落库 | 配置版本 + 审计事件 |
+| Observability (M005) | 调试命令 / 观测查询 | 读观测记录、聚合、展现；切换开关 | 快照/统计/trace 视图 |
+| `libdiag` (M006) | 上层调用 | 开关与注入配置读写、观测记录写入与读取 | 观测事实 |
+| `util` (M007) | 上层调用 | 配置、持久化、信任判定 | 持久化事实 |
+| `log` (M008) | 上层调用 | 脱敏后写入/读取日志 | 运行日志 |
 
 详细的模块划分、职责与非职责见 `docs/40_module_design/llmtier-core-design.md` 与 `llmtier-diagnostics-design.md`。
 
