@@ -214,6 +214,27 @@ def handler_factory(app: Application):
                     return self._json(200, result)
             match = re.fullmatch(r"/v1/trace/([^/]+)", path)
             if match and method == "GET": return self._json(200, app.diagnostics.trace(match.group(1)))
+            # 契约层路由（llmtier-management-contract-v0.3）；与 /v1/* 扁平命名空间并存
+            if path == "/tier/admin/v1/diagnostics" and method == "GET": return self._json(200, app.diagnostics.switches())
+            if path == "/tier/admin/v1/diagnostics" and method == "PATCH":
+                body = self._body()
+                result = app.admin.mutate(principal.principal_id, "diagnostics.switch.update", "diagnostics", self.request_id, lambda: app.diagnostics.set_switches(body.get("snapshots_enabled"), body.get("stats_enabled")))
+                return self._json(200, result)
+            if path == "/tier/admin/v1/diagnostics/snapshots" and method == "GET":
+                return self._json(200, app.diagnostics.snapshots_page(query.get("since", [None])[0], query.get("until", [None])[0], query.get("deployment_id", [None])[0], query.get("model", [None])[0], int(query.get("limit", [50])[0]), query.get("cursor", [None])[0]))
+            if path == "/tier/admin/v1/diagnostics/stats" and method == "GET":
+                since, until = query.get("since", [None])[0], query.get("until", [None])[0]
+                if not since or not until: raise ApiError(400, "invalid_request", "since and until are required")
+                return self._json(200, app.diagnostics.stats(since, until, query.get("deployment_id", [None])[0], query.get("model", [None])[0]))
+            match = re.fullmatch(r"/tier/admin/v1/deployments/([^/]+)/diagnostics", path)
+            if match:
+                did = match.group(1)
+                if method == "GET": return self._json(200, app.diagnostics.injections(did))
+                if method == "PATCH":
+                    result = app.admin.mutate(principal.principal_id, "diagnostics.injection.update", did, self.request_id, lambda: app.diagnostics.set_injections(did, self._body()))
+                    return self._json(200, result)
+            match = re.fullmatch(r"/tier/admin/v1/trace/([^/]+)", path)
+            if match and method == "GET": return self._json(200, app.diagnostics.trace(match.group(1)))
             raise ApiError(404, "not_found", "Endpoint not found")
 
         def _run(self):
