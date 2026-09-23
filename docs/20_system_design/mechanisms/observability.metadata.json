@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "llmtier-observability-mechanism",
   "document_type": "design.system-mechanism",
-  "document_version": "0.1.0-draft.4",
+  "document_version": "0.1.0-draft.5",
   "title": "LLMTier 可观测性机制（LT-OBS）",
   "document_owner": "LLMTier",
   "authors": [

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="620" viewBox="0 0 1120 620" role="img">
+<defs><marker id="ar" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#4a6478"/></marker></defs>
+<style>text{font-family:'PingFang SC',Arial,sans-serif;fill:#1f3140}.t{font-size:20px;font-weight:600}.g{font-size:16px;font-weight:600;fill:#39506a}.c{font-size:14px;font-weight:500}.e{font-size:12px;fill:#5a6b7a}.group{fill:#f7fafd;stroke:#9bb7d4;stroke-width:1.6}.child{fill:#e8f0f9;stroke:#8aa9c9;stroke-width:1.3}.ext{fill:#fdf3e6;stroke:#c9a86a;stroke-width:1.4}.io{fill:#e6f4ea;stroke:#6ba77e;stroke-width:1.3}</style>
+<rect width="1120" height="620" fill="#fff"/>
+<text x="30" y="40" class="t">M001 HTTP API — 内部结构（入口适配层）</text>
+<rect x="60" y="80" width="640" height="470" rx="10" class="group"/>
+<text x="74" y="104" class="g">M001 HTTP API（入口层，单进程）</text>
+<rect x="100" y="130" width="560" height="56" rx="10" class="io"/>
+<text x="380.0" y="162.0" class="c" text-anchor="middle">I1 Dispatch — 路径/方法路由 · 统一错误出口 · request_id</text>
+<rect x="100" y="210" width="560" height="56" rx="10" class="child"/>
+<text x="380.0" y="242.0" class="c" text-anchor="middle">I2 Auth/Validation — 端点→角色 · 信任判定 · body 限长/解析</text>
+<rect x="100" y="290" width="175" height="110" rx="10" class="child"/>
+<text x="187.5" y="329.0" class="c" text-anchor="middle">I3 SSE Transport</text>
+<text x="187.5" y="348.0" class="c" text-anchor="middle">发送流头</text>
+<text x="187.5" y="367.0" class="c" text-anchor="middle">逐帧 flush · 断开捕获</text>
+<rect x="290" y="290" width="175" height="110" rx="10" class="child"/>
+<text x="377.5" y="329.0" class="c" text-anchor="middle">I4 Static Server</text>
+<text x="377.5" y="348.0" class="c" text-anchor="middle">/ui/* 安全解析</text>
+<text x="377.5" y="367.0" class="c" text-anchor="middle">无目录穿越</text>
+<rect x="480" y="290" width="180" height="110" rx="10" class="child"/>
+<text x="570.0" y="329.0" class="c" text-anchor="middle">I5 Health/</text>
+<text x="570.0" y="348.0" class="c" text-anchor="middle">Readiness</text>
+<text x="570.0" y="367.0" class="c" text-anchor="middle">healthz · readyz</text>
+<rect x="100" y="425" width="560" height="50" rx="10" class="io"/>
+<text x="380.0" y="454.0" class="c" text-anchor="middle">错误信封 ApiError.envelope（errors.py）</text>
+<rect x="790" y="150" width="280" height="70" rx="10" class="ext"/>
+<text x="930.0" y="179.0" class="c" text-anchor="middle">Consumer / Operator</text>
+<text x="930.0" y="198.0" class="c" text-anchor="middle">（外部）</text>
+<rect x="790" y="240" width="280" height="70" rx="10" class="ext"/>
+<text x="930.0" y="259.0" class="c" text-anchor="middle">M003 Inference</text>
+<text x="930.0" y="278.0" class="c" text-anchor="middle">M004 Management</text>
+<text x="930.0" y="297.0" class="c" text-anchor="middle">M005 Observability</text>
+<line x1="720" y1="200" x2="790" y2="185" stroke="#4a6478" stroke-width="1.3" stroke-dasharray="6 5" marker-end="url(#ar)"/>
+<text x="761" y="188" class="e">HTTP/SSE</text>
+<line x1="700" y1="320" x2="790" y2="275" stroke="#4a6478" stroke-width="1.3" marker-end="url(#ar)"/>
+<text x="751" y="294" class="e">内部调用</text>
+</svg>

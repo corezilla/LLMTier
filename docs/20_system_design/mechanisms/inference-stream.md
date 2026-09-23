@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-inference-stream-mechanism` |
-| Document Version | `0.1.0-draft.4` |
+| Document Version | `0.1.0-draft.5` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -320,7 +320,7 @@ Consumer（Piko）提交一次模型推理请求后，需要拿到**标准 Respo
 | ID | 类别 | 影响 | 下一步 | 状态 |
 |---|---|---|---|---|
 | LT-OPEN-05 | 设计闭合/实现门禁 | 流注入需改造流式输出 | 确认实现方案 | 未决 |
-| R-INFER-1 | 风险 | 后端长尾延迟导致超时/429 | 由超时与 429 约束；实测后调参 | 观察 |
+| RISK-INFER-1 | 风险 | 后端长尾延迟导致超时/429 | 由超时与 429 约束；实测后调参 | 观察 |
 
 ## A. 输入基线、适用性与图文规则
 

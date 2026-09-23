@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-config-lifecycle-mechanism` |
-| Document Version | `0.1.0-draft.4` |
+| Document Version | `0.1.0-draft.5` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -296,7 +296,7 @@
 | ID | 类别 | 影响 | 下一步 | 状态 |
 |---|---|---|---|---|
 | LT-ADR-05 | 决定 | 单次 bootstrap、不热载 | 已采用 | 已定 |
-| R-CFG-1 | 风险 | 离线迁移误操作 | 由备份 + 单一命令约束 | 观察 |
+| RISK-CFG-1 | 风险 | 离线迁移误操作 | 由备份 + 单一命令约束 | 观察 |
 
 ## A. 输入基线、适用性与图文规则
 

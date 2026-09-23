@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-usage-metering-mechanism` |
-| Document Version | `0.1.0-draft.4` |
+| Document Version | `0.1.0-draft.5` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -282,7 +282,7 @@
 | ID | 类别 | 影响 | 下一步 | 状态 |
 |---|---|---|---|---|
 | LT-ADR-03 | 决定 | 未知不补零；以义务保证崩溃可见 | 已采用 | 已定 |
-| R-METER-1 | 风险 | 写放大（每请求多行）| 由单事务与保留策略约束 | 观察 |
+| RISK-METER-1 | 风险 | 写放大（每请求多行）| 由单事务与保留策略约束 | 观察 |
 
 ## A. 输入基线、适用性与图文规则
 

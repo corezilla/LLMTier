@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-access-trust-mechanism` |
-| Document Version | `0.1.0-draft.4` |
+| Document Version | `0.1.0-draft.5` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -271,8 +271,8 @@ LLMTier 部署在局域网，需要判定"**请求来自谁、以什么角色**"
 
 | ID | 类别 | 影响 | 下一步 | 状态 |
 |---|---|---|---|---|
-| R-TRUST-1 | 风险 | 内网免登录依赖网络边界 | 明文声明边界，凭据作纵深 | 已接受 |
-| R-TRUST-2 | 风险 | 单一共享 token（无 per-user）| 与"不建用户体系"取舍一致 | 已接受 |
+| RISK-TRUST-1 | 风险 | 内网免登录依赖网络边界 | 明文声明边界，凭据作纵深 | 已接受 |
+| RISK-TRUST-2 | 风险 | 单一共享 token（无 per-user）| 与"不建用户体系"取舍一致 | 已接受 |
 
 ## A. 输入基线、适用性与图文规则
 

@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-observability-mechanism` |
-| Document Version | `0.1.0-draft.4` |
+| Document Version | `0.1.0-draft.5` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -291,7 +291,7 @@
 |---|---|---|---|---|
 | LT-OPEN-04 | 决定 | 四类数据各归 1 张表，保留 7 天 | 已采用 | 已定 |
 | LT-OPEN-05 | 未决 | 流注入需改造流式输出 | 确认实现方案 | 未决 |
-| R-OBS-1 | 风险 | 统计为内存、可丢 | 明示非账本语义 | 观察 |
+| RISK-OBS-1 | 风险 | 统计为内存、可丢 | 明示非账本语义 | 观察 |
 
 ## A. 输入基线、适用性与图文规则
 
