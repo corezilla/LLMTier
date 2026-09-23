@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-diagnostics-module-design` |
-| Document Version | `0.1.0-draft.5` |
+| Document Version | `0.1.0-draft.6` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -263,9 +263,32 @@ class DiagnosticInjection:
 - [ ] 单元测试
 - [ ] B-class 系统测试（API + WebUI）
 
-## 10. 参考
+## 10. 代码文件分解
 
-- [可观测性子系统系统设计](../20_system_design/llmtier-observability-subsystem-design-v0.1.md)
+| 子组件（§3） | 代码文件 | 职责 |
+|---|---|---|
+| `DiagnosticService` 及子组件 | `src/llmtier_v03/diagnostics.py` | 统一入口、注入、统计聚合、快照、trace |
+| 表结构 | `migrations/002_diagnostics.sql`（或 store 迁移） | 4 张诊断表 |
+| 日志模块注册 | `src/llmtier_v03/logs.py` | `MODULE_KEYS` 注册 `diagnostics` |
+| 路由/集成 | `src/llmtier_v03/app.py`、`src/llmtier_v03/responses.py` | 管理面路由、trace/snapshot 集成 |
+| WebUI | `webui/`（`/ui/diagnostics`）| 4 tabs 页面与全局开关 |
+
+## 附录 A. 机制承接表（对照用）
+
+| 机制 | 机制要求（来源）| 本文落点 | 代码文件 |
+|---|---|---|---|
+| M-OBS | 上游快照捕获与查询（§14.4）| §4、§8 | `diagnostics.py` |
+| M-OBS | 数据面统计聚合（§14.4）| §4、§8 | `diagnostics.py` |
+| M-OBS | 故障注入配置（§14.4）| §4 | `diagnostics.py` |
+| M-OBS | 单请求 trace（§14.4）| §4、§8 | `diagnostics.py` |
+| M-OBS | 关联标识透传（§14.4）| §4 | `app.py` |
+| M-OBS | 默认关闭零开销、fail-open（约束 C-INFER-5）| §7 | `diagnostics.py` |
+| M-INFER | 观测写入须不改推理结果（§14.4）| §7 | `diagnostics.py` |
+
+## 11. 参考
+
+- [可观测性机制设计](../20_system_design/mechanisms/observability.md)
+- [LLMTier 系统设计](../20_system_design/llmtier-system-design.md)
 - [Diagnostics ISD](../50_implementation_design/llmtier-diagnostics.isd.md)
 - `docs/40_module_design/llmtier-core-design.md` — 核心模块设计参考
 - `docs/40_module_design/llmtier-webui-design.md` — WebUI 设计参考

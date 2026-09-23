@@ -53,6 +53,7 @@
 | `management.development-plan` | management/software | 是，V0.3 implementation active | `docs/00_management/llmtier-implementation-plan.md`；编码调试与正式单元测试分Gate | LLMTier |
 | `design.system` | software | omit | LLMTier 为纯软件单服务；顶层设计与系统概览改由 `design.software-system` 承担，不另建总体系统文档 | LLMTier |
 | `design.software-system` | software | 是 | `docs/20_system_design/llmtier-system-design.md` | LLMTier |
+| `design.system-mechanism` | software | 是 | `docs/20_system_design/mechanisms/`；端到端机制在系统概览之上的展开 | LLMTier |
 | `design.subsystem` | software | 条件必需，当前 omit | 仅在 LLMTier 出现独立子系统时建立；当前所有模块归 `design.definition` | 对应 owner |
 | `design.definition` | software | 是 | `docs/40_module_design/`与`docs/50_implementation_design/`；不建立虚构subsystem | LLMTier |
 | `design.implementation` | software | 条件必需，当前 omit | 模块设计已包含实现细节（`docs/50_implementation_design/llmtier-runtime.isd.md`）；需要独立 ISD 时启用 | 对应 owner |

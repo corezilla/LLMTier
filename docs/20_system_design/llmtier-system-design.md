@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.4.0-draft.14` |
+| Document Version | `0.4.0-draft.15` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -147,15 +147,15 @@ LLMTier 不保存或补齐 Agent 历史，不做上下文压缩，不执行工�
 
 ### 3.5 机制清单与文档映射
 
-| Mechanism ID | 上级 Mechanism ID | Document ID | 文件名 | 范围 | Owner | 前置依赖（类别） | 写作状态 |
-|---|---|---|---|---|---|---|---|
-| M-TRUST | none | `llmtier-access-trust-mechanism` | `mechanisms/access-trust.md` | 访问信任：内网免登录 + 可选 Bearer 区分角色 | LLMTier | — | 成文 |
-| M-INFER | none | `llmtier-inference-stream-mechanism` | `mechanisms/inference-stream.md` | 推理与流式返回：校验→路由→准入→后端→SSE→终态 | LLMTier | M-TRUST（行为） | 成文 |
-| M-METER | none | `llmtier-usage-metering-mechanism` | `mechanisms/usage-metering.md` | 用量计量与账本：义务/版本/head/unknown | LLMTier | M-INFER（行为） | 成文 |
-| M-CONFIG | none | `llmtier-config-lifecycle-mechanism` | `mechanisms/config-lifecycle.md` | 配置引导与变更：bootstrap → SQLite 权威 | LLMTier | — | 成文 |
-| M-OBS | none | `llmtier-observability-mechanism` | `mechanisms/observability.md` | 上游快照、数据面统计、故障注入、单请求 trace、关联标识透传 | LLMTier | M-INFER（行为） | 成文 |
+| Mechanism ID / 用途 | 上级 Mechanism ID | 参与对象 / Process或Constraint | 前置依赖 | Document ID / 计划文件名 | Planned或实际基线 / 未决项 |
+|---|---|---|---|---|---|
+| M-TRUST / 访问信任：内网免登录 + 可选 Bearer 区分角色 | none | HTTP API、业务模块；C-TRUST-1..5 | — | `llmtier-access-trust-mechanism` / `mechanisms/access-trust.md` | 实际：成文（`0.1.0-draft.4`）|
+| M-INFER / 推理与流式返回：校验→路由→准入→后端→SSE→终态 | none | HTTP API、Inference、Router、Provider Adapter、Usage、Registry；P-INFER；C-INFER-1..5 | M-TRUST（行为）| `llmtier-inference-stream-mechanism` / `mechanisms/inference-stream.md` | 实际：成文（`0.1.0-draft.4`）|
+| M-METER / 用量计量与账本：义务/版本/head/unknown | none | Usage Recorder、Usage Reader、Admin、Store；C-METER-1..5 | M-INFER（行为）| `llmtier-usage-metering-mechanism` / `mechanisms/usage-metering.md` | 实际：成文（`0.1.0-draft.4`）|
+| M-CONFIG / 配置引导与变更：bootstrap → SQLite 权威 | none | 启动、Management（Registry/Config）、Store、Audit；C-CFG-1..5 | — | `llmtier-config-lifecycle-mechanism` / `mechanisms/config-lifecycle.md` | 实际：成文（`0.1.0-draft.4`）|
+| M-OBS / 上游快照、数据面统计、故障注入、单请求 trace、关联标识透传 | none | `libdiag`、Observability、Inference、HTTP Adapter、Store；C-OBS-1..5 | M-INFER（行为）| `llmtier-observability-mechanism` / `mechanisms/observability.md` | 实际：成文（`0.1.0-draft.4`）；流注入见 LT-OPEN-05 |
 
-均为顶层机制（无设计分解上级）；`M-INFER` 依赖 `M-TRUST` 的行为，`M-METER`/`M-OBS` 依赖 `M-INFER` 的行为。
+均为顶层机制（无设计分解上级）；`M-INFER` 依赖 `M-TRUST` 的行为，`M-METER`/`M-OBS` 依赖 `M-INFER` 的行为。Owner 均为 LLMTier。机制文档 `§14`（跨责任单元分解与接口分配）为下级模块设计的输入，模块设计以附录"机制承接表"逐条承接。
 
 模块与实现设计入口：
 

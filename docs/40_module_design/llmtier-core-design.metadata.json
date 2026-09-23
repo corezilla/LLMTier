@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "llmtier-core-module-design",
   "document_type": "design.definition",
-  "document_version": "0.3.0-draft.7",
+  "document_version": "0.3.0-draft.8",
   "title": "LLMTier V0.3 内部模块设计",
   "document_owner": "LLMTier",
   "authors": [

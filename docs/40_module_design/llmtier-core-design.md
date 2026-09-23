@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-core-module-design` |
-| Document Version | `0.3.0-draft.7` |
+| Document Version | `0.3.0-draft.8` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -145,3 +145,44 @@ Provider连接失败、timeout或SSE缺terminal由Adapter映射标准typed error
 | bootstrap唯一authority | store migration/operations tests |
 
 静态通过不表示provider或runtime已经实现；`runtime_activation=false`。
+
+## 12. 代码文件分解
+
+模块（§3）到代码文件的落点：
+
+| 模块（§3） | 代码文件 | 职责 |
+|---|---|---|
+| HTTP/SSE Adapter | `app.py`、`sse.py` | HTTP 路由、SSE 帧序与 terminal、`request_id` |
+| Auth/Validation | `auth.py`、`models.py` | 凭据解析、body/schema 校验 |
+| Exact Model Router | `routing.py`（选择部分） | 大小写精确选择、同等级候选 |
+| Internal Admission | `routing.py`（`admit`）、`concurrency.py` | 许可、队列、等待、429 |
+| Provider Adapter | `providers/base.py`、`providers/local.py`、`providers/openai.py` | 协议映射、usage 归一、typed error |
+| Usage Recorder | `usage.py` | 义务/绑定/终态版本、unknown |
+| Account Usage Reader | `account_usage.py` | operator 只读用量快照 |
+| Registry/Config | `registry.py`、`store.py`、`models.py` | 配置事务、快照、唯一持久化 |
+| Audit Writer | `audit.py` | 脱敏审计 |
+| Sanitized Log Reader | `logs.py`、`redaction.py` | 脱敏运行日志查询 |
+| Health/Readiness | `health.py` | 健康/就绪 |
+| Web UI | `webui/`（静态资源） | 管理面控制台 |
+| 错误/引导 | `errors.py`、`__main__.py` | typed error、启动引导 |
+
+## 附录 A. 机制承接表（对照用）
+
+本表汇总各机制对本模块提出的要求（来源：各机制文档 §14.4），供对照查漏；正文按其自身节奏组织，本节不约束正文顺序。
+
+| 机制 | 机制要求（来源）| 本文落点 | 代码文件 |
+|---|---|---|---|
+| M-INFER | SSE 帧序/terminal 唯一/`request_id` 透传（§14.4）| §5 | `app.py`、`sse.py` |
+| M-INFER | 校验顺序、`Principal`（§14.4）| §5、§9 | `auth.py`、`models.py` |
+| M-INFER | 准入/队列/等待/429（§14.4）| §8 | `routing.py`、`concurrency.py` |
+| M-INFER | 同等级候选选择（§14.4）| §8 | `routing.py` |
+| M-INFER | 协议映射、usage 归一、typed error（§14.4）| §5、§10 | `providers/*` |
+| M-INFER | 等级/能力只读查询（§14.4）| §7 | `registry.py` |
+| M-METER | unknown 不补零、版本追加、head 原子推进（§6）| §6 | `usage.py` |
+| M-METER | 分页 snapshot 冻结（§6）| §6 | `usage.py`、`store.py` |
+| M-CONFIG | bootstrap 唯一 authority（§4）| §4 | `__main__.py`、`store.py` |
+| M-CONFIG | 发布事务与 Registry/Embedding 不变量（§7）| §7 | `registry.py` |
+| M-CONFIG | Secret 只经引用解析（§4）| §4 | `store.py`、`providers/*` |
+| M-TRUST | 入口信任、`Principal` 下传（§14.4）| §5、§9 | `auth.py`、`app.py` |
+| M-TRUST | 401/403 不泄露资源存在性（§9）| §9 | `auth.py`、`admin.py` |
+| M-OBS | 观测写入 fail-open（§14.4）| 见 `llmtier-diagnostics-design.md` | 见 diagnostics 附录 A |
