@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `libdiag` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |

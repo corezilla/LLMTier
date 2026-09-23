@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.4.0-draft.17` |
+| Document Version | `0.4.0-draft.18` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -65,7 +65,7 @@ LLMTier 部署在局域网，作为 Consumer 与模型后端之间的模型网�
 | 模型发现 | `GET /v1/models` 与 exact-case detail | 返回逻辑等级与能力，不暴露物理账号 |
 | 向量化 | 标准 `POST /v1/embeddings` | 返回向量与 token Usage |
 | 工具调用 | 模型可返回 function call | Piko 执行工具并在下一次完整请求带回 tool result |
-| Usage | 响应内返回本次 token Usage；只读 `/v1/usage` 提供同一主体统一查询 | measured/estimated/unknown 可区分，unknown 不填零 |
+| Usage | 响应内返回本次 token Usage；只读 `/tier/admin/v1/usage` 提供同一主体统一查询 | measured/estimated/unknown 可区分，unknown 不填零 |
 | 自主管理 | 管理面 + Web UI 管理模型、等级、探测、Usage 与审计 | Operator 可自助完成配置与查询 |
 | 运维 | 无副作用健康/就绪检查；有费用或改变状态的探测需授权 | `/healthz`、`/readyz` 可用 |
 
@@ -189,7 +189,7 @@ LLMTier 无软件子系统（`std-tailoring` LT-TL-003 / LT-TL-013），三层�
 - `GET /v1/runtime`、`POST /v1/probes`
 - `GET /v1/usage`（自身或全部）、`DELETE /v1/usage`（仅 operator）
 - `GET /v1/audit`、`GET /v1/logs`
-- `GET/PATCH /v1/diagnostics`、`GET /v1/diagnostics/snapshots`、`GET /v1/diagnostics/stats`、`GET/PATCH /v1/deployments/{id}/diagnostics`、`GET /v1/trace/{request_id}`（LT-OBS）
+- `GET/PATCH /v1/diagnostics`、`GET /tier/admin/v1/diagnostics/snapshots`、`GET /tier/admin/v1/diagnostics/stats`、`GET/PATCH /tier/admin/v1/deployments/{id}/diagnostics`、`GET /v1/trace/{request_id}`（LT-OBS）
 
 状态反馈：标准 HTTP 错误区分 validation/auth/model_not_found/rate_limit/provider_unavailable/internal_error；429 可带 `Retry-After`；未知道具 `usage=null` 或字段 null + `measurement_status=unknown`，不得填零。
 
@@ -253,7 +253,7 @@ LLMTier 有自有图形界面（英文 operator 控制台）。本节在系统�
 
 ![PG-DIAG 布局](../assets/diagrams/webui-view-diag.png)
 
-4 个页签（Snapshots / Stats / Injection / Trace）+ 顶部全局开关；开关调用 `GET/PATCH /v1/diagnostics`；Injection 按 deployment 编辑（`PATCH /v1/deployments/{id}/diagnostics`）。
+4 个页签（Snapshots / Stats / Injection / Trace）+ 顶部全局开关；开关调用 `GET/PATCH /v1/diagnostics`；Injection 按 deployment 编辑（`PATCH /tier/admin/v1/deployments/{id}/diagnostics`）。
 
 **重要用户任务**（发布配置变更）：
 
@@ -434,7 +434,7 @@ LLMTier 对外暴露 OpenAI 兼容子集，consumer 可直接用 OpenAI SDK / �
 | POST | `/v1/embeddings` | Embeddings API；支持 float / base64 |
 | GET | `/v1/models` | 逻辑等级（模型）目录 |
 | GET | `/v1/models/{model}` | exact-case 模型能力与限额 |
-| GET | `/v1/usage` | token 用量查询（见"最小扩展"） |
+| GET | `/tier/admin/v1/usage` | token 用量查询（见"最小扩展"） |
 
 **协议要点**：
 
@@ -450,32 +450,34 @@ LLMTier 对外暴露 OpenAI 兼容子集，consumer 可直接用 OpenAI SDK / �
 
 | Method | Path | 说明 |
 |---|---|---|
-| GET, POST | `/v1/providers` | 列 / 建 provider |
+| GET, POST | `/tier/admin/v1/providers` | 列 / 建 provider |
 | GET, PATCH, DELETE | `/v1/providers/{provider_id}` | 取 / 改 / 删 provider |
 | GET, POST | `/v1/providers/{provider_id}/usage` | 账号用量：读快照 / 显式刷新（二次确认）|
 | GET | `/v1/providers/{provider_id}/models` | 列上游可用模型 |
-| GET, POST | `/v1/deployments` | 列 / 建 deployment |
+| GET, POST | `/tier/admin/v1/deployments` | 列 / 建 deployment |
 | GET, PATCH, DELETE | `/v1/deployments/{deployment_id}` | 取 / 改 / 删 deployment（含 Pause/Resume）|
-| GET, POST | `/v1/service-levels` | 列 / 建逻辑等级 |
+| GET, POST | `/tier/admin/v1/service-levels` | 列 / 建逻辑等级 |
 | GET, PATCH, DELETE | `/v1/service-levels/{service_level_id}` | 取 / 改 / 删等级成员绑定 |
 | GET | `/v1/runtime` | 运行时并发 / 队列快照 |
 | GET | `/v1/stats` | 用量聚合（时间窗 `from`/`to` + `group_by`）|
-| POST | `/v1/probes` | 部署探测（需二次确认 `confirm_external_call`）|
-| GET, DELETE | `/v1/usage` | 用量查询（operator 见全部）/ 按 model、deployment 或全部清空 |
-| GET | `/v1/audit` | 管理审计（脱敏）|
-| GET | `/v1/logs` | 运行日志（脱敏）|
+| POST | `/tier/admin/v1/probes` | 部署探测（需二次确认 `confirm_external_call`）|
+| GET, DELETE | `/tier/admin/v1/usage` | 用量查询（operator 见全部）/ 按 model、deployment 或全部清空 |
+| GET | `/tier/admin/v1/audit` | 管理审计（脱敏）|
+| GET | `/tier/admin/v1/logs` | 运行日志（脱敏）|
 
 ### 9.3 可观测性接口（LT-OBS，operator）
 
 | Method | Path | 说明 |
 |---|---|---|
 | GET, PATCH | `/v1/diagnostics` | 全局调试开关（快照捕获 / 统计聚合）|
-| GET | `/v1/diagnostics/snapshots` | 上游快照查询（分页）|
-| GET | `/v1/diagnostics/stats` | 数据面统计（P50/P95）|
-| GET, PATCH | `/v1/deployments/{id}/diagnostics` | 按 deployment 的注入配置 |
+| GET | `/tier/admin/v1/diagnostics/snapshots` | 上游快照查询（分页）|
+| GET | `/tier/admin/v1/diagnostics/stats` | 数据面统计（P50/P95）|
+| GET, PATCH | `/tier/admin/v1/deployments/{id}/diagnostics` | 按 deployment 的注入配置 |
 | GET | `/v1/trace/{request_id}` | 单请求全生命周期 |
 
-以上为设计已定、**实现待落地**（见 §11.3 与 `mechanisms/observability.md`），尚未进入当前 OpenAPI candidate。
+**契约前缀 `/tier/admin/v1/*`（`llmtier-management-contract-v0.3` 权威）。** 内部可走 `/v1/diagnostics*` 与 `/tier/admin/v1/diagnostics*` 同入口别名（实现 `29efe80`）；后续实现选择不影响契约。
+
+以上为设计已定；trace 时间窗端点（§2.7）为 Planned（接口未实现）。详见 `mechanisms/observability.md` 与 §11.3。
 
 ### 9.4 探针（无凭据）
 
@@ -633,7 +635,7 @@ python -m build            # 产出 sdist + wheel（可复现，无公网隐含�
 | S3 Embeddings | S1 | dedicated Embedding deployment + `/v1/embeddings`；Inference | `/v1/embeddings`、`Embedding-v1` space | 契约 + 系统测试 | `LT-OPEN-02` 权重/runtime digest |
 | S4 Usage 账本 | S2/S3 | 义务/版本/head/unknown；Inference、Management | `GET/DELETE /v1/usage`、账本表 | 系统测试（版本替换、unknown、清空） | 对账以账本为准 |
 | S5 管理面 + Web UI | S4；Registry 事务 | CRUD/探测/审计/日志 + 5 页控制台；Management | `/v1/{providers,deployments,service-levels,...}`、`/ui/*` | 契约 + 系统 + WebUI 契约测试 | 生产 SSO 由反代承接 |
-| S6 可观测性（LT-OBS） | S2；`libdiag` | 快照/统计/注入/trace + 开关；Observability | `/v1/diagnostics/*`、`/v1/trace/{id}` | 系统测试；联调复核 | `LT-OPEN-05` 流注入 |
+| S6 可观测性（LT-OBS） | S2；`libdiag` | 快照/统计/注入/trace + 开关；Observability | `/v1/diagnostics/*`、`/tier/admin/v1/trace/{id}` | 系统测试；联调复核 | `LT-OPEN-05` 流注入 |
 | S7 legacy 退役 | S2/S5 | 将 `/call`、Role routing、旧 CLI/agent 移出 consumer authority | 退役声明 + 负例 | 旧路径不存在负例 | 保留历史输入，不作 fallback |
 | S8 运行门禁 | S2–S7 | 部署证据、provider capture、Piko/Knowledge 联调 | activation 记录 | 第三方联调 | 另行审批才置 `runtime_activation=true` |
 

@@ -3,10 +3,12 @@
   "authority": "LLMTier",
   "document_id": "management",
   "document_type": "design.definition",
-  "document_version": "0.1.0-draft.1",
+  "document_version": "0.1.0-draft.2",
   "title": "LLMTier M004 Management 模块设计",
   "document_owner": "LLMTier",
-  "authors": ["llmtier"],
+  "authors": [
+    "llmtier"
+  ],
   "source_repository": "corezilla/LLMTier",
   "source_path": "docs/40_module_design/management-design.md",
   "template_id": "design.definition",
@@ -16,7 +18,9 @@
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,
   "design_level": "module",
-  "domain": ["software"],
+  "domain": [
+    "software"
+  ],
   "status": "draft",
   "visibility": "project",
   "reviewed_commit": null,

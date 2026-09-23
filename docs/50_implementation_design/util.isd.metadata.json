@@ -1,0 +1,122 @@
+{
+  "project": "LLMTier",
+  "authority": "LLMTier",
+  "document_id": "util-isd",
+  "document_type": "design.implementation",
+  "document_version": "0.1.0-draft.1",
+  "title": "LLMTier M007 util 实现规格设计（ISD）",
+  "document_owner": "LLMTier",
+  "authors": [
+    "llmtier"
+  ],
+  "source_repository": "corezilla/LLMTier",
+  "source_path": "docs/50_implementation_design/util.isd.md",
+  "template_id": "design.implementation",
+  "template_version": "0.2.1",
+  "template_sha256": "e0f49639aa40d0e19e56b62e20f5516cd490fa646af55045b7a6bcf15eada22c",
+  "template_conformance": "tailored",
+  "tailoring_ref": "std-tailoring",
+  "migration_map_ref": null,
+  "design_level": "module",
+  "domain": [
+    "software"
+  ],
+  "status": "draft",
+  "visibility": "project",
+  "reviewed_commit": null,
+  "parent_document_id": "llmtier-system-design",
+  "supersedes": null,
+  "created_at": "2026-09-23",
+  "last_modified_at": "2026-09-23",
+  "design_object_id": "M007",
+  "implementation_view_of_document_id": "util",
+  "volume_of_document_id": null,
+  "implementation_specification": {
+    "mode": "separate",
+    "document_id": "util-isd",
+    "coverage_mapping": [
+      {
+        "item": "scope",
+        "document_id": "util-isd",
+        "anchor": "isd-scope",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "structure",
+        "document_id": "util-isd",
+        "anchor": "isd-structure",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "data",
+        "document_id": "util-isd",
+        "anchor": "isd-data",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "functions",
+        "document_id": "util-isd",
+        "anchor": "isd-functions",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "algorithms",
+        "document_id": "util-isd",
+        "anchor": "isd-algorithms",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "lifecycle",
+        "document_id": "util-isd",
+        "anchor": "isd-lifecycle",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "resources",
+        "document_id": "util-isd",
+        "anchor": "isd-resources",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "security",
+        "document_id": "util-isd",
+        "anchor": "isd-security",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "persistence",
+        "document_id": "util-isd",
+        "anchor": "isd-persistence",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "verification",
+        "document_id": "util-isd",
+        "anchor": "isd-verification",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      }
+    ],
+    "reason": null,
+    "decision_ref": null
+  }
+}

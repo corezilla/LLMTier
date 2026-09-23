@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `observability` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -97,7 +97,7 @@
 
 ### 2.2 `F-OBS-SNAPSHOTS` · 快照查询
 - **上级需求 / Constraint ID**：机制 M-OBS CAP-OBS-1
-- **调用方**：M001（`GET /v1/diagnostics/snapshots`）
+- **调用方**：M001（`GET /tier/admin/v1/diagnostics/snapshots`）
 - **输入与前提**：`since/until/deployment_id/model/limit/cursor`
 - **行为**：按条件分页返回上游快照
 - **输出**：`{items, next_cursor, has_more}`
@@ -106,7 +106,7 @@
 
 ### 2.3 `F-OBS-STATS` · 统计查询
 - **上级需求 / Constraint ID**：机制 M-OBS CAP-OBS-2；契约 §5.3（口径）
-- **调用方**：M001（`GET /v1/diagnostics/stats`）
+- **调用方**：M001（`GET /tier/admin/v1/diagnostics/stats`）
 - **输入与前提**：`since/until` + 可选 `deployment_id/model`
 - **行为**：聚合计数 + `status_breakdown{status:count}` + P50/P95/min/max/avg
 - **输出**：`{request_count, error_count, status_breakdown{...}, error_4xx_count, error_5xx_count, p50, p95, min, max, avg}`
@@ -115,7 +115,7 @@
 
 ### 2.4 `F-OBS-INJECTIONS` · 注入配置
 - **上级需求 / Constraint ID**：`C-OBS-4`；机制 M-OBS CAP-OBS-5；契约 §5.1
-- **调用方**：M001（`GET/PATCH /v1/deployments/{id}/diagnostics`）
+- **调用方**：M001（`GET/PATCH /tier/admin/v1/deployments/{id}/diagnostics`）
 - **输入与前提**：operator；注入项列表
 - **行为**：按 deployment 读/写注入配置（部分更新）；**多 enabled 时按确定性优先级取"下一步要触发的一条"**——`fault_502 → fault_503 → rate_limit → delay`；流阶段同理 `stream_terminate → malformed_event`
 - **输出**：注入项列表 / 单条 enabled 项
@@ -315,13 +315,13 @@
 **内部流程正文**：诊断查询由 M001 路由到 `DiagnosticsService` 的查询方法，`Store` 返回后整形为视图（快照分页/统计/trace）；开关与注入的写操作经 `admin.mutate` 包裹审计，再调 `set_switches`/`set_injections`。所有写入 fail-open，失败记 warning 不改推理结果。关联标识在入口接收并回显、写入 trace。
 
 #### 7.1 `P-OBS-QUERY` · 诊断查询
-- **触发/适用条件**：`GET /v1/diagnostics*`、`/v1/trace/{id}`
+- **触发/适用条件**：`GET /v1/diagnostics*`、`/tier/admin/v1/trace/{id}`
 - **图与正文位置**：§5.2.1；机制 M-OBS §6
 - **正常出口**：视图
 - **异常出口**：400/404/503
 
 #### 7.2 `P-OBS-SWITCH` · 开关/注入变更
-- **触发/适用条件**：`PATCH /v1/diagnostics`、`PATCH /v1/deployments/{id}/diagnostics`
+- **触发/适用条件**：`PATCH /v1/diagnostics`、`PATCH /tier/admin/v1/deployments/{id}/diagnostics`
 - **图与正文位置**：§5.2.2
 - **正常出口**：新状态 + 审计(success)
 - **异常出口**：400/404 + 审计(failed)
@@ -359,7 +359,7 @@
 - **具体输入推演 / 验证项**：`?token=x` 被移除；`VRC-OBS-002`
 
 #### 8.4 `RULE-OBS-INJECT` · 注入参数校验
-- **输入前提 / 适用条件**：`PATCH /v1/deployments/{id}/diagnostics`
+- **输入前提 / 适用条件**：`PATCH /tier/admin/v1/deployments/{id}/diagnostics`
 - **算法 / 规则 / 选择依据**：`injection_type` 白名单；各 type 参数范围；部分更新语义
 - **结果 / 不变量 / 边界**：非法 → 400；未知 deployment → 404
 - **复杂度 / 资源限制**：O(items)
@@ -379,7 +379,7 @@
 对外端点由 M001 暴露；字段 authority 为 `interfaces/openapi/llmtier.openapi.json`。
 
 #### 9.1 `IF-DIAGNOSTICS` · 全局开关
-- **Direction / Operation / 责任模块 / backend**：in；`GET/PATCH /v1/diagnostics`；M005
+- **Direction / Operation / 责任模块 / backend**：in；`GET/PATCH /tier/admin/v1/diagnostics`；M005
 - **Request / Response / Error / ownership**：PATCH `{snapshots_enabled?, stats_enabled?}` → 状态；—
 - **Contract authority / version / revision / hash / selector**：OpenAPI
 - **前提 / timeout / 兼容边界 / Error model**：operator；部分更新
@@ -388,7 +388,7 @@
 - **关联类型字段 ID**：开关状态
 
 #### 9.2 `IF-DIAG-SNAPSHOTS` · 快照
-- **Direction / Operation / 责任模块 / backend**：in；`GET /v1/diagnostics/snapshots`；M005
+- **Direction / Operation / 责任模块 / backend**：in；`GET /tier/admin/v1/diagnostics/snapshots`；M005
 - **Request / Response / Error / ownership**：`since/until/deployment_id/model/limit/cursor` → `{items,next_cursor,has_more}`
 - **Contract authority / version / revision / hash / selector**：OpenAPI
 - **前提 / timeout / 兼容边界 / Error model**：400
@@ -397,7 +397,7 @@
 - **关联类型字段 ID**：`DiagnosticSnapshotView`（§6.1）
 
 #### 9.3 `IF-DIAG-STATS` · 统计
-- **Direction / Operation / 责任模块 / backend**：in；`GET /v1/diagnostics/stats`；M005
+- **Direction / Operation / 责任模块 / backend**：in；`GET /tier/admin/v1/diagnostics/stats`；M005
 - **Request / Response / Error / ownership**：`since/until/deployment_id/model` → `{request_count,error_count,status_breakdown,error_4xx_count,error_5xx_count,p50,p95,min,max,avg}`
 - **Contract authority / version / revision / hash / selector**：OpenAPI
 - **前提 / timeout / 兼容边界 / Error model**：400（缺时间）
@@ -406,11 +406,11 @@
 - **关联类型字段 ID**：`StatsView`（§6.2）
 
 #### 9.4 `IF-DIAG-INJECTIONS` · 注入
-- **Direction / Operation / 责任模块 / backend**：in；`GET/PATCH /v1/deployments/{id}/diagnostics`；M005
+- **Direction / Operation / 责任模块 / backend**：in；`GET/PATCH /tier/admin/v1/deployments/{id}/diagnostics`；M005
 - **Request / Response / Error / ownership**：注入项列表；400/404
 - **Contract authority / version / revision / hash / selector**：OpenAPI
-- **前提 / timeout / 兼容边界 / Error model**：白名单/部分更新
-- **本地文件 / symbol 或 NOT_IMPLEMENTED**：`diagnostics.py` `set_injections/injections`
+- **前提 / timeout / 兼容边界 / Error model**：白名单/部分更新；多 enabled 时确定性优先级（fault_502→fault_503→rate_limit→delay；流阶段 stream_terminate→malformed_event），首个命中触发一种
+- **本地文件 / symbol 或 NOT_IMPLEMENTED**：`diagnostics.py` `set_injections/injections`；暴露的 `enabled_injection()` 返回单条最高优先级
 - **Constraint / VRC / Case / 环境 / Run**：`C-OBS-4`；`VRC-OBS-003`；NOT_RUN
 - **关联类型字段 ID**：`InjectionView`（§6.4）
 
@@ -500,7 +500,7 @@
 
 #### 13.1.1 `src/llmtier_v03/app.py`（诊断路由）
 - **职责 / 非职责**：诊断端点路由、关联标识透传/回显、开关/注入经审计；不含记录逻辑
-- **关键 symbol / 导出范围**：`/v1/diagnostics*`、`/v1/trace/{id}` 分支；`X-Correlation-ID` 处理
+- **关键 symbol / 导出范围**：`/v1/diagnostics*`、`/tier/admin/v1/trace/{id}` 分支；`X-Correlation-ID` 处理
 - **承接 Function / Rule / Constraint / Interface ID**：`F-OBS-SWITCH/SNAPSHOTS/STATS/INJECTIONS/TRACE/CORRELATION`、`C-OBS-4`、`IF-DIAGNOSTICS/SNAPSHOTS/STATS/INJECTIONS/TRACE`
 - **构建目标 / 依赖 / 宿主装配**：随 `Application`
 - **实现状态**：Implemented

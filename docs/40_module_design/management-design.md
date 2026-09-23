@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `management` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -106,7 +106,7 @@
 
 ### 2.2 `F-MGMT-CRUD` · 配置增删改查
 - **上级需求 / Constraint ID**：`C-CFG-1/3/4`；机制 M-CONFIG CAP-CFG-CRUD
-- **调用方**：M001（`/v1/providers`、`/v1/deployments`、`/v1/service-levels`）
+- **调用方**：M001（`/tier/admin/v1/providers`、`/tier/admin/v1/deployments`、`/tier/admin/v1/service-levels`）
 - **输入与前提**：operator 凭据；`If-Match`（PATCH/DELETE）
 - **行为**：事务化 CRUD + 能力/不变量校验 + 审计；`version+1`
 - **输出**：视图 + `ETag`
@@ -499,7 +499,7 @@
 对外端点由 M001 暴露；字段 authority 为 `interfaces/openapi/llmtier.openapi.json`。
 
 #### 9.1 `IF-PROVIDERS` · provider 管理
-- **Direction / Operation / 责任模块 / backend**：in；`/v1/providers[/{id}]`、`/v1/providers/{id}/usage`、`/v1/providers/{id}/models`；M004
+- **Direction / Operation / 责任模块 / backend**：in；`/v1/providers[/{id}]`、`/tier/admin/v1/providers/{id}/usage`、`/tier/admin/v1/providers/{id}/models`；M004
 - **Request / Response / Error / ownership**：视图/POST body；400/404/409/412
 - **Contract authority / version / revision / hash / selector**：OpenAPI
 - **前提 / timeout / 兼容边界 / Error model**：`If-Match`；name 唯一；Secret 只写不回显
@@ -517,7 +517,7 @@
 - **关联类型字段 ID**：`Deployment` 视图
 
 #### 9.3 `IF-LEVELS` · service level 管理
-- **Direction / Operation / 责任模块 / backend**：in；`/v1/service-levels`；M004
+- **Direction / Operation / 责任模块 / backend**：in；`/tier/admin/v1/service-levels`；M004
 - **Request / Response / Error / ownership**：视图/body；400/409/412；DELETE → 409 `fixed_service_level`
 - **Contract authority / version / revision / hash / selector**：OpenAPI
 - **前提 / timeout / 兼容边界 / Error model**：固定 7 个 Tier
@@ -535,7 +535,7 @@
 - **关联类型字段 ID**：-
 
 #### 9.5 `IF-USAGE` · 用量查询/清空/统计
-- **Direction / Operation / 责任模块 / backend**：in；`/v1/usage`、`/v1/stats`；M004
+- **Direction / Operation / 责任模块 / backend**：in；`/tier/admin/v1/usage`、`/v1/stats`；M004
 - **Request / Response / Error / ownership**：查询/`{deleted}`/统计；400/403/503
 - **Contract authority / version / revision / hash / selector**：OpenAPI
 - **前提 / timeout / 兼容边界 / Error model**：`[from,to)`；cursor 冻结
