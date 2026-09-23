@@ -256,13 +256,35 @@ Web UI 是纯浏览器控制台，无 CLI；布局基线由可切换静态 Demo 
 
 ## 4. 外部边界与依赖
 
-| 依赖/参与方 | 本单元调用或消费 | 本单元提供 | 契约 | timeout/失败影响 |
-|---|---|---|---|---|
-| M001 HTTP API | 同源调用全部管理面 `/v1` 与 `/healthz`、`/readyz` | 浏览器页面（同源）| 见 OpenAPI（机器 authority）| 401/403/409/412/429/503 按 §7 呈现 |
-| M004 Management | 消费 provider/deployment/level、审计、日志、用量查询接口 | — | 内部/HTTP | 数据边界：后端行不虚构单模型用量 |
-| M005 Observability | 消费诊断接口 | — | HTTP | fail-open；诊断不可用不阻塞其他页 |
-| operator SSO 代理（外部）| 同源 TLS 反向代理注入 Admin bearer | 会话 cookie | `Secure; HttpOnly; SameSite=Strict` | 401 跳外部登录；403 留在当前页 |
-| M003 Inference | —（不直连）| — | — | 仅经 M001 |
+#### 依赖 1 · M001 HTTP API
+- **本单元调用或消费**：同源调用全部管理面 `/v1` 与 `/healthz`、`/readyz`
+- **本单元提供**：浏览器页面（同源）
+- **契约**：见 OpenAPI（机器 authority）
+- **timeout/失败影响**：401/403/409/412/429/503 按 §7 呈现
+
+#### 依赖 2 · M004 Management
+- **本单元调用或消费**：provider / deployment / level、审计、日志、用量查询接口
+- **本单元提供**：—
+- **契约**：内部 / HTTP
+- **timeout/失败影响**：数据边界——后端行不虚构单模型用量
+
+#### 依赖 3 · M005 Observability
+- **本单元调用或消费**：诊断接口
+- **本单元提供**：—
+- **契约**：HTTP
+- **timeout/失败影响**：fail-open；诊断不可用不阻塞其他页
+
+#### 依赖 4 · operator SSO 代理（外部）
+- **本单元调用或消费**：同源 TLS 反向代理注入 Admin bearer
+- **本单元提供**：会话 cookie
+- **契约**：`Secure; HttpOnly; SameSite=Strict`
+- **timeout/失败影响**：401 跳外部登录；403 留在当前页
+
+#### 依赖 5 · M003 Inference
+- **本单元调用或消费**：—（不直连）
+- **本单元提供**：—
+- **契约**：—
+- **timeout/失败影响**：仅经 M001
 
 **边界**：Web UI 不读 SQLite/settings/Secret，不新增登录 endpoint/用户 Schema/第二认证路径；development 无认证代理时保持 disabled。
 
@@ -279,17 +301,50 @@ Web UI 是纯浏览器控制台，无 CLI；布局基线由可切换静态 Demo 
 
 图 M002-S1 · M002 内部结构：框架（I1）与 API 客户端（I2）为公共层，五个页面组件（I3–I7）、图标库（I8）与交互状态（I9）在其内；对 `M001 HTTP API` 只有同源调用（虚线），无服务端逻辑。
 
-| Internal ID | 内部组件 | 处理与协作 | 输入/输出 | 文件/symbol |
-|---|---|---|---|---|
-| I1 | Frame & Nav | 窄侧栏 + 页头 + 主卡片；<960px 折叠为顶部菜单 | 路由 → 框架 | `webui/index.html`、`webui/app.js` |
-| I2 | API Client | 同源 `fetch` 封装：ETag/If-Match、错误码→UI 状态、cursor 翻页 | 调用 → JSON | `webui/app.js` |
-| I3 | Page: Home | Tier 树渲染、Tier 抽屉、Pause/Resume、探测确认 | 数据 → 树/抽屉 | `webui/app.js`（Home）|
-| I4 | Page: Providers | Provider CRUD + 账号用量刷新 | 表单 → 表 | `webui/app.js`（Providers）|
-| I5 | Page: Usage & Audit | 页签 + 两表 + 冻结分页 | 查询 → 表 | `webui/app.js` |
-| I6 | Page: Logs | 过滤 + 脱敏表 | 查询 → 表 | `webui/app.js` |
-| I7 | Page: Diagnostics | 4 tabs + 全局开关 | 查询/开关 → 视图 | `webui/app.js`（Diagnostics）|
-| I8 | Icon Set | 单线 SVG 图标（状态/操作）| 名称 → 图形 | `webui/icons.svg` |
-| I9 | Interaction States | Loading/Empty/401/403/409/412/429/503 统一处理 | 状态 → UI | `webui/app.js` |
+#### I1 · Frame & Nav
+- **处理与协作**：窄侧栏 + 页头 + 主卡片；<960px 折叠为顶部菜单
+- **输入/输出**：路由 → 框架
+- **文件/symbol**：`webui/index.html`、`webui/app.js`
+
+#### I2 · API Client
+- **处理与协作**：同源 `fetch` 封装——ETag/If-Match、错误码→UI 状态、cursor 翻页
+- **输入/输出**：调用 → JSON
+- **文件/symbol**：`webui/app.js`
+
+#### I3 · Page: Home
+- **处理与协作**：Tier 树渲染、Tier 抽屉、Pause/Resume、探测确认
+- **输入/输出**：数据 → 树/抽屉
+- **文件/symbol**：`webui/app.js`（Home）
+
+#### I4 · Page: Providers
+- **处理与协作**：Provider CRUD + 账号用量刷新
+- **输入/输出**：表单 → 表
+- **文件/symbol**：`webui/app.js`（Providers）
+
+#### I5 · Page: Usage & Audit
+- **处理与协作**：页签 + 两表 + 冻结分页
+- **输入/输出**：查询 → 表
+- **文件/symbol**：`webui/app.js`
+
+#### I6 · Page: Logs
+- **处理与协作**：过滤 + 脱敏表
+- **输入/输出**：查询 → 表
+- **文件/symbol**：`webui/app.js`
+
+#### I7 · Page: Diagnostics
+- **处理与协作**：4 tabs + 全局开关
+- **输入/输出**：查询/开关 → 视图
+- **文件/symbol**：`webui/app.js`（Diagnostics）
+
+#### I8 · Icon Set
+- **处理与协作**：单线 SVG 图标（状态/操作）
+- **输入/输出**：名称 → 图形
+- **文件/symbol**：`webui/icons.svg`
+
+#### I9 · Interaction States
+- **处理与协作**：Loading / Empty / 401 / 403 / 409 / 412 / 429 / 503 统一处理
+- **输入/输出**：状态 → UI
+- **文件/symbol**：`webui/app.js`
 
 图 A1（系统设计 §3.1）中 M002 的框即本模块边界；组件全在浏览器内，服务端仅静态交付。主流程见 §7。
 
@@ -350,22 +405,52 @@ index.html（页面壳：容器 id + 装配 styles.css / icons.svg / app.js）
 
 ## 6. 数据模型、状态与 ownership
 
-| 对象 | 所有者 / 访问方式 | 出生与结束 | 成功 / 失败后的归属 |
-|---|---|---|---|
-| 页面视图状态 | I3–I7 各自持有（内存）| 页面进入/刷新 | 不持久化；刷新重建 |
-| 表单草稿 | 对应页面内存 | 编辑开始→保存/放弃 | 412 时保留草稿供复制后重载 |
-| ETag | I2 从 GET item 暂存 | 编辑事务内 | 变更后失效；不跨页复用 |
-| cursor | I2 | 翻页内 | URL query（审计页）保留，可刷新恢复 |
-| 会话 cookie | **SSO 代理**（非本模块）| 代理签发/撤销 | 本模块只携带，不解析、不存 token |
+#### 页面视图状态
+- **所有者 / 访问方式**：I3–I7 各自持有（内存）
+- **出生与结束**：页面进入 / 刷新
+- **成功 / 失败后的归属**：不持久化；刷新重建
+
+#### 表单草稿
+- **所有者 / 访问方式**：对应页面内存
+- **出生与结束**：编辑开始 → 保存 / 放弃
+- **成功 / 失败后的归属**：412 时保留草稿供复制后重载
+
+#### ETag
+- **所有者 / 访问方式**：I2 从 GET item 暂存
+- **出生与结束**：编辑事务内
+- **成功 / 失败后的归属**：变更后失效；不跨页复用
+
+#### cursor
+- **所有者 / 访问方式**：I2
+- **出生与结束**：翻页内
+- **成功 / 失败后的归属**：URL query（审计页）保留，可刷新恢复
+
+#### 会话 cookie
+- **所有者 / 访问方式**：**SSO 代理**（非本模块）
+- **出生与结束**：代理签发 / 撤销
+- **成功 / 失败后的归属**：本模块只携带，不解析、不存 token
 
 **数据结构（前端内存对象 / 消费的响应形状）**：
 
-| 结构 | 产生位置 | 字段（形状）| 说明 |
-|---|---|---|---|
-| `state` | `app.js` | `{registry, providers[], deployments[], usage, runtime}` | 页面内存缓存；不持久化 |
-| 装载对象 | `loadRegistry/loadHome/...` | 各接口响应（字段由 OpenAPI 决定）| 「Read」列见 §9 |
-| ETag | `api`/编辑流程 | `string`（`"<id>.v<n>"`）| 编辑事务内暂存，`If-Match` 提交 |
-| 错误状态 | I9 | `{status:int, code?:string}` | 401/403/409/412/429/503 → UI 呈现 |
+#### `state`
+- **产生位置**：`app.js`
+- **字段（形状）**：`{registry, providers[], deployments[], usage, runtime}`
+- **说明**：页面内存缓存；不持久化
+
+#### 装载对象
+- **产生位置**：`loadRegistry/loadHome/...`
+- **字段（形状）**：各接口响应（字段由 OpenAPI 决定）
+- **说明**：「Read」列见 §9
+
+#### ETag
+- **产生位置**：`api` / 编辑流程
+- **字段（形状）**：`string`（`"<id>.v<n>"`）
+- **说明**：编辑事务内暂存，`If-Match` 提交
+
+#### 错误状态
+- **产生位置**：I9
+- **字段（形状）**：`{status:int, code?:string}`
+- **说明**：401/403/409/412/429/503 → UI 呈现
 
 本模块**无自有持久状态**、不写库、不落 localStorage/sessionStorage（bearer/Secret 均不入 JS）。
 
@@ -379,23 +464,67 @@ index.html（页面壳：容器 id + 装配 styles.css / icons.svg / app.js）
 
 **内部流程正文**：operator 打开页面后，**I1 Frame/Nav** 先渲染框架，**I2 API Client** 通过同源 SSO 代理发起 GET。认证判定失败（401）→ 清 UI 会话并跳外部登录；通过后按数据可用性分岔——403 显示无权限且不猜存在性，503 保留旧画面并标记 stale，200 交 **I3–I7** 渲染（Tier 树 / 表 / 页签 / tabs）。进入编辑时 I2 先 GET item 存 ETag，**I3/I4** 做字段级校验，再由 I2 以 `PATCH + If-Match` 提交：412 → 提示 stale 并保留用户输入，409 → 显示引用冲突且禁强删，200 → 交 **I9** 更新视图（保存成功 ≠ health/probe 成功）。
 
-| Process ID | 触发/适用条件 | 图与正文位置 | 正常出口 | 异常出口 |
-|---|---|---|---|---|
-| P-UI-LOAD | 进入任意页面 | 本段 / 图 M002-P1；§3 布局图 | I3–I7 渲染数据 | 401 跳登录；403 无权限；503 stale |
-| P-UI-EDIT | Tier/Provider 编辑 | 本段 / 图 M002-P1 | PATCH 成功 + 新 ETag | 412 stale；409 引用；未知先 GET |
-| P-UI-PAUSE | 后端行 Pause/Resume | §3 Home | `enabled` 切换 | 412；`running>0` 前确认 |
-| P-UI-PROBE | 点“探测” | §3 Home | 二次确认后 POST | 未知结果不自动重复 |
-| P-UI-DIAG | 诊断开关/注入 | §3 Diagnostics | PATCH 生效 | 关闭 → Disabled |
+#### P-UI-LOAD · 页面加载
+- **触发/适用条件**：进入任意页面
+- **图与正文位置**：本段 / 图 M002-P1；§3 布局图
+- **正常出口**：I3–I7 渲染数据
+- **异常出口**：401 跳登录；403 无权限；503 stale
+
+#### P-UI-EDIT · 编辑保存
+- **触发/适用条件**：Tier / Provider 编辑
+- **图与正文位置**：本段 / 图 M002-P1
+- **正常出口**：PATCH 成功 + 新 ETag
+- **异常出口**：412 stale；409 引用；未知先 GET
+
+#### P-UI-PAUSE · 暂停/恢复
+- **触发/适用条件**：后端行 Pause / Resume
+- **图与正文位置**：§3 Home
+- **正常出口**：`enabled` 切换
+- **异常出口**：412；`running>0` 前确认
+
+#### P-UI-PROBE · 探测
+- **触发/适用条件**：点“探测”
+- **图与正文位置**：§3 Home
+- **正常出口**：二次确认后 POST
+- **异常出口**：未知结果不自动重复
+
+#### P-UI-DIAG · 诊断
+- **触发/适用条件**：诊断开关 / 注入
+- **图与正文位置**：§3 Diagnostics
+- **正常出口**：PATCH 生效
+- **异常出口**：关闭 → Disabled
 
 **P-UI-EDIT 步骤**（执行组件 / 数据形态 / 状态变化）：
 
-| Step | 输入 | 执行组件 | 处理/规则 | 输出/交给谁 |
-|---|---|---|---|---|
-| 1 | 打开编辑 | I2 | GET item，存 ETag | 表单初值 + ETag → I3/I4 |
-| 2 | 用户修改 | I3/I4 | 字段级校验（英文错误就近）| 草稿（内存）|
-| 3 | 保存 | I2 | PATCH + `If-Match` | 200 + 新 ETag → I9 |
-| 4 | 冲突 | I2/I9 | 412 → 提示“他人已修改”，保留输入供重载 | 不自动覆盖 |
-| 5 | 引用 | I2/I9 | 409 → 显示引用摘要，禁强删 | 不级联 |
+#### 步骤 1 · 打开编辑
+- **输入**：打开编辑
+- **执行组件**：I2
+- **处理/规则**：GET item，存 ETag
+- **输出/交给谁**：表单初值 + ETag → I3/I4
+
+#### 步骤 2 · 用户修改
+- **输入**：用户修改
+- **执行组件**：I3/I4
+- **处理/规则**：字段级校验（英文错误就近）
+- **输出/交给谁**：草稿（内存）
+
+#### 步骤 3 · 保存
+- **输入**：保存
+- **执行组件**：I2
+- **处理/规则**：PATCH + `If-Match`
+- **输出/交给谁**：200 + 新 ETag → I9
+
+#### 步骤 4 · 冲突
+- **输入**：冲突
+- **执行组件**：I2/I9
+- **处理/规则**：412 → 提示“他人已修改”，保留输入供重载
+- **输出/交给谁**：不自动覆盖
+
+#### 步骤 5 · 引用
+- **输入**：引用
+- **执行组件**：I2/I9
+- **处理/规则**：409 → 显示引用摘要，禁强删
+- **输出/交给谁**：不级联
 
 **通用交互状态（I9）**：Loading 用局部骨架、不清空上次数据；Empty 说明“无数据≠加载失败”；401 清会话跳登录、不回显 token；403 不猜存在性；409 显示引用冲突；412 允许复制草稿后重载；429/503 显示 `Retry-After`（若有）且不无限重试；结果未知先 GET 核对，不盲目重发 mutation。
 
@@ -490,13 +619,35 @@ Web UI **不拥有机器契约**；它消费 M001 暴露的端点，字段 autho
 
 ## 12. 容量、性能与运行限制
 
-| 指标 | 目标/限制 | 口径与负载 | 证据等级 | 超限行为 |
-|---|---|---|---|---|
-| 服务端成本 | 仅静态交付（`Cache-Control: no-store`）| 单 operator | Specified | 无 |
-| 视口 | 1280×760 基线；<960px 侧栏折叠 | — | Specified | 表格横向滚动 |
-| 分页 | cursor-based；Diagnostics 快照 50/页 | — | Specified | 显示 next_cursor |
-| 图标/字体 | 项目内单线 SVG；无 CDN/emoji | — | Specified | — |
-| 页面长度 | 五页各自短页；不拼成长页 | — | Specified | 页签/抽屉分载 |
+#### 服务端成本
+- **目标/限制**：仅静态交付（`Cache-Control: no-store`）
+- **口径与负载**：单 operator
+- **证据等级**：Specified
+- **超限行为**：无
+
+#### 视口
+- **目标/限制**：1280×760 基线；<960px 侧栏折叠
+- **口径与负载**：—
+- **证据等级**：Specified
+- **超限行为**：表格横向滚动
+
+#### 分页
+- **目标/限制**：cursor-based；Diagnostics 快照 50/页
+- **口径与负载**：—
+- **证据等级**：Specified
+- **超限行为**：显示 next_cursor
+
+#### 图标 / 字体
+- **目标/限制**：项目内单线 SVG；无 CDN / emoji
+- **口径与负载**：—
+- **证据等级**：Specified
+- **超限行为**：—
+
+#### 页面长度
+- **目标/限制**：五页各自短页；不拼成长页
+- **口径与负载**：—
+- **证据等级**：Specified
+- **超限行为**：页签 / 抽屉分载
 
 ## 13. 实现步骤与文件清单
 
@@ -627,9 +778,11 @@ Web UI **不拥有机器契约**；它消费 M001 暴露的端点，字段 autho
 
 **ISD 采用模式**：
 
-| ISD采用模式 | 对象ID | 实现规格 Document ID | metadata 覆盖映射入口 | 不需要时的理由/决定引用 |
-|---|---|---|---|---|
-| 兼作（浏览器端逻辑集中在 `app.js`）| M002 | — | — | 静态资源 + 单脚本，实现细节在本设计内 |
+#### ISD 采用模式 · 兼作
+- **对象ID**：M002
+- **实现规格 Document ID**：—
+- **metadata 覆盖映射入口**：—
+- **不需要时的理由/决定引用**：静态资源 + 单脚本，实现细节在本设计内
 
 #### OPEN-UI-1 · §5 内部结构图
 - **问题**：§5 内部结构图已出（图 M002-S1）

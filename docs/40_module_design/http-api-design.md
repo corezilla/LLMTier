@@ -200,13 +200,35 @@ M001 是 LLMTier 的**唯一对外入口**：所有外部交互都先经过它�
 
 ## 4. 外部边界与依赖
 
-| 依赖/参与方 | 本单元调用或消费 | 本单元提供 | 契约 | timeout/失败影响 |
-|---|---|---|---|---|
-| M003 Inference | 消费推理/向量化业务接口 | 转发 `/v1/responses`、`/v1/embeddings` | 内部函数（§9）| 业务错误按 `ApiError` 映射 |
-| M004 Management | 消费管理/审计/日志/统计接口 | 转发 `/v1/providers` 等管理面 | 内部函数 | 同上 |
-| M005 Observability | 消费诊断接口与关联标识 | 转发 `/v1/diagnostics`、`/v1/trace` | 内部函数 | 观测 fail-open |
-| Consumer（外部） | — | `/v1/responses`、`/v1/embeddings`、SSE | 见 OpenAPI（机器 authority）| 断开 → 结束本次调用 |
-| Operator（外部） | — | 管理面 + `/ui/*` | 见 OpenAPI | — |
+#### 依赖 1 · M003 Inference
+- **本单元调用或消费**：消费推理 / 向量化业务接口
+- **本单元提供**：转发 `/v1/responses`、`/v1/embeddings`
+- **契约**：内部函数（§9）
+- **timeout/失败影响**：业务错误按 `ApiError` 映射
+
+#### 依赖 2 · M004 Management
+- **本单元调用或消费**：消费管理 / 审计 / 日志 / 统计接口
+- **本单元提供**：转发 `/v1/providers` 等管理面
+- **契约**：内部函数
+- **timeout/失败影响**：同上
+
+#### 依赖 3 · M005 Observability
+- **本单元调用或消费**：消费诊断接口与关联标识
+- **本单元提供**：转发 `/v1/diagnostics`、`/v1/trace`
+- **契约**：内部函数
+- **timeout/失败影响**：观测 fail-open
+
+#### 依赖 4 · Consumer（外部）
+- **本单元调用或消费**：—
+- **本单元提供**：`/v1/responses`、`/v1/embeddings`、SSE
+- **契约**：见 OpenAPI（机器 authority）
+- **timeout/失败影响**：断开 → 结束本次调用
+
+#### 依赖 5 · Operator（外部）
+- **本单元调用或消费**：—
+- **本单元提供**：管理面 + `/ui/*`
+- **契约**：见 OpenAPI
+- **timeout/失败影响**：—
 
 ## 5. 内部结构与实现位置
 
@@ -221,13 +243,30 @@ M001 是 LLMTier 的**唯一对外入口**：所有外部交互都先经过它�
 
 图 M001-S1 · M001 内部结构：I1 Dispatch 与 I2 Auth/Validation 为公共层，I3 SSE Transport / I4 Static Server / I5 Health 为出口组件；对外是 Consumer/Operator（HTTP/SSE），对下调用 M003/M004/M005（内部函数）。
 
-| Internal ID | 内部组件 | 处理与协作 | 输入/输出 | 文件/symbol |
-|---|---|---|---|---|
-| I1 | Dispatch | 解析 path/method、路由表匹配、调用业务处理器、统一错误出口 | `self.path` → 业务调用 | `app.py` `Handler._dispatch` |
-| I2 | Auth/Validation | 端点→角色、免登录/凭据判定、body 解析与限长 | headers/address/body → `Principal`、dict | `app.py` `_auth`/`_auth_either`/`_body` + `auth.py` |
-| I3 | SSE Transport | 发送 SSE 头、逐帧 flush、断开捕获 | `ResponsesResponse` → 帧序列 | `app.py`（`/v1/responses` 分支）+ `sse.py` |
-| I4 | Static Server | 安全解析 `/ui/*`、返回静态文件 | 路径 → 文件 | `app.py` `_static` + `webui/` |
-| I5 | Health/Readiness | `/healthz`、`/readyz`、引导失败状态 | 无 → 状态 JSON | `app.py` + `health.py` |
+#### I1 · Dispatch
+- **处理与协作**：解析 path/method、路由表匹配、调用业务处理器、统一错误出口
+- **输入/输出**：`self.path` → 业务调用
+- **文件/symbol**：`app.py` `Handler._dispatch`
+
+#### I2 · Auth/Validation
+- **处理与协作**：端点→角色、免登录/凭据判定、body 解析与限长
+- **输入/输出**：headers/address/body → `Principal`、dict
+- **文件/symbol**：`app.py` `_auth`/`_auth_either`/`_body` + `auth.py`
+
+#### I3 · SSE Transport
+- **处理与协作**：发送 SSE 头、逐帧 flush、断开捕获
+- **输入/输出**：`ResponsesResponse` → 帧序列
+- **文件/symbol**：`app.py`（`/v1/responses` 分支）+ `sse.py`
+
+#### I4 · Static Server
+- **处理与协作**：安全解析 `/ui/*`、返回静态文件
+- **输入/输出**：路径 → 文件
+- **文件/symbol**：`app.py` `_static` + `webui/`
+
+#### I5 · Health/Readiness
+- **处理与协作**：`/healthz`、`/readyz`、引导失败状态
+- **输入/输出**：无 → 状态 JSON
+- **文件/symbol**：`app.py` + `health.py`
 
 图 A1（系统设计 §3.1）中 M001 的框即本模块边界；内部五个组件同进程、无线程池自建（由 `ThreadingHTTPServer` 每请求一线程提供）。请求级生命周期见 §6，主流程见 §7。
 
@@ -360,22 +399,52 @@ ThreadingHTTPServer（进程级）
 
 ## 6. 数据模型、状态与 ownership
 
-| 对象 | 所有者 / 访问方式 | 出生与结束 | 成功 / 失败后的归属 |
-|---|---|---|---|
-| `request_id` | I1 构造，随响应头/日志/trace 传递 | 请求开始生成；请求结束废弃 | 只读随请求；不持久化 |
-| `Principal` | I2 构造，交业务模块只读消费 | 请求开始；请求结束 | 请求级；不落库 |
-| body dict | I2 解析，交业务模块只读 | 请求开始；请求结束 | 请求级 |
-| 线程/连接 | `ThreadingHTTPServer` 提供 | 每请求一线程；请求结束关闭 | 每请求在 `finally` 关闭 Store 连接 |
+#### `request_id`
+- **所有者 / 访问方式**：I1 构造，随响应头/日志/trace 传递
+- **出生与结束**：请求开始生成；请求结束废弃
+- **成功 / 失败后的归属**：只读随请求；不持久化
+
+#### `Principal`
+- **所有者 / 访问方式**：I2 构造，交业务模块只读消费
+- **出生与结束**：请求开始；请求结束
+- **成功 / 失败后的归属**：请求级；不落库
+
+#### request body
+- **所有者 / 访问方式**：I2 解析，交业务模块只读
+- **出生与结束**：请求开始；请求结束
+- **成功 / 失败后的归属**：请求级
+
+#### 线程 / 连接
+- **所有者 / 访问方式**：`ThreadingHTTPServer` 提供
+- **出生与结束**：每请求一线程；请求结束关闭
+- **成功 / 失败后的归属**：每请求在 `finally` 关闭 Store 连接
 
 **数据结构（字段级）**：
 
-| 结构 | 定义位置 | 字段 | 说明 |
-|---|---|---|---|
-| `Principal` | `auth.py` | `principal_id: str(≤128)`、`role: Literal["data","admin"]` | `@dataclass(frozen=True, slots=True)`；请求级、不持久化、不落日志 |
-| `ApiError` | `errors.py` | `status:int`、`code:str`、`message:str`、`param:str\|None`、`retryable:bool`、`headers:dict\|None`、`extra:dict\|None` | `@dataclass(slots=True)`；`envelope()` 产出 `{"error":{...}}` |
-| `request_id` | `app.py` | `str`（`req_<32hex>`）| 请求身份；写入 `X-Request-ID`、日志与 trace |
-| request body | — | `dict` | 解析后的 JSON；只读交接给业务模块 |
-| SSE 帧 | `sse.py` | `event:<name>\ndata:<json>\n\n`（UTF-8）| 传输单元；`sequence_number` 单调递增 |
+#### `Principal`
+- **定义位置**：`auth.py`
+- **字段**：`principal_id: str(≤128)`、`role: Literal["data","admin"]`
+- **说明**：`@dataclass(frozen=True, slots=True)`；请求级、不持久化、不落日志
+
+#### `ApiError`
+- **定义位置**：`errors.py`
+- **字段**：`status:int`、`code:str`、`message:str`、`param:str|None`、`retryable:bool`、`headers:dict|None`、`extra:dict|None`
+- **说明**：`@dataclass(slots=True)`；`envelope()` 产出 `{"error":{...}}`
+
+#### `request_id`
+- **定义位置**：`app.py`
+- **字段**：`str`（`req_<32hex>`）
+- **说明**：请求身份；写入 `X-Request-ID`、日志与 trace
+
+#### request body
+- **定义位置**：—
+- **字段**：`dict`
+- **说明**：解析后的 JSON；只读交接给业务模块
+
+#### SSE 帧
+- **定义位置**：`sse.py`
+- **字段**：`event:<name>\ndata:<json>\n\n`（UTF-8）
+- **说明**：传输单元；`sequence_number` 单调递增
 
 本模块**无自有持久状态**；不写库。持久化由 M007 `util` 承担。
 
@@ -389,22 +458,61 @@ ThreadingHTTPServer（进程级）
 
 **内部流程正文**：请求进入后由 **I1 Dispatch** 生成 `request_id` 并按路径分类；**健康/静态**由 I1 直接响应，**引导失败**在业务路由前拦截返回，**业务请求**交 **I2 Auth/Validation**。I2 先按端点选角色并判定信任（失败 → 401/403），再解析 body（超限 413 / 非法 400），随后回到 I1 调用业务处理器（M003/M004/M005）。业务返回后分两条路：**非 SSE** 由 I1 写 JSON 响应；**SSE** 交 **I3 SSE Transport** 发送流头并逐帧 `flush`——连接断开则记 `aborted` 结束本次调用，正常则记 `completed`。无论走到哪个出口，`finally` 都关闭线程内的 Store 连接。
 
-| Process ID | 触发/适用条件 | 图与正文位置 | 正常出口 | 异常出口 |
-|---|---|---|---|---|
-| P-API-REQ | 任意 HTTP 请求 | 本段 / 图 M001-P1 | I1 分发并返回业务结果 | `ApiError` 信封；未知异常 500；引导失败拦截 |
-| P-API-SSE | `/v1/responses` 成功 | 本段 / 图 M001-P1；机制 M-INFER §6 | SSE 帧 + terminal，记 `completed` | 客户端断开 → 记 `aborted` 并结束 |
+#### P-API-REQ · 任意 HTTP 请求
+- **触发/适用条件**：任意 HTTP 请求
+- **图与正文位置**：本段 / 图 M001-P1
+- **正常出口**：I1 分发并返回业务结果
+- **异常出口**：`ApiError` 信封；未知异常 500；引导失败拦截
+
+#### P-API-SSE · 流式返回
+- **触发/适用条件**：`/v1/responses` 成功
+- **图与正文位置**：本段 / 图 M001-P1；机制 M-INFER §6
+- **正常出口**：SSE 帧 + terminal，记 `completed`
+- **异常出口**：客户端断开 → 记 `aborted` 并结束
 
 **P-API-REQ 步骤**（数据形态 / 执行上下文 / 状态变化）：
 
-| Step | 输入 | 执行组件 | 处理/规则 | 输出/交给谁 |
-|---|---|---|---|---|
-| 1 | HTTP 请求 | I1 | 生成 `req_<hex>` | `self.request_id`（贯穿全链）|
-| 2 | path/method | I1 | 健康/静态优先 → 引导拦截 → 路由匹配 | 命中分支；未命中 → 404 |
-| 3 | 端点 | I2 | 端点→角色；免登录/凭据判定 | `Principal`（交业务只读）|
-| 4 | body（POST/PATCH）| I2 | 限长 2 MB、JSON 解析 | dict（交业务只读）；413/400 |
-| 5 | 端点+Principal+dict | I1 | 调用业务处理器 | 业务结果 或 `ApiError` |
-| 6 | 结果 | I1 | 写响应头（`X-Request-ID`/`ETag`/关联）与体 | HTTP 响应；非 SSE 出口 |
-| 7 | — | I1 | `finally` 关闭线程内 Store 连接 | fd 释放 |
+#### 步骤 1 · 生成请求身份
+- **输入**：HTTP 请求
+- **执行组件**：I1
+- **处理/规则**：生成 `req_<hex>`
+- **输出/交给谁**：`self.request_id`（贯穿全链）
+
+#### 步骤 2 · 分类与路由
+- **输入**：path/method
+- **执行组件**：I1
+- **处理/规则**：健康/静态优先 → 引导拦截 → 路由匹配
+- **输出/交给谁**：命中分支；未命中 → 404
+
+#### 步骤 3 · 角色与信任
+- **输入**：端点
+- **执行组件**：I2
+- **处理/规则**：端点→角色；免登录/凭据判定
+- **输出/交给谁**：`Principal`（交业务只读）
+
+#### 步骤 4 · body 限长与解析
+- **输入**：body（POST/PATCH）
+- **执行组件**：I2
+- **处理/规则**：限长 2 MB、JSON 解析
+- **输出/交给谁**：dict（交业务只读）；413/400
+
+#### 步骤 5 · 调用业务处理器
+- **输入**：端点 + Principal + dict
+- **执行组件**：I1
+- **处理/规则**：调用业务处理器（M003/M004/M005）
+- **输出/交给谁**：业务结果 或 `ApiError`
+
+#### 步骤 6 · 写响应
+- **输入**：结果
+- **执行组件**：I1
+- **处理/规则**：写响应头（`X-Request-ID` / `ETag` / 关联）与体
+- **输出/交给谁**：HTTP 响应；非 SSE 出口
+
+#### 步骤 7 · 清理连接
+- **输入**：—
+- **执行组件**：I1
+- **处理/规则**：`finally` 关闭线程内 Store 连接
+- **输出/交给谁**：fd 释放
 
 **P-API-SSE 步骤**：Step 5 返回 `ResponsesResponse` 后，I1 发送 `Content-Type: text/event-stream` 与回显头 → I3 逐帧 `response_stream` 写出并 `flush`（帧序/terminal 唯一由 M003 保证）→ 断开捕获记 `aborted`，正常记 `completed`。SSE 的详细事件契约见机制 M-INFER §6，不在本模块重复。
 
@@ -528,12 +636,29 @@ ThreadingHTTPServer（进程级）
 
 ## 12. 容量、性能与运行限制
 
-| 指标 | 目标/限制 | 口径与负载 | 证据等级 | 超限行为 |
-|---|---|---|---|---|
-| 请求体 | ≤ 2 MB | 单请求 | Specified | 413 |
-| 并发 | 线程/请求（`ThreadingHTTPServer`）| 局域网 | Specified | OS 线程上限 |
-| SSE 空闲超时 | 60 s（业务侧 M003 规定）| 单流 | Specified | 结束本次调用 |
-| 每请求 fd | Store 连接在 `finally` 关闭 | — | Measured（修复连接泄漏）| — |
+#### 请求体
+- **目标/限制**：≤ 2 MB
+- **口径与负载**：单请求
+- **证据等级**：Specified
+- **超限行为**：413
+
+#### 并发
+- **目标/限制**：线程 / 请求（`ThreadingHTTPServer`）
+- **口径与负载**：局域网
+- **证据等级**：Specified
+- **超限行为**：OS 线程上限
+
+#### SSE 空闲超时
+- **目标/限制**：60 s（业务侧 M003 规定）
+- **口径与负载**：单流
+- **证据等级**：Specified
+- **超限行为**：结束本次调用
+
+#### 每请求 fd
+- **目标/限制**：Store 连接在 `finally` 关闭
+- **口径与负载**：—
+- **证据等级**：Measured（修复连接泄漏）
+- **超限行为**：—
 
 ## 13. 实现步骤与文件清单
 
@@ -655,9 +780,11 @@ ThreadingHTTPServer（进程级）
 
 **ISD 采用模式**：
 
-| ISD采用模式 | 对象ID | 实现规格 Document ID | metadata 覆盖映射入口 | 不需要时的理由/决定引用 |
-|---|---|---|---|---|
-| 兼作（本模块设计已含实现细节）| M001 | — | — | 逻辑集中在 `app.py`，实现细节在本设计内 |
+#### ISD 采用模式 · 兼作
+- **对象ID**：M001
+- **实现规格 Document ID**：—
+- **metadata 覆盖映射入口**：—
+- **不需要时的理由/决定引用**：逻辑集中在 `app.py`，实现细节在本设计内
 
 #### OPEN-API-1 · §5 结构图与 §3 操作面
 - **问题**：§5 内部结构图已出（图 M001-S1）；§3 无独立 UI（服务端点型模块）
