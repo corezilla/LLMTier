@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `observability` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -105,22 +105,22 @@
 - **验收条件**：字段完整且已脱敏；分页稳定
 
 ### 2.3 `F-OBS-STATS` · 统计查询
-- **上级需求 / Constraint ID**：机制 M-OBS CAP-OBS-2
+- **上级需求 / Constraint ID**：机制 M-OBS CAP-OBS-2；契约 §5.3（口径）
 - **调用方**：M001（`GET /v1/diagnostics/stats`）
 - **输入与前提**：`since/until` + 可选 `deployment_id/model`
-- **行为**：聚合计数 + P50/P95/min/max/avg
-- **输出**：统计结果
+- **行为**：聚合计数 + `status_breakdown{status:count}` + P50/P95/min/max/avg
+- **输出**：`{request_count, error_count, status_breakdown{...}, error_4xx_count, error_5xx_count, p50, p95, min, max, avg}`
 - **错误与边界**：400（缺时间）
-- **验收条件**：口径为"数据面统计、可丢"，非账本
+- **验收条件**：`status_breakdown` 按 HTTP status 分列；保留 4xx/5xx 总数作兼容；口径为"数据面统计、可丢"，非账本
 
 ### 2.4 `F-OBS-INJECTIONS` · 注入配置
-- **上级需求 / Constraint ID**：`C-OBS-4`；机制 M-OBS CAP-OBS-5
+- **上级需求 / Constraint ID**：`C-OBS-4`；机制 M-OBS CAP-OBS-5；契约 §5.1
 - **调用方**：M001（`GET/PATCH /v1/deployments/{id}/diagnostics`）
 - **输入与前提**：operator；注入项列表
-- **行为**：按 deployment 读/写注入配置（部分更新）
-- **输出**：注入项列表
+- **行为**：按 deployment 读/写注入配置（部分更新）；**多 enabled 时按确定性优先级取"下一步要触发的一条"**——`fault_502 → fault_503 → rate_limit → delay`；流阶段同理 `stream_terminate → malformed_event`
+- **输出**：注入项列表 / 单条 enabled 项
 - **错误与边界**：400（非法类型/配置）；404
-- **验收条件**：非法参数被拒；注入调用可区分
+- **验收条件**：非法参数被拒；多 enabled 时优先级确定且唯一；注入调用可区分（`source=injected`）
 
 ### 2.5 `F-OBS-TRACE` · 单请求 trace
 - **上级需求 / Constraint ID**：机制 M-OBS CAP-OBS-6
@@ -132,13 +132,22 @@
 - **验收条件**：stage 有序；关联 usage 版本
 
 ### 2.6 `F-OBS-CORRELATION` · 关联标识
-- **上级需求 / Constraint ID**：机制 M-OBS CAP-OBS-7
+- **上级需求 / Constraint ID**：机制 M-OBS CAP-OBS-7；契约 §5.4
 - **调用方**：M001（`X-Correlation-ID`/`traceparent`）
 - **输入与前提**：Consumer 头
-- **行为**：透传并回显；写入 trace
-- **输出**：回显头
+- **行为**：透传并写入 trace；**仅当 consumer 提供时在响应头回显 `X-Correlation-ID`**；未提供时不回显、不报错
+- **输出**：回显头（仅提供时）
 - **错误与边界**：缺省不影响
-- **验收条件**：有则回显；无则不报错
+- **验收条件**：消费者提供则回显；未提供则响应无该头且不报错
+
+### 2.7 `F-OBS-TRACES` · trace 时间窗查询（G-1）
+- **上级需求 / Constraint ID**：机制 M-OBS CAP-OBS-6；Piko 联调缺口 G-1
+- **调用方**：M001（`GET /v1/diagnostics/traces`）
+- **输入与前提**：`since/until` + 可选 `deployment_id/model/limit/cursor`
+- **行为**：按时间窗聚合 `trace_events`（去重 request_id），逐条返回 stages + correlation + usage；与 snapshots 对称分页
+- **输出**：`{items:[{request_id, stages[], correlation_id?, usage?}], next_cursor, has_more}`
+- **错误与边界**：无匹配 → 空 items（不报错）
+- **验收条件**：支持"过去 10 分钟所有请求/失败请求"查询；分页稳定（`next_cursor`）。**当前状态：Planned（接口未实现，见 review G-1）**
 
 ## 3. UI、CLI、服务端点或设备操作面
 
@@ -192,7 +201,7 @@
 #### 5.1.2 `I2` · 观测查询
 - **职责与非职责**：快照/统计/trace 查询路由与返回整形；不做记录写入
 - **输入、处理与输出**：查询参数 → 视图
-- **协作对象**：M006 `snapshots_page/stats/trace`
+- **协作对象**：M006 `snapshots_page/stats/trace/traces`
 - **文件 / symbol / 实现状态**：`app.py` 路由 + `diagnostics.py` 查询方法；Implemented
 - **拆分依据与替代方案代价**：查询与写入分离
 
@@ -204,8 +213,8 @@
 - **拆分依据与替代方案代价**：注入执行在 M003 请求路径，配置入口在此
 
 #### 5.1.4 `I4` · 关联标识
-- **职责与非职责**：接收/回显 `X-Correlation-ID`/`traceparent`；不生成
-- **输入、处理与输出**：请求头 → 回显 + trace detail
+- **职责与非职责**：接收 `X-Correlation-ID`/`traceparent`，**仅 consumer 提供时回显**；不生成
+- **输入、处理与输出**：请求头 → （提供时）回显 + trace detail
 - **协作对象**：M001、M006 `record_trace`
 - **文件 / symbol / 实现状态**：`app.py`；Implemented
 - **拆分依据与替代方案代价**：标识透传在入口，记录在 libdiag
@@ -389,7 +398,7 @@
 
 #### 9.3 `IF-DIAG-STATS` · 统计
 - **Direction / Operation / 责任模块 / backend**：in；`GET /v1/diagnostics/stats`；M005
-- **Request / Response / Error / ownership**：`since/until/deployment_id/model` → 统计
+- **Request / Response / Error / ownership**：`since/until/deployment_id/model` → `{request_count,error_count,status_breakdown,error_4xx_count,error_5xx_count,p50,p95,min,max,avg}`
 - **Contract authority / version / revision / hash / selector**：OpenAPI
 - **前提 / timeout / 兼容边界 / Error model**：400（缺时间）
 - **本地文件 / symbol 或 NOT_IMPLEMENTED**：`diagnostics.py` `stats`
@@ -412,6 +421,15 @@
 - **前提 / timeout / 兼容边界 / Error model**：无记录 → 空 stages
 - **本地文件 / symbol 或 NOT_IMPLEMENTED**：`diagnostics.py` `trace`
 - **Constraint / VRC / Case / 环境 / Run**：`VRC-OBS-004`；NOT_RUN
+- **关联类型字段 ID**：`TraceView`（§6.3）
+
+#### 9.6 `IF-DIAG-TRACES` · trace 时间窗查询（G-1）
+- **Direction / Operation / 责任模块 / backend**：in；`GET /v1/diagnostics/traces`（+ `/tier/admin/v1/diagnostics/traces` alias）；M005
+- **Request / Response / Error / ownership**：`since/until/deployment_id/model/limit/cursor` → `{items:[{request_id,stages[],correlation_id?,usage?}],next_cursor,has_more}`
+- **Contract authority / version / revision / hash / selector**：OpenAPI / management-contract
+- **前提 / timeout / 兼容边界 / Error model**：与 snapshots 对称；无匹配 → 空 items
+- **本地文件 / symbol 或 NOT_IMPLEMENTED**：`NOT_IMPLEMENTED`（Planned：`diagnostics.py` `traces`）
+- **Constraint / VRC / Case / 环境 / Run**：`VRC-OBS-005`；NOT_RUN
 - **关联类型字段 ID**：`TraceView`（§6.3）
 
 ## 10. 并发、失败与恢复
@@ -564,6 +582,15 @@
 - **Actual / Evidence / Run ID**：NOT_RUN
 - **Verdict / 状态**：NOT_RUN
 - **父级组合验证交接**：Piko 联调
+
+#### 14.5 `VRC-OBS-005` · trace 时间窗查询
+- **覆盖 Function / Rule / Constraint / Interface**：`F-OBS-TRACES`、`IF-DIAG-TRACES`
+- **Case / 正常、边界与失败输入**：多 request 时间窗；分页；越界窗
+- **环境 / 配置 / 隔离与复位**：隔离库
+- **独立 Oracle / Expected**：去重 request、`next_cursor` 稳定、越界为空
+- **Actual / Evidence / Run ID**：NOT_RUN
+- **Verdict / 状态**：NOT_RUN
+- **父级组合验证交接**：Piko 联调（G-1）
 
 ## 15. 风险、未决问题与引用
 

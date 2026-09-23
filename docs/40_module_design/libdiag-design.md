@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `libdiag` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -105,22 +105,31 @@
 - **验收条件**：`upstream_url` 去 query；`error_summary` ≤256B
 
 ### 2.4 `F-DIAG-STATS` · 统计聚合与查询
-- **上级需求 / Constraint ID**：机制 M-OBS CAP-OBS-2
+- **上级需求 / Constraint ID**：机制 M-OBS CAP-OBS-2；契约 §5.3（口径）
 - **调用方**：M003 写；M005 读
 - **输入与前提**：`(deployment_id, model, status_code, latency_ms)`
-- **行为**：按小时桶 + 内存聚合；查询计数 + P50/P95/min/max/avg
-- **输出**：统计视图
+- **行为**：按小时桶 + 内存聚合（**per-status 计数**）；查询计数 + `status_breakdown{status:count}` + P50/P95/min/max/avg
+- **输出**：`{request_count, error_count, status_breakdown, error_4xx_count, error_5xx_count, p50, p95, min, max, avg}`
 - **错误与边界**：缓存满 LRU 淘汰
-- **验收条件**：可丢、非账本
+- **验收条件**：`status_breakdown` 按 HTTP status 分列；可丢、非账本
 
 ### 2.5 `F-DIAG-INJECT` · 注入配置读写
 - **上级需求 / Constraint ID**：`C-OBS-4`；机制 M-OBS CAP-OBS-5
 - **调用方**：M005 写；M003 读
 - **输入与前提**：注入项列表（部分更新）
-- **行为**：白名单与参数范围校验；按 deployment 持久化；查 enabled
-- **输出**：注入项列表 / enabled 项
+- **行为**：白名单与参数范围校验；按 deployment 持久化；查 enabled——**多启用项仍存储，暴露"下一步要触发的一条"**，优先级 `fault_502 → fault_503 → rate_limit → delay`（流阶段 `stream_terminate → malformed_event`）
+- **输出**：注入项列表 / **单条** enabled 项（`enabled_injection` / `enabled_stream_injection`）
 - **错误与边界**：非法 → `ApiError(400)`
-- **验收条件**：白名单/范围；`UNIQUE(deployment_id, type)`
+- **验收条件**：白名单/范围；`UNIQUE(deployment_id, type)`；多 enabled 时返回确定单条
+
+### 2.5.1 `F-DIAG-TRACES` · trace 时间窗查询（G-1）
+- **上级需求 / Constraint ID**：机制 M-OBS CAP-OBS-6；Piko 缺口 G-1
+- **调用方**：M005 读
+- **输入与前提**：`since/until/deployment_id/model/limit/cursor`
+- **行为**：按时间窗聚合 `trace_events`（去重 request_id）、快照 join 过滤 deployment/model、与 snapshots 对称分页
+- **输出**：`{items:[TraceView], next_cursor, has_more}`
+- **错误与边界**：无匹配 → 空 items
+- **验收条件**：时间窗/分页稳定。**当前状态：Planned（未实现，见 review G-1）**
 
 ### 2.6 `F-DIAG-STREAM` · 流注入包装
 - **上级需求 / Constraint ID**：机制 M-OBS（流注入，`LT-OPEN-05`）
