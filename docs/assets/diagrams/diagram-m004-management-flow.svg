@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="1080" viewBox="0 0 1160 1080" role="img">
+<defs><marker id="ar" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#4a6478"/></marker></defs>
+<style>text{font-family:'PingFang SC',Arial,sans-serif;fill:#1f3140}.t{font-size:20px;font-weight:600}.s{font-size:14px;font-weight:500}.e{font-size:12px;fill:#5a6b7a}.step{fill:#e8f0f9;stroke:#8aa9c9;stroke-width:1.4}.decision{fill:#fff4d6;stroke:#c9a14a;stroke-width:1.5}.term{fill:#e6f4ea;stroke:#6ba77e;stroke-width:1.4}.err{fill:#fdeaea;stroke:#c98a8a;stroke-width:1.4}</style>
+<rect width="1160" height="1080" fill="#fff"/>
+<text x="30" y="40" class="t">M004 Management — 内部流程（P-ADMIN-MUTATE 管理动作 / P-PROBE 探测）</text>
+<rect x="420" y="70" width="300" height="56" rx="8" class="step"/>
+<text x="570.0" y="103.0" class="s" text-anchor="middle">入口 AdminService.mutate(actor, action, target, request_id, fn)</text>
+<rect x="420" y="150" width="300" height="56" rx="8" class="step"/>
+<text x="570.0" y="183.0" class="s" text-anchor="middle">I1 执行 fn：Registry 事务 / usage.reset / 诊断开关</text>
+<polygon points="560.0,240 720,295.0 560.0,350 400,295.0" class="decision"/>
+<text x="560.0" y="300.0" class="s" text-anchor="middle">判定：执行成功?</text>
+<rect x="40" y="240" width="300" height="56" rx="8" class="err"/>
+<text x="190.0" y="262.0" class="s" text-anchor="middle">audit.record(failed) + log(warning)</text>
+<text x="190.0" y="284.0" class="s" text-anchor="middle">重新抛出 ApiError</text>
+<rect x="420" y="430" width="300" height="56" rx="8" class="step"/>
+<text x="570.0" y="463.0" class="s" text-anchor="middle">I2 audit.record(success) + log(info)</text>
+<rect x="420" y="510" width="300" height="56" rx="8" class="term"/>
+<text x="570.0" y="543.0" class="s" text-anchor="middle">返回 fn() 结果（视图 + ETag / {deleted} / 开关）</text>
+<rect x="420" y="640" width="300" height="56" rx="8" class="step"/>
+<text x="570.0" y="673.0" class="s" text-anchor="middle">入口 AdminService.probe(actor, body, request_id)</text>
+<rect x="420" y="720" width="300" height="56" rx="8" class="step"/>
+<text x="570.0" y="753.0" class="s" text-anchor="middle">I3 适配器 probe()（GET /models，5 s）</text>
+<rect x="420" y="800" width="300" height="56" rx="8" class="step"/>
+<text x="570.0" y="833.0" class="s" text-anchor="middle">apply_probe_result（写 deployments.health + probe_results）</text>
+<rect x="420" y="880" width="300" height="56" rx="8" class="term"/>
+<text x="570.0" y="913.0" class="s" text-anchor="middle">audit.record(deployment.probe, status) → 返回探测结果</text>
+<line x1="570" y1="126" x2="570" y2="150" stroke="#4a6478" stroke-width="1.4" marker-end="url(#ar)"/>
+<line x1="570" y1="206" x2="560" y2="240" stroke="#4a6478" stroke-width="1.4" marker-end="url(#ar)"/>
+<line x1="400" y1="295" x2="340" y2="268" stroke="#4a6478" stroke-width="1.4" marker-end="url(#ar)"/>
+<text x="378" y="282" class="e">否</text>
+<line x1="560" y1="350" x2="570" y2="430" stroke="#4a6478" stroke-width="1.4" marker-end="url(#ar)"/>
+<text x="573" y="390" class="e">是</text>
+<line x1="570" y1="486" x2="570" y2="510" stroke="#4a6478" stroke-width="1.4" marker-end="url(#ar)"/>
+<line x1="570" y1="566" x2="570" y2="640" stroke="#4a6478" stroke-width="1.4" marker-end="url(#ar)"/>
+<line x1="570" y1="696" x2="570" y2="720" stroke="#4a6478" stroke-width="1.4" marker-end="url(#ar)"/>
+<line x1="570" y1="776" x2="570" y2="800" stroke="#4a6478" stroke-width="1.4" marker-end="url(#ar)"/>
+<line x1="570" y1="856" x2="570" y2="880" stroke="#4a6478" stroke-width="1.4" marker-end="url(#ar)"/>
+</svg>

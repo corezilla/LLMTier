@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="1720" viewBox="0 0 1160 1720" role="img">
+<defs><marker id="ar" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#4a6478"/></marker></defs>
+<style>text{font-family:'PingFang SC',Arial,sans-serif;fill:#1f3140}.t{font-size:20px;font-weight:600}.s{font-size:14px;font-weight:500}.e{font-size:12px;fill:#5a6b7a}.step{fill:#e8f0f9;stroke:#8aa9c9;stroke-width:1.4}.decision{fill:#fff4d6;stroke:#c9a14a;stroke-width:1.5}.term{fill:#e6f4ea;stroke:#6ba77e;stroke-width:1.4}.err{fill:#fdeaea;stroke:#c98a8a;stroke-width:1.4}</style>
+<rect width="1160" height="1720" fill="#fff"/>
+<text x="30" y="40" class="t">M003 Inference — 内部流程（P-INFER 推理编排 / P-EMBED 向量化）</text>
+<rect x="420" y="70" width="300" height="56" rx="8" class="step"/>
+<text x="570.0" y="103.0" class="s" text-anchor="middle">入口 ResponsesService.create(principal, request_id, body)</text>
+<rect x="420" y="150" width="300" height="56" rx="8" class="step"/>
+<text x="570.0" y="183.0" class="s" text-anchor="middle">I1 校验：必填字段 → stream/store → 禁字段</text>
+<polygon points="560.0,240 720,295.0 560.0,350 400,295.0" class="decision"/>
+<text x="560.0" y="300.0" class="s" text-anchor="middle">判定：校验通过?</text>
+<rect x="40" y="240" width="300" height="56" rx="8" class="err"/>
+<text x="190.0" y="262.0" class="s" text-anchor="middle">400 invalid_request</text>
+<text x="190.0" y="284.0" class="s" text-anchor="middle">unsupported_request / unsupported_field</text>
+<rect x="420" y="430" width="300" height="56" rx="8" class="step"/>
+<text x="570.0" y="463.0" class="s" text-anchor="middle">I2 Registry 查等级能力（caps.responses）</text>
+<polygon points="560.0,520 720,575.0 560.0,630 400,575.0" class="decision"/>
+<text x="560.0" y="580.0" class="s" text-anchor="middle">判定：模型支持?</text>
+<rect x="40" y="520" width="300" height="56" rx="8" class="err"/>
+<text x="190.0" y="542.0" class="s" text-anchor="middle">404 model_not_found</text>
+<text x="190.0" y="564.0" class="s" text-anchor="middle">400 unsupported_model</text>
+<rect x="420" y="710" width="300" height="56" rx="8" class="step"/>
+<text x="570.0" y="743.0" class="s" text-anchor="middle">I3 usage.authorize_dispatch（unknown 义务 · M-METER）</text>
+<rect x="420" y="790" width="300" height="56" rx="8" class="step"/>
+<text x="570.0" y="823.0" class="s" text-anchor="middle">I4 router.admit（FIFO 队列 / 许可 / 候选）</text>
+<polygon points="560.0,880 720,935.0 560.0,990 400,935.0" class="decision"/>
+<text x="560.0" y="940.0" class="s" text-anchor="middle">判定：许可可得?</text>
+<rect x="40" y="880" width="300" height="56" rx="8" class="err"/>
+<text x="190.0" y="902.0" class="s" text-anchor="middle">429 rate_limit_exceeded</text>
+<text x="190.0" y="924.0" class="s" text-anchor="middle">503 model_unavailable</text>
+<rect x="420" y="1070" width="300" height="56" rx="8" class="step"/>
+<text x="570.0" y="1103.0" class="s" text-anchor="middle">I5 usage.bind_backend（最终 provider/deployment）</text>
+<rect x="420" y="1150" width="300" height="56" rx="8" class="step"/>
+<text x="570.0" y="1183.0" class="s" text-anchor="middle">I6 adapter.complete（上游 Responses SSE）</text>
+<polygon points="560.0,1240 720,1295.0 560.0,1350 400,1295.0" class="decision"/>
+<text x="560.0" y="1300.0" class="s" text-anchor="middle">判定：terminal 合法?</text>
+<rect x="40" y="1240" width="300" height="56" rx="8" class="err"/>
+<text x="190.0" y="1262.0" class="s" text-anchor="middle">502 provider_contract_error</text>
+<text x="190.0" y="1284.0" class="s" text-anchor="middle">503 provider_unavailable</text>
+<rect x="420" y="1430" width="300" height="56" rx="8" class="step"/>
+<text x="570.0" y="1463.0" class="s" text-anchor="middle">I7 归一 ResponsesResponse（output/status/usage）</text>
+<rect x="420" y="1510" width="300" height="56" rx="8" class="step"/>
+<text x="570.0" y="1543.0" class="s" text-anchor="middle">I8 usage.finish（measured/unknown）</text>
+<rect x="420" y="1590" width="300" height="56" rx="8" class="term"/>
+<text x="570.0" y="1623.0" class="s" text-anchor="middle">返回 ResponsesResponse 或 ApiError</text>
+<line x1="570" y1="126" x2="570" y2="150" stroke="#4a6478" stroke-width="1.4" marker-end="url(#ar)"/>
+<line x1="570" y1="206" x2="560" y2="240" stroke="#4a6478" stroke-width="1.4" marker-end="url(#ar)"/>
+<line x1="400" y1="295" x2="340" y2="268" stroke="#4a6478" stroke-width="1.4" marker-end="url(#ar)"/>
+<text x="378" y="282" class="e">否</text>
+<line x1="560" y1="350" x2="570" y2="430" stroke="#4a6478" stroke-width="1.4" marker-end="url(#ar)"/>
+<text x="573" y="390" class="e">是</text>
+<line x1="570" y1="486" x2="560" y2="520" stroke="#4a6478" stroke-width="1.4" marker-end="url(#ar)"/>
+<line x1="400" y1="575" x2="340" y2="548" stroke="#4a6478" stroke-width="1.4" marker-end="url(#ar)"/>
+<text x="378" y="562" class="e">否</text>
+<line x1="560" y1="630" x2="570" y2="710" stroke="#4a6478" stroke-width="1.4" marker-end="url(#ar)"/>
+<text x="573" y="670" class="e">是</text>
+<line x1="570" y1="766" x2="570" y2="790" stroke="#4a6478" stroke-width="1.4" marker-end="url(#ar)"/>
+<line x1="570" y1="846" x2="560" y2="880" stroke="#4a6478" stroke-width="1.4" marker-end="url(#ar)"/>
+<line x1="400" y1="935" x2="340" y2="908" stroke="#4a6478" stroke-width="1.4" marker-end="url(#ar)"/>
+<text x="378" y="922" class="e">否</text>
+<line x1="560" y1="990" x2="570" y2="1070" stroke="#4a6478" stroke-width="1.4" marker-end="url(#ar)"/>
+<text x="573" y="1030" class="e">是</text>
+<line x1="570" y1="1126" x2="570" y2="1150" stroke="#4a6478" stroke-width="1.4" marker-end="url(#ar)"/>
+<line x1="570" y1="1206" x2="560" y2="1240" stroke="#4a6478" stroke-width="1.4" marker-end="url(#ar)"/>
+<line x1="400" y1="1295" x2="340" y2="1268" stroke="#4a6478" stroke-width="1.4" marker-end="url(#ar)"/>
+<text x="378" y="1282" class="e">否</text>
+<line x1="560" y1="1350" x2="570" y2="1430" stroke="#4a6478" stroke-width="1.4" marker-end="url(#ar)"/>
+<text x="573" y="1390" class="e">是</text>
+<line x1="570" y1="1486" x2="570" y2="1510" stroke="#4a6478" stroke-width="1.4" marker-end="url(#ar)"/>
+<line x1="570" y1="1566" x2="570" y2="1590" stroke="#4a6478" stroke-width="1.4" marker-end="url(#ar)"/>
+</svg>

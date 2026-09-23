@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.4.0-draft.16` |
+| Document Version | `0.4.0-draft.17` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -112,24 +112,24 @@ LLMTier 无软件子系统（`std-tailoring` LT-TL-003 / LT-TL-013），三层�
 
 | 对象 ID / 类型 / 父对象 | 职责 / 非职责 | 状态与资源 | 提供 / 消费接口 | Document ID / 文件名 / 状态 |
 |---|---|---|---|---|
-| M001 HTTP API / 直属模块 / LLMTier | 终止 HTTP/SSE；路由分发；局域网访问信任（内网放行；可选凭据仅作纵深，不建用户/会话/SSO）。非职责：不含业务规则；不直接访问持久化 | 请求级状态；无自有持久状态 | 提供：全部 `/v1/*` 接口与 SSE；消费：M003–M005 业务接口 | `llmtier-core-module-design` / `docs/40_module_design/llmtier-core-design.md` / 已采用（tailored）|
-| M002 Web UI / 直属模块 / LLMTier | operator 控制台：展示与操作管理面。非职责：不直读配置或密钥；不承载推理 | 无自有持久状态 | 提供：浏览器页面；消费：M001（同源调用）| `llmtier-webui-module-design` / `docs/40_module_design/llmtier-webui-design.md` / 已采用（tailored）|
+| M001 HTTP API / 直属模块 / LLMTier | 终止 HTTP/SSE；路由分发；局域网访问信任（内网放行；可选凭据仅作纵深，不建用户/会话/SSO）。非职责：不含业务规则；不直接访问持久化 | 请求级状态；无自有持久状态 | 提供：全部 `/v1/*` 接口与 SSE；消费：M003–M005 业务接口 | `http-api` / `docs/40_module_design/http-api-design.md` / 已采用（tailored）|
+| M002 Web UI / 直属模块 / LLMTier | operator 控制台：展示与操作管理面。非职责：不直读配置或密钥；不承载推理 | 无自有持久状态 | 提供：浏览器页面；消费：M001（同源调用）| `web-ui` / `docs/40_module_design/web-ui-design.md` / 已采用（tailored）|
 
 **业务层（事务处理）** — 承接入口请求，向下消费基础层能力；三模块平级、接口边界互斥。
 
 | 对象 ID / 类型 / 父对象 | 职责 / 非职责 | 状态与资源 | 提供 / 消费接口 | Document ID / 文件名 / 状态 |
 |---|---|---|---|---|
-| M003 Inference / 直属模块 / LLMTier | 推理、向量化、模型目录：校验输入 → 按逻辑等级选择后端 → 调用 → 返回标准响应与 token Usage。非职责：配置管理；Agent 会话；工具执行 | 无自有持久状态（账本经 M007）| 提供：推理/向量化接口；消费：M004（配置读取）、M006（观测）、M007（存储）| `llmtier-core-module-design` / `docs/40_module_design/llmtier-core-design.md` / 已采用（tailored）|
-| M004 Management / 直属模块 / LLMTier | 维护 provider / deployment / 逻辑等级配置；执行探测；提供审计与运行日志查询。非职责：不承载模型推理 | 配置权威（经 M007 持久化）| 提供：管理面接口；消费：M007（存储/审计）| `llmtier-core-module-design` / `docs/40_module_design/llmtier-core-design.md` / 已采用（tailored）|
-| M005 Observability / 直属模块 / LLMTier | 观测数据的查询与呈现；调试开关的展现与切换；故障注入的配置入口（通过 M006）。非职责：不改变推理契约；自身故障 fail-open | 无自有持久状态（记录经 M006 / M007）| 提供：诊断接口；消费：M006（观测能力）、M007（存储）| `llmtier-diagnostics-module-design` / `docs/40_module_design/llmtier-diagnostics-design.md` / 已采用（tailored）|
+| M003 Inference / 直属模块 / LLMTier | 推理、向量化、模型目录：校验输入 → 按逻辑等级选择后端 → 调用 → 返回标准响应与 token Usage。非职责：配置管理；Agent 会话；工具执行 | 无自有持久状态（账本经 M007）| 提供：推理/向量化接口；消费：M004（配置读取）、M006（观测）、M007（存储）| `inference` / `docs/40_module_design/inference-design.md` / 已采用（tailored）|
+| M004 Management / 直属模块 / LLMTier | 维护 provider / deployment / 逻辑等级配置；执行探测；提供审计与运行日志查询。非职责：不承载模型推理 | 配置权威（经 M007 持久化）| 提供：管理面接口；消费：M007（存储/审计）| `management` / `docs/40_module_design/management-design.md` / 已采用（tailored）|
+| M005 Observability / 直属模块 / LLMTier | 观测数据的查询与呈现；调试开关的展现与切换；故障注入的配置入口（通过 M006）。非职责：不改变推理契约；自身故障 fail-open | 无自有持久状态（记录经 M006 / M007）| 提供：诊断接口；消费：M006（观测能力）、M007（存储）| `observability` / `docs/40_module_design/observability-design.md` / 已采用（tailored）|
 
 **基础层（通用能力）** — 被业务层共同依赖；`libdiag` 可依赖 `util`/`log`，反向不允许。
 
 | 对象 ID / 类型 / 父对象 | 职责 / 非职责 | 状态与资源 | 提供 / 消费接口 | Document ID / 文件名 / 状态 |
 |---|---|---|---|---|
-| M006 `libdiag` / 直属模块 / LLMTier | 调试开关、注入配置、观测记录（上游快照 / 数据面统计 / 单请求 trace）的底层读写。非职责：不呈现、不改推理契约 | 拥有观测记录、开关与注入配置 | 提供：诊断能力接口；消费：M007、M008 | `llmtier-diagnostics-module-design` / `docs/40_module_design/llmtier-diagnostics-design.md` / 已采用（tailored）|
-| M007 `util` / 直属模块 / LLMTier | 配置、存储（唯一持久化）、访问信任、杂项工具。非职责：不含业务规则 | 拥有全部持久化数据的存取（配置、账本、审计、日志、观测）| 提供：存储/工具接口；消费：— | `llmtier-core-module-design` / `docs/40_module_design/llmtier-core-design.md` / 已采用（tailored）|
-| M008 `log` / 直属模块 / LLMTier | 运行日志的记录、写入前脱敏与查询接口。非职责：持久化由 M007 承担 | 拥有日志语义；无独立持久化 | 提供：日志接口；消费：M007 | `llmtier-core-module-design` / `docs/40_module_design/llmtier-core-design.md` / 已采用（tailored）|
+| M006 `libdiag` / 直属模块 / LLMTier | 调试开关、注入配置、观测记录（上游快照 / 数据面统计 / 单请求 trace）的底层读写。非职责：不呈现、不改推理契约 | 拥有观测记录、开关与注入配置 | 提供：诊断能力接口；消费：M007、M008 | `libdiag` / `docs/40_module_design/libdiag-design.md` / 已采用（tailored）|
+| M007 `util` / 直属模块 / LLMTier | 配置、存储（唯一持久化）、访问信任、杂项工具。非职责：不含业务规则 | 拥有全部持久化数据的存取（配置、账本、审计、日志、观测）| 提供：存储/工具接口；消费：— | `util` / `docs/40_module_design/util-design.md` / 已采用（tailored）|
+| M008 `log` / 直属模块 / LLMTier | 运行日志的记录、写入前脱敏与查询接口。非职责：持久化由 M007 承担 | 拥有日志语义；无独立持久化 | 提供：日志接口；消费：M007 | `log` / `docs/40_module_design/log-design.md` / 已采用（tailored）|
 
 ### 3.3 总体方案、选择依据与替代方案
 
@@ -161,7 +161,7 @@ LLMTier 无软件子系统（`std-tailoring` LT-TL-003 / LT-TL-013），三层�
 
 模块与实现设计入口：
 
-- 模块设计：`docs/40_module_design/llmtier-core-design.md`、`llmtier-diagnostics-design.md`、`llmtier-webui-design.md`
+- 模块设计（一模块一份，M001–M008 见 §3.2 登记表）：`docs/40_module_design/{http-api,web-ui,inference,management,observability,libdiag,util,log}-design.md`
 - 实现设计：`docs/50_implementation_design/llmtier-runtime.isd.md`、`llmtier-diagnostics.isd.md`
 
 ## 4. 功能与用户交互设计
@@ -195,7 +195,7 @@ LLMTier 无软件子系统（`std-tailoring` LT-TL-003 / LT-TL-013），三层�
 
 ### 4.3 UI 设计（适用时）
 
-LLMTier 有自有图形界面（英文 operator 控制台）。本节在系统阶段决定**信息架构、导航、共享框架、主要页面布局与交互**；颜色/字体/像素与前端的逐字段细节交 `docs/40_module_design/llmtier-webui-design.md`。控制台同源调用 `/v1/*`，不直读 SQLite/配置/密钥。
+LLMTier 有自有图形界面（英文 operator 控制台）。本节在系统阶段决定**信息架构、导航、共享框架、主要页面布局与交互**；颜色/字体/像素与前端的逐字段细节交 `docs/40_module_design/web-ui-design.md`（M002）。控制台同源调用 `/v1/*`，不直读 SQLite/配置/密钥。
 
 **信息架构与导航**（Page ID 稳定；页面不是软件模块）：
 
@@ -294,7 +294,7 @@ LLMTier 有自有图形界面（英文 operator 控制台）。本节在系统�
 | `util` (M007) | 上层调用 | 配置、持久化、信任判定 | 持久化事实 |
 | `log` (M008) | 上层调用 | 脱敏后写入/读取日志 | 运行日志 |
 
-详细的模块划分、职责与非职责见 `docs/40_module_design/llmtier-core-design.md` 与 `llmtier-diagnostics-design.md`。
+详细的模块划分、职责与非职责见各模块设计文档（M001–M008，见 §3.2 登记表）。
 
 ## 6. 运行组织与部署设计
 
@@ -535,7 +535,7 @@ Web UI（`/ui/*`）是 operator 控制台，同源调用上表管理接口，不
 
 ### 11.3 自检与诊断设计
 
-内部可观测性机制（Mechanism `M-OBS`，见 §3.5 与 `mechanisms/observability.md`）提供：上游调用快照、数据面统计、运行时故障注入、单请求 trace、consumer 关联标识透传。默认关闭，关闭时零开销；开启时尽力而为写入，故障 fail-open。不记录 Provider Secret、consumer credential 或完整 prompt/输出正文。详细设计见机制文档 `mechanisms/observability.md`、模块设计 `llmtier-diagnostics-design.md` 与实现设计 `llmtier-diagnostics.isd.md`。
+内部可观测性机制（Mechanism `M-OBS`，见 §3.5 与 `mechanisms/observability.md`）提供：上游调用快照、数据面统计、运行时故障注入、单请求 trace、consumer 关联标识透传。默认关闭，关闭时零开销；开启时尽力而为写入，故障 fail-open。不记录 Provider Secret、consumer credential 或完整 prompt/输出正文。详细设计见机制文档 `mechanisms/observability.md`、模块设计 `docs/40_module_design/{observability,libdiag}-design.md`（M005/M006）。
 
 ### 11.4 升级与回滚
 
@@ -658,7 +658,7 @@ python -m build            # 产出 sdist + wheel（可复现，无公网隐含�
 
 ### 17.1 下级设计与组合验收任务
 
-- 模块设计：`llmtier-core-design.md`、`llmtier-diagnostics-design.md`、`llmtier-webui-design.md`
+- 模块设计：`docs/40_module_design/{M001..M008}-design.md`（见 §3.2）
 - 实现设计：`llmtier-runtime.isd.md`、`llmtier-diagnostics.isd.md`
 - 接口契约：`docs/60_interfaces/` + `interfaces/`
 - 组合验收：见 `docs/70_verification/`

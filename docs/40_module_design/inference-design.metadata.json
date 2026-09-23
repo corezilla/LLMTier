@@ -1,16 +1,14 @@
 {
   "project": "LLMTier",
   "authority": "LLMTier",
-  "document_id": "http-api",
+  "document_id": "inference",
   "document_type": "design.definition",
-  "document_version": "0.1.0-draft.2",
-  "title": "LLMTier M001 HTTP API 模块设计",
+  "document_version": "0.1.0-draft.1",
+  "title": "LLMTier M003 Inference 模块设计",
   "document_owner": "LLMTier",
-  "authors": [
-    "llmtier"
-  ],
+  "authors": ["llmtier"],
   "source_repository": "corezilla/LLMTier",
-  "source_path": "docs/40_module_design/http-api-design.md",
+  "source_path": "docs/40_module_design/inference-design.md",
   "template_id": "design.definition",
   "template_version": "2.4.0",
   "template_sha256": "6c33adfea1f3e2499ae2183c0a897080940e390d2a3e57d7d7d228f538864a86",
@@ -18,9 +16,7 @@
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,
   "design_level": "module",
-  "domain": [
-    "software"
-  ],
+  "domain": ["software"],
   "status": "draft",
   "visibility": "project",
   "reviewed_commit": null,

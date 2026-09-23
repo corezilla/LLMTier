@@ -35,7 +35,7 @@ class StdAndAuthorityTests(unittest.TestCase):
         self.assertIn("软件系统架构", text)
         self.assertIn("组成与职责", text)
         self.assertIn("不建立软件子系统", text)
-        self.assertIn("docs/40_module_design/llmtier-core-design.md", text)
+        self.assertIn("docs/40_module_design/http-api-design.md", text)
         self.assertIn("docs/50_implementation_design/llmtier-runtime.isd.md", text)
         self.assertIn("assets/diagrams/llmtier-architecture-container.png", text)
         self.assertNotIn("<small>", text)
