@@ -194,14 +194,14 @@ def handler_factory(app: Application):
                 since, until = query.get("from", [None])[0], query.get("to", [None])[0]
                 if not since or not until: raise ApiError(400, "invalid_request", "from and to are required")
                 return self._json(200, app.logs.page(int(query.get("limit", [100])[0]), query.get("level", [None])[0], query.get("module", [None])[0], query.get("request_id", [None])[0], since, until))
-            if path == "/tier/admin/v1/diagnostics" and method == "GET": return self._json(200, app.diagnostics.switches())
-            if path == "/tier/admin/v1/diagnostics" and method == "PATCH":
+            if path == "/v1/diagnostics" and method == "GET": return self._json(200, app.diagnostics.switches())
+            if path == "/v1/diagnostics" and method == "PATCH":
                 body = self._body()
                 result = app.admin.mutate(principal.principal_id, "diagnostics.switch.update", "diagnostics", self.request_id, lambda: app.diagnostics.set_switches(body.get("snapshots_enabled"), body.get("stats_enabled")))
                 return self._json(200, result)
-            if path == "/tier/admin/v1/diagnostics/snapshots" and method == "GET":
+            if path == "/v1/diagnostics/snapshots" and method == "GET":
                 return self._json(200, app.diagnostics.snapshots_page(query.get("since", [None])[0], query.get("until", [None])[0], query.get("deployment_id", [None])[0], query.get("model", [None])[0], int(query.get("limit", [50])[0]), query.get("cursor", [None])[0]))
-            if path == "/tier/admin/v1/diagnostics/stats" and method == "GET":
+            if path == "/v1/diagnostics/stats" and method == "GET":
                 since, until = query.get("since", [None])[0], query.get("until", [None])[0]
                 if not since or not until: raise ApiError(400, "invalid_request", "since and until are required")
                 return self._json(200, app.diagnostics.stats(since, until, query.get("deployment_id", [None])[0], query.get("model", [None])[0]))
@@ -212,7 +212,7 @@ def handler_factory(app: Application):
                 if method == "PATCH":
                     result = app.admin.mutate(principal.principal_id, "diagnostics.injection.update", did, self.request_id, lambda: app.diagnostics.set_injections(did, self._body()))
                     return self._json(200, result)
-            match = re.fullmatch(r"/tier/admin/v1/trace/([^/]+)", path)
+            match = re.fullmatch(r"/v1/trace/([^/]+)", path)
             if match and method == "GET": return self._json(200, app.diagnostics.trace(match.group(1)))
             raise ApiError(404, "not_found", "Endpoint not found")
 
