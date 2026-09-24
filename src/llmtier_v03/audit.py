@@ -18,4 +18,4 @@ class AuditLog:
 
     def page(self, limit: int = 50) -> dict:
         rows = self.store.all("SELECT * FROM audit_events ORDER BY created_at DESC,id DESC LIMIT ?", (max(1, min(limit, 200)),))
-        return {"data": [{k: r[k] for k in ("id", "actor", "action", "target", "result", "created_at")} for r in rows], "page": {"has_more": False, "next_cursor": None}}
+        return {"data": [{k: r[k] for k in ("id", "actor", "action", "target", "result", "created_at", "request_id")} for r in rows], "page": {"has_more": False, "next_cursor": None}}

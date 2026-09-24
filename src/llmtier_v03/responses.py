@@ -73,8 +73,10 @@ class ResponsesService:
             raise
         _trace("validated", {"ok": True})
         self.usage.authorize_dispatch(principal, request_id, model, "/v1/responses")
+        admitted = False
         try:
             with self.router.admit(model) as candidate:
+                admitted = True
                 if out is not None: out.update({"deployment_id": candidate.deployment_id, "backend_model": candidate.backend_model})
                 _trace("routed", {"deployment_id": candidate.deployment_id, "provider_id": candidate.provider_id})
                 injection = diag.enabled_injection(candidate.deployment_id) if diag else None
@@ -125,6 +127,8 @@ class ResponsesService:
                 "incomplete_details": result.incomplete_details,
             }
         except Exception as exc:
-            source = "injected" if getattr(exc, "piko_injected", False) else None
-            self.usage.finish(principal, request_id, None, source)
+            # E-INF-ADMIT: admission rejection never reached the backend -> no usage side effect.
+            if admitted:
+                source = "injected" if getattr(exc, "piko_injected", False) else None
+                self.usage.finish(principal, request_id, None, source)
             raise

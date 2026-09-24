@@ -173,7 +173,7 @@ health.py         health_view/readiness_view/apply_probe_result
 - **输入参数 / 数据结构 authority**：`(actor, action, target, request_id, fn)`；probe `{deployment_id, confirm_external_call}`
 - **输入约束 / 校验顺序 / 失败映射**：mutate 包裹审计；probe 需确认；stats `group_by ∈ {tier,deployment}`
 - **成功输出 / 数据结构 / 后置条件**：结果 / 页 / 统计；审计 success
-- **错误输出 / 触发条件 / 优先级**：`E-MGMT-INVALID`(400)、`E-MGMT-CONFIRM`(400)、`E-MGMT-NOTFOUND`(404)
+- **错误输出 / 触发条件 / 优先级**：`E-MGMT-INVALID`(400 `invalid_request`)、`E-MGMT-CONFIRM`(400 `confirmation_required`)、`E-MGMT-NOTFOUND`(404)
 - **副作用 / 执行上下文 / 幂等性**：包裹 `fn` 副作用；写审计
 - **输入输出 ownership 与寿命**：请求级；审计持久
 - **不可改变的规则 / Constraint ID**：审计必写；探测确认；保存/health/probe 三态分离

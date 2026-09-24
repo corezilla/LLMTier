@@ -122,7 +122,7 @@ diagnostics.py    # 查询方法：switches/set_switches/snapshots_page/stats/tr
 
 ### 4.2 `StatsView` / `InjectionView` / 开关状态
 
-- **类型 / 字段**：StatsView `{request_count,error_count,status_breakdown,error_4xx_count,error_5xx_count,p50,p95,min,max,avg}`；InjectionView `{id,deployment_id,injection_type,enabled,config}`；开关 `{snapshots_enabled,stats_enabled}`
+- **类型 / 字段**：StatsView `{request_count,error_count,status_breakdown,error_4xx_count,error_5xx_count,p50,p95,min,max,avg}`；InjectionView `{id,deployment_id,type,enabled,config}`；开关 `{snapshots_enabled,stats_enabled}`
 - **单位 / 初值 / 范围 / 不变量**：`status_breakdown` per-status；开关默认 false
 - **逻辑编码与原生 ABI 适用性**：N/A
 - **创建 / 修改者**：M006；本模块读写
@@ -161,7 +161,7 @@ diagnostics.py    # 查询方法：switches/set_switches/snapshots_page/stats/tr
 - **输入参数 / 数据结构 authority**：查询参数
 - **输入约束 / 校验顺序 / 失败映射**：时间窗必填（stats）；cursor 校验；失败 → `E-OBS-QUERY`
 - **成功输出 / 数据结构 / 后置条件**：视图
-- **错误输出 / 触发条件 / 优先级**：400（缺时间/cursor）、503（存储不可用）
+- **错误输出 / 触发条件 / 优先级**：400（缺时间/cursor）、404（未知 request_id）、503（存储不可用）
 - **副作用 / 执行上下文 / 幂等性**：只读；幂等
 - **输入输出 ownership 与寿命**：请求级
 - **不可改变的规则 / Constraint ID**：脱敏；503 不伪装空结果

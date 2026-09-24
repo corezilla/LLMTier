@@ -101,13 +101,20 @@ class AccountUsageService:
         self.store = store
 
     def latest(self, provider_id: str) -> dict[str, Any]:
-        if self.store.one("SELECT id FROM providers WHERE id=?", (provider_id,)) is None:
+        provider = self.store.one("SELECT * FROM providers WHERE id=?", (provider_id,))
+        if provider is None:
             raise ApiError(404, "not_found", "Provider not found")
         row = self.store.one("SELECT snapshot_json FROM provider_usage_snapshots WHERE provider_id=?", (provider_id,))
         if row:
             return json.loads(row["snapshot_json"])
-        profile = self.store.one("SELECT usage_provider FROM provider_usage_profiles WHERE provider_id=?", (provider_id,))
-        return _snapshot(profile["usage_provider"] if profile else "none", "store", "not_refreshed")
+        profile = self.store.one("SELECT * FROM provider_usage_profiles WHERE provider_id=?", (provider_id,))
+        usage_provider = profile["usage_provider"] if profile else "none"
+        if profile is not None:
+            if usage_provider == "minimax" and not (_secret(profile["usage_api_key_ref"]) or _secret(provider["secret_ref"])):
+                return _snapshot("minimax", "credentials_missing", "unavailable", error="minimax_usage_requires_api_key")
+            if usage_provider == "volc" and not (_secret(profile["usage_access_key_ref"]) and _secret(profile["usage_secret_key_ref"])):
+                return _snapshot("volc", "credentials_missing", "unavailable", error="volc_get_coding_plan_usage_requires_ak_sk")
+        return _snapshot(usage_provider, "store", "not_refreshed")
 
     def _minimax(self, provider, profile) -> dict[str, Any]:
         api_key = _secret(profile["usage_api_key_ref"]) or _secret(provider["secret_ref"])
@@ -148,7 +155,7 @@ class AccountUsageService:
         return _snapshot("volc", "provider_api", "ok", windows=windows) if windows else _snapshot("volc", "provider_api", "unavailable", error="volc_get_coding_plan_usage_empty_result")
 
     def refresh(self, provider_id: str, confirm_external_call: bool) -> dict[str, Any]:
-        require(confirm_external_call is True, 400, "confirmation_required", "Usage refresh requires explicit confirmation")
+        require(confirm_external_call is True, 400, "invalid_request", "Usage refresh requires explicit confirmation")
         provider = self.store.one("SELECT * FROM providers WHERE id=?", (provider_id,))
         profile = self.store.one("SELECT * FROM provider_usage_profiles WHERE provider_id=?", (provider_id,))
         if provider is None or profile is None:

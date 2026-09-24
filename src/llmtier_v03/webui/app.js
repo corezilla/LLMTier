@@ -1,9 +1,18 @@
 const $=selector=>document.querySelector(selector);
 const $$=selector=>[...document.querySelectorAll(selector)];
 
+const LOGIN_URL='/login';
+function markStale(message){document.body.classList.add('stale');const banner=$('#ui-banner');if(banner){banner.textContent=message;banner.hidden=false}}
+// I9 error dispatch (web-ui ISD §5.2): 401 -> session/redirect, 409/412 -> keep page for reload, 429/503 -> stale.
+function dispatchUiError(error){
+  if(error.status===401){document.body.classList.add('stale');window.location.assign(LOGIN_URL);return}
+  if(error.status===409){error.referenceConflict=true;return}
+  if(error.status===412){error.staleEdit=true;return}
+  if(error.status===429||error.status===503){markStale('Service unavailable — showing the last known screen.')}
+}
 async function api(path,{method='GET',body,headers={}}={}){
   const response=await fetch(path,{method,credentials:'same-origin',headers:{'Content-Type':'application/json',...headers},body:body?JSON.stringify(body):undefined});
-  if(!response.ok){let error={};try{error=await response.json()}catch{}throw new Error(error.error?.message||`${response.status} ${response.statusText}`)}
+  if(!response.ok){let payload={};try{payload=await response.json()}catch{}const error=new Error(payload.error?.message||`${response.status} ${response.statusText}`);error.status=response.status;error.code=payload.error?.code||null;dispatchUiError(error);throw error}
   return response.status===204?null:response.json();
 }
 

@@ -231,10 +231,13 @@ class DiagnosticsService:
         for key in sorted(buckets):
             b = buckets[key]
             latencies = sorted(b["latencies"])
-            total = len(latencies)
+            breakdown = b["status_breakdown"]
+            err4 = sum(count for status, count in breakdown.items() if str(status).isdigit() and 400 <= int(status) < 500)
+            err5 = sum(count for status, count in breakdown.items() if (str(status).isdigit() and int(status) >= 500) or status == "upstream_error")
             windows.append({
                 "stat_hour": b["stat_hour"], "deployment_id": b["deployment_id"], "model": b["model"],
-                "status_breakdown": b["status_breakdown"], "request_count": b["request_count"], "error_count": b["error_count"],
+                "status_breakdown": breakdown, "error_4xx_count": err4, "error_5xx_count": err5,
+                "request_count": b["request_count"], "error_count": b["error_count"],
                 "latency_p50_ms": _percentile(latencies, 50), "latency_p95_ms": _percentile(latencies, 95),
                 "latency_min_ms": latencies[0] if latencies else None, "latency_max_ms": latencies[-1] if latencies else None,
                 "latency_sum_ms": sum(latencies) if latencies else 0,
@@ -299,7 +302,7 @@ class DiagnosticsService:
         if self.store.one("SELECT 1 FROM deployments WHERE id=?", (deployment_id,)) is None:
             raise ApiError(404, "not_found", f"Unknown deployment: {deployment_id}")
         rows = self.store.all(
-            "SELECT injection_type,fault_status,fault_body,delay_ms,retry_after_sec,stream_terminate_after_events,"
+            "SELECT id,injection_type,fault_status,fault_body,delay_ms,retry_after_sec,stream_terminate_after_events,"
             "malformed_after_events,malformed_event_type,enabled,updated_at FROM diagnostic_injections WHERE deployment_id=?"
             " ORDER BY injection_type", (deployment_id,))
         items = []
@@ -309,7 +312,7 @@ class DiagnosticsService:
                 config[field] = row[{ "error_body": "fault_body", "delay_ms": "delay_ms", "retry_after_sec": "retry_after_sec",
                                       "stream_terminate_after_events": "stream_terminate_after_events",
                                       "malformed_after_events": "malformed_after_events", "malformed_event_type": "malformed_event_type"}.get(field)]
-            items.append({"type": row["injection_type"], "config": config, "enabled": bool(row["enabled"]), "updated_at": row["updated_at"]})
+            items.append({"id": row["id"], "deployment_id": deployment_id, "type": row["injection_type"], "config": config, "enabled": bool(row["enabled"]), "updated_at": row["updated_at"]})
         return items
 
     def enabled_injection(self, deployment_id: str) -> dict | None:

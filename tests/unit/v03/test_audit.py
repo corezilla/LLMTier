@@ -11,7 +11,7 @@ class AuditTests(unittest.TestCase):
     def test_action(self):self.audit.record("a","change","t","ok");self.assertEqual(self.audit.page()["data"][0]["action"],"change")
     def test_target(self):self.audit.record("a","x","resource","ok");self.assertEqual(self.audit.page()["data"][0]["target"],"resource")
     def test_result(self):self.audit.record("a","x","t","failed");self.assertEqual(self.audit.page()["data"][0]["result"],"failed")
-    def test_request_id_not_exposed(self):self.audit.record("a","x","t","ok","secret-correlation");self.assertNotIn("request_id",self.audit.page()["data"][0])
+    def test_request_id_exposed(self):self.audit.record("a","x","t","ok","corr-1");self.assertEqual(self.audit.page()["data"][0]["request_id"],"corr-1")
     def test_limit(self):
         for i in range(3):self.audit.record("a",str(i),"t","ok")
         self.assertEqual(len(self.audit.page(2)["data"]),2)

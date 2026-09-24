@@ -42,3 +42,20 @@ class RegistryTests(unittest.TestCase):
     def test_fixed_tier_delete_rejected(self):
         with self.assertRaises(ApiError) as cm:self.r.delete_service_level("Worker",None)
         self.assertEqual(cm.exception.code,"fixed_service_level")
+    def test_unknown_deployment_reference_is_400(self):
+        _,etag=self.r.get_service_level("Worker")
+        with self.assertRaises(ApiError) as cm:self.r.update_service_level("Worker",{"deployment_ids":["missing"]},etag)
+        self.assertEqual((cm.exception.status,cm.exception.code),(400,"invalid_request"))
+    def test_deployment_capability_edit_recomputes_bound_tier(self):
+        _,d=self.fx.seed("Worker")
+        caps={**response_capabilities(),"tools":False}
+        self.r.update_deployment(d["id"],{"capabilities":caps},self.r.get_deployment(d["id"])[1])
+        level,_=self.r.get_service_level("Worker")
+        self.assertFalse(level["capabilities"]["tools"])
+    def test_deployment_capability_edit_conflict_rolls_back(self):
+        _,d=self.fx.seed("Worker")
+        before=self.r.get_deployment(d["id"])[0]["capabilities"]
+        bad={**response_capabilities(),"responses":False}
+        with self.assertRaises(ApiError) as cm:self.r.update_deployment(d["id"],{"capabilities":bad},self.r.get_deployment(d["id"])[1])
+        self.assertEqual(cm.exception.status,409)
+        self.assertEqual(self.r.get_deployment(d["id"])[0]["capabilities"],before)

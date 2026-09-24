@@ -14,6 +14,7 @@ from .store import Store
 
 FIXED_TIERS = ("Senior", "Junior", "Worker", "Associate", "Engineer", "Executor", "Embedding-v1")
 CAPABILITY_KEYS = {"responses", "embeddings", "tools", "structured_outputs", "input_modalities", "output_modalities", "context_window", "max_output_tokens", "embedding_space_id", "embedding_dimensions", "embedding_max_batch_inputs", "embedding_max_input_tokens"}
+EMPTY_CAPABILITIES = {"responses": False, "embeddings": False, "tools": False, "structured_outputs": False, "input_modalities": [], "output_modalities": [], "context_window": None, "max_output_tokens": None, "embedding_space_id": None, "embedding_dimensions": None, "embedding_max_batch_inputs": None, "embedding_max_input_tokens": None}
 USAGE_PROVIDERS = {"none", "local", "minimax", "volc"}
 
 
@@ -78,7 +79,10 @@ class Registry:
                     self._write_usage_profile(conn, item["id"], self._usage_values(None, item["kind"]), 1)
                 for item in deployments:
                     require(set(item) == {"id", "name", "provider_id", "backend_model", "capabilities", "enabled"}, 503, "bootstrap_invalid", "Invalid deployment entry")
-                    conn.execute("INSERT INTO deployments VALUES(?,?,?,?,?,?,?,?)", (item["id"], item["name"], item["provider_id"], item["backend_model"], json.dumps(item["capabilities"], separators=(",", ":")), int(item["enabled"]), "unknown", 1))
+                    caps = item["capabilities"]
+                    require(isinstance(caps, dict) and set(caps) <= CAPABILITY_KEYS and all(isinstance(caps.get(k), bool) for k in ("responses", "embeddings", "tools", "structured_outputs")), 503, "bootstrap_invalid", "Invalid deployment capabilities")
+                    normalized_caps = {**EMPTY_CAPABILITIES, **caps}
+                    conn.execute("INSERT INTO deployments VALUES(?,?,?,?,?,?,?,?)", (item["id"], item["name"], item["provider_id"], item["backend_model"], json.dumps(normalized_caps, separators=(",", ":")), int(item["enabled"]), "unknown", 1))
                     conn.execute("INSERT INTO deployment_runtime_profiles(deployment_id) VALUES(?)", (item["id"],))
                 configured = {x["id"]: x for x in levels}
                 empty = {"responses": False, "embeddings": False, "tools": False, "structured_outputs": False, "input_modalities": [], "output_modalities": [], "context_window": None, "max_output_tokens": None, "embedding_space_id": None, "embedding_dimensions": None, "embedding_max_batch_inputs": None, "embedding_max_input_tokens": None}
@@ -250,6 +254,15 @@ class Registry:
             require(conn.execute("SELECT 1 FROM providers WHERE id=?", (values["provider_id"],)).fetchone() is not None, 400, "invalid_request", "Unknown provider", "provider_id")
             version = row["version"] + 1
             conn.execute("UPDATE deployments SET name=?,provider_id=?,backend_model=?,capabilities_json=?,enabled=?,version=? WHERE id=?", (values["name"], values["provider_id"], values["backend_model"], json.dumps(values["capabilities"], separators=(",", ":")), int(values["enabled"]), version, rid))
+            if "capabilities" in body:
+                # RULE-MGMT-CAPS: a deployment capability change recomputes every bound tier's
+                # intersection and rejects the edit when a tier can no longer be satisfied.
+                bound = [r["level_id"] for r in conn.execute("SELECT DISTINCT level_id FROM service_level_deployments WHERE deployment_id=?", (rid,))]
+                for level_id in bound:
+                    ids = [r["deployment_id"] for r in conn.execute("SELECT deployment_id FROM service_level_deployments WHERE level_id=? ORDER BY ordinal", (level_id,))]
+                    capabilities = self._capability_intersection(ids)
+                    self._validate_level(level_id, ids, capabilities)
+                    conn.execute("UPDATE service_levels SET capabilities_json=?,version=version+1 WHERE id=?", (json.dumps(capabilities, separators=(",", ":")), level_id))
         return self.get_deployment(rid)
 
     def delete_deployment(self, rid: str, if_match: str | None) -> None:
@@ -262,14 +275,19 @@ class Registry:
             conn.execute("DELETE FROM deployments WHERE id=?", (rid,))
 
     def _capability_intersection(self, deployment_ids: list[str]) -> dict[str, Any]:
-        rows = [self.get_deployment(rid)[0] for rid in deployment_ids]
-        require(len(rows) == len(deployment_ids), 400, "invalid_request", "Unknown deployment")
-        keys = set.intersection(*(set(r["capabilities"]) for r in rows)) if rows else set()
+        # E-MGMT-INVALID: an unknown deployment reference is a 400, not a 404.
+        values: list[dict[str, Any]] = []
+        for rid in deployment_ids:
+            row = self.store.one("SELECT capabilities_json FROM deployments WHERE id=?", (rid,))
+            if row is None:
+                raise ApiError(400, "invalid_request", f"Unknown deployment: {rid}", "deployment_ids")
+            values.append(json.loads(row["capabilities_json"]))
+        keys = set.intersection(*(set(v) for v in values)) if values else set()
         result: dict[str, Any] = {}
         for key in keys:
-            values = [r["capabilities"][key] for r in rows]
-            if all(isinstance(v, bool) for v in values): result[key] = all(values)
-            elif all(v == values[0] for v in values): result[key] = values[0]
+            items = [v[key] for v in values]
+            if all(isinstance(v, bool) for v in items): result[key] = all(items)
+            elif all(v == items[0] for v in items): result[key] = items[0]
         return result
 
     @staticmethod
