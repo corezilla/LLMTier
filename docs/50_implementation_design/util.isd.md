@@ -52,7 +52,7 @@
 - **实现自由度**：实现可自选
 - **原 V/Case 及本地验证位置**：`VRC-UTIL-002` → §8
 
-#### 1.4 `F-UTIL-QUERY` · 只读查询
+#### 1.4 `F-UTIL-QUERY` · 查询 helper
 - **固定来源**：`util` / `0.1.0-draft.1` / `#5.1.4`
 - **ISD 细化内容 / 章节**：`one()` / `all()` 与 `Row` 工厂
 - **唯一权威位置**：行为在模块 §2.4；ISD 管实现
@@ -96,7 +96,7 @@ python 标准库 sqlite3
 #### 2.1 `store.py` · `Store`
 - **职责 / 调用者**：连接/迁移/事务/查询；被全部业务模块调用
 - **类型 / 函数**：`Store.connection/migrate/transaction/one/all/close`
-- **可见性 / 构建目标**：模块私有 API；随 `Application` 装配
+- **可见性 / 构建目标**：模块私有 API；由宿主在装配阶段构造
 - **依赖**：`sqlite3`、`threading`、`contextlib`、`pathlib`
 
 #### 2.2 `migrations/*.sql`
@@ -104,7 +104,7 @@ python 标准库 sqlite3
 - **类型 / 函数**：SQL 脚本
 - **可见性 / 构建目标**：数据文件，随包
 - **依赖**：—
-- **权威边界**：DDL **不是**本层可自由更改——各表已被业务模块以列名/插入顺序直接依赖，见 §2.3 表契约。
+- **权威边界**：DDL 是**跨模块内部契约**，业务模块按列名/插入顺序依赖；本层不得自由更改，见 §2.3 表契约。
 
 #### 2.3 表契约（跨模块内部权威）
 
@@ -128,7 +128,7 @@ DDL 已是跨模块内部契约；本层是 schema 的**唯一落点**，改动�
 #### 3.1 `Store`（私有类）
 - **字段**：`path: str`（SQLite 文件路径）；`_local: threading.local`
 - **初值 / 约束**：`path` 只读；父目录在 `__init__` 创建
-- **创建 / 修改者**：`Application.__init__` 创建
+- **创建 / 修改者**：宿主装配阶段创建
 - **借用期限 / 释放者**：进程级；`close()` 释放线程连接
 - **公共类型来源**：—（模块私有）
 
@@ -149,7 +149,7 @@ DDL 已是跨模块内部契约；本层是 schema 的**唯一落点**，改动�
 **所有权图**
 
 ```text
-Application 持有 Store（进程级）
+宿主持有 Store（进程级）
   Store._local 每线程持有一个 Connection
     查询返回 Row（借用该连接；调用方消费后不保留）
   请求 finally → Store.close() → 丢弃线程 Connection
@@ -259,7 +259,7 @@ close():
 | 过程/规则ID | 触发与执行者 | 入口函数及数据 | 判断事实来源 | 成功可见点 | 失败与清理 |
 |---|---|---|---|---|---|
 | `P-UTIL-TXN` | 业务模块 `with transaction()` | `transaction` + SQL | 块内异常 | `commit` 生效 | `rollback` |
-| `P-UTIL-MIGRATE` | 启动 `Application.__init__` | `migrate` + SQL 文件 | `integrity_check` | 表就绪 | `RuntimeError` |
+| `P-UTIL-MIGRATE` | 宿主启动（schema 初始化）| `migrate` + SQL 文件 | `integrity_check` | 表就绪 | `RuntimeError` |
 | `P-UTIL-CLOSE` | 请求 `finally` | `close` | `_local.connection` | fd 释放 | 静默 |
 
 ## 6. 并发、失败与生命周期
@@ -270,7 +270,7 @@ close():
 - **并发模型**：每线程独立 `Connection`（`threading.local`），**无共享可变状态**；写用 `BEGIN IMMEDIATE` 串行化；`timeout=10` 应对锁等待。
 - **锁范围/顺序**：无显式锁；SQLite 内部锁。锁内不调用外部 I/O。
 - **取消/超时**：无取消接口；锁等待超 `timeout` 抛 `sqlite3.OperationalError`。
-- **生命周期**：`migrate()` 在 `Application.__init__` 调用；请求 `finally` 调 `close()`；停机 `app.store.close()`。
+- **生命周期**：宿主启动时执行 schema 初始化（`migrate()`）；每请求结束释放该线程连接（`close()`）；宿主停机时释放其自身线程连接。
 
 **状态查询/重放/接管/新业务重试**：N/A（基础层无副作用编排；由业务模块决定）。
 
@@ -292,9 +292,9 @@ close():
 |---|---|---|---|---|---|---|
 | `RULE-UTIL-TXN` | 单事务内 SQL；无事务外副作用 | `commit()` 为持久提交点 | 启动 `migrate()`（**仅空库**）| `schema_meta.schema_version` 固定为当前值（`1`）；**无转换函数** | 空库→建表；非空且版本≠期望→拒绝启动；`integrity_check`≠ok→启动失败 | `VRC-UTIL-002` |
 
-- **不声称**"SQLite 文件即版本 / 崩溃重跑即可恢复"。仅初始化下：空库重跑安全（DDL 幂等）；**旧版本库不自动升级**（拒绝）。
+- 仅初始化语义：空库重跑安全（DDL 幂等）；**旧版本库不自动升级**（拒绝）。
 - **无** migration ledger / checksum / from-to version（`LT-OPEN-UTIL-1`）。
-- `executescript` **不在** Store 事务内 —— 仅初始化的前提下可接受；若未来支持增量升级，必须改为逐语句在 `BEGIN IMMEDIATE…COMMIT` 内。
+- 本设计**不要求**迁移在 Store 事务内（仅初始化可接受）；若未来支持增量升级，必须改为逐语句在 `BEGIN IMMEDIATE…COMMIT` 内。
 
 <a id="isd-security"></a>
 
@@ -311,7 +311,7 @@ close():
 
 #### 6.4 错误传播矩阵（目标契约）
 
-本层抛出的底层异常如何被映射（`Store 异常 → 业务模块是否处理 → HTTP 状态/code → 日志 → 是否可重试`）。**目标契约**：编码阶段据此对齐 HTTP 层。
+本层抛出的底层异常如何被映射（`Store 异常 → 业务模块是否处理 → HTTP 状态/code → 日志 → 是否可重试`）。
 
 | Store 异常 / 场景 | 业务模块是否处理 | HTTP 状态 / code | 记录日志 | 允许重试 |
 |---|---|---|---|---|
@@ -322,7 +322,6 @@ close():
 | integrity_check 失败 | 否（启动拒绝）| `not_ready` | error | 运维修复 |
 | close 失败 | 否 | 不影响响应 | warning | — |
 
-（说明：HTTP 层当前对未分类异常返回 500；本矩阵为目标，编码阶段对齐。）
 
 ## 7. 资源、构建与宿主接入
 
@@ -330,8 +329,8 @@ close():
 
 - **工具链/语言**：Python 3.14；标准库 `sqlite3`（无第三方依赖）。
 - **产物**：`store.py`（模块文件）+ `migrations/*.sql`；无独立库/二进制。
-- **宿主接入**：`Application.__init__(database, settings)` 构造 `Store(database)` 并 `store.migrate()`；业务服务持 `Store` 引用；`Handler._run` 的 `finally` 调 `app.store.close()`。
-- **峰值构成 / 上限**：每线程 1 连接（`timeout=10`；WAL）。**注意**：fd 数量不是稳定契约——WAL/SHM 句柄可能共享或临时打开，`fd ≤ 3/连接` 只是观测估计，不作保证。
+- **宿主接入（本层要求）**：宿主须（1）在装配阶段构造 `Store` 并执行 schema 初始化；（2）由业务模块持有 `Store` 引用；（3）在每请求结束释放该线程连接。具体宿主符号由宿主设计给出，本 ISD 不重复。
+- **峰值构成 / 上限**：每线程 1 连接（`timeout=10`；WAL）。**注意**：fd 数量不是稳定契约——WAL/SHM 句柄可能共享或临时打开，`fd ≤ 3/连接` 不作为保证。
 - **超限行为**：fd 上限（macOS 默认 256）风险由**宿主**请求生命周期 + 每请求 `close()` 缓解；锁等待超时 → `OperationalError`。
 - **计时**：无自有预算；由宿主请求生命周期约束。
 
@@ -380,4 +379,4 @@ close():
 
 | 问题ID/既有台账引用 | 具体缺口/反例 | Owner | 最晚关闭阶段/截止Gate | 阻断范围 | 分析/决策引用 | 所需输入/下一步选择判据 | 解决动作/完成条件 | 状态 |
 |---|---|---|---|---|---|---|---|---|
-| `RISK-UTIL-1` | 高并发写串行/锁超时 | LLMTier | 实测阶段 | `F-UTIL-TXN` 性能 | `util` §15.1 | 实测数据 | WAL + IMMEDIATE；实测调参 | 观察 |
+| `RISK-UTIL-1` | 高并发写串行/锁超时 | LLMTier | 性能验证阶段 | `F-UTIL-TXN` 性能 | `util` §15.1 | 性能数据 | WAL + IMMEDIATE；按验证结果调参 | 观察 |
