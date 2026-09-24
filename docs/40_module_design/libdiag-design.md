@@ -272,37 +272,45 @@
 
 ### 5.3 文件间接口契约
 
-#### 5.3.1 `IF-DIAG-01` · `M005 app.py` → `diagnostics.py`（查询/开关/注入）
-- **签名 / 入口**：`switches/set_switches/snapshots_page/stats/trace/set_injections/injections`
-- **输入与前置条件**：查询参数 / 注入项
-- **输出 / 异常**：视图/状态/列表；400/404
-- **ownership / 生命周期**：请求级；持久（M007）
-- **实现与验证位置**：`diagnostics.py`；`VRC-DIAG-001`
+> 采用**接口固定格式**（功能 / 输入 / 输出 / 返回值 / 统计 · 日志 / 数据库）。覆盖**跨模块文件**与**模块内文件 ↔ 文件**调用；逐方法细节见 §9.2，数据结构见 §9.1。
 
-#### 5.3.2 `IF-DIAG-02` · `M003 responses.py` → `diagnostics.py`（记录）
-- **签名 / 入口**：`record_trace`/`capture_snapshot`/`record_latency`/`get_enabled_injections`
-- **输入与前置条件**：请求阶段/上游事实
-- **输出 / 异常**：行；fail-open
-- **ownership / 生命周期**：持久（7 天）
-- **实现与验证位置**：`diagnostics.py`；`VRC-DIAG-002`
+#### 5.3.1 `IF-DIAG-01` · `src/http_api/app.py` → `src/libdiag/diagnostics.py`（查询/开关/注入）
+- **功能**：M005 诊断路由经门面做查询、开关切换与注入配置读写。
+- **输入**：
+  - `switches()` / `set_switches(snapshots_enabled?, stats_enabled?)`｜开关
+  - `snapshots_page(...)` / `stats(...)` / `trace(...)` / `traces(...)` / `injections(...)` / `set_injections(...)`｜查询 / 写配置
+- **输出**：`SwitchState` / `SnapshotPage` / `StatsView` / `TraceView` / `InjectionView[]`（§9.1）。
+- **返回值**：见 §9.2；`400`/`404` 由门面透传。
+- **统计 · 日志**：无。
+- **数据库**：见 §9.2 各接口（查询只读；`set_switches`/`set_injections` 写）。
 
-#### 5.3.3 `IF-DIAG-03` · `M001 app.py` → `diagnostics.py`（流注入）
-- **签名 / 入口**：`stream_wrapper(deployment_id, base_stream)`
-- **输入与前置条件**：SSE 字节流
-- **输出 / 异常**：字节流；透传或注入
-- **ownership / 生命周期**：请求级流
-- **实现与验证位置**：`diagnostics.py`；`VRC-DIAG-004`
+#### 5.3.2 `IF-DIAG-02` · `src/inference/responses.py` → `src/libdiag/diagnostics.py`（记录）
+- **功能**：推理路径经门面记录 trace / 快照 / 统计。
+- **输入**：`record_trace(...)` / `capture_snapshot(...)` / `record_latency(...)`（逐参数见 §9.2）。
+- **输出**：无 / `snap_id`。
+- **返回值**：`None` / `snap_id` / `null`；**fail-open 不抛**。
+- **统计 · 日志**：写失败记 warning（`capture_failed`）。
+- **数据库**：见 §9.2（`INSERT trace_events`/`diagnostic_snapshots`；`UPSERT data_plane_stats`）。
+
+#### 5.3.3 `IF-DIAG-03` · `src/http_api/app.py` → `src/libdiag/diagnostics.py`（流注入）
+- **功能**：M001 SSE 输出经 `stream_wrapper` 包装。
+- **输入**：`stream_wrapper(deployment_id, base_stream)`。
+- **输出**：`Iterable[bytes]`。
+- **返回值**：生成器（透传 / 截断 / 畸形）。
+- **统计 · 日志**：无。
+- **数据库**：只读 `diagnostic_injections`。
 
 #### 5.3.4 `IF-DIAG-INT` · 模块内文件间接口（门面 ↔ 功能 ↔ helper）
-- **签名 / 入口**：
-  - `diagnostics.py`（门面）→ 各功能：`settings.switches/set_switches`、`traces.record_trace/trace/traces`、`snapshots.capture_snapshot/snapshots_page`、`stats.record_latency/stats`、`injections.set_injections/injections/enabled_injection/enabled_stream_injection`、`retention.cleanup`、`stream.stream_wrapper`
-  - `snapshots.py` / `stats.py` → `settings.py`：`switches()`（开关判定）
+- **功能**：门面组合各功能；功能间仅少量正交依赖。
+- **输入**：
+  - `diagnostics.py`（门面）→ `settings` / `traces` / `snapshots` / `stats` / `injections` / `retention` / `stream`
+  - `snapshots.py` · `stats.py` → `settings.py`：`switches()`
   - `stream.py` → `injections.py`：`enabled_stream_injection()`
-  - `settings/traces/snapshots/stats/retention.py` → `common.py`：`now/hour_of/iso/percentile`
-- **输入与前置条件**：门面在 `__init__` 持有 `store`/`logs`，并注入各功能（含 `_warn` 回调）
-- **输出 / 异常**：功能返回值原样透传；`ApiError`/`sqlite3.Error` 冒泡到门面
-- **ownership / 生命周期**：功能对象随门面（`Application`）寿命；无跨文件可变共享状态
-- **实现与验证位置**：`src/libdiag/*.py`；`VRC-DIAG-001..004`
+  - `settings` / `traces` / `snapshots` / `stats` / `retention.py` → `common.py`：`now` / `hour_of` / `iso` / `percentile`
+- **输出**：功能返回值原样透传。
+- **返回值**：`ApiError` / `sqlite3.Error` 冒泡到门面。
+- **统计 · 日志**：门面 `_warn` 统一 fail-open。
+- **数据库**：各功能自持；门面不直连。
 
 ### 5.4 服务提供方式（条件适用）
 
@@ -320,50 +328,88 @@
 
 ## 6. 数据模型、状态与 ownership
 
+> 采用**数据结构固定格式**（定义 / 字段 / 不变量 / 来源 · 复用）。持久表 authority = `util/migrations/002_observability.sql`（由 M007 `migrate()` 执行）。
+
 #### 6.1 `diagnostic_settings`
-- **Authority / 定义位置**：`util/migrations/002_observability.sql`（单行 `singleton=1`）
-- **字段**：`snapshots_enabled:int`、`stats_enabled:int`
-- **键与跨字段约束**：单行；默认 0
-- **Writer / Reader**：I1 写；I2–I6 读
-- **创建、持有、借用/复制与释放**：持久
-- **状态转换 / 并发规则**：部分更新
-- **验证项**：`VRC-DIAG-001`
+- **定义**：诊断全局开关的单行状态。
+- **字段**：
+  - `singleton`：`int` PK｜恒 `1`｜单行哨兵
+  - `snapshots_enabled`：`int`｜`0`/`1`，默认 `0`｜快照开关
+  - `stats_enabled`：`int`｜`0`/`1`，默认 `0`｜统计开关
+- **不变量**：恒单行（`singleton=1`）；两开关独立。
+- **来源 · 复用**：`util/migrations/002_observability.sql`；I1 写、I2–I6 读；`VRC-DIAG-001`。
 
 #### 6.2 `diagnostic_snapshots`
-- **Authority / 定义位置**：`util/migrations/002_observability.sql`
-- **字段**：`id`、`request_id`、`captured_at`、`upstream_url`、`backend_model`、`http_status`、`latency_ms`、`error_summary`、`model`、`deployment_id`、`snapshot_type`
-- **键与跨字段约束**：URL 去 query；summary ≤256B
-- **Writer / Reader**：I3 写；M005 读
-- **创建、持有、借用/复制与释放**：持久（7 天）
-- **状态转换 / 并发规则**：只追加
-- **验证项**：`VRC-DIAG-002`
+- **定义**：上游调用快照（脱敏，保留 7 天）。
+- **字段**：
+  - `id`：`TEXT` PK｜`snap_*`｜快照 ID
+  - `request_id`：`TEXT`｜非空｜请求标识
+  - `captured_at`：`TEXT`｜RFC3339 ms｜捕获时间
+  - `upstream_url`：`TEXT`｜去 query｜上游 URL
+  - `backend_model`：`TEXT`｜非空｜上游模型
+  - `http_status`：`INTEGER?`｜100–599｜HTTP 状态
+  - `latency_ms`：`REAL?`｜≥0｜延迟
+  - `error_summary`：`TEXT?`｜≤256 字节｜错误摘要
+  - `model`：`TEXT`｜非空｜tier 名
+  - `deployment_id`：`TEXT?`｜非空或 `null`｜部署 ID
+  - `snapshot_type`：`TEXT`｜`upstream`/`error`，默认 `upstream`｜类型
+- **不变量**：`upstream ⇒ http_status` 非空；`error ⇒ http_status` 空；`upstream_url` 去 query；`error_summary` ≤256B。
+- **来源 · 复用**：`util/migrations/002_observability.sql`；I3 写、M005 读；只追加；保留 7 天；`VRC-DIAG-002`。
 
 #### 6.3 `data_plane_stats`
-- **Authority / 定义位置**：`util/migrations/002_observability.sql` + 内存聚合
-- **字段**：`id`、按 deployment/model/hour 的计数与延迟
-- **键与跨字段约束**：可丢、非账本
-- **Writer / Reader**：I4 写；M005 读
-- **创建、持有、借用/复制与释放**：持久/内存
-- **状态转换 / 并发规则**：聚合
-- **验证项**：`VRC-DIAG-002`
+- **定义**：小时桶 × deployment × model × status 的请求/错误计数（可丢，非账本）。
+- **字段**：
+  - `stat_hour`：`TEXT` PK 之一｜`YYYY-MM-DDTHH`｜小时桶
+  - `deployment_id`：`TEXT` PK 之一｜非空｜部署 ID
+  - `model`：`TEXT` PK 之一｜非空｜tier 名
+  - `status`：`TEXT` PK 之一｜状态码或 `upstream_error`｜状态
+  - `request_count`：`INTEGER`｜≥0，默认 `0`｜请求计数
+  - `error_count`：`INTEGER`｜≥0，默认 `0`｜错误计数
+  - `updated_at`：`TEXT`｜RFC3339 ms｜更新时间
+- **不变量**：PK `(stat_hour,deployment_id,model,status)`；累加 upsert；可丢。
+- **来源 · 复用**：`util/migrations/002_observability.sql`；I4 写、M005 读；`VRC-DIAG-002`。
 
-#### 6.4 `diagnostic_injections`
-- **Authority / 定义位置**：`util/migrations/002_observability.sql`
-- **字段**：`id`、`deployment_id`、`injection_type`、`enabled`、`fault_status`、`fault_body`、`delay_ms`、`retry_after_sec`、`stream_terminate_after_events`、`malformed_after_events`、`malformed_event_type`、`config_json`
-- **键与跨字段约束**：`UNIQUE(deployment_id, injection_type)`；类型白名单
-- **Writer / Reader**：I5 写；I5/I6 读
-- **创建、持有、借用/复制与释放**：持久
-- **状态转换 / 并发规则**：部分更新
-- **验证项**：`VRC-DIAG-004`
+#### 6.4 `data_plane_latency_samples`
+- **定义**：延迟样本（用于分位）。
+- **字段**：
+  - `stat_hour`：`TEXT`｜`YYYY-MM-DDTHH`｜小时桶
+  - `deployment_id`：`TEXT?`｜非空或 `null`｜部署 ID
+  - `model`：`TEXT?`｜非空或 `null`｜tier 名
+  - `latency_ms`：`REAL` NOT NULL｜≥0｜延迟
+  - `created_at`：`TEXT`｜RFC3339 ms｜写入时间
+- **不变量**：只追加；可丢。
+- **来源 · 复用**：`util/migrations/002_observability.sql`；I4 写、M005 读；`VRC-DIAG-002`。
 
-#### 6.5 `trace_events`
-- **Authority / 定义位置**：`util/migrations/002_observability.sql`
-- **字段**：`id`、`request_id`、`stage`、`timestamp`、`detail_json`、`correlation_id`
-- **键与跨字段约束**：同 request 有序
-- **Writer / Reader**：I2 写；M005 读
-- **创建、持有、借用/复制与释放**：持久（7 天）
-- **状态转换 / 并发规则**：只追加
-- **验证项**：`VRC-DIAG-002`
+#### 6.5 `diagnostic_injections`
+- **定义**：按 deployment 的故障注入配置。
+- **字段**：
+  - `id`：`TEXT` PK｜`inj_*`｜注入 ID
+  - `deployment_id`：`TEXT`｜非空｜部署 ID
+  - `injection_type`：`TEXT`｜6 种之一｜注入类型
+  - `enabled`：`INTEGER`｜`0`/`1`，默认 `0`｜启用标志
+  - `fault_status`：`INTEGER?`｜`502`/`503`｜故障状态
+  - `fault_body`：`TEXT?`｜≤512 字节｜故障正文
+  - `delay_ms`：`INTEGER?`｜0–60000｜延迟
+  - `retry_after_sec`：`INTEGER?`｜0–300｜`Retry-After`
+  - `stream_terminate_after_events`：`INTEGER?`｜1–10000｜截断点
+  - `malformed_after_events`：`INTEGER?`｜0–10000｜畸形点
+  - `malformed_event_type`：`TEXT?`｜`invalid_json`/`unknown_event_type`｜畸形类型
+  - `updated_at`：`TEXT`｜RFC3339 ms｜更新时间
+- **不变量**：`UNIQUE(deployment_id,injection_type)`；6 种类型白名单；各类型配置字段范围见上。
+- **来源 · 复用**：`util/migrations/002_observability.sql`；I5 写、I5/I6 读；部分更新 upsert；`VRC-DIAG-004`。
+
+#### 6.6 `trace_events`
+- **定义**：请求 trace 阶段事件（保留 7 天）。
+- **字段**：
+  - `id`：`TEXT` PK｜`tev_*`｜事件 ID
+  - `request_id`：`TEXT`｜非空｜请求标识
+  - `stage`：`TEXT`｜∈ §9.1.2 集合｜阶段名
+  - `stage_timestamp`：`TEXT`｜RFC3339 ms｜阶段时间
+  - `detail`：`TEXT?`｜JSON（脱敏）｜阶段上下文
+  - `correlation_id`：`TEXT?`｜非空或 `null`｜关联标识
+  - `created_at`：`TEXT`｜RFC3339 ms｜写入时间
+- **不变量**：只追加；同 request 按 `stage_timestamp` 有序；保留 7 天。
+- **来源 · 复用**：`util/migrations/002_observability.sql`；I2 写、M005 读；`VRC-DIAG-002`。
 
 ## 7. 主流程与数据流
 
