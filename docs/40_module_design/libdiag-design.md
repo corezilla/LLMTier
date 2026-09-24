@@ -346,11 +346,11 @@
   - `request_id`：`TEXT`｜非空｜请求标识
   - `captured_at`：`TEXT`｜RFC3339 ms｜捕获时间
   - `upstream_url`：`TEXT`｜去 query｜上游 URL
-  - `backend_model`：`TEXT`｜非空｜上游模型
+  - `backend_model`：`TEXT?`｜非空或 `null`｜上游模型
   - `http_status`：`INTEGER?`｜100–599｜HTTP 状态
   - `latency_ms`：`REAL?`｜≥0｜延迟
   - `error_summary`：`TEXT?`｜≤256 字节｜错误摘要
-  - `model`：`TEXT`｜非空｜tier 名
+  - `model`：`TEXT?`｜非空或 `null`｜tier 名
   - `deployment_id`：`TEXT?`｜非空或 `null`｜部署 ID
   - `snapshot_type`：`TEXT`｜`upstream`/`error`，默认 `upstream`｜类型
 - **不变量**：`upstream ⇒ http_status` 非空；`error ⇒ http_status` 空；`upstream_url` 去 query；`error_summary` ≤256B。
@@ -360,8 +360,8 @@
 - **定义**：小时桶 × deployment × model × status 的请求/错误计数（可丢，非账本）。
 - **字段**：
   - `stat_hour`：`TEXT` PK 之一｜`YYYY-MM-DDTHH`｜小时桶
-  - `deployment_id`：`TEXT` PK 之一｜非空｜部署 ID
-  - `model`：`TEXT` PK 之一｜非空｜tier 名
+  - `deployment_id`：`TEXT` PK 之一｜非空或 `null`｜部署 ID
+  - `model`：`TEXT` PK 之一｜非空或 `null`｜tier 名
   - `status`：`TEXT` PK 之一｜状态码或 `upstream_error`｜状态
   - `request_count`：`INTEGER`｜≥0，默认 `0`｜请求计数
   - `error_count`：`INTEGER`｜≥0，默认 `0`｜错误计数
@@ -484,7 +484,7 @@
 #### 9.1.2 `TraceStage`
 - **定义**：单个 trace 阶段。
 - **字段**：
-  - `stage`：`str`｜必填｜∈ {`received`,`validated`,`routed`,`upstream_started`,`upstream_ended`,`completed`,`aborted`}｜阶段名（≤64）
+  - `stage`：`str`｜必填｜∈ {`received`,`validated`,`routed`,`upstream_started`,`upstream_ended`,`completed`,`aborted`}｜阶段名（≤64；调用方约定，代码不强制）
   - `timestamp`：`str`｜必填｜RFC3339 ms｜阶段发生时间
   - `detail`：`object?`｜可空｜任意 JSON（脱敏后）｜阶段附加上下文
 - **不变量**：`stages` 内按 `timestamp` 升序。
@@ -531,11 +531,11 @@
   - `request_id`：`str`｜必填｜非空｜请求标识
   - `captured_at`：`str`｜必填｜RFC3339 ms｜捕获时间
   - `upstream_url`：`str`｜必填｜去 query｜上游 URL
-  - `backend_model`：`str`｜必填｜非空｜上游模型名
+  - `backend_model`：`str?`｜可空｜非空或 `null`｜上游模型名
   - `http_status`：`int?`｜可空｜100–599｜HTTP 状态（error 类快照为空）
   - `latency_ms`：`float?`｜可空｜≥0｜端到端延迟
   - `error_summary`：`str?`｜可空｜≤256 字节｜错误摘要（脱敏）
-  - `model`：`str`｜必填｜非空｜tier 名
+  - `model`：`str?`｜可空｜非空或 `null`｜tier 名
   - `deployment_id`：`str?`｜可空｜非空或 `null`｜部署 ID
   - `snapshot_type`：`str`｜必填｜`upstream`/`error`｜快照类型
 - **不变量**：`snapshot_type=upstream` ⇒ `http_status` 非空；`=error` ⇒ `http_status` 空。
