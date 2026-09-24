@@ -1,16 +1,16 @@
 {
   "project": "LLMTier",
   "authority": "LLMTier",
-  "document_id": "util-isd",
+  "document_id": "log-isd",
   "document_type": "design.implementation",
   "document_version": "0.1.0-draft.1",
-  "title": "LLMTier M007 util 实现规格设计（ISD）",
+  "title": "LLMTier M008 log 实现规格设计（ISD）",
   "document_owner": "LLMTier",
   "authors": [
     "llmtier"
   ],
   "source_repository": "corezilla/LLMTier",
-  "source_path": "docs/50_implementation_design/util.isd.md",
+  "source_path": "docs/50_implementation_design/log.isd.md",
   "template_id": "design.implementation",
   "template_version": "0.3.0",
   "template_sha256": "c7ae4e84e2862bc72e48d42bf992e3e5a54ee8a1230241da84955bf77d0811be",
@@ -28,16 +28,16 @@
   "supersedes": null,
   "created_at": "2026-09-23",
   "last_modified_at": "2026-09-23",
-  "design_object_id": "M007",
-  "implementation_view_of_document_id": "util",
+  "design_object_id": "M008",
+  "implementation_view_of_document_id": "log",
   "volume_of_document_id": null,
   "implementation_specification": {
     "mode": "separate",
-    "document_id": "util-isd",
+    "document_id": "log-isd",
     "coverage_mapping": [
       {
         "item": "scope",
-        "document_id": "util-isd",
+        "document_id": "log-isd",
         "anchor": "isd-scope",
         "applicability": "applicable",
         "reason": null,
@@ -45,7 +45,7 @@
       },
       {
         "item": "structure",
-        "document_id": "util-isd",
+        "document_id": "log-isd",
         "anchor": "isd-structure",
         "applicability": "applicable",
         "reason": null,
@@ -53,7 +53,7 @@
       },
       {
         "item": "data",
-        "document_id": "util-isd",
+        "document_id": "log-isd",
         "anchor": "isd-data",
         "applicability": "applicable",
         "reason": null,
@@ -61,7 +61,7 @@
       },
       {
         "item": "functions",
-        "document_id": "util-isd",
+        "document_id": "log-isd",
         "anchor": "isd-functions",
         "applicability": "applicable",
         "reason": null,
@@ -69,7 +69,7 @@
       },
       {
         "item": "algorithms",
-        "document_id": "util-isd",
+        "document_id": "log-isd",
         "anchor": "isd-algorithms",
         "applicability": "applicable",
         "reason": null,
@@ -77,7 +77,7 @@
       },
       {
         "item": "lifecycle",
-        "document_id": "util-isd",
+        "document_id": "log-isd",
         "anchor": "isd-lifecycle",
         "applicability": "applicable",
         "reason": null,
@@ -85,7 +85,7 @@
       },
       {
         "item": "resources",
-        "document_id": "util-isd",
+        "document_id": "log-isd",
         "anchor": "isd-resources",
         "applicability": "applicable",
         "reason": null,
@@ -93,7 +93,7 @@
       },
       {
         "item": "security",
-        "document_id": "util-isd",
+        "document_id": "log-isd",
         "anchor": "isd-security",
         "applicability": "applicable",
         "reason": null,
@@ -101,7 +101,7 @@
       },
       {
         "item": "persistence",
-        "document_id": "util-isd",
+        "document_id": "log-isd",
         "anchor": "isd-persistence",
         "applicability": "applicable",
         "reason": null,
@@ -109,7 +109,7 @@
       },
       {
         "item": "verification",
-        "document_id": "util-isd",
+        "document_id": "log-isd",
         "anchor": "isd-verification",
         "applicability": "applicable",
         "reason": null,
