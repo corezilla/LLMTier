@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import hashlib
+import sqlite3
 import os
 import uuid
 from dataclasses import dataclass
@@ -9,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .errors import ApiError, require
-from .store import Store
+from .store import Store, txn
 
 
 FIXED_TIERS = ("Senior", "Junior", "Worker", "Associate", "Engineer", "Executor", "Embedding-v1")
@@ -116,14 +117,14 @@ class Registry:
             for tier in FIXED_TIERS:
                 conn.execute("INSERT OR IGNORE INTO service_levels VALUES(?,?,?,?)", (tier, 1, json.dumps(empty, separators=(",", ":")), 1))
 
-    def create_provider(self, body: dict[str, Any]) -> tuple[dict[str, Any], str]:
+    def create_provider(self, body: dict[str, Any], conn: sqlite3.Connection | None = None) -> tuple[dict[str, Any], str]:
         required = {"name", "kind", "endpoint", "secret_ref", "enabled"}
         require(required <= set(body) and set(body) <= required | {"usage"}, 400, "invalid_request", "Provider fields are incomplete or unknown")
         require(body["kind"] in {"cloud", "local"}, 400, "invalid_request", "Invalid provider kind", "kind")
         usage = self._usage_values(body.get("usage"), body["kind"])
         rid = _id("provider")
         try:
-            with self.store.transaction(True) as conn:
+            with txn(self.store, conn) as conn:
                 conn.execute("INSERT INTO providers VALUES(?,?,?,?,?,?,?)", (rid, body["name"], body["kind"], body["endpoint"], body["secret_ref"], int(body["enabled"]), 1))
                 self._write_usage_profile(conn, rid, usage, 1)
         except Exception as exc:
@@ -151,10 +152,10 @@ class Registry:
     def list_providers(self) -> list[dict[str, Any]]:
         return [self.get_provider(row["id"])[0] for row in self.store.all("SELECT id FROM providers ORDER BY name,id")]
 
-    def update_provider(self, rid: str, body: dict[str, Any], if_match: str | None) -> tuple[dict[str, Any], str]:
+    def update_provider(self, rid: str, body: dict[str, Any], if_match: str | None, conn: sqlite3.Connection | None = None) -> tuple[dict[str, Any], str]:
         allowed = {"name", "kind", "endpoint", "secret_ref", "enabled", "usage"}
         require(body and set(body) <= allowed, 400, "invalid_request", "Unknown or empty provider patch")
-        with self.store.transaction(True) as conn:
+        with txn(self.store, conn) as conn:
             row = conn.execute("SELECT * FROM providers WHERE id=?", (rid,)).fetchone()
             if row is None: raise ApiError(404, "not_found", "Provider not found")
             if if_match != _etag(rid, row["version"]): raise ApiError(412, "version_conflict", "Provider version changed", extra={"current_version": row["version"]})
@@ -208,8 +209,8 @@ class Registry:
             return {"usage_provider": "local" if kind == "local" else "none", "has_usage_api_key": False, "has_usage_access_key": False, "has_usage_secret_key": False, "max_concurrent_requests": 1, "min_request_interval_ms": 0, "requests_per_minute": 0}
         return {"usage_provider": row["usage_provider"], "has_usage_api_key": row["usage_api_key_ref"] is not None, "has_usage_access_key": row["usage_access_key_ref"] is not None, "has_usage_secret_key": row["usage_secret_key_ref"] is not None, "max_concurrent_requests": row["max_concurrent_requests"], "min_request_interval_ms": row["min_request_interval_ms"], "requests_per_minute": row["requests_per_minute"]}
 
-    def delete_provider(self, rid: str, if_match: str | None) -> None:
-        with self.store.transaction(True) as conn:
+    def delete_provider(self, rid: str, if_match: str | None, conn: sqlite3.Connection | None = None) -> None:
+        with txn(self.store, conn) as conn:
             row = conn.execute("SELECT version FROM providers WHERE id=?", (rid,)).fetchone()
             if row is None: raise ApiError(404, "not_found", "Provider not found")
             if if_match != _etag(rid, row["version"]): raise ApiError(412, "version_conflict", "Provider version changed", extra={"current_version": row["version"]})
@@ -217,14 +218,14 @@ class Registry:
                 raise ApiError(409, "resource_in_use", "Provider is referenced by a deployment")
             conn.execute("DELETE FROM providers WHERE id=?", (rid,))
 
-    def create_deployment(self, body: dict[str, Any]) -> tuple[dict[str, Any], str]:
+    def create_deployment(self, body: dict[str, Any], conn: sqlite3.Connection | None = None) -> tuple[dict[str, Any], str]:
         required = {"name", "provider_id", "backend_model", "capabilities", "enabled"}
         require(set(body) == required, 400, "invalid_request", "Deployment fields are incomplete or unknown")
         self._validate_capabilities(body["capabilities"])
         require(self.store.one("SELECT 1 FROM providers WHERE id=?", (body["provider_id"],)) is not None, 400, "invalid_request", "Unknown provider", "provider_id")
         rid = _id("deployment")
         try:
-            with self.store.transaction(True) as conn:
+            with txn(self.store, conn) as conn:
                 conn.execute("INSERT INTO deployments VALUES(?,?,?,?,?,?,?,?)", (rid, body["name"], body["provider_id"], body["backend_model"], json.dumps(body["capabilities"], separators=(",", ":")), int(body["enabled"]), "unknown", 1))
                 conn.execute("INSERT INTO deployment_runtime_profiles(deployment_id) VALUES(?)", (rid,))
         except Exception as exc:
@@ -241,11 +242,11 @@ class Registry:
     def list_deployments(self) -> list[dict[str, Any]]:
         return [self.get_deployment(r["id"])[0] for r in self.store.all("SELECT id FROM deployments ORDER BY name,id")]
 
-    def update_deployment(self, rid: str, body: dict[str, Any], if_match: str | None) -> tuple[dict[str, Any], str]:
+    def update_deployment(self, rid: str, body: dict[str, Any], if_match: str | None, conn: sqlite3.Connection | None = None) -> tuple[dict[str, Any], str]:
         allowed = {"name", "provider_id", "backend_model", "capabilities", "enabled"}
         require(body and set(body) <= allowed, 400, "invalid_request", "Unknown or empty deployment patch")
         if "capabilities" in body: self._validate_capabilities(body["capabilities"])
-        with self.store.transaction(True) as conn:
+        with txn(self.store, conn) as conn:
             row = conn.execute("SELECT * FROM deployments WHERE id=?", (rid,)).fetchone()
             if row is None: raise ApiError(404, "not_found", "Deployment not found")
             if if_match != _etag(rid, row["version"]): raise ApiError(412, "version_conflict", "Deployment version changed", extra={"current_version": row["version"]})
@@ -265,8 +266,8 @@ class Registry:
                     conn.execute("UPDATE service_levels SET capabilities_json=?,version=version+1 WHERE id=?", (json.dumps(capabilities, separators=(",", ":")), level_id))
         return self.get_deployment(rid)
 
-    def delete_deployment(self, rid: str, if_match: str | None) -> None:
-        with self.store.transaction(True) as conn:
+    def delete_deployment(self, rid: str, if_match: str | None, conn: sqlite3.Connection | None = None) -> None:
+        with txn(self.store, conn) as conn:
             row = conn.execute("SELECT version FROM deployments WHERE id=?", (rid,)).fetchone()
             if row is None: raise ApiError(404, "not_found", "Deployment not found")
             if if_match != _etag(rid, row["version"]): raise ApiError(412, "version_conflict", "Deployment version changed", extra={"current_version": row["version"]})
@@ -305,13 +306,13 @@ class Registry:
         else:
             require(capabilities.get("responses") is True, 409, "capability_conflict", "Inference Tier requires Responses support")
 
-    def create_service_level(self, body: dict[str, Any]) -> tuple[dict[str, Any], str]:
+    def create_service_level(self, body: dict[str, Any], conn: sqlite3.Connection | None = None) -> tuple[dict[str, Any], str]:
         require(set(body) == {"id", "deployment_ids", "enabled"}, 400, "invalid_request", "Service level fields are incomplete or unknown")
         require(body["id"] in FIXED_TIERS, 400, "invalid_request", "Service level ID is not a fixed Tier", "id")
         capabilities = self._capability_intersection(body["deployment_ids"])
         self._validate_level(body["id"], body["deployment_ids"], capabilities)
         try:
-            with self.store.transaction(True) as conn:
+            with txn(self.store, conn) as conn:
                 conn.execute("INSERT INTO service_levels VALUES(?,?,?,?)", (body["id"], int(body["enabled"]), json.dumps(capabilities, separators=(",", ":")), 1))
                 conn.executemany("INSERT INTO service_level_deployments VALUES(?,?,?)", [(body["id"], did, i) for i, did in enumerate(body["deployment_ids"])])
         except Exception as exc:
@@ -330,9 +331,9 @@ class Registry:
         present = {r["id"] for r in self.store.all("SELECT id FROM service_levels")}
         return [self.get_service_level(rid)[0] for rid in FIXED_TIERS if rid in present]
 
-    def update_service_level(self, rid: str, body: dict[str, Any], if_match: str | None) -> tuple[dict[str, Any], str]:
+    def update_service_level(self, rid: str, body: dict[str, Any], if_match: str | None, conn: sqlite3.Connection | None = None) -> tuple[dict[str, Any], str]:
         require(body and set(body) <= {"deployment_ids", "enabled"}, 400, "invalid_request", "Unknown or empty service level patch")
-        with self.store.transaction(True) as conn:
+        with txn(self.store, conn) as conn:
             row = conn.execute("SELECT * FROM service_levels WHERE id=?", (rid,)).fetchone()
             if row is None: raise ApiError(404, "not_found", "Service level not found")
             if if_match != _etag(rid, row["version"]): raise ApiError(412, "version_conflict", "Service level version changed", extra={"current_version": row["version"]})
@@ -348,7 +349,7 @@ class Registry:
                 conn.executemany("INSERT INTO service_level_deployments VALUES(?,?,?)", [(rid, did, i) for i, did in enumerate(ids)])
         return self.get_service_level(rid)
 
-    def delete_service_level(self, rid: str, if_match: str | None) -> None:
+    def delete_service_level(self, rid: str, if_match: str | None, conn: sqlite3.Connection | None = None) -> None:
         raise ApiError(409, "fixed_service_level", "Fixed Tier service levels cannot be deleted")
 
     def candidates(self, level_id: str) -> list[Candidate]:

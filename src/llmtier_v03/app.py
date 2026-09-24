@@ -154,23 +154,23 @@ def handler_factory(app: Application):
                     return self._json(200, app.usage.page(principal.principal_id, query.get("cursor", [None])[0], _int_param(query, "limit", 100), admin=is_admin, since=query.get("from", [None])[0], until=query.get("to", [None])[0], model=query.get("model", [None])[0], request_id=query.get("request_id", [None])[0]))
                 if method == "DELETE":
                     if not is_admin: raise ApiError(403, "permission_denied", "Admin credential required")
-                    result = app.admin.mutate(principal.principal_id, "usage.reset", "all", self.request_id, lambda: app.usage.reset_usage(model=query.get("model", [None])[0], deployment_id=query.get("deployment_id", [None])[0]))
+                    result = app.admin.mutate(principal.principal_id, "usage.reset", "all", self.request_id, lambda conn: app.usage.reset_usage(model=query.get("model", [None])[0], deployment_id=query.get("deployment_id", [None])[0], conn=conn))
                     return self._json(200, result)
             principal = self._auth("admin")
             if path == "/v1/providers":
                 if method == "GET": return self._json(200, app.admin.page(app.registry.list_providers(), principal.principal_id, "providers", query.get("cursor", [None])[0], _int_param(query, "limit", 100)))
                 if method == "POST":
-                    view, etag = app.admin.mutate(principal.principal_id, "provider.create", "provider", self.request_id, lambda: app.registry.create_provider(self._body()))
+                    view, etag = app.admin.mutate(principal.principal_id, "provider.create", "provider", self.request_id, lambda conn: app.registry.create_provider(self._body(), conn=conn))
                     return self._json(201, view, {"ETag": etag})
             if path == "/v1/deployments":
                 if method == "GET": return self._json(200, app.admin.page(app.registry.list_deployments(), principal.principal_id, "deployments", query.get("cursor", [None])[0], _int_param(query, "limit", 100)))
                 if method == "POST":
-                    view, etag = app.admin.mutate(principal.principal_id, "deployment.create", "deployment", self.request_id, lambda: app.registry.create_deployment(self._body()))
+                    view, etag = app.admin.mutate(principal.principal_id, "deployment.create", "deployment", self.request_id, lambda conn: app.registry.create_deployment(self._body(), conn=conn))
                     return self._json(201, view, {"ETag": etag})
             if path == "/v1/service-levels":
                 if method == "GET": return self._json(200, app.admin.page(app.registry.list_service_levels(), principal.principal_id, "service-levels", query.get("cursor", [None])[0], _int_param(query, "limit", 100)))
                 if method == "POST":
-                    view, etag = app.admin.mutate(principal.principal_id, "service_level.create", "service_level", self.request_id, lambda: app.registry.create_service_level(self._body()))
+                    view, etag = app.admin.mutate(principal.principal_id, "service_level.create", "service_level", self.request_id, lambda conn: app.registry.create_service_level(self._body(), conn=conn))
                     return self._json(201, view, {"ETag": etag})
             if path == "/v1/runtime" and method == "GET":
                 return self._json(200, app.router.snapshot())
@@ -187,7 +187,7 @@ def handler_factory(app: Application):
                 if method == "POST":
                     body = self._body()
                     if set(body) != {"confirm_external_call"}: raise ApiError(400, "invalid_request", "Usage refresh accepts only confirm_external_call")
-                    result = app.admin.mutate(principal.principal_id, "provider.usage.refresh", provider_id, self.request_id, lambda: app.account_usage.refresh(provider_id, body.get("confirm_external_call") is True))
+                    result = app.admin.mutate(principal.principal_id, "provider.usage.refresh", provider_id, self.request_id, lambda conn: app.account_usage.refresh(provider_id, body.get("confirm_external_call") is True), atomic=False)
                     return self._json(200, result)
             match = re.fullmatch(r"/v1/providers/([^/]+)/models", path)
             if match:
@@ -205,10 +205,10 @@ def handler_factory(app: Application):
                     rid = match.group(1)
                     if method == "GET": view, etag = getter(rid); return self._json(200, view, {"ETag": etag})
                     if method == "PATCH":
-                        view, etag = app.admin.mutate(principal.principal_id, f"{kind}.update", rid, self.request_id, lambda: updater(rid, self._body(), self.headers.get("If-Match")))
+                        view, etag = app.admin.mutate(principal.principal_id, f"{kind}.update", rid, self.request_id, lambda conn: updater(rid, self._body(), self.headers.get("If-Match"), conn=conn))
                         return self._json(200, view, {"ETag": etag})
                     if method == "DELETE":
-                        app.admin.mutate(principal.principal_id, f"{kind}.delete", rid, self.request_id, lambda: deleter(rid, self.headers.get("If-Match")))
+                        app.admin.mutate(principal.principal_id, f"{kind}.delete", rid, self.request_id, lambda conn: deleter(rid, self.headers.get("If-Match"), conn=conn))
                         self.send_response(204); self.end_headers(); return
             if path == "/v1/probes" and method == "POST": return self._json(200, app.admin.probe(principal.principal_id, self._body(), self.request_id))
             if path == "/v1/audit" and method == "GET": return self._json(200, app.audit.page(_int_param(query, "limit", 50)))
@@ -219,7 +219,7 @@ def handler_factory(app: Application):
             if path == "/v1/diagnostics" and method == "GET": return self._json(200, app.diagnostics.switches())
             if path == "/v1/diagnostics" and method == "PATCH":
                 body = self._body()
-                result = app.admin.mutate(principal.principal_id, "diagnostics.switch.update", "diagnostics", self.request_id, lambda: app.diagnostics.set_switches(body.get("snapshots_enabled"), body.get("stats_enabled")))
+                result = app.admin.mutate(principal.principal_id, "diagnostics.switch.update", "diagnostics", self.request_id, lambda conn: app.diagnostics.set_switches(body.get("snapshots_enabled"), body.get("stats_enabled"), conn=conn))
                 return self._json(200, result)
             if path == "/v1/diagnostics/snapshots" and method == "GET":
                 return self._json(200, app.diagnostics.snapshots_page(query.get("since", [None])[0], query.get("until", [None])[0], query.get("deployment_id", [None])[0], query.get("model", [None])[0], _int_param(query, "limit", 50), query.get("cursor", [None])[0]))
@@ -234,14 +234,14 @@ def handler_factory(app: Application):
                 did = match.group(1)
                 if method == "GET": return self._json(200, app.diagnostics.injections(did))
                 if method == "PATCH":
-                    result = app.admin.mutate(principal.principal_id, "diagnostics.injection.update", did, self.request_id, lambda: app.diagnostics.set_injections(did, self._body()))
+                    result = app.admin.mutate(principal.principal_id, "diagnostics.injection.update", did, self.request_id, lambda conn: app.diagnostics.set_injections(did, self._body(), conn=conn))
                     return self._json(200, result)
             match = re.fullmatch(r"/tier/admin/v1/deployments/([^/]+)/diagnostics", path)
             if match:
                 did = match.group(1)
                 if method == "GET": return self._json(200, app.diagnostics.injections(did))
                 if method == "PATCH":
-                    result = app.admin.mutate(principal.principal_id, "diagnostics.injection.update", did, self.request_id, lambda: app.diagnostics.set_injections(did, self._body()))
+                    result = app.admin.mutate(principal.principal_id, "diagnostics.injection.update", did, self.request_id, lambda conn: app.diagnostics.set_injections(did, self._body(), conn=conn))
                     return self._json(200, result)
             match = re.fullmatch(r"/v1/trace/([^/]+)", path)
             if match and method == "GET": return self._json(200, app.diagnostics.trace(match.group(1)))
@@ -249,7 +249,7 @@ def handler_factory(app: Application):
             if path == "/tier/admin/v1/diagnostics" and method == "GET": return self._json(200, app.diagnostics.switches())
             if path == "/tier/admin/v1/diagnostics" and method == "PATCH":
                 body = self._body()
-                result = app.admin.mutate(principal.principal_id, "diagnostics.switch.update", "diagnostics", self.request_id, lambda: app.diagnostics.set_switches(body.get("snapshots_enabled"), body.get("stats_enabled")))
+                result = app.admin.mutate(principal.principal_id, "diagnostics.switch.update", "diagnostics", self.request_id, lambda conn: app.diagnostics.set_switches(body.get("snapshots_enabled"), body.get("stats_enabled"), conn=conn))
                 return self._json(200, result)
             if path == "/tier/admin/v1/diagnostics/snapshots" and method == "GET":
                 return self._json(200, app.diagnostics.snapshots_page(query.get("since", [None])[0], query.get("until", [None])[0], query.get("deployment_id", [None])[0], query.get("model", [None])[0], _int_param(query, "limit", 50), query.get("cursor", [None])[0]))
@@ -264,7 +264,7 @@ def handler_factory(app: Application):
                 did = match.group(1)
                 if method == "GET": return self._json(200, app.diagnostics.injections(did))
                 if method == "PATCH":
-                    result = app.admin.mutate(principal.principal_id, "diagnostics.injection.update", did, self.request_id, lambda: app.diagnostics.set_injections(did, self._body()))
+                    result = app.admin.mutate(principal.principal_id, "diagnostics.injection.update", did, self.request_id, lambda conn: app.diagnostics.set_injections(did, self._body(), conn=conn))
                     return self._json(200, result)
             match = re.fullmatch(r"/tier/admin/v1/trace/([^/]+)", path)
             if match and method == "GET": return self._json(200, app.diagnostics.trace(match.group(1)))

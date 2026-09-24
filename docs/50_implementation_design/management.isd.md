@@ -169,9 +169,9 @@ health.py         health_view/readiness_view/apply_probe_result
 
 - **文件 / symbol / 可见性**：`admin.py` / `AdminService.mutate/probe/page/stats` / private
 - **原成员 ID 或私有来源**：`F-MGMT-PROBE`、`F-MGMT-STATS`
-- **完整签名与 caller**：`mutate(actor, action, target, request_id, fn)`；`probe(actor, body, request_id)`；`page(...)`；`stats(from_ts, to_ts, group_by)`；caller=M001
-- **输入参数 / 数据结构 authority**：`(actor, action, target, request_id, fn)`；probe `{deployment_id, confirm_external_call}`
-- **输入约束 / 校验顺序 / 失败映射**：mutate 包裹审计；probe 需确认；stats `group_by ∈ {tier,deployment}`
+- **完整签名与 caller**：`mutate(actor, action, target, request_id, fn, atomic=True)`，`fn(conn)` 在 mutate 开启的同一事务内执行；`probe(actor, body, request_id)`；`page(...)`；`stats(from_ts, to_ts, group_by)`；caller=M001
+- **输入参数 / 数据结构 authority**：`(actor, action, target, request_id, fn)`；`fn(conn)` 用传入连接执行 Registry 写（不另开事务）；probe `{deployment_id, confirm_external_call}`
+- **输入约束 / 校验顺序 / 失败映射**：mutate 单事务写 Registry + Audit（`atomic=False` 仅用于带外部调用的账号刷新）；probe 需确认；stats `group_by ∈ {tier,deployment}`
 - **成功输出 / 数据结构 / 后置条件**：结果 / 页 / 统计；审计 success
 - **错误输出 / 触发条件 / 优先级**：`E-MGMT-INVALID`(400 `invalid_request`)、`E-MGMT-CONFIRM`(400 `confirmation_required`)、`E-MGMT-NOTFOUND`(404)
 - **副作用 / 执行上下文 / 幂等性**：包裹 `fn` 副作用；写审计

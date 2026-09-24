@@ -23,10 +23,16 @@ class AdminTests(unittest.TestCase):
         first=self.admin.page([{"id":"1"},{"id":"2"}],"a","x",limit=1)
         with self.assertRaises(ApiError):self.admin.page([],"b","x",first["page"]["next_cursor"],limit=1)
     def test_mutate_success_audited(self):
-        self.admin.mutate("a","do","t","r",lambda:1);self.assertEqual(self.fx.app.audit.page()["data"][0]["result"],"success")
+        self.admin.mutate("a","do","t","r",lambda conn:1);self.assertEqual(self.fx.app.audit.page()["data"][0]["result"],"success")
     def test_mutate_failure_audited(self):
-        with self.assertRaises(ValueError):self.admin.mutate("a","do","t","r",lambda:(_ for _ in ()).throw(ValueError()))
+        with self.assertRaises(ValueError):self.admin.mutate("a","do","t","r",lambda conn:(_ for _ in ()).throw(ValueError()))
         self.assertEqual(self.fx.app.audit.page()["data"][0]["result"],"failed")
+    def test_mutate_is_atomic_with_registry_write(self):
+        body={"name":"p","kind":"local","endpoint":"http://x","secret_ref":None,"enabled":True}
+        with self.assertRaises(ValueError):
+            self.admin.mutate("a","provider.create","provider","r",
+                              lambda conn:(self.fx.app.registry.create_provider(body,conn=conn),(_ for _ in ()).throw(ValueError()))[1])
+        self.assertEqual(self.fx.app.registry.list_providers(),[])
     def test_probe_requires_confirmation(self):
         with self.assertRaises(ApiError):self.admin.probe("a",{"deployment_id":"x","confirm_external_call":False},"r")
     def test_probe_updates_health(self):

@@ -91,10 +91,18 @@ class AdminService:
                      "cached_tokens": int(r["cached_tokens"]), "cache_write_tokens": int(r["cache_write_tokens"]), "reasoning_tokens": int(r["reasoning_tokens"])} for r in rows]
         return {"from": from_ts, "to": to_ts, "group_by": group_by, "data": data}
 
-    def mutate(self, actor: str, action: str, target: str, request_id: str, fn):
+    def mutate(self, actor: str, action: str, target: str, request_id: str, fn, atomic: bool = True):
+        # PF-MGMT-CONFIG: registry mutation and its audit row commit in one transaction.
+        # atomic=False is used for operations with an external call (account usage
+        # refresh) that must not hold the write transaction open.
         try:
-            result = fn()
-            self.audit.record(actor, action, target, "success", request_id)
+            if atomic:
+                with self.registry.store.transaction(True) as conn:
+                    result = fn(conn)
+                    self.audit.record(actor, action, target, "success", request_id, conn=conn)
+            else:
+                result = fn(None)
+                self.audit.record(actor, action, target, "success", request_id)
             self.logs.record("info", "admin", action, f"{action} succeeded for {target}", request_id)
             return result
         except Exception:

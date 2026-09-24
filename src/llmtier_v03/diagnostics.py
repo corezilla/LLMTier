@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable
 
 from .errors import ApiError
-from .store import Store
+from .store import Store, txn
 
 
 def now() -> str:
@@ -66,14 +66,14 @@ class DiagnosticsService:
         row = self.store.one("SELECT snapshots_enabled,stats_enabled FROM diagnostic_settings WHERE singleton=1")
         return {"snapshots_enabled": bool(row["snapshots_enabled"]), "stats_enabled": bool(row["stats_enabled"])}
 
-    def set_switches(self, snapshots_enabled: bool | None = None, stats_enabled: bool | None = None) -> dict[str, bool]:
+    def set_switches(self, snapshots_enabled: bool | None = None, stats_enabled: bool | None = None, conn=None) -> dict[str, bool]:
         for name, value in (("snapshots_enabled", snapshots_enabled), ("stats_enabled", stats_enabled)):
             if value is not None and not isinstance(value, bool):
                 raise ApiError(400, "invalid_request", f"{name} must be a boolean", param=name)
         current = self.switches()
         snapshots = current["snapshots_enabled"] if snapshots_enabled is None else snapshots_enabled
         stats = current["stats_enabled"] if stats_enabled is None else stats_enabled
-        with self.store.transaction(True) as conn:
+        with txn(self.store, conn) as conn:
             conn.execute("UPDATE diagnostic_settings SET snapshots_enabled=?,stats_enabled=? WHERE singleton=1", (int(snapshots), int(stats)))
         return self.switches()
 
@@ -272,14 +272,14 @@ class DiagnosticsService:
                 clean[field] = value
         return {"type": kind, "config": clean, "enabled": bool(item.get("enabled"))}
 
-    def set_injections(self, deployment_id: str, actor_items: list[dict]) -> list[dict]:
+    def set_injections(self, deployment_id: str, actor_items: list[dict], conn=None) -> list[dict]:
         if self.store.one("SELECT 1 FROM deployments WHERE id=?", (deployment_id,)) is None:
             raise ApiError(404, "not_found", f"Unknown deployment: {deployment_id}")
         if not isinstance(actor_items, list):
             raise ApiError(400, "invalid_injection", "Expected a list of injection items")
         validated = [self._validate(item) for item in actor_items]
         stamp = now()
-        with self.store.transaction(True) as conn:
+        with txn(self.store, conn) as conn:
             for item in validated:
                 kind, config, enabled = item["type"], item["config"], item["enabled"]
                 columns = {"fault_status": 502 if kind == "fault_502" else (503 if kind == "fault_503" else None)}

@@ -13,8 +13,9 @@ def _now() -> str:
 class AuditLog:
     def __init__(self, store: Store): self.store = store
 
-    def record(self, actor: str, action: str, target: str, result: str, request_id: str | None = None) -> None:
-        self.store.connection().execute("INSERT INTO audit_events VALUES(?,?,?,?,?,?,?)", (f"audit_{uuid.uuid4().hex[:16]}", actor, action, target, result, _now(), request_id))
+    def record(self, actor: str, action: str, target: str, result: str, request_id: str | None = None, conn=None) -> None:
+        connection = conn if conn is not None else self.store.connection()
+        connection.execute("INSERT INTO audit_events VALUES(?,?,?,?,?,?,?)", (f"audit_{uuid.uuid4().hex[:16]}", actor, action, target, result, _now(), request_id))
 
     def page(self, limit: int = 50) -> dict:
         rows = self.store.all("SELECT * FROM audit_events ORDER BY created_at DESC,id DESC LIMIT ?", (max(1, min(limit, 200)),))

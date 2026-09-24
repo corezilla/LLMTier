@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from .errors import ApiError
-from .store import Store
+from .store import Store, txn
 
 
 def now() -> str:
@@ -94,7 +94,7 @@ class UsageRecorder:
         snap = self.store.one("SELECT created_at FROM query_snapshots WHERE snapshot_id=?", (sid,))
         return {"data": data, "next_cursor": f"{sid}:{offset+limit}" if more else None, "has_more": more, "snapshot_id": sid, "snapshot_at": snap["created_at"]}
 
-    def reset_usage(self, model: str | None = None, deployment_id: str | None = None) -> dict[str, int]:
+    def reset_usage(self, model: str | None = None, deployment_id: str | None = None, conn=None) -> dict[str, int]:
         """Delete usage records. Scopes by model (tier) and/or deployment_id.
 
         - model only:       delete all records for that tier (model column = tier name)
@@ -102,7 +102,7 @@ class UsageRecorder:
         - both:             delete records that match both
         - neither:          delete ALL usage records (full reset)
         """
-        with self.store.transaction(True) as conn:
+        with txn(self.store, conn) as conn:
             if model and deployment_id:
                 conn.execute("""
                     CREATE TEMP TABLE _del_pairs AS

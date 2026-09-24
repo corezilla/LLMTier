@@ -25,6 +25,20 @@ def _statements(sql: str) -> list[str]:
     return out
 
 
+@contextlib.contextmanager
+def txn(store: "Store", conn: sqlite3.Connection | None = None) -> Iterator[sqlite3.Connection]:
+    """Yield an existing connection (caller owns the transaction) or open a new one.
+
+    Implements the ISD nested-transaction policy: callers already inside a
+    transaction pass their Connection instead of opening a second one.
+    """
+    if conn is not None:
+        yield conn
+    else:
+        with store.transaction(True) as nested:
+            yield nested
+
+
 class Store:
     def __init__(self, path: str | Path):
         self.path = str(path)
