@@ -33,7 +33,7 @@
 | 父设计 Document ID / 登记位置 | `llmtier-system-design` / 系统设计 §3.2（唯一登记表）|
 | 上级系统 / 父单元 | LLMTier 软件系统 |
 | 解决的问题 | 跨服务失败时"知道有问题却定位不出哪一层/哪个请求/哪个上游调用"——把定位链路的**查询与呈现**（快照/统计/注入/trace/关联标识）与**开关切换**产品化，且不改推理契约 |
-| 提供的能力 | 诊断管理面：`GET/PATCH /v1/diagnostics`（全局开关）、快照分页、统计、注入配置、单请求 trace；关联标识透传/回显；M002 诊断页数据 |
+| 提供的能力 | 诊断管理面：`GET/PATCH /tier/admin/v1/diagnostics`（全局开关）、快照分页、统计、注入配置、单请求 trace；关联标识透传/回显；M002 诊断页数据 |
 | 主要使用者 | M001 HTTP API（路由）、M002 Web UI（诊断页）、Operator |
 | 不负责 | 观测记录的**底层读写**（M006 `libdiag`）；HTTP 传输（M001）；页面渲染（M002）；记录脱敏写入（M008）|
 
@@ -88,7 +88,7 @@
 
 ### 2.1 `F-OBS-SWITCH` · 全局调试开关
 - **上级需求 / Constraint ID**：`C-OBS-1`；机制 M-OBS CAP-OBS-3
-- **调用方**：M001（`GET/PATCH /v1/diagnostics`）
+- **调用方**：M001（`GET/PATCH /tier/admin/v1/diagnostics`）
 - **输入与前提**：operator 凭据；PATCH 可部分更新
 - **行为**：读/写 `snapshots_enabled`/`stats_enabled`
 - **输出**：开关状态
@@ -124,7 +124,7 @@
 
 ### 2.5 `F-OBS-TRACE` · 单请求 trace
 - **上级需求 / Constraint ID**：机制 M-OBS CAP-OBS-6
-- **调用方**：M001（`GET /v1/trace/{request_id}`）
+- **调用方**：M001（/v1/trace/{request_id}`）
 - **输入与前提**：`request_id`
 - **行为**：返回有序 stages + usage 关联
 - **输出**：`{request_id, correlation_id?, stages[], usage?}`
@@ -142,7 +142,7 @@
 
 ### 2.7 `F-OBS-TRACES` · trace 时间窗查询（G-1）
 - **上级需求 / Constraint ID**：机制 M-OBS CAP-OBS-6；Piko 联调缺口 G-1
-- **调用方**：M001（`GET /v1/diagnostics/traces`）
+- **调用方**：M001（`GET /tier/admin/v1/diagnostics/traces`）
 - **输入与前提**：`since/until` + 可选 `deployment_id/model/limit/cursor`
 - **行为**：按时间窗聚合 `trace_events`（去重 request_id），逐条返回 stages + correlation + usage；与 snapshots 对称分页
 - **输出**：`{items:[{request_id, stages[], correlation_id?, usage?}], next_cursor, has_more}`
@@ -285,7 +285,7 @@
 
 #### 6.2 `StatsView`
 - **Authority / 定义位置**：M006 `diagnostics.py`（内存聚合）
-- **字段**：`request_count`、`error_4xx_count`、`error_5xx_count`、`p50/p95/min/max/avg`
+- **字段**：`request_count`、`error_count`（按 HTTP status 分列见 `status_breakdown`）、`p50/p95/min/max/avg`
 - **键与跨字段约束**：可丢、非账本
 - **Writer / Reader**：M003 写；M005 读
 - **创建、持有、借用/复制与释放**：内存缓存（LRU/TTL）
@@ -315,13 +315,13 @@
 **内部流程正文**：诊断查询由 M001 路由到 `DiagnosticsService` 的查询方法，`Store` 返回后整形为视图（快照分页/统计/trace）；开关与注入的写操作经 `admin.mutate` 包裹审计，再调 `set_switches`/`set_injections`。所有写入 fail-open，失败记 warning 不改推理结果。关联标识在入口接收并回显、写入 trace。
 
 #### 7.1 `P-OBS-QUERY` · 诊断查询
-- **触发/适用条件**：`GET /v1/diagnostics*`、`/tier/admin/v1/trace/{id}`
+- **触发/适用条件**：`GET /tier/admin/v1/diagnostics*`、`/tier/admin/v1/trace/{id}`
 - **图与正文位置**：§5.2.1；机制 M-OBS §6
 - **正常出口**：视图
 - **异常出口**：400/404/503
 
 #### 7.2 `P-OBS-SWITCH` · 开关/注入变更
-- **触发/适用条件**：`PATCH /v1/diagnostics`、`PATCH /tier/admin/v1/deployments/{id}/diagnostics`
+- **触发/适用条件**：`PATCH /tier/admin/v1/diagnostics`、`PATCH /tier/admin/v1/deployments/{id}/diagnostics`
 - **图与正文位置**：§5.2.2
 - **正常出口**：新状态 + 审计(success)
 - **异常出口**：400/404 + 审计(failed)
@@ -398,7 +398,7 @@
 
 #### 9.3 `IF-DIAG-STATS` · 统计
 - **Direction / Operation / 责任模块 / backend**：in；`GET /tier/admin/v1/diagnostics/stats`；M005
-- **Request / Response / Error / ownership**：`since/until/deployment_id/model` → `{request_count,error_count,status_breakdown,error_4xx_count,error_5xx_count,p50,p95,min,max,avg}`
+- **Request / Response / Error / ownership**：`since/until/deployment_id/model` → `{request_count,error_count,status_breakdown,p50,p95,min,max,avg}`
 - **Contract authority / version / revision / hash / selector**：OpenAPI
 - **前提 / timeout / 兼容边界 / Error model**：400（缺时间）
 - **本地文件 / symbol 或 NOT_IMPLEMENTED**：`diagnostics.py` `stats`
@@ -415,7 +415,7 @@
 - **关联类型字段 ID**：`InjectionView`（§6.4）
 
 #### 9.5 `IF-TRACE` · trace
-- **Direction / Operation / 责任模块 / backend**：in；`GET /v1/trace/{request_id}`；M005
+- **Direction / Operation / 责任模块 / backend**：in；/v1/trace/{request_id}`；M005
 - **Request / Response / Error / ownership**：`request_id` → `{request_id,correlation_id?,stages[],usage?}`
 - **Contract authority / version / revision / hash / selector**：OpenAPI
 - **前提 / timeout / 兼容边界 / Error model**：无记录 → 空 stages
@@ -424,7 +424,7 @@
 - **关联类型字段 ID**：`TraceView`（§6.3）
 
 #### 9.6 `IF-DIAG-TRACES` · trace 时间窗查询（G-1）
-- **Direction / Operation / 责任模块 / backend**：in；`GET /v1/diagnostics/traces`（+ `/tier/admin/v1/diagnostics/traces` alias）；M005
+- **Direction / Operation / 责任模块 / backend**：in；`GET /tier/admin/v1/diagnostics/traces`（+ `/tier/admin/v1/diagnostics/traces` alias）；M005
 - **Request / Response / Error / ownership**：`since/until/deployment_id/model/limit/cursor` → `{items:[{request_id,stages[],correlation_id?,usage?}],next_cursor,has_more}`
 - **Contract authority / version / revision / hash / selector**：OpenAPI / management-contract
 - **前提 / timeout / 兼容边界 / Error model**：与 snapshots 对称；无匹配 → 空 items
@@ -500,7 +500,7 @@
 
 #### 13.1.1 `src/llmtier_v03/app.py`（诊断路由）
 - **职责 / 非职责**：诊断端点路由、关联标识透传/回显、开关/注入经审计；不含记录逻辑
-- **关键 symbol / 导出范围**：`/v1/diagnostics*`、`/tier/admin/v1/trace/{id}` 分支；`X-Correlation-ID` 处理
+- **关键 symbol / 导出范围**：`/tier/admin/v1/diagnostics*`、`/tier/admin/v1/trace/{id}` 分支；`X-Correlation-ID` 处理
 - **承接 Function / Rule / Constraint / Interface ID**：`F-OBS-SWITCH/SNAPSHOTS/STATS/INJECTIONS/TRACE/CORRELATION`、`C-OBS-4`、`IF-DIAGNOSTICS/SNAPSHOTS/STATS/INJECTIONS/TRACE`
 - **构建目标 / 依赖 / 宿主装配**：随 `Application`
 - **实现状态**：Implemented

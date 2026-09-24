@@ -189,7 +189,7 @@ LLMTier 无软件子系统（`std-tailoring` LT-TL-003 / LT-TL-013），三层�
 - `GET /v1/runtime`、`POST /v1/probes`
 - `GET /v1/usage`（自身或全部）、`DELETE /v1/usage`（仅 operator）
 - `GET /v1/audit`、`GET /v1/logs`
-- `GET/PATCH /v1/diagnostics`、`GET /tier/admin/v1/diagnostics/snapshots`、`GET /tier/admin/v1/diagnostics/stats`、`GET/PATCH /tier/admin/v1/deployments/{id}/diagnostics`、`GET /v1/trace/{request_id}`（LT-OBS）
+- `GET/PATCH /tier/admin/v1/diagnostics`、`GET /tier/admin/v1/diagnostics/snapshots`、`GET /tier/admin/v1/diagnostics/stats`、`GET/PATCH /tier/admin/v1/deployments/{id}/diagnostics`、/v1/trace/{request_id}`（LT-OBS）
 
 状态反馈：标准 HTTP 错误区分 validation/auth/model_not_found/rate_limit/provider_unavailable/internal_error；429 可带 `Retry-After`；未知道具 `usage=null` 或字段 null + `measurement_status=unknown`，不得填零。
 
@@ -253,7 +253,7 @@ LLMTier 有自有图形界面（英文 operator 控制台）。本节在系统�
 
 ![PG-DIAG 布局](../assets/diagrams/webui-view-diag.png)
 
-4 个页签（Snapshots / Stats / Injection / Trace）+ 顶部全局开关；开关调用 `GET/PATCH /v1/diagnostics`；Injection 按 deployment 编辑（`PATCH /tier/admin/v1/deployments/{id}/diagnostics`）。
+4 个页签（Snapshots / Stats / Injection / Trace）+ 顶部全局开关；开关调用 `GET/PATCH /tier/admin/v1/diagnostics`；Injection 按 deployment 编辑（`PATCH /tier/admin/v1/deployments/{id}/diagnostics`）。
 
 **重要用户任务**（发布配置变更）：
 
@@ -271,7 +271,7 @@ LLMTier 有自有图形界面（英文 operator 控制台）。本节在系统�
 | PG-HOME 探测 | Management | `POST /v1/probes` | operator + 二次确认 | 探测中禁用该行；结果未知提示复核 |
 | PG-PROVIDERS 保存 | Management | `POST/PATCH /v1/providers` + If-Match | operator | 412/409 见上 |
 | PG-RECORDS | Management | `GET /v1/usage`、`GET /v1/audit` | operator | 503 显示"存储不可用"，不显示空表 |
-| PG-DIAG 开关 | Observability（经 `libdiag`） | `GET/PATCH /v1/diagnostics` | operator | 立即生效；关闭后对应页签显示 Disabled |
+| PG-DIAG 开关 | Observability（经 `libdiag`） | `GET/PATCH /tier/admin/v1/diagnostics` | operator | 立即生效；关闭后对应页签显示 Disabled |
 
 **一致性与可用性**：区分 Loading / 合法 Empty / Error / Partial / Stale / 无权限 / 提交中 / 冲突 / 结果未知；重复点击与晚到响应不得覆盖新作用域数据；401 跳登录、403 提示无权限、503 标数据可能过期。基本键盘操作与焦点可用。
 
@@ -469,13 +469,13 @@ LLMTier 对外暴露 OpenAI 兼容子集，consumer 可直接用 OpenAI SDK / �
 
 | Method | Path | 说明 |
 |---|---|---|
-| GET, PATCH | `/v1/diagnostics` | 全局调试开关（快照捕获 / 统计聚合）|
+| GET, PATCH | `/tier/admin/v1/diagnostics` | 全局调试开关（快照捕获 / 统计聚合）|
 | GET | `/tier/admin/v1/diagnostics/snapshots` | 上游快照查询（分页）|
 | GET | `/tier/admin/v1/diagnostics/stats` | 数据面统计（P50/P95）|
 | GET, PATCH | `/tier/admin/v1/deployments/{id}/diagnostics` | 按 deployment 的注入配置 |
-| GET | `/v1/trace/{request_id}` | 单请求全生命周期 |
+| GET | `/tier/admin/v1/trace/{request_id}` | 单请求全生命周期 |
 
-**契约前缀 `/tier/admin/v1/*`（`llmtier-management-contract-v0.3` 权威）。** 内部可走 `/v1/diagnostics*` 与 `/tier/admin/v1/diagnostics*` 同入口别名（实现 `29efe80`）；后续实现选择不影响契约。
+**契约前缀 `/tier/admin/v1/*`（`llmtier-management-contract-v0.3` 权威）。** 内部可走 `/tier/admin/v1/diagnostics*` 与 `/tier/admin/v1/diagnostics*` 同入口别名（实现 `29efe80`）；后续实现选择不影响契约。
 
 以上为设计已定；trace 时间窗端点（§2.7）为 Planned（接口未实现）。详见 `mechanisms/observability.md` 与 §11.3。
 
@@ -635,7 +635,7 @@ python -m build            # 产出 sdist + wheel（可复现，无公网隐含�
 | S3 Embeddings | S1 | dedicated Embedding deployment + `/v1/embeddings`；Inference | `/v1/embeddings`、`Embedding-v1` space | 契约 + 系统测试 | `LT-OPEN-02` 权重/runtime digest |
 | S4 Usage 账本 | S2/S3 | 义务/版本/head/unknown；Inference、Management | `GET/DELETE /v1/usage`、账本表 | 系统测试（版本替换、unknown、清空） | 对账以账本为准 |
 | S5 管理面 + Web UI | S4；Registry 事务 | CRUD/探测/审计/日志 + 5 页控制台；Management | `/v1/{providers,deployments,service-levels,...}`、`/ui/*` | 契约 + 系统 + WebUI 契约测试 | 生产 SSO 由反代承接 |
-| S6 可观测性（LT-OBS） | S2；`libdiag` | 快照/统计/注入/trace + 开关；Observability | `/v1/diagnostics/*`、`/tier/admin/v1/trace/{id}` | 系统测试；联调复核 | `LT-OPEN-05` 流注入 |
+| S6 可观测性（LT-OBS） | S2；`libdiag` | 快照/统计/注入/trace + 开关；Observability | `/tier/admin/v1/diagnostics/*`、`/tier/admin/v1/trace/{id}` | 系统测试；联调复核 | `LT-OPEN-05` 流注入 |
 | S7 legacy 退役 | S2/S5 | 将 `/call`、Role routing、旧 CLI/agent 移出 consumer authority | 退役声明 + 负例 | 旧路径不存在负例 | 保留历史输入，不作 fallback |
 | S8 运行门禁 | S2–S7 | 部署证据、provider capture、Piko/Knowledge 联调 | activation 记录 | 第三方联调 | 另行审批才置 `runtime_activation=true` |
 

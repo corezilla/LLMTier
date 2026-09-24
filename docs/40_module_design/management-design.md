@@ -499,7 +499,7 @@
 对外端点由 M001 暴露；字段 authority 为 `interfaces/openapi/llmtier.openapi.json`。
 
 #### 9.1 `IF-PROVIDERS` · provider 管理
-- **Direction / Operation / 责任模块 / backend**：in；`/v1/providers[/{id}]`、`/tier/admin/v1/providers/{id}/usage`、`/tier/admin/v1/providers/{id}/models`；M004
+- **Direction / Operation / 责任模块 / backend**：in；`/tier/admin/v1/providers[/{id}]`、`/tier/admin/v1/providers/{id}/usage`、`/tier/admin/v1/providers/{id}/models`；M004
 - **Request / Response / Error / ownership**：视图/POST body；400/404/409/412
 - **Contract authority / version / revision / hash / selector**：OpenAPI
 - **前提 / timeout / 兼容边界 / Error model**：`If-Match`；name 唯一；Secret 只写不回显
@@ -508,7 +508,7 @@
 - **关联类型字段 ID**：`Provider` 视图（§6.1）
 
 #### 9.2 `IF-DEPLOYMENTS` · deployment 管理
-- **Direction / Operation / 责任模块 / backend**：in；`/v1/deployments[/{id}]`；M004
+- **Direction / Operation / 责任模块 / backend**：in；`/tier/admin/v1/deployments[/{id}]`；M004
 - **Request / Response / Error / ownership**：视图/body；400/404/409/412
 - **Contract authority / version / revision / hash / selector**：OpenAPI
 - **前提 / timeout / 兼容边界 / Error model**：`If-Match`；capabilities 12 键
@@ -535,7 +535,7 @@
 - **关联类型字段 ID**：-
 
 #### 9.5 `IF-USAGE` · 用量查询/清空/统计
-- **Direction / Operation / 责任模块 / backend**：in；`/tier/admin/v1/usage`、`/v1/stats`；M004
+- **Direction / Operation / 责任模块 / backend**：in；`/tier/admin/v1/usage`、`/tier/admin/v1/stats`；M004
 - **Request / Response / Error / ownership**：查询/`{deleted}`/统计；400/403/503
 - **Contract authority / version / revision / hash / selector**：OpenAPI
 - **前提 / timeout / 兼容边界 / Error model**：`[from,to)`；cursor 冻结

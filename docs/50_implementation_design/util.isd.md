@@ -22,7 +22,7 @@
 本 ISD 把 **M007 util**（模块设计 `util`，`0.1.0-draft.1`）落实到 `src/llmtier_v03/store.py` 与 `migrations/*.sql`：SQLite 线程内连接、迁移与完整性检查、事务、只读查询、连接关闭。本次范围是"唯一持久化的存取层"；**非目标**：业务语义（配置/账本/审计/日志/观测由各模块维护）、连接池、迁移框架、ORM。代表输入：库路径；代表输出：`sqlite3.Connection` 与行。
 
 **模块与来源**
-- **模块设计 Document ID / 版本 / 路径 / 摘要**：`util` / `0.1.0-draft.1` / `docs/40_module_design/util-design.md` / `§5.1 F-UTIL-CONN/TXN/MIGRATE/QUERY/CLOSE`、`§8 RULE-UTIL-PRAGMA/TXN/MIGRATE/FD`
+- **模块设计 Document ID / 版本 / 路径 / 摘要**：`util` / `0.1.0-draft.1` / `docs/40_module_design/util-design.md` / `§2 F-UTIL-CONN/MIGRATE/TXN/QUERY/CLOSE`、`§8 RULE-UTIL-PRAGMA/TXN/MIGRATE/FD`
 - **直属父对象 / 父设计**：LLMTier 软件系统 / `llmtier-system-design`（§3.2 登记）
 - **需求与 Constraint ID**：`C-CFG-1`（唯一持久化）、`C-CFG-3`（原子推进）、机制 `R-CFG-03`、`R-OBS-06`
 - **实现范围 / 非目标**：实现 `Store`；不做业务规则、不直连外部、不定义表语义
@@ -34,40 +34,40 @@
 #### 1.1 `F-UTIL-CONN` / `RULE-UTIL-PRAGMA` · 连接与 PRAGMA
 - **固定来源**：`util` / `0.1.0-draft.1` / `#5.1.1`
 - **ISD 细化内容 / 章节**：`connection()` 的 `threading.local` 缓存与 PRAGMA
-- **唯一权威位置**：行为在模块 §5.1.1；ISD 管实现
+- **唯一权威位置**：行为在模块 §2.1 / §8.1；ISD 管实现
 - **实现自由度**：缓存结构可自选
 - **原 V/Case 及本地验证位置**：`VRC-UTIL-001` → §8
 
 #### 1.2 `F-UTIL-TXN` / `RULE-UTIL-TXN` · 事务
 - **固定来源**：`util` / `0.1.0-draft.1` / `#5.1.2`
 - **ISD 细化内容 / 章节**：`transaction()` 的 `BEGIN [IMMEDIATE]` / commit / rollback
-- **唯一权威位置**：行为在模块 §8.2；ISD 管实现
+- **唯一权威位置**：行为在模块 §2.3 / §8.2；ISD 管实现
 - **实现自由度**：实现可自选
 - **原 V/Case 及本地验证位置**：`VRC-UTIL-002` → §8
 
 #### 1.3 `F-UTIL-MIGRATE` / `RULE-UTIL-MIGRATE` · 迁移
 - **固定来源**：`util` / `0.1.0-draft.1` / `#5.1.3`
 - **ISD 细化内容 / 章节**：迁移文件枚举、`executescript`、`integrity_check`
-- **唯一权威位置**：行为在模块 §8.3；ISD 管实现
+- **唯一权威位置**：行为在模块 §2.2 / §8.3；ISD 管实现
 - **实现自由度**：实现可自选
 - **原 V/Case 及本地验证位置**：`VRC-UTIL-002` → §8
 
 #### 1.4 `F-UTIL-QUERY` · 只读查询
 - **固定来源**：`util` / `0.1.0-draft.1` / `#5.1.4`
 - **ISD 细化内容 / 章节**：`one()` / `all()` 与 `Row` 工厂
-- **唯一权威位置**：行为在模块 §5.1.4；ISD 管实现
+- **唯一权威位置**：行为在模块 §2.4；ISD 管实现
 - **实现自由度**：实现可自选
 - **原 V/Case 及本地验证位置**：`VRC-UTIL-002` → §8
 
 #### 1.5 `F-UTIL-CLOSE` / `RULE-UTIL-FD` · 连接关闭
 - **固定来源**：`util` / `0.1.0-draft.1` / `#5.1.1`
 - **ISD 细化内容 / 章节**：`close()` 清空线程连接
-- **唯一权威位置**：行为在模块 §8.4；ISD 管实现
+- **唯一权威位置**：行为在模块 §2.5 / §8.4；ISD 管实现
 - **实现自由度**：实现可自选
 - **原 V/Case 及本地验证位置**：`VRC-UTIL-001` → §8
 
 #### 1.6 `R-OBS-06` · 观测表存储
-- **固定来源**：`libdiag` / `0.1.0-draft.2` / `#isd-data`
+- **固定来源**：机制 `M-OBS` §14.4 `R-OBS-06`（Store·4 张观测表）；表契约见 M006 §6 / M007 附录 A
 - **ISD 细化内容 / 章节**：`002_observability.sql` 的表与列由 `migrate` 执行
 - **唯一权威位置**：表契约在 M006/M007；ISD 管 DDL 落点
 - **实现自由度**：DDL 可自选

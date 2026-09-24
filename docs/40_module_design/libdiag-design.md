@@ -109,7 +109,7 @@
 - **调用方**：M003 写；M005 读
 - **输入与前提**：`(deployment_id, model, status_code, latency_ms)`
 - **行为**：按小时桶 + 内存聚合（**per-status 计数**）；查询计数 + `status_breakdown{status:count}` + P50/P95/min/max/avg
-- **输出**：`{request_count, error_count, status_breakdown, error_4xx_count, error_5xx_count, p50, p95, min, max, avg}`
+- **输出**：`{request_count, error_count, status_breakdown:{"200":n,"503":m,"429":k,"upstream_error":x}, latency_p50_ms, latency_p95_ms, latency_min_ms, latency_max_ms, latency_sum_ms}`
 - **错误与边界**：缓存满 LRU 淘汰
 - **验收条件**：`status_breakdown` 按 HTTP status 分列；可丢、非账本
 
