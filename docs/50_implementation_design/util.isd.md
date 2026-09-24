@@ -67,7 +67,7 @@
 - **原 V/Case 及本地验证位置**：`VRC-UTIL-001` → §8
 
 #### 1.6 `R-OBS-06` · 观测表存储
-- **固定来源**：机制 `M-OBS` §14.4 `R-OBS-06`（Store·4 张观测表）；表契约见 M006 §6 / M007 附录 A
+- **固定来源**：机制 `M-OBS` §14.4 `R-OBS-06`（Store·观测表集，见 §3.4）；表契约见 M006 §6 / M007 附录 A
 - **ISD 细化内容 / 章节**：`002_observability.sql` 的表与列由 `migrate` 执行
 - **唯一权威位置**：表契约在 M006/M007；ISD 管 DDL 落点
 - **实现自由度**：DDL 可自选
@@ -116,7 +116,7 @@ DDL 是跨模块内部契约；本层是 schema 的**唯一落点**，改动须�
 | `providers` / `deployments` / `service_levels` / `service_level_deployments` | 本 ISD | M004 写；M003/M005 读 | 见 `001_initial.sql`；name 唯一 | 删除受引用保护（M004）| M004/M003 |
 | `usage_*`（obligations/record_versions/heads）、`provider_request_bindings` | 本 ISD | M003/M004 写；M004 读 | `(principal_id,request_id[,version])` | 只追加；清空由 M004 | M003/M004 |
 | `audit_events` / `operational_logs` | 本 ISD | M004/M008 写；M004 读 | 只追加 | 保留期由运维 | M004/M008 |
-| 观测 4 表（`diagnostic_*`、`trace_events`、`data_plane_stats`）| 本 ISD（契约见 M006 §6）| M006 写；M005 读 | 见 `002_observability.sql` | 7 天清理（M006）| M005/M006 |
+| 观测 6 表（`diagnostic_settings`/`diagnostic_snapshots`/`diagnostic_injections`/`data_plane_stats`/`data_plane_latency_samples`/`trace_events`）| 本 ISD（契约见 M006 §6）| M006 写；M005 读 | 见 `002_observability.sql` | 7 天清理（M006）| M005/M006 |
 | `query_snapshots` / `query_snapshot_items` | 本 ISD | M004 写/读 | TTL 10 分钟 | 到期由查询拒绝 | M004 |
 
 ## 3. 内部数据与所有权
@@ -190,7 +190,7 @@ DDL 是跨模块内部契约；本层是 schema 的**唯一落点**，改动须�
 ```text
 宿主持有 Store（进程级）
   Store._local 每线程持有一个 Connection
-    查询返回 Row（借用该连接；调用方消费后不保留）
+    查询返回 Row（已物化，可跨连接关闭读取）
   请求 finally → Store.close() → 丢弃线程 Connection
 ```
 
@@ -223,17 +223,20 @@ DDL 是跨模块内部契约；本层是 schema 的**唯一落点**，改动须�
 #### 4.3 `Store.migrate(self) -> None`
 - **常量**：`EXPECTED_SCHEMA_VERSION = 1`（模块级）
 - **前置条件**：`store.py` 同目录存在 `migrations/`
-- **行为**（**仅初始化 + 版本拒绝**）：
-  1. 读 `schema_meta.schema_version`；若库非空且 `≠ EXPECTED_SCHEMA_VERSION` → 抛 `ApiError(503, "schema_version_mismatch")`（拒绝启动，见 §6.2）
-  2. `for f in sorted(migrations.glob("*.sql")): connection().executescript(f.read_text())`
-  3. `PRAGMA integrity_check`；`≠ "ok"` → 抛 `ApiError(503, "schema_integrity_failed")`
+- **行为**（**仅初始化 + 版本拒绝 + 原子**）：
+  1. **识别库状态**（分支见 §6.2）：查 `sqlite_master`——
+     - 无 `schema_meta` 且无用户表 → **空库**，进入 2；
+     - 有 `schema_meta` → 读 `schema_version`：`== EXPECTED` → **直接返回**；`≠` → 抛 `ApiError(503, "schema_version_mismatch")`；
+     - 无 `schema_meta` 但有用户表 → **未知旧库** → 抛 `ApiError(503, "schema_unknown")`。
+  2. **原子初始化**：在单事务内**逐语句**执行 `migrations/*.sql`（**不用** `executescript`，它自带 COMMIT）；失败 → 整体回滚，库保持空。
+  3. `PRAGMA integrity_check`：`≠ "ok"` → 抛 `ApiError(503, "schema_integrity_failed")`。
 - **返回**：None
-- **错误**：版本不符 → `schema_version_mismatch`；完整性失败 → `schema_integrity_failed`
-- **副作用**：建表（幂等 DDL）
-- **幂等**：脚本使用 `IF NOT EXISTS`/`INSERT OR IGNORE`；空库重复执行安全
-- **迁移文件契约**：命名 `NNN_<slug>.sql`（三位序号，字典序即执行序）；**一文件一事**、可重复执行（幂等）、不含数据回填以外的业务逻辑
-- **不可改变**：`schema_version` 固定 `1`；拒绝语义
-- **可自行决定**：迁移目录定位方式、文件内部组织
+- **错误**：`schema_version_mismatch` / `schema_unknown` / `schema_integrity_failed`（均 `ApiError(503)`）
+- **副作用**：建表（幂等）
+- **幂等**：空库重跑安全（失败回滚，库仍为空）；版本匹配直接返回
+- **迁移文件契约**：命名 `NNN_<slug>.sql`（三位序号，字典序即执行序）；一文件一事；可重复执行；不含业务逻辑
+- **不可改变**：仅初始化、拒绝语义、原子边界
+- **可自行决定**：迁移目录定位、SQL 语句切分方式
 
 #### 4.4 `Store.transaction(self, immediate: bool = False) -> Iterator[Connection]`
 - **前置条件**：—
@@ -292,12 +295,14 @@ transaction(immediate):
 #### 5.2 `ALGO-UTIL-MIGRATE` · 幂等迁移
 
 ```text
-for f in sorted(migrations.glob("*.sql")):
-    connection().executescript(f.read_text())
-assert integrity_check() == "ok" else RuntimeError
+# 空库分支（仅初始化）
+with transaction(immediate=True) as conn:
+    for f in sorted(migrations.glob("*.sql")):
+        for stmt in split(f): conn.execute(stmt)   # 逐语句 → 原子
+assert integrity_check() == "ok" else ApiError(503, "schema_integrity_failed")
 ```
 
-输入推演：连续两次 `migrate()` → 不报错、表结构不变。
+输入推演：连续两次 `migrate()` → 首次建表、第二次版本匹配直接返回；中途失败 → 回滚、库仍为空。
 
 #### 5.3 `ALGO-UTIL-FD` · 连接回收
 
@@ -314,8 +319,8 @@ close():
 | 过程/规则ID | 触发与执行者 | 入口函数及数据 | 判断事实来源 | 成功可见点 | 失败与清理 |
 |---|---|---|---|---|---|
 | `P-UTIL-TXN` | 业务模块 `with transaction()` | `transaction` + SQL | 块内异常 | `commit` 生效 | `rollback` |
-| `P-UTIL-MIGRATE` | 宿主启动（schema 初始化）| `migrate` + SQL 文件 | `integrity_check` | 表就绪 | `RuntimeError` |
-| `P-UTIL-CLOSE` | 请求 `finally` | `close` | `_local.connection` | fd 释放 | 静默 |
+| `P-UTIL-MIGRATE` | 宿主启动（schema 初始化）| `migrate` + SQL 文件 | 库状态/`integrity_check` | 表就绪 | `ApiError(503)`（版本/未知库/完整性）|
+| `P-UTIL-CLOSE` | 请求 `finally` | `close` | `_local.connection` | fd 释放 | 不吞异常（向上抛）|
 
 ## 6. 并发、失败与生命周期
 
@@ -331,11 +336,14 @@ close():
 
 **状态查询/重放/接管/新业务重试**：N/A（基础层无副作用编排；由业务模块决定）。
 
-#### 6.1 交错/故障
+#### 6.1 错误契约与交错/故障
+
+**错误契约**（统一）：`Store` 对 **schema/启动拒绝**抛 `ApiError(503, <code>)`（typed，便于宿主直接映射 `not_ready`）；对**运行期 DB 错误**抛原生 `sqlite3.Error`（`OperationalError` 锁超时、`IntegrityError` 约束等）。**HTTP 映射与重试策略由宿主/业务模块负责**（§6.4），`store.py` 不做 HTTP。
 
 | 交错/故障 | 已产生副作用 | 检测事实 | 状态/错误 | 保留/释放责任 | 后续允许操作 |
 |---|---|---|---|---|---|
-| 库不可写/损坏 | 无 | `integrity_check`/`sqlite3.Error` | `RuntimeError`/异常 | 调用方（启动失败或 503）| 修复后重启 |
+| schema 版本/未知库/完整性 | 无 | `sqlite_master`/`schema_version`/`integrity_check` | `ApiError(503)` | 宿主（not_ready）| 运维离线处理 |
+| 运行期锁超时/损坏 | 无 | `sqlite3.Error` | `OperationalError` 等 | 调用方（启动失败或 503）| 修复后重启 |
 | 事务内 SQL 错误 | 无（未提交）| 异常 | rollback | 连接保留 | 修正后重试 |
 | 连接未关闭 | 无 | fd 增长 | 无 | `finally: close()` | — |
 
@@ -356,11 +364,22 @@ close():
 | `RULE-UTIL-MIGRATE` | 仅初始化；无升级、无降级 | 接受：空库（建表）；拒绝：非空且 `schema_version`≠期望 | 无转换函数；`schema_version` 固定 `1` | 置 `not_ready` + error 日志；运维离线迁移/重建 |
 | `RULE-UTIL-TXN` | 不涉及 schema 版本 | — | — | — |
 
-**检查点与动作**：宿主装配阶段检查 `schema_meta.schema_version`；不匹配 → 置 `not_ready`、写 error 日志、拒绝接流量（映射见 §6.4）。
+**检查点与动作**：宿主装配阶段调用 `migrate()`；拒绝情形 → 置 `not_ready`、写 error 日志、拒绝接流量（映射见 §6.4）。
+
+**数据库状态分支**（`migrate()` 判定）：
+
+| 库状态 | 判定事实 | 启动结果 | 允许重跑 |
+|---|---|---|---|
+| 文件不存在 / 空库 | 无 `schema_meta` 表 且无用户表 | 原子初始化 → ready | 是（幂等）|
+| 版本匹配 | `schema_version == EXPECTED` | ready（不重建）| 是 |
+| 版本不匹配 | `schema_version != EXPECTED` | **拒绝**：`schema_version_mismatch` | 否（运维离线处理）|
+| 无 `schema_meta` 的旧库 | 有用户表但无 `schema_meta` | **拒绝**：`schema_unknown` | 否 |
+| 初始化中途失败 | 事务回滚 | 库保持空 → 可重试 | 是 |
+| 完整性失败 | `integrity_check != ok` | **拒绝**：`schema_integrity_failed` | 否 |
 
 - 仅初始化语义：空库重跑安全（DDL 幂等）；**旧版本库不自动升级**（拒绝）。
 - **无** migration ledger / checksum / from-to version（`LT-OPEN-UTIL-1`）。
-- 本设计**不要求**迁移在 Store 事务内（仅初始化可接受）；若未来支持增量升级，必须改为逐语句在 `BEGIN IMMEDIATE…COMMIT` 内。
+- 初始化**必须原子**：单事务内逐语句执行（§4.3）；**不用** `executescript`（自带 COMMIT，无法回滚）。
 
 <a id="isd-security"></a>
 
@@ -370,7 +389,11 @@ close():
 |---|---|---|---|---|---|---|
 | 模块 §11（不鉴权）| DB 文件含配置/审计/日志/用量（**不含 Secret 明文**，只含 `secret_ref` 引用）| 启动时文件/目录权限检查 | 不合规→启动告警/拒绝 | 本层不记录任何值 | 不写日志/指标（避免反向依赖）| `VRC-UTIL-001` |
 
-- **本地持久化安全**（本层唯一安全责任）：DB 文件与目录权限、symlink、umask 属**部署配置**；本层做最小检查（**非 symlink**、权限不含 world-writable），不合规时告警。
+- **本地持久化安全检查（本层唯一安全责任，可执行）**：
+  - **检查对象**：DB 文件路径及其**父目录**（不含全路径祖先链）。
+  - **检查时点**：SQLite 打开**之前**（`__init__`/首次 `connection()`）；`os.lstat` 判 **symlink**；`stat` 判 **world-writable**（`mode & 0o002`）。
+  - **判定与出口**：path 为 symlink → 抛 `ApiError(503, "store_path_unsafe")`（拒绝）；world-writable → 记 **warning** 并继续（不拒绝）；umask 由部署负责，不检查。
+  - **不可改变**：symlink 拒绝；**可自行决定**：告警文案。
 - **不含凭据**：库中只有引用字符串。
 - **错误交付**：本层抛 `sqlite3.Error` / `RuntimeError`；由业务模块按 **§6.4 错误传播矩阵** 映射。
 
@@ -441,7 +464,7 @@ close():
 | M007 / `F-UTIL-TXN` | `util` / `#5.4` | 提供 / sqlite3 | `store.py` `Store.transaction` | `VRC-UTIL-002` | Planned |
 | M007 / `F-UTIL-MIGRATE` | `util` / `#5.3` | 提供 / sqlite3 | `store.py` `Store.migrate` | `VRC-UTIL-002` | Planned |
 
-**复核**：编码者视角——函数职责/参数/错误/清理齐全，可直接编码；接口消费者——公共类型引用标准库，无第二权威；并发/资源——每线程连接与 fd 说明清楚；测试——Rule→V→Case→Oracle 对应。
+**复核**：编码者视角——函数职责/参数/错误/清理、库状态分支与错误契约齐全；接口消费者——公共类型引用标准库，无第二权威；并发/资源——每线程连接与 fd 说明清楚；测试——Rule→V→Case→Oracle 对应。
 
 | 问题ID/既有台账引用 | 具体缺口/反例 | Owner | 最晚关闭阶段/截止Gate | 阻断范围 | 分析/决策引用 | 所需输入/下一步选择判据 | 解决动作/完成条件 | 状态 |
 |---|---|---|---|---|---|---|---|---|
