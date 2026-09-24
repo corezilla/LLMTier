@@ -90,38 +90,44 @@
 <a id="isd-structure"></a>
 
 ```text
-diagnostics.py
- └─ class DiagnosticsService(store, logs=None)
-      ├─ switches()/set_switches(...)                 # 全局开关
-      ├─ record_trace(request_id, stage, detail?, correlation_id?)
-      ├─ trace(request_id) -> view
-      ├─ traces(since?, until?, deployment_id?, model?, limit?, cursor?) -> page
-      ├─ capture_snapshot(request_id, ..., error_summary) -> snap_id|None
-      ├─ snapshots_page(since, until, ...) -> page
-      ├─ record_latency(deployment_id, model, status, latency_ms)
-      ├─ stats(since, until, deployment_id?, model?) -> view
-      ├─ set_injections(deployment_id, items)/injections(did)
-      ├─ enabled_injection(did)/enabled_stream_injection(did) -> dict|None
-      ├─ stream_wrapper(did, base_stream) -> Iterable[bytes]
-      └─ cleanup(days=7) -> int
-migrations/002_observability.sql    # 观测 6 表 DDL
+diagnostics.py            # 组合点：门面 DiagnosticsService(store, logs)，保持 ISD 方法面
+ ├─ settings.py           # 功能 1：开关          SettingsDiagnostics.switches/set_switches
+ ├─ traces.py             # 功能 2：trace         TraceDiagnostics.record_trace/trace/traces
+ ├─ snapshots.py          # 功能 3：快照          SnapshotDiagnostics.capture_snapshot/snapshots_page（用 settings）
+ ├─ stats.py              # 功能 4：统计          StatsDiagnostics.record_latency/stats（用 settings）
+ ├─ injections.py         # 功能 5：注入          InjectionDiagnostics.set_injections/injections/enabled_*
+ ├─ stream.py             # 功能 6：流包装        stream_wrapper(injections, did, base_stream)
+ ├─ retention.py          # 功能 7：保留期        cleanup(store, warn, days)
+ └─ common.py             # 共享 helper          now()/hour_of()/iso()/percentile()
+util/migrations/002_observability.sql    # 观测 6 表 DDL（随 M007 migrate 执行）
 ```
 
-### 3.1 `diagnostics.py` · `DiagnosticsService`
+每个功能一个文件；`diagnostics.py` 只保留**组合点**（把各功能组合成一个 `DiagnosticsService` 门面，供 M001/M003 写、M005 查）。
 
-- **职责及调用者**：观测底层读写原语；caller=M003/M001（写）、M005（查）
-- **类型 / 函数**：见上图
+### 3.1 `diagnostics.py` · `DiagnosticsService`（组合点）
+
+- **职责及调用者**：组合各功能模块并保持稳定方法面；caller=M003/M001（写）、M005（查）
+- **类型 / 函数**：见上图（门面方法逐一委托到功能模块）
 - **可见性**：private
-- **调用与类型依赖**：依赖 `Store`（M007）、`logs`（可选，warning）；不 import 业务模块
+- **调用与类型依赖**：依赖 `store`（M007）、`logs`（可选，warning）与各功能模块；不 import 业务模块
 - **构建目标 / 生成源 / 输出**：无独立构建目标；随包
 - **实现状态**：PLANNED
 
-### 3.2 `migrations/002_observability.sql` · 观测 DDL
+### 3.2 `util/migrations/002_observability.sql` · 观测 DDL
 
-- **职责及调用者**：建 6 张观测表；由 M007 `migrate()` 执行
+- **职责及调用者**：建 6 张观测表；由 M007 `migrate()` 执行（文件随 M007 落位）
 - **类型 / 函数**：SQL 脚本
 - **可见性**：private（数据文件，随包）
 - **调用与类型依赖**：无
+- **构建目标 / 生成源 / 输出**：随包
+- **实现状态**：PLANNED
+
+### 3.3 功能模块（settings/traces/snapshots/stats/injections/stream/retention/common）
+
+- **职责及调用者**：各承担一个功能，被门面组合；`snapshots`/`stats` 组合开关，`stream` 组合注入，`traces` 的 view 组合 trace+snapshot+usage
+- **类型 / 函数**：`SettingsDiagnostics`、`TraceDiagnostics`、`SnapshotDiagnostics`、`StatsDiagnostics`、`InjectionDiagnostics`、`stream_wrapper`、`cleanup`、`common.*`
+- **可见性**：private（模块内）
+- **调用与类型依赖**：依赖 `store`（M007）、`http_api.errors`（ApiError）；只经门面暴露
 - **构建目标 / 生成源 / 输出**：随包
 - **实现状态**：PLANNED
 

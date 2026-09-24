@@ -195,49 +195,49 @@
 - **职责与非职责**：读写 `diagnostic_settings` 单行；不做记录
 - **输入、处理与输出**：部分更新 → 状态
 - **协作对象**：I2–I6（开关判定）
-- **文件 / symbol / 实现状态**：`diagnostics.py` `switches/set_switches`；Implemented
+- **文件 / symbol / 实现状态**：`settings.py` `switches/set_switches`；Implemented
 - **拆分依据与替代方案代价**：开关是共用状态，集中一处
 
 #### 5.1.2 `I2` · trace 记录
 - **职责与非职责**：`trace_events` 追加与按 request 聚合；不做快照/统计
 - **输入、处理与输出**：`(request_id, stage, detail, correlation_id)` → 行/视图
 - **协作对象**：I1（开关）、M007
-- **文件 / symbol / 实现状态**：`diagnostics.py` `record_trace/trace`；Implemented
+- **文件 / symbol / 实现状态**：`traces.py` `record_trace/trace`；Implemented
 - **拆分依据与替代方案代价**：trace 与快照分表，粒度不同
 
 #### 5.1.3 `I3` · 快照记录
 - **职责与非职责**：`diagnostic_snapshots` 写入与分页；脱敏/截断
 - **输入、处理与输出**：快照字段 → 行
 - **协作对象**：I1、M007
-- **文件 / symbol / 实现状态**：`diagnostics.py` `capture_snapshot/snapshots_page`；Implemented
+- **文件 / symbol / 实现状态**：`snapshots.py` `capture_snapshot/snapshots_page`；Implemented
 - **拆分依据与替代方案代价**：快照带外部证据（URL/status/latency）
 
 #### 5.1.4 `I4` · 统计聚合
 - **职责与非职责**：小时桶 + 内存缓存 + 百分位；可丢
 - **输入、处理与输出**：`(deployment_id, model, status_code, latency_ms)` → 聚合
 - **协作对象**：I1
-- **文件 / symbol / 实现状态**：`diagnostics.py` `record_latency/stats`、`_percentile`、`hour_of`；Implemented
+- **文件 / symbol / 实现状态**：`stats.py` `record_latency/stats`、`common.py` `percentile/hour_of`；Implemented
 - **拆分依据与替代方案代价**：内存聚合避免每请求写库
 
 #### 5.1.5 `I5` · 注入配置
 - **职责与非职责**：白名单/范围校验、按 deployment 持久化、查 enabled
 - **输入、处理与输出**：注入项 → 规范化行 / enabled 项
 - **协作对象**：I6、M007
-- **文件 / symbol / 实现状态**：`diagnostics.py` `set_injections/injections/enabled_injection/enabled_stream_injection`；Implemented
+- **文件 / symbol / 实现状态**：`injections.py` `set_injections/injections/enabled_injection/enabled_stream_injection`；Implemented
 - **拆分依据与替代方案代价**：注入类型固定 6 种
 
 #### 5.1.6 `I6` · 流注入包装
 - **职责与非职责**：按 stream 注入截断/畸形；不改变无注入流
 - **输入、处理与输出**：`(deployment_id, base_stream)` → 字节流
 - **协作对象**：I5、M001
-- **文件 / symbol / 实现状态**：`diagnostics.py` `stream_wrapper`；Implemented
+- **文件 / symbol / 实现状态**：`stream.py` `stream_wrapper`；Implemented
 - **拆分依据与替代方案代价**：流注入需在传输层包装（`LT-OPEN-05`）
 
 #### 5.1.7 `I7` · 过期清理
 - **职责与非职责**：删除过期快照/trace；不删注入/开关
 - **输入、处理与输出**：`days` → 删除数
 - **协作对象**：M007
-- **文件 / symbol / 实现状态**：`diagnostics.py` `cleanup`；Implemented
+- **文件 / symbol / 实现状态**：`retention.py` `cleanup`；Implemented
 - **拆分依据与替代方案代价**：保留期 7 天
 
 ### 5.2 内部调用过程
@@ -290,13 +290,13 @@
 
 - **允许方向**：{M001, M003, M005} → M006 → {M007, M008}
 - **禁止方向与原因**：M006 不得调用 M005/M003（能力库不回调业务）；不直连 HTTP
-- **循环/越层检查**：`diagnostics.py` 只 import `store`/`logs`，不 import `app`/`responses`
+- **循环/越层检查**：feature 模块只 import `store`/`http_api.errors`；门面 `diagnostics.py` 组合各 feature；均不 import `app`/`responses`
 - **变更影响**：记录签名变更影响 M001/M003 集成点
 
 ## 6. 数据模型、状态与 ownership
 
 #### 6.1 `diagnostic_settings`
-- **Authority / 定义位置**：`migrations/002_observability.sql`（单行 `singleton=1`）
+- **Authority / 定义位置**：`util/migrations/002_observability.sql`（单行 `singleton=1`）
 - **字段**：`snapshots_enabled:int`、`stats_enabled:int`
 - **键与跨字段约束**：单行；默认 0
 - **Writer / Reader**：I1 写；I2–I6 读
@@ -305,7 +305,7 @@
 - **验证项**：`VRC-DIAG-001`
 
 #### 6.2 `diagnostic_snapshots`
-- **Authority / 定义位置**：`002_observability.sql`
+- **Authority / 定义位置**：`util/migrations/002_observability.sql`
 - **字段**：`id`、`request_id`、`captured_at`、`upstream_url`、`backend_model`、`http_status`、`latency_ms`、`error_summary`、`model`、`deployment_id`、`snapshot_type`
 - **键与跨字段约束**：URL 去 query；summary ≤256B
 - **Writer / Reader**：I3 写；M005 读
@@ -314,7 +314,7 @@
 - **验证项**：`VRC-DIAG-002`
 
 #### 6.3 `data_plane_stats`
-- **Authority / 定义位置**：`002_observability.sql` + 内存聚合
+- **Authority / 定义位置**：`util/migrations/002_observability.sql` + 内存聚合
 - **字段**：`id`、按 deployment/model/hour 的计数与延迟
 - **键与跨字段约束**：可丢、非账本
 - **Writer / Reader**：I4 写；M005 读
@@ -323,7 +323,7 @@
 - **验证项**：`VRC-DIAG-002`
 
 #### 6.4 `diagnostic_injections`
-- **Authority / 定义位置**：`002_observability.sql`
+- **Authority / 定义位置**：`util/migrations/002_observability.sql`
 - **字段**：`id`、`deployment_id`、`injection_type`、`enabled`、`fault_status`、`fault_body`、`delay_ms`、`retry_after_sec`、`stream_terminate_after_events`、`malformed_after_events`、`malformed_event_type`、`config_json`
 - **键与跨字段约束**：`UNIQUE(deployment_id, injection_type)`；类型白名单
 - **Writer / Reader**：I5 写；I5/I6 读
@@ -332,7 +332,7 @@
 - **验证项**：`VRC-DIAG-004`
 
 #### 6.5 `trace_events`
-- **Authority / 定义位置**：`002_observability.sql`
+- **Authority / 定义位置**：`util/migrations/002_observability.sql`
 - **字段**：`id`、`request_id`、`stage`、`timestamp`、`detail_json`、`correlation_id`
 - **键与跨字段约束**：同 request 有序
 - **Writer / Reader**：I2 写；M005 读
@@ -516,7 +516,7 @@
 
 #### 13.2.1 表结构与开关
 - **前置输入 / 依赖**：迁移文件
-- **新增 / 修改文件与 symbol**：`002_observability.sql`、`diagnostics.py` `switches/set_switches`
+- **新增 / 修改文件与 symbol**：`util/migrations/002_observability.sql`、`settings.py` `switches/set_switches`
 - **固定语义 / 可自行决定范围**：默认关固定；实现可自选
 - **交付结果**：开关可读写
 - **完成检查**：`VRC-DIAG-001`
