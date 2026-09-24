@@ -418,197 +418,343 @@
 ## 9. 接口与机器契约
 
 对外无端点；以下为**供其他模块（M001/M003/M005）做设计、实现与测试用例**的接口契约。
-**数据结构与接口分开描述**：§9.1 定义可复用的数据结构，§9.2 逐接口引用它们，避免重复描述。
+
+**固定格式约定**（数据结构与接口分开描述，避免复用类型被逐接口重复）：
+
+- **数据结构**固定 4 段：`定义` / `字段`（逐字段一行：`` `名称` ``：`` `类型` ``｜必填性｜范围·枚举｜说明）/ `不变量` / `来源 · 复用`。
+- **接口**固定 6 段：`功能` / `输入`（逐参数一行：`` `名称: 类型` ``｜必填·默认｜范围｜说明）/ `输出`（数据结构 ID）/ `返回值`（每条件一行）/ `统计 · 日志` / `数据库`。
+- 时间一律 RFC3339（UTC，毫秒）；`?` 表示可空。
 
 ### 9.1 共享数据结构
 
-> 下列结构被多个接口复用；接口只引用其 ID。`null` 表示该字段可为空。时间一律 RFC3339（UTC，毫秒）。
-
 #### 9.1.1 `SwitchState`
-- **字段**：`snapshots_enabled: bool`（默认 `false`）；`stats_enabled: bool`（默认 `false`）
-- **取值范围 / 不变量**：两字段独立；均来自 `diagnostic_settings` 单行（`singleton=1`）
-- **来源 / 复用**：`settings`；被 `switches`/`set_switches`、`snapshot`/`stats` 记录前判定复用
+- **定义**：全局诊断开关状态；供记录前判定与 M005 呈现。
+- **字段**：
+  - `snapshots_enabled`：`bool`｜必填｜`false`/`true`（默认 `false`）｜快照记录总开关
+  - `stats_enabled`：`bool`｜必填｜`false`/`true`（默认 `false`）｜统计记录总开关
+- **不变量**：两字段互相独立；恒取自 `diagnostic_settings` 单行（`singleton=1`）。
+- **来源 · 复用**：`settings`；`switches`/`set_switches` 返回该结构；`snapshots`/`stats` 记录前判定复用。
 
 #### 9.1.2 `TraceStage`
-- **字段**：`stage: str`（阶段名，≤64，取值集合见下）；`timestamp: str`（RFC3339 ms）；`detail: object|null`（阶段附加上下文，脱敏后）
-- **取值范围 / 不变量**：`stage ∈ {received, validated, routed, upstream_started, upstream_ended, completed, aborted}`；`stages` 按 `timestamp` 升序
-- **来源 / 复用**：`traces`；被 `TraceView.stages` 复用
+- **定义**：单个 trace 阶段。
+- **字段**：
+  - `stage`：`str`｜必填｜∈ {`received`,`validated`,`routed`,`upstream_started`,`upstream_ended`,`completed`,`aborted`}｜阶段名（≤64）
+  - `timestamp`：`str`｜必填｜RFC3339 ms｜阶段发生时间
+  - `detail`：`object?`｜可空｜任意 JSON（脱敏后）｜阶段附加上下文
+- **不变量**：`stages` 内按 `timestamp` 升序。
+- **来源 · 复用**：`traces`；被 `TraceView.stages` 复用。
 
 #### 9.1.3 `UsageView`
-- **字段**：`record_version: int`（≥1）；`is_final: bool`；`model: str`；`input_tokens: int|null`（≥0）；`output_tokens: int|null`（≥0）；`total_tokens: int|null`（≥0）；`measurement_status: str`（`measured`|`unknown`）；`source: str`
-- **取值范围 / 不变量**：`measured` 时三 token 字段非空，`unknown` 时为空（不补零）
-- **来源 / 复用**：`traces`（只读 `usage_record_versions` head）；被 `TraceView.usage` 复用
+- **定义**：某请求的用量视图（只读账本 head）。
+- **字段**：
+  - `record_version`：`int`｜必填｜≥1｜账本版本号
+  - `is_final`：`bool`｜必填｜`false`/`true`｜是否终态
+  - `model`：`str`｜必填｜非空｜tier 名
+  - `input_tokens`：`int?`｜可空｜≥0｜输入 token
+  - `output_tokens`：`int?`｜可空｜≥0｜输出 token
+  - `total_tokens`：`int?`｜可空｜≥0｜合计 token
+  - `measurement_status`：`str`｜必填｜`measured`/`unknown`｜测量状态
+  - `source`：`str`｜必填｜非空｜来源（`provider`/`injected`/`unavailable`…）
+- **不变量**：`measurement_status=measured` ⇒ 三个 token 字段非空；`unknown` ⇒ 全空（**不补零**）。
+- **来源 · 复用**：`traces`；被 `TraceView.usage` 复用。
 
 #### 9.1.4 `TraceView`
-- **字段**：`request_id: str`；`correlation_id: str|null`；`stages: TraceStage[]`（≥1）；`snapshot: SnapshotView|null`（该请求最近一条）；`usage: UsageView|null`
-- **取值范围 / 不变量**：`stages` 非空；`snapshot`/`usage` 可空
-- **来源 / 复用**：`traces`；被 `trace`/`traces` 复用
+- **定义**：单请求的完整 trace 视图。
+- **字段**：
+  - `request_id`：`str`｜必填｜非空｜请求标识
+  - `correlation_id`：`str?`｜可空｜非空或 `null`｜外部关联标识（`X-Correlation-ID`/`traceparent`）
+  - `stages`：`TraceStage[]`｜必填｜长度 ≥1｜阶段序列（§9.1.2）
+  - `snapshot`：`SnapshotView?`｜可空｜—｜该请求最近一条快照（§9.1.6）
+  - `usage`：`UsageView?`｜可空｜—｜该请求用量（§9.1.3）
+- **不变量**：`stages` 非空；`snapshot`/`usage` 允许为 `null`。
+- **来源 · 复用**：`traces`；被 `trace`/`traces` 复用。
 
 #### 9.1.5 `TracePage`
-- **字段**：`items: TraceView[]`；`next_cursor: str|null`；`has_more: bool`
-- **取值范围 / 不变量**：`len(items) ≤ limit`；`has_more=false ⇒ next_cursor=null`
-- **来源 / 复用**：`traces`
+- **定义**：trace 时间线分页。
+- **字段**：
+  - `items`：`TraceView[]`｜必填｜长度 ≤ `limit`｜页内 trace
+  - `next_cursor`：`str?`｜可空｜`first_ts|request_id`｜下一页游标
+  - `has_more`：`bool`｜必填｜`false`/`true`｜是否还有下一页
+- **不变量**：`has_more=false` ⇒ `next_cursor=null`。
+- **来源 · 复用**：`traces`。
 
 #### 9.1.6 `SnapshotView`
-- **字段**：`id: str`；`request_id: str`；`captured_at: str`（RFC3339 ms）；`upstream_url: str`（去 query）；`backend_model: str`；`http_status: int|null`（100–599）；`latency_ms: float|null`（≥0）；`error_summary: str|null`（≤256 字节）；`model: str`；`deployment_id: str|null`；`snapshot_type: str`（`upstream`|`error`）
-- **取值范围 / 不变量**：`snapshot_type=upstream ⇒ http_status 非空`；`=error ⇒ http_status 空`
-- **来源 / 复用**：`snapshots`；被 `TraceView.snapshot`/`snapshots_page` 复用
+- **定义**：一次上游调用的快照视图。
+- **字段**：
+  - `id`：`str`｜必填｜`snap_*`｜快照 ID
+  - `request_id`：`str`｜必填｜非空｜请求标识
+  - `captured_at`：`str`｜必填｜RFC3339 ms｜捕获时间
+  - `upstream_url`：`str`｜必填｜去 query｜上游 URL
+  - `backend_model`：`str`｜必填｜非空｜上游模型名
+  - `http_status`：`int?`｜可空｜100–599｜HTTP 状态（error 类快照为空）
+  - `latency_ms`：`float?`｜可空｜≥0｜端到端延迟
+  - `error_summary`：`str?`｜可空｜≤256 字节｜错误摘要（脱敏）
+  - `model`：`str`｜必填｜非空｜tier 名
+  - `deployment_id`：`str?`｜可空｜非空或 `null`｜部署 ID
+  - `snapshot_type`：`str`｜必填｜`upstream`/`error`｜快照类型
+- **不变量**：`snapshot_type=upstream` ⇒ `http_status` 非空；`=error` ⇒ `http_status` 空。
+- **来源 · 复用**：`snapshots`；被 `TraceView.snapshot`/`snapshots_page` 复用。
 
 #### 9.1.7 `SnapshotPage`
-- **字段**：`items: SnapshotView[]`；`next_cursor: str|null`（末条 `id`）；`has_more: bool`
-- **来源 / 复用**：`snapshots`
+- **定义**：快照分页。
+- **字段**：
+  - `items`：`SnapshotView[]`｜必填｜长度 ≤ `limit`｜页内快照
+  - `next_cursor`：`str?`｜可空｜末条 `id`｜下一页游标
+  - `has_more`：`bool`｜必填｜`false`/`true`｜是否还有下一页
+- **不变量**：`has_more=false` ⇒ `next_cursor=null`。
+- **来源 · 复用**：`snapshots`。
 
 #### 9.1.8 `StatsWindow`
-- **字段**：`stat_hour: str`（`YYYY-MM-DDTHH`，UTC）；`deployment_id: str|null`；`model: str|null`；`status_breakdown: object<str,int>`（状态→计数）；`error_4xx_count: int`；`error_5xx_count: int`；`request_count: int`；`error_count: int`；`latency_p50_ms|p95_ms|min_ms|max_ms: float|null`；`latency_sum_ms: float`
-- **取值范围 / 不变量**：`error_4xx_count`/`error_5xx_count` 由 `status_breakdown` 派生；无延迟样本时百分位为 `null`，`latency_sum_ms=0`
-- **来源 / 复用**：`stats`；被 `StatsView.windows` 复用
+- **定义**：单（小时桶 × deployment × model）聚合。
+- **字段**：
+  - `stat_hour`：`str`｜必填｜`YYYY-MM-DDTHH`（UTC）｜小时桶
+  - `deployment_id`：`str?`｜可空｜非空或 `null`｜部署 ID
+  - `model`：`str?`｜可空｜非空或 `null`｜tier 名
+  - `status_breakdown`：`object<str,int>`｜必填｜键为状态码或 `upstream_error`｜各状态计数
+  - `error_4xx_count`：`int`｜必填｜≥0｜4xx 计数（由 breakdown 派生）
+  - `error_5xx_count`：`int`｜必填｜≥0｜5xx + `upstream_error` 计数（派生）
+  - `request_count`：`int`｜必填｜≥0｜总请求数
+  - `error_count`：`int`｜必填｜≥0｜总错误数
+  - `latency_p50_ms`/`latency_p95_ms`/`latency_min_ms`/`latency_max_ms`：`float?`｜可空｜≥0｜延迟分位/极值
+  - `latency_sum_ms`：`float`｜必填｜≥0｜延迟和（无样本为 `0`）
+- **不变量**：`error_4xx_count`/`error_5xx_count` 与 `status_breakdown` 一致；无延迟样本 ⇒ 百分位 `null`、`latency_sum_ms=0`。
+- **来源 · 复用**：`stats`；被 `StatsView.windows` 复用。
 
 #### 9.1.9 `StatsView`
-- **字段**：`windows: StatsWindow[]`
-- **来源 / 复用**：`stats`
+- **定义**：统计视图。
+- **字段**：
+  - `windows`：`StatsWindow[]`｜必填｜可为 `[]`｜聚合桶列表（§9.1.8）
+- **不变量**：按 `stat_hour` 升序。
+- **来源 · 复用**：`stats`。
 
 #### 9.1.10 `EnabledInjection`
-- **字段**（`diagnostic_injections` 行）：`id: str`；`deployment_id: str`；`injection_type: str`（6 种）；`fault_status: int|null`（502/503）；`fault_body: str|null`；`delay_ms: int|null`；`retry_after_sec: int|null`；`stream_terminate_after_events: int|null`；`malformed_after_events: int|null`；`malformed_event_type: str|null`；`enabled: int`（恒 `1`）；`updated_at: str`
-- **取值范围 / 不变量**：对应类型的配置字段非空，其余为 `null`
-- **来源 / 复用**：`injections`；被 `enabled_injection`/`enabled_stream_injection`/`stream_wrapper` 复用
+- **定义**：当前命中且启用的注入（`diagnostic_injections` 行）。
+- **字段**：
+  - `id`：`str`｜必填｜`inj_*`｜注入 ID
+  - `deployment_id`：`str`｜必填｜非空｜部署 ID
+  - `injection_type`：`str`｜必填｜6 种之一｜注入类型
+  - `fault_status`：`int?`｜可空｜`502`/`503`｜故障状态码（`fault_*`）
+  - `fault_body`：`str?`｜可空｜≤512 字节｜故障正文（`fault_*`）
+  - `delay_ms`：`int?`｜可空｜0–60000｜延迟（`delay`）
+  - `retry_after_sec`：`int?`｜可空｜0–300｜`Retry-After`（`rate_limit`）
+  - `stream_terminate_after_events`：`int?`｜可空｜1–10000｜截断点（`stream_terminate`）
+  - `malformed_after_events`：`int?`｜可空｜0–10000｜畸形点（`malformed_event`）
+  - `malformed_event_type`：`str?`｜可空｜`invalid_json`/`unknown_event_type`｜畸形类型
+  - `enabled`：`int`｜必填｜恒 `1`｜启用标志
+  - `updated_at`：`str`｜必填｜RFC3339 ms｜更新时间
+- **不变量**：仅对应类型的配置字段非空，其余为 `null`；查询只返回 `enabled=1`。
+- **来源 · 复用**：`injections`；被 `enabled_injection`/`enabled_stream_injection`/`stream_wrapper` 复用。
 
 #### 9.1.11 `InjectionView`
-- **字段**：`id: str`；`deployment_id: str`；`type: str`（6 种）；`config: object`（按类型：`error_body` / `delay_ms` / `retry_after_sec` / `stream_terminate_after_events` / `malformed_after_events`+`malformed_event_type`）；`enabled: bool`；`updated_at: str`
-- **来源 / 复用**：`injections`；被 `set_injections`/`injections` 复用
+- **定义**：一条注入配置视图（含 `config`）。
+- **字段**：
+  - `id`：`str`｜必填｜`inj_*`｜注入 ID
+  - `deployment_id`：`str`｜必填｜非空｜部署 ID
+  - `type`：`str`｜必填｜6 种之一｜注入类型
+  - `config`：`object`｜必填｜按类型（见 §9.1.10 各配置字段）｜注入参数
+  - `enabled`：`bool`｜必填｜`false`/`true`｜是否启用
+  - `updated_at`：`str`｜必填｜RFC3339 ms｜更新时间
+- **不变量**：`config` 字段集合与 `type` 一致。
+- **来源 · 复用**：`injections`；被 `set_injections`/`injections` 复用。
 
 ### 9.2 接口规格
 
-> 格式：功能 / 输入（逐参数：类型·必填·默认·取值范围·所有权）/ 输出（数据结构）/ 返回值（各条件）/ 统计·日志 / 数据库（何种情况改哪些表）。
+> 每个接口固定 6 段：`功能` / `输入`（逐参数）/ `输出` / `返回值`（每条件一行）/ `统计 · 日志` / `数据库`。
 
 #### 9.2.1 `IF-LIBDIAG-SWITCH` · 开关（`settings.py`）
 
 ##### `switches()`
-- **功能**：读取全局开关状态；供 M005 呈现、M003/M001 记录前判定
-- **输入**：无
-- **输出**：`SwitchState`（§9.1.1）
-- **返回值**：始终返回 `SwitchState`；无错误分支
-- **统计 / 日志**：无
-- **数据库**：只读 `diagnostic_settings`（`singleton=1`），不改数据
+- **功能**：读取全局开关状态；供 M005 呈现、M003/M001 记录前判定。
+- **输入**：无。
+- **输出**：`SwitchState`（§9.1.1）。
+- **返回值**：始终 → `SwitchState`（无错误分支）。
+- **统计 · 日志**：无。
+- **数据库**：只读 `diagnostic_settings`（`singleton=1`），不改数据。
 
 ##### `set_switches(snapshots_enabled=None, stats_enabled=None, conn=None)`
-- **功能**：部分更新全局开关
-- **输入**：`snapshots_enabled: bool|null`（默认 `null`=不变）；`stats_enabled: bool|null`（默认 `null`=不变）；`conn: Connection|null`（默认 `null`=自开事务）
-- **输出**：更新后的 `SwitchState`（§9.1.1）
-- **返回值**：成功 → `SwitchState`；参数非 `bool`（非 `null`）→ `ApiError(400, "invalid_request")`（`param` = 字段名）
-- **统计 / 日志**：无
-- **数据库**：开事务 `UPDATE diagnostic_settings SET snapshots_enabled,stats_enabled WHERE singleton=1`；`conn` 非空时加入调用方事务
+- **功能**：部分更新全局开关。
+- **输入**：
+  - `snapshots_enabled: bool?`｜可选，默认 `null`（不变）｜`false`/`true`｜快照开关
+  - `stats_enabled: bool?`｜可选，默认 `null`（不变）｜`false`/`true`｜统计开关
+  - `conn: Connection?`｜可选，默认 `null`（自开事务）｜—｜调用方事务接入
+- **输出**：更新后的 `SwitchState`（§9.1.1）。
+- **返回值**：
+  - 成功 → `SwitchState`
+  - 参数非 `bool`（且非 `null`）→ `ApiError(400, "invalid_request")`（`param`=字段名）
+- **统计 · 日志**：无。
+- **数据库**：`UPDATE diagnostic_settings SET snapshots_enabled,stats_enabled WHERE singleton=1`；`conn` 非空时并入调用方事务。
 
 #### 9.2.2 `IF-LIBDIAG-RECORD` · 记录（`traces.py`/`snapshots.py`/`stats.py`）
 
 ##### `record_trace(request_id, stage, detail=None, correlation_id=None)`
-- **功能**：追加一个 trace 阶段；**fail-open**（失败不影响数据面）
-- **输入**：`request_id: str`（必填，非空）；`stage: str`（必填，∈§9.1.2 集合）；`detail: object|null`（默认 `null`，脱敏）；`correlation_id: str|null`（默认 `null`）
-- **输出**：无
-- **返回值**：无返回值（`None`）；写失败**不抛**，改为 warning
-- **统计 / 日志**：写失败记 `OperationalLog(warning, diagnostics, capture_failed)`
-- **数据库**：`INSERT trace_events`（`id=tev_*`、`request_id`、`stage`、`stage_timestamp=now`、`detail=JSON`、`correlation_id`、`created_at=now`）
+- **功能**：追加一个 trace 阶段；**fail-open**（失败不影响数据面）。
+- **输入**：
+  - `request_id: str`｜必填｜非空｜请求标识
+  - `stage: str`｜必填｜∈ §9.1.2 集合｜阶段名
+  - `detail: object?`｜可选，默认 `null`｜任意 JSON（脱敏）｜阶段上下文
+  - `correlation_id: str?`｜可选，默认 `null`｜非空或 `null`｜关联标识
+- **输出**：无。
+- **返回值**：恒无返回值（`None`）；写失败**不抛**，改记 warning。
+- **统计 · 日志**：写失败记 `OperationalLog(warning, diagnostics, capture_failed)`。
+- **数据库**：`INSERT trace_events`（`id=tev_*`、`request_id`、`stage`、`stage_timestamp=now`、`detail=JSON`、`correlation_id`、`created_at=now`）。
 
 ##### `capture_snapshot(request_id, deployment_id, model, upstream_url, backend_model, http_status, latency_ms, error_summary)`
-- **功能**：记录一次上游调用快照（默认关；开关关则短路）；**fail-open**
-- **输入**：`request_id: str`（必填）；`deployment_id: str|null`；`model: str|null`（tier 名）；`upstream_url: str`（必填，去 query）；`backend_model: str|null`；`http_status: int|null`（100–599）；`latency_ms: float|null`（≥0）；`error_summary: str|null`（截断 ≤256 字节）
-- **输出**：`snap_id: str`（新建快照 ID）
-- **返回值**：`snapshots_enabled=true` 且写成功 → `snap_id`；开关关 → `null`；写失败 → `null`（不抛）
-- **统计 / 日志**：写失败记 warning（`capture_failed`）
-- **数据库**：`INSERT diagnostic_snapshots`（`snapshot_type=upstream` 当 `http_status` 非空，否则 `error`）
+- **功能**：记录一次上游调用快照（受 `snapshots_enabled` 控制）；**fail-open**。
+- **输入**：
+  - `request_id: str`｜必填｜非空｜请求标识
+  - `deployment_id: str?`｜必填位，可空｜非空或 `null`｜部署 ID
+  - `model: str?`｜必填位，可空｜非空或 `null`｜tier 名
+  - `upstream_url: str`｜必填｜去 query｜上游 URL
+  - `backend_model: str?`｜必填位，可空｜非空或 `null`｜上游模型名
+  - `http_status: int?`｜必填位，可空｜100–599｜HTTP 状态（`null` → error 类）
+  - `latency_ms: float?`｜必填位，可空｜≥0｜端到端延迟
+  - `error_summary: str?`｜必填位，可空｜≤256 字节（超出截断）｜错误摘要
+- **输出**：`snap_id: str`（新建快照 ID）。
+- **返回值**：
+  - `snapshots_enabled=true` 且写成功 → `snap_id`
+  - `snapshots_enabled=false` → `null`
+  - 写失败 → `null`（不抛）
+- **统计 · 日志**：写失败记 warning（`capture_failed`）。
+- **数据库**：`INSERT diagnostic_snapshots`（`snapshot_type=upstream` 当 `http_status` 非空，否则 `error`）。
 
 ##### `record_latency(deployment_id, model, status_code, latency_ms)`
-- **功能**：记录一次请求的小时桶统计与延迟样本（默认关）；**fail-open**
-- **输入**：`deployment_id: str|null`；`model: str|null`；`status_code: int|null`（<100 或缺省 → 记 `upstream_error`）；`latency_ms: float|null`（≥0；`null` 只计请求不计延迟）
-- **输出**：无
-- **返回值**：无；写失败不抛
-- **统计 / 日志**：写失败记 warning；`error_count` 在 `status_code≥400` 或 `upstream_error` 时 +1
-- **数据库**：`UPSERT data_plane_stats`（增 `request_count`/`error_count`）/ 当 `latency_ms` 非空 `INSERT data_plane_latency_samples`
+- **功能**：记录一次请求的小时桶统计与延迟样本（受 `stats_enabled` 控制）；**fail-open**。
+- **输入**：
+  - `deployment_id: str?`｜必填位，可空｜非空或 `null`｜部署 ID
+  - `model: str?`｜必填位，可空｜非空或 `null`｜tier 名
+  - `status_code: int?`｜必填位，可空｜100–599；`null` 或 <100 → 记 `upstream_error`｜HTTP 状态
+  - `latency_ms: float?`｜必填位，可空｜≥0｜延迟（`null` 只计请求不计延迟）
+- **输出**：无。
+- **返回值**：恒无返回值；写失败不抛。
+- **统计 · 日志**：写失败记 warning；`status_code≥400` 或 `upstream_error` ⇒ `error_count+1`。
+- **数据库**：`UPSERT data_plane_stats`（`request_count`/`error_count` 累加）；`latency_ms` 非空时 `INSERT data_plane_latency_samples`。
 
 #### 9.2.3 `IF-LIBDIAG-QUERY` · 查询（`traces.py`/`snapshots.py`/`stats.py`）
 
 ##### `trace(request_id)`
-- **功能**：按 `request_id` 返回完整 trace 视图（阶段 + 最近快照 + 用量）
-- **输入**：`request_id: str`（必填，非空）
-- **输出**：`TraceView`（§9.1.4）
-- **返回值**：有记录 → `TraceView`；无记录 → `ApiError(404, "not_found")`
-- **统计 / 日志**：无
-- **数据库**：只读 `trace_events`/`diagnostic_snapshots`/`usage_record_versions`
+- **功能**：按 `request_id` 返回完整 trace 视图（阶段 + 最近快照 + 用量）。
+- **输入**：
+  - `request_id: str`｜必填｜非空｜请求标识
+- **输出**：`TraceView`（§9.1.4）。
+- **返回值**：
+  - 有记录 → `TraceView`
+  - 无记录 → `ApiError(404, "not_found")`
+- **统计 · 日志**：无。
+- **数据库**：只读 `trace_events`/`diagnostic_snapshots`/`usage_record_versions`。
 
 ##### `traces(since=None, until=None, deployment_id=None, model=None, limit=50, cursor=None)`
-- **功能**：时间窗内按请求去重的时间线分页（G-1）
-- **输入**：`since/until: str|null`（RFC3339；`null`=不限）；`deployment_id/model: str|null`（经快照过滤）；`limit: int`（默认 `50`，夹到 `[1,500]`）；`cursor: str|null`（`first_ts|request_id`）
-- **输出**：`TracePage`（§9.1.5）
-- **返回值**：始终 `TracePage`；无匹配 → `items=[]`
-- **统计 / 日志**：无
-- **数据库**：只读 `trace_events`（+`diagnostic_snapshots` 过滤）
+- **功能**：时间窗内按请求去重的时间线分页（G-1）。
+- **输入**：
+  - `since/until: str?`｜可选，默认 `null`（不限）｜RFC3339｜时间窗
+  - `deployment_id/model: str?`｜可选，默认 `null`｜非空或 `null`｜经快照过滤
+  - `limit: int`｜可选，默认 `50`｜夹到 `[1,500]`｜页大小
+  - `cursor: str?`｜可选，默认 `null`｜`first_ts|request_id`｜续页游标
+- **输出**：`TracePage`（§9.1.5）。
+- **返回值**：
+  - 始终 → `TracePage`
+  - 无匹配 → `items=[]`、`has_more=false`
+- **统计 · 日志**：无。
+- **数据库**：只读 `trace_events`（+`diagnostic_snapshots` 过滤）。
 
 ##### `snapshots_page(since=None, until=None, deployment_id=None, model=None, limit=50, cursor=None)`
-- **功能**：快照时间窗分页
-- **输入**：同 `traces` 的过滤；`limit` 夹到 `[1,500]`
-- **输出**：`SnapshotPage`（§9.1.7）
-- **返回值**：始终 `SnapshotPage`
-- **统计 / 日志**：无
-- **数据库**：只读 `diagnostic_snapshots`
+- **功能**：快照时间窗分页。
+- **输入**：
+  - `since/until: str?`｜可选，默认 `null`｜RFC3339｜时间窗
+  - `deployment_id/model: str?`｜可选，默认 `null`｜非空或 `null`｜过滤
+  - `limit: int`｜可选，默认 `50`｜夹到 `[1,500]`｜页大小
+  - `cursor: str?`｜可选，默认 `null`｜末条 `id`｜续页游标
+- **输出**：`SnapshotPage`（§9.1.7）。
+- **返回值**：始终 → `SnapshotPage`（无匹配 `items=[]`）。
+- **统计 · 日志**：无。
+- **数据库**：只读 `diagnostic_snapshots`。
 
 ##### `stats(since, until, deployment_id=None, model=None)`
-- **功能**：按小时桶聚合统计视图
-- **输入**：`since/until: str`（必填，RFC3339；取前 13 字符做小时）；`deployment_id/model: str|null`
-- **输出**：`StatsView`（§9.1.9）
-- **返回值**：始终 `StatsView`；无数据 → `windows=[]`
-- **统计 / 日志**：无
-- **数据库**：只读 `data_plane_stats` + `data_plane_latency_samples`
+- **功能**：按小时桶聚合统计视图。
+- **输入**：
+  - `since/until: str`｜必填｜RFC3339（取前 13 字符做小时）｜时间窗
+  - `deployment_id/model: str?`｜可选，默认 `null`｜非空或 `null`｜过滤
+- **输出**：`StatsView`（§9.1.9）。
+- **返回值**：
+  - 始终 → `StatsView`
+  - 无数据 → `windows=[]`
+- **统计 · 日志**：无。
+- **数据库**：只读 `data_plane_stats` + `data_plane_latency_samples`。
 
 #### 9.2.4 `IF-LIBDIAG-INJECT` · 注入（`injections.py`/`stream.py`）
 
 ##### `set_injections(deployment_id, actor_items, conn=None)`
-- **功能**：校验并 upsert 某 deployment 的注入项；返回全量视图
-- **输入**：`deployment_id: str`（必填）；`actor_items: list`（注入项数组，逐项见 `InjectionView.config`；`type∈6 种`）；`conn: Connection|null`
-- **输出**：`InjectionView[]`（§9.1.11）
-- **返回值**：成功 → `InjectionView[]`；类型非法/缺字段/越界 → `ApiError(400, "invalid_injection")`；未知 deployment → `ApiError(404, "not_found")`；非列表 → `ApiError(400)`
-- **统计 / 日志**：无
-- **数据库**：`UPSERT diagnostic_injections`（按 `(deployment_id,injection_type)`；`fault_502→fault_status 502`，`fault_503→503`）
+- **功能**：校验并 upsert 某 deployment 的注入项；返回全量视图。
+- **输入**：
+  - `deployment_id: str`｜必填｜非空｜部署 ID
+  - `actor_items: object[]`｜必填｜每项含 `type`（6 种）+ `config` + `enabled`｜注入项数组
+  - `conn: Connection?`｜可选，默认 `null`（自开事务）｜—｜调用方事务接入
+- **输出**：`InjectionView[]`（§9.1.11）。
+- **返回值**：
+  - 成功 → `InjectionView[]`
+  - 类型非法 / 缺字段 / 越界 → `ApiError(400, "invalid_injection")`
+  - 非列表 → `ApiError(400, "invalid_injection")`
+  - 未知 deployment → `ApiError(404, "not_found")`
+- **统计 · 日志**：无。
+- **数据库**：`UPSERT diagnostic_injections`（键 `(deployment_id,injection_type)`；`fault_502`→`fault_status=502`，`fault_503`→`503`）。
 
 ##### `injections(deployment_id)`
-- **功能**：列出某 deployment 的全部注入项
-- **输入**：`deployment_id: str`（必填）
-- **输出**：`InjectionView[]`（§9.1.11）
-- **返回值**：成功 → 列表（可为 `[]`）；未知 deployment → `ApiError(404)`
-- **统计 / 日志**：无
-- **数据库**：只读 `diagnostic_injections`
+- **功能**：列出某 deployment 的全部注入项。
+- **输入**：
+  - `deployment_id: str`｜必填｜非空｜部署 ID
+- **输出**：`InjectionView[]`（§9.1.11）。
+- **返回值**：
+  - 成功 → 列表（可 `[]`）
+  - 未知 deployment → `ApiError(404, "not_found")`
+- **统计 · 日志**：无。
+- **数据库**：只读 `diagnostic_injections`。
 
 ##### `enabled_injection(deployment_id)`
-- **功能**：取启用中的**前置阶段**注入（优先级 `fault_502→fault_503→rate_limit→delay`）
-- **输入**：`deployment_id: str`
-- **输出**：`EnabledInjection|null`（§9.1.10）
-- **返回值**：命中 → `EnabledInjection`；无 → `null`
-- **统计 / 日志**：无
-- **数据库**：只读 `diagnostic_injections`（`enabled=1`）
+- **功能**：取启用中的**前置阶段**注入（优先级 `fault_502→fault_503→rate_limit→delay`）。
+- **输入**：
+  - `deployment_id: str`｜必填｜非空｜部署 ID
+- **输出**：`EnabledInjection?`（§9.1.10）。
+- **返回值**：
+  - 命中 → `EnabledInjection`
+  - 无 → `null`
+- **统计 · 日志**：无。
+- **数据库**：只读 `diagnostic_injections`（`enabled=1`）。
 
 ##### `enabled_stream_injection(deployment_id)`
-- **功能**：取启用中的**流阶段**注入（`stream_terminate→malformed_event`）
-- **输入**：`deployment_id: str`
-- **输出**：`EnabledInjection|null`
-- **返回值**：命中 → `EnabledInjection`；无 → `null`
-- **统计 / 日志**：无
-- **数据库**：只读 `diagnostic_injections`（`enabled=1`）
+- **功能**：取启用中的**流阶段**注入（`stream_terminate→malformed_event`）。
+- **输入**：
+  - `deployment_id: str`｜必填｜非空｜部署 ID
+- **输出**：`EnabledInjection?`（§9.1.10）。
+- **返回值**：
+  - 命中 → `EnabledInjection`
+  - 无 → `null`
+- **统计 · 日志**：无。
+- **数据库**：只读 `diagnostic_injections`（`enabled=1`）。
 
 ##### `stream_wrapper(deployment_id, base_stream)`
-- **功能**：按流阶段注入包装 SSE 字节流（截断/畸形）；无注入则透传
-- **输入**：`deployment_id: str`；`base_stream: Iterable[bytes]`
-- **输出**：`Iterable[bytes]`（惰性）
-- **返回值**：生成器；命中 `stream_terminate` → 到第 N 块后结束；命中 `malformed_event` → 到第 N 块后追加一帧畸形事件并结束
-- **统计 / 日志**：无
-- **数据库**：只读 `diagnostic_injections`
+- **功能**：按流阶段注入包装 SSE 字节流（截断/畸形）；无注入则透传。
+- **输入**：
+  - `deployment_id: str`｜必填｜非空｜部署 ID
+  - `base_stream: Iterable[bytes]`｜必填｜—｜原始 SSE 字节流
+- **输出**：`Iterable[bytes]`（惰性）。
+- **返回值**：
+  - 恒 → 生成器
+  - 命中 `stream_terminate` → 第 N 块后结束
+  - 命中 `malformed_event` → 第 N 块后追加一帧畸形事件并结束
+- **统计 · 日志**：无。
+- **数据库**：只读 `diagnostic_injections`。
 
 #### 9.2.5 `IF-LIBDIAG-CLEANUP` · 保留期（`retention.py`）
 
 ##### `cleanup(days=7)`
-- **功能**：删除超过保留期的快照/trace/统计；**fail-open**
-- **输入**：`days: int`（默认 `7`，≥0）
-- **输出**：删除行数 `int`（≥0）
-- **返回值**：成功 → 删除数；失败 → `0`（不抛）
-- **统计 / 日志**：失败记 warning（`capture_failed`）
-- **数据库**：删除 `diagnostic_snapshots`/`trace_events`/`data_plane_latency_samples`/`data_plane_stats` 中早于 `now-days` 的行
+- **功能**：删除超过保留期的快照/trace/统计；**fail-open**。
+- **输入**：
+  - `days: int`｜可选，默认 `7`｜≥0｜保留天数
+- **输出**：删除行数 `int`（≥0）。
+- **返回值**：
+  - 成功 → 删除数
+  - 失败 → `0`（不抛）
+- **统计 · 日志**：失败记 warning（`capture_failed`）。
+- **数据库**：删除 `diagnostic_snapshots`/`trace_events`/`data_plane_latency_samples`/`data_plane_stats` 中早于 `now-days` 的行。
 
 ## 10. 并发、失败与恢复
 
