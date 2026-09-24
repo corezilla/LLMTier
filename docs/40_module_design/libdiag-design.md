@@ -191,6 +191,13 @@
 
 ### 5.1 内部组成
 
+#### 5.1.0 `I0` · 门面组合
+- **职责与非职责**：组合各功能模块为 `DiagnosticsService` 稳定方法面；不含功能逻辑
+- **输入、处理与输出**：门面调用 → 委托到对应功能模块；`_warn` 统一 fail-open 告警
+- **协作对象**：I1–I8（全部）
+- **文件 / symbol / 实现状态**：`diagnostics.py` `DiagnosticsService`；Implemented
+- **拆分依据与替代方案代价**：功能各自成文件，门面是唯一组合点（供 M001/M003/M005 消费）
+
 #### 5.1.1 `I1` · 开关存储
 - **职责与非职责**：读写 `diagnostic_settings` 单行；不做记录
 - **输入、处理与输出**：部分更新 → 状态
@@ -234,11 +241,18 @@
 - **拆分依据与替代方案代价**：流注入需在传输层包装（`LT-OPEN-05`）
 
 #### 5.1.7 `I7` · 过期清理
-- **职责与非职责**：删除过期快照/trace；不删注入/开关
+- **职责与非职责**：删除过期快照/trace/统计；不删注入/开关
 - **输入、处理与输出**：`days` → 删除数
 - **协作对象**：M007
 - **文件 / symbol / 实现状态**：`retention.py` `cleanup`；Implemented
 - **拆分依据与替代方案代价**：保留期 7 天
+
+#### 5.1.8 `I8` · 共享 helper
+- **职责与非职责**：纯函数（时间/分位）；无状态、不触库
+- **输入、处理与输出**：时间戳/分位输入 → 值
+- **协作对象**：I2–I4、I7
+- **文件 / symbol / 实现状态**：`common.py` `now/hour_of/iso/percentile`；Implemented
+- **拆分依据与替代方案代价**：跨功能共用，集中避免重复实现
 
 ### 5.2 内部调用过程
 
@@ -278,6 +292,17 @@
 - **输出 / 异常**：字节流；透传或注入
 - **ownership / 生命周期**：请求级流
 - **实现与验证位置**：`diagnostics.py`；`VRC-DIAG-004`
+
+#### 5.3.4 `IF-DIAG-INT` · 模块内文件间接口（门面 ↔ 功能 ↔ helper）
+- **签名 / 入口**：
+  - `diagnostics.py`（门面）→ 各功能：`settings.switches/set_switches`、`traces.record_trace/trace/traces`、`snapshots.capture_snapshot/snapshots_page`、`stats.record_latency/stats`、`injections.set_injections/injections/enabled_injection/enabled_stream_injection`、`retention.cleanup`、`stream.stream_wrapper`
+  - `snapshots.py` / `stats.py` → `settings.py`：`switches()`（开关判定）
+  - `stream.py` → `injections.py`：`enabled_stream_injection()`
+  - `settings/traces/snapshots/stats/retention.py` → `common.py`：`now/hour_of/iso/percentile`
+- **输入与前置条件**：门面在 `__init__` 持有 `store`/`logs`，并注入各功能（含 `_warn` 回调）
+- **输出 / 异常**：功能返回值原样透传；`ApiError`/`sqlite3.Error` 冒泡到门面
+- **ownership / 生命周期**：功能对象随门面（`Application`）寿命；无跨文件可变共享状态
+- **实现与验证位置**：`src/libdiag/*.py`；`VRC-DIAG-001..004`
 
 ### 5.4 服务提供方式（条件适用）
 
@@ -399,7 +424,7 @@
 - **Request / Response / Error / ownership**：部分更新 → 状态；fail-open
 - **Contract authority / version / revision / hash / selector**：本文 §6.1
 - **前提 / timeout / 兼容边界 / Error model**：—
-- **本地文件 / symbol 或 NOT_IMPLEMENTED**：`diagnostics.py`
+- **本地文件 / symbol 或 NOT_IMPLEMENTED**：`diagnostics.py`（门面）→ `settings.py`
 - **Constraint / VRC / Case / 环境 / Run**：`C-OBS-1`；`VRC-DIAG-001`；NOT_RUN
 - **关联类型字段 ID**：`diagnostic_settings`
 
@@ -408,7 +433,7 @@
 - **Request / Response / Error / ownership**：事实字段 → 行/聚合；fail-open
 - **Contract authority / version / revision / hash / selector**：本文 §6.2–6.5
 - **前提 / timeout / 兼容边界 / Error model**：开关开启
-- **本地文件 / symbol 或 NOT_IMPLEMENTED**：`diagnostics.py`
+- **本地文件 / symbol 或 NOT_IMPLEMENTED**：`diagnostics.py`（门面）→ `traces.py`/`snapshots.py`/`stats.py`
 - **Constraint / VRC / Case / 环境 / Run**：`C-OBS-2/3`；`VRC-DIAG-002/003`；NOT_RUN
 - **关联类型字段 ID**：`diagnostic_snapshots`/`trace_events`/`data_plane_stats`
 
@@ -417,7 +442,7 @@
 - **Request / Response / Error / ownership**：查询 → 视图
 - **Contract authority / version / revision / hash / selector**：本文 §6
 - **前提 / timeout / 兼容边界 / Error model**：—
-- **本地文件 / symbol 或 NOT_IMPLEMENTED**：`diagnostics.py`
+- **本地文件 / symbol 或 NOT_IMPLEMENTED**：`diagnostics.py`（门面）→ `traces.py`/`snapshots.py`/`stats.py`
 - **Constraint / VRC / Case / 环境 / Run**：`VRC-DIAG-002`；NOT_RUN
 - **关联类型字段 ID**：视图
 
@@ -426,7 +451,7 @@
 - **Request / Response / Error / ownership**：注入项 → 行/字节流；400
 - **Contract authority / version / revision / hash / selector**：本文 §6.4
 - **前提 / timeout / 兼容边界 / Error model**：白名单
-- **本地文件 / symbol 或 NOT_IMPLEMENTED**：`diagnostics.py`
+- **本地文件 / symbol 或 NOT_IMPLEMENTED**：`diagnostics.py`（门面）→ `injections.py`/`stream.py`
 - **Constraint / VRC / Case / 环境 / Run**：`C-OBS-4`；`VRC-DIAG-004`；NOT_RUN
 - **关联类型字段 ID**：`diagnostic_injections`
 
@@ -496,21 +521,26 @@
 
 ### 13.1 文件分解（设计 → 代码文件）
 
-#### 13.1.1 `src/libdiag/diagnostics.py`
-- **职责 / 非职责**：I1–I7 开关/记录/统计/注入/流/清理原语；不做呈现路由/鉴权
-- **关键 symbol / 导出范围**：`DiagnosticsService.switches/set_switches/record_trace/trace/capture_snapshot/snapshots_page/record_latency/stats/set_injections/injections/enabled_injection/enabled_stream_injection/stream_wrapper/cleanup`、`_percentile`、`hour_of`、`_validate`
-- **承接 Function / Rule / Constraint / Interface ID**：`F-DIAG-*`、`RULE-DIAG-*`、`C-OBS-1/2/3/4/5`、`IF-LIBDIAG-*`
-- **构建目标 / 依赖 / 宿主装配**：随 `Application`；依赖 Store、日志
-- **实现状态**：Implemented
-- **验证入口**：`VRC-DIAG-001..004`
+本模块按**一个功能一个文件**拆分；`diagnostics.py` 只保留**组合点**（门面），不含具体功能逻辑。
 
-#### 13.1.2 `src/util/migrations/002_observability.sql`
-- **职责 / 非职责**：创建 4 张诊断表 + `diagnostic_settings`；不含业务逻辑
-- **关键 symbol / 导出范围**：`diagnostic_settings`、`diagnostic_snapshots`、`data_plane_stats`、`diagnostic_injections`、`trace_events`
-- **承接 Function / Rule / Constraint / Interface ID**：`R-OBS-06`（Store）
-- **构建目标 / 依赖 / 宿主装配**：由 `Store.migrate` 执行
-- **实现状态**：Implemented
-- **验证入口**：`VRC-DIAG-002`
+| 文件 | 功能 | 关键 symbol | 承接 ID | 状态 |
+|---|---|---|---|---|
+| `src/libdiag/diagnostics.py` | 组合点（门面） | `DiagnosticsService`（`switches/set_switches/record_trace/trace/traces/capture_snapshot/snapshots_page/record_latency/stats/set_injections/injections/enabled_injection/enabled_stream_injection/stream_wrapper/cleanup`）、`_warn` | `IF-LIBDIAG-*` | Implemented |
+| `src/libdiag/settings.py` | 功能1 开关 | `SettingsDiagnostics.switches/set_switches` | `F-DIAG-SWITCH`、`RULE-DIAG-SWITCH`、`C-OBS-1` | Implemented |
+| `src/libdiag/traces.py` | 功能2 trace | `TraceDiagnostics.record_trace/trace/traces`（`_trace_view` 组合 snapshot+usage） | `F-DIAG-TRACE`、`F-DIAG-TRACES` | Implemented |
+| `src/libdiag/snapshots.py` | 功能3 快照 | `SnapshotDiagnostics.capture_snapshot/snapshots_page`（组合 settings） | `F-DIAG-SNAPSHOT`、`RULE-DIAG-TRUNC` | Implemented |
+| `src/libdiag/stats.py` | 功能4 统计 | `StatsDiagnostics.record_latency/stats`（组合 settings） | `F-DIAG-STATS`、`RULE-DIAG-PCTL` | Implemented |
+| `src/libdiag/injections.py` | 功能5 注入 | `InjectionDiagnostics.set_injections/injections/enabled_injection/enabled_stream_injection`（`_validate`） | `F-DIAG-INJECT`、`RULE-DIAG-INJECT` | Implemented |
+| `src/libdiag/stream.py` | 功能6 流包装 | `stream_wrapper(injections, did, base_stream)`（组合 injections） | `F-DIAG-STREAM` | Implemented |
+| `src/libdiag/retention.py` | 功能7 保留期 | `cleanup(store, warn, days)` | `F-DIAG-CLEANUP`、`CAP-DIAG-RETENTION` | Implemented |
+| `src/libdiag/common.py` | 共享 helper | `now/hour_of/iso/percentile` | （无独立需求 ID） | Implemented |
+| `src/util/migrations/002_observability.sql` | 观测 6 表 DDL（M007 执行） | `diagnostic_settings`/`diagnostic_snapshots`/`data_plane_stats`/`diagnostic_injections`/`trace_events`/`data_plane_latency_samples` | `R-OBS-06` | Implemented |
+
+**每个文件的职责 / 非职责**：门面只组合、不含功能逻辑；功能文件各自实现单一功能、不互相直连（除下表 §5.3 的显式组合）；`common.py` 只提供纯函数；DDL 只建表不含逻辑。
+
+**构建目标 / 依赖 / 宿主装配**：全部随 `Application` 装配；功能文件依赖 `util.store`（M007）与 `http_api.errors`（ApiError）；DDL 由 `Store.migrate` 执行。
+
+**验证入口**：`VRC-DIAG-001..004`。
 
 ### 13.2 实现步骤
 
