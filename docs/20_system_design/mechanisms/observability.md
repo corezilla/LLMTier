@@ -89,7 +89,7 @@
 
 ### 4.2 编码、布局与共享类型映射
 
-不适用二进制 ABI：SQLite 行 + JSON（`detail`、`config_json`）。详细 schema 见 `llmtier-diagnostics.isd.md`。
+不适用二进制 ABI：SQLite 行 + JSON（`detail`、`config_json`）。详细 schema 见 `libdiag.isd.md`（观测表）与 `util.isd.md` §4.4（表契约）。
 
 ### 4.3 一致性、可见性与数据寿命
 
@@ -222,12 +222,12 @@
 
 | 机制参与方（§3） | 责任单元/Owner | 架构对象 ID / 类型 / 层或领域 | 下级设计文档 | 在本机制中的主责与非职责 |
 |---|---|---|---|---|
-| 能力提供 | LLMTier | `libdiag`（基础层）| `llmtier-diagnostics-design.md` | 开关/注入/记录读写；不改推理契约 |
-| 查询与呈现 | Observability / LLMTier | 诊断管理面（业务层）| `llmtier-diagnostics-design.md` | 查询、切换开关；不直读库 |
-| 事件产生 | Inference / LLMTier | 请求路径集成（业务层）| `llmtier-core-design.md` | 按配置注入、写事实；不改推理结果 |
-| 入口 | HTTP API / LLMTier | HTTP Adapter（入口层）| `llmtier-core-design.md` | 诊断路由、关联标识透传/回显 |
-| 页面 | Web UI / LLMTier | `/ui/diagnostics`（入口层）| `llmtier-webui-design.md` | 4 tabs + 全局开关；不直读库 |
-| 存储 | LLMTier | Store（基础层）| `llmtier-core-design.md` | 4 张表 |
+| 能力提供 | LLMTier | `libdiag`（基础层）| `libdiag-design.md` | 开关/注入/记录读写；不改推理契约 |
+| 查询与呈现 | Observability / LLMTier | 诊断管理面（业务层）| `observability-design.md` | 查询、切换开关；不直读库 |
+| 事件产生 | Inference / LLMTier | 请求路径集成（业务层）| `inference-design.md` | 按配置注入、写事实；不改推理结果 |
+| 入口 | HTTP API / LLMTier | HTTP Adapter（入口层）| `http-api-design.md` | 诊断路由、关联标识透传/回显 |
+| 页面 | Web UI / LLMTier | `/ui/diagnostics`（入口层）| `web-ui-design.md` | 4 tabs + 全局开关；不直读库 |
+| 存储 | LLMTier | Store（基础层）| `util-design.md` | 4 张表 |
 
 ### 14.2 功能和步骤到责任单元分配
 
@@ -255,12 +255,12 @@
 
 | 下级要求 ID | 承接对象 ID / 下级设计文档 | 来源 Capability / Step / Constraint / 接口成员 | 必须负责的行为与保证 | 必须提供/消费的接口 | 下级必须展开的问题 | 允许自行决定的范围 | 本地验证 / 组合验证交接 |
 |---|---|---|---|---|---|---|---|
-| R-OBS-01 | `libdiag` · `llmtier-diagnostics-design.md` | C-OBS-3、Step 2/3/4/5、interface `DiagnosticService` 全部 | 开关/注入/记录底层读写、脱敏、fail-open | `capture_snapshot`/`record_latency`/`record_trace`/`get_enabled_injections`/查询 | 存储布局、缓存/LRU、TTL、截断 | 存储/聚合实现 | 系统用例 |
-| R-OBS-02 | Observability · `llmtier-diagnostics-design.md` | C-OBS-1/5、Step 6 | 查询与呈现、开关切换 | 诊断路由 | 授权、页面 | 呈现实现 | T-OBS-SWITCH |
-| R-OBS-03 | Inference · `llmtier-core-design.md` | C-OBS-2/4、Step 3/4/5 | 按配置注入、写事件、`source=injected` | 集成点 | 注入执行点、fail-open 包裹 | 集成实现 | T-OBS-INJECT |
-| R-OBS-04 | HTTP Adapter · `llmtier-core-design.md` | Step 1 | 诊断路由、关联标识透传/回显 | 路由 | 头解析、错误映射 | 解析实现 | 契约 |
-| R-OBS-05 | Web UI · `llmtier-webui-design.md` | CAP-OBS-3 | `/ui/diagnostics` 4 tabs + 开关 | 页面 | 呈现（不直读库）| 呈现实现 | 组合 |
-| R-OBS-06 | Store · `llmtier-core-design.md` | §8 4 张表 | 4 张表事务 | Store | schema/迁移 | 存储实现 | 系统用例 |
+| R-OBS-01 | `libdiag` · `libdiag-design.md` | C-OBS-3、Step 2/3/4/5、interface `DiagnosticService` 全部 | 开关/注入/记录底层读写、脱敏、fail-open | `capture_snapshot`/`record_latency`/`record_trace`/`get_enabled_injections`/查询 | 存储布局、缓存/LRU、TTL、截断 | 存储/聚合实现 | 系统用例 |
+| R-OBS-02 | Observability · `observability-design.md` | C-OBS-1/5、Step 6 | 查询与呈现、开关切换 | 诊断路由 | 授权、页面 | 呈现实现 | T-OBS-SWITCH |
+| R-OBS-03 | Inference · `inference-design.md` | C-OBS-2/4、Step 3/4/5 | 按配置注入、写事件、`source=injected` | 集成点 | 注入执行点、fail-open 包裹 | 集成实现 | T-OBS-INJECT |
+| R-OBS-04 | HTTP Adapter · `http-api-design.md` | Step 1 | 诊断路由、关联标识透传/回显 | 路由 | 头解析、错误映射 | 解析实现 | 契约 |
+| R-OBS-05 | Web UI · `web-ui-design.md` | CAP-OBS-3 | `/ui/diagnostics` 4 tabs + 开关 | 页面 | 呈现（不直读库）| 呈现实现 | 组合 |
+| R-OBS-06 | Store · `util-design.md` | §8 4 张表 | 4 张表事务 | Store | schema/迁移 | 存储实现 | 系统用例 |
 
 **约束**：下游不得记录 Secret/正文；观测不得阻断推理；新增观测维度须回写本节并关联模块设计。
 

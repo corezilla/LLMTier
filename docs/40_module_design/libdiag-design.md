@@ -598,7 +598,7 @@
 - **选项 / 推荐 / 下一步取证**：确认 `stream_wrapper` 集成方案
 - **关闭条件 / 决定或当前状态**：未决
 
-引用：系统设计 §3.2/§11.3；机制 M-OBS §14.4（`R-OBS-01/06`）；`llmtier-diagnostics-design.md`；`src/llmtier_v03/migrations/002_observability.sql`。
+引用：系统设计 §3.2/§11.3；机制 M-OBS §14.4（`R-OBS-01/06`）；`observability-design.md`；`src/llmtier_v03/migrations/002_observability.sql`。
 
 ## 附录 A. 机制承接表
 

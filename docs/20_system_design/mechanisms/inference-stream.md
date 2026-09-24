@@ -235,20 +235,20 @@ Consumer（Piko）提交一次模型推理请求后，需要拿到**标准 Respo
 
 ## 14. 跨责任单元分解与接口分配（下级设计输入）
 
-本章是**要求侧**：把本机制分解到各责任单元（LLMTier 为纯软件，责任单元 = 软件模块），说明每个对象必须负责什么、向其他对象提供什么接口。下级模块设计在附录"机制承接表"逐条记录**落实侧**，确保无遗漏。软件模块取自系统设计 §3.2 的架构模块，模块内组件取自 `llmtier-core-design.md`。
+本章是**要求侧**：把本机制分解到各责任单元（LLMTier 为纯软件，责任单元 = 软件模块），说明每个对象必须负责什么、向其他对象提供什么接口。下级模块设计在附录"机制承接表"逐条记录**落实侧**，确保无遗漏。软件模块取自系统设计 §3.2 的架构模块，模块内组件取自 `docs/40_module_design/` 下各模块设计。
 
 ### 14.1 参与方到架构对象映射
 
 | 机制参与方（§3） | 责任单元/Owner | 架构对象 ID / 类型 / 层或领域 | 下级设计文档 | 在本机制中的主责与非职责 |
 |---|---|---|---|---|
-| 入口/出口 | HTTP API / LLMTier | HTTP/SSE Adapter（入口层模块）| `llmtier-core-design.md` | 终止 HTTP/SSE、路由、信任判定、SSE 帧序与 terminal；不承载业务规则 |
-| 推理编排 | Inference / LLMTier | Inference 编排（业务层）| `llmtier-core-design.md` | 校验、编排、归一；不管理配置 |
-| 准入与选择 | Inference / LLMTier | Internal Admission、Exact Model Router（业务层）| `llmtier-core-design.md` | 许可/队列、同等级候选；不做跨等级 fallback |
-| 后端调用 | Inference / LLMTier | Provider Adapter（业务层）| `llmtier-core-design.md` | 协议映射、usage 归一；不对外暴露 provider KV |
-| 记账 | Inference / LLMTier | Usage Recorder（业务层，M-METER）| `llmtier-core-design.md` | 义务/绑定/终态 record version；不含 Cost |
-| 配置读取 | Management / LLMTier | Registry/Config（业务层）| `llmtier-core-design.md` | 等级/能力/provider（只读）；不发起推理 |
-| 观测 | Observability / LLMTier | 诊断写入（业务层）→ `libdiag`（基础层）| `llmtier-diagnostics-design.md` | trace/快照，fail-open；不改推理契约 |
-| 存储/日志 | LLMTier | Store / 脱敏日志（基础层）| `llmtier-core-design.md` | 唯一持久化、运行日志 |
+| 入口/出口 | HTTP API / LLMTier | HTTP/SSE Adapter（入口层模块）| `http-api-design.md` | 终止 HTTP/SSE、路由、信任判定、SSE 帧序与 terminal；不承载业务规则 |
+| 推理编排 | Inference / LLMTier | Inference 编排（业务层）| `inference-design.md` | 校验、编排、归一；不管理配置 |
+| 准入与选择 | Inference / LLMTier | Internal Admission、Exact Model Router（业务层）| `management-design.md` | 许可/队列、同等级候选；不做跨等级 fallback |
+| 后端调用 | Inference / LLMTier | Provider Adapter（业务层）| `inference-design.md` | 协议映射、usage 归一；不对外暴露 provider KV |
+| 记账 | Inference / LLMTier | Usage Recorder（业务层，M-METER）| `inference-design.md` | 义务/绑定/终态 record version；不含 Cost |
+| 配置读取 | Management / LLMTier | Registry/Config（业务层）| `management-design.md` | 等级/能力/provider（只读）；不发起推理 |
+| 观测 | Observability / LLMTier | 诊断写入（业务层）→ `libdiag`（基础层）| `libdiag-design.md` | trace/快照，fail-open；不改推理契约 |
+| 存储/日志 | LLMTier | Store / 脱敏日志（基础层）| `util-design.md` | 唯一持久化、运行日志 |
 
 ### 14.2 功能和步骤到责任单元分配
 
@@ -284,14 +284,14 @@ Consumer（Piko）提交一次模型推理请求后，需要拿到**标准 Respo
 
 | 下级要求 ID | 承接对象 ID / 下级设计文档 | 来源 Capability / Step / Constraint / 接口成员 | 必须负责的行为与保证 | 必须提供/消费的接口 | 下级必须展开的问题 | 允许自行决定的范围 | 本地验证 / 组合验证交接 |
 |---|---|---|---|---|---|---|---|
-| R-INF-01 | HTTP/SSE Adapter · `llmtier-core-design.md` | C-INFER-1/2、Step 8、interface `response_stream` | SSE 帧序、terminal 唯一、`request_id` 透传、请求体上限 | `response_stream`、`POST /v1/responses` 路由 | 帧缓冲/背压、断开检测与清理、413 | 缓冲与传输实现 | 契约；组合（Piko 联调）|
-| R-INF-02 | Auth/Validation · `llmtier-core-design.md` | Step 1–2、interface `authenticate*` | 校验顺序（§5.1）、`Principal` 产生与下传 | `_auth()`/`authenticate_any()` | 凭据解析、错误映射 | 解析实现 | 契约 |
-| R-INF-03 | Internal Admission · `llmtier-core-design.md` | C-INFER-4、Step 4、interface `admit` | 并发/队列/等待/429、许可释放 | `admit()`、`snapshot()` | 队列结构、公平性、`Retry-After` | 队列/排序实现 | 并发用例 |
-| R-INF-04 | Exact Model Router · `llmtier-core-design.md` | C-INFER-4、Step 4 | 大小写精确选择、同等级候选 | 候选（经 `admit()`）| 选择排序、健康/版本核验 | 排序实现 | 并发用例 |
-| R-INF-05 | Provider Adapter · `llmtier-core-design.md` | Step 6、interface `complete` | 协议映射、usage 归一、typed error | `complete()` | 各后端映射、超时、错误分类 | 映射实现 | 契约 |
-| R-INF-06 | Usage Recorder · `llmtier-core-design.md` | C-INFER-3、Step 3/5/9 | 义务/绑定/终态、unknown 不补零 | `authorize_dispatch`/`bind_backend`/`finish` | 版本替换、并发写、归一（M-METER）| 存储实现 | 系统用例 |
-| R-INF-07 | Registry/Config · `llmtier-core-design.md` | Step 2、interface `get_service_level` | 等级/能力只读查询 | `get_service_level()` | 快照读一致性（M-CONFIG）| 查询实现 | 契约 |
-| R-INF-08 | 诊断写入 · `llmtier-diagnostics-design.md` | C-INFER-5 | trace/快照、fail-open | 观测写入 | 默认关闭零开销、脱敏（M-OBS）| 存储/聚合实现 | 观测用例 |
+| R-INF-01 | HTTP/SSE Adapter · `http-api-design.md` | C-INFER-1/2、Step 8、interface `response_stream` | SSE 帧序、terminal 唯一、`request_id` 透传、请求体上限 | `response_stream`、`POST /v1/responses` 路由 | 帧缓冲/背压、断开检测与清理、413 | 缓冲与传输实现 | 契约；组合（Piko 联调）|
+| R-INF-02 | Auth/Validation · `http-api-design.md` | Step 1–2、interface `authenticate*` | 校验顺序（§5.1）、`Principal` 产生与下传 | `_auth()`/`authenticate_any()` | 凭据解析、错误映射 | 解析实现 | 契约 |
+| R-INF-03 | Internal Admission · `inference-design.md` | C-INFER-4、Step 4、interface `admit` | 并发/队列/等待/429、许可释放 | `admit()`、`snapshot()` | 队列结构、公平性、`Retry-After` | 队列/排序实现 | 并发用例 |
+| R-INF-04 | Exact Model Router · `management-design.md` | C-INFER-4、Step 4 | 大小写精确选择、同等级候选 | 候选（经 `admit()`）| 选择排序、健康/版本核验 | 排序实现 | 并发用例 |
+| R-INF-05 | Provider Adapter · `inference-design.md` | Step 6、interface `complete` | 协议映射、usage 归一、typed error | `complete()` | 各后端映射、超时、错误分类 | 映射实现 | 契约 |
+| R-INF-06 | Usage Recorder · `inference-design.md` | C-INFER-3、Step 3/5/9 | 义务/绑定/终态、unknown 不补零 | `authorize_dispatch`/`bind_backend`/`finish` | 版本替换、并发写、归一（M-METER）| 存储实现 | 系统用例 |
+| R-INF-07 | Registry/Config · `management-design.md` | Step 2、interface `get_service_level` | 等级/能力只读查询 | `get_service_level()` | 快照读一致性（M-CONFIG）| 查询实现 | 契约 |
+| R-INF-08 | 诊断写入 · `observability-design.md` | C-INFER-5 | trace/快照、fail-open | 观测写入 | 默认关闭零开销、脱敏（M-OBS）| 存储/聚合实现 | 观测用例 |
 
 **约束**：下游模块设计不得改变本机制已固定的对外事件子集与错误语义；跨模块新增接口须回写本节并关联模块设计。
 

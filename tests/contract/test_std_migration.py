@@ -36,7 +36,7 @@ class StdAndAuthorityTests(unittest.TestCase):
         self.assertIn("组成与职责", text)
         self.assertIn("不建立软件子系统", text)
         self.assertIn("docs/40_module_design/http-api-design.md", text)
-        self.assertIn("docs/50_implementation_design/llmtier-runtime.isd.md", text)
+        self.assertIn("docs/50_implementation_design/{http-api,web-ui,inference,management,observability,libdiag,util,log}.isd.md", text)
         self.assertIn("assets/diagrams/llmtier-architecture-container.png", text)
         self.assertNotIn("<small>", text)
 
@@ -45,9 +45,6 @@ class StdAndAuthorityTests(unittest.TestCase):
             ROOT / "docs/10_requirements/llmtier-requirements.md",
             ROOT / "docs/10_requirements/llmtier-traceability.md",
             ROOT / "docs/20_system_design/llmtier-system-design.md",
-            ROOT / "docs/40_module_design/llmtier-core-design.md",
-            ROOT / "docs/40_module_design/llmtier-webui-design.md",
-            ROOT / "docs/50_implementation_design/llmtier-runtime.isd.md",
             ROOT / "docs/60_interfaces/piko-data-plane-control.md",
             ROOT / "docs/60_interfaces/slinky-capacity-observation-control.md",
             ROOT / "docs/60_interfaces/llmtier-management-control.md",

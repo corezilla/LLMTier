@@ -617,7 +617,7 @@
 - **选项 / 推荐 / 下一步取证**：以"记录= M006 / 查询呈现= M005"划分，或后续拆分文件
 - **关闭条件 / 决定或当前状态**：未决
 
-引用：系统设计 §3.2/§11.3；机制 M-OBS §14.4（`R-OBS-02/05/06`）；`llmtier-diagnostics-design.md`；`interfaces/openapi/llmtier.openapi.json`。
+引用：系统设计 §3.2/§11.3；机制 M-OBS §14.4（`R-OBS-02/05/06`）；`libdiag-design.md`；`interfaces/openapi/llmtier.openapi.json`。
 
 ## 附录 A. 机制承接表
 

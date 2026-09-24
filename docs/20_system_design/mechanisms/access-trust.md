@@ -211,10 +211,10 @@ LLMTier 部署在局域网，需要判定"**请求来自谁、以什么角色**"
 
 | 机制参与方（§3） | 责任单元/Owner | 架构对象 ID / 类型 / 层或领域 | 下级设计文档 | 在本机制中的主责与非职责 |
 |---|---|---|---|---|
-| 判定 | HTTP API / LLMTier | Auth/Validation（入口层）| `llmtier-core-design.md` | 免登录/凭据判定、产出 Principal；不建用户体系 |
-| 下传与消费 | 业务模块 / LLMTier | Inference/Management/Observability（业务层）| `llmtier-core-design.md` | 按 `role` 选择视图/端点，**不二次校验** |
-| 入口分发 | HTTP API / LLMTier | HTTP Adapter（入口层）| `llmtier-core-design.md` | `_auth()`/`_auth("admin")`/`_auth_either()` |
-| 配置 | 启动 / LLMTier | env 读取 | `llmtier-core-design.md` | token 存在性；不存 Secret |
+| 判定 | HTTP API / LLMTier | Auth/Validation（入口层）| `http-api-design.md` | 免登录/凭据判定、产出 Principal；不建用户体系 |
+| 下传与消费 | 业务模块 / LLMTier | Inference/Management/Observability（业务层）| `inference-design.md、management-design.md、observability-design.md` | 按 `role` 选择视图/端点，**不二次校验** |
+| 入口分发 | HTTP API / LLMTier | HTTP Adapter（入口层）| `http-api-design.md` | `_auth()`/`_auth("admin")`/`_auth_either()` |
+| 配置 | 启动 / LLMTier | env 读取 | `http-api-design.md` | token 存在性；不存 Secret |
 
 ### 14.2 功能和步骤到责任单元分配
 
@@ -239,10 +239,10 @@ LLMTier 部署在局域网，需要判定"**请求来自谁、以什么角色**"
 
 | 下级要求 ID | 承接对象 ID / 下级设计文档 | 来源 Capability / Step / Constraint / 接口成员 | 必须负责的行为与保证 | 必须提供/消费的接口 | 下级必须展开的问题 | 允许自行决定的范围 | 本地验证 / 组合验证交接 |
 |---|---|---|---|---|---|---|---|
-| R-TRUST-01 | Auth/Validation · `llmtier-core-design.md` | C-TRUST-1/3/5、Step 1–4、interface `authenticate*` | 单点判定、恒定时间比较、不泄露存在性 | `authenticate`/`authenticate_any`/`unauthenticated_principal` | 地址解析、网络集合、错误映射 | 解析/映射实现 | 契约 |
-| R-TRUST-02 | HTTP Adapter · `llmtier-core-design.md` | Step 3–5 | 按端点选 role、分发 | `_auth()`/`_auth("admin")`/`_auth_either()` | 端点→role 映射 | 分发实现 | 契约 |
-| R-TRUST-03 | 业务模块（全体）· `llmtier-core-design.md` | C-TRUST-1/4、Step 5 | **不二次校验**，按 `role` 限制视图 | — | 消费点、越权防护 | 视图实现 | 组合 |
-| R-TRUST-04 | 启动 · `llmtier-core-design.md` | C-TRUST-2、F-TRUST-1 | env token 存在性 | — | 503 语义 | 读取实现 | T-TRUST-NOCFG |
+| R-TRUST-01 | Auth/Validation · `http-api-design.md` | C-TRUST-1/3/5、Step 1–4、interface `authenticate*` | 单点判定、恒定时间比较、不泄露存在性 | `authenticate`/`authenticate_any`/`unauthenticated_principal` | 地址解析、网络集合、错误映射 | 解析/映射实现 | 契约 |
+| R-TRUST-02 | HTTP Adapter · `http-api-design.md` | Step 3–5 | 按端点选 role、分发 | `_auth()`/`_auth("admin")`/`_auth_either()` | 端点→role 映射 | 分发实现 | 契约 |
+| R-TRUST-03 | 业务模块（全体）· `inference-design.md、management-design.md、observability-design.md` | C-TRUST-1/4、Step 5 | **不二次校验**，按 `role` 限制视图 | — | 消费点、越权防护 | 视图实现 | 组合 |
+| R-TRUST-04 | 启动 · `management-design.md` | C-TRUST-2、F-TRUST-1 | env token 存在性 | — | 503 语义 | 读取实现 | T-TRUST-NOCFG |
 
 **约束**：任何业务模块**不得**新增鉴权调用点（C-TRUST-1）；新增角色/端点须回写本节并关联模块设计。
 

@@ -162,7 +162,7 @@ LLMTier 无软件子系统（`std-tailoring` LT-TL-003 / LT-TL-013），三层�
 模块与实现设计入口：
 
 - 模块设计（一模块一份，M001–M008 见 §3.2 登记表）：`docs/40_module_design/{http-api,web-ui,inference,management,observability,libdiag,util,log}-design.md`
-- 实现设计：`docs/50_implementation_design/llmtier-runtime.isd.md`、`llmtier-diagnostics.isd.md`
+- 实现设计：`docs/50_implementation_design/{http-api,web-ui,inference,management,observability,libdiag,util,log}.isd.md`
 
 ## 4. 功能与用户交互设计
 
@@ -661,7 +661,7 @@ python -m build            # 产出 sdist + wheel（可复现，无公网隐含�
 ### 17.1 下级设计与组合验收任务
 
 - 模块设计：`docs/40_module_design/{M001..M008}-design.md`（见 §3.2）
-- 实现设计：`llmtier-runtime.isd.md`、`llmtier-diagnostics.isd.md`
+- 实现设计：`docs/50_implementation_design/{http-api,web-ui,inference,management,observability,libdiag,util,log}.isd.md`
 - 接口契约：`docs/60_interfaces/` + `interfaces/`
 - 组合验收：见 `docs/70_verification/`
 

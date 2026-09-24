@@ -229,12 +229,12 @@
 
 | 机制参与方（§3） | 责任单元/Owner | 架构对象 ID / 类型 / 层或领域 | 下级设计文档 | 在本机制中的主责与非职责 |
 |---|---|---|---|---|
-| 引导 | 启动 / LLMTier | 启动流程（`__main__`）| `llmtier-core-design.md` | 迁移、校验、事务写入、not_ready；不处理运行期变更 |
-| 变更 | Management / LLMTier | Registry/Config、Admin（业务层）| `llmtier-core-design.md` | CRUD、ETag、能力/不变量校验、审计；不承载推理 |
-| 候选查询 | Management / LLMTier | Registry/Config（业务层）| `llmtier-core-design.md` | 等级候选（只读）|
-| 入口 | HTTP API / LLMTier | HTTP Adapter（入口层）| `llmtier-core-design.md` | 管理面路由、错误映射；不含业务规则 |
-| 存储/审计 | LLMTier | Store、Audit Writer（基础层）| `llmtier-core-design.md` | 事务、审计 |
-| 管理 UI | Web UI / LLMTier | 管理控制台（入口层）| `llmtier-webui-design.md` | 操作管理面；不直读库/Secret |
+| 引导 | 启动 / LLMTier | 启动流程（`__main__`）| `management-design.md` | 迁移、校验、事务写入、not_ready；不处理运行期变更 |
+| 变更 | Management / LLMTier | Registry/Config、Admin（业务层）| `management-design.md` | CRUD、ETag、能力/不变量校验、审计；不承载推理 |
+| 候选查询 | Management / LLMTier | Registry/Config（业务层）| `management-design.md` | 等级候选（只读）|
+| 入口 | HTTP API / LLMTier | HTTP Adapter（入口层）| `http-api-design.md` | 管理面路由、错误映射；不含业务规则 |
+| 存储/审计 | LLMTier | Store、Audit Writer（基础层）| `util-design.md` | 事务、审计 |
+| 管理 UI | Web UI / LLMTier | 管理控制台（入口层）| `web-ui-design.md` | 操作管理面；不直读库/Secret |
 
 ### 14.2 功能和步骤到责任单元分配
 
@@ -262,11 +262,11 @@
 
 | 下级要求 ID | 承接对象 ID / 下级设计文档 | 来源 Capability / Step / Constraint / 接口成员 | 必须负责的行为与保证 | 必须提供/消费的接口 | 下级必须展开的问题 | 允许自行决定的范围 | 本地验证 / 组合验证交接 |
 |---|---|---|---|---|---|---|---|
-| R-CFG-01 | Management（Registry/Config）· `llmtier-core-design.md` | C-CFG-1/2/3/4、Step 3/4/6、interface `bootstrap_settings`/CRUD/`candidates`/`get_service_level` | 唯一权威、发布事务、能力不变量、审计 | `bootstrap_settings`、CRUD、`candidates`、`get_service_level` | 事务边界、ETag、交集算法、Embedding 冻结 | 存储/算法实现 | 契约；系统用例 |
-| R-CFG-02 | 启动 · `llmtier-core-design.md` | C-CFG-5、Step 1/2/5 | 迁移、引导、not_ready | 启动流程 | 失败回滚、就绪判定 | 引导实现 | T-CFG-BOOT |
-| R-CFG-03 | Store · `llmtier-core-design.md` | Step 1/4、interface `transaction` | 事务与版本 | `transaction` | 原子性、迁移 | 存储实现 | T-CFG-BOOT |
-| R-CFG-04 | HTTP Adapter · `llmtier-core-design.md` | Step 6 | 管理面路由与错误映射 | 路由 | 400/404/409/412 映射 | 映射实现 | 契约 |
-| R-CFG-05 | Web UI · `llmtier-webui-design.md` | CAP-CFG-CRUD | 管理控制台 | 管理面调用 | 不直读库/Secret | 呈现实现 | 组合 |
+| R-CFG-01 | Management（Registry/Config）· `management-design.md` | C-CFG-1/2/3/4、Step 3/4/6、interface `bootstrap_settings`/CRUD/`candidates`/`get_service_level` | 唯一权威、发布事务、能力不变量、审计 | `bootstrap_settings`、CRUD、`candidates`、`get_service_level` | 事务边界、ETag、交集算法、Embedding 冻结 | 存储/算法实现 | 契约；系统用例 |
+| R-CFG-02 | 启动 · `management-design.md` | C-CFG-5、Step 1/2/5 | 迁移、引导、not_ready | 启动流程 | 失败回滚、就绪判定 | 引导实现 | T-CFG-BOOT |
+| R-CFG-03 | Store · `util-design.md` | Step 1/4、interface `transaction` | 事务与版本 | `transaction` | 原子性、迁移 | 存储实现 | T-CFG-BOOT |
+| R-CFG-04 | HTTP Adapter · `http-api-design.md` | Step 6 | 管理面路由与错误映射 | 路由 | 400/404/409/412 映射 | 映射实现 | 契约 |
+| R-CFG-05 | Web UI · `web-ui-design.md` | CAP-CFG-CRUD | 管理控制台 | 管理面调用 | 不直读库/Secret | 呈现实现 | 组合 |
 
 **约束**：下游不得新增路径前缀或旁路存储；新增配置维度须回写本节并关联模块设计。
 

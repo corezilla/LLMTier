@@ -156,5 +156,5 @@ ingestion；Approved 不等于 Released，本轮 review verdict 也不授权 run
 7. LLMTier 内部形成真实 subsystem、module owner 或独立 deploy/release boundary。
 
 2026-09-09 的独立项目文档维护统一采用当前路径和入口：`src/`、`config/settings.json`、
-`config/secrets/`、`state/`、`interfaces/`、`llm-tier` 与 `llm-tier-cli`。历史 Slinky 路径只可出现在
+`config/secrets/`、`state/`、`interfaces/`、`llm-tier-v03`。历史 Slinky 路径只可出现在
 `docs/99_reference/` 或 provenance/evidence 中。本轮不改变机器契约或 Runtime Activation。

@@ -44,8 +44,7 @@ production部署授权。
 ## 2. 构建、制品、SBOM/BOM 与来源证明
 
 当前 build source 是 Git commit、`pyproject.toml`、`src/` 和 Python `>=3.11`；test extra 为
-`jsonschema>=4.23,<5`。项目使用 setuptools build backend，console scripts 为 `llm-tier` 与
-`llm-tier-cli`。
+`jsonschema>=4.23,<5`。项目使用 setuptools build backend，console script 为 `llm-tier-v03`。
 
 每个可发布 artifact 必须记录 commit、Python/build backend 版本、dependency lock/SBOM、构建命令、
 artifact SHA-256 与签署结果。当前仓库没有已批准的 V0.3 wheel/container/SBOM 或 production provenance，
@@ -56,9 +55,9 @@ artifact SHA-256 与签署结果。当前仓库没有已批准的 V0.3 wheel/con
 当前可验证的开发/本地运行入口：
 
 1. 在固定 commit 的隔离 Python 3.11+ 环境运行 `python3 -m pip install -e .`；
-2. 安装后以 `llm-tier --host 127.0.0.1 --port 8765 --settings config/settings.json` 启动；
-3. 以 `llm-tier-cli --server-url http://127.0.0.1:8765 health` 执行 operator health 检查；
-4. 未安装 package 时使用 `PYTHONPATH=src python3 -m tier_service` 和 `PYTHONPATH=src python3 -m cli`；
+2. 安装后以 `llm-tier-v03 --host 127.0.0.1 --port 8180 --settings config/settings.json` 启动（空库首启需一次性 bootstrap settings）；
+3. 以 `curl http://127.0.0.1:8180/healthz` 执行 health 检查；
+4. 未安装 package 时使用 `PYTHONPATH=src python3 -m llmtier_v03`；
 5. 运行全部 tests 与 contract/STD validators；SIGINT/SIGTERM 触发 bounded graceful shutdown。
 
 上述入口只证明当前 baseline CLI 形状。现有 `/health`、`/runtime`、`/stats` 等实现不得被

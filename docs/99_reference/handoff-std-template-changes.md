@@ -4,7 +4,7 @@
 - 提出方：LLMTier（`corezilla/LLMTier`，branch `docs/std-draft21-upgrade`）
 - 接收方：STD 维护方（`/Users/ben/work/STD`，STD `0.1.0-draft.26`）
 - 触发：按 `design.system-mechanism` 2.3.2 编写 LLMTier 5 份系统机制设计后的实证
-- 证据：`docs/20_system_design/mechanisms/*.md`（5 份，`0.1.0-draft.3`）；`docs/40_module_design/llmtier-core-design.md` 附录 A（`0.3.0-draft.8`）
+- 证据：`docs/20_system_design/mechanisms/*.md`（5 份，`0.1.0-draft.3`）；`docs/40_module_design/http-api-design.md` 附录 A（`0.3.0-draft.8`）
 
 ## 0. 一句话任务
 
@@ -86,7 +86,7 @@
 | 项 | 值 |
 |---|---|
 | 机制文档样本 | `docs/20_system_design/mechanisms/{access-trust,inference-stream,usage-metering,config-lifecycle,observability}.md` |
-| 模块设计承接样本 | `docs/40_module_design/llmtier-core-design.md` 附录 A"机制承接表" |
+| 模块设计承接样本 | `docs/40_module_design/http-api-design.md` 附录 A"机制承接表" |
 | 机制模板 | `/Users/ben/work/STD/templates/design/system-mechanism-design.md`（2.3.2，1049 行）|
 | 模块设计模板 | `/Users/ben/work/STD/templates/design/design-definition.md`（2.1.1）|
 | 统计口径 | `STD_TEMPLATE_EXAMPLE_BEGIN` 块、`<details>` 指引块、boilerplate 字串计数 |

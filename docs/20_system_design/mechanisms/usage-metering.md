@@ -221,10 +221,10 @@
 
 | 机制参与方（§3） | 责任单元/Owner | 架构对象 ID / 类型 / 层或领域 | 下级设计文档 | 在本机制中的主责与非职责 |
 |---|---|---|---|---|
-| 计量写入 | Inference / LLMTier | Usage Recorder（业务层）| `llmtier-core-design.md` | 义务/绑定/终态、unknown；不含 Cost |
-| 查询/清空 | Management / LLMTier | Usage Reader、Admin（业务层）| `llmtier-core-design.md` | 分页、清空、授权；不承载推理 |
-| 入口 | HTTP API / LLMTier | HTTP Adapter（入口层）| `llmtier-core-design.md` | `/v1/usage` 路由、错误映射；不含业务规则 |
-| 存储 | LLMTier | Store（基础层）| `llmtier-core-design.md` | 事务、快照表 |
+| 计量写入 | Inference / LLMTier | Usage Recorder（业务层）| `inference-design.md` | 义务/绑定/终态、unknown；不含 Cost |
+| 查询/清空 | Management / LLMTier | Usage Reader、Admin（业务层）| `management-design.md` | 分页、清空、授权；不承载推理 |
+| 入口 | HTTP API / LLMTier | HTTP Adapter（入口层）| `http-api-design.md` | `/v1/usage` 路由、错误映射；不含业务规则 |
+| 存储 | LLMTier | Store（基础层）| `util-design.md` | 事务、快照表 |
 
 ### 14.2 功能和步骤到责任单元分配
 
@@ -250,10 +250,10 @@
 
 | 下级要求 ID | 承接对象 ID / 下级设计文档 | 来源 Capability / Step / Constraint / 接口成员 | 必须负责的行为与保证 | 必须提供/消费的接口 | 下级必须展开的问题 | 允许自行决定的范围 | 本地验证 / 组合验证交接 |
 |---|---|---|---|---|---|---|---|
-| R-MET-01 | Usage Recorder · `llmtier-core-design.md` | C-METER-1/2/3、Step 1/2/3/9、interface `authorize_dispatch/bind_backend/finish` | 只追加版本、head 单调、unknown 不补零 | `authorize_dispatch`/`bind_backend`/`finish` | 事务边界、并发写、归一 | 存储实现 | 系统用例 |
-| R-MET-02 | Usage Reader · `llmtier-core-design.md` | C-METER-4、Step 4/5、interface `page` | snapshot 冻结分页、权限每页复核 | `page()` | cursor 结构、TTL、排序 | 分页实现 | T-MET-PAGE |
-| R-MET-03 | Admin · `llmtier-core-design.md` | CAP-METER-RESET、Step 6、interface `reset_usage` | 范围清空 + 审计 | `reset_usage()` | 范围语义、孤儿清理 | 范围实现 | T-MET-RESET |
-| R-MET-04 | HTTP Adapter · `llmtier-core-design.md` | C-METER-5、`/v1/usage` | 路由与错误映射 | 路由 | 503 显式化 | 映射实现 | 503 用例 |
+| R-MET-01 | Usage Recorder · `inference-design.md` | C-METER-1/2/3、Step 1/2/3/9、interface `authorize_dispatch/bind_backend/finish` | 只追加版本、head 单调、unknown 不补零 | `authorize_dispatch`/`bind_backend`/`finish` | 事务边界、并发写、归一 | 存储实现 | 系统用例 |
+| R-MET-02 | Usage Reader · `management-design.md` | C-METER-4、Step 4/5、interface `page` | snapshot 冻结分页、权限每页复核 | `page()` | cursor 结构、TTL、排序 | 分页实现 | T-MET-PAGE |
+| R-MET-03 | Admin · `management-design.md` | CAP-METER-RESET、Step 6、interface `reset_usage` | 范围清空 + 审计 | `reset_usage()` | 范围语义、孤儿清理 | 范围实现 | T-MET-RESET |
+| R-MET-04 | HTTP Adapter · `http-api-design.md` | C-METER-5、`/v1/usage` | 路由与错误映射 | 路由 | 503 显式化 | 映射实现 | 503 用例 |
 
 **约束**：下游不得改变"只追加/不补零"语义；新增查询维度须回写本节并关联模块设计。
 

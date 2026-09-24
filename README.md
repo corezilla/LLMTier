@@ -90,8 +90,7 @@ config/state/contract authority。
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest discover -s tests
-PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m tier_service --help
-PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m cli --help
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m llmtier_v03 --help
 ```
 
 ### STD 合规规则（prose 文档）
