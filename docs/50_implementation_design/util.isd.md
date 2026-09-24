@@ -284,13 +284,22 @@ close():
 
 <a id="isd-persistence"></a>
 
-#### 6.2 持久化与 schema 演进（仅初始化）
+#### 6.2 schema 演进与拒绝语义
 
-**策略决定**：首版只支持 **schema initialization**——空库建当前结构；**不提供增量升级**。库已存在且版本 ≠ 期望 → **拒绝启动（not_ready）**，由运维走显式离线迁移/重建。增量升级列 `LT-OPEN-UTIL-1`（未来再设计 ledger/checksum/from-to/原子边界/失败恢复）。
+**策略决定**——首版只支持 **schema initialization**（空库建当前结构）。**首版不接受的迁移模式**：
 
-| 原规则/事务 | 原子范围/事务外副作用 | 提交点/响应点 | 恢复入口/判定记录 | 源/目标数据版本及转换函数 | 校验/切换/失败出口 | 验证项 |
-|---|---|---|---|---|---|---|
-| `RULE-UTIL-TXN` | 单事务内 SQL；无事务外副作用 | `commit()` 为持久提交点 | 启动 `migrate()`（**仅空库**）| `schema_meta.schema_version` 固定为当前值（`1`）；**无转换函数** | 空库→建表；非空且版本≠期望→拒绝启动；`integrity_check`≠ok→启动失败 | `VRC-UTIL-002` |
+- **无增量升级**：不执行 N→N+1 的原地升级
+- **无 downgrade**：不支持降级
+- **无自动修复**：损坏/不一致库不自动修复
+
+库已存在且版本 ≠ 期望 → **拒绝启动（not_ready）**，由运维走显式离线迁移/重建。增量升级列 `LT-OPEN-UTIL-1`。
+
+| 原规则 | 升级/降级策略 | 接受/拒绝条件 | 源/目标版本与转换函数 | 拒绝后如何处理 |
+|---|---|---|---|---|
+| `RULE-UTIL-MIGRATE` | 仅初始化；无升级、无降级 | 接受：空库（建表）；拒绝：非空且 `schema_version`≠期望 | 无转换函数；`schema_version` 固定 `1` | 置 `not_ready` + error 日志；运维离线迁移/重建 |
+| `RULE-UTIL-TXN` | 不涉及 schema 版本 | — | — | — |
+
+**检查点与动作**：宿主装配阶段检查 `schema_meta.schema_version`；不匹配 → 置 `not_ready`、写 error 日志、拒绝接流量（映射见 §6.4）。
 
 - 仅初始化语义：空库重跑安全（DDL 幂等）；**旧版本库不自动升级**（拒绝）。
 - **无** migration ledger / checksum / from-to version（`LT-OPEN-UTIL-1`）。
