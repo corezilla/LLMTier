@@ -67,9 +67,12 @@ class DiagnosticsService:
         return {"snapshots_enabled": bool(row["snapshots_enabled"]), "stats_enabled": bool(row["stats_enabled"])}
 
     def set_switches(self, snapshots_enabled: bool | None = None, stats_enabled: bool | None = None) -> dict[str, bool]:
+        for name, value in (("snapshots_enabled", snapshots_enabled), ("stats_enabled", stats_enabled)):
+            if value is not None and not isinstance(value, bool):
+                raise ApiError(400, "invalid_request", f"{name} must be a boolean", param=name)
         current = self.switches()
-        snapshots = current["snapshots_enabled"] if snapshots_enabled is None else bool(snapshots_enabled)
-        stats = current["stats_enabled"] if stats_enabled is None else bool(stats_enabled)
+        snapshots = current["snapshots_enabled"] if snapshots_enabled is None else snapshots_enabled
+        stats = current["stats_enabled"] if stats_enabled is None else stats_enabled
         with self.store.transaction(True) as conn:
             conn.execute("UPDATE diagnostic_settings SET snapshots_enabled=?,stats_enabled=? WHERE singleton=1", (int(snapshots), int(stats)))
         return self.switches()
@@ -85,13 +88,13 @@ class DiagnosticsService:
         except Exception as exc:
             self._warn(f"trace write failed: {exc}")
 
-    def trace(self, request_id: str) -> dict:
+    def _trace_view(self, request_id: str) -> dict | None:
         stages = [
             {"stage": row["stage"], "timestamp": row["stage_timestamp"], "detail": json.loads(row["detail"]) if row["detail"] else None}
             for row in self.store.all("SELECT stage,stage_timestamp,detail FROM trace_events WHERE request_id=? ORDER BY stage_timestamp,id", (request_id,))
         ]
         if not stages:
-            raise ApiError(404, "not_found", "No trace for this request_id")
+            return None
         snapshot = self.store.one(
             "SELECT id,request_id,captured_at,upstream_url,backend_model,http_status,latency_ms,error_summary,model,deployment_id,snapshot_type"
             " FROM diagnostic_snapshots WHERE request_id=? ORDER BY captured_at DESC LIMIT 1", (request_id,))
@@ -111,6 +114,40 @@ class DiagnosticsService:
             "snapshot": dict(snapshot) if snapshot else None,
             "usage": usage,
         }
+
+    def trace(self, request_id: str) -> dict:
+        view = self._trace_view(request_id)
+        if view is None:
+            raise ApiError(404, "not_found", "No trace for this request_id")
+        return view
+
+    def traces(self, since: str | None = None, until: str | None = None, deployment_id: str | None = None,
+               model: str | None = None, limit: int = 50, cursor: str | None = None) -> dict:
+        # FUNC-DIAG-TRACES (G-1): time-window trace query, deduped by request, stable paging.
+        limit = max(1, min(limit, 500))
+        where, params = [], []
+        if since: where.append("te.stage_timestamp>=?"); params.append(since)
+        if until: where.append("te.stage_timestamp<=?"); params.append(until)
+        if deployment_id or model:
+            sub, subp = "SELECT request_id FROM diagnostic_snapshots WHERE 1=1", []
+            if deployment_id: sub += " AND deployment_id=?"; subp.append(deployment_id)
+            if model: sub += " AND model=?"; subp.append(model)
+            where.append(f"te.request_id IN ({sub})"); params.extend(subp)
+        clause = (" WHERE " + " AND ".join(where)) if where else ""
+        grouped = (f"SELECT te.request_id AS rid, MIN(te.stage_timestamp) AS first_ts"
+                   f" FROM trace_events te{clause} GROUP BY te.request_id")
+        outer_where, outer_params = [], []
+        if cursor and "|" in cursor:
+            cur_ts, cur_rid = cursor.split("|", 1)
+            outer_where.append("(first_ts, rid) < (?, ?)"); outer_params.extend([cur_ts, cur_rid])
+        sql = f"SELECT * FROM ({grouped}) WHERE {' AND '.join(outer_where)}" if outer_where else grouped
+        sql += " ORDER BY first_ts DESC, rid DESC LIMIT ?"
+        rows = self.store.all(sql, params + outer_params + [limit + 1])
+        more = len(rows) > limit
+        rows = rows[:limit]
+        items = [view for view in (self._trace_view(row["rid"]) for row in rows) if view]
+        next_cursor = f"{rows[-1]['first_ts']}|{rows[-1]['rid']}" if more and rows else None
+        return {"items": items, "next_cursor": next_cursor, "has_more": more}
 
     # ------------------------------------------------------------ 快照（LT-OBS-1）
     def capture_snapshot(self, request_id: str, deployment_id: str | None, model: str | None, upstream_url: str,
@@ -235,6 +272,8 @@ class DiagnosticsService:
     def set_injections(self, deployment_id: str, actor_items: list[dict]) -> list[dict]:
         if self.store.one("SELECT 1 FROM deployments WHERE id=?", (deployment_id,)) is None:
             raise ApiError(404, "not_found", f"Unknown deployment: {deployment_id}")
+        if not isinstance(actor_items, list):
+            raise ApiError(400, "invalid_injection", "Expected a list of injection items")
         validated = [self._validate(item) for item in actor_items]
         stamp = now()
         with self.store.transaction(True) as conn:
@@ -257,6 +296,8 @@ class DiagnosticsService:
         return self.injections(deployment_id)
 
     def injections(self, deployment_id: str) -> list[dict]:
+        if self.store.one("SELECT 1 FROM deployments WHERE id=?", (deployment_id,)) is None:
+            raise ApiError(404, "not_found", f"Unknown deployment: {deployment_id}")
         rows = self.store.all(
             "SELECT injection_type,fault_status,fault_body,delay_ms,retry_after_sec,stream_terminate_after_events,"
             "malformed_after_events,malformed_event_type,enabled,updated_at FROM diagnostic_injections WHERE deployment_id=?"
@@ -305,12 +346,15 @@ class DiagnosticsService:
                 return
 
     # ------------------------------------------------------------ 保留期
-    def cleanup(self, days: int = 7) -> None:
+    def cleanup(self, days: int = 7) -> int:
         cutoff = _iso(datetime.now(timezone.utc) - timedelta(days=days))
+        deleted = 0
         try:
             with self.store.transaction(True) as conn:
                 for table, column in (("diagnostic_snapshots", "captured_at"), ("trace_events", "created_at"),
                                       ("data_plane_latency_samples", "created_at"), ("data_plane_stats", "stat_hour")):
-                    conn.execute(f"DELETE FROM {table} WHERE {column}<?", (cutoff,))
+                    deleted += conn.execute(f"DELETE FROM {table} WHERE {column}<?", (cutoff,)).rowcount
+            return deleted
         except Exception as exc:
             self._warn(f"cleanup failed: {exc}")
+            return 0

@@ -70,11 +70,17 @@ def authenticate_any(headers, client_address: str) -> Principal:
     raw = headers.get("Authorization", "")
     if raw.startswith("Bearer "):
         supplied = raw[7:]
+        configured_any = False
         for role in ("admin", "data"):
             configured = _configured_token(role)
-            if configured is not None and hmac.compare_digest(supplied, configured):
+            if configured is None:
+                continue
+            configured_any = True
+            if hmac.compare_digest(supplied, configured):
                 principal = headers.get("X-Principal-ID") or ("operator" if role == "admin" else "consumer")
                 return Principal(principal_id=principal[:128], role=role)
+        if not configured_any:
+            raise ApiError(503, "auth_not_configured", "Authentication is not configured")
         raise ApiError(403, "permission_denied", "The credential is not authorized")
     principal = unauthenticated_principal(client_address, headers, "admin")
     if principal is not None:

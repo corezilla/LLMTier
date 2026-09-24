@@ -1,17 +1,47 @@
 from __future__ import annotations
 
 import contextlib
+import os
 import sqlite3
+import stat as stat_module
 import threading
+import warnings
 from pathlib import Path
 from typing import Iterator, Sequence
+
+from .errors import ApiError
+
+EXPECTED_SCHEMA_VERSION = 1
+
+
+def _statements(sql: str) -> list[str]:
+    out: list[str] = []
+    for chunk in sql.split(";"):
+        stmt = "\n".join(
+            line for line in chunk.splitlines() if not line.strip().startswith("--")
+        ).strip()
+        if stmt:
+            out.append(stmt)
+    return out
 
 
 class Store:
     def __init__(self, path: str | Path):
         self.path = str(path)
-        Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         self._local = threading.local()
+        self._precheck()
+        Path(self.path).parent.mkdir(parents=True, exist_ok=True)
+
+    def _precheck(self) -> None:
+        # FUNC-UTIL-INIT / LSS-UTIL-DB: reject symlinked DB path, warn on world-writable.
+        try:
+            st = os.lstat(self.path)
+        except FileNotFoundError:
+            return
+        if stat_module.S_ISLNK(st.st_mode):
+            raise ApiError(503, "store_path_unsafe", "Database path must not be a symlink")
+        if st.st_mode & 0o002:
+            warnings.warn(f"database file is world-writable: {self.path}", RuntimeWarning, stacklevel=2)
 
     def connection(self) -> sqlite3.Connection:
         conn = getattr(self._local, "connection", None)
@@ -24,12 +54,49 @@ class Store:
         return conn
 
     def migrate(self) -> None:
-        migrations = Path(__file__).with_name("migrations")
-        for sql_file in sorted(migrations.glob("*.sql")):
-            self.connection().executescript(sql_file.read_text())
-        result = self.connection().execute("PRAGMA integrity_check").fetchone()[0]
+        conn = self.connection()
+        tables = {
+            row[0]
+            for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        }
+        user_tables = {t for t in tables if not t.startswith("sqlite_") and t != "schema_meta"}
+        if "schema_meta" not in tables:
+            if user_tables:
+                # E-UTIL-SCHEMA-UNKNOWN: existing store without the version table.
+                raise ApiError(503, "schema_unknown", "Existing database has no schema_meta table")
+            self._initialize(conn)
+        else:
+            row = conn.execute(
+                "SELECT schema_version FROM schema_meta WHERE singleton=1"
+            ).fetchone()
+            version = row[0] if row is not None else None
+            if version != EXPECTED_SCHEMA_VERSION:
+                # E-UTIL-SCHEMA-VERSION: init-only; no upgrade / downgrade / auto-repair.
+                raise ApiError(
+                    503,
+                    "schema_version_mismatch",
+                    f"schema_version {version!r} != expected {EXPECTED_SCHEMA_VERSION}",
+                )
+        result = conn.execute("PRAGMA integrity_check").fetchone()[0]
         if result != "ok":
-            raise RuntimeError(f"sqlite_integrity_check_failed:{result}")
+            # E-UTIL-SCHEMA-INTEGRITY
+            raise ApiError(503, "schema_integrity_failed", f"sqlite integrity_check failed: {result}")
+
+    def _initialize(self, conn: sqlite3.Connection) -> None:
+        # Atomic init: single transaction, statement-by-statement (no executescript).
+        migrations = Path(__file__).with_name("migrations")
+        statements: list[str] = []
+        for sql_file in sorted(migrations.glob("*.sql")):
+            statements.extend(_statements(sql_file.read_text()))
+        conn.execute("BEGIN IMMEDIATE")
+        try:
+            for statement in statements:
+                conn.execute(statement)
+        except Exception:
+            conn.rollback()
+            raise
+        else:
+            conn.commit()
 
     @contextlib.contextmanager
     def transaction(self, immediate: bool = False) -> Iterator[sqlite3.Connection]:

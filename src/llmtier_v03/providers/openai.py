@@ -49,8 +49,10 @@ class OpenAIProvider:
                 raw = response.read()
                 return json.loads(raw), {k.lower(): v for k, v in response.headers.items()}
         except urllib.error.HTTPError as exc:
-            retryable = exc.code in {408, 429, 500, 502, 503, 504}
-            raise ApiError(exc.code, "provider_error", f"Provider returned HTTP {exc.code}", retryable=retryable) from exc
+            # E-INF-UPSTREAM: upstream 5xx surfaces as 503 provider_unavailable.
+            if exc.code >= 500:
+                raise ApiError(503, "provider_unavailable", f"Provider returned HTTP {exc.code}", retryable=True) from exc
+            raise ApiError(exc.code, "provider_error", f"Provider returned HTTP {exc.code}", retryable=exc.code in {408, 429}) from exc
         except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
             raise ApiError(503, "provider_unavailable", "Provider request failed", retryable=True) from exc
 
@@ -98,7 +100,10 @@ class OpenAIProvider:
                 )
         except ApiError: raise
         except urllib.error.HTTPError as exc:
-            raise ApiError(exc.code, "provider_error", f"Provider returned HTTP {exc.code}", retryable=exc.code in {408,429,500,502,503,504}) from exc
+            # E-INF-UPSTREAM: upstream 5xx surfaces as 503 provider_unavailable.
+            if exc.code >= 500:
+                raise ApiError(503, "provider_unavailable", f"Provider returned HTTP {exc.code}", retryable=True) from exc
+            raise ApiError(exc.code, "provider_error", f"Provider returned HTTP {exc.code}", retryable=exc.code in {408, 429}) from exc
         except (urllib.error.URLError, TimeoutError, UnicodeDecodeError, json.JSONDecodeError) as exc:
             raise ApiError(503, "provider_unavailable", f"Provider streaming request failed: {type(exc).__name__}: {str(exc)[:80]}", retryable=True) from exc
 

@@ -51,7 +51,13 @@ class EmbeddingsService:
             embedding_usage = result.get("usage")
             normalized_usage = None
             if isinstance(embedding_usage, dict) and isinstance(embedding_usage.get("prompt_tokens"), int) and isinstance(embedding_usage.get("total_tokens"), int):
-                normalized_usage = {"input_tokens": embedding_usage["prompt_tokens"], "output_tokens": 0, "total_tokens": embedding_usage["total_tokens"]}
+                normalized_usage = {
+                    "input_tokens": embedding_usage["prompt_tokens"],
+                    "output_tokens": 0,
+                    "total_tokens": embedding_usage["total_tokens"],
+                    "input_tokens_details": {"cached_tokens": 0, "cache_write_tokens": 0},
+                    "output_tokens_details": {"reasoning_tokens": 0},
+                }
             self.usage.finish(principal, request_id, normalized_usage)
             result["model"] = model
             return result
