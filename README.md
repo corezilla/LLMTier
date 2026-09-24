@@ -40,21 +40,7 @@ STD 提供工程文档模板、编写规范、AI 指南与检查工具；它不�
 python3 -m pip install -e .
 ```
 
-安装后的服务入口是 `llm-tier`，operator CLI 是 `llm-tier-cli`：
-
-```bash
-llm-tier --host 127.0.0.1 --port 8765 --settings config/settings.json
-llm-tier-cli --server-url http://127.0.0.1:8765 health
-```
-
-不安装 editable package 时，可从源码树使用等价入口：
-
-```bash
-PYTHONPATH=src python3 -m tier_service --host 127.0.0.1 --port 8765 --settings config/settings.json
-PYTHONPATH=src python3 -m cli --server-url http://127.0.0.1:8765 health
-```
-
-V0.3目标包使用独立的未激活入口。空SQLite首次启动必须显式提供一次性bootstrap文件；初始化后SQLite是唯一配置authority，后续启动忽略该文件内容：
+安装后的服务入口是 `llm-tier-v03`。空SQLite首次启动必须显式提供一次性bootstrap文件；初始化后SQLite是唯一配置authority，后续启动忽略该文件内容：
 
 ```bash
 LLMTIER_ADMIN_TOKEN='...' LLMTIER_DATA_TOKEN='...' \
@@ -66,9 +52,6 @@ LLMTIER_ADMIN_TOKEN='...' LLMTIER_DATA_TOKEN='...' \
 
 仅限loopback合成调试时可设置`LLMTIER_DEV_MODE=1`；这会启用固定开发凭据并允许同源Web UI在loopback免Bearer访问，禁止用于共享或生产监听地址。English Web UI位于`/ui/`。开发期Fake Provider和冒烟入口分别为`tests/fixtures/v03_fake_provider.py`与`tests/integration/v03_smoke.py`。
 
-默认监听 `127.0.0.1:8765`。client 可用 `TIER_SERVER_URL` 选择 credential-free 的 localhost、loopback、
-RFC1918 或 IPv6 ULA origin。当前 transport 不等同于 production TLS/auth 部署批准。
-
 ## 文档导航
 
 | 类别 | 文档 |
@@ -76,7 +59,7 @@ RFC1918 或 IPv6 ULA origin。当前 transport 不等同于 production TLS/auth 
 | 裁剪与计划 | [STD 裁剪清单](docs/00_management/std-tailoring.md)、[V0.3 编码与测试计划](docs/00_management/llmtier-implementation-plan.md) |
 | 需求 | [V0.3 Requirements](docs/10_requirements/llmtier-requirements.md)、[Traceability](docs/10_requirements/llmtier-traceability.md) |
 | 系统设计 | [系统设计](docs/20_system_design/llmtier-system-design.md) |
-| 模块设计 | [核心模块设计](docs/40_module_design/llmtier-core-design.md)、[Web UI Design](docs/40_module_design/llmtier-webui-design.md)、[Runtime ISD](docs/50_implementation_design/llmtier-runtime.isd.md) |
+| 模块设计 | [HTTP API](docs/40_module_design/http-api-design.md)、[Web UI](docs/40_module_design/web-ui-design.md)、[Inference](docs/40_module_design/inference-design.md)、[Management](docs/40_module_design/management-design.md)、[Observability](docs/40_module_design/observability-design.md)、[libdiag](docs/40_module_design/libdiag-design.md)、[util](docs/40_module_design/util-design.md)、[log](docs/40_module_design/log-design.md) |
 | 接口 | [Piko Data Plane](docs/60_interfaces/piko-data-plane-control.md)、[Slinky Capacity/Observation](docs/60_interfaces/slinky-capacity-observation-control.md)、[Management API](docs/60_interfaces/llmtier-management-control.md)、[Contract Specification](docs/60_interfaces/contracts/llmtier-contract-specification.md) |
 | 验证 | [V&V Plan](docs/70_verification/plans/llmtier-vv-plan.md)、[Test Plan](docs/70_verification/plans/llmtier-test-plan.md)、[Contract Test Specification](docs/70_verification/specifications/llmtier-contract-test-specification.md) |
 | 运维 | [Release and Operations](docs/80_operations/llmtier-release-and-operations.md)、**[m5air 调试环境手册](docs/80_operations/m5air-operations-manual.md)** |
