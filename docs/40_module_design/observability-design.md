@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `observability` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.6` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -109,7 +109,7 @@
 - **调用方**：M001（`GET /tier/admin/v1/diagnostics/stats`）
 - **输入与前提**：`since/until` + 可选 `deployment_id/model`
 - **行为**：聚合计数 + `status_breakdown{status:count}` + P50/P95/min/max/avg
-- **输出**：`{request_count, error_count, status_breakdown{...}, error_4xx_count, error_5xx_count, p50, p95, min, max, avg}`
+- **输出**：`{request_count, error_count, status_breakdown:{"200":n,"503":m,"429":k,"upstream_error":x}, latency_p50_ms, latency_p95_ms, latency_min_ms, latency_max_ms, latency_sum_ms}`
 - **错误与边界**：400（缺时间）
 - **验收条件**：`status_breakdown` 按 HTTP status 分列；保留 4xx/5xx 总数作兼容；口径为"数据面统计、可丢"，非账本
 
@@ -398,7 +398,7 @@
 
 #### 9.3 `IF-DIAG-STATS` · 统计
 - **Direction / Operation / 责任模块 / backend**：in；`GET /tier/admin/v1/diagnostics/stats`；M005
-- **Request / Response / Error / ownership**：`since/until/deployment_id/model` → `{request_count,error_count,status_breakdown,p50,p95,min,max,avg}`
+- **Request / Response / Error / ownership**：`since/until/deployment_id/model` → `{request_count,error_count,status_breakdown:{"200":n,"503":m,"429":k,"upstream_error":x},latency_p50_ms,latency_p95_ms,latency_min_ms,latency_max_ms,latency_sum_ms}`
 - **Contract authority / version / revision / hash / selector**：OpenAPI
 - **前提 / timeout / 兼容边界 / Error model**：400（缺时间）
 - **本地文件 / symbol 或 NOT_IMPLEMENTED**：`diagnostics.py` `stats`
