@@ -328,7 +328,7 @@
 
 ## 6. 数据模型、状态与 ownership
 
-> 采用**数据结构固定格式**（定义 / 字段 / 不变量 / 来源 · 复用）。持久表 authority = `util/migrations/002_observability.sql`（由 M007 `migrate()` 执行）。
+> 采用**数据结构固定格式**（定义 / 字段 / 不变量 / 来源）。持久表 authority = `util/migrations/002_observability.sql`（由 M007 `migrate()` 执行）。
 
 #### 6.1 `diagnostic_settings`
 - **定义**：诊断全局开关的单行状态。
@@ -337,7 +337,7 @@
   - `snapshots_enabled`：`int`｜`0`/`1`，默认 `0`｜快照开关
   - `stats_enabled`：`int`｜`0`/`1`，默认 `0`｜统计开关
 - **不变量**：恒单行（`singleton=1`）；两开关独立。
-- **来源 · 复用**：`util/migrations/002_observability.sql`；I1 写、I2–I6 读；`VRC-DIAG-001`。
+- **来源**：`util/migrations/002_observability.sql`
 
 #### 6.2 `diagnostic_snapshots`
 - **定义**：上游调用快照（脱敏，保留 7 天）。
@@ -354,7 +354,7 @@
   - `deployment_id`：`TEXT?`｜非空或 `null`｜部署 ID
   - `snapshot_type`：`TEXT`｜`upstream`/`error`，默认 `upstream`｜类型
 - **不变量**：`upstream ⇒ http_status` 非空；`error ⇒ http_status` 空；`upstream_url` 去 query；`error_summary` ≤256B。
-- **来源 · 复用**：`util/migrations/002_observability.sql`；I3 写、M005 读；只追加；保留 7 天；`VRC-DIAG-002`。
+- **来源**：`util/migrations/002_observability.sql`
 
 #### 6.3 `data_plane_stats`
 - **定义**：小时桶 × deployment × model × status 的请求/错误计数（可丢，非账本）。
@@ -367,7 +367,7 @@
   - `error_count`：`INTEGER`｜≥0，默认 `0`｜错误计数
   - `updated_at`：`TEXT`｜RFC3339 ms｜更新时间
 - **不变量**：PK `(stat_hour,deployment_id,model,status)`；累加 upsert；可丢。
-- **来源 · 复用**：`util/migrations/002_observability.sql`；I4 写、M005 读；`VRC-DIAG-002`。
+- **来源**：`util/migrations/002_observability.sql`
 
 #### 6.4 `data_plane_latency_samples`
 - **定义**：延迟样本（用于分位）。
@@ -378,7 +378,7 @@
   - `latency_ms`：`REAL` NOT NULL｜≥0｜延迟
   - `created_at`：`TEXT`｜RFC3339 ms｜写入时间
 - **不变量**：只追加；可丢。
-- **来源 · 复用**：`util/migrations/002_observability.sql`；I4 写、M005 读；`VRC-DIAG-002`。
+- **来源**：`util/migrations/002_observability.sql`
 
 #### 6.5 `diagnostic_injections`
 - **定义**：按 deployment 的故障注入配置。
@@ -396,7 +396,7 @@
   - `malformed_event_type`：`TEXT?`｜`invalid_json`/`unknown_event_type`｜畸形类型
   - `updated_at`：`TEXT`｜RFC3339 ms｜更新时间
 - **不变量**：`UNIQUE(deployment_id,injection_type)`；6 种类型白名单；各类型配置字段范围见上。
-- **来源 · 复用**：`util/migrations/002_observability.sql`；I5 写、I5/I6 读；部分更新 upsert；`VRC-DIAG-004`。
+- **来源**：`util/migrations/002_observability.sql`
 
 #### 6.6 `trace_events`
 - **定义**：请求 trace 阶段事件（保留 7 天）。
@@ -409,7 +409,7 @@
   - `correlation_id`：`TEXT?`｜非空或 `null`｜关联标识
   - `created_at`：`TEXT`｜RFC3339 ms｜写入时间
 - **不变量**：只追加；同 request 按 `stage_timestamp` 有序；保留 7 天。
-- **来源 · 复用**：`util/migrations/002_observability.sql`；I2 写、M005 读；`VRC-DIAG-002`。
+- **来源**：`util/migrations/002_observability.sql`
 
 ## 7. 主流程与数据流
 
@@ -467,7 +467,7 @@
 
 **固定格式约定**（数据结构与接口分开描述，避免复用类型被逐接口重复）：
 
-- **数据结构**固定 4 段：`定义` / `字段`（逐字段一行：`` `名称` ``：`` `类型` ``｜必填性｜范围·枚举｜说明）/ `不变量` / `来源 · 复用`。
+- **数据结构**固定 4 段：`定义` / `字段`（逐字段一行：`` `名称` ``：`` `类型` ``｜必填性｜范围·枚举｜说明）/ `不变量` / `来源`。
 - **接口**固定 6 段：`功能` / `输入`（逐参数一行：`` `名称: 类型` ``｜必填·默认｜范围｜说明）/ `输出`（数据结构 ID）/ `返回值`（每条件一行）/ `统计 · 日志` / `数据库`。
 - 时间一律 RFC3339（UTC，毫秒）；`?` 表示可空。
 
@@ -479,7 +479,7 @@
   - `snapshots_enabled`：`bool`｜必填｜`false`/`true`（默认 `false`）｜快照记录总开关
   - `stats_enabled`：`bool`｜必填｜`false`/`true`（默认 `false`）｜统计记录总开关
 - **不变量**：两字段互相独立；恒取自 `diagnostic_settings` 单行（`singleton=1`）。
-- **来源 · 复用**：`settings`；`switches`/`set_switches` 返回该结构；`snapshots`/`stats` 记录前判定复用。
+- **来源**：`src/libdiag/settings.py`（定义并产出）
 
 #### 9.1.2 `TraceStage`
 - **定义**：单个 trace 阶段。
@@ -488,7 +488,7 @@
   - `timestamp`：`str`｜必填｜RFC3339 ms｜阶段发生时间
   - `detail`：`object?`｜可空｜任意 JSON（脱敏后）｜阶段附加上下文
 - **不变量**：`stages` 内按 `timestamp` 升序。
-- **来源 · 复用**：`traces`；被 `TraceView.stages` 复用。
+- **来源**：`src/libdiag/traces.py`（定义并产出）
 
 #### 9.1.3 `UsageView`
 - **定义**：某请求的用量视图（只读账本 head）。
@@ -502,7 +502,7 @@
   - `measurement_status`：`str`｜必填｜`measured`/`unknown`｜测量状态
   - `source`：`str`｜必填｜非空｜来源（`provider`/`injected`/`unavailable`…）
 - **不变量**：`measurement_status=measured` ⇒ 三个 token 字段非空；`unknown` ⇒ 全空（**不补零**）。
-- **来源 · 复用**：`traces`；被 `TraceView.usage` 复用。
+- **来源**：`src/libdiag/traces.py`（定义并产出）
 
 #### 9.1.4 `TraceView`
 - **定义**：单请求的完整 trace 视图。
@@ -513,7 +513,7 @@
   - `snapshot`：`SnapshotView?`｜可空｜—｜该请求最近一条快照（§9.1.6）
   - `usage`：`UsageView?`｜可空｜—｜该请求用量（§9.1.3）
 - **不变量**：`stages` 非空；`snapshot`/`usage` 允许为 `null`。
-- **来源 · 复用**：`traces`；被 `trace`/`traces` 复用。
+- **来源**：`src/libdiag/traces.py`（定义并产出）
 
 #### 9.1.5 `TracePage`
 - **定义**：trace 时间线分页。
@@ -522,7 +522,7 @@
   - `next_cursor`：`str?`｜可空｜`first_ts|request_id`｜下一页游标
   - `has_more`：`bool`｜必填｜`false`/`true`｜是否还有下一页
 - **不变量**：`has_more=false` ⇒ `next_cursor=null`。
-- **来源 · 复用**：`traces`。
+- **来源**：`src/libdiag/traces.py`（定义并产出）
 
 #### 9.1.6 `SnapshotView`
 - **定义**：一次上游调用的快照视图。
@@ -539,7 +539,7 @@
   - `deployment_id`：`str?`｜可空｜非空或 `null`｜部署 ID
   - `snapshot_type`：`str`｜必填｜`upstream`/`error`｜快照类型
 - **不变量**：`snapshot_type=upstream` ⇒ `http_status` 非空；`=error` ⇒ `http_status` 空。
-- **来源 · 复用**：`snapshots`；被 `TraceView.snapshot`/`snapshots_page` 复用。
+- **来源**：`src/libdiag/snapshots.py`（定义并产出）
 
 #### 9.1.7 `SnapshotPage`
 - **定义**：快照分页。
@@ -548,7 +548,7 @@
   - `next_cursor`：`str?`｜可空｜末条 `id`｜下一页游标
   - `has_more`：`bool`｜必填｜`false`/`true`｜是否还有下一页
 - **不变量**：`has_more=false` ⇒ `next_cursor=null`。
-- **来源 · 复用**：`snapshots`。
+- **来源**：`src/libdiag/snapshots.py`（定义并产出）
 
 #### 9.1.8 `StatsWindow`
 - **定义**：单（小时桶 × deployment × model）聚合。
@@ -564,14 +564,14 @@
   - `latency_p50_ms`/`latency_p95_ms`/`latency_min_ms`/`latency_max_ms`：`float?`｜可空｜≥0｜延迟分位/极值
   - `latency_sum_ms`：`float`｜必填｜≥0｜延迟和（无样本为 `0`）
 - **不变量**：`error_4xx_count`/`error_5xx_count` 与 `status_breakdown` 一致；无延迟样本 ⇒ 百分位 `null`、`latency_sum_ms=0`。
-- **来源 · 复用**：`stats`；被 `StatsView.windows` 复用。
+- **来源**：`src/libdiag/stats.py`（定义并产出）
 
 #### 9.1.9 `StatsView`
 - **定义**：统计视图。
 - **字段**：
   - `windows`：`StatsWindow[]`｜必填｜可为 `[]`｜聚合桶列表（§9.1.8）
 - **不变量**：按 `stat_hour` 升序。
-- **来源 · 复用**：`stats`。
+- **来源**：`src/libdiag/stats.py`（定义并产出）
 
 #### 9.1.10 `EnabledInjection`
 - **定义**：当前命中且启用的注入（`diagnostic_injections` 行）。
@@ -589,7 +589,7 @@
   - `enabled`：`int`｜必填｜恒 `1`｜启用标志
   - `updated_at`：`str`｜必填｜RFC3339 ms｜更新时间
 - **不变量**：仅对应类型的配置字段非空，其余为 `null`；查询只返回 `enabled=1`。
-- **来源 · 复用**：`injections`；被 `enabled_injection`/`enabled_stream_injection`/`stream_wrapper` 复用。
+- **来源**：`src/libdiag/injections.py`（定义并产出）
 
 #### 9.1.11 `InjectionView`
 - **定义**：一条注入配置视图（含 `config`）。
@@ -601,7 +601,7 @@
   - `enabled`：`bool`｜必填｜`false`/`true`｜是否启用
   - `updated_at`：`str`｜必填｜RFC3339 ms｜更新时间
 - **不变量**：`config` 字段集合与 `type` 一致。
-- **来源 · 复用**：`injections`；被 `set_injections`/`injections` 复用。
+- **来源**：`src/libdiag/injections.py`（定义并产出）
 
 ### 9.2 接口规格
 
