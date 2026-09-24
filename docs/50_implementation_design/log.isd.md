@@ -359,7 +359,7 @@ flowchart TD
 - **模块 / 原成员 ID**：M008 / `F-LOG-WRITE`、`F-LOG-QUERY`
 - **唯一来源 / 版本 / selector / hash**：`log` / `0.1.0-draft.1` / `#2.1`、`#2.2`
 - **提供或消费 / backend**：提供（写+查）/ SQLite
-- **实际位置或 Planned 计划位置**：`src/llmtier_v03/logs.py` `OperationalLog.record/page`
+- **实际位置或 Planned 计划位置**：`src/log/logs.py` `OperationalLog.record/page`
 - **验证项**：`VRC-LOG-001`
 - **实现状态**：PLANNED
 - **验证状态 / Run**：NOT_RUN

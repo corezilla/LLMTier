@@ -34,7 +34,7 @@
 
 测试层级：system（HTTP/SSE 真实启服 + 真实或受控 provider + 真实 SQLite）。**不**替代 unit（24 个文件，191 cases）和 contract static 测试。
 
-被测：运行中的 `llmtier_v03` 进程、OpenAI-compatible data plane（`/v1/responses`、`/v1/embeddings`、`/v1/models`、`/v1/usage`）、admin（`/v1/*`）、SQLite 持久化、FD 资源约束、auth 与 TRUSTED_LAN。
+被测：运行中的 `http_api`（LLMTier 网关）进程、OpenAI-compatible data plane（`/v1/responses`、`/v1/embeddings`、`/v1/models`、`/v1/usage`）、admin（`/v1/*`）、SQLite 持久化、FD 资源约束、auth 与 TRUSTED_LAN。
 
 不被测（§11 列缺口）：浏览器自动化 E2E、生产 TLS/auth/CSRF、`runtime_activation=true`、多实例 / HA / 跨系统恢复、单元 / 静态契约（既有测试覆盖）。
 
@@ -48,7 +48,7 @@ authority：OpenAPI 是字段层 machine authority；本 plan 是 runtime 行为
 |---|---|
 | 代码 commit | HEAD 在 deploy 节点上；含 `b89ba4d`（FD 泄漏修复）与 `a6f06af`（SSL context + reasoning events）；runner 起跑前 `git rev-parse HEAD` 校验 |
 | `tests/` 单元测试 | `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest discover -s tests` exit 0；baseline ≥191 PASS |
-| 进程可启服 | `python3 -m llmtier_v03 --host 127.0.0.1 --port <port> --database <db> --settings <bootstrap>` 60 秒内 listen；`/healthz` 200，`/readyz` 200 且 7 个 tier 全部 `available` |
+| 进程可启服 | `python3 -m http_api --host 127.0.0.1 --port <port> --database <db> --settings <bootstrap>` 60 秒内 listen；`/healthz` 200，`/readyz` 200 且 7 个 tier 全部 `available` |
 | TRUSTED_LAN_MODE | 默认 `LLMTIER_TRUSTED_LAN_MODE=1`；ST-24A 单独验 OFF |
 | OMLX 必须存活 | m5air: `http://192.168.1.9:9000/v1` (bge-m3, 1024维)；m5mac: `http://192.168.1.8:9000` (Qwen3-Embedding, 1024维)。OMLX down → 全部依赖 ST-05..ST-09、ST-12 的 case BLOCKED，恢复路径见 `docs/80_operations/m5air-operations-manual.md` §15 |
 | Provider adapter | 至少一个 `local`（fake 或真 OMLX）+ 一个 `cloud`（Piko 端点或受控云）真实可达；调用超时 ≤ 30s |

@@ -44,7 +44,7 @@ V0.3本轮固定为25个生产代码文件和2个调试工具文件，共27个�
 采用顺序增量实现，不按目录批量造空壳：每个里程碑必须形成可启动、可观察的纵向切片。开发期间允许使用Fake Provider、
 导入检查、编译检查、HTTP冒烟和浏览器人工调试；这些结果统一标记`DEBUG PASS`，不能记为`UNIT PASS`。
 
-实现只增加`src/llmtier_v03/`目标包；legacy入口在Gate C期间继续保留但不得成为V0.3 fallback。目标入口默认不激活，
+实现只增加 `src/<module>/` 各模块包；legacy入口在Gate C期间继续保留但不得成为V0.3 fallback。目标入口默认不激活，
 只有显式开发参数可在loopback测试环境启动。配置沿用`config/settings.json`首次bootstrap和`state/`运行状态路径，
 不增加第二配置authority。
 
@@ -62,31 +62,31 @@ V0.3本轮固定为25个生产代码文件和2个调试工具文件，共27个�
 
 | # | 路径 | 职责 | 里程碑 | 初始状态 |
 |---:|---|---|---|---|
-| 1 | `src/llmtier_v03/__init__.py` | 包版本与公共入口 | C1 | Planned |
-| 2 | `src/llmtier_v03/__main__.py` | 开发启动入口 | C1 | Planned |
-| 3 | `src/llmtier_v03/app.py` | 单一HTTP装配根 | C1 | Planned |
-| 4 | `src/llmtier_v03/auth.py` | Data/Admin principal与权限 | C1 | Planned |
-| 5 | `src/llmtier_v03/errors.py` | OpenAPI typed error映射 | C1 | Planned |
-| 6 | `src/llmtier_v03/store.py` | SQLite连接、事务、migration | C2 | Planned |
-| 7 | `src/llmtier_v03/migrations/001_initial.sql` | 初始唯一Schema | C2 | Planned |
-| 8 | `src/llmtier_v03/registry.py` | Provider/Deployment/Tier配置与ETag | C2 | Planned |
-| 9 | `src/llmtier_v03/audit.py` | 脱敏管理审计 | C2 | Planned |
-| 10 | `src/llmtier_v03/logs.py` | 有界脱敏运行日志 | C2 | Planned |
-| 11 | `src/llmtier_v03/health.py` | health/readiness/probe状态 | C2 | Planned |
-| 12 | `src/llmtier_v03/admin.py` | Admin CRUD、分页与probe | C3 | Planned |
-| 13 | `src/llmtier_v03/usage.py` | obligation、版本、snapshot与查询 | C3 | Planned |
-| 14 | `src/llmtier_v03/providers/__init__.py` | Adapter包出口 | C4 | Planned |
-| 15 | `src/llmtier_v03/providers/base.py` | Provider Adapter protocol | C4 | Planned |
-| 16 | `src/llmtier_v03/providers/openai.py` | 云OpenAI-compatible adapter | C4 | Planned |
-| 17 | `src/llmtier_v03/providers/local.py` | 本地OpenAI-compatible adapter | C4 | Planned |
-| 18 | `src/llmtier_v03/routing.py` | exact Tier内部选择与admission | C4 | Planned |
-| 19 | `src/llmtier_v03/models.py` | `/v1/models` | C5 | Planned |
-| 20 | `src/llmtier_v03/sse.py` | 标准SSE事件生成与不变量 | C5 | Planned |
-| 21 | `src/llmtier_v03/responses.py` | `/v1/responses`固定Pi subset | C5 | Planned |
-| 22 | `src/llmtier_v03/embeddings.py` | `/v1/embeddings`与space检查 | C5 | Planned |
-| 23 | `src/llmtier_v03/webui/index.html` | 四页英文Web UI结构 | C6 | Planned |
-| 24 | `src/llmtier_v03/webui/styles.css` | UI布局与状态样式 | C6 | Planned |
-| 25 | `src/llmtier_v03/webui/app.js` | Admin API接线和交互状态 | C6 | Planned |
+| 1 | `src/http_api/__init__.py` | 包版本与公共入口 | C1 | Planned |
+| 2 | `src/http_api/__main__.py` | 开发启动入口 | C1 | Planned |
+| 3 | `src/http_api/app.py` | 单一HTTP装配根 | C1 | Planned |
+| 4 | `src/http_api/auth.py` | Data/Admin principal与权限 | C1 | Planned |
+| 5 | `src/http_api/errors.py` | OpenAPI typed error映射 | C1 | Planned |
+| 6 | `src/util/store.py` | SQLite连接、事务、migration | C2 | Planned |
+| 7 | `src/util/migrations/001_initial.sql` | 初始唯一Schema | C2 | Planned |
+| 8 | `src/management/registry.py` | Provider/Deployment/Tier配置与ETag | C2 | Planned |
+| 9 | `src/management/audit.py` | 脱敏管理审计 | C2 | Planned |
+| 10 | `src/log/logs.py` | 有界脱敏运行日志 | C2 | Planned |
+| 11 | `src/http_api/health.py` | health/readiness/probe状态 | C2 | Planned |
+| 12 | `src/management/admin.py` | Admin CRUD、分页与probe | C3 | Planned |
+| 13 | `src/inference/usage.py` | obligation、版本、snapshot与查询 | C3 | Planned |
+| 14 | `src/inference/providers/__init__.py` | Adapter包出口 | C4 | Planned |
+| 15 | `src/inference/providers/base.py` | Provider Adapter protocol | C4 | Planned |
+| 16 | `src/inference/providers/openai.py` | 云OpenAI-compatible adapter | C4 | Planned |
+| 17 | `src/inference/providers/local.py` | 本地OpenAI-compatible adapter | C4 | Planned |
+| 18 | `src/inference/routing.py` | exact Tier内部选择与admission | C4 | Planned |
+| 19 | `src/inference/models.py` | `/v1/models` | C5 | Planned |
+| 20 | `src/http_api/sse.py` | 标准SSE事件生成与不变量 | C5 | Planned |
+| 21 | `src/inference/responses.py` | `/v1/responses`固定Pi subset | C5 | Planned |
+| 22 | `src/inference/embeddings.py` | `/v1/embeddings`与space检查 | C5 | Planned |
+| 23 | `src/web_ui/index.html` | 四页英文Web UI结构 | C6 | Planned |
+| 24 | `src/web_ui/styles.css` | UI布局与状态样式 | C6 | Planned |
+| 25 | `src/web_ui/app.js` | Admin API接线和交互状态 | C6 | Planned |
 
 ### 4.2 固定调试工具清单（2）
 

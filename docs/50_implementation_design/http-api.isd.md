@@ -567,7 +567,7 @@ flowchart TD
 - **模块 / 原成员 ID**：M001 / `F-API-*`
 - **唯一来源 / 版本 / selector / hash**：`http-api` / `0.1.0-draft.2`
 - **提供或消费 / backend**：提供（HTTP/SSE）/ 客户端
-- **实际位置或 Planned 计划位置**：`src/llmtier_v03/app.py`、`auth.py`、`errors.py`、`sse.py`、`health.py`
+- **实际位置或 Planned 计划位置**：`src/http_api/app.py`、`auth.py`、`errors.py`、`sse.py`、`health.py`
 - **验证项**：`VRC-API-001..004`
 - **实现状态**：PLANNED
 - **验证状态 / Run**：NOT_RUN

@@ -634,7 +634,7 @@
 
 ### 13.1 文件分解（设计 → 代码文件）
 
-#### 13.1.1 `src/llmtier_v03/registry.py`
+#### 13.1.1 `src/management/registry.py`
 - **职责 / 非职责**：I1 配置权威 + I3 引导 + 候选查询；不做管理动作审计
 - **关键 symbol / 导出范围**：`Registry.bootstrap_settings/ensure_fixed_tiers/create_*/get_*/list_*/update_*/delete_*/candidates`
 - **承接 Function / Rule / Constraint / Interface ID**：`F-MGMT-BOOTSTRAP`、`F-MGMT-CRUD`、`RULE-MGMT-CAPS/ETAG/REF`、`C-CFG-1/2/3/4/5`、`IF-PROVIDERS/DEPLOYMENTS/LEVELS`
@@ -642,7 +642,7 @@
 - **实现状态**：Implemented
 - **验证入口**：`VRC-MGMT-001/002/003`
 
-#### 13.1.2 `src/llmtier_v03/admin.py`
+#### 13.1.2 `src/management/admin.py`
 - **职责 / 非职责**：I2 管理动作编排（mutate/分页/统计）+ I4 探测 + 列模型；不做具体 CRUD
 - **关键 symbol / 导出范围**：`AdminService.mutate/page/stats/probe/list_provider_models`
 - **承接 Function / Rule / Constraint / Interface ID**：`F-MGMT-CRUD/PROBE/STATS`、`RULE-MGMT-PROBE/SNAPSHOT`、`IF-MGMT-02/04`、`IF-PROBES`
@@ -650,7 +650,7 @@
 - **实现状态**：Implemented
 - **验证入口**：`VRC-MGMT-002/004/005`
 
-#### 13.1.3 `src/llmtier_v03/account_usage.py`
+#### 13.1.3 `src/management/account_usage.py`
 - **职责 / 非职责**：I7 账号用量只读/显式刷新；不自动轮询/不 cookie
 - **关键 symbol / 导出范围**：`AccountUsageService.latest/refresh`（`_minimax`/`_volc`/`_volc_request`）
 - **承接 Function / Rule / Constraint / Interface ID**：`F-MGMT-ACCOUNT-USAGE`、`RULE-MGMT-USAGE-REFRESH`、`IF-MGMT-05`
@@ -658,7 +658,7 @@
 - **实现状态**：Implemented
 - **验证入口**：`VRC-MGMT-006`
 
-#### 13.1.4 `src/llmtier_v03/audit.py`
+#### 13.1.4 `src/management/audit.py`
 - **职责 / 非职责**：I5 审计写入/查询；不含正文
 - **关键 symbol / 导出范围**：`AuditLog.record/page`
 - **承接 Function / Rule / Constraint / Interface ID**：`F-MGMT-AUDIT`、`IF-MGMT-03`、`IF-AUDIT-LOGS`
@@ -666,7 +666,7 @@
 - **实现状态**：Implemented
 - **验证入口**：`VRC-MGMT-003`
 
-#### 13.1.5 `src/llmtier_v03/logs.py`
+#### 13.1.5 `src/log/logs.py`
 - **职责 / 非职责**：I6 写前脱敏 + 结构化查询；不含原始日志
 - **关键 symbol / 导出范围**：`OperationalLog.record/page`、`_SENSITIVE`
 - **承接 Function / Rule / Constraint / Interface ID**：`F-MGMT-LOGS`、`IF-MGMT-03`、`IF-AUDIT-LOGS`
@@ -674,7 +674,7 @@
 - **实现状态**：Implemented
 - **验证入口**：`VRC-MGMT-003`
 
-#### 13.1.6 `src/llmtier_v03/health.py`
+#### 13.1.6 `src/http_api/health.py`
 - **职责 / 非职责**：健康/就绪视图 + 探测结果落库；不做主动收费探测
 - **关键 symbol / 导出范围**：`health_view`、`readiness_view`、`apply_probe_result`
 - **承接 Function / Rule / Constraint / Interface ID**：`F-MGMT-PROBE`、`RULE-MGMT-PROBE`、`IF-MGMT-04`

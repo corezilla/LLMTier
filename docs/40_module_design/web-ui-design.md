@@ -749,22 +749,22 @@ Web UI **不拥有机器契约**；它消费 M001 暴露的端点，字段 autho
 
 ### 13.1 文件分解（设计 → 代码文件）
 
-#### 13.1.1 `src/llmtier_v03/webui/index.html`
+#### 13.1.1 `src/web_ui/index.html`
 - **职责（本模块内）**：页面壳 + 五页容器 `id`；装配 `styles.css`/`icons.svg`/`app.js`
 - **关键 symbol**：容器 `id`（`#usage-body`、`#log-body`、`#audit-body` 等）
 - **实现状态**：Implemented
 
-#### 13.1.2 `src/llmtier_v03/webui/app.js`
+#### 13.1.2 `src/web_ui/app.js`
 - **职责（本模块内）**：hash 路由、数据装载、渲染、mutation、交互状态
 - **关键 symbol**：`api`、`loadRegistry/loadHome/loadProviders/loadUsage/loadLogs/loadStats`、`renderTree/renderProviders/renderTierMembers`、`toggleDeployment/probeDeployment/saveProvider/saveMember/refreshProviderUsage`
 - **实现状态**：Implemented
 
-#### 13.1.3 `src/llmtier_v03/webui/styles.css`
+#### 13.1.3 `src/web_ui/styles.css`
 - **职责（本模块内）**：布局（窄侧栏 + 页头 + 主卡片）与状态样式
 - **关键 symbol**：类选择器
 - **实现状态**：Implemented
 
-#### 13.1.4 `src/llmtier_v03/webui/icons.svg`
+#### 13.1.4 `src/web_ui/icons.svg`
 - **职责（本模块内）**：单线图标 sprite（状态/操作）
 - **关键 symbol**：`<symbol id>`
 - **实现状态**：Implemented
@@ -772,13 +772,13 @@ Web UI **不拥有机器契约**；它消费 M001 暴露的端点，字段 autho
 ### 13.2 实现步骤
 
 #### 13.2.1 框架与导航
-- **新增/修改文件**：`src/llmtier_v03/webui/index.html`
+- **新增/修改文件**：`src/web_ui/index.html`
 - **关键 symbol**：Frame / Nav
 - **前置依赖**：M001 静态服务
 - **完成条件**：五页可达
 
 #### 13.2.2 API 客户端
-- **新增/修改文件**：`src/llmtier_v03/webui/app.js`
+- **新增/修改文件**：`src/web_ui/app.js`
 - **关键 symbol**：`api`、ETag
 - **前置依赖**：M001 端点
 - **完成条件**：错误码 → 状态

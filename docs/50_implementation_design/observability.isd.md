@@ -498,7 +498,7 @@ flowchart TD
 - **模块 / 原成员 ID**：M005 / `F-OBS-*`
 - **唯一来源 / 版本 / selector / hash**：`observability` / `0.1.0-draft.2`
 - **提供或消费 / backend**：提供（诊断端点）/ M006
-- **实际位置或 Planned 计划位置**：`src/llmtier_v03/app.py`、`diagnostics.py`、`webui/app.js`
+- **实际位置或 Planned 计划位置**：`src/http_api/app.py`、`diagnostics.py`、`webui/app.js`
 - **验证项**：`VRC-OBS-001..005`
 - **实现状态**：PLANNED
 - **验证状态 / Run**：NOT_RUN

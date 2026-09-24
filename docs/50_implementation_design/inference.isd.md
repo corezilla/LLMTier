@@ -649,7 +649,7 @@ flowchart TD
 - **模块 / 原成员 ID**：M003 / `F-INF-*`
 - **唯一来源 / 版本 / selector / hash**：`inference` / `0.1.0-draft.1`
 - **提供或消费 / backend**：提供 / provider
-- **实际位置或 Planned 计划位置**：`src/llmtier_v03/{responses,embeddings,models,routing,usage}.py`、`providers/*`
+- **实际位置或 Planned 计划位置**：`src/inference/{responses,embeddings,models,routing,usage}.py`、`src/inference/providers/*`
 - **验证项**：`VRC-INF-001..005`
 - **实现状态**：PLANNED
 - **验证状态 / Run**：NOT_RUN

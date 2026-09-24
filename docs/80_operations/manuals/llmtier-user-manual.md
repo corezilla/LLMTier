@@ -76,7 +76,7 @@
 python3 -m pip install -e .
 
 # 或直接运行
-PYTHONPATH=src python3 -m llmtier_v03 --help
+PYTHONPATH=src python3 -m http_api --help
 ```
 
 ### 3.3 配置文件
@@ -126,7 +126,7 @@ LLMTier 通过 `--settings <path>` 或环境变量 `LLMTIER_SETTINGS` 指定 JSO
 ### 4.1 启动服务
 
 ```bash
-PYTHONPATH=src python3 -m llmtier_v03 \
+PYTHONPATH=src python3 -m http_api \
   --host 0.0.0.0 \
   --port 8180 \
   --database var/llmtier-v03.sqlite3 \

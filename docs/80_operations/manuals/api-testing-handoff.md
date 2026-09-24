@@ -34,7 +34,7 @@
 |---|---|
 | 主机 | `192.168.1.9` (m5air) |
 | 端口 | `8181`（监听 `0.0.0.0`） |
-| 进程 PID | 启动时查询 `ps aux \| grep llmtier_v03.*8181` |
+| 进程 PID | 启动时查询 `ps aux \| grep http_api.*8181` |
 | 代码目录 | `/Users/mlp/LLMTier-dev`（非 git repo） |
 | 数据库 | `/Users/mlp/LLMTier-dev/state.sqlite3` |
 | Python | `/Library/Frameworks/Python.framework/Versions/3.14/bin/python3` |
@@ -43,17 +43,17 @@
 ### 启动命令
 
 ```bash
-ssh m5air "ps aux | grep 'llmtier_v03.*8181' | grep -v grep | awk '{print \$2}'"  # 查 PID
+ssh m5air "ps aux | grep 'http_api.*8181' | grep -v grep | awk '{print \$2}'"  # 查 PID
 
 # Kill 旧进程，重启
-ssh m5air "P=\$(ps aux | grep 'llmtier_v03.*8181' | grep -v grep | awk '{print \$2}'); \
+ssh m5air "P=\$(ps aux | grep 'http_api.*8181' | grep -v grep | awk '{print \$2}'); \
   kill \$P 2>/dev/null; sleep 1; \
   cd /Users/mlp/LLMTier-dev && \
   LLMTIER_ADMIN_TOKEN=dev-admin \
   LLMTIER_DATA_TOKEN=dev-data \
   PYTHONPATH=src \
   /Library/Frameworks/Python.framework/Versions/3.14/bin/python3 \
-  -m llmtier_v03 \
+  -m http_api \
   --host 0.0.0.0 --port 8181 \
   --database /Users/mlp/LLMTier-dev/state.sqlite3 \
   >> /Users/mlp/LLMTier-dev/llmtier.log 2>&1 &"
@@ -374,8 +374,8 @@ curl -s http://192.168.1.9:8181/v1/runtime \
 
 ```bash
 # rsync 修改的文件
-rsync -avz /Users/ben/work/LLMTier/src/llmtier_v03/webui/app.js \
-  m5air:/Users/mlp/LLMTier-dev/src/llmtier_v03/webui/app.js
+rsync -avz /Users/ben/work/LLMTier/src/web_ui/app.js \
+  m5air:/Users/mlp/LLMTier-dev/src/web_ui/app.js
 
 # 重启服务（用上面"启动命令"部分的命令）
 ```

@@ -496,7 +496,7 @@
 
 ### 13.1 文件分解（设计 → 代码文件）
 
-#### 13.1.1 `src/llmtier_v03/diagnostics.py`
+#### 13.1.1 `src/libdiag/diagnostics.py`
 - **职责 / 非职责**：I1–I7 开关/记录/统计/注入/流/清理原语；不做呈现路由/鉴权
 - **关键 symbol / 导出范围**：`DiagnosticsService.switches/set_switches/record_trace/trace/capture_snapshot/snapshots_page/record_latency/stats/set_injections/injections/enabled_injection/enabled_stream_injection/stream_wrapper/cleanup`、`_percentile`、`hour_of`、`_validate`
 - **承接 Function / Rule / Constraint / Interface ID**：`F-DIAG-*`、`RULE-DIAG-*`、`C-OBS-1/2/3/4/5`、`IF-LIBDIAG-*`
@@ -504,7 +504,7 @@
 - **实现状态**：Implemented
 - **验证入口**：`VRC-DIAG-001..004`
 
-#### 13.1.2 `src/llmtier_v03/migrations/002_observability.sql`
+#### 13.1.2 `src/util/migrations/002_observability.sql`
 - **职责 / 非职责**：创建 4 张诊断表 + `diagnostic_settings`；不含业务逻辑
 - **关键 symbol / 导出范围**：`diagnostic_settings`、`diagnostic_snapshots`、`data_plane_stats`、`diagnostic_injections`、`trace_events`
 - **承接 Function / Rule / Constraint / Interface ID**：`R-OBS-06`（Store）
@@ -598,7 +598,7 @@
 - **选项 / 推荐 / 下一步取证**：确认 `stream_wrapper` 集成方案
 - **关闭条件 / 决定或当前状态**：未决
 
-引用：系统设计 §3.2/§11.3；机制 M-OBS §14.4（`R-OBS-01/06`）；`observability-design.md`；`src/llmtier_v03/migrations/002_observability.sql`。
+引用：系统设计 §3.2/§11.3；机制 M-OBS §14.4（`R-OBS-01/06`）；`observability-design.md`；`src/util/migrations/002_observability.sql`。
 
 ## 附录 A. 机制承接表
 

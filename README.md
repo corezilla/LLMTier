@@ -44,7 +44,7 @@ python3 -m pip install -e .
 
 ```bash
 LLMTIER_ADMIN_TOKEN='...' LLMTIER_DATA_TOKEN='...' \
-  PYTHONPATH=src python3 -m llmtier_v03 \
+  PYTHONPATH=src python3 -m http_api \
   --host 127.0.0.1 --port 8180 \
   --database state/llmtier-v03.sqlite3 \
   --settings config/settings.json
@@ -90,7 +90,7 @@ config/state/contract authority。
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest discover -s tests
-PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m llmtier_v03 --help
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m http_api --help
 ```
 
 ### STD 合规规则（prose 文档）

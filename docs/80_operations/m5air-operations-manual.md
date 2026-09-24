@@ -136,7 +136,7 @@ Provider账号用量凭据规则：
 
 ```bash
 PYTHONPATH=/path/to/src \
-  /usr/local/bin/python3 -m llmtier_v03 \
+  /usr/local/bin/python3 -m http_api \
   --host 127.0.0.1 \
   --port 8181 \
   --database /path/to/new-state.sqlite3 \
@@ -159,7 +159,7 @@ cd /Users/mlp/LLMTier-dev
 ```bash
 ipconfig getifaddr en0
 /usr/local/bin/python3 --version
-PYTHONPATH=/Users/mlp/LLMTier-dev/src /usr/local/bin/python3 -m llmtier_v03 --help
+PYTHONPATH=/Users/mlp/LLMTier-dev/src /usr/local/bin/python3 -m http_api --help
 test -f /Users/mlp/LLMTier-dev/state.sqlite3
 test -d /Users/mlp/LLMTier-dev/secrets
 /usr/sbin/lsof -nP -iTCP:8181 -sTCP:LISTEN
@@ -195,7 +195,7 @@ umask 077
 nohup env \
   PYTHONPATH=/Users/mlp/LLMTier-dev/src \
   LLMTIER_TRUSTED_LAN_MODE=1 \
-  /usr/local/bin/python3 -m llmtier_v03 \
+  /usr/local/bin/python3 -m http_api \
   --host 0.0.0.0 \
   --port 8181 \
   --database /Users/mlp/LLMTier-dev/state.sqlite3 \
@@ -216,7 +216,7 @@ ps -p "$pid" -o pid=,ppid=,etime=,command=
 tail -n 40 /Users/mlp/LLMTier-dev/llmtier.log
 ```
 
-命令必须包含`python3 -m llmtier_v03`，监听必须显示`*:8181`或等效的所有接口形式。
+命令必须包含`python3 -m http_api`，监听必须显示`*:8181`或等效的所有接口形式。
 
 ### 8.2 无副作用检查
 
@@ -464,7 +464,7 @@ backups/
 | Provider无法删除 | 仍被Deployment引用；先在Tier移除并处理Deployment引用 |
 | SQLite locked/corrupt | 停止服务，保全数据库/WAL/SHM；不要直接编辑或删除；按备份恢复流程处理 |
 | 磁盘空间不足 | 停止写入压力，检查日志、数据库和备份；不直接删除活动数据库文件 |
-| 周期性 503 / Empty reply / "Too many open files" 反复出现 | 2026-09-19 commit `b89ba4d` 已修：`src/llmtier_v03/app.py:_run` finally 加 `app.store.close()`，关闭每线程缓存的 SQLite 连接（db+wal+shm 三 fd）。如再发生，先 `lsof -p $(cat /Users/mlp/LLMTier-dev/llmtier.pid) | wc -l` 与 `ulimit -n` 对比，看 SQLite fds 是否仍按 1+1+1 增长；如是新的 fd 路径，重新定位 |
+| 周期性 503 / Empty reply / "Too many open files" 反复出现 | 2026-09-19 commit `b89ba4d` 已修：`src/http_api/app.py:_run` finally 加 `app.store.close()`，关闭每线程缓存的 SQLite 连接（db+wal+shm 三 fd）。如再发生，先 `lsof -p $(cat /Users/mlp/LLMTier-dev/llmtier.pid) | wc -l` 与 `ulimit -n` 对比，看 SQLite fds 是否仍按 1+1+1 增长；如是新的 fd 路径，重新定位 |
 | 本地 Provider（provider_local）调用返回 401 | 当前 OMLX 进程（PID 698）`/Users/mlp/.omlx/settings.json` 的 `auth.api_key` 为动态生成的短串（如 `9832`），LLMTier 需配置 `provider_local.secret_ref` 为 `file:/Users/mlp/LLMTier-dev/secrets/omlx-secret-key.txt`（写入 `api_key`，chmod 600），PATCH provider_local 后无需重启（`responses.py:20` 每请求现读）。OMLX secret_key 是 JWT 签名密钥，不能用作 Bearer。 |
 
 故障证据至少保留：发生时间、部署版本、Request ID、health/readiness结果、脱敏日志、受影响Tier/Provider和已执行动作。

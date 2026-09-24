@@ -261,7 +261,7 @@
 
 ### 13.1 文件分解（设计 → 代码文件）
 
-#### 13.1.1 `src/llmtier_v03/logs.py`
+#### 13.1.1 `src/log/logs.py`
 - **职责 / 非职责**：I1 写前脱敏写入、I2 过滤查询；不含审计/观测
 - **关键 symbol / 导出范围**：`OperationalLog.record/page`、`_SENSITIVE`
 - **承接 Function / Rule / Constraint / Interface ID**：`F-LOG-WRITE/QUERY`、`RULE-LOG-REDACT/ORDER`、脱敏约束、`IF-LOG`
@@ -269,7 +269,7 @@
 - **实现状态**：Implemented
 - **验证入口**：`VRC-LOG-001`
 
-#### 13.1.2 `src/llmtier_v03/migrations/001_initial.sql`（日志表）
+#### 13.1.2 `src/util/migrations/001_initial.sql`（日志表）
 - **职责 / 非职责**：`operational_logs` 表；不含逻辑
 - **关键 symbol / 导出范围**：`operational_logs`
 - **承接 Function / Rule / Constraint / Interface ID**：`F-LOG-WRITE`
@@ -321,7 +321,7 @@
 - **选项 / 推荐 / 下一步取证**：补充正则；禁记正文作为兜底
 - **关闭条件 / 决定或当前状态**：观察
 
-引用：系统设计 §3.2/§11.3；`src/llmtier_v03/logs.py`；`migrations/001_initial.sql`。
+引用：系统设计 §3.2/§11.3；`src/log/logs.py`；`migrations/001_initial.sql`。
 
 ## 附录 A. 机制承接表
 

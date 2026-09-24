@@ -172,7 +172,7 @@
 
 #### 3.3.1 If-Match 头格式（必读，9-20 [P7]）
 
-ETag 格式由 `src/llmtier_v03/registry.py:25` 定义：
+ETag 格式由 `src/management/registry.py:25` 定义：
 
 ```python
 def _etag(resource_id: str, version: int) -> str:

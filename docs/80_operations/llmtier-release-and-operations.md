@@ -57,7 +57,7 @@ artifact SHA-256 与签署结果。当前仓库没有已批准的 V0.3 wheel/con
 1. 在固定 commit 的隔离 Python 3.11+ 环境运行 `python3 -m pip install -e .`；
 2. 安装后以 `llm-tier-v03 --host 127.0.0.1 --port 8180 --settings config/settings.json` 启动（空库首启需一次性 bootstrap settings）；
 3. 以 `curl http://127.0.0.1:8180/healthz` 执行 health 检查；
-4. 未安装 package 时使用 `PYTHONPATH=src python3 -m llmtier_v03`；
+4. 未安装 package 时使用 `PYTHONPATH=src python3 -m http_api`；
 5. 运行全部 tests 与 contract/STD validators；SIGINT/SIGTERM 触发 bounded graceful shutdown。
 
 上述入口只证明当前 baseline CLI 形状。现有 `/health`、`/runtime`、`/stats` 等实现不得被

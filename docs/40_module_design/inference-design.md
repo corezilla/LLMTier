@@ -556,7 +556,7 @@
 
 ### 13.1 文件分解（设计 → 代码文件）
 
-#### 13.1.1 `src/llmtier_v03/responses.py`
+#### 13.1.1 `src/inference/responses.py`
 - **职责 / 非职责**：I1 校验、I2 编排、I7 归一；不做传输/准入策略
 - **关键 symbol / 导出范围**：`ResponsesService.create`、`_adapter`
 - **承接 Function / Rule / Constraint / Interface ID**：`F-INF-RESPONSES`、`F-INF-VALIDATE`、`RULE-INF-VALIDATE`、`C-INFER-1/2/3`、`IF-RESPONSES`
@@ -564,7 +564,7 @@
 - **实现状态**：Implemented（含 `LLMTIER_SLOW_ADAPTER_DELAY` 测试注入）
 - **验证入口**：`VRC-INF-001`；`tests/system/api_test_v03/`
 
-#### 13.1.2 `src/llmtier_v03/embeddings.py`
+#### 13.1.2 `src/inference/embeddings.py`
 - **职责 / 非职责**：I3 向量化编排 + 向量/base64 校验；不处理 Responses
 - **关键 symbol / 导出范围**：`EmbeddingsService.create`
 - **承接 Function / Rule / Constraint / Interface ID**：`F-INF-EMBED`、`RULE-INF-EMBED`、`IF-EMBEDDINGS`
@@ -572,7 +572,7 @@
 - **实现状态**：Implemented
 - **验证入口**：`VRC-INF-002`
 
-#### 13.1.3 `src/llmtier_v03/models.py`
+#### 13.1.3 `src/inference/models.py`
 - **职责 / 非职责**：I4 模型目录 + availability；不发起调用
 - **关键 symbol / 导出范围**：`ModelCatalog.list/get/_view`
 - **承接 Function / Rule / Constraint / Interface ID**：`F-INF-MODELS`、`RULE-INF-MODELS`、`IF-MODELS`
@@ -580,7 +580,7 @@
 - **实现状态**：Implemented
 - **验证入口**：`VRC-INF-004`
 
-#### 13.1.4 `src/llmtier_v03/routing.py`
+#### 13.1.4 `src/inference/routing.py`
 - **职责 / 非职责**：I5 准入/队列/限流/候选选择；不做协议映射
 - **关键 symbol / 导出范围**：`Router.admit`、`Router.snapshot`
 - **承接 Function / Rule / Constraint / Interface ID**：`F-INF-ROUTE`、`RULE-INF-ROUTE`、`C-INFER-4`、`IF-INF-04`
@@ -588,7 +588,7 @@
 - **实现状态**：Implemented
 - **验证入口**：`VRC-INF-004`；并发用例
 
-#### 13.1.5 `src/llmtier_v03/providers/base.py`
+#### 13.1.5 `src/inference/providers/base.py`
 - **职责 / 非职责**：`ProviderResult` + `ProviderAdapter` 协议；不含具体协议
 - **关键 symbol / 导出范围**：`ProviderResult`、`ProviderAdapter`
 - **承接 Function / Rule / Constraint / Interface ID**：`IF-INF-05`
@@ -596,7 +596,7 @@
 - **实现状态**：Implemented
 - **验证入口**：`VRC-INF-003`
 
-#### 13.1.6 `src/llmtier_v03/providers/openai.py` / `local.py`
+#### 13.1.6 `src/inference/providers/openai.py` / `local.py`
 - **职责 / 非职责**：I6 OpenAI-compatible 适配（complete/embed/probe/list_models）；不对外暴露凭据
 - **关键 symbol / 导出范围**：`OpenAIProvider`（`LocalProvider` 子类化）
 - **承接 Function / Rule / Constraint / Interface ID**：`F-INF-RESPONSES`、`F-INF-EMBED`、`RULE-INF-TERMINAL`、`IF-INF-05`
@@ -604,7 +604,7 @@
 - **实现状态**：Implemented
 - **验证入口**：`VRC-INF-003`
 
-#### 13.1.7 `src/llmtier_v03/usage.py`
+#### 13.1.7 `src/inference/usage.py`
 - **职责 / 非职责**：I8 用量记账（义务/绑定/终态/unknown）；不含 Cost
 - **关键 symbol / 导出范围**：`UsageRecorder.authorize_dispatch/bind_backend/finish`
 - **承接 Function / Rule / Constraint / Interface ID**：`F-INF-USAGE`、`C-INFER-3`、`IF-INF-06`、机制 `R-MET-01`

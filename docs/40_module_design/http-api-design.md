@@ -777,32 +777,32 @@ ThreadingHTTPServer（进程级）
 
 ### 13.1 文件分解（设计 → 代码文件）
 
-#### 13.1.1 `src/llmtier_v03/app.py`
+#### 13.1.1 `src/http_api/app.py`
 - **职责（本模块内）**：I1 Dispatch、I2 Auth 分发、I3 SSE 传输、I4 静态、I5 健康；`Application` 装配
 - **关键 symbol**：`Application`、`handler_factory`、`Handler._run/_dispatch/_auth/_auth_either/_body/_json/_static`
 - **实现状态**：Implemented
 
-#### 13.1.2 `src/llmtier_v03/auth.py`
+#### 13.1.2 `src/http_api/auth.py`
 - **职责（本模块内）**：信任判定（免登录 / Bearer），产出 `Principal`
 - **关键 symbol**：`Principal`、`unauthenticated_principal`、`authenticate`、`authenticate_any`
 - **实现状态**：Implemented
 
-#### 13.1.3 `src/llmtier_v03/errors.py`
+#### 13.1.3 `src/http_api/errors.py`
 - **职责（本模块内）**：统一错误类型与错误信封
 - **关键 symbol**：`ApiError`、`require`
 - **实现状态**：Implemented
 
-#### 13.1.4 `src/llmtier_v03/sse.py`
+#### 13.1.4 `src/http_api/sse.py`
 - **职责（本模块内）**：SSE 单帧与事件序列
 - **关键 symbol**：`frame`、`response_stream`
 - **实现状态**：Implemented
 
-#### 13.1.5 `src/llmtier_v03/health.py`
+#### 13.1.5 `src/http_api/health.py`
 - **职责（本模块内）**：健康/就绪视图
 - **关键 symbol**：`health_view`、`readiness_view`
 - **实现状态**：Implemented
 
-#### 13.1.6 `src/llmtier_v03/webui/`
+#### 13.1.6 `src/web_ui/`
 - **职责（本模块内）**：静态资源位（由 M002 提供；M001 只交付）
 - **关键 symbol**：—
 - **实现状态**：Implemented
@@ -810,19 +810,19 @@ ThreadingHTTPServer（进程级）
 ### 13.2 实现步骤
 
 #### 13.2.1 路由与分发
-- **新增/修改文件**：`src/llmtier_v03/app.py`
+- **新增/修改文件**：`src/http_api/app.py`
 - **关键 symbol**：`Handler._dispatch`
 - **前置依赖**：业务服务实例
 - **完成条件**：全部端点可达
 
 #### 13.2.2 鉴权分发
-- **新增/修改文件**：`app.py` / `src/llmtier_v03/auth.py`
+- **新增/修改文件**：`app.py` / `src/http_api/auth.py`
 - **关键 symbol**：`_auth` / `authenticate_any`
 - **前置依赖**：M007 信任原语
 - **完成条件**：端点→角色正确
 
 #### 13.2.3 SSE 传输
-- **新增/修改文件**：`app.py` / `src/llmtier_v03/sse.py`
+- **新增/修改文件**：`app.py` / `src/http_api/sse.py`
 - **关键 symbol**：`response_stream`
 - **前置依赖**：M003 响应对象
 - **完成条件**：帧序 + terminal
@@ -834,13 +834,13 @@ ThreadingHTTPServer（进程级）
 - **完成条件**：无目录穿越
 
 #### 13.2.5 健康/就绪
-- **新增/修改文件**：`app.py` / `src/llmtier_v03/health.py`
+- **新增/修改文件**：`app.py` / `src/http_api/health.py`
 - **关键 symbol**：`health_view` / `readiness_view`
 - **前置依赖**：引导状态
 - **完成条件**：503 语义正确
 
 #### 13.2.6 错误信封
-- **新增/修改文件**：`src/llmtier_v03/errors.py`
+- **新增/修改文件**：`src/http_api/errors.py`
 - **关键 symbol**：`ApiError.envelope`
 - **前置依赖**：—
 - **完成条件**：统一信封

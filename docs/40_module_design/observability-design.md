@@ -498,7 +498,7 @@
 
 ### 13.1 文件分解（设计 → 代码文件）
 
-#### 13.1.1 `src/llmtier_v03/app.py`（诊断路由）
+#### 13.1.1 `src/http_api/app.py`（诊断路由）
 - **职责 / 非职责**：诊断端点路由、关联标识透传/回显、开关/注入经审计；不含记录逻辑
 - **关键 symbol / 导出范围**：`/tier/admin/v1/diagnostics*`、`/tier/admin/v1/trace/{id}` 分支；`X-Correlation-ID` 处理
 - **承接 Function / Rule / Constraint / Interface ID**：`F-OBS-SWITCH/SNAPSHOTS/STATS/INJECTIONS/TRACE/CORRELATION`、`C-OBS-4`、`IF-DIAGNOSTICS/SNAPSHOTS/STATS/INJECTIONS/TRACE`
@@ -506,7 +506,7 @@
 - **实现状态**：Implemented
 - **验证入口**：`VRC-OBS-001/002/003/004`
 
-#### 13.1.2 `src/llmtier_v03/webui/app.js`（诊断页数据）
+#### 13.1.2 `src/web_ui/app.js`（诊断页数据）
 - **职责 / 非职责**：诊断页 4 tabs + 全局开关的数据装载/呈现；不直读库
 - **关键 symbol / 导出范围**：`loadStats`/`loadTrace` 等（见 M002 §13）
 - **承接 Function / Rule / Constraint / Interface ID**：`R-OBS-05`（经 M002）
@@ -514,7 +514,7 @@
 - **实现状态**：Implemented
 - **验证入口**：M002 `VRC-UI-*`
 
-#### 13.1.3 `src/llmtier_v03/diagnostics.py`（查询方法）
+#### 13.1.3 `src/libdiag/diagnostics.py`（查询方法）
 - **职责 / 非职责**：本模块消费 `switches/set_switches/snapshots_page/stats/trace/set_injections/injections`；记录读写归 M006
 - **关键 symbol / 导出范围**：同上（只读/写配置的一部分）
 - **承接 Function / Rule / Constraint / Interface ID**：`F-OBS-*`、`IF-OBS-01`

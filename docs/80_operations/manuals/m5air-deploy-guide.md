@@ -40,12 +40,12 @@
 ## 查找当前进程
 
 ```bash
-ssh m5air "ps aux | grep 'llmtier_v03.*8181' | grep -v grep"
+ssh m5air "ps aux | grep 'http_api.*8181' | grep -v grep"
 ```
 
 会返回类似：
 ```
-mlp  24280  ...  /Library/Frameworks/Python.framework/Versions/3.14/...  -m llmtier_v03 --host 0.0.0.0 --port 8181 ...
+mlp  24280  ...  /Library/Frameworks/Python.framework/Versions/3.14/...  -m http_api --host 0.0.0.0 --port 8181 ...
 ```
 
 **记住 PID**（第二列），用于后续 kill。
@@ -58,16 +58,16 @@ mlp  24280  ...  /Library/Frameworks/Python.framework/Versions/3.14/...  -m llmt
 
 ```bash
 # 核心服务（每次必同步）
-rsync -avz /Users/ben/work/LLMTier/src/llmtier_v03/app.py m5air:/Users/mlp/LLMTier-dev/src/llmtier_v03/app.py
-rsync -avz /Users/ben/work/LLMTier/src/llmtier_v03/admin.py m5air:/Users/mlp/LLMTier-dev/src/llmtier_v03/admin.py
-rsync -avz /Users/ben/work/LLMTier/src/llmtier_v03/auth.py m5air:/Users/mlp/LLMTier-dev/src/llmtier_v03/auth.py
-rsync -avz /Users/ben/work/LLMTier/src/llmtier_v03/providers/ m5air:/Users/mlp/LLMTier-dev/src/llmtier_v03/providers/
+rsync -avz /Users/ben/work/LLMTier/src/http_api/app.py m5air:/Users/mlp/LLMTier-dev/src/http_api/app.py
+rsync -avz /Users/ben/work/LLMTier/src/management/admin.py m5air:/Users/mlp/LLMTier-dev/src/management/admin.py
+rsync -avz /Users/ben/work/LLMTier/src/http_api/auth.py m5air:/Users/mlp/LLMTier-dev/src/http_api/auth.py
+rsync -avz /Users/ben/work/LLMTier/src/inference/providers/ m5air:/Users/mlp/LLMTier-dev/src/inference/providers/
 
 # WebUI（修改了界面文件时同步）
-rsync -avz /Users/ben/work/LLMTier/src/llmtier_v03/webui/app.js m5air:/Users/mlp/LLMTier-dev/src/llmtier_v03/webui/app.js
-rsync -avz /Users/ben/work/LLMTier/src/llmtier_v03/webui/index.html m5air:/Users/mlp/LLMTier-dev/src/llmtier_v03/webui/index.html
-rsync -avz /Users/ben/work/LLMTier/src/llmtier_v03/webui/styles.css m5air:/Users/mlp/LLMTier-dev/src/llmtier_v03/webui/styles.css
-rsync -avz /Users/ben/work/LLMTier/src/llmtier_v03/webui/icons.svg m5air:/Users/mlp/LLMTier-dev/src/llmtier_v03/webui/icons.svg
+rsync -avz /Users/ben/work/LLMTier/src/web_ui/app.js m5air:/Users/mlp/LLMTier-dev/src/web_ui/app.js
+rsync -avz /Users/ben/work/LLMTier/src/web_ui/index.html m5air:/Users/mlp/LLMTier-dev/src/web_ui/index.html
+rsync -avz /Users/ben/work/LLMTier/src/web_ui/styles.css m5air:/Users/mlp/LLMTier-dev/src/web_ui/styles.css
+rsync -avz /Users/ben/work/LLMTier/src/web_ui/icons.svg m5air:/Users/mlp/LLMTier-dev/src/web_ui/icons.svg
 
 # 测试文件（修改了测试时同步）
 rsync -avz /Users/ben/work/LLMTier/tests/unit/v03/test_webui_contract.py m5air:/Users/mlp/LLMTier-dev/tests/unit/v03/test_webui_contract.py
@@ -92,7 +92,7 @@ ssh m5air "cd /Users/mlp/LLMTier-dev && \
   LLMTIER_DATA_TOKEN=dev-data \
   PYTHONPATH=src \
   /Library/Frameworks/Python.framework/Versions/3.14/bin/python3 \
-  -m llmtier_v03 \
+  -m http_api \
   --host 0.0.0.0 \
   --port 8181 \
   --database /Users/mlp/LLMTier-dev/state.sqlite3 \
@@ -128,7 +128,7 @@ ssh m5air "tail -5 /Users/mlp/LLMTier-dev/llmtier.log"
 → 用了系统 Python 3.9 而不是 3.14。必须用 `/Library/Frameworks/Python.framework/Versions/3.14/bin/python3`。
 
 ### 改了代码但页面没变化
-→ 没重启服务，或者 rsync 没同步到正确的文件。用 `ssh m5air "grep -c '函数名' /Users/mlp/LLMTier-dev/src/llmtier_v03/..."` 验证文件内容。
+→ 没重启服务，或者 rsync 没同步到正确的文件。用 `ssh m5air "grep -c '函数名' /Users/mlp/LLMTier-dev/src/<module>/..."` 验证文件内容。
 
 ### 浏览器打开页面空白
 → 服务没启动，或网络不通。先 `ssh m5air "curl http://localhost:8181/healthz"` 验证。
@@ -139,7 +139,7 @@ ssh m5air "tail -5 /Users/mlp/LLMTier-dev/llmtier.log"
 
 ```
 /Users/mlp/LLMTier-dev/          ← m5air 运行目录（不是 git repo）
-├── src/llmtier_v03/             ← 源码
+├── src/<module>/               ← 源码
 │   ├── app.py                   ← 主入口
 │   ├── admin.py                 ← Admin API
 │   ├── auth.py                  ← 认证

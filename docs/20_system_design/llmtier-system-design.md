@@ -605,12 +605,12 @@ python -m build            # 产出 sdist + wheel（可复现，无公网隐含�
 
 | 交付物 | 内容 | 身份 |
 |---|---|---|
-| Python 包 `llm-tier` | `llmtier_v03` 包（业务层 + 基础层代码） | wheel/sdist，含版本号 |
-| WebUI 静态资源 | `llmtier_v03/webui/`（HTML/JS/CSS/图标），随包分发 | 包内资源 |
-| 数据库迁移 | `llmtier_v03/migrations/*.sql`，随包分发 | 包内资源 |
+| Python 包 `llm-tier` | 按模块分包（`http_api`/`inference`/`management`/`observability`/`libdiag`/`util`/`log`/`web_ui`） | wheel/sdist，含版本号 |
+| WebUI 静态资源 | `web_ui/`（HTML/JS/CSS/图标），随包分发 | 包内资源 |
+| 数据库迁移 | `util/migrations/*.sql`，随包分发 | 包内资源 |
 | 默认配置样板 | `config/settings.json`（bootstrap 样例）+ 设置 Schema | 与 `interfaces/schemas/` 同源 |
 | 机器契约 | `interfaces/{openapi,compatibility,schemas,vectors}` | candidate 版本标识（见下） |
-| 启动入口 | `python -m llmtier_v03 --host --port --database [--settings]`；entry point `llmtier-v03` | 包 console script |
+| 启动入口 | `python -m http_api --host --port --database [--settings]`；entry point `llmtier-v03` | 包 console script |
 | 部署件（Planned） | systemd unit；TLS 反代与 SSO 配置（部署环境提供） | `deploy/` |
 | 文档 | `docs/`（设计、接口、验证、运维） | 随仓库发布 |
 
@@ -622,7 +622,7 @@ python -m build            # 产出 sdist + wheel（可复现，无公网隐含�
 
 **构建/内容/发布三者区分**：构建可重复（同输入同产物）、内容可追溯（制品 hash + 源码基线 + 锁定依赖）、已验证发布（目标平台安装与启动验证）分属不同门禁；本地构建成功不代表已发布。发布操作按 `docs/80_operations/llmtier-release-and-operations.md` 的 Gate 执行，本设计不授权部署或运行激活。
 
-**安装入口与兼容**：安装 `pip install <wheel>` 后以 `python -m llmtier_v03` 或 `llmtier-v03` 启动；不隐含公网下载；跨平台（Linux/macOS）以纯 Python + stdlib sqlite3 保证。
+**安装入口与兼容**：安装 `pip install <wheel>` 后以 `python -m http_api` 或 `llmtier-v03` 启动；不隐含公网下载；跨平台（Linux/macOS）以纯 Python + stdlib sqlite3 保证。
 
 ## 16. 实现计划与集成顺序
 

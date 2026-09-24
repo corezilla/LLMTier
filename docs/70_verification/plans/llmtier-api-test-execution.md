@@ -115,7 +115,7 @@ A 类与 B 类不能共享同一进程的 SQLite（写干扰），所以分两�
      - 数据库：`/tmp/llmtier_api_<uuid>/state.sqlite3`
      - env：`LLMTIER_ADMIN_TOKEN=dev-admin`、`LLMTIER_DATA_TOKEN=dev-data`
      - Python 3.14：`/Library/Frameworks/Python.framework/Versions/3.14/bin/python3`
-     - 启动命令：`PYTHONPATH=src python3 -m llmtier_v03 --host 127.0.0.1 --port <random> --database /tmp/...`
+     - 启动命令：`PYTHONPATH=src python3 -m http_api --host 127.0.0.1 --port <random> --database /tmp/...`
      - 等待 `/healthz` 200（最多 30s）
    - `fixture tmp_admin_client`：base_url=127.0.0.1:<随机端口>，Bearer dev-admin
    - session 结束：kill PID + rm -rf /tmp/llmtier_api_<uuid>/

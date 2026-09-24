@@ -94,7 +94,7 @@
 | LT-TL-013 | 多服务目录 `apps/`、`services/`、`packages/` | omit | 当前只有一个部署边界、一个服务 owner，根目录 `src/tests/docs` 已满足 STD | 过早分层会制造虚假 subsystem 与平行路径 | 用户已确认单服务 | ownership/deploy boundary 改变时重新 tailoring |
 | LT-TL-014 | `operations.release` | keep，C4 complete | 当前 package/CLI 与 release/rollback/recovery Gate 需要集中，但 production procedure/evidence 尚不存在 | 文档被误作 production runbook；以 Approved/Blocked 和独立 activation Gate 控制 | Owner ACCEPTED；L3 blocked | topology/persistence 等实际决定形成时另建 ADR |
 | LT-TL-015 | 顶层 `interfaces/` 与 `docs/99_reference/` | keep，C7 complete | HTTP/OpenAPI、compatibility、Schema 和 vectors 是多 consumer 机器 authority；历史 prose/future 不应继续占用非标准 `docs/contracts|design|qa|future` 路径 | 路径断链或双 authority | Owner ACCEPTED | 不适用 |
-| LT-TL-016 | `config/`、`state/` 与 flat `src/` | keep | 当前项目是一个独立 Python 服务：配置、Secret、状态和 entry point 均由本仓库拥有；无须多服务 workspace | 把历史 Slinky path 当成当前路径会造成双 authority | 用户 2026-09-09 指示；本轮文档 review | ownership/deploy boundary 改变时重审 |
+| LT-TL-016 | `config/`、`state/` 与 `src/<module>/` | keep | 单服务：配置、Secret、状态和 entry point 均由本仓库拥有；无须多服务 workspace。源码按 STD 0.1.0-draft.31 的 `src/<module>/`（本项目无软件子系统，故不用 `src/<subsystem>/<module>/`）分模块：`http_api`/`web_ui`/`inference`/`management`/`observability`/`libdiag`/`util`/`log` | 把历史 Slinky path 当成当前路径会造成双 authority | 用户 2026-09-24 指示；STD `0.1.0-draft.31`（`dbcf87a`） | ownership/deploy boundary 改变时重审 |
 
 ## 4. 禁止裁剪项
 

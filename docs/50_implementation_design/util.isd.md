@@ -636,7 +636,7 @@ flowchart TD
 - **模块 / 原成员 ID**：M007 / `F-UTIL-CONN`
 - **唯一来源 / 版本 / selector / hash**：`util` / `0.1.0-draft.1` / `#2.1`
 - **提供或消费 / backend**：提供 / sqlite3
-- **实际位置或 Planned 计划位置**：`src/llmtier_v03/store.py` `Store.connection`
+- **实际位置或 Planned 计划位置**：`src/util/store.py` `Store.connection`
 - **验证项**：`VRC-UTIL-001`
 - **实现状态**：PLANNED
 - **验证状态 / Run**：NOT_RUN

@@ -626,7 +626,7 @@ flowchart TD
 - **模块 / 原成员 ID**：M006 / `F-DIAG-SWITCH`、`F-DIAG-TRACE`、`F-DIAG-SNAPSHOT`、`F-DIAG-STATS`、`F-DIAG-INJECT`、`F-DIAG-TRACES`、`F-DIAG-STREAM`、`F-DIAG-CLEANUP`
 - **唯一来源 / 版本 / selector / hash**：`libdiag` / `0.1.0-draft.1`
 - **提供或消费 / backend**：提供 / SQLite
-- **实际位置或 Planned 计划位置**：`src/llmtier_v03/diagnostics.py` `DiagnosticsService`
+- **实际位置或 Planned 计划位置**：`src/libdiag/diagnostics.py` `DiagnosticsService`
 - **验证项**：`VRC-DIAG-001..004`
 - **实现状态**：PLANNED
 - **验证状态 / Run**：NOT_RUN

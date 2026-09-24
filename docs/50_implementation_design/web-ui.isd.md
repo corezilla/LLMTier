@@ -539,7 +539,7 @@ flowchart TD
 - **模块 / 原成员 ID**：M002 / `F-UI-*`
 - **唯一来源 / 版本 / selector / hash**：`web-ui` / `0.1.0-draft.1`
 - **提供或消费 / backend**：提供（浏览器页面）/ M001 同源 HTTP
-- **实际位置或 Planned 计划位置**：`src/llmtier_v03/webui/{index.html,app.js,styles.css,icons.svg}`
+- **实际位置或 Planned 计划位置**：`src/web_ui/{index.html,app.js,styles.css,icons.svg}`
 - **验证项**：`VRC-UI-001..006`
 - **实现状态**：PLANNED
 - **验证状态 / Run**：NOT_RUN

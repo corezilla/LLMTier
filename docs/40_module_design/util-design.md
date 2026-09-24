@@ -202,7 +202,7 @@
 - **验证项**：`VRC-UTIL-001`
 
 #### 6.2 `migrations/*.sql`
-- **Authority / 定义位置**：`src/llmtier_v03/migrations/`
+- **Authority / 定义位置**：`src/util/migrations/`
 - **字段**：`001_initial.sql`、`002_observability.sql`
 - **键与跨字段约束**：幂等（`IF NOT EXISTS`）
 - **Writer / Reader**：I3 执行
@@ -333,7 +333,7 @@
 
 ### 13.1 文件分解（设计 → 代码文件）
 
-#### 13.1.1 `src/llmtier_v03/store.py`
+#### 13.1.1 `src/util/store.py`
 - **职责 / 非职责**：I1–I4 连接/事务/迁移/查询；不含业务语义
 - **关键 symbol / 导出范围**：`Store.connection/migrate/transaction/one/all/close`
 - **承接 Function / Rule / Constraint / Interface ID**：`F-UTIL-*`、`RULE-UTIL-*`、`C-CFG-1/3`、`IF-UTIL-STORE`
@@ -341,7 +341,7 @@
 - **实现状态**：Implemented
 - **验证入口**：`VRC-UTIL-001/002`
 
-#### 13.1.2 `src/llmtier_v03/migrations/001_initial.sql` / `002_observability.sql`
+#### 13.1.2 `src/util/migrations/001_initial.sql` / `002_observability.sql`
 - **职责 / 非职责**：建表（配置/账本/审计/日志/观测）；不含业务逻辑
 - **关键 symbol / 导出范围**：全部表
 - **承接 Function / Rule / Constraint / Interface ID**：`R-OBS-06`；各业务模块的表契约
@@ -417,7 +417,7 @@
 - **选项 / 推荐 / 下一步取证**：WAL + `BEGIN IMMEDIATE`；实测调参
 - **关闭条件 / 决定或当前状态**：观察
 
-引用：系统设计 §3.2/§10；机制 M-CONFIG §14.4（`R-CFG-03`）、M-OBS §14.4（`R-OBS-06`）；`src/llmtier_v03/store.py`、`migrations/`。
+引用：系统设计 §3.2/§10；机制 M-CONFIG §14.4（`R-CFG-03`）、M-OBS §14.4（`R-OBS-06`）；`src/util/store.py`、`migrations/`。
 
 ## 附录 A. 机制承接表
 
