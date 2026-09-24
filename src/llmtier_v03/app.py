@@ -257,6 +257,8 @@ def handler_factory(app: Application):
                 since, until = query.get("since", [None])[0], query.get("until", [None])[0]
                 if not since or not until: raise ApiError(400, "invalid_request", "since and until are required")
                 return self._json(200, app.diagnostics.stats(since, until, query.get("deployment_id", [None])[0], query.get("model", [None])[0]))
+            if path == "/tier/admin/v1/diagnostics/traces" and method == "GET":
+                return self._json(200, app.diagnostics.traces(query.get("since", [None])[0], query.get("until", [None])[0], query.get("deployment_id", [None])[0], query.get("model", [None])[0], _int_param(query, "limit", 50), query.get("cursor", [None])[0]))
             match = re.fullmatch(r"/tier/admin/v1/deployments/([^/]+)/diagnostics", path)
             if match:
                 did = match.group(1)

@@ -10,6 +10,7 @@
       <button data-page="providers"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-server"></use></svg>Providers</button>
       <button data-page="stats"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-chart-no-axes-combined"></use></svg>Stats</button>
       <button data-page="logs"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-logs"></use></svg>Logs</button>
+      <button data-page="diagnostics"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-activity"></use></svg>Diagnostics</button>
     </nav>
     <footer>Single-node console<br>OpenAI-compatible API</footer>
   </aside>
@@ -55,6 +56,27 @@
       <div id="usage" class="sub active"><div class="card"><div class="cardhead"><b>Token Usage</b><button id="refresh-usage" class="icon-button" title="Refresh usage" aria-label="Refresh usage"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-refresh-cw"></use></svg></button></div><div class="tablewrap"><table><thead><tr><th>Request</th><th>Model</th><th>Endpoint</th><th>Input</th><th>Output</th><th>Total</th><th>Status</th></tr></thead><tbody id="usage-body"></tbody></table></div></div></div>
       <div id="audit" class="sub"><div class="card"><div class="cardhead"><b>Administrative Audit</b><button id="refresh-audit" class="icon-button" title="Refresh audit" aria-label="Refresh audit"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-refresh-cw"></use></svg></button></div><div class="tablewrap"><table><thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Target</th><th>Result</th></tr></thead><tbody id="audit-body"></tbody></table></div></div></div>
       <div id="events" class="sub"><div class="toolbar"><select id="log-level"><option value="">All levels</option><option>info</option><option>warning</option><option>error</option></select><input id="log-module" placeholder="Module"></div><div class="card"><div class="cardhead"><b>Runtime Logs</b><span>Request bodies, model outputs, and credentials are never shown</span><button id="refresh-logs" class="icon-button" title="Refresh logs" aria-label="Refresh logs"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-refresh-cw"></use></svg></button></div><div class="tablewrap"><table><thead><tr><th>Time</th><th>Level</th><th>Module</th><th>Event</th><th>Summary</th><th>Request ID</th></tr></thead><tbody id="log-body"></tbody></table></div></div></div>
+    </section>
+
+    <section id="diagnostics" class="page">
+      <div class="toolbar">
+        <div class="tabs">
+          <button class="active" data-dtab="snapshots">Snapshots</button>
+          <button data-dtab="dstats">Stats</button>
+          <button data-dtab="traces">Traces</button>
+          <button data-dtab="inj">Injections</button>
+        </div>
+        <div class="actions">
+          <label class="check"><input type="checkbox" id="diag-toggle-snapshots"> Snapshots</label>
+          <label class="check"><input type="checkbox" id="diag-toggle-stats"> Stats</label>
+          <button id="refresh-diag" class="icon-button" title="Refresh diagnostics" aria-label="Refresh diagnostics"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/ui/icons.svg#icon-refresh-cw"></use></svg></button>
+        </div>
+      </div>
+      <p id="diag-error" class="error"></p>
+      <div id="snapshots" class="dsub active"><div class="card"><div class="cardhead"><b>Diagnostic Snapshots</b><span>Prompts, outputs and credentials are never stored</span></div><div class="tablewrap"><table><thead><tr><th>Time</th><th>Request ID</th><th>Deployment</th><th>Model</th><th>Status</th><th>Latency (ms)</th><th>Error</th></tr></thead><tbody id="snapshots-body"></tbody></table></div></div></div>
+      <div id="dstats" class="dsub"><div class="card"><div class="cardhead"><b>Data Plane Stats</b><span>Aggregated per hour (UTC)</span></div><div class="tablewrap"><table><thead><tr><th>Hour</th><th>Deployment</th><th>Model</th><th>Requests</th><th>Errors</th><th>p50 (ms)</th><th>p95 (ms)</th></tr></thead><tbody id="dstats-body"></tbody></table></div></div></div>
+      <div id="traces" class="dsub"><div class="card"><div class="cardhead"><b>Request Traces</b><span>Select a row for the full stage timeline</span></div><div class="tablewrap"><table><thead><tr><th>First seen</th><th>Request ID</th><th>Correlation</th><th>Stages</th></tr></thead><tbody id="traces-body"></tbody></table></div><pre id="trace-detail" class="trace-detail"></pre></div></div>
+      <div id="inj" class="dsub"><div class="card"><div class="cardhead"><b>Fault Injections</b><span>Diagnostics only; injected failures surface as upstream errors</span></div><div class="toolbar"><select id="diag-deployment"></select></div><div id="inj-body" class="tree"></div></div></div>
     </section>
   </main>
 </div>

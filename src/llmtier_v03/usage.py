@@ -53,6 +53,14 @@ class UsageRecorder:
 
     def page(self, principal: str, cursor: str | None, limit: int = 50, admin: bool = False, since: str | None = None, until: str | None = None, model: str | None = None, request_id: str | None = None) -> dict[str, Any]:
         try:
+            return self._page(principal, cursor, limit, admin, since, until, model, request_id)
+        except ApiError:
+            raise
+        except Exception as exc:
+            raise ApiError(503, "usage_store_unavailable", "Usage store is unavailable") from exc
+
+    def _page(self, principal: str, cursor: str | None, limit: int = 50, admin: bool = False, since: str | None = None, until: str | None = None, model: str | None = None, request_id: str | None = None) -> dict[str, Any]:
+        try:
             start = datetime.fromisoformat((since or "").replace("Z", "+00:00")); end = datetime.fromisoformat((until or "").replace("Z", "+00:00"))
         except ValueError as exc: raise ApiError(400, "invalid_request", "from and to must be RFC3339 date-times") from exc
         if start >= end: raise ApiError(400, "invalid_request", "from must be before to")

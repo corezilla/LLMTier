@@ -93,3 +93,38 @@ class InjectionEnforcementTests(unittest.TestCase):
         self.d.set_injections(self.did, [{"type": "delay", "config": {"delay_ms": 10}, "enabled": True}])
         result = self.service.create("p", "r-delay", self.body)
         self.assertEqual(result["status"], "completed")
+
+
+class TracesQueryTests(unittest.TestCase):
+    """M006 FUNC-DIAG-TRACES / cleanup (VRC-DIAG-004)."""
+
+    def setUp(self):
+        self.fx = AppFixture(); self.fx.seed(); self.d = self.fx.app.diagnostics
+        self.window = {"since": "2000-01-01T00:00:00Z", "until": "2100-01-01T00:00:00Z"}
+
+    def tearDown(self): self.fx.close()
+
+    def test_traces_dedups_by_request_and_stable_paging(self):
+        self.d.record_trace("r1", "received", None)
+        self.d.record_trace("r1", "completed", None)
+        self.d.record_trace("r2", "received", None)
+        page = self.d.traces(**self.window)
+        self.assertEqual(sorted(item["request_id"] for item in page["items"]), ["r1", "r2"])
+        self.assertFalse(page["has_more"])
+        first = self.d.traces(limit=1, **self.window)
+        self.assertTrue(first["has_more"]); self.assertIsNotNone(first["next_cursor"])
+        second = self.d.traces(limit=1, cursor=first["next_cursor"], **self.window)
+        self.assertEqual(len(second["items"]), 1)
+        self.assertNotEqual(first["items"][0]["request_id"], second["items"][0]["request_id"])
+
+    def test_cleanup_removes_expired_and_returns_count(self):
+        self.d.record_trace("old", "received", None)
+        self.fx.app.store.connection().execute("UPDATE trace_events SET created_at='2000-01-01T00:00:00.000Z'")
+        deleted = self.d.cleanup(7)
+        self.assertGreaterEqual(deleted, 1)
+        self.assertEqual(self.d.traces(**self.window)["items"], [])
+
+    def test_set_switches_rejects_non_boolean(self):
+        with self.assertRaises(ApiError) as cm:
+            self.d.set_switches(snapshots_enabled="yes")
+        self.assertEqual(cm.exception.code, "invalid_request")

@@ -75,6 +75,9 @@ details[open] summary{background:transparent}
 .stats-toolbar .stats-range button.active{background:var(--blue);color:white;font-weight:500}
 .sub{display:none}
 .sub.active{display:block}
+.dsub{display:none}
+.dsub.active{display:block}
+.trace-detail{white-space:pre-wrap;font-size:12px;color:var(--muted);margin:0;padding:8px 0;max-height:240px;overflow:auto}
 .tablewrap{overflow:auto}
 table{width:100%;border-collapse:collapse}
 th,td{text-align:left;padding:10px 13px;border-bottom:1px solid #edf0f3;white-space:nowrap}

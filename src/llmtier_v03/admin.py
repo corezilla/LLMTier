@@ -110,7 +110,7 @@ class AdminService:
         adapter = (LocalProvider if provider["kind"] == "local" else OpenAIProvider)(provider["endpoint"], row["secret_ref"] if row else None)
         status = "healthy" if adapter.probe() else "unhealthy"
         result = apply_probe_result(self.registry, deployment["id"], status, request_id)
-        self.audit.record(actor, "deployment.probe", deployment["id"], status, request_id)
+        self.audit.record(actor, "deployment.probe", deployment["id"], "success", request_id)
         return {"deployment_id": deployment["id"], "status": status, "checked_at": result["checked_at"], "may_have_incurred_cost": False}
 
     def list_provider_models(self, provider_id: str) -> list[str]:
