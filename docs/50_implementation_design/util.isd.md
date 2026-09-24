@@ -146,6 +146,45 @@ DDL 是跨模块内部契约；本层是 schema 的**唯一落点**，改动须�
 - **借用期限 / 释放者**：`Row` 已物化，可在连接关闭后读取；调用方持有
 - **公共类型来源**：标准库
 
+#### 3.4 SQLite 表结构（DDL，本层权威）
+
+编码以本表为权威；`migrations/001_initial.sql`、`002_observability.sql` 是它的编码（列/约束不得偏离）。
+
+**基础表（`001_initial.sql`）**
+
+| 表 | 列（类型 / 约束）|
+|---|---|
+| `schema_meta` | `singleton` INTEGER PK CHECK=1；`schema_version` INTEGER NOT NULL；`initialized_at` TEXT NOT NULL；`bootstrap_sha256` TEXT |
+| `providers` | `id` TEXT PK；`name` TEXT UNIQUE NOT NULL；`kind` TEXT CHECK IN(cloud,local)；`endpoint` TEXT；`secret_ref` TEXT；`enabled` INTEGER；`version` INTEGER |
+| `deployments` | `id` PK；`name` UNIQUE；`provider_id` FK→providers；`backend_model`；`capabilities_json`；`enabled`；`health` DEFAULT 'unknown'；`version` |
+| `service_levels` | `id` PK；`enabled`；`capabilities_json`；`version` |
+| `service_level_deployments` | `level_id` FK ON DELETE CASCADE；`deployment_id` FK；`ordinal`；PK(level_id,deployment_id)；UNIQUE(level_id,ordinal) |
+| `deployment_runtime_profiles` | `deployment_id` PK FK CASCADE；`max_in_flight` DEFAULT 1；`connect_timeout_ms` DEFAULT 30000；`stream_idle_timeout_ms` DEFAULT 60000；`version` |
+| `provider_usage_profiles` | `provider_id` PK FK CASCADE；`usage_provider` DEFAULT 'none'；`usage_api_key_ref`/`usage_access_key_ref`/`usage_secret_key_ref`；`max_concurrent_requests` DEFAULT 1；`min_request_interval_ms` DEFAULT 0；`requests_per_minute` DEFAULT 0；`version` |
+| `provider_usage_snapshots` | `provider_id` PK FK CASCADE；`snapshot_json`；`checked_at` |
+| `provider_request_bindings` | `principal_id`；`request_id`；`provider_id` FK；`deployment_id` FK；`bound_at`；PK(principal_id,request_id) |
+| `usage_obligations` | `principal_id`；`request_id`；`model`；`endpoint`；`recorded_at`；`dispatch_authorized_at`；PK(principal_id,request_id) |
+| `usage_record_versions` | `principal_id`；`request_id`；`record_version`；`is_final`；`model`；`endpoint`；`recorded_at`；`updated_at`；`measurement_status`；`source`；`input_tokens`；`output_tokens`；`total_tokens`；`cached_input_tokens`；`cache_write_tokens`；`reasoning_tokens`；PK(principal_id,request_id,record_version)；FK→`usage_obligations` |
+| `usage_heads` | `principal_id`；`request_id`；`head_record_version`；`updated_at`；PK(principal_id,request_id)；FK→`usage_record_versions` |
+| `query_snapshots` | `snapshot_id` PK；`principal_id`；`snapshot_kind`；`filter_digest`；`authorization_digest`；`created_at`；`expires_at` |
+| `query_snapshot_items` | `snapshot_id` FK CASCADE；`ordinal`；`request_id`；`record_version`；`frozen_view_json`；`etag`；PK(snapshot_id,ordinal)；UNIQUE(snapshot_id,request_id) |
+| `probe_results` | `deployment_id` PK FK CASCADE；`status`；`checked_at`；`request_id`；`detail` |
+| `audit_events` | `id` PK；`actor`；`action`；`target`；`result`；`created_at`；`request_id` |
+| `operational_logs` | `id` PK；`created_at`；`level`；`module`；`event`；`message` CHECK(length≤512)；`request_id` |
+
+**观测表（`002_observability.sql`）**
+
+| 表 | 列（类型 / 约束）|
+|---|---|
+| `diagnostic_settings` | `singleton` PK CHECK=1；`snapshots_enabled` DEFAULT 0；`stats_enabled` DEFAULT 0 |
+| `diagnostic_snapshots` | `id` PK；`request_id`；`captured_at`；`upstream_url`；`backend_model`；`http_status`；`latency_ms`；`error_summary`；`model`；`deployment_id`；`snapshot_type` DEFAULT 'upstream' |
+| `diagnostic_injections` | `id` PK；`deployment_id`；`injection_type`；`fault_status`；`fault_body`；`delay_ms`；`retry_after_sec`；`stream_terminate_after_events`；`malformed_after_events`；`malformed_event_type`；`enabled` DEFAULT 0；`updated_at`；UNIQUE(deployment_id,injection_type) |
+| `data_plane_stats` | `stat_hour`；`deployment_id`；`model`；`status`；`request_count` DEFAULT 0；`error_count` DEFAULT 0；`updated_at`；PK(stat_hour,deployment_id,model,status) |
+| `data_plane_latency_samples` | `stat_hour`；`deployment_id`；`model`；`latency_ms` NOT NULL；`created_at` |
+| `trace_events` | `id` PK；`request_id`；`stage`；`stage_timestamp`；`detail`；`correlation_id`；`created_at` |
+
+**初始化行**：`INSERT OR IGNORE schema_meta(1,1,...)`；`provider_usage_profiles` 对每个 provider 补默认（`local`→`local`，否则 `none`）。
+
 **所有权图**
 
 ```text
@@ -167,6 +206,8 @@ DDL 是跨模块内部契约；本层是 schema 的**唯一落点**，改动须�
 - **副作用**：创建父目录
 - **幂等**：可重复构造不同 `Store`
 - **所有权**：`path` 保存为 `str`；`_local` 归实例
+- **不可改变**：父目录自动创建
+- **可自行决定**：目录创建实现
 
 #### 4.2 `Store.connection(self) -> sqlite3.Connection`
 - **前置条件**：—
@@ -176,15 +217,23 @@ DDL 是跨模块内部契约；本层是 schema 的**唯一落点**，改动须�
 - **副作用**：可能新建连接并在同一连接执行 PRAGMA
 - **幂等**：同线程多次调用返回同一对象
 - **所有权**：连接归线程；调用方**不得**关闭（由 `close()` 统一）
+- **不可改变**：`timeout=10`、`isolation_level=None`、`row_factory=Row`、`foreign_keys=ON`、`journal_mode=WAL`
+- **可自行决定**：PRAGMA 执行时机/方式
 
 #### 4.3 `Store.migrate(self) -> None`
+- **常量**：`EXPECTED_SCHEMA_VERSION = 1`（模块级）
 - **前置条件**：`store.py` 同目录存在 `migrations/`
-- **行为**：`sorted(migrations.glob("*.sql"))` 逐个 `executescript(read_text())`；随后 `PRAGMA integrity_check`
+- **行为**（**仅初始化 + 版本拒绝**）：
+  1. 读 `schema_meta.schema_version`；若库非空且 `≠ EXPECTED_SCHEMA_VERSION` → 抛 `ApiError(503, "schema_version_mismatch")`（拒绝启动，见 §6.2）
+  2. `for f in sorted(migrations.glob("*.sql")): connection().executescript(f.read_text())`
+  3. `PRAGMA integrity_check`；`≠ "ok"` → 抛 `ApiError(503, "schema_integrity_failed")`
 - **返回**：None
-- **错误**：`integrity_check != "ok"` → `RuntimeError(f"sqlite_integrity_check_failed:{result}")`
+- **错误**：版本不符 → `schema_version_mismatch`；完整性失败 → `schema_integrity_failed`
 - **副作用**：建表（幂等 DDL）
-- **幂等**：脚本使用 `IF NOT EXISTS`/`INSERT OR IGNORE`，重复执行安全
-- **所有权**：无（连接经 `connection()`）
+- **幂等**：脚本使用 `IF NOT EXISTS`/`INSERT OR IGNORE`；空库重复执行安全
+- **迁移文件契约**：命名 `NNN_<slug>.sql`（三位序号，字典序即执行序）；**一文件一事**、可重复执行（幂等）、不含数据回填以外的业务逻辑
+- **不可改变**：`schema_version` 固定 `1`；拒绝语义
+- **可自行决定**：迁移目录定位方式、文件内部组织
 
 #### 4.4 `Store.transaction(self, immediate: bool = False) -> Iterator[Connection]`
 - **前置条件**：—
@@ -195,6 +244,8 @@ DDL 是跨模块内部契约；本层是 schema 的**唯一落点**，改动须�
 - **幂等**：不幂等
 - **嵌套契约**：**不可嵌套**——SQLite 不允许事务内再 `BEGIN`（调用方若已在事务中，必须直接使用传入的 `Connection`，不得再次调用 `Store.transaction()`）。本设计**不**提供 SAVEPOINT 嵌套语义
 - **所有权**：事务内连接由调用方使用，退出上下文提交/回滚
+- **不可改变**：异常必 rollback；`immediate=True` 用 `BEGIN IMMEDIATE`
+- **可自行决定**：上下文管理器实现
 
 #### 4.5 `Store.one(sql, params) -> Row | None` / `Store.all(sql, params) -> [Row]`
 - **前置条件**：SQL 合法
@@ -204,6 +255,8 @@ DDL 是跨模块内部契约；本层是 schema 的**唯一落点**，改动须�
 - **语义**：**"执行并取行"的通用 helper**，**不**做只读限制（可执行 `INSERT ... RETURNING` 等）；需要只读时应由调用方约束 SQL
 - **幂等**：取决于传入 SQL
 - **所有权**：`sqlite3.Row` 已物化，可在连接关闭后读取；调用方持有
+- **不可改变**：返回 `Row`（非 `tuple`）
+- **可自行决定**：无
 
 #### 4.6 `Store.close(self) -> None`
 - **前置条件**：—
@@ -213,6 +266,8 @@ DDL 是跨模块内部契约；本层是 schema 的**唯一落点**，改动须�
 - **副作用**：释放**当前线程**的连接
 - **幂等**：重复调用安全（第二次为 None 直接返回）
 - **所有权**：只释放线程内连接；**不能**关闭其他线程的连接
+- **不可改变**：只关本线程、不吞异常
+- **可自行决定**：无
 
 ## 5. 关键流程与算法
 
@@ -271,6 +326,8 @@ close():
 - **锁范围/顺序**：无显式锁；SQLite 内部锁。锁内不调用外部 I/O。
 - **取消/超时**：无取消接口；锁等待超 `timeout` 抛 `sqlite3.OperationalError`。
 - **生命周期**：宿主启动时执行 schema 初始化（`migrate()`）；每请求结束释放该线程连接（`close()`）；宿主停机时释放其自身线程连接。
+- **`close()` 调用点（契约）**：由**宿主**在每请求结束（`finally`）与停机时调用；本层**不**自行调度、不后台回收连接。
+- **并发启动裁决**：多实例同时启动时，`migrate()` 的 DDL 由 SQLite 写锁串行化；未获锁方按 `timeout=10` 等待，超时抛 `OperationalError`（宿主判为启动失败）。仅初始化下：先到者建表并把 `schema_version` 置 `1`；后到者见库非空 + 版本匹配 → 直接继续。
 
 **状态查询/重放/接管/新业务重试**：N/A（基础层无副作用编排；由业务模块决定）。
 
@@ -320,7 +377,7 @@ close():
 
 #### 6.4 错误传播矩阵
 
-本层抛出的底层异常如何被映射（`Store 异常 → 业务模块是否处理 → HTTP 状态/code → 日志 → 是否可重试`）。
+本层抛出的底层异常如何被映射（`Store 异常 → 业务模块是否处理 → HTTP 状态/code → 日志 → 是否可重试`）。**本矩阵由宿主/业务模块实现**；`store.py` 只抛底层异常（`sqlite3.Error` / `ApiError`）。
 
 | Store 异常 / 场景 | 业务模块是否处理 | HTTP 状态 / code | 记录日志 | 允许重试 |
 |---|---|---|---|---|
@@ -352,7 +409,7 @@ close():
 | Rule/成员 | V / Case / Vector | 输入/故障/环境 | Oracle/Expected | Actual/Evidence | Verdict | 测试入口/清理 | Run ID/Status |
 |---|---|---|---|---|---|---|---|
 | `RULE-UTIL-PRAGMA` | `VRC-UTIL-001`/v1 | 打开连接 | `PRAGMA foreign_keys`=1；`journal_mode`=wal | NOT_RUN | NOT_RUN | `tests/unit/v03` | NOT_RUN |
-| `RULE-UTIL-FD` | `VRC-UTIL-001`/v2 | 并发请求后 | 每请求 fd 稳定（`close()` 兜底）| NOT_RUN | NOT_RUN | 并发用例 | NOT_RUN |
+| `RULE-UTIL-FD` | `VRC-UTIL-001`/v2 | N 次请求（每请求 `close()`）| 结束后进程 fd 数 ≤ 基线（不随请求数增长）| NOT_RUN | NOT_RUN | 并发用例 | NOT_RUN |
 | `RULE-UTIL-TXN` | `VRC-UTIL-002`/v1 | 事务内抛异常 | 无半写；库不变 | NOT_RUN | NOT_RUN | `tests/unit/v03` | NOT_RUN |
 | `RULE-UTIL-MIGRATE` | `VRC-UTIL-002`/v2 | 连续两次 `migrate()` | 幂等、不报错 | NOT_RUN | NOT_RUN | `tests/unit/v03` | NOT_RUN |
 | `RULE-UTIL-MIGRATE` | `VRC-UTIL-002`/v3 | 损坏库 | `integrity_check`≠ok → 启动失败 | NOT_RUN | NOT_RUN | 故障注入 | NOT_RUN |
@@ -360,7 +417,7 @@ close():
 | `RULE-UTIL-MIGRATE` | `VRC-UTIL-002`/v5 | 迁移脚本中途失败 | 仅初始化下不接受部分应用（见 §6.2）| NOT_RUN | NOT_RUN | 故障注入 | NOT_RUN |
 | `RULE-UTIL-TXN` | `VRC-UTIL-002`/v6 | 事务内再 `BEGIN` | `OperationalError`（不可嵌套）| NOT_RUN | NOT_RUN | `tests/unit/v03` | NOT_RUN |
 | `RULE-UTIL-PRAGMA` | `VRC-UTIL-001`/v3 | busy 锁等待 | 超 `timeout` → `OperationalError` | NOT_RUN | NOT_RUN | 并发用例 | NOT_RUN |
-| `RULE-UTIL-MIGRATE` | `VRC-UTIL-002`/v7 | 并发启动 | 单实例成功、另一实例安全 | NOT_RUN | NOT_RUN | 并发用例 | NOT_RUN |
+| `RULE-UTIL-MIGRATE` | `VRC-UTIL-002`/v7 | 两实例并发 `migrate()` | 一个成功建表；另一个成功或明确 `OperationalError`；**无部分/损坏表** | NOT_RUN | NOT_RUN | 并发用例 | NOT_RUN |
 | `RULE-UTIL-FD` | `VRC-UTIL-001`/v4 | close 异常 | 向上抛（不吞）| NOT_RUN | NOT_RUN | `tests/unit/v03` | NOT_RUN |
 | `RULE-UTIL-CONN` | `VRC-UTIL-001`/v5 | world-writable 文件 | 启动告警 | NOT_RUN | NOT_RUN | 故障注入 | NOT_RUN |
 
