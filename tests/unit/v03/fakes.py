@@ -4,8 +4,8 @@ import json
 import tempfile
 from pathlib import Path
 
-from llmtier_v03.app import Application
-from llmtier_v03.providers.base import ProviderResult
+from http_api.app import Application
+from inference.providers.base import ProviderResult
 
 
 def response_capabilities():

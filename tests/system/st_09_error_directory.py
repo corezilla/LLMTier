@@ -41,7 +41,7 @@ def _boot_llmtier(REPO):
     env["PYTHONPATH"] = str(REPO / "src")
     env["LLMTIER_TRUSTED_LAN_MODE"] = "1"
     proc = subprocess.Popen(
-        ["/usr/local/bin/python3", "-m", "llmtier_v03",
+        ["/usr/local/bin/python3", "-m", "http_api",
          "--host", "127.0.0.1", "--port", str(port),
          "--database", str(db),
          "--settings", str(root / "settings.json")],

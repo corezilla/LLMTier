@@ -9,7 +9,7 @@ import warnings
 from pathlib import Path
 from typing import Iterator, Sequence
 
-from .errors import ApiError
+from http_api.errors import ApiError
 
 EXPECTED_SCHEMA_VERSION = 1
 

@@ -8,7 +8,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-from ..errors import ApiError
+from http_api.errors import ApiError
 from .base import ProviderResult
 
 

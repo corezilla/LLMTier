@@ -14,7 +14,7 @@ dependencies = []
 test = ["jsonschema>=4.23,<5"]
 
 [project.scripts]
-llm-tier-v03 = "llmtier_v03.__main__:main"
+llm-tier-v03 = "http_api.__main__:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

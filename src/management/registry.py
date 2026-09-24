@@ -9,8 +9,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .errors import ApiError, require
-from .store import Store, txn
+from http_api.errors import ApiError, require
+from util.store import Store, txn
 
 
 FIXED_TIERS = ("Senior", "Junior", "Worker", "Associate", "Engineer", "Executor", "Embedding-v1")

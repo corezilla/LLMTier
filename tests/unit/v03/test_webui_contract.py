@@ -2,7 +2,7 @@ import unittest
 from pathlib import Path
 
 
-ROOT=Path(__file__).parents[3]/"src/llmtier_v03/webui"
+ROOT=Path(__file__).parents[3]/"src/web_ui"
 
 
 class WebUIContractTests(unittest.TestCase):

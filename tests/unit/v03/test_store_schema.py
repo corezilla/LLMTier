@@ -10,8 +10,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from llmtier_v03.errors import ApiError
-from llmtier_v03.store import Store
+from http_api.errors import ApiError
+from util.store import Store
 
 
 class StoreSchemaTests(unittest.TestCase):

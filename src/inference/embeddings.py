@@ -6,10 +6,10 @@ import struct
 import uuid
 from typing import Any
 
-from .errors import ApiError, require
+from http_api.errors import ApiError, require
 from .providers.local import LocalProvider
 from .providers.openai import OpenAIProvider
-from .registry import Registry
+from management.registry import Registry
 from .routing import Router
 from .usage import UsageRecorder
 

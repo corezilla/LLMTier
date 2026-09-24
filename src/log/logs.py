@@ -4,7 +4,7 @@ import re
 import uuid
 from datetime import datetime, timezone
 
-from .store import Store
+from util.store import Store
 
 
 _SENSITIVE = re.compile(r"(?i)(authorization|bearer\s+\S+|secret|api[_-]?key|token\s*[=:]\s*\S+)")

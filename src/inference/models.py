@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import time
 
-from .errors import ApiError
-from .registry import Registry
+from http_api.errors import ApiError
+from management.registry import Registry
 
 
 class ModelCatalog:

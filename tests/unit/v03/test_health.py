@@ -1,7 +1,7 @@
 import unittest
 
-from llmtier_v03.errors import ApiError
-from llmtier_v03.health import apply_probe_result, health_view, readiness_view
+from http_api.errors import ApiError
+from http_api.health import apply_probe_result, health_view, readiness_view
 from .fakes import AppFixture
 
 

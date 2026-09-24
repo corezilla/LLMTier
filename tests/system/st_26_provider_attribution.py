@@ -43,7 +43,7 @@ class ST26ProviderRequestAttribution(unittest.TestCase):
         env["PYTHONPATH"] = str(Path(__file__).resolve().parents[2] / "src")
         env["LLMTIER_TRUSTED_LAN_MODE"] = "1"
         cls.proc = subprocess.Popen(
-            ["/usr/local/bin/python3", "-m", "llmtier_v03",
+            ["/usr/local/bin/python3", "-m", "http_api",
              "--host", "127.0.0.1", "--port", str(cls.port),
              "--database", str(cls.db),
              "--settings", str(root / "settings.json")],

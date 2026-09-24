@@ -2,8 +2,8 @@ import os
 import unittest
 from unittest.mock import patch
 
-from llmtier_v03.auth import authenticate, unauthenticated_principal
-from llmtier_v03.errors import ApiError
+from http_api.auth import authenticate, unauthenticated_principal
+from http_api.errors import ApiError
 
 
 class Headers(dict):

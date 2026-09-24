@@ -3,8 +3,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from llmtier_v03 import __version__
-from llmtier_v03.app import Application, handler_factory
+from http_api import __version__
+from http_api.app import Application, handler_factory
 
 
 class StartupTests(unittest.TestCase):

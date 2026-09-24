@@ -7,8 +7,8 @@ from collections import deque
 from collections import defaultdict
 from contextlib import contextmanager
 
-from .errors import ApiError
-from .registry import Candidate, Registry
+from http_api.errors import ApiError
+from management.registry import Candidate, Registry
 
 
 class Router:

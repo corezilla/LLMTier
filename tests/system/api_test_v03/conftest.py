@@ -229,7 +229,7 @@ class LLMTierInstance:
             env["LLMTIER_SETTINGS"] = str(self._settings_path)
 
         self._proc = subprocess.Popen(
-            [sys.executable, "-m", "llmtier_v03",
+            [sys.executable, "-m", "http_api",
              "--host", "127.0.0.1",
              "--port", str(self.port)],
             env=env,

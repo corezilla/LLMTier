@@ -302,7 +302,7 @@ def main():
     }
 
     proc = subprocess.Popen(
-        [sys.executable, "-m", "llmtier_v03",
+        [sys.executable, "-m", "http_api",
          "--host", "127.0.0.1", "--port", str(PORT),
          "--database", str(root / "state.sqlite3"),
          "--settings", str(root / "settings.json")],

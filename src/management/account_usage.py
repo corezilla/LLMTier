@@ -11,9 +11,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from .errors import ApiError, require
-from .store import Store
-from .usage import now
+from http_api.errors import ApiError, require
+from util.store import Store
+from inference.usage import now
 
 
 MINIMAX_USAGE_URL = "https://www.minimaxi.com/v1/token_plan/remains"

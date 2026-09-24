@@ -1,6 +1,6 @@
 import unittest
 
-from llmtier_v03.errors import ApiError, require
+from http_api.errors import ApiError, require
 
 
 class ErrorTests(unittest.TestCase):

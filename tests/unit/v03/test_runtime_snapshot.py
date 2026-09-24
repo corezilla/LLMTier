@@ -3,9 +3,9 @@ import threading
 import time
 import unittest
 
-from llmtier_v03.registry import Registry
-from llmtier_v03.routing import Router
-from llmtier_v03.store import Store
+from management.registry import Registry
+from inference.routing import Router
+from util.store import Store
 
 
 class RuntimeSnapshotTests(unittest.TestCase):

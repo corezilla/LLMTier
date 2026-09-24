@@ -4,7 +4,7 @@ import threading
 import unittest
 from pathlib import Path
 
-from llmtier_v03.store import Store
+from util.store import Store
 
 
 class StoreTests(unittest.TestCase):

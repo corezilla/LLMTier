@@ -6,8 +6,8 @@ from email.message import Message
 from pathlib import Path
 from unittest.mock import patch
 
-from llmtier_v03.errors import ApiError
-from llmtier_v03.providers.openai import OpenAIProvider
+from http_api.errors import ApiError
+from inference.providers.openai import OpenAIProvider
 
 
 class FakeResponse:

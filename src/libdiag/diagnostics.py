@@ -7,8 +7,8 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable
 
-from .errors import ApiError
-from .store import Store, txn
+from http_api.errors import ApiError
+from util.store import Store, txn
 
 
 def now() -> str:

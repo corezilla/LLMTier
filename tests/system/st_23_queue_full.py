@@ -70,7 +70,7 @@ class ST23QueueFull429(unittest.TestCase):
         env["LLMTIER_TRUSTED_LAN_MODE"] = "1"
         env["LLMTIER_SLOW_ADAPTER_DELAY"] = "2.0"
         cls.proc = subprocess.Popen(
-            ["/usr/local/bin/python3", "-m", "llmtier_v03",
+            ["/usr/local/bin/python3", "-m", "http_api",
              "--host", "127.0.0.1", "--port", str(cls.port),
              "--database", str(cls.db),
              "--settings", str(root / "settings.json")],

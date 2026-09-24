@@ -38,7 +38,7 @@ class AccountUsageTests(unittest.TestCase):
             "secret_ref": "env:MINIMAX_API_KEY", "enabled": True, "usage": {"usage_provider": "minimax"},
         })
         payload = {"base_resp": {"status_code": 0}, "model_remains": [{"model_name": "general", "current_interval_remaining_percent": 87.5, "current_weekly_remaining_percent": 80}]}
-        with patch.dict("os.environ", {"MINIMAX_API_KEY": "test-key"}), patch("llmtier_v03.account_usage._urlopen", return_value=FakeResponse(payload)) as refresh:
+        with patch.dict("os.environ", {"MINIMAX_API_KEY": "test-key"}), patch("management.account_usage._urlopen", return_value=FakeResponse(payload)) as refresh:
             value = self.fx.app.account_usage.refresh(provider["id"], True)
         request = refresh.call_args.args[0]
         self.assertEqual(request.get_header("Authorization"), "Bearer test-key")
@@ -65,7 +65,7 @@ class AccountUsageTests(unittest.TestCase):
             seen["url"], seen["headers"], seen["timeout"] = request.full_url, dict(request.header_items()), timeout
             return FakeResponse(payload)
         provider, _ = self.fx.app.registry.create_provider({"name": "MiniMax 2", "kind": "cloud", "endpoint": "https://api.minimaxi.com/v1", "secret_ref": "env:MINI_KEY", "enabled": True, "usage": {"usage_provider": "minimax"}})
-        with patch.dict("os.environ", {"MINI_KEY": "key"}), patch("llmtier_v03.account_usage._urlopen", side_effect=open_request):
+        with patch.dict("os.environ", {"MINI_KEY": "key"}), patch("management.account_usage._urlopen", side_effect=open_request):
             result = self.fx.app.account_usage.refresh(provider["id"], True)
         self.assertEqual(seen["url"], "https://www.minimaxi.com/v1/token_plan/remains")
         self.assertEqual(seen["headers"]["Authorization"], "Bearer key")

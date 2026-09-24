@@ -41,7 +41,7 @@ def _boot(REPO, env_extra):
     env["PYTHONPATH"] = str(REPO / "src")
     env.update(env_extra)
     proc = subprocess.Popen(
-        ["/usr/local/bin/python3", "-m", "llmtier_v03",
+        ["/usr/local/bin/python3", "-m", "http_api",
          "--host", "127.0.0.1", "--port", str(port),
          "--database", str(db),
          "--settings", str(root / "settings.json")],

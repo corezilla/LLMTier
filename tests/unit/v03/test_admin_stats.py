@@ -2,7 +2,7 @@ import json
 import unittest
 from datetime import datetime, timedelta, timezone
 
-from llmtier_v03.usage import UsageRecorder
+from inference.usage import UsageRecorder
 from tests.unit.v03.fakes import AppFixture
 
 
@@ -63,7 +63,7 @@ class StatsEndpointTests(unittest.TestCase):
         self.assertEqual(result["data"][0]["total_tokens"], 30)
 
     def test_stats_rejects_invalid_group_by(self):
-        from llmtier_v03.errors import ApiError
+        from http_api.errors import ApiError
         with self.assertRaises(ApiError) as ctx:
             self.admin.stats("2000-01-01T00:00:00Z", "2999-12-31T23:59:59Z", "garbage")
         self.assertEqual(ctx.exception.code, "invalid_request")

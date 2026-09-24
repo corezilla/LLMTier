@@ -1,7 +1,7 @@
 import json
 import unittest
 
-from llmtier_v03.errors import ApiError
+from http_api.errors import ApiError
 from .fakes import AppFixture, FakeAdapter
 
 

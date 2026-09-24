@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from .errors import ApiError
-from .registry import FIXED_TIERS, Registry
+from management.registry import FIXED_TIERS, Registry
 
 
 def health_view(version: str) -> dict:

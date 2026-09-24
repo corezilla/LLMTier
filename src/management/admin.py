@@ -5,13 +5,13 @@ import json
 from datetime import datetime, timedelta, timezone
 
 from .audit import AuditLog
-from .errors import ApiError, require
-from .health import apply_probe_result
-from .logs import OperationalLog
-from .providers.local import LocalProvider
-from .providers.openai import OpenAIProvider
+from http_api.errors import ApiError, require
+from http_api.health import apply_probe_result
+from log.logs import OperationalLog
+from inference.providers.local import LocalProvider
+from inference.providers.openai import OpenAIProvider
 from .registry import Registry
-from .usage import UsageRecorder
+from inference.usage import UsageRecorder
 
 
 class AdminService:

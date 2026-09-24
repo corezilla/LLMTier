@@ -12,22 +12,22 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from . import __version__
-from .admin import AdminService
-from .account_usage import AccountUsageService
-from .audit import AuditLog
+from management.admin import AdminService
+from management.account_usage import AccountUsageService
+from management.audit import AuditLog
 from .auth import Principal, authenticate, authenticate_any, unauthenticated_principal
-from .embeddings import EmbeddingsService
+from inference.embeddings import EmbeddingsService
 from .errors import ApiError
 from .health import health_view, readiness_view
-from .logs import OperationalLog
-from .models import ModelCatalog
-from .registry import Registry
-from .responses import ResponsesService
-from .routing import Router
+from log.logs import OperationalLog
+from inference.models import ModelCatalog
+from management.registry import Registry
+from inference.responses import ResponsesService
+from inference.routing import Router
 from .sse import response_stream
-from .diagnostics import DiagnosticsService
-from .store import Store
-from .usage import UsageRecorder
+from libdiag.diagnostics import DiagnosticsService
+from util.store import Store
+from inference.usage import UsageRecorder
 
 
 def _int_param(query: dict, key: str, default: int) -> int:
@@ -89,7 +89,7 @@ def handler_factory(app: Application):
             return data
 
         def _static(self, path: str):
-            root = Path(__file__).with_name("webui")
+            root = Path(__file__).resolve().parent.parent / "web_ui"
             name = "index.html" if path in {"/", "/ui", "/ui/"} else path.removeprefix("/ui/")
             target = (root / name).resolve()
             if root.resolve() not in target.parents and target != root.resolve(): raise ApiError(404, "not_found", "Not found")

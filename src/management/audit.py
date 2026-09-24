@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from .store import Store
+from util.store import Store
 
 
 def _now() -> str:

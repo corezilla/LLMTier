@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from llmtier_v03.errors import ApiError
+from http_api.errors import ApiError
 from .fakes import AppFixture
 
 
@@ -37,5 +37,5 @@ class AdminTests(unittest.TestCase):
         with self.assertRaises(ApiError):self.admin.probe("a",{"deployment_id":"x","confirm_external_call":False},"r")
     def test_probe_updates_health(self):
         _,d=self.fx.seed()
-        with patch("llmtier_v03.admin.LocalProvider",ProbeAdapter):result=self.admin.probe("a",{"deployment_id":d["id"],"confirm_external_call":True},"r")
+        with patch("management.admin.LocalProvider",ProbeAdapter):result=self.admin.probe("a",{"deployment_id":d["id"],"confirm_external_call":True},"r")
         self.assertEqual(result["status"],"healthy")
