@@ -47,7 +47,7 @@
 
 #### 1.3 `F-UTIL-MIGRATE` / `RULE-UTIL-MIGRATE` · 迁移
 - **固定来源**：`util` / `0.1.0-draft.1` / `#5.1.3`
-- **ISD 细化内容 / 章节**：迁移文件枚举、`executescript`、`integrity_check`
+- **ISD 细化内容 / 章节**：迁移/初始化文件枚举、`executescript`、`integrity_check`、**仅初始化 + 版本拒绝**
 - **唯一权威位置**：行为在模块 §2.2 / §8.3；ISD 管实现
 - **实现自由度**：实现可自选
 - **原 V/Case 及本地验证位置**：`VRC-UTIL-002` → §8
@@ -104,6 +104,20 @@ python 标准库 sqlite3
 - **类型 / 函数**：SQL 脚本
 - **可见性 / 构建目标**：数据文件，随包
 - **依赖**：—
+- **权威边界**：DDL **不是**本层可自由更改——各表已被业务模块以列名/插入顺序直接依赖，见 §2.3 表契约。
+
+#### 2.3 表契约（跨模块内部权威）
+
+DDL 已是跨模块内部契约；本层是 schema 的**唯一落点**，改动须评估下列受影响模块。
+
+| 表 | Schema authority | Writer / Reader | 键 / 约束 | 保留 / 删除规则 | 变更受影响模块 |
+|---|---|---|---|---|---|
+| `schema_meta` | 本 ISD | 启动写；`migrate` 读 | `singleton=1` | 不删 | bootstrap（M004）|
+| `providers` / `deployments` / `service_levels` / `service_level_deployments` | 本 ISD | M004 写；M003/M005 读 | 见 `001_initial.sql`；name 唯一 | 删除受引用保护（M004）| M004/M003 |
+| `usage_*`（obligations/record_versions/heads）、`provider_request_bindings` | 本 ISD | M003/M004 写；M004 读 | `(principal_id,request_id[,version])` | 只追加；清空由 M004 | M003/M004 |
+| `audit_events` / `operational_logs` | 本 ISD | M004/M008 写；M004 读 | 只追加 | 保留期由运维 | M004/M008 |
+| 观测 4 表（`diagnostic_*`、`trace_events`、`data_plane_stats`）| 本 ISD（契约见 M006 §6）| M006 写；M005 读 | 见 `002_observability.sql` | 7 天清理（M006）| M005/M006 |
+| `query_snapshots` / `query_snapshot_items` | 本 ISD | M004 写/读 | TTL 10 分钟 | 到期由查询拒绝 | M004 |
 
 ## 3. 内部数据与所有权
 
@@ -178,26 +192,27 @@ Application 持有 Store（进程级）
 - **返回**：上下文管理器，yield `Connection`
 - **错误**：块内异常 → rollback 并重抛
 - **副作用**：库内事务
-- **幂等**：不幂等（写事务）；读事务可重入
-- **所有权**：事务内连接由调用方使用；不得嵌套非立即事务
+- **幂等**：不幂等
+- **嵌套契约**：**不可嵌套**——SQLite 不允许事务内再 `BEGIN`（调用方若已在事务中，必须直接使用传入的 `Connection`，不得再次调用 `Store.transaction()`）。本设计**不**提供 SAVEPOINT 嵌套语义
+- **所有权**：事务内连接由调用方使用，退出上下文提交/回滚
 
 #### 4.5 `Store.one(sql, params) -> Row | None` / `Store.all(sql, params) -> [Row]`
 - **前置条件**：SQL 合法
 - **行为**：`connection().execute(sql, params)` 的 `fetchone()` / `fetchall()`
 - **返回**：单行 / 行列表
 - **错误**：SQL 错误 → `sqlite3.Error`
-- **副作用**：无（只读约定）
-- **幂等**：只读
-- **所有权**：行返回调用方；不跨连接寿命
+- **语义**：**"执行并取行"的通用 helper**，**不**做只读限制（可执行 `INSERT ... RETURNING` 等）；需要只读时应由调用方约束 SQL
+- **幂等**：取决于传入 SQL
+- **所有权**：`sqlite3.Row` 已物化，可在连接关闭后读取；调用方持有
 
 #### 4.6 `Store.close(self) -> None`
 - **前置条件**：—
 - **行为**：取线程连接；非 None 则 `conn.close()` 并置 `_local.connection=None`
 - **返回**：None
-- **错误**：关闭异常静默（调用方 `finally` 兜底）
-- **副作用**：释放 fd
-- **幂等**：重复调用安全
-- **所有权**：释放线程连接
+- **错误**：**不吞异常**（`conn.close()` 的异常向上抛；由调用方/宿主 `finally` 捕获）
+- **副作用**：释放**当前线程**的连接
+- **幂等**：重复调用安全（第二次为 None 直接返回）
+- **所有权**：只释放线程内连接；**不能**关闭其他线程的连接
 
 ## 5. 关键流程与算法
 
@@ -269,13 +284,17 @@ close():
 
 <a id="isd-persistence"></a>
 
-#### 6.2 持久化与数据升级
+#### 6.2 持久化与 schema 演进（仅初始化）
+
+**策略决定**：首版只支持 **schema initialization**——空库建当前结构；**不提供增量升级**。库已存在且版本 ≠ 期望 → **拒绝启动（not_ready）**，由运维走显式离线迁移/重建。增量升级列 `LT-OPEN-UTIL-1`（未来再设计 ledger/checksum/from-to/原子边界/失败恢复）。
 
 | 原规则/事务 | 原子范围/事务外副作用 | 提交点/响应点 | 恢复入口/判定记录 | 源/目标数据版本及转换函数 | 校验/切换/失败出口 | 验证项 |
 |---|---|---|---|---|---|---|
-| `RULE-UTIL-TXN` | 单事务内 SQL；无事务外副作用 | `commit()` 为持久提交点 | 启动 `migrate()` | 无版本字段（SQLite 文件即版本）| `integrity_check`；失败 `RuntimeError` | `VRC-UTIL-002` |
+| `RULE-UTIL-TXN` | 单事务内 SQL；无事务外副作用 | `commit()` 为持久提交点 | 启动 `migrate()`（**仅空库**）| `schema_meta.schema_version` 固定为当前值（`1`）；**无转换函数** | 空库→建表；非空且版本≠期望→拒绝启动；`integrity_check`≠ok→启动失败 | `VRC-UTIL-002` |
 
-崩溃后由启动重跑 `migrate()`；幂等 DDL 保证重复恢复安全。无独立升级转换（首版）。
+- **不声称**"SQLite 文件即版本 / 崩溃重跑即可恢复"。仅初始化下：空库重跑安全（DDL 幂等）；**旧版本库不自动升级**（拒绝）。
+- **无** migration ledger / checksum / from-to version（`LT-OPEN-UTIL-1`）。
+- `executescript` **不在** Store 事务内 —— 仅初始化的前提下可接受；若未来支持增量升级，必须改为逐语句在 `BEGIN IMMEDIATE…COMMIT` 内。
 
 <a id="isd-security"></a>
 
@@ -283,9 +302,27 @@ close():
 
 | 原规则 | 可信输入/敏感字段 | 检查函数/时点 | 拒绝/宿主交付出口 | 脱敏/禁止输出 | 日志/指标口径及触发 | 验证项 |
 |---|---|---|---|---|---|---|
-| 模块 §11（不鉴权） | 无（基础层）| — | — | 本层不记录任何值 | 本层不写日志/指标（避免反向依赖）| `VRC-UTIL-001` |
+| 模块 §11（不鉴权）| DB 文件含配置/审计/日志/用量（**不含 Secret 明文**，只含 `secret_ref` 引用）| 启动时文件/目录权限检查 | 不合规→启动告警/拒绝 | 本层不记录任何值 | 不写日志/指标（避免反向依赖）| `VRC-UTIL-001` |
 
-不拥有权限/日志/诊断能力；向宿主（业务模块）返回结构化异常，由宿主映射 503 与日志。
+- **本地持久化安全**（本层唯一安全责任）：DB 文件与目录权限、symlink、umask 属**部署配置**；本层做最小检查（**非 symlink**、权限不含 world-writable），不合规时告警。
+- **不含凭据**：库中只有引用字符串。
+- **错误交付**：本层抛 `sqlite3.Error` / `RuntimeError`；由业务模块按 **§6.4 错误传播矩阵** 映射。
+
+
+#### 6.4 错误传播矩阵（目标契约）
+
+本层抛出的底层异常如何被映射（`Store 异常 → 业务模块是否处理 → HTTP 状态/code → 日志 → 是否可重试`）。**目标契约**：编码阶段据此对齐 HTTP 层。
+
+| Store 异常 / 场景 | 业务模块是否处理 | HTTP 状态 / code | 记录日志 | 允许重试 |
+|---|---|---|---|---|
+| connect / open 失败 | 否（启动即失败）| 启动失败 / `not_ready` | error | 修环境后重启 |
+| busy / locked timeout（`OperationalError`）| 是 | 503 `store_unavailable` | warning | 是（退避重试）|
+| constraint violation（`IntegrityError`）| 是 | 409 / 400（按业务）| warning | 否 |
+| migration / version mismatch | 否（启动拒绝）| `not_ready` | error | 运维处理 |
+| integrity_check 失败 | 否（启动拒绝）| `not_ready` | error | 运维修复 |
+| close 失败 | 否 | 不影响响应 | warning | — |
+
+（说明：HTTP 层当前对未分类异常返回 500；本矩阵为目标，编码阶段对齐。）
 
 ## 7. 资源、构建与宿主接入
 
@@ -294,8 +331,8 @@ close():
 - **工具链/语言**：Python 3.14；标准库 `sqlite3`（无第三方依赖）。
 - **产物**：`store.py`（模块文件）+ `migrations/*.sql`；无独立库/二进制。
 - **宿主接入**：`Application.__init__(database, settings)` 构造 `Store(database)` 并 `store.migrate()`；业务服务持 `Store` 引用；`Handler._run` 的 `finally` 调 `app.store.close()`。
-- **峰值构成 / 上限**：每线程 1 连接（fd ≤ 3/连接：db+wal+shm）；`timeout=10`；WAL。
-- **超限行为**：fd 上限（macOS 256）→ 依赖 `close()` 兜底；锁等待超时 → 异常。
+- **峰值构成 / 上限**：每线程 1 连接（`timeout=10`；WAL）。**注意**：fd 数量不是稳定契约——WAL/SHM 句柄可能共享或临时打开，`fd ≤ 3/连接` 只是观测估计，不作保证。
+- **超限行为**：fd 上限（macOS 默认 256）风险由**宿主**请求生命周期 + 每请求 `close()` 缓解；锁等待超时 → `OperationalError`。
 - **计时**：无自有预算；由宿主请求生命周期约束。
 
 **构建/运行命令**：`PYTHONPATH=src python3 -m pytest tests/unit/v03 -q`（前置：仓库根）。
@@ -310,9 +347,18 @@ close():
 | `RULE-UTIL-FD` | `VRC-UTIL-001`/v2 | 并发请求后 | 每请求 fd 稳定（`close()` 兜底）| NOT_RUN | NOT_RUN | 并发用例 | NOT_RUN |
 | `RULE-UTIL-TXN` | `VRC-UTIL-002`/v1 | 事务内抛异常 | 无半写；库不变 | NOT_RUN | NOT_RUN | `tests/unit/v03` | NOT_RUN |
 | `RULE-UTIL-MIGRATE` | `VRC-UTIL-002`/v2 | 连续两次 `migrate()` | 幂等、不报错 | NOT_RUN | NOT_RUN | `tests/unit/v03` | NOT_RUN |
-| `RULE-UTIL-MIGRATE` | `VRC-UTIL-002`/v3 | 损坏库 | `integrity_check`≠ok → `RuntimeError` | NOT_RUN | NOT_RUN | 故障注入 | NOT_RUN |
+| `RULE-UTIL-MIGRATE` | `VRC-UTIL-002`/v3 | 损坏库 | `integrity_check`≠ok → 启动失败 | NOT_RUN | NOT_RUN | 故障注入 | NOT_RUN |
+| `RULE-UTIL-MIGRATE` | `VRC-UTIL-002`/v4 | 非空库 + 版本≠期望 | **拒绝启动（not_ready）** | NOT_RUN | NOT_RUN | `tests/unit/v03` | NOT_RUN |
+| `RULE-UTIL-MIGRATE` | `VRC-UTIL-002`/v5 | 迁移脚本中途失败 | 仅初始化下不接受部分应用（见 §6.2）| NOT_RUN | NOT_RUN | 故障注入 | NOT_RUN |
+| `RULE-UTIL-TXN` | `VRC-UTIL-002`/v6 | 事务内再 `BEGIN` | `OperationalError`（不可嵌套）| NOT_RUN | NOT_RUN | `tests/unit/v03` | NOT_RUN |
+| `RULE-UTIL-PRAGMA` | `VRC-UTIL-001`/v3 | busy 锁等待 | 超 `timeout` → `OperationalError` | NOT_RUN | NOT_RUN | 并发用例 | NOT_RUN |
+| `RULE-UTIL-MIGRATE` | `VRC-UTIL-002`/v7 | 并发启动 | 单实例成功、另一实例安全 | NOT_RUN | NOT_RUN | 并发用例 | NOT_RUN |
+| `RULE-UTIL-FD` | `VRC-UTIL-001`/v4 | close 异常 | 向上抛（不吞）| NOT_RUN | NOT_RUN | `tests/unit/v03` | NOT_RUN |
+| `RULE-UTIL-CONN` | `VRC-UTIL-001`/v5 | world-writable 文件 | 启动告警 | NOT_RUN | NOT_RUN | 故障注入 | NOT_RUN |
 
-**独立 Oracle**：SQLite PRAGMA 实际值；事务后行数；fd 计数。
+**独立 Oracle**：SQLite PRAGMA 实际值；事务后行数；fd 计数；`schema_version`。
+
+**运行命令**：局部 `PYTHONPATH=src python3 -m pytest tests/unit/v03 -q`；**提交前**按测试规范执行全量 `PYTHONPATH=src python3 -m pytest tests/ tests/system/st_*.py -q`。
 
 <a id="isd-tasks"></a>
 

@@ -771,11 +771,11 @@
 ## 15. 风险、未决问题与引用
 
 #### 15.ISD · 实现规格采用方式
-- **采用模式**：`embedded`
+- **采用模式**：`separate`（模块设计不兼作 ISD）
 - **模块对象 ID**：M004
-- **实现规格 Document ID**：`management`（本文）
-- **metadata 覆盖映射入口**：§5/§6/§9/§10/§13/§14
-- **理由 / 决定引用**：本文已含文件/符号/数据结构/失败/验证
+- **实现规格 Document ID**：`management-isd`
+- **metadata 覆盖映射入口**：`management-isd` 的 `implementation_specification.coverage_mapping`
+- **理由 / 决定引用**：模块设计不兼作 ISD；独立 ISD 见 `docs/50_implementation_design/management-isd.md`（Planned）
 
 #### 15.1 `RISK-MGMT-1` · 离线迁移误操作
 - **类型 / 影响的规则、接口、流程或约束**：Risk；影响 `C-CFG-1`

@@ -307,10 +307,10 @@
 ## 15. 风险、未决问题与引用
 
 #### 15.ISD · 实现规格采用方式
-- **采用模式**：`embedded`
+- **采用模式**：`separate`（模块设计不兼作 ISD）
 - **模块对象 ID**：M008
-- **实现规格 Document ID**：`log`（本文）
-- **metadata 覆盖映射入口**：§5/§6/§9/§10/§13/§14
+- **实现规格 Document ID**：`log-isd`
+- **metadata 覆盖映射入口**：`log-isd` 的 `implementation_specification.coverage_mapping`
 - **理由 / 决定引用**：本文已含文件/符号/语义/验证
 
 #### 15.1 `RISK-LOG-1` · 脱敏正则漏网

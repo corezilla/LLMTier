@@ -6,7 +6,9 @@
   "document_version": "0.1.0-draft.1",
   "title": "LLMTier M003 Inference 模块设计",
   "document_owner": "LLMTier",
-  "authors": ["llmtier"],
+  "authors": [
+    "llmtier"
+  ],
   "source_repository": "corezilla/LLMTier",
   "source_path": "docs/40_module_design/inference-design.md",
   "template_id": "design.definition",
@@ -16,12 +18,22 @@
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,
   "design_level": "module",
-  "domain": ["software"],
+  "domain": [
+    "software"
+  ],
   "status": "draft",
   "visibility": "project",
   "reviewed_commit": null,
   "parent_document_id": "llmtier-system-design",
   "supersedes": null,
   "created_at": "2026-09-23",
-  "last_modified_at": "2026-09-23"
+  "last_modified_at": "2026-09-23",
+  "design_object_id": "M003",
+  "implementation_specification": {
+    "mode": "missing",
+    "document_id": null,
+    "coverage_mapping": [],
+    "reason": "独立 ISD 待写（Planned）；模块设计不兼作 ISD",
+    "decision_ref": null
+  }
 }

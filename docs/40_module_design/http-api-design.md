@@ -891,13 +891,12 @@ ThreadingHTTPServer（进程级）
 
 ## 15. 风险、未决问题与引用
 
-**ISD 采用模式**：
-
-#### ISD 采用模式 · 兼作
-- **对象ID**：M001
-- **实现规格 Document ID**：—
-- **metadata 覆盖映射入口**：—
-- **不需要时的理由/决定引用**：逻辑集中在 `app.py`，实现细节在本设计内
+#### 15.ISD · 实现规格采用方式
+- **采用模式**：`separate`（模块设计不兼作 ISD）
+- **模块对象 ID**：M001
+- **实现规格 Document ID**：`http-api-isd`（Planned）
+- **metadata 覆盖映射入口**：`http-api-isd` 的 `implementation_specification.coverage_mapping`
+- **理由 / 决定引用**：模块设计不兼作 ISD；独立 ISD 见 `docs/50_implementation_design/http-api-isd.md`（Planned）；原兼作理由：逻辑集中在 `app.py`，实现细节在本设计内
 
 #### OPEN-API-1 · §5 结构图与 §3 操作面
 - **问题**：§5 内部结构图已出（图 M001-S1）；§3 无独立 UI（服务端点型模块）

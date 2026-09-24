@@ -56,7 +56,7 @@
 | `design.system-mechanism` | software | 是 | `docs/20_system_design/mechanisms/`；端到端机制在系统概览之上的展开 | LLMTier |
 | `design.subsystem` | software | 条件必需，当前 omit | 仅在 LLMTier 出现独立子系统时建立；当前所有模块归 `design.definition` | 对应 owner |
 | `design.definition` | software | 是 | `docs/40_module_design/`与`docs/50_implementation_design/`；不建立虚构subsystem | LLMTier |
-| `design.implementation` | software | 条件必需，当前 omit | 模块设计已包含实现细节（`docs/50_implementation_design/llmtier-runtime.isd.md`）；需要独立 ISD 时启用 | 对应 owner |
+| `design.implementation` | software | **采用（separate）** | 模块设计**不兼作** ISD；每模块独立 ISD（`docs/50_implementation_design/<name>.isd.md`）。util 作首个试点 `util.isd.md` | 模块 owner |
 | `requirements.specification` | software | 是，C3 active | `docs/10_requirements/llmtier-requirements.md` | LLMTier；外部需求 authority 不迁入 |
 | `requirements.traceability` | software | 是，C3 active | `docs/10_requirements/llmtier-traceability.md` | LLMTier |
 | `interfaces.control` | software | 是，C1 active | Data Plane、Observation、Management interface migration | LLMTier；消费边界由 Piko/Slinky reviewer 复核 |
@@ -128,7 +128,7 @@
 **draft.26 tag → HEAD 变更要点**（22 commits）：
 - `tests/` 子目录加 `unit/<module-id>/`、`{contract,integration,system,acceptance}/reports/`；测试报告（`assurance.test-report`）路径由 `docs/70_verification/reports/` 改为 `tests/{level}/reports/<run-id>/`
 - `acceptance-report` 路径由 `docs/70_verification/acceptance/` 改为 `tests/acceptance/reports/`
-- 新增启用模板候选：`design.software-system`、`design.subsystem`、`design.implementation`（按 §3 条件必需策略，当前 omit）
+- 新增启用模板候选：`design.software-system`、`design.subsystem`、`design.implementation`（按 §3 条件必需策略，当时 omit；后续 `design.implementation` 已改为**采用（separate）**，见 §2）
 - 现有模板版本号提升：`design.definition` 2.1.1、`contracts.specification` 0.3.1、`interfaces.control` 0.3.1、`assurance.test-specification` 0.2.1 等（详见 `templates/catalog.json`）
 - `path-policy.json` 升至 `0.2.0-draft.1`
 - 新增 `ISD` 设计专项目录（`software/<component>/docs/isd/`）

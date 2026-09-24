@@ -872,13 +872,12 @@ Web UI **不拥有机器契约**；它消费 M001 暴露的端点，字段 autho
 
 ## 15. 风险、未决问题与引用
 
-**ISD 采用模式**：
-
-#### ISD 采用模式 · 兼作
-- **对象ID**：M002
-- **实现规格 Document ID**：—
-- **metadata 覆盖映射入口**：—
-- **不需要时的理由/决定引用**：静态资源 + 单脚本，实现细节在本设计内
+#### 15.ISD · 实现规格采用方式
+- **采用模式**：`separate`（模块设计不兼作 ISD）
+- **模块对象 ID**：M002
+- **实现规格 Document ID**：`web-ui-isd`（Planned）
+- **metadata 覆盖映射入口**：`web-ui-isd` 的 `implementation_specification.coverage_mapping`
+- **理由 / 决定引用**：模块设计不兼作 ISD；独立 ISD 见 `docs/50_implementation_design/web-ui-isd.md`（Planned）；原兼作理由：静态资源 + 单脚本，实现细节在本设计内
 
 #### OPEN-UI-1 · §5 内部结构图
 - **问题**：§5 内部结构图已出（图 M002-S1）
