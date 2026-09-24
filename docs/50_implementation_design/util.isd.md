@@ -110,14 +110,47 @@ python 标准库 sqlite3
 
 DDL 是跨模块内部契约；本层是 schema 的**唯一落点**，改动须评估下列受影响模块。
 
-| 表 | Schema authority | Writer / Reader | 键 / 约束 | 保留 / 删除规则 | 变更受影响模块 |
-|---|---|---|---|---|---|
-| `schema_meta` | 本 ISD | 启动写；`migrate` 读 | `singleton=1` | 不删 | bootstrap（M004）|
-| `providers` / `deployments` / `service_levels` / `service_level_deployments` | 本 ISD | M004 写；M003/M005 读 | 见 `001_initial.sql`；name 唯一 | 删除受引用保护（M004）| M004/M003 |
-| `usage_*`（obligations/record_versions/heads）、`provider_request_bindings` | 本 ISD | M003/M004 写；M004 读 | `(principal_id,request_id[,version])` | 只追加；清空由 M004 | M003/M004 |
-| `audit_events` / `operational_logs` | 本 ISD | M004/M008 写；M004 读 | 只追加 | 保留期由运维 | M004/M008 |
-| 观测 6 表（`diagnostic_settings`/`diagnostic_snapshots`/`diagnostic_injections`/`data_plane_stats`/`data_plane_latency_samples`/`trace_events`）| 本 ISD（契约见 M006 §6）| M006 写；M005 读 | 见 `002_observability.sql` | 7 天清理（M006）| M005/M006 |
-| `query_snapshots` / `query_snapshot_items` | 本 ISD | M004 写/读 | TTL 10 分钟 | 到期由查询拒绝 | M004 |
+#### `schema_meta`
+- **Schema authority**：本 ISD
+- **Writer / Reader**：启动写；`migrate` 读
+- **键 / 约束**：`singleton=1`
+- **保留 / 删除规则**：不删
+- **变更受影响模块**：bootstrap（M004）
+
+#### `providers` / `deployments` / `service_levels` / `service_level_deployments`
+- **Schema authority**：本 ISD
+- **Writer / Reader**：M004 写；M003/M005 读
+- **键 / 约束**：见 `001_initial.sql`；name 唯一
+- **保留 / 删除规则**：删除受引用保护（M004）
+- **变更受影响模块**：M004/M003
+
+#### `usage_*`（obligations/record_versions/heads）、`provider_request_bindings`
+- **Schema authority**：本 ISD
+- **Writer / Reader**：M003/M004 写；M004 读
+- **键 / 约束**：`(principal_id,request_id[,version])`
+- **保留 / 删除规则**：只追加；清空由 M004
+- **变更受影响模块**：M003/M004
+
+#### `audit_events` / `operational_logs`
+- **Schema authority**：本 ISD
+- **Writer / Reader**：M004/M008 写；M004 读
+- **键 / 约束**：只追加
+- **保留 / 删除规则**：保留期由运维
+- **变更受影响模块**：M004/M008
+
+#### 观测 6 表（`diagnostic_settings`/`diagnostic_snapshots`/`diagnostic_injections`/`data_plane_stats`/`data_plane_latency_samples`/`trace_events`）
+- **Schema authority**：本 ISD（契约见 M006 §6）
+- **Writer / Reader**：M006 写；M005 读
+- **键 / 约束**：见 `002_observability.sql`
+- **保留 / 删除规则**：7 天清理（M006）
+- **变更受影响模块**：M005/M006
+
+#### `query_snapshots` / `query_snapshot_items`
+- **Schema authority**：本 ISD
+- **Writer / Reader**：M004 写/读
+- **键 / 约束**：TTL 10 分钟
+- **保留 / 删除规则**：到期由查询拒绝
+- **变更受影响模块**：M004
 
 ## 3. 内部数据与所有权
 
@@ -316,11 +349,26 @@ close():
 
 **过程清单**
 
-| 过程/规则ID | 触发与执行者 | 入口函数及数据 | 判断事实来源 | 成功可见点 | 失败与清理 |
-|---|---|---|---|---|---|
-| `P-UTIL-TXN` | 业务模块 `with transaction()` | `transaction` + SQL | 块内异常 | `commit` 生效 | `rollback` |
-| `P-UTIL-MIGRATE` | 宿主启动（schema 初始化）| `migrate` + SQL 文件 | 库状态/`integrity_check` | 表就绪 | `ApiError(503)`（版本/未知库/完整性）|
-| `P-UTIL-CLOSE` | 请求 `finally` | `close` | `_local.connection` | fd 释放 | 不吞异常（向上抛）|
+#### `P-UTIL-TXN`
+- **触发与执行者**：业务模块 `with transaction()`
+- **入口函数及数据**：`transaction` + SQL
+- **判断事实来源**：块内异常
+- **成功可见点**：`commit` 生效
+- **失败与清理**：`rollback`
+
+#### `P-UTIL-MIGRATE`
+- **触发与执行者**：宿主启动（schema 初始化）
+- **入口函数及数据**：`migrate` + SQL 文件
+- **判断事实来源**：库状态/`integrity_check`
+- **成功可见点**：表就绪
+- **失败与清理**：`ApiError(503)`（版本/未知库/完整性）
+
+#### `P-UTIL-CLOSE`
+- **触发与执行者**：请求 `finally`
+- **入口函数及数据**：`close`
+- **判断事实来源**：`_local.connection`
+- **成功可见点**：fd 释放
+- **失败与清理**：不吞异常（向上抛）
 
 ## 6. 并发、失败与生命周期
 
@@ -340,12 +388,33 @@ close():
 
 **错误契约**（统一）：`Store` 对 **schema/启动拒绝**抛 `ApiError(503, <code>)`（typed，便于宿主直接映射 `not_ready`）；对**运行期 DB 错误**抛原生 `sqlite3.Error`（`OperationalError` 锁超时、`IntegrityError` 约束等）。**HTTP 映射与重试策略由宿主/业务模块负责**（§6.4），`store.py` 不做 HTTP。
 
-| 交错/故障 | 已产生副作用 | 检测事实 | 状态/错误 | 保留/释放责任 | 后续允许操作 |
-|---|---|---|---|---|---|
-| schema 版本/未知库/完整性 | 无 | `sqlite_master`/`schema_version`/`integrity_check` | `ApiError(503)` | 宿主（not_ready）| 运维离线处理 |
-| 运行期锁超时/损坏 | 无 | `sqlite3.Error` | `OperationalError` 等 | 调用方（启动失败或 503）| 修复后重启 |
-| 事务内 SQL 错误 | 无（未提交）| 异常 | rollback | 连接保留 | 修正后重试 |
-| 连接未关闭 | 无 | fd 增长 | 无 | `finally: close()` | — |
+#### schema 版本/未知库/完整性
+- **已产生副作用**：无
+- **检测事实**：`sqlite_master`/`schema_version`/`integrity_check`
+- **状态/错误**：`ApiError(503)`
+- **保留/释放责任**：宿主（not_ready）
+- **后续允许操作**：运维离线处理
+
+#### 运行期锁超时/损坏
+- **已产生副作用**：无
+- **检测事实**：`sqlite3.Error`
+- **状态/错误**：`OperationalError` 等
+- **保留/释放责任**：调用方（启动失败或 503）
+- **后续允许操作**：修复后重启
+
+#### 事务内 SQL 错误
+- **已产生副作用**：无（未提交）
+- **检测事实**：异常
+- **状态/错误**：rollback
+- **保留/释放责任**：连接保留
+- **后续允许操作**：修正后重试
+
+#### 连接未关闭
+- **已产生副作用**：无
+- **检测事实**：fd 增长
+- **状态/错误**：无
+- **保留/释放责任**：`finally: close()`
+- **后续允许操作**：—
 
 <a id="isd-persistence"></a>
 
@@ -385,9 +454,13 @@ close():
 
 #### 6.3 安全、权限与可观测性
 
-| 原规则 | 可信输入/敏感字段 | 检查函数/时点 | 拒绝/宿主交付出口 | 脱敏/禁止输出 | 日志/指标口径及触发 | 验证项 |
-|---|---|---|---|---|---|---|
-| 模块 §11（不鉴权）| DB 文件含配置/审计/日志/用量（**不含 Secret 明文**，只含 `secret_ref` 引用）| 启动时文件/目录权限检查 | 不合规→启动告警/拒绝 | 本层不记录任何值 | 不写日志/指标（避免反向依赖）| `VRC-UTIL-001` |
+#### 模块 §11（不鉴权）
+- **可信输入/敏感字段**：DB 文件含配置/审计/日志/用量（**不含 Secret 明文**，只含 `secret_ref` 引用）
+- **检查函数/时点**：启动时文件/目录权限检查
+- **拒绝/宿主交付出口**：不合规→启动告警/拒绝
+- **脱敏/禁止输出**：本层不记录任何值
+- **日志/指标口径及触发**：不写日志/指标（避免反向依赖）
+- **验证项**：`VRC-UTIL-001`
 
 - **本地持久化安全检查（本层唯一安全责任，可执行）**：
   - **检查对象**：DB 文件路径及其**父目录**（不含全路径祖先链）。
@@ -429,20 +502,113 @@ close():
 
 <a id="isd-verification"></a>
 
-| Rule/成员 | V / Case / Vector | 输入/故障/环境 | Oracle/Expected | Actual/Evidence | Verdict | 测试入口/清理 | Run ID/Status |
-|---|---|---|---|---|---|---|---|
-| `RULE-UTIL-PRAGMA` | `VRC-UTIL-001`/v1 | 打开连接 | `PRAGMA foreign_keys`=1；`journal_mode`=wal | NOT_RUN | NOT_RUN | `tests/unit/v03` | NOT_RUN |
-| `RULE-UTIL-FD` | `VRC-UTIL-001`/v2 | N 次请求（每请求 `close()`）| 结束后进程 fd 数 ≤ 基线（不随请求数增长）| NOT_RUN | NOT_RUN | 并发用例 | NOT_RUN |
-| `RULE-UTIL-TXN` | `VRC-UTIL-002`/v1 | 事务内抛异常 | 无半写；库不变 | NOT_RUN | NOT_RUN | `tests/unit/v03` | NOT_RUN |
-| `RULE-UTIL-MIGRATE` | `VRC-UTIL-002`/v2 | 连续两次 `migrate()` | 幂等、不报错 | NOT_RUN | NOT_RUN | `tests/unit/v03` | NOT_RUN |
-| `RULE-UTIL-MIGRATE` | `VRC-UTIL-002`/v3 | 损坏库 | `integrity_check`≠ok → 启动失败 | NOT_RUN | NOT_RUN | 故障注入 | NOT_RUN |
-| `RULE-UTIL-MIGRATE` | `VRC-UTIL-002`/v4 | 非空库 + 版本≠期望 | **拒绝启动（not_ready）** | NOT_RUN | NOT_RUN | `tests/unit/v03` | NOT_RUN |
-| `RULE-UTIL-MIGRATE` | `VRC-UTIL-002`/v5 | 迁移脚本中途失败 | 仅初始化下不接受部分应用（见 §6.2）| NOT_RUN | NOT_RUN | 故障注入 | NOT_RUN |
-| `RULE-UTIL-TXN` | `VRC-UTIL-002`/v6 | 事务内再 `BEGIN` | `OperationalError`（不可嵌套）| NOT_RUN | NOT_RUN | `tests/unit/v03` | NOT_RUN |
-| `RULE-UTIL-PRAGMA` | `VRC-UTIL-001`/v3 | busy 锁等待 | 超 `timeout` → `OperationalError` | NOT_RUN | NOT_RUN | 并发用例 | NOT_RUN |
-| `RULE-UTIL-MIGRATE` | `VRC-UTIL-002`/v7 | 两实例并发 `migrate()` | 一个成功建表；另一个成功或明确 `OperationalError`；**无部分/损坏表** | NOT_RUN | NOT_RUN | 并发用例 | NOT_RUN |
-| `RULE-UTIL-FD` | `VRC-UTIL-001`/v4 | close 异常 | 向上抛（不吞）| NOT_RUN | NOT_RUN | `tests/unit/v03` | NOT_RUN |
-| `RULE-UTIL-CONN` | `VRC-UTIL-001`/v5 | world-writable 文件 | 启动告警 | NOT_RUN | NOT_RUN | 故障注入 | NOT_RUN |
+#### `RULE-UTIL-PRAGMA` · `VRC-UTIL-001`/v1
+- **V / Case / Vector**：`VRC-UTIL-001`/v1
+- **输入/故障/环境**：打开连接
+- **Oracle/Expected**：`PRAGMA foreign_keys`=1；`journal_mode`=wal
+- **Actual/Evidence**：NOT_RUN
+- **Verdict**：NOT_RUN
+- **测试入口/清理**：`tests/unit/v03`
+- **Run ID/Status**：NOT_RUN
+
+#### `RULE-UTIL-FD` · `VRC-UTIL-001`/v2
+- **V / Case / Vector**：`VRC-UTIL-001`/v2
+- **输入/故障/环境**：N 次请求（每请求 `close()`）
+- **Oracle/Expected**：结束后进程 fd 数 ≤ 基线（不随请求数增长）
+- **Actual/Evidence**：NOT_RUN
+- **Verdict**：NOT_RUN
+- **测试入口/清理**：并发用例
+- **Run ID/Status**：NOT_RUN
+
+#### `RULE-UTIL-TXN` · `VRC-UTIL-002`/v1
+- **V / Case / Vector**：`VRC-UTIL-002`/v1
+- **输入/故障/环境**：事务内抛异常
+- **Oracle/Expected**：无半写；库不变
+- **Actual/Evidence**：NOT_RUN
+- **Verdict**：NOT_RUN
+- **测试入口/清理**：`tests/unit/v03`
+- **Run ID/Status**：NOT_RUN
+
+#### `RULE-UTIL-MIGRATE` · `VRC-UTIL-002`/v2
+- **V / Case / Vector**：`VRC-UTIL-002`/v2
+- **输入/故障/环境**：连续两次 `migrate()`
+- **Oracle/Expected**：幂等、不报错
+- **Actual/Evidence**：NOT_RUN
+- **Verdict**：NOT_RUN
+- **测试入口/清理**：`tests/unit/v03`
+- **Run ID/Status**：NOT_RUN
+
+#### `RULE-UTIL-MIGRATE` · `VRC-UTIL-002`/v3
+- **V / Case / Vector**：`VRC-UTIL-002`/v3
+- **输入/故障/环境**：损坏库
+- **Oracle/Expected**：`integrity_check`≠ok → 启动失败
+- **Actual/Evidence**：NOT_RUN
+- **Verdict**：NOT_RUN
+- **测试入口/清理**：故障注入
+- **Run ID/Status**：NOT_RUN
+
+#### `RULE-UTIL-MIGRATE` · `VRC-UTIL-002`/v4
+- **V / Case / Vector**：`VRC-UTIL-002`/v4
+- **输入/故障/环境**：非空库 + 版本≠期望
+- **Oracle/Expected**：**拒绝启动（not_ready）**
+- **Actual/Evidence**：NOT_RUN
+- **Verdict**：NOT_RUN
+- **测试入口/清理**：`tests/unit/v03`
+- **Run ID/Status**：NOT_RUN
+
+#### `RULE-UTIL-MIGRATE` · `VRC-UTIL-002`/v5
+- **V / Case / Vector**：`VRC-UTIL-002`/v5
+- **输入/故障/环境**：迁移脚本中途失败
+- **Oracle/Expected**：仅初始化下不接受部分应用（见 §6.2）
+- **Actual/Evidence**：NOT_RUN
+- **Verdict**：NOT_RUN
+- **测试入口/清理**：故障注入
+- **Run ID/Status**：NOT_RUN
+
+#### `RULE-UTIL-TXN` · `VRC-UTIL-002`/v6
+- **V / Case / Vector**：`VRC-UTIL-002`/v6
+- **输入/故障/环境**：事务内再 `BEGIN`
+- **Oracle/Expected**：`OperationalError`（不可嵌套）
+- **Actual/Evidence**：NOT_RUN
+- **Verdict**：NOT_RUN
+- **测试入口/清理**：`tests/unit/v03`
+- **Run ID/Status**：NOT_RUN
+
+#### `RULE-UTIL-PRAGMA` · `VRC-UTIL-001`/v3
+- **V / Case / Vector**：`VRC-UTIL-001`/v3
+- **输入/故障/环境**：busy 锁等待
+- **Oracle/Expected**：超 `timeout` → `OperationalError`
+- **Actual/Evidence**：NOT_RUN
+- **Verdict**：NOT_RUN
+- **测试入口/清理**：并发用例
+- **Run ID/Status**：NOT_RUN
+
+#### `RULE-UTIL-MIGRATE` · `VRC-UTIL-002`/v7
+- **V / Case / Vector**：`VRC-UTIL-002`/v7
+- **输入/故障/环境**：两实例并发 `migrate()`
+- **Oracle/Expected**：一个成功建表；另一个成功或明确 `OperationalError`；**无部分/损坏表**
+- **Actual/Evidence**：NOT_RUN
+- **Verdict**：NOT_RUN
+- **测试入口/清理**：并发用例
+- **Run ID/Status**：NOT_RUN
+
+#### `RULE-UTIL-FD` · `VRC-UTIL-001`/v4
+- **V / Case / Vector**：`VRC-UTIL-001`/v4
+- **输入/故障/环境**：close 异常
+- **Oracle/Expected**：向上抛（不吞）
+- **Actual/Evidence**：NOT_RUN
+- **Verdict**：NOT_RUN
+- **测试入口/清理**：`tests/unit/v03`
+- **Run ID/Status**：NOT_RUN
+
+#### `RULE-UTIL-CONN`
+- **V / Case / Vector**：`VRC-UTIL-001`/v5
+- **输入/故障/环境**：world-writable 文件
+- **Oracle/Expected**：启动告警
+- **Actual/Evidence**：NOT_RUN
+- **Verdict**：NOT_RUN
+- **测试入口/清理**：故障注入
+- **Run ID/Status**：NOT_RUN
 
 **独立 Oracle**：SQLite PRAGMA 实际值；事务后行数；fd 计数；`schema_version`。
 
@@ -458,14 +624,35 @@ close():
 
 ## 9. 映射、复核与未决项
 
-| 模块/原成员ID | 唯一来源/版本/selector/hash | 提供或消费/后端 | 计划位置（Planned）| 验证项 | 状态 |
-|---|---|---|---|---|---|
-| M007 / `F-UTIL-CONN` | `util` / `0.1.0-draft.1` / `#5.2` | 提供 / sqlite3 | `src/llmtier_v03/store.py` `Store.connection` | `VRC-UTIL-001` | Planned |
-| M007 / `F-UTIL-TXN` | `util` / `#5.4` | 提供 / sqlite3 | `store.py` `Store.transaction` | `VRC-UTIL-002` | Planned |
-| M007 / `F-UTIL-MIGRATE` | `util` / `#5.3` | 提供 / sqlite3 | `store.py` `Store.migrate` | `VRC-UTIL-002` | Planned |
+#### M007 / `F-UTIL-CONN`
+- **唯一来源/版本/selector/hash**：`util` / `0.1.0-draft.1` / `#5.2`
+- **提供或消费/后端**：提供 / sqlite3
+- **计划位置（Planned）**：`src/llmtier_v03/store.py` `Store.connection`
+- **验证项**：`VRC-UTIL-001`
+- **状态**：Planned
+
+#### M007 / `F-UTIL-TXN`
+- **唯一来源/版本/selector/hash**：`util` / `#5.4`
+- **提供或消费/后端**：提供 / sqlite3
+- **计划位置（Planned）**：`store.py` `Store.transaction`
+- **验证项**：`VRC-UTIL-002`
+- **状态**：Planned
+
+#### M007 / `F-UTIL-MIGRATE`
+- **唯一来源/版本/selector/hash**：`util` / `#5.3`
+- **提供或消费/后端**：提供 / sqlite3
+- **计划位置（Planned）**：`store.py` `Store.migrate`
+- **验证项**：`VRC-UTIL-002`
+- **状态**：Planned
 
 **复核**：编码者视角——函数职责/参数/错误/清理、库状态分支与错误契约齐全；接口消费者——公共类型引用标准库，无第二权威；并发/资源——每线程连接与 fd 说明清楚；测试——Rule→V→Case→Oracle 对应。
 
-| 问题ID/既有台账引用 | 具体缺口/反例 | Owner | 最晚关闭阶段/截止Gate | 阻断范围 | 分析/决策引用 | 所需输入/下一步选择判据 | 解决动作/完成条件 | 状态 |
-|---|---|---|---|---|---|---|---|---|
-| `RISK-UTIL-1` | 高并发写串行/锁超时 | LLMTier | 性能验证阶段 | `F-UTIL-TXN` 性能 | `util` §15.1 | 性能数据 | WAL + IMMEDIATE；按验证结果调参 | 观察 |
+#### `RISK-UTIL-1`
+- **具体缺口/反例**：高并发写串行/锁超时
+- **Owner**：LLMTier
+- **最晚关闭阶段/截止Gate**：性能验证阶段
+- **阻断范围**：`F-UTIL-TXN` 性能
+- **分析/决策引用**：`util` §15.1
+- **所需输入/下一步选择判据**：性能数据
+- **解决动作/完成条件**：WAL + IMMEDIATE；按验证结果调参
+- **状态**：观察
