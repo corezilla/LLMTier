@@ -12,7 +12,7 @@
 | Document Owner | LLMTier |
 | Last Modified Date | `2026-09-23` |
 | Template ID | `design.implementation` |
-| Template Version | `0.3.0` |
+| Template Version | `0.5.0` |
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 实现目标与输入基线
@@ -27,6 +27,8 @@
 - **需求与 Constraint ID**：`C-INFER-1..5`、`C-TRUST-1`、`C-METER`；机制 `R-INF-03..07`、`R-MET-01`、`R-OBS-03`、`R-TRUST-03`
 - **实现范围 / 非目标**：实现推理/向量化编排、准入与路由、Provider 适配、响应归一与用量归一；**非目标**：HTTP（M001）、配置管理（M004）、账本版本语义（M-METER）、跨等级 fallback
 - **ISD 默认落位或项目批准路径**：`docs/50_implementation_design/inference.isd.md`
+
+<a id="isd-handoff"></a>
 
 ### 1.2.1 `HO-INF-01` · 内部准入
 
@@ -247,7 +249,7 @@ usage.py        UsageRecorder.authorize_dispatch/bind_backend/finish
 - **Thread-safe / reentrant**：yes
 - **Nested-call policy**：allowed
 - **Transaction participation**：none
-- **Blocking / timeout / cancellation**：——
+- **Blocking / timeout / cancellation**：无
 - **实现状态 / 验证项**：PLANNED；`VRC-INF-004`
 
 ### 5.1.4 `FUNC-INF-ADMIT` · `Router.admit` / `snapshot`
@@ -334,7 +336,7 @@ usage.py        UsageRecorder.authorize_dispatch/bind_backend/finish
 - **模块是否处理及处理函数**：reject（`create` 前段）
 - **Typed 异常与原生异常所有权**：编排抛 `ApiError(400)`；M001 映射
 - **宿主 / public payload 或状态码**：400（`invalid_request`/`unsupported_request`/`unsupported_field`/`unsupported_model`）
-- **日志级别 / 脱敏 / 关联字段**：——
+- **日志级别 / 脱敏 / 关联字段**：无
 - **是否可重试及前提**：修请求
 - **状态与副作用影响 / 验证项**：无副作用；`VRC-INF-001`
 
@@ -344,7 +346,7 @@ usage.py        UsageRecorder.authorize_dispatch/bind_backend/finish
 - **模块是否处理及处理函数**：reject
 - **Typed 异常与原生异常所有权**：`ApiError(404)`
 - **宿主 / public payload 或状态码**：404 `model_not_found`
-- **日志级别 / 脱敏 / 关联字段**：——
+- **日志级别 / 脱敏 / 关联字段**：无
 - **是否可重试及前提**：换模型
 - **状态与副作用影响 / 验证项**：`VRC-INF-004`
 
@@ -354,7 +356,7 @@ usage.py        UsageRecorder.authorize_dispatch/bind_backend/finish
 - **模块是否处理及处理函数**：reject（Router）
 - **Typed 异常与原生异常所有权**：`ApiError(429/503)`
 - **宿主 / public payload 或状态码**：429（+`Retry-After`）/503
-- **日志级别 / 脱敏 / 关联字段**：——
+- **日志级别 / 脱敏 / 关联字段**：无
 - **是否可重试及前提**：按 `Retry-After`
 - **状态与副作用影响 / 验证项**：未调用后端；`VRC-INF-004`
 
@@ -365,7 +367,7 @@ usage.py        UsageRecorder.authorize_dispatch/bind_backend/finish
 - **Typed 异常与原生异常所有权**：`ApiError(502)`
 - **宿主 / public payload 或状态码**：502 `provider_contract_error`
 - **日志级别 / 脱敏 / 关联字段**：warning
-- **是否可重试及前提**：——
+- **是否可重试及前提**：无
 - **状态与副作用影响 / 验证项**：可能已调用后端；`VRC-INF-003`
 
 #### 5.2.5 `E-INF-UPSTREAM` · 上游不可用/超时
@@ -381,6 +383,17 @@ usage.py        UsageRecorder.authorize_dispatch/bind_backend/finish
 ## 6. 关键流程与算法
 
 <a id="isd-algorithms"></a>
+
+```mermaid
+flowchart TD
+    A["create_response"] --> B["选 provider / deployment"]
+    B --> C{"流式?"}
+    C -->|是| D["SSE 帧序列 + terminal"]
+    C -->|否| E["聚合响应"]
+    D --> F["记账 record_usage"]
+    E --> F
+    F --> G["观测 record_trace / latency"]
+```
 
 ### 6.1 `P-INFER` · 推理编排
 
@@ -457,15 +470,31 @@ usage.py        UsageRecorder.authorize_dispatch/bind_backend/finish
 
 #### 7.2.2 Schema 演进策略决定
 
-- **Schema authority / 当前版本事实来源**：账本表由 M007 schema 初始化管理；本层不自有 schema
-- **允许的升级模式**：随 M007
-- **明确不接受的迁移模式**：无本层独立迁移
-- **兼容边界**：随 M007
-- **失败后的系统状态与责任方**：随 M007
+- **Schema authority / 当前版本事实来源**：无本层 schema；事实来源为 M007 `schema_meta.schema_version`（`util.isd.md` §4.4）
+- **允许的升级模式**：随 M007 —— 仅 **schema initialization**（空库建当前结构）
+- **明确不接受的迁移模式**：无本层独立迁移；**不接受增量升级 / downgrade / 自动修复**
+- **兼容边界**：本层不定义版本；仅在 M007 判定 ready 后服务
+- **失败后的系统状态与责任方**：M007 拒绝启动（`not_ready`）；责任方=运维
+
+#### 7.2.2.1 `SR-INFERENCE-DELEGATE` · 拒绝规则
+
+- **原规则**：本模块无自有 schema（随 M007）
+- **升级 / 降级策略**：无升级、无降级（M007 仅初始化）
+- **接受 / 拒绝条件**：接受=M007 空库初始化成功；拒绝=M007 判定版本不匹配 / 无版本表旧库 / 完整性失败
+- **源 / 目标版本与转换函数**：无转换函数；随 M007 `schema_version`
+- **拒绝后如何处理**：M007 拒绝启动，本模块不服务（不得静默修复）
+- **验证项**：`VRC-INF-003`
 
 #### 7.2.3 库状态分支矩阵
 
-不适用（随 M007 schema）。
+| 库状态 | 判定事实 | 启动结果 | 是否允许重跑及条件 |
+|---|---|---|---|
+| 空库 | 无 `schema_meta` 且无用户表 | M007 原子初始化 → ready | 是（幂等）|
+| 版本匹配 | `schema_version == EXPECTED` | ready | 是 |
+| 版本不匹配 | `schema_version != EXPECTED` | M007 拒绝：`schema_version_mismatch` | 否 |
+| 无版本表旧库 | 有用户表但无 `schema_meta` | M007 拒绝：`schema_unknown` | 否 |
+| 部分初始化 | 初始化事务失败回滚 | 库保持空 | 是 |
+| 完整性失败 | `integrity_check != ok` | M007 拒绝：`schema_integrity_failed` | 否 |
 
 <a id="isd-security"></a>
 
@@ -476,7 +505,7 @@ usage.py        UsageRecorder.authorize_dispatch/bind_backend/finish
 - **原规则**：`R-TRUST-03`（`C-TRUST-1`）
 - **可信输入 / 敏感字段 / 检查对象**：`Principal`（入口已判）
 - **检查函数 / 时点**：不鉴权；只消费 `principal_id`
-- **拒绝 / 宿主交付出口**：——
+- **拒绝 / 宿主交付出口**：无
 - **脱敏 / 禁止输出**：provider 凭据只经 `secret_ref` 解析；不落日志
 - **日志 / 指标 / trace 口径及触发**：`record_trace`/`capture_snapshot`/`record_latency`；fail-open
 - **验证项**：`VRC-INF-005`
@@ -625,6 +654,8 @@ usage.py        UsageRecorder.authorize_dispatch/bind_backend/finish
 - **实现状态**：PLANNED
 - **验证状态 / Run**：NOT_RUN
 
+<a id="isd-status"></a>
+
 ### 10.2.1 `SC-INF` · 状态一致性复核
 
 - **上游承接状态 / 固定来源**：模块 `inference` §15.ISD 声明 `separate`
@@ -654,3 +685,17 @@ metadata 必须包含：`design_object_id=M003`、`implementation_view_of_docume
 `coverage_mapping` 恰好覆盖十项：`scope`(#isd-scope)、`structure`(#isd-structure)、`data`(#isd-data)、`functions`(#isd-functions)、`algorithms`(#isd-algorithms)、`lifecycle`(#isd-lifecycle)、`resources`(#isd-resources)、`security`(#isd-security)、`persistence`(#isd-persistence)、`verification`(#isd-verification)。
 
 交付前运行 `validate-design <完整设计目录> --check-isd-delivery --json`。
+
+<!-- STD_DOCUMENT_CONTROL_BEGIN -->
+| 文档字段 | 值 |
+|---|---|
+| Authority | `LLMTier` |
+| Authors | llmtier |
+| Created Date | `2026-09-23` |
+| Template Conformance | `tailored` |
+| Tailoring Reference | `std-tailoring` |
+| Migration Map Reference | none |
+| Repository | `corezilla/LLMTier` |
+| Canonical Path | `docs/50_implementation_design/inference.isd.md` |
+| Supersedes | none |
+<!-- STD_DOCUMENT_CONTROL_END -->

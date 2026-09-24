@@ -1,7 +1,7 @@
 <!-- STD_DOCUMENT_COVER_BEGIN -->
 # LLMTier M005 Observability 模块设计
 
-> STD 使用入口：[项目采用说明与标准导航](../../../README.md#std-entry)
+> STD 使用入口：[项目采用说明与标准导航](../../README.md#std-entry)
 
 | 文档字段 | 值 |
 |---|---|

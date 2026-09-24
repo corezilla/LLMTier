@@ -12,7 +12,7 @@
 | Document Owner | LLMTier |
 | Last Modified Date | `2026-09-23` |
 | Template ID | `design.implementation` |
-| Template Version | `0.3.0` |
+| Template Version | `0.5.0` |
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 实现目标与输入基线
@@ -27,6 +27,8 @@
 - **需求与 Constraint ID**：`C-CFG-1..5`、`C-METER-4`；机制 `R-CFG-01/02/03`、`R-MET-02/03`
 - **实现范围 / 非目标**：配置权威与 CRUD、探测、用量查询/清空/统计、审计与日志查询、账号用量；**非目标**：推理（M003）、观测记录（M006）、日志脱敏写入（M008）
 - **ISD 默认落位或项目批准路径**：`docs/50_implementation_design/management.isd.md`
+
+<a id="isd-handoff"></a>
 
 ### 1.2.1 `HO-MGMT-01` · 配置权威
 
@@ -238,7 +240,7 @@ health.py         health_view/readiness_view/apply_probe_result
 - **模块是否处理及处理函数**：reject
 - **Typed 异常与原生异常所有权**：`ApiError(400/409)`
 - **宿主 / public payload 或状态码**：400/409
-- **日志级别 / 脱敏 / 关联字段**：——
+- **日志级别 / 脱敏 / 关联字段**：无
 - **是否可重试及前提**：修正后重试
 - **状态与副作用影响 / 验证项**：`VRC-MGMT-002`
 
@@ -248,7 +250,7 @@ health.py         health_view/readiness_view/apply_probe_result
 - **模块是否处理及处理函数**：reject
 - **Typed 异常与原生异常所有权**：`ApiError(412)`
 - **宿主 / public payload 或状态码**：412 + `current_version`
-- **日志级别 / 脱敏 / 关联字段**：——
+- **日志级别 / 脱敏 / 关联字段**：无
 - **是否可重试及前提**：重新读取后重试
 - **状态与副作用影响 / 验证项**：`VRC-MGMT-002`
 
@@ -265,6 +267,17 @@ health.py         health_view/readiness_view/apply_probe_result
 ## 6. 关键流程与算法
 
 <a id="isd-algorithms"></a>
+
+```mermaid
+flowchart TD
+    A["operator 请求"] --> B["校验输入"]
+    B --> C{"校验通过?"}
+    C -->|否| E["400 / 409 错误"]
+    C -->|是| D["Store.transaction 写 Registry + Audit"]
+    D --> F{"commit?"}
+    F -->|成功| G["返回 + ETag"]
+    F -->|失败| H["rollback + 500"]
+```
 
 ### 6.1 `P-MGMT-BOOTSTRAP` · 引导
 
@@ -341,15 +354,31 @@ health.py         health_view/readiness_view/apply_probe_result
 
 #### 7.2.2 Schema 演进策略决定
 
-- **Schema authority / 当前版本事实来源**：配置/账本表由 M007 schema 初始化管理；本层不自有 schema
-- **允许的升级模式**：随 M007
-- **明确不接受的迁移模式**：无本层独立迁移
-- **兼容边界**：随 M007
-- **失败后的系统状态与责任方**：随 M007
+- **Schema authority / 当前版本事实来源**：无本层 schema；事实来源为 M007 `schema_meta.schema_version`（`util.isd.md` §4.4）
+- **允许的升级模式**：随 M007 —— 仅 **schema initialization**（空库建当前结构）
+- **明确不接受的迁移模式**：无本层独立迁移；**不接受增量升级 / downgrade / 自动修复**
+- **兼容边界**：本层不定义版本；仅在 M007 判定 ready 后服务
+- **失败后的系统状态与责任方**：M007 拒绝启动（`not_ready`）；责任方=运维
+
+#### 7.2.2.1 `SR-MANAGEMENT-DELEGATE` · 拒绝规则
+
+- **原规则**：本模块无自有 schema（随 M007）
+- **升级 / 降级策略**：无升级、无降级（M007 仅初始化）
+- **接受 / 拒绝条件**：接受=M007 空库初始化成功；拒绝=M007 判定版本不匹配 / 无版本表旧库 / 完整性失败
+- **源 / 目标版本与转换函数**：无转换函数；随 M007 `schema_version`
+- **拒绝后如何处理**：M007 拒绝启动，本模块不服务（不得静默修复）
+- **验证项**：`VRC-MGMT-002`
 
 #### 7.2.3 库状态分支矩阵
 
-不适用（随 M007 schema）。
+| 库状态 | 判定事实 | 启动结果 | 是否允许重跑及条件 |
+|---|---|---|---|
+| 空库 | 无 `schema_meta` 且无用户表 | M007 原子初始化 → ready | 是（幂等）|
+| 版本匹配 | `schema_version == EXPECTED` | ready | 是 |
+| 版本不匹配 | `schema_version != EXPECTED` | M007 拒绝：`schema_version_mismatch` | 否 |
+| 无版本表旧库 | 有用户表但无 `schema_meta` | M007 拒绝：`schema_unknown` | 否 |
+| 部分初始化 | 初始化事务失败回滚 | 库保持空 | 是 |
+| 完整性失败 | `integrity_check != ok` | M007 拒绝：`schema_integrity_failed` | 否 |
 
 <a id="isd-security"></a>
 
@@ -520,6 +549,8 @@ health.py         health_view/readiness_view/apply_probe_result
 - **实现状态**：PLANNED
 - **验证状态 / Run**：NOT_RUN
 
+<a id="isd-status"></a>
+
 ### 10.2.1 `SC-MGMT` · 状态一致性复核
 
 - **上游承接状态 / 固定来源**：模块 `management` §15.ISD 声明 `separate`
@@ -549,3 +580,17 @@ metadata 必须包含：`design_object_id=M004`、`implementation_view_of_docume
 `coverage_mapping` 恰好覆盖十项：`scope`(#isd-scope)、`structure`(#isd-structure)、`data`(#isd-data)、`functions`(#isd-functions)、`algorithms`(#isd-algorithms)、`lifecycle`(#isd-lifecycle)、`resources`(#isd-resources)、`security`(#isd-security)、`persistence`(#isd-persistence)、`verification`(#isd-verification)。
 
 交付前运行 `validate-design <完整设计目录> --check-isd-delivery --json`。
+
+<!-- STD_DOCUMENT_CONTROL_BEGIN -->
+| 文档字段 | 值 |
+|---|---|
+| Authority | `LLMTier` |
+| Authors | llmtier |
+| Created Date | `2026-09-23` |
+| Template Conformance | `tailored` |
+| Tailoring Reference | `std-tailoring` |
+| Migration Map Reference | none |
+| Repository | `corezilla/LLMTier` |
+| Canonical Path | `docs/50_implementation_design/management.isd.md` |
+| Supersedes | none |
+<!-- STD_DOCUMENT_CONTROL_END -->

@@ -30,10 +30,91 @@
   "title": "LLMTier M008 log 模块设计",
   "design_object_id": "M008",
   "implementation_specification": {
-    "mode": "missing",
-    "document_id": null,
-    "coverage_mapping": [],
-    "reason": "独立 ISD 待写（Planned）；模块设计不兼作 ISD",
+    "mode": "separate",
+    "document_id": "log-isd",
+    "coverage_mapping": [
+      {
+        "item": "scope",
+        "document_id": "log-isd",
+        "anchor": "isd-scope",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "structure",
+        "document_id": "log-isd",
+        "anchor": "isd-structure",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "data",
+        "document_id": "log-isd",
+        "anchor": "isd-data",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "functions",
+        "document_id": "log-isd",
+        "anchor": "isd-functions",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "algorithms",
+        "document_id": "log-isd",
+        "anchor": "isd-algorithms",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "lifecycle",
+        "document_id": "log-isd",
+        "anchor": "isd-lifecycle",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "resources",
+        "document_id": "log-isd",
+        "anchor": "isd-resources",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "security",
+        "document_id": "log-isd",
+        "anchor": "isd-security",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "persistence",
+        "document_id": "log-isd",
+        "anchor": "isd-persistence",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "verification",
+        "document_id": "log-isd",
+        "anchor": "isd-verification",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      }
+    ],
+    "reason": null,
     "decision_ref": null
   }
 }

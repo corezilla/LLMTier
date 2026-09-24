@@ -12,7 +12,7 @@
 | Document Owner | LLMTier |
 | Last Modified Date | `2026-09-23` |
 | Template ID | `design.implementation` |
-| Template Version | `0.3.0` |
+| Template Version | `0.5.0` |
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 实现目标与输入基线
@@ -27,6 +27,8 @@
 - **需求与 Constraint ID**：`C-TRUST-1..5`、`C-INFER-1/2`、`C-OBS-5`；机制 `R-TRUST-02`、`R-INF-01`、`R-MET-04`、`R-CFG-04`、`R-OBS-04`
 - **实现范围 / 非目标**：实现统一 HTTP/SSE 入口（路由/信任/请求身份/body 限长/静态/健康/错误信封）；**非目标**：业务规则、持久化、SSO
 - **ISD 默认落位或项目批准路径**：`docs/50_implementation_design/http-api.isd.md`
+
+<a id="isd-handoff"></a>
 
 ### 1.2.1 `HO-API-01` · 访问信任分发
 
@@ -275,7 +277,7 @@ webui/      # 静态资源（M002 产物）
 - **模块是否处理及处理函数**：reject（`_dispatch` 抛 `ApiError`）
 - **Typed 异常与原生异常所有权**：`ApiError(404)`；`_run` 捕获 → 信封
 - **宿主 / public payload 或状态码**：404 `not_found`
-- **日志级别 / 脱敏 / 关联字段**：——
+- **日志级别 / 脱敏 / 关联字段**：无
 - **是否可重试及前提**：修路径
 - **状态与副作用影响 / 验证项**：`VRC-API-001`
 
@@ -285,7 +287,7 @@ webui/      # 静态资源（M002 产物）
 - **模块是否处理及处理函数**：reject（`auth`）
 - **Typed 异常与原生异常所有权**：`ApiError(503/401/403)`
 - **宿主 / public payload 或状态码**：503/401/403（不泄露存在性）
-- **日志级别 / 脱敏 / 关联字段**：——
+- **日志级别 / 脱敏 / 关联字段**：无
 - **是否可重试及前提**：修凭据
 - **状态与副作用影响 / 验证项**：`VRC-API-002`
 
@@ -295,7 +297,7 @@ webui/      # 静态资源（M002 产物）
 - **模块是否处理及处理函数**：reject（`_body`）
 - **Typed 异常与原生异常所有权**：`ApiError(413/400)`
 - **宿主 / public payload 或状态码**：413/400
-- **日志级别 / 脱敏 / 关联字段**：——
+- **日志级别 / 脱敏 / 关联字段**：无
 - **是否可重试及前提**：修 body
 - **状态与副作用影响 / 验证项**：`VRC-API-003`
 
@@ -306,12 +308,27 @@ webui/      # 静态资源（M002 产物）
 - **Typed 异常与原生异常所有权**：兜底；`ApiError(500)`
 - **宿主 / public payload 或状态码**：500 `internal_error`
 - **日志级别 / 脱敏 / 关联字段**：error（脱敏）
-- **是否可重试及前提**：——
+- **是否可重试及前提**：无
 - **状态与副作用影响 / 验证项**：`VRC-API-001`
 
 ## 6. 关键流程与算法
 
 <a id="isd-algorithms"></a>
+
+```mermaid
+flowchart TD
+    A["HTTP 请求进入 _run"] --> B{"健康/静态?"}
+    B -->|是| H["health/static 响应"]
+    B -->|否| C{"bootstrap_error?"}
+    C -->|是| E["503 引导失败"]
+    C -->|否| D["_dispatch 路由"]
+    D --> F["_auth 鉴权"]
+    F -->|失败| E2["401/403 E-API-AUTH"]
+    F -->|通过| G["_body 解析"]
+    G --> I["调用业务模块"]
+    I --> J["响应 / SSE 输出"]
+    J --> K["_run finally close"]
+```
 
 ### 6.1 `P-API-REQ` · 请求分发
 
@@ -369,7 +386,7 @@ webui/      # 静态资源（M002 产物）
 - **检测事实 / 期限**：fd 计数
 - **状态 / 错误 / 结果已知性**：无
 - **保留 / 释放责任**：`_run` finally `Store.close()`
-- **允许的 query / replay / takeover / retry**：——
+- **允许的 query / replay / takeover / retry**：无
 - **验证项**：`VRC-API-001`
 
 <a id="isd-persistence"></a>
@@ -379,24 +396,40 @@ webui/      # 静态资源（M002 产物）
 #### 7.2.1.1 N/A · 无自有持久化
 
 - **原规则 / 事务**：本模块无自有持久状态（不写库；持久化由 M007 承担）
-- **原子范围 / 事务外副作用**：——
-- **开始 / 提交 / 回滚函数**：——
-- **持久提交点 / 对外响应点**：——
-- **响应丢失后的权威核对**：——
-- **恢复入口 / 判定记录 / 重复恢复条件**：——
-- **验证项**：——
+- **原子范围 / 事务外副作用**：无
+- **开始 / 提交 / 回滚函数**：无
+- **持久提交点 / 对外响应点**：无
+- **响应丢失后的权威核对**：无
+- **恢复入口 / 判定记录 / 重复恢复条件**：无
+- **验证项**：无
 
 #### 7.2.2 Schema 演进策略决定
 
-- **Schema authority / 当前版本事实来源**：不适用（本模块无 schema）
-- **允许的升级模式**：随 M007
-- **明确不接受的迁移模式**：无本层独立迁移
-- **兼容边界**：——
-- **失败后的系统状态与责任方**：随 M007
+- **Schema authority / 当前版本事实来源**：无本层 schema；事实来源为 M007 `schema_meta.schema_version`（`util.isd.md` §4.4）
+- **允许的升级模式**：随 M007 —— 仅 **schema initialization**（空库建当前结构）
+- **明确不接受的迁移模式**：无本层独立迁移；**不接受增量升级 / downgrade / 自动修复**
+- **兼容边界**：本层不定义版本；仅在 M007 判定 ready 后服务
+- **失败后的系统状态与责任方**：M007 拒绝启动（`not_ready`）；责任方=运维
+
+#### 7.2.2.1 `SR-HTTPAPI-DELEGATE` · 拒绝规则
+
+- **原规则**：本模块无自有 schema（随 M007）
+- **升级 / 降级策略**：无升级、无降级（M007 仅初始化）
+- **接受 / 拒绝条件**：接受=M007 空库初始化成功；拒绝=M007 判定版本不匹配 / 无版本表旧库 / 完整性失败
+- **源 / 目标版本与转换函数**：无转换函数；随 M007 `schema_version`
+- **拒绝后如何处理**：M007 拒绝启动，本模块不服务（不得静默修复）
+- **验证项**：`VRC-API-001`
 
 #### 7.2.3 库状态分支矩阵
 
-不适用（本模块无自有 schema）。
+| 库状态 | 判定事实 | 启动结果 | 是否允许重跑及条件 |
+|---|---|---|---|
+| 空库 | 无 `schema_meta` 且无用户表 | M007 原子初始化 → ready | 是（幂等）|
+| 版本匹配 | `schema_version == EXPECTED` | ready | 是 |
+| 版本不匹配 | `schema_version != EXPECTED` | M007 拒绝：`schema_version_mismatch` | 否 |
+| 无版本表旧库 | 有用户表但无 `schema_meta` | M007 拒绝：`schema_unknown` | 否 |
+| 部分初始化 | 初始化事务失败回滚 | 库保持空 | 是 |
+| 完整性失败 | `integrity_check != ok` | M007 拒绝：`schema_integrity_failed` | 否 |
 
 <a id="isd-security"></a>
 
@@ -539,6 +572,8 @@ webui/      # 静态资源（M002 产物）
 - **实现状态**：PLANNED
 - **验证状态 / Run**：NOT_RUN
 
+<a id="isd-status"></a>
+
 ### 10.2.1 `SC-API` · 状态一致性复核
 
 - **上游承接状态 / 固定来源**：模块 `http-api` §15.ISD 声明 `separate`
@@ -554,10 +589,10 @@ webui/      # 静态资源（M002 产物）
 - **既有台账引用 / 具体缺口 / 反例**：`RISK-TRUST-1`
 - **风险等级 / 判定依据**：Medium；内网免登录依赖网络边界
 - **Owner**：LLMTier
-- **最晚关闭阶段 / 截止 Gate**：——
+- **最晚关闭阶段 / 截止 Gate**：无
 - **阻断范围**：`SEC-API-AUTH`
 - **分析 / 决策引用**：机制 M-TRUST
-- **所需输入 / 下一步选择判据**：——
+- **所需输入 / 下一步选择判据**：无
 - **解决动作 / 完成条件**：明文声明边界，凭据作纵深
 - **状态**：Open
 
@@ -568,3 +603,17 @@ metadata 必须包含：`design_object_id=M001`、`implementation_view_of_docume
 `coverage_mapping` 恰好覆盖十项：`scope`(#isd-scope)、`structure`(#isd-structure)、`data`(#isd-data)、`functions`(#isd-functions)、`algorithms`(#isd-algorithms)、`lifecycle`(#isd-lifecycle)、`resources`(#isd-resources)、`security`(#isd-security)、`persistence`(#isd-persistence)、`verification`(#isd-verification)。
 
 交付前运行 `validate-design <完整设计目录> --check-isd-delivery --json`。
+
+<!-- STD_DOCUMENT_CONTROL_BEGIN -->
+| 文档字段 | 值 |
+|---|---|
+| Authority | `LLMTier` |
+| Authors | llmtier |
+| Created Date | `2026-09-23` |
+| Template Conformance | `tailored` |
+| Tailoring Reference | `std-tailoring` |
+| Migration Map Reference | none |
+| Repository | `corezilla/LLMTier` |
+| Canonical Path | `docs/50_implementation_design/http-api.isd.md` |
+| Supersedes | none |
+<!-- STD_DOCUMENT_CONTROL_END -->

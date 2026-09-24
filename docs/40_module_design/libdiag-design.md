@@ -1,12 +1,12 @@
 <!-- STD_DOCUMENT_COVER_BEGIN -->
 # LLMTier M006 libdiag 模块设计
 
-> STD 使用入口：[项目采用说明与标准导航](../../../README.md#std-entry)
+> STD 使用入口：[项目采用说明与标准导航](../../README.md#std-entry)
 
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `libdiag` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.6` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |

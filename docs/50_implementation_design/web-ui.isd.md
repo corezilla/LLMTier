@@ -12,7 +12,7 @@
 | Document Owner | LLMTier |
 | Last Modified Date | `2026-09-23` |
 | Template ID | `design.implementation` |
-| Template Version | `0.3.0` |
+| Template Version | `0.5.0` |
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 实现目标与输入基线
@@ -27,6 +27,8 @@
 - **需求与 Constraint ID**：`C-TRUST-1`、`C-METER`（未知不填零）、`C-OBS-1`；机制 `R-CFG-05`、`R-OBS-05`
 - **实现范围 / 非目标**：实现浏览器端 operator 控制台（框架/导航/5 页 + 2 抽屉、页面渲染、mutation、交互状态）；**非目标**：服务端逻辑、访问控制、账号库、直读 DB/Secret
 - **ISD 默认落位或项目批准路径**：`docs/50_implementation_design/web-ui.isd.md`
+
+<a id="isd-handoff"></a>
 
 ### 1.2.1 `HO-UI-01` · 管理面操作
 
@@ -91,7 +93,7 @@ webui/
 - **职责及调用者**：布局/状态样式；单线图标 sprite
 - **类型 / 函数**：类选择器；`<symbol id>`
 - **可见性**：public（静态资源）
-- **调用与类型依赖**：——
+- **调用与类型依赖**：无
 - **构建目标 / 生成源 / 输出**：静态资源
 - **实现状态**：PLANNED
 
@@ -159,7 +161,7 @@ webui/
 - **文件 / symbol / 可见性**：`app.js` / `loadRegistry/loadHome/...` / private
 - **原成员 ID 或私有来源**：`F-UI-HOME/PROVIDERS/RECORDS/LOGS/DIAG`
 - **完整签名与 caller**：`load*() -> Promise<void>`；caller=页面进入
-- **输入参数 / 数据结构 authority**：——
+- **输入参数 / 数据结构 authority**：无
 - **输入约束 / 校验顺序 / 失败映射**：失败 → I9
 - **成功输出 / 数据结构 / 后置条件**：更新 `state` 并渲染
 - **错误输出 / 触发条件 / 优先级**：见 I9
@@ -179,9 +181,9 @@ webui/
 - **原成员 ID 或私有来源**：`F-UI-HOME/PROVIDERS`
 - **完整签名与 caller**：`render*() -> void`；`backendState/tierState(...) -> string/obj`；caller=`load*`
 - **输入参数 / 数据结构 authority**：`state`
-- **输入约束 / 校验顺序 / 失败映射**：——
+- **输入约束 / 校验顺序 / 失败映射**：无
 - **成功输出 / 数据结构 / 后置条件**：DOM 更新
-- **错误输出 / 触发条件 / 优先级**：——
+- **错误输出 / 触发条件 / 优先级**：无
 - **副作用 / 执行上下文 / 幂等性**：DOM 渲染
 - **输入输出 ownership 与寿命**：页面
 - **不可改变的规则 / Constraint ID**：状态语义（不互相覆盖、未知不填零）
@@ -189,7 +191,7 @@ webui/
 - **Thread-safe / reentrant**：单线程
 - **Nested-call policy**：allowed
 - **Transaction participation**：none
-- **Blocking / timeout / cancellation**：——
+- **Blocking / timeout / cancellation**：无
 - **实现状态 / 验证项**：PLANNED；`VRC-UI-001/004`
 
 ### 5.1.4 `FUNC-UI-MUTATE` · mutation
@@ -219,7 +221,7 @@ webui/
 - **输入参数 / 数据结构 authority**：`{status,code?}`
 - **输入约束 / 校验顺序 / 失败映射**：按状态呈现
 - **成功输出 / 数据结构 / 后置条件**：UI 反馈
-- **错误输出 / 触发条件 / 优先级**：——
+- **错误输出 / 触发条件 / 优先级**：无
 - **副作用 / 执行上下文 / 幂等性**：无
 - **输入输出 ownership 与寿命**：页面
 - **不可改变的规则 / Constraint ID**：401 跳登录、403 不猜存在性、503 显式化
@@ -227,7 +229,7 @@ webui/
 - **Thread-safe / reentrant**：单线程
 - **Nested-call policy**：allowed
 - **Transaction participation**：none
-- **Blocking / timeout / cancellation**：——
+- **Blocking / timeout / cancellation**：无
 - **实现状态 / 验证项**：PLANNED；`VRC-UI-001`
 
 ### 5.2 错误传播矩阵
@@ -238,7 +240,7 @@ webui/
 - **模块是否处理及处理函数**：recover（I9 清会话跳登录）
 - **Typed 异常与原生异常所有权**：浏览器
 - **宿主 / public payload 或状态码**：跳外部登录
-- **日志级别 / 脱敏 / 关联字段**：——
+- **日志级别 / 脱敏 / 关联字段**：无
 - **是否可重试及前提**：重新登录
 - **状态与副作用影响 / 验证项**：`VRC-UI-002`
 
@@ -248,7 +250,7 @@ webui/
 - **模块是否处理及处理函数**：recover（显示引用摘要，禁强删）
 - **Typed 异常与原生异常所有权**：浏览器
 - **宿主 / public payload 或状态码**：留当前页
-- **日志级别 / 脱敏 / 关联字段**：——
+- **日志级别 / 脱敏 / 关联字段**：无
 - **是否可重试及前提**：先解绑
 - **状态与副作用影响 / 验证项**：`VRC-UI-002`
 
@@ -258,7 +260,7 @@ webui/
 - **模块是否处理及处理函数**：recover（保留输入供重载）
 - **Typed 异常与原生异常所有权**：浏览器
 - **宿主 / public payload 或状态码**：不自动覆盖
-- **日志级别 / 脱敏 / 关联字段**：——
+- **日志级别 / 脱敏 / 关联字段**：无
 - **是否可重试及前提**：重新 GET 后重试
 - **状态与副作用影响 / 验证项**：`VRC-UI-002`
 
@@ -268,13 +270,25 @@ webui/
 - **模块是否处理及处理函数**：recover（显示“不可用”，保留旧画面 + stale）
 - **Typed 异常与原生异常所有权**：浏览器
 - **宿主 / public payload 或状态码**：stale 标记
-- **日志级别 / 脱敏 / 关联字段**：——
+- **日志级别 / 脱敏 / 关联字段**：无
 - **是否可重试及前提**：稍后重试
 - **状态与副作用影响 / 验证项**：`VRC-UI-004`
 
 ## 6. 关键流程与算法
 
 <a id="isd-algorithms"></a>
+
+```mermaid
+flowchart TD
+    A["用户操作"] --> B{"写操作?"}
+    B -->|否| C["GET /v1 读取"]
+    B -->|是| D["同源校验 + 请求"]
+    C --> E["渲染视图"]
+    D --> E
+    E --> F{"401/403?"}
+    F -->|是| G["跳登录 / 留当前页"]
+    F -->|否| H["更新 DOM"]
+```
 
 ### 6.1 `P-UI-LOAD` · 页面加载
 
@@ -305,7 +319,7 @@ webui/
 - **步骤 / 算法 / 复杂度**：读 `/v1/diagnostics*` → 渲染；开关关闭 → Disabled
 - **判断事实来源**：开关状态
 - **成功可见点**：4 tabs
-- **失败、取消与清理**：——
+- **失败、取消与清理**：无
 - **代表输入与中间值**：开关关 → Disabled
 - **规则 / 接口 / 验证引用**：`F-UI-DIAG`；`VRC-UI-006`
 
@@ -342,24 +356,40 @@ webui/
 #### 7.2.1.1 N/A · 无自有持久化
 
 - **原规则 / 事务**：浏览器内存；不落 localStorage/sessionStorage；服务端持久化由 M007
-- **原子范围 / 事务外副作用**：——
-- **开始 / 提交 / 回滚函数**：——
-- **持久提交点 / 对外响应点**：——
+- **原子范围 / 事务外副作用**：无
+- **开始 / 提交 / 回滚函数**：无
+- **持久提交点 / 对外响应点**：无
 - **响应丢失后的权威核对**：先 GET 核对
-- **恢复入口 / 判定记录 / 重复恢复条件**：——
-- **验证项**：——
+- **恢复入口 / 判定记录 / 重复恢复条件**：无
+- **验证项**：无
 
 #### 7.2.2 Schema 演进策略决定
 
-- **Schema authority / 当前版本事实来源**：不适用（前端无 schema）
-- **允许的升级模式**：随 M001/M007
-- **明确不接受的迁移模式**：无本层独立迁移
-- **兼容边界**：——
-- **失败后的系统状态与责任方**：随宿主
+- **Schema authority / 当前版本事实来源**：无本层 schema；事实来源为 M007 `schema_meta.schema_version`（`util.isd.md` §4.4）
+- **允许的升级模式**：随 M007 —— 仅 **schema initialization**（空库建当前结构）
+- **明确不接受的迁移模式**：无本层独立迁移；**不接受增量升级 / downgrade / 自动修复**
+- **兼容边界**：本层不定义版本；仅在 M007 判定 ready 后服务
+- **失败后的系统状态与责任方**：M007 拒绝启动（`not_ready`）；责任方=运维
+
+#### 7.2.2.1 `SR-WEBUI-DELEGATE` · 拒绝规则
+
+- **原规则**：本模块无自有 schema（随 M007）
+- **升级 / 降级策略**：无升级、无降级（M007 仅初始化）
+- **接受 / 拒绝条件**：接受=M007 空库初始化成功；拒绝=M007 判定版本不匹配 / 无版本表旧库 / 完整性失败
+- **源 / 目标版本与转换函数**：无转换函数；随 M007 `schema_version`
+- **拒绝后如何处理**：M007 拒绝启动，本模块不服务（不得静默修复）
+- **验证项**：`VRC-UI-001`
 
 #### 7.2.3 库状态分支矩阵
 
-不适用（前端无 schema）。
+| 库状态 | 判定事实 | 启动结果 | 是否允许重跑及条件 |
+|---|---|---|---|
+| 空库 | 无 `schema_meta` 且无用户表 | M007 原子初始化 → ready | 是（幂等）|
+| 版本匹配 | `schema_version == EXPECTED` | ready | 是 |
+| 版本不匹配 | `schema_version != EXPECTED` | M007 拒绝：`schema_version_mismatch` | 否 |
+| 无版本表旧库 | 有用户表但无 `schema_meta` | M007 拒绝：`schema_unknown` | 否 |
+| 部分初始化 | 初始化事务失败回滚 | 库保持空 | 是 |
+| 完整性失败 | `integrity_check != ok` | M007 拒绝：`schema_integrity_failed` | 否 |
 
 <a id="isd-security"></a>
 
@@ -387,13 +417,13 @@ webui/
 ### 8.1 配置实现（条件项）
 
 - **适用性 / 固定 authority**：N/A + 依据（前端无配置；API 基址为同源固定）
-- **配置 key / 来源 / 优先级**：——
-- **类型 / 单位 / 默认值 / 范围 / 字段约束**：——
-- **读取 / 解析 / 校验 symbol**：——
-- **生效点 / reload / 原子性 / 在途操作**：——
-- **缺失 / 非法 / 部分更新的错误出口**：——
-- **敏感值存储 / 日志脱敏**：——
-- **验证项**：——
+- **配置 key / 来源 / 优先级**：无
+- **类型 / 单位 / 默认值 / 范围 / 字段约束**：无
+- **读取 / 解析 / 校验 symbol**：无
+- **生效点 / reload / 原子性 / 在途操作**：无
+- **缺失 / 非法 / 部分更新的错误出口**：无
+- **敏感值存储 / 日志脱敏**：无
+- **验证项**：无
 
 ### 8.2.1 `RB-UI-BUILD` · 构建与装配
 
@@ -514,6 +544,8 @@ webui/
 - **实现状态**：PLANNED
 - **验证状态 / Run**：NOT_RUN
 
+<a id="isd-status"></a>
+
 ### 10.2.1 `SC-UI` · 状态一致性复核
 
 - **上游承接状态 / 固定来源**：模块 `web-ui` §15.ISD 声明 `separate`
@@ -543,3 +575,17 @@ metadata 必须包含：`design_object_id=M002`、`implementation_view_of_docume
 `coverage_mapping` 恰好覆盖十项：`scope`(#isd-scope)、`structure`(#isd-structure)、`data`(#isd-data)、`functions`(#isd-functions)、`algorithms`(#isd-algorithms)、`lifecycle`(#isd-lifecycle)、`resources`(#isd-resources)、`security`(#isd-security)、`persistence`(#isd-persistence)、`verification`(#isd-verification)。
 
 交付前运行 `validate-design <完整设计目录> --check-isd-delivery --json`。
+
+<!-- STD_DOCUMENT_CONTROL_BEGIN -->
+| 文档字段 | 值 |
+|---|---|
+| Authority | `LLMTier` |
+| Authors | llmtier |
+| Created Date | `2026-09-23` |
+| Template Conformance | `tailored` |
+| Tailoring Reference | `std-tailoring` |
+| Migration Map Reference | none |
+| Repository | `corezilla/LLMTier` |
+| Canonical Path | `docs/50_implementation_design/web-ui.isd.md` |
+| Supersedes | none |
+<!-- STD_DOCUMENT_CONTROL_END -->

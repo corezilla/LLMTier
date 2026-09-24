@@ -12,7 +12,7 @@
 | Document Owner | LLMTier |
 | Last Modified Date | `2026-09-23` |
 | Template ID | `design.implementation` |
-| Template Version | `0.3.0` |
+| Template Version | `0.5.0` |
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 实现目标与输入基线
@@ -27,6 +27,8 @@
 - **需求与 Constraint ID**：`C-OBS-1`（默认关零开销）、`C-OBS-2`（fail-open）、`C-OBS-3`（不记 Secret/正文）、`C-OBS-4`（注入标注）、`C-OBS-5`（libdiag 提供/Observability 呈现）；机制 `R-OBS-02`
 - **实现范围 / 非目标**：实现诊断查询与呈现（快照/统计/注入/trace/traces）、开关切换、关联标识透传；**非目标**：观测记录底层读写（M006）、HTTP 传输（M001）、页面渲染细节（M002）
 - **ISD 默认落位或项目批准路径**：`docs/50_implementation_design/observability.isd.md`
+
+<a id="isd-handoff"></a>
 
 ### 1.2.1 `HO-OBS-01` · 观测查询与开关呈现
 
@@ -224,7 +226,7 @@ diagnostics.py    # 查询方法：switches/set_switches/snapshots_page/stats/tr
 - **Thread-safe / reentrant**：每请求线程
 - **Nested-call policy**：allowed
 - **Transaction participation**：none
-- **Blocking / timeout / cancellation**：——
+- **Blocking / timeout / cancellation**：无
 - **实现状态 / 验证项**：PLANNED；`VRC-OBS-004`
 
 ### 5.2 错误传播矩阵
@@ -245,7 +247,7 @@ diagnostics.py    # 查询方法：switches/set_switches/snapshots_page/stats/tr
 - **模块是否处理及处理函数**：reject
 - **Typed 异常与原生异常所有权**：`ApiError(400/404)`
 - **宿主 / public payload 或状态码**：400/404
-- **日志级别 / 脱敏 / 关联字段**：——
+- **日志级别 / 脱敏 / 关联字段**：无
 - **是否可重试及前提**：修参数
 - **状态与副作用影响 / 验证项**：`VRC-OBS-003`
 
@@ -254,7 +256,7 @@ diagnostics.py    # 查询方法：switches/set_switches/snapshots_page/stats/tr
 - **底层异常 / 失败事实**：记录写入失败（M006）
 - **模块是否处理及处理函数**：recover（fail-open）
 - **Typed 异常与原生异常所有权**：内部捕获
-- **宿主 / public payload 或状态码**：——
+- **宿主 / public payload 或状态码**：无
 - **日志级别 / 脱敏 / 关联字段**：warning
 - **是否可重试及前提**：尽力而为
 - **状态与副作用影响 / 验证项**：不改推理；`VRC-OBS-003`
@@ -262,6 +264,16 @@ diagnostics.py    # 查询方法：switches/set_switches/snapshots_page/stats/tr
 ## 6. 关键流程与算法
 
 <a id="isd-algorithms"></a>
+
+```mermaid
+flowchart TD
+    A["operator 查询"] --> B["入口鉴权"]
+    B --> C["读 M006 快照 / 统计"]
+    C --> D{"有数据?"}
+    D -->|否| E["空结果"]
+    D -->|是| F["分页 + 脱敏"]
+    F --> G["返回视图"]
+```
 
 ### 6.1 `P-OBS-QUERY` · 诊断查询
 
@@ -296,7 +308,7 @@ diagnostics.py    # 查询方法：switches/set_switches/snapshots_page/stats/tr
 - **参与线程 / 回调 / 事务**：请求线程
 - **已产生或可能产生的副作用**：无
 - **检测事实 / 期限**：写入异常（M006）
-- **状态 / 错误 / 结果已知性**：——
+- **状态 / 错误 / 结果已知性**：无
 - **保留 / 释放责任**：M006
 - **允许的 query / replay / takeover / retry**：尽力而为
 - **验证项**：`VRC-OBS-003`
@@ -308,24 +320,40 @@ diagnostics.py    # 查询方法：switches/set_switches/snapshots_page/stats/tr
 #### 7.2.1.1 N/A · 无自有持久化
 
 - **原规则 / 事务**：本模块不写库；记录由 M006、存储由 M007
-- **原子范围 / 事务外副作用**：——
-- **开始 / 提交 / 回滚函数**：——
-- **持久提交点 / 对外响应点**：——
-- **响应丢失后的权威核对**：——
-- **恢复入口 / 判定记录 / 重复恢复条件**：——
-- **验证项**：——
+- **原子范围 / 事务外副作用**：无
+- **开始 / 提交 / 回滚函数**：无
+- **持久提交点 / 对外响应点**：无
+- **响应丢失后的权威核对**：无
+- **恢复入口 / 判定记录 / 重复恢复条件**：无
+- **验证项**：无
 
 #### 7.2.2 Schema 演进策略决定
 
-- **Schema authority / 当前版本事实来源**：不适用（本模块无 schema）
-- **允许的升级模式**：随 M007
-- **明确不接受的迁移模式**：无本层独立迁移
-- **兼容边界**：——
-- **失败后的系统状态与责任方**：随 M007
+- **Schema authority / 当前版本事实来源**：无本层 schema；事实来源为 M007 `schema_meta.schema_version`（`util.isd.md` §4.4）
+- **允许的升级模式**：随 M007 —— 仅 **schema initialization**（空库建当前结构）
+- **明确不接受的迁移模式**：无本层独立迁移；**不接受增量升级 / downgrade / 自动修复**
+- **兼容边界**：本层不定义版本；仅在 M007 判定 ready 后服务
+- **失败后的系统状态与责任方**：M007 拒绝启动（`not_ready`）；责任方=运维
+
+#### 7.2.2.1 `SR-OBSERVABILITY-DELEGATE` · 拒绝规则
+
+- **原规则**：本模块无自有 schema（随 M007）
+- **升级 / 降级策略**：无升级、无降级（M007 仅初始化）
+- **接受 / 拒绝条件**：接受=M007 空库初始化成功；拒绝=M007 判定版本不匹配 / 无版本表旧库 / 完整性失败
+- **源 / 目标版本与转换函数**：无转换函数；随 M007 `schema_version`
+- **拒绝后如何处理**：M007 拒绝启动，本模块不服务（不得静默修复）
+- **验证项**：`VRC-OBS-002`
 
 #### 7.2.3 库状态分支矩阵
 
-不适用（本模块无自有 schema）。
+| 库状态 | 判定事实 | 启动结果 | 是否允许重跑及条件 |
+|---|---|---|---|
+| 空库 | 无 `schema_meta` 且无用户表 | M007 原子初始化 → ready | 是（幂等）|
+| 版本匹配 | `schema_version == EXPECTED` | ready | 是 |
+| 版本不匹配 | `schema_version != EXPECTED` | M007 拒绝：`schema_version_mismatch` | 否 |
+| 无版本表旧库 | 有用户表但无 `schema_meta` | M007 拒绝：`schema_unknown` | 否 |
+| 部分初始化 | 初始化事务失败回滚 | 库保持空 | 是 |
+| 完整性失败 | `integrity_check != ok` | M007 拒绝：`schema_integrity_failed` | 否 |
 
 <a id="isd-security"></a>
 
@@ -475,6 +503,8 @@ diagnostics.py    # 查询方法：switches/set_switches/snapshots_page/stats/tr
 - **实现状态**：PLANNED
 - **验证状态 / Run**：NOT_RUN
 
+<a id="isd-status"></a>
+
 ### 10.2.1 `SC-OBS` · 状态一致性复核
 
 - **上游承接状态 / 固定来源**：模块 `observability` §15.ISD 声明 `separate`
@@ -490,10 +520,10 @@ diagnostics.py    # 查询方法：switches/set_switches/snapshots_page/stats/tr
 - **既有台账引用 / 具体缺口 / 反例**：`RISK-OBS-1`
 - **风险等级 / 判定依据**：Low；统计非账本
 - **Owner**：LLMTier
-- **最晚关闭阶段 / 截止 Gate**：——
+- **最晚关闭阶段 / 截止 Gate**：无
 - **阻断范围**：`FUNC-OBS-QUERY`
 - **分析 / 决策引用**：模块 §15.1
-- **所需输入 / 下一步选择判据**：——
+- **所需输入 / 下一步选择判据**：无
 - **解决动作 / 完成条件**：明示非账本语义
 - **状态**：Open
 
@@ -516,3 +546,17 @@ metadata 必须包含：`design_object_id=M005`、`implementation_view_of_docume
 `coverage_mapping` 恰好覆盖十项：`scope`(#isd-scope)、`structure`(#isd-structure)、`data`(#isd-data)、`functions`(#isd-functions)、`algorithms`(#isd-algorithms)、`lifecycle`(#isd-lifecycle)、`resources`(#isd-resources)、`security`(#isd-security)、`persistence`(#isd-persistence)、`verification`(#isd-verification)。
 
 交付前运行 `validate-design <完整设计目录> --check-isd-delivery --json`。
+
+<!-- STD_DOCUMENT_CONTROL_BEGIN -->
+| 文档字段 | 值 |
+|---|---|
+| Authority | `LLMTier` |
+| Authors | llmtier |
+| Created Date | `2026-09-23` |
+| Template Conformance | `tailored` |
+| Tailoring Reference | `std-tailoring` |
+| Migration Map Reference | none |
+| Repository | `corezilla/LLMTier` |
+| Canonical Path | `docs/50_implementation_design/observability.isd.md` |
+| Supersedes | none |
+<!-- STD_DOCUMENT_CONTROL_END -->

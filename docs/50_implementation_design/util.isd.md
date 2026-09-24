@@ -12,7 +12,7 @@
 | Document Owner | LLMTier |
 | Last Modified Date | `2026-09-23` |
 | Template ID | `design.implementation` |
-| Template Version | `0.3.0` |
+| Template Version | `0.5.0` |
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 实现目标与输入基线
@@ -27,6 +27,8 @@
 - **需求与 Constraint ID**：`C-CFG-1`（唯一持久化）、`C-CFG-3`（原子推进）；机制 `R-CFG-03`、`R-OBS-06`
 - **实现范围 / 非目标**：实现 SQLite 存取层 `Store`（连接/初始化/schema 演进/事务/查询/关闭）；**非目标**：业务语义、连接池、迁移框架、ORM、配置管理
 - **ISD 默认落位或项目批准路径**：`docs/50_implementation_design/util.isd.md`
+
+<a id="isd-handoff"></a>
 
 ### 1.2.1 `HO-UTIL-01` · 连接与 PRAGMA
 
@@ -126,7 +128,7 @@ python 标准库 sqlite3
 - **职责及调用者**：建表 DDL；由 `migrate()` 执行
 - **类型 / 函数**：SQL 脚本
 - **可见性**：private（数据文件，随包）
-- **调用与类型依赖**：——
+- **调用与类型依赖**：无
 - **构建目标 / 生成源 / 输出**：随包
 - **实现状态**：PLANNED
 
@@ -381,6 +383,17 @@ python 标准库 sqlite3
 
 <a id="isd-algorithms"></a>
 
+```mermaid
+flowchart TD
+    A["Store.__init__"] --> B{"路径 symlink?"}
+    B -->|是| E["拒绝 store_path_unsafe"]
+    B -->|否| C["打开连接 + PRAGMA"]
+    C --> D{"库状态?"}
+    D -->|空库| F["migrate 初始化"]
+    D -->|版本匹配| G["ready"]
+    D -->|不匹配/旧库| H["拒绝 not_ready"]
+```
+
 ### 6.1 `P-UTIL-INIT` · 连接与 PRAGMA
 
 - **触发与执行者**：首次 `connection()`；调用线程
@@ -448,7 +461,7 @@ python 标准库 sqlite3
 - **检测事实 / 期限**：fd 计数
 - **状态 / 错误 / 结果已知性**：无错误
 - **保留 / 释放责任**：宿主 `finally: close()`
-- **允许的 query / replay / takeover / retry**：——
+- **允许的 query / replay / takeover / retry**：无
 - **验证项**：`VRC-UTIL-001`
 
 #### 7.1.3 `CF-UTIL-CONCURRENT-START` · 并发启动
@@ -511,8 +524,8 @@ python 标准库 sqlite3
 
 - **原规则**：模块 §11（基础层不鉴权）
 - **可信输入 / 敏感字段 / 检查对象**：无
-- **检查函数 / 时点**：——
-- **拒绝 / 宿主交付出口**：——
+- **检查函数 / 时点**：无
+- **拒绝 / 宿主交付出口**：无
 - **脱敏 / 禁止输出**：本层不记录任何值
 - **日志 / 指标 / trace 口径及触发**：不写日志/指标（避免反向依赖）
 - **验证项**：`VRC-UTIL-001`
@@ -648,6 +661,8 @@ python 标准库 sqlite3
 - **实现状态**：PLANNED
 - **验证状态 / Run**：NOT_RUN
 
+<a id="isd-status"></a>
+
 ### 10.2.1 `SC-UTIL` · 状态一致性复核
 
 - **上游承接状态 / 固定来源**：模块 `util` §15.ISD 声明 `separate`
@@ -677,3 +692,17 @@ metadata 必须显式包含：`design_object_id=M007`、`implementation_view_of_
 `coverage_mapping` 恰好覆盖十项（各指向本 ISD 锚点）：`scope`(#isd-scope)、`structure`(#isd-structure)、`data`(#isd-data)、`functions`(#isd-functions)、`algorithms`(#isd-algorithms)、`lifecycle`(#isd-lifecycle)、`resources`(#isd-resources)、`security`(#isd-security)、`persistence`(#isd-persistence)、`verification`(#isd-verification)。
 
 交付前运行 `validate-design <完整设计目录> --check-isd-delivery --json`。
+
+<!-- STD_DOCUMENT_CONTROL_BEGIN -->
+| 文档字段 | 值 |
+|---|---|
+| Authority | `LLMTier` |
+| Authors | llmtier |
+| Created Date | `2026-09-23` |
+| Template Conformance | `tailored` |
+| Tailoring Reference | `std-tailoring` |
+| Migration Map Reference | none |
+| Repository | `corezilla/LLMTier` |
+| Canonical Path | `docs/50_implementation_design/util.isd.md` |
+| Supersedes | none |
+<!-- STD_DOCUMENT_CONTROL_END -->

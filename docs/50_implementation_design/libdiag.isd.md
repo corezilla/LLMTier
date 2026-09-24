@@ -12,7 +12,7 @@
 | Document Owner | LLMTier |
 | Last Modified Date | `2026-09-23` |
 | Template ID | `design.implementation` |
-| Template Version | `0.3.0` |
+| Template Version | `0.5.0` |
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 实现目标与输入基线
@@ -27,6 +27,8 @@
 - **需求与 Constraint ID**：`C-OBS-1`（默认关零开销）、`C-OBS-2`（fail-open）、`C-OBS-3`（不记 Secret/正文）、`C-OBS-4`（注入标注）；机制 `R-OBS-01`、`R-OBS-06`
 - **实现范围 / 非目标**：实现 `DiagnosticsService`（开关/注入/trace/快照/统计/流包装/清理）与观测表 DDL；**非目标**：查询呈现与路由（M005）、HTTP（M001）、推理决策（M003）
 - **ISD 默认落位或项目批准路径**：`docs/50_implementation_design/libdiag.isd.md`
+
+<a id="isd-handoff"></a>
 
 ### 1.2.1 `HO-DIAG-01` · 开关
 
@@ -119,7 +121,7 @@ migrations/002_observability.sql    # 观测 6 表 DDL
 - **职责及调用者**：建 6 张观测表；由 M007 `migrate()` 执行
 - **类型 / 函数**：SQL 脚本
 - **可见性**：private（数据文件，随包）
-- **调用与类型依赖**：——
+- **调用与类型依赖**：无
 - **构建目标 / 生成源 / 输出**：随包
 - **实现状态**：PLANNED
 
@@ -305,7 +307,7 @@ migrations/002_observability.sql    # 观测 6 表 DDL
 - **输入参数 / 数据结构 authority**：SSE 字节流
 - **输入约束 / 校验顺序 / 失败映射**：无注入 → 透传；命中 `stream_terminate`/`malformed_event` → 截断/畸形
 - **成功输出 / 数据结构 / 后置条件**：包装后的字节流
-- **错误输出 / 触发条件 / 优先级**：——
+- **错误输出 / 触发条件 / 优先级**：无
 - **副作用 / 执行上下文 / 幂等性**：流式包装；不修改无注入流
 - **输入输出 ownership 与寿命**：请求级流
 - **不可改变的规则 / Constraint ID**：命中确定性；无注入透传
@@ -342,7 +344,7 @@ migrations/002_observability.sql    # 观测 6 表 DDL
 - **底层异常 / 失败事实**：Store 写失败
 - **模块是否处理及处理函数**：recover（`_warn` 记录后继续）
 - **Typed 异常与原生异常所有权**：内部捕获，不抛到推理路径
-- **宿主 / public payload 或状态码**：——
+- **宿主 / public payload 或状态码**：无
 - **日志级别 / 脱敏 / 关联字段**：warning（module=diagnostics）
 - **是否可重试及前提**：尽力而为
 - **状态与副作用影响 / 验证项**：不改推理结果（C-OBS-2）；`VRC-DIAG-003`
@@ -353,7 +355,7 @@ migrations/002_observability.sql    # 观测 6 表 DDL
 - **模块是否处理及处理函数**：reject（`_validate`）
 - **Typed 异常与原生异常所有权**：`DiagnosticsService` 抛 `ApiError(400)`；M005/M001 映射
 - **宿主 / public payload 或状态码**：400 `invalid_injection`
-- **日志级别 / 脱敏 / 关联字段**：——
+- **日志级别 / 脱敏 / 关联字段**：无
 - **是否可重试及前提**：修参数后重试
 - **状态与副作用影响 / 验证项**：不落库；`VRC-DIAG-004`
 
@@ -370,6 +372,16 @@ migrations/002_observability.sql    # 观测 6 表 DDL
 ## 6. 关键流程与算法
 
 <a id="isd-algorithms"></a>
+
+```mermaid
+flowchart TD
+    A["业务调用 record_*"] --> B{"开关开启?"}
+    B -->|否| C["短路返回"]
+    B -->|是| D["脱敏 + 校验"]
+    D --> E["Store 写入"]
+    E -->|失败| F["warning fail-open"]
+    E -->|成功| G["返回"]
+```
 
 ### 6.1 `P-DIAG-RECORD` · 记录
 
@@ -415,9 +427,9 @@ migrations/002_observability.sql    # 观测 6 表 DDL
 - **参与线程 / 回调 / 事务**：多请求线程
 - **已产生或可能产生的副作用**：缓存更新
 - **检测事实 / 期限**：缓存上限
-- **状态 / 错误 / 结果已知性**：——
+- **状态 / 错误 / 结果已知性**：无
 - **保留 / 释放责任**：内部 LRU
-- **允许的 query / replay / takeover / retry**：——
+- **允许的 query / replay / takeover / retry**：无
 - **验证项**：`VRC-DIAG-002`
 
 #### 7.1.2 `CF-DIAG-INIT` · 初始化失败
@@ -446,15 +458,31 @@ migrations/002_observability.sql    # 观测 6 表 DDL
 
 #### 7.2.2 Schema 演进策略决定
 
-- **Schema authority / 当前版本事实来源**：`002_observability.sql` 由 M007 schema initialization 管理；本层提供 DDL 内容
-- **允许的升级模式**：随 M007（仅初始化）
-- **明确不接受的迁移模式**：无本层独立迁移（无增量升级 / 无 downgrade / 无自动修复）
-- **兼容边界**：随 M007
-- **失败后的系统状态与责任方**：随 M007 拒绝启动
+- **Schema authority / 当前版本事实来源**：无本层 schema；事实来源为 M007 `schema_meta.schema_version`（`util.isd.md` §4.4）
+- **允许的升级模式**：随 M007 —— 仅 **schema initialization**（空库建当前结构）
+- **明确不接受的迁移模式**：无本层独立迁移；**不接受增量升级 / downgrade / 自动修复**
+- **兼容边界**：本层不定义版本；仅在 M007 判定 ready 后服务
+- **失败后的系统状态与责任方**：M007 拒绝启动（`not_ready`）；责任方=运维
+
+#### 7.2.2.1 `SR-LIBDIAG-DELEGATE` · 拒绝规则
+
+- **原规则**：本模块无自有 schema（随 M007）
+- **升级 / 降级策略**：无升级、无降级（M007 仅初始化）
+- **接受 / 拒绝条件**：接受=M007 空库初始化成功；拒绝=M007 判定版本不匹配 / 无版本表旧库 / 完整性失败
+- **源 / 目标版本与转换函数**：无转换函数；随 M007 `schema_version`
+- **拒绝后如何处理**：M007 拒绝启动，本模块不服务（不得静默修复）
+- **验证项**：`VRC-DIAG-002`
 
 #### 7.2.3 库状态分支矩阵
 
-不适用（观测表随 M007 schema 初始化；状态分支见 `util.isd.md` §7.2.3）。
+| 库状态 | 判定事实 | 启动结果 | 是否允许重跑及条件 |
+|---|---|---|---|
+| 空库 | 无 `schema_meta` 且无用户表 | M007 原子初始化 → ready | 是（幂等）|
+| 版本匹配 | `schema_version == EXPECTED` | ready | 是 |
+| 版本不匹配 | `schema_version != EXPECTED` | M007 拒绝：`schema_version_mismatch` | 否 |
+| 无版本表旧库 | 有用户表但无 `schema_meta` | M007 拒绝：`schema_unknown` | 否 |
+| 部分初始化 | 初始化事务失败回滚 | 库保持空 | 是 |
+| 完整性失败 | `integrity_check != ok` | M007 拒绝：`schema_integrity_failed` | 否 |
 
 <a id="isd-security"></a>
 
@@ -603,6 +631,8 @@ migrations/002_observability.sql    # 观测 6 表 DDL
 - **实现状态**：PLANNED
 - **验证状态 / Run**：NOT_RUN
 
+<a id="isd-status"></a>
+
 ### 10.2.1 `SC-DIAG` · 状态一致性复核
 
 - **上游承接状态 / 固定来源**：模块 `libdiag` §15.ISD 声明 `separate`
@@ -618,10 +648,10 @@ migrations/002_observability.sql    # 观测 6 表 DDL
 - **既有台账引用 / 具体缺口 / 反例**：`libdiag` §15.1
 - **风险等级 / 判定依据**：Low；统计非账本
 - **Owner**：LLMTier
-- **最晚关闭阶段 / 截止 Gate**：——
+- **最晚关闭阶段 / 截止 Gate**：无
 - **阻断范围**：`F-DIAG-STATS`
 - **分析 / 决策引用**：`libdiag` §15.1
-- **所需输入 / 下一步选择判据**：——
+- **所需输入 / 下一步选择判据**：无
 - **解决动作 / 完成条件**：明示非账本语义
 - **状态**：Open
 
@@ -644,3 +674,17 @@ metadata 必须包含：`design_object_id=M006`、`implementation_view_of_docume
 `coverage_mapping` 恰好覆盖十项：`scope`(#isd-scope)、`structure`(#isd-structure)、`data`(#isd-data)、`functions`(#isd-functions)、`algorithms`(#isd-algorithms)、`lifecycle`(#isd-lifecycle)、`resources`(#isd-resources)、`security`(#isd-security)、`persistence`(#isd-persistence)、`verification`(#isd-verification)。
 
 交付前运行 `validate-design <完整设计目录> --check-isd-delivery --json`。
+
+<!-- STD_DOCUMENT_CONTROL_BEGIN -->
+| 文档字段 | 值 |
+|---|---|
+| Authority | `LLMTier` |
+| Authors | llmtier |
+| Created Date | `2026-09-23` |
+| Template Conformance | `tailored` |
+| Tailoring Reference | `std-tailoring` |
+| Migration Map Reference | none |
+| Repository | `corezilla/LLMTier` |
+| Canonical Path | `docs/50_implementation_design/libdiag.isd.md` |
+| Supersedes | none |
+<!-- STD_DOCUMENT_CONTROL_END -->
