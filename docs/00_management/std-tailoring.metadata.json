@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "std-tailoring",
   "document_type": "management.tailoring",
-  "document_version": "0.1.3-draft.3",
+  "document_version": "0.1.4-draft.1",
   "title": "LLMTier STD 裁剪清单",
   "document_owner": "LLMTier",
   "authors": [
@@ -12,7 +12,7 @@
   "source_repository": "corezilla/LLMTier",
   "source_path": "docs/00_management/std-tailoring.md",
   "template_id": "management.tailoring",
-  "template_version": "0.1.0",
+  "template_version": "0.1.1",
   "template_sha256": "dfd6e00062543a8ee74ecffd5568f19ef45cce0ca4c5758d7b6074bc4325f43e",
   "template_conformance": "native",
   "tailoring_ref": null,
@@ -27,5 +27,5 @@
   "parent_document_id": null,
   "supersedes": null,
   "created_at": "2026-09-07",
-  "last_modified_at": "2026-09-17"
+  "last_modified_at": "2026-09-25"
 }

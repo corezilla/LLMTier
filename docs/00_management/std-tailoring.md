@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `std-tailoring` |
-| Document Version | `0.1.3-draft.3` |
+| Document Version | `0.1.4-draft.1` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -15,7 +15,7 @@
 | Approval Date |  |
 | Created Date | `2026-09-07` |
 | Last Modified Date | `2026-09-17` |
-| Template Version | `0.1.0` |
+| Template Version | `0.1.1` |
 | Template ID | `management.tailoring` |
 | Template Conformance | `native` |
 | Tailoring Reference | none |
@@ -40,8 +40,8 @@
 - 设计层级：`system`；表示本仓库拥有完整 LLMTier 软件系统。Slinky/Piko 是外部相邻项目，不用于
   把 LLMTier 降级为其内部 subsystem
 - 安全或业务关键性：模型服务控制面和数据面；涉及 credential、跨 Client 隔离、容量与恢复
-- STD 采用来源由 README 与 `docs/std.lock.json` 管理；当前锁定 `0.1.0-draft.26` 开发行、完整 commit
-  `5a1e71f4e2baa6e6761b685e91deecbd58cf0649`（draft.26 tag 之后再 22 commits；`VERSION` 仍为 0.1.0-draft.26，尚未打新 annotated tag）
+- STD 采用来源由 README 与 `docs/std.lock.json` 管理；当前锁定 `0.1.0-draft.34` 开发行、完整 commit
+  `81e01c112676aea0814abcacbd3fc0cf461a10a0`（含数据/接口/系统公共错误码统一、模块源码 `src/<module>/` 与 ISD 编码就绪强化）
 - 当前目录裁剪：正式 prose 使用编号化 `docs/`，机器契约集中到 `interfaces/`，历史/非权威资料
   集中到 `docs/99_reference/`；不改变 Scope B 或任何机器契约字节
 
@@ -90,7 +90,7 @@
 | LT-TL-009 | `management.project-plan` | omit | 排期/资源管理不在本轮设计迁移范围，现无稳定计划基线 | 实施顺序不等于项目计划 | Owner ACCEPTED | N/A |
 | LT-TL-010 | `decisions.adr` | simplify/按需 | 已有决定保留原 Matrix Review ID，不伪造 retrospective ADR | 决策分散 | Owner ACCEPTED | 新决定必须用 ADR |
 | LT-TL-011 | 原设计与 v0.1/v0.2 历史材料 | keep | 不删除；统一移入 `docs/99_reference/`，inventory 标明 historical/superseded/future | 误检索历史语义 | Owner ACCEPTED | publication manifest 排除历史 |
-| LT-TL-012 | STD 来源清单 / 项目 RAG ingestion | keep source manifest；RAG publication 独立 Gate | `docs/std-source-manifest.json` 记录 draft.26 的 75 个规范、模板、Schema 和工具 SHA-256；它不是 RAG manifest | 来源可校验；project ingestion 仍由既有 publication manifest 管理 | 本轮 review | N/A |
+| LT-TL-012 | STD 来源清单 / 项目 RAG ingestion | keep source manifest；RAG publication 独立 Gate | `docs/std-source-manifest.json` 记录 draft.34 的 196 个规范、模板、Schema 和工具 SHA-256；它不是 RAG manifest | 来源可校验；project ingestion 仍由既有 publication manifest 管理 | 本轮 review | N/A |
 | LT-TL-013 | 多服务目录 `apps/`、`services/`、`packages/` | omit | 当前只有一个部署边界、一个服务 owner，根目录 `src/tests/docs` 已满足 STD | 过早分层会制造虚假 subsystem 与平行路径 | 用户已确认单服务 | ownership/deploy boundary 改变时重新 tailoring |
 | LT-TL-014 | `operations.release` | keep，C4 complete | 当前 package/CLI 与 release/rollback/recovery Gate 需要集中，但 production procedure/evidence 尚不存在 | 文档被误作 production runbook；以 Approved/Blocked 和独立 activation Gate 控制 | Owner ACCEPTED；L3 blocked | topology/persistence 等实际决定形成时另建 ADR |
 | LT-TL-015 | 顶层 `interfaces/` 与 `docs/99_reference/` | keep，C7 complete | HTTP/OpenAPI、compatibility、Schema 和 vectors 是多 consumer 机器 authority；历史 prose/future 不应继续占用非标准 `docs/contracts|design|qa|future` 路径 | 路径断链或双 authority | Owner ACCEPTED | 不适用 |
@@ -124,6 +124,7 @@
 |---|---|---|---|---|
 | 2026-09-15 | (初始) | draft.26 | 首次采用 STD `software` profile | `f892b167b9fc7b8beb9dbdebb9209009d4334ce1` |
 | 2026-09-19 | draft.26 (tag) | draft.26 + HEAD `5a1e71f`（22 commits，含 path-policy 0.2.0） | 见下 | `5a1e71f4e2baa6e6761b685e91deecbd58cf0649` |
+| 2026-09-25 | draft.34 | draft.31–34：数据/接口/公共错误码统一、模块源码路径、ISD 编码就绪 | 见下 | `81e01c112676aea0814abcacbd3fc0cf461a10a0` |
 
 **draft.26 tag → HEAD 变更要点**（22 commits）：
 - `tests/` 子目录加 `unit/<module-id>/`、`{contract,integration,system,acceptance}/reports/`；测试报告（`assurance.test-report`）路径由 `docs/70_verification/reports/` 改为 `tests/{level}/reports/<run-id>/`
