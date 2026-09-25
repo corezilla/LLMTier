@@ -13,9 +13,9 @@
 | Document Owner | LLMTier |
 | Authors | llmtier |
 | Created Date | `2026-09-23` |
-| Last Modified Date | `2026-09-23` |
+| Last Modified Date | `2026-09-25` |
 | Template ID | `design.definition` |
-| Template Version | `2.4.0` |
+| Template Version | `3.0.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |
@@ -407,41 +407,20 @@ index.html（页面壳：容器 id + 装配 styles.css / icons.svg / app.js）
            └─ api(path,{method:'PATCH'|'POST'|'DELETE', headers:{'If-Match':etag}, body})
 ```
 
-### 5.3 文件间接口契约（实现级）
+### 5.3 文件间接口契约
 
-每条接口给出所在文件、符号、签名与作用。
+> 本模块内部文件交接逐项映射到 §9 的成员定义；签名、输入输出、错误与寿命以 §9 对应记录为唯一来源，本节不再复写。
 
-#### IF-1 `webui/index.html` · 页面壳 + 容器 `id`
-- **签名**：—
-- **作用**：装配 `styles.css`/`icons.svg`/`app.js`；提供各页容器
-
-#### IF-2 `webui/app.js` · `api`
-- **签名**：`(path, {method='GET', body, headers={}}) -> Promise<object>`
-- **作用**：同源 `fetch` 封装（`credentials:'same-origin'`）；非 2xx 抛错交 I9
-
-#### IF-3 `webui/app.js` · `loadRegistry` / `loadHome` / `loadProviders` / `loadUsage` / `loadLogs` / `loadStats` / `loadTrace`
-- **签名**：`() -> Promise<void>`
-- **作用**：各页数据装载
-
-#### IF-4 `webui/app.js` · `renderTree` / `renderProviders` / `renderTierMembers`
-- **签名**：`() -> void`
-- **作用**：渲染（生成 HTML 字符串注入容器）
-
-#### IF-5 `webui/app.js` · `backendState` / `tierState` / `statusMarkup`
-- **签名**：`(…) -> string/obj`
-- **作用**：状态→图标/文本
-
-#### IF-6 `webui/app.js` · `toggleDeployment` / `probeDeployment` / `saveProvider` / `saveMember` / `removeMember` / `refreshProviderUsage`
-- **签名**：`(el|event) -> Promise<void>`
-- **作用**：mutation（带 `If-Match`）
-
-#### IF-7 `webui/icons.svg` · `<symbol id="…">`
-- **签名**：—
-- **作用**：图标 sprite；`<use href="#…">` 引用
-
-#### IF-8 `webui/styles.css` · 类选择器
-- **签名**：—
-- **作用**：布局与状态样式
+| 内部契约 ID | provider → consumer | §9 成员 | 本文件责任 | 验证 |
+|---|---|---|---|---|
+| `IF-1` | `webui/index.html` → `app.js`（容器 id） | §9.1 `IF-UI-DOM` | 提供 5 页与 2 抽屉容器 | `VRC-UI-001` |
+| `IF-2` | `webui/app.js` `api` 内部 | §9.1 `IF-UI-API` | 同源 `fetch` 封装（ETag/cursor/错误分派） | `VRC-UI-002` |
+| `IF-3` | `webui/app.js` `load*` | §9.1 `IF-UI-LOAD` | 各页数据装载 | `VRC-UI-001` |
+| `IF-4` | `webui/app.js` `render*` | §9.1 `IF-UI-RENDER` | 生成 HTML 注入容器 | `VRC-UI-001` |
+| `IF-5` | `app.js` `backendState/tierState/statusMarkup` | §9.1 `IF-UI-STATE` | 状态→图标/文本 | `VRC-UI-001/003` |
+| `IF-6` | `app.js` mutation 函数 | §9.1 `IF-UI-MUTATE` | 带 `If-Match` 的写操作 | `VRC-UI-002` |
+| `IF-7` | `webui/icons.svg` `<symbol>` | §9.1 `IF-UI-ICON` | 图标 sprite 契约 | `VRC-UI-001` |
+| `IF-8` | `webui/styles.css` 类选择器 | §9.1 `IF-UI-CSS` | 布局与状态样式契约 | `VRC-UI-001` |
 
 ### 5.4 服务提供方式（条件适用）
 
@@ -454,56 +433,119 @@ index.html（页面壳：容器 id + 装配 styles.css / icons.svg / app.js）
 
 `index.html` → `app.js`/`styles.css`/`icons.svg`；`app.js` 只经 `api()` 调 `M001`（同源 HTTP），**不直读**任何服务端文件/DB/Secret。
 
-## 6. 数据模型、状态与 ownership
+## 6. 数据结构设计
 
-#### 页面视图状态
-- **所有者 / 访问方式**：I3–I7 各自持有（内存）
-- **出生与结束**：页面进入 / 刷新
-- **成功 / 失败后的归属**：不持久化；刷新重建
+> 按 STD `design-data-interface-format` 1.2.0：主章“数据结构设计”，章内按**数据性质分类**。M002 是浏览器端静态资源，无 wire 自有报文、无设备、不写库；`6.4 通信报文`、`6.5 设备与 FPGA 表项`、`6.7 数据库表结构` 不适用。继承结构只定位原定义；本层拥有的结构逐项完整记录（ID/唯一来源/字段/约束/状态·所有权·寿命/合法与拒绝实例/验证）。
 
-#### 表单草稿
-- **所有者 / 访问方式**：对应页面内存
-- **出生与结束**：编辑开始 → 保存 / 放弃
-- **成功 / 失败后的归属**：412 时保留草稿供复制后重载
+**适用性**：6.1 公共基础类型与枚举 ✓｜6.2 业务与操作数据结构 ✓｜6.3 配置与规则数据结构 ✗（浏览器端无受控配置载荷）｜6.4 通信报文 ✗（wire 归 M001/OpenAPI）｜6.5 设备与 FPGA 表项 ✗（无设备）｜6.6 运行状态数据结构 ✓｜6.7 数据库表结构 ✗（不直读 SQLite，服务端数据经 M001）｜6.8 错误码与错误结构 ✓（引用系统 Error ID）。
 
-#### ETag
-- **所有者 / 访问方式**：I2 从 GET item 暂存
-- **出生与结束**：编辑事务内
-- **成功 / 失败后的归属**：变更后失效；不跨页复用
+### 6.1 公共基础类型与枚举
 
-#### cursor
-- **所有者 / 访问方式**：I2
-- **出生与结束**：翻页内
-- **成功 / 失败后的归属**：URL query（审计页）保留，可刷新恢复
+#### `BackendState`（`app.js` `backendState`）
+- **定义**：后端行状态图标语义。
+- **字段 / 取值**：`str` ∈ {`Idle`（健康且 `running=0`）、`Running`（`running>0`）、`Paused`（`enabled=false`）、`Exhausted`（无可用并发槽）、`Attention`、`Unreachable`、`Disabled`、`Unknown`}。
+- **约束 / 不变量**：成员状态与 Tier 状态**互不覆盖**；`Unknown` 不显示为 0/Idle。
+- **状态 · 所有权 · 寿命**：无状态枚举；随 `state` 内存映射。
+- **实例**：合法：`running=0` 且健康 → Idle；边界：未知 → Unknown（icon `circle-help`）。
+- **来源 / 验证**：`app.js`；`VRC-UI-001`。
 
-#### 会话 cookie
-- **所有者 / 访问方式**：**SSO 代理**（非本模块）
-- **出生与结束**：代理签发 / 撤销
-- **成功 / 失败后的归属**：本模块只携带，不解析、不存 token
+#### `TierAvailability`（`app.js` `tierState`，源 `/readyz.models[].availability`）
+- **定义**：Tier 可用性呈现。
+- **字段 / 取值**：`str` ∈ {`available`→Ready、`degraded`→Attention、`unavailable`→Unreachable}。
+- **约束 / 不变量**：Tier 状态**只取** `/readyz`，不从成员聚合。
+- **状态 · 所有权 · 寿命**：无状态枚举；随页面刷新重建。
+- **实例**：合法 `degraded` → Attention；边界：缺字段 → Unknown。
+- **来源 / 验证**：`app.js` + M003 `RULE-INF-MODELS`；`VRC-UI-001`。
 
-**数据结构（前端内存对象 / 消费的响应形状）**：
+#### `UiErrorStatus`（`app.js` I9）
+- **定义**：统一交互错误状态。
+- **字段 / 取值**：`int` ∈ {401,403,409,412,429,503}。
+- **约束 / 不变量**：401 跳外部登录、403 不猜存在性、409 显示引用冲突、412 保留草稿、429/503 显示 `Retry-After`（若有）且不无限重试。
+- **状态 · 所有权 · 寿命**：请求级；随 UI 呈现。
+- **实例**：合法 412 → “他人已修改”；边界：403 → 留在当前页。
+- **来源 / 验证**：`app.js`；`VRC-UI-002`。
 
-#### `state`
-- **产生位置**：`app.js`
-- **字段（形状）**：`{registry, providers[], deployments[], usage, runtime}`
-- **说明**：页面内存缓存；不持久化
+### 6.2 业务与操作数据结构
 
-#### 装载对象
-- **产生位置**：`loadRegistry/loadHome/...`
-- **字段（形状）**：各接口响应（字段由 OpenAPI 决定）
-- **说明**：「Read」列见 §9
+#### `UiState`（`app.js` `state`）
+- **定义**：页面内存缓存。
+- **字段**：`{registry, providers[], deployments[], usage, runtime}`。
+- **约束 / 不变量**：不持久化、不落 `localStorage`/`sessionStorage`；刷新重建。
+- **状态 · 所有权 · 寿命**：页面进入创建、刷新销毁。
+- **实例**：合法：装载后缓存；边界：请求失败保留旧画面（stale）。
+- **来源 / 验证**：`app.js`；`VRC-UI-001`。
 
-#### ETag
-- **产生位置**：`api` / 编辑流程
-- **字段（形状）**：`string`（`"<id>.v<n>"`）
-- **说明**：编辑事务内暂存，`If-Match` 提交
+#### `LoadedView`（`app.js` `loadRegistry/loadHome/...`）
+- **定义**：各接口响应投影（字段 authority = OpenAPI）。
+- **字段**：各接口响应形状（`ProviderView`/`DeploymentView`/`UsagePage`/`LogPage`/`StatsView`/`TraceView` 等）。
+- **约束 / 不变量**：只读；同 `request_id` 只显示最高 `record_version`；Unknown ≠ 0。
+- **状态 · 所有权 · 寿命**：请求级内存。
+- **实例**：合法：用量页显示最高版本；边界：未知 token → “未知”。
+- **来源 / 验证**：`app.js` + OpenAPI；`VRC-UI-004`。
 
-#### 错误状态
-- **产生位置**：I9
-- **字段（形状）**：`{status:int, code?:string}`
-- **说明**：401/403/409/412/429/503 → UI 呈现
+#### `ErrorStatus`（`app.js` I9）
+- **定义**：错误状态对象。
+- **字段**：`{status:int, code?:str, retry_after?:str}`。
+- **约束 / 不变量**：与 `UiErrorStatus` 对应；不渲染 HTML、不回显 token。
+- **状态 · 所有权 · 寿命**：请求级。
+- **实例**：合法 `{status:503}` → “存储不可用”；边界：`{status:403}` → 无权限。
+- **来源 / 验证**：`app.js`；`VRC-UI-002`。
 
-本模块**无自有持久状态**、不写库、不落 localStorage/sessionStorage（bearer/Secret 均不入 JS）。
+### 6.6 运行状态数据结构
+
+#### `PageViewState`（`app.js` I3–I7）
+- **定义**：单页视图状态（骨架/数据/空/错误）。
+- **字段**：`{page:str, loading:bool, data?, empty:bool, error?:ErrorStatus}`。
+- **约束 / 不变量**：Loading 不清空上次数据；Empty 说明“无数据≠加载失败”。
+- **状态 · 所有权 · 寿命**：页面内存；切换页面重建。
+- **实例**：合法：Loading → 数据；边界：503 → 保留旧画面 + stale。
+- **来源 / 验证**：`app.js`；`VRC-UI-001`。
+
+#### `FormDraft`（`app.js` I3/I4）
+- **定义**：编辑抽屉的表单草稿。
+- **字段**：编辑字段值（Secret 字段只写不回显，空白=保持）。
+- **约束 / 不变量**：412 时保留供复制后重载；不自动覆盖。
+- **状态 · 所有权 · 寿命**：编辑开始创建、保存/放弃销毁。
+- **实例**：合法：保存成功清除草稿；边界：412 保留草稿。
+- **来源 / 验证**：`app.js`；`VRC-UI-002`。
+
+#### `EditEtag`（`app.js` I2）
+- **定义**：编辑事务内暂存的 ETag。
+- **字段**：`string`（`"<id>.v<n>"`）。
+- **约束 / 不变量**：`PATCH + If-Match` 提交；变更后失效；不跨页复用。
+- **状态 · 所有权 · 寿命**：编辑事务内。
+- **实例**：合法：`If-Match: "p1.v3"`；边界：过期 → 412。
+- **来源 / 验证**：`app.js` + M004 §8.2；`VRC-UI-002`。
+
+#### `PagingCursor`（`app.js` I2）
+- **定义**：分页游标。
+- **字段**：`string|None`；审计页存 URL query 可刷新恢复。
+- **约束 / 不变量**：`has_more=false ⇒ cursor=null`。
+- **状态 · 所有权 · 寿命**：翻页内；URL 持久（仅 query）。
+- **实例**：合法翻页；边界：空页 → 无 cursor。
+- **来源 / 验证**：`app.js`；`VRC-UI-004`。
+
+#### `SessionCookie`（外部 SSO 代理所有）
+- **定义**：`Secure; HttpOnly; SameSite=Strict` 短期会话 cookie。
+- **本层投影**：只随同源请求携带，**不解析、不存 token**；bearer 不进入 JS/URL/storage。
+- **来源 / 验证**：M002 §11；`VRC-UI-002`。
+
+### 6.8 错误码与错误结构
+
+本模块**不新增公共错误码**；UI 状态映射系统目录（`llmtier-system-design` §8.8）：
+
+| UI 状态 | 条件 | 系统 Error ID | 呈现行为 |
+|---|---|---|---|
+| 401 | 会话过期/缺凭据 | `ERR-AUTH-REQUIRED` | 清会话并跳外部登录 |
+| 403 | 权限不足 | `ERR-AUTH-DENIED` | 留在当前页，不猜存在性 |
+| 409 | 唯一/引用冲突 | `ERR-CONFLICT` / `ERR-INUSE` | 显示引用摘要，禁强删 |
+| 412 | ETag 过期 | `ERR-STALE` | 提示 stale，保留草稿 |
+| 429 | 准入限流 | `ERR-RATE-LIMIT` | 按 `Retry-After` 退避 |
+| 503 | 存储不可用 | `ERR-STORE` | 显示“不可用”，不显示空表 |
+
+- **约束 / 不变量**：结果未知先 GET 核对，不盲目重发 mutation；错误不泄露存在性。
+- **实例**：拒绝：并发编辑 → 412；边界：存储不可用 → 503 保留旧画面。
+- **来源 / 验证**：`app.js` + 系统 §8.8；`VRC-UI-002`。
 
 ## 7. 主流程与数据流
 
@@ -637,31 +679,126 @@ index.html（页面壳：容器 id + 装配 styles.css / icons.svg / app.js）
 - **允许替换范围 / 不可改变保证**：实现可自选；语义不可变
 - **具体输入推演 / 验证项**：保存成功但 health unknown；`VRC-UI-002`
 
-## 9. 接口与机器契约
+## 9. 接口设计
 
-Web UI **不拥有机器契约**；它消费 M001 暴露的端点，字段 authority 是 `interfaces/openapi/llmtier.openapi.json`。
+> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口形态分类**逐接口完整记录；标题为真实调用形式（浏览器端函数/DOM 契约），标题下先给**完整接口声明**，再就地说明参数/结果字段，最后按 §3.1 六项。本模块接口**全部为软件接口**（浏览器 JS 函数与静态契约）；消息流/硬件/人机三类不适用。数据结构引用 §6；消费的服务端字段 machine authority = OpenAPI。
 
-**页面 → API 映射**
+### 9.1 软件接口（适用时）
 
-#### PG-HOME · Home
-- **Read**：providers / deployments / service-levels、`/healthz`、`/readyz`、`/v1/runtime`、`/v1/usage`、deployment health + ETag
-- **Mutation**：Tier 抽屉 POST Deployment、PATCH Deployment、PATCH service-level（+`If-Match`）；Pause/Resume 用 Deployment PATCH 切 `enabled`；不创建 Provider
+#### `api(path, {method='GET', body, headers={}}) -> Promise<object>`
+```text
+api(path: string, opts?: {method?: string, body?: object, headers?: object}) -> Promise<object>
+```
+- **输入**：`path`（同源 `/v1`、`/healthz`、`/readyz`）；`opts.method/body/headers`（含 `If-Match`）。
+- **输出**：解析后的 JSON 对象；非 2xx 抛错交 I9（`ErrorStatus`，§6.2）。
+- **Interface/Member ID / 状态**：`IF-UI-API`；Implemented；文件/符号 `webui/app.js` `api`。
+- **错误与异常**：401/403/409/412/429/503 → `UiErrorStatus`（§6.1，映射 `ERR-AUTH-REQUIRED`/`ERR-AUTH-DENIED`/`ERR-CONFLICT`/`ERR-STALE`/`ERR-RATE-LIMIT`/`ERR-STORE`）。
+- **交互与生命周期**：浏览器单线程；`credentials:'same-origin'`；每页请求独立。
+- **实例与验证**：正常 `api('/v1/models')`；边界：412 → 保留草稿提示。`VRC-UI-002`。
 
-#### PG-PROVIDERS · Providers
-- **Read**：provider / deployment、`/v1/runtime`、provider usage snapshot + ETag
-- **Mutation**：Provider POST/PATCH/DELETE（+`If-Match`）；显式 POST usage refresh；引用由 409 保护
+#### `loadRegistry() / loadHome() / loadProviders() / loadUsage() / loadLogs() / loadStats() / loadTrace() -> Promise<void>`
+```text
+loadRegistry() -> Promise<void>
+loadHome() -> Promise<void>
+loadProviders() -> Promise<void>
+loadUsage() -> Promise<void>
+loadLogs() -> Promise<void>
+loadStats() -> Promise<void>
+loadTrace() -> Promise<void>
+```
+- **输入**：当前页 hash 路由与查询参数。
+- **输出**：无（写 `state`/DOM 容器）。
+- **Interface/Member ID / 状态**：`IF-UI-LOAD`；Implemented；文件/符号 `webui/app.js`。
+- **错误与异常**：失败交 I9；`loadLogs/loadUsage` 503 显示“存储不可用”。
+- **交互与生命周期**：进入页面/切页调用；请求级。
+- **实例与验证**：正常装载渲染；边界：空数据 → Empty（非错误）。`VRC-UI-001/004`。
 
-#### PG-RECORDS · Usage & Audit
-- **Read**：`/v1/usage`、`/v1/audit`
-- **Mutation**：无
+#### `renderTree() / renderProviders() / renderTierMembers() -> void`
+```text
+renderTree() -> void
+renderProviders() -> void
+renderTierMembers() -> void
+```
+- **输入**：`state` 内存数据。
+- **输出**：生成 HTML 字符串注入对应容器。
+- **Interface/Member ID / 状态**：`IF-UI-RENDER`；Implemented；文件/符号 `webui/app.js`。
+- **错误与异常**：无；数据缺失显示 Empty/`—`。
+- **交互与生命周期**：数据装载后调用。
+- **实例与验证**：正常两层树；边界：Empty Tier 显示 no members 且可 Edit。`VRC-UI-001`。
 
-#### PG-LOGS · Logs
-- **Read**：`/v1/logs`
-- **Mutation**：无
+#### `backendState(deployment) / tierState(tier) / statusMarkup(kind) -> string`
+```text
+backendState(deployment: object) -> string
+tierState(tier: object) -> string
+statusMarkup(kind: string) -> string
+```
+- **输入**：deployment/tier 视图；状态 kind。
+- **输出**：图标/文本标记（`BackendState`/`TierAvailability`，§6.1）。
+- **Interface/Member ID / 状态**：`IF-UI-STATE`；Implemented；文件/符号 `webui/app.js`。
+- **错误与异常**：无；未知 → Unknown。
+- **交互与生命周期**：渲染时调用；无状态。
+- **实例与验证**：正常状态→图标；边界：未知 → `circle-help`。`VRC-UI-001/003`。
 
-#### PG-DIAG · Diagnostics
-- **Read**：`GET /v1/diagnostics`、`/v1/diagnostics/snapshots`、`/v1/diagnostics/stats`、`/v1/deployments/{id}/diagnostics`、`/v1/trace/{request_id}`
-- **Mutation**：`PATCH /v1/diagnostics`、`PATCH /v1/deployments/{id}/diagnostics`
+#### `toggleDeployment(id) / probeDeployment(id) / saveProvider(...) / saveMember(...) / removeMember(...) / refreshProviderUsage(id) -> Promise<void>`
+```text
+toggleDeployment(id: string) -> Promise<void>
+probeDeployment(id: string) -> Promise<void>
+saveProvider(form: object, etag?: string) -> Promise<void>
+saveMember(form: object, etag?: string) -> Promise<void>
+removeMember(id: string) -> Promise<void>
+refreshProviderUsage(id: string) -> Promise<void>
+```
+- **输入**：目标 id、表单值、`If-Match` ETag。
+- **输出**：成功更新 `state` 与视图；新 ETag。
+- **Interface/Member ID / 状态**：`IF-UI-MUTATE`；Implemented；文件/符号 `webui/app.js`。
+- **错误与异常**：412 `ERR-STALE`（保留输入）、409 `ERR-CONFLICT`/`ERR-INUSE`（禁强删）、探测未确认不发 POST（`ERR-CONFIRM`）。
+- **交互与生命周期**：用户操作触发；先 GET 取 ETag 再写；结果未知先 GET 核对。
+- **实例与验证**：正常保存 + 新 ETag；边界：并发编辑 → 412。`VRC-UI-002/005`。
+
+#### `#home / #providers / #records / #logs / #diag / #tier-mask / #provider-mask`（DOM 容器契约）
+```text
+index.html -> 5 × <section class="page"> + 2 × 抽屉容器（稳定 id）
+```
+- **输入**：无。
+- **输出**：各页/抽屉容器 id 与结构壳（导航 5 项、页头状态、`<datalist>`）。
+- **Interface/Member ID / 状态**：`IF-UI-DOM`；Implemented；文件/符号 `webui/index.html`。
+- **错误与异常**：无。
+- **交互与生命周期**：页面加载时建立；`app.js` 注入内容。
+- **实例与验证**：正常容器存在；边界：容器缺失 → 渲染无声失败（由行为用例覆盖）。`VRC-UI-001`。
+
+#### `<symbol id="icon-…">`（`icons.svg` 图标 sprite 契约）
+```text
+<use href="/ui/icons.svg#icon-<name>">
+```
+- **输入**：图标名。
+- **输出**：单线 SVG 图形；语义由 `title`/`aria-label` 承载。
+- **Interface/Member ID / 状态**：`IF-UI-ICON`；Implemented；文件/符号 `webui/icons.svg`。
+- **错误与异常**：未知名 → 空图形。
+- **交互与生命周期**：静态；无 CDN/emoji。
+- **实例与验证**：正常 `circle-pause` → Paused；边界：缺图标名不崩溃。`VRC-UI-001`。
+
+#### `styles.css` 类选择器契约
+```text
+.shell/.page/.card/.toolbar/.tabs/.tablewrap/.tree/.mask/.drawer ...
+```
+- **输入**：无。
+- **输出**：布局与状态样式（窄侧栏 + 页头 + 主卡片；<960px 折叠）。
+- **Interface/Member ID / 状态**：`IF-UI-CSS`；Implemented；文件/符号 `webui/styles.css`。
+- **错误与异常**：无。
+- **交互与生命周期**：静态。
+- **实例与验证**：1280×760 基线；边界：表格横向滚动。`VRC-UI-001`。
+
+### 9.2 消息与数据流接口（适用时）
+
+不适用（浏览器端无事件/队列/流；HTTP 消费经 M001）。
+
+### 9.3 硬件与固件接口（适用时）
+
+不适用（无连接器/总线/寄存器/FPGA 端口）。
+
+### 9.4 人机与维护接口（适用时）
+
+不适用——本模块的操作面（PG-* 页面与 DRW-* 抽屉）已在 §3 唯一登记，其浏览器端软件接口在 §9.1（`IF-UI-*`）记录；本节不重复定义，无独立 CLI/维护入口。
 
 ## 10. 并发、失败与恢复
 

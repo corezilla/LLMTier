@@ -13,9 +13,9 @@
 | Document Owner | LLMTier |
 | Authors | llmtier |
 | Created Date | `2026-09-22` |
-| Last Modified Date | `2026-09-22` |
+| Last Modified Date | `2026-09-25` |
 | Template ID | `design.system-mechanism` |
-| Template Version | `2.4.0` |
+| Template Version | `3.0.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |
@@ -58,7 +58,7 @@
 
 | Constraint ID | 约束 | 参与方保证 | 自由度 | 本文落实位置 |
 |---|---|---|---|---|
-| C-METER-1 | 账本只追加不改写，同 request 只留最新版本 | Usage Recorder | 存储布局 | §4.1、§8 |
+| C-METER-1 | 账本只追加不改写，同 request 只留最新版本 | Usage Recorder | 存储布局 | §4.2、§4.7、§8 |
 | C-METER-2 | 未知不补零（unknown ≠ 0）| Usage Recorder | 归一实现 | §4.1、§7 |
 | C-METER-3 | dispatch 前先持久义务，失败则不 dispatch | Inference | 事务边界 | §6、§9 |
 | C-METER-4 | 查询稳定分页（snapshot 冻结）| Management | 分页实现 | §6、§10 |
@@ -74,51 +74,233 @@
 
 ## 4. 数据结构设计
 
-### 4.1 类型目录与完整字段
+> 按 STD `design-data-interface-format` 1.2.0 §2：主章“数据结构设计”，章内按**数据性质**分类（§4.1–§4.8），本层特有分析见 §4.9–§4.10。仅保留适用类别。账本结构唯一来源系统设计 §8.2/§8.7（`D-USAGE-*`/`D-PROVIDER-BINDING`）与 `util/migrations/*.sql`；本机制拥有类型 ID 前缀 `D-MET-*`，不复制列级权威。
 
-> 数据定义分支：**已有机器源**（见下表“机器源”列）；正文只给阅读视图与差异，不另抄完整规范。
+**类别适用性**：§4.1 公共基础类型与枚举 ✓｜§4.2 业务与操作数据结构 ✓｜§4.3 配置与规则数据结构 ✓（保留/snapshot TTL）｜§4.4 通信报文结构 ✗（账本为 SQLite 行/内部函数，无消息 wire；查询报文是 HTTP JSON 投影）｜§4.5 设备与 FPGA 表项结构 ✗（纯软件，无设备/RTL）｜§4.6 运行状态数据结构 ✗（状态均在持久账本，无独立内存跨步骤状态）｜§4.7 数据库表结构 ✓｜§4.8 错误码与错误结构 ✓（引用系统 §8.8）。
 
-| 表 | 用途 | 关键字段 | 生命周期 |
+### 4.1 公共基础类型与枚举
+
+#### `D-MET-MEASUREMENT-STATUS` · MeasurementStatus（`usage.py`）
+- **定义、Data/Type ID 与唯一来源**：一次用量是否被测量的判定；`D-MET-MEASUREMENT-STATUS`；唯一来源系统 §8.1 共享枚举与 `src/inference/usage.py` `finish`。
+- **字段 / 取值**：`str` ∈ {`unknown`, `measured`}。
+- **约束 / 不变量**：`measured` 仅当 `input_tokens`/`output_tokens`/`total_tokens` **三者皆为 int**；否则整体 unknown 且 token 全为 NULL（不写部分值，INV-5）。
+- **状态 · 所有权 · 寿命**：随 `usage_record_versions.measurement_status` 持久。
+- **合法与拒绝实例**：合法 `measured`（三 token 皆 int）；边界：任一缺失 → `unknown` + NULL。
+- **验证**：`T-MET-UNKNOWN`。
+
+#### `D-MET-SOURCE` · MeasurementSource
+- **定义、Data/Type ID 与唯一来源**：用量事实来源；`D-MET-SOURCE`；唯一来源 `usage.py`（`source_override or ("provider" if measured else "unavailable")`）。
+- **字段 / 取值**：`str` ∈ {`unavailable`, `provider`}；注入路径可经 `source_override=injected` 标注（C-OBS-4）。
+- **约束 / 不变量**：`measured ⇒ source=provider`（或被 override）；`unknown ⇒ unavailable`。
+- **状态 · 所有权 · 寿命**：随 `usage_record_versions.source` 持久。
+- **合法与拒绝实例**：合法 `provider`；边界：后端无 usage → `unavailable`。
+- **验证**：`T-MET-UNKNOWN`、`T-OBS-INJECT`。
+
+### 4.2 业务与操作数据结构
+
+#### `D-USAGE-OBLIGATION` · UsageObligation（继承系统 §8.2）
+- **定义、Data/Type ID 与唯一来源**：dispatch 前登记的一次调用义务（账本锚点）；`D-USAGE-OBLIGATION`；系统设计 §8.2 唯一来源，持久 authority `util/migrations/*.sql`。
+- **字段 / 取值**：`principal_id`/`request_id`/`model`/`endpoint`/`recorded_at`/`updated_at`。
+- **约束 / 不变量**：PK `(principal_id,request_id)`；dispatch 前必先存在；同 request 只保留一条（`INSERT OR IGNORE`）。
+- **状态 · 所有权 · 寿命**：M003 写；按 principal 隔离；追加式，随账本保留策略。
+- **合法与拒绝实例**：合法：非流式外请求登记 unknown 义务后 dispatch；拒绝：无义务即 dispatch 被业务禁止。
+- **验证**：`T-MET-CRASH`、系统 `VRC-INF-004`。
+
+#### `D-USAGE-RECORD` · UsageRecordVersion（继承系统 §8.2）
+- **定义、Data/Type ID 与唯一来源**：一次调用的一次用量事实版本；`D-USAGE-RECORD`；系统设计 §8.2 唯一来源，authority `util/migrations/*.sql`。
+- **字段 / 取值**：`principal_id`/`request_id`/`record_version`/`is_final`/`model`/`endpoint`/`recorded_at`/`updated_at`/`measurement_status:D-MET-MEASUREMENT-STATUS`/`source:D-MET-SOURCE`/`input_tokens`/`output_tokens`/`total_tokens`/`cached_input_tokens`/`cache_write_tokens`/`reasoning_tokens`。
+- **约束 / 不变量**：PK `(principal_id,request_id,record_version)`；**只追加**、不累计；`unknown` 时 token 为空（不补零）。
+- **状态 · 所有权 · 寿命**：M003 写；追加式，按 retention policy 保留。
+- **合法与拒绝实例**：合法 version=2（final，measured）；边界：`unknown` → token 全空且不填零。
+- **验证**：`T-MET-FINAL`、`T-MET-UNKNOWN`、`T-MET-CRASH`。
+
+#### `D-USAGE-HEAD` · UsageHead（继承系统 §8.2）
+- **定义、Data/Type ID 与唯一来源**：指向某 request 当前最新版本；`D-USAGE-HEAD`；系统设计 §8.2 唯一来源。
+- **字段 / 取值**：`principal_id`/`request_id`/`head_record_version`/`updated_at`。
+- **约束 / 不变量**：单调不减；FK 指向存在的 record version（INV-2）；读者只取 head 指向的单条版本、绝不累加（INV-3）。
+- **状态 · 所有权 · 寿命**：M003 写、按 principal 隔离；随账本保留。
+- **合法与拒绝实例**：合法 head=2 指向 version 2；拒绝：指向不存在版本 → 约束失败。
+- **验证**：`T-MET-FINAL`。
+
+#### `D-PROVIDER-BINDING` · ProviderRequestBinding（继承系统 §8.2）
+- **定义、Data/Type ID 与唯一来源**：request 与最终 provider/deployment 的绑定；`D-PROVIDER-BINDING`；系统设计 §8.2 唯一来源。
+- **字段 / 取值**：`principal_id`/`request_id`/`provider_id`/`deployment_id`/`bound_at`。
+- **约束 / 不变量**：PK `(principal_id,request_id)`；每 request 至多一个绑定；首次为准（`ON CONFLICT DO NOTHING`）。
+- **状态 · 所有权 · 寿命**：M003 写；与 UsageRecord 一致；按 retention policy。
+- **合法与拒绝实例**：合法：一次调用绑定一个 deployment；边界：重复绑定被 PK 拒绝/忽略。
+- **验证**：`T-MET-FINAL`。
+
+#### `D-MET-USAGE-VIEW` · UsageRecordView
+- **定义、Data/Type ID 与唯一来源**：`GET /v1/usage` 返回的单条版本视图；`D-MET-USAGE-VIEW`；唯一来源 `usage.py` `_record()`。
+- **字段 / 取值**：`{request_id, record_version, is_final, model, endpoint, recorded_at, updated_at, measurement_status, source, input_tokens, output_tokens, total_tokens, cached_input_tokens, cache_write_tokens, reasoning_tokens}`。
+- **约束 / 不变量**：字段与 `D-USAGE-RECORD` 一致；`unknown` 时 token 为 null 而非 0。
+- **状态 · 所有权 · 寿命**：只读投影；请求级；不持久（来自冻结 snapshot）。
+- **合法与拒绝实例**：合法 measured 视图；边界：unknown 视图 token=null。
+- **验证**：`T-MET-PAGE`、`T-MET-UNKNOWN`。
+
+#### `D-MET-QUERY-SNAPSHOT` · QuerySnapshot / QuerySnapshotItem
+- **定义、Data/Type ID 与唯一来源**：分页冻结快照与其有序成员；`D-MET-QUERY-SNAPSHOT`；唯一来源 `usage.py` `_page`。
+- **字段 / 取值**：`QuerySnapshot{snapshot_id, principal_id, resource, filter_digest, auth, created_at, expires_at}`；`QuerySnapshotItem{snapshot_id, ordinal, request_id, record_version, frozen_view_json, …}`。
+- **约束 / 不变量**：`(recorded_at,request_id)` 稳定排序；`filter_digest` 绑定 filter；`expires_at` = 创建 + 10 分钟；旧页不受后续更正影响（INV-6 的口径）。
+- **状态 · 所有权 · 寿命**：持久、有期限（TTL 10 分钟）；M003 写、M003 读。
+- **合法与拒绝实例**：合法首屏创建 snapshot；拒绝：过期/跨 principal/filter 不符的 cursor。
+- **验证**：`T-MET-PAGE`。
+
+### 4.3 配置与规则数据结构
+
+#### `D-MET-RETENTION-POLICY` · 账本保留与 snapshot TTL
+- **定义、Data/Type ID 与唯一来源**：账本保留期与分页 snapshot TTL；`D-MET-RETENTION-POLICY`；唯一来源 `usage.py`（TTL 10 分钟）与运维保留策略（§13）。
+- **字段 / 取值**：`snapshot_ttl_s: int = 600`；`retention: operator policy`。
+- **约束 / 不变量**：TTL 必须覆盖一次正常分页耗时；保留策略不改变“只追加/不补零”语义。
+- **状态 · 所有权 · 寿命**：配置项；operator 拥有；变更需审计。
+- **合法与拒绝实例**：合法 600s；边界：过短 TTL → 分页中途 `cursor_expired`。
+- **验证**：`T-MET-PAGE`。
+
+### 4.4 通信报文结构
+
+不适用：账本为 SQLite 行与进程内函数调用，无消息/事件/流 wire；`GET /v1/usage` 的 HTTP JSON 报文是 `D-MET-USAGE-VIEW` 的投影，机器权威在 `openapi`，不构成本机制拥有的独立通信报文结构。
+
+### 4.5 设备与 FPGA 表项结构
+
+不适用：LLMTier 为纯软件，无连接器、总线、寄存器或 FPGA 端口（tailoring `LT-TL-003`）。
+
+### 4.6 运行状态数据结构
+
+不适用：账本状态均在 SQLite 持久表（义务/版本/head/绑定/snapshot）；无独立内存跨步骤运行状态，进程退出以库内事实为准（§9）。
+
+### 4.7 数据库表结构
+
+Authority = `util/migrations/*.sql`（M007 `migrate()` 执行）；列级阅读视图见 `util.isd` §4.4。本机制覆盖以下表：
+
+| 表 | 主键 / 唯一 | 写入者 / 读者 | 寿命 |
 |---|---|---|---|
-| `usage_obligations` | dispatch 前登记"已发生" | `(principal_id, request_id)` 主键、model、endpoint、记录/更新时间 | 与记录同寿 |
-| `usage_record_versions` | **不可变**版本事实 | 版本、`is_final`、model、endpoint、`recorded_at`/`updated_at`、`measurement_status`、`source`、input/output/total、cached_input、cache_write、reasoning | 只追加 |
-| `usage_heads` | 当前版本指针 | `(principal_id, request_id)` → `head_record_version`、`updated_at` | 单调推进 |
-| `provider_request_bindings` | 最终 provider/deployment | `(principal_id, request_id)` → provider_id、deployment_id | `ON CONFLICT DO NOTHING` |
-| `query_snapshots` / `query_snapshot_items` | 分页冻结 | snapshot_id、principal、filter_digest、auth、创建/过期、frozen_view_json | 有期限 |
+| `usage_obligations` | `(principal_id,request_id)` | M003 / M003 查询 | 与记录同寿 |
+| `usage_record_versions` | `(principal_id,request_id,record_version)` | M003 / M003 | 只追加 |
+| `usage_heads` | `(principal_id,request_id)` | M003 / M003 | 单调推进 |
+| `provider_request_bindings` | `(principal_id,request_id)` | M003 / M003 | 首次为准 |
+| `query_snapshots` | `snapshot_id` | M003 / M003 | TTL 10 分钟 |
+| `query_snapshot_items` | `(snapshot_id,ordinal)` | M003 / M003 | 随 snapshot 过期 |
 
-**测量语义**：`measurement_status ∈ {unknown, measured}`；`source ∈ {unavailable, provider}`。`measured` 仅当 input/output/total **三者皆为 int**；否则整体 unknown（不写部分值）。
+- **约束 / 不变量**：版本只追加、head 单调且指向存在版本；同 request 版本绝不累计；snapshot 冻结后新写入只对新 snapshot 可见。
+- **合法与拒绝实例**：合法：一次成功调用产生 v1 unknown → v2 measured；拒绝：指向不存在版本的 head/重复版本。
+- **验证**：`T-MET-FINAL`、`T-MET-PAGE`。
 
-### 4.2 编码、布局与共享类型映射
+### 4.8 错误码与错误结构
 
-不适用二进制 ABI：SQLite 行 + JSON（`frozen_view_json`，紧凑分隔符）。查询视图字段见 `_record()`。
+本机制不新增公共错误码；对外错误引用系统目录（`llmtier-system-design` §8.8）：
 
-### 4.3 一致性、可见性与数据寿命
+| 本层错误 | 条件 | 系统 Error ID | 结果已知性/副作用 | 合法下一步 |
+|---|---|---|---|---|
+| 503 `usage_store_unavailable` | 读/写存储异常 | `ERR-STORE` | 本次失败；**不返回空页** | 稍后重试/以权威查询核对 |
+| 400 `cursor_expired` | snapshot 超 TTL | `ERR-CURSOR` | 未返回页；无副作用 | 从头重开查询 |
+| 400 `invalid_request` | 时间窗非法/filter 不符 | `ERR-REQ-VALIDATION` | 未返回页；无副作用 | 修正 from/to/filter |
+| 403 `permission_denied` | 他人 cursor / 非 admin 清空 | `ERR-AUTH-DENIED` | 未执行；无副作用 | 用自身 cursor/换 admin |
+| 404 | 未知资源 | `ERR-NOTFOUND` | 未受理 | 修正 ID |
 
-同 `request_id` **只保留最高版本**，读者按版本取整条、**绝不把版本相加**。`recorded_at` 固定为首次记录时间，`updated_at` 随替换推进。snapshot 冻结后，页间更正/插入/删除只对**新** snapshot 可见。
+- **约束 / 不变量**：写失败 → 不 dispatch；读失败 → 503，不用空页冒充无记录（C-METER-5）；载荷 `D-ERROR-ENVELOPE`。
+- **合法与拒绝实例**：拒绝：读存储不可用 → 503（非空页）。
+- **验证**：`T-MET-3`/503 用例、`T-MET-PAGE`。
+
+### 4.9 编码、布局与共享类型映射
+
+不适用二进制 ABI：SQLite 行 + JSON（`frozen_view_json`/`filter_digest` 输入，紧凑分隔符）。
+
+| 类型 ID / 编码源基线 | 逻辑宽度/序列化长度 | 实际 ABI 定位或不适用理由 | 原类型 → 投影/转换/损失 | 验证项 |
+|---|---|---|---|---|
+| `D-USAGE-RECORD`（系统 §8.2） | 16 列行；token 可 NULL | `usage_record_versions` 行 | 后端 usage → 版本行；非 int ⇒ unknown/NULL | `T-MET-UNKNOWN` |
+| `D-MET-USAGE-VIEW` | JSON 对象 | `frozen_view_json` TEXT | 行 → 视图；字段一一映射 | `T-MET-PAGE` |
+| `D-MET-QUERY-SNAPSHOT` | `filter_digest` = SHA-256；`auth` = SHA-256 | `query_snapshots` 行 | filter → digest；不含明文凭据 | `T-MET-PAGE` |
+| `D-ERROR-ENVELOPE`（系统 §8.4） | UTF-8 JSON | 无 wire offset | `ApiError.envelope()` | 503 用例 |
+
+### 4.10 一致性、可见性与数据寿命
+
+账本局部一致：同一 `(principal_id,request_id)` 的版本只追加，`head_record_version` 在单事务内单调推进，绝不累计（INV-1/2/3）；`recorded_at` 固定为首次记录时间，`updated_at` 随替换推进（INV-6），因此按 `(recorded_at,request_id)` 排序稳定可续。dispatch 前义务已持久，故崩溃/写入失败后重启仍见 unknown，绝不出现“没有调用”的假象（C-METER-3、INV-5）。查询首屏在单事务内冻结 `query_snapshots` + 有序成员；后续页按 `sid:offset` 读冻结视图，页间的更正/插入/删除只对**新** snapshot 可见。存储不可用返回 typed 503，不用空页冒充无记录。snapshot TTL 10 分钟覆盖一次正常分页；`DELETE /v1/usage` 为管理动作（+审计），一次性删除义务/版本/head/绑定，不可回滚；持久性对应 SQLite 单文件，进程退出以库内事实为准。
 
 ## 5. 接口设计
 
-### 5.1 逐操作签名、错误与调用演练
+> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口形态**分类逐接口完整记录；标题为真实调用形式，标题下先给完整接口声明，再就地说明输入/输出，最后按 §3.1 六项。数据结构引用 §4；错误引用系统 §8.8。用量钩子由本机制拥有并在此唯一定义；M-INFER 只引用。
 
-**内部操作（Inference → Usage Recorder）**：
+### 5.1 软件接口（适用时）
 
-| 操作 | 签名 | 语义 | 失败 |
-|---|---|---|---|
-| `authorize_dispatch` | `(principal, request_id, model, endpoint)` | 写义务 + 首个 unknown 版本（可重入，`INSERT OR IGNORE`）| 事务失败 → 不 dispatch |
-| `bind_backend` | `(principal, request_id, provider_id, deployment_id)` | 记最终归属（首次为准）| 忽略冲突 |
-| `finish` | `(principal, request_id, usage)` | 追加版本并推进 head | 无义务则 no-op；不影响已返回结果 |
+#### `UsageRecorder.authorize_dispatch(principal, request_id, model, endpoint) -> None`
+```text
+authorize_dispatch(principal: str, request_id: str, model: str, endpoint: str) -> None
+```
+- **Interface/Member ID、状态、文件·symbol**：`IF-MET-AUTHORIZE`；Implemented；唯一契约=本设计；`src/inference/usage.py` `UsageRecorder.authorize_dispatch`。
+- **输入**：`principal`、`request_id`、`model`（等级）、`endpoint`；前置=请求已校验通过、**dispatch 之前**；授权=内部调用（已鉴权请求上下文）；校验=无（幂等登记）。
+- **成功输出**：无返回——受理/完成=`usage_obligations` + 首个 v1 `unknown/unavailable` 版本 + `usage_heads`，单事务提交；副作用=账本锚点持久。
+- **错误与异常**：事务失败 → 抛出（由调用方决定不 dispatch）；结果已知、无半写；**不产生公共错误载荷**（内部）。
+- **交互与生命周期**：同步；可重入（`INSERT OR IGNORE`，已有 head 则 no-op）；请求级；不释放资源。
+- **实例与验证**：正常 `authorize_dispatch("piko","req_1","Worker","/v1/responses")` → v1 义务；边界：重复调用 no-op。`T-MET-CRASH`；Run=NOT_RUN。
 
-**对外操作（Management 面）**：
+#### `UsageRecorder.bind_backend(principal, request_id, provider_id, deployment_id) -> None`
+```text
+bind_backend(principal: str, request_id: str, provider_id: str, deployment_id: str) -> None
+```
+- **Interface/Member ID、状态、文件·symbol**：`IF-MET-BIND`；Implemented；`src/inference/usage.py`。
+- **输入**：`principal`、`request_id`、`provider_id`、`deployment_id`；前置=准入已选候选；授权=内部。
+- **成功输出**：无返回——写 `provider_request_bindings`（首次为准，`ON CONFLICT DO NOTHING`）；副作用=绑定持久。
+- **错误与异常**：冲突被忽略（不抛）；事务失败由存储层异常表达。
+- **交互与生命周期**：同步；幂等（首次为准）；请求级。
+- **实例与验证**：正常绑定 `prov_local`/`dep_local_gemma`；边界：重复绑定保持首次。`T-MET-FINAL`；Run=NOT_RUN。
 
-| 项 | `GET /v1/usage` | `DELETE /v1/usage` |
-|---|---|---|
-| 身份 | consumer 自身 / operator 全部 | operator |
-| 参数 | `from`,`to`（`[from,to)`）、`model`、`request_id`、`limit`、`cursor` | `model`、`deployment_id` |
-| 成功 | `{data,next_cursor,has_more,snapshot_id,snapshot_at}` | `{deleted}` |
-| 错误 | 400 `invalid_request`（时间窗/cursor 不符）、400 `cursor_expired`、403 `permission_denied`（他人 cursor）、503 `usage_store_unavailable` | 403；503 |
-| 幂等 | 只读 | 幂等（重复清空 deleted=0）|
+#### `UsageRecorder.finish(principal, request_id, usage, source_override=None) -> None`
+```text
+finish(principal: str, request_id: str, usage: dict | None, source_override: str | None = None) -> None
+```
+- **Interface/Member ID、状态、文件/symbol**：`IF-MET-FINISH`；Implemented；`src/inference/usage.py`。
+- **输入**：`principal`、`request_id`、`usage: dict | None`（后端返回，三 token 皆 int 才判 measured）、可选 `source_override`（注入标注）；前置=义务存在。
+- **成功输出**：无返回——追加 v(n+1) 版本 + 单调推进 head，单事务提交；受理/完成=提交后账本事实；副作用=版本持久。
+- **错误与异常**：无义务 → no-op（不影响已返回结果）；写失败 → 由存储层异常表达，结果已返回不改判；结果已知性=保留 unknown 至后续版本或重启可见。
+- **交互与生命周期**：同步；同 request 并发由单事务推进 head；不影响已返回的业务结果。
+- **实例与验证**：正常 `finish(..., {input:2,output:1,total:3})` → head=2、measured；边界：usage 非 int → unknown + NULL。`T-MET-FINAL`、`T-MET-UNKNOWN`；Run=NOT_RUN。
 
-**调用演练**：Inference 调 `authorize_dispatch("piko","req_1","Worker","/v1/responses")` → `bind_backend("piko","req_1","prov_local","dep_local_gemma")` → 后端返回 `{input:2,output:1,total:3}` → `finish(..., usage)` → head=2、`measurement_status=measured`。之后 `GET /v1/usage?from=…&to=…` 返回该 request 的 **v2**（非 v1+v2）。
+#### `UsageRecorder.page(principal, cursor, limit=50, admin=False, since=None, until=None, model=None, request_id=None) -> dict`
+```text
+page(principal: str, cursor: str | None, limit: int = 50, admin: bool = False, since: str | None = None, until: str | None = None, model: str | None = None, request_id: str | None = None) -> dict
+```
+- **Interface/Member ID、状态、文件·symbol**：`IF-MET-PAGE`；Implemented；`src/inference/usage.py`。
+- **输入**：`principal`；`cursor`（`sid:offset`）；`limit`；`admin`（是否跨 principal）；`since`/`until`（`[from,to)`），`model`、`request_id`；授权=consumer（自身）/operator（全部）。
+- **成功输出**：`{data: D-MET-USAGE-VIEW[], next_cursor, has_more, snapshot_id, snapshot_at}`；受理=首屏创建 `D-MET-QUERY-SNAPSHOT` 并冻结成员；生效=旧页不受后续更正影响；副作用=snapshot 行写入（TTL 10 分钟）。
+- **错误与异常**：`ERR-REQ-VALIDATION`（400 时间窗/`filter_digest` 不符）；`ERR-CURSOR`（400 过期）；`ERR-AUTH-DENIED`（403 他人 cursor）；`ERR-STORE`（503）；载荷 `D-ERROR-ENVELOPE`。
+- **交互与生命周期**：同步只读；cursor 绑定 principal/授权/filter；按 `(recorded_at,request_id)` 稳定排序。
+- **实例与验证**：正常首屏 + 后续页；拒绝他人 cursor → 403。`T-MET-PAGE`；Run=NOT_RUN。
+
+#### `UsageRecorder.reset_usage(model=None, deployment_id=None, conn=None) -> dict`
+```text
+reset_usage(model: str | None = None, deployment_id: str | None = None, conn: Connection | None = None) -> dict
+```
+- **Interface/Member ID、状态、文件·symbol**：`IF-MET-RESET`；Implemented；`src/inference/usage.py`。
+- **输入**：`model`（等级）/`deployment_id`（或两者/均无）；授权=operator；校验=范围语义。
+- **成功输出**：`{deleted: int}`——按范围删除义务+版本+head+绑定，单事务；副作用=删除 + 审计（经 M001 `Admin.mutate`）。
+- **错误与异常**：非 admin → `ERR-AUTH-DENIED`（403）；`ERR-STORE`（503）；失败回滚。
+- **交互与生命周期**：同步；幂等（重复清空 `deleted=0`）；不可回滚。
+- **实例与验证**：正常按 model 清空返回计数；边界：无匹配 → `deleted=0`。`T-MET-RESET`；Run=NOT_RUN。
+
+#### `GET /v1/usage`；`DELETE /v1/usage`
+```text
+GET    /v1/usage?from=&to=&model=&request_id=&limit=&cursor= -> 200 {data,next_cursor,has_more,snapshot_id,snapshot_at}
+DELETE /v1/usage?model=&deployment_id=                        -> 200 {deleted}
+  -> 4xx/5xx: ErrorEnvelope
+```
+- **Interface/Member ID、状态、文件·symbol**：`IF-MET-API-USAGE`；Implemented；`src/http_api/app.py` → `app.usage.page/reset_usage`。
+- **输入**：GET 查询参数；DELETE 范围参数；授权=consumer/operator（`IF-TRUST-AUTH-ANY`，DELETE 需 admin）；校验=时间窗/cursor/filter。
+- **成功输出**：见上；GET 只读；DELETE 副作用=范围删除 + 审计。
+- **错误与异常**：同 `IF-MET-PAGE`/`IF-MET-RESET`；`ERR-STORE`（503 显式化，不用空页冒充）。
+- **交互与生命周期**：同步；GET 幂等只读；DELETE 幂等且不可回滚。
+- **实例与验证**：正常 GET 返回 v2（非 v1+v2）；拒绝非 admin DELETE → 403。`T-MET-PAGE`、`T-MET-RESET`；Run=NOT_RUN。
+
+### 5.2 消息与数据流接口（适用时）
+
+不适用：账本写入/查询为同步函数与 HTTP 请求/响应，无事件/队列/流。
+
+### 5.3 硬件与固件接口（适用时）
+
+不适用：无连接器、总线、寄存器或 FPGA 端口。
+
+### 5.4 人机与维护接口（适用时）
+
+不适用：清空为 HTTP 管理操作（`IF-MET-RESET`/`IF-MET-API-USAGE`，§5.1），其运维入口记录于 §12.2；本机制不另造 CLI/页面。
 
 ## 6. 正常端到端流程
 
@@ -137,7 +319,7 @@
 
 ### 6.1 交叠请求、跨轮次与生命周期边界
 
-一条记录 = 一个生命周期（义务→绑定→终态）。**交叠**：同 request 的并发 `finish` 由单事务推进 head（§10）；分页期间的新写入只对新 snapshot 可见（§4.3）；`finish` 与查询并发不互相阻塞（读快照）。
+一条记录 = 一个生命周期（义务→绑定→终态）。**交叠**：同 request 的并发 `finish` 由单事务推进 head（§10）；分页期间的新写入只对新 snapshot 可见（§4.10）；`finish` 与查询并发不互相阻塞（读快照）。
 
 ## 7. 分支和替代流程
 
@@ -239,12 +421,15 @@
 
 ### 14.3 责任单元间接口契约
 
-| 接口成员 ID / 固定 baseline | 提供对象 | 全部消费对象 | 调用/事件形态 | 本机制固定的语义与错误 | 期限/取消/重复及边界 |
-|---|---|---|---|---|---|
-| `authorize_dispatch` / `bind_backend` / `finish` | Usage Recorder | Inference 编排 | 函数 | 义务/绑定/终态 | 见 §9 |
-| `page(principal, cursor, …, admin)` | Usage Reader | HTTP Adapter | 函数 | 冻结分页视图 | 400/403/503 |
-| `reset_usage(model, deployment_id)` | Admin | HTTP Adapter | 函数 | 范围清空计数 | — |
-| `transaction(True)` | `util` Store | Usage Recorder/Reader | 上下文 | 原子提交 | 存储错误 |
+> 本节为**分配视图**：只把 §14.1 的责任单元映射到 §5 已定义的接口成员 ID 与 §4 结构 ID；完整签名、字段、编码和错误码由 §5 与系统 §8.8 唯一维护，本节不复制。
+
+| 责任单元（§14.1） | 承接的成员/结构 ID（§4/§5） | 角色 | 本机制固定的语义与边界（引用） |
+|---|---|---|---|
+| Usage Recorder（计量写入） | `IF-MET-AUTHORIZE`、`IF-MET-BIND`、`IF-MET-FINISH`；`D-USAGE-OBLIGATION`/`D-USAGE-RECORD`/`D-USAGE-HEAD`（§4.2） | 提供 | 义务→绑定→终态；只追加、head 单调、unknown 不补零（§5.1） |
+| Usage Reader / Admin（查询/清空） | `IF-MET-PAGE`、`IF-MET-RESET`；`D-MET-QUERY-SNAPSHOT`（§4.2） | 提供 | snapshot 冻结分页、范围清空、授权每页复核（§5.1） |
+| HTTP Adapter（入口） | `IF-MET-API-USAGE` | 提供/映射 | `/v1/usage` 路由与错误映射（400/403/503）；不含业务规则 |
+| Inference 编排 | `IF-MET-AUTHORIZE`/`IF-MET-BIND`/`IF-MET-FINISH` | 消费 | 在 dispatch 前后调用钩子；unknown 语义（§9） |
+| Store（存储） | 各账本/snapshot 表（§4.7） | 提供 | 单事务原子提交、快照表 |
 
 ### 14.4 下级设计输入清单
 
@@ -287,7 +472,7 @@
 ## A. 输入基线、适用性与图文规则
 
 - 输入：系统设计 §3.4/§8、`LT-ADR-03`、`usage.py`、`store.py`。
-- 适用性：纯软件、单节点 SQLite 账本机制。§4.2（二进制 ABI）不适用；§8.1 的"预留/释放"映射为义务/清空（无租约）。
+- 适用性：纯软件、单节点 SQLite 账本机制。§4.9（二进制 ABI）不适用；§8.1 的"预留/释放"映射为义务/清空（无租约）。
 - 图：时序图（§6）表达义务→绑定→终态与冻结分页。
 
 ## B. 文档控制与修订记录

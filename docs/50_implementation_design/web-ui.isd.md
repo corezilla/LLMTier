@@ -10,9 +10,9 @@
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Document Owner | LLMTier |
-| Last Modified Date | `2026-09-23` |
+| Last Modified Date | `2026-09-25` |
 | Template ID | `design.implementation` |
-| Template Version | `0.5.0` |
+| Template Version | `1.0.0` |
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 实现目标与输入基线
@@ -97,182 +97,328 @@ webui/
 - **构建目标 / 生成源 / 输出**：静态资源
 - **实现状态**：PLANNED
 
-## 4. 内部数据与所有权
+## 4. 数据结构设计
 
 <a id="isd-data"></a>
 
-纯软件：无原生 ABI（浏览器 JS/DOM）。
+> 按 STD `design-data-interface-format` 1.2.0：主章“数据结构设计”，章内按**数据性质**分类（§4.1–§4.8）。纯软件实现：无原生 ABI（浏览器 JS/DOM），不适用类别在章首给出原因。本层拥有的结构逐项记录 ID/唯一来源/字段/约束/状态·所有权·寿命/合法与拒绝实例/验证，语言级表示与代码映射随结构记录。
 
-### 4.1 `state`（内存）
+**类别适用性**：§4.1 公共基础类型与枚举 ✗（状态码取自系统 §8.8）｜§4.2 业务与操作数据结构 ✓（会话凭据）｜§4.3 配置与规则数据结构 ✗（无受控规则对象）｜§4.4 通信报文结构 ✓（`ETag`/错误状态）｜§4.5 设备与 FPGA 表项结构 ✗（纯软件）｜§4.6 运行状态数据结构 ✓（页面内存缓存）｜§4.7 数据库表结构 ✗（浏览器不拥有表）｜§4.8 错误码与错误结构 ✓。
 
-- **类型 / 字段**：`{registry, providers[], deployments[], usage, runtime}`
-- **单位 / 初值 / 范围 / 不变量**：页面内存缓存；**不持久化**
-- **逻辑编码与原生 ABI 适用性**：N/A + 依据（JS 对象）
-- **创建 / 修改者**：`load*` 写
-- **Owner / 借用期限 / 释放者**：页面寿命
-- **公共类型 authority**：private（字段形状由 OpenAPI 决定）
-- **持久化与敏感性**：transient；不落 localStorage
+### 4.2 业务与操作数据结构
 
-### 4.2 `ETag`
+#### `SessionCookie`（SSO 代理签发）
 
-- **类型 / 字段**：`string`（`"<id>.v<n>"`）
-- **单位 / 初值 / 范围 / 不变量**：编辑事务内
-- **逻辑编码与原生 ABI 适用性**：N/A
-- **创建 / 修改者**：`api`/编辑流程
-- **Owner / 借用期限 / 释放者**：编辑事务内
-- **公共类型 authority**：private
-- **持久化与敏感性**：transient
+- **定义 / Data Type ID / 唯一来源**：operator 会话凭据；唯一来源=SSO 代理（本层不签发、不解析密钥）。
+- **字段 / 取值**：cookie（`credentials:'same-origin'` 随请求）；`Secure`/`HttpOnly` 由代理设置。
+- **约束 / 不变量**：**bearer/Secret 不入 JS**；不落 localStorage；同源请求自动携带。
+- **状态 · 所有权 · 寿命**：代理签发与失效；页面仅传递。
+- **语言级表示与代码映射**：浏览器 cookie 存储；`api()` 以 `credentials:'same-origin'` 使用。
+- **合法与拒绝实例**：合法带会话的请求 200；拒绝会话过期 → 401 → I9 跳登录。
+- **验证**：`VRC-UI-001/002`。
 
-### 4.3 会话 cookie / 错误状态
+### 4.4 通信报文结构
 
-- **类型 / 字段**：cookie（SSO 代理）；`{status:int, code?:string}`
-- **单位 / 初值 / 范围 / 不变量**：cookie 由代理；错误 401/403/409/412/429/503
-- **逻辑编码与原生 ABI 适用性**：N/A
-- **创建 / 修改者**：代理签发；I9 处理
-- **Owner / 借用期限 / 释放者**：代理/页面
-- **公共类型 authority**：private
-- **持久化与敏感性**：cookie=代理；**bearer/Secret 不入 JS**
+#### `ETag`
 
-## 5. 函数与接口实现规格
+- **定义 / Data Type ID / 唯一来源**：乐观并发版本标记；机器源=服务端 `Registry` 视图 `version`（`"<id>.v<n>"`）。
+- **字段 / 取值**：`string`，形如 `"<id>.v<n>"`；随 GET 响应返回，编辑时经 `If-Match` 回传。
+- **约束 / 不变量**：仅编辑事务内有效；不匹配服务端当前版本 → 412；不自动覆盖。
+- **状态 · 所有权 · 寿命**：编辑事务内；服务端为准。
+- **语言级表示与代码映射**：JS `string`；`api()` 透传 `If-Match`，`mutation` 维护。
+- **合法与拒绝实例**：合法匹配版本 → 200；拒绝 stale → `ERR-STALE`（412）。
+- **验证**：`VRC-UI-002`。
+
+#### `ErrorStatus`
+
+- **定义 / Data Type ID / 唯一来源**：客户端错误呈现状态；公共码来源=系统 §8.8。
+- **字段 / 取值**：`{status:int, code?:string}`；出现 401/403/409/412/429/503。
+- **约束 / 不变量**：403 不猜存在性；503 显式化且保留旧画面；不静默覆盖。
+- **状态 · 所有权 · 寿命**：请求级；I9 处理。
+- **语言级表示与代码映射**：JS 对象；`api()` 抛错 → I9 分派。
+- **合法与拒绝实例**：合法 200；拒绝 412 → 保留输入供重载。
+- **验证**：`VRC-UI-002/004`。
+
+### 4.6 运行状态数据结构
+
+#### `state`（页面内存缓存）
+
+- **定义 / Data Type ID / 唯一来源**：页面数据缓存；唯一来源=`app.js`（字段形状由 OpenAPI 决定）。
+- **字段 / 取值**：`{registry, providers[], deployments[], usage, runtime}`。
+- **约束 / 不变量**：**不持久化**、不落 localStorage；未知用量不填零；Tier 状态取 `/readyz`。
+- **状态 · 所有权 · 寿命**：页面寿命；`load*` 写、`render*` 读。
+- **语言级表示与代码映射**：JS 对象；`load*` 更新，`renderTree/renderProviders/renderTierMembers` 消费。
+- **合法与拒绝实例**：合法进入页面装载；边界：加载失败 → I9 提示且保留旧缓存。
+- **验证**：`VRC-UI-001/004`。
+
+### 4.8 错误码与错误结构
+
+**本层公共错误引用**（ID 定义见系统 §8.8；本层只呈现/恢复）：
+
+| 本层别名 | 条件 | 系统 Error ID | 合法下一步 |
+|---|---|---|---|
+| `E-UI-401` | 会话过期 | `ERR-AUTH-REQUIRED` | 重新登录 |
+| `E-UI-409` | 引用冲突 | `ERR-INUSE`/`ERR-CONFLICT` | 先解绑 |
+| `E-UI-412` | stale 编辑 | `ERR-STALE` | 重新 GET 后重试 |
+| `E-UI-503` | 存储不可用 | `ERR-STORE` | 稍后重试 |
+
+- **定义 / 唯一来源**：服务端 `D-ERROR-ENVELOPE`；本层在 I9 呈现。
+- **字段 / 约束**：`{status, code?}`；不修改服务端含义，不伪装成功。
+- **状态 · 所有权 · 寿命**：请求级；I9 恢复后结束。
+- **合法与拒绝实例**：合法保存成功刷新视图；拒绝 412 → 保留输入、不自动覆盖。
+- **验证**：`VRC-UI-002/004`。
+
+## 5. 接口设计
 
 <a id="isd-functions"></a>
 
-### 5.1.1 `FUNC-UI-API` · `api`
+> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按接口形态分类逐接口完整记录；标题为真实调用形式，标题下先给完整签名，再就地说明参数/结果字段，最后按 §3.1 六项。数据结构引用 §4；公共错误 ID 定义见 `llmtier-system-design` §8.8，本层只产生/映射。本模块接口为浏览器端 JS 软件接口；页面人机入口见 §5.4。
 
+### 5.1 软件接口（适用时）
+
+#### 5.1.1 `api(path, {method='GET', body, headers={}}) -> Promise<object>`
+
+```text
+api(path, {method='GET', body, headers={}}) -> Promise<object>
+```
+
+- **Interface/Member ID、状态**：`FUNC-UI-API` / PLANNED
 - **文件 / symbol / 可见性**：`app.js` / `api` / private
 - **原成员 ID 或私有来源**：`F-UI-*`
 - **完整签名与 caller**：`api(path, {method='GET', body, headers={}}) -> Promise<object>`；caller=各 `load*/mutation`
-- **输入参数 / 数据结构 authority**：`path`、options；字段形状由 OpenAPI 决定
-- **输入约束 / 校验顺序 / 失败映射**：`credentials:'same-origin'`；非 2xx → 抛错交 I9
-- **成功输出 / 数据结构 / 后置条件**：解析后的对象
-- **错误输出 / 触发条件 / 优先级**：401/403/409/412/429/503 → I9
-- **副作用 / 执行上下文 / 幂等性**：网络；取决于 method
-- **输入输出 ownership 与寿命**：请求级
+- **输入**
+  - **输入参数 / 数据结构 authority**：`path`、options；字段形状由 OpenAPI 决定
+  - **输入约束 / 校验顺序 / 失败映射**：`credentials:'same-origin'`；非 2xx → 抛错交 I9
+- **成功输出**
+  - **成功输出 / 数据结构 / 后置条件**：解析后的对象
+- **错误与异常**
+  - **错误输出 / 触发条件 / 优先级**：E-UI-401（ERR-AUTH-REQUIRED · authentication_required）：跳外部登录；E-UI-409（ERR-INUSE / ERR-CONFLICT）：留当前页；E-UI-412（ERR-STALE · version_conflict）：不自动覆盖；E-UI-503（ERR-STORE · usage_store_unavailable）：stale 标记
+  - **E-UI-401（公共 ERR-AUTH-REQUIRED · authentication_required）**
+    - **底层异常 / 失败事实**：401
+    - **模块是否处理及处理函数**：recover（I9 清会话跳登录）
+    - **Typed 异常与原生异常所有权**：浏览器
+    - **宿主 / public payload 或状态码**：跳外部登录
+    - **日志级别 / 脱敏 / 关联字段**：无
+    - **是否可重试及前提**：重新登录
+    - **状态与副作用影响 / 验证项**：`VRC-UI-002`
+  - **E-UI-409（公共 ERR-INUSE / ERR-CONFLICT）**
+    - **底层异常 / 失败事实**：409
+    - **模块是否处理及处理函数**：recover（显示引用摘要，禁强删）
+    - **Typed 异常与原生异常所有权**：浏览器
+    - **宿主 / public payload 或状态码**：留当前页
+    - **日志级别 / 脱敏 / 关联字段**：无
+    - **是否可重试及前提**：先解绑
+    - **状态与副作用影响 / 验证项**：`VRC-UI-002`
+  - **E-UI-412（公共 ERR-STALE · version_conflict）**
+    - **底层异常 / 失败事实**：412
+    - **模块是否处理及处理函数**：recover（保留输入供重载）
+    - **Typed 异常与原生异常所有权**：浏览器
+    - **宿主 / public payload 或状态码**：不自动覆盖
+    - **日志级别 / 脱敏 / 关联字段**：无
+    - **是否可重试及前提**：重新 GET 后重试
+    - **状态与副作用影响 / 验证项**：`VRC-UI-002`
+  - **E-UI-503（公共 ERR-STORE · usage_store_unavailable）**
+    - **底层异常 / 失败事实**：503
+    - **模块是否处理及处理函数**：recover（显示“不可用”，保留旧画面 + stale）
+    - **Typed 异常与原生异常所有权**：浏览器
+    - **宿主 / public payload 或状态码**：stale 标记
+    - **日志级别 / 脱敏 / 关联字段**：无
+    - **是否可重试及前提**：稍后重试
+    - **状态与副作用影响 / 验证项**：`VRC-UI-004`
+- **交互与生命周期**
+  - **副作用 / 执行上下文 / 幂等性**：网络；取决于 method
+  - **输入输出 ownership 与寿命**：请求级
+  - **Thread-safe / reentrant**：浏览器单线程事件循环
+  - **Nested-call policy**：allowed
+  - **Transaction participation**：none
+  - **Blocking / timeout / cancellation**：浏览器默认
 - **不可改变的规则 / Constraint ID**：同源；`If-Match` 透传
 - **实现自由度**：封装实现
-- **Thread-safe / reentrant**：浏览器单线程事件循环
-- **Nested-call policy**：allowed
-- **Transaction participation**：none
-- **Blocking / timeout / cancellation**：浏览器默认
-- **实现状态 / 验证项**：PLANNED；`VRC-UI-001`
+- **实例与验证**
+  - **实现状态 / 验证项**：PLANNED；`VRC-UI-001`
 
-### 5.1.2 `FUNC-UI-LOAD` · `load*`
+#### 5.1.2 `load*() -> Promise<void>`
 
+```text
+load*() -> Promise<void>
+```
+
+- **Interface/Member ID、状态**：`FUNC-UI-LOAD` / PLANNED
 - **文件 / symbol / 可见性**：`app.js` / `loadRegistry/loadHome/...` / private
 - **原成员 ID 或私有来源**：`F-UI-HOME/PROVIDERS/RECORDS/LOGS/DIAG`
 - **完整签名与 caller**：`load*() -> Promise<void>`；caller=页面进入
-- **输入参数 / 数据结构 authority**：无
-- **输入约束 / 校验顺序 / 失败映射**：失败 → I9
-- **成功输出 / 数据结构 / 后置条件**：更新 `state` 并渲染
-- **错误输出 / 触发条件 / 优先级**：见 I9
-- **副作用 / 执行上下文 / 幂等性**：读；幂等
-- **输入输出 ownership 与寿命**：页面
+- **输入**
+  - **输入参数 / 数据结构 authority**：无
+  - **输入约束 / 校验顺序 / 失败映射**：失败 → I9
+- **成功输出**
+  - **成功输出 / 数据结构 / 后置条件**：更新 `state` 并渲染
+- **错误与异常**
+  - **错误输出 / 触发条件 / 优先级**：E-UI-503（ERR-STORE · usage_store_unavailable）：stale 标记
+  - **E-UI-503（公共 ERR-STORE · usage_store_unavailable）**
+    - **底层异常 / 失败事实**：503
+    - **模块是否处理及处理函数**：recover（显示“不可用”，保留旧画面 + stale）
+    - **Typed 异常与原生异常所有权**：浏览器
+    - **宿主 / public payload 或状态码**：stale 标记
+    - **日志级别 / 脱敏 / 关联字段**：无
+    - **是否可重试及前提**：稍后重试
+    - **状态与副作用影响 / 验证项**：`VRC-UI-004`
+- **交互与生命周期**
+  - **副作用 / 执行上下文 / 幂等性**：读；幂等
+  - **输入输出 ownership 与寿命**：页面
+  - **Thread-safe / reentrant**：单线程
+  - **Nested-call policy**：allowed
+  - **Transaction participation**：none
+  - **Blocking / timeout / cancellation**：浏览器
 - **不可改变的规则 / Constraint ID**：Tier 状态取 `/readyz`；未知不填零
 - **实现自由度**：装载实现
-- **Thread-safe / reentrant**：单线程
-- **Nested-call policy**：allowed
-- **Transaction participation**：none
-- **Blocking / timeout / cancellation**：浏览器
-- **实现状态 / 验证项**：PLANNED；`VRC-UI-001/004`
+- **实例与验证**
+  - **实现状态 / 验证项**：PLANNED；`VRC-UI-001/004`
 
-### 5.1.3 `FUNC-UI-RENDER` · `render*` / 状态映射
+#### 5.1.3 `render*() -> void`
 
+```text
+render*() -> void
+backendState/tierState(...) -> string/obj
+```
+
+- **Interface/Member ID、状态**：`FUNC-UI-RENDER` / PLANNED
 - **文件 / symbol / 可见性**：`app.js` / `renderTree/renderProviders/renderTierMembers/backendState/tierState/statusMarkup` / private
 - **原成员 ID 或私有来源**：`F-UI-HOME/PROVIDERS`
 - **完整签名与 caller**：`render*() -> void`；`backendState/tierState(...) -> string/obj`；caller=`load*`
-- **输入参数 / 数据结构 authority**：`state`
-- **输入约束 / 校验顺序 / 失败映射**：无
-- **成功输出 / 数据结构 / 后置条件**：DOM 更新
-- **错误输出 / 触发条件 / 优先级**：无
-- **副作用 / 执行上下文 / 幂等性**：DOM 渲染
-- **输入输出 ownership 与寿命**：页面
+- **输入**
+  - **输入参数 / 数据结构 authority**：`state`
+  - **输入约束 / 校验顺序 / 失败映射**：无
+- **成功输出**
+  - **成功输出 / 数据结构 / 后置条件**：DOM 更新
+- **错误与异常**
+  - **错误输出 / 触发条件 / 优先级**：无公共错误输出
+- **交互与生命周期**
+  - **副作用 / 执行上下文 / 幂等性**：DOM 渲染
+  - **输入输出 ownership 与寿命**：页面
+  - **Thread-safe / reentrant**：单线程
+  - **Nested-call policy**：allowed
+  - **Transaction participation**：none
+  - **Blocking / timeout / cancellation**：无
 - **不可改变的规则 / Constraint ID**：状态语义（不互相覆盖、未知不填零）
 - **实现自由度**：渲染实现
-- **Thread-safe / reentrant**：单线程
-- **Nested-call policy**：allowed
-- **Transaction participation**：none
-- **Blocking / timeout / cancellation**：无
-- **实现状态 / 验证项**：PLANNED；`VRC-UI-001/004`
+- **实例与验证**
+  - **实现状态 / 验证项**：PLANNED；`VRC-UI-001/004`
 
-### 5.1.4 `FUNC-UI-MUTATE` · mutation
+#### 5.1.4 `(el|event) -> Promise<void>`
 
+```text
+(el|event) -> Promise<void>
+```
+
+- **Interface/Member ID、状态**：`FUNC-UI-MUTATE` / PLANNED
 - **文件 / symbol / 可见性**：`app.js` / `toggleDeployment/probeDeployment/saveProvider/saveMember/removeMember/refreshProviderUsage` / private
 - **原成员 ID 或私有来源**：`F-UI-TIER-EDIT/PAUSE/PROBE/PROVIDERS`
 - **完整签名与 caller**：`(el|event) -> Promise<void>`；caller=页面交互
-- **输入参数 / 数据结构 authority**：表单/元素
-- **输入约束 / 校验顺序 / 失败映射**：字段级校验；412 stale、409 引用
-- **成功输出 / 数据结构 / 后置条件**：更新视图
-- **错误输出 / 触发条件 / 优先级**：412/409 → I9
-- **副作用 / 执行上下文 / 幂等性**：写；非幂等
-- **输入输出 ownership 与寿命**：页面
+- **输入**
+  - **输入参数 / 数据结构 authority**：表单/元素
+  - **输入约束 / 校验顺序 / 失败映射**：字段级校验；412 stale、409 引用
+- **成功输出**
+  - **成功输出 / 数据结构 / 后置条件**：更新视图
+- **错误与异常**
+  - **错误输出 / 触发条件 / 优先级**：E-UI-409（ERR-INUSE / ERR-CONFLICT）：留当前页；E-UI-412（ERR-STALE · version_conflict）：不自动覆盖
+  - **E-UI-409（公共 ERR-INUSE / ERR-CONFLICT）**
+    - **底层异常 / 失败事实**：409
+    - **模块是否处理及处理函数**：recover（显示引用摘要，禁强删）
+    - **Typed 异常与原生异常所有权**：浏览器
+    - **宿主 / public payload 或状态码**：留当前页
+    - **日志级别 / 脱敏 / 关联字段**：无
+    - **是否可重试及前提**：先解绑
+    - **状态与副作用影响 / 验证项**：`VRC-UI-002`
+  - **E-UI-412（公共 ERR-STALE · version_conflict）**
+    - **底层异常 / 失败事实**：412
+    - **模块是否处理及处理函数**：recover（保留输入供重载）
+    - **Typed 异常与原生异常所有权**：浏览器
+    - **宿主 / public payload 或状态码**：不自动覆盖
+    - **日志级别 / 脱敏 / 关联字段**：无
+    - **是否可重试及前提**：重新 GET 后重试
+    - **状态与副作用影响 / 验证项**：`VRC-UI-002`
+- **交互与生命周期**
+  - **副作用 / 执行上下文 / 幂等性**：写；非幂等
+  - **输入输出 ownership 与寿命**：页面
+  - **Thread-safe / reentrant**：单线程
+  - **Nested-call policy**：allowed
+  - **Transaction participation**：none
+  - **Blocking / timeout / cancellation**：浏览器
 - **不可改变的规则 / Constraint ID**：`If-Match`；保存≠probe/health；探测付费确认
 - **实现自由度**：实现
-- **Thread-safe / reentrant**：单线程
-- **Nested-call policy**：allowed
-- **Transaction participation**：none
-- **Blocking / timeout / cancellation**：浏览器
-- **实现状态 / 验证项**：PLANNED；`VRC-UI-002/003/005`
+- **实例与验证**
+  - **实现状态 / 验证项**：PLANNED；`VRC-UI-002/003/005`
 
-### 5.1.5 `FUNC-UI-STATES` · I9 交互状态
+#### 5.1.5 `随 `api` 错误分派`
 
+```text
+随 `api` 错误分派
+```
+
+- **Interface/Member ID、状态**：`FUNC-UI-STATES` / PLANNED
 - **文件 / symbol / 可见性**：`app.js` / I9 / private
 - **原成员 ID 或私有来源**：`F-UI-STATES`
 - **完整签名与 caller**：随 `api` 错误分派
-- **输入参数 / 数据结构 authority**：`{status,code?}`
-- **输入约束 / 校验顺序 / 失败映射**：按状态呈现
-- **成功输出 / 数据结构 / 后置条件**：UI 反馈
-- **错误输出 / 触发条件 / 优先级**：无
-- **副作用 / 执行上下文 / 幂等性**：无
-- **输入输出 ownership 与寿命**：页面
+- **输入**
+  - **输入参数 / 数据结构 authority**：`{status,code?}`
+  - **输入约束 / 校验顺序 / 失败映射**：按状态呈现
+- **成功输出**
+  - **成功输出 / 数据结构 / 后置条件**：UI 反馈
+- **错误与异常**
+  - **错误输出 / 触发条件 / 优先级**：E-UI-401（ERR-AUTH-REQUIRED · authentication_required）：跳外部登录；E-UI-503（ERR-STORE · usage_store_unavailable）：stale 标记
+  - **E-UI-401（公共 ERR-AUTH-REQUIRED · authentication_required）**
+    - **底层异常 / 失败事实**：401
+    - **模块是否处理及处理函数**：recover（I9 清会话跳登录）
+    - **Typed 异常与原生异常所有权**：浏览器
+    - **宿主 / public payload 或状态码**：跳外部登录
+    - **日志级别 / 脱敏 / 关联字段**：无
+    - **是否可重试及前提**：重新登录
+    - **状态与副作用影响 / 验证项**：`VRC-UI-002`
+  - **E-UI-503（公共 ERR-STORE · usage_store_unavailable）**
+    - **底层异常 / 失败事实**：503
+    - **模块是否处理及处理函数**：recover（显示“不可用”，保留旧画面 + stale）
+    - **Typed 异常与原生异常所有权**：浏览器
+    - **宿主 / public payload 或状态码**：stale 标记
+    - **日志级别 / 脱敏 / 关联字段**：无
+    - **是否可重试及前提**：稍后重试
+    - **状态与副作用影响 / 验证项**：`VRC-UI-004`
+- **交互与生命周期**
+  - **副作用 / 执行上下文 / 幂等性**：无
+  - **输入输出 ownership 与寿命**：页面
+  - **Thread-safe / reentrant**：单线程
+  - **Nested-call policy**：allowed
+  - **Transaction participation**：none
+  - **Blocking / timeout / cancellation**：无
 - **不可改变的规则 / Constraint ID**：401 跳登录、403 不猜存在性、503 显式化
 - **实现自由度**：呈现实现
-- **Thread-safe / reentrant**：单线程
-- **Nested-call policy**：allowed
-- **Transaction participation**：none
-- **Blocking / timeout / cancellation**：无
-- **实现状态 / 验证项**：PLANNED；`VRC-UI-001`
+- **实例与验证**
+  - **实现状态 / 验证项**：PLANNED；`VRC-UI-001`
 
-### 5.2 错误传播矩阵
+### 5.2 消息与数据流接口（适用时）
 
-#### 5.2.1 `E-UI-401` · 会话过期
+不适用（浏览器内 `api()` 同步封装 HTTP 调用；无跨进程消息/队列/流）。
 
-- **底层异常 / 失败事实**：401
-- **模块是否处理及处理函数**：recover（I9 清会话跳登录）
-- **Typed 异常与原生异常所有权**：浏览器
-- **宿主 / public payload 或状态码**：跳外部登录
-- **日志级别 / 脱敏 / 关联字段**：无
-- **是否可重试及前提**：重新登录
-- **状态与副作用影响 / 验证项**：`VRC-UI-002`
+### 5.3 硬件与固件接口（适用时）
 
-#### 5.2.2 `E-UI-409` · 引用冲突
+不适用（纯软件模块，无连接器/总线/寄存器/FPGA 端口）。
 
-- **底层异常 / 失败事实**：409
-- **模块是否处理及处理函数**：recover（显示引用摘要，禁强删）
-- **Typed 异常与原生异常所有权**：浏览器
-- **宿主 / public payload 或状态码**：留当前页
-- **日志级别 / 脱敏 / 关联字段**：无
-- **是否可重试及前提**：先解绑
-- **状态与副作用影响 / 验证项**：`VRC-UI-002`
+### 5.4 人机与维护接口（适用时）
 
-#### 5.2.3 `E-UI-412` · stale 编辑
+本模块即 operator 控制台浏览器端人机界面；页面操作以真实路由/控件为入口，实现在 §5.1 的 JS 函数。
 
-- **底层异常 / 失败事实**：412
-- **模块是否处理及处理函数**：recover（保留输入供重载）
-- **Typed 异常与原生异常所有权**：浏览器
-- **宿主 / public payload 或状态码**：不自动覆盖
-- **日志级别 / 脱敏 / 关联字段**：无
-- **是否可重试及前提**：重新 GET 后重试
-- **状态与副作用影响 / 验证项**：`VRC-UI-002`
+#### `/ui/registry` · Provider/Deployment/ServiceLevel 管理页
 
-#### 5.2.4 `E-UI-503` · 存储不可用
+- **Interface/Member ID、文件/symbol 与来源**：`UI-REGISTRY`；`index.html` + `app.js` `renderProviders/saveProvider/saveMember/removeMember/toggleDeployment`；机制 `M-CONFIG` §14.4 `R-CFG-05`。
+- **执行位置、目标、输入与权限**：浏览器同源页面；目标=选中 provider/deployment/service-level；输入=表单字段 + `If-Match` ETag；权限由服务端入口判定（operator）。
+- **输出、错误与交互**：成功刷新树/表单；401 跳登录、403 留页、409 显示引用、412 保留输入、503 显示不可用并保留旧画面（I9）。
+- **实例与验证**：合法保存 provider；拒绝 stale 编辑 → 保留输入。`VRC-UI-002`。
 
-- **底层异常 / 失败事实**：503
-- **模块是否处理及处理函数**：recover（显示“不可用”，保留旧画面 + stale）
-- **Typed 异常与原生异常所有权**：浏览器
-- **宿主 / public payload 或状态码**：stale 标记
-- **日志级别 / 脱敏 / 关联字段**：无
-- **是否可重试及前提**：稍后重试
-- **状态与副作用影响 / 验证项**：`VRC-UI-004`
+#### `/ui/diagnostics` · 诊断页（4 tabs + 全局开关）
+
+- **Interface/Member ID、文件/symbol 与来源**：`UI-DIAGNOSTICS`；`app.js` `loadStats/loadTrace`；机制 `M-OBS` §14.4 `R-OBS-05`（数据由 M005 供）。
+- **执行位置、目标、输入与权限**：浏览器；目标=快照/统计/trace/注入 tab；输入=时间窗/过滤；operator 权限。
+- **输出、错误与交互**：开关关闭 → tab `Disabled`；查询失败按 I9 呈现；不落 localStorage/Secret。
+- **实例与验证**：4 tabs 呈现；开关关闭语义。`VRC-UI-006`。
 
 ## 6. 关键流程与算法
 

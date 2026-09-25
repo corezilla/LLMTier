@@ -10,9 +10,9 @@
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Document Owner | LLMTier |
-| Last Modified Date | `2026-09-23` |
+| Last Modified Date | `2026-09-25` |
 | Template ID | `design.implementation` |
-| Template Version | `0.5.0` |
+| Template Version | `1.0.0` |
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 实现目标与输入基线
@@ -115,201 +115,287 @@ webui/      # 静态资源（M002 产物）
 - **构建目标 / 生成源 / 输出**：随包
 - **实现状态**：PLANNED
 
-## 4. 内部数据与所有权
+## 4. 数据结构设计
 
 <a id="isd-data"></a>
 
-纯软件：无原生 ABI（HTTP/UTF-8 JSON）。
+> 按 STD `design-data-interface-format` 1.2.0：主章“数据结构设计”，章内按**数据性质**分类（§4.1–§4.8）。仅保留适用类别，不适用类别在章首给出原因与 tailoring 依据；本层拥有的结构逐项记录 ID/唯一来源/字段/约束/状态·所有权·寿命/合法与拒绝实例/验证，语言级表示与代码映射随结构记录。继承结构只定位原定义与固定机器源，不复制字段。
 
-### 4.1 `Principal`
+**类别适用性**：§4.1 公共基础类型与枚举 ✗（角色取值内嵌于 §4.2 `Principal.role`，无独立共享枚举）｜§4.2 业务与操作数据结构 ✓｜§4.3 配置与规则数据结构 ✗（部署参数为启动入参，见 §8.1，无受控规则对象）｜§4.4 通信报文结构 ✓｜§4.5 设备与 FPGA 表项结构 ✗（纯软件，无连接器/总线/寄存器）｜§4.6 运行状态数据结构 ✗（请求级，无跨步骤状态）｜§4.7 数据库表结构 ✗（不拥有表；持久化归 M007）｜§4.8 错误码与错误结构 ✓（承载系统 §8.8 公共码）。
 
-- **类型 / 字段**：`principal_id: str(≤128)`；`role: Literal["data","admin"]`
-- **单位 / 初值 / 范围 / 不变量**：不可变；role 二值
-- **逻辑编码与原生 ABI 适用性**：N/A + 依据（HTTP 头/内存对象）
-- **创建 / 修改者**：`auth` 构造
-- **Owner / 借用期限 / 释放者**：请求级；业务只读
-- **公共类型 authority**：private
-- **持久化与敏感性**：transient；不落日志/库
+### 4.2 业务与操作数据结构
 
-### 4.2 `ApiError`
+#### `Principal`（`auth.py`）
 
-- **类型 / 字段**：`status:int`；`code:str`；`message:str`；`param:str|None`；`retryable:bool`；`headers:dict|None`；`extra:dict|None`
-- **单位 / 初值 / 范围 / 不变量**：`envelope()` 产 `{"error":{...}}`
-- **逻辑编码与原生 ABI 适用性**：N/A
-- **创建 / 修改者**：任意模块抛出
-- **Owner / 借用期限 / 释放者**：请求级
-- **公共类型 authority**：private
-- **持久化与敏感性**：transient
+- **定义 / Data Type ID / 唯一来源**：入口鉴权结果；`D-PRINCIPAL`；机器权威=`interfaces/openapi/llmtier.openapi.json`（本层只做代码投影，不重定义）。
+- **字段 / 取值**：`principal_id: str`（≤128，非空）；`role: Literal["data","admin"]`；不可变。
+- **约束 / 不变量**：`role` 二值；`principal_id` 一次请求内恒定；不落库、不落日志。
+- **状态 · 所有权 · 寿命**：请求级；`auth` 构造、业务只读，请求结束释放。
+- **语言级表示与代码映射**：Python `@dataclass(frozen=True)`（或 `NamedTuple`）；`auth.authenticate*` 构造，`Handler._dispatch` 消费。
+- **合法与拒绝实例**：合法 `{principal_id:"local", role:"data"}`；拒绝：缺/非法凭据 → `ERR-AUTH-REQUIRED`/`ERR-AUTH-DENIED`，不构造 `Principal`。
+- **验证**：`VRC-API-002`。
 
-### 4.3 SSE 帧
+### 4.4 通信报文结构
 
-- **类型 / 字段**：`event:<name>\ndata:<json>\n\n`（UTF-8）
-- **单位 / 初值 / 范围 / 不变量**：`sequence_number` 单调
-- **逻辑编码与原生 ABI 适用性**：N/A（文本协议）
-- **创建 / 修改者**：`sse.frame`/`response_stream`
-- **Owner / 借用期限 / 释放者**：请求级流
-- **公共类型 authority**：private
-- **持久化与敏感性**：transient
+#### `SSEFrame`（`sse.py`）
 
-## 5. 函数与接口实现规格
+- **定义 / Data Type ID / 唯一来源**：`/v1/responses` 流式文本帧；`D-SSE-FRAME`；唯一来源=本 ISD §4.4 与机制 `M-INFER` §14.4 `R-INF-01`（SSE 事件流为机器源）。
+- **字段 / 取值**：`event: <name>\n`（`response.created`/`response.output_text.delta`/…/`response.completed`）；`data: <json>\n`（`D-RESPONSES-RESPONSE` 事件）；空行分帧；terminal 后 `data: [DONE]`；UTF-8。
+- **约束 / 不变量**：帧序固定；`sequence_number` 单调；恰好一个 terminal；`[DONE]` 只在 terminal 之后。
+- **状态 · 所有权 · 寿命**：请求级字节流；`sse.frame`/`response_stream` 产出，HTTP 写出口消费；随连接关闭释放。
+- **语言级表示与代码映射**：`frame(event, data) -> bytes`；`response_stream(response) -> Iterable[bytes]`；`Handler._dispatch` 的 responses 分支装配。
+- **合法与拒绝实例**：合法：`event: response.output_text.delta` + JSON + terminal；边界：客户端断开 → 结束且不补发；两个 terminal 属契约违规。
+- **验证**：`VRC-API-003`。
+
+### 4.8 错误码与错误结构
+
+#### `ApiError` / `D-ERROR-ENVELOPE`（`errors.py`）
+
+- **定义 / Data Type ID / 唯一来源**：统一 HTTP 错误载荷与 typed error 载体；`D-ERROR-ENVELOPE`；公共含义与码由系统设计 §8.8 唯一维护，本层只构造。
+- **字段 / 取值**：`ApiError{status:int, code:str, message:str, param:str|null, retryable:bool, headers:dict|null, extra:dict|null}`；`envelope()` 产 `{"error":{"message","type","code","param"}}`。
+- **约束 / 不变量**：`code` 与系统 §8.8 稳定码一致；不含 Secret/完整正文/栈；未知端点走兜底 `ERR-INTERNAL`。
+- **状态 · 所有权 · 寿命**：请求级；`errors.require` / 任意模块抛，`Handler._run` 捕获并写出后释放。
+- **语言级表示与代码映射**：`ApiError.envelope`；`errors.require`；`Handler._run` 统一兜底映射。
+- **合法与拒绝实例**：合法 `{error:{type:"model_not_found",code:"...",param:null}}`；边界：未知路由 → `ERR-NOTFOUND`。
+- **验证**：`VRC-API-001/002`。
+
+**本层公共错误引用**（ID 定义见系统 §8.8；本层只产生/映射）：
+
+| 本层别名 | 条件 | 系统 Error ID | 合法下一步 |
+|---|---|---|---|
+| `E-API-404` | 路由未命中 | `ERR-NOTFOUND` | 修路径 |
+| `E-API-AUTH` | 缺配置 / 缺凭据 / 角色不足 | `ERR-AUTH-NOCFG` / `ERR-AUTH-REQUIRED` / `ERR-AUTH-DENIED` | 修凭据 / 配置 |
+| `E-API-BODY` | body 超 2 MB / 非法 JSON | `ERR-REQ-TOO-LARGE` / `ERR-REQ-JSON` | 修 body |
+| `E-API-INTERNAL` | 未捕获异常 | `ERR-INTERNAL` | 上报 / 核对权威状态 |
+
+## 5. 接口设计
 
 <a id="isd-functions"></a>
 
-### 5.1.1 `FUNC-API-DISPATCH` · `Handler._dispatch`
+> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按接口形态分类逐接口完整记录；标题为真实调用形式，标题下先给完整签名，再就地说明参数/结果字段，最后按 §3.1 六项。数据结构引用 §4；公共错误 ID 定义见 `llmtier-system-design` §8.8，本层只产生/映射。本模块接口全部为软件接口；消息流/硬件/人机见 §5.2–§5.4。
 
+### 5.1 软件接口（适用时）
+
+#### 5.1.1 `_dispatch(self) -> None`
+
+```text
+_dispatch(self) -> None
+```
+
+- **Interface/Member ID、状态**：`FUNC-API-DISPATCH` / PLANNED
 - **文件 / symbol / 可见性**：`app.py` / `Handler._dispatch` / private
 - **原成员 ID 或私有来源**：`F-API-DISPATCH`
 - **完整签名与 caller**：`_dispatch(self) -> None`；caller=`_run`
-- **输入参数 / 数据结构 authority**：`self.path/command/headers`
-- **输入约束 / 校验顺序 / 失败映射**：健康/静态优先 → `bootstrap_error` 拦截 → 业务路由；未知 → `E-API-404`
-- **成功输出 / 数据结构 / 后置条件**：写响应；调用业务服务
-- **错误输出 / 触发条件 / 优先级**：`E-API-404`（404）
-- **副作用 / 执行上下文 / 幂等性**：调用下游（可能副作用）
-- **输入输出 ownership 与寿命**：请求级
+- **输入**
+  - **输入参数 / 数据结构 authority**：`self.path/command/headers`
+  - **输入约束 / 校验顺序 / 失败映射**：健康/静态优先 → `bootstrap_error` 拦截 → 业务路由；未知 → `E-API-404`
+- **成功输出**
+  - **成功输出 / 数据结构 / 后置条件**：写响应；调用业务服务
+- **错误与异常**
+  - **错误输出 / 触发条件 / 优先级**：E-API-404（ERR-NOTFOUND · not_found）：404 `not_found`；E-API-INTERNAL（ERR-INTERNAL · internal_error）：500 `internal_error`
+  - **E-API-404（公共 ERR-NOTFOUND · not_found）**
+    - **底层异常 / 失败事实**：路由未命中
+    - **模块是否处理及处理函数**：reject（`_dispatch` 抛 `ApiError`）
+    - **Typed 异常与原生异常所有权**：`ApiError(404)`；`_run` 捕获 → 信封
+    - **宿主 / public payload 或状态码**：404 `not_found`
+    - **日志级别 / 脱敏 / 关联字段**：无
+    - **是否可重试及前提**：修路径
+    - **状态与副作用影响 / 验证项**：`VRC-API-001`
+  - **E-API-INTERNAL（公共 ERR-INTERNAL · internal_error）**
+    - **底层异常 / 失败事实**：未捕获异常
+    - **模块是否处理及处理函数**：recover（`_run` 记 `unhandled_error` + 500）
+    - **Typed 异常与原生异常所有权**：兜底；`ApiError(500)`
+    - **宿主 / public payload 或状态码**：500 `internal_error`
+    - **日志级别 / 脱敏 / 关联字段**：error（脱敏）
+    - **是否可重试及前提**：无
+    - **状态与副作用影响 / 验证项**：`VRC-API-001`
+- **交互与生命周期**
+  - **副作用 / 执行上下文 / 幂等性**：调用下游（可能副作用）
+  - **输入输出 ownership 与寿命**：请求级
+  - **Thread-safe / reentrant**：每请求一线程
+  - **Nested-call policy**：allowed
+  - **Transaction participation**：none
+  - **Blocking / timeout / cancellation**：SSE 空闲 60 s
 - **不可改变的规则 / Constraint ID**：路由优先级
 - **实现自由度**：路由表实现
-- **Thread-safe / reentrant**：每请求一线程
-- **Nested-call policy**：allowed
-- **Transaction participation**：none
-- **Blocking / timeout / cancellation**：SSE 空闲 60 s
-- **实现状态 / 验证项**：PLANNED；`VRC-API-001`
+- **实例与验证**
+  - **实现状态 / 验证项**：PLANNED；`VRC-API-001`
 
-### 5.1.2 `FUNC-API-AUTH` · `Handler._auth` / `_auth_either`
+#### 5.1.2 `_auth(role="data") -> Principal`
 
+```text
+_auth(role="data") -> Principal
+_auth_either() -> (Principal,bool)
+```
+
+- **Interface/Member ID、状态**：`FUNC-API-AUTH` / PLANNED
 - **文件 / symbol / 可见性**：`app.py` / `Handler._auth/_auth_either` / private
 - **原成员 ID 或私有来源**：`F-API-AUTH`（`R-TRUST-02`）
 - **完整签名与 caller**：`_auth(role="data") -> Principal`；`_auth_either() -> (Principal,bool)`
-- **输入参数 / 数据结构 authority**：headers、client_address
-- **输入约束 / 校验顺序 / 失败映射**：免登录 → 否则 Bearer；失败 → `E-API-AUTH`
-- **成功输出 / 数据结构 / 后置条件**：`Principal`
-- **错误输出 / 触发条件 / 优先级**：503/401/403
-- **副作用 / 执行上下文 / 幂等性**：无副作用；幂等
-- **输入输出 ownership 与寿命**：请求级
+- **输入**
+  - **输入参数 / 数据结构 authority**：headers、client_address
+  - **输入约束 / 校验顺序 / 失败映射**：免登录 → 否则 Bearer；失败 → `E-API-AUTH`
+- **成功输出**
+  - **成功输出 / 数据结构 / 后置条件**：`Principal`
+- **错误与异常**
+  - **错误输出 / 触发条件 / 优先级**：E-API-AUTH（ERR-AUTH-NOCFG / ERR-AUTH-REQUIRED / ERR-AUTH-DENIED）：503/401/403（不泄露存在性）
+  - **E-API-AUTH（公共 ERR-AUTH-NOCFG / ERR-AUTH-REQUIRED / ERR-AUTH-DENIED）**
+    - **底层异常 / 失败事实**：缺配置/缺凭据/凭据错误
+    - **模块是否处理及处理函数**：reject（`auth`）
+    - **Typed 异常与原生异常所有权**：`ApiError(503/401/403)`
+    - **宿主 / public payload 或状态码**：503/401/403（不泄露存在性）
+    - **日志级别 / 脱敏 / 关联字段**：无
+    - **是否可重试及前提**：修凭据
+    - **状态与副作用影响 / 验证项**：`VRC-API-002`
+- **交互与生命周期**
+  - **副作用 / 执行上下文 / 幂等性**：无副作用；幂等
+  - **输入输出 ownership 与寿命**：请求级
+  - **Thread-safe / reentrant**：yes
+  - **Nested-call policy**：allowed
+  - **Transaction participation**：none
+  - **Blocking / timeout / cancellation**：无
 - **不可改变的规则 / Constraint ID**：端点→角色固定；恒定时间；401/403 不泄露存在性
 - **实现自由度**：解析实现
-- **Thread-safe / reentrant**：yes
-- **Nested-call policy**：allowed
-- **Transaction participation**：none
-- **Blocking / timeout / cancellation**：无
-- **实现状态 / 验证项**：PLANNED；`VRC-API-002`
+- **实例与验证**
+  - **实现状态 / 验证项**：PLANNED；`VRC-API-002`
 
-### 5.1.3 `FUNC-API-BODY` · `Handler._body`
+#### 5.1.3 `_body(self) -> dict`
 
+```text
+_body(self) -> dict
+```
+
+- **Interface/Member ID、状态**：`FUNC-API-BODY` / PLANNED
 - **文件 / symbol / 可见性**：`app.py` / `Handler._body` / private
 - **原成员 ID 或私有来源**：`F-API-BODY`
 - **完整签名与 caller**：`_body(self) -> dict`；caller=`_dispatch`
-- **输入参数 / 数据结构 authority**：request body
-- **输入约束 / 校验顺序 / 失败映射**：`Content-Length > 2MB` → 413；JSON 非法 → 400
-- **成功输出 / 数据结构 / 后置条件**：dict（只读交业务）
-- **错误输出 / 触发条件 / 优先级**：`E-API-413`、`E-API-400`
-- **副作用 / 执行上下文 / 幂等性**：无
-- **输入输出 ownership 与寿命**：请求级
+- **输入**
+  - **输入参数 / 数据结构 authority**：request body
+  - **输入约束 / 校验顺序 / 失败映射**：`Content-Length > 2MB` → 413；JSON 非法 → 400
+- **成功输出**
+  - **成功输出 / 数据结构 / 后置条件**：dict（只读交业务）
+- **错误与异常**
+  - **错误输出 / 触发条件 / 优先级**：E-API-BODY（ERR-REQ-TOO-LARGE / ERR-REQ-JSON）：413/400
+  - **E-API-BODY（公共 ERR-REQ-TOO-LARGE / ERR-REQ-JSON）**
+    - **底层异常 / 失败事实**：超限 / 非法 JSON
+    - **模块是否处理及处理函数**：reject（`_body`）
+    - **Typed 异常与原生异常所有权**：`ApiError(413/400)`
+    - **宿主 / public payload 或状态码**：413/400
+    - **日志级别 / 脱敏 / 关联字段**：无
+    - **是否可重试及前提**：修 body
+    - **状态与副作用影响 / 验证项**：`VRC-API-003`
+- **交互与生命周期**
+  - **副作用 / 执行上下文 / 幂等性**：无
+  - **输入输出 ownership 与寿命**：请求级
+  - **Thread-safe / reentrant**：yes
+  - **Nested-call policy**：allowed
+  - **Transaction participation**：none
+  - **Blocking / timeout / cancellation**：读 body 无超时
 - **不可改变的规则 / Constraint ID**：2 MB 上限
 - **实现自由度**：解析实现
-- **Thread-safe / reentrant**：yes
-- **Nested-call policy**：allowed
-- **Transaction participation**：none
-- **Blocking / timeout / cancellation**：读 body 无超时
-- **实现状态 / 验证项**：PLANNED；`VRC-API-003`
+- **实例与验证**
+  - **实现状态 / 验证项**：PLANNED；`VRC-API-003`
 
-### 5.1.4 `FUNC-API-STATIC` · `Handler._static`
+#### 5.1.4 `_static(self, path) -> None`
 
+```text
+_static(self, path) -> None
+```
+
+- **Interface/Member ID、状态**：`FUNC-API-STATIC` / PLANNED
 - **文件 / symbol / 可见性**：`app.py` / `Handler._static` / private
 - **原成员 ID 或私有来源**：`F-API-STATIC`
 - **完整签名与 caller**：`_static(self, path) -> None`
-- **输入参数 / 数据结构 authority**：路径
-- **输入约束 / 校验顺序 / 失败映射**：`target.resolve()` 必须落在 `webui/`；否则 404
-- **成功输出 / 数据结构 / 后置条件**：文件响应（`Cache-Control: no-store`）
-- **错误输出 / 触发条件 / 优先级**：404
-- **副作用 / 执行上下文 / 幂等性**：只读
-- **输入输出 ownership 与寿命**：请求级
+- **输入**
+  - **输入参数 / 数据结构 authority**：路径
+  - **输入约束 / 校验顺序 / 失败映射**：`target.resolve()` 必须落在 `webui/`；否则 404
+- **成功输出**
+  - **成功输出 / 数据结构 / 后置条件**：文件响应（`Cache-Control: no-store`）
+- **错误与异常**
+  - **错误输出 / 触发条件 / 优先级**：无公共错误输出
+- **交互与生命周期**
+  - **副作用 / 执行上下文 / 幂等性**：只读
+  - **输入输出 ownership 与寿命**：请求级
+  - **Thread-safe / reentrant**：yes
+  - **Nested-call policy**：allowed
+  - **Transaction participation**：none
+  - **Blocking / timeout / cancellation**：本地读
 - **不可改变的规则 / Constraint ID**：无目录穿越
 - **实现自由度**：解析实现
-- **Thread-safe / reentrant**：yes
-- **Nested-call policy**：allowed
-- **Transaction participation**：none
-- **Blocking / timeout / cancellation**：本地读
-- **实现状态 / 验证项**：PLANNED；`VRC-API-004`
+- **实例与验证**
+  - **实现状态 / 验证项**：PLANNED；`VRC-API-004`
 
-### 5.1.5 `FUNC-API-SSE` · `response_stream`
+#### 5.1.5 `frame(event, data) -> bytes`
 
+```text
+frame(event, data) -> bytes
+response_stream(response) -> Iterable[bytes]
+```
+
+- **Interface/Member ID、状态**：`FUNC-API-SSE` / PLANNED
 - **文件 / symbol / 可见性**：`sse.py` / `frame`、`response_stream` / private
 - **原成员 ID 或私有来源**：`F-API-SSE`（`R-INF-01`）
 - **完整签名与 caller**：`frame(event, data) -> bytes`；`response_stream(response) -> Iterable[bytes]`；caller=`_dispatch`（responses 分支）
-- **输入参数 / 数据结构 authority**：终态 `ResponsesResponse`
-- **输入约束 / 校验顺序 / 失败映射**：帧序固定；恰好一个 terminal
-- **成功输出 / 数据结构 / 后置条件**：SSE 帧序列 + terminal + `[DONE]`
-- **错误输出 / 触发条件 / 优先级**：断开 → 结束（不抛）
-- **副作用 / 执行上下文 / 幂等性**：流式；不幂等
-- **输入输出 ownership 与寿命**：请求级流
+- **输入**
+  - **输入参数 / 数据结构 authority**：终态 `ResponsesResponse`
+  - **输入约束 / 校验顺序 / 失败映射**：帧序固定；恰好一个 terminal
+- **成功输出**
+  - **成功输出 / 数据结构 / 后置条件**：SSE 帧序列 + terminal + `[DONE]`
+- **错误与异常**
+  - **错误输出 / 触发条件 / 优先级**：无公共错误输出
+- **交互与生命周期**
+  - **副作用 / 执行上下文 / 幂等性**：流式；不幂等
+  - **输入输出 ownership 与寿命**：请求级流
+  - **Thread-safe / reentrant**：请求线程
+  - **Nested-call policy**：allowed
+  - **Transaction participation**：none
+  - **Blocking / timeout / cancellation**：空闲 60 s
 - **不可改变的规则 / Constraint ID**：帧序/terminal 唯一（`C-INFER-1/2`）
 - **实现自由度**：缓冲实现
-- **Thread-safe / reentrant**：请求线程
-- **Nested-call policy**：allowed
-- **Transaction participation**：none
-- **Blocking / timeout / cancellation**：空闲 60 s
-- **实现状态 / 验证项**：PLANNED；`VRC-API-003`
+- **实例与验证**
+  - **实现状态 / 验证项**：PLANNED；`VRC-API-003`
 
-### 5.1.6 `FUNC-API-HEALTH` · `health_view` / `readiness_view`
+#### 5.1.6 `health_view(version) -> dict`
 
+```text
+health_view(version) -> dict
+readiness_view(registry) -> (dict,int)
+```
+
+- **Interface/Member ID、状态**：`FUNC-API-HEALTH` / PLANNED
 - **文件 / symbol / 可见性**：`health.py` / `health_view`、`readiness_view` / private
 - **原成员 ID 或私有来源**：`F-API-HEALTH`
 - **完整签名与 caller**：`health_view(version) -> dict`；`readiness_view(registry) -> (dict,int)`
-- **输入参数 / 数据结构 authority**：版本、Registry
-- **输入约束 / 校验顺序 / 失败映射**：引导失败 → `/readyz` 503
-- **成功输出 / 数据结构 / 后置条件**：健康/就绪 JSON + 状态码
-- **错误输出 / 触发条件 / 优先级**：503 not_ready
-- **副作用 / 执行上下文 / 幂等性**：无副作用；幂等
-- **输入输出 ownership 与寿命**：请求级
+- **输入**
+  - **输入参数 / 数据结构 authority**：版本、Registry
+  - **输入约束 / 校验顺序 / 失败映射**：引导失败 → `/readyz` 503
+- **成功输出**
+  - **成功输出 / 数据结构 / 后置条件**：健康/就绪 JSON + 状态码
+- **错误与异常**
+  - **错误输出 / 触发条件 / 优先级**：无公共错误输出
+- **交互与生命周期**
+  - **副作用 / 执行上下文 / 幂等性**：无副作用；幂等
+  - **输入输出 ownership 与寿命**：请求级
+  - **Thread-safe / reentrant**：yes
+  - **Nested-call policy**：allowed
+  - **Transaction participation**：none
+  - **Blocking / timeout / cancellation**：—
 - **不可改变的规则 / Constraint ID**：无副作用健康
 - **实现自由度**：实现
-- **Thread-safe / reentrant**：yes
-- **Nested-call policy**：allowed
-- **Transaction participation**：none
-- **Blocking / timeout / cancellation**：—
-- **实现状态 / 验证项**：PLANNED；`VRC-API-004`
+- **实例与验证**
+  - **实现状态 / 验证项**：PLANNED；`VRC-API-004`
 
-### 5.2 错误传播矩阵
+### 5.2 消息与数据流接口（适用时）
 
-#### 5.2.1 `E-API-404` · 未知路由
+不适用（SSE 为函数式字节流，已在 §5.1.5 `response_stream` 记录；本模块不拥有独立消息代理/队列/文件交换）。
 
-- **底层异常 / 失败事实**：路由未命中
-- **模块是否处理及处理函数**：reject（`_dispatch` 抛 `ApiError`）
-- **Typed 异常与原生异常所有权**：`ApiError(404)`；`_run` 捕获 → 信封
-- **宿主 / public payload 或状态码**：404 `not_found`
-- **日志级别 / 脱敏 / 关联字段**：无
-- **是否可重试及前提**：修路径
-- **状态与副作用影响 / 验证项**：`VRC-API-001`
+### 5.3 硬件与固件接口（适用时）
 
-#### 5.2.2 `E-API-AUTH` · 鉴权失败
+不适用（纯软件模块，无连接器/总线/寄存器/FPGA 端口）。
 
-- **底层异常 / 失败事实**：缺配置/缺凭据/凭据错误
-- **模块是否处理及处理函数**：reject（`auth`）
-- **Typed 异常与原生异常所有权**：`ApiError(503/401/403)`
-- **宿主 / public payload 或状态码**：503/401/403（不泄露存在性）
-- **日志级别 / 脱敏 / 关联字段**：无
-- **是否可重试及前提**：修凭据
-- **状态与副作用影响 / 验证项**：`VRC-API-002`
+### 5.4 人机与维护接口（适用时）
 
-#### 5.2.3 `E-API-BODY` · body 限长/解析失败
-
-- **底层异常 / 失败事实**：超限 / 非法 JSON
-- **模块是否处理及处理函数**：reject（`_body`）
-- **Typed 异常与原生异常所有权**：`ApiError(413/400)`
-- **宿主 / public payload 或状态码**：413/400
-- **日志级别 / 脱敏 / 关联字段**：无
-- **是否可重试及前提**：修 body
-- **状态与副作用影响 / 验证项**：`VRC-API-003`
-
-#### 5.2.4 `E-API-INTERNAL` · 未知异常
-
-- **底层异常 / 失败事实**：未捕获异常
-- **模块是否处理及处理函数**：recover（`_run` 记 `unhandled_error` + 500）
-- **Typed 异常与原生异常所有权**：兜底；`ApiError(500)`
-- **宿主 / public payload 或状态码**：500 `internal_error`
-- **日志级别 / 脱敏 / 关联字段**：error（脱敏）
-- **是否可重试及前提**：无
-- **状态与副作用影响 / 验证项**：`VRC-API-001`
+不适用（无独立 UI/CLI 维护入口；HTTP 端点已在 §5.1 记录，页面归 M002）。
 
 ## 6. 关键流程与算法
 

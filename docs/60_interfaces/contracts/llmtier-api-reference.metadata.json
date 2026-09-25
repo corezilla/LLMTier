@@ -1,6 +1,6 @@
 {
-  "project": "llmtier",
-  "authority": "llmtier",
+  "project": "LLMTier",
+  "authority": "LLMTier",
   "document_id": "llmtier-api-reference",
   "document_type": "contracts.specification",
   "document_version": "0.1.0-draft.2",
@@ -10,8 +10,8 @@
     "LLMTier"
   ],
   "template_id": "contracts.specification",
-  "template_version": "0.3.1",
-  "template_sha256": "4a81d2187ab8dc22a99169fd67e2203ce5effa5f0a5380c633fd96793891b330",
+  "template_version": "0.4.0",
+  "template_sha256": "79e04ee21d41c9c17f95c5bdbcb00db70656bc6c3cbba2c3094de76b019b3e14",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,
@@ -27,5 +27,5 @@
   "parent_document_id": null,
   "supersedes": null,
   "created_at": "2026-09-21",
-  "last_modified_at": "2026-09-22"
+  "last_modified_at": "2026-09-25"
 }

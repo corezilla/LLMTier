@@ -12,8 +12,8 @@
   "source_repository": "corezilla/LLMTier",
   "source_path": "docs/60_interfaces/contracts/llmtier-contract-specification.md",
   "template_id": "contracts.specification",
-  "template_version": "0.1.0",
-  "template_sha256": "d7e40a9a6940375cfcfe8793e24943f48ab7d2b48e2e204735c3cb814bcae909",
+  "template_version": "0.4.0",
+  "template_sha256": "79e04ee21d41c9c17f95c5bdbcb00db70656bc6c3cbba2c3094de76b019b3e14",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,
@@ -27,5 +27,5 @@
   "parent_document_id": "llmtier-system-design",
   "supersedes": null,
   "created_at": "2026-09-07",
-  "last_modified_at": "2026-09-22"
+  "last_modified_at": "2026-09-25"
 }

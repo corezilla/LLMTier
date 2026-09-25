@@ -13,9 +13,9 @@
 | Document Owner | LLMTier |
 | Authors | llmtier |
 | Created Date | `2026-09-23` |
-| Last Modified Date | `2026-09-23` |
+| Last Modified Date | `2026-09-25` |
 | Template ID | `design.definition` |
-| Template Version | `2.4.0` |
+| Template Version | `3.0.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |
@@ -169,12 +169,12 @@
 
 ### 5.3 文件间接口契约
 
-#### 5.3.1 `IF-UTIL-01` · 业务模块 → `store.py`
-- **签名 / 入口**：`Store.connection/migrate/transaction(immediate)/one/all/close`
-- **输入与前置条件**：库路径；SQL
-- **输出 / 异常**：连接/行；sqlite3 异常
-- **ownership / 生命周期**：连接线程内；业务模块负责关闭
-- **实现与验证位置**：`store.py`；`VRC-UTIL-001/002`
+> 本模块内部/跨模块文件交接逐项映射到 §9 的成员定义；签名、输入输出、错误与寿命以 §9 对应记录为唯一来源，本节不再复写。
+
+| 内部契约 ID | provider → consumer | §9 成员 | 本文件责任 | 验证 |
+|---|---|---|---|---|
+| `IF-UTIL-01` | 全部业务模块 → `src/util/store.py` | §9.1 `IF-UTIL-CONN`–`IF-UTIL-TXN`、`IF-UTIL-QUERY`、`IF-UTIL-CLOSE` | 业务模块只经 `Store` 取得连接/事务/只读行并负责关闭 | `VRC-UTIL-001/002` |
+| `IF-UTIL-02` | `src/util/store.py` → `migrations/*.sql` | §9.1 `IF-UTIL-MIGRATE` | `migrate()` 按文件名排序执行 SQL 并做完整性检查 | `VRC-UTIL-002` |
 
 ### 5.4 服务提供方式（条件适用）
 
@@ -190,25 +190,93 @@
 - **循环/越层检查**：`store.py` 只 import 标准库
 - **变更影响**：`transaction`/`connection` 语义变更影响全部业务模块
 
-## 6. 数据模型、状态与 ownership
+## 6. 数据结构设计
 
-#### 6.1 `Store`（连接缓存）
-- **Authority / 定义位置**：`store.py`
-- **字段**：`path:str`、`_local.connection:sqlite3.Connection|None`
-- **键与跨字段约束**：每线程一连接
-- **Writer / Reader**：I1
-- **创建、持有、借用/复制与释放**：线程进入创建；`close()` 释放
-- **状态转换 / 并发规则**：线程局部；跨线程不共享
-- **验证项**：`VRC-UTIL-001`
+> 按 STD `design-data-interface-format` 1.2.0：主章“数据结构设计”，章内按**数据性质分类**。M007 为纯软件存储库，无 wire、无设备；`6.2 业务与操作数据结构`（无业务载荷，只提供存取原语）、`6.4 通信报文` 与 `6.5 设备与 FPGA 表项` 不适用。继承结构只定位原定义；本层拥有的结构逐项完整记录（ID/唯一来源/字段/约束/状态·所有权·寿命/合法与拒绝实例/验证）。
 
-#### 6.2 `migrations/*.sql`
-- **Authority / 定义位置**：`src/util/migrations/`
-- **字段**：`001_initial.sql`、`002_observability.sql`
-- **键与跨字段约束**：幂等（`IF NOT EXISTS`）
-- **Writer / Reader**：I3 执行
-- **创建、持有、借用/复制与释放**：随仓库
-- **状态转换 / 并发规则**：按文件名排序
-- **验证项**：`VRC-UTIL-002`
+**适用性**：6.1 公共基础类型与枚举 ✓｜6.2 业务与操作数据结构 ✗（基础层无业务载荷，只有连接/事务/查询原语）｜6.3 配置与规则数据结构 ✓｜6.4 通信报文 ✗（无 wire 报文）｜6.5 设备与 FPGA 表项 ✗（无连接器/总线/寄存器/FPGA 端口）｜6.6 运行状态数据结构 ✓｜6.7 数据库表结构 ✓（authority = `util/migrations/*.sql`）｜6.8 错误码与错误结构 ✓（引用系统 Error ID）。
+
+### 6.1 公共基础类型与枚举
+
+#### `SchemaVersion`（`store.py` `EXPECTED_SCHEMA_VERSION`）
+- **定义**：本进程唯一期望的库 schema 版本。
+- **字段 / 取值**：`int`，当前 `= 1`。
+- **约束 / 不变量**：只接受精确相等；无升级/降级/自动修复（init-only）。
+- **状态 · 所有权 · 寿命**：模块常量 + `schema_meta.schema_version` 持久；随代码版本。
+- **实例**：合法启动 `schema_version=1`；拒绝：`schema_version!=1` → `ApiError(503,"schema_version_mismatch")`。
+- **来源 / 验证**：`store.py`；`VRC-UTIL-002`。
+
+#### `TxnMode`（`store.py` `transaction(immediate)`）
+- **定义**：事务开启模式。
+- **字段 / 取值**：`bool`——`false` → `BEGIN`；`true` → `BEGIN IMMEDIATE`（写路径串行化）。
+- **约束 / 不变量**：异常必经 rollback；成功必 commit。
+- **状态 · 所有权 · 寿命**：单次上下文；无持久。
+- **实例**：合法写事务 `immediate=True`；边界：读事务 `immediate=False`。
+- **来源 / 验证**：`store.py`；`VRC-UTIL-002`。
+
+### 6.3 配置与规则数据结构
+
+#### `BootstrapConfig`（`config/settings.json`）
+- **定义**：空库首次引导输入的 settings 结构；bootstrap 后不再是运行权威。
+- **字段**：`providers[]`、`deployments[]`、`service_levels[]`（语义与字段由 M004 `F-MGMT-BOOTSTRAP` 定义）。
+- **约束 / 不变量**：仅在空库缺 `schema_meta` 时读取一次；不双写。
+- **状态 · 所有权 · 寿命**：文件随仓库；运行期权威在 SQLite（M004）。
+- **实例**：合法：合法引用集合被单事务写入；拒绝：非法字段/引用 → M004 回滚并 `not_ready`（`ERR-BOOT`）。
+- **来源 / 验证**：M004 §2.1；`VRC-MGMT-001`。
+
+### 6.6 运行状态数据结构
+
+#### `Store`（`store.py`，线程内连接缓存）
+- **定义**：库路径与每线程连接的持有者。
+- **字段**：`path:str`；`_local.connection: sqlite3.Connection|None`（`threading.local`）。
+- **约束 / 不变量**：每线程一连接；`close()` 关闭并置 `None`；跨线程不共享。
+- **状态 · 所有权 · 寿命**：线程进入创建、`close()` 释放；随进程。
+- **实例**：合法：同线程复用连接；边界：请求结束未关闭 → fd 泄漏（由 `finally` 兜底）。
+- **来源 / 验证**：`store.py`；`VRC-UTIL-001`。
+
+#### `TxnContext`（`store.py` `transaction`/`txn`）
+- **定义**：一次事务的运行时上下文。
+- **字段**：`store:Store`、`conn:sqlite3.Connection`、`immediate:bool`、`owns_txn:bool`（`txn(conn)` 传入时为外借，不提交）。
+- **约束 / 不变量**：只有一个写者提交；嵌套调用经 `conn` 复用不另开事务。
+- **状态 · 所有权 · 寿命**：上下文作用域；退出即 commit/rollback。
+- **实例**：合法：`with store.transaction(True)`；边界：业务传入已有 `conn` → 并入调用方事务。
+- **来源 / 验证**：`store.py`；`VRC-UTIL-002`。
+
+### 6.7 数据库表结构
+
+Authority = `util/migrations/001_initial.sql`、`util/migrations/002_observability.sql`（由 `Store.migrate()` 执行）。M007 拥有全部 DDL 与 `schema_meta`；业务表的列语义归各自模块，本节只列 M007 直接拥有的结构：
+
+#### `schema_meta`（`001_initial.sql`）
+- **定义**：库初始化的单行版本哨兵。
+- **字段**：`singleton:int` PK（恒 `1`）、`schema_version:int`、`initialized_at:TEXT`。
+- **约束 / 不变量**：恒单行；有业务表却无本表 → `ERR-SCHEMA`（旧库未知版本）。
+- **状态 · 所有权 · 寿命**：库寿命；只由 `_initialize` 写一次。
+- **实例**：合法：空库初始化写入 `schema_version=1`；拒绝：非空库无 `schema_meta` → 拒绝启动。
+- **来源 / 验证**：`001_initial.sql`；`VRC-UTIL-002`。
+
+#### `migrations/*.sql`（迁移集合）
+- **定义**：按文件名排序、逐语句执行的 DDL/数据迁移集合。
+- **字段**：`001_initial.sql`（`schema_meta`/providers/deployments/service_levels/…/operational_logs）、`002_observability.sql`（`diagnostic_settings`/`diagnostic_snapshots`/`data_plane_stats`/`data_plane_latency_samples`/`diagnostic_injections`/`trace_events`）。
+- **约束 / 不变量**：幂等（`IF NOT EXISTS`/`INSERT OR IGNORE`）；原子初始化单事务；注释行剥离后逐语句执行。
+- **状态 · 所有权 · 寿命**：随仓库；`migrate()` 每次启动执行。
+- **实例**：合法：连续两次 `migrate()` 成功且不改变已建表；拒绝：`PRAGMA integrity_check != ok` → 抛错。
+- **来源 / 验证**：`util/migrations/*.sql`；`VRC-UTIL-002`。
+
+### 6.8 错误码与错误结构
+
+本模块**不新增公共错误码**；对外错误引用系统目录（`llmtier-system-design` §8.8）：
+
+| 本层错误 | 条件 | 系统 Error ID | 合法下一步 |
+|---|---|---|---|
+| `ApiError(503,"store_path_unsafe")` | DB 路径为 symlink | `ERR-PATH-UNSAFE` | 修正路径后重启 |
+| `ApiError(503,"schema_unknown")` | 非空库无 `schema_meta` | `ERR-SCHEMA` | 运维离线处理 |
+| `ApiError(503,"schema_version_mismatch")` | 版本不等于期望 | `ERR-SCHEMA` | 运维离线处理 |
+| `ApiError(503,"schema_integrity_failed")` | `integrity_check` 失败 | `ERR-SCHEMA` | 运维离线处理 |
+| 原生 `sqlite3.Error` | 连接/读写异常 | `ERR-STORE` | 调用方按接口边界处理 |
+
+- **约束 / 不变量**：M007 只抛出上述 typed/原生错误；不伪造空页；上层负责映射。
+- **实例**：拒绝：symlink 路径 → `ERR-PATH-UNSAFE`；边界：世界可写文件只 `RuntimeWarning`，不报错。
+- **来源 / 验证**：`store.py` + 系统 §8.8；`VRC-UTIL-001/002`。
 
 ## 7. 主流程与数据流
 
@@ -266,16 +334,100 @@
 - **允许替换范围 / 不可改变保证**：实现可自选；不泄漏不可变
 - **具体输入推演 / 验证项**：压测 fd 稳定；`VRC-UTIL-001`
 
-## 9. 接口与机器契约
+## 9. 接口设计
 
-#### 9.1 `IF-UTIL-STORE` · `Store` API
-- **Direction / Operation / 责任模块 / backend**：in；`connection/migrate/transaction/one/all/close`；M007；SQLite
-- **Request / Response / Error / ownership**：SQL/params → 连接/行；sqlite3 异常
-- **Contract authority / version / revision / hash / selector**：本文 §6
-- **前提 / timeout / 兼容边界 / Error model**：存储错误由调用方映射
-- **本地文件 / symbol 或 NOT_IMPLEMENTED**：`store.py`
-- **Constraint / VRC / Case / 环境 / Run**：`C-CFG-1/3`、`R-CFG-03`、`R-OBS-06`；`VRC-UTIL-001/002`；NOT_RUN
-- **关联类型字段 ID**：`Store`（§6.1）
+> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口形态分类**逐接口完整记录；标题为真实调用形式，标题下先给**完整接口声明**，再就地说明参数/结果字段，最后按 §3.1 六项。本模块接口**全部为软件接口**（进程内方法调用）；消息流/硬件/人机三类不适用。数据结构引用 §6。`Store`（`src/util/store.py`）为唯一对外面。
+
+### 9.1 软件接口（适用时）
+
+#### `Store(path) -> Store`
+```text
+Store(path: str | Path) -> Store
+```
+- **输入**：`path`（SQLite 文件路径）；构造前做 symlink/权限预检。
+- **输出**：`Store` 实例（§6.6）。
+- **Interface/Member ID / 状态**：`IF-UTIL-CONN`；Implemented；文件/符号 `src/util/store.py` `Store.__init__` / `_precheck`。
+- **错误与异常**：路径为 symlink → `ApiError(503,"store_path_unsafe")`（`ERR-PATH-UNSAFE`）；世界可写 → `RuntimeWarning`（不失败）。
+- **交互与生命周期**：同步；构造即建父目录；不建连接（首次 `connection()` 建）。
+- **实例与验证**：正常建 Store；拒绝 symlink → 503。`VRC-UTIL-001`。
+
+#### `Store.connection() -> sqlite3.Connection`
+```text
+connection() -> sqlite3.Connection
+```
+- **输入**：无。
+- **输出**：当前线程缓存的连接——`timeout=10`、`isolation_level=None`、`row_factory=Row`、`PRAGMA foreign_keys=ON`、`journal_mode=WAL`。
+- **Interface/Member ID / 状态**：`IF-UTIL-CONN`；Implemented；文件/符号 `store.py` `Store.connection`。
+- **错误与异常**：连接失败 → 原生 `sqlite3.Error`（`ERR-STORE`）。
+- **交互与生命周期**：同步；线程内复用；所有权归 `Store`，由 `close()` 释放。
+- **实例与验证**：正常：同线程两次调用返回同一连接；边界：`PRAGMA foreign_keys`=1。`VRC-UTIL-001`。
+
+#### `Store.migrate() -> None`
+```text
+migrate() -> None
+```
+- **输入**：无（读取 `migrations/*.sql`）。
+- **输出**：无——空库建立全部表；已有库校验版本与完整性。
+- **Interface/Member ID / 状态**：`IF-UTIL-MIGRATE`；Implemented；文件/符号 `store.py` `Store.migrate` / `_initialize`。
+- **错误与异常**：无 `schema_meta` 的非空库 → `ApiError(503,"schema_unknown")`；版本不符 → `ApiError(503,"schema_version_mismatch")`；完整性失败 → `ApiError(503,"schema_integrity_failed")`（均 `ERR-SCHEMA`）。
+- **交互与生命周期**：启动时调用；单事务原子初始化；异常回滚。
+- **实例与验证**：正常：空库建表；重复启动 no-op；拒绝：未知旧库 → 503。`VRC-UTIL-002`。
+
+#### `Store.transaction(immediate=False)` / `txn(store, conn=None)`
+```text
+transaction(immediate: bool = False) -> ContextManager[sqlite3.Connection]
+txn(store: Store, conn: Connection | None = None) -> ContextManager[sqlite3.Connection]
+```
+- **输入**：`immediate`（`true` → `BEGIN IMMEDIATE`）；`txn` 的 `conn`（传入则并入调用方事务，不提交）。
+- **输出**：上下文内可用连接；退出 `commit`，异常 `rollback` 并重抛。
+- **Interface/Member ID / 状态**：`IF-UTIL-TXN`；Implemented；文件/符号 `store.py` `Store.transaction` / `txn`。
+- **错误与异常**：SQL/约束错误 → rollback 后原生异常冒泡（`ERR-STORE`/由调用方映射）。
+- **交互与生命周期**：同步；写路径 `immediate=True` 串行化；`conn` 非空时不拥有事务。
+- **实例与验证**：正常：中途异常 → 无半写；边界：嵌套 `txn(conn)` 不二次开事务。`VRC-UTIL-002`。
+
+#### `Store.one(sql, params=()) -> sqlite3.Row | None`
+```text
+one(sql: str, params: Sequence[object] = ()) -> sqlite3.Row | None
+```
+- **输入**：`sql`、`params`。
+- **输出**：首行 `Row` 或 `None`。
+- **Interface/Member ID / 状态**：`IF-UTIL-QUERY`；Implemented；文件/符号 `store.py` `Store.one`。
+- **错误与异常**：SQL 错误 → 原生 `sqlite3.Error`（`ERR-STORE`）。
+- **交互与生命周期**：同步只读；无事务保证（随调用方）。
+- **实例与验证**：正常：命中返回 Row；边界：无行 → `None`。`VRC-UTIL-002`。
+
+#### `Store.all(sql, params=()) -> list[sqlite3.Row]`
+```text
+all(sql: str, params: Sequence[object] = ()) -> list[sqlite3.Row]
+```
+- **输入 / 输出**：同上；返回全部行。
+- **Interface/Member ID / 状态**：`IF-UTIL-QUERY`；Implemented；文件/符号 `store.py` `Store.all`。
+- **错误与异常**：SQL 错误 → 原生 `sqlite3.Error`。
+- **交互与生命周期**：同步只读。
+- **实例与验证**：正常：返回行列表；边界：无行 → `[]`。`VRC-UTIL-002`。
+
+#### `Store.close() -> None`
+```text
+close() -> None
+```
+- **输入**：无。
+- **输出**：无——关闭当前线程连接并置缓存 `None`。
+- **Interface/Member ID / 状态**：`IF-UTIL-CLOSE`；Implemented；文件/符号 `store.py` `Store.close`。
+- **错误与异常**：关闭失败静默（不抛）。
+- **交互与生命周期**：每请求 `finally`/停机调用；幂等（无连接时不动作）。
+- **实例与验证**：正常：请求后 fd 释放；边界：重复 `close()` 无副作用。`VRC-UTIL-001`。
+
+### 9.2 消息与数据流接口（适用时）
+
+不适用（同步函数调用，不拥有事件/队列/流/file exchange）。
+
+### 9.3 硬件与固件接口（适用时）
+
+不适用（无连接器/总线/寄存器/FPGA 端口）。
+
+### 9.4 人机与维护接口（适用时）
+
+不适用（无 UI/CLI；存取由业务模块在进程内调用、端点归 M001）。
 
 ## 10. 并发、失败与恢复
 

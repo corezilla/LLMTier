@@ -17,7 +17,7 @@
 | Approval Date | 待定 |
 | Created Date | `2026-09-06` |
 | Last Modified Date | `2026-09-25` |
-| Template Version | `0.7.0` |
+| Template Version | `1.0.0` |
 | Template ID | `design.software-system` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
@@ -396,250 +396,933 @@ Embedding 路径同理：Consumer 提交 `POST /v1/embeddings`，系统校验并
 
 ## 8. 数据结构设计
 
-> 按 STD `design-data-interface-format` 统一结构：§8.1 清单 / §8.2 定义 / §8.3 状态·所有权·生命周期 / §8.4 示例与验证（四基础节）+ §8.5–§8.7 本层特有 + §8.8 系统公共错误码目录。层内只完整定义**本层拥有**的结构；wire/机器类型（`D-MSG-*`/`D-MODEL`/`D-ERROR-ENVELOPE`）以 `interfaces/openapi/llmtier.openapi.json` 与 `interfaces/vectors/v0.3/*` 为机器权威，本节只给阅读视图与含义。
+> 按 STD `design-data-interface-format` 1.2.0：主章为“数据结构设计”，章内按**数据性质**分类（§8.1–§8.8），本层特有的跨结构分析见 §8.9–§8.11。仅保留适用类别；不适用类别在章首说明原因。层内只完整定义**本层拥有**的结构；wire/机器类型（`D-MSG-*`/`D-MODEL`/`D-ERROR-ENVELOPE`）以 `interfaces/openapi/llmtier.openapi.json` 与 `interfaces/vectors/v0.3/*` 为机器权威，本节只给阅读视图与含义。
 
-### 8.1 数据结构清单
+**类别适用性**：§8.1 公共基础类型与枚举 ✓｜§8.2 业务与操作数据结构 ✓｜§8.3 配置与规则数据结构 ✓｜§8.4 通信报文结构 ✓（机器源继承）｜§8.5 设备与 FPGA 表项结构 ✗（纯软件系统，无连接器/总线/寄存器/FPGA 端口）｜§8.6 运行状态数据结构 ✓｜§8.7 数据库表结构 ✓（authority = `util/migrations/*.sql`）｜§8.8 错误码与错误结构 ✓。
 
-| Data/Type ID | 名称 | 用途 | 唯一来源 | 层 |
-|---|---|---|---|---|
-| `D-PRINCIPAL` | Principal | 鉴权结果（主体 + role） | §8.2.1 | 系统（拥有） |
-| `D-CAPABILITY` | Capability 集合 | 12 键能力与限额 | §8.2.2 | 系统（拥有） |
-| `D-PROVIDER` | Provider | 上游连接/凭据引用/账号限制 | §8.2.3 | 系统（拥有） |
-| `D-DEPLOYMENT` | Deployment | provider 上的模型部署 | §8.2.4 | 系统（拥有） |
-| `D-SERVICE-LEVEL` | ServiceLevel（tier） | 逻辑模型/成员/能力交集 | §8.2.5 | 系统（拥有） |
-| `D-USAGE-OBLIGATION` | 用量义务 | dispatch 前登记 | §8.2.6 | 系统（拥有） |
-| `D-USAGE-RECORD` | 用量版本 | 追加式账本 | §8.2.7 | 系统（拥有） |
-| `D-USAGE-HEAD` | 用量 head | 指向最新版本 | §8.2.8 | 系统（拥有） |
-| `D-PROVIDER-BINDING` | 请求绑定 | request→provider/deployment | §8.2.9 | 系统（拥有） |
-| `D-PROVIDER-SNAPSHOT` | 账号用量快照 | 上游 quota | §8.2.10 | 系统（拥有） |
-| `D-AUDIT-EVENT` | 审计事件 | 管理动作 | §8.2.11 | 系统（拥有） |
-| `D-LOG-EVENT` | 运行日志 | 脱敏日志 | §8.2.12 | 系统（拥有） |
-| `D-OBS-*` | 观测对象（快照/统计/trace/注入） | LT-OBS | §11.3；M006/M005 | 系统→模块 |
-| `D-MSG-RESPONSE` / `D-MSG-EMBEDDING` | Responses / Embeddings 表示 | wire（OpenAI 兼容） | `openapi` | 继承（机器源） |
-| `D-MODEL` | 模型（tier）视图 | 目录 | `openapi` | 继承（机器源） |
-| `D-ERROR-ENVELOPE` | 错误信封 `{error:{...}}` | 统一错误 | `openapi` + §8.8 | 系统（拥有含义） |
+### 8.1 公共基础类型与枚举（适用时）
 
-### 8.2 数据结构定义
+#### `D-PRINCIPAL` · Principal
 
-> 系统层只给跨边界必需字段与不变量；字段级持久 authority 见 ISD/util §4.4。固定 4 段：定义 / 字段 / 不变量 / 来源。
+- **定义、Data/Type ID 与唯一来源**：一次请求经入口鉴权后的调用主体；`D-PRINCIPAL`；本设计 §9.1（鉴权），上层继承（无）。
+- **字段**：`principal_id:str`｜必填｜≤128｜主体标识；`role:str`｜必填｜`data`/`admin`｜角色。
+- **约束 / 不变量**：不可变；`role` 二值；由 M001 入口产生，业务模块只读。
+- **状态 · 所有权 · 寿命**：请求级内存对象；M001 写、M003–M005 只读；随请求结束释放，不持久。
+- **合法与拒绝实例**：合法 `{principal_id:"local", role:"data"}`；拒绝：缺/非法凭据 → §8.8 `ERR-AUTH-REQUIRED`/`ERR-AUTH-DENIED`，不构造 Principal。
+- **验证**：`VRC-API-002`；实现 `src/http_api/auth.py`。
 
-#### 8.2.1 `D-PRINCIPAL` · Principal
-- **定义**：一次请求经入口鉴权后的调用主体。
-- **字段**：
-  - `principal_id`：`str`｜必填｜≤128｜主体标识
-  - `role`：`str`｜必填｜`data`/`admin`｜角色
-- **不变量**：不可变；`role` 二值；由 M001 入口产生，业务模块只读。
-- **来源**：本设计 §9.1（鉴权）；上层继承（无）。
+#### `D-CAPABILITY` · Capability 集合
 
-#### 8.2.2 `D-CAPABILITY` · Capability 集合
-- **定义**：一个 tier/deployment 的能力与限额；12 键固定集合。
-- **字段**：`responses`/`embeddings`/`tools`/`structured_outputs`：`bool`；`input_modalities`/`output_modalities`：`str[]`；`context_window`/`max_output_tokens`：`int?`；`embedding_space_id`：`str?`；`embedding_dimensions`：`int[]?`；`embedding_max_batch_inputs`/`embedding_max_input_tokens`：`int?`
-- **不变量**：键集合固定（12）；tier 能力 = 成员 deployment 的**交集**。
-- **来源**：本设计 §5.1；机器源 `openapi`（`/v1/models`）。
+- **定义、Data/Type ID 与唯一来源**：一个 tier/deployment 的能力与限额，12 键固定集合；`D-CAPABILITY`；本设计 §5.1；机器源 `openapi`（`ModelCapabilities`）。
+- **字段**：`responses`/`embeddings`/`tools`/`structured_outputs`：`bool`；`input_modalities`/`output_modalities`：`str[]`；`context_window`/`max_output_tokens`：`int?`；`embedding_space_id`：`str?`；`embedding_dimensions`：`int[]?`；`embedding_max_batch_inputs`/`embedding_max_input_tokens`：`int?`。
+- **约束 / 不变量**：键集合固定（12）；tier 能力 = 成员 deployment 的**交集**。
+- **状态 · 所有权 · 寿命**：内嵌于 `D-DEPLOYMENT`/`D-SERVICE-LEVEL` 持久（§8.7）；operator 经 M004 拥有；随配置 `version`。
+- **合法与拒绝实例**：合法 12 键齐全；拒绝：缺键或非交集 → 配置写入 `invalid_request`。
+- **验证**：`VRC-MGMT-*`；`openapi` `ModelCapabilities`。
 
-#### 8.2.3 `D-PROVIDER` · Provider
-- **定义**：一个上游供应商连接与其推理/账号凭据引用。
-- **字段**：`id`/`name`（唯一）/`kind`（`cloud`/`local`）/`endpoint`/`secret_ref`/`enabled`/`version`；使用 profile（`D-PROVIDER`·usage）：`usage_provider`/账号并发/间隔/RPM/凭据引用。
-- **不变量**：`name` 唯一；`secret_ref` 只存引用（`env:`/`file:`），不存明文。
-- **来源**：本设计 §8.5；持久 DDL 见 `util.isd`（M007）。
+**共享枚举**（内联于所属结构，不另立机器契约）：`role ∈ {data,admin}`；`kind ∈ {cloud,local}`；`health ∈ {unknown,healthy,unhealthy}`；`measurement_status ∈ {measured,unknown}`；`availability ∈ {available,unavailable}`。
 
-#### 8.2.4 `D-DEPLOYMENT` · Deployment
-- **定义**：某 provider 上的具体后端模型部署。
-- **字段**：`id`/`name`（唯一）/`provider_id`/`backend_model`/`capabilities`(`D-CAPABILITY`)/`enabled`/`health`/`version`；运行 profile：`max_in_flight`/`connect_timeout_ms`/`stream_idle_timeout_ms`。
-- **不变量**：`provider_id` 必须存在；`capabilities` 为 12 键。
-- **来源**：本设计 §8.5。
+### 8.2 业务与操作数据结构（适用时）
 
-#### 8.2.5 `D-SERVICE-LEVEL` · ServiceLevel（tier）
-- **定义**：对 consumer 暴露的逻辑模型（tier），绑定有序 deployment 成员。
-- **字段**：`id`（固定 tier 名）/`deployment_ids[]`（有序）/`enabled`/`capabilities`（成员交集）/`version`。
-- **不变量**：id ∈ 7 固定 tier；`capabilities` = 成员交集；`Embedding-v1` 冻结 BGE-M3 空间。
-- **来源**：本设计 §5.1。
+#### `D-USAGE-OBLIGATION` · 用量义务
 
-#### 8.2.6 `D-USAGE-OBLIGATION` · 用量义务
-- **定义**：dispatch 前登记的一次调用义务（账本锚点）。
+- **定义、Data/Type ID 与唯一来源**：dispatch 前登记的一次调用义务（账本锚点）；`D-USAGE-OBLIGATION`；本设计 §8.9/§8.10；持久 authority `util/migrations/*.sql`。
 - **字段**：`principal_id`/`request_id`/`model`/`endpoint`/`recorded_at`/`dispatch_authorized_at`。
-- **不变量**：PK `(principal_id,request_id)`；dispatch 前必先存在。
-- **来源**：本设计 §8.6。
+- **约束 / 不变量**：PK `(principal_id,request_id)`；dispatch 前必先存在。
+- **状态 · 所有权 · 寿命**：M003 写；按 principal 隔离；追加式，随账本保留策略。
+- **合法与拒绝实例**：合法：非流式外请求登记 unknown 义务后 dispatch；拒绝：`stream=false` → `ERR-REQ-UNSUPPORTED`（无义务副作用）。
+- **验证**：`VRC-INF-004`、`VRC-MGMT-006`。
 
-#### 8.2.7 `D-USAGE-RECORD` · 用量版本
-- **定义**：一次调用的一次用量事实版本（追加式）。
+#### `D-USAGE-RECORD` · 用量版本
+
+- **定义、Data/Type ID 与唯一来源**：一次调用的一次用量事实版本（追加式）；`D-USAGE-RECORD`；本设计 §8.10；authority `util/migrations/*.sql`。
 - **字段**：`principal_id`/`request_id`/`record_version`/`is_final`/`model`/`endpoint`/`recorded_at`/`updated_at`/`measurement_status`(`measured`/`unknown`)/`source`/`input_tokens`/`output_tokens`/`total_tokens`/`cached_input_tokens`/`cache_write_tokens`/`reasoning_tokens`。
-- **不变量**：PK `(principal_id,request_id,record_version)`；同 request 版本绝不累计；`unknown` 时 token 为空（不补零）。
-- **来源**：本设计 §8.6。
+- **约束 / 不变量**：PK `(principal_id,request_id,record_version)`；同 request 版本绝不累计；`unknown` 时 token 为空（不补零）。
+- **状态 · 所有权 · 寿命**：M003 写；追加式，按 retention policy 保留。
+- **合法与拒绝实例**：合法 version=2（final，measured）；边界：`measurement_status=unknown` → token 全空且不被填零。
+- **验证**：`VRC-INF-004`、`VRC-MGMT-006`。
 
-#### 8.2.8 `D-USAGE-HEAD` · 用量 head
-- **定义**：指向某 request 当前最新版本。
+#### `D-USAGE-HEAD` · 用量 head
+
+- **定义、Data/Type ID 与唯一来源**：指向某 request 当前最新版本；`D-USAGE-HEAD`；本设计 §8.10；authority `util/migrations/*.sql`。
 - **字段**：`principal_id`/`request_id`/`head_record_version`/`updated_at`。
-- **不变量**：单调递增；FK 指向存在的 record version。
-- **来源**：本设计 §8.6。
+- **约束 / 不变量**：单调递增；FK 指向存在的 record version。
+- **状态 · 所有权 · 寿命**：M003 写、按 principal 隔离；随账本保留。
+- **合法与拒绝实例**：合法 head=2 指向 version 2；拒绝：指向不存在的版本 → 持久约束失败。
+- **验证**：`VRC-INF-004`、`VRC-MGMT-006`。
 
-#### 8.2.9 `D-PROVIDER-BINDING` · 请求绑定
-- **定义**：request 与最终 provider/deployment 的绑定。
+#### `D-PROVIDER-BINDING` · 请求绑定
+
+- **定义、Data/Type ID 与唯一来源**：request 与最终 provider/deployment 的绑定；`D-PROVIDER-BINDING`；本设计 §8.10；authority `util/migrations/*.sql`。
 - **字段**：`principal_id`/`request_id`/`provider_id`/`deployment_id`/`bound_at`。
-- **不变量**：PK `(principal_id,request_id)`；每个 request 至多一个绑定。
-- **来源**：本设计 §8.6。
+- **约束 / 不变量**：PK `(principal_id,request_id)`；每个 request 至多一个绑定。
+- **状态 · 所有权 · 寿命**：M003 写；与 UsageRecord 一致；按 retention policy。
+- **合法与拒绝实例**：合法：一次调用绑定一个 deployment；边界：重复绑定被 PK 拒绝。
+- **验证**：`VRC-INF-004`。
 
-#### 8.2.10 `D-PROVIDER-SNAPSHOT` · 账号用量快照
-- **定义**：provider 账号 quota 的显式刷新快照。
+#### `D-PROVIDER-SNAPSHOT` · 账号用量快照
+
+- **定义、Data/Type ID 与唯一来源**：provider 账号 quota 的显式刷新快照；`D-PROVIDER-SNAPSHOT`；本设计 §5.4；authority `util/migrations/*.sql`。
 - **字段**：`provider_id`/`snapshot_json`（窗口/percent/used/quota/reset/source/status/checked_at）/`checked_at`。
-- **不变量**：PK `provider_id`；仅在 operator 显式刷新后替换；不落 Secret。
-- **来源**：本设计 §5.4。
+- **约束 / 不变量**：PK `provider_id`；仅在 operator 显式刷新后替换；不落 Secret。
+- **状态 · 所有权 · 寿命**：M004 写、M003/M005 读；operator 显式刷新后替换。
+- **合法与拒绝实例**：合法：带 `confirm_external_call` 的刷新写入；拒绝：缺确认 → `ERR-CONFIRM`，快照不变。
+- **验证**：`VRC-MGMT-*`、`VRC-DIAG-004`。
 
-#### 8.2.11 `D-AUDIT-EVENT` · 审计事件
-- **定义**：一次 operator 管理动作的审计事实。
+#### `D-AUDIT-EVENT` · 审计事件
+
+- **定义、Data/Type ID 与唯一来源**：一次 operator 管理动作的审计事实；`D-AUDIT-EVENT`；本设计 §8.10；authority `util/migrations/*.sql`。
 - **字段**：`id`/`actor`/`action`/`target`/`result`(`success`/`failed`)/`created_at`/`request_id`。
-- **不变量**：不含 Secret/prompt/output；与 Registry 变更同事务提交。
-- **来源**：本设计 §8.6。
+- **约束 / 不变量**：不含 Secret/prompt/output；与 Registry 变更同事务提交。
+- **状态 · 所有权 · 寿命**：M004 写、M005 读；按审计策略保留。
+- **合法与拒绝实例**：合法：`provider.create` 与配置同事务落库；边界：事务回滚则不产生审计事件。
+- **验证**：`VRC-MGMT-*`。
 
-#### 8.2.12 `D-LOG-EVENT` · 运行日志
-- **定义**：一条脱敏运行日志。
+#### `D-LOG-EVENT` · 运行日志
+
+- **定义、Data/Type ID 与唯一来源**：一条脱敏运行日志；`D-LOG-EVENT`；本设计 §8.10；authority `util/migrations/*.sql`。
 - **字段**：`id`/`created_at`/`level`/`module`/`event`/`message`（≤512，写前脱敏）/`request_id?`。
-- **不变量**：禁止 Secret/凭据/完整正文；保留期由运维策略。
-- **来源**：本设计 §8.6。
+- **约束 / 不变量**：禁止 Secret/凭据/完整正文；保留期由运维策略。
+- **状态 · 所有权 · 寿命**：M008 写、M005 读；7 天，稳定分页快照到期后清理。
+- **合法与拒绝实例**：合法：写前脱敏后落库；边界：含 Secret 的原文被脱敏而非原样写入。
+- **验证**：`VRC-LOG-001`。
 
-### 8.3 状态、所有权与生命周期
+#### `D-MODEL` · 模型（tier）视图
+
+- **定义、Data/Type ID 与唯一来源**：对 consumer 暴露的逻辑等级目录条目；`D-MODEL`；机器源 `openapi`（`Model`/`ModelList`），本设计 §9.1。
+- **字段**：`id`/`object`/`created`/`owned_by`/`availability`(`available`/`unavailable`)/`capabilities`(`D-CAPABILITY`)。
+- **约束 / 不变量**：`id` 为 exact-case 逻辑等级名；`availability` 取 `/readyz` 模型级事实；不暴露物理账号/provider。
+- **状态 · 所有权 · 寿命**：只读投影；M003 产出、M001 返回；随 Registry 变更。
+- **合法与拒绝实例**：合法：`GET /v1/models` 返回 7 个固定 tier；拒绝：exact 名称不存在 → `ERR-MODEL-NOTFOUND`。
+- **验证**：`VRC-INF-001`；`openapi` `Model`/`ModelList`。
+
+### 8.3 配置与规则数据结构（适用时）
+
+#### `D-PROVIDER` · Provider
+
+- **定义、Data/Type ID 与唯一来源**：一个上游供应商连接与其推理/账号凭据引用；`D-PROVIDER`；本设计 §8.10；持久 DDL 见 `util.isd`（M007）。
+- **字段**：`id`/`name`（唯一）/`kind`（`cloud`/`local`）/`endpoint`/`secret_ref`/`enabled`/`version`；使用 profile：`usage_provider`/账号并发/间隔/RPM/凭据引用。
+- **约束 / 不变量**：`name` 唯一；`secret_ref` 只存引用（`env:`/`file:`），不存明文。
+- **状态 · 所有权 · 寿命**：operator 经 M004 写、M003 读；SQLite 持久，带 `version`（乐观并发）。
+- **合法与拒绝实例**：合法 `{name,kind:cloud,endpoint,secret_ref:"file:/run/secrets/x"}`；拒绝明文 `secret_ref="sk-..."` → `invalid_request`。
+- **验证**：`VRC-MGMT-*`；`openapi` `ProviderView`/`ProviderWrite`。
+
+#### `D-DEPLOYMENT` · Deployment
+
+- **定义、Data/Type ID 与唯一来源**：某 provider 上的具体后端模型部署；`D-DEPLOYMENT`；本设计 §8.10；authority `util/migrations/*.sql`。
+- **字段**：`id`/`name`（唯一）/`provider_id`/`backend_model`/`capabilities`(`D-CAPABILITY`)/`enabled`/`health`/`version`；运行 profile：`max_in_flight`/`connect_timeout_ms`/`stream_idle_timeout_ms`。
+- **约束 / 不变量**：`provider_id` 必须存在；`capabilities` 为 12 键。
+- **状态 · 所有权 · 寿命**：operator 经 M004 写、M003 读；SQLite 持久。
+- **合法与拒绝实例**：合法引用已存在 provider；拒绝未知 `provider_id` → `ERR-REQ-VALIDATION`，配置不变。
+- **验证**：`VRC-MGMT-*`；`openapi` `DeploymentView`。
+
+#### `D-SERVICE-LEVEL` · ServiceLevel（tier）
+
+- **定义、Data/Type ID 与唯一来源**：对 consumer 暴露的逻辑模型（tier），绑定有序 deployment 成员；`D-SERVICE-LEVEL`；本设计 §5.1；authority `util/migrations/*.sql`。
+- **字段**：`id`（固定 tier 名）/`deployment_ids[]`（有序）/`enabled`/`capabilities`（成员交集）/`version`。
+- **约束 / 不变量**：`id ∈ 7 固定 tier`；`capabilities` = 成员交集；`Embedding-v1` 冻结 BGE-M3 空间。
+- **状态 · 所有权 · 寿命**：operator 经 M004 管理与 Models 发布；SQLite 持久，带 `version`。
+- **合法与拒绝实例**：合法 7 个固定 tier 之一；拒绝非固定 tier 名或成员交集非法 → `invalid_request`。
+- **验证**：`VRC-MGMT-*`；`openapi` `ServiceLevelView`。
+
+### 8.4 通信报文结构（适用时）
+
+> 本类全部**继承机器源**（`interfaces/openapi/llmtier.openapi.json` + `interfaces/vectors/v0.3/*`），本节只给阅读视图与含义，不复制字段权威。
+
+#### `D-MSG-RESPONSE` · Responses 表示（继承，机器源）
+
+- **定义、Data/Type ID 与唯一来源**：OpenAI-compatible Responses 请求/响应/流事件；`D-MSG-RESPONSE`；机器源 `openapi`（`ResponsesRequest`/`ResponsesResponse`/`ResponseStreamEvent`）。
+- **字段（阅读视图）**：`ResponsesRequest{model, input, store(恒 false), stream(恒 true), tools, tool_choice, temperature, max_output_tokens, reasoning, include, service_tier, metadata}`；`ResponsesResponse{id, object, created_at, status, model, output, usage, error}`；SSE 事件子集见 §9.2。
+- **约束 / 不变量**：`stream:true`、`store:false` 为受理前提；每请求恰好一个 terminal 事件；`usage` 仅 terminal 给出。
+- **状态 · 所有权 · 寿命**：wire 载荷请求级；机读 authority `openapi`。
+- **合法与拒绝实例**：合法标准 Responses 请求 → SSE + terminal Usage；拒绝 `stream=false` → `ERR-REQ-UNSUPPORTED`。
+- **验证**：`VRC-INF-001/002`。
+
+#### `D-MSG-EMBEDDING` · Embeddings 表示（继承，机器源）
+
+- **定义、Data/Type ID 与唯一来源**：OpenAI-compatible Embeddings 请求/响应；`D-MSG-EMBEDDING`；机器源 `openapi`（`EmbeddingRequest`/`EmbeddingResponse`）。
+- **字段（阅读视图）**：`EmbeddingRequest{model, input, encoding_format(float/base64), dimensions, user}`；`EmbeddingResponse{object, data[{object,index,embedding}], model, usage{prompt_tokens,total_tokens}}`。
+- **约束 / 不变量**：同一 embedding 逻辑 model 只绑定同一 `embedding_space_id`、模型版本与预处理契约；非兼容变更须新建逻辑 model ID。
+- **状态 · 所有权 · 寿命**：wire 载荷请求级；机读 authority `openapi`。
+- **合法与拒绝实例**：合法 float/base64 返回向量与 Usage；拒绝不兼容维度 → `ERR-REQ-VALIDATION`。
+- **验证**：`VRC-INF-001`。
+
+#### `D-ERROR-ENVELOPE` · 错误信封（系统拥有含义）
+
+- **定义、Data/Type ID 与唯一来源**：统一错误载荷 `{error:{message,type,code,param}}`；`D-ERROR-ENVELOPE`；本设计 §8.8；机器源 `openapi`（`ErrorEnvelope`/`ErrorDetail`）。
+- **字段**：`error.message:str`/`error.type:str`/`error.code:str`/`error.param:str?`。
+- **约束 / 不变量**：码值语义由 §8.8 目录决定；不含 Secret/凭据/完整正文；429 可带 `Retry-After`。
+- **状态 · 所有权 · 寿命**：请求级返回；M001 构造、各模块以 `ApiError` 产生。
+- **合法与拒绝实例**：合法 `{error:{type:"model_not_found",code:"...",param:null}}`；边界：未知端点 → `ERR-NOTFOUND`。
+- **验证**：`VRC-API-*`；§8.8 承接索引。
+
+#### `D-MSG-SSE` · Responses SSE 事件子集（继承，机器源）
+
+- **定义、Data/Type ID 与唯一来源**：Data Plane 流式协议事件子集；`D-MSG-SSE`；机器源 `openapi`（`ResponseStreamEvent` 及具体事件 schema），接口见 §9.2。
+- **字段**：`response.created`、`response.output_item.added`、`response.output_text.delta`、`response.refusal.delta`、reasoning summary/text、`response.function_call_arguments.delta|done`、`response.output_item.done`、`response.completed|incomplete|failed`、`error`。
+- **约束 / 不变量**：每 output item 稳定 `id`；每请求恰好一个 terminal；`X-Request-ID` 为 task 头，可接收标准 trace context。
+- **状态 · 所有权 · 寿命**：请求级流；M003 产出、M001 传输。
+- **合法与拒绝实例**：合法完整流以 terminal 结束；边界：上游失败 → `error` 事件，不伪造完成。
+- **验证**：`VRC-INF-002`、`VRC-INF-005`。
+
+### 8.5 设备与 FPGA 表项结构（适用时）
+
+不适用：LLMTier 为纯软件、单进程、单服务，无连接器、总线、寄存器或 FPGA 端口，无设备/RTL 表项可定义（tailoring `LT-TL-003`）。
+
+### 8.6 运行状态数据结构（适用时）
+
+#### `D-OBS-*` · 观测对象（快照/统计/trace/注入）
+
+- **定义、Data/Type ID 与唯一来源**：内部可观测性机制产出的运行状态记录：上游调用快照、数据面统计、单请求 trace、故障注入配置；`D-OBS-*`；本设计 §11.3 与 `mechanisms/observability.md`；authority 见 M006 `libdiag` 设计 §6。
+- **字段**：快照/统计/trace/注入各表字段见 M006 `libdiag` 设计 §6.7；均为脱敏记录。
+- **约束 / 不变量**：默认关闭、关闭时零开销；开启时尽力而为、fail-open；不记录 Secret/凭据/完整 prompt/output 正文。
+- **状态 · 所有权 · 寿命**：M006 写、M005 读；默认保留 7 天。
+- **合法与拒绝实例**：合法：开启快照后记录一条 `diagnostic_snapshots`；边界：写失败 → warning，不阻断推理。
+- **验证**：`VRC-DIAG-001/002/003`、`VRC-OBS-*`。
+
+### 8.7 数据库表结构（适用时）
+
+> authority = `util/migrations/*.sql`（由 M007 `migrate()` 执行）；列级阅读视图见 `util.isd` §4.4。本系统拥有以下持久表。
+
+#### `providers`（`D-PROVIDER`）
+- **字段 / 约束**：`id` PK；`name` UNIQUE；`kind`∈{cloud,local}；`endpoint`；`secret_ref`（仅引用）；`enabled`；`version`；usage 列。
+- **状态 · 所有权 · 寿命**：M004 经 M007 写、M003 读；operator 管理，库寿命。
+- **实例 / 验证**：合法建 provider 成功；拒绝重名 → `ERR-CONFLICT`。`VRC-MGMT-*`。
+
+#### `deployments`（`D-DEPLOYMENT`）
+- **字段 / 约束**：`id` PK；`name` UNIQUE；`provider_id` FK 必须存在；`capabilities`(JSON 12 键)；`health`；运行 profile 列。
+- **状态 · 所有权 · 寿命**：M004 写、M003 读；operator 管理。
+- **实例 / 验证**：合法引用已存在 provider；拒绝未知 provider。`VRC-MGMT-*`。
+
+#### `service_levels` / `service_level_deployments`（`D-SERVICE-LEVEL`）
+- **字段 / 约束**：`service_levels.id`（固定 tier 名）/`enabled`/`version`；成员表 `(service_level_id,deployment_id,ordinal)` 有序唯一。
+- **状态 · 所有权 · 寿命**：M004 写、M003 读；operator 管理与 Models 发布。
+- **实例 / 验证**：合法绑定有序成员；拒绝重复/越序绑定。`VRC-MGMT-*`。
+
+#### `usage_obligations`（`D-USAGE-OBLIGATION`）
+- **字段 / 约束**：PK `(principal_id,request_id)`；dispatch 前必先存在。
+- **状态 · 所有权 · 寿命**：M003 写；按 principal 隔离；追加式。
+- **实例 / 验证**：合法义务先于 dispatch；边界：未登记即 dispatch 被业务禁止。`VRC-INF-004`。
+
+#### `usage_record_versions`（`D-USAGE-RECORD`）
+- **字段 / 约束**：PK `(principal_id,request_id,record_version)`；追加式；`unknown` 时 token 空。
+- **状态 · 所有权 · 寿命**：M003 写；按 retention policy。
+- **实例 / 验证**：合法 version=2 final；边界：版本绝不累计。`VRC-INF-004`、`VRC-MGMT-006`。
+
+#### `usage_heads`（`D-USAGE-HEAD`）
+- **字段 / 约束**：PK `(principal_id,request_id)`；`head_record_version` 单调；FK 指向存在版本。
+- **状态 · 所有权 · 寿命**：M003 写；随账本。
+- **实例 / 验证**：合法 head 单调推进；拒绝指向不存在版本。`VRC-INF-004`。
+
+#### `provider_request_bindings`（`D-PROVIDER-BINDING`）
+- **字段 / 约束**：PK `(principal_id,request_id)`；至多一个绑定。
+- **状态 · 所有权 · 寿命**：M003 写；与 UsageRecord 一致。
+- **实例 / 验证**：合法单绑定；边界：重复绑定被 PK 拒绝。`VRC-INF-004`。
+
+#### `provider_usage_snapshots`（`D-PROVIDER-SNAPSHOT`）
+- **字段 / 约束**：PK `provider_id`；`snapshot_json`+`checked_at`；不落 Secret。
+- **状态 · 所有权 · 寿命**：M004 写；operator 显式刷新后替换。
+- **实例 / 验证**：合法显式刷新替换；拒绝缺确认 → `ERR-CONFIRM`。`VRC-DIAG-004`。
+
+#### `audit_events`（`D-AUDIT-EVENT`）
+- **字段 / 约束**：`id` PK；`actor`/`action`/`target`/`result`/`created_at`/`request_id`；不含 Secret/prompt/output。
+- **状态 · 所有权 · 寿命**：M004 写、M005 读；与 Registry 变更同事务；按审计策略。
+- **实例 / 验证**：合法管理动作同事务落库；边界：事务回滚无事件。`VRC-MGMT-*`。
+
+#### `operational_logs`（`D-LOG-EVENT`）
+- **字段 / 约束**：`id` PK；`level`/`module`/`event`/`message`(≤512，写前脱敏)/`request_id?`/`created_at`。
+- **状态 · 所有权 · 寿命**：M008 写、M005 读；7 天。
+- **实例 / 验证**：合法脱敏写入；边界：含 Secret 原文被脱敏。`VRC-LOG-001`。
+
+#### `diagnostic_*`（`D-OBS-*`）
+- **字段 / 约束**：`diagnostic_settings`/`diagnostic_snapshots`/`data_plane_stats`/`data_plane_latency_samples`/`diagnostic_injections`/`trace_events`；authority `util/migrations/002_observability.sql`；列与约束见 M006 §6.7。
+- **状态 · 所有权 · 寿命**：M006 写、M005 读；默认保留 7 天。
+- **实例 / 验证**：合法空库一次建表；开启后按开关记录。`VRC-DIAG-001/002/003`。
+
+### 8.8 错误码与错误结构（适用时）
+
+机器 Error 目录（代码值/类型/编码）= `interfaces/openapi/llmtier.openapi.json` + `interfaces/error-codes/`（本项目尚未建该目录，见本节目末）。本节决定**公共含义与调用方行为**；接口逐失败条件引用下列 Error ID。每个 Error ID 使用固定八字段记录。
+
+<!-- STD_PUBLIC_ERROR_CATALOG_BEGIN -->
+**ERR-REQ-VALIDATION · invalid_request**
+- **定义与适用范围**：请求字段/结构非法；**不含**鉴权失败、不支持的形态或字段。
+- **触发条件与判定者**：M001 入口按 `ResponsesRequest`/`EmbeddingRequest` schema 校验 body，首个失败字段即判定。
+- **结果与副作用**：本次调用未受理；无上游 dispatch、无账本义务；无副作用。
+- **错误载荷**：`D-ERROR-ENVELOPE`（§8.4）；`type=invalid_request`、`code` 稳定码值、`param` 指向首个非法字段；不含 Secret/正文。
+- **调用方动作**：修正 `param` 指出的字段后重试。
+- **模块承接**：M001 产生并返回；M003 不接收。
+- **唯一来源与兼容**：机器源 `openapi` candidate `0.3-simplified-candidate.8`（`ErrorEnvelope`+responses）；`interfaces/error-codes/` 未建立 → Proposed（本节目末）。
+- **验证**：`VRC-INF-001/004`。
+
+**ERR-REQ-UNSUPPORTED · unsupported_request**
+- **定义与适用范围**：不支持的请求形态（如 `stream=false`）；不含字段非法。
+- **触发条件与判定者**：M001/M003 判定 `ResponsesRequest.stream` 必须 true、`store` 必须 false。
+- **结果与副作用**：未受理；无义务、无上游调用；无副作用。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`type=unsupported_request`。
+- **调用方动作**：改用标准 SSE 形态重试。
+- **模块承接**：M001 校验、M003 编排。
+- **唯一来源与兼容**：机器源 `openapi` `ResponsesRequest` 约束 + §7.2 / `LT-ADR-04`；机器目录未建立 → Proposed。
+- **验证**：`VRC-INF-001`。
+
+**ERR-REQ-FIELD · unsupported_field**
+- **定义与适用范围**：请求含不支持的字段；不含结构整体非法。
+- **触发条件与判定者**：M001 按 schema `additionalProperties:false` 发现未知字段。
+- **结果与副作用**：未受理；无副作用。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`param`=未知字段名。
+- **调用方动作**：移除该字段后重试。
+- **模块承接**：M001 产生并返回。
+- **唯一来源与兼容**：机器源 `openapi` schema；Proposed。
+- **验证**：`VRC-INF-001`。
+
+**ERR-REQ-JSON · invalid_json**
+- **定义与适用范围**：body 非合法 JSON；不含语义校验失败。
+- **触发条件与判定者**：M001 解析 body 失败。
+- **结果与副作用**：未受理；无副作用。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`type=invalid_json`。
+- **调用方动作**：修正 JSON 后重试。
+- **模块承接**：M001 产生并返回。
+- **唯一来源与兼容**：机器源 `openapi`；Proposed。
+- **验证**：`VRC-INF-001`。
+
+**ERR-REQ-TOO-LARGE · request_too_large**
+- **定义与适用范围**：body 超过 2 MB 上限（§12.1）。
+- **触发条件与判定者**：M001 读取 Content-Length/实际字节超过请求体上限。
+- **结果与副作用**：未受理；无副作用。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`type=request_too_large`。
+- **调用方动作**：缩小 body 后重试；不得分片绕过。
+- **模块承接**：M001 产生并返回。
+- **唯一来源与兼容**：机器源 `openapi` + §12.1 预算；Proposed。
+- **验证**：`VRC-INF-001`。
+
+**ERR-AUTH-REQUIRED · authentication_required**
+- **定义与适用范围**：受保护端点缺凭据；不含已提供但无权。
+- **触发条件与判定者**：M001 入口鉴权未取得 `D-PRINCIPAL`（未配置鉴权时另见 `ERR-AUTH-NOCFG`）。
+- **结果与副作用**：未受理；无副作用。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`type=authentication_required`。
+- **调用方动作**：携带 Bearer 凭据重试。
+- **模块承接**：M001 入口。
+- **唯一来源与兼容**：机器源 `openapi` security；Proposed。
+- **验证**：`VRC-API-002`。
+
+**ERR-AUTH-DENIED · permission_denied**
+- **定义与适用范围**：凭据无权执行该操作；不泄露资源是否存在。
+- **触发条件与判定者**：M001 判定角色不足（如非 admin 访问管理面）。
+- **结果与副作用**：未受理；无副作用；不泄露存在性。
+- **错误载荷**：`D-ERROR-ENVELOPE`；不含目标存在性。
+- **调用方动作**：更换具备权限的凭据。
+- **模块承接**：M001 入口。
+- **唯一来源与兼容**：机器源 `openapi` security；Proposed。
+- **验证**：`VRC-API-002`。
+
+**ERR-AUTH-NOCFG · auth_not_configured**
+- **定义与适用范围**：服务未配置鉴权，无法判定主体；限于需要授权的部署。
+- **触发条件与判定者**：M001 鉴权配置缺失且访问受保护端点。
+- **结果与副作用**：未受理；服务处于不可判定授权状态。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`type=auth_not_configured`。
+- **调用方动作**：联系运维完成鉴权配置；不得自行关闭校验。
+- **模块承接**：M001、M007（配置）。
+- **唯一来源与兼容**：机器源 `openapi`；Proposed。
+- **验证**：`VRC-API-002`、`VRC-MGMT-003`。
+
+**ERR-MODEL-NOTFOUND · model_not_found**
+- **定义与适用范围**：请求的逻辑等级（tier）不存在；不含资源 ID 不存在。
+- **触发条件与判定者**：M003 按 exact `model` 查 Registry 无匹配。
+- **结果与副作用**：未受理；无上游调用、无义务、无副作用。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`type=model_not_found`。
+- **调用方动作**：改用 `GET /v1/models` 返回的 exact 名称。
+- **模块承接**：M003 产生、M001 返回。
+- **唯一来源与兼容**：机器源 `openapi`；Proposed。
+- **验证**：`VRC-INF-001/004`。
+
+**ERR-NOTFOUND · not_found**
+- **定义与适用范围**：路径或资源 ID 不存在。
+- **触发条件与判定者**：M001 路由未匹配，或 M004 读取不存在的 provider/deployment/service-level。
+- **结果与副作用**：未受理；无副作用。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`type=not_found`。
+- **调用方动作**：修正路径/ID 后重试。
+- **模块承接**：M001/M004。
+- **唯一来源与兼容**：机器源 `openapi`；Proposed。
+- **验证**：`VRC-MGMT-001`。
+
+**ERR-CONFLICT · resource_conflict**
+- **定义与适用范围**：唯一性冲突（如 `name` 重复）。
+- **触发条件与判定者**：M004 Registry 写入触发唯一约束。
+- **结果与副作用**：本次写入未生效；事务回滚。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`type=resource_conflict`。
+- **调用方动作**：改名后重试。
+- **模块承接**：M004。
+- **唯一来源与兼容**：机器源 `openapi`；Proposed。
+- **验证**：`VRC-MGMT-001`。
+
+**ERR-INUSE · resource_in_use**
+- **定义与适用范围**：资源被引用不能删除。
+- **触发条件与判定者**：M004 删除 provider/deployment 时存在引用（如 tier 成员）。
+- **结果与副作用**：删除未生效；资源不变。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`type=resource_in_use`。
+- **调用方动作**：先解除引用再删除。
+- **模块承接**：M004。
+- **唯一来源与兼容**：机器源 `openapi`；Proposed。
+- **验证**：`VRC-MGMT-002`。
+
+**ERR-STALE · version_conflict**
+- **定义与适用范围**：`If-Match` ETag 过期，乐观并发失败。
+- **触发条件与判定者**：M004 比较 PATCH/DELETE 的 `If-Match` 与当前 `version` 不一致。
+- **结果与副作用**：写入未生效；资源不变。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`type=version_conflict`。
+- **调用方动作**：重新 GET 取新 ETag 后重试；不得覆盖。
+- **模块承接**：M004。
+- **唯一来源与兼容**：机器源 `openapi`；Proposed。
+- **验证**：`VRC-MGMT-002`。
+
+**ERR-CURSOR · cursor_expired**
+- **定义与适用范围**：分页 cursor 失效或与当前 filter/授权不匹配。
+- **触发条件与判定者**：M003/M004 校验 cursor 失败。
+- **结果与副作用**：未返回页；不创建任务、无副作用。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`type=cursor_expired`。
+- **调用方动作**：从头重开查询。
+- **模块承接**：M003/M004。
+- **唯一来源与兼容**：机器源 `openapi`；Proposed。
+- **验证**：`VRC-MGMT-006`。
+
+**ERR-RATE-LIMIT · rate_limit_exceeded**
+- **定义与适用范围**：准入超限（队列满或排队超 30 秒）。
+- **触发条件与判定者**：M003 准入判定无许可。
+- **结果与副作用**：未受理；无上游调用/无义务；响应带 `Retry-After`。
+- **错误载荷**：`D-ERROR-ENVELOPE` + `Retry-After`。
+- **调用方动作**：按 `Retry-After` 退避重试。
+- **模块承接**：M003。
+- **唯一来源与兼容**：机器源 `openapi` + §6.1 预算；Proposed。
+- **验证**：`VRC-INF-004`。
+
+**ERR-PROVIDER-UNAVAIL · provider_unavailable**
+- **定义与适用范围**：上游不可用/超时/5xx。
+- **触发条件与判定者**：M003 适配器建连、首字节或流空闲超时，或上游返回 5xx。
+- **结果与副作用**：本次调用失败；已登记义务按 measured/unknown 收敛。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`type=provider_unavailable`。
+- **调用方动作**：按标准重试策略；不静默跨等级 fallback。
+- **模块承接**：M003。
+- **唯一来源与兼容**：机器源 `openapi` + §6.3 超时；Proposed。
+- **验证**：`VRC-INF-003`。
+
+**ERR-PROVIDER-FAIL · provider_failure**
+- **定义与适用范围**：注入/上游故障导致的失败。
+- **触发条件与判定者**：M003 适配器或 M006 注入（`fault_502`）。
+- **结果与副作用**：本次调用失败；失败事实可入快照。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`type=provider_failure`。
+- **调用方动作**：重试或更换等级。
+- **模块承接**：M003/M006。
+- **唯一来源与兼容**：机器源 `openapi`；Proposed。
+- **验证**：`VRC-INF-003`。
+
+**ERR-PROVIDER-CONTRACT · provider_contract_error**
+- **定义与适用范围**：上游响应契约不符（无法归一）。
+- **触发条件与判定者**：M003 解析上游响应失败。
+- **结果与副作用**：本次调用失败；无有效 Usage。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`type=provider_contract_error`。
+- **调用方动作**：不重试（确定性契约错误），上报。
+- **模块承接**：M003。
+- **唯一来源与兼容**：机器源 `openapi`；Proposed。
+- **验证**：`VRC-INF-003`。
+
+**ERR-MODEL-UNAVAIL · model_unavailable**
+- **定义与适用范围**：tier 全部候选不健康。
+- **触发条件与判定者**：M003 准入时全部成员 deployment 不健康/禁用。
+- **结果与副作用**：未受理；无上游调用。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`type=model_unavailable`。
+- **调用方动作**：稍后重试或改用其他等级。
+- **模块承接**：M003。
+- **唯一来源与兼容**：机器源 `openapi`；Proposed。
+- **验证**：`VRC-INF-004`。
+
+**ERR-STORE · usage_store_unavailable**
+- **定义与适用范围**：存储不可用；不用空页冒充无记录。
+- **触发条件与判定者**：M007 SQLite 读取/写入异常（Usage/日志/审计查询）。
+- **结果与副作用**：本次查询/写入失败；已发生副作用按各接口边界。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`type=usage_store_unavailable`。
+- **调用方动作**：稍后重试；结果未知时以权威查询核对。
+- **模块承接**：M007→M004/M001。
+- **唯一来源与兼容**：机器源 `openapi`；Proposed。
+- **验证**：`VRC-MGMT-006`。
+
+**ERR-INTERNAL · internal_error**
+- **定义与适用范围**：未捕获异常。
+- **触发条件与判定者**：M001 捕获未预期异常。
+- **结果与副作用**：本次调用失败；已发生副作用可能未知。
+- **错误载荷**：`D-ERROR-ENVELOPE`；不含栈/Secret。
+- **调用方动作**：上报；必要时查询权威状态。
+- **模块承接**：M001。
+- **唯一来源与兼容**：机器源 `openapi`；Proposed。
+- **验证**：`VRC-API-002`。
+
+**ERR-BOOT · bootstrap_required / bootstrap_invalid**
+- **定义与适用范围**：空库缺 bootstrap 或 bootstrap 非法。
+- **触发条件与判定者**：M004/M007 启动时校验 settings/引用失败。
+- **结果与副作用**：回滚并保持 `not_ready`；不接流量。
+- **错误载荷**：`D-ERROR-ENVELOPE`（或以 `/readyz` `not_ready` 表达）。
+- **调用方动作**：修正配置后重启。
+- **模块承接**：M004/M007。
+- **唯一来源与兼容**：机器源 `openapi` + §7.1；Proposed。
+- **验证**：`VRC-UTIL-001/002`、`VRC-MGMT-003`。
+
+**ERR-SCHEMA · schema_version_mismatch / schema_unknown / schema_integrity_failed**
+- **定义与适用范围**：schema 版本不匹配、旧库未知版本或完整性失败。
+- **触发条件与判定者**：M007 迁移/启动校验。
+- **结果与副作用**：拒绝启动，保持 `not_ready`。
+- **错误载荷**：`D-ERROR-ENVELOPE`（或以 `not_ready` 表达）。
+- **调用方动作**：运维离线处理（备份 + 单一版本迁移）；不得并行双写。
+- **模块承接**：M007。
+- **唯一来源与兼容**：机器源 `openapi` + §8.11；Proposed。
+- **验证**：`VRC-UTIL-001/002`、`VRC-MGMT-003`。
+
+**ERR-PATH-UNSAFE · store_path_unsafe**
+- **定义与适用范围**：DB 路径为 symlink 等不安全形态。
+- **触发条件与判定者**：M007 启动检查路径。
+- **结果与副作用**：拒绝启动。
+- **错误载荷**：`D-ERROR-ENVELOPE`（或以 `not_ready` 表达）。
+- **调用方动作**：修正路径后重启。
+- **模块承接**：M007。
+- **唯一来源与兼容**：机器源 `openapi`；Proposed。
+- **验证**：`VRC-UTIL-002`。
+
+**ERR-INJECTION · invalid_injection**
+- **定义与适用范围**：故障注入项类型/字段/范围非法。
+- **触发条件与判定者**：M006 校验 diagnostics PATCH 配置。
+- **结果与副作用**：未写入；配置不变。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`type=invalid_injection`。
+- **调用方动作**：修正注入项后重试。
+- **模块承接**：M006、M001/M004 返回。
+- **唯一来源与兼容**：机器源 `openapi`；Proposed。
+- **验证**：`VRC-DIAG-004`。
+
+**ERR-CONFIRM · confirmation_required**
+- **定义与适用范围**：有费用或改变状态的操作缺二次确认。
+- **触发条件与判定者**：M004 探测/账号用量刷新缺 `confirm_external_call=true`。
+- **结果与副作用**：未执行；无副作用。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`type=confirmation_required`。
+- **调用方动作**：补充确认后重试。
+- **模块承接**：M004。
+- **唯一来源与兼容**：机器源 `openapi`；Proposed。
+- **验证**：`VRC-DIAG-004`。
+<!-- STD_PUBLIC_ERROR_CATALOG_END -->
+
+**承接索引**（Error ID → 接口成员 → 机制/模块及使用方式 → 设计 V/Case）：
+
+| Error ID | 接口成员 ID | 机制/子系统/模块及使用方式 | 设计 V / Case |
+|---|---|---|---|
+| ERR-REQ-VALIDATION | `/v1/responses`、`/v1/embeddings`、管理面 PATCH | M001 校验产生；M004 配置校验 | VRC-INF-001/004 |
+| ERR-REQ-UNSUPPORTED | `/v1/responses` | M001/M003 校验形态产生 | VRC-INF-001 |
+| ERR-REQ-FIELD | `/v1/responses`、`/v1/embeddings` | M001 schema 校验产生 | VRC-INF-001 |
+| ERR-REQ-JSON | `/v1/responses`、`/v1/embeddings` | M001 body 解析产生 | VRC-INF-001 |
+| ERR-REQ-TOO-LARGE | `/v1/responses`、`/v1/embeddings` | M001 入口产生 | VRC-INF-001 |
+| ERR-AUTH-REQUIRED | 全部受保护端点 | M001 入口产生 | VRC-API-002 |
+| ERR-AUTH-DENIED | 全部受保护端点 | M001 入口产生 | VRC-API-002 |
+| ERR-AUTH-NOCFG | 全部受保护端点 | M001 入口产生；M007 配置承接 | VRC-API-002、VRC-MGMT-003 |
+| ERR-MODEL-NOTFOUND | `/v1/responses`、`/v1/embeddings`、`/v1/models/{model}` | M003 编排产生、M001 返回 | VRC-INF-001/004 |
+| ERR-NOTFOUND | 资源子路径、`/v1/trace/{request_id}` | M001 路由/M004 读取产生 | VRC-MGMT-001 |
+| ERR-CONFLICT | `/v1/{providers,deployments,service-levels}` | M004 Registry 产生 | VRC-MGMT-001 |
+| ERR-INUSE | `/v1/{providers,deployments,service-levels}` | M004 Registry 产生 | VRC-MGMT-002 |
+| ERR-STALE | `/v1/{providers,deployments,service-levels}` PATCH/DELETE | M004 Registry 产生 | VRC-MGMT-002 |
+| ERR-CURSOR | 分页端点（Usage/Audit/Logs/观测） | M003/M004 校验产生 | VRC-MGMT-006 |
+| ERR-RATE-LIMIT | `/v1/responses`、`/v1/embeddings` | M003 准入产生 | VRC-INF-004 |
+| ERR-PROVIDER-UNAVAIL | `/v1/responses`、`/v1/embeddings` | M003 适配产生 | VRC-INF-003 |
+| ERR-PROVIDER-FAIL | `/v1/responses`、`/v1/embeddings` | M003 适配、M006 注入 | VRC-INF-003 |
+| ERR-PROVIDER-CONTRACT | `/v1/responses`、`/v1/embeddings` | M003 适配产生 | VRC-INF-003 |
+| ERR-MODEL-UNAVAIL | `/v1/responses`、`/v1/embeddings` | M003 准入产生 | VRC-INF-004 |
+| ERR-STORE | `/v1/usage`、`/v1/audit`、`/v1/logs`、观测查询 | M007 产生、M004/M001 透传 | VRC-MGMT-006 |
+| ERR-INTERNAL | 全部端点 | M001 兜底产生 | VRC-API-002 |
+| ERR-BOOT | 启动、`/readyz` | M004/M007 启动产生 | VRC-UTIL-001/002、VRC-MGMT-003 |
+| ERR-SCHEMA | 启动、`/readyz` | M007 迁移/启动产生 | VRC-UTIL-001/002、VRC-MGMT-003 |
+| ERR-PATH-UNSAFE | 启动、`/readyz` | M007 启动产生 | VRC-UTIL-002 |
+| ERR-INJECTION | `/tier/admin/v1/deployments/{id}/diagnostics` | M006 校验产生、M001/M004 返回 | VRC-DIAG-004 |
+| ERR-CONFIRM | `/tier/admin/v1/probes`、`/v1/providers/{id}/usage` POST | M004 产生 | VRC-DIAG-004 |
+
+> **未决**：`interfaces/error-codes/` 机器目录尚未建立（当前 error code 值散在 `openapi` 的 response schema 与各模块 ISD）；建立后本节引用其 version/revision/hash，并运行 `validate-public-error-catalog`。见 §10 / 未决项。
+
+### 8.9 业务数据流与形态变换
+
+请求进入后构造 unknown Usage 义务，dispatch 前持久化；后端返回后归一为 token 事实并落账本；终态只追加版本、单调推进 head。观测数据（快照/统计/trace）独立于账本。
+
+### 8.10 一致性与持久化策略
 
 - **所有权**：配置（`D-PROVIDER`/`D-DEPLOYMENT`/`D-SERVICE-LEVEL`/`D-CAPABILITY`）由 operator 经 M004 拥有；账本（`D-USAGE-*`、`D-PROVIDER-BINDING`）由 M003 写入、按 principal 隔离；审计/日志由 M004/M008 写；观测 `D-OBS-*` 由 M006 写、M005 读。
 - **生命周期**：配置在 SQLite 中持久并带 `version`（乐观并发）；账本按保留策略、追加式不可改；观测默认 7 天。
 - **状态事实**：用量义务先于 dispatch；head 单调；审计与 Registry 变更同事务；观测 fail-open（不阻断推理）。
 
-### 8.4 示例与验证
+任何 provider dispatch 前先持久化该 server request ID 的 unknown Usage 义务；计量版本只追加并单调推进 head，因此 terminal 后写入失败或崩溃也不会在重启后变成“没有调用”。Usage 查询按 `[from,to)` 及 `(recorded_at,request_id)` 稳定排序；首个页面持久冻结精确 record version，cursor 绑定 principal、当前授权和原 filter。相同 request ID 的版本绝不累计；存储不可用返回 typed 503，不用空页冒充无记录。
 
-- **合法实例**：`POST /v1/responses` → 义务写入 → 后端返回 → record version=2（final，measured）→ head 指向 2。
-- **边界/拒绝实例**：`stream=false` → `unsupported_request`（无义务副作用）；非空库 `schema_version` 不匹配 → `schema_version_mismatch`（拒绝启动）。
-- **来源核对 / V/Case**：wire 类型核对 `openapi`；`VRC-TRUST/METER/OBS-*`（见 §8.8 承接索引与各机制）。
+**来源核对 / V/Case**：wire 类型核对 `openapi`；`VRC-INF-004`/`VRC-MGMT-006`（见 §8.8 承接索引与各机制）。
 
-### 8.5 业务数据流与形态变换
-
-请求进入后构造 unknown Usage 义务，dispatch 前持久化；后端返回后归一为 token 事实并落账本；终态只追加版本、单调推进 head。观测数据（快照/统计/trace）独立于账本。
-
-### 8.6 一致性与持久化策略
-
-| 数据 | 最小内容 | 生命周期 |
-|---|---|---|
-| Provider | type、API root、推理 Secret 引用、usage source、账号并发/间隔/RPM、enabled | operator 管理 |
-| Deployment | provider、model name、capabilities、health | operator 管理 |
-| ServiceLevel | exact ID、deployment 绑定、limits/capabilities；embedding 含 space ID | operator 管理与 Models 发布 |
-| UsageRecord | principal+request ID、record version/final、model、token values、quality、time | 按 retention policy |
-| ProviderRequestBinding | principal+request ID、最终 provider/deployment、dispatch time | 与 UsageRecord 一致 |
-| ProviderUsageSnapshot | provider 账号窗口、percent/used/quota/reset、source/status、checked_at | operator 显式刷新后替换 |
-| AuditEvent | actor、action、target、result、time；不含 Secret/prompt/output | 按审计策略 |
-| OperationalLog | level、module、event、脱敏短消息、可空 request ID、time | 7 天；稳定分页快照到期后清理 |
-| Observability 记录 | 快照/统计/trace/注入配置（见 §11.3） | 7 天 |
-
-任何 provider dispatch 前先持久化该 server request ID 的 unknown Usage 义务；计量版本只追加并单调推进 head，因此 terminal 后写入失败或崩溃也不会在重启后变成"没有调用"。Usage 查询按 `[from,to)` 及 `(recorded_at,request_id)` 稳定排序；首个页面持久冻结精确 record version，cursor 绑定 principal、当前授权和原 filter。相同 request ID 的版本绝不累计；存储不可用返回 typed 503，不用空页冒充无记录。
-
-### 8.7 缓存、保留、清理与数据迁移
+### 8.11 缓存、保留、清理与数据迁移
 
 观测数据保留 7 天，由清理任务删除过期记录。测试报告、审计与日志保留期限由运维策略控制。schema 迁移由单一版本迁移程序负责，不并行双写。
 
-### 8.8 系统公共错误码目录与下级承接
-
-机器 Error 目录（代码值/类型/编码）= `interfaces/openapi/llmtier.openapi.json` + `interfaces/error-codes/`（本项目尚未建该目录，见 §8.8 末）。本节决定**公共含义与调用方行为**；接口逐失败条件引用下列 Error ID。
-
-| Error ID | 码值 | HTTP | 含义（不含什么）| 调用方动作 |
-|---|---|---|---|---|
-| `ERR-REQ-VALIDATION` | `invalid_request` | 400 | 字段/结构非法；不含鉴权 | 修正请求 |
-| `ERR-REQ-UNSUPPORTED` | `unsupported_request` | 400 | 不支持的请求形态（如非流式） | 改形态 |
-| `ERR-REQ-FIELD` | `unsupported_field` | 400 | 不支持的字段 | 去字段 |
-| `ERR-REQ-JSON` | `invalid_json` | 400 | body 非合法 JSON | 修 body |
-| `ERR-REQ-TOO-LARGE` | `request_too_large` | 413 | body 超 2 MB | 缩 body |
-| `ERR-AUTH-REQUIRED` | `authentication_required` | 401 | 缺凭据 | 带凭据 |
-| `ERR-AUTH-DENIED` | `permission_denied` | 403 | 凭据无权（不泄露存在性） | 换凭据 |
-| `ERR-AUTH-NOCFG` | `auth_not_configured` | 503 | 服务未配置鉴权 | 联系运维 |
-| `ERR-MODEL-NOTFOUND` | `model_not_found` | 404 | tier 不存在 | 换模型 |
-| `ERR-NOTFOUND` | `not_found` | 404 | 资源不存在 | 修路径/ID |
-| `ERR-CONFLICT` | `resource_conflict` | 409 | 唯一性冲突 | 改名 |
-| `ERR-INUSE` | `resource_in_use` | 409 | 被引用 | 先解绑 |
-| `ERR-STALE` | `version_conflict` | 412 | `If-Match` 过期 | 重新 GET 后重试 |
-| `ERR-CURSOR` | `cursor_expired` | 400 | cursor 失效/不匹配 | 重开查询 |
-| `ERR-RATE-LIMIT` | `rate_limit_exceeded` | 429 | 准入超限（带 `Retry-After`） | 按 `Retry-After` |
-| `ERR-PROVIDER-UNAVAIL` | `provider_unavailable` | 503 | 上游不可用/超时/5xx | 标准重试策略 |
-| `ERR-PROVIDER-FAIL` | `provider_failure` | 502 | 注入/上游故障 | 重试/换 |
-| `ERR-PROVIDER-CONTRACT` | `provider_contract_error` | 502 | 上游契约不符 | 不重试 |
-| `ERR-MODEL-UNAVAIL` | `model_unavailable` | 503 | 全候选不健康 | 稍后/换 |
-| `ERR-STORE` | `usage_store_unavailable` | 503 | 存储不可用（不用空页冒充） | 稍后重试 |
-| `ERR-INTERNAL` | `internal_error` | 500 | 未捕获异常 | 上报 |
-| `ERR-BOOT` | `bootstrap_required`/`bootstrap_invalid` | 503 | 空库缺/非法 bootstrap | 修配置重启 |
-| `ERR-SCHEMA` | `schema_version_mismatch`/`schema_unknown`/`schema_integrity_failed` | 503 | schema 版本/旧库/完整性拒绝 | 运维离线处理 |
-| `ERR-PATH-UNSAFE` | `store_path_unsafe` | 503 | DB 路径 symlink | 修路径 |
-| `ERR-INJECTION` | `invalid_injection` | 400 | 注入项非法 | 修注入 |
-| `ERR-CONFIRM` | `confirmation_required` | 400 | 缺二次确认 | 加确认 |
-
-**承接索引**（Error ID → 接口成员 → 产生/透传/转换/消费 → 设计 V/Case）：
-
-| Error ID | 接口成员 | 机制/模块 | V/Case |
-|---|---|---|---|
-| `ERR-REQ-*`/`ERR-MODEL-NOTFOUND` | `/v1/responses`、`/v1/embeddings` | M001 校验、M003 编排 | VRC-INF-001/004 |
-| `ERR-AUTH-*` | 全部受保护端点 | M001 入口 | VRC-API-002 |
-| `ERR-CONFLICT`/`ERR-INUSE`/`ERR-STALE` | `/v1/{providers,deployments,service-levels}` | M004 Registry | VRC-MGMT-* |
-| `ERR-RATE-LIMIT`/`ERR-MODEL-UNAVAIL` | `/v1/responses` | M003 准入 | VRC-INF-004 |
-| `ERR-PROVIDER-*` | `/v1/responses` | M003 适配 | VRC-INF-003 |
-| `ERR-STORE` | `/v1/usage` 等 | M007→M004/API | VRC-MGMT-006 |
-| `ERR-SCHEMA`/`ERR-PATH-UNSAFE`/`ERR-BOOT` | 启动/`/readyz` | M007/M004 | VRC-UTIL-001/002、VRC-MGMT-003 |
-| `ERR-INJECTION`/`ERR-CONFIRM` | `/v1/deployments/{id}/diagnostics`、探测 | M006/M004 | VRC-DIAG-004 |
-
-> **未决**：`interfaces/error-codes/` 机器目录尚未建立（当前 error code 值散在 `openapi` 的 response schema 与各模块 ISD）；建立后本节引用其 version/revision/hash，并运行 `validate-public-error-catalog`。见 §10 / 未决项。
-
 ## 9. 接口设计
 
-> 按接口形态分四类，逐接口完整记录（不设重复"接口清单"，同一接口只定义一次）。全部 HTTP 接口位于单一 `/v1/*` 命名空间；consumer 与 operator 通过凭据与资源名区分。字段级 authority：`interfaces/openapi/llmtier.openapi.json`。
+> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口形态**分类逐接口完整记录，不设重复“接口清单”，同一接口只定义一次。标题为真实路由，标题下先给完整接口声明，再就地说明输入/输出，最后按六项写完。字段级 authority：`interfaces/openapi/llmtier.openapi.json`（candidate `0.3-simplified-candidate.8`）。全部 HTTP 接口同处单一命名空间：消费者面为 `/v1/*`；管理/观测面契约前缀 `/tier/admin/v1/*`（`llmtier-management-contract-v0.3` 权威），实现同时提供 `/v1/*` 扁平别名，二者同入口（`29efe80`），不影响契约。目标 trace 时间窗端点（`/v1/diagnostics/traces`）为 **Planned**（正式契约待补，扁平别名已实现）。
 
 ### 9.1 软件接口（适用时）
 
 **Consumer（OpenAI 兼容）**
 
-| Member ID | 方法 / 路径 | 用途 | 成功输出 | 错误 |
-|---|---|---|---|---|
-| `IF-DP-RESPONSES` | POST `/v1/responses` | Responses；固定 `stream:true`/`store:false`，返回标准 SSE | `D-MSG-RESPONSE`（SSE 见 §9.2） | `ERR-REQ-*`/`ERR-MODEL-*`/`ERR-RATE-LIMIT`/`ERR-PROVIDER-*` |
-| `IF-DP-EMBEDDINGS` | POST `/v1/embeddings` | Embeddings；float / base64 | `D-MSG-EMBEDDING` | `ERR-REQ-*`/`ERR-MODEL-*` |
-| `IF-DP-MODELS` | GET `/v1/models`、`/v1/models/{model}` | 逻辑等级目录 / exact-case 能力 | `D-MODEL[]` / `D-MODEL` | `ERR-MODEL-NOTFOUND` |
+#### `POST /v1/responses`
+
+```text
+POST /v1/responses
+  Content-Type: application/json
+  X-Request-ID: string          # client 可缺省；服务端始终回填
+  body: ResponsesRequest        # stream 恒 true; store 恒 false
+  -> 200 text/event-stream: ResponseStreamEvent (SSE 子集, §9.2)
+  -> 4xx/5xx: ErrorEnvelope
+```
+
+- **Interface/Member ID、用途、责任单元、交接边界、状态、唯一契约、文件·symbol**：`IF-DP-RESPONSES`；标准模型调用（固定 `stream:true`/`store:false`，返回标准 SSE）；M001 HTTP API 终止 HTTP/SSE、M003 Inference 编排；交接边界=HTTP/SSE 入站→推理服务内部调用；状态=规格已定、Implemented；唯一契约=`openapi`；文件·symbol `src/http_api/app.py` `_dispatch` → `src/inference/responses.py` `ResponsesService.create`。
+- **输入**：`ResponsesRequest`（§8.4）——`model`（必填，exact 逻辑等级名）、`input`（必填）、`stream`（必须 true）、`store`（必须 false）、`tools`/`tool_choice`/`temperature`/`max_output_tokens`/`reasoning`/`include`/`service_tier`/`metadata`；授权=`data` 角色凭据（内网可免登录）；校验顺序=鉴权→JSON/schema→形态（stream/store）→模型存在→准入。
+- **成功输出**：`D-MSG-SSE` 流（§8.4/§9.2）；`response.created … response.completed|incomplete|failed`，每请求恰好一个 terminal，`usage` 仅 terminal 给出；副作用=登记用量义务→落账本（§8.9/§8.10）。
+- **错误与异常**：`ERR-REQ-VALIDATION`/`ERR-REQ-FIELD`/`ERR-REQ-JSON`（400，未受理）；`ERR-REQ-UNSUPPORTED`（400，`stream=false`）；`ERR-REQ-TOO-LARGE`（413）；`ERR-AUTH-*`（401/403/503）；`ERR-MODEL-NOTFOUND`（404）；`ERR-RATE-LIMIT`（429 + `Retry-After`）；`ERR-MODEL-UNAVAIL`/`ERR-PROVIDER-*`（503/502）；已建连后断开=结果未知，不创建可恢复 Invocation。
+- **交互与生命周期**：同步建连后流式；单请求独立模型调用，无 Agent 会话/工具执行；客户端断开结束本次调用并释放许可；不承诺跨系统 exactly-once。
+- **实例与验证**：正常 exact tier → 200 SSE + terminal Usage；拒绝 `stream=false` → 400 `unsupported_request`。`VRC-INF-001/002/003/004`；`src/inference/responses.py`。
+
+#### `POST /v1/embeddings`
+
+```text
+POST /v1/embeddings
+  body: EmbeddingRequest {model, input, encoding_format?: "float"|"base64", dimensions?: int, user?: str}
+  -> 200: EmbeddingResponse {object, data:[EmbeddingItem], model, usage:EmbeddingUsage}
+  -> 4xx/5xx: ErrorEnvelope
+```
+
+- **Interface/Member ID、用途、责任单元、交接边界、状态、唯一契约、文件·symbol**：`IF-DP-EMBEDDINGS`；向量化（float / base64）；M001 + M003；交接边界=HTTP 入站→embedding 服务；状态=规格已定、Implemented；唯一契约=`openapi`；文件·symbol `src/http_api/app.py` → `src/inference/embeddings.py` `EmbeddingsService.create`。
+- **输入**：`EmbeddingRequest`（§8.4）——`model`（必填，exact embedding tier）、`input`（必填，单条/批量）、`encoding_format`（默认 `float`）、`dimensions`、`user`；授权=`data` 角色；校验顺序=鉴权→schema→embedding 模型路由（`embedding_space_id` 兼容）。
+- **成功输出**：`EmbeddingResponse` 向量 `data[]` + token `usage`；副作用=登记用量义务→落账本。
+- **错误与异常**：`ERR-REQ-VALIDATION`/`ERR-REQ-TOO-LARGE`（400/413）；`ERR-MODEL-NOTFOUND`（404）；`ERR-RATE-LIMIT`（429）；`ERR-PROVIDER-*`（502/503）；`ERR-STORE`（503）。
+- **交互与生命周期**：同步；单请求；同一 embedding 逻辑 model 只绑定同一 `embedding_space_id`、模型版本与预处理契约；非兼容变更必须新建逻辑 model ID。
+- **实例与验证**：正常 float 返回向量与 Usage；拒绝不兼容维度 → `ERR-REQ-VALIDATION`。`VRC-INF-001`；`src/inference/embeddings.py`。
+
+#### `GET /v1/models` / `GET /v1/models/{model}`
+
+```text
+GET /v1/models                    -> 200 ModelList {object, data:[Model]}
+GET /v1/models/{model}            -> 200 Model {id, object, created, owned_by, availability, capabilities}
+  -> 4xx/5xx: ErrorEnvelope
+```
+
+- **Interface/Member ID、用途、责任单元、交接边界、状态、唯一契约、文件·symbol**：`IF-DP-MODELS`；逻辑等级目录 / exact-case 能力；M001 + M003；状态=规格已定、Implemented；唯一契约=`openapi`；文件·symbol `src/inference/models.py` `ModelsService.list`/`get`。
+- **输入**：路径 `model`（exact-case 逻辑等级名）；授权=`data` 角色；无 body。
+- **成功输出**：`D-MODEL`（§8.2）——目录返回 `ModelList`，detail 返回单个 `Model`；只暴露逻辑等级与能力，不暴露物理账号。
+- **错误与异常**：`ERR-AUTH-*`（401/403）；detail 未知 exact 名 → `ERR-MODEL-NOTFOUND`（404）。
+- **交互与生命周期**：同步只读；幂等；随 Registry 变更反映。
+- **实例与验证**：正常返回 7 个固定 tier；拒绝未知 exact 名 → 404。`VRC-INF-001`；`src/inference/models.py`。
 
 **Operator（管理 / 用量 / 观测 / 探针）**
 
-| Member ID | 方法 / 路径 | 用途 | 错误 |
-|---|---|---|---|
-| `IF-ADM-PROVIDERS` | GET/POST `/tier/admin/v1/providers`；GET/PATCH/DELETE `/v1/providers/{id}` | provider CRUD | `ERR-*` |
-| `IF-ADM-PROVIDER-USAGE` | GET/POST `/v1/providers/{id}/usage` | 账号用量读/显式刷新 | `ERR-CONFIRM` 等 |
-| `IF-ADM-PROVIDER-MODELS` | GET `/v1/providers/{id}/models` | 上游模型目录 | `ERR-*` |
-| `IF-ADM-DEPLOYMENTS` | GET/POST `/tier/admin/v1/deployments`；GET/PATCH/DELETE `/v1/deployments/{id}` | deployment CRUD（含 Pause/Resume） | `ERR-*` |
-| `IF-ADM-SERVICE-LEVELS` | GET/POST `/tier/admin/v1/service-levels`；GET/PATCH/DELETE `/v1/service-levels/{id}` | tier 成员绑定 | `ERR-*` |
-| `IF-ADM-RUNTIME` | GET `/v1/runtime` | 并发 / 队列快照 | — |
-| `IF-ADM-STATS` | GET `/v1/stats` | 用量聚合（`from`/`to`+`group_by`） | `ERR-REQ-VALIDATION` |
-| `IF-ADM-PROBES` | POST `/tier/admin/v1/probes` | 部署探测（需 `confirm_external_call`） | `ERR-CONFIRM` |
-| `IF-ADM-USAGE` | GET/DELETE `/tier/admin/v1/usage` | 用量查询 / 清空 | `ERR-REQ-VALIDATION` |
-| `IF-ADM-AUDIT` | GET `/tier/admin/v1/audit` | 管理审计（脱敏） | — |
-| `IF-ADM-LOGS` | GET `/tier/admin/v1/logs` | 运行日志（脱敏） | `ERR-REQ-VALIDATION` |
-| `IF-OBS-SWITCH` | GET/PATCH `/tier/admin/v1/diagnostics` | 全局调试开关 | — |
-| `IF-OBS-SNAPSHOTS` | GET `/tier/admin/v1/diagnostics/snapshots` | 上游快照查询 | — |
-| `IF-OBS-STATS` | GET `/tier/admin/v1/diagnostics/stats` | 数据面统计（P50/P95） | — |
-| `IF-OBS-INJECTIONS` | GET/PATCH `/tier/admin/v1/deployments/{id}/diagnostics` | 注入配置 | `ERR-INJECTION` |
-| `IF-OBS-TRACE` | GET `/tier/admin/v1/trace/{request_id}` | 单请求全生命周期 | `ERR-NOTFOUND` |
-| `IF-HEALTH` | GET `/healthz`、`/readyz` | 存活 / 就绪（无凭据；`/readyz` 模型级 availability） | — |
+#### `GET/POST /v1/providers`；`GET/PATCH/DELETE /v1/providers/{provider_id}`
 
-契约前缀 `/tier/admin/v1/*`（`llmtier-management-contract-v0.3` 权威）；实现可另走 `/v1/*` 扁平别名，二者同入口（`29efe80`），不影响契约。以上为设计已定；trace 时间窗端点（§2.7）为 **Planned**（未实现）。
+```text
+GET    /v1/providers?cursor=&limit=            -> 200 ProviderPage {data:[ProviderView], page:AdminPageMeta}
+POST   /v1/providers {ProviderWrite}           -> 201 ProviderView (ETag)
+GET    /v1/providers/{provider_id}             -> 200 ProviderView (ETag)
+PATCH  /v1/providers/{provider_id} {ProviderPatch} If-Match -> 200 ProviderView (ETag)
+DELETE /v1/providers/{provider_id} If-Match    -> 204
+  -> 4xx/5xx: ErrorEnvelope
+```
+
+- **Interface/Member ID、用途、责任单元、交接边界、状态、唯一契约、文件·symbol**：`IF-ADM-PROVIDERS`；provider CRUD；M004 Management（事务化 Registry）、M001 暴露；状态=规格已定、Implemented；唯一契约=`openapi` + `llmtier-management-contract-v0.3`；文件·symbol `src/http_api/app.py` → `src/management/registry.py`。
+- **输入**：`ProviderWrite`（`name`/`kind`/`endpoint`/`secret_ref`/`enabled`/`usage`）；`ProviderPatch`（全字段可选，partial）；路径 `provider_id`；`If-Match`（PATCH/DELETE 必填）；授权=`admin` 角色。
+- **成功输出**：`ProviderView {id,name,kind,endpoint,has_secret,enabled,usage,request_usage,version}` + 强 `ETag`；`secret_ref` 只写不回显；副作用=同事务写审计（`D-AUDIT-EVENT`）。
+- **错误与异常**：`ERR-AUTH-*`（401/403）；重名/唯一冲突 → `ERR-CONFLICT`（409）；被引用删除 → `ERR-INUSE`（409）；`If-Match` 过期 → `ERR-STALE`（412）；未知 ID → `ERR-NOTFOUND`（404）；`ERR-STORE`（503）。
+- **交互与生命周期**：同步；PATCH 为 partial（只更新出现字段）；DELETE 幂等；ETag 乐观并发。
+- **实例与验证**：正常建 provider 返回 201+ETag；拒绝缺 `If-Match` 的 PATCH → `ERR-STALE`。`VRC-MGMT-001/002`；`src/management/registry.py`。
+
+#### `GET/POST /v1/providers/{provider_id}/usage`
+
+```text
+GET  /v1/providers/{provider_id}/usage                        -> 200 ProviderAccountUsageSnapshot
+POST /v1/providers/{provider_id}/usage {confirm_external_call: true} -> 200 ProviderAccountUsageSnapshot
+  -> 4xx/5xx: ErrorEnvelope
+```
+
+- **Interface/Member ID、用途、责任单元、交接边界、状态、唯一契约、文件·symbol**：`IF-ADM-PROVIDER-USAGE`；账号用量读取 / 显式刷新；M004（`account_usage`）；状态=规格已定、Implemented；唯一契约=`openapi`；文件·symbol `src/management/account_usage.py` `latest`/`refresh`。
+- **输入**：路径 `provider_id`；POST body 仅 `{confirm_external_call: bool}`；授权=`admin` 角色。
+- **成功输出**：`D-PROVIDER-SNAPSHOT`（§8.2）——窗口/percent/used/quota/reset/source/status/checked_at；POST 显式刷新并替换快照；不落 Secret。
+- **错误与异常**：缺二次确认 → `ERR-CONFIRM`（400）；未知 provider → `ERR-NOTFOUND`（404）；`ERR-AUTH-*`；上游失败记入快照 `status`（HTTP 200 返回快照事实）。
+- **交互与生命周期**：同步；GET 只读幂等；POST 仅在显式确认后触发外部调用（不自动轮询）。
+- **实例与验证**：正常带确认刷新；拒绝缺确认 → 400。`VRC-MGMT-*`、`VRC-DIAG-004`。
+
+#### `GET /v1/providers/{provider_id}/models`
+
+```text
+GET /v1/providers/{provider_id}/models -> 200 {data:[...]}    # 上游模型目录
+  -> 4xx/5xx: ErrorEnvelope
+```
+
+- **Interface/Member ID、用途、责任单元、交接边界、状态、唯一契约、文件·symbol**：`IF-ADM-PROVIDER-MODELS`；上游模型目录；M004；状态=规格已定、Implemented；唯一契约=`openapi`；文件·symbol `src/management/admin.py` `list_provider_models`。
+- **输入**：路径 `provider_id`；授权=`admin`。
+- **成功输出**：上游目录列表 `{data:[...]}`；副作用=无。
+- **错误与异常**：未知 provider → `ERR-NOTFOUND`（404）；上游不可用 → `ERR-PROVIDER-UNAVAIL`（503）。
+- **交互与生命周期**：同步只读；幂等。
+- **实例与验证**：正常返回目录；拒绝未知 provider。`VRC-MGMT-*`。
+
+#### `GET/POST /v1/deployments`；`GET/PATCH/DELETE /v1/deployments/{deployment_id}`
+
+```text
+GET    /v1/deployments?cursor=&limit=              -> 200 DeploymentPage {data:[DeploymentView], page}
+POST   /v1/deployments {DeploymentWrite}           -> 201 DeploymentView (ETag)
+GET    /v1/deployments/{deployment_id}             -> 200 DeploymentView (ETag)
+PATCH  /v1/deployments/{deployment_id} {DeploymentPatch} If-Match -> 200 DeploymentView (ETag)
+DELETE /v1/deployments/{deployment_id} If-Match    -> 204
+  -> 4xx/5xx: ErrorEnvelope
+```
+
+- **Interface/Member ID、用途、责任单元、交接边界、状态、唯一契约、文件·symbol**：`IF-ADM-DEPLOYMENTS`；deployment CRUD（含 Pause/Resume，经 `enabled`）；M004、M001；状态=规格已定、Implemented；唯一契约=`openapi`；文件·symbol `src/management/registry.py`。
+- **输入**：`DeploymentWrite`（`name`/`provider_id`/`backend_model`/`capabilities`/`enabled`）；`DeploymentPatch`（全字段可选）；`If-Match`；授权=`admin`。
+- **成功输出**：`DeploymentView {id,name,provider_id,backend_model,capabilities,enabled,health,version}` + ETag；副作用=同事务审计。
+- **错误与异常**：未知 `provider_id` → `ERR-REQ-VALIDATION`（400）；重名 → `ERR-CONFLICT`（409）；被 tier 引用删除 → `ERR-INUSE`（409）；`ERR-STALE`（412）；`ERR-AUTH-*`。
+- **交互与生命周期**：同步；partial PATCH；ETag 乐观并发。
+- **实例与验证**：正常引用已存在 provider；拒绝未知 provider。`VRC-MGMT-001/002`。
+
+#### `GET/POST /v1/service-levels`；`GET/PATCH/DELETE /v1/service-levels/{service_level_id}`
+
+```text
+GET    /v1/service-levels?cursor=&limit=               -> 200 ServiceLevelPage {data:[ServiceLevelView], page}
+POST   /v1/service-levels {ServiceLevelWrite}          -> 201 ServiceLevelView (ETag)
+GET    /v1/service-levels/{service_level_id}           -> 200 ServiceLevelView (ETag)
+PATCH  /v1/service-levels/{service_level_id} {ServiceLevelPatch} If-Match -> 200 ServiceLevelView (ETag)
+DELETE /v1/service-levels/{service_level_id} If-Match  -> 204
+  -> 4xx/5xx: ErrorEnvelope
+```
+
+- **Interface/Member ID、用途、责任单元、交接边界、状态、唯一契约、文件·symbol**：`IF-ADM-SERVICE-LEVELS`；tier 成员绑定；M004、M001；状态=规格已定、Implemented；唯一契约=`openapi`；文件·symbol `src/management/registry.py`。
+- **输入**：`ServiceLevelWrite`（`id` 固定 tier 名/`deployment_ids[]` 有序/`enabled`）；`ServiceLevelPatch`（`deployment_ids`/`enabled`）；`If-Match`；授权=`admin`。
+- **成功输出**：`ServiceLevelView {id,deployment_ids,enabled,capabilities,version}` + ETag；`capabilities` 为成员交集；副作用=同事务审计。
+- **错误与异常**：非固定 tier / 非法成员交集 → `ERR-REQ-VALIDATION`（400）；`ERR-CONFLICT`（409）；被引用 → `ERR-INUSE`（409）；`ERR-STALE`（412）。
+- **交互与生命周期**：同步；partial PATCH；ETag；成员顺序稳定。
+- **实例与验证**：正常绑定有序成员；拒绝非固定 tier 名。`VRC-MGMT-001/002`。
+
+#### `GET /v1/runtime`
+
+```text
+GET /v1/runtime -> 200 object    # 并发/队列快照
+  -> 4xx/5xx: ErrorEnvelope
+```
+
+- **Interface/Member ID、用途、责任单元、交接边界、状态、唯一契约、文件·symbol**：`IF-ADM-RUNTIME`；并发 / 队列快照；M003（`routing`）、M001；状态=规格已定、Implemented；唯一契约=`openapi`；文件·symbol `src/inference/routing.py` `snapshot`。
+- **输入**：无参数；授权=`admin`。
+- **成功输出**：各 deployment 的 in-flight/许可与各 tier FIFO 队列深度快照；副作用=无。
+- **错误与异常**：`ERR-AUTH-*`（401/403）。
+- **交互与生命周期**：同步只读；瞬时值，不构成 Slinky capacity/Seat contract。
+- **实例与验证**：正常返回快照。`VRC-INF-004`。
+
+#### `GET /v1/stats`
+
+```text
+GET /v1/stats?from=&to=&group_by=tier -> 200 object
+  -> 4xx/5xx: ErrorEnvelope
+```
+
+- **Interface/Member ID、用途、责任单元、交接边界、状态、唯一契约、文件·symbol**：`IF-ADM-STATS`；用量聚合；M004、M001；状态=规格已定、Implemented；唯一契约=`openapi`；文件·symbol `src/management/admin.py` `stats`。
+- **输入**：`from`/`to`（必填，RFC3339，`[from,to)`）、`group_by`（默认 `tier`）；授权=`admin`。
+- **成功输出**：聚合结果；副作用=无。
+- **错误与异常**：缺 `from`/`to` 或非法 → `ERR-REQ-VALIDATION`（400）；`ERR-STORE`（503）。
+- **交互与生命周期**：同步只读；窗口稳定。
+- **实例与验证**：正常窗口聚合；拒绝缺参数 → 400。`VRC-MGMT-006`。
+
+#### `POST /v1/probes`
+
+```text
+POST /v1/probes {deployment_id, confirm_external_call: true} -> 200 ProbeResult
+  -> 4xx/5xx: ErrorEnvelope
+```
+
+- **Interface/Member ID、用途、责任单元、交接边界、状态、唯一契约、文件·symbol**：`IF-ADM-PROBES`；部署探测（有费用/改变状态）；M004（`admin`）；状态=规格已定、Implemented；唯一契约=`openapi`；文件·symbol `src/management/admin.py` `probe`。
+- **输入**：`ProbeRequest {deployment_id, confirm_external_call}`；授权=`admin` + 二次确认。
+- **成功输出**：`ProbeResult {deployment_id,status,checked_at,may_have_incurred_cost}`；副作用=可能产生上游调用费用（由 `may_have_incurred_cost` 声明）。
+- **错误与异常**：缺确认 → `ERR-CONFIRM`（400）；未知 deployment → `ERR-NOTFOUND`（404）；上游失败 → `ERR-PROVIDER-*`（502）。
+- **交互与生命周期**：同步；显式触发，不自动轮询。
+- **实例与验证**：正常带确认探测；拒绝缺确认 → 400。`VRC-DIAG-004`。
+
+#### `GET/DELETE /v1/usage`
+
+```text
+GET    /v1/usage?cursor=&limit=&from=&to=&model=&request_id= -> 200 UsagePage
+DELETE /v1/usage?model=&deployment_id=                        -> 200 object   # 仅 operator
+  -> 4xx/5xx: ErrorEnvelope
+```
+
+- **Interface/Member ID、用途、责任单元、交接边界、状态、唯一契约、文件·symbol**：`IF-ADM-USAGE`；用量查询 / 清空；M003（`usage`）、M001；状态=规格已定、Implemented；唯一契约=`openapi`；文件·symbol `src/inference/usage.py` `UsageRecorder.page`/`reset_usage`。
+- **输入**：GET 过滤/分页参数；DELETE 过滤参数；GET 可按主体或全部，DELETE 仅 `admin`。
+- **成功输出**：`UsagePage`（measured/estimated/unknown 可区分，unknown 不填零）；DELETE 返回清空结果；副作用=DELETE 改变账本（仅显式 operator 操作）。
+- **错误与异常**：`ERR-AUTH-*`（401/403，非 admin DELETE 拒绝）；`ERR-CURSOR`（400）；`ERR-STORE`（503，不用空页冒充无记录）。
+- **交互与生命周期**：GET 稳定分页快照（cursor 绑定 principal/授权/原 filter）；DELETE 显式。
+- **实例与验证**：正常分页；拒绝非 admin 清空；拒绝过期 cursor。`VRC-MGMT-006`。
+
+#### `GET /v1/audit`
+
+```text
+GET /v1/audit?limit= -> 200 AuditPage {data:[AuditEvent], page}
+  -> 4xx/5xx: ErrorEnvelope
+```
+
+- **Interface/Member ID、用途、责任单元、交接边界、状态、唯一契约、文件·symbol**：`IF-ADM-AUDIT`；管理审计（脱敏）；M004（`audit`）、M001；状态=规格已定、Implemented；唯一契约=`openapi`；文件·symbol `src/management/audit.py` `page`。
+- **输入**：`limit`；授权=`admin`。
+- **成功输出**：`D-AUDIT-EVENT` 列表；不含 prompt/output/Secret。
+- **错误与异常**：`ERR-AUTH-*`（401/403）；`ERR-STORE`（503）。
+- **交互与生命周期**：同步只读；按审计策略保留。
+- **实例与验证**：正常返回脱敏审计。`VRC-MGMT-*`。
+
+#### `GET /v1/logs`
+
+```text
+GET /v1/logs?limit=&level=&module=&request_id=&from=&to= -> 200 LogPage {data:[LogEntry], page}
+  -> 4xx/5xx: ErrorEnvelope
+```
+
+- **Interface/Member ID、用途、责任单元、交接边界、状态、唯一契约、文件·symbol**：`IF-ADM-LOGS`；运行日志（脱敏）；M008（`log`）、M005 呈现、M001；状态=规格已定、Implemented；唯一契约=`openapi`；文件·symbol `src/log/logs.py` `page`。
+- **输入**：`limit`/`level`/`module`/`request_id`/`from`/`to`；授权=`admin`。
+- **成功输出**：`D-LOG-EVENT` 列表（写前脱敏）；不含 Secret/凭据/完整正文。
+- **错误与异常**：缺 `from`/`to` → `ERR-REQ-VALIDATION`（400）；`ERR-STORE`（503，返回 503 而非空页）。
+- **交互与生命周期**：同步只读；7 天保留。
+- **实例与验证**：正常过滤查询；拒绝缺时间窗。`VRC-LOG-001`。
+
+#### `GET/PATCH /v1/diagnostics`
+
+```text
+GET   /v1/diagnostics                       -> 200 SwitchState
+PATCH /v1/diagnostics {snapshots_enabled?, stats_enabled?} -> 200 SwitchState
+  -> 4xx/5xx: ErrorEnvelope
+```
+
+- **Interface/Member ID、用途、责任单元、交接边界、状态、唯一契约、文件·symbol**：`IF-OBS-SWITCH`；全局调试开关；M005 展现/切换、M006（`libdiag`）持有；状态=规格已定、Implemented；唯一契约=`openapi`；文件·symbol `src/http_api/app.py` → `src/libdiag/settings.py`。
+- **输入**：PATCH body 可选 `snapshots_enabled`/`stats_enabled`（bool）；授权=`admin`。
+- **成功输出**：`SwitchState`；生效=同事务提交（`conn` 并入）后可见；副作用=同事务审计。
+- **错误与异常**：非法类型 → `ERR-REQ-VALIDATION`（400）；`ERR-AUTH-*`。
+- **交互与生命周期**：同步；part 更新；关闭时零写入。
+- **实例与验证**：正常切换；边界：关闭后无新记录。`VRC-DIAG-001`。
+
+#### `GET /v1/diagnostics/snapshots`
+
+```text
+GET /v1/diagnostics/snapshots?since=&until=&deployment_id=&model=&limit=&cursor= -> 200 SnapshotPage
+  -> 4xx/5xx: ErrorEnvelope
+```
+
+- **Interface/Member ID、用途、责任单元、交接边界、状态、唯一契约、文件·symbol**：`IF-OBS-SNAPSHOTS`；上游快照查询；M006 提供、M005 呈现；状态=规格已定、Implemented；唯一契约=`openapi`；文件·symbol `src/libdiag/snapshots.py` `snapshots_page`。
+- **输入**：时间窗/过滤/分页参数；授权=`admin`。
+- **成功输出**：`SnapshotPage`（脱敏）；
+- **错误与异常**：`ERR-AUTH-*`；`ERR-STORE`（503）。
+- **交互与生命周期**：同步只读；7 天保留；cursor 稳定。
+- **实例与验证**：正常分页；空匹配 → `items=[]`。`VRC-DIAG-002`。
+
+#### `GET /v1/diagnostics/stats`
+
+```text
+GET /v1/diagnostics/stats?since=&until=&deployment_id=&model= -> 200 StatsView
+  -> 4xx/5xx: ErrorEnvelope
+```
+
+- **Interface/Member ID、用途、责任单元、交接边界、状态、唯一契约、文件·symbol**：`IF-OBS-STATS`；数据面统计（P50/P95）；M006 提供、M005 呈现；状态=规格已定、Implemented；唯一契约=`openapi`；文件·symbol `src/libdiag/stats.py` `stats`。
+- **输入**：`since`/`until`（必填）；`deployment_id`/`model`；授权=`admin`。
+- **成功输出**：`StatsView`（无样本时百分位 null、sum=0）。
+- **错误与异常**：缺 `since`/`until` → `ERR-REQ-VALIDATION`（400）；`ERR-STORE`（503）。
+- **交互与生命周期**：同步只读；统计可丢、非账本。
+- **实例与验证**：正常窗口；边界：无样本 → null。`VRC-DIAG-002`。
+
+#### `GET/PATCH /v1/deployments/{deployment_id}/diagnostics`
+
+```text
+GET   /v1/deployments/{deployment_id}/diagnostics -> 200 [InjectionView]
+PATCH /v1/deployments/{deployment_id}/diagnostics [{type, config, enabled}] -> 200 [InjectionView]
+  -> 4xx/5xx: ErrorEnvelope
+```
+
+- **Interface/Member ID、用途、责任单元、交接边界、状态、唯一契约、文件·symbol**：`IF-OBS-INJECTIONS`；故障注入配置；M006（`libdiag` 注入）、M005 呈现、M001；状态=规格已定、Implemented；唯一契约=`openapi`；文件·symbol `src/libdiag/injections.py` `injections`/`set_injections`。
+- **输入**：路径 `deployment_id`；PATCH body 为注入项列表 `{type, config, enabled}`（字段约束见 M006 §6.3）；授权=`admin`。
+- **成功输出**：`InjectionView[]`；生效=同事务 upsert；副作用=同事务审计；流注入（`stream_terminate`/`malformed_event`）需改造流式输出模块（`LT-OPEN-05`）。
+- **错误与异常**：类型/字段/范围非法 → `ERR-INJECTION`（400）；未知 deployment → `ERR-NOTFOUND`（404）；`ERR-AUTH-*`。
+- **交互与生命周期**：同步；按 `(deployment_id,type)` upsert；注入仅影响命中请求且可撤销。
+- **实例与验证**：正常 `delay` 注入；拒绝非法 type → 400。`VRC-DIAG-004`。
+
+#### `GET /v1/trace/{request_id}`
+
+```text
+GET /v1/trace/{request_id} -> 200 TraceView
+  -> 4xx/5xx: ErrorEnvelope
+```
+
+- **Interface/Member ID、用途、责任单元、交接边界、状态、唯一契约、文件·symbol**：`IF-OBS-TRACE`；单请求全生命周期；M006 提供、M005 呈现；状态=规格已定、Implemented；唯一契约=`openapi`；文件·symbol `src/libdiag/traces.py` `trace`。
+- **输入**：路径 `request_id`；授权=`admin`。
+- **成功输出**：`TraceView`（阶段 + 最近快照 + 用量）；脱敏。
+- **错误与异常**：未知 request → `ERR-NOTFOUND`（404）；`ERR-STORE`（503）。
+- **交互与生命周期**：同步只读；请求级；幂等。
+- **实例与验证**：正常已有请求；拒绝未知 id → 404。`VRC-DIAG-002`。
+
+#### `GET /healthz` / `GET /readyz`
+
+```text
+GET /healthz -> 200 HealthView {status, version}          # 进程存活，无凭据
+GET /readyz  -> 200 ReadinessView {status, models:[...]}  # schema+bootstrap+固定等级就绪
+             -> 503 (not_ready)
+```
+
+- **Interface/Member ID、用途、责任单元、交接边界、状态、唯一契约、文件·symbol**：`IF-HEALTH`；存活 / 就绪（无凭据；`/readyz` 模型级 availability）；M001、M004/M007 提供事实；状态=规格已定、Implemented；唯一契约=`openapi`；文件·symbol `src/http_api/health.py` `health_view`/`readiness_view`。
+- **输入**：无参数、无凭据。
+- **成功输出**：`HealthView`/`ReadinessView`；`/readyz` 由 schema、bootstrap 与固定等级共同决定；副作用=无。
+- **错误与异常**：bootstrap/schema 失败 → `/readyz` 503 `not_ready`（不接流量）；对应 `ERR-BOOT`/`ERR-SCHEMA`/`ERR-PATH-UNSAFE`。
+- **交互与生命周期**：同步只读；无副作用健康/就绪检查。
+- **实例与验证**：正常 READY；边界：bootstrap 失败保持 not_ready。`VRC-UTIL-001/002`、`VRC-MGMT-003`。
 
 ### 9.2 消息与数据流接口（适用时）
 
-| Member ID | 流 / 事件名 | 用途 | 说明 |
-|---|---|---|---|
-| `IF-MSG-SSE` | Responses SSE 事件子集 | Data Plane 流式协议 | `response.created`、`response.output_item.added`、`response.output_text.delta`、`response.refusal.delta`、reasoning summary/text、`response.function_call_arguments.delta\|done`、`response.output_item.done`、`response.completed\|incomplete\|failed`、`error`；每 output item 稳定 `id`；每请求恰好一个 terminal；task 头 `X-Request-ID`，可接收标准 trace context |
+#### `Responses SSE 事件子集`
+
+```text
+stream: text/event-stream
+  event: response.created | response.output_item.added | response.output_text.delta
+       | response.refusal.delta | response.reasoning_summary_text.delta | response.reasoning_text.delta
+       | response.function_call_arguments.delta | response.function_call_arguments.done
+       | response.output_item.done | response.completed | response.incomplete | response.failed
+       | error
+  data: ResponseStreamEvent (每事件带 type/sequence_number)
+```
+
+- **Interface/Member ID、用途、提供责任与来源**：`IF-MSG-SSE`；Data Plane 流式协议；M003 产出、M001 传输；唯一契约=`openapi` `ResponseStreamEvent`；数据结构见 §8.4 `D-MSG-SSE`。
+- **输入输出与关联身份**：输入=一次已受理的 `POST /v1/responses`；输出=SSE 帧；`X-Request-ID` 为 task 头，可接收 `X-Correlation-ID`/`traceparent`。
+- **交互、错误与生命周期**：每 output item 稳定 `id`；每请求恰好一个 terminal；`error` 事件表达流内失败；客户端断开结束本次调用并释放许可；不承诺可恢复 Invocation。
+- **实现与验证**：`src/http_api/sse.py`、`src/inference/responses.py`；`VRC-INF-002/005`；边界：上游失败发 `error`/`failed` terminal，不伪造完成。
 
 ### 9.3 硬件与固件接口（适用时）
 
-不适用（纯软件系统，无连接器/总线/寄存器/FPGA 端口）。
+不适用：纯软件系统，无连接器/总线/寄存器/FPGA 端口（tailoring `LT-TL-003`）。
 
 ### 9.4 人机与维护接口（适用时）
 
-| Member ID | 入口 | 用途 | 说明 |
-|---|---|---|---|
-| `IF-UI-CONSOLE` | `/ui/*` | operator 控制台（同源调用 §9.1 管理接口） | 不新增业务接口；不落 Secret/正文 |
-| `IF-CLI-RUN` | `python3 -m http_api`（`llm-tier-v03`） | 启动/运维入口 | bootstrap 首启需一次性 settings |
+#### `/ui/*` · operator 控制台
+
+```text
+GET /ui/* -> Web UI 静态资源（HTML/JS/CSS/图标）
+  浏览器操作 -> 同源调用 §9.1 管理接口
+```
+
+- **Interface/Member ID、用途、提供责任与来源**：`IF-UI-CONSOLE`；operator 控制台（英文）；M002 Web UI、M001 提供静态资源；状态=规格已定、Implemented；唯一契约=本设计 §4.3 + `openapi`（同源调用管理接口）。
+- **执行位置、目标、输入与前提**：浏览器；目标=将管理面能力呈现/操作；权限=operator；不新增业务接口。
+- **输出、错误与交互**：反馈与 §9.1 管理接口一致（412/409/503 等）；不直读 SQLite/配置/密钥，不落 Secret/正文。
+- **实例与验证**：`src/web_ui/`；`VRC-UI-*`。
+
+#### `python3 -m http_api`（`llmtier-v03`）· 启动/运维入口
+
+```text
+python -m http_api --host --port --database [--settings]     # console script: llmtier-v03
+```
+
+- **Interface/Member ID、用途、提供责任与来源**：`IF-CLI-RUN`；启动/运维入口；M001；状态=规格已定、Implemented；唯一契约=本设计 §15 + `src/http_api/__main__.py`。
+- **执行位置、目标、输入与前提**：部署主机 CLI；参数 `--host`/`--port`/`--database`/[`--settings`]；bootstrap 首启需一次性 settings。
+- **输出、错误与交互**：监听日志与退出码；bootstrap/schema 失败保持 `not_ready`、不接流量（`ERR-BOOT`/`ERR-SCHEMA`）。
+- **实例与验证**：正常启动后 `/healthz`；失败回滚。`VRC-UTIL-001/002`。
 
 ### 9.5 通用约定（跨接口）
 
+- **命名空间**：消费者面 `/v1/*`；管理/观测面契约前缀 `/tier/admin/v1/*`（`llmtier-management-contract-v0.3` 权威），实现同时提供 `/v1/*` 扁平别名，二者同入口（`29efe80`）。
 - **错误**：统一 `D-ERROR-ENVELOPE` `{error:{message,type,code,param}}`；码值见 §8.8；429 可带 `Retry-After`。
-- **分页**：基于 cursor；游标绑定筛选、授权与稳定快照。
+- **分页**：基于 cursor；游标绑定筛选、授权与稳定快照；失效 → `ERR-CURSOR`。
 - **并发控制**：管理读返回强 ETag；PATCH / DELETE 必须携带 `If-Match`；stale edit → `ERR-STALE`，引用冲突 → `ERR-INUSE`，partial PATCH 只更新出现字段。
 - **凭据**：Bearer 只标识获授权主体；不暴露 Client/Source/SourceInstance。
 - **关联**：`X-Request-ID` 是服务端响应关联 ID；可接收标准 trace context；二者不是幂等键或会话 ID。

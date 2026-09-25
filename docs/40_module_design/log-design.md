@@ -13,9 +13,9 @@
 | Document Owner | LLMTier |
 | Authors | llmtier |
 | Created Date | `2026-09-23` |
-| Last Modified Date | `2026-09-23` |
+| Last Modified Date | `2026-09-25` |
 | Template ID | `design.definition` |
-| Template Version | `2.4.0` |
+| Template Version | `3.0.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |
@@ -136,12 +136,11 @@
 
 ### 5.3 文件间接口契约
 
-#### 5.3.1 `IF-LOG-01` · 业务模块 → `logs.py`
-- **签名 / 入口**：`OperationalLog.record(level, module, event, message, request_id=None)`、`page(...)`
-- **输入与前置条件**：—（message 可为任意文本）
-- **输出 / 异常**：行 / `{data,page}`
-- **ownership / 生命周期**：持久（`operational_logs`）
-- **实现与验证位置**：`logs.py`；`VRC-LOG-001`
+> 本模块内部/跨模块文件交接逐项映射到 §9 的成员定义；签名、输入输出、错误与寿命以 §9 对应记录为唯一来源，本节不再复写。
+
+| 内部契约 ID | provider → consumer | §9 成员 | 本文件责任 | 验证 |
+|---|---|---|---|---|
+| `IF-LOG-01` | 全部业务模块 → `src/log/logs.py` | §9.1 `IF-LOG-RECORD`、`IF-LOG-QUERY` | 写入方只调 `record`；查询方只调 `page` | `VRC-LOG-001` |
 
 ### 5.4 服务提供方式（条件适用）
 
@@ -157,16 +156,74 @@
 - **循环/越层检查**：`logs.py` 只 import `store`
 - **变更影响**：脱敏规则变更影响所有写入方
 
-## 6. 数据模型、状态与 ownership
+## 6. 数据结构设计
 
-#### 6.1 `LogEvent`（`operational_logs`）
-- **Authority / 定义位置**：`logs.py` + `001_initial.sql`
-- **字段**：`id`、`created_at`、`level`、`module`、`event`、`message(≤512,已脱敏)`、`request_id`
-- **键与跨字段约束**：`message` 写前脱敏；不含正文/凭据
-- **Writer / Reader**：I1 写；I2 读
-- **创建、持有、借用/复制与释放**：持久；保留期由运维
-- **状态转换 / 并发规则**：只追加
-- **验证项**：`VRC-LOG-001`
+> 按 STD `design-data-interface-format` 1.2.0：主章“数据结构设计”，章内按**数据性质分类**。M008 为进程内库，无 wire、无设备；`6.4 通信报文` 与 `6.5 设备与 FPGA 表项` 不适用。继承结构只定位原定义；本层拥有的结构逐项完整记录（ID/唯一来源/字段/约束/状态·所有权·寿命/合法与拒绝实例/验证）。
+
+**适用性**：6.1 公共基础类型与枚举 ✓｜6.2 业务与操作数据结构 ✓｜6.3 配置与规则数据结构 ✓｜6.4 通信报文 ✗（进程内函数调用，无 wire 报文）｜6.5 设备与 FPGA 表项 ✗（无连接器/总线/寄存器/FPGA 端口）｜6.6 运行状态数据结构 ✗（写入即落库、查询无状态，无跨步骤状态）｜6.7 数据库表结构 ✓（authority = `util/migrations/001_initial.sql`）｜6.8 错误码与错误结构 ✓（引用系统 Error ID）。
+
+### 6.1 公共基础类型与枚举
+
+#### `LogLevel`（`logs.py` 调用约定）
+- **定义**：运行日志级别；调用方约定集合，代码不校验。
+- **字段 / 取值**：`str` ∈ {`info`,`warning`,`error`}（实际调用取值）。
+- **约束 / 不变量**：无强制白名单；未知级别按原样存储并可按 `level=` 过滤。
+- **状态 · 所有权 · 寿命**：无状态枚举；随 `operational_logs.level` 持久（保留期由运维）。
+- **实例**：合法 `info`；边界：未知 `trace` 可写入（消费方按未知处理）。
+- **来源 / 验证**：`logs.py`；`VRC-LOG-001`。
+
+### 6.2 业务与操作数据结构
+
+#### `LogEvent`（`logs.py` / `operational_logs`）
+- **定义**：一条写前脱敏的运行日志行及其视图。
+- **字段**：`id:str`（`log_<16hex>`）、`created_at:RFC3339ms`、`level:LogLevel`、`module:str`、`event:str`、`message:str`（≤512，已脱敏）、`request_id:str|None`。
+- **约束 / 不变量**：`message` 在写入前经 `_SENSITIVE` 替换、换行折叠并截断 ≤512；不含正文/凭据。
+- **状态 · 所有权 · 寿命**：持久 `operational_logs`；I1 写、I2 读；只追加。
+- **实例**：合法 `{level:"info",module:"http",event:"request",message:"GET /v1/models"}`；拒绝：含敏感串的文本经脱敏后才写入（无拒绝路径，写失败 fail-open）。
+- **来源 / 验证**：`logs.py` + `001_initial.sql`；`VRC-LOG-001`。
+
+#### `LogPage`（`logs.py` `page`）
+- **定义**：运行日志分页结果。
+- **字段**：`{data: LogEvent[]（≤limit）, page:{has_more:bool, next_cursor:str|None}}`。
+- **约束 / 不变量**：按 `created_at DESC,id DESC` 倒序；`limit` 夹 `[1,200]`；当前实现 `has_more=false`、`next_cursor=null`。
+- **状态 · 所有权 · 寿命**：请求级只读；不持久。
+- **实例**：合法翻页；边界：无匹配 → `data=[]`。
+- **来源 / 验证**：`logs.py`；`VRC-LOG-001`。
+
+### 6.3 配置与规则数据结构
+
+#### `RedactionRule`（`logs.py` `_SENSITIVE`）
+- **定义**：写前脱敏正则规则。
+- **字段 / 取值**：`_SENSITIVE = (?i)(authorization|bearer\s+\S+|secret|api[_-]?key|token\s*[=:]\s*\S+)` → 替换 `[REDACTED]`；随后换行折叠、`[:512]`。
+- **约束 / 不变量**：规则在写入前应用；查询侧不再兜底；正则可调、写前脱敏不可变。
+- **状态 · 所有权 · 寿命**：模块级常量；随代码版本。
+- **实例**：合法 `Authorization: Bearer x` → `Authorization: [REDACTED]`；边界：未覆盖的凭据形态由 §15 `RISK-LOG-1` 跟踪。
+- **来源 / 验证**：`logs.py`；`VRC-LOG-001`。
+
+### 6.7 数据库表结构
+
+Authority = `util/migrations/001_initial.sql`（由 M007 `migrate()` 执行）；列级定义见 `util.isd` §4.4。本模块拥有 1 张表：
+
+| 表 | 主键 / 唯一 | 写入者 / 读者 | 寿命 |
+|---|---|---|---|
+| `operational_logs` | `id` | I1 / I2 | 保留期由运维 |
+
+- **约束 / 不变量**：`id TEXT PRIMARY KEY`；`created_at/level/module/event/message` NOT NULL；`message` `CHECK(length(message)<=512)`；`request_id` 可空。
+- **实例**：合法：一行脱敏日志；拒绝：`message` >512 在写入前被截断，`CHECK` 不再触发。
+- **来源 / 验证**：`util/migrations/001_initial.sql`；`VRC-LOG-001`。
+
+### 6.8 错误码与错误结构
+
+本模块**不新增公共错误码**；对外错误引用系统目录（`llmtier-system-design` §8.8）：
+
+| 本层错误 | 条件 | 系统 Error ID | 合法下一步 |
+|---|---|---|---|
+| 写入失败（静默） | `Store` 不可写 | 无（fail-open，记 warning） | 不重试；不阻塞业务 |
+| 查询失败 → HTTP 503 | 存储不可读 | `ERR-STORE` | 稍后重试 |
+
+- **约束 / 不变量**：`record` 失败不抛、不产生公共错误；`page` 的失败由 M004/M001 映射为 `ERR-STORE`。
+- **实例**：拒绝：存储不可读 → `ERR-STORE`；边界：写失败 → 静默，无错误返回。
+- **来源 / 验证**：`logs.py` + 系统 §8.8；`VRC-LOG-001`。
 
 ## 7. 主流程与数据流
 
@@ -202,16 +259,45 @@
 - **允许替换范围 / 不可改变保证**：实现可自选；顺序/上限不可变
 - **具体输入推演 / 验证项**：`limit=1000` → 200；`VRC-LOG-001`
 
-## 9. 接口与机器契约
+## 9. 接口设计
 
-#### 9.1 `IF-LOG` · `OperationalLog` API
-- **Direction / Operation / 责任模块 / backend**：in；`record`/`page`；M008；Store
-- **Request / Response / Error / ownership**：写入字段 / 过滤条件 → 行/页
-- **Contract authority / version / revision / hash / selector**：本文 §6.1
-- **前提 / timeout / 兼容边界 / Error model**：字段名固定；错误由调用方映射
-- **本地文件 / symbol 或 NOT_IMPLEMENTED**：`logs.py`
-- **Constraint / VRC / Case / 环境 / Run**：脱敏约束（§1.1.1）、机制 M-OBS；`VRC-LOG-001`；NOT_RUN
-- **关联类型字段 ID**：`LogEvent`（§6.1）
+> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口形态分类**逐接口完整记录；标题为真实调用形式，标题下先给**完整接口声明**，再就地说明参数/结果字段，最后按 §3.1 六项。本模块接口**全部为软件接口**（进程内方法调用）；消息流/硬件/人机三类不适用。数据结构引用 §6。`OperationalLog`（`src/log/logs.py`）为唯一对外面。
+
+### 9.1 软件接口（适用时）
+
+#### `OperationalLog.record(level, module, event, message, request_id=None) -> None`
+```text
+record(level: str, module: str, event: str, message: str, request_id: str | None = None) -> None
+```
+- **输入**：`level: str`（∈§6.1）；`module: str`；`event: str`；`message: str`（任意文本，写前脱敏/截断）；`request_id: str|None`。
+- **输出**：无——受理即写入一行 `operational_logs`（§6.7）。
+- **Interface/Member ID / 状态**：`IF-LOG-RECORD`；Implemented；唯一契约=本设计；文件/符号 `src/log/logs.py` `OperationalLog.record`。
+- **错误与异常**：写失败 → **fail-open**：不抛，由调用方静默；结果已知性=丢失该条日志；副作用=无（无半写）。
+- **交互与生命周期**：同步；调用方线程；无期限；不幂等（每次一行）；`transaction none`（连接内单条 INSERT）。
+- **实例与验证**：正常 `record("info","m","e","hello")`；边界：`message` 含 `Authorization` → 落库为 `[REDACTED]`。`VRC-LOG-001`。
+
+#### `OperationalLog.page(limit=50, level=None, module=None, request_id=None, since=None, until=None) -> dict`
+```text
+page(limit: int = 50, level: str | None = None, module: str | None = None, request_id: str | None = None, since: str | None = None, until: str | None = None) -> dict
+```
+- **输入**：`limit: int`（夹 `[1,200]`）；`level/module/request_id: str|None`（等值过滤）；`since/until: str|None`（`created_at` 半开窗）。
+- **输出**：`LogPage`（§6.2）——`created_at DESC,id DESC`。
+- **Interface/Member ID / 状态**：`IF-LOG-QUERY`；Implemented；文件/符号 `src/log/logs.py` `OperationalLog.page`。
+- **错误与异常**：存储不可读 → 原生 `sqlite3.Error` 冒泡，由 M004/M001 映射 `ApiError(503,"usage_store_unavailable")`（系统 `ERR-STORE`）。
+- **交互与生命周期**：同步只读；`limit ≤200`；幂等。
+- **实例与验证**：正常 `page(level="error")`；边界：无匹配 → `{data:[],page:{has_more:false,next_cursor:null}}`。`VRC-LOG-001`。
+
+### 9.2 消息与数据流接口（适用时）
+
+不适用（进程内库，不拥有事件/队列/流/file exchange；写入为同步方法调用）。
+
+### 9.3 硬件与固件接口（适用时）
+
+不适用（无连接器/总线/寄存器/FPGA 端口）。
+
+### 9.4 人机与维护接口（适用时）
+
+不适用（无 UI/CLI；日志查询入口归 M001 `GET /v1/logs`、呈现归 M002）。
 
 ## 10. 并发、失败与恢复
 

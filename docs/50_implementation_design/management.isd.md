@@ -10,9 +10,9 @@
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Document Owner | LLMTier |
-| Last Modified Date | `2026-09-23` |
+| Last Modified Date | `2026-09-25` |
 | Template ID | `design.implementation` |
-| Template Version | `0.5.0` |
+| Template Version | `1.0.0` |
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 实现目标与输入基线
@@ -116,153 +116,265 @@ health.py         health_view/readiness_view/apply_probe_result
 - **构建目标 / 生成源 / 输出**：随包
 - **实现状态**：PLANNED
 
-## 4. 内部数据与所有权
+## 4. 数据结构设计
 
 <a id="isd-data"></a>
 
-纯软件：无原生 ABI（SQLite/JSON）。
+> 按 STD `design-data-interface-format` 1.2.0：主章“数据结构设计”，章内按**数据性质**分类（§4.1–§4.8）。仅保留适用类别，不适用类别在章首给出原因与 tailoring 依据；本层拥有的结构逐项记录 ID/唯一来源/字段/约束/状态·所有权·寿命/合法与拒绝实例/验证，语言级表示与代码映射随结构记录。继承结构只定位原定义与固定机器源，不复制字段。
 
-### 4.1 `Provider` / `Deployment` / `ServiceLevel` 视图
+**类别适用性**：§4.1 公共基础类型与枚举 ✗（`kind`/`health`/`capabilities` 取值内嵌 §4.2 视图）｜§4.2 业务与操作数据结构 ✓｜§4.3 配置与规则数据结构 ✗（能力交集/冻结 space 为字段不变量，无独立受控规则对象）｜§4.4 通信报文结构 ✗｜§4.5 设备与 FPGA 表项结构 ✗（纯软件）｜§4.6 运行状态数据结构 ✗（探测/引导为一次性动作）｜§4.7 数据库表结构 ✗（表契约归 M007 `util.isd.md` §4.7）｜§4.8 错误码与错误结构 ✓。
 
-- **类型 / 字段**：Provider `{id,name,kind,endpoint,has_secret,enabled,usage,request_usage,version}`；Deployment `{id,name,provider_id,backend_model,capabilities,enabled,health,version}`；ServiceLevel `{id,deployment_ids,enabled,capabilities,version}`
-- **单位 / 初值 / 范围 / 不变量**：name 唯一；capabilities 12 键；`Embedding-v1` 冻结 space
-- **逻辑编码与原生 ABI 适用性**：N/A（OpenAPI JSON）
-- **创建 / 修改者**：Registry 写；M001/M003 读
-- **Owner / 借用期限 / 释放者**：持久（Store）
-- **公共类型 authority**：OpenAPI + 本 ISD 表契约（M007 §4.4）
-- **持久化与敏感性**：persistent；Secret 只存引用
+### 4.2 业务与操作数据结构
 
-### 4.2 `UsagePage` / `AuditEvent` / `AccountSnapshot`
+#### `Provider` / `Deployment` / `ServiceLevel` 视图（`registry.py`）
 
-- **类型 / 字段**：UsagePage `{data,next_cursor,has_more,snapshot_id,snapshot_at}`；AuditEvent `{id,actor,action,target,result,created_at,request_id}`；AccountSnapshot `{provider,source,status,windows[],checked_at,error}`
-- **单位 / 初值 / 范围 / 不变量**：分页冻结；账号缺字段 Unknown
-- **逻辑编码与原生 ABI 适用性**：N/A
-- **创建 / 修改者**：UsageRecorder/AuditLog/AccountUsageService
-- **Owner / 借用期限 / 释放者**：持久
-- **公共类型 authority**：本 ISD
-- **持久化与敏感性**：persistent；Secret 不回显
+- **定义 / Data Type ID / 唯一来源**：配置权威的对外阅读视图；`D-PROVIDER`/`D-DEPLOYMENT`/`D-SERVICE-LEVEL`；唯一来源=OpenAPI + `util/migrations/001_initial.sql` 表契约（本层为投影）。
+- **字段 / 取值**：Provider `{id,name,kind∈{cloud,local},endpoint,has_secret,enabled,usage,request_usage,version}`；Deployment `{id,name,provider_id,backend_model,capabilities,enabled,health,version}`；ServiceLevel `{id,deployment_ids,enabled,capabilities,version}`；`capabilities` 12 键；`Embedding-v1` 冻结 space。
+- **约束 / 不变量**：`name` 唯一；`version` 单调、用于 ETag；`capabilities` 必须为 provider∩deployment 交集。
+- **状态 · 所有权 · 寿命**：持久（Store）；Registry 写、M001/M003 读；随库寿命。
+- **语言级表示与代码映射**：Python `dict`/`Row` → 视图；`Registry.get_*/list_*` 构造，`AdminService.mutate` 写。
+- **合法与拒绝实例**：合法引用已存在 provider；拒绝未知 `provider_id` → `ERR-REQ-VALIDATION`。
+- **验证**：`VRC-MGMT-001/002`。
 
-## 5. 函数与接口实现规格
+#### `UsagePage` / `AuditEvent` / `AccountSnapshot`（`admin.py`/`account_usage.py`/`audit.py`）
+
+- **定义 / Data Type ID / 唯一来源**：用量分页 / 审计事件 / 账号用量快照；`D-USAGE-PAGE`/`D-AUDIT-EVENT`/`D-ACCOUNT-SNAPSHOT`；唯一来源=本 ISD 与 M-METER。
+- **字段 / 取值**：UsagePage `{data,next_cursor,has_more,snapshot_id,snapshot_at}`；AuditEvent `{id,actor,action,target,result,created_at,request_id}`；AccountSnapshot `{provider,source,status,windows[],checked_at,error}`。
+- **约束 / 不变量**：分页由 `query_snapshots` 冻结；同 request 只取最高版本；账号缺字段记 `Unknown`，不补零。
+- **状态 · 所有权 · 寿命**：持久（Store）；UsageRecorder/AuditLog/AccountUsageService 写，M001 读。
+- **语言级表示与代码映射**：Python `dict`/`Row`；`UsageRecorder.page`、`AuditLog.record/page`、`AccountUsageService.latest/refresh`。
+- **合法与拒绝实例**：合法首屏快照；拒绝 cursor 失效 → `ERR-CURSOR`；账号凭据缺失 → `unavailable`。
+- **验证**：`VRC-MGMT-003..006`。
+
+### 4.8 错误码与错误结构
+
+#### Management 错误结构（引用系统 §8.8）
+
+- **定义 / Data Type ID / 唯一来源**：管理面错误经公共 `D-ERROR-ENVELOPE` 返回；含义与码由系统 §8.8 唯一维护。
+- **字段 / 取值**：同 `ApiError`（`status`/`code`/`message`/`param`/`retryable`/`headers`/`extra`）；`type` 取系统稳定码。
+- **约束 / 不变量**：审计 `failed` 与错误同时落库；Secret 不回显；并发冲突不改旧版本。
+- **状态 · 所有权 · 寿命**：请求级错误对象；持久审计事件另计。
+- **语言级表示与代码映射**：`ApiError`；`Registry`/`AdminService` 抛出，M001 映射。
+- **合法与拒绝实例**：合法 PATCH 成功 + 审计 success；拒绝并发 PATCH → `ERR-STALE`。
+- **验证**：`VRC-MGMT-002/003`。
+
+**本层公共错误引用**（ID 定义见系统 §8.8）：
+
+| 本层别名 | 条件 | 系统 Error ID | 合法下一步 |
+|---|---|---|---|
+| `E-MGMT-BOOT` | settings 不可读/非法/引用不可达 | `ERR-BOOT` | 修正后重启 |
+| `E-MGMT-INVALID` | 字段/引用/能力非法、重名 | `ERR-REQ-VALIDATION` / `ERR-CONFLICT` | 修正后重试 |
+| `E-MGMT-CAS` | ETag 不匹配 | `ERR-STALE` | 重新 GET 后重试 |
+| `E-MGMT-USAGE` | Store 读失败 | `ERR-STORE` | 稍后重试 |
+| `E-MGMT-CONFIRM` | 缺二次确认 | `ERR-CONFIRM` | 补确认 |
+| `E-MGMT-NOTFOUND` | 未知资源 | `ERR-NOTFOUND` | 修 ID |
+
+## 5. 接口设计
 
 <a id="isd-functions"></a>
 
-### 5.1.1 `FUNC-MGMT-REGISTRY` · `Registry`
+> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按接口形态分类逐接口完整记录；标题为真实调用形式，标题下先给完整签名，再就地说明参数/结果字段，最后按 §3.1 六项。数据结构引用 §4；公共错误 ID 定义见 `llmtier-system-design` §8.8，本层只产生/映射。本模块接口全部为软件接口；消息流/硬件/人机见 §5.2–§5.4。
 
+### 5.1 软件接口（适用时）
+
+#### 5.1.1 `bootstrap_settings(path) -> None`
+
+```text
+bootstrap_settings(path) -> None
+create/get/list/update/delete_{provider,deployment,service_level}
+candidates(level_id) -> list[Candidate]
+```
+
+- **Interface/Member ID、状态**：`FUNC-MGMT-REGISTRY` / PLANNED
 - **文件 / symbol / 可见性**：`registry.py` / `Registry.*` / private
 - **原成员 ID 或私有来源**：`F-MGMT-BOOTSTRAP`、`F-MGMT-CRUD`、`R-CFG-01/02/03`
 - **完整签名与 caller**：`bootstrap_settings(path) -> None`；`create/get/list/update/delete_{provider,deployment,service_level}`；`candidates(level_id) -> list[Candidate]`；caller=M001/AdminService
-- **输入参数 / 数据结构 authority**：settings 路径 / CRUD body；字段见 §4.1
-- **输入约束 / 校验顺序 / 失败映射**：引导校验（字段/ID/引用/Secret 可达）；CRUD 能力不变量；失败 → `E-MGMT-*`
-- **成功输出 / 数据结构 / 后置条件**：`(view, etag)` / 候选
-- **错误输出 / 触发条件 / 优先级**：`E-MGMT-BOOT`(503)、`E-MGMT-INVALID`(400)、`E-MGMT-CONFLICT`(409)、`E-MGMT-CAS`(412)
-- **副作用 / 执行上下文 / 幂等性**：写库；引导幂等（hash）；CRUD 非幂等
-- **输入输出 ownership 与寿命**：持久（Store）
+- **输入**
+  - **输入参数 / 数据结构 authority**：settings 路径 / CRUD body；字段见 §4.1
+  - **输入约束 / 校验顺序 / 失败映射**：引导校验（字段/ID/引用/Secret 可达）；CRUD 能力不变量；失败 → `E-MGMT-*`
+- **成功输出**
+  - **成功输出 / 数据结构 / 后置条件**：`(view, etag)` / 候选
+- **错误与异常**
+  - **错误输出 / 触发条件 / 优先级**：E-MGMT-BOOT（ERR-BOOT · bootstrap_required / bootstrap_invalid）：503 `bootstrap_required`/`bootstrap_invalid`；not_ready；E-MGMT-INVALID（ERR-REQ-VALIDATION / ERR-CONFLICT）：400/409；E-MGMT-CAS（ERR-STALE · version_conflict）：412 + `current_version`
+  - **E-MGMT-BOOT（公共 ERR-BOOT · bootstrap_required / bootstrap_invalid）**
+    - **底层异常 / 失败事实**：settings 不可读/非法/引用不可达
+    - **模块是否处理及处理函数**：reject（`bootstrap_settings`）
+    - **Typed 异常与原生异常所有权**：`ApiError(503)`；启动置 `bootstrap_error`
+    - **宿主 / public payload 或状态码**：503 `bootstrap_required`/`bootstrap_invalid`；not_ready
+    - **日志级别 / 脱敏 / 关联字段**：error
+    - **是否可重试及前提**：修正后重启
+    - **状态与副作用影响 / 验证项**：回滚；`VRC-MGMT-003`
+  - **E-MGMT-INVALID（公共 ERR-REQ-VALIDATION / ERR-CONFLICT）**
+    - **底层异常 / 失败事实**：字段/引用/能力非法
+    - **模块是否处理及处理函数**：reject
+    - **Typed 异常与原生异常所有权**：`ApiError(400/409)`
+    - **宿主 / public payload 或状态码**：400/409
+    - **日志级别 / 脱敏 / 关联字段**：无
+    - **是否可重试及前提**：修正后重试
+    - **状态与副作用影响 / 验证项**：`VRC-MGMT-002`
+  - **E-MGMT-CAS（公共 ERR-STALE · version_conflict）**
+    - **底层异常 / 失败事实**：ETag 不匹配
+    - **模块是否处理及处理函数**：reject
+    - **Typed 异常与原生异常所有权**：`ApiError(412)`
+    - **宿主 / public payload 或状态码**：412 + `current_version`
+    - **日志级别 / 脱敏 / 关联字段**：无
+    - **是否可重试及前提**：重新读取后重试
+    - **状态与副作用影响 / 验证项**：`VRC-MGMT-002`
+- **交互与生命周期**
+  - **副作用 / 执行上下文 / 幂等性**：写库；引导幂等（hash）；CRUD 非幂等
+  - **输入输出 ownership 与寿命**：持久（Store）
+  - **Thread-safe / reentrant**：经事务
+  - **Nested-call policy**：allowed
+  - **Transaction participation**：creates new
+  - **Blocking / timeout / cancellation**：`timeout=10`
 - **不可改变的规则 / Constraint ID**：唯一权威、发布事务原子、能力交集、ETag
 - **实现自由度**：存储/算法实现
-- **Thread-safe / reentrant**：经事务
-- **Nested-call policy**：allowed
-- **Transaction participation**：creates new
-- **Blocking / timeout / cancellation**：`timeout=10`
-- **实现状态 / 验证项**：PLANNED；`VRC-MGMT-001/002/003`
+- **实例与验证**
+  - **实现状态 / 验证项**：PLANNED；`VRC-MGMT-001/002/003`
 
-### 5.1.2 `FUNC-MGMT-MUTATE` · `AdminService.mutate` / `probe`
+#### 5.1.2 `mutate(actor, action, target, request_id, fn, atomic=True)`，`fn(conn)` 在 mutate 开启的同一事务内执行`
 
+```text
+mutate(actor, action, target, request_id, fn, atomic=True)`，`fn(conn)` 在 mutate 开启的同一事务内执行
+probe(actor, body, request_id)
+page(...)
+stats(from_ts, to_ts, group_by)
+```
+
+- **Interface/Member ID、状态**：`FUNC-MGMT-MUTATE` / PLANNED
 - **文件 / symbol / 可见性**：`admin.py` / `AdminService.mutate/probe/page/stats` / private
 - **原成员 ID 或私有来源**：`F-MGMT-PROBE`、`F-MGMT-STATS`
 - **完整签名与 caller**：`mutate(actor, action, target, request_id, fn, atomic=True)`，`fn(conn)` 在 mutate 开启的同一事务内执行；`probe(actor, body, request_id)`；`page(...)`；`stats(from_ts, to_ts, group_by)`；caller=M001
-- **输入参数 / 数据结构 authority**：`(actor, action, target, request_id, fn)`；`fn(conn)` 用传入连接执行 Registry 写（不另开事务）；probe `{deployment_id, confirm_external_call}`
-- **输入约束 / 校验顺序 / 失败映射**：mutate 单事务写 Registry + Audit（`atomic=False` 仅用于带外部调用的账号刷新）；probe 需确认；stats `group_by ∈ {tier,deployment}`
-- **成功输出 / 数据结构 / 后置条件**：结果 / 页 / 统计；审计 success
-- **错误输出 / 触发条件 / 优先级**：`E-MGMT-INVALID`(400 `invalid_request`)、`E-MGMT-CONFIRM`(400 `confirmation_required`)、`E-MGMT-NOTFOUND`(404)
-- **副作用 / 执行上下文 / 幂等性**：包裹 `fn` 副作用；写审计
-- **输入输出 ownership 与寿命**：请求级；审计持久
+- **输入**
+  - **输入参数 / 数据结构 authority**：`(actor, action, target, request_id, fn)`；`fn(conn)` 用传入连接执行 Registry 写（不另开事务）；probe `{deployment_id, confirm_external_call}`
+  - **输入约束 / 校验顺序 / 失败映射**：mutate 单事务写 Registry + Audit（`atomic=False` 仅用于带外部调用的账号刷新）；probe 需确认；stats `group_by ∈ {tier,deployment}`
+- **成功输出**
+  - **成功输出 / 数据结构 / 后置条件**：结果 / 页 / 统计；审计 success
+- **错误与异常**
+  - **错误输出 / 触发条件 / 优先级**：E-MGMT-INVALID（ERR-REQ-VALIDATION / ERR-CONFLICT）：400/409；E-MGMT-CAS（ERR-STALE · version_conflict）：412 + `current_version`；E-MGMT-USAGE（ERR-STORE · usage_store_unavailable）：503 `usage_store_unavailable`
+  - **E-MGMT-INVALID（公共 ERR-REQ-VALIDATION / ERR-CONFLICT）**
+    - **底层异常 / 失败事实**：字段/引用/能力非法
+    - **模块是否处理及处理函数**：reject
+    - **Typed 异常与原生异常所有权**：`ApiError(400/409)`
+    - **宿主 / public payload 或状态码**：400/409
+    - **日志级别 / 脱敏 / 关联字段**：无
+    - **是否可重试及前提**：修正后重试
+    - **状态与副作用影响 / 验证项**：`VRC-MGMT-002`
+  - **E-MGMT-CAS（公共 ERR-STALE · version_conflict）**
+    - **底层异常 / 失败事实**：ETag 不匹配
+    - **模块是否处理及处理函数**：reject
+    - **Typed 异常与原生异常所有权**：`ApiError(412)`
+    - **宿主 / public payload 或状态码**：412 + `current_version`
+    - **日志级别 / 脱敏 / 关联字段**：无
+    - **是否可重试及前提**：重新读取后重试
+    - **状态与副作用影响 / 验证项**：`VRC-MGMT-002`
+  - **E-MGMT-USAGE（公共 ERR-STORE · usage_store_unavailable）**
+    - **底层异常 / 失败事实**：Store 读失败
+    - **模块是否处理及处理函数**：propagate
+    - **Typed 异常与原生异常所有权**：`ApiError(503)`
+    - **宿主 / public payload 或状态码**：503 `usage_store_unavailable`
+    - **日志级别 / 脱敏 / 关联字段**：warning
+    - **是否可重试及前提**：稍后重试
+    - **状态与副作用影响 / 验证项**：`VRC-MGMT-004`
+- **交互与生命周期**
+  - **副作用 / 执行上下文 / 幂等性**：包裹 `fn` 副作用；写审计
+  - **输入输出 ownership 与寿命**：请求级；审计持久
+  - **Thread-safe / reentrant**：经事务
+  - **Nested-call policy**：allowed
+  - **Transaction participation**：joins existing（包裹 `fn` 事务）
+  - **Blocking / timeout / cancellation**：探测 5 s
 - **不可改变的规则 / Constraint ID**：审计必写；探测确认；保存/health/probe 三态分离
 - **实现自由度**：转发实现
-- **Thread-safe / reentrant**：经事务
-- **Nested-call policy**：allowed
-- **Transaction participation**：joins existing（包裹 `fn` 事务）
-- **Blocking / timeout / cancellation**：探测 5 s
-- **实现状态 / 验证项**：PLANNED；`VRC-MGMT-002/005`
+- **实例与验证**
+  - **实现状态 / 验证项**：PLANNED；`VRC-MGMT-002/005`
 
-### 5.1.3 `FUNC-MGMT-USAGE` · `UsageRecorder.page` / `reset_usage`
+#### 5.1.3 `page(principal, cursor, limit, admin, since, until, model, request_id) -> dict`
 
+```text
+page(principal, cursor, limit, admin, since, until, model, request_id) -> dict
+reset_usage(model, deployment_id) -> dict
+```
+
+- **Interface/Member ID、状态**：`FUNC-MGMT-USAGE` / PLANNED
 - **文件 / symbol / 可见性**：`usage.py` / `page`、`reset_usage` / private
 - **原成员 ID 或私有来源**：`F-MGMT-USAGE-QUERY/RESET`、`R-MET-02/03`
 - **完整签名与 caller**：`page(principal, cursor, limit, admin, since, until, model, request_id) -> dict`；`reset_usage(model, deployment_id) -> dict`；caller=M001
-- **输入参数 / 数据结构 authority**：分页/范围参数
-- **输入约束 / 校验顺序 / 失败映射**：`[from,to)`；cursor 冻结；失败 → `E-MGMT-USAGE`
-- **成功输出 / 数据结构 / 后置条件**：`{data,next_cursor,has_more,snapshot_id,snapshot_at}` / `{deleted}`
-- **错误输出 / 触发条件 / 优先级**：400 `invalid_request`/`cursor_expired`；403；503 `usage_store_unavailable`
-- **副作用 / 执行上下文 / 幂等性**：分页写 snapshot；清空删除
-- **输入输出 ownership 与寿命**：账本持久
+- **输入**
+  - **输入参数 / 数据结构 authority**：分页/范围参数
+  - **输入约束 / 校验顺序 / 失败映射**：`[from,to)`；cursor 冻结；失败 → `E-MGMT-USAGE`
+- **成功输出**
+  - **成功输出 / 数据结构 / 后置条件**：`{data,next_cursor,has_more,snapshot_id,snapshot_at}` / `{deleted}`
+- **错误与异常**
+  - **错误输出 / 触发条件 / 优先级**：E-MGMT-USAGE（ERR-STORE · usage_store_unavailable）：503 `usage_store_unavailable`
+  - **E-MGMT-USAGE（公共 ERR-STORE · usage_store_unavailable）**
+    - **底层异常 / 失败事实**：Store 读失败
+    - **模块是否处理及处理函数**：propagate
+    - **Typed 异常与原生异常所有权**：`ApiError(503)`
+    - **宿主 / public payload 或状态码**：503 `usage_store_unavailable`
+    - **日志级别 / 脱敏 / 关联字段**：warning
+    - **是否可重试及前提**：稍后重试
+    - **状态与副作用影响 / 验证项**：`VRC-MGMT-004`
+- **交互与生命周期**
+  - **副作用 / 执行上下文 / 幂等性**：分页写 snapshot；清空删除
+  - **输入输出 ownership 与寿命**：账本持久
+  - **Thread-safe / reentrant**：经事务/快照
+  - **Nested-call policy**：allowed
+  - **Transaction participation**：creates new（首屏/清空）
+  - **Blocking / timeout / cancellation**：`timeout=10`
 - **不可改变的规则 / Constraint ID**：同 request 只取最高版本；不累计；503 不空页
 - **实现自由度**：分页实现
-- **Thread-safe / reentrant**：经事务/快照
-- **Nested-call policy**：allowed
-- **Transaction participation**：creates new（首屏/清空）
-- **Blocking / timeout / cancellation**：`timeout=10`
-- **实现状态 / 验证项**：PLANNED；`VRC-MGMT-004`
+- **实例与验证**
+  - **实现状态 / 验证项**：PLANNED；`VRC-MGMT-004`
 
-### 5.1.4 `FUNC-MGMT-ACCOUNT` · `AccountUsageService`
+#### 5.1.4 `latest(provider_id) -> dict`
 
+```text
+latest(provider_id) -> dict
+refresh(provider_id, confirm_external_call) -> dict
+```
+
+- **Interface/Member ID、状态**：`FUNC-MGMT-ACCOUNT` / PLANNED
 - **文件 / symbol / 可见性**：`account_usage.py` / `latest/refresh` / private
 - **原成员 ID 或私有来源**：`F-MGMT-ACCOUNT-USAGE`
 - **完整签名与 caller**：`latest(provider_id) -> dict`；`refresh(provider_id, confirm_external_call) -> dict`；caller=M001
-- **输入参数 / 数据结构 authority**：provider_id；确认标志
-- **输入约束 / 校验顺序 / 失败映射**：GET 只读快照；POST 需确认；缺凭据 → `unavailable`
-- **成功输出 / 数据结构 / 后置条件**：账号用量快照
-- **错误输出 / 触发条件 / 优先级**：400 `invalid_request`；404；快照 `unavailable`+`error`
-- **副作用 / 执行上下文 / 幂等性**：POST 调外部 + 持久快照
-- **输入输出 ownership 与寿命**：快照持久
+- **输入**
+  - **输入参数 / 数据结构 authority**：provider_id；确认标志
+  - **输入约束 / 校验顺序 / 失败映射**：GET 只读快照；POST 需确认；缺凭据 → `unavailable`
+- **成功输出**
+  - **成功输出 / 数据结构 / 后置条件**：账号用量快照
+- **错误与异常**
+  - **错误输出 / 触发条件 / 优先级**：E-MGMT-INVALID（ERR-REQ-VALIDATION / ERR-CONFLICT）：400/409
+  - **E-MGMT-INVALID（公共 ERR-REQ-VALIDATION / ERR-CONFLICT）**
+    - **底层异常 / 失败事实**：字段/引用/能力非法
+    - **模块是否处理及处理函数**：reject
+    - **Typed 异常与原生异常所有权**：`ApiError(400/409)`
+    - **宿主 / public payload 或状态码**：400/409
+    - **日志级别 / 脱敏 / 关联字段**：无
+    - **是否可重试及前提**：修正后重试
+    - **状态与副作用影响 / 验证项**：`VRC-MGMT-002`
+- **交互与生命周期**
+  - **副作用 / 执行上下文 / 幂等性**：POST 调外部 + 持久快照
+  - **输入输出 ownership 与寿命**：快照持久
+  - **Thread-safe / reentrant**：请求级
+  - **Nested-call policy**：allowed
+  - **Transaction participation**：creates new（写快照）
+  - **Blocking / timeout / cancellation**：15 s
 - **不可改变的规则 / Constraint ID**：GET 不触网；缺字段 Unknown
 - **实现自由度**：签名实现
-- **Thread-safe / reentrant**：请求级
-- **Nested-call policy**：allowed
-- **Transaction participation**：creates new（写快照）
-- **Blocking / timeout / cancellation**：15 s
-- **实现状态 / 验证项**：PLANNED；`VRC-MGMT-006`
+- **实例与验证**
+  - **实现状态 / 验证项**：PLANNED；`VRC-MGMT-006`
 
-### 5.2 错误传播矩阵
+### 5.2 消息与数据流接口（适用时）
 
-#### 5.2.1 `E-MGMT-BOOT` · 引导失败
+不适用（无本模块拥有的消息/队列/流；管理动作与用量查询均为同步函数调用）。
 
-- **底层异常 / 失败事实**：settings 不可读/非法/引用不可达
-- **模块是否处理及处理函数**：reject（`bootstrap_settings`）
-- **Typed 异常与原生异常所有权**：`ApiError(503)`；启动置 `bootstrap_error`
-- **宿主 / public payload 或状态码**：503 `bootstrap_required`/`bootstrap_invalid`；not_ready
-- **日志级别 / 脱敏 / 关联字段**：error
-- **是否可重试及前提**：修正后重启
-- **状态与副作用影响 / 验证项**：回滚；`VRC-MGMT-003`
+### 5.3 硬件与固件接口（适用时）
 
-#### 5.2.2 `E-MGMT-INVALID` · 非法输入
+不适用（纯软件模块，无连接器/总线/寄存器/FPGA 端口）。
 
-- **底层异常 / 失败事实**：字段/引用/能力非法
-- **模块是否处理及处理函数**：reject
-- **Typed 异常与原生异常所有权**：`ApiError(400/409)`
-- **宿主 / public payload 或状态码**：400/409
-- **日志级别 / 脱敏 / 关联字段**：无
-- **是否可重试及前提**：修正后重试
-- **状态与副作用影响 / 验证项**：`VRC-MGMT-002`
+### 5.4 人机与维护接口（适用时）
 
-#### 5.2.3 `E-MGMT-CAS` · 并发冲突
-
-- **底层异常 / 失败事实**：ETag 不匹配
-- **模块是否处理及处理函数**：reject
-- **Typed 异常与原生异常所有权**：`ApiError(412)`
-- **宿主 / public payload 或状态码**：412 + `current_version`
-- **日志级别 / 脱敏 / 关联字段**：无
-- **是否可重试及前提**：重新读取后重试
-- **状态与副作用影响 / 验证项**：`VRC-MGMT-002`
-
-#### 5.2.4 `E-MGMT-USAGE` · 用量存储不可用
-
-- **底层异常 / 失败事实**：Store 读失败
-- **模块是否处理及处理函数**：propagate
-- **Typed 异常与原生异常所有权**：`ApiError(503)`
-- **宿主 / public payload 或状态码**：503 `usage_store_unavailable`
-- **日志级别 / 脱敏 / 关联字段**：warning
-- **是否可重试及前提**：稍后重试
-- **状态与副作用影响 / 验证项**：`VRC-MGMT-004`
+不适用（operator 管理动作经 M001 HTTP 端点与 M002 页面，已在 §5.1 记录；本模块不实现页面）。
 
 ## 6. 关键流程与算法
 
