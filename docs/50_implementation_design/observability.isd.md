@@ -24,7 +24,7 @@
 - **模块 ID / 名称**：M005 / Observability
 - **直属父对象 / 父设计**：LLMTier 软件系统 / `llmtier-system-design`（§3.2 登记）
 - **模块设计 Document ID / 版本 / 路径 / 摘要**：`observability` / `0.1.0-draft.2` / `docs/40_module_design/observability-design.md` / §2 F-OBS-*、§5.1 I1–I4、§8 RULE-OBS-*
-- **需求与 Constraint ID**：`C-OBS-1`（默认关零开销）、`C-OBS-2`（fail-open）、`C-OBS-3`（不记 Secret/正文）、`C-OBS-4`（注入标注）、`C-OBS-5`（libdiag 提供/Observability 呈现）；机制 `R-OBS-02`
+- **需求与 Constraint ID**：`CON-OBS-001`（默认关零开销）、`CON-OBS-002`（fail-open）、`CON-OBS-003`（不记 Secret/正文）、`CON-OBS-004`（注入标注）、`CON-OBS-005`（libdiag 提供/Observability 呈现）；机制 `R-OBS-02`
 - **实现范围 / 非目标**：实现诊断查询与呈现（快照/统计/注入/trace/traces）、开关切换、关联标识透传；**非目标**：观测记录底层读写（M006）、HTTP 传输（M001）、页面渲染细节（M002）
 - **ISD 默认落位或项目批准路径**：`docs/50_implementation_design/observability.isd.md`
 
@@ -694,7 +694,7 @@ flowchart TD
 
 #### 7.3.1.1 `SEC-OBS-AUTH` · operator 呈现 + 脱敏
 
-- **原规则**：`C-OBS-3/5`
+- **原规则**：`CON-OBS-003/5`
 - **可信输入 / 敏感字段 / 检查对象**：operator `Principal`；查询结果
 - **检查函数 / 时点**：入口鉴权；查询结果脱敏
 - **拒绝 / 宿主交付出口**：401/403
@@ -745,7 +745,7 @@ flowchart TD
 
 ### 9.1.1 `VRC-OBS-001` · 开关
 
-- **Rule / 成员**：`FUNC-OBS-SWITCH`、`C-OBS-1`
+- **Rule / 成员**：`FUNC-OBS-SWITCH`、`CON-OBS-001`
 - **V / Case / Vector**：v1 默认关；v2 开/关；v3 关闭零写入
 - **输入 / 故障 / 环境**：开关切换；隔离库
 - **独立 Oracle / Expected**：默认 `{False,False}`；关闭时无新行
@@ -756,7 +756,7 @@ flowchart TD
 
 ### 9.1.2 `VRC-OBS-002` · 快照/统计查询与脱敏
 
-- **Rule / 成员**：`FUNC-OBS-QUERY`、`C-OBS-3`
+- **Rule / 成员**：`FUNC-OBS-QUERY`、`CON-OBS-003`
 - **V / Case / Vector**：v1 上游调用后查询；v2 `?token=` URL；v3 503
 - **输入 / 故障 / 环境**：隔离库
 - **独立 Oracle / Expected**：字段完整；URL 去 query；503 不空页
@@ -767,7 +767,7 @@ flowchart TD
 
 ### 9.1.3 `VRC-OBS-003` · 注入与 fail-open
 
-- **Rule / 成员**：`FUNC-OBS-INJECT`、`C-OBS-2/4`
+- **Rule / 成员**：`FUNC-OBS-INJECT`、`CON-OBS-002/4`
 - **V / Case / Vector**：v1 合法/非法注入；v2 观测库写失败
 - **输入 / 故障 / 环境**：隔离库
 - **独立 Oracle / Expected**：400/404；推理结果不变

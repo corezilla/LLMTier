@@ -39,7 +39,7 @@
 
 ### 1.1 继承的上级约束与落实方式
 
-#### 1.1.1 `C-OBS-1` · 默认关闭、关闭零开销
+#### 1.1.1 `CON-OBS-001` · 默认关闭、关闭零开销
 - **上级基线与决定状态**：系统设计 §11.3；已采用
 - **适用条件**：全部观测能力
 - **继承预算或行为保证**：开关关闭时不写入、零开销
@@ -48,7 +48,7 @@
 - **验证方法与结果 / 证据**：`VRC-OBS-001`；NOT_RUN
 - **差距 / 变更影响 / 反馈责任**：无
 
-#### 1.1.2 `C-OBS-2` · fail-open
+#### 1.1.2 `CON-OBS-002` · fail-open
 - **上级基线与决定状态**：系统设计 §11.3；已采用
 - **适用条件**：任意观测故障
 - **继承预算或行为保证**：观测失败不改变推理结果
@@ -57,7 +57,7 @@
 - **验证方法与结果 / 证据**：`VRC-OBS-003`；NOT_RUN
 - **差距 / 变更影响 / 反馈责任**：与 M006 一致
 
-#### 1.1.3 `C-OBS-3` · 不记录 Secret/凭据/完整正文
+#### 1.1.3 `CON-OBS-003` · 不记录 Secret/凭据/完整正文
 - **上级基线与决定状态**：系统设计 §11.3；已采用
 - **适用条件**：快照/统计/trace/注入
 - **继承预算或行为保证**：只含脱敏字段
@@ -66,7 +66,7 @@
 - **验证方法与结果 / 证据**：`VRC-OBS-002`；NOT_RUN
 - **差距 / 变更影响 / 反馈责任**：与 M008 一致
 
-#### 1.1.4 `C-OBS-4` · 注入调用标注 source=injected
+#### 1.1.4 `CON-OBS-004` · 注入调用标注 source=injected
 - **上级基线与决定状态**：系统设计 §11.3；已采用
 - **适用条件**：注入命中
 - **继承预算或行为保证**：账本可区分注入调用
@@ -75,7 +75,7 @@
 - **验证方法与结果 / 证据**：`VRC-OBS-004`；NOT_RUN
 - **差距 / 变更影响 / 反馈责任**：与 M-METER 一致
 
-#### 1.1.5 `C-OBS-5` · 能力由 libdiag 提供、Observability 呈现
+#### 1.1.5 `CON-OBS-005` · 能力由 libdiag 提供、Observability 呈现
 - **上级基线与决定状态**：系统设计 §3.2；已采用
 - **适用条件**：全部观测能力
 - **继承预算或行为保证**：底层读写归 M006；呈现/切换归 M005
@@ -87,7 +87,7 @@
 ## 2. 需求、功能与验收条件
 
 ### 2.1 `F-OBS-SWITCH` · 全局调试开关
-- **上级需求 / Constraint ID**：`C-OBS-1`；机制 M-OBS CAP-OBS-3
+- **上级需求 / Constraint ID**：`CON-OBS-001`；机制 M-OBS CAP-OBS-3
 - **调用方**：M001（`GET/PATCH /tier/admin/v1/diagnostics`）
 - **输入与前提**：operator 凭据；PATCH 可部分更新
 - **行为**：读/写 `snapshots_enabled`/`stats_enabled`
@@ -114,7 +114,7 @@
 - **验收条件**：`status_breakdown` 按 HTTP status 分列；`error_4xx_count`/`error_5xx_count` 由分列派生；口径为"数据面统计、可丢"，非账本
 
 ### 2.4 `F-OBS-INJECTIONS` · 注入配置
-- **上级需求 / Constraint ID**：`C-OBS-4`；机制 M-OBS CAP-OBS-5；契约 §5.1
+- **上级需求 / Constraint ID**：`CON-OBS-004`；机制 M-OBS CAP-OBS-5；契约 §5.1
 - **调用方**：M001（`GET/PATCH /tier/admin/v1/deployments/{id}/diagnostics`）
 - **输入与前提**：operator；注入项列表
 - **行为**：按 deployment 读/写注入配置（部分更新）；**多 enabled 时按确定性优先级取"下一步要触发的一条"**——`fault_502 → fault_503 → rate_limit → delay`；流阶段同理 `stream_terminate → malformed_event`
@@ -169,7 +169,7 @@
 - **本模块提供**：—
 - **契约 authority / 版本 / selector**：`llmtier-observability-mechanism` §14.4 `R-OBS-01`
 - **同步方式 / timeout / 生命周期**：同步；记录由 M007 持久化
-- **不可用或失败影响 / 责任出口**：fail-open（C-OBS-2）
+- **不可用或失败影响 / 责任出口**：fail-open（CON-OBS-002）
 
 #### 4.3 `DEP-M002` · Web UI（呈现）
 - **角色 / 运行位置 / Owner**：消费者；浏览器；LLMTier
@@ -759,7 +759,7 @@ InjectionConfig {
 #### 8.1 `RULE-OBS-SWITCH` · 开关语义
 - **输入前提 / 适用条件**：任意记录路径
 - **算法 / 规则 / 选择依据**：`snapshots_enabled`/`stats_enabled` 关 → 短路不写
-- **结果 / 不变量 / 边界**：关闭零写入（C-OBS-1）
+- **结果 / 不变量 / 边界**：关闭零写入（CON-OBS-001）
 - **复杂度 / 资源限制**：O(1)
 - **允许替换范围 / 不可改变保证**：存储可自选；默认关不可变
 - **具体输入推演 / 验证项**：关闭后无新行；`VRC-OBS-001`
@@ -767,7 +767,7 @@ InjectionConfig {
 #### 8.2 `RULE-OBS-FAILOPEN` · fail-open
 - **输入前提 / 适用条件**：任意观测写入失败
 - **算法 / 规则 / 选择依据**：捕获异常，记 warning 到运行日志，继续
-- **结果 / 不变量 / 边界**：推理结果不变（C-OBS-2）
+- **结果 / 不变量 / 边界**：推理结果不变（CON-OBS-002）
 - **复杂度 / 资源限制**：—
 - **允许替换范围 / 不可改变保证**：捕获实现可自选；不改结果不可变
 - **具体输入推演 / 验证项**：注入库写失败仍返回推理结果；`VRC-OBS-003`
@@ -775,7 +775,7 @@ InjectionConfig {
 #### 8.3 `RULE-OBS-REDACT` · 脱敏
 - **输入前提 / 适用条件**：任意记录
 - **算法 / 规则 / 选择依据**：`upstream_url` 去 query；`error_summary` UTF-8 安全截断 256B；禁 Secret/凭据/正文
-- **结果 / 不变量 / 边界**：查询结果不含敏感字段（C-OBS-3）
+- **结果 / 不变量 / 边界**：查询结果不含敏感字段（CON-OBS-003）
 - **复杂度 / 资源限制**：O(len)
 - **允许替换范围 / 不可改变保证**：实现可自选；禁记不可变
 - **具体输入推演 / 验证项**：`?token=x` 被移除；`VRC-OBS-002`
@@ -962,9 +962,9 @@ apply_correlation(headers) -> (correlation_id: str | None, trace_detail: dict | 
 ## 11. 安全、权限与可观测性
 
 - **权限**：operator 凭据（M001 入口判定）；M005 不鉴权
-- **脱敏**：查询结果只含脱敏字段（C-OBS-3）；`upstream_url` 去 query、`error_summary` 截断
+- **脱敏**：查询结果只含脱敏字段（CON-OBS-003）；`upstream_url` 去 query、`error_summary` 截断
 - **禁止记录**：Secret/凭据/完整 prompt·输出·reasoning·vector
-- **fail-open**：观测故障不改推理（C-OBS-2）
+- **fail-open**：观测故障不改推理（CON-OBS-002）
 
 ## 12. 容量、性能与运行限制
 
@@ -1002,7 +1002,7 @@ apply_correlation(headers) -> (correlation_id: str | None, trace_detail: dict | 
 #### 13.1.1 `src/http_api/app.py`（诊断路由）
 - **职责 / 非职责**：诊断端点路由、关联标识透传/回显、开关/注入经审计；不含记录逻辑
 - **关键 symbol / 导出范围**：`/tier/admin/v1/diagnostics*`、`/tier/admin/v1/trace/{id}` 分支；`X-Correlation-ID` 处理
-- **承接 Function / Rule / Constraint / Interface ID**：`F-OBS-SWITCH/SNAPSHOTS/STATS/INJECTIONS/TRACE/CORRELATION`、`C-OBS-4`、`IF-DIAGNOSTICS/SNAPSHOTS/STATS/INJECTIONS/TRACE`
+- **承接 Function / Rule / Constraint / Interface ID**：`F-OBS-SWITCH/SNAPSHOTS/STATS/INJECTIONS/TRACE/CORRELATION`、`CON-OBS-004`、`IF-DIAGNOSTICS/SNAPSHOTS/STATS/INJECTIONS/TRACE`
 - **构建目标 / 依赖 / 宿主装配**：随 `Application`
 - **实现状态**：Implemented
 - **验证入口**：`VRC-OBS-001/002/003/004`
@@ -1049,7 +1049,7 @@ apply_correlation(headers) -> (correlation_id: str | None, trace_detail: dict | 
 ## 14. 测试与验收
 
 #### 14.1 `VRC-OBS-001` · 开关
-- **覆盖 Function / Rule / Constraint / Interface**：`F-OBS-SWITCH`、`RULE-OBS-SWITCH`、`C-OBS-1`、`IF-DIAGNOSTICS`
+- **覆盖 Function / Rule / Constraint / Interface**：`F-OBS-SWITCH`、`RULE-OBS-SWITCH`、`CON-OBS-001`、`IF-DIAGNOSTICS`
 - **Case / 正常、边界与失败输入**：关/开 snapshots/stats；关闭时推理
 - **环境 / 配置 / 隔离与复位**：隔离库
 - **独立 Oracle / Expected**：关闭时零写入
@@ -1058,7 +1058,7 @@ apply_correlation(headers) -> (correlation_id: str | None, trace_detail: dict | 
 - **父级组合验证交接**：M002
 
 #### 14.2 `VRC-OBS-002` · 快照/统计查询与脱敏
-- **覆盖 Function / Rule / Constraint / Interface**：`F-OBS-SNAPSHOTS/STATS`、`RULE-OBS-REDACT`、`C-OBS-3`、`IF-DIAG-SNAPSHOTS/STATS`
+- **覆盖 Function / Rule / Constraint / Interface**：`F-OBS-SNAPSHOTS/STATS`、`RULE-OBS-REDACT`、`CON-OBS-003`、`IF-DIAG-SNAPSHOTS/STATS`
 - **Case**：一次上游调用后查询；`?token=` URL
 - **环境 / 配置 / 隔离与复位**：隔离库
 - **独立 Oracle / Expected**：字段完整；URL 去 query；统计口径
@@ -1067,7 +1067,7 @@ apply_correlation(headers) -> (correlation_id: str | None, trace_detail: dict | 
 - **父级组合验证交接**：M003
 
 #### 14.3 `VRC-OBS-003` · 注入与 fail-open
-- **覆盖 Function / Rule / Constraint / Interface**：`F-OBS-INJECTIONS`、`RULE-OBS-INJECT/FAILOPEN`、`C-OBS-2/4`、`IF-DIAG-INJECTIONS`
+- **覆盖 Function / Rule / Constraint / Interface**：`F-OBS-INJECTIONS`、`RULE-OBS-INJECT/FAILOPEN`、`CON-OBS-002/4`、`IF-DIAG-INJECTIONS`
 - **Case**：合法/非法注入；注入库写失败
 - **环境 / 配置 / 隔离与复位**：隔离库
 - **独立 Oracle / Expected**：400/404；推理结果不变
@@ -1123,7 +1123,7 @@ apply_correlation(headers) -> (correlation_id: str | None, trace_detail: dict | 
 ## 附录 A. 机制承接表
 
 #### A.1 `llmtier-observability-mechanism` / `R-OBS-02` · 观测查询与开关呈现
-- **来源 Capability / Step / Constraint / 接口成员**：C-OBS-1/5、Step 6
+- **来源 Capability / Step / Constraint / 接口成员**：CON-OBS-001/5、Step 6
 - **本模块必须负责的行为与保证**：查询与呈现、开关切换；授权
 - **本模块提供 / 消费的接口**：诊断路由（经 M001）
 - **本文落实位置**：§5.1、§9.1–9.5

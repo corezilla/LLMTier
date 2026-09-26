@@ -24,7 +24,7 @@
 - **模块 ID / 名称**：M003 / Inference
 - **直属父对象 / 父设计**：LLMTier 软件系统 / `llmtier-system-design`（§3.2 登记）
 - **模块设计 Document ID / 版本 / 路径 / 摘要**：`inference` / `0.1.0-draft.1` / `docs/40_module_design/inference-design.md` / §2 F-INF-RESPONSES/EMBED/MODELS/VALIDATE/ROUTE/USAGE、§8 RULE-INF-*
-- **需求与 Constraint ID**：`C-INFER-1..5`、`C-TRUST-1`、`C-METER`；机制 `R-INF-03..07`、`R-MET-01`、`R-OBS-03`、`R-TRUST-03`
+- **需求与 Constraint ID**：`CON-INFER-001..5`、`CON-TRUST-001`、`C-METER`；机制 `R-INF-03..07`、`R-MET-01`、`R-OBS-03`、`R-TRUST-03`
 - **实现范围 / 非目标**：实现推理/向量化编排、准入与路由、Provider 适配、响应归一与用量归一；**非目标**：HTTP（M001）、配置管理（M004）、账本版本语义（M-METER）、跨等级 fallback
 - **ISD 默认落位或项目批准路径**：`docs/50_implementation_design/inference.isd.md`
 
@@ -1014,7 +1014,7 @@ flowchart TD
 
 #### 7.3.1.1 `SEC-INF-NOAUTH` · 不二次校验
 
-- **原规则**：`R-TRUST-03`（`C-TRUST-1`）
+- **原规则**：`R-TRUST-03`（`CON-TRUST-001`）
 - **可信输入 / 敏感字段 / 检查对象**：`Principal`（入口已判）
 - **检查函数 / 时点**：不鉴权；只消费 `principal_id`
 - **拒绝 / 宿主交付出口**：无

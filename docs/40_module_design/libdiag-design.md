@@ -39,7 +39,7 @@
 
 ### 1.1 继承的上级约束与落实方式
 
-#### 1.1.1 `C-OBS-1` · 默认关闭、关闭零开销
+#### 1.1.1 `CON-OBS-001` · 默认关闭、关闭零开销
 - **上级基线与决定状态**：系统设计 §11.3；已采用
 - **适用条件**：全部记录原语
 - **继承预算或行为保证**：开关关 → 短路不写
@@ -48,7 +48,7 @@
 - **验证方法与结果 / 证据**：`VRC-DIAG-001`；NOT_RUN
 - **差距 / 变更影响 / 反馈责任**：无
 
-#### 1.1.2 `C-OBS-2` · fail-open
+#### 1.1.2 `CON-OBS-002` · fail-open
 - **上级基线与决定状态**：系统设计 §11.3；已采用
 - **适用条件**：全部记录/查询
 - **继承预算或行为保证**：失败不抛到推理路径
@@ -57,7 +57,7 @@
 - **验证方法与结果 / 证据**：`VRC-DIAG-003`；NOT_RUN
 - **差距 / 变更影响 / 反馈责任**：无
 
-#### 1.1.3 `C-OBS-3` · 不记录 Secret/凭据/完整正文
+#### 1.1.3 `CON-OBS-003` · 不记录 Secret/凭据/完整正文
 - **上级基线与决定状态**：系统设计 §11.3；已采用
 - **适用条件**：快照/统计/trace/注入
 - **继承预算或行为保证**：只存脱敏字段
@@ -66,7 +66,7 @@
 - **验证方法与结果 / 证据**：`VRC-DIAG-002`；NOT_RUN
 - **差距 / 变更影响 / 反馈责任**：无
 
-#### 1.1.4 `C-OBS-5` · 能力提供者
+#### 1.1.4 `CON-OBS-005` · 能力提供者
 - **上级基线与决定状态**：系统设计 §3.2；已采用
 - **适用条件**：全部观测能力
 - **继承预算或行为保证**：libdiag 提供能力，Observability 呈现
@@ -78,7 +78,7 @@
 ## 2. 需求、功能与验收条件
 
 ### 2.1 `F-DIAG-SWITCH` · 开关读写
-- **上级需求 / Constraint ID**：`C-OBS-1`；机制 M-OBS CAP-OBS-3
+- **上级需求 / Constraint ID**：`CON-OBS-001`；机制 M-OBS CAP-OBS-3
 - **调用方**：M005
 - **输入与前提**：部分更新（`None` 保持）
 - **行为**：读写 `snapshots_enabled`/`stats_enabled`（单行表）
@@ -114,7 +114,7 @@
 - **验收条件**：`status_breakdown` 按 HTTP status 分列；可丢、非账本
 
 ### 2.5 `F-DIAG-INJECT` · 注入配置读写
-- **上级需求 / Constraint ID**：`C-OBS-4`；机制 M-OBS CAP-OBS-5
+- **上级需求 / Constraint ID**：`CON-OBS-004`；机制 M-OBS CAP-OBS-5
 - **调用方**：M005 写；M003 读
 - **输入与前提**：注入项列表（部分更新）
 - **行为**：白名单与参数范围校验；按 deployment 持久化；查 enabled——**多启用项仍存储，暴露"下一步要触发的一条"**，优先级 `fault_502 → fault_503 → rate_limit → delay`（流阶段 `stream_terminate → malformed_event`）
@@ -446,7 +446,7 @@ SwitchState {
 
 - **跨字段与寿命**：
 
-  两字段独立；恒取自 `singleton=1` 单行；关闭 ⇒ 零写入（C-OBS-1）；持久单行；I1 写、I2–I6 读；随库寿命。
+  两字段独立；恒取自 `singleton=1` 单行；关闭 ⇒ 零写入（CON-OBS-001）；持久单行；I1 写、I2–I6 读；随库寿命。
 
 - **合法/拒绝实例**：
 
@@ -789,7 +789,7 @@ DiagnosticsRuntimeState {
 
 - **跨字段与寿命**：
 
-  唯一写者=`set_switches`/`record_latency`；记录前判定（关闭零写入，C-OBS-1）；缓存满 LRU 淘汰；单行持久 + 请求级过程量；进程退出丢失内存统计（不承诺恢复）。
+  唯一写者=`set_switches`/`record_latency`；记录前判定（关闭零写入，CON-OBS-001）；缓存满 LRU 淘汰；单行持久 + 请求级过程量；进程退出丢失内存统计（不承诺恢复）。
 
 - **合法/拒绝实例**：
 
@@ -915,7 +915,7 @@ enum DiagnosticErrorRef { ERR-NOTFOUND, ERR-INJECTION, ERR-REQ-VALIDATION, ERR-S
 #### 8.1 `RULE-DIAG-SWITCH` · 开关短路
 - **输入前提 / 适用条件**：任意记录
 - **算法 / 规则 / 选择依据**：`snapshots_enabled`/`stats_enabled` 关 → 直接返回，不写
-- **结果 / 不变量 / 边界**：关闭零写入（C-OBS-1）
+- **结果 / 不变量 / 边界**：关闭零写入（CON-OBS-001）
 - **复杂度 / 资源限制**：O(1)
 - **允许替换范围 / 不可改变保证**：存储可自选；短路不可变
 - **具体输入推演 / 验证项**：关→无新行；`VRC-DIAG-001`
@@ -923,7 +923,7 @@ enum DiagnosticErrorRef { ERR-NOTFOUND, ERR-INJECTION, ERR-REQ-VALIDATION, ERR-S
 #### 8.2 `RULE-DIAG-TRUNC` · 脱敏与截断
 - **输入前提 / 适用条件**：快照写入
 - **算法 / 规则 / 选择依据**：`upstream_url` 去 query；`error_summary` 截断 256B（UTF-8 安全）
-- **结果 / 不变量 / 边界**：只存脱敏字段（C-OBS-3）
+- **结果 / 不变量 / 边界**：只存脱敏字段（CON-OBS-003）
 - **复杂度 / 资源限制**：O(len)
 - **允许替换范围 / 不可改变保证**：实现可自选；禁记不可变
 - **具体输入推演 / 验证项**：`?key=` 被移除；`VRC-DIAG-002`
@@ -1155,9 +1155,9 @@ cleanup(days: int = 7) -> int
 
 ## 11. 安全、权限与可观测性
 
-- **脱敏**：快照 URL 去 query、summary 截断；禁 Secret/凭据/正文（C-OBS-3）
+- **脱敏**：快照 URL 去 query、summary 截断；禁 Secret/凭据/正文（CON-OBS-003）
 - **权限**：不鉴权（能力库）；访问控制由 M001/M005
-- **fail-open**：记录失败不改推理（C-OBS-2）
+- **fail-open**：记录失败不改推理（CON-OBS-002）
 - **日志**：`_warn` 只写摘要，不含敏感内容
 
 ## 12. 容量、性能与运行限制
@@ -1198,7 +1198,7 @@ cleanup(days: int = 7) -> int
 | 文件 | 功能 | 关键 symbol | 承接 ID | 状态 |
 |---|---|---|---|---|
 | `src/libdiag/diagnostics.py` | 组合点（门面） | `DiagnosticsService`（`switches/set_switches/record_trace/trace/traces/capture_snapshot/snapshots_page/record_latency/stats/set_injections/injections/enabled_injection/enabled_stream_injection/stream_wrapper/cleanup`）、`_warn` | `IF-LIBDIAG-*` | Implemented |
-| `src/libdiag/settings.py` | 功能1 开关 | `SettingsDiagnostics.switches/set_switches` | `F-DIAG-SWITCH`、`RULE-DIAG-SWITCH`、`C-OBS-1` | Implemented |
+| `src/libdiag/settings.py` | 功能1 开关 | `SettingsDiagnostics.switches/set_switches` | `F-DIAG-SWITCH`、`RULE-DIAG-SWITCH`、`CON-OBS-001` | Implemented |
 | `src/libdiag/traces.py` | 功能2 trace | `TraceDiagnostics.record_trace/trace/traces`（`_trace_view` 组合 snapshot+usage） | `F-DIAG-TRACE`、`F-DIAG-TRACES` | Implemented |
 | `src/libdiag/snapshots.py` | 功能3 快照 | `SnapshotDiagnostics.capture_snapshot/snapshots_page`（组合 settings） | `F-DIAG-SNAPSHOT`、`RULE-DIAG-TRUNC` | Implemented |
 | `src/libdiag/stats.py` | 功能4 统计 | `StatsDiagnostics.record_latency/stats`（组合 settings） | `F-DIAG-STATS`、`RULE-DIAG-PCTL` | Implemented |
@@ -1240,7 +1240,7 @@ cleanup(days: int = 7) -> int
 ## 14. 测试与验收
 
 #### 14.1 `VRC-DIAG-001` · 开关
-- **覆盖 Function / Rule / Constraint / Interface**：`F-DIAG-SWITCH`、`RULE-DIAG-SWITCH`、`C-OBS-1`、`IF-LIBDIAG-SWITCH`
+- **覆盖 Function / Rule / Constraint / Interface**：`F-DIAG-SWITCH`、`RULE-DIAG-SWITCH`、`CON-OBS-001`、`IF-LIBDIAG-SWITCH`
 - **Case / 正常、边界与失败输入**：关/开；部分更新
 - **环境 / 配置 / 隔离与复位**：隔离库
 - **独立 Oracle / Expected**：关闭零写入
@@ -1249,7 +1249,7 @@ cleanup(days: int = 7) -> int
 - **父级组合验证交接**：M005
 
 #### 14.2 `VRC-DIAG-002` · 记录与查询
-- **覆盖 Function / Rule / Constraint / Interface**：`F-DIAG-TRACE/SNAPSHOT/STATS`、`RULE-DIAG-TRUNC/PCTL`、`C-OBS-3`
+- **覆盖 Function / Rule / Constraint / Interface**：`F-DIAG-TRACE/SNAPSHOT/STATS`、`RULE-DIAG-TRUNC/PCTL`、`CON-OBS-003`
 - **Case**：一次调用后 trace/snapshot/stats；URL 带 query
 - **环境 / 配置 / 隔离与复位**：隔离库
 - **独立 Oracle / Expected**：字段/脱敏/百分位正确
@@ -1258,7 +1258,7 @@ cleanup(days: int = 7) -> int
 - **父级组合验证交接**：M003/M005
 
 #### 14.3 `VRC-DIAG-003` · fail-open
-- **覆盖 Function / Rule / Constraint / Interface**：`RULE-OBS-FAILOPEN`、`C-OBS-2`
+- **覆盖 Function / Rule / Constraint / Interface**：`RULE-OBS-FAILOPEN`、`CON-OBS-002`
 - **Case**：写入失败/初始化失败
 - **环境 / 配置 / 隔离与复位**：隔离库
 - **独立 Oracle / Expected**：推理结果不变
@@ -1267,7 +1267,7 @@ cleanup(days: int = 7) -> int
 - **父级组合验证交接**：M003
 
 #### 14.4 `VRC-DIAG-004` · 注入
-- **覆盖 Function / Rule / Constraint / Interface**：`F-DIAG-INJECT/STREAM`、`RULE-DIAG-INJECT`、`C-OBS-4`
+- **覆盖 Function / Rule / Constraint / Interface**：`F-DIAG-INJECT/STREAM`、`RULE-DIAG-INJECT`、`CON-OBS-004`
 - **Case**：四类注入 + 流截断/畸形；非法类型
 - **环境 / 配置 / 隔离与复位**：隔离库
 - **独立 Oracle / Expected**：400；命中确定性
@@ -1305,7 +1305,7 @@ cleanup(days: int = 7) -> int
 ## 附录 A. 机制承接表
 
 #### A.1 `llmtier-observability-mechanism` / `R-OBS-01` · 观测底层读写
-- **来源 Capability / Step / Constraint / 接口成员**：C-OBS-3、Step 2/3/4/5、interface `DiagnosticService` 全部
+- **来源 Capability / Step / Constraint / 接口成员**：CON-OBS-003、Step 2/3/4/5、interface `DiagnosticService` 全部
 - **本模块必须负责的行为与保证**：开关/注入/记录底层读写、脱敏、fail-open
 - **本模块提供 / 消费的接口**：`switches`/`set_switches`/`record_trace`/`capture_snapshot`/`record_latency`/`enabled_injection`/`enabled_stream_injection`/`stream_wrapper`/查询
 - **本文落实位置**：§5.1、§6、§8、§9

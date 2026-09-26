@@ -24,7 +24,7 @@
 - **模块 ID / 名称**：M006 / `libdiag`
 - **直属父对象 / 父设计**：LLMTier 软件系统 / `llmtier-system-design`（§3.2 登记）
 - **模块设计 Document ID / 版本 / 路径 / 摘要**：`libdiag` / `0.1.0-draft.1` / `docs/40_module_design/libdiag-design.md` / §2 F-DIAG-SWITCH/TRACE/SNAPSHOT/STATS/INJECT/TRACES/STREAM/CLEANUP、§8 RULE-DIAG-SWITCH/TRUNC/PCTL/INJECT
-- **需求与 Constraint ID**：`C-OBS-1`（默认关零开销）、`C-OBS-2`（fail-open）、`C-OBS-3`（不记 Secret/正文）、`C-OBS-4`（注入标注）；机制 `R-OBS-01`、`R-OBS-06`
+- **需求与 Constraint ID**：`CON-OBS-001`（默认关零开销）、`CON-OBS-002`（fail-open）、`CON-OBS-003`（不记 Secret/正文）、`CON-OBS-004`（注入标注）；机制 `R-OBS-01`、`R-OBS-06`
 - **实现范围 / 非目标**：实现 `DiagnosticsService`（开关/注入/trace/快照/统计/流包装/清理）与观测表 DDL；**非目标**：查询呈现与路由（M005）、HTTP（M001）、推理决策（M003）
 - **ISD 默认落位或项目批准路径**：`docs/50_implementation_design/libdiag.isd.md`
 
@@ -555,7 +555,7 @@ DiagnosticsRuntimeState {
 
 - **跨字段与寿命**
 
-  唯一写者=`set_switches`；记录前判定（关闭零写入，`C-OBS-1`）；单行持久 + 请求级过程量。
+  唯一写者=`set_switches`；记录前判定（关闭零写入，`CON-OBS-001`）；单行持久 + 请求级过程量。
 
 - **合法/拒绝实例**
 
@@ -721,7 +721,7 @@ trace(request_id) -> dict
     - **宿主 / public payload 或状态码**：无
     - **日志级别 / 脱敏 / 关联字段**：warning（module=diagnostics）
     - **是否可重试及前提**：尽力而为
-    - **状态与副作用影响 / 验证项**：不改推理结果（C-OBS-2）；`VRC-DIAG-003`
+    - **状态与副作用影响 / 验证项**：不改推理结果（CON-OBS-002）；`VRC-DIAG-003`
 
 - **交互与生命周期**
 
@@ -734,7 +734,7 @@ trace(request_id) -> dict
 
 - **实现与验证**
 
-  - **不可改变的规则 / Constraint ID**：同 request 有序；fail-open（C-OBS-2）
+  - **不可改变的规则 / Constraint ID**：同 request 有序；fail-open（CON-OBS-002）
   - **实现自由度**：查询实现
   - **实现状态 / 验证项**：PLANNED；`VRC-DIAG-002/003`
 
@@ -771,7 +771,7 @@ snapshots_page(since, until, deployment_id, model, limit=50, cursor=None) -> dic
     - **宿主 / public payload 或状态码**：无
     - **日志级别 / 脱敏 / 关联字段**：warning（module=diagnostics）
     - **是否可重试及前提**：尽力而为
-    - **状态与副作用影响 / 验证项**：不改推理结果（C-OBS-2）；`VRC-DIAG-003`
+    - **状态与副作用影响 / 验证项**：不改推理结果（CON-OBS-002）；`VRC-DIAG-003`
 
 - **交互与生命周期**
 
@@ -821,7 +821,7 @@ stats(since, until, deployment_id=None, model=None) -> dict
     - **宿主 / public payload 或状态码**：无
     - **日志级别 / 脱敏 / 关联字段**：warning（module=diagnostics）
     - **是否可重试及前提**：尽力而为
-    - **状态与副作用影响 / 验证项**：不改推理结果（C-OBS-2）；`VRC-DIAG-003`
+    - **状态与副作用影响 / 验证项**：不改推理结果（CON-OBS-002）；`VRC-DIAG-003`
 
 - **交互与生命周期**
 
@@ -1161,7 +1161,7 @@ flowchart TD
 
 #### 7.3.1.1 `SEC-DIAG-SWITCH` · 默认关 + fail-open
 
-- **原规则**：模块 §1.1.1/§1.1.2（C-OBS-1/2）
+- **原规则**：模块 §1.1.1/§1.1.2（CON-OBS-001/2）
 - **可信输入 / 敏感字段 / 检查对象**：开关状态
 - **检查函数 / 时点**：`switches()` 在每次记录前
 - **拒绝 / 宿主交付出口**：关闭 → 短路；失败 → warning

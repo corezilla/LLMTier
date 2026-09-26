@@ -165,11 +165,11 @@ LLMTier 无软件子系统（`std-tailoring` LT-TL-003 / LT-TL-013），三层�
 
 | Mechanism ID / 用途 | 上级 Mechanism ID | 参与对象 / Process或Constraint | 前置依赖 | Document ID / 计划文件名 | Planned或实际基线 / 未决项 |
 |---|---|---|---|---|---|
-| M-TRUST / 访问信任：内网免登录 + 可选 Bearer 区分角色 | none | HTTP API (M001)、业务模块 (M003–M005)；C-TRUST-1..5 | — | `llmtier-access-trust-mechanism` / `mechanisms/access-trust.md` | 实际：成文（`0.1.0-draft.4`）|
-| M-INFER / 推理与流式返回：校验→路由→准入→后端→SSE→终态 | none | HTTP API (M001)、Inference (M003)、Management (M004)；P-INFER；C-INFER-1..5 | M-TRUST（行为）| `llmtier-inference-stream-mechanism` / `mechanisms/inference-stream.md` | 实际：成文（`0.1.0-draft.4`）|
-| M-METER / 用量计量与账本：义务/版本/head/unknown | none | Inference (M003)、Management (M004)、util (M007)；C-METER-1..5 | M-INFER（行为）| `llmtier-usage-metering-mechanism` / `mechanisms/usage-metering.md` | 实际：成文（`0.1.0-draft.4`）|
-| M-CONFIG / 配置引导与变更：bootstrap → SQLite 权威 | none | HTTP API (M001)、Management (M004)、util (M007)；C-CFG-1..5 | — | `llmtier-config-lifecycle-mechanism` / `mechanisms/config-lifecycle.md` | 实际：成文（`0.1.0-draft.4`）|
-| M-OBS / 上游快照、数据面统计、故障注入、单请求 trace、关联标识透传 | none | HTTP API (M001)、Inference (M003)、Observability (M005)、`libdiag` (M006)、util (M007)；C-OBS-1..5 | M-INFER（行为）| `llmtier-observability-mechanism` / `mechanisms/observability.md` | 实际：成文（`0.1.0-draft.4`）；流注入见 LT-OPEN-05 |
+| M-TRUST / 访问信任：内网免登录 + 可选 Bearer 区分角色 | none | HTTP API (M001)、业务模块 (M003–M005)；CON-TRUST-001..5 | — | `llmtier-access-trust-mechanism` / `mechanisms/access-trust.md` | 实际：成文（`0.1.0-draft.4`）|
+| M-INFER / 推理与流式返回：校验→路由→准入→后端→SSE→终态 | none | HTTP API (M001)、Inference (M003)、Management (M004)；P-INFER；CON-INFER-001..5 | M-TRUST（行为）| `llmtier-inference-stream-mechanism` / `mechanisms/inference-stream.md` | 实际：成文（`0.1.0-draft.4`）|
+| M-METER / 用量计量与账本：义务/版本/head/unknown | none | Inference (M003)、Management (M004)、util (M007)；CON-METER-001..5 | M-INFER（行为）| `llmtier-usage-metering-mechanism` / `mechanisms/usage-metering.md` | 实际：成文（`0.1.0-draft.4`）|
+| M-CONFIG / 配置引导与变更：bootstrap → SQLite 权威 | none | HTTP API (M001)、Management (M004)、util (M007)；CON-CFG-001..5 | — | `llmtier-config-lifecycle-mechanism` / `mechanisms/config-lifecycle.md` | 实际：成文（`0.1.0-draft.4`）|
+| M-OBS / 上游快照、数据面统计、故障注入、单请求 trace、关联标识透传 | none | HTTP API (M001)、Inference (M003)、Observability (M005)、`libdiag` (M006)、util (M007)；CON-OBS-001..5 | M-INFER（行为）| `llmtier-observability-mechanism` / `mechanisms/observability.md` | 实际：成文（`0.1.0-draft.4`）；流注入见 LT-OPEN-05 |
 
 均为顶层机制（无设计分解上级）；`M-INFER` 依赖 `M-TRUST` 的行为，`M-METER`/`M-OBS` 依赖 `M-INFER` 的行为。Owner 均为 LLMTier。机制文档 `§14`（跨责任单元分解与接口分配）为下级模块设计的输入，模块设计以附录"机制承接表"逐条承接。
 

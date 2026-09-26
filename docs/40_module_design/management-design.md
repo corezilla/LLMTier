@@ -39,7 +39,7 @@
 
 ### 1.1 继承的上级约束与落实方式
 
-#### 1.1.1 `C-CFG-1` · 初始化后 SQLite 是唯一运行权威
+#### 1.1.1 `CON-CFG-001` · 初始化后 SQLite 是唯一运行权威
 - **上级基线与决定状态**：系统设计 §3.4/§10；已采用
 - **适用条件**：bootstrap 之后
 - **继承预算或行为保证**：文件不再影响运行；不双写
@@ -48,7 +48,7 @@
 - **验证方法与结果 / 证据**：`VRC-MGMT-001`；NOT_RUN
 - **差距 / 变更影响 / 反馈责任**：无
 
-#### 1.1.2 `C-CFG-2` · Secret 只存引用
+#### 1.1.2 `CON-CFG-002` · Secret 只存引用
 - **上级基线与决定状态**：系统设计 §10；已采用
 - **适用条件**：provider 写入
 - **继承预算或行为保证**：明文不入库/不入响应/不入 UI
@@ -57,7 +57,7 @@
 - **验证方法与结果 / 证据**：`VRC-MGMT-001`；NOT_RUN
 - **差距 / 变更影响 / 反馈责任**：无
 
-#### 1.1.3 `C-CFG-3` · 先验证再原子推进
+#### 1.1.3 `CON-CFG-003` · 先验证再原子推进
 - **上级基线与决定状态**：系统设计 §3.4；已采用
 - **适用条件**：配置发布
 - **继承预算或行为保证**：引用/能力不变量通过才提交；失败不改 active snapshot
@@ -66,7 +66,7 @@
 - **验证方法与结果 / 证据**：`VRC-MGMT-002`；NOT_RUN
 - **差距 / 变更影响 / 反馈责任**：无
 
-#### 1.1.4 `C-CFG-4` · 变更失败回滚
+#### 1.1.4 `CON-CFG-004` · 变更失败回滚
 - **上级基线与决定状态**：系统设计 §3.4；已采用
 - **适用条件**：任意管理变更
 - **继承预算或行为保证**：失败保持旧版本
@@ -75,7 +75,7 @@
 - **验证方法与结果 / 证据**：`VRC-MGMT-002`；NOT_RUN
 - **差距 / 变更影响 / 反馈责任**：无
 
-#### 1.1.5 `C-CFG-5` · 初始化失败 not_ready
+#### 1.1.5 `CON-CFG-005` · 初始化失败 not_ready
 - **上级基线与决定状态**：系统设计 §10；已采用
 - **适用条件**：启动引导
 - **继承预算或行为保证**：引导失败服务 not_ready
@@ -84,7 +84,7 @@
 - **验证方法与结果 / 证据**：`VRC-MGMT-003`；NOT_RUN
 - **差距 / 变更影响 / 反馈责任**：无
 
-#### 1.1.6 `C-METER-4` · 查询稳定分页
+#### 1.1.6 `CON-METER-004` · 查询稳定分页
 - **上级基线与决定状态**：机制 M-METER §3.1；已采用
 - **适用条件**：用量/审计/日志分页
 - **继承预算或行为保证**：snapshot 冻结；权限每页复核
@@ -96,7 +96,7 @@
 ## 2. 需求、功能与验收条件
 
 ### 2.1 `F-MGMT-BOOTSTRAP` · 首次引导
-- **上级需求 / Constraint ID**：`C-CFG-1/2/3/5`；机制 M-CONFIG CAP-CFG-BOOTSTRAP
+- **上级需求 / Constraint ID**：`CON-CFG-001/2/3/5`；机制 M-CONFIG CAP-CFG-BOOTSTRAP
 - **调用方**：启动（`__main__`）
 - **输入与前提**：空库 + 显式 settings 路径
 - **行为**：迁移 schema → 校验字段/ID/引用/Secret 可达 → 单事务写入 providers/deployments/levels + `bootstrap_sha256` + 审计
@@ -105,7 +105,7 @@
 - **验收条件**：空库无路径 → 503；重复启动 no-op；非法引用回滚
 
 ### 2.2 `F-MGMT-CRUD` · 配置增删改查
-- **上级需求 / Constraint ID**：`C-CFG-1/3/4`；机制 M-CONFIG CAP-CFG-CRUD
+- **上级需求 / Constraint ID**：`CON-CFG-001/3/4`；机制 M-CONFIG CAP-CFG-CRUD
 - **调用方**：M001（`/tier/admin/v1/providers`、`/tier/admin/v1/deployments`、`/tier/admin/v1/service-levels`）
 - **输入与前提**：operator 凭据；`If-Match`（PATCH/DELETE）
 - **行为**：事务化 CRUD + 能力/不变量校验 + 审计；`version+1`
@@ -123,7 +123,7 @@
 - **验收条件**：未确认不触网；探测结果落库
 
 ### 2.4 `F-MGMT-USAGE-QUERY` · 用量查询
-- **上级需求 / Constraint ID**：`C-METER-4`；机制 M-METER CAP-METER-QUERY/ADMIN
+- **上级需求 / Constraint ID**：`CON-METER-004`；机制 M-METER CAP-METER-QUERY/ADMIN
 - **调用方**：M001（`GET /v1/usage`）
 - **输入与前提**：`from/to`（`[from,to)`）、可选 `model/request_id/cursor/limit`
 - **行为**：首屏建 snapshot 冻结成员；后续页按冻结视图
@@ -1416,7 +1416,7 @@ page(limit: int = 50, level: str | None = None, module: str | None = None, reque
 
 ## 11. 安全、权限与可观测性
 
-- **权限**：不鉴权（入口单点，M-TRUST C-TRUST-1）；M001 传 `actor=principal_id` 用于审计
+- **权限**：不鉴权（入口单点，M-TRUST CON-TRUST-001）；M001 传 `actor=principal_id` 用于审计
 - **Secret**：只存引用；`registry` 校验 `env:`/`file:`；账号用量凭据经 `secret_ref` 解析，不入库不回显
 - **审计/日志**：`mutate` 统一记审计；日志写入前脱敏；禁止 prompt/output/Secret 进入
 - **不泄露存在性**：401/403 语义由 M001 统一
@@ -1457,7 +1457,7 @@ page(limit: int = 50, level: str | None = None, module: str | None = None, reque
 #### 13.1.1 `src/management/registry.py`
 - **职责 / 非职责**：I1 配置权威 + I3 引导 + 候选查询；不做管理动作审计
 - **关键 symbol / 导出范围**：`Registry.bootstrap_settings/ensure_fixed_tiers/create_*/get_*/list_*/update_*/delete_*/candidates`
-- **承接 Function / Rule / Constraint / Interface ID**：`F-MGMT-BOOTSTRAP`、`F-MGMT-CRUD`、`RULE-MGMT-CAPS/ETAG/REF`、`C-CFG-1/2/3/4/5`、`IF-PROVIDERS/DEPLOYMENTS/LEVELS`
+- **承接 Function / Rule / Constraint / Interface ID**：`F-MGMT-BOOTSTRAP`、`F-MGMT-CRUD`、`RULE-MGMT-CAPS/ETAG/REF`、`CON-CFG-001/2/3/4/5`、`IF-PROVIDERS/DEPLOYMENTS/LEVELS`
 - **构建目标 / 依赖 / 宿主装配**：随 `Application`；依赖 Store
 - **实现状态**：Implemented
 - **验证入口**：`VRC-MGMT-001/002/003`
@@ -1535,7 +1535,7 @@ page(limit: int = 50, level: str | None = None, module: str | None = None, reque
 ## 14. 测试与验收
 
 #### 14.1 `VRC-MGMT-001` · 引导与 Secret 引用
-- **覆盖 Function / Rule / Constraint / Interface**：`F-MGMT-BOOTSTRAP`、`C-CFG-1/2`、`IF-PROVIDERS`
+- **覆盖 Function / Rule / Constraint / Interface**：`F-MGMT-BOOTSTRAP`、`CON-CFG-001/2`、`IF-PROVIDERS`
 - **Case / 正常、边界与失败输入**：合法 settings；重复启动；缺节；`env:` 空/`file:` 不存在
 - **环境 / 配置 / 隔离与复位**：独立临时库
 - **独立 Oracle / Expected**：Registry 与 hash 一致；503 + 回滚 + not_ready
@@ -1562,7 +1562,7 @@ page(limit: int = 50, level: str | None = None, module: str | None = None, reque
 - **父级组合验证交接**：M002（日志页）
 
 #### 14.4 `VRC-MGMT-004` · 分页与清空
-- **覆盖 Function / Rule / Constraint / Interface**：`F-MGMT-USAGE-QUERY/RESET`、`F-MGMT-STATS`、`RULE-MGMT-SNAPSHOT`、`C-METER-4`
+- **覆盖 Function / Rule / Constraint / Interface**：`F-MGMT-USAGE-QUERY/RESET`、`F-MGMT-STATS`、`RULE-MGMT-SNAPSHOT`、`CON-METER-004`
 - **Case**：首屏后更正；cursor 过期/跨 principal；范围清空
 - **环境 / 配置 / 隔离与复位**：隔离库
 - **独立 Oracle / Expected**：旧页冻结；400/403；计数一致
@@ -1598,7 +1598,7 @@ page(limit: int = 50, level: str | None = None, module: str | None = None, reque
 - **理由 / 决定引用**：模块设计不兼作 ISD；独立 ISD 见 `docs/50_implementation_design/management-isd.md`（Planned）
 
 #### 15.1 `RISK-MGMT-1` · 离线迁移误操作
-- **类型 / 影响的规则、接口、流程或约束**：Risk；影响 `C-CFG-1`
+- **类型 / 影响的规则、接口、流程或约束**：Risk；影响 `CON-CFG-001`
 - **事实缺口 / 触发条件**：operator 误用迁移命令
 - **影响 / 阻塞边界**：配置损坏；不阻塞设计
 - **Owner / 最晚关闭 Gate**：LLMTier / 运维流程
@@ -1618,7 +1618,7 @@ page(limit: int = 50, level: str | None = None, module: str | None = None, reque
 ## 附录 A. 机制承接表
 
 #### A.1 `llmtier-config-lifecycle-mechanism` / `R-CFG-01` · 配置权威与发布
-- **来源 Capability / Step / Constraint / 接口成员**：C-CFG-1/2/3/4、Step 3/4/6、`bootstrap_settings`/CRUD/`candidates`/`get_service_level`
+- **来源 Capability / Step / Constraint / 接口成员**：CON-CFG-001/2/3/4、Step 3/4/6、`bootstrap_settings`/CRUD/`candidates`/`get_service_level`
 - **本模块必须负责的行为与保证**：唯一权威、发布事务、能力不变量、审计
 - **本模块提供 / 消费的接口**：`bootstrap_settings`、CRUD、`candidates`、`get_service_level`
 - **本文落实位置**：§5.1.1、§5.1.2、§8.1–8.3、§9.1–9.3
@@ -1627,7 +1627,7 @@ page(limit: int = 50, level: str | None = None, module: str | None = None, reque
 - **本地验证 / 组合验证交接**：`VRC-MGMT-001/002`
 
 #### A.2 `llmtier-config-lifecycle-mechanism` / `R-CFG-02` · 引导
-- **来源 Capability / Step / Constraint / 接口成员**：C-CFG-5、Step 1/2/5
+- **来源 Capability / Step / Constraint / 接口成员**：CON-CFG-005、Step 1/2/5
 - **本模块必须负责的行为与保证**：迁移、引导、not_ready
 - **本模块提供 / 消费的接口**：启动流程
 - **本文落实位置**：§5.1.3、§10.3
@@ -1645,7 +1645,7 @@ page(limit: int = 50, level: str | None = None, module: str | None = None, reque
 - **本地验证 / 组合验证交接**：M007
 
 #### A.4 `llmtier-usage-metering-mechanism` / `R-MET-02` · 用量查询
-- **来源 Capability / Step / Constraint / 接口成员**：C-METER-4、Step 4/5、`page`
+- **来源 Capability / Step / Constraint / 接口成员**：CON-METER-004、Step 4/5、`page`
 - **本模块必须负责的行为与保证**：snapshot 冻结分页、权限每页复核
 - **本模块提供 / 消费的接口**：`page()`
 - **本文落实位置**：§5.1.8、§8.5、§9.5

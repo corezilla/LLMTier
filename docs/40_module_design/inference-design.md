@@ -39,7 +39,7 @@
 
 ### 1.1 继承的上级约束与落实方式
 
-#### 1.1.1 `C-INFER-1` · 只提供标准 Responses SSE
+#### 1.1.1 `CON-INFER-001` · 只提供标准 Responses SSE
 - **上级基线与决定状态**：系统设计 §3.3；已采用
 - **适用条件**：`POST /v1/responses`
 - **继承预算或行为保证**：对外只发标准 Responses SSE，不增 JSON 并行模式
@@ -48,7 +48,7 @@
 - **验证方法与结果 / 证据**：`VRC-INF-001`；契约测试；NOT_RUN
 - **差距 / 变更影响 / 反馈责任**：无
 
-#### 1.1.2 `C-INFER-2` · 每请求恰好一个 terminal 事件
+#### 1.1.2 `CON-INFER-002` · 每请求恰好一个 terminal 事件
 - **上级基线与决定状态**：系统设计 §3.3；已采用
 - **适用条件**：`POST /v1/responses`
 - **继承预算或行为保证**：终态唯一
@@ -57,7 +57,7 @@
 - **验证方法与结果 / 证据**：`VRC-INF-001`；NOT_RUN
 - **差距 / 变更影响 / 反馈责任**：无
 
-#### 1.1.3 `C-INFER-3` · 结果未知不补零；账本只追加
+#### 1.1.3 `CON-INFER-003` · 结果未知不补零；账本只追加
 - **上级基线与决定状态**：系统设计 §3.4；已采用
 - **适用条件**：任意终态
 - **继承预算或行为保证**：unknown 义务先落库；usage 缺失不写 0
@@ -66,7 +66,7 @@
 - **验证方法与结果 / 证据**：`VRC-INF-003`；NOT_RUN
 - **差距 / 变更影响 / 反馈责任**：与 M-METER 一致
 
-#### 1.1.4 `C-INFER-4` · 不做跨等级 / 跨空间 fallback
+#### 1.1.4 `CON-INFER-004` · 不做跨等级 / 跨空间 fallback
 - **上级基线与决定状态**：系统设计 §3.3；已采用
 - **适用条件**：准入与候选选择
 - **继承预算或行为保证**：只在同一 exact 等级内选择
@@ -75,7 +75,7 @@
 - **验证方法与结果 / 证据**：`VRC-INF-004`；NOT_RUN
 - **差距 / 变更影响 / 反馈责任**：无
 
-#### 1.1.5 `C-INFER-5` · 观测 fail-open，不改推理结果
+#### 1.1.5 `CON-INFER-005` · 观测 fail-open，不改推理结果
 - **上级基线与决定状态**：系统设计 §3.4；已采用
 - **适用条件**：观测写入
 - **继承预算或行为保证**：观测失败不得使推理失败
@@ -87,7 +87,7 @@
 ## 2. 需求、功能与验收条件
 
 ### 2.1 `F-INF-RESPONSES` · 推理（Responses）
-- **上级需求 / Constraint ID**：`C-INFER-1/2/3`；机制 M-INFER CAP-RESP-STREAM
+- **上级需求 / Constraint ID**：`CON-INFER-001/2/3`；机制 M-INFER CAP-RESP-STREAM
 - **调用方**：M001（`/v1/responses`）
 - **输入与前提**：`ResponsesRequest`（`model` / `input` / `stream=true` / `store=false`）
 - **行为**：校验 → 记义务 → 准入 → 调后端 → 归一为标准 `ResponsesResponse`
@@ -114,7 +114,7 @@
 - **验收条件**：`availability` 规则正确（全部健康→available；部分/未知→degraded；无候选或全不健康→unavailable）
 
 ### 2.4 `F-INF-VALIDATE` · 请求校验
-- **上级需求 / Constraint ID**：`C-INFER-1`；机制 M-INFER §5.1
+- **上级需求 / Constraint ID**：`CON-INFER-001`；机制 M-INFER §5.1
 - **调用方**：M001 → I2
 - **输入与前提**：解析后的 body dict
 - **行为**：必填字段 → `stream/store` 约束 → 禁字段 → 模型存在 → 能力
@@ -123,7 +123,7 @@
 - **验收条件**：校验顺序固定且可测；失败不调用后端
 
 ### 2.5 `F-INF-ROUTE` · 准入与同等级候选选择
-- **上级需求 / Constraint ID**：`C-INFER-4`；机制 M-INFER CAP-WAIT-FAIL
+- **上级需求 / Constraint ID**：`CON-INFER-004`；机制 M-INFER CAP-WAIT-FAIL
 - **调用方**：I2 → I5
 - **输入与前提**：`level_id`、已启用且能力匹配的候选
 - **行为**：FIFO 排队 → 许可/限流检查 → 选 in-flight 最少者
@@ -132,7 +132,7 @@
 - **验收条件**：许可释放无泄漏；同等级内选择；不跨等级
 
 ### 2.6 `F-INF-USAGE` · 用量归一与记账
-- **上级需求 / Constraint ID**：`C-INFER-3`；机制 M-METER
+- **上级需求 / Constraint ID**：`CON-INFER-003`；机制 M-METER
 - **调用方**：I2
 - **输入与前提**：后端返回的 `usage`
 - **行为**：dispatch 前记 unknown 义务；终态追加版本并推进 head；未测不补零
@@ -168,7 +168,7 @@
 - **本模块提供**：—
 - **契约 authority / 版本 / selector**：`llmtier-observability-mechanism` §14.4 `R-OBS-03`
 - **同步方式 / timeout / 生命周期**：同步、fail-open
-- **不可用或失败影响 / 责任出口**：记 warning，不改推理结果（C-INFER-5）
+- **不可用或失败影响 / 责任出口**：记 warning，不改推理结果（CON-INFER-005）
 
 #### 4.4 `DEP-PROVIDER` · 模型后端（外部）
 - **角色 / 运行位置 / Owner**：外部依赖；进程外；各 provider/本地引擎
@@ -1132,9 +1132,9 @@ list_models() -> list
 
 ## 11. 安全、权限与可观测性
 
-- **权限**：M003 不鉴权（**C-TRUST-1**：入口单点鉴权）；只消费 `Principal.principal_id` 记用量
+- **权限**：M003 不鉴权（**CON-TRUST-001**：入口单点鉴权）；只消费 `Principal.principal_id` 记用量
 - **Secret**：provider 凭据只经 `secret_ref`（`env:`/`file:`）在适配器内解析（`DEP-PROVIDER`）；不进入响应/日志
-- **可观测**：`record_trace`（received/validated/routed/upstream_started/upstream_ended/completed|error）、`capture_snapshot`、`record_latency`、注入（`enabled_injection/enabled_stream_injection`）；全 fail-open（**C-INFER-5**）
+- **可观测**：`record_trace`（received/validated/routed/upstream_started/upstream_ended/completed|error）、`capture_snapshot`、`record_latency`、注入（`enabled_injection/enabled_stream_injection`）；全 fail-open（**CON-INFER-005**）
 - **不记录**：prompt/输出正文/Secret 进入日志或快照
 
 ## 12. 容量、性能与运行限制
@@ -1173,7 +1173,7 @@ list_models() -> list
 #### 13.1.1 `src/inference/responses.py`
 - **职责 / 非职责**：I1 校验、I2 编排、I7 归一；不做传输/准入策略
 - **关键 symbol / 导出范围**：`ResponsesService.create`、`_adapter`
-- **承接 Function / Rule / Constraint / Interface ID**：`F-INF-RESPONSES`、`F-INF-VALIDATE`、`RULE-INF-VALIDATE`、`C-INFER-1/2/3`、`IF-RESPONSES`
+- **承接 Function / Rule / Constraint / Interface ID**：`F-INF-RESPONSES`、`F-INF-VALIDATE`、`RULE-INF-VALIDATE`、`CON-INFER-001/2/3`、`IF-RESPONSES`
 - **构建目标 / 依赖 / 宿主装配**：随 `Application` 装配；依赖 Registry/Router/Usage/Diagnostics
 - **实现状态**：Implemented（含 `LLMTIER_SLOW_ADAPTER_DELAY` 测试注入）
 - **验证入口**：`VRC-INF-001`；`tests/system/api_test_v03/`
@@ -1197,7 +1197,7 @@ list_models() -> list
 #### 13.1.4 `src/inference/routing.py`
 - **职责 / 非职责**：I5 准入/队列/限流/候选选择；不做协议映射
 - **关键 symbol / 导出范围**：`Router.admit`、`Router.snapshot`
-- **承接 Function / Rule / Constraint / Interface ID**：`F-INF-ROUTE`、`RULE-INF-ROUTE`、`C-INFER-4`、`IF-INF-04`
+- **承接 Function / Rule / Constraint / Interface ID**：`F-INF-ROUTE`、`RULE-INF-ROUTE`、`CON-INFER-004`、`IF-INF-04`
 - **构建目标 / 依赖 / 宿主装配**：随 `Application`；内部锁/条件变量
 - **实现状态**：Implemented
 - **验证入口**：`VRC-INF-004`；并发用例
@@ -1221,7 +1221,7 @@ list_models() -> list
 #### 13.1.7 `src/inference/usage.py`
 - **职责 / 非职责**：I8 用量记账（义务/绑定/终态/unknown）+ 账本分页/范围清空；不含 Cost
 - **关键 symbol / 导出范围**：`UsageRecorder.authorize_dispatch/bind_backend/record_provider_request_id/finish/page/reset_usage`
-- **承接 Function / Rule / Constraint / Interface ID**：`F-INF-USAGE`、`C-INFER-3`、`IF-INF-06`、机制 `R-MET-01`
+- **承接 Function / Rule / Constraint / Interface ID**：`F-INF-USAGE`、`CON-INFER-003`、`IF-INF-06`、机制 `R-MET-01`
 - **构建目标 / 依赖 / 宿主装配**：随 `Application`；依赖 Store
 - **实现状态**：Implemented
 - **验证入口**：`VRC-INF-003`
@@ -1259,7 +1259,7 @@ list_models() -> list
 ## 14. 测试与验收
 
 #### 14.1 `VRC-INF-001` · 推理与流式契约
-- **覆盖 Function / Rule / Constraint / Interface**：`F-INF-RESPONSES`、`RULE-INF-VALIDATE`、`C-INFER-1/2`、`IF-RESPONSES`
+- **覆盖 Function / Rule / Constraint / Interface**：`F-INF-RESPONSES`、`RULE-INF-VALIDATE`、`CON-INFER-001/2`、`IF-RESPONSES`
 - **Case / 正常、边界与失败输入**：固定 request（Worker）；缺字段/`store=true`/禁字段；未知 model
 - **环境 / 配置 / 隔离与复位**：本机实例 + 隔离库
 - **独立 Oracle / Expected**：事件子集对照 OpenAPI；恰好一个 terminal
@@ -1277,7 +1277,7 @@ list_models() -> list
 - **父级组合验证交接**：Slinky（Embeddings）
 
 #### 14.3 `VRC-INF-003` · 失败与用量
-- **覆盖 Function / Rule / Constraint / Interface**：`F-INF-USAGE`、`RULE-INF-TERMINAL`、`C-INFER-3`、`IF-INF-05/06`
+- **覆盖 Function / Rule / Constraint / Interface**：`F-INF-USAGE`、`RULE-INF-TERMINAL`、`CON-INFER-003`、`IF-INF-05/06`
 - **Case**：上游 5xx/超时；两个 terminal；usage 缺失
 - **环境 / 配置 / 隔离与复位**：`LLMTIER_SLOW_ADAPTER_DELAY` 注入
 - **独立 Oracle / Expected**：unknown 不补零；head 单调；typed error
@@ -1286,7 +1286,7 @@ list_models() -> list
 - **父级组合验证交接**：M-METER
 
 #### 14.4 `VRC-INF-004` · 准入与目录
-- **覆盖 Function / Rule / Constraint / Interface**：`F-INF-ROUTE`、`F-INF-MODELS`、`RULE-INF-ROUTE`、`RULE-INF-MODELS`、`C-INFER-4`
+- **覆盖 Function / Rule / Constraint / Interface**：`F-INF-ROUTE`、`F-INF-MODELS`、`RULE-INF-ROUTE`、`RULE-INF-MODELS`、`CON-INFER-004`
 - **Case**：占满队列→429；全不健康→503；availability 三态
 - **环境 / 配置 / 隔离与复位**：隔离库 + 并发请求
 - **独立 Oracle / Expected**：429/503；availability 规则
@@ -1295,7 +1295,7 @@ list_models() -> list
 - **父级组合验证交接**：M001
 
 #### 14.5 `VRC-INF-005` · 观测 fail-open
-- **覆盖 Function / Rule / Constraint / Interface**：`C-INFER-5`；`R-OBS-03`
+- **覆盖 Function / Rule / Constraint / Interface**：`CON-INFER-005`；`R-OBS-03`
 - **Case**：注入库写失败/断开
 - **环境 / 配置 / 隔离与复位**：隔离库
 - **独立 Oracle / Expected**：推理结果不变
@@ -1313,7 +1313,7 @@ list_models() -> list
 - **理由 / 决定引用**：模块设计不兼作 ISD；独立 ISD 见 `docs/50_implementation_design/inference-isd.md`（Planned）
 
 #### 15.1 `RISK-INF-1` · 上游长尾延迟
-- **类型 / 影响的规则、接口、流程或约束**：Risk；影响 `C-INFER-3`、`F-INF-RESPONSES`
+- **类型 / 影响的规则、接口、流程或约束**：Risk；影响 `CON-INFER-003`、`F-INF-RESPONSES`
 - **事实缺口 / 触发条件**：上游在某些负载下延迟超 30 s
 - **影响 / 阻塞边界**：超时/502 增多；不阻塞设计
 - **Owner / 最晚关闭 Gate**：LLMTier / 实测后
@@ -1335,7 +1335,7 @@ list_models() -> list
 本表是承接侧：逐行承接各机制 §14.4 对 M003 的要求。
 
 #### A.1 `llmtier-inference-stream-mechanism` / `R-INF-03` · 内部准入
-- **来源 Capability / Step / Constraint / 接口成员**：C-INFER-4、Step 4、`admit`
+- **来源 Capability / Step / Constraint / 接口成员**：CON-INFER-004、Step 4、`admit`
 - **本模块必须负责的行为与保证**：并发/队列/等待/429、许可释放
 - **本模块提供 / 消费的接口**：`Router.admit`、`Router.snapshot`
 - **本文落实位置**：§5.1.5、§8.2、§10.2
@@ -1344,7 +1344,7 @@ list_models() -> list
 - **本地验证 / 组合验证交接**：`VRC-INF-004`
 
 #### A.2 `llmtier-inference-stream-mechanism` / `R-INF-04` · 同等级候选选择
-- **来源 Capability / Step / Constraint / 接口成员**：C-INFER-4、Step 4
+- **来源 Capability / Step / Constraint / 接口成员**：CON-INFER-004、Step 4
 - **本模块必须负责的行为与保证**：大小写精确选择、同等级候选
 - **本模块提供 / 消费的接口**：候选（经 `admit`）
 - **本文落实位置**：§5.1.5、§8.2
@@ -1362,7 +1362,7 @@ list_models() -> list
 - **本地验证 / 组合验证交接**：`VRC-INF-003`
 
 #### A.4 `llmtier-inference-stream-mechanism` / `R-INF-06` · Usage Recorder 承接
-- **来源 Capability / Step / Constraint / 接口成员**：C-INFER-3、Step 3/5/9
+- **来源 Capability / Step / Constraint / 接口成员**：CON-INFER-003、Step 3/5/9
 - **本模块必须负责的行为与保证**：义务/绑定/终态、unknown 不补零
 - **本模块提供 / 消费的接口**：`authorize_dispatch`/`bind_backend`/`record_provider_request_id`/`finish`
 - **本文落实位置**：§5.1.8、§8、§10.3
@@ -1380,7 +1380,7 @@ list_models() -> list
 - **本地验证 / 组合验证交接**：`VRC-INF-004`
 
 #### A.6 `llmtier-usage-metering-mechanism` / `R-MET-01` · 用量记账
-- **来源 Capability / Step / Constraint / 接口成员**：C-METER-1/2/3、Step 1/2/3
+- **来源 Capability / Step / Constraint / 接口成员**：CON-METER-001/2/3、Step 1/2/3
 - **本模块必须负责的行为与保证**：只追加版本、head 单调、unknown 不补零
 - **本模块提供 / 消费的接口**：`authorize_dispatch`/`bind_backend`/`record_provider_request_id`/`finish`
 - **本文落实位置**：§5.1.8、§6.2.6、§6.7、§10.3
@@ -1389,7 +1389,7 @@ list_models() -> list
 - **本地验证 / 组合验证交接**：`VRC-INF-003`；M-METER
 
 #### A.7 `llmtier-observability-mechanism` / `R-OBS-03` · 推理侧观测
-- **来源 Capability / Step / Constraint / 接口成员**：C-OBS-2/4、Step 3/4/5
+- **来源 Capability / Step / Constraint / 接口成员**：CON-OBS-002/4、Step 3/4/5
 - **本模块必须负责的行为与保证**：按配置注入、写事件、`source=injected`
 - **本模块提供 / 消费的接口**：集成点（`record_trace`/`capture_snapshot`/`record_latency`/`enabled_injection/enabled_stream_injection`）
 - **本文落实位置**：§11、§13.1.1
@@ -1398,7 +1398,7 @@ list_models() -> list
 - **本地验证 / 组合验证交接**：`VRC-INF-005`
 
 #### A.8 `llmtier-access-trust-mechanism` / `R-TRUST-03` · 业务模块不二次校验
-- **来源 Capability / Step / Constraint / 接口成员**：C-TRUST-1/4、Step 5
+- **来源 Capability / Step / Constraint / 接口成员**：CON-TRUST-001/4、Step 5
 - **本模块必须负责的行为与保证**：**不二次校验**，按 `role` 限制视图
 - **本模块提供 / 消费的接口**：—
 - **本文落实位置**：§11

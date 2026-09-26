@@ -24,7 +24,7 @@
 - **模块 ID / 名称**：M002 / Web UI
 - **直属父对象 / 父设计**：LLMTier 软件系统 / `llmtier-system-design`（§3.2 登记）
 - **模块设计 Document ID / 版本 / 路径 / 摘要**：`web-ui` / `0.1.0-draft.1` / `docs/40_module_design/web-ui-design.md` / §3 页面清单、§5.1 I1–I9、§8 RULE-UI-*
-- **需求与 Constraint ID**：`C-TRUST-1`、`C-METER`（未知不填零）、`C-OBS-1`；机制 `R-CFG-05`、`R-OBS-05`
+- **需求与 Constraint ID**：`CON-TRUST-001`、`C-METER`（未知不填零）、`CON-OBS-001`；机制 `R-CFG-05`、`R-OBS-05`
 - **实现范围 / 非目标**：实现浏览器端 operator 控制台（框架/导航/5 页 + 2 抽屉、页面渲染、mutation、交互状态）；**非目标**：服务端逻辑、访问控制、账号库、直读 DB/Secret
 - **ISD 默认落位或项目批准路径**：`docs/50_implementation_design/web-ui.isd.md`
 
@@ -720,7 +720,7 @@ flowchart TD
 
 #### 7.3.1.1 `SEC-UI-BROWSER` · 浏览器安全
 
-- **原规则**：`C-TRUST-1/2`
+- **原规则**：`CON-TRUST-001/2`
 - **可信输入 / 敏感字段 / 检查对象**：会话 cookie（代理签发）；DOM
 - **检查函数 / 时点**：同源请求；mutation 校验同源 Origin/CSRF token（代理）
 - **拒绝 / 宿主交付出口**：401 跳登录；403 留当前页

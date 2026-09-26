@@ -39,7 +39,7 @@
 
 ### 1.1 继承的上级约束与落实方式
 
-#### 1.1.1 `C-CFG-1` · 唯一持久化
+#### 1.1.1 `CON-CFG-001` · 唯一持久化
 - **上级基线与决定状态**：系统设计 §3.4；已采用
 - **适用条件**：全部持久化
 - **继承预算或行为保证**：所有写路径经 M007；不旁路
@@ -60,7 +60,7 @@
 ## 2. 需求、功能与验收条件
 
 ### 2.1 `F-UTIL-CONN` · 线程内连接
-- **上级需求 / Constraint ID**：`C-CFG-1`
+- **上级需求 / Constraint ID**：`CON-CFG-001`
 - **调用方**：全部业务模块
 - **输入与前提**：库路径
 - **行为**：按线程缓存连接；`PRAGMA foreign_keys=ON`、`journal_mode=WAL`；`timeout=10`
@@ -69,7 +69,7 @@
 - **验收条件**：同线程复用连接；每请求 `finally` 关闭
 
 ### 2.2 `F-UTIL-MIGRATE` · 迁移与完整性检查
-- **上级需求 / Constraint ID**：`C-CFG-1`
+- **上级需求 / Constraint ID**：`CON-CFG-001`
 - **调用方**：启动
 - **输入与前提**：`migrations/*.sql`
 - **行为**：注释行剥离后**逐语句**执行（不用 `executescript`）；`PRAGMA integrity_check`
@@ -78,7 +78,7 @@
 - **验收条件**：迁移幂等（`IF NOT EXISTS`）；完整性 ok
 
 ### 2.3 `F-UTIL-TXN` · 事务
-- **上级需求 / Constraint ID**：`C-CFG-1/3`；机制 R-CFG-03
+- **上级需求 / Constraint ID**：`CON-CFG-001/3`；机制 R-CFG-03
 - **调用方**：全程业务模块
 - **输入与前提**：`immediate` 标志
 - **行为**：`BEGIN [IMMEDIATE]` → yield conn → commit / rollback
@@ -87,7 +87,7 @@
 - **验收条件**：原子提交/回滚
 
 ### 2.4 `F-UTIL-QUERY` · 只读查询
-- **上级需求 / Constraint ID**：`C-CFG-1`
+- **上级需求 / Constraint ID**：`CON-CFG-001`
 - **调用方**：全程业务模块
 - **输入与前提**：SQL + params
 - **行为**：`one`/`all` 返回 `sqlite3.Row`
@@ -96,7 +96,7 @@
 - **验收条件**：返回行工厂为 `Row`
 
 ### 2.5 `F-UTIL-CLOSE` · 连接关闭
-- **上级需求 / Constraint ID**：`C-CFG-1`
+- **上级需求 / Constraint ID**：`CON-CFG-001`
 - **调用方**：M001 `finally`
 - **输入与前提**：—
 - **行为**：关闭当前线程连接并清空缓存
@@ -685,7 +685,7 @@ close() -> None
 #### 13.1.1 `src/util/store.py`
 - **职责 / 非职责**：I1–I4 连接/事务/迁移/查询；不含业务语义
 - **关键 symbol / 导出范围**：`Store.connection/migrate/transaction/one/all/close`
-- **承接 Function / Rule / Constraint / Interface ID**：`F-UTIL-*`、`RULE-UTIL-*`、`C-CFG-1/3`、`IF-UTIL-STORE`
+- **承接 Function / Rule / Constraint / Interface ID**：`F-UTIL-*`、`RULE-UTIL-*`、`CON-CFG-001/3`、`IF-UTIL-STORE`
 - **构建目标 / 依赖 / 宿主装配**：标准库 `sqlite3`；随 `Application` 构造
 - **实现状态**：Implemented
 - **验证入口**：`VRC-UTIL-001/002`
@@ -701,7 +701,7 @@ close() -> None
 #### 13.1.3 `config/settings.json`
 - **职责 / 非职责**：空库首次 bootstrap 输入；不是运行期权威
 - **关键 symbol / 导出范围**：providers/deployments/service_levels
-- **承接 Function / Rule / Constraint / Interface ID**：`C-CFG-1`（输入）
+- **承接 Function / Rule / Constraint / Interface ID**：`CON-CFG-001`（输入）
 - **构建目标 / 依赖 / 宿主装配**：路径经启动参数
 - **实现状态**：Implemented
 - **验证入口**：M004 `VRC-MGMT-001`
@@ -732,7 +732,7 @@ close() -> None
 ## 14. 测试与验收
 
 #### 14.1 `VRC-UTIL-001` · 连接与回收
-- **覆盖 Function / Rule / Constraint / Interface**：`F-UTIL-CONN/CLOSE`、`RULE-UTIL-PRAGMA/FD`、`C-CFG-1`、`IF-UTIL-STORE`
+- **覆盖 Function / Rule / Constraint / Interface**：`F-UTIL-CONN/CLOSE`、`RULE-UTIL-PRAGMA/FD`、`CON-CFG-001`、`IF-UTIL-STORE`
 - **Case / 正常、边界与失败输入**：并发请求；`finally` 关闭
 - **环境 / 配置 / 隔离与复位**：隔离库
 - **独立 Oracle / Expected**：外键=1；fd 稳定
@@ -741,7 +741,7 @@ close() -> None
 - **父级组合验证交接**：M001
 
 #### 14.2 `VRC-UTIL-002` · 事务与迁移
-- **覆盖 Function / Rule / Constraint / Interface**：`F-UTIL-TXN/MIGRATE`、`RULE-UTIL-TXN/MIGRATE`、`C-CFG-3`
+- **覆盖 Function / Rule / Constraint / Interface**：`F-UTIL-TXN/MIGRATE`、`RULE-UTIL-TXN/MIGRATE`、`CON-CFG-003`
 - **Case**：中途异常回滚；重复迁移
 - **环境 / 配置 / 隔离与复位**：隔离库
 - **独立 Oracle / Expected**：无半写；幂等

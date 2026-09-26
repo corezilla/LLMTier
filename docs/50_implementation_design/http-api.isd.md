@@ -24,7 +24,7 @@
 - **模块 ID / 名称**：M001 / HTTP API
 - **直属父对象 / 父设计**：LLMTier 软件系统 / `llmtier-system-design`（§3.2 登记）
 - **模块设计 Document ID / 版本 / 路径 / 摘要**：`http-api` / `0.1.0-draft.2` / `docs/40_module_design/http-api-design.md` / §2 F-API-LISTEN/DISPATCH/AUTH/REQID/BODY/SSE/STATIC/HEALTH/ERRMAP、§8 RULE-API-*
-- **需求与 Constraint ID**：`C-TRUST-1..5`、`C-INFER-1/2`、`C-OBS-5`；机制 `R-TRUST-02`、`R-INF-01`、`R-MET-04`、`R-CFG-04`、`R-OBS-04`
+- **需求与 Constraint ID**：`CON-TRUST-001..5`、`CON-INFER-001/2`、`CON-OBS-005`；机制 `R-TRUST-02`、`R-INF-01`、`R-MET-04`、`R-CFG-04`、`R-OBS-04`
 - **实现范围 / 非目标**：实现统一 HTTP/SSE 入口（路由/信任/请求身份/body 限长/静态/健康/错误信封）；**非目标**：业务规则、持久化、SSO
 - **ISD 默认落位或项目批准路径**：`docs/50_implementation_design/http-api.isd.md`
 
@@ -503,7 +503,7 @@ response_stream(response) -> Iterable[bytes]
 
 - **实现与验证**
 
-  - **不可改变的规则 / Constraint ID**：帧序/terminal 唯一（`C-INFER-1/2`）
+  - **不可改变的规则 / Constraint ID**：帧序/terminal 唯一（`CON-INFER-001/2`）
   - **实现自由度**：缓冲实现
   - **实现状态 / 验证项**：PLANNED；`VRC-API-003`
 
@@ -686,7 +686,7 @@ flowchart TD
 
 #### 7.3.1.1 `SEC-API-AUTH` · 入口单点鉴权
 
-- **原规则**：`C-TRUST-1..5`
+- **原规则**：`CON-TRUST-001..5`
 - **可信输入 / 敏感字段 / 检查对象**：`Authorization`、client_address、端点
 - **检查函数 / 时点**：`_auth*` 在业务处理前
 - **拒绝 / 宿主交付出口**：503/401/403（不泄露存在性）

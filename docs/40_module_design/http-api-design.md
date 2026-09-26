@@ -39,7 +39,7 @@
 
 ### 1.1 继承的上级约束与落实方式
 
-#### 1.1.1 `C-TRUST-1` · 入口单点鉴权
+#### 1.1.1 `CON-TRUST-001` · 入口单点鉴权
 - **上级基线与决定状态**：机制 M-TRUST §3.1；已采用
 - **适用条件**：全部端点
 - **继承预算或行为保证**：判定只在入口发生一次，下游不二次校验
@@ -48,7 +48,7 @@
 - **验证方法与结果 / 证据**：`VRC-API-002`；NOT_RUN
 - **差距 / 变更影响 / 反馈责任**：无
 
-#### 1.1.2 `C-TRUST-2` · 不建用户/会话/SSO 体系
+#### 1.1.2 `CON-TRUST-002` · 不建用户/会话/SSO 体系
 - **上级基线与决定状态**：机制 M-TRUST §3.1；已采用
 - **适用条件**：鉴权
 - **继承预算或行为保证**：凭据仅作纵深
@@ -57,7 +57,7 @@
 - **验证方法与结果 / 证据**：`VRC-API-002`；NOT_RUN
 - **差距 / 变更影响 / 反馈责任**：无
 
-#### 1.1.3 `C-TRUST-3` · 恒定时间比较
+#### 1.1.3 `CON-TRUST-003` · 恒定时间比较
 - **上级基线与决定状态**：机制 M-TRUST §3.1；已采用
 - **适用条件**：凭据校验
 - **继承预算或行为保证**：`hmac.compare_digest`
@@ -66,7 +66,7 @@
 - **验证方法与结果 / 证据**：`VRC-API-002`；NOT_RUN
 - **差距 / 变更影响 / 反馈责任**：无
 
-#### 1.1.4 `C-TRUST-4` · 401/403 不泄露存在性
+#### 1.1.4 `CON-TRUST-004` · 401/403 不泄露存在性
 - **上级基线与决定状态**：机制 M-TRUST §3.1；已采用
 - **适用条件**：错误映射
 - **继承预算或行为保证**：响应不可区分
@@ -75,7 +75,7 @@
 - **验证方法与结果 / 证据**：`VRC-API-002`；NOT_RUN
 - **差距 / 变更影响 / 反馈责任**：无
 
-#### 1.1.5 `C-TRUST-5` · 免登录仅限受信网络
+#### 1.1.5 `CON-TRUST-005` · 免登录仅限受信网络
 - **上级基线与决定状态**：机制 M-TRUST §3.1；已采用
 - **适用条件**：免登录判定
 - **继承预算或行为保证**：loopback / 受信私网 / DEV
@@ -84,7 +84,7 @@
 - **验证方法与结果 / 证据**：`VRC-API-002`；NOT_RUN
 - **差距 / 变更影响 / 反馈责任**：无
 
-#### 1.1.6 `C-INFER-1/2` · 标准 Responses SSE、terminal 唯一
+#### 1.1.6 `CON-INFER-001/2` · 标准 Responses SSE、terminal 唯一
 - **上级基线与决定状态**：机制 M-INFER §3.1；已采用
 - **适用条件**：`POST /v1/responses`
 - **继承预算或行为保证**：只发标准事件；恰好一个 terminal
@@ -93,7 +93,7 @@
 - **验证方法与结果 / 证据**：`VRC-API-003`；NOT_RUN
 - **差距 / 变更影响 / 反馈责任**：与 M003 一致
 
-#### 1.1.7 `C-OBS-5` · 调试能力经 Observability 暴露
+#### 1.1.7 `CON-OBS-005` · 调试能力经 Observability 暴露
 - **上级基线与决定状态**：系统设计 §3.1；已采用
 - **适用条件**：调试开关
 - **继承预算或行为保证**：入口层不直连基础层
@@ -191,7 +191,7 @@ M001 是 LLMTier 的**唯一对外入口**：所有外部交互都先经过它�
 - **行为**：按端点选 `data`/`admin` 角色，免登录或 Bearer 判定，产出 `Principal`
 - **输出**：`Principal`
 - **错误**：503 `auth_not_configured` / 401 / 403
-- **验收**：端点→角色映射正确；**下游不二次校验**（C-TRUST-1）
+- **验收**：端点→角色映射正确；**下游不二次校验**（CON-TRUST-001）
 
 ### 2.4 F-API-REQID · 请求身份
 - **调用方**：全部
@@ -215,7 +215,7 @@ M001 是 LLMTier 的**唯一对外入口**：所有外部交互都先经过它�
 - **行为**：发送 `text/event-stream`，逐帧 `flush`
 - **输出**：SSE 帧 + terminal
 - **错误**：客户端断开 → 结束本次调用（不抛）
-- **验收**：帧序与 terminal 唯一（C-INFER-1/2）
+- **验收**：帧序与 terminal 唯一（CON-INFER-001/2）
 
 ### 2.7 F-API-STATIC · 静态资源交付
 - **调用方**：Operator
@@ -459,7 +459,7 @@ Principal {
 
 - **跨字段与寿命**：
 
-  `@dataclass(frozen=True, slots=True)`；请求级、不落库、不落日志；下游只读消费、不二次校验（C-TRUST-1）；请求开始构造、请求结束废弃。
+  `@dataclass(frozen=True, slots=True)`；请求级、不落库、不落日志；下游只读消费、不二次校验（CON-TRUST-001）；请求开始构造、请求结束废弃。
 
 - **合法/拒绝实例**：
 
@@ -1115,7 +1115,7 @@ response_stream(response: ResponsesResponse) -> Iterable[bytes]   # text/event-s
 
 ## 11. 安全、权限与可观测性
 
-- **入口单点鉴权**（M-TRUST C-TRUST-1）：本模块是唯一判定点；下游只消费 `Principal`。
+- **入口单点鉴权**（M-TRUST CON-TRUST-001）：本模块是唯一判定点；下游只消费 `Principal`。
 - **不泄露存在性**（INV-3）：401/403 语义统一。
 - **观测**（M-OBS）：每请求 `X-Request-ID`；接收并回显 `X-Correlation-ID`/`traceparent`；`/v1/responses` 分支写 `received`/`aborted`/`completed` trace。
 - 不记录凭据/body 正文；`log_message` 走脱敏日志（M008）。
@@ -1239,7 +1239,7 @@ response_stream(response: ResponsesResponse) -> Iterable[bytes]   # text/event-s
 - **Evidence**：系统测试报告
 - **状态**：Implemented
 
-#### 14.2 F-API-AUTH（C-TRUST-1）· 访问信任
+#### 14.2 F-API-AUTH（CON-TRUST-001）· 访问信任
 - **Test**：T-TRUST-ENDPOINTS
 - **正常/边界/失败场景**：data 凭据访问 admin 端点
 - **Oracle**：403
@@ -1253,7 +1253,7 @@ response_stream(response: ResponsesResponse) -> Iterable[bytes]   # text/event-s
 - **Evidence**：系统测试
 - **状态**：Implemented
 
-#### 14.4 F-API-SSE（C-INFER-1/2）· 流式传输
+#### 14.4 F-API-SSE（CON-INFER-001/2）· 流式传输
 - **Test**：T-STREAM
 - **正常/边界/失败场景**：事件序 / terminal 唯一
 - **Oracle**：对照 OpenAPI 事件子集
@@ -1297,7 +1297,7 @@ response_stream(response: ResponsesResponse) -> Iterable[bytes]   # text/event-s
 本表是**承接侧**：逐行承接各机制 §14.4 对 M001 的要求（要求侧见机制文档）。列名与机制 §14.4 对齐，改用段落式以容纳完整字段。
 
 #### A.1 `llmtier-access-trust-mechanism` / R-TRUST-02 · 访问信任
-- **来源 Capability / Step / Constraint / 接口成员**：C-TRUST-1/4、Step 3–5
+- **来源 Capability / Step / Constraint / 接口成员**：CON-TRUST-001/4、Step 3–5
 - **本模块必须负责的行为与保证**：按端点选 `role`、分发；**不二次校验**
 - **本模块提供 / 消费的接口**：`_auth()` / `_auth("admin")` / `_auth_either()`
 - **本文落实位置**：§8、§9
@@ -1306,7 +1306,7 @@ response_stream(response: ResponsesResponse) -> Iterable[bytes]   # text/event-s
 - **本地验证 / 组合验证交接**：契约
 
 #### A.2 `llmtier-inference-stream-mechanism` / R-INF-01 · 推理与流式返回
-- **来源 Capability / Step / Constraint / 接口成员**：C-INFER-1/2、Step 8、interface `response_stream`
+- **来源 Capability / Step / Constraint / 接口成员**：CON-INFER-001/2、Step 8、interface `response_stream`
 - **本模块必须负责的行为与保证**：SSE 帧序、terminal 唯一、`request_id` 透传、请求体上限
 - **本模块提供 / 消费的接口**：`response_stream`、`/v1/responses` 路由
 - **本文落实位置**：§7、§8、§12
@@ -1315,7 +1315,7 @@ response_stream(response: ResponsesResponse) -> Iterable[bytes]   # text/event-s
 - **本地验证 / 组合验证交接**：契约；组合（Piko 联调）
 
 #### A.3 `llmtier-usage-metering-mechanism` / R-MET-04 · 用量计量
-- **来源 Capability / Step / Constraint / 接口成员**：C-METER-5、`/v1/usage`
+- **来源 Capability / Step / Constraint / 接口成员**：CON-METER-005、`/v1/usage`
 - **本模块必须负责的行为与保证**：路由与错误映射（503 显式化）
 - **本模块提供 / 消费的接口**：路由
 - **本文落实位置**：§9

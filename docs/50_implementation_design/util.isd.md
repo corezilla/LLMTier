@@ -24,7 +24,7 @@
 - **模块 ID / 名称**：M007 / util
 - **直属父对象 / 父设计**：LLMTier 软件系统 / `llmtier-system-design`（§3.2 登记）
 - **模块设计 Document ID / 版本 / 路径 / 摘要**：`util` / `0.1.0-draft.1` / `docs/40_module_design/util-design.md` / §2 F-UTIL-CONN/MIGRATE/TXN/QUERY/CLOSE、§8 RULE-UTIL-PRAGMA/TXN/MIGRATE/FD
-- **需求与 Constraint ID**：`C-CFG-1`（唯一持久化）、`C-CFG-3`（原子推进）；机制 `R-CFG-03`、`R-OBS-06`
+- **需求与 Constraint ID**：`CON-CFG-001`（唯一持久化）、`CON-CFG-003`（原子推进）；机制 `R-CFG-03`、`R-OBS-06`
 - **实现范围 / 非目标**：实现 SQLite 存取层 `Store`（连接/初始化/schema 演进/事务/查询/关闭）；**非目标**：业务语义、连接池、迁移框架、ORM、配置管理
 - **ISD 默认落位或项目批准路径**：`docs/50_implementation_design/util.isd.md`
 

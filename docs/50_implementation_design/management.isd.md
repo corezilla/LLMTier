@@ -24,7 +24,7 @@
 - **模块 ID / 名称**：M004 / Management
 - **直属父对象 / 父设计**：LLMTier 软件系统 / `llmtier-system-design`（§3.2 登记）
 - **模块设计 Document ID / 版本 / 路径 / 摘要**：`management` / `0.1.0-draft.1` / `docs/40_module_design/management-design.md` / §2 F-MGMT-*、§8 RULE-MGMT-*
-- **需求与 Constraint ID**：`C-CFG-1..5`、`C-METER-4`；机制 `R-CFG-01/02/03`、`R-MET-02/03`
+- **需求与 Constraint ID**：`CON-CFG-001..5`、`CON-METER-004`；机制 `R-CFG-01/02/03`、`R-MET-02/03`
 - **实现范围 / 非目标**：配置权威与 CRUD、探测、用量查询/清空/统计、审计与日志查询、账号用量；**非目标**：推理（M003）、观测记录（M006）、日志脱敏写入（M008）
 - **ISD 默认落位或项目批准路径**：`docs/50_implementation_design/management.isd.md`
 
@@ -787,7 +787,7 @@ flowchart TD
 
 #### 7.3.1.1 `SEC-MGMT-AUTH` · operator 授权
 
-- **原规则**：`C-TRUST-1/4`（管理面）
+- **原规则**：`CON-TRUST-001/4`（管理面）
 - **可信输入 / 敏感字段 / 检查对象**：operator `Principal`（入口已判）
 - **检查函数 / 时点**：不二次校验；`actor=principal_id`
 - **拒绝 / 宿主交付出口**：401/403（入口）
@@ -968,7 +968,7 @@ flowchart TD
 - **风险等级 / 判定依据**：Medium；误用迁移命令损坏配置
 - **Owner**：LLMTier
 - **最晚关闭阶段 / 截止 Gate**：运维流程
-- **阻断范围**：`C-CFG-1`
+- **阻断范围**：`CON-CFG-001`
 - **分析 / 决策引用**：模块 §15.1
 - **所需输入 / 下一步选择判据**：运维流程
 - **解决动作 / 完成条件**：备份 + 单一命令 + 不双写
