@@ -303,134 +303,1136 @@ Embedding 路径同理：Consumer 提交 `POST /v1/embeddings`，系统校验并
 
 ### 7.1 公共基础类型与枚举（适用时）
 
-#### `D-PRINCIPAL` · Principal
+**7.1.1 `D-PRINCIPAL` · Principal（公共基础类型）**
 
-- **完整定义、Data/Type/Error ID 与唯一来源**：一次请求经入口鉴权后的调用主体；`D-PRINCIPAL`；本设计 §8.1（鉴权），上层继承（无）。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`principal_id:str`｜必填｜≤128｜主体标识；`role:str`｜必填｜`data`/`admin`｜角色；不可变；`role` 二值；由 M001 入口产生，业务模块只读。
-- **生产/修改、所有权、可见点、寿命及失败出口**：请求级内存对象；M001 写、M003–M005 只读；随请求结束释放，不持久。
-- **合法与拒绝实例、V/Case 与证据状态**：合法 `{principal_id:"local", role:"data"}`；拒绝：缺/非法凭据 → §7.8 `ERR-AUTH-REQUIRED`/`ERR-AUTH-DENIED`，不构造 Principal；`VRC-API-002`；实现 `src/http_api/auth.py`。
+```text
+Principal {
+  principal_id: string,
+  role: string
+}
+```
 
-#### `D-CAPABILITY` · Capability 集合
+- **Data/Type ID、用途与来源**：
 
-- **完整定义、Data/Type/Error ID 与唯一来源**：一个 tier/deployment 的能力与限额，12 键固定集合；`D-CAPABILITY`；本设计 §4.1；机器源 `openapi`（`ModelCapabilities`）。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`responses`/`embeddings`/`tools`/`structured_outputs`：`bool`；`input_modalities`/`output_modalities`：`str[]`；`context_window`/`max_output_tokens`：`int?`；`embedding_space_id`：`str?`；`embedding_dimensions`：`int[]?`；`embedding_max_batch_inputs`/`embedding_max_input_tokens`：`int?`；键集合固定（12）；tier 能力 = 成员 deployment 的**交集**。
-- **生产/修改、所有权、可见点、寿命及失败出口**：内嵌于 `D-DEPLOYMENT`/`D-SERVICE-LEVEL` 持久（§7.7）；operator 经 M004 拥有；随配置 `version`。
-- **合法与拒绝实例、V/Case 与证据状态**：合法 12 键齐全；拒绝：缺键或非交集 → 配置写入 `invalid_request`；`VRC-MGMT-*`；`openapi` `ModelCapabilities`。
+  `D-PRINCIPAL`；一次请求经入口鉴权后的调用主体；本设计 §8.1（鉴权）；上层继承（无）。
+
+- **`principal_id`**：
+
+  必填、非空字符串，最长 128；主体标识；由 M001 入口在鉴权成功后写入，请求内不可变。
+
+- **`role`**：
+
+  必填字符串，取值 `data`/`admin`；调用主体角色；二值枚举、不可变；由 M001 入口产生，业务模块只读。
+
+- **跨字段与寿命**：
+
+  请求级内存对象，不持久；M001 写、M003–M005 只读；随请求结束释放。鉴权失败不构造本对象。
+
+- **合法/拒绝实例**：
+
+  合法 `{principal_id:"local", role:"data"}`；拒绝：缺凭据或非法凭据 → §7.8 `ERR-AUTH-REQUIRED`/`ERR-AUTH-DENIED`，不构造 Principal。
+
+- **验证**：
+
+  `VRC-API-002`；实现 `src/http_api/auth.py`。
+
+**7.1.2 `D-CAPABILITY` · Capability 集合（公共基础类型）**
+
+```text
+Capability {
+  responses: bool,
+  embeddings: bool,
+  tools: bool,
+  structured_outputs: bool,
+  input_modalities: string[],
+  output_modalities: string[],
+  context_window: int?,
+  max_output_tokens: int?,
+  embedding_space_id: string?,
+  embedding_dimensions: int[]?,
+  embedding_max_batch_inputs: int?,
+  embedding_max_input_tokens: int?
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-CAPABILITY`；一个 tier/deployment 的能力与限额，12 键固定集合；本设计 §4.1；机器源 `openapi`（`ModelCapabilities`）。
+
+- **`responses`**：
+
+  必填布尔；是否支持 Responses（流式对话）能力。
+
+- **`embeddings`**：
+
+  必填布尔；是否支持 Embeddings 能力。
+
+- **`tools`**：
+
+  必填布尔；是否支持工具调用。
+
+- **`structured_outputs`**：
+
+  必填布尔；是否支持结构化输出。
+
+- **`input_modalities`**：
+
+  必填字符串数组；支持的输入模态集合。
+
+- **`output_modalities`**：
+
+  必填字符串数组；支持的输出模态集合。
+
+- **`context_window`**：
+
+  必填字段、值可空整数；上下文窗口 token 上限；不适用时为 null。
+
+- **`max_output_tokens`**：
+
+  必填字段、值可空整数；单次最大输出 token 数；不适用时为 null。
+
+- **`embedding_space_id`**：
+
+  必填字段、值可空字符串；embedding 空间标识（同一逻辑 model 只绑定一个空间）；非 embedding 能力时为 null。
+
+- **`embedding_dimensions`**：
+
+  必填字段、值可空整数数组；允许的 embedding 维度集合；不适用时为 null。
+
+- **`embedding_max_batch_inputs`**：
+
+  必填字段、值可空整数；Embeddings 单请求最大输入条数；不适用时为 null。
+
+- **`embedding_max_input_tokens`**：
+
+  必填字段、值可空整数；Embeddings 单请求最大输入 token 数；不适用时为 null。
+
+- **跨字段与寿命**：
+
+  键集合固定为 12，缺键即非法；tier 能力 = 成员 deployment 能力的**交集**。内嵌于 `D-DEPLOYMENT`/`D-SERVICE-LEVEL` 持久（§7.7）；operator 经 M004 拥有；随配置 `version`。
+
+- **合法/拒绝实例**：
+
+  合法：12 键齐全且与成员交集一致；拒绝：缺键或非交集 → 配置写入 `invalid_request`。
+
+- **验证**：
+
+  `VRC-MGMT-*`；机器源 `openapi` `ModelCapabilities`。
 
 **共享枚举**（内联于所属结构，不另立机器契约）：`role ∈ {data,admin}`；`kind ∈ {cloud,local}`；`health ∈ {unknown,healthy,unhealthy}`；`measurement_status ∈ {measured,unknown}`；`availability ∈ {available,unavailable}`。
 
 ### 7.2 业务与操作数据结构（适用时）
 
-#### `D-USAGE-OBLIGATION` · 用量义务
+**7.2.1 `D-USAGE-OBLIGATION` · 用量义务（业务对象）**
 
-- **完整定义、Data/Type/Error ID 与唯一来源**：dispatch 前登记的一次调用义务（账本锚点）；`D-USAGE-OBLIGATION`；本设计 §7.9/§7.10；持久 authority `util/migrations/*.sql`。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`principal_id`/`request_id`/`model`/`endpoint`/`recorded_at`/`dispatch_authorized_at`；PK `(principal_id,request_id)`；dispatch 前必先存在。
-- **生产/修改、所有权、可见点、寿命及失败出口**：M003 写；按 principal 隔离；追加式，随账本保留策略。
-- **合法与拒绝实例、V/Case 与证据状态**：合法：非流式外请求登记 unknown 义务后 dispatch；拒绝：`stream=false` → `ERR-REQ-UNSUPPORTED`（无义务副作用）；`VRC-INF-004`、`VRC-MGMT-006`。
+```text
+UsageObligation {
+  principal_id: string,
+  request_id: string,
+  model: string,
+  endpoint: string,
+  recorded_at: timestamp,
+  dispatch_authorized_at: timestamp?
+}
+```
 
-#### `D-USAGE-RECORD` · 用量版本
+- **Data/Type ID、用途与来源**：
 
-- **完整定义、Data/Type/Error ID 与唯一来源**：一次调用的一次用量事实版本（追加式）；`D-USAGE-RECORD`；本设计 §7.10；authority `util/migrations/*.sql`。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`principal_id`/`request_id`/`record_version`/`is_final`/`model`/`endpoint`/`recorded_at`/`updated_at`/`measurement_status`(`measured`/`unknown`)/`source`/`input_tokens`/`output_tokens`/`total_tokens`/`cached_input_tokens`/`cache_write_tokens`/`reasoning_tokens`；PK `(principal_id,request_id,record_version)`；同 request 版本绝不累计；`unknown` 时 token 为空（不补零）。
-- **生产/修改、所有权、可见点、寿命及失败出口**：M003 写；追加式，按 retention policy 保留。
-- **合法与拒绝实例、V/Case 与证据状态**：合法 version=2（final，measured）；边界：`measurement_status=unknown` → token 全空且不被填零；`VRC-INF-004`、`VRC-MGMT-006`。
+  `D-USAGE-OBLIGATION`；dispatch 前登记的一次调用义务（账本锚点）；本设计 §7.9/§7.10；持久 authority `util/migrations/*.sql`。
 
-#### `D-USAGE-HEAD` · 用量 head
+- **`principal_id`**：
 
-- **完整定义、Data/Type/Error ID 与唯一来源**：指向某 request 当前最新版本；`D-USAGE-HEAD`；本设计 §7.10；authority `util/migrations/*.sql`。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`principal_id`/`request_id`/`head_record_version`/`updated_at`；单调递增；FK 指向存在的 record version。
-- **生产/修改、所有权、可见点、寿命及失败出口**：M003 写、按 principal 隔离；随账本保留。
-- **合法与拒绝实例、V/Case 与证据状态**：合法 head=2 指向 version 2；拒绝：指向不存在的版本 → 持久约束失败；`VRC-INF-004`、`VRC-MGMT-006`。
+  必填、非空字符串；调用主体标识；与 `request_id` 共同构成主键。
 
-#### `D-PROVIDER-BINDING` · 请求绑定
+- **`request_id`**：
 
-- **完整定义、Data/Type/Error ID 与唯一来源**：request 与最终 provider/deployment 的绑定；`D-PROVIDER-BINDING`；本设计 §7.10；authority `util/migrations/*.sql`。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`principal_id`/`request_id`/`provider_id`/`deployment_id`/`bound_at`；PK `(principal_id,request_id)`；每个 request 至多一个绑定。
-- **生产/修改、所有权、可见点、寿命及失败出口**：M003 写；与 UsageRecord 一致；按 retention policy。
-- **合法与拒绝实例、V/Case 与证据状态**：合法：一次调用绑定一个 deployment；边界：重复绑定被 PK 拒绝；`VRC-INF-004`。
+  必填、非空字符串；server request ID；与 `principal_id` 共同构成主键。
 
-#### `D-PROVIDER-SNAPSHOT` · 账号用量快照
+- **`model`**：
 
-- **完整定义、Data/Type/Error ID 与唯一来源**：provider 账号 quota 的显式刷新快照；`D-PROVIDER-SNAPSHOT`；本设计 §4.1；authority `util/migrations/*.sql`。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`provider_id`/`snapshot_json`（窗口/percent/used/quota/reset/source/status/checked_at）/`checked_at`；PK `provider_id`；仅在 operator 显式刷新后替换；不落 Secret。
-- **生产/修改、所有权、可见点、寿命及失败出口**：M004 写、M003/M005 读；operator 显式刷新后替换。
-- **合法与拒绝实例、V/Case 与证据状态**：合法：带 `confirm_external_call` 的刷新写入；拒绝：缺确认 → `ERR-CONFIRM`，快照不变；`VRC-MGMT-*`、`VRC-DIAG-004`。
+  必填字符串；本次请求选定的逻辑等级（tier）名。
 
-#### `D-AUDIT-EVENT` · 审计事件
+- **`endpoint`**：
 
-- **完整定义、Data/Type/Error ID 与唯一来源**：一次 operator 管理动作的审计事实；`D-AUDIT-EVENT`；本设计 §7.10；authority `util/migrations/*.sql`。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`id`/`actor`/`action`/`target`/`result`(`success`/`failed`)/`created_at`/`request_id`；不含 Secret/prompt/output；与 Registry 变更同事务提交。
-- **生产/修改、所有权、可见点、寿命及失败出口**：M004 写、M005 读；按审计策略保留。
-- **合法与拒绝实例、V/Case 与证据状态**：合法：`provider.create` 与配置同事务落库；边界：事务回滚则不产生审计事件；`VRC-MGMT-*`。
+  必填字符串；数据面端点，取 `/v1/responses` 或 `/v1/embeddings`。
 
-#### `D-LOG-EVENT` · 运行日志
+- **`recorded_at`**：
 
-- **完整定义、Data/Type/Error ID 与唯一来源**：一条脱敏运行日志；`D-LOG-EVENT`；本设计 §7.10；authority `util/migrations/*.sql`。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`id`/`created_at`/`level`/`module`/`event`/`message`（≤512，写前脱敏）/`request_id?`；禁止 Secret/凭据/完整正文；保留期由运维策略。
-- **生产/修改、所有权、可见点、寿命及失败出口**：M008 写、M005 读；7 天，稳定分页快照到期后清理。
-- **合法与拒绝实例、V/Case 与证据状态**：合法：写前脱敏后落库；边界：含 Secret 的原文被脱敏而非原样写入；`VRC-LOG-001`。
+  必填时间戳；义务登记时刻。
 
-#### `D-MODEL` · 模型（tier）视图
+- **`dispatch_authorized_at`**：
 
-- **完整定义、Data/Type/Error ID 与唯一来源**：对 consumer 暴露的逻辑等级目录条目；`D-MODEL`；机器源 `openapi`（`Model`/`ModelList`），本设计 §8.1。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`id`/`object`/`created`/`owned_by`/`availability`(`available`/`unavailable`)/`capabilities`(`D-CAPABILITY`)；`id` 为 exact-case 逻辑等级名；`availability` 取 `/readyz` 模型级事实；不暴露物理账号/provider。
-- **生产/修改、所有权、可见点、寿命及失败出口**：只读投影；M003 产出、M001 返回；随 Registry 变更。
-- **合法与拒绝实例、V/Case 与证据状态**：合法：`GET /v1/models` 返回 7 个固定 tier；拒绝：exact 名称不存在 → `ERR-MODEL-NOTFOUND`；`VRC-INF-001`；`openapi` `Model`/`ModelList`。
+  可空时间戳；dispatch 授权完成时刻；义务登记时尚未 dispatch，此时为空。
+
+- **跨字段与寿命**：
+
+  PK `(principal_id, request_id)`；dispatch 前必先存在。M003 写；按 principal 隔离；追加式，随账本保留策略。
+
+- **合法/拒绝实例**：
+
+  合法：非流式外请求登记 unknown 义务后 dispatch；拒绝：`stream=false` → `ERR-REQ-UNSUPPORTED`（无义务副作用）。
+
+- **验证**：
+
+  `VRC-INF-004`、`VRC-MGMT-006`。
+
+**7.2.2 `D-USAGE-RECORD` · 用量版本（业务对象）**
+
+```text
+UsageRecord {
+  principal_id: string,
+  request_id: string,
+  record_version: uint32,
+  is_final: bool,
+  model: string,
+  endpoint: string,
+  recorded_at: timestamp,
+  updated_at: timestamp,
+  measurement_status: MEASURED | UNKNOWN,
+  source: string,
+  input_tokens: int?,
+  output_tokens: int?,
+  total_tokens: int?,
+  cached_input_tokens: int?,
+  cache_write_tokens: int?,
+  reasoning_tokens: int?
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-USAGE-RECORD`；一次调用的一次用量事实版本（追加式）；本设计 §7.10；authority `util/migrations/*.sql`。
+
+- **`principal_id`**：
+
+  必填、非空字符串；调用主体标识；主键组成。
+
+- **`request_id`**：
+
+  必填、非空字符串；server request ID；主键组成。
+
+- **`record_version`**：
+
+  必填正整数；同一 request 下的版本序号；主键组成。
+
+- **`is_final`**：
+
+  必填布尔；是否终态版本。
+
+- **`model`**：
+
+  必填字符串；本次调用选定的逻辑等级名。
+
+- **`endpoint`**：
+
+  必填字符串；数据面端点。
+
+- **`recorded_at`**：
+
+  必填时间戳；该版本登记时刻。
+
+- **`updated_at`**：
+
+  必填时间戳；该版本最后更新时刻。
+
+- **`measurement_status`**：
+
+  必填，取值 `measured`/`unknown`；用量计量状态；`unknown` 时 token 字段全空。
+
+- **`source`**：
+
+  必填字符串；用量事实来源。
+
+- **`input_tokens`**：
+
+  可空整数；输入 token 数；`unknown` 时为空，不补零。
+
+- **`output_tokens`**：
+
+  可空整数；输出 token 数；`unknown` 时为空，不补零。
+
+- **`total_tokens`**：
+
+  可空整数；总 token 数；`unknown` 时为空，不补零。
+
+- **`cached_input_tokens`**：
+
+  可空整数；命中缓存的输入 token 数；不适用或 `unknown` 时为空。
+
+- **`cache_write_tokens`**：
+
+  可空整数；写入缓存的 token 数；不适用或 `unknown` 时为空。
+
+- **`reasoning_tokens`**：
+
+  可空整数；推理 token 数；不适用或 `unknown` 时为空。
+
+- **跨字段与寿命**：
+
+  PK `(principal_id, request_id, record_version)`；同 request 版本绝不累计；`unknown` 时 token 为空（不补零）；外键指向存在的义务。M003 写；追加式，按 retention policy 保留。
+
+- **合法/拒绝实例**：
+
+  合法：version=2（final，measured）；边界：`measurement_status=unknown` → token 全空且不被填零。
+
+- **验证**：
+
+  `VRC-INF-004`、`VRC-MGMT-006`。
+
+**7.2.3 `D-USAGE-HEAD` · 用量 head（业务对象）**
+
+```text
+UsageHead {
+  principal_id: string,
+  request_id: string,
+  head_record_version: uint32,
+  updated_at: timestamp
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-USAGE-HEAD`；指向某 request 当前最新版本；本设计 §7.10；authority `util/migrations/*.sql`。
+
+- **`principal_id`**：
+
+  必填、非空字符串；调用主体标识；主键组成。
+
+- **`request_id`**：
+
+  必填、非空字符串；server request ID；主键组成。
+
+- **`head_record_version`**：
+
+  必填正整数；当前最新版本号；单调递增，外键指向存在的 record version。
+
+- **`updated_at`**：
+
+  必填时间戳；head 最后推进时刻。
+
+- **跨字段与寿命**：
+
+  PK `(principal_id, request_id)`；`head_record_version` 单调递增；FK 指向存在的 record version。M003 写、按 principal 隔离；随账本保留。
+
+- **合法/拒绝实例**：
+
+  合法：head=2 指向 version 2；拒绝：指向不存在的版本 → 持久约束失败。
+
+- **验证**：
+
+  `VRC-INF-004`、`VRC-MGMT-006`。
+
+**7.2.4 `D-PROVIDER-BINDING` · 请求绑定（业务对象）**
+
+```text
+ProviderBinding {
+  principal_id: string,
+  request_id: string,
+  provider_id: string,
+  deployment_id: string,
+  bound_at: timestamp
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-PROVIDER-BINDING`；request 与最终 provider/deployment 的绑定；本设计 §7.10；authority `util/migrations/*.sql`。
+
+- **`principal_id`**：
+
+  必填、非空字符串；调用主体标识；主键组成。
+
+- **`request_id`**：
+
+  必填、非空字符串；server request ID；主键组成。
+
+- **`provider_id`**：
+
+  必填、非空字符串；最终选定的 provider；外键指向 `providers(id)`。
+
+- **`deployment_id`**：
+
+  必填、非空字符串；最终选定的 deployment；外键指向 `deployments(id)`。
+
+- **`bound_at`**：
+
+  必填时间戳；绑定建立时刻。
+
+- **跨字段与寿命**：
+
+  PK `(principal_id, request_id)`；每个 request 至多一个绑定。M003 写；与 UsageRecord 一致；按 retention policy。
+
+- **合法/拒绝实例**：
+
+  合法：一次调用绑定一个 deployment；边界：重复绑定被 PK 拒绝。
+
+- **验证**：
+
+  `VRC-INF-004`。
+
+**7.2.5 `D-PROVIDER-SNAPSHOT` · 账号用量快照（业务对象）**
+
+```text
+ProviderUsageSnapshot {
+  provider_id: string,
+  snapshot_json: json,
+  checked_at: timestamp
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-PROVIDER-SNAPSHOT`；provider 账号 quota 的显式刷新快照；本设计 §4.1；authority `util/migrations/*.sql`。
+
+- **`provider_id`**：
+
+  必填、非空字符串；主键；被快照的 provider。
+
+- **`snapshot_json`**：
+
+  必填 JSON；含 窗口/percent/used/quota/reset/source/status/checked_at；仅在 operator 显式刷新后替换；不落 Secret。
+
+- **`checked_at`**：
+
+  必填时间戳；快照取得时刻。
+
+- **跨字段与寿命**：
+
+  PK `provider_id`；仅在 operator 显式刷新后替换；不落 Secret。M004 写、M003/M005 读。
+
+- **合法/拒绝实例**：
+
+  合法：带 `confirm_external_call` 的刷新写入；拒绝：缺确认 → `ERR-CONFIRM`，快照不变。
+
+- **验证**：
+
+  `VRC-MGMT-*`、`VRC-DIAG-004`。
+
+**7.2.6 `D-AUDIT-EVENT` · 审计事件（业务对象）**
+
+```text
+AuditEvent {
+  id: string,
+  actor: string,
+  action: string,
+  target: string,
+  result: SUCCESS | FAILED,
+  created_at: timestamp,
+  request_id: string?
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-AUDIT-EVENT`；一次 operator 管理动作的审计事实；本设计 §7.10；authority `util/migrations/*.sql`。
+
+- **`id`**：
+
+  必填、非空字符串；审计事件主键。
+
+- **`actor`**：
+
+  必填字符串；发起管理动作的调用主体。
+
+- **`action`**：
+
+  必填字符串；管理动作标识（如 `provider.create`）。
+
+- **`target`**：
+
+  必填字符串；动作目标资源标识。
+
+- **`result`**：
+
+  必填，取值 `success`/`failed`；动作结果。
+
+- **`created_at`**：
+
+  必填时间戳；事件产生时刻。
+
+- **`request_id`**：
+
+  可空字符串；关联的 server request ID。
+
+- **跨字段与寿命**：
+
+  不含 Secret/prompt/output；与 Registry 变更同事务提交。M004 写、M005 读；按审计策略保留。
+
+- **合法/拒绝实例**：
+
+  合法：`provider.create` 与配置同事务落库；边界：事务回滚则不产生审计事件。
+
+- **验证**：
+
+  `VRC-MGMT-*`。
+
+**7.2.7 `D-LOG-EVENT` · 运行日志（业务对象）**
+
+```text
+LogEvent {
+  id: string,
+  created_at: timestamp,
+  level: string,
+  module: string,
+  event: string,
+  message: string,
+  request_id: string?
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-LOG-EVENT`；一条脱敏运行日志；本设计 §7.10；authority `util/migrations/*.sql`。
+
+- **`id`**：
+
+  必填、非空字符串；日志主键。
+
+- **`created_at`**：
+
+  必填时间戳；日志产生时刻。
+
+- **`level`**：
+
+  必填字符串；日志级别。
+
+- **`module`**：
+
+  必填字符串；产生日志的模块标识。
+
+- **`event`**：
+
+  必填字符串；事件标识。
+
+- **`message`**：
+
+  必填字符串，≤512，写前脱敏；不得含 Secret/凭据/完整正文。
+
+- **`request_id`**：
+
+  可空字符串；关联的 server request ID。
+
+- **跨字段与寿命**：
+
+  禁止 Secret/凭据/完整正文；保留期由运维策略。M008 写、M005 读；7 天，稳定分页快照到期后清理。
+
+- **合法/拒绝实例**：
+
+  合法：写前脱敏后落库；边界：含 Secret 的原文被脱敏而非原样写入。
+
+- **验证**：
+
+  `VRC-LOG-001`。
+
+**7.2.8 `D-MODEL` · 模型（tier）视图（只读视图，机器源）**
+
+```text
+ModelView {
+  id: string,
+  object: string,
+  created: int64,
+  owned_by: string,
+  availability: AVAILABLE | UNAVAILABLE,
+  capabilities: Capability
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-MODEL`；对 consumer 暴露的逻辑等级目录条目；机器源 `openapi`（`Model`/`ModelList`），本设计 §8.1。
+
+- **`id`**：
+
+  必填、非空字符串；exact-case 逻辑等级（tier）名。
+
+- **`object`**：
+
+  必填字符串；对象类型标签。
+
+- **`created`**：
+
+  必填整数；条目创建时间（epoch）。
+
+- **`owned_by`**：
+
+  必填字符串；所有者标签。
+
+- **`availability`**：
+
+  必填，取值 `available`/`unavailable`；取 `/readyz` 模型级事实。
+
+- **`capabilities`**：
+
+  必填 `D-CAPABILITY`；该等级的能力与限额。
+
+- **跨字段与寿命**：
+
+  `id` 为 exact-case 逻辑等级名；`availability` 取 `/readyz` 模型级事实；不暴露物理账号/provider。只读投影；M003 产出、M001 返回；随 Registry 变更。
+
+- **合法/拒绝实例**：
+
+  合法：`GET /v1/models` 返回 7 个固定 tier；拒绝：exact 名称不存在 → `ERR-MODEL-NOTFOUND`。
+
+- **验证**：
+
+  `VRC-INF-001`；机器源 `openapi` `Model`/`ModelList`。
 
 ### 7.3 配置与规则数据结构（适用时）
 
-#### `D-PROVIDER` · Provider
+**7.3.1 `D-PROVIDER` · Provider（配置对象）**
 
-- **完整定义、Data/Type/Error ID 与唯一来源**：一个上游供应商连接与其推理/账号凭据引用；`D-PROVIDER`；本设计 §7.10；持久 DDL 见 `util.isd`（M007）。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`id`/`name`（唯一）/`kind`（`cloud`/`local`）/`endpoint`/`secret_ref`/`enabled`/`version`；使用 profile：`usage_provider`/账号并发/间隔/RPM/凭据引用；`name` 唯一；`secret_ref` 只存引用（`env:`/`file:`），不存明文。
-- **生产/修改、所有权、可见点、寿命及失败出口**：operator 经 M004 写、M003 读；SQLite 持久，带 `version`（乐观并发）。
-- **合法与拒绝实例、V/Case 与证据状态**：合法 `{name,kind:cloud,endpoint,secret_ref:"file:/run/secrets/x"}`；拒绝明文 `secret_ref="sk-..."` → `invalid_request`；`VRC-MGMT-*`；`openapi` `ProviderView`/`ProviderWrite`。
+```text
+Provider {
+  id: string,
+  name: string,
+  kind: CLOUD | LOCAL,
+  endpoint: string,
+  secret_ref: string?,
+  enabled: bool,
+  version: uint32,
+  usage_provider: string,
+  usage_api_key_ref: string?,
+  usage_access_key_ref: string?,
+  usage_secret_key_ref: string?,
+  max_concurrent_requests: uint32,
+  min_request_interval_ms: uint32,
+  requests_per_minute: uint32
+}
+```
 
-#### `D-DEPLOYMENT` · Deployment
+- **Data/Type ID、用途与来源**：
 
-- **完整定义、Data/Type/Error ID 与唯一来源**：某 provider 上的具体后端模型部署；`D-DEPLOYMENT`；本设计 §7.10；authority `util/migrations/*.sql`。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`id`/`name`（唯一）/`provider_id`/`backend_model`/`capabilities`(`D-CAPABILITY`)/`enabled`/`health`/`version`；运行 profile：`max_in_flight`/`connect_timeout_ms`/`stream_idle_timeout_ms`；`provider_id` 必须存在；`capabilities` 为 12 键。
-- **生产/修改、所有权、可见点、寿命及失败出口**：operator 经 M004 写、M003 读；SQLite 持久。
-- **合法与拒绝实例、V/Case 与证据状态**：合法引用已存在 provider；拒绝未知 `provider_id` → `ERR-REQ-VALIDATION`，配置不变；`VRC-MGMT-*`；`openapi` `DeploymentView`。
+  `D-PROVIDER`；一个上游供应商连接与其推理/账号凭据引用；本设计 §7.10；持久 DDL 见 `util.isd`（M007）。
 
-#### `D-SERVICE-LEVEL` · ServiceLevel（tier）
+- **`id`**：
 
-- **完整定义、Data/Type/Error ID 与唯一来源**：对 consumer 暴露的逻辑模型（tier），绑定有序 deployment 成员；`D-SERVICE-LEVEL`；本设计 §4.1；authority `util/migrations/*.sql`。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`id`（固定 tier 名）/`deployment_ids[]`（有序）/`enabled`/`capabilities`（成员交集）/`version`；`id ∈ 7 固定 tier`；`capabilities` = 成员交集；`Embedding-v1` 冻结 BGE-M3 空间。
-- **生产/修改、所有权、可见点、寿命及失败出口**：operator 经 M004 管理与 Models 发布；SQLite 持久，带 `version`。
-- **合法与拒绝实例、V/Case 与证据状态**：合法 7 个固定 tier 之一；拒绝非固定 tier 名或成员交集非法 → `invalid_request`；`VRC-MGMT-*`；`openapi` `ServiceLevelView`。
+  必填、非空字符串；provider 主键。
+
+- **`name`**：
+
+  必填字符串，全局唯一；provider 名。
+
+- **`kind`**：
+
+  必填，取值 `cloud`/`local`；供应商类型枚举。
+
+- **`endpoint`**：
+
+  必填、非空字符串；上游接入端点。
+
+- **`secret_ref`**：
+
+  可空字符串；只存引用（`env:`/`file:`），不存明文；无凭据时为空。
+
+- **`enabled`**：
+
+  必填布尔；是否启用该 provider。
+
+- **`version`**：
+
+  必填整数；乐观并发版本。
+
+- **`usage_provider`**：
+
+  必填字符串；账号用量来源供应商标识（如 `none`/`local`），默认 `none`。
+
+- **`usage_api_key_ref`**：
+
+  可空字符串；账号用量 API key 引用；无则为空。
+
+- **`usage_access_key_ref`**：
+
+  可空字符串；账号用量 access key 引用；无则为空。
+
+- **`usage_secret_key_ref`**：
+
+  可空字符串；账号用量 secret key 引用；无则为空。
+
+- **`max_concurrent_requests`**：
+
+  必填整数，≥1，默认 1；账号并发上限。
+
+- **`min_request_interval_ms`**：
+
+  必填整数，≥0，默认 0，单位毫秒；最小请求间隔。
+
+- **`requests_per_minute`**：
+
+  必填整数，≥0，默认 0；每分钟请求上限。
+
+- **跨字段与寿命**：
+
+  `name` 唯一；`secret_ref` 只存引用（`env:`/`file:`），不存明文。operator 经 M004 写、M003 读；SQLite 持久，带 `version`（乐观并发）。
+
+- **合法/拒绝实例**：
+
+  合法 `{name,kind:cloud,endpoint,secret_ref:"file:/run/secrets/x"}`；拒绝明文 `secret_ref="sk-..."` → `invalid_request`。
+
+- **验证**：
+
+  `VRC-MGMT-*`；机器源 `openapi` `ProviderView`/`ProviderWrite`。
+
+**7.3.2 `D-DEPLOYMENT` · Deployment（配置对象）**
+
+```text
+Deployment {
+  id: string,
+  name: string,
+  provider_id: string,
+  backend_model: string,
+  capabilities: Capability,
+  enabled: bool,
+  health: UNKNOWN | HEALTHY | UNHEALTHY,
+  version: uint32,
+  max_in_flight: uint32,
+  connect_timeout_ms: uint32,
+  stream_idle_timeout_ms: uint32
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-DEPLOYMENT`；某 provider 上的具体后端模型部署；本设计 §7.10；authority `util/migrations/*.sql`。
+
+- **`id`**：
+
+  必填、非空字符串；deployment 主键。
+
+- **`name`**：
+
+  必填字符串，全局唯一；deployment 名。
+
+- **`provider_id`**：
+
+  必填、非空字符串；所属 provider；必须存在于 `providers(id)`。
+
+- **`backend_model`**：
+
+  必填、非空字符串；上游后端模型名。
+
+- **`capabilities`**：
+
+  必填 `D-CAPABILITY`（JSON 12 键）；该部署的能力与限额。
+
+- **`enabled`**：
+
+  必填布尔；是否启用。
+
+- **`health`**：
+
+  必填，取值 `unknown`/`healthy`/`unhealthy`；默认 `unknown`。
+
+- **`version`**：
+
+  必填整数；乐观并发版本。
+
+- **`max_in_flight`**：
+
+  必填整数，默认 1；运行 profile 的并发在途上限。
+
+- **`connect_timeout_ms`**：
+
+  必填整数，默认 30000，单位毫秒；运行 profile 建连超时。
+
+- **`stream_idle_timeout_ms`**：
+
+  必填整数，默认 60000，单位毫秒；运行 profile 流空闲超时。
+
+- **跨字段与寿命**：
+
+  `provider_id` 必须存在；`capabilities` 为 12 键。operator 经 M004 写、M003 读；SQLite 持久。
+
+- **合法/拒绝实例**：
+
+  合法：引用已存在 provider；拒绝：未知 `provider_id` → `ERR-REQ-VALIDATION`，配置不变。
+
+- **验证**：
+
+  `VRC-MGMT-*`；机器源 `openapi` `DeploymentView`。
+
+**7.3.3 `D-SERVICE-LEVEL` · ServiceLevel（tier）（配置对象）**
+
+```text
+ServiceLevel {
+  id: string,
+  deployment_ids: string[],
+  enabled: bool,
+  capabilities: Capability,
+  version: uint32
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-SERVICE-LEVEL`；对 consumer 暴露的逻辑模型（tier），绑定有序 deployment 成员；本设计 §4.1；authority `util/migrations/*.sql`。
+
+- **`id`**：
+
+  必填、非空字符串；固定 tier 名；∈ 7 个固定 tier。
+
+- **`deployment_ids`**：
+
+  必填字符串数组，有序；成员 deployment；`(level_id, ordinal)` 有序唯一。
+
+- **`enabled`**：
+
+  必填布尔；是否发布该 tier。
+
+- **`capabilities`**：
+
+  必填 `D-CAPABILITY`；成员能力的**交集**。
+
+- **`version`**：
+
+  必填整数；乐观并发版本。
+
+- **跨字段与寿命**：
+
+  `id ∈ 7 固定 tier`；`deployment_ids` 有序绑定；`capabilities` = 成员交集；`Embedding-v1` 冻结 BGE-M3 空间。operator 经 M004 管理与 Models 发布；SQLite 持久，带 `version`。
+
+- **合法/拒绝实例**：
+
+  合法：7 个固定 tier 之一；拒绝：非固定 tier 名或成员交集非法 → `invalid_request`。
+
+- **验证**：
+
+  `VRC-MGMT-*`；机器源 `openapi` `ServiceLevelView`。
 
 ### 7.4 通信报文结构（适用时）
 
 > 本类全部**继承机器源**（`interfaces/openapi/llmtier.openapi.json` + `interfaces/vectors/v0.3/*`），本节只给阅读视图与含义，不复制字段权威。
 
-#### `D-MSG-RESPONSE` · Responses 表示（继承，机器源）
+**7.4.1 `D-MSG-RESPONSE` · Responses 表示（通信报文，继承机器源）**
 
-- **完整定义、Data/Type/Error ID 与唯一来源**：OpenAI-compatible Responses 请求/响应/流事件；`D-MSG-RESPONSE`；机器源 `openapi`（`ResponsesRequest`/`ResponsesResponse`/`ResponseStreamEvent`）。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`ResponsesRequest{model, input, store(恒 false), stream(恒 true), tools, tool_choice, temperature, max_output_tokens, reasoning, include, service_tier, metadata}`；`ResponsesResponse{id, object, created_at, status, model, output, usage, error}`；SSE 事件子集见 §8.2；`stream:true`、`store:false` 为受理前提；每请求恰好一个 terminal 事件；`usage` 仅 terminal 给出。
-- **生产/修改、所有权、可见点、寿命及失败出口**：wire 载荷请求级；机读 authority `openapi`。
-- **合法与拒绝实例、V/Case 与证据状态**：合法标准 Responses 请求 → SSE + terminal Usage；拒绝 `stream=false` → `ERR-REQ-UNSUPPORTED`；`VRC-INF-001/002`。
+```text
+ResponsesRequest {
+  model: string,
+  input: string | InputItem[],
+  store: false,
+  stream: true,
+  tools: FunctionTool[],
+  tool_choice: "auto" | "none" | "required" | object,
+  temperature: number,
+  max_output_tokens: int,
+  reasoning: { effort: string, summary: string },
+  include: ["reasoning.encrypted_content"],
+  service_tier: string,
+  metadata: map<string,string>
+}
 
-#### `D-MSG-EMBEDDING` · Embeddings 表示（继承，机器源）
+ResponsesResponse {
+  id: string,
+  object: "response",
+  created_at: int64,
+  status: "completed" | "failed" | "incomplete",
+  model: string,
+  output: OutputItem[],
+  usage: TokenUsage | null,
+  error: ErrorDetail | null
+}
+```
 
-- **完整定义、Data/Type/Error ID 与唯一来源**：OpenAI-compatible Embeddings 请求/响应；`D-MSG-EMBEDDING`；机器源 `openapi`（`EmbeddingRequest`/`EmbeddingResponse`）。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`EmbeddingRequest{model, input, encoding_format(float/base64), dimensions, user}`；`EmbeddingResponse{object, data[{object,index,embedding}], model, usage{prompt_tokens,total_tokens}}`；同一 embedding 逻辑 model 只绑定同一 `embedding_space_id`、模型版本与预处理契约；非兼容变更须新建逻辑 model ID。
-- **生产/修改、所有权、可见点、寿命及失败出口**：wire 载荷请求级；机读 authority `openapi`。
-- **合法与拒绝实例、V/Case 与证据状态**：合法 float/base64 返回向量与 Usage；拒绝不兼容维度 → `ERR-REQ-VALIDATION`；`VRC-INF-001`。
+- **Data/Type ID、用途与来源**：
 
-#### `D-ERROR-ENVELOPE` · 错误信封（系统拥有含义）
+  `D-MSG-RESPONSE`；OpenAI-compatible Responses 请求/响应/流事件；机器源 `openapi`（`ResponsesRequest`/`ResponsesResponse`/`ResponseStreamEvent`）。
 
-- **完整定义、Data/Type/Error ID 与唯一来源**：统一错误载荷 `{error:{message,type,code,param}}`；`D-ERROR-ENVELOPE`；本设计 §7.8；机器源 `openapi`（`ErrorEnvelope`/`ErrorDetail`）。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`error.message:str`/`error.type:str`/`error.code:str`/`error.param:str?`；码值语义由 §7.8 目录决定；不含 Secret/凭据/完整正文；429 可带 `Retry-After`。
-- **生产/修改、所有权、可见点、寿命及失败出口**：请求级返回；M001 构造、各模块以 `ApiError` 产生。
-- **合法与拒绝实例、V/Case 与证据状态**：合法 `{error:{type:"model_not_found",code:"...",param:null}}`；边界：未知端点 → `ERR-NOTFOUND`；`VRC-API-*`；§7.8 承接索引。
+- **`ResponsesRequest.model`**：
 
-#### `D-MSG-SSE` · Responses SSE 事件子集（继承，机器源）
+  必填、非空字符串（minLength 1）；请求的逻辑等级名。
 
-- **完整定义、Data/Type/Error ID 与唯一来源**：Data Plane 流式协议事件子集；`D-MSG-SSE`；机器源 `openapi`（`ResponseStreamEvent` 及具体事件 schema），接口见 §8.2。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`response.created`、`response.output_item.added`、`response.output_text.delta`、`response.refusal.delta`、reasoning summary/text、`response.function_call_arguments.delta|done`、`response.output_item.done`、`response.completed|incomplete|failed`、`error`；每 output item 稳定 `id`；每请求恰好一个 terminal；`X-Request-ID` 为 task 头，可接收标准 trace context。
-- **生产/修改、所有权、可见点、寿命及失败出口**：请求级流；M003 产出、M001 传输。
-- **合法与拒绝实例、V/Case 与证据状态**：合法完整流以 terminal 结束；边界：上游失败 → `error` 事件，不伪造完成；`VRC-INF-002`、`VRC-INF-005`。
+- **`ResponsesRequest.input`**：
+
+  必填；字符串或 InputItem 数组（minItems 1）；对话输入。
+
+- **`ResponsesRequest.store`**：
+
+  必填常量 `false`；LLMTier 不保留 provider 对话状态。
+
+- **`ResponsesRequest.stream`**：
+
+  必填常量 `true`；受理前提，Pinned Pi 依赖标准 Responses SSE。
+
+- **`ResponsesRequest.tools`**：
+
+  可选 `FunctionTool[]`；工具定义。
+
+- **`ResponsesRequest.tool_choice`**：
+
+  可选；`auto`/`none`/`required` 或对象。
+
+- **`ResponsesRequest.temperature`**：
+
+  可选数值，闭区间 `[0,2]`。
+
+- **`ResponsesRequest.max_output_tokens`**：
+
+  可选整数，≥1。
+
+- **`ResponsesRequest.reasoning`**：
+
+  可选对象；`effort ∈ {none,minimal,low,medium,high,xhigh}`，`summary ∈ {auto,concise,detailed}`。
+
+- **`ResponsesRequest.include`**：
+
+  可选字符串数组，唯一项 `reasoning.encrypted_content`。
+
+- **`ResponsesRequest.service_tier`**：
+
+  可选字符串；仅当所选逻辑模型声明该标准选项时接受。
+
+- **`ResponsesRequest.metadata`**：
+
+  可选 `map<string,string>`。
+
+- **`ResponsesResponse.id`**：
+
+  必填、非空字符串；响应身份。
+
+- **`ResponsesResponse.object`**：
+
+  必填常量 `response`。
+
+- **`ResponsesResponse.created_at`**：
+
+  必填整数；创建时间（epoch）。
+
+- **`ResponsesResponse.status`**：
+
+  必填，取值 `completed`/`failed`/`incomplete`。
+
+- **`ResponsesResponse.model`**：
+
+  必填字符串；逻辑等级名。
+
+- **`ResponsesResponse.output`**：
+
+  必填 `OutputItem[]`；输出项。
+
+- **`ResponsesResponse.usage`**：
+
+  必填字段、值可空 `TokenUsage`；仅 terminal 给出。
+
+- **`ResponsesResponse.error`**：
+
+  必填字段、值可空 `ErrorDetail`。
+
+- **跨字段与寿命**：
+
+  `stream:true`、`store:false` 为受理前提；每请求恰好一个 terminal 事件；`usage` 仅 terminal 给出。wire 载荷请求级；机读 authority `openapi`。
+
+- **合法/拒绝实例**：
+
+  合法：标准 Responses 请求 → SSE + terminal Usage；拒绝：`stream=false` → `ERR-REQ-UNSUPPORTED`。
+
+- **验证**：
+
+  `VRC-INF-001/002`。
+
+**7.4.2 `D-MSG-EMBEDDING` · Embeddings 表示（通信报文，继承机器源）**
+
+```text
+EmbeddingRequest {
+  model: string,
+  input: string | string[],
+  encoding_format: "float" | "base64",
+  dimensions: int,
+  user: string
+}
+
+EmbeddingResponse {
+  object: "list",
+  data: EmbeddingItem[],
+  model: string,
+  usage: EmbeddingUsage | null
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-MSG-EMBEDDING`；OpenAI-compatible Embeddings 请求/响应；机器源 `openapi`（`EmbeddingRequest`/`EmbeddingResponse`）。
+
+- **`EmbeddingRequest.model`**：
+
+  必填、非空字符串（minLength 1）；逻辑等级名。
+
+- **`EmbeddingRequest.input`**：
+
+  必填；字符串（minLength 1）或字符串数组（minItems 1）。
+
+- **`EmbeddingRequest.encoding_format`**：
+
+  可选，取值 `float`/`base64`，默认 `float`；float 返回 JSON 数值数组，base64 返回小端 IEEE-754 float32 的 RFC 4648 编码。
+
+- **`EmbeddingRequest.dimensions`**：
+
+  可选整数，≥1。
+
+- **`EmbeddingRequest.user`**：
+
+  可选字符串；调用方自标识。
+
+- **`EmbeddingResponse.object`**：
+
+  必填常量 `list`。
+
+- **`EmbeddingResponse.data`**：
+
+  必填 `EmbeddingItem[]`；`{object,index,embedding}`，`embedding` 为 float[] 或 base64 字符串。
+
+- **`EmbeddingResponse.model`**：
+
+  必填字符串；逻辑等级名。
+
+- **`EmbeddingResponse.usage`**：
+
+  必填字段、值可空 `EmbeddingUsage`；`{prompt_tokens,total_tokens}`。
+
+- **跨字段与寿命**：
+
+  同一 embedding 逻辑 model 只绑定同一 `embedding_space_id`、模型版本与预处理契约；非兼容变更须新建逻辑 model ID。wire 载荷请求级；机读 authority `openapi`。
+
+- **合法/拒绝实例**：
+
+  合法：float/base64 返回向量与 Usage；拒绝：不兼容维度 → `ERR-REQ-VALIDATION`。
+
+- **验证**：
+
+  `VRC-INF-001`。
+
+**7.4.3 `D-ERROR-ENVELOPE` · 错误信封（通信报文，系统拥有含义）**
+
+```text
+ErrorEnvelope {
+  error: ErrorDetail
+}
+
+ErrorDetail {
+  message: string,
+  type: string,
+  code: string,
+  param: string?
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-ERROR-ENVELOPE`；统一错误载荷 `{error:{message,type,code,param}}`；本设计 §7.8；机器源 `openapi`（`ErrorEnvelope`/`ErrorDetail`）。
+
+- **`error`**：
+
+  必填 `ErrorDetail`；错误详情对象。
+
+- **`error.message`**：
+
+  必填字符串；人类可读错误消息；不含 Secret/凭据/完整正文。
+
+- **`error.type`**：
+
+  必填字符串；错误类型枚举；不含敏感信息。
+
+- **`error.code`**：
+
+  必填字符串；稳定码值；语义由 §7.8 目录决定。
+
+- **`error.param`**：
+
+  可空字符串；指向首个非法字段；无则为空。
+
+- **跨字段与寿命**：
+
+  码值语义由 §7.8 目录决定；不含 Secret/凭据/完整正文；429 可带 `Retry-After`。请求级返回；M001 构造、各模块以 `ApiError` 产生。
+
+- **合法/拒绝实例**：
+
+  合法 `{error:{type:"model_not_found",code:"...",param:null}}`；边界：未知端点 → `ERR-NOTFOUND`。
+
+- **验证**：
+
+  `VRC-API-*`；§7.8 承接索引。
+
+**7.4.4 `D-MSG-SSE` · Responses SSE 事件子集（通信报文，继承机器源）**
+
+```text
+ResponseStreamEvent =
+    response.created
+  | response.output_item.added
+  | response.output_item.done
+  | response.output_text.delta
+  | response.refusal.delta
+  | response.reasoning_summary_text.delta
+  | response.reasoning_text.delta
+  | response.reasoning_summary_part.done
+  | response.function_call_arguments.delta
+  | response.function_call_arguments.done
+  | response.completed
+  | response.incomplete
+  | response.failed
+  | error
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-MSG-SSE`；Data Plane 流式协议事件子集；机器源 `openapi`（`ResponseStreamEvent` 及具体事件 schema），接口见 §8.2。
+
+- **`type`**：
+
+  必填字符串；事件类型标识，取值见下列各 variant。
+
+- **`sequence_number`**：
+
+  必填整数；流内递增序号。
+
+- **`response.created`**：
+
+  携带 `response`；会话开始。
+
+- **`response.output_item.added`**：
+
+  携带 `output_index`、`item`；新增输出项。
+
+- **`response.output_text.delta`**：
+
+  携带 `output_index`、`content_index`、`delta`；文本增量。
+
+- **`response.refusal.delta`**：
+
+  携带 `output_index`、`content_index`、`delta`；拒答文本增量。
+
+- **`response.reasoning_summary_text.delta` / `response.reasoning_text.delta`**：
+
+  携带 `output_index`、`delta`；推理摘要/正文增量。
+
+- **`response.reasoning_summary_part.done`**：
+
+  携带 `output_index`；推理摘要分段完成。
+
+- **`response.function_call_arguments.delta` / `response.function_call_arguments.done`**：
+
+  携带 `output_index`、`item_id`；函数调用参数增量/完成。
+
+- **`response.output_item.done`**：
+
+  携带 `output_index`、`item`；输出项完成。
+
+- **`response.completed` / `response.incomplete` / `response.failed`**：
+
+  携带最终 `response`；每请求恰好一个 terminal 事件。
+
+- **`error`**：
+
+  携带 `code`、`message`；上游失败以本事件表达，不伪造完成。
+
+- **跨字段与寿命**：
+
+  每 output item 稳定 `id`；每请求恰好一个 terminal；`X-Request-ID` 为 task 头，可接收标准 trace context。请求级流；M003 产出、M001 传输。
+
+- **合法/拒绝实例**：
+
+  合法：完整流以 terminal 结束；边界：上游失败 → `error` 事件，不伪造完成。
+
+- **验证**：
+
+  `VRC-INF-002`、`VRC-INF-005`。
 
 ### 7.5 设备与 FPGA 表项结构（适用时）
 
@@ -438,82 +1440,773 @@ Embedding 路径同理：Consumer 提交 `POST /v1/embeddings`，系统校验并
 
 ### 7.6 运行状态数据结构（适用时）
 
-#### `D-OBS-*` · 观测对象（快照/统计/trace/注入）
+**7.6.1 `D-OBS-*` · 观测对象（快照/统计/trace/注入）（运行状态）**
 
-- **完整定义、Data/Type/Error ID 与唯一来源**：内部可观测性机制产出的运行状态记录：上游调用快照、数据面统计、单请求 trace、故障注入配置；`D-OBS-*`；本设计 §10.3 与 `mechanisms/observability.md`；authority 见 M006 `libdiag` 设计 §6。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：快照/统计/trace/注入各表字段见 M006 `libdiag` 设计 §6.7；均为脱敏记录；默认关闭、关闭时零开销；开启时尽力而为、fail-open；不记录 Secret/凭据/完整 prompt/output 正文。
-- **生产/修改、所有权、可见点、寿命及失败出口**：M006 写、M005 读；默认保留 7 天。
-- **合法与拒绝实例、V/Case 与证据状态**：合法：开启快照后记录一条 `diagnostic_snapshots`；边界：写失败 → warning，不阻断推理；`VRC-DIAG-001/002/003`、`VRC-OBS-*`。
+```text
+ObservabilityRecords {
+  snapshot:  diagnostic_snapshots,
+  stats:     data_plane_stats | data_plane_latency_samples,
+  trace:     trace_events,
+  injection: diagnostic_injections
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-OBS-*`；内部可观测性机制产出的运行状态记录：上游调用快照、数据面统计、单请求 trace、故障注入配置；本设计 §10.3 与 `mechanisms/observability.md`；authority 见 M006 `libdiag` 设计 §6。
+
+- **`snapshot`**：
+
+  `diagnostic_snapshots`；一次上游调用快照；字段见 M006 `libdiag` 设计 §6.7。
+
+- **`stats`**：
+
+  `data_plane_stats` 与 `data_plane_latency_samples`；数据面请求/错误计数与时延样本；字段见 M006 `libdiag` 设计 §6.7。
+
+- **`trace`**：
+
+  `trace_events`；单请求分阶段 trace；字段见 M006 `libdiag` 设计 §6.7。
+
+- **`injection`**：
+
+  `diagnostic_injections`；故障注入配置；字段见 M006 `libdiag` 设计 §6.7。
+
+- **跨字段与寿命**：
+
+  均为脱敏记录；默认关闭、关闭时零开销；开启时尽力而为、fail-open；不记录 Secret/凭据/完整 prompt/output 正文。M006 写、M005 读；默认保留 7 天。
+
+- **合法/拒绝实例**：
+
+  合法：开启快照后记录一条 `diagnostic_snapshots`；边界：写失败 → warning，不阻断推理。
+
+- **验证**：
+
+  `VRC-DIAG-001/002/003`、`VRC-OBS-*`。
 
 ### 7.7 数据库表结构（适用时）
 
 > authority = `util/migrations/*.sql`（由 M007 `migrate()` 执行）；列级阅读视图见 `util.isd` §4.4。本系统拥有以下持久表。
 
-#### `providers`（`D-PROVIDER`）
-- **完整定义、Data/Type/Error ID 与唯一来源**：持久表 `providers`，Data ID `D-PROVIDER`；唯一来源 `util/migrations/*.sql`（由 M007 `migrate()` 执行；列级阅读视图见 `util.isd` §4.4）。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`id` PK；`name` UNIQUE；`kind`∈{cloud,local}；`endpoint`；`secret_ref`（仅引用）；`enabled`；`version`；usage 列。
-- **生产/修改、所有权、可见点、寿命及失败出口**：M004 经 M007 写、M003 读；operator 管理，库寿命。
-- **合法与拒绝实例、V/Case 与证据状态**：合法建 provider 成功；拒绝重名 → `ERR-CONFLICT`。`VRC-MGMT-*`。
+**7.7.1 `providers`（数据库表）**
 
-#### `deployments`（`D-DEPLOYMENT`）
-- **完整定义、Data/Type/Error ID 与唯一来源**：持久表 `deployments`，Data ID `D-DEPLOYMENT`；唯一来源 `util/migrations/*.sql`（由 M007 `migrate()` 执行；列级阅读视图见 `util.isd` §4.4）。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`id` PK；`name` UNIQUE；`provider_id` FK 必须存在；`capabilities`(JSON 12 键)；`health`；运行 profile 列。
-- **生产/修改、所有权、可见点、寿命及失败出口**：M004 写、M003 读；operator 管理。
-- **合法与拒绝实例、V/Case 与证据状态**：合法引用已存在 provider；拒绝未知 provider。`VRC-MGMT-*`。
+```sql
+CREATE TABLE providers (
+  id         TEXT PRIMARY KEY,
+  name       TEXT NOT NULL UNIQUE,
+  kind       TEXT NOT NULL CHECK(kind IN ('cloud','local')),
+  endpoint   TEXT NOT NULL,
+  secret_ref TEXT,
+  enabled    INTEGER NOT NULL,
+  version    INTEGER NOT NULL
+);
+```
 
-#### `service_levels` / `service_level_deployments`（`D-SERVICE-LEVEL`）
-- **完整定义、Data/Type/Error ID 与唯一来源**：持久表 `service_levels` / `service_level_deployments`，Data ID `D-SERVICE-LEVEL`；唯一来源 `util/migrations/*.sql`（由 M007 `migrate()` 执行；列级阅读视图见 `util.isd` §4.4）。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`service_levels.id`（固定 tier 名）/`enabled`/`version`；成员表 `(service_level_id,deployment_id,ordinal)` 有序唯一。
-- **生产/修改、所有权、可见点、寿命及失败出口**：M004 写、M003 读；operator 管理与 Models 发布。
-- **合法与拒绝实例、V/Case 与证据状态**：合法绑定有序成员；拒绝重复/越序绑定。`VRC-MGMT-*`。
+- **Data/Type ID、用途与来源**：
 
-#### `usage_obligations`（`D-USAGE-OBLIGATION`）
-- **完整定义、Data/Type/Error ID 与唯一来源**：持久表 `usage_obligations`，Data ID `D-USAGE-OBLIGATION`；唯一来源 `util/migrations/*.sql`（由 M007 `migrate()` 执行；列级阅读视图见 `util.isd` §4.4）。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：PK `(principal_id,request_id)`；dispatch 前必先存在。
-- **生产/修改、所有权、可见点、寿命及失败出口**：M003 写；按 principal 隔离；追加式。
-- **合法与拒绝实例、V/Case 与证据状态**：合法义务先于 dispatch；边界：未登记即 dispatch 被业务禁止。`VRC-INF-004`。
+  持久表 `providers`，Data ID `D-PROVIDER`；唯一来源 `util/migrations/*.sql`（由 M007 `migrate()` 执行；列级阅读视图见 `util.isd` §4.4）。
 
-#### `usage_record_versions`（`D-USAGE-RECORD`）
-- **完整定义、Data/Type/Error ID 与唯一来源**：持久表 `usage_record_versions`，Data ID `D-USAGE-RECORD`；唯一来源 `util/migrations/*.sql`（由 M007 `migrate()` 执行；列级阅读视图见 `util.isd` §4.4）。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：PK `(principal_id,request_id,record_version)`；追加式；`unknown` 时 token 空。
-- **生产/修改、所有权、可见点、寿命及失败出口**：M003 写；按 retention policy。
-- **合法与拒绝实例、V/Case 与证据状态**：合法 version=2 final；边界：版本绝不累计。`VRC-INF-004`、`VRC-MGMT-006`。
+- **`id`**：
 
-#### `usage_heads`（`D-USAGE-HEAD`）
-- **完整定义、Data/Type/Error ID 与唯一来源**：持久表 `usage_heads`，Data ID `D-USAGE-HEAD`；唯一来源 `util/migrations/*.sql`（由 M007 `migrate()` 执行；列级阅读视图见 `util.isd` §4.4）。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：PK `(principal_id,request_id)`；`head_record_version` 单调；FK 指向存在版本。
-- **生产/修改、所有权、可见点、寿命及失败出口**：M003 写；随账本。
-- **合法与拒绝实例、V/Case 与证据状态**：合法 head 单调推进；拒绝指向不存在版本。`VRC-INF-004`。
+  非空主键；provider 标识。
 
-#### `provider_request_bindings`（`D-PROVIDER-BINDING`）
-- **完整定义、Data/Type/Error ID 与唯一来源**：持久表 `provider_request_bindings`，Data ID `D-PROVIDER-BINDING`；唯一来源 `util/migrations/*.sql`（由 M007 `migrate()` 执行；列级阅读视图见 `util.isd` §4.4）。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：PK `(principal_id,request_id)`；至多一个绑定。
-- **生产/修改、所有权、可见点、寿命及失败出口**：M003 写；与 UsageRecord 一致。
-- **合法与拒绝实例、V/Case 与证据状态**：合法单绑定；边界：重复绑定被 PK 拒绝。`VRC-INF-004`。
+- **`name`**：
 
-#### `provider_usage_snapshots`（`D-PROVIDER-SNAPSHOT`）
-- **完整定义、Data/Type/Error ID 与唯一来源**：持久表 `provider_usage_snapshots`，Data ID `D-PROVIDER-SNAPSHOT`；唯一来源 `util/migrations/*.sql`（由 M007 `migrate()` 执行；列级阅读视图见 `util.isd` §4.4）。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：PK `provider_id`；`snapshot_json`+`checked_at`；不落 Secret。
-- **生产/修改、所有权、可见点、寿命及失败出口**：M004 写；operator 显式刷新后替换。
-- **合法与拒绝实例、V/Case 与证据状态**：合法显式刷新替换；拒绝缺确认 → `ERR-CONFIRM`。`VRC-DIAG-004`。
+  非空、全局唯一；provider 名。
 
-#### `audit_events`（`D-AUDIT-EVENT`）
-- **完整定义、Data/Type/Error ID 与唯一来源**：持久表 `audit_events`，Data ID `D-AUDIT-EVENT`；唯一来源 `util/migrations/*.sql`（由 M007 `migrate()` 执行；列级阅读视图见 `util.isd` §4.4）。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`id` PK；`actor`/`action`/`target`/`result`/`created_at`/`request_id`；不含 Secret/prompt/output。
-- **生产/修改、所有权、可见点、寿命及失败出口**：M004 写、M005 读；与 Registry 变更同事务；按审计策略。
-- **合法与拒绝实例、V/Case 与证据状态**：合法管理动作同事务落库；边界：事务回滚无事件。`VRC-MGMT-*`。
+- **`kind`**：
 
-#### `operational_logs`（`D-LOG-EVENT`）
-- **完整定义、Data/Type/Error ID 与唯一来源**：持久表 `operational_logs`，Data ID `D-LOG-EVENT`；唯一来源 `util/migrations/*.sql`（由 M007 `migrate()` 执行；列级阅读视图见 `util.isd` §4.4）。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`id` PK；`level`/`module`/`event`/`message`(≤512，写前脱敏)/`request_id?`/`created_at`。
-- **生产/修改、所有权、可见点、寿命及失败出口**：M008 写、M005 读；7 天。
-- **合法与拒绝实例、V/Case 与证据状态**：合法脱敏写入；边界：含 Secret 原文被脱敏。`VRC-LOG-001`。
+  非空，CHECK 取值 `cloud`/`local`。
 
-#### `diagnostic_*`（`D-OBS-*`）
-- **完整定义、Data/Type/Error ID 与唯一来源**：持久表组 `diagnostic_*`，Data ID `D-OBS-*`；唯一来源 `util/migrations/002_observability.sql`（列与约束见 M006 §6.7）。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`diagnostic_settings`/`diagnostic_snapshots`/`data_plane_stats`/`data_plane_latency_samples`/`diagnostic_injections`/`trace_events`；authority `util/migrations/002_observability.sql`；列与约束见 M006 §6.7。
-- **生产/修改、所有权、可见点、寿命及失败出口**：M006 写、M005 读；默认保留 7 天。
-- **合法与拒绝实例、V/Case 与证据状态**：合法空库一次建表；开启后按开关记录。`VRC-DIAG-001/002/003`。
+- **`endpoint`**：
+
+  非空；上游接入端点。
+
+- **`secret_ref`**：
+
+  可空；仅存凭据引用，不存明文。
+
+- **`enabled`**：
+
+  非空整数（0/1）；是否启用。
+
+- **`version`**：
+
+  非空整数；乐观并发版本。
+
+- **跨字段与寿命**：
+
+  M004 经 M007 写、M003 读；operator 管理，库寿命。
+
+- **合法/拒绝实例**：
+
+  合法：建 provider 成功；拒绝：重名 → `ERR-CONFLICT`。
+
+- **验证**：
+
+  `VRC-MGMT-*`。
+
+**7.7.2 `deployments`（数据库表）**
+
+```sql
+CREATE TABLE deployments (
+  id                TEXT PRIMARY KEY,
+  name              TEXT NOT NULL UNIQUE,
+  provider_id       TEXT NOT NULL REFERENCES providers(id),
+  backend_model     TEXT NOT NULL,
+  capabilities_json TEXT NOT NULL,
+  enabled           INTEGER NOT NULL,
+  health            TEXT NOT NULL DEFAULT 'unknown',
+  version           INTEGER NOT NULL
+);
+
+CREATE TABLE deployment_runtime_profiles (
+  deployment_id          TEXT PRIMARY KEY REFERENCES deployments(id) ON DELETE CASCADE,
+  max_in_flight          INTEGER NOT NULL DEFAULT 1,
+  connect_timeout_ms     INTEGER NOT NULL DEFAULT 30000,
+  stream_idle_timeout_ms INTEGER NOT NULL DEFAULT 60000,
+  version                INTEGER NOT NULL DEFAULT 1
+);
+```
+
+- **Data/Type ID、用途与来源**：
+
+  持久表 `deployments`（运行 profile 见 `deployment_runtime_profiles`），Data ID `D-DEPLOYMENT`；唯一来源 `util/migrations/*.sql`（由 M007 `migrate()` 执行；列级阅读视图见 `util.isd` §4.4）。
+
+- **`id`**：
+
+  非空主键；deployment 标识。
+
+- **`name`**：
+
+  非空、全局唯一；deployment 名。
+
+- **`provider_id`**：
+
+  非空；外键必须存在于 `providers(id)`。
+
+- **`backend_model`**：
+
+  非空；上游后端模型名。
+
+- **`capabilities_json`**：
+
+  非空 JSON；12 键能力集合。
+
+- **`enabled`**：
+
+  非空整数（0/1）；是否启用。
+
+- **`health`**：
+
+  非空，默认 `unknown`；健康状态。
+
+- **`version`**：
+
+  非空整数；乐观并发版本。
+
+- **`max_in_flight`**：
+
+  非空整数，默认 1；运行 profile 并发在途上限。
+
+- **`connect_timeout_ms`**：
+
+  非空整数，默认 30000，单位毫秒；建连超时。
+
+- **`stream_idle_timeout_ms`**：
+
+  非空整数，默认 60000，单位毫秒；流空闲超时。
+
+- **跨字段与寿命**：
+
+  `provider_id` 外键必须存在；`capabilities_json` 为 12 键。M004 写、M003 读；operator 管理。
+
+- **合法/拒绝实例**：
+
+  合法：引用已存在 provider；拒绝：未知 provider。
+
+- **验证**：
+
+  `VRC-MGMT-*`。
+
+**7.7.3 `service_levels` / `service_level_deployments`（数据库表）**
+
+```sql
+CREATE TABLE service_levels (
+  id                TEXT PRIMARY KEY,
+  enabled           INTEGER NOT NULL,
+  capabilities_json TEXT NOT NULL,
+  version           INTEGER NOT NULL
+);
+
+CREATE TABLE service_level_deployments (
+  level_id      TEXT NOT NULL REFERENCES service_levels(id) ON DELETE CASCADE,
+  deployment_id TEXT NOT NULL REFERENCES deployments(id),
+  ordinal       INTEGER NOT NULL,
+  PRIMARY KEY(level_id,deployment_id),
+  UNIQUE(level_id,ordinal)
+);
+```
+
+- **Data/Type ID、用途与来源**：
+
+  持久表 `service_levels` / `service_level_deployments`，Data ID `D-SERVICE-LEVEL`；唯一来源 `util/migrations/*.sql`（由 M007 `migrate()` 执行；列级阅读视图见 `util.isd` §4.4）。
+
+- **`service_levels.id`**：
+
+  非空主键；固定 tier 名。
+
+- **`service_levels.enabled`**：
+
+  非空整数（0/1）；是否发布。
+
+- **`service_levels.capabilities_json`**：
+
+  非空 JSON；成员能力交集。
+
+- **`service_levels.version`**：
+
+  非空整数；乐观并发版本。
+
+- **`service_level_deployments.level_id`**：
+
+  非空；外键指向 `service_levels(id)`，主键组成。
+
+- **`service_level_deployments.deployment_id`**：
+
+  非空；外键指向 `deployments(id)`，主键组成。
+
+- **`service_level_deployments.ordinal`**：
+
+  非空整数；成员顺序；`(level_id,ordinal)` 唯一。
+
+- **跨字段与寿命**：
+
+  成员表 `(level_id,deployment_id,ordinal)` 有序唯一。M004 写、M003 读；operator 管理与 Models 发布。
+
+- **合法/拒绝实例**：
+
+  合法：绑定有序成员；拒绝：重复/越序绑定。
+
+- **验证**：
+
+  `VRC-MGMT-*`。
+
+**7.7.4 `usage_obligations`（数据库表）**
+
+```sql
+CREATE TABLE usage_obligations (
+  principal_id           TEXT NOT NULL,
+  request_id             TEXT NOT NULL,
+  model                  TEXT NOT NULL,
+  endpoint               TEXT NOT NULL,
+  recorded_at            TEXT NOT NULL,
+  dispatch_authorized_at TEXT,
+  PRIMARY KEY(principal_id,request_id)
+);
+```
+
+- **Data/Type ID、用途与来源**：
+
+  持久表 `usage_obligations`，Data ID `D-USAGE-OBLIGATION`；唯一来源 `util/migrations/*.sql`（由 M007 `migrate()` 执行；列级阅读视图见 `util.isd` §4.4）。
+
+- **`principal_id`**：
+
+  非空；主键组成。
+
+- **`request_id`**：
+
+  非空；主键组成。
+
+- **`model`**：
+
+  非空；逻辑等级名。
+
+- **`endpoint`**：
+
+  非空；数据面端点。
+
+- **`recorded_at`**：
+
+  非空；义务登记时刻。
+
+- **`dispatch_authorized_at`**：
+
+  可空；dispatch 授权时刻。
+
+- **跨字段与寿命**：
+
+  PK `(principal_id,request_id)`；dispatch 前必先存在。M003 写；按 principal 隔离；追加式。
+
+- **合法/拒绝实例**：
+
+  合法：义务先于 dispatch；边界：未登记即 dispatch 被业务禁止。
+
+- **验证**：
+
+  `VRC-INF-004`。
+
+**7.7.5 `usage_record_versions`（数据库表）**
+
+```sql
+CREATE TABLE usage_record_versions (
+  principal_id        TEXT NOT NULL,
+  request_id          TEXT NOT NULL,
+  record_version      INTEGER NOT NULL,
+  is_final            INTEGER NOT NULL,
+  model               TEXT NOT NULL,
+  endpoint            TEXT NOT NULL,
+  recorded_at         TEXT NOT NULL,
+  updated_at          TEXT NOT NULL,
+  measurement_status  TEXT NOT NULL,
+  source              TEXT NOT NULL,
+  input_tokens        INTEGER,
+  output_tokens       INTEGER,
+  total_tokens        INTEGER,
+  cached_input_tokens INTEGER,
+  cache_write_tokens  INTEGER,
+  reasoning_tokens    INTEGER,
+  PRIMARY KEY(principal_id,request_id,record_version),
+  FOREIGN KEY(principal_id,request_id) REFERENCES usage_obligations(principal_id,request_id)
+);
+```
+
+- **Data/Type ID、用途与来源**：
+
+  持久表 `usage_record_versions`，Data ID `D-USAGE-RECORD`；唯一来源 `util/migrations/*.sql`（由 M007 `migrate()` 执行；列级阅读视图见 `util.isd` §4.4）。
+
+- **`principal_id`**：
+
+  非空；主键组成。
+
+- **`request_id`**：
+
+  非空；主键组成。
+
+- **`record_version`**：
+
+  非空整数；版本序号；主键组成。
+
+- **`is_final`**：
+
+  非空整数（0/1）；是否终态。
+
+- **`model`**：
+
+  非空；逻辑等级名。
+
+- **`endpoint`**：
+
+  非空；数据面端点。
+
+- **`recorded_at`**：
+
+  非空；登记时刻。
+
+- **`updated_at`**：
+
+  非空；更新时刻。
+
+- **`measurement_status`**：
+
+  非空；`measured`/`unknown`。
+
+- **`source`**：
+
+  非空；用量事实来源。
+
+- **`input_tokens`**：
+
+  可空整数；输入 token；`unknown` 时为空。
+
+- **`output_tokens`**：
+
+  可空整数；输出 token；`unknown` 时为空。
+
+- **`total_tokens`**：
+
+  可空整数；总 token；`unknown` 时为空。
+
+- **`cached_input_tokens`**：
+
+  可空整数；缓存命中输入 token；不适用时为空。
+
+- **`cache_write_tokens`**：
+
+  可空整数；缓存写入 token；不适用时为空。
+
+- **`reasoning_tokens`**：
+
+  可空整数；推理 token；不适用时为空。
+
+- **跨字段与寿命**：
+
+  PK `(principal_id,request_id,record_version)`；追加式；`unknown` 时 token 空。M003 写；按 retention policy。
+
+- **合法/拒绝实例**：
+
+  合法：version=2 final；边界：版本绝不累计。
+
+- **验证**：
+
+  `VRC-INF-004`、`VRC-MGMT-006`。
+
+**7.7.6 `usage_heads`（数据库表）**
+
+```sql
+CREATE TABLE usage_heads (
+  principal_id        TEXT NOT NULL,
+  request_id          TEXT NOT NULL,
+  head_record_version INTEGER NOT NULL,
+  updated_at          TEXT NOT NULL,
+  PRIMARY KEY(principal_id,request_id),
+  FOREIGN KEY(principal_id,request_id,head_record_version)
+    REFERENCES usage_record_versions(principal_id,request_id,record_version)
+);
+```
+
+- **Data/Type ID、用途与来源**：
+
+  持久表 `usage_heads`，Data ID `D-USAGE-HEAD`；唯一来源 `util/migrations/*.sql`（由 M007 `migrate()` 执行；列级阅读视图见 `util.isd` §4.4）。
+
+- **`principal_id`**：
+
+  非空；主键组成。
+
+- **`request_id`**：
+
+  非空；主键组成。
+
+- **`head_record_version`**：
+
+  非空整数；单调推进；FK 指向存在的 record version。
+
+- **`updated_at`**：
+
+  非空；head 推进时刻。
+
+- **跨字段与寿命**：
+
+  PK `(principal_id,request_id)`；`head_record_version` 单调；FK 指向存在版本。M003 写；随账本。
+
+- **合法/拒绝实例**：
+
+  合法：head 单调推进；拒绝：指向不存在版本。
+
+- **验证**：
+
+  `VRC-INF-004`。
+
+**7.7.7 `provider_request_bindings`（数据库表）**
+
+```sql
+CREATE TABLE provider_request_bindings (
+  principal_id  TEXT NOT NULL,
+  request_id    TEXT NOT NULL,
+  provider_id   TEXT NOT NULL REFERENCES providers(id),
+  deployment_id TEXT NOT NULL REFERENCES deployments(id),
+  bound_at      TEXT NOT NULL,
+  PRIMARY KEY(principal_id,request_id)
+);
+```
+
+- **Data/Type ID、用途与来源**：
+
+  持久表 `provider_request_bindings`，Data ID `D-PROVIDER-BINDING`；唯一来源 `util/migrations/*.sql`（由 M007 `migrate()` 执行；列级阅读视图见 `util.isd` §4.4）。
+
+- **`principal_id`**：
+
+  非空；主键组成。
+
+- **`request_id`**：
+
+  非空；主键组成。
+
+- **`provider_id`**：
+
+  非空；外键指向 `providers(id)`。
+
+- **`deployment_id`**：
+
+  非空；外键指向 `deployments(id)`。
+
+- **`bound_at`**：
+
+  非空；绑定时刻。
+
+- **跨字段与寿命**：
+
+  PK `(principal_id,request_id)`；至多一个绑定。M003 写；与 UsageRecord 一致。
+
+- **合法/拒绝实例**：
+
+  合法：单绑定；边界：重复绑定被 PK 拒绝。
+
+- **验证**：
+
+  `VRC-INF-004`。
+
+**7.7.8 `provider_usage_snapshots`（数据库表）**
+
+```sql
+CREATE TABLE provider_usage_snapshots (
+  provider_id   TEXT PRIMARY KEY REFERENCES providers(id) ON DELETE CASCADE,
+  snapshot_json TEXT NOT NULL,
+  checked_at    TEXT NOT NULL
+);
+```
+
+- **Data/Type ID、用途与来源**：
+
+  持久表 `provider_usage_snapshots`，Data ID `D-PROVIDER-SNAPSHOT`；唯一来源 `util/migrations/*.sql`（由 M007 `migrate()` 执行；列级阅读视图见 `util.isd` §4.4）。
+
+- **`provider_id`**：
+
+  非空主键；被快照的 provider。
+
+- **`snapshot_json`**：
+
+  非空 JSON；账号 quota 快照；不落 Secret。
+
+- **`checked_at`**：
+
+  非空；快照取得时刻。
+
+- **跨字段与寿命**：
+
+  PK `provider_id`；`snapshot_json`+`checked_at`；不落 Secret。M004 写；operator 显式刷新后替换。
+
+- **合法/拒绝实例**：
+
+  合法：显式刷新替换；拒绝：缺确认 → `ERR-CONFIRM`。
+
+- **验证**：
+
+  `VRC-DIAG-004`。
+
+**7.7.9 `audit_events`（数据库表）**
+
+```sql
+CREATE TABLE audit_events (
+  id         TEXT PRIMARY KEY,
+  actor      TEXT NOT NULL,
+  action     TEXT NOT NULL,
+  target     TEXT NOT NULL,
+  result     TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  request_id TEXT
+);
+```
+
+- **Data/Type ID、用途与来源**：
+
+  持久表 `audit_events`，Data ID `D-AUDIT-EVENT`；唯一来源 `util/migrations/*.sql`（由 M007 `migrate()` 执行；列级阅读视图见 `util.isd` §4.4）。
+
+- **`id`**：
+
+  非空主键。
+
+- **`actor`**：
+
+  非空；动作发起主体。
+
+- **`action`**：
+
+  非空；动作标识。
+
+- **`target`**：
+
+  非空；动作目标。
+
+- **`result`**：
+
+  非空；`success`/`failed`。
+
+- **`created_at`**：
+
+  非空；事件产生时刻。
+
+- **`request_id`**：
+
+  可空；关联请求 ID。
+
+- **跨字段与寿命**：
+
+  不含 Secret/prompt/output。M004 写、M005 读；与 Registry 变更同事务；按审计策略。
+
+- **合法/拒绝实例**：
+
+  合法：管理动作同事务落库；边界：事务回滚无事件。
+
+- **验证**：
+
+  `VRC-MGMT-*`。
+
+**7.7.10 `operational_logs`（数据库表）**
+
+```sql
+CREATE TABLE operational_logs (
+  id         TEXT PRIMARY KEY,
+  created_at TEXT NOT NULL,
+  level      TEXT NOT NULL,
+  module     TEXT NOT NULL,
+  event      TEXT NOT NULL,
+  message    TEXT NOT NULL CHECK(length(message)<=512),
+  request_id TEXT
+);
+```
+
+- **Data/Type ID、用途与来源**：
+
+  持久表 `operational_logs`，Data ID `D-LOG-EVENT`；唯一来源 `util/migrations/*.sql`（由 M007 `migrate()` 执行；列级阅读视图见 `util.isd` §4.4）。
+
+- **`id`**：
+
+  非空主键。
+
+- **`created_at`**：
+
+  非空；日志产生时刻。
+
+- **`level`**：
+
+  非空；日志级别。
+
+- **`module`**：
+
+  非空；模块标识。
+
+- **`event`**：
+
+  非空；事件标识。
+
+- **`message`**：
+
+  非空，CHECK 长度 ≤512；写前脱敏。
+
+- **`request_id`**：
+
+  可空；关联请求 ID。
+
+- **跨字段与寿命**：
+
+  `message` ≤512，写前脱敏。M008 写、M005 读；7 天。
+
+- **合法/拒绝实例**：
+
+  合法：脱敏写入；边界：含 Secret 原文被脱敏。
+
+- **验证**：
+
+  `VRC-LOG-001`。
+
+**7.7.11 `diagnostic_*`（数据库表组）**
+
+```sql
+CREATE TABLE diagnostic_settings (
+  singleton        INTEGER PRIMARY KEY CHECK(singleton=1),
+  snapshots_enabled INTEGER NOT NULL DEFAULT 0,
+  stats_enabled     INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE diagnostic_snapshots (
+  id             TEXT PRIMARY KEY,
+  request_id     TEXT NOT NULL,
+  captured_at    TEXT NOT NULL,
+  upstream_url   TEXT NOT NULL,
+  backend_model  TEXT,
+  http_status    INTEGER,
+  latency_ms     REAL,
+  error_summary  TEXT,
+  model          TEXT,
+  deployment_id  TEXT,
+  snapshot_type  TEXT NOT NULL DEFAULT 'upstream'
+);
+
+CREATE TABLE diagnostic_injections (
+  id                            TEXT PRIMARY KEY,
+  deployment_id                 TEXT NOT NULL,
+  injection_type                TEXT NOT NULL,
+  fault_status                  INTEGER,
+  fault_body                    TEXT,
+  delay_ms                      INTEGER,
+  retry_after_sec               INTEGER,
+  stream_terminate_after_events INTEGER,
+  malformed_after_events        INTEGER,
+  malformed_event_type          TEXT,
+  enabled                       INTEGER NOT NULL DEFAULT 0,
+  updated_at                    TEXT NOT NULL,
+  UNIQUE(deployment_id, injection_type)
+);
+
+CREATE TABLE data_plane_stats (
+  stat_hour     TEXT NOT NULL,
+  deployment_id TEXT,
+  model         TEXT,
+  status        TEXT NOT NULL,
+  request_count INTEGER NOT NULL DEFAULT 0,
+  error_count   INTEGER NOT NULL DEFAULT 0,
+  updated_at    TEXT NOT NULL,
+  PRIMARY KEY(stat_hour, deployment_id, model, status)
+);
+
+CREATE TABLE data_plane_latency_samples (
+  stat_hour     TEXT NOT NULL,
+  deployment_id TEXT,
+  model         TEXT,
+  latency_ms    REAL NOT NULL,
+  created_at    TEXT NOT NULL
+);
+
+CREATE TABLE trace_events (
+  id               TEXT PRIMARY KEY,
+  request_id       TEXT NOT NULL,
+  stage            TEXT NOT NULL,
+  stage_timestamp  TEXT NOT NULL,
+  detail           TEXT,
+  correlation_id   TEXT,
+  created_at       TEXT NOT NULL
+);
+```
+
+- **Data/Type ID、用途与来源**：
+
+  持久表组 `diagnostic_*`，Data ID `D-OBS-*`；唯一来源 `util/migrations/002_observability.sql`（列与约束见 M006 §6.7）。
+
+- **`diagnostic_settings`**：
+
+  单例配置表；列为 `singleton`（主键，恒 1）、`snapshots_enabled`、`stats_enabled`（均非空整数开关，默认 0）。
+
+- **`diagnostic_snapshots`**：
+
+  上游调用快照；列为 `id`（主键）、`request_id`、`captured_at`、`upstream_url`（非空），`backend_model`、`http_status`、`latency_ms`、`error_summary`、`model`、`deployment_id`（可空），`snapshot_type`（非空，默认 `upstream`）。
+
+- **`diagnostic_injections`**：
+
+  故障注入配置；列为 `id`（主键）、`deployment_id`、`injection_type`、`enabled`、`updated_at`（非空），`fault_status`、`fault_body`、`delay_ms`、`retry_after_sec`、`stream_terminate_after_events`、`malformed_after_events`、`malformed_event_type`（可空）；`(deployment_id,injection_type)` 唯一。
+
+- **`data_plane_stats`**：
+
+  数据面请求/错误计数；列为 `stat_hour`、`status`、`request_count`、`error_count`、`updated_at`（非空），`deployment_id`、`model`（可空）；PK `(stat_hour,deployment_id,model,status)`。
+
+- **`data_plane_latency_samples`**：
+
+  数据面时延样本；列为 `stat_hour`、`latency_ms`、`created_at`（非空），`deployment_id`、`model`（可空）。
+
+- **`trace_events`**：
+
+  单请求分阶段 trace；列为 `id`（主键）、`request_id`、`stage`、`stage_timestamp`、`created_at`（非空），`detail`、`correlation_id`（可空）。
+
+- **跨字段与寿命**：
+
+  authority `util/migrations/002_observability.sql`；列与约束见 M006 §6.7。M006 写、M005 读；默认保留 7 天。
+
+- **合法/拒绝实例**：
+
+  合法：空库一次建表；开启后按开关记录。
+
+- **验证**：
+
+  `VRC-DIAG-001/002/003`。
 
 ### 7.8 错误码与错误结构（适用时）
 
