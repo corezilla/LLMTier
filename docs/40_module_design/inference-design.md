@@ -1345,7 +1345,7 @@ list_models() -> list
 
 #### A.2 `llmtier-inference-stream-mechanism` / `R-INF-04` · 同等级候选选择
 - **来源 Capability / Step / Constraint / 接口成员**：CON-INFER-004、Step 4
-- **本模块必须负责的行为与保证**：大小写精确选择、同等级候选
+- **本模块必须负责的行为与保证**：大小写精确选择、同等级候选、健康/版本核验
 - **本模块提供 / 消费的接口**：候选（经 `admit`）
 - **本文落实位置**：§5.1.5、§8.2
 - **代码文件 / symbol 或 NOT_IMPLEMENTED**：`routing.py`
@@ -1362,7 +1362,7 @@ list_models() -> list
 - **本地验证 / 组合验证交接**：`VRC-INF-003`
 
 #### A.4 `llmtier-inference-stream-mechanism` / `R-INF-06` · Usage Recorder 承接
-- **来源 Capability / Step / Constraint / 接口成员**：CON-INFER-003、Step 3/5/9
+- **来源 Capability / Step / Constraint / 接口成员**：CON-INFER-003、Step 3/5/8
 - **本模块必须负责的行为与保证**：义务/绑定/终态、unknown 不补零
 - **本模块提供 / 消费的接口**：`authorize_dispatch`/`bind_backend`/`record_provider_request_id`/`finish`
 - **本文落实位置**：§5.1.8、§8、§10.3
@@ -1380,7 +1380,7 @@ list_models() -> list
 - **本地验证 / 组合验证交接**：`VRC-INF-004`
 
 #### A.6 `llmtier-usage-metering-mechanism` / `R-MET-01` · 用量记账
-- **来源 Capability / Step / Constraint / 接口成员**：CON-METER-001/2/3、Step 1/2/3
+- **来源 Capability / Step / Constraint / 接口成员**：CON-METER-001/2/3、Step 1/2/3/9
 - **本模块必须负责的行为与保证**：只追加版本、head 单调、unknown 不补零
 - **本模块提供 / 消费的接口**：`authorize_dispatch`/`bind_backend`/`record_provider_request_id`/`finish`
 - **本文落实位置**：§5.1.8、§6.2.6、§6.7、§10.3

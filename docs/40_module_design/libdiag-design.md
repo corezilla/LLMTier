@@ -1300,7 +1300,7 @@ cleanup(days: int = 7) -> int
 - **选项 / 推荐 / 下一步取证**：确认 `stream_wrapper` 集成方案
 - **关闭条件 / 决定或当前状态**：未决
 
-引用：系统设计 §3.2/§11.3；机制 M-OBS §14.4（`R-OBS-01/06`）、M-INFER §14.4（`R-INF-08`）；`observability-design.md`；`src/util/migrations/002_observability.sql`。
+引用：系统设计 §3.2/§11.3；机制 M-OBS §14.4（`R-OBS-01`）、M-INFER §14.4（`R-INF-08`）；`observability-design.md`；`src/util/migrations/002_observability.sql`。
 
 ## 附录 A. 机制承接表
 

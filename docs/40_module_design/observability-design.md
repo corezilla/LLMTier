@@ -1118,7 +1118,7 @@ apply_correlation(headers) -> (correlation_id: str | None, trace_detail: dict | 
 - **选项 / 推荐 / 下一步取证**：以"记录= M006 / 查询呈现= M005"划分，或后续拆分文件
 - **关闭条件 / 决定或当前状态**：未决
 
-引用：系统设计 §3.2/§11.3；机制 M-OBS §14.4（`R-OBS-02/05/06`）、M-INFER §14.4（`R-INF-08`）；`libdiag-design.md`；`interfaces/openapi/llmtier.openapi.json`。
+引用：系统设计 §3.2/§11.3；机制 M-OBS §14.4（`R-OBS-02`）、M-INFER §14.4（`R-INF-08`）、M-TRUST §14.4（`R-TRUST-03`）；`libdiag-design.md`；`interfaces/openapi/llmtier.openapi.json`。
 
 ## 附录 A. 机制承接表
 
@@ -1139,3 +1139,12 @@ apply_correlation(headers) -> (correlation_id: str | None, trace_detail: dict | 
 - **代码文件 / symbol 或 NOT_IMPLEMENTED**：`diagnostics.py`（记录/查询）+ `libdiag-design.md`（底层读写）
 - **允许自行决定的范围**：存储/聚合实现
 - **本地验证 / 组合验证交接**：`VRC-OBS-003`；观测用例
+
+#### A.3 `llmtier-access-trust-mechanism` / `R-TRUST-03` · 业务模块不二次校验
+- **来源 Capability / Step / Constraint / 接口成员**：CON-TRUST-001/4、Step 5
+- **本模块必须负责的行为与保证**：**不二次校验**（operator 凭据由 M001 入口判定），按 `role` 限制诊断视图；只消费 M001 判定结果，不新增鉴权调用点
+- **本模块提供 / 消费的接口**：诊断查询/开关路由（经 M001，不新增鉴权点）
+- **本文落实位置**：§5.1.1–5.1.4、§9、§11
+- **代码文件 / symbol 或 NOT_IMPLEMENTED**：`app.py`（诊断路由，经 M001 `_auth("admin")`）+ `diagnostics.py`（查询投影）
+- **允许自行决定的范围**：视图实现
+- **本地验证 / 组合验证交接**：`VRC-OBS-002`；组合（M001 单点鉴权）

@@ -1007,6 +1007,8 @@ joint-diagnose.sh --x-request-id <request_id> -> trace/snapshots
 
 ### 14.4 下级设计输入清单
 
+**要求 ID 说明**：本机制的下级设计要求沿用项目历史 ID `R-OBS-01..06`（类别：机制下级要求，命名域 M-OBS）。按 `design-writing-guide`「标识命名空间不得复用」——历史 ID 已被项目采用时不静默重命名，而是在登记表中保留旧 ID 并明确类型——下表即该类型的登记表，不新增 STD 规定的 `M-OBS-DI-*` 别名。
+
 | 下级要求 ID | 承接对象 ID / 下级设计文档 | 来源 Capability / Step / Constraint / 接口成员 | 必须负责的行为与保证 | 必须提供/消费的接口 | 下级必须展开的问题 | 允许自行决定的范围 | 本地验证 / 组合验证交接 |
 |---|---|---|---|---|---|---|---|
 | R-OBS-01 | `libdiag` · `libdiag-design.md` | CON-OBS-003、Step 2/3/4/5、interface `DiagnosticService` 全部 | 开关/注入/记录底层读写、脱敏、fail-open | `capture_snapshot`/`record_latency`/`record_trace`/`enabled_injection`/`enabled_stream_injection`/查询 | 存储布局、缓存/LRU、TTL、截断 | 存储/聚合实现 | 系统用例 |

@@ -1613,7 +1613,7 @@ page(limit: int = 50, level: str | None = None, module: str | None = None, reque
 - **选项 / 推荐 / 下一步取证**：缺字段保持 Unknown，不填 0
 - **关闭条件 / 决定或当前状态**：已接受
 
-引用：系统设计 §3.2/§10；机制 M-CONFIG §14.4（`R-CFG-01/02/03`）、M-METER §14.4（`R-MET-02/03`）、M-OBS §14.4（`R-OBS-02`）；`interfaces/openapi/llmtier.openapi.json`。
+引用：系统设计 §3.2/§10；机制 M-CONFIG §14.4（`R-CFG-01/02/03`）、M-METER §14.4（`R-MET-02/03`）、M-TRUST §14.4（`R-TRUST-03`）；`interfaces/openapi/llmtier.openapi.json`。（`R-OBS-02` 为经 M005 承接的依赖引用，见附录 A 末说明，不在本附录重复承接。）
 
 ## 附录 A. 机制承接表
 
@@ -1661,5 +1661,14 @@ page(limit: int = 50, level: str | None = None, module: str | None = None, reque
 - **代码文件 / symbol 或 NOT_IMPLEMENTED**：`usage.py` + `admin.py`
 - **允许自行决定的范围**：范围实现
 - **本地验证 / 组合验证交接**：`VRC-MGMT-004`
+
+#### A.6 `llmtier-access-trust-mechanism` / `R-TRUST-03` · 业务模块不二次校验
+- **来源 Capability / Step / Constraint / 接口成员**：CON-TRUST-001/4、Step 5
+- **本模块必须负责的行为与保证**：**不二次校验**（鉴权仅入口单点），按 `role`（`admin`）限制用量/审计/日志视图，只消费 M001 下传的 `principal`/`actor`
+- **本模块提供 / 消费的接口**：`UsageRecorder.page(..., admin=...)`（角色过滤）、`AdminService.mutate/page(actor=...)`（消费主体，不鉴权）
+- **本文落实位置**：§5.1.8、§8.5、§11
+- **代码文件 / symbol 或 NOT_IMPLEMENTED**：`usage.py` `UsageRecorder.page`（非 admin 按 `principal_id` 过滤）+ `admin.py` `AdminService.mutate/page`（消费 `actor`）
+- **允许自行决定的范围**：视图实现
+- **本地验证 / 组合验证交接**：`VRC-MGMT-004`；组合（M001 单点鉴权）
 
 （说明：诊断开关/注入的**呈现与路由**是机制 M-OBS §14.4 `R-OBS-02` 对 **M005** 的要求；M004 只提供 `mutate` 审计包裹，不在本附录重复承接。）

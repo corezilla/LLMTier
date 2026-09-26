@@ -939,13 +939,13 @@ POST /v1/probes {deployment_id} -> 200 probe_result | 4xx: ErrorEnvelope
 | R-INF-01 | HTTP/SSE Adapter · `http-api-design.md` | CON-INFER-001/002、Step 9、interface `response_stream` | SSE 帧序、terminal 唯一、`request_id` 透传、请求体上限 | `response_stream`、`POST /v1/responses` 路由 | 帧缓冲/背压、断开检测与清理、413 | 缓冲与传输实现 | 契约；组合（Piko 联调）|
 | R-INF-02 | Auth/Validation · `http-api-design.md、inference-design.md` | Step 1–2、interface `authenticate*` | 校验顺序（§5.1）、`Principal` 产生与下传；推理路径编排侧协同校验 | `_auth()`/`authenticate_any()`；`ResponsesService.create`（消费 `principal`）| 凭据解析、错误映射 | 解析实现 | 契约 |
 | R-INF-03 | Internal Admission · `inference-design.md` | CON-INFER-004、Step 4、interface `admit` | 并发/队列/等待/429、许可释放 | `admit()`、`snapshot()` | 队列结构、公平性、`Retry-After` | 队列/排序实现 | 并发用例 |
-| R-INF-04 | Exact Model Router · `management-design.md` | CON-INFER-004、Step 4 | 大小写精确选择、同等级候选 | 候选（经 `admit()`）| 选择排序、健康/版本核验 | 排序实现 | 并发用例 |
+| R-INF-04 | Exact Model Router · `inference-design.md` | CON-INFER-004、Step 4 | 大小写精确选择、同等级候选 | 候选（经 `admit()`）| 选择排序、健康/版本核验 | 排序实现 | 并发用例 |
 | R-INF-05 | Provider Adapter · `inference-design.md` | Step 6、interface `complete` | 协议映射、usage 归一、typed error | `complete()` | 各后端映射、超时、错误分类 | 映射实现 | 契约 |
 | R-INF-06 | Usage Recorder · `inference-design.md` | CON-INFER-003、Step 3/5/8 | 义务/绑定/终态、unknown 不补零 | `authorize_dispatch`/`bind_backend`/`finish` | 版本替换、并发写、归一（M-METER）| 存储实现 | 系统用例 |
-| R-INF-07 | Registry/Config · `management-design.md` | Step 2、interface `get_service_level` | 等级/能力只读查询 | `get_service_level()` | 快照读一致性（M-CONFIG）| 查询实现 | 契约 |
+| R-INF-07 | Registry/Config · `inference-design.md` | Step 2、interface `get_service_level` | 等级/能力只读查询 | `get_service_level()` | 快照读一致性（M-CONFIG）| 查询实现 | 契约 |
 | R-INF-08 | 诊断写入 · `inference-design.md、observability-design.md` | CON-INFER-005 | trace/快照、fail-open；推理路径在写入点协同集成 | 观测写入 | 默认关闭零开销、脱敏（M-OBS）| 存储/聚合实现 | 观测用例 |
 
-**约束**：下游模块设计不得改变本机制已固定的对外事件子集与错误语义；跨模块新增接口须回写本节并关联模块设计。R-INF-02 的入口鉴权（M001 Auth/Validation）与推理编排侧校验（M003）分别在 `http-api-design.md`、`inference-design.md` 附录 A 承接；R-INF-08 的推理侧写入集成（M003）与观测侧读写（M005/libdiag）分别在两文档附录 A 承接。
+**约束**：下游模块设计不得改变本机制已固定的对外事件子集与错误语义；跨模块新增接口须回写本节并关联模块设计。R-INF-02 的入口鉴权（M001 Auth/Validation）与推理编排侧校验（M003）分别在 `http-api-design.md`、`inference-design.md` 附录 A 承接；R-INF-08 的推理侧写入集成（M003）与观测侧读写（M005/libdiag）分别在两文档附录 A 承接。R-INF-04（Exact Model Router，代码 `routing.py`）与 R-INF-07（Registry 只读查询，调用方 `responses.py`）的实现承接责任均在 M003，故承接模块记为 `inference-design.md`；M004 仅作为 Registry 的数据提供方（provider 侧由 `R-CFG-01` 承接），不重复承接本机制要求。
 
 ## 15. 验证、上线与回滚
 

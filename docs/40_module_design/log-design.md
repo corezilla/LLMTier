@@ -103,7 +103,7 @@
 - **角色 / 运行位置 / Owner**：依赖；同进程；LLMTier
 - **本模块调用或消费**：`Store.connection/all`
 - **本模块提供**：—
-- **契约 authority / 版本 / selector**：机制 R-CFG-03
+- **契约 authority / 版本 / selector**：`util-design.md` §9（消费 M007 Store）
 - **同步方式 / timeout / 生命周期**：同步
 - **不可用或失败影响 / 责任出口**：写入失败静默；查询失败 503
 
@@ -609,4 +609,4 @@ page(limit: int = 50, level: str | None = None, module: str | None = None, reque
 
 ## 附录 A. 机制承接表
 
-**N/A — 本模块不参与任何机制。** 父系统机制清单核对结果：M-TRUST/M-INFER/M-METER/M-CONFIG/M-OBS 的 §14.4 均未向 `log` 分配 Requirement ID（日志属基础能力，由各机制在需要处引用 M008 §9）。Tailoring/决定依据：系统设计 §3.2 将 `log` 登记为独立基础模块，但其写入/查询不在任一机制的跨模块协作语义内；批准记录见本轮 review。若后续某机制新增日志写入要求（如可观测性要求特定事件），须回到该机制 §14.4 分配 Requirement ID 后在此承接。
+**N/A — 本模块不参与任何机制。** 父系统机制清单核对结果：M-TRUST/M-INFER/M-METER/M-CONFIG/M-OBS 的 §14.4 均未向 `log` 分配 Requirement ID（日志属基础能力，由各机制在需要处引用 M008 §9）。Tailoring/决定依据：系统设计 §3.2 将 `log` 登记为独立基础模块，但其写入/查询不在任一机制的跨模块协作语义内；批准记录见本轮 review。§4.3 对 M007 的依赖不构成本模块对 `R-CFG-03` 的承接：`R-CFG-03` 的承接对象是 `util-design.md` 的 Store，本模块仅消费其 `Store.connection/all`，故契约 authority 记为 `util-design.md` §9。若后续某机制新增日志写入要求（如可观测性要求特定事件），须回到该机制 §14.4 分配 Requirement ID 后在此承接。

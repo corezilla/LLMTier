@@ -944,6 +944,8 @@ migrate(store_path) -> {from_version, to_version} | non-zero exit
 
 ### 14.4 下级设计输入清单
 
+**要求 ID 说明**：本机制的下级设计要求沿用项目历史 ID `R-CFG-01..05`（类别：机制下级要求，命名域 M-CONFIG）。按 `design-writing-guide`「标识命名空间不得复用」——历史 ID 已被项目采用时不静默重命名，而是在登记表中保留旧 ID 并明确类型——下表即该类型的登记表，不新增 STD 规定的 `M-CONFIG-DI-*` 别名。
+
 | 下级要求 ID | 承接对象 ID / 下级设计文档 | 来源 Capability / Step / Constraint / 接口成员 | 必须负责的行为与保证 | 必须提供/消费的接口 | 下级必须展开的问题 | 允许自行决定的范围 | 本地验证 / 组合验证交接 |
 |---|---|---|---|---|---|---|---|
 | R-CFG-01 | Management（Registry/Config）· `management-design.md` | CON-CFG-001/002/003/004、Step 3/4/6、interface `bootstrap_settings`/CRUD/`candidates`/`get_service_level` | 唯一权威、发布事务、能力不变量、审计 | `bootstrap_settings`、CRUD、`candidates`、`get_service_level` | 事务边界、ETag、交集算法、Embedding 冻结 | 存储/算法实现 | 契约；系统用例 |
