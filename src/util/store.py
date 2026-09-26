@@ -11,7 +11,7 @@ from typing import Iterator, Sequence
 
 from http_api.errors import ApiError
 
-EXPECTED_SCHEMA_VERSION = 1
+EXPECTED_SCHEMA_VERSION = 2
 
 
 def _statements(sql: str) -> list[str]:

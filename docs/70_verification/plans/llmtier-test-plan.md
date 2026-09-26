@@ -15,11 +15,11 @@
 | Approval Date | 待定 |
 | Created Date | `2026-09-19` |
 | Last Modified Date | `2026-09-22` |
-| Template Version | `0.1.0` |
+| Template Version | `0.2.0` |
 | Template ID | `assurance.test-plan` |
-| Template Conformance | `native` |
+| Template Conformance | `tailored` |
 | Tailoring Reference | std-tailoring |
-| Migration Map Reference | `llmtier-vv-plan`, `llmtier-contract-test-specification` |
+| Migration Map Reference | `llmtier-vv-plan, llmtier-contract-test-specification` |
 | Repository | `corezilla/LLMTier` |
 | Canonical Path | `docs/70_verification/plans/llmtier-test-plan.md` |
 | Supersedes | none |

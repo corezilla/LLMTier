@@ -446,7 +446,7 @@ tables {
   usage_obligations { (principal_id, request_id) PK },
   usage_record_versions { (principal_id, request_id, record_version) PK },
   usage_heads { (principal_id, request_id) PK, head_record_version FK },
-  provider_request_bindings { (principal_id, request_id) PK },
+  provider_request_bindings { (principal_id, request_id) PK, provider_request_id TEXT? },
   query_snapshots { snapshot_id PK },
   query_snapshot_items { (snapshot_id, ordinal) PK }
 }
@@ -470,7 +470,7 @@ tables {
 
 - **`provider_request_bindings`**：
 
-  主键 `(principal_id,request_id)`；首次为准。
+  主键 `(principal_id,request_id)`；首次为准；`provider_request_id`（可空）在上游 `complete()` 成功后回填。
 
 - **`query_snapshots` / `query_snapshot_items`**：
 
@@ -589,10 +589,10 @@ bind_backend(principal: str, request_id: str, provider_id: str, deployment_id: s
 
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-MET-BIND`；把 request 绑定到最终 provider/deployment；Inference 编排消费、Usage Recorder 提供；交接边界=准入选出候选后；状态=Implemented；`src/inference/usage.py`。
 - **输入与前提**：`principal`、`request_id`、`provider_id`、`deployment_id`；前置=准入已选候选；授权=内部。
-- **成功输出与保证**：无返回——写 `provider_request_bindings`（首次为准，`ON CONFLICT DO NOTHING`）；副作用=绑定持久。
-- **错误与合法下一步**：冲突被忽略（不抛）；事务失败由存储层异常表达。
-- **交互与生命周期**：同步；幂等（首次为准）；请求级。
-- **实现与验证**：正常绑定 `prov_local`/`dep_local_gemma`；边界：重复绑定保持首次。`T-MET-FINAL`；Run=NOT_RUN。
+- **成功输出与保证**：无返回——写 `provider_request_bindings`（首次为准，`ON CONFLICT DO NOTHING`）；上游返回后由同组件的 `record_provider_request_id(principal, request_id, provider_request_id)` 回填该行可空 `provider_request_id`（空值 no-op）；副作用=绑定持久。
+- **错误与合法下一步**：冲突被忽略（不抛）；事务失败由存储层异常表达（含 `record_provider_request_id` 回填）。
+- **交互与生命周期**：同步；幂等（首次为准；回填为幂等 UPDATE）；请求级。
+- **实现与验证**：正常绑定 `prov_local`/`dep_local_gemma` 后回填 `X-Request-ID`；边界：重复绑定保持首次、无上游 id 时保持 NULL。`T-MET-FINAL`；Run=NOT_RUN。
 
 #### `UsageRecorder.finish(principal, request_id, usage, source_override=None) -> None`
 
@@ -635,7 +635,7 @@ reset_usage(model: str | None = None, deployment_id: str | None = None, conn: Co
 
 ### 5.2 消息与数据流接口（适用时）
 
-不适用：本机制不拥有组件/系统间协作交换的消息、事件、队列、流或文件接口；`authorize_dispatch`/`bind_backend`/`finish`/`page`/`reset_usage` 是向推理编排/管理面提供可调用能力的进程内方法，归 §5.1 API。
+不适用：本机制不拥有组件/系统间协作交换的消息、事件、队列、流或文件接口；`authorize_dispatch`/`bind_backend`/`record_provider_request_id`/`finish`/`page`/`reset_usage` 是向推理编排/管理面提供可调用能力的进程内方法，归 §5.1 API。
 
 ### 5.3 硬件与固件接口（适用时）
 
@@ -654,7 +654,7 @@ reset_usage(model: str | None = None, deployment_id: str | None = None, conn: Co
 图 M · 用量计量时序（实线=请求，虚线=响应；先后关系非时间比例）。
 
 1. **登记义务**：dispatch 前写 `usage_obligations` + `record_version=1`（`unknown`/`unavailable`、`is_final=0`、token 全 NULL）+ head=1（C-METER-3）。
-2. **绑定后端**：准入选定候选后写 `provider_request_bindings`。
+2. **绑定后端**：准入选定候选后写 `provider_request_bindings`；上游返回后回填 `provider_request_id`。
 3. **归一**：后端返回 → 判定 `measured`（三 token 皆 int）→ 追加 v(n+1) → 推进 head。
 4. **查询（首屏）**：同一事务创建 `query_snapshots` + 固化有序成员 `(principal, request_id, record_version)`。
 5. **查询（后续页）**：按 `sid:offset` 读冻结项；`(recorded_at, request_id)` 稳定排序。

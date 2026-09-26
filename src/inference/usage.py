@@ -26,16 +26,19 @@ class UsageRecorder:
                 conn.execute("INSERT INTO usage_heads VALUES(?,?,?,?)", (principal, request_id, 1, stamp))
 
     def bind_backend(self, principal: str, request_id: str, provider_id: str, deployment_id: str) -> None:
-        # TODO(M003/D-PROVIDER-BINDING): the upstream provider X-Request-ID
-        # (ProviderResult.provider_request_id) is not persisted. Persisting it needs
-        # a nullable column on provider_request_bindings plus a real upgrade path
-        # (Store.migrate() is init-only and pins EXPECTED_SCHEMA_VERSION=1) and a
-        # post-complete() UPDATE, since bind_backend runs before the upstream call.
-        # Deferred rather than shipped as a fresh-init-only migration.
         with self.store.transaction(True) as conn:
             conn.execute(
-                "INSERT INTO provider_request_bindings VALUES(?,?,?,?,?) ON CONFLICT(principal_id,request_id) DO NOTHING",
+                "INSERT INTO provider_request_bindings(principal_id,request_id,provider_id,deployment_id,bound_at) VALUES(?,?,?,?,?) ON CONFLICT(principal_id,request_id) DO NOTHING",
                 (principal, request_id, provider_id, deployment_id, now()),
+            )
+
+    def record_provider_request_id(self, principal: str, request_id: str, provider_request_id: str | None) -> None:
+        if not provider_request_id:
+            return
+        with self.store.transaction(True) as conn:
+            conn.execute(
+                "UPDATE provider_request_bindings SET provider_request_id=? WHERE principal_id=? AND request_id=?",
+                (provider_request_id, principal, request_id),
             )
 
     def finish(self, principal: str, request_id: str, usage: dict[str, Any] | None, source_override: str | None = None) -> None:

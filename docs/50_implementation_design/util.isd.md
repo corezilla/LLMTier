@@ -263,7 +263,7 @@ Schema authority=`migrations/001_initial.sql` + `migrations/002_observability.sq
 | `deployment_runtime_profiles` | `deployment_id` PK FK CASCADE；`max_in_flight` DEFAULT 1；`connect_timeout_ms` DEFAULT 30000；`stream_idle_timeout_ms` DEFAULT 60000；`version` |
 | `provider_usage_profiles` | `provider_id` PK FK CASCADE；`usage_provider` DEFAULT 'none'；`usage_api_key_ref`/`usage_access_key_ref`/`usage_secret_key_ref`；`max_concurrent_requests` DEFAULT 1；`min_request_interval_ms` DEFAULT 0；`requests_per_minute` DEFAULT 0；`version` |
 | `provider_usage_snapshots` | `provider_id` PK FK CASCADE；`snapshot_json`；`checked_at` |
-| `provider_request_bindings` | `principal_id`；`request_id`；`provider_id` FK；`deployment_id` FK；`bound_at`；PK(principal_id,request_id) |
+| `provider_request_bindings` | `principal_id`；`request_id`；`provider_id` FK；`deployment_id` FK；`bound_at`；`provider_request_id` TEXT（可空）；PK(principal_id,request_id) |
 | `usage_obligations` | `principal_id`；`request_id`；`model`；`endpoint`；`recorded_at`；`dispatch_authorized_at`；PK(principal_id,request_id) |
 | `usage_record_versions` | `principal_id`；`request_id`；`record_version`；`is_final`；`model`；`endpoint`；`recorded_at`；`updated_at`；`measurement_status`；`source`；`input_tokens`；`output_tokens`；`total_tokens`；`cached_input_tokens`；`cache_write_tokens`；`reasoning_tokens`；PK(principal_id,request_id,record_version)；FK→`usage_obligations` |
 | `usage_heads` | `principal_id`；`request_id`；`head_record_version`；`updated_at`；PK(principal_id,request_id)；FK→`usage_record_versions` |
@@ -286,7 +286,7 @@ Schema authority=`migrations/001_initial.sql` + `migrations/002_observability.sq
 
 - **读写 / 迁移 symbol、事务边界与提交点**
 
-  初始化行 `INSERT OR IGNORE schema_meta(1,1,...)`；`provider_usage_profiles` 对每个 provider 补默认（`local`→`local`，否则 `none`）；由 `Store.migrate()` 原子初始化（幂等）。
+  初始化行 `INSERT OR IGNORE schema_meta(1,2,...)`；`provider_usage_profiles` 对每个 provider 补默认（`local`→`local`，否则 `none`）；由 `Store.migrate()` 原子初始化（幂等）。
 
 - **跨字段与寿命**
 
@@ -510,7 +510,7 @@ migrate(self) -> None
 
 - **输入与前提**
 
-  - **输入参数 / 数据结构 authority**：无参；常量 `EXPECTED_SCHEMA_VERSION=1`
+  - **输入参数 / 数据结构 authority**：无参；常量 `EXPECTED_SCHEMA_VERSION=2`
   - **输入约束 / 校验顺序 / 失败映射**：库状态识别（§7.2.3）→ 原子初始化 → `integrity_check`；失败映射见 §5.2
 
 - **成功输出与保证**
@@ -707,7 +707,7 @@ flowchart TD
 - **判断事实来源**：`sqlite_master`、`schema_version`、`integrity_check`
 - **成功可见点**：表就绪
 - **失败、取消与清理**：拒绝或回滚（库保持空）
-- **代表输入与中间值**：空库 → 建表 + 版本 1
+- **代表输入与中间值**：空库 → 建表 + 版本 2
 - **规则 / 接口 / 验证引用**：`RULE-UTIL-MIGRATE`；`VRC-UTIL-002`
 
 ### 6.4 `P-UTIL-CLOSE` · 连接回收
@@ -784,7 +784,7 @@ flowchart TD
 - **原规则**：`RULE-UTIL-MIGRATE`
 - **升级 / 降级策略**：仅初始化；无升级、无降级
 - **接受 / 拒绝条件**：接受=空库（建表）；拒绝=非空且 `schema_version≠EXPECTED`，或有无版本表旧库
-- **源 / 目标版本与转换函数**：无转换函数；`schema_version` 固定 `1`
+- **源 / 目标版本与转换函数**：无转换函数；`schema_version` 固定 `2`
 - **拒绝后如何处理**：拒绝启动 + error 日志；运维离线迁移/重建（不得静默修复）
 - **验证项**：`VRC-UTIL-002`
 
@@ -904,7 +904,7 @@ flowchart TD
 
 - **顺序 / 前置项**：3 / `TASK-UTIL-CONN`
 - **文件 / symbol / 构建目标**：`store.py` `migrate`、`migrations/*.sql`
-- **不可改变的规则**：仅初始化、拒绝语义、原子边界、`schema_version=1`
+- **不可改变的规则**：仅初始化、拒绝语义、原子边界、`schema_version=2`
 - **实施动作**：实现库状态识别、原子初始化、完整性检查
 - **完成检查**：`VRC-UTIL-002`
 - **实现状态**：PLANNED

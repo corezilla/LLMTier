@@ -59,5 +59,5 @@ source_file: `src/dashboard/tier.html`
 - `renderMainTable`、`renderAccountTable`和`renderLlmStatsPanel`只允许首屏、用户Refresh及明确management action成功后的显式结构刷新调用。
 - timer驱动的stats、probe、usage和runtime refresh只能patch既有row的status、usage、counts、latency、running jobs和timestamp；禁止通过`innerHTML`、`updateSection`或上述render函数重建table/panel。
 - config load/save、enable/disable、probe及concurrency mutation必须展示Tier返回的409 conflict、503 unavailable和field validation error；不得把失败映射为成功toast或空runtime。
-- 标题下方`.tier-label-summary`只保存`{{SLINKY_VERSION}}`并由DashboardServer注入；inline JavaScript不得拼接、缓存或覆盖版本。
+- 标题下方`.tier-label-summary`只保存`SLINKY_VERSION`并由DashboardServer注入；inline JavaScript不得拼接、缓存或覆盖版本。
 - System Test必须真实启动统一Dashboard listener，从另一主机浏览器访问，逐项验证Network/Console、管理操作、Backend identity、自动refresh DOM node稳定性以及不存在8765 listener/request。

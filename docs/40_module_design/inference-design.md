@@ -264,7 +264,7 @@
 
 #### 5.2.1 `CALL-INFER` · 一次推理调用链
 - **入口与调用上下文**：M001 调用 `ResponsesService.create`（同进程、请求线程）
-- **调用链**：`ResponsesService.create` →（校验）→ `registry.get_service_level` [M004] → `usage.authorize_dispatch(principal, request_id, model, "/v1/responses")` [I8] → `router.admit` [I5] → `usage.bind_backend(principal, request_id, provider_id, deployment_id)` [I8] → `adapter.complete` [I6] → `usage.finish(principal, request_id, usage, source_override=None)` [I8]
+- **调用链**：`ResponsesService.create` →（校验）→ `registry.get_service_level` [M004] → `usage.authorize_dispatch(principal, request_id, model, "/v1/responses")` [I8] → `router.admit` [I5] → `usage.bind_backend(principal, request_id, provider_id, deployment_id)` [I8] → `adapter.complete` [I6] → `usage.record_provider_request_id(principal, request_id, result.provider_request_id)` [I8]（仅当上游返回）→ `usage.finish(principal, request_id, usage, source_override=None)` [I8]
 - **逐步传递的数据**：`body(dict)` → `caps(dict)` → `candidate(Candidate)` → `ProviderResult` → `ResponsesResponse(dict)`
 - **返回、异常与清理**：`ApiError` 冒泡；异常路径 `usage.finish(None)`；`admit` 退出释放许可
 - **对应流程 / 接口 / 验证**：§7 P-INFER / §9 IF-INF-01..06 / `VRC-INF-001..005`
@@ -876,7 +876,7 @@ Authority = `util/migrations/001_initial.sql`（由 M007 执行）。M003 经 `U
 | 表 | 主键 / 唯一 | 写入者 / 读者 | 说明 |
 |---|---|---|---|
 | `usage_obligations` | `(principal_id,request_id)` | I8 / M-METER,M004 | dispatch 前记 unknown 义务 |
-| `provider_request_bindings` | `(principal_id,request_id)` | I8 / M-METER,M004 | 绑定 provider request |
+| `provider_request_bindings` | `(principal_id,request_id)` | I8 / M-METER,M004 | 绑定 provider request；`provider_request_id`（可空）在 `complete()` 成功后回填 |
 | `usage_record_versions` | `(principal_id,request_id,record_version)` | I8 / M-METER,M004 | 只追加版本 |
 | `usage_heads` | `(principal_id,request_id)` | I8 / M-METER,M004 | 最高版本指针 |
 | `deployment_runtime_profiles` | `deployment_id` | M004 写 / I5 读 | 并发/限流/超时 |
@@ -1037,19 +1037,20 @@ admit(level_id: str) -> ContextManager[Candidate]
 - **交互与生命周期**：同步可等待（≤30 s）；许可无泄漏；同等级内、不跨等级。
 - **实现与验证**：正常选 inflight 少者；边界：占满 → 429。`VRC-INF-004`；`routing.py`。
 
-#### `UsageRecorder.authorize_dispatch(...) / bind_backend(...) / finish(...) / page(...) / reset_usage(...)`
+#### `UsageRecorder.authorize_dispatch(...) / bind_backend(...) / record_provider_request_id(...) / finish(...) / page(...) / reset_usage(...)`
 
 ```text
 authorize_dispatch(principal: str, request_id: str, model: str, endpoint: str) -> None
 bind_backend(principal: str, request_id: str, provider_id: str, deployment_id: str) -> None
+record_provider_request_id(principal: str, request_id: str, provider_request_id: str | None) -> None
 finish(principal: str, request_id: str, usage: Usage | None, source_override: str | None = None) -> None
 page(principal: str, cursor: str | None, limit: int = 50, admin: bool = False, since: str | None = None, until: str | None = None, model: str | None = None, request_id: str | None = None) -> dict
 reset_usage(model: str | None = None, deployment_id: str | None = None, conn=None) -> dict
 ```
 
-- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-INF-USAGE`；向账本登记义务/绑定/终态，并提供账本分页/范围清空；M003（UsageRecorder）提供，语义归 M-METER；状态=Implemented；唯一契约=本设计；文件·symbol `src/inference/usage.py` `UsageRecorder`。
-- **输入与前提**：主体/请求、绑定信息（`provider_id`/`deployment_id`）、终态 `Usage`（§6.2.6）；`page` 需 `[since, until)`（缺失 → 400），`reset_usage` 按 `model`/`deployment_id` 范围。
-- **成功输出与保证**：账本写入无返回；`finish(None)` 表示结果未知、`source_override` 记录来源；`page` → `{data,next_cursor,has_more,snapshot_id,snapshot_at}`；`reset_usage` → `{deleted}`。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-INF-USAGE`；向账本登记义务/绑定/终态并回填上游 provider request id，并提供账本分页/范围清空；M003（UsageRecorder）提供，语义归 M-METER；状态=Implemented；唯一契约=本设计；文件·symbol `src/inference/usage.py` `UsageRecorder`。
+- **输入与前提**：主体/请求、绑定信息（`provider_id`/`deployment_id`）、终态 `Usage`（§6.2.6）、上游 `provider_request_id`（可空）；`page` 需 `[since, until)`（缺失 → 400），`reset_usage` 按 `model`/`deployment_id` 范围。
+- **成功输出与保证**：账本写入无返回；`record_provider_request_id(None)` 为 no-op、非空时更新既有绑定的 `provider_request_id`；`finish(None)` 表示结果未知、`source_override` 记录来源；`page` → `{data,next_cursor,has_more,snapshot_id,snapshot_at}`；`reset_usage` → `{deleted}`。
 - **错误与合法下一步**：义务写入失败 → 不 dispatch；终态写入失败 → 保留 unknown；`page` 缺时间/游标失效 → 400 `invalid_request`/`cursor_expired`，跨 principal → 403；存储错误 → `ERR-STORE`（503）。
 - **交互与生命周期**：同步；只追加版本、head 单调、unknown 不补零（M-METER `R-MET-01`）；`page` 首屏建 `query_snapshots` 冻结（TTL 10 min）。
 - **实现与验证**：正常 measured；边界：上游失败 → unknown 不补零。`VRC-INF-003`；`usage.py`。
@@ -1219,7 +1220,7 @@ list_models() -> list
 
 #### 13.1.7 `src/inference/usage.py`
 - **职责 / 非职责**：I8 用量记账（义务/绑定/终态/unknown）+ 账本分页/范围清空；不含 Cost
-- **关键 symbol / 导出范围**：`UsageRecorder.authorize_dispatch/bind_backend/finish/page/reset_usage`
+- **关键 symbol / 导出范围**：`UsageRecorder.authorize_dispatch/bind_backend/record_provider_request_id/finish/page/reset_usage`
 - **承接 Function / Rule / Constraint / Interface ID**：`F-INF-USAGE`、`C-INFER-3`、`IF-INF-06`、机制 `R-MET-01`
 - **构建目标 / 依赖 / 宿主装配**：随 `Application`；依赖 Store
 - **实现状态**：Implemented
@@ -1363,7 +1364,7 @@ list_models() -> list
 #### A.4 `llmtier-inference-stream-mechanism` / `R-INF-06` · Usage Recorder 承接
 - **来源 Capability / Step / Constraint / 接口成员**：C-INFER-3、Step 3/5/9
 - **本模块必须负责的行为与保证**：义务/绑定/终态、unknown 不补零
-- **本模块提供 / 消费的接口**：`authorize_dispatch`/`bind_backend`/`finish`
+- **本模块提供 / 消费的接口**：`authorize_dispatch`/`bind_backend`/`record_provider_request_id`/`finish`
 - **本文落实位置**：§5.1.8、§8、§10.3
 - **代码文件 / symbol 或 NOT_IMPLEMENTED**：`usage.py`
 - **允许自行决定的范围**：存储实现
@@ -1381,7 +1382,7 @@ list_models() -> list
 #### A.6 `llmtier-usage-metering-mechanism` / `R-MET-01` · 用量记账
 - **来源 Capability / Step / Constraint / 接口成员**：C-METER-1/2/3、Step 1/2/3
 - **本模块必须负责的行为与保证**：只追加版本、head 单调、unknown 不补零
-- **本模块提供 / 消费的接口**：`authorize_dispatch`/`bind_backend`/`finish`
+- **本模块提供 / 消费的接口**：`authorize_dispatch`/`bind_backend`/`record_provider_request_id`/`finish`
 - **本文落实位置**：§5.1.8、§6.2.6、§6.7、§10.3
 - **代码文件 / symbol 或 NOT_IMPLEMENTED**：`usage.py`
 - **允许自行决定的范围**：存储实现

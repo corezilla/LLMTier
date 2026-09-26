@@ -1,9 +1,9 @@
 # LLMTier Management API 与 Admin Web UI 契约提案 v0.3
 
 > **Document Status: Superseded（2026-09-07）** 当前人工可读 management-boundary authority 已迁至
-> [`llmtier-management-control`](../60_interfaces/llmtier-management-control.md)，机器字段 authority 仍为
-> [`llmtier-v0.3.openapi.json`](openapi/llmtier-v0.3.openapi.json)。本文件仅保留历史来源；逐 scope
-> disposition 见 [`legacy-v03-scope-mapping.md`](../98_migration/legacy-v03-scope-mapping.md)。
+> [`llmtier-management-control`](../../60_interfaces/llmtier-management-control.md)，机器字段 authority 仍为
+> [`llmtier.openapi.json`](../../../interfaces/openapi/llmtier.openapi.json)。本文件仅保留历史来源；逐 scope
+> disposition 见 `legacy-v03-scope-mapping.md`。
 
 Last Updated: 2026-09-06
 

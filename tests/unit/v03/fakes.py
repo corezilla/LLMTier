@@ -36,13 +36,13 @@ class AppFixture:
 
 
 class FakeAdapter:
-    def __init__(self, usage=True, refusal=False, fail=None, status="completed"): self.has_usage=usage; self.refusal=refusal; self.fail=fail; self.status=status
+    def __init__(self, usage=True, refusal=False, fail=None, status="completed", provider_request_id=None): self.has_usage=usage; self.refusal=refusal; self.fail=fail; self.status=status; self.provider_request_id=provider_request_id
     def complete(self, model, request):
         if self.fail: raise self.fail
         content = {"type": "refusal", "refusal": "no"} if self.refusal else {"type": "output_text", "text": "ok", "annotations": []}
         usage = {"input_tokens": 2, "output_tokens": 1, "total_tokens": 3} if self.has_usage else None
         details = {"reason": "max_output_tokens"} if self.status == "incomplete" else None
-        return ProviderResult([{"type": "message", "id": "msg_1", "role": "assistant", "status": self.status, "content": [content]}], usage, status=self.status, incomplete_details=details)
+        return ProviderResult([{"type": "message", "id": "msg_1", "role": "assistant", "status": self.status, "content": [content]}], usage, self.provider_request_id, status=self.status, incomplete_details=details)
     def embed(self, model, request):
         count = 1 if isinstance(request["input"], str) else len(request["input"]); dimension = request.get("dimensions", 1024)
         return {"object": "list", "data": [{"object": "embedding", "index": i, "embedding": [0.0] * dimension} for i in range(count)], "model": model, "usage": {"prompt_tokens": count, "total_tokens": count}}

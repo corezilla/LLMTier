@@ -11,7 +11,7 @@ import unittest
 from pathlib import Path
 
 from http_api.errors import ApiError
-from util.store import Store
+from util.store import EXPECTED_SCHEMA_VERSION, Store
 
 
 class StoreSchemaTests(unittest.TestCase):
@@ -25,7 +25,7 @@ class StoreSchemaTests(unittest.TestCase):
     def test_fresh_init_sets_expected_version_and_rerun_is_safe(self):
         store = Store(self.path)
         store.migrate()
-        self.assertEqual(store.one("SELECT schema_version FROM schema_meta WHERE singleton=1")[0], 1)
+        self.assertEqual(store.one("SELECT schema_version FROM schema_meta WHERE singleton=1")[0], EXPECTED_SCHEMA_VERSION)
         store.migrate()
         store.close()
 

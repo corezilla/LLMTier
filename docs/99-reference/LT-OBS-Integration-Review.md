@@ -2,7 +2,7 @@
 
 - 日期：2026-09-23
 - 适用范围：Piko ↔ LLMTier 联调侧（joint commissioning），含 LLMTier 模块设计、契约对齐、实现契合度、缺口。
-- 文档定位：非 STD（reference 类）；与 `handoff-piko-joint-obs.md` 同目录。
+- 文档定位：非 STD（reference 类）。
 
 ## 0. 现状速览（commit 锚点）
 

@@ -202,7 +202,7 @@
 
 ```text
 SchemaVersion {
-  value: uint32   // EXPECTED_SCHEMA_VERSION；当前 = 1
+  value: uint32   // EXPECTED_SCHEMA_VERSION；当前 = 2
 }
 ```
 
@@ -212,7 +212,7 @@ SchemaVersion {
 
 - **`value`**：
 
-  必填正整数，当前恒 `1`；只接受与期望值精确相等；无升级/降级/自动修复（init-only）。
+  必填正整数，当前恒 `2`；只接受与期望值精确相等；无升级/降级/自动修复（init-only）。
 
 - **跨字段与寿命**：
 
@@ -220,7 +220,7 @@ SchemaVersion {
 
 - **合法/拒绝实例**：
 
-  合法启动 `schema_version=1`；拒绝 `schema_version!=1` → `ApiError(503,"schema_version_mismatch")`。
+  合法启动 `schema_version=2`；拒绝 `schema_version!=2` → `ApiError(503,"schema_version_mismatch")`。
 
 - **验证**：
 
@@ -410,7 +410,7 @@ CREATE TABLE schema_meta (
 
 - **合法/拒绝实例**：
 
-  合法：空库初始化写入 `schema_version=1`；拒绝：非空库无 `schema_meta` → 拒绝启动。
+  合法：空库初始化写入 `schema_version=2`；拒绝：非空库无 `schema_meta` → 拒绝启动。
 
 - **验证**：
 
@@ -430,7 +430,7 @@ migrations/*.sql {
 
 - **`files`**：
 
-  必填有序集合；`001_initial.sql`（`schema_meta`/providers/deployments/service_levels/…/operational_logs）、`002_observability.sql`（`diagnostic_settings`/`diagnostic_snapshots`/`data_plane_stats`/`data_plane_latency_samples`/`diagnostic_injections`/`trace_events`）。
+  必填有序集合；`001_initial.sql`（`schema_meta`/providers/deployments/service_levels/…/operational_logs）、`002_observability.sql`（`diagnostic_settings`/`diagnostic_snapshots`/`data_plane_stats`/`data_plane_latency_samples`/`diagnostic_injections`/`trace_events`）。其中 `provider_request_bindings` 含可空列 `provider_request_id TEXT`（上游 provider request id，语义归 M-METER，由 M003 在 `complete()` 成功后回填）。
 
 - **跨字段与寿命**：
 

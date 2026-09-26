@@ -30,3 +30,7 @@ class UsageTests(unittest.TestCase):
         with self.assertRaises(ApiError):self.u.page("p",page["snapshot_id"]+":0",since="2001-01-01T00:00:00Z",until=END)
     def test_invalid_window(self):
         with self.assertRaises(ApiError):self.u.page("p",None,since=END,until=START)
+    def test_record_provider_request_id_updates_binding(self):
+        provider,deployment=self.fx.seed();self.u.authorize_dispatch("p","r","Worker","/v1/responses");self.u.bind_backend("p","r",provider["id"],deployment["id"]);self.u.record_provider_request_id("p","r","up-1");self.assertEqual(self.fx.app.store.one("SELECT provider_request_id FROM provider_request_bindings WHERE principal_id='p' AND request_id='r'")[0],"up-1")
+    def test_record_provider_request_id_null_is_noop(self):
+        provider,deployment=self.fx.seed();self.u.authorize_dispatch("p","r","Worker","/v1/responses");self.u.bind_backend("p","r",provider["id"],deployment["id"]);self.u.record_provider_request_id("p","r",None);self.assertIsNone(self.fx.app.store.one("SELECT provider_request_id FROM provider_request_bindings WHERE principal_id='p' AND request_id='r'")[0])

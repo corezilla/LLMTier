@@ -15,7 +15,7 @@
 | Created Date | `2026-09-22` |
 | Last Modified Date | `2026-09-22` |
 | Template ID | `requirements.specification` |
-| Template Version | `0.1.1` |
+| Template Version | `0.2.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | std-tailoring |
 | Migration Map Reference | none |

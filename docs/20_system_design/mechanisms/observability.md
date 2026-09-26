@@ -1008,7 +1008,7 @@ joint-diagnose.sh --x-request-id <request_id> -> trace/snapshots
 
 ## A. 输入基线、适用性与图文规则
 
-- 输入：系统设计 §11.3、`docs/99_reference/handoff-piko-joint-obs.md`（Piko 联调输入）。
+- 输入：系统设计 §11.3、`docs/99-reference/LT-OBS-Integration-Review.md`（Piko 联调输入）。
 - 适用性：纯软件、单节点、默认关闭的可观测机制。§4.9（二进制 ABI）不适用；§8.1（租约）不适用（清理代替释放）。
 - 图：时序图（§6）表达逐阶段记录与查询。
 

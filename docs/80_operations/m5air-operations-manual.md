@@ -15,7 +15,7 @@
 | Approval Date | 待定 |
 | Created Date | `2026-09-18` |
 | Last Modified Date | `2026-09-18` |
-| Template Version | `0.1.0` |
+| Template Version | `0.2.0` |
 | Template ID | `operations.release` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | std-tailoring |

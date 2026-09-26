@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS provider_request_bindings (
   principal_id TEXT NOT NULL, request_id TEXT NOT NULL,
   provider_id TEXT NOT NULL REFERENCES providers(id),
   deployment_id TEXT NOT NULL REFERENCES deployments(id), bound_at TEXT NOT NULL,
+  provider_request_id TEXT,
   PRIMARY KEY(principal_id,request_id)
 );
 CREATE TABLE IF NOT EXISTS usage_obligations (
@@ -84,6 +85,6 @@ CREATE TABLE IF NOT EXISTS operational_logs (
   id TEXT PRIMARY KEY, created_at TEXT NOT NULL, level TEXT NOT NULL, module TEXT NOT NULL,
   event TEXT NOT NULL, message TEXT NOT NULL CHECK(length(message)<=512), request_id TEXT
 );
-INSERT OR IGNORE INTO schema_meta(singleton,schema_version,initialized_at) VALUES(1,1,strftime('%Y-%m-%dT%H:%M:%fZ','now'));
+INSERT OR IGNORE INTO schema_meta(singleton,schema_version,initialized_at) VALUES(1,2,strftime('%Y-%m-%dT%H:%M:%fZ','now'));
 INSERT OR IGNORE INTO provider_usage_profiles(provider_id,usage_provider)
   SELECT id, CASE WHEN kind='local' THEN 'local' ELSE 'none' END FROM providers;

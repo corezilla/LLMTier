@@ -14,8 +14,8 @@
 | Approver |  |
 | Approval Date |  |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-17` |
-| Template Version | `0.1.1` |
+| Last Modified Date | `2026-09-25` |
+| Template Version | `0.2.0` |
 | Template ID | `management.tailoring` |
 | Template Conformance | `native` |
 | Tailoring Reference | none |

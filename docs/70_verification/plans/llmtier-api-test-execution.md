@@ -14,8 +14,8 @@
 | Authors | LLMTier |
 | Created Date | `2026-09-21` |
 | Last Modified Date | `2026-09-22` |
-| Template ID | `assurance.test-execution-plan` |
-| Template Version | `0.1.0` |
+| Template ID | `assurance.test-plan` |
+| Template Version | `0.2.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | `llmtier-api-test-plan` |
@@ -171,12 +171,12 @@ A 类与 B 类不能共享同一进程的 SQLite（写干扰），所以分两�
 
 | 依赖 | 详情 | 状态 |
 |---|---|---|
-| m5air LLMTier 服务运行 | `192.168.1.9:8181` | ✅ 已知运行（handoff §1） |
+| m5air LLMTier 服务运行 | `192.168.1.9:8181` | ✅ 已知运行 |
 | m5air OMLX 9000 | 上游 provider_local | ✅ 已知健康 |
 | m5mac OMLX 9000 | 上游 provider_omlx_m5mac（DP-RESP fallback） | ⚠️ 9-21 修复后未实测 |
 | provider_omlx_m5mac.secret_ref | `file:/Users/mlp/LLMTier-dev/secrets/omlx-secret-key.txt` | ✅ 已修（9-21 上午） |
 | m5air sqlite3 直连权限 | DP-USAGE-04 fixture 需要 | ⚠️ 待 P1 验证 |
-| Python 3.14 | m5air + m5mac 临时实例启动 | ✅ handoff §1 |
+| Python 3.14 | m5air + m5mac 临时实例启动 | ✅ 已确认 |
 | 89 case 在测试计划中明确 | v0.3.0-draft.5（新增加强 case 后） | ✅ |
 | 测试机在 192.168.x LAN 内 | TS-003 | ✅ m5air 自带 |
 | 临时实例启停权限 | /tmp 写、端口 bind | ✅ mlp 用户 |
@@ -254,5 +254,4 @@ Day 4（可选）：P4
 - 历史报告：`tests/system/reports/2026-09-21/2026-09-2{0,1}-test-report.md`
 - m5air 部署：`docs/80_operations/manuals/m5air-deploy-guide.md`
 - m5air 操作：`docs/80_operations/m5air-operations-manual.md`
-- API handoff：`docs/80_operations/manuals/api-testing-handoff.md`
 - 测试规范：`docs/00_management/standards/testing-standard.md`（TS-001~TS-005）

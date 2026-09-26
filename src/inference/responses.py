@@ -120,6 +120,8 @@ class ResponsesService:
                     snap_id = diag.capture_snapshot(request_id, candidate.deployment_id, model, upstream_url, candidate.backend_model, 200, latency, None)
                     diag.record_trace(request_id, "upstream_ended", {"deployment_id": candidate.deployment_id, "status": 200, "snapshot_id": snap_id})
                 _stats(200, candidate.deployment_id)
+                if result.provider_request_id is not None:
+                    self.usage.record_provider_request_id(principal, request_id, result.provider_request_id)
             self.usage.finish(principal, request_id, result.usage)
             return {
                 "id": f"resp_{uuid.uuid4().hex}",

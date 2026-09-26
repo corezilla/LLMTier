@@ -1,7 +1,7 @@
 <!-- STD_DOCUMENT_COVER_BEGIN -->
 # LLMTier V0.3 API Test Plan
 
-> STD 使用入口：[项目采用说明与标准导航](docs/00_management/standards/README.md#std-entry)
+> STD 使用入口：[项目采用说明与标准导航](../../00_management/standards/README.md#std-entry)
 
 | 文档字段 | 值 |
 |---|---|
@@ -15,10 +15,10 @@
 | Created Date | `2026-09-21` |
 | Last Modified Date | `2026-09-22` |
 | Template ID | `assurance.test-plan` |
-| Template Version | `0.1.0` |
+| Template Version | `0.2.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
-| Migration Map Reference | `llmtier-test-plan`, `llmtier-vv-plan` |
+| Migration Map Reference | `llmtier-test-plan, llmtier-vv-plan` |
 | Repository | `corezilla/LLMTier` |
 | Canonical Path | `docs/70_verification/plans/llmtier-api-test-plan.md` |
 | Supersedes | none |
@@ -49,7 +49,7 @@
 
 **测试执行机 = m5air (`192.168.1.9:8181`)**。理由：
 
-- 9-20 / 9-21 两轮测试和整个 `api-testing-handoff.md` 都是在 m5air 上做的
+- 9-20 / 9-21 两轮测试都是在 m5air 上做的
 - m5air 当前已部署完成，3 provider / 4 deployment / 7 tier 状态完整可用
 - m5air OMLX (`192.168.1.9:9000`) 也在本机，无网络依赖
 
@@ -97,7 +97,7 @@
 
 | 逻辑 Tier | 路由 | 上游 Provider | 上游 Endpoint | 上游模型 | 上游 Auth |
 |---|---|---|---|---|---|
-| Worker / Senior / Junior / Associate / Engineer / Executor | 三选一调度（provider_minimax / provider_local / provider_omlx_m5mac） | 见表 | 见表 | 见 api-testing-handoff.md §3 | Bearer 9832 (omlx) / MiniMax API key |
+| Worker / Senior / Junior / Associate / Engineer / Executor | 三选一调度（provider_minimax / provider_local / provider_omlx_m5mac） | 见表 | 见表 | 见部署配置 | Bearer 9832 (omlx) / MiniMax API key |
 | Embedding-v1 | 固定 provider_local | provider_local | `http://192.168.1.9:9000/v1` | bge-m3（**1024 维硬断言**） | Bearer 9832 |
 
 **约束**

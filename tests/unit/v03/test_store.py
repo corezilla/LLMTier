@@ -4,7 +4,7 @@ import threading
 import unittest
 from pathlib import Path
 
-from util.store import Store
+from util.store import EXPECTED_SCHEMA_VERSION, Store
 
 
 class StoreTests(unittest.TestCase):
@@ -25,4 +25,4 @@ class StoreTests(unittest.TestCase):
     def test_thread_gets_connection(self):
         found=[]
         def run(): found.append(self.store.one("SELECT schema_version FROM schema_meta")[0]); self.store.close()
-        t=threading.Thread(target=run); t.start(); t.join(); self.assertEqual(found,[1])
+        t=threading.Thread(target=run); t.start(); t.join(); self.assertEqual(found,[EXPECTED_SCHEMA_VERSION])

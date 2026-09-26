@@ -11,6 +11,15 @@ class ResponsesTests(unittest.TestCase):
     def test_success(self): self.assertEqual(self.service.create("p","r1",self.body)["status"],"completed")
     def test_model_is_logical_id(self): self.assertEqual(self.service.create("p","r2",self.body)["model"],"Worker")
     def test_usage_is_preserved(self): self.assertEqual(self.service.create("p","r3",self.body)["usage"]["total_tokens"],3)
+    def test_provider_request_id_is_persisted(self):
+        self.service._adapter=lambda _:FakeAdapter(provider_request_id="up_req_123")
+        self.service.create("p","r-prid",self.body)
+        row=self.fx.app.store.one("SELECT provider_request_id FROM provider_request_bindings WHERE principal_id=? AND request_id=?",("p","r-prid"))
+        self.assertEqual(row["provider_request_id"],"up_req_123")
+    def test_missing_provider_request_id_stays_null(self):
+        self.service.create("p","r-noprid",self.body)
+        row=self.fx.app.store.one("SELECT provider_request_id FROM provider_request_bindings WHERE principal_id=? AND request_id=?",("p","r-noprid"))
+        self.assertIsNone(row["provider_request_id"])
     def test_incomplete_status_is_preserved(self):
         self.service._adapter=lambda _:FakeAdapter(status="incomplete")
         value=self.service.create("p","r-incomplete",self.body)

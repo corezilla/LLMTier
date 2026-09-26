@@ -29,5 +29,5 @@
 ## 相关链接
 
 - [STD 裁剪清单](../std-tailoring.md)
-- [v0.3 实现计划](../v0.3-implementation-plan.md)
+- [v0.3 实现计划](../llmtier-implementation-plan.md)
 - [测试计划](../../70_verification/plans/llmtier-test-plan.md)

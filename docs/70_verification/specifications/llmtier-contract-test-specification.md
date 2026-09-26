@@ -15,7 +15,7 @@
 | Approval Date | 待定 |
 | Created Date | `2026-09-07` |
 | Last Modified Date | `2026-09-17` |
-| Template Version | `0.1.0` |
+| Template Version | `0.2.1` |
 | Template ID | `assurance.test-specification` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |

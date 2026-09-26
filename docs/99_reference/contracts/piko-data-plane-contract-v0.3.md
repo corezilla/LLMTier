@@ -1,9 +1,9 @@
 # LLMTier 面向 Piko 的 Data Plane 契约提案 v0.3
 
 > **Document Status: Superseded（2026-09-07）** 当前人工可读 consumer-boundary authority 已迁至
-> [`llmtier-piko-data-plane-control`](../60_interfaces/piko-data-plane-control.md)，机器字段 authority 仍为
-> [`llmtier-v0.3.openapi.json`](openapi/llmtier-v0.3.openapi.json)。本文件仅保留历史来源；逐 scope
-> disposition 见 [`legacy-v03-scope-mapping.md`](../98_migration/legacy-v03-scope-mapping.md)。
+> [`llmtier-piko-data-plane-control`](../../60_interfaces/piko-data-plane-control.md)，机器字段 authority 仍为
+> [`llmtier.openapi.json`](../../../interfaces/openapi/llmtier.openapi.json)。本文件仅保留历史来源；逐 scope
+> disposition 见 `legacy-v03-scope-mapping.md`。
 
 Last Updated: 2026-09-07
 

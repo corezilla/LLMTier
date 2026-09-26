@@ -39,7 +39,7 @@ def test_adm_admin_usage_03_reset_all(admin_client_b, llmtier_b):
             conn.execute("INSERT INTO usage_record_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (principal, req, 1, 1, model, "/v1/responses", stamp, stamp, "measured", "provider", 10, 5, 15, 0, 0, 0))
             conn.execute("INSERT INTO usage_heads VALUES(?,?,?,?)", (principal, req, 1, stamp))
-            conn.execute("INSERT INTO provider_request_bindings VALUES(?,?,?,?,?)", (principal, req, "prov_b", "depl_b", stamp))
+            conn.execute("INSERT INTO provider_request_bindings(principal_id,request_id,provider_id,deployment_id,bound_at) VALUES(?,?,?,?,?)", (principal, req, "prov_b", "depl_b", stamp))
             inserted += 1
     conn.commit()
 
@@ -75,7 +75,7 @@ def test_adm_admin_usage_03_reset_by_model(admin_client_b, llmtier_b):
             conn.execute("INSERT INTO usage_record_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (principal, req, 1, 1, model, "/v1/responses", stamp, stamp, "measured", "provider", 10, 5, 15, 0, 0, 0))
             conn.execute("INSERT INTO usage_heads VALUES(?,?,?,?)", (principal, req, 1, stamp))
-            conn.execute("INSERT INTO provider_request_bindings VALUES(?,?,?,?,?)", (principal, req, "prov_b", "depl_b", stamp))
+            conn.execute("INSERT INTO provider_request_bindings(principal_id,request_id,provider_id,deployment_id,bound_at) VALUES(?,?,?,?,?)", (principal, req, "prov_b", "depl_b", stamp))
     conn.commit()
 
     # Reset only Worker
@@ -131,7 +131,7 @@ def test_adm_admin_usage_03_reset_by_deployment(admin_client_b, llmtier_b):
             conn.execute("INSERT INTO usage_record_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (principal, req, 1, 1, "Worker", "/v1/responses", stamp, stamp, "measured", "provider", 10, 5, 15, 0, 0, 0))
             conn.execute("INSERT INTO usage_heads VALUES(?,?,?,?)", (principal, req, 1, stamp))
-            conn.execute("INSERT INTO provider_request_bindings VALUES(?,?,?,?,?)", (principal, req, "prov_b", depl, stamp))
+            conn.execute("INSERT INTO provider_request_bindings(principal_id,request_id,provider_id,deployment_id,bound_at) VALUES(?,?,?,?,?)", (principal, req, "prov_b", depl, stamp))
     conn.commit()
 
     # Reset only depl_b

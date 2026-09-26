@@ -115,7 +115,7 @@ routing.py      Router.admit/snapshot            # 许可/队列/候选
 providers/base.py    ProviderResult/ProviderAdapter（embed → dict）
 providers/openai.py  OpenAIProvider.complete/embed/probe/list_models
 providers/local.py   LocalProvider（复用 OpenAI 传输）
-usage.py        UsageRecorder.authorize_dispatch/bind_backend/finish/page/reset_usage
+usage.py        UsageRecorder.authorize_dispatch/bind_backend/record_provider_request_id/finish/page/reset_usage
 ```
 
 ### 3.1 `responses.py` / `embeddings.py` · 编排
@@ -799,24 +799,25 @@ embed(model, request) -> dict
 ```text
 authorize_dispatch(principal, request_id, model, endpoint) -> None
 bind_backend(principal, request_id, provider_id, deployment_id) -> None
+record_provider_request_id(principal, request_id, provider_request_id) -> None
 finish(principal, request_id, usage, source_override=None) -> None
 ```
 
 - **Interface/Member ID、用途、提供责任与唯一来源**
 
   - **Interface/Member ID、状态**：`FUNC-INF-USAGE` / PLANNED
-  - **文件 / symbol / 可见性**：`usage.py` / `authorize_dispatch/bind_backend/finish` / private
+  - **文件 / symbol / 可见性**：`usage.py` / `authorize_dispatch/bind_backend/record_provider_request_id/finish` / private
   - **原成员 ID 或私有来源**：`F-INF-USAGE`、`R-MET-01`
-  - **完整签名与 caller**：`authorize_dispatch(principal, request_id, model, endpoint) -> None`；`bind_backend(principal, request_id, provider_id, deployment_id) -> None`；`finish(principal, request_id, usage, source_override=None) -> None`；caller=编排
+  - **完整签名与 caller**：`authorize_dispatch(principal, request_id, model, endpoint) -> None`；`bind_backend(principal, request_id, provider_id, deployment_id) -> None`；`record_provider_request_id(principal, request_id, provider_request_id) -> None`；`finish(principal, request_id, usage, source_override=None) -> None`；caller=编排
 
 - **输入与前提**
 
-  - **输入参数 / 数据结构 authority**：`(principal, request_id, …)`
-  - **输入约束 / 校验顺序 / 失败映射**：dispatch 前先写义务；失败 → 不 dispatch（`E-INF-USAGE`）
+  - **输入参数 / 数据结构 authority**：`(principal, request_id, …)`；`record_provider_request_id` 取上游 `provider_request_id`（可空）
+  - **输入约束 / 校验顺序 / 失败映射**：dispatch 前先写义务；失败 → 不 dispatch（`E-INF-USAGE`）；`provider_request_id` 为空时不回填
 
 - **成功输出与保证**
 
-  - **成功输出 / 数据结构 / 后置条件**：账本版本
+  - **成功输出 / 数据结构 / 后置条件**：账本版本；`record_provider_request_id` 更新 `provider_request_bindings.provider_request_id`
 
 - **错误与合法下一步**
 

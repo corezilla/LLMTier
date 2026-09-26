@@ -13,7 +13,7 @@
 | Created Date | `2026-09-16` |
 | Last Modified Date | `2026-09-17` |
 | Template ID | `decisions.adr` |
-| Template Version | `0.1.0` |
+| Template Version | `0.2.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |

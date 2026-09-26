@@ -1,7 +1,7 @@
 <!-- STD_DOCUMENT_COVER_BEGIN -->
 # m5air 代码更新与重启指南
 
-> STD 使用入口：[项目采用说明与标准导航](../../README.md#std-entry)
+> STD 使用入口：[项目采用说明与标准导航](../../../README.md#std-entry)
 
 | 文档字段 | 值 |
 |---|---|
@@ -15,7 +15,7 @@
 | Created Date | `2026-09-22` |
 | Last Modified Date | `2026-09-22` |
 | Template ID | `operations.maintenance` |
-| Template Version | `0.1.1` |
+| Template Version | `0.2.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |

@@ -1,6 +1,6 @@
 {
-  "project": "llmtier",
-  "authority": "llmtier",
+  "project": "LLMTier",
+  "authority": "LLMTier",
   "document_id": "llmtier-user-manual",
   "document_type": "operations.user-manual",
   "document_version": "0.1.0-draft.1",
@@ -10,8 +10,8 @@
     "LLMTier"
   ],
   "template_id": "operations.user-manual",
-  "template_version": "0.1.1",
-  "template_sha256": "30e056e3da1a7dae0ba758a6845d1030a913426fc7988b5976651f781d763229",
+  "template_version": "0.2.0",
+  "template_sha256": "76f77c1f7408f7418b64e27f108134dc55883a608770b15d9f10c4358a4a70e6",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,

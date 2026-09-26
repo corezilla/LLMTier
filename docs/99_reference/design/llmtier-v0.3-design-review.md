@@ -2,11 +2,11 @@
 
 > **Document Status: Superseded（2026-09-07）** 该文件仅保留为历史 review/migration provenance。
 > 当前 prose authority 已按 scope 迁至
-> [`llmtier-v0.3-requirements`](../10_requirements/llmtier-v0.3-requirements.md)、
-> [`llmtier-service-design`](../30_subsystem_design/llmtier-service-design.md) 及三个
-> [`interfaces.control`](../60_interfaces/) 文档；完整逐 scope successor 与保留的机器 authority
-> 见 [`legacy-v03-scope-mapping.md`](../98_migration/legacy-v03-scope-mapping.md)。字段级机器契约仍为
-> [`llmtier-v0.3.openapi.json`](../contracts/openapi/llmtier-v0.3.openapi.json)，Runtime Activation 仍为 false。
+> [`llmtier-requirements`](../../10_requirements/llmtier-requirements.md)、
+> [`llmtier-system-design`](../../20_system_design/llmtier-system-design.md) 及三个
+> [`interfaces.control`](../../60_interfaces/) 文档；完整逐 scope successor 与保留的机器 authority
+> 见 `legacy-v03-scope-mapping.md`。字段级机器契约仍为
+> [`llmtier.openapi.json`](../../../interfaces/openapi/llmtier.openapi.json)，Runtime Activation 仍为 false。
 
 Last Updated: 2026-09-06
 

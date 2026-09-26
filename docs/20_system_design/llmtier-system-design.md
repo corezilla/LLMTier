@@ -1905,6 +1905,7 @@ CREATE TABLE provider_request_bindings (
   provider_id   TEXT NOT NULL REFERENCES providers(id),
   deployment_id TEXT NOT NULL REFERENCES deployments(id),
   bound_at      TEXT NOT NULL,
+  provider_request_id TEXT,
   PRIMARY KEY(principal_id,request_id)
 );
 ```
@@ -1932,6 +1933,10 @@ CREATE TABLE provider_request_bindings (
 - **`bound_at`**：
 
   非空；绑定时刻。
+
+- **`provider_request_id`**：
+
+  可空；上游 provider 返回的 request id（`X-Request-ID`），`complete()` 成功后由 M003 回填；上游未返回时为 NULL。
 
 - **跨字段与寿命**：
 
@@ -2785,7 +2790,7 @@ CREATE TABLE probe_results (
 
 ### 7.9 业务数据流与形态变换
 
-请求进入后构造 unknown Usage 义务，dispatch 前持久化；后端返回后归一为 token 事实并落账本；终态只追加版本、单调推进 head。观测数据（快照/统计/trace）独立于账本。
+请求进入后构造 unknown Usage 义务，dispatch 前持久化；后端返回后归一为 token 事实并落账本；终态只追加版本、单调推进 head。绑定记录在 `complete()` 成功后回填上游 `provider_request_id`（上游未返回则为 NULL），与账本同源 `(principal_id, request_id)`。观测数据（快照/统计/trace）独立于账本。
 
 **已实现的账本语义**：`authorize_dispatch` 在 dispatch 前单事务预写 `usage_obligations` + `record_version=1`（`measurement_status=unknown`、`is_final=0`、token 全 NULL、`source=unavailable`）+ `usage_heads.head_record_version=1`；`finish` 追加终态版本（正常为 `record_version=2`、`is_final=1`）并把 head 推进到该版本。`finish` 无义务时 no-op；若准入在 `authorize_dispatch` 之后失败（尚未 dispatch 或未完成），库中保留一条 **orphan unknown 记录**（义务 + v1 unknown + head=1），这是**有意的**：宁可保留"已登记但未测"的 unknown 事实，也绝不回填为 0。
 
