@@ -286,7 +286,7 @@
 | `IF-INF-02` | `app.py` → `embeddings.py` | §9.1 `IF-EMBEDDINGS` | 向量化编排入口 | `VRC-INF-002` |
 | `IF-INF-03` | `responses.py` → `registry.py`[M004] | §9.1 `IF-INF-REGISTRY` | 等级/能力只读查询 | `VRC-INF-004` |
 | `IF-INF-04` | `responses.py` → `routing.py` | §9.1 `IF-INF-ROUTE` | 准入/许可/候选选择 | `VRC-INF-004` |
-| `IF-INF-05` | `responses.py` → `providers/*` | §9.2 `IF-INF-PROVIDER` | 协议映射与终态校验 | `VRC-INF-003` |
+| `IF-INF-05` | `responses.py` → `providers/*` | §9.1 `IF-INF-PROVIDER` | 协议映射与终态校验 | `VRC-INF-003` |
 | `IF-INF-06` | `responses.py` → `usage.py` | §9.1 `IF-INF-USAGE` | 义务/绑定/终态记账 | `VRC-INF-003` |
 
 ### 5.4 服务提供方式（条件适用）
@@ -979,7 +979,7 @@ Authority = `util/migrations/001_initial.sql`（由 M007 执行）。M003 经 `U
 
 ## 9. 接口设计
 
-> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口设计用途**分类（面向使用方的 API 与组件/系统间协作的消息与数据流接口），逐接口完整记录；标题为真实调用形式（进程内方法或上游协作端点），标题下先给**完整接口声明**，再就地说明参数/结果字段，最后按固定六项。M003 向 M001 提供推理/向量化能力的进程内方法归 §9.1 API；与外部 provider 系统交换请求与流式响应的适配器接口归 §9.2 消息与数据流接口。数据结构引用 §6。
+> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口设计用途**分类（面向使用方的 API 与组件/系统间协作的消息与数据流接口），逐接口完整记录；标题为真实调用形式（进程内方法），标题下先给**完整接口声明**，再就地说明参数/结果字段，最后按固定六项。**函数/方法即 API**：M003 向 M001 提供推理/向量化能力的进程内方法、以及向外部 provider 发起调用的适配器方法（`ProviderAdapter.*`）均归 §9.1 API；与上游的 HTTP/SSE 是这些方法的实现传输，按接口形态归类为函数而非独立消息/流接口。§9.2 消息与数据流不适用（见该节理由）。数据结构引用 §6。
 
 ### 9.1 API（适用时）
 
@@ -1064,10 +1064,6 @@ get_service_level(model: str) -> tuple[ServiceLevelView, str]
 - **交互与生命周期**：同步只读；请求级。
 - **实现与验证**：正常能力查询；边界：未知 model → 404。`VRC-INF-004`。
 
-### 9.2 消息与数据流接口（适用时）
-
-本模块与外部 provider 系统交换推理请求与上游流式响应；此类通信使用 HTTP/SSE，但用途是系统间协作而非向使用方提供产品能力，故在本节定义，**不**在 §9.1 重复。
-
 #### `ProviderAdapter.complete(backend_model, body) -> ProviderResult` / `embed(backend_model, body) -> ProviderResult` / `probe() -> bool` / `list_models() -> list`
 
 ```text
@@ -1078,11 +1074,15 @@ list_models() -> list
 ```
 
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-INF-PROVIDER`；向外部 provider 发起推理/向量化/探测/目录请求并消费其响应（含上游 SSE）；M003 提供（适配器族）；状态=Implemented；唯一契约=上游 OpenAI-compatible 机器源（本层不拥有报文定义）；文件·symbol `src/inference/providers/base.py`、`openai.py`、`local.py`。
-- **输入与前提**：`backend_model`、上游 body；`secret_ref` 在适配器内解析；已由 §9.1 完成鉴权/校验/准入/绑定。
+- **输入与前提**：`backend_model`、上游 body；`secret_ref` 在适配器内解析；已由上游编排接口（`IF-RESPONSES`/`IF-EMBEDDINGS`，§9.1）完成鉴权/校验/准入/绑定。
 - **成功输出与保证**：`ProviderResult`（§6.2.3）/ 探测布尔 / 模型列表；上游流式响应被解析并校验为恰好一个 terminal。
 - **错误与合法下一步**：契约不符（terminal 不唯一/不一致、base64 非法）→ `ApiError(502,"provider_contract_error")`（`ERR-PROVIDER-CONTRACT`）；不可达/超时/5xx → `ApiError(503,"provider_unavailable")`（`ERR-PROVIDER-UNAVAIL`）；不重试契约错误。
 - **交互与生命周期**：同步 HTTP（上游可流式）；建连/首字节 30 s、SSE 空闲 60 s；`Connection: close`；不对外暴露凭据；顺序=单请求内严格有序。
 - **实现与验证**：正常归一；边界：两 terminal → 502。`VRC-INF-003`；`providers/*.py`。
+
+### 9.2 消息与数据流接口（适用时）
+
+不适用（`ProviderAdapter.complete/embed/probe/list_models` 为进程内方法，按“函数/方法即 API”归 §9.1；与上游 provider 的 HTTP/SSE 只是这些方法的实现传输，按接口形态归类为函数而非独立消息/流接口；本模块不拥有事件/队列/流/文件交换）。
 
 ### 9.3 硬件与固件接口（适用时）
 

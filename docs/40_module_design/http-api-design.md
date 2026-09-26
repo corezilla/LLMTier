@@ -374,7 +374,7 @@ ThreadingHTTPServer（进程级）
 | `IF-6` | `app.py` `Handler._json` 内部 | §9.1 `IF-API-JSON` | JSON 响应 + `X-Request-ID` | `VRC-API-001` |
 | `IF-7` | `app.py` `Handler._static` → `webui/` | §9.1 `IF-API-STATIC` | 安全交付静态资源 | `VRC-API-004` |
 | `IF-11/IF-12/IF-13` | `app.py` → `errors.py` | §9.1 `IF-API-ERROR` | typed 错误与统一信封 | `VRC-API-001` |
-| `IF-14/IF-15` | `app.py` → `sse.py` | §9.2 `IF-API-SSE` | SSE 单帧与事件序列 | `VRC-API-003` |
+| `IF-14/IF-15` | `app.py` → `sse.py` | §9.1 `IF-API-SSE`（单帧函数）/ §9.2 `IF-API-SSE-STREAM`（SSE 字节流） | SSE 单帧与事件序列 | `VRC-API-003` |
 | `IF-16/IF-17` | `app.py` → `health.py` | §9.1 `IF-API-HEALTH` | 健康/就绪视图 | `VRC-API-001` |
 | `IF-API-EP` | Consumer/Operator → `app.py`（HTTP） | §9.1 `IF-API-RESPONSES`…`IF-API-STATIC` | 对外端点路由 | `VRC-API-001..003` |
 
@@ -850,7 +850,7 @@ RequestContext {
 
 ## 9. 接口设计
 
-> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口设计用途**分类（面向使用方的 API 与组件/系统间协作的消息与数据流接口），逐接口完整记录；标题为真实调用形式（HTTP 路由或内部方法），标题下先给**完整接口声明**，再就地说明参数/结果字段，最后按固定六项。对外 HTTP 端点与内部处理器方法归 §9.1 API；SSE 事件/数据流归 §9.2 消息与数据流接口（`POST /v1/responses` 只在 §9.1 定义一次，流格式在 §9.2）。数据结构引用 §6；对外字段 machine authority = `interfaces/openapi/llmtier.openapi.json`。
+> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口设计用途**分类（面向使用方的 API 与组件/系统间协作的消息与数据流接口），逐接口完整记录；标题为真实调用形式（HTTP 路由或内部方法），标题下先给**完整接口声明**，再就地说明参数/结果字段，最后按固定六项。**函数/方法即 API**：对外 HTTP 端点与内部处理器方法（含 SSE 单帧序列化函数 `frame`）归 §9.1 API；终态响应经 `response_stream` 序列化出的 SSE 字节流是跨边界连续数据流，留在 §9.2 消息与数据流接口（端点只在 §9.1 定义一次，流格式在 §9.2）。数据结构引用 §6；对外字段 machine authority = `interfaces/openapi/llmtier.openapi.json`。
 
 ### 9.1 API（适用时）
 
@@ -1106,16 +1106,30 @@ readiness_view(registry) -> tuple[dict, int]
 - **交互与生命周期**：同步只读；幂等。
 - **实现与验证**：正常 200；边界：空库 → 503。`VRC-API-001`。
 
-### 9.2 消息与数据流接口（适用时）
-
-#### `Responses SSE 帧与事件子集`（`frame` / `response_stream`）
+#### `frame(event, data) -> bytes`
 
 ```text
 frame(event: str, data: dict) -> bytes
+```
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-API-SSE`；把单个 SSE 事件序列化为 SSE 帧字节；M001 提供；状态=Implemented；唯一契约=OpenAPI `ResponseStreamEvent`（`D-MSG-SSE`）；文件·symbol `src/http_api/sse.py` `frame`。
+- **输入与前提**：`event: str`（事件名，取自 `ResponseStreamEvent` 子集）、`data: dict`（事件载荷）；前置=§9.1 `POST /v1/responses` 已建连。
+- **成功输出与保证**：单帧字节 `bytes`（`SseFrame`，§6.4.1）——`event: <name>\ndata: <json>\n\n`；不校验事件语义。
+- **错误与合法下一步**：无（纯函数，无失败条件）；写出失败由调用方按断开处理（§9.2 记 `aborted`）。
+- **交互与生命周期**：同步纯函数；无状态；请求级。
+- **实现与验证**：正常 `frame("response.output_text.delta", {...})` → 合法帧；边界：事件名子集由调用方保证。`VRC-API-003`；`sse.py`。
+
+### 9.2 消息与数据流接口（适用时）
+
+本模块拥有的跨边界流接口：终态响应经 `response_stream` 序列化为 SSE 字节流（连续数据流），供调用方增量消费。
+
+#### `response_stream(response) -> Iterable[bytes]`
+
+```text
 response_stream(response: ResponsesResponse) -> Iterable[bytes]   # text/event-stream
 ```
 
-- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-API-SSE`；把终态 `ResponsesResponse` 逐事件序列化为 SSE 帧并传输；M001 传输、M003 产出事件语义；状态=Implemented；唯一契约=OpenAPI `ResponseStreamEvent`（`D-MSG-SSE`）；文件·symbol `src/http_api/sse.py`。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-API-SSE-STREAM`；把终态 `ResponsesResponse` 序列化为 SSE 字节流（系统→使用方的连续数据流）；M001 提供、M003 产出事件语义；状态=Implemented；唯一契约=OpenAPI `ResponseStreamEvent`（`D-MSG-SSE`）；文件·symbol `src/http_api/sse.py` `response_stream`（帧由 §9.1 `IF-API-SSE` 生成）。
 - **输入与前提**：终态 `ResponsesResponse`（事件语义由 M003 保证）；前置=§9.1 `POST /v1/responses` 已建连；授权=已由入口完成。
 - **成功输出与保证**：SSE 字节流（`SseFrame`，§6.4.1）——事件名子集，帧格式 `event: <name>\ndata: <json>\n\n`；每 output item 稳定 `id`；`sequence_number` 自 0 递增；一个 terminal + `[DONE]`。
 - **错误与合法下一步**：客户端断开 → `BrokenPipeError`/`ConnectionResetError` → 结束本次调用（§9.1 记 `aborted`）；结果可能已部分送达、可能未知；不重传、不重放。

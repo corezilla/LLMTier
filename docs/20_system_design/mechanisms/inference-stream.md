@@ -607,7 +607,7 @@ enum InferenceErrorRef {
 
 ## 5. 接口设计
 
-> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口用途**分类逐接口完整记录；标题为真实调用形式，标题下先给完整接口声明，再就地说明输入/输出，最后按六项写完。数据结构引用 §4；错误引用系统 §8.8；用量钩子接口归 M-METER（引用 `IF-MET-*`），本节不重定义。分类：API = 向 Consumer/Operator 提供可调用能力（本机制为 HTTP 端点）；消息与数据流 = 责任单元之间为协作而交换的命令/状态/流（含进程内函数）。
+> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口用途**分类逐接口完整记录；标题为真实调用形式，标题下先给完整接口声明，再就地说明输入/输出，最后按六项写完。数据结构引用 §4；错误引用系统 §8.8；用量钩子接口归 M-METER（引用 `IF-MET-*`），本节不重定义。分类：API = 向 Consumer/Operator 提供可调用能力（本机制为 HTTP 端点，以及编排/准入/适配器进程内方法）；消息与数据流 = 组件/系统之间为协作而交换的命令/状态/事件/队列/流/文件。`ResponsesService.create`/`Router.admit`/`Router.snapshot`/`ProviderAdapter.complete` 向调用方提供可调用能力，故归 §5.1 API；SSE 字节流接口（`response_stream`）是跨边界连续数据流，留在 §5.2。
 
 ### 5.1 API（适用时）
 
@@ -628,8 +628,6 @@ POST /v1/responses
 - **错误与合法下一步**：逐条件见 §4.8；典型：`ERR-REQ-VALIDATION`/`ERR-REQ-FIELD`/`ERR-REQ-JSON`（400，未受理）；`ERR-REQ-UNSUPPORTED`（400，`stream=false`）；`ERR-REQ-TOO-LARGE`（413）；`ERR-AUTH-*`（401/403/503）；`ERR-MODEL-NOTFOUND`（404）；`ERR-RATE-LIMIT`（429 + `Retry-After`）；`ERR-MODEL-UNAVAIL`/`ERR-PROVIDER-*`（503/502，可能已调用后端=结果可能未知）；载荷统一 `D-ERROR-ENVELOPE`。
 - **交互与生命周期**：同步建连后流式；单请求独立模型调用，无会话；客户端断开结束本次调用并释放许可；**非幂等**（同 input 重发=两次独立调用，无幂等键）；期限=准入等待 ≤30s、建连/首字节 30s、SSE 空闲 60s；不承诺跨系统 exactly-once。
 - **实现与验证**：正常 `{"model":"Worker","input":[{"role":"user","content":"hi"}],"stream":true,"store":false,"max_output_tokens":20}` → 200 SSE + terminal Usage；拒绝 `stream=false` → 400。`T-STREAM`、`T-QUEUE`、`T-TIMEOUT`；Run=NOT_RUN。
-
-### 5.2 消息与数据流接口（适用时）
 
 #### `ResponsesService.create(principal, request_id, body, diagnostics=None, correlation_id=None, out=None) -> ResponsesResponse`
 
@@ -682,6 +680,10 @@ Router.snapshot() -> dict
 - **错误与合法下一步**：无。
 - **交互与生命周期**：同步只读；点时刻；幂等。
 - **实现与验证**：正常返回并发现状。`T-QUEUE`；Run=NOT_RUN。
+
+### 5.2 消息与数据流接口（适用时）
+
+本机制拥有的跨边界流接口：终态响应经 `response_stream` 序列化为 SSE 字节流（连续数据流），供 HTTP 客户端增量消费。
 
 #### `response_stream(response) -> Iterable[bytes]`
 

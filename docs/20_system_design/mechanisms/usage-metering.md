@@ -549,7 +549,7 @@ enum UsageErrorRef { ERR-STORE, ERR-CURSOR, ERR-REQ-VALIDATION, ERR-AUTH-DENIED,
 
 ## 5. 接口设计
 
-> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口用途**分类逐接口完整记录；标题为真实调用形式，标题下先给完整接口声明，再就地说明输入/输出，最后按六项写完。数据结构引用 §4；错误引用系统 §8.8。用量钩子由本机制拥有并在此唯一定义；M-INFER 只引用。分类：API = 向 Consumer/Operator 提供可调用能力（本机制为 `/v1/usage` HTTP 端点）；消息与数据流 = 责任单元之间为协作而交换的命令/状态/事实（含进程内函数）。
+> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口用途**分类逐接口完整记录；标题为真实调用形式，标题下先给完整接口声明，再就地说明输入/输出，最后按六项写完。数据结构引用 §4；错误引用系统 §8.8。用量钩子由本机制拥有并在此唯一定义；M-INFER 只引用。分类：API = 向 Consumer/Operator 提供可调用能力（本机制为 `/v1/usage` HTTP 端点，以及 Usage Recorder 进程内方法）；消息与数据流 = 组件/系统之间为协作而交换的命令/状态/事件/队列/流/文件。用量钩子方法向推理编排/管理面提供可调用能力，故归 §5.1 API；本机制不拥有跨边界消息/流接口。
 
 ### 5.1 API（适用时）
 
@@ -567,8 +567,6 @@ DELETE /v1/usage?model=&deployment_id=                        -> 200 {deleted}
 - **错误与合法下一步**：同 `IF-MET-PAGE`/`IF-MET-RESET`；`ERR-STORE`（503 显式化，不用空页冒充）。
 - **交互与生命周期**：同步；GET 幂等只读；DELETE 幂等且不可回滚。
 - **实现与验证**：正常 GET 返回 v2（非 v1+v2）；拒绝非 admin DELETE → 403。`T-MET-PAGE`、`T-MET-RESET`；Run=NOT_RUN。
-
-### 5.2 消息与数据流接口（适用时）
 
 #### `UsageRecorder.authorize_dispatch(principal, request_id, model, endpoint) -> None`
 
@@ -635,13 +633,17 @@ reset_usage(model: str | None = None, deployment_id: str | None = None, conn: Co
 - **交互与生命周期**：同步；幂等（重复清空 `deleted=0`）；不可回滚。
 - **实现与验证**：正常按 model 清空返回计数；边界：无匹配 → `deleted=0`。`T-MET-RESET`；Run=NOT_RUN。
 
+### 5.2 消息与数据流接口（适用时）
+
+不适用：本机制不拥有组件/系统间协作交换的消息、事件、队列、流或文件接口；`authorize_dispatch`/`bind_backend`/`finish`/`page`/`reset_usage` 是向推理编排/管理面提供可调用能力的进程内方法，归 §5.1 API。
+
 ### 5.3 硬件与固件接口（适用时）
 
 不适用：无连接器、总线、寄存器或 FPGA 端口。
 
 ### 5.4 人机与维护接口（适用时）
 
-不适用：清空为 HTTP 管理操作（`IF-MET-API-USAGE`，§5.1）与账本函数（`IF-MET-RESET`，§5.2），其运维入口记录于 §12.2；本机制不另造 CLI/页面。
+不适用：清空为 HTTP 管理操作（`IF-MET-API-USAGE`，§5.1）与账本函数（`IF-MET-RESET`，§5.1），其运维入口记录于 §12.2；本机制不另造 CLI/页面。
 
 ## 6. 正常端到端流程
 
@@ -766,8 +768,8 @@ reset_usage(model: str | None = None, deployment_id: str | None = None, conn: Co
 
 | 责任单元（§14.1） | 承接的成员/结构 ID（§4/§5） | 角色 | 本机制固定的语义与边界（引用） |
 |---|---|---|---|
-| Usage Recorder（计量写入） | `IF-MET-AUTHORIZE`、`IF-MET-BIND`、`IF-MET-FINISH`；`D-USAGE-OBLIGATION`/`D-USAGE-RECORD`/`D-USAGE-HEAD`（§4.2） | 提供 | 义务→绑定→终态；只追加、head 单调、unknown 不补零（§5.2） |
-| Usage Reader / Admin（查询/清空） | `IF-MET-PAGE`、`IF-MET-RESET`；`D-MET-QUERY-SNAPSHOT`（§4.2） | 提供 | snapshot 冻结分页、范围清空、授权每页复核（§5.1/§5.2） |
+| Usage Recorder（计量写入） | `IF-MET-AUTHORIZE`、`IF-MET-BIND`、`IF-MET-FINISH`；`D-USAGE-OBLIGATION`/`D-USAGE-RECORD`/`D-USAGE-HEAD`（§4.2） | 提供 | 义务→绑定→终态；只追加、head 单调、unknown 不补零（§5.1） |
+| Usage Reader / Admin（查询/清空） | `IF-MET-PAGE`、`IF-MET-RESET`；`D-MET-QUERY-SNAPSHOT`（§4.2） | 提供 | snapshot 冻结分页、范围清空、授权每页复核（§5.1） |
 | HTTP Adapter（入口） | `IF-MET-API-USAGE` | 提供/映射 | `/v1/usage` 路由与错误映射（400/403/503）；不含业务规则 |
 | Inference 编排 | `IF-MET-AUTHORIZE`/`IF-MET-BIND`/`IF-MET-FINISH` | 消费 | 在 dispatch 前后调用钩子；unknown 语义（§9） |
 | Store（存储） | 各账本/snapshot 表（§4.7） | 提供 | 单事务原子提交、快照表 |

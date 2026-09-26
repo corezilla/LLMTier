@@ -663,11 +663,11 @@ enum ObservabilityErrorRef { ERR-INJECTION, ERR-NOTFOUND, ERR-STORE, ERR-REQ-VAL
 
 ## 5. 接口设计
 
-> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口用途**分类逐接口完整记录；标题为真实调用形式，标题下先给完整接口声明，再就地说明输入/输出，最后按六项写完。数据结构引用 §4；错误引用系统 §8.8；底层 `DiagnosticsService` 实现见 M006 `libdiag-design.md` §9。分类：API = 向 Consumer/Operator 提供可调用能力（本机制为诊断 HTTP 端点）；消息与数据流 = 责任单元之间为协作而交换的命令/状态/事实/流（含进程内函数）。
+> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口用途**分类逐接口完整记录；标题为真实调用形式，标题下先给完整接口声明，再就地说明输入/输出，最后按六项写完。数据结构引用 §4；错误引用系统 §8.8；底层 `DiagnosticsService` 实现见 M006 `libdiag-design.md` §9。分类：API = 向 Consumer/Operator 提供可调用能力（本机制为诊断 HTTP 端点，以及 `DiagnosticsService` 进程内方法）；消息与数据流 = 组件/系统之间为协作而交换的命令/状态/事件/队列/流/文件。`DiagnosticsService` 方法向管理面/请求路径提供可调用能力，故归 §5.1 API；本机制不拥有跨边界消息/流接口。
 
 ### 5.1 API（适用时）
 
-本机制对 Consumer/Operator 的 API 为 `/v1/diagnostics*` 与 `/v1/trace/{request_id}` HTTP 端点；其底层的 `DiagnosticsService.*` 进程内函数为责任单元协作，归 §5.2。
+本机制对 Consumer/Operator 的 API 为 `/v1/diagnostics*` 与 `/v1/trace/{request_id}` HTTP 端点；其底层的 `DiagnosticsService.*` 进程内方法向管理面/请求路径提供可调用能力，归本节 API。
 
 #### `GET/PATCH /v1/diagnostics`
 ```text
@@ -698,8 +698,6 @@ GET /v1/trace/{request_id}                                          -> 200 Trace
 - **错误与合法下一步**：`ERR-INJECTION`（400 PATCH）；`ERR-NOTFOUND`（404 trace/未知 deployment）；`ERR-STORE`（503）；`ERR-REQ-VALIDATION`（400 缺 since/until）。
 - **交互与生命周期**：同步；GET 幂等只读；PATCH partial upsert。
 - **实现与验证**：演练：PATCH `dep_local_gemma`（`delay`/2000ms）→ 推理 → trace `routed` 带注入 → 快照/统计含该请求 → `GET /v1/trace/req_…` 有序 stages + usage。`T-OBS-INJECT`、`T-OBS-TRACE`；Run=NOT_RUN。
-
-### 5.2 消息与数据流接口（适用时）
 
 #### `DiagnosticsService.switches() / set_switches(snapshots_enabled=None, stats_enabled=None, conn=None) -> SwitchState`
 
@@ -811,6 +809,10 @@ cleanup(days: int = 7) -> int
 - **错误与合法下一步**：失败 → `0` + warning（fail-open，不抛）。
 - **交互与生命周期**：启动/显式调用；同步；幂等。
 - **实现与验证**：正常删除过期；边界：无过期 → `0`。`T-OBS-SNAP`；Run=NOT_RUN。
+
+### 5.2 消息与数据流接口（适用时）
+
+不适用：本机制不拥有组件/系统间协作交换的消息、事件、队列、流或文件接口；`DiagnosticsService.*` 是向管理面/请求路径提供可调用能力的进程内方法，归 §5.1 API。
 
 ### 5.3 硬件与固件接口（适用时）
 
@@ -955,7 +957,7 @@ joint-diagnose.sh --x-request-id <request_id> -> trace/snapshots
 
 | 责任单元（§14.1） | 承接的成员/结构 ID（§4/§5） | 角色 | 本机制固定的语义与边界（引用） |
 |---|---|---|---|
-| `libdiag`（能力提供） | `IF-OBS-SWITCH`、`IF-OBS-RECORD-TRACE`、`IF-OBS-RECORD-SNAPSHOT`、`IF-OBS-RECORD-LATENCY`、`IF-OBS-TRACE-QUERY`、`IF-OBS-INJECT`、`IF-OBS-STREAM-WRAP`、`IF-OBS-CLEANUP` | 提供 | 开关/注入/记录底层读写、脱敏、fail-open（§5.2） |
+| `libdiag`（能力提供） | `IF-OBS-SWITCH`、`IF-OBS-RECORD-TRACE`、`IF-OBS-RECORD-SNAPSHOT`、`IF-OBS-RECORD-LATENCY`、`IF-OBS-TRACE-QUERY`、`IF-OBS-INJECT`、`IF-OBS-STREAM-WRAP`、`IF-OBS-CLEANUP` | 提供 | 开关/注入/记录底层读写、脱敏、fail-open（§5.1） |
 | Observability（查询与呈现） | `IF-OBS-API-SWITCH`、`IF-OBS-API-QUERY`、`IF-OBS-UI` | 提供/消费 | 查询、切换、页面；不直读库 |
 | Inference（事件产生） | `IF-OBS-RECORD-*`、`IF-OBS-INJECT` | 消费 | 按配置注入、写事实、`source=injected`；不改推理结果 |
 | HTTP Adapter | `IF-OBS-API-*` | 提供/映射 | 诊断路由、关联标识透传/回显 |

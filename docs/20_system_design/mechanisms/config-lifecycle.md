@@ -195,7 +195,7 @@ Candidate {
 
 - **Data/Type ID、用途与来源**：
 
-  `D-CFG-CANDIDATE`；Router 准入的候选后端投影；唯一来源 `src/management/registry.py` `Candidate`（`dataclass`），本机制 §5.2 `candidates()` 产出。
+  `D-CFG-CANDIDATE`；Router 准入的候选后端投影；唯一来源 `src/management/registry.py` `Candidate`（`dataclass`），本机制 §5.1 `candidates()` 产出。
 
 - **`level_id`**：
 
@@ -634,7 +634,7 @@ enum ConfigErrorRef {
 
 ## 5. 接口设计
 
-> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口用途**分类逐接口完整记录；标题为真实调用形式，标题下先给完整接口声明，再就地说明输入/输出，最后按六项写完。数据结构引用 §4；错误引用系统 §8.8。分类：API = 向 Consumer/Operator 提供可调用能力（本机制为管理面 HTTP 端点）；消息与数据流 = 责任单元之间为协作而交换的命令/状态/事实（含进程内函数）。
+> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口用途**分类逐接口完整记录；标题为真实调用形式，标题下先给完整接口声明，再就地说明输入/输出，最后按六项写完。数据结构引用 §4；错误引用系统 §8.8。分类：API = 向 Consumer/Operator 提供可调用能力（本机制为管理面 HTTP 端点，以及 Registry 进程内方法）；消息与数据流 = 组件/系统之间为协作而交换的命令/状态/事件/队列/流/文件。本机制拥有的 `Registry` 方法向 Router/Inference 提供可调用能力，故归 §5.1 API；本机制不拥有跨边界消息/流接口。
 
 ### 5.1 API（适用时）
 
@@ -692,8 +692,6 @@ DELETE /v1/service-levels/{level_id}             -> 409 fixed_service_level
 - **交互与生命周期**：同步；DELETE 恒定拒绝；partial PATCH；ordinal 决定候选顺序，重启后不漂移。
 - **实现与验证**：正常 PATCH Worker 成员 → 交集通过、版本 +1；拒绝 DELETE 固定 Tier → 409。`T-CFG-SPACE`；Run=NOT_RUN。
 
-### 5.2 消息与数据流接口（适用时）
-
 #### `Registry.bootstrap_settings(settings_path: str | None) -> None`
 
 ```text
@@ -732,6 +730,10 @@ Registry.get_service_level(level_id: str) -> tuple[dict, str]
 - **错误与合法下一步**：未知 ID → `ERR-NOTFOUND`（404）；载荷 `D-ERROR-ENVELOPE`。
 - **交互与生命周期**：同步只读；幂等。
 - **实现与验证**：正常读 `Worker`；拒绝未知 → 404。路由用例；Run=NOT_RUN。
+
+### 5.2 消息与数据流接口（适用时）
+
+不适用：本机制不拥有组件/系统间协作交换的消息、事件、队列、流或文件接口；`bootstrap_settings`/`candidates`/`get_service_level` 是向使用方提供可调用能力的进程内方法，归 §5.1 API。
 
 ### 5.3 硬件与固件接口（适用时）
 
@@ -895,8 +897,8 @@ migrate(store_path) -> {from_version, to_version} | non-zero exit
 
 | 责任单元（§14.1） | 承接的成员/结构 ID（§4/§5） | 角色 | 本机制固定的语义与边界（引用） |
 |---|---|---|---|
-| 启动流程 | `IF-CFG-BOOTSTRAP`、`D-CFG-SETTINGS`（§4.3）、`D-CFG-BOOTSTRAP-STATE`（§4.6） | 消费/提供 | 迁移、一次性引导、not_ready；不处理运行期变更（§5.2） |
-| Management（Registry/Config、Admin） | `IF-CFG-PROVIDERS`、`IF-CFG-DEPLOYMENTS`、`IF-CFG-LEVELS`、`IF-CFG-CANDIDATES`、`IF-CFG-GET-LEVEL` | 提供 | CRUD+ETag、能力/不变量校验、审计、有序候选（§5.1/§5.2） |
+| 启动流程 | `IF-CFG-BOOTSTRAP`、`D-CFG-SETTINGS`（§4.3）、`D-CFG-BOOTSTRAP-STATE`（§4.6） | 消费/提供 | 迁移、一次性引导、not_ready；不处理运行期变更（§5.1） |
+| Management（Registry/Config、Admin） | `IF-CFG-PROVIDERS`、`IF-CFG-DEPLOYMENTS`、`IF-CFG-LEVELS`、`IF-CFG-CANDIDATES`、`IF-CFG-GET-LEVEL` | 提供 | CRUD+ETag、能力/不变量校验、审计、有序候选（§5.1） |
 | HTTP Adapter | `IF-CFG-PROVIDERS`、`IF-CFG-DEPLOYMENTS`、`IF-CFG-LEVELS` | 消费/映射 | 管理面路由与错误映射；不含业务规则 |
 | Inference 编排 / Internal Admission | `IF-CFG-CANDIDATES`、`IF-CFG-GET-LEVEL` | 消费 | 只读等级/能力与有序候选；不做跨等级 fallback |
 | Store / Audit Writer | 各持久表（§4.7） | 提供 | 事务、审计；唯一持久化 |
