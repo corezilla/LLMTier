@@ -60,7 +60,7 @@ LLMTier 部署在局域网，需要判定"**请求来自谁、以什么角色**"
 |---|---|---|---|---|
 | C-TRUST-1 | 判定只在入口发生一次，业务不二次校验 | HTTP API | 实现方式 | §3.2、§8 |
 | C-TRUST-2 | 不建用户/会话/SSO 体系 | HTTP API | — | §1、§11 |
-| C-TRUST-3 | 凭据比较恒定时间，不泄露存在性 | Auth | 算法 | §5.2、§8 |
+| C-TRUST-3 | 凭据比较恒定时间，不泄露存在性 | Auth | 算法 | §5.1、§8 |
 | C-TRUST-4 | 401/403 不泄露资源存在性 | 全体 | 错误映射 | §7、§11 |
 | C-TRUST-5 | 免登录仅在受信网络/loopback/DEV | Auth | 网络集合 | §4.3、§7 |
 
@@ -343,13 +343,9 @@ enum AuthErrorRef { ERR-AUTH-NOCFG, ERR-AUTH-REQUIRED, ERR-AUTH-DENIED }
 
 ## 5. 接口设计
 
-> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口用途**分类逐接口完整记录；标题为真实调用形式，标题下先给**完整接口声明**，再就地说明输入/输出，最后按六项写完。数据结构引用 §4；错误引用系统 §8.8。分类：API = 向 Consumer/Operator 提供可调用能力（本机制为 HTTP 端点，登记于系统设计）；消息与数据流 = 责任单元之间为协作而交换的命令/状态/事实（含进程内函数）。本机制拥有的跨责任单元接口是入口层内部函数（Auth/Validation → HTTP Adapter），故归 §5.2。
+> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口用途**分类逐接口完整记录；标题为真实调用形式，标题下先给**完整接口声明**，再就地说明输入/输出，最后按六项写完。数据结构引用 §4；错误引用系统 §8.8。分类：API = 向 Consumer/Operator 提供可调用能力（本机制为 HTTP 端点，登记于系统设计）；消息与数据流 = 组件/系统之间为协作而交换的命令/状态/事件/队列/流/文件。本机制拥有的接口是入口层内部**函数**（Auth/Validation 提供、HTTP Adapter 消费），向使用方提供可调用能力，故归 §5.1 API。
 
 ### 5.1 API（适用时）
-
-不适用：本机制不拥有面向 Consumer/Operator 的 HTTP 端点；`/v1/*` 端点由系统设计与各业务模块拥有，它们消费 §5.2 的鉴权函数。机制自身不新增对外 API。
-
-### 5.2 消息与数据流接口（适用时）
 
 #### `unauthenticated_principal(client_address: str, headers, role: str) -> Principal | None`
 
@@ -389,6 +385,10 @@ authenticate_any(headers: Headers, client_address: str) -> Principal
 - **错误与合法下一步**：`ERR-AUTH-NOCFG`（503，均未配置）；`ERR-AUTH-DENIED`（403，有 Bearer 但均不匹配）；`ERR-AUTH-REQUIRED`（401，无 Bearer 且免登录不命中）；载荷 `D-ERROR-ENVELOPE`。
 - **交互与生命周期**：同步；固定顺序 admin→data（确定性）；幂等；只读。
 - **实现与验证**：正常 data token 访问 `/v1/usage` → `Principal(...,"data")`；边界：无 token 的受信 LAN → admin 免登录。`T-TRUST-SHARED`；Run=NOT_RUN。
+
+### 5.2 消息与数据流接口（适用时）
+
+不适用：本机制不拥有组件/系统间协作交换的消息、队列、流或文件接口；鉴权函数是向使用方提供能力的函数 API（§5.1）。
 
 ### 5.3 硬件与固件接口（适用时）
 
@@ -516,8 +516,8 @@ authenticate_any(headers: Headers, client_address: str) -> Principal
 
 | 责任单元（§14.1） | 承接的成员/结构 ID（§4/§5） | 角色 | 本机制固定的语义与边界（引用） |
 |---|---|---|---|
-| Auth/Validation | `IF-TRUST-UNAUTH`、`IF-TRUST-AUTH`、`IF-TRUST-AUTH-ANY` | 提供 | 单点判定、恒定时间比较、Principal 产出（§5.2） |
-| HTTP Adapter | `IF-TRUST-AUTH`、`IF-TRUST-AUTH-ANY` | 消费 | 按端点选 role 分发；不二次校验（§5.2、C-TRUST-1） |
+| Auth/Validation | `IF-TRUST-UNAUTH`、`IF-TRUST-AUTH`、`IF-TRUST-AUTH-ANY` | 提供 | 单点判定、恒定时间比较、Principal 产出（§5.1） |
+| HTTP Adapter | `IF-TRUST-AUTH`、`IF-TRUST-AUTH-ANY` | 消费 | 按端点选 role 分发；不二次校验（§5.1、C-TRUST-1） |
 | 业务模块（全体） | `D-PRINCIPAL`（§4.2） | 消费 | 只读 `role` 选择视图/端点，不得新增鉴权调用点 |
 | 启动 | `D-TRUST-CONFIG`（§4.3） | 提供 | 环境变量凭据存在性；不存 Secret |
 
