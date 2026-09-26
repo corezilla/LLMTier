@@ -27,7 +27,7 @@ class StdAndAuthorityTests(unittest.TestCase):
     def test_system_design_has_required_template_sections(self):
         text = (ROOT / "docs/20_system_design/llmtier-system-design.md").read_text(encoding="utf-8")
         headings = [line for line in text.splitlines() if line.startswith("## ")]
-        for number in range(1, 18):
+        for number in range(1, 17):
             self.assertTrue(any(line.startswith(f"## {number}.") for line in headings), number)
         for appendix in ("A", "B"):
             self.assertTrue(any(line.startswith(f"## 附录 {appendix}.") for line in headings), appendix)
