@@ -24,7 +24,7 @@
   "status": "review",
   "visibility": "project",
   "reviewed_commit": null,
-  "parent_document_id": "llmtier-requirements",
+  "parent_document_id": "llmtier-system-design",
   "supersedes": null,
   "created_at": "2026-09-07",
   "last_modified_at": "2026-09-22"
