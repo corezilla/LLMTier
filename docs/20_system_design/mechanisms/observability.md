@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-observability-mechanism` |
-| Document Version | `0.1.0-draft.5` |
+| Document Version | `0.1.0-draft.6` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -15,7 +15,7 @@
 | Created Date | `2026-09-22` |
 | Last Modified Date | `2026-09-25` |
 | Template ID | `design.system-mechanism` |
-| Template Version | `3.2.0` |
+| Template Version | `3.3.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |
@@ -37,6 +37,16 @@
 
 **核心取舍**：**默认关闭、关闭零开销、开启时尽力而为（fail-open）**——观测**绝不**改变推理结果。
 
+![图 M-OBS-U-01：可观测性机制的用途概览](../../assets/diagrams/diagram-mech-obs-usage.png)
+
+[可编辑 SVG 源](../../assets/diagrams/diagram-mech-obs-usage.svg)
+
+图 M-OBS-U-01 · Current；开关控制是否记录，注入配置在路由前生效，事实脱敏后写快照/统计/trace 并可查询；观测写入失败 fail-open、不阻断推理。图只表达场景、处理范围与外部结果；参与方分工见 §3，记录/查询时序见 §6。
+
+- **机制形态与适用性 / 业务副作用**：具体副作用——写诊断记录（`diagnostic_snapshots`/`trace_events`/`data_plane_stats`）并持久化注入配置；写入为尽力而为（fail-open），不改变推理结果。事实依据 §5.1 `IF-OBS-RECORD-*`/`IF-OBS-INJECT` 与 §4.8 的 fail-open 口径。
+- **交接域**：纯软件。能力由 `libdiag`（M006）提供，Observability（M005）呈现，Inference（M003）在请求路径产生事实；无连接器、总线、寄存器或 FPGA 责任单元，故 §4.5、§5.3 不适用。
+- **裁剪依据**：`std-tailoring` `LT-TL-003`（纯软件、无设备/FPGA 与子系统）；§4.4（无独立通信报文 wire，查询报文为 HTTP 投影）、§4.5/§5.3 见该决定与 §4.4 就地说明。
+
 ## 2. 使用场景与功能
 
 | Capability ID | 业务任务与触发 | 输入与可观察结果 | 提供方 / 消费者 | 实现状态 | 验证判据 |
@@ -52,17 +62,34 @@
 
 ## 3. 参与方、责任和 authority
 
+![图 M-OBS-C-01：参与方、事实与跨边界交接](../../assets/diagrams/diagram-mech-obs-collab.png)
+
+[可编辑 SVG 源](../../assets/diagrams/diagram-mech-obs-collab.svg)
+
+图 M-OBS-C-01 · Current；`libdiag`（M006）是开关/注入/记录的能力提供与事实 authority，Observability（M005）只查询与呈现、不直读库，Inference（M003）在请求路径按配置注入并写事实，Store 持久 6 张表。蓝实线为请求/写入，灰虚线为查询结果；工程 Owner 不作为运行组件。每条跨边界交接对应 §5.1 成员登记（`IF-OBS-*`），底层实现见 M006 §9。
+
+| Participant / 工程 Owner | 负责/不负责 | 决定/写入/事实来源/恢复（适用时） | Provided/Consumed interface | 部署/实现位置 | 依赖机制与基线 |
+|---|---|---|---|---|---|
+| libdiag · LLMTier（M006） | 开关/注入/记录底层读写、脱敏、fail-open；不改推理契约 | 决定=开关与注入生效；写入=观测表（§4.7）；事实来源=SQLite；恢复=写失败 fail-open 记 warning | 提供 `IF-OBS-SWITCH`、`IF-OBS-RECORD-TRACE`/`-SNAPSHOT`/`-LATENCY`、`IF-OBS-INJECT`、`IF-OBS-STREAM-WRAP`、`IF-OBS-CLEANUP`、`IF-OBS-TRACE-QUERY`（§5.1） | M006 基础层 | 无（顶层机制） |
+| Observability · LLMTier（M005） | 查询、切换、页面；不直读库、不改推理契约 | 决定=呈现裁剪；写入=经 `libdiag`；事实来源=`libdiag`；恢复=不适用 | 提供 `IF-OBS-API-SWITCH`、`IF-OBS-API-QUERY`、`IF-OBS-UI`（§5.1/§5.4） | M005 业务层 | M-OBS（本机制） |
+| Inference 请求路径 · LLMTier（M003） | 按配置注入、写事实；不改推理结果 | 决定=注入执行点；写入=经 `libdiag`；事实来源=请求路径事实；恢复=fail-open 包裹 | 消费 `IF-OBS-RECORD-*`、`IF-OBS-INJECT`（§5.1） | M003 业务层 | M-OBS（本机制） |
+| HTTP Adapter · HTTP API / LLMTier | 诊断路由、关联标识透传/回显 | 决定=无；写入=无；事实来源=请求头；恢复=不适用 | 提供 `IF-OBS-API-*` 路由（§5.1） | M001 入口层 | 无 |
+| Web UI · Web UI / LLMTier | `/ui/diagnostics` 4 tabs + 全局开关；不直读库 | 决定=无；写入=无；事实来源=诊断 API；恢复=不适用 | 消费 `IF-OBS-UI`（§5.4） | M002 入口层 | M-OBS（本机制） |
+| Store · LLMTier（M007） | 6 张观测表事务与 schema | 决定=无；写入=各观测表（§4.7）；事实来源=SQLite 文件 | 提供观测表（§4.7） | M007 基础层 | 无 |
+
 ### 3.1 系统约束与参与方承接
 
 本机制为顶层机制（上级 Mechanism ID = none），约束继承自系统设计 §3 与 §11。
 
 | Constraint ID | 约束 | 参与方保证 | 自由度 | 本文落实位置 |
 |---|---|---|---|---|
-| C-OBS-1 | 默认关闭，关闭时零开销 | `libdiag` | 开关存储 | §7、§9 |
-| C-OBS-2 | fail-open：观测故障不得使推理失败 | 全体 | 捕获实现 | §7、§9 |
-| C-OBS-3 | 不记录 Secret/credential/完整正文 | `libdiag` | 脱敏实现 | §8、§11 |
-| C-OBS-4 | 注入调用在账本标注 `injected` | Inference | 标注方式 | §8 |
-| C-OBS-5 | 调试能力由 `libdiag` **提供**、Observability **呈现** | Observability | — | §14 |
+| CON-OBS-001 | 默认关闭，关闭时零开销 | `libdiag` | 开关存储 | §7、§9 |
+| CON-OBS-002 | fail-open：观测故障不得使推理失败 | 全体 | 捕获实现 | §7、§9 |
+| CON-OBS-003 | 不记录 Secret/credential/完整正文 | `libdiag` | 脱敏实现 | §8、§11 |
+| CON-OBS-004 | 注入调用在账本标注 `injected` | Inference | 标注方式 | §8 |
+| CON-OBS-005 | 调试能力由 `libdiag` **提供**、Observability **呈现** | Observability | — | §14 |
+
+**约束 ID 说明**：本版按 3.3.0 规则把历史 `C-OBS-1..5` 登记为 `CON-OBS-001..005`（类别：机制约束，命名域 M-OBS），语义不变；系统设计 §3.4 与下级 ISD 中的历史 `C-OBS-*` 引用为待回写项，登记于 §16。
 
 ### 3.2 运行时统筹与确认责任
 
@@ -77,6 +104,12 @@
 > 按 STD `design-data-interface-format` 1.2.0 §2：主章“数据结构设计”，章内按**数据性质**分类（§4.1–§4.8），本层特有分析见 §4.9–§4.10。仅保留适用类别。底层结构与列权威见 M006 `libdiag-design.md` §6；本节拥有机制层类型 ID 前缀 `D-OBS-*`，不复制列级权威。
 
 **类别适用性**：§4.1 公共基础类型与枚举 ✓｜§4.2 业务与操作数据结构 ✓｜§4.3 配置与规则数据结构 ✓｜§4.4 通信报文结构 ✗（观测记录为进程内/持久行，无消息/流 wire；查询报文属 HTTP 投影）｜§4.5 设备与 FPGA 表项结构 ✗（纯软件，无设备/RTL）｜§4.6 运行状态数据结构 ✓｜§4.7 数据库表结构 ✓｜§4.8 错误码与错误结构 ✓（引用系统 §8.8）。
+
+![图 M-OBS-O-01：数据对象、变换与寿命](../../assets/diagrams/diagram-mech-obs-objects.png)
+
+[可编辑 SVG 源](../../assets/diagrams/diagram-mech-obs-objects.svg)
+
+图 M-OBS-O-01 · Current；请求路径事实经脱敏/截断变为持久行（快照 7 天、trace 7 天、统计按保留期），再组合为只读视图；统计缓存为进程内存、非账本。对象跨 Inference/`libdiag`/Store/查询责任单元经历脱敏变换、持久化与只读组合，故需数据对象图明确损失边界（query 与正文被丢弃、`error_summary` ≤256B 截断）。数据图不表示调用顺序；时序见 §6，fail-open 见 §9。
 
 ### 4.1 公共基础类型与枚举
 
@@ -541,7 +574,7 @@ DiagnosticsRuntimeState {
 
 - **跨字段与寿命**：
 
-  唯一写者=`set_switches`/`record_latency`；记录前判定（关闭零写入，C-OBS-1/INV-4）；缓存满 LRU 淘汰；单行持久 + 请求级过程量；进程退出丢失内存统计（不承诺恢复）。
+  唯一写者=`set_switches`/`record_latency`；记录前判定（关闭零写入，CON-OBS-001/INV-4）；缓存满 LRU 淘汰；单行持久 + 请求级过程量；进程退出丢失内存统计（不承诺恢复）。
 
 - **合法/拒绝实例**：
 
@@ -659,7 +692,7 @@ enum ObservabilityErrorRef { ERR-INJECTION, ERR-NOTFOUND, ERR-STORE, ERR-REQ-VAL
 
 ### 4.10 一致性、可见性与数据寿命
 
-记录为尽力而为：写入失败记 warning、不抛、不阻断推理（C-OBS-2/INV-6）。同 `request_id` 的 trace 事件有序（INV-5），但跨请求无全局顺序；`stages` 升序由唯一写者保证。开关关闭 ⇒ 零写入、零开销（INV-4）。统计为内存缓存，可丢、非账本，样本缺失时百分位为 `null` 而非 0。快照/trace 保留 7 天，由 `cleanup` 删除过期行；`diagnostic_settings` 与注入配置为库寿命。进程退出丢失内存统计与「最近 cleanup 结果」，不承诺恢复；`DiagnosticsService` 初始化失败时降级运行，Data Plane 不受影响。观测数据与账本（M-METER）故障域隔离，不得据观测缺失推断“未发生调用”。
+记录为尽力而为：写入失败记 warning、不抛、不阻断推理（CON-OBS-002/INV-6）。同 `request_id` 的 trace 事件有序（INV-5），但跨请求无全局顺序；`stages` 升序由唯一写者保证。开关关闭 ⇒ 零写入、零开销（INV-4）。统计为内存缓存，可丢、非账本，样本缺失时百分位为 `null` 而非 0。快照/trace 保留 7 天，由 `cleanup` 删除过期行；`diagnostic_settings` 与注入配置为库寿命。进程退出丢失内存统计与「最近 cleanup 结果」，不承诺恢复；`DiagnosticsService` 初始化失败时降级运行，Data Plane 不受影响。观测数据与账本（M-METER）故障域隔离，不得据观测缺失推断“未发生调用”。
 
 ## 5. 接口设计
 
@@ -832,6 +865,8 @@ joint-diagnose.sh --x-request-id <request_id> -> trace/snapshots
 - **交互与生命周期**：交互式；页面可取消；脚本一次性执行；审计由管理动作承担。
 - **实现与验证**：组合=Piko 联调（`joint-diagnose.sh`）。`T-OBS-TRACE`；Run=NOT_RUN。
 
+> **闭合核对**：§3 协作图与 §6、§14.3 的每条真实跨责任单元交接均在 §5.1/§5.4 有唯一接口记录（`IF-OBS-API-SWITCH`、`IF-OBS-API-QUERY`、`IF-OBS-SWITCH`、`IF-OBS-RECORD-*`、`IF-OBS-INJECT`、`IF-OBS-TRACE-QUERY`、`IF-OBS-STREAM-WRAP`、`IF-OBS-CLEANUP`、`IF-OBS-UI`、`IF-OBS-DIAG`）；§5.1 非 N/A，Observability→HTTP Adapter 与 Inference→`libdiag` 的进程内交接已登记。`libdiag`→Store 的持久化边界经 §4.7 表结构与 M006 §9 登记，是无独立跨单元调用接口的持久化边界，不构成规格缺口。记录写失败是 fail-open 的已知语义，不把观测缺失改写为推理失败。
+
 ## 6. 正常端到端流程
 
 ![可观测性记录与查询时序](../../assets/diagrams/diagram-mech-obs-sequence.png)
@@ -846,6 +881,8 @@ joint-diagnose.sh --x-request-id <request_id> -> trace/snapshots
 4. **upstream_started / upstream_ended**：写上游快照 + `record_latency`。
 5. **completed / error / aborted**：终态 trace；注入命中时账本 `source=injected`。
 6. **查询**：快照/统计/trace 按各自接口返回。
+
+**触发 → 结果 → 释放**：触发 = 请求路径事件或 Operator 管理动作；结果 = 记录落库/查询视图，或注入配置提交；释放 = 记录路径无预留（fail-open 直接返回），开关关闭即零写入。**关键提交点** = 注入配置 upsert 提交（`IF-OBS-INJECT`）与记录行提交（`IF-OBS-RECORD-*`）。中断点：注入配置提交前中断 → 配置不变，推理路径读旧配置；提交后中断 → 新配置对逐请求读取即时生效，无需重启；记录行提交前中断 → 该阶段缺失（fail-open，不阻断推理），查询得不同完整度 trace，但**不得据此推断"未发生调用"**；统计为内存、进程退出即丢。观测数据与 M-METER 账本故障域隔离。
 
 ### 6.1 交叠请求、跨轮次与生命周期边界
 
@@ -886,7 +923,7 @@ joint-diagnose.sh --x-request-id <request_id> -> trace/snapshots
 | F-OBS-3 / `record_trace` | 写入失败 | — | 记 warning | 无 | 继续 | 无 | 下次调用重试 |
 | F-OBS-4 / 初始化 | `DiagnosticService` 失败 | — | 记 error | 无 | **降级运行**，Data Plane 不受影响 | 无 | 重启 |
 
-**恢复边界**：任何观测失败**不得**改变推理结果或阻断请求（C-OBS-2）。
+**恢复边界**：任何观测失败**不得**改变推理结果或阻断请求（CON-OBS-002）。
 
 ## 10. 并发、排序与容量
 
@@ -947,8 +984,8 @@ joint-diagnose.sh --x-request-id <request_id> -> trace/snapshots
 | Step 2 validated trace | Inference | `libdiag` | trace 事件 | fail-open 固定 | T-OBS-TRACE |
 | Step 3 读注入并生效（CAP-OBS-5）| Inference | `libdiag` | delay/fault/limit | 注入类型固定 | T-OBS-INJECT |
 | Step 4 上游快照 + 时延（CAP-OBS-1/2）| Inference | `libdiag` | 快照 + 统计 | 脱敏/截断固定 | T-OBS-SNAP |
-| Step 5 终态 trace；注入标注（C-OBS-4）| Inference | `libdiag`、M-METER | trace + `source=injected` | 标注固定 | T-OBS-INJECT |
-| Step 6 查询/开关/页面（C-OBS-1）| Observability | HTTP Adapter、Web UI | 查询结果 | 默认关固定 | T-OBS-SWITCH |
+| Step 5 终态 trace；注入标注（CON-OBS-004）| Inference | `libdiag`、M-METER | trace + `source=injected` | 标注固定 | T-OBS-INJECT |
+| Step 6 查询/开关/页面（CON-OBS-001）| Observability | HTTP Adapter、Web UI | 查询结果 | 默认关固定 | T-OBS-SWITCH |
 | 清理 | `libdiag` | Store | 删除 7 天前 | 保留期固定 | — |
 
 ### 14.3 责任单元间接口契约
@@ -968,9 +1005,9 @@ joint-diagnose.sh --x-request-id <request_id> -> trace/snapshots
 
 | 下级要求 ID | 承接对象 ID / 下级设计文档 | 来源 Capability / Step / Constraint / 接口成员 | 必须负责的行为与保证 | 必须提供/消费的接口 | 下级必须展开的问题 | 允许自行决定的范围 | 本地验证 / 组合验证交接 |
 |---|---|---|---|---|---|---|---|
-| R-OBS-01 | `libdiag` · `libdiag-design.md` | C-OBS-3、Step 2/3/4/5、interface `DiagnosticService` 全部 | 开关/注入/记录底层读写、脱敏、fail-open | `capture_snapshot`/`record_latency`/`record_trace`/`enabled_injection`/`enabled_stream_injection`/查询 | 存储布局、缓存/LRU、TTL、截断 | 存储/聚合实现 | 系统用例 |
-| R-OBS-02 | Observability · `observability-design.md` | C-OBS-1/5、Step 6 | 查询与呈现、开关切换 | 诊断路由 | 授权、页面 | 呈现实现 | T-OBS-SWITCH |
-| R-OBS-03 | Inference · `inference-design.md` | C-OBS-2/4、Step 3/4/5 | 按配置注入、写事件、`source=injected` | 集成点 | 注入执行点、fail-open 包裹 | 集成实现 | T-OBS-INJECT |
+| R-OBS-01 | `libdiag` · `libdiag-design.md` | CON-OBS-003、Step 2/3/4/5、interface `DiagnosticService` 全部 | 开关/注入/记录底层读写、脱敏、fail-open | `capture_snapshot`/`record_latency`/`record_trace`/`enabled_injection`/`enabled_stream_injection`/查询 | 存储布局、缓存/LRU、TTL、截断 | 存储/聚合实现 | 系统用例 |
+| R-OBS-02 | Observability · `observability-design.md` | CON-OBS-001/005、Step 6 | 查询与呈现、开关切换 | 诊断路由 | 授权、页面 | 呈现实现 | T-OBS-SWITCH |
+| R-OBS-03 | Inference · `inference-design.md` | CON-OBS-002/004、Step 3/4/5 | 按配置注入、写事件、`source=injected` | 集成点 | 注入执行点、fail-open 包裹 | 集成实现 | T-OBS-INJECT |
 | R-OBS-04 | HTTP Adapter · `http-api-design.md` | Step 1 | 诊断路由、关联标识透传/回显 | 路由 | 头解析、错误映射 | 解析实现 | 契约 |
 | R-OBS-05 | Web UI · `web-ui-design.md` | CAP-OBS-3 | `/ui/diagnostics` 4 tabs + 开关 | 页面 | 呈现（不直读库）| 呈现实现 | 组合 |
 | R-OBS-06 | Store · `util-design.md` | §8 6 张表 | 6 张表事务 | Store | schema/迁移 | 存储实现 | 系统用例 |
@@ -983,12 +1020,12 @@ joint-diagnose.sh --x-request-id <request_id> -> trace/snapshots
 
 | Test / Constraint | 输入与预置事实 | arm/hit/release | 独立 Oracle |
 |---|---|---|---|
-| T-OBS-SWITCH / C-OBS-1 | 开/关 snapshots/stats | 切换 | 关闭时零写入 |
+| T-OBS-SWITCH / CON-OBS-001 | 开/关 snapshots/stats | 切换 | 关闭时零写入 |
 | T-OBS-SNAP / CAP-OBS-1 | 一次上游调用 | — | 快照字段与脱敏正确 |
 | T-OBS-STATS / CAP-OBS-2 | 多次请求 | — | P50/P95/计数正确 |
 | T-OBS-INJECT / CAP-OBS-5 | 四类注入 | 配/清 | delay/fault/limit 生效；`source=injected` |
 | T-OBS-TRACE / CAP-OBS-6 | 固定 request_id | — | stages 有序 + usage |
-| T-OBS-FAILOPEN / C-OBS-2 | 注入库写失败 | — | 推理结果不变 |
+| T-OBS-FAILOPEN / CON-OBS-002 | 注入库写失败 | — | 推理结果不变 |
 
 ### 15.2 环境部署、复位、并发隔离与自动化
 
@@ -1005,13 +1042,15 @@ joint-diagnose.sh --x-request-id <request_id> -> trace/snapshots
 | LT-OPEN-04 | 决定 | 四类数据各归 1 张表，保留 7 天 | 已采用 | 已定 |
 | LT-OPEN-05 | 未决 | 流注入需改造流式输出 | 确认实现方案 | 未决 |
 | RISK-OBS-1 | 风险 | 统计为内存、可丢 | 明示非账本语义 | 观察 |
+| RISK-OBS-2 | 变更影响 | `CON-OBS-*` 已在本机制登记，系统设计 §3.4 与 ISD 仍引用历史 `C-OBS-*` | 回写系统摘要、ISD 承接与 §14.4 引用 | 待回写（不阻塞本机制） |
 
 ## A. 输入基线、适用性与图文规则
 
-- 输入：系统设计 §11.3、`docs/99-reference/LT-OBS-Integration-Review.md`（Piko 联调输入）。
-- 适用性：纯软件、单节点、默认关闭的可观测机制。§4.9（二进制 ABI）不适用；§8.1（租约）不适用（清理代替释放）。
-- 图：时序图（§6）表达逐阶段记录与查询。
+- 输入基线：系统设计 §11.3；`docs/99-reference/LT-OBS-Integration-Review.md`（Piko 联调输入）；`src/libdiag/*`；`util/migrations/002_observability.sql`。
+- 适用性：纯软件、单节点、默认关闭的可观测机制。§4.4（无独立通信报文 wire，查询报文为 HTTP 投影）、§4.5/§5.3（设备/FPGA）不适用（`std-tailoring` `LT-TL-003`）；§4.9（二进制 ABI）不适用（SQLite 行 + JSON 列）；§8.1（租约）不适用（清理代替释放）。
+- 图文规则：§1 用途概览 `diagram-mech-obs-usage`（Current）、§3 参与方协作 `diagram-mech-obs-collab`（Current）、§4 数据对象 `diagram-mech-obs-objects`（Current）、§6 正常时序 `diagram-mech-obs-sequence`。一图一问题；交互图用语义方向线，数据图不冒充时序。
+- 数据对象图触发：请求路径事实在 Inference/`libdiag`/Store/查询之间脱敏、持久化与只读组合，故按条件画图并标注截断与丢弃边界。
 
 ## B. 文档控制与修订记录
 
-初版 `0.1.0-draft.1`；`draft.3` 补实全部章节、增模块分解与不变量。修订见 Git。
+初版 `0.1.0-draft.1`；`draft.3` 补实全部章节、增模块分解与不变量；`draft.6` 按 `design.system-mechanism` 3.3.0 补用途/参与方/数据三图、"机制形态与适用性"块、关键提交中断点，并把历史 `C-OBS-*` 登记为 `CON-OBS-*`。修订见 Git。

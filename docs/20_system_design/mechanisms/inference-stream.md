@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-inference-stream-mechanism` |
-| Document Version | `0.1.0-draft.5` |
+| Document Version | `0.1.0-draft.6` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -15,7 +15,7 @@
 | Created Date | `2026-09-22` |
 | Last Modified Date | `2026-09-25` |
 | Template ID | `design.system-mechanism` |
-| Template Version | `3.2.0` |
+| Template Version | `3.3.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |
@@ -37,6 +37,16 @@ Consumer（Piko）提交一次模型推理请求后，需要拿到**标准 Respo
 
 **本版本范围与取舍**：只支持 `stream:true/store:false`（固定 Pi 实际消费路径）；不提供 JSON 非流式并行模式；不做跨等级 fallback；不承诺跨系统 exactly-once。最坏情形下准入会排队并可能返回 429——用**保守资源保护**换**可预测的失败**。
 
+![图 M-INFER-U-01：推理与流式返回机制的用途概览](../../assets/diagrams/diagram-mech-infer-usage.png)
+
+[可编辑 SVG 源](../../assets/diagrams/diagram-mech-infer-usage.svg)
+
+图 M-INFER-U-01 · Current；固定 `stream:true/store:false` 的单轮推理经校验、准入与路由落到一个后端，归一为恰好一个 terminal 的标准 SSE，并把 token 用量交账本；队列满/超时在调用后端前以 429 拒绝。图只表达场景、处理范围与外部结果；参与方分工见 §3，端到端时序见 §6。
+
+- **机制形态与适用性 / 业务副作用**：具体副作用——一次调用会发起外部后端调用（可能计费）并输出 SSE 字节流，且经 M-METER 写账本（dispatch 前记 unknown 义务、终态版本）；事实依据 §5.1 `IF-INF-COMPLETE` 的上游调用与 `IF-MET-AUTHORIZE`/`IF-MET-FINISH` 的落账副作用。
+- **交接域**：纯软件。责任单元为 M001 入口、M003 Inference/Router、M004 Registry 与 M006/M-METER；外部后端是独立故障域、不是本机制拥有的责任单元。
+- **裁剪依据**：`std-tailoring` `LT-TL-003`（纯软件、无设备/FPGA 与子系统）；§4.5（设备表项）、§4.7（本机制不拥有持久表，账本/配置分别归 M-METER/M-CONFIG）不适用。
+
 ## 2. 使用场景与功能
 
 | Capability ID | 业务任务与触发 | 输入与可观察结果 | 提供方 / 消费者 | 实现状态 | 验证判据 |
@@ -51,17 +61,35 @@ Consumer（Piko）提交一次模型推理请求后，需要拿到**标准 Respo
 
 ## 3. 参与方、责任和 authority
 
+![图 M-INFER-C-01：参与方、事实与跨边界交接](../../assets/diagrams/diagram-mech-infer-collab.png)
+
+[可编辑 SVG 源](../../assets/diagrams/diagram-mech-infer-collab.svg)
+
+图 M-INFER-C-01 · Current；HTTP/SSE Adapter 拥有帧序与唯一 terminal 事实，Inference 拥有归一响应，Router/Admission 拥有内存并发与队列，Provider Adapter 是唯一外部调用点；Registry 只读、Usage Recorder 落账、外部后端独立故障域。蓝实线为请求/调用，灰虚线为响应/结果；工程 Owner 不作为运行组件。每条跨边界交接对应 §5.1/§5.2 成员登记，M-METER/M-CONFIG 接口按引用登记。
+
+| Participant / 工程 Owner | 负责/不负责 | 决定/写入/事实来源/恢复（适用时） | Provided/Consumed interface | 部署/实现位置 | 依赖机制与基线 |
+|---|---|---|---|---|---|
+| Consumer（Piko）· 外部 | 发起单轮推理并消费 SSE；不做鉴权判定、不自建幂等 | 决定=无；写入=无；事实来源=本机制响应；恢复=由 Consumer 自担重试（无幂等键） | 消费 `POST /v1/responses`（`IF-INF-RESPONSES`，§5.1） | 外部 Consumer | M-TRUST（凭据） |
+| HTTP/SSE Adapter · HTTP API / LLMTier | 终止 HTTP/SSE、保证帧序与唯一 terminal、请求体上限、断开清理；不承载业务规则 | 决定=输出事件序；写入=SSE 字节流；事实来源=`ResponsesResponse`；恢复=断开结束本次调用 | 提供 `IF-INF-RESPONSES`、`IF-INF-STREAM`、`IF-INF-RUNTIME`；引用 `IF-TRUST-*`（§5.1/§5.2） | M001 入口层 | M-TRUST |
+| Inference 编排 · Inference / LLMTier | 校验、编排、归一；不管理配置 | 决定=归一响应；写入=经 `IF-MET-*` 记账；事实来源=`ProviderResult`；恢复=异常经 `finally` 释放许可 | 提供 `IF-INF-CREATE`；消费 `IF-MET-*`（§5.1） | M003 业务层 | M-METER / M-CONFIG / M-OBS |
+| Internal Admission / Exact Model Router · Inference / LLMTier | 许可/队列、同等级候选；不做跨等级 fallback | 决定=许可与候选；写入=内存并发/队列（§4.6.1）；事实来源=Router 内存；恢复=进程退出清零 | 提供 `IF-INF-ADMIT`、`IF-INF-SNAPSHOT`；消费 `IF-CFG-CANDIDATES`（§5.1） | M003 业务层 | M-CONFIG |
+| Provider Adapter · Inference / LLMTier | 协议映射、usage 归一、typed error；不暴露 provider KV | 决定=上游调用；写入=外部副作用（可能计费）；事实来源=后端响应；恢复=不重放 | 提供/消费 `IF-INF-COMPLETE`（§5.1） | M003 业务层 | 无（外部后端为依赖） |
+| Registry/Config · Management / LLMTier | 等级/能力/provider 只读；不发起推理 | 决定=配置读取；写入=无；事实来源=Registry；恢复=请求级只读 | 提供 `IF-CFG-GET-LEVEL`/`IF-CFG-CANDIDATES`（引用 M-CONFIG §5） | M004 业务层 | M-CONFIG |
+| Usage Recorder · Inference / LLMTier（M-METER） | 义务→绑定→终态；unknown 不补零；不含 Cost | 决定=终态版本；写入=账本（§4.7 不归本机制）；事实来源=账本；恢复=未知保留 | 提供 `IF-MET-AUTHORIZE`/`IF-MET-BIND`/`IF-MET-FINISH`（引用 M-METER §5） | M003 业务层 | M-METER |
+
 ### 3.1 系统约束与参与方承接
 
 本机制为顶层机制（上级 Mechanism ID = none），约束继承自系统设计 §3。
 
 | Constraint ID | 约束 | 参与方保证 | 自由度 | 本文落实位置 |
 |---|---|---|---|---|
-| C-INFER-1 | 只提供标准 Responses SSE，不增 JSON 并行模式 | 入口只发标准事件 | 内部编排方式 | §5.1/§5.2、§6 |
-| C-INFER-2 | 每请求恰好一个 terminal 事件 | 出口保证 | 事件名由 status 决定 | §6、§8 |
-| C-INFER-3 | 结果未知不补零；账本只追加 | Inference 写 unknown 义务 | 归一实现 | §9、M-METER |
-| C-INFER-4 | 不做跨等级/跨空间 fallback | Router 只在同等级选 | 选择排序 | §10 |
-| C-INFER-5 | 观测 fail-open，不改推理结果 | Inference 不因观测失败而失败 | 捕获实现 | §12、M-OBS |
+| CON-INFER-001 | 只提供标准 Responses SSE，不增 JSON 并行模式 | 入口只发标准事件 | 内部编排方式 | §5.1/§5.2、§6 |
+| CON-INFER-002 | 每请求恰好一个 terminal 事件 | 出口保证 | 事件名由 status 决定 | §6、§8 |
+| CON-INFER-003 | 结果未知不补零；账本只追加 | Inference 写 unknown 义务 | 归一实现 | §9、M-METER |
+| CON-INFER-004 | 不做跨等级/跨空间 fallback | Router 只在同等级选 | 选择排序 | §10 |
+| CON-INFER-005 | 观测 fail-open，不改推理结果 | Inference 不因观测失败而失败 | 捕获实现 | §12、M-OBS |
+
+**约束 ID 说明**：本版按 3.3.0 规则把历史 `C-INFER-1..5` 登记为 `CON-INFER-001..005`（类别：机制约束，命名域 M-INFER），语义不变；系统设计 §3.4 与下级 ISD 中的历史 `C-INFER-*` 引用为待回写项，登记于 §16。
 
 ### 3.2 运行时统筹与确认责任
 
@@ -76,6 +104,12 @@ Consumer（Piko）提交一次模型推理请求后，需要拿到**标准 Respo
 > 按 STD `design-data-interface-format` 1.2.0 §2：主章“数据结构设计”，章内按**数据性质**分类（§4.1–§4.8），本层特有分析见 §4.9–§4.10。仅保留适用类别。继承/机器源结构只定位原定义与本层投影，不复制字段权威。本机制拥有类型 ID 前缀 `D-INF-*`；wire 权威 = `interfaces/openapi/llmtier.openapi.json` + `interfaces/vectors/v0.3/*`。
 
 **类别适用性**：§4.1 公共基础类型与枚举 ✓｜§4.2 业务与操作数据结构 ✓｜§4.3 配置与规则数据结构 ✓｜§4.4 通信报文结构 ✓（`D-MSG-SSE`/`D-ERROR-ENVELOPE` 继承）｜§4.5 设备与 FPGA 表项结构 ✗（纯软件，无设备/RTL）｜§4.6 运行状态数据结构 ✓｜§4.7 数据库表结构 ✗（本机制不拥有持久表；账本归 M-METER、配置归 M-CONFIG）｜§4.8 错误码与错误结构 ✓（引用系统 §8.8）。
+
+![图 M-INFER-O-01：数据对象、变换与寿命](../../assets/diagrams/diagram-mech-infer-objects.png)
+
+[可编辑 SVG 源](../../assets/diagrams/diagram-mech-infer-objects.svg)
+
+图 M-INFER-O-01 · Current；`ResponsesRequest` 归一为上游请求，`ProviderResult` 再归一为 `ResponsesResponse`，出口序列化为 SSE；usage 交 M-METER 账本。对象在入口/编排/适配器/出口/账本责任单元间经历变换与所有权转移，故需数据对象图明确损失边界（非流式模式被裁剪、usage 非全 int 则整条 unknown、不承诺 exactly-once）。数据图不表示调用顺序；时序见 §6，失败传播见 §9。
 
 ### 4.1 公共基础类型与枚举
 
@@ -369,7 +403,7 @@ AdmissionPolicy {
 
 - **跨字段与寿命**：
 
-  同等级 FIFO；满即拒绝，不无限缓冲；只选同等级候选，无跨等级 fallback（C-INFER-4）；Specified 保护值；随部署/内部配置；变更需审计复测（§13）。
+  同等级 FIFO；满即拒绝，不无限缓冲；只选同等级候选，无跨等级 fallback（CON-INFER-004）；Specified 保护值；随部署/内部配置；变更需审计复测（§13）。
 
 - **合法/拒绝实例**：
 
@@ -603,7 +637,7 @@ enum InferenceErrorRef {
 
 ### 4.10 一致性、可见性与数据寿命
 
-请求级一致：同一 `request_id` 内事件有序（`sequence_number` 单调），不同请求各自独立且无全局顺序。流式“已发送”不等于“已完成”——只有 terminal 事件表示本次调用结束；HTTP 200 建连不代表业务成功（INV-3）。准入状态为进程内存，退出/重启即丢失，不承诺跨重启恢复许可；许可在请求终态 `finally` 释放，释放后无残留。终态 Usage 一经写入即为 M-METER 账本事实，本机制不保留历史；观测数据独立且 fail-open（C-INFER-5），失败不改变本机制结果。连通性中断（客户端断开）→ 结束本次调用并 `finish(None)`（unknown），不创建可恢复 Invocation。
+请求级一致：同一 `request_id` 内事件有序（`sequence_number` 单调），不同请求各自独立且无全局顺序。流式“已发送”不等于“已完成”——只有 terminal 事件表示本次调用结束；HTTP 200 建连不代表业务成功（INV-3）。准入状态为进程内存，退出/重启即丢失，不承诺跨重启恢复许可；许可在请求终态 `finally` 释放，释放后无残留。终态 Usage 一经写入即为 M-METER 账本事实，本机制不保留历史；观测数据独立且 fail-open（CON-INFER-005），失败不改变本机制结果。连通性中断（客户端断开）→ 结束本次调用并 `finish(None)`（unknown），不创建可恢复 Invocation。
 
 ## 5. 接口设计
 
@@ -665,7 +699,7 @@ ProviderAdapter.complete(model: str, request: dict) -> ProviderResult
 - **输入与前提**：`model: str`（后端模型名）、`request: dict`（归一后的上游请求）；前置=已获许可并绑定后端；授权=Secret 经 `secret_ref` 解析；校验=协议映射。
 - **成功输出与保证**：`D-INF-PROVIDER-RESULT`（§4.2.2）——受理=调用发出，完成=返回结果；副作用=上游调用已发生（可能计费）；usage 可能缺失（→ M-METER unknown）。
 - **错误与合法下一步**：建连/首字节超时或 5xx → `ERR-PROVIDER-UNAVAIL`；注入/上游故障 → `ERR-PROVIDER-FAIL`；响应无法归一 → `ERR-PROVIDER-CONTRACT`；结果可能未知、可能已调用后端；合法下一步见 §9。
-- **交互与生命周期**：同步；建连/首字节 30s、流空闲 60s；不做跨等级 fallback（C-INFER-4）；不重放（避免重复输出）。
+- **交互与生命周期**：同步；建连/首字节 30s、流空闲 60s；不做跨等级 fallback（CON-INFER-004）；不重放（避免重复输出）。
 - **实现与验证**：正常返回 usage；边界：超时 → typed error + 许可释放。`T-TIMEOUT`；Run=NOT_RUN。
 
 #### `Router.snapshot() -> dict`
@@ -728,6 +762,8 @@ POST /v1/probes {deployment_id} -> 200 probe_result | 4xx: ErrorEnvelope
 
 > 单请求 trace `GET /v1/trace/{request_id}` 属 M-OBS（`IF-OBS-*`），本机制只在其 §12.2 引用，不重复定义。用量钩子 `authorize_dispatch`/`bind_backend`/`finish` 由 M-METER §5 完整定义（`IF-MET-AUTHORIZE`/`IF-MET-BIND`/`IF-MET-FINISH`）；本机制在 §5.1/§5.2 记录调用点，不重定义签名与字段。
 
+> **闭合核对**：§3 协作图与 §6、§14.3 的每条真实跨责任单元交接均在 §5.1/§5.2 有唯一接口记录（`IF-INF-RESPONSES`、`IF-INF-CREATE`、`IF-INF-ADMIT`、`IF-INF-COMPLETE`、`IF-INF-SNAPSHOT`、`IF-INF-RUNTIME`、`IF-INF-PROBE`、`IF-INF-STREAM`）；外部后端调用经 `IF-INF-COMPLETE`，M-METER/M-CONFIG/M-OBS 接口按引用登记。§5.1 非 N/A，进程内编排→许可→适配器交接已登记。结果未知（`provider_*`/`internal_error`）未被改写为确定失败（§4.8、§9）。
+
 ## 6. 正常端到端流程
 
 ![推理与流式返回时序](../../assets/diagrams/diagram-mech-infer-sequence.png)
@@ -747,6 +783,8 @@ POST /v1/probes {deployment_id} -> 200 probe_result | 4xx: ErrorEnvelope
 7. **归一** 构造终态 `ResponsesResponse`（status/output/usage）。
 8. **流式** `response_stream` 逐事件发送（§4.9 帧格式），终止于一个 terminal + `[DONE]`。
 9. **终态** `usage.finish(usage)`；异常路径 `finish(None)`（unknown）。
+
+**触发 → 结果 → 释放**：触发 = Consumer 提交 `POST /v1/responses`；结果 = 恰好一个 terminal 事件，或受理前的 typed error；释放 = 请求终态在 `finally` 释放准入许可并 `notify_all`。**关键提交点** = 第 3 步 `authorize_dispatch` 的义务事务（dispatch 前唯一持久事实）。中断点：义务提交前中断 → 未 dispatch、无上游副作用，重试视为新调用；义务提交后、后端调用发出前中断 → 库中留 unknown 义务，重启不回填为 0、不重放；后端已调用但响应丢失 → 结果未知，本系统不自动重放、不提供结果查询，交 Consumer 按标准 client retry policy（§9 F-IN-3）；流中途断开 → 部分输出已出站，`finish(None)` 保留 unknown。
 
 ### 6.1 交叠请求、跨轮次与生命周期边界
 
@@ -858,14 +896,14 @@ POST /v1/probes {deployment_id} -> 200 probe_result | 4xx: ErrorEnvelope
 |---|---|---|---|---|---|
 | Step 1 信任判定、生成 `request_id` | HTTP/SSE Adapter + Auth/Validation | Store（信任原语）| `Principal`、`request_id` | 凭据解析可自定；`Principal` 语义固定 | 契约 + 组合 |
 | Step 2 请求校验（字段/能力）| Auth/Validation | Registry/Config | 通过或 typed error | 实现可自定；**校验顺序固定**（§5.1）| 契约 |
-| Step 3 记 unknown 义务（C-INFER-3）| Usage Recorder | — | 义务行（unknown）| 存储布局可自定；未测不补零固定 | 系统用例 |
-| Step 4 准入 + 选后端（C-INFER-4）| Internal Admission + Exact Model Router | Registry/Config | permit（许可）+ candidate | 排序实现可自定；仅同等级固定 | 并发用例 |
+| Step 3 记 unknown 义务（CON-INFER-003）| Usage Recorder | — | 义务行（unknown）| 存储布局可自定；未测不补零固定 | 系统用例 |
+| Step 4 准入 + 选后端（CON-INFER-004）| Internal Admission + Exact Model Router | Registry/Config | permit（许可）+ candidate | 排序实现可自定；仅同等级固定 | 并发用例 |
 | Step 5 绑定后端 | Usage Recorder | — | provider/deployment 绑定 | — | 系统用例 |
 | Step 6 调用后端 | Provider Adapter | — | `ProviderResult`（usage/status/error）| 各后端映射可自定；typed error 固定 | 契约 |
 | Step 7 归一响应 | Inference 编排 | — | `ResponsesResponse` | 实现可自定；shape 固定 | 契约 |
-| Step 8 流式发送（C-INFER-1/2）| HTTP/SSE Adapter | — | SSE 事件序 + 一个 terminal | 缓冲可自定；事件子集与终态固定 | 组合（Piko 联调）|
+| Step 8 流式发送（CON-INFER-001/002）| HTTP/SSE Adapter | — | SSE 事件序 + 一个 terminal | 缓冲可自定；事件子集与终态固定 | 组合（Piko 联调）|
 | Step 9 终态记账 | Usage Recorder | — | 最新 record version（或 unknown）| 版本实现可自定；head 单调固定 | 系统用例 |
-| 全程观测（C-INFER-5）| Observability → `libdiag` | — | trace/快照（fail-open）| 存储/聚合可自定；fail-open 固定 | 观测用例 |
+| 全程观测（CON-INFER-005）| Observability → `libdiag` | — | trace/快照（fail-open）| 存储/聚合可自定；fail-open 固定 | 观测用例 |
 
 ### 14.3 责任单元间接口契约
 
@@ -888,14 +926,14 @@ POST /v1/probes {deployment_id} -> 200 probe_result | 4xx: ErrorEnvelope
 
 | 下级要求 ID | 承接对象 ID / 下级设计文档 | 来源 Capability / Step / Constraint / 接口成员 | 必须负责的行为与保证 | 必须提供/消费的接口 | 下级必须展开的问题 | 允许自行决定的范围 | 本地验证 / 组合验证交接 |
 |---|---|---|---|---|---|---|---|
-| R-INF-01 | HTTP/SSE Adapter · `http-api-design.md` | C-INFER-1/2、Step 8、interface `response_stream` | SSE 帧序、terminal 唯一、`request_id` 透传、请求体上限 | `response_stream`、`POST /v1/responses` 路由 | 帧缓冲/背压、断开检测与清理、413 | 缓冲与传输实现 | 契约；组合（Piko 联调）|
+| R-INF-01 | HTTP/SSE Adapter · `http-api-design.md` | CON-INFER-001/002、Step 8、interface `response_stream` | SSE 帧序、terminal 唯一、`request_id` 透传、请求体上限 | `response_stream`、`POST /v1/responses` 路由 | 帧缓冲/背压、断开检测与清理、413 | 缓冲与传输实现 | 契约；组合（Piko 联调）|
 | R-INF-02 | Auth/Validation · `http-api-design.md` | Step 1–2、interface `authenticate*` | 校验顺序（§5.1）、`Principal` 产生与下传 | `_auth()`/`authenticate_any()` | 凭据解析、错误映射 | 解析实现 | 契约 |
-| R-INF-03 | Internal Admission · `inference-design.md` | C-INFER-4、Step 4、interface `admit` | 并发/队列/等待/429、许可释放 | `admit()`、`snapshot()` | 队列结构、公平性、`Retry-After` | 队列/排序实现 | 并发用例 |
-| R-INF-04 | Exact Model Router · `management-design.md` | C-INFER-4、Step 4 | 大小写精确选择、同等级候选 | 候选（经 `admit()`）| 选择排序、健康/版本核验 | 排序实现 | 并发用例 |
+| R-INF-03 | Internal Admission · `inference-design.md` | CON-INFER-004、Step 4、interface `admit` | 并发/队列/等待/429、许可释放 | `admit()`、`snapshot()` | 队列结构、公平性、`Retry-After` | 队列/排序实现 | 并发用例 |
+| R-INF-04 | Exact Model Router · `management-design.md` | CON-INFER-004、Step 4 | 大小写精确选择、同等级候选 | 候选（经 `admit()`）| 选择排序、健康/版本核验 | 排序实现 | 并发用例 |
 | R-INF-05 | Provider Adapter · `inference-design.md` | Step 6、interface `complete` | 协议映射、usage 归一、typed error | `complete()` | 各后端映射、超时、错误分类 | 映射实现 | 契约 |
-| R-INF-06 | Usage Recorder · `inference-design.md` | C-INFER-3、Step 3/5/9 | 义务/绑定/终态、unknown 不补零 | `authorize_dispatch`/`bind_backend`/`finish` | 版本替换、并发写、归一（M-METER）| 存储实现 | 系统用例 |
+| R-INF-06 | Usage Recorder · `inference-design.md` | CON-INFER-003、Step 3/5/9 | 义务/绑定/终态、unknown 不补零 | `authorize_dispatch`/`bind_backend`/`finish` | 版本替换、并发写、归一（M-METER）| 存储实现 | 系统用例 |
 | R-INF-07 | Registry/Config · `management-design.md` | Step 2、interface `get_service_level` | 等级/能力只读查询 | `get_service_level()` | 快照读一致性（M-CONFIG）| 查询实现 | 契约 |
-| R-INF-08 | 诊断写入 · `observability-design.md` | C-INFER-5 | trace/快照、fail-open | 观测写入 | 默认关闭零开销、脱敏（M-OBS）| 存储/聚合实现 | 观测用例 |
+| R-INF-08 | 诊断写入 · `observability-design.md` | CON-INFER-005 | trace/快照、fail-open | 观测写入 | 默认关闭零开销、脱敏（M-OBS）| 存储/聚合实现 | 观测用例 |
 
 **约束**：下游模块设计不得改变本机制已固定的对外事件子集与错误语义；跨模块新增接口须回写本节并关联模块设计。
 
@@ -905,9 +943,9 @@ POST /v1/probes {deployment_id} -> 200 probe_result | 4xx: ErrorEnvelope
 
 | Test / Constraint | 输入与预置事实 | arm/hit/release | 独立 Oracle |
 |---|---|---|---|
-| T-STREAM / C-INFER-1..2 | 固定 request（Worker）| — | 事件序 + 恰好一个 terminal（对照 OpenAPI 子集）|
+| T-STREAM / CON-INFER-001..002 | 固定 request（Worker）| — | 事件序 + 恰好一个 terminal（对照 OpenAPI 子集）|
 | T-TOOLS / CAP-TOOLS | 带 `tools` | — | `function_call_arguments.*` 出现或 200 完整（上游行为不作断言）|
-| T-QUEUE / C-INFER-4 | 预置占满队列 | 并发请求 | 429 + `Retry-After` |
+| T-QUEUE / CON-INFER-004 | 预置占满队列 | 并发请求 | 429 + `Retry-After` |
 | T-TIMEOUT / §7 | `LLMTIER_SLOW_ADAPTER_DELAY` | 设置/清除 | 超时错误 + 许可释放 |
 | T-DISCONNECT / §7 | 主动断开 | — | 结束调用；`finish(None)` |
 
@@ -925,13 +963,15 @@ POST /v1/probes {deployment_id} -> 200 probe_result | 4xx: ErrorEnvelope
 |---|---|---|---|---|
 | LT-OPEN-05 | 设计闭合/实现门禁 | 流注入需改造流式输出 | 确认实现方案 | 未决 |
 | RISK-INFER-1 | 风险 | 后端长尾延迟导致超时/429 | 由超时与 429 约束；实测后调参 | 观察 |
+| RISK-INFER-2 | 变更影响 | `CON-INFER-*` 已在本机制登记，系统设计 §3.4 与 ISD 仍引用历史 `C-INFER-*` | 回写系统摘要、ISD 承接与 §14.4 引用 | 待回写（不阻塞本机制） |
 
 ## A. 输入基线、适用性与图文规则
 
-- 输入：系统设计 §3/§7.2/§9.1；`LT-ADR-01/04`；`interfaces/openapi/llmtier.openapi.json`。
-- 适用性：纯软件、单进程、HTTP API 机制。§4.9（二进制 ABI）不适用；§8.1（租约/持久预留）不适用（仅临时许可）。
-- 图：时序图（§6）表达请求/响应与等待；已有系统设计 §7.2 同源。
+- 输入基线：系统设计 §3/§7.2/§9.1；`LT-ADR-01/04`；`interfaces/openapi/llmtier.openapi.json`、`interfaces/vectors/v0.3/*`。
+- 适用性：纯软件、单进程、HTTP API 机制。§4.5/§5.3（设备/FPGA）不适用（`std-tailoring` `LT-TL-003`）；§4.7（持久表）不适用（账本归 M-METER、配置归 M-CONFIG）；§4.9（二进制 ABI）不适用（HTTP/JSON 与 SSE 文本帧）；§8.1（租约/持久预留）不适用（仅临时许可，`finally` 释放）。
+- 图文规则：§1 用途概览 `diagram-mech-infer-usage`（Current）、§3 参与方协作 `diagram-mech-infer-collab`（Current）、§4 数据对象 `diagram-mech-infer-objects`（Current）、§6 正常时序 `diagram-mech-infer-sequence`。一图一问题；交互图用语义方向线，数据图不冒充时序。
+- 数据对象图触发：请求/结果在入口、编排、适配器、出口与账本之间经历归一变换与所有权转移，故按条件画图并标注损失与 unknown 边界。
 
 ## B. 文档控制与修订记录
 
-初版见 Git 历史；本版（`0.1.0-draft.3`）补实全部章节并加入时序图。
+初版见 Git 历史；`0.1.0-draft.3` 补实全部章节并加入时序图；`0.1.0-draft.6` 按 `design.system-mechanism` 3.3.0 补用途/参与方/数据三图、"机制形态与适用性"块、关键提交中断点，并把历史 `C-INFER-*` 登记为 `CON-INFER-*`。

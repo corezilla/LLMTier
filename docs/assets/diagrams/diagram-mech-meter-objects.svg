@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="840" viewBox="0 0 1440 840" role="img" aria-labelledby="t d">
+<title id="t">图 M-METER-O-01：数据对象、变换与寿命</title><desc id="d">义务(unknown) → 版本追加 + head 推进 → 冻结 snapshot 视图；只追加、不累加、不补零。</desc>
+<style>text{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;fill:#1f2d3d;} .ttl{font-size:33px;font-weight:600;} .sub{font-size:18px;fill:#5b6b7d;} .bt{font-size:23px;font-weight:600;} .bd{font-size:19px;} .sm{font-size:17px;fill:#5b6b7d;} .lg{font-size:17px;fill:#5b6b7d;}</style>
+<defs>
+<marker id="ahb" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2f6fb5"/></marker>
+<marker id="ahg" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8a99a8"/></marker>
+<marker id="ahp" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8a5bb5"/></marker>
+</defs>
+<rect width="1440" height="840" fill="#ffffff"/>
+<text x="720" y="52" text-anchor="middle" font-size="33" font-weight="600" fill="#1f2d3d">图 M-METER-O-01：数据对象、变换与寿命</text>
+<text x="720" y="86" text-anchor="middle" font-size="18" font-weight="400" fill="#5b6b7d">Current · LLMTier 纯软件单进程 · 图注与正文共同解释</text>
+<text x="720" y="138" text-anchor="middle" font-size="18" font-weight="400" fill="#5b6b7d">唯一权威：Usage Recorder 写、Store 事务、SQLite 为事实来源；D-USAGE-* 继承系统 §8.2。</text>
+<text x="720" y="171" text-anchor="middle" font-size="18" font-weight="400" fill="#5b6b7d">一致性/寿命：同 request 版本只追加、head 单调；快照 TTL 10 分钟；DELETE 为一次性管理动作不可回滚；崩溃后 unknown</text>
+<text x="720" y="196" text-anchor="middle" font-size="18" font-weight="400" fill="#5b6b7d">义务仍在。</text>
+<rect x="40.0" y="280.0" width="314.5" height="200.0" rx="12" fill="#eef3fb" stroke="#c7d4e4" stroke-width="2"/><text x="197.25" y="361.0" text-anchor="middle" font-size="21" font-weight="600">D-USAGE-OBLIGATION</text><text x="197.25" y="387.0" text-anchor="middle" font-size="19" font-weight="400">PK (principal,request)</text><text x="197.25" y="413.0" text-anchor="middle" font-size="19" font-weight="400">dispatch 前必先存在</text>
+<line x1="354.5" y1="380.0" x2="388.5" y2="380.0" stroke="#2f6fb5" stroke-width="2.5" marker-end="url(#ahb)"/><text x="371.5" y="264" text-anchor="middle" font-size="17" fill="#44566b" style="paint-order:stroke;stroke:#ffffff;stroke-width:5px;stroke-linejoin:round">追加版本</text>
+<rect x="388.5" y="280.0" width="314.5" height="200.0" rx="12" fill="#eef3fb" stroke="#c7d4e4" stroke-width="2"/><text x="545.75" y="361.0" text-anchor="middle" font-size="21" font-weight="600">D-USAGE-RECORD v1..n</text><text x="545.75" y="387.0" text-anchor="middle" font-size="19" font-weight="400">只追加，不累计</text><text x="545.75" y="413.0" text-anchor="middle" font-size="19" font-weight="400">unknown ⇒ token NULL</text>
+<line x1="703.0" y1="380.0" x2="737.0" y2="380.0" stroke="#2f6fb5" stroke-width="2.5" marker-end="url(#ahb)"/><text x="720.0" y="264" text-anchor="middle" font-size="17" fill="#44566b" style="paint-order:stroke;stroke:#ffffff;stroke-width:5px;stroke-linejoin:round">推进 head</text>
+<rect x="737.0" y="280.0" width="314.5" height="200.0" rx="12" fill="#dce9f8" stroke="#c7d4e4" stroke-width="2"/><text x="894.25" y="361.0" text-anchor="middle" font-size="21" font-weight="600">D-USAGE-HEAD</text><text x="894.25" y="387.0" text-anchor="middle" font-size="19" font-weight="400">单调不减</text><text x="894.25" y="413.0" text-anchor="middle" font-size="19" font-weight="400">指向存在版本</text>
+<line x1="1051.5" y1="380.0" x2="1085.5" y2="380.0" stroke="#2f6fb5" stroke-width="2.5" marker-end="url(#ahb)"/><text x="1068.5" y="264" text-anchor="middle" font-size="17" fill="#44566b" style="paint-order:stroke;stroke:#ffffff;stroke-width:5px;stroke-linejoin:round">冻结投影</text>
+<rect x="1085.5" y="280.0" width="314.5" height="200.0" rx="12" fill="#eef3fb" stroke="#c7d4e4" stroke-width="2"/><text x="1242.75" y="361.0" text-anchor="middle" font-size="21" font-weight="600">D-MET-USAGE-VIEW</text><text x="1242.75" y="387.0" text-anchor="middle" font-size="19" font-weight="400">取 head 单条，不累加</text><text x="1242.75" y="413.0" text-anchor="middle" font-size="19" font-weight="400">D-MET-QUERY-SNAPSHOT 冻结</text>
+<text x="720" y="812" text-anchor="middle" font-size="16" font-weight="400" fill="#7a8899">数据图只表达对象变化；义务→绑定→终态时序见 §6，孤儿 unknown 见 §8.1/§9。</text>
+</svg>

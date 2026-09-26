@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="840" viewBox="0 0 1440 840" role="img" aria-labelledby="t d">
+<title id="t">图 M-OBS-C-01：参与方、事实与跨边界交接</title><desc id="d">Inference 在请求路径产生事实；libdiag 拥有记录读写；Observability 只呈现，不直读库。</desc>
+<style>text{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;fill:#1f2d3d;} .ttl{font-size:33px;font-weight:600;} .sub{font-size:18px;fill:#5b6b7d;} .bt{font-size:23px;font-weight:600;} .bd{font-size:19px;} .sm{font-size:17px;fill:#5b6b7d;} .lg{font-size:17px;fill:#5b6b7d;}</style>
+<defs>
+<marker id="ahb" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2f6fb5"/></marker>
+<marker id="ahg" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8a99a8"/></marker>
+<marker id="ahp" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8a5bb5"/></marker>
+</defs>
+<rect width="1440" height="840" fill="#ffffff"/>
+<text x="720" y="52" text-anchor="middle" font-size="33" font-weight="600" fill="#1f2d3d">图 M-OBS-C-01：参与方、事实与跨边界交接</text>
+<text x="720" y="86" text-anchor="middle" font-size="18" font-weight="400" fill="#5b6b7d">Current · LLMTier 纯软件单进程 · 图注与正文共同解释</text>
+<rect x="50.0" y="240.0" width="200.0" height="100.0" rx="12" fill="#eef3fb" stroke="#c7d4e4" stroke-width="2"/><text x="150.0" y="284.0" text-anchor="middle" font-size="21" font-weight="600">Operator</text><text x="150.0" y="310.0" text-anchor="middle" font-size="19" font-weight="400">开关/注入/查询</text>
+<rect x="345.0" y="225.0" width="250.0" height="130.0" rx="12" fill="#dce9f8" stroke="#c7d4e4" stroke-width="2"/><text x="470.0" y="271.0" text-anchor="middle" font-size="21" font-weight="600">Observability</text><text x="470.0" y="297.0" text-anchor="middle" font-size="19" font-weight="400">查询与呈现</text><text x="470.0" y="323.0" text-anchor="middle" font-size="19" font-weight="400">不直读库</text>
+<rect x="685.0" y="230.0" width="230.0" height="120.0" rx="12" fill="#eef3fb" stroke="#c7d4e4" stroke-width="2"/><text x="800.0" y="271.0" text-anchor="middle" font-size="21" font-weight="600">HTTP Adapter</text><text x="800.0" y="297.0" text-anchor="middle" font-size="19" font-weight="400">诊断路由</text><text x="800.0" y="323.0" text-anchor="middle" font-size="19" font-weight="400">关联标识透传</text>
+<rect x="1015.0" y="215.0" width="250.0" height="150.0" rx="12" fill="#dce9f8" stroke="#c7d4e4" stroke-width="2"/><text x="1140.0" y="271.0" text-anchor="middle" font-size="21" font-weight="600">libdiag (M006)</text><text x="1140.0" y="297.0" text-anchor="middle" font-size="19" font-weight="400">能力提供 authority</text><text x="1140.0" y="323.0" text-anchor="middle" font-size="19" font-weight="400">拥有：开关/注入/记录</text>
+<rect x="1015.0" y="555.0" width="250.0" height="130.0" rx="12" fill="#eef3fb" stroke="#c7d4e4" stroke-width="2"/><text x="1140.0" y="601.0" text-anchor="middle" font-size="21" font-weight="600">Inference 请求路径</text><text x="1140.0" y="627.0" text-anchor="middle" font-size="19" font-weight="400">按配置注入并写事实</text><text x="1140.0" y="653.0" text-anchor="middle" font-size="19" font-weight="400">不改推理结果</text>
+<rect x="685.0" y="565.0" width="230.0" height="110.0" rx="12" fill="#eef3fb" stroke="#c7d4e4" stroke-width="2"/><text x="800.0" y="614.0" text-anchor="middle" font-size="21" font-weight="600">Store / SQLite</text><text x="800.0" y="640.0" text-anchor="middle" font-size="19" font-weight="400">6 张观测表</text>
+<line x1="250.0" y1="290" x2="345.0" y2="290" stroke="#2f6fb5" stroke-width="2.5" marker-end="url(#ahb)"/><text x="297.5" y="280.0" text-anchor="middle" font-size="17" fill="#44566b" style="paint-order:stroke;stroke:#ffffff;stroke-width:5px;stroke-linejoin:round">管理面操作</text>
+<line x1="595.0" y1="290" x2="685.0" y2="290" stroke="#2f6fb5" stroke-width="2.5" marker-end="url(#ahb)"/><text x="640.0" y="280.0" text-anchor="middle" font-size="17" fill="#44566b" style="paint-order:stroke;stroke:#ffffff;stroke-width:5px;stroke-linejoin:round">IF-OBS-API-*</text>
+<line x1="915.0" y1="277" x2="1015.0" y2="277" stroke="#2f6fb5" stroke-width="2.5" marker-end="url(#ahb)"/><text x="965.0" y="267.0" text-anchor="middle" font-size="17" fill="#44566b" style="paint-order:stroke;stroke:#ffffff;stroke-width:5px;stroke-linejoin:round">IF-OBS-SWITCH/QUERY</text>
+<line x1="1015.0" y1="303" x2="915.0" y2="303" stroke="#8a99a8" stroke-width="2.5" stroke-dasharray="7,5" marker-end="url(#ahg)"/><text x="965.0" y="293.0" text-anchor="middle" font-size="17" fill="#44566b" style="paint-order:stroke;stroke:#ffffff;stroke-width:5px;stroke-linejoin:round">结果</text>
+<line x1="1140" y1="555.0" x2="1140" y2="365.0" stroke="#2f6fb5" stroke-width="2.5" marker-end="url(#ahb)"/><text x="1122" y="460.0" text-anchor="end" font-size="17" fill="#44566b" style="paint-order:stroke;stroke:#ffffff;stroke-width:5px;stroke-linejoin:round">IF-OBS-RECORD-*</text>
+<line x1="1015.0" y1="290" x2="915.0" y2="620" stroke="#2f6fb5" stroke-width="2.5" marker-end="url(#ahb)"/><text x="965.0" y="445.0" text-anchor="middle" font-size="17" fill="#44566b" style="paint-order:stroke;stroke:#ffffff;stroke-width:5px;stroke-linejoin:round">读写观测表</text>
+<line x1="250.0" y1="290" x2="1015.0" y2="620" stroke="#2f6fb5" stroke-width="2.5" marker-end="url(#ahb)"/><text x="632.5" y="445.0" text-anchor="middle" font-size="17" fill="#44566b" style="paint-order:stroke;stroke:#ffffff;stroke-width:5px;stroke-linejoin:round">注入经 libdiag 生效</text>
+<rect x="40" y="758" width="1360" height="40" rx="10" fill="#f7f9fc" stroke="#c7d4e4" stroke-width="1"/>
+<line x1="70" y1="778" x2="124" y2="778" stroke="#2f6fb5" stroke-width="2.5" marker-end="url(#ahb)"/>
+<text x="134" y="784" text-anchor="start" font-size="17" font-weight="400" fill="#5b6b7d">实线=请求/写入</text>
+<line x1="400" y1="778" x2="454" y2="778" stroke="#8a99a8" stroke-width="2.5" stroke-dasharray="7,5" marker-end="url(#ahg)"/>
+<text x="464" y="784" text-anchor="start" font-size="17" font-weight="400" fill="#5b6b7d">虚线=查询结果</text>
+<text x="720" y="826" text-anchor="middle" font-size="15" font-weight="400" fill="#7a8899">跨单元边界对应 §5.1：IF-OBS-API-*、IF-OBS-SWITCH、IF-OBS-RECORD-*、IF-OBS-TRACE-QUERY；底层实现见 M006 §9。</text>
+</svg>

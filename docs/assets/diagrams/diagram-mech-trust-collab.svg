@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="840" viewBox="0 0 1440 840" role="img" aria-labelledby="t d">
+<title id="t">图 M-TRUST-C-01：参与方、事实与跨边界交接</title><desc id="d">入口 Auth/Validation 拥有一次判定事实；Principal 跨入业务模块，业务只消费 role。</desc>
+<style>text{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;fill:#1f2d3d;} .ttl{font-size:33px;font-weight:600;} .sub{font-size:18px;fill:#5b6b7d;} .bt{font-size:23px;font-weight:600;} .bd{font-size:19px;} .sm{font-size:17px;fill:#5b6b7d;} .lg{font-size:17px;fill:#5b6b7d;}</style>
+<defs>
+<marker id="ahb" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2f6fb5"/></marker>
+<marker id="ahg" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8a99a8"/></marker>
+<marker id="ahp" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8a5bb5"/></marker>
+</defs>
+<rect width="1440" height="840" fill="#ffffff"/>
+<text x="720" y="52" text-anchor="middle" font-size="33" font-weight="600" fill="#1f2d3d">图 M-TRUST-C-01：参与方、事实与跨边界交接</text>
+<text x="720" y="86" text-anchor="middle" font-size="18" font-weight="400" fill="#5b6b7d">Current · LLMTier 纯软件单进程 · 图注与正文共同解释</text>
+<rect x="50.0" y="250.0" width="200.0" height="100.0" rx="12" fill="#eef3fb" stroke="#c7d4e4" stroke-width="2"/><text x="150.0" y="281.0" text-anchor="middle" font-size="21" font-weight="600">Client /</text><text x="150.0" y="307.0" text-anchor="middle" font-size="19" font-weight="400">Operator</text><text x="150.0" y="333.0" text-anchor="middle" font-size="19" font-weight="400">发起 HTTP 请求</text>
+<rect x="345.0" y="225.0" width="250.0" height="150.0" rx="12" fill="#dce9f8" stroke="#c7d4e4" stroke-width="2"/><text x="470.0" y="268.0" text-anchor="middle" font-size="21" font-weight="600">Auth/Validation</text><text x="470.0" y="294.0" text-anchor="middle" font-size="19" font-weight="400">判定唯一 authority</text><text x="470.0" y="320.0" text-anchor="middle" font-size="19" font-weight="400">拥有：Principal</text><text x="470.0" y="346.0" text-anchor="middle" font-size="19" font-weight="400">判定事实</text>
+<rect x="695.0" y="250.0" width="210.0" height="100.0" rx="12" fill="#eef3fb" stroke="#c7d4e4" stroke-width="2"/><text x="800.0" y="294.0" text-anchor="middle" font-size="21" font-weight="600">HTTP Adapter</text><text x="800.0" y="320.0" text-anchor="middle" font-size="19" font-weight="400">按端点选 role</text>
+<rect x="1015.0" y="225.0" width="250.0" height="150.0" rx="12" fill="#eef3fb" stroke="#c7d4e4" stroke-width="2"/><text x="1140.0" y="281.0" text-anchor="middle" font-size="21" font-weight="600">业务模块 M003–M005</text><text x="1140.0" y="307.0" text-anchor="middle" font-size="19" font-weight="400">只读 role 选择视图</text><text x="1140.0" y="333.0" text-anchor="middle" font-size="19" font-weight="400">不二次校验</text>
+<rect x="320.0" y="565.0" width="300.0" height="110.0" rx="12" fill="#eef3fb" stroke="#c7d4e4" stroke-width="2"/><text x="470.0" y="601.0" text-anchor="middle" font-size="21" font-weight="600">进程环境 / 部署配置</text><text x="470.0" y="627.0" text-anchor="middle" font-size="19" font-weight="400">token 存在性（不存</text><text x="470.0" y="653.0" text-anchor="middle" font-size="19" font-weight="400">Secret）</text>
+<line x1="250.0" y1="287" x2="345.0" y2="287" stroke="#2f6fb5" stroke-width="2.5" marker-end="url(#ahb)"/><text x="297.5" y="277.0" text-anchor="middle" font-size="17" fill="#44566b" style="paint-order:stroke;stroke:#ffffff;stroke-width:5px;stroke-linejoin:round">请求</text>
+<line x1="345.0" y1="313" x2="250.0" y2="313" stroke="#8a99a8" stroke-width="2.5" stroke-dasharray="7,5" marker-end="url(#ahg)"/><text x="297.5" y="303.0" text-anchor="middle" font-size="17" fill="#44566b" style="paint-order:stroke;stroke:#ffffff;stroke-width:5px;stroke-linejoin:round">Principal / 错误</text>
+<line x1="595.0" y1="300" x2="695.0" y2="300" stroke="#2f6fb5" stroke-width="2.5" marker-end="url(#ahb)"/><text x="645.0" y="290.0" text-anchor="middle" font-size="17" fill="#44566b" style="paint-order:stroke;stroke:#ffffff;stroke-width:5px;stroke-linejoin:round">Principal</text>
+<line x1="905.0" y1="300" x2="1015.0" y2="300" stroke="#2f6fb5" stroke-width="2.5" marker-end="url(#ahb)"/><text x="960.0" y="290.0" text-anchor="middle" font-size="17" fill="#44566b" style="paint-order:stroke;stroke:#ffffff;stroke-width:5px;stroke-linejoin:round">role 下传</text>
+<line x1="470" y1="565.0" x2="470" y2="375.0" stroke="#2f6fb5" stroke-width="2.5" marker-end="url(#ahb)"/><text x="452" y="470.0" text-anchor="end" font-size="17" fill="#44566b" style="paint-order:stroke;stroke:#ffffff;stroke-width:5px;stroke-linejoin:round">D-TRUST-CONFIG</text>
+<rect x="40" y="758" width="1360" height="40" rx="10" fill="#f7f9fc" stroke="#c7d4e4" stroke-width="1"/>
+<line x1="70" y1="778" x2="124" y2="778" stroke="#2f6fb5" stroke-width="2.5" marker-end="url(#ahb)"/>
+<text x="134" y="784" text-anchor="start" font-size="17" font-weight="400" fill="#5b6b7d">实线=请求/数据交接</text>
+<line x1="400" y1="778" x2="454" y2="778" stroke="#8a99a8" stroke-width="2.5" stroke-dasharray="7,5" marker-end="url(#ahg)"/>
+<text x="464" y="784" text-anchor="start" font-size="17" font-weight="400" fill="#5b6b7d">虚线=响应/事实返回</text>
+<text x="720" y="826" text-anchor="middle" font-size="15" font-weight="400" fill="#7a8899">每条跨单元边界对应 §5.1：IF-TRUST-UNAUTH / IF-TRUST-AUTH / IF-TRUST-AUTH-ANY。</text>
+</svg>

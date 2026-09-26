@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-config-lifecycle-mechanism` |
-| Document Version | `0.1.0-draft.5` |
+| Document Version | `0.1.0-draft.6` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -15,7 +15,7 @@
 | Created Date | `2026-09-22` |
 | Last Modified Date | `2026-09-25` |
 | Template ID | `design.system-mechanism` |
-| Template Version | `3.2.0` |
+| Template Version | `3.3.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |
@@ -37,6 +37,16 @@
 
 **核心取舍**：**单次 bootstrap、不热载文件**。初始化后即使文件变化也不自动重导入（避免双写歧义）。
 
+![图 M-CONFIG-U-01：配置生命周期机制的用途概览](../../assets/diagrams/diagram-mech-config-usage.png)
+
+[可编辑 SVG 源](../../assets/diagrams/diagram-mech-config-usage.svg)
+
+图 M-CONFIG-U-01 · Current；空库首次启动读一次 `settings.json`，管理面变更走 ETag 事务，推理按 `ordinal` 只读候选；引导失败保持 not_ready 不接流量。图只表达场景、处理范围与外部结果，不画内部调用顺序；参与方分工见 §3，引导/变更时序见 §6。
+
+- **机制形态与适用性 / 业务副作用**：具体副作用——`bootstrap_settings` 与 CRUD 在 SQLite 单事务内写入 providers/deployments/service_levels 及审计事件，发布提交是唯一"确认"点；事实依据 §5.1 `IF-CFG-*` 的写入事务与 §4.7 持久表。
+- **交接域**：纯软件。规则决定在 M004 Management，持久化由 Store 承担，推理只读经 M003 Router；无连接器、总线、寄存器或 FPGA 责任单元，故 §4.5、§5.3 不适用。
+- **裁剪依据**：`std-tailoring` `LT-TL-003`（纯软件、无设备/FPGA 与子系统）；§4.5/§5.3 见该决定，§4.9 仅给编码阅读视图（SQLite/JSON，无二进制 ABI）。
+
 ## 2. 使用场景与功能
 
 | Capability ID | 业务任务与触发 | 输入与可观察结果 | 提供方 / 消费者 | 实现状态 | 验证判据 |
@@ -52,17 +62,34 @@
 
 ## 3. 参与方、责任和 authority
 
+![图 M-CONFIG-C-01：参与方、事实与跨边界交接](../../assets/diagrams/diagram-mech-config-collab.png)
+
+[可编辑 SVG 源](../../assets/diagrams/diagram-mech-config-collab.svg)
+
+图 M-CONFIG-C-01 · Current；启动流程与 Management 共同决定配置，Management 是规则 Owner 与事务 Writer，Store/SQLite 是唯一事实来源；Router 只读候选、Web UI 只经管理面。蓝实线为请求/写入，灰虚线为权威事实返回；工程 Owner 不作为运行组件。每条跨边界交接对应 §5.1 成员登记（`IF-CFG-*`）与 §4.7 唯一持久化。
+
+| Participant / 工程 Owner | 负责/不负责 | 决定/写入/事实来源/恢复（适用时） | Provided/Consumed interface | 部署/实现位置 | 依赖机制与基线 |
+|---|---|---|---|---|---|
+| 启动流程 · LLMTier | 负责迁移、读 settings、一次性引导、not_ready；不处理运行期变更 | 决定=是否引导；写入=bootstrap 事务；事实来源=`schema_meta.bootstrap_sha256`；恢复=重启以库内事实为准 | 提供/消费 `IF-CFG-BOOTSTRAP`（§5.1） | 启动路径（`__main__`） | 无（顶层机制） |
+| Management（Registry/Config、Admin）· LLMTier | 负责 CRUD、ETag、能力/不变量校验、审计、有序候选；不承载推理 | 决定=规则与发布；写入=单事务；事实来源=Registry 行；恢复=发布失败回滚、旧快照不变 | 提供 `IF-CFG-PROVIDERS`、`IF-CFG-DEPLOYMENTS`、`IF-CFG-LEVELS`、`IF-CFG-CANDIDATES`、`IF-CFG-GET-LEVEL`（§5.1） | M004 业务层 | 无 |
+| Store / Audit Writer · LLMTier | 负责事务与唯一持久化、审计写入；不做业务规则 | 决定=无；写入=各持久表（§4.7）；事实来源=SQLite 文件；恢复=崩溃以已提交行为准 | 提供 `transaction`（§4.7） | M007 基础层 | 无 |
+| Inference / Router · LLMTier | 只读等级/能力与有序候选；不做跨等级 fallback | 决定=同等级内选择；写入=无；事实来源=Registry（每请求核验）；恢复=请求级只读 | 消费 `IF-CFG-CANDIDATES`、`IF-CFG-GET-LEVEL`（§5.1） | M003 业务层 | M-CONFIG（本机制） |
+| HTTP Adapter · HTTP API / LLMTier | 管理面路由与错误映射；不含业务规则 | 决定=无；写入=无；事实来源=Registry 响应；恢复=不适用 | 消费 `IF-CFG-PROVIDERS`/`IF-CFG-DEPLOYMENTS`/`IF-CFG-LEVELS`（§5.1） | M001 入口层 | 无 |
+| Web UI · Web UI / LLMTier | 管理控制台；不直读库/Secret | 决定=无；写入=无；事实来源=管理面响应；恢复=不适用 | 消费管理面（§5.1） | M002 入口层 | M-CONFIG（本机制） |
+
 ### 3.1 系统约束与参与方承接
 
 本机制为顶层机制（上级 Mechanism ID = none），约束继承自系统设计 §3 与 §10。
 
 | Constraint ID | 约束 | 参与方保证 | 自由度 | 本文落实位置 |
 |---|---|---|---|---|
-| C-CFG-1 | 初始化后 SQLite 是唯一运行权威 | Management | 存储布局 | §4.6、§4.10、§8 |
-| C-CFG-2 | Secret 明文不入库，只存引用 | Management | 引用形式 | §4.3、§11 |
-| C-CFG-3 | 发布先验证引用/不变量，再原子推进 | Management | 事务实现 | §6、§8 |
-| C-CFG-4 | 变更失败回滚且不改 active snapshot | Management | — | §7、§9 |
-| C-CFG-5 | 初始化失败服务 not_ready | 启动 | — | §9 |
+| CON-CFG-001 | 初始化后 SQLite 是唯一运行权威 | Management | 存储布局 | §4.6、§4.10、§8 |
+| CON-CFG-002 | Secret 明文不入库，只存引用 | Management | 引用形式 | §4.3、§11 |
+| CON-CFG-003 | 发布先验证引用/不变量，再原子推进 | Management | 事务实现 | §6、§8 |
+| CON-CFG-004 | 变更失败回滚且不改 active snapshot | Management | — | §7、§9 |
+| CON-CFG-005 | 初始化失败服务 not_ready | 启动 | — | §9 |
+
+**约束 ID 说明**：本版按 3.3.0 规则把历史 `C-CFG-1..5` 登记为 `CON-CFG-001..005`（类别：机制约束，命名域 M-CONFIG），语义不变；系统设计 §3.4 与下级 ISD 中的历史 `C-CFG-*` 引用为待回写项，登记于 §16。
 
 ### 3.2 运行时统筹与确认责任
 
@@ -77,6 +104,12 @@
 > 按 STD `design-data-interface-format` 1.2.0 §2：主章“数据结构设计”，章内按**数据性质**分类（§4.1–§4.8），本层特有分析见 §4.9–§4.10。仅保留适用类别。继承/机器源结构只定位原定义与本层投影，不复制字段权威。本机制拥有的类型 ID 前缀 `D-CFG-*`；配置持久 authority = `util/migrations/*.sql`，机器源 = `interfaces/schemas/llmtier-settings-v0.3.schema.json` + `openapi`。
 
 **类别适用性**：§4.1 公共基础类型与枚举 ✓｜§4.2 业务与操作数据结构 ✓｜§4.3 配置与规则数据结构 ✓｜§4.4 通信报文结构 ✓（管理面 wire 继承 `openapi`）｜§4.5 设备与 FPGA 表项结构 ✗（纯软件，无设备/RTL）｜§4.6 运行状态数据结构 ✓｜§4.7 数据库表结构 ✓｜§4.8 错误码与错误结构 ✓（引用系统 §8.8）。
+
+![图 M-CONFIG-O-01：数据对象、变换与寿命](../../assets/diagrams/diagram-mech-config-objects.png)
+
+[可编辑 SVG 源](../../assets/diagrams/diagram-mech-config-objects.svg)
+
+图 M-CONFIG-O-01 · Current；`settings.json` 一次性校验并事务变换为 SQLite 行，`bootstrap_sha256` 固定后文件不再影响运行；`D-CFG-CANDIDATE` 是每次请求重新核验的只读投影。对象跨启动/Management/Store/Router 责任单元经历复制、持久化与所有权转移，故需数据对象图明确损失边界（`secret_ref` 只保留引用、不回显明文）。数据图不表示调用顺序；引导/变更时序见 §6。
 
 ### 4.1 公共基础类型与枚举
 
@@ -304,7 +337,7 @@ SettingsDocument {
 
 - **跨字段与寿命**：
 
-  顶层节集**恰为** {`providers`, `deployments`, `service_levels`}；ID 唯一；引用完整；`secret_ref` 仅 `env:`/`file:` 且可达；`capabilities` 键 ⊆ `CAPABILITY_KEYS` 且四个布尔键为 bool；仅引导时读取，不参与运行期（C-CFG-1），文件不热载。
+  顶层节集**恰为** {`providers`, `deployments`, `service_levels`}；ID 唯一；引用完整；`secret_ref` 仅 `env:`/`file:` 且可达；`capabilities` 键 ⊆ `CAPABILITY_KEYS` 且四个布尔键为 bool；仅引导时读取，不参与运行期（CON-CFG-001），文件不热载。
 
 - **合法/拒绝实例**：
 
@@ -495,7 +528,7 @@ BootstrapState {
 
 - **跨字段与寿命**：
 
-  唯一写者=引导事务；已有 hash → no-op（INV-2）；失败保持 `not_ready` 且不接流量（C-CFG-5）；单行持久，库寿命；M004 写、启动/健康读。
+  唯一写者=引导事务；已有 hash → no-op（INV-2）；失败保持 `not_ready` 且不接流量（CON-CFG-005）；单行持久，库寿命；M004 写、启动/健康读。
 
 - **合法/拒绝实例**：
 
@@ -765,6 +798,8 @@ migrate(store_path) -> {from_version, to_version} | non-zero exit
 
 > `GET /healthz`（存活探针）为项目健康契约，记录于 §12.2，不构成本机制的数据/接口分配对象。
 
+> **闭合核对**：§3 协作图与 §6、§14.3 的每条真实跨责任单元交接均在 §5.1/§5.4 有唯一接口记录（`IF-CFG-BOOTSTRAP`、`IF-CFG-PROVIDERS`、`IF-CFG-DEPLOYMENTS`、`IF-CFG-LEVELS`、`IF-CFG-CANDIDATES`、`IF-CFG-GET-LEVEL`、`IF-CFG-READY`、`IF-CFG-MIGRATE`）；§5.1 非 N/A，Management→Router 与启动→Management 的进程内交接已登记。Store 持久化边界与 `settings.json` 输入分别经 §4.7 表结构、§4.3 配置结构与 §13 登记，是无独立跨单元调用接口的持久化/配置输入，不构成规格缺口。§4.8 的校验失败/版本冲突/存储不可用均为已知失败，结果未知不被改写为失败。
+
 ## 6. 正常端到端流程
 
 ![配置引导与变更时序](../../assets/diagrams/diagram-mech-config-sequence.png)
@@ -779,6 +814,8 @@ migrate(store_path) -> {from_version, to_version} | non-zero exit
 4. **事务写入**：providers/deployments/levels + `bootstrap_sha256` + bootstrap 审计；任一步失败回滚。
 5. **就绪**：写入成功 → `/readyz` 就绪。
 6. **运行期变更**：管理面事务 + ETag + 能力/不变量校验 + 审计。
+
+**触发 → 结果 → 释放**：引导触发 = 空库启动；结果 = Registry 就绪或 `not_ready`；释放 = 事务资源随提交/回滚归还，无租约。**关键提交点** = 写入配置行 + `bootstrap_sha256`（引导）或推进资源 `version` + 审计（变更）的同一事务提交。中断点：提交前中断 → 事务回滚、库保持空/旧，重启按 `ERR-BOOT` 继续引导，绝不半写；提交后但确认未达 → 重启见 `bootstrap_sha256` 已置位即 no-op，不回导；CRUD 提交前中断 → 旧版本与 ETag 不变，调用方重读后按 `If-Match` 重试；提交后中断 → 以已提交版本为准，调用方重新 GET。判定只依据库内权威事实，不依赖内存标志。
 
 ### 6.1 交叠请求、跨轮次与生命周期边界
 
@@ -844,7 +881,7 @@ migrate(store_path) -> {from_version, to_version} | non-zero exit
 | Secret 引用 | operator | 只写引用 | 明文拒绝 | — |
 | 配置读取 | operator | 管理面 | 401/403 | — |
 
-边界：Secret 明文不进入库、普通响应、日志或 UI 回显（C-CFG-2）。
+边界：Secret 明文不进入库、普通响应、日志或 UI 回显（CON-CFG-002）。
 
 ## 12. 可观测性与证据
 
@@ -885,9 +922,9 @@ migrate(store_path) -> {from_version, to_version} | non-zero exit
 |---|---|---|---|---|---|
 | Step 1 迁移 schema | 启动 / Store | — | 表结构 | 迁移实现可自定 | T-CFG-BOOT |
 | Step 2 引导判定 | 启动 | Management | 503 或继续 | `bootstrap_sha256` 语义固定 | T-CFG-BOOT |
-| Step 3 校验（C-CFG-3）| Management | Store（引用可达）| 通过或 typed error | 校验顺序固定；实现可自定 | T-CFG-BADREF |
-| Step 4 事务写入（C-CFG-1/4）| Management | Store、Audit Writer | Registry + hash + 审计 | 原子性固定 | T-CFG-BOOT |
-| Step 5 就绪（C-CFG-5）| 启动 | Health | `/readyz` | 就绪判定固定 | T-CFG-BADREF |
+| Step 3 校验（CON-CFG-003）| Management | Store（引用可达）| 通过或 typed error | 校验顺序固定；实现可自定 | T-CFG-BADREF |
+| Step 4 事务写入（CON-CFG-001/004）| Management | Store、Audit Writer | Registry + hash + 审计 | 原子性固定 | T-CFG-BOOT |
+| Step 5 就绪（CON-CFG-005）| 启动 | Health | `/readyz` | 就绪判定固定 | T-CFG-BADREF |
 | Step 6 运行期变更 | Management | Store、Audit Writer | 新版本 + 审计 | ETag 固定 | T-CFG-CAS |
 | 候选查询 | Management | Inference | 候选列表 | 排序 `ordinal` 固定 | 路由用例 |
 
@@ -908,8 +945,8 @@ migrate(store_path) -> {from_version, to_version} | non-zero exit
 
 | 下级要求 ID | 承接对象 ID / 下级设计文档 | 来源 Capability / Step / Constraint / 接口成员 | 必须负责的行为与保证 | 必须提供/消费的接口 | 下级必须展开的问题 | 允许自行决定的范围 | 本地验证 / 组合验证交接 |
 |---|---|---|---|---|---|---|---|
-| R-CFG-01 | Management（Registry/Config）· `management-design.md` | C-CFG-1/2/3/4、Step 3/4/6、interface `bootstrap_settings`/CRUD/`candidates`/`get_service_level` | 唯一权威、发布事务、能力不变量、审计 | `bootstrap_settings`、CRUD、`candidates`、`get_service_level` | 事务边界、ETag、交集算法、Embedding 冻结 | 存储/算法实现 | 契约；系统用例 |
-| R-CFG-02 | 启动 · `management-design.md` | C-CFG-5、Step 1/2/5 | 迁移、引导、not_ready | 启动流程 | 失败回滚、就绪判定 | 引导实现 | T-CFG-BOOT |
+| R-CFG-01 | Management（Registry/Config）· `management-design.md` | CON-CFG-001/002/003/004、Step 3/4/6、interface `bootstrap_settings`/CRUD/`candidates`/`get_service_level` | 唯一权威、发布事务、能力不变量、审计 | `bootstrap_settings`、CRUD、`candidates`、`get_service_level` | 事务边界、ETag、交集算法、Embedding 冻结 | 存储/算法实现 | 契约；系统用例 |
+| R-CFG-02 | 启动 · `management-design.md` | CON-CFG-005、Step 1/2/5 | 迁移、引导、not_ready | 启动流程 | 失败回滚、就绪判定 | 引导实现 | T-CFG-BOOT |
 | R-CFG-03 | Store · `util-design.md` | Step 1/4、interface `transaction` | 事务与版本 | `transaction` | 原子性、迁移 | 存储实现 | T-CFG-BOOT |
 | R-CFG-04 | HTTP Adapter · `http-api-design.md` | Step 6 | 管理面路由与错误映射 | 路由 | 400/404/409/412 映射 | 映射实现 | 契约 |
 | R-CFG-05 | Web UI · `web-ui-design.md` | CAP-CFG-CRUD | 管理控制台 | 管理面调用 | 不直读库/Secret | 呈现实现 | 组合 |
@@ -922,9 +959,9 @@ migrate(store_path) -> {from_version, to_version} | non-zero exit
 
 | Test / Constraint | 输入与预置事实 | arm/hit/release | 独立 Oracle |
 |---|---|---|---|
-| T-CFG-BOOT / C-CFG-1 | 空库 + 合法 settings | — | Registry 与 hash 一致；重复启动 no-op |
-| T-CFG-BADREF / C-CFG-3 | 非法引用/缺节 | — | 503 + 回滚 + not_ready |
-| T-CFG-SECRET / C-CFG-2 | 含 Secret 明文引用 | — | 库中只有引用、无明文 |
+| T-CFG-BOOT / CON-CFG-001 | 空库 + 合法 settings | — | Registry 与 hash 一致；重复启动 no-op |
+| T-CFG-BADREF / CON-CFG-003 | 非法引用/缺节 | — | 503 + 回滚 + not_ready |
+| T-CFG-SECRET / CON-CFG-002 | 含 Secret 明文引用 | — | 库中只有引用、无明文 |
 | T-CFG-CAS / §7 | 并发 PATCH | — | 一个成功、一个 412 |
 | T-CFG-DELREF / §7 | 删除被引用资源 | — | 409 `resource_in_use` |
 | T-CFG-SPACE / INV-6 | 非兼容 Embedding | — | 409 `embedding_space_conflict` |
@@ -943,13 +980,15 @@ migrate(store_path) -> {from_version, to_version} | non-zero exit
 |---|---|---|---|---|
 | LT-ADR-05 | 决定 | 单次 bootstrap、不热载 | 已采用 | 已定 |
 | RISK-CFG-1 | 风险 | 离线迁移误操作 | 由备份 + 单一命令约束 | 观察 |
+| RISK-CFG-2 | 变更影响 | `CON-CFG-*` 已在本机制登记，系统设计 §3.4 与 ISD 仍引用历史 `C-CFG-*` | 回写系统摘要、ISD 承接与 §14.4 引用 | 待回写（不阻塞本机制） |
 
 ## A. 输入基线、适用性与图文规则
 
-- 输入：系统设计 §10、§3.4、`LT-ADR-05`、`registry.py`、`store.py`。
-- 适用性：纯软件、单节点 SQLite 配置机制。§4.9（二进制 ABI）不适用；§8.1（租约）不适用。
-- 图：时序图（§6）表达引导与变更。
+- 输入基线：系统设计 §10、§3.4；`LT-ADR-05`；`src/management/registry.py`、`src/management/store.py`；`util/migrations/*.sql`；`interfaces/schemas/llmtier-settings-v0.3.schema.json`、`interfaces/openapi/llmtier.openapi.json`。
+- 适用性：纯软件、单节点 SQLite 配置机制。§4.5/§5.3（设备/FPGA）不适用（`std-tailoring` `LT-TL-003`）；§4.9（二进制 ABI）不适用（SQLite 行 + UTF-8 JSON）；§8.1（租约）不适用（无预留/租约，事务代替）。
+- 图文规则：§1 用途概览 `diagram-mech-config-usage`（Current）、§3 参与方协作 `diagram-mech-config-collab`（Current）、§4 数据对象 `diagram-mech-config-objects`（Current）、§6 正常时序 `diagram-mech-config-sequence`。一图一问题；交互图用语义方向线，数据图不冒充时序。
+- 数据对象图触发：`settings.json` → SQLite 行存在复制、持久化与所有权转移，故按条件画图并标注损失（`secret_ref` 不回显明文）。
 
 ## B. 文档控制与修订记录
 
-初版 `0.1.0-draft.1`；`draft.3` 补实全部章节、增模块分解与不变量。修订见 Git。
+初版 `0.1.0-draft.1`；`draft.3` 补实全部章节、增模块分解与不变量；`draft.6` 按 `design.system-mechanism` 3.3.0 补用途/参与方/数据三图、"机制形态与适用性"块、关键提交中断点，并把历史 `C-CFG-*` 登记为 `CON-CFG-*`。修订见 Git。

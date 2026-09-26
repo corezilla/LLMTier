@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-access-trust-mechanism` |
-| Document Version | `0.1.0-draft.5` |
+| Document Version | `0.1.0-draft.6` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -15,7 +15,7 @@
 | Created Date | `2026-09-22` |
 | Last Modified Date | `2026-09-25` |
 | Template ID | `design.system-mechanism` |
-| Template Version | `3.2.0` |
+| Template Version | `3.3.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |
@@ -37,6 +37,16 @@ LLMTier 部署在局域网，需要判定"**请求来自谁、以什么角色**"
 
 **核心取舍**：**入口单点鉴权**——判定只在入口发生一次，业务模块**不得二次校验**；凭据仅作纵深，不建用户体系。
 
+![图 M-TRUST-U-01：访问信任机制的用途概览](../../assets/diagrams/diagram-mech-trust-usage.png)
+
+[可编辑 SVG 源](../../assets/diagrams/diagram-mech-trust-usage.svg)
+
+图 M-TRUST-U-01 · Current；内网/loopback 免登录与 Bearer 凭据两条入口共用入口单点判定，输出 `Principal(principal_id, role)` 并决定可用端点集合（data / admin）；共享端点两者皆可，非法或缺失凭据在采样业务前被拒绝。图只表达使用条件、触发动作与外部结果，不画内部调用顺序；参与方分工与时序另见 §3、§6。
+
+- **机制形态与适用性 / 业务副作用**：只读观测——入口只做出准入判定并构造请求级 `Principal`，不写业务状态、不持久化凭据或主体；唯一外部结果是一次请求被受理或按 §4.8 拒绝。事实依据：§5.1 三条判定路径均无写操作，§4.10 记录本机制无持久事实。
+- **交接域**：纯软件。判定、下传与消费发生在同一进程的入口层与业务层模块之间（M001 HTTP API ↔ M003–M005），无连接器、总线、寄存器或 FPGA 责任单元，故 §4.5、§5.3 不适用。
+- **裁剪依据**：`std-tailoring` `LT-TL-003`（纯软件、无设备/FPGA 与子系统）；本机制另裁剪 §4.6/§4.7（无跨步骤状态、无持久表），理由就地记录于该两节与附录 A。
+
 ## 2. 使用场景与功能
 
 | Capability ID | 业务任务与触发 | 输入与可观察结果 | 提供方 / 消费者 | 实现状态 | 验证判据 |
@@ -52,17 +62,32 @@ LLMTier 部署在局域网，需要判定"**请求来自谁、以什么角色**"
 
 ## 3. 参与方、责任和 authority
 
+![图 M-TRUST-C-01：参与方、事实与跨边界交接](../../assets/diagrams/diagram-mech-trust-collab.png)
+
+[可编辑 SVG 源](../../assets/diagrams/diagram-mech-trust-collab.svg)
+
+图 M-TRUST-C-01 · Current；入口 Auth/Validation 是"谁以什么角色"的唯一裁决者，拥有 `Principal` 判定事实；HTTP Adapter 按端点选 role；M003–M005 只读 `role` 选择视图，不二次校验；进程环境提供凭据引用而不提供运行决定。蓝实线为请求/数据交接，灰虚线为响应/事实返回；工程 Owner 不作为运行组件。每条跨边界交接对应 §5.1 的成员登记，图中不承诺任何持久状态。
+
+| Participant / 工程 Owner | 负责/不负责 | 决定/写入/事实来源/恢复（适用时） | Provided/Consumed interface | 部署/实现位置 | 依赖机制与基线 |
+|---|---|---|---|---|---|
+| Auth/Validation · HTTP API / LLMTier | 负责免登录/凭据判定、恒定时间比较、产出 `Principal`；不建用户体系 | 决定=角色归属；写入=无；事实来源=进程环境凭据 + 请求头；恢复=不适用（逐请求无状态） | 提供 `IF-TRUST-UNAUTH`、`IF-TRUST-AUTH`、`IF-TRUST-AUTH-ANY`（§5.1） | M001 入口层 `src/http_api/auth.py` | 无（顶层机制） |
+| HTTP Adapter · HTTP API / LLMTier | 负责按端点选 role 分发与错误映射；不承载业务规则 | 决定=端点→role；写入=无；事实来源=`Principal`；恢复=不适用 | 消费 `IF-TRUST-*`；提供端点路由（§5.1） | M001 `src/http_api/app.py` | M-TRUST（本机制） |
+| 业务模块（M003 Inference / M004 Management / M005 Observability）· 各模块 Owner | 只读 `role` 选择视图与端点集合；**不二次校验**、不新增鉴权调用点 | 决定=视图裁剪；写入=各自业务状态（非本机制）；事实来源=`D-PRINCIPAL.role`；恢复=请求结束释放内存对象 | 消费 `D-PRINCIPAL`（§4.2） | 业务层各模块 | M-TRUST（行为依赖） |
+| 部署方 / 启动 · LLMTier | 提供 `LLMTIER_ADMIN_TOKEN`/`LLMTIER_DATA_TOKEN`/`LLMTIER_DEV_MODE` 的存在性；不存明文 Secret | 决定=凭据是否存在；写入=进程环境；事实来源=env；恢复=变更需重启 | 提供 `D-TRUST-CONFIG`（§4.3） | 部署配置（§13） | 无 |
+
 ### 3.1 系统约束与参与方承接
 
 本机制为顶层机制（上级 Mechanism ID = none），约束继承自系统设计 §3。
 
 | Constraint ID | 约束 | 参与方保证 | 自由度 | 本文落实位置 |
 |---|---|---|---|---|
-| C-TRUST-1 | 判定只在入口发生一次，业务不二次校验 | HTTP API | 实现方式 | §3.2、§8 |
-| C-TRUST-2 | 不建用户/会话/SSO 体系 | HTTP API | — | §1、§11 |
-| C-TRUST-3 | 凭据比较恒定时间，不泄露存在性 | Auth | 算法 | §5.1、§8 |
-| C-TRUST-4 | 401/403 不泄露资源存在性 | 全体 | 错误映射 | §7、§11 |
-| C-TRUST-5 | 免登录仅在受信网络/loopback/DEV | Auth | 网络集合 | §4.3、§7 |
+| CON-TRUST-001 | 判定只在入口发生一次，业务不二次校验 | HTTP API | 实现方式 | §3.2、§8 |
+| CON-TRUST-002 | 不建用户/会话/SSO 体系 | HTTP API | — | §1、§11 |
+| CON-TRUST-003 | 凭据比较恒定时间，不泄露存在性 | Auth | 算法 | §5.1、§8 |
+| CON-TRUST-004 | 401/403 不泄露资源存在性 | 全体 | 错误映射 | §7、§11 |
+| CON-TRUST-005 | 免登录仅在受信网络/loopback/DEV | Auth | 网络集合 | §4.3、§7 |
+
+**约束 ID 说明**：本版按 `design.system-mechanism` 3.3.0 规则把历史 `C-TRUST-1..5` 登记为 `CON-TRUST-001..005`（类别：机制约束，命名域 M-TRUST），语义不变；系统设计 §3.4 与下级 ISD 中的历史 `C-TRUST-*` 引用为待回写的变更影响，登记于 §16。
 
 ### 3.2 运行时统筹与确认责任
 
@@ -77,6 +102,12 @@ LLMTier 部署在局域网，需要判定"**请求来自谁、以什么角色**"
 > 按 STD `design-data-interface-format` 1.2.0 §2：主章“数据结构设计”，章内按**数据性质**分类（§4.1–§4.8）；本机制特有的跨结构分析见 §4.9–§4.10。仅保留适用类别，不适用类别在对应小节说明原因与 tailoring 依据。继承/机器源结构只定位原定义与本层投影，不复制字段权威。本章拥有的类型 ID 前缀 `D-TRUST-*`；唯一契约=本设计 + `src/http_api/auth.py`。
 
 **类别适用性**：§4.1 公共基础类型与枚举 ✓｜§4.2 业务与操作数据结构 ✓（`D-PRINCIPAL` 继承系统 §8.1）｜§4.3 配置与规则数据结构 ✓｜§4.4 通信报文结构 ✓（HTTP 头 + `D-ERROR-ENVELOPE` 继承）｜§4.5 设备与 FPGA 表项结构 ✗（纯软件，无设备/RTL）｜§4.6 运行状态数据结构 ✗（逐请求无状态判定，无跨步骤状态）｜§4.7 数据库表结构 ✗（不持久化）｜§4.8 错误码与错误结构 ✓（引用系统 §8.8）。
+
+![图 M-TRUST-O-01：数据对象、变换与寿命](../../assets/diagrams/diagram-mech-trust-objects.png)
+
+[可编辑 SVG 源](../../assets/diagrams/diagram-mech-trust-objects.svg)
+
+图 M-TRUST-O-01 · Current；HTTP 头与受控配置只读投影为请求级 `Principal`，自入口构造起对下游只读，随请求结束释放。对象跨入口层与业务层责任单元进行一次所有权转移，但无复制、无持久化、无变更转换，因此需要数据对象图明确损失边界（token 不进入对象、`X-Principal-ID` 仅作标识）。数据图不表示调用顺序；调用时序见 §6。
 
 ### 4.1 公共基础类型与枚举
 
@@ -289,7 +320,7 @@ ErrorEnvelope {
 
 ### 4.7 数据库表结构
 
-不适用：本机制不拥有持久表；`Principal` 与凭据不落库（C-TRUST-2、INV-6）。
+不适用：本机制不拥有持久表；`Principal` 与凭据不落库（CON-TRUST-002、INV-6）。
 
 ### 4.8 错误码与错误结构
 
@@ -398,6 +429,8 @@ authenticate_any(headers: Headers, client_address: str) -> Principal
 
 不适用：凭据与 DEV 模式经进程环境变量注入，属部署配置（§13）与维护入口（§12.2），不构成本机制拥有的独立人机接口。
 
+> **闭合核对**：§3 协作图与 §6、§14.3 中的每条真实跨责任单元交接均在 §5.1 有唯一接口记录（`IF-TRUST-UNAUTH`/`IF-TRUST-AUTH`/`IF-TRUST-AUTH-ANY`）；§5.1 非 N/A，入口 Auth/Validation → HTTP Adapter 的进程内函数交接已登记，故不适用性只落在 §5.2/§5.3/§5.4。§4.8 的 401/403/503 均为已知失败，结果未知不被改写为失败。
+
 ## 6. 正常端到端流程
 
 ![访问信任判定时序](../../assets/diagrams/diagram-mech-trust-sequence.png)
@@ -411,6 +444,8 @@ authenticate_any(headers: Headers, client_address: str) -> Principal
 3. **凭据判定**：否则校验 `Bearer`，恒定时间比较 admin/data token。
 4. **产出 Principal**：role + principal_id（`X-Principal-ID` 或默认）。
 5. **下传**：业务模块按 `role` 选择视图/端点集合，**不再判定**。
+
+**触发 → 结果 → 释放**：触发 = 请求到达入口并解析地址；结果 = 下传 `Principal` 或按 §4.8 拒绝；释放 = 请求结束即释放请求级内存对象，无资源需归还。本机制无业务写入、无持久提交，故不存在"提交前后中断"的恢复分支：客户端在判定后中断只丢弃本次请求，不产生需去重或补偿的状态；入口重启后重新判定只产生新 `Principal`，不恢复旧判定。迟到响应与临时资源边界见 §8.1、§9。
 
 ### 6.1 交叠请求、跨轮次与生命周期边界
 
@@ -504,11 +539,11 @@ authenticate_any(headers: Headers, client_address: str) -> Principal
 
 | Capability / Process Step / Constraint | 主责架构对象 | 协作对象 | 必须产生或消费的结果 | 固定行为 / 本地自由度 | 组合验证责任 |
 |---|---|---|---|---|---|
-| Step 1 解析地址（C-TRUST-5）| Auth/Validation | — | client address | 地址解析实现可自定 | T-TRUST-LAN |
+| Step 1 解析地址（CON-TRUST-005）| Auth/Validation | — | client address | 地址解析实现可自定 | T-TRUST-LAN |
 | Step 2 免登录判定 | Auth/Validation | — | 免登录 Principal | 网络集合固定 | T-TRUST-LAN |
-| Step 3 凭据判定（C-TRUST-3）| Auth/Validation | — | Principal | 恒定时间比较固定 | T-TRUST-BEARER |
-| Step 4 产出 Principal（C-TRUST-2/4）| Auth/Validation | — | `(id, role)` | role 集合固定 | T-TRUST-ENDPOINTS |
-| Step 5 下传与消费（C-TRUST-1）| 业务模块 | HTTP Adapter | 端点集合/视图 | 不二次校验固定 | T-TRUST-ENDPOINTS |
+| Step 3 凭据判定（CON-TRUST-003）| Auth/Validation | — | Principal | 恒定时间比较固定 | T-TRUST-BEARER |
+| Step 4 产出 Principal（CON-TRUST-002/004）| Auth/Validation | — | `(id, role)` | role 集合固定 | T-TRUST-ENDPOINTS |
+| Step 5 下传与消费（CON-TRUST-001）| 业务模块 | HTTP Adapter | 端点集合/视图 | 不二次校验固定 | T-TRUST-ENDPOINTS |
 
 ### 14.3 责任单元间接口契约
 
@@ -517,7 +552,7 @@ authenticate_any(headers: Headers, client_address: str) -> Principal
 | 责任单元（§14.1） | 承接的成员/结构 ID（§4/§5） | 角色 | 本机制固定的语义与边界（引用） |
 |---|---|---|---|
 | Auth/Validation | `IF-TRUST-UNAUTH`、`IF-TRUST-AUTH`、`IF-TRUST-AUTH-ANY` | 提供 | 单点判定、恒定时间比较、Principal 产出（§5.1） |
-| HTTP Adapter | `IF-TRUST-AUTH`、`IF-TRUST-AUTH-ANY` | 消费 | 按端点选 role 分发；不二次校验（§5.1、C-TRUST-1） |
+| HTTP Adapter | `IF-TRUST-AUTH`、`IF-TRUST-AUTH-ANY` | 消费 | 按端点选 role 分发；不二次校验（§5.1、CON-TRUST-001） |
 | 业务模块（全体） | `D-PRINCIPAL`（§4.2） | 消费 | 只读 `role` 选择视图/端点，不得新增鉴权调用点 |
 | 启动 | `D-TRUST-CONFIG`（§4.3） | 提供 | 环境变量凭据存在性；不存 Secret |
 
@@ -525,12 +560,12 @@ authenticate_any(headers: Headers, client_address: str) -> Principal
 
 | 下级要求 ID | 承接对象 ID / 下级设计文档 | 来源 Capability / Step / Constraint / 接口成员 | 必须负责的行为与保证 | 必须提供/消费的接口 | 下级必须展开的问题 | 允许自行决定的范围 | 本地验证 / 组合验证交接 |
 |---|---|---|---|---|---|---|---|
-| R-TRUST-01 | Auth/Validation · `http-api-design.md` | C-TRUST-1/3/5、Step 1–4、interface `authenticate*` | 单点判定、恒定时间比较、不泄露存在性 | `authenticate`/`authenticate_any`/`unauthenticated_principal` | 地址解析、网络集合、错误映射 | 解析/映射实现 | 契约 |
+| R-TRUST-01 | Auth/Validation · `http-api-design.md` | CON-TRUST-001/003/005、Step 1–4、interface `authenticate*` | 单点判定、恒定时间比较、不泄露存在性 | `authenticate`/`authenticate_any`/`unauthenticated_principal` | 地址解析、网络集合、错误映射 | 解析/映射实现 | 契约 |
 | R-TRUST-02 | HTTP Adapter · `http-api-design.md` | Step 3–5 | 按端点选 role、分发 | `_auth()`/`_auth("admin")`/`_auth_either()` | 端点→role 映射 | 分发实现 | 契约 |
-| R-TRUST-03 | 业务模块（全体）· `inference-design.md、management-design.md、observability-design.md` | C-TRUST-1/4、Step 5 | **不二次校验**，按 `role` 限制视图 | — | 消费点、越权防护 | 视图实现 | 组合 |
-| R-TRUST-04 | 启动 · `management-design.md` | C-TRUST-2、F-TRUST-1 | env token 存在性 | — | 503 语义 | 读取实现 | T-TRUST-NOCFG |
+| R-TRUST-03 | 业务模块（全体）· `inference-design.md、management-design.md、observability-design.md` | CON-TRUST-001/004、Step 5 | **不二次校验**，按 `role` 限制视图 | — | 消费点、越权防护 | 视图实现 | 组合 |
+| R-TRUST-04 | 启动 · `management-design.md` | CON-TRUST-002、F-TRUST-1 | env token 存在性 | — | 503 语义 | 读取实现 | T-TRUST-NOCFG |
 
-**约束**：任何业务模块**不得**新增鉴权调用点（C-TRUST-1）；新增角色/端点须回写本节并关联模块设计。
+**约束**：任何业务模块**不得**新增鉴权调用点（CON-TRUST-001）；新增角色/端点须回写本节并关联模块设计。
 
 ## 15. 验证、上线与回滚
 
@@ -538,8 +573,8 @@ authenticate_any(headers: Headers, client_address: str) -> Principal
 
 | Test / Constraint | 输入与预置事实 | arm/hit/release | 独立 Oracle |
 |---|---|---|---|
-| T-TRUST-LAN / C-TRUST-5 | 私网地址、无 Authorization | — | 免登录 Principal |
-| T-TRUST-BEARER / C-TRUST-3 | 正确/错误 token | — | 200 / 403 |
+| T-TRUST-LAN / CON-TRUST-005 | 私网地址、无 Authorization | — | 免登录 Principal |
+| T-TRUST-BEARER / CON-TRUST-003 | 正确/错误 token | — | 200 / 403 |
 | T-TRUST-ENDPOINTS / CAP-TRUST-DATA | data 凭据访问 admin 端点 | — | 403 |
 | T-TRUST-SHARED / CAP-TRUST-ANY | 两种凭据访问 `/v1/usage` | — | 视图按 role 区分 |
 | T-TRUST-NOCFG / F-TRUST-1 | 无 token 环境 | — | 503 |
@@ -559,13 +594,15 @@ authenticate_any(headers: Headers, client_address: str) -> Principal
 |---|---|---|---|---|
 | RISK-TRUST-1 | 风险 | 内网免登录依赖网络边界 | 明文声明边界，凭据作纵深 | 已接受 |
 | RISK-TRUST-2 | 风险 | 单一共享 token（无 per-user）| 与"不建用户体系"取舍一致 | 已接受 |
+| RISK-TRUST-3 | 变更影响 | `CON-TRUST-*` 已在本机制登记，系统设计 §3.4 与 ISD 仍引用历史 `C-TRUST-*` | 回写系统摘要、ISD 承接与 §14.4 引用 | 待回写（不阻塞本机制） |
 
 ## A. 输入基线、适用性与图文规则
 
-- 输入：系统设计 §3、`auth.py`、`app.py`。
-- 适用性：纯软件、单进程、入口单点鉴权机制。§4.9（二进制 ABI）不适用；§8.1（租约）不适用（无状态）。
-- 图：时序图（§6）表达免登录/凭据判定与下传。
+- 输入基线：系统设计 §3；`src/http_api/auth.py`、`src/http_api/app.py`；`interfaces/openapi/llmtier.openapi.json`（安全方案）。
+- 适用性：纯软件、单进程、入口单点鉴权机制；责任单元按运行边界判定为 M001 入口层与 M003–M005 业务层。§4.5/§5.3（设备/FPGA）不适用（`std-tailoring` `LT-TL-003`）；§4.6（跨步骤状态）、§4.7（持久表）不适用（逐请求无状态、不持久）；§4.9（二进制 ABI）不适用（HTTP + UTF-8 JSON）；§8.1（租约）不适用（无预留）。
+- 图文规则：§1 用途概览 `diagram-mech-trust-usage`（Current）、§3 参与方协作 `diagram-mech-trust-collab`（Current）、§4 数据对象 `diagram-mech-trust-objects`（Current）、§6 正常时序 `diagram-mech-trust-sequence`。一图一问题；交互图用语义方向线，数据图不冒充时序；图内中文与框线以本地浏览器抽查可读。
+- 数据对象图触发：`D-PRINCIPAL` 在入口层与业务层之间发生所有权转移，故按条件画图；本机制无持久化，故不展开恢复边界。
 
 ## B. 文档控制与修订记录
 
-初版 `0.1.0-draft.1`；`draft.3` 补实全部章节、增模块分解与不变量。修订见 Git。
+初版 `0.1.0-draft.1`；`draft.3` 补实全部章节、增模块分解与不变量；`draft.6` 按 `design.system-mechanism` 3.3.0 补用途/参与方/数据三图、"机制形态与适用性"块，并把历史 `C-TRUST-*` 约束登记为 `CON-TRUST-*`。修订见 Git。

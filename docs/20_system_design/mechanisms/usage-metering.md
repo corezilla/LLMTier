@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-usage-metering-mechanism` |
-| Document Version | `0.1.0-draft.5` |
+| Document Version | `0.1.0-draft.6` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -15,7 +15,7 @@
 | Created Date | `2026-09-22` |
 | Last Modified Date | `2026-09-25` |
 | Template ID | `design.system-mechanism` |
-| Template Version | `3.2.0` |
+| Template Version | `3.3.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |
@@ -37,6 +37,16 @@
 
 **核心取舍**：**只追加不改写** + **unknown 不补零**。宁可留一个"已调用但未测"的 unknown 事实，也绝不写成 0（0 会被误读为"没有调用"）。
 
+![图 M-METER-U-01：用量计量机制的用途概览](../../assets/diagrams/diagram-mech-meter-usage.png)
+
+[可编辑 SVG 源](../../assets/diagrams/diagram-mech-meter-usage.svg)
+
+图 M-METER-U-01 · Current；每次 dispatch 前登记 unknown 义务，后端返回后追加 measured 版本并单调推进 head；查询以冻结 snapshot 稳定分页，Operator 可按范围清空。图只表达场景、处理范围与外部结果；参与方分工见 §3，义务→绑定→终态时序见 §6。
+
+- **机制形态与适用性 / 业务副作用**：具体副作用——向账本追加不可变版本、单调推进 head、写 provider/deployment 绑定，以及管理面范围删除（不可回滚）；`unknown` 时 token 为 NULL 而非 0。事实依据 §5.1 `IF-MET-AUTHORIZE`/`IF-MET-BIND`/`IF-MET-FINISH`/`IF-MET-RESET` 与 §4.7 持久表。
+- **交接域**：纯软件。写入由 Inference 编排触发、Usage Recorder 在 Store 事务内完成，读取/清空由 Management 面负责；无连接器、总线、寄存器或 FPGA 责任单元，故 §4.5、§5.3 不适用。
+- **裁剪依据**：`std-tailoring` `LT-TL-003`（纯软件、无设备/FPGA 与子系统）；§4.4（账本为 SQLite 行/内部函数，无消息 wire；查询报文为 HTTP 投影）、§4.6（状态均在持久账本，无独立内存跨步骤状态）不适用。
+
 ## 2. 使用场景与功能
 
 | Capability ID | 业务任务与触发 | 输入与可观察结果 | 提供方 / 消费者 | 实现状态 | 验证判据 |
@@ -52,17 +62,34 @@
 
 ## 3. 参与方、责任和 authority
 
+![图 M-METER-C-01：参与方、事实与跨边界交接](../../assets/diagrams/diagram-mech-meter-collab.png)
+
+[可编辑 SVG 源](../../assets/diagrams/diagram-mech-meter-collab.svg)
+
+图 M-METER-C-01 · Current；Usage Recorder 是账本 Writer，Store/SQLite 是唯一事实来源，Usage Reader/Admin 只经 recorder 接口分页与范围清空；Inference 只在 dispatch 前后调钩子，Consumer/Operator 经 `/v1/usage` 读取。蓝实线为请求/写入，灰虚线为权威事实返回；工程 Owner 不作为运行组件。每条跨边界交接对应 §5.1 成员登记（`IF-MET-*`）。
+
+| Participant / 工程 Owner | 负责/不负责 | 决定/写入/事实来源/恢复（适用时） | Provided/Consumed interface | 部署/实现位置 | 依赖机制与基线 |
+|---|---|---|---|---|---|
+| Usage Recorder · Inference / LLMTier | 义务→绑定→终态、只追加、head 单调、unknown 不补零；不含 Cost | 决定=终态版本与 head；写入=账本表（§4.7）；事实来源=SQLite；恢复=崩溃后义务仍在、保留 unknown | 提供 `IF-MET-AUTHORIZE`、`IF-MET-BIND`、`IF-MET-FINISH`、`IF-MET-PAGE`、`IF-MET-RESET`（§5.1） | M003 业务层 | 无（顶层机制） |
+| Inference 编排 · Inference / LLMTier | 在 dispatch 前后调用钩子；不直接写账本 | 决定=无；写入=经 `IF-MET-*`；事实来源=后端 usage；恢复=写失败则不 dispatch 或保留 unknown | 消费 `IF-MET-AUTHORIZE`/`IF-MET-BIND`/`IF-MET-FINISH`（§5.1） | M003 业务层 | M-METER（行为） |
+| Usage Reader / Admin · Management / LLMTier | snapshot 冻结分页、范围清空、授权每页复核；不承载推理 | 决定=分页/清空范围；写入=snapshot 表 + 删除；事实来源=账本；恢复=TTL 到期重开查询 | 提供 `IF-MET-API-USAGE`；消费 `IF-MET-PAGE`/`IF-MET-RESET`（§5.1） | M004 业务层 | M-METER（行为） |
+| Store · LLMTier（M007） | 单事务原子提交、快照表；不做业务规则 | 决定=无；写入=各账本/snapshot 表（§4.7）；事实来源=SQLite 文件；恢复=以已提交行为准 | 提供 `transaction`（§4.7） | M007 基础层 | 无 |
+| Consumer · 外部 | 查询自身用量；不跨 principal | 决定=无；写入=无；事实来源=分页视图；恢复=过期 cursor 重开 | 消费 `GET /v1/usage`（`IF-MET-API-USAGE`，§5.1） | 外部 Consumer | M-TRUST（凭据） |
+| Operator · 外部 | 查询全部、按范围清空；清空不可回滚 | 决定=清空范围；写入=删除；事实来源=账本；恢复=删除不可回滚 | 消费 `GET/DELETE /v1/usage`（`IF-MET-API-USAGE`，§5.1） | 外部 Operator | M-TRUST（凭据） |
+
 ### 3.1 系统约束与参与方承接
 
 本机制为顶层机制（上级 Mechanism ID = none），约束继承自系统设计 §3 与 §3.4。
 
 | Constraint ID | 约束 | 参与方保证 | 自由度 | 本文落实位置 |
 |---|---|---|---|---|
-| C-METER-1 | 账本只追加不改写，同 request 只留最新版本 | Usage Recorder | 存储布局 | §4.2、§4.7、§8 |
-| C-METER-2 | 未知不补零（unknown ≠ 0）| Usage Recorder | 归一实现 | §4.1、§7 |
-| C-METER-3 | dispatch 前先持久义务，失败则不 dispatch | Inference | 事务边界 | §6、§9 |
-| C-METER-4 | 查询稳定分页（snapshot 冻结）| Management | 分页实现 | §6、§10 |
-| C-METER-5 | 存储不可用显式 503，不用空页冒充 | Management | 错误映射 | §7、§9 |
+| CON-METER-001 | 账本只追加不改写，同 request 只留最新版本 | Usage Recorder | 存储布局 | §4.2、§4.7、§8 |
+| CON-METER-002 | 未知不补零（unknown ≠ 0）| Usage Recorder | 归一实现 | §4.1、§7 |
+| CON-METER-003 | dispatch 前先持久义务，失败则不 dispatch | Inference | 事务边界 | §6、§9 |
+| CON-METER-004 | 查询稳定分页（snapshot 冻结）| Management | 分页实现 | §6、§10 |
+| CON-METER-005 | 存储不可用显式 503，不用空页冒充 | Management | 错误映射 | §7、§9 |
+
+**约束 ID 说明**：本版按 3.3.0 规则把历史 `C-METER-1..5` 登记为 `CON-METER-001..005`（类别：机制约束，命名域 M-METER），语义不变；系统设计 §3.4 与下级 ISD 中的历史 `C-METER-*` 引用为待回写项，登记于 §16。
 
 ### 3.2 运行时统筹与确认责任
 
@@ -77,6 +104,12 @@
 > 按 STD `design-data-interface-format` 1.2.0 §2：主章“数据结构设计”，章内按**数据性质**分类（§4.1–§4.8），本层特有分析见 §4.9–§4.10。仅保留适用类别。账本结构唯一来源系统设计 §8.2/§8.7（`D-USAGE-*`/`D-PROVIDER-BINDING`）与 `util/migrations/*.sql`；本机制拥有类型 ID 前缀 `D-MET-*`，不复制列级权威。
 
 **类别适用性**：§4.1 公共基础类型与枚举 ✓｜§4.2 业务与操作数据结构 ✓｜§4.3 配置与规则数据结构 ✓（保留/snapshot TTL）｜§4.4 通信报文结构 ✗（账本为 SQLite 行/内部函数，无消息 wire；查询报文是 HTTP JSON 投影）｜§4.5 设备与 FPGA 表项结构 ✗（纯软件，无设备/RTL）｜§4.6 运行状态数据结构 ✗（状态均在持久账本，无独立内存跨步骤状态）｜§4.7 数据库表结构 ✓｜§4.8 错误码与错误结构 ✓（引用系统 §8.8）。
+
+![图 M-METER-O-01：数据对象、变换与寿命](../../assets/diagrams/diagram-mech-meter-objects.png)
+
+[可编辑 SVG 源](../../assets/diagrams/diagram-mech-meter-objects.svg)
+
+图 M-METER-O-01 · Current；义务（v1 unknown）→ 版本只追加 + head 单调推进 → 冻结 snapshot 视图，读取只取 head 单条、绝不累加，unknown 时 token 为 NULL。对象在 Inference 编排 / Usage Recorder / Store / 查询责任单元间经历持久化、版本推进、冻结投影与所有权转移，故需数据对象图明确损失与寿命（snapshot TTL 10 分钟、DELETE 不可回滚、崩溃后 unknown 义务仍在）。数据图不表示调用顺序；时序见 §6，孤儿 unknown 见 §8.1/§9。
 
 ### 4.1 公共基础类型与枚举
 
@@ -130,7 +163,7 @@ enum MeasurementSource { unavailable, provider, injected }
 
 - **`injected`**：
 
-  必填枚举值；注入路径经 `source_override=injected` 标注（C-OBS-4）。
+  必填枚举值；注入路径经 `source_override=injected` 标注（CON-OBS-004）。
 
 - **跨字段与寿命**：
 
@@ -522,7 +555,7 @@ enum UsageErrorRef { ERR-STORE, ERR-CURSOR, ERR-REQ-VALIDATION, ERR-AUTH-DENIED,
 
 - **跨字段与寿命**：
 
-  写失败 → 不 dispatch；读失败 → 503，不用空页冒充无记录（C-METER-5）；载荷 `D-ERROR-ENVELOPE`；请求级返回，不持久。
+  写失败 → 不 dispatch；读失败 → 503，不用空页冒充无记录（CON-METER-005）；载荷 `D-ERROR-ENVELOPE`；请求级返回，不持久。
 
 - **合法/拒绝实例**：
 
@@ -545,7 +578,7 @@ enum UsageErrorRef { ERR-STORE, ERR-CURSOR, ERR-REQ-VALIDATION, ERR-AUTH-DENIED,
 
 ### 4.10 一致性、可见性与数据寿命
 
-账本局部一致：同一 `(principal_id,request_id)` 的版本只追加，`head_record_version` 在单事务内单调推进，绝不累计（INV-1/2/3）；`recorded_at` 固定为首次记录时间，`updated_at` 随替换推进（INV-6），因此按 `(recorded_at,request_id)` 排序稳定可续。dispatch 前义务已持久，故崩溃/写入失败后重启仍见 unknown，绝不出现“没有调用”的假象（C-METER-3、INV-5）。查询首屏在单事务内冻结 `query_snapshots` + 有序成员；后续页按 `sid:offset` 读冻结视图，页间的更正/插入/删除只对**新** snapshot 可见。存储不可用返回 typed 503，不用空页冒充无记录。snapshot TTL 10 分钟覆盖一次正常分页；`DELETE /v1/usage` 为管理动作（+审计），一次性删除义务/版本/head/绑定，不可回滚；持久性对应 SQLite 单文件，进程退出以库内事实为准。
+账本局部一致：同一 `(principal_id,request_id)` 的版本只追加，`head_record_version` 在单事务内单调推进，绝不累计（INV-1/2/3）；`recorded_at` 固定为首次记录时间，`updated_at` 随替换推进（INV-6），因此按 `(recorded_at,request_id)` 排序稳定可续。dispatch 前义务已持久，故崩溃/写入失败后重启仍见 unknown，绝不出现“没有调用”的假象（CON-METER-003、INV-5）。查询首屏在单事务内冻结 `query_snapshots` + 有序成员；后续页按 `sid:offset` 读冻结视图，页间的更正/插入/删除只对**新** snapshot 可见。存储不可用返回 typed 503，不用空页冒充无记录。snapshot TTL 10 分钟覆盖一次正常分页；`DELETE /v1/usage` 为管理动作（+审计），一次性删除义务/版本/head/绑定，不可回滚；持久性对应 SQLite 单文件，进程退出以库内事实为准。
 
 ## 5. 接口设计
 
@@ -645,6 +678,8 @@ reset_usage(model: str | None = None, deployment_id: str | None = None, conn: Co
 
 不适用：清空为 HTTP 管理操作（`IF-MET-API-USAGE`，§5.1）与账本函数（`IF-MET-RESET`，§5.1），其运维入口记录于 §12.2；本机制不另造 CLI/页面。
 
+> **闭合核对**：§3 协作图与 §6、§14.3 的每条真实跨责任单元交接均在 §5.1 有唯一接口记录（`IF-MET-API-USAGE`、`IF-MET-AUTHORIZE`、`IF-MET-BIND`、`IF-MET-FINISH`、`IF-MET-PAGE`、`IF-MET-RESET`）；§5.1 非 N/A，Inference→Usage Recorder 与 Reader→Recorder 的进程内交接已登记。Store 单事务边界经 §4.7 表结构与 §14.3 登记，是无独立跨单元调用接口的持久化边界，不构成规格缺口。写失败不 dispatch、读失败显式 503，结果未知（崩溃/未完成）保留 unknown 而非改写为"未发生调用"（§4.8、§9）。
+
 ## 6. 正常端到端流程
 
 ![用量计量时序](../../assets/diagrams/diagram-mech-meter-sequence.png)
@@ -653,12 +688,14 @@ reset_usage(model: str | None = None, deployment_id: str | None = None, conn: Co
 
 图 M · 用量计量时序（实线=请求，虚线=响应；先后关系非时间比例）。
 
-1. **登记义务**：dispatch 前写 `usage_obligations` + `record_version=1`（`unknown`/`unavailable`、`is_final=0`、token 全 NULL）+ head=1（C-METER-3）。
+1. **登记义务**：dispatch 前写 `usage_obligations` + `record_version=1`（`unknown`/`unavailable`、`is_final=0`、token 全 NULL）+ head=1（CON-METER-003）。
 2. **绑定后端**：准入选定候选后写 `provider_request_bindings`；上游返回后回填 `provider_request_id`。
 3. **归一**：后端返回 → 判定 `measured`（三 token 皆 int）→ 追加 v(n+1) → 推进 head。
 4. **查询（首屏）**：同一事务创建 `query_snapshots` + 固化有序成员 `(principal, request_id, record_version)`。
 5. **查询（后续页）**：按 `sid:offset` 读冻结项；`(recorded_at, request_id)` 稳定排序。
 6. **清空**：按 model/deployment/全部范围删义务+版本+head+绑定。
+
+**触发 → 结果 → 释放**：触发 = Inference 在 dispatch 前登记义务；结果 = 追加终态版本并单调推进 head，或异常保留 unknown；释放 = 无租约，`finish` 返回后无待归还资源。**关键提交点** = `authorize_dispatch` 的义务 + v1 + head=1 单事务（dispatch 前唯一持久事实）。中断点：义务提交前中断 → 不 dispatch、无记录，可安全重试为新请求；义务提交后、后端调用前中断（准入失败）→ 保留 orphan unknown（head=1），重启可见、不回填为 0；后端已调用但 `finish` 写失败 → 已返回结果不改判，head 停留 unknown，重启仍见 unknown；清空提交前中断 → 无删除；清空提交后中断 → 删除生效且不可回滚。
 
 ### 6.1 交叠请求、跨轮次与生命周期边界
 
@@ -758,10 +795,10 @@ reset_usage(model: str | None = None, deployment_id: str | None = None, conn: Co
 
 | Capability / Process Step / Constraint | 主责架构对象 | 协作对象 | 必须产生或消费的结果 | 固定行为 / 本地自由度 | 组合验证责任 |
 |---|---|---|---|---|---|
-| Step 1 登记义务（C-METER-3）| Usage Recorder | — | v1 unknown | 未测不补零固定；存储可自定 | 系统用例 |
+| Step 1 登记义务（CON-METER-003）| Usage Recorder | — | v1 unknown | 未测不补零固定；存储可自定 | 系统用例 |
 | Step 2 绑定后端 | Usage Recorder | Internal Admission（触发）| binding | 首次为准固定 | 系统用例 |
-| Step 3 归一与推进 head（C-METER-1）| Usage Recorder | — | 终态版本 + head | head 单调固定；归一实现可自定 | 系统用例 |
-| Step 4 查询首屏（C-METER-4）| Usage Reader | Store | snapshot + 冻结项 | 排序 `(recorded_at,request_id)` 固定 | T-MET-PAGE |
+| Step 3 归一与推进 head（CON-METER-001）| Usage Recorder | — | 终态版本 + head | head 单调固定；归一实现可自定 | 系统用例 |
+| Step 4 查询首屏（CON-METER-004）| Usage Reader | Store | snapshot + 冻结项 | 排序 `(recorded_at,request_id)` 固定 | T-MET-PAGE |
 | Step 5 后续页 | Usage Reader | Store | 冻结视图 | cursor 实现可自定 | T-MET-PAGE |
 | Step 6 清空 | Admin | Store、Audit Writer | `{deleted}` + 审计 | 范围语义固定 | T-MET-RESET |
 
@@ -781,10 +818,10 @@ reset_usage(model: str | None = None, deployment_id: str | None = None, conn: Co
 
 | 下级要求 ID | 承接对象 ID / 下级设计文档 | 来源 Capability / Step / Constraint / 接口成员 | 必须负责的行为与保证 | 必须提供/消费的接口 | 下级必须展开的问题 | 允许自行决定的范围 | 本地验证 / 组合验证交接 |
 |---|---|---|---|---|---|---|---|
-| R-MET-01 | Usage Recorder · `inference-design.md` | C-METER-1/2/3、Step 1/2/3/9、interface `authorize_dispatch/bind_backend/finish` | 只追加版本、head 单调、unknown 不补零 | `authorize_dispatch`/`bind_backend`/`finish` | 事务边界、并发写、归一 | 存储实现 | 系统用例 |
-| R-MET-02 | Usage Reader · `management-design.md` | C-METER-4、Step 4/5、interface `page` | snapshot 冻结分页、权限每页复核 | `page()` | cursor 结构、TTL、排序 | 分页实现 | T-MET-PAGE |
+| R-MET-01 | Usage Recorder · `inference-design.md` | CON-METER-001/002/003、Step 1/2/3/9、interface `authorize_dispatch/bind_backend/finish` | 只追加版本、head 单调、unknown 不补零 | `authorize_dispatch`/`bind_backend`/`finish` | 事务边界、并发写、归一 | 存储实现 | 系统用例 |
+| R-MET-02 | Usage Reader · `management-design.md` | CON-METER-004、Step 4/5、interface `page` | snapshot 冻结分页、权限每页复核 | `page()` | cursor 结构、TTL、排序 | 分页实现 | T-MET-PAGE |
 | R-MET-03 | Admin · `management-design.md` | CAP-METER-RESET、Step 6、interface `reset_usage` | 范围清空 + 审计 | `reset_usage()` | 范围语义、孤儿清理 | 范围实现 | T-MET-RESET |
-| R-MET-04 | HTTP Adapter · `http-api-design.md` | C-METER-5、`/v1/usage` | 路由与错误映射 | 路由 | 503 显式化 | 映射实现 | 503 用例 |
+| R-MET-04 | HTTP Adapter · `http-api-design.md` | CON-METER-005、`/v1/usage` | 路由与错误映射 | 路由 | 503 显式化 | 映射实现 | 503 用例 |
 
 **约束**：下游不得改变"只追加/不补零"语义；新增查询维度须回写本节并关联模块设计。
 
@@ -794,10 +831,10 @@ reset_usage(model: str | None = None, deployment_id: str | None = None, conn: Co
 
 | Test / Constraint | 输入与预置事实 | arm/hit/release | 独立 Oracle |
 |---|---|---|---|
-| T-MET-FINAL / C-METER-1..2 | 一次成功调用 | — | head=2、v2 measured、token 相等 |
-| T-MET-CRASH / C-METER-3 | 断开故障注入 | — | 崩溃后存在 unknown 义务 |
-| T-MET-UNKNOWN / C-METER-2 | 后端无 usage | — | `unknown` 且 token 为 NULL（非 0）|
-| T-MET-PAGE / C-METER-4 | 首屏后更正记录 | — | 旧页返回冻结版本 |
+| T-MET-FINAL / CON-METER-001..002 | 一次成功调用 | — | head=2、v2 measured、token 相等 |
+| T-MET-CRASH / CON-METER-003 | 断开故障注入 | — | 崩溃后存在 unknown 义务 |
+| T-MET-UNKNOWN / CON-METER-002 | 后端无 usage | — | `unknown` 且 token 为 NULL（非 0）|
+| T-MET-PAGE / CON-METER-004 | 首屏后更正记录 | — | 旧页返回冻结版本 |
 | T-MET-RESET / CAP-METER-RESET | 按 model/deployment | — | `{deleted}` 与范围一致 |
 
 ### 15.2 环境部署、复位、并发隔离与自动化
@@ -814,13 +851,15 @@ reset_usage(model: str | None = None, deployment_id: str | None = None, conn: Co
 |---|---|---|---|---|
 | LT-ADR-03 | 决定 | 未知不补零；以义务保证崩溃可见 | 已采用 | 已定 |
 | RISK-METER-1 | 风险 | 写放大（每请求多行）| 由单事务与保留策略约束 | 观察 |
+| RISK-METER-2 | 变更影响 | `CON-METER-*` 已在本机制登记，系统设计 §3.4 与 ISD 仍引用历史 `C-METER-*` | 回写系统摘要、ISD 承接与 §14.4 引用 | 待回写（不阻塞本机制） |
 
 ## A. 输入基线、适用性与图文规则
 
-- 输入：系统设计 §3.4/§8、`LT-ADR-03`、`usage.py`、`store.py`。
-- 适用性：纯软件、单节点 SQLite 账本机制。§4.9（二进制 ABI）不适用；§8.1 的"预留/释放"映射为义务/清空（无租约）。
-- 图：时序图（§6）表达义务→绑定→终态与冻结分页。
+- 输入基线：系统设计 §3.4/§8、`LT-ADR-03`；`src/inference/usage.py`、`src/management/store.py`；`util/migrations/*.sql`。
+- 适用性：纯软件、单节点 SQLite 账本机制。§4.4（无独立通信报文 wire；查询报文为 HTTP 投影）、§4.5/§5.3（设备/FPGA，`std-tailoring` `LT-TL-003`）、§4.6（状态均在持久账本）不适用；§4.9（二进制 ABI）不适用（SQLite 行 + JSON）；§8.1 的"预留/释放"映射为义务/清空（无租约）。
+- 图文规则：§1 用途概览 `diagram-mech-meter-usage`（Current）、§3 参与方协作 `diagram-mech-meter-collab`（Current）、§4 数据对象 `diagram-mech-meter-objects`（Current）、§6 正常时序 `diagram-mech-meter-sequence`。一图一问题；交互图用语义方向线，数据图不冒充时序。
+- 数据对象图触发：义务/版本/head/绑定/snapshot 跨编排、recorder、store 与查询责任单元经历持久化、版本推进与冻结投影，故按条件画图并标注 unknown 与 TTL 边界。
 
 ## B. 文档控制与修订记录
 
-初版 `0.1.0-draft.1`；`draft.3` 补实全部章节、增模块分解与不变量。修订见 Git。
+初版 `0.1.0-draft.1`；`draft.3` 补实全部章节、增模块分解与不变量；`draft.6` 按 `design.system-mechanism` 3.3.0 补用途/参与方/数据三图、"机制形态与适用性"块、关键提交中断点，并把历史 `C-METER-*` 登记为 `CON-METER-*`。修订见 Git。

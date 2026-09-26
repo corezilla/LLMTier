@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="840" viewBox="0 0 1440 840" role="img" aria-labelledby="t d">
+<title id="t">图 M-INFER-U-01：推理与流式返回机制的用途概览</title><desc id="d">Consumer 一次流式推理经校验、准入、路由与后端调用，归一为标准 SSE 并记终态用量。</desc>
+<style>text{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;fill:#1f2d3d;} .ttl{font-size:33px;font-weight:600;} .sub{font-size:18px;fill:#5b6b7d;} .bt{font-size:23px;font-weight:600;} .bd{font-size:19px;} .sm{font-size:17px;fill:#5b6b7d;} .lg{font-size:17px;fill:#5b6b7d;}</style>
+<defs>
+<marker id="ahb" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2f6fb5"/></marker>
+<marker id="ahg" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8a99a8"/></marker>
+<marker id="ahp" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8a5bb5"/></marker>
+</defs>
+<rect width="1440" height="840" fill="#ffffff"/>
+<text x="720" y="52" text-anchor="middle" font-size="33" font-weight="600" fill="#1f2d3d">图 M-INFER-U-01：推理与流式返回机制的用途概览</text>
+<text x="720" y="86" text-anchor="middle" font-size="18" font-weight="400" fill="#5b6b7d">Current · LLMTier 纯软件单进程 · 图注与正文共同解释</text>
+<rect x="40" y="130" width="400" height="560" rx="14" fill="#f7f9fc" stroke="#c7d4e4" stroke-width="1.5"/>
+<text x="240.0" y="170" text-anchor="middle" font-size="22" font-weight="600" fill="#2f6fb5">使用场景 / 触发</text>
+<rect x="58.0" y="215.0" width="364.0" height="60.0" rx="12" fill="#eef3fb" stroke="#c7d4e4" stroke-width="2"/><text x="240.0" y="252.0" text-anchor="middle" font-size="21" font-weight="600">Consumer 单轮推理（固定 Pi）</text>
+<rect x="58.0" y="297.0" width="364.0" height="60.0" rx="12" fill="#eef3fb" stroke="#c7d4e4" stroke-width="2"/><text x="240.0" y="334.0" text-anchor="middle" font-size="21" font-weight="600">SSE 增量消费输出</text>
+<rect x="58.0" y="379.0" width="364.0" height="60.0" rx="12" fill="#eef3fb" stroke="#c7d4e4" stroke-width="2"/><text x="240.0" y="416.0" text-anchor="middle" font-size="21" font-weight="600">function call 透传</text>
+<rect x="58.0" y="461.0" width="364.0" height="60.0" rx="12" fill="#eef3fb" stroke="#c7d4e4" stroke-width="2"/><text x="240.0" y="498.0" text-anchor="middle" font-size="21" font-weight="600">队列满/等待超时</text>
+<rect x="58.0" y="543.0" width="364.0" height="60.0" rx="12" fill="#eef3fb" stroke="#c7d4e4" stroke-width="2"/><text x="240.0" y="580.0" text-anchor="middle" font-size="21" font-weight="600">客户端断开</text>
+<rect x="520" y="130" width="400" height="560" rx="14" fill="#f7f9fc" stroke="#c7d4e4" stroke-width="1.5"/>
+<text x="720.0" y="170" text-anchor="middle" font-size="22" font-weight="600" fill="#2f6fb5">处理范围</text>
+<rect x="538.0" y="215.0" width="364.0" height="86.0" rx="12" fill="#dce9f8" stroke="#c7d4e4" stroke-width="2"/><text x="720.0" y="252.0" text-anchor="middle" font-size="21" font-weight="600">形态校验（stream:true /</text><text x="720.0" y="278.0" text-anchor="middle" font-size="19" font-weight="400">store:false）</text>
+<rect x="538.0" y="323.0" width="364.0" height="60.0" rx="12" fill="#dce9f8" stroke="#c7d4e4" stroke-width="2"/><text x="720.0" y="360.0" text-anchor="middle" font-size="21" font-weight="600">登记 unknown 用量义务</text>
+<rect x="538.0" y="405.0" width="364.0" height="60.0" rx="12" fill="#dce9f8" stroke="#c7d4e4" stroke-width="2"/><text x="720.0" y="442.0" text-anchor="middle" font-size="21" font-weight="600">同等级许可与候选选择</text>
+<rect x="538.0" y="487.0" width="364.0" height="60.0" rx="12" fill="#dce9f8" stroke="#c7d4e4" stroke-width="2"/><text x="720.0" y="524.0" text-anchor="middle" font-size="21" font-weight="600">调用外部后端并归一</text>
+<rect x="1000" y="130" width="400" height="560" rx="14" fill="#f7f9fc" stroke="#c7d4e4" stroke-width="1.5"/>
+<text x="1200.0" y="170" text-anchor="middle" font-size="22" font-weight="600" fill="#2f6fb5">输出结果</text>
+<rect x="1018.0" y="215.0" width="364.0" height="86.0" rx="12" fill="#eef3fb" stroke="#c7d4e4" stroke-width="2"/><text x="1200.0" y="252.0" text-anchor="middle" font-size="21" font-weight="600">标准 SSE 事件流 + 恰好一个</text><text x="1200.0" y="278.0" text-anchor="middle" font-size="19" font-weight="400">terminal</text>
+<rect x="1018.0" y="323.0" width="364.0" height="60.0" rx="12" fill="#eef3fb" stroke="#c7d4e4" stroke-width="2"/><text x="1200.0" y="360.0" text-anchor="middle" font-size="21" font-weight="600">terminal 内 token Usage</text>
+<rect x="1018.0" y="405.0" width="364.0" height="60.0" rx="12" fill="#eef3fb" stroke="#c7d4e4" stroke-width="2"/><text x="1200.0" y="442.0" text-anchor="middle" font-size="21" font-weight="600">429 + Retry-After（未调用后端）</text>
+<rect x="1018.0" y="487.0" width="364.0" height="86.0" rx="12" fill="#eef3fb" stroke="#c7d4e4" stroke-width="2"/><text x="1200.0" y="524.0" text-anchor="middle" font-size="21" font-weight="600">断开结束调用，不创建可恢复</text><text x="1200.0" y="550.0" text-anchor="middle" font-size="19" font-weight="400">Invocation</text>
+<line x1="442" y1="410" x2="518" y2="410" stroke="#2f6fb5" stroke-width="2.5" marker-end="url(#ahb)"/><text x="480" y="395" text-anchor="middle" font-size="17" fill="#44566b" style="paint-order:stroke;stroke:#ffffff;stroke-width:5px;stroke-linejoin:round">触发/输入</text>
+<line x1="922" y1="410" x2="998" y2="410" stroke="#2f6fb5" stroke-width="2.5" marker-end="url(#ahb)"/><text x="960" y="395" text-anchor="middle" font-size="17" fill="#44566b" style="paint-order:stroke;stroke:#ffffff;stroke-width:5px;stroke-linejoin:round">处理</text>
+<text x="720" y="812" text-anchor="middle" font-size="16" font-weight="400" fill="#7a8899">不提供：非流式 JSON；会话/历史；跨等级 fallback；Invocation 查询/结果恢复。</text>
+</svg>

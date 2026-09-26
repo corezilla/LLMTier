@@ -1,20 +1,15 @@
 {
   "schema_version": "std-source-manifest.v1",
-  "std_version": "0.1.0-draft.39",
+  "std_version": "0.1.0-draft.41",
   "source_repository": "corezilla/STD",
-  "source_revision": "24e1ff97531e5bf118dca0fec60e5fd162fc0c35",
+  "source_revision": "5c0be5e59296bfbab12b1a86eddf379615c89055",
   "source_tag": null,
   "generated_at": "2026-09-26",
   "artifacts": [
     {
-      "path": "MIGRATION_HANDOFF.md",
-      "role": "guidance",
-      "sha256": "5cf272680eb20aa23a181bc11c1778b526ae8c7d611ebc596759ef31f9873c2a"
-    },
-    {
       "path": "README.md",
       "role": "guidance",
-      "sha256": "65434ddf981a59c3a51b60e24e3a1de31bddd5cd77fbc7bc61d14eb9152319f2"
+      "sha256": "ba732bd608e14c5360ce39ce54af8ba699b87b211f23ae9d0dec02a0d491ea42"
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
@@ -24,7 +19,7 @@
     {
       "path": "VERSION",
       "role": "guidance",
-      "sha256": "017d316d37a03ecddd0557b226dc141cd5889897c951e32c215bc11dbf02129b"
+      "sha256": "605875195bd2bad8c8f882885e2d94fdf0f7f940e6ea91821691f86402e1741f"
     },
     {
       "path": "docs/adoption.md",
@@ -94,7 +89,7 @@
     {
       "path": "docs/ai-guides/system-mechanism.md",
       "role": "guidance",
-      "sha256": "de82ff9910aa9f4db35a63596def7c529465f2a34077d84efe12b817fb4eaabf"
+      "sha256": "18b2a4157dc327e48ba84ce01749924a90e0e86811be7ac475c4859d29749bd4"
     },
     {
       "path": "docs/ai-guides/technical-analysis.md",
@@ -114,7 +109,7 @@
     {
       "path": "docs/ai-system-design-authoring-guide.md",
       "role": "guidance",
-      "sha256": "e8406153a2b3a508b60883f66355548af84576e212854b60b7b13d5c8fdba356"
+      "sha256": "6f2605903fe2e0d3eb8fbc21b13995b8f3ec6a3d6a9ddf97a0ba0d73ddb4d33c"
     },
     {
       "path": "docs/architecture-design-authoring-guide.md",
@@ -214,7 +209,7 @@
     {
       "path": "docs/assets/system-mechanism-authoring/README.md",
       "role": "guidance",
-      "sha256": "4913a2b73e2704934d2b0b0e32fe83197329b005260d0f71d72131afb0ed42d5"
+      "sha256": "58abbd832d5af84a196e8b9b72c3645db1970312c2da735a78e3e04d3babd77e"
     },
     {
       "path": "docs/assets/system-mechanism-authoring/cleanup-dependencies.png",
@@ -234,7 +229,7 @@
     {
       "path": "docs/assets/system-mechanism-authoring/exports.json",
       "role": "guidance",
-      "sha256": "51b736a1daebe7aca448da9d557f76142a3e7373da7da4a79ff9cd6749db00b8"
+      "sha256": "b343a7c28284beaf64e966c193301c0bc6b764417e735f88eaa05c992ac0c061"
     },
     {
       "path": "docs/assets/system-mechanism-authoring/failure-recovery.png",
@@ -265,6 +260,11 @@
       "path": "docs/assets/system-mechanism-authoring/usage-overview.png",
       "role": "guidance",
       "sha256": "877df682bd494ce3b444c65952e513523982906f88773592c06e956f187adc63"
+    },
+    {
+      "path": "docs/assets/system-mechanism-authoring/usage-scenarios.png",
+      "role": "guidance",
+      "sha256": "2abe2e2d94c88e2789ced4de88164e4a80b5d65938a323ca11c7a114d07383b7"
     },
     {
       "path": "docs/coding-standard.md",
@@ -449,7 +449,7 @@
     {
       "path": "examples/std.lock.example.json",
       "role": "example",
-      "sha256": "5a646dd24277c81e5fa7374542c4e3eb5985e00ed852db27e1292b49bbf3f69f"
+      "sha256": "15efba2cce8b84bd8f2b2dd68996288ef23b58f32b3cb5300e25846c4727f02d"
     },
     {
       "path": "schemas/document-metadata.schema.json",
@@ -494,12 +494,12 @@
     {
       "path": "scripts/build-rag-manifest",
       "role": "tool",
-      "sha256": "9f72f7fa6eda05d7da9a182c7a52d77a0c42de7bae64f32bb77bb627f7ac1b9d"
+      "sha256": "f197cb4a6834d03399aa80c78d187a3a156417f17e9f14c4185315169ea5209e"
     },
     {
       "path": "scripts/build-source-manifest",
       "role": "tool",
-      "sha256": "c337f4bf1749224584eaa02a24fffbec5c54330b7299e664d7597475d6cf48e4"
+      "sha256": "c7262561cff35421c0c73869d93aa88a2920e624faada0afec901b8438d89481"
     },
     {
       "path": "scripts/new-design",
@@ -514,7 +514,7 @@
     {
       "path": "scripts/validate-design",
       "role": "tool",
-      "sha256": "571260f2d4a29cfcd68e0d6d787f6ee8845f2a60ccbadb32eef7b61d5e742432"
+      "sha256": "f5e58b9e568eaeb55afb09ced9a1c572bfa65355fe3e9817825cbce08a59a99c"
     },
     {
       "path": "scripts/validate-interface-catalog",
@@ -529,7 +529,7 @@
     {
       "path": "scripts/verify-source-manifest",
       "role": "tool",
-      "sha256": "e59d4d0c498637119a537e91b161bfde71ad7db030495519da14f411266887f6"
+      "sha256": "bb5fd7aaafc118ed5f364e95fe2a711e74cb4089ea1b2710d9dc2f093fa44419"
     },
     {
       "path": "templates/_shared/document-cover.md",
@@ -594,7 +594,7 @@
     {
       "path": "templates/catalog.json",
       "role": "template",
-      "sha256": "8bee9e84961c33833aa11456112d1c95e7ad14438b2f010d927d3200a0b54902"
+      "sha256": "65e3594cd0b838108ee7b38bad37f8a33952bf12eb989e01a5eb9d6cd06f834f"
     },
     {
       "path": "templates/contracts/contract-specification.md",
@@ -649,7 +649,7 @@
     {
       "path": "templates/design/system-mechanism-design.md",
       "role": "template",
-      "sha256": "1ac0bd4d6ce5a8958e02639a9581366228adc6a15d2feec15203dc65e0753111"
+      "sha256": "18a988be3a952e82478e0b1401c5cd79b999a7e793b99e85d97e412d23da8555"
     },
     {
       "path": "templates/diagrams/README.md",
@@ -724,7 +724,7 @@
     {
       "path": "templates/diagrams/mechanism/README.md",
       "role": "template",
-      "sha256": "7bd82bccff4c7bfdee15cb17be380a95cd12918ca45215d94e5a3384776d10d4"
+      "sha256": "bf47fc295cf8daf8b4e5beb3faeb33456582a939a3529c66121d65311e92aa80"
     },
     {
       "path": "templates/diagrams/mechanism/cleanup-dependencies.svg",
@@ -770,6 +770,11 @@
       "path": "templates/diagrams/mechanism/usage-overview.svg",
       "role": "template",
       "sha256": "bc1f3077165b38c0d85e8e3d5f989d66a2537a035fa1ac090487e8b7181e4527"
+    },
+    {
+      "path": "templates/diagrams/mechanism/usage-scenarios.svg",
+      "role": "template",
+      "sha256": "b071bc0a6b95f084788553c608cb49a78d0631706399a89006c5f391090dd0cf"
     },
     {
       "path": "templates/diagrams/software-application-context.png",
