@@ -239,6 +239,105 @@ state {
 
   `VRC-UI-001/004`。
 
+**4.6.2 `FormDraft`（编辑草稿）**
+
+```text
+FormDraft {
+  fields: map<string, value>      // Secret 字段只写不回显；空白=保持
+}
+```
+
+- **Data/Type ID、用途与来源**
+
+  `D-UI-FORM-DRAFT`；编辑抽屉内的未提交字段草稿。唯一来源=`app.js` 编辑页（`#providers` 抽屉）；仅浏览器内存。
+
+- **`fields`**（必填、可变）
+
+  `map`；由 DOM 控件值更新；Secret 字段空白表示保持原值；提交成功后销毁、失败（412）保留供复制。
+
+- **跨字段与寿命**
+
+  不自动提交、不持久化；`T-UI-06` 创建、`T-UI-07` 更新、`T-UI-09`/`T-UI-12` 销毁。
+
+- **合法/拒绝实例**
+
+  合法：填写后 PATCH 成功 → 销毁；边界：412 → `T-UI-10` 保留草稿、不自动覆盖。
+
+- **验证**
+
+  `VRC-UI-002`。
+
+**4.6.3 `EditEtag`（暂存编辑版本）**
+
+```text
+EditEtag {
+  value: string                   // "<id>.v<n>"，即 §4.4.1 ETag
+}
+```
+
+- **Data/Type ID、用途与来源**
+
+  `D-UI-EDIT-ETAG`；打开抽屉时暂存的服务端版本，供 `If-Match` 使用；唯一来源=`app.js`。
+
+- **`value`**（必填）
+
+  与 §4.4.1 `ETag` 同形；`T-UI-06` 暂存、`T-UI-08` 提交、`T-UI-11` 重新 GET 后重建。
+
+- **跨字段与寿命**
+
+  与草稿同寿命；成功后随抽屉销毁。
+
+- **合法/拒绝实例**
+
+  合法：匹配 → 2xx（`T-UI-09`）；拒绝：stale → 412（`T-UI-10`）。
+
+- **验证**
+
+  `VRC-UI-002`。
+
+**4.6.4 `PagingCursor`（分页游标）**
+
+```text
+PagingCursor {
+  value: string?                  // 审计页存 URL query，可刷新恢复
+}
+```
+
+- **Data/Type ID、用途与来源**
+
+  `D-UI-PAGING-CURSOR`；审计/列表分页游标；唯一来源=`app.js` 页面路由/查询参数。
+
+- **`value`**（可空）
+
+  `string?`；续页时随请求回传；缺省为首屏。
+
+- **跨字段与寿命**
+
+  页面内存 + URL query，刷新可恢复；不与 `FormDraft` 共享。
+
+- **验证**
+
+  `VRC-UI-001`。
+
+**4.6.5 页面与编辑状态转换（`T-UI-01…T-UI-12`）**
+
+状态机定义与不变量权威见模块设计 `web-ui-design` §6.6.6；本 ISD 细化每个转换在当前实现中的落点函数（真实 symbol）。
+
+| Transition ID | 原状态 → 新状态 | 事件 / 执行者 | Guard 事实来源 | 实现落点（`app.js` 函数 / 分支） | 失败出口 | VRC |
+|---|---|---|---|---|---|---|
+| `T-UI-01` | Loading → Ready | `loadXxx()` fetch 成功且非空 | M001 HTTP 响应（`data`/分页） | `load*()`（如 `loadProviders`/`loadTraces`）成功分支 → `render*()` | — | `VRC-UI-001` |
+| `T-UI-02` | Loading → Empty | fetch 成功但结果为空 | 服务端返回空集合 | `load*()` 空集合分支 → `render*()` 空态 | — | `VRC-UI-001` |
+| `T-UI-03` | Loading → Stale | fetch 失败（503 等） | `ErrorStatus`（§4.8） | `load*()` catch → `dispatchUiError` 保留旧数据 | 不渲染空表 | `VRC-UI-001` |
+| `T-UI-04` | Ready/Empty → Loading | 用户刷新或切换页 | 用户动作 | 页面切换/刷新重新调 `load*()` | — | `VRC-UI-001` |
+| `T-UI-05` | Stale → Loading | 用户重试 | 用户动作 | `dispatchUiError` 提供重试 → `load*()` | — | `VRC-UI-001` |
+| `T-UI-06` | Closed → Open | 打开编辑抽屉 | 用户动作 | 编辑入口初始化 `FormDraft`（§4.6.2）、暂存 `EditEtag`（§4.6.3） | — | `VRC-UI-002` |
+| `T-UI-07` | Open → Dirty | 用户修改字段 | DOM 控件值 | 表单 `input` 事件更新 `FormDraft.fields` | — | `VRC-UI-002` |
+| `T-UI-08` | Dirty → Saving | 用户提交 | `EditEtag`（§4.6.3） | `saveProvider`/`saveMember`/`toggleDeployment` 发 `PATCH + If-Match` | 超时 → §7.1.2 | `VRC-UI-002` |
+| `T-UI-09` | Saving → Closed | 2xx 成功 | M001 成功响应 | 保存函数成功分支：清草稿 + `load*()` | — | `VRC-UI-002` |
+| `T-UI-10` | Saving → Conflict | 412 stale | ETag 过期事实 | `dispatchUiError` 处理 412：提示 stale、保留草稿 | 不自动覆盖 | `VRC-UI-002` |
+| `T-UI-11` | Conflict → Dirty | 用户复制后重载 | 用户动作 | 重新 GET 后重建 `FormDraft`/`EditEtag` | — | `VRC-UI-002` |
+| `T-UI-12` | Open/Dirty → Closed | 用户放弃 | 用户动作 | 抽屉关闭：丢弃 `FormDraft` | — | `VRC-UI-002` |
+
 ### 4.8 错误码与错误结构
 
 **本层公共错误引用**（ID 定义见系统 §8.8；本层只呈现/恢复）：
@@ -617,23 +716,23 @@ flowchart TD
 
 - **触发与执行者**：打开页面；浏览器
 - **入口函数及数据**：`api` → `load*` → `render*`
-- **步骤 / 算法 / 复杂度**：框架 → 同源 GET → 认证/可用性判定 → 渲染；O(数据规模)
+- **步骤 / 算法 / 复杂度**：框架 → 同源 GET（`T-UI-01/02/03`）→ 认证/可用性判定 → 渲染；O(数据规模)
 - **判断事实来源**：HTTP 状态
 - **成功可见点**：页面渲染
-- **失败、取消与清理**：401/403/503 → I9
+- **失败、取消与清理**：401/403/503 → I9（`T-UI-03` stale，保留旧画面）
 - **代表输入与中间值**：Home → Tier 树
-- **规则 / 接口 / 验证引用**：`RULE-UI-TIERSTATE/UNKNOWN`；`VRC-UI-001/004`
+- **规则 / 接口 / 验证引用**：`RULE-UI-TIERSTATE/UNKNOWN`；相位 §4.6.5 `T-UI-01..05`；`VRC-UI-001/004`
 
 ### 6.2 `P-UI-EDIT` · 编辑保存
 
 - **触发与执行者**：Tier/Provider 编辑；浏览器
 - **入口函数及数据**：GET item → PATCH
-- **步骤 / 算法 / 复杂度**：GET 存 ETag → 校验 → PATCH + If-Match；O(1)
+- **步骤 / 算法 / 复杂度**：GET 存 `EditEtag`（`T-UI-06`）→ 校验（`T-UI-07`）→ PATCH + If-Match（`T-UI-08`）；O(1)
 - **判断事实来源**：HTTP 状态
-- **成功可见点**：更新视图 + 新 ETag
-- **失败、取消与清理**：412/409 → I9
+- **成功可见点**：更新视图 + 新 ETag（`T-UI-09`）
+- **失败、取消与清理**：412/409 → I9（`T-UI-10` 保留草稿；`T-UI-11` 重载）
 - **代表输入与中间值**：并发编辑 → 412
-- **规则 / 接口 / 验证引用**：`RULE-UI-ETAG`；`VRC-UI-002`
+- **规则 / 接口 / 验证引用**：`RULE-UI-ETAG`；相位 §4.6.5 `T-UI-06..12`；`VRC-UI-002`
 
 ### 6.3 `P-UI-DIAG` · 诊断
 
@@ -654,17 +753,17 @@ flowchart TD
 
 #### 7.1.1 `CF-UI-CONCURRENT-EDIT` · 并发编辑
 
-- **参与线程 / 回调 / 事务**：多 operator 浏览器
+- **参与线程 / 回调 / 事务**：多 operator 浏览器（相位 §4.6.5 `T-UI-08`→`T-UI-10`）
 - **已产生或可能产生的副作用**：无
 - **检测事实 / 期限**：412
 - **状态 / 错误 / 结果已知性**：已知失败
-- **保留 / 释放责任**：浏览器保留输入
-- **允许的 query / replay / takeover / retry**：重新 GET 后重试
+- **保留 / 释放责任**：浏览器保留输入（`FormDraft` §4.6.2）
+- **允许的 query / replay / takeover / retry**：重新 GET 后重试（`T-UI-11`）
 - **验证项**：`VRC-UI-002`
 
 #### 7.1.2 `CF-UI-UNKNOWN-RESULT` · 结果未知
 
-- **参与线程 / 回调 / 事务**：mutation 网络中断
+- **参与线程 / 回调 / 事务**：mutation 网络中断（相位 §4.6.5 `T-UI-08` 超时出口）
 - **已产生或可能产生的副作用**：可能已提交
 - **检测事实 / 期限**：超时/无响应
 - **状态 / 错误 / 结果已知性**：未知

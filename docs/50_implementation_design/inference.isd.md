@@ -151,7 +151,7 @@ usage.py        UsageRecorder.authorize_dispatch/bind_backend/record_provider_re
 
 > 按 STD `design-data-interface-format` 1.2.0：主章“数据结构设计”，章内按**数据性质**分类（§4.1–§4.8）。仅保留适用类别，不适用类别在章首给出原因与 tailoring 依据；每个结构以真实名称为带编号的粗体标题，先给代码式声明，再逐项写 `Data/Type ID、用途与来源`、逐字段记录（必填·缺省·可空 / 类型·范围·枚举·含义 / 条件有效性）、`跨字段与寿命`、`合法/拒绝实例` 与 `验证`。继承结构只定位原定义与固定机器源，不复制字段。
 
-**类别适用性**：§4.1 公共基础类型与枚举 ✗（`status`/`availability`/`health` 取值继承 OpenAPI 与 Registry，无本层独立枚举）｜§4.2 业务与操作数据结构 ✓｜§4.3 配置与规则数据结构 ✗（超时/队列为固定常量，见 §8.1）｜§4.4 通信报文结构 ✗（无本层拥有的消息结构；SSE 由 M001）｜§4.5 设备与 FPGA 表项结构 ✗（纯软件）｜§4.6 运行状态数据结构 ✗（Router 许可为临时资源，随上下文释放）｜§4.7 数据库表结构 ✗（账本表归 M007）｜§4.8 错误码与错误结构 ✓。
+**类别适用性**：§4.1 公共基础类型与枚举 ✗（`status`/`availability`/`health` 取值继承 OpenAPI 与 Registry，无本层独立枚举）｜§4.2 业务与操作数据结构 ✓｜§4.3 配置与规则数据结构 ✗（超时/队列为固定常量，见 §8.1）｜§4.4 通信报文结构 ✗（无本层拥有的消息结构；SSE 由 M001）｜§4.5 设备与 FPGA 表项结构 ✗（纯软件）｜§4.6 运行状态数据结构 ✓（`RouterState` 准入计数 + 账本义务；触发：§6.1 P-INFER 跨步骤准入排队与 `usage_obligations` 义务）｜§4.7 数据库表结构 ✗（账本表归 M007）｜§4.8 错误码与错误结构 ✓。
 
 ### 4.2 业务与操作数据结构
 
@@ -390,6 +390,69 @@ UsageView {
 - **验证**
 
   `VRC-INF-003`。
+
+### 4.6 运行状态数据结构
+
+**4.6.1 `RouterState`（`routing.py`）**
+
+```text
+RouterState {
+  inflight: map<deployment_id, uint32>
+  provider_inflight: map<provider_id, uint32>
+  provider_dispatches: map<provider_id, deque<timestamp>>
+  provider_last_dispatch: map<provider_id, timestamp>
+  queues: map<level_id, deque<ticket>>
+  lock: Lock
+  condition: Condition
+}
+```
+
+- **Data/Type ID、用途与来源**
+
+  `D-INF-ADMISSION-STATE`；同等级准入与 provider 限流的运行时状态；唯一来源=`src/inference/routing.py` `Router`（进程级内存）。
+
+- **`inflight` / `provider_inflight`**（必填映射）
+
+  per-deployment / per-provider in-flight 计数；`admit` 上下文退出即递减（§4.6.2 `T-INF-05`）。
+
+- **`provider_dispatches` / `provider_last_dispatch`**（必填映射）
+
+  provider 最近派发时间队列与上次派发时刻；用于 `min_request_interval_ms` / `requests_per_minute` 限流 Guard。
+
+- **`queues`**（必填映射）
+
+  每等级 FIFO 等待 ticket 队列；队列长度即等待事实来源。
+
+- **`lock` / `condition`**（内部）
+
+  保护上述可变状态；条件变量唤醒等待者。
+
+- **跨字段与寿命**
+
+  许可在 `admit` 上下文退出即释放、无泄漏；无独立 level permits/waiters；进程级内存，随 `Router`（M001 装配）创建、进程结束回收。
+
+- **合法/拒绝实例**
+
+  合法：占满 → 新请求 429（`T-INF-03`）；边界：候选全不健康 → 503。
+
+- **验证**
+
+  `VRC-INF-004`。
+
+**4.6.2 准入与账本义务状态转换（`T-INF-01…T-INF-08`）**
+
+状态机定义与不变量权威见模块设计 `inference-design` §6.6.2；本 ISD 细化每个转换的落点函数（真实 symbol）。
+
+| Transition ID | 原状态 → 新状态 | 事件 / 执行者 | Guard 事实来源 | 实现落点（文件 / 函数） | 失败出口 | VRC |
+|---|---|---|---|---|---|---|
+| `T-INF-01` | Idle → Waiting | `Router.admit(level_id)` 容量不足 | `RouterState.inflight`/`queues` | `routing.py` `Router.admit` 入队分支 | 队列满（>32）→ `T-INF-03` | `VRC-INF-004` |
+| `T-INF-02` | Waiting → Admitted | 条件变量唤醒且配额/限流允许 | `inflight`/`provider_dispatches` 与限流配置 | `Router.admit` 唤醒后占用许可分支 | 等待 >30 s → `T-INF-03` | `VRC-INF-004` |
+| `T-INF-03` | Waiting → Rejected | 队列满或等待超时 | 队列长度 / 等待时钟 | `Router.admit` 返回 429 + `Retry-After` | — | `VRC-INF-004` |
+| `T-INF-04` | Idle → Admitted | `admit()` 容量与限流直接允许 | `RouterState` 计数 | `Router.admit` 直接放行分支 | — | `VRC-INF-004` |
+| `T-INF-05` | Admitted → Released | `admit` 上下文退出 | 上下文管理器 `__exit__` | `Router.admit` 的 `finally`：计数递减 + `condition.notify` | 异常路径同样释放 | `VRC-INF-004` |
+| `T-INF-06` | （无义务）→ Unknown | `UsageRecorder.authorize_dispatch` | 已校验请求身份 | `usage.py` `authorize_dispatch` 写 `usage_obligations`(unknown) | 写失败 → 不 dispatch | `VRC-INF-003` |
+| `T-INF-07` | Unknown → Measured | `UsageRecorder.finish()` 成功 | 上游终态与用量事实 | `usage.py` `finish`：追加 `usage_record_versions` + 推进 `usage_heads`（同事务） | 提交失败 → 保留 Unknown | `VRC-INF-003` |
+| `T-INF-08` | Unknown → Unknown | `finish(None)` 或终态写入失败 | 调用链异常 / 存储错误 | `usage.py` `finish(None)`：保留 unknown、不写零值 | 上层返回对应错误 | `VRC-INF-003` |
 
 ### 4.8 错误码与错误结构
 
@@ -909,18 +972,18 @@ flowchart TD
 
 - **触发与执行者**：M001 → `ResponsesService.create`；请求线程
 - **入口函数及数据**：`create`；body
-- **步骤 / 算法 / 复杂度**：校验 → 能力 → 义务 → 准入 → 绑定 → 调用 → 归一 → 终态；O(候选数)
+- **步骤 / 算法 / 复杂度**：校验 → 能力 → 义务（`T-INF-06`）→ 准入（`T-INF-01`/`T-INF-04`→`T-INF-02`）→ 绑定 → 调用 → 归一 → 终态（`T-INF-07`/`T-INF-08`）；O(候选数)
 - **判断事实来源**：字段/Registry 能力/Router 许可
 - **成功可见点**：`ResponsesResponse`
-- **失败、取消与清理**：typed error（流开始前经 HTTP `D-ERROR-ENVELOPE` 返回）；异常路径 `finish(None)`；许可在 `admit` 上下文退出时释放（先于 `finish` 与 SSE）；客户端断开发生在 SSE 阶段，不触发 `finish(None)`
+- **失败、取消与清理**：typed error（流开始前经 HTTP `D-ERROR-ENVELOPE` 返回）；异常路径 `finish(None)`（`T-INF-08`）；许可在 `admit` 上下文退出时释放（`T-INF-05`，先于 `finish` 与 SSE）；`T-INF-03` 队列满/超时 → 429 + `Retry-After`；客户端断开发生在 SSE 阶段，不触发 `finish(None)`
 - **代表输入与中间值**：`{model:"Worker", input:"hi", stream:true, store:false}` → SSE
-- **规则 / 接口 / 验证引用**：`RULE-INF-VALIDATE/ROUTE/TERMINAL`；`VRC-INF-001..004`
+- **规则 / 接口 / 验证引用**：`RULE-INF-VALIDATE/ROUTE/TERMINAL`；相位 §4.6.2 `T-INF-01..08`；`VRC-INF-001..004`
 
 ### 6.2 `P-EMBED` · 向量化
 
 - **触发与执行者**：M001 → `EmbeddingsService.create`
 - **入口函数及数据**：`create`；body
-- **步骤 / 算法 / 复杂度**：校验 → 能力 → 义务 → 准入 → `embed` → 向量校验 → usage 归一；O(维度)
+- **步骤 / 算法 / 复杂度**：校验 → 能力 → 义务（`T-INF-06`）→ 准入（`T-INF-01/02/04`→`T-INF-05`）→ `embed` → 向量校验 → usage 归一（`T-INF-07/08`）；O(维度)
 - **判断事实来源**：字段/能力/上游载荷
 - **成功可见点**：Embeddings 载荷
 - **失败、取消与清理**：400/502/503
@@ -970,12 +1033,12 @@ flowchart TD
 
 #### 7.2.1.1 `PF-INF-USAGE` · 用量记账事务
 
-- **原规则 / 事务**：`R-MET-01`
+- **原规则 / 事务**：`R-MET-01`；义务写入 `T-INF-06`（dispatch 前）与终态 `T-INF-07`（提交后可见）分别在单事务内
 - **原子范围 / 事务外副作用**：单事务写版本/head；无事务外副作用
 - **开始 / 提交 / 回滚函数**：`UsageRecorder`（经 M007 `transaction`）
-- **持久提交点 / 对外响应点**：commit
+- **持久提交点 / 对外响应点**：commit（义务提交成功才 dispatch；`T-INF-08` 失败保留 unknown）
 - **响应丢失后的权威核对**：核对账本 head
-- **恢复入口 / 判定记录 / 重复恢复条件**：向 M-METER 承接
+- **恢复入口 / 判定记录 / 重复恢复条件**：崩溃恢复以已提交 `usage_obligations` 为入口；无终态版本 → 保留 unknown（`T-INF-08`，不补零）
 - **验证项**：`VRC-INF-003`
 
 #### 7.2.2 Schema 演进策略决定

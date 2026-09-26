@@ -555,7 +555,7 @@ DiagnosticsRuntimeState {
 
 - **跨字段与寿命**
 
-  唯一写者=`set_switches`；记录前判定（关闭零写入，`CON-OBS-001`）；单行持久 + 请求级过程量。
+  唯一写者=`set_switches`（`T-DIAG-01/02`）；记录前判定（关闭零写入，`CON-OBS-001`，`T-DIAG-04`）；单行持久 + 请求级过程量。
 
 - **合法/拒绝实例**
 
@@ -564,6 +564,20 @@ DiagnosticsRuntimeState {
 - **验证**
 
   `VRC-DIAG-001`。
+
+**4.6.2 开关与注入状态转换（`T-DIAG-01…T-DIAG-07`）**
+
+状态机定义与不变量权威见模块设计 `libdiag-design` §6.6.2；开关与注入均为持久事实（`diagnostic_settings`/`diagnostic_injections`），内存缓存不构成权威。本 ISD 细化每个转换的落点函数（真实 symbol）。
+
+| Transition ID | 原状态 → 新状态 | 事件 / 执行者 | Guard 事实来源 | 实现落点（文件 / 函数） | 失败出口 | VRC |
+|---|---|---|---|---|---|---|
+| `T-DIAG-01` | Off → On | `set_switches(enabled=true)` 提交 | `diagnostic_settings` 行 | `settings.py` `set_switches` 单事务 upsert，提交后生效 | 写失败 → 保持 Off（不改业务） | `VRC-DIAG-001` |
+| `T-DIAG-02` | On → Off | `set_switches(enabled=false)` 提交 | `diagnostic_settings` 行 | `settings.py` `set_switches` 单事务 upsert | 写失败 → 保持 On | `VRC-DIAG-001` |
+| `T-DIAG-03` | On → On | `record_latency`/`capture_snapshot`/`record_trace` | `switches` 权威读 | `traces.py`/`snapshots.py`/`stats.py` 按开关写对应表（统计走内存缓存） | 写失败 → `_warn`，不改推理（§6.1） | `VRC-DIAG-002` |
+| `T-DIAG-04` | Off → Off | 任一记录调用 | `switches.enabled=false` | `record_*` 入口短路分支，不写库 | — | `VRC-DIAG-001` |
+| `T-DIAG-05` | Absent/Disabled → Enabled | `set_injections` 请求线程 | `_validate`（§8.4） | `injections.py` `set_injections` 按 `(deployment_id,injection_type)` upsert | 校验失败 → 400，不落库 | `VRC-DIAG-004` |
+| `T-DIAG-06` | Enabled → Disabled | `set_injections` | 同 `T-DIAG-05` | `injections.py` `set_injections` upsert `enabled=false` | — | `VRC-DIAG-004` |
+| `T-DIAG-07` | Disabled → Absent | 删除注入或 deployment 移除 | 上游删除事实 | `injections.py` 删除行 | — | `VRC-DIAG-004` |
 
 ### 4.7 数据库表结构
 
@@ -1058,23 +1072,23 @@ flowchart TD
 
 - **触发与执行者**：M003/M001；调用线程
 - **入口函数及数据**：`record_trace`/`capture_snapshot`/`record_latency`
-- **步骤 / 算法 / 复杂度**：开关判定（关→短路）→ 脱敏/截断/分桶 → 写 Store；O(1)/O(len)
+- **步骤 / 算法 / 复杂度**：开关判定（关→短路 `T-DIAG-04`；开→`T-DIAG-03`）→ 脱敏/截断/分桶 → 写 Store；O(1)/O(len)
 - **判断事实来源**：`switches()`；字段
 - **成功可见点**：行/聚合更新
-- **失败、取消与清理**：`_warn` 后继续
+- **失败、取消与清理**：`_warn` 后继续（`T-DIAG-03` 失败出口）
 - **代表输入与中间值**：`upstream_url=?token=x` → 去 query
-- **规则 / 接口 / 验证引用**：`RULE-DIAG-SWITCH/TRUNC`；`VRC-DIAG-002/003`
+- **规则 / 接口 / 验证引用**：`RULE-DIAG-SWITCH/TRUNC`；相位 §4.6.2 `T-DIAG-03/04`；`VRC-DIAG-002/003`
 
 ### 6.2 `P-DIAG-INJECT` · 注入判定
 
 - **触发与执行者**：M003 请求路径 / M001 流；调用线程
 - **入口函数及数据**：`enabled_injection`/`enabled_stream_injection`/`stream_wrapper`
-- **步骤 / 算法 / 复杂度**：查 enabled → 按优先级取**单条** → 命中动作（fault/delay/rate_limit/流截断/畸形）；O(items)
+- **步骤 / 算法 / 复杂度**：查 enabled（`T-DIAG-05/06/07` 维护的 `diagnostic_injections`）→ 按优先级取**单条** → 命中动作（fault/delay/rate_limit/流截断/畸形）；O(items)
 - **判断事实来源**：`diagnostic_injections`（enabled）
 - **成功可见点**：注入生效
-- **失败、取消与清理**：无注入透传
+- **失败、取消与清理**：无注入透传；非法参数 → `T-DIAG-05` 400 不落库
 - **代表输入与中间值**：`delay_ms=2000` → sleep 2s
-- **规则 / 接口 / 验证引用**：`RULE-DIAG-INJECT`；`VRC-DIAG-004`
+- **规则 / 接口 / 验证引用**：`RULE-DIAG-INJECT`；相位 §4.6.2 `T-DIAG-05/06/07`；`VRC-DIAG-004`
 
 ### 6.3 `P-DIAG-PCTL` · 百分位
 
@@ -1119,13 +1133,13 @@ flowchart TD
 
 #### 7.2.1.1 `PF-DIAG` · 观测表事务
 
-- **原规则 / 事务**：单条/单批 INSERT/UPDATE
+- **原规则 / 事务**：单条/单批 INSERT/UPDATE；开关与注入 upsert 各自单事务（`T-DIAG-01/02/05/06`）
 - **原子范围 / 事务外副作用**：单事务内；无事务外副作用
 - **开始 / 提交 / 回滚函数**：`Store.transaction`
-- **持久提交点 / 对外响应点**：commit
-- **响应丢失后的权威核对**：无（观测非权威）
-- **恢复入口 / 判定记录 / 重复恢复条件**：无
-- **验证项**：`VRC-DIAG-002`
+- **持久提交点 / 对外响应点**：commit（开关/注入提交后生效）
+- **响应丢失后的权威核对**：无（观测非权威）；崩溃恢复读已提交开关/注入行（`T-DIAG-03`）
+- **恢复入口 / 判定记录 / 重复恢复条件**：重复 `migrate()` 幂等；记录重放由调用方决定，去重键=`(deployment_id,injection_type)`
+- **验证项**：`VRC-DIAG-002/003/004`
 
 #### 7.2.2 Schema 演进策略决定
 

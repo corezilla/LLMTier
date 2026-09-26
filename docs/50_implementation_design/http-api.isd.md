@@ -121,7 +121,7 @@ webui/      # 静态资源（M002 产物）
 
 > 按 STD `design-data-interface-format` 1.2.0：主章“数据结构设计”，章内按**数据性质**分类（§4.1–§4.8）。仅保留适用类别，不适用类别在章首给出原因与 tailoring 依据；每个结构以真实名称为带编号的粗体标题，先给代码式声明，再逐项写 `Data/Type ID、用途与来源`、逐字段记录（必填·缺省·可空 / 类型·范围·枚举·含义 / 条件有效性）、`跨字段与寿命`、`合法/拒绝实例` 与 `验证`。继承结构只定位原定义与固定机器源，不复制字段。
 
-**类别适用性**：§4.1 公共基础类型与枚举 ✗（角色取值内嵌于 §4.2 `Principal.role`，无独立共享枚举）｜§4.2 业务与操作数据结构 ✓｜§4.3 配置与规则数据结构 ✗（部署参数为启动入参，见 §8.1，无受控规则对象）｜§4.4 通信报文结构 ✓｜§4.5 设备与 FPGA 表项结构 ✗（纯软件，无连接器/总线/寄存器）｜§4.6 运行状态数据结构 ✗（请求级，无跨步骤状态）｜§4.7 数据库表结构 ✗（不拥有表；持久化归 M007）｜§4.8 错误码与错误结构 ✓（承载系统 §8.8 公共码）。
+**类别适用性**：§4.1 公共基础类型与枚举 ✗（角色取值内嵌于 §4.2 `Principal.role`，无独立共享枚举）｜§4.2 业务与操作数据结构 ✓｜§4.3 配置与规则数据结构 ✗（部署参数为启动入参，见 §8.1，无受控规则对象）｜§4.4 通信报文结构 ✓｜§4.5 设备与 FPGA 表项结构 ✗（纯软件，无连接器/总线/寄存器）｜§4.6 运行状态数据结构 ✓（请求线程局部相位 `RequestLifecycle`；触发：§3 登记端点宿主 + §6.2 P-API-SSE 跨步骤在途/取消）｜§4.7 数据库表结构 ✗（不拥有表；持久化归 M007）｜§4.8 错误码与错误结构 ✓（承载系统 §8.8 公共码）。
 
 ### 4.2 业务与操作数据结构
 
@@ -197,6 +197,60 @@ SseFrame {
 - **验证**
 
   `VRC-API-003`。
+
+### 4.6 运行状态数据结构
+
+**4.6.1 `RequestLifecycle`（`app.py`）**
+
+```text
+RequestLifecycle {
+  request_id: str                  // req_<32hex>，请求身份
+  phase: Literal[RECEIVED, ROUTED, HANDLED, STREAMING, COMPLETED, ABORTED, ERRORED]
+  stream: bool                    // 是否 SSE 长连接
+}
+```
+
+- **Data/Type ID、用途与来源**
+
+  `D-API-REQ-LIFECYCLE`；单次请求在各处理步骤间的运行相位。唯一来源=`app.py` `Handler._run`/`Handler._dispatch`（进程内、请求线程局部，不落库）。
+
+- **`request_id`**（必填、请求内恒定）
+
+  `str`；`_run` 请求开始时生成 `req_<32hex>`，写入 `X-Request-ID` 与日志/trace（§2.4、§6.1 步骤 1）。
+
+- **`phase`**（必填、枚举）
+
+  7 值枚举；合法转换与实现落点见 §4.6.2；terminal=`COMPLETED`/`ABORTED`/`ERRORED`。
+
+- **`stream`**（必填、布尔）
+
+  `true` 时允许 `HANDLED→STREAMING`；`false` 时只允许 `HANDLED→COMPLETED`。
+
+- **跨字段与寿命**
+
+  唯一写者=承载该请求的 `Handler._run` 线程；线程内局部变量，与其他请求不共享、不落库（`Store` 连接所有权归 M007，见 §7.2）；请求线程结束即不可观察，无跨请求共享可变状态，故无模块级锁。
+
+- **合法/拒绝实例**
+
+  合法 `RECEIVED→ROUTED→HANDLED→COMPLETED`；边界：SSE 写失败 → `STREAMING→ABORTED`（不 `COMPLETED`、不重放）。
+
+- **验证**
+
+  `VRC-API-001/003`。
+
+**4.6.2 请求相位状态转换（`T-API-01…T-API-07`）**
+
+相位机的定义与不变量权威见模块设计 `http-api-design` §6.6.1；本 ISD 细化每个转换在当前实现中的落点函数/分支（真实 symbol）。
+
+| Transition ID | 原状态 → 新状态 | 事件 / 执行者 | Guard 事实来源 | 实现落点（`app.py` 函数 / 分支） | 失败出口 | VRC |
+|---|---|---|---|---|---|---|
+| `T-API-01` | RECEIVED → ROUTED | `_dispatch` 命中路由 | `RULE-API-ROUTE` 路由表 | `Handler._dispatch` 路径/方法分类命中已知路由 | 未命中 → `T-API-03` | `VRC-API-001` |
+| `T-API-02` | ROUTED → HANDLED | 业务处理器正常返回 | 处理器结果或 `ApiError` | `_dispatch` 业务分支 `ResponsesService.create`/`Registry.*` 返回后 | 抛 `ApiError` → `T-API-03` | `VRC-API-002/003` |
+| `T-API-03` | RECEIVED/ROUTED → ERRORED | `ApiError` 或未知异常 | `ApiError` 实例；`_run` 的 `except Exception` | `Handler._run` 捕获 → `ApiError.envelope()` 写错误响应 | 未知异常记 `unhandled_error` 后 500 | `VRC-API-001` |
+| `T-API-04` | HANDLED → STREAMING | `stream=true` 且首帧写出 | M003 `response_stream` 产出首帧 | `/v1/responses` 分支：发 SSE 头 + `sse.frame` 首帧 `flush` | 写失败 → `T-API-07` | `VRC-API-003` |
+| `T-API-05` | HANDLED → COMPLETED | 同步响应体写出成功 | 业务结果已序列化 | `Handler._json`/`_static` 写响应体后 | 写失败 → `T-API-07` | `VRC-API-001` |
+| `T-API-06` | STREAMING → COMPLETED | terminal 帧与 `[DONE]` flush 完成 | M003 terminal（`response.completed` 等） | `_dispatch` SSE 循环遇 `response_stream` 终态后 | 迟到帧被同连接丢弃 | `VRC-API-003` |
+| `T-API-07` | STREAMING/HANDLED → ABORTED | 写失败（`BrokenPipeError`/`ConnectionResetError`） | 套接字写异常 | `_run`/SSE 写出口捕获写异常，记 `aborted` | 不重放；已受理任务由 M003 收敛 | `VRC-API-003` |
 
 ### 4.8 错误码与错误结构
 
@@ -583,23 +637,23 @@ flowchart TD
 
 - **触发与执行者**：HTTP 请求；请求线程
 - **入口函数及数据**：`_run` → `_dispatch`
-- **步骤 / 算法 / 复杂度**：生成 request_id → 分类（健康/静态/引导/业务）→ 鉴权 → body → 调业务 → 响应 → finally close；O(路由数)
+- **步骤 / 算法 / 复杂度**：生成 request_id（`T-API-01` 起点）→ 分类（健康/静态/引导/业务）→ 鉴权 → body → 调业务（`T-API-02`）→ 响应（`T-API-04`/`T-API-05`）→ finally close；O(路由数)
 - **判断事实来源**：path/method/headers
 - **成功可见点**：HTTP 响应
-- **失败、取消与清理**：`ApiError` 信封；未知 500；finally 关闭
+- **失败、取消与清理**：路由未命中/`ApiError`/未知异常 → `T-API-03`（`ApiError` 信封，未知 500）；写失败 → `T-API-07`；finally 关闭
 - **代表输入与中间值**：`POST /v1/responses` → SSE
-- **规则 / 接口 / 验证引用**：`RULE-API-ROUTE/ROLE/TRUST/ERRMAP`；`VRC-API-001..003`
+- **规则 / 接口 / 验证引用**：`RULE-API-ROUTE/ROLE/TRUST/ERRMAP`；相位 §4.6.2 `T-API-01/02/03/04/05`；`VRC-API-001..003`
 
 ### 6.2 `P-API-SSE` · 流式输出
 
 - **触发与执行者**：`/v1/responses` 成功；请求线程
 - **入口函数及数据**：`response_stream`
-- **步骤 / 算法 / 复杂度**：发流头 → 逐帧 flush → terminal + `[DONE]`；O(事件数)
+- **步骤 / 算法 / 复杂度**：发流头 → 逐帧 flush（`T-API-04`）→ terminal + `[DONE]`（`T-API-06`）；O(事件数)
 - **判断事实来源**：终态响应
 - **成功可见点**：SSE 帧 + terminal
-- **失败、取消与清理**：断开 → 记 aborted
+- **失败、取消与清理**：断开/写失败 → 记 aborted（`T-API-07`）
 - **代表输入与中间值**：`ResponsesResponse` → 帧序
-- **规则 / 接口 / 验证引用**：`RULE-API-SSE`；`VRC-API-003`
+- **规则 / 接口 / 验证引用**：`RULE-API-SSE`；相位 §4.6.2 `T-API-04/06/07`；`VRC-API-003`
 
 ### 6.3 `P-API-STATIC` · 静态交付
 
@@ -620,12 +674,12 @@ flowchart TD
 
 #### 7.1.1 `CF-API-DISCONNECT` · 客户端断开
 
-- **参与线程 / 回调 / 事务**：请求线程
+- **参与线程 / 回调 / 事务**：请求线程（相位 §4.6.2 `T-API-07`，`STREAMING→ABORTED`）
 - **已产生或可能产生的副作用**：部分输出已送达
 - **检测事实 / 期限**：`BrokenPipeError`/`ConnectionResetError`
 - **状态 / 错误 / 结果已知性**：未知
 - **保留 / 释放责任**：`finally` 释放
-- **允许的 query / replay / takeover / retry**：新请求为新调用
+- **允许的 query / replay / takeover / retry**：新请求为新调用；断开 ≠ 取消已受理任务（M003 收敛）
 - **验证项**：`VRC-API-003`
 
 #### 7.1.2 `CF-API-FD` · 连接泄漏
@@ -637,6 +691,16 @@ flowchart TD
 - **保留 / 释放责任**：`_run` finally `Store.close()`
 - **允许的 query / replay / takeover / retry**：无
 - **验证项**：`VRC-API-001`
+
+#### 7.1.3 `CF-API-LIFECYCLE` · 启动/停止与在途请求
+
+- **参与线程 / 回调 / 事务**：进程启动/停止时在途请求与 SSE 长连接（相位 §4.6.2）
+- **已产生或可能产生的副作用**：部分响应已送达；无本模块业务写入
+- **检测事实 / 期限**：`/readyz` 由 M004 `readiness_view` 判定；`server_close()` 停止接收新连接
+- **状态 / 错误 / 结果已知性**：在途请求结果未知，非强制中断
+- **保留 / 释放责任**：停止不强制中断在途请求线程；SSE 随 fd 关闭走 `T-API-07`（`STREAMING→ABORTED`）
+- **允许的 query / replay / takeover / retry**：连接级恢复由 Consumer 发起新请求；已受理任务收敛归 M003
+- **验证项**：`VRC-API-001`；组合（systemd / 反向代理）
 
 <a id="isd-persistence"></a>
 

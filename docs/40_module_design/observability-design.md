@@ -15,7 +15,7 @@
 | Created Date | `2026-09-23` |
 | Last Modified Date | `2026-09-25` |
 | Template ID | `design.definition` |
-| Template Version | `3.2.0` |
+| Template Version | `3.4.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |
@@ -246,6 +246,8 @@
 | `IF-OBS-03` | `src/http_api/app.py` → `src/libdiag/diagnostics.py`（关联标识） | §9.1 `IF-OBS-CORRELATION` | 入口透传/回显并写 trace | `VRC-OBS-004` |
 
 ### 5.4 服务提供方式（条件适用）
+
+**适用性触发**：§3 已登记本模块无可直接承载的操作面（诊断端点由 M001 暴露）→ 本节 N/A；模块无自有端点宿主与线程生命周期。
 
 - **运行载体与入口**：N/A + 依据 —— 无独立 server；由 M001 进程内调用
 - **并发/线程模型**：N/A + 依据 —— 使用调用方线程；统计聚合内含锁/上限
@@ -717,6 +719,14 @@ InjectionConfig {
 
   `VRC-OBS-003`；来源 `libdiag-design.md` §6.3。
 
+### 6.6 运行状态数据结构
+
+**适用性触发**：M005 仅做查询/开关呈现的请求级投影，不拥有跨步骤状态、队列或取消 → 本节 N/A。事实：`CorrelationId`、查询结果与注入配置均为单次请求内构造并返回的投影；模块无可变持久状态，运行记录状态权威归 M006 `libdiag`（见 §6.7 N/A 与 M006 §6.6.2）。tailoring 依据：呈现层不持有状态机（决定见 §15.ISD）。§10 不引用状态转换 ID。
+
+### 6.7 数据库表结构
+
+**适用性触发**：M005 不拥有任何持久表、不直连 SQLite → 本节 N/A。事实：诊断/观测 6 张表由 M006 `libdiag` 拥有并经 `util/migrations/002_observability.sql` 建立，M005 只经 M006 门面查询。tailoring 依据：呈现层不写库（决定见 §15.ISD）。§10 不设本模块事务/崩溃/重放路径。
+
 ### 6.8 错误码与错误结构
 
 本模块**不新增公共错误码**；对外错误引用系统目录（`llmtier-system-design` §8.8）：
@@ -799,6 +809,8 @@ InjectionConfig {
 ## 9. 接口设计
 
 > 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口设计用途**分类（面向使用方的 API 与组件/系统间协作的消息与数据流接口），逐接口完整记录；标题为真实调用形式（HTTP 路由），标题下先给**完整接口声明**，再就地说明参数/结果字段，最后按固定六项。诊断端点向 operator 提供可观测能力，归 API；消息流/硬件/人机三类不适用。数据结构引用 §6。端点由 M001 暴露、处理器位于 `src/http_api/app.py`，底层能力来自 M006 `DiagnosticsService`。
+
+**§9↔§6 交叉核对**：本节每个接口的必填输入与输出字段，均逐项定位到 §6 结构（`CorrelationId`→§6.1、`SwitchState`/`TraceView`/`TracePage`/`SnapshotPage`/`StatsView`/`InjectionView` 为 M006 结构的本地投影→§6.2/§6.3）或本接口内写明的构造规则（`apply_correlation` 解析入口头）；无接口返回 §6 与 M006 无任何操作可产生的字段。
 
 ### 9.1 API（适用时）
 
@@ -934,6 +946,8 @@ apply_correlation(headers) -> (correlation_id: str | None, trace_detail: dict | 
 不适用（诊断入口归 M001、呈现归 M002；本模块不拥有 UI/CLI）。
 
 ## 10. 并发、失败与恢复
+
+**事实联动**：本节与 §3（N/A：无自有操作面，端点由 M001 暴露）、§5.4（N/A：无自有宿主）、§6.6（N/A：无跨步骤状态，状态权威归 M006）、§6.7（N/A：表归 M006/libdiag）联动。故本节只推演请求级查询/写入失败与初始化降级，不设本模块事务/崩溃/重放路径（写 N/A + 归属 M006/M007）。
 
 #### 10.1 `F-OBS-WRITE` · 观测写入失败
 - **初始条件 / 并发交错 / 失败点**：库/缓存错误

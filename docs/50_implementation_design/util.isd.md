@@ -154,7 +154,7 @@ Store.__init__ / connection / migrate / transaction / one / all / close
 
 - **Data/Type ID、用途与来源**
 
-  SQLite 存取层私有类；唯一来源=`src/util/store.py`。
+  `D-UTIL-STORE`；SQLite 存取层私有类；唯一来源=`src/util/store.py`。
 
 - **`path`**（必填、非空、只读）
 
@@ -238,6 +238,63 @@ sqlite3.Connection {
 - **验证**
 
   `VRC-UTIL-001`。
+
+**4.6.2 `TxnContext`（`store.py`）**
+
+```text
+TxnContext {
+  store: Store
+  conn: sqlite3.Connection
+  immediate: bool
+  owns_txn: bool                  // txn(conn) 传入时为外借，不提交
+}
+```
+
+- **Data/Type ID、用途与来源**
+
+  `D-TXN`；一次事务的运行时上下文；唯一来源=`Store.transaction` / `txn`。
+
+- **`store` / `conn`**（必填）
+
+  所属 `Store` / 本次事务使用的连接。
+
+- **`immediate`**（必填、布尔）
+
+  是否 `BEGIN IMMEDIATE`；取值 `TxnMode { DEFERRED, IMMEDIATE }`，定义见模块设计 `util-design` §6.1.2（本 ISD §4.3 为 N/A）。
+
+- **`owns_txn`**（必填、布尔）
+
+  `txn(conn)` 传入已有连接时为 `false`（并入调用方事务，不提交）。
+
+- **跨字段与寿命**
+
+  只有一个写者提交；嵌套调用经 `conn` 复用不另开事务；上下文作用域，退出即 commit/rollback（`T-UTIL-09/10`）。
+
+- **合法/拒绝实例**
+
+  合法 `with store.transaction(True)`；边界：业务传入已有 `conn` → 并入调用方事务。
+
+- **验证**
+
+  `VRC-UTIL-002`。
+
+**4.6.3 存储就绪与连接/事务状态转换（`T-UTIL-01…T-UTIL-11`）**
+
+状态机定义与不变量权威见模块设计 `util-design` §6.6.3；库状态由 `schema_meta` + 完整性检查权威，连接状态为 `threading.local`、不跨线程共享。本 ISD 细化每个转换的落点函数（真实 symbol）。
+
+| Transition ID | 原状态 → 新状态 | 事件 / 执行者 | Guard 事实来源 | 实现落点（`store.py` 函数 / 分支） | 失败出口 | VRC |
+|---|---|---|---|---|---|---|
+| `T-UTIL-01` | Unknown → Empty | 打开非空/空库 | 表清单（无业务表） | `Store.__init__`/`migrate` 判定空库分支 | — | `VRC-UTIL-002` |
+| `T-UTIL-02` | Empty → Ready | `migrate()`（M001 装配） | migrations 文件有序集合 | `Store.migrate` 单事务执行全部迁移 + 写 `schema_meta` | 逐语句失败 → 抛错，事务回滚 | `VRC-UTIL-002` |
+| `T-UTIL-03` | Unknown → Ready | `migrate()` | `schema_meta.schema_version` 等于期望 | `Store.migrate` 幂等校验分支，不写 | — | `VRC-UTIL-002` |
+| `T-UTIL-04` | Unknown → Mismatch | `migrate()` | 有业务表却无 `schema_meta` 或版本不等 | `Store.migrate` 抛 `ERR-SCHEMA` 分支 | 运维离线处理 | `VRC-UTIL-002` |
+| `T-UTIL-05` | Unknown → Corrupt | `migrate()` | `PRAGMA integrity_check` | `Store.migrate` 抛 `ERR-SCHEMA` 分支 | 运维离线处理 | `VRC-UTIL-002` |
+| `T-UTIL-06` | Ready → Ready | 再次 `migrate()` | migrations 幂等（`IF NOT EXISTS`/`INSERT OR IGNORE`） | `Store.migrate` 无变更分支 | — | `VRC-UTIL-002` |
+| `T-UTIL-07` | Absent → Open | `connection()`（业务线程） | `_local` | `Store.connection` 建连接 + 设 PRAGMA，缓存本线程 | 失败抛 `sqlite3` 异常 | `VRC-UTIL-001` |
+| `T-UTIL-08` | Open → Txn | `transaction(immediate=True)` | 调用方请求 | `Store.transaction` `BEGIN IMMEDIATE`，返回 `TxnContext`（§4.6.2） | 冲突抛异常 → `T-UTIL-10` | `VRC-UTIL-002` |
+| `T-UTIL-09` | Txn → Open | 上下文正常退出 | 无异常 | `Store.transaction` `commit` 分支（持久提交点） | 提交失败 → 抛错 | `VRC-UTIL-002` |
+| `T-UTIL-10` | Txn → Open | 上下文异常退出 | 异常 | `Store.transaction` `rollback` 分支 | — | `VRC-UTIL-002` |
+| `T-UTIL-11` | Open → Absent | `close()`（请求 `finally`/停机） | 调用方 | `Store.close` 关闭连接并置 `None` | — | `VRC-UTIL-001` |
 
 ### 4.7 数据库表结构
 
@@ -681,45 +738,45 @@ flowchart TD
 
 - **触发与执行者**：首次 `connection()`；调用线程
 - **入口函数及数据**：`connection()`；`path`
-- **步骤 / 算法 / 复杂度**：取 `_local` → 无则 `connect` + 设 `Row` + PRAGMA → 缓存；O(1)
+- **步骤 / 算法 / 复杂度**：取 `_local` → 无则 `connect` + 设 `Row` + PRAGMA → 缓存（`T-UTIL-07`）；O(1)
 - **判断事实来源**：`_local` 缓存字段
 - **成功可见点**：线程内可复用的 `Connection`
 - **失败、取消与清理**：连接失败透传；无清理
 - **代表输入与中间值**：无 → 新连接
-- **规则 / 接口 / 验证引用**：`RULE-UTIL-PRAGMA`；`VRC-UTIL-001`
+- **规则 / 接口 / 验证引用**：`RULE-UTIL-PRAGMA`；相位 §4.6.3 `T-UTIL-07`；`VRC-UTIL-001`
 
 ### 6.2 `P-UTIL-TXN` · 事务提交/回滚
 
 - **触发与执行者**：业务模块 `with transaction()`；调用线程
 - **入口函数及数据**：`transaction`；SQL
-- **步骤 / 算法 / 复杂度**：`BEGIN [IMMEDIATE]` → yield → commit / rollback；O(1)
+- **步骤 / 算法 / 复杂度**：`BEGIN [IMMEDIATE]`（`T-UTIL-08`）→ yield → commit（`T-UTIL-09`）/ rollback（`T-UTIL-10`）；O(1)
 - **判断事实来源**：块内异常
 - **成功可见点**：commit 生效
 - **失败、取消与清理**：异常 → rollback 并重抛
 - **代表输入与中间值**：`INSERT` 后 `raise` → 无半写
-- **规则 / 接口 / 验证引用**：`RULE-UTIL-TXN`；`VRC-UTIL-002`
+- **规则 / 接口 / 验证引用**：`RULE-UTIL-TXN`；相位 §4.6.3 `T-UTIL-08/09/10`；`VRC-UTIL-002`
 
 ### 6.3 `P-UTIL-MIGRATE` · 初始化与拒绝
 
 - **触发与执行者**：宿主启动；单线程
 - **入口函数及数据**：`migrate()`；`migrations/*.sql`
-- **步骤 / 算法 / 复杂度**：库状态识别 → 原子初始化（单事务逐语句）→ `integrity_check`；O(文件×语句)
+- **步骤 / 算法 / 复杂度**：库状态识别（`T-UTIL-01/03/04/05`）→ 原子初始化（单事务逐语句 `T-UTIL-02`）→ `integrity_check`；幂等重跑 `T-UTIL-06`；O(文件×语句)
 - **判断事实来源**：`sqlite_master`、`schema_version`、`integrity_check`
 - **成功可见点**：表就绪
-- **失败、取消与清理**：拒绝或回滚（库保持空）
+- **失败、取消与清理**：拒绝（`T-UTIL-04/05`）或回滚（库保持空）
 - **代表输入与中间值**：空库 → 建表 + 版本 2
-- **规则 / 接口 / 验证引用**：`RULE-UTIL-MIGRATE`；`VRC-UTIL-002`
+- **规则 / 接口 / 验证引用**：`RULE-UTIL-MIGRATE`；相位 §4.6.3 `T-UTIL-01..06`；`VRC-UTIL-002`
 
 ### 6.4 `P-UTIL-CLOSE` · 连接回收
 
 - **触发与执行者**：宿主每请求 `finally`/停机；调用线程
 - **入口函数及数据**：`close()`
-- **步骤 / 算法 / 复杂度**：取线程连接 → `close` → 置 None；O(1)
+- **步骤 / 算法 / 复杂度**：取线程连接 → `close` → 置 None（`T-UTIL-11`）；O(1)
 - **判断事实来源**：`_local.connection`
 - **成功可见点**：fd 释放
 - **失败、取消与清理**：异常向上抛
 - **代表输入与中间值**：无
-- **规则 / 接口 / 验证引用**：`RULE-UTIL-FD`；`VRC-UTIL-001`
+- **规则 / 接口 / 验证引用**：`RULE-UTIL-FD`；相位 §4.6.3 `T-UTIL-11`；`VRC-UTIL-001`
 
 ## 7. 并发、失败、持久化与安全生命周期
 
@@ -763,12 +820,12 @@ flowchart TD
 
 #### 7.2.1.1 `PF-UTIL-TXN` · 事务
 
-- **原规则 / 事务**：`RULE-UTIL-TXN`
+- **原规则 / 事务**：`RULE-UTIL-TXN`；`T-UTIL-08`（开始）/`T-UTIL-09`（提交）/`T-UTIL-10`（回滚）
 - **原子范围 / 事务外副作用**：单事务内 SQL；无事务外副作用
-- **开始 / 提交 / 回滚函数**：`transaction`（`BEGIN`/`commit`/`rollback`）
-- **持久提交点 / 对外响应点**：`commit()` 为持久提交点
+- **开始 / 提交 / 回滚函数**：`transaction`（`BEGIN IMMEDIATE`/`commit`/`rollback`）
+- **持久提交点 / 对外响应点**：`commit()` 为持久提交点（`T-UTIL-09`）
 - **响应丢失后的权威核对**：由业务模块核对账本（M-METER）
-- **恢复入口 / 判定记录 / 重复恢复条件**：无（请求级事务，无独立恢复入口）
+- **恢复入口 / 判定记录 / 重复恢复条件**：崩溃恢复以已提交事务 + `schema_meta` 判定库状态（`T-UTIL-03/04/05`）；`migrate()` 幂等（`T-UTIL-06`）
 - **验证项**：`VRC-UTIL-002`
 
 #### 7.2.2 Schema 演进策略决定

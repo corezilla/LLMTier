@@ -15,7 +15,7 @@
 | Created Date | `2026-09-23` |
 | Last Modified Date | `2026-09-25` |
 | Template ID | `design.definition` |
-| Template Version | `3.2.0` |
+| Template Version | `3.4.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |
@@ -390,6 +390,8 @@ ThreadingHTTPServer（进程级）
 | 请求生命周期 | `_run` 生成 `request_id` → `_dispatch` → 统一错误出口；每请求独立、无跨请求状态 |
 | 绑定与安全边界 | 默认绑定 loopback / 私网；TLS **不在**进程内，生产由前置反向代理终止（系统设计 §6.3），进程由 systemd 托管 |
 | 限流/超时 | 本模块不做业务限流；准入/队列/超时属 M003；本模块只做 body 限长（2 MB）与传输层读写 |
+| 就绪判定 | `/healthz` 只表示进程存活；`/readyz` 就绪由 M004 `readiness_view(registry)` 依 deployments 健康度决定。服务器已 `serve_forever()` ≠ 已可接业务流量 |
+| 停止与在途请求 | 进程停止（`KeyboardInterrupt`/systemd）→ `server_close()` 停止接收新连接；已在途请求线程不被强制中断，随请求返回或进程退出回收；SSE 长连接随 fd 关闭结束（相位见 §6.6.1，`STREAMING→ABORTED`）。停止请求的恢复/重放边界见 §10.7 |
 
 ### 5.5 依赖方向
 
@@ -398,9 +400,11 @@ ThreadingHTTPServer（进程级）
 
 ## 6. 数据结构设计
 
-> 按 STD `design-data-interface-format` 1.2.0：主章“数据结构设计”，章内按**数据性质分类**。M001 是入口适配层，拥有 HTTP 传输层结构（请求级运行状态不构成受控结构，见 §6.6），但对外的请求/响应体 machine authority 为 `interfaces/openapi/llmtier.openapi.json`。`6.5 设备与 FPGA 表项` 不适用；`6.7 数据库表结构` 不适用（本模块不写库）。继承结构只定位原定义；本层拥有的结构逐项完整记录（Data/Type ID、用途与来源／逐字段／跨字段与寿命／合法与拒绝实例／验证），每个结构以真实名称作带编号小节标题。
+> 按 STD `design-data-interface-format` 1.2.0：主章“数据结构设计”，章内按**数据性质分类**。M001 是入口适配层，拥有 HTTP 传输层结构与请求级运行相位（`RequestLifecycle`，见 §6.6.1），但对外的请求/响应体 machine authority 为 `interfaces/openapi/llmtier.openapi.json`。`6.5 设备与 FPGA 表项` 不适用；`6.7 数据库表结构` 不适用（本模块不写库）。继承结构只定位原定义；本层拥有的结构逐项完整记录（Data/Type ID、用途与来源／逐字段／跨字段与寿命／合法与拒绝实例／验证），每个结构以真实名称作带编号小节标题。
 
-**适用性**：6.1 公共基础类型与枚举 ✓｜6.2 业务与操作数据结构 ✓｜6.3 配置与规则数据结构 ✓｜6.4 通信报文结构 ✓（读视图；machine authority = OpenAPI）｜6.5 设备与 FPGA 表项 ✗（无设备）｜6.6 运行状态数据结构 ✗（仅请求级标量 `request_id`，无受控跨步骤结构）｜6.7 数据库表结构 ✗（不写库，持久化归 M007）｜6.8 错误码与错误结构 ✓（引用系统 Error ID）。
+**适用性**：6.1 公共基础类型与枚举 ✓｜6.2 业务与操作数据结构 ✓｜6.3 配置与规则数据结构 ✓｜6.4 通信报文结构 ✓（读视图；machine authority = OpenAPI）｜6.5 设备与 FPGA 表项 ✗（无设备）｜6.6 运行状态数据结构 ✓（触发：§3 端点宿主 + §7 P-API-SSE 跨步骤在途/取消，见 §6.6.1）｜6.7 数据库表结构 ✗（本模块不写库，持久化归 M007）｜6.8 错误码与错误结构 ✓（引用系统 Error ID）。
+
+**条件章节触发登记**：§3 登记常驻服务/端点宿主（S-API-V1/S-API-UI/S-API-HEALTH）→ §5.4 与 §10 覆盖启动/就绪/停止/在途请求；§6 出现跨步骤在途请求与断开取消 → §6.6 与 §10 给出状态转换/不变量/并发出口；§6.7 无本模块写入的表 → §10 事务/崩溃/重放写 N/A + 事实（持久化归 M007，tailoring 依据见 §6.7）。
 
 ### 6.1 公共基础类型与枚举
 
@@ -603,11 +607,77 @@ SseFrame {
 
 ### 6.6 运行状态数据结构
 
-不适用：M001 是入口适配层，请求级状态不构成受控数据结构。`request_id` 是 `Handler._run` 在请求开始时生成、贯穿请求并在结束时废弃的标量（格式 `req_<32hex>`，写入 `X-Request-ID` 与日志/trace，见 §2.4、§7 步骤 1）；线程内 `Store` 连接的所有权与关闭归 M007（见 §5.4）。故本模块不拥有跨步骤运行状态结构。（tailoring 依据：入口适配层无自有跨请求状态。）
+**适用性触发**：§3 登记了端点宿主（S-API-V1/S-API-UI/S-API-HEALTH），§7 P-API-SSE 存在跨步骤在途调用与断开取消 → 本节适用；仅请求线程局部相位，无跨请求持久状态。§5.4 与 §10.7 引用同一组 Transition ID。
+
+**6.6.1 `RequestLifecycle`（运行状态数据结构）**
+
+```text
+RequestLifecycle {
+  request_id: string,        // req_<32hex>，请求身份
+  phase: RECEIVED | ROUTED | HANDLED | STREAMING | COMPLETED | ABORTED | ERRORED,
+  stream: bool               // 是否 SSE 长连接
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-API-REQ-LIFECYCLE`；单次请求在各处理步骤间的运行相位；唯一来源 `src/http_api/app.py` `Handler._run`/`Handler._dispatch`（进程内、请求线程局部）。
+
+- **`request_id`**：
+
+  必填字符串；请求开始生成，写入 `X-Request-ID` 与日志/trace（见 §2.4、§7 步骤 1）。
+
+- **`phase`**：
+
+  必填枚举；取值与合法转换见下方转换表；`terminal` 为 `COMPLETED`/`ABORTED`/`ERRORED`。
+
+- **`stream`**：
+
+  必填布尔；`true` 时允许 `HANDLED→STREAMING`，`false` 时只允许 `HANDLED→COMPLETED`。
+
+- **跨字段与寿命**：
+
+  唯一写者=承载该请求的 `Handler._run` 线程；线程内局部变量，与其他请求不共享、不落库（`Store` 连接所有权归 M007，见 §5.4）；请求线程结束即不可观察。无跨请求共享可变状态，故无模块级锁。
+
+- **合法/拒绝实例**：
+
+  合法 `RECEIVED→ROUTED→HANDLED→COMPLETED`；边界：SSE 写失败 → `STREAMING→ABORTED`（不 `COMPLETED`，不重放）。
+
+- **验证**：
+
+  `VRC-API-001/003`；`app.py`。
+
+```mermaid
+stateDiagram-v2
+    [*] --> RECEIVED: 请求到达 / _run 生成 request_id
+    RECEIVED --> ROUTED: T-API-01 / _dispatch 命中路由
+    RECEIVED --> ERRORED: T-API-03 / 未命中路由或请求级错误
+    ROUTED --> HANDLED: T-API-02 / 业务处理器返回
+    ROUTED --> ERRORED: T-API-03 / ApiError 或未知异常
+    HANDLED --> STREAMING: T-API-04 / stream=true 开始写帧
+    HANDLED --> COMPLETED: T-API-05 / 同步响应已写出
+    STREAMING --> COMPLETED: T-API-06 / terminal 帧与 [DONE] 已 flush
+    STREAMING --> ABORTED: T-API-07 / 写失败（BrokenPipe/ConnectionReset）
+    COMPLETED --> [*]
+    ABORTED --> [*]
+    ERRORED --> [*]
+```
+
+图 M001-D3 · M001 · Target / Planned。相位为请求线程局部，不是跨请求持久状态机；`STREAMING` 期间在途请求由 `ThreadingHTTPServer` 线程承载，模块不自建线程池。
+
+| Transition ID | 原状态 | 事件/执行者 | Guard 的权威事实来源 | 动作及提交点 | 新状态 | 迟到/失败出口 | 不变量与 VRC |
+|---|---|---|---|---|---|---|---|
+| T-API-01 | RECEIVED | `_dispatch` 命中路由（请求线程） | §8.1 `RULE-API-ROUTE` 路由表 | 选中处理器，尚未调用业务 | ROUTED | 未命中 → T-API-03 | 每请求只路由一次；VRC-API-001 |
+| T-API-02 | ROUTED | 业务处理器正常返回（请求线程） | 处理器返回结果或 `ApiError` | 组装 HTTP/SSE 响应头 | HANDLED | 抛 `ApiError` → T-API-03 | 授权与 body 校验先于业务；VRC-API-002/003 |
+| T-API-03 | RECEIVED / ROUTED | `ApiError` 或未知异常（请求线程） | `ApiError` 实例；`except Exception` | 经 `ApiError.envelope()` 写错误响应 | ERRORED | 未知异常记 `unhandled_error` 后 500 | 统一信封；401/403 不泄露存在性；VRC-API-001 |
+| T-API-04 | HANDLED | `stream=true` 且首帧成功写出 | M003 `response_stream` 产出首帧 | 发送 SSE 头并 `flush` | STREAMING | 写失败 → T-API-07 | 每流恰好一个 terminal 由 M003 保证；VRC-API-003 |
+| T-API-05 | HANDLED | 同步响应体写出成功 | 业务结果已序列化 | 写响应体，请求即将结束 | COMPLETED | 写失败 → T-API-07 | 请求级、无跨请求状态；VRC-API-001 |
+| T-API-06 | STREAMING | terminal 帧与 `[DONE]` flush 完成 | M003 terminal（`response.completed` 等） | 结束 SSE，`finally` 关闭线程内连接 | COMPLETED | 迟到帧被同连接丢弃 | 终态后不再发业务帧；VRC-API-003 |
+| T-API-07 | STREAMING / HANDLED | 写失败（`BrokenPipeError`/`ConnectionResetError`） | 套接字写异常 | 记 `aborted`，结束本次调用 | ABORTED | 不重放；已受理任务由 M003 自行收敛 | 断开 ≠ 取消已受理任务；VRC-API-003 |
 
 ### 6.7 数据库表结构
 
-不适用：本模块不写库，持久化由 M007 `util` 统一拥有（tailoring 依据：M001 只经 `Store` 连接读写，不拥有 DDL）。
+**适用性触发**：M001 不写任何持久表 → 本节 N/A。事实：请求经 M007 `Store` 连接读写，本模块不拥有 DDL。持久化/迁移归 M007 `util`（tailoring 依据：入口适配层无自有数据库表；决定见 §15.ISD）。§10 的事务/崩溃/重放边界按此写 N/A + 归属。
 
 ### 6.8 错误码与错误结构
 
@@ -742,6 +812,8 @@ SseFrame {
 ## 9. 接口设计
 
 > 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口设计用途**分类（面向使用方的 API 与组件/系统间协作的消息与数据流接口），逐接口完整记录；标题为真实调用形式（HTTP 路由或内部方法），标题下先给**完整接口声明**，再就地说明参数/结果字段，最后按固定六项。**函数/方法即 API**：对外 HTTP 端点与内部处理器方法（含 SSE 单帧序列化函数 `frame`）归 §9.1 API；终态响应经 `response_stream` 序列化出的 SSE 字节流是跨边界连续数据流，留在 §9.2 消息与数据流接口（端点只在 §9.1 定义一次，流格式在 §9.2）。数据结构引用 §6；对外字段 machine authority = `interfaces/openapi/llmtier.openapi.json`。
+
+**§9↔§6 字段定位核对**：本节每个接口声明的必填输入与输出字段，均逐项定位到 §6 结构（如 `ResponsesRequest`→§6.2 引用 OpenAPI、`SseFrame`→§6.4.1、`ApiError`→§6.2.2）、固定外部机器源（OpenAPI），或本接口内写明的构造规则（如错误信封由 `ApiError.envelope()` 构造）；无接口返回 §6 无任何操作可产生的字段。映射另见 §5.3 与逐接口的 §6 引用。
 
 ### 9.1 API（适用时）
 
@@ -1071,15 +1143,17 @@ response_stream(response: ResponsesResponse) -> Iterable[bytes]   # text/event-s
 
 ## 10. 并发、失败与恢复
 
+**事实联动**：本节与 §3（S-API-V1/UI/HEALTH 端点宿主）、§5.4（启动/就绪/停止/在途请求）、§6.6.1（`T-API-01…T-API-07`）、§6.7（N/A：本模块不写库，持久化归 M007）联动。10.2 对应 `T-API-07`；10.5/10.6/10.7 对应停止与就绪出口；§6.7 无本模块写入表，故无本模块事务提交点/崩溃恢复/重放路径（写 N/A + 归属 M007）。
+
 #### 10.1 并发请求
 - **并发/失败点**：每请求一线程
 - **检测**：—
-- **行为**：各请求独立；共享 `Application` 只读引用
+- **行为**：各请求独立；共享 `Application` 只读引用（相位 §6.6.1 `T-API-01`）
 - **幂等/重试**：无状态
 - **最终状态**：正常
 
 #### 10.2 客户端断开（SSE）
-- **并发/失败点**：写失败
+- **并发/失败点**：写失败（§6.6.1 `T-API-07`）
 - **检测**：`BrokenPipeError` / `ConnectionResetError`
 - **行为**：记 `aborted`，结束本次调用
 - **幂等/重试**：不重放
@@ -1112,6 +1186,14 @@ response_stream(response: ResponsesResponse) -> Iterable[bytes]   # text/event-s
 - **行为**：返回引导错误（`/healthz`、`/readyz`、`/ui/*` 除外）
 - **幂等/重试**：—
 - **最终状态**：503 等
+
+#### 10.7 `F-API-LIFECYCLE` · 启动/停止与在途请求
+- **初始条件 / 并发交错 / 失败点**：进程启动或停止时仍有在途请求 / SSE 长连接
+- **检测事实 / authority / 期限**：`/readyz` 由 M004 `readiness_view` 判定；`server_close()` 停止接收新连接；请求相位见 §6.6.1
+- **处理行为 / 副作用边界**：停止不强制中断在途请求线程；SSE 流随 fd 关闭走 `T-API-07`；本模块不提交业务写入
+- **状态查询 / 同请求重放 / 接管 / 新业务重试**：N/A + 理由：连接级恢复由 Consumer 发起新请求；已受理任务收敛归 M003
+- **最终状态 / 资源归属 / 后续合法入口**：请求线程结束、fd 关闭；重启后 `/readyz` 决定是否接业务流量
+- **验证项 / 组合责任**：`VRC-API-001`；组合（systemd / 反向代理）
 
 ## 11. 安全、权限与可观测性
 

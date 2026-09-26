@@ -15,7 +15,7 @@
 | Created Date | `2026-09-23` |
 | Last Modified Date | `2026-09-25` |
 | Template ID | `design.definition` |
-| Template Version | `3.2.0` |
+| Template Version | `3.4.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |
@@ -434,6 +434,8 @@ index.html（页面壳：容器 id + 装配 styles.css / icons.svg / app.js）
 | `IF-8` | `webui/styles.css` 类选择器 | §9.1 `IF-UI-CSS` | 布局与状态样式契约 | `VRC-UI-001` |
 
 ### 5.4 服务提供方式（条件适用）
+
+**适用性触发**：§3 登记的是浏览器端 UI 操作面、非本模块常驻端点宿主（静态资源由 M001 交付）→ 本节 N/A；无自有 server/线程生命周期。
 
 - **运行载体与入口**：N/A + 依据 —— M002 是**浏览器端静态资源**，无独立 server；由 M001 静态交付
 - **并发/线程模型**：N/A + 依据 —— 浏览器单线程事件循环；无服务端并发
@@ -896,6 +898,58 @@ SessionCookie {
 
   `VRC-UI-002`；M002 §11。
 
+**6.6.6 跨步骤状态转换（状态图与转换表）**
+
+**适用性触发**：§3 登记了 UI 操作面（PG-HOME…PG-DIAG、DRW-*），§6 存在跨步骤页面视图与编辑草稿状态 → 本节适用。§6.7 无本模块写入的表（N/A，事实：数据经 M001 服务端，tailoring 依据见 §6 章首）。§10 引用同一组 `T-UI-*` Transition ID。
+
+```mermaid
+stateDiagram-v2
+    [*] --> Loading: 进入页面 / loadXxx()
+    Loading --> Ready: T-UI-01 / fetch 成功且有数据
+    Loading --> Empty: T-UI-02 / fetch 成功但结果为空
+    Loading --> Stale: T-UI-03 / fetch 失败（503 等），保留旧画面
+    Ready --> Loading: T-UI-04 / 刷新或切换页
+    Empty --> Loading: T-UI-04 / 刷新
+    Stale --> Loading: T-UI-05 / 用户重试
+    Ready --> [*]: 离开页面
+    Empty --> [*]: 离开页面
+    Stale --> [*]: 离开页面
+```
+
+```mermaid
+stateDiagram-v2
+    [*] --> Closed: 初始
+    Closed --> Open: T-UI-06 / 打开编辑抽屉
+    Open --> Dirty: T-UI-07 / 用户修改字段
+    Dirty --> Saving: T-UI-08 / 提交（PATCH + If-Match）
+    Saving --> Closed: T-UI-09 / 2xx 成功
+    Saving --> Conflict: T-UI-10 / 412 stale
+    Conflict --> Dirty: T-UI-11 / 用户复制后重载
+    Open --> Closed: T-UI-12 / 放弃
+    Dirty --> Closed: T-UI-12 / 放弃
+```
+
+图 M002-D3 · M002 · Target / Planned。状态为浏览器内存，非服务端持久状态机；页面刷新/离开即丢失。
+
+| Transition ID | 原状态 | 事件/执行者 | Guard 的权威事实来源 | 动作及提交点 | 新状态 | 迟到/失败出口 | 不变量与 VRC |
+|---|---|---|---|---|---|---|---|
+| T-UI-01 | Loading | `loadXxx()` fetch 成功且非空 | M001 HTTP 响应（`data`/分页） | 渲染数据 | Ready | — | Loading 不清空上次数据；VRC-UI-001 |
+| T-UI-02 | Loading | fetch 成功但结果为空 | 服务端返回空集合 | 渲染空态 | Empty | — | 空 ≠ 加载失败；VRC-UI-001 |
+| T-UI-03 | Loading | fetch 失败（503 等） | 错误状态（§6.2.3） | 保留旧数据 + stale 标记 | Stale | 不渲染空表 | 未知不填零；VRC-UI-001 |
+| T-UI-04 | Ready/Empty | 用户刷新或切换页 | 用户动作 | 重新发起 `loadXxx()` | Loading | — | 页面内存，切换重建；VRC-UI-001 |
+| T-UI-05 | Stale | 用户重试 | 用户动作 | 重新发起 `loadXxx()` | Loading | — | 保留旧画面直至新结果；VRC-UI-001 |
+| T-UI-06 | Closed | 打开编辑抽屉 | 用户动作 | 初始化 `FormDraft`，暂存 `EditEtag` | Open | — | Secret 空白=保持；VRC-UI-002 |
+| T-UI-07 | Open | 用户修改字段 | DOM 控件值 | 更新草稿 | Dirty | — | 不自动提交；VRC-UI-002 |
+| T-UI-08 | Dirty | 用户提交 | `EditEtag`（`<id>.v<n>`） | 发送 `PATCH + If-Match` | Saving | 超时 → 以服务端事实为准（§10.6） | 同源 + CSRF token；VRC-UI-002 |
+| T-UI-09 | Saving | 2xx 成功 | M001 成功响应 | 清除草稿，重载列表 | Closed | — | 成功后草稿销毁；VRC-UI-002 |
+| T-UI-10 | Saving | 412 stale | ETag 过期事实 | 提示 stale，保留草稿 | Conflict | 不自动覆盖 | 保留输入供复制；VRC-UI-002 |
+| T-UI-11 | Conflict | 用户复制后重载 | 用户动作 | 重新 GET 并重建草稿/ETag | Dirty | — | 重新 GET 后重试；VRC-UI-002 |
+| T-UI-12 | Open/Dirty | 用户放弃 | 用户动作 | 丢弃草稿 | Closed | — | 草稿不持久；VRC-UI-002 |
+
+### 6.7 数据库表结构
+
+**适用性触发**：M002 不直读 SQLite、不拥有持久表 → 本节 N/A。事实：服务端数据经 M001 HTTP 取得，表由 M004/M006/M008 拥有并经 `util/migrations/*.sql` 建立。tailoring 依据：浏览器端静态资源不写库（决定见 §15.ISD）。§10 不设本模块事务/崩溃/重放路径。
+
 ### 6.8 错误码与错误结构
 
 本模块**不新增公共错误码**；UI 状态映射系统目录（`llmtier-system-design` §8.8）：
@@ -1049,6 +1103,8 @@ SessionCookie {
 
 > 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口设计用途**分类（面向使用方的 API 与组件/系统间协作的消息与数据流接口），逐接口完整记录；标题为真实调用形式（浏览器端函数/DOM 契约），标题下先给**完整接口声明**，再就地说明参数/结果字段，最后按固定六项。本模块接口全部向 operator 提供页面能力，归 API；消息流/硬件/人机三类不适用。数据结构引用 §6；消费的服务端字段 machine authority = OpenAPI。
 
+**§9↔§6 字段定位核对**：本节每个接口声明的必填输入与输出字段，均逐项定位到 §6 结构（`PageViewState`→§6.6.1、`FormDraft`→§6.6.2、`EditEtag`→§6.6.3、`PagingCursor`→§6.6.4）、固定外部机器源（服务端 OpenAPI、DOM 容器契约），或本接口内写明的构造规则（如 `statusMarkup` 由 `BackendState`/`TierState` 推导）；无接口返回 §6 无任何操作可产生的字段。
+
 ### 9.1 API（适用时）
 
 #### `api(path, {method='GET', body, headers={}}) -> Promise<object>`
@@ -1197,11 +1253,13 @@ index.html -> 5 × <section class="page">（#home/#providers/#stats/#logs/#diagn
 
 ## 10. 并发、失败与恢复
 
+**事实联动**：本节与 §3（PG-*/DRW-* UI 操作面）、§5.4（N/A：浏览器端静态资源，无服务端宿主，由 M001 交付）、§6.6.6（`T-UI-01…T-UI-12`）、§6.7（N/A：不直读 SQLite，数据经 M001）联动。10.1 对应 `T-UI-08/09/10`；10.6 对应 `T-UI-08` 的超时出口；无服务端事务，故无本模块事务/崩溃/重放路径（写 N/A + 归属 M001/M004）。
+
 #### 10.1 并发编辑
-- **并发/失败点**：双 operator
+- **并发/失败点**：双 operator（§6.6.6 `T-UI-08`→`T-UI-10`）
 - **检测**：412
 - **行为**：提示 stale，保留输入
-- **幂等/重试**：重新 GET 后重试
+- **幂等/重试**：重新 GET 后重试（`T-UI-11`）
 - **最终状态**：不自动覆盖
 
 #### 10.2 删除被引用资源

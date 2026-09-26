@@ -15,7 +15,7 @@
 | Created Date | `2026-09-23` |
 | Last Modified Date | `2026-09-25` |
 | Template ID | `design.definition` |
-| Template Version | `3.2.0` |
+| Template Version | `3.4.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |
@@ -177,6 +177,8 @@
 | `IF-UTIL-02` | `src/util/store.py` → `migrations/*.sql` | §9.1 `IF-UTIL-MIGRATE` | `migrate()` 按文件名排序执行 SQL 并做完整性检查 | `VRC-UTIL-002` |
 
 ### 5.4 服务提供方式（条件适用）
+
+**适用性触发**：§3 未登记本模块自有端点宿主（M007 是被全部业务模块进程内调用的基础库）→ 本节 N/A；`migrate()`/`close()` 由 M001 装配与请求 `finally` 调用，模块无自有线程生命周期。
 
 - **运行载体与入口**：N/A + 依据 —— 嵌入式库；无独立 server
 - **并发/线程模型**：N/A + 依据 —— 每线程一连接（`threading.local`）；写用 `BEGIN IMMEDIATE`
@@ -374,7 +376,52 @@ TxnContext {
 
   `VRC-UTIL-002`。
 
+**6.6.3 存储就绪与连接/事务状态转换（状态图与转换表）**
+
+**适用性触发**：§6 存在跨步骤库迁移状态、每线程连接寿命与事务上下文 → 本节适用；§5.4 为 N/A（基础库）。§10 引用同一组 `T-UTIL-*` Transition ID。
+
+```mermaid
+stateDiagram-v2
+    [*] --> Unknown: 打开 SQLite 文件
+    Unknown --> Empty: T-UTIL-01 / 库为空（无业务表）
+    Empty --> Ready: T-UTIL-02 / 单事务执行 migrations 并写 schema_meta
+    Unknown --> Ready: T-UTIL-03 / 版本匹配
+    Unknown --> Mismatch: T-UTIL-04 / 版本不匹配或无 schema_meta 的旧库
+    Unknown --> Corrupt: T-UTIL-05 / integrity_check 失败
+    Mismatch --> [*]
+    Corrupt --> [*]
+    Ready --> Ready: T-UTIL-06 / 幂等 migrate() 不改变已建表
+```
+
+```mermaid
+stateDiagram-v2
+    [*] --> Absent: 线程尚无连接
+    Absent --> Open: T-UTIL-07 / connection() 建立并设 PRAGMA
+    Open --> Txn: T-UTIL-08 / transaction(immediate=True) 开始
+    Txn --> Open: T-UTIL-09 / commit
+    Txn --> Open: T-UTIL-10 / rollback（异常）
+    Open --> Absent: T-UTIL-11 / close() 置 None
+```
+
+图 M007-D3 · M007 · Target / Planned。库状态由 `schema_meta` + 完整性检查权威；连接状态为 `threading.local`，不跨线程共享。
+
+| Transition ID | 原状态 | 事件/执行者 | Guard 的权威事实来源 | 动作及提交点 | 新状态 | 迟到/失败出口 | 不变量与 VRC |
+|---|---|---|---|---|---|---|---|
+| T-UTIL-01 | Unknown | 打开非空/空库 | 表清单（无业务表） | 判定为空库 | Empty | — | symlink/权限预检先行；VRC-UTIL-002 |
+| T-UTIL-02 | Empty | `migrate()`（M001 装配） | migrations 文件有序集合 | 单事务执行全部迁移并写 `schema_meta`，提交后可用 | Ready | 逐语句失败 → 抛错，事务回滚 | 原子初始化；VRC-UTIL-002 |
+| T-UTIL-03 | Unknown | `migrate()` | `schema_meta.schema_version` 等于期望 | 幂等校验，不写 | Ready | — | 版本匹配才启动；VRC-UTIL-002 |
+| T-UTIL-04 | Unknown | `migrate()` | 有业务表却无 `schema_meta` 或版本不等 | 抛 `ERR-SCHEMA`，拒绝启动 | Mismatch | 运维离线处理 | 不自动迁移未知库；VRC-UTIL-002 |
+| T-UTIL-05 | Unknown | `migrate()` | `PRAGMA integrity_check` | 抛 `ERR-SCHEMA`，拒绝启动 | Corrupt | 运维离线处理 | 损坏不改写；VRC-UTIL-002 |
+| T-UTIL-06 | Ready | 再次 `migrate()` | migrations 幂等（`IF NOT EXISTS`/`INSERT OR IGNORE`） | 无变更 | Ready | — | 不改变已建表；VRC-UTIL-002 |
+| T-UTIL-07 | Absent | `connection()`（业务线程） | `threading.local` | 建连接、设 PRAGMA，缓存于本线程 | Open | 失败抛 sqlite3 异常（§10.1） | 每线程一连接；VRC-UTIL-001 |
+| T-UTIL-08 | Open | `transaction(immediate=True)` | 调用方请求 | `BEGIN IMMEDIATE`，返回 `TxnContext` | Txn | 冲突抛异常 → T-UTIL-10 | 单写者提交；VRC-UTIL-002 |
+| T-UTIL-09 | Txn | 上下文正常退出 | 无异常 | commit 为提交点 | Open | 提交失败 → 抛错 | 原子提交；VRC-UTIL-002 |
+| T-UTIL-10 | Txn | 上下文异常退出 | 异常 | rollback，库不变 | Open | — | 失败不改库；VRC-UTIL-002 |
+| T-UTIL-11 | Open | `close()`（请求 `finally`/停机） | 调用方 | 关闭连接并置 `None` | Absent | — | 回收 db/wal/shm fd；VRC-UTIL-001 |
+
 ### 6.7 数据库表结构
+
+**适用性触发**：M007 拥有全部 DDL、`schema_meta` 与迁移集合 → 本节适用；§10.4 须给出事务提交点、崩溃恢复与重放边界。
 
 Authority = `util/migrations/001_initial.sql`、`util/migrations/002_observability.sql`（由 `Store.migrate()` 执行）。M007 拥有全部 DDL 与 `schema_meta`；业务表的列语义归各自模块，本节只列 M007 直接拥有的结构。
 
@@ -520,6 +567,8 @@ migrations/*.sql {
 
 > 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口设计用途**分类（面向使用方的 API 与组件/系统间协作的消息与数据流接口），逐接口完整记录；标题为真实调用形式，标题下先给**完整接口声明**，再就地说明参数/结果字段，最后按固定六项。本模块接口全部为进程内方法调用，归 API；消息流/硬件/人机三类不适用。数据结构引用 §6。`Store`（`src/util/store.py`）为唯一对外面。
 
+**§9↔§6 交叉核对**：本节每个接口的必填输入与输出字段，均逐项定位到 §6 结构（`Store`→§6.6.1、`TxnContext`/`TxnMode`→§6.6.2、`SchemaVersion`→§6.1、`schema_meta`→§6.7.1）或本接口内写明的构造规则（`sqlite3.Row` 由 SQL 列构造）；无接口返回 §6 无任何操作可产生的字段。
+
 ### 9.1 API（适用时）
 
 #### `Store(path) -> Store`
@@ -628,8 +677,10 @@ close() -> None
 
 ## 10. 并发、失败与恢复
 
+**事实联动**：本节与 §3（N/A：无自有端点宿主）、§5.4（N/A：基础库）、§6.6.3（`T-UTIL-01…T-UTIL-11`）、§6.7（DDL/迁移）联动。10.1 对应 `T-UTIL-04/05`；10.2 对应 `T-UTIL-08/09/10`；10.3 对应 `T-UTIL-11`；10.4 给出持久写入的事务提交点/崩溃恢复/重放边界。
+
 #### 10.1 `F-UTIL-CONN` · 连接失败
-- **初始条件 / 并发交错 / 失败点**：库不可写/损坏
+- **初始条件 / 并发交错 / 失败点**：库不可写/损坏（§6.6.3 `T-UTIL-04/05`）
 - **检测事实 / authority / 期限**：sqlite3 异常 / integrity check
 - **处理行为 / 副作用边界**：异常冒泡；调用方 503/启动失败
 - **状态查询 / 同请求重放 / 接管 / 新业务重试**：稍后重试
@@ -651,6 +702,14 @@ close() -> None
 - **状态查询 / 同请求重放 / 接管 / 新业务重试**：—
 - **最终状态 / 资源归属 / 后续合法入口**：fd 稳定
 - **验证项 / 组合责任**：`VRC-UTIL-001`
+
+#### 10.4 `F-UTIL-PERSIST` · 事务提交点/崩溃恢复/重放边界
+- **初始条件 / 并发交错 / 失败点**：`BEGIN IMMEDIATE` 提交前/后进程崩溃；或并发写冲突
+- **检测事实 / authority / 期限**：`Store.transaction` 上下文；`schema_meta.schema_version` 为恢复入口
+- **处理行为 / 副作用边界**：提交点为上下文正常退出的 `commit`（`T-UTIL-09`）；异常回滚（`T-UTIL-10`）；`BEGIN IMMEDIATE` 串行化单文件写
+- **状态查询 / 同请求重放 / 接管 / 新业务重试**：崩溃恢复以已提交事务 + `schema_meta` 判定库状态（`T-UTIL-03/04/05`）；`migrate()` 幂等可重复执行（`T-UTIL-06`）；业务重放由调用方按其幂等键决定，M007 只保证单事务原子
+- **最终状态 / 资源归属 / 后续合法入口**：提交或回滚后的确定库状态；未知库拒绝启动
+- **验证项 / 组合责任**：`VRC-UTIL-002`；组合（各业务模块 + M001 装配）
 
 ## 11. 安全、权限与可观测性
 

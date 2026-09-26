@@ -15,7 +15,7 @@
 | Created Date | `2026-09-23` |
 | Last Modified Date | `2026-09-25` |
 | Template ID | `design.definition` |
-| Template Version | `3.2.0` |
+| Template Version | `3.4.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |
@@ -313,6 +313,8 @@
 - **数据库**：各功能自持；门面不直连。
 
 ### 5.4 服务提供方式（条件适用）
+
+**适用性触发**：§3 未登记本模块自有端点宿主（M006 是被 M001/M003/M005 进程内调用的能力库）→ 本节 N/A；`cleanup(7)` 由 M001 装配时调用，模块无自有线程生命周期。
 
 - **运行载体与入口**：N/A + 依据 —— 嵌入式库，无独立 server
 - **并发/线程模型**：N/A + 依据 —— 使用调用方线程；统计聚合内部有锁
@@ -799,7 +801,43 @@ DiagnosticsRuntimeState {
 
   `VRC-DIAG-001`；来源 `settings.py`。
 
+**6.6.2 开关与注入状态转换（状态图与转换表）**
+
+**适用性触发**：§6 存在跨步骤开关（持久单行）、注入配置（持久 upsert）与启动清理 → 本节适用；§5.4 为 N/A（能力库）。§10 引用同一组 `T-DIAG-*` Transition ID。
+
+```mermaid
+stateDiagram-v2
+    [*] --> Off: 默认（CON-OBS-001）
+    Off --> On: T-DIAG-01 / set_switches(enabled=true) 提交
+    On --> Off: T-DIAG-02 / set_switches(enabled=false) 提交
+    On --> On: T-DIAG-03 / 记录判定开（写快照/统计/trace）
+    Off --> Off: T-DIAG-04 / 关闭零写入短路
+```
+
+```mermaid
+stateDiagram-v2
+    [*] --> Absent: 无注入
+    Absent --> Enabled: T-DIAG-05 / set_injections upsert(enabled=true)
+    Enabled --> Disabled: T-DIAG-06 / set_injections(enabled=false)
+    Disabled --> Enabled: T-DIAG-05
+    Disabled --> Absent: T-DIAG-07 / 删除或 deployment 移除
+```
+
+图 M006-D3 · M006 · Target / Planned。开关与注入均为持久事实（`diagnostic_settings`/`diagnostic_injections`），内存缓存不构成权威。
+
+| Transition ID | 原状态 | 事件/执行者 | Guard 的权威事实来源 | 动作及提交点 | 新状态 | 迟到/失败出口 | 不变量与 VRC |
+|---|---|---|---|---|---|---|---|
+| T-DIAG-01 | Off | `set_switches` 请求线程 | `diagnostic_settings` 行 | 单事务 upsert `enabled=true`，提交后生效 | On | 写失败 → 保持 Off（不改业务） | fail-open；VRC-DIAG-001 |
+| T-DIAG-02 | On | `set_switches` 请求线程 | `diagnostic_settings` 行 | 单事务 upsert `enabled=false` | Off | 写失败 → 保持 On | 关闭零写入；VRC-DIAG-001 |
+| T-DIAG-03 | On | `record_latency`/`capture_snapshot`/`record_trace` | `switches` 权威读 | 按开关写入对应表；统计走内存缓存 | On | 写失败 → `_warn`，不改推理（§10.1） | 记录不改推理结果；VRC-DIAG-002 |
+| T-DIAG-04 | Off | 任一记录调用 | `switches.enabled=false` | 短路，不写库 | Off | — | 关闭零开销；VRC-DIAG-001 |
+| T-DIAG-05 | Absent/Disabled | `set_injections` 请求线程 | `_validate`（§8.4） | 按 `(deployment_id,injection_type)` upsert，提交后生效 | Enabled | 校验失败 → 400，不落库（§10.2） | 非法参数拒绝；VRC-DIAG-004 |
+| T-DIAG-06 | Enabled | `set_injections` | 同 T-DIAG-05 | upsert `enabled=false` | Disabled | — | 停用不改历史 fault 语义；VRC-DIAG-004 |
+| T-DIAG-07 | Disabled | 删除注入或 deployment 移除 | 上游删除事实 | 删除行 | Absent | — | 无悬空注入；VRC-DIAG-004 |
+
 ### 6.7 数据库表结构
+
+**适用性触发**：M006 拥有并写入 6 张诊断/观测表 → 本节适用；§10.4 须给出事务提交点、崩溃恢复与重放边界。
 
 **6.7.1 `diagnostic_*` / `data_plane_*` / `trace_events`（数据库表）**
 
@@ -947,6 +985,8 @@ enum DiagnosticErrorRef { ERR-NOTFOUND, ERR-INJECTION, ERR-REQ-VALIDATION, ERR-S
 ## 9. 接口设计
 
 > 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口设计用途**分类（面向使用方的可调用 API 与组件/系统间协作的消息与数据流接口），逐接口完整记录；标题为真实调用形式，标题下先给**完整接口声明**，再就地说明输入/输出/错误/交互/验证，最后按固定六项。本模块接口**全部为进程内可调用函数，归 API**；消息与数据流/硬件与固件/人机与维护三类不适用（见 §9.2–§9.4）。数据结构引用 §6。门面 `DiagnosticsService`（`src/libdiag/diagnostics.py`）为唯一对外面。
+
+**§9↔§6 交叉核对**：本节每个接口的必填输入与输出字段，均逐项定位到 §6 结构（`SwitchState`、`TraceView`/`TracePage`、`SnapshotPage`、`StatsView`、`InjectionView`/`EnabledInjection`）或本接口内写明的构造规则（如 `capture_snapshot` 的脱敏/截断由 `RULE-DIAG-TRUNC` 产生，`stats` 分桶由 `RULE-DIAG-PCTL` 产生）；无接口返回 §6 无任何操作可产生的字段。
 
 ### 9.1 API（适用时）
 
@@ -1129,8 +1169,10 @@ cleanup(days: int = 7) -> int
 
 ## 10. 并发、失败与恢复
 
+**事实联动**：本节与 §3（N/A：无自有端点宿主）、§5.4（N/A：能力库）、§6.6.2（`T-DIAG-01…T-DIAG-07`）、§6.7（诊断/观测表）联动。10.1 对应 `T-DIAG-03` 写失败出口；10.2 对应 `T-DIAG-05` 校验失败；10.3 对应启动装配；10.4 给出持久写入的事务提交点/崩溃恢复/重放边界。
+
 #### 10.1 `F-DIAG-WRITE` · 记录写入失败
-- **初始条件 / 并发交错 / 失败点**：Store 错误
+- **初始条件 / 并发交错 / 失败点**：Store 错误（§6.6.2 `T-DIAG-03` 失败出口）
 - **检测事实 / authority / 期限**：异常
 - **处理行为 / 副作用边界**：`_warn`；返回空/继续；**不改推理**
 - **状态查询 / 同请求重放 / 接管 / 新业务重试**：N/A + 理由：尽力而为
@@ -1152,6 +1194,14 @@ cleanup(days: int = 7) -> int
 - **状态查询 / 同请求重放 / 接管 / 新业务重试**：重启
 - **最终状态 / 资源归属 / 后续合法入口**：诊断不可用
 - **验证项 / 组合责任**：`VRC-DIAG-003`
+
+#### 10.4 `F-DIAG-PERSIST` · 诊断表事务/崩溃/重放边界
+- **初始条件 / 并发交错 / 失败点**：开关/注入 upsert 提交前后崩溃；快照/统计追加时 Store 错误
+- **检测事实 / authority / 期限**：`diagnostic_settings`/`diagnostic_injections` 行为权威；`Store.transaction` 提交/回滚
+- **处理行为 / 副作用边界**：开关与注入 upsert 各自单事务提交（`T-DIAG-01/02/05/06`）；快照/trace 追加不跨事务保证原子；不产生业务副作用
+- **状态查询 / 同请求重放 / 接管 / 新业务重试**：崩溃恢复读已提交开关/注入行（`T-DIAG-03`）；重复 `migrate()` 幂等；记录重放由调用方决定，本模块去重键为 `(deployment_id,injection_type)`
+- **最终状态 / 资源归属 / 后续合法入口**：最后已提交开关/注入；快照/trace 允许缺失（fail-open）
+- **验证项 / 组合责任**：`VRC-DIAG-003/004`；组合（M007 事务/迁移）
 
 ## 11. 安全、权限与可观测性
 

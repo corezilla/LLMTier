@@ -15,7 +15,7 @@
 | Created Date | `2026-09-23` |
 | Last Modified Date | `2026-09-25` |
 | Template ID | `design.definition` |
-| Template Version | `3.2.0` |
+| Template Version | `3.4.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |
@@ -143,6 +143,8 @@
 | `IF-LOG-01` | 全部业务模块 → `src/log/logs.py` | §9.1 `IF-LOG-RECORD`、`IF-LOG-QUERY` | 写入方只调 `record`；查询方只调 `page` | `VRC-LOG-001` |
 
 ### 5.4 服务提供方式（条件适用）
+
+**适用性触发**：§3 未登记本模块自有端点宿主（M008 是被全部业务模块进程内调用的嵌入式库）→ 本节 N/A；无自有线程/生命周期。
 
 - **运行载体与入口**：N/A + 依据 —— 嵌入式库，无独立 server
 - **并发/线程模型**：N/A + 依据 —— 使用调用方线程；写经 `Store.connection()`（线程内）
@@ -343,7 +345,13 @@ RedactionRule {
 
   `VRC-LOG-001`。
 
+### 6.6 运行状态数据结构
+
+**适用性触发**：M008 为无状态写入库（`record` 即时落库、`page` 只读查询），不拥有跨步骤状态、队列或取消 → 本节 N/A。事实：`record` 的临时对象（脱敏后的 message 字符串）寿命为单次调用，返回即释放，不跨调用保留；不存在模块级可变状态或持久状态机（tailoring 依据：追加式日志库，状态权威在 `operational_logs` 表，见 §6.7，决定见 §15.ISD）。§10 不引用状态转换 ID。
+
 ### 6.7 数据库表结构
+
+**适用性触发**：M008 拥有并写入 `operational_logs` 表 → 本节适用；§10.3 须给出事务提交点、崩溃恢复与重放边界。
 
 Authority = `util/migrations/001_initial.sql`（由 M007 `migrate()` 执行）；列级定义见 `util.isd` §4.4。本模块拥有 1 张表。
 
@@ -457,6 +465,8 @@ CREATE TABLE operational_logs (
 
 > 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口设计用途**分类（面向使用方的 API 与组件/系统间协作的消息与数据流接口），逐接口完整记录；标题为真实调用形式，标题下先给**完整接口声明**，再就地说明参数/结果字段，最后按固定六项。本模块接口全部为进程内方法调用，归 API；消息流/硬件/人机三类不适用。数据结构引用 §6。`OperationalLog`（`src/log/logs.py`）为唯一对外面。
 
+**§9↔§6 交叉核对**：本节每个接口的必填输入与输出字段，均逐项定位到 §6 结构（`LogEvent`/`LogLevel`→§6.1/§6.2、`operational_logs`→§6.7.1）或本接口内写明的构造规则（`page` 返回的 `items` 由 SQL 行 + 过滤条件构造，`message` 由 `RULE-LOG-REDACT` 脱敏/截断产生）；无接口返回 §6 无任何操作可产生的字段。
+
 ### 9.1 API（适用时）
 
 #### `OperationalLog.record(level, module, event, message, request_id=None) -> None`
@@ -499,6 +509,8 @@ page(limit: int = 50, level: str | None = None, module: str | None = None, reque
 
 ## 10. 并发、失败与恢复
 
+**事实联动**：本节与 §3（N/A：无自有端点宿主）、§5.4（N/A：嵌入式库）、§6.6（N/A：无跨步骤状态，仅调用内临时对象）、§6.7（`operational_logs` 表）联动。10.1 对应写入 fail-open；10.2 对应查询失败；10.3 给出持久写入的事务提交点/崩溃恢复/重放边界。§6.6 为 N/A，故本节不引用状态转换 ID。
+
 #### 10.1 `F-LOG-WRITE` · 写入失败
 - **初始条件 / 并发交错 / 失败点**：Store 错误
 - **检测事实 / authority / 期限**：异常
@@ -514,6 +526,14 @@ page(limit: int = 50, level: str | None = None, module: str | None = None, reque
 - **状态查询 / 同请求重放 / 接管 / 新业务重试**：稍后重试
 - **最终状态 / 资源归属 / 后续合法入口**：503
 - **验证项 / 组合责任**：`VRC-LOG-001`
+
+#### 10.3 `F-LOG-PERSIST` · 日志表事务/崩溃/重放边界
+- **初始条件 / 并发交错 / 失败点**：`INSERT` 提交前后进程崩溃
+- **检测事实 / authority / 期限**：`operational_logs` 已提交行为权威；`Store.transaction`/连接提交
+- **处理行为 / 副作用边界**：单行 `INSERT` 原子；写失败 fail-open，不抛不阻塞主路径
+- **状态查询 / 同请求重放 / 接管 / 新业务重试**：崩溃恢复读已提交行；日志为尽力而为，重放不保证去重（同一 `request_id` 多行不视为错误）
+- **最终状态 / 资源归属 / 后续合法入口**：已提交行或缺失；无半写
+- **验证项 / 组合责任**：`VRC-LOG-001`；组合（M007 事务）
 
 ## 11. 安全、权限与可观测性
 

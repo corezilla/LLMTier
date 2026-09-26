@@ -122,7 +122,7 @@ health.py         health_view/readiness_view/apply_probe_result
 
 > 按 STD `design-data-interface-format` 1.2.0：主章“数据结构设计”，章内按**数据性质**分类（§4.1–§4.8）。仅保留适用类别，不适用类别在章首给出原因与 tailoring 依据；每个结构以真实名称为带编号的粗体标题，先给代码式声明，再逐项写 `Data/Type ID、用途与来源`、逐字段记录（必填·缺省·可空 / 类型·范围·枚举·含义 / 条件有效性）、`跨字段与寿命`、`合法/拒绝实例` 与 `验证`。继承结构只定位原定义与固定机器源，不复制字段。
 
-**类别适用性**：§4.1 公共基础类型与枚举 ✗（`kind`/`health`/`capabilities` 取值内嵌 §4.2 视图）｜§4.2 业务与操作数据结构 ✓｜§4.3 配置与规则数据结构 ✗（能力交集/冻结 space 为字段不变量，无独立受控规则对象）｜§4.4 通信报文结构 ✗｜§4.5 设备与 FPGA 表项结构 ✗（纯软件）｜§4.6 运行状态数据结构 ✗（探测/引导为一次性动作）｜§4.7 数据库表结构 ✗（表契约归 M007 `util.isd.md` §4.7）｜§4.8 错误码与错误结构 ✓。
+**类别适用性**：§4.1 公共基础类型与枚举 ✗（`kind`/`health`/`capabilities` 取值内嵌 §4.2 视图）｜§4.2 业务与操作数据结构 ✓｜§4.3 配置与规则数据结构 ✗（能力交集/冻结 space 为字段不变量，无独立受控规则对象）｜§4.4 通信报文结构 ✗｜§4.5 设备与 FPGA 表项结构 ✗（纯软件）｜§4.6 运行状态数据结构 ✓（`BootstrapState` 引导状态 + `QuerySnapshotLifecycle` 快照生命周期；触发：§6.1 引导与 §6.2/§6.3 查询快照）｜§4.7 数据库表结构 ✗（表契约归 M007 `util.isd.md` §4.7）｜§4.8 错误码与错误结构 ✓。
 
 ### 4.2 业务与操作数据结构
 
@@ -367,6 +367,86 @@ AccountSnapshot {
 - **验证**
 
   `VRC-MGMT-006`。
+
+### 4.6 运行状态数据结构
+
+**4.6.1 `BootstrapState`（`registry.py` + `app.py` 装配）**
+
+```text
+BootstrapState {
+  bootstrap_error: str?           // 供 /readyz，成功为 null
+  bootstrap_sha256: str           // 已写入 settings 指纹
+}
+```
+
+- **Data/Type ID、用途与来源**
+
+  `D-CFG-BOOTSTRAP-STATE`；进程引导状态事实；唯一来源=`src/http_api/app.py` 启动装配 + `src/management/registry.py`。进程级。
+
+- **`bootstrap_error`**（可空）
+
+  `str?`；引导失败原因，供 `/readyz` 判 `not_ready`；成功为 `null`。
+
+- **`bootstrap_sha256`**（必填）
+
+  `str`；已写入 settings 指纹，供重复启动幂等 no-op 比对。
+
+- **跨字段与寿命**
+
+  引导失败置 `bootstrap_error`、服务 `not_ready`、不接流量；重复启动 no-op（`T-MGMT-04`）；进程级，随启动。
+
+- **合法/拒绝实例**
+
+  合法：引导成功可接流量（`T-MGMT-01`）；边界：非法 settings → `not_ready`（`T-MGMT-02`，`ERR-BOOT`）。
+
+- **验证**
+
+  `VRC-MGMT-001/003`。
+
+**4.6.2 `QuerySnapshotLifecycle`（`admin.py`）**
+
+```text
+QuerySnapshotLifecycle {
+  snapshot_id: str
+  expires_at: timestamp           // TTL 10 min
+  ordinal: int                    // 读游标
+}
+```
+
+- **Data/Type ID、用途与来源**
+
+  `D-MET-QUERY-SNAPSHOT` 的运行时生命周期；唯一来源=`src/management/admin.py`。
+
+- **`snapshot_id` / `expires_at` / `ordinal`**（必填）
+
+  快照身份 / 到期时刻 / 读游标；`page` 首次查询写快照（`T-MGMT-06`），续页按 `ordinal` 只读（`T-MGMT-07`）。
+
+- **跨字段与寿命**
+
+  写入一次、不可变；到期或 principal 不符 → 拒绝续页 `ERR-CURSOR`（`T-MGMT-08`，不返回空页）；TTL 10 分钟，到期废弃。
+
+- **合法/拒绝实例**
+
+  合法：续页命中；边界：过期 → `ERR-CURSOR`。
+
+- **验证**
+
+  `VRC-MGMT-004`。
+
+**4.6.3 引导与查询快照状态转换（`T-MGMT-01…T-MGMT-08`）**
+
+状态机定义与不变量权威见模块设计 `management-design` §6.6.3；本 ISD 细化每个转换的落点函数（真实 symbol）。
+
+| Transition ID | 原状态 → 新状态 | 事件 / 执行者 | Guard 事实来源 | 实现落点（文件 / 函数） | 失败出口 | VRC |
+|---|---|---|---|---|---|---|
+| `T-MGMT-01` | Booting → Ready | `bootstrap_settings` 校验通过 | settings 内容 + schema 校验 | `registry.py` `Registry.bootstrap_settings` 单事务提交 | 提交失败 → `T-MGMT-02` | `VRC-MGMT-001` |
+| `T-MGMT-02` | Booting → NotReady | 校验/读取失败 | settings 校验结果 | `Registry.bootstrap_settings` 回滚 + 置 `bootstrap_error` | 需修正后重启 | `VRC-MGMT-003` |
+| `T-MGMT-03` | Ready → Ready | CRUD `mutate` | `version` 乐观并发 + 引用查询 | `admin.py` `AdminService.mutate` → `Store.transaction(immediate=True)` | 冲突 409/ETag 412；存储错回滚 | `VRC-MGMT-002` |
+| `T-MGMT-04` | Ready → Booting | 进程重启 | 已提交 settings 指纹匹配 | `Application.__init__` 再调 `bootstrap_settings`（no-op） | 指纹不符 → `T-MGMT-02` | `VRC-MGMT-001` |
+| `T-MGMT-05` | NotReady → Ready | 修正后重启 | 修正后的 settings 校验结果 | 同 `T-MGMT-01` | 仍失败 → NotReady | — |
+| `T-MGMT-06` | （无快照）→ Active | `AdminService.page` 首次查询 | 查询参数 + principal | `admin.py` `page` 写 `query_snapshots`/`query_snapshot_items` | 写失败 → 503（不返回空页） | `VRC-MGMT-004` |
+| `T-MGMT-07` | Active → Active | 续页（带 cursor） | `query_snapshots.expires_at` 与 principal | `admin.py` `page` 读冻结项分支 | 过期/不符 → `T-MGMT-08` | `VRC-MGMT-004` |
+| `T-MGMT-08` | Active → Expired | TTL 到期或 principal 不符 | `expires_at` / `authorization_digest` | `admin.py` `page` 返回 `ERR-CURSOR` | — | `VRC-MGMT-004` |
 
 ### 4.8 错误码与错误结构
 
@@ -684,23 +764,23 @@ flowchart TD
 
 - **触发与执行者**：启动；单线程
 - **入口函数及数据**：`bootstrap_settings`；settings JSON
-- **步骤 / 算法 / 复杂度**：判定空库 → 校验 → 单事务写入 + hash + 审计；O(条目)
+- **步骤 / 算法 / 复杂度**：判定空库 → 校验（`T-MGMT-01`）→ 单事务写入 + hash + 审计；O(条目)
 - **判断事实来源**：`schema_meta.bootstrap_sha256`
 - **成功可见点**：Registry 可接流量；`/readyz` 成功后初始为 `degraded`（deployments `health=unknown`），探测出健康候选后才 `ready`
-- **失败、取消与清理**：回滚；not_ready
+- **失败、取消与清理**：回滚；not_ready（`T-MGMT-02`；重复启动 `T-MGMT-04` no-op）
 - **代表输入与中间值**：合法 settings → hash
-- **规则 / 接口 / 验证引用**：`RULE-MGMT-CAPS`；`VRC-MGMT-001/003`
+- **规则 / 接口 / 验证引用**：`RULE-MGMT-CAPS`；相位 §4.6.3 `T-MGMT-01/02/04/05`；`VRC-MGMT-001/003`
 
 ### 6.2 `P-MGMT-CRUD` · 配置变更
 
 - **触发与执行者**：M001；请求线程
 - **入口函数及数据**：`AdminService.mutate` → `Registry.create_*` 等
-- **步骤 / 算法 / 复杂度**：ETag 校验 → 事务写 → 审计；O(1)
+- **步骤 / 算法 / 复杂度**：ETag 校验 → 事务写（`T-MGMT-03`）→ 审计；O(1)
 - **判断事实来源**：`If-Match`、引用/能力
 - **成功可见点**：新版本 + 审计 success
-- **失败、取消与清理**：412/409；审计 failed
+- **失败、取消与清理**：412/409；审计 failed；存储错回滚（`T-MGMT-03`）
 - **代表输入与中间值**：PATCH Provider + If-Match
-- **规则 / 接口 / 验证引用**：`RULE-MGMT-CAPS/ETAG/REF`；`VRC-MGMT-002`
+- **规则 / 接口 / 验证引用**：`RULE-MGMT-CAPS/ETAG/REF`；相位 §4.6.3 `T-MGMT-03`；`VRC-MGMT-002`
 
 ### 6.3 `P-MGMT-PROBE` · 探测
 
@@ -745,13 +825,13 @@ flowchart TD
 
 #### 7.2.1.1 `PF-MGMT-CONFIG` · 配置发布事务
 
-- **原规则 / 事务**：`R-CFG-01`
+- **原规则 / 事务**：`R-CFG-01`；`T-MGMT-03`（CRUD 同事务提交配置 + 审计）、`T-MGMT-01`（引导单事务）
 - **原子范围 / 事务外副作用**：单事务写 Registry + Audit；无事务外副作用
-- **开始 / 提交 / 回滚函数**：`Store.transaction`
-- **持久提交点 / 对外响应点**：commit
+- **开始 / 提交 / 回滚函数**：`Store.transaction`（`AdminService.mutate` / `Registry.bootstrap_settings`）
+- **持久提交点 / 对外响应点**：commit（`T-MGMT-03`）；引导失败整体回滚（`T-MGMT-02`）
 - **响应丢失后的权威核对**：重新 GET item（ETag）
-- **恢复入口 / 判定记录 / 重复恢复条件**：无（配置事务）
-- **验证项**：`VRC-MGMT-002`
+- **恢复入口 / 判定记录 / 重复恢复条件**：崩溃恢复以已提交行 + settings 指纹为入口（`T-MGMT-04` 幂等 no-op）
+- **验证项**：`VRC-MGMT-001/002`
 
 #### 7.2.2 Schema 演进策略决定
 

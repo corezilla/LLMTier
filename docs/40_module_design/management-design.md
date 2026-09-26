@@ -15,7 +15,7 @@
 | Created Date | `2026-09-23` |
 | Last Modified Date | `2026-09-25` |
 | Template ID | `design.definition` |
-| Template Version | `3.2.0` |
+| Template Version | `3.4.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |
@@ -325,6 +325,8 @@
 | `IF-MGMT-06` | `app.py` → `usage.py` | §9.1 `IF-USAGE` | 账本分页与范围清空 | `VRC-MGMT-004` |
 
 ### 5.4 服务提供方式（条件适用）
+
+**适用性触发**：§3 未登记本模块自有端点宿主（M004 是被 M001 进程内调用的嵌入式库）→ 本节 N/A；启动/引导由 M001 `Application.__init__` 装配，引导失败经 `/readyz` 反映（见 §6.6.1、§10.3）。
 
 - **运行载体与入口**：N/A + 依据 —— 嵌入式库，由 M001 进程内调用
 - **并发/线程模型**：N/A + 依据 —— 使用调用方线程；写路径用 `Store.transaction(immediate=True)` 串行化
@@ -1032,7 +1034,46 @@ QuerySnapshotLifecycle {
 
   `VRC-MGMT-004`；`admin.py`。
 
+**6.6.3 引导与查询快照状态转换（状态图与转换表）**
+
+**适用性触发**：§6 存在跨步骤引导状态（`BootstrapState`）、乐观并发版本与查询快照生命周期 → 本节适用；§5.4 为 N/A（嵌入式库）。§10 引用同一组 `T-MGMT-*` Transition ID。
+
+```mermaid
+stateDiagram-v2
+    [*] --> Booting: 进程装配调用 bootstrap_settings
+    Booting --> Ready: T-MGMT-01 / 校验通过并原子提交 settings
+    Booting --> NotReady: T-MGMT-02 / settings 非法/不可读，回滚置 bootstrap_error
+    Ready --> Ready: T-MGMT-03 / CRUD 事务提交（version 递增）
+    Ready --> Booting: T-MGMT-04 / 进程重启（引导幂等 no-op）
+    NotReady --> Booting: T-MGMT-05 / 修正后重启
+    NotReady --> [*]
+    Ready --> [*]
+```
+
+```mermaid
+stateDiagram-v2
+    [*] --> Active: T-MGMT-06 / query 建立快照（TTL 10 min）
+    Active --> Active: T-MGMT-07 / 按 ordinal 续页
+    Active --> Expired: T-MGMT-08 / TTL 到期或 principal 不符
+    Expired --> [*]
+```
+
+图 M004-D3 · M004 · Target / Planned。`NotReady` 由 `/readyz` 反映；快照过期即拒绝续页（不返回空页）。
+
+| Transition ID | 原状态 | 事件/执行者 | Guard 的权威事实来源 | 动作及提交点 | 新状态 | 迟到/失败出口 | 不变量与 VRC |
+|---|---|---|---|---|---|---|---|
+| T-MGMT-01 | Booting | `bootstrap_settings` 校验通过 | settings 文件内容 + schema 校验 | 单事务写 settings 指纹并对齐固定 7 Tier，提交后才可接流量 | Ready | 提交失败 → T-MGMT-02 | 初始化后 SQLite 为唯一权威；VRC-MGMT-001 |
+| T-MGMT-02 | Booting | 校验/读取失败 | settings 校验结果 | 回滚，置 `bootstrap_error`，不接业务流量 | NotReady | 需修正后重启 | 失败 not_ready；VRC-MGMT-003 |
+| T-MGMT-03 | Ready | CRUD `mutate`（M001 请求线程） | `version` 乐观并发 + 引用查询 | `Store.transaction(immediate=True)` 提交，审计同事务 | Ready | 冲突 409/ETag 412；存储错回滚 | 先验证再原子推进；VRC-MGMT-002 |
+| T-MGMT-04 | Ready | 进程重启 | 已提交 settings 指纹匹配 | 引导幂等 no-op | Booting→Ready（T-MGMT-01） | 指纹不符 → T-MGMT-02 | 重复启动 no-op；VRC-MGMT-001 |
+| T-MGMT-05 | NotReady | 修正后重启 | 修正后的 settings 校验结果 | 同 T-MGMT-01 | Ready | 仍失败 → NotReady | — |
+| T-MGMT-06 | （无快照） | `AdminService.page` 首次查询 | 查询参数 + principal | 写 `query_snapshots`/`query_snapshot_items`，冻结 `request_id`/`record_version` | Active | 写失败 → 503（不返回空页） | 快照按 ordinal 只读；VRC-MGMT-004 |
+| T-MGMT-07 | Active | 续页（带 cursor） | `query_snapshots.expires_at` 与 principal | 读冻结项，不重查活数据 | Active | 过期/不符 → T-MGMT-08 | 分页稳定不重复；VRC-MGMT-004 |
+| T-MGMT-08 | Active | TTL 到期或 principal 不符 | `expires_at` / `authorization_digest` | 拒绝续页，返回 `ERR-CURSOR` | Expired | — | 不返回空页误导；VRC-MGMT-004 |
+
 ### 6.7 数据库表结构
+
+**适用性触发**：M004 拥有并写入配置/账本/快照/审计表 → 本节适用；§10.6 须给出事务提交点、崩溃恢复与重放边界。
 
 Authority = `util/migrations/001_initial.sql`、`002_observability.sql`（由 M007 `migrate()` 执行）。本模块拥有下列表（`operational_logs` 归 M008、观测 6 表归 M006）；表间为多对象比较，按矩阵表达：
 
@@ -1159,6 +1200,8 @@ Authority = `util/migrations/001_initial.sql`、`002_observability.sql`（由 M0
 ## 9. 接口设计
 
 > 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口设计用途**分类（面向使用方的 API 与组件/系统间协作的消息与数据流接口），逐接口完整记录；标题为真实调用形式（进程内方法），标题下先给**完整接口声明**，再就地说明参数/结果字段，最后按固定六项。本模块接口均为向 M001 提供配置/查询能力的 API；消息流/硬件/人机三类不适用。数据结构引用 §6。
+
+**§9↔§6 交叉核对**：本节每个接口的必填输入与输出字段，均逐项定位到 §6 结构（`BootstrapState`/`QuerySnapshotLifecycle`→§6.6、`ETag`/`version` 乐观并发→§6.7 表）、固定外部机器源（settings 文件、account usage API），或本接口内写明的构造规则（如 `ETag` 由 `<id>.v<n>` 构造）；无接口返回 §6 无任何操作可产生的字段。
 
 ### 9.1 API（适用时）
 
@@ -1374,8 +1417,10 @@ page(limit: int = 50, level: str | None = None, module: str | None = None, reque
 
 ## 10. 并发、失败与恢复
 
+**事实联动**：本节与 §3（N/A：无自有端点宿主）、§5.4（N/A：嵌入式库）、§6.6.3（`T-MGMT-01…T-MGMT-08`）、§6.7（配置/账本/快照/审计表）联动。10.1 对应 `T-MGMT-03`；10.3 对应 `T-MGMT-02`；10.4 对应 `T-MGMT-03/06`；10.6 给出持久写入的事务提交点/崩溃恢复/重放边界。
+
 #### 10.1 `F-MGMT-ETAG` · 并发编辑冲突
-- **初始条件 / 并发交错 / 失败点**：两 operator 同时 PATCH
+- **初始条件 / 并发交错 / 失败点**：两 operator 同时 PATCH（§6.6.3 `T-MGMT-03`）
 - **检测事实 / authority / 期限**：ETag `If-Match`（§8.2）
 - **处理行为 / 副作用边界**：412 + `current_version`；不覆盖
 - **状态查询 / 同请求重放 / 接管 / 新业务重试**：重新 GET 后重试
@@ -1413,6 +1458,14 @@ page(limit: int = 50, level: str | None = None, module: str | None = None, reque
 - **状态查询 / 同请求重放 / 接管 / 新业务重试**：稍后重新刷新
 - **最终状态 / 资源归属 / 后续合法入口**：快照持久
 - **验证项 / 组合责任**：`VRC-MGMT-006`
+
+#### 10.6 `F-MGMT-PERSIST` · 配置表事务/崩溃/重放边界
+- **初始条件 / 并发交错 / 失败点**：`mutate`/引导提交前后进程崩溃；或提交时唯一冲突/引用冲突
+- **检测事实 / authority / 期限**：`Store.transaction(immediate=True)` 的提交/回滚；`version` 乐观并发事实
+- **处理行为 / 副作用边界**：配置变更、审计记录在同一事务提交（`T-MGMT-03`）；失败整体回滚（`T-MGMT-02`）；不在事务外做可见副作用
+- **状态查询 / 同请求重放 / 接管 / 新业务重试**：崩溃恢复以已提交行 + settings 指纹为入口（`T-MGMT-04`）；重复引导 no-op；同请求重放由 M001 发起，`version` 防止旧写覆盖
+- **最终状态 / 资源归属 / 后续合法入口**：已提交配置或回滚后的旧配置；`/readyz` 反映引导状态
+- **验证项 / 组合责任**：`VRC-MGMT-001/002`；组合（M007 事务/迁移）
 
 ## 11. 安全、权限与可观测性
 

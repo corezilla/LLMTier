@@ -15,7 +15,7 @@
 | Created Date | `2026-09-23` |
 | Last Modified Date | `2026-09-25` |
 | Template ID | `design.definition` |
-| Template Version | `3.2.0` |
+| Template Version | `3.4.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |
@@ -290,6 +290,8 @@
 | `IF-INF-06` | `responses.py` → `usage.py` | §9.1 `IF-INF-USAGE` | 义务/绑定/终态记账 | `VRC-INF-003` |
 
 ### 5.4 服务提供方式（条件适用）
+
+**适用性触发**：§3 未登记本模块自有端点宿主（M003 是被 M001 进程内调用的嵌入式库）→ 本节 N/A；§3 无操作面、§5.4 无启动/就绪/停止，故 §10 不推演模块级启动/停止（生命周期由 M001 装配）。
 
 - **运行载体与入口**：N/A + 依据 —— M003 是**嵌入式库**，无独立 server；由 M001 进程内调用
 - **并发/线程模型**：N/A + 依据 —— 使用调用方线程（M001 每请求一线程）；仅 `Router` 内部持有锁/条件变量
@@ -869,7 +871,45 @@ RouterState {
 
   `VRC-INF-004`；`routing.py`。
 
+**6.6.2 准入与账本义务状态转换（状态图与转换表）**
+
+**适用性触发**：§6 存在跨步骤准入队列（`RouterState.queues`）与账本义务（`usage_obligations`）→ 本节适用；§5.4 为 N/A（嵌入式库，无端点宿主）。§10 引用同一组 `T-INF-*` Transition ID。
+
+```mermaid
+stateDiagram-v2
+    [*] --> Idle: Router 构造
+    Idle --> Waiting: T-INF-01 / admit() 容量不足，入队 ticket
+    Waiting --> Admitted: T-INF-02 / 条件变量唤醒且配额与限流允许
+    Waiting --> Rejected: T-INF-03 / 队列满或等待超时
+    Idle --> Admitted: T-INF-04 / 容量与限流直接允许
+    Admitted --> Released: T-INF-05 / admit 上下文退出（finish 与 SSE 之前）
+    Rejected --> [*]
+    Released --> [*]
+```
+
+```mermaid
+stateDiagram-v2
+    [*] --> Unknown: T-INF-06 / dispatch 前写 usage_obligations(unknown)
+    Unknown --> Measured: T-INF-07 / finish() 成功追加版本并推进 head
+    Unknown --> Unknown: T-INF-08 / 终态写入失败，保留 unknown
+```
+
+图 M003-D3 · M003 · Target / Planned。`Released` 不依赖 SSE 是否发送完成；`Unknown` 是保留态，不补零。
+
+| Transition ID | 原状态 | 事件/执行者 | Guard 的权威事实来源 | 动作及提交点 | 新状态 | 迟到/失败出口 | 不变量与 VRC |
+|---|---|---|---|---|---|---|---|
+| T-INF-01 | Idle | `Router.admit(level_id)` 请求线程 | `RouterState.inflight`/`queues`（同等级计数） | 分配 ticket 入队，等待条件变量 | Waiting | 队列满（>32）→ T-INF-03 | 等待不改 in-flight；VRC-INF-004 |
+| T-INF-02 | Waiting | 条件变量唤醒（在途许可释放或限流窗口到点） | `inflight`/`provider_dispatches` 与限流配置 | 占用许可，计数递增 | Admitted | 等待 >30 s → T-INF-03 | 同等级计数不超上限；VRC-INF-004 |
+| T-INF-03 | Waiting | 队列满或等待超时 | 队列长度 / 等待时钟 | 不调用后端，返回 429 + `Retry-After` | Rejected | — | 未受理无副作用；VRC-INF-004 |
+| T-INF-04 | Idle | `admit()` 容量与限流直接允许 | `RouterState` 计数 | 占用许可，计数递增 | Admitted | — | 同 T-INF-02；VRC-INF-004 |
+| T-INF-05 | Admitted | `admit` 上下文退出 | 上下文管理器的 `__exit__` | 计数递减，唤醒等待者 | Released | 异常路径同样释放（无泄漏） | 许可在 `finish`/SSE 之前释放；VRC-INF-004 |
+| T-INF-06 | （无义务） | `UsageRecorder.authorize_dispatch` 请求线程 | 已校验请求身份 | 写 `usage_obligations`(unknown)，提交后方可 dispatch | Unknown | 写失败 → 不 dispatch（§10.3 `ERR-STORE`） | 结果未知不补零；VRC-INF-003 |
+| T-INF-07 | Unknown | `UsageRecorder.finish()` 成功 | 上游终态与用量事实 | 只追加 `usage_record_versions` 并推进 `usage_heads`，同事务提交 | Measured | 提交失败 → 保留 Unknown | head 单调推进；VRC-INF-003 |
+| T-INF-08 | Unknown | `finish(None)` 或终态写入失败 | 调用链异常/存储错误 | 保留 unknown，不写零值 | Unknown | 上层返回对应错误 | 只追加、不删改；VRC-INF-003 |
+
 ### 6.7 数据库表结构
+
+**适用性触发**：M003 经 `UsageRecorder` 写入账本表 → 本节适用；§10.5 须给出事务提交点、崩溃恢复与重放边界（表 authority 归 M007 DDL）。
 
 Authority = `util/migrations/001_initial.sql`（由 M007 执行）。M003 经 `UsageRecorder` 写入账本相关表（语义归 M-METER）；表间为多对象比较，按矩阵表达：
 
@@ -981,6 +1021,8 @@ Authority = `util/migrations/001_initial.sql`（由 M007 执行）。M003 经 `U
 ## 9. 接口设计
 
 > 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口设计用途**分类（面向使用方的 API 与组件/系统间协作的消息与数据流接口），逐接口完整记录；标题为真实调用形式（进程内方法），标题下先给**完整接口声明**，再就地说明参数/结果字段，最后按固定六项。**函数/方法即 API**：M003 向 M001 提供推理/向量化能力的进程内方法、以及向外部 provider 发起调用的适配器方法（`ProviderAdapter.*`）均归 §9.1 API；与上游的 HTTP/SSE 是这些方法的实现传输，按接口形态归类为函数而非独立消息/流接口。§9.2 消息与数据流不适用（见该节理由）。数据结构引用 §6。
+
+**§9↔§6 字段定位核对**：本节每个接口的必填输入与输出字段，均逐项定位到 §6 结构（`ResponsesRequest`→§6.2.1、`ResponsesResponse`→§6.2.2、`RouterState`→§6.6.1、账本义务/版本→§6.7）或固定外部机器源（上游 OpenAI-compatible；M004 配置权威）；`out` 回填的 `deployment_id`/`backend_model` 由 §6.6.1 准入与 `ProviderAdapter` 构造规则产生；无接口返回 §6 无任何操作可产生的字段。
 
 ### 9.1 API（适用时）
 
@@ -1098,6 +1140,8 @@ list_models() -> list
 
 ## 10. 并发、失败与恢复
 
+**事实联动**：本节与 §3（N/A：无自有端点宿主）、§5.4（N/A：嵌入式库）、§6.6.2（`T-INF-01…T-INF-08`）、§6.7（账本表）联动。10.2 对应 `T-INF-01/02/03`；10.3 对应 `T-INF-05/08`；10.4 对应 `T-INF-05`（许可已在 `create()` 返回前释放）；10.5 给出账本持久写入的事务提交点/崩溃恢复/重放边界。
+
 #### 10.1 `F-INF-VALIDATE` · 校验失败
 - **初始条件 / 并发交错 / 失败点**：字段/能力不满足
 - **检测事实 / authority / 期限**：校验结果（本文 §8.1）
@@ -1107,7 +1151,7 @@ list_models() -> list
 - **验证项 / 组合责任**：`VRC-INF-001`
 
 #### 10.2 `F-INF-ADMIT` · 队列满/等待超时
-- **初始条件 / 并发交错 / 失败点**：同等级等待 > 32 或 > 30 s
+- **初始条件 / 并发交错 / 失败点**：同等级等待 > 32 或 > 30 s（§6.6.2 `T-INF-01`→`T-INF-03`）
 - **检测事实 / authority / 期限**：Router 队列（§8.2）
 - **处理行为 / 副作用边界**：无调用；返回 429 + `Retry-After`
 - **状态查询 / 同请求重放 / 接管 / 新业务重试**：N/A + 理由：未调用后端
@@ -1117,7 +1161,7 @@ list_models() -> list
 #### 10.3 `F-INF-UPSTREAM` · 上游失败/超时
 - **初始条件 / 并发交错 / 失败点**：连接/首字节/SSE 空闲超时或 5xx
 - **检测事实 / authority / 期限**：urllib HTTPError/URLError（§5.3.5）
-- **处理行为 / 副作用边界**：**可能已调用后端**；释放许可；记 unknown usage
+- **处理行为 / 副作用边界**：**可能已调用后端**；释放许可（`T-INF-05`）；记 unknown usage（`T-INF-08`）
 - **状态查询 / 同请求重放 / 接管 / 新业务重试**：N/A + 理由：本系统不自动重放，不承诺 exactly-once；重放风险由 Consumer 承担
 - **最终状态 / 资源归属 / 后续合法入口**：502/503；许可已释放
 - **验证项 / 组合责任**：`VRC-INF-003`；组合（Piko 联调）
@@ -1125,10 +1169,18 @@ list_models() -> list
 #### 10.4 `F-INF-DISCONNECT` · 调用方断开
 - **初始条件 / 并发交错 / 失败点**：Consumer 断开（M001 捕获）
 - **检测事实 / authority / 期限**：写失败（M001）
-- **处理行为 / 副作用边界**：结束本次调用；出口记 `aborted`；许可已在 `create()` 返回前释放、终态已记账，**不再** `finish(None)`
+- **处理行为 / 副作用边界**：结束本次调用；出口记 `aborted`；许可已在 `create()` 返回前释放（`T-INF-05`）、终态已记账，**不再** `finish(None)`
 - **状态查询 / 同请求重放 / 接管 / 新业务重试**：N/A + 理由：新请求为新调用
 - **最终状态 / 资源归属 / 后续合法入口**：记 aborted
 - **验证项 / 组合责任**：`VRC-INF-005`
+
+#### 10.5 `F-INF-LEDGER` · 账本持久写入的事务/崩溃/重放边界
+- **初始条件 / 并发交错 / 失败点**：dispatch 前义务与终态版本写入之间进程崩溃；或终态提交失败
+- **检测事实 / authority / 期限**：`usage_obligations`(unknown) 行为权威事实；超时/失败由 `Store` 抛错
+- **处理行为 / 副作用边界**：义务写入（`T-INF-06`）与终态版本+head（`T-INF-07`）分别在 `Store.transaction(immediate=True)` 内提交；义务提交成功才 dispatch；终态失败保留 unknown（`T-INF-08`）
+- **状态查询 / 同请求重放 / 接管 / 新业务重试**：崩溃恢复以已提交 obligation 为入口：无终态版本 → 保留 unknown（不补零）；同请求重放由 Consumer 发起新调用，账本键 `(principal_id,request_id)` 不变，不新增执行
+- **最终状态 / 资源归属 / 后续合法入口**：unknown 或 measured；head 单调；无半写终态
+- **验证项 / 组合责任**：`VRC-INF-003`；组合（M007/M004）
 
 ## 11. 安全、权限与可观测性
 
