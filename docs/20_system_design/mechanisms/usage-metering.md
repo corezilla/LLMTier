@@ -72,7 +72,7 @@
 |---|---|---|---|---|---|
 | Usage Recorder · Inference / LLMTier | 义务→绑定→终态、只追加、head 单调、unknown 不补零；不含 Cost | 决定=终态版本与 head；写入=账本表（§4.7）；事实来源=SQLite；恢复=崩溃后义务仍在、保留 unknown | 提供 `IF-MET-AUTHORIZE`、`IF-MET-BIND`、`IF-MET-FINISH`、`IF-MET-PAGE`、`IF-MET-RESET`（§5.1） | M003 业务层 | 无（顶层机制） |
 | Inference 编排 · Inference / LLMTier | 在 dispatch 前后调用钩子；不直接写账本 | 决定=无；写入=经 `IF-MET-*`；事实来源=后端 usage；恢复=写失败则不 dispatch 或保留 unknown | 消费 `IF-MET-AUTHORIZE`/`IF-MET-BIND`/`IF-MET-FINISH`（§5.1） | M003 业务层 | M-METER（行为） |
-| Usage Reader / Admin · Management / LLMTier | snapshot 冻结分页、范围清空、授权每页复核；不承载推理 | 决定=分页/清空范围；写入=snapshot 表 + 删除；事实来源=账本；恢复=TTL 到期重开查询 | 提供 `IF-MET-API-USAGE`；消费 `IF-MET-PAGE`/`IF-MET-RESET`（§5.1） | M004 业务层 | M-METER（行为） |
+| Usage Reader / Admin · Management / LLMTier | snapshot 冻结分页、范围清空、cursor 复核 principal/filter；不承载推理 | 决定=分页/清空范围；写入=snapshot 表 + 删除；事实来源=账本；恢复=TTL 到期重开查询 | 提供 `IF-MET-API-USAGE`；消费 `IF-MET-PAGE`/`IF-MET-RESET`（§5.1） | M004 业务层 | M-METER（行为） |
 | Store · LLMTier（M007） | 单事务原子提交、快照表；不做业务规则 | 决定=无；写入=各账本/snapshot 表（§4.7）；事实来源=SQLite 文件；恢复=以已提交行为准 | 提供 `transaction`（§4.7） | M007 基础层 | 无 |
 | Consumer · 外部 | 查询自身用量；不跨 principal | 决定=无；写入=无；事实来源=分页视图；恢复=过期 cursor 重开 | 消费 `GET /v1/usage`（`IF-MET-API-USAGE`，§5.1） | 外部 Consumer | M-TRUST（凭据） |
 | Operator · 外部 | 查询全部、按范围清空；清空不可回滚 | 决定=清空范围；写入=删除；事实来源=账本；恢复=删除不可回滚 | 消费 `GET/DELETE /v1/usage`（`IF-MET-API-USAGE`，§5.1） | 外部 Operator | M-TRUST（凭据） |
@@ -155,19 +155,19 @@ enum MeasurementSource { unavailable, provider, injected }
 
 - **`unavailable`**：
 
-  必填枚举值；未测得；`unknown ⇒ unavailable`。
+  必填枚举值；未测得且无 override；`source_override` 为空且未测时取此值。
 
 - **`provider`**：
 
-  必填枚举值；后端返回；`measured ⇒ provider`（或被 override）。
+  必填枚举值；后端返回；`measured` 且无 override 时取此值。
 
 - **`injected`**：
 
-  必填枚举值；注入路径经 `source_override=injected` 标注（CON-OBS-004）。
+  必填枚举值；注入路径经 `source_override=injected` 标注（CON-OBS-004），**可与 `measurement_status=unknown` 共存**（如注入的上游故障 `fault_502`/`fault_503`/`rate_limit` 使 `finish(None, source="injected")`）。
 
 - **跨字段与寿命**：
 
-  `measured ⇒ source=provider`（或被 override）；`unknown ⇒ unavailable`；随 `usage_record_versions.source` 持久。
+  `source = source_override or ("provider" if measured else "unavailable")`，故任一 `measurement_status` 都可与 `injected` 共存；未被 override 时 `measured ⇒ provider`、`unknown ⇒ unavailable`；随 `usage_record_versions.source` 持久。
 
 - **合法/拒绝实例**：
 
@@ -184,7 +184,7 @@ enum MeasurementSource { unavailable, provider, injected }
 ```text
 UsageObligation {
   principal_id: string, request_id: string, model: string,
-  endpoint: string, recorded_at: timestamp, updated_at: timestamp
+  endpoint: string, recorded_at: timestamp, dispatch_authorized_at: timestamp?
 }
 ```
 
@@ -200,9 +200,9 @@ UsageObligation {
 
   必填字符串；等级与端点。
 
-- **`recorded_at`/`updated_at`**：
+- **`recorded_at`/`dispatch_authorized_at`**：
 
-  必填时间；首次记录 / 最近更新。
+  必填时间（义务登记时刻）/ 可空时间（dispatch 授权登记时刻，`authorize_dispatch` 在义务事务内一并写入）。
 
 - **跨字段与寿命**：
 
@@ -387,7 +387,7 @@ QuerySnapshot {
 }
 QuerySnapshotItem {
   snapshot_id: string, ordinal: int, request_id: string,
-  record_version: int, frozen_view_json: object
+  record_version: int, frozen_view_json: object, etag: string?
 }
 ```
 
@@ -401,7 +401,7 @@ QuerySnapshotItem {
 
 - **`principal_id`/`resource`/`filter_digest`/`auth`**：
 
-  必填；主体/资源/filter 摘要/授权摘要。
+  必填；主体/资源/filter 摘要/授权摘要。`auth`（authorization digest）仅存储、**不参与** cursor 复核。
 
 - **`created_at`/`expires_at`**：
 
@@ -409,11 +409,11 @@ QuerySnapshotItem {
 
 - **`QuerySnapshotItem`**：
 
-  `(snapshot_id, ordinal)`、`request_id`、`record_version`、`frozen_view_json`；有序成员。
+  `(snapshot_id, ordinal)`、`request_id`、`record_version`、`frozen_view_json`、`etag`（可空）；有序成员，共 6 列。
 
 - **跨字段与寿命**：
 
-  `(recorded_at,request_id)` 稳定排序；`filter_digest` 绑定 filter；`expires_at` = 创建 + 10 分钟；旧页不受后续更正影响（INV-6 的口径）；持久、有期限（TTL 10 分钟）；M003 写、M003 读。
+  `(recorded_at,request_id)` 稳定排序；`filter_digest` 绑定 filter；`expires_at` = 创建 + 10 分钟；后续页 cursor 复核 `principal_id`（非 admin 时）与 `filter_digest`，**不**复核 `auth`（authorization digest 仅存储）；旧页不受后续更正影响（INV-6 的口径）；持久、有期限（TTL 10 分钟）；M003 写、M003 读。
 
 - **合法/拒绝实例**：
 
@@ -480,8 +480,8 @@ tables {
   usage_record_versions { (principal_id, request_id, record_version) PK },
   usage_heads { (principal_id, request_id) PK, head_record_version FK },
   provider_request_bindings { (principal_id, request_id) PK, provider_request_id TEXT? },
-  query_snapshots { snapshot_id PK },
-  query_snapshot_items { (snapshot_id, ordinal) PK }
+  query_snapshots { snapshot_id PK, authorization_digest },
+  query_snapshot_items { (snapshot_id, ordinal) PK, etag? }
 }
 ```
 
@@ -507,7 +507,7 @@ tables {
 
 - **`query_snapshots` / `query_snapshot_items`**：
 
-  `snapshot_id` / `(snapshot_id,ordinal)` 主键；TTL 10 分钟。
+  `snapshot_id` / `(snapshot_id,ordinal)` 主键；`query_snapshot_items` 共 6 列（含可空 `etag`）；TTL 10 分钟。
 
 - **跨字段与寿命**：
 
@@ -573,7 +573,7 @@ enum UsageErrorRef { ERR-STORE, ERR-CURSOR, ERR-REQ-VALIDATION, ERR-AUTH-DENIED,
 |---|---|---|---|---|
 | `D-USAGE-RECORD`（系统 §8.2） | 16 列行；token 可 NULL | `usage_record_versions` 行 | 后端 usage → 版本行；非 int ⇒ unknown/NULL | `T-MET-UNKNOWN` |
 | `D-MET-USAGE-VIEW` | JSON 对象 | `frozen_view_json` TEXT | 行 → 视图；字段一一映射 | `T-MET-PAGE` |
-| `D-MET-QUERY-SNAPSHOT` | `filter_digest` = SHA-256；`auth` = SHA-256 | `query_snapshots` 行 | filter → digest；不含明文凭据 | `T-MET-PAGE` |
+| `D-MET-QUERY-SNAPSHOT` | `filter_digest` = SHA-256；`auth` = SHA-256（仅存储，不复核） | `query_snapshots` 行 | filter → digest；不含明文凭据 | `T-MET-PAGE` |
 | `D-ERROR-ENVELOPE`（系统 §8.4） | UTF-8 JSON | 无 wire offset | `ApiError.envelope()` | 503 用例 |
 
 ### 4.10 一致性、可见性与数据寿命
@@ -650,7 +650,7 @@ page(principal: str, cursor: str | None, limit: int = 50, admin: bool = False, s
 - **输入与前提**：`principal`；`cursor`（`sid:offset`）；`limit`；`admin`（是否跨 principal）；`since`/`until`（`[from,to)`），`model`、`request_id`；授权=consumer（自身）/operator（全部）。
 - **成功输出与保证**：`{data: D-MET-USAGE-VIEW[], next_cursor, has_more, snapshot_id, snapshot_at}`；受理=首屏创建 `D-MET-QUERY-SNAPSHOT`（§4.2.6）并冻结成员；生效=旧页不受后续更正影响；副作用=snapshot 行写入（TTL 10 分钟）。
 - **错误与合法下一步**：`ERR-REQ-VALIDATION`（400 时间窗/`filter_digest` 不符）；`ERR-CURSOR`（400 过期）；`ERR-AUTH-DENIED`（403 他人 cursor）；`ERR-STORE`（503）；载荷 `D-ERROR-ENVELOPE`。
-- **交互与生命周期**：同步只读；cursor 绑定 principal/授权/filter；按 `(recorded_at,request_id)` 稳定排序。
+- **交互与生命周期**：同步只读；cursor 复核 `principal_id`（非 admin 时）与 `filter_digest`，`auth`（authorization digest）仅存储不复核；按 `(recorded_at,request_id)` 稳定排序。
 - **实现与验证**：正常首屏 + 后续页；拒绝他人 cursor → 403。`T-MET-PAGE`；Run=NOT_RUN。
 
 #### `UsageRecorder.reset_usage(model=None, deployment_id=None, conn=None) -> dict`
@@ -809,7 +809,7 @@ reset_usage(model: str | None = None, deployment_id: str | None = None, conn: Co
 | 责任单元（§14.1） | 承接的成员/结构 ID（§4/§5） | 角色 | 本机制固定的语义与边界（引用） |
 |---|---|---|---|
 | Usage Recorder（计量写入） | `IF-MET-AUTHORIZE`、`IF-MET-BIND`、`IF-MET-FINISH`；`D-USAGE-OBLIGATION`/`D-USAGE-RECORD`/`D-USAGE-HEAD`（§4.2） | 提供 | 义务→绑定→终态；只追加、head 单调、unknown 不补零（§5.1） |
-| Usage Reader / Admin（查询/清空） | `IF-MET-PAGE`、`IF-MET-RESET`；`D-MET-QUERY-SNAPSHOT`（§4.2） | 提供 | snapshot 冻结分页、范围清空、授权每页复核（§5.1） |
+| Usage Reader / Admin（查询/清空） | `IF-MET-PAGE`、`IF-MET-RESET`；`D-MET-QUERY-SNAPSHOT`（§4.2） | 提供 | snapshot 冻结分页、范围清空、cursor 复核 principal/filter（§5.1） |
 | HTTP Adapter（入口） | `IF-MET-API-USAGE` | 提供/映射 | `/v1/usage` 路由与错误映射（400/403/503）；不含业务规则 |
 | Inference 编排 | `IF-MET-AUTHORIZE`/`IF-MET-BIND`/`IF-MET-FINISH` | 消费 | 在 dispatch 前后调用钩子；unknown 语义（§9） |
 | Store（存储） | 各账本/snapshot 表（§4.7） | 提供 | 单事务原子提交、快照表 |
@@ -819,7 +819,7 @@ reset_usage(model: str | None = None, deployment_id: str | None = None, conn: Co
 | 下级要求 ID | 承接对象 ID / 下级设计文档 | 来源 Capability / Step / Constraint / 接口成员 | 必须负责的行为与保证 | 必须提供/消费的接口 | 下级必须展开的问题 | 允许自行决定的范围 | 本地验证 / 组合验证交接 |
 |---|---|---|---|---|---|---|---|
 | R-MET-01 | Usage Recorder · `inference-design.md` | CON-METER-001/002/003、Step 1/2/3/9、interface `authorize_dispatch/bind_backend/finish` | 只追加版本、head 单调、unknown 不补零 | `authorize_dispatch`/`bind_backend`/`finish` | 事务边界、并发写、归一 | 存储实现 | 系统用例 |
-| R-MET-02 | Usage Reader · `management-design.md` | CON-METER-004、Step 4/5、interface `page` | snapshot 冻结分页、权限每页复核 | `page()` | cursor 结构、TTL、排序 | 分页实现 | T-MET-PAGE |
+| R-MET-02 | Usage Reader · `management-design.md` | CON-METER-004、Step 4/5、interface `page` | snapshot 冻结分页、cursor 复核 principal/filter | `page()` | cursor 结构、TTL、排序 | 分页实现 | T-MET-PAGE |
 | R-MET-03 | Admin · `management-design.md` | CAP-METER-RESET、Step 6、interface `reset_usage` | 范围清空 + 审计 | `reset_usage()` | 范围语义、孤儿清理 | 范围实现 | T-MET-RESET |
 | R-MET-04 | HTTP Adapter · `http-api-design.md` | CON-METER-005、`/v1/usage` | 路由与错误映射 | 路由 | 503 显式化 | 映射实现 | 503 用例 |
 

@@ -66,6 +66,8 @@ class Registry:
         require(None not in deployment_ids and len(deployment_ids) == len(deployments), 503, "bootstrap_invalid", "Deployment IDs must be unique")
         require(all(x.get("provider_id") in provider_ids for x in deployments), 503, "bootstrap_invalid", "Deployment provider reference is invalid")
         require(all(x.get("id") in FIXED_TIERS and all(d in deployment_ids for d in x.get("deployment_ids", [])) for x in levels), 503, "bootstrap_invalid", "Service level reference is invalid")
+        require(all(set(x) == {"id", "deployment_ids", "enabled"} for x in levels), 503, "bootstrap_invalid", "Invalid service level entry")
+        require(len({x["id"] for x in levels}) == len(levels), 503, "bootstrap_invalid", "Service level IDs must be unique")
         for item in providers:
             ref = item.get("secret_ref")
             if ref and ref.startswith("env:"): require(bool(os.environ.get(ref[4:])), 503, "bootstrap_invalid", "Provider secret environment reference is unavailable")
@@ -164,7 +166,11 @@ class Registry:
             values = {k: row[k] for k in ("name", "kind", "endpoint", "secret_ref", "enabled")}
             values.update({k: v for k, v in body.items() if k != "usage"})
             version = row["version"] + 1
-            conn.execute("UPDATE providers SET name=?,kind=?,endpoint=?,secret_ref=?,enabled=?,version=? WHERE id=?", (values["name"], values["kind"], values["endpoint"], values["secret_ref"], int(values["enabled"]), version, rid))
+            try:
+                conn.execute("UPDATE providers SET name=?,kind=?,endpoint=?,secret_ref=?,enabled=?,version=? WHERE id=?", (values["name"], values["kind"], values["endpoint"], values["secret_ref"], int(values["enabled"]), version, rid))
+            except Exception as exc:
+                if "UNIQUE" in str(exc): raise ApiError(409, "resource_conflict", "Provider name already exists") from exc
+                raise
             current = conn.execute("SELECT * FROM provider_usage_profiles WHERE provider_id=?", (rid,)).fetchone()
             usage = self._usage_values(body.get("usage"), values["kind"], current)
             self._write_usage_profile(conn, rid, usage, int(current["version"] + 1) if current else 1)
@@ -260,7 +266,11 @@ class Registry:
             values.update(body)
             require(conn.execute("SELECT 1 FROM providers WHERE id=?", (values["provider_id"],)).fetchone() is not None, 400, "invalid_request", "Unknown provider", "provider_id")
             version = row["version"] + 1
-            conn.execute("UPDATE deployments SET name=?,provider_id=?,backend_model=?,capabilities_json=?,enabled=?,version=? WHERE id=?", (values["name"], values["provider_id"], values["backend_model"], json.dumps(values["capabilities"], separators=(",", ":")), int(values["enabled"]), version, rid))
+            try:
+                conn.execute("UPDATE deployments SET name=?,provider_id=?,backend_model=?,capabilities_json=?,enabled=?,version=? WHERE id=?", (values["name"], values["provider_id"], values["backend_model"], json.dumps(values["capabilities"], separators=(",", ":")), int(values["enabled"]), version, rid))
+            except Exception as exc:
+                if "UNIQUE" in str(exc): raise ApiError(409, "resource_conflict", "Deployment name already exists") from exc
+                raise
             if "capabilities" in body:
                 # RULE-MGMT-CAPS: a deployment capability change recomputes every bound tier's
                 # intersection and rejects the edit when a tier can no longer be satisfied.
@@ -352,7 +362,11 @@ class Registry:
             conn.execute("UPDATE service_levels SET enabled=?,capabilities_json=?,version=? WHERE id=?", (int(enabled), json.dumps(capabilities, separators=(",", ":")), version, rid))
             if "deployment_ids" in body:
                 conn.execute("DELETE FROM service_level_deployments WHERE level_id=?", (rid,))
-                conn.executemany("INSERT INTO service_level_deployments VALUES(?,?,?)", [(rid, did, i) for i, did in enumerate(ids)])
+                try:
+                    conn.executemany("INSERT INTO service_level_deployments VALUES(?,?,?)", [(rid, did, i) for i, did in enumerate(ids)])
+                except Exception as exc:
+                    if "UNIQUE" in str(exc): raise ApiError(409, "resource_conflict", "Service level deployment list contains duplicates") from exc
+                    raise
         return self.get_service_level(rid)
 
     def delete_service_level(self, rid: str, if_match: str | None, conn: sqlite3.Connection | None = None) -> None:

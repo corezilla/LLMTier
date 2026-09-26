@@ -524,7 +524,7 @@ BootstrapState {
 
 - **`ready`**：
 
-  派生布尔；`/readyz` 布尔投影。
+  派生布尔；仅表示 bootstrap 是否完成（`/readyz` 的就绪还需依赖可用性，可能为 `degraded`）。
 
 - **跨字段与寿命**：
 
@@ -549,7 +549,7 @@ tables {
   deployment_runtime_profiles { deployment_id PK, max_in_flight, connect_timeout_ms, stream_idle_timeout_ms },
   provider_usage_profiles { provider_id PK, max_concurrent_requests, min_request_interval_ms, requests_per_minute },
   service_levels { id PK },
-  service_level_deployments { (service_level_id, deployment_id, ordinal) PK },
+  service_level_deployments { (service_level_id, deployment_id) PK, UNIQUE(service_level_id, ordinal) },
   schema_meta { singleton=1, bootstrap_sha256? },
   audit_events { id PK }
 }
@@ -569,7 +569,7 @@ tables {
 
 - **`service_level_deployments`**：
 
-  `(service_level_id, deployment_id, ordinal)` 主键；有序唯一。
+  主键 `(service_level_id, deployment_id)`；`UNIQUE(service_level_id, ordinal)` 保证每等级内 ordinal 有序唯一。
 
 - **`schema_meta.bootstrap_sha256`**：
 
@@ -608,7 +608,7 @@ enum ConfigErrorRef {
 
 - **`ERR-BOOT`（503 `bootstrap_required` / `bootstrap_invalid`）**：
 
-  空库缺 settings 或 settings 非法；已知失败、回滚、not_ready；修正 settings 后重启。
+  空库缺 settings 或 settings 非法；已知失败、回滚、`/readyz` 为 `not_ready`；修正 settings 后重启。bootstrap 成功**不等于**就绪：写入的 deployments 初始 `health=unknown`，`/readyz` 先为 `degraded`（503），需探测出至少一个健康候选。
 
 - **`ERR-SCHEMA`（schema 不符/完整性失败）**：
 
@@ -632,7 +632,7 @@ enum ConfigErrorRef {
 
 - **`ERR-NOTFOUND`（404）**：
 
-  未知 ID；未受理、无副作用；修正 ID。
+  未知 ID（含重复 `DELETE` 已不存在的 provider/deployment）；未受理、无副作用；修正 ID。
 
 - **`ERR-STORE`（503）**：
 
@@ -678,7 +678,7 @@ GET    /v1/providers?cursor=&limit=             -> 200 ProviderPage
 POST   /v1/providers {ProviderWrite}            -> 201 ProviderView (ETag)
 GET    /v1/providers/{provider_id}              -> 200 ProviderView (ETag)
 PATCH  /v1/providers/{provider_id} {ProviderPatch} If-Match -> 200 ProviderView (ETag)
-DELETE /v1/providers/{provider_id} If-Match     -> 204
+DELETE /v1/providers/{provider_id} If-Match     -> 204（已删除）| 404 not_found（不存在）
   -> 4xx/5xx: ErrorEnvelope
 ```
 
@@ -686,7 +686,7 @@ DELETE /v1/providers/{provider_id} If-Match     -> 204
 - **输入与前提**：`D-CFG-ADMIN-WRITE`（§4.4）；路径 `provider_id`；PATCH/DELETE 必填 `If-Match: D-CFG-VERSION-TAG`（§4.2.2）；授权=`admin` 角色（系统 `ERR-AUTH-*`）；校验顺序=鉴权 → body schema → `If-Match` → 业务约束。
 - **成功输出与保证**：`ProviderView`（`D-PROVIDER` 投影，`secret_ref` 只写不回显）+ 强 `ETag`；受理=写事务未提交前不对外；生效=提交后可见；副作用=同事务写 `D-AUDIT-EVENT`。
 - **错误与合法下一步**：`ERR-AUTH-*`（401/403/503）；`ERR-REQ-VALIDATION`（400）；`ERR-CONFLICT`（409 重名）；`ERR-INUSE`（409 被引用删除）；`ERR-STALE`（412 `If-Match` 过期）；`ERR-NOTFOUND`（404）；`ERR-STORE`（503）；逐条件结果已知、失败无副作用，载荷 `D-ERROR-ENVELOPE`。
-- **交互与生命周期**：同步；PATCH partial（只改出现字段）；DELETE 幂等；ETag 乐观并发；版本单调 +1。
+- **交互与生命周期**：同步；PATCH partial（只改出现字段）；DELETE 成功 204，重复删除已不存在的 provider → 404 `not_found`（非幂等 204）；ETag 乐观并发；版本单调 +1。
 - **实现与验证**：正常 POST → 201+ETag；拒绝 stale PATCH → 412。`T-CFG-CAS`、`T-CFG-DELREF`；Run=NOT_RUN。
 
 #### `GET/POST /v1/deployments`；`GET/PATCH/DELETE /v1/deployments/{deployment_id}`
@@ -696,7 +696,7 @@ GET    /v1/deployments?cursor=&limit=            -> 200 DeploymentPage
 POST   /v1/deployments {DeploymentWrite}         -> 201 DeploymentView (ETag)
 GET    /v1/deployments/{deployment_id}           -> 200 DeploymentView (ETag)
 PATCH  /v1/deployments/{deployment_id} {DeploymentPatch} If-Match -> 200 DeploymentView (ETag)
-DELETE /v1/deployments/{deployment_id} If-Match  -> 204
+DELETE /v1/deployments/{deployment_id} If-Match  -> 204（已删除）| 404 not_found（不存在）
   -> 4xx/5xx: ErrorEnvelope
 ```
 
@@ -704,7 +704,7 @@ DELETE /v1/deployments/{deployment_id} If-Match  -> 204
 - **输入与前提**：`D-CFG-ADMIN-WRITE`（§4.4）；`provider_id` 必须存在；`capabilities` 为 `D-CAPABILITY` 12 键（§4.3.2）；`If-Match`；授权=`admin`。
 - **成功输出与保证**：`DeploymentView` + `ETag`；副作用=同事务审计；新建时创建 `deployment_runtime_profiles` 行。
 - **错误与合法下一步**：未知 provider/能力非法 → `ERR-REQ-VALIDATION`（400）；重名 `ERR-CONFLICT`；删除被 level 引用 `ERR-INUSE`；`ERR-STALE`/`ERR-NOTFOUND`/`ERR-STORE`。
-- **交互与生命周期**：同步；partial PATCH；DELETE 幂等；ETag 乐观并发。
+- **交互与生命周期**：同步；partial PATCH；DELETE 成功 204，重复删除已不存在的 deployment → 404 `not_found`（非幂等 204）；ETag 乐观并发。
 - **实现与验证**：正常引用已存在 provider；拒绝未知 provider。`T-CFG-BADREF`；Run=NOT_RUN。
 
 #### `GET/POST /v1/service-levels`；`GET/PATCH /v1/service-levels/{level_id}`（DELETE 禁止）
@@ -733,10 +733,10 @@ Registry.bootstrap_settings(settings_path: str | None) -> None
 
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-CFG-BOOTSTRAP`；空库一次性引导：校验 settings 并事务写入 Registry；Management 提供、启动流程消费；交接边界=迁移建表后、服务开放前；状态=Implemented；唯一契约=本设计 + `llmtier-settings-v0.3.schema.json`；`src/management/registry.py` `Registry.bootstrap_settings`。
 - **输入与前提**：`settings_path: str | None`；前置=迁移已建表（`schema_meta` 单行存在）；授权=启动路径，无 HTTP 授权；校验顺序=读文件/解析 JSON → 顶层节集 == {providers,deployments,service_levels} → ID 唯一 → provider 引用完整 → 固定 Tier 与 deployment 引用 → `secret_ref` 仅 `env:`/`file:` 且可达 → 逐项字段集精确匹配。
-- **成功输出与保证**：无返回值——受理/生效/完成为同一事务：写入 providers/deployments/levels/成员 + `schema_meta.bootstrap_sha256` + bootstrap 审计；副作用=持久化；随后 `/readyz` 就绪（§4.6.1）。
+- **成功输出与保证**：无返回值——受理/生效/完成为同一事务：写入 providers/deployments/levels/成员 + `schema_meta.bootstrap_sha256` + bootstrap 审计；副作用=持久化；`/readyz` 可访问但初始为 `degraded`（deployments `health=unknown`），探测出健康候选后才 `ready`（§4.6.1）。
 - **错误与合法下一步**：无 settings 且空库 → `ERR-BOOT`（503 `bootstrap_required`，未受理、无副作用）；解析/校验/事务失败 → `ERR-BOOT`（503 `bootstrap_invalid`，回滚、not_ready）；schema 不符由 M007 提前以 `ERR-SCHEMA` 拒绝；载荷 `D-ERROR-ENVELOPE`。合法下一步：修正 settings/迁移后重启。
 - **交互与生命周期**：同步阻塞；启动期一次；事务全成功或全回滚（`store.transaction(True)`）；可重入：已有 `bootstrap_sha256` → 立即 no-op，不重导入（INV-2）；不热载文件（§13）。
-- **实现与验证**：正常：空库 + 合法三节 settings → hash 置位、`/readyz` 就绪；边界：重复启动 → no-op 且 hash 不变。`T-CFG-BOOT`；Run=NOT_RUN。
+- **实现与验证**：正常：空库 + 合法三节 settings → hash 置位、`/readyz` 先为 degraded；边界：重复启动 → no-op 且 hash 不变。`T-CFG-BOOT`；Run=NOT_RUN。
 
 #### `Registry.candidates(level_id: str) -> list[Candidate]`
 
@@ -776,14 +776,15 @@ Registry.get_service_level(level_id: str) -> tuple[dict, str]
 
 #### `GET /readyz`
 ```text
-GET /readyz -> 200 {status:"ready", models:[…]} | 503 {status:"not_ready", models:[]}
+GET /readyz -> 200 {status:"ready", models:[…]}                    # 全部固定等级 available
+             -> 503 {status:"degraded"|"not_ready", models:[…]}    # degraded：有候选但无 healthy；not_ready：bootstrap 失败
 ```
-- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-CFG-READY`；就绪自检，暴露初始化状态与依赖状态；M001 提供、部署方/运维消费；状态=Implemented；`src/http_api/app.py` → `health.readiness_view`。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-CFG-READY`；就绪自检，暴露初始化状态与依赖可用性；M001 提供、部署方/运维消费；状态=Implemented；`src/http_api/app.py` → `health.readiness_view`。
 - **输入与前提**：无参数；前置=进程存活；执行位置=LLMTier 管理面；授权=无鉴权或 operator 均可；校验=无。
-- **成功输出与保证**：`{status:"ready", models:[…]}`——受理/生效=即时；副作用=无。
-- **错误与合法下一步**：初始化失败 → 503 `{status:"not_ready", models:[]}`（以就绪状态表达，非 `D-ERROR-ENVELOPE`）；结果已知、无副作用；合法下一步=修正配置后重启。
-- **交互与生命周期**：同步只读；幂等；无占用/取消/恢复。
-- **实现与验证**：正常就绪返回 ready；引导失败返回 not_ready。`T-CFG-BOOT`；Run=NOT_RUN。
+- **成功输出与保证**：`{status, models:[…]}`——`status` 由各固定等级的 `availability` 聚合：全 `available` → `ready`（200）；任一非 `unavailable` 但未全 `available` → `degraded`（503）；全 `unavailable` 或 bootstrap 失败 → `not_ready`（503）；受理/生效=即时；副作用=无。
+- **错误与合法下一步**：bootstrap 失败 → 503 `{status:"not_ready", models:[]}`；bootstrap 成功后 deployments 初始 `health=unknown`，故 `/readyz` 先返回 `degraded`（503），经 `POST /v1/probes` 探测出至少一个健康候选后才转 `ready`（200）。以就绪状态表达，非 `D-ERROR-ENVELOPE`；结果已知、无副作用。
+- **交互与生命周期**：同步只读；幂等（availability 随 health 变化）；无占用/取消/恢复。
+- **实现与验证**：就绪返回 ready；未探测/degraded 返回 503 degraded；bootstrap 失败返回 503 not_ready。`T-CFG-BOOT`；Run=NOT_RUN。
 
 #### 离线迁移（单一版本命令）
 ```text
@@ -812,10 +813,10 @@ migrate(store_path) -> {from_version, to_version} | non-zero exit
 2. **引导判定**：读 `bootstrap_sha256`；空库且未提供路径 → 503 `bootstrap_required`。
 3. **校验**：字段全集、ID 唯一、引用完整、Secret 引用可达（`env:`/`file:`）。
 4. **事务写入**：providers/deployments/levels + `bootstrap_sha256` + bootstrap 审计；任一步失败回滚。
-5. **就绪**：写入成功 → `/readyz` 就绪。
+5. **就绪**：写入成功 → `/readyz` 可访问；因 bootstrap 写入的 deployments `health=unknown`，固定等级为 `degraded`（503），探测出健康候选后才 `ready`（200）。
 6. **运行期变更**：管理面事务 + ETag + 能力/不变量校验 + 审计。
 
-**触发 → 结果 → 释放**：引导触发 = 空库启动；结果 = Registry 就绪或 `not_ready`；释放 = 事务资源随提交/回滚归还，无租约。**关键提交点** = 写入配置行 + `bootstrap_sha256`（引导）或推进资源 `version` + 审计（变更）的同一事务提交。中断点：提交前中断 → 事务回滚、库保持空/旧，重启按 `ERR-BOOT` 继续引导，绝不半写；提交后但确认未达 → 重启见 `bootstrap_sha256` 已置位即 no-op，不回导；CRUD 提交前中断 → 旧版本与 ETag 不变，调用方重读后按 `If-Match` 重试；提交后中断 → 以已提交版本为准，调用方重新 GET。判定只依据库内权威事实，不依赖内存标志。
+**触发 → 结果 → 释放**：引导触发 = 空库启动；结果 = Registry 可用（`/readyz` 初始可为 `degraded`）或 `not_ready`；释放 = 事务资源随提交/回滚归还，无租约。**关键提交点** = 写入配置行 + `bootstrap_sha256`（引导）或推进资源 `version` + 审计（变更）的同一事务提交。中断点：提交前中断 → 事务回滚、库保持空/旧，重启按 `ERR-BOOT` 继续引导，绝不半写；提交后但确认未达 → 重启见 `bootstrap_sha256` 已置位即 no-op，不回导；CRUD 提交前中断 → 旧版本与 ETag 不变，调用方重读后按 `If-Match` 重试；提交后中断 → 以已提交版本为准，调用方重新 GET。判定只依据库内权威事实，不依赖内存标志。
 
 ### 6.1 交叠请求、跨轮次与生命周期边界
 

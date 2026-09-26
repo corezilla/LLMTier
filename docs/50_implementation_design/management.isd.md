@@ -450,7 +450,7 @@ candidates(level_id) -> list[Candidate]
     - **底层异常 / 失败事实**：settings 不可读/非法/引用不可达
     - **模块是否处理及处理函数**：reject（`bootstrap_settings`）
     - **Typed 异常与原生异常所有权**：`ApiError(503)`；启动置 `bootstrap_error`
-    - **宿主 / public payload 或状态码**：503 `bootstrap_required`/`bootstrap_invalid`；not_ready
+    - **宿主 / public payload 或状态码**：503 `bootstrap_required`/`bootstrap_invalid`；`/readyz` 为 `not_ready`
     - **日志级别 / 脱敏 / 关联字段**：error
     - **是否可重试及前提**：修正后重启
     - **状态与副作用影响 / 验证项**：回滚；`VRC-MGMT-003`
@@ -686,7 +686,7 @@ flowchart TD
 - **入口函数及数据**：`bootstrap_settings`；settings JSON
 - **步骤 / 算法 / 复杂度**：判定空库 → 校验 → 单事务写入 + hash + 审计；O(条目)
 - **判断事实来源**：`schema_meta.bootstrap_sha256`
-- **成功可见点**：Registry 就绪
+- **成功可见点**：Registry 可接流量；`/readyz` 成功后初始为 `degraded`（deployments `health=unknown`），探测出健康候选后才 `ready`
 - **失败、取消与清理**：回滚；not_ready
 - **代表输入与中间值**：合法 settings → hash
 - **规则 / 接口 / 验证引用**：`RULE-MGMT-CAPS`；`VRC-MGMT-001/003`

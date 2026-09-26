@@ -80,12 +80,15 @@ class ResponsesService:
         _trace("validated", {"ok": True})
         self.usage.authorize_dispatch(principal, request_id, model, "/v1/responses")
         admitted = False
+        injected = False
         try:
             with self.router.admit(model) as candidate:
                 admitted = True
                 if out is not None: out.update({"deployment_id": candidate.deployment_id, "backend_model": candidate.backend_model})
                 _trace("routed", {"deployment_id": candidate.deployment_id, "provider_id": candidate.provider_id})
                 injection = diag.enabled_injection(candidate.deployment_id) if diag else None
+                stream_injection = diag.enabled_stream_injection(candidate.deployment_id) if diag else None
+                injected = injection is not None or stream_injection is not None
                 if injection:
                     kind = injection["injection_type"]
                     if kind in ("fault_502", "fault_503"):
@@ -103,7 +106,7 @@ class ResponsesService:
                         time.sleep((injection["delay_ms"] or 0) / 1000)
                 self.usage.bind_backend(principal, request_id, candidate.provider_id, candidate.deployment_id)
                 provider_row = self.registry.store.one("SELECT endpoint FROM providers WHERE id=?", (candidate.provider_id,))
-                upstream_url = provider_row["endpoint"] if provider_row else candidate.provider_id
+                upstream_url = (provider_row["endpoint"] if provider_row else candidate.provider_id).split("?", 1)[0]
                 _trace("upstream_started", {"deployment_id": candidate.deployment_id, "upstream_url": upstream_url})
                 upstream_started = time.monotonic()
                 try:
@@ -122,7 +125,7 @@ class ResponsesService:
                 _stats(200, candidate.deployment_id)
                 if result.provider_request_id is not None:
                     self.usage.record_provider_request_id(principal, request_id, result.provider_request_id)
-            self.usage.finish(principal, request_id, result.usage)
+            self.usage.finish(principal, request_id, result.usage, "injected" if injected else None)
             return {
                 "id": f"resp_{uuid.uuid4().hex}",
                 "object": "response",
@@ -137,6 +140,6 @@ class ResponsesService:
         except Exception as exc:
             # E-INF-ADMIT: admission rejection never reached the backend -> no usage side effect.
             if admitted:
-                source = "injected" if getattr(exc, "piko_injected", False) else None
+                source = "injected" if injected or getattr(exc, "piko_injected", False) else None
                 self.usage.finish(principal, request_id, None, source)
             raise

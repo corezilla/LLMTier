@@ -42,11 +42,7 @@ class UsageRecorder:
             )
 
     def finish(self, principal: str, request_id: str, usage: dict[str, Any] | None, source_override: str | None = None) -> None:
-        row = self.store.one("SELECT model,endpoint,recorded_at FROM usage_obligations WHERE principal_id=? AND request_id=?", (principal, request_id))
-        if row is None: return
         stamp = now()
-        current = self.store.one("SELECT head_record_version FROM usage_heads WHERE principal_id=? AND request_id=?", (principal, request_id))
-        version = int(current["head_record_version"]) + 1
         measured = isinstance(usage, dict) and all(isinstance(usage.get(k), int) for k in ("input_tokens", "output_tokens", "total_tokens"))
         inp = usage.get("input_tokens") if measured else None
         out = usage.get("output_tokens") if measured else None
@@ -54,6 +50,10 @@ class UsageRecorder:
         details_i = usage.get("input_tokens_details", {}) if measured else {}
         details_o = usage.get("output_tokens_details", {}) if measured else {}
         with self.store.transaction(True) as conn:
+            row = conn.execute("SELECT model,endpoint,recorded_at FROM usage_obligations WHERE principal_id=? AND request_id=?", (principal, request_id)).fetchone()
+            if row is None: return
+            current = conn.execute("SELECT head_record_version FROM usage_heads WHERE principal_id=? AND request_id=?", (principal, request_id)).fetchone()
+            version = int(current["head_record_version"]) + 1
             conn.execute("INSERT INTO usage_record_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (principal, request_id, version, 1, row["model"], row["endpoint"], row["recorded_at"], stamp, "measured" if measured else "unknown", source_override or ("provider" if measured else "unavailable"), inp, out, total, details_i.get("cached_tokens"), details_i.get("cache_write_tokens"), details_o.get("reasoning_tokens")))
             conn.execute("UPDATE usage_heads SET head_record_version=?,updated_at=? WHERE principal_id=? AND request_id=?", (version, stamp, principal, request_id))
 

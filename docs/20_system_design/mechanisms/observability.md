@@ -54,7 +54,7 @@
 | CAP-OBS-1 上游快照 | 一次上游调用结束后 | url/status/时延/错误摘要写入并可分页查 | `libdiag` / Observability | Implemented | 快照用例 |
 | CAP-OBS-2 数据面统计 | 每次请求完成 | 计数 + P50/P95/min/max | `libdiag` / Observability | Implemented | 统计用例 |
 | CAP-OBS-3 全局开关 | Operator 切换 | snapshots/stats 开或关 | Observability / Operator | Implemented | 开关生效用例 |
-| CAP-OBS-5 故障注入 | 按 deployment 配置 | delay/fault/rate_limit/流异常 | `libdiag` / Operator | Implemented（流注入见 LT-OPEN-05）| 四类注入用例 |
+| CAP-OBS-5 故障注入 | 按 deployment 配置 | delay/fault/rate_limit/流异常 | `libdiag` / Operator | Implemented | 四类注入用例 |
 | CAP-OBS-6 单请求 trace | 按 request_id 查询 | 全生命周期 stages + usage | `libdiag` / Operator | Implemented | trace 用例 |
 | CAP-OBS-7 关联标识 | Consumer 传 `X-Correlation-ID`/`traceparent` | 透传并回显 | HTTP API / Consumer | Implemented | 关联用例 |
 
@@ -823,7 +823,7 @@ enabled_stream_injection(deployment_id: str) -> dict | None
 stream_wrapper(deployment_id: str, base_stream: Iterable[bytes]) -> Iterable[bytes]
 ```
 
-- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-OBS-STREAM-WRAP`；对流式输出实施按 deployment 的流异常注入（组件间数据流变换）；`libdiag` 提供、HTTP/SSE Adapter 消费；交接边界=SSE 出站前；状态=Implemented（`LT-OPEN-05` 流注入见未决）；`src/libdiag/stream.py`。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-OBS-STREAM-WRAP`；对流式输出实施按 deployment 的流异常注入（组件间数据流变换）；`libdiag` 提供、HTTP/SSE Adapter 消费；交接边界=SSE 出站前；状态=Implemented；`src/libdiag/stream.py`。
 - **输入与前提**：`deployment_id`；`base_stream`（SSE 字节流）；授权=内部（M001 输出）。
 - **成功输出与保证**：惰性字节流——无注入透传；`stream_terminate` 第 N 块后结束；`malformed_event` 第 N 块后追加一帧畸形事件并结束；受理/完成=按块产出；副作用=改变出站流。
 - **错误与合法下一步**：无注入即透传；注入确定性触发。
@@ -897,7 +897,7 @@ joint-diagnose.sh --x-request-id <request_id> -> trace/snapshots
 | 观测写入失败 | 库/缓存错误 | 记 warning，**不阻塞**推理 |
 | 缓存满 | 统计上限 | LRU 淘汰最旧，继续 |
 | 清理到期 | 7 天前记录 | 删除 |
-| 流注入 | `stream_terminate`/`malformed_event` | 需改造流式输出（`LT-OPEN-05`）|
+| 流注入 | `stream_terminate`/`malformed_event` | 按配置截断/畸形（`stream_wrapper`，Implemented）|
 
 ## 8. 状态机与不变量
 
@@ -1033,14 +1033,14 @@ joint-diagnose.sh --x-request-id <request_id> -> trace/snapshots
 
 ### 15.3 组合验收、启用与旧机制退出
 
-随 Phase 化实现启用；流注入见 `LT-OPEN-05`。组合验收 = Piko 联调（`joint-diagnose.sh`）。
+随 Phase 化实现启用；流注入已由 `stream_wrapper` 实现。组合验收 = Piko 联调（`joint-diagnose.sh`）。
 
 ## 16. 风险、未决问题与决定
 
 | ID | 类别 | 影响 | 下一步 | 状态 |
 |---|---|---|---|---|
 | LT-OPEN-04 | 决定 | 四类数据各归 1 张表，保留 7 天 | 已采用 | 已定 |
-| LT-OPEN-05 | 未决 | 流注入需改造流式输出 | 确认实现方案 | 未决 |
+| LT-OPEN-05 | 已实现 | 流注入（`stream_terminate`/`malformed_event`）已由 `stream_wrapper` 实现 | 已确认 | 已定 |
 | RISK-OBS-1 | 风险 | 统计为内存、可丢 | 明示非账本语义 | 观察 |
 | RISK-OBS-2 | 变更影响 | `CON-OBS-*` 已在本机制登记，系统设计 §3.4 与 ISD 仍引用历史 `C-OBS-*` | 回写系统摘要、ISD 承接与 §14.4 引用 | 待回写（不阻塞本机制） |
 

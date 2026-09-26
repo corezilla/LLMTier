@@ -41,8 +41,10 @@ class EmbeddingsService:
         if body.get("dimensions") is not None and caps.get("embedding_dimensions"):
             require(body["dimensions"] in caps["embedding_dimensions"], 400, "unsupported_dimensions", "Unsupported embedding dimensions", "dimensions")
         self.usage.authorize_dispatch(principal, request_id, model, "/v1/embeddings")
+        admitted = False
         try:
             with self.router.admit(model) as candidate:
+                admitted = True
                 self.usage.bind_backend(principal, request_id, candidate.provider_id, candidate.deployment_id)
                 result = self._adapter(candidate).embed(candidate.backend_model, body)
             for item in result["data"]:
@@ -69,5 +71,6 @@ class EmbeddingsService:
             result["model"] = model
             return result
         except Exception:
-            self.usage.finish(principal, request_id, None)
+            if admitted:
+                self.usage.finish(principal, request_id, None)
             raise

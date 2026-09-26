@@ -87,7 +87,7 @@
 #### 1.1.6 `CON-METER-004` · 查询稳定分页
 - **上级基线与决定状态**：机制 M-METER §3.1；已采用
 - **适用条件**：用量/审计/日志分页
-- **继承预算或行为保证**：snapshot 冻结；权限每页复核
+- **继承预算或行为保证**：snapshot 冻结；cursor 复核 principal/filter
 - **可自行选择 / 不可改变**：cursor 实现可自选；冻结不可变
 - **本地落实 / 内部再分配**：I2 分页；§8
 - **验证方法与结果 / 证据**：`VRC-MGMT-004`；NOT_RUN
@@ -328,7 +328,7 @@
 
 - **运行载体与入口**：N/A + 依据 —— 嵌入式库，由 M001 进程内调用
 - **并发/线程模型**：N/A + 依据 —— 使用调用方线程；写路径用 `Store.transaction(immediate=True)` 串行化
-- **初始化、Ready、生效与停止**：引导在 `Application.__init__`（`bootstrap_settings` + `ensure_fixed_tiers`）；失败置 `bootstrap_error` 供 `/readyz`
+- **初始化、Ready、生效与停止**：引导在 `Application.__init__`（`bootstrap_settings` + `ensure_fixed_tiers`）；失败置 `bootstrap_error` 供 `/readyz`；成功后 deployments 初始 `health=unknown`，故 `/readyz` 为 `degraded` 直至探测出健康候选
 - **宿主装配、失败和资源回收责任**：由 M001/启动装配；无自有线程/fd
 
 ### 5.5 依赖方向
@@ -786,7 +786,7 @@ QuerySnapshot {
 
 - **`authorization_digest`**：
 
-  必填字符串；授权主体（principal 或 `admin`）摘要，用于每页权限复核。
+  必填字符串；授权主体（principal 或 `admin`）摘要，**仅存储**；cursor 复核实际比较 `principal_id`（非 admin 时）与 `filter_digest`，不复核本摘要。
 
 - **`created_at`/`expires_at`**：
 
@@ -798,7 +798,7 @@ QuerySnapshot {
 
 - **跨字段与寿命**：
 
-  TTL 10 分钟；同一主键的后续页按 `ordinal` 读冻结视图；权限/过滤每页复核；到期 → `ERR-CURSOR`。
+  TTL 10 分钟；同一主键的后续页按 `ordinal` 读冻结视图；cursor 复核 `principal_id`（非 admin）与 `filter_digest`，不复核 `authorization_digest`；到期 → `ERR-CURSOR`。
 
 - **合法/拒绝实例**：
 
@@ -1041,7 +1041,7 @@ Authority = `util/migrations/001_initial.sql`、`002_observability.sql`（由 M0
 | `providers` | `id` / `name` UNIQUE | I1 / M001,M003 | 配置权威 |
 | `deployments` | `id` | I1 / M001,M003 | 含 `health`、`enabled` |
 | `service_levels` | `id` | I1 / M001,M003 | 固定 7 Tier |
-| `service_level_deployments` | `(service_level_id,deployment_id)` | I1 | 成员绑定 |
+| `service_level_deployments` | `(service_level_id,deployment_id)` + UNIQUE`(service_level_id,ordinal)` | I1 | 成员绑定 |
 | `deployment_runtime_profiles` | `deployment_id` | I1 | 并发/限流 profile |
 | `provider_usage_profiles` | `provider_id` | I1 | `usage_provider` |
 | `provider_usage_snapshots` | `provider_id` | I7 / M001 | 账号用量快照 |
@@ -1143,7 +1143,7 @@ Authority = `util/migrations/001_initial.sql`、`002_observability.sql`（由 M0
 #### 8.5 `RULE-MGMT-SNAPSHOT` · 分页冻结
 - **输入前提 / 适用条件**：首屏查询
 - **算法 / 规则 / 选择依据**：同事务建 `query_snapshots` + 固化有序成员；后续按 `ordinal` 读
-- **结果 / 不变量 / 边界**：TTL 10 分钟；权限/过滤每页复核
+- **结果 / 不变量 / 边界**：TTL 10 分钟；cursor 复核 principal_id（非 admin）与 filter_digest
 - **复杂度 / 资源限制**：O(页大小)
 - **允许替换范围 / 不可改变保证**：实现可自选；冻结语义不可变
 - **具体输入推演 / 验证项**：首屏后更正 → 旧页不变；`VRC-MGMT-004`
@@ -1646,7 +1646,7 @@ page(limit: int = 50, level: str | None = None, module: str | None = None, reque
 
 #### A.4 `llmtier-usage-metering-mechanism` / `R-MET-02` · 用量查询
 - **来源 Capability / Step / Constraint / 接口成员**：CON-METER-004、Step 4/5、`page`
-- **本模块必须负责的行为与保证**：snapshot 冻结分页、权限每页复核
+- **本模块必须负责的行为与保证**：snapshot 冻结分页、cursor 复核 principal/filter
 - **本模块提供 / 消费的接口**：`page()`
 - **本文落实位置**：§5.1.8、§8.5、§9.5
 - **代码文件 / symbol 或 NOT_IMPLEMENTED**：`usage.py`

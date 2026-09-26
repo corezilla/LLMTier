@@ -21,7 +21,7 @@ class StatsDiagnostics:
         if not self.settings.switches()["stats_enabled"]:
             return
         try:
-            status = str(status_code) if status_code is not None and status_code >= 100 else "upstream_error"
+            status = str(status_code) if status_code is not None and 100 <= status_code <= 599 else "upstream_error"
             hour = hour_of()
             error = 1 if (status_code is not None and status_code >= 400) or status == "upstream_error" else 0
             with self.store.transaction(True) as conn:

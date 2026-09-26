@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import mimetypes
 import re
+import sqlite3
 import traceback
 import uuid
 from email.utils import formatdate
@@ -40,6 +41,55 @@ def _int_param(query: dict, key: str, default: int) -> int:
         raise ApiError(400, "invalid_request", f"{key} must be an integer")
 
 
+class _UnavailableDiagnostics:
+    """F-OBS-4: DiagnosticsService init failure degrades to a no-op observer."""
+
+    def switches(self) -> dict:
+        return {"snapshots_enabled": False, "stats_enabled": False}
+
+    def set_switches(self, snapshots_enabled=None, stats_enabled=None, conn=None) -> dict:
+        return self.switches()
+
+    def record_trace(self, request_id, stage, detail=None, correlation_id=None) -> None:
+        return None
+
+    def trace(self, request_id: str) -> dict:
+        return {"request_id": request_id, "correlation_id": None, "stages": [], "snapshot": None, "usage": None}
+
+    def traces(self, since=None, until=None, deployment_id=None, model=None, limit=50, cursor=None) -> dict:
+        return {"items": [], "next_cursor": None, "has_more": False}
+
+    def capture_snapshot(self, request_id, deployment_id, model, upstream_url, backend_model, http_status, latency_ms, error_summary) -> None:
+        return None
+
+    def snapshots_page(self, since=None, until=None, deployment_id=None, model=None, limit=50, cursor=None) -> dict:
+        return {"items": [], "next_cursor": None, "has_more": False}
+
+    def record_latency(self, deployment_id, model, status_code, latency_ms) -> None:
+        return None
+
+    def stats(self, since, until, deployment_id=None, model=None) -> dict:
+        return {"windows": []}
+
+    def set_injections(self, deployment_id, actor_items, conn=None) -> list:
+        return []
+
+    def injections(self, deployment_id) -> list:
+        return []
+
+    def enabled_injection(self, deployment_id):
+        return None
+
+    def enabled_stream_injection(self, deployment_id):
+        return None
+
+    def stream_wrapper(self, deployment_id, base_stream):
+        yield from base_stream
+
+    def cleanup(self, days: int = 7) -> int:
+        return 0
+
+
 class Application:
     def __init__(self, database: str, settings: str | None):
         self.store = Store(database); self.store.migrate()
@@ -52,7 +102,12 @@ class Application:
         self.account_usage = AccountUsageService(self.store)
         self.audit = AuditLog(self.store); self.logs = OperationalLog(self.store)
         self.models = ModelCatalog(self.registry)
-        self.diagnostics = DiagnosticsService(self.store, self.logs)
+        try:
+            self.diagnostics = DiagnosticsService(self.store, self.logs)
+        except Exception as exc:
+            try: self.logs.record("error", "diagnostics", "init_failed", str(exc)[:200])
+            except Exception: pass
+            self.diagnostics = _UnavailableDiagnostics()
         self.responses = ResponsesService(self.registry, self.router, self.usage, self.diagnostics)
         self.embeddings = EmbeddingsService(self.registry, self.router, self.usage)
         self.admin = AdminService(self.registry, self.audit, self.logs, self.usage)
@@ -172,7 +227,12 @@ def handler_factory(app: Application):
                     return self._json(200, self._store_read(app.usage.page, principal.principal_id, query.get("cursor", [None])[0], _int_param(query, "limit", 100), admin=is_admin, since=query.get("from", [None])[0], until=query.get("to", [None])[0], model=query.get("model", [None])[0], request_id=query.get("request_id", [None])[0]))
                 if method == "DELETE":
                     if not is_admin: raise ApiError(403, "permission_denied", "Admin credential required")
-                    result = app.admin.mutate(principal.principal_id, "usage.reset", "all", self.request_id, lambda conn: app.usage.reset_usage(model=query.get("model", [None])[0], deployment_id=query.get("deployment_id", [None])[0], conn=conn))
+                    try:
+                        result = app.admin.mutate(principal.principal_id, "usage.reset", "all", self.request_id, lambda conn: app.usage.reset_usage(model=query.get("model", [None])[0], deployment_id=query.get("deployment_id", [None])[0], conn=conn))
+                    except ApiError:
+                        raise
+                    except sqlite3.Error as exc:
+                        raise ApiError(503, "usage_store_unavailable", "Usage store is unavailable") from exc
                     return self._json(200, result)
             principal = self._auth("admin")
             if path == "/v1/providers":
@@ -294,6 +354,9 @@ def handler_factory(app: Application):
                 try: self._dispatch()
                 except ApiError as exc: self._json(exc.status, exc.envelope(), exc.headers)
                 except (BrokenPipeError, ConnectionResetError): pass
+                except sqlite3.Error:
+                    app.logs.record("error", "http", "store_error", traceback.format_exc(limit=1), self.request_id)
+                    self._json(503, ApiError(503, "store_unavailable", "Store is unavailable").envelope())
                 except Exception:
                     app.logs.record("error", "http", "unhandled_error", traceback.format_exc(limit=1), self.request_id)
                     self._json(500, ApiError(500, "internal_error", "Internal server error").envelope())

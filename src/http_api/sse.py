@@ -26,19 +26,16 @@ def response_stream(response: dict) -> Iterable[bytes]:
             for content_index, content in enumerate(item.get("content", [])):
                 if content.get("type") == "output_text":
                     yield event("response.output_text.delta", {"type": "response.output_text.delta", "item_id": item["id"], "output_index": index, "content_index": content_index, "delta": content["text"]})
-                    yield event("response.output_text.done", {"type": "response.output_text.done", "item_id": item["id"], "output_index": index, "content_index": content_index, "text": content["text"]})
                 elif content.get("type") == "refusal":
                     yield event("response.refusal.delta", {"type": "response.refusal.delta", "item_id": item["id"], "output_index": index, "content_index": content_index, "delta": content["refusal"]})
-                    yield event("response.refusal.done", {"type": "response.refusal.done", "item_id": item["id"], "output_index": index, "content_index": content_index, "refusal": content["refusal"]})
         elif item.get("type") == "reasoning":
             for content_index, content in enumerate(item.get("content", [])):
                 if content.get("type") == "reasoning_text":
                     yield event("response.reasoning_text.delta", {"type": "response.reasoning_text.delta", "item_id": item["id"], "output_index": index, "content_index": content_index, "delta": content["text"]})
-                    yield event("response.reasoning_text.done", {"type": "response.reasoning_text.done", "item_id": item["id"], "output_index": index, "content_index": content_index, "text": content["text"]})
             for s_index, summary_item in enumerate(item.get("summary", []) or []):
                 if isinstance(summary_item, dict) and summary_item.get("type") == "summary_text":
                     yield event("response.reasoning_summary_text.delta", {"type": "response.reasoning_summary_text.delta", "item_id": item["id"], "output_index": index, "summary_index": s_index, "delta": summary_item["text"]})
-                    yield event("response.reasoning_summary_text.done", {"type": "response.reasoning_summary_text.done", "item_id": item["id"], "output_index": index, "summary_index": s_index, "text": summary_item["text"]})
+                    yield event("response.reasoning_summary_part.done", {"type": "response.reasoning_summary_part.done", "output_index": index})
         elif item.get("type") == "function_call":
             yield event("response.function_call_arguments.delta", {"type": "response.function_call_arguments.delta", "item_id": item["id"], "output_index": index, "delta": item.get("arguments", "")})
             yield event("response.function_call_arguments.done", {"type": "response.function_call_arguments.done", "item_id": item["id"], "output_index": index, "arguments": item.get("arguments", "")})

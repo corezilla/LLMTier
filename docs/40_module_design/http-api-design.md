@@ -912,13 +912,13 @@ GET /tier/admin/v1/trace/{request_id}
 
 ```text
 GET /healthz -> 200 {"status":"ok","version":...}
-GET /readyz  -> 200 readiness JSON | 503 not_ready
+GET /readyz  -> 200 {"status":"ready","models":...} | 503 {"status":"degraded"|"not_ready","models":...}
 ```
 
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-API-HEALTH`；存活/就绪；M001 提供；状态=Implemented；唯一契约=OpenAPI；文件·symbol `app.py` + `health.py`。
 - **输入与前提**：无参数、无凭据。
 - **成功输出与保证**：健康/就绪 JSON（`health_view`/`readiness_view`）。
-- **错误与合法下一步**：引导失败 → `/readyz` 503 `ERR-BOOT`/`ERR-SCHEMA`。
+- **错误与合法下一步**：引导失败 → `/readyz` 503 `not_ready`（`ERR-BOOT`/`ERR-SCHEMA`）；bootstrap 成功但无健康候选 → 503 `degraded`，探测出健康候选后转 `ready`。
 - **交互与生命周期**：同步只读；幂等；探针周期调用。
 - **实现与验证**：正常 200；边界：空库无 settings → 503。`VRC-API-001`。
 
@@ -1306,7 +1306,7 @@ response_stream(response: ResponsesResponse) -> Iterable[bytes]   # text/event-s
 - **本地验证 / 组合验证交接**：契约
 
 #### A.2 `llmtier-inference-stream-mechanism` / R-INF-01 · 推理与流式返回
-- **来源 Capability / Step / Constraint / 接口成员**：CON-INFER-001/2、Step 8、interface `response_stream`
+- **来源 Capability / Step / Constraint / 接口成员**：CON-INFER-001/2、Step 9、interface `response_stream`
 - **本模块必须负责的行为与保证**：SSE 帧序、terminal 唯一、`request_id` 透传、请求体上限
 - **本模块提供 / 消费的接口**：`response_stream`、`/v1/responses` 路由
 - **本文落实位置**：§7、§8、§12

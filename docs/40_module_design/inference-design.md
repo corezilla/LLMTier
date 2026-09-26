@@ -266,7 +266,7 @@
 - **入口与调用上下文**：M001 调用 `ResponsesService.create`（同进程、请求线程）
 - **调用链**：`ResponsesService.create` →（校验）→ `registry.get_service_level` [M004] → `usage.authorize_dispatch(principal, request_id, model, "/v1/responses")` [I8] → `router.admit` [I5] → `usage.bind_backend(principal, request_id, provider_id, deployment_id)` [I8] → `adapter.complete` [I6] → `usage.record_provider_request_id(principal, request_id, result.provider_request_id)` [I8]（仅当上游返回）→ `usage.finish(principal, request_id, usage, source_override=None)` [I8]
 - **逐步传递的数据**：`body(dict)` → `caps(dict)` → `candidate(Candidate)` → `ProviderResult` → `ResponsesResponse(dict)`
-- **返回、异常与清理**：`ApiError` 冒泡；异常路径 `usage.finish(None)`；`admit` 退出释放许可
+- **返回、异常与清理**：`ApiError` 冒泡（流开始前经 HTTP `D-ERROR-ENVELOPE` 返回）；异常路径 `usage.finish(None)`；`admit` 上下文退出即释放许可（在 `finish` 与 SSE 发送之前）
 - **对应流程 / 接口 / 验证**：§7 P-INFER / §9 IF-INF-01..06 / `VRC-INF-001..005`
 
 #### 5.2.2 `CALL-EMBED` · 一次向量化调用链
@@ -916,7 +916,7 @@ Authority = `util/migrations/001_initial.sql`（由 M007 执行）。M003 经 `U
 
 图 M003-P1 · P-INFER 与 P-EMBED 在同一编排族；正常、校验拒绝、能力拒绝、准入拒绝、上游契约失败分支全部展开。判定来自当前请求、Registry 能力与 Router 许可，不依赖远端等待。
 
-**内部流程正文**：M001 调用 `create` 后，**I1** 先校验（必填 → `stream/store` → 禁字段，失败 400）；**I2 Registry 查询**等级能力（不支持 → 404/400）；**I3 I8 记义务**（unknown，M-METER）；**I4 I5 准入**取许可并选候选（队列满/超时 429，全不健康 503）；**I5 I8 绑后端**；**I6 调后端**（`complete`/`embed`，上游契约/不可达 → 502/503）；**I7 归一**为标准响应；**I8 终态记账**（measured/unknown，异常路径 `finish(None)`）。P-EMBED 复用同一准入/适配，只把归一换成向量校验 + usage→prompt_tokens。
+**内部流程正文**：M001 调用 `create` 后，**I1** 先校验（必填 → `stream/store` → 禁字段，失败 400）；**I2 Registry 查询**等级能力（不支持 → 404/400）；**I3 I8 记义务**（unknown，M-METER）；**I4 I5 准入**取许可并选候选（队列满/超时 429，全不健康 503）；**I5 I8 绑后端**；**I6 调后端**（`complete`/`embed`，上游契约/不可达 → 502/503）；**I7 归一**为标准响应；**I8 终态记账**（measured/unknown，异常路径 `finish(None)`）；`admit` 上下文退出释放许可、`finish` 均在该响应返回 M001 之前完成（M001 随后才 SSE）。上游失败发生在流开始前，经 HTTP `D-ERROR-ENVELOPE` 返回而非流内 `error` 事件。P-EMBED 复用同一准入/适配，只把归一换成向量校验 + usage→prompt_tokens。
 
 #### 7.1 `P-INFER` · 推理编排
 - **触发/适用条件**：`POST /v1/responses`
@@ -993,8 +993,8 @@ create(self, principal, request_id: str, body: dict, diagnostics=None, correlati
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-RESPONSES`；编排一次标准 Responses 推理；M003 提供、M001 消费；状态=Implemented；唯一契约=本设计；文件·symbol `src/inference/responses.py` `ResponsesService.create`。
 - **输入与前提**：已认证 `principal`（只读 `principal_id`）；`request_id`；`body`（`ResponsesRequest`，§6.2.1）；`diagnostics`/`correlation_id`/`out` 可选（`out` 回填 `deployment_id`/`backend_model`）。
 - **成功输出与保证**：`ResponsesResponse` dict（§6.2.2）——编排：校验 → 义务 → 准入 → 绑定 → 调用 → 归一 → 记账。
-- **错误与合法下一步**：400 `ERR-REQ-VALIDATION`/`ERR-REQ-UNSUPPORTED`/`ERR-REQ-FIELD`（未受理、无副作用）；404 `ERR-MODEL-NOTFOUND`（等级不存在或无候选）；429 `ERR-RATE-LIMIT`；502/503 `ERR-PROVIDER-FAIL`/`ERR-PROVIDER-UNAVAIL`/`ERR-MODEL-UNAVAIL`；503 `provider_secret_unavailable`；上游 4xx 原码 `provider_error`；异常路径 `usage.finish(None)`。
-- **交互与生命周期**：同步；调用方线程；请求级；`admit` 退出释放许可；不自动重放、不承诺 exactly-once。
+- **错误与合法下一步**：400 `ERR-REQ-VALIDATION`/`ERR-REQ-UNSUPPORTED`/`ERR-REQ-FIELD`（未受理、无副作用）；404 `ERR-MODEL-NOTFOUND`（等级不存在或无候选）；429 `ERR-RATE-LIMIT`；502/503 `ERR-PROVIDER-FAIL`/`ERR-PROVIDER-UNAVAIL`/`ERR-MODEL-UNAVAIL`；503 `provider_secret_unavailable`；上游 4xx 原码 `provider_error`；异常路径 `usage.finish(None)`；均在 SSE 开始前以 HTTP `D-ERROR-ENVELOPE` 返回。
+- **交互与生命周期**：同步；调用方线程；请求级；`admit` 在 `finish` 与 SSE 发送之前释放许可；不自动重放、不承诺 exactly-once。
 - **实现与验证**：正常固定请求 → 标准响应 + terminal；拒绝缺 `store` → 400。`VRC-INF-001`；`responses.py`。
 
 #### `EmbeddingsService.create(principal, request_id, body) -> dict`
@@ -1125,7 +1125,7 @@ list_models() -> list
 #### 10.4 `F-INF-DISCONNECT` · 调用方断开
 - **初始条件 / 并发交错 / 失败点**：Consumer 断开（M001 捕获）
 - **检测事实 / authority / 期限**：写失败（M001）
-- **处理行为 / 副作用边界**：结束本次调用；`finish(None)`
+- **处理行为 / 副作用边界**：结束本次调用；出口记 `aborted`；许可已在 `create()` 返回前释放、终态已记账，**不再** `finish(None)`
 - **状态查询 / 同请求重放 / 接管 / 新业务重试**：N/A + 理由：新请求为新调用
 - **最终状态 / 资源归属 / 后续合法入口**：记 aborted
 - **验证项 / 组合责任**：`VRC-INF-005`
@@ -1390,7 +1390,7 @@ list_models() -> list
 
 #### A.7 `llmtier-observability-mechanism` / `R-OBS-03` · 推理侧观测
 - **来源 Capability / Step / Constraint / 接口成员**：CON-OBS-002/4、Step 3/4/5
-- **本模块必须负责的行为与保证**：按配置注入、写事件、`source=injected`
+- **本模块必须负责的行为与保证**：按配置注入、写事件、`source=injected`（`unknown` 亦可带 `source=injected`）
 - **本模块提供 / 消费的接口**：集成点（`record_trace`/`capture_snapshot`/`record_latency`/`enabled_injection/enabled_stream_injection`）
 - **本文落实位置**：§11、§13.1.1
 - **代码文件 / symbol 或 NOT_IMPLEMENTED**：`responses.py` + diagnostics

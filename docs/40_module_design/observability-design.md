@@ -249,8 +249,8 @@
 
 - **运行载体与入口**：N/A + 依据 —— 无独立 server；由 M001 进程内调用
 - **并发/线程模型**：N/A + 依据 —— 使用调用方线程；统计聚合内含锁/上限
-- **初始化、Ready、生效与停止**：N/A + 依据 —— 随 `Application` 装配；`cleanup(7)` 在启动时调用
-- **宿主装配、失败和资源回收责任**：由 M001/启动装配；观测失败 fail-open
+- **初始化、Ready、生效与停止**：N/A + 依据 —— 随 `Application` 装配；`cleanup(7)` 在启动时调用；`DiagnosticsService` 构造失败时 fail-open 降级运行（Data Plane 不受影响，见 §10.3）
+- **宿主装配、失败和资源回收责任**：由 M001/启动装配；`DiagnosticsService` 初始化失败即降级；观测失败 fail-open
 
 ### 5.5 依赖方向
 

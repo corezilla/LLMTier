@@ -20,7 +20,7 @@ def events(value):
 class SSETests(unittest.TestCase):
     def test_frame_has_event(self): self.assertTrue(frame("x",{"a":1}).startswith(b"event: x\n"))
     def test_done_marker(self): self.assertEqual(list(response_stream(response()))[-1],b"data: [DONE]\n\n")
-    def test_sequence_is_monotonic(self): self.assertEqual([x["sequence_number"] for x in events(response())],list(range(6)))
+    def test_sequence_is_monotonic(self): self.assertEqual([x["sequence_number"] for x in events(response())],list(range(5)))
     def test_created_is_first(self): self.assertEqual(events(response())[0]["type"],"response.created")
     def test_completed_is_last_event(self): self.assertEqual(events(response())[-1]["type"],"response.completed")
     def test_incomplete_terminal_is_preserved(self):

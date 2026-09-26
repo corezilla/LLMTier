@@ -26,10 +26,11 @@ class SnapshotDiagnostics:
         try:
             snap_type = "upstream" if http_status is not None else "error"
             snap_id = f"snap_{uuid.uuid4().hex}"
+            summary = error_summary.encode("utf-8")[:256].decode("utf-8", "ignore") if error_summary else None
             with self.store.transaction(True) as conn:
                 conn.execute(
                     "INSERT INTO diagnostic_snapshots VALUES(?,?,?,?,?,?,?,?,?,?,?)",
-                    (snap_id, request_id, now(), upstream_url, backend_model, http_status, latency_ms, (error_summary or "")[:256] or None, model, deployment_id, snap_type),
+                    (snap_id, request_id, now(), upstream_url, backend_model, http_status, latency_ms, summary or None, model, deployment_id, snap_type),
                 )
             return snap_id
         except Exception as exc:

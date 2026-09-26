@@ -169,7 +169,7 @@ LLMTier 无软件子系统（`std-tailoring` LT-TL-003 / LT-TL-013），三层�
 | M-INFER / 推理与流式返回：校验→路由→准入→后端→SSE→终态 | none | HTTP API (M001)、Inference (M003)、Management (M004)；P-INFER；CON-INFER-001..5 | M-TRUST（行为）| `llmtier-inference-stream-mechanism` / `mechanisms/inference-stream.md` | 实际：成文（`0.1.0-draft.4`）|
 | M-METER / 用量计量与账本：义务/版本/head/unknown | none | Inference (M003)、Management (M004)、util (M007)；CON-METER-001..5 | M-INFER（行为）| `llmtier-usage-metering-mechanism` / `mechanisms/usage-metering.md` | 实际：成文（`0.1.0-draft.4`）|
 | M-CONFIG / 配置引导与变更：bootstrap → SQLite 权威 | none | HTTP API (M001)、Management (M004)、util (M007)；CON-CFG-001..5 | — | `llmtier-config-lifecycle-mechanism` / `mechanisms/config-lifecycle.md` | 实际：成文（`0.1.0-draft.4`）|
-| M-OBS / 上游快照、数据面统计、故障注入、单请求 trace、关联标识透传 | none | HTTP API (M001)、Inference (M003)、Observability (M005)、`libdiag` (M006)、util (M007)；CON-OBS-001..5 | M-INFER（行为）| `llmtier-observability-mechanism` / `mechanisms/observability.md` | 实际：成文（`0.1.0-draft.4`）；流注入见 LT-OPEN-05 |
+| M-OBS / 上游快照、数据面统计、故障注入、单请求 trace、关联标识透传 | none | HTTP API (M001)、Inference (M003)、Observability (M005)、`libdiag` (M006)、util (M007)；CON-OBS-001..5 | M-INFER（行为）| `llmtier-observability-mechanism` / `mechanisms/observability.md` | 实际：成文（`0.1.0-draft.4`）；流注入已实现（`stream_wrapper`）|
 
 均为顶层机制（无设计分解上级）；`M-INFER` 依赖 `M-TRUST` 的行为，`M-METER`/`M-OBS` 依赖 `M-INFER` 的行为。Owner 均为 LLMTier。机制文档 `§14`（跨责任单元分解与接口分配）为下级模块设计的输入，模块设计以附录"机制承接表"逐条承接。
 
@@ -267,7 +267,7 @@ LLMTier 无软件子系统（`std-tailoring` LT-TL-003 / LT-TL-013），三层�
 
 [可编辑 SVG 源](../assets/diagrams/diagram-flow-startup.svg)
 
-图 P1 · P-BOOT 冷启动。`/healthz` 只表示进程存活；`/readyz` 由 schema、bootstrap 与固定等级共同决定。bootstrap 任一步失败即回滚并保持 not_ready，不接流量。
+图 P1 · P-BOOT 冷启动。`/healthz` 只表示进程存活；`/readyz` 由 schema、bootstrap 与固定等级共同决定。bootstrap 任一步失败即回滚并保持 not_ready，不接流量；bootstrap 成功后 deployments 初始 `health=unknown`，`/readyz` 先为 `degraded`（503），探测出健康候选后才 `ready`（200）。
 
 ### 6.2 一次业务处理的完整过程
 
@@ -419,7 +419,7 @@ Capability {
 
   `VRC-MGMT-*`；机器源 `openapi` `ModelCapabilities`。
 
-**共享枚举**（内联于所属结构，不另立机器契约）：`role ∈ {data,admin}`；`kind ∈ {cloud,local}`；`health ∈ {unknown,healthy,unhealthy}`；`measurement_status ∈ {measured,unknown}`；`availability ∈ {available,unavailable}`。
+**共享枚举**（内联于所属结构，不另立机器契约）：`role ∈ {data,admin}`；`kind ∈ {cloud,local}`；`health ∈ {unknown,healthy,degraded,unhealthy}`；`measurement_status ∈ {measured,unknown}`；`availability ∈ {available,unavailable}`。
 
 ### 7.2 业务与操作数据结构（适用时）
 
@@ -1681,7 +1681,7 @@ CREATE TABLE service_level_deployments (
 
 - **跨字段与寿命**：
 
-  成员表 `(level_id,deployment_id,ordinal)` 有序唯一。M004 写、M003 读；operator 管理与 Models 发布。
+  成员表主键 `(level_id,deployment_id)`，并以 `UNIQUE(level_id,ordinal)` 保证每等级内 ordinal 有序唯一。M004 写、M003 读；operator 管理与 Models 发布。
 
 - **合法/拒绝实例**：
 
@@ -3101,7 +3101,7 @@ PATCH /v1/deployments/{deployment_id}/diagnostics [{type, config, enabled}] -> 2
 
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-OBS-INJECTIONS`；故障注入配置；M006（`libdiag` 注入）、M005 呈现、M001；状态=规格已定、Implemented；唯一契约=`openapi`；文件·symbol `src/libdiag/injections.py` `injections`/`set_injections`。
 - **输入与前提**：路径 `deployment_id`；PATCH body 为注入项列表 `{type, config, enabled}`（字段约束见 M006 §6.3）；授权=`admin`。
-- **成功输出与保证**：`InjectionView[]`；生效=同事务 upsert；副作用=同事务审计；流注入（`stream_terminate`/`malformed_event`）需改造流式输出模块（`LT-OPEN-05`）。
+- **成功输出与保证**：`InjectionView[]`；生效=同事务 upsert；副作用=同事务审计；流注入（`stream_terminate`/`malformed_event`）由 `stream_wrapper` 截断/畸形输出（已实现）。
 - **错误与合法下一步**：类型/字段/范围非法 → `ERR-INJECTION`（400）；未知 deployment → `ERR-NOTFOUND`（404）；`ERR-AUTH-*`。
 - **交互与生命周期**：同步；按 `(deployment_id,type)` upsert；注入仅影响命中请求且可撤销。
 - **实现与验证**：正常 `delay` 注入；拒绝非法 type → 400。`VRC-DIAG-004`。
@@ -3124,14 +3124,14 @@ GET /v1/trace/{request_id} -> 200 TraceView
 
 ```text
 GET /healthz -> 200 HealthView {status, version}          # 进程存活，无凭据
-GET /readyz  -> 200 ReadinessView {status, models:[...]}  # schema+bootstrap+固定等级就绪
-             -> 503 (not_ready)
+GET /readyz  -> 200 ReadinessView {status:"ready", models:[...]}            # 全部固定等级 available
+             -> 503 ReadinessView {status:"degraded"|"not_ready", models:[...]}
 ```
 
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-HEALTH`；存活 / 就绪（无凭据；`/readyz` 模型级 availability）；M001、M004/M007 提供事实；状态=规格已定、Implemented；唯一契约=`openapi`；文件·symbol `src/http_api/health.py` `health_view`/`readiness_view`。
 - **输入与前提**：无参数、无凭据。
-- **成功输出与保证**：`HealthView`/`ReadinessView`；`/readyz` 由 schema、bootstrap 与固定等级共同决定；副作用=无。
-- **错误与合法下一步**：bootstrap/schema 失败 → `/readyz` 503 `not_ready`（不接流量）；对应 `ERR-BOOT`/`ERR-SCHEMA`/`ERR-PATH-UNSAFE`。
+- **成功输出与保证**：`HealthView`/`ReadinessView`；`/readyz` 的 `status` 由 schema、bootstrap 与固定等级 `availability` 聚合（`ready`/`degraded`/`not_ready`）；bootstrap 成功后 deployments 初始 `health=unknown`，故先为 `degraded`；副作用=无。
+- **错误与合法下一步**：bootstrap/schema 失败 → `/readyz` 503 `not_ready`（不接流量）；bootstrap 成功但无健康候选 → 503 `degraded`，探测出健康候选后转 `ready`；对应 `ERR-BOOT`/`ERR-SCHEMA`/`ERR-PATH-UNSAFE`。
 - **交互与生命周期**：同步只读；无副作用健康/就绪检查。
 - **实现与验证**：正常 READY；边界：bootstrap 失败保持 not_ready。`VRC-UTIL-001/002`、`VRC-MGMT-003`。
 
@@ -3152,8 +3152,8 @@ stream: text/event-stream
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-MSG-SSE`；Data Plane 流式协议；M003 产出、M001 传输；唯一契约=`openapi` `ResponseStreamEvent`；数据结构见 §7.4 `D-MSG-SSE`。
 - **输入与前提**：输入=一次已受理的 `POST /v1/responses`；`X-Request-ID` 为 task 头，可接收 `X-Correlation-ID`/`traceparent`。
 - **成功输出与保证**：输出=SSE 帧；每 output item 稳定 `id`；每请求恰好一个 terminal（`response.completed|incomplete|failed`）。
-- **错误与合法下一步**：`error` 事件表达流内失败，上游失败发 `error`/`failed` terminal，不伪造完成；客户端据 terminal 判定终态，不重放有副作用的调用。
-- **交互与生命周期**：流式传输；客户端断开结束本次调用并释放许可；不承诺可恢复 Invocation。
+- **错误与合法下一步**：流内失败以 `response.failed` terminal 表达；上游失败发生在流开始前，经 HTTP `D-ERROR-ENVELOPE` 返回（不产生流内 `error` 事件/`failed` terminal），不伪造完成；客户端据 terminal 判定终态，不重放有副作用的调用。
+- **交互与生命周期**：流式传输；客户端断开结束本次调用（许可与终态记账已在 `create()` 返回前完成，出口记 `aborted`）；不承诺可恢复 Invocation。
 - **实现与验证**：`src/http_api/sse.py`、`src/inference/responses.py`；`VRC-INF-002/005`。
 
 ### 8.3 硬件与固件接口（适用时）
@@ -3423,7 +3423,7 @@ python -m build            # 产出 sdist + wheel（可复现，无公网隐含�
 | S3 Embeddings | S1 | dedicated Embedding deployment + `/v1/embeddings`；Inference | `/v1/embeddings`、`Embedding-v1` space | 契约 + 系统测试 | `LT-OPEN-02` 权重/runtime digest |
 | S4 Usage 账本 | S2/S3 | 义务/版本/head/unknown；Inference、Management | `GET/DELETE /v1/usage`、账本表 | 系统测试（版本替换、unknown、清空） | 对账以账本为准 |
 | S5 管理面 + Web UI | S4；Registry 事务 | CRUD/探测/审计/日志 + 5 页控制台；Management | `/v1/{providers,deployments,service-levels,...}`、`/ui/*` | 契约 + 系统 + WebUI 契约测试 | 生产 SSO 由反代承接 |
-| S6 可观测性（LT-OBS） | S2；`libdiag` | 快照/统计/注入/trace + 开关；Observability | `/tier/admin/v1/diagnostics/*`、`/tier/admin/v1/trace/{id}` | 系统测试；联调复核 | `LT-OPEN-05` 流注入 |
+| S6 可观测性（LT-OBS） | S2；`libdiag` | 快照/统计/注入/trace + 开关；Observability | `/tier/admin/v1/diagnostics/*`、`/tier/admin/v1/trace/{id}` | 系统测试；联调复核 | 流注入已实现 |
 | S7 legacy 退役 | S2/S5 | 将 `/call`、Role routing、旧 CLI/agent 移出 consumer authority | 退役声明 + 负例 | 旧路径不存在负例 | 保留历史输入，不作 fallback |
 | S8 运行门禁 | S2–S7 | 部署证据、provider capture、Piko/Knowledge 联调 | activation 记录 | 第三方联调 | 另行审批才置 `runtime_activation=true` |
 
@@ -3444,7 +3444,7 @@ python -m build            # 产出 sdist + wheel（可复现，无公网隐含�
 | LT-OPEN-02 | design closed / implementation gate | `Embedding-v1` 固定 `BAAI/bge-m3` dense family、1024 维、space `bge-m3-dense-1024-v1`、8192 tokens、batch 32；真实权重/runtime digest 由部署证据填写 |
 | LT-OPEN-03 | design closed / implementation gate | 单节点 Linux 基线使用 TLS 反向代理、外部 operator SSO、systemd、加密 SQLite 备份；真实环境证据仍未执行 |
 | LT-OPEN-04 | decided | 内部可观测性机制（`LT-OBS`）订阅推理与路由事件；快照/统计/注入/trace 各归 1 张新表，保留 7 天；注入事件写 audit，账本 source 标注 `injected` |
-| LT-OPEN-05 | design closed / implementation gate | 流注入（stream_terminate/malformed_event）需改造流式输出模块；开工前确认实现方案 |
+| LT-OPEN-05 | design closed / implementation gate | 流注入（stream_terminate/malformed_event）已由 `stream_wrapper` 实现；实现方案已确认 |
 
 ### 16.1 下级设计与组合验收任务
 

@@ -899,12 +899,10 @@ reset_usage(model=None, deployment_id=None, conn=None) -> dict
 ```mermaid
 flowchart TD
     A["create_response"] --> B["选 provider / deployment"]
-    B --> C{"流式?"}
-    C -->|是| D["SSE 帧序列 + terminal"]
-    C -->|否| E["聚合响应"]
-    D --> F["记账 record_usage"]
-    E --> F
+    B --> C["调用上游 / 归一"]
+    C --> F["终态记账 record_usage（SSE 之前）"]
     F --> G["观测 record_trace / latency"]
+    G --> H["返回 ResponsesResponse；M001 随后 SSE"]
 ```
 
 ### 6.1 `P-INFER` · 推理编排
@@ -914,7 +912,7 @@ flowchart TD
 - **步骤 / 算法 / 复杂度**：校验 → 能力 → 义务 → 准入 → 绑定 → 调用 → 归一 → 终态；O(候选数)
 - **判断事实来源**：字段/Registry 能力/Router 许可
 - **成功可见点**：`ResponsesResponse`
-- **失败、取消与清理**：typed error；异常路径 `finish(None)`；许可释放
+- **失败、取消与清理**：typed error（流开始前经 HTTP `D-ERROR-ENVELOPE` 返回）；异常路径 `finish(None)`；许可在 `admit` 上下文退出时释放（先于 `finish` 与 SSE）；客户端断开发生在 SSE 阶段，不触发 `finish(None)`
 - **代表输入与中间值**：`{model:"Worker", input:"hi", stream:true, store:false}` → SSE
 - **规则 / 接口 / 验证引用**：`RULE-INF-VALIDATE/ROUTE/TERMINAL`；`VRC-INF-001..004`
 
@@ -962,7 +960,7 @@ flowchart TD
 - **已产生或可能产生的副作用**：可能已调用后端
 - **检测事实 / 期限**：M001 写失败
 - **状态 / 错误 / 结果已知性**：未知
-- **保留 / 释放责任**：许可释放；`finish(None)`
+- **保留 / 释放责任**：许可已在 `create()` 返回前释放；终态已记账；出口记 `aborted`，不再 `finish(None)`
 - **允许的 query / replay / takeover / retry**：新请求为新调用
 - **验证项**：`VRC-INF-005`
 
