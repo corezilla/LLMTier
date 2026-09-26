@@ -17,7 +17,7 @@
 | Approval Date | 待定 |
 | Created Date | `2026-09-06` |
 | Last Modified Date | `2026-09-25` |
-| Template Version | `2.0.0` |
+| Template Version | `2.1.0` |
 | Template ID | `design.software-system` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
