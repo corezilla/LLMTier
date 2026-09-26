@@ -1300,7 +1300,7 @@ cleanup(days: int = 7) -> int
 - **选项 / 推荐 / 下一步取证**：确认 `stream_wrapper` 集成方案
 - **关闭条件 / 决定或当前状态**：未决
 
-引用：系统设计 §3.2/§11.3；机制 M-OBS §14.4（`R-OBS-01/06`）；`observability-design.md`；`src/util/migrations/002_observability.sql`。
+引用：系统设计 §3.2/§11.3；机制 M-OBS §14.4（`R-OBS-01/06`）、M-INFER §14.4（`R-INF-08`）；`observability-design.md`；`src/util/migrations/002_observability.sql`。
 
 ## 附录 A. 机制承接表
 
@@ -1312,3 +1312,12 @@ cleanup(days: int = 7) -> int
 - **代码文件 / symbol 或 NOT_IMPLEMENTED**：`diagnostics.py`
 - **允许自行决定的范围**：存储/聚合实现
 - **本地验证 / 组合验证交接**：`VRC-DIAG-001..004`
+
+#### A.2 `llmtier-inference-stream-mechanism` / `R-INF-08` · 推理路径诊断写入底层
+- **来源 Capability / Step / Constraint / 接口成员**：CON-INFER-005（承接 `observability-design.md` A.2 的底层读写）
+- **本模块必须负责的行为与保证**：`record_trace`/`capture_snapshot`/`record_latency` 等写入的底层读写、默认关闭零开销、脱敏、fail-open
+- **本模块提供 / 消费的接口**：`DiagnosticService` 写入方法（供 M003 推理路径与 M005 经 M001 调用）
+- **本文落实位置**：§5.1、§6、§8、§9
+- **代码文件 / symbol 或 NOT_IMPLEMENTED**：`diagnostics.py`
+- **允许自行决定的范围**：存储/聚合实现
+- **本地验证 / 组合验证交接**：`VRC-DIAG-001..004`；观测用例

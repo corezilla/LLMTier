@@ -1328,7 +1328,7 @@ list_models() -> list
 - **选项 / 推荐 / 下一步取证**：补结构图，或按模板 §5.1 "多对象模块须画结构图" 保留
 - **关闭条件 / 决定或当前状态**：未决
 
-引用：系统设计 §3.2/§6.1；机制 M-INFER §14.4（`R-INF-03..07`）、M-METER §14.4（`R-MET-01`）、M-OBS §14.4（`R-OBS-03`）、M-TRUST §14.4（`R-TRUST-03`）；`interfaces/openapi/llmtier.openapi.json`。
+引用：系统设计 §3.2/§6.1；机制 M-INFER §14.4（`R-INF-02..08`）、M-METER §14.4（`R-MET-01`）、M-OBS §14.4（`R-OBS-03`）、M-TRUST §14.4（`R-TRUST-03`）；`interfaces/openapi/llmtier.openapi.json`。
 
 ## 附录 A. 机制承接表
 
@@ -1405,3 +1405,21 @@ list_models() -> list
 - **代码文件 / symbol 或 NOT_IMPLEMENTED**：`responses.py`/`embeddings.py`（只消费 `principal_id`）
 - **允许自行决定的范围**：消费实现
 - **本地验证 / 组合验证交接**：M001
+
+#### A.9 `llmtier-inference-stream-mechanism` / `R-INF-02` · 入口 Auth/Validation 协同
+- **来源 Capability / Step / Constraint / 接口成员**：Step 1–2、interface `authenticate*`
+- **本模块必须负责的行为与保证**：请求校验顺序（M-INFER §5.1）的编排侧执行、消费入口下传的 `Principal`（不二次鉴权）
+- **本模块提供 / 消费的接口**：`ResponsesService.create(principal, request_id, body, ...)`（消费 `principal`）
+- **本文落实位置**：§5.1.1（I1 请求校验）、§5.2.1、§8.1（`RULE-INF-VALIDATE`）、§11
+- **代码文件 / symbol 或 NOT_IMPLEMENTED**：`responses.py` `ResponsesService.create`（校验前段）；入口鉴权侧见 `http-api-design.md` 附录 A.8
+- **允许自行决定的范围**：校验实现
+- **本地验证 / 组合验证交接**：`VRC-INF-001`；契约
+
+#### A.10 `llmtier-inference-stream-mechanism` / `R-INF-08` · 诊断写入
+- **来源 Capability / Step / Constraint / 接口成员**：CON-INFER-005
+- **本模块必须负责的行为与保证**：在推理路径各阶段写 trace/快照/延迟，fail-open、默认关闭零开销、脱敏；观测失败不改推理结果
+- **本模块提供 / 消费的接口**：观测写入（`record_trace`/`capture_snapshot`/`record_latency`；引用 M-OBS §5、`libdiag-design.md`）
+- **本文落实位置**：§11、§13.1.1
+- **代码文件 / symbol 或 NOT_IMPLEMENTED**：`responses.py`（诊断集成）+ `diagnostics.py`（M006/libdiag）
+- **允许自行决定的范围**：集成实现
+- **本地验证 / 组合验证交接**：`VRC-INF-005`；观测用例

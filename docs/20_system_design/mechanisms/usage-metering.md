@@ -832,10 +832,10 @@ reset_usage(model: str | None = None, deployment_id: str | None = None, conn: Co
 | Test / Constraint | 输入与预置事实 | arm/hit/release | 独立 Oracle |
 |---|---|---|---|
 | T-MET-FINAL / CON-METER-001..002 | 一次成功调用 | — | head=2、v2 measured、token 相等 |
-| T-MET-CRASH / CON-METER-003 | 断开故障注入 | — | 崩溃后存在 unknown 义务 |
-| T-MET-UNKNOWN / CON-METER-002 | 后端无 usage | — | `unknown` 且 token 为 NULL（非 0）|
-| T-MET-PAGE / CON-METER-004 | 首屏后更正记录 | — | 旧页返回冻结版本 |
-| T-MET-RESET / CAP-METER-RESET | 按 model/deployment | — | `{deleted}` 与范围一致 |
+| T-MET-CRASH / CON-METER-003 | 断开故障注入 | arm=在 `authorize_dispatch` 后、`finish` 前注入进程崩溃/断开（崩溃窗）；hit=重启后按 `request_id` 查账本；release=按范围 `reset_usage` 清理 orphan unknown | 崩溃后存在 unknown 义务、head=1、token 为 NULL（不回填为 0）|
+| T-MET-UNKNOWN / CON-METER-002 | 后端无 usage | arm=使后端返回缺失或非 int usage；hit=完成一次调用并查账本；release=无需清理（或按范围 reset） | `unknown` 且 token 为 NULL（非 0）|
+| T-MET-PAGE / CON-METER-004 | 首屏后更正记录 | arm=首屏分页后对同 request 追加更正版本；hit=按 cursor 请求后续页；release=等 snapshot TTL 到期或另起重查 | 旧页返回冻结版本 |
+| T-MET-RESET / CAP-METER-RESET | 按 model/deployment | arm=预置指定 model/deployment 范围用量；hit=`DELETE /v1/usage`；release=无需清理（删除不可回滚，重建库复位） | `{deleted}` 与范围一致 |
 
 ### 15.2 环境部署、复位、并发隔离与自动化
 
@@ -859,6 +859,7 @@ reset_usage(model: str | None = None, deployment_id: str | None = None, conn: Co
 - 适用性：纯软件、单节点 SQLite 账本机制。§4.4（无独立通信报文 wire；查询报文为 HTTP 投影）、§4.5/§5.3（设备/FPGA，`std-tailoring` `LT-TL-003`）、§4.6（状态均在持久账本）不适用；§4.9（二进制 ABI）不适用（SQLite 行 + JSON）；§8.1 的"预留/释放"映射为义务/清空（无租约）。
 - 图文规则：§1 用途概览 `diagram-mech-meter-usage`（Current）、§3 参与方协作 `diagram-mech-meter-collab`（Current）、§4 数据对象 `diagram-mech-meter-objects`（Current）、§6 正常时序 `diagram-mech-meter-sequence`。一图一问题；交互图用语义方向线，数据图不冒充时序。
 - 数据对象图触发：义务/版本/head/绑定/snapshot 跨编排、recorder、store 与查询责任单元经历持久化、版本推进与冻结投影，故按条件画图并标注 unknown 与 TTL 边界。
+- 条件图适用性（§8/§9/§15）：§8 状态与资源图**不画**——账本状态均在 SQLite 持久表（义务/版本/head/绑定/snapshot），无独立内存状态机，§8 不变量表 + §8.1（义务=预留、终态=交付、`DELETE`=复位）短表已足。§9 异常处置图**不画**——含**崩溃窗口（crash window，`T-MET-CRASH`/F-MET-4）**：崩溃后以库内义务为证据保留 unknown、不回填为 0，属单一恢复出口，无接管/多恢复出口；§9 F-MET-* 短表逐项给出结果已知性、操作终态与重试条件即可，故以短表代替异常图。§15 测试路径图**不画**——`T-MET-CRASH`/`T-MET-UNKNOWN` 在单环境内以具名 arm/hit/release 控制与独立 Oracle 表达（§15.1 表），不跨环境、无替代依赖。
 
 ## B. 文档控制与修订记录
 

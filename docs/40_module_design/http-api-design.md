@@ -1340,3 +1340,30 @@ response_stream(response: ResponsesResponse) -> Iterable[bytes]   # text/event-s
 - **代码文件 / symbol**：`app.py`
 - **允许自行决定的范围**：解析实现
 - **本地验证 / 组合验证交接**：契约
+
+#### A.6 `llmtier-access-trust-mechanism` / R-TRUST-01 · 入口单点判定
+- **来源 Capability / Step / Constraint / 接口成员**：CON-TRUST-001/003/005、Step 1–4、interface `authenticate*`
+- **本模块必须负责的行为与保证**：单点判定、恒定时间比较、不泄露存在性；产出并下传 `Principal`
+- **本模块提供 / 消费的接口**：`authenticate`/`authenticate_any`/`unauthenticated_principal`（`_auth()`/`_auth_either()`）
+- **本文落实位置**：§2.3、§6.2.1、§6.3.1、§8.2、§8.3、§9（`IF-API-AUTH`）
+- **代码文件 / symbol**：`auth.py` `authenticate`/`authenticate_any`/`unauthenticated_principal` + `app.py` `_auth`/`_auth_either`
+- **允许自行决定的范围**：解析/映射实现
+- **本地验证 / 组合验证交接**：`VRC-API-002`（机制 `T-TRUST-BEARER`/`T-TRUST-LAN`/`T-TRUST-ENDPOINTS`）
+
+#### A.7 `llmtier-access-trust-mechanism` / R-TRUST-04 · 启动 env token
+- **来源 Capability / Step / Constraint / 接口成员**：CON-TRUST-002、F-TRUST-1
+- **本模块必须负责的行为与保证**：env token 存在性判定、未配置时 503 `auth_not_configured` 语义；不存 Secret
+- **本模块提供 / 消费的接口**：`D-TRUST-CONFIG`（§6.3.1 引用）；`authenticate` 配置存在性分支
+- **本文落实位置**：§2.3、§6.3.1、§8.3、§8.5、§9（`IF-API-AUTH` / `ERR-AUTH-NOCFG`）
+- **代码文件 / symbol**：`auth.py` `_configured_token`（env 读取）+ `errors.py`
+- **允许自行决定的范围**：读取实现
+- **本地验证 / 组合验证交接**：`VRC-API-002`（机制 `T-TRUST-NOCFG`）
+
+#### A.8 `llmtier-inference-stream-mechanism` / R-INF-02 · 入口 Auth/Validation 协同
+- **来源 Capability / Step / Constraint / 接口成员**：Step 1–2、interface `authenticate*`
+- **本模块必须负责的行为与保证**：推理路径的入口鉴权与请求校验顺序（M-INFER §5.1）前段、`Principal` 产生与下传
+- **本模块提供 / 消费的接口**：`_auth()`/`authenticate_any()`、`Handler._body()`（body 限长/解析）
+- **本文落实位置**：§5.1（I2 Auth/Validation）、§7、§8.2、§8.3、§9（`IF-API-AUTH` / `IF-API-BODY`）
+- **代码文件 / symbol**：`app.py` `_auth`/`_body` + `auth.py`
+- **允许自行决定的范围**：解析实现
+- **本地验证 / 组合验证交接**：`VRC-API-002`（机制 `T-TRUST-BEARER`/`T-TRUST-ENDPOINTS`）

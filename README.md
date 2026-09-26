@@ -7,7 +7,7 @@ Slinky 和 Piko 是外部 consumer/协作项目，不是 LLMTier 的源码目录
 
 ## 工程文档标准：STD
 
-本项目采用 STD `0.1.0-draft.26`，固定来源见 [std.lock.json](docs/std.lock.json)。
+本项目采用 STD `0.1.0-draft.41`，固定来源见 [std.lock.json](docs/std.lock.json)。
 STD 提供工程文档模板、编写规范、AI 指南与检查工具；它不代替项目设计决定。
 编写或修改文档前，先读 [STD 主说明与执行流程](https://github.com/corezilla/STD/blob/5a1e71f4e2baa6e6761b685e91deecbd58cf0649/README.md)，
 再按任务选择已采用的模板、通用指南及专项指南，依据项目事实完成正文、图和适用检查。

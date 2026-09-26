@@ -558,14 +558,16 @@ authenticate_any(headers: Headers, client_address: str) -> Principal
 
 ### 14.4 下级设计输入清单
 
+**要求 ID 说明**：本机制的下级设计要求沿用项目历史 ID `R-TRUST-01..04`（类别：机制下级要求，命名域 M-TRUST）。按 `design-writing-guide`「标识命名空间不得复用」——历史 ID 已被项目采用时不静默重命名，而是在登记表中保留旧 ID 并明确类型——下表即该类型的登记表，不新增 `M-TRUST-DI-*` 别名。
+
 | 下级要求 ID | 承接对象 ID / 下级设计文档 | 来源 Capability / Step / Constraint / 接口成员 | 必须负责的行为与保证 | 必须提供/消费的接口 | 下级必须展开的问题 | 允许自行决定的范围 | 本地验证 / 组合验证交接 |
 |---|---|---|---|---|---|---|---|
 | R-TRUST-01 | Auth/Validation · `http-api-design.md` | CON-TRUST-001/003/005、Step 1–4、interface `authenticate*` | 单点判定、恒定时间比较、不泄露存在性 | `authenticate`/`authenticate_any`/`unauthenticated_principal` | 地址解析、网络集合、错误映射 | 解析/映射实现 | 契约 |
 | R-TRUST-02 | HTTP Adapter · `http-api-design.md` | Step 3–5 | 按端点选 role、分发 | `_auth()`/`_auth("admin")`/`_auth_either()` | 端点→role 映射 | 分发实现 | 契约 |
 | R-TRUST-03 | 业务模块（全体）· `inference-design.md、management-design.md、observability-design.md` | CON-TRUST-001/004、Step 5 | **不二次校验**，按 `role` 限制视图 | — | 消费点、越权防护 | 视图实现 | 组合 |
-| R-TRUST-04 | 启动 · `management-design.md` | CON-TRUST-002、F-TRUST-1 | env token 存在性 | — | 503 语义 | 读取实现 | T-TRUST-NOCFG |
+| R-TRUST-04 | 启动 · `http-api-design.md` | CON-TRUST-002、F-TRUST-1 | env token 存在性、503 `auth_not_configured` 语义 | `D-TRUST-CONFIG`（§4.3） | 503 语义 | 读取实现 | T-TRUST-NOCFG |
 
-**约束**：任何业务模块**不得**新增鉴权调用点（CON-TRUST-001）；新增角色/端点须回写本节并关联模块设计。
+**约束**：任何业务模块**不得**新增鉴权调用点（CON-TRUST-001）；新增角色/端点须回写本节并关联模块设计。§14.1 已将"配置 / 启动"的 env 读取映射到 `http-api-design.md`，本节 R-TRUST-04 的承接对象与之对齐。
 
 ## 15. 验证、上线与回滚
 
@@ -574,11 +576,11 @@ authenticate_any(headers: Headers, client_address: str) -> Principal
 | Test / Constraint | 输入与预置事实 | arm/hit/release | 独立 Oracle |
 |---|---|---|---|
 | T-TRUST-LAN / CON-TRUST-005 | 私网地址、无 Authorization | — | 免登录 Principal |
-| T-TRUST-BEARER / CON-TRUST-003 | 正确/错误 token | — | 200 / 403 |
+| T-TRUST-BEARER / CON-TRUST-003 | 正确/错误 token | arm=配置 admin/data token；hit=分别以正确与错误 Bearer 请求；release=无需清理 | 200 / 403 |
 | T-TRUST-ENDPOINTS / CAP-TRUST-DATA | data 凭据访问 admin 端点 | — | 403 |
 | T-TRUST-SHARED / CAP-TRUST-ANY | 两种凭据访问 `/v1/usage` | — | 视图按 role 区分 |
-| T-TRUST-NOCFG / F-TRUST-1 | 无 token 环境 | — | 503 |
-| T-TRUST-LEAK / INV-3 | 不存在 vs 无权限资源 | — | 响应不可区分 |
+| T-TRUST-NOCFG / F-TRUST-1 | 无 token 环境 | arm=清除 `LLMTIER_ADMIN_TOKEN`/`LLMTIER_DATA_TOKEN`（非 DEV）；hit=发起鉴权请求；release=恢复 token 环境 | 503 |
+| T-TRUST-LEAK / INV-3 | 不存在 vs 无权限资源 | arm=准备「存在但无权」与「不存在」两类资源；hit=分别请求并比较 401/403 响应；release=无需清理 | 响应不可区分 |
 
 ### 15.2 环境部署、复位、并发隔离与自动化
 
@@ -602,6 +604,7 @@ authenticate_any(headers: Headers, client_address: str) -> Principal
 - 适用性：纯软件、单进程、入口单点鉴权机制；责任单元按运行边界判定为 M001 入口层与 M003–M005 业务层。§4.5/§5.3（设备/FPGA）不适用（`std-tailoring` `LT-TL-003`）；§4.6（跨步骤状态）、§4.7（持久表）不适用（逐请求无状态、不持久）；§4.9（二进制 ABI）不适用（HTTP + UTF-8 JSON）；§8.1（租约）不适用（无预留）。
 - 图文规则：§1 用途概览 `diagram-mech-trust-usage`（Current）、§3 参与方协作 `diagram-mech-trust-collab`（Current）、§4 数据对象 `diagram-mech-trust-objects`（Current）、§6 正常时序 `diagram-mech-trust-sequence`。一图一问题；交互图用语义方向线，数据图不冒充时序；图内中文与框线以本地浏览器抽查可读。
 - 数据对象图触发：`D-PRINCIPAL` 在入口层与业务层之间发生所有权转移，故按条件画图；本机制无持久化，故不展开恢复边界。
+- 条件图适用性（§8/§9/§15）：§8 状态与资源图**不画**——逐请求无状态判定、无临时资源/租约，§8 不变量表 + §8.1 短表已足。§9 异常处置图**不画**——401/403/503 均为已知失败、无副作用、无结果未知、无接管/多恢复出口，§9 短表逐项给出操作终态与重试条件即可。§15 测试路径图**不画**——`T-TRUST-NOCFG`/`T-TRUST-LEAK` 等在单环境内以具名 arm/hit/release（进程环境变量控制）与独立 Oracle 表达（§15.1 表），不跨环境、无替代依赖。
 
 ## B. 文档控制与修订记录
 

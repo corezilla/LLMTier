@@ -48,7 +48,7 @@ This project is indexed by GitNexus as **LLMTier** (4542 symbols, 6054 relations
 
 **必须先读**：[项目规范总索引](docs/00_management/standards/README.md)
 
-本项目已采用 STD `0.1.0-draft.26`（见 `docs/std.lock.json`）。所有文档必须遵循 STD 模板。
+本项目已采用 STD `0.1.0-draft.41`（见 `docs/std.lock.json`）。所有文档必须遵循 STD 模板。
 
 ### 项目规范索引
 

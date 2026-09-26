@@ -35,7 +35,7 @@
 - 处理：按开关决定是否写入；注入配置在路由前生效；统计累积
 - 输出：快照 / 统计 / trace 查询结果；`X-Request-ID` 与可选关联标识回显
 
-**核心取舍**：**默认关闭、关闭零开销、开启时尽力而为（fail-open）**——观测**绝不**改变推理结果。
+**核心取舍**：**逐开关默认关闭、关闭所辖表即零写入、开启时尽力而为（fail-open）**——观测**绝不**改变推理结果。开关作用域精确：`snapshots_enabled` **仅**停写 `diagnostic_snapshots`，`stats_enabled` **仅**停写 `data_plane_stats`/`data_plane_latency_samples`；`trace_events` **无开关、始终写入**，故不存在全局“关闭后零写入”。统计写入**持久表**（SQLite），不是进程内存、不随退出丢失。
 
 ![图 M-OBS-U-01：可观测性机制的用途概览](../../assets/diagrams/diagram-mech-obs-usage.png)
 
@@ -43,7 +43,7 @@
 
 图 M-OBS-U-01 · Current；开关控制是否记录，注入配置在路由前生效，事实脱敏后写快照/统计/trace 并可查询；观测写入失败 fail-open、不阻断推理。图只表达场景、处理范围与外部结果；参与方分工见 §3，记录/查询时序见 §6。
 
-- **机制形态与适用性 / 业务副作用**：具体副作用——写诊断记录（`diagnostic_snapshots`/`trace_events`/`data_plane_stats`）并持久化注入配置；写入为尽力而为（fail-open），不改变推理结果。事实依据 §5.1 `IF-OBS-RECORD-*`/`IF-OBS-INJECT` 与 §4.8 的 fail-open 口径。
+- **机制形态与适用性 / 业务副作用**：具体副作用——写诊断记录（`diagnostic_snapshots`/`trace_events`/`data_plane_stats`/`data_plane_latency_samples`）并持久化注入配置；其中 `trace_events` 始终写，快照与统计各自受其开关门控；写入为尽力而为（fail-open），不改变推理结果。事实依据 §5.1 `IF-OBS-RECORD-*`/`IF-OBS-INJECT` 与 §4.8 的 fail-open 口径。
 - **交接域**：纯软件。能力由 `libdiag`（M006）提供，Observability（M005）呈现，Inference（M003）在请求路径产生事实；无连接器、总线、寄存器或 FPGA 责任单元，故 §4.5、§5.3 不适用。
 - **裁剪依据**：`std-tailoring` `LT-TL-003`（纯软件、无设备/FPGA 与子系统）；§4.4（无独立通信报文 wire，查询报文为 HTTP 投影）、§4.5/§5.3 见该决定与 §4.4 就地说明。
 
@@ -83,7 +83,7 @@
 
 | Constraint ID | 约束 | 参与方保证 | 自由度 | 本文落实位置 |
 |---|---|---|---|---|
-| CON-OBS-001 | 默认关闭，关闭时零开销 | `libdiag` | 开关存储 | §7、§9 |
+| CON-OBS-001 | 逐开关默认关闭，关闭仅停写其所辖表（快照/统计）；`trace_events` 始终写 | `libdiag` | 开关存储 | §4.3.1、§7、§9 |
 | CON-OBS-002 | fail-open：观测故障不得使推理失败 | 全体 | 捕获实现 | §7、§9 |
 | CON-OBS-003 | 不记录 Secret/credential/完整正文 | `libdiag` | 脱敏实现 | §8、§11 |
 | CON-OBS-004 | 注入调用在账本标注 `injected` | Inference | 标注方式 | §8 |
@@ -109,7 +109,7 @@
 
 [可编辑 SVG 源](../../assets/diagrams/diagram-mech-obs-objects.svg)
 
-图 M-OBS-O-01 · Current；请求路径事实经脱敏/截断变为持久行（快照 7 天、trace 7 天、统计按保留期），再组合为只读视图；统计缓存为进程内存、非账本。对象跨 Inference/`libdiag`/Store/查询责任单元经历脱敏变换、持久化与只读组合，故需数据对象图明确损失边界（query 与正文被丢弃、`error_summary` ≤256B 截断）。数据图不表示调用顺序；时序见 §6，fail-open 见 §9。
+图 M-OBS-O-01 · Current；请求路径事实经脱敏/截断变为持久行（快照 7 天、trace 7 天、统计按保留期），再组合为只读视图；统计持久于 `data_plane_stats`/`data_plane_latency_samples`（非账本，进程退出不丢）。对象跨 Inference/`libdiag`/Store/查询责任单元经历脱敏变换、持久化与只读组合，故需数据对象图明确损失边界（query 与正文被丢弃、`error_summary` ≤256B 截断）。数据图不表示调用顺序；时序见 §6，fail-open 见 §9。
 
 ### 4.1 公共基础类型与枚举
 
@@ -316,7 +316,7 @@ StatsWindow {
 
 - **跨字段与寿命**：
 
-  `error_*_count` 由 breakdown 派生；无样本 ⇒ 百分位 `null`、`sum=0`；内存聚合可丢、非账本；请求级只读（组合 `data_plane_stats` + 内存 samples）；非持久。
+  `error_*_count` 由 breakdown 派生；无样本 ⇒ 百分位 `null`、`sum=0`；聚合持久于 `data_plane_stats`、样本追加于 `data_plane_latency_samples`（SQLite，非账本）；`StatsView` 为请求级只读组合（读上述两表）；非账本但**不随进程退出丢失**。
 
 - **合法/拒绝实例**：
 
@@ -470,15 +470,19 @@ SwitchState {
 
 - **`snapshots_enabled`**：
 
-  必填布尔，默认 false；快照记录开关。
+  必填布尔，默认 false；**仅**门控 `diagnostic_snapshots` 写入：false 时 `capture_snapshot` 短路返回 `null`，不写该表；不影响 trace 与统计。
 
 - **`stats_enabled`**：
 
-  必填布尔，默认 false；统计记录开关。
+  必填布尔，默认 false；**仅**门控 `data_plane_stats` 与 `data_plane_latency_samples` 写入：false 时 `record_latency` 短路，不写这两张持久表；不影响 trace 与快照。
+
+- **`trace_events`（无开关，始终写）**：
+
+  不在 `SwitchState` 中，`record_trace` 不受任一开关影响，**始终写入** `trace_events`，以保留失败定位所需的阶段事实。
 
 - **跨字段与寿命**：
 
-  两字段独立；恒取自 `singleton=1` 单行；关闭 ⇒ 零写入（INV-4）；持久单行；M006 写、记录路径读；库寿命。
+  两字段独立；恒取自 `singleton=1` 单行；**逐开关零写入（INV-4）**——关闭某开关只停写其所辖表，另一开关所辖表与 trace 不受影响；持久单行；M006 写、记录路径读；库寿命。
 
 - **合法/拒绝实例**：
 
@@ -566,7 +570,7 @@ DiagnosticsRuntimeState {
 
 - **`stats_cache`**：
 
-  必填映射；统计内存缓存，上限 + LRU 淘汰。
+  可选进程内累加缓存（非权威）；统计事实持久于 `data_plane_stats`/`data_plane_latency_samples`，缓存仅加速本进程聚合。
 
 - **`last_cleanup`**：
 
@@ -574,11 +578,11 @@ DiagnosticsRuntimeState {
 
 - **跨字段与寿命**：
 
-  唯一写者=`set_switches`/`record_latency`；记录前判定（关闭零写入，CON-OBS-001/INV-4）；缓存满 LRU 淘汰；单行持久 + 请求级过程量；进程退出丢失内存统计（不承诺恢复）。
+  唯一写者=`set_switches`/`record_latency`；记录前按**各自开关**判定（`snapshots_enabled`/`stats_enabled` 关闭仅停写其所辖表，`trace_events` 始终写，CON-OBS-001/INV-4）；统计持久于 `data_plane_stats`/`data_plane_latency_samples`，**不随进程退出丢失**；仅可选的进程内累加缓存可被 LRU 淘汰；单行持久 + 请求级过程量。
 
 - **合法/拒绝实例**：
 
-  关 → 无新行；开 → 正常写入；缓存满 → 淘汰最旧。
+  快照/统计开关关 → 各自停写其所辖表；开 → 正常写入；`trace_events` 始终写；缓存满 → 淘汰最旧。
 
 - **验证**：
 
@@ -687,12 +691,12 @@ enum ObservabilityErrorRef { ERR-INJECTION, ERR-NOTFOUND, ERR-STORE, ERR-REQ-VAL
 |---|---|---|---|---|
 | `D-OBS-SNAPSHOT`（M006 §6.7） | `error_summary` ≤256B；URL 去 query | `diagnostic_snapshots` 行 | 上游事实 → 脱敏行；query/正文被丢弃 | `T-OBS-SNAP` |
 | `D-OBS-TRACE`（M006 §6.7） | `detail` JSON；stage ≤64 | `trace_events` 行 / 只读视图 | 事件 → 有序 stages；未知 stage 保留 | `T-OBS-TRACE` |
-| `D-OBS-STATS`（内存） | 内存聚合 + 小时桶 | 无持久 ABI；可丢 | 样本 → 百分位；无样本 null | `T-OBS-STATS` |
+| `D-OBS-STATS`（持久表 + 视图） | 小时桶聚合；`data_plane_stats` + `data_plane_latency_samples` | SQLite 行；非账本但持久 | 样本 → 百分位；无样本 null | `T-OBS-STATS` |
 | `D-OBS-INJECTION-CONFIG` | 离散列 | `diagnostic_injections` 各列（无 `config_json`） | type → config 字段集 | `T-OBS-INJECT` |
 
 ### 4.10 一致性、可见性与数据寿命
 
-记录为尽力而为：写入失败记 warning、不抛、不阻断推理（CON-OBS-002/INV-6）。同 `request_id` 的 trace 事件有序（INV-5），但跨请求无全局顺序；`stages` 升序由唯一写者保证。开关关闭 ⇒ 零写入、零开销（INV-4）。统计为内存缓存，可丢、非账本，样本缺失时百分位为 `null` 而非 0。快照/trace 保留 7 天，由 `cleanup` 删除过期行；`diagnostic_settings` 与注入配置为库寿命。进程退出丢失内存统计与「最近 cleanup 结果」，不承诺恢复；`DiagnosticsService` 初始化失败时降级运行，Data Plane 不受影响。观测数据与账本（M-METER）故障域隔离，不得据观测缺失推断“未发生调用”。
+记录为尽力而为：写入失败记 warning、不抛、不阻断推理（CON-OBS-002/INV-6）。同 `request_id` 的 trace 事件有序（INV-5），但跨请求无全局顺序；`stages` 升序由唯一写者保证。**逐开关零写入（INV-4）**：`snapshots_enabled=false` 仅停写 `diagnostic_snapshots`，`stats_enabled=false` 仅停写 `data_plane_stats`/`data_plane_latency_samples`；`trace_events` 无开关、始终写，故不存在全局“关闭后零写入”。统计**持久**于 `data_plane_stats`/`data_plane_latency_samples`，非账本但不随进程退出丢失，样本缺失时百分位为 `null` 而非 0。快照/trace 保留 7 天，由 `cleanup` 删除过期行；`diagnostic_settings` 与注入配置为库寿命。进程退出仅丢失可选的进程内累加缓存与「最近 cleanup 结果」，不丢失已持久统计；`DiagnosticsService` 初始化失败时降级运行，Data Plane 不受影响。观测数据与账本（M-METER）故障域隔离，不得据观测缺失推断“未发生调用”。
 
 ## 5. 接口设计
 
@@ -753,7 +757,7 @@ record_trace(request_id: str, stage: str, detail: dict | None = None, correlatio
 ```
 
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-OBS-RECORD-TRACE`；向 `libdiag` 追加一次 trace 阶段事实；Inference/入口消费、`libdiag` 提供；交接边界=请求路径→trace 记录；状态=Implemented；`src/libdiag/traces.py`。
-- **输入与前提**：`request_id`（非空）；`stage: D-OBS-STAGE`（§4.1.1）；`detail`；`correlation_id`；授权=内部（Inference/入口）；受 `D-OBS-SWITCH` 影响（仅 trace 无独立开关，默认记录）。
+- **输入与前提**：`request_id`（非空）；`stage: D-OBS-STAGE`（§4.1.1）；`detail`；`correlation_id`；授权=内部（Inference/入口）；**不受 `D-OBS-SWITCH` 影响**（trace 无独立开关，始终记录）。
 - **成功输出与保证**：无返回——受理即追加 `trace_events` 行；完成=行提交；副作用=持久一行。
 - **错误与合法下一步**：写失败 → **fail-open**：不抛、记 `OperationalLog(warning)`；结果已知性=丢失该阶段；无部分写。
 - **交互与生命周期**：同步；不幂等（每次一行）；请求级；无期限。
@@ -780,7 +784,7 @@ record_latency(deployment_id: str | None, model: str | None, status_code: int | 
 
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-OBS-RECORD-LATENCY`；记录一次请求的状态与时延到统计聚合；Inference/入口消费、`libdiag` 提供；交接边界=请求完成后；状态=Implemented；`src/libdiag/stats.py`。
 - **输入与前提**：`deployment_id`、`model`、`status_code`（100–599；`None`/<100 → `upstream_error`）、`latency_ms`（≥0；`None` 只计请求不计延迟）；受 `stats_enabled` 控制。
-- **成功输出与保证**：无返回——`UPSERT data_plane_stats`；`latency_ms` 非空时追加 `data_plane_latency_samples`；内存缓存累加，满则 LRU 淘汰。
+- **成功输出与保证**：无返回——`UPSERT data_plane_stats`（持久）；`latency_ms` 非空时追加 `data_plane_latency_samples`（持久）；可选进程内累加缓存，满则 LRU 淘汰（不影响已持久统计）。
 - **错误与合法下一步**：写失败 → fail-open warning；缓存满 → 淘汰最旧；无公共错误。
 - **交互与生命周期**：同步；不幂等（累加）；请求级。
 - **实现与验证**：正常（200,120ms）；边界 `status_code=None` → `upstream_error`。`T-OBS-STATS`；Run=NOT_RUN。
@@ -882,17 +886,17 @@ joint-diagnose.sh --x-request-id <request_id> -> trace/snapshots
 5. **completed / error / aborted**：终态 trace；注入命中时账本 `source=injected`。
 6. **查询**：快照/统计/trace 按各自接口返回。
 
-**触发 → 结果 → 释放**：触发 = 请求路径事件或 Operator 管理动作；结果 = 记录落库/查询视图，或注入配置提交；释放 = 记录路径无预留（fail-open 直接返回），开关关闭即零写入。**关键提交点** = 注入配置 upsert 提交（`IF-OBS-INJECT`）与记录行提交（`IF-OBS-RECORD-*`）。中断点：注入配置提交前中断 → 配置不变，推理路径读旧配置；提交后中断 → 新配置对逐请求读取即时生效，无需重启；记录行提交前中断 → 该阶段缺失（fail-open，不阻断推理），查询得不同完整度 trace，但**不得据此推断"未发生调用"**；统计为内存、进程退出即丢。观测数据与 M-METER 账本故障域隔离。
+**触发 → 结果 → 释放**：触发 = 请求路径事件或 Operator 管理动作；结果 = 记录落库/查询视图，或注入配置提交；释放 = 记录路径无预留（fail-open 直接返回），对应开关关闭仅停写其所辖表（`snapshots_enabled`→快照，`stats_enabled`→统计；`trace_events` 无开关、始终写）。**关键提交点** = 注入配置 upsert 提交（`IF-OBS-INJECT`）与记录行提交（`IF-OBS-RECORD-*`）。中断点：注入配置提交前中断 → 配置不变，推理路径读旧配置；提交后中断 → 新配置对逐请求读取即时生效，无需重启；记录行提交前中断 → 该阶段缺失（fail-open，不阻断推理），查询得不同完整度 trace，但**不得据此推断"未发生调用"**；统计已持久于 `data_plane_stats`/`data_plane_latency_samples`，进程退出不丢。观测数据与 M-METER 账本故障域隔离。
 
 ### 6.1 交叠请求、跨轮次与生命周期边界
 
-逐阶段记录；同一 `request_id` 事件有序。**交叠**：多请求共享内存统计（并发累积，LRU 上限）；注入配置为**逐请求读取**，切换即时生效；观测写入与推理路径解耦（fail-open）。
+逐阶段记录；同一 `request_id` 事件有序。**交叠**：多请求共享持久统计聚合（单事务 upsert + 追加样本；可选进程内累加缓存）；注入配置为**逐请求读取**，切换即时生效；观测写入与推理路径解耦（fail-open）。
 
 ## 7. 分支和替代流程
 
 | 分支 | 触发 | 处理 |
 |---|---|---|
-| 开关关闭 | snapshots/stats 关 | **不写入、零开销** |
+| 开关关闭 | `snapshots_enabled`/`stats_enabled` 关 | **仅停写所辖表（快照/统计）；`trace_events` 仍写** |
 | 注入命中 | enabled 注入 | 按类型 delay/fault/rate_limit/流异常 |
 | 观测写入失败 | 库/缓存错误 | 记 warning，**不阻塞**推理 |
 | 缓存满 | 统计上限 | LRU 淘汰最旧，继续 |
@@ -906,13 +910,13 @@ joint-diagnose.sh --x-request-id <request_id> -> trace/snapshots
 | INV-1 | ∀ 记录：不含 Secret、credential、完整 prompt/输出/reasoning/vector | 写入前脱敏（§11）| 记录正文 → 泄密 | T-OBS-SNAP |
 | INV-2 | ∀ `error_summary`：≤256 字节且 UTF-8 安全截断 | 截断函数 | 截断非法 → 查询报错 | T-OBS-SNAP |
 | INV-3 | ∀ 注入调用：账本 `source=injected` | Inference 标注（§14.4）| 注入混入真实账本 → 对账失真 | T-OBS-INJECT |
-| INV-4 | 开关关闭时：零写入 | `snapshots_enabled`/`stats_enabled` 短路 | 关闭仍写 → 违反零开销 | T-OBS-SWITCH |
+| INV-4 | 逐开关零写入：`snapshots_enabled=false` ⇒ 不写 `diagnostic_snapshots`；`stats_enabled=false` ⇒ 不写 `data_plane_stats`/`data_plane_latency_samples`；`trace_events` 始终写（无开关） | 各自 `capture_snapshot`/`record_latency` 短路；`record_trace` 不短路 | 关闭仍写所辖表 → 违反；误述“关闭即全局零写入” → 与 trace 始终写矛盾 | T-OBS-SWITCH |
 | INV-5 | ∀ request：trace 事件有序 | `record_trace` 追加 | 乱序 → 无法还原时序 | T-OBS-TRACE |
 | INV-6 | ∀ 观测失败：不影响推理结果（fail-open）| 捕获 + warning（§7）| 观测抛错 → 阻断推理 | T-OBS-FAILOPEN |
 
 ### 8.1 资源预留、交付、释放与复位
 
-无预留/租约。**交付** = 尽力而为写入；**复位** = 清理任务（7 天）+ 关闭开关即零开销。`DiagnosticService` 初始化失败时**降级运行**。
+无预留/租约。**交付** = 尽力而为写入；**复位** = 清理任务（7 天）+ 关闭对应开关仅停写其所辖表（`trace_events` 始终写）。`DiagnosticService` 初始化失败时**降级运行**。
 
 ## 9. 失败传播、重试与恢复
 
@@ -1020,12 +1024,12 @@ joint-diagnose.sh --x-request-id <request_id> -> trace/snapshots
 
 | Test / Constraint | 输入与预置事实 | arm/hit/release | 独立 Oracle |
 |---|---|---|---|
-| T-OBS-SWITCH / CON-OBS-001 | 开/关 snapshots/stats | 切换 | 关闭时零写入 |
+| T-OBS-SWITCH / CON-OBS-001 | 开/关 snapshots/stats | arm=分别置 `snapshots_enabled`/`stats_enabled`；hit=PATCH 后发一次推理；release=复位两开关 | 关闭仅停写所辖表（快照关→无 `diagnostic_snapshots` 行；统计关→无 `data_plane_stats`/`data_plane_latency_samples` 行）；`trace_events` 两态均有行 |
 | T-OBS-SNAP / CAP-OBS-1 | 一次上游调用 | — | 快照字段与脱敏正确 |
-| T-OBS-STATS / CAP-OBS-2 | 多次请求 | — | P50/P95/计数正确 |
-| T-OBS-INJECT / CAP-OBS-5 | 四类注入 | 配/清 | delay/fault/limit 生效；`source=injected` |
+| T-OBS-STATS / CAP-OBS-2 | 多次请求 | — | P50/P95/计数正确（读持久表） |
+| T-OBS-INJECT / CAP-OBS-5 | 四类注入 | arm=PATCH `delay`/`fault_502`/`fault_503`/`rate_limit`（或流注入）；hit=发推理请求命中；release=PATCH 禁用/清空注入项 | delay/fault/limit 生效；`source=injected` |
 | T-OBS-TRACE / CAP-OBS-6 | 固定 request_id | — | stages 有序 + usage |
-| T-OBS-FAILOPEN / CON-OBS-002 | 注入库写失败 | — | 推理结果不变 |
+| T-OBS-FAILOPEN / CON-OBS-002 | 注入库写失败 | arm=使观测库只读/写事务失败（fail 注入）；hit=触发 `record_trace`/`capture_snapshot`；release=恢复库可写 | 推理结果不变；写失败仅记 warning |
 
 ### 15.2 环境部署、复位、并发隔离与自动化
 
@@ -1041,7 +1045,7 @@ joint-diagnose.sh --x-request-id <request_id> -> trace/snapshots
 |---|---|---|---|---|
 | LT-OPEN-04 | 决定 | 四类数据各归 1 张表，保留 7 天 | 已采用 | 已定 |
 | LT-OPEN-05 | 已实现 | 流注入（`stream_terminate`/`malformed_event`）已由 `stream_wrapper` 实现 | 已确认 | 已定 |
-| RISK-OBS-1 | 风险 | 统计为内存、可丢 | 明示非账本语义 | 观察 |
+| RISK-OBS-1 | 风险 | 统计为非账本观测数据（持久但按保留期清理，可能不完整） | 明示非账本语义 | 观察 |
 | RISK-OBS-2 | 变更影响 | `CON-OBS-*` 已在本机制登记，系统设计 §3.4 与 ISD 仍引用历史 `C-OBS-*` | 回写系统摘要、ISD 承接与 §14.4 引用 | 待回写（不阻塞本机制） |
 
 ## A. 输入基线、适用性与图文规则
@@ -1050,6 +1054,7 @@ joint-diagnose.sh --x-request-id <request_id> -> trace/snapshots
 - 适用性：纯软件、单节点、默认关闭的可观测机制。§4.4（无独立通信报文 wire，查询报文为 HTTP 投影）、§4.5/§5.3（设备/FPGA）不适用（`std-tailoring` `LT-TL-003`）；§4.9（二进制 ABI）不适用（SQLite 行 + JSON 列）；§8.1（租约）不适用（清理代替释放）。
 - 图文规则：§1 用途概览 `diagram-mech-obs-usage`（Current）、§3 参与方协作 `diagram-mech-obs-collab`（Current）、§4 数据对象 `diagram-mech-obs-objects`（Current）、§6 正常时序 `diagram-mech-obs-sequence`。一图一问题；交互图用语义方向线，数据图不冒充时序。
 - 数据对象图触发：请求路径事实在 Inference/`libdiag`/Store/查询之间脱敏、持久化与只读组合，故按条件画图并标注截断与丢弃边界。
+- 条件图适用性（§8/§9/§15）：§8 状态与资源图**不画**——本机制无多状态转换、无跨单元资源交付/条件释放（开关为单行持久开关，写入为尽力而为无预留），§8 不变量表 + §8.1 短表已足以逐项判定临时状态与寿命，故以等价短表代替。§9 异常处置图**不画**——失败分支统一为「写入失败 → warning、不阻断」的单一 fail-open 出口，无结果未知、无部分副作用、无接管/多恢复出口，§9 短表逐项给出操作终态与重试条件即可。§15 测试路径图**不画**——故障注入（`T-OBS-INJECT`/`T-OBS-FAILOPEN`）在单环境内以具名 arm/hit/release 控制与独立 Oracle 表达（§15.1 表），不跨环境、无替代依赖，故以表格代替测试路径图。
 
 ## B. 文档控制与修订记录
 

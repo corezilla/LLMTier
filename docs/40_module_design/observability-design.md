@@ -1118,7 +1118,7 @@ apply_correlation(headers) -> (correlation_id: str | None, trace_detail: dict | 
 - **选项 / 推荐 / 下一步取证**：以"记录= M006 / 查询呈现= M005"划分，或后续拆分文件
 - **关闭条件 / 决定或当前状态**：未决
 
-引用：系统设计 §3.2/§11.3；机制 M-OBS §14.4（`R-OBS-02/05/06`）；`libdiag-design.md`；`interfaces/openapi/llmtier.openapi.json`。
+引用：系统设计 §3.2/§11.3；机制 M-OBS §14.4（`R-OBS-02/05/06`）、M-INFER §14.4（`R-INF-08`）；`libdiag-design.md`；`interfaces/openapi/llmtier.openapi.json`。
 
 ## 附录 A. 机制承接表
 
@@ -1130,3 +1130,12 @@ apply_correlation(headers) -> (correlation_id: str | None, trace_detail: dict | 
 - **代码文件 / symbol 或 NOT_IMPLEMENTED**：`app.py` + `diagnostics.py`（查询）
 - **允许自行决定的范围**：呈现实现
 - **本地验证 / 组合验证交接**：`VRC-OBS-001/002`
+
+#### A.2 `llmtier-inference-stream-mechanism` / `R-INF-08` · 推理路径诊断写入承接
+- **来源 Capability / Step / Constraint / 接口成员**：CON-INFER-005
+- **本模块必须负责的行为与保证**：向推理路径提供 trace/快照/延迟的观测写入与开关，fail-open、脱敏；观测失败不改推理契约
+- **本模块提供 / 消费的接口**：`DiagnosticsService`（`record_trace`/`capture_snapshot`/`record_latency`/`enabled_injection`/`enabled_stream_injection`；经 M001 路由，底层读写经 M006 `libdiag`）
+- **本文落实位置**：§5.1.2、§5.1.4、§8.2（`RULE-OBS-FAILOPEN`）
+- **代码文件 / symbol 或 NOT_IMPLEMENTED**：`diagnostics.py`（记录/查询）+ `libdiag-design.md`（底层读写）
+- **允许自行决定的范围**：存储/聚合实现
+- **本地验证 / 组合验证交接**：`VRC-OBS-003`；观测用例

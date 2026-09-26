@@ -84,7 +84,7 @@ Consumer（Piko）提交一次模型推理请求后，需要拿到**标准 Respo
 | Constraint ID | 约束 | 参与方保证 | 自由度 | 本文落实位置 |
 |---|---|---|---|---|
 | CON-INFER-001 | 只提供标准 Responses SSE，不增 JSON 并行模式 | 入口只发标准事件 | 内部编排方式 | §5.1/§5.2、§6 |
-| CON-INFER-002 | 每请求恰好一个 terminal 事件 | 出口保证 | 事件名由 status 决定 | §6、§8 |
+| CON-INFER-002 | 已准入且流至完成的请求恰好一个 terminal 事件（准入前拒绝走 `ErrorEnvelope`；中途断开无 terminal、记 `aborted`） | 出口保证 | 事件名由 status 决定 | §6、§8 |
 | CON-INFER-003 | 结果未知不补零；账本只追加 | Inference 写 unknown 义务 | 归一实现 | §9、M-METER |
 | CON-INFER-004 | 不做跨等级/跨空间 fallback | Router 只在同等级选 | 选择排序 | §10 |
 | CON-INFER-005 | 观测 fail-open，不改推理结果 | Inference 不因观测失败而失败 | 捕获实现 | §12、M-OBS |
@@ -141,7 +141,7 @@ enum ResponseStatus { in_progress, completed, incomplete, failed }
 
 - **跨字段与寿命**：
 
-  每请求恰好一个 terminal；`in_progress` ≠ 成功；请求级；M003 归一产生、M001 序列化。
+  已准入且流至完成的请求恰好一个 terminal（准入前拒绝走 `ErrorEnvelope`；中途断开无 terminal、记 `aborted`，见 §8 INV-2）；`in_progress` ≠ 成功；请求级；M003 归一产生、M001 序列化。
 
 - **合法/拒绝实例**：
 
@@ -228,7 +228,7 @@ ResponsesResponse {
 
 - **跨字段与寿命**：
 
-  `stream:true`、`store:false` 为受理前提；禁字段 `prompt_cache_key`/`prompt_cache_retention`/`previous_response_id`；每请求恰好一个 terminal；wire 载荷请求级；M001 解析、M003 归一。
+  `stream:true`、`store:false` 为受理前提；禁字段 `prompt_cache_key`/`prompt_cache_retention`/`previous_response_id`；已准入且流至完成的请求恰好一个 terminal（见 §8 INV-2）；wire 载荷请求级；M001 解析、M003 归一。
 
 - **合法/拒绝实例**：
 
@@ -448,7 +448,7 @@ ResponseStreamEvent {
 
 - **跨字段与寿命**：
 
-  每请求恰好一个 terminal；`sequence_number` 自 0 严格递增；`X-Request-ID` 为 task 头；SSE 帧格式 `event: <name>\ndata: <json>\n\n` 空行分隔；请求级流；M003 产出、M001 传输。
+  已准入且流至完成的请求恰好一个 terminal（见 §8 INV-2）；`sequence_number` 自 0 严格递增；`X-Request-ID` 为 task 头；SSE 帧格式 `event: <name>\ndata: <json>\n\n` 空行分隔；请求级流；M003 产出、M001 传输。
 
 - **合法/拒绝实例**：
 
@@ -658,7 +658,7 @@ POST /v1/responses
 
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-INF-RESPONSES`；标准模型调用（Consumer 单轮推理，固定 `stream:true`/`store:false`，返回标准 SSE）；M001 HTTP API 终止 HTTP/SSE、M003 Inference 编排；交接边界=HTTP/SSE 入站→推理服务内部调用；状态=规格已定、Implemented；唯一契约=`openapi`；`src/http_api/app.py` `_dispatch` → `src/inference/responses.py` `ResponsesService.create`。
 - **输入与前提**：`D-MSG-RESPONSE`（§4.2.1）——`model`（必填 exact 逻辑等级）、`input`（必填）、`stream`（必须 true）、`store`（必须 false）、`tools`/`max_output_tokens` 等；授权=`data` 角色或受信免登录（`IF-TRUST-*`）；校验顺序=鉴权 → JSON/schema → 形态（stream/store）→ 禁字段 → 模型存在 → 能力 `responses=true` → 准入。
-- **成功输出与保证**：`D-MSG-SSE` 流（§4.4.1/§5.2）——`response.created … response.completed|incomplete|failed`，每请求恰好一个 terminal，`usage` 仅 terminal 给出；受理=HTTP 建连，完成=terminal 事件；副作用=登记 unknown 用量义务→落账本（`IF-MET-AUTHORIZE`/`IF-MET-BIND`/`IF-MET-FINISH`）；观测 fail-open。
+- **成功输出与保证**：`D-MSG-SSE` 流（§4.4.1/§5.2）——`response.created … response.completed|incomplete|failed`，已准入且流至完成的请求恰好一个 terminal（见 §8 INV-2），`usage` 仅 terminal 给出；受理=HTTP 建连，完成=terminal 事件；副作用=登记 unknown 用量义务→落账本（`IF-MET-AUTHORIZE`/`IF-MET-BIND`/`IF-MET-FINISH`）；观测 fail-open。
 - **错误与合法下一步**：逐条件见 §4.8；典型：`ERR-REQ-VALIDATION`/`ERR-REQ-FIELD`/`ERR-REQ-JSON`（400，未受理）；`ERR-REQ-UNSUPPORTED`（400，`stream=false`）；`ERR-REQ-TOO-LARGE`（413）；`ERR-AUTH-*`（401/403/503）；`ERR-MODEL-NOTFOUND`（404）；`ERR-RATE-LIMIT`（429 + `Retry-After`）；`ERR-MODEL-UNAVAIL`/`ERR-PROVIDER-*`（503/502，可能已调用后端=结果可能未知）；载荷统一 `D-ERROR-ENVELOPE`。
 - **交互与生命周期**：同步建连后流式；单请求独立模型调用，无会话；客户端断开结束本次调用并释放许可；**非幂等**（同 input 重发=两次独立调用，无幂等键）；期限=准入等待 ≤30s、建连/首字节 30s、SSE 空闲 60s；不承诺跨系统 exactly-once。
 - **实现与验证**：正常 `{"model":"Worker","input":[{"role":"user","content":"hi"}],"stream":true,"store":false,"max_output_tokens":20}` → 200 SSE + terminal Usage；拒绝 `stream=false` → 400。`T-STREAM`、`T-QUEUE`、`T-TIMEOUT`；Run=NOT_RUN。
@@ -807,10 +807,18 @@ POST /v1/probes {deployment_id} -> 200 probe_result | 4xx: ErrorEnvelope
 | INV-ID | 可验证断言（量词、条件和预期必须明确） | Enforcement / 事实来源 | 反例输入/违反后的结果 | 验证项 |
 |---|---|---|---|---|
 | INV-1 | ∀ output item：`added`/`delta`/`done`/terminal 中 `id` 完全一致 | 出口序列化（§14.4 HTTP/SSE Adapter）| 同 item 出现两个 id → Consumer 无法拼接，输出错乱 | T-STREAM |
-| INV-2 | ∀ 请求：恰好一个 terminal 事件，且 `sequence_number` 自 0 严格递增 | `response_stream` 单次出口 + `admit` | 0 或 2 个 terminal → Consumer 无法判定结束 | T-STREAM |
+| INV-2 | 对**已准入且流至完成**的请求：恰好一个 terminal 事件 + `[DONE]`，且 `sequence_number` 自 0 严格递增（准入前拒绝走 `ErrorEnvelope`；中途断开无 terminal、记 `aborted`） | `response_stream` 单次出口 + `admit` | 0 或 2 个 terminal → Consumer 无法判定结束 | T-STREAM、T-DISCONNECT |
 | INV-3 | ∀ 请求：仅 terminal 表示完成；`response.created.status=in_progress` ≠ 成功 | 出口状态机（§6）| 以 `in_progress` 判成功 → 误判成功 | T-STREAM |
 | INV-4 | ∀ 记录：`usage=null` 或 `measurement_status=unknown` 时 token 字段为 NULL（**≠ 0**）| UsageRecorder（M-METER）| 未测写成 0 → 被误读为"没有调用" | T-MET-UNKNOWN |
 | INV-5 | ∀ 校验失败/429：未调用后端（零副作用）| 校验在 dispatch 前（§5.1、§14.4）| 校验后仍发出后端调用 → 无谓消耗与计费 | T-QUEUE |
+
+**INV-2 分情况口径（可观察结果 + 测试判据）**：
+
+| 情形 | 可观察结果 | 测试判据 |
+|---|---|---|
+| 准入前拒绝（`ERR-REQ-*`/`ERR-MODEL-*`/`ERR-RATE-LIMIT` 等） | **无 SSE 流、无 terminal**；HTTP 返回单一 `D-ERROR-ENVELOPE` JSON | 校验类用例与 `T-QUEUE`：断言响应为 `ErrorEnvelope`、`Content-Type` 非 `text/event-stream`、无 terminal、无 `[DONE]` |
+| 流中途客户端断开（已准入） | 流在断开处结束、**不产生 terminal**；出口记 `aborted`；`create()` 已写入的终态 usage 保留、许可已释放 | `T-DISCONNECT`：断言无 terminal、出口记 `aborted`、账本存在终态版本、不再调用 `finish(None)` |
+| 正常完成（已准入并流至完成） | **恰一个 terminal**（`response.completed`/`incomplete`/`failed` 之一）+ `[DONE]` | `T-STREAM`：断言 terminal 计数恰 = 1、事件以 `[DONE]` 收尾、`sequence_number` 自 0 严格递增 |
 
 ### 8.1 资源预留、交付、释放与复位
 
@@ -924,18 +932,20 @@ POST /v1/probes {deployment_id} -> 200 probe_result | 4xx: ErrorEnvelope
 
 ### 14.4 下级设计输入清单
 
+**要求 ID 说明**：本机制的下级设计要求沿用项目历史 ID `R-INF-01..08`（类别：机制下级要求，命名域 M-INFER）。按 `design-writing-guide`「标识命名空间不得复用」——历史 ID 已被项目采用时不静默重命名，而是在登记表中保留旧 ID 并明确类型——下表即该类型的登记表，不新增 `M-INFER-DI-*` 别名。
+
 | 下级要求 ID | 承接对象 ID / 下级设计文档 | 来源 Capability / Step / Constraint / 接口成员 | 必须负责的行为与保证 | 必须提供/消费的接口 | 下级必须展开的问题 | 允许自行决定的范围 | 本地验证 / 组合验证交接 |
 |---|---|---|---|---|---|---|---|
 | R-INF-01 | HTTP/SSE Adapter · `http-api-design.md` | CON-INFER-001/002、Step 9、interface `response_stream` | SSE 帧序、terminal 唯一、`request_id` 透传、请求体上限 | `response_stream`、`POST /v1/responses` 路由 | 帧缓冲/背压、断开检测与清理、413 | 缓冲与传输实现 | 契约；组合（Piko 联调）|
-| R-INF-02 | Auth/Validation · `http-api-design.md` | Step 1–2、interface `authenticate*` | 校验顺序（§5.1）、`Principal` 产生与下传 | `_auth()`/`authenticate_any()` | 凭据解析、错误映射 | 解析实现 | 契约 |
+| R-INF-02 | Auth/Validation · `http-api-design.md、inference-design.md` | Step 1–2、interface `authenticate*` | 校验顺序（§5.1）、`Principal` 产生与下传；推理路径编排侧协同校验 | `_auth()`/`authenticate_any()`；`ResponsesService.create`（消费 `principal`）| 凭据解析、错误映射 | 解析实现 | 契约 |
 | R-INF-03 | Internal Admission · `inference-design.md` | CON-INFER-004、Step 4、interface `admit` | 并发/队列/等待/429、许可释放 | `admit()`、`snapshot()` | 队列结构、公平性、`Retry-After` | 队列/排序实现 | 并发用例 |
 | R-INF-04 | Exact Model Router · `management-design.md` | CON-INFER-004、Step 4 | 大小写精确选择、同等级候选 | 候选（经 `admit()`）| 选择排序、健康/版本核验 | 排序实现 | 并发用例 |
 | R-INF-05 | Provider Adapter · `inference-design.md` | Step 6、interface `complete` | 协议映射、usage 归一、typed error | `complete()` | 各后端映射、超时、错误分类 | 映射实现 | 契约 |
 | R-INF-06 | Usage Recorder · `inference-design.md` | CON-INFER-003、Step 3/5/8 | 义务/绑定/终态、unknown 不补零 | `authorize_dispatch`/`bind_backend`/`finish` | 版本替换、并发写、归一（M-METER）| 存储实现 | 系统用例 |
 | R-INF-07 | Registry/Config · `management-design.md` | Step 2、interface `get_service_level` | 等级/能力只读查询 | `get_service_level()` | 快照读一致性（M-CONFIG）| 查询实现 | 契约 |
-| R-INF-08 | 诊断写入 · `observability-design.md` | CON-INFER-005 | trace/快照、fail-open | 观测写入 | 默认关闭零开销、脱敏（M-OBS）| 存储/聚合实现 | 观测用例 |
+| R-INF-08 | 诊断写入 · `inference-design.md、observability-design.md` | CON-INFER-005 | trace/快照、fail-open；推理路径在写入点协同集成 | 观测写入 | 默认关闭零开销、脱敏（M-OBS）| 存储/聚合实现 | 观测用例 |
 
-**约束**：下游模块设计不得改变本机制已固定的对外事件子集与错误语义；跨模块新增接口须回写本节并关联模块设计。
+**约束**：下游模块设计不得改变本机制已固定的对外事件子集与错误语义；跨模块新增接口须回写本节并关联模块设计。R-INF-02 的入口鉴权（M001 Auth/Validation）与推理编排侧校验（M003）分别在 `http-api-design.md`、`inference-design.md` 附录 A 承接；R-INF-08 的推理侧写入集成（M003）与观测侧读写（M005/libdiag）分别在两文档附录 A 承接。
 
 ## 15. 验证、上线与回滚
 
@@ -943,11 +953,11 @@ POST /v1/probes {deployment_id} -> 200 probe_result | 4xx: ErrorEnvelope
 
 | Test / Constraint | 输入与预置事实 | arm/hit/release | 独立 Oracle |
 |---|---|---|---|
-| T-STREAM / CON-INFER-001..002 | 固定 request（Worker）| — | 事件序 + 恰好一个 terminal（对照 OpenAPI 子集）|
+| T-STREAM / CON-INFER-001..002 | 固定 request（Worker）| — | 事件序 + 已准入流至完成请求恰好一个 terminal（对照 OpenAPI 子集）|
 | T-TOOLS / CAP-TOOLS | 带 `tools` | — | `function_call_arguments.*` 出现或 200 完整（上游行为不作断言）|
-| T-QUEUE / CON-INFER-004 | 预置占满队列 | 并发请求 | 429 + `Retry-After` |
-| T-TIMEOUT / §7 | `LLMTIER_SLOW_ADAPTER_DELAY` | 设置/清除 | 超时错误 + 许可释放 |
-| T-DISCONNECT / §7 | 主动断开 | — | 结束调用；出口记 `aborted`；许可已释放、终态已记账 |
+| T-QUEUE / CON-INFER-004 | 预置占满队列 | arm=并发占满同等级 32 位队列；hit=提交第 33 个请求；release=并发退出释放许可 | 429 + `Retry-After`；未调用后端 |
+| T-TIMEOUT / §7 | `LLMTIER_SLOW_ADAPTER_DELAY` | arm=设置该环境变量（>30s）；hit=提交请求触发建连/首字节超时；release=清除环境变量 | 超时错误 + 许可释放 |
+| T-DISCONNECT / §7 | 主动断开 | arm=发起流式请求并保持连接；hit=SSE 发送阶段主动断开；release=无需清理（许可已在 `create()` 返回前释放） | 结束调用；无 terminal、出口记 `aborted`；终态已记账 |
 
 ### 15.2 环境部署、复位、并发隔离与自动化
 
@@ -971,6 +981,7 @@ POST /v1/probes {deployment_id} -> 200 probe_result | 4xx: ErrorEnvelope
 - 适用性：纯软件、单进程、HTTP API 机制。§4.5/§5.3（设备/FPGA）不适用（`std-tailoring` `LT-TL-003`）；§4.7（持久表）不适用（账本归 M-METER、配置归 M-CONFIG）；§4.9（二进制 ABI）不适用（HTTP/JSON 与 SSE 文本帧）；§8.1（租约/持久预留）不适用（仅临时许可，`finally` 释放）。
 - 图文规则：§1 用途概览 `diagram-mech-infer-usage`（Current）、§3 参与方协作 `diagram-mech-infer-collab`（Current）、§4 数据对象 `diagram-mech-infer-objects`（Current）、§6 正常时序 `diagram-mech-infer-sequence`。一图一问题；交互图用语义方向线，数据图不冒充时序。
 - 数据对象图触发：请求/结果在入口、编排、适配器、出口与账本之间经历归一变换与所有权转移，故按条件画图并标注损失与 unknown 边界。
+- 条件图适用性（§8/§9/§15）：§8 状态与资源图**不画**——准入许可为进程内临时资源、无多状态机、无持久状态，§8.1 短表已给出许可获取/`finally` 释放与无残留语义。§9 异常处置图**不画**——含**流中途客户端断开（disconnect）**分支：结果已部分送达但无持久副作用去重需求，§9 F-IN-4 短表逐项给出「结果已知性/操作终态/资源释放/重新准入」——出口记 `aborted`、不再调用 `finish(None)`（终态已在 `create()` 写入）、许可已在 `create()` 返回前释放；恢复出口单一，故以短表代替异常图；若未来出现跨重启结果恢复或多恢复出口再补图。§15 测试路径图**不画**——`T-DISCONNECT`/`T-QUEUE`/`T-TIMEOUT` 均在单环境内以具名 arm/hit/release 控制与独立 Oracle 表达（§15.1 表），不跨环境、无替代依赖。
 
 ## B. 文档控制与修订记录
 

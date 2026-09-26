@@ -961,11 +961,11 @@ migrate(store_path) -> {from_version, to_version} | non-zero exit
 | Test / Constraint | 输入与预置事实 | arm/hit/release | 独立 Oracle |
 |---|---|---|---|
 | T-CFG-BOOT / CON-CFG-001 | 空库 + 合法 settings | — | Registry 与 hash 一致；重复启动 no-op |
-| T-CFG-BADREF / CON-CFG-003 | 非法引用/缺节 | — | 503 + 回滚 + not_ready |
-| T-CFG-SECRET / CON-CFG-002 | 含 Secret 明文引用 | — | 库中只有引用、无明文 |
-| T-CFG-CAS / §7 | 并发 PATCH | — | 一个成功、一个 412 |
-| T-CFG-DELREF / §7 | 删除被引用资源 | — | 409 `resource_in_use` |
-| T-CFG-SPACE / INV-6 | 非兼容 Embedding | — | 409 `embedding_space_conflict` |
+| T-CFG-BADREF / CON-CFG-003 | 非法引用/缺节 | arm=写入含非法引用或缺失节的 settings；hit=空库启动 bootstrap；release=换回合法 settings 并重建空库 | 503 + 回滚 + not_ready |
+| T-CFG-SECRET / CON-CFG-002 | 含 Secret 明文引用 | arm=在 settings `secret_ref` 填明文；hit=启动 bootstrap；release=改用 `env:`/`file:` 引用 | 库中只有引用、无明文 |
+| T-CFG-CAS / §7 | 并发 PATCH | arm=GET 同资源取两个相同 ETag；hit=并发提交两次 PATCH `If-Match`；release=无需清理（一个成功、一个 412） | 一个成功、一个 412 |
+| T-CFG-DELREF / §7 | 删除被引用资源 | arm=创建被 level 引用的 provider/deployment；hit=DELETE 该资源；release=先解除 level 引用 | 409 `resource_in_use` |
+| T-CFG-SPACE / INV-6 | 非兼容 Embedding | arm=构造无共同能力的绑定集合或非兼容 Embedding 成员；hit=PATCH 该 level；release=恢复合法成员 | 409 `embedding_space_conflict` |
 
 ### 15.2 环境部署、复位、并发隔离与自动化
 
@@ -989,6 +989,7 @@ migrate(store_path) -> {from_version, to_version} | non-zero exit
 - 适用性：纯软件、单节点 SQLite 配置机制。§4.5/§5.3（设备/FPGA）不适用（`std-tailoring` `LT-TL-003`）；§4.9（二进制 ABI）不适用（SQLite 行 + UTF-8 JSON）；§8.1（租约）不适用（无预留/租约，事务代替）。
 - 图文规则：§1 用途概览 `diagram-mech-config-usage`（Current）、§3 参与方协作 `diagram-mech-config-collab`（Current）、§4 数据对象 `diagram-mech-config-objects`（Current）、§6 正常时序 `diagram-mech-config-sequence`。一图一问题；交互图用语义方向线，数据图不冒充时序。
 - 数据对象图触发：`settings.json` → SQLite 行存在复制、持久化与所有权转移，故按条件画图并标注损失（`secret_ref` 不回显明文）。
+- 条件图适用性（§8/§9/§15）：§8 状态与资源图**不画**——配置状态为持久行 + ETag 版本，无多状态机、无跨单元资源交付/条件释放，§8 不变量表 + §8.1 短表（事务提交代替预留/租约）已足。§9 异常处置图**不画**——含**提交窗口（commit window）**：bootstrap 与 CRUD 的关键提交点均在单事务内，提交前中断 = 回滚保持空/旧库、提交后中断 = 以已提交版本为准；无结果未知与接管/多恢复出口，§9 F-CFG-* 短表逐项给出终态/释放/重试即可，故以短表代替异常图。§15 测试路径图**不画**——`T-CFG-BOOT`/`T-CFG-BADREF`/`T-CFG-CAS` 在单环境内以具名 arm/hit/release 与独立 Oracle 表达（§15.1 表），不跨环境、无替代依赖。
 
 ## B. 文档控制与修订记录
 
