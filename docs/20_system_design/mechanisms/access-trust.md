@@ -15,7 +15,7 @@
 | Created Date | `2026-09-22` |
 | Last Modified Date | `2026-09-25` |
 | Template ID | `design.system-mechanism` |
-| Template Version | `3.0.0` |
+| Template Version | `3.2.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |
@@ -60,7 +60,7 @@ LLMTier 部署在局域网，需要判定"**请求来自谁、以什么角色**"
 |---|---|---|---|---|
 | C-TRUST-1 | 判定只在入口发生一次，业务不二次校验 | HTTP API | 实现方式 | §3.2、§8 |
 | C-TRUST-2 | 不建用户/会话/SSO 体系 | HTTP API | — | §1、§11 |
-| C-TRUST-3 | 凭据比较恒定时间，不泄露存在性 | Auth | 算法 | §5.1、§8 |
+| C-TRUST-3 | 凭据比较恒定时间，不泄露存在性 | Auth | 算法 | §5.2、§8 |
 | C-TRUST-4 | 401/403 不泄露资源存在性 | 全体 | 错误映射 | §7、§11 |
 | C-TRUST-5 | 免登录仅在受信网络/loopback/DEV | Auth | 网络集合 | §4.3、§7 |
 
@@ -80,50 +80,204 @@ LLMTier 部署在局域网，需要判定"**请求来自谁、以什么角色**"
 
 ### 4.1 公共基础类型与枚举
 
-#### `D-TRUST-ROLE` · PrincipalRole（`auth.py`）
-- **定义、Data/Type ID 与唯一来源**：调用主体角色枚举；`D-TRUST-ROLE`；唯一来源系统设计 §8.1 共享枚举 `role ∈ {data,admin}`，本机制在 `src/http_api/auth.py` 实现投影。
-- **字段 / 取值**：`role: str` ∈ {`data`, `admin`}；无第三值。
-- **约束 / 不变量**：`data` = consumer（推理/向量化/自身用量）；`admin` = operator（管理面/全部用量/诊断/观测）；由入口单点判定，业务模块只读。
-- **状态 · 所有权 · 寿命**：无状态枚举；随 `D-PRINCIPAL` 请求级内存传递，不持久。
-- **合法与拒绝实例**：合法 `data`；拒绝：其他字符串（如 `root`）不得构造 `Principal`（INV-4）。
-- **验证**：`T-TRUST-ENDPOINTS`（INV-4）。
+**4.1.1 `D-TRUST-ROLE` · PrincipalRole（公共基础类型与枚举）**
+
+```text
+enum PrincipalRole { data, admin }
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-TRUST-ROLE`；调用主体角色枚举，决定可用端点集合（data 端点 vs admin 端点）；唯一来源系统设计 §8.1 共享枚举 `role ∈ {data,admin}`，本机制在 `src/http_api/auth.py` 实现投影。
+
+- **`data`**：
+
+  必填枚举值；consumer（推理/向量化/自身用量）；无第三值。
+
+- **`admin`**：
+
+  必填枚举值；operator（管理面/全部用量/诊断/观测）；无第三值。
+
+- **跨字段与寿命**：
+
+  `data` 与 `admin` 互斥；由入口单点判定，业务模块只读；随 `D-PRINCIPAL` 请求级内存传递，不持久，请求结束即释放。
+
+- **合法/拒绝实例**：
+
+  合法 `data`；拒绝其他字符串（如 `root`）不得构造 `Principal`（INV-4）。
+
+- **验证**：
+
+  `T-TRUST-ENDPOINTS`（INV-4）。
 
 ### 4.2 业务与操作数据结构
 
-#### `D-PRINCIPAL` · Principal（继承系统 §8.1）
-- **定义、Data/Type ID 与唯一来源**：一次请求经入口鉴权后的调用主体；`D-PRINCIPAL`；系统设计 §8.1 唯一来源，本机制在 `src/http_api/auth.py:11` 实现投影，不重定义字段全集。
-- **字段 / 取值**：`principal_id: str`（必填，≤128，超出截断）；`role: D-TRUST-ROLE`（必填）。
-- **约束 / 不变量**：不可变（`@dataclass(frozen=True, slots=True)`）；`role` 二值；构造函数不校验 role，由仅有的三条入口路径保证。
-- **状态 · 所有权 · 寿命**：请求级内存对象；Auth/Validation 写、业务模块只读；随请求结束释放，不持久、不入库。
-- **合法与拒绝实例**：合法 `Principal("piko","data")`；拒绝：缺/非法凭据不构造 Principal，改由 §4.8 错误表达。
-- **验证**：`T-TRUST-BEARER`、`T-TRUST-ENDPOINTS`；`src/http_api/auth.py`。
+**4.2.1 `D-PRINCIPAL` · Principal（业务与操作数据结构，继承系统 §8.1）**
+
+```text
+Principal {
+  principal_id: string,
+  role: PrincipalRole
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-PRINCIPAL`；一次请求经入口鉴权后的调用主体；系统设计 §8.1 为唯一来源，本机制在 `src/http_api/auth.py:11` 实现投影，不重定义字段全集。
+
+- **`principal_id`**：
+
+  必填、非空字符串，最长 128、超出截断；主体标识；由入口在鉴权成功后写入，请求内不可变。
+
+- **`role`**：
+
+  必填 `D-TRUST-ROLE`（§4.1）；取值 `data`/`admin`。
+
+- **跨字段与寿命**：
+
+  不可变（`@dataclass(frozen=True, slots=True)`）；`role` 二值；构造函数不校验 role，由仅有的三条入口路径保证；请求级内存对象，Auth/Validation 写、业务模块只读；随请求结束释放，不持久、不入库。
+
+- **合法/拒绝实例**：
+
+  合法 `Principal("piko","data")`；拒绝：缺/非法凭据不构造 Principal，改由 §4.8 错误表达。
+
+- **验证**：
+
+  `T-TRUST-BEARER`、`T-TRUST-ENDPOINTS`；`src/http_api/auth.py`。
 
 ### 4.3 配置与规则数据结构
 
-#### `D-TRUST-CONFIG` · 信任与凭据配置（`auth.py` + 环境变量）
-- **定义、Data/Type ID 与唯一来源**：决定免登录与凭据判定的受控配置；`D-TRUST-CONFIG`；唯一来源 `src/http_api/auth.py`（`_TRUSTED_LAN_NETWORKS`、`_configured_token`）。
-- **字段 / 取值**：`trusted_networks: ip_network[]` 固定 = {`10.0.0.0/8`,`172.16.0.0/12`,`192.168.0.0/16`,`fc00::/7`}；`admin_token_ref = env:LLMTIER_ADMIN_TOKEN`；`data_token_ref = env:LLMTIER_DATA_TOKEN`；`dev_mode: bool` 来自 `LLMTIER_DEV_MODE=1`（仅 loopback，测试用）。
-- **约束 / 不变量**：只存环境变量引用，不存明文；token 未配置且非 DEV → 503；网络集合为固定常量，不含公网。
-- **状态 · 所有权 · 寿命**：进程启动时读取（判定时实时读 env）；部署方拥有；token 变更需重启。
-- **合法与拒绝实例**：合法 `LLMTIER_DATA_TOKEN=<secret>` 已设；拒绝：明文式引用或公网 CIDR（本机制不接受）。
-- **验证**：`T-TRUST-LAN`、`T-TRUST-NOCFG`。
+**4.3.1 `D-TRUST-CONFIG` · 信任与凭据配置（配置与规则数据结构）**
+
+```text
+TrustConfig {
+  trusted_networks: ip_network[],
+  admin_token_ref: string?,
+  data_token_ref: string?,
+  dev_mode: bool
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-TRUST-CONFIG`；决定免登录与凭据判定的受控配置；唯一来源 `src/http_api/auth.py`（`_TRUSTED_LAN_NETWORKS`、`_configured_token`）。
+
+- **`trusted_networks`**：
+
+  必填、固定集合 = {`10.0.0.0/8`,`172.16.0.0/12`,`192.168.0.0/16`,`fc00::/7`}；受信私网；不含公网。
+
+- **`admin_token_ref`**：
+
+  可空；`env:LLMTIER_ADMIN_TOKEN` 引用；仅存引用、不存明文。
+
+- **`data_token_ref`**：
+
+  可空；`env:LLMTIER_DATA_TOKEN` 引用；仅存引用、不存明文。
+
+- **`dev_mode`**：
+
+  必填布尔；来自 `LLMTIER_DEV_MODE=1`（仅 loopback，测试用）。
+
+- **跨字段与寿命**：
+
+  只存环境变量引用，不存明文；token 未配置且非 DEV → 503；网络集合为固定常量，不含公网。进程启动时读取（判定时实时读 env）；部署方拥有；token 变更需重启。
+
+- **合法/拒绝实例**：
+
+  合法 `LLMTIER_DATA_TOKEN=<secret>` 已设；拒绝：明文式引用或公网 CIDR（本机制不接受）。
+
+- **验证**：
+
+  `T-TRUST-LAN`、`T-TRUST-NOCFG`。
 
 ### 4.4 通信报文结构
 
-#### `D-TRUST-AUTH-HEADERS` · 鉴权请求头（继承 HTTP wire）
-- **定义、Data/Type ID 与唯一来源**：入口鉴权读取的 HTTP 请求头投影；`D-TRUST-AUTH-HEADERS`；机器权威=系统 `interfaces/openapi/llmtier.openapi.json`（security scheme），本节只给阅读视图。
-- **字段 / 取值**：`Authorization: str?`（`Bearer <token>`）；`X-Principal-ID: str?`（≤128）。
-- **约束 / 不变量**：`Authorization` 缺省进入免登录/401 路径；`X-Principal-ID` 仅标识，不作授权依据。
-- **状态 · 所有权 · 寿命**：请求级；M001 入口读取，不持久、不记录。
-- **合法与拒绝实例**：合法 `Authorization: Bearer …` + `X-Principal-ID: piko`；拒绝：`Authorization` 无 `Bearer ` 前缀 → §4.8 401。
-- **验证**：`T-TRUST-BEARER`。
+**4.4.1 `D-TRUST-AUTH-HEADERS` · 鉴权请求头（通信报文结构，继承 HTTP wire）**
 
-#### `D-ERROR-ENVELOPE` · 错误信封（继承系统 §8.4）
-- **定义、Data/Type ID 与唯一来源**：`{error:{message,type,code,param,retryable}}`；`D-ERROR-ENVELOPE`；机器源 `openapi`（`ErrorEnvelope`），公共含义见系统 §8.8；本机制只产生鉴权类 Error ID。
-- **约束 / 不变量**：不含凭据/Principal 秘密；401/403 不泄露资源存在性（INV-3）。
-- **状态 · 所有权 · 寿命**：请求级返回；构造于 `ApiError.envelope()`（`src/http_api/errors.py`）。
-- **合法与拒绝实例**：合法 `{error:{type:"request_error",code:"permission_denied"}}`。
-- **验证**：`T-TRUST-LEAK`。
+```text
+AuthHeaders {
+  Authorization: string?,
+  X-Principal-ID: string?
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-TRUST-AUTH-HEADERS`；入口鉴权读取的 HTTP 请求头投影；机器权威=系统 `interfaces/openapi/llmtier.openapi.json`（security scheme），本节只给阅读视图。
+
+- **`Authorization`**：
+
+  可空字符串，`Bearer <token>`；缺省进入免登录/401 路径。
+
+- **`X-Principal-ID`**：
+
+  可空字符串，≤128；仅标识，不作授权依据。
+
+- **跨字段与寿命**：
+
+  请求级；M001 入口读取；不持久、不记录；`Authorization` 与免登录路径互斥。
+
+- **合法/拒绝实例**：
+
+  合法 `Authorization: Bearer …` + `X-Principal-ID: piko`；拒绝：`Authorization` 无 `Bearer ` 前缀 → §4.8 401。
+
+- **验证**：
+
+  `T-TRUST-BEARER`。
+
+**4.4.2 `D-ERROR-ENVELOPE` · 错误信封（通信报文结构，继承系统 §8.4）**
+
+```text
+ErrorEnvelope {
+  error: {
+    message: string,
+    type: string,
+    code: string,
+    param: string?,
+    retryable: bool
+  }
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-ERROR-ENVELOPE`；对外错误响应载荷；机器源 `openapi`（`ErrorEnvelope`），公共含义见系统 §8.8；本机制只产生鉴权类 Error ID。
+
+- **`error`**：
+
+  必填对象；含 `message`/`type`/`code`/`param`/`retryable`。
+
+- **`error.message`**：
+
+  必填字符串；人类可读摘要，不含凭据/Principal 秘密。
+
+- **`error.type`**：
+
+  必填字符串；错误类型（如 `request_error`）。
+
+- **`error.code`**：
+
+  必填字符串；稳定码值（如 `permission_denied`）。
+
+- **`error.param`**：
+
+  可空字符串；出错参数名。
+
+- **`error.retryable`**：
+
+  必填布尔；是否可安全重试。
+
+- **跨字段与寿命**：
+
+  不含凭据/Principal 秘密；401/403 不泄露资源存在性（INV-3）；请求级返回；构造于 `ApiError.envelope()`（`src/http_api/errors.py`）。
+
+- **合法/拒绝实例**：
+
+  合法 `{error:{type:"request_error",code:"permission_denied"}}`；拒绝：载荷含凭据或泄露存在性。
+
+- **验证**：
+
+  `T-TRUST-LEAK`。
 
 ### 4.5 设备与 FPGA 表项结构
 
@@ -139,17 +293,39 @@ LLMTier 部署在局域网，需要判定"**请求来自谁、以什么角色**"
 
 ### 4.8 错误码与错误结构
 
-本机制不新增公共错误码；对外错误引用系统目录（`llmtier-system-design` §8.8）：
+**4.8.1 `D-TRUST-ERROR-MAP` · 鉴权错误映射（错误码与错误结构，引用系统 §8.8）**
 
-| 本层错误 | 条件 | 系统 Error ID | 结果已知性/副作用 | 合法下一步 |
-|---|---|---|---|---|
-| 503 `auth_not_configured` | 未设 token 且非 DEV | `ERR-AUTH-NOCFG` | 未受理；无副作用 | 运维配置凭据后重试 |
-| 401 `authentication_required` | 缺 `Authorization` 且地址不受信 | `ERR-AUTH-REQUIRED` | 未受理；无副作用 | 携带 Bearer 重试 |
-| 403 `permission_denied` | 凭据不匹配（不区分 admin/data） | `ERR-AUTH-DENIED` | 未受理；无副作用；不泄露存在性 | 更换正确凭据 |
+```text
+enum AuthErrorRef { ERR-AUTH-NOCFG, ERR-AUTH-REQUIRED, ERR-AUTH-DENIED }
+```
 
-- **约束 / 不变量**：错误映射见 §7；载荷统一 `D-ERROR-ENVELOPE`；不记录凭据。
-- **合法与拒绝实例**：拒绝：错误 token → 403 `permission_denied`。
-- **验证**：`T-TRUST-BEARER`、`T-TRUST-NOCFG`、`T-TRUST-LEAK`。
+- **Data/Type ID、用途与来源**：
+
+  `D-TRUST-ERROR-MAP`；本机制对外鉴权错误的系统码引用，不新增公共错误码；唯一来源系统设计 §8.8（公共含义）与 `src/http_api/errors.py`（产生）；载荷统一 `D-ERROR-ENVELOPE`（§4.4.2）。
+
+- **`ERR-AUTH-NOCFG`（503 `auth_not_configured`）**：
+
+  未设 token 且非 DEV；未受理、无副作用；运维配置凭据后重试。
+
+- **`ERR-AUTH-REQUIRED`（401 `authentication_required`）**：
+
+  缺 `Authorization` 且地址不受信；未受理、无副作用；携带 Bearer 重试。
+
+- **`ERR-AUTH-DENIED`（403 `permission_denied`）**：
+
+  凭据不匹配（不区分 admin/data）；未受理、无副作用、不泄露存在性；更换正确凭据。
+
+- **跨字段与寿命**：
+
+  错误映射见 §7；载荷统一 `D-ERROR-ENVELOPE`（§4.4.2）；不记录凭据；请求级返回，不持久。
+
+- **合法/拒绝实例**：
+
+  拒绝：错误 token → 403 `permission_denied`。
+
+- **验证**：
+
+  `T-TRUST-BEARER`、`T-TRUST-NOCFG`、`T-TRUST-LEAK`。
 
 ### 4.9 编码、布局与共享类型映射
 
@@ -167,46 +343,52 @@ LLMTier 部署在局域网，需要判定"**请求来自谁、以什么角色**"
 
 ## 5. 接口设计
 
-> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口形态**分类逐接口完整记录；标题为真实调用形式，标题下先给**完整接口声明**，再就地说明输入/输出，最后按 §3.1 六项。数据结构引用 §4；错误引用系统 §8.8。本机制**全部为软件接口**（进程内函数），无消息流/硬件/人机接口。
+> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口用途**分类逐接口完整记录；标题为真实调用形式，标题下先给**完整接口声明**，再就地说明输入/输出，最后按六项写完。数据结构引用 §4；错误引用系统 §8.8。分类：API = 向 Consumer/Operator 提供可调用能力（本机制为 HTTP 端点，登记于系统设计）；消息与数据流 = 责任单元之间为协作而交换的命令/状态/事实（含进程内函数）。本机制拥有的跨责任单元接口是入口层内部函数（Auth/Validation → HTTP Adapter），故归 §5.2。
 
-### 5.1 软件接口（适用时）
+### 5.1 API（适用时）
 
-#### `unauthenticated_principal(client_address: str, headers, role: str) -> Principal | None`
-```text
-unauthenticated_principal(client_address: str, headers: Headers, role: str) -> Principal | None
-```
-- **Interface/Member ID、状态、文件·symbol**：`IF-TRUST-UNAUTH`；Implemented；唯一契约=本设计；`src/http_api/auth.py` `unauthenticated_principal`。
-- **输入**：`client_address: str`（去 zone id 的 IP 文本）、`headers`（读 `Authorization` 存在性）、`role: D-TRUST-ROLE`（§4.1）；前置=入口已解析地址；授权=无（判定入口本身）；校验顺序=有 `Authorization` → `None`；IP 解析失败 → `None`；DEV+loopback → 免登录；loopback/受信私网 → 免登录。
-- **成功输出**：`D-PRINCIPAL`（§4.2）——受理即时返回；`principal_id` 为 `loopback-*`/`trusted-lan-*`（按 role），`role` 由调用方指定；无副作用、不持久。
-- **错误与异常**：无 Error ID；不命中返回 `None`（非错误，调用方继续凭据路径，§7）。无部分成功或未知结果。
-- **交互与生命周期**：同步纯函数；无期限/取消；幂等只读；不缓存、不记录凭据。
-- **实例与验证**：正常 `client_address="192.168.1.42"`、无 `Authorization`、`role="data"` → `Principal("trusted-lan-consumer","data")`；边界 `1.2.3.4` → `None`。`T-TRUST-LAN`；Run=NOT_RUN。
-
-#### `authenticate(headers, role: str) -> Principal`
-```text
-authenticate(headers: Headers, role: str) -> Principal
-```
-- **Interface/Member ID、状态、文件·symbol**：`IF-TRUST-AUTH`；Implemented；`src/http_api/auth.py` `authenticate`。
-- **输入**：`headers`（`Authorization`、`X-Principal-ID`）、`role: D-TRUST-ROLE`；前置=token 已配置或 DEV；授权=凭据匹配指定 role；校验顺序=配置存在性 → `Bearer ` 前缀 → `hmac.compare_digest` 恒定时间比较。
-- **成功输出**：`D-PRINCIPAL`——受理=返回 Principal；`principal_id` 取 `X-Principal-ID`（截断 128）或默认 `operator`/`consumer`；生效=本次请求后续按 role 限权；无持久副作用。
-- **错误与异常**：`ERR-AUTH-NOCFG`（503，配置缺失，未受理，无副作用）；`ERR-AUTH-REQUIRED`（401，缺 Bearer）；`ERR-AUTH-DENIED`（403，凭据不匹配，不区分 admin/data）；载荷均 `D-ERROR-ENVELOPE`；合法下一步见 §4.8。
-- **交互与生命周期**：同步；无期限/取消；幂等；只读，无资源释放。
-- **实例与验证**：正常 `Bearer <data-token>` + `X-Principal-ID: piko`、`role="data"` → `Principal("piko","data")`；拒绝错误 token → 403。`T-TRUST-BEARER`；Run=NOT_RUN。
-
-#### `authenticate_any(headers, client_address: str) -> Principal`
-```text
-authenticate_any(headers: Headers, client_address: str) -> Principal
-```
-- **Interface/Member ID、状态、文件·symbol**：`IF-TRUST-AUTH-ANY`；Implemented；`src/http_api/auth.py` `authenticate_any`。
-- **输入**：`headers`、`client_address: str`；前置=共享端点（如 `/v1/usage`）；授权=任一已配置凭据（admin 先于 data）或受信免登录；校验顺序=admin → data → 免登录 → 401。
-- **成功输出**：`D-PRINCIPAL`——role 反映匹配到的凭据（admin 优先）；生效=调用方按 role 选择视图；无副作用。
-- **错误与异常**：`ERR-AUTH-NOCFG`（503，均未配置）；`ERR-AUTH-DENIED`（403，有 Bearer 但均不匹配）；`ERR-AUTH-REQUIRED`（401，无 Bearer 且免登录不命中）；载荷 `D-ERROR-ENVELOPE`。
-- **交互与生命周期**：同步；固定顺序 admin→data（确定性）；幂等；只读。
-- **实例与验证**：正常 data token 访问 `/v1/usage` → `Principal(...,"data")`；边界：无 token 的受信 LAN → admin 免登录。`T-TRUST-SHARED`；Run=NOT_RUN。
+不适用：本机制不拥有面向 Consumer/Operator 的 HTTP 端点；`/v1/*` 端点由系统设计与各业务模块拥有，它们消费 §5.2 的鉴权函数。机制自身不新增对外 API。
 
 ### 5.2 消息与数据流接口（适用时）
 
-不适用：本机制不拥有事件/队列/流；HTTP 请求/响应为同步软件接口（§5.1），错误信封随响应返回，无独立消息交接。
+#### `unauthenticated_principal(client_address: str, headers, role: str) -> Principal | None`
+
+```text
+unauthenticated_principal(client_address: str, headers: Headers, role: str) -> Principal | None
+```
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-TRUST-UNAUTH`；对受信来源产出免登录 `Principal`；Auth/Validation 提供、HTTP Adapter 消费；交接边界=入口地址解析后、凭据判定前；状态=Implemented；唯一契约=本设计；`src/http_api/auth.py` `unauthenticated_principal`。
+- **输入与前提**：`client_address: str`（去 zone id 的 IP 文本）、`headers`（读 `Authorization` 存在性）、`role: D-TRUST-ROLE`（§4.1）；前置=入口已解析地址；授权=无（判定入口本身）；校验顺序=有 `Authorization` → `None`；IP 解析失败 → `None`；DEV+loopback → 免登录；loopback/受信私网 → 免登录。
+- **成功输出与保证**：`D-PRINCIPAL`（§4.2）——受理即时返回；`principal_id` 为 `loopback-*`/`trusted-lan-*`（按 role），`role` 由调用方指定；无副作用、不持久。
+- **错误与合法下一步**：无 Error ID；不命中返回 `None`（非错误，调用方继续凭据路径，§7）；无部分成功或未知结果。
+- **交互与生命周期**：同步纯函数；无期限/取消；幂等只读；不缓存、不记录凭据。
+- **实现与验证**：正常 `client_address="192.168.1.42"`、无 `Authorization`、`role="data"` → `Principal("trusted-lan-consumer","data")`；边界 `1.2.3.4` → `None`。`T-TRUST-LAN`；Run=NOT_RUN。
+
+#### `authenticate(headers, role: str) -> Principal`
+
+```text
+authenticate(headers: Headers, role: str) -> Principal
+```
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-TRUST-AUTH`；校验 Bearer 凭据并产出指定 role 的 `Principal`；Auth/Validation 提供、HTTP Adapter 消费；交接边界=免登录未命中后的凭据判定；状态=Implemented；`src/http_api/auth.py` `authenticate`。
+- **输入与前提**：`headers`（`Authorization`、`X-Principal-ID`）、`role: D-TRUST-ROLE`；前置=token 已配置或 DEV；授权=凭据匹配指定 role；校验顺序=配置存在性 → `Bearer ` 前缀 → `hmac.compare_digest` 恒定时间比较。
+- **成功输出与保证**：`D-PRINCIPAL`——受理=返回 Principal；`principal_id` 取 `X-Principal-ID`（截断 128）或默认 `operator`/`consumer`；生效=本次请求后续按 role 限权；无持久副作用。
+- **错误与合法下一步**：`ERR-AUTH-NOCFG`（503，配置缺失，未受理，无副作用）；`ERR-AUTH-REQUIRED`（401，缺 Bearer）；`ERR-AUTH-DENIED`（403，凭据不匹配，不区分 admin/data）；载荷均 `D-ERROR-ENVELOPE`；合法下一步见 §4.8。
+- **交互与生命周期**：同步；无期限/取消；幂等；只读，无资源释放。
+- **实现与验证**：正常 `Bearer <data-token>` + `X-Principal-ID: piko`、`role="data"` → `Principal("piko","data")`；拒绝错误 token → 403。`T-TRUST-BEARER`；Run=NOT_RUN。
+
+#### `authenticate_any(headers, client_address: str) -> Principal`
+
+```text
+authenticate_any(headers: Headers, client_address: str) -> Principal
+```
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-TRUST-AUTH-ANY`；共享端点接受任一已配置凭据或受信免登录并产出 `Principal`；Auth/Validation 提供、HTTP Adapter 消费；交接边界=共享端点（如 `/v1/usage`）入口；状态=Implemented；`src/http_api/auth.py` `authenticate_any`。
+- **输入与前提**：`headers`、`client_address: str`；前置=共享端点；授权=任一已配置凭据（admin 先于 data）或受信免登录；校验顺序=admin → data → 免登录 → 401。
+- **成功输出与保证**：`D-PRINCIPAL`——role 反映匹配到的凭据（admin 优先）；生效=调用方按 role 选择视图；无副作用。
+- **错误与合法下一步**：`ERR-AUTH-NOCFG`（503，均未配置）；`ERR-AUTH-DENIED`（403，有 Bearer 但均不匹配）；`ERR-AUTH-REQUIRED`（401，无 Bearer 且免登录不命中）；载荷 `D-ERROR-ENVELOPE`。
+- **交互与生命周期**：同步；固定顺序 admin→data（确定性）；幂等；只读。
+- **实现与验证**：正常 data token 访问 `/v1/usage` → `Principal(...,"data")`；边界：无 token 的受信 LAN → admin 免登录。`T-TRUST-SHARED`；Run=NOT_RUN。
 
 ### 5.3 硬件与固件接口（适用时）
 
@@ -334,8 +516,8 @@ authenticate_any(headers: Headers, client_address: str) -> Principal
 
 | 责任单元（§14.1） | 承接的成员/结构 ID（§4/§5） | 角色 | 本机制固定的语义与边界（引用） |
 |---|---|---|---|
-| Auth/Validation | `IF-TRUST-UNAUTH`、`IF-TRUST-AUTH`、`IF-TRUST-AUTH-ANY` | 提供 | 单点判定、恒定时间比较、Principal 产出（§5.1） |
-| HTTP Adapter | `IF-TRUST-AUTH`、`IF-TRUST-AUTH-ANY` | 消费 | 按端点选 role 分发；不二次校验（§5.1、C-TRUST-1） |
+| Auth/Validation | `IF-TRUST-UNAUTH`、`IF-TRUST-AUTH`、`IF-TRUST-AUTH-ANY` | 提供 | 单点判定、恒定时间比较、Principal 产出（§5.2） |
+| HTTP Adapter | `IF-TRUST-AUTH`、`IF-TRUST-AUTH-ANY` | 消费 | 按端点选 role 分发；不二次校验（§5.2、C-TRUST-1） |
 | 业务模块（全体） | `D-PRINCIPAL`（§4.2） | 消费 | 只读 `role` 选择视图/端点，不得新增鉴权调用点 |
 | 启动 | `D-TRUST-CONFIG`（§4.3） | 提供 | 环境变量凭据存在性；不存 Secret |
 

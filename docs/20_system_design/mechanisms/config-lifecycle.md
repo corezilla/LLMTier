@@ -15,7 +15,7 @@
 | Created Date | `2026-09-22` |
 | Last Modified Date | `2026-09-25` |
 | Template ID | `design.system-mechanism` |
-| Template Version | `3.0.0` |
+| Template Version | `3.2.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |
@@ -80,80 +80,391 @@
 
 ### 4.1 公共基础类型与枚举
 
-#### `D-CFG-KIND` · ProviderKind（`registry.py`）
-- **定义、Data/Type ID 与唯一来源**：provider 连接类型；`D-CFG-KIND`；唯一来源 `src/management/registry.py`（bootstrap `kind` 校验）与系统 §8.1 共享枚举 `kind ∈ {cloud,local}`。
-- **字段 / 取值**：`kind: str` ∈ {`cloud`, `local`}。
-- **约束 / 不变量**：`local` 使用本地部署/自带凭据；`cloud` 使用云端账号；决定默认 usage profile（`_usage_values`）。
-- **状态 · 所有权 · 寿命**：随 `providers.kind` 持久；operator 经 M004 拥有。
-- **合法与拒绝实例**：合法 `local`；拒绝其他值 → 引导 503 `bootstrap_invalid` / CRUD 400。
-- **验证**：`T-CFG-BOOT`、`T-CFG-CAS`。
+**4.1.1 `D-CFG-KIND` · ProviderKind（公共基础类型与枚举）**
 
-#### `D-CFG-HEALTH` · DeploymentHealth（`registry.py`）
-- **定义、Data/Type ID 与唯一来源**：deployment 健康事实；`D-CFG-HEALTH`；系统 §8.1 共享枚举 `health ∈ {unknown,healthy,unhealthy}`。
-- **字段 / 取值**：`health: str` ∈ {`unknown`, `healthy`, `unhealthy`}；新建默认 `unknown`。
-- **约束 / 不变量**：由探测/运行事实更新，不由 bootstrap 输入直接设定；Router 仅选 `healthy`。
-- **状态 · 所有权 · 寿命**：随 `deployments.health` 持久；运行期由健康检查写。
-- **合法与拒绝实例**：合法 `healthy`；边界：未探测为 `unknown`（Router 视为不可选）。
-- **验证**：`T-CFG-BOOT`、路由用例。
+```text
+enum ProviderKind { cloud, local }
+```
 
-#### `D-CFG-TIER` · ServiceLevelName（`registry.py`）
-- **定义、Data/Type ID 与唯一来源**：固定逻辑等级名；`D-CFG-TIER`；唯一来源 `src/management/registry.py` `FIXED_TIERS`。
-- **字段 / 取值**：`id` ∈ {`Senior`,`Junior`,`Worker`,`Associate`,`Engineer`,`Executor`,`Embedding-v1`}（7 个，exact-case）。
-- **约束 / 不变量**：启动 `ensure_fixed_tiers` 保证 7 行恒存在；非固定 Tier 名拒绝；`Embedding-v1` 只能 embedding-only。
-- **状态 · 所有权 · 寿命**：随 `service_levels.id` 持久；operator 经 M004 管理。
-- **合法与拒绝实例**：合法 `Worker`；拒绝 `worker`/`Custom` → 400 `invalid_request`。
-- **验证**：`T-CFG-SPACE`、`T-CFG-BOOT`。
+- **Data/Type ID、用途与来源**：
+
+  `D-CFG-KIND`；provider 连接类型；唯一来源 `src/management/registry.py`（bootstrap `kind` 校验）与系统 §8.1 共享枚举 `kind ∈ {cloud,local}`。
+
+- **`cloud`**：
+
+  必填枚举值；使用云端账号；决定默认 usage profile（`_usage_values`）。
+
+- **`local`**：
+
+  必填枚举值；使用本地部署/自带凭据；决定默认 usage profile（`_usage_values`）。
+
+- **跨字段与寿命**：
+
+  `cloud`/`local` 互斥；随 `providers.kind` 持久；operator 经 M004 拥有。
+
+- **合法/拒绝实例**：
+
+  合法 `local`；拒绝其他值 → 引导 503 `bootstrap_invalid` / CRUD 400。
+
+- **验证**：
+
+  `T-CFG-BOOT`、`T-CFG-CAS`。
+
+**4.1.2 `D-CFG-HEALTH` · DeploymentHealth（公共基础类型与枚举）**
+
+```text
+enum DeploymentHealth { unknown, healthy, unhealthy }
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-CFG-HEALTH`；deployment 健康事实；系统 §8.1 共享枚举 `health ∈ {unknown,healthy,unhealthy}`。
+
+- **`unknown`**：
+
+  必填枚举值；新建默认值；Router 视为不可选。
+
+- **`healthy`**：
+
+  必填枚举值；探测/运行事实健康；Router 仅选 `healthy`。
+
+- **`unhealthy`**：
+
+  必填枚举值；探测/运行事实不健康；Router 视为不可选。
+
+- **跨字段与寿命**：
+
+  三值互斥；由探测/运行事实更新，不由 bootstrap 输入直接设定；随 `deployments.health` 持久；运行期由健康检查写。
+
+- **合法/拒绝实例**：
+
+  合法 `healthy`；边界：未探测为 `unknown`（Router 视为不可选）。
+
+- **验证**：
+
+  `T-CFG-BOOT`、路由用例。
+
+**4.1.3 `D-CFG-TIER` · ServiceLevelName（公共基础类型与枚举）**
+
+```text
+enum ServiceLevelName {
+  Senior, Junior, Worker, Associate, Engineer, Executor, Embedding-v1
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-CFG-TIER`；固定逻辑等级名；唯一来源 `src/management/registry.py` `FIXED_TIERS`（7 个，exact-case）。
+
+- **`Senior`/`Junior`/`Worker`/`Associate`/`Engineer`/`Executor`**：
+
+  必填枚举值；非 embedding 等级名，exact-case。
+
+- **`Embedding-v1`**：
+
+  必填枚举值；只能 embedding-only。
+
+- **跨字段与寿命**：
+
+  启动 `ensure_fixed_tiers` 保证 7 行恒存在；非固定 Tier 名拒绝；随 `service_levels.id` 持久；operator 经 M004 管理。
+
+- **合法/拒绝实例**：
+
+  合法 `Worker`；拒绝 `worker`/`Custom` → 400 `invalid_request`。
+
+- **验证**：
+
+  `T-CFG-SPACE`、`T-CFG-BOOT`。
 
 ### 4.2 业务与操作数据结构
 
-#### `D-CFG-CANDIDATE` · Candidate（`registry.py`）
-- **定义、Data/Type ID 与唯一来源**：Router 准入的候选后端投影；`D-CFG-CANDIDATE`；唯一来源 `src/management/registry.py` `Candidate`（`dataclass`），本机制 §5 `candidates()` 产出。
-- **字段 / 取值**：`level_id: str`、`deployment_id: str`、`provider_id: str`、`endpoint: str`、`backend_model: str`、`kind: D-CFG-KIND`、`health: D-CFG-HEALTH`、`ordinal: int`。
-- **约束 / 不变量**：同一 `level_id` 内 `ordinal` 有序且唯一；只含 enabled 成员；`health` 为当时快照。
-- **状态 · 所有权 · 寿命**：请求级只读投影；M004 Registry 产出、M003 Router 消费；不持久。
-- **合法与拒绝实例**：合法 `Candidate("Worker","dep_local_gemma",...)`；边界：无成员 → 空列表（Router 转 404/503）。
-- **验证**：路由用例、`T-CFG-CAS`。
+**4.2.1 `D-CFG-CANDIDATE` · Candidate（业务与操作数据结构）**
 
-#### `D-CFG-VERSION-TAG` · Version/ETag
-- **定义、Data/Type ID 与唯一来源**：资源乐观并发标记；`D-CFG-VERSION-TAG`；唯一来源 `registry.py` `_etag`（`"<id>.v<version>"`）。
-- **字段 / 取值**：`version: int`（≥1，单调 +1）；`etag: str` = `"<id>.v<version>"`。
-- **约束 / 不变量**：`version` 与 ETag 对应；PATCH/DELETE 必须匹配 `If-Match`，否则 412。
-- **状态 · 所有权 · 寿命**：随各资源行的 `version` 列持久；写事务拥有。
-- **合法与拒绝实例**：合法 `provider_id.v3` 匹配；拒绝 stale ETag → 412 `version_conflict`。
-- **验证**：`T-CFG-CAS`。
+```text
+Candidate {
+  level_id: string,
+  deployment_id: string,
+  provider_id: string,
+  endpoint: string,
+  backend_model: string,
+  kind: ProviderKind,
+  health: DeploymentHealth,
+  ordinal: int
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-CFG-CANDIDATE`；Router 准入的候选后端投影；唯一来源 `src/management/registry.py` `Candidate`（`dataclass`），本机制 §5.2 `candidates()` 产出。
+
+- **`level_id`**：
+
+  必填字符串；等级 ID（`D-CFG-TIER`）。
+
+- **`deployment_id`**：
+
+  必填字符串；deployment 标识。
+
+- **`provider_id`**：
+
+  必填字符串；所属 provider 标识。
+
+- **`endpoint`**：
+
+  必填字符串；上游接入端点。
+
+- **`backend_model`**：
+
+  必填字符串；上游后端模型名。
+
+- **`kind`**：
+
+  必填 `D-CFG-KIND`（§4.1.1）。
+
+- **`health`**：
+
+  必填 `D-CFG-HEALTH`（§4.1.2）。
+
+- **`ordinal`**：
+
+  必填整数；同等级内有序序号。
+
+- **跨字段与寿命**：
+
+  同一 `level_id` 内 `ordinal` 有序且唯一；只含 enabled 成员；`health` 为当时快照；请求级只读投影；M004 Registry 产出、M003 Router 消费；不持久。
+
+- **合法/拒绝实例**：
+
+  合法 `Candidate("Worker","dep_local_gemma",...)`；边界：无成员 → 空列表（Router 转 404/503）。
+
+- **验证**：
+
+  路由用例、`T-CFG-CAS`。
+
+**4.2.2 `D-CFG-VERSION-TAG` · Version/ETag（业务与操作数据结构）**
+
+```text
+VersionTag {
+  version: int,
+  etag: string
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-CFG-VERSION-TAG`；资源乐观并发标记；唯一来源 `registry.py` `_etag`（`"<id>.v<version>"`）。
+
+- **`version`**：
+
+  必填整数，≥1，单调 +1；乐观并发版本。
+
+- **`etag`**：
+
+  必填字符串 = `"<id>.v<version>"`；强 ETag。
+
+- **跨字段与寿命**：
+
+  `version` 与 ETag 一一对应；PATCH/DELETE 必须匹配 `If-Match`，否则 412；随各资源行的 `version` 列持久；写事务拥有。
+
+- **合法/拒绝实例**：
+
+  合法 `provider_id.v3` 匹配；拒绝 stale ETag → 412 `version_conflict`。
+
+- **验证**：
+
+  `T-CFG-CAS`。
 
 ### 4.3 配置与规则数据结构
 
-#### `D-CFG-SETTINGS` · SettingsDocument（`config/settings.json`）
-- **定义、Data/Type ID 与唯一来源**：一次性 bootstrap 输入文档；`D-CFG-SETTINGS`；机器源 `interfaces/schemas/llmtier-settings-v0.3.schema.json`。
-- **字段 / 取值**：顶层节集**恰为** {`providers`, `deployments`, `service_levels`}；`providers[]` 项字段集恰为 {`id`,`name`,`kind`,`endpoint`,`secret_ref`,`enabled`}；`deployments[]` 项字段集恰为 {`id`,`name`,`provider_id`,`backend_model`,`capabilities`,`enabled`}；`service_levels[]` 项含 `id`∈`D-CFG-TIER`、`deployment_ids[]`、`enabled`。
-- **约束 / 不变量**：ID 唯一；引用完整；`secret_ref` 仅 `env:`/`file:` 且可达；`capabilities` 键 ⊆ `CAPABILITY_KEYS` 且四个布尔键为 bool。
-- **状态 · 所有权 · 寿命**：仅引导时读取；不参与运行期（C-CFG-1）；文件不热载。
-- **合法与拒绝实例**：合法三节齐备且引用可达；拒绝：缺节/未知节/引用错误 → 503 `bootstrap_invalid` + 回滚。
-- **验证**：`T-CFG-BOOT`、`T-CFG-BADREF`、`T-CFG-SECRET`。
+**4.3.1 `D-CFG-SETTINGS` · SettingsDocument（配置与规则数据结构）**
 
-#### `D-CAPABILITY` · Capability（继承系统 §8.1）
-- **定义、Data/Type ID 与唯一来源**：`D-CAPABILITY`；系统设计 §8.1 唯一来源，本机制只定位投影与校验点。
-- **本层投影**：12 键固定集（`responses`/`embeddings`/`tools`/`structured_outputs`/`input_modalities`/`output_modalities`/`context_window`/`max_output_tokens`/`embedding_space_id`/`embedding_dimensions`/`embedding_max_batch_inputs`/`embedding_max_input_tokens`）；deployment 存 JSON，level 存成员交集。
-- **本层约束**：level `capabilities` = 绑定 deployment 交集的 12 键结果（`_capability_intersection`）；`Embedding-v1` 冻结 `bge-m3-dense-1024-v1` 空间与上限（INV-6）。
-- **验证**：`T-CFG-SPACE`。
+```text
+SettingsDocument {
+  providers: ProviderEntry[],
+  deployments: DeploymentEntry[],
+  service_levels: ServiceLevelEntry[]
+}
+```
 
-#### `D-PROVIDER` / `D-DEPLOYMENT` / `D-SERVICE-LEVEL`（继承系统 §8.2/§8.3）
-- **定义、Data/Type ID 与唯一来源**：系统设计 §8.2（`D-PROVIDER`/`D-DEPLOYMENT`/`D-SERVICE-LEVEL`）为唯一来源；持久 DDL `util/migrations/*.sql`；本机制不重列字段全集。
-- **本层投影/约束**：`D-PROVIDER.name` 唯一、`secret_ref` 只存引用；`D-DEPLOYMENT.provider_id` 必须存在、`capabilities` 12 键；`D-SERVICE-LEVEL.id`∈`D-CFG-TIER`、成员有序、可删除性受限（`fixed_service_level`）。
-- **状态 · 所有权 · 寿命**：operator 经 M004 写、M003 读；SQLite 持久带 `version`。
-- **合法与拒绝实例**：合法引用已存在 provider；拒绝删除被引用 provider → 409 `resource_in_use`。
-- **验证**：`T-CFG-DELREF`、`T-CFG-SPACE`。
+- **Data/Type ID、用途与来源**：
+
+  `D-CFG-SETTINGS`；一次性 bootstrap 输入文档；机器源 `interfaces/schemas/llmtier-settings-v0.3.schema.json`。
+
+- **`providers`**：
+
+  必填数组；项字段集恰为 {`id`,`name`,`kind`,`endpoint`,`secret_ref`,`enabled`}。
+
+- **`deployments`**：
+
+  必填数组；项字段集恰为 {`id`,`name`,`provider_id`,`backend_model`,`capabilities`,`enabled`}。
+
+- **`service_levels`**：
+
+  必填数组；项含 `id`∈`D-CFG-TIER`、`deployment_ids[]`、`enabled`。
+
+- **跨字段与寿命**：
+
+  顶层节集**恰为** {`providers`, `deployments`, `service_levels`}；ID 唯一；引用完整；`secret_ref` 仅 `env:`/`file:` 且可达；`capabilities` 键 ⊆ `CAPABILITY_KEYS` 且四个布尔键为 bool；仅引导时读取，不参与运行期（C-CFG-1），文件不热载。
+
+- **合法/拒绝实例**：
+
+  合法三节齐备且引用可达；拒绝：缺节/未知节/引用错误 → 503 `bootstrap_invalid` + 回滚。
+
+- **验证**：
+
+  `T-CFG-BOOT`、`T-CFG-BADREF`、`T-CFG-SECRET`。
+
+**4.3.2 `D-CAPABILITY` · Capability（配置与规则数据结构，继承系统 §8.1）**
+
+```text
+Capability {
+  responses: bool,
+  embeddings: bool,
+  tools: bool,
+  structured_outputs: bool,
+  input_modalities: string[],
+  output_modalities: string[],
+  context_window: int?,
+  max_output_tokens: int?,
+  embedding_space_id: string?,
+  embedding_dimensions: int[]?,
+  embedding_max_batch_inputs: int?,
+  embedding_max_input_tokens: int?
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-CAPABILITY`；系统设计 §8.1 唯一来源，本机制只定位投影与校验点。
+
+- **`responses`/`embeddings`/`tools`/`structured_outputs`**：
+
+  必填布尔；四个能力开关，均为 bool。
+
+- **`input_modalities`/`output_modalities`**：
+
+  必填字符串数组；支持的输入/输出模态集合。
+
+- **`context_window`/`max_output_tokens`**：
+
+  必填字段、值可空整数；不适用时为 null。
+
+- **`embedding_space_id`**：
+
+  必填字段、值可空字符串；非 embedding 能力时为 null。
+
+- **`embedding_dimensions`**：
+
+  必填字段、值可空整数数组；不适用时为 null。
+
+- **`embedding_max_batch_inputs`/`embedding_max_input_tokens`**：
+
+  必填字段、值可空整数；不适用时为 null。
+
+- **跨字段与寿命**：
+
+  本层投影为 12 键固定集；deployment 存 JSON，level `capabilities` = 绑定 deployment 交集的 12 键结果（`_capability_intersection`）；`Embedding-v1` 冻结 `bge-m3-dense-1024-v1` 空间与上限（INV-6）；随配置版本持久。
+
+- **合法/拒绝实例**：
+
+  合法 12 键齐备且交集一致；拒绝：键缺失/超出 12 键或交集不成立 → 400/409。
+
+- **验证**：
+
+  `T-CFG-SPACE`。
+
+**4.3.3 `D-PROVIDER` / `D-DEPLOYMENT` / `D-SERVICE-LEVEL`（配置与规则数据结构，继承系统 §8.2/§8.3）**
+
+```text
+Provider {
+  id: string, name: string, kind: ProviderKind,
+  endpoint: string, secret_ref: string?, enabled: bool,
+  version: int, usage_provider: string, usage_*_ref: string?,
+  max_concurrent_requests: int, min_request_interval_ms: int, requests_per_minute: int
+}
+Deployment {
+  id: string, name: string, provider_id: string,
+  backend_model: string, capabilities: Capability,
+  enabled: bool, health: DeploymentHealth, version: int
+}
+ServiceLevel {
+  id: ServiceLevelName, name: string, deployment_ids: string[],
+  capabilities: Capability, enabled: bool, version: int
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  系统设计 §8.2（`D-PROVIDER`/`D-DEPLOYMENT`/`D-SERVICE-LEVEL`）为唯一来源；持久 DDL `util/migrations/*.sql`；本机制不重列字段全集，只定位本层投影与校验点。
+
+- **`D-PROVIDER.name`**：
+
+  必填、全局唯一；`secret_ref` 只存引用。
+
+- **`D-DEPLOYMENT.provider_id`**：
+
+  必填、必须存在于 `providers(id)`；`capabilities` 为 `D-CAPABILITY` 12 键。
+
+- **`D-SERVICE-LEVEL.id`**：
+
+  必填、∈`D-CFG-TIER`；成员有序；可删除性受限（`fixed_service_level`）。
+
+- **跨字段与寿命**：
+
+  operator 经 M004 写、M003 读；SQLite 持久带 `version`（乐观并发）。
+
+- **合法/拒绝实例**：
+
+  合法引用已存在 provider；拒绝删除被引用 provider → 409 `resource_in_use`。
+
+- **验证**：
+
+  `T-CFG-DELREF`、`T-CFG-SPACE`。
 
 ### 4.4 通信报文结构
 
-#### `D-CFG-ADMIN-WRITE` · 管理面写入报文（继承 `openapi`）
-- **定义、Data/Type ID 与唯一来源**：CRUD 请求/响应 wire 载荷（`ProviderWrite`/`ProviderPatch`/`DeploymentWrite`/`DeploymentPatch`/`ServiceLevelWrite` 与对应 View + `ETag` 头）；`D-CFG-ADMIN-WRITE`；机器权威 `interfaces/openapi/llmtier.openapi.json` 与 `llmtier-management-contract-v0.3`，本节只给阅读视图。
-- **字段（阅读视图）**：写入体字段同 §4.3 各结构；`secret_ref` 只写不回显（`has_secret` 投影）；响应带强 `ETag`。
-- **约束 / 不变量**：PATCH 为 partial（只改出现字段）；`If-Match` 必填；错误以 `D-ERROR-ENVELOPE` 返回。
-- **状态 · 所有权 · 寿命**：请求级 wire；M001 解析、M004 消费。
-- **合法与拒绝实例**：合法 POST provider → 201+ETag；拒绝 `secret_ref="sk-…"` → 400。
-- **验证**：`T-CFG-BADREF`、`T-CFG-CAS`。
+**4.4.1 `D-CFG-ADMIN-WRITE` · 管理面写入报文（通信报文结构，继承 `openapi`）**
+
+```text
+AdminWrite {
+  ProviderWrite / ProviderPatch,
+  DeploymentWrite / DeploymentPatch,
+  ServiceLevelWrite,
+  ETag (header)
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-CFG-ADMIN-WRITE`；CRUD 请求/响应 wire 载荷（`ProviderWrite`/`ProviderPatch`/`DeploymentWrite`/`DeploymentPatch`/`ServiceLevelWrite` 与对应 View + `ETag` 头）；机器权威 `interfaces/openapi/llmtier.openapi.json` 与 `llmtier-management-contract-v0.3`，本节只给阅读视图。
+
+- **`ProviderWrite`/`DeploymentWrite`/`ServiceLevelWrite`**：
+
+  必填写入体；字段同 §4.3 各结构。
+
+- **`ProviderPatch`/`DeploymentPatch`**：
+
+  PATCH 为 partial，只改出现字段。
+
+- **`ETag`（响应头）**：
+
+  强 `ETag`，对应 `D-CFG-VERSION-TAG`（§4.2.2）。
+
+- **`secret_ref`（投影）**：
+
+  只写不回显（`has_secret` 投影）。
+
+- **跨字段与寿命**：
+
+  `If-Match` 必填；错误以 `D-ERROR-ENVELOPE` 返回；请求级 wire；M001 解析、M004 消费。
+
+- **合法/拒绝实例**：
+
+  合法 POST provider → 201+ETag；拒绝 `secret_ref="sk-…"` → 400。
+
+- **验证**：
+
+  `T-CFG-BADREF`、`T-CFG-CAS`。
 
 ### 4.5 设备与 FPGA 表项结构
 
@@ -161,50 +472,150 @@
 
 ### 4.6 运行状态数据结构
 
-#### `D-CFG-BOOTSTRAP-STATE` · 引导状态
-- **定义、Data/Type ID 与唯一来源**：空库是否已完成一次性 bootstrap 的权威事实；`D-CFG-BOOTSTRAP-STATE`；持久于 `schema_meta.bootstrap_sha256`（`registry.py` `bootstrap_settings`）。
-- **字段 / 取值**：`bootstrap_sha256: str?`（settings 原始字节的 SHA-256；置位后不再改变）；派生 `ready: bool`（`/readyz` 布尔投影）。
-- **约束 / 不变量**：唯一写者 = 引导事务；已有 hash → no-op（INV-2）；失败保持 `not_ready` 且不接流量（C-CFG-5）。
-- **状态 · 所有权 · 寿命**：单行持久，库寿命；M004 写、启动/健康读。
-- **合法与拒绝实例**：合法：空库 + 合法 settings → hash 置位 + ready；边界：已有 hash 时再次启动 → no-op，hash 不变。
-- **验证**：`T-CFG-BOOT`。
+**4.6.1 `D-CFG-BOOTSTRAP-STATE` · 引导状态（运行状态数据结构）**
+
+```text
+BootstrapState {
+  bootstrap_sha256: string?,
+  ready: bool
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-CFG-BOOTSTRAP-STATE`；空库是否已完成一次性 bootstrap 的权威事实；持久于 `schema_meta.bootstrap_sha256`（`registry.py` `bootstrap_settings`）。
+
+- **`bootstrap_sha256`**：
+
+  可空字符串；settings 原始字节的 SHA-256；置位后不再改变。
+
+- **`ready`**：
+
+  派生布尔；`/readyz` 布尔投影。
+
+- **跨字段与寿命**：
+
+  唯一写者=引导事务；已有 hash → no-op（INV-2）；失败保持 `not_ready` 且不接流量（C-CFG-5）；单行持久，库寿命；M004 写、启动/健康读。
+
+- **合法/拒绝实例**：
+
+  合法：空库 + 合法 settings → hash 置位 + ready；边界：已有 hash 时再次启动 → no-op，hash 不变。
+
+- **验证**：
+
+  `T-CFG-BOOT`。
 
 ### 4.7 数据库表结构
 
-Authority = `util/migrations/*.sql`（M007 `migrate()` 执行）；列级阅读视图见 `util.isd` §4.4。本机制覆盖以下表：
+**4.7.1 `providers`/`deployments`/`service_levels` 等 8 张表（数据库表）**
 
-| 表 | 主键 / 唯一 | 写入者 / 读者 | 寿命 |
-|---|---|---|---|
-| `providers` | `id` PK；`name` UNIQUE | M004 / M003 | 库寿命 |
-| `deployments` | `id` PK；`name` UNIQUE；`provider_id` FK | M004 / M003 | 库寿命 |
-| `deployment_runtime_profiles` | `deployment_id` PK | M004 / M003 | 库寿命 |
-| `provider_usage_profiles` | `provider_id` PK | M004 / M003 | 库寿命 |
-| `service_levels` | `id` PK（固定 Tier） | M004 / M003 | 库寿命 |
-| `service_level_deployments` | `(service_level_id,deployment_id,ordinal)` | M004 / M003 | 库寿命 |
-| `schema_meta` | `singleton`(=1) | 引导 / 启动、健康 | 库寿命 |
-| `audit_events` | `id` PK | M004 / M005 | 审计策略 |
+```text
+tables {
+  providers { id PK, name UNIQUE, kind, endpoint, secret_ref?, enabled, version },
+  deployments { id PK, name UNIQUE, provider_id FK->providers.id, backend_model, capabilities_json, enabled, health, version },
+  deployment_runtime_profiles { deployment_id PK, max_in_flight, connect_timeout_ms, stream_idle_timeout_ms },
+  provider_usage_profiles { provider_id PK, max_concurrent_requests, min_request_interval_ms, requests_per_minute },
+  service_levels { id PK },
+  service_level_deployments { (service_level_id, deployment_id, ordinal) PK },
+  schema_meta { singleton=1, bootstrap_sha256? },
+  audit_events { id PK }
+}
+```
 
-- **约束 / 不变量**：`provider_id` FK 必须存在；`service_level_deployments` 有序唯一；`capabilities_json` 12 键；`bootstrap_sha256` 置位后不再改写。
-- **合法与拒绝实例**：合法：空库由迁移建表并 bootstrap 一次；拒绝：非空库 schema 版本不符由 M007 拒绝启动（系统 `ERR-SCHEMA`）。
-- **验证**：`T-CFG-BOOT`、`T-CFG-CAS`。
+- **Data/Type ID、用途与来源**：
+
+  Authority = `util/migrations/*.sql`（M007 `migrate()` 执行）；列级阅读视图见 `util.isd` §4.4；本机制覆盖上列 8 张表，不重列列级权威。
+
+- **`providers.id`**：
+
+  非空主键；`name` 非空 UNIQUE。
+
+- **`deployments.id` / `deployments.provider_id`**：
+
+  `id` 非空主键、`name` 非空 UNIQUE；`provider_id` 外键必须存在于 `providers(id)`。
+
+- **`service_level_deployments`**：
+
+  `(service_level_id, deployment_id, ordinal)` 主键；有序唯一。
+
+- **`schema_meta.bootstrap_sha256`**：
+
+  可空；置位后不再改写。
+
+- **`audit_events.id`**：
+
+  非空主键；审计事件。
+
+- **跨字段与寿命**：
+
+  `provider_id` FK 必须存在；`capabilities_json` 12 键；`bootstrap_sha256` 置位后不再改写；各表 M004 / M003 读写，库寿命（`audit_events` 按审计策略）。
+
+- **合法/拒绝实例**：
+
+  合法：空库由迁移建表并 bootstrap 一次；拒绝：非空库 schema 版本不符由 M007 拒绝启动（系统 `ERR-SCHEMA`）。
+
+- **验证**：
+
+  `T-CFG-BOOT`、`T-CFG-CAS`。
 
 ### 4.8 错误码与错误结构
 
-本机制不新增公共错误码；对外错误引用系统目录（`llmtier-system-design` §8.8）：
+**4.8.1 `D-CFG-ERROR-MAP` · 配置错误映射（错误码与错误结构，引用系统 §8.8）**
 
-| 本层错误 | 条件 | 系统 Error ID | 结果已知性/副作用 | 合法下一步 |
-|---|---|---|---|---|
-| 503 `bootstrap_required` / `bootstrap_invalid` | 空库缺 settings 或 settings 非法 | `ERR-BOOT` | 已知失败；回滚；not_ready | 修正 settings 后重启 |
-| schema 不符/完整性失败 | 版本不匹配/旧库未知 | `ERR-SCHEMA` | 已知失败；拒启动 | 运维离线迁移 |
-| 400 `invalid_request` | 字段非法/非固定 Tier | `ERR-REQ-VALIDATION` | 未写入；无副作用 | 修正后重试 |
-| 409 `resource_conflict` | name/唯一冲突 | `ERR-CONFLICT` | 未生效；事务回滚 | 改名重试 |
-| 409 `resource_in_use` | 删除被引用资源 | `ERR-INUSE` | 未生效；资源不变 | 先解除引用 |
-| 412 `version_conflict` | `If-Match` 过期 | `ERR-STALE` | 未生效；资源不变 | 重新 GET 后重试 |
-| 404 | 未知 ID | `ERR-NOTFOUND` | 未受理；无副作用 | 修正 ID |
-| 503 | 存储不可用 | `ERR-STORE` | 本次失败 | 稍后重试 |
+```text
+enum ConfigErrorRef {
+  ERR-BOOT, ERR-SCHEMA, ERR-REQ-VALIDATION, ERR-CONFLICT,
+  ERR-INUSE, ERR-STALE, ERR-NOTFOUND, ERR-STORE
+}
+```
 
-- **约束 / 不变量**：错误载荷统一 `D-ERROR-ENVELOPE`；引导失败绝不以 legacy settings 覆盖已有 Store。
-- **验证**：`T-CFG-BADREF`、`T-CFG-CAS`、`T-CFG-DELREF`。
+- **Data/Type ID、用途与来源**：
+
+  `D-CFG-ERROR-MAP`；本机制对外错误的系统码引用，不新增公共错误码；唯一来源系统设计 §8.8（公共含义）与 `openapi`（产生）；载荷统一 `D-ERROR-ENVELOPE`。
+
+- **`ERR-BOOT`（503 `bootstrap_required` / `bootstrap_invalid`）**：
+
+  空库缺 settings 或 settings 非法；已知失败、回滚、not_ready；修正 settings 后重启。
+
+- **`ERR-SCHEMA`（schema 不符/完整性失败）**：
+
+  版本不匹配/旧库未知；已知失败、拒启动；运维离线迁移。
+
+- **`ERR-REQ-VALIDATION`（400 `invalid_request`）**：
+
+  字段非法/非固定 Tier；未写入、无副作用；修正后重试。
+
+- **`ERR-CONFLICT`（409 `resource_conflict`）**：
+
+  name/唯一冲突；未生效、事务回滚；改名重试。
+
+- **`ERR-INUSE`（409 `resource_in_use`）**：
+
+  删除被引用资源；未生效、资源不变；先解除引用。
+
+- **`ERR-STALE`（412 `version_conflict`）**：
+
+  `If-Match` 过期；未生效、资源不变；重新 GET 后重试。
+
+- **`ERR-NOTFOUND`（404）**：
+
+  未知 ID；未受理、无副作用；修正 ID。
+
+- **`ERR-STORE`（503）**：
+
+  存储不可用；本次失败；稍后重试。
+
+- **跨字段与寿命**：
+
+  载荷统一 `D-ERROR-ENVELOPE`；引导失败绝不以 legacy settings 覆盖已有 Store；请求级返回，不持久。
+
+- **合法/拒绝实例**：
+
+  拒绝：schema 版本不符 → `ERR-SCHEMA` 拒启动。
+
+- **验证**：
+
+  `T-CFG-BADREF`、`T-CFG-CAS`、`T-CFG-DELREF`。
 
 ### 4.9 编码、布局与共享类型映射
 
@@ -223,22 +634,12 @@ Authority = `util/migrations/*.sql`（M007 `migrate()` 执行）；列级阅读�
 
 ## 5. 接口设计
 
-> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口形态**分类逐接口完整记录；标题为真实调用形式，标题下先给完整接口声明，再就地说明输入/输出，最后按 §3.1 六项。数据结构引用 §4；错误引用系统 §8.8。
+> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口用途**分类逐接口完整记录；标题为真实调用形式，标题下先给完整接口声明，再就地说明输入/输出，最后按六项写完。数据结构引用 §4；错误引用系统 §8.8。分类：API = 向 Consumer/Operator 提供可调用能力（本机制为管理面 HTTP 端点）；消息与数据流 = 责任单元之间为协作而交换的命令/状态/事实（含进程内函数）。
 
-### 5.1 软件接口（适用时）
-
-#### `Registry.bootstrap_settings(settings_path: str | None) -> None`
-```text
-Registry.bootstrap_settings(settings_path: str | None) -> None
-```
-- **Interface/Member ID、状态、文件·symbol**：`IF-CFG-BOOTSTRAP`；Implemented；唯一契约=本设计 + `llmtier-settings-v0.3.schema.json`；`src/management/registry.py` `Registry.bootstrap_settings`；由启动流程调用。
-- **输入**：`settings_path: str | None`；前置=迁移已建表（`schema_meta` 单行存在）；授权=启动路径，无 HTTP 授权；校验顺序=读文件/解析 JSON → 顶层节集 == {providers,deployments,service_levels} → ID 唯一 → provider 引用完整 → 固定 Tier 与 deployment 引用 → `secret_ref` 仅 `env:`/`file:` 且可达 → 逐项字段集精确匹配。
-- **成功输出**：无返回值——受理/生效/完成为同一事务：写入 providers/deployments/levels/成员 + `schema_meta.bootstrap_sha256` + bootstrap 审计；副作用=持久化；随后 `/readyz` 就绪（§4.6）。
-- **错误与异常**：无 settings 且空库 → `ERR-BOOT`（503 `bootstrap_required`，未受理、无副作用）；解析/校验/事务失败 → `ERR-BOOT`（503 `bootstrap_invalid`，回滚、not_ready）；schema 不符由 M007 提前以 `ERR-SCHEMA` 拒绝；载荷 `D-ERROR-ENVELOPE`。合法下一步：修正 settings/迁移后重启。
-- **交互与生命周期**：同步阻塞；启动期一次；事务全成功或全回滚（`store.transaction(True)`）；可重入：已有 `bootstrap_sha256` → 立即 no-op，不重导入（INV-2）；不热载文件（§13）。
-- **实例与验证**：正常：空库 + 合法三节 settings → hash 置位、`/readyz` 就绪；边界：重复启动 → no-op 且 hash 不变。`T-CFG-BOOT`；Run=NOT_RUN。
+### 5.1 API（适用时）
 
 #### `GET/POST /v1/providers`；`GET/PATCH/DELETE /v1/providers/{provider_id}`
+
 ```text
 GET    /v1/providers?cursor=&limit=             -> 200 ProviderPage
 POST   /v1/providers {ProviderWrite}            -> 201 ProviderView (ETag)
@@ -247,14 +648,16 @@ PATCH  /v1/providers/{provider_id} {ProviderPatch} If-Match -> 200 ProviderView 
 DELETE /v1/providers/{provider_id} If-Match     -> 204
   -> 4xx/5xx: ErrorEnvelope
 ```
-- **Interface/Member ID、状态、文件·symbol**：`IF-CFG-PROVIDERS`；Implemented；唯一契约=`openapi` + `llmtier-management-contract-v0.3`；`src/http_api/app.py` → `src/management/registry.py`（`create/get/list/update/delete_provider`）。
-- **输入**：`D-CFG-ADMIN-WRITE`（§4.4）；路径 `provider_id`；PATCH/DELETE 必填 `If-Match: D-CFG-VERSION-TAG`；授权=`admin` 角色（系统 `ERR-AUTH-*`）；校验顺序=鉴权 → body schema → `If-Match` → 业务约束。
-- **成功输出**：`ProviderView`（`D-PROVIDER` 投影，`secret_ref` 只写不回显）+ 强 `ETag`；受理=写事务未提交前不对外；生效=提交后可见；副作用=同事务写 `D-AUDIT-EVENT`。
-- **错误与异常**：`ERR-AUTH-*`（401/403/503）；`ERR-REQ-VALIDATION`（400）；`ERR-CONFLICT`（409 重名）；`ERR-INUSE`（409 被引用删除）；`ERR-STALE`（412 `If-Match` 过期）；`ERR-NOTFOUND`（404）；`ERR-STORE`（503）；逐条件结果已知、失败无副作用，载荷 `D-ERROR-ENVELOPE`。
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-CFG-PROVIDERS`；provider CRUD（Operator 管理 provider）；M004 Management（事务化 Registry）提供、M001 暴露；交接边界=HTTP 管理面→Registry；状态=Implemented；唯一契约=`openapi` + `llmtier-management-contract-v0.3`；`src/http_api/app.py` → `src/management/registry.py`（`create/get/list/update/delete_provider`）。
+- **输入与前提**：`D-CFG-ADMIN-WRITE`（§4.4）；路径 `provider_id`；PATCH/DELETE 必填 `If-Match: D-CFG-VERSION-TAG`（§4.2.2）；授权=`admin` 角色（系统 `ERR-AUTH-*`）；校验顺序=鉴权 → body schema → `If-Match` → 业务约束。
+- **成功输出与保证**：`ProviderView`（`D-PROVIDER` 投影，`secret_ref` 只写不回显）+ 强 `ETag`；受理=写事务未提交前不对外；生效=提交后可见；副作用=同事务写 `D-AUDIT-EVENT`。
+- **错误与合法下一步**：`ERR-AUTH-*`（401/403/503）；`ERR-REQ-VALIDATION`（400）；`ERR-CONFLICT`（409 重名）；`ERR-INUSE`（409 被引用删除）；`ERR-STALE`（412 `If-Match` 过期）；`ERR-NOTFOUND`（404）；`ERR-STORE`（503）；逐条件结果已知、失败无副作用，载荷 `D-ERROR-ENVELOPE`。
 - **交互与生命周期**：同步；PATCH partial（只改出现字段）；DELETE 幂等；ETag 乐观并发；版本单调 +1。
-- **实例与验证**：正常 POST → 201+ETag；拒绝 stale PATCH → 412。`T-CFG-CAS`、`T-CFG-DELREF`；Run=NOT_RUN。
+- **实现与验证**：正常 POST → 201+ETag；拒绝 stale PATCH → 412。`T-CFG-CAS`、`T-CFG-DELREF`；Run=NOT_RUN。
 
 #### `GET/POST /v1/deployments`；`GET/PATCH/DELETE /v1/deployments/{deployment_id}`
+
 ```text
 GET    /v1/deployments?cursor=&limit=            -> 200 DeploymentPage
 POST   /v1/deployments {DeploymentWrite}         -> 201 DeploymentView (ETag)
@@ -263,14 +666,16 @@ PATCH  /v1/deployments/{deployment_id} {DeploymentPatch} If-Match -> 200 Deploym
 DELETE /v1/deployments/{deployment_id} If-Match  -> 204
   -> 4xx/5xx: ErrorEnvelope
 ```
-- **Interface/Member ID、状态、文件·symbol**：`IF-CFG-DEPLOYMENTS`；Implemented；`src/http_api/app.py` → `src/management/registry.py`。
-- **输入**：`D-CFG-ADMIN-WRITE`；`provider_id` 必须存在；`capabilities` 为 `D-CAPABILITY` 12 键；`If-Match`；授权=`admin`。
-- **成功输出**：`DeploymentView` + `ETag`；副作用=同事务审计；新建时创建 `deployment_runtime_profiles` 行。
-- **错误与异常**：未知 provider/能力非法 → `ERR-REQ-VALIDATION`（400）；重名 `ERR-CONFLICT`；删除被 level 引用 `ERR-INUSE`；`ERR-STALE`/`ERR-NOTFOUND`/`ERR-STORE`。
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-CFG-DEPLOYMENTS`；deployment CRUD；M004 Management 提供、M001 暴露；状态=Implemented；唯一契约=`openapi`；`src/http_api/app.py` → `src/management/registry.py`。
+- **输入与前提**：`D-CFG-ADMIN-WRITE`（§4.4）；`provider_id` 必须存在；`capabilities` 为 `D-CAPABILITY` 12 键（§4.3.2）；`If-Match`；授权=`admin`。
+- **成功输出与保证**：`DeploymentView` + `ETag`；副作用=同事务审计；新建时创建 `deployment_runtime_profiles` 行。
+- **错误与合法下一步**：未知 provider/能力非法 → `ERR-REQ-VALIDATION`（400）；重名 `ERR-CONFLICT`；删除被 level 引用 `ERR-INUSE`；`ERR-STALE`/`ERR-NOTFOUND`/`ERR-STORE`。
 - **交互与生命周期**：同步；partial PATCH；DELETE 幂等；ETag 乐观并发。
-- **实例与验证**：正常引用已存在 provider；拒绝未知 provider。`T-CFG-BADREF`；Run=NOT_RUN。
+- **实现与验证**：正常引用已存在 provider；拒绝未知 provider。`T-CFG-BADREF`；Run=NOT_RUN。
 
 #### `GET/POST /v1/service-levels`；`GET/PATCH /v1/service-levels/{level_id}`（DELETE 禁止）
+
 ```text
 GET   /v1/service-levels?cursor=&limit=          -> 200 ServiceLevelPage
 POST  /v1/service-levels {ServiceLevelWrite}     -> 201 ServiceLevelView (ETag)
@@ -279,38 +684,54 @@ PATCH /v1/service-levels/{level_id} {…} If-Match -> 200 ServiceLevelView (ETag
 DELETE /v1/service-levels/{level_id}             -> 409 fixed_service_level
   -> 4xx/5xx: ErrorEnvelope
 ```
-- **Interface/Member ID、状态、文件·symbol**：`IF-CFG-LEVELS`；Implemented；`src/http_api/app.py` → `src/management/registry.py`。
-- **输入**：`level_id`∈`D-CFG-TIER`；`deployment_ids[]` 有序；`If-Match`；授权=`admin`。
-- **成功输出**：`ServiceLevelView`（含 `capabilities`=成员交集）+ `ETag`；副作用=写成员表（ordinal）+ 审计；版本 +1。
-- **错误与异常**：非固定 Tier → `ERR-REQ-VALIDATION`（400）；成员无共同能力 → 409 `capability_conflict`；非兼容 Embedding → 409 `embedding_space_conflict`；删除固定 Tier → 409 `fixed_service_level`（`ERR-CONFLICT` 语义，系统无专码）；`ERR-STALE`/`ERR-NOTFOUND`。
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-CFG-LEVELS`；service level 成员绑定；M004 Management 提供、M001 暴露；状态=Implemented；唯一契约=`openapi`；`src/http_api/app.py` → `src/management/registry.py`。
+- **输入与前提**：`level_id`∈`D-CFG-TIER`（§4.1.3）；`deployment_ids[]` 有序；`If-Match`；授权=`admin`。
+- **成功输出与保证**：`ServiceLevelView`（含 `capabilities`=成员交集）+ `ETag`；副作用=写成员表（ordinal）+ 审计；版本 +1。
+- **错误与合法下一步**：非固定 Tier → `ERR-REQ-VALIDATION`（400）；成员无共同能力 → 409 `capability_conflict`；非兼容 Embedding → 409 `embedding_space_conflict`；删除固定 Tier → 409 `fixed_service_level`（`ERR-CONFLICT` 语义，系统无专码）；`ERR-STALE`/`ERR-NOTFOUND`。
 - **交互与生命周期**：同步；DELETE 恒定拒绝；partial PATCH；ordinal 决定候选顺序，重启后不漂移。
-- **实例与验证**：正常 PATCH Worker 成员 → 交集通过、版本 +1；拒绝 DELETE 固定 Tier → 409。`T-CFG-SPACE`；Run=NOT_RUN。
-
-#### `Registry.candidates(level_id: str) -> list[Candidate]`
-```text
-Registry.candidates(level_id: str) -> list[Candidate]
-```
-- **Interface/Member ID、状态、文件·symbol**：`IF-CFG-CANDIDATES`；Implemented；`src/management/registry.py` `Registry.candidates`。
-- **输入**：`level_id: D-CFG-TIER`；前置=调用方已鉴权（推理数据面）；授权=无额外（只读）；校验=level 存在且 enabled 成员。
-- **成功输出**：`list[D-CFG-CANDIDATE]`（按 `ordinal` 升序）；受理/生效=逐次请求重新读取，不缓存陈旧快照；副作用=无。
-- **错误与异常**：无 Error ID；未知/无成员 → 空列表（由 Router 转 404/503）；存储异常 → `ERR-STORE`。
-- **交互与生命周期**：同步只读；请求级；幂等；每次调用重新核验版本与健康。
-- **实例与验证**：正常返回有序候选；边界：未配置成员 → `[]`。路由用例；Run=NOT_RUN。
-
-#### `Registry.get_service_level(level_id: str) -> tuple[dict, str]`
-```text
-Registry.get_service_level(level_id: str) -> tuple[dict, str]
-```
-- **Interface/Member ID、状态、文件·symbol**：`IF-CFG-GET-LEVEL`；Implemented；`src/management/registry.py`。
-- **输入**：`level_id`；授权=内部调用；校验=读取 `service_levels` + 成员。
-- **成功输出**：`(ServiceLevelView, ETag)`；受理/生效=只读即时；副作用=无。
-- **错误与异常**：未知 ID → `ERR-NOTFOUND`（404）；载荷 `D-ERROR-ENVELOPE`。
-- **交互与生命周期**：同步只读；幂等。
-- **实例与验证**：正常读 `Worker`；拒绝未知 → 404。路由用例；Run=NOT_RUN。
+- **实现与验证**：正常 PATCH Worker 成员 → 交集通过、版本 +1；拒绝 DELETE 固定 Tier → 409。`T-CFG-SPACE`；Run=NOT_RUN。
 
 ### 5.2 消息与数据流接口（适用时）
 
-不适用：配置变更为同步 HTTP 请求/响应，无事件/队列/流；`candidates()` 为同步只读查询。
+#### `Registry.bootstrap_settings(settings_path: str | None) -> None`
+
+```text
+Registry.bootstrap_settings(settings_path: str | None) -> None
+```
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-CFG-BOOTSTRAP`；空库一次性引导：校验 settings 并事务写入 Registry；Management 提供、启动流程消费；交接边界=迁移建表后、服务开放前；状态=Implemented；唯一契约=本设计 + `llmtier-settings-v0.3.schema.json`；`src/management/registry.py` `Registry.bootstrap_settings`。
+- **输入与前提**：`settings_path: str | None`；前置=迁移已建表（`schema_meta` 单行存在）；授权=启动路径，无 HTTP 授权；校验顺序=读文件/解析 JSON → 顶层节集 == {providers,deployments,service_levels} → ID 唯一 → provider 引用完整 → 固定 Tier 与 deployment 引用 → `secret_ref` 仅 `env:`/`file:` 且可达 → 逐项字段集精确匹配。
+- **成功输出与保证**：无返回值——受理/生效/完成为同一事务：写入 providers/deployments/levels/成员 + `schema_meta.bootstrap_sha256` + bootstrap 审计；副作用=持久化；随后 `/readyz` 就绪（§4.6.1）。
+- **错误与合法下一步**：无 settings 且空库 → `ERR-BOOT`（503 `bootstrap_required`，未受理、无副作用）；解析/校验/事务失败 → `ERR-BOOT`（503 `bootstrap_invalid`，回滚、not_ready）；schema 不符由 M007 提前以 `ERR-SCHEMA` 拒绝；载荷 `D-ERROR-ENVELOPE`。合法下一步：修正 settings/迁移后重启。
+- **交互与生命周期**：同步阻塞；启动期一次；事务全成功或全回滚（`store.transaction(True)`）；可重入：已有 `bootstrap_sha256` → 立即 no-op，不重导入（INV-2）；不热载文件（§13）。
+- **实现与验证**：正常：空库 + 合法三节 settings → hash 置位、`/readyz` 就绪；边界：重复启动 → no-op 且 hash 不变。`T-CFG-BOOT`；Run=NOT_RUN。
+
+#### `Registry.candidates(level_id: str) -> list[Candidate]`
+
+```text
+Registry.candidates(level_id: str) -> list[Candidate]
+```
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-CFG-CANDIDATES`；对 Router 提供同等级有序候选（只读）；Management 提供、M003 Router 消费；交接边界=推理数据面准入前；状态=Implemented；`src/management/registry.py` `Registry.candidates`。
+- **输入与前提**：`level_id: D-CFG-TIER`（§4.1.3）；前置=调用方已鉴权（推理数据面）；授权=无额外（只读）；校验=level 存在且 enabled 成员。
+- **成功输出与保证**：`list[D-CFG-CANDIDATE]`（§4.2.1，按 `ordinal` 升序）；受理/生效=逐次请求重新读取，不缓存陈旧快照；副作用=无。
+- **错误与合法下一步**：无 Error ID；未知/无成员 → 空列表（由 Router 转 404/503）；存储异常 → `ERR-STORE`。
+- **交互与生命周期**：同步只读；请求级；幂等；每次调用重新核验版本与健康。
+- **实现与验证**：正常返回有序候选；边界：未配置成员 → `[]`。路由用例；Run=NOT_RUN。
+
+#### `Registry.get_service_level(level_id: str) -> tuple[dict, str]`
+
+```text
+Registry.get_service_level(level_id: str) -> tuple[dict, str]
+```
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-CFG-GET-LEVEL`；读取单个等级及其成员（只读）；Management 提供、Inference/Internal Admission 消费；交接边界=等级/能力查询；状态=Implemented；`src/management/registry.py`。
+- **输入与前提**：`level_id`；授权=内部调用；校验=读取 `service_levels` + 成员。
+- **成功输出与保证**：`(ServiceLevelView, ETag)`；受理/生效=只读即时；副作用=无。
+- **错误与合法下一步**：未知 ID → `ERR-NOTFOUND`（404）；载荷 `D-ERROR-ENVELOPE`。
+- **交互与生命周期**：同步只读；幂等。
+- **实现与验证**：正常读 `Worker`；拒绝未知 → 404。路由用例；Run=NOT_RUN。
 
 ### 5.3 硬件与固件接口（适用时）
 
@@ -322,23 +743,23 @@ Registry.get_service_level(level_id: str) -> tuple[dict, str]
 ```text
 GET /readyz -> 200 {status:"ready", models:[…]} | 503 {status:"not_ready", models:[]}
 ```
-- **Interface/Member ID、状态、文件·symbol**：`IF-CFG-READY`；Implemented；`src/http_api/app.py` → `health.readiness_view`。
-- **输入**：无参数；前置=进程存活；执行位置=LLMTier 管理面；授权=无鉴权或 operator 均可；校验=无。
-- **成功输出**：`{status:"ready", models:[…]}`——受理/生效=即时；副作用=无。
-- **错误与异常**：初始化失败 → 503 `{status:"not_ready", models:[]}`（以就绪状态表达，非 `D-ERROR-ENVELOPE`）；结果已知、无副作用；合法下一步=修正配置后重启。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-CFG-READY`；就绪自检，暴露初始化状态与依赖状态；M001 提供、部署方/运维消费；状态=Implemented；`src/http_api/app.py` → `health.readiness_view`。
+- **输入与前提**：无参数；前置=进程存活；执行位置=LLMTier 管理面；授权=无鉴权或 operator 均可；校验=无。
+- **成功输出与保证**：`{status:"ready", models:[…]}`——受理/生效=即时；副作用=无。
+- **错误与合法下一步**：初始化失败 → 503 `{status:"not_ready", models:[]}`（以就绪状态表达，非 `D-ERROR-ENVELOPE`）；结果已知、无副作用；合法下一步=修正配置后重启。
 - **交互与生命周期**：同步只读；幂等；无占用/取消/恢复。
-- **实例与验证**：正常就绪返回 ready；引导失败返回 not_ready。`T-CFG-BOOT`；Run=NOT_RUN。
+- **实现与验证**：正常就绪返回 ready；引导失败返回 not_ready。`T-CFG-BOOT`；Run=NOT_RUN。
 
 #### 离线迁移（单一版本命令）
 ```text
 migrate(store_path) -> {from_version, to_version} | non-zero exit
 ```
-- **Interface/Member ID、状态、文件/命令**：`IF-CFG-MIGRATE`；Manual；契约=本项目运维流程（`util` 迁移程序）。
-- **输入**：目标=SQLite 文件；输入=单一目标版本；前置=已备份；执行位置=管理主机；授权=operator。
-- **成功输出**：`{from_version, to_version}`——受理/完成=迁移提交；副作用=库 schema 变更（先备份）。
-- **错误与异常**：失败 → 非零退出码；结果可能需按备份还原；不双写、不可并行（§13）。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-CFG-MIGRATE`；显式离线迁移 SQLite schema（单一版本命令）；运维流程提供、operator 消费；交接边界=停机后的库迁移；状态=Manual；契约=本项目运维流程（`util` 迁移程序）。
+- **输入与前提**：目标=SQLite 文件；输入=单一目标版本；前置=已备份；执行位置=管理主机；授权=operator。
+- **成功输出与保证**：`{from_version, to_version}`——受理/完成=迁移提交；副作用=库 schema 变更（先备份）。
+- **错误与合法下一步**：失败 → 非零退出码；结果可能需按备份还原；不双写、不可并行（§13）。
 - **交互与生命周期**：离线执行；不可与运行实例并行；终止后以备份/迁移结果为基线。
-- **实例与验证**：运维演练；Run=NOT_RUN。
+- **实现与验证**：运维演练；Run=NOT_RUN。
 
 > `GET /healthz`（存活探针）为项目健康契约，记录于 §12.2，不构成本机制的数据/接口分配对象。
 
@@ -474,8 +895,8 @@ migrate(store_path) -> {from_version, to_version} | non-zero exit
 
 | 责任单元（§14.1） | 承接的成员/结构 ID（§4/§5） | 角色 | 本机制固定的语义与边界（引用） |
 |---|---|---|---|
-| 启动流程 | `IF-CFG-BOOTSTRAP`、`D-CFG-SETTINGS`（§4.3）、`D-CFG-BOOTSTRAP-STATE`（§4.6） | 消费/提供 | 迁移、一次性引导、not_ready；不处理运行期变更（§5.1） |
-| Management（Registry/Config、Admin） | `IF-CFG-PROVIDERS`、`IF-CFG-DEPLOYMENTS`、`IF-CFG-LEVELS`、`IF-CFG-CANDIDATES`、`IF-CFG-GET-LEVEL` | 提供 | CRUD+ETag、能力/不变量校验、审计、有序候选（§5.1） |
+| 启动流程 | `IF-CFG-BOOTSTRAP`、`D-CFG-SETTINGS`（§4.3）、`D-CFG-BOOTSTRAP-STATE`（§4.6） | 消费/提供 | 迁移、一次性引导、not_ready；不处理运行期变更（§5.2） |
+| Management（Registry/Config、Admin） | `IF-CFG-PROVIDERS`、`IF-CFG-DEPLOYMENTS`、`IF-CFG-LEVELS`、`IF-CFG-CANDIDATES`、`IF-CFG-GET-LEVEL` | 提供 | CRUD+ETag、能力/不变量校验、审计、有序候选（§5.1/§5.2） |
 | HTTP Adapter | `IF-CFG-PROVIDERS`、`IF-CFG-DEPLOYMENTS`、`IF-CFG-LEVELS` | 消费/映射 | 管理面路由与错误映射；不含业务规则 |
 | Inference 编排 / Internal Admission | `IF-CFG-CANDIDATES`、`IF-CFG-GET-LEVEL` | 消费 | 只读等级/能力与有序候选；不做跨等级 fallback |
 | Store / Audit Writer | 各持久表（§4.7） | 提供 | 事务、审计；唯一持久化 |

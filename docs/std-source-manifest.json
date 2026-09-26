@@ -1,8 +1,8 @@
 {
   "schema_version": "std-source-manifest.v1",
-  "std_version": "0.1.0-draft.37",
+  "std_version": "0.1.0-draft.39",
   "source_repository": "corezilla/STD",
-  "source_revision": "fe28370a811d308f5bd1d3da7c9029ccfe078f78",
+  "source_revision": "24e1ff97531e5bf118dca0fec60e5fd162fc0c35",
   "source_tag": null,
   "generated_at": "2026-09-26",
   "artifacts": [
@@ -14,7 +14,7 @@
     {
       "path": "README.md",
       "role": "guidance",
-      "sha256": "dfdc4c854007621274aa16ef65bf3a53f484b81e54dd54a4f569c5541c311ca4"
+      "sha256": "65434ddf981a59c3a51b60e24e3a1de31bddd5cd77fbc7bc61d14eb9152319f2"
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
@@ -24,7 +24,7 @@
     {
       "path": "VERSION",
       "role": "guidance",
-      "sha256": "f8423ebbd187a931d069351e388b79214fe1943686e2d2e116975824913258c0"
+      "sha256": "017d316d37a03ecddd0557b226dc141cd5889897c951e32c215bc11dbf02129b"
     },
     {
       "path": "docs/adoption.md",
@@ -54,7 +54,7 @@
     {
       "path": "docs/ai-guides/implementation-design.md",
       "role": "guidance",
-      "sha256": "3492c94ff03beb7d2f6735b4079f3dbebf3066dfe5f17a8b13e9a055790645f9"
+      "sha256": "7190165f6a8d84a4e724a1f476ab44a013922f9d5e424cb88aaf1205481b1f8e"
     },
     {
       "path": "docs/ai-guides/interfaces-contracts-data.md",
@@ -89,12 +89,12 @@
     {
       "path": "docs/ai-guides/software-system.md",
       "role": "guidance",
-      "sha256": "af98ec0212fb1a9a0a21e90f59c05ec94ec7f450d254d8971dc53c93c093c92f"
+      "sha256": "2238ce6b4edb13b1de79ca69cba30f2867a86450ce3948c94bed9d3fb9d7a66b"
     },
     {
       "path": "docs/ai-guides/system-mechanism.md",
       "role": "guidance",
-      "sha256": "e42fe04eadf1ada412662368dea95718e7c3b4616cc0ff9915d1d6e7b9a7042b"
+      "sha256": "de82ff9910aa9f4db35a63596def7c529465f2a34077d84efe12b817fb4eaabf"
     },
     {
       "path": "docs/ai-guides/technical-analysis.md",
@@ -104,7 +104,7 @@
     {
       "path": "docs/ai-guides/unit-design.md",
       "role": "guidance",
-      "sha256": "7326115def0b15e90f37da1b72ba08d11ffcbc409480bc657ef68aa034146915"
+      "sha256": "62df35ac4b7739928b46efd53e7d35a09ee1b2976ab104e88ec892e3ad28a4eb"
     },
     {
       "path": "docs/ai-guides/verification.md",
@@ -114,7 +114,7 @@
     {
       "path": "docs/ai-system-design-authoring-guide.md",
       "role": "guidance",
-      "sha256": "b645d681d6c513999c0086216d5179aadd5b872e414fe5c3893b8bd8665d8aef"
+      "sha256": "e8406153a2b3a508b60883f66355548af84576e212854b60b7b13d5c8fdba356"
     },
     {
       "path": "docs/architecture-design-authoring-guide.md",
@@ -274,7 +274,7 @@
     {
       "path": "docs/design-data-interface-format.md",
       "role": "guidance",
-      "sha256": "45b42e2c6943ceaa71eae5780b06cf69ec5355669849f4d455dde4b07359e585"
+      "sha256": "08af020986934ab2176fc4f8d2efcb8debfbb4c6e0fdbda1c37514eb8c7511cb"
     },
     {
       "path": "docs/design-writing-guide.md",
@@ -449,7 +449,7 @@
     {
       "path": "examples/std.lock.example.json",
       "role": "example",
-      "sha256": "2932ba2a78b2b3e7ffafa273e9c55c21f981da61114531bad4788b227e4f99c9"
+      "sha256": "5a646dd24277c81e5fa7374542c4e3eb5985e00ed852db27e1292b49bbf3f69f"
     },
     {
       "path": "schemas/document-metadata.schema.json",
@@ -594,7 +594,7 @@
     {
       "path": "templates/catalog.json",
       "role": "template",
-      "sha256": "4f1337e38645aeb1dc7c6cda3fd00cdab5d137b8f06fce521a58ab65a057715f"
+      "sha256": "8bee9e84961c33833aa11456112d1c95e7ad14438b2f010d927d3200a0b54902"
     },
     {
       "path": "templates/contracts/contract-specification.md",
@@ -609,7 +609,7 @@
     {
       "path": "templates/design/architecture-design.md",
       "role": "template",
-      "sha256": "5d539a978991147e9395e67e9473b47dafa548229807d2aba71cf5885fdf8db7"
+      "sha256": "6480f6012fc721c36724c344d600510db55ed189fb29fa785aad6a52c59532f3"
     },
     {
       "path": "templates/design/data-dictionary.md",
@@ -619,7 +619,7 @@
     {
       "path": "templates/design/design-definition.md",
       "role": "template",
-      "sha256": "f8851bfb83805588740c4f82e837392573c4fac0f1c86ec86cc96689b2898a72"
+      "sha256": "bb109b09296e6a27dcf776b0bf62b11fe821f27784cdb3b6c93121709922ca82"
     },
     {
       "path": "templates/design/fpga-design.md",
@@ -634,22 +634,22 @@
     {
       "path": "templates/design/implementation-design.md",
       "role": "template",
-      "sha256": "38ea4945fe644c6c95524dfb4258b0c0eaed5eeb50f6b1a4d55077ab382195c2"
+      "sha256": "c53ccf8ae585222101e0aba019638005b314271354d79a068a0a9fde9c5c1616"
     },
     {
       "path": "templates/design/software-system-design.md",
       "role": "template",
-      "sha256": "f9bb712d36957d3c3aaad749e05534beda0650b43ea894c740421d0ba1fd0da8"
+      "sha256": "094649fcf21136915dc506b5cbab759a05bd321629f48e8863471534504d4dea"
     },
     {
       "path": "templates/design/subsystem-design.md",
       "role": "template",
-      "sha256": "07c2885f9f7c2b5916f2afa87689782097ec966144ce81faaf565ddb2f1ba501"
+      "sha256": "6d5627d0784bc38432b29447626dca92b660b5bc2dcb70f83b2147792bedeea4"
     },
     {
       "path": "templates/design/system-mechanism-design.md",
       "role": "template",
-      "sha256": "e3733bac3fdefb17d8b9e532da4f72f0aaec54f1376b2dddd6c1a6dac13afcba"
+      "sha256": "1ac0bd4d6ce5a8958e02639a9581366228adc6a15d2feec15203dc65e0753111"
     },
     {
       "path": "templates/diagrams/README.md",
@@ -665,6 +665,31 @@
       "path": "templates/diagrams/fpga-program-architecture.svg",
       "role": "template",
       "sha256": "ffe4b0fa19bdf7a82b7f9b11a74825a6da2f94c94a286b5d497acfc37701f9fa"
+    },
+    {
+      "path": "templates/diagrams/isd-command-lifecycle.svg",
+      "role": "template",
+      "sha256": "96097c82771c08ca2d371562713ab0568f3753c540ac8637c703c991e4a75507"
+    },
+    {
+      "path": "templates/diagrams/isd-decode-branches.svg",
+      "role": "template",
+      "sha256": "ff430923ed6bd8e5b60752326a8fa7c387386ce46fe15c1eacbc74c91bfceed4"
+    },
+    {
+      "path": "templates/diagrams/isd-decode-sequence.svg",
+      "role": "template",
+      "sha256": "5a6918efc104ae129df0e7acaaa63bc5a83faf9c8dfd69ce0e453e2639401db5"
+    },
+    {
+      "path": "templates/diagrams/isd-frame-components.svg",
+      "role": "template",
+      "sha256": "536598039c403df0c28a92758165d1b722c9a93be02d7d52307c1f45e8565daa"
+    },
+    {
+      "path": "templates/diagrams/isd-frame-view-lifetime.svg",
+      "role": "template",
+      "sha256": "5fe70917c671ffe78db89c7484823271d7b1a7b77b0ae6239bd34a383e525962"
     },
     {
       "path": "templates/diagrams/llmtier-webui-frame.png",

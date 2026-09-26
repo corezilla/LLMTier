@@ -15,7 +15,7 @@
 | Created Date | `2026-09-23` |
 | Last Modified Date | `2026-09-25` |
 | Template ID | `design.definition` |
-| Template Version | `3.0.0` |
+| Template Version | `3.2.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |
@@ -272,25 +272,25 @@
 
 ### 5.3 文件间接口契约
 
-> 采用**接口固定格式**（功能 / 输入 / 输出 / 返回值 / 统计 · 日志 / 数据库）。覆盖**跨模块文件**与**模块内文件 ↔ 文件**调用；逐方法细节见 §9.2，数据结构见 §9.1。
+> 采用**接口固定格式**（功能 / 输入 / 输出 / 返回值 / 统计 · 日志 / 数据库）。覆盖**跨模块文件**与**模块内文件 ↔ 文件**调用；逐方法细节见 §9.1，数据结构见 §6。
 
 #### 5.3.1 `IF-DIAG-01` · `src/http_api/app.py` → `src/libdiag/diagnostics.py`（查询/开关/注入）
 - **功能**：M005 诊断路由经门面做查询、开关切换与注入配置读写。
 - **输入**：
   - `switches()` / `set_switches(snapshots_enabled?, stats_enabled?)`｜开关
   - `snapshots_page(...)` / `stats(...)` / `trace(...)` / `traces(...)` / `injections(...)` / `set_injections(...)`｜查询 / 写配置
-- **输出**：`SwitchState` / `SnapshotPage` / `StatsView` / `TraceView` / `InjectionView[]`（§9.1）。
-- **返回值**：见 §9.2；`400`/`404` 由门面透传。
+- **输出**：`SwitchState` / `SnapshotPage` / `StatsView` / `TraceView` / `InjectionView[]`（§6.2）。
+- **返回值**：见 §9.1；`400`/`404` 由门面透传。
 - **统计 · 日志**：无。
-- **数据库**：见 §9.2 各接口（查询只读；`set_switches`/`set_injections` 写）。
+- **数据库**：见 §9.1 各接口（查询只读；`set_switches`/`set_injections` 写）。
 
 #### 5.3.2 `IF-DIAG-02` · `src/inference/responses.py` → `src/libdiag/diagnostics.py`（记录）
 - **功能**：推理路径经门面记录 trace / 快照 / 统计。
-- **输入**：`record_trace(...)` / `capture_snapshot(...)` / `record_latency(...)`（逐参数见 §9.2）。
+- **输入**：`record_trace(...)` / `capture_snapshot(...)` / `record_latency(...)`（逐参数见 §9.1）。
 - **输出**：无 / `snap_id`。
 - **返回值**：`None` / `snap_id` / `null`；**fail-open 不抛**。
 - **统计 · 日志**：写失败记 warning（`capture_failed`）。
-- **数据库**：见 §9.2（`INSERT trace_events`/`diagnostic_snapshots`；`UPSERT data_plane_stats`）。
+- **数据库**：见 §9.1（`INSERT trace_events`/`diagnostic_snapshots`；`UPSERT data_plane_stats`）。
 
 #### 5.3.3 `IF-DIAG-03` · `src/http_api/app.py` → `src/libdiag/diagnostics.py`（流注入）
 - **功能**：M001 SSE 输出经 `stream_wrapper` 包装。
@@ -328,136 +328,571 @@
 
 ## 6. 数据结构设计
 
-> 按 STD `design-data-interface-format` 1.2.0：主章"数据结构设计"，章内按**数据性质分类**（本项目适用类别见下；`6.4 通信报文`/`6.5 设备与 FPGA 表项` 本模块不适用——libdiag 为进程内库，无 wire/无设备）。继承结构只定位原定义；本层拥有的结构逐项完整记录（ID/唯一来源/字段/约束/状态·所有权·寿命/合法与拒绝实例/验证）。
+> 按 STD `design-data-interface-format` 1.2.0 §2：主章“数据结构设计”，章内按**数据性质分类**（§6.1–§6.8），仅保留适用类别。底层列权威为 `util/migrations/002_observability.sql`（由 M007 `migrate()` 执行）；本模块拥有下层类型 ID 前缀 `D-DIAG-*`，逐结构完整记录（Data/Type ID、用途与来源／逐字段／跨字段与寿命／合法与拒绝实例／验证）。
 
-**适用性**：6.1 公共基础类型与枚举 ✓｜6.2 业务与操作数据结构 ✓｜6.3 配置与规则数据结构 ✓｜6.4 通信报文 ✗（进程内，无 wire）｜6.5 设备与 FPGA 表项 ✗（无设备）｜6.6 运行状态数据结构 ✓｜6.7 数据库表结构 ✓｜6.8 错误码与错误结构 ✓（引用系统 Error ID）。
+**类别适用性**：6.1 公共基础类型与枚举 ✓｜6.2 业务与操作数据结构 ✓｜6.3 配置与规则数据结构 ✓｜6.4 通信报文结构 ✗（进程内库，无 wire）｜6.5 设备与 FPGA 表项结构 ✗（无设备）｜6.6 运行状态数据结构 ✓｜6.7 数据库表结构 ✓｜6.8 错误码与错误结构 ✓（引用系统 Error ID）。
 
 ### 6.1 公共基础类型与枚举
 
-#### `TraceStageName`（`traces.py`）
-- **定义**：trace 阶段名；调用方约定集合，代码不校验。
-- **字段 / 取值**：`str` ∈ {`received`,`validated`,`routed`,`upstream_started`,`upstream_ended`,`completed`,`aborted`}（每个 ≤64）。
-- **约束 / 不变量**：同一 request 的 `stages` 按 `stage_timestamp` 升序。
-- **状态 · 所有权 · 寿命**：无状态枚举；随 `trace_events.stage` 持久（保留 7 天）。
-- **实例**：合法 `completed`；边界：未知字符串可写入（无强制），消费方按未知处理。
-- **来源 / 验证**：`traces.py`；`VRC-DIAG-002`。
+**6.1.1 `D-DIAG-STAGE` · TraceStageName（公共基础类型与枚举）**
 
-#### `InjectionType`（`injections.py`）
-- **定义**：6 种注入类型。
-- **字段 / 取值**：`str` ∈ {`fault_502`,`fault_503`,`delay`,`rate_limit`,`stream_terminate`,`malformed_event`}。
-- **约束 / 不变量**：白名单；每类型有固定 `config` 字段集（见 §6.3）。
-- **状态 · 所有权 · 寿命**：持久于 `diagnostic_injections.injection_type`。
-- **实例**：合法 `delay`；拒绝 `nope` → 400 `invalid_injection`。
-- **来源 / 验证**：`injections.py`；`VRC-DIAG-004`。
+```text
+enum TraceStageName {
+  received, validated, routed, upstream_started, upstream_ended, completed, aborted
+}
+```
 
-#### `SnapshotType` / `MalformedEventType`
-- **定义**：`SnapshotType` ∈ {`upstream`,`error`}；`MalformedEventType` ∈ {`invalid_json`,`unknown_event_type`}。
-- **字段 / 取值**：均 `str`，取值如上。
-- **约束 / 不变量**：`SnapshotType` 由 `http_status` 是否存在决定；`MalformedEventType` 白名单。
-- **状态 · 所有权 · 寿命**：随 `diagnostic_snapshots.snapshot_type` / 注入配置持久。
-- **实例**：`upstream`（有 status）；`invalid_json`。
-- **来源 / 验证**：`snapshots.py`/`injections.py`；`VRC-DIAG-002/004`。
+- **Data/Type ID、用途与来源**：
+
+  `D-DIAG-STAGE`；trace 阶段名集合；唯一来源 `src/libdiag/traces.py`（调用方约定集合，代码不强制校验）。
+
+- **`received`/`validated`/`routed`/`upstream_started`/`upstream_ended`/`completed`/`aborted`**：
+
+  必填枚举值；每值 ≤64 字符；同 request 的 `stages` 按 `timestamp` 升序。
+
+- **跨字段与寿命**：
+
+  无状态枚举；随 `trace_events.stage` 持久（7 天）。
+
+- **合法/拒绝实例**：
+
+  合法 `completed`；边界：未知字符串可写入（无强制），消费方按未知处理。
+
+- **验证**：
+
+  `VRC-DIAG-002`；来源 `traces.py`。
+
+**6.1.2 `D-DIAG-INJECTION-TYPE` · InjectionType（公共基础类型与枚举）**
+
+```text
+enum InjectionType {
+  fault_502, fault_503, delay, rate_limit, stream_terminate, malformed_event
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-DIAG-INJECTION-TYPE`；故障注入类型枚举；唯一来源 `src/libdiag/injections.py` 白名单。
+
+- **`fault_502`/`fault_503`/`delay`/`rate_limit`/`stream_terminate`/`malformed_event`**：
+
+  必填枚举值；白名单；每类型有固定 `config` 字段集（§6.3.1）。
+
+- **跨字段与寿命**：
+
+  白名单校验；随 `diagnostic_injections.injection_type` 持久；库寿命。
+
+- **合法/拒绝实例**：
+
+  合法 `delay`；拒绝 `nope` → 400 `invalid_injection`。
+
+- **验证**：
+
+  `VRC-DIAG-004`；来源 `injections.py`。
+
+**6.1.3 `D-DIAG-SNAPSHOT-TYPE` / `D-DIAG-MALFORMED-TYPE`（公共基础类型与枚举）**
+
+```text
+enum SnapshotType { upstream, error }
+enum MalformedEventType { invalid_json, unknown_event_type }
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-DIAG-SNAPSHOT-TYPE` ∈ {`upstream`,`error`}；`D-DIAG-MALFORMED-TYPE` ∈ {`invalid_json`,`unknown_event_type`}；唯一来源 `src/libdiag/snapshots.py`/`injections.py`。
+
+- **`upstream`/`error`**：
+
+  必填枚举值；`upstream` 由 `http_status` 存在决定。
+
+- **`invalid_json`/`unknown_event_type`**：
+
+  必填枚举值；malformed 类型白名单。
+
+- **跨字段与寿命**：
+
+  随 `diagnostic_snapshots.snapshot_type` / 注入配置持久。
+
+- **合法/拒绝实例**：
+
+  `upstream`（有 status）；`invalid_json`。
+
+- **验证**：
+
+  `VRC-DIAG-002`、`VRC-DIAG-004`；来源 `snapshots.py`/`injections.py`。
 
 ### 6.2 业务与操作数据结构
 
-#### `SwitchState`（`settings.py`）
-- **定义**：全局诊断开关状态。
-- **字段**：`snapshots_enabled: bool`（默认 `false`）；`stats_enabled: bool`（默认 `false`）。
-- **约束 / 不变量**：两字段独立；恒取自 `diagnostic_settings` 单行 `singleton=1`。
-- **状态 · 所有权 · 寿命**：持久单行；I1 写、I2–I6 读；随库寿命。
-- **实例**：合法 `{true,false}`；边界：缺行返回默认 false（迁移已保证恒有）。
-- **来源 / 验证**：`settings.py`；`VRC-DIAG-001`。
+**6.2.1 `D-DIAG-SWITCH` · SwitchState（业务与操作数据结构）**
 
-#### `TraceView` / `TraceStage`（`traces.py`）
-- **定义**：单请求完整 trace 视图及其阶段。
-- **字段**：`TraceView{request_id:str, correlation_id:str?, stages:TraceStage[≥1], snapshot:SnapshotView?, usage:UsageView?}`；`TraceStage{stage:TraceStageName, timestamp:RFC3339ms, detail:object?}`；`UsageView{record_version:int≥1, is_final:bool, model:str, input_tokens:int?, output_tokens:int?, total_tokens:int?, measurement_status:str∈{measured,unknown}, source:str}`。
-- **约束 / 不变量**：`stages` 非空且升序；`measured⇒tokens 非空`、`unknown⇒空（不补零）`。
-- **状态 · 所有权 · 寿命**：只读视图；组合 trace_events + diagnostic_snapshots + usage_record_versions（M003/M004）；请求级，非持久。
-- **实例**：合法完整 trace；拒绝：无记录 → `trace()` 返回 404。
-- **来源 / 验证**：`traces.py`；`VRC-DIAG-002`。
+```text
+SwitchState {
+  snapshots_enabled: bool,
+  stats_enabled: bool
+}
+```
 
-#### `TracePage` / `SnapshotPage`（`traces.py`/`snapshots.py`）
-- **定义**：trace / 快照分页。
-- **字段**：`{items: T[]（≤limit）, next_cursor: str?, has_more: bool}`。
-- **约束 / 不变量**：`has_more=false ⇒ next_cursor=null`；cursor 稳定（trace=`first_ts|request_id`；快照=末条 `id`）。
-- **状态 · 所有权 · 寿命**：请求级只读。
-- **实例**：合法翻页；边界：空匹配 → `items=[]`、`has_more=false`。
-- **来源 / 验证**：`traces.py`/`snapshots.py`；`VRC-DIAG-002`。
+- **Data/Type ID、用途与来源**：
 
-#### `SnapshotView`（`snapshots.py`）
-- **定义**：一次上游调用快照。
-- **字段**：`id:str, request_id:str, captured_at:RFC3339ms, upstream_url:str（去 query）, backend_model:str?, http_status:int?(100–599), latency_ms:float?(≥0), error_summary:str?(≤256B), model:str?, deployment_id:str?, snapshot_type:SnapshotType`。
-- **约束 / 不变量**：`upstream⇒http_status 非空`；`error⇒http_status 空`；URL 去 query；summary ≤256B。
-- **状态 · 所有权 · 寿命**：持久 `diagnostic_snapshots`；I3 写、M005 读；只追加；7 天。
-- **实例**：合法 `upstream` 快照；拒绝：`snapshots_enabled=false` → 不写（返回 null）。
-- **来源 / 验证**：`snapshots.py`；`VRC-DIAG-002`。
+  `D-DIAG-SWITCH`；全局诊断开关状态；唯一来源 `src/libdiag/settings.py`（`diagnostic_settings` 单行）。
 
-#### `StatsView` / `StatsWindow`（`stats.py`）
-- **定义**：按小时桶聚合统计。
-- **字段**：`StatsView{windows:StatsWindow[]}`；`StatsWindow{stat_hour:YYYY-MM-DDTHH, deployment_id:str?, model:str?, status_breakdown:object<str,int>, error_4xx_count:int, error_5xx_count:int, request_count:int, error_count:int, latency_p50/p95/min/max_ms:float?, latency_sum_ms:float}`。
-- **约束 / 不变量**：`error_*_count` 由 breakdown 派生；无样本 ⇒ 百分位 `null`、`sum=0`。
-- **状态 · 所有权 · 寿命**：请求级只读（组合 data_plane_stats + samples）。
-- **实例**：合法 window；边界：无数据 → `windows=[]`。
-- **来源 / 验证**：`stats.py`；`VRC-DIAG-002`。
+- **`snapshots_enabled`**：
 
-#### `InjectionView` / `EnabledInjection`（`injections.py`）
-- **定义**：注入配置视图 / 命中的启用注入（原始行）。
-- **字段**：`InjectionView{id:str, deployment_id:str, type:InjectionType, config:object, enabled:bool, updated_at:RFC3339ms}`；`EnabledInjection`= `diagnostic_injections` 全行（`enabled:int 恒1`）。
-- **约束 / 不变量**：`config` 字段集与 `type` 一致；`EnabledInjection` 仅 `enabled=1`。
-- **状态 · 所有权 · 寿命**：持久；I5 写、I5/I6 读。
-- **实例**：合法 `delay`；拒绝：非法 type/config → 400。
-- **来源 / 验证**：`injections.py`；`VRC-DIAG-004`。
+  必填布尔，默认 `false`；快照记录开关。
+
+- **`stats_enabled`**：
+
+  必填布尔，默认 `false`；统计记录开关。
+
+- **跨字段与寿命**：
+
+  两字段独立；恒取自 `singleton=1` 单行；关闭 ⇒ 零写入（C-OBS-1）；持久单行；I1 写、I2–I6 读；随库寿命。
+
+- **合法/拒绝实例**：
+
+  合法 `{true,false}`；边界：缺行返回默认 `false`（迁移保证恒有）。
+
+- **验证**：
+
+  `VRC-DIAG-001`；来源 `settings.py`。
+
+**6.2.2 `D-DIAG-TRACE` · TraceView / TraceStage（业务与操作数据结构）**
+
+```text
+TraceView {
+  request_id: string, correlation_id: string?,
+  stages: TraceStage[>=1], snapshot: SnapshotView?, usage: UsageView?
+}
+TraceStage { stage: TraceStageName, timestamp: RFC3339ms, detail: object? }
+UsageView {
+  record_version: int>=1, is_final: bool, model: string,
+  input_tokens: int?, output_tokens: int?, total_tokens: int?,
+  measurement_status: string∈{measured,unknown}, source: string
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-DIAG-TRACE`；单请求完整 trace 视图；唯一来源 `src/libdiag/traces.py`；组合 `trace_events` + `diagnostic_snapshots` + `usage_record_versions`（M003/M004）。
+
+- **`request_id`/`correlation_id`**：
+
+  `request_id` 必填、非空；`correlation_id` 可空。
+
+- **`stages`**：
+
+  必填、≥1、升序；`TraceStage` 含 `stage`（§6.1.1）/`timestamp`/`detail?`。
+
+- **`snapshot`/`usage`**：
+
+  可空；组合最近快照与用量视图。
+
+- **`UsageView.measurement_status`**：
+
+  必填 ∈ {`measured`,`unknown`}；`measured⇒tokens 非空`、`unknown⇒空（不补零）`。
+
+- **跨字段与寿命**：
+
+  `stages` 非空且升序；`measured⇒tokens 非空`、`unknown⇒空（不补零）`；只读视图，请求级、非持久。
+
+- **合法/拒绝实例**：
+
+  合法完整 trace；拒绝：无记录 → `trace()` 返回 404 `not_found`。
+
+- **验证**：
+
+  `VRC-DIAG-002`；来源 `traces.py`。
+
+**6.2.3 `D-DIAG-PAGE` · TracePage / SnapshotPage（业务与操作数据结构）**
+
+```text
+Page<T> { items: T[], next_cursor: string?, has_more: bool }   # items 长度 <= limit
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-DIAG-PAGE`；trace / 快照分页；唯一来源 `traces.py`/`snapshots.py`。
+
+- **`items`**：
+
+  必填数组，≤limit；空匹配 → `[]`。
+
+- **`next_cursor`**：
+
+  可空字符串；`has_more=false ⇒ next_cursor=null`；cursor 稳定（trace=`first_ts|request_id`；快照=末条 `id`）。
+
+- **`has_more`**：
+
+  必填布尔；是否还有下一页。
+
+- **跨字段与寿命**：
+
+  `has_more=false ⇒ next_cursor=null`；cursor 稳定；请求级只读。
+
+- **合法/拒绝实例**：
+
+  合法翻页；边界：空匹配 → `items=[]`、`has_more=false`。
+
+- **验证**：
+
+  `VRC-DIAG-002`；来源 `traces.py`/`snapshots.py`。
+
+**6.2.4 `D-DIAG-SNAPSHOT` · SnapshotView（业务与操作数据结构）**
+
+```text
+SnapshotView {
+  id: string, request_id: string, captured_at: RFC3339ms,
+  upstream_url: string,          # 去 query
+  backend_model: string?, http_status: int?(100–599),
+  latency_ms: float?(>=0), error_summary: string?(<=256B),
+  model: string?, deployment_id: string?, snapshot_type: SnapshotType
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-DIAG-SNAPSHOT`；一次上游调用快照；唯一来源 `src/libdiag/snapshots.py`，列权威 §6.7。
+
+- **`id`**：
+
+  必填字符串；快照标识。
+
+- **`request_id`**：
+
+  必填字符串；关联请求身份。
+
+- **`captured_at`**：
+
+  必填 `RFC3339ms`；捕获时间。
+
+- **`upstream_url`**：
+
+  必填字符串；去 query 的上游 URL。
+
+- **`backend_model`**：
+
+  可空字符串；后端模型名。
+
+- **`http_status`**：
+
+  可空整数，100–599；`upstream ⇒ 非空`。
+
+- **`latency_ms`**：
+
+  可空浮点，≥0；时延。
+
+- **`error_summary`**：
+
+  可空字符串，≤256B；UTF-8 安全截断。
+
+- **`model`/`deployment_id`**：
+
+  可空字符串；逻辑等级 / deployment。
+
+- **`snapshot_type`**：
+
+  必填 `D-DIAG-SNAPSHOT-TYPE`（§6.1.3）。
+
+- **跨字段与寿命**：
+
+  `upstream⇒http_status 非空`、`error⇒http_status 空`；URL 去 query；summary ≤256B；持久 `diagnostic_snapshots`；I3 写、M005 读；只追加；7 天。
+
+- **合法/拒绝实例**：
+
+  合法 `upstream` 快照；拒绝：`snapshots_enabled=false` → 不写（返回 null）。
+
+- **验证**：
+
+  `VRC-DIAG-002`；来源 `snapshots.py`。
+
+**6.2.5 `D-DIAG-STATS` · StatsView / StatsWindow（业务与操作数据结构）**
+
+```text
+StatsView { windows: StatsWindow[] }
+StatsWindow {
+  stat_hour: YYYY-MM-DDTHH,
+  deployment_id: string?, model: string?,
+  status_breakdown: map<string,int>,
+  error_4xx_count: int, error_5xx_count: int, request_count: int, error_count: int,
+  latency_p50_ms: float?, latency_p95_ms: float?, latency_min_ms: float?, latency_max_ms: float?,
+  latency_sum_ms: float
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-DIAG-STATS`；按小时桶聚合统计；唯一来源 `src/libdiag/stats.py`（组合 `data_plane_stats` + 内存 samples）。
+
+- **`windows`**：
+
+  必填数组；无数据 → `[]`。
+
+- **`stat_hour`**：
+
+  必填；小时桶键（`YYYY-MM-DDTHH`）。
+
+- **`status_breakdown`/`request_count`/`error_count`**：
+
+  必填；按 HTTP status 计数；`error_*_count` 由 breakdown 派生。
+
+- **`latency_p50/p95/min/max_ms`**：
+
+  可空浮点；无样本 ⇒ 百分位 `null`。
+
+- **`latency_sum_ms`**：
+
+  必填浮点；无样本 ⇒ `sum=0`。
+
+- **跨字段与寿命**：
+
+  可丢、非账本；无样本 ⇒ 百分位 `null`、`sum=0`；请求级只读；内存聚合非持久。
+
+- **合法/拒绝实例**：
+
+  合法 window；边界：无数据 → `windows=[]`。
+
+- **验证**：
+
+  `VRC-DIAG-002`；来源 `stats.py`。
+
+**6.2.6 `D-DIAG-INJECTION` · InjectionView / EnabledInjection（业务与操作数据结构）**
+
+```text
+InjectionView {
+  id: string, deployment_id: string, type: InjectionType,
+  config: object, enabled: bool, updated_at: RFC3339ms
+}
+EnabledInjection = diagnostic_injections 全行（enabled:int 恒 1）
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-DIAG-INJECTION`；注入配置视图 / 命中的启用注入；唯一来源 `src/libdiag/injections.py`。
+
+- **`id`/`deployment_id`**：
+
+  必填字符串；注入标识 / 目标 deployment。
+
+- **`type`**：
+
+  必填 `D-DIAG-INJECTION-TYPE`（§6.1.2）。
+
+- **`config`**：
+
+  必填对象；字段集与 `type` 一致（§6.3.1）。
+
+- **`enabled`/`updated_at`**：
+
+  必填布尔 / 必填时间。
+
+- **`EnabledInjection`**：
+
+  `diagnostic_injections` 全行，`enabled=1`。
+
+- **跨字段与寿命**：
+
+  `config` 字段集与 `type` 一致；`EnabledInjection` 仅 `enabled=1`；持久；I5 写、I5/I6 读。
+
+- **合法/拒绝实例**：
+
+  合法 `delay`；拒绝非法 type/config → 400 `invalid_injection`。
+
+- **验证**：
+
+  `VRC-DIAG-004`；来源 `injections.py`。
 
 ### 6.3 配置与规则数据结构
 
-#### `InjectionConfig`（按类型，`injections.py`）
-- **定义**：各注入类型的 `config` 字段集与范围。
-- **字段**：`fault_502`/`fault_503`→`error_body:str`（非空，≤512B）；`delay`→`delay_ms:int`（0–60000）；`rate_limit`→`retry_after_sec:int`（0–300）；`stream_terminate`→`stream_terminate_after_events:int`（1–10000）；`malformed_event`→`malformed_after_events:int`（0–10000）+ `malformed_event_type:MalformedEventType`。
-- **约束 / 不变量**：字段必须齐备且落在范围；越界/缺失 → 400 `invalid_injection`。
-- **状态 · 所有权 · 寿命**：持久于 `diagnostic_injections` 的对应列；部分更新 upsert。
-- **实例**：合法 `{delay_ms:200}`；拒绝 `{delay_ms:60001}` → 400。
-- **来源 / 验证**：`injections.py`；`VRC-DIAG-004`。
+**6.3.1 `D-DIAG-INJECTION-CONFIG` · InjectionConfig（配置与规则数据结构，按类型）**
+
+```text
+InjectionConfig {
+  fault_502 | fault_503: { error_body: string },              # 非空, <=512B
+  delay: { delay_ms: int },                                   # 0–60000
+  rate_limit: { retry_after_sec: int },                       # 0–300
+  stream_terminate: { stream_terminate_after_events: int },   # 1–10000
+  malformed_event: { malformed_after_events: int, malformed_event_type: MalformedEventType }  # 0–10000
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-DIAG-INJECTION-CONFIG`；各注入类型的 `config` 字段集与范围；唯一来源 `src/libdiag/injections.py` `_validate`。
+
+- **`fault_502`/`fault_503`**：
+
+  必填 `error_body: string`（非空，≤512B）。
+
+- **`delay`**：
+
+  必填 `delay_ms: int`（0–60000）。
+
+- **`rate_limit`**：
+
+  必填 `retry_after_sec: int`（0–300）。
+
+- **`stream_terminate`**：
+
+  必填 `stream_terminate_after_events: int`（1–10000）。
+
+- **`malformed_event`**：
+
+  必填 `malformed_after_events: int`（0–10000）+ `malformed_event_type: D-DIAG-MALFORMED-TYPE`（§6.1.3）。
+
+- **跨字段与寿命**：
+
+  字段齐备且落在范围；越界/缺失 → 400 `invalid_injection`；持久于 `diagnostic_injections` 对应列；部分更新 upsert。
+
+- **合法/拒绝实例**：
+
+  合法 `{delay_ms:200}`；拒绝 `{delay_ms:60001}` → 400。
+
+- **验证**：
+
+  `VRC-DIAG-004`；来源 `injections.py`。
+
+### 6.4 通信报文结构（适用时）
+
+不适用：libdiag 为进程内库，不拥有跨执行边界的消息/事件/流 wire；SSE 输出由 M001 传输，本模块只提供 `stream_wrapper` 变换。理由与 tailoring 依据见章首。
+
+### 6.5 设备与 FPGA 表项结构（适用时）
+
+不适用：无连接器、总线、寄存器或 FPGA 端口。
 
 ### 6.6 运行状态数据结构
 
-#### `DiagnosticsRuntimeState`
-- **定义**：诊断开关的运行时事实（读自 `diagnostic_settings`）。
-- **字段**：等同 `SwitchState`；另含「最近 `cleanup` 结果」为过程量（不持久）。
-- **约束 / 不变量**：唯一写者 = `set_switches`；记录前判定（关闭零写入，C-OBS-1）。
-- **状态 · 所有权 · 寿命**：单行持久 + 请求级过程量。
-- **实例**：关 → 无新行；开 → 正常写入。
-- **来源 / 验证**：`settings.py`；`VRC-DIAG-001`。
+**6.6.1 `D-DIAG-RUNTIME-STATE` · DiagnosticsRuntimeState（运行状态数据结构）**
+
+```text
+DiagnosticsRuntimeState {
+  switches: SwitchState,
+  stats_cache: map<key, Agg>(上限 + LRU),
+  last_cleanup: object?
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-DIAG-RUNTIME-STATE`；诊断开关的运行时事实与统计缓存；唯一来源 `settings.py`（开关）与 `stats.py`（内存聚合 LRU）。
+
+- **`switches`**：
+
+  必填；等同 `D-DIAG-SWITCH`（§6.2.1）。
+
+- **`stats_cache`**：
+
+  必填映射；统计内存缓存，上限 + LRU 淘汰。
+
+- **`last_cleanup`**：
+
+  可空过程量；最近 `cleanup` 结果，不持久。
+
+- **跨字段与寿命**：
+
+  唯一写者=`set_switches`/`record_latency`；记录前判定（关闭零写入，C-OBS-1）；缓存满 LRU 淘汰；单行持久 + 请求级过程量；进程退出丢失内存统计（不承诺恢复）。
+
+- **合法/拒绝实例**：
+
+  关 → 无新行；开 → 正常写入；缓存满 → 淘汰最旧。
+
+- **验证**：
+
+  `VRC-DIAG-001`；来源 `settings.py`。
 
 ### 6.7 数据库表结构
 
-Authority = `util/migrations/002_observability.sql`（由 M007 `migrate()` 执行）；列级定义见 `util.isd` §4.4。本模块拥有 6 张表：
+**6.7.1 `diagnostic_*` / `data_plane_*` / `trace_events`（数据库表）**
 
-| 表 | 主键 / 唯一 | 写入者 / 读者 | 寿命 |
-|---|---|---|---|
-| `diagnostic_settings` | `singleton`(=1) | I1 / I2–I6 | 库寿命 |
-| `diagnostic_snapshots` | `id` | I3 / M005 | 7 天（追加）|
-| `data_plane_stats` | `(stat_hour,deployment_id,model,status)` | I4 / M005 | 保留期 |
-| `data_plane_latency_samples` | 无（追加）| I4 / M005 | 保留期 |
-| `diagnostic_injections` | `id` / `UNIQUE(deployment_id,injection_type)` | I5 / I5,I6 | 库寿命 |
-| `trace_events` | `id` | I2 / M005 | 7 天（追加）|
+```text
+tables {
+  diagnostic_settings { singleton=1, snapshots_enabled, stats_enabled },
+  diagnostic_snapshots { id PK, snapshot_type, http_status?, ... },
+  data_plane_stats { (stat_hour, deployment_id, model, status) PK, ... },
+  data_plane_latency_samples { 无 PK（追加）, ... },
+  diagnostic_injections { id PK, UNIQUE(deployment_id, injection_type), config_json, enabled },
+  trace_events { id PK, request_id, stage, ... }
+}
+```
 
-- **约束 / 不变量**：`diagnostic_snapshots.snapshot_type` 由 `http_status` 判定；`data_plane_stats` 累加 upsert；注入按 `(deployment_id,injection_type)` upsert。
-- **实例**：合法：空库由 M007 一次性建表；拒绝：非空库 schema 版本不符由 M007 拒绝启动（不属于本模块）。
-- **来源 / 验证**：`util/migrations/002_observability.sql`；`VRC-DIAG-002`。
+- **Data/Type ID、用途与来源**：
+
+  Authority = `util/migrations/002_observability.sql`（由 M007 `migrate()` 执行）；列级定义见 `util.isd` §4.4；本模块拥有上列 6 张表。
+
+- **`diagnostic_settings.singleton`**：
+
+  主键恒 =1；单行。
+
+- **`diagnostic_snapshots.id`**：
+
+  主键；`snapshot_type` 由 `http_status` 判定。
+
+- **`data_plane_stats`**：
+
+  主键 `(stat_hour,deployment_id,model,status)`；累加 upsert。
+
+- **`data_plane_latency_samples`**：
+
+  无主键；只追加。
+
+- **`diagnostic_injections`**：
+
+  `id` 主键；`UNIQUE(deployment_id,injection_type)`；按 `(deployment_id,injection_type)` upsert。
+
+- **`trace_events.id`**：
+
+  主键；只追加。
+
+- **跨字段与寿命**：
+
+  `diagnostic_snapshots.snapshot_type` 由 `http_status` 判定；`data_plane_stats` 累加 upsert；注入按 `(deployment_id,injection_type)` upsert；`diagnostic_settings`/`diagnostic_injections` 库寿命，快照/trace 7 天（追加），统计与样本按保留期。
+
+- **合法/拒绝实例**：
+
+  合法：空库由 M007 一次性建表；拒绝：非空库 schema 版本不符由 M007 拒绝启动（系统 `ERR-SCHEMA`，不属于本模块）。
+
+- **验证**：
+
+  `VRC-DIAG-002`；来源 `util/migrations/002_observability.sql`。
 
 ### 6.8 错误码与错误结构
 
-本模块**不新增公共错误码**；对外错误引用系统目录（`llmtier-system-design` §8.8）：
+**6.8.1 `D-DIAG-ERROR-MAP` · 诊断错误映射（错误码与错误结构，引用系统 §8.8）**
 
-| 本层错误 | 条件 | 系统 Error ID | 合法下一步 |
-|---|---|---|---|
-| `ApiError(404,"not_found")` | `trace()` 无记录；未知 deployment（注入） | `ERR-NOTFOUND` | 修 id |
-| `ApiError(400,"invalid_injection")` | 注入类型/字段/范围非法 | `ERR-INJECTION` | 修注入项 |
-| 原生 `sqlite3.Error` | 存储不可用 | `ERR-STORE` | 稍后重试 |
+```text
+enum DiagnosticErrorRef { ERR-NOTFOUND, ERR-INJECTION, ERR-REQ-VALIDATION, ERR-STORE }
+```
 
-- **约束 / 不变量**：`record_*` 失败 **fail-open**（不抛，记 warning），不产生公共错误；`trace`/`injections`/`set_injections` 的拒绝为显式 `ApiError`。
-- **实例**：拒绝：未知 deployment → 404；边界：写失败 → warning，无错误返回。
-- **来源 / 验证**：`errors.py` + 系统 §8.8；`VRC-DIAG-003`。
+- **Data/Type ID、用途与来源**：
+
+  `D-DIAG-ERROR-MAP`；本模块**不新增公共错误码**，对外错误引用系统目录（`llmtier-system-design` §8.8）；唯一来源系统 §8.8（公共含义）与 `openapi`（产生）；载荷 `D-ERROR-ENVELOPE`。
+
+- **`ERR-NOTFOUND`（404 `not_found`）**：
+
+  `trace()` 无记录 / 未知 deployment（注入）；未受理、无副作用；修 id。
+
+- **`ERR-INJECTION`（400 `invalid_injection`）**：
+
+  注入类型/字段/范围非法；未写入、配置不变；修正注入项。
+
+- **`ERR-REQ-VALIDATION`（400 `invalid_request`）**：
+
+  `set_switches` 参数非 `bool`；未更新；修正参数。
+
+- **`ERR-STORE`（503 `usage_store_unavailable`）**：
+
+  存储不可用；原生 `sqlite3.Error` 上抛；稍后重试。
+
+- **跨字段与寿命**：
+
+  `record_*` 失败 fail-open（不抛，记 warning），不产生公共错误；`trace`/`injections`/`set_injections` 的拒绝为显式 `ApiError`。
+
+- **合法/拒绝实例**：
+
+  拒绝：未知 deployment → 404；边界：写失败 → warning，无错误返回。
+
+- **验证**：
+
+  `VRC-DIAG-003`；来源 `errors.py` + 系统 §8.8。
 
 ## 7. 主流程与数据流
 
@@ -511,172 +946,174 @@ Authority = `util/migrations/002_observability.sql`（由 M007 `migrate()` 执�
 
 ## 9. 接口设计
 
-> 按 STD `design-data-interface-format` 1.2.0 §3：主章"接口设计"，按**接口形态分类**逐接口完整记录；标题为真实调用形式，标题下先给**完整接口声明**，再就地说明参数/结果字段，最后按 §3.1 六项。本模块接口**全部为软件接口**（进程内函数调用）；消息流/硬件/人机三类不适用。数据结构引用 §6。门面 `DiagnosticsService`（`src/libdiag/diagnostics.py`）为唯一对外面。
+> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口设计用途**分类（面向使用方的可调用 API 与组件/系统间协作的消息与数据流接口），逐接口完整记录；标题为真实调用形式，标题下先给**完整接口声明**，再就地说明输入/输出/错误/交互/验证，最后按固定六项。本模块接口**全部为进程内可调用函数，归 API**；消息与数据流/硬件与固件/人机与维护三类不适用（见 §9.2–§9.4）。数据结构引用 §6。门面 `DiagnosticsService`（`src/libdiag/diagnostics.py`）为唯一对外面。
 
-### 9.1 软件接口（适用时）
+### 9.1 API（适用时）
 
 #### `DiagnosticsService.switches() -> SwitchState`
 ```text
 DiagnosticsService.switches() -> SwitchState
 ```
-- **输入**：无。
-- **输出**：`SwitchState`（§6.2）——读取用途：供 M003/M001 记录前判定、M005 呈现。
-- **Interface/Member ID / 状态**：`IF-LIBDIAG-SWITCH`；Implemented；唯一契约=本设计；文件/符号 `src/libdiag/diagnostics.py` → `settings.py` `SettingsDiagnostics.switches`。
-- **错误与异常**：无（除存储不可达 → §6.8 `ERR-STORE`）。
-- **交互与生命周期**：同步；调用方线程；无期限/取消；幂等只读；`transaction none`。
-- **实例与验证**：正常 `{snapshots_enabled,stats_enabled}`；边界：并发 `set_switches` 后读到新值（单行事务）。`VRC-DIAG-001`。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-LIBDIAG-SWITCH`；读取诊断全局开关；libdiag 提供、M005/M003/M001 消费；状态=Implemented；唯一契约=本设计；文件·symbol `src/libdiag/diagnostics.py` → `settings.py` `SettingsDiagnostics.switches`。
+- **输入与前提**：无参数；由调用方自行保证上下文。
+- **成功输出与保证**：`SwitchState`（§6.2.1）——读取用途：供 M003/M001 记录前判定、M005 呈现；`transaction none`。
+- **错误与合法下一步**：无（除存储不可达 → `ERR-STORE`，§6.8）；调用方稍后重试。
+- **交互与生命周期**：同步；调用方线程；无期限/取消；幂等只读。
+- **实现与验证**：正常 `{snapshots_enabled,stats_enabled}`；边界：并发 `set_switches` 后读到新值（单行事务）。`VRC-DIAG-001`。
 
 #### `DiagnosticsService.set_switches(snapshots_enabled=None, stats_enabled=None, conn=None) -> SwitchState`
 ```text
 set_switches(snapshots_enabled: bool | None = None, stats_enabled: bool | None = None, conn: Connection | None = None) -> SwitchState
 ```
-- **输入**：`snapshots_enabled: bool|None`（默认 `None`=不变）；`stats_enabled: bool|None`；`conn: Connection|None`。读取用途：部分更新；非 `bool`（且非 `None`）→ 拒绝。
-- **输出**：更新后的 `SwitchState`（§6.2）——生效范围：同事务内提交（`conn` 非空并入调用方事务）后对外可见。
-- **Interface/Member ID / 状态**：`IF-LIBDIAG-SWITCH`；Implemented；文件/符号 `settings.py` `SettingsDiagnostics.set_switches`。
-- **错误与异常**：参数非 `bool` → `ApiError(400,"invalid_request")`（`param`=字段名，系统 `ERR-REQ-VALIDATION`）；副作用：无（未更新）。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-LIBDIAG-SWITCH`；部分更新诊断全局开关；libdiag 提供、M005 消费；状态=Implemented；唯一契约=本设计；文件·symbol `settings.py` `SettingsDiagnostics.set_switches`。
+- **输入与前提**：`snapshots_enabled: bool|None`（默认 `None`=不变）；`stats_enabled: bool|None`；`conn: Connection|None`；非 `bool`（且非 `None`）→ 拒绝。
+- **成功输出与保证**：更新后的 `SwitchState`（§6.2.1）——生效范围：同事务内提交（`conn` 非空并入调用方事务）后对外可见。
+- **错误与合法下一步**：参数非 `bool` → `ApiError(400,"invalid_request")`（`param`=字段名，系统 `ERR-REQ-VALIDATION`，§6.8）；副作用=无（未更新）；调用方修正参数。
 - **交互与生命周期**：同步；`conn` 传入时加入调用方事务（否则自开 `BEGIN IMMEDIATE`）；幂等（重复设同值无副作用）。
-- **实例与验证**：正常 `set_switches(stats_enabled=True)`；拒绝 `set_switches(snapshots_enabled="yes")` → 400。`VRC-DIAG-001`。
+- **实现与验证**：正常 `set_switches(stats_enabled=True)`；拒绝 `set_switches(snapshots_enabled="yes")` → 400。`VRC-DIAG-001`。
 
 #### `DiagnosticsService.record_trace(request_id, stage, detail=None, correlation_id=None) -> None`
 ```text
 record_trace(request_id: str, stage: str, detail: dict | None = None, correlation_id: str | None = None) -> None
 ```
-- **输入**：`request_id: str`（非空）；`stage: str`（∈§6.1）；`detail: dict|None`；`correlation_id: str|None`。字段约束见 §6.1/§6.2。
-- **输出**：无——受理即追加一行 `trace_events`（§6.7）。
-- **Interface/Member ID / 状态**：`IF-LIBDIAG-RECORD`；Implemented；文件/符号 `src/libdiag/traces.py` `TraceDiagnostics.record_trace`。
-- **错误与异常**：写失败 → **fail-open**：不抛，记 `OperationalLog(warning, diagnostics, capture_failed)`；结果已知性=丢失该阶段；副作用=无（无半写）。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-LIBDIAG-RECORD`；追加一条 trace 事件；libdiag 提供、M001/M003 消费；状态=Implemented；唯一契约=本设计；文件·symbol `src/libdiag/traces.py` `TraceDiagnostics.record_trace`。
+- **输入与前提**：`request_id: str`（非空）；`stage: str`（∈§6.1）；`detail: dict|None`；`correlation_id: str|None`；字段约束见 §6.1/§6.2。
+- **成功输出与保证**：无——受理即追加一行 `trace_events`（§6.7）。
+- **错误与合法下一步**：写失败 → **fail-open**：不抛，记 `OperationalLog(warning, diagnostics, capture_failed)`；结果已知性=丢失该阶段；副作用=无（无半写）；调用方继续请求，不改推理。
 - **交互与生命周期**：同步；请求线程；无期限；不幂等（每次一行）；`transaction creates new`。
-- **实例与验证**：正常 `record_trace("req","received")`；边界：DB 只读 → warning 且不阻断请求。`VRC-DIAG-002/003`。
+- **实现与验证**：正常 `record_trace("req","received")`；边界：DB 只读 → warning 且不阻断请求。`VRC-DIAG-002/003`。
 
 #### `DiagnosticsService.capture_snapshot(request_id, deployment_id, model, upstream_url, backend_model, http_status, latency_ms, error_summary) -> str | None`
 ```text
 capture_snapshot(request_id: str, deployment_id: str | None, model: str | None, upstream_url: str, backend_model: str | None, http_status: int | None, latency_ms: float | None, error_summary: str | None) -> str | None
 ```
-- **输入**：`request_id`；`deployment_id`；`model`；`upstream_url`（去 query）；`backend_model`；`http_status`（100–599）；`latency_ms`（≥0）；`error_summary`（≤256B 截断）。受 `SwitchState.snapshots_enabled` 控制（§6.6）。
-- **输出**：`snap_id: str`（受理并持久一行 `diagnostic_snapshots`，§6.7）。
-- **Interface/Member ID / 状态**：`IF-LIBDIAG-RECORD`；Implemented；文件/符号 `src/libdiag/snapshots.py` `SnapshotDiagnostics.capture_snapshot`。
-- **错误与异常**：开关关 → `null`（未受理）；写失败 → `null` + warning（fail-open）。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-LIBDIAG-RECORD`；写入一次上游调用快照；libdiag 提供、M003 消费；状态=Implemented；唯一契约=本设计；文件·symbol `src/libdiag/snapshots.py` `SnapshotDiagnostics.capture_snapshot`。
+- **输入与前提**：`request_id`；`deployment_id`；`model`；`upstream_url`（去 query）；`backend_model`；`http_status`（100–599）；`latency_ms`（≥0）；`error_summary`（≤256B 截断）；受 `SwitchState.snapshots_enabled` 控制（§6.6）。
+- **成功输出与保证**：`snap_id: str`——受理并持久一行 `diagnostic_snapshots`（§6.7）。
+- **错误与合法下一步**：开关关 → `null`（未受理）；写失败 → `null` + warning（fail-open，§6.8）；调用方继续请求。
 - **交互与生命周期**：同步；请求线程；`transaction creates new`；不幂等（每次新 id）。
-- **实例与验证**：正常（status 200）→ `snap_*`；边界：开关关 → `null` 且无行。`VRC-DIAG-002`。
+- **实现与验证**：正常（status 200）→ `snap_*`；边界：开关关 → `null` 且无行。`VRC-DIAG-002`。
 
 #### `DiagnosticsService.record_latency(deployment_id, model, status_code, latency_ms) -> None`
 ```text
 record_latency(deployment_id: str | None, model: str | None, status_code: int | None, latency_ms: float | None) -> None
 ```
-- **输入**：`deployment_id`；`model`；`status_code`（100–599；`None`/<100 → 记 `upstream_error`）；`latency_ms`（≥0；`None` 只计请求不计延迟）。受 `stats_enabled` 控制。
-- **输出**：无——`UPSERT data_plane_stats`；`latency_ms` 非空时追加 `data_plane_latency_samples`（§6.7）。
-- **Interface/Member ID / 状态**：`IF-LIBDIAG-RECORD`；Implemented；文件/符号 `src/libdiag/stats.py` `StatsDiagnostics.record_latency`。
-- **错误与异常**：写失败 → fail-open warning；`≥400` 或 `upstream_error` ⇒ `error_count+1`。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-LIBDIAG-RECORD`；累加统计与延迟样本；libdiag 提供、M003 消费；状态=Implemented；唯一契约=本设计；文件·symbol `src/libdiag/stats.py` `StatsDiagnostics.record_latency`。
+- **输入与前提**：`deployment_id`；`model`；`status_code`（100–599；`None`/<100 → 记 `upstream_error`）；`latency_ms`（≥0；`None` 只计请求不计延迟）；受 `stats_enabled` 控制。
+- **成功输出与保证**：无——`UPSERT data_plane_stats`；`latency_ms` 非空时追加 `data_plane_latency_samples`（§6.7）。
+- **错误与合法下一步**：写失败 → fail-open warning（§6.8）；`≥400` 或 `upstream_error` ⇒ `error_count+1`；调用方继续请求。
 - **交互与生命周期**：同步；`transaction creates new`；不幂等（累加）。
-- **实例与验证**：正常（200,120ms）；边界：`status_code=None` → `upstream_error`。`VRC-DIAG-002`。
+- **实现与验证**：正常（200,120ms）；边界：`status_code=None` → `upstream_error`。`VRC-DIAG-002`。
 
 #### `DiagnosticsService.trace(request_id) -> TraceView`
 ```text
 trace(request_id: str) -> TraceView
 ```
-- **输入**：`request_id: str`。
-- **输出**：`TraceView`（§6.2）——组合 trace 阶段 + 最近快照 + 用量。
-- **Interface/Member ID / 状态**：`IF-LIBDIAG-QUERY`；Implemented；文件/符号 `src/libdiag/traces.py` `TraceDiagnostics.trace`。
-- **错误与异常**：无记录 → `ApiError(404,"not_found")`（系统 `ERR-NOTFOUND`）；副作用：无。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-LIBDIAG-QUERY`；聚合单请求完整 trace；libdiag 提供、M005 消费；状态=Implemented；唯一契约=本设计；文件·symbol `src/libdiag/traces.py` `TraceDiagnostics.trace`。
+- **输入与前提**：`request_id: str`（非空）。
+- **成功输出与保证**：`TraceView`（§6.2.2）——组合 trace 阶段 + 最近快照 + 用量；只读。
+- **错误与合法下一步**：无记录 → `ApiError(404,"not_found")`（系统 `ERR-NOTFOUND`，§6.8）；副作用=无；调用方修 id。
 - **交互与生命周期**：同步只读；请求级；幂等。
-- **实例与验证**：正常已有 request；拒绝未知 id → 404。`VRC-DIAG-002`。
+- **实现与验证**：正常已有 request；拒绝未知 id → 404。`VRC-DIAG-002`。
 
 #### `DiagnosticsService.traces(since=None, until=None, deployment_id=None, model=None, limit=50, cursor=None) -> TracePage`
 ```text
 traces(since: str | None = None, until: str | None = None, deployment_id: str | None = None, model: str | None = None, limit: int = 50, cursor: str | None = None) -> TracePage
 ```
-- **输入**：`since/until: str|None`（RFC3339）；`deployment_id/model`（经快照过滤）；`limit`（夹 `[1,500]`）；`cursor`（`first_ts|request_id`）。
-- **输出**：`TracePage`（§6.2）——按请求去重、`first_ts DESC`。
-- **Interface/Member ID / 状态**：`IF-LIBDIAG-QUERY`；Implemented（G-1）；文件/符号 `src/libdiag/traces.py` `TraceDiagnostics.traces`。
-- **错误与异常**：无（恒返回页；空 → `items=[]`）。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-LIBDIAG-QUERY`；时间窗分页查询 trace；libdiag 提供、M005 消费；状态=Implemented（G-1）；唯一契约=本设计；文件·symbol `src/libdiag/traces.py` `TraceDiagnostics.traces`。
+- **输入与前提**：`since/until: str|None`（RFC3339）；`deployment_id/model`（经快照过滤）；`limit`（夹 `[1,500]`）；`cursor`（`first_ts|request_id`）。
+- **成功输出与保证**：`TracePage`（§6.2.3）——按请求去重、`first_ts DESC`。
+- **错误与合法下一步**：无（恒返回页；空 → `items=[]`）。
 - **交互与生命周期**：同步只读；`limit ≤500`；游标基于 `(first_ts,request_id)` 稳定。
-- **实例与验证**：正常窗口分页；边界：空窗口 → `has_more=false`。`VRC-DIAG-004`。
+- **实现与验证**：正常窗口分页；边界：空窗口 → `has_more=false`。`VRC-DIAG-004`。
 
 #### `DiagnosticsService.snapshots_page(since=None, until=None, deployment_id=None, model=None, limit=50, cursor=None) -> SnapshotPage`
 ```text
 snapshots_page(since: str | None = None, until: str | None = None, deployment_id: str | None = None, model: str | None = None, limit: int = 50, cursor: str | None = None) -> SnapshotPage
 ```
-- **输入 / 输出**：同上；输出 `SnapshotPage`（§6.2）。快照按 `captured_at DESC,id DESC`。
-- **Interface/Member ID / 状态**：`IF-LIBDIAG-QUERY`；Implemented；文件/符号 `src/libdiag/snapshots.py` `SnapshotDiagnostics.snapshots_page`。
-- **错误与异常**：无。
-- **交互与生命周期**：同步只读；`limit ≤500`；cursor=末条 `id`。
-- **实例与验证**：正常分页；边界：无快照 → `items=[]`。`VRC-DIAG-002`。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-LIBDIAG-QUERY`；分页查询上游快照；libdiag 提供、M005 消费；状态=Implemented；唯一契约=本设计；文件·symbol `src/libdiag/snapshots.py` `SnapshotDiagnostics.snapshots_page`。
+- **输入与前提**：输入同 `traces`；`cursor`=末条 `id`。
+- **成功输出与保证**：`SnapshotPage`（§6.2.3）——快照按 `captured_at DESC,id DESC`。
+- **错误与合法下一步**：无。
+- **交互与生命周期**：同步只读；`limit ≤500`；cursor 稳定。
+- **实现与验证**：正常分页；边界：无快照 → `items=[]`。`VRC-DIAG-002`。
 
 #### `DiagnosticsService.stats(since, until, deployment_id=None, model=None) -> StatsView`
 ```text
 stats(since: str, until: str, deployment_id: str | None = None, model: str | None = None) -> StatsView
 ```
-- **输入**：`since/until: str`（必填，RFC3339，取前 13 字符做小时）；`deployment_id/model`。
-- **输出**：`StatsView`（§6.2）。
-- **Interface/Member ID / 状态**：`IF-LIBDIAG-QUERY`；Implemented；文件/符号 `src/libdiag/stats.py` `StatsDiagnostics.stats`。
-- **错误与异常**：无；无数据 → `windows=[]`。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-LIBDIAG-QUERY`；按小时桶聚合统计查询；libdiag 提供、M005 消费；状态=Implemented；唯一契约=本设计；文件·symbol `src/libdiag/stats.py` `StatsDiagnostics.stats`。
+- **输入与前提**：`since/until: str`（必填，RFC3339，取前 13 字符做小时）；`deployment_id/model`。
+- **成功输出与保证**：`StatsView`（§6.2.5）。
+- **错误与合法下一步**：无；无数据 → `windows=[]`。
 - **交互与生命周期**：同步只读。
-- **实例与验证**：正常窗口；边界：无样本 → 百分位 `null`。`VRC-DIAG-002`。
+- **实现与验证**：正常窗口；边界：无样本 → 百分位 `null`。`VRC-DIAG-002`。
 
 #### `DiagnosticsService.set_injections(deployment_id, actor_items, conn=None) -> list[InjectionView]`
 ```text
 set_injections(deployment_id: str, actor_items: list[dict], conn: Connection | None = None) -> list[InjectionView]
 ```
-- **输入**：`deployment_id`；`actor_items: list`（每项 `{type,config,enabled}`，字段约束见 §6.3）；`conn`。
-- **输出**：全量 `InjectionView[]`（§6.2）——生效范围：upsert 提交后可见。
-- **Interface/Member ID / 状态**：`IF-LIBDIAG-INJECT`；Implemented；文件/符号 `src/libdiag/injections.py` `InjectionDiagnostics.set_injections`。
-- **错误与异常**：类型/字段/范围非法或非列表 → `ApiError(400,"invalid_injection")`（`ERR-INJECTION`）；未知 deployment → `ApiError(404,"not_found")`（`ERR-NOTFOUND`）；副作用：无（校验失败不写）。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-LIBDIAG-INJECT`；写入/更新按 deployment 的注入配置；libdiag 提供、M005 消费；状态=Implemented；唯一契约=本设计；文件·symbol `src/libdiag/injections.py` `InjectionDiagnostics.set_injections`。
+- **输入与前提**：`deployment_id`；`actor_items: list`（每项 `{type,config,enabled}`，字段约束见 §6.3.1）；`conn`。
+- **成功输出与保证**：全量 `InjectionView[]`（§6.2.6）——生效范围：upsert 提交后可见。
+- **错误与合法下一步**：类型/字段/范围非法或非列表 → `ApiError(400,"invalid_injection")`（`ERR-INJECTION`）；未知 deployment → `ApiError(404,"not_found")`（`ERR-NOTFOUND`）；副作用=无（校验失败不写）；调用方修正注入项。
 - **交互与生命周期**：同步；`conn` 非空并入调用方事务；幂等（按 `(deployment_id,type)` upsert）。
-- **实例与验证**：正常 `[{type:"delay",config:{delay_ms:200},enabled:true}]`；拒绝未知 type → 400。`VRC-DIAG-004`。
+- **实现与验证**：正常 `[{type:"delay",config:{delay_ms:200},enabled:true}]`；拒绝未知 type → 400。`VRC-DIAG-004`。
 
 #### `DiagnosticsService.injections(deployment_id) -> list[InjectionView]`
 ```text
 injections(deployment_id: str) -> list[InjectionView]
 ```
-- **输入**：`deployment_id`。
-- **输出**：`InjectionView[]`（§6.2），按 `injection_type` 排序。
-- **Interface/Member ID / 状态**：`IF-LIBDIAG-INJECT`；Implemented；文件/符号 `src/libdiag/injections.py` `InjectionDiagnostics.injections`。
-- **错误与异常**：未知 deployment → `ApiError(404,"not_found")`。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-LIBDIAG-INJECT`；读取按 deployment 的注入配置；libdiag 提供、M005 消费；状态=Implemented；唯一契约=本设计；文件·symbol `src/libdiag/injections.py` `InjectionDiagnostics.injections`。
+- **输入与前提**：`deployment_id`（非空）。
+- **成功输出与保证**：`InjectionView[]`（§6.2.6），按 `injection_type` 排序。
+- **错误与合法下一步**：未知 deployment → `ApiError(404,"not_found")`（§6.8）。
 - **交互与生命周期**：同步只读；幂等。
-- **实例与验证**：正常列表；边界：无注入 → `[]`。`VRC-DIAG-004`。
+- **实现与验证**：正常列表；边界：无注入 → `[]`。`VRC-DIAG-004`。
 
 #### `DiagnosticsService.enabled_injection(deployment_id) -> EnabledInjection | None`
 ```text
 enabled_injection(deployment_id: str) -> EnabledInjection | None
 ```
-- **输入**：`deployment_id`。
-- **输出**：命中的前置阶段注入（优先级 `fault_502→fault_503→rate_limit→delay`，§6.2）或 `null`。
-- **Interface/Member ID / 状态**：`IF-LIBDIAG-INJECT`；Implemented；文件/符号 `injections.py` `InjectionDiagnostics.enabled_injection`。
-- **错误与异常**：无；无命中 → `null`。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-LIBDIAG-INJECT`；取命中的前置阶段注入；libdiag 提供、M001/M003/M005 消费；状态=Implemented；唯一契约=本设计；文件·symbol `injections.py` `InjectionDiagnostics.enabled_injection`。
+- **输入与前提**：`deployment_id`（非空）。
+- **成功输出与保证**：命中的前置阶段注入（优先级 `fault_502→fault_503→rate_limit→delay`，§6.2.6）或 `null`。
+- **错误与合法下一步**：无；无命中 → `null`。
 - **交互与生命周期**：同步只读；幂等。
-- **实例与验证**：正常多注入取最高优先；边界：全关 → `null`。`VRC-DIAG-004`。
+- **实现与验证**：正常多注入取最高优先；边界：全关 → `null`。`VRC-DIAG-004`。
 
 #### `DiagnosticsService.enabled_stream_injection(deployment_id) -> EnabledInjection | None`
 ```text
 enabled_stream_injection(deployment_id: str) -> EnabledInjection | None
 ```
-- **输入 / 输出**：同上；命中流阶段注入（`stream_terminate→malformed_event`）或 `null`。
-- **Interface/Member ID / 状态**：`IF-LIBDIAG-INJECT`；Implemented；文件/符号 `injections.py` `InjectionDiagnostics.enabled_stream_injection`。
-- **错误与异常**：无。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-LIBDIAG-INJECT`；取命中的流阶段注入；libdiag 提供、I6/M001 消费；状态=Implemented；唯一契约=本设计；文件·symbol `injections.py` `InjectionDiagnostics.enabled_stream_injection`。
+- **输入与前提**：`deployment_id`（非空）。
+- **成功输出与保证**：命中的流阶段注入（`stream_terminate→malformed_event`）或 `null`。
+- **错误与合法下一步**：无；无命中 → `null`。
 - **交互与生命周期**：同步只读；幂等。
-- **实例与验证**：正常命中；边界：无 → `null`。`VRC-DIAG-004`。
+- **实现与验证**：正常命中；边界：无 → `null`。`VRC-DIAG-004`。
 
 #### `DiagnosticsService.stream_wrapper(deployment_id, base_stream) -> Iterable[bytes]`
 ```text
 stream_wrapper(deployment_id: str, base_stream: Iterable[bytes]) -> Iterable[bytes]
 ```
-- **输入**：`deployment_id`；`base_stream: Iterable[bytes]`（SSE 字节流）。
-- **输出**：惰性字节流——无注入透传；命中 `stream_terminate` 第 N 块后结束；`malformed_event` 第 N 块后追加一帧畸形事件并结束。受理/完成：生成器按块产出。
-- **Interface/Member ID / 状态**：`IF-LIBDIAG-INJECT`；Implemented；文件/符号 `src/libdiag/stream.py` `stream_wrapper`（组合 `injections.py`）。
-- **错误与异常**：无（无注入即透传）。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-LIBDIAG-INJECT`；按流注入包装 SSE 字节流；libdiag 提供、M001 消费；状态=Implemented；唯一契约=本设计；文件·symbol `src/libdiag/stream.py` `stream_wrapper`（组合 `injections.py`）。
+- **输入与前提**：`deployment_id`；`base_stream: Iterable[bytes]`（SSE 字节流）。
+- **成功输出与保证**：惰性字节流——无注入透传；命中 `stream_terminate` 第 N 块后结束；`malformed_event` 第 N 块后追加一帧畸形事件并结束；受理/完成：生成器按块产出。
+- **错误与合法下一步**：无（无注入即透传）。
 - **交互与生命周期**：同步惰性；请求级流；不改变无注入流。
-- **实例与验证**：正常透传；边界：命中 `stream_terminate` → 提前结束。`VRC-DIAG-004`。
+- **实现与验证**：正常透传；边界：命中 `stream_terminate` → 提前结束。`VRC-DIAG-004`。
 
 #### `DiagnosticsService.cleanup(days=7) -> int`
 ```text
 cleanup(days: int = 7) -> int
 ```
-- **输入**：`days: int`（默认 7，≥0）。
-- **输出**：删除行数 `int`（≥0）——删除早于 `now-days` 的快照/trace/统计。
-- **Interface/Member ID / 状态**：`IF-LIBDIAG-CLEANUP`；Implemented；文件/符号 `src/libdiag/retention.py` `cleanup`。
-- **错误与异常**：失败 → `0` + warning（fail-open，不抛）。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-LIBDIAG-CLEANUP`；删除过期快照/trace/统计；libdiag 提供、启动/M005 触发；状态=Implemented；唯一契约=本设计；文件·symbol `src/libdiag/retention.py` `cleanup`。
+- **输入与前提**：`days: int`（默认 7，≥0）。
+- **成功输出与保证**：删除行数 `int`（≥0）——删除早于 `now-days` 的快照/trace/统计。
+- **错误与合法下一步**：失败 → `0` + warning（fail-open，不抛，§6.8）。
 - **交互与生命周期**：启动/显式调用；同步；幂等。
-- **实例与验证**：正常删除过期；边界：无过期 → `0`。`VRC-DIAG-002`。
+- **实现与验证**：正常删除过期；边界：无过期 → `0`。`VRC-DIAG-002`。
 
 ### 9.2 消息与数据流接口（适用时）
 
@@ -689,6 +1126,7 @@ cleanup(days: int = 7) -> int
 ### 9.4 人机与维护接口（适用时）
 
 不适用（无 UI/CLI；诊断入口归 M005/M001）。
+
 ## 10. 并发、失败与恢复
 
 #### 10.1 `F-DIAG-WRITE` · 记录写入失败

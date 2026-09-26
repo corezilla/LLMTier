@@ -15,7 +15,7 @@
 | Created Date | `2026-09-23` |
 | Last Modified Date | `2026-09-25` |
 | Template ID | `design.definition` |
-| Template Version | `3.0.0` |
+| Template Version | `3.2.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |
@@ -261,75 +261,453 @@
 
 ## 6. 数据结构设计
 
-> 按 STD `design-data-interface-format` 1.2.0：主章“数据结构设计”，章内按**数据性质分类**。M005 不拥有持久表与 wire 报文，其数据对象为 M006 `libdiag` 结构的**呈现投影**；继承结构只定位原定义并记录本地投影。`6.4 通信报文`、`6.5 设备与 FPGA 表项`、`6.6 运行状态`、`6.7 数据库表结构` 不适用。本层拥有的结构逐项完整记录（ID/唯一来源/字段/约束/状态·所有权·寿命/合法与拒绝实例/验证）。
+> 按 STD `design-data-interface-format` 1.2.0：主章“数据结构设计”，章内按**数据性质分类**。M005 不拥有持久表与 wire 报文，其数据对象为 M006 `libdiag` 结构的**呈现投影**；继承结构只定位原定义并记录本地投影。`6.4 通信报文`、`6.5 设备与 FPGA 表项`、`6.6 运行状态`、`6.7 数据库表结构` 不适用。本层拥有的结构逐项完整记录（Data/Type ID、用途与来源／逐字段／跨字段与寿命／合法与拒绝实例／验证），每个结构以真实名称作带编号小节标题。
 
 **适用性**：6.1 公共基础类型与枚举 ✓｜6.2 业务与操作数据结构 ✓（M006 解析投影）｜6.3 配置与规则数据结构 ✓（注入配置，继承 M006）｜6.4 通信报文 ✗（wire 由 M001/OpenAPI 拥有）｜6.5 设备与 FPGA 表项 ✗（无设备）｜6.6 运行状态数据结构 ✗（开关/查询均请求级；运行记录状态归 M006）｜6.7 数据库表结构 ✗（表由 M006/libdiag 拥有，M005 不直连）｜6.8 错误码与错误结构 ✓（引用系统 Error ID）。
 
 ### 6.1 公共基础类型与枚举
 
-#### `CorrelationId`（`app.py` 入口头）
-- **定义**：Consumer 提供的关联标识，用于跨系统串联。
-- **字段 / 取值**：来源 `X-Correlation-ID`（原样）或 `traceparent`（W3C trace id）；`str`。
-- **约束 / 不变量**：**只透传、不生成、不修改**；仅当 consumer 提供时在响应头回显。
-- **状态 · 所有权 · 寿命**：请求级；随 trace detail 持久（M006）。
-- **实例**：合法 `X-Correlation-ID: abc` → 响应回显 + trace；边界：未提供 → 不回显、不报错。
-- **来源 / 验证**：`app.py`；M006 §6.1；`VRC-OBS-004`。
+**6.1.1 `CorrelationId`（公共基础类型与枚举）**
 
-#### `TraceStageName`（继承 M006 §6.1）
-- **定义**：trace 阶段名 ∈ {`received`,`validated`,`routed`,`upstream_started`,`upstream_ended`,`completed`,`aborted`}。
-- **本层投影**：仅呈现，不重定义；取值与有序性由 M006 `traces.py` 维护。
-- **来源 / 验证**：`libdiag-design.md` §6.1；`VRC-OBS-004`。
+```text
+CorrelationId {
+  source: string,          // "X-Correlation-ID" | "traceparent"
+  value: string
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-OBS-CORRELATION`；Consumer 提供的关联标识，用于跨系统串联；来源 `src/http_api/app.py` 入口头，映射 M006 trace detail。
+
+- **`source`**：
+
+  必填字符串，∈ {`X-Correlation-ID`,`traceparent`}；表示取值头来源（W3C `traceparent` 取 trace id）。
+
+- **`value`**：
+
+  必填字符串；原样透传的关联值。
+
+- **跨字段与寿命**：
+
+  **只透传、不生成、不修改**；仅当 consumer 提供时在响应头回显；请求级，随 trace detail 持久（M006）。
+
+- **合法/拒绝实例**：
+
+  合法 `X-Correlation-ID: abc` → 响应回显 + trace；边界：未提供 → 不回显、不报错。
+
+- **验证**：
+
+  `VRC-OBS-004`；来源 M006 §6.1。
+
+**6.1.2 `TraceStageName`（公共基础类型与枚举，继承 M006 §6.1）**
+
+```text
+enum TraceStageName {
+  received, validated, routed, upstream_started,
+  upstream_ended, completed, aborted
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-OBS-STAGE`；trace 阶段名；定义与有序性由 M006 `traces.py` 维护，本层只呈现。
+
+- **`received`**：
+
+  入口收到请求。
+
+- **`validated`**：
+
+  校验阶段完成。
+
+- **`routed`**：
+
+  路由/注入读取完成。
+
+- **`upstream_started`**：
+
+  上游调用开始。
+
+- **`upstream_ended`**：
+
+  上游调用结束。
+
+- **`completed`**：
+
+  正常终态。
+
+- **`aborted`**：
+
+  客户端断开/中断终态。
+
+- **跨字段与寿命**：
+
+  同一 `request_id` 阶段按时间升序、不重定义取值；随 M006 trace 持久（7 天）。
+
+- **合法/拒绝实例**：
+
+  合法完整有序阶段；边界：无记录 → 空 `stages`（非错误）。
+
+- **验证**：
+
+  `VRC-OBS-004`；来源 `libdiag-design.md` §6.1。
 
 ### 6.2 业务与操作数据结构
 
-#### `SwitchView`（继承 M006 §6.2 `SwitchState`）
-- **定义**：诊断全局开关的呈现视图。
-- **字段**：`snapshots_enabled: bool`、`stats_enabled: bool`。
-- **约束 / 不变量**：只读投影；写由 M006 `set_switches` 承担。
-- **状态 · 所有权 · 寿命**：请求级只读；底层单行持久（M006）。
-- **实例**：合法 `{true,false}`；边界：缺省默认 false。
-- **来源 / 验证**：`libdiag-design.md` §6.2；`VRC-OBS-001`。
+**6.2.1 `SwitchView`（业务与操作数据结构，继承 M006 §6.2 `SwitchState`）**
 
-#### `DiagnosticSnapshotView`（继承 M006 §6.2 `SnapshotView`）
-- **定义**：一次上游调用快照的呈现视图。
-- **字段**：`id`、`request_id`、`captured_at`、`upstream_url`（去 query）、`backend_model`、`http_status`、`latency_ms`、`error_summary`（≤256B）、`model`、`deployment_id`、`snapshot_type`。
-- **约束 / 不变量**：URL 去 query；无正文/Secret；分页 `{items,next_cursor,has_more}`。
-- **状态 · 所有权 · 寿命**：底层持久 7 天（M006）；本层请求级只读。
-- **实例**：合法：`snapshot_type=upstream` 带 status；边界：`snapshots_enabled=false` → 不产生新行。
-- **来源 / 验证**：`libdiag-design.md` §6.2；`VRC-OBS-002`。
+```text
+SwitchView {
+  snapshots_enabled: bool,
+  stats_enabled: bool
+}
+```
 
-#### `StatsView`（继承 M006 §6.2）
-- **定义**：按小时桶聚合的统计呈现视图。
-- **字段**：`request_count`、`error_count`、`status_breakdown{status:count}`、`latency_p50_ms`、`latency_p95_ms`、`latency_min_ms`、`latency_max_ms`、`latency_sum_ms`。
-- **约束 / 不变量**：可丢、非账本；`status_breakdown` 按 HTTP status 分列。
-- **状态 · 所有权 · 寿命**：请求级只读；底层内存聚合（M006）。
-- **实例**：合法 window；边界：无样本 → 百分位 `null`。
-- **来源 / 验证**：`libdiag-design.md` §6.2；`VRC-OBS-002`。
+- **Data/Type ID、用途与来源**：
 
-#### `TraceView` / `TracePage`（继承 M006 §6.2）
-- **定义**：单请求完整 trace 视图 / trace 时间窗分页。
-- **字段**：`TraceView{request_id, correlation_id?, stages:[TraceStage], snapshot?, usage?}`；`TracePage{items:[TraceView], next_cursor, has_more}`。
-- **约束 / 不变量**：`stages` 非空且按时间升序；分页去重 request_id、`first_ts DESC`。
-- **状态 · 所有权 · 寿命**：请求级只读；底层持久 7 天（M006）。
-- **实例**：合法完整 trace；边界：无记录 → 空 `stages`/空 `items`（不报错）。
-- **来源 / 验证**：`libdiag-design.md` §6.2；`VRC-OBS-004/005`。
+  `D-SWITCH-STATE`；诊断全局开关的呈现视图；底层单行持久于 M006，本层只读投影。
 
-#### `InjectionView`（继承 M006 §6.2）
-- **定义**：按 deployment 的注入配置呈现视图。
-- **字段**：`id`、`deployment_id`、`type`、`config`、`enabled`、`updated_at`。
-- **约束 / 不变量**：`type` 白名单与 `config` 字段集一致；多 enabled 时按确定性优先级取单条。
-- **状态 · 所有权 · 寿命**：底层持久（M006）；本层请求级只读。
-- **实例**：合法 `delay`；边界：未知 deployment → 404。
-- **来源 / 验证**：`libdiag-design.md` §6.2；`VRC-OBS-003`。
+- **`snapshots_enabled`**：
+
+  必填布尔；快照记录开关；缺省 `false`。
+
+- **`stats_enabled`**：
+
+  必填布尔；统计记录开关；缺省 `false`。
+
+- **跨字段与寿命**：
+
+  只读投影；写由 M006 `set_switches` 承担；请求级只读，底层单行持久。
+
+- **合法/拒绝实例**：
+
+  合法 `{true,false}`；边界：缺省默认 `false`，关闭时零写入。
+
+- **验证**：
+
+  `VRC-OBS-001`；来源 `libdiag-design.md` §6.2。
+
+**6.2.2 `DiagnosticSnapshotView`（业务与操作数据结构，继承 M006 §6.2 `SnapshotView`）**
+
+```text
+DiagnosticSnapshotView {
+  id: string,
+  request_id: string,
+  captured_at: timestamp,
+  upstream_url: string,      // 去 query
+  backend_model: string,
+  http_status: int?,
+  latency_ms: int?,
+  error_summary: string?,    // ≤256B
+  model: string,
+  deployment_id: string,
+  snapshot_type: string
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-DIAG-SNAPSHOT-VIEW`；一次上游调用快照的呈现视图；底层持久于 M006，本层请求级只读。
+
+- **`id`**：
+
+  必填、非空字符串；快照稳定身份。
+
+- **`request_id`**：
+
+  必填字符串；关联请求身份。
+
+- **`captured_at`**：
+
+  必填时间戳；捕获时刻。
+
+- **`upstream_url`**：
+
+  必填字符串，**去 query**；不携带查询串中的敏感值。
+
+- **`backend_model`**：
+
+  必填字符串；上游实际模型名。
+
+- **`http_status`**：
+
+  可空整数；上游 HTTP 状态；无响应时为空。
+
+- **`latency_ms`**：
+
+  可空整数；上游耗时毫秒。
+
+- **`error_summary`**：
+
+  可空字符串，UTF-8 安全截断 ≤256B；无正文/Secret。
+
+- **`model`**：
+
+  必填字符串；逻辑等级名。
+
+- **`deployment_id`**：
+
+  必填字符串；命中 deployment。
+
+- **`snapshot_type`**：
+
+  必填字符串；快照类型（如 `upstream`）。
+
+- **跨字段与寿命**：
+
+  URL 去 query、`error_summary` 截断；分页 `{items,next_cursor,has_more}`；底层持久 7 天（M006）；本层请求级只读。
+
+- **合法/拒绝实例**：
+
+  合法 `snapshot_type=upstream` 带 status；边界：`snapshots_enabled=false` → 不产生新行。
+
+- **验证**：
+
+  `VRC-OBS-002`；来源 `libdiag-design.md` §6.2。
+
+**6.2.3 `StatsView`（业务与操作数据结构，继承 M006 §6.2）**
+
+```text
+StatsView {
+  request_count: int,
+  error_count: int,
+  status_breakdown: map<string,int>,
+  latency_p50_ms: int?,
+  latency_p95_ms: int?,
+  latency_min_ms: int?,
+  latency_max_ms: int?,
+  latency_sum_ms: int?
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-STATS-VIEW`；按小时桶聚合的统计呈现视图；底层内存聚合（M006）。
+
+- **`request_count`**：
+
+  必填整数；窗口内请求数。
+
+- **`error_count`**：
+
+  必填整数；窗口内错误数。
+
+- **`status_breakdown`**：
+
+  必填映射；按 HTTP status 计数。
+
+- **`latency_p50_ms`**：
+
+  可空整数；P50 耗时毫秒；无样本为 `null`。
+
+- **`latency_p95_ms`**：
+
+  可空整数；P95 耗时毫秒；无样本为 `null`。
+
+- **`latency_min_ms`**：
+
+  可空整数；最小耗时毫秒。
+
+- **`latency_max_ms`**：
+
+  可空整数；最大耗时毫秒。
+
+- **`latency_sum_ms`**：
+
+  可空整数；耗时总和毫秒。
+
+- **跨字段与寿命**：
+
+  可丢、非账本；`status_breakdown` 按 HTTP status 分列；请求级只读，底层内存聚合。
+
+- **合法/拒绝实例**：
+
+  合法 window；边界：无样本 → 百分位 `null`。
+
+- **验证**：
+
+  `VRC-OBS-002`；来源 `libdiag-design.md` §6.2。
+
+**6.2.4 `TraceView` / `TracePage`（业务与操作数据结构，继承 M006 §6.2）**
+
+```text
+TraceView {
+  request_id: string,
+  correlation_id: string?,
+  stages: TraceStage[],
+  snapshot: DiagnosticSnapshotView?,
+  usage: Usage?
+}
+TracePage {
+  items: TraceView[],
+  next_cursor: string?,
+  has_more: bool
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-TRACE-VIEW`（单请求）/ `D-OBS-PAGE`（分页）；单请求完整 trace 视图与时间窗分页；底层持久于 M006，本层请求级只读。
+
+- **`request_id`**：
+
+  必填字符串；trace 键。
+
+- **`correlation_id`**：
+
+  可空字符串；consumer 提供时存在（§6.1.1）。
+
+- **`stages`**：
+
+  必填数组，元素为 §6.1.2 `TraceStageName`；非空且按时间升序。
+
+- **`snapshot`**：
+
+  可空，§6.2.2 `DiagnosticSnapshotView`；最近上游快照。
+
+- **`usage`**：
+
+  可空；请求用量（账本语义归 M-METER）。
+
+- **`TracePage.items`**：
+
+  必填数组；按 `request_id` 去重、`first_ts DESC`。
+
+- **`TracePage.next_cursor`**：
+
+  可空字符串；末条游标。
+
+- **`TracePage.has_more`**：
+
+  必填布尔；是否还有后续页。
+
+- **跨字段与寿命**：
+
+  `stages` 非空且按时间升序；分页去重 `request_id`、`first_ts DESC`；底层持久 7 天（M006）。
+
+- **合法/拒绝实例**：
+
+  合法完整 trace；边界：无记录 → 空 `stages`/空 `items`（不报错）。
+
+- **验证**：
+
+  `VRC-OBS-004/005`；来源 `libdiag-design.md` §6.2。
+
+**6.2.5 `InjectionView`（业务与操作数据结构，继承 M006 §6.2）**
+
+```text
+InjectionView {
+  id: string,
+  deployment_id: string,
+  type: string,
+  config: object,
+  enabled: bool,
+  updated_at: timestamp
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-INJECTION-VIEW`；按 deployment 的注入配置呈现视图；底层持久于 M006，本层请求级只读。
+
+- **`id`**：
+
+  必填、非空字符串；注入项身份。
+
+- **`deployment_id`**：
+
+  必填字符串；目标 deployment。
+
+- **`type`**：
+
+  必填字符串；注入类型白名单（见 §6.3.1）。
+
+- **`config`**：
+
+  必填对象；该 type 的参数集（见 §6.3.1）。
+
+- **`enabled`**：
+
+  必填布尔；是否生效。
+
+- **`updated_at`**：
+
+  必填时间戳；最后更新时刻。
+
+- **跨字段与寿命**：
+
+  `type` 白名单与 `config` 字段集一致；多 enabled 时按确定性优先级取单条；底层持久（M006），本层请求级只读。
+
+- **合法/拒绝实例**：
+
+  合法 `type=delay`；边界：未知 deployment → 404。
+
+- **验证**：
+
+  `VRC-OBS-003`；来源 `libdiag-design.md` §6.2。
 
 ### 6.3 配置与规则数据结构
 
-#### `InjectionConfig`（继承 M006 §6.3）
-- **定义**：各注入类型的 `config` 字段集与范围（`fault_502`/`fault_503`→`error_body`；`delay`→`delay_ms` 0–60000；`rate_limit`→`retry_after_sec` 0–300；`stream_terminate`→`stream_terminate_after_events` 1–10000；`malformed_event`→`malformed_after_events` 0–10000 + `malformed_event_type`）。
-- **约束 / 不变量**：字段齐备且在范围内，越界/缺失 → `ERR-INJECTION`。
-- **状态 · 所有权 · 寿命**：持久于 M006 `diagnostic_injections`。
-- **实例**：合法 `{delay_ms:200}`；拒绝 `{delay_ms:60001}` → 400。
-- **来源 / 验证**：`libdiag-design.md` §6.3；`VRC-OBS-003`。
+**6.3.1 `InjectionConfig`（配置与规则数据结构，继承 M006 §6.3）**
+
+```text
+InjectionConfig {
+  type: string,            // fault_502|fault_503|delay|rate_limit|stream_terminate|malformed_event
+  config: {
+    error_body?: string,                    // fault_502|fault_503
+    delay_ms?: uint32,                      // delay: 0–60000
+    retry_after_sec?: uint32,               // rate_limit: 0–300
+    stream_terminate_after_events?: uint32, // 1–10000
+    malformed_after_events?: uint32,        // 0–10000
+    malformed_event_type?: string
+  }
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-OBS-INJECTION-CONFIG`；各注入类型的 `config` 字段集与范围；持久于 M006 `diagnostic_injections`。
+
+- **`type`**：
+
+  必填字符串，白名单 {`fault_502`,`fault_503`,`delay`,`rate_limit`,`stream_terminate`,`malformed_event`}。
+
+- **`config.error_body`**：
+
+  条件必填字符串；`type ∈ {fault_502,fault_503}` 时必填；返回体。
+
+- **`config.delay_ms`**：
+
+  条件必填无符号整数，范围 0–60000；`type=delay` 时必填。
+
+- **`config.retry_after_sec`**：
+
+  条件必填无符号整数，范围 0–300；`type=rate_limit` 时必填。
+
+- **`config.stream_terminate_after_events`**：
+
+  条件必填无符号整数，范围 1–10000；`type=stream_terminate` 时必填。
+
+- **`config.malformed_after_events`**：
+
+  条件必填无符号整数，范围 0–10000；`type=malformed_event` 时必填。
+
+- **`config.malformed_event_type`**：
+
+  条件必填字符串；与 `malformed_after_events` 同用的异常事件类型。
+
+- **跨字段与寿命**：
+
+  字段齐备且在范围内，越界/缺失 → `ERR-INJECTION`；持久于 M006 `diagnostic_injections`。
+
+- **合法/拒绝实例**：
+
+  合法 `{delay_ms:200}`；拒绝 `{delay_ms:60001}` → 400。
+
+- **验证**：
+
+  `VRC-OBS-003`；来源 `libdiag-design.md` §6.3。
 
 ### 6.8 错误码与错误结构
 
@@ -412,112 +790,130 @@
 
 ## 9. 接口设计
 
-> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口形态分类**逐接口完整记录；标题为真实调用形式（HTTP 路由），标题下先给**完整接口声明**，再就地说明参数/结果字段，最后按 §3.1 六项。本模块接口**全部为软件接口**（HTTP 路由处理器，属“函数/公开方法/HTTP-RPC 端点”类）；消息流/硬件/人机三类不适用。数据结构引用 §6。端点由 M001 暴露、处理器位于 `src/http_api/app.py`，底层能力来自 M006 `DiagnosticsService`。
+> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口设计用途**分类（面向使用方的 API 与组件/系统间协作的消息与数据流接口），逐接口完整记录；标题为真实调用形式（HTTP 路由），标题下先给**完整接口声明**，再就地说明参数/结果字段，最后按固定六项。诊断端点向 operator 提供可观测能力，归 API；消息流/硬件/人机三类不适用。数据结构引用 §6。端点由 M001 暴露、处理器位于 `src/http_api/app.py`，底层能力来自 M006 `DiagnosticsService`。
 
-### 9.1 软件接口（适用时）
+### 9.1 API（适用时）
 
 #### `GET /tier/admin/v1/diagnostics`
+
 ```text
 GET /tier/admin/v1/diagnostics -> 200 {"snapshots_enabled": bool, "stats_enabled": bool}
 ```
-- **输入**：无（operator 角色由 M001 入口判定）。
-- **输出**：`SwitchView`（§6.2）——生效范围：读自 M006 单行开关。
-- **Interface/Member ID / 状态**：`IF-DIAGNOSTICS`；Implemented；文件/符号 `src/http_api/app.py`（诊断分支）→ `DiagnosticsService.switches`。
-- **错误与异常**：存储不可达 → `ERR-STORE`（503）。
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-DIAGNOSTICS`；读取诊断全局开关；M005 呈现、M006 持有；状态=Implemented；唯一契约=本设计；文件·symbol `src/http_api/app.py`（诊断分支）→ `DiagnosticsService.switches`。
+- **输入与前提**：无；operator 角色由 M001 入口判定。
+- **成功输出与保证**：`SwitchView`（§6.2.1）——读自 M006 单行开关；生效范围=当前全局配置。
+- **错误与合法下一步**：存储不可达 → `ERR-STORE`（503）；调用方稍后重试。
 - **交互与生命周期**：同步只读；请求级；幂等。
-- **实例与验证**：正常 `{true,false}`；边界：缺行 → 默认 false。`VRC-OBS-001`。
+- **实现与验证**：正常 `{true,false}`；边界：缺行 → 默认 `false`。`VRC-OBS-001`；`app.py`。
 
 #### `PATCH /tier/admin/v1/diagnostics`
+
 ```text
 PATCH /tier/admin/v1/diagnostics {snapshots_enabled?: bool, stats_enabled?: bool} -> 200 SwitchView
 ```
-- **输入**：可选 `snapshots_enabled`、`stats_enabled`（部分更新，缺省不变；非 bool → 400）。
-- **输出**：更新后的 `SwitchView`（§6.2）——经 `AdminService.mutate` 记审计后提交。
-- **Interface/Member ID / 状态**：`IF-DIAGNOSTICS`；Implemented；文件/符号 `app.py` → `admin.py` `mutate` → `DiagnosticsService.set_switches`。
-- **错误与异常**：非 bool → `ApiError(400,"invalid_request")`（`ERR-REQ-VALIDATION`）；审计失败不改开关。
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-DIAGNOSTICS`；切换诊断全局开关；M005 呈现、M006 持有；状态=Implemented；唯一契约=本设计；文件·symbol `app.py` → `admin.py` `mutate` → `DiagnosticsService.set_switches`。
+- **输入与前提**：可选 `snapshots_enabled`、`stats_enabled`（部分更新，缺省不变；非 bool → 400）。
+- **成功输出与保证**：更新后的 `SwitchView`（§6.2.1）——经 `AdminService.mutate` 记审计后提交。
+- **错误与合法下一步**：非 bool → `ApiError(400,"invalid_request")`（`ERR-REQ-VALIDATION`）；审计失败不改开关。
 - **交互与生命周期**：同步；请求级；幂等（重复设同值无副作用）。
-- **实例与验证**：正常 `{stats_enabled:true}`；拒绝 `"yes"` → 400。`VRC-OBS-001`。
+- **实现与验证**：正常 `{stats_enabled:true}`；拒绝 `"yes"` → 400。`VRC-OBS-001`；`app.py`。
 
 #### `GET /tier/admin/v1/diagnostics/snapshots`
+
 ```text
 GET /tier/admin/v1/diagnostics/snapshots?since&until&deployment_id&model&limit&cursor -> 200 {items:[DiagnosticSnapshotView], next_cursor, has_more}
 ```
-- **输入**：`since/until`（RFC3339）、`deployment_id/model`、`limit`（夹 `[1,500]`）、`cursor`（末条 id）。
-- **输出**：`SnapshotPage`（§6.2）——按 `captured_at DESC,id DESC`。
-- **Interface/Member ID / 状态**：`IF-DIAG-SNAPSHOTS`；Implemented；文件/符号 `app.py` → `DiagnosticsService.snapshots_page`。
-- **错误与异常**：cursor/时间窗非法 → `ApiError(400,"invalid_request")`（`ERR-CURSOR`/`ERR-REQ-VALIDATION`）；存储不可读 → `ERR-STORE`。
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-DIAG-SNAPSHOTS`；分页查询上游快照；M005 呈现、M006 提供；状态=Implemented；唯一契约=本设计；文件·symbol `app.py` → `DiagnosticsService.snapshots_page`。
+- **输入与前提**：`since/until`（RFC3339）、`deployment_id/model`、`limit`（夹 `[1,500]`）、`cursor`（末条 id）。
+- **成功输出与保证**：快照分页（§6.2.2），按 `captured_at DESC,id DESC`。
+- **错误与合法下一步**：cursor/时间窗非法 → `ApiError(400,"invalid_request")`（`ERR-CURSOR`/`ERR-REQ-VALIDATION`）；存储不可读 → `ERR-STORE`。
 - **交互与生命周期**：同步只读；`limit ≤500`；cursor 基于末条 id 稳定。
-- **实例与验证**：正常分页；边界：无快照 → `items=[]`、`has_more=false`。`VRC-OBS-002`。
+- **实现与验证**：正常分页；边界：无快照 → `items=[]`、`has_more=false`。`VRC-OBS-002`；`app.py`。
 
 #### `GET /tier/admin/v1/diagnostics/stats`
+
 ```text
 GET /tier/admin/v1/diagnostics/stats?since&until&deployment_id&model -> 200 StatsView
 ```
-- **输入**：`since/until`（必填，取前 13 字符做小时）、`deployment_id/model`。
-- **输出**：`StatsView`（§6.2）。
-- **Interface/Member ID / 状态**：`IF-DIAG-STATS`；Implemented；文件/符号 `app.py` → `DiagnosticsService.stats`。
-- **错误与异常**：缺时间 → `ApiError(400,"invalid_request")`（`ERR-REQ-VALIDATION`）；无数据 → `windows=[]`（非错误）。
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-DIAG-STATS`；查询按小时桶聚合的统计；M005 呈现、M006 提供；状态=Implemented；唯一契约=本设计；文件·symbol `app.py` → `DiagnosticsService.stats`。
+- **输入与前提**：`since/until`（必填，取前 13 字符做小时）、`deployment_id/model`。
+- **成功输出与保证**：`StatsView`（§6.2.3）。
+- **错误与合法下一步**：缺时间 → `ApiError(400,"invalid_request")`（`ERR-REQ-VALIDATION`）；无数据 → `windows=[]`（非错误）。
 - **交互与生命周期**：同步只读；请求级。
-- **实例与验证**：正常窗口；边界：无样本 → 百分位 `null`。`VRC-OBS-002`。
+- **实现与验证**：正常窗口；边界：无样本 → 百分位 `null`。`VRC-OBS-002`；`app.py`。
 
 #### `GET /tier/admin/v1/deployments/{deployment_id}/diagnostics`
+
 ```text
 GET /tier/admin/v1/deployments/{deployment_id}/diagnostics -> 200 [InjectionView]
 ```
-- **输入**：`deployment_id`。
-- **输出**：`InjectionView[]`（§6.2），按 `injection_type` 排序。
-- **Interface/Member ID / 状态**：`IF-DIAG-INJECTIONS`；Implemented；文件/符号 `app.py` → `DiagnosticsService.injections`。
-- **错误与异常**：未知 deployment → `ApiError(404,"not_found")`（`ERR-NOTFOUND`）。
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-DIAG-INJECTIONS`；读取按 deployment 的注入配置；M005 呈现、M006 提供；状态=Implemented；唯一契约=本设计；文件·symbol `app.py` → `DiagnosticsService.injections`。
+- **输入与前提**：`deployment_id`。
+- **成功输出与保证**：`InjectionView[]`（§6.2.5），按 `injection_type` 排序。
+- **错误与合法下一步**：未知 deployment → `ApiError(404,"not_found")`（`ERR-NOTFOUND`）。
 - **交互与生命周期**：同步只读；幂等。
-- **实例与验证**：正常列表；边界：无注入 → `[]`。`VRC-OBS-003`。
+- **实现与验证**：正常列表；边界：无注入 → `[]`。`VRC-OBS-003`；`app.py`。
 
 #### `PATCH /tier/admin/v1/deployments/{deployment_id}/diagnostics`
+
 ```text
 PATCH /tier/admin/v1/deployments/{deployment_id}/diagnostics {items:[{type,config,enabled}]} -> 200 [InjectionView]
 ```
-- **输入**：`deployment_id`；注入项列表（每项 `type/config/enabled`，约束见 §6.3）。
-- **输出**：全量 `InjectionView[]`（§6.2）——经审计后按 `(deployment_id,type)` upsert。
-- **Interface/Member ID / 状态**：`IF-DIAG-INJECTIONS`；Implemented；文件/符号 `app.py` → `admin.py` `mutate` → `DiagnosticsService.set_injections`。
-- **错误与异常**：类型/字段/范围非法 → `ApiError(400,"invalid_injection")`（`ERR-INJECTION`）；未知 deployment → 404；校验失败不写。
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-DIAG-INJECTIONS`；写入/更新按 deployment 的注入配置；M005 呈现、M006 持有；状态=Implemented；唯一契约=本设计；文件·symbol `app.py` → `admin.py` `mutate` → `DiagnosticsService.set_injections`。
+- **输入与前提**：`deployment_id`；注入项列表（每项 `type/config/enabled`，约束见 §6.3.1）。
+- **成功输出与保证**：全量 `InjectionView[]`（§6.2.5）——经审计后按 `(deployment_id,type)` upsert。
+- **错误与合法下一步**：类型/字段/范围非法 → `ApiError(400,"invalid_injection")`（`ERR-INJECTION`）；未知 deployment → 404；校验失败不写。
 - **交互与生命周期**：同步；并入审计事务；幂等（upsert）。
-- **实例与验证**：正常 `[{type:"delay",config:{delay_ms:200},enabled:true}]`；拒绝未知 type → 400。`VRC-OBS-003`。
+- **实现与验证**：正常 `[{type:"delay",config:{delay_ms:200},enabled:true}]`；拒绝未知 type → 400。`VRC-OBS-003`；`app.py`。
 
 #### `GET /tier/admin/v1/trace/{request_id}`
+
 ```text
 GET /tier/admin/v1/trace/{request_id} -> 200 TraceView
 ```
-- **输入**：`request_id`。
-- **输出**：`TraceView`（§6.2）——组合 stages + 最近快照 + usage。
-- **Interface/Member ID / 状态**：`IF-TRACE`；Implemented；文件/符号 `app.py` → `DiagnosticsService.trace`。
-- **错误与异常**：无记录 → `ApiError(404,"not_found")`（`ERR-NOTFOUND`）。
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-TRACE`；查询单请求完整 trace；M005 呈现、M006 提供；状态=Implemented；唯一契约=本设计；文件·symbol `app.py` → `DiagnosticsService.trace`。
+- **输入与前提**：`request_id`。
+- **成功输出与保证**：`TraceView`（§6.2.4）——组合 stages + 最近快照 + usage。
+- **错误与合法下一步**：无记录 → `ApiError(404,"not_found")`（`ERR-NOTFOUND`）。
 - **交互与生命周期**：同步只读；幂等。
-- **实例与验证**：正常已有 request；拒绝未知 id → 404。`VRC-OBS-004`。
+- **实现与验证**：正常已有 request；拒绝未知 id → 404。`VRC-OBS-004`；`app.py`。
 
 #### `GET /tier/admin/v1/diagnostics/traces`
+
 ```text
 GET /tier/admin/v1/diagnostics/traces?since&until&deployment_id&model&limit&cursor -> 200 TracePage
 ```
-- **输入**：同 snapshots。
-- **输出**：`TracePage`（§6.2）——按 request_id 去重、`first_ts DESC`。
-- **Interface/Member ID / 状态**：`IF-DIAG-TRACES`；Implemented（G-1）；文件/符号 `app.py` → `DiagnosticsService.traces`。
-- **错误与异常**：无匹配 → 空 `items`（非错误）；cursor 非法 → `ERR-CURSOR`。
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-DIAG-TRACES`；时间窗分页查询 trace；M005 呈现、M006 提供；状态=Implemented（G-1）；唯一契约=本设计；文件·symbol `app.py` → `DiagnosticsService.traces`。
+- **输入与前提**：同 snapshots。
+- **成功输出与保证**：`TracePage`（§6.2.4）——按 `request_id` 去重、`first_ts DESC`。
+- **错误与合法下一步**：无匹配 → 空 `items`（非错误）；cursor 非法 → `ERR-CURSOR`。
 - **交互与生命周期**：同步只读；与 snapshots 对称分页。
-- **实例与验证**：正常窗口分页；边界：空窗口 → `has_more=false`。`VRC-OBS-005`。
+- **实现与验证**：正常窗口分页；边界：空窗口 → `has_more=false`。`VRC-OBS-005`；`app.py`。
 
 #### `apply_correlation(headers) -> (correlation_id: str | None, trace_detail: dict | None)`
+
 ```text
 apply_correlation(headers) -> (correlation_id: str | None, trace_detail: dict | None)
 ```
-- **输入**：请求头 `X-Correlation-ID` 或 `traceparent`（由 M001 传入）。
-- **输出**：`CorrelationId`（§6.1）或 `None`——有则在响应头回显并写入 trace detail。
-- **Interface/Member ID / 状态**：`IF-OBS-CORRELATION`；Implemented；文件/符号 `app.py`（入口）→ `DiagnosticsService.record_trace`。
-- **错误与异常**：未提供 → 不回显、不报错（无异常）。
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-OBS-CORRELATION`；入口提取并透传关联标识；M005 提供、M001 入口调用；状态=Implemented；唯一契约=本设计；文件·symbol `app.py`（入口）→ `DiagnosticsService.record_trace`。
+- **输入与前提**：请求头 `X-Correlation-ID` 或 `traceparent`（由 M001 传入）。
+- **成功输出与保证**：`CorrelationId`（§6.1.1）或 `None`——有则在响应头回显并写入 trace detail。
+- **错误与合法下一步**：未提供 → 不回显、不报错（无异常）。
 - **交互与生命周期**：同步；请求级；不生成、不修改。
-- **实例与验证**：正常：带 `X-Correlation-ID` → 响应回显；边界：未带 → 无该头。`VRC-OBS-004`。
+- **实现与验证**：正常：带 `X-Correlation-ID` → 响应回显；边界：未带 → 无该头。`VRC-OBS-004`；`app.py`。
 
 ### 9.2 消息与数据流接口（适用时）
 
-不适用（诊断端点均为请求-响应 HTTP；无独立事件/队列/流；SSE 由 M001 拥有）。
+不适用（诊断端点均为请求-响应 HTTP，向 operator 提供查询/切换能力，属 API；本模块不拥有事件/队列/流，SSE 由 M001/M003 拥有）。
 
 ### 9.3 硬件与固件接口（适用时）
 

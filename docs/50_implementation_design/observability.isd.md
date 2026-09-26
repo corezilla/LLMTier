@@ -12,7 +12,7 @@
 | Document Owner | LLMTier |
 | Last Modified Date | `2026-09-25` |
 | Template ID | `design.implementation` |
-| Template Version | `1.0.0` |
+| Template Version | `1.2.0` |
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 实现目标与输入基线
@@ -108,43 +108,228 @@ diagnostics.py    # 查询方法：switches/set_switches/snapshots_page/stats/tr
 
 <a id="isd-data"></a>
 
-> 按 STD `design-data-interface-format` 1.2.0：主章“数据结构设计”，章内按**数据性质**分类（§4.1–§4.8）。仅保留适用类别，不适用类别在章首给出原因与 tailoring 依据；本层拥有的结构逐项记录 ID/唯一来源/字段/约束/状态·所有权·寿命/合法与拒绝实例/验证，语言级表示与代码映射随结构记录。继承结构只定位原定义与固定机器源，不复制字段。
+> 按 STD `design-data-interface-format` 1.2.0：主章“数据结构设计”，章内按**数据性质**分类（§4.1–§4.8）。仅保留适用类别，不适用类别在章首给出原因与 tailoring 依据；每个结构以真实名称为带编号的粗体标题，先给代码式声明，再逐项写 `Data/Type ID、用途与来源`、逐字段记录（必填·缺省·可空 / 类型·范围·枚举·含义 / 条件有效性）、`跨字段与寿命`、`合法/拒绝实例` 与 `验证`。继承结构只定位原定义与固定机器源，不复制字段。
 
 **类别适用性**：§4.1 公共基础类型与枚举 ✗（诊断枚举归 M006/M007）｜§4.2 业务与操作数据结构 ✓｜§4.3 配置与规则数据结构 ✗（查询参数为请求级入参，见 §8.1）｜§4.4 通信报文结构 ✗｜§4.5 设备与 FPGA 表项结构 ✗（纯软件）｜§4.6 运行状态数据结构 ✗（查询只读，无跨步骤状态）｜§4.7 数据库表结构 ✗（观测表归 M006/M007）｜§4.8 错误码与错误结构 ✓。
 
 ### 4.2 业务与操作数据结构
 
-#### `DiagnosticSnapshotView` / `TraceView`（`diagnostics.py`）
+**4.2.1 `DiagnosticSnapshotView`（`diagnostics.py`）**
 
-- **定义 / Data Type ID / 唯一来源**：观测查询阅读视图；`D-DIAG-SNAPSHOT-VIEW`/`D-TRACE-VIEW`；机器源=`interfaces/openapi/llmtier.openapi.json` + M006 表契约（`libdiag-design.md` §6.2，本层不重定义字段）。
-- **字段 / 取值**：SnapshotView `{id,request_id,captured_at,upstream_url,backend_model,http_status,latency_ms,error_summary,model,deployment_id,snapshot_type}`；TraceView `{request_id,correlation_id?,stages[],snapshot?,usage?}`。
-- **约束 / 不变量**：URL 去 query；`error_summary` ≤256B；`stages` 有序。
-- **状态 · 所有权 · 寿命**：请求级只读视图；M006 写，本模块读。
-- **语言级表示与代码映射**：`DiagnosticsService.snapshots_page/trace/traces` 返回 Python `dict`。
-- **合法与拒绝实例**：合法完整 trace；拒绝未知 `request_id` → `ERR-NOTFOUND`。
-- **验证**：`VRC-OBS-002/004`。
+```text
+DiagnosticSnapshotView {
+  id: str
+  request_id: str
+  captured_at: str
+  upstream_url: str          // 去 query
+  backend_model: str | null
+  http_status: int | null    // 100–599
+  latency_ms: float | null
+  error_summary: str | null  // ≤256B
+  model: str | null
+  deployment_id: str | null
+  snapshot_type: str
+}
+```
 
-#### `StatsView` / `InjectionView` / `SwitchState`（`diagnostics.py`）
+- **Data/Type ID、用途与来源**
 
-- **定义 / Data Type ID / 唯一来源**：统计/注入/开关阅读视图；`D-STATS-VIEW`/`D-INJECTION-VIEW`/`D-SWITCH-STATE`；唯一来源=本 ISD 与 M006 §6。
-- **字段 / 取值**：StatsView `{request_count,error_count,status_breakdown,error_4xx_count,error_5xx_count,p50,p95,min,max,avg}`；InjectionView `{id,deployment_id,type,enabled,config}`；SwitchState `{snapshots_enabled,stats_enabled}`。
-- **约束 / 不变量**：`status_breakdown` per-status；开关默认 false；注入类型白名单。
-- **状态 · 所有权 · 寿命**：请求级视图（底层由 M006 持久）。
-- **语言级表示与代码映射**：Python `dict`；`DiagnosticsService.stats/injections/switches` 返回。
-- **合法与拒绝实例**：合法 window；边界：无数据 → `windows=[]`；非法注入 → `ERR-INJECTION`。
-- **验证**：`VRC-OBS-001/003`。
+  `D-DIAG-SNAPSHOT-VIEW`；观测查询阅读视图。机器源=`interfaces/openapi/llmtier.openapi.json` + M006 表契约（`libdiag-design.md` §6.2），本层不重定义字段。
+
+- **`id` / `request_id` / `captured_at` / `snapshot_type`**（必填）
+
+  快照身份与时间/类型；`snapshot_type` 白名单。
+
+- **`upstream_url`**（必填、已脱敏）
+
+  上游地址，必须去 query。
+
+- **`http_status` / `latency_ms` / `error_summary`**（可空、条件有效）
+
+  状态码 100–599、时延 ≥0、摘要 ≤256B；URL 去 query。
+
+- **`backend_model` / `model` / `deployment_id`**（可空）
+
+  关联标识；缺失为 `null`。
+
+- **跨字段与寿命**
+
+  URL 去 query、`error_summary` ≤256B；请求级只读视图，M006 写、本模块读。
+
+- **合法/拒绝实例**
+
+  合法：完整快照；拒绝：未知 `request_id` → `ERR-NOTFOUND`。
+
+- **验证**
+
+  `VRC-OBS-002`。
+
+**4.2.2 `TraceView`（`diagnostics.py`）**
+
+```text
+TraceView {
+  request_id: str
+  correlation_id?: str
+  stages: object[]           // 有序
+  snapshot?: DiagnosticSnapshotView
+  usage?: object
+}
+```
+
+- **Data/Type ID、用途与来源**
+
+  `D-TRACE-VIEW`；单请求 trace 阅读视图。机器源=OpenAPI + M006 表契约。
+
+- **`request_id` / `stages`**（必填）
+
+  `str` / 有序 `object[]`；`stages` 非空且升序。
+
+- **`correlation_id` / `snapshot` / `usage`**（可空）
+
+  关联 ID、快照与用量视图；缺失为 `null`。
+
+- **跨字段与寿命**
+
+  `stages` 有序；请求级只读视图，M006 写、本模块读。
+
+- **合法/拒绝实例**
+
+  合法：完整 trace；拒绝：未知 `request_id` → `ERR-NOTFOUND`。
+
+- **验证**
+
+  `VRC-OBS-002/004`。
+
+**4.2.3 `StatsView`（`diagnostics.py`）**
+
+```text
+StatsView {
+  request_count: int
+  error_count: int
+  status_breakdown: object
+  error_4xx_count: int
+  error_5xx_count: int
+  p50: float | null
+  p95: float | null
+  min: float | null
+  max: float | null
+  avg: float | null
+}
+```
+
+- **Data/Type ID、用途与来源**
+
+  `D-STATS-VIEW`；统计阅读视图。唯一来源=本 ISD 与 M006 §6。
+
+- **`request_count` / `error_count` / `status_breakdown` / `error_4xx_count` / `error_5xx_count`**（必填）
+
+  聚合计数；`status_breakdown` 按状态逐项。
+
+- **`p50` / `p95` / `min` / `max` / `avg`**（可空）
+
+  `float | null`；无样本时为 `null`。
+
+- **跨字段与寿命**
+
+  `error_*_count` 由 breakdown 派生；请求级视图，底层由 M006 持久。
+
+- **合法/拒绝实例**
+
+  合法：有样本 window；边界：无数据 → 计数 0、百分位 `null`。
+
+- **验证**
+
+  `VRC-OBS-002`。
+
+**4.2.4 `InjectionView`（`diagnostics.py`）**
+
+```text
+InjectionView {
+  id: str
+  deployment_id: str
+  type: str
+  enabled: bool
+  config: object
+}
+```
+
+- **Data/Type ID、用途与来源**
+
+  `D-INJECTION-VIEW`；注入配置阅读视图。唯一来源=本 ISD 与 M006 §6。
+
+- **`id` / `deployment_id` / `type` / `enabled` / `config`**（必填）
+
+  `type` 白名单；`config` 字段集必须与 `type` 一致。
+
+- **跨字段与寿命**
+
+  注入类型白名单；请求级视图，底层由 M006 持久。
+
+- **合法/拒绝实例**
+
+  合法 `type=delay`；拒绝：非法类型/参数 → `ERR-INJECTION`。
+
+- **验证**
+
+  `VRC-OBS-003`。
+
+**4.2.5 `SwitchState`（`diagnostics.py`）**
+
+```text
+SwitchState {
+  snapshots_enabled: bool     // 默认 false
+  stats_enabled: bool         // 默认 false
+}
+```
+
+- **Data/Type ID、用途与来源**
+
+  `D-SWITCH-STATE`；诊断开关阅读视图。唯一来源=本 ISD 与 M006 §6。
+
+- **`snapshots_enabled` / `stats_enabled`**（必填、缺省 false）
+
+  `bool`；两字段独立，默认 `false`；关闭即零写入。
+
+- **跨字段与寿命**
+
+  开关默认关；请求级视图，底层由 M006 持久。
+
+- **合法/拒绝实例**
+
+  合法 `{true,false}`；边界：缺行返回默认 `false`。
+
+- **验证**
+
+  `VRC-OBS-001`。
 
 ### 4.8 错误码与错误结构
 
-#### Observability 错误结构（引用系统 §8.8）
+**4.8.1 Observability 错误结构（引用系统 §8.8）**
 
-- **定义 / Data Type ID / 唯一来源**：诊断查询/注入错误经公共 `D-ERROR-ENVELOPE`；含义与码由系统 §8.8 唯一维护；观测写入失败为**私有 fail-open**，不产生公共错误。
-- **字段 / 取值**：同 `ApiError`；查询结果脱敏。
-- **约束 / 不变量**：503 不伪装空页；URL 去 query、summary 截断。
-- **状态 · 所有权 · 寿命**：请求级错误对象；写入失败仅 warning。
-- **语言级表示与代码映射**：`ApiError`；`diagnostics.py`/`app.py` 抛出/映射。
-- **合法与拒绝实例**：合法查询返回视图；拒绝未知 id → `ERR-NOTFOUND`。
-- **验证**：`VRC-OBS-002/003`。
+```text
+ApiError { status: int, code: str, message: str, param: str | null,
+           retryable: bool, headers: dict | null, extra: dict | null }
+```
+
+- **Data/Type ID、用途与来源**
+
+  诊断查询/注入错误经公共 `D-ERROR-ENVELOPE`；含义与码由系统 §8.8 唯一维护；观测写入失败为**私有 fail-open**，不产生公共错误。
+
+- **`status` / `code` / `message` / `param` / `retryable` / `headers` / `extra`**（按需）
+
+  与 M001 `ApiError` 同构；查询结果脱敏。
+
+- **跨字段与寿命**
+
+  503 不伪装空页；URL 去 query、summary 截断；请求级错误对象，写入失败仅 warning。
+
+- **合法/拒绝实例**
+
+  合法：查询返回视图；拒绝：未知 id → `ERR-NOTFOUND`。
+
+- **验证**
+
+  `VRC-OBS-002/003`。
 
 **本层公共错误引用**（ID 定义见系统 §8.8）：
 
@@ -158,9 +343,9 @@ diagnostics.py    # 查询方法：switches/set_switches/snapshots_page/stats/tr
 
 <a id="isd-functions"></a>
 
-> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按接口形态分类逐接口完整记录；标题为真实调用形式，标题下先给完整签名，再就地说明参数/结果字段，最后按 §3.1 六项。数据结构引用 §4；公共错误 ID 定义见 `llmtier-system-design` §8.8，本层只产生/映射。本模块接口全部为软件接口；消息流/硬件/人机见 §5.2–§5.4。
+> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，**按接口用途分类**：向本模块使用方提供可调用能力的函数/端点归 §5.1 API；组件或系统间为协作而交换的命令、状态、事件、流等归 §5.2 消息与数据流（使用 HTTP 时仍按用途判断）。每个接口以真实限定名称为标题，标题下先给完整声明，再按六项固定标签（`Interface/Member ID、用途、提供责任与唯一来源`、`输入与前提`、`成功输出与保证`、`错误与合法下一步`、`交互与生命周期`、`实现与验证`）就地记录。数据结构引用 §4；错误传播落在各接口的 `错误与合法下一步`，公共错误 ID 定义见 `llmtier-system-design` §8.8，本层只产生/映射。
 
-### 5.1 软件接口（适用时）
+### 5.1 API（适用时）
 
 #### 5.1.1 `GET/PATCH /v1/diagnostics`
 
@@ -168,27 +353,39 @@ diagnostics.py    # 查询方法：switches/set_switches/snapshots_page/stats/tr
 GET/PATCH /v1/diagnostics
 ```
 
-- **Interface/Member ID、状态**：`FUNC-OBS-SWITCH` / PLANNED
-- **文件 / symbol / 可见性**：`app.py`（路由）+ `diagnostics.py` `switches/set_switches` / public 端点
-- **原成员 ID 或私有来源**：`F-OBS-SWITCH`、`R-OBS-02`
-- **完整签名与 caller**：`GET/PATCH /v1/diagnostics`；caller=operator
-- **输入**
+- **Interface/Member ID、用途、提供责任与唯一来源**
+
+  - **Interface/Member ID、状态**：`FUNC-OBS-SWITCH` / PLANNED
+  - **文件 / symbol / 可见性**：`app.py`（路由）+ `diagnostics.py` `switches/set_switches` / public 端点
+  - **原成员 ID 或私有来源**：`F-OBS-SWITCH`、`R-OBS-02`
+  - **完整签名与 caller**：`GET/PATCH /v1/diagnostics`；caller=operator
+
+- **输入与前提**
+
   - **输入参数 / 数据结构 authority**：PATCH `{snapshots_enabled?, stats_enabled?}`
   - **输入约束 / 校验顺序 / 失败映射**：部分更新；经 `admin.mutate` 审计
-- **成功输出**
+
+- **成功输出与保证**
+
   - **成功输出 / 数据结构 / 后置条件**：开关状态
-- **错误与异常**
+
+- **错误与合法下一步**
+
   - **错误输出 / 触发条件 / 优先级**：无公共错误输出
+
 - **交互与生命周期**
+
   - **副作用 / 执行上下文 / 幂等性**：写开关（经 M006）
   - **输入输出 ownership 与寿命**：持久（M006）
   - **Thread-safe / reentrant**：每请求线程
   - **Nested-call policy**：allowed
   - **Transaction participation**：joins existing（mutate）
   - **Blocking / timeout / cancellation**：`timeout=10`
-- **不可改变的规则 / Constraint ID**：默认关；关闭零写入
-- **实现自由度**：路由实现
-- **实例与验证**
+
+- **实现与验证**
+
+  - **不可改变的规则 / Constraint ID**：默认关；关闭零写入
+  - **实现自由度**：路由实现
   - **实现状态 / 验证项**：PLANNED；`VRC-OBS-001`
 
 #### 5.1.2 `GET /v1/diagnostics/snapshots|stats|traces`、`GET /v1/trace/{id}`
@@ -197,16 +394,24 @@ GET/PATCH /v1/diagnostics
 GET /v1/diagnostics/snapshots|stats|traces`、`GET /v1/trace/{id}
 ```
 
-- **Interface/Member ID、状态**：`FUNC-OBS-QUERY` / PLANNED
-- **文件 / symbol / 可见性**：`app.py`（route）+ `diagnostics.py`（query）
-- **原成员 ID 或私有来源**：`F-OBS-SNAPSHOTS/STATS/TRACE/TRACES`
-- **完整签名与 caller**：`GET /v1/diagnostics/snapshots|stats|traces`、`GET /v1/trace/{id}`；caller=operator/consumer
-- **输入**
+- **Interface/Member ID、用途、提供责任与唯一来源**
+
+  - **Interface/Member ID、状态**：`FUNC-OBS-QUERY` / PLANNED
+  - **文件 / symbol / 可见性**：`app.py`（route）+ `diagnostics.py`（query）
+  - **原成员 ID 或私有来源**：`F-OBS-SNAPSHOTS/STATS/TRACE/TRACES`
+  - **完整签名与 caller**：`GET /v1/diagnostics/snapshots|stats|traces`、`GET /v1/trace/{id}`；caller=operator/consumer
+
+- **输入与前提**
+
   - **输入参数 / 数据结构 authority**：查询参数
   - **输入约束 / 校验顺序 / 失败映射**：时间窗必填（stats）；cursor 校验；失败 → `E-OBS-QUERY`
-- **成功输出**
+
+- **成功输出与保证**
+
   - **成功输出 / 数据结构 / 后置条件**：视图
-- **错误与异常**
+
+- **错误与合法下一步**
+
   - **错误输出 / 触发条件 / 优先级**：E-OBS-QUERY（ERR-STORE / ERR-REQ-VALIDATION / ERR-CURSOR / ERR-NOTFOUND）：400/503
   - **E-OBS-QUERY（公共 ERR-STORE / ERR-REQ-VALIDATION / ERR-CURSOR / ERR-NOTFOUND）**
     - **底层异常 / 失败事实**：存储不可读 / 缺时间
@@ -216,16 +421,20 @@ GET /v1/diagnostics/snapshots|stats|traces`、`GET /v1/trace/{id}
     - **日志级别 / 脱敏 / 关联字段**：warning
     - **是否可重试及前提**：稍后重试
     - **状态与副作用影响 / 验证项**：`VRC-OBS-002`
+
 - **交互与生命周期**
+
   - **副作用 / 执行上下文 / 幂等性**：只读；幂等
   - **输入输出 ownership 与寿命**：请求级
   - **Thread-safe / reentrant**：每请求线程
   - **Nested-call policy**：allowed
   - **Transaction participation**：none
   - **Blocking / timeout / cancellation**：`timeout=10`
-- **不可改变的规则 / Constraint ID**：脱敏；503 不伪装空结果
-- **实现自由度**：呈现实现
-- **实例与验证**
+
+- **实现与验证**
+
+  - **不可改变的规则 / Constraint ID**：脱敏；503 不伪装空结果
+  - **实现自由度**：呈现实现
   - **实现状态 / 验证项**：PLANNED；`VRC-OBS-002/004`
 
 #### 5.1.3 `GET/PATCH /v1/deployments/{id}/diagnostics`
@@ -234,16 +443,24 @@ GET /v1/diagnostics/snapshots|stats|traces`、`GET /v1/trace/{id}
 GET/PATCH /v1/deployments/{id}/diagnostics
 ```
 
-- **Interface/Member ID、状态**：`FUNC-OBS-INJECT` / PLANNED
-- **文件 / symbol / 可见性**：`app.py`（route）+ `diagnostics.py` `set_injections/injections`
-- **原成员 ID 或私有来源**：`F-OBS-INJECTIONS`、`R-OBS-02`
-- **完整签名与 caller**：`GET/PATCH /v1/deployments/{id}/diagnostics`；caller=operator
-- **输入**
+- **Interface/Member ID、用途、提供责任与唯一来源**
+
+  - **Interface/Member ID、状态**：`FUNC-OBS-INJECT` / PLANNED
+  - **文件 / symbol / 可见性**：`app.py`（route）+ `diagnostics.py` `set_injections/injections`
+  - **原成员 ID 或私有来源**：`F-OBS-INJECTIONS`、`R-OBS-02`
+  - **完整签名与 caller**：`GET/PATCH /v1/deployments/{id}/diagnostics`；caller=operator
+
+- **输入与前提**
+
   - **输入参数 / 数据结构 authority**：注入项列表（部分更新）
   - **输入约束 / 校验顺序 / 失败映射**：白名单/范围（M006）；非法 → `E-OBS-INJECT`(400)
-- **成功输出**
+
+- **成功输出与保证**
+
   - **成功输出 / 数据结构 / 后置条件**：注入项列表
-- **错误与异常**
+
+- **错误与合法下一步**
+
   - **错误输出 / 触发条件 / 优先级**：E-OBS-INJECT（ERR-INJECTION · invalid_injection）：400/404
   - **E-OBS-INJECT（公共 ERR-INJECTION · invalid_injection）**
     - **底层异常 / 失败事实**：非法类型/参数
@@ -253,16 +470,20 @@ GET/PATCH /v1/deployments/{id}/diagnostics
     - **日志级别 / 脱敏 / 关联字段**：无
     - **是否可重试及前提**：修参数
     - **状态与副作用影响 / 验证项**：`VRC-OBS-003`
+
 - **交互与生命周期**
+
   - **副作用 / 执行上下文 / 幂等性**：写配置（经审计）
   - **输入输出 ownership 与寿命**：持久（M006）
   - **Thread-safe / reentrant**：每请求线程
   - **Nested-call policy**：allowed
   - **Transaction participation**：joins existing（mutate）
   - **Blocking / timeout / cancellation**：`timeout=10`
-- **不可改变的规则 / Constraint ID**：白名单；确定性优先级
-- **实现自由度**：转发实现
-- **实例与验证**
+
+- **实现与验证**
+
+  - **不可改变的规则 / Constraint ID**：白名单；确定性优先级
+  - **实现自由度**：转发实现
   - **实现状态 / 验证项**：PLANNED；`VRC-OBS-003`
 
 #### 5.1.4 `load*() -> Promise<void>`
@@ -271,27 +492,39 @@ GET/PATCH /v1/deployments/{id}/diagnostics
 load*() -> Promise<void>
 ```
 
-- **Interface/Member ID、状态**：`FUNC-OBS-PAGE` / PLANNED
-- **文件 / symbol / 可见性**：`webui/app.js` / `loadStats`/`loadTrace`/注入（属 M002）/ public
-- **原成员 ID 或私有来源**：`F-OBS-DIAG`（`R-OBS-05`）
-- **完整签名与 caller**：`load*() -> Promise<void>`；caller=页面
-- **输入**
+- **Interface/Member ID、用途、提供责任与唯一来源**
+
+  - **Interface/Member ID、状态**：`FUNC-OBS-PAGE` / PLANNED
+  - **文件 / symbol / 可见性**：`webui/app.js` / `loadStats`/`loadTrace`/注入（属 M002）/ public
+  - **原成员 ID 或私有来源**：`F-OBS-DIAG`（`R-OBS-05`）
+  - **完整签名与 caller**：`load*() -> Promise<void>`；caller=页面
+
+- **输入与前提**
+
   - **输入参数 / 数据结构 authority**：查询参数
   - **输入约束 / 校验顺序 / 失败映射**：失败 → I9
-- **成功输出**
+
+- **成功输出与保证**
+
   - **成功输出 / 数据结构 / 后置条件**：4 tabs 渲染
-- **错误与异常**
+
+- **错误与合法下一步**
+
   - **错误输出 / 触发条件 / 优先级**：无公共错误输出
+
 - **交互与生命周期**
+
   - **副作用 / 执行上下文 / 幂等性**：只读
   - **输入输出 ownership 与寿命**：页面
   - **Thread-safe / reentrant**：浏览器单线程
   - **Nested-call policy**：allowed
   - **Transaction participation**：none
   - **Blocking / timeout / cancellation**：浏览器
-- **不可改变的规则 / Constraint ID**：开关关闭 → Disabled
-- **实现自由度**：呈现实现
-- **实例与验证**
+
+- **实现与验证**
+
+  - **不可改变的规则 / Constraint ID**：开关关闭 → Disabled
+  - **实现自由度**：呈现实现
   - **实现状态 / 验证项**：PLANNED；`VRC-OBS-005`
 
 #### 5.1.5 `随请求头`
@@ -300,29 +533,40 @@ load*() -> Promise<void>
 随请求头
 ```
 
-- **Interface/Member ID、状态**：`FUNC-OBS-CORR` / PLANNED
-- **文件 / symbol / 可见性**：`app.py` / 关联标识处理 / public
-- **原成员 ID 或私有来源**：`F-OBS-CORRELATION`、`R-OBS-04`
-- **完整签名与 caller**：随请求头；caller=consumer
-- **输入**
+- **Interface/Member ID、用途、提供责任与唯一来源**
+
+  - **Interface/Member ID、状态**：`FUNC-OBS-CORR` / PLANNED
+  - **文件 / symbol / 可见性**：`app.py` / 关联标识处理 / public
+  - **原成员 ID 或私有来源**：`F-OBS-CORRELATION`、`R-OBS-04`
+  - **完整签名与 caller**：随请求头；caller=consumer
+
+- **输入与前提**
+
   - **输入参数 / 数据结构 authority**：`X-Correlation-ID` / `traceparent`
   - **输入约束 / 校验顺序 / 失败映射**：仅当 consumer 提供时回显
-- **成功输出**
+
+- **成功输出与保证**
+
   - **成功输出 / 数据结构 / 后置条件**：回显头 + trace detail
-- **错误与异常**
+
+- **错误与合法下一步**
+
   - **错误输出 / 触发条件 / 优先级**：无公共错误输出
+
 - **交互与生命周期**
+
   - **副作用 / 执行上下文 / 幂等性**：无
   - **输入输出 ownership 与寿命**：请求级
   - **Thread-safe / reentrant**：每请求线程
   - **Nested-call policy**：allowed
   - **Transaction participation**：none
   - **Blocking / timeout / cancellation**：无
-- **不可改变的规则 / Constraint ID**：**仅提供时回显**
-- **实现自由度**：解析实现
-- **实例与验证**
-  - **实现状态 / 验证项**：PLANNED；`VRC-OBS-004`
 
+- **实现与验证**
+
+  - **不可改变的规则 / Constraint ID**：**仅提供时回显**
+  - **实现自由度**：解析实现
+  - **实现状态 / 验证项**：PLANNED；`VRC-OBS-004`
 ### 5.2 消息与数据流接口（适用时）
 
 不适用（诊断数据经同步函数调用读写；无独立消息/队列/流）。

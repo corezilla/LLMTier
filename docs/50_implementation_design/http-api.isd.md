@@ -12,7 +12,7 @@
 | Document Owner | LLMTier |
 | Last Modified Date | `2026-09-25` |
 | Template ID | `design.implementation` |
-| Template Version | `1.0.0` |
+| Template Version | `1.2.0` |
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 实现目标与输入基线
@@ -119,45 +119,137 @@ webui/      # 静态资源（M002 产物）
 
 <a id="isd-data"></a>
 
-> 按 STD `design-data-interface-format` 1.2.0：主章“数据结构设计”，章内按**数据性质**分类（§4.1–§4.8）。仅保留适用类别，不适用类别在章首给出原因与 tailoring 依据；本层拥有的结构逐项记录 ID/唯一来源/字段/约束/状态·所有权·寿命/合法与拒绝实例/验证，语言级表示与代码映射随结构记录。继承结构只定位原定义与固定机器源，不复制字段。
+> 按 STD `design-data-interface-format` 1.2.0：主章“数据结构设计”，章内按**数据性质**分类（§4.1–§4.8）。仅保留适用类别，不适用类别在章首给出原因与 tailoring 依据；每个结构以真实名称为带编号的粗体标题，先给代码式声明，再逐项写 `Data/Type ID、用途与来源`、逐字段记录（必填·缺省·可空 / 类型·范围·枚举·含义 / 条件有效性）、`跨字段与寿命`、`合法/拒绝实例` 与 `验证`。继承结构只定位原定义与固定机器源，不复制字段。
 
 **类别适用性**：§4.1 公共基础类型与枚举 ✗（角色取值内嵌于 §4.2 `Principal.role`，无独立共享枚举）｜§4.2 业务与操作数据结构 ✓｜§4.3 配置与规则数据结构 ✗（部署参数为启动入参，见 §8.1，无受控规则对象）｜§4.4 通信报文结构 ✓｜§4.5 设备与 FPGA 表项结构 ✗（纯软件，无连接器/总线/寄存器）｜§4.6 运行状态数据结构 ✗（请求级，无跨步骤状态）｜§4.7 数据库表结构 ✗（不拥有表；持久化归 M007）｜§4.8 错误码与错误结构 ✓（承载系统 §8.8 公共码）。
 
 ### 4.2 业务与操作数据结构
 
-#### `Principal`（`auth.py`）
+**4.2.1 `Principal`（`auth.py`）**
 
-- **定义 / Data Type ID / 唯一来源**：入口鉴权结果；`D-PRINCIPAL`；机器权威=`interfaces/openapi/llmtier.openapi.json`（本层只做代码投影，不重定义）。
-- **字段 / 取值**：`principal_id: str`（≤128，非空）；`role: Literal["data","admin"]`；不可变。
-- **约束 / 不变量**：`role` 二值；`principal_id` 一次请求内恒定；不落库、不落日志。
-- **状态 · 所有权 · 寿命**：请求级；`auth` 构造、业务只读，请求结束释放。
-- **语言级表示与代码映射**：Python `@dataclass(frozen=True)`（或 `NamedTuple`）；`auth.authenticate*` 构造，`Handler._dispatch` 消费。
-- **合法与拒绝实例**：合法 `{principal_id:"local", role:"data"}`；拒绝：缺/非法凭据 → `ERR-AUTH-REQUIRED`/`ERR-AUTH-DENIED`，不构造 `Principal`。
-- **验证**：`VRC-API-002`。
+```text
+Principal {
+  principal_id: str              // ≤128，非空
+  role: Literal["data","admin"]
+}
+```
+
+- **Data/Type ID、用途与来源**
+
+  `D-PRINCIPAL`；入口鉴权的请求级主体结果。机器权威=`interfaces/openapi/llmtier.openapi.json`；本层只做代码投影，不重定义字段与值域。
+
+- **`principal_id`**（必填、非空、不可空）
+
+  `str`，长度 ≤128；来源为凭据解析结果（免登录 `local` 或 SSO 主体）；一次请求内恒定；不落库、不落日志。
+
+- **`role`**（必填、枚举）
+
+  `Literal["data","admin"]`；二值枚举，`data` 为默认业务角色、`admin` 为管理角色；决定端点授权级别；未知外部角色不得构造本对象。
+
+- **跨字段与寿命**
+
+  `role` 与 `principal_id` 必须同源、同请求内不可变；请求级所有权，`auth.authenticate*` 构造、业务只读消费，请求结束随栈释放；不持久化。纯软件逻辑结构，无原生 ABI 布局要求（N/A：无字节/位宽/端序；authority=OpenAPI）。
+
+- **合法/拒绝实例**
+
+  合法 `{principal_id:"local", role:"data"}`；拒绝：缺配置/缺凭据/角色不足 → `ERR-AUTH-NOCFG`/`ERR-AUTH-REQUIRED`/`ERR-AUTH-DENIED`，不构造 `Principal`。
+
+- **验证**
+
+  `VRC-API-002`（鉴权矩阵，独立期望为状态码与角色，不从 `auth` 反算）。
 
 ### 4.4 通信报文结构
 
-#### `SSEFrame`（`sse.py`）
+**4.4.1 `SSEFrame`（`sse.py`）**
 
-- **定义 / Data Type ID / 唯一来源**：`/v1/responses` 流式文本帧；`D-SSE-FRAME`；唯一来源=本 ISD §4.4 与机制 `M-INFER` §14.4 `R-INF-01`（SSE 事件流为机器源）。
-- **字段 / 取值**：`event: <name>\n`（`response.created`/`response.output_text.delta`/…/`response.completed`）；`data: <json>\n`（`D-RESPONSES-RESPONSE` 事件）；空行分帧；terminal 后 `data: [DONE]`；UTF-8。
-- **约束 / 不变量**：帧序固定；`sequence_number` 单调；恰好一个 terminal；`[DONE]` 只在 terminal 之后。
-- **状态 · 所有权 · 寿命**：请求级字节流；`sse.frame`/`response_stream` 产出，HTTP 写出口消费；随连接关闭释放。
-- **语言级表示与代码映射**：`frame(event, data) -> bytes`；`response_stream(response) -> Iterable[bytes]`；`Handler._dispatch` 的 responses 分支装配。
-- **合法与拒绝实例**：合法：`event: response.output_text.delta` + JSON + terminal；边界：客户端断开 → 结束且不补发；两个 terminal 属契约违规。
-- **验证**：`VRC-API-003`。
+```text
+SSEFrame {
+  event: <name>\n
+  data: <json>\n
+  <blank line>                   // 分帧
+}
+```
+
+- **Data/Type ID、用途与来源**
+
+  `D-SSE-FRAME`；`/v1/responses` 流式文本帧。唯一来源=本 ISD §4.4 与机制 `M-INFER` §14.4 `R-INF-01`（SSE 事件流为机器源）。
+
+- **`event`**（必填、枚举）
+
+  `<name>\n`，取值 `response.created`/`response.output_text.delta`/…/`response.completed`；帧序固定，`sequence_number` 单调。
+
+- **`data`**（必填）
+
+  `<json>\n`，载荷为 `D-RESPONSES-RESPONSE` 事件 JSON；UTF-8 编码；terminal 后只允许 `data: [DONE]`。
+
+- **分帧 / 终止**（条件有效性）
+
+  空行分帧；恰好一个 terminal 帧；`[DONE]` 只能在 terminal 之后出现；两个 terminal 属契约违规。
+
+- **跨字段与寿命**
+
+  `event` 与 `data` 必须成对且帧序固定；请求级字节流所有权，`sse.frame`/`response_stream` 产出、HTTP 写出口消费，随连接关闭释放。
+
+- **合法/拒绝实例**
+
+  合法：`event: response.output_text.delta` + JSON + terminal；边界：客户端断开 → 流结束且不补发；拒绝：terminal 缺失/重复或 `[DONE]` 早于 terminal。
+
+- **验证**
+
+  `VRC-API-003`。
 
 ### 4.8 错误码与错误结构
 
-#### `ApiError` / `D-ERROR-ENVELOPE`（`errors.py`）
+**4.8.1 `ApiError` / `D-ERROR-ENVELOPE`（`errors.py`）**
 
-- **定义 / Data Type ID / 唯一来源**：统一 HTTP 错误载荷与 typed error 载体；`D-ERROR-ENVELOPE`；公共含义与码由系统设计 §8.8 唯一维护，本层只构造。
-- **字段 / 取值**：`ApiError{status:int, code:str, message:str, param:str|null, retryable:bool, headers:dict|null, extra:dict|null}`；`envelope()` 产 `{"error":{"message","type","code","param"}}`。
-- **约束 / 不变量**：`code` 与系统 §8.8 稳定码一致；不含 Secret/完整正文/栈；未知端点走兜底 `ERR-INTERNAL`。
-- **状态 · 所有权 · 寿命**：请求级；`errors.require` / 任意模块抛，`Handler._run` 捕获并写出后释放。
-- **语言级表示与代码映射**：`ApiError.envelope`；`errors.require`；`Handler._run` 统一兜底映射。
-- **合法与拒绝实例**：合法 `{error:{type:"model_not_found",code:"...",param:null}}`；边界：未知路由 → `ERR-NOTFOUND`。
-- **验证**：`VRC-API-001/002`。
+```text
+ApiError {
+  status: int
+  code: str
+  message: str
+  param: str | null
+  retryable: bool
+  headers: dict | null
+  extra: dict | null
+}
+envelope() -> {"error": {message, type, code, param}}
+```
+
+- **Data/Type ID、用途与来源**
+
+  `D-ERROR-ENVELOPE`；统一 HTTP 错误载荷与 typed error 载体。公共含义与码由系统设计 §8.8 唯一维护，本层只构造与映射。
+
+- **`status`**（必填）
+
+  `int`，HTTP 状态码；来源为系统 §8.8 对应码的目标状态。
+
+- **`code`**（必填）
+
+  `str`；与系统 §8.8 稳定码一致，禁止本层私增。
+
+- **`message`**（必填）
+
+  `str`；稳定、可读且不含 Secret/完整正文/栈；序列化进 `error.type`。
+
+- **`param`**（可空、缺省 `null`）
+
+  `str | null`；字段级错误的参数名。
+
+- **`retryable` / `headers` / `extra`**（可选、缺省 `false`/`null`/`null`）
+
+  `bool` / `dict | null` / `dict | null`；`retryable` 指示调用方是否可安全重试，`headers` 承载 `Retry-After` 等，`extra` 承载结构化补充；均不得泄露敏感信息。
+
+- **跨字段与寿命**
+
+  `status` 与 `code` 必须对应同一系统 §8.8 条目；未知端点走兜底 `ERR-INTERNAL`；请求级所有权，`errors.require`/任意模块抛出，`Handler._run` 捕获并写出后释放。
+
+- **合法/拒绝实例**
+
+  合法 `{error:{type:"model_not_found",code:"...",param:null}}`；边界：未知路由 → `ERR-NOTFOUND`（404）；拒绝：`code` 与 §8.8 不一致或载荷含 Secret。
+
+- **验证**
+
+  `VRC-API-001/002`。
 
 **本层公共错误引用**（ID 定义见系统 §8.8；本层只产生/映射）：
 
@@ -172,9 +264,9 @@ webui/      # 静态资源（M002 产物）
 
 <a id="isd-functions"></a>
 
-> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按接口形态分类逐接口完整记录；标题为真实调用形式，标题下先给完整签名，再就地说明参数/结果字段，最后按 §3.1 六项。数据结构引用 §4；公共错误 ID 定义见 `llmtier-system-design` §8.8，本层只产生/映射。本模块接口全部为软件接口；消息流/硬件/人机见 §5.2–§5.4。
+> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，**按接口用途分类**：向本模块使用方提供可调用能力的函数/端点归 §5.1 API；组件或系统间为协作而交换的命令、状态、事件、流等归 §5.2 消息与数据流（使用 HTTP 时仍按用途判断）。每个接口以真实限定名称为标题，标题下先给完整声明，再按六项固定标签（`Interface/Member ID、用途、提供责任与唯一来源`、`输入与前提`、`成功输出与保证`、`错误与合法下一步`、`交互与生命周期`、`实现与验证`）就地记录。数据结构引用 §4；错误传播落在各接口的 `错误与合法下一步`，公共错误 ID 定义见 `llmtier-system-design` §8.8，本层只产生/映射。
 
-### 5.1 软件接口（适用时）
+### 5.1 API（适用时）
 
 #### 5.1.1 `_dispatch(self) -> None`
 
@@ -182,16 +274,24 @@ webui/      # 静态资源（M002 产物）
 _dispatch(self) -> None
 ```
 
-- **Interface/Member ID、状态**：`FUNC-API-DISPATCH` / PLANNED
-- **文件 / symbol / 可见性**：`app.py` / `Handler._dispatch` / private
-- **原成员 ID 或私有来源**：`F-API-DISPATCH`
-- **完整签名与 caller**：`_dispatch(self) -> None`；caller=`_run`
-- **输入**
+- **Interface/Member ID、用途、提供责任与唯一来源**
+
+  - **Interface/Member ID、状态**：`FUNC-API-DISPATCH` / PLANNED
+  - **文件 / symbol / 可见性**：`app.py` / `Handler._dispatch` / private
+  - **原成员 ID 或私有来源**：`F-API-DISPATCH`
+  - **完整签名与 caller**：`_dispatch(self) -> None`；caller=`_run`
+
+- **输入与前提**
+
   - **输入参数 / 数据结构 authority**：`self.path/command/headers`
   - **输入约束 / 校验顺序 / 失败映射**：健康/静态优先 → `bootstrap_error` 拦截 → 业务路由；未知 → `E-API-404`
-- **成功输出**
+
+- **成功输出与保证**
+
   - **成功输出 / 数据结构 / 后置条件**：写响应；调用业务服务
-- **错误与异常**
+
+- **错误与合法下一步**
+
   - **错误输出 / 触发条件 / 优先级**：E-API-404（ERR-NOTFOUND · not_found）：404 `not_found`；E-API-INTERNAL（ERR-INTERNAL · internal_error）：500 `internal_error`
   - **E-API-404（公共 ERR-NOTFOUND · not_found）**
     - **底层异常 / 失败事实**：路由未命中
@@ -209,16 +309,20 @@ _dispatch(self) -> None
     - **日志级别 / 脱敏 / 关联字段**：error（脱敏）
     - **是否可重试及前提**：无
     - **状态与副作用影响 / 验证项**：`VRC-API-001`
+
 - **交互与生命周期**
+
   - **副作用 / 执行上下文 / 幂等性**：调用下游（可能副作用）
   - **输入输出 ownership 与寿命**：请求级
   - **Thread-safe / reentrant**：每请求一线程
   - **Nested-call policy**：allowed
   - **Transaction participation**：none
   - **Blocking / timeout / cancellation**：SSE 空闲 60 s
-- **不可改变的规则 / Constraint ID**：路由优先级
-- **实现自由度**：路由表实现
-- **实例与验证**
+
+- **实现与验证**
+
+  - **不可改变的规则 / Constraint ID**：路由优先级
+  - **实现自由度**：路由表实现
   - **实现状态 / 验证项**：PLANNED；`VRC-API-001`
 
 #### 5.1.2 `_auth(role="data") -> Principal`
@@ -228,16 +332,24 @@ _auth(role="data") -> Principal
 _auth_either() -> (Principal,bool)
 ```
 
-- **Interface/Member ID、状态**：`FUNC-API-AUTH` / PLANNED
-- **文件 / symbol / 可见性**：`app.py` / `Handler._auth/_auth_either` / private
-- **原成员 ID 或私有来源**：`F-API-AUTH`（`R-TRUST-02`）
-- **完整签名与 caller**：`_auth(role="data") -> Principal`；`_auth_either() -> (Principal,bool)`
-- **输入**
+- **Interface/Member ID、用途、提供责任与唯一来源**
+
+  - **Interface/Member ID、状态**：`FUNC-API-AUTH` / PLANNED
+  - **文件 / symbol / 可见性**：`app.py` / `Handler._auth/_auth_either` / private
+  - **原成员 ID 或私有来源**：`F-API-AUTH`（`R-TRUST-02`）
+  - **完整签名与 caller**：`_auth(role="data") -> Principal`；`_auth_either() -> (Principal,bool)`
+
+- **输入与前提**
+
   - **输入参数 / 数据结构 authority**：headers、client_address
   - **输入约束 / 校验顺序 / 失败映射**：免登录 → 否则 Bearer；失败 → `E-API-AUTH`
-- **成功输出**
+
+- **成功输出与保证**
+
   - **成功输出 / 数据结构 / 后置条件**：`Principal`
-- **错误与异常**
+
+- **错误与合法下一步**
+
   - **错误输出 / 触发条件 / 优先级**：E-API-AUTH（ERR-AUTH-NOCFG / ERR-AUTH-REQUIRED / ERR-AUTH-DENIED）：503/401/403（不泄露存在性）
   - **E-API-AUTH（公共 ERR-AUTH-NOCFG / ERR-AUTH-REQUIRED / ERR-AUTH-DENIED）**
     - **底层异常 / 失败事实**：缺配置/缺凭据/凭据错误
@@ -247,16 +359,20 @@ _auth_either() -> (Principal,bool)
     - **日志级别 / 脱敏 / 关联字段**：无
     - **是否可重试及前提**：修凭据
     - **状态与副作用影响 / 验证项**：`VRC-API-002`
+
 - **交互与生命周期**
+
   - **副作用 / 执行上下文 / 幂等性**：无副作用；幂等
   - **输入输出 ownership 与寿命**：请求级
   - **Thread-safe / reentrant**：yes
   - **Nested-call policy**：allowed
   - **Transaction participation**：none
   - **Blocking / timeout / cancellation**：无
-- **不可改变的规则 / Constraint ID**：端点→角色固定；恒定时间；401/403 不泄露存在性
-- **实现自由度**：解析实现
-- **实例与验证**
+
+- **实现与验证**
+
+  - **不可改变的规则 / Constraint ID**：端点→角色固定；恒定时间；401/403 不泄露存在性
+  - **实现自由度**：解析实现
   - **实现状态 / 验证项**：PLANNED；`VRC-API-002`
 
 #### 5.1.3 `_body(self) -> dict`
@@ -265,16 +381,24 @@ _auth_either() -> (Principal,bool)
 _body(self) -> dict
 ```
 
-- **Interface/Member ID、状态**：`FUNC-API-BODY` / PLANNED
-- **文件 / symbol / 可见性**：`app.py` / `Handler._body` / private
-- **原成员 ID 或私有来源**：`F-API-BODY`
-- **完整签名与 caller**：`_body(self) -> dict`；caller=`_dispatch`
-- **输入**
+- **Interface/Member ID、用途、提供责任与唯一来源**
+
+  - **Interface/Member ID、状态**：`FUNC-API-BODY` / PLANNED
+  - **文件 / symbol / 可见性**：`app.py` / `Handler._body` / private
+  - **原成员 ID 或私有来源**：`F-API-BODY`
+  - **完整签名与 caller**：`_body(self) -> dict`；caller=`_dispatch`
+
+- **输入与前提**
+
   - **输入参数 / 数据结构 authority**：request body
   - **输入约束 / 校验顺序 / 失败映射**：`Content-Length > 2MB` → 413；JSON 非法 → 400
-- **成功输出**
+
+- **成功输出与保证**
+
   - **成功输出 / 数据结构 / 后置条件**：dict（只读交业务）
-- **错误与异常**
+
+- **错误与合法下一步**
+
   - **错误输出 / 触发条件 / 优先级**：E-API-BODY（ERR-REQ-TOO-LARGE / ERR-REQ-JSON）：413/400
   - **E-API-BODY（公共 ERR-REQ-TOO-LARGE / ERR-REQ-JSON）**
     - **底层异常 / 失败事实**：超限 / 非法 JSON
@@ -284,16 +408,20 @@ _body(self) -> dict
     - **日志级别 / 脱敏 / 关联字段**：无
     - **是否可重试及前提**：修 body
     - **状态与副作用影响 / 验证项**：`VRC-API-003`
+
 - **交互与生命周期**
+
   - **副作用 / 执行上下文 / 幂等性**：无
   - **输入输出 ownership 与寿命**：请求级
   - **Thread-safe / reentrant**：yes
   - **Nested-call policy**：allowed
   - **Transaction participation**：none
   - **Blocking / timeout / cancellation**：读 body 无超时
-- **不可改变的规则 / Constraint ID**：2 MB 上限
-- **实现自由度**：解析实现
-- **实例与验证**
+
+- **实现与验证**
+
+  - **不可改变的规则 / Constraint ID**：2 MB 上限
+  - **实现自由度**：解析实现
   - **实现状态 / 验证项**：PLANNED；`VRC-API-003`
 
 #### 5.1.4 `_static(self, path) -> None`
@@ -302,27 +430,39 @@ _body(self) -> dict
 _static(self, path) -> None
 ```
 
-- **Interface/Member ID、状态**：`FUNC-API-STATIC` / PLANNED
-- **文件 / symbol / 可见性**：`app.py` / `Handler._static` / private
-- **原成员 ID 或私有来源**：`F-API-STATIC`
-- **完整签名与 caller**：`_static(self, path) -> None`
-- **输入**
+- **Interface/Member ID、用途、提供责任与唯一来源**
+
+  - **Interface/Member ID、状态**：`FUNC-API-STATIC` / PLANNED
+  - **文件 / symbol / 可见性**：`app.py` / `Handler._static` / private
+  - **原成员 ID 或私有来源**：`F-API-STATIC`
+  - **完整签名与 caller**：`_static(self, path) -> None`
+
+- **输入与前提**
+
   - **输入参数 / 数据结构 authority**：路径
   - **输入约束 / 校验顺序 / 失败映射**：`target.resolve()` 必须落在 `webui/`；否则 404
-- **成功输出**
+
+- **成功输出与保证**
+
   - **成功输出 / 数据结构 / 后置条件**：文件响应（`Cache-Control: no-store`）
-- **错误与异常**
+
+- **错误与合法下一步**
+
   - **错误输出 / 触发条件 / 优先级**：无公共错误输出
+
 - **交互与生命周期**
+
   - **副作用 / 执行上下文 / 幂等性**：只读
   - **输入输出 ownership 与寿命**：请求级
   - **Thread-safe / reentrant**：yes
   - **Nested-call policy**：allowed
   - **Transaction participation**：none
   - **Blocking / timeout / cancellation**：本地读
-- **不可改变的规则 / Constraint ID**：无目录穿越
-- **实现自由度**：解析实现
-- **实例与验证**
+
+- **实现与验证**
+
+  - **不可改变的规则 / Constraint ID**：无目录穿越
+  - **实现自由度**：解析实现
   - **实现状态 / 验证项**：PLANNED；`VRC-API-004`
 
 #### 5.1.5 `frame(event, data) -> bytes`
@@ -332,27 +472,39 @@ frame(event, data) -> bytes
 response_stream(response) -> Iterable[bytes]
 ```
 
-- **Interface/Member ID、状态**：`FUNC-API-SSE` / PLANNED
-- **文件 / symbol / 可见性**：`sse.py` / `frame`、`response_stream` / private
-- **原成员 ID 或私有来源**：`F-API-SSE`（`R-INF-01`）
-- **完整签名与 caller**：`frame(event, data) -> bytes`；`response_stream(response) -> Iterable[bytes]`；caller=`_dispatch`（responses 分支）
-- **输入**
+- **Interface/Member ID、用途、提供责任与唯一来源**
+
+  - **Interface/Member ID、状态**：`FUNC-API-SSE` / PLANNED
+  - **文件 / symbol / 可见性**：`sse.py` / `frame`、`response_stream` / private
+  - **原成员 ID 或私有来源**：`F-API-SSE`（`R-INF-01`）
+  - **完整签名与 caller**：`frame(event, data) -> bytes`；`response_stream(response) -> Iterable[bytes]`；caller=`_dispatch`（responses 分支）
+
+- **输入与前提**
+
   - **输入参数 / 数据结构 authority**：终态 `ResponsesResponse`
   - **输入约束 / 校验顺序 / 失败映射**：帧序固定；恰好一个 terminal
-- **成功输出**
+
+- **成功输出与保证**
+
   - **成功输出 / 数据结构 / 后置条件**：SSE 帧序列 + terminal + `[DONE]`
-- **错误与异常**
+
+- **错误与合法下一步**
+
   - **错误输出 / 触发条件 / 优先级**：无公共错误输出
+
 - **交互与生命周期**
+
   - **副作用 / 执行上下文 / 幂等性**：流式；不幂等
   - **输入输出 ownership 与寿命**：请求级流
   - **Thread-safe / reentrant**：请求线程
   - **Nested-call policy**：allowed
   - **Transaction participation**：none
   - **Blocking / timeout / cancellation**：空闲 60 s
-- **不可改变的规则 / Constraint ID**：帧序/terminal 唯一（`C-INFER-1/2`）
-- **实现自由度**：缓冲实现
-- **实例与验证**
+
+- **实现与验证**
+
+  - **不可改变的规则 / Constraint ID**：帧序/terminal 唯一（`C-INFER-1/2`）
+  - **实现自由度**：缓冲实现
   - **实现状态 / 验证项**：PLANNED；`VRC-API-003`
 
 #### 5.1.6 `health_view(version) -> dict`
@@ -362,29 +514,40 @@ health_view(version) -> dict
 readiness_view(registry) -> (dict,int)
 ```
 
-- **Interface/Member ID、状态**：`FUNC-API-HEALTH` / PLANNED
-- **文件 / symbol / 可见性**：`health.py` / `health_view`、`readiness_view` / private
-- **原成员 ID 或私有来源**：`F-API-HEALTH`
-- **完整签名与 caller**：`health_view(version) -> dict`；`readiness_view(registry) -> (dict,int)`
-- **输入**
+- **Interface/Member ID、用途、提供责任与唯一来源**
+
+  - **Interface/Member ID、状态**：`FUNC-API-HEALTH` / PLANNED
+  - **文件 / symbol / 可见性**：`health.py` / `health_view`、`readiness_view` / private
+  - **原成员 ID 或私有来源**：`F-API-HEALTH`
+  - **完整签名与 caller**：`health_view(version) -> dict`；`readiness_view(registry) -> (dict,int)`
+
+- **输入与前提**
+
   - **输入参数 / 数据结构 authority**：版本、Registry
   - **输入约束 / 校验顺序 / 失败映射**：引导失败 → `/readyz` 503
-- **成功输出**
+
+- **成功输出与保证**
+
   - **成功输出 / 数据结构 / 后置条件**：健康/就绪 JSON + 状态码
-- **错误与异常**
+
+- **错误与合法下一步**
+
   - **错误输出 / 触发条件 / 优先级**：无公共错误输出
+
 - **交互与生命周期**
+
   - **副作用 / 执行上下文 / 幂等性**：无副作用；幂等
   - **输入输出 ownership 与寿命**：请求级
   - **Thread-safe / reentrant**：yes
   - **Nested-call policy**：allowed
   - **Transaction participation**：none
   - **Blocking / timeout / cancellation**：—
-- **不可改变的规则 / Constraint ID**：无副作用健康
-- **实现自由度**：实现
-- **实例与验证**
-  - **实现状态 / 验证项**：PLANNED；`VRC-API-004`
 
+- **实现与验证**
+
+  - **不可改变的规则 / Constraint ID**：无副作用健康
+  - **实现自由度**：实现
+  - **实现状态 / 验证项**：PLANNED；`VRC-API-004`
 ### 5.2 消息与数据流接口（适用时）
 
 不适用（SSE 为函数式字节流，已在 §5.1.5 `response_stream` 记录；本模块不拥有独立消息代理/队列/文件交换）。

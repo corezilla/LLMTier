@@ -39,7 +39,7 @@ Management是LLMTier自己的operator面，不是Slinky/Piko控制面。只管�
 
 ## 2. 接口设计（接口注册表）
 
-> 按 STD `design-data-interface-format` 1.2.0 §3 按**接口形态分类**；分类适用性：2.1 软件接口 ✓（Admin HTTP）｜2.2 消息与数据流接口 ✗（无事件/流；日志为拉取查询）｜2.3 硬件与固件接口 ✗（纯软件）｜2.4 人机与维护接口 ✓（Admin Web UI 操作，同源调用 Admin API）。
+> 按 STD `design-data-interface-format` 1.2.0 §3 按**接口形态分类**；分类适用性：2.1 API ✓（Admin HTTP）｜2.2 消息与数据流接口 ✗（无事件/流；日志为拉取查询）｜2.3 硬件与固件接口 ✗（纯软件）｜2.4 人机与维护接口 ✓（Admin Web UI 操作，同源调用 Admin API）。
 
 ### 2.0 接口注册表
 
@@ -58,7 +58,7 @@ Management是LLMTier自己的operator面，不是Slinky/Piko控制面。只管�
 
 编目范围=`selected_members`，分母为上述 Admin 面；不含 clients/sources/SourceInstance/entitlements/capacity-groups/recovery-items/Cost（§8）。状态不等于实现通过。
 
-### 2.1 软件接口（适用时）
+### 2.1 API（适用时）
 
 #### `GET/POST /v1/providers`；`GET/PATCH/DELETE /v1/providers/{provider_id}`
 
@@ -71,12 +71,12 @@ DELETE /v1/providers/{provider_id} If-Match    -> 204
   -> 4xx/5xx: ErrorEnvelope
 ```
 
-- **Interface/Member ID、状态、唯一契约、文件·symbol**：`IF-ADM-PROVIDERS`；规格已定、Implemented；唯一契约=`openapi` candidate.8；`src/management/registry.py`。
-- **输入**：`ProviderWrite`/`ProviderPatch`（§4.2）；`If-Match`（PATCH/DELETE 必填）；授权=`admin`。
-- **成功输出**：`ProviderView`（§4.2）+ 强 ETag；`secret_ref` 只写不回显；同事务写 `D-AUDIT-EVENT`。
-- **错误与异常**：`ERR-AUTH-REQUIRED`/`ERR-AUTH-DENIED`（401/403）；重名→`ERR-CONFLICT`（409）；被引用删除→`ERR-INUSE`（409）；`If-Match` 过期→`ERR-STALE`（412）；未知 ID→`ERR-NOTFOUND`（404）；`ERR-STORE`（503）。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-ADM-PROVIDERS`；规格已定、Implemented；唯一契约=`openapi` candidate.8；`src/management/registry.py`。
+- **输入与前提**：`ProviderWrite`/`ProviderPatch`（§4.2）；`If-Match`（PATCH/DELETE 必填）；授权=`admin`。
+- **成功输出与保证**：`ProviderView`（§4.2）+ 强 ETag；`secret_ref` 只写不回显；同事务写 `D-AUDIT-EVENT`。
+- **错误与合法下一步**：`ERR-AUTH-REQUIRED`/`ERR-AUTH-DENIED`（401/403）；重名→`ERR-CONFLICT`（409）；被引用删除→`ERR-INUSE`（409）；`If-Match` 过期→`ERR-STALE`（412）；未知 ID→`ERR-NOTFOUND`（404）；`ERR-STORE`（503）。
 - **交互与生命周期**：同步；PATCH partial；DELETE 幂等；ETag 乐观并发。
-- **实例与验证**：正常 201+ETag；拒绝缺 `If-Match` 的 PATCH→412。`VRC-MGMT-001/002`。
+- **实现与验证**：正常 201+ETag；拒绝缺 `If-Match` 的 PATCH→412。`VRC-MGMT-001/002`。
 
 #### `GET/POST /v1/providers/{provider_id}/usage`
 
@@ -86,12 +86,12 @@ POST /v1/providers/{provider_id}/usage {confirm_external_call:true}  -> 200 Prov
   -> 4xx/5xx: ErrorEnvelope
 ```
 
-- **Interface/Member ID、状态、唯一契约、文件·symbol**：`IF-ADM-PROVIDER-USAGE`；规格已定、Implemented；`openapi` candidate.8；`src/management/account_usage.py`。
-- **输入**：`provider_id`；POST 仅 `confirm_external_call`；Admin Bearer。
-- **成功输出**：`ProviderAccountUsageSnapshot`（§4.2）；POST 显式刷新并替换；不落 Secret。
-- **错误与异常**：缺确认→`ERR-CONFIRM`（400）；未知 provider→`ERR-NOTFOUND`（404）；上游失败记入快照 `status`（HTTP 200）。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-ADM-PROVIDER-USAGE`；规格已定、Implemented；`openapi` candidate.8；`src/management/account_usage.py`。
+- **输入与前提**：`provider_id`；POST 仅 `confirm_external_call`；Admin Bearer。
+- **成功输出与保证**：`ProviderAccountUsageSnapshot`（§4.2）；POST 显式刷新并替换；不落 Secret。
+- **错误与合法下一步**：缺确认→`ERR-CONFIRM`（400）；未知 provider→`ERR-NOTFOUND`（404）；上游失败记入快照 `status`（HTTP 200）。
 - **交互与生命周期**：同步；GET 只读；POST 显式触网、不自动轮询。
-- **实例与验证**：正常带确认刷新；拒绝缺确认。`VRC-DIAG-004`。
+- **实现与验证**：正常带确认刷新；拒绝缺确认。`VRC-DIAG-004`。
 
 #### `GET/POST /v1/deployments`；`GET/PATCH/DELETE /v1/deployments/{deployment_id}`
 
@@ -104,12 +104,12 @@ DELETE /v1/deployments/{deployment_id} If-Match    -> 204
   -> 4xx/5xx: ErrorEnvelope
 ```
 
-- **Interface/Member ID、状态、唯一契约、文件·symbol**：`IF-ADM-DEPLOYMENTS`；规格已定、Implemented；`openapi` candidate.8；`src/management/registry.py`。
-- **输入**：`DeploymentWrite`/`DeploymentPatch`（§4.2）；`If-Match`；Admin Bearer。
-- **成功输出**：`DeploymentView`（§4.2）+ ETag；同事务审计；Pause/Resume 经 `enabled`。
-- **错误与异常**：未知 `provider_id`→`ERR-REQ-VALIDATION`（400）；重名→`ERR-CONFLICT`（409）；被 tier 引用→`ERR-INUSE`（409）；`ERR-STALE`（412）。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-ADM-DEPLOYMENTS`；规格已定、Implemented；`openapi` candidate.8；`src/management/registry.py`。
+- **输入与前提**：`DeploymentWrite`/`DeploymentPatch`（§4.2）；`If-Match`；Admin Bearer。
+- **成功输出与保证**：`DeploymentView`（§4.2）+ ETag；同事务审计；Pause/Resume 经 `enabled`。
+- **错误与合法下一步**：未知 `provider_id`→`ERR-REQ-VALIDATION`（400）；重名→`ERR-CONFLICT`（409）；被 tier 引用→`ERR-INUSE`（409）；`ERR-STALE`（412）。
 - **交互与生命周期**：同步；partial PATCH；ETag。
-- **实例与验证**：正常引用已存在 provider；拒绝未知。`VRC-MGMT-001/002`。
+- **实现与验证**：正常引用已存在 provider；拒绝未知。`VRC-MGMT-001/002`。
 
 #### `GET/POST /v1/service-levels`；`GET/PATCH/DELETE /v1/service-levels/{service_level_id}`
 
@@ -122,12 +122,12 @@ DELETE /v1/service-levels/{service_level_id} If-Match  -> 204
   -> 4xx/5xx: ErrorEnvelope
 ```
 
-- **Interface/Member ID、状态、唯一契约、文件·symbol**：`IF-ADM-SERVICE-LEVELS`；规格已定、Implemented；`openapi` candidate.8；`src/management/registry.py`。
-- **输入**：`ServiceLevelWrite`/`ServiceLevelPatch`（§4.2）；`If-Match`；Admin Bearer。
-- **成功输出**：`ServiceLevelView`（§4.2）`capabilities` 为成员交集；同事务审计。
-- **错误与异常**：非固定 tier/非法交集→`ERR-REQ-VALIDATION`（400）；`ERR-CONFLICT`（409）；被引用→`ERR-INUSE`（409）；`ERR-STALE`（412）。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-ADM-SERVICE-LEVELS`；规格已定、Implemented；`openapi` candidate.8；`src/management/registry.py`。
+- **输入与前提**：`ServiceLevelWrite`/`ServiceLevelPatch`（§4.2）；`If-Match`；Admin Bearer。
+- **成功输出与保证**：`ServiceLevelView`（§4.2）`capabilities` 为成员交集；同事务审计。
+- **错误与合法下一步**：非固定 tier/非法交集→`ERR-REQ-VALIDATION`（400）；`ERR-CONFLICT`（409）；被引用→`ERR-INUSE`（409）；`ERR-STALE`（412）。
 - **交互与生命周期**：同步；partial PATCH；成员顺序稳定。
-- **实例与验证**：正常绑定有序成员；拒绝非固定 tier。`VRC-MGMT-001/002`。
+- **实现与验证**：正常绑定有序成员；拒绝非固定 tier。`VRC-MGMT-001/002`。
 
 #### `POST /v1/probes`
 
@@ -136,12 +136,12 @@ POST /v1/probes {deployment_id, confirm_external_call:true} -> 200 ProbeResult
   -> 4xx/5xx: ErrorEnvelope
 ```
 
-- **Interface/Member ID、状态、唯一契约、文件·symbol**：`IF-ADM-PROBES`；规格已定、Implemented；`openapi` candidate.8；`src/management/admin.py`。
-- **输入**：`ProbeRequest`；Admin Bearer + 二次确认。
-- **成功输出**：`ProbeResult`（§4.2）；可能产生费用（`may_have_incurred_cost`）。
-- **错误与异常**：缺确认→`ERR-CONFIRM`（400）；未知 deployment→`ERR-NOTFOUND`（404）；上游失败→`ERR-PROVIDER-*`（502）。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-ADM-PROBES`；规格已定、Implemented；`openapi` candidate.8；`src/management/admin.py`。
+- **输入与前提**：`ProbeRequest`；Admin Bearer + 二次确认。
+- **成功输出与保证**：`ProbeResult`（§4.2）；可能产生费用（`may_have_incurred_cost`）。
+- **错误与合法下一步**：缺确认→`ERR-CONFIRM`（400）；未知 deployment→`ERR-NOTFOUND`（404）；上游失败→`ERR-PROVIDER-*`（502）。
 - **交互与生命周期**：同步显式触发，不自动轮询。
-- **实例与验证**：正常带确认；拒绝缺确认。`VRC-DIAG-004`。
+- **实现与验证**：正常带确认；拒绝缺确认。`VRC-DIAG-004`。
 
 #### `GET/DELETE /v1/usage`
 
@@ -151,12 +151,12 @@ DELETE /v1/usage?model=&deployment_id=                        -> 200 object   # 
   -> 4xx/5xx: ErrorEnvelope
 ```
 
-- **Interface/Member ID、状态、唯一契约、文件·symbol**：`IF-ADM-USAGE`；规格已定、Implemented；`openapi` candidate.8；`src/inference/usage.py`。
-- **输入**：GET `from`/`to` 必填+可选过滤（data credential 仅见自身，admin 见全部）；DELETE 仅 admin。
-- **成功输出**：`UsagePage`（§4.2，unknown 不填零）；DELETE 清空结果。
-- **错误与异常**：非 admin DELETE→`ERR-AUTH-DENIED`；`ERR-CURSOR`（400）；`ERR-STORE`（503，不用空页）。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-ADM-USAGE`；规格已定、Implemented；`openapi` candidate.8；`src/inference/usage.py`。
+- **输入与前提**：GET `from`/`to` 必填+可选过滤（data credential 仅见自身，admin 见全部）；DELETE 仅 admin。
+- **成功输出与保证**：`UsagePage`（§4.2，unknown 不填零）；DELETE 清空结果。
+- **错误与合法下一步**：非 admin DELETE→`ERR-AUTH-DENIED`；`ERR-CURSOR`（400）；`ERR-STORE`（503，不用空页）。
 - **交互与生命周期**：GET 稳定快照（cursor 绑定 principal/授权/filter）；同 request 版本不累计。
-- **实例与验证**：正常分页；拒绝非 admin/过期 cursor。`VRC-MGMT-006`。
+- **实现与验证**：正常分页；拒绝非 admin/过期 cursor。`VRC-MGMT-006`。
 
 #### `GET /v1/runtime` / `GET /v1/stats` / `GET /v1/audit` / `GET /v1/logs`
 
@@ -168,27 +168,12 @@ GET /v1/logs?limit=&level=&module=&request_id=&from=&to= -> 200 LogPage {data:[L
   -> 4xx/5xx: ErrorEnvelope
 ```
 
-- **Interface/Member ID、状态、唯一契约、文件·symbol**：`IF-ADM-RUNTIME`、`IF-ADM-STATS`、`IF-ADM-AUDIT`、`IF-ADM-LOGS`；规格已定、Implemented；`openapi` candidate.8；`src/inference/routing.py`、`src/management/admin.py`、`src/management/audit.py`、`src/log/logs.py`。
-- **输入**：过滤/时间窗参数；Admin Bearer。
-- **成功输出**：瞬时快照 / 聚合 / `AuditEvent` / `LogEntry`（均脱敏，§4.2）；Logs 仅 level/module/event/message/request ID/time。
-- **错误与异常**：缺 `from`/`to`→`ERR-REQ-VALIDATION`（400）；`ERR-STORE`（503，返回 503 而非空页）。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-ADM-RUNTIME`、`IF-ADM-STATS`、`IF-ADM-AUDIT`、`IF-ADM-LOGS`；规格已定、Implemented；`openapi` candidate.8；`src/inference/routing.py`、`src/management/admin.py`、`src/management/audit.py`、`src/log/logs.py`。
+- **输入与前提**：过滤/时间窗参数；Admin Bearer。
+- **成功输出与保证**：瞬时快照 / 聚合 / `AuditEvent` / `LogEntry`（均脱敏，§4.2）；Logs 仅 level/module/event/message/request ID/time。
+- **错误与合法下一步**：缺 `from`/`to`→`ERR-REQ-VALIDATION`（400）；`ERR-STORE`（503，返回 503 而非空页）。
 - **交互与生命周期**：同步只读；日志支持 level/module/request ID 过滤，7 天保留。
-- **实例与验证**：正常过滤；拒绝缺时间窗。`VRC-LOG-001`、`VRC-MGMT-006`。
-
-#### Admin Web UI 操作（人机与维护）
-
-```text
-operator UI → same-origin Admin HTTP (Bearer via session)
-  providers / deployments / service-levels 列表与编辑
-  probes / usage / runtime / audit / logs 只读或显式操作
-```
-
-- **Interface/Member ID、状态、唯一契约、文件·symbol**：`IF-ADM-UI`；规格已定、Implemented；唯一契约=本文 §2.1 各 Admin 接口；`src/web_ui/`。
-- **输入**：operator 交互（表单/按钮）；权限=`admin`；不直接读配置文件或 Secret。
-- **成功输出**：调用 Admin API 的结果呈现；配置保存成功不得显示成 probe 成功。
-- **错误与异常**：透传 Admin API 的 `ERR-*`（401/403/409/412 等）。
-- **交互与生命周期**：同源；结果不明时先 GET 核对，不盲目重复 Secret/删除操作。
-- **实例与验证**：Admin UI test（activation gate）。`VRC-MGMT-*`。
+- **实现与验证**：正常过滤；拒绝缺时间窗。`VRC-LOG-001`、`VRC-MGMT-006`。
 
 ### 2.2 消息与数据流接口（适用时）
 
@@ -200,13 +185,28 @@ operator UI → same-origin Admin HTTP (Bearer via session)
 
 ### 2.4 人机与维护接口（适用时）
 
-见 §2.1 末“Admin Web UI 操作”；运维 runbook（backup/restore/restart）见运维文档。
+#### Admin Web UI 操作（人机与维护）
+
+```text
+operator UI → same-origin Admin HTTP (Bearer via session)
+  providers / deployments / service-levels 列表与编辑
+  probes / usage / runtime / audit / logs 只读或显式操作
+```
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-ADM-UI`；规格已定、Implemented；唯一契约=本文 §2.1 各 Admin 接口；`src/web_ui/`。
+- **输入与前提**：operator 交互（表单/按钮）；权限=`admin`；不直接读配置文件或 Secret。
+- **成功输出与保证**：调用 Admin API 的结果呈现；配置保存成功不得显示成 probe 成功。
+- **错误与合法下一步**：透传 Admin API 的 `ERR-*`（401/403/409/412 等）。
+- **交互与生命周期**：同源；结果不明时先 GET 核对，不盲目重复 Secret/删除操作。
+- **实现与验证**：Admin UI test（activation gate）。`VRC-MGMT-*`。
+
+运维 runbook（backup/restore/restart）见运维文档。
 
 ## 3. 传输与物理边界
 
 > 分类同 §2；逐接口端点/协议回写 §2 各声明。
 
-- **软件接口（Admin HTTP）**：HTTPS + JSON + Bearer Auth；端点 `/v1/*`（Admin 面）。Admin Bearer auth 与 Data Plane credential 分离；生产使用 TLS。
+- **API（Admin HTTP）**：HTTPS + JSON + Bearer Auth；端点 `/v1/*`（Admin 面）。Admin Bearer auth 与 Data Plane credential 分离；生产使用 TLS。
 - **人机与维护接口**：中文 Web UI 同源调用 Admin API，不直接读配置文件或 Secret。
 - **硬件与固件接口**：不适用。
 - **消息与数据流接口**：不适用。
@@ -219,73 +219,211 @@ operator UI → same-origin Admin HTTP (Bearer via session)
 
 ### 4.1 公共基础类型与枚举
 
-#### `Kind` / `Health` / `LogLevel` / `TierId`
-- **定义、Data/Type ID 与唯一来源**：管理面共享枚举；机器源 `openapi` `ProviderView`/`DeploymentView`/`LogEntry`/`ServiceLevelView`。
-- **字段**：`kind ∈ {cloud,local}`；`health ∈ {unknown,healthy,degraded,unhealthy}`；`level ∈ {info,warning,error}`；`TierId` = 7 固定 tier。
-- **约束 / 不变量**：枚举值固定，不得扩展；tier `id` exact-case。
-- **状态 · 所有权 · 寿命**：随所属结构持久/返回。
-- **合法与拒绝实例**：合法 `healthy`；拒绝未知枚举值。
-- **验证**：`openapi`；`VRC-MGMT-*`。
+**4.1.1 `Kind` / `Health` / `LogLevel` / `TierId`（公共基础类型与枚举）**
+
+```text
+`kind ∈ {cloud,local}`；`health ∈ {unknown,healthy,degraded,unhealthy}`；`level ∈ {info,warning,error}`；`TierId` = 7 固定 tier。
+```
+
+- **Data/Type ID、用途与来源**：
+
+  管理面共享枚举；机器源 `openapi` `ProviderView`/`DeploymentView`/`LogEntry`/`ServiceLevelView`。
+
+- **字段与约束**：
+
+  枚举值固定，不得扩展；tier `id` exact-case。
+
+- **跨字段与寿命**：
+
+  随所属结构持久/返回。
+
+- **合法/拒绝实例**：
+
+  合法 `healthy`；拒绝未知枚举值。
+
+- **验证**：
+
+  `openapi`；`VRC-MGMT-*`。
 
 ### 4.2 业务与操作数据结构
 
-#### `ProviderView` / `ProviderWrite` / `ProviderPatch`
-- **定义、Data/Type ID 与唯一来源**：provider 写模型与视图；`D-PROVIDER`；机器源 `openapi`。
-- **字段**：`ProviderWrite{name,kind,endpoint,secret_ref?,enabled,usage?}`；`ProviderPatch` 全可选 `minProperties:1`；`ProviderView{id,name,kind,endpoint,has_secret,enabled,usage:ProviderUsageProfileView,request_usage,version≥1}`。
-- **约束 / 不变量**：Provider 区分 cloud/local，保存 OpenAI-compatible API root endpoint（适配器在其后使用 `/models`、`/responses`、`/embeddings`）和 Secret 引用；view 只返回 `has_secret`；`name` 唯一。
-- **状态 · 所有权 · 寿命**：单个 SQLite 事务持久化资源版本与 Audit；operator 拥有。
-- **合法与拒绝实例**：合法 `{name,kind:cloud,endpoint,secret_ref:"file:/run/secrets/x",enabled:true}`；拒绝明文 secret 或重名。
-- **验证**：`admin-model-fixtures.json`；`VRC-MGMT-001/002`。
+**4.2.1 `ProviderView` / `ProviderWrite` / `ProviderPatch`（业务与操作数据结构）**
 
-#### `DeploymentView` / `DeploymentWrite` / `DeploymentPatch`
-- **定义、Data/Type ID 与唯一来源**：deployment 绑定 backend model 和能力；`D-DEPLOYMENT`；机器源 `openapi`。
-- **字段**：`DeploymentWrite{name,provider_id,backend_model,capabilities,enabled}`；`DeploymentView` 增 `id,health,version`。
-- **约束 / 不变量**：`provider_id` 必须存在；`capabilities` 12 键（§4.3）。
-- **状态 · 所有权 · 寿命**：SQLite 持久；operator 拥有；带 `version`。
-- **合法与拒绝实例**：合法引用已存在 provider；拒绝未知 `provider_id`→`ERR-REQ-VALIDATION`。
-- **验证**：`openapi`；`VRC-MGMT-001/002`。
+```text
+`ProviderWrite{name,kind,endpoint,secret_ref?,enabled,usage?}`；`ProviderPatch` 全可选 `minProperties:1`；`ProviderView{id,name,kind,endpoint,has_secret,enabled,usage:ProviderUsageProfileView,request_usage,version≥1}`。
+```
 
-#### `ServiceLevelView` / `ServiceLevelWrite` / `ServiceLevelPatch`
-- **定义、Data/Type ID 与唯一来源**：ServiceLevel 用 exact ID 绑定一个或多个同等级 deployment；`D-SERVICE-LEVEL`；机器源 `openapi`。
-- **字段**：`ServiceLevelWrite{id,deployment_ids[≥1],enabled}`；`ServiceLevelView` 增 `capabilities,version`。
-- **约束 / 不变量**：`id ∈ 7 固定 tier`；`capabilities` = 成员交集；成员有序。
-- **状态 · 所有权 · 寿命**：SQLite 持久，带 `version`。
-- **合法与拒绝实例**：合法绑定有序成员；拒绝非固定 tier/非法交集。
-- **验证**：`openapi`；`VRC-MGMT-001/002`。
+- **Data/Type ID、用途与来源**：
 
-#### `ProviderAccountUsageSnapshot` / `ProbeResult` / `UsageRecord` / `UsagePage`
-- **定义、Data/Type ID 与唯一来源**：账号用量快照、探测结果与 token 用量；`D-PROVIDER-SNAPSHOT`/`D-USAGE-RECORD`；机器源 `openapi`。
-- **字段**：见 `llmtier-contract-specification` §3.2。
-- **约束 / 不变量**：`unknown ⇒ token 全 null`；`has_more=false ⇒ next_cursor=null`；快照不落 Secret。
-- **状态 · 所有权 · 寿命**：账本追加式；快照 operator 显式刷新后替换。
-- **合法与拒绝实例**：合法带确认刷新；拒绝缺确认→`ERR-CONFIRM`。
-- **验证**：`usage-fixtures.json`；`VRC-INF-004`、`VRC-MGMT-006`。
+  provider 写模型与视图；`D-PROVIDER`；机器源 `openapi`。
 
-#### `AuditEvent` / `AuditPage` / `LogEntry` / `LogPage`
-- **定义、Data/Type ID 与唯一来源**：审计与脱敏日志；`D-AUDIT-EVENT`/`D-LOG-EVENT`；机器源 `openapi`。
-- **字段**：`AuditEvent{id,actor,action,target,result,created_at}`；`LogEntry{id,created_at,level,module,event,message(≤512),request_id?}`。
-- **约束 / 不变量**：Secret 值只写不读、不回显、不进日志/audit/backup report；日志禁止 prompt、模型输出、reasoning、向量、Authorization 和原始 headers。
-- **状态 · 所有权 · 寿命**：SQLite 持久；审计随策略、日志 7 天。
-- **合法与拒绝实例**：合法脱敏写入；拒绝含 Secret 原文。
-- **验证**：`admin-model-fixtures.json`；`VRC-LOG-001`。
+- **字段与约束**：
+
+  Provider 区分 cloud/local，保存 OpenAI-compatible API root endpoint（适配器在其后使用 `/models`、`/responses`、`/embeddings`）和 Secret 引用；view 只返回 `has_secret`；`name` 唯一。
+
+- **跨字段与寿命**：
+
+  单个 SQLite 事务持久化资源版本与 Audit；operator 拥有。
+
+- **合法/拒绝实例**：
+
+  合法 `{name,kind:cloud,endpoint,secret_ref:"file:/run/secrets/x",enabled:true}`；拒绝明文 secret 或重名。
+
+- **验证**：
+
+  `admin-model-fixtures.json`；`VRC-MGMT-001/002`。
+
+**4.2.2 `DeploymentView` / `DeploymentWrite` / `DeploymentPatch`（业务与操作数据结构）**
+
+```text
+`DeploymentWrite{name,provider_id,backend_model,capabilities,enabled}`；`DeploymentView` 增 `id,health,version`。
+```
+
+- **Data/Type ID、用途与来源**：
+
+  deployment 绑定 backend model 和能力；`D-DEPLOYMENT`；机器源 `openapi`。
+
+- **字段与约束**：
+
+  `provider_id` 必须存在；`capabilities` 12 键（§4.3）。
+
+- **跨字段与寿命**：
+
+  SQLite 持久；operator 拥有；带 `version`。
+
+- **合法/拒绝实例**：
+
+  合法引用已存在 provider；拒绝未知 `provider_id`→`ERR-REQ-VALIDATION`。
+
+- **验证**：
+
+  `openapi`；`VRC-MGMT-001/002`。
+
+**4.2.3 `ServiceLevelView` / `ServiceLevelWrite` / `ServiceLevelPatch`（业务与操作数据结构）**
+
+```text
+`ServiceLevelWrite{id,deployment_ids[≥1],enabled}`；`ServiceLevelView` 增 `capabilities,version`。
+```
+
+- **Data/Type ID、用途与来源**：
+
+  ServiceLevel 用 exact ID 绑定一个或多个同等级 deployment；`D-SERVICE-LEVEL`；机器源 `openapi`。
+
+- **字段与约束**：
+
+  `id ∈ 7 固定 tier`；`capabilities` = 成员交集；成员有序。
+
+- **跨字段与寿命**：
+
+  SQLite 持久，带 `version`。
+
+- **合法/拒绝实例**：
+
+  合法绑定有序成员；拒绝非固定 tier/非法交集。
+
+- **验证**：
+
+  `openapi`；`VRC-MGMT-001/002`。
+
+**4.2.4 `ProviderAccountUsageSnapshot` / `ProbeResult` / `UsageRecord` / `UsagePage`（业务与操作数据结构）**
+
+- **Data/Type ID、用途与来源**：
+
+  账号用量快照、探测结果与 token 用量；`D-PROVIDER-SNAPSHOT`/`D-USAGE-RECORD`；机器源 `openapi`。
+
+- **字段与约束**：
+
+  见 `llmtier-contract-specification` §3.2。
+
+  `unknown ⇒ token 全 null`；`has_more=false ⇒ next_cursor=null`；快照不落 Secret。
+
+- **跨字段与寿命**：
+
+  账本追加式；快照 operator 显式刷新后替换。
+
+- **合法/拒绝实例**：
+
+  合法带确认刷新；拒绝缺确认→`ERR-CONFIRM`。
+
+- **验证**：
+
+  `usage-fixtures.json`；`VRC-INF-004`、`VRC-MGMT-006`。
+
+**4.2.5 `AuditEvent` / `AuditPage` / `LogEntry` / `LogPage`（业务与操作数据结构）**
+
+```text
+`AuditEvent{id,actor,action,target,result,created_at}`；`LogEntry{id,created_at,level,module,event,message(≤512),request_id?}`。
+```
+
+- **Data/Type ID、用途与来源**：
+
+  审计与脱敏日志；`D-AUDIT-EVENT`/`D-LOG-EVENT`；机器源 `openapi`。
+
+- **字段与约束**：
+
+  Secret 值只写不读、不回显、不进日志/audit/backup report；日志禁止 prompt、模型输出、reasoning、向量、Authorization 和原始 headers。
+
+- **跨字段与寿命**：
+
+  SQLite 持久；审计随策略、日志 7 天。
+
+- **合法/拒绝实例**：
+
+  合法脱敏写入；拒绝含 Secret 原文。
+
+- **验证**：
+
+  `admin-model-fixtures.json`；`VRC-LOG-001`。
 
 ### 4.3 配置与规则数据结构
 
-#### `ModelCapabilities` / `ProviderUsageProfile*`
-- **定义、Data/Type ID 与唯一来源**：能力 12 键与账号 profile；机器源 `openapi`。
-- **字段**：见 `llmtier-contract-specification` §3.3。
-- **约束 / 不变量**：`secret_ref`/`usage_*_ref` 只写引用；不形成外部 capacity/Seat 产品。
-- **状态 · 所有权 · 寿命**：SQLite 持久，operator 拥有。
-- **合法与拒绝实例**：合法引用；拒绝明文 secret。
-- **验证**：`VRC-MGMT-*`。
+**4.3.1 `ModelCapabilities` / `ProviderUsageProfile*`（配置与规则数据结构）**
 
-#### `ETagPolicy` / `CursorPolicy`
-- **定义、Data/Type ID 与唯一来源**：并发与分页规则；本文 §5/§7；机器源 `openapi` 响应 header/`AdminPageMeta`。
-- **字段**：每个可变资源 GET/创建/修改成功返回强 `ETag`；PATCH/DELETE 必带 `If-Match`；列表 `limit`、opaque `cursor`、`has_more`/`next_cursor`，cursor 绑定 principal 及原 filter。
-- **约束 / 不变量**：`If-Match` 过期→`ERR-STALE` 且不写入；`has_more=false ⇒ next_cursor=null`。
-- **状态 · 所有权 · 寿命**：请求级/资源版本级。
-- **合法与拒绝实例**：合法带正确 ETag；拒绝缺失/过期→412。
-- **验证**：`VRC-MGMT-002`。
+- **Data/Type ID、用途与来源**：
+
+  能力 12 键与账号 profile；机器源 `openapi`。
+
+- **字段与约束**：
+
+  见 `llmtier-contract-specification` §3.3。
+
+  `secret_ref`/`usage_*_ref` 只写引用；不形成外部 capacity/Seat 产品。
+
+- **跨字段与寿命**：
+
+  SQLite 持久，operator 拥有。
+
+- **合法/拒绝实例**：
+
+  合法引用；拒绝明文 secret。
+
+- **验证**：
+
+  `VRC-MGMT-*`。
+
+**4.3.2 `ETagPolicy` / `CursorPolicy`（配置与规则数据结构）**
+
+- **Data/Type ID、用途与来源**：
+
+  并发与分页规则；本文 §5/§7；机器源 `openapi` 响应 header/`AdminPageMeta`。
+
+- **字段与约束**：
+
+  每个可变资源 GET/创建/修改成功返回强 `ETag`；PATCH/DELETE 必带 `If-Match`；列表 `limit`、opaque `cursor`、`has_more`/`next_cursor`，cursor 绑定 principal 及原 filter。
+
+  `If-Match` 过期→`ERR-STALE` 且不写入；`has_more=false ⇒ next_cursor=null`。
+
+- **跨字段与寿命**：
+
+  请求级/资源版本级。
+
+- **合法/拒绝实例**：
+
+  合法带正确 ETag；拒绝缺失/过期→412。
+
+- **验证**：
+
+  `VRC-MGMT-002`。
 
 ### 4.4 通信报文结构（机器源继承）
 
@@ -297,13 +435,31 @@ operator UI → same-origin Admin HTTP (Bearer via session)
 
 ### 4.6 运行状态数据结构
 
-#### `RuntimeSnapshot` / `HealthView` / `ReadinessView`
-- **定义、Data/Type ID 与唯一来源**：并发/队列快照与就绪事实；机器源 `openapi`；机制见 `mechanisms/access-trust.md`。
-- **字段**：各 deployment 的 in-flight/许可与各 tier FIFO 队列深度；`ReadinessView{status,models:[{id,availability}]}`。
-- **约束 / 不变量**：`GET /v1/runtime` 为瞬时值，不构成 Slinky capacity/Seat contract；`/readyz` 模型的可用性影响由创建/更新操作反映。
-- **状态 · 所有权 · 寿命**：请求级只读。
-- **合法与拒绝实例**：正常快照；边界 bootstrap 失败 not_ready。
-- **验证**：`VRC-INF-004`、`VRC-UTIL-001/002`。
+**4.6.1 `RuntimeSnapshot` / `HealthView` / `ReadinessView`（运行状态数据结构）**
+
+```text
+各 deployment 的 in-flight/许可与各 tier FIFO 队列深度；`ReadinessView{status,models:[{id,availability}]}`。
+```
+
+- **Data/Type ID、用途与来源**：
+
+  并发/队列快照与就绪事实；机器源 `openapi`；机制见 `mechanisms/access-trust.md`。
+
+- **字段与约束**：
+
+  `GET /v1/runtime` 为瞬时值，不构成 Slinky capacity/Seat contract；`/readyz` 模型的可用性影响由创建/更新操作反映。
+
+- **跨字段与寿命**：
+
+  请求级只读。
+
+- **合法/拒绝实例**：
+
+  正常快照；边界 bootstrap 失败 not_ready。
+
+- **验证**：
+
+  `VRC-INF-004`、`VRC-UTIL-001/002`。
 
 ### 4.7 数据库表结构
 
@@ -317,7 +473,7 @@ Authority `util/migrations/*.sql`；公共可观察表（providers/deployments/s
 
 > 分类同 §2；逐接口适用条件与结果回写 §2 声明。
 
-- **软件接口（Admin HTTP）**：创建/更新先校验，再在单个 SQLite 事务中持久化资源版本与 Audit；对模型可用性的影响由 `/readyz` 反映。PATCH 是局部更新：省略字段保持原值，显式 null 只在 Schema 允许时清空；不得把未提交的 partial write 暴露为成功。
+- **API（Admin HTTP）**：创建/更新先校验，再在单个 SQLite 事务中持久化资源版本与 Audit；对模型可用性的影响由 `/readyz` 反映。PATCH 是局部更新：省略字段保持原值，显式 null 只在 Schema 允许时清空；不得把未提交的 partial write 暴露为成功。
 - **人机与维护接口**：UI 不得把配置保存成功显示成 probe 成功；结果不明时先 GET 核对。
 - 每个变更操作在提交后才对外可见；`ERR-STALE` 时不写入。
 

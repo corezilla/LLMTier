@@ -57,9 +57,9 @@ Base URL: http://<host>:<port>
 
 ## 2. 接口设计（Operation / Message / Event Catalog）
 
-> 按 STD `design-data-interface-format` 1.2.0 §3：按**接口形态分类**逐接口完整记录；标题为真实路由，标题下给完整接口声明与六项。分类适用性：2.1 软件接口 ✓｜2.2 消息与数据流接口 ✓（SSE）｜2.3 硬件与固件接口 ✗（纯软件）｜2.4 人机与维护接口 ✗（Admin Web UI 归管理控制文档）。完整逐字段错误与数据定义见 `llmtier-contract-specification` §2/§4。
+> 按 STD `design-data-interface-format` 1.2.0 §3：按**接口形态分类**逐接口完整记录；标题为真实路由，标题下给完整接口声明与六项。分类适用性：2.1 API ✓｜2.2 消息与数据流接口 ✓（SSE）｜2.3 硬件与固件接口 ✗（纯软件）｜2.4 人机与维护接口 ✗（Admin Web UI 归管理控制文档）。完整逐字段错误与数据定义见 `llmtier-contract-specification` §2/§4。
 
-### 2.1 软件接口（适用时）
+### 2.1 API（适用时）
 
 #### `POST /v1/responses`
 
@@ -72,12 +72,12 @@ POST /v1/responses
   -> 4xx/5xx: ErrorEnvelope
 ```
 
-- **Interface/Member ID、状态、唯一契约、文件·symbol**：`IF-DP-RESPONSES`；规格已定、Implemented；唯一契约=`openapi` candidate.8；`src/http_api/app.py` → `src/inference/responses.py`。
-- **输入**：`ResponsesRequest`（§3.4）——`model` exact 逻辑等级名、`input`、`stream:true`、`store:false`、可选工具/采样/推理字段；Data Bearer 授权；校验顺序 鉴权→JSON/schema→形态→模型→准入。
-- **成功输出**：标准 SSE 流（§2.2.1）；每请求恰一 terminal，`usage` 仅 terminal。
-- **错误与异常**：`ERR-REQ-VALIDATION`/`ERR-REQ-FIELD`/`ERR-REQ-JSON`/`ERR-REQ-UNSUPPORTED`（400）、`ERR-REQ-TOO-LARGE`（413）、`ERR-AUTH-*`（401/403/503）、`ERR-MODEL-NOTFOUND`（404）、`ERR-RATE-LIMIT`（429）、`ERR-PROVIDER-*`/`ERR-MODEL-UNAVAIL`（502/503）。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-DP-RESPONSES`；规格已定、Implemented；唯一契约=`openapi` candidate.8；`src/http_api/app.py` → `src/inference/responses.py`。
+- **输入与前提**：`ResponsesRequest`（§3.4）——`model` exact 逻辑等级名、`input`、`stream:true`、`store:false`、可选工具/采样/推理字段；Data Bearer 授权；校验顺序 鉴权→JSON/schema→形态→模型→准入。
+- **成功输出与保证**：标准 SSE 流（§2.2.1）；每请求恰一 terminal，`usage` 仅 terminal。
+- **错误与合法下一步**：`ERR-REQ-VALIDATION`/`ERR-REQ-FIELD`/`ERR-REQ-JSON`/`ERR-REQ-UNSUPPORTED`（400）、`ERR-REQ-TOO-LARGE`（413）、`ERR-AUTH-*`（401/403/503）、`ERR-MODEL-NOTFOUND`（404）、`ERR-RATE-LIMIT`（429）、`ERR-PROVIDER-*`/`ERR-MODEL-UNAVAIL`（502/503）。
 - **交互与生命周期**：同步建连后流式；单请求独立；断开=结果未知并释放许可；不承诺 exactly-once。
-- **实例与验证**：正常 exact tier→200 SSE；拒绝 `stream=false`→400。`openai-surface-fixtures.json`；`VRC-INF-001/002`。
+- **实现与验证**：正常 exact tier→200 SSE；拒绝 `stream=false`→400。`openai-surface-fixtures.json`；`VRC-INF-001/002`。
 
 #### `POST /v1/embeddings`
 
@@ -88,12 +88,12 @@ POST /v1/embeddings
   -> 4xx/5xx: ErrorEnvelope
 ```
 
-- **Interface/Member ID、状态、唯一契约、文件·symbol**：`IF-DP-EMBEDDINGS`；规格已定、Implemented；`openapi` candidate.8；`src/http_api/app.py` → `src/inference/embeddings.py`。
-- **输入**：`EmbeddingRequest`（§3.4）——`model` exact embedding tier、`input` string/array、`encoding_format` 默认 `float`、`dimensions`、`user`；Data Bearer。
-- **成功输出**：`EmbeddingResponse` 向量 + `usage`；base64 为连续 little-endian float32。
-- **错误与异常**：`ERR-REQ-VALIDATION`/`ERR-REQ-TOO-LARGE`（400/413）、`ERR-MODEL-NOTFOUND`（404）、`ERR-RATE-LIMIT`（429）、`ERR-PROVIDER-*`（502/503）、`ERR-STORE`（503）。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-DP-EMBEDDINGS`；规格已定、Implemented；`openapi` candidate.8；`src/http_api/app.py` → `src/inference/embeddings.py`。
+- **输入与前提**：`EmbeddingRequest`（§3.4）——`model` exact embedding tier、`input` string/array、`encoding_format` 默认 `float`、`dimensions`、`user`；Data Bearer。
+- **成功输出与保证**：`EmbeddingResponse` 向量 + `usage`；base64 为连续 little-endian float32。
+- **错误与合法下一步**：`ERR-REQ-VALIDATION`/`ERR-REQ-TOO-LARGE`（400/413）、`ERR-MODEL-NOTFOUND`（404）、`ERR-RATE-LIMIT`（429）、`ERR-PROVIDER-*`（502/503）、`ERR-STORE`（503）。
 - **交互与生命周期**：同步；同一逻辑 model 只绑定同一 `embedding_space_id`；非兼容变更须新 model ID。
-- **实例与验证**：正常 float/base64；拒绝不兼容维数。`openai-surface-fixtures.json`；`VRC-INF-001`。
+- **实现与验证**：正常 float/base64；拒绝不兼容维数。`openai-surface-fixtures.json`；`VRC-INF-001`。
 
 #### `GET /v1/models` / `GET /v1/models/{model}`
 
@@ -103,12 +103,12 @@ GET /v1/models/{model} -> 200 Model {id, object, created, owned_by, availability
   -> 4xx/5xx: ErrorEnvelope
 ```
 
-- **Interface/Member ID、状态、唯一契约、文件·symbol**：`IF-DP-MODELS`；规格已定、Implemented；`openapi` candidate.8；`src/inference/models.py`。
-- **输入**：路径 `model` exact-case 名；Data Bearer；无 body。
-- **成功输出**：`Model`/`ModelList`（§3.2）；不暴露物理账号。
-- **错误与异常**：`ERR-AUTH-*`（401/403）；未知 exact 名→`ERR-MODEL-NOTFOUND`（404）。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-DP-MODELS`；规格已定、Implemented；`openapi` candidate.8；`src/inference/models.py`。
+- **输入与前提**：路径 `model` exact-case 名；Data Bearer；无 body。
+- **成功输出与保证**：`Model`/`ModelList`（§3.2）；不暴露物理账号。
+- **错误与合法下一步**：`ERR-AUTH-*`（401/403）；未知 exact 名→`ERR-MODEL-NOTFOUND`（404）。
 - **交互与生命周期**：同步只读、幂等；模型列表不分页。
-- **实例与验证**：正常固定 tier；拒绝未知名。`admin-model-fixtures.json`；`VRC-INF-001`。
+- **实现与验证**：正常固定 tier；拒绝未知名。`admin-model-fixtures.json`；`VRC-INF-001`。
 
 #### `GET /healthz` / `GET /readyz`
 
@@ -118,12 +118,12 @@ GET /readyz  -> 200 ReadinessView {status, models:[...]}  # schema+bootstrap+固
              -> 503 (not_ready)
 ```
 
-- **Interface/Member ID、状态、唯一契约、文件·symbol**：`IF-HEALTH`；规格已定、Implemented；`openapi` candidate.8；`src/http_api/health.py`。
-- **输入**：无参数、无凭据。
-- **成功输出**：`HealthView`/`ReadinessView`（§3.6）。
-- **错误与异常**：bootstrap/schema/path 失败→503 `not_ready`（`ERR-BOOT`/`ERR-SCHEMA`/`ERR-PATH-UNSAFE`）。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-HEALTH`；规格已定、Implemented；`openapi` candidate.8；`src/http_api/health.py`。
+- **输入与前提**：无参数、无凭据。
+- **成功输出与保证**：`HealthView`/`ReadinessView`（§3.6）。
+- **错误与合法下一步**：bootstrap/schema/path 失败→503 `not_ready`（`ERR-BOOT`/`ERR-SCHEMA`/`ERR-PATH-UNSAFE`）。
 - **交互与生命周期**：同步只读、无副作用。
-- **实例与验证**：正常 READY；边界 bootstrap 失败 not_ready。`VRC-UTIL-001/002`。
+- **实现与验证**：正常 READY；边界 bootstrap 失败 not_ready。`VRC-UTIL-001/002`。
 
 #### `GET/POST /v1/providers`；`GET/PATCH/DELETE /v1/providers/{provider_id}`
 
@@ -136,12 +136,12 @@ DELETE /v1/providers/{provider_id} If-Match    -> 204
   -> 4xx/5xx: ErrorEnvelope
 ```
 
-- **Interface/Member ID、状态、唯一契约、文件·symbol**：`IF-ADM-PROVIDERS`；规格已定、Implemented；`openapi` candidate.8；`src/management/registry.py`。
-- **输入**：`ProviderWrite`/`ProviderPatch`（§3.2）；`provider_id`；PATCH/DELETE 必带 `If-Match`；Admin Bearer。
-- **成功输出**：`ProviderView`（§3.2）+ 强 ETag；`secret_ref` 只写不回显；同事务审计。
-- **错误与异常**：`ERR-AUTH-*`；重名→`ERR-CONFLICT`（409）；被引用删除→`ERR-INUSE`（409）；`If-Match` 过期→`ERR-STALE`（412）；未知 ID→`ERR-NOTFOUND`（404）；`ERR-STORE`（503）。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-ADM-PROVIDERS`；规格已定、Implemented；`openapi` candidate.8；`src/management/registry.py`。
+- **输入与前提**：`ProviderWrite`/`ProviderPatch`（§3.2）；`provider_id`；PATCH/DELETE 必带 `If-Match`；Admin Bearer。
+- **成功输出与保证**：`ProviderView`（§3.2）+ 强 ETag；`secret_ref` 只写不回显；同事务审计。
+- **错误与合法下一步**：`ERR-AUTH-*`；重名→`ERR-CONFLICT`（409）；被引用删除→`ERR-INUSE`（409）；`If-Match` 过期→`ERR-STALE`（412）；未知 ID→`ERR-NOTFOUND`（404）；`ERR-STORE`（503）。
 - **交互与生命周期**：同步；partial PATCH；DELETE 幂等；ETag 乐观并发。
-- **实例与验证**：正常 201+ETag；拒绝缺 `If-Match` 的 PATCH。`admin-model-fixtures.json`；`VRC-MGMT-001/002`。
+- **实现与验证**：正常 201+ETag；拒绝缺 `If-Match` 的 PATCH。`admin-model-fixtures.json`；`VRC-MGMT-001/002`。
 
 #### `GET/POST /v1/providers/{provider_id}/usage`
 
@@ -151,12 +151,12 @@ POST /v1/providers/{provider_id}/usage {confirm_external_call:true}  -> 200 Prov
   -> 4xx/5xx: ErrorEnvelope
 ```
 
-- **Interface/Member ID、状态、唯一契约、文件·symbol**：`IF-ADM-PROVIDER-USAGE`；规格已定、Implemented；`openapi` candidate.8；`src/management/account_usage.py`。
-- **输入**：`provider_id`；POST 仅 `confirm_external_call`；Admin Bearer。
-- **成功输出**：`ProviderAccountUsageSnapshot`（§3.2）；POST 显式刷新并替换；不落 Secret。
-- **错误与异常**：缺确认→`ERR-CONFIRM`（400）；未知 provider→`ERR-NOTFOUND`（404）；上游失败记入快照 `status`。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-ADM-PROVIDER-USAGE`；规格已定、Implemented；`openapi` candidate.8；`src/management/account_usage.py`。
+- **输入与前提**：`provider_id`；POST 仅 `confirm_external_call`；Admin Bearer。
+- **成功输出与保证**：`ProviderAccountUsageSnapshot`（§3.2）；POST 显式刷新并替换；不落 Secret。
+- **错误与合法下一步**：缺确认→`ERR-CONFIRM`（400）；未知 provider→`ERR-NOTFOUND`（404）；上游失败记入快照 `status`。
 - **交互与生命周期**：同步；GET 只读；POST 显式触网不自动轮询。
-- **实例与验证**：正常带确认刷新；拒绝缺确认。`VRC-DIAG-004`。
+- **实现与验证**：正常带确认刷新；拒绝缺确认。`VRC-DIAG-004`。
 
 #### `GET/POST /v1/deployments`；`GET/PATCH/DELETE /v1/deployments/{deployment_id}`
 
@@ -169,12 +169,12 @@ DELETE /v1/deployments/{deployment_id} If-Match    -> 204
   -> 4xx/5xx: ErrorEnvelope
 ```
 
-- **Interface/Member ID、状态、唯一契约、文件·symbol**：`IF-ADM-DEPLOYMENTS`；规格已定、Implemented；`openapi` candidate.8；`src/management/registry.py`。
-- **输入**：`DeploymentWrite`/`DeploymentPatch`（§3.2）；`If-Match`；Admin Bearer。
-- **成功输出**：`DeploymentView`（§3.2）+ ETag；同事务审计；Pause/Resume 经 `enabled`。
-- **错误与异常**：未知 `provider_id`→`ERR-REQ-VALIDATION`（400）；重名→`ERR-CONFLICT`（409）；被 tier 引用→`ERR-INUSE`（409）；`ERR-STALE`（412）。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-ADM-DEPLOYMENTS`；规格已定、Implemented；`openapi` candidate.8；`src/management/registry.py`。
+- **输入与前提**：`DeploymentWrite`/`DeploymentPatch`（§3.2）；`If-Match`；Admin Bearer。
+- **成功输出与保证**：`DeploymentView`（§3.2）+ ETag；同事务审计；Pause/Resume 经 `enabled`。
+- **错误与合法下一步**：未知 `provider_id`→`ERR-REQ-VALIDATION`（400）；重名→`ERR-CONFLICT`（409）；被 tier 引用→`ERR-INUSE`（409）；`ERR-STALE`（412）。
 - **交互与生命周期**：同步；partial PATCH；ETag。
-- **实例与验证**：正常引用已存在 provider；拒绝未知。`VRC-MGMT-001/002`。
+- **实现与验证**：正常引用已存在 provider；拒绝未知。`VRC-MGMT-001/002`。
 
 #### `GET/POST /v1/service-levels`；`GET/PATCH/DELETE /v1/service-levels/{service_level_id}`
 
@@ -187,12 +187,12 @@ DELETE /v1/service-levels/{service_level_id} If-Match  -> 204
   -> 4xx/5xx: ErrorEnvelope
 ```
 
-- **Interface/Member ID、状态、唯一契约、文件·symbol**：`IF-ADM-SERVICE-LEVELS`；规格已定、Implemented；`openapi` candidate.8；`src/management/registry.py`。
-- **输入**：`ServiceLevelWrite`/`ServiceLevelPatch`（§3.2）；`If-Match`；Admin Bearer。
-- **成功输出**：`ServiceLevelView`（§3.2）`capabilities` 为成员交集；同事务审计。
-- **错误与异常**：非固定 tier/非法交集→`ERR-REQ-VALIDATION`（400）；`ERR-CONFLICT`（409）；被引用→`ERR-INUSE`（409）；`ERR-STALE`（412）。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-ADM-SERVICE-LEVELS`；规格已定、Implemented；`openapi` candidate.8；`src/management/registry.py`。
+- **输入与前提**：`ServiceLevelWrite`/`ServiceLevelPatch`（§3.2）；`If-Match`；Admin Bearer。
+- **成功输出与保证**：`ServiceLevelView`（§3.2）`capabilities` 为成员交集；同事务审计。
+- **错误与合法下一步**：非固定 tier/非法交集→`ERR-REQ-VALIDATION`（400）；`ERR-CONFLICT`（409）；被引用→`ERR-INUSE`（409）；`ERR-STALE`（412）。
 - **交互与生命周期**：同步；partial PATCH；成员顺序稳定。
-- **实例与验证**：正常绑定有序成员；拒绝非固定 tier。`VRC-MGMT-001/002`。
+- **实现与验证**：正常绑定有序成员；拒绝非固定 tier。`VRC-MGMT-001/002`。
 
 #### `POST /v1/probes`
 
@@ -201,12 +201,12 @@ POST /v1/probes {deployment_id, confirm_external_call:true} -> 200 ProbeResult
   -> 4xx/5xx: ErrorEnvelope
 ```
 
-- **Interface/Member ID、状态、唯一契约、文件·symbol**：`IF-ADM-PROBES`；规格已定、Implemented；`openapi` candidate.8；`src/management/admin.py`。
-- **输入**：`ProbeRequest`；Admin Bearer + 二次确认。
-- **成功输出**：`ProbeResult`（§3.2）；可能产生费用。
-- **错误与异常**：缺确认→`ERR-CONFIRM`（400）；未知 deployment→`ERR-NOTFOUND`（404）；上游失败→`ERR-PROVIDER-*`（502）。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-ADM-PROBES`；规格已定、Implemented；`openapi` candidate.8；`src/management/admin.py`。
+- **输入与前提**：`ProbeRequest`；Admin Bearer + 二次确认。
+- **成功输出与保证**：`ProbeResult`（§3.2）；可能产生费用。
+- **错误与合法下一步**：缺确认→`ERR-CONFIRM`（400）；未知 deployment→`ERR-NOTFOUND`（404）；上游失败→`ERR-PROVIDER-*`（502）。
 - **交互与生命周期**：同步显式触发，不自动轮询。
-- **实例与验证**：正常带确认；拒绝缺确认。`VRC-DIAG-004`。
+- **实现与验证**：正常带确认；拒绝缺确认。`VRC-DIAG-004`。
 
 #### `GET/DELETE /v1/usage`
 
@@ -216,12 +216,12 @@ DELETE /v1/usage?model=&deployment_id=                        -> 200 object   # 
   -> 4xx/5xx: ErrorEnvelope
 ```
 
-- **Interface/Member ID、状态、唯一契约、文件·symbol**：`IF-ADM-USAGE`；规格已定、Implemented；`openapi` candidate.8；`src/inference/usage.py`。
-- **输入**：GET `from`/`to` 必填+可选过滤；DELETE 过滤参数且仅 `admin`；Data/Admin Bearer。
-- **成功输出**：`UsagePage`（§3.2，unknown 不填零）；DELETE 清空结果。
-- **错误与异常**：非 admin DELETE→`ERR-AUTH-DENIED`；`ERR-CURSOR`（400）；`ERR-STORE`（503 不空页）。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-ADM-USAGE`；规格已定、Implemented；`openapi` candidate.8；`src/inference/usage.py`。
+- **输入与前提**：GET `from`/`to` 必填+可选过滤；DELETE 过滤参数且仅 `admin`；Data/Admin Bearer。
+- **成功输出与保证**：`UsagePage`（§3.2，unknown 不填零）；DELETE 清空结果。
+- **错误与合法下一步**：非 admin DELETE→`ERR-AUTH-DENIED`；`ERR-CURSOR`（400）；`ERR-STORE`（503 不空页）。
 - **交互与生命周期**：GET 稳定快照（cursor 绑定 principal/授权/filter）；同 request 版本不累计。
-- **实例与验证**：正常分页；拒绝过期 cursor/非 admin。`usage-fixtures.json`；`VRC-MGMT-006`。
+- **实现与验证**：正常分页；拒绝过期 cursor/非 admin。`usage-fixtures.json`；`VRC-MGMT-006`。
 
 #### `GET /v1/runtime` / `GET /v1/stats` / `GET /v1/audit` / `GET /v1/logs`
 
@@ -233,12 +233,12 @@ GET /v1/logs?limit=&level=&module=&from=&to= -> 200 LogPage {data:[LogEntry], pa
   -> 4xx/5xx: ErrorEnvelope
 ```
 
-- **Interface/Member ID、状态、唯一契约、文件·symbol**：`IF-ADM-RUNTIME`、`IF-ADM-STATS`、`IF-ADM-AUDIT`、`IF-ADM-LOGS`；规格已定、Implemented；`openapi` candidate.8；`src/inference/routing.py`、`src/management/admin.py`、`src/management/audit.py`、`src/log/logs.py`。
-- **输入**：各查询过滤/时间窗参数；Admin Bearer（`/v1/runtime` 等）。
-- **成功输出**：瞬时快照 / 聚合 / `AuditEvent` / `LogEntry`（均脱敏，§3.2）。
-- **错误与异常**：缺 `from`/`to`→`ERR-REQ-VALIDATION`（400）；`ERR-STORE`（503，不返回空页）。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-ADM-RUNTIME`、`IF-ADM-STATS`、`IF-ADM-AUDIT`、`IF-ADM-LOGS`；规格已定、Implemented；`openapi` candidate.8；`src/inference/routing.py`、`src/management/admin.py`、`src/management/audit.py`、`src/log/logs.py`。
+- **输入与前提**：各查询过滤/时间窗参数；Admin Bearer（`/v1/runtime` 等）。
+- **成功输出与保证**：瞬时快照 / 聚合 / `AuditEvent` / `LogEntry`（均脱敏，§3.2）。
+- **错误与合法下一步**：缺 `from`/`to`→`ERR-REQ-VALIDATION`（400）；`ERR-STORE`（503，不返回空页）。
 - **交互与生命周期**：同步只读；日志 7 天保留；稳定快照与逐页授权。
-- **实例与验证**：正常过滤；拒绝缺时间窗。`admin-model-fixtures.json`；`VRC-LOG-001`、`VRC-MGMT-006`。
+- **实现与验证**：正常过滤；拒绝缺时间窗。`admin-model-fixtures.json`；`VRC-LOG-001`、`VRC-MGMT-006`。
 
 ### 2.2 消息与数据流接口（适用时）
 
@@ -255,12 +255,12 @@ stream: text/event-stream
   data: ResponseStreamEvent (每事件带 type/sequence_number)
 ```
 
-- **Interface/Member ID、状态、唯一契约、文件·symbol**：`IF-MSG-SSE`；规格已定、Implemented；`openapi` `ResponseStreamEvent`；`src/http_api/sse.py`、`src/inference/responses.py`。
-- **输入**：一次已受理的 `POST /v1/responses`；`X-Request-ID` 只作关联。
-- **成功输出**：标准 SSE 事件（§3.4）；每 output item 稳定 `id`/`output_index`；恰一 terminal。
-- **错误与异常**：流内 `error`/`response.failed`；不伪造完成；断开=结果未知。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-MSG-SSE`；规格已定、Implemented；`openapi` `ResponseStreamEvent`；`src/http_api/sse.py`、`src/inference/responses.py`。
+- **输入与前提**：一次已受理的 `POST /v1/responses`；`X-Request-ID` 只作关联。
+- **成功输出与保证**：标准 SSE 事件（§3.4）；每 output item 稳定 `id`/`output_index`；恰一 terminal。
+- **错误与合法下一步**：流内 `error`/`response.failed`；不伪造完成；断开=结果未知。
 - **交互与生命周期**：异步流；`sequence_number` 稳定顺序；`store:false` 不保留 conversation。
-- **实例与验证**：正常以 terminal 结束；边界上游失败。`openai-surface-fixtures.json`；`VRC-INF-002/005`。
+- **实现与验证**：正常以 terminal 结束；边界上游失败。`openai-surface-fixtures.json`；`VRC-INF-002/005`。
 
 ### 2.3 硬件与固件接口（适用时）
 
@@ -288,7 +288,35 @@ stream: text/event-stream
 
 ### 3.4 通信报文结构
 
-#### `Model`
+**3.4.1 `Model`（通信报文结构，`D-MODEL`）**
+
+```text
+Model {
+  id: string, object: "model", created: int, owned_by: "llmtier",
+  availability: string∈{available,degraded,unavailable},
+  capabilities: ModelCapabilities
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-MODEL`；逻辑模型目录条目的 wire 报文；机器源 `openapi` `Model`；字段全集见 `llmtier-contract-specification` §3.4。
+
+- **字段与约束**：
+
+  `id` 为 exact-case 逻辑等级名；`capabilities` 为 12 键能力（§3.3）；不暴露物理账号/provider。
+
+- **跨字段与寿命**：
+
+  只读投影，随 Registry 变更；请求级返回。
+
+- **合法/拒绝实例**：
+
+  合法为下方 `Model` JSON；拒绝未知 exact 名 → `ERR-MODEL-NOTFOUND`（404）。
+
+- **验证**：
+
+  `interfaces/vectors/v0.3/admin-model-fixtures.json`；`VRC-INF-001`。
 
 ```json
 {
@@ -304,7 +332,32 @@ stream: text/event-stream
 }
 ```
 
-#### `Response` (SSE) 与 `ResponseStreamEvent`
+**3.4.2 `Response` (SSE) 与 `ResponseStreamEvent`（通信报文结构，`D-MSG-RESPONSE`/`D-MSG-SSE`）**
+
+```text
+Response { id, object:"response", status, model, output[], usage:TokenUsage?, error:ErrorDetail? }
+ResponseStreamEvent = SSE 子集（§2.2.1），每事件带 type/sequence_number
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-MSG-RESPONSE`/`D-MSG-SSE`；OpenAI-compatible Responses 响应与流事件；机器源 `openapi` `ResponsesResponse`/`ResponseStreamEvent`。
+
+- **字段与约束**：
+
+  `status ∈ {completed,failed,incomplete}`；`output[]` 保留 item identity；`usage` 仅 terminal 给出；每请求恰一 terminal。
+
+- **跨字段与寿命**：
+
+  wire 载荷请求级；`store:false` 不形成 conversation，无 custom recovery。
+
+- **合法/拒绝实例**：
+
+  合法为下方完整 `Response` JSON；拒绝 `stream=false` → `ERR-REQ-UNSUPPORTED`。
+
+- **验证**：
+
+  `interfaces/vectors/v0.3/openai-surface-fixtures.json`；`VRC-INF-002/005`。
 
 ```json
 {
@@ -316,7 +369,32 @@ stream: text/event-stream
 }
 ```
 
-#### `Embedding`
+**3.4.3 `Embedding`（通信报文结构，`D-MSG-EMBEDDING`）**
+
+```text
+EmbeddingResponse { object:"list", data:[EmbeddingItem], model, usage:EmbeddingUsage? }
+EmbeddingItem { object:"embedding", embedding: number[]|base64, index: int>=0 }
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-MSG-EMBEDDING`；标准向量化响应；机器源 `openapi` `EmbeddingResponse`。
+
+- **字段与约束**：
+
+  `encoding_format=base64` 内容为连续 little-endian IEEE-754 float32；维数须在模型支持集合内；同一逻辑 model 保持同一 `embedding_space_id`。
+
+- **跨字段与寿命**：
+
+  请求级 wire 载荷；向量输出存储权限由消费方管理。
+
+- **合法/拒绝实例**：
+
+  合法为下方 JSON；拒绝不兼容维数/数量/索引。
+
+- **验证**：
+
+  `interfaces/vectors/v0.3/openai-surface-fixtures.json`；`VRC-INF-001`。
 
 ```json
 {
@@ -327,7 +405,31 @@ stream: text/event-stream
 }
 ```
 
-#### `ErrorEnvelope`
+**3.4.4 `ErrorEnvelope`（通信报文结构，`D-ERROR-ENVELOPE`，系统拥有含义）**
+
+```text
+ErrorEnvelope { error: { message: string, type: ErrorType, code: ErrorCode, param: string? } }
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-ERROR-ENVELOPE`；统一错误载荷；机器源 `openapi` `ErrorEnvelope`/`ErrorDetail`；含义见系统设计 §8.8。
+
+- **字段与约束**：
+
+  4 字段全必填，`param` 可 null；不含 Secret/凭据/完整正文；429 可带 `Retry-After`。
+
+- **跨字段与寿命**：
+
+  请求级返回。
+
+- **合法/拒绝实例**：
+
+  合法为下方 JSON；拒绝未知端点 → `ERR-NOTFOUND`。
+
+- **验证**：
+
+  `interfaces/vectors/v0.3/stateless-gateway-boundary-fixtures.json`；`VRC-API-*`。
 
 ```json
 {"error": {"message": "Human-readable error message", "type": "invalid_request_error",
@@ -340,7 +442,33 @@ stream: text/event-stream
 
 ### 3.6 运行状态数据结构
 
-#### `Provider` / `Deployment` / `Service Level`（配置与运行视图示例）
+**3.6.1 `Provider` / `Deployment` / `Service Level`（运行状态数据结构）**
+
+```text
+Provider { id, name, kind∈{local,cloud}, endpoint, has_secret, enabled, usage, request_usage, version>=1 }
+Deployment { id, name, provider_id, backend_model, capabilities, enabled, health, version>=1 }
+ServiceLevel { id, deployment_ids[>=1], enabled, capabilities, version>=1 }
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-PROVIDER`/`D-DEPLOYMENT`/`D-SERVICE-LEVEL`；配置与运行视图示例；机器源 `openapi`。
+
+- **字段与约束**：
+
+  `has_secret` 只读布尔，不回显 `secret_ref`；`health ∈ {unknown,healthy,degraded,unhealthy}`；`capabilities` 为成员交集；tier `id` exact-case。
+
+- **跨字段与寿命**：
+
+  SQLite 持久，带 `version` 乐观并发；operator 拥有。
+
+- **合法/拒绝实例**：
+
+  合法为下方三例；拒绝未知 `provider_id` → `ERR-REQ-VALIDATION`。
+
+- **验证**：
+
+  `interfaces/vectors/v0.3/admin-model-fixtures.json`；`VRC-MGMT-001/002`。
 
 ```json
 {
@@ -415,7 +543,7 @@ Authority = `util/migrations/*.sql`；公共可观察表见 `llmtier-contract-sp
 
 ## 5. 接口设计（幂等、并发、事务与一致性）
 
-> 分类同 §2（软件接口/消息与数据流接口适用）。逐接口结果已回写 §2 各记录的“交互与生命周期”。ETag / Concurrency Control（原 §6）：可变更资源（Provider、Deployment、Service Level）使用 ETag 进行并发控制：
+> 分类同 §2（API/消息与数据流接口适用）。逐接口结果已回写 §2 各记录的“交互与生命周期”。ETag / Concurrency Control（原 §6）：可变更资源（Provider、Deployment、Service Level）使用 ETag 进行并发控制：
 
 - GET 返回 `ETag` header
 - PATCH/DELETE 必须发送 `If-Match: <etag>` header

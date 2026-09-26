@@ -39,7 +39,7 @@ Piko 拥有 Agent session、完整输入装配、压缩、tool loop、任务 dea
 
 ## 2. 接口设计（接口注册表）
 
-> 按 STD `design-data-interface-format` 1.2.0 §3 按**接口形态分类**；分类适用性：2.1 软件接口 ✓（HTTP）｜2.2 消息与数据流接口 ✓（SSE）｜2.3 硬件与固件接口 ✗（纯软件）｜2.4 人机与维护接口 ✗（无 UI/CLI）。
+> 按 STD `design-data-interface-format` 1.2.0 §3 按**接口形态分类**；分类适用性：2.1 API ✓（HTTP）｜2.2 消息与数据流接口 ✓（SSE）｜2.3 硬件与固件接口 ✗（纯软件）｜2.4 人机与维护接口 ✗（无 UI/CLI）。
 
 ### 2.0 接口注册表
 
@@ -53,7 +53,7 @@ Piko 拥有 Agent session、完整输入装配、压缩、tool loop、任务 dea
 
 无 Invocation、response retrieval、custom recovery、capacity、compatibility 或 caller-management endpoint。编目范围=`selected_members`。
 
-### 2.1 软件接口（适用时）
+### 2.1 API（适用时）
 
 #### `POST /v1/responses`
 
@@ -67,12 +67,12 @@ POST /v1/responses
   -> 4xx/5xx: ErrorEnvelope
 ```
 
-- **Interface/Member ID、状态、唯一契约、文件·symbol**：`IF-DP-RESPONSES`；规格已定、Implemented；唯一契约=`openapi` candidate.8；`src/http_api/app.py` → `src/inference/responses.py`。
-- **输入**：Piko 每次发送 `ResponsesRequest.model`（exact service-level ID）、`stream:true`、`store:false` 和该轮所需的完整 `input`（§4.2）；Bearer auth。
-- **成功输出**：标准 SSE（§2.2.1）；LLMTier 只透传/规范化，不保存 Agent conversation。
-- **错误与异常**：`ERR-REQ-VALIDATION`/`ERR-REQ-FIELD`/`ERR-REQ-JSON`/`ERR-REQ-UNSUPPORTED`（400）、`ERR-REQ-TOO-LARGE`（413）、`ERR-AUTH-*`（401/403/503）、`ERR-MODEL-NOTFOUND`（404 exact model）、`ERR-RATE-LIMIT`（429，可带 `Retry-After`）、`ERR-PROVIDER-FAIL`/`ERR-PROVIDER-UNAVAIL`（502/503）、`ERR-MODEL-UNAVAIL`（503）、`ERR-INTERNAL`（500）。网络结果未知时不得由 LLMTier 推导 Piko 任务成功/失败。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-DP-RESPONSES`；规格已定、Implemented；唯一契约=`openapi` candidate.8；`src/http_api/app.py` → `src/inference/responses.py`。
+- **输入与前提**：Piko 每次发送 `ResponsesRequest.model`（exact service-level ID）、`stream:true`、`store:false` 和该轮所需的完整 `input`（§4.2）；Bearer auth。
+- **成功输出与保证**：标准 SSE（§2.2.1）；LLMTier 只透传/规范化，不保存 Agent conversation。
+- **错误与合法下一步**：`ERR-REQ-VALIDATION`/`ERR-REQ-FIELD`/`ERR-REQ-JSON`/`ERR-REQ-UNSUPPORTED`（400）、`ERR-REQ-TOO-LARGE`（413）、`ERR-AUTH-*`（401/403/503）、`ERR-MODEL-NOTFOUND`（404 exact model）、`ERR-RATE-LIMIT`（429，可带 `Retry-After`）、`ERR-PROVIDER-FAIL`/`ERR-PROVIDER-UNAVAIL`（502/503）、`ERR-MODEL-UNAVAIL`（503）、`ERR-INTERNAL`（500）。网络结果未知时不得由 LLMTier 推导 Piko 任务成功/失败。
 - **交互与生命周期**：每次 HTTP request 独立：validate → internal admit → provider call → response/error（§5）；不是 Agent conversation 状态机；Piko 在自己的 deadline/budget 内决定 retry；V0.3 不承诺模型级 exactly-once，不定义 custom Idempotency-Key、Invocation、UnknownOutcome 或结果恢复协议（§6）。
-- **实例与验证**：固定 Pi golden request（§10/§11）。`openai-surface-fixtures.json`；`VRC-INF-001/002`。
+- **实现与验证**：固定 Pi golden request（§10/§11）。`openai-surface-fixtures.json`；`VRC-INF-001/002`。
 
 #### `GET /v1/models` / `GET /v1/models/{model}`
 
@@ -82,12 +82,12 @@ GET /v1/models/{model} -> 200 Model {id, availability, capabilities}
   -> 4xx/5xx: ErrorEnvelope
 ```
 
-- **Interface/Member ID、状态、唯一契约、文件·symbol**：`IF-DP-MODELS`；规格已定、Implemented；`openapi` candidate.8；`src/inference/models.py`。
-- **输入**：路径 `model` exact-case 名；Data Bearer；无 body。
-- **成功输出**：`D-MODEL`（§4.2）；只发布逻辑等级与能力，不暴露物理账号/provider。
-- **错误与异常**：`ERR-AUTH-*`（401/403）；detail 未知 exact 名 → `ERR-MODEL-NOTFOUND`（404）。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-DP-MODELS`；规格已定、Implemented；`openapi` candidate.8；`src/inference/models.py`。
+- **输入与前提**：路径 `model` exact-case 名；Data Bearer；无 body。
+- **成功输出与保证**：`D-MODEL`（§4.2）；只发布逻辑等级与能力，不暴露物理账号/provider。
+- **错误与合法下一步**：`ERR-AUTH-*`（401/403）；detail 未知 exact 名 → `ERR-MODEL-NOTFOUND`（404）。
 - **交互与生命周期**：同步只读；幂等；不提供运行时 compatibility 协商（§9）。
-- **实例与验证**：正常固定 tier；拒绝未知名。`admin-model-fixtures.json`；`VRC-INF-001`。
+- **实现与验证**：正常固定 tier；拒绝未知名。`admin-model-fixtures.json`；`VRC-INF-001`。
 
 #### `GET /v1/usage`
 
@@ -96,12 +96,12 @@ GET /v1/usage?from=&to=&model=&request_id= -> 200 UsagePage
   -> 4xx/5xx: ErrorEnvelope
 ```
 
-- **Interface/Member ID、状态、唯一契约、文件·symbol**：`IF-ADM-USAGE`；规格已定、Implemented；`openapi` candidate.8；`src/inference/usage.py`。
-- **输入**：`from`/`to` 必填，可选 `model`/`request_id`/`cursor`/`limit`；调用主体自己的 token Usage。
-- **成功输出**：`UsagePage`（§4.2）；同一 `request_id` 的较高 `record_version` 替换较低版本，不能和响应 usage 重复相加。
-- **错误与异常**：`ERR-AUTH-*`；`ERR-CURSOR`（400）；`ERR-STORE`（503 typed，不用空页）。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-ADM-USAGE`；规格已定、Implemented；`openapi` candidate.8；`src/inference/usage.py`。
+- **输入与前提**：`from`/`to` 必填，可选 `model`/`request_id`/`cursor`/`limit`；调用主体自己的 token Usage。
+- **成功输出与保证**：`UsagePage`（§4.2）；同一 `request_id` 的较高 `record_version` 替换较低版本，不能和响应 usage 重复相加。
+- **错误与合法下一步**：`ERR-AUTH-*`；`ERR-CURSOR`（400）；`ERR-STORE`（503 typed，不用空页）。
 - **交互与生命周期**：Piko 可按自身 task/run 聚合不同 request 的最新事实；LLMTier 不接收 task identity。
-- **实例与验证**：正常分页与版本替换。`usage-fixtures.json`；`VRC-MGMT-006`。
+- **实现与验证**：正常分页与版本替换。`usage-fixtures.json`；`VRC-MGMT-006`。
 
 ### 2.2 消息与数据流接口（适用时）
 
@@ -119,12 +119,12 @@ stream: text/event-stream
   data: ResponseStreamEvent (type/sequence_number)
 ```
 
-- **Interface/Member ID、状态、唯一契约、文件·symbol**：`IF-MSG-SSE`；规格已定、Implemented；`openapi` `ResponseStreamEvent`；`src/http_api/sse.py`、`src/inference/responses.py`。
-- **输入**：一次已受理的 `POST /v1/responses`。
-- **成功输出**：必需事件 created、output item added/done、text delta、refusal delta/done、reasoning summary/text delta/done、function arguments delta/done、completed/incomplete/failed 与 error；成功流必须恰有一个 terminal，terminal response 携带可用 Usage。
-- **错误与异常**：流内 `error`/`response.failed`；不伪造完成。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-MSG-SSE`；规格已定、Implemented；`openapi` `ResponseStreamEvent`；`src/http_api/sse.py`、`src/inference/responses.py`。
+- **输入与前提**：一次已受理的 `POST /v1/responses`。
+- **成功输出与保证**：必需事件 created、output item added/done、text delta、refusal delta/done、reasoning summary/text delta/done、function arguments delta/done、completed/incomplete/failed 与 error；成功流必须恰有一个 terminal，terminal response 携带可用 Usage。
+- **错误与合法下一步**：流内 `error`/`response.failed`；不伪造完成。
 - **交互与生命周期**：同一 output item 的 `item.id`、`output_index` 必须一致；客户端断开结束本次调用并释放许可；不承诺可恢复 Invocation。
-- **实例与验证**：固定 Pi golden request；SSE item identity/terminal。`openai-surface-fixtures.json`；`VRC-INF-002/005`。
+- **实现与验证**：固定 Pi golden request；SSE item identity/terminal。`openai-surface-fixtures.json`；`VRC-INF-002/005`。
 
 ### 2.3 硬件与固件接口（适用时）
 
@@ -138,7 +138,7 @@ stream: text/event-stream
 
 > 分类同 §2；逐接口端点/认证回写 §2 声明。
 
-- **软件接口**：HTTPS + JSON + Bearer auth；production TLS/auth 尚未激活。标准 `traceparent` 可用于诊断；响应 `X-Request-ID` 只作关联，不是 session、task、idempotency 或 recovery identity。
+- **API**：HTTPS + JSON + Bearer auth；production TLS/auth 尚未激活。标准 `traceparent` 可用于诊断；响应 `X-Request-ID` 只作关联，不是 session、task、idempotency 或 recovery identity。
 - **消息与数据流接口**：`text/event-stream`，标准 SSE 帧；`sequence_number` 稳定顺序。
 - **硬件与固件接口**：不适用。
 - **人机与维护接口**：不适用。
@@ -151,39 +151,105 @@ stream: text/event-stream
 
 ### 4.1 公共基础类型与枚举
 
-#### `ResponseStatus` / `availability` / `measurement_status` / `source` / `encoding_format`
-- **定义、Data/Type ID 与唯一来源**：共享枚举；机器源 `openapi` `ResponsesResponse`/`Model`/`UsageRecord`/`EmbeddingRequest`。
-- **字段**：见 `llmtier-contract-specification` §3.1。
-- **约束 / 不变量**：`measurement_status=unknown ⇒ token 全 null`；`measured ⇒ source=provider`；`estimated ⇒ source=gateway_estimate`。
-- **状态 · 所有权 · 寿命**：内联于所属结构。
-- **合法与拒绝实例**：合法 `completed`/`measured`；边界 unknown 不补零。
-- **验证**：`openapi`；`VRC-INF-004`。
+**4.1.1 `ResponseStatus` / `availability` / `measurement_status` / `source` / `encoding_format`（公共基础类型与枚举）**
+
+- **Data/Type ID、用途与来源**：
+
+  共享枚举；机器源 `openapi` `ResponsesResponse`/`Model`/`UsageRecord`/`EmbeddingRequest`。
+
+- **字段与约束**：
+
+  见 `llmtier-contract-specification` §3.1。
+
+  `measurement_status=unknown ⇒ token 全 null`；`measured ⇒ source=provider`；`estimated ⇒ source=gateway_estimate`。
+
+- **跨字段与寿命**：
+
+  内联于所属结构。
+
+- **合法/拒绝实例**：
+
+  合法 `completed`/`measured`；边界 unknown 不补零。
+
+- **验证**：
+
+  `openapi`；`VRC-INF-004`。
 
 ### 4.2 业务与操作数据结构
 
-#### `ResponsesRequest`（Piko 固定请求形状）
-- **定义、Data/Type ID 与唯一来源**：Piko 每轮发送的完整输入；机器源 `openapi` `ResponsesRequest`；兼容证据=固定 Pi 0.85.1。
-- **字段**：`model`（exact service-level ID）、`stream:true`、`store:false`、`input`；`input` 首轮 `system|developer|user` easy message 不要求 `type`；历史 assistant message 可带 `id/status/phase` 和 `output_text.annotations`；function call 同时保留 item `id` 与 `call_id`；`function_call_output.output` 可以是 string，或由 `input_text|input_image` 构成的数组；opaque reasoning item 原样进入下一轮历史。
-- **约束 / 不变量**：模型输出 tool call 后，Piko 自行执行工具，并在新的完整请求中提交相同 `call_id` 的 result；LLMTier 只透传/规范化，不保存 Agent conversation。
-- **状态 · 所有权 · 寿命**：请求级 wire 载荷；无 conversation 持久。
-- **合法与拒绝实例**：合法固定 Pi 请求；拒绝 `stream=false`→`ERR-REQ-UNSUPPORTED`。
-- **验证**：`openai-surface-fixtures.json`；`VRC-INF-001/002`。
+**4.2.1 `ResponsesRequest`（业务与操作数据结构）**
 
-#### `TokenUsage` / `UsageRecord` / `UsagePage`
-- **定义、Data/Type ID 与唯一来源**：响应与查询的 token 事实；`D-MSG-RESPONSE.usage`/`D-USAGE-RECORD`；机器源 `openapi`。
-- **字段**：`ResponsesResponse.usage` 使用标准 `input_tokens/output_tokens/total_tokens`，存在时保留 `input_tokens_details.cached_tokens/cache_write_tokens` 与 `output_tokens_details.reasoning_tokens`；`UsageRecord` 含 `request_id/record_version/is_final/model/endpoint/recorded_at/updated_at/measurement_status/source` 与 token 字段。
-- **约束 / 不变量**：`input_tokens` 包含 cached token，`cached_tokens` 是其子集；`cache_write_tokens` 是额外观测细分，不再加进 `input_tokens` 或 `total_tokens`；`reasoning_tokens` 是 `output_tokens` 子集；缺失 usage 不会把成功模型结果改成失败，Piko 将该调用记为 Unknown；同 request 高版本替换低版本、不重复相加。
-- **状态 · 所有权 · 寿命**：请求级响应 + 追加式账本，按 principal 隔离。
-- **合法与拒绝实例**：合法 measured 带 details；边界 missing usage → Unknown（不失败、不补零）。
-- **验证**：`usage-fixtures.json`；`VRC-INF-004`、`VRC-MGMT-006`。
+```text
+`model`（exact service-level ID）、`stream:true`、`store:false`、`input`；`input` 首轮 `system|developer|user` easy message 不要求 `type`；历史 assistant message 可带 `id/status/phase` 和 `output_text.annotations`；function call 同时保留 item `id` 与 `call_id`；`function_call_output.output` 可以是 string，或由 `input_text|input_image` 构成的数组；opaque reasoning item 原样进入下一轮历史。
+```
 
-#### `Model` / `ModelList` / `ModelCapabilities`
-- **定义、Data/Type ID 与唯一来源**：逻辑模型目录与能力；`D-MODEL`/`D-CAPABILITY`；机器源 `openapi`。
-- **字段**：见 `llmtier-contract-specification` §3.2/§3.3。
-- **约束 / 不变量**：`id` exact-case；不暴露物理 provider/account。
-- **状态 · 所有权 · 寿命**：只读投影。
-- **合法与拒绝实例**：合法固定 tier；拒绝未知名。
-- **验证**：`admin-model-fixtures.json`；`VRC-INF-001`。
+- **Data/Type ID、用途与来源**：
+
+  Piko 每轮发送的完整输入；机器源 `openapi` `ResponsesRequest`；兼容证据=固定 Pi 0.85.1。
+
+- **字段与约束**：
+
+  模型输出 tool call 后，Piko 自行执行工具，并在新的完整请求中提交相同 `call_id` 的 result；LLMTier 只透传/规范化，不保存 Agent conversation。
+
+- **跨字段与寿命**：
+
+  请求级 wire 载荷；无 conversation 持久。
+
+- **合法/拒绝实例**：
+
+  合法固定 Pi 请求；拒绝 `stream=false`→`ERR-REQ-UNSUPPORTED`。
+
+- **验证**：
+
+  `openai-surface-fixtures.json`；`VRC-INF-001/002`。
+
+**4.2.2 `TokenUsage` / `UsageRecord` / `UsagePage`（业务与操作数据结构）**
+
+- **Data/Type ID、用途与来源**：
+
+  响应与查询的 token 事实；`D-MSG-RESPONSE.usage`/`D-USAGE-RECORD`；机器源 `openapi`。
+
+- **字段与约束**：
+
+  `ResponsesResponse.usage` 使用标准 `input_tokens/output_tokens/total_tokens`，存在时保留 `input_tokens_details.cached_tokens/cache_write_tokens` 与 `output_tokens_details.reasoning_tokens`；`UsageRecord` 含 `request_id/record_version/is_final/model/endpoint/recorded_at/updated_at/measurement_status/source` 与 token 字段。
+
+  `input_tokens` 包含 cached token，`cached_tokens` 是其子集；`cache_write_tokens` 是额外观测细分，不再加进 `input_tokens` 或 `total_tokens`；`reasoning_tokens` 是 `output_tokens` 子集；缺失 usage 不会把成功模型结果改成失败，Piko 将该调用记为 Unknown；同 request 高版本替换低版本、不重复相加。
+
+- **跨字段与寿命**：
+
+  请求级响应 + 追加式账本，按 principal 隔离。
+
+- **合法/拒绝实例**：
+
+  合法 measured 带 details；边界 missing usage → Unknown（不失败、不补零）。
+
+- **验证**：
+
+  `usage-fixtures.json`；`VRC-INF-004`、`VRC-MGMT-006`。
+
+**4.2.3 `Model` / `ModelList` / `ModelCapabilities`（业务与操作数据结构）**
+
+- **Data/Type ID、用途与来源**：
+
+  逻辑模型目录与能力；`D-MODEL`/`D-CAPABILITY`；机器源 `openapi`。
+
+- **字段与约束**：
+
+  见 `llmtier-contract-specification` §3.2/§3.3。
+
+  `id` exact-case；不暴露物理 provider/account。
+
+- **跨字段与寿命**：
+
+  只读投影。
+
+- **合法/拒绝实例**：
+
+  合法固定 tier；拒绝未知名。
+
+- **验证**：
+
+  `admin-model-fixtures.json`；`VRC-INF-001`。
 
 ### 4.3 配置与规则数据结构
 
@@ -199,13 +265,29 @@ stream: text/event-stream
 
 ### 4.6 运行状态数据结构
 
-#### `D-USAGE-OBLIGATION` / `D-USAGE-HEAD` / `HealthView` / `ReadinessView`
-- **定义、Data/Type ID 与唯一来源**：dispatch 前义务、单调 head 与就绪事实；本设计/系统设计；authority `util/migrations/*.sql`、`openapi`。
-- **字段**：见 `llmtier-contract-specification` §3.6。
-- **约束 / 不变量**：dispatch 前义务必须先存在；head 单调；`/readyz` 模型级 availability。
-- **状态 · 所有权 · 寿命**：M003 写、请求级就绪。
-- **合法与拒绝实例**：合法义务先于 dispatch；边界未登记即 dispatch 被业务禁止。
-- **验证**：`VRC-INF-004`、`VRC-UTIL-001/002`。
+**4.6.1 `D-USAGE-OBLIGATION` / `D-USAGE-HEAD` / `HealthView` / `ReadinessView`（运行状态数据结构）**
+
+- **Data/Type ID、用途与来源**：
+
+  dispatch 前义务、单调 head 与就绪事实；本设计/系统设计；authority `util/migrations/*.sql`、`openapi`。
+
+- **字段与约束**：
+
+  见 `llmtier-contract-specification` §3.6。
+
+  dispatch 前义务必须先存在；head 单调；`/readyz` 模型级 availability。
+
+- **跨字段与寿命**：
+
+  M003 写、请求级就绪。
+
+- **合法/拒绝实例**：
+
+  合法义务先于 dispatch；边界未登记即 dispatch 被业务禁止。
+
+- **验证**：
+
+  `VRC-INF-004`、`VRC-UTIL-001/002`。
 
 ### 4.7 数据库表结构
 
@@ -219,7 +301,7 @@ Authority `util/migrations/*.sql`；公共可观察表（usage_obligations/usage
 
 > 分类同 §2；逐接口适用条件回写 §2 声明。
 
-- **软件接口**：每次 HTTP request 独立：validate → internal admit → provider call → response/error。它不是 Agent conversation 状态机。Piko task 与单次模型 request 的顺序、停止和继续由 Piko 管理。
+- **API**：每次 HTTP request 独立：validate → internal admit → provider call → response/error。它不是 Agent conversation 状态机。Piko task 与单次模型 request 的顺序、停止和继续由 Piko 管理。
 - **消息与数据流接口**：complete/incomplete/failed 由恰好一个 terminal 事件表达；成功流必须恰有一个 terminal 且携带可用 Usage。
 
 ## 6. 接口设计（错误、timeout、重试、幂等和恢复）

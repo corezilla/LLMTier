@@ -15,7 +15,7 @@
 | Created Date | `2026-09-23` |
 | Last Modified Date | `2026-09-25` |
 | Template ID | `design.definition` |
-| Template Version | `3.0.0` |
+| Template Version | `3.2.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |
@@ -374,7 +374,7 @@ ThreadingHTTPServer（进程级）
 | `IF-6` | `app.py` `Handler._json` 内部 | §9.1 `IF-API-JSON` | JSON 响应 + `X-Request-ID` | `VRC-API-001` |
 | `IF-7` | `app.py` `Handler._static` → `webui/` | §9.1 `IF-API-STATIC` | 安全交付静态资源 | `VRC-API-004` |
 | `IF-11/IF-12/IF-13` | `app.py` → `errors.py` | §9.1 `IF-API-ERROR` | typed 错误与统一信封 | `VRC-API-001` |
-| `IF-14/IF-15` | `app.py` → `sse.py` | §9.1 `IF-API-SSE` | SSE 单帧与事件序列 | `VRC-API-003` |
+| `IF-14/IF-15` | `app.py` → `sse.py` | §9.2 `IF-API-SSE` | SSE 单帧与事件序列 | `VRC-API-003` |
 | `IF-16/IF-17` | `app.py` → `health.py` | §9.1 `IF-API-HEALTH` | 健康/就绪视图 | `VRC-API-001` |
 | `IF-API-EP` | Consumer/Operator → `app.py`（HTTP） | §9.1 `IF-API-RESPONSES`…`IF-API-STATIC` | 对外端点路由 | `VRC-API-001..003` |
 
@@ -398,86 +398,325 @@ ThreadingHTTPServer（进程级）
 
 ## 6. 数据结构设计
 
-> 按 STD `design-data-interface-format` 1.2.0：主章“数据结构设计”，章内按**数据性质分类**。M001 是入口适配层，拥有 HTTP 传输层结构与请求级运行状态，但对外的请求/响应体 machine authority 为 `interfaces/openapi/llmtier.openapi.json`。`6.5 设备与 FPGA 表项` 不适用；`6.7 数据库表结构` 不适用（本模块不写库）。继承结构只定位原定义；本层拥有的结构逐项完整记录（ID/唯一来源/字段/约束/状态·所有权·寿命/合法与拒绝实例/验证）。
+> 按 STD `design-data-interface-format` 1.2.0：主章“数据结构设计”，章内按**数据性质分类**。M001 是入口适配层，拥有 HTTP 传输层结构与请求级运行状态，但对外的请求/响应体 machine authority 为 `interfaces/openapi/llmtier.openapi.json`。`6.5 设备与 FPGA 表项` 不适用；`6.7 数据库表结构` 不适用（本模块不写库）。继承结构只定位原定义；本层拥有的结构逐项完整记录（Data/Type ID、用途与来源／逐字段／跨字段与寿命／合法与拒绝实例／验证），每个结构以真实名称作带编号小节标题。
 
 **适用性**：6.1 公共基础类型与枚举 ✓｜6.2 业务与操作数据结构 ✓｜6.3 配置与规则数据结构 ✓｜6.4 通信报文结构 ✓（读视图；machine authority = OpenAPI）｜6.5 设备与 FPGA 表项 ✗（无设备）｜6.6 运行状态数据结构 ✓｜6.7 数据库表结构 ✗（不写库，持久化归 M007）｜6.8 错误码与错误结构 ✓（引用系统 Error ID）。
 
 ### 6.1 公共基础类型与枚举
 
-#### `Role`（`auth.py`）
-- **定义**：请求所需访问角色。
-- **字段 / 取值**：`str` ∈ {`data`,`admin`}（`_auth_either` 额外返回凭据实际角色）。
-- **约束 / 不变量**：端点→角色映射由 `RULE-API-ROLE` 固定；同一请求只判定一次。
-- **状态 · 所有权 · 寿命**：无状态枚举；随 `Principal.role` 请求级存在。
-- **实例**：合法 `admin`；拒绝：data 访问管理面 → 403（不泄露存在性）。
-- **来源 / 验证**：`auth.py`；`VRC-API-002`。
+**6.1.1 `Role`（公共基础类型与枚举）**
 
-#### `HttpMethod` / `RouteClass`（`app.py`）
-- **定义**：请求方法与路由分类（健康/静态、引导拦截、业务路由）。
-- **字段 / 取值**：`HttpMethod ∈ {GET,POST,PATCH,DELETE}`；`RouteClass ∈ {health,static,business,unknown}`。
-- **约束 / 不变量**：分类优先级 `健康/静态 → 引导拦截 → 业务路由`；未匹配 → 404。
-- **状态 · 所有权 · 寿命**：请求级判定；无持久。
-- **实例**：合法 `GET /readyz`；边界：未知路径 → `not_found`。
-- **来源 / 验证**：`app.py`；`VRC-API-001`。
+```text
+enum Role { data, admin }
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-TRUST-ROLE`；请求所需访问角色；来源 `src/http_api/auth.py`，映射 M-TRUST。
+
+- **`data`**：
+
+  数据面角色；可访问 `/v1/models`、`/v1/responses`、`/v1/embeddings`。
+
+- **`admin`**：
+
+  管理面角色；可访问管理/观测端点。
+
+- **跨字段与寿命**：
+
+  端点→角色映射由 `RULE-API-ROLE` 固定；同一请求只判定一次；无状态枚举，随 `Principal.role` 请求级存在。
+
+- **合法/拒绝实例**：
+
+  合法 `admin`；拒绝：data 访问管理面 → 403（不泄露存在性）。
+
+- **验证**：
+
+  `VRC-API-002`；`auth.py`。
+
+**6.1.2 `HttpMethod` / `RouteClass`（公共基础类型与枚举）**
+
+```text
+enum HttpMethod { GET, POST, PATCH, DELETE }
+enum RouteClass { health, static, business, unknown }
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-API-ROUTE-CLASS`；请求方法与路由分类（健康/静态、引导拦截、业务路由）；来源 `src/http_api/app.py`。
+
+- **`HttpMethod`**：
+
+  必填，∈ {`GET`,`POST`,`PATCH`,`DELETE`}。
+
+- **`RouteClass.health`/`static`**：
+
+  健康/静态优先处理。
+
+- **`RouteClass.business`**：
+
+  业务路由，经鉴权。
+
+- **`RouteClass.unknown`**：
+
+  未匹配 → 404。
+
+- **跨字段与寿命**：
+
+  分类优先级 `健康/静态 → 引导拦截 → 业务路由`；请求级判定；无持久。
+
+- **合法/拒绝实例**：
+
+  合法 `GET /readyz`；边界：未知路径 → `not_found`。
+
+- **验证**：
+
+  `VRC-API-001`；`app.py`。
 
 ### 6.2 业务与操作数据结构
 
-#### `Principal`（`auth.py`）
-- **定义**：入口信任判定的主体。
-- **字段**：`principal_id: str(≤128)`；`role: Role`（`data`/`admin`）。
-- **约束 / 不变量**：`@dataclass(frozen=True, slots=True)`；请求级、不落库、不落日志；下游只读消费、不二次校验（C-TRUST-1）。
-- **状态 · 所有权 · 寿命**：请求开始构造、请求结束废弃；不持久化。
-- **实例**：合法 `{principal_id:"local",role:"data"}`；拒绝：缺/非法凭据 → `ERR-AUTH-REQUIRED`/`ERR-AUTH-DENIED`，不构造。
-- **来源 / 验证**：`auth.py`；系统 §8.1；`VRC-API-002`。
+**6.2.1 `Principal`（业务与操作数据结构）**
 
-#### `ApiError` / `ErrorEnvelope`（`errors.py`）
-- **定义**：统一错误载体与 HTTP 错误信封。
-- **字段**：`ApiError{status:int, code:str, message:str, param:str|None, retryable:bool, headers:dict|None, extra:dict|None}`；`envelope() -> {"error":{message,type,code,param,retryable,...}}`。
-- **约束 / 不变量**：所有错误走同一信封；不含栈/Secret；429 可带 `Retry-After`。
-- **状态 · 所有权 · 寿命**：请求级异常对象；不持久。
-- **实例**：合法 `ApiError(404,"not_found")`；边界：未知异常 → 记 `unhandled_error` 后 500 `ERR-INTERNAL`。
-- **来源 / 验证**：`errors.py`；系统 §8.4 `D-ERROR-ENVELOPE`；`VRC-API-001`。
+```text
+Principal {
+  principal_id: string,    // ≤128
+  role: Role
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-PRINCIPAL`；入口信任判定的主体；来源 `src/http_api/auth.py`。
+
+- **`principal_id`**：
+
+  必填、非空字符串，长度 ≤128；主体标识。
+
+- **`role`**：
+
+  必填，取 §6.1.1 `Role`（`data`/`admin`）。
+
+- **跨字段与寿命**：
+
+  `@dataclass(frozen=True, slots=True)`；请求级、不落库、不落日志；下游只读消费、不二次校验（C-TRUST-1）；请求开始构造、请求结束废弃。
+
+- **合法/拒绝实例**：
+
+  合法 `{principal_id:"local",role:"data"}`；拒绝：缺/非法凭据 → `ERR-AUTH-REQUIRED`/`ERR-AUTH-DENIED`，不构造。
+
+- **验证**：
+
+  `VRC-API-002`；`auth.py`；系统 §8.1。
+
+**6.2.2 `ApiError` / `ErrorEnvelope`（业务与操作数据结构）**
+
+```text
+ApiError {
+  status: int,
+  code: string,
+  message: string,
+  param: string?,
+  retryable: bool,
+  headers: dict?,
+  extra: dict?
+}
+ErrorEnvelope {
+  error: { message, type, code, param, retryable, ... }
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-ERROR-ENVELOPE`；统一错误载体与 HTTP 错误信封；来源 `src/http_api/errors.py`，机器源 OpenAPI `ErrorEnvelope`。
+
+- **`status`**：
+
+  必填整数；HTTP 状态。
+
+- **`code`**：
+
+  必填字符串；稳定错误码。
+
+- **`message`**：
+
+  必填字符串；面向调用方的说明。
+
+- **`param`**：
+
+  可空字符串；定位字段。
+
+- **`retryable`**：
+
+  必填布尔；是否可安全重试。
+
+- **`headers`**：
+
+  可空映射；附加头（如 429 的 `Retry-After`）。
+
+- **`extra`**：
+
+  可空映射；附加结构化信息。
+
+- **跨字段与寿命**：
+
+  所有错误走同一信封；不含栈/Secret；429 可带 `Retry-After`；请求级异常对象，不持久。
+
+- **合法/拒绝实例**：
+
+  合法 `ApiError(404,"not_found")`；边界：未知异常 → 记 `unhandled_error` 后 500 `ERR-INTERNAL`。
+
+- **验证**：
+
+  `VRC-API-001`；`errors.py`；系统 §8.4 `D-ERROR-ENVELOPE`。
 
 ### 6.3 配置与规则数据结构
 
-#### `RequestLimits`（`app.py` 常量规则）
-- **定义**：入口传输层硬限制与超时。
-- **字段**：`max_body_bytes = 2*1024*1024`（2 MB）；`sse_idle_timeout_s = 60`（传输层读超时；业务超时归 M003）。
-- **约束 / 不变量**：超限 `413 ERR-REQ-TOO-LARGE`；不在此层做业务限流/队列。
-- **状态 · 所有权 · 寿命**：代码常量；随版本。
-- **实例**：合法 body ≤2MB；拒绝 `Content-Length > 2MB` → 413。
-- **来源 / 验证**：`app.py`；`VRC-API-003`。
+**6.3.1 `RequestLimits`（配置与规则数据结构）**
+
+```text
+RequestLimits {
+  max_body_bytes: uint32,   // 2*1024*1024
+  sse_idle_timeout_s: uint32 // 60
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-API-REQUEST-LIMITS`；入口传输层硬限制与超时；来源 `src/http_api/app.py` 常量规则。
+
+- **`max_body_bytes`**：
+
+  必填整数，`2*1024*1024`（2 MB）；超限 `413 ERR-REQ-TOO-LARGE`。
+
+- **`sse_idle_timeout_s`**：
+
+  必填整数，`60`；传输层读超时（业务超时归 M003）。
+
+- **跨字段与寿命**：
+
+  超限 `413`；不在此层做业务限流/队列；代码常量，随版本。
+
+- **合法/拒绝实例**：
+
+  合法 body ≤2 MB；拒绝 `Content-Length > 2MB` → 413。
+
+- **验证**：
+
+  `VRC-API-003`；`app.py`。
 
 ### 6.4 通信报文结构
 
-#### `SseFrame`（`sse.py`，wire authority = OpenAPI 事件子集）
-- **定义**：SSE 单帧传输单元。
-- **字段**：`event:<name>
-data:<json>
+**6.4.1 `SseFrame`（通信报文结构，wire authority = OpenAPI 事件子集）**
 
-`（UTF-8）；`response_stream` 以 terminal 事件 + `[DONE]` 结束。
-- **约束 / 不变量**：帧序与 terminal 唯一由 M003 保证；本层只序列化与 `flush`；事件子集 machine authority = OpenAPI。
-- **状态 · 所有权 · 寿命**：流式临时字节；请求结束丢弃。
-- **实例**：合法 `event: response.completed`；边界：客户端断开 → 结束本次调用（记 `aborted`）。
-- **来源 / 验证**：`sse.py` + OpenAPI；`VRC-API-003`。
+```text
+SseFrame {
+  event: string,
+  data: json
+}
+// wire: event:<name>\ndata:<json>\n\n（UTF-8）
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-SSE-FRAME`；SSE 单帧传输单元；machine authority = OpenAPI ResponseStreamEvent 子集；来源 `src/http_api/sse.py`。
+
+- **`event`**：
+
+  必填字符串；事件名（子集见 OpenAPI）。
+
+- **`data`**：
+
+  必填 JSON；事件载荷；`response_stream` 以 terminal 事件 + `[DONE]` 结束。
+
+- **跨字段与寿命**：
+
+  帧序与 terminal 唯一由 M003 保证；本层只序列化与 `flush`；流式临时字节，请求结束丢弃。
+
+- **合法/拒绝实例**：
+
+  合法 `event: response.completed`；边界：客户端断开 → 结束本次调用（记 `aborted`）。
+
+- **验证**：
+
+  `VRC-API-003`；`sse.py` + OpenAPI。
 
 ### 6.6 运行状态数据结构
 
-#### `RequestIdentity`（`app.py`）
-- **定义**：每请求身份。
-- **字段**：`request_id: str`（`req_<32hex>`）。
-- **约束 / 不变量**：每请求生成恰好一个；写入 `X-Request-ID`、日志与 trace。
-- **状态 · 所有权 · 寿命**：请求开始生成、结束废弃；不持久（trace 副本归 M006）。
-- **实例**：合法 `req_ab12…`；边界：响应头与日志/trace 一致。
-- **来源 / 验证**：`app.py`；`VRC-API-001`。
+**6.6.1 `RequestIdentity`（运行状态数据结构）**
 
-#### `RequestContext`（`app.py`/`ThreadingHTTPServer`）
-- **定义**：请求级上下文与线程/连接所有权。
-- **字段**：`request_id`、`Principal`、`body:dict`、当前线程与线程内 `Store` 连接。
-- **约束 / 不变量**：每请求一线程；`finally` 调 `app.store.close()` 释放线程内连接；请求间无共享状态。
-- **状态 · 所有权 · 寿命**：请求开始建立、`finally` 释放；无跨请求残留。
-- **实例**：合法：请求结束 fd 释放；边界：未关闭 → `VRC-API-001` 覆盖。
-- **来源 / 验证**：`app.py` + M007；`VRC-API-001`。
+```text
+RequestIdentity {
+  request_id: string       // req_<32hex>
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-API-REQUEST-ID`；每请求身份；来源 `src/http_api/app.py`。
+
+- **`request_id`**：
+
+  必填字符串，格式 `req_<32hex>`；每请求生成恰好一个。
+
+- **跨字段与寿命**：
+
+  写入 `X-Request-ID`、日志与 trace；请求开始生成、结束废弃；不持久（trace 副本归 M006）。
+
+- **合法/拒绝实例**：
+
+  合法 `req_ab12…`；边界：响应头与日志/trace 一致。
+
+- **验证**：
+
+  `VRC-API-001`；`app.py`。
+
+**6.6.2 `RequestContext`（运行状态数据结构）**
+
+```text
+RequestContext {
+  request_id: string,
+  principal: Principal,
+  body: dict,
+  thread: Thread,
+  store_connection: sqlite3.Connection?
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-API-REQUEST-CONTEXT`；请求级上下文与线程/连接所有权；来源 `src/http_api/app.py`/`ThreadingHTTPServer`。
+
+- **`request_id`/`principal`**：
+
+  必填；§6.6.1 / §6.2.1。
+
+- **`body`**：
+
+  必填映射；解析后的请求体（只读交接业务）。
+
+- **`thread`**：
+
+  必填；当前请求线程。
+
+- **`store_connection`**：
+
+  可空；线程内 `Store` 连接。
+
+- **跨字段与寿命**：
+
+  每请求一线程；`finally` 调 `app.store.close()` 释放线程内连接；请求间无共享状态；请求开始建立、`finally` 释放。
+
+- **合法/拒绝实例**：
+
+  合法：请求结束 fd 释放；边界：未关闭 → `VRC-API-001` 覆盖。
+
+- **验证**：
+
+  `VRC-API-001`；`app.py` + M007。
+
+### 6.7 数据库表结构
+
+不适用：本模块不写库，持久化由 M007 `util` 统一拥有（tailoring 依据：M001 只经 `Store` 连接读写，不拥有 DDL）。
 
 ### 6.8 错误码与错误结构
 
@@ -611,69 +850,80 @@ data:<json>
 
 ## 9. 接口设计
 
-> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口形态分类**逐接口完整记录；标题为真实调用形式（HTTP 路由或内部方法），标题下先给**完整接口声明**，再就地说明参数/结果字段，最后按 §3.1 六项。本模块接口**全部为软件接口**（HTTP 路由处理器与内部方法）；消息流/硬件/人机三类不适用。数据结构引用 §6；对外字段 machine authority = `interfaces/openapi/llmtier.openapi.json`。
+> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口设计用途**分类（面向使用方的 API 与组件/系统间协作的消息与数据流接口），逐接口完整记录；标题为真实调用形式（HTTP 路由或内部方法），标题下先给**完整接口声明**，再就地说明参数/结果字段，最后按固定六项。对外 HTTP 端点与内部处理器方法归 §9.1 API；SSE 事件/数据流归 §9.2 消息与数据流接口（`POST /v1/responses` 只在 §9.1 定义一次，流格式在 §9.2）。数据结构引用 §6；对外字段 machine authority = `interfaces/openapi/llmtier.openapi.json`。
 
-### 9.1 软件接口（适用时）
+### 9.1 API（适用时）
 
 #### `POST /v1/responses`
+
 ```text
 POST /v1/responses (ResponsesRequest, stream=true) -> 200 text/event-stream (ResponsesResponse 事件子集)
 ```
-- **输入**：`ResponsesRequest`（字段 authority = OpenAPI；本层只解析/限长/转发）。
-- **输出**：SSE 字节流（`SseFrame`，§6.4）；terminal 唯一由 M003 保证。
-- **Interface/Member ID / 状态**：`IF-API-RESPONSES`；Implemented；文件/符号 `app.py`（`/v1/responses` 分支）+ `sse.py` + M003 `ResponsesService.create`。
-- **错误与异常**：400 `ERR-REQ-VALIDATION`/`ERR-REQ-UNSUPPORTED`/`ERR-REQ-FIELD`；404 `ERR-MODEL-NOTFOUND`；429 `ERR-RATE-LIMIT`；502/503 `ERR-PROVIDER-FAIL`/`ERR-PROVIDER-UNAVAIL`/`ERR-MODEL-UNAVAIL`（映射后统一信封）。
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-API-RESPONSES`；标准模型调用（固定 `stream:true`/`store:false`，返回标准 SSE）；M001 终止 HTTP/SSE、M003 编排；状态=Implemented；唯一契约=OpenAPI；文件·symbol `app.py`（`/v1/responses` 分支）+ `sse.py` + M003 `ResponsesService.create`。
+- **输入与前提**：`ResponsesRequest`（§6.2 引用 OpenAPI；本层只解析/限长/转发）；授权=`data` 角色（内网可免登录）。
+- **成功输出与保证**：SSE 字节流（`SseFrame`，§6.4.1；事件/流格式见 §9.2）；terminal 唯一由 M003 保证。
+- **错误与合法下一步**：400 `ERR-REQ-VALIDATION`/`ERR-REQ-UNSUPPORTED`/`ERR-REQ-FIELD`；404 `ERR-MODEL-NOTFOUND`；429 `ERR-RATE-LIMIT`；502/503 `ERR-PROVIDER-FAIL`/`ERR-PROVIDER-UNAVAIL`/`ERR-MODEL-UNAVAIL`（映射后统一信封）。
 - **交互与生命周期**：SSE 长连接；断开捕获记 `aborted`、结束本次调用，不重放。
-- **实例与验证**：正常固定 request → 标准 SSE + terminal；边界：断开 → `aborted`。`VRC-API-003`。
+- **实现与验证**：正常固定 request → 标准 SSE + terminal；边界：断开 → `aborted`。`VRC-API-003`。
 
 #### `POST /v1/embeddings`
+
 ```text
 POST /v1/embeddings (EmbeddingRequest) -> 200 {object:"list", data:[...], usage:{...}}
 ```
-- **输入**：`EmbeddingRequest`（authority = OpenAPI）。
-- **输出**：Embeddings JSON 载荷（转发 M003）。
-- **Interface/Member ID / 状态**：`IF-API-EMBEDDINGS`；Implemented；文件/符号 `app.py` → M003 `EmbeddingsService.create`。
-- **错误与异常**：400 `ERR-REQ-VALIDATION`；404 `ERR-MODEL-NOTFOUND`；502/503 `ERR-PROVIDER-FAIL`/`ERR-PROVIDER-UNAVAIL`。
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-API-EMBEDDINGS`；向量化；M001 终止 HTTP、M003 编排；状态=Implemented；唯一契约=OpenAPI；文件·symbol `app.py` → M003 `EmbeddingsService.create`。
+- **输入与前提**：`EmbeddingRequest`（authority = OpenAPI）；授权=`data` 角色。
+- **成功输出与保证**：Embeddings JSON 载荷（转发 M003）。
+- **错误与合法下一步**：400 `ERR-REQ-VALIDATION`；404 `ERR-MODEL-NOTFOUND`；502/503 `ERR-PROVIDER-FAIL`/`ERR-PROVIDER-UNAVAIL`。
 - **交互与生命周期**：同步请求-响应；请求级。
-- **实例与验证**：正常向量返回；边界：非法维数 → 400。`VRC-API-003`。
+- **实现与验证**：正常向量返回；边界：非法维数 → 400。`VRC-API-003`。
 
 #### `GET /v1/models` / `GET /v1/models/{id}`
+
 ```text
 GET /v1/models -> 200 {object:"list", data:[ModelView]}
 GET /v1/models/{id} -> 200 ModelView | 404
 ```
-- **输入**：可选 `{id}`（exact 等级名）。
-- **输出**：`ModelView{id,object,owned_by,availability,capabilities}`（转发 M003 `ModelCatalog`）。
-- **Interface/Member ID / 状态**：`IF-API-MODELS`；Implemented；文件/符号 `app.py` → M003 `ModelCatalog`。
-- **错误与异常**：未知 exact 名 → 404 `ERR-MODEL-NOTFOUND`。
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-API-MODELS`；逻辑等级目录 / exact 能力；M001 终止 HTTP、M003 提供；状态=Implemented；唯一契约=OpenAPI；文件·symbol `app.py` → M003 `ModelCatalog`。
+- **输入与前提**：可选 `{id}`（exact 等级名）；授权=`data` 角色。
+- **成功输出与保证**：`ModelView{id,object,owned_by,availability,capabilities}`（转发 M003 `ModelCatalog`）。
+- **错误与合法下一步**：未知 exact 名 → 404 `ERR-MODEL-NOTFOUND`。
 - **交互与生命周期**：同步只读；请求级。
-- **实例与验证**：正常 7 个固定 tier；边界：未知 id → 404。`VRC-API-001`。
+- **实现与验证**：正常 7 个固定 tier；边界：未知 id → 404。`VRC-API-001`。
 
 #### `GET /v1/usage` / `DELETE /v1/usage`
+
 ```text
 GET /v1/usage?from&to&model&request_id&cursor&limit -> 200 UsagePage
 DELETE /v1/usage?model&deployment_id -> 200 {deleted}
 ```
-- **输入**：`GET` 分页参数（`[from,to)`）；`DELETE` 可选范围。
-- **输出**：冻结分页 / 删除计数（转发 M004 `UsageRecorder`）。
-- **Interface/Member ID / 状态**：`IF-API-USAGE`；Implemented；文件/符号 `app.py` → M004 `usage.py`。
-- **错误与异常**：400 `ERR-REQ-VALIDATION`/`ERR-CURSOR`；403 `ERR-AUTH-DENIED`；503 `ERR-STORE`。
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-API-USAGE`；用量查询 / 清空；M001 终止 HTTP、M004 提供；状态=Implemented；唯一契约=OpenAPI；文件·symbol `app.py` → M004 `usage.py`。
+- **输入与前提**：`GET` 分页参数（`[from,to)`）；`DELETE` 可选范围；授权=GET `data`/either，DELETE `admin`。
+- **成功输出与保证**：冻结分页 / 删除计数（转发 M004 `UsageRecorder`）。
+- **错误与合法下一步**：400 `ERR-REQ-VALIDATION`/`ERR-CURSOR`；403 `ERR-AUTH-DENIED`；503 `ERR-STORE`。
 - **交互与生命周期**：同步；`DELETE` 经审计；请求级。
-- **实例与验证**：正常分页；边界：存储不可读 → 503（不伪装空页）。`VRC-MGMT-004`。
+- **实现与验证**：正常分页；边界：存储不可读 → 503（不伪装空页）。`VRC-MGMT-004`。
 
 #### `GET /v1/audit` / `GET /v1/logs`
+
 ```text
 GET /v1/audit?limit -> 200 {data,next_cursor,has_more}
 GET /v1/logs?since&until&level&module&request_id&limit -> 200 {data,page}
 ```
-- **输入**：分页/过滤参数。
-- **输出**：脱敏审计/日志行（转发 M004 `AuditLog` / M008 `OperationalLog`）。
-- **Interface/Member ID / 状态**：`IF-API-RECORDS`；Implemented；文件/符号 `app.py` → M004/M008。
-- **错误与异常**：400 `ERR-REQ-VALIDATION`/`ERR-CURSOR`；503 `ERR-STORE`。
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-API-RECORDS`；审计/日志查询；M001 终止 HTTP、M004/M008 提供；状态=Implemented；唯一契约=OpenAPI；文件·symbol `app.py` → M004/M008。
+- **输入与前提**：分页/过滤参数；授权=`admin`。
+- **成功输出与保证**：脱敏审计/日志行（转发 M004 `AuditLog` / M008 `OperationalLog`）。
+- **错误与合法下一步**：400 `ERR-REQ-VALIDATION`/`ERR-CURSOR`；503 `ERR-STORE`。
 - **交互与生命周期**：同步只读；请求级。
-- **实例与验证**：正常列表；边界：无匹配 → `data=[]`。`VRC-MGMT-003/004`。
+- **实现与验证**：正常列表；边界：无匹配 → `data=[]`。`VRC-MGMT-003/004`。
 
 #### `/v1/providers`、`/v1/deployments`、`/v1/service-levels`（GET/POST/PATCH/DELETE）
+
 ```text
 GET    /v1/providers[/{id}]        -> 200 entity | {data,...}
 POST   /v1/providers               -> 201 entity + ETag
@@ -681,37 +931,43 @@ PATCH  /v1/providers/{id}          -> 200 entity + ETag   (If-Match)
 DELETE /v1/providers/{id}          -> 204
 （deployments / service-levels 同构）
 ```
-- **输入**：路径/body/`If-Match`。
-- **输出**：配置视图 + `ETag`（转发 M004 `Registry`）。
-- **Interface/Member ID / 状态**：`IF-API-ADMIN`；Implemented；文件/符号 `app.py` → M004 `registry.py`/`admin.py`。
-- **错误与异常**：400 `ERR-REQ-VALIDATION`；404 `ERR-NOTFOUND`；409 `ERR-CONFLICT`/`ERR-INUSE`；412 `ERR-STALE`；503 `ERR-STORE`。
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-API-ADMIN`；provider/deployment/service-level CRUD；M001 终止 HTTP、M004 事务化提供；状态=Implemented；唯一契约=OpenAPI；文件·symbol `app.py` → M004 `registry.py`/`admin.py`。
+- **输入与前提**：路径/body/`If-Match`；授权=`admin`。
+- **成功输出与保证**：配置视图 + `ETag`（转发 M004 `Registry`）。
+- **错误与合法下一步**：400 `ERR-REQ-VALIDATION`；404 `ERR-NOTFOUND`；409 `ERR-CONFLICT`/`ERR-INUSE`；412 `ERR-STALE`；503 `ERR-STORE`。
 - **交互与生命周期**：同步；写经 `AdminService.mutate` 审计；请求级。
-- **实例与验证**：正常建 provider 201+ETag；拒绝缺 `If-Match` PATCH → 412。`VRC-MGMT-001/002`。
+- **实现与验证**：正常建 provider 201+ETag；拒绝缺 `If-Match` PATCH → 412。`VRC-MGMT-001/002`。
 
 #### `POST /v1/probes`
+
 ```text
 POST /v1/probes {deployment_id, confirm_external_call=true} -> 200 {deployment_id, status, checked_at}
 ```
-- **输入**：`deployment_id`、`confirm_external_call`。
-- **输出**：探测结果并落库 health（转发 M004 `AdminService.probe`）。
-- **Interface/Member ID / 状态**：`IF-API-PROBES`；Implemented；文件/符号 `app.py` → M004 `admin.py`/`health.py`。
-- **错误与异常**：缺确认 → 400 `ERR-CONFIRM`；未知 deployment → 404 `ERR-NOTFOUND`。
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-API-PROBES`；部署探测；M001 终止 HTTP、M004 提供；状态=Implemented；唯一契约=OpenAPI；文件·symbol `app.py` → M004 `admin.py`/`health.py`。
+- **输入与前提**：`deployment_id`、`confirm_external_call`；授权=`admin` + 二次确认。
+- **成功输出与保证**：探测结果并落库 health（转发 M004 `AdminService.probe`）。
+- **错误与合法下一步**：缺确认 → 400 `ERR-CONFIRM`；未知 deployment → 404 `ERR-NOTFOUND`。
 - **交互与生命周期**：同步；5 s 上游超时；请求级。
-- **实例与验证**：正常 `healthy/unhealthy`；边界：未确认 → 400。`VRC-MGMT-005`。
+- **实现与验证**：正常 `healthy/unhealthy`；边界：未确认 → 400。`VRC-MGMT-005`。
 
 #### `GET /v1/runtime` / `GET /v1/stats`
+
 ```text
 GET /v1/runtime -> 200 RuntimeView
 GET /v1/stats?from&to&group_by=tier|deployment -> 200 {from,to,group_by,data:[...]}
 ```
-- **输入**：`stats` 时间窗与 `group_by`。
-- **输出**：运行时状态 / 聚合统计（转发 M004 `AdminService`）。
-- **Interface/Member ID / 状态**：`IF-API-RUNTIME`；Implemented；文件/符号 `app.py` → M004。
-- **错误与异常**：400 `ERR-REQ-VALIDATION`；503 `ERR-STORE`。
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-API-RUNTIME`；运行时状态 / 聚合统计；M001 终止 HTTP、M003/M004 提供；状态=Implemented；唯一契约=OpenAPI；文件·symbol `app.py` → M004。
+- **输入与前提**：`stats` 时间窗与 `group_by`；授权=`admin`。
+- **成功输出与保证**：运行时状态 / 聚合统计（转发 M004 `AdminService`）。
+- **错误与合法下一步**：400 `ERR-REQ-VALIDATION`；503 `ERR-STORE`。
 - **交互与生命周期**：同步只读；请求级。
-- **实例与验证**：正常聚合；边界：非法 `group_by` → 400。`VRC-MGMT-006`。
+- **实现与验证**：正常聚合；边界：非法 `group_by` → 400。`VRC-MGMT-006`。
 
 #### `/v1/diagnostics*`、`/v1/trace/{request_id}`（诊断族）
+
 ```text
 GET/PATCH /v1/diagnostics
 GET /v1/diagnostics/snapshots
@@ -719,132 +975,152 @@ GET /v1/diagnostics/stats
 GET/PATCH /v1/deployments/{id}/diagnostics
 GET /v1/trace/{request_id}
 ```
-- **输入 / 输出**：见 M005 §9；本层只路由与错误映射。
-- **Interface/Member ID / 状态**：`IF-API-DIAGNOSTICS`；Implemented；文件/符号 `app.py` → M005/M006。
-- **错误与异常**：400 `ERR-REQ-VALIDATION`/`ERR-INJECTION`；404 `ERR-NOTFOUND`；503 `ERR-STORE`。
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-API-DIAGNOSTICS`；诊断查询/切换；M001 终止 HTTP、M005/M006 提供；状态=Implemented；唯一契约=M005 §9（本层只路由与错误映射）；文件·symbol `app.py` → M005/M006。
+- **输入与前提**：见 M005 §9；授权=`admin`。
+- **成功输出与保证**：见 M005 §9；本层只路由与错误映射。
+- **错误与合法下一步**：400 `ERR-REQ-VALIDATION`/`ERR-INJECTION`；404 `ERR-NOTFOUND`；503 `ERR-STORE`。
 - **交互与生命周期**：同步；写经审计；请求级。
-- **实例与验证**：正常查询/切换；边界：开关关闭零写入。`VRC-OBS-001..005`。
+- **实现与验证**：正常查询/切换；边界：开关关闭零写入。`VRC-OBS-001..005`。
 
 #### `GET /healthz` / `GET /readyz`
+
 ```text
 GET /healthz -> 200 {"status":"ok","version":...}
 GET /readyz  -> 200 readiness JSON | 503 not_ready
 ```
-- **输入**：无。
-- **输出**：健康/就绪 JSON（`health_view`/`readiness_view`）。
-- **Interface/Member ID / 状态**：`IF-API-HEALTH`；Implemented；文件/符号 `app.py` + `health.py`。
-- **错误与异常**：引导失败 → `/readyz` 503 `ERR-BOOT`/`ERR-SCHEMA`。
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-API-HEALTH`；存活/就绪；M001 提供；状态=Implemented；唯一契约=OpenAPI；文件·symbol `app.py` + `health.py`。
+- **输入与前提**：无参数、无凭据。
+- **成功输出与保证**：健康/就绪 JSON（`health_view`/`readiness_view`）。
+- **错误与合法下一步**：引导失败 → `/readyz` 503 `ERR-BOOT`/`ERR-SCHEMA`。
 - **交互与生命周期**：同步只读；幂等；探针周期调用。
-- **实例与验证**：正常 200；边界：空库无 settings → 503。`VRC-API-001`。
+- **实现与验证**：正常 200；边界：空库无 settings → 503。`VRC-API-001`。
 
 #### `GET /ui/*`（控制台静态资源）
+
 ```text
 GET /ui/* -> 200 静态资源 | 404
 ```
-- **输入**：路径。
-- **输出**：`webui/` 内文件；`target.resolve()` 必须落在 `webui/`。
-- **Interface/Member ID / 状态**：`IF-API-STATIC`；Implemented；文件/符号 `app.py` `_static` + `webui/`。
-- **错误与异常**：越界/缺失 → 404 `ERR-NOTFOUND`。
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-API-STATIC`；静态资源交付；M001 提供；状态=Implemented；唯一契约=本设计；文件·symbol `app.py` `_static` + `webui/`。
+- **输入与前提**：路径。
+- **成功输出与保证**：`webui/` 内文件；`target.resolve()` 必须落在 `webui/`。
+- **错误与合法下一步**：越界/缺失 → 404 `ERR-NOTFOUND`。
 - **交互与生命周期**：同步；请求级；`Cache-Control: no-store`。
-- **实例与验证**：正常交付；边界：`../` → 404。`VRC-API-004`。
+- **实现与验证**：正常交付；边界：`../` → 404。`VRC-API-004`。
 
 #### `Handler._run() -> None` / `Handler._dispatch() -> None`
+
 ```text
 _run() -> None
 _dispatch() -> None
 ```
-- **输入**：`self.path`/`self.command`/`self.headers`。
-- **输出**：写响应；统一错误出口。
-- **Interface/Member ID / 状态**：`IF-API-DISPATCH`；Implemented；文件/符号 `app.py` `Handler._run/_dispatch`。
-- **错误与异常**：可抛 `ApiError`（由 `_run` 统一信封）。
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-API-DISPATCH`；请求分发与统一错误出口；M001 提供；状态=Implemented；唯一契约=本设计；文件·symbol `app.py` `Handler._run/_dispatch`。
+- **输入与前提**：`self.path`/`self.command`/`self.headers`。
+- **成功输出与保证**：写响应；统一错误出口。
+- **错误与合法下一步**：可抛 `ApiError`（由 `_run` 统一信封）；未知路径 → 404。
 - **交互与生命周期**：每请求一线程；`finally` 关闭线程内 `Store` 连接。
-- **实例与验证**：正常分发；边界：未知路径 → 404。`VRC-API-001`。
+- **实现与验证**：正常分发；边界：未知路径 → 404。`VRC-API-001`；`app.py`。
 
 #### `Handler._auth(role="data") -> Principal` / `_auth_either() -> tuple[Principal,bool]`
+
 ```text
 _auth(role: str = "data") -> Principal
 _auth_either() -> tuple[Principal, bool]
 ```
-- **输入**：headers、client_address、端点角色。
-- **输出**：`Principal`（§6.2）/ `(Principal,is_admin)`。
-- **Interface/Member ID / 状态**：`IF-API-AUTH`；Implemented；文件/符号 `app.py` + `auth.py` `unauthenticated_principal/authenticate/authenticate_any`。
-- **错误与异常**：503 `ERR-AUTH-NOCFG`；401 `ERR-AUTH-REQUIRED`；403 `ERR-AUTH-DENIED`（不泄露存在性）。
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-API-AUTH`；入口信任判定；M001 提供；状态=Implemented；唯一契约=本设计；文件·symbol `app.py` + `auth.py` `unauthenticated_principal/authenticate/authenticate_any`。
+- **输入与前提**：headers、client_address、端点角色。
+- **成功输出与保证**：`Principal`（§6.2.1）/ `(Principal,is_admin)`。
+- **错误与合法下一步**：503 `ERR-AUTH-NOCFG`；401 `ERR-AUTH-REQUIRED`；403 `ERR-AUTH-DENIED`（不泄露存在性）。
 - **交互与生命周期**：同步；每请求一次；恒定时间比较。
-- **实例与验证**：正常受信地址免登录/凭据判定；边界：data 访问 admin → 403。`VRC-API-002`。
+- **实现与验证**：正常受信地址免登录/凭据判定；边界：data 访问 admin → 403。`VRC-API-002`。
 
 #### `Handler._body() -> dict`
+
 ```text
 _body() -> dict
 ```
-- **输入**：request body。
-- **输出**：`dict`（只读交接业务）。
-- **Interface/Member ID / 状态**：`IF-API-BODY`；Implemented；文件/符号 `app.py` `Handler._body`。
-- **错误与异常**：超限 413 `ERR-REQ-TOO-LARGE`；非法 JSON 400 `ERR-REQ-JSON`。
-- **交互与生命周期**：同步；仅 POST/PATCH 调用。
-- **实例与验证**：正常解析；边界：>2MB → 413。`VRC-API-003`。
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-API-BODY`；请求体限长与解析；M001 提供；状态=Implemented；唯一契约=本设计；文件·symbol `app.py` `Handler._body`。
+- **输入与前提**：request body；仅 POST/PATCH 调用。
+- **成功输出与保证**：`dict`（只读交接业务）。
+- **错误与合法下一步**：超限 413 `ERR-REQ-TOO-LARGE`；非法 JSON 400 `ERR-REQ-JSON`。
+- **交互与生命周期**：同步。
+- **实现与验证**：正常解析；边界：>2MB → 413。`VRC-API-003`。
 
 #### `Handler._json(status, data, headers=None) -> None`
+
 ```text
 _json(status: int, data, headers: dict | None = None) -> None
 ```
-- **输入**：状态码、载荷、附加头。
-- **输出**：写 JSON 响应 + `X-Request-ID`。
-- **Interface/Member ID / 状态**：`IF-API-JSON`；Implemented；文件/符号 `app.py` `Handler._json`。
-- **错误与异常**：无（写失败按断开处理）。
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-API-JSON`；写 JSON 响应；M001 提供；状态=Implemented；唯一契约=本设计；文件·symbol `app.py` `Handler._json`。
+- **输入与前提**：状态码、载荷、附加头。
+- **成功输出与保证**：写 JSON 响应 + `X-Request-ID`。
+- **错误与合法下一步**：无（写失败按断开处理）。
 - **交互与生命周期**：同步；每响应一次。
-- **实例与验证**：正常写响应；边界：响应头含 `X-Request-ID`。`VRC-API-001`。
+- **实现与验证**：正常写响应；边界：响应头含 `X-Request-ID`。`VRC-API-001`。
 
 #### `Handler._static(path) -> None`
+
 ```text
 _static(path: str) -> None
 ```
-- **输入**：路径。
-- **输出**：写静态文件。
-- **Interface/Member ID / 状态**：`IF-API-STATIC-INTERNAL`；Implemented；文件/符号 `app.py` `Handler._static`。
-- **错误与异常**：越界/缺失 → `ApiError(404,"not_found")`（`ERR-NOTFOUND`）。
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-API-STATIC-INTERNAL`；写静态文件；M001 提供；状态=Implemented；唯一契约=本设计；文件·symbol `app.py` `Handler._static`。
+- **输入与前提**：路径。
+- **成功输出与保证**：写静态文件。
+- **错误与合法下一步**：越界/缺失 → `ApiError(404,"not_found")`（`ERR-NOTFOUND`）。
 - **交互与生命周期**：同步；请求级。
-- **实例与验证**：正常交付；边界：目录穿越拒绝。`VRC-API-004`。
+- **实现与验证**：正常交付；边界：目录穿越拒绝。`VRC-API-004`。
 
 #### `ApiError` / `ApiError.envelope()` / `require(...)`
+
 ```text
 ApiError(status:int, code:str, message:str, param:str|None=None, retryable:bool=False, headers:dict|None=None, extra:dict|None=None)
 envelope() -> dict
 require(condition: bool, status: int, code: str, message: str, param: str | None = None) -> None
 ```
-- **输入**：错误字段/校验条件。
-- **输出**：错误对象 / 信封 dict；`require` 不成立时抛 `ApiError`。
-- **Interface/Member ID / 状态**：`IF-API-ERROR`；Implemented；文件/符号 `errors.py`。
-- **错误与异常**：自身即错误类型；信封不含栈/Secret。
-- **交互与生命周期**：请求级。
-- **实例与验证**：正常 `envelope()` 结构；边界：未知异常 → 500。`VRC-API-001`。
 
-#### `frame(event, data) -> bytes` / `response_stream(response) -> Iterable[bytes]`
-```text
-frame(event: str, data: dict) -> bytes
-response_stream(response: dict) -> Iterable[bytes]
-```
-- **输入**：事件名/数据；终态 `ResponsesResponse`。
-- **输出**：单帧字节 / 帧序列（terminal + `[DONE]`）。
-- **Interface/Member ID / 状态**：`IF-API-SSE`；Implemented；文件/符号 `sse.py`。
-- **错误与异常**：写失败由调用方按断开处理（无自定义错误）。
-- **交互与生命周期**：惰性序列；请求级。
-- **实例与验证**：正常帧序；边界：terminal 唯一。`VRC-API-003`。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-API-ERROR`；错误对象与信封构造；M001 提供；状态=Implemented；唯一契约=本设计；文件·symbol `errors.py`。
+- **输入与前提**：错误字段/校验条件。
+- **成功输出与保证**：错误对象 / 信封 dict（§6.2.2）；`require` 不成立时抛 `ApiError`。
+- **错误与合法下一步**：自身即错误类型；信封不含栈/Secret。
+- **交互与生命周期**：请求级。
+- **实现与验证**：正常 `envelope()` 结构；边界：未知异常 → 500。`VRC-API-001`。
 
 #### `health_view(version) -> dict` / `readiness_view(registry) -> tuple[dict,int]`
+
 ```text
 health_view(version: str) -> dict
 readiness_view(registry) -> tuple[dict, int]
 ```
-- **输入**：版本字符串 / Registry。
-- **输出**：`{"status":"ok","version":...}` / 就绪 JSON + HTTP 状态。
-- **Interface/Member ID / 状态**：`IF-API-HEALTH`；Implemented；文件/符号 `health.py`。
-- **错误与异常**：引导失败 → 503（`ERR-BOOT`/`ERR-SCHEMA`）。
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-API-HEALTH`；构造健康/就绪视图；M001 提供；状态=Implemented；唯一契约=本设计；文件·symbol `health.py`。
+- **输入与前提**：版本字符串 / Registry。
+- **成功输出与保证**：`{"status":"ok","version":...}` / 就绪 JSON + HTTP 状态。
+- **错误与合法下一步**：引导失败 → 503（`ERR-BOOT`/`ERR-SCHEMA`）。
 - **交互与生命周期**：同步只读；幂等。
-- **实例与验证**：正常 200；边界：空库 → 503。`VRC-API-001`。
+- **实现与验证**：正常 200；边界：空库 → 503。`VRC-API-001`。
 
 ### 9.2 消息与数据流接口（适用时）
 
-不适用（SSE 在 `IF-API-RESPONSES` 内以软件接口形式记录；无独立事件/队列/流）。
+#### `Responses SSE 帧与事件子集`（`frame` / `response_stream`）
+
+```text
+frame(event: str, data: dict) -> bytes
+response_stream(response: ResponsesResponse) -> Iterable[bytes]   # text/event-stream
+```
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-API-SSE`；把终态 `ResponsesResponse` 逐事件序列化为 SSE 帧并传输；M001 传输、M003 产出事件语义；状态=Implemented；唯一契约=OpenAPI `ResponseStreamEvent`（`D-MSG-SSE`）；文件·symbol `src/http_api/sse.py`。
+- **输入与前提**：终态 `ResponsesResponse`（事件语义由 M003 保证）；前置=§9.1 `POST /v1/responses` 已建连；授权=已由入口完成。
+- **成功输出与保证**：SSE 字节流（`SseFrame`，§6.4.1）——事件名子集，帧格式 `event: <name>\ndata: <json>\n\n`；每 output item 稳定 `id`；`sequence_number` 自 0 递增；一个 terminal + `[DONE]`。
+- **错误与合法下一步**：客户端断开 → `BrokenPipeError`/`ConnectionResetError` → 结束本次调用（§9.1 记 `aborted`）；结果可能已部分送达、可能未知；不重传、不重放。
+- **交互与生命周期**：顺序=单请求内严格有序；无背压到推理结果；断开即终止；流式临时字节，请求结束丢弃。
+- **实现与验证**：正常完整流以 terminal 结束；边界：命中 `stream_terminate` → 提前结束。`VRC-API-003`；`sse.py`。
 
 ### 9.3 硬件与固件接口（适用时）
 

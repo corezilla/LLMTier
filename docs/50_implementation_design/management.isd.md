@@ -12,7 +12,7 @@
 | Document Owner | LLMTier |
 | Last Modified Date | `2026-09-25` |
 | Template ID | `design.implementation` |
-| Template Version | `1.0.0` |
+| Template Version | `1.2.0` |
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 实现目标与输入基线
@@ -120,43 +120,282 @@ health.py         health_view/readiness_view/apply_probe_result
 
 <a id="isd-data"></a>
 
-> 按 STD `design-data-interface-format` 1.2.0：主章“数据结构设计”，章内按**数据性质**分类（§4.1–§4.8）。仅保留适用类别，不适用类别在章首给出原因与 tailoring 依据；本层拥有的结构逐项记录 ID/唯一来源/字段/约束/状态·所有权·寿命/合法与拒绝实例/验证，语言级表示与代码映射随结构记录。继承结构只定位原定义与固定机器源，不复制字段。
+> 按 STD `design-data-interface-format` 1.2.0：主章“数据结构设计”，章内按**数据性质**分类（§4.1–§4.8）。仅保留适用类别，不适用类别在章首给出原因与 tailoring 依据；每个结构以真实名称为带编号的粗体标题，先给代码式声明，再逐项写 `Data/Type ID、用途与来源`、逐字段记录（必填·缺省·可空 / 类型·范围·枚举·含义 / 条件有效性）、`跨字段与寿命`、`合法/拒绝实例` 与 `验证`。继承结构只定位原定义与固定机器源，不复制字段。
 
 **类别适用性**：§4.1 公共基础类型与枚举 ✗（`kind`/`health`/`capabilities` 取值内嵌 §4.2 视图）｜§4.2 业务与操作数据结构 ✓｜§4.3 配置与规则数据结构 ✗（能力交集/冻结 space 为字段不变量，无独立受控规则对象）｜§4.4 通信报文结构 ✗｜§4.5 设备与 FPGA 表项结构 ✗（纯软件）｜§4.6 运行状态数据结构 ✗（探测/引导为一次性动作）｜§4.7 数据库表结构 ✗（表契约归 M007 `util.isd.md` §4.7）｜§4.8 错误码与错误结构 ✓。
 
 ### 4.2 业务与操作数据结构
 
-#### `Provider` / `Deployment` / `ServiceLevel` 视图（`registry.py`）
+**4.2.1 `Provider` 视图（`registry.py`）**
 
-- **定义 / Data Type ID / 唯一来源**：配置权威的对外阅读视图；`D-PROVIDER`/`D-DEPLOYMENT`/`D-SERVICE-LEVEL`；唯一来源=OpenAPI + `util/migrations/001_initial.sql` 表契约（本层为投影）。
-- **字段 / 取值**：Provider `{id,name,kind∈{cloud,local},endpoint,has_secret,enabled,usage,request_usage,version}`；Deployment `{id,name,provider_id,backend_model,capabilities,enabled,health,version}`；ServiceLevel `{id,deployment_ids,enabled,capabilities,version}`；`capabilities` 12 键；`Embedding-v1` 冻结 space。
-- **约束 / 不变量**：`name` 唯一；`version` 单调、用于 ETag；`capabilities` 必须为 provider∩deployment 交集。
-- **状态 · 所有权 · 寿命**：持久（Store）；Registry 写、M001/M003 读；随库寿命。
-- **语言级表示与代码映射**：Python `dict`/`Row` → 视图；`Registry.get_*/list_*` 构造，`AdminService.mutate` 写。
-- **合法与拒绝实例**：合法引用已存在 provider；拒绝未知 `provider_id` → `ERR-REQ-VALIDATION`。
-- **验证**：`VRC-MGMT-001/002`。
+```text
+Provider {
+  id: str
+  name: str
+  kind: "cloud" | "local"
+  endpoint: str
+  has_secret: bool
+  enabled: bool
+  usage: object
+  request_usage: object
+  version: int
+}
+```
 
-#### `UsagePage` / `AuditEvent` / `AccountSnapshot`（`admin.py`/`account_usage.py`/`audit.py`）
+- **Data/Type ID、用途与来源**
 
-- **定义 / Data Type ID / 唯一来源**：用量分页 / 审计事件 / 账号用量快照；`D-USAGE-PAGE`/`D-AUDIT-EVENT`/`D-ACCOUNT-SNAPSHOT`；唯一来源=本 ISD 与 M-METER。
-- **字段 / 取值**：UsagePage `{data,next_cursor,has_more,snapshot_id,snapshot_at}`；AuditEvent `{id,actor,action,target,result,created_at,request_id}`；AccountSnapshot `{provider,source,status,windows[],checked_at,error}`。
-- **约束 / 不变量**：分页由 `query_snapshots` 冻结；同 request 只取最高版本；账号缺字段记 `Unknown`，不补零。
-- **状态 · 所有权 · 寿命**：持久（Store）；UsageRecorder/AuditLog/AccountUsageService 写，M001 读。
-- **语言级表示与代码映射**：Python `dict`/`Row`；`UsageRecorder.page`、`AuditLog.record/page`、`AccountUsageService.latest/refresh`。
-- **合法与拒绝实例**：合法首屏快照；拒绝 cursor 失效 → `ERR-CURSOR`；账号凭据缺失 → `unavailable`。
-- **验证**：`VRC-MGMT-003..006`。
+  `D-PROVIDER`；配置权威的对外阅读视图。唯一来源=OpenAPI + `util/migrations/001_initial.sql` 表契约（本层是投影）。
+
+- **`id` / `name`**（必填）
+
+  `str`；`id` 主键，`name` 全库唯一。
+
+- **`kind`**（必填、枚举）
+
+  `"cloud" | "local"`；决定 Secret 引用与用量提供方默认。
+
+- **`endpoint` / `has_secret`**（必填）
+
+  上游地址与是否配置 Secret；`has_secret` 只暴露布尔，不回显 Secret。
+
+- **`enabled` / `version`**（必填）
+
+  `bool` / `int`；`version` 单调递增，用于 ETag。
+
+- **`usage` / `request_usage`**（必填、对象）
+
+  用量视图；未知按 `unknown`，不补零。
+
+- **跨字段与寿命**
+
+  `name` 唯一；`version` 单调且用于 ETag；持久（Store），Registry 写、M001/M003 读，随库寿命。
+
+- **合法/拒绝实例**
+
+  合法：引用已存在 provider；拒绝：未知 `provider_id` → `ERR-REQ-VALIDATION`。
+
+- **验证**
+
+  `VRC-MGMT-001/002`。
+
+**4.2.2 `Deployment` 视图（`registry.py`）**
+
+```text
+Deployment {
+  id: str
+  name: str
+  provider_id: str
+  backend_model: str
+  capabilities: object        // 12 键
+  enabled: bool
+  health: "healthy" | "degraded" | "unhealthy" | "unknown"
+  version: int
+}
+```
+
+- **Data/Type ID、用途与来源**
+
+  `D-DEPLOYMENT`；唯一来源=OpenAPI + `001_initial.sql`（本层为投影）。
+
+- **`id` / `name` / `provider_id` / `backend_model`**（必填）
+
+  标识、所属 provider 与上游模型名；`provider_id` 必须存在。
+
+- **`capabilities`**（必填、对象）
+
+  12 键能力集；必须为 provider∩deployment 交集。
+
+- **`enabled` / `health` / `version`**（必填）
+
+  `bool` / 四值枚举 / 单调版本；`health` 来自 Registry 事实。
+
+- **跨字段与寿命**
+
+  `capabilities` 必须为 provider∩deployment 交集；`version` 单调用于 ETag；持久（Store），随库寿命。
+
+- **合法/拒绝实例**
+
+  合法：能力交集正确；拒绝：能力超出 provider → `ERR-REQ-VALIDATION`。
+
+- **验证**
+
+  `VRC-MGMT-002`。
+
+**4.2.3 `ServiceLevel` 视图（`registry.py`）**
+
+```text
+ServiceLevel {
+  id: str
+  deployment_ids: str[]
+  enabled: bool
+  capabilities: object
+  version: int
+}
+```
+
+- **Data/Type ID、用途与来源**
+
+  `D-SERVICE-LEVEL`；唯一来源=OpenAPI + `001_initial.sql`（本层为投影）；`Embedding-v1` 冻结 space。
+
+- **`id` / `deployment_ids`**（必填）
+
+  等级 ID 与有序成员；成员必须存在，`ordinal` 决定顺序。
+
+- **`enabled` / `capabilities` / `version`**（必填）
+
+  启用标志、能力交集、单调版本。
+
+- **跨字段与寿命**
+
+  删除被引用 deployment 需解绑（`ERR-INUSE`/`ERR-CONFLICT`）；`version` 单调用于 ETag；持久（Store），随库寿命。
+
+- **合法/拒绝实例**
+
+  合法：成员均存在且能力交集正确；拒绝：删除被引用成员 → `ERR-INUSE`。
+
+- **验证**
+
+  `VRC-MGMT-002`。
+
+**4.2.4 `UsagePage`（`admin.py`）**
+
+```text
+UsagePage {
+  data: object[]
+  next_cursor: str | null
+  has_more: bool
+  snapshot_id: str
+  snapshot_at: str
+}
+```
+
+- **Data/Type ID、用途与来源**
+
+  `D-USAGE-PAGE`；用量分页。唯一来源=本 ISD 与 M-METER。
+
+- **`data` / `next_cursor` / `has_more`**（必填/可空）
+
+  行数组、游标、是否还有更多；`has_more=false ⇒ next_cursor=null`。
+
+- **`snapshot_id` / `snapshot_at`**（必填）
+
+  冻结快照身份与时刻；分页由 `query_snapshots` 冻结。
+
+- **跨字段与寿命**
+
+  同 request 只取最高版本；快照持久，分页期间冻结；cursor 失效 → `ERR-CURSOR`。
+
+- **合法/拒绝实例**
+
+  合法：首屏快照翻页稳定；拒绝：cursor 失效 → `ERR-CURSOR`。
+
+- **验证**
+
+  `VRC-MGMT-004`。
+
+**4.2.5 `AuditEvent`（`audit.py`）**
+
+```text
+AuditEvent {
+  id: str
+  actor: str
+  action: str
+  target: str
+  result: "success" | "failed"
+  created_at: str
+  request_id: str
+}
+```
+
+- **Data/Type ID、用途与来源**
+
+  `D-AUDIT-EVENT`；管理动作审计。唯一来源=本 ISD。
+
+- **`id` / `actor` / `action` / `target` / `created_at` / `request_id`**（必填）
+
+  审计身份与上下文；`request_id` 关联一次管理请求。
+
+- **`result`**（必填、枚举）
+
+  `success | failed`；与错误同时落库，失败也须记录。
+
+- **跨字段与寿命**
+
+  与 Registry 写同事务提交（`mutate`）；Secret 不回显；持久（Store），随库寿命。
+
+- **合法/拒绝实例**
+
+  合法：PATCH 成功 + 审计 `success`；拒绝：并发 PATCH → `ERR-STALE`，审计 `failed`。
+
+- **验证**
+
+  `VRC-MGMT-003`。
+
+**4.2.6 `AccountSnapshot`（`account_usage.py`）**
+
+```text
+AccountSnapshot {
+  provider: object
+  source: str
+  status: str
+  windows: object[]
+  checked_at: str
+  error: str | null
+}
+```
+
+- **Data/Type ID、用途与来源**
+
+  `D-ACCOUNT-SNAPSHOT`；账号用量快照。唯一来源=本 ISD 与 M-METER。
+
+- **`provider` / `source` / `status` / `windows` / `checked_at`**（必填）
+
+  提供方、来源、状态、时间窗数组与检查时刻。
+
+- **`error`**（可空）
+
+  `str | null`；账号缺字段记 `Unknown`，不补零。
+
+- **跨字段与寿命**
+
+  GET 只读不触网；POST 需 `confirm_external_call` 且带外部调用；快照持久，随库寿命。
+
+- **合法/拒绝实例**
+
+  合法：完整窗口；拒绝：缺凭据 → `unavailable`，不伪造零值。
+
+- **验证**
+
+  `VRC-MGMT-006`。
 
 ### 4.8 错误码与错误结构
 
-#### Management 错误结构（引用系统 §8.8）
+**4.8.1 Management 错误结构（引用系统 §8.8）**
 
-- **定义 / Data Type ID / 唯一来源**：管理面错误经公共 `D-ERROR-ENVELOPE` 返回；含义与码由系统 §8.8 唯一维护。
-- **字段 / 取值**：同 `ApiError`（`status`/`code`/`message`/`param`/`retryable`/`headers`/`extra`）；`type` 取系统稳定码。
-- **约束 / 不变量**：审计 `failed` 与错误同时落库；Secret 不回显；并发冲突不改旧版本。
-- **状态 · 所有权 · 寿命**：请求级错误对象；持久审计事件另计。
-- **语言级表示与代码映射**：`ApiError`；`Registry`/`AdminService` 抛出，M001 映射。
-- **合法与拒绝实例**：合法 PATCH 成功 + 审计 success；拒绝并发 PATCH → `ERR-STALE`。
-- **验证**：`VRC-MGMT-002/003`。
+```text
+ApiError { status: int, code: str, message: str, param: str | null,
+           retryable: bool, headers: dict | null, extra: dict | null }
+```
+
+- **Data/Type ID、用途与来源**
+
+  管理面错误经公共 `D-ERROR-ENVELOPE` 返回；含义与码由系统 §8.8 唯一维护。
+
+- **`status` / `code` / `message` / `param` / `retryable` / `headers` / `extra`**（按需）
+
+  与 M001 `ApiError` 同构；`type` 取系统稳定码。
+
+- **跨字段与寿命**
+
+  审计 `failed` 与错误同时落库；Secret 不回显；并发冲突不改旧版本；请求级错误对象，持久审计事件另计。
+
+- **合法/拒绝实例**
+
+  合法：PATCH 成功 + 审计 `success`；拒绝：并发 PATCH → `ERR-STALE`。
+
+- **验证**
+
+  `VRC-MGMT-002/003`。
 
 **本层公共错误引用**（ID 定义见系统 §8.8）：
 
@@ -173,9 +412,9 @@ health.py         health_view/readiness_view/apply_probe_result
 
 <a id="isd-functions"></a>
 
-> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按接口形态分类逐接口完整记录；标题为真实调用形式，标题下先给完整签名，再就地说明参数/结果字段，最后按 §3.1 六项。数据结构引用 §4；公共错误 ID 定义见 `llmtier-system-design` §8.8，本层只产生/映射。本模块接口全部为软件接口；消息流/硬件/人机见 §5.2–§5.4。
+> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，**按接口用途分类**：向本模块使用方提供可调用能力的函数/端点归 §5.1 API；组件或系统间为协作而交换的命令、状态、事件、流等归 §5.2 消息与数据流（使用 HTTP 时仍按用途判断）。每个接口以真实限定名称为标题，标题下先给完整声明，再按六项固定标签（`Interface/Member ID、用途、提供责任与唯一来源`、`输入与前提`、`成功输出与保证`、`错误与合法下一步`、`交互与生命周期`、`实现与验证`）就地记录。数据结构引用 §4；错误传播落在各接口的 `错误与合法下一步`，公共错误 ID 定义见 `llmtier-system-design` §8.8，本层只产生/映射。
 
-### 5.1 软件接口（适用时）
+### 5.1 API（适用时）
 
 #### 5.1.1 `bootstrap_settings(path) -> None`
 
@@ -185,16 +424,24 @@ create/get/list/update/delete_{provider,deployment,service_level}
 candidates(level_id) -> list[Candidate]
 ```
 
-- **Interface/Member ID、状态**：`FUNC-MGMT-REGISTRY` / PLANNED
-- **文件 / symbol / 可见性**：`registry.py` / `Registry.*` / private
-- **原成员 ID 或私有来源**：`F-MGMT-BOOTSTRAP`、`F-MGMT-CRUD`、`R-CFG-01/02/03`
-- **完整签名与 caller**：`bootstrap_settings(path) -> None`；`create/get/list/update/delete_{provider,deployment,service_level}`；`candidates(level_id) -> list[Candidate]`；caller=M001/AdminService
-- **输入**
+- **Interface/Member ID、用途、提供责任与唯一来源**
+
+  - **Interface/Member ID、状态**：`FUNC-MGMT-REGISTRY` / PLANNED
+  - **文件 / symbol / 可见性**：`registry.py` / `Registry.*` / private
+  - **原成员 ID 或私有来源**：`F-MGMT-BOOTSTRAP`、`F-MGMT-CRUD`、`R-CFG-01/02/03`
+  - **完整签名与 caller**：`bootstrap_settings(path) -> None`；`create/get/list/update/delete_{provider,deployment,service_level}`；`candidates(level_id) -> list[Candidate]`；caller=M001/AdminService
+
+- **输入与前提**
+
   - **输入参数 / 数据结构 authority**：settings 路径 / CRUD body；字段见 §4.1
   - **输入约束 / 校验顺序 / 失败映射**：引导校验（字段/ID/引用/Secret 可达）；CRUD 能力不变量；失败 → `E-MGMT-*`
-- **成功输出**
+
+- **成功输出与保证**
+
   - **成功输出 / 数据结构 / 后置条件**：`(view, etag)` / 候选
-- **错误与异常**
+
+- **错误与合法下一步**
+
   - **错误输出 / 触发条件 / 优先级**：E-MGMT-BOOT（ERR-BOOT · bootstrap_required / bootstrap_invalid）：503 `bootstrap_required`/`bootstrap_invalid`；not_ready；E-MGMT-INVALID（ERR-REQ-VALIDATION / ERR-CONFLICT）：400/409；E-MGMT-CAS（ERR-STALE · version_conflict）：412 + `current_version`
   - **E-MGMT-BOOT（公共 ERR-BOOT · bootstrap_required / bootstrap_invalid）**
     - **底层异常 / 失败事实**：settings 不可读/非法/引用不可达
@@ -220,16 +467,20 @@ candidates(level_id) -> list[Candidate]
     - **日志级别 / 脱敏 / 关联字段**：无
     - **是否可重试及前提**：重新读取后重试
     - **状态与副作用影响 / 验证项**：`VRC-MGMT-002`
+
 - **交互与生命周期**
+
   - **副作用 / 执行上下文 / 幂等性**：写库；引导幂等（hash）；CRUD 非幂等
   - **输入输出 ownership 与寿命**：持久（Store）
   - **Thread-safe / reentrant**：经事务
   - **Nested-call policy**：allowed
   - **Transaction participation**：creates new
   - **Blocking / timeout / cancellation**：`timeout=10`
-- **不可改变的规则 / Constraint ID**：唯一权威、发布事务原子、能力交集、ETag
-- **实现自由度**：存储/算法实现
-- **实例与验证**
+
+- **实现与验证**
+
+  - **不可改变的规则 / Constraint ID**：唯一权威、发布事务原子、能力交集、ETag
+  - **实现自由度**：存储/算法实现
   - **实现状态 / 验证项**：PLANNED；`VRC-MGMT-001/002/003`
 
 #### 5.1.2 `mutate(actor, action, target, request_id, fn, atomic=True)`，`fn(conn)` 在 mutate 开启的同一事务内执行`
@@ -241,16 +492,24 @@ page(...)
 stats(from_ts, to_ts, group_by)
 ```
 
-- **Interface/Member ID、状态**：`FUNC-MGMT-MUTATE` / PLANNED
-- **文件 / symbol / 可见性**：`admin.py` / `AdminService.mutate/probe/page/stats` / private
-- **原成员 ID 或私有来源**：`F-MGMT-PROBE`、`F-MGMT-STATS`
-- **完整签名与 caller**：`mutate(actor, action, target, request_id, fn, atomic=True)`，`fn(conn)` 在 mutate 开启的同一事务内执行；`probe(actor, body, request_id)`；`page(...)`；`stats(from_ts, to_ts, group_by)`；caller=M001
-- **输入**
+- **Interface/Member ID、用途、提供责任与唯一来源**
+
+  - **Interface/Member ID、状态**：`FUNC-MGMT-MUTATE` / PLANNED
+  - **文件 / symbol / 可见性**：`admin.py` / `AdminService.mutate/probe/page/stats` / private
+  - **原成员 ID 或私有来源**：`F-MGMT-PROBE`、`F-MGMT-STATS`
+  - **完整签名与 caller**：`mutate(actor, action, target, request_id, fn, atomic=True)`，`fn(conn)` 在 mutate 开启的同一事务内执行；`probe(actor, body, request_id)`；`page(...)`；`stats(from_ts, to_ts, group_by)`；caller=M001
+
+- **输入与前提**
+
   - **输入参数 / 数据结构 authority**：`(actor, action, target, request_id, fn)`；`fn(conn)` 用传入连接执行 Registry 写（不另开事务）；probe `{deployment_id, confirm_external_call}`
   - **输入约束 / 校验顺序 / 失败映射**：mutate 单事务写 Registry + Audit（`atomic=False` 仅用于带外部调用的账号刷新）；probe 需确认；stats `group_by ∈ {tier,deployment}`
-- **成功输出**
+
+- **成功输出与保证**
+
   - **成功输出 / 数据结构 / 后置条件**：结果 / 页 / 统计；审计 success
-- **错误与异常**
+
+- **错误与合法下一步**
+
   - **错误输出 / 触发条件 / 优先级**：E-MGMT-INVALID（ERR-REQ-VALIDATION / ERR-CONFLICT）：400/409；E-MGMT-CAS（ERR-STALE · version_conflict）：412 + `current_version`；E-MGMT-USAGE（ERR-STORE · usage_store_unavailable）：503 `usage_store_unavailable`
   - **E-MGMT-INVALID（公共 ERR-REQ-VALIDATION / ERR-CONFLICT）**
     - **底层异常 / 失败事实**：字段/引用/能力非法
@@ -276,16 +535,20 @@ stats(from_ts, to_ts, group_by)
     - **日志级别 / 脱敏 / 关联字段**：warning
     - **是否可重试及前提**：稍后重试
     - **状态与副作用影响 / 验证项**：`VRC-MGMT-004`
+
 - **交互与生命周期**
+
   - **副作用 / 执行上下文 / 幂等性**：包裹 `fn` 副作用；写审计
   - **输入输出 ownership 与寿命**：请求级；审计持久
   - **Thread-safe / reentrant**：经事务
   - **Nested-call policy**：allowed
   - **Transaction participation**：joins existing（包裹 `fn` 事务）
   - **Blocking / timeout / cancellation**：探测 5 s
-- **不可改变的规则 / Constraint ID**：审计必写；探测确认；保存/health/probe 三态分离
-- **实现自由度**：转发实现
-- **实例与验证**
+
+- **实现与验证**
+
+  - **不可改变的规则 / Constraint ID**：审计必写；探测确认；保存/health/probe 三态分离
+  - **实现自由度**：转发实现
   - **实现状态 / 验证项**：PLANNED；`VRC-MGMT-002/005`
 
 #### 5.1.3 `page(principal, cursor, limit, admin, since, until, model, request_id) -> dict`
@@ -295,16 +558,24 @@ page(principal, cursor, limit, admin, since, until, model, request_id) -> dict
 reset_usage(model, deployment_id) -> dict
 ```
 
-- **Interface/Member ID、状态**：`FUNC-MGMT-USAGE` / PLANNED
-- **文件 / symbol / 可见性**：`usage.py` / `page`、`reset_usage` / private
-- **原成员 ID 或私有来源**：`F-MGMT-USAGE-QUERY/RESET`、`R-MET-02/03`
-- **完整签名与 caller**：`page(principal, cursor, limit, admin, since, until, model, request_id) -> dict`；`reset_usage(model, deployment_id) -> dict`；caller=M001
-- **输入**
+- **Interface/Member ID、用途、提供责任与唯一来源**
+
+  - **Interface/Member ID、状态**：`FUNC-MGMT-USAGE` / PLANNED
+  - **文件 / symbol / 可见性**：`usage.py` / `page`、`reset_usage` / private
+  - **原成员 ID 或私有来源**：`F-MGMT-USAGE-QUERY/RESET`、`R-MET-02/03`
+  - **完整签名与 caller**：`page(principal, cursor, limit, admin, since, until, model, request_id) -> dict`；`reset_usage(model, deployment_id) -> dict`；caller=M001
+
+- **输入与前提**
+
   - **输入参数 / 数据结构 authority**：分页/范围参数
   - **输入约束 / 校验顺序 / 失败映射**：`[from,to)`；cursor 冻结；失败 → `E-MGMT-USAGE`
-- **成功输出**
+
+- **成功输出与保证**
+
   - **成功输出 / 数据结构 / 后置条件**：`{data,next_cursor,has_more,snapshot_id,snapshot_at}` / `{deleted}`
-- **错误与异常**
+
+- **错误与合法下一步**
+
   - **错误输出 / 触发条件 / 优先级**：E-MGMT-USAGE（ERR-STORE · usage_store_unavailable）：503 `usage_store_unavailable`
   - **E-MGMT-USAGE（公共 ERR-STORE · usage_store_unavailable）**
     - **底层异常 / 失败事实**：Store 读失败
@@ -314,16 +585,20 @@ reset_usage(model, deployment_id) -> dict
     - **日志级别 / 脱敏 / 关联字段**：warning
     - **是否可重试及前提**：稍后重试
     - **状态与副作用影响 / 验证项**：`VRC-MGMT-004`
+
 - **交互与生命周期**
+
   - **副作用 / 执行上下文 / 幂等性**：分页写 snapshot；清空删除
   - **输入输出 ownership 与寿命**：账本持久
   - **Thread-safe / reentrant**：经事务/快照
   - **Nested-call policy**：allowed
   - **Transaction participation**：creates new（首屏/清空）
   - **Blocking / timeout / cancellation**：`timeout=10`
-- **不可改变的规则 / Constraint ID**：同 request 只取最高版本；不累计；503 不空页
-- **实现自由度**：分页实现
-- **实例与验证**
+
+- **实现与验证**
+
+  - **不可改变的规则 / Constraint ID**：同 request 只取最高版本；不累计；503 不空页
+  - **实现自由度**：分页实现
   - **实现状态 / 验证项**：PLANNED；`VRC-MGMT-004`
 
 #### 5.1.4 `latest(provider_id) -> dict`
@@ -333,16 +608,24 @@ latest(provider_id) -> dict
 refresh(provider_id, confirm_external_call) -> dict
 ```
 
-- **Interface/Member ID、状态**：`FUNC-MGMT-ACCOUNT` / PLANNED
-- **文件 / symbol / 可见性**：`account_usage.py` / `latest/refresh` / private
-- **原成员 ID 或私有来源**：`F-MGMT-ACCOUNT-USAGE`
-- **完整签名与 caller**：`latest(provider_id) -> dict`；`refresh(provider_id, confirm_external_call) -> dict`；caller=M001
-- **输入**
+- **Interface/Member ID、用途、提供责任与唯一来源**
+
+  - **Interface/Member ID、状态**：`FUNC-MGMT-ACCOUNT` / PLANNED
+  - **文件 / symbol / 可见性**：`account_usage.py` / `latest/refresh` / private
+  - **原成员 ID 或私有来源**：`F-MGMT-ACCOUNT-USAGE`
+  - **完整签名与 caller**：`latest(provider_id) -> dict`；`refresh(provider_id, confirm_external_call) -> dict`；caller=M001
+
+- **输入与前提**
+
   - **输入参数 / 数据结构 authority**：provider_id；确认标志
   - **输入约束 / 校验顺序 / 失败映射**：GET 只读快照；POST 需确认；缺凭据 → `unavailable`
-- **成功输出**
+
+- **成功输出与保证**
+
   - **成功输出 / 数据结构 / 后置条件**：账号用量快照
-- **错误与异常**
+
+- **错误与合法下一步**
+
   - **错误输出 / 触发条件 / 优先级**：E-MGMT-INVALID（ERR-REQ-VALIDATION / ERR-CONFLICT）：400/409
   - **E-MGMT-INVALID（公共 ERR-REQ-VALIDATION / ERR-CONFLICT）**
     - **底层异常 / 失败事实**：字段/引用/能力非法
@@ -352,18 +635,21 @@ refresh(provider_id, confirm_external_call) -> dict
     - **日志级别 / 脱敏 / 关联字段**：无
     - **是否可重试及前提**：修正后重试
     - **状态与副作用影响 / 验证项**：`VRC-MGMT-002`
+
 - **交互与生命周期**
+
   - **副作用 / 执行上下文 / 幂等性**：POST 调外部 + 持久快照
   - **输入输出 ownership 与寿命**：快照持久
   - **Thread-safe / reentrant**：请求级
   - **Nested-call policy**：allowed
   - **Transaction participation**：creates new（写快照）
   - **Blocking / timeout / cancellation**：15 s
-- **不可改变的规则 / Constraint ID**：GET 不触网；缺字段 Unknown
-- **实现自由度**：签名实现
-- **实例与验证**
-  - **实现状态 / 验证项**：PLANNED；`VRC-MGMT-006`
 
+- **实现与验证**
+
+  - **不可改变的规则 / Constraint ID**：GET 不触网；缺字段 Unknown
+  - **实现自由度**：签名实现
+  - **实现状态 / 验证项**：PLANNED；`VRC-MGMT-006`
 ### 5.2 消息与数据流接口（适用时）
 
 不适用（无本模块拥有的消息/队列/流；管理动作与用量查询均为同步函数调用）。

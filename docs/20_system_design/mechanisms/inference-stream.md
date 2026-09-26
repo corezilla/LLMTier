@@ -15,7 +15,7 @@
 | Created Date | `2026-09-22` |
 | Last Modified Date | `2026-09-25` |
 | Template ID | `design.system-mechanism` |
-| Template Version | `3.0.0` |
+| Template Version | `3.2.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |
@@ -57,7 +57,7 @@ Consumer（Piko）提交一次模型推理请求后，需要拿到**标准 Respo
 
 | Constraint ID | 约束 | 参与方保证 | 自由度 | 本文落实位置 |
 |---|---|---|---|---|
-| C-INFER-1 | 只提供标准 Responses SSE，不增 JSON 并行模式 | 入口只发标准事件 | 内部编排方式 | §5.1、§6 |
+| C-INFER-1 | 只提供标准 Responses SSE，不增 JSON 并行模式 | 入口只发标准事件 | 内部编排方式 | §5.1/§5.2、§6 |
 | C-INFER-2 | 每请求恰好一个 terminal 事件 | 出口保证 | 事件名由 status 决定 | §6、§8 |
 | C-INFER-3 | 结果未知不补零；账本只追加 | Inference 写 unknown 义务 | 归一实现 | §9、M-METER |
 | C-INFER-4 | 不做跨等级/跨空间 fallback | Router 只在同等级选 | 选择排序 | §10 |
@@ -79,82 +79,398 @@ Consumer（Piko）提交一次模型推理请求后，需要拿到**标准 Respo
 
 ### 4.1 公共基础类型与枚举
 
-#### `D-INF-RESPONSE-STATUS` · ResponseStatus（`providers/base.py`）
-- **定义、Data/Type ID 与唯一来源**：一次归一响应的终态枚举；`D-INF-RESPONSE-STATUS`；唯一来源 `ProviderResult.status` 与 `openapi`（`ResponsesResponse.status`）。
-- **字段 / 取值**：`status: str` ∈ {`completed`, `incomplete`, `failed`}；另有流期状态 `in_progress`（非终态）。
-- **约束 / 不变量**：每请求恰好一个 terminal；`in_progress` ≠ 成功（INV-3）。
-- **状态 · 所有权 · 寿命**：请求级；M003 归一产生、M001 序列化。
-- **合法与拒绝实例**：合法 `completed`；边界：`failed` + `error` 不为空。
-- **验证**：`T-STREAM`（INV-2/3）。
+**4.1.1 `D-INF-RESPONSE-STATUS` · ResponseStatus（公共基础类型与枚举）**
 
-#### `D-INF-EVENT-NAME` · SSE 事件名子集（继承 `openapi`）
-- **定义、Data/Type ID 与唯一来源**：`D-MSG-SSE` 的事件名子集；`D-INF-EVENT-NAME`；机器源 `openapi`（`ResponseStreamEvent`），本机制 §5.2 给出固定子集。
-- **字段 / 取值**：`response.created`、`response.output_item.added`、`response.output_text.delta`、`response.refusal.delta`、reasoning summary/text、`response.function_call_arguments.delta|done`、`response.output_item.done`、`response.completed|incomplete|failed`、`error`。
-- **约束 / 不变量**：每 output item 稳定 `id`；`sequence_number` 单调；`[DONE]` 收尾。
-- **状态 · 所有权 · 寿命**：请求级流；M003 产出、M001 传输。
-- **合法与拒绝实例**：合法完整流以 terminal 结束；边界：上游失败 → `error` 事件，不伪造完成。
-- **验证**：`T-STREAM`。
+```text
+enum ResponseStatus { in_progress, completed, incomplete, failed }
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-INF-RESPONSE-STATUS`；一次归一响应的状态枚举；唯一来源 `ProviderResult.status` 与 `openapi`（`ResponsesResponse.status`）。
+
+- **`in_progress`**：
+
+  必填枚举值；流期状态、非终态；≠ 成功（INV-3）。
+
+- **`completed`**：
+
+  必填枚举值；终态、成功完成。
+
+- **`incomplete`**：
+
+  必填枚举值；终态、未完整完成。
+
+- **`failed`**：
+
+  必填枚举值；终态、失败；`error` 不为空。
+
+- **跨字段与寿命**：
+
+  每请求恰好一个 terminal；`in_progress` ≠ 成功；请求级；M003 归一产生、M001 序列化。
+
+- **合法/拒绝实例**：
+
+  合法 `completed`；边界：`failed` + `error` 不为空。
+
+- **验证**：
+
+  `T-STREAM`（INV-2/3）。
+
+**4.1.2 `D-INF-EVENT-NAME` · SSE 事件名子集（公共基础类型与枚举，继承 `openapi`）**
+
+```text
+enum SSEEventName {
+  response.created, response.output_item.added, response.output_text.delta,
+  response.refusal.delta, response.reasoning_summary_text.delta, response.reasoning_text.delta,
+  response.function_call_arguments.delta, response.function_call_arguments.done,
+  response.output_item.done, response.completed, response.incomplete, response.failed, error
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-INF-EVENT-NAME`；`D-MSG-SSE` 的事件名子集；机器源 `openapi`（`ResponseStreamEvent`），本机制 §5.2 给出固定子集。
+
+- **`response.*` / `error`**：
+
+  必填枚举值；上列固定子集；每 output item 稳定 `id`；`sequence_number` 单调；`[DONE]` 收尾。
+
+- **跨字段与寿命**：
+
+  请求级流；M003 产出、M001 传输。
+
+- **合法/拒绝实例**：
+
+  合法完整流以 terminal 结束；边界：上游失败 → `error` 事件，不伪造完成。
+
+- **验证**：
+
+  `T-STREAM`。
 
 ### 4.2 业务与操作数据结构
 
-#### `D-MSG-RESPONSE` · Responses 请求/响应（继承系统 §8.4，机器源）
-- **定义、Data/Type ID 与唯一来源**：OpenAI-compatible Responses 请求/响应；`D-MSG-RESPONSE`；系统设计 §8.4 唯一来源，机器源 `openapi`（`ResponsesRequest`/`ResponsesResponse`），本节只给阅读视图。
-- **字段（阅读视图）**：`ResponsesRequest{model, input, stream(恒 true), store(恒 false), tools, tool_choice, temperature, max_output_tokens, reasoning, include, service_tier, metadata}`；`ResponsesResponse{id, object, created_at, status, model, output, usage, error}`。
-- **约束 / 不变量**：`stream:true`、`store:false` 为受理前提；禁字段 `prompt_cache_key`/`prompt_cache_retention`/`previous_response_id`；每请求恰好一个 terminal。
-- **状态 · 所有权 · 寿命**：wire 载荷请求级；M001 解析、M003 归一。
-- **合法与拒绝实例**：合法标准请求 → SSE + terminal Usage；拒绝 `stream=false` → `ERR-REQ-UNSUPPORTED`。
-- **验证**：`T-STREAM`、系统 `VRC-INF-001`。
+**4.2.1 `D-MSG-RESPONSE` · Responses 请求/响应（业务与操作数据结构，继承系统 §8.4，机器源）**
 
-#### `D-INF-PROVIDER-RESULT` · ProviderResult（`providers/base.py`）
-- **定义、Data/Type ID 与唯一来源**：适配器调用后归一前的后端结果；`D-INF-PROVIDER-RESULT`；唯一来源 `src/inference/providers/base.py` `ProviderResult`。
-- **字段 / 取值**：`output: list[OutputItem]`；`usage: {input_tokens, output_tokens, total_tokens, *_details} | null`；`status: D-INF-RESPONSE-STATUS`；`error: object?`；`incomplete_details: object?`。
-- **约束 / 不变量**：`usage` 三 token 皆 int 才可判 measured，否则整条 unknown（不补零，M-METER INV-5）。
-- **状态 · 所有权 · 寿命**：请求级内存对象；Provider Adapter 写、Inference 编排读；不持久。
-- **合法与拒绝实例**：合法 `status=completed` + usage；边界：`status=failed` + 无有效 usage。
-- **验证**：契约用例；系统 `VRC-INF-003`。
+```text
+ResponsesRequest {
+  model: string, input: any, stream: true, store: false,
+  tools: any?, tool_choice: any?, temperature: number?, max_output_tokens: int?,
+  reasoning: any?, include: any?, service_tier: string?, metadata: object?
+}
+ResponsesResponse {
+  id: string, object: string, created_at: int, status: ResponseStatus,
+  model: string, output: any[], usage: object?, error: object?
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-MSG-RESPONSE`；OpenAI-compatible Responses 请求/响应；系统设计 §8.4 唯一来源，机器源 `openapi`（`ResponsesRequest`/`ResponsesResponse`），本节只给阅读视图。
+
+- **`model`**：
+
+  必填字符串；exact 逻辑等级名。
+
+- **`input`**：
+
+  必填；完整输入。
+
+- **`stream`**：
+
+  必填且恒为 true；受理前提。
+
+- **`store`**：
+
+  必填且恒为 false；受理前提。
+
+- **`tools`/`tool_choice`/`temperature`/`max_output_tokens`/`reasoning`/`include`/`service_tier`/`metadata`**：
+
+  可选；透传/约束见 `openapi`。
+
+- **`ResponsesResponse.usage`**：
+
+  可空；仅 terminal 给出 token Usage。
+
+- **跨字段与寿命**：
+
+  `stream:true`、`store:false` 为受理前提；禁字段 `prompt_cache_key`/`prompt_cache_retention`/`previous_response_id`；每请求恰好一个 terminal；wire 载荷请求级；M001 解析、M003 归一。
+
+- **合法/拒绝实例**：
+
+  合法标准请求 → SSE + terminal Usage；拒绝 `stream=false` → `ERR-REQ-UNSUPPORTED`。
+
+- **验证**：
+
+  `T-STREAM`、系统 `VRC-INF-001`。
+
+**4.2.2 `D-INF-PROVIDER-RESULT` · ProviderResult（业务与操作数据结构）**
+
+```text
+ProviderResult {
+  output: OutputItem[],
+  usage: { input_tokens: int, output_tokens: int, total_tokens: int, *_details: any }?,
+  status: ResponseStatus,
+  error: object?,
+  incomplete_details: object?
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-INF-PROVIDER-RESULT`；适配器调用后归一前的后端结果；唯一来源 `src/inference/providers/base.py` `ProviderResult`。
+
+- **`output`**：
+
+  必填 `OutputItem[]`；后端输出项。
+
+- **`usage`**：
+
+  可空对象；`input_tokens`/`output_tokens`/`total_tokens` 及 `*_details`；三 token 皆 int 才可判 measured。
+
+- **`status`**：
+
+  必填 `D-INF-RESPONSE-STATUS`（§4.1.1）。
+
+- **`error`/`incomplete_details`**：
+
+  可空对象；失败/未完整详情。
+
+- **跨字段与寿命**：
+
+  `usage` 三 token 皆 int 才可判 measured，否则整条 unknown（不补零，M-METER INV-5）；请求级内存对象；Provider Adapter 写、Inference 编排读；不持久。
+
+- **合法/拒绝实例**：
+
+  合法 `status=completed` + usage；边界：`status=failed` + 无有效 usage。
+
+- **验证**：
+
+  契约用例；系统 `VRC-INF-003`。
 
 ### 4.3 配置与规则数据结构
 
-#### `D-INF-RUNTIME-PROFILE` · DeploymentRuntimeProfile（`deployment_runtime_profiles`）
-- **定义、Data/Type ID 与唯一来源**：每 deployment 的运行限制；`D-INF-RUNTIME-PROFILE`；authority `util/migrations/*.sql`，由 M004 维护。
-- **字段 / 取值**：`deployment_id` PK；`max_in_flight: int`（默认 1）；`connect_timeout_ms`；`stream_idle_timeout_ms`。
-- **约束 / 不变量**：`max_in_flight ≥ 1`；Router 据此计算许可。
-- **状态 · 所有权 · 寿命**：持久；operator 经 M004 写、Router 读；随配置版本。
-- **合法与拒绝实例**：合法 `max_in_flight=1`（首版）；边界：缺失 → Router 取默认 1。
-- **验证**：`T-QUEUE`。
+**4.3.1 `D-INF-RUNTIME-PROFILE` · DeploymentRuntimeProfile（配置与规则数据结构）**
 
-#### `D-INF-PROVIDER-PROFILE` · ProviderUsageProfile（`provider_usage_profiles`）
-- **定义、Data/Type ID 与唯一来源**：provider 级并发/速率限制；`D-INF-PROVIDER-PROFILE`；authority `util/migrations/*.sql`。
-- **字段 / 取值**：`provider_id` PK；`max_concurrent_requests: int`；`min_request_interval_ms: int`；`requests_per_minute: int`。
-- **约束 / 不变量**：三限制共同决定 provider 就绪等待；Router 只选就绪且未超的候选。
-- **状态 · 所有权 · 寿命**：持久；M004 写、Router 读。
-- **合法与拒绝实例**：合法 RPM>0；边界：RPM=0 表示不限 RPM。
-- **验证**：`T-QUEUE`。
+```text
+DeploymentRuntimeProfile {
+  deployment_id: string,
+  max_in_flight: int,
+  connect_timeout_ms: int,
+  stream_idle_timeout_ms: int
+}
+```
 
-#### `D-INF-ADMISSION-POLICY` · 准入规则
-- **定义、Data/Type ID 与唯一来源**：队列/等待上限；`D-INF-ADMISSION-POLICY`；唯一来源 `src/inference/routing.py`（队列 32、等待 30s、许可释放于 `finally`）。
-- **字段 / 取值**：`queue_capacity: int = 32`；`wait_deadline_s: float = 30`；`retry_after_full: "30"`、`retry_after_timeout: "1"`。
-- **约束 / 不变量**：同等级 FIFO；满即拒绝，不无限缓冲；只选同等级候选，无跨等级 fallback（C-INFER-4）。
-- **状态 · 所有权 · 寿命**：Specified 保护值；随部署/内部配置；变更需审计复测（§13）。
-- **合法与拒绝实例**：合法第 32 位入队；拒绝第 33 位 → 429。
-- **验证**：`T-QUEUE`（Specified，尚未实测）。
+- **Data/Type ID、用途与来源**：
+
+  `D-INF-RUNTIME-PROFILE`；每 deployment 的运行限制；authority `util/migrations/*.sql`，由 M004 维护。
+
+- **`deployment_id`**：
+
+  必填主键；deployment 标识。
+
+- **`max_in_flight`**：
+
+  必填整数，默认 1，≥1；单 deployment 并发许可上限；Router 据此计算许可。
+
+- **`connect_timeout_ms`**：
+
+  必填整数；建连超时。
+
+- **`stream_idle_timeout_ms`**：
+
+  必填整数；流空闲超时。
+
+- **跨字段与寿命**：
+
+  `max_in_flight ≥ 1`；持久；operator 经 M004 写、Router 读；随配置版本。
+
+- **合法/拒绝实例**：
+
+  合法 `max_in_flight=1`（首版）；边界：缺失 → Router 取默认 1。
+
+- **验证**：
+
+  `T-QUEUE`。
+
+**4.3.2 `D-INF-PROVIDER-PROFILE` · ProviderUsageProfile（配置与规则数据结构）**
+
+```text
+ProviderUsageProfile {
+  provider_id: string,
+  max_concurrent_requests: int,
+  min_request_interval_ms: int,
+  requests_per_minute: int
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-INF-PROVIDER-PROFILE`；provider 级并发/速率限制；authority `util/migrations/*.sql`。
+
+- **`provider_id`**：
+
+  必填主键；provider 标识。
+
+- **`max_concurrent_requests`**：
+
+  必填整数；并发上限。
+
+- **`min_request_interval_ms`**：
+
+  必填整数；最小请求间隔（ms）。
+
+- **`requests_per_minute`**：
+
+  必填整数；每分钟请求上限；0 表示不限 RPM。
+
+- **跨字段与寿命**：
+
+  三限制共同决定 provider 就绪等待；Router 只选就绪且未超的候选；持久；M004 写、Router 读。
+
+- **合法/拒绝实例**：
+
+  合法 RPM>0；边界：RPM=0 表示不限 RPM。
+
+- **验证**：
+
+  `T-QUEUE`。
+
+**4.3.3 `D-INF-ADMISSION-POLICY` · 准入规则（配置与规则数据结构）**
+
+```text
+AdmissionPolicy {
+  queue_capacity: int,
+  wait_deadline_s: float,
+  retry_after_full: string,
+  retry_after_timeout: string
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-INF-ADMISSION-POLICY`；队列/等待上限；唯一来源 `src/inference/routing.py`（队列 32、等待 30s、许可释放于 `finally`）。
+
+- **`queue_capacity`**：
+
+  必填整数，默认 32；同等级 FIFO 队列上限。
+
+- **`wait_deadline_s`**：
+
+  必填浮点，默认 30；准入等待上限（秒）。
+
+- **`retry_after_full`**：
+
+  必填字符串，默认 `"30"`；队列满时 `Retry-After`。
+
+- **`retry_after_timeout`**：
+
+  必填字符串，默认 `"1"`；等待超时时 `Retry-After`。
+
+- **跨字段与寿命**：
+
+  同等级 FIFO；满即拒绝，不无限缓冲；只选同等级候选，无跨等级 fallback（C-INFER-4）；Specified 保护值；随部署/内部配置；变更需审计复测（§13）。
+
+- **合法/拒绝实例**：
+
+  合法第 32 位入队；拒绝第 33 位 → 429。
+
+- **验证**：
+
+  `T-QUEUE`（Specified，尚未实测）。
 
 ### 4.4 通信报文结构
 
-#### `D-MSG-SSE` · Responses SSE（继承系统 §8.4，机器源）
-- **定义、Data/Type ID 与唯一来源**：Data Plane 流式协议事件；`D-MSG-SSE`；系统设计 §8.4 唯一来源，机器源 `openapi`（`ResponseStreamEvent`），接口见 §5.2。
-- **字段 / 取值**：事件名见 `D-INF-EVENT-NAME`；SSE 帧格式 `event: <name>\ndata: <json>\n\n` 空行分隔。
-- **约束 / 不变量**：每请求恰好一个 terminal；`sequence_number` 自 0 严格递增；`X-Request-ID` 为 task 头。
-- **状态 · 所有权 · 寿命**：请求级流；M003 产出、M001 传输。
-- **合法与拒绝实例**：合法以 terminal + `[DONE]` 结束；边界：上游失败 → `error` 事件。
-- **验证**：`T-STREAM`。
+**4.4.1 `D-MSG-SSE` · Responses SSE（通信报文结构，继承系统 §8.4，机器源）**
 
-#### `D-ERROR-ENVELOPE` · 错误信封（继承系统 §8.4）
-- **定义、Data/Type ID 与唯一来源**：`{error:{message,type,code,param,retryable}}`；`D-ERROR-ENVELOPE`；机器源 `openapi`，含义见系统 §8.8；本机制以 `ApiError` 产生。
-- **约束 / 不变量**：不含 Secret/栈；429 可带 `Retry-After`。
-- **状态 · 所有权 · 寿命**：请求级返回；M001 序列化。
-- **合法与拒绝实例**：合法 `{error:{type:"server_error",code:"provider_unavailable"}}`。
-- **验证**：系统 `VRC-API-*`。
+```text
+ResponseStreamEvent {
+  type: SSEEventName,
+  sequence_number: int,
+  item_id: string?,
+  data: object
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-MSG-SSE`；Data Plane 流式协议事件；系统设计 §8.4 唯一来源，机器源 `openapi`（`ResponseStreamEvent`），接口见 §5.2。
+
+- **`type`**：
+
+  必填，取 `D-INF-EVENT-NAME`（§4.1.2）。
+
+- **`sequence_number`**：
+
+  必填整数；自 0 严格递增。
+
+- **`item_id`**：
+
+  可空字符串；每 output item 稳定 `id`。
+
+- **`data`**：
+
+  必填对象；事件载荷。
+
+- **跨字段与寿命**：
+
+  每请求恰好一个 terminal；`sequence_number` 自 0 严格递增；`X-Request-ID` 为 task 头；SSE 帧格式 `event: <name>\ndata: <json>\n\n` 空行分隔；请求级流；M003 产出、M001 传输。
+
+- **合法/拒绝实例**：
+
+  合法以 terminal + `[DONE]` 结束；边界：上游失败 → `error` 事件。
+
+- **验证**：
+
+  `T-STREAM`。
+
+**4.4.2 `D-ERROR-ENVELOPE` · 错误信封（通信报文结构，继承系统 §8.4）**
+
+```text
+ErrorEnvelope {
+  error: { message: string, type: string, code: string, param: string?, retryable: bool }
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-ERROR-ENVELOPE`；对外错误响应载荷；机器源 `openapi`，含义见系统 §8.8；本机制以 `ApiError` 产生。
+
+- **`error`**：
+
+  必填对象；含 `message`/`type`/`code`/`param`/`retryable`。
+
+- **`error.message`**：
+
+  必填字符串；不含 Secret/栈。
+
+- **`error.type`**：
+
+  必填字符串；错误类型。
+
+- **`error.code`**：
+
+  必填字符串；稳定码值。
+
+- **`error.param`**：
+
+  可空字符串；出错参数名。
+
+- **`error.retryable`**：
+
+  必填布尔；429 可带 `Retry-After`。
+
+- **跨字段与寿命**：
+
+  不含 Secret/栈；429 可带 `Retry-After`；请求级返回；M001 序列化。
+
+- **合法/拒绝实例**：
+
+  合法 `{error:{type:"server_error",code:"provider_unavailable"}}`。
+
+- **验证**：
+
+  系统 `VRC-API-*`。
 
 ### 4.5 设备与 FPGA 表项结构
 
@@ -162,13 +478,49 @@ Consumer（Piko）提交一次模型推理请求后，需要拿到**标准 Respo
 
 ### 4.6 运行状态数据结构
 
-#### `D-INF-ADMISSION-STATE` · Router 准入状态（`routing.py`）
-- **定义、Data/Type ID 与唯一来源**：路由器的内存并发/队列事实；`D-INF-ADMISSION-STATE`；唯一来源 `src/inference/routing.py` `Router`（`_inflight`/`_provider_inflight`/`_queues`/`_provider_dispatches`）。
-- **字段 / 取值**：`deployment_inflight: dict[str,int]`；`provider_inflight: dict[str,int]`；`queues: dict[str,deque[str]]`（FIFO ticket）；`provider_last_dispatch`/`provider_dispatches`。
-- **约束 / 不变量**：唯一写者=Router 的锁内方法；许可在上下文退出（成功/失败/断开）于 `finally` 释放并 `notify_all`；无租约、无持久预留。
-- **状态 · 所有权 · 寿命**：进程内存，仅当次运行有效；重启即清零；不持久、不跨节点。
-- **合法与拒绝实例**：合法 `admit` 得候选、退出后计数归零；边界：队列满 → 429 且无许可分配。
-- **验证**：`T-QUEUE`、`T-DISCONNECT`。
+**4.6.1 `D-INF-ADMISSION-STATE` · Router 准入状态（运行状态数据结构）**
+
+```text
+AdmissionState {
+  deployment_inflight: map<string,int>,
+  provider_inflight: map<string,int>,
+  queues: map<string, deque<string>>,
+  provider_last_dispatch: map<string, timestamp>,
+  provider_dispatches: map<string, int>
+}
+```
+
+- **Data/Type ID、用途与来源**：
+
+  `D-INF-ADMISSION-STATE`；路由器的内存并发/队列事实；唯一来源 `src/inference/routing.py` `Router`（`_inflight`/`_provider_inflight`/`_queues`/`_provider_dispatches`）。
+
+- **`deployment_inflight`**：
+
+  必填映射；各 deployment 在途计数。
+
+- **`provider_inflight`**：
+
+  必填映射；各 provider 在途计数。
+
+- **`queues`**：
+
+  必填映射；各等级 FIFO ticket 队列。
+
+- **`provider_last_dispatch`/`provider_dispatches`**：
+
+  必填映射；provider 上次派发时间与派发计数。
+
+- **跨字段与寿命**：
+
+  唯一写者=Router 的锁内方法；许可在上下文退出（成功/失败/断开）于 `finally` 释放并 `notify_all`；无租约、无持久预留；进程内存，仅当次运行有效；重启即清零；不持久、不跨节点。
+
+- **合法/拒绝实例**：
+
+  合法 `admit` 得候选、退出后计数归零；边界：队列满 → 429 且无许可分配。
+
+- **验证**：
+
+  `T-QUEUE`、`T-DISCONNECT`。
 
 ### 4.7 数据库表结构
 
@@ -176,23 +528,67 @@ Consumer（Piko）提交一次模型推理请求后，需要拿到**标准 Respo
 
 ### 4.8 错误码与错误结构
 
-本机制不新增公共错误码；对外错误引用系统目录（`llmtier-system-design` §8.8）：
+**4.8.1 `D-INF-ERROR-MAP` · 推理错误映射（错误码与错误结构，引用系统 §8.8）**
 
-| 本层错误 | 条件 | 系统 Error ID | 结果已知性/副作用 | 合法下一步 |
-|---|---|---|---|---|
-| 400 `invalid_request` | 缺必填/字段非法 | `ERR-REQ-VALIDATION` | 已知失败；未受理、无副作用 | 修请求重试 |
-| 400 `unsupported_request` | `stream!=true` 或 `store!=false` | `ERR-REQ-UNSUPPORTED` | 已知失败；无副作用 | 改用流式 |
-| 400 `unsupported_field` | 含禁字段 | `ERR-REQ-FIELD` | 已知失败；无副作用 | 移除字段 |
-| 400 `unsupported_model` | 等级不支持 `responses` | `ERR-REQ-VALIDATION` | 已知失败；无副作用 | 换模型 |
-| 400 `invalid_json` / 413 | body 非法/超 2MB | `ERR-REQ-JSON` / `ERR-REQ-TOO-LARGE` | 已知失败；无副作用 | 修正后重试 |
-| 404 `model_not_found` | 等级不存在 | `ERR-MODEL-NOTFOUND` | 已知失败；无副作用 | 用 `GET /v1/models` exact 名 |
-| 429 `rate_limit_exceeded` | 队列满/等待超 30s | `ERR-RATE-LIMIT` | 已知失败；**未调用后端** | 按 `Retry-After` 退避 |
-| 503 `model_unavailable` | 全部候选不健康 | `ERR-MODEL-UNAVAIL` | 已知失败；无上游调用 | 稍后/换等级 |
-| 502/503 `provider_*` | 后端失败/超时/契约不符 | `ERR-PROVIDER-UNAVAIL` / `ERR-PROVIDER-FAIL` / `ERR-PROVIDER-CONTRACT` | **可能未知**；可能已调用后端 | 见 §9 |
-| 500 `internal_error` | 未捕获异常 | `ERR-INTERNAL` | 可能未知 | 上报/查询权威状态 |
+```text
+enum InferenceErrorRef {
+  ERR-REQ-VALIDATION, ERR-REQ-UNSUPPORTED, ERR-REQ-FIELD, ERR-REQ-JSON, ERR-REQ-TOO-LARGE,
+  ERR-MODEL-NOTFOUND, ERR-RATE-LIMIT, ERR-MODEL-UNAVAIL,
+  ERR-PROVIDER-UNAVAIL, ERR-PROVIDER-FAIL, ERR-PROVIDER-CONTRACT, ERR-INTERNAL
+}
+```
 
-- **约束 / 不变量**：错误载荷统一 `D-ERROR-ENVELOPE`；校验失败/429 零副作用（INV-5）。
-- **验证**：`T-STREAM`、`T-QUEUE`、`T-TIMEOUT`。
+- **Data/Type ID、用途与来源**：
+
+  `D-INF-ERROR-MAP`；本机制对外错误的系统码引用，不新增公共错误码；唯一来源系统设计 §8.8（公共含义）与 `openapi`（产生）；载荷统一 `D-ERROR-ENVELOPE`（§4.4.2）。
+
+- **`ERR-REQ-VALIDATION`（400 `invalid_request` / `unsupported_model`）**：
+
+  缺必填/字段非法/等级不支持 `responses`；已知失败、未受理、无副作用；修请求重试。
+
+- **`ERR-REQ-UNSUPPORTED`（400 `unsupported_request`）**：
+
+  `stream!=true` 或 `store!=false`；已知失败、无副作用；改用流式。
+
+- **`ERR-REQ-FIELD`（400 `unsupported_field`）**：
+
+  含禁字段；已知失败、无副作用；移除字段。
+
+- **`ERR-REQ-JSON` / `ERR-REQ-TOO-LARGE`（400 `invalid_json` / 413）**：
+
+  body 非法/超 2MB；已知失败、无副作用；修正后重试。
+
+- **`ERR-MODEL-NOTFOUND`（404 `model_not_found`）**：
+
+  等级不存在；已知失败、无副作用；用 `GET /v1/models` exact 名。
+
+- **`ERR-RATE-LIMIT`（429 `rate_limit_exceeded`）**：
+
+  队列满/等待超 30s；已知失败、**未调用后端**；按 `Retry-After` 退避。
+
+- **`ERR-MODEL-UNAVAIL`（503 `model_unavailable`）**：
+
+  全部候选不健康；已知失败、无上游调用；稍后/换等级。
+
+- **`ERR-PROVIDER-UNAVAIL`/`ERR-PROVIDER-FAIL`/`ERR-PROVIDER-CONTRACT`（502/503 `provider_*`）**：
+
+  后端失败/超时/契约不符；**可能未知**；可能已调用后端；见 §9。
+
+- **`ERR-INTERNAL`（500 `internal_error`）**：
+
+  未捕获异常；可能未知；上报/查询权威状态。
+
+- **跨字段与寿命**：
+
+  载荷统一 `D-ERROR-ENVELOPE`；校验失败/429 零副作用（INV-5）；请求级返回，不持久。
+
+- **合法/拒绝实例**：
+
+  拒绝：`stream=false` → `ERR-REQ-UNSUPPORTED`。
+
+- **验证**：
+
+  `T-STREAM`、`T-QUEUE`、`T-TIMEOUT`。
 
 ### 4.9 编码、布局与共享类型映射
 
@@ -211,11 +607,12 @@ Consumer（Piko）提交一次模型推理请求后，需要拿到**标准 Respo
 
 ## 5. 接口设计
 
-> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口形态**分类逐接口完整记录；标题为真实调用形式，标题下先给完整接口声明，再就地说明输入/输出，最后按 §3.1 六项。数据结构引用 §4；错误引用系统 §8.8；用量钩子接口归 M-METER（引用 `IF-MET-*`），本节不重定义。
+> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口用途**分类逐接口完整记录；标题为真实调用形式，标题下先给完整接口声明，再就地说明输入/输出，最后按六项写完。数据结构引用 §4；错误引用系统 §8.8；用量钩子接口归 M-METER（引用 `IF-MET-*`），本节不重定义。分类：API = 向 Consumer/Operator 提供可调用能力（本机制为 HTTP 端点）；消息与数据流 = 责任单元之间为协作而交换的命令/状态/流（含进程内函数）。
 
-### 5.1 软件接口（适用时）
+### 5.1 API（适用时）
 
 #### `POST /v1/responses`
+
 ```text
 POST /v1/responses
   Content-Type: application/json
@@ -224,69 +621,80 @@ POST /v1/responses
   -> 200 text/event-stream: ResponseStreamEvent (SSE 子集, §5.2)
   -> 4xx/5xx: ErrorEnvelope
 ```
-- **Interface/Member ID、状态、文件·symbol**：`IF-INF-RESPONSES`；规格已定、Implemented；唯一契约=`openapi`；`src/http_api/app.py` `_dispatch` → `src/inference/responses.py` `ResponsesService.create`。
-- **输入**：`D-MSG-RESPONSE`（§4.2）——`model`（必填 exact 逻辑等级）、`input`（必填）、`stream`（必须 true）、`store`（必须 false）、`tools`/`max_output_tokens` 等；授权=`data` 角色或受信免登录（`IF-TRUST-*`）；校验顺序=鉴权 → JSON/schema → 形态（stream/store）→ 禁字段 → 模型存在 → 能力 `responses=true` → 准入。
-- **成功输出**：`D-MSG-SSE` 流（§4.4/§5.2）——`response.created … response.completed|incomplete|failed`，每请求恰好一个 terminal，`usage` 仅 terminal 给出；受理=HTTP 建连，完成=terminal 事件；副作用=登记 unknown 用量义务→落账本（`IF-MET-AUTHORIZE`/`IF-MET-BIND`/`IF-MET-FINISH`）；观测 fail-open。
-- **错误与异常**：逐条件见 §4.8；典型：`ERR-REQ-VALIDATION`/`ERR-REQ-FIELD`/`ERR-REQ-JSON`（400，未受理）；`ERR-REQ-UNSUPPORTED`（400，`stream=false`）；`ERR-REQ-TOO-LARGE`（413）；`ERR-AUTH-*`（401/403/503）；`ERR-MODEL-NOTFOUND`（404）；`ERR-RATE-LIMIT`（429 + `Retry-After`）；`ERR-MODEL-UNAVAIL`/`ERR-PROVIDER-*`（503/502，可能已调用后端=结果可能未知）；载荷统一 `D-ERROR-ENVELOPE`。
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-INF-RESPONSES`；标准模型调用（Consumer 单轮推理，固定 `stream:true`/`store:false`，返回标准 SSE）；M001 HTTP API 终止 HTTP/SSE、M003 Inference 编排；交接边界=HTTP/SSE 入站→推理服务内部调用；状态=规格已定、Implemented；唯一契约=`openapi`；`src/http_api/app.py` `_dispatch` → `src/inference/responses.py` `ResponsesService.create`。
+- **输入与前提**：`D-MSG-RESPONSE`（§4.2.1）——`model`（必填 exact 逻辑等级）、`input`（必填）、`stream`（必须 true）、`store`（必须 false）、`tools`/`max_output_tokens` 等；授权=`data` 角色或受信免登录（`IF-TRUST-*`）；校验顺序=鉴权 → JSON/schema → 形态（stream/store）→ 禁字段 → 模型存在 → 能力 `responses=true` → 准入。
+- **成功输出与保证**：`D-MSG-SSE` 流（§4.4.1/§5.2）——`response.created … response.completed|incomplete|failed`，每请求恰好一个 terminal，`usage` 仅 terminal 给出；受理=HTTP 建连，完成=terminal 事件；副作用=登记 unknown 用量义务→落账本（`IF-MET-AUTHORIZE`/`IF-MET-BIND`/`IF-MET-FINISH`）；观测 fail-open。
+- **错误与合法下一步**：逐条件见 §4.8；典型：`ERR-REQ-VALIDATION`/`ERR-REQ-FIELD`/`ERR-REQ-JSON`（400，未受理）；`ERR-REQ-UNSUPPORTED`（400，`stream=false`）；`ERR-REQ-TOO-LARGE`（413）；`ERR-AUTH-*`（401/403/503）；`ERR-MODEL-NOTFOUND`（404）；`ERR-RATE-LIMIT`（429 + `Retry-After`）；`ERR-MODEL-UNAVAIL`/`ERR-PROVIDER-*`（503/502，可能已调用后端=结果可能未知）；载荷统一 `D-ERROR-ENVELOPE`。
 - **交互与生命周期**：同步建连后流式；单请求独立模型调用，无会话；客户端断开结束本次调用并释放许可；**非幂等**（同 input 重发=两次独立调用，无幂等键）；期限=准入等待 ≤30s、建连/首字节 30s、SSE 空闲 60s；不承诺跨系统 exactly-once。
-- **实例与验证**：正常 `{"model":"Worker","input":[{"role":"user","content":"hi"}],"stream":true,"store":false,"max_output_tokens":20}` → 200 SSE + terminal Usage；拒绝 `stream=false` → 400。`T-STREAM`、`T-QUEUE`、`T-TIMEOUT`；Run=NOT_RUN。
-
-#### `ResponsesService.create(principal, request_id, body, diagnostics=None, correlation_id=None, out=None) -> ResponsesResponse`
-```text
-ResponsesService.create(principal: str, request_id: str, body: dict, diagnostics=None, correlation_id: str | None = None, out: dict | None = None) -> dict
-```
-- **Interface/Member ID、状态、文件·symbol**：`IF-INF-CREATE`；Implemented；`src/inference/responses.py` `ResponsesService.create`。
-- **输入**：`principal: str`、`request_id: str`、`body: dict`（`ResponsesRequest`）、可选 `diagnostics`/`correlation_id`/`out`；前置=入口已鉴权并构造 `request_id`；授权=已由 `IF-INF-RESPONSES` 完成；校验=内部再次执行形态与模型/能力校验。
-- **成功输出**：归一后的 `ResponsesResponse`（`D-MSG-RESPONSE`）——受理=开始编排，完成=返回值可用于流式；`out` 回填 `deployment_id` 供流包装；副作用=经 `IF-MET-*` 记义务/绑定/终态、经观测写 trace（fail-open）。
-- **错误与异常**：以 `ApiError` 抛出，交由 M001 序列化为 `D-ERROR-ENVELOPE`；逐条件同 §4.8；失败在准入前无副作用，后端调用后可能已产生上游副作用且结果可能未知。
-- **交互与生命周期**：同步（在流开始前完成归一）；请求级；不幂等；异常由调用方 `finally` 语义释放许可（`IF-INF-ADMIT`）。
-- **实例与验证**：正常返回终态响应；拒绝 `stream=false` → `ERR-REQ-UNSUPPORTED`。`T-STREAM`；Run=NOT_RUN。
-
-#### `Router.admit(level_id: str)`
-```text
-Router.admit(level_id: str) -> ContextManager[Candidate]
-```
-- **Interface/Member ID、状态、文件·symbol**：`IF-INF-ADMIT`；Implemented；`src/inference/routing.py` `Router.admit`。
-- **输入**：`level_id: D-CFG-TIER`；前置=已有义务登记；授权=内部；校验=FIFO 入队 → 队列容量 → 候选健康与就绪（deployment/provider 限额、RPM/间隔）→ 选 in-flight 最少且 ordinal 最小者。
-- **成功输出**：上下文产出 `D-CFG-CANDIDATE`（§4.2 config）；生效=许可计数 +1；退出上下文时在 `finally` 释放计数并 `notify_all`；副作用=更新 `D-INF-ADMISSION-STATE`。
-- **错误与异常**：`ERR-RATE-LIMIT`（429 队列满，`Retry-After: 30` / 等待超 30s，`Retry-After: 1`）；`ERR-MODEL-NOTFOUND`（404 无候选）；`ERR-MODEL-UNAVAIL`（503 全不健康）；均在准入前、无后端副作用。
-- **交互与生命周期**：同步阻塞式上下文管理器；超时 30s；许可临时、无租约；退出即释放，释放后无残留。
-- **实例与验证**：正常得候选；边界：占满队列 → 429。`T-QUEUE`；Run=NOT_RUN。
-
-#### `ProviderAdapter.complete(model: str, request: dict) -> ProviderResult`
-```text
-ProviderAdapter.complete(model: str, request: dict) -> ProviderResult
-```
-- **Interface/Member ID、状态、文件·symbol**：`IF-INF-COMPLETE`；Implemented；`src/inference/providers/base.py` `ProviderAdapter.complete`（各 provider 实现）。
-- **输入**：`model: str`（后端模型名）、`request: dict`（归一后的上游请求）；前置=已获许可并绑定后端；授权=Secret 经 `secret_ref` 解析；校验=协议映射。
-- **成功输出**：`D-INF-PROVIDER-RESULT`（§4.2）——受理=调用发出，完成=返回结果；副作用=上游调用已发生（可能计费）；usage 可能缺失（→ M-METER unknown）。
-- **错误与异常**：建连/首字节超时或 5xx → `ERR-PROVIDER-UNAVAIL`；注入/上游故障 → `ERR-PROVIDER-FAIL`；响应无法归一 → `ERR-PROVIDER-CONTRACT`；结果可能未知、可能已调用后端；合法下一步见 §9。
-- **交互与生命周期**：同步；建连/首字节 30s、流空闲 60s；不做跨等级 fallback（C-INFER-4）；不重放（避免重复输出）。
-- **实例与验证**：正常返回 usage；边界：超时 → typed error + 许可释放。`T-TIMEOUT`；Run=NOT_RUN。
-
-#### `Router.snapshot() -> dict`
-```text
-Router.snapshot() -> dict
-```
-- **Interface/Member ID、状态、文件·symbol**：`IF-INF-SNAPSHOT`；Implemented；`src/inference/routing.py` `Router.snapshot`。
-- **输入**：无；授权=operator。
-- **成功输出**：`D-INF-ADMISSION-STATE` 的只读时点视图（deployments/providers/queues）；副作用=无。
-- **错误与异常**：无。
-- **交互与生命周期**：同步只读；点时刻；幂等。
-- **实例与验证**：正常返回并发现状。`T-QUEUE`；Run=NOT_RUN。
+- **实现与验证**：正常 `{"model":"Worker","input":[{"role":"user","content":"hi"}],"stream":true,"store":false,"max_output_tokens":20}` → 200 SSE + terminal Usage；拒绝 `stream=false` → 400。`T-STREAM`、`T-QUEUE`、`T-TIMEOUT`；Run=NOT_RUN。
 
 ### 5.2 消息与数据流接口（适用时）
 
+#### `ResponsesService.create(principal, request_id, body, diagnostics=None, correlation_id=None, out=None) -> ResponsesResponse`
+
+```text
+ResponsesService.create(principal: str, request_id: str, body: dict, diagnostics=None, correlation_id: str | None = None, out: dict | None = None) -> dict
+```
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-INF-CREATE`；在流开始前执行校验、编排、后端调用与归一；Inference 编排提供、HTTP/SSE Adapter 消费；交接边界=入口鉴权后、SSE 包装前；状态=Implemented；`src/inference/responses.py` `ResponsesService.create`。
+- **输入与前提**：`principal: str`、`request_id: str`、`body: dict`（`ResponsesRequest`）、可选 `diagnostics`/`correlation_id`/`out`；前置=入口已鉴权并构造 `request_id`；授权=已由 `IF-INF-RESPONSES` 完成；校验=内部再次执行形态与模型/能力校验。
+- **成功输出与保证**：归一后的 `ResponsesResponse`（`D-MSG-RESPONSE`，§4.2.1）——受理=开始编排，完成=返回值可用于流式；`out` 回填 `deployment_id` 供流包装；副作用=经 `IF-MET-*` 记义务/绑定/终态、经观测写 trace（fail-open）。
+- **错误与合法下一步**：以 `ApiError` 抛出，交由 M001 序列化为 `D-ERROR-ENVELOPE`；逐条件同 §4.8；失败在准入前无副作用，后端调用后可能已产生上游副作用且结果可能未知。
+- **交互与生命周期**：同步（在流开始前完成归一）；请求级；不幂等；异常由调用方 `finally` 语义释放许可（`IF-INF-ADMIT`）。
+- **实现与验证**：正常返回终态响应；拒绝 `stream=false` → `ERR-REQ-UNSUPPORTED`。`T-STREAM`；Run=NOT_RUN。
+
+#### `Router.admit(level_id: str) -> ContextManager[Candidate]`
+
+```text
+Router.admit(level_id: str) -> ContextManager[Candidate]
+```
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-INF-ADMIT`；对同等级请求准入并分配临时许可、选出候选；Internal Admission 提供、Inference 编排消费；交接边界=后端调用前、`finally` 释放后；状态=Implemented；`src/inference/routing.py` `Router.admit`。
+- **输入与前提**：`level_id: D-CFG-TIER`；前置=已有义务登记；授权=内部；校验=FIFO 入队 → 队列容量 → 候选健康与就绪（deployment/provider 限额、RPM/间隔）→ 选 in-flight 最少且 ordinal 最小者。
+- **成功输出与保证**：上下文产出 `D-CFG-CANDIDATE`（§4.2 config）；生效=许可计数 +1；退出上下文时在 `finally` 释放计数并 `notify_all`；副作用=更新 `D-INF-ADMISSION-STATE`（§4.6.1）。
+- **错误与合法下一步**：`ERR-RATE-LIMIT`（429 队列满，`Retry-After: 30` / 等待超 30s，`Retry-After: 1`）；`ERR-MODEL-NOTFOUND`（404 无候选）；`ERR-MODEL-UNAVAIL`（503 全不健康）；均在准入前、无后端副作用。
+- **交互与生命周期**：同步阻塞式上下文管理器；超时 30s；许可临时、无租约；退出即释放，释放后无残留。
+- **实现与验证**：正常得候选；边界：占满队列 → 429。`T-QUEUE`；Run=NOT_RUN。
+
+#### `ProviderAdapter.complete(model: str, request: dict) -> ProviderResult`
+
+```text
+ProviderAdapter.complete(model: str, request: dict) -> ProviderResult
+```
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-INF-COMPLETE`；把归一请求发往外部后端并返回归一前结果；Provider Adapter 提供、Inference 编排消费；交接边界=已获许可并绑定后端后；状态=Implemented；`src/inference/providers/base.py` `ProviderAdapter.complete`（各 provider 实现）。
+- **输入与前提**：`model: str`（后端模型名）、`request: dict`（归一后的上游请求）；前置=已获许可并绑定后端；授权=Secret 经 `secret_ref` 解析；校验=协议映射。
+- **成功输出与保证**：`D-INF-PROVIDER-RESULT`（§4.2.2）——受理=调用发出，完成=返回结果；副作用=上游调用已发生（可能计费）；usage 可能缺失（→ M-METER unknown）。
+- **错误与合法下一步**：建连/首字节超时或 5xx → `ERR-PROVIDER-UNAVAIL`；注入/上游故障 → `ERR-PROVIDER-FAIL`；响应无法归一 → `ERR-PROVIDER-CONTRACT`；结果可能未知、可能已调用后端；合法下一步见 §9。
+- **交互与生命周期**：同步；建连/首字节 30s、流空闲 60s；不做跨等级 fallback（C-INFER-4）；不重放（避免重复输出）。
+- **实现与验证**：正常返回 usage；边界：超时 → typed error + 许可释放。`T-TIMEOUT`；Run=NOT_RUN。
+
+#### `Router.snapshot() -> dict`
+
+```text
+Router.snapshot() -> dict
+```
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-INF-SNAPSHOT`；向管理面提供并发/队列只读时点视图；Internal Admission 提供、`IF-INF-RUNTIME`/operator 消费；交接边界=运行时快照查询；状态=Implemented；`src/inference/routing.py` `Router.snapshot`。
+- **输入与前提**：无；授权=operator。
+- **成功输出与保证**：`D-INF-ADMISSION-STATE`（§4.6.1）的只读时点视图（deployments/providers/queues）；副作用=无。
+- **错误与合法下一步**：无。
+- **交互与生命周期**：同步只读；点时刻；幂等。
+- **实现与验证**：正常返回并发现状。`T-QUEUE`；Run=NOT_RUN。
+
 #### `response_stream(response) -> Iterable[bytes]`
+
 ```text
 response_stream(response: ResponsesResponse) -> Iterable[bytes]   # text/event-stream
 ```
-- **Interface/Member ID、状态、文件·symbol**：`IF-INF-STREAM`；Implemented；唯一契约=`openapi` `ResponseStreamEvent`（`D-MSG-SSE`，§4.4）；`src/http_api/sse.py` `response_stream`。
-- **输入**：终态 `ResponsesResponse`（§4.2）；前置=归一已完成；授权=已由 `IF-INF-RESPONSES` 完成。
-- **成功输出**：SSE 字节流——事件名子集 `D-INF-EVENT-NAME`，帧格式 `event: <name>\ndata: <json>\n\n`；每 output item 稳定 `id`；`sequence_number` 自 0 递增；一个 terminal + `[DONE]`；受理/完成=按事件产出直至 terminal；副作用=输出已出站。
-- **错误与异常**：客户端断开 → `BrokenPipeError`/`ConnectionResetError` → 结束本次调用（`IF-INF-RESPONSES` 记 `aborted`）；流注入可截断/畸形（`IF-OBS-STREAM-WRAP`，`LT-OPEN-05` Planned）；结果已部分送达、可能未知；不重传、不重放。
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-INF-STREAM`；把终态响应序列化为 SSE 字节流（组件间数据流）；HTTP/SSE Adapter 提供、HTTP 客户端经 `IF-INF-RESPONSES` 消费；交接边界=归一完成后、HTTP 出站；状态=Implemented；唯一契约=`openapi` `ResponseStreamEvent`（`D-MSG-SSE`，§4.4.1）；`src/http_api/sse.py` `response_stream`。
+- **输入与前提**：终态 `ResponsesResponse`（§4.2.1）；前置=归一已完成；授权=已由 `IF-INF-RESPONSES` 完成。
+- **成功输出与保证**：SSE 字节流——事件名子集 `D-INF-EVENT-NAME`（§4.1.2），帧格式 `event: <name>\ndata: <json>\n\n`；每 output item 稳定 `id`；`sequence_number` 自 0 递增；一个 terminal + `[DONE]`；受理/完成=按事件产出直至 terminal；副作用=输出已出站。
+- **错误与合法下一步**：客户端断开 → `BrokenPipeError`/`ConnectionResetError` → 结束本次调用（`IF-INF-RESPONSES` 记 `aborted`）；流注入可截断/畸形（`IF-OBS-STREAM-WRAP`，`LT-OPEN-05` Planned）；结果已部分送达、可能未知；不重传、不重放。
 - **交互与生命周期**：顺序=单请求内严格有序；无背压到推理结果；断开即终止；不重放。
-- **实例与验证**：正常完整流以 terminal 结束；边界：命中 `stream_terminate` → 提前结束。`T-STREAM`、`T-DISCONNECT`；Run=NOT_RUN。
+- **实现与验证**：正常完整流以 terminal 结束；边界：命中 `stream_terminate` → 提前结束。`T-STREAM`、`T-DISCONNECT`；Run=NOT_RUN。
 
 ### 5.3 硬件与固件接口（适用时）
 
@@ -298,25 +706,25 @@ response_stream(response: ResponsesResponse) -> Iterable[bytes]   # text/event-s
 ```text
 GET /v1/runtime -> 200 {deployments, providers, queues}
 ```
-- **Interface/Member ID、状态、文件·symbol**：`IF-INF-RUNTIME`；Implemented；`src/http_api/app.py` → `Router.snapshot`。
-- **输入**：无参数；前置=进程存活；执行位置=LLMTier 管理面；授权=operator；校验=无。
-- **成功输出**：`D-INF-ADMISSION-STATE` 只读时点快照；受理/生效=即时；副作用=无。
-- **错误与异常**：`ERR-AUTH-*`（401/403/503）；只读无副作用。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-INF-RUNTIME`；运行时并发/队列只读快照；M003 Internal Admission 提供、M001 暴露、operator 消费；状态=Implemented；`src/http_api/app.py` → `Router.snapshot`。
+- **输入与前提**：无参数；前置=进程存活；执行位置=LLMTier 管理面；授权=operator；校验=无。
+- **成功输出与保证**：`D-INF-ADMISSION-STATE`（§4.6.1）只读时点快照；受理/生效=即时；副作用=无。
+- **错误与合法下一步**：`ERR-AUTH-*`（401/403/503）；只读无副作用。
 - **交互与生命周期**：同步只读；幂等；无占用/取消/恢复。
-- **实例与验证**：正常返回并发/队列现状。`T-QUEUE`；Run=NOT_RUN。
+- **实现与验证**：正常返回并发/队列现状。`T-QUEUE`；Run=NOT_RUN。
 
 #### `POST /v1/probes`
 ```text
 POST /v1/probes {deployment_id} -> 200 probe_result | 4xx: ErrorEnvelope
 ```
-- **Interface/Member ID、状态、文件·symbol**：`IF-INF-PROBE`；Implemented；`src/http_api/app.py` → `src/management/admin.py` `probe`。
-- **输入**：请求 `{deployment_id}`；前置=deployment 存在；执行位置=LLMTier → 目标后端；授权=operator。
-- **成功输出**：探活结果——受理/完成=探测返回；副作用=对目标后端发起只读探测，不占数据面许可。
-- **错误与异常**：`ERR-AUTH-*`（401/403/503）；`ERR-NOTFOUND`（404 未知 deployment）；结果已知、无数据面副作用。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-INF-PROBE`；对目标后端发起只读探活；M004 Management（`admin`）提供、M001 暴露、operator 消费；状态=Implemented；`src/http_api/app.py` → `src/management/admin.py` `probe`。
+- **输入与前提**：请求 `{deployment_id}`；前置=deployment 存在；执行位置=LLMTier → 目标后端；授权=operator。
+- **成功输出与保证**：探活结果——受理/完成=探测返回；副作用=对目标后端发起只读探测，不占数据面许可。
+- **错误与合法下一步**：`ERR-AUTH-*`（401/403/503）；`ERR-NOTFOUND`（404 未知 deployment）；结果已知、无数据面副作用。
 - **交互与生命周期**：同步；只读探测；幂等；不占用请求许可。
-- **实例与验证**：正常探活；拒绝未知 deployment。探针用例；Run=NOT_RUN。
+- **实现与验证**：正常探活；拒绝未知 deployment。探针用例；Run=NOT_RUN。
 
-> 单请求 trace `GET /v1/trace/{request_id}` 属 M-OBS（`IF-OBS-*`），本机制只在其 §12.2 引用，不重复定义。用量钩子 `authorize_dispatch`/`bind_backend`/`finish` 由 M-METER §5 完整定义（`IF-MET-AUTHORIZE`/`IF-MET-BIND`/`IF-MET-FINISH`）；本机制在 §5.1 记录调用点，不重定义签名与字段。
+> 单请求 trace `GET /v1/trace/{request_id}` 属 M-OBS（`IF-OBS-*`），本机制只在其 §12.2 引用，不重复定义。用量钩子 `authorize_dispatch`/`bind_backend`/`finish` 由 M-METER §5 完整定义（`IF-MET-AUTHORIZE`/`IF-MET-BIND`/`IF-MET-FINISH`）；本机制在 §5.1/§5.2 记录调用点，不重定义签名与字段。
 
 ## 6. 正常端到端流程
 

@@ -39,7 +39,7 @@ Slinky Memory只消费标准Embeddings与token Usage。Slinky拥有材料分块�
 
 ## 2. 接口设计（接口注册表）
 
-> 按 STD `design-data-interface-format` 1.2.0 §3 按**接口形态分类**；分类适用性：2.1 软件接口 ✓（HTTP）｜2.2 消息与数据流接口 ✗（无事件/流）｜2.3 硬件与固件接口 ✗（纯软件）｜2.4 人机与维护接口 ✗（无 UI/CLI）。
+> 按 STD `design-data-interface-format` 1.2.0 §3 按**接口形态分类**；分类适用性：2.1 API ✓（HTTP）｜2.2 消息与数据流接口 ✗（无事件/流）｜2.3 硬件与固件接口 ✗（纯软件）｜2.4 人机与维护接口 ✗（无 UI/CLI）。
 
 ### 2.0 接口注册表
 
@@ -52,7 +52,7 @@ Slinky Memory只消费标准Embeddings与token Usage。Slinky拥有材料分块�
 
 没有 capacity snapshot、Seat、Invocation、recovery、Cost 或 compatibility endpoint。编目范围=`selected_members`。
 
-### 2.1 软件接口（适用时）
+### 2.1 API（适用时）
 
 #### `POST /v1/embeddings`
 
@@ -64,12 +64,12 @@ POST /v1/embeddings
   -> 4xx/5xx: ErrorEnvelope
 ```
 
-- **Interface/Member ID、状态、唯一契约、文件·symbol**：`IF-DP-EMBEDDINGS`；规格已定、Implemented；唯一契约=`openapi` candidate.8；`src/http_api/app.py` → `src/inference/embeddings.py`。
-- **输入**：`EmbeddingRequest`（§4.2）——exact `model`、`input`（string/string[]）、可选 `encoding_format`/`dimensions`/`user`；Data Bearer；Memory 只发送标准 embedding request 内容，不传 Project/Memory 对象。
-- **成功输出**：`EmbeddingResponse`（§4.2）向量、model 与标准 `prompt_tokens/total_tokens` usage。
-- **错误与异常**：标准 `ERR-REQ-VALIDATION`（400，含维数/数量/索引/未知字段）、`ERR-AUTH-REQUIRED`/`ERR-AUTH-DENIED`（401/403）、`ERR-MODEL-NOTFOUND`（404 非 embedding model）、`ERR-RATE-LIMIT`（429）、`ERR-PROVIDER-FAIL`/`ERR-PROVIDER-UNAVAIL`（502/503）、`ERR-STORE`（503）。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-DP-EMBEDDINGS`；规格已定、Implemented；唯一契约=`openapi` candidate.8；`src/http_api/app.py` → `src/inference/embeddings.py`。
+- **输入与前提**：`EmbeddingRequest`（§4.2）——exact `model`、`input`（string/string[]）、可选 `encoding_format`/`dimensions`/`user`；Data Bearer；Memory 只发送标准 embedding request 内容，不传 Project/Memory 对象。
+- **成功输出与保证**：`EmbeddingResponse`（§4.2）向量、model 与标准 `prompt_tokens/total_tokens` usage。
+- **错误与合法下一步**：标准 `ERR-REQ-VALIDATION`（400，含维数/数量/索引/未知字段）、`ERR-AUTH-REQUIRED`/`ERR-AUTH-DENIED`（401/403）、`ERR-MODEL-NOTFOUND`（404 非 embedding model）、`ERR-RATE-LIMIT`（429）、`ERR-PROVIDER-FAIL`/`ERR-PROVIDER-UNAVAIL`（502/503）、`ERR-STORE`（503）。
 - **交互与生命周期**：每个 embedding POST 独立；重试由 Slinky Memory 按标准 HTTP/client policy 决定；无 custom Idempotency、Invocation、202 active、410 tombstone 或 Responses GET recovery。
-- **实例与验证**：正例 float/base64、batch index/数量/有限数；负例非 embedding model/维数不支持/同 ID 空间漂移。`openai-surface-fixtures.json`；`VRC-INF-001`。
+- **实现与验证**：正例 float/base64、batch index/数量/有限数；负例非 embedding model/维数不支持/同 ID 空间漂移。`openai-surface-fixtures.json`；`VRC-INF-001`。
 
 #### `GET /v1/models` / `GET /v1/models/{model}`
 
@@ -79,12 +79,12 @@ GET /v1/models/{model} -> 200 Model {id, availability, capabilities}
   -> 4xx/5xx: ErrorEnvelope
 ```
 
-- **Interface/Member ID、状态、唯一契约、文件·symbol**：`IF-DP-MODELS`；规格已定、Implemented；`openapi` candidate.8；`src/inference/models.py`。
-- **输入**：路径 `model` exact 名；Data Bearer。
-- **成功输出**：`D-MODEL`（§4.2）；Models 能力同时发布稳定的 `embedding_space_id`、输出维数、batch 与输入上限；同一个逻辑 model ID 在兼容期内必须保持同一向量空间，任何不兼容变化必须使用新逻辑 model ID。
-- **错误与异常**：`ERR-AUTH-*`；未知 exact 名 → `ERR-MODEL-NOTFOUND`（404）。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-DP-MODELS`；规格已定、Implemented；`openapi` candidate.8；`src/inference/models.py`。
+- **输入与前提**：路径 `model` exact 名；Data Bearer。
+- **成功输出与保证**：`D-MODEL`（§4.2）；Models 能力同时发布稳定的 `embedding_space_id`、输出维数、batch 与输入上限；同一个逻辑 model ID 在兼容期内必须保持同一向量空间，任何不兼容变化必须使用新逻辑 model ID。
+- **错误与合法下一步**：`ERR-AUTH-*`；未知 exact 名 → `ERR-MODEL-NOTFOUND`（404）。
 - **交互与生命周期**：同步只读；Slinky 选择 `capabilities.embeddings=true` 的 exact model。
-- **实例与验证**：正常返回带 embedding 能力；拒绝非 embedding model。`admin-model-fixtures.json`；`VRC-INF-001`。
+- **实现与验证**：正常返回带 embedding 能力；拒绝非 embedding model。`admin-model-fixtures.json`；`VRC-INF-001`。
 
 #### `GET /v1/usage`
 
@@ -93,12 +93,12 @@ GET /v1/usage?from=&to=&model=&request_id= -> 200 UsagePage
   -> 4xx/5xx: ErrorEnvelope
 ```
 
-- **Interface/Member ID、状态、唯一契约、文件·symbol**：`IF-ADM-USAGE`；规格已定、Implemented；`openapi` candidate.8；`src/inference/usage.py`。
-- **输入**：时间窗/过滤参数；调用主体自己的 token 事实。
-- **成功输出**：`UsagePage`（§4.2）；`unknown` 时 token 均为 null、不得补零；更高 record version 替换较低版本。
-- **错误与异常**：`ERR-AUTH-*`；`ERR-CURSOR`（400）；`ERR-STORE`（503，不用空页）。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-ADM-USAGE`；规格已定、Implemented；`openapi` candidate.8；`src/inference/usage.py`。
+- **输入与前提**：时间窗/过滤参数；调用主体自己的 token 事实。
+- **成功输出与保证**：`UsagePage`（§4.2）；`unknown` 时 token 均为 null、不得补零；更高 record version 替换较低版本。
+- **错误与合法下一步**：`ERR-AUTH-*`；`ERR-CURSOR`（400）；`ERR-STORE`（503，不用空页）。
 - **交互与生命周期**：只读；Cost 不在 Schema 中。
-- **实例与验证**：usage measured/estimated/unknown 与版本替换。`usage-fixtures.json`；`VRC-MGMT-006`。
+- **实现与验证**：usage measured/estimated/unknown 与版本替换。`usage-fixtures.json`；`VRC-MGMT-006`。
 
 #### `GET /healthz` / `GET /readyz`
 
@@ -107,12 +107,12 @@ GET /healthz -> 200 HealthView {status, version}
 GET /readyz  -> 200 ReadinessView {status, models:[{id, availability}]} / 503 not_ready
 ```
 
-- **Interface/Member ID、状态、唯一契约、文件·symbol**：`IF-HEALTH`；规格已定、Implemented；`openapi` candidate.8；`src/http_api/health.py`。
-- **输入**：无参数、无凭据。
-- **成功输出**：`HealthView`/`ReadinessView`（§4.6）；环境检查。
-- **错误与异常**：bootstrap/schema 失败 → 503 `not_ready`（`ERR-BOOT`/`ERR-SCHEMA`/`ERR-PATH-UNSAFE`）。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-HEALTH`；规格已定、Implemented；`openapi` candidate.8；`src/http_api/health.py`。
+- **输入与前提**：无参数、无凭据。
+- **成功输出与保证**：`HealthView`/`ReadinessView`（§4.6）；环境检查。
+- **错误与合法下一步**：bootstrap/schema 失败 → 503 `not_ready`（`ERR-BOOT`/`ERR-SCHEMA`/`ERR-PATH-UNSAFE`）。
 - **交互与生命周期**：同步只读。
-- **实例与验证**：正常 READY；边界 not_ready。`VRC-UTIL-001/002`。
+- **实现与验证**：正常 READY；边界 not_ready。`VRC-UTIL-001/002`。
 
 ### 2.2 消息与数据流接口（适用时）
 
@@ -130,7 +130,7 @@ GET /readyz  -> 200 ReadinessView {status, models:[{id, availability}]} / 503 no
 
 > 分类同 §2；逐接口端点/认证回写 §2 声明。
 
-- **软件接口**：HTTPS/JSON/Bearer auth。Memory 调用不进入 Piko 的模型调用控制面，也不传 Project/Memory 对象给 LLMTier；只发送标准 embedding request 内容。
+- **API**：HTTPS/JSON/Bearer auth。Memory 调用不进入 Piko 的模型调用控制面，也不传 Project/Memory 对象给 LLMTier；只发送标准 embedding request 内容。
 - **消息与数据流接口**：不适用。
 - **硬件与固件接口**：不适用。
 - **人机与维护接口**：不适用。
@@ -143,60 +143,180 @@ GET /readyz  -> 200 ReadinessView {status, models:[{id, availability}]} / 503 no
 
 ### 4.1 公共基础类型与枚举
 
-#### `encoding_format` / `measurement_status` / `source` / `availability`
-- **定义、Data/Type ID 与唯一来源**：共享枚举；机器源 `openapi` `EmbeddingRequest`/`UsageRecord`/`Model`。
-- **字段**：`encoding_format ∈ {float,base64}`（默认 `float`）；`measurement_status ∈ {measured,estimated,unknown}`；`source ∈ {provider,gateway_estimate,unavailable}`；`availability ∈ {available,degraded,unavailable}`。
-- **约束 / 不变量**：`unknown ⇒ token 全 null`；base64 为连续 little-endian IEEE-754 float32。
-- **状态 · 所有权 · 寿命**：内联于所属结构。
-- **合法与拒绝实例**：合法 `float`/`measured`；边界 unknown 不补零。
-- **验证**：`openapi`；`VRC-INF-001/004`。
+**4.1.1 `encoding_format` / `measurement_status` / `source` / `availability`（公共基础类型与枚举）**
+
+```text
+`encoding_format ∈ {float,base64}`（默认 `float`）；`measurement_status ∈ {measured,estimated,unknown}`；`source ∈ {provider,gateway_estimate,unavailable}`；`availability ∈ {available,degraded,unavailable}`。
+```
+
+- **Data/Type ID、用途与来源**：
+
+  共享枚举；机器源 `openapi` `EmbeddingRequest`/`UsageRecord`/`Model`。
+
+- **字段与约束**：
+
+  `unknown ⇒ token 全 null`；base64 为连续 little-endian IEEE-754 float32。
+
+- **跨字段与寿命**：
+
+  内联于所属结构。
+
+- **合法/拒绝实例**：
+
+  合法 `float`/`measured`；边界 unknown 不补零。
+
+- **验证**：
+
+  `openapi`；`VRC-INF-001/004`。
 
 ### 4.2 业务与操作数据结构
 
-#### `EmbeddingRequest`
-- **定义、Data/Type ID 与唯一来源**：标准向量化请求；`D-MSG-EMBEDDING`；机器源 `openapi` `EmbeddingRequest`。
-- **字段**：`model`（必填，exact embedding tier）、`input`（string 或 string[]，必填）、`encoding_format`（可选，默认 `float`）、`dimensions`（可选）、`user`（可选）。
-- **约束 / 不变量**：`encoding_format=float` 返回有限 JSON number array；`base64` 返回 RFC 4648 字符串，其内容固定为连续 little-endian IEEE-754 float32；请求与响应表示必须一致，严格核验解码、4 字节对齐、有限值和维数。
-- **状态 · 所有权 · 寿命**：请求级 wire 载荷；不持久 conversation。
-- **合法与拒绝实例**：合法 float/base64；拒绝未知 field/维数不支持/向量数量或索引错误。
-- **验证**：`openai-surface-fixtures.json`；`VRC-INF-001`。
+**4.2.1 `EmbeddingRequest`（业务与操作数据结构）**
 
-#### `EmbeddingResponse` / `EmbeddingItem` / `EmbeddingUsage`
-- **定义、Data/Type ID 与唯一来源**：标准向量化响应；机器源 `openapi`。
-- **字段**：`EmbeddingResponse{object:"list",data:[EmbeddingItem],model,usage:EmbeddingUsage?}`；`EmbeddingItem{object:"embedding",index≥0,embedding:number[]|base64}`；`EmbeddingUsage{prompt_tokens,total_tokens}`。
-- **约束 / 不变量**：维数须在模型支持集合内；同一逻辑 model ID 保持同一 `embedding_space_id`。
-- **状态 · 所有权 · 寿命**：请求级；向量输出的存储权限由 Slinky 管理。
-- **合法与拒绝实例**：合法 batch index/数量/有限数正确；拒绝同 ID 空间漂移。
-- **验证**：`openai-surface-fixtures.json`；`VRC-INF-001`。
+- **Data/Type ID、用途与来源**：
 
-#### `UsageRecord` / `UsagePage`
-- **定义、Data/Type ID 与唯一来源**：token 事实版本与分页；`D-USAGE-RECORD`；机器源 `openapi`。
-- **字段**：含 request/model/endpoint/time、record version/finality、measurement status/source 以及标准 token 字段和可用的 cached/cache-write/reasoning 细分。
-- **约束 / 不变量**：`unknown` 时 token 均为 null，不得补零；更高 record version 替换较低版本；Cost 不在 Schema 中。
-- **状态 · 所有权 · 寿命**：追加式账本，按 principal 隔离。
-- **合法与拒绝实例**：合法 measured/estimated；边界 unknown null。
-- **验证**：`usage-fixtures.json`；`VRC-MGMT-006`。
+  标准向量化请求；`D-MSG-EMBEDDING`；机器源 `openapi` `EmbeddingRequest`。
 
-#### `Model` / `ModelList` / `ModelCapabilities`
-- **定义、Data/Type ID 与唯一来源**：模型目录与 embedding 能力；`D-MODEL`/`D-CAPABILITY`；机器源 `openapi`。
-- **字段**：见 `llmtier-contract-specification` §3.2/§3.3；embedding model 发布稳定 space ID、维数、batch 和输入上限。
-- **约束 / 不变量**：`capabilities.embeddings=true` 才可选；不兼容空间必须新 model ID。
-- **状态 · 所有权 · 寿命**：只读投影。
-- **合法与拒绝实例**：合法 embedding exact model；拒绝非 embedding model。
-- **验证**：`admin-model-fixtures.json`；`VRC-INF-001`。
+- **字段与约束**：
+
+  `model`（必填，exact embedding tier）、`input`（string 或 string[]，必填）、`encoding_format`（可选，默认 `float`）、`dimensions`（可选）、`user`（可选）。
+
+  `encoding_format=float` 返回有限 JSON number array；`base64` 返回 RFC 4648 字符串，其内容固定为连续 little-endian IEEE-754 float32；请求与响应表示必须一致，严格核验解码、4 字节对齐、有限值和维数。
+
+- **跨字段与寿命**：
+
+  请求级 wire 载荷；不持久 conversation。
+
+- **合法/拒绝实例**：
+
+  合法 float/base64；拒绝未知 field/维数不支持/向量数量或索引错误。
+
+- **验证**：
+
+  `openai-surface-fixtures.json`；`VRC-INF-001`。
+
+**4.2.2 `EmbeddingResponse` / `EmbeddingItem` / `EmbeddingUsage`（业务与操作数据结构）**
+
+```text
+`EmbeddingResponse{object:"list",data:[EmbeddingItem],model,usage:EmbeddingUsage?}`；`EmbeddingItem{object:"embedding",index≥0,embedding:number[]|base64}`；`EmbeddingUsage{prompt_tokens,total_tokens}`。
+```
+
+- **Data/Type ID、用途与来源**：
+
+  标准向量化响应；机器源 `openapi`。
+
+- **字段与约束**：
+
+  维数须在模型支持集合内；同一逻辑 model ID 保持同一 `embedding_space_id`。
+
+- **跨字段与寿命**：
+
+  请求级；向量输出的存储权限由 Slinky 管理。
+
+- **合法/拒绝实例**：
+
+  合法 batch index/数量/有限数正确；拒绝同 ID 空间漂移。
+
+- **验证**：
+
+  `openai-surface-fixtures.json`；`VRC-INF-001`。
+
+**4.2.3 `UsageRecord` / `UsagePage`（业务与操作数据结构）**
+
+- **Data/Type ID、用途与来源**：
+
+  token 事实版本与分页；`D-USAGE-RECORD`；机器源 `openapi`。
+
+- **字段与约束**：
+
+  含 request/model/endpoint/time、record version/finality、measurement status/source 以及标准 token 字段和可用的 cached/cache-write/reasoning 细分。
+
+  `unknown` 时 token 均为 null，不得补零；更高 record version 替换较低版本；Cost 不在 Schema 中。
+
+- **跨字段与寿命**：
+
+  追加式账本，按 principal 隔离。
+
+- **合法/拒绝实例**：
+
+  合法 measured/estimated；边界 unknown null。
+
+- **验证**：
+
+  `usage-fixtures.json`；`VRC-MGMT-006`。
+
+**4.2.4 `Model` / `ModelList` / `ModelCapabilities`（业务与操作数据结构）**
+
+- **Data/Type ID、用途与来源**：
+
+  模型目录与 embedding 能力；`D-MODEL`/`D-CAPABILITY`；机器源 `openapi`。
+
+- **字段与约束**：
+
+  见 `llmtier-contract-specification` §3.2/§3.3；embedding model 发布稳定 space ID、维数、batch 和输入上限。
+
+  `capabilities.embeddings=true` 才可选；不兼容空间必须新 model ID。
+
+- **跨字段与寿命**：
+
+  只读投影。
+
+- **合法/拒绝实例**：
+
+  合法 embedding exact model；拒绝非 embedding model。
+
+- **验证**：
+
+  `admin-model-fixtures.json`；`VRC-INF-001`。
 
 ### 4.3 配置与规则数据结构
 
-#### `EmbeddingSpaceRule`
-- **定义、Data/Type ID 与唯一来源**：向量空间稳定性规则；机器源 `openapi` `ModelCapabilities.embedding_space_id`；本文 §4.2/§5。
-- **字段**：`embedding_space_id`、`embedding_dimensions`、`embedding_max_batch_inputs`、`embedding_max_input_tokens`。
-- **约束 / 不变量**：同一个逻辑 model ID 在兼容期内必须保持同一向量空间；任何不兼容变化必须使用新逻辑 model ID 并由 Slinky 重建索引。
-- **状态 · 所有权 · 寿命**：随 Models 能力发布/Registry。
-- **合法与拒绝实例**：合法稳定 space；拒绝同 ID 空间漂移。
-- **验证**：`VRC-INF-001`。
+**4.3.1 `EmbeddingSpaceRule`（配置与规则数据结构）**
 
-#### `ModelCapabilities` / `AuthPolicy`
-- `ModelCapabilities`（12 键）与 `AuthPolicy` 见 `llmtier-contract-specification` §3.3。
+- **Data/Type ID、用途与来源**：
+
+  向量空间稳定性规则；机器源 `openapi` `ModelCapabilities.embedding_space_id`；本文 §4.2/§5。
+
+- **字段与约束**：
+
+  `embedding_space_id`、`embedding_dimensions`、`embedding_max_batch_inputs`、`embedding_max_input_tokens`。
+
+  同一个逻辑 model ID 在兼容期内必须保持同一向量空间；任何不兼容变化必须使用新逻辑 model ID 并由 Slinky 重建索引。
+
+- **跨字段与寿命**：
+
+  随 Models 能力发布/Registry。
+
+- **合法/拒绝实例**：
+
+  合法稳定 space；拒绝同 ID 空间漂移。
+
+- **验证**：
+
+  `VRC-INF-001`。
+
+**4.3.2 `ModelCapabilities` / `AuthPolicy`（配置与规则数据结构）**
+
+- **Data/Type ID、用途与来源**：
+
+  `D-CAPABILITY`/`D-AUTH-POLICY`；继承结构，不复制字段；定义见 `llmtier-contract-specification` §3.3。
+
+- **字段与约束**：
+
+  `ModelCapabilities`（12 键）与 `AuthPolicy` 见 `llmtier-contract-specification` §3.3。
+
+- **跨字段与寿命**：
+
+  随 Registry/部署配置持久；operator 拥有。
+
+- **合法/拒绝实例**：
+
+  合法引用；拒绝明文 secret。
+
+- **验证**：
+
+  `VRC-INF-001`。
+
 
 ### 4.4 通信报文结构（机器源继承）
 
@@ -208,13 +328,29 @@ GET /readyz  -> 200 ReadinessView {status, models:[{id, availability}]} / 503 no
 
 ### 4.6 运行状态数据结构
 
-#### `HealthView` / `ReadinessView` / `D-USAGE-OBLIGATION` / `D-USAGE-HEAD`
-- **定义、Data/Type ID 与唯一来源**：环境检查与账本锚点；机器源 `openapi`、authority `util/migrations/*.sql`。
-- **字段**：见 `llmtier-contract-specification` §3.6。
-- **约束 / 不变量**：dispatch 前义务先存在；head 单调；就绪反映 schema/bootstrap。
-- **状态 · 所有权 · 寿命**：请求级就绪 + 追加式账本。
-- **合法与拒绝实例**：正常 ready；边界 not_ready。
-- **验证**：`VRC-UTIL-001/002`、`VRC-INF-004`。
+**4.6.1 `HealthView` / `ReadinessView` / `D-USAGE-OBLIGATION` / `D-USAGE-HEAD`（运行状态数据结构）**
+
+- **Data/Type ID、用途与来源**：
+
+  环境检查与账本锚点；机器源 `openapi`、authority `util/migrations/*.sql`。
+
+- **字段与约束**：
+
+  见 `llmtier-contract-specification` §3.6。
+
+  dispatch 前义务先存在；head 单调；就绪反映 schema/bootstrap。
+
+- **跨字段与寿命**：
+
+  请求级就绪 + 追加式账本。
+
+- **合法/拒绝实例**：
+
+  正常 ready；边界 not_ready。
+
+- **验证**：
+
+  `VRC-UTIL-001/002`、`VRC-INF-004`。
 
 ### 4.7 数据库表结构
 
