@@ -33,7 +33,7 @@
 | 父设计 Document ID / 登记位置 | `llmtier-system-design` / 系统设计 §3.2（唯一登记表）|
 | 上级系统 / 父单元 | LLMTier 软件系统 |
 | 解决的问题 | 为 operator 提供图形化控制台，把管理面（配置、用量、审计、日志、诊断）从命令行解放出来，降低运维误操作 |
-| 提供的能力 | 五个英文短页（Home / Providers / Usage & Audit / Logs / Diagnostics）+ Tier 成员编辑抽屉 + 诊断 4 tabs + 全局调试开关；同源调用 `/v1` |
+| 提供的能力 | 五个英文短页（Home / Providers / Stats / Logs / Diagnostics）+ Tier 成员编辑抽屉 + 诊断 4 tabs + 全局调试开关；同源调用 `/v1` |
 | 主要使用者 | Operator（浏览器）|
 | 不负责 | 不直读 SQLite/settings/Secret；不承载推理；不实现账号库或访问控制；不提供容量/恢复/费用/调用方页面；不新增认证路径 |
 
@@ -82,7 +82,7 @@
 ### 2.1 F-UI-HOME · 主页（PG-HOME）
 - **调用方**：Operator
 - **输入**：打开 Home
-- **行为**：读 `/healthz`·`/readyz` + registry + `/v1/runtime` + `/v1/usage`，渲染 Tier 两层树
+- **行为**：读 `/healthz`·`/readyz` + `/v1/providers`·`/v1/deployments`·`/v1/service-levels` + `/v1/runtime` + `/v1/usage`，渲染 Tier 两层树
 - **输出**：两层树（Tier → 后端）+ 页头全局状态
 - **错误**：401 跳登录 / 403 无权限 / 503 stale
 - **验收**：Tier 状态取自 `/readyz.models[].availability`；成员状态独立（不互相覆盖）
@@ -165,7 +165,7 @@ Web UI 是纯浏览器控制台，无 CLI；布局基线由可切换静态 Demo 
 
 **页面清单（Page ID 来自系统设计 §4.3，稳定；页面不是软件模块）**
 
-共 **5 个页面 + 2 个抽屉**。每页的目的、DOM 容器、JS 与 CSS 划分如下（HTML 只放壳与容器，交互与渲染在 `app.js`，样式在 `styles.css`）：
+共 **5 个侧栏页面 + 2 个抽屉**（侧栏顺序：Home / Providers / Stats / Logs / Diagnostics）。系统设计 §4.3 的 `PG-RECORDS`（Usage & Audit）与 `PG-LOGS` 在实现中共用 `#logs` 容器的子页签；`#stats` 为实现的聚合统计页。每页的目的、DOM 容器、JS 与 CSS 划分如下（HTML 只放壳与容器，交互与渲染在 `app.js`，样式在 `styles.css`）：
 
 #### PG-HOME · Home
 - **目的（用户任务）**：查看等级与后端状态、编辑等级成员
@@ -184,18 +184,28 @@ Web UI 是纯浏览器控制台，无 CLI；布局基线由可切换静态 Demo 
 - **正常结果**：Provider 表 + 编辑
 - **Empty/Error**：Secret 只写不回显；编辑空白=保持
 - **HTML 容器**：`#providers`（`#provider-tree`、`#provider-error`）
-- **JS**：`loadProviders`、`renderProviders`、`openProviderEditor`、`saveProvider`、`deleteProvider`、`refreshProviderUsage`、`fetchProviderModels`
+- **JS**：`loadProviders`、`renderProviders`、`openProviderEditor`、`saveProvider`、`deleteProvider`、`refreshProviderUsage`、`fetchProviderModels`、`addModelAsDeployment`
 - **CSS 区块**：`#providers`、`.toolbar`、`.card`
 
 #### PG-RECORDS · Usage & Audit
-- **目的（用户任务）**：查 token 用量与管理审计
+- **目的（用户任务）**：查 token 用量记录与管理审计
 - **操作**：页签切 Token 用量 / 管理审计、翻页
 - **输入**：时间窗 / cursor
 - **正常结果**：单表
 - **Empty/Error**：503 显示“存储不可用”，不显示空表
-- **HTML 容器**：`#records`（子页签 `#usage-body`、`#audit-body`）
+- **HTML 容器**：`#logs`（子页签 `#usage-body`、`#audit-body`）
 - **JS**：`loadUsage`、`loadAudit`
-- **CSS 区块**：`#records`、`.tabs`、`.sub`、`.tablewrap`
+- **CSS 区块**：`#logs`、`.tabs`、`.sub`、`.tablewrap`
+
+#### PG-STATS · Stats（实现新增，系统 §4.3 未单列）
+- **目的（用户任务）**：按 Tier / Deployment 查看聚合 token 用量
+- **操作**：`By Tier` / `By Deployment` 切换 + 时间范围（24h / 7d / Today / All）
+- **输入**：`group_by` / `from` / `to`
+- **正常结果**：聚合表
+- **Empty/Error**：空窗口显示 “No calls recorded”
+- **HTML 容器**：`#stats`（`#stats-title`、`#stats-thead`、`#stats-body`、`#stats-window`）
+- **JS**：`loadStats`
+- **CSS 区块**：`#stats`、`.stats-toolbar`、`.tablewrap`
 
 #### PG-LOGS · Logs
 - **目的（用户任务）**：查脱敏运行日志
@@ -203,19 +213,19 @@ Web UI 是纯浏览器控制台，无 CLI；布局基线由可切换静态 Demo 
 - **输入**：时间 / 级别 / 模块 / request_id
 - **正常结果**：日志表
 - **Empty/Error**：503 显式化；“无日志”不伪装
-- **HTML 容器**：`#logs`（`#log-body`、`#log-level`、`#log-module`）
+- **HTML 容器**：`#logs`（子页签 `#events`、`#log-body`、`#log-level`、`#log-module`）
 - **JS**：`loadLogs`
 - **CSS 区块**：`#logs`、`.tabs`、`.sub`
 
 #### PG-DIAG · Diagnostics
 - **目的（用户任务）**：观测查询、调试开关、注入配置
-- **操作**：4 tabs（Snapshots/Stats/Injection/Trace）+ 全局开关
+- **操作**：4 tabs（Snapshots / Stats / Traces / Injections）+ 全局开关
 - **输入**：筛选 / 开关
-- **正常结果**：快照 / 统计 / 注入 / trace
+- **正常结果**：快照 / 统计 / trace / 注入
 - **Empty/Error**：开关关闭 → tab 显示 Disabled
-- **HTML 容器**：`#diag`（4 tabs：Snapshots / Stats / Injection / Trace）
-- **JS**：`loadStats`、`loadTrace`、注入读写
-- **CSS 区块**：`#diag`、`.tabs`
+- **HTML 容器**：`#diagnostics`（4 tabs：Snapshots / Stats / Traces / Injections；`#snapshots-body`、`#dstats-body`、`#traces-body`、`#inj-body`）
+- **JS**：`loadDiagSwitches`、`saveDiagSwitches`、`loadSnapshots`、`loadDiagStats`、`loadTraces`、`showTrace`、`loadInjections`、`loadDiagnostics`
+- **CSS 区块**：`#diagnostics`、`.tabs`、`.dsub`
 
 抽屉（`DRW-*`，属其宿主页面）：
 
@@ -238,7 +248,7 @@ Web UI 是纯浏览器控制台，无 CLI；布局基线由可切换静态 Demo 
 | `app.js` | 分区：①`api()` 客户端 ②hash 路由与页面切换 ③各页 `load*`/`render*` ④mutation（`save*`/`toggle*`/`probe*`）⑤状态映射（`backendState`/`tierState`/`statusMarkup`）⑥交互状态 I9。**不**直读 DB/Secret、不落 localStorage |
 | `icons.svg` | 单线图标 sprite：`<symbol id="icon-…">`，`<use href="/ui/icons.svg#icon-…">` 引用 |
 
-**实现映射（当前 `index.html`）**：侧栏 4 项（Home / Providers / Stats / Logs），其中 Logs 含 3 个子页签（Token Usage / Audit Log / Runtime Logs）。与系统设计 §4.3 的 `PG-RECORDS`/`PG-DIAG` 尚未一一对应 → 登记 `OPEN-UI-2`（见 §15）。
+**实现映射（当前 `index.html`）**：侧栏 5 项（Home / Providers / Stats / Logs / Diagnostics），DOM 容器 `#home`/`#providers`/`#stats`/`#logs`/`#diagnostics` + 抽屉 `#tier-mask`/`#provider-mask`。`#logs` 内含 3 个子页签（Token Usage / Audit Log / Runtime Logs），承载系统设计 §4.3 的 `PG-RECORDS` 与 `PG-LOGS`；`PG-DIAG` 对应 `#diagnostics`。与上游 Page ID 的映射已落实 → `OPEN-UI-2` 已闭环（见 §15）。
 
 **共享框架与导航**
 
@@ -252,7 +262,7 @@ Web UI 是纯浏览器控制台，无 CLI；布局基线由可切换静态 Demo 
 
 [可编辑 SVG 源](../assets/diagrams/diagram-webui-nav.svg)
 
-图 M002-U1 · 导航结构：Home / Providers / Usage / Logs / Diagnostics 五页项稳定。
+图 M002-U1 · 导航结构：Home / Providers / Stats / Logs / Diagnostics 五页项稳定。
 
 **页面布局总览（Page ID 稳定）**
 
@@ -401,9 +411,10 @@ index.html（页面壳：容器 id + 装配 styles.css / icons.svg / app.js）
       ├─ loadRegistry() / loadHome() / loadProviders()               # 各页数据装载
       │    └─ api(path, opts)        # app.js：fetch(path,{credentials:'same-origin'})
       │         └─ 失败按状态分派 → I9（401/403/409/412/429/503）
-      ├─ renderTree() / renderProviders() / renderTierMembers() / loadUsage() / loadLogs() / loadStats() / loadTrace()
-      │    └─ backendState() / tierState() / statusMarkup()          # 状态→图标
-      └─ 用户操作 → toggleDeployment() / probeDeployment() / saveProvider() / saveMember() / removeMember() / refreshProviderUsage()
+      ├─ renderTree() / renderProviders() / renderTierMembers() / loadUsage() / loadAudit() / loadLogs() / loadStats()
+      ├─ loadSnapshots() / loadDiagStats() / loadTraces() / showTrace() / loadInjections()      # Diagnostics
+      │    └─ backendState(deployment,provider,runtime) / tierState(tier) / statusMarkup(label,tone)  # 状态→图标
+      └─ 用户操作 → toggleDeployment() / probeDeployment() / saveProvider() / saveMember() / addMember() / removeMember() / refreshProviderUsage()
            └─ api(path,{method:'PATCH'|'POST'|'DELETE', headers:{'If-Match':etag}, body})
 ```
 
@@ -444,7 +455,7 @@ index.html（页面壳：容器 id + 装配 styles.css / icons.svg / app.js）
 **6.1.1 `BackendState`（公共基础类型与枚举）**
 
 ```text
-enum BackendState { Idle, Running, Paused, Exhausted, Attention, Unreachable, Disabled, Unknown }
+enum BackendState { Idle, Running, Probing, Paused, Exhausted, Attention, Unreachable, Disabled, Unknown }
 ```
 
 - **Data/Type ID、用途与来源**：
@@ -458,6 +469,10 @@ enum BackendState { Idle, Running, Paused, Exhausted, Attention, Unreachable, Di
 - **`Running`**：
 
   `running>0`。
+
+- **`Probing`**：
+
+  部署 `health=probing`（显式探测进行中；icon `scan-search`）。
 
 - **`Paused`**：
 
@@ -581,11 +596,14 @@ enum UiErrorStatus { 401, 403, 409, 412, 429, 503 }
 
 ```text
 UiState {
-  registry: object?,
+  tiers: TierView[],
   providers: ProviderView[],
   deployments: DeploymentView[],
-  usage: UsagePage?,
-  runtime: RuntimeView?
+  runtime: RuntimeView,
+  usage: UsageRecord[],
+  providerUsage: map<string, AccountUsageView>,
+  tierAvailability: map<string, TierAvailability>,
+  modelCache: map<string, string[]>
 }
 ```
 
@@ -593,9 +611,9 @@ UiState {
 
   `D-UI-STATE`；页面内存缓存；来源 `webui/app.js` `state`。
 
-- **`registry`**：
+- **`tiers`**：
 
-  可空对象；注册表快照。
+  必填数组；service-level 视图（含 `deployment_ids`）。
 
 - **`providers`**：
 
@@ -605,13 +623,25 @@ UiState {
 
   必填数组；deployment 视图。
 
-- **`usage`**：
-
-  可空；用量分页投影。
-
 - **`runtime`**：
 
-  可空；运行时快照。
+  必填对象；`Router.snapshot()` 投影（`deployments`/`providers`/`queues`）。
+
+- **`usage`**：
+
+  必填数组；用量记录投影（首页聚合与记录页）。
+
+- **`providerUsage`**：
+
+  必填映射；provider 账号用量快照（`AccountUsageView`）。
+
+- **`tierAvailability`**：
+
+  必填映射；由 `/readyz.models[].availability` 构造的 Tier 可用性。
+
+- **`modelCache`**：
+
+  必填映射；provider → 模型名列表缓存（`fetchProviderModels` 填充，供成员编辑候选）。
 
 - **跨字段与寿命**：
 
@@ -961,7 +991,7 @@ SessionCookie {
 
 #### 8.1 `RULE-UI-TIERSTATE` · Tier 状态 vs 成员状态
 - **输入前提 / 适用条件**：Home 渲染
-- **算法 / 规则 / 选择依据**：Tier 行取 `/readyz.models[].availability`（available→Ready / degraded→Attention / unavailable→Unreachable），**不从成员聚合**；成员行独立取 Deployment health/runtime（健康且 `running=0`→Idle，仅 `running>0`→Running，`enabled=false`→Paused）
+- **算法 / 规则 / 选择依据**：Tier 行取 `/readyz.models[].availability`（available→Ready / degraded→Attention / unavailable→Unreachable），**不从成员聚合**；成员行独立取 Deployment health/runtime（健康且 `running=0`→Idle，仅 `running>0`→Running，`health=probing`→Probing，`enabled=false`→Paused）
 - **结果 / 不变量 / 边界**：两者互不覆盖
 - **复杂度 / 资源限制**：O(Tier×成员)
 - **允许替换范围 / 不可改变保证**：渲染实现可自选；状态来源不可变
@@ -1034,22 +1064,30 @@ api(path: string, opts?: {method?: string, body?: object, headers?: object}) -> 
 - **交互与生命周期**：浏览器单线程；`credentials:'same-origin'`；每页请求独立。
 - **实现与验证**：正常 `api('/v1/models')`；边界：412 → 保留草稿提示。`VRC-UI-002`；`webui/app.js`。
 
-#### `loadRegistry() / loadHome() / loadProviders() / loadUsage() / loadLogs() / loadStats() / loadTrace() -> Promise<void>`
+#### `loadRegistry() / loadHome() / loadProviders() / loadUsage() / loadAudit() / loadLogs() / loadStats() / loadDiagStats() / loadTraces() / showTrace() -> Promise<void>`
 
 ```text
 loadRegistry() -> Promise<void>
+loadUsageSnapshot() -> Promise<void>
 loadHome() -> Promise<void>
 loadProviders() -> Promise<void>
 loadUsage() -> Promise<void>
+loadAudit() -> Promise<void>
 loadLogs() -> Promise<void>
 loadStats() -> Promise<void>
-loadTrace() -> Promise<void>
+loadDiagSwitches() -> Promise<void>
+loadSnapshots() -> Promise<void>
+loadDiagStats() -> Promise<void>
+loadTraces() -> Promise<void>
+showTrace(requestId: string) -> Promise<void>
+loadInjections() -> Promise<void>
+loadDiagnostics() -> Promise<void>
 ```
 
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-UI-LOAD`；各页面数据装载；M002 提供；状态=Implemented；唯一契约=本设计；文件·symbol `webui/app.js`。
 - **输入与前提**：当前页 hash 路由与查询参数。
 - **成功输出与保证**：无返回（写 `state`/DOM 容器）。
-- **错误与合法下一步**：失败交 I9；`loadLogs/loadUsage` 503 显示“存储不可用”（不显示空表）。
+- **错误与合法下一步**：失败交 I9；`loadUsage/loadLogs/loadAudit` 503 显示“存储不可用”（不显示空表）；诊断开关关闭时 `loadSnapshots/loadDiagStats` 显示 Disabled。
 - **交互与生命周期**：进入页面/切页调用；请求级。
 - **实现与验证**：正常装载渲染；边界：空数据 → Empty（非错误）。`VRC-UI-001/004`；`webui/app.js`。
 
@@ -1068,43 +1106,48 @@ renderTierMembers() -> void
 - **交互与生命周期**：数据装载后调用。
 - **实现与验证**：正常两层树；边界：Empty Tier 显示 no members 且可 Edit。`VRC-UI-001`；`webui/app.js`。
 
-#### `backendState(deployment) / tierState(tier) / statusMarkup(kind) -> string`
+#### `backendState(deployment, provider, runtime) / tierState(tier) / statusMarkup(label, tone) -> string`
 
 ```text
-backendState(deployment: object) -> string
-tierState(tier: object) -> string
-statusMarkup(kind: string) -> string
+backendState(deployment: object, provider: object, runtime?: object) -> [label, tone]
+tierState(tier: object) -> [label, tone]
+statusMarkup(label: string, tone?: string) -> string
 ```
 
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-UI-STATE`；状态到图标/文本标记映射；M002 提供；状态=Implemented；唯一契约=本设计；文件·symbol `webui/app.js`。
-- **输入与前提**：deployment/tier 视图；状态 kind。
-- **成功输出与保证**：图标/文本标记（`BackendState`/`TierAvailability`，§6.1.1/§6.1.2）。
+- **输入与前提**：`backendState` 取 deployment + 所属 provider + 该 deployment 的 runtime（`running`/`max_concurrent`）；`tierState` 取 tier 视图；`statusMarkup` 取 label/tone。
+- **成功输出与保证**：`[label, tone]`（`BackendState`/`TierAvailability`，§6.1.1/§6.1.2）与图标/文本标记 HTML。
 - **错误与合法下一步**：无；未知 → `Unknown`。
 - **交互与生命周期**：渲染时调用；无状态。
 - **实现与验证**：正常状态→图标；边界：未知 → `circle-help`。`VRC-UI-001/003`；`webui/app.js`。
 
-#### `toggleDeployment(id) / probeDeployment(id) / saveProvider(...) / saveMember(...) / removeMember(...) / refreshProviderUsage(id) -> Promise<void>`
+#### `toggleDeployment(button) / probeDeployment(button) / saveProvider(event) / saveMember(event) / addMember(event) / removeMember(deploymentId) / deleteProvider(id) / refreshProviderUsage(button) -> Promise<void>`
 
 ```text
-toggleDeployment(id: string) -> Promise<void>
-probeDeployment(id: string) -> Promise<void>
-saveProvider(form: object, etag?: string) -> Promise<void>
-saveMember(form: object, etag?: string) -> Promise<void>
-removeMember(id: string) -> Promise<void>
-refreshProviderUsage(id: string) -> Promise<void>
+toggleDeployment(button: element) -> Promise<void>
+probeDeployment(button: element) -> Promise<void>
+saveProvider(event: Event) -> Promise<void>
+deleteProvider(id: string) -> Promise<void>
+addModelAsDeployment(providerId: string, model: string) -> Promise<void>
+openProviderEditor(id?: string) -> void
+openTierEditor(id: string) -> Promise<void>
+saveMember(event: Event) -> Promise<void>
+removeMember(deploymentId: string) -> Promise<void>
+addMember(event: Event) -> Promise<void>
+refreshProviderUsage(button: element) -> Promise<void>
 ```
 
-- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-UI-MUTATE`；页面写操作（暂停/探测/保存/删除/刷新）；M002 提供；状态=Implemented；唯一契约=本设计；文件·symbol `webui/app.js`。
-- **输入与前提**：目标 id、表单值、`If-Match` ETag。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-UI-MUTATE`；页面写操作（暂停/探测/保存/删除/刷新/增删成员）；M002 提供；状态=Implemented；唯一契约=本设计；文件·symbol `webui/app.js`。
+- **输入与前提**：目标 id、表单值、`If-Match` ETag。成员保存以 `closest('tr')` 定位行、`fieldValue(form,name)` 读取字段（修复此前把 `<tr>` 当 `<form>` 读取导致的 TypeError）。
 - **成功输出与保证**：成功更新 `state` 与视图；新 ETag。
-- **错误与合法下一步**：412 `ERR-STALE`（保留输入）、409 `ERR-CONFLICT`/`ERR-INUSE`（禁强删）、探测未确认不发 POST（`ERR-CONFIRM`）；结果未知先 GET 核对。
+- **错误与合法下一步**：412 `ERR-STALE`（保留输入）、409 `ERR-CONFLICT`/`ERR-INUSE`（禁强删）、探测/用量刷新未确认不发 POST（`ERR-CONFIRM`）；结果未知先 GET 核对。
 - **交互与生命周期**：用户操作触发；先 GET 取 ETag 再写。
 - **实现与验证**：正常保存 + 新 ETag；边界：并发编辑 → 412。`VRC-UI-002/005`；`webui/app.js`。
 
-#### `#home / #providers / #records / #logs / #diag / #tier-mask / #provider-mask`（DOM 容器契约）
+#### `#home / #providers / #stats / #logs / #diagnostics / #tier-mask / #provider-mask`（DOM 容器契约）
 
 ```text
-index.html -> 5 × <section class="page"> + 2 × 抽屉容器（稳定 id）
+index.html -> 5 × <section class="page">（#home/#providers/#stats/#logs/#diagnostics）+ 2 × 抽屉容器（#tier-mask/#provider-mask）
 ```
 
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-UI-DOM`；页面/抽屉容器结构与 id；M002 提供；状态=Implemented；唯一契约=本设计；文件·symbol `webui/index.html`。
@@ -1240,12 +1283,12 @@ index.html -> 5 × <section class="page"> + 2 × 抽屉容器（稳定 id）
 
 #### 13.1.1 `src/web_ui/index.html`
 - **职责（本模块内）**：页面壳 + 五页容器 `id`；装配 `styles.css`/`icons.svg`/`app.js`
-- **关键 symbol**：容器 `id`（`#usage-body`、`#log-body`、`#audit-body` 等）
+- **关键 symbol**：容器 `id`（`#home`/`#providers`/`#stats`/`#logs`/`#diagnostics`、`#usage-body`、`#audit-body`、`#log-body`、诊断子 tab 等）
 - **实现状态**：Implemented
 
 #### 13.1.2 `src/web_ui/app.js`
 - **职责（本模块内）**：hash 路由、数据装载、渲染、mutation、交互状态
-- **关键 symbol**：`api`、`loadRegistry/loadHome/loadProviders/loadUsage/loadLogs/loadStats`、`renderTree/renderProviders/renderTierMembers`、`toggleDeployment/probeDeployment/saveProvider/saveMember/refreshProviderUsage`
+- **关键 symbol**：`api`、`loadRegistry/loadUsageSnapshot/loadHome/loadProviders/loadUsage/loadAudit/loadLogs/loadStats`、`loadDiagSwitches/loadSnapshots/loadDiagStats/loadTraces/showTrace/loadInjections/loadDiagnostics`、`renderTree/renderProviders/renderTierMembers`、`openTierEditor/openProviderEditor/saveProvider/saveMember/addMember/removeMember/deleteProvider/toggleDeployment/probeDeployment/refreshProviderUsage`、`backendState/tierState/statusMarkup/dispatchUiError`
 - **实现状态**：Implemented
 
 #### 13.1.3 `src/web_ui/styles.css`
@@ -1275,7 +1318,7 @@ index.html -> 5 × <section class="page"> + 2 × 抽屉容器（稳定 id）
 #### 13.2.3 Home
 - **新增/修改文件**：`webui/app.js`
 - **关键 symbol**：Tier 树、抽屉、Pause/Resume
-- **前置依赖**：`/readyz`、registry
+- **前置依赖**：`/readyz`、provider/deployment/service-level 端点
 - **完成条件**：状态语义正确
 
 #### 13.2.4 Providers
@@ -1375,12 +1418,12 @@ index.html -> 5 × <section class="page"> + 2 × 抽屉容器（稳定 id）
 - **截止/Gate**：本轮 review
 - **决定或状态**：已闭环
 
-#### OPEN-UI-2 · 页面划分与上游不一致
-- **问题**：当前 `index.html` 侧栏 4 项（Home/Providers/Stats/Logs，Logs 含子页签），与系统设计 §4.3 的 `PG-RECORDS`/`PG-DIAG` 未一一对应
-- **阻塞影响**：页面划分与上游不一致
+#### OPEN-UI-2 · 页面划分与上游映射
+- **问题**：实现侧栏 5 项（Home/Providers/Stats/Logs/Diagnostics）；系统设计 §4.3 的 `PG-RECORDS` 与 `PG-LOGS` 在实现中共用 `#logs` 容器子页签，`PG-DIAG` 对应 `#diagnostics`
+- **阻塞影响**：无（映射已落实并在 §3 登记）
 - **Owner**：LLMTier
-- **截止/Gate**：与上游对齐时
-- **决定或状态**：未决（按上游 Page ID 收敛）
+- **截止/Gate**：与本轮设计同步
+- **决定或状态**：已闭环（按实际实现与系统 Page ID 的映射收敛）
 
 #### R-UI-1 · 子模型用量缺失
 - **问题**：Usage 只存逻辑 Tier，无最终 Deployment，子模型用量缺失

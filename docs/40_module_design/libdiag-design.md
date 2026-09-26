@@ -166,7 +166,7 @@
 #### 4.2 `DEP-M003/M001` · 记录写入方
 - **角色 / 运行位置 / Owner**：消费方；同进程；LLMTier
 - **本模块调用或消费**：—
-- **本模块提供**：`record_trace/capture_snapshot/record_latency/get_enabled_injections/stream_wrapper`
+- **本模块提供**：`record_trace/capture_snapshot/record_latency/enabled_injection/enabled_stream_injection/stream_wrapper`
 - **契约 authority / 版本 / selector**：本文 §9；机制 M-OBS §14.4 `R-OBS-03/04`
 - **同步方式 / timeout / 生命周期**：同步、尽力而为
 - **不可用或失败影响 / 责任出口**：记 warning，不改推理
@@ -277,7 +277,7 @@
 #### 5.3.1 `IF-DIAG-01` · `src/http_api/app.py` → `src/libdiag/diagnostics.py`（查询/开关/注入）
 - **功能**：M005 诊断路由经门面做查询、开关切换与注入配置读写。
 - **输入**：
-  - `switches()` / `set_switches(snapshots_enabled?, stats_enabled?)`｜开关
+  - `switches()` / `set_switches(snapshots_enabled?, stats_enabled?, conn?)`｜开关（`conn` 非空并入调用方事务）
   - `snapshots_page(...)` / `stats(...)` / `trace(...)` / `traces(...)` / `injections(...)` / `set_injections(...)`｜查询 / 写配置
 - **输出**：`SwitchState` / `SnapshotPage` / `StatsView` / `TraceView` / `InjectionView[]`（§6.2）。
 - **返回值**：见 §9.1；`400`/`404` 由门面透传。
@@ -707,7 +707,7 @@ EnabledInjection = diagnostic_injections 全行（enabled:int 恒 1）
 
 ```text
 InjectionConfig {
-  fault_502 | fault_503: { error_body: string },              # 非空, <=512B
+  fault_502 | fault_503: { error_body: string },              # 非空, >512B 静默截断到 512B
   delay: { delay_ms: int },                                   # 0–60000
   rate_limit: { retry_after_sec: int },                       # 0–300
   stream_terminate: { stream_terminate_after_events: int },   # 1–10000
@@ -721,7 +721,7 @@ InjectionConfig {
 
 - **`fault_502`/`fault_503`**：
 
-  必填 `error_body: string`（非空，≤512B）。
+  必填 `error_body: string`（非空）；超过 512B 时**静默按 UTF-8 安全截断到 512B**（不拒绝）；空串/非字符串 → 400 `invalid_injection`。
 
 - **`delay`**：
 
@@ -809,7 +809,7 @@ tables {
   diagnostic_snapshots { id PK, snapshot_type, http_status?, ... },
   data_plane_stats { (stat_hour, deployment_id, model, status) PK, ... },
   data_plane_latency_samples { 无 PK（追加）, ... },
-  diagnostic_injections { id PK, UNIQUE(deployment_id, injection_type), config_json, enabled },
+  diagnostic_injections { id PK, UNIQUE(deployment_id, injection_type), injection_type, fault_status?, fault_body?, delay_ms?, retry_after_sec?, stream_terminate_after_events?, malformed_after_events?, malformed_event_type?, enabled, updated_at },
   trace_events { id PK, request_id, stage, ... }
 }
 ```
@@ -836,7 +836,7 @@ tables {
 
 - **`diagnostic_injections`**：
 
-  `id` 主键；`UNIQUE(deployment_id,injection_type)`；按 `(deployment_id,injection_type)` upsert。
+  `id` 主键；`UNIQUE(deployment_id,injection_type)`；**离散列**（无 `config_json`）：`injection_type`、`fault_status`、`fault_body`、`delay_ms`、`retry_after_sec`、`stream_terminate_after_events`、`malformed_after_events`、`malformed_event_type`、`enabled`、`updated_at`；按 `(deployment_id,injection_type)` upsert。
 
 - **`trace_events.id`**：
 
@@ -1140,7 +1140,7 @@ cleanup(days: int = 7) -> int
 #### 10.2 `F-DIAG-INJECT-VALID` · 注入非法
 - **初始条件 / 并发交错 / 失败点**：非法类型/参数
 - **检测事实 / authority / 期限**：`_validate`（§8.4）
-- **处理行为 / 副作用边界**：400 `invalid_request`；不落库
+- **处理行为 / 副作用边界**：400 `invalid_injection`；不落库
 - **状态查询 / 同请求重放 / 接管 / 新业务重试**：修正后重试
 - **最终状态 / 资源归属 / 后续合法入口**：400
 - **验证项 / 组合责任**：`VRC-DIAG-004`
@@ -1307,7 +1307,7 @@ cleanup(days: int = 7) -> int
 #### A.1 `llmtier-observability-mechanism` / `R-OBS-01` · 观测底层读写
 - **来源 Capability / Step / Constraint / 接口成员**：C-OBS-3、Step 2/3/4/5、interface `DiagnosticService` 全部
 - **本模块必须负责的行为与保证**：开关/注入/记录底层读写、脱敏、fail-open
-- **本模块提供 / 消费的接口**：`switches`/`set_switches`/`record_trace`/`capture_snapshot`/`record_latency`/`get_enabled_injections`/`stream_wrapper`/查询
+- **本模块提供 / 消费的接口**：`switches`/`set_switches`/`record_trace`/`capture_snapshot`/`record_latency`/`enabled_injection`/`enabled_stream_injection`/`stream_wrapper`/查询
 - **本文落实位置**：§5.1、§6、§8、§9
 - **代码文件 / symbol 或 NOT_IMPLEMENTED**：`diagnostics.py`
 - **允许自行决定的范围**：存储/聚合实现

@@ -576,7 +576,7 @@ authorize_dispatch(principal: str, request_id: str, model: str, endpoint: str) -
 
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-MET-AUTHORIZE`；dispatch 前向账本登记一次调用义务（unknown 锚点）；Inference 编排消费、Usage Recorder 提供；交接边界=校验通过后、后端调用前；状态=Implemented；唯一契约=本设计；`src/inference/usage.py` `UsageRecorder.authorize_dispatch`。
 - **输入与前提**：`principal`、`request_id`、`model`（等级）、`endpoint`；前置=请求已校验通过、**dispatch 之前**；授权=内部调用（已鉴权请求上下文）；校验=无（幂等登记）。
-- **成功输出与保证**：无返回——受理/完成=`usage_obligations` + 首个 v1 `unknown/unavailable` 版本 + `usage_heads`，单事务提交；副作用=账本锚点持久。
+- **成功输出与保证**：无返回——受理/完成=`usage_obligations` + 首个 `record_version=1`（`unknown`/`unavailable`、`is_final=0`、token 全 NULL）版本 + `usage_heads.head_record_version=1`，单事务提交；副作用=账本锚点持久。
 - **错误与合法下一步**：事务失败 → 抛出（由调用方决定不 dispatch）；结果已知、无半写；**不产生公共错误载荷**（内部）。
 - **交互与生命周期**：同步；可重入（`INSERT OR IGNORE`，已有 head 则 no-op）；请求级；不释放资源。
 - **实现与验证**：正常 `authorize_dispatch("piko","req_1","Worker","/v1/responses")` → v1 义务；边界：重复调用 no-op。`T-MET-CRASH`；Run=NOT_RUN。
@@ -602,7 +602,7 @@ finish(principal: str, request_id: str, usage: dict | None, source_override: str
 
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-MET-FINISH`；追加终态用量版本并单调推进 head；Inference 编排消费、Usage Recorder 提供；交接边界=后端返回后 / 异常路径；状态=Implemented；`src/inference/usage.py`。
 - **输入与前提**：`principal`、`request_id`、`usage: dict | None`（后端返回，三 token 皆 int 才判 measured）、可选 `source_override`（注入标注）；前置=义务存在。
-- **成功输出与保证**：无返回——追加 v(n+1) 版本 + 单调推进 head，单事务提交；受理/完成=提交后账本事实；副作用=版本持久。
+- **成功输出与保证**：无返回——追加 `record_version=n+1` 版本（正常为 2、`is_final=1`）+ 单调推进 head 到该版本，单事务提交；受理/完成=提交后账本事实；副作用=版本持久。
 - **错误与合法下一步**：无义务 → no-op（不影响已返回结果）；写失败 → 由存储层异常表达，结果已返回不改判；结果已知性=保留 unknown 至后续版本或重启可见。
 - **交互与生命周期**：同步；同 request 并发由单事务推进 head；不影响已返回的业务结果。
 - **实现与验证**：正常 `finish(..., {input:2,output:1,total:3})` → head=2、measured；边界：usage 非 int → unknown + NULL。`T-MET-FINAL`、`T-MET-UNKNOWN`；Run=NOT_RUN。
@@ -653,7 +653,7 @@ reset_usage(model: str | None = None, deployment_id: str | None = None, conn: Co
 
 图 M · 用量计量时序（实线=请求，虚线=响应；先后关系非时间比例）。
 
-1. **登记义务**：dispatch 前写 `usage_obligations` + v1 `unknown/unavailable`（C-METER-3）。
+1. **登记义务**：dispatch 前写 `usage_obligations` + `record_version=1`（`unknown`/`unavailable`、`is_final=0`、token 全 NULL）+ head=1（C-METER-3）。
 2. **绑定后端**：准入选定候选后写 `provider_request_bindings`。
 3. **归一**：后端返回 → 判定 `measured`（三 token 皆 int）→ 追加 v(n+1) → 推进 head。
 4. **查询（首屏）**：同一事务创建 `query_snapshots` + 固化有序成员 `(principal, request_id, record_version)`。
@@ -690,6 +690,8 @@ reset_usage(model: str | None = None, deployment_id: str | None = None, conn: Co
 
 **预留 = unknown 义务**（dispatch 前落库，崩溃后仍存在）；**交付 = 终态版本 + head**；**复位 = `DELETE /v1/usage`**（管理动作 + 审计）。无租约、TTL 只作用于查询 snapshot。
 
+**Orphan unknown（准入失败）**：`authorize_dispatch` 成功而准入随后失败（未 dispatch 或未走到 `finish`）时，库中保留一条 orphan unknown 记录（义务 + v1 `unknown` + head=1）。这是**有意行为**：保留"已登记但未测"的 unknown 事实，恢复/对账时绝不回填为 0；运营商可通过 `DELETE /v1/usage` 范围清空。
+
 ## 9. 失败传播、重试与恢复
 
 | Failure ID / 检测方 | 失败点与传播 | 结果已知性 | 已发生/可能副作用 | 访问安全/证据 | 操作终态 | 资源释放 | 重新准入/重试条件 |
@@ -698,6 +700,7 @@ reset_usage(model: str | None = None, deployment_id: str | None = None, conn: Co
 | F-MET-2 / Usage Recorder | terminal 后 `finish` 写入失败 | 结果已返回 | 已返回结果不改判 | 义务证据在库 | head 停留 | 无 | 保留 unknown，重启可见 |
 | F-MET-3 / Store | 查询存储不可用 | 已知失败 | 无 | 无 | 503 | 无 | 稍后重试 |
 | F-MET-4 / 崩溃 | 义务在、终态缺 | **未知** | 无 | 义务即证据 | 重启后仍为 unknown | 无 | 不回填为 0 |
+| F-MET-5 / Usage Recorder | 义务已登记但准入失败（未 dispatch/finish） | 已知失败 | 无 | 义务 + v1 unknown 即证据 | 保留 orphan unknown（head=1） | 无 | 运营商可范围清空；不回填为 0 |
 
 **恢复边界**：重启以 SQLite 事实为准；**不得**把"已发生但计量缺失"误报为"没有调用"。
 

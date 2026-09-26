@@ -489,7 +489,7 @@ EnabledInjection = diagnostic_injections 全行     // enabled:int 恒 1
 
 ```text
 InjectionConfig =
-  fault_502 | fault_503 { error_body: str }                    // 非空，≤512B
+  fault_502 | fault_503 { error_body: str }                    // 非空，>512B 静默截断到 512B
   | delay               { delay_ms: int }                      // 0–60000
   | rate_limit          { retry_after_sec: int }               // 0–300
   | stream_terminate    { stream_terminate_after_events: int } // 1–10000
@@ -503,7 +503,7 @@ InjectionConfig =
 
 - **`error_body`**（`fault_502`/`fault_503` 必填）
 
-  `str`，非空且 ≤512B。
+  `str`，非空；超过 512B 时**静默按 UTF-8 安全截断到 512B**（不拒绝）；空串/非字符串 → `ERR-INJECTION`。
 
 - **`delay_ms` / `retry_after_sec`**（对应类型必填、范围）
 
@@ -996,7 +996,7 @@ cleanup(days:int=7) -> int
 - **输入与前提**
 
   - **输入参数 / 数据结构 authority**：`days`
-  - **输入约束 / 校验顺序 / 失败映射**：失败不阻塞启动（调用方 try/except）
+  - **输入约束 / 校验顺序 / 失败映射**：失败返回 `0`（`cleanup` 内部 fail-open，不抛；不阻塞启动）
 
 - **成功输出与保证**
 
@@ -1004,15 +1004,15 @@ cleanup(days:int=7) -> int
 
 - **错误与合法下一步**
 
-  - **错误输出 / 触发条件 / 优先级**：E-DIAG-QUERY（ERR-STORE · usage_store_unavailable）：503（不伪装空结果）
-  - **E-DIAG-QUERY（公共 ERR-STORE · usage_store_unavailable）**
-    - **底层异常 / 失败事实**：存储不可读
-    - **模块是否处理及处理函数**：propagate
-    - **Typed 异常与原生异常所有权**：原生 `sqlite3.Error`；M005/M001 映射
-    - **宿主 / public payload 或状态码**：503（不伪装空结果）
+  - **错误输出 / 触发条件 / 优先级**：私有 fail-open（非公共码）：失败返回 `0` + warning，不抛、不产生 503
+  - **E-DIAG-CLEANUP-FAILOPEN（私有 fail-open，非公共码）**
+    - **底层异常 / 失败事实**：存储不可读 / 删除失败
+    - **模块是否处理及处理函数**：catch（`retention.cleanup` 内 try/except，返回 `0`；调用方 `_warn`）
+    - **Typed 异常与原生异常所有权**：原生 `sqlite3.Error` 被 `cleanup` 捕获，不外泄
+    - **宿主 / public payload 或状态码**：无（启动不阻塞）
     - **日志级别 / 脱敏 / 关联字段**：warning
-    - **是否可重试及前提**：稍后重试
-    - **状态与副作用影响 / 验证项**：`VRC-DIAG-002`
+    - **是否可重试及前提**：下次启动/调用重试
+    - **状态与副作用影响 / 验证项**：返回 `0`；`VRC-DIAG-002`
 
 - **交互与生命周期**
 

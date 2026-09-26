@@ -112,10 +112,10 @@ responses.py    ResponsesService.create          # 校验→编排→归一
 embeddings.py   EmbeddingsService.create         # 校验→编排→向量校验
 models.py       ModelCatalog.list/get            # availability
 routing.py      Router.admit/snapshot            # 许可/队列/候选
-providers/base.py    ProviderResult/ProviderAdapter
+providers/base.py    ProviderResult/ProviderAdapter（embed → dict）
 providers/openai.py  OpenAIProvider.complete/embed/probe/list_models
 providers/local.py   LocalProvider（复用 OpenAI 传输）
-usage.py        UsageRecorder.authorize_dispatch/bind_backend/finish
+usage.py        UsageRecorder.authorize_dispatch/bind_backend/finish/page/reset_usage
 ```
 
 ### 3.1 `responses.py` / `embeddings.py` · 编排
@@ -306,7 +306,7 @@ ProviderResult {
 
   `VRC-INF-003`。
 
-**4.2.4 `Candidate`（`routing.py`）**
+**4.2.4 `Candidate`（`registry.py`）**
 
 ```text
 @dataclass(frozen=True, slots=True)
@@ -324,7 +324,7 @@ Candidate {
 
 - **Data/Type ID、用途与来源**
 
-  `D-CANDIDATE`；Routing 候选。唯一来源=本 ISD 与 Registry 视图。
+  `D-CANDIDATE`；Routing 候选；权威 M004 `registry.py`，本层只读。唯一来源=Registry（M004）视图。
 
 - **`level_id` / `deployment_id` / `provider_id` / `endpoint` / `backend_model` / `kind`**（必填）
 
@@ -474,7 +474,7 @@ create(principal, request_id, body, diagnostics=None, correlation_id=None, out=N
 
 - **错误与合法下一步**
 
-  - **错误输出 / 触发条件 / 优先级**：E-INF-VALIDATE（ERR-REQ-VALIDATION / ERR-REQ-UNSUPPORTED / ERR-REQ-FIELD）：400（`invalid_request`/`unsupported_request`/`unsupported_field`/`unsupported_model`）；E-INF-MODEL（ERR-MODEL-NOTFOUND · model_not_found）：404 `model_not_found`；E-INF-ADMIT（ERR-RATE-LIMIT / ERR-MODEL-UNAVAIL）：429（+`Retry-After`）/503；E-INF-UPSTREAM（ERR-PROVIDER-UNAVAIL / ERR-PROVIDER-FAIL）：503 `provider_unavailable`
+  - **错误输出 / 触发条件 / 优先级**：E-INF-VALIDATE（ERR-REQ-VALIDATION / ERR-REQ-UNSUPPORTED / ERR-REQ-FIELD）：400（`invalid_request`/`unsupported_request`/`unsupported_field`/`unsupported_model`）；E-INF-MODEL（ERR-MODEL-NOTFOUND · model_not_found）：404 `model_not_found`；E-INF-ADMIT（ERR-RATE-LIMIT / ERR-MODEL-UNAVAIL / ERR-MODEL-NOTFOUND）：404/429（+`Retry-After`）/503；E-INF-UPSTREAM（ERR-PROVIDER-UNAVAIL / ERR-PROVIDER-FAIL）：503 `provider_unavailable`/`provider_secret_unavailable`、上游 4xx 原码 `provider_error`
   - **E-INF-VALIDATE（公共 ERR-REQ-VALIDATION / ERR-REQ-UNSUPPORTED / ERR-REQ-FIELD）**
     - **底层异常 / 失败事实**：字段/能力不满足
     - **模块是否处理及处理函数**：reject（`create` 前段）
@@ -491,19 +491,19 @@ create(principal, request_id, body, diagnostics=None, correlation_id=None, out=N
     - **日志级别 / 脱敏 / 关联字段**：无
     - **是否可重试及前提**：换模型
     - **状态与副作用影响 / 验证项**：`VRC-INF-004`
-  - **E-INF-ADMIT（公共 ERR-RATE-LIMIT / ERR-MODEL-UNAVAIL）**
-    - **底层异常 / 失败事实**：队列满/等待超时/全不健康
+  - **E-INF-ADMIT（公共 ERR-RATE-LIMIT / ERR-MODEL-UNAVAIL / ERR-MODEL-NOTFOUND）**
+    - **底层异常 / 失败事实**：无候选/队列满/等待超时/全不健康
     - **模块是否处理及处理函数**：reject（Router）
-    - **Typed 异常与原生异常所有权**：`ApiError(429/503)`
-    - **宿主 / public payload 或状态码**：429（+`Retry-After`）/503
+    - **Typed 异常与原生异常所有权**：`ApiError(404/429/503)`
+    - **宿主 / public payload 或状态码**：404 `model_not_found`/429（+`Retry-After`）/503
     - **日志级别 / 脱敏 / 关联字段**：无
     - **是否可重试及前提**：按 `Retry-After`
     - **状态与副作用影响 / 验证项**：未调用后端；`VRC-INF-004`
   - **E-INF-UPSTREAM（公共 ERR-PROVIDER-UNAVAIL / ERR-PROVIDER-FAIL）**
-    - **底层异常 / 失败事实**：连接/首字节/SSE 空闲超时或 5xx
+    - **底层异常 / 失败事实**：连接/首字节/SSE 空闲超时、5xx、Secret 不可解析，或上游 4xx
     - **模块是否处理及处理函数**：propagate（Adapter 映射 typed error）
     - **Typed 异常与原生异常所有权**：`ApiError(503/4xx)`；由 M001 映射
-    - **宿主 / public payload 或状态码**：503 `provider_unavailable`
+    - **宿主 / public payload 或状态码**：503 `provider_unavailable`/`provider_secret_unavailable`；上游 4xx 原码 `provider_error`
     - **日志级别 / 脱敏 / 关联字段**：warning（脱敏）
     - **是否可重试及前提**：Consumer 按标准 client retry policy；**本系统不重放**
     - **状态与副作用影响 / 验证项**：记 unknown usage；`VRC-INF-003`
@@ -547,7 +547,7 @@ create(principal, request_id, body) -> dict
 
 - **错误与合法下一步**
 
-  - **错误输出 / 触发条件 / 优先级**：E-INF-VALIDATE（ERR-REQ-VALIDATION / ERR-REQ-UNSUPPORTED / ERR-REQ-FIELD）：400（`invalid_request`/`unsupported_request`/`unsupported_field`/`unsupported_model`）；E-INF-UPSTREAM（ERR-PROVIDER-UNAVAIL / ERR-PROVIDER-FAIL）：503 `provider_unavailable`
+  - **错误输出 / 触发条件 / 优先级**：E-INF-VALIDATE（ERR-REQ-VALIDATION / ERR-REQ-UNSUPPORTED / ERR-REQ-FIELD）：400（`invalid_request`/`unsupported_request`/`unsupported_field`/`unsupported_model`）；E-INF-MODEL（ERR-MODEL-NOTFOUND · model_not_found）：404 `model_not_found`；E-INF-UPSTREAM（ERR-PROVIDER-UNAVAIL / ERR-PROVIDER-FAIL）：503 `provider_unavailable`/`provider_secret_unavailable`、上游 4xx 原码 `provider_error`
   - **E-INF-VALIDATE（公共 ERR-REQ-VALIDATION / ERR-REQ-UNSUPPORTED / ERR-REQ-FIELD）**
     - **底层异常 / 失败事实**：字段/能力不满足
     - **模块是否处理及处理函数**：reject（`create` 前段）
@@ -557,10 +557,10 @@ create(principal, request_id, body) -> dict
     - **是否可重试及前提**：修请求
     - **状态与副作用影响 / 验证项**：无副作用；`VRC-INF-001`
   - **E-INF-UPSTREAM（公共 ERR-PROVIDER-UNAVAIL / ERR-PROVIDER-FAIL）**
-    - **底层异常 / 失败事实**：连接/首字节/SSE 空闲超时或 5xx
+    - **底层异常 / 失败事实**：连接/首字节/SSE 空闲超时、5xx、Secret 不可解析，或上游 4xx
     - **模块是否处理及处理函数**：propagate（Adapter 映射 typed error）
     - **Typed 异常与原生异常所有权**：`ApiError(503/4xx)`；由 M001 映射
-    - **宿主 / public payload 或状态码**：503 `provider_unavailable`
+    - **宿主 / public payload 或状态码**：503 `provider_unavailable`/`provider_secret_unavailable`；上游 4xx 原码 `provider_error`
     - **日志级别 / 脱敏 / 关联字段**：warning（脱敏）
     - **是否可重试及前提**：Consumer 按标准 client retry policy；**本系统不重放**
     - **状态与副作用影响 / 验证项**：记 unknown usage；`VRC-INF-003`
@@ -601,7 +601,7 @@ get(model_id) -> dict
 
 - **成功输出与保证**
 
-  - **成功输出 / 数据结构 / 后置条件**：`{id,object,owned_by,availability,capabilities}`
+  - **成功输出 / 数据结构 / 后置条件**：`list()` → `{object:"list",data:[{id,object,created,owned_by,availability,capabilities}]}`；`get()` → 单个 `ModelView`（含 `created`）
 
 - **错误与合法下一步**
 
@@ -647,7 +647,7 @@ snapshot() -> dict
 - **输入与前提**
 
   - **输入参数 / 数据结构 authority**：`level_id`
-  - **输入约束 / 校验顺序 / 失败映射**：FIFO 队列 32；等待 30 s；provider 限流；失败 → `E-INF-ADMIT`
+  - **输入约束 / 校验顺序 / 失败映射**：无候选 → 404 `model_not_found`；FIFO 队列 32；等待 30 s；provider 限流；失败 → `E-INF-MODEL`/`E-INF-ADMIT`
 
 - **成功输出与保证**
 
@@ -655,12 +655,12 @@ snapshot() -> dict
 
 - **错误与合法下一步**
 
-  - **错误输出 / 触发条件 / 优先级**：E-INF-ADMIT（ERR-RATE-LIMIT / ERR-MODEL-UNAVAIL）：429（+`Retry-After`）/503
-  - **E-INF-ADMIT（公共 ERR-RATE-LIMIT / ERR-MODEL-UNAVAIL）**
-    - **底层异常 / 失败事实**：队列满/等待超时/全不健康
+  - **错误输出 / 触发条件 / 优先级**：E-INF-MODEL（ERR-MODEL-NOTFOUND · model_not_found）：404 `model_not_found`；E-INF-ADMIT（ERR-RATE-LIMIT / ERR-MODEL-UNAVAIL）：429（+`Retry-After`）/503
+  - **E-INF-ADMIT（公共 ERR-RATE-LIMIT / ERR-MODEL-UNAVAIL / ERR-MODEL-NOTFOUND）**
+    - **底层异常 / 失败事实**：无候选/队列满/等待超时/全不健康
     - **模块是否处理及处理函数**：reject（Router）
-    - **Typed 异常与原生异常所有权**：`ApiError(429/503)`
-    - **宿主 / public payload 或状态码**：429（+`Retry-After`）/503
+    - **Typed 异常与原生异常所有权**：`ApiError(404/429/503)`
+    - **宿主 / public payload 或状态码**：404 `model_not_found`/429（+`Retry-After`）/503
     - **日志级别 / 脱敏 / 关联字段**：无
     - **是否可重试及前提**：按 `Retry-After`
     - **状态与副作用影响 / 验证项**：未调用后端；`VRC-INF-004`
@@ -704,7 +704,7 @@ complete(model, request) -> ProviderResult
 
 - **错误与合法下一步**
 
-  - **错误输出 / 触发条件 / 优先级**：E-INF-CONTRACT（ERR-PROVIDER-CONTRACT · provider_contract_error）：502 `provider_contract_error`；E-INF-UPSTREAM（ERR-PROVIDER-UNAVAIL / ERR-PROVIDER-FAIL）：503 `provider_unavailable`
+  - **错误输出 / 触发条件 / 优先级**：E-INF-CONTRACT（ERR-PROVIDER-CONTRACT · provider_contract_error）：502 `provider_contract_error`；E-INF-UPSTREAM（ERR-PROVIDER-UNAVAIL / ERR-PROVIDER-FAIL）：503 `provider_unavailable`/`provider_secret_unavailable`、上游 4xx 原码 `provider_error`
   - **E-INF-CONTRACT（公共 ERR-PROVIDER-CONTRACT · provider_contract_error）**
     - **底层异常 / 失败事实**：terminal 缺失/多个/不一致；载荷非法
     - **模块是否处理及处理函数**：reject（Adapter）
@@ -714,10 +714,10 @@ complete(model, request) -> ProviderResult
     - **是否可重试及前提**：无
     - **状态与副作用影响 / 验证项**：可能已调用后端；`VRC-INF-003`
   - **E-INF-UPSTREAM（公共 ERR-PROVIDER-UNAVAIL / ERR-PROVIDER-FAIL）**
-    - **底层异常 / 失败事实**：连接/首字节/SSE 空闲超时或 5xx
+    - **底层异常 / 失败事实**：连接/首字节/SSE 空闲超时、5xx、Secret 不可解析，或上游 4xx
     - **模块是否处理及处理函数**：propagate（Adapter 映射 typed error）
     - **Typed 异常与原生异常所有权**：`ApiError(503/4xx)`；由 M001 映射
-    - **宿主 / public payload 或状态码**：503 `provider_unavailable`
+    - **宿主 / public payload 或状态码**：503 `provider_unavailable`/`provider_secret_unavailable`；上游 4xx 原码 `provider_error`
     - **日志级别 / 脱敏 / 关联字段**：warning（脱敏）
     - **是否可重试及前提**：Consumer 按标准 client retry policy；**本系统不重放**
     - **状态与副作用影响 / 验证项**：记 unknown usage；`VRC-INF-003`
@@ -761,7 +761,7 @@ embed(model, request) -> dict
 
 - **错误与合法下一步**
 
-  - **错误输出 / 触发条件 / 优先级**：E-INF-CONTRACT（ERR-PROVIDER-CONTRACT · provider_contract_error）：502 `provider_contract_error`；E-INF-UPSTREAM（ERR-PROVIDER-UNAVAIL / ERR-PROVIDER-FAIL）：503 `provider_unavailable`
+  - **错误输出 / 触发条件 / 优先级**：E-INF-CONTRACT（ERR-PROVIDER-CONTRACT · provider_contract_error）：502 `provider_contract_error`；E-INF-UPSTREAM（ERR-PROVIDER-UNAVAIL / ERR-PROVIDER-FAIL）：503 `provider_unavailable`/`provider_secret_unavailable`、上游 4xx 原码 `provider_error`
   - **E-INF-CONTRACT（公共 ERR-PROVIDER-CONTRACT · provider_contract_error）**
     - **底层异常 / 失败事实**：terminal 缺失/多个/不一致；载荷非法
     - **模块是否处理及处理函数**：reject（Adapter）
@@ -771,10 +771,10 @@ embed(model, request) -> dict
     - **是否可重试及前提**：无
     - **状态与副作用影响 / 验证项**：可能已调用后端；`VRC-INF-003`
   - **E-INF-UPSTREAM（公共 ERR-PROVIDER-UNAVAIL / ERR-PROVIDER-FAIL）**
-    - **底层异常 / 失败事实**：连接/首字节/SSE 空闲超时或 5xx
+    - **底层异常 / 失败事实**：连接/首字节/SSE 空闲超时、5xx、Secret 不可解析，或上游 4xx
     - **模块是否处理及处理函数**：propagate（Adapter 映射 typed error）
     - **Typed 异常与原生异常所有权**：`ApiError(503/4xx)`；由 M001 映射
-    - **宿主 / public payload 或状态码**：503 `provider_unavailable`
+    - **宿主 / public payload 或状态码**：503 `provider_unavailable`/`provider_secret_unavailable`；上游 4xx 原码 `provider_error`
     - **日志级别 / 脱敏 / 关联字段**：warning（脱敏）
     - **是否可重试及前提**：Consumer 按标准 client retry policy；**本系统不重放**
     - **状态与副作用影响 / 验证项**：记 unknown usage；`VRC-INF-003`
@@ -798,8 +798,8 @@ embed(model, request) -> dict
 
 ```text
 authorize_dispatch(principal, request_id, model, endpoint) -> None
-bind_backend(...)
-finish(principal, request_id, usage) -> None
+bind_backend(principal, request_id, provider_id, deployment_id) -> None
+finish(principal, request_id, usage, source_override=None) -> None
 ```
 
 - **Interface/Member ID、用途、提供责任与唯一来源**
@@ -807,7 +807,7 @@ finish(principal, request_id, usage) -> None
   - **Interface/Member ID、状态**：`FUNC-INF-USAGE` / PLANNED
   - **文件 / symbol / 可见性**：`usage.py` / `authorize_dispatch/bind_backend/finish` / private
   - **原成员 ID 或私有来源**：`F-INF-USAGE`、`R-MET-01`
-  - **完整签名与 caller**：`authorize_dispatch(principal, request_id, model, endpoint) -> None`；`bind_backend(...)`；`finish(principal, request_id, usage) -> None`；caller=编排
+  - **完整签名与 caller**：`authorize_dispatch(principal, request_id, model, endpoint) -> None`；`bind_backend(principal, request_id, provider_id, deployment_id) -> None`；`finish(principal, request_id, usage, source_override=None) -> None`；caller=编排
 
 - **输入与前提**
 
@@ -836,6 +836,49 @@ finish(principal, request_id, usage) -> None
   - **不可改变的规则 / Constraint ID**：只追加、head 单调、unknown 不补零
   - **实现自由度**：存储实现
   - **实现状态 / 验证项**：PLANNED；`VRC-INF-003`
+
+#### 5.1.8 `page(principal, cursor, limit, admin, since, until, model, request_id) -> dict` / `reset_usage(model, deployment_id, conn=None) -> dict`
+
+```text
+page(principal, cursor, limit=50, admin=False, since=None, until=None, model=None, request_id=None) -> dict
+reset_usage(model=None, deployment_id=None, conn=None) -> dict
+```
+
+- **Interface/Member ID、用途、提供责任与唯一来源**
+
+  - **Interface/Member ID、状态**：`FUNC-INF-USAGE-PAGE` / PLANNED
+  - **文件 / symbol / 可见性**：`usage.py` / `UsageRecorder.page`、`UsageRecorder.reset_usage` / private
+  - **原成员 ID 或私有来源**：`F-INF-USAGE`、`R-MET-01`（M004 消费）
+  - **完整签名与 caller**：`page(principal, cursor, limit=50, admin=False, since=None, until=None, model=None, request_id=None) -> dict`；`reset_usage(model=None, deployment_id=None, conn=None) -> dict`；caller=M001/M004
+
+- **输入与前提**
+
+  - **输入参数 / 数据结构 authority**：分页/范围参数；`since`/`until` 为 RFC3339
+  - **输入约束 / 校验顺序 / 失败映射**：`[since,until)` 必需（缺失/倒置 → 400 `invalid_request`）；cursor 冻结；跨 principal → 403
+
+- **成功输出与保证**
+
+  - **成功输出 / 数据结构 / 后置条件**：`{data,next_cursor,has_more,snapshot_id,snapshot_at}` / `{deleted}`
+
+- **错误与合法下一步**
+
+  - **错误输出 / 触发条件 / 优先级**：400 `invalid_request`/`cursor_expired`；403 `permission_denied`；503 `usage_store_unavailable`
+
+- **交互与生命周期**
+
+  - **副作用 / 执行上下文 / 幂等性**：首屏写 `query_snapshots` + 冻结项；清空删除；非幂等
+  - **输入输出 ownership 与寿命**：账本/快照持久
+  - **Thread-safe / reentrant**：经事务/快照
+  - **Nested-call policy**：allowed
+  - **Transaction participation**：creates new
+  - **Blocking / timeout / cancellation**：`timeout=10`
+
+- **实现与验证**
+
+  - **不可改变的规则 / Constraint ID**：只追加、head 单调、unknown 不补零、冻结分页
+  - **实现自由度**：分页/范围实现
+  - **实现状态 / 验证项**：PLANNED；`VRC-INF-003`
+
 ### 5.2 消息与数据流接口（适用时）
 
 不适用（本模块不拥有消息/队列/流；与 M001/M007 的交接均为同步函数调用）。
@@ -996,8 +1039,8 @@ flowchart TD
 ### 8.1 配置实现（条件项）
 
 - **适用性 / 固定 authority**：applicable（超时/队列/测试注入）
-- **配置 key / 来源 / 优先级**：`LLMTIER_SLOW_ADAPTER_DELAY`（测试用）；运行时超时 30 s/60 s、队列 32、等待 30 s 为固定常量
-- **类型 / 单位 / 默认值 / 范围 / 字段约束**：`SLOW_ADAPTER_DELAY` 秒（浮点）；常量见上
+- **配置 key / 来源 / 优先级**：`LLMTIER_SLOW_ADAPTER_DELAY`（测试用）；队列 32、等待 30 s 为 `routing.py` 固定常量；上游超时读自 `deployment_runtime_profiles.connect_timeout_ms`/`stream_idle_timeout_ms`（缺省 30000/60000）
+- **类型 / 单位 / 默认值 / 范围 / 字段约束**：`SLOW_ADAPTER_DELAY` 秒（浮点）；profile 超时为毫秒
 - **读取 / 解析 / 校验 symbol**：`ResponsesService._adapter`（测试注入）
 - **生效点 / reload / 原子性 / 在途操作**：测试注入进程级；无 reload
 - **缺失 / 非法 / 部分更新的错误出口**：非法浮点 → 异常（仅测试）

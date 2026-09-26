@@ -72,9 +72,9 @@
 - **上级需求 / Constraint ID**：`C-CFG-1`
 - **调用方**：启动
 - **输入与前提**：`migrations/*.sql`
-- **行为**：按序执行 `executescript`；`PRAGMA integrity_check`
+- **行为**：注释行剥离后**逐语句**执行（不用 `executescript`）；`PRAGMA integrity_check`
 - **输出**：表就绪 / 异常
-- **错误与边界**：非 `ok` → `RuntimeError`
+- **错误与边界**：非 `ok` → `ApiError(503,"schema_integrity_failed")`
 - **验收条件**：迁移幂等（`IF NOT EXISTS`）；完整性 ok
 
 ### 2.3 `F-UTIL-TXN` · 事务
@@ -468,7 +468,7 @@ migrations/*.sql {
 - **触发/适用条件**：启动
 - **图与正文位置**：§5.1.3
 - **正常出口**：表就绪
-- **异常出口**：`RuntimeError`（integrity）
+- **异常出口**：`ApiError(503,"schema_integrity_failed")`（integrity）；`schema_unknown`/`schema_version_mismatch`（库状态）
 
 #### 7.2 `P-UTIL-TXN` · 事务
 - **触发/适用条件**：任意写
@@ -480,7 +480,7 @@ migrations/*.sql {
 - **触发/适用条件**：请求 `finally`
 - **图与正文位置**：§5.1.1
 - **正常出口**：fd 释放
-- **异常出口**：静默
+- **异常出口**：向上抛（**不吞异常**）
 
 ## 8. 关键算法与业务规则
 
@@ -610,7 +610,7 @@ close() -> None
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-UTIL-CLOSE`；释放当前线程连接；M007 提供；状态=Implemented；唯一契约=本设计；文件·symbol `store.py` `Store.close`。
 - **输入与前提**：无。
 - **成功输出与保证**：无返回——关闭当前线程连接并置缓存 `None`。
-- **错误与合法下一步**：关闭失败静默（不抛）。
+- **错误与合法下一步**：关闭失败**向上抛**（`Store` 不吞异常），由调用方/宿主兜底处理。
 - **交互与生命周期**：每请求 `finally`/停机调用；幂等（无连接时不动作）。
 - **实现与验证**：正常：请求后 fd 释放；边界：重复 `close()` 无副作用。`VRC-UTIL-001`；`store.py`。
 
@@ -780,8 +780,8 @@ close() -> None
 - **本地验证 / 组合验证交接**：`VRC-UTIL-002`
 
 #### A.2 `llmtier-observability-mechanism` / `R-OBS-06` · 观测表存储
-- **来源 Capability / Step / Constraint / 接口成员**：§8 4 张表
-- **本模块必须负责的行为与保证**：4 张表的持久化与事务
+- **来源 Capability / Step / Constraint / 接口成员**：§8 6 张表
+- **本模块必须负责的行为与保证**：6 张表的持久化与事务
 - **本模块提供 / 消费的接口**：`Store`
 - **本文落实位置**：§6.7、§13.1.2
 - **代码文件 / symbol 或 NOT_IMPLEMENTED**：`migrations/002_observability.sql`

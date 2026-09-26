@@ -118,8 +118,8 @@
 - **调用方**：M001（`POST /v1/probes`）
 - **输入与前提**：`{deployment_id, confirm_external_call=true}`
 - **行为**：适配器 `probe()` → `apply_probe_result` 写健康 → 审计
-- **输出**：`{deployment_id, status, checked_at}`
-- **错误与边界**：400 `confirmation_required`；404
+- **输出**：`{deployment_id, status, checked_at, may_have_incurred_cost}`
+- **错误与边界**：400 `confirmation_required`；404 `not_found`
 - **验收条件**：未确认不触网；探测结果落库
 
 ### 2.4 `F-MGMT-USAGE-QUERY` · 用量查询
@@ -173,7 +173,7 @@
 - **输入与前提**：GET 只读快照；POST 需 `confirm_external_call=true`
 - **行为**：GET 读库；POST 调 provider usage API 并持久化快照
 - **输出**：账号用量快照（window/percent/reset_at）
-- **错误与边界**：400 `invalid_request`；404；快照 `unavailable`+`error`
+- **错误与边界**：400 `invalid_request`；404 `not_found`；未确认 POST → 400 `confirmation_required`；快照 `unavailable`+`error`
 - **验收条件**：GET 不触网；缺字段保持 Unknown
 
 ## 3. UI、CLI、服务端点或设备操作面
@@ -255,17 +255,17 @@
 
 #### 5.1.4 `I4` · 探测
 - **职责与非职责**：适配器探活、健康落库、审计；不做计费探测
-- **输入、处理与输出**：`{deployment_id, confirm}` → `{status, checked_at}`
+- **输入、处理与输出**：`(actor, body={deployment_id, confirm_external_call}, request_id)` → `{deployment_id, status, checked_at, may_have_incurred_cost}`
 - **协作对象**：I1、I2、I5、M003 适配器
 - **文件 / symbol / 实现状态**：`admin.py` `probe`、`health.py` `apply_probe_result`；Implemented
-- **拆分依据与替代方案代价**：探测写 `deployments.health` + `probe_results`，与配置分离
+- **拆分依据与替代方案代价**：探测写 `deployments.health` + `probe_results`，与配置分离；健康四值（含 `degraded`）
 
 #### 5.1.5 `I5` · 审计
 - **职责与非职责**：脱敏审计写入与查询；不含 prompt/output/Secret
 - **输入、处理与输出**：`(actor, action, target, result, request_id)` → 行
 - **协作对象**：I1、I2、I4
 - **文件 / symbol / 实现状态**：`audit.py` `AuditLog`；Implemented
-- **拆分依据与替代方案代价**：审计独立于业务事务（管理动作成功后写）
+- **拆分依据与替代方案代价**：审计经 `mutate` 传入的同一连接与 Registry 写**在同一事务**提交，动作与审计原子；查询独立
 
 #### 5.1.6 `I6` · 运行日志
 - **职责与非职责**：写入前脱敏（`_SENSITIVE`）、结构化查询；不含原始日志
@@ -292,9 +292,9 @@
 
 #### 5.2.1 `CALL-MUTATE` · 一次管理动作
 - **入口与调用上下文**：M001 → `AdminService.mutate`（请求线程）
-- **调用链**：`mutate` → `fn()`（`Registry.create_*` / `update_*` / `delete_*` 或 `usage.reset_usage` 或 `diagnostics.set_*`）→ `audit.record` + `logs.record`
+- **调用链**：`mutate` → `fn(conn)`（`Registry.create_*` / `update_*` / `delete_*` 或 `usage.reset_usage` 或 `diagnostics.set_*`）→ 同一连接写 `audit.record` + 事务提交后 `logs.record`
 - **逐步传递的数据**：`(actor, action, target, request_id)`；`fn` 返回视图/计数/开关
-- **返回、异常与清理**：成功 → result；异常 → 记 failed 后重抛
+- **返回、异常与清理**：成功 → 结果；异常 → 同一/新事务记 failed 后重抛
 - **对应流程 / 接口 / 验证**：§7 P-ADMIN-MUTATE / `VRC-MGMT-002/004`
 
 #### 5.2.2 `CALL-PROBE` · 一次探测
@@ -395,7 +395,7 @@ CapabilityKey {
 
 - **跨字段与寿命**：
 
-  键集合固定为 12，缺键即非法；等级能力 = 绑定 deployment 的能力**交集**；`Embedding-v1` 必须 embedding-only 且 space/dim/上限冻结；随配置行持久，版本随 `version`。
+  键集合固定为 12；运行期 CRUD 写入要求 12 键齐备（缺键即非法），bootstrap 输入允许缺键并按默认值补齐后落库；等级能力 = 绑定 deployment 的能力**交集**（deployment 能力来自 deployment 自身，provider 不声明能力）；`Embedding-v1` 必须 embedding-only 且 space/dim/上限冻结；随配置行持久，版本随 `version`。
 
 - **合法/拒绝实例**：
 
@@ -408,7 +408,7 @@ CapabilityKey {
 **6.1.2 `Health`（公共基础类型与枚举）**
 
 ```text
-enum Health { healthy, unhealthy, unknown }
+enum Health { healthy, degraded, unhealthy, unknown }
 ```
 
 - **Data/Type ID、用途与来源**：
@@ -418,6 +418,10 @@ enum Health { healthy, unhealthy, unknown }
 - **`healthy`**：
 
   探测通过。
+
+- **`degraded`**：
+
+  降级（部分可用/降权），保存或探测均可写入。
 
 - **`unhealthy`**：
 
@@ -429,11 +433,11 @@ enum Health { healthy, unhealthy, unknown }
 
 - **跨字段与寿命**：
 
-  只能由探测结果 `apply_probe_result` 或启动初始值写入；保存配置 ≠ 健康恢复；持久 `deployments.health`，探测覆盖。
+  只能由探测结果 `apply_probe_result`（接受 `healthy/degraded/unhealthy/unknown` 四值）或启动初始值写入；保存配置 ≠ 健康恢复；持久 `deployments.health`，探测覆盖。
 
 - **合法/拒绝实例**：
 
-  合法 `healthy`；边界：未探测 → `unknown`。
+  合法 `healthy`/`degraded`；边界：未探测 → `unknown`。
 
 - **验证**：
 
@@ -753,9 +757,10 @@ QuerySnapshot {
   principal_id: string,
   snapshot_kind: string,
   filter_digest: string,
+  authorization_digest: string,
   created_at: timestamp,
   expires_at: timestamp,
-  items: [{ ordinal: int, frozen_view_json: string }]
+  items: [{ ordinal: int, request_id: string, record_version: int?, frozen_view_json: string, etag: string? }]
 }
 ```
 
@@ -779,13 +784,17 @@ QuerySnapshot {
 
   必填字符串；过滤条件摘要。
 
+- **`authorization_digest`**：
+
+  必填字符串；授权主体（principal 或 `admin`）摘要，用于每页权限复核。
+
 - **`created_at`/`expires_at`**：
 
   必填时间戳；创建与到期时刻（TTL 10 分钟）。
 
-- **`items[].ordinal`/`frozen_view_json`**：
+- **`items[].ordinal`/`request_id`/`record_version`/`frozen_view_json`/`etag`**：
 
-  必填整数/字符串；冻结项顺序与视图。
+  必填整数/字符串/可空整数/字符串/可空字符串；冻结项顺序、关联账本身份（版本/ETag）与视图。
 
 - **跨字段与寿命**：
 
@@ -803,9 +812,9 @@ QuerySnapshot {
 
 ```text
 AccountUsageSnapshot {
-  provider: string,
-  source: UsageProvider,
-  status: string,          // ok | unavailable | not_refreshed
+  provider: string,        // usage-provider 类别：minimax | volc | local | none
+  source: string,          // credentials_missing | provider_api | provider_api_error | store | quota_config | unsupported
+  status: string,          // ok | unavailable | not_refreshed | unlimited | unsupported
   windows: object[],
   checked_at: timestamp,
   error: string?
@@ -818,15 +827,15 @@ AccountUsageSnapshot {
 
 - **`provider`**：
 
-  必填字符串；provider id。
+  必填字符串；usage-provider 类别，取 §6.1.3 `UsageProvider`（`minimax`/`volc`/`local`/`none`），非 provider 记录 id。
 
 - **`source`**：
 
-  必填，取 §6.1.3 `UsageProvider`。
+  必填字符串，∈ {`credentials_missing`,`provider_api`,`provider_api_error`,`store`,`quota_config`,`unsupported`}；快照来源/失败类别。
 
 - **`status`**：
 
-  必填字符串，∈ {`ok`,`unavailable`,`not_refreshed`}。
+  必填字符串，∈ {`ok`,`unavailable`,`not_refreshed`,`unlimited`,`unsupported`}。
 
 - **`windows`**：
 
@@ -846,7 +855,7 @@ AccountUsageSnapshot {
 
 - **合法/拒绝实例**：
 
-  合法：快照窗口；边界：上游失败 → `unavailable`+`error`。
+  合法：`status=ok` + `source=provider_api`；边界：上游失败 → `status=unavailable` + `source=provider_api_error`；未刷新 → `status=not_refreshed` + `source=store`；`local` 刷新 → `status=unlimited` + `source=quota_config`。
 
 - **验证**：
 
@@ -936,7 +945,7 @@ BootstrapConfig {
 
 - **`providers`/`deployments`/`service_levels`**：
 
-  必填数组；字段/引用规则见 M004 §2.1。
+  必填数组；字段/引用规则见 M004 §2.1。deployment `capabilities` 允许缺键（缺省补默认值）后落库；`service_levels` 未列出的固定 Tier 以空成员/空能力补齐。
 
 - **跨字段与寿命**：
 
@@ -1036,13 +1045,13 @@ Authority = `util/migrations/001_initial.sql`、`002_observability.sql`（由 M0
 | `deployment_runtime_profiles` | `deployment_id` | I1 | 并发/限流 profile |
 | `provider_usage_profiles` | `provider_id` | I1 | `usage_provider` |
 | `provider_usage_snapshots` | `provider_id` | I7 / M001 | 账号用量快照 |
-| `provider_request_bindings` | `request_id` | I8 / M-METER | 绑定 |
-| `usage_obligations` | `request_id` | I8 / M-METER | unknown 义务 |
-| `usage_record_versions` | `(request_id,record_version)` | I8 / M-METER | 只追加版本 |
-| `usage_heads` | `request_id` | I8 / M-METER | 最高版本指针 |
-| `query_snapshots` | `snapshot_id` | I2/I8 / I2 | 分页冻结（TTL） |
-| `query_snapshot_items` | `(snapshot_id,ordinal)` | I2/I8 / I2 | 冻结项 |
-| `probe_results` | `id` | I4 / M001 | 探测结果 |
+| `provider_request_bindings` | `(principal_id,request_id)` | I8 / M-METER | 绑定 |
+| `usage_obligations` | `(principal_id,request_id)` | I8 / M-METER | unknown 义务 |
+| `usage_record_versions` | `(principal_id,request_id,record_version)` | I8 / M-METER | 只追加版本 |
+| `usage_heads` | `(principal_id,request_id)` | I8 / M-METER | 最高版本指针 |
+| `query_snapshots` | `snapshot_id` | I2/I8 / I2 | 分页冻结（含 `authorization_digest`，TTL） |
+| `query_snapshot_items` | `(snapshot_id,ordinal)` | I2/I8 / I2 | 冻结项（`request_id`/`record_version`/`etag`） |
+| `probe_results` | `deployment_id` | I4 / M001 | 探测结果 |
 | `audit_events` | `id` | I5 / I2 | 审计 |
 
 - **约束 / 不变量**：写经 `Store.transaction(immediate=True)`；`version` 乐观并发；引用保护（不级联删除）；`record_version` 只追加。
@@ -1077,7 +1086,7 @@ Authority = `util/migrations/001_initial.sql`、`002_observability.sql`（由 M0
 
 图 M004-P1 · P-ADMIN-MUTATE 与 P-PROBE：管理动作统一经审计包裹（成功/失败分支）；探测写健康并审计。
 
-**内部流程正文**：管理动作由 M001 调用 `mutate`，内部执行 `fn`（Registry 事务 / `reset_usage` / 诊断开关）；成功记 `success` 审计与 info 日志并返回结果，失败记 `failed` 审计与 warning 日志后重抛，`fn` 本身在 Store 事务内保证回滚。探测由 `probe` 二次确认后调用适配器 `probe()`，结果经 `apply_probe_result` 落库并审计。查询走 `query_snapshots` 冻结分页。
+**内部流程正文**：管理动作由 M001 调用 `mutate`，内部在**同一事务**执行 `fn(conn)`（Registry 事务 / `reset_usage` / 诊断开关）并写 `success` 审计，提交后写 info 日志并返回结果；失败记 `failed` 审计与 warning 日志后重抛，`fn` 本身在 Store 事务内保证回滚（`atomic=False` 仅供带外部调用的账号刷新使用）。探测由 `probe` 二次确认后调用适配器 `probe()`，结果经 `apply_probe_result` 落库并审计。查询走 `query_snapshots` 冻结分页。
 
 #### 7.1 `P-ADMIN-MUTATE` · 管理动作
 - **触发/适用条件**：任意管理面写操作
@@ -1088,8 +1097,8 @@ Authority = `util/migrations/001_initial.sql`、`002_observability.sql`（由 M0
 #### 7.2 `P-PROBE` · 探测
 - **触发/适用条件**：`POST /v1/probes`
 - **图与正文位置**：本段 / 图 M004-P1
-- **正常出口**：`{status, checked_at}`
-- **异常出口**：400 未确认；探测 false → `unhealthy`
+- **正常出口**：`{deployment_id, status, checked_at, may_have_incurred_cost}`
+- **异常出口**：400 `confirmation_required`；探测 false → `unhealthy`
 
 #### 7.3 `P-MGMT-QUERY` · 分页查询
 - **触发/适用条件**：用量/审计/日志查询
@@ -1125,8 +1134,8 @@ Authority = `util/migrations/001_initial.sql`、`002_observability.sql`（由 M0
 
 #### 8.4 `RULE-MGMT-PROBE` · 探测确认与落库
 - **输入前提 / 适用条件**：`POST /v1/probes`
-- **算法 / 规则 / 选择依据**：必须 `confirm_external_call=true`；适配器 `probe()`（5 s，GET `/models`）→ `healthy/unhealthy`；写 `deployments.health` + `probe_results`
-- **结果 / 不变量 / 边界**：保存/health/probe 三态分离
+- **算法 / 规则 / 选择依据**：必须 `confirm_external_call=true`；适配器 `probe()`（5 s，GET `/models`）→ `healthy/unhealthy`；`apply_probe_result` 接受 `healthy/degraded/unhealthy/unknown` 并写 `deployments.health` + `probe_results`（PK `deployment_id`）
+- **结果 / 不变量 / 边界**：保存/health/probe 三态分离；四值健康枚举
 - **复杂度 / 资源限制**：单次外部 HTTP
 - **允许替换范围 / 不可改变保证**：实现可自选；确认语义不可变
 - **具体输入推演 / 验证项**：未确认 → 400 `confirmation_required`；`VRC-MGMT-005`
@@ -1153,15 +1162,15 @@ Authority = `util/migrations/001_initial.sql`、`002_observability.sql`（由 M0
 
 ### 9.1 API（适用时）
 
-#### `Registry.bootstrap_settings(path) -> Registry`
+#### `Registry.bootstrap_settings(path) -> None`
 
 ```text
-bootstrap_settings(path: str) -> Registry
+bootstrap_settings(path: str | None) -> None
 ```
 
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-MGMT-REGISTRY`；空库首次引导装配配置；M004 `management` 提供；状态=Implemented；唯一契约=本设计；文件·symbol `src/management/registry.py` `Registry.bootstrap_settings`。
 - **输入与前提**：settings 文件路径（仅空库时读取）；`BootstrapConfig`（§6.3.1）。
-- **成功输出与保证**：已装配 `Registry`；单事务写入配置 + `bootstrap_sha256` + 审计。
+- **成功输出与保证**：无返回；单事务写入配置 + `bootstrap_sha256` + 审计。
 - **错误与合法下一步**：非法字段/引用/Secret 不可达 → `ApiError(503,"bootstrap_invalid")`（`ERR-BOOT`）并回滚；非空库重复调用 no-op。
 - **交互与生命周期**：启动时一次；原子事务；失败置 `not_ready`。
 - **实现与验证**：正常引导 + hash；拒绝非法引用 → 回滚 + 503。`VRC-MGMT-001/003`；`registry.py`。
@@ -1175,7 +1184,7 @@ get_service_level(model: str) -> tuple[ServiceLevelView, str]
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-MGMT-REGISTRY`；按 exact 等级名查询等级视图；M004 提供、M003 消费；状态=Implemented；唯一契约=本设计；文件·symbol `registry.py` `Registry.get_service_level`。
 - **输入与前提**：exact 逻辑等级名 `model`。
 - **成功输出与保证**：`ServiceLevelView`（§6.2.3）+ ETag（供 M003 只读）。
-- **错误与合法下一步**：未知 → `ApiError(404,"model_not_found")`（`ERR-MODEL-NOTFOUND`）。
+- **错误与合法下一步**：未知 → `ApiError(404,"not_found")`（`ERR-NOTFOUND`）。
 - **交互与生命周期**：同步只读；请求级。
 - **实现与验证**：正常 7 Tier；边界：未知 exact 名 → 404。`VRC-INF-004`；`registry.py`。
 
@@ -1195,79 +1204,79 @@ candidates(level_id: str) -> list[Candidate]
 #### `Registry.create_provider/get_provider/list_providers/update_provider/delete_provider(...)`
 
 ```text
-create_provider(data: dict) -> tuple[ProviderView, str]
+create_provider(data: dict, conn=None) -> tuple[ProviderView, str]
 get_provider(id: str) -> tuple[ProviderView, str]
 list_providers() -> list[ProviderView]
-update_provider(id: str, data: dict, if_match: str) -> tuple[ProviderView, str]
-delete_provider(id: str) -> None
+update_provider(id: str, data: dict, if_match: str, conn=None) -> tuple[ProviderView, str]
+delete_provider(id: str, if_match: str, conn=None) -> None
 ```
 
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-PROVIDERS`；provider CRUD；M004 提供；状态=Implemented；唯一契约=本设计；文件·symbol `registry.py`。
-- **输入与前提**：`data`/`id`/`if_match`。
+- **输入与前提**：`data`/`id`/`if_match`；可选 `conn`（供 `mutate` 复用在途事务）。
 - **成功输出与保证**：视图 + ETag（§6.1.4/§6.2.1）；delete 无返回。
 - **错误与合法下一步**：400 `ERR-REQ-VALIDATION`；404 `ERR-NOTFOUND`；409 `ERR-CONFLICT`/`ERR-INUSE`；412 `ERR-STALE`。
-- **交互与生命周期**：同步；写经 `Store.transaction(immediate=True)`；请求级。
+- **交互与生命周期**：同步；写经 `Store.transaction(immediate=True)`（传入 `conn` 时加入既有事务）；请求级。
 - **实现与验证**：正常 201+ETag；拒绝重名 → 409；删除在用 → 409。`VRC-MGMT-001/002`；`registry.py`。
 
 #### `Registry.create_deployment/get_deployment/list_deployments/update_deployment/delete_deployment(...)`
 
 ```text
-create_deployment(data: dict) -> tuple[DeploymentView, str]
+create_deployment(data: dict, conn=None) -> tuple[DeploymentView, str]
 get_deployment(id: str) -> tuple[DeploymentView, str]
 list_deployments() -> list[DeploymentView]
-update_deployment(id: str, data: dict, if_match: str) -> tuple[DeploymentView, str]
-delete_deployment(id: str) -> None
+update_deployment(id: str, data: dict, if_match: str, conn=None) -> tuple[DeploymentView, str]
+delete_deployment(id: str, if_match: str, conn=None) -> None
 ```
 
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-DEPLOYMENTS`；deployment CRUD（含 Pause/Resume）；M004 提供；状态=Implemented；唯一契约=本设计；文件·symbol `registry.py`。
-- **输入与前提**：`data`/`id`/`if_match`；`capabilities` 12 键（§6.1.1）。
+- **输入与前提**：`data`/`id`/`if_match`；`capabilities` 12 键（§6.1.1）；可选 `conn`。
 - **成功输出与保证**：`DeploymentView`（§6.2.2）+ ETag；delete 无返回。
 - **错误与合法下一步**：400/404/409/412（含义同 provider）；`enabled` 切换用于 Pause/Resume。
-- **交互与生命周期**：同步事务；请求级。
+- **交互与生命周期**：同步事务（传入 `conn` 时加入既有事务）；请求级。
 - **实现与验证**：正常 CRUD；边界：PATCH `enabled=false` → Paused。`VRC-MGMT-002`；`registry.py`。
 
-#### `Registry.create_service_level/get_service_level_view/list_service_levels/update_service_level/delete_service_level(...)`
+#### `Registry.create_service_level/get_service_level/list_service_levels/update_service_level/delete_service_level(...)`
 
 ```text
-create_service_level(data: dict) -> tuple[ServiceLevelView, str]
-get_service_level_view(id: str) -> tuple[ServiceLevelView, str]
+create_service_level(data: dict, conn=None) -> tuple[ServiceLevelView, str]
+get_service_level(id: str) -> tuple[ServiceLevelView, str]
 list_service_levels() -> list[ServiceLevelView]
-update_service_level(id: str, data: dict, if_match: str) -> tuple[ServiceLevelView, str]
-delete_service_level(id: str) -> None
+update_service_level(id: str, data: dict, if_match: str, conn=None) -> tuple[ServiceLevelView, str]
+delete_service_level(id: str, if_match: str, conn=None) -> None
 ```
 
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-LEVELS`；service level（tier）CRUD；M004 提供；状态=Implemented；唯一契约=本设计；文件·symbol `registry.py`。
-- **输入与前提**：`data`/`id`/`if_match`；能力 = 成员交集。
-- **成功输出与保证**：等级视图 + ETag（§6.2.3/§6.1.4）。
-- **错误与合法下一步**：400/409 `capability_conflict`/`embedding_space_conflict`/`fixed_service_level`/412。
-- **交互与生命周期**：同步事务；固定 7 Tier。
+- **输入与前提**：`data`/`id`/`if_match`；能力 = 成员交集；可选 `conn`。
+- **成功输出与保证**：等级视图 + ETag（§6.2.3/§6.1.4）；`delete_service_level` 固定 Tier 恒抛 409 `fixed_service_level`。
+- **错误与合法下一步**：400/404 `not_found`/409 `capability_conflict`/`embedding_space_conflict`/`fixed_service_level`/412。
+- **交互与生命周期**：同步事务（传入 `conn` 时加入既有事务）；固定 7 Tier。
 - **实现与验证**：正常交集；拒绝无共同能力 → 409。`VRC-MGMT-002`；`registry.py`。
 
-#### `AdminService.mutate(actor, action, target, request_id, fn) -> result`
+#### `AdminService.mutate(actor, action, target, request_id, fn, atomic=True) -> result`
 
 ```text
-mutate(actor: str, action: str, target: str, request_id: str | None, fn: Callable[[], Any]) -> Any
+mutate(actor: str, action: str, target: str, request_id: str | None, fn: Callable[[Any], Any], atomic: bool = True) -> Any
 ```
 
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-MGMT-ADMIN`；管理动作统一审计包裹；M004 提供；状态=Implemented；唯一契约=本设计；文件·symbol `src/management/admin.py` `AdminService.mutate`。
-- **输入与前提**：`actor`（principal_id）、`action`、`target`、`request_id`、`fn`（实际管理动作）。
-- **成功输出与保证**：`fn()` 结果；成功记 `success` 审计 + info 日志。
-- **错误与合法下一步**：`fn` 抛出的 `ApiError`/存储错误原样传播；失败记 `failed` + warning 后重抛；审计写入本身 fail-safe。
-- **交互与生命周期**：同步；审计独立于业务事务（动作成功后写）。
+- **输入与前提**：`actor`（principal_id）、`action`、`target`、`request_id`、`fn(conn)`（实际管理动作）、`atomic`（默认 `True`；`False` 仅用于带外部调用的账号刷新）。
+- **成功输出与保证**：`fn(conn)` 结果；成功时 Registry 写与 `success` 审计在**同一事务**提交，提交后记 info 日志。
+- **错误与合法下一步**：`fn` 抛出的 `ApiError`/存储错误原样传播；失败记 `failed` + warning 后重抛。
+- **交互与生命周期**：同步；`atomic=True` 时审计与业务写同事务；`atomic=False` 时审计独立写。
 - **实现与验证**：正常包裹；边界：失败必留 `failed` 审计。`VRC-MGMT-002/003`；`admin.py`。
 
-#### `AdminService.page(principal, kind, filters, cursor, limit) -> dict`
+#### `AdminService.page(data, actor, kind, cursor=None, limit=100) -> dict`
 
 ```text
-page(principal: str, kind: str, filters: dict, cursor: str | None, limit: int) -> dict
+page(data: list, actor: str, kind: str, cursor: str | None = None, limit: int = 100) -> dict
 ```
 
-- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-MGMT-QUERY`；用量/审计/日志冻结分页；M004 提供；状态=Implemented；唯一契约=本设计；文件·symbol `admin.py` `AdminService.page`。
-- **输入与前提**：`principal`、`kind`（usage/audit/logs）、过滤、cursor、limit。
-- **成功输出与保证**：`{data, next_cursor, has_more, snapshot_id?, snapshot_at?}`（冻结视图，§6.2.5）。
-- **错误与合法下一步**：cursor 过期/不符 → `ApiError(400,"cursor_expired")`（`ERR-CURSOR`）；存储不可读 → `ERR-STORE`。
-- **交互与生命周期**：首屏建 `query_snapshots` 冻结；TTL 10 分钟；权限每页复核。
-- **实现与验证**：正常稳定分页；边界：旧页不受后续更正影响。`VRC-MGMT-004`；`admin.py`。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-MGMT-QUERY`；把 provider/deployment/level 列表冻结为稳定分页；M004 提供；状态=Implemented；唯一契约=本设计；文件·symbol `admin.py` `AdminService.page`。
+- **输入与前提**：`data`（待分页列表，如 provider/deployment/level 视图）、`actor`、`kind`、`cursor`、`limit`（钳制到 1..200）。
+- **成功输出与保证**：`{data, page:{has_more, next_cursor}}`；首屏把 `data` 冻结进 `query_snapshots`/`query_snapshot_items`（kind=`admin:<kind>`）。
+- **错误与合法下一步**：cursor 过期/跨 principal → `ApiError(400,"cursor_expired")`（`ERR-CURSOR`）；存储不可读 → `ERR-STORE`。
+- **交互与生命周期**：首屏建 `query_snapshots` 冻结；TTL 10 分钟；后续页按 `ordinal` 读取。
+- **实现与验证**：正常稳定分页；边界：旧页不受后续变更影响。`VRC-MGMT-004`；`admin.py`。
 
 #### `AdminService.stats(from, to, group_by) -> dict`
 
@@ -1282,72 +1291,72 @@ stats(from: str, to: str, group_by: str) -> dict
 - **交互与生命周期**：同步只读；请求级。
 - **实现与验证**：正常聚合；边界：measured/unknown 分列。`VRC-MGMT-004`；`admin.py`。
 
-#### `AdminService.probe(deployment_id, confirm) -> dict` / `apply_probe_result(registry, deployment_id, status, request_id) -> None`
+#### `AdminService.probe(actor, body, request_id) -> dict` / `apply_probe_result(registry, deployment_id, status, request_id, detail=None) -> dict`
 
 ```text
-probe(deployment_id: str, confirm: bool) -> dict
-apply_probe_result(registry, deployment_id: str, status: str, request_id: str | None) -> None
+probe(actor: str, body: dict, request_id: str) -> dict
+apply_probe_result(registry, deployment_id: str, status: str, request_id: str, detail: str | None = None) -> dict
 ```
 
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-PROBES`；deployment 探测与落库；M004 提供；状态=Implemented；唯一契约=本设计；文件·symbol `admin.py` `AdminService.probe` + `http_api/health.py` `apply_probe_result`。
-- **输入与前提**：`deployment_id`、`confirm`；`status`。
-- **成功输出与保证**：`{deployment_id, status, checked_at}`；落库 `deployments.health` + `probe_results`。
-- **错误与合法下一步**：缺确认 → `ApiError(400,"confirmation_required")`（`ERR-CONFIRM`）；未知 deployment → 404；探测 false → `unhealthy`。
+- **输入与前提**：`probe` 输入 `actor`、`body={deployment_id, confirm_external_call:true}`、`request_id`；`apply_probe_result` 的 `status ∈ {healthy,degraded,unhealthy,unknown}`。
+- **成功输出与保证**：`probe` → `{deployment_id, status, checked_at, may_have_incurred_cost}`；`apply_probe_result` → `{deployment_id, status, checked_at, request_id, detail}`；落库 `deployments.health` + `probe_results`。
+- **错误与合法下一步**：缺确认 → `ApiError(400,"confirmation_required")`（`ERR-CONFIRM`）；未知 deployment → 404 `not_found`；探测 false → `unhealthy`；非法 status → 400 `invalid_request`。
 - **交互与生命周期**：同步；适配器 5 s 超时；请求级。
-- **实现与验证**：正常落库；边界：未确认不触网 → 400。`VRC-MGMT-005`；`admin.py`。
+- **实现与验证**：正常落库；边界：未确认不触网 → 400。`VRC-MGMT-005`；`admin.py`/`health.py`。
 
-#### `AccountUsageService.latest(provider_id) -> AccountUsageSnapshot` / `refresh(provider_id, confirm) -> AccountUsageSnapshot`
+#### `AccountUsageService.latest(provider_id) -> AccountUsageSnapshot` / `refresh(provider_id, confirm_external_call) -> AccountUsageSnapshot`
 
 ```text
-latest(provider_id: str) -> AccountUsageSnapshot
-refresh(provider_id: str, confirm: bool) -> AccountUsageSnapshot
+latest(provider_id: str) -> dict
+refresh(provider_id: str, confirm_external_call: bool) -> dict
 ```
 
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-MGMT-ACCOUNT-USAGE`；账号用量读取/刷新；M004 提供；状态=Implemented；唯一契约=本设计；文件·symbol `account_usage.py`。
-- **输入与前提**：`provider_id`；`refresh` 需 `confirm=true`。
-- **成功输出与保证**：`AccountUsageSnapshot`（§6.2.6）。
-- **错误与合法下一步**：缺确认 → 400 `ERR-CONFIRM`；未知 provider → 404；上游失败 → 快照 `unavailable`+`error`。
+- **输入与前提**：`provider_id`；`refresh` 需 `confirm_external_call=true`。
+- **成功输出与保证**：`AccountUsageSnapshot` dict（§6.2.6）。
+- **错误与合法下一步**：缺确认 → `ApiError(400,"confirmation_required")`（`ERR-CONFIRM`）；未知 provider → 404 `not_found`；上游失败 → 快照 `status=unavailable` + `source=provider_api_error` + `error`。
 - **交互与生命周期**：`latest` 只读不触网；`refresh` 显式外部 HTTP（15 s）；持久覆盖。
 - **实现与验证**：正常读/刷新；边界：GET 不触网；未确认 POST → 400。`VRC-MGMT-006`；`account_usage.py`。
 
-#### `UsageRecorder.page(principal, ...) -> dict` / `reset_usage(model=None, deployment_id=None) -> int`
+#### `UsageRecorder.page(principal, cursor, limit, admin, since, until, model, request_id) -> dict` / `reset_usage(model=None, deployment_id=None, conn=None) -> dict`
 
 ```text
-page(principal: str, from_: str, to: str, model: str | None = None, request_id: str | None = None, cursor: str | None = None, limit: int = 50) -> dict
-reset_usage(model: str | None = None, deployment_id: str | None = None) -> int
+page(principal: str, cursor: str | None, limit: int = 50, admin: bool = False, since: str | None = None, until: str | None = None, model: str | None = None, request_id: str | None = None) -> dict
+reset_usage(model: str | None = None, deployment_id: str | None = None, conn=None) -> dict
 ```
 
-- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-USAGE`；账本分页/清空；M004 提供；状态=Implemented；唯一契约=本设计；文件·symbol `src/management/usage.py` `UsageRecorder`。
-- **输入与前提**：查询范围/cursor；清空范围。
-- **成功输出与保证**：冻结分页（§6.2.8）/ 删除计数。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-USAGE`；账本分页/清空；M003（`UsageRecorder`）提供、M004 消费；状态=Implemented；唯一契约=M003 设计 `IF-INF-USAGE`；文件·symbol `src/inference/usage.py` `UsageRecorder`。
+- **输入与前提**：查询范围（`since`/`until` 必需）/cursor；清空范围。
+- **成功输出与保证**：冻结分页 `{data,next_cursor,has_more,snapshot_id,snapshot_at}`（§6.2.8）/ `{deleted}`。
 - **错误与合法下一步**：400 `ERR-REQ-VALIDATION`/`ERR-CURSOR`；403 `ERR-AUTH-DENIED`；503 `ERR-STORE`。
 - **交互与生命周期**：同步；清空单事务删义务/版本/head/绑定；经审计。
-- **实现与验证**：正常分页/清空；边界：同 request 只取最高版本。`VRC-MGMT-004`；`usage.py`。
+- **实现与验证**：正常分页/清空；边界：同 request 只取最高版本。`VRC-MGMT-004`；`src/inference/usage.py`。
 
-#### `AuditLog.record(actor, action, target, result, request_id) -> None` / `AuditLog.page(limit=50) -> dict`
+#### `AuditLog.record(actor, action, target, result, request_id, conn=None) -> None` / `AuditLog.page(limit=50) -> dict`
 
 ```text
-record(actor: str, action: str, target: str, result: str, request_id: str | None = None) -> None
+record(actor: str, action: str, target: str, result: str, request_id: str | None = None, conn=None) -> None
 page(limit: int = 50) -> dict
 ```
 
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-AUDIT-LOGS`；审计写入/查询；M004 提供；状态=Implemented；唯一契约=本设计；文件·symbol `src/management/audit.py` `AuditLog`。
-- **输入与前提**：审计字段 / 分页。
-- **成功输出与保证**：无 / 脱敏分页（`audit_events`，§6.2.4）。
+- **输入与前提**：审计字段 / 分页；可选 `conn`（`mutate` 传入同一事务连接）。
+- **成功输出与保证**：无 / 脱敏分页 `{data,page:{has_more,next_cursor}}`（`audit_events`，§6.2.4）。
 - **错误与合法下一步**：存储错误 → `ERR-STORE`（503）。
 - **交互与生命周期**：同步；只追加；按时间倒序。
 - **实现与验证**：正常 success/failed；边界：不含正文/Secret。`VRC-MGMT-003`；`audit.py`。
 
-#### `OperationalLog.page(...) -> dict`（消费 M008）
+#### `OperationalLog.page(limit, level, module, request_id, since, until) -> dict`（消费 M008）
 
 ```text
 page(limit: int = 50, level: str | None = None, module: str | None = None, request_id: str | None = None, since: str | None = None, until: str | None = None) -> dict
 ```
 
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-AUDIT-LOGS`（消费侧）；运行日志分页查询；M008 提供、M004 消费；状态=Implemented；唯一契约=M008 §9.1 `IF-LOG-QUERY`；文件·symbol `src/log/logs.py`。
-- **输入与前提**：见 M008 §9.1 `IF-LOG-QUERY`。
+- **输入与前提**：`since`/`until` **必需**（缺失 → 400 `invalid_request`）；可选 `level`/`module`/`request_id`。
 - **成功输出与保证**：脱敏 `LogPage`（§6.2.7）。
-- **错误与合法下一步**：存储不可读 → `ERR-STORE`（503）。
+- **错误与合法下一步**：缺时间 → `ApiError(400,"invalid_request")`（`ERR-REQ-VALIDATION`）；存储不可读 → `ERR-STORE`（503）。
 - **交互与生命周期**：同步只读；请求级。
 - **实现与验证**：正常脱敏列表；边界：无匹配 `data=[]`。`VRC-MGMT-003`；`src/log/logs.py`。
 

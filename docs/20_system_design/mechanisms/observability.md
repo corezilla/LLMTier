@@ -459,7 +459,7 @@ SwitchState {
 
 ```text
 InjectionConfig {
-  fault_502 | fault_503: { error_body: string },              # 非空, <=512B
+  fault_502 | fault_503: { error_body: string },              # 非空, >512B 静默截断到 512B
   delay: { delay_ms: int },                                   # 0–60000
   rate_limit: { retry_after_sec: int },                       # 0–300
   stream_terminate: { stream_terminate_after_events: int },   # 1–10000
@@ -473,7 +473,7 @@ InjectionConfig {
 
 - **`fault_502`/`fault_503`**：
 
-  必填 `error_body: string`（非空，≤512B）。
+  必填 `error_body: string`（非空）；超过 512B 时**静默按 UTF-8 安全截断到 512B**（不拒绝）；空串/非字符串 → `ERR-INJECTION` 400。
 
 - **`delay`**：
 
@@ -561,7 +561,7 @@ tables {
   diagnostic_snapshots { id PK, snapshot_type, http_status?, ... },
   data_plane_stats { (stat_hour, deployment_id, model, status) PK, ... },
   data_plane_latency_samples { 无 PK（追加）, ... },
-  diagnostic_injections { id PK, UNIQUE(deployment_id, injection_type), config_json, enabled },
+  diagnostic_injections { id PK, UNIQUE(deployment_id, injection_type), injection_type, fault_status?, fault_body?, delay_ms?, retry_after_sec?, stream_terminate_after_events?, malformed_after_events?, malformed_event_type?, enabled, updated_at },
   trace_events { id PK, request_id, stage, ... }
 }
 ```
@@ -588,7 +588,7 @@ tables {
 
 - **`diagnostic_injections`**：
 
-  `id` 主键；`UNIQUE(deployment_id,injection_type)`；按 `(deployment_id,injection_type)` upsert。
+  `id` 主键；`UNIQUE(deployment_id,injection_type)`；**离散列**（无 `config_json`）；按 `(deployment_id,injection_type)` upsert。
 
 - **`trace_events.id`**：
 
@@ -648,14 +648,14 @@ enum ObservabilityErrorRef { ERR-INJECTION, ERR-NOTFOUND, ERR-STORE, ERR-REQ-VAL
 
 ### 4.9 编码、布局与共享类型映射
 
-不适用二进制 ABI：SQLite 行 + JSON 列（`detail`、`config_json`，紧凑分隔符）。
+不适用二进制 ABI：SQLite 行 + JSON 列（`detail`，紧凑分隔符）。
 
 | 类型 ID / 编码源基线 | 逻辑宽度/序列化长度 | 实际 ABI 定位或不适用理由 | 原类型 → 投影/转换/损失 | 验证项 |
 |---|---|---|---|---|
 | `D-OBS-SNAPSHOT`（M006 §6.7） | `error_summary` ≤256B；URL 去 query | `diagnostic_snapshots` 行 | 上游事实 → 脱敏行；query/正文被丢弃 | `T-OBS-SNAP` |
 | `D-OBS-TRACE`（M006 §6.7） | `detail` JSON；stage ≤64 | `trace_events` 行 / 只读视图 | 事件 → 有序 stages；未知 stage 保留 | `T-OBS-TRACE` |
 | `D-OBS-STATS`（内存） | 内存聚合 + 小时桶 | 无持久 ABI；可丢 | 样本 → 百分位；无样本 null | `T-OBS-STATS` |
-| `D-OBS-INJECTION-CONFIG` | JSON object | `diagnostic_injections.config_json` | type → config 字段集 | `T-OBS-INJECT` |
+| `D-OBS-INJECTION-CONFIG` | 离散列 | `diagnostic_injections` 各列（无 `config_json`） | type → config 字段集 | `T-OBS-INJECT` |
 
 ### 4.10 一致性、可见性与数据寿命
 
@@ -686,13 +686,13 @@ PATCH /v1/diagnostics {snapshots_enabled?, stats_enabled?} -> 200 {…}
 ```text
 GET /v1/diagnostics/snapshots?since=&until=&deployment_id=&model=&limit=&cursor= -> 200 SnapshotPage
 GET /v1/diagnostics/stats?since=&until=&deployment_id=&model=      -> 200 StatsView
-GET /v1/diagnostics/traces?since=&until=&deployment_id=&model=&limit=&cursor= -> 200 TracePage   # Planned (G-1)
+GET /v1/diagnostics/traces?since=&until=&deployment_id=&model=&limit=&cursor= -> 200 TracePage   # Implemented (G-1)
 GET /v1/deployments/{deployment_id}/diagnostics                    -> 200 InjectionView[]
 PATCH /v1/deployments/{deployment_id}/diagnostics {items}          -> 200 InjectionView[]
 GET /v1/trace/{request_id}                                          -> 200 TraceView
   -> 4xx/5xx: ErrorEnvelope
 ```
-- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-OBS-API-QUERY`；Operator 查询快照/统计/trace、读写故障注入；M005 Observability 提供、M006 持有；交接边界=诊断管理面 HTTP；状态=Implemented（`traces` 时间窗为 Planned，G-1）；`src/http_api/app.py` → `app.diagnostics`。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-OBS-API-QUERY`；Operator 查询快照/统计/trace、读写故障注入；M005 Observability 提供、M006 持有；交接边界=诊断管理面 HTTP；状态=Implemented（含 `traces` 时间窗，G-1 已实现）；`src/http_api/app.py` → `app.diagnostics`。
 - **输入与前提**：查询参数（RFC3339 窗、filter、分页）；PATCH body=注入项列表；授权=operator。
 - **成功输出与保证**：`D-OBS-SNAPSHOT`/`D-OBS-STATS`/`D-OBS-TRACE`/`D-OBS-PAGE`（§4.2）；无副作用（PATCH 副作用=注入配置写 + 审计）。
 - **错误与合法下一步**：`ERR-INJECTION`（400 PATCH）；`ERR-NOTFOUND`（404 trace/未知 deployment）；`ERR-STORE`（503）；`ERR-REQ-VALIDATION`（400 缺 since/until）。
@@ -937,7 +937,7 @@ joint-diagnose.sh --x-request-id <request_id> -> trace/snapshots
 | 事件产生 | Inference / LLMTier | 请求路径集成（业务层）| `inference-design.md` | 按配置注入、写事实；不改推理结果 |
 | 入口 | HTTP API / LLMTier | HTTP Adapter（入口层）| `http-api-design.md` | 诊断路由、关联标识透传/回显 |
 | 页面 | Web UI / LLMTier | `/ui/diagnostics`（入口层）| `web-ui-design.md` | 4 tabs + 全局开关；不直读库 |
-| 存储 | LLMTier | Store（基础层）| `util-design.md` | 4 张表 |
+| 存储 | LLMTier | Store（基础层）| `util-design.md` | 6 张表 |
 
 ### 14.2 功能和步骤到责任单元分配
 
@@ -968,12 +968,12 @@ joint-diagnose.sh --x-request-id <request_id> -> trace/snapshots
 
 | 下级要求 ID | 承接对象 ID / 下级设计文档 | 来源 Capability / Step / Constraint / 接口成员 | 必须负责的行为与保证 | 必须提供/消费的接口 | 下级必须展开的问题 | 允许自行决定的范围 | 本地验证 / 组合验证交接 |
 |---|---|---|---|---|---|---|---|
-| R-OBS-01 | `libdiag` · `libdiag-design.md` | C-OBS-3、Step 2/3/4/5、interface `DiagnosticService` 全部 | 开关/注入/记录底层读写、脱敏、fail-open | `capture_snapshot`/`record_latency`/`record_trace`/`get_enabled_injections`/查询 | 存储布局、缓存/LRU、TTL、截断 | 存储/聚合实现 | 系统用例 |
+| R-OBS-01 | `libdiag` · `libdiag-design.md` | C-OBS-3、Step 2/3/4/5、interface `DiagnosticService` 全部 | 开关/注入/记录底层读写、脱敏、fail-open | `capture_snapshot`/`record_latency`/`record_trace`/`enabled_injection`/`enabled_stream_injection`/查询 | 存储布局、缓存/LRU、TTL、截断 | 存储/聚合实现 | 系统用例 |
 | R-OBS-02 | Observability · `observability-design.md` | C-OBS-1/5、Step 6 | 查询与呈现、开关切换 | 诊断路由 | 授权、页面 | 呈现实现 | T-OBS-SWITCH |
 | R-OBS-03 | Inference · `inference-design.md` | C-OBS-2/4、Step 3/4/5 | 按配置注入、写事件、`source=injected` | 集成点 | 注入执行点、fail-open 包裹 | 集成实现 | T-OBS-INJECT |
 | R-OBS-04 | HTTP Adapter · `http-api-design.md` | Step 1 | 诊断路由、关联标识透传/回显 | 路由 | 头解析、错误映射 | 解析实现 | 契约 |
 | R-OBS-05 | Web UI · `web-ui-design.md` | CAP-OBS-3 | `/ui/diagnostics` 4 tabs + 开关 | 页面 | 呈现（不直读库）| 呈现实现 | 组合 |
-| R-OBS-06 | Store · `util-design.md` | §8 4 张表 | 4 张表事务 | Store | schema/迁移 | 存储实现 | 系统用例 |
+| R-OBS-06 | Store · `util-design.md` | §8 6 张表 | 6 张表事务 | Store | schema/迁移 | 存储实现 | 系统用例 |
 
 **约束**：下游不得记录 Secret/正文；观测不得阻断推理；新增观测维度须回写本节并关联模块设计。
 

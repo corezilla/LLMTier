@@ -207,7 +207,7 @@ M001 是 LLMTier 的**唯一对外入口**：所有外部交互都先经过它�
 - **行为**：限长 2 MB 后 `json.loads`
 - **输出**：`dict`
 - **错误**：413 `request_too_large`；400 `invalid_json`
-- **验收**：超限 413；非法 JSON 400
+- **验收**：超限 413；非法 JSON 或非 JSON 对象 400
 
 ### 2.6 F-API-SSE · 流式传输
 - **调用方**：Consumer
@@ -398,9 +398,9 @@ ThreadingHTTPServer（进程级）
 
 ## 6. 数据结构设计
 
-> 按 STD `design-data-interface-format` 1.2.0：主章“数据结构设计”，章内按**数据性质分类**。M001 是入口适配层，拥有 HTTP 传输层结构与请求级运行状态，但对外的请求/响应体 machine authority 为 `interfaces/openapi/llmtier.openapi.json`。`6.5 设备与 FPGA 表项` 不适用；`6.7 数据库表结构` 不适用（本模块不写库）。继承结构只定位原定义；本层拥有的结构逐项完整记录（Data/Type ID、用途与来源／逐字段／跨字段与寿命／合法与拒绝实例／验证），每个结构以真实名称作带编号小节标题。
+> 按 STD `design-data-interface-format` 1.2.0：主章“数据结构设计”，章内按**数据性质分类**。M001 是入口适配层，拥有 HTTP 传输层结构（请求级运行状态不构成受控结构，见 §6.6），但对外的请求/响应体 machine authority 为 `interfaces/openapi/llmtier.openapi.json`。`6.5 设备与 FPGA 表项` 不适用；`6.7 数据库表结构` 不适用（本模块不写库）。继承结构只定位原定义；本层拥有的结构逐项完整记录（Data/Type ID、用途与来源／逐字段／跨字段与寿命／合法与拒绝实例／验证），每个结构以真实名称作带编号小节标题。
 
-**适用性**：6.1 公共基础类型与枚举 ✓｜6.2 业务与操作数据结构 ✓｜6.3 配置与规则数据结构 ✓｜6.4 通信报文结构 ✓（读视图；machine authority = OpenAPI）｜6.5 设备与 FPGA 表项 ✗（无设备）｜6.6 运行状态数据结构 ✓｜6.7 数据库表结构 ✗（不写库，持久化归 M007）｜6.8 错误码与错误结构 ✓（引用系统 Error ID）。
+**适用性**：6.1 公共基础类型与枚举 ✓｜6.2 业务与操作数据结构 ✓｜6.3 配置与规则数据结构 ✓｜6.4 通信报文结构 ✓（读视图；machine authority = OpenAPI）｜6.5 设备与 FPGA 表项 ✗（无设备）｜6.6 运行状态数据结构 ✗（仅请求级标量 `request_id`，无受控跨步骤结构）｜6.7 数据库表结构 ✗（不写库，持久化归 M007）｜6.8 错误码与错误结构 ✓（引用系统 Error ID）。
 
 ### 6.1 公共基础类型与枚举
 
@@ -434,45 +434,6 @@ enum Role { data, admin }
 
   `VRC-API-002`；`auth.py`。
 
-**6.1.2 `HttpMethod` / `RouteClass`（公共基础类型与枚举）**
-
-```text
-enum HttpMethod { GET, POST, PATCH, DELETE }
-enum RouteClass { health, static, business, unknown }
-```
-
-- **Data/Type ID、用途与来源**：
-
-  `D-API-ROUTE-CLASS`；请求方法与路由分类（健康/静态、引导拦截、业务路由）；来源 `src/http_api/app.py`。
-
-- **`HttpMethod`**：
-
-  必填，∈ {`GET`,`POST`,`PATCH`,`DELETE`}。
-
-- **`RouteClass.health`/`static`**：
-
-  健康/静态优先处理。
-
-- **`RouteClass.business`**：
-
-  业务路由，经鉴权。
-
-- **`RouteClass.unknown`**：
-
-  未匹配 → 404。
-
-- **跨字段与寿命**：
-
-  分类优先级 `健康/静态 → 引导拦截 → 业务路由`；请求级判定；无持久。
-
-- **合法/拒绝实例**：
-
-  合法 `GET /readyz`；边界：未知路径 → `not_found`。
-
-- **验证**：
-
-  `VRC-API-001`；`app.py`。
-
 ### 6.2 业务与操作数据结构
 
 **6.2.1 `Principal`（业务与操作数据结构）**
@@ -490,7 +451,7 @@ Principal {
 
 - **`principal_id`**：
 
-  必填、非空字符串，长度 ≤128；主体标识。
+  必填、非空字符串，长度 ≤128；主体标识；免登录取自受信来源（`trusted-lan-consumer` / `trusted-lan-operator`，DEV loopback 为 `loopback-consumer` / `loopback-operator`），带 Bearer 时取自 `X-Principal-ID`，缺省为 `consumer`（data）/`operator`（admin）。
 
 - **`role`**：
 
@@ -502,7 +463,7 @@ Principal {
 
 - **合法/拒绝实例**：
 
-  合法 `{principal_id:"local",role:"data"}`；拒绝：缺/非法凭据 → `ERR-AUTH-REQUIRED`/`ERR-AUTH-DENIED`，不构造。
+  合法 `{principal_id:"trusted-lan-consumer",role:"data"}`、`{principal_id:"loopback-consumer",role:"data"}`、`{principal_id:"operator",role:"admin"}`；拒绝：缺/非法凭据 → `ERR-AUTH-REQUIRED`/`ERR-AUTH-DENIED`，不构造。
 
 - **验证**：
 
@@ -590,7 +551,7 @@ RequestLimits {
 
 - **`sse_idle_timeout_s`**：
 
-  必填整数，`60`；传输层读超时（业务超时归 M003）。
+  必填整数，`60`；即 `Handler.timeout` 的套接字超时（读写均适用），对 SSE 长连接表现为 idle/传输超时；业务侧超时归 M003。
 
 - **跨字段与寿命**：
 
@@ -642,77 +603,7 @@ SseFrame {
 
 ### 6.6 运行状态数据结构
 
-**6.6.1 `RequestIdentity`（运行状态数据结构）**
-
-```text
-RequestIdentity {
-  request_id: string       // req_<32hex>
-}
-```
-
-- **Data/Type ID、用途与来源**：
-
-  `D-API-REQUEST-ID`；每请求身份；来源 `src/http_api/app.py`。
-
-- **`request_id`**：
-
-  必填字符串，格式 `req_<32hex>`；每请求生成恰好一个。
-
-- **跨字段与寿命**：
-
-  写入 `X-Request-ID`、日志与 trace；请求开始生成、结束废弃；不持久（trace 副本归 M006）。
-
-- **合法/拒绝实例**：
-
-  合法 `req_ab12…`；边界：响应头与日志/trace 一致。
-
-- **验证**：
-
-  `VRC-API-001`；`app.py`。
-
-**6.6.2 `RequestContext`（运行状态数据结构）**
-
-```text
-RequestContext {
-  request_id: string,
-  principal: Principal,
-  body: dict,
-  thread: Thread,
-  store_connection: sqlite3.Connection?
-}
-```
-
-- **Data/Type ID、用途与来源**：
-
-  `D-API-REQUEST-CONTEXT`；请求级上下文与线程/连接所有权；来源 `src/http_api/app.py`/`ThreadingHTTPServer`。
-
-- **`request_id`/`principal`**：
-
-  必填；§6.6.1 / §6.2.1。
-
-- **`body`**：
-
-  必填映射；解析后的请求体（只读交接业务）。
-
-- **`thread`**：
-
-  必填；当前请求线程。
-
-- **`store_connection`**：
-
-  可空；线程内 `Store` 连接。
-
-- **跨字段与寿命**：
-
-  每请求一线程；`finally` 调 `app.store.close()` 释放线程内连接；请求间无共享状态；请求开始建立、`finally` 释放。
-
-- **合法/拒绝实例**：
-
-  合法：请求结束 fd 释放；边界：未关闭 → `VRC-API-001` 覆盖。
-
-- **验证**：
-
-  `VRC-API-001`；`app.py` + M007。
+不适用：M001 是入口适配层，请求级状态不构成受控数据结构。`request_id` 是 `Handler._run` 在请求开始时生成、贯穿请求并在结束时废弃的标量（格式 `req_<32hex>`，写入 `X-Request-ID` 与日志/trace，见 §2.4、§7 步骤 1）；线程内 `Store` 连接的所有权与关闭归 M007（见 §5.4）。故本模块不拥有跨步骤运行状态结构。（tailoring 依据：入口适配层无自有跨请求状态。）
 
 ### 6.7 数据库表结构
 
@@ -724,7 +615,7 @@ RequestContext {
 
 | 本层错误（HTTP） | 条件 | 系统 Error ID | 合法下一步 |
 |---|---|---|---|
-| 400 invalid_json | body 非合法 JSON | `ERR-REQ-JSON` | 修 JSON 后重试 |
+| 400 invalid_json | body 非合法 JSON 或非 JSON 对象 | `ERR-REQ-JSON` | 修 JSON 后重试 |
 | 400 invalid_request | 字段/结构非法 | `ERR-REQ-VALIDATION` | 修 `param` 字段 |
 | 400 unsupported_request / field | `stream=false` / 未知字段 | `ERR-REQ-UNSUPPORTED` / `ERR-REQ-FIELD` | 改用标准 SSE / 移除字段 |
 | 413 request_too_large | body >2MB | `ERR-REQ-TOO-LARGE` | 缩小 body |
@@ -912,13 +803,13 @@ DELETE /v1/usage?model&deployment_id -> 200 {deleted}
 
 ```text
 GET /v1/audit?limit -> 200 {data,next_cursor,has_more}
-GET /v1/logs?since&until&level&module&request_id&limit -> 200 {data,page}
+GET /v1/logs?from&to&level&module&request_id&limit -> 200 {data,page}
 ```
 
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-API-RECORDS`；审计/日志查询；M001 终止 HTTP、M004/M008 提供；状态=Implemented；唯一契约=OpenAPI；文件·symbol `app.py` → M004/M008。
-- **输入与前提**：分页/过滤参数；授权=`admin`。
+- **输入与前提**：`/v1/logs` 分页/过滤参数，其中 `from`/`to`（半开区间 `[from,to)`）必填；授权=`admin`。
 - **成功输出与保证**：脱敏审计/日志行（转发 M004 `AuditLog` / M008 `OperationalLog`）。
-- **错误与合法下一步**：400 `ERR-REQ-VALIDATION`/`ERR-CURSOR`；503 `ERR-STORE`。
+- **错误与合法下一步**：400 `ERR-REQ-VALIDATION`（缺 `from`/`to`）/`ERR-CURSOR`；503 `ERR-STORE`。
 - **交互与生命周期**：同步只读；请求级。
 - **实现与验证**：正常列表；边界：无匹配 → `data=[]`。`VRC-MGMT-003/004`。
 
@@ -938,6 +829,21 @@ DELETE /v1/providers/{id}          -> 204
 - **错误与合法下一步**：400 `ERR-REQ-VALIDATION`；404 `ERR-NOTFOUND`；409 `ERR-CONFLICT`/`ERR-INUSE`；412 `ERR-STALE`；503 `ERR-STORE`。
 - **交互与生命周期**：同步；写经 `AdminService.mutate` 审计；请求级。
 - **实现与验证**：正常建 provider 201+ETag；拒绝缺 `If-Match` PATCH → 412。`VRC-MGMT-001/002`。
+
+#### `/v1/providers/{id}/usage`、`/v1/providers/{id}/models`
+
+```text
+GET  /v1/providers/{id}/usage -> 200 AccountUsageView
+POST /v1/providers/{id}/usage {confirm_external_call:true} -> 200 AccountUsageView
+GET  /v1/providers/{id}/models -> 200 {data:[model_name]}
+```
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-API-PROVIDER-USAGE` / `IF-API-PROVIDER-MODELS`；provider 账号用量快照读取与显式刷新、可用模型名列表；M001 终止 HTTP、M004 提供；状态=Implemented；唯一契约=OpenAPI；文件·symbol `app.py` → M004 `account_usage.py` / `AdminService.list_provider_models`。
+- **输入与前提**：`{id}` provider；`POST /usage` 仅接受 body `{confirm_external_call}`（含其他键 → 400）；授权=`admin`。
+- **成功输出与保证**：`AccountUsageView`（`status`/`windows`/`percent`/`error`）与 `{"data":[string]}`（转发 M004）。
+- **错误与合法下一步**：400 `ERR-REQ-VALIDATION`（未知字段）；404 `ERR-NOTFOUND`；503 `ERR-STORE`。
+- **交互与生命周期**：同步；`POST /usage` 经 `AdminService.mutate(..., atomic=False)` 审计并触发上游外部调用（需确认）；请求级。
+- **实现与验证**：正常读取/刷新与模型列表；边界：未确认不触网、无模型 → `data=[]`。`VRC-MGMT-005`。
 
 #### `POST /v1/probes`
 
@@ -972,16 +878,35 @@ GET /v1/stats?from&to&group_by=tier|deployment -> 200 {from,to,group_by,data:[..
 GET/PATCH /v1/diagnostics
 GET /v1/diagnostics/snapshots
 GET /v1/diagnostics/stats
+GET /v1/diagnostics/traces
 GET/PATCH /v1/deployments/{id}/diagnostics
 GET /v1/trace/{request_id}
 ```
 
-- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-API-DIAGNOSTICS`；诊断查询/切换；M001 终止 HTTP、M005/M006 提供；状态=Implemented；唯一契约=M005 §9（本层只路由与错误映射）；文件·symbol `app.py` → M005/M006。
-- **输入与前提**：见 M005 §9；授权=`admin`。
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-API-DIAGNOSTICS`；诊断查询/切换（含快照、统计、trace 列表与注入）；M001 终止 HTTP、M005/M006 提供；状态=Implemented；唯一契约=M005 §9（本层只路由与错误映射）；文件·symbol `app.py` → M005/M006。
+- **输入与前提**：见 M005 §9（快照/统计/trace 使用 `since`/`until`）；授权=`admin`。
 - **成功输出与保证**：见 M005 §9；本层只路由与错误映射。
 - **错误与合法下一步**：400 `ERR-REQ-VALIDATION`/`ERR-INJECTION`；404 `ERR-NOTFOUND`；503 `ERR-STORE`。
 - **交互与生命周期**：同步；写经审计；请求级。
 - **实现与验证**：正常查询/切换；边界：开关关闭零写入。`VRC-OBS-001..005`。
+
+#### `/tier/admin/v1/*`（契约别名命名空间）
+
+```text
+GET/PATCH /tier/admin/v1/diagnostics
+GET /tier/admin/v1/diagnostics/snapshots
+GET /tier/admin/v1/diagnostics/stats
+GET /tier/admin/v1/diagnostics/traces
+GET/PATCH /tier/admin/v1/deployments/{id}/diagnostics
+GET /tier/admin/v1/trace/{request_id}
+```
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-API-CONTRACT-ALIAS`；与 `/v1/*` 扁平命名空间并存的契约层别名（`llmtier-management-contract-v0.3` 诊断子集）；M001 提供、M005/M006 提供；状态=Implemented；唯一契约=管理契约；文件·symbol `app.py`（`/tier/admin/v1/*` 分支）。
+- **输入与前提**：与对应 `/v1/*` 诊断端点同参数；授权=`admin`（先经 `/v1` 路由前的统一鉴权）。
+- **成功输出与保证**：与 `/v1/*` 诊断端点逐字一致；仅路径前缀不同（同一处理与存储）。
+- **错误与合法下一步**：同诊断族：400 `ERR-REQ-VALIDATION`/`ERR-INJECTION`；404 `ERR-NOTFOUND`；503 `ERR-STORE`。
+- **交互与生命周期**：同步；写经审计；请求级。
+- **实现与验证**：两命名空间在已实现子集上等价；当前仅诊断/追踪别名已实现（管理契约其余资源路由未在本层实现 → 404）；边界：未知别名 → 404。`VRC-OBS-001..005`。
 
 #### `GET /healthz` / `GET /readyz`
 
@@ -1047,9 +972,9 @@ _body() -> dict
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-API-BODY`；请求体限长与解析；M001 提供；状态=Implemented；唯一契约=本设计；文件·symbol `app.py` `Handler._body`。
 - **输入与前提**：request body；仅 POST/PATCH 调用。
 - **成功输出与保证**：`dict`（只读交接业务）。
-- **错误与合法下一步**：超限 413 `ERR-REQ-TOO-LARGE`；非法 JSON 400 `ERR-REQ-JSON`。
+- **错误与合法下一步**：超限 413 `ERR-REQ-TOO-LARGE`；非法 JSON 或非 JSON 对象 400 `ERR-REQ-JSON`。
 - **交互与生命周期**：同步。
-- **实现与验证**：正常解析；边界：>2MB → 413。`VRC-API-003`。
+- **实现与验证**：正常解析；边界：>2MB → 413，顶层非对象 → 400。`VRC-API-003`。
 
 #### `Handler._json(status, data, headers=None) -> None`
 

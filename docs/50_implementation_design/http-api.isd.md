@@ -160,10 +160,10 @@ Principal {
 
 ### 4.4 通信报文结构
 
-**4.4.1 `SSEFrame`（`sse.py`）**
+**4.4.1 `SseFrame`（`sse.py`）**
 
 ```text
-SSEFrame {
+SseFrame {
   event: <name>\n
   data: <json>\n
   <blank line>                   // 分帧
@@ -257,7 +257,7 @@ envelope() -> {"error": {message, type, code, param}}
 |---|---|---|---|
 | `E-API-404` | 路由未命中 | `ERR-NOTFOUND` | 修路径 |
 | `E-API-AUTH` | 缺配置 / 缺凭据 / 角色不足 | `ERR-AUTH-NOCFG` / `ERR-AUTH-REQUIRED` / `ERR-AUTH-DENIED` | 修凭据 / 配置 |
-| `E-API-BODY` | body 超 2 MB / 非法 JSON | `ERR-REQ-TOO-LARGE` / `ERR-REQ-JSON` | 修 body |
+| `E-API-BODY` | body 超 2 MB / 非法 JSON / 非 JSON 对象 | `ERR-REQ-TOO-LARGE` / `ERR-REQ-JSON` | 修 body |
 | `E-API-INTERNAL` | 未捕获异常 | `ERR-INTERNAL` | 上报 / 核对权威状态 |
 
 ## 5. 接口设计
@@ -391,7 +391,7 @@ _body(self) -> dict
 - **输入与前提**
 
   - **输入参数 / 数据结构 authority**：request body
-  - **输入约束 / 校验顺序 / 失败映射**：`Content-Length > 2MB` → 413；JSON 非法 → 400
+  - **输入约束 / 校验顺序 / 失败映射**：`Content-Length > 2MB` → 413；JSON 非法或顶层非 JSON 对象 → 400
 
 - **成功输出与保证**
 
@@ -401,7 +401,7 @@ _body(self) -> dict
 
   - **错误输出 / 触发条件 / 优先级**：E-API-BODY（ERR-REQ-TOO-LARGE / ERR-REQ-JSON）：413/400
   - **E-API-BODY（公共 ERR-REQ-TOO-LARGE / ERR-REQ-JSON）**
-    - **底层异常 / 失败事实**：超限 / 非法 JSON
+    - **底层异常 / 失败事实**：超限 / 非法 JSON / 非 JSON 对象
     - **模块是否处理及处理函数**：reject（`_body`）
     - **Typed 异常与原生异常所有权**：`ApiError(413/400)`
     - **宿主 / public payload 或状态码**：413/400
@@ -754,7 +754,7 @@ flowchart TD
 ### 9.1.3 `VRC-API-003` · body 与 SSE
 
 - **Rule / 成员**：`FUNC-API-BODY`、`FUNC-API-SSE`、`R-INF-01`
-- **V / Case / Vector**：v1 正常 SSE；v2 超限 413；v3 非法 JSON 400；v4 断开
+- **V / Case / Vector**：v1 正常 SSE；v2 超限 413；v3 非法 JSON / 非 JSON 对象 400；v4 断开
 - **输入 / 故障 / 环境**：请求/断开；隔离库
 - **独立 Oracle / Expected**：事件子集 + terminal 唯一；413/400
 - **Actual / Evidence**：NOT_RUN

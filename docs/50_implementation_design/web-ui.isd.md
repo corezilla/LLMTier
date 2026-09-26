@@ -43,7 +43,7 @@
 
 - **上游信息项 / 规则 ID**：`R-OBS-05`
 - **固定来源 / 版本 / 锚点 / 摘要**：机制 `M-OBS` §14.4 `R-OBS-05`
-- **ISD 细化内容 / 章节**：`/ui/diagnostics` 4 tabs + 全局开关 → §5.1.7
+- **ISD 细化内容 / 章节**：`#diagnostics` 4 tabs（Snapshots / Stats / Traces / Injections）+ 全局开关 → §5.4
 - **唯一权威位置**：行为在 M-OBS §14.4；本层管落实
 - **实现自由度**：呈现实现
 - **原 V/Case 及本地验证位置**：`VRC-UI-006` → §9.1
@@ -82,7 +82,7 @@ webui/
 ### 3.2 `app.js` · 客户端逻辑
 
 - **职责及调用者**：路由、装载、渲染、mutation、交互状态；caller=`index.html`
-- **类型 / 函数**：`api`、`loadRegistry/loadHome/loadProviders/loadUsage/loadAudit/loadLogs/loadStats/loadTrace`、`renderTree/renderProviders/renderTierMembers`、`toggleDeployment/probeDeployment/saveProvider/saveMember/removeMember/refreshProviderUsage`、`backendState/tierState/statusMarkup`
+- **类型 / 函数**：`api`、`loadRegistry/loadUsageSnapshot/loadHome/loadProviders/loadUsage/loadAudit/loadLogs/loadStats`、`loadDiagSwitches/loadSnapshots/loadDiagStats/loadTraces/showTrace/loadInjections/loadDiagnostics`、`renderTree/renderProviders/renderTierMembers`、`openTierEditor/openProviderEditor/saveProvider/saveMember/addMember/removeMember/deleteProvider/addModelAsDeployment/toggleDeployment/probeDeployment/refreshProviderUsage`、`backendState/tierState/statusMarkup/dispatchUiError`
 - **可见性**：private（浏览器）
 - **调用与类型依赖**：只经 `api()` 调 M001 同源 HTTP
 - **构建目标 / 生成源 / 输出**：静态资源
@@ -208,11 +208,14 @@ ErrorStatus {
 
 ```text
 state {
-  registry: object
+  tiers: object[]
   providers: object[]
   deployments: object[]
-  usage: object
   runtime: object
+  usage: object[]
+  providerUsage: object
+  tierAvailability: object
+  modelCache: object
 }
 ```
 
@@ -220,9 +223,9 @@ state {
 
   页面数据缓存；唯一来源=`app.js`，字段形状由 OpenAPI 决定；本层只持有投影。
 
-- **`registry` / `providers` / `deployments` / `usage` / `runtime`**（必填、可局部更新）
+- **`tiers` / `providers` / `deployments` / `runtime` / `usage` / `providerUsage` / `tierAvailability` / `modelCache`**（必填、可局部更新）
 
-  各对象/数组字段形状随 OpenAPI；由 `load*` 写入、`render*` 读取。
+  各对象/数组字段形状随 OpenAPI；`tiers` 为 service-level 视图、`runtime` 为 `Router.snapshot()` 投影、`usage` 为用量记录数组、`providerUsage` 为账号用量快照映射、`tierAvailability` 由 `/readyz` 构造、`modelCache` 为 provider→模型名缓存；由 `load*` 写入、`render*` 读取。无 `registry` 字段（注册表数据散布于 `providers`/`deployments`/`tiers`）。
 
 - **跨字段与寿命**
 
@@ -363,7 +366,7 @@ load*() -> Promise<void>
 - **Interface/Member ID、用途、提供责任与唯一来源**
 
   - **Interface/Member ID、状态**：`FUNC-UI-LOAD` / PLANNED
-  - **文件 / symbol / 可见性**：`app.js` / `loadRegistry/loadHome/...` / private
+  - **文件 / symbol / 可见性**：`app.js` / `loadRegistry/loadUsageSnapshot/loadHome/loadProviders/loadUsage/loadAudit/loadLogs/loadStats/loadDiagSwitches/loadSnapshots/loadDiagStats/loadTraces/showTrace/loadInjections/loadDiagnostics` / private
   - **原成员 ID 或私有来源**：`F-UI-HOME/PROVIDERS/RECORDS/LOGS/DIAG`
   - **完整签名与 caller**：`load*() -> Promise<void>`；caller=页面进入
 
@@ -407,7 +410,9 @@ load*() -> Promise<void>
 
 ```text
 render*() -> void
-backendState/tierState(...) -> string/obj
+backendState(deployment, provider, runtime) -> [label, tone]
+tierState(tier) -> [label, tone]
+statusMarkup(label, tone) -> string
 ```
 
 - **Interface/Member ID、用途、提供责任与唯一来源**
@@ -415,7 +420,7 @@ backendState/tierState(...) -> string/obj
   - **Interface/Member ID、状态**：`FUNC-UI-RENDER` / PLANNED
   - **文件 / symbol / 可见性**：`app.js` / `renderTree/renderProviders/renderTierMembers/backendState/tierState/statusMarkup` / private
   - **原成员 ID 或私有来源**：`F-UI-HOME/PROVIDERS`
-  - **完整签名与 caller**：`render*() -> void`；`backendState/tierState(...) -> string/obj`；caller=`load*`
+  - **完整签名与 caller**：`render*() -> void`；`backendState(deployment,provider,runtime) -> [label,tone]`；`tierState(tier) -> [label,tone]`；`statusMarkup(label,tone) -> string`；caller=`load*`
 
 - **输入与前提**
 
@@ -445,23 +450,31 @@ backendState/tierState(...) -> string/obj
   - **实现自由度**：渲染实现
   - **实现状态 / 验证项**：PLANNED；`VRC-UI-001/004`
 
-#### 5.1.4 `(el|event) -> Promise<void>`
+#### 5.1.4 `saveProvider/saveMember/addMember/toggleDeployment/probeDeployment/removeMember/deleteProvider/refreshProviderUsage(event|el|id) -> Promise<void>`
 
 ```text
-(el|event) -> Promise<void>
+saveProvider(event) -> Promise<void>
+saveMember(event) -> Promise<void>
+addMember(event) -> Promise<void>
+toggleDeployment(button) -> Promise<void>
+probeDeployment(button) -> Promise<void>
+removeMember(deploymentId) -> Promise<void>
+deleteProvider(id) -> Promise<void>
+addModelAsDeployment(providerId, model) -> Promise<void>
+refreshProviderUsage(button) -> Promise<void>
 ```
 
 - **Interface/Member ID、用途、提供责任与唯一来源**
 
   - **Interface/Member ID、状态**：`FUNC-UI-MUTATE` / PLANNED
-  - **文件 / symbol / 可见性**：`app.js` / `toggleDeployment/probeDeployment/saveProvider/saveMember/removeMember/refreshProviderUsage` / private
+  - **文件 / symbol / 可见性**：`app.js` / `toggleDeployment/probeDeployment/saveProvider/deleteProvider/addModelAsDeployment/openProviderEditor/openTierEditor/saveMember/removeMember/addMember/refreshProviderUsage` / private
   - **原成员 ID 或私有来源**：`F-UI-TIER-EDIT/PAUSE/PROBE/PROVIDERS`
-  - **完整签名与 caller**：`(el|event) -> Promise<void>`；caller=页面交互
+  - **完整签名与 caller**：`saveProvider(event) -> Promise<void>` 等（见上）；caller=页面交互
 
 - **输入与前提**
 
   - **输入参数 / 数据结构 authority**：表单/元素
-  - **输入约束 / 校验顺序 / 失败映射**：字段级校验；412 stale、409 引用
+  - **输入约束 / 校验顺序 / 失败映射**：字段级校验；412 stale、409 引用。成员保存以 `closest('tr')` 定位行、`fieldValue(form,name)` 读取字段（修复此前把 `<tr>` 当 `<form>` 读取导致的 TypeError）
 
 - **成功输出与保证**
 
@@ -502,23 +515,23 @@ backendState/tierState(...) -> string/obj
   - **实现自由度**：实现
   - **实现状态 / 验证项**：PLANNED；`VRC-UI-002/003/005`
 
-#### 5.1.5 `随 `api` 错误分派`
+#### 5.1.5 `dispatchUiError(error) -> void`
 
 ```text
-随 `api` 错误分派
+dispatchUiError(error) -> void      // 由 api() 在非 2xx 时调用（I9 已实现）
 ```
 
 - **Interface/Member ID、用途、提供责任与唯一来源**
 
   - **Interface/Member ID、状态**：`FUNC-UI-STATES` / PLANNED
-  - **文件 / symbol / 可见性**：`app.js` / I9 / private
+  - **文件 / symbol / 可见性**：`app.js` / `dispatchUiError`、`showBanner`、`markStale` / private
   - **原成员 ID 或私有来源**：`F-UI-STATES`
-  - **完整签名与 caller**：随 `api` 错误分派
+  - **完整签名与 caller**：`dispatchUiError(error) -> void`；caller=`api()`（非 2xx）
 
 - **输入与前提**
 
-  - **输入参数 / 数据结构 authority**：`{status,code?}`
-  - **输入约束 / 校验顺序 / 失败映射**：按状态呈现
+  - **输入参数 / 数据结构 authority**：`{status, code?, retry_after?}`
+  - **输入约束 / 校验顺序 / 失败映射**：按状态呈现——401 `location.assign('/login')`；409 标 `referenceConflict` 并显示冲突横幅；412 标 `staleEdit` 并提示保留输入；429 按 `Retry-After` 退避；503 标 stale 并保留旧画面
 
 - **成功输出与保证**
 
@@ -570,17 +583,17 @@ backendState/tierState(...) -> string/obj
 
 本模块即 operator 控制台浏览器端人机界面；页面操作以真实路由/控件为入口，实现在 §5.1 的 JS 函数。
 
-#### `/ui/registry` · Provider/Deployment/ServiceLevel 管理页
+#### `/ui/` `#providers` · Provider/Deployment/ServiceLevel 管理页
 
-- **Interface/Member ID、文件/symbol 与来源**：`UI-REGISTRY`；`index.html` + `app.js` `renderProviders/saveProvider/saveMember/removeMember/toggleDeployment`；机制 `M-CONFIG` §14.4 `R-CFG-05`。
-- **执行位置、目标、输入与权限**：浏览器同源页面；目标=选中 provider/deployment/service-level；输入=表单字段 + `If-Match` ETag；权限由服务端入口判定（operator）。
+- **Interface/Member ID、文件/symbol 与来源**：`UI-REGISTRY`；`index.html` + `app.js` `renderProviders/saveProvider/saveMember/addMember/removeMember/deleteProvider/toggleDeployment`；机制 `M-CONFIG` §14.4 `R-CFG-05`。
+- **执行位置、目标、输入与权限**：浏览器同源页面（`#home`/`#providers` 容器）；目标=选中 provider/deployment/service-level；输入=表单字段 + `If-Match` ETag；权限由服务端入口判定（operator）。
 - **输出、错误与交互**：成功刷新树/表单；401 跳登录、403 留页、409 显示引用、412 保留输入、503 显示不可用并保留旧画面（I9）。
 - **实例与验证**：合法保存 provider；拒绝 stale 编辑 → 保留输入。`VRC-UI-002`。
 
-#### `/ui/diagnostics` · 诊断页（4 tabs + 全局开关）
+#### `/ui/` `#diagnostics` · 诊断页（4 tabs + 全局开关）
 
-- **Interface/Member ID、文件/symbol 与来源**：`UI-DIAGNOSTICS`；`app.js` `loadStats/loadTrace`；机制 `M-OBS` §14.4 `R-OBS-05`（数据由 M005 供）。
-- **执行位置、目标、输入与权限**：浏览器；目标=快照/统计/trace/注入 tab；输入=时间窗/过滤；operator 权限。
+- **Interface/Member ID、文件/symbol 与来源**：`UI-DIAGNOSTICS`；`app.js` `loadDiagSwitches/saveDiagSwitches/loadSnapshots/loadDiagStats/loadTraces/showTrace/loadInjections/loadDiagnostics`；机制 `M-OBS` §14.4 `R-OBS-05`（数据由 M005 供）。
+- **执行位置、目标、输入与权限**：浏览器 `#diagnostics` 容器；目标=Snapshots / Stats / Traces / Injections 四个 tab；输入=时间窗/过滤；operator 权限。
 - **输出、错误与交互**：开关关闭 → tab `Disabled`；查询失败按 I9 呈现；不落 localStorage/Secret。
 - **实例与验证**：4 tabs 呈现；开关关闭语义。`VRC-UI-006`。
 
@@ -625,7 +638,7 @@ flowchart TD
 ### 6.3 `P-UI-DIAG` · 诊断
 
 - **触发与执行者**：Diagnostics 页；浏览器
-- **入口函数及数据**：`loadStats`/`loadTrace`/注入
+- **入口函数及数据**：`loadDiagSwitches`/`loadSnapshots`/`loadDiagStats`/`loadTraces`/`showTrace`/`loadInjections`
 - **步骤 / 算法 / 复杂度**：读 `/v1/diagnostics*` → 渲染；开关关闭 → Disabled
 - **判断事实来源**：开关状态
 - **成功可见点**：4 tabs

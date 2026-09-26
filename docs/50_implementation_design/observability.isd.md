@@ -200,42 +200,56 @@ TraceView {
 
   `VRC-OBS-002/004`。
 
-**4.2.3 `StatsView`（`diagnostics.py`）**
+**4.2.3 `StatsView` / `StatsWindow`（`stats.py`）**
 
 ```text
 StatsView {
-  request_count: int
-  error_count: int
-  status_breakdown: object
+  windows: StatsWindow[]
+}
+StatsWindow {
+  stat_hour: str             // "YYYY-MM-DDTHH"
+  deployment_id?: str
+  model?: str
+  status_breakdown: object<str,int>
   error_4xx_count: int
   error_5xx_count: int
-  p50: float | null
-  p95: float | null
-  min: float | null
-  max: float | null
-  avg: float | null
+  request_count: int
+  error_count: int
+  latency_p50_ms?: float
+  latency_p95_ms?: float
+  latency_min_ms?: float
+  latency_max_ms?: float
+  latency_sum_ms: float
 }
 ```
 
 - **Data/Type ID、用途与来源**
 
-  `D-STATS-VIEW`；统计阅读视图。唯一来源=本 ISD 与 M006 §6。
+  `D-STATS-VIEW`；统计阅读视图。唯一来源=本 ISD 与 M006 §6（`stats.py`）。
 
-- **`request_count` / `error_count` / `status_breakdown` / `error_4xx_count` / `error_5xx_count`**（必填）
+- **`windows`**（必填、数组）
 
-  聚合计数；`status_breakdown` 按状态逐项。
+  `StatsWindow[]`；无数据时 `[]`。
 
-- **`p50` / `p95` / `min` / `max` / `avg`**（可空）
+- **`stat_hour` / `deployment_id` / `model`**（桶键）
 
-  `float | null`；无样本时为 `null`。
+  必填小时键；`deployment_id`/`model` 可空。
+
+- **`status_breakdown` / 计数**（必填）
+
+  按状态分解；`error_4xx_count`/`error_5xx_count` 由 breakdown 派生。
+
+- **`latency_*_ms`**（可空/必填）
+
+  `float | null`；无样本时百分位 `null`、`latency_sum_ms=0`。
 
 - **跨字段与寿命**
 
-  `error_*_count` 由 breakdown 派生；请求级视图，底层由 M006 持久。
+  `error_*_count` 与 `status_breakdown` 一致；请求级视图，底层由 M006 持久/聚合。
 
 - **合法/拒绝实例**
 
-  合法：有样本 window；边界：无数据 → 计数 0、百分位 `null`。
+  合法：有样本 window；边界：无数据 → `windows=[]`。
 
 - **验证**
 
@@ -250,6 +264,7 @@ InjectionView {
   type: str
   enabled: bool
   config: object
+  updated_at: str
 }
 ```
 
@@ -257,9 +272,9 @@ InjectionView {
 
   `D-INJECTION-VIEW`；注入配置阅读视图。唯一来源=本 ISD 与 M006 §6。
 
-- **`id` / `deployment_id` / `type` / `enabled` / `config`**（必填）
+- **`id` / `deployment_id` / `type` / `enabled` / `config` / `updated_at`**（必填）
 
-  `type` 白名单；`config` 字段集必须与 `type` 一致。
+  `type` 白名单；`config` 字段集必须与 `type` 一致；`updated_at` 为最后更新时刻。
 
 - **跨字段与寿命**
 

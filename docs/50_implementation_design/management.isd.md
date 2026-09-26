@@ -203,19 +203,19 @@ Deployment {
 
 - **`capabilities`**（必填、对象）
 
-  12 键能力集；必须为 provider∩deployment 交集。
+  12 键能力集；来自 **deployment 自身**声明（provider 不声明能力）；bootstrap 输入允许缺键并按默认值补齐。
 
 - **`enabled` / `health` / `version`**（必填）
 
-  `bool` / 四值枚举 / 单调版本；`health` 来自 Registry 事实。
+  `bool` / 四值枚举（`healthy`/`degraded`/`unhealthy`/`unknown`）/ 单调版本；`health` 来自 Registry 事实。
 
 - **跨字段与寿命**
 
-  `capabilities` 必须为 provider∩deployment 交集；`version` 单调用于 ETag；持久（Store），随库寿命。
+  `capabilities` 为 deployment 自身能力（等级能力才是绑定成员交集）；`version` 单调用于 ETag；持久（Store），随库寿命。
 
 - **合法/拒绝实例**
 
-  合法：能力交集正确；拒绝：能力超出 provider → `ERR-REQ-VALIDATION`。
+  合法：12 键能力正确；拒绝：键集合非法/标志非布尔 → `ERR-REQ-VALIDATION`。
 
 - **验证**
 
@@ -335,9 +335,9 @@ AuditEvent {
 
 ```text
 AccountSnapshot {
-  provider: object
-  source: str
-  status: str
+  provider: str        // usage-provider 类别：minimax | volc | local | none
+  source: str          // credentials_missing | provider_api | provider_api_error | store | quota_config | unsupported
+  status: str          // ok | unavailable | not_refreshed | unlimited | unsupported
   windows: object[]
   checked_at: str
   error: str | null
@@ -346,11 +346,11 @@ AccountSnapshot {
 
 - **Data/Type ID、用途与来源**
 
-  `D-ACCOUNT-SNAPSHOT`；账号用量快照。唯一来源=本 ISD 与 M-METER。
+  `D-ACCOUNT-SNAPSHOT`；账号用量快照。唯一来源=本 ISD 与 `account_usage.py`。
 
 - **`provider` / `source` / `status` / `windows` / `checked_at`**（必填）
 
-  提供方、来源、状态、时间窗数组与检查时刻。
+  `provider` = usage-provider 类别（非 provider id）；`source` ∈ {`credentials_missing`,`provider_api`,`provider_api_error`,`store`,`quota_config`,`unsupported`}；`status` ∈ {`ok`,`unavailable`,`not_refreshed`,`unlimited`,`unsupported`}；`windows` 时间窗数组；`checked_at` 检查时刻。
 
 - **`error`**（可空）
 
@@ -362,7 +362,7 @@ AccountSnapshot {
 
 - **合法/拒绝实例**
 
-  合法：完整窗口；拒绝：缺凭据 → `unavailable`，不伪造零值。
+  合法：`status=ok`+`source=provider_api`；拒绝：缺凭据 → `status=unavailable`+`source=credentials_missing`，不伪造零值。
 
 - **验证**
 
@@ -420,7 +420,10 @@ ApiError { status: int, code: str, message: str, param: str | null,
 
 ```text
 bootstrap_settings(path) -> None
-create/get/list/update/delete_{provider,deployment,service_level}
+create_{provider,deployment,service_level}(data, conn=None) -> (view, etag)
+get_/list_{provider,deployment,service_level}(...) -> view/list
+update_{provider,deployment,service_level}(id, data, if_match, conn=None) -> (view, etag)
+delete_{provider,deployment,service_level}(id, if_match, conn=None) -> None
 candidates(level_id) -> list[Candidate]
 ```
 
@@ -429,12 +432,12 @@ candidates(level_id) -> list[Candidate]
   - **Interface/Member ID、状态**：`FUNC-MGMT-REGISTRY` / PLANNED
   - **文件 / symbol / 可见性**：`registry.py` / `Registry.*` / private
   - **原成员 ID 或私有来源**：`F-MGMT-BOOTSTRAP`、`F-MGMT-CRUD`、`R-CFG-01/02/03`
-  - **完整签名与 caller**：`bootstrap_settings(path) -> None`；`create/get/list/update/delete_{provider,deployment,service_level}`；`candidates(level_id) -> list[Candidate]`；caller=M001/AdminService
+  - **完整签名与 caller**：`bootstrap_settings(path) -> None`；`create_{provider,deployment,service_level}(data, conn=None)`；`get_/list_{...}`；`update_{...}(id, data, if_match, conn=None)`；`delete_{...}(id, if_match, conn=None)`；`candidates(level_id) -> list[Candidate]`；caller=M001/AdminService
 
 - **输入与前提**
 
-  - **输入参数 / 数据结构 authority**：settings 路径 / CRUD body；字段见 §4.1
-  - **输入约束 / 校验顺序 / 失败映射**：引导校验（字段/ID/引用/Secret 可达）；CRUD 能力不变量；失败 → `E-MGMT-*`
+  - **输入参数 / 数据结构 authority**：settings 路径 / CRUD body；字段见 §4.2
+  - **输入约束 / 校验顺序 / 失败映射**：引导校验（字段/ID/引用/Secret 可达；deployment 能力允许缺键并按默认值补齐；未列出的固定 Tier 补空）；CRUD 能力不变量（12 键）；失败 → `E-MGMT-*`
 
 - **成功输出与保证**
 
@@ -487,8 +490,8 @@ candidates(level_id) -> list[Candidate]
 
 ```text
 mutate(actor, action, target, request_id, fn, atomic=True)`，`fn(conn)` 在 mutate 开启的同一事务内执行
-probe(actor, body, request_id)
-page(...)
+probe(actor, body, request_id) -> {deployment_id, status, checked_at, may_have_incurred_cost}
+page(data, actor, kind, cursor=None, limit=100) -> {data, page:{has_more, next_cursor}}
 stats(from_ts, to_ts, group_by)
 ```
 
@@ -497,20 +500,20 @@ stats(from_ts, to_ts, group_by)
   - **Interface/Member ID、状态**：`FUNC-MGMT-MUTATE` / PLANNED
   - **文件 / symbol / 可见性**：`admin.py` / `AdminService.mutate/probe/page/stats` / private
   - **原成员 ID 或私有来源**：`F-MGMT-PROBE`、`F-MGMT-STATS`
-  - **完整签名与 caller**：`mutate(actor, action, target, request_id, fn, atomic=True)`，`fn(conn)` 在 mutate 开启的同一事务内执行；`probe(actor, body, request_id)`；`page(...)`；`stats(from_ts, to_ts, group_by)`；caller=M001
+  - **完整签名与 caller**：`mutate(actor, action, target, request_id, fn, atomic=True)`，`fn(conn)` 在 mutate 开启的同一事务内执行；`probe(actor, body, request_id)`；`page(data, actor, kind, cursor=None, limit=100)`；`stats(from_ts, to_ts, group_by)`；caller=M001
 
 - **输入与前提**
 
-  - **输入参数 / 数据结构 authority**：`(actor, action, target, request_id, fn)`；`fn(conn)` 用传入连接执行 Registry 写（不另开事务）；probe `{deployment_id, confirm_external_call}`
-  - **输入约束 / 校验顺序 / 失败映射**：mutate 单事务写 Registry + Audit（`atomic=False` 仅用于带外部调用的账号刷新）；probe 需确认；stats `group_by ∈ {tier,deployment}`
+  - **输入参数 / 数据结构 authority**：`(actor, action, target, request_id, fn)`；`fn(conn)` 用传入连接执行 Registry 写（不另开事务）；probe `{deployment_id, confirm_external_call}`；page `(data, actor, kind)` 用于冻结 provider/deployment/level 列表
+  - **输入约束 / 校验顺序 / 失败映射**：mutate 单事务写 Registry + Audit（`atomic=False` 仅用于带外部调用的账号刷新）；probe 需确认；stats `group_by ∈ {tier,deployment}`；page limit 钳制 1..200
 
 - **成功输出与保证**
 
-  - **成功输出 / 数据结构 / 后置条件**：结果 / 页 / 统计；审计 success
+  - **成功输出 / 数据结构 / 后置条件**：结果 / `{data, page:{has_more,next_cursor}}` / 统计；审计 success
 
 - **错误与合法下一步**
 
-  - **错误输出 / 触发条件 / 优先级**：E-MGMT-INVALID（ERR-REQ-VALIDATION / ERR-CONFLICT）：400/409；E-MGMT-CAS（ERR-STALE · version_conflict）：412 + `current_version`；E-MGMT-USAGE（ERR-STORE · usage_store_unavailable）：503 `usage_store_unavailable`
+  - **错误输出 / 触发条件 / 优先级**：E-MGMT-INVALID（ERR-REQ-VALIDATION / ERR-CONFLICT）：400/409；E-MGMT-CONFIRM（ERR-CONFIRM · confirmation_required）：400 `confirmation_required`；E-MGMT-CAS（ERR-STALE · version_conflict）：412 + `current_version`；E-MGMT-USAGE（ERR-STORE · usage_store_unavailable）：503 `usage_store_unavailable`
   - **E-MGMT-INVALID（公共 ERR-REQ-VALIDATION / ERR-CONFLICT）**
     - **底层异常 / 失败事实**：字段/引用/能力非法
     - **模块是否处理及处理函数**：reject
@@ -554,16 +557,16 @@ stats(from_ts, to_ts, group_by)
 #### 5.1.3 `page(principal, cursor, limit, admin, since, until, model, request_id) -> dict`
 
 ```text
-page(principal, cursor, limit, admin, since, until, model, request_id) -> dict
-reset_usage(model, deployment_id) -> dict
+page(principal, cursor, limit=50, admin=False, since=None, until=None, model=None, request_id=None) -> dict
+reset_usage(model=None, deployment_id=None, conn=None) -> dict
 ```
 
 - **Interface/Member ID、用途、提供责任与唯一来源**
 
   - **Interface/Member ID、状态**：`FUNC-MGMT-USAGE` / PLANNED
-  - **文件 / symbol / 可见性**：`usage.py` / `page`、`reset_usage` / private
+  - **文件 / symbol / 可见性**：`inference/usage.py` / `UsageRecorder.page`、`UsageRecorder.reset_usage` / private
   - **原成员 ID 或私有来源**：`F-MGMT-USAGE-QUERY/RESET`、`R-MET-02/03`
-  - **完整签名与 caller**：`page(principal, cursor, limit, admin, since, until, model, request_id) -> dict`；`reset_usage(model, deployment_id) -> dict`；caller=M001
+  - **完整签名与 caller**：`page(principal, cursor, limit=50, admin=False, since=None, until=None, model=None, request_id=None) -> dict`；`reset_usage(model=None, deployment_id=None, conn=None) -> dict`；caller=M001
 
 - **输入与前提**
 
@@ -618,7 +621,7 @@ refresh(provider_id, confirm_external_call) -> dict
 - **输入与前提**
 
   - **输入参数 / 数据结构 authority**：provider_id；确认标志
-  - **输入约束 / 校验顺序 / 失败映射**：GET 只读快照；POST 需确认；缺凭据 → `unavailable`
+  - **输入约束 / 校验顺序 / 失败映射**：GET 只读快照；POST 需 `confirm_external_call=true`（否则 400 `confirmation_required`）；缺凭据 → `status=unavailable`/`source=credentials_missing`
 
 - **成功输出与保证**
 
@@ -626,7 +629,7 @@ refresh(provider_id, confirm_external_call) -> dict
 
 - **错误与合法下一步**
 
-  - **错误输出 / 触发条件 / 优先级**：E-MGMT-INVALID（ERR-REQ-VALIDATION / ERR-CONFLICT）：400/409
+  - **错误输出 / 触发条件 / 优先级**：E-MGMT-INVALID（ERR-REQ-VALIDATION / ERR-CONFLICT）：400/409；E-MGMT-CONFIRM（ERR-CONFIRM · confirmation_required）：400 `confirmation_required`；E-MGMT-NOTFOUND（ERR-NOTFOUND · not_found）：404
   - **E-MGMT-INVALID（公共 ERR-REQ-VALIDATION / ERR-CONFLICT）**
     - **底层异常 / 失败事实**：字段/引用/能力非法
     - **模块是否处理及处理函数**：reject

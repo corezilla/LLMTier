@@ -106,12 +106,12 @@
 
 ### 2.3 `F-OBS-STATS` · 统计查询
 - **上级需求 / Constraint ID**：机制 M-OBS CAP-OBS-2；契约 §5.3（口径）
-- **调用方**：M001（`GET /tier/admin/v1/diagnostics/stats`）
+- **调用方**：M001（`GET /tier/admin/v1/diagnostics/stats`，扁平别名 `GET /v1/diagnostics/stats`）
 - **输入与前提**：`since/until` + 可选 `deployment_id/model`
-- **行为**：聚合计数 + `status_breakdown{status:count}` + P50/P95/min/max/avg
-- **输出**：`{request_count, error_count, status_breakdown:{"200":n,"503":m,"429":k,"upstream_error":x}, latency_p50_ms, latency_p95_ms, latency_min_ms, latency_max_ms, latency_sum_ms}`
+- **行为**：按小时桶聚合为 `windows[]`；每窗口计数 + `status_breakdown{status:count}` + P50/P95/min/max/sum
+- **输出**：`{windows: [StatsWindow]}`，`StatsWindow = {stat_hour, deployment_id, model, status_breakdown:{"200":n,"503":m,"429":k,"upstream_error":x}, error_4xx_count, error_5xx_count, request_count, error_count, latency_p50_ms, latency_p95_ms, latency_min_ms, latency_max_ms, latency_sum_ms}`
 - **错误与边界**：400（缺时间）
-- **验收条件**：`status_breakdown` 按 HTTP status 分列；保留 4xx/5xx 总数作兼容；口径为"数据面统计、可丢"，非账本
+- **验收条件**：`status_breakdown` 按 HTTP status 分列；`error_4xx_count`/`error_5xx_count` 由分列派生；口径为"数据面统计、可丢"，非账本
 
 ### 2.4 `F-OBS-INJECTIONS` · 注入配置
 - **上级需求 / Constraint ID**：`C-OBS-4`；机制 M-OBS CAP-OBS-5；契约 §5.1
@@ -128,7 +128,7 @@
 - **输入与前提**：`request_id`
 - **行为**：返回有序 stages + usage 关联
 - **输出**：`{request_id, correlation_id?, stages[], usage?}`
-- **错误与边界**：无记录 → 空 stages（不报错）
+- **错误与边界**：无记录 → 404（`ERR-NOTFOUND`）
 - **验收条件**：stage 有序；关联 usage 版本
 
 ### 2.6 `F-OBS-CORRELATION` · 关联标识
@@ -147,7 +147,7 @@
 - **行为**：按时间窗聚合 `trace_events`（去重 request_id），逐条返回 stages + correlation + usage；与 snapshots 对称分页
 - **输出**：`{items:[{request_id, stages[], correlation_id?, usage?}], next_cursor, has_more}`
 - **错误与边界**：无匹配 → 空 items（不报错）
-- **验收条件**：支持"过去 10 分钟所有请求/失败请求"查询；分页稳定（`next_cursor`）。**当前状态：Planned（接口未实现，见 review G-1）**
+- **验收条件**：支持"过去 10 分钟所有请求/失败请求"查询；分页稳定（`next_cursor`）。**当前状态：Implemented（G-1 已实现；正式契约待补，扁平别名 `/v1/diagnostics/traces` 已提供）**
 
 ## 3. UI、CLI、服务端点或设备操作面
 
@@ -396,12 +396,12 @@ DiagnosticSnapshotView {
   request_id: string,
   captured_at: timestamp,
   upstream_url: string,      // 去 query
-  backend_model: string,
+  backend_model: string?,
   http_status: int?,
-  latency_ms: int?,
+  latency_ms: float?,
   error_summary: string?,    // ≤256B
-  model: string,
-  deployment_id: string,
+  model: string?,
+  deployment_id: string?,
   snapshot_type: string
 }
 ```
@@ -428,7 +428,7 @@ DiagnosticSnapshotView {
 
 - **`backend_model`**：
 
-  必填字符串；上游实际模型名。
+  可空字符串；上游实际模型名；缺失为 `null`。
 
 - **`http_status`**：
 
@@ -436,7 +436,7 @@ DiagnosticSnapshotView {
 
 - **`latency_ms`**：
 
-  可空整数；上游耗时毫秒。
+  可空浮点（≥0）；上游耗时毫秒；无响应时为空。
 
 - **`error_summary`**：
 
@@ -444,11 +444,11 @@ DiagnosticSnapshotView {
 
 - **`model`**：
 
-  必填字符串；逻辑等级名。
+  可空字符串；逻辑等级名；缺失为 `null`。
 
 - **`deployment_id`**：
 
-  必填字符串；命中 deployment。
+  可空字符串；命中 deployment；缺失为 `null`。
 
 - **`snapshot_type`**：
 
@@ -466,64 +466,72 @@ DiagnosticSnapshotView {
 
   `VRC-OBS-002`；来源 `libdiag-design.md` §6.2。
 
-**6.2.3 `StatsView`（业务与操作数据结构，继承 M006 §6.2）**
+**6.2.3 `StatsView` / `StatsWindow`（业务与操作数据结构，继承 M006 §6.2）**
 
 ```text
 StatsView {
+  windows: StatsWindow[]
+}
+StatsWindow {
+  stat_hour: string,             // "YYYY-MM-DDTHH"
+  deployment_id: string?,
+  model: string?,
+  status_breakdown: map<string,int>,
+  error_4xx_count: int,
+  error_5xx_count: int,
   request_count: int,
   error_count: int,
-  status_breakdown: map<string,int>,
-  latency_p50_ms: int?,
-  latency_p95_ms: int?,
-  latency_min_ms: int?,
-  latency_max_ms: int?,
-  latency_sum_ms: int?
+  latency_p50_ms: float?,
+  latency_p95_ms: float?,
+  latency_min_ms: float?,
+  latency_max_ms: float?,
+  latency_sum_ms: float
 }
 ```
 
 - **Data/Type ID、用途与来源**：
 
-  `D-STATS-VIEW`；按小时桶聚合的统计呈现视图；底层内存聚合（M006）。
+  `D-STATS-VIEW`；按小时桶聚合的统计呈现视图；底层 `data_plane_stats` + 内存 samples（M006）。
 
-- **`request_count`**：
+- **`windows`**：
 
-  必填整数；窗口内请求数。
+  必填数组；无数据 → `[]`。
 
-- **`error_count`**：
+- **`stat_hour`**：
 
-  必填整数；窗口内错误数。
+  必填；小时桶键（`YYYY-MM-DDTHH`）。
+
+- **`deployment_id` / `model`**：
+
+  可空字符串；桶维度；缺失为 `null`。
 
 - **`status_breakdown`**：
 
   必填映射；按 HTTP status 计数。
 
-- **`latency_p50_ms`**：
+- **`error_4xx_count` / `error_5xx_count`**：
 
-  可空整数；P50 耗时毫秒；无样本为 `null`。
+  必填整数；由 `status_breakdown` 派生（4xx 与 5xx/`upstream_error`）。
 
-- **`latency_p95_ms`**：
+- **`request_count` / `error_count`**：
 
-  可空整数；P95 耗时毫秒；无样本为 `null`。
+  必填整数；窗口内请求数 / 错误数。
 
-- **`latency_min_ms`**：
+- **`latency_p50_ms` / `latency_p95_ms` / `latency_min_ms` / `latency_max_ms`**：
 
-  可空整数；最小耗时毫秒。
-
-- **`latency_max_ms`**：
-
-  可空整数；最大耗时毫秒。
+  可空浮点；耗时毫秒；无样本为 `null`。
 
 - **`latency_sum_ms`**：
 
-  可空整数；耗时总和毫秒。
+  必填浮点；耗时总和毫秒；无样本 → `0`。
 
 - **跨字段与寿命**：
 
-  可丢、非账本；`status_breakdown` 按 HTTP status 分列；请求级只读，底层内存聚合。
+  可丢、非账本；`error_*_count` 与 `status_breakdown` 一致；请求级只读，底层内存聚合。
 
 - **合法/拒绝实例**：
 
-  合法 window；边界：无样本 → 百分位 `null`。
+  合法 window；边界：无数据 → `windows=[]`。
 
 - **验证**：
 
@@ -588,7 +596,7 @@ TracePage {
 
 - **合法/拒绝实例**：
 
-  合法完整 trace；边界：无记录 → 空 `stages`/空 `items`（不报错）。
+  合法完整 trace；拒绝：单请求无记录 → `trace()` 404（`ERR-NOTFOUND`）；边界：时间窗无匹配 → `TracePage.items=[]`（不报错）。
 
 - **验证**：
 
@@ -655,7 +663,7 @@ InjectionView {
 InjectionConfig {
   type: string,            // fault_502|fault_503|delay|rate_limit|stream_terminate|malformed_event
   config: {
-    error_body?: string,                    // fault_502|fault_503
+    error_body?: string,                    // fault_502|fault_503: 非空, >512B 静默截断
     delay_ms?: uint32,                      // delay: 0–60000
     retry_after_sec?: uint32,               // rate_limit: 0–300
     stream_terminate_after_events?: uint32, // 1–10000
@@ -675,7 +683,7 @@ InjectionConfig {
 
 - **`config.error_body`**：
 
-  条件必填字符串；`type ∈ {fault_502,fault_503}` 时必填；返回体。
+  条件必填字符串；`type ∈ {fault_502,fault_503}` 时必填；非空；超过 512B 时**静默按 UTF-8 安全截断到 512B**（不拒绝）。
 
 - **`config.delay_ms`**：
 
@@ -793,6 +801,8 @@ InjectionConfig {
 > 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口设计用途**分类（面向使用方的 API 与组件/系统间协作的消息与数据流接口），逐接口完整记录；标题为真实调用形式（HTTP 路由），标题下先给**完整接口声明**，再就地说明参数/结果字段，最后按固定六项。诊断端点向 operator 提供可观测能力，归 API；消息流/硬件/人机三类不适用。数据结构引用 §6。端点由 M001 暴露、处理器位于 `src/http_api/app.py`，底层能力来自 M006 `DiagnosticsService`。
 
 ### 9.1 API（适用时）
+
+> **路由别名**：下列契约前缀 `/tier/admin/v1/*` 路由由 M001 同入口同时提供 `/v1/*` 扁平别名（`29efe80`），语义与响应完全一致，例如 `GET /tier/admin/v1/diagnostics/traces` ≡ `GET /v1/diagnostics/traces`。本表以契约前缀为准，扁平别名不改变契约。
 
 #### `GET /tier/admin/v1/diagnostics`
 

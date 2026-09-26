@@ -2208,6 +2208,238 @@ CREATE TABLE trace_events (
 
   `VRC-DIAG-001/002/003`。
 
+**7.7.12 `schema_meta`（数据库表）**
+
+```sql
+CREATE TABLE schema_meta (
+  singleton        INTEGER PRIMARY KEY CHECK(singleton=1),
+  schema_version   INTEGER NOT NULL,
+  initialized_at   TEXT NOT NULL,
+  bootstrap_sha256 TEXT
+);
+```
+
+- **Data/Type ID、用途与来源**：
+
+  持久表 `schema_meta`，Data ID `D-SCHEMA-META`；唯一来源 `util/migrations/001_initial.sql`（由 M007 `migrate()` 执行；列级阅读视图见 `util.isd` §4.4）。
+
+- **`singleton`**：
+
+  非空主键，恒 =1；单行版本表。
+
+- **`schema_version`**：
+
+  非空整数；当前 schema 版本（`EXPECTED_SCHEMA_VERSION`）。
+
+- **`initialized_at`**：
+
+  非空；首次初始化时刻。
+
+- **`bootstrap_sha256`**：
+
+  可空 64-hex；一次性 bootstrap 的配置摘要（空库缺省为 NULL）。
+
+- **跨字段与寿命**：
+
+  单行；`scan`/启动校验以 `schema_version` 为事实来源；M007 写；库寿命。
+
+- **合法/拒绝实例**：
+
+  合法：空库初始化写入 version；拒绝：`schema_version != EXPECTED` → `ERR-SCHEMA`。
+
+- **验证**：
+
+  `VRC-UTIL-001/002`。
+
+**7.7.13 `provider_usage_profiles`（数据库表）**
+
+```sql
+CREATE TABLE provider_usage_profiles (
+  provider_id             TEXT PRIMARY KEY REFERENCES providers(id) ON DELETE CASCADE,
+  usage_provider          TEXT NOT NULL DEFAULT 'none',
+  usage_api_key_ref       TEXT,
+  usage_access_key_ref    TEXT,
+  usage_secret_key_ref    TEXT,
+  max_concurrent_requests INTEGER NOT NULL DEFAULT 1,
+  min_request_interval_ms INTEGER NOT NULL DEFAULT 0,
+  requests_per_minute     INTEGER NOT NULL DEFAULT 0,
+  version                 INTEGER NOT NULL DEFAULT 1
+);
+```
+
+- **Data/Type ID、用途与来源**：
+
+  持久表 `provider_usage_profiles`，Data ID `D-PROVIDER-USAGE-PROFILE`；唯一来源 `util/migrations/001_initial.sql`（由 M007 `migrate()` 执行；列级阅读视图见 `util.isd` §4.4）。
+
+- **`provider_id`**：
+
+  非空主键；外键指向 `providers(id)`（级联删除）。
+
+- **`usage_provider`**：
+
+  非空，默认 `none`；账号用量来源（如 `local`/`none`）。
+
+- **`usage_api_key_ref` / `usage_access_key_ref` / `usage_secret_key_ref`**：
+
+  可空；仅存凭据引用，不存明文。
+
+- **`max_concurrent_requests` / `min_request_interval_ms` / `requests_per_minute`**：
+
+  非空整数（默认 1/0/0）；provider 级用量/限流参数。
+
+- **`version`**：
+
+  非空整数；乐观并发版本。
+
+- **跨字段与寿命**：
+
+  每 provider 一行；`local` provider 初始化补默认 `local`，其余 `none`。M004 写、M003 读；库寿命。
+
+- **合法/拒绝实例**：
+
+  合法：引用已存在 provider；拒绝：未知 provider。
+
+- **验证**：
+
+  `VRC-MGMT-001/003`。
+
+**7.7.14 `query_snapshots`（数据库表）**
+
+```sql
+CREATE TABLE query_snapshots (
+  snapshot_id          TEXT PRIMARY KEY,
+  principal_id         TEXT NOT NULL,
+  snapshot_kind        TEXT NOT NULL,
+  filter_digest        TEXT NOT NULL,
+  authorization_digest TEXT NOT NULL,
+  created_at           TEXT NOT NULL,
+  expires_at           TEXT NOT NULL
+);
+```
+
+- **Data/Type ID、用途与来源**：
+
+  持久表 `query_snapshots`，Data ID `D-MET-QUERY-SNAPSHOT`；唯一来源 `util/migrations/001_initial.sql`（由 M007 `migrate()` 执行；列级阅读视图见 `util.isd` §4.4）。
+
+- **`snapshot_id`**：
+
+  非空主键；冻结快照标识（cursor 前缀）。
+
+- **`principal_id`**：
+
+  非空；快照归属，用于跨 principal 访问校验。
+
+- **`snapshot_kind`**：
+
+  非空；快照类型（如 `usage`）。
+
+- **`filter_digest` / `authorization_digest`**：
+
+  非空摘要；绑定原 filter 与授权，不含明文凭据。
+
+- **`created_at` / `expires_at`**：
+
+  非空；创建与过期时刻（TTL 10 分钟）。
+
+- **跨字段与寿命**：
+
+  首屏在同一事务创建；到期后 cursor 失效（`ERR-CURSOR`）。M003 写；按 TTL 清理。
+
+- **合法/拒绝实例**：
+
+  合法：首屏创建；拒绝：过期/跨 principal cursor → 400/403。
+
+- **验证**：
+
+  `VRC-MGMT-006`。
+
+**7.7.15 `query_snapshot_items`（数据库表）**
+
+```sql
+CREATE TABLE query_snapshot_items (
+  snapshot_id      TEXT NOT NULL REFERENCES query_snapshots(snapshot_id) ON DELETE CASCADE,
+  ordinal          INTEGER NOT NULL,
+  request_id       TEXT NOT NULL,
+  record_version   INTEGER,
+  frozen_view_json TEXT,
+  etag             TEXT,
+  PRIMARY KEY(snapshot_id, ordinal),
+  UNIQUE(snapshot_id, request_id)
+);
+```
+
+- **Data/Type ID、用途与来源**：
+
+  持久表 `query_snapshot_items`，Data ID `D-MET-QUERY-SNAPSHOT-ITEM`；唯一来源 `util/migrations/001_initial.sql`（由 M007 `migrate()` 执行；列级阅读视图见 `util.isd` §4.4）。
+
+- **`snapshot_id` / `ordinal`**：
+
+  非空；主键组成；有序成员位置。
+
+- **`request_id` / `record_version`**：
+
+  非空 request 标识；`record_version` 可空；成员指向的版本。
+
+- **`frozen_view_json` / `etag`**：
+
+  可空；冻结的只读视图与 ETag；后续页按 `ordinal` 读取。
+
+- **跨字段与寿命**：
+
+  `(snapshot_id,ordinal)` 主键、`(snapshot_id,request_id)` 唯一；随父快照级联删除。M003 写。
+
+- **合法/拒绝实例**：
+
+  合法：成员有序写入；拒绝：重复 `request_id` → 唯一约束。
+
+- **验证**：
+
+  `VRC-MGMT-006`。
+
+**7.7.16 `probe_results`（数据库表）**
+
+```sql
+CREATE TABLE probe_results (
+  deployment_id TEXT PRIMARY KEY REFERENCES deployments(id) ON DELETE CASCADE,
+  status        TEXT NOT NULL,
+  checked_at    TEXT NOT NULL,
+  request_id    TEXT NOT NULL,
+  detail        TEXT
+);
+```
+
+- **Data/Type ID、用途与来源**：
+
+  持久表 `probe_results`，Data ID `D-PROBE-RESULT`；唯一来源 `util/migrations/001_initial.sql`（由 M007 `migrate()` 执行；列级阅读视图见 `util.isd` §4.4）。
+
+- **`deployment_id`**：
+
+  非空主键；外键指向 `deployments(id)`（级联删除）。
+
+- **`status`**：
+
+  非空；探测结果状态（如 `healthy`/`degraded`/`unhealthy`）。
+
+- **`checked_at` / `request_id`**：
+
+  非空；探测时刻与关联请求。
+
+- **`detail`**：
+
+  可空；探测细节（脱敏）。
+
+- **跨字段与寿命**：
+
+  每 deployment 一行，最近一次探测覆盖写。M004 写；库寿命。
+
+- **合法/拒绝实例**：
+
+  合法：显式探测写结果；拒绝：缺确认 → `ERR-CONFIRM`。
+
+- **验证**：
+
+  `VRC-MGMT-006`。
+
 ### 7.8 错误码与错误结构（适用时）
 
 机器 Error 目录（代码值/类型/编码）= `interfaces/openapi/llmtier.openapi.json` + `interfaces/error-codes/`（本项目尚未建该目录，见本节目末）。本节决定**公共含义与调用方行为**；接口逐失败条件引用下列 Error ID。每个 Error ID 使用固定八字段记录。
@@ -2323,6 +2555,36 @@ CREATE TABLE trace_events (
 - **唯一来源与兼容**：机器源 `openapi`；Proposed。
 - **验证**：`VRC-MGMT-001`。
 
+**ERR-CAPABILITY · capability_conflict**
+- **定义与适用范围**：绑定的成员 deployment 能力集不一致，或 tier 要求的形态不受支持。
+- **触发条件与判定者**：M004 Registry 校验 service-level 成员能力集合失败。
+- **结果与副作用**：绑定未生效；事务回滚。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`type=capability_conflict`。
+- **调用方动作**：改为能力一致的成员组合后重试。
+- **模块承接**：M004。
+- **唯一来源与兼容**：机器源 `openapi`；Proposed。
+- **验证**：`VRC-MGMT-002`。
+
+**ERR-EMBEDDING-SPACE · embedding_space_conflict**
+- **定义与适用范围**：`Embedding-v1` 成员不满足冻结的 BGE-M3 向量空间/限额契约。
+- **触发条件与判定者**：M004 Registry 校验 `Embedding-v1` 成员的能力与冻结空间失败。
+- **结果与副作用**：绑定未生效；事务回滚。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`type=embedding_space_conflict`。
+- **调用方动作**：改用冻结空间的 embedding-only 成员后重试。
+- **模块承接**：M004。
+- **唯一来源与兼容**：机器源 `openapi`；Proposed。
+- **验证**：`VRC-MGMT-002`。
+
+**ERR-FIXED-LEVEL · fixed_service_level**
+- **定义与适用范围**：试图删除固定 tier（固定 service level）。
+- **触发条件与判定者**：M004 Registry 校验固定 tier 保护失败。
+- **结果与副作用**：删除未生效；资源不变。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`type=fixed_service_level`。
+- **调用方动作**：固定 tier 不可删除；如需调整请改用其他等级。
+- **模块承接**：M004。
+- **唯一来源与兼容**：机器源 `openapi`；Proposed。
+- **验证**：`VRC-MGMT-002`。
+
 **ERR-INUSE · resource_in_use**
 - **定义与适用范围**：资源被引用不能删除。
 - **触发条件与判定者**：M004 删除 provider/deployment 时存在引用（如 tier 成员）。
@@ -2373,13 +2635,23 @@ CREATE TABLE trace_events (
 - **唯一来源与兼容**：机器源 `openapi` + §5.3 超时；Proposed。
 - **验证**：`VRC-INF-003`。
 
-**ERR-PROVIDER-FAIL · provider_failure**
-- **定义与适用范围**：注入/上游故障导致的失败。
-- **触发条件与判定者**：M003 适配器或 M006 注入（`fault_502`）。
-- **结果与副作用**：本次调用失败；失败事实可入快照。
-- **错误载荷**：`D-ERROR-ENVELOPE`；`type=provider_failure`。
-- **调用方动作**：重试或更换等级。
+**ERR-PROVIDER-FAIL · provider_error**
+- **定义与适用范围**：上游返回非成功 HTTP 状态导致的失败（含注入/上游故障）。
+- **触发条件与判定者**：M003 适配器收到上游 HTTP 错误（`exc.code`）或 M006 注入（`fault_502`/`fault_503`）。
+- **结果与副作用**：本次调用失败；失败事实可入快照；`408`/`429` 标记可重试。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`type=provider_error`。
+- **调用方动作**：按响应状态重试或更换等级。
 - **模块承接**：M003/M006。
+- **唯一来源与兼容**：机器源 `openapi`；Proposed。
+- **验证**：`VRC-INF-003`。
+
+**ERR-PROVIDER-SECRET · provider_secret_unavailable**
+- **定义与适用范围**：provider 凭据引用无法解析（`env:`/`file:` 无值或不可读）。
+- **触发条件与判定者**：M003 provider 适配器解析 `secret_ref` 失败。
+- **结果与副作用**：本次调用失败；不 dispatch、无义务、无副作用。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`type=provider_secret_unavailable`。
+- **调用方动作**：联系运维补齐凭据后重试；不得改用明文。
+- **模块承接**：M003、M004（配置）。
 - **唯一来源与兼容**：机器源 `openapi`；Proposed。
 - **验证**：`VRC-INF-003`。
 
@@ -2489,12 +2761,16 @@ CREATE TABLE trace_events (
 | ERR-MODEL-NOTFOUND | `/v1/responses`、`/v1/embeddings`、`/v1/models/{model}` | M003 编排产生、M001 返回 | VRC-INF-001/004 |
 | ERR-NOTFOUND | 资源子路径、`/v1/trace/{request_id}` | M001 路由/M004 读取产生 | VRC-MGMT-001 |
 | ERR-CONFLICT | `/v1/{providers,deployments,service-levels}` | M004 Registry 产生 | VRC-MGMT-001 |
+| ERR-CAPABILITY | `/v1/service-levels` | M004 Registry 成员能力校验产生 | VRC-MGMT-002 |
+| ERR-EMBEDDING-SPACE | `/v1/service-levels` | M004 Registry 冻结空间校验产生 | VRC-MGMT-002 |
+| ERR-FIXED-LEVEL | `/v1/service-levels/{id}` DELETE | M004 Registry 固定 tier 保护产生 | VRC-MGMT-002 |
 | ERR-INUSE | `/v1/{providers,deployments,service-levels}` | M004 Registry 产生 | VRC-MGMT-002 |
 | ERR-STALE | `/v1/{providers,deployments,service-levels}` PATCH/DELETE | M004 Registry 产生 | VRC-MGMT-002 |
 | ERR-CURSOR | 分页端点（Usage/Audit/Logs/观测） | M003/M004 校验产生 | VRC-MGMT-006 |
 | ERR-RATE-LIMIT | `/v1/responses`、`/v1/embeddings` | M003 准入产生 | VRC-INF-004 |
 | ERR-PROVIDER-UNAVAIL | `/v1/responses`、`/v1/embeddings` | M003 适配产生 | VRC-INF-003 |
 | ERR-PROVIDER-FAIL | `/v1/responses`、`/v1/embeddings` | M003 适配、M006 注入 | VRC-INF-003 |
+| ERR-PROVIDER-SECRET | `/v1/responses`、`/v1/embeddings` | M003 适配解析 `secret_ref` 产生 | VRC-INF-003 |
 | ERR-PROVIDER-CONTRACT | `/v1/responses`、`/v1/embeddings` | M003 适配产生 | VRC-INF-003 |
 | ERR-MODEL-UNAVAIL | `/v1/responses`、`/v1/embeddings` | M003 准入产生 | VRC-INF-004 |
 | ERR-STORE | `/v1/usage`、`/v1/audit`、`/v1/logs`、观测查询 | M007 产生、M004/M001 透传 | VRC-MGMT-006 |
@@ -2511,11 +2787,13 @@ CREATE TABLE trace_events (
 
 请求进入后构造 unknown Usage 义务，dispatch 前持久化；后端返回后归一为 token 事实并落账本；终态只追加版本、单调推进 head。观测数据（快照/统计/trace）独立于账本。
 
+**已实现的账本语义**：`authorize_dispatch` 在 dispatch 前单事务预写 `usage_obligations` + `record_version=1`（`measurement_status=unknown`、`is_final=0`、token 全 NULL、`source=unavailable`）+ `usage_heads.head_record_version=1`；`finish` 追加终态版本（正常为 `record_version=2`、`is_final=1`）并把 head 推进到该版本。`finish` 无义务时 no-op；若准入在 `authorize_dispatch` 之后失败（尚未 dispatch 或未完成），库中保留一条 **orphan unknown 记录**（义务 + v1 unknown + head=1），这是**有意的**：宁可保留"已登记但未测"的 unknown 事实，也绝不回填为 0。
+
 ### 7.10 一致性与持久化策略
 
 - **所有权**：配置（`D-PROVIDER`/`D-DEPLOYMENT`/`D-SERVICE-LEVEL`/`D-CAPABILITY`）由 operator 经 M004 拥有；账本（`D-USAGE-*`、`D-PROVIDER-BINDING`）由 M003 写入、按 principal 隔离；审计/日志由 M004/M008 写；观测 `D-OBS-*` 由 M006 写、M005 读。
 - **生命周期**：配置在 SQLite 中持久并带 `version`（乐观并发）；账本按保留策略、追加式不可改；观测默认 7 天。
-- **状态事实**：用量义务先于 dispatch；head 单调；审计与 Registry 变更同事务；观测 fail-open（不阻断推理）。
+- **状态事实**：用量义务先于 dispatch（预写 v1 `unknown`/`is_final=0` + head=1）；head 单调；准入失败留下 orphan unknown 记录不回填；审计与 Registry 变更同事务；观测 fail-open（不阻断推理）。
 
 任何 provider dispatch 前先持久化该 server request ID 的 unknown Usage 义务；计量版本只追加并单调推进 head，因此 terminal 后写入失败或崩溃也不会在重启后变成“没有调用”。Usage 查询按 `[from,to)` 及 `(recorded_at,request_id)` 稳定排序；首个页面持久冻结精确 record version，cursor 绑定 principal、当前授权和原 filter。相同 request ID 的版本绝不累计；存储不可用返回 typed 503，不用空页冒充无记录。
 
@@ -2526,7 +2804,7 @@ CREATE TABLE trace_events (
 观测数据保留 7 天，由清理任务删除过期记录。测试报告、审计与日志保留期限由运维策略控制。schema 迁移由单一版本迁移程序负责，不并行双写。
 ## 8. 接口设计
 
-> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口形态**分类逐接口完整记录，不设重复“接口清单”，同一接口只定义一次。标题为真实路由，标题下先给完整接口声明，再就地说明输入/输出，最后按六项写完。字段级 authority：`interfaces/openapi/llmtier.openapi.json`（candidate `0.3-simplified-candidate.8`）。全部 HTTP 接口同处单一命名空间：消费者面为 `/v1/*`；管理/观测面契约前缀 `/tier/admin/v1/*`（`llmtier-management-contract-v0.3` 权威），实现同时提供 `/v1/*` 扁平别名，二者同入口（`29efe80`），不影响契约。目标 trace 时间窗端点（`/v1/diagnostics/traces`）为 **Planned**（正式契约待补，扁平别名已实现）。
+> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口形态**分类逐接口完整记录，不设重复“接口清单”，同一接口只定义一次。标题为真实路由，标题下先给完整接口声明，再就地说明输入/输出，最后按六项写完。字段级 authority：`interfaces/openapi/llmtier.openapi.json`（candidate `0.3-simplified-candidate.8`）。全部 HTTP 接口同处单一命名空间：消费者面为 `/v1/*`；管理/观测面契约前缀 `/tier/admin/v1/*`（`llmtier-management-contract-v0.3` 权威），实现同时提供 `/v1/*` 扁平别名，二者同入口（`29efe80`），不影响契约。trace 时间窗端点 `/v1/diagnostics/traces` 已实现（G-1），与之等价的契约前缀 `/tier/admin/v1/diagnostics/traces` 同入口；正式契约待补。
 
 ### 8.1 API（适用时）
 
@@ -2793,6 +3071,20 @@ GET /v1/diagnostics/stats?since=&until=&deployment_id=&model= -> 200 StatsView
 - **错误与合法下一步**：缺 `since`/`until` → `ERR-REQ-VALIDATION`（400）；`ERR-STORE`（503）。
 - **交互与生命周期**：同步只读；统计可丢、非账本。
 - **实现与验证**：正常窗口；边界：无样本 → null。`VRC-DIAG-002`。
+
+#### `GET /v1/diagnostics/traces`
+
+```text
+GET /v1/diagnostics/traces?since=&until=&deployment_id=&model=&limit=&cursor= -> 200 TracePage
+  -> 4xx/5xx: ErrorEnvelope
+```
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-OBS-TRACES`；时间窗 trace 查询（去重 request_id）；M006 提供、M005 呈现；状态=Implemented（G-1 已实现，正式契约待补）；唯一契约=`openapi`；文件·symbol `src/libdiag/traces.py` `traces`。等价的契约前缀路由为 `/tier/admin/v1/diagnostics/traces`，同入口。
+- **输入与前提**：时间窗/过滤/分页参数，同 snapshots；授权=`admin`。
+- **成功输出与保证**：`TracePage`——按 `request_id` 去重、`first_ts DESC`，`next_cursor` 稳定。
+- **错误与合法下一步**：无匹配 → 空 `items`（非错误）；cursor 非法 → `ERR-CURSOR`；`ERR-STORE`（503）。
+- **交互与生命周期**：同步只读；与 snapshots 对称分页。
+- **实现与验证**：正常窗口分页；边界：空窗口 → `has_more=false`。`VRC-DIAG-002/005`。
 
 #### `GET/PATCH /v1/deployments/{deployment_id}/diagnostics`
 

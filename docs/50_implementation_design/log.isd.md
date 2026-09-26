@@ -214,7 +214,7 @@ _SENSITIVE = re.compile(r"authorization|bearer\s+\S+|secret|api[_-]?key|token\s*
 
 - **合法/拒绝实例**
 
-  合法：插入一行；拒绝：`message` 超 512 → 截断（不拒写）；库只读 → 写失败由调用方吞。
+  合法：插入一行；拒绝：`message` 超 512 → 截断（不拒写）；库只读 → `record` 捕获并静默（fail-open）。
 
 - **验证**
 
@@ -225,7 +225,7 @@ _SENSITIVE = re.compile(r"authorization|bearer\s+\S+|secret|api[_-]?key|token\s*
 **4.8.1 log 错误结构 / 公共错误引用**
 
 ```text
-原生 sqlite3.Error → record 不捕获（调用方吞）；page 透传由 M004/宿主映射
+原生 sqlite3.Error → record 捕获并静默（fail-open，绝不抛）；page 透传由 M004/宿主映射
 ```
 
 - **Data/Type ID、用途与来源**
@@ -238,11 +238,11 @@ _SENSITIVE = re.compile(r"authorization|bearer\s+\S+|secret|api[_-]?key|token\s*
 
 - **跨字段与寿命**
 
-  写失败丢日志不阻塞主路径；查询失败不掩盖；`record` 不捕获，`page` 透传。
+  写失败丢日志不阻塞主路径；查询失败不掩盖；`record` 捕获全部异常（fail-open），`page` 透传。
 
 - **合法/拒绝实例**
 
-  拒绝：DB 只读 → warning/调用方吞；边界：查询 DB 不可读 → 503。
+  拒绝：DB 只读 → `record` 捕获并静默（fail-open）；边界：查询缺时间窗 → 400 `invalid_request`；查询 DB 不可读 → 503。
 
 - **验证**
 
@@ -252,7 +252,8 @@ _SENSITIVE = re.compile(r"authorization|bearer\s+\S+|secret|api[_-]?key|token\s*
 
 | 本层别名 | 条件 | 系统 Error ID | 合法下一步 |
 |---|---|---|---|
-| `E-LOG-WRITE` | `Store`/SQLite 写失败 | 私有（非公共码，调用方决定） | 调用方吞或上报 |
+| `E-LOG-WRITE` | `Store`/SQLite 写失败 | 私有（fail-open，非公共码；`record` 捕获静默） | 无需调用方动作 |
+| `E-LOG-VALIDATION` | `page` 缺 `since`/`until` | `ERR-REQ-VALIDATION`（400 `invalid_request`） | 补时间窗后重试 |
 | `E-LOG-QUERY` | 存储不可读 | `ERR-STORE`（503，不伪装空页） | 稍后重试 |
 
 ## 5. 接口设计
@@ -287,14 +288,14 @@ record(self, level: str, module: str, event: str, message: str, request_id: str 
 
 - **错误与合法下一步**
 
-  - **错误输出 / 触发条件 / 优先级**：E-LOG-WRITE（私有（非公共码，调用方决定））：不影响业务响应（调用方吞）
-  - **E-LOG-WRITE（公共 私有（非公共码，调用方决定））**
+  - **错误输出 / 触发条件 / 优先级**：E-LOG-WRITE（私有（fail-open，非公共码））：不影响业务响应（`record` 内部吞）
+  - **E-LOG-WRITE（私有（fail-open，非公共码））**
     - **底层异常 / 失败事实**：`Store`/SQLite 写失败
-    - **模块是否处理及处理函数**：propagate（`record` 不捕获）
-    - **Typed 异常与原生异常所有权**：原生 `sqlite3.Error`；由**调用方**决定吞或上报
-    - **宿主 / public payload 或状态码**：不影响业务响应（调用方吞）
+    - **模块是否处理及处理函数**：catch + 静默（`record` 内 `except Exception: pass`，绝不抛）
+    - **Typed 异常与原生异常所有权**：原生 `sqlite3.Error` 被 `record` 捕获，不外泄
+    - **宿主 / public payload 或状态码**：不影响业务响应
     - **日志级别 / 脱敏 / 关联字段**：无
-    - **是否可重试及前提**：调用方可选（尽力而为）
+    - **是否可重试及前提**：不重试（尽力而为）
     - **状态与副作用影响 / 验证项**：丢日志不阻塞；`VRC-LOG-001`
 
 - **交互与生命周期**
@@ -327,8 +328,8 @@ page(self, limit:int=50, level=None, module=None, request_id=None, since=None, u
 
 - **输入与前提**
 
-  - **输入参数 / 数据结构 authority**：过滤条件；`since/until` 时间窗（调用方校验必填）
-  - **输入约束 / 校验顺序 / 失败映射**：条件相等匹配；`limit` 夹到 `[1,200]`；DB 错 → `sqlite3.Error`
+  - **输入参数 / 数据结构 authority**：过滤条件；`since/until` 时间窗（**均必填**，由 `page` 自身校验）
+  - **输入约束 / 校验顺序 / 失败映射**：缺 `since`/`until` → `ApiError(400,"invalid_request")`；条件相等匹配；`limit` 夹到 `[1,200]`；DB 错 → `sqlite3.Error`
 
 - **成功输出与保证**
 
@@ -336,7 +337,15 @@ page(self, limit:int=50, level=None, module=None, request_id=None, since=None, u
 
 - **错误与合法下一步**
 
-  - **错误输出 / 触发条件 / 优先级**：E-LOG-QUERY（ERR-STORE · usage_store_unavailable）：503（不伪装空页）
+  - **错误输出 / 触发条件 / 优先级**：E-LOG-VALIDATION（ERR-REQ-VALIDATION · invalid_request）：400 缺时间窗；E-LOG-QUERY（ERR-STORE · usage_store_unavailable）：503（不伪装空页）
+  - **E-LOG-VALIDATION（公共 ERR-REQ-VALIDATION · invalid_request）**
+    - **底层异常 / 失败事实**：缺 `since`/`until`
+    - **模块是否处理及处理函数**：reject（`page` 入口）
+    - **Typed 异常与原生异常所有权**：`ApiError(400,"invalid_request")`
+    - **宿主 / public payload 或状态码**：400
+    - **日志级别 / 脱敏 / 关联字段**：无
+    - **是否可重试及前提**：补时间窗后重试
+    - **状态与副作用影响 / 验证项**：不查询、无副作用；`VRC-LOG-001`
   - **E-LOG-QUERY（公共 ERR-STORE · usage_store_unavailable）**
     - **底层异常 / 失败事实**：存储不可读
     - **模块是否处理及处理函数**：propagate
@@ -381,7 +390,7 @@ flowchart TD
     A["log(level, message)"] --> B["_SENSITIVE 写前脱敏"]
     B --> C["INSERT operational_logs"]
     C -->|成功| D["返回"]
-    C -->|失败| E["调用方吞掉"]
+    C -->|失败| E["record 捕获并静默（fail-open）"]
 ```
 
 ### 6.1 `P-LOG-WRITE` · 脱敏写入
@@ -391,7 +400,7 @@ flowchart TD
 - **步骤 / 算法 / 复杂度**：正则替换 → 折叠换行 → 截断 512 → INSERT；O(len)
 - **判断事实来源**：`_SENSITIVE` 匹配
 - **成功可见点**：行写入
-- **失败、取消与清理**：异常透传
+- **失败、取消与清理**：异常被 `record` 捕获后静默（fail-open）
 - **代表输入与中间值**：`"Authorization: Bearer x"` → `"Authorization: [REDACTED]"`
 - **规则 / 接口 / 验证引用**：`RULE-LOG-REDACT`；`VRC-LOG-001`
 
@@ -485,7 +494,7 @@ flowchart TD
 - **Symlink / hardlink / 路径替换策略**：由 M007
 - **备份 / 恢复 / 敏感数据静态保护**：库不含 Secret（写前脱敏）；备份由运维
 - **删除 / 擦除 / 保留期限**：保留期由运维（本模块不管理）
-- **磁盘耗尽 / 只读文件系统行为**：写失败 → 调用方吞；查询失败 → 503
+- **磁盘耗尽 / 只读文件系统行为**：写失败 → `record` 捕获静默（fail-open）；查询失败 → 503
 - **检查时点 / 判定 / 拒绝或降级出口**：随 M007
 - **验证项**：`VRC-LOG-001`
 

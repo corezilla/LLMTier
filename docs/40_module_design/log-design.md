@@ -71,10 +71,10 @@
 ### 2.2 `F-LOG-QUERY` · 查询运行日志
 - **上级需求 / Constraint ID**：机制 M-OBS（日志查询）
 - **调用方**：M004（`GET /v1/logs`）；M002 呈现
-- **输入与前提**：`limit` + 可选 `level/module/request_id` + `since/until`
+- **输入与前提**：`limit` + 可选 `level/module/request_id` + **必填 `since/until`**
 - **行为**：条件查询，按时间倒序
 - **输出**：`{data[], page}`
-- **错误与边界**：缺时间 → 由调用方校验
+- **错误与边界**：缺 `since`/`until` → 400 `invalid_request`
 - **验收条件**：只返回已脱敏字段；不返回正文/凭据
 
 ## 3. UI、CLI、服务端点或设备操作面
@@ -411,10 +411,11 @@ CREATE TABLE operational_logs (
 
 | 本层错误 | 条件 | 系统 Error ID | 合法下一步 |
 |---|---|---|---|
-| 写入失败（静默） | `Store` 不可写 | 无（fail-open，记 warning） | 不重试；不阻塞业务 |
+| 写入失败（fail-open 静默） | `Store` 不可写 | 无（fail-open，记 warning） | 不重试；不阻塞业务 |
+| `ApiError(400,"invalid_request")` | `page` 缺 `since`/`until` | `ERR-REQ-VALIDATION` | 补时间窗后重试 |
 | 查询失败 → HTTP 503 | 存储不可读 | `ERR-STORE` | 稍后重试 |
 
-- **约束 / 不变量**：`record` 失败不抛、不产生公共错误；`page` 的失败由 M004/M001 映射为 `ERR-STORE`。
+- **约束 / 不变量**：`record` 失败不抛、不产生公共错误；`page` 缺时间窗 → 400，存储失败由 M004/M001 映射为 `ERR-STORE`。
 - **实例**：拒绝：存储不可读 → `ERR-STORE`；边界：写失败 → 静默，无错误返回。
 - **来源 / 验证**：`logs.py` + 系统 §8.8；`VRC-LOG-001`。
 
@@ -478,9 +479,9 @@ page(limit: int = 50, level: str | None = None, module: str | None = None, reque
 ```
 
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-LOG-QUERY`；按条件分页查询运行日志；M008 提供；状态=Implemented；唯一契约=本设计；文件·symbol `src/log/logs.py` `OperationalLog.page`。
-- **输入与前提**：`limit: int`（夹 `[1,200]`）；`level/module/request_id: str|None`（等值过滤）；`since/until: str|None`（`created_at` 半开窗）。
+- **输入与前提**：`limit: int`（夹 `[1,200]`）；`level/module/request_id: str|None`（等值过滤）；`since/until: str`（**均必填**，`created_at` 半开窗）。
 - **成功输出与保证**：返回 §6.2.2 `LogPage`，按 `created_at DESC,id DESC`；只返回已脱敏字段，不返回正文/凭据。
-- **错误与合法下一步**：存储不可读 → 原生 `sqlite3.Error` 冒泡，由 M004/M001 映射 `ApiError(503,"usage_store_unavailable")`（系统 `ERR-STORE`）；调用方稍后重试，不伪装空页。
+- **错误与合法下一步**：缺 `since`/`until` → `ApiError(400,"invalid_request")`（系统 `ERR-REQ-VALIDATION`）；存储不可读 → 原生 `sqlite3.Error` 冒泡，由 M004/M001 映射 `ApiError(503,"usage_store_unavailable")`（系统 `ERR-STORE`）；调用方稍后重试，不伪装空页。
 - **交互与生命周期**：同步只读；`limit ≤200`；幂等。
 - **实现与验证**：正常 `page(level="error")`；边界：无匹配 → `{data:[],page:{has_more:false,next_cursor:null}}`。`VRC-LOG-001`；`src/log/logs.py`。
 
