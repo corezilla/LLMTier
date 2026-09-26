@@ -19,7 +19,14 @@ class EmbeddingsService:
 
     def _adapter(self, candidate):
         row = self.registry.store.one("SELECT secret_ref FROM providers WHERE id=?", (candidate.provider_id,))
-        return (LocalProvider if candidate.kind == "local" else OpenAIProvider)(candidate.endpoint, row["secret_ref"] if row else None)
+        cls = LocalProvider if candidate.kind == "local" else OpenAIProvider
+        profile = self.registry.store.one("SELECT connect_timeout_ms,stream_idle_timeout_ms FROM deployment_runtime_profiles WHERE deployment_id=?", (candidate.deployment_id,))
+        return cls(
+            candidate.endpoint,
+            row["secret_ref"] if row else None,
+            connect_timeout_s=(profile["connect_timeout_ms"] if profile else 30000) / 1000.0,
+            stream_idle_timeout_s=(profile["stream_idle_timeout_ms"] if profile else 60000) / 1000.0,
+        )
 
     def create(self, principal: str, request_id: str, body: dict[str, Any]) -> dict[str, Any]:
         require(set(body) <= {"model", "input", "encoding_format", "dimensions", "user"} and {"model", "input"} <= set(body), 400, "invalid_request", "Invalid embedding request")

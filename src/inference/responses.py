@@ -42,7 +42,13 @@ class ResponsesService:
             return SlowAdapter()
         row = self.registry.store.one("SELECT secret_ref FROM providers WHERE id=?", (candidate.provider_id,))
         cls = LocalProvider if candidate.kind == "local" else OpenAIProvider
-        return cls(candidate.endpoint, row["secret_ref"] if row else None)
+        profile = self.registry.store.one("SELECT connect_timeout_ms,stream_idle_timeout_ms FROM deployment_runtime_profiles WHERE deployment_id=?", (candidate.deployment_id,))
+        return cls(
+            candidate.endpoint,
+            row["secret_ref"] if row else None,
+            connect_timeout_s=(profile["connect_timeout_ms"] if profile else 30000) / 1000.0,
+            stream_idle_timeout_s=(profile["stream_idle_timeout_ms"] if profile else 60000) / 1000.0,
+        )
 
     def create(self, principal: str, request_id: str, body: dict[str, Any], diagnostics=None,
                correlation_id: str | None = None, out: dict[str, Any] | None = None) -> dict[str, Any]:

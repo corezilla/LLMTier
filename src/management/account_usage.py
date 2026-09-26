@@ -155,7 +155,7 @@ class AccountUsageService:
         return _snapshot("volc", "provider_api", "ok", windows=windows) if windows else _snapshot("volc", "provider_api", "unavailable", error="volc_get_coding_plan_usage_empty_result")
 
     def refresh(self, provider_id: str, confirm_external_call: bool) -> dict[str, Any]:
-        require(confirm_external_call is True, 400, "invalid_request", "Usage refresh requires explicit confirmation")
+        require(confirm_external_call is True, 400, "confirmation_required", "Usage refresh requires explicit confirmation")
         provider = self.store.one("SELECT * FROM providers WHERE id=?", (provider_id,))
         profile = self.store.one("SELECT * FROM provider_usage_profiles WHERE provider_id=?", (provider_id,))
         if provider is None or profile is None:

@@ -23,7 +23,7 @@ class AdminService:
         if cursor:
             sid, _, raw_offset = cursor.partition(":"); offset = int(raw_offset or "0")
             snapshot = self.registry.store.one("SELECT * FROM query_snapshots WHERE snapshot_id=? AND snapshot_kind=?", (sid, f"admin:{kind}"))
-            if snapshot is None or snapshot["principal_id"] != actor or datetime.fromisoformat(snapshot["expires_at"].replace("Z", "+00:00")) <= datetime.now(timezone.utc): raise ApiError(400, "invalid_request", "Admin cursor is invalid or expired")
+            if snapshot is None or snapshot["principal_id"] != actor or datetime.fromisoformat(snapshot["expires_at"].replace("Z", "+00:00")) <= datetime.now(timezone.utc): raise ApiError(400, "cursor_expired", "Admin cursor is invalid or expired")
         else:
             sid, offset = f"admin_{uuid.uuid4().hex}", 0
             stamp = datetime.now(timezone.utc); expires = stamp + timedelta(minutes=10)
@@ -50,7 +50,7 @@ class AdminService:
                      COALESCE(SUM(v.reasoning_tokens), 0) AS reasoning_tokens
               FROM usage_record_versions v
               JOIN usage_heads h ON h.principal_id=v.principal_id AND h.request_id=v.request_id AND h.head_record_version=v.record_version
-              WHERE v.recorded_at>=? AND v.recorded_at<=?
+              WHERE v.recorded_at>=? AND v.recorded_at<?
                 AND (? IS NULL OR v.principal_id=?)
               GROUP BY v.model
               ORDER BY calls DESC, total_tokens DESC, v.model ASC
@@ -78,7 +78,7 @@ class AdminService:
               JOIN provider_request_bindings b ON b.principal_id=v.principal_id AND b.request_id=v.request_id
               JOIN deployments d ON d.id=b.deployment_id
               JOIN providers p ON p.id=b.provider_id
-              WHERE v.recorded_at>=? AND v.recorded_at<=?
+              WHERE v.recorded_at>=? AND v.recorded_at<?
                 AND (? IS NULL OR v.principal_id=?)
               GROUP BY b.deployment_id, d.name, d.backend_model, p.id, p.name, p.kind
               ORDER BY calls DESC, total_tokens DESC, b.deployment_id ASC

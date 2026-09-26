@@ -1,18 +1,34 @@
 const $=selector=>document.querySelector(selector);
 const $$=selector=>[...document.querySelectorAll(selector)];
+const fieldValue=(root,name)=>{const element=root.querySelector(`[name="${name}"]`);return element?element.value:''};
 
 const LOGIN_URL='/login';
-function markStale(message){document.body.classList.add('stale');const banner=$('#ui-banner');if(banner){banner.textContent=message;banner.hidden=false}}
+function showBanner(message){const banner=$('#ui-banner');if(banner){banner.textContent=message;banner.hidden=false}}
+function markStale(message){document.body.classList.add('stale');showBanner(message)}
 // I9 error dispatch (web-ui ISD §5.2): 401 -> session/redirect, 409/412 -> keep page for reload, 429/503 -> stale.
 function dispatchUiError(error){
   if(error.status===401){document.body.classList.add('stale');window.location.assign(LOGIN_URL);return}
-  if(error.status===409){error.referenceConflict=true;return}
-  if(error.status===412){error.staleEdit=true;return}
-  if(error.status===429||error.status===503){markStale('Service unavailable — showing the last known screen.')}
+  if(error.status===409){
+    error.referenceConflict=true;
+    error.message=`Conflict — this reference is still in use. ${error.message||''}`.trim();
+    showBanner(error.message);
+    return;
+  }
+  if(error.status===412){
+    error.staleEdit=true;
+    showBanner('Changed by others — reload and retry. Your input was kept.');
+    return;
+  }
+  if(error.status===429){
+    document.body.classList.add('stale');
+    showBanner(`Too many requests — retry after ${error.retry_after?`${error.retry_after}s`:'a moment'}.`);
+    return;
+  }
+  if(error.status===503){markStale('Service unavailable — showing the last known screen.')}
 }
 async function api(path,{method='GET',body,headers={}}={}){
   const response=await fetch(path,{method,credentials:'same-origin',headers:{'Content-Type':'application/json',...headers},body:body?JSON.stringify(body):undefined});
-  if(!response.ok){let payload={};try{payload=await response.json()}catch{}const error=new Error(payload.error?.message||`${response.status} ${response.statusText}`);error.status=response.status;error.code=payload.error?.code||null;dispatchUiError(error);throw error}
+  if(!response.ok){let payload={};try{payload=await response.json()}catch{}const error=new Error(payload.error?.message||`${response.status} ${response.statusText}`);error.status=response.status;error.code=payload.error?.code||null;error.retry_after=response.headers.get('Retry-After');dispatchUiError(error);throw error}
   return response.status===204?null:response.json();
 }
 
@@ -277,19 +293,19 @@ async function renderTierMembers(){
   $('#member-provider').innerHTML=providerOptions();
   $('#member-model').innerHTML='<option value="">Select a provider first</option>';
   $('#model-list-new').innerHTML='';
-  $('#member-capability').textContent=tier.id==='Embedding-v1'?'Embeddings':'Responses';
+  const capability=$('#member-capability');if(capability)capability.textContent=tier.id==='Embedding-v1'?'Embeddings':'Responses';
   const addButton=$('#add-member-form button');
   addButton.disabled=!state.providers.length;
   addButton.title=state.providers.length?'':'Add a provider before adding a tier member';
 }
 
 async function reloadMemberModels(providerSelect){
-  const form=providerSelect.closest('form');
-  const deploymentId=form.dataset.deployment;
+  const row=providerSelect.closest('tr');
+  const deploymentId=row.dataset.deployment;
   const models=await fetchProviderModels(providerSelect.value);
-  const currentModel=form.querySelector('[name="backend_model"]').value;
+  const currentModel=row.querySelector('[name="backend_model"]').value;
   const mergedModels=[...new Set([...models,currentModel])];
-  form.querySelector('[name="backend_model"]').innerHTML=modelOptions(models,currentModel);
+  row.querySelector('[name="backend_model"]').innerHTML=modelOptions(models,currentModel);
   document.getElementById(`model-list-${deploymentId}`).innerHTML=mergedModels.map(m=>`<option value="${esc(m)}">`).join('');
 }
 
@@ -306,7 +322,7 @@ async function saveMember(event){
   const form=event.currentTarget.closest('form')||event.currentTarget,deployment=state.deployments.find(item=>item.id===form.dataset.deployment);
   if(!deployment)return;
   try{
-    await api(`/v1/deployments/${encodeURIComponent(deployment.id)}`,{method:'PATCH',headers:{'If-Match':etag(deployment)},body:{provider_id:form.elements.provider_id.value,name:form.elements.name.value,backend_model:form.elements.backend_model.value,enabled:true}});
+    await api(`/v1/deployments/${encodeURIComponent(deployment.id)}`,{method:'PATCH',headers:{'If-Match':etag(deployment)},body:{provider_id:fieldValue(form,'provider_id'),name:fieldValue(form,'name'),backend_model:fieldValue(form,'backend_model'),enabled:true}});
     await loadRegistry();renderTree();renderTierMembers();
   }catch(error){$('#tier-form-error').textContent=error.message}
 }
@@ -326,7 +342,7 @@ async function addMember(event){
   const form=event.currentTarget,tier=state.tiers.find(item=>item.id===editingTierId);if(!tier)return;
   const kind=tier.id==='Embedding-v1'?'embeddings':'responses';
   try{
-    const deployment=await api('/v1/deployments',{method:'POST',body:{name:form.elements.name.value,provider_id:form.elements.provider_id.value,backend_model:form.elements.backend_model.value,capabilities:caps(kind),enabled:true}});
+    const deployment=await api('/v1/deployments',{method:'POST',body:{name:fieldValue(form,'name'),provider_id:fieldValue(form,'provider_id'),backend_model:fieldValue(form,'backend_model'),capabilities:caps(kind),enabled:true}});
     await api(`/v1/service-levels/${encodeURIComponent(tier.id)}`,{method:'PATCH',headers:{'If-Match':etag(tier)},body:{deployment_ids:[...tier.deployment_ids,deployment.id]}});
     form.reset();await loadRegistry();renderTree();renderTierMembers();
   }catch(error){$('#tier-form-error').textContent=error.message}

@@ -121,6 +121,7 @@ class Registry:
         required = {"name", "kind", "endpoint", "secret_ref", "enabled"}
         require(required <= set(body) and set(body) <= required | {"usage"}, 400, "invalid_request", "Provider fields are incomplete or unknown")
         require(body["kind"] in {"cloud", "local"}, 400, "invalid_request", "Invalid provider kind", "kind")
+        self._validate_secret_ref(body["secret_ref"])
         usage = self._usage_values(body.get("usage"), body["kind"])
         rid = _id("provider")
         try:
@@ -155,6 +156,7 @@ class Registry:
     def update_provider(self, rid: str, body: dict[str, Any], if_match: str | None, conn: sqlite3.Connection | None = None) -> tuple[dict[str, Any], str]:
         allowed = {"name", "kind", "endpoint", "secret_ref", "enabled", "usage"}
         require(body and set(body) <= allowed, 400, "invalid_request", "Unknown or empty provider patch")
+        if "secret_ref" in body: self._validate_secret_ref(body["secret_ref"])
         with txn(self.store, conn) as conn:
             row = conn.execute("SELECT * FROM providers WHERE id=?", (rid,)).fetchone()
             if row is None: raise ApiError(404, "not_found", "Provider not found")
@@ -169,6 +171,10 @@ class Registry:
             if "usage" in body:
                 conn.execute("DELETE FROM provider_usage_snapshots WHERE provider_id=?", (rid,))
         return self.get_provider(rid)
+
+    @staticmethod
+    def _validate_secret_ref(ref: Any) -> None:
+        require(ref is None or (isinstance(ref, str) and ref.startswith(("env:", "file:"))), 400, "invalid_request", "Unsupported provider secret reference", "secret_ref")
 
     @staticmethod
     def _usage_values(value: Any, kind: str, current=None) -> dict[str, Any]:

@@ -75,12 +75,30 @@ def handler_factory(app: Application):
             for key, value in (headers or {}).items(): self.send_header(key, value)
             self.end_headers(); self.wfile.write(raw)
 
+        def _store_read(self, fn, *args, **kwargs):
+            try:
+                return fn(*args, **kwargs)
+            except ApiError:
+                raise
+            except Exception as exc:
+                raise ApiError(503, "usage_store_unavailable", "Usage store is unavailable") from exc
+
+        def _correlation(self) -> str | None:
+            value = self.headers.get("X-Correlation-ID")
+            if value:
+                return value
+            value = self.headers.get("traceparent")
+            if not value:
+                return None
+            match = re.fullmatch(r"[0-9a-fA-F]{2}-([0-9a-fA-F]{32})-[0-9a-fA-F]{16}-[0-9a-fA-F]{2}", value.strip())
+            return match.group(1) if match else value
+
         def _body(self):
             try:
                 length = int(self.headers.get("Content-Length") or "0")
             except ValueError as exc:
                 raise ApiError(400, "invalid_request", "Invalid Content-Length") from exc
-            if length > 2_000_000: raise ApiError(413, "request_too_large", "Request body is too large")
+            if length > 2 * 1024 * 1024: raise ApiError(413, "request_too_large", "Request body is too large")
             try:
                 data = json.loads(self.rfile.read(length) or b"{}")
             except (json.JSONDecodeError, UnicodeDecodeError) as exc:
@@ -122,7 +140,7 @@ def handler_factory(app: Application):
             if match and method == "GET": self._auth(); return self._json(200, app.models.get(match.group(1)))
             if path == "/v1/responses" and method == "POST":
                 principal = self._auth()
-                correlation = self.headers.get("X-Correlation-ID") or self.headers.get("traceparent")
+                correlation = self._correlation()
                 app.diagnostics.record_trace(self.request_id, "received", {"x_correlation_id": correlation, "content_length": self.headers.get("Content-Length")}, correlation_id=correlation)
                 out: dict[str, Any] = {}
                 try:
@@ -151,7 +169,7 @@ def handler_factory(app: Application):
             if path == "/v1/usage":
                 principal, is_admin = self._auth_either()
                 if method == "GET":
-                    return self._json(200, app.usage.page(principal.principal_id, query.get("cursor", [None])[0], _int_param(query, "limit", 100), admin=is_admin, since=query.get("from", [None])[0], until=query.get("to", [None])[0], model=query.get("model", [None])[0], request_id=query.get("request_id", [None])[0]))
+                    return self._json(200, self._store_read(app.usage.page, principal.principal_id, query.get("cursor", [None])[0], _int_param(query, "limit", 100), admin=is_admin, since=query.get("from", [None])[0], until=query.get("to", [None])[0], model=query.get("model", [None])[0], request_id=query.get("request_id", [None])[0]))
                 if method == "DELETE":
                     if not is_admin: raise ApiError(403, "permission_denied", "Admin credential required")
                     result = app.admin.mutate(principal.principal_id, "usage.reset", "all", self.request_id, lambda conn: app.usage.reset_usage(model=query.get("model", [None])[0], deployment_id=query.get("deployment_id", [None])[0], conn=conn))
@@ -216,58 +234,58 @@ def handler_factory(app: Application):
                 since, until = query.get("from", [None])[0], query.get("to", [None])[0]
                 if not since or not until: raise ApiError(400, "invalid_request", "from and to are required")
                 return self._json(200, app.logs.page(_int_param(query, "limit", 100), query.get("level", [None])[0], query.get("module", [None])[0], query.get("request_id", [None])[0], since, until))
-            if path == "/v1/diagnostics" and method == "GET": return self._json(200, app.diagnostics.switches())
+            if path == "/v1/diagnostics" and method == "GET": return self._json(200, self._store_read(app.diagnostics.switches))
             if path == "/v1/diagnostics" and method == "PATCH":
                 body = self._body()
                 result = app.admin.mutate(principal.principal_id, "diagnostics.switch.update", "diagnostics", self.request_id, lambda conn: app.diagnostics.set_switches(body.get("snapshots_enabled"), body.get("stats_enabled"), conn=conn))
                 return self._json(200, result)
             if path == "/v1/diagnostics/snapshots" and method == "GET":
-                return self._json(200, app.diagnostics.snapshots_page(query.get("since", [None])[0], query.get("until", [None])[0], query.get("deployment_id", [None])[0], query.get("model", [None])[0], _int_param(query, "limit", 50), query.get("cursor", [None])[0]))
+                return self._json(200, self._store_read(app.diagnostics.snapshots_page, query.get("since", [None])[0], query.get("until", [None])[0], query.get("deployment_id", [None])[0], query.get("model", [None])[0], _int_param(query, "limit", 50), query.get("cursor", [None])[0]))
             if path == "/v1/diagnostics/stats" and method == "GET":
                 since, until = query.get("since", [None])[0], query.get("until", [None])[0]
                 if not since or not until: raise ApiError(400, "invalid_request", "since and until are required")
-                return self._json(200, app.diagnostics.stats(since, until, query.get("deployment_id", [None])[0], query.get("model", [None])[0]))
+                return self._json(200, self._store_read(app.diagnostics.stats, since, until, query.get("deployment_id", [None])[0], query.get("model", [None])[0]))
             if path == "/v1/diagnostics/traces" and method == "GET":
-                return self._json(200, app.diagnostics.traces(query.get("since", [None])[0], query.get("until", [None])[0], query.get("deployment_id", [None])[0], query.get("model", [None])[0], _int_param(query, "limit", 50), query.get("cursor", [None])[0]))
+                return self._json(200, self._store_read(app.diagnostics.traces, query.get("since", [None])[0], query.get("until", [None])[0], query.get("deployment_id", [None])[0], query.get("model", [None])[0], _int_param(query, "limit", 50), query.get("cursor", [None])[0]))
             match = re.fullmatch(r"/v1/deployments/([^/]+)/diagnostics", path)
             if match:
                 did = match.group(1)
-                if method == "GET": return self._json(200, app.diagnostics.injections(did))
+                if method == "GET": return self._json(200, self._store_read(app.diagnostics.injections, did))
                 if method == "PATCH":
                     result = app.admin.mutate(principal.principal_id, "diagnostics.injection.update", did, self.request_id, lambda conn: app.diagnostics.set_injections(did, self._body(), conn=conn))
                     return self._json(200, result)
             match = re.fullmatch(r"/tier/admin/v1/deployments/([^/]+)/diagnostics", path)
             if match:
                 did = match.group(1)
-                if method == "GET": return self._json(200, app.diagnostics.injections(did))
+                if method == "GET": return self._json(200, self._store_read(app.diagnostics.injections, did))
                 if method == "PATCH":
                     result = app.admin.mutate(principal.principal_id, "diagnostics.injection.update", did, self.request_id, lambda conn: app.diagnostics.set_injections(did, self._body(), conn=conn))
                     return self._json(200, result)
             match = re.fullmatch(r"/v1/trace/([^/]+)", path)
-            if match and method == "GET": return self._json(200, app.diagnostics.trace(match.group(1)))
+            if match and method == "GET": return self._json(200, self._store_read(app.diagnostics.trace, match.group(1)))
             # 契约层路由（llmtier-management-contract-v0.3）；与 /v1/* 扁平命名空间并存
-            if path == "/tier/admin/v1/diagnostics" and method == "GET": return self._json(200, app.diagnostics.switches())
+            if path == "/tier/admin/v1/diagnostics" and method == "GET": return self._json(200, self._store_read(app.diagnostics.switches))
             if path == "/tier/admin/v1/diagnostics" and method == "PATCH":
                 body = self._body()
                 result = app.admin.mutate(principal.principal_id, "diagnostics.switch.update", "diagnostics", self.request_id, lambda conn: app.diagnostics.set_switches(body.get("snapshots_enabled"), body.get("stats_enabled"), conn=conn))
                 return self._json(200, result)
             if path == "/tier/admin/v1/diagnostics/snapshots" and method == "GET":
-                return self._json(200, app.diagnostics.snapshots_page(query.get("since", [None])[0], query.get("until", [None])[0], query.get("deployment_id", [None])[0], query.get("model", [None])[0], _int_param(query, "limit", 50), query.get("cursor", [None])[0]))
+                return self._json(200, self._store_read(app.diagnostics.snapshots_page, query.get("since", [None])[0], query.get("until", [None])[0], query.get("deployment_id", [None])[0], query.get("model", [None])[0], _int_param(query, "limit", 50), query.get("cursor", [None])[0]))
             if path == "/tier/admin/v1/diagnostics/stats" and method == "GET":
                 since, until = query.get("since", [None])[0], query.get("until", [None])[0]
                 if not since or not until: raise ApiError(400, "invalid_request", "since and until are required")
-                return self._json(200, app.diagnostics.stats(since, until, query.get("deployment_id", [None])[0], query.get("model", [None])[0]))
+                return self._json(200, self._store_read(app.diagnostics.stats, since, until, query.get("deployment_id", [None])[0], query.get("model", [None])[0]))
             if path == "/tier/admin/v1/diagnostics/traces" and method == "GET":
-                return self._json(200, app.diagnostics.traces(query.get("since", [None])[0], query.get("until", [None])[0], query.get("deployment_id", [None])[0], query.get("model", [None])[0], _int_param(query, "limit", 50), query.get("cursor", [None])[0]))
+                return self._json(200, self._store_read(app.diagnostics.traces, query.get("since", [None])[0], query.get("until", [None])[0], query.get("deployment_id", [None])[0], query.get("model", [None])[0], _int_param(query, "limit", 50), query.get("cursor", [None])[0]))
             match = re.fullmatch(r"/tier/admin/v1/deployments/([^/]+)/diagnostics", path)
             if match:
                 did = match.group(1)
-                if method == "GET": return self._json(200, app.diagnostics.injections(did))
+                if method == "GET": return self._json(200, self._store_read(app.diagnostics.injections, did))
                 if method == "PATCH":
                     result = app.admin.mutate(principal.principal_id, "diagnostics.injection.update", did, self.request_id, lambda conn: app.diagnostics.set_injections(did, self._body(), conn=conn))
                     return self._json(200, result)
             match = re.fullmatch(r"/tier/admin/v1/trace/([^/]+)", path)
-            if match and method == "GET": return self._json(200, app.diagnostics.trace(match.group(1)))
+            if match and method == "GET": return self._json(200, self._store_read(app.diagnostics.trace, match.group(1)))
             raise ApiError(404, "not_found", "Endpoint not found")
 
         def _run(self):

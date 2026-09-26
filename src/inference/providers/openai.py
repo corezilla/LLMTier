@@ -21,12 +21,21 @@ def _ssl_context() -> ssl.SSLContext:
 
 
 class OpenAIProvider:
-    def __init__(self, endpoint: str, secret_ref: str | None, timeout: float = 30.0):
+    def __init__(self, endpoint: str, secret_ref: str | None, timeout: float = 30.0,
+                 connect_timeout_s: float | None = None, stream_idle_timeout_s: float | None = None):
         self.endpoint = endpoint.rstrip("/")
         self.secret_ref = secret_ref
         self.timeout = timeout
+        self.connect_timeout = connect_timeout_s if connect_timeout_s is not None else timeout
+        self.stream_idle_timeout = stream_idle_timeout_s if stream_idle_timeout_s is not None else timeout
         self._https = self.endpoint.lower().startswith("https://")
         self._ssl = _ssl_context() if self._https else None
+
+    def _stream_read_timeout(self, response) -> None:
+        try:
+            response.fp.raw.settimeout(self.stream_idle_timeout)
+        except Exception:
+            pass
 
     def _secret(self) -> str | None:
         if not self.secret_ref:
@@ -34,7 +43,10 @@ class OpenAIProvider:
         if self.secret_ref.startswith("env:"):
             return os.environ.get(self.secret_ref[4:])
         if self.secret_ref.startswith("file:"):
-            return Path(self.secret_ref[5:]).read_text().strip()
+            try:
+                return Path(self.secret_ref[5:]).read_text().strip()
+            except OSError as exc:
+                raise ApiError(503, "provider_secret_unavailable", "Provider secret file is unreadable") from exc
         raise ApiError(503, "provider_secret_unavailable", "Unsupported provider secret reference")
 
     def _request(self, path: str, body: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]]:
@@ -45,7 +57,7 @@ class OpenAIProvider:
         req = urllib.request.Request(self.endpoint + path, data=json.dumps(body).encode(), headers=headers, method="POST")
         req.add_header("Connection", "close")
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout, context=self._ssl) as response:
+            with urllib.request.urlopen(req, timeout=self.connect_timeout, context=self._ssl) as response:
                 raw = response.read()
                 return json.loads(raw), {k.lower(): v for k, v in response.headers.items()}
         except urllib.error.HTTPError as exc:
@@ -72,7 +84,8 @@ class OpenAIProvider:
         # the failure mode deterministic and one-shot per request.
         req.add_header("Connection", "close")
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout, context=self._ssl) as response:
+            with urllib.request.urlopen(req, timeout=self.connect_timeout, context=self._ssl) as response:
+                self._stream_read_timeout(response)
                 content_type = response.headers.get_content_type()
                 if content_type != "text/event-stream": raise ApiError(502, "provider_contract_error", "Provider did not return Responses SSE")
                 terminal = None
