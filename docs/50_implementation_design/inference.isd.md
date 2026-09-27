@@ -218,7 +218,7 @@ ResponsesResponse {
   status: "completed" | "incomplete" | "failed"
   model: str
   output: object[]
-  usage: UsageView?
+  usage: object?                 // 上游原始 usage，原样回显（无 measurement_status）
   error: object?
   incomplete_details: object?
 }
@@ -242,7 +242,7 @@ ResponsesResponse {
 
 - **`usage`**（可空）
 
-  `UsageView?`；缺失时按 `unknown` 处理，不补零。
+  `object?`；直接回显上游原始 usage（形状由 Provider 决定，**无** `measurement_status`）；缺失时按 `unknown` 处理，不补零。
 
 - **`error` / `incomplete_details`**（条件有效）
 
@@ -296,7 +296,7 @@ ProviderResult {
 
 - **跨字段与寿命**
 
-  `@dataclass(slots=True)`；请求级所有权，Adapter 构造、编排消费；不可变，随请求释放。
+  `@dataclass(slots=True)`（**可变**，非 `frozen`）；请求级所有权，Adapter 构造、编排消费；随请求释放。
 
 - **合法/拒绝实例**
 
@@ -350,42 +350,51 @@ Candidate {
 
   `VRC-INF-004`。
 
-**4.2.5 `UsageView`（`usage.py`）**
+**4.2.5 `UsageRecordView`（分页投影，`usage.py`）**
 
 ```text
-UsageView {
-  input_tokens: int
-  output_tokens: int
-  total_tokens: int
-  input_tokens_details: {cached_tokens: int, cache_write_tokens: int}
-  output_tokens_details: {reasoning_tokens: int}
+UsageRecordView {              # UsageRecorder.page().data[]
+  request_id: str
+  record_version: int
+  is_final: bool
+  model: str
+  endpoint: str
+  recorded_at: RFC3339ms
+  updated_at: RFC3339ms
   measurement_status: "measured" | "unknown"
+  source: str                  // provider | injected | unavailable
+  input_tokens: int | null
+  output_tokens: int | null
+  total_tokens: int | null
+  cached_input_tokens: int | null
+  cache_write_tokens: int | null
+  reasoning_tokens: int | null
 }
 ```
 
 - **Data/Type ID、用途与来源**
 
-  `D-USAGE`；归一后用量。公共字段 authority=机制 `M-METER` §14.4 `R-MET-01`（机器 source=OpenAPI usage schema）。
+  `D-USAGE-RECORD`；账本分页投影（**扁平**，无嵌套 details）。唯一来源=`usage.py` `UsageRecorder._record`（读 `usage_heads` + `usage_record_versions`）。注意：`ResponsesResponse.usage` 是上游原始 usage，不经本结构、无 `measurement_status`。
 
-- **`input_tokens` / `output_tokens` / `total_tokens`**（条件必填，随 `measurement_status`）
+- **`request_id` / `record_version` / `is_final` / `model` / `endpoint` / `recorded_at` / `updated_at`**（必填）
 
-  `int`；`measured` 时三者必须皆存在。
+  账本身份、版本与终态标志；`record_version` 随 head 推进单调，`is_final` 标识终态版本。
 
-- **`input_tokens_details` / `output_tokens_details`**（可选）
+- **`measurement_status` / `source`**（必填）
 
-  嵌套计数；`cached⊂input`、`reasoning⊂output`。
+  `measured | unknown`；`source ∈ {provider, injected, unavailable}`（无测量时为 `unavailable`，注入来源为 `injected`）。
 
-- **`measurement_status`**（必填、枚举）
+- **`input_tokens` / `output_tokens` / `total_tokens` / `cached_input_tokens` / `cache_write_tokens` / `reasoning_tokens`**（可空）
 
-  `measured | unknown`；`unknown` 不得补零。
+  `int | null`；仅 `measured` 时为整数，`unknown` 不得补零。
 
 - **跨字段与寿命**
 
-  `measured` 仅当三个总计数皆为 `int`；持久（M-METER 账本），`UsageRecorder` 写、M-METER 读；版本化追加。
+  `measured` 仅当三个总计数皆为 `int`；持久（M-METER 账本），`UsageRecorder` 写、M-METER/M004 读；版本化追加。
 
 - **合法/拒绝实例**
 
-  合法：measured 三值齐备且子项包含正确；边界：上游缺 usage → `unknown` 且所有计数为空，不补零。
+  合法：measured 三值齐备；边界：上游缺 usage → `unknown` 且所有计数为 `null`，不补零。
 
 - **验证**
 
@@ -452,7 +461,7 @@ RouterState {
 | `T-INF-05` | Admitted → Released | `admit` 上下文退出 | 上下文管理器 `__exit__` | `Router.admit` 的 `finally`：计数递减 + `condition.notify` | 异常路径同样释放 | `VRC-INF-004` |
 | `T-INF-06` | （无义务）→ Unknown | `UsageRecorder.authorize_dispatch` | 已校验请求身份 | `usage.py` `authorize_dispatch` 写 `usage_obligations`(unknown) | 写失败 → 不 dispatch | `VRC-INF-003` |
 | `T-INF-07` | Unknown → Measured | `UsageRecorder.finish()` 成功 | 上游终态与用量事实 | `usage.py` `finish`：追加 `usage_record_versions` + 推进 `usage_heads`（同事务） | 提交失败 → 保留 Unknown | `VRC-INF-003` |
-| `T-INF-08` | Unknown → Unknown | `finish(None)` 或终态写入失败 | 调用链异常 / 存储错误 | `usage.py` `finish(None)`：保留 unknown、不写零值 | 上层返回对应错误 | `VRC-INF-003` |
+| `T-INF-08` | Unknown → Unknown（终态） | 准入后失败 `finish(None)` 或终态写入失败 | 调用链异常 / 存储错误 | `usage.py` `finish(None)`：追加终态 unknown 版本（v2）并推进 head；不写零值。（仅**准入失败**时保留 v1 orphan，不调用 `finish`） | 上层返回对应错误 | `VRC-INF-003` |
 
 ### 4.8 错误码与错误结构
 
@@ -610,7 +619,7 @@ create(principal, request_id, body) -> dict
 
 - **错误与合法下一步**
 
-  - **错误输出 / 触发条件 / 优先级**：E-INF-VALIDATE（ERR-REQ-VALIDATION / ERR-REQ-UNSUPPORTED / ERR-REQ-FIELD）：400（`invalid_request`/`unsupported_request`/`unsupported_field`/`unsupported_model`）；E-INF-MODEL（ERR-MODEL-NOTFOUND · model_not_found）：404 `model_not_found`；E-INF-UPSTREAM（ERR-PROVIDER-UNAVAIL / ERR-PROVIDER-FAIL）：503 `provider_unavailable`/`provider_secret_unavailable`、上游 4xx 原码 `provider_error`
+  - **错误输出 / 触发条件 / 优先级**：E-INF-VALIDATE（ERR-REQ-VALIDATION / ERR-REQ-UNSUPPORTED / ERR-REQ-FIELD）：400（`invalid_request`/`unsupported_request`/`unsupported_field`/`unsupported_model`）；E-INF-MODEL（ERR-MODEL-NOTFOUND · model_not_found）：404 `model_not_found`；E-INF-CONTRACT（ERR-PROVIDER-CONTRACT · provider_contract_error）：502 `provider_contract_error`（base64 非法或向量非有限/为空）；E-INF-UPSTREAM（ERR-PROVIDER-UNAVAIL / ERR-PROVIDER-FAIL）：503 `provider_unavailable`/`provider_secret_unavailable`、上游 4xx 原码 `provider_error`
   - **E-INF-VALIDATE（公共 ERR-REQ-VALIDATION / ERR-REQ-UNSUPPORTED / ERR-REQ-FIELD）**
     - **底层异常 / 失败事实**：字段/能力不满足
     - **模块是否处理及处理函数**：reject（`create` 前段）
@@ -619,6 +628,14 @@ create(principal, request_id, body) -> dict
     - **日志级别 / 脱敏 / 关联字段**：无
     - **是否可重试及前提**：修请求
     - **状态与副作用影响 / 验证项**：无副作用；`VRC-INF-001`
+  - **E-INF-CONTRACT（公共 ERR-PROVIDER-CONTRACT · provider_contract_error）**
+    - **底层异常 / 失败事实**：上游向量校验失败（base64 非法、向量为空或含非有限值）
+    - **模块是否处理及处理函数**：reject（`EmbeddingsService.create` 向量校验）
+    - **Typed 异常与原生异常所有权**：`ApiError(502)`
+    - **宿主 / public payload 或状态码**：502 `provider_contract_error`
+    - **日志级别 / 脱敏 / 关联字段**：warning
+    - **是否可重试及前提**：无
+    - **状态与副作用影响 / 验证项**：可能已调用后端；`VRC-INF-002`
   - **E-INF-UPSTREAM（公共 ERR-PROVIDER-UNAVAIL / ERR-PROVIDER-FAIL）**
     - **底层异常 / 失败事实**：连接/首字节/SSE 空闲超时、5xx、Secret 不可解析，或上游 4xx
     - **模块是否处理及处理函数**：propagate（Adapter 映射 typed error）
@@ -1038,12 +1055,12 @@ flowchart TD
 - **开始 / 提交 / 回滚函数**：`UsageRecorder`（经 M007 `transaction`）
 - **持久提交点 / 对外响应点**：commit（义务提交成功才 dispatch；`T-INF-08` 失败保留 unknown）
 - **响应丢失后的权威核对**：核对账本 head
-- **恢复入口 / 判定记录 / 重复恢复条件**：崩溃恢复以已提交 `usage_obligations` 为入口；无终态版本 → 保留 unknown（`T-INF-08`，不补零）
+- **恢复入口 / 判定记录 / 重复恢复条件**：崩溃恢复以已提交 `usage_obligations` 为入口；准入后失败会写终态 unknown 版本（v2）并推进 head（`T-INF-08`，不补零），仅准入失败保留 v1 orphan
 - **验证项**：`VRC-INF-003`
 
 #### 7.2.2 Schema 演进策略决定
 
-- **Schema authority / 当前版本事实来源**：无本层 schema；事实来源为 M007 `schema_meta.schema_version`（`util.isd.md` §4.4）
+- **Schema authority / 当前版本事实来源**：无本层 schema；事实来源为 M007 `schema_meta.schema_version`（`util.isd.md` §4.7）
 - **允许的升级模式**：随 M007 —— 仅 **schema initialization**（空库建当前结构）
 - **明确不接受的迁移模式**：无本层独立迁移；**不接受增量升级 / downgrade / 自动修复**
 - **兼容边界**：本层不定义版本；仅在 M007 判定 ready 后服务

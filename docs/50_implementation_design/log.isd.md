@@ -254,7 +254,7 @@ _SENSITIVE = re.compile(r"authorization|bearer\s+\S+|secret|api[_-]?key|token\s*
 |---|---|---|---|
 | `E-LOG-WRITE` | `Store`/SQLite 写失败 | 私有（fail-open，非公共码；`record` 捕获静默） | 无需调用方动作 |
 | `E-LOG-VALIDATION` | `page` 缺 `since`/`until` | `ERR-REQ-VALIDATION`（400 `invalid_request`） | 补时间窗后重试 |
-| `E-LOG-QUERY` | 存储不可读 | `ERR-STORE`（503，不伪装空页） | 稍后重试 |
+| `E-LOG-QUERY` | 存储不可读 | `ERR-STORE`（503 `store_unavailable`，不伪装空页） | 稍后重试 |
 
 ## 5. 接口设计
 
@@ -280,7 +280,7 @@ record(self, level: str, module: str, event: str, message: str, request_id: str 
 - **输入与前提**
 
   - **输入参数 / 数据结构 authority**：`level/module/event`（短标识）；`message`（任意文本）；`request_id` 可空；ownership=调用方传入
-  - **输入约束 / 校验顺序 / 失败映射**：`message` 先 `_SENSITIVE.sub("[REDACTED]", …)` → 换行折叠 → `[:512]`；失败 → `E-LOG-WRITE`
+  - **输入约束 / 校验顺序 / 失败映射**：`message` 先换行折叠（`\n`→空格）→ `_SENSITIVE.sub("[REDACTED]", …)` → `[:512]`；失败 → `E-LOG-WRITE`
 
 - **成功输出与保证**
 
@@ -333,11 +333,11 @@ page(self, limit:int=50, level=None, module=None, request_id=None, since=None, u
 
 - **成功输出与保证**
 
-  - **成功输出 / 数据结构 / 后置条件**：`{data:[LogEvent], page:{has_more,next_cursor}}`
+  - **成功输出 / 数据结构 / 后置条件**：`{data:[LogEvent], page:{has_more,next_cursor}}`；`page` **恒返回 `has_more=false`/`next_cursor=null`（无 cursor）**
 
 - **错误与合法下一步**
 
-  - **错误输出 / 触发条件 / 优先级**：E-LOG-VALIDATION（ERR-REQ-VALIDATION · invalid_request）：400 缺时间窗；E-LOG-QUERY（ERR-STORE · usage_store_unavailable）：503（不伪装空页）
+  - **错误输出 / 触发条件 / 优先级**：E-LOG-VALIDATION（ERR-REQ-VALIDATION · invalid_request）：400 缺时间窗；E-LOG-QUERY（ERR-STORE · store_unavailable）：503 `store_unavailable`（不伪装空页）
   - **E-LOG-VALIDATION（公共 ERR-REQ-VALIDATION · invalid_request）**
     - **底层异常 / 失败事实**：缺 `since`/`until`
     - **模块是否处理及处理函数**：reject（`page` 入口）
@@ -346,11 +346,11 @@ page(self, limit:int=50, level=None, module=None, request_id=None, since=None, u
     - **日志级别 / 脱敏 / 关联字段**：无
     - **是否可重试及前提**：补时间窗后重试
     - **状态与副作用影响 / 验证项**：不查询、无副作用；`VRC-LOG-001`
-  - **E-LOG-QUERY（公共 ERR-STORE · usage_store_unavailable）**
+  - **E-LOG-QUERY（公共 ERR-STORE · store_unavailable）**
     - **底层异常 / 失败事实**：存储不可读
     - **模块是否处理及处理函数**：propagate
     - **Typed 异常与原生异常所有权**：原生 `sqlite3.Error`；由 M004/宿主映射
-    - **宿主 / public payload 或状态码**：503（不伪装空页）
+    - **宿主 / public payload 或状态码**：503 `store_unavailable`（不伪装空页）
     - **日志级别 / 脱敏 / 关联字段**：warning
     - **是否可重试及前提**：稍后重试
     - **状态与副作用影响 / 验证项**：`VRC-LOG-001`
@@ -397,7 +397,7 @@ flowchart TD
 
 - **触发与执行者**：业务模块 `record`；调用线程
 - **入口函数及数据**：`record`；`(level,module,event,message,request_id)`
-- **步骤 / 算法 / 复杂度**：正则替换 → 折叠换行 → 截断 512 → INSERT；O(len)
+- **步骤 / 算法 / 复杂度**：折叠换行 → 正则替换 → 截断 512 → INSERT；O(len)
 - **判断事实来源**：`_SENSITIVE` 匹配
 - **成功可见点**：行写入
 - **失败、取消与清理**：异常被 `record` 捕获后静默（fail-open）
@@ -447,7 +447,7 @@ flowchart TD
 
 #### 7.2.2 Schema 演进策略决定
 
-- **Schema authority / 当前版本事实来源**：无本层 schema；事实来源为 M007 `schema_meta.schema_version`（`util.isd.md` §4.4）
+- **Schema authority / 当前版本事实来源**：无本层 schema；事实来源为 M007 `schema_meta.schema_version`（`util.isd.md` §4.7）
 - **允许的升级模式**：随 M007 —— 仅 **schema initialization**（空库建当前结构）
 - **明确不接受的迁移模式**：无本层独立迁移；**不接受增量升级 / downgrade / 自动修复**
 - **兼容边界**：本层不定义版本；仅在 M007 判定 ready 后服务

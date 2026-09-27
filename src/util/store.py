@@ -115,7 +115,14 @@ class Store:
     @contextlib.contextmanager
     def transaction(self, immediate: bool = False) -> Iterator[sqlite3.Connection]:
         conn = self.connection()
-        conn.execute("BEGIN IMMEDIATE" if immediate else "BEGIN")
+        try:
+            conn.execute("BEGIN IMMEDIATE" if immediate else "BEGIN")
+        except sqlite3.OperationalError as exc:
+            # E-UTIL-NESTED-TXN: SQLite forbids opening a transaction on a
+            # connection that already has one active.
+            if "within a transaction" in str(exc):
+                raise ApiError(409, "E-UTIL-NESTED-TXN", "A transaction is already active on this connection") from exc
+            raise
         try:
             yield conn
         except Exception:

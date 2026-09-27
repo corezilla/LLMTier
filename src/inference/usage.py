@@ -80,6 +80,8 @@ class UsageRecorder:
             if snapshot is None or datetime.fromisoformat(snapshot["expires_at"].replace("Z", "+00:00")) <= datetime.now(timezone.utc):
                 raise ApiError(400, "cursor_expired", "Usage cursor is invalid or expired")
             if not admin and snapshot["principal_id"] != principal: raise ApiError(403, "permission_denied", "Cursor belongs to another principal")
+            expected_authorization = hashlib.sha256(("admin" if admin else principal).encode()).hexdigest()
+            if snapshot["authorization_digest"] != expected_authorization: raise ApiError(403, "permission_denied", "Cursor authorization does not match")
             if snapshot["filter_digest"] != filter_digest: raise ApiError(400, "invalid_request", "Cursor filters do not match the original query")
             offset = int(cursor.split(":", 1)[1]) if ":" in cursor else 0
             sid = snapshot["snapshot_id"]

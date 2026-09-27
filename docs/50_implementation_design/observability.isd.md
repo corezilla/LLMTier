@@ -73,14 +73,14 @@
 
 ```text
 app.py            # 诊断路由：/v1/diagnostics*、/v1/trace/{id}、/v1/deployments/{id}/diagnostics
-webui/app.js      # /ui/diagnostics 4 tabs + 全局开关（属 M002，本模块供数据）
+src/web_ui/app.js  # /ui/diagnostics 4 tabs + 全局开关（属 M002，本模块供数据）
 diagnostics.py    # 查询方法：switches/set_switches/snapshots_page/stats/trace/traces/injections/set_injections
 ```
 
 ### 3.1 `app.py`（诊断路由）
 
 - **职责及调用者**：诊断端点路由、开关/注入经审计、关联标识透传；caller=HTTP 客户端
-- **类型 / 函数**：`/v1/diagnostics`、`/v1/diagnostics/snapshots`、`/v1/diagnostics/stats`、`/v1/diagnostics/traces`、`/v1/deployments/{id}/diagnostics`、`/v1/trace/{request_id}` 分支
+- **类型 / 函数**：`/v1/diagnostics`、`/v1/diagnostics/snapshots`、`/v1/diagnostics/stats`、`/v1/diagnostics/traces`、`/v1/deployments/{id}/diagnostics`、`/v1/trace/{request_id}`，以及契约前缀等价集 `/tier/admin/v1/diagnostics`、`/tier/admin/v1/diagnostics/snapshots|stats|traces`、`/tier/admin/v1/deployments/{id}/diagnostics`、`/tier/admin/v1/trace/{request_id}` 分支
 - **可见性**：public（端点）
 - **调用与类型依赖**：调用 `DiagnosticsService`；`admin.mutate`（写）
 - **构建目标 / 生成源 / 输出**：随 M001 进程
@@ -95,10 +95,10 @@ diagnostics.py    # 查询方法：switches/set_switches/snapshots_page/stats/tr
 - **构建目标 / 生成源 / 输出**：随包
 - **实现状态**：PLANNED
 
-### 3.3 `webui/app.js`（诊断页）
+### 3.3 `src/web_ui/app.js`（诊断页）
 
 - **职责及调用者**：诊断页 4 tabs + 开关数据装载；caller=浏览器
-- **类型 / 函数**：`loadStats`/`loadTrace`/注入读写（见 M002）
+- **类型 / 函数**：`loadDiagSwitches/saveDiagSwitches/loadSnapshots/loadDiagStats/loadTraces/showTrace/loadInjections/loadDiagnostics`（见 M002）
 - **可见性**：public（静态资源）
 - **调用与类型依赖**：经 M001 同源
 - **构建目标 / 生成源 / 输出**：静态资源
@@ -200,7 +200,7 @@ TraceView {
 
   `VRC-OBS-002/004`。
 
-**4.2.3 `StatsView` / `StatsWindow`（`stats.py`）**
+**4.2.3 `StatsView` / `StatsWindow`（authority=`src/libdiag/stats.py`，M006）**
 
 ```text
 StatsView {
@@ -225,7 +225,7 @@ StatsWindow {
 
 - **Data/Type ID、用途与来源**
 
-  `D-STATS-VIEW`；统计阅读视图。唯一来源=本 ISD 与 M006 §6（`stats.py`）。
+  `D-STATS-VIEW`；统计阅读视图。字段权威=`src/libdiag/stats.py`（M006）；本层只投影呈现，不重定义。
 
 - **`windows`**（必填、数组）
 
@@ -378,7 +378,7 @@ GET/PATCH /v1/diagnostics
 - **输入与前提**
 
   - **输入参数 / 数据结构 authority**：PATCH `{snapshots_enabled?, stats_enabled?}`
-  - **输入约束 / 校验顺序 / 失败映射**：部分更新；经 `admin.mutate` 审计
+  - **输入约束 / 校验顺序 / 失败映射**：部分更新（None=保持）；非布尔值 → 400 `invalid_request`；经 `admin.mutate` 审计
 
 - **成功输出与保证**
 
@@ -386,7 +386,15 @@ GET/PATCH /v1/diagnostics
 
 - **错误与合法下一步**
 
-  - **错误输出 / 触发条件 / 优先级**：无公共错误输出
+  - **错误输出 / 触发条件 / 优先级**：E-OBS-VALIDATION（ERR-REQ-VALIDATION · invalid_request）：400 `invalid_request`（`snapshots_enabled`/`stats_enabled` 非布尔）
+  - **E-OBS-VALIDATION（公共 ERR-REQ-VALIDATION · invalid_request）**
+    - **底层异常 / 失败事实**：开关字段非布尔
+    - **模块是否处理及处理函数**：reject（`set_switches`）
+    - **Typed 异常与原生异常所有权**：`ApiError(400)`；M001 映射
+    - **宿主 / public payload 或状态码**：400 `invalid_request`
+    - **日志级别 / 脱敏 / 关联字段**：无
+    - **是否可重试及前提**：改传布尔值
+    - **状态与副作用影响 / 验证项**：不写库（审计 failed）；`VRC-OBS-001`
 
 - **交互与生命周期**
 
@@ -467,7 +475,7 @@ GET/PATCH /v1/deployments/{id}/diagnostics
 
 - **输入与前提**
 
-  - **输入参数 / 数据结构 authority**：注入项列表（部分更新）
+  - **输入参数 / 数据结构 authority**：PATCH body `{"items":[...]}`（部分更新）
   - **输入约束 / 校验顺序 / 失败映射**：白名单/范围（M006）；非法 → `E-OBS-INJECT`(400)
 
 - **成功输出与保证**
@@ -510,7 +518,7 @@ load*() -> Promise<void>
 - **Interface/Member ID、用途、提供责任与唯一来源**
 
   - **Interface/Member ID、状态**：`FUNC-OBS-PAGE` / PLANNED
-  - **文件 / symbol / 可见性**：`webui/app.js` / `loadStats`/`loadTrace`/注入（属 M002）/ public
+  - **文件 / symbol / 可见性**：`src/web_ui/app.js` / `loadDiagSwitches/saveDiagSwitches/loadSnapshots/loadDiagStats/loadTraces/showTrace/loadInjections/loadDiagnostics`（属 M002）/ public
   - **原成员 ID 或私有来源**：`F-OBS-DIAG`（`R-OBS-05`）
   - **完整签名与 caller**：`load*() -> Promise<void>`；caller=页面
 
@@ -662,7 +670,7 @@ flowchart TD
 
 #### 7.2.2 Schema 演进策略决定
 
-- **Schema authority / 当前版本事实来源**：无本层 schema；事实来源为 M007 `schema_meta.schema_version`（`util.isd.md` §4.4）
+- **Schema authority / 当前版本事实来源**：无本层 schema；事实来源为 M007 `schema_meta.schema_version`（`util.isd.md` §4.7）
 - **允许的升级模式**：随 M007 —— 仅 **schema initialization**（空库建当前结构）
 - **明确不接受的迁移模式**：无本层独立迁移；**不接受增量升级 / downgrade / 自动修复**
 - **兼容边界**：本层不定义版本；仅在 M007 判定 ready 后服务
@@ -730,7 +738,7 @@ flowchart TD
 
 ### 8.2.1 `RB-OBS-BUILD` · 构建与装配
 
-- **目标文件 / 产物 / 构建目标**：`app.py`（诊断路由）+ `diagnostics.py`（查询）+ `webui/app.js`；无独立库
+- **目标文件 / 产物 / 构建目标**：`app.py`（诊断路由）+ `diagnostics.py`（查询）+ `src/web_ui/app.js`；无独立库
 - **工具链 / 语言 / 依赖版本**：Python 3.14 + 浏览器 JS
 - **宿主接入 / 初始化 / 退出次序**：随 M001 装配；随进程
 - **环境 / 数据规模 / 冷热条件**：单库；保留 7 天
@@ -815,7 +823,7 @@ flowchart TD
 ### 9.2.2 `TASK-OBS-PAGE` · 诊断页
 
 - **顺序 / 前置项**：2 / `TASK-OBS-ROUTES`
-- **文件 / symbol / 构建目标**：`webui/app.js`
+- **文件 / symbol / 构建目标**：`src/web_ui/app.js`
 - **不可改变的规则**：4 tabs + 开关语义
 - **实施动作**：实现诊断页数据装载
 - **完成检查**：`VRC-OBS-005`
@@ -831,7 +839,7 @@ flowchart TD
 - **模块 / 原成员 ID**：M005 / `F-OBS-*`
 - **唯一来源 / 版本 / selector / hash**：`observability` / `0.1.0-draft.2`
 - **提供或消费 / backend**：提供（诊断端点）/ M006
-- **实际位置或 Planned 计划位置**：`src/http_api/app.py`、`diagnostics.py`、`webui/app.js`
+- **实际位置或 Planned 计划位置**：`src/http_api/app.py`、`diagnostics.py`、`src/web_ui/app.js`
 - **验证项**：`VRC-OBS-001..005`
 - **实现状态**：PLANNED
 - **验证状态 / Run**：NOT_RUN

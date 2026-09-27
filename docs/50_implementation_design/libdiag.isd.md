@@ -567,17 +567,17 @@ DiagnosticsRuntimeState {
 
 **4.6.2 开关与注入状态转换（`T-DIAG-01…T-DIAG-07`）**
 
-状态机定义与不变量权威见模块设计 `libdiag-design` §6.6.2；开关与注入均为持久事实（`diagnostic_settings`/`diagnostic_injections`），内存缓存不构成权威。本 ISD 细化每个转换的落点函数（真实 symbol）。
+状态机定义与不变量权威见模块设计 `libdiag-design` §6.6.2；开关与注入均为持久事实（`diagnostic_settings`/`diagnostic_injections`），直读 DB、无内存缓存。本 ISD 细化每个转换的落点函数（真实 symbol）。
 
 | Transition ID | 原状态 → 新状态 | 事件 / 执行者 | Guard 事实来源 | 实现落点（文件 / 函数） | 失败出口 | VRC |
 |---|---|---|---|---|---|---|
-| `T-DIAG-01` | Off → On | `set_switches(enabled=true)` 提交 | `diagnostic_settings` 行 | `settings.py` `set_switches` 单事务 upsert，提交后生效 | 写失败 → 保持 Off（不改业务） | `VRC-DIAG-001` |
-| `T-DIAG-02` | On → Off | `set_switches(enabled=false)` 提交 | `diagnostic_settings` 行 | `settings.py` `set_switches` 单事务 upsert | 写失败 → 保持 On | `VRC-DIAG-001` |
-| `T-DIAG-03` | On → On | `record_latency`/`capture_snapshot`/`record_trace` | `switches` 权威读 | `traces.py`/`snapshots.py`/`stats.py` 按开关写对应表（统计走内存缓存） | 写失败 → `_warn`，不改推理（§6.1） | `VRC-DIAG-002` |
-| `T-DIAG-04` | Off → Off | 任一记录调用 | `switches.enabled=false` | `record_*` 入口短路分支，不写库 | — | `VRC-DIAG-001` |
+| `T-DIAG-01` | Off → On | `set_switches(enabled=true)` 提交 | `diagnostic_settings` 行 | `settings.py` `set_switches` 单事务 **UPDATE** `diagnostic_settings` 行，提交后生效 | 写失败 → 保持 Off（不改业务） | `VRC-DIAG-001` |
+| `T-DIAG-02` | On → Off | `set_switches(enabled=false)` 提交 | `diagnostic_settings` 行 | `settings.py` `set_switches` 单事务 **UPDATE** | 写失败 → 保持 On | `VRC-DIAG-001` |
+| `T-DIAG-03` | On → On | `record_latency`/`capture_snapshot` | `switches` 权威读 | `snapshots.py`/`stats.py` 按开关直写对应表（无缓存）；**`record_trace` 不受开关约束，恒写** | 写失败 → `_warn`，不改推理（§6.1） | `VRC-DIAG-002` |
+| `T-DIAG-04` | Off → Off | `record_latency`/`capture_snapshot` | `switches.enabled=false` | `snapshots.py`/`stats.py` 入口短路分支，不写库；`record_trace` 不短路 | — | `VRC-DIAG-001` |
 | `T-DIAG-05` | Absent/Disabled → Enabled | `set_injections` 请求线程 | `_validate`（§8.4） | `injections.py` `set_injections` 按 `(deployment_id,injection_type)` upsert | 校验失败 → 400，不落库 | `VRC-DIAG-004` |
-| `T-DIAG-06` | Enabled → Disabled | `set_injections` | 同 `T-DIAG-05` | `injections.py` `set_injections` upsert `enabled=false` | — | `VRC-DIAG-004` |
-| `T-DIAG-07` | Disabled → Absent | 删除注入或 deployment 移除 | 上游删除事实 | `injections.py` 删除行 | — | `VRC-DIAG-004` |
+| `T-DIAG-06` | Enabled → Disabled | `set_injections` | 同 `T-DIAG-05` | `injections.py` `set_injections` upsert `enabled=0` | — | `VRC-DIAG-004` |
+| `T-DIAG-07` | Disabled → Disabled（行保留） | deployment 移除 / 再次配置禁用 | 无删除事实 | `injections.py` 无删除分支：禁用仅置 `enabled=0`，**行持久保留、无 FK cascade**，按 `deployment_id` 查询仍返回 | — | `VRC-DIAG-004` |
 
 ### 4.7 数据库表结构
 
@@ -664,7 +664,7 @@ record_* 失败 → fail-open warning，无错误返回
 
 ```text
 switches() -> dict[str,bool]
-set_switches(snapshots_enabled: bool|None=None, stats_enabled: bool|None=None) -> dict[str,bool]
+set_switches(snapshots_enabled: bool|None=None, stats_enabled: bool|None=None, conn=None) -> dict[str,bool]
 ```
 
 - **Interface/Member ID、用途、提供责任与唯一来源**
@@ -672,7 +672,7 @@ set_switches(snapshots_enabled: bool|None=None, stats_enabled: bool|None=None) -
   - **Interface/Member ID、状态**：`FUNC-DIAG-SWITCH` / PLANNED
   - **文件 / symbol / 可见性**：`diagnostics.py` / `DiagnosticsService.switches/set_switches` / private
   - **原成员 ID 或私有来源**：`F-DIAG-SWITCH`、`RULE-DIAG-SWITCH`
-  - **完整签名与 caller**：`switches() -> dict[str,bool]`；`set_switches(snapshots_enabled: bool|None=None, stats_enabled: bool|None=None) -> dict[str,bool]`；caller=M005
+  - **完整签名与 caller**：`switches() -> dict[str,bool]`；`set_switches(snapshots_enabled: bool|None=None, stats_enabled: bool|None=None, conn=None) -> dict[str,bool]`；caller=M005
 
 - **输入与前提**
 
@@ -769,7 +769,7 @@ snapshots_page(since, until, deployment_id, model, limit=50, cursor=None) -> dic
 - **输入与前提**
 
   - **输入参数 / 数据结构 authority**：快照字段；`snapshots_page` 过滤条件
-  - **输入约束 / 校验顺序 / 失败映射**：开关关闭 → 直接返回 `None`；`upstream_url` 去 query；`error_summary[:256]`；写失败 → warning + `None`
+  - **输入约束 / 校验顺序 / 失败映射**：开关关闭 → 直接返回 `None`；`upstream_url` **原样存储**（去 query 由调用方 M003 在传入前完成）；`error_summary[:256]`；写失败 → warning + `None`
 
 - **成功输出与保证**
 
@@ -798,7 +798,7 @@ snapshots_page(since, until, deployment_id, model, limit=50, cursor=None) -> dic
 
 - **实现与验证**
 
-  - **不可改变的规则 / Constraint ID**：脱敏去 query、截断 256、关开关零写入
+  - **不可改变的规则 / Constraint ID**：调用方去 query、截断 256、关开关零写入
   - **实现自由度**：分页实现
   - **实现状态 / 验证项**：PLANNED；`VRC-DIAG-002`
 
@@ -812,18 +812,18 @@ stats(since, until, deployment_id=None, model=None) -> dict
 - **Interface/Member ID、用途、提供责任与唯一来源**
 
   - **Interface/Member ID、状态**：`FUNC-DIAG-STATS` / PLANNED
-  - **文件 / symbol / 可见性**：`diagnostics.py` / `record_latency`、`stats`、`_percentile`、`hour_of` / private
+  - **文件 / symbol / 可见性**：`stats.py` / `StatsDiagnostics.record_latency`、`stats` / private；`percentile`/`hour_of` 在 `common.py`
   - **原成员 ID 或私有来源**：`F-DIAG-STATS`、`RULE-DIAG-PCTL`
   - **完整签名与 caller**：`record_latency(deployment_id, model, status_code, latency_ms) -> None`；`stats(since, until, deployment_id=None, model=None) -> dict`；caller=M003（写）、M005（读）
 
 - **输入与前提**
 
   - **输入参数 / 数据结构 authority**：事实字段；查询条件
-  - **输入约束 / 校验顺序 / 失败映射**：开关关闭 → 短路；缓存满 → LRU 淘汰
+  - **输入约束 / 校验顺序 / 失败映射**：开关关闭 → 短路；`record_latency` 每次调用直接写 `data_plane_stats`+`data_plane_latency_samples`（**无内存缓存**）；`stats` 查询时按小时桶聚合
 
 - **成功输出与保证**
 
-  - **成功输出 / 数据结构 / 后置条件**：`{request_count, error_count, status_breakdown, error_4xx_count, error_5xx_count, p50, p95, min, max, avg}`
+  - **成功输出 / 数据结构 / 后置条件**：`{windows:[{stat_hour,deployment_id,model,status_breakdown,error_4xx_count,error_5xx_count,request_count,error_count,latency_p50_ms,latency_p95_ms,latency_min_ms,latency_max_ms,latency_sum_ms}]}`（无 `avg`）
 
 - **错误与合法下一步**
 
@@ -839,17 +839,17 @@ stats(since, until, deployment_id=None, model=None) -> dict
 
 - **交互与生命周期**
 
-  - **副作用 / 执行上下文 / 幂等性**：聚合更新；并发累积
-  - **输入输出 ownership 与寿命**：内存/持久；非账本
-  - **Thread-safe / reentrant**：内部有界缓存；经线程内连接
+  - **副作用 / 执行上下文 / 幂等性**：每次调用直接写库（stats upsert 累加、samples 追加）；`stats` 只读聚合
+  - **输入输出 ownership 与寿命**：持久（DB）；非账本
+  - **Thread-safe / reentrant**：经线程内连接
   - **Nested-call policy**：allowed
-  - **Transaction participation**：creates new（持久化）
+  - **Transaction participation**：creates new（单次写事务）
   - **Blocking / timeout / cancellation**：`timeout=10`
 
 - **实现与验证**
 
-  - **不可改变的规则 / Constraint ID**：`status_breakdown` per-status；可丢、非账本
-  - **实现自由度**：缓存结构
+  - **不可改变的规则 / Constraint ID**：`status_breakdown` per-status；可丢、非账本；无缓存层
+  - **实现自由度**：聚合实现
   - **实现状态 / 验证项**：PLANNED；`VRC-DIAG-002`
 
 #### 5.1.5 `traces(since=None, until=None, deployment_id=None, model=None, limit=50, cursor=None) -> dict`
@@ -904,7 +904,7 @@ traces(since=None, until=None, deployment_id=None, model=None, limit=50, cursor=
 #### 5.1.6 `set_injections(deployment_id, items) -> list`
 
 ```text
-set_injections(deployment_id, items) -> list
+set_injections(deployment_id, items, conn=None) -> list
 injections(did) -> list
 enabled_injection(did) -> dict|None
 enabled_stream_injection(did) -> dict|None
@@ -915,7 +915,7 @@ enabled_stream_injection(did) -> dict|None
   - **Interface/Member ID、状态**：`FUNC-DIAG-INJECT` / PLANNED
   - **文件 / symbol / 可见性**：`diagnostics.py` / `set_injections`、`injections`、`enabled_injection`、`enabled_stream_injection`、`_validate` / private
   - **原成员 ID 或私有来源**：`F-DIAG-INJECT`、`RULE-DIAG-INJECT`
-  - **完整签名与 caller**：`set_injections(deployment_id, items) -> list`；`injections(did) -> list`；`enabled_injection(did) -> dict|None`；`enabled_stream_injection(did) -> dict|None`；caller=M005（写）、M003（读）
+  - **完整签名与 caller**：`set_injections(deployment_id, items, conn=None) -> list`；`injections(did) -> list`；`enabled_injection(did) -> dict|None`；`enabled_stream_injection(did) -> dict|None`；caller=M005（写）、M003（读）
 
 - **输入与前提**
 
@@ -1072,8 +1072,8 @@ flowchart TD
 
 - **触发与执行者**：M003/M001；调用线程
 - **入口函数及数据**：`record_trace`/`capture_snapshot`/`record_latency`
-- **步骤 / 算法 / 复杂度**：开关判定（关→短路 `T-DIAG-04`；开→`T-DIAG-03`）→ 脱敏/截断/分桶 → 写 Store；O(1)/O(len)
-- **判断事实来源**：`switches()`；字段
+- **步骤 / 算法 / 复杂度**：快照/统计先做开关判定（关→短路 `T-DIAG-04`；开→`T-DIAG-03`）→ 脱敏/截断/分桶 → 写 Store；**`record_trace` 不查开关、恒写**；O(1)/O(len)
+- **判断事实来源**：`switches()`（仅快照/统计）；字段
 - **成功可见点**：行/聚合更新
 - **失败、取消与清理**：`_warn` 后继续（`T-DIAG-03` 失败出口）
 - **代表输入与中间值**：`upstream_url=?token=x` → 去 query
@@ -1093,11 +1093,11 @@ flowchart TD
 ### 6.3 `P-DIAG-PCTL` · 百分位
 
 - **触发与执行者**：`stats`；调用线程
-- **入口函数及数据**：`record_latency`/`stats`/`_percentile`/`hour_of`
+- **入口函数及数据**：`record_latency`/`stats`（`stats.py`）；`percentile`/`hour_of`（`common.py`）
 - **步骤 / 算法 / 复杂度**：小时桶聚合 → 排序求 P50/P95；O(n log n)
 - **判断事实来源**：样本集合
 - **成功可见点**：统计视图
-- **失败、取消与清理**：缓存淘汰
+- **失败、取消与清理**：无缓存；写失败 fail-open（`_warn`）
 - **代表输入与中间值**：样本 → P50/P95
 - **规则 / 接口 / 验证引用**：`RULE-DIAG-PCTL`；`VRC-DIAG-002`
 
@@ -1107,13 +1107,13 @@ flowchart TD
 
 ### 7.1 并发、交错与失败收口
 
-#### 7.1.1 `CF-DIAG-STATS` · 统计缓存并发
+#### 7.1.1 `CF-DIAG-STATS` · 统计写入并发
 
 - **参与线程 / 回调 / 事务**：多请求线程
-- **已产生或可能产生的副作用**：缓存更新
-- **检测事实 / 期限**：缓存上限
-- **状态 / 错误 / 结果已知性**：无
-- **保留 / 释放责任**：内部 LRU
+- **已产生或可能产生的副作用**：`data_plane_stats` upsert 累加 / `data_plane_latency_samples` 追加
+- **检测事实 / 期限**：SQLite 写锁 + `timeout=10`
+- **状态 / 错误 / 结果已知性**：无（可丢、非账本）
+- **保留 / 释放责任**：无缓存；写失败由 `record_latency` fail-open（`_warn`）
 - **允许的 query / replay / takeover / retry**：无
 - **验证项**：`VRC-DIAG-002`
 
@@ -1143,7 +1143,7 @@ flowchart TD
 
 #### 7.2.2 Schema 演进策略决定
 
-- **Schema authority / 当前版本事实来源**：无本层 schema；事实来源为 M007 `schema_meta.schema_version`（`util.isd.md` §4.4）
+- **Schema authority / 当前版本事实来源**：无本层 schema；事实来源为 M007 `schema_meta.schema_version`（`util.isd.md` §4.7）
 - **允许的升级模式**：随 M007 —— 仅 **schema initialization**（空库建当前结构）
 - **明确不接受的迁移模式**：无本层独立迁移；**不接受增量升级 / downgrade / 自动修复**
 - **兼容边界**：本层不定义版本；仅在 M007 判定 ready 后服务
@@ -1215,9 +1215,9 @@ flowchart TD
 - **工具链 / 语言 / 依赖版本**：Python 3.14；标准库 + `Store`
 - **宿主接入 / 初始化 / 退出次序**：宿主装配构造 `DiagnosticsService(store, logs)`；启动调 `cleanup(7)`（fail-open）
 - **环境 / 数据规模 / 冷热条件**：单库；保留 7 天
-- **峰值构成 / 上限 / 共享额度**：统计内存缓存上限 + LRU；快照/traces 500/页
+- **峰值构成 / 上限 / 共享额度**：统计直写 DB（无缓存）；快照/traces 500/页
 - **分段预算 / 总期限 / 计时点**：清理为启动期；无总期限
-- **超限、部分启动与清理出口**：缓存淘汰；清理失败静默
+- **超限、部分启动与清理出口**：写失败 fail-open；清理失败静默
 - **构建或运行命令及前置条件**：`PYTHONPATH=src python3 -m pytest tests/unit/v03 -q`
 
 ## 9. 验证规格与实现任务

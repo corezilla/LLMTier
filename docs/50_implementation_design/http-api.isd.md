@@ -85,7 +85,7 @@ auth.py     # Principal / authenticate / authenticate_any / unauthenticated_prin
 errors.py   # ApiError / require
 sse.py      # frame / response_stream
 health.py   # health_view / readiness_view
-webui/      # 静态资源（M002 产物）
+src/web_ui/  # 静态资源（M002 产物）
 ```
 
 ### 3.1 `app.py` · `Application` / `Handler`
@@ -121,7 +121,7 @@ webui/      # 静态资源（M002 产物）
 
 > 按 STD `design-data-interface-format` 1.2.0：主章“数据结构设计”，章内按**数据性质**分类（§4.1–§4.8）。仅保留适用类别，不适用类别在章首给出原因与 tailoring 依据；每个结构以真实名称为带编号的粗体标题，先给代码式声明，再逐项写 `Data/Type ID、用途与来源`、逐字段记录（必填·缺省·可空 / 类型·范围·枚举·含义 / 条件有效性）、`跨字段与寿命`、`合法/拒绝实例` 与 `验证`。继承结构只定位原定义与固定机器源，不复制字段。
 
-**类别适用性**：§4.1 公共基础类型与枚举 ✗（角色取值内嵌于 §4.2 `Principal.role`，无独立共享枚举）｜§4.2 业务与操作数据结构 ✓｜§4.3 配置与规则数据结构 ✗（部署参数为启动入参，见 §8.1，无受控规则对象）｜§4.4 通信报文结构 ✓｜§4.5 设备与 FPGA 表项结构 ✗（纯软件，无连接器/总线/寄存器）｜§4.6 运行状态数据结构 ✓（请求线程局部相位 `RequestLifecycle`；触发：§3 登记端点宿主 + §6.2 P-API-SSE 跨步骤在途/取消）｜§4.7 数据库表结构 ✗（不拥有表；持久化归 M007）｜§4.8 错误码与错误结构 ✓（承载系统 §8.8 公共码）。
+**类别适用性**：§4.1 公共基础类型与枚举 ✗（角色取值内嵌于 §4.2 `Principal.role`，无独立共享枚举）｜§4.2 业务与操作数据结构 ✓｜§4.3 配置与规则数据结构 ✗（部署参数为启动入参，见 §8.1，无受控规则对象）｜§4.4 通信报文结构 ✓｜§4.5 设备与 FPGA 表项结构 ✗（纯软件，无连接器/总线/寄存器）｜§4.6 运行状态数据结构 ✓（请求线程局部相位，隐式承载于 `Handler._run`/`Handler._dispatch` 属性与控制流，无独立结构；触发：§3 登记端点宿主 + §6.2 P-API-SSE 跨步骤在途/取消）｜§4.7 数据库表结构 ✗（不拥有表；持久化归 M007）｜§4.8 错误码与错误结构 ✓（承载系统 §8.8 公共码）。
 
 ### 4.2 业务与操作数据结构
 
@@ -130,7 +130,7 @@ webui/      # 静态资源（M002 产物）
 ```text
 Principal {
   principal_id: str              // ≤128，非空
-  role: Literal["data","admin"]
+  role: str                      // 约定取值 "data" | "admin"；无类型级约束
 }
 ```
 
@@ -140,11 +140,11 @@ Principal {
 
 - **`principal_id`**（必填、非空、不可空）
 
-  `str`，长度 ≤128；来源为凭据解析结果（免登录 `local` 或 SSO 主体）；一次请求内恒定；不落库、不落日志。
+  `str`，长度 ≤128；来源为凭据解析结果：免登录为 `trusted-lan-consumer`/`trusted-lan-operator`（`LLMTIER_DEV_MODE=1` 回环时 `loopback-consumer`/`loopback-operator`），Bearer 为 `X-Principal-ID` 或回退 `consumer`/`operator`；`local` 从不出现。一次请求内恒定；不落库、不落日志。
 
-- **`role`**（必填、枚举）
+- **`role`**（必填、两值约定）
 
-  `Literal["data","admin"]`；二值枚举，`data` 为默认业务角色、`admin` 为管理角色；决定端点授权级别；未知外部角色不得构造本对象。
+  代码类型为**普通 `str`**（非受限枚举）；约定取值 `"data"`（默认业务角色）与 `"admin"`（管理角色），决定端点授权级别；构造由 `auth.authenticate*` 内部保证仅取这两个约定值，但不在类型层强制。
 
 - **跨字段与寿命**
 
@@ -152,7 +152,7 @@ Principal {
 
 - **合法/拒绝实例**
 
-  合法 `{principal_id:"local", role:"data"}`；拒绝：缺配置/缺凭据/角色不足 → `ERR-AUTH-NOCFG`/`ERR-AUTH-REQUIRED`/`ERR-AUTH-DENIED`，不构造 `Principal`。
+  合法 `{principal_id:"trusted-lan-consumer", role:"data"}`、`{principal_id:"operator", role:"admin"}`；拒绝：缺配置/缺凭据/角色不足 → `ERR-AUTH-NOCFG`/`ERR-AUTH-REQUIRED`/`ERR-AUTH-DENIED`，不构造 `Principal`。
 
 - **验证**
 
@@ -200,35 +200,30 @@ SseFrame {
 
 ### 4.6 运行状态数据结构
 
-**4.6.1 `RequestLifecycle`（`app.py`）**
+**4.6.1 请求相位（隐式；无独立 symbol，`app.py`）**
 
 ```text
-RequestLifecycle {
-  request_id: str                  // req_<32hex>，请求身份
-  phase: Literal[RECEIVED, ROUTED, HANDLED, STREAMING, COMPLETED, ABORTED, ERRORED]
-  stream: bool                    // 是否 SSE 长连接
-}
+# 代码中不存在 RequestLifecycle 类/结构
+# 相位隐式承载于 Handler 实例属性与控制流：
+Handler.request_id: str          # req_<32hex>，_run 开始时写入
+Handler._run() / Handler._dispatch()   # 控制流阶段：RECEIVED→ROUTED→HANDLED→…
 ```
 
 - **Data/Type ID、用途与来源**
 
-  `D-API-REQ-LIFECYCLE`；单次请求在各处理步骤间的运行相位。唯一来源=`app.py` `Handler._run`/`Handler._dispatch`（进程内、请求线程局部，不落库）。
+  `D-API-REQ-PHASE`；单次请求在各处理步骤间的运行相位，**非独立数据结构**：`request_id` 是 `Handler` 实例属性，相位由 `_run`/`_dispatch` 的控制流隐式表达。唯一来源=`app.py` `Handler._run`/`Handler._dispatch`（进程内、请求线程局部，不落库）。
 
-- **`request_id`**（必填、请求内恒定）
+- **`request_id`**（`Handler` 实例属性、请求内恒定）
 
-  `str`；`_run` 请求开始时生成 `req_<32hex>`，写入 `X-Request-ID` 与日志/trace（§2.4、§6.1 步骤 1）。
+  `str`；`_run` 请求开始时生成 `req_<32hex>`，写入 `Handler.request_id`，并用于 `X-Request-ID` 与日志/trace（§6.1 步骤 1）。
 
-- **`phase`**（必填、枚举）
+- **相位（隐式、非字段）**
 
-  7 值枚举；合法转换与实现落点见 §4.6.2；terminal=`COMPLETED`/`ABORTED`/`ERRORED`。
-
-- **`stream`**（必填、布尔）
-
-  `true` 时允许 `HANDLED→STREAMING`；`false` 时只允许 `HANDLED→COMPLETED`。
+  阶段序列 `RECEIVED→ROUTED→HANDLED→(STREAMING)→…`；合法转换与实现落点见 §4.6.2；terminal=`COMPLETED`/`ABORTED`/`ERRORED`。无 `phase`/`stream` 字段，均由分支与响应路径决定。
 
 - **跨字段与寿命**
 
-  唯一写者=承载该请求的 `Handler._run` 线程；线程内局部变量，与其他请求不共享、不落库（`Store` 连接所有权归 M007，见 §7.2）；请求线程结束即不可观察，无跨请求共享可变状态，故无模块级锁。
+  唯一写者=承载该请求的 `Handler._run` 线程；线程内局部，与其他请求不共享、不落库（`Store` 连接所有权归 M007，见 §7.2）；请求线程结束即不可观察，无跨请求共享可变状态，故无模块级锁。
 
 - **合法/拒绝实例**
 
@@ -250,7 +245,7 @@ RequestLifecycle {
 | `T-API-04` | HANDLED → STREAMING | `stream=true` 且首帧写出 | M003 `response_stream` 产出首帧 | `/v1/responses` 分支：发 SSE 头 + `sse.frame` 首帧 `flush` | 写失败 → `T-API-07` | `VRC-API-003` |
 | `T-API-05` | HANDLED → COMPLETED | 同步响应体写出成功 | 业务结果已序列化 | `Handler._json`/`_static` 写响应体后 | 写失败 → `T-API-07` | `VRC-API-001` |
 | `T-API-06` | STREAMING → COMPLETED | terminal 帧与 `[DONE]` flush 完成 | M003 terminal（`response.completed` 等） | `_dispatch` SSE 循环遇 `response_stream` 终态后 | 迟到帧被同连接丢弃 | `VRC-API-003` |
-| `T-API-07` | STREAMING/HANDLED → ABORTED | 写失败（`BrokenPipeError`/`ConnectionResetError`） | 套接字写异常 | `_run`/SSE 写出口捕获写异常，记 `aborted` | 不重放；已受理任务由 M003 收敛 | `VRC-API-003` |
+| `T-API-07` | STREAMING/HANDLED → ABORTED | 写失败（`BrokenPipeError`/`ConnectionResetError`） | 套接字写异常 | 仅 SSE 循环捕获写异常并记 `aborted`（`record_trace`）；`_run` 的同类异常分支仅 `pass`、不记录 | 不重放；已受理任务由 M003 收敛 | `VRC-API-003` |
 
 ### 4.8 错误码与错误结构
 
@@ -266,7 +261,7 @@ ApiError {
   headers: dict | null
   extra: dict | null
 }
-envelope() -> {"error": {message, type, code, param}}
+envelope() -> {"error": {message, type, code, param, retryable} + extra}
 ```
 
 - **Data/Type ID、用途与来源**
@@ -283,7 +278,7 @@ envelope() -> {"error": {message, type, code, param}}
 
 - **`message`**（必填）
 
-  `str`；稳定、可读且不含 Secret/完整正文/栈；序列化进 `error.type`。
+  `str`；稳定、可读且不含 Secret/完整正文/栈；作为独立字段 `error.message` 序列化（不并入 `error.type`）。
 
 - **`param`**（可空、缺省 `null`）
 
@@ -291,15 +286,15 @@ envelope() -> {"error": {message, type, code, param}}
 
 - **`retryable` / `headers` / `extra`**（可选、缺省 `false`/`null`/`null`）
 
-  `bool` / `dict | null` / `dict | null`；`retryable` 指示调用方是否可安全重试，`headers` 承载 `Retry-After` 等，`extra` 承载结构化补充；均不得泄露敏感信息。
+  `bool` / `dict | null` / `dict | null`；`retryable` 指示调用方是否可安全重试，`headers` 承载 `Retry-After` 等（作 HTTP 头，不进 `envelope()`），`extra` 承载结构化补充并 `update` 进 `error` 对象；均不得泄露敏感信息。`envelope()` 恒包含 `retryable`，`extra` 非空时合并展开。
 
 - **跨字段与寿命**
 
-  `status` 与 `code` 必须对应同一系统 §8.8 条目；未知端点走兜底 `ERR-INTERNAL`；请求级所有权，`errors.require`/任意模块抛出，`Handler._run` 捕获并写出后释放。
+  `status` 与 `code` 必须对应同一系统 §8.8 条目；`envelope()` 的 `type` 由 `status` 派生（`<500` → `request_error`，否则 `server_error`）；未知端点 → 404 `not_found`（非 `ERR-INTERNAL`）；请求级所有权，`errors.require`/任意模块抛出，`Handler._run` 捕获并写出后释放。
 
 - **合法/拒绝实例**
 
-  合法 `{error:{type:"model_not_found",code:"...",param:null}}`；边界：未知路由 → `ERR-NOTFOUND`（404）；拒绝：`code` 与 §8.8 不一致或载荷含 Secret。
+  合法 `{error:{message:"...",type:"request_error",code:"model_not_found",param:null,retryable:false}}`；边界：未知路由 → `ERR-NOTFOUND`（404 `not_found`）；拒绝：`code` 与 §8.8 不一致或载荷含 Secret。
 
 - **验证**
 
@@ -494,7 +489,7 @@ _static(self, path) -> None
 - **输入与前提**
 
   - **输入参数 / 数据结构 authority**：路径
-  - **输入约束 / 校验顺序 / 失败映射**：`target.resolve()` 必须落在 `webui/`；否则 404
+  - **输入约束 / 校验顺序 / 失败映射**：`target.resolve()` 必须落在 `src/web_ui/`；否则 404
 
 - **成功输出与保证**
 
@@ -660,7 +655,7 @@ flowchart TD
 - **触发与执行者**：`/ui/*`；请求线程
 - **入口函数及数据**：`_static`
 - **步骤 / 算法 / 复杂度**：安全解析 → 读文件；O(1)
-- **判断事实来源**：`target.resolve()` 落在 `webui/`
+- **判断事实来源**：`target.resolve()` 落在 `src/web_ui/`
 - **成功可见点**：文件响应
 - **失败、取消与清理**：404
 - **代表输入与中间值**：`../` → 404
@@ -718,7 +713,7 @@ flowchart TD
 
 #### 7.2.2 Schema 演进策略决定
 
-- **Schema authority / 当前版本事实来源**：无本层 schema；事实来源为 M007 `schema_meta.schema_version`（`util.isd.md` §4.4）
+- **Schema authority / 当前版本事实来源**：无本层 schema；事实来源为 M007 `schema_meta.schema_version`（`util.isd.md` §4.7）
 - **允许的升级模式**：随 M007 —— 仅 **schema initialization**（空库建当前结构）
 - **明确不接受的迁移模式**：无本层独立迁移；**不接受增量升级 / downgrade / 自动修复**
 - **兼容边界**：本层不定义版本；仅在 M007 判定 ready 后服务

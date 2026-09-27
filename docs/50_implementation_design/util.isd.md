@@ -79,7 +79,7 @@
 
 - **上游信息项 / 规则 ID**：`R-OBS-06`
 - **固定来源 / 版本 / 锚点 / 摘要**：机制 `M-OBS` §14.4 `R-OBS-06`；表契约见 M006 §6 / `libdiag-design` 附录 A
-- **ISD 细化内容 / 章节**：观测表 DDL 落点 → §4.4/§5.1.4
+- **ISD 细化内容 / 章节**：观测表 DDL 落点 → §4.7/§5.1.4
 - **唯一权威位置**：表契约在 M006/M007；本层管 DDL 落点
 - **实现自由度**：DDL 组织
 - **原 V/Case 及本地验证位置**：`VRC-UTIL-002` → §9.1
@@ -105,10 +105,11 @@ python 标准库 sqlite3
  │         ├─ __init__(path)              # 建父目录；安全预检；threading.local
  │         ├─ connection() -> Connection  # 线程内缓存 + PRAGMA
  │         ├─ migrate()                   # 库状态识别 + 原子初始化 + integrity_check
- │         ├─ transaction(immediate)      # 上下文管理器：BEGIN/commit/rollback
+ │         ├─ transaction(immediate=False)  # 上下文管理器：BEGIN|BEGIN IMMEDIATE/commit/rollback
  │         ├─ one(sql, params) -> Row|None
  │         ├─ all(sql, params) -> [Row]
  │         └─ close()                     # 关闭线程连接
+ ├─ txn(store, conn=None)                  # 模块级 helper：conn 非空则并入调用方事务；否则自开 BEGIN IMMEDIATE
  └─ migrations/
       ├─ 001_initial.sql
       └─ 002_observability.sql
@@ -117,7 +118,7 @@ python 标准库 sqlite3
 ### 3.1 `store.py` · `Store`
 
 - **职责及调用者**：连接/初始化/schema 演进/事务/查询/关闭；被全部业务模块调用
-- **类型 / 函数**：`Store.__init__/connection/migrate/transaction/one/all/close`
+- **类型 / 函数**：`Store.__init__/connection/migrate/transaction/one/all/close`、模块级 `txn`
 - **可见性**：private（模块内）
 - **调用与类型依赖**：依赖标准库 `sqlite3`/`threading`/`contextlib`/`pathlib`；不 import 业务模块
 - **构建目标 / 生成源 / 输出**：无独立构建目标（随包）；无生成源
@@ -239,40 +240,33 @@ sqlite3.Connection {
 
   `VRC-UTIL-001`。
 
-**4.6.2 `TxnContext`（`store.py`）**
+**4.6.2 `txn(store, conn=None)`（模块级事务 helper，`store.py`）**
 
 ```text
-TxnContext {
-  store: Store
-  conn: sqlite3.Connection
-  immediate: bool
-  owns_txn: bool                  // txn(conn) 传入时为外借，不提交
-}
+txn(store, conn=None) -> ContextManager[sqlite3.Connection]
+# conn is None: with store.transaction(True) -> BEGIN IMMEDIATE（新建并提交/回滚）
+# conn given : yield conn          -> 并入调用方事务，不提交
 ```
 
 - **Data/Type ID、用途与来源**
 
-  `D-TXN`；一次事务的运行时上下文；唯一来源=`Store.transaction` / `txn`。
+  `D-UTIL-TXN-HELPER`；**模块级 `@contextmanager` 函数**（不是结构体/类；代码中不存在 `TxnContext`）；唯一来源=`src/util/store.py` `txn`，配合 `Store.transaction`。
 
-- **`store` / `conn`**（必填）
+- **`store` / `conn`**（`store` 必填；`conn` 可空）
 
-  所属 `Store` / 本次事务使用的连接。
+  所属 `Store`；`conn` 非空表示调用方已持有事务（嵌套契约），`txn` 只 `yield` 不提交。
 
-- **`immediate`**（必填、布尔）
+- **事务模式（条件）**
 
-  是否 `BEGIN IMMEDIATE`；取值 `TxnMode { DEFERRED, IMMEDIATE }`，定义见模块设计 `util-design` §6.1.2（本 ISD §4.3 为 N/A）。
-
-- **`owns_txn`**（必填、布尔）
-
-  `txn(conn)` 传入已有连接时为 `false`（并入调用方事务，不提交）。
+  `conn is None` → `store.transaction(True)`（`BEGIN IMMEDIATE`）；`conn` 传入 → 直接复用，不另开事务。
 
 - **跨字段与寿命**
 
-  只有一个写者提交；嵌套调用经 `conn` 复用不另开事务；上下文作用域，退出即 commit/rollback（`T-UTIL-09/10`）。
+  唯一提交者=持有事务的一方；`conn` 为空时退出即 commit/rollback（`T-UTIL-09/10`）；`conn` 非空时由调用方提交。
 
 - **合法/拒绝实例**
 
-  合法 `with store.transaction(True)`；边界：业务传入已有 `conn` → 并入调用方事务。
+  合法 `with txn(store)`（自开 IMMEDIATE）；边界：业务传入已有 `conn` → 并入调用方事务，不另开、不提交。
 
 - **验证**
 
@@ -291,7 +285,7 @@ TxnContext {
 | `T-UTIL-05` | Unknown → Corrupt | `migrate()` | `PRAGMA integrity_check` | `Store.migrate` 抛 `ERR-SCHEMA` 分支 | 运维离线处理 | `VRC-UTIL-002` |
 | `T-UTIL-06` | Ready → Ready | 再次 `migrate()` | migrations 幂等（`IF NOT EXISTS`/`INSERT OR IGNORE`） | `Store.migrate` 无变更分支 | — | `VRC-UTIL-002` |
 | `T-UTIL-07` | Absent → Open | `connection()`（业务线程） | `_local` | `Store.connection` 建连接 + 设 PRAGMA，缓存本线程 | 失败抛 `sqlite3` 异常 | `VRC-UTIL-001` |
-| `T-UTIL-08` | Open → Txn | `transaction(immediate=True)` | 调用方请求 | `Store.transaction` `BEGIN IMMEDIATE`，返回 `TxnContext`（§4.6.2） | 冲突抛异常 → `T-UTIL-10` | `VRC-UTIL-002` |
+| `T-UTIL-08` | Open → Txn | `transaction(immediate=True)` / `txn(store)` | 调用方请求 | `Store.transaction` `BEGIN IMMEDIATE`（`immediate=False` 时 `BEGIN`）；`txn` 无 `conn` 时走 `BEGIN IMMEDIATE`（§4.6.2） | 冲突抛异常 → `T-UTIL-10` | `VRC-UTIL-002` |
 | `T-UTIL-09` | Txn → Open | 上下文正常退出 | 无异常 | `Store.transaction` `commit` 分支（持久提交点） | 提交失败 → 抛错 | `VRC-UTIL-002` |
 | `T-UTIL-10` | Txn → Open | 上下文异常退出 | 异常 | `Store.transaction` `rollback` 分支 | — | `VRC-UTIL-002` |
 | `T-UTIL-11` | Open → Absent | `close()`（请求 `finally`/停机） | 调用方 | `Store.close` 关闭连接并置 `None` | — | `VRC-UTIL-001` |
@@ -312,23 +306,23 @@ Schema authority=`migrations/001_initial.sql` + `migrations/002_observability.sq
 
 | 表 | 列（类型 / 约束）|
 |---|---|
-| `schema_meta` | `singleton` INTEGER PK CHECK=1；`schema_version` INTEGER NOT NULL；`initialized_at` TEXT NOT NULL；`bootstrap_sha256` TEXT |
-| `providers` | `id` TEXT PK；`name` TEXT UNIQUE NOT NULL；`kind` TEXT CHECK IN(cloud,local)；`endpoint` TEXT；`secret_ref` TEXT；`enabled` INTEGER；`version` INTEGER |
-| `deployments` | `id` PK；`name` UNIQUE；`provider_id` FK→providers；`backend_model`；`capabilities_json`；`enabled`；`health` DEFAULT 'unknown'；`version` |
-| `service_levels` | `id` PK；`enabled`；`capabilities_json`；`version` |
-| `service_level_deployments` | `level_id` FK ON DELETE CASCADE；`deployment_id` FK；`ordinal`；PK(level_id,deployment_id)；UNIQUE(level_id,ordinal) |
-| `deployment_runtime_profiles` | `deployment_id` PK FK CASCADE；`max_in_flight` DEFAULT 1；`connect_timeout_ms` DEFAULT 30000；`stream_idle_timeout_ms` DEFAULT 60000；`version` |
-| `provider_usage_profiles` | `provider_id` PK FK CASCADE；`usage_provider` DEFAULT 'none'；`usage_api_key_ref`/`usage_access_key_ref`/`usage_secret_key_ref`；`max_concurrent_requests` DEFAULT 1；`min_request_interval_ms` DEFAULT 0；`requests_per_minute` DEFAULT 0；`version` |
-| `provider_usage_snapshots` | `provider_id` PK FK CASCADE；`snapshot_json`；`checked_at` |
-| `provider_request_bindings` | `principal_id`；`request_id`；`provider_id` FK；`deployment_id` FK；`bound_at`；`provider_request_id` TEXT（可空）；PK(principal_id,request_id) |
-| `usage_obligations` | `principal_id`；`request_id`；`model`；`endpoint`；`recorded_at`；`dispatch_authorized_at`；PK(principal_id,request_id) |
-| `usage_record_versions` | `principal_id`；`request_id`；`record_version`；`is_final`；`model`；`endpoint`；`recorded_at`；`updated_at`；`measurement_status`；`source`；`input_tokens`；`output_tokens`；`total_tokens`；`cached_input_tokens`；`cache_write_tokens`；`reasoning_tokens`；PK(principal_id,request_id,record_version)；FK→`usage_obligations` |
-| `usage_heads` | `principal_id`；`request_id`；`head_record_version`；`updated_at`；PK(principal_id,request_id)；FK→`usage_record_versions` |
-| `query_snapshots` | `snapshot_id` PK；`principal_id`；`snapshot_kind`；`filter_digest`；`authorization_digest`；`created_at`；`expires_at` |
-| `query_snapshot_items` | `snapshot_id` FK CASCADE；`ordinal`；`request_id`；`record_version`；`frozen_view_json`；`etag`；PK(snapshot_id,ordinal)；UNIQUE(snapshot_id,request_id) |
-| `probe_results` | `deployment_id` PK FK CASCADE；`status`；`checked_at`；`request_id`；`detail` |
-| `audit_events` | `id` PK；`actor`；`action`；`target`；`result`；`created_at`；`request_id` |
-| `operational_logs` | `id` PK；`created_at`；`level`；`module`；`event`；`message` CHECK(length≤512)；`request_id` |
+| `schema_meta` | `singleton` INTEGER PK CHECK=1；`schema_version` INTEGER NOT NULL；`initialized_at` TEXT NOT NULL；`bootstrap_sha256` TEXT（可空）|
+| `providers` | `id` TEXT PK；`name` TEXT **NOT NULL** UNIQUE；`kind` TEXT **NOT NULL** CHECK IN(cloud,local)；`endpoint` TEXT **NOT NULL**；`secret_ref` TEXT（可空）；`enabled` INTEGER **NOT NULL**；`version` INTEGER **NOT NULL** |
+| `deployments` | `id` TEXT PK；`name` TEXT **NOT NULL** UNIQUE；`provider_id` TEXT **NOT NULL** FK→providers；`backend_model` TEXT **NOT NULL**；`capabilities_json` TEXT **NOT NULL**；`enabled` INTEGER **NOT NULL**；`health` TEXT **NOT NULL** DEFAULT 'unknown'；`version` INTEGER **NOT NULL** |
+| `service_levels` | `id` TEXT PK；`enabled` INTEGER **NOT NULL**；`capabilities_json` TEXT **NOT NULL**；`version` INTEGER **NOT NULL** |
+| `service_level_deployments` | `level_id` TEXT **NOT NULL** FK ON DELETE CASCADE；`deployment_id` TEXT **NOT NULL** FK；`ordinal` INTEGER **NOT NULL**；PK(level_id,deployment_id)；UNIQUE(level_id,ordinal) |
+| `deployment_runtime_profiles` | `deployment_id` TEXT PK FK CASCADE；`max_in_flight` INTEGER **NOT NULL** DEFAULT 1；`connect_timeout_ms` INTEGER **NOT NULL** DEFAULT 30000；`stream_idle_timeout_ms` INTEGER **NOT NULL** DEFAULT 60000；`version` INTEGER **NOT NULL** DEFAULT 1 |
+| `provider_usage_profiles` | `provider_id` TEXT PK FK CASCADE；`usage_provider` TEXT **NOT NULL** DEFAULT 'none'；`usage_api_key_ref`/`usage_access_key_ref`/`usage_secret_key_ref` TEXT（可空）；`max_concurrent_requests` INTEGER **NOT NULL** DEFAULT 1；`min_request_interval_ms` INTEGER **NOT NULL** DEFAULT 0；`requests_per_minute` INTEGER **NOT NULL** DEFAULT 0；`version` INTEGER **NOT NULL** DEFAULT 1 |
+| `provider_usage_snapshots` | `provider_id` TEXT PK FK CASCADE；`snapshot_json` TEXT **NOT NULL**；`checked_at` TEXT **NOT NULL** |
+| `provider_request_bindings` | `principal_id` TEXT **NOT NULL**；`request_id` TEXT **NOT NULL**；`provider_id` TEXT **NOT NULL** FK；`deployment_id` TEXT **NOT NULL** FK；`bound_at` TEXT **NOT NULL**；`provider_request_id` TEXT（可空）；PK(principal_id,request_id) |
+| `usage_obligations` | `principal_id` TEXT **NOT NULL**；`request_id` TEXT **NOT NULL**；`model` TEXT **NOT NULL**；`endpoint` TEXT **NOT NULL**；`recorded_at` TEXT **NOT NULL**；`dispatch_authorized_at` TEXT（可空）；PK(principal_id,request_id) |
+| `usage_record_versions` | `principal_id`/`request_id`/`model`/`endpoint`/`recorded_at`/`updated_at`/`measurement_status`/`source` **NOT NULL**；`record_version`/`is_final` INTEGER **NOT NULL**；`input_tokens`/`output_tokens`/`total_tokens`/`cached_input_tokens`/`cache_write_tokens`/`reasoning_tokens` INTEGER（可空）；PK(principal_id,request_id,record_version)；FK→`usage_obligations` |
+| `usage_heads` | `principal_id`/`request_id`/`updated_at` **NOT NULL**；`head_record_version` INTEGER **NOT NULL**；PK(principal_id,request_id)；FK→`usage_record_versions` |
+| `query_snapshots` | `snapshot_id` PK；`principal_id`/`snapshot_kind`/`filter_digest`/`authorization_digest`/`created_at`/`expires_at` **NOT NULL** |
+| `query_snapshot_items` | `snapshot_id` **NOT NULL** FK CASCADE；`ordinal` **NOT NULL**；`request_id` **NOT NULL**；`record_version`（可空）；`frozen_view_json`（可空）；`etag`（可空）；PK(snapshot_id,ordinal)；UNIQUE(snapshot_id,request_id) |
+| `probe_results` | `deployment_id` PK FK CASCADE；`status`/`checked_at`/`request_id` **NOT NULL**；`detail`（可空）|
+| `audit_events` | `id` PK；`actor`/`action`/`target`/`result`/`created_at` **NOT NULL**；`request_id`（可空）|
+| `operational_logs` | `id` PK；`created_at`/`level`/`module`/`event` **NOT NULL**；`message` TEXT **NOT NULL** CHECK(length≤512)；`request_id`（可空）|
 
   **观测表（`002_observability.sql`）**
 
@@ -507,19 +501,20 @@ connection(self) -> sqlite3.Connection
 
 ```text
 transaction(self, immediate: bool=False) -> Iterator[Connection]
+txn(store, conn=None) -> ContextManager[Connection]     # 模块级 helper（§4.6.2）
 ```
 
 - **Interface/Member ID、用途、提供责任与唯一来源**
 
   - **Interface/Member ID、状态**：`FUNC-UTIL-TXN` / PLANNED
-  - **文件 / symbol / 可见性**：`store.py` / `Store.transaction` / private
+  - **文件 / symbol / 可见性**：`store.py` / `Store.transaction`、模块级 `txn` / private
   - **原成员 ID 或私有来源**：`F-UTIL-TXN`、`RULE-UTIL-TXN`
-  - **完整签名与 caller**：`transaction(self, immediate: bool=False) -> Iterator[Connection]`；caller=业务模块 `with`
+  - **完整签名与 caller**：`transaction(self, immediate: bool=False) -> Iterator[Connection]`；`txn(store, conn=None) -> ContextManager[Connection]`；caller=业务模块 `with`
 
 - **输入与前提**
 
-  - **输入参数 / 数据结构 authority**：`immediate: bool`（默认 False）
-  - **输入约束 / 校验顺序 / 失败映射**：不可在已有事务内调用（SQLite 不允许嵌套）；违规 → `E-UTIL-NESTED-TXN`
+  - **输入参数 / 数据结构 authority**：`immediate: bool`（默认 False）；`txn` 的 `conn`（默认 None）
+  - **输入约束 / 校验顺序 / 失败映射**：不可在已有事务内调用（SQLite 不允许嵌套）；违规 → `E-UTIL-NESTED-TXN`（显式 guard）
 
 - **成功输出与保证**
 
@@ -548,7 +543,7 @@ transaction(self, immediate: bool=False) -> Iterator[Connection]
 
 - **实现与验证**
 
-  - **不可改变的规则 / Constraint ID**：异常必 rollback；`immediate=True` 用 `BEGIN IMMEDIATE`；不可嵌套、不提供 SAVEPOINT
+  - **不可改变的规则 / Constraint ID**：异常必 rollback；`immediate=True` 用 `BEGIN IMMEDIATE`，默认 `immediate=False` 用 `BEGIN`；模块级 `txn(store, conn)` 在 `conn is None` 时走 `BEGIN IMMEDIATE`，`conn` 非空时并入调用方事务；不可嵌套（`E-UTIL-NESTED-TXN`）、不提供 SAVEPOINT
   - **实现自由度**：上下文管理器实现
   - **实现状态 / 验证项**：PLANNED；`VRC-UTIL-002`
 
@@ -787,11 +782,11 @@ flowchart TD
 #### 7.1.1 `CF-UTIL-NESTED` · 嵌套事务
 
 - **参与线程 / 回调 / 事务**：同连接、调用线程
-- **已产生或可能产生的副作用**：无（`BEGIN` 失败）
-- **检测事实 / 期限**：SQLite `OperationalError`
+- **已产生或可能产生的副作用**：无（事务未开启）
+- **检测事实 / 期限**：显式嵌套 guard → `E-UTIL-NESTED-TXN`
 - **状态 / 错误 / 结果已知性**：已知失败
 - **保留 / 释放责任**：连接保留
-- **允许的 query / replay / takeover / retry**：调用方改用传入 `Connection`
+- **允许的 query / replay / takeover / retry**：调用方改用传入 `Connection`（经 `txn(store, conn)`）
 - **验证项**：`VRC-UTIL-002`
 
 #### 7.1.2 `CF-UTIL-UNCLOSED` · 连接未关闭
@@ -830,7 +825,7 @@ flowchart TD
 
 #### 7.2.2 Schema 演进策略决定
 
-- **Schema authority / 当前版本事实来源**：本 ISD §4.4；`schema_meta.schema_version` 为事实来源
+- **Schema authority / 当前版本事实来源**：本 ISD §4.7；`schema_meta.schema_version` 为事实来源
 - **允许的升级模式**：仅 **schema initialization**（空库建当前结构）
 - **明确不接受的迁移模式**：**无增量升级 / 无 downgrade / 无自动修复**
 - **兼容边界**：仅支持空库；不支持新程序读旧库、旧程序读新库、跨版本跳跃
@@ -927,7 +922,7 @@ flowchart TD
 - **Rule / 成员**：`RULE-UTIL-TXN`、`RULE-UTIL-MIGRATE`
 - **V / Case / Vector**：v1 异常回滚；v2 重复 `migrate()`；v3 损坏库；v4 版本不匹配；v5 中途失败；v6 嵌套事务；v7 并发启动；v8 无版本表旧库
 - **输入 / 故障 / 环境**：事务内抛异常；连续 migrate；损坏文件；非空库版本≠期望；脚本中途失败；事务内再 BEGIN；两实例并发；有表无 `schema_meta`
-- **独立 Oracle / Expected**：无半写；幂等；`schema_integrity_failed`；`schema_version_mismatch`；回滚后库空；`OperationalError`；无部分/损坏表；`schema_unknown`
+- **独立 Oracle / Expected**：无半写；幂等；`schema_integrity_failed`；`schema_version_mismatch`；回滚后库空；`E-UTIL-NESTED-TXN`；无部分/损坏表；`schema_unknown`
 - **Actual / Evidence**：NOT_RUN
 - **Verdict**：NOT_RUN
 - **测试入口 / 清理**：`tests/unit/v03` + 并发/故障注入；隔离库

@@ -8,6 +8,7 @@ function markStale(message){document.body.classList.add('stale');showBanner(mess
 // I9 error dispatch (web-ui ISD §5.2): 401 -> session/redirect, 409/412 -> keep page for reload, 429/503 -> stale.
 function dispatchUiError(error){
   if(error.status===401){document.body.classList.add('stale');window.location.assign(LOGIN_URL);return}
+  if(error.status===403){showBanner('Permission denied — you do not have access to perform this action.');return}
   if(error.status===409){
     error.referenceConflict=true;
     error.message=`Conflict — this reference is still in use. ${error.message||''}`.trim();
@@ -25,6 +26,13 @@ function dispatchUiError(error){
     return;
   }
   if(error.status===503){markStale('Service unavailable — showing the last known screen.')}
+}
+// T-UI-03: a failed page load must keep the previous screen/rows. Handled
+// statuses already surfaced a banner via dispatchUiError; anything else marks
+// the view stale without overwriting the last known data.
+function reportLoadFailure(error){
+  if(error&&[401,403,409,412,429,503].includes(error.status))return;
+  markStale('Refresh failed — showing the last known data.');
 }
 async function api(path,{method='GET',body,headers={}}={}){
   const response=await fetch(path,{method,credentials:'same-origin',headers:{'Content-Type':'application/json',...headers},body:body?JSON.stringify(body):undefined});
@@ -118,7 +126,7 @@ async function loadHome(){
     $('#build-meta').textContent=`Version ${health.version} · Updated ${new Date(document.lastModified).toLocaleString()}`;
     renderTree();
     $('#stamp').textContent=`Last refreshed ${new Date().toLocaleTimeString()}`;
-  }catch(error){$('#tree').textContent=error.message;$('#gateway').innerHTML=statusMarkup('Connection failed','bad');$('#gateway').title='Connection failed';$('#gateway').setAttribute('aria-label','Connection failed');$('#gateway').className='status-chip bad'}
+  }catch(error){reportLoadFailure(error)}
 }
 
 function renderTree(){
@@ -348,7 +356,7 @@ async function addMember(event){
   }catch(error){$('#tier-form-error').textContent=error.message}
 }
 
-async function loadUsage(){const page=await api('/v1/usage?'+windowQuery());$('#usage-body').innerHTML=page.data.map(item=>`<tr><td>${esc(item.request_id)}</td><td>${esc(item.model)}</td><td>${esc(item.endpoint)}</td><td>${item.input_tokens??'Unknown'}</td><td>${item.output_tokens??'Unknown'}</td><td>${item.total_tokens??'Unknown'}</td><td>${statusMarkup(item.measurement_status,item.measurement_status==='measured'?'ok':'warn')}</td></tr>`).join('')||'<tr><td colspan="7">No records</td></tr>'}
+async function loadUsage(){try{const page=await api('/v1/usage?'+windowQuery());$('#usage-body').innerHTML=page.data.map(item=>`<tr><td>${esc(item.request_id)}</td><td>${esc(item.model)}</td><td>${esc(item.endpoint)}</td><td>${item.input_tokens??'Unknown'}</td><td>${item.output_tokens??'Unknown'}</td><td>${item.total_tokens??'Unknown'}</td><td>${statusMarkup(item.measurement_status,item.measurement_status==='measured'?'ok':'warn')}</td></tr>`).join('')||'<tr><td colspan="7">No records</td></tr>'}catch(error){reportLoadFailure(error)}}
 
 const statsState={group_by:'tier',range:'24h'};
 function statsRange(){
@@ -376,8 +384,8 @@ async function loadStats(){
     return `<tr><td><b>${esc(row.deployment_name)}</b><div class="subline">${esc(row.deployment_id)}</div></td><td>${esc(row.provider_name)}<div class="subline">${esc(row.provider_kind)}</div></td><td><code>${esc(row.backend_model)}</code></td><td>${metric(row.calls)}</td><td>${metric(row.measured_calls)}</td><td>${metric(row.input_tokens)}</td><td>${metric(row.output_tokens)}</td><td>${metric(row.total_tokens)}</td><td>${metric(row.cached_tokens)}</td><td>${metric(row.reasoning_tokens)}</td></tr>`;
   }).join('');
 }
-async function loadAudit(){const page=await api('/v1/audit');$('#audit-body').innerHTML=page.data.map(item=>`<tr><td>${new Date(item.created_at).toLocaleString()}</td><td>${esc(item.actor)}</td><td>${esc(item.action)}</td><td>${esc(item.target)}</td><td>${esc(item.result)}</td></tr>`).join('')||'<tr><td colspan="5">No records</td></tr>'}
-async function loadLogs(){const query=new URLSearchParams(windowQuery());if($('#log-level').value)query.set('level',$('#log-level').value);if($('#log-module').value)query.set('module',$('#log-module').value);const page=await api('/v1/logs?'+query);$('#log-body').innerHTML=page.data.map(item=>`<tr><td>${new Date(item.created_at).toLocaleString()}</td><td>${esc(item.level)}</td><td>${esc(item.module)}</td><td>${esc(item.event)}</td><td>${esc(item.message)}</td><td>${esc(item.request_id||'—')}</td></tr>`).join('')||'<tr><td colspan="6">No records</td></tr>'}
+async function loadAudit(){try{const page=await api('/v1/audit');$('#audit-body').innerHTML=page.data.map(item=>`<tr><td>${new Date(item.created_at).toLocaleString()}</td><td>${esc(item.actor)}</td><td>${esc(item.action)}</td><td>${esc(item.target)}</td><td>${esc(item.result)}</td></tr>`).join('')||'<tr><td colspan="5">No records</td></tr>'}catch(error){reportLoadFailure(error)}}
+async function loadLogs(){try{const query=new URLSearchParams(windowQuery());if($('#log-level').value)query.set('level',$('#log-level').value);if($('#log-module').value)query.set('module',$('#log-module').value);const page=await api('/v1/logs?'+query);$('#log-body').innerHTML=page.data.map(item=>`<tr><td>${new Date(item.created_at).toLocaleString()}</td><td>${esc(item.level)}</td><td>${esc(item.module)}</td><td>${esc(item.event)}</td><td>${esc(item.message)}</td><td>${esc(item.request_id||'—')}</td></tr>`).join('')||'<tr><td colspan="6">No records</td></tr>'}catch(error){reportLoadFailure(error)}}
 
 const diagState={tab:'snapshots',snapshotsEnabled:false,statsEnabled:false};
 function diagWindow(){const to=new Date();return {from:new Date(to.getTime()-86400000).toISOString(),to:to.toISOString()};}

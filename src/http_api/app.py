@@ -312,14 +312,16 @@ def handler_factory(app: Application):
                 did = match.group(1)
                 if method == "GET": return self._json(200, self._store_read(app.diagnostics.injections, did))
                 if method == "PATCH":
-                    result = app.admin.mutate(principal.principal_id, "diagnostics.injection.update", did, self.request_id, lambda conn: app.diagnostics.set_injections(did, self._body(), conn=conn))
+                    body = self._body()
+                    result = app.admin.mutate(principal.principal_id, "diagnostics.injection.update", did, self.request_id, lambda conn: app.diagnostics.set_injections(did, body.get("items", []), conn=conn))
                     return self._json(200, result)
             match = re.fullmatch(r"/tier/admin/v1/deployments/([^/]+)/diagnostics", path)
             if match:
                 did = match.group(1)
                 if method == "GET": return self._json(200, self._store_read(app.diagnostics.injections, did))
                 if method == "PATCH":
-                    result = app.admin.mutate(principal.principal_id, "diagnostics.injection.update", did, self.request_id, lambda conn: app.diagnostics.set_injections(did, self._body(), conn=conn))
+                    body = self._body()
+                    result = app.admin.mutate(principal.principal_id, "diagnostics.injection.update", did, self.request_id, lambda conn: app.diagnostics.set_injections(did, body.get("items", []), conn=conn))
                     return self._json(200, result)
             match = re.fullmatch(r"/v1/trace/([^/]+)", path)
             if match and method == "GET": return self._json(200, self._store_read(app.diagnostics.trace, match.group(1)))
@@ -342,7 +344,8 @@ def handler_factory(app: Application):
                 did = match.group(1)
                 if method == "GET": return self._json(200, self._store_read(app.diagnostics.injections, did))
                 if method == "PATCH":
-                    result = app.admin.mutate(principal.principal_id, "diagnostics.injection.update", did, self.request_id, lambda conn: app.diagnostics.set_injections(did, self._body(), conn=conn))
+                    body = self._body()
+                    result = app.admin.mutate(principal.principal_id, "diagnostics.injection.update", did, self.request_id, lambda conn: app.diagnostics.set_injections(did, body.get("items", []), conn=conn))
                     return self._json(200, result)
             match = re.fullmatch(r"/tier/admin/v1/trace/([^/]+)", path)
             if match and method == "GET": return self._json(200, self._store_read(app.diagnostics.trace, match.group(1)))

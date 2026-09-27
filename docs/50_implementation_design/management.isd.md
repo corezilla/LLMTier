@@ -271,7 +271,7 @@ UsagePage {
 
 - **Data/Type ID、用途与来源**
 
-  `D-USAGE-PAGE`；用量分页。唯一来源=本 ISD 与 M-METER。
+  `D-USAGE-PAGE`；用量分页（**扁平**）。唯一来源=`inference/usage.py` `UsageRecorder.page`（读冻结 `query_snapshots`）。注意：`admin.page`（§5.1.2，用于 provider/deployment/service-level 列表）返回的是 `{data, page:{has_more,next_cursor}}`（嵌套 `page`），与此扁平结构不同。
 
 - **`data` / `next_cursor` / `has_more`**（必填/可空）
 
@@ -338,7 +338,13 @@ AccountSnapshot {
   provider: str        // usage-provider 类别：minimax | volc | local | none
   source: str          // credentials_missing | provider_api | provider_api_error | store | quota_config | unsupported
   status: str          // ok | unavailable | not_refreshed | unlimited | unsupported
-  windows: object[]
+  used: float | null       // 主窗口（weekly 优先）用量
+  quota: float | null      // 主窗口配额
+  remaining: float | null  // quota - used
+  percent: float | null    // 主窗口已用百分比
+  reset_at: str            // 主窗口重置时刻（本地化文本，可空串）
+  window: str              // 主窗口名：5hour | weekly | monthly
+  windows: object[]        // 各窗口 {name,used,quota,remaining,percent,reset_at}
   checked_at: str
   error: str | null
 }
@@ -350,7 +356,11 @@ AccountSnapshot {
 
 - **`provider` / `source` / `status` / `windows` / `checked_at`**（必填）
 
-  `provider` = usage-provider 类别（非 provider id）；`source` ∈ {`credentials_missing`,`provider_api`,`provider_api_error`,`store`,`quota_config`,`unsupported`}；`status` ∈ {`ok`,`unavailable`,`not_refreshed`,`unlimited`,`unsupported`}；`windows` 时间窗数组；`checked_at` 检查时刻。
+  `provider` = usage-provider 类别（非 provider id）；`source` ∈ {`credentials_missing`,`provider_api`,`provider_api_error`,`store`,`quota_config`,`unsupported`}；`status` ∈ {`ok`,`unavailable`,`not_refreshed`,`unlimited`,`unsupported`}；`windows` 时间窗数组（每项 `{name,used,quota,remaining,percent,reset_at}`）；`checked_at` 检查时刻。
+
+- **`used` / `quota` / `remaining` / `percent` / `reset_at` / `window`**（主窗口派生）
+
+  从 `windows` 中主窗口（优先 `weekly`，否则首项）提取的扁平字段：`used`/`quota`/`remaining`/`percent`/`reset_at` 可空，`window` 为主窗口名；无窗口时为空/空串。
 
 - **`error`**（可空）
 
@@ -374,26 +384,21 @@ AccountSnapshot {
 
 ```text
 BootstrapState {
-  bootstrap_error: str?           // 供 /readyz，成功为 null
-  bootstrap_sha256: str           // 已写入 settings 指纹
+  bootstrap_error: ApiError | null   // 供 /readyz，成功为 null
 }
 ```
 
 - **Data/Type ID、用途与来源**
 
-  `D-CFG-BOOTSTRAP-STATE`；进程引导状态事实；唯一来源=`src/http_api/app.py` 启动装配 + `src/management/registry.py`。进程级。
+  `D-CFG-BOOTSTRAP-STATE`；进程引导状态事实；唯一来源=`src/http_api/app.py` 启动装配（`Application.bootstrap_error`）。进程级。
 
 - **`bootstrap_error`**（可空）
 
-  `str?`；引导失败原因，供 `/readyz` 判 `not_ready`；成功为 `null`。
-
-- **`bootstrap_sha256`**（必填）
-
-  `str`；已写入 settings 指纹，供重复启动幂等 no-op 比对。
+  `ApiError | null`；引导失败时保存**异常对象**，供 `_dispatch` 拦截与 `/readyz` 判 `not_ready`；成功为 `null`。**无 `bootstrap_sha256` 运行时字段**——settings 指纹持久在 `schema_meta.bootstrap_sha256`，重复启动时由 `Registry.bootstrap_settings` 直接读取比对。
 
 - **跨字段与寿命**
 
-  引导失败置 `bootstrap_error`、服务 `not_ready`、不接流量；重复启动 no-op（`T-MGMT-04`）；进程级，随启动。
+  引导失败置 `bootstrap_error`、服务 `not_ready`、不接流量；重复启动 no-op（`T-MGMT-04`，读 `schema_meta.bootstrap_sha256`）；进程级，随启动。
 
 - **合法/拒绝实例**
 
@@ -483,6 +488,7 @@ ApiError { status: int, code: str, message: str, param: str | null,
 |---|---|---|---|
 | `E-MGMT-BOOT` | settings 不可读/非法/引用不可达 | `ERR-BOOT` | 修正后重启 |
 | `E-MGMT-INVALID` | 字段/引用/能力非法、重名 | `ERR-REQ-VALIDATION` / `ERR-CONFLICT` | 修正后重试 |
+| `E-MGMT-FIXED` | 删除固定 Tier | `ERR-CONFLICT`（`fixed_service_level`） | 不可删除 |
 | `E-MGMT-CAS` | ETag 不匹配 | `ERR-STALE` | 重新 GET 后重试 |
 | `E-MGMT-USAGE` | Store 读失败 | `ERR-STORE` | 稍后重试 |
 | `E-MGMT-CONFIRM` | 缺二次确认 | `ERR-CONFIRM` | 补确认 |
@@ -525,7 +531,7 @@ candidates(level_id) -> list[Candidate]
 
 - **错误与合法下一步**
 
-  - **错误输出 / 触发条件 / 优先级**：E-MGMT-BOOT（ERR-BOOT · bootstrap_required / bootstrap_invalid）：503 `bootstrap_required`/`bootstrap_invalid`；not_ready；E-MGMT-INVALID（ERR-REQ-VALIDATION / ERR-CONFLICT）：400/409；E-MGMT-CAS（ERR-STALE · version_conflict）：412 + `current_version`
+  - **错误输出 / 触发条件 / 优先级**：E-MGMT-BOOT（ERR-BOOT · bootstrap_required / bootstrap_invalid）：503 `bootstrap_required`/`bootstrap_invalid`；not_ready；E-MGMT-INVALID（ERR-REQ-VALIDATION / ERR-CONFLICT）：400/409；E-MGMT-FIXED（ERR-CONFLICT · fixed_service_level）：409 `fixed_service_level`（固定 Tier 不可删除）；E-MGMT-CAS（ERR-STALE · version_conflict）：412 + `current_version`
   - **E-MGMT-BOOT（公共 ERR-BOOT · bootstrap_required / bootstrap_invalid）**
     - **底层异常 / 失败事实**：settings 不可读/非法/引用不可达
     - **模块是否处理及处理函数**：reject（`bootstrap_settings`）
@@ -542,6 +548,14 @@ candidates(level_id) -> list[Candidate]
     - **日志级别 / 脱敏 / 关联字段**：无
     - **是否可重试及前提**：修正后重试
     - **状态与副作用影响 / 验证项**：`VRC-MGMT-002`
+  - **E-MGMT-FIXED（公共 ERR-CONFLICT · fixed_service_level）**
+    - **底层异常 / 失败事实**：删除固定 Tier（`delete_service_level` 恒拒绝）
+    - **模块是否处理及处理函数**：reject（`delete_service_level` 直接抛）
+    - **Typed 异常与原生异常所有权**：`ApiError(409)`
+    - **宿主 / public payload 或状态码**：409 `fixed_service_level`
+    - **日志级别 / 脱敏 / 关联字段**：无
+    - **是否可重试及前提**：否（固定 Tier 不可删除）
+    - **状态与副作用影响 / 验证项**：无删除；`VRC-MGMT-002`
   - **E-MGMT-CAS（公共 ERR-STALE · version_conflict）**
     - **底层异常 / 失败事实**：ETag 不匹配
     - **模块是否处理及处理函数**：reject
@@ -625,7 +639,7 @@ stats(from_ts, to_ts, group_by)
   - **输入输出 ownership 与寿命**：请求级；审计持久
   - **Thread-safe / reentrant**：经事务
   - **Nested-call policy**：allowed
-  - **Transaction participation**：joins existing（包裹 `fn` 事务）
+  - **Transaction participation**：creates new（`mutate` 自开事务，`fn(conn)` 在该事务内执行；非加入既有事务）
   - **Blocking / timeout / cancellation**：探测 5 s
 
 - **实现与验证**
@@ -651,7 +665,7 @@ reset_usage(model=None, deployment_id=None, conn=None) -> dict
 - **输入与前提**
 
   - **输入参数 / 数据结构 authority**：分页/范围参数
-  - **输入约束 / 校验顺序 / 失败映射**：`[from,to)`；cursor 冻结；失败 → `E-MGMT-USAGE`
+  - **输入约束 / 校验顺序 / 失败映射**：`[from,to)`；cursor 冻结；HTTP `GET /v1/usage` 的 `limit` 缺省为 **100**（`UsageRecorder.page` 的函数缺省为 50，路由显式传 100）；失败 → `E-MGMT-USAGE`
 
 - **成功输出与保证**
 
@@ -835,7 +849,7 @@ flowchart TD
 
 #### 7.2.2 Schema 演进策略决定
 
-- **Schema authority / 当前版本事实来源**：无本层 schema；事实来源为 M007 `schema_meta.schema_version`（`util.isd.md` §4.4）
+- **Schema authority / 当前版本事实来源**：无本层 schema；事实来源为 M007 `schema_meta.schema_version`（`util.isd.md` §4.7）
 - **允许的升级模式**：随 M007 —— 仅 **schema initialization**（空库建当前结构）
 - **明确不接受的迁移模式**：无本层独立迁移；**不接受增量升级 / downgrade / 自动修复**
 - **兼容边界**：本层不定义版本；仅在 M007 判定 ready 后服务

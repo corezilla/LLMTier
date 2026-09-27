@@ -13,6 +13,13 @@ from .routing import Router
 from .usage import UsageRecorder
 
 
+ALLOWED_FIELDS = frozenset({
+    "model", "input", "stream", "store", "tools", "tool_choice", "temperature",
+    "max_output_tokens", "reasoning", "include", "service_tier", "metadata",
+})
+FORBIDDEN_FIELDS = frozenset({"prompt_cache_key", "prompt_cache_retention", "previous_response_id"})
+
+
 class ResponsesService:
     def __init__(self, registry: Registry, router: Router, usage: UsageRecorder, diagnostics=None):
         self.registry, self.router, self.usage, self.diagnostics = registry, router, usage, diagnostics
@@ -64,8 +71,8 @@ class ResponsesService:
         try:
             require({"model", "input", "stream", "store"} <= set(body), 400, "invalid_request", "model, input, stream, and store are required")
             require(body.get("stream") is True and body.get("store") is False, 400, "unsupported_request", "Only stream=true and store=false are supported")
-            forbidden = {"prompt_cache_key", "prompt_cache_retention", "previous_response_id"}
-            require(not (forbidden & set(body)), 400, "unsupported_field", "Unsupported provider continuation or cache field")
+            require(not (FORBIDDEN_FIELDS & set(body)), 400, "unsupported_field", "Unsupported provider continuation or cache field")
+            require(set(body) <= ALLOWED_FIELDS, 400, "invalid_request", "Request body contains unknown fields")
             model = body["model"]
             try:
                 caps = self.registry.get_service_level(model)[0]["capabilities"]
@@ -74,6 +81,12 @@ class ResponsesService:
                     raise ApiError(404, "model_not_found", "Model not found") from exc
                 raise
             require(caps.get("responses") is True, 400, "unsupported_model", "Selected model does not support Responses", "model")
+            if "tools" in body and caps.get("tools") is False:
+                raise ApiError(400, "unsupported_request", "Selected model does not support tools", "tools")
+            if "max_output_tokens" in body and caps.get("max_output_tokens") is not None:
+                limit = caps["max_output_tokens"]
+                require(isinstance(body["max_output_tokens"], int) and not isinstance(body["max_output_tokens"], bool) and 1 <= body["max_output_tokens"] <= limit,
+                        400, "invalid_request", f"max_output_tokens must be between 1 and {limit}", "max_output_tokens")
         except ApiError as exc:
             _trace("validated", {"ok": False, "code": exc.code, "status": exc.status}); _stats(exc.status)
             raise

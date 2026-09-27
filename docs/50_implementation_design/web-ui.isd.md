@@ -63,7 +63,7 @@
 <a id="isd-structure"></a>
 
 ```text
-webui/
+src/web_ui/
  ├─ index.html   # 结构壳：侧栏 5 项 + 页头 + 5 个 .page 容器 + 2 个抽屉表单 + datalist
  ├─ app.js       # api()/路由/load*/render*/mutation/状态映射/I9
  ├─ styles.css   # 基础/框架/页面/组件/树/抽屉 6 分区
@@ -82,7 +82,7 @@ webui/
 ### 3.2 `app.js` · 客户端逻辑
 
 - **职责及调用者**：路由、装载、渲染、mutation、交互状态；caller=`index.html`
-- **类型 / 函数**：`api`、`loadRegistry/loadUsageSnapshot/loadHome/loadProviders/loadUsage/loadAudit/loadLogs/loadStats`、`loadDiagSwitches/loadSnapshots/loadDiagStats/loadTraces/showTrace/loadInjections/loadDiagnostics`、`renderTree/renderProviders/renderTierMembers`、`openTierEditor/openProviderEditor/saveProvider/saveMember/addMember/removeMember/deleteProvider/addModelAsDeployment/toggleDeployment/probeDeployment/refreshProviderUsage`、`backendState/tierState/statusMarkup/dispatchUiError`
+- **类型 / 函数**：`api`、`loadRegistry/loadUsageSnapshot/loadHome/loadProviders/loadUsage/loadAudit/loadLogs/loadStats`、`loadDiagSwitches/saveDiagSwitches/loadSnapshots/loadDiagStats/loadTraces/showTrace/loadInjections/loadDiagnostics`、`renderTree/renderProviders/renderTierMembers`、`openTierEditor/openProviderEditor/saveProvider/saveMember/addMember/removeMember/deleteProvider/addModelAsDeployment/toggleDeployment/probeDeployment/refreshProviderUsage`、`backendState/tierState/statusMarkup/dispatchUiError`
 - **可见性**：private（浏览器）
 - **调用与类型依赖**：只经 `api()` 调 M001 同源 HTTP
 - **构建目标 / 生成源 / 输出**：静态资源
@@ -253,7 +253,7 @@ FormDraft {
 
 - **`fields`**（必填、可变）
 
-  `map`；由 DOM 控件值更新；Secret 字段空白表示保持原值；提交成功后销毁、失败（412）保留供复制。
+  `map`；**无 input 事件跟踪**，字段在提交时由 `fieldValue(form,name)` 直接从 DOM 读取；Secret 字段空白表示保持原值；提交成功后销毁、失败（412）保留供复制。
 
 - **跨字段与寿命**
 
@@ -295,25 +295,25 @@ EditEtag {
 
   `VRC-UI-002`。
 
-**4.6.4 `PagingCursor`（分页游标）**
+**4.6.4 `PagingCursor`（分页游标；当前未使用）**
 
 ```text
 PagingCursor {
-  value: string?                  // 审计页存 URL query，可刷新恢复
+  value: string?                  // 预留；当前客户端不读取/回传
 }
 ```
 
 - **Data/Type ID、用途与来源**
 
-  `D-UI-PAGING-CURSOR`；审计/列表分页游标；唯一来源=`app.js` 页面路由/查询参数。
+  `D-UI-PAGING-CURSOR`；分页游标占位。**审计页（`loadAudit` → `GET /v1/audit`）无 cursor/分页参数，首屏一次性渲染**；用量/日志页同样不回传 cursor。
 
 - **`value`**（可空）
 
-  `string?`；续页时随请求回传；缺省为首屏。
+  `string?`；预留字段；当前实现不续页。
 
 - **跨字段与寿命**
 
-  页面内存 + URL query，刷新可恢复；不与 `FormDraft` 共享。
+  页面内存；当前不写入 URL query；不与 `FormDraft` 共享。
 
 - **验证**
 
@@ -331,7 +331,7 @@ PagingCursor {
 | `T-UI-04` | Ready/Empty → Loading | 用户刷新或切换页 | 用户动作 | 页面切换/刷新重新调 `load*()` | — | `VRC-UI-001` |
 | `T-UI-05` | Stale → Loading | 用户重试 | 用户动作 | `dispatchUiError` 提供重试 → `load*()` | — | `VRC-UI-001` |
 | `T-UI-06` | Closed → Open | 打开编辑抽屉 | 用户动作 | 编辑入口初始化 `FormDraft`（§4.6.2）、暂存 `EditEtag`（§4.6.3） | — | `VRC-UI-002` |
-| `T-UI-07` | Open → Dirty | 用户修改字段 | DOM 控件值 | 表单 `input` 事件更新 `FormDraft.fields` | — | `VRC-UI-002` |
+| `T-UI-07` | Open → Dirty | 用户修改字段 | 提交时 DOM 控件值 | **无 input 事件监听**；`saveProvider`/`saveMember` 提交时用 `fieldValue(form,name)` 直接读 DOM | — | `VRC-UI-002` |
 | `T-UI-08` | Dirty → Saving | 用户提交 | `EditEtag`（§4.6.3） | `saveProvider`/`saveMember`/`toggleDeployment` 发 `PATCH + If-Match` | 超时 → §7.1.2 | `VRC-UI-002` |
 | `T-UI-09` | Saving → Closed | 2xx 成功 | M001 成功响应 | 保存函数成功分支：清草稿 + `load*()` | — | `VRC-UI-002` |
 | `T-UI-10` | Saving → Conflict | 412 stale | ETag 过期事实 | `dispatchUiError` 处理 412：提示 stale、保留草稿 | 不自动覆盖 | `VRC-UI-002` |
@@ -465,7 +465,7 @@ load*() -> Promise<void>
 - **Interface/Member ID、用途、提供责任与唯一来源**
 
   - **Interface/Member ID、状态**：`FUNC-UI-LOAD` / PLANNED
-  - **文件 / symbol / 可见性**：`app.js` / `loadRegistry/loadUsageSnapshot/loadHome/loadProviders/loadUsage/loadAudit/loadLogs/loadStats/loadDiagSwitches/loadSnapshots/loadDiagStats/loadTraces/showTrace/loadInjections/loadDiagnostics` / private
+  - **文件 / symbol / 可见性**：`app.js` / `loadRegistry/loadUsageSnapshot/loadHome/loadProviders/loadUsage/loadAudit/loadLogs/loadStats/loadDiagSwitches/saveDiagSwitches/loadSnapshots/loadDiagStats/loadTraces/showTrace/loadInjections/loadDiagnostics` / private
   - **原成员 ID 或私有来源**：`F-UI-HOME/PROVIDERS/RECORDS/LOGS/DIAG`
   - **完整签名与 caller**：`load*() -> Promise<void>`；caller=页面进入
 
@@ -545,7 +545,7 @@ statusMarkup(label, tone) -> string
 
 - **实现与验证**
 
-  - **不可改变的规则 / Constraint ID**：状态语义（不互相覆盖、未知不填零）
+  - **不可改变的规则 / Constraint ID**：状态语义（不互相覆盖、未知不填零）；`tierState` 标签 ∈ {Disabled, Empty, Ready, Attention, Unreachable, Unknown}，`backendState` 标签 ∈ {Disabled, Paused, Running, Idle, Probing, Exhausted, Unreachable, Unknown}
   - **实现自由度**：渲染实现
   - **实现状态 / 验证项**：PLANNED；`VRC-UI-001/004`
 
@@ -787,7 +787,7 @@ flowchart TD
 
 #### 7.2.2 Schema 演进策略决定
 
-- **Schema authority / 当前版本事实来源**：无本层 schema；事实来源为 M007 `schema_meta.schema_version`（`util.isd.md` §4.4）
+- **Schema authority / 当前版本事实来源**：无本层 schema；事实来源为 M007 `schema_meta.schema_version`（`util.isd.md` §4.7）
 - **允许的升级模式**：随 M007 —— 仅 **schema initialization**（空库建当前结构）
 - **明确不接受的迁移模式**：无本层独立迁移；**不接受增量升级 / downgrade / 自动修复**
 - **兼容边界**：本层不定义版本；仅在 M007 判定 ready 后服务
@@ -849,7 +849,7 @@ flowchart TD
 
 ### 8.2.1 `RB-UI-BUILD` · 构建与装配
 
-- **目标文件 / 产物 / 构建目标**：`webui/index.html`、`app.js`、`styles.css`、`icons.svg`；静态资源
+- **目标文件 / 产物 / 构建目标**：`src/web_ui/index.html`、`app.js`、`styles.css`、`icons.svg`；静态资源
 - **工具链 / 语言 / 依赖版本**：浏览器原生 JS/CSS/SVG；无 CDN/emoji
 - **宿主接入 / 初始化 / 退出次序**：由 M001 静态交付；页面加载即初始化
 - **环境 / 数据规模 / 冷热条件**：1280×760 基线；`<960px` 侧栏折叠
@@ -867,7 +867,7 @@ flowchart TD
 - **Rule / 成员**：`RULE-UI-TIERSTATE`、`F-UI-HOME`
 - **V / Case / Vector**：v1 Tier/成员状态；v2 `readyz` 映射；v3 单线程并发
 - **输入 / 故障 / 环境**：页面加载；隔离库
-- **独立 Oracle / Expected**：状态语义（Idle/Running/Paused/Ready/Attention/Unreachable）
+- **独立 Oracle / Expected**：状态语义；`tierState` ∈ {Disabled, Empty, Ready, Attention, Unreachable, Unknown}，`backendState` ∈ {Disabled, Paused, Running, Idle, Probing, Exhausted, Unreachable, Unknown}
 - **Actual / Evidence**：NOT_RUN
 - **Verdict**：NOT_RUN
 - **测试入口 / 清理**：WebUI/系统用例；隔离库
