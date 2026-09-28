@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-api-test-specification` |
-| Document Version | `0.4.0-draft.2` |
+| Document Version | `0.4.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -605,7 +605,7 @@ LLMTIER_ADMIN_TOKEN='...' LLMTIER_DATA_TOKEN='...' \
    - **建议顺序**：A 类只读/无状态写 → 每写完立即 teardown → B 类串行（含注入/并发）→ 注入 case 必须与 `OBS-DEPL-02` 配套（写入 → 命中 → 清空）。A/B 互斥同一实例，不与 A 类并行跑并发写。
 4. **收证据（§10）**：记录命令、exit code、HTTP status/headers/body、SSE 逐帧、注入命中证据（trace `source=injected`）、环境快照（`/healthz`/`/readyz` + provider/deployment 列表）。Run ID `<date>/<class>-<phase>`；存 `tests/system/reports/<date>/`；失败现场不截断。
 5. **复位**：A 类每个写 case teardown（PATCH 复原/ DELETE 本次创建物）、注入 `items:[]`、DP-USAGE-04 复位 `query_snapshots.expires_at`；B 类整班 `stop()` 终止进程并 `rm -rf` 临时目录。核验 `/readyz` + provider/deployment 列表回到 §2.1 基线、无遗留端口监听、无未清空注入。
-6. **判定与登记**：按 §9 为每个执行项给出 PASS/FAIL/BLOCKED/SKIP/INVALID/NOT_RUN；FAIL/BLOCKED/INVALID 登记缺陷并保留现场，不得把未运行项补造为成功。
+6. **判定与登记**：按 §9 为每个执行项给出 PASS/FAIL/BLOCKED/SKIP/INVALID/NOT_RUN；FAIL/BLOCKED/INVALID 登记缺陷并保留现场，不得把未运行项补造为成功。**单 Case 受阻不中断整轮**（就地恢复后继续下一个 Case）；某批小范围系统性受阻时先诊断根因再**断点续跑**（不回跑已 PASS），见执行层计划 §7.1。
 
 ### 8.2 重点关注的过程步骤
 
@@ -655,12 +655,14 @@ PYTHONPATH=src python3 tests/integration/v03_smoke.py
 |---|---|---|---|
 | **PASS** | HTTP status + body 关键字段 + error `code`（+ SSE 事件序列无误、terminal 唯一、`[DONE]`）全部 match | 否 | — |
 | **FAIL** | 断言不符：status/字段错、error code 不符、SSE 序列断裂、terminal 缺失或重复、注入已命中但行为不符 | 是 | 预期 vs 实际、`reproduction_cmd`、`failure_step` |
-| **BLOCKED** | 测试代码/契约本身问题（fixture 写不出、断言逻辑错、ISD/OpenAPI 语义不清、注入无法命中） | 是 | `block_reason`、`required_resolution`、`reproduction_cmd` |
-| **SKIP** | 环境限制（§2 前置不满足、上游 provider 离线、B 类临时实例不可用） | 否（有上限） | `skip_reason`（引用 §2 检查项）、`fix_owner`、`eta` |
+| **BLOCKED** | 无法执行/无法判定且**可重试**（测试代码/契约问题且恢复动作未解除：fixture 写不出、断言逻辑错、ISD/OpenAPI 语义不清、注入无法命中） | 是 | `block_reason`、`required_resolution`、**已执行/待执行的恢复动作**、`reproduction_cmd` |
+| **SKIP** | 明确不适用或依赖失败（§2 前置不满足、上游 provider 离线、B 类临时实例不可用、依赖链前置未满足） | 否（有上限） | `skip_reason`（引用 §2 检查项/依赖）、`fix_owner`、`eta` |
 | **INVALID** | 注入未命中却按行为判定、或替代路径冒充真实路径（如错误地用 `127.0.0.1` 或 mock 结果当实测） | 是 | `invalid_reason`、证据缺口 |
 | **NOT_RUN** | Case 已定义但本轮未执行（含 MISSING 实现） | 不适用 | 缺口引用（§3） |
 
 **规则**：MISSING ≠ NOT_RUN；无实现是缺口，不是跳过。N/A 需裁剪依据（如功耗）。**SKIP 上限**：A 类 ≤ 5、B 类 ≤ 3；超出视为覆盖不足，须补 fixture/注入后重跑。**禁止**"未跑"无状态：runner 必须为每个执行项给出明确状态。**跨 backend 隔离**：A 类 PASS 不关闭 B 类；静态 contract PASS 不关闭运行保证。
+
+**执行韧性（引用执行层计划 §7.1）**：单 Case 受阻不中断整轮（就地恢复后继续）；系统性受阻先诊断根因再**断点续跑**（不回跑已 PASS）；恢复目录与续跑语义见执行层计划 `llmtier-api-test-plan.md` §7.1。本规格只定义判定状态，不重复执行编排。**本轮 Exit ≠ 全 PASS**，以"所有 Case 有终态（PASS/FAIL/BLOCKED/SKIP）且无未诊断的系统性阻塞"为准（执行层计划 §7.2）。
 
 ## 10. Artifact、日志、测量与证据保存
 

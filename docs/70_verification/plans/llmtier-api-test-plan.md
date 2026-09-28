@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-api-test-plan` |
-| Document Version | `0.3.0-draft.9` |
+| Document Version | `0.3.0-draft.10` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -224,20 +224,46 @@
 
 ## 7. Entry、Exit、Pass、Fail、Blocked 和 Invalid Criteria
 
+### 7.1 执行韧性与恢复（核心政策）
+
+本节定义整轮执行的**韧性政策**（continue-on-error），是 §9 续跑/回归与 §11 清理恢复在执行层的统一语义；测试设计只定义判定状态，执行编排以本节为准。
+
+1. **单 case 受阻 → 跳过并继续**：任何 case 无法执行（前置不满足、超时、阻塞）时，**不中断整轮**——将该 case 标为 `BLOCKED`（可重试）或 `SKIP`（明确不适用/依赖失败），登记**检测事实 + 原因 + 对应恢复动作**；执行**就地恢复动作**后，**直接继续下一个 case**（同类/同批的其余 case 继续跑），不回退、不整体中断。
+2. **一路执行到底**：整轮采用 continue-on-error；批次之间、case 之间只要前置满足就继续，直到跑完全部 case。
+3. **多 case 同时受阻 → 诊断再续跑**：当**同一批次 BLOCKED 比例 > 50%**、或**同一阻塞源（端点/构造）连续 ≥ 3 个 case 失败**、或**同一根因累计 BLOCKED ≥ 5** 时，**暂停**并判定根因是**环境问题**（m5air/OMLX 不可达、凭据/secret 缺失、schema 版本、存储锁）还是**测试设计/脚本问题**（错误前置、Oracle 不独立、顺序/状态污染）；按根因**修环境或改 case 设计/脚本**，然后**从断点续跑**——**不回跑已 PASS 的 case**，只执行未通过/未执行的，直到本轮结束。
+4. **恢复目录（阻塞源 → 检测事实 → 恢复动作 → 影响范围/复位）**：
+
+| 阻塞源 | 检测事实 | 恢复动作 | 影响范围 / 复位 |
+|---|---|---|---|
+| 环境不就绪 | `/healthz` 非 200、`/readyz` 非 7 tier、OMLX 不可达、secret 不可用 | 重启服务（`kill -TERM` → Python 3.14 重启）/ 重建 bootstrap / 修 `secret_ref` | A 类全批；重启后重验 §5.2 |
+| 上游超时 | 建连/首字节/流空闲超时（`delay` 注入可复现） | 抬高 timeout / 有限重试 / 换候选 provider | 涉该上游的 DP-RESP/EMB；恢复后补跑 |
+| 鉴权/配置缺失 | 401/403/503 `auth_not_configured`、凭据未设 | 补 `dev-data`/`dev-admin` token / settings | AUTH-*、B 类空库；复位到基线 settings |
+| schema/版本不匹配 | 启动或查询报 schema/版本错 | 换新 DB 重建 / 离线处理 | B 类临时实例（丢弃重建）；A 类按运维手册 |
+| 存储忙/锁 | SQLite `database is locked` | 退避重试 | 单 case；复位后无残留 |
+| fd/队列耗尽 | 打开文件/队列满、非注入性 `429` | 等并发下降 / 重启服务 | 并发批 `B-inject`；复位后继续 |
+| 状态污染 | 前序注入/账本/顺序影响后续结果 | 清注入 `PATCH diagnostics {"items":[]}` / 重置账本 `DELETE /v1/usage` / 换独立 DB | 污染批 + 其依赖下游；复位后才继续 |
+| cursor/快照过期 | `400 cursor_expired` | 重开查询（重建 cursor/时间窗） | 分页/诊断 case；无状态残留 |
+| flaky（并发/上游非确定） | 同输入结果不稳定 | 有限重试（≤ 3 次，记录并发度与时间窗） | 该 case；超阈值转 BLOCKED |
+
+5. **续跑语义**：**续跑 = 只执行未 PASS 的 case（按依赖顺序）**，已 PASS 的不重跑；依赖链上被跳过的 case 若其前置在恢复后满足则**补跑**，否则标 `SKIP` 并说明；一轮结束产出汇总（每 case 通过/失败/阻塞/跳过 + 原因）。
+6. **复位约束**：每个恢复动作后执行必要的**状态复位**（清注入 / 重置账本 / 独立 DB），确保后续批次从干净状态开始；**A 类对 m5air 现有 state 的副作用须可复位**（§11.3）。
+
+### 7.2 Entry、Exit 与状态判定
+
 **Entry（开始门）**：基线可解析（openapi + §7.8）；§5.2 就绪检查全过；B 类临时实例可启动；测试代码头部满足 TS-002。
 
-**Exit（结束门）**：每个适用 Case 有明确状态；FAIL/BLOCKED/INVALID 均已登记；结果落 §10 报告；teardown 完成且初态可核验。
+**Exit（结束门）**：**本轮跑完 = 所有 case 有终态（PASS/FAIL/BLOCKED/SKIP）且无未诊断的系统性阻塞**（而非"全 PASS 才结束"）；FAIL/BLOCKED/INVALID 均已登记并给出根因/恢复动作；结果落 §10 报告；teardown/复位完成且初态可核验。
 
 | 状态 | 判定 | 阻塞 release | 报告必含 |
 |---|---|---|---|
 | **PASS** | status + body 关键字段 + error `code`（+ SSE 序列/terminal/`[DONE]`）全 match | 否 | — |
 | **FAIL** | 断言不符（含注入命中后行为不符） | **是** | 预期 vs 实际、`reproduction_cmd`、`failure_step` |
-| **BLOCKED** | 测试代码/契约本身问题（fixture 写不出、断言逻辑错、ISD/OpenAPI 语义不清、注入无法命中） | **是** | `block_reason`、`required_resolution`、`reproduction_cmd` |
-| **SKIP** | 环境限制（§5.2 不满足、上游离线、临时实例不可用） | 否（有上限） | `skip_reason`（引用 §5.2 项）、`fix_owner`、`eta` |
+| **BLOCKED** | 无法执行/无法判定且**可重试**（测试代码/契约问题且恢复动作未解除：fixture 写不出、断言逻辑错、ISD/OpenAPI 语义不清、注入无法命中） | **是** | `block_reason`、`required_resolution`、**已执行/待执行的恢复动作**、`reproduction_cmd` |
+| **SKIP** | 明确不适用或依赖失败（§5.2 环境限制、上游离线、临时实例不可用、依赖链前置未满足） | 否（有上限） | `skip_reason`（引用 §5.2 项/依赖）、`fix_owner`、`eta` |
 | **INVALID** | 注入未命中却按行为判定；或用 `127.0.0.1`/mock 冒充真实路径 | **是** | `invalid_reason`、证据缺口 |
 | **NOT_RUN** | Case 已定义但本轮未执行，含 MISSING 实现（37 个） | 不适用 | 缺口引用（测试设计 §3） |
 
-**关键区分**：上游离线 → SKIP；fixture 写不出 → BLOCKED；status 对但字段缺 → FAIL。**SKIP 上限**：A 类 ≤ 5、B 类 ≤ 3；超出视为覆盖不足，须补 fixture/注入后重跑。**禁止"未跑"无状态**：runner 必须每项给明确结果。**跨 backend 隔离**：A 类 PASS 不关闭 B 类；静态 contract PASS 不关闭本计划。
+**关键区分**：上游离线/前置不满足 → SKIP（本轮不重跑，恢复后按 §7.1 补跑前置）；fixture 写不出且恢复动作未解除 → BLOCKED（可重试）；status 对但字段缺 → FAIL。**单 case 的 BLOCKED/SKIP 不终止整轮**（§7.1）；**本轮 Exit ≠ 全 PASS**，以"所有 case 有终态且无未诊断系统性阻塞"为准。**SKIP 上限**：A 类 ≤ 5、B 类 ≤ 3；超出视为覆盖不足，须补 fixture/注入后重跑。**禁止"未跑"无状态**：runner 必须每项给明确结果。**跨 backend 隔离**：A 类 PASS 不关闭 B 类；静态 contract PASS 不关闭本计划。
 
 ## 8. 组织、职责、排期和资源
 
@@ -255,7 +281,7 @@
 - **缺陷登记**：每个 FAIL/BLOCKED/INVALID 记 ID、Case、预期/实际、`reproduction_cmd`、根因、owner、状态。
 - **偏差批准**：任何跳过/裁剪（如功耗 N/A、endurance 引用他文）须具名理由与批准，不得静默。
 - **修复基线**：修复后必须回到同一基线重跑，并保留首轮失败与重测的关联（不覆盖旧失败）。
-- **Rerun**：生成新 Run ID；非确定性 Case（并发/上游）重跑须记录并发度与时间窗；重跑只重跑受影响批次（§3.3）。
+- **Rerun / 续跑**：生成新 Run ID；**续跑按 §7.1 只执行未 PASS 的 case（依赖顺序）**，已 PASS 不重跑；依赖链上被跳过者其前置恢复后满足则补跑，否则标 SKIP；非确定性 Case（并发/上游）重跑须记录并发度与时间窗；重跑只重跑受影响批次（§3.3）。
 - **Regression 邻域**：契约/错误码/路由变更 → 全量；单模块修复 → 本 family + 共享 `T-*`/`VRC-*` 的家族（如 Registry 改 → ADM-PROV/DEPL/SL + DP-MODELS/RESP/EMB 路由）；错误信封改 → 全部负向 Case；case 设计变更 → 该 Case 及其依赖边下游（§3.4）。
 
 ## 10. Evidence、Traceability、Reporting 与 Gate
@@ -264,7 +290,7 @@
 - **原始证据**：命令、HTTP status/headers/body、SSE 逐帧、exit code、耗时、环境快照（`/healthz`/`/readyz` + provider/deployment 列表 + `api_smoke_test.py` 输出）。失败现场保留不截断。
 - **保存位置**：`tests/system/reports/<date>/`；本计划的 Case ↔ Run 对应表随报告维护。
 - **Traceability**：Case → 测试设计 §3.2 `设计 V`（`VRC-*`/`T-*`）→ openapi/§7.8/ISD；每 Case 的详细追踪见 `cases/<id>.md`；`ERR-*` 目录逐条映射 Case 或缺口。
-- **Reporting/Gate**：报告须给出覆盖数（应跑/已跑/PASS/FAIL/SKIP/BLOCKED/INVALID/NOT_RUN）、未关闭缺陷、MISSING 缺口。**Gate**：适用 Case 全 PASS 且 FAIL/BLOCKED/INVALID=0、SKIP 在上限内方可放行；MISSING 记 NOT_RUN 缺口不自动阻断，但需具名批准。
+- **Reporting/Gate**：报告须给出覆盖数（应跑/已跑/PASS/FAIL/SKIP/BLOCKED/INVALID/NOT_RUN）、未关闭缺陷、MISSING 缺口。**Gate**：适用 Case 全 PASS 且 FAIL/BLOCKED/INVALID=0、SKIP 在上限内方可放行；MISSING 记 NOT_RUN 缺口不自动阻断，但需具名批准。**注意：本 Gate 是 release 放行门槛，不等于"本轮跑完"**——"本轮跑完"见 §7.2 Exit（所有 case 有终态且无未诊断的系统性阻塞）。
 
 ## 11. 风险、安全与清理恢复
 
@@ -272,11 +298,13 @@
 
 | 风险 | 触发 | 停止/恢复 |
 |---|---|---|
-| 上游 provider 离线 | §5.2 检查失败 | 停止 DP-RESP/EMB，标 SKIP，待恢复重跑 |
+| 上游 provider 离线 | §5.2 检查失败 | 停止受影响 DP-RESP/EMB 批次（**不终止整轮**），标 SKIP；按 §7.1 恢复后补跑/续跑 |
 | 写测试污染 m5air | teardown 失败或残留 | 停止 B 类；隔离实例；不得删除 m5air 既有资源 |
 | 注入未清除 | 离开时 `GET /deployments/{id}/diagnostics` 非空 | 阻止下一轮；手动清空 `items:[]` |
 | 临时实例不可终止 | 进程/端口未释放 | BLOCKED，保留证据，不做无边界清理 |
 | 费用型外部调用 | 未确认即调 MiniMax/probe/usage-refresh | 立即停止；必须显式 `confirm_external_call` |
+
+**恢复策略**：单 case/单批受阻按 §7.1 **就地恢复后继续**（不终止整轮）；触及 §7.1 阈值时暂停 → 诊断根因（环境 vs 测试设计）→ 修环境/改 case → **断点续跑**（不回跑已 PASS）。恢复目录与续跑语义见 §7.1；清理与复位见 §11.3。
 
 ### 11.2 安全
 
@@ -289,6 +317,7 @@
 - A 类每个写 Case teardown（恢复原名/删除创建物）；B 类整班销毁临时实例与临时 SQLite；注入 Case 清空 items。
 - 清理后下一轮可核验初态（§5.2 + `/readyz`）；不得删除用户 usage 或其他任务数据。
 - 测试进程退出 ≠ 设备停止：B 类须显式 `terminate` 并等待。
+- **恢复后复位（§7.1 第 6 条）**：每个就地恢复动作执行后必做状态复位（清注入 / 重置账本 `DELETE /v1/usage` / 换独立 DB），确保后续批次从干净状态开始；A 类对 m5air 现有 state 的副作用须可复位（§2.8）。
 
 ### 11.4 历史踩坑回归检查（执行前逐项确认已修复）
 
@@ -305,7 +334,7 @@
 | P9 | create 多传 `id` | ADM-PROV-02 | schema `additionalProperties:false` |
 | P10 | grep `"error"` 误匹配 `"error":null` | ADM-PROBE-02、并发 | 测试设计 §4.6（JSON 解析） |
 | P11/FD-001 | FD 泄漏 | 不在本计划 | 引用 `llmtier-test-plan.md` ST-18/19 |
-| P12 | 50% BLOCKED 当失败 | 全局 | §7 六状态判定；SKIP 上限 |
+| P12 | 50% BLOCKED 当失败（本轮中断） | 全局 | §7.1 阈值触发「暂停+诊断+续跑」而非失败；§7.2 六状态判定；SKIP 上限 |
 | P13 | 测试头部未写依赖（TS-002） | 全部 Case | §5.5/测试设计 §2 |
 | P14 | DP-RESP-02 期望错（`stream=false` 必拒） | DP-RESP-02/06 | `cases/dp-resp-02.md` |
 | P15 | 诊断面误用 `from`/`to` | OBS-STATS-02 | 测试设计 §4.10 时间参数段（`since`/`until`） |
