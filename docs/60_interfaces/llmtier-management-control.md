@@ -32,7 +32,7 @@
 Management是LLMTier自己的operator面，不是Slinky/Piko控制面。只管理云/本地模型、deployment、逻辑等级、健康探测、token Usage和审计，并提供只读的脱敏运行日志查询。
 
 - **提供方**：LLMTier M001/M004/M005/M008；**消费者**：LLMTier operator（中文 Admin Web UI 同源调用）。
-- **唯一字段级 authority**：`interfaces/openapi/llmtier.openapi.json`（version `0.3-simplified-candidate.8`，sha256 `b34428126390056e3eb7927ccb219e5185962a3c5483abb6d9f4fab7ed9a417a`）。
+- **唯一字段级 authority**：`interfaces/openapi/llmtier.openapi.json`（version `0.3-simplified-candidate.8`，sha256 `038feea65ebb70c154936fa688d03a815d770d60ceb46f19dfaa9a036ed49ee5`）。
 - **本文拥有**：管理面边界决定、状态/顺序、失败语义与运维约束；不复制机制正文。
 - **ID/错误**：复用系统设计 §8/§9 的 `D-*`/`IF-*` 与 §8.8 的 `ERR-*`；`interfaces/error-codes/` 未建立 → **Proposed**。
 - **部署条件**：Admin Bearer auth 与 Data Plane credential 分离；生产使用 TLS。
@@ -55,10 +55,19 @@ Management是LLMTier自己的operator面，不是Slinky/Piko控制面。只管�
 | `IF-ADM-STATS` | LLMTier M004 | operator | HTTP GET | candidate.8 | Implemented |
 | `IF-ADM-AUDIT` | LLMTier M004 | operator | HTTP GET | candidate.8 | Implemented |
 | `IF-ADM-LOGS` | LLMTier M008/M005 | operator | HTTP GET | candidate.8 | Implemented |
+| `IF-ADM-PROVIDER-MODELS` | LLMTier M004 | operator/UI | HTTP GET | candidate.8 | Implemented |
+| `IF-OBS-SWITCH` | LLMTier M006/M005 | operator | HTTP GET/PATCH | candidate.8 | Implemented |
+| `IF-OBS-SNAPSHOTS` | LLMTier M006/M005 | operator | HTTP GET | candidate.8 | Implemented |
+| `IF-OBS-STATS` | LLMTier M006/M005 | operator | HTTP GET | candidate.8 | Implemented |
+| `IF-OBS-TRACES` | LLMTier M006/M005 | operator | HTTP GET | candidate.8 | Implemented |
+| `IF-OBS-INJECTIONS` | LLMTier M006/M005 | operator | HTTP GET/PATCH | candidate.8 | Implemented |
+| `IF-OBS-TRACE` | LLMTier M006/M005 | operator | HTTP GET | candidate.8 | Implemented |
 
 编目范围=`selected_members`，分母为上述 Admin 面；不含 clients/sources/SourceInstance/entitlements/capacity-groups/recovery-items/Cost（§8）。状态不等于实现通过。
 
 ### 2.1 API（适用时）
+
+> **命名空间**：本管理/观测面的字段级 authority 是 OpenAPI 的扁平 `/v1/*` 路径（§1，candidate.8）。契约文档 `llmtier-management-contract-v0.3` 使用 `/tier/admin/v1/*` 前缀；实现把诊断/追踪路由同时挂载在 `/v1/*` 与 `/tier/admin/v1/*` 两个前缀上，二者是**同一处理器、同一请求/响应形状的别名**（系统设计 §8）。本文与 OpenAPI 以 `/v1/*` 为准，`/tier/admin/v1/*` 仅为等价别名。
 
 #### `GET/POST /v1/providers`；`GET/PATCH/DELETE /v1/providers/{provider_id}`
 
@@ -175,6 +184,80 @@ GET /v1/logs?limit=&level=&module=&request_id=&from=&to= -> 200 LogPage {data:[L
 - **交互与生命周期**：同步只读；日志支持 level/module/request ID 过滤，7 天保留。
 - **实现与验证**：正常过滤；拒绝缺时间窗。`VRC-LOG-001`、`VRC-MGMT-006`。
 
+#### `GET /v1/providers/{provider_id}/models`
+
+```text
+GET /v1/providers/{provider_id}/models -> 200 ProviderModelsView {data:[string]}
+  -> 4xx/5xx: ErrorEnvelope
+```
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-ADM-PROVIDER-MODELS`；上游 provider 模型目录；M004；规格已定、Implemented；唯一契约=`openapi` candidate.8；`src/management/admin.py` `list_provider_models`。
+- **输入与前提**：路径 `provider_id`；授权=`admin`。
+- **成功输出与保证**：上游目录 `{data:[model_id]}`；副作用=无（可能触发一次上游只读调用）。
+- **错误与合法下一步**：未知 provider → `ERR-NOTFOUND`（404）；上游不可用 → `ERR-PROVIDER-*`（503）。
+- **交互与生命周期**：同步只读；幂等；请求级。
+- **实现与验证**：正常返回目录；边界：空目录 → `data=[]`。`VRC-MGMT-005`。
+
+#### `GET/PATCH /v1/diagnostics`
+
+```text
+GET   /v1/diagnostics                                       -> 200 SwitchState
+PATCH /v1/diagnostics {snapshots_enabled?, stats_enabled?}  -> 200 SwitchState
+  -> 4xx/5xx: ErrorEnvelope
+```
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-OBS-SWITCH`；全局诊断开关；M006（`libdiag`）持有、M005 呈现；规格已定、Implemented；唯一契约=`openapi` candidate.8；`src/libdiag/settings.py`。别名：`/tier/admin/v1/diagnostics`（同入口）。
+- **输入与前提**：PATCH body 可选 `snapshots_enabled`/`stats_enabled`（bool）；授权=`admin`。
+- **成功输出与保证**：`SwitchState`（§4.2，`libdiag.isd.md` §4.2.1）；同事务提交后可见；副作用=同事务审计。
+- **错误与合法下一步**：非法类型 → `ERR-REQ-VALIDATION`（400）；`ERR-AUTH-*`（401/403）；`ERR-STORE`（503）。
+- **交互与生命周期**：同步；partial update（省略字段保持原值）；关闭时零写入。
+- **实现与验证**：正常切换；边界：关闭后无新记录。`VRC-DIAG-001`。
+
+#### `GET /v1/diagnostics/snapshots` / `GET /v1/diagnostics/stats` / `GET /v1/diagnostics/traces`
+
+```text
+GET /v1/diagnostics/snapshots?since=&until=&deployment_id=&model=&limit=&cursor= -> 200 SnapshotPage
+GET /v1/diagnostics/stats?since=&until=&deployment_id=&model=                    -> 200 StatsView
+GET /v1/diagnostics/traces?since=&until=&deployment_id=&model=&limit=&cursor=   -> 200 TracePage
+  -> 4xx/5xx: ErrorEnvelope
+```
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-OBS-SNAPSHOTS`、`IF-OBS-STATS`、`IF-OBS-TRACES`；快照/统计/时间窗 trace 查询；M006 提供、M005 呈现；规格已定、Implemented（`traces` 为 G-1）；唯一契约=`openapi` candidate.8；`src/libdiag/snapshots.py`、`stats.py`、`traces.py`。别名：`/tier/admin/v1/diagnostics/{snapshots,stats,traces}`（同入口）。
+- **输入与前提**：`since`/`until` 时间窗；`deployment_id`/`model`；`limit`/opaque `cursor`（snapshots/traces）；`stats` 的 `since`/`until` 必填；授权=`admin`。
+- **成功输出与保证**：`SnapshotPage`/`StatsView`/`TracePage`（§4.2，`libdiag.isd.md` §4.2.3–4.2.5）；脱敏；`traces` 按 `request_id` 去重、`next_cursor` 稳定；`has_more=false ⇒ next_cursor=null`。
+- **错误与合法下一步**：缺 `since`/`until`（stats）→ `ERR-REQ-VALIDATION`（400）；cursor 非法 → `ERR-CURSOR`（400）；`ERR-STORE`（503，不伪装空页）。
+- **交互与生命周期**：同步只读；快照/traces 7 天保留；统计可丢、非账本。
+- **实现与验证**：正常分页/窗口；边界：空匹配 → `items=[]`/`windows=[]`、`has_more=false`。`VRC-DIAG-002/005`。
+
+#### `GET/PATCH /v1/deployments/{deployment_id}/diagnostics`
+
+```text
+GET   /v1/deployments/{deployment_id}/diagnostics          -> 200 [InjectionView]
+PATCH /v1/deployments/{deployment_id}/diagnostics {items:[{type,config,enabled}]} -> 200 [InjectionView]
+  -> 4xx/5xx: ErrorEnvelope
+```
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-OBS-INJECTIONS`；故障注入配置；M006（`libdiag` 注入）、M005 呈现、M001 终止 HTTP；规格已定、Implemented；唯一契约=`openapi` candidate.8；`src/libdiag/injections.py`。别名：`/tier/admin/v1/deployments/{deployment_id}/diagnostics`（同入口）。
+- **输入与前提**：路径 `deployment_id`；PATCH body `{items:[{type, config, enabled}]}`（`type` 白名单与 `config` 字段集见 M006 §6.3）；授权=`admin`。
+- **成功输出与保证**：`InjectionView[]`（§4.2，`libdiag.isd.md` §4.2.6）；按 `(deployment_id,type)` upsert；副作用=同事务审计；流注入由 `stream_wrapper` 截断/畸形输出。
+- **错误与合法下一步**：类型/字段/范围非法 → `ERR-INJECTION`（400）；未知 deployment → `ERR-NOTFOUND`（404）；`ERR-AUTH-*`（401/403）；`ERR-STORE`（503）。
+- **交互与生命周期**：同步；按 `(deployment_id,type)` upsert；注入仅影响命中请求且可撤销。
+- **实现与验证**：正常 `delay` 注入；拒绝非法 type → 400。`VRC-DIAG-004`。
+
+#### `GET /v1/trace/{request_id}`
+
+```text
+GET /v1/trace/{request_id} -> 200 TraceView
+  -> 4xx/5xx: ErrorEnvelope
+```
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：`IF-OBS-TRACE`；单请求全生命周期；M006 提供、M005 呈现；规格已定、Implemented；唯一契约=`openapi` candidate.8；`src/libdiag/traces.py` `trace`。别名：`/tier/admin/v1/trace/{request_id}`（同入口）。
+- **输入与前提**：路径 `request_id`；授权=`admin`。
+- **成功输出与保证**：`TraceView`（阶段 + 最近快照 + 用量，§4.2，`libdiag.isd.md` §4.2.2）；脱敏。
+- **错误与合法下一步**：未知 request → `ERR-NOTFOUND`（404）；`ERR-AUTH-*`（401/403）；`ERR-STORE`（503）。
+- **交互与生命周期**：同步只读；请求级；幂等。
+- **实现与验证**：正常已有请求；拒绝未知 id → 404。`VRC-DIAG-002`。
+
 ### 2.2 消息与数据流接口（适用时）
 
 不适用：Management 面无事件/队列/流；日志/审计/用量均为拉取式 HTTP 查询（已记于 §2.1）。
@@ -206,7 +289,7 @@ operator UI → same-origin Admin HTTP (Bearer via session)
 
 > 分类同 §2；逐接口端点/协议回写 §2 各声明。
 
-- **API（Admin HTTP）**：HTTPS + JSON + Bearer Auth；端点 `/v1/*`（Admin 面）。Admin Bearer auth 与 Data Plane credential 分离；生产使用 TLS。
+- **API（Admin HTTP）**：HTTPS + JSON + Bearer Auth；端点以扁平 `/v1/*`（Admin 面）为准；诊断/追踪路由另有等价契约别名 `/tier/admin/v1/*`，二者同入口、同形状。Admin Bearer auth 与 Data Plane credential 分离；生产使用 TLS。
 - **人机与维护接口**：中文 Web UI 同源调用 Admin API，不直接读配置文件或 Secret。
 - **硬件与固件接口**：不适用。
 - **消息与数据流接口**：不适用。

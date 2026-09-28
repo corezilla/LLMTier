@@ -1308,15 +1308,16 @@ ErrorEnvelope {
 
 ErrorDetail {
   message: string,
-  type: string,
+  type: "request_error"|"server_error",
   code: string,
-  param: string?
+  param: string?,
+  retryable: bool
 }
 ```
 
 - **Data/Type ID、用途与来源**：
 
-  `D-ERROR-ENVELOPE`；统一错误载荷 `{error:{message,type,code,param}}`；本设计 §7.8；机器源 `openapi`（`ErrorEnvelope`/`ErrorDetail`）。
+  `D-ERROR-ENVELOPE`；统一错误载荷 `{error:{message,type,code,param,retryable}}`；本设计 §7.8；机器源 `openapi`（`ErrorEnvelope`/`ErrorDetail`）。
 
 - **`error`**：
 
@@ -1328,7 +1329,7 @@ ErrorDetail {
 
 - **`error.type`**：
 
-  必填字符串；错误类型枚举；不含敏感信息。
+  必填字符串；错误**类别**，由 HTTP 状态导出：`status<500` 为 `request_error`，否则为 `server_error`；不含敏感信息。
 
 - **`error.code`**：
 
@@ -1338,13 +1339,17 @@ ErrorDetail {
 
   可空字符串；指向首个非法字段；无则为空。
 
+- **`error.retryable`**：
+
+  必填布尔；调用方是否可按标准策略重试；429/5xx 上游故障可为 true。
+
 - **跨字段与寿命**：
 
-  码值语义由 §7.8 目录决定；不含 Secret/凭据/完整正文；429 可带 `Retry-After`。请求级返回；M001 构造、各模块以 `ApiError` 产生。
+  `type` 是类别、`code` 是 §7.8 稳定码值；合并的附加键（如 `current_version`）允许出现，机器源 `ErrorDetail.additionalProperties:true`；不含 Secret/凭据/完整正文；429 可带 `Retry-After`。请求级返回；M001 构造、各模块以 `ApiError` 产生。
 
 - **合法/拒绝实例**：
 
-  合法 `{error:{type:"model_not_found",code:"...",param:null}}`；边界：未知端点 → `ERR-NOTFOUND`。
+  合法 `{error:{message:"...",type:"request_error",code:"model_not_found",param:null,retryable:false}}`；边界：未知端点 → `ERR-NOTFOUND`。
 
 - **验证**：
 
@@ -2449,12 +2454,14 @@ CREATE TABLE probe_results (
 
 机器 Error 目录（代码值/类型/编码）= `interfaces/openapi/llmtier.openapi.json` + `interfaces/error-codes/`（本项目尚未建该目录，见本节目末）。本节决定**公共含义与调用方行为**；接口逐失败条件引用下列 Error ID。每个 Error ID 使用固定八字段记录。
 
+**规范 wire 信封**：`{"error":{"message":str,"type":"request_error"|"server_error","code":str,"param":str|null,"retryable":bool}}`（附加键可合并）。`type` 是**类别**，由 HTTP 状态导出（`status<500` → `request_error`，否则 `server_error`）；`code` 是本节的稳定码值；`param` 指向首个非法字段；`retryable` 表示调用方是否可按标准策略重试。机器权威为 `openapi` `ErrorEnvelope`/`ErrorDetail`；实现见 `src/http_api/errors.py`（`ApiError.envelope()`）。
+
 <!-- STD_PUBLIC_ERROR_CATALOG_BEGIN -->
 **ERR-REQ-VALIDATION · invalid_request**
 - **定义与适用范围**：请求字段/结构非法；**不含**鉴权失败、不支持的形态或字段。
 - **触发条件与判定者**：M001 入口按 `ResponsesRequest`/`EmbeddingRequest` schema 校验 body，首个失败字段即判定。
 - **结果与副作用**：本次调用未受理；无上游 dispatch、无账本义务；无副作用。
-- **错误载荷**：`D-ERROR-ENVELOPE`（§7.4）；`type=invalid_request`、`code` 稳定码值、`param` 指向首个非法字段；不含 Secret/正文。
+- **错误载荷**：`D-ERROR-ENVELOPE`（§7.4）；`code=invalid_request`、`param` 指向首个非法字段；不含 Secret/正文。
 - **调用方动作**：修正 `param` 指出的字段后重试。
 - **模块承接**：M001 产生并返回；M003 不接收。
 - **唯一来源与兼容**：机器源 `openapi` candidate `0.3-simplified-candidate.8`（`ErrorEnvelope`+responses）；`interfaces/error-codes/` 未建立 → Proposed（本节目末）。
@@ -2464,7 +2471,7 @@ CREATE TABLE probe_results (
 - **定义与适用范围**：不支持的请求形态（如 `stream=false`）；不含字段非法。
 - **触发条件与判定者**：M001/M003 判定 `ResponsesRequest.stream` 必须 true、`store` 必须 false。
 - **结果与副作用**：未受理；无义务、无上游调用；无副作用。
-- **错误载荷**：`D-ERROR-ENVELOPE`；`type=unsupported_request`。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=unsupported_request`。
 - **调用方动作**：改用标准 SSE 形态重试。
 - **模块承接**：M001 校验、M003 编排。
 - **唯一来源与兼容**：机器源 `openapi` `ResponsesRequest` 约束 + §6.2 / `LT-ADR-04`；机器目录未建立 → Proposed。
@@ -2474,17 +2481,27 @@ CREATE TABLE probe_results (
 - **定义与适用范围**：请求含不支持的字段；不含结构整体非法。
 - **触发条件与判定者**：M001 按 schema `additionalProperties:false` 发现未知字段。
 - **结果与副作用**：未受理；无副作用。
-- **错误载荷**：`D-ERROR-ENVELOPE`；`param`=未知字段名。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=unsupported_field`、`param`=未知字段名。
 - **调用方动作**：移除该字段后重试。
 - **模块承接**：M001 产生并返回。
 - **唯一来源与兼容**：机器源 `openapi` schema；Proposed。
+- **验证**：`VRC-INF-001`。
+
+**ERR-REQ-MODEL · unsupported_model**
+- **定义与适用范围**：所选等级不支持请求的形态（如对 embedding-only 等级发 Responses，或反之）。
+- **触发条件与判定者**：M003 校验 `capabilities.responses`/`capabilities.embeddings` 失败。
+- **结果与副作用**：未受理；无上游调用、无义务、无副作用。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=unsupported_model`、`param=model`。
+- **调用方动作**：改用支持该形态的等级后重试。
+- **模块承接**：M003 产生、M001 返回。
+- **唯一来源与兼容**：机器源 `openapi` `ModelCapabilities`；Proposed。
 - **验证**：`VRC-INF-001`。
 
 **ERR-REQ-JSON · invalid_json**
 - **定义与适用范围**：body 非合法 JSON；不含语义校验失败。
 - **触发条件与判定者**：M001 解析 body 失败。
 - **结果与副作用**：未受理；无副作用。
-- **错误载荷**：`D-ERROR-ENVELOPE`；`type=invalid_json`。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=invalid_json`。
 - **调用方动作**：修正 JSON 后重试。
 - **模块承接**：M001 产生并返回。
 - **唯一来源与兼容**：机器源 `openapi`；Proposed。
@@ -2494,17 +2511,27 @@ CREATE TABLE probe_results (
 - **定义与适用范围**：body 超过 2 MB 上限（§11.1）。
 - **触发条件与判定者**：M001 读取 Content-Length/实际字节超过请求体上限。
 - **结果与副作用**：未受理；无副作用。
-- **错误载荷**：`D-ERROR-ENVELOPE`；`type=request_too_large`。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=request_too_large`。
 - **调用方动作**：缩小 body 后重试；不得分片绕过。
 - **模块承接**：M001 产生并返回。
 - **唯一来源与兼容**：机器源 `openapi` + §11.1 预算；Proposed。
+- **验证**：`VRC-INF-001`。
+
+**ERR-REQ-DIM · unsupported_dimensions**
+- **定义与适用范围**：embedding 请求的 `dimensions` 不在冻结能力集内；不含整体请求非法。
+- **触发条件与判定者**：M003 校验 `EmbeddingRequest.dimensions` 与等级 `embedding_dimensions` 不匹配。
+- **结果与副作用**：未受理；无上游调用、无义务、无副作用。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=unsupported_dimensions`、`param=dimensions`。
+- **调用方动作**：改用等级声明的冻结维度后重试。
+- **模块承接**：M003 产生、M001 返回。
+- **唯一来源与兼容**：机器源 `openapi` `EmbeddingRequest`；Proposed。
 - **验证**：`VRC-INF-001`。
 
 **ERR-AUTH-REQUIRED · authentication_required**
 - **定义与适用范围**：受保护端点缺凭据；不含已提供但无权。
 - **触发条件与判定者**：M001 入口鉴权未取得 `D-PRINCIPAL`（未配置鉴权时另见 `ERR-AUTH-NOCFG`）。
 - **结果与副作用**：未受理；无副作用。
-- **错误载荷**：`D-ERROR-ENVELOPE`；`type=authentication_required`。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=authentication_required`。
 - **调用方动作**：携带 Bearer 凭据重试。
 - **模块承接**：M001 入口。
 - **唯一来源与兼容**：机器源 `openapi` security；Proposed。
@@ -2514,7 +2541,7 @@ CREATE TABLE probe_results (
 - **定义与适用范围**：凭据无权执行该操作；不泄露资源是否存在。
 - **触发条件与判定者**：M001 判定角色不足（如非 admin 访问管理面）。
 - **结果与副作用**：未受理；无副作用；不泄露存在性。
-- **错误载荷**：`D-ERROR-ENVELOPE`；不含目标存在性。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=permission_denied`；不含目标存在性。
 - **调用方动作**：更换具备权限的凭据。
 - **模块承接**：M001 入口。
 - **唯一来源与兼容**：机器源 `openapi` security；Proposed。
@@ -2524,7 +2551,7 @@ CREATE TABLE probe_results (
 - **定义与适用范围**：服务未配置鉴权，无法判定主体；限于需要授权的部署。
 - **触发条件与判定者**：M001 鉴权配置缺失且访问受保护端点。
 - **结果与副作用**：未受理；服务处于不可判定授权状态。
-- **错误载荷**：`D-ERROR-ENVELOPE`；`type=auth_not_configured`。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=auth_not_configured`。
 - **调用方动作**：联系运维完成鉴权配置；不得自行关闭校验。
 - **模块承接**：M001、M007（配置）。
 - **唯一来源与兼容**：机器源 `openapi`；Proposed。
@@ -2534,7 +2561,7 @@ CREATE TABLE probe_results (
 - **定义与适用范围**：请求的逻辑等级（tier）不存在；不含资源 ID 不存在。
 - **触发条件与判定者**：M003 按 exact `model` 查 Registry 无匹配。
 - **结果与副作用**：未受理；无上游调用、无义务、无副作用。
-- **错误载荷**：`D-ERROR-ENVELOPE`；`type=model_not_found`。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=model_not_found`。
 - **调用方动作**：改用 `GET /v1/models` 返回的 exact 名称。
 - **模块承接**：M003 产生、M001 返回。
 - **唯一来源与兼容**：机器源 `openapi`；Proposed。
@@ -2544,7 +2571,7 @@ CREATE TABLE probe_results (
 - **定义与适用范围**：路径或资源 ID 不存在。
 - **触发条件与判定者**：M001 路由未匹配，或 M004 读取不存在的 provider/deployment/service-level。
 - **结果与副作用**：未受理；无副作用。
-- **错误载荷**：`D-ERROR-ENVELOPE`；`type=not_found`。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=not_found`。
 - **调用方动作**：修正路径/ID 后重试。
 - **模块承接**：M001/M004。
 - **唯一来源与兼容**：机器源 `openapi`；Proposed。
@@ -2554,7 +2581,7 @@ CREATE TABLE probe_results (
 - **定义与适用范围**：唯一性冲突（如 `name` 重复）。
 - **触发条件与判定者**：M004 Registry 写入触发唯一约束。
 - **结果与副作用**：本次写入未生效；事务回滚。
-- **错误载荷**：`D-ERROR-ENVELOPE`；`type=resource_conflict`。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=resource_conflict`。
 - **调用方动作**：改名后重试。
 - **模块承接**：M004。
 - **唯一来源与兼容**：机器源 `openapi`；Proposed。
@@ -2564,7 +2591,7 @@ CREATE TABLE probe_results (
 - **定义与适用范围**：绑定的成员 deployment 能力集不一致，或 tier 要求的形态不受支持。
 - **触发条件与判定者**：M004 Registry 校验 service-level 成员能力集合失败。
 - **结果与副作用**：绑定未生效；事务回滚。
-- **错误载荷**：`D-ERROR-ENVELOPE`；`type=capability_conflict`。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=capability_conflict`。
 - **调用方动作**：改为能力一致的成员组合后重试。
 - **模块承接**：M004。
 - **唯一来源与兼容**：机器源 `openapi`；Proposed。
@@ -2574,7 +2601,7 @@ CREATE TABLE probe_results (
 - **定义与适用范围**：`Embedding-v1` 成员不满足冻结的 BGE-M3 向量空间/限额契约。
 - **触发条件与判定者**：M004 Registry 校验 `Embedding-v1` 成员的能力与冻结空间失败。
 - **结果与副作用**：绑定未生效；事务回滚。
-- **错误载荷**：`D-ERROR-ENVELOPE`；`type=embedding_space_conflict`。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=embedding_space_conflict`。
 - **调用方动作**：改用冻结空间的 embedding-only 成员后重试。
 - **模块承接**：M004。
 - **唯一来源与兼容**：机器源 `openapi`；Proposed。
@@ -2584,7 +2611,7 @@ CREATE TABLE probe_results (
 - **定义与适用范围**：试图删除固定 tier（固定 service level）。
 - **触发条件与判定者**：M004 Registry 校验固定 tier 保护失败。
 - **结果与副作用**：删除未生效；资源不变。
-- **错误载荷**：`D-ERROR-ENVELOPE`；`type=fixed_service_level`。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=fixed_service_level`。
 - **调用方动作**：固定 tier 不可删除；如需调整请改用其他等级。
 - **模块承接**：M004。
 - **唯一来源与兼容**：机器源 `openapi`；Proposed。
@@ -2594,7 +2621,7 @@ CREATE TABLE probe_results (
 - **定义与适用范围**：资源被引用不能删除。
 - **触发条件与判定者**：M004 删除 provider/deployment 时存在引用（如 tier 成员）。
 - **结果与副作用**：删除未生效；资源不变。
-- **错误载荷**：`D-ERROR-ENVELOPE`；`type=resource_in_use`。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=resource_in_use`。
 - **调用方动作**：先解除引用再删除。
 - **模块承接**：M004。
 - **唯一来源与兼容**：机器源 `openapi`；Proposed。
@@ -2604,7 +2631,7 @@ CREATE TABLE probe_results (
 - **定义与适用范围**：`If-Match` ETag 过期，乐观并发失败。
 - **触发条件与判定者**：M004 比较 PATCH/DELETE 的 `If-Match` 与当前 `version` 不一致。
 - **结果与副作用**：写入未生效；资源不变。
-- **错误载荷**：`D-ERROR-ENVELOPE`；`type=version_conflict`。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=version_conflict`。
 - **调用方动作**：重新 GET 取新 ETag 后重试；不得覆盖。
 - **模块承接**：M004。
 - **唯一来源与兼容**：机器源 `openapi`；Proposed。
@@ -2614,7 +2641,7 @@ CREATE TABLE probe_results (
 - **定义与适用范围**：分页 cursor 失效或与当前 filter/授权不匹配。
 - **触发条件与判定者**：M003/M004 校验 cursor 失败。
 - **结果与副作用**：未返回页；不创建任务、无副作用。
-- **错误载荷**：`D-ERROR-ENVELOPE`；`type=cursor_expired`。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=cursor_expired`。
 - **调用方动作**：从头重开查询。
 - **模块承接**：M003/M004。
 - **唯一来源与兼容**：机器源 `openapi`；Proposed。
@@ -2624,7 +2651,7 @@ CREATE TABLE probe_results (
 - **定义与适用范围**：准入超限（队列满或排队超 30 秒）。
 - **触发条件与判定者**：M003 准入判定无许可。
 - **结果与副作用**：未受理；无上游调用/无义务；响应带 `Retry-After`。
-- **错误载荷**：`D-ERROR-ENVELOPE` + `Retry-After`。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=rate_limit_exceeded`；附 `Retry-After`。
 - **调用方动作**：按 `Retry-After` 退避重试。
 - **模块承接**：M003。
 - **唯一来源与兼容**：机器源 `openapi` + §5.1 预算；Proposed。
@@ -2634,27 +2661,37 @@ CREATE TABLE probe_results (
 - **定义与适用范围**：上游不可用/超时/5xx。
 - **触发条件与判定者**：M003 适配器建连、首字节或流空闲超时，或上游返回 5xx。
 - **结果与副作用**：本次调用失败；已登记义务按 measured/unknown 收敛。
-- **错误载荷**：`D-ERROR-ENVELOPE`；`type=provider_unavailable`。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=provider_unavailable`。
 - **调用方动作**：按标准重试策略；不静默跨等级 fallback。
 - **模块承接**：M003。
 - **唯一来源与兼容**：机器源 `openapi` + §5.3 超时；Proposed。
 - **验证**：`VRC-INF-003`。
 
 **ERR-PROVIDER-FAIL · provider_error**
-- **定义与适用范围**：上游返回非成功 HTTP 状态导致的失败（含注入/上游故障）。
-- **触发条件与判定者**：M003 适配器收到上游 HTTP 错误（`exc.code`）或 M006 注入（`fault_502`/`fault_503`）。
+- **定义与适用范围**：上游返回非成功 HTTP 状态（`exc.code`）导致的失败。
+- **触发条件与判定者**：M003 适配器收到上游 HTTP 错误（`exc.code`）。
 - **结果与副作用**：本次调用失败；失败事实可入快照；`408`/`429` 标记可重试。
-- **错误载荷**：`D-ERROR-ENVELOPE`；`type=provider_error`。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=provider_error`；状态沿用上游。
 - **调用方动作**：按响应状态重试或更换等级。
-- **模块承接**：M003/M006。
+- **模块承接**：M003。
 - **唯一来源与兼容**：机器源 `openapi`；Proposed。
 - **验证**：`VRC-INF-003`。
+
+**ERR-PROVIDER-INJECTED · provider_failure**
+- **定义与适用范围**：M006 注入的上游故障（`fault_502`）。
+- **触发条件与判定者**：M006 诊断注入启用，M003 在 dispatch 前抛出注入故障。
+- **结果与副作用**：本次调用失败；失败事实入快照（`source=injected`）。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=provider_failure`、`retryable=true`。
+- **调用方动作**：等待注入解除后按标准策略重试。
+- **模块承接**：M006、M003/M001 返回。
+- **唯一来源与兼容**：机器源 `openapi`；Proposed。
+- **验证**：`VRC-DIAG-004`。
 
 **ERR-PROVIDER-SECRET · provider_secret_unavailable**
 - **定义与适用范围**：provider 凭据引用无法解析（`env:`/`file:` 无值或不可读）。
 - **触发条件与判定者**：M003 provider 适配器解析 `secret_ref` 失败。
 - **结果与副作用**：本次调用失败；不 dispatch、无义务、无副作用。
-- **错误载荷**：`D-ERROR-ENVELOPE`；`type=provider_secret_unavailable`。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=provider_secret_unavailable`。
 - **调用方动作**：联系运维补齐凭据后重试；不得改用明文。
 - **模块承接**：M003、M004（配置）。
 - **唯一来源与兼容**：机器源 `openapi`；Proposed。
@@ -2664,7 +2701,7 @@ CREATE TABLE probe_results (
 - **定义与适用范围**：上游响应契约不符（无法归一）。
 - **触发条件与判定者**：M003 解析上游响应失败。
 - **结果与副作用**：本次调用失败；无有效 Usage。
-- **错误载荷**：`D-ERROR-ENVELOPE`；`type=provider_contract_error`。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=provider_contract_error`。
 - **调用方动作**：不重试（确定性契约错误），上报。
 - **模块承接**：M003。
 - **唯一来源与兼容**：机器源 `openapi`；Proposed。
@@ -2674,7 +2711,7 @@ CREATE TABLE probe_results (
 - **定义与适用范围**：tier 全部候选不健康。
 - **触发条件与判定者**：M003 准入时全部成员 deployment 不健康/禁用。
 - **结果与副作用**：未受理；无上游调用。
-- **错误载荷**：`D-ERROR-ENVELOPE`；`type=model_unavailable`。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=model_unavailable`。
 - **调用方动作**：稍后重试或改用其他等级。
 - **模块承接**：M003。
 - **唯一来源与兼容**：机器源 `openapi`；Proposed。
@@ -2684,7 +2721,7 @@ CREATE TABLE probe_results (
 - **定义与适用范围**：存储不可用；不用空页冒充无记录。
 - **触发条件与判定者**：M007 SQLite 读取/写入异常（Usage/日志/审计查询）。
 - **结果与副作用**：本次查询/写入失败；已发生副作用按各接口边界。
-- **错误载荷**：`D-ERROR-ENVELOPE`；`type=usage_store_unavailable`。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=usage_store_unavailable`。
 - **调用方动作**：稍后重试；结果未知时以权威查询核对。
 - **模块承接**：M007→M004/M001。
 - **唯一来源与兼容**：机器源 `openapi`；Proposed。
@@ -2694,7 +2731,7 @@ CREATE TABLE probe_results (
 - **定义与适用范围**：未捕获异常。
 - **触发条件与判定者**：M001 捕获未预期异常。
 - **结果与副作用**：本次调用失败；已发生副作用可能未知。
-- **错误载荷**：`D-ERROR-ENVELOPE`；不含栈/Secret。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=internal_error`；不含栈/Secret。
 - **调用方动作**：上报；必要时查询权威状态。
 - **模块承接**：M001。
 - **唯一来源与兼容**：机器源 `openapi`；Proposed。
@@ -2704,7 +2741,7 @@ CREATE TABLE probe_results (
 - **定义与适用范围**：空库缺 bootstrap 或 bootstrap 非法。
 - **触发条件与判定者**：M004/M007 启动时校验 settings/引用失败。
 - **结果与副作用**：回滚并保持 `not_ready`；不接流量。
-- **错误载荷**：`D-ERROR-ENVELOPE`（或以 `/readyz` `not_ready` 表达）。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=bootstrap_required`/`bootstrap_invalid`（或以 `/readyz` `not_ready` 表达）。
 - **调用方动作**：修正配置后重启。
 - **模块承接**：M004/M007。
 - **唯一来源与兼容**：机器源 `openapi` + §6.1；Proposed。
@@ -2714,7 +2751,7 @@ CREATE TABLE probe_results (
 - **定义与适用范围**：schema 版本不匹配、旧库未知版本或完整性失败。
 - **触发条件与判定者**：M007 迁移/启动校验。
 - **结果与副作用**：拒绝启动，保持 `not_ready`。
-- **错误载荷**：`D-ERROR-ENVELOPE`（或以 `not_ready` 表达）。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=schema_version_mismatch`/`schema_unknown`/`schema_integrity_failed`（或以 `not_ready` 表达）。
 - **调用方动作**：运维离线处理（备份 + 单一版本迁移）；不得并行双写。
 - **模块承接**：M007。
 - **唯一来源与兼容**：机器源 `openapi` + §7.11；Proposed。
@@ -2724,17 +2761,27 @@ CREATE TABLE probe_results (
 - **定义与适用范围**：DB 路径为 symlink 等不安全形态。
 - **触发条件与判定者**：M007 启动检查路径。
 - **结果与副作用**：拒绝启动。
-- **错误载荷**：`D-ERROR-ENVELOPE`（或以 `not_ready` 表达）。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=store_path_unsafe`（或以 `not_ready` 表达）。
 - **调用方动作**：修正路径后重启。
 - **模块承接**：M007。
 - **唯一来源与兼容**：机器源 `openapi`；Proposed。
 - **验证**：`VRC-UTIL-002`。
 
+**ERR-UTIL-TXN · E-UTIL-NESTED-TXN**
+- **定义与适用范围**：同一 SQLite 连接上重复开启事务（嵌套事务）被拒绝。
+- **触发条件与判定者**：M007 `Store.transaction()` 收到 SQLite "within a transaction" 错误。
+- **结果与副作用**：事务未开启；连接状态不变；无副作用。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=E-UTIL-NESTED-TXN`。
+- **调用方动作**：修正调用方事务边界后重试；不得并行双写。
+- **模块承接**：M007 产生、M001 返回。
+- **唯一来源与兼容**：机器源 `openapi` + §7.11；Proposed。
+- **验证**：`VRC-UTIL-001`。
+
 **ERR-INJECTION · invalid_injection**
 - **定义与适用范围**：故障注入项类型/字段/范围非法。
 - **触发条件与判定者**：M006 校验 diagnostics PATCH 配置。
 - **结果与副作用**：未写入；配置不变。
-- **错误载荷**：`D-ERROR-ENVELOPE`；`type=invalid_injection`。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=invalid_injection`。
 - **调用方动作**：修正注入项后重试。
 - **模块承接**：M006、M001/M004 返回。
 - **唯一来源与兼容**：机器源 `openapi`；Proposed。
@@ -2744,7 +2791,7 @@ CREATE TABLE probe_results (
 - **定义与适用范围**：有费用或改变状态的操作缺二次确认。
 - **触发条件与判定者**：M004 探测/账号用量刷新缺 `confirm_external_call=true`。
 - **结果与副作用**：未执行；无副作用。
-- **错误载荷**：`D-ERROR-ENVELOPE`；`type=confirmation_required`。
+- **错误载荷**：`D-ERROR-ENVELOPE`；`code=confirmation_required`。
 - **调用方动作**：补充确认后重试。
 - **模块承接**：M004。
 - **唯一来源与兼容**：机器源 `openapi`；Proposed。
@@ -2758,8 +2805,10 @@ CREATE TABLE probe_results (
 | ERR-REQ-VALIDATION | `/v1/responses`、`/v1/embeddings`、管理面 PATCH | M001 校验产生；M004 配置校验 | VRC-INF-001/004 |
 | ERR-REQ-UNSUPPORTED | `/v1/responses` | M001/M003 校验形态产生 | VRC-INF-001 |
 | ERR-REQ-FIELD | `/v1/responses`、`/v1/embeddings` | M001 schema 校验产生 | VRC-INF-001 |
+| ERR-REQ-MODEL | `/v1/responses`、`/v1/embeddings` | M003 能力校验产生、M001 返回 | VRC-INF-001 |
 | ERR-REQ-JSON | `/v1/responses`、`/v1/embeddings` | M001 body 解析产生 | VRC-INF-001 |
 | ERR-REQ-TOO-LARGE | `/v1/responses`、`/v1/embeddings` | M001 入口产生 | VRC-INF-001 |
+| ERR-REQ-DIM | `/v1/embeddings` | M003 校验冻结维度产生、M001 返回 | VRC-INF-001 |
 | ERR-AUTH-REQUIRED | 全部受保护端点 | M001 入口产生 | VRC-API-002 |
 | ERR-AUTH-DENIED | 全部受保护端点 | M001 入口产生 | VRC-API-002 |
 | ERR-AUTH-NOCFG | 全部受保护端点 | M001 入口产生；M007 配置承接 | VRC-API-002、VRC-MGMT-003 |
@@ -2774,7 +2823,8 @@ CREATE TABLE probe_results (
 | ERR-CURSOR | 分页端点（Usage/Audit/Logs/观测） | M003/M004 校验产生 | VRC-MGMT-006 |
 | ERR-RATE-LIMIT | `/v1/responses`、`/v1/embeddings` | M003 准入产生 | VRC-INF-004 |
 | ERR-PROVIDER-UNAVAIL | `/v1/responses`、`/v1/embeddings` | M003 适配产生 | VRC-INF-003 |
-| ERR-PROVIDER-FAIL | `/v1/responses`、`/v1/embeddings` | M003 适配、M006 注入 | VRC-INF-003 |
+| ERR-PROVIDER-FAIL | `/v1/responses`、`/v1/embeddings` | M003 适配产生 | VRC-INF-003 |
+| ERR-PROVIDER-INJECTED | `/v1/responses` | M006 注入产生、M003/M001 返回 | VRC-DIAG-004 |
 | ERR-PROVIDER-SECRET | `/v1/responses`、`/v1/embeddings` | M003 适配解析 `secret_ref` 产生 | VRC-INF-003 |
 | ERR-PROVIDER-CONTRACT | `/v1/responses`、`/v1/embeddings` | M003 适配产生 | VRC-INF-003 |
 | ERR-MODEL-UNAVAIL | `/v1/responses`、`/v1/embeddings` | M003 准入产生 | VRC-INF-004 |
@@ -2783,8 +2833,9 @@ CREATE TABLE probe_results (
 | ERR-BOOT | 启动、`/readyz` | M004/M007 启动产生 | VRC-UTIL-001/002、VRC-MGMT-003 |
 | ERR-SCHEMA | 启动、`/readyz` | M007 迁移/启动产生 | VRC-UTIL-001/002、VRC-MGMT-003 |
 | ERR-PATH-UNSAFE | 启动、`/readyz` | M007 启动产生 | VRC-UTIL-002 |
+| ERR-UTIL-TXN | 全部写入/事务路径 | M007 `Store.transaction` 产生、M001 返回 | VRC-UTIL-001 |
 | ERR-INJECTION | `/tier/admin/v1/deployments/{id}/diagnostics` | M006 校验产生、M001/M004 返回 | VRC-DIAG-004 |
-| ERR-CONFIRM | `/tier/admin/v1/probes`、`/v1/providers/{id}/usage` POST | M004 产生 | VRC-DIAG-004 |
+| ERR-CONFIRM | `/v1/probes`、`/v1/providers/{id}/usage` POST | M004 产生 | VRC-DIAG-004 |
 
 > **未决**：`interfaces/error-codes/` 机器目录尚未建立（当前 error code 值散在 `openapi` 的 response schema 与各模块 ISD）；建立后本节引用其 version/revision/hash，并运行 `validate-public-error-catalog`。见 §9 / 未决项。
 
@@ -2809,7 +2860,7 @@ CREATE TABLE probe_results (
 观测数据保留 7 天，由清理任务删除过期记录。测试报告、审计与日志保留期限由运维策略控制。schema 迁移由单一版本迁移程序负责，不并行双写。
 ## 8. 接口设计
 
-> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口形态**分类逐接口完整记录，不设重复“接口清单”，同一接口只定义一次。标题为真实路由，标题下先给完整接口声明，再就地说明输入/输出，最后按六项写完。字段级 authority：`interfaces/openapi/llmtier.openapi.json`（candidate `0.3-simplified-candidate.8`）。全部 HTTP 接口同处单一命名空间：消费者面为 `/v1/*`；管理/观测面契约前缀 `/tier/admin/v1/*`（`llmtier-management-contract-v0.3` 权威），实现同时提供 `/v1/*` 扁平别名，二者同入口（`29efe80`），不影响契约。trace 时间窗端点 `/v1/diagnostics/traces` 已实现（G-1），与之等价的契约前缀 `/tier/admin/v1/diagnostics/traces` 同入口；正式契约待补。
+> 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口形态**分类逐接口完整记录，不设重复“接口清单”，同一接口只定义一次。标题为真实路由，标题下先给完整接口声明，再就地说明输入/输出，最后按六项写完。字段级 authority：`interfaces/openapi/llmtier.openapi.json`（candidate `0.3-simplified-candidate.8`）。全部 HTTP 接口同处单一入口，采用两个**互为别名**的前缀：消费者面为 `/v1/*`；管理/观测面以扁平 `/v1/*` 为准，诊断/追踪路由另提供等价契约前缀 `/tier/admin/v1/*`（`llmtier-management-contract-v0.3`），二者映射到同一处理器、请求/响应形状完全一致（`29efe80`），不影响契约。§8.1 标题以 `/v1/*` 扁平命名空间为准，`/tier/admin/v1/*` 为等价别名。管理/观测路由清单与实现一致，含 `/v1/providers/{provider_id}/models`、`/v1/diagnostics`、`/v1/diagnostics/snapshots`、`/v1/diagnostics/stats`、`/v1/diagnostics/traces`、`/v1/deployments/{deployment_id}/diagnostics`、`/v1/trace/{request_id}`；`/tier/admin/v1/*` 别名集登记于 OpenAPI `x-llmtier-contract-aliases`。
 
 ### 8.1 API（适用时）
 

@@ -32,7 +32,7 @@
 Piko 拥有 Agent session、完整输入装配、压缩、tool loop、任务 deadline/budget 和执行内 retry。LLMTier 只提供标准 OpenAI-compatible 模型服务，不读取 Piko Run/Session/IR/STD，也不执行工具或管理 backend KV identity。
 
 - **提供方**：LLMTier（M001 HTTP/SSE、M003 Inference）；**消费者**：Piko。
-- **唯一字段级 authority**：`interfaces/openapi/llmtier.openapi.json`（version `0.3-simplified-candidate.8`，sha256 `b34428126390056e3eb7927ccb219e5185962a3c5483abb6d9f4fab7ed9a417a`）。
+- **唯一字段级 authority**：`interfaces/openapi/llmtier.openapi.json`（version `0.3-simplified-candidate.8`，sha256 `038feea65ebb70c154936fa688d03a815d770d60ceb46f19dfaa9a036ed49ee5`）。
 - **本文拥有**：双方交接边界、标准 Responses/SSE 路径、Usage 消费口径与错误/版本约定；不定义 LLMTier 内部算法。
 - **ID/错误**：复用系统设计 §8/§9 的 `D-*`/`IF-*` 与 §8.8 的 `ERR-*`；`interfaces/error-codes/` 未建立 → **Proposed**。
 - **部署条件**：HTTPS + JSON + Bearer auth；production TLS/auth 尚未激活。`runtime_activation=false`。

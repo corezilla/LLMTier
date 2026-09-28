@@ -34,9 +34,9 @@
 
 **API 版本**: `0.3-simplified-candidate.8`
 
-**机器契约权威源**: `interfaces/openapi/llmtier.openapi.json`（version `0.3-simplified-candidate.8`，sha256 `b34428126390056e3eb7927ccb219e5185962a3c5483abb6d9f4fab7ed9a417a`）；字段级 authority。本文是同一固定基线的**阅读视图**，记录用途、顺序、失败与合法下一步；冲突以机器源为准。
+**机器契约权威源**: `interfaces/openapi/llmtier.openapi.json`（version `0.3-simplified-candidate.8`，sha256 `038feea65ebb70c154936fa688d03a815d770d60ceb46f19dfaa9a036ed49ee5`）；字段级 authority。本文是同一固定基线的**阅读视图**，记录用途、顺序、失败与合法下一步；冲突以机器源为准。
 
-LLMTier 提供 OpenAI-compatible HTTP API，供局域网上的 consumer（如 Piko、Slinky）调用。`runtime_activation=false`，本候选不授权 runtime；字段/接口 ID 沿用系统设计 §8/§9 的 `D-*`/`IF-*`，错误码引用系统设计 §8.8 的 `ERR-*`。
+LLMTier 提供 OpenAI-compatible HTTP API，供局域网上的 consumer（如 Piko、Slinky）调用。`runtime_activation=false`，本候选不授权 runtime；字段/接口 ID 沿用系统设计 §8/§9 的 `D-*`/`IF-*`，错误码引用系统设计 §7.8 的 `ERR-*`。
 
 ### 1.1 接口分类
 
@@ -413,7 +413,7 @@ ErrorEnvelope { error: { message: string, type: ErrorType, code: ErrorCode, para
 
 - **Data/Type ID、用途与来源**：
 
-  `D-ERROR-ENVELOPE`；统一错误载荷；机器源 `openapi` `ErrorEnvelope`/`ErrorDetail`；含义见系统设计 §8.8。
+  `D-ERROR-ENVELOPE`；统一错误载荷；机器源 `openapi` `ErrorEnvelope`/`ErrorDetail`；含义见系统设计 §7.8。
 
 - **字段与约束**：
 
@@ -505,21 +505,24 @@ Authority = `util/migrations/*.sql`；公共可观察表见 `llmtier-contract-sp
 
 ### 4.1 错误码与错误结构
 
-机器权威 `openapi` `ErrorDetail`；公共含义与 `ERR-*` ID 见系统设计 §8.8 与 `llmtier-contract-specification` §4.1；`interfaces/error-codes/` 未建立 → **Proposed**。HTTP 状态与 wire `code` 对照（原 Error Responses 表）：
+机器权威 `openapi` `ErrorDetail`；公共含义与 `ERR-*` ID 见系统设计 §7.8 与 `llmtier-contract-specification` §4.1；`interfaces/error-codes/` 未建立 → **Proposed**。`type` 是类别（`request_error`/`server_error`），HTTP 状态与 wire `code` 对照（原 Error Responses 表）：
 
-| HTTP Status | Wire `code`（`openapi`） | 系统 Error ID（§8.8） | 说明 |
+| HTTP Status | Wire `code`（`openapi`） | 系统 Error ID（§7.8） | 说明 |
 |-------------|----------------------|----------------------|------|
-| `400` | `invalid_request` | `ERR-REQ-VALIDATION`/`ERR-REQ-FIELD`/`ERR-REQ-JSON`/`ERR-REQ-UNSUPPORTED` | 请求参数/形态错误 |
-| `401` | `authentication_failed` | `ERR-AUTH-REQUIRED`/`ERR-AUTH-NOCFG` | 认证失败 |
+| `400` | `invalid_request`/`unsupported_request`/`unsupported_field`/`unsupported_model`/`unsupported_dimensions`/`invalid_json`/`cursor_expired`/`invalid_injection`/`confirmation_required` | `ERR-REQ-VALIDATION`/`ERR-REQ-UNSUPPORTED`/`ERR-REQ-FIELD`/`ERR-REQ-MODEL`/`ERR-REQ-DIM`/`ERR-REQ-JSON`/`ERR-CURSOR`/`ERR-INJECTION`/`ERR-CONFIRM` | 请求参数/形态/注入/确认错误 |
+| `401` | `authentication_required` | `ERR-AUTH-REQUIRED` | 认证缺失 |
 | `403` | `permission_denied` | `ERR-AUTH-DENIED` | 权限不足 |
-| `404` | `resource_not_found` | `ERR-NOTFOUND` | 资源不存在 |
+| `404` | `not_found` | `ERR-NOTFOUND` | 路径/资源不存在 |
 | `404` | `model_not_found` | `ERR-MODEL-NOTFOUND` | 逻辑等级不存在 |
-| `409` | `invalid_request`（Proposed） | `ERR-CONFLICT`/`ERR-INUSE` | 冲突/被引用 |
+| `409` | `resource_conflict`/`resource_in_use`/`capability_conflict`/`embedding_space_conflict`/`fixed_service_level`/`E-UTIL-NESTED-TXN` | `ERR-CONFLICT`/`ERR-INUSE`/`ERR-CAPABILITY`/`ERR-EMBEDDING-SPACE`/`ERR-FIXED-LEVEL`/`ERR-UTIL-TXN` | 冲突/被引用/能力/固定等级/嵌套事务 |
 | `412` | `version_conflict` | `ERR-STALE` | ETag 版本不匹配 |
-| `413` | `invalid_request`（Proposed） | `ERR-REQ-TOO-LARGE` | body 过大 |
+| `413` | `request_too_large` | `ERR-REQ-TOO-LARGE` | body 过大 |
 | `429` | `rate_limit_exceeded` | `ERR-RATE-LIMIT` | 请求过于频繁（可带 `Retry-After`） |
-| `502` | `provider_failure` | `ERR-PROVIDER-FAIL`/`ERR-PROVIDER-CONTRACT` | 上游 provider 返回错误 |
-| `503` | `service_unavailable` | `ERR-PROVIDER-UNAVAIL`/`ERR-MODEL-UNAVAIL`/`ERR-STORE` | provider/存储不可用 |
+| `500` | `internal_error` | `ERR-INTERNAL` | 未捕获异常 |
+| `502` | `provider_error`/`provider_failure`/`provider_contract_error` | `ERR-PROVIDER-FAIL`/`ERR-PROVIDER-INJECTED`/`ERR-PROVIDER-CONTRACT` | 上游错误/注入故障/上游契约不符 |
+| `503` | `provider_unavailable`/`model_unavailable`/`provider_secret_unavailable`/`usage_store_unavailable`/`auth_not_configured`/`bootstrap_required`/`bootstrap_invalid`/`schema_version_mismatch`/`schema_unknown`/`schema_integrity_failed`/`store_path_unsafe` | `ERR-PROVIDER-UNAVAIL`/`ERR-MODEL-UNAVAIL`/`ERR-PROVIDER-SECRET`/`ERR-STORE`/`ERR-AUTH-NOCFG`/`ERR-BOOT`/`ERR-SCHEMA`/`ERR-PATH-UNSAFE` | provider/存储/配置/启动不可用 |
+
+> `provider_error`（`ERR-PROVIDER-FAIL`）沿用上游 HTTP 状态（`408`/`429` 等可重试），故不固定映射到单一状态行。
 
 错误响应格式：
 
@@ -535,7 +538,7 @@ Authority = `util/migrations/*.sql`；公共可观察表见 `llmtier-contract-sp
 }
 ```
 
-> 注：`openapi` `ErrorDetail` 实际 `type`/`code` 枚举与上表示例行不同（无 `retryable` 字段）；以 §1 机器源为准，上表保留原阅读视图并标 `Proposed`。
+> 注：`openapi` `ErrorDetail` 的 `type` 枚举为 `request_error`/`server_error`，`code` 枚举与上表逐项一致，并含必填 `retryable`；以 §1 机器源为准。
 
 ### 4.2 Blocker / 未决 catalog
 

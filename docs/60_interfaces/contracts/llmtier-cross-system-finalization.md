@@ -31,7 +31,7 @@
 
 Current candidate是`0.3-simplified-candidate.8`。OpenAPI和manifest是唯一current machine artifacts；旧candidate只作历史审计。
 
-- **唯一字段级 authority**：`interfaces/openapi/llmtier.openapi.json`（version `0.3-simplified-candidate.8`，sha256 `b34428126390056e3eb7927ccb219e5185962a3c5483abb6d9f4fab7ed9a417a`）；本文是同一基线的阅读视图，记录跨系统定型决定与旧接口退役，不复制字段。
+- **唯一字段级 authority**：`interfaces/openapi/llmtier.openapi.json`（version `0.3-simplified-candidate.8`，sha256 `038feea65ebb70c154936fa688d03a815d770d60ceb46f19dfaa9a036ed49ee5`）；本文是同一基线的阅读视图，记录跨系统定型决定与旧接口退役，不复制字段。
 - **本文拥有**：跨系统（Piko/Slinky ↔ LLMTier）的操作边界、公共字段语义、旧接口退役与 A/B/C 收敛。
 - **ID/错误**：沿用系统设计 §8/§9 的 `D-*`/`IF-*` 与 §8.8 的 `ERR-*`；`interfaces/error-codes/` 未建立 → 机器错误目录 **Proposed**。
 - **runtime_activation=false**。

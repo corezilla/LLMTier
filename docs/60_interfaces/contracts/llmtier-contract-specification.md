@@ -33,11 +33,11 @@
 
 - **本文拥有的内容**：公共操作的用途、前后置、顺序、幂等、失败语义与调用方合法动作；请求/响应/事件的阅读视图与含义。
 - **机器源拥有的内容**：字段名、类型、范围、`required`/`additionalProperties`、枚举值与 wire 编码。本文不手写第二套可漂移的完整结构，冲突以机器源为准。
-- **契约基线**：`interfaces/openapi/llmtier.openapi.json`（version `0.3-simplified-candidate.8`，sha256 `b34428126390056e3eb7927ccb219e5185962a3c5483abb6d9f4fab7ed9a417a`）；负向/边界向量 `interfaces/vectors/v0.3/*`；兼容清单 `interfaces/compatibility/compatibility-manifest-v0.3.json`。
+- **契约基线**：`interfaces/openapi/llmtier.openapi.json`（version `0.3-simplified-candidate.8`，sha256 `038feea65ebb70c154936fa688d03a815d770d60ceb46f19dfaa9a036ed49ee5`）；负向/边界向量 `interfaces/vectors/v0.3/*`；兼容清单 `interfaces/compatibility/compatibility-manifest-v0.3.json`。
 - **selector**：OpenAPI `paths` 与 `components.schemas`；本文标题即真实路由/事件名。
 - **接口命名空间**：消费者面 `/v1/*`；管理/观测面契约前缀与实现别名同入口。Data Plane 与 Admin 使用独立 Bearer credential。
-- **数据/接口身份**：沿用系统设计 §8.8 的 `D-*`/`ERR-*` Data/Error ID 与系统设计 §9 的 `IF-*` Interface/Member ID；本文不复用或回收已发布 ID。
-- **Proposed 边界**：`interfaces/error-codes/` 机器 Error 目录尚未建立，故 §4 的错误码含义由系统设计 §8.8 决定、代码值暂以 OpenAPI response schema 为准并标 `Proposed`；`runtime_activation=false` 之外的消费签署仍未完成。
+- **数据/接口身份**：沿用系统设计 §7.8 的 `D-*`/`ERR-*` Data/Error ID 与系统设计 §9 的 `IF-*` Interface/Member ID；本文不复用或回收已发布 ID。
+- **Proposed 边界**：`interfaces/error-codes/` 机器 Error 目录尚未建立，故 §4 的错误码含义由系统设计 §7.8 决定、代码值以 OpenAPI response schema 为准并标 `Proposed`；`runtime_activation=false` 之外的消费签署仍未完成。
 
 ## 2. 接口设计（Operation / Message / Event Catalog）
 
@@ -334,16 +334,16 @@ stream: text/event-stream
 **3.1.1 `ErrorType` / `ErrorCode`（公共基础类型与枚举）**
 
 ```text
-`type` ∈ {`invalid_request_error`,`authentication_error`,`permission_error`,`not_found_error`,`conflict_error`,`rate_limit_error`,`provider_error`,`service_unavailable_error`,`internal_error`}；`code` ∈ {`invalid_request`,`authentication_failed`,`permission_denied`,`model_not_found`,`resource_not_found`,`resource_in_use`,`version_conflict`,`rate_limit_exceeded`,`provider_failure`,`service_unavailable`,`usage_store_unavailable`,`internal_error`}。
+`type` ∈ {`request_error`,`server_error`}（由 HTTP 状态导出：`status<500` → `request_error`，否则 `server_error`）；`code` ∈ {`invalid_request`,`unsupported_request`,`unsupported_field`,`unsupported_model`,`unsupported_dimensions`,`invalid_json`,`request_too_large`,`authentication_required`,`permission_denied`,`auth_not_configured`,`model_not_found`,`not_found`,`resource_conflict`,`resource_in_use`,`version_conflict`,`cursor_expired`,`rate_limit_exceeded`,`provider_unavailable`,`provider_error`,`provider_failure`,`provider_contract_error`,`provider_secret_unavailable`,`model_unavailable`,`usage_store_unavailable`,`internal_error`,`bootstrap_required`,`bootstrap_invalid`,`schema_version_mismatch`,`schema_unknown`,`schema_integrity_failed`,`store_path_unsafe`,`invalid_injection`,`confirmation_required`,`fixed_service_level`,`capability_conflict`,`embedding_space_conflict`,`E-UTIL-NESTED-TXN`}。
 ```
 
 - **Data/Type ID、用途与来源**：
 
-  统一错误信封中的机器分类与公共码值；`D-ERROR-ENVELOPE` 的内层字段；机器源 `openapi` `ErrorDetail`，公共含义由系统设计 §8.8 决定。
+  统一错误信封中的机器分类与公共码值；`D-ERROR-ENVELOPE` 的内层字段；机器源 `openapi` `ErrorDetail`，公共含义由系统设计 §7.8 决定。
 
 - **字段与约束**：
 
-  `additionalProperties:false`；`code` 与 `type` 成对；`ERR-*` 公共 ID 与 wire `code` 的映射见 §4.1；不得自定义未列码。
+  `additionalProperties:true`（允许合并附加键，如 `current_version`）；`type` 是类别、`code` 是稳定码值；`ERR-*` 公共 ID 与 wire `code` 的映射见 §4.1；不得自定义未列码。
 
 - **跨字段与寿命**：
 
@@ -351,7 +351,7 @@ stream: text/event-stream
 
 - **合法/拒绝实例**：
 
-  合法 `{type:"provider_error",code:"provider_failure"}`；拒绝未知 `type`/`code` 值。
+  合法 `{type:"server_error",code:"provider_error",param:null,retryable:true}`；拒绝未知 `type`/`code` 值。
 
 - **验证**：
 
@@ -696,16 +696,16 @@ Write{`usage_provider`∈{none,local,minimax,volc},`usage_api_key_ref`?/`usage_a
 **3.4.4 `ErrorEnvelope`（通信报文结构（机器源继承））**
 
 ```text
-`error.message:str`/`error.type:ErrorType`/`error.code:ErrorCode`/`error.param:str?`（4 字段全必填，`param` 可 null）。
+`error.message:str`/`error.type:ErrorType`/`error.code:ErrorCode`/`error.param:str?`/`error.retryable:bool`（5 字段全必填，`param` 可 null）。
 ```
 
 - **Data/Type ID、用途与来源**：
 
-  统一错误载荷 `{error:{message,type,code,param}}`；机器源 `openapi` `ErrorEnvelope`/`ErrorDetail`；含义见系统设计 §8.8。
+  统一错误载荷 `{error:{message,type,code,param,retryable}}`；机器源 `openapi` `ErrorEnvelope`/`ErrorDetail`；含义见系统设计 §7.8。
 
 - **字段与约束**：
 
-  码值语义由 §4.1/系统 §8.8 决定；不含 Secret/凭据/完整正文；429 可带 `Retry-After`。
+  `type` 是类别（`request_error`/`server_error`）、`code` 是稳定码值；`additionalProperties:true` 允许合并附加键；码值语义由 §4.1/系统 §7.8 决定；不含 Secret/凭据/完整正文；429 可带 `Retry-After`。
 
 - **跨字段与寿命**：
 
@@ -713,7 +713,7 @@ Write{`usage_provider`∈{none,local,minimax,volc},`usage_api_key_ref`?/`usage_a
 
 - **合法/拒绝实例**：
 
-  合法 `{error:{type:"model_not_found",code:"model_not_found",param:null}}`；边界：未知端点 → `ERR-NOTFOUND`。
+  合法 `{error:{message:"...",type:"request_error",code:"model_not_found",param:null,retryable:false}}`；边界：未知端点 → `ERR-NOTFOUND`。
 
 - **验证**：
 
@@ -820,40 +820,48 @@ Write{`usage_provider`∈{none,local,minimax,volc},`usage_api_key_ref`?/`usage_a
 
 ### 4.1 错误码与错误结构
 
-公共错误码含义由 `docs/20_system_design/llmtier-system-design.md` §8.8 决定，本文只引用其 `ERR-*` ID、逐个失败条件与调用方合法动作；不新增公共码。机器 Error 目录 `interfaces/error-codes/` 尚未建立 → **Proposed**；当前 wire 码值以 `openapi` `ErrorDetail.code` 为准，映射差异记录在“机器码值”列。
+公共错误码含义由 `docs/20_system_design/llmtier-system-design.md` §7.8 决定，本文只引用其 `ERR-*` ID、逐个失败条件与调用方合法动作；不新增公共码。机器 Error 目录 `interfaces/error-codes/` 尚未建立 → **Proposed**；wire 码值以 `openapi` `ErrorDetail.code` 为准（下“机器码值”列与系统 §7.8 目录逐一对应）。
 
-| Error ID（系统 §8.8） | 机器码值（`openapi`） | 触发事实 | 结果与副作用 | 调用方动作 | 禁用/边界 |
+| Error ID（系统 §7.8） | 机器码值（`openapi` `ErrorDetail.code`） | 触发事实 | 结果与副作用 | 调用方动作 | 禁用/边界 |
 |---|---|---|---|---|---|
 | `ERR-REQ-VALIDATION` | `invalid_request` | schema/字段/范围非法 | 未受理；无上游/义务副作用 | 修正 `param` 后重试 | 不含鉴权/形态失败 |
-| `ERR-REQ-FIELD` | `invalid_request` | 未知字段（`additionalProperties:false`） | 未受理 | 移除未知字段重试 | — |
-| `ERR-REQ-JSON` | `invalid_request` | body 非合法 JSON | 未受理 | 修正 JSON | — |
-| `ERR-REQ-TOO-LARGE` | `invalid_request` | body 超 2 MB 上限 | 未受理 | 缩小 body；不得分片绕过 | §12.1 |
-| `ERR-REQ-UNSUPPORTED` | `invalid_request` | 不支持形态（`stream=false`） | 未受理 | 改用标准 SSE | — |
-| `ERR-AUTH-REQUIRED` | `authentication_failed` | 受保护端点缺凭据 | 未受理 | 携带 Bearer | 与 `ERR-AUTH-NOCFG` 区分 |
+| `ERR-REQ-UNSUPPORTED` | `unsupported_request` | 不支持形态（`stream=false`） | 未受理 | 改用标准 SSE | — |
+| `ERR-REQ-FIELD` | `unsupported_field` | 未知字段（`additionalProperties:false`） | 未受理 | 移除未知字段重试 | — |
+| `ERR-REQ-MODEL` | `unsupported_model` | 所选等级不支持该形态（embeddings/responses） | 未受理 | 改用支持该形态的等级 | — |
+| `ERR-REQ-DIM` | `unsupported_dimensions` | `dimensions` 不在冻结能力集 | 未受理 | 改用声明维度 | — |
+| `ERR-REQ-JSON` | `invalid_json` | body 非合法 JSON | 未受理 | 修正 JSON | — |
+| `ERR-REQ-TOO-LARGE` | `request_too_large` | body 超 2 MB 上限 | 未受理 | 缩小 body；不得分片绕过 | §12.1 |
+| `ERR-AUTH-REQUIRED` | `authentication_required` | 受保护端点缺凭据 | 未受理 | 携带 Bearer | 与 `ERR-AUTH-NOCFG` 区分 |
 | `ERR-AUTH-DENIED` | `permission_denied` | 凭据无权 | 未受理；不泄露存在性 | 更换权限凭据 | — |
-| `ERR-AUTH-NOCFG` | `authentication_failed` | 未配置鉴权却访问受保护端点 | 未受理；不可判定授权 | 联系运维配置；不得自行关闭 | — |
+| `ERR-AUTH-NOCFG` | `auth_not_configured` | 未配置鉴权却访问受保护端点 | 未受理；不可判定授权 | 联系运维配置；不得自行关闭 | — |
 | `ERR-MODEL-NOTFOUND` | `model_not_found` | exact tier 无匹配 | 未受理；无上游/义务 | 用 `/v1/models` 的 exact 名 | — |
-| `ERR-NOTFOUND` | `resource_not_found` | 路径/资源 ID 不存在 | 未受理 | 修正路径/ID | — |
-| `ERR-CONFLICT` | `invalid_request`（Proposed） | 唯一性冲突（name 重复） | 写入未生效；事务回滚 | 改名后重试 | wire 无专用码，Proposed |
+| `ERR-NOTFOUND` | `not_found` | 路径/资源 ID 不存在 | 未受理 | 修正路径/ID | — |
+| `ERR-CONFLICT` | `resource_conflict` | 唯一性冲突（name 重复） | 写入未生效；事务回滚 | 改名后重试 | — |
+| `ERR-CAPABILITY` | `capability_conflict` | 绑定成员能力集不一致或形态不受支持 | 绑定未生效；回滚 | 改能力一致成员 | — |
+| `ERR-EMBEDDING-SPACE` | `embedding_space_conflict` | `Embedding-v1` 不满足冻结 BGE-M3 空间 | 绑定未生效；回滚 | 改用冻结空间成员 | — |
+| `ERR-FIXED-LEVEL` | `fixed_service_level` | 试图删除固定 tier | 删除未生效 | 改用其他等级 | — |
 | `ERR-INUSE` | `resource_in_use` | 被引用资源不能删 | 删除未生效 | 先解除引用 | — |
 | `ERR-STALE` | `version_conflict` | `If-Match` 过期 | 写入未生效 | 重新 GET 取 ETag | 不覆盖 |
-| `ERR-CURSOR` | `invalid_request` | cursor 失效/不匹配 | 未返回页 | 从头重开查询 | — |
+| `ERR-CURSOR` | `cursor_expired` | cursor 失效/不匹配 | 未返回页 | 从头重开查询 | — |
 | `ERR-RATE-LIMIT` | `rate_limit_exceeded` | 队列满或排队超 30s | 未受理；带 `Retry-After` | 按 `Retry-After` 退避 | — |
-| `ERR-PROVIDER-UNAVAIL` | `service_unavailable` | 建连/首字节/空闲超时或上游 5xx | 本次失败；义务按 measured/unknown 收敛 | 标准重试；不静默 fallback | — |
-| `ERR-PROVIDER-FAIL` | `provider_failure` | 上游/注入故障 | 本次失败；失败事实可入快照 | 重试或换等级 | — |
-| `ERR-PROVIDER-CONTRACT` | `provider_failure` | 上游响应无法归一 | 本次失败；无有效 Usage | 不重试（确定性），上报 | — |
-| `ERR-MODEL-UNAVAIL` | `service_unavailable` | tier 全部候选不健康 | 未受理 | 稍后/换等级 | — |
+| `ERR-PROVIDER-UNAVAIL` | `provider_unavailable` | 建连/首字节/空闲超时或上游 5xx | 本次失败；义务按 measured/unknown 收敛 | 标准重试；不静默 fallback | — |
+| `ERR-PROVIDER-FAIL` | `provider_error` | 上游/注入故障 | 本次失败；失败事实可入快照 | 重试或换等级 | 状态沿用上游 |
+| `ERR-PROVIDER-INJECTED` | `provider_failure` | M006 注入 `fault_502` | 本次失败；`source=injected` | 解除后重试 | 归属 M006 |
+| `ERR-PROVIDER-SECRET` | `provider_secret_unavailable` | provider 凭据引用无法解析 | 本次失败；不 dispatch | 运维补齐凭据 | 不得改用明文 |
+| `ERR-PROVIDER-CONTRACT` | `provider_contract_error` | 上游响应无法归一 | 本次失败；无有效 Usage | 不重试（确定性），上报 | — |
+| `ERR-MODEL-UNAVAIL` | `model_unavailable` | tier 全部候选不健康 | 未受理 | 稍后/换等级 | — |
 | `ERR-STORE` | `usage_store_unavailable` | 存储不可用 | 本次查询/写入失败 | 稍后重试；权威查询核对 | 不用空页冒充无记录 |
 | `ERR-INTERNAL` | `internal_error` | 未捕获异常 | 本次失败；副作用可能未知 | 上报；查询权威状态 | 不含栈/Secret |
-| `ERR-BOOT` | `invalid_request`（Proposed） | 空库缺/非法 bootstrap | 回滚保持 `not_ready`；不接流量 | 修正配置重启 | 或以 `/readyz` 表达 |
-| `ERR-SCHEMA` | `internal_error`（Proposed） | schema 版本不匹配/未知/完整性失败 | 拒绝启动，`not_ready` | 运维离线迁移；不并行双写 | 或以 `/readyz` 表达 |
-| `ERR-PATH-UNSAFE` | `internal_error`（Proposed） | DB 路径 symlink 等不安全形态 | 拒绝启动 | 修正路径重启 | — |
-| `ERR-INJECTION` | `invalid_request` | 注入类型/字段/范围非法 | 未写入；配置不变 | 修正注入项 | 归属 M006 |
-| `ERR-CONFIRM` | `invalid_request` | 有费用/改状态操作缺二次确认 | 未执行；无副作用 | 补确认后重试 | — |
+| `ERR-BOOT` | `bootstrap_required` / `bootstrap_invalid` | 空库缺/非法 bootstrap | 回滚保持 `not_ready`；不接流量 | 修正配置重启 | 或以 `/readyz` 表达 |
+| `ERR-SCHEMA` | `schema_version_mismatch` / `schema_unknown` / `schema_integrity_failed` | schema 版本不匹配/未知/完整性失败 | 拒绝启动，`not_ready` | 运维离线迁移；不并行双写 | 或以 `/readyz` 表达 |
+| `ERR-PATH-UNSAFE` | `store_path_unsafe` | DB 路径 symlink 等不安全形态 | 拒绝启动 | 修正路径重启 | — |
+| `ERR-UTIL-TXN` | `E-UTIL-NESTED-TXN` | 同连接重复开启事务 | 事务未开启；连接状态不变 | 修正事务边界 | 不得并行双写 |
+| `ERR-INJECTION` | `invalid_injection` | 注入类型/字段/范围非法 | 未写入；配置不变 | 修正注入项 | 归属 M006 |
+| `ERR-CONFIRM` | `confirmation_required` | 有费用/改状态操作缺二次确认 | 未执行；无副作用 | 补确认后重试 | — |
 
 - **Data/Type ID、用途与来源**：
 
-  `D-ERROR-ENVELOPE`；公共错误码含义由 `docs/20_system_design/llmtier-system-design.md` §8.8 决定，本文只引用其 `ERR-*` ID 与逐失败条件；机器 Error 目录 `interfaces/error-codes/` 未建立 → **Proposed**。
+  `D-ERROR-ENVELOPE`；公共错误码含义由 `docs/20_system_design/llmtier-system-design.md` §7.8 决定，本文只引用其 `ERR-*` ID 与逐失败条件；机器 Error 目录 `interfaces/error-codes/` 未建立 → **Proposed**。
 
 - **字段与约束**：
 

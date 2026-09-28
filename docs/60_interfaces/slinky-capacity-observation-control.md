@@ -32,7 +32,7 @@
 Slinky Memory只消费标准Embeddings与token Usage。Slinky拥有材料分块、向量库、索引、检索、正式记忆和业务验收；LLMTier只做向量化和模型服务。文件名保留以维持文档引用，但“capacity observation”旧范围已经退出current authority。
 
 - **提供方**：LLMTier（M001 HTTP、M003 Inference）；**消费者**：Slinky Memory。
-- **唯一字段级 authority**：`interfaces/openapi/llmtier.openapi.json`（version `0.3-simplified-candidate.8`，sha256 `b34428126390056e3eb7927ccb219e5185962a3c5483abb6d9f4fab7ed9a417a`）。
+- **唯一字段级 authority**：`interfaces/openapi/llmtier.openapi.json`（version `0.3-simplified-candidate.8`，sha256 `038feea65ebb70c154936fa688d03a815d770d60ceb46f19dfaa9a036ed49ee5`）。
 - **本文拥有**：Embeddings/Usage 交接边界、向量空间稳定性、错误与版本约定；不定义 Slinky 内部索引机制。
 - **ID/错误**：复用系统设计 §8/§9 的 `D-*`/`IF-*` 与 §8.8 的 `ERR-*`；`interfaces/error-codes/` 未建立 → **Proposed**。
 - **部署条件**：HTTPS/JSON/Bearer auth。`runtime_activation=false`。

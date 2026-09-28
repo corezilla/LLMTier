@@ -224,7 +224,9 @@ def handler_factory(app: Application):
             if path == "/v1/usage":
                 principal, is_admin = self._auth_either()
                 if method == "GET":
-                    return self._json(200, self._store_read(app.usage.page, principal.principal_id, query.get("cursor", [None])[0], _int_param(query, "limit", 100), admin=is_admin, since=query.get("from", [None])[0], until=query.get("to", [None])[0], model=query.get("model", [None])[0], request_id=query.get("request_id", [None])[0]))
+                    since, until = query.get("from", [None])[0], query.get("to", [None])[0]
+                    if not since or not until: raise ApiError(400, "invalid_request", "from and to are required")
+                    return self._json(200, self._store_read(app.usage.page, principal.principal_id, query.get("cursor", [None])[0], _int_param(query, "limit", 100), admin=is_admin, since=since, until=until, model=query.get("model", [None])[0], request_id=query.get("request_id", [None])[0]))
                 if method == "DELETE":
                     if not is_admin: raise ApiError(403, "permission_denied", "Admin credential required")
                     try:
@@ -359,7 +361,7 @@ def handler_factory(app: Application):
                 except (BrokenPipeError, ConnectionResetError): pass
                 except sqlite3.Error:
                     app.logs.record("error", "http", "store_error", traceback.format_exc(limit=1), self.request_id)
-                    self._json(503, ApiError(503, "store_unavailable", "Store is unavailable").envelope())
+                    self._json(503, ApiError(503, "usage_store_unavailable", "Store is unavailable").envelope())
                 except Exception:
                     app.logs.record("error", "http", "unhandled_error", traceback.format_exc(limit=1), self.request_id)
                     self._json(500, ApiError(500, "internal_error", "Internal server error").envelope())

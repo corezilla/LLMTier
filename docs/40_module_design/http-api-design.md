@@ -874,7 +874,7 @@ DELETE /v1/usage?model&deployment_id -> 200 {deleted}
 #### `GET /v1/audit` / `GET /v1/logs`
 
 ```text
-GET /v1/audit?limit -> 200 {data,next_cursor,has_more}
+GET /v1/audit?limit -> 200 {data,page:{has_more,next_cursor}}
 GET /v1/logs?from&to&level&module&request_id&limit -> 200 {data,page}
 ```
 
