@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `std-tailoring` |
-| Document Version | `0.1.4-draft.1` |
+| Document Version | `0.1.4-draft.2` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -14,7 +14,7 @@
 | Approver |  |
 | Approval Date |  |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-25` |
+| Last Modified Date | `2026-09-28` |
 | Template Version | `0.2.0` |
 | Template ID | `management.tailoring` |
 | Template Conformance | `native` |
@@ -95,6 +95,7 @@
 | LT-TL-014 | `operations.release` | keep，C4 complete | 当前 package/CLI 与 release/rollback/recovery Gate 需要集中，但 production procedure/evidence 尚不存在 | 文档被误作 production runbook；以 Approved/Blocked 和独立 activation Gate 控制 | Owner ACCEPTED；L3 blocked | topology/persistence 等实际决定形成时另建 ADR |
 | LT-TL-015 | 顶层 `interfaces/` 与 `docs/99_reference/` | keep，C7 complete | HTTP/OpenAPI、compatibility、Schema 和 vectors 是多 consumer 机器 authority；历史 prose/future 不应继续占用非标准 `docs/contracts|design|qa|future` 路径 | 路径断链或双 authority | Owner ACCEPTED | 不适用 |
 | LT-TL-016 | `config/`、`state/` 与 `src/<module>/` | keep | 单服务：配置、Secret、状态和 entry point 均由本仓库拥有；无须多服务 workspace。源码按 STD 0.1.0-draft.31 的 `src/<module>/`（本项目无软件子系统，故不用 `src/<subsystem>/<module>/`）分模块：`http_api`/`web_ui`/`inference`/`management`/`observability`/`libdiag`/`util`/`log` | 把历史 Slinky path 当成当前路径会造成双 authority | 用户 2026-09-24 指示；STD `0.1.0-draft.31`（`dbcf87a`） | ownership/deploy boundary 改变时重审 |
+| LT-TL-019 | `assurance.test-specification` 增补 §4 Common Mechanisms（共同机制） | keep（项目扩展插入） | 本项目 API 测试设计（`llmtier-api-test-specification.md`）在模板章节外新增 §4，集中承载鉴权/错误信封/SSE/DB 复位/证据 manifest 等跨 Case 契约；140 个 Case 详细设计文档以**引用**（非复制）方式消费，避免重复定义并保证 `ERR-*`/`T-*` 常量单点权威 | 这是项目自有章节，非 STD 模板必需；若 STD 后续提供等价章节需回收映射 | 本轮 review | N/A |
 
 ## 4. 禁止裁剪项
 

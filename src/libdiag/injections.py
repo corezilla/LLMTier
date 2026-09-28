@@ -62,6 +62,9 @@ class InjectionDiagnostics:
         validated = [self._validate(item) for item in actor_items]
         stamp = now()
         with txn(self.store, conn) as conn:
+            if not validated:
+                # Revoke: PATCH items:[] clears every injection for the deployment.
+                conn.execute("DELETE FROM diagnostic_injections WHERE deployment_id=?", (deployment_id,))
             for item in validated:
                 kind, config, enabled = item["type"], item["config"], item["enabled"]
                 conn.execute(

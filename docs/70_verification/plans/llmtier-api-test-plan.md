@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-api-test-plan` |
-| Document Version | `0.3.0-draft.10` |
+| Document Version | `0.3.0-draft.11` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -22,8 +22,11 @@
 | Repository | `corezilla/LLMTier` |
 | Canonical Path | `docs/70_verification/plans/llmtier-api-test-plan.md` |
 | Supersedes | none |
+| Gate Owner | 待填（执行负责人） |
+| Gate Approver | 待填（见证/裁决） |
+| Gate Approval Date | 待填（ISO-8601） |
 
-> Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
+> Reviewer、Approver、Approval Date、Gate Owner/Approver/Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
@@ -43,11 +46,13 @@
 | **执行（本文件）** | `llmtier-api-test-plan.md` | 顺序/批次/流程/门禁/证据/复位/回归 |
 | 相邻层 | `llmtier-test-plan.md`、`llmtier-contract-test-specification.md`、`llmtier-vv-plan.md`、[`llmtier-api-test-execution.md`](./llmtier-api-test-execution.md) | 系统测试、静态契约、V&V、阶段/工时/产出物 |
 
+> **父文档说明（`parent_document_id`）**：文档链上的**功能父对象**是测试设计 `llmtier-api-test-specification`（§3.2 权威 Case 清单、§2 环境、§4 共同机制）。但 STD `parent_document_id` 只接受**设计文档**（`design.*`）为父，指向 `assurance.test-specification` 会触发 `hierarchy.parent-type`，故本计划 `parent_document_id` 保持 `llmtier-system-design`（与同链的 spec/execution 元数据一致），功能父关系以本节表格与正文引用表达。
+
 **被测范围**：全部对外路由——Data Plane（`POST /v1/responses`(SSE)、`POST /v1/embeddings`、`GET /v1/models`、`GET /v1/models/{model}`）、Usage（`GET /v1/usage`、`DELETE /v1/usage`）、Management（`/v1/providers(/{id})`、`/v1/providers/{id}/usage`、`/v1/providers/{id}/models`、`/v1/deployments(/{id})`、`/v1/service-levels(/{id})`、`POST /v1/probes`、`/v1/runtime`、`/v1/stats`、`/v1/audit`、`/v1/logs`）、Observability（`/v1/diagnostics(+/snapshots|/stats|/traces)`、`/v1/deployments/{id}/diagnostics`、`/v1/trace/{request_id}`）、No-auth（`/healthz`、`/readyz`）、Alias（`/tier/admin/v1/*`）。
 
 **不在本计划范围**：Web UI、FD 资源泄漏、SQLite 持久化文件格式、auth mock 单元测试、静态契约验证、性能 SLO 校准（分别由 `llmtier-test-plan.md` ST-18/19/21、contract specification、unit 承接）。
 
-**Case 总数**：125（RUN 88 / MISSING 37）；执行通过标准：全部适用 Case PASS，MISSING 记为 NOT_RUN 缺口而非跳过。**权威清单**见测试设计 §3.2；**每个 Case 的预期/Oracle**见 `cases/<lowercased-case-id>.md`（§3.3 契约）。
+**Case 总数**：140（RUN 88 / MISSING 52；A 89 / B 51；P0 45 / P1 72 / P2 23）。执行通过标准：**适用 Case**（§7.2）全 PASS；MISSING 记为 NOT_RUN 缺口而非跳过，**P0 MISSING 阻断**（§7.2/§10）。**权威清单**见测试设计 §3.2（计数以该处为准，测试设计升版时本节随之回填）；**每个 Case 的预期/Oracle**见 `cases/<lowercased-case-id>.md`（§3.3 契约）。
 
 ## 2. 被测基线、排除项与依赖
 
@@ -111,12 +116,7 @@
 2. **先 A 后 B**：A 类（只读/无状态写）先跑；同一实例上 A、B 互斥且不并行；A 类每个写 Case 立即 teardown。B 类每班启临时实例、串行执行、跑完销毁。
 3. **A 内部顺序**：`A-gate` → `A-data`（models → responses → embeddings → usage 读）→ `A-mgmt`（读 → 无状态写）→ `A-alias`。
 4. **B 内部顺序**（串行）：启动临时实例 → `B-empty-noauth` → `B-crud`（CRUD 链：create → read → patch/delete，按资源依赖）→ `B-inject`（写注入 → 命中 → 清空）→ `B-alias` → `stop()` + 清理临时目录。
-5. **依赖边**（执行前必须满足；完整依赖见各 `cases/<id>.md` 的"依赖"字段）：
-   - `DP-RESP-11` ← 先写 `OBS-DEPL-02`（`fault_502` 注入）；其后 `OBS-DEPL-02` 清空 `items:[]` 才算复位。
-   - `ADM-DEPL-04/05/09` ← `ADM-DEPL-02`（先建 deployment）；`ADM-PROV-05..10` ← `ADM-PROV-02`（先建 provider）；`ADM-SL-*` ← bootstrap 的 fixed tier。
-   - `DP-USAGE-03` ← `DP-USAGE-02`（先有 usage 记录）；`DP-USAGE-04` 改写 `query_snapshots.expires_at` 后必须复位。
-   - `AUTH-09` ← m5air 既有 provider id（用 §2 基线，不新建）。
-   - 其余 Case 无跨 Case 依赖。
+5. **依赖边**：每个 Case 的前置、跨 Case 依赖（如"先注入/先建资源/先有 usage 记录"）与清理复位**只在其 `cases/<lowercased-case-id>.md` 的"依赖"与"清理与复位"字段维护**，本计划不复制。执行前按该字段排程；依赖链前置未满足 → 该 Case 标 `SKIP`（§7.2）并在续跑时按依赖顺序补跑（§7.1）。
 6. **禁止**：A/B 并行、并发写与 A 类并行、未复位就进入下一 Case。
 
 ### 3.5 执行流程（环境就绪 → 部署/启动 → 跑批次 → 收证据 → 复位）
@@ -128,10 +128,94 @@
 5. **复位**：A 类每个写 Case teardown、注入 `items:[]` 清空、`DP-USAGE-04` 复位 `query_snapshots.expires_at`；B 类整班 `stop()` 终止进程并 `rm -rf` 临时目录。核验 `/readyz` 与 provider/deployment 列表回到基线、无遗留端口监听、无未清空注入。
 6. **判定与登记**：按 §7 为每个执行项给出 PASS/FAIL/BLOCKED/SKIP/INVALID/NOT_RUN；FAIL/BLOCKED/INVALID 登记缺陷并保留现场，不得把未运行项补造为成功。
 
-### 3.6 断言与覆盖门（引用，不展开）
+### 3.6 断言策略与定量覆盖模型
 
-- **断言策略**：先建连/状态码 → 再验 body 关键字段与 error `code` → SSE 另验事件序列/唯一 terminal/`[DONE]`；禁止"HTTP 200 即 PASS"。拒绝用例交叉核对**零副作用**（usage/runtime/trace）；注入用例必须**证明命中**。逐 Case 断言见 `cases/<id>.md`；共同机制常量见测试设计 §4（错误信封 §4.6、SSE §4.5、管理/配置常量 §4.10）。
-- **覆盖门**：每条 openapi 路由 ≥1 正常 Case + ≥1 负向 Case；每个 §7.8 `ERR-*` ≥1 映射 Case 或在 §11 具名缺口；每个 `BearerAuth`/`AdminBearerAuth`/公开端点各覆盖 AUTH Case。覆盖证据 = 测试设计 §3.2 的 `设计 V` 列。
+**断言策略（引用，不展开）**：先建连/状态码 → 再验 body 关键字段与 error `code` → SSE 另验事件序列/唯一 terminal/`[DONE]`；禁止"HTTP 200 即 PASS"。拒绝用例交叉核对**零副作用**（usage/runtime/trace）；注入用例必须**证明命中**。逐 Case 断言见 `cases/<lowercased-case-id>.md`；共同机制常量见测试设计 §4（错误信封 §4.6、SSE §4.5、管理/配置常量 §4.10）与 §5/§6。
+
+**定量覆盖模型（四维，非"有 Case 即覆盖"）**：对 `路由 × 方法 × 角色 × 错误码` 四维各自设下限并计数；覆盖证据 = 测试设计 §3.2 `设计 V` 列 + 下列矩阵 + §3.6.2 的 `ERR-*` 表。任一下限不满足即记覆盖缺口（非静默）。
+
+1. **路由 × 方法**：每条 openapi 路由的每个对外方法 ≥1 正常 Case + ≥1 负向 Case。
+2. **角色**：`none`（公共）/`data`/`admin` 三类各 ≥1 AUTH Case，含 LAN trust 无 token 与未配置鉴权。
+3. **错误码**：系统设计 §7.8 每个 `ERR-*` ≥1 映射 Case，或登记**具名缺口**（缺口=有目录无 Case，需 owner/ETA，不自动阻断但计入 Gate 报告）。
+4. **状态码**：每个出现的 4xx/5xx 状态（400/401/403/404/409/412/413/429/502/503）≥1 Case。
+
+#### 3.6.1 路由 × 方法 × 角色覆盖矩阵
+
+| 路由 | 方法 | 角色 | 正常 Case | 负向 / 错误 Case | 覆盖 |
+|---|---|---|---|---|---|
+| `/healthz` | GET | none | HEALTH-01 | AUTH-05 | ✅ |
+| `/readyz` | GET | none | HEALTH-02 | HEALTH-03/04/05/06 | ✅ |
+| `/v1/models` | GET | data | DP-MODELS-01/07 | DP-MODELS-03/04/05/06 | ✅ |
+| `/v1/models/{model}` | GET | data | DP-MODELS-02 | DP-MODELS-03/04/05/06 | ✅ |
+| `/v1/responses` | POST | data | DP-RESP-01/03/06/10/12/13/14/15 | DP-RESP-02/05/07/08/09/11/16/17/18/19/20/21 | ✅ |
+| `/v1/embeddings` | POST | data | DP-EMB-01/02/03/05 | DP-EMB-04/06/07 | ✅ |
+| `/v1/usage` | GET | data/admin | DP-USAGE-01/02/03、ADM-USAGE-01/02 | DP-USAGE-04/05/06 | ✅ |
+| `/v1/usage` | DELETE | admin | ADM-USAGE-03 | ADM-USAGE-03（角色边界） | ✅ |
+| `/v1/providers` | GET/POST | admin | ADM-PROV-01/02 | ADM-PROV-11/12、AUTH-03/09 | ✅ |
+| `/v1/providers/{id}` | GET/PATCH/DELETE | admin | ADM-PROV-03/05/08/13 | ADM-PROV-04/06/07/09/10 | ✅ |
+| `/v1/providers/{id}/usage` | GET/POST | admin | ADM-PROV-USAGE-01/03 | ADM-PROV-USAGE-02 | ✅ |
+| `/v1/providers/{id}/models` | GET | admin | ADM-PROV-MODELS-01 | ADM-PROV-MODELS-02 | ✅ |
+| `/v1/deployments` | GET/POST | admin | ADM-DEPL-01/02 | ADM-DEPL-06/07/08 | ✅ |
+| `/v1/deployments/{id}` | GET/PATCH/DELETE | admin | ADM-DEPL-03/04/05 | ADM-DEPL-09 | ✅ |
+| `/v1/service-levels` | GET/POST | admin | ADM-SL-01（bootstrap） | ADM-SL-02/02b | ✅ |
+| `/v1/service-levels/{id}` | GET/PATCH/DELETE | admin | ADM-SL-03/04 | ADM-SL-04b/05/06/07 | ✅ |
+| `/v1/probes` | POST | admin | ADM-PROBE-02 | ADM-PROBE-01/03 | ✅ |
+| `/v1/runtime` | GET | admin | ADM-RUNTIME-01 | — | ⚠️ 无负向（只读快照） |
+| `/v1/stats` | GET | admin | ADM-STATS-01/02 | ADM-STATS-03 | ✅ |
+| `/v1/audit` | GET | admin | ADM-AUDIT-01/02 | — | ⚠️ 分页边界即负向（cursor） |
+| `/v1/logs` | GET | admin | ADM-LOGS-01 | ADM-LOGS-02 | ✅ |
+| `/v1/diagnostics` | GET/PATCH | admin | OBS-DIAG-01/02 | OBS-DIAG-03 | ✅ |
+| `/v1/diagnostics/snapshots` | GET | admin | OBS-SNAP-01 | OBS-SNAP-02 | ✅ |
+| `/v1/diagnostics/stats` | GET | admin | OBS-STATS-01 | OBS-STATS-02 | ✅ |
+| `/v1/diagnostics/traces` | GET | admin | OBS-TRACE-01 | OBS-TRACE-02 | ✅ |
+| `/v1/deployments/{id}/diagnostics` | GET/PATCH | admin | OBS-DEPL-01/02 | OBS-DEPL-03/04 | ✅ |
+| `/v1/trace/{request_id}` | GET | admin | OBS-REQTRACE-01 | OBS-REQTRACE-02 | ✅ |
+| `/tier/admin/v1/*`（6 条别名） | GET/PATCH | admin | OBS-ALIAS-01/02/03/04 | AUTH-08 | ✅ |
+
+**计数口径**：路由=28 条（含别名族）；`⚠️` 行为已知覆盖缺口，须在 §10 报告具名登记（`/v1/runtime` 纯只读、`/v1/audit` 负向由分页 cursor 承接）。
+
+#### 3.6.2 `ERR-*` → Case / 具名缺口
+
+`ERR-*` 取自系统设计 §7.8（八字段目录）；`具名缺口` = 目录有码、当前 Case 清单无映射，须在 §10 报告登记 owner/ETA。
+
+| Error ID | 映射 Case | 状态 |
+|---|---|---|
+| ERR-REQ-VALIDATION | DP-RESP-08、DP-EMB-07、DP-USAGE-05、ADM-PROV-11、ADM-DEPL-06/07/08、ADM-SL-02/04b、ADM-STATS-03、ADM-LOGS-02、OBS-DIAG-03、OBS-STATS-02 | ✅ |
+| ERR-REQ-UNSUPPORTED | DP-RESP-02、DP-RESP-07 | ✅ |
+| ERR-REQ-FIELD | DP-RESP-09 | ✅ |
+| ERR-REQ-MODEL | DP-RESP-17 | ✅ |
+| ERR-REQ-JSON | DP-RESP-16 | ✅ |
+| ERR-REQ-TOO-LARGE | DP-RESP-18 | ✅ |
+| ERR-REQ-DIM | DP-EMB-06 | ✅ |
+| ERR-AUTH-REQUIRED | 缺凭据 401 未被 AUTH-02/06（403）覆盖 | ⚠️ 具名缺口 |
+| ERR-AUTH-DENIED | AUTH-02/03/06/08/09 | ✅ |
+| ERR-AUTH-NOCFG | AUTH-07 | ✅ |
+| ERR-MODEL-NOTFOUND | DP-MODELS-03/04/05/06、DP-RESP-05 | ✅ |
+| ERR-NOTFOUND | DP-EMB-04、ADM-PROV-04、ADM-PROV-MODELS-02、ADM-PROBE-03、OBS-DEPL-03、OBS-REQTRACE-02、ADM-DEPL/SL 相应 404 | ✅ |
+| ERR-CONFLICT | ADM-SL-02b | ✅ |
+| ERR-CAPABILITY | ADM-SL-06 | ✅ |
+| ERR-EMBEDDING-SPACE | ADM-SL-07 | ✅ |
+| ERR-FIXED-LEVEL | ADM-SL-05 | ✅ |
+| ERR-INUSE | ADM-PROV-10 | ✅ |
+| ERR-STALE | ADM-PROV-06/07/09、ADM-DEPL-04/09、ADM-SL-04 | ✅ |
+| ERR-CURSOR | DP-USAGE-04、OBS-SNAP-02、OBS-TRACE-02 | ✅ |
+| ERR-RATE-LIMIT | DP-RESP-20 | ✅ |
+| ERR-PROVIDER-UNAVAIL | `fault_503` 扩展（测试设计 §6）未落 Case | ⚠️ 具名缺口 |
+| ERR-PROVIDER-FAIL | `fault_503`/上游 error（测试设计 §6）未落 Case | ⚠️ 具名缺口 |
+| ERR-PROVIDER-INJECTED | DP-RESP-11 | ✅ |
+| ERR-PROVIDER-SECRET | `secret_ref` 不可用路径未落 Case | ⚠️ 具名缺口 |
+| ERR-PROVIDER-CONTRACT | 上游契约错误路径未落 Case | ⚠️ 具名缺口 |
+| ERR-MODEL-UNAVAIL | DP-RESP-19 | ✅ |
+| ERR-STORE | store 不可用路径未落 Case | ⚠️ 具名缺口 |
+| ERR-INTERNAL | 入口兜底；无故障注入路径 | ⚠️ 具名缺口 |
+| ERR-BOOT | HEALTH-05 | ✅ |
+| ERR-SCHEMA | 由 §7.1.2 恢复手册覆盖（非运行 Case） | ✅（执行层） |
+| ERR-PATH-UNSAFE | 启动路径不安全未落 Case | ⚠️ 具名缺口 |
+| ERR-UTIL-TXN | 嵌套事务路径未落 Case | ⚠️ 具名缺口 |
+| ERR-INJECTION | OBS-DEPL-04 | ✅ |
+| ERR-CONFIRM | ADM-PROBE-01、ADM-PROV-USAGE-02 | ✅ |
+
+**覆盖门（定量）**：§3.6.1 每行"覆盖=✅"；§3.6.2 非具名缺口项均有映射；具名缺口逐条进 §10 报告（owner/ETA），其中 `ERR-AUTH-REQUIRED` 与 `ERR-PROVIDER-UNAVAIL/FAIL` 若升为 P0 则按 §10 Gate 阻断。覆盖证据 = 测试设计 §3.2 `设计 V` 列 + 本矩阵。**测试设计升版新增 `ERR-*`/Case 时以 §3.2 为准并回填本节。**
 
 ## 4. Test Item、Feature 与 Requirement Matrix
 
@@ -160,7 +244,12 @@
 
 ### 5.1 执行机与拓扑
 
-**执行机 = m5air (`192.168.1.9`)**：A 类直连 `http://192.168.1.9:8181` 现有实例；B 类同机第二进程（临时端口 + 临时 SQLite）。上游 m5air OMLX `192.168.1.9:9000` 与 m5mac OMLX `192.168.1.8:9000`。**TS-003：provider endpoint 必须使用 LAN IP（`192.168.x.x`），禁止 `127.0.0.1`。**
+**执行机 = 开发机**（与测试设计 §2.7/§8 一致）：在项目根目录运行 `pytest` 与 `tools/inference_smoke.py`；`cwd = "$(git rev-parse --show-toplevel)"`，`PYTHONPATH=src`。
+
+- **A 类**：执行机经 LAN 连**被测目标机 m5air**（`192.168.1.9:8181`）现有实例；m5air 不是执行机。
+- **B 类**：执行机本机起临时实例（临时端口 + 临时 SQLite，`127.0.0.1:<port>`；loopback 仅客户端→LLMTier，见测试设计 §2.7）。
+- 上游：m5air OMLX `192.168.1.9:9000`、m5mac OMLX `192.168.1.8:9000`。
+- **TS-003：被测服务内部的上游 provider endpoint 必须使用 LAN IP（`192.168.x.x`），禁止 `127.0.0.1`。**
 
 ### 5.2 环境就绪检查清单（执行前必过；任一失败 → 整班 skip/BLOCKED）
 
@@ -180,19 +269,17 @@
 | 逻辑 Tier | 路由 | 上游 | 上游模型 | 上游 Auth |
 |---|---|---|---|---|
 | Worker/Senior/Junior/Associate/Engineer/Executor | 三选一调度（`provider_minimax`/`provider_local`/`provider_omlx_m5mac`） | 见部署配置 | 见部署配置 | Bearer 9832 / MiniMax API key |
-| Embedding-v1 | 固定 `provider_local` | `http://192.168.1.9:9000/v1` | bge-m3（**1024 维硬断言**） | Bearer 9832 |
+| Embedding-v1 | 固定 `provider_local` | `http://192.168.1.9:9000/v1` | bge-m3 | Bearer 9832 |
 
-约束：`DP-RESP-*` 不指定路由，只断言"最终 200 + SSE/JSON 合法"；`DP-EMB-*` 严格绑定 Embedding-v1 → bge-m3 1024 维；`provider_minimax` 有外部费用，A 类只验 HTTP 200，不验内容。
+**本矩阵只固定上游路由与 TS-003 LAN IP 约束，不承载断言。** 逐 Case 的输入/预期/Oracle（含维度、SSE 序列、内容策略、费用确认）见测试设计 §3.2/§4.10 与对应 `cases/<lowercased-case-id>.md`；`provider_minimax` 等外部费用调用按 §11.2 与测试设计 §11 处理。
 
-### 5.4 B 类 fixture 注入（用 admin API，不直写 SQL）
+### 5.4 fixture 与基线状态
 
-```
-3 providers: provider_local, provider_omlx_m5mac, provider_minimax
-4 deployments: dep_local_gemma, dep_local_bge_m3, dep_omlx_qwen36, dep_minimax_m27
-7 service-levels: Senior/Junior/Worker/Associate/Engineer/Executor/Embedding-v1
-```
+- **A 类基线（m5air 现有 state）**：3 provider / 4 deployment / 7 fixed tier（§5.2）。
+- **B 类 fixture（`tests/system/api_test_v03/conftest.py` 的 `LLMTierInstance`，session-scope）**：`_BASELINE_SETTINGS`（`prov_b` + `depl_b` + 7 tier，用于 CRUD/注入）、`_EMPTY_SETTINGS`（空库）、`_NO_AUTH_SETTINGS`（无鉴权）；每 run 写临时 `settings.json` 并置 `LLMTIER_SETTINGS`。
+- **凭据**：`LLMTIER_DEV_MODE=1` → `dev-data`/`dev-admin`；上游 OMLX Bearer `9832`。
 
-预设 fixture：`_BASELINE_SETTINGS`（prov_b + depl_b，用于 CRUD/注入）、`_EMPTY_SETTINGS`（HEALTH-04）、`_NO_AUTH_SETTINGS`（HEALTH-06/AUTH-07）。`LLMTIER_DATA_TOKEN`/`LLMTIER_ADMIN_TOKEN` = `dev-data`/`dev-admin`。
+fixture 语义、字段与常量见测试设计 §4.4/§4.10；逐 Case 的种子/输入/预期见 `cases/<lowercased-case-id>.md`。本计划不复制断言。
 
 ### 5.5 数据与工具
 
@@ -205,52 +292,151 @@
 | `tests/fixtures/v03_fake_provider.py` | 本地假上游（无外部依赖） | provider endpoint 用 LAN IP |
 | `tests/integration/v03_smoke.py` | 集成冒烟 | |
 | `docs/70_verification/specifications/cases/*.md` | 逐 Case 详细设计（输入/Oracle/判定） | 设计层，不是脚本 |
-| `sqlite3` 直连 m5air 状态库 | 仅 DP-USAGE-04 改 `expires_at` 造过期 cursor | 需权限；仅 A 类该 Case |
+| `sqlite3` 直连状态库 | 仅用于需直接构造 DB 状态的 Case（具体见该 Case 的 `cases/<lowercased-case-id>.md`） | 需权限；A 类需记录原值并复位（§7.1.7、§11.3） |
 
 ## 6. Test Types 与 Case Families
 
-覆盖类型：**normal、boundary、negative、concurrency、recovery、security、performance、endurance**（endurance 引用 `llmtier-test-plan.md` ST-19，不重复）。下表只把类型落到 Case ID 与执行批次；**每 Case 的输入与预期见对应 `cases/<lowercased-case-id>.md`**，共同断言基线见测试设计 §4.5/§4.6/§4.10。
+覆盖类型：**normal、boundary、negative、concurrency、recovery、security、performance、endurance**（endurance 引用 `llmtier-test-plan.md` ST-19，不重复）。下表只把类型**映射到执行批次**（覆盖分配），**不承载任何断言/预期**。
 
-| 类型 | 代表 Case | 执行批次 | 逐 Case 预期见 |
-|---|---|---|---|
-| normal | DP-RESP-01、DP-EMB-01/02、ADM-* CRUD、HEALTH-02、OBS-DEPL-02→DP-RESP-11 | A-data / A-mgmt / B-crud / B-inject | `cases/dp-resp-01.md` 等 |
-| boundary | DP-MODELS-03/04/05、DP-RESP-10、DP-EMB-05、DP-USAGE-03、ADM-AUDIT-02、ADM-USAGE-02、OBS-DEPL-04 | A-data / A-mgmt / B-inject | `cases/dp-resp-10.md` 等 |
-| negative | DP-RESP-02/07/08/09/16/17/18/19、DP-EMB-04/06/07、ADM-*-400/404/409/412、AUTH-02/03/06/07 | A-data / B-crud / B-empty-noauth | `cases/dp-resp-02.md` 等 |
-| concurrency | DP-RESP-20、ADM-PROV-05/06/07、ADM-PROBE-02 | B-inject / A-mgmt | `cases/dp-resp-20.md` 等 |
-| recovery | DP-RESP-11/21、OBS-DEPL-02/04、`stream_terminate`/`malformed_event` | B-inject | `cases/dp-resp-11.md` 等 |
-| security | ADM-AUDIT-01、ADM-LOGS-01、AUTH-01..09、OBS-ALIAS-* | A-mgmt / A-alias / B-alias | `cases/auth-01.md` 等 |
-| performance | DP-RESP-01 计时、DP-RESP-20 `Retry-After` | A-data / B-inject | `cases/dp-resp-20.md` 等 |
-| endurance | —（引用 ST-19） | 不在本计划 | — |
+逐 Case 的输入、预期与 Oracle 见对应 `cases/<lowercased-case-id>.md`；共同断言与机制基线见测试设计 §4.5（SSE）、§4.6（错误信封）、§4.10（配置常量）与 §5/§6（正常/边界/负向/并发/恢复）。本计划不复制。
+
+| 类型 | 覆盖分配（Case 家族） | 执行批次 |
+|---|---|---|
+| normal | DP-RESP、DP-EMB、ADM-* CRUD、HEALTH、OBS-DEPL 正常流 | A-data / A-mgmt / B-crud |
+| boundary | DP-MODELS、DP-RESP、DP-EMB、DP-USAGE、ADM-AUDIT/USAGE、OBS-DEPL | A-data / A-mgmt / B-inject |
+| negative | DP-RESP、DP-EMB、ADM-* 4xx、AUTH | A-data / B-crud / B-empty-noauth |
+| concurrency | DP-RESP、ADM-PROV、ADM-PROBE | B-inject / A-mgmt |
+| recovery | DP-RESP、OBS-DEPL、流终止/畸形事件 | B-inject |
+| security | ADM-AUDIT/LOGS、AUTH、OBS-ALIAS | A-mgmt / A-alias / B-alias |
+| performance | DP-RESP 时序/准入 | A-data / B-inject |
+| endurance | —（引用 ST-19） | 不在本计划 |
 
 ## 7. Entry、Exit、Pass、Fail、Blocked 和 Invalid Criteria
 
-### 7.1 执行韧性与恢复（核心政策）
+### 7.1 执行韧性与恢复手册（阻塞 → 恢复 → 续跑）
 
-本节定义整轮执行的**韧性政策**（continue-on-error），是 §9 续跑/回归与 §11 清理恢复在执行层的统一语义；测试设计只定义判定状态，执行编排以本节为准。
+本节是整轮执行的**权威恢复手册**（continue-on-error），是 §9 续跑/回归与 §11 清理恢复在执行层的统一语义；测试设计只定义判定状态（测试设计 §9），执行编排以本节为准。每项恢复动作给出**可运行命令**或**可定位的配置旋钮**；不得只写"重试/修复"。
 
-1. **单 case 受阻 → 跳过并继续**：任何 case 无法执行（前置不满足、超时、阻塞）时，**不中断整轮**——将该 case 标为 `BLOCKED`（可重试）或 `SKIP`（明确不适用/依赖失败），登记**检测事实 + 原因 + 对应恢复动作**；执行**就地恢复动作**后，**直接继续下一个 case**（同类/同批的其余 case 继续跑），不回退、不整体中断。
-2. **一路执行到底**：整轮采用 continue-on-error；批次之间、case 之间只要前置满足就继续，直到跑完全部 case。
-3. **多 case 同时受阻 → 诊断再续跑**：当**同一批次 BLOCKED 比例 > 50%**、或**同一阻塞源（端点/构造）连续 ≥ 3 个 case 失败**、或**同一根因累计 BLOCKED ≥ 5** 时，**暂停**并判定根因是**环境问题**（m5air/OMLX 不可达、凭据/secret 缺失、schema 版本、存储锁）还是**测试设计/脚本问题**（错误前置、Oracle 不独立、顺序/状态污染）；按根因**修环境或改 case 设计/脚本**，然后**从断点续跑**——**不回跑已 PASS 的 case**，只执行未通过/未执行的，直到本轮结束。
-4. **恢复目录（阻塞源 → 检测事实 → 恢复动作 → 影响范围/复位）**：
+#### 7.1.0 前置就绪检测（命令 + 失败动作）
 
-| 阻塞源 | 检测事实 | 恢复动作 | 影响范围 / 复位 |
+在**开发机**（执行机，§5.1）执行；前 5 项由 `tests/system/api_test_v03/conftest.py::pytest_configure` 自动执行。任一失败 → 整班 BLOCKED/SKIP，**不得**改跑模拟路径。
+
+| 检查 | 命令（开发机） | 期望 | 失败动作 |
 |---|---|---|---|
-| 环境不就绪 | `/healthz` 非 200、`/readyz` 非 7 tier、OMLX 不可达、secret 不可用 | 重启服务（`kill -TERM` → Python 3.14 重启）/ 重建 bootstrap / 修 `secret_ref` | A 类全批；重启后重验 §5.2 |
-| 上游超时 | 建连/首字节/流空闲超时（`delay` 注入可复现） | 抬高 timeout / 有限重试 / 换候选 provider | 涉该上游的 DP-RESP/EMB；恢复后补跑 |
-| 鉴权/配置缺失 | 401/403/503 `auth_not_configured`、凭据未设 | 补 `dev-data`/`dev-admin` token / settings | AUTH-*、B 类空库；复位到基线 settings |
-| schema/版本不匹配 | 启动或查询报 schema/版本错 | 换新 DB 重建 / 离线处理 | B 类临时实例（丢弃重建）；A 类按运维手册 |
-| 存储忙/锁 | SQLite `database is locked` | 退避重试 | 单 case；复位后无残留 |
-| fd/队列耗尽 | 打开文件/队列满、非注入性 `429` | 等并发下降 / 重启服务 | 并发批 `B-inject`；复位后继续 |
-| 状态污染 | 前序注入/账本/顺序影响后续结果 | 清注入 `PATCH diagnostics {"items":[]}` / 重置账本 `DELETE /v1/usage` / 换独立 DB | 污染批 + 其依赖下游；复位后才继续 |
-| cursor/快照过期 | `400 cursor_expired` | 重开查询（重建 cursor/时间窗） | 分页/诊断 case；无状态残留 |
-| flaky（并发/上游非确定） | 同输入结果不稳定 | 有限重试（≤ 3 次，记录并发度与时间窗） | 该 case；超阈值转 BLOCKED |
+| healthz | `curl -fsS http://192.168.1.9:8181/healthz` | 200，`{"status":"ok",...}` | A 类按 §7.1.2 重启；仍失败 → 整班 BLOCKED |
+| readyz | `curl -fsS http://192.168.1.9:8181/readyz` | 200，含 7 fixed tier | 无/非 healthy tier → 查 bootstrap；A 类 BLOCKED |
+| m5air OMLX | `curl -fsS -H 'Authorization: Bearer 9832' http://192.168.1.9:9000/v1/models` | 200 | 受影响 DP 批次 SKIP（§7.1.5 上游超时） |
+| m5mac OMLX | `curl -fsS -H 'Authorization: Bearer 9832' http://192.168.1.8:9000/v1/models` | 200 | 同上 |
+| secret | `curl -fsS -H 'Authorization: Bearer dev-admin' http://192.168.1.9:8181/v1/providers/provider_omlx_m5mac` | `has_secret=true`，`secret_ref` 为 `file:` | 修 `secret_ref` 为 `file:` + `chmod 600` 后重启（§7.1.2） |
+| schema_version | `ssh m5air "sqlite3 /Users/mlp/LLMTier-dev/state.sqlite3 'SELECT schema_version FROM schema_meta WHERE singleton=1'"` | `2`（`src/util/store.py` `EXPECTED_SCHEMA_VERSION`） | 不匹配 → §7.1.2 **显式二选一**（重建 / 离线迁移） |
+| tokens | `curl -fsS -o /dev/null -w '%{http_code}' -H 'Authorization: Bearer dev-admin' http://192.168.1.9:8181/v1/providers` | `200` | 非 200 → 核对服务端 `LLMTIER_ADMIN_TOKEN=dev-admin`/`LLMTIER_DATA_TOKEN=dev-data`（LAN trust 对 RFC1918 来源自动生效，无需 `LLMTIER_TRUSTED_LAN_MODE`），按 §7.1.2 重启 |
 
-5. **续跑语义**：**续跑 = 只执行未 PASS 的 case（按依赖顺序）**，已 PASS 的不重跑；依赖链上被跳过的 case 若其前置在恢复后满足则**补跑**，否则标 `SKIP` 并说明；一轮结束产出汇总（每 case 通过/失败/阻塞/跳过 + 原因）。
-6. **复位约束**：每个恢复动作后执行必要的**状态复位**（清注入 / 重置账本 / 独立 DB），确保后续批次从干净状态开始；**A 类对 m5air 现有 state 的副作用须可复位**（§11.3）。
+#### 7.1.1 单 case 受阻 → 就地恢复后继续
+
+1. **不中断整轮**：任何 case 无法执行（前置不满足、超时、阻塞）时，将该 case 标为 `BLOCKED`（可重试）或 `SKIP`（明确不适用/依赖失败），登记**检测事实 + 原因 + 对应恢复动作**；执行 §7.1.5 的**就地恢复动作**后，**直接继续下一个 case**（同类/同批其余 case 继续跑），不回退、不整体中断。
+2. **一路执行到底**：整轮 continue-on-error；批次之间、case 之间只要前置满足就继续，直到跑完全部 case。
+3. **依赖感知跳过**：若某 case 的前置（各 `cases/<lowercased-case-id>.md` 的"依赖"字段）未 PASS，该 case 标 `SKIP`（非 FAIL/BLOCKED），并在续跑时按依赖顺序补跑。
+
+#### 7.1.2 A 类恢复（m5air 已部署实例）
+
+**重启（kill → Python 3.14 → 验证）**：
+
+```bash
+ssh m5air 'pid=$(cat /Users/mlp/LLMTier-dev/llmtier.pid); kill -TERM "$pid"'
+ssh m5air "/usr/sbin/lsof -nP -iTCP:8181 -sTCP:LISTEN"   # 端口应无监听
+ssh m5air "cd /Users/mlp/LLMTier-dev && \
+  LLMTIER_ADMIN_TOKEN=dev-admin LLMTIER_DATA_TOKEN=dev-data \
+  PYTHONPATH=src /usr/local/bin/python3 -m http_api --host 0.0.0.0 --port 8181 \
+  --database /Users/mlp/LLMTier-dev/state.sqlite3 >> /Users/mlp/LLMTier-dev/llmtier.log 2>&1 &"
+curl -fsS http://192.168.1.9:8181/healthz && curl -fsS http://192.168.1.9:8181/readyz
+```
+
+> 启动命令/解释器/环境变量以 `m5air-deploy-guide.md` 与 `m5air-operations-manual.md` 为权威（测试设计 §2.5 镜像）；**`LLMTIER_TRUSTED_LAN_MODE` 不在源码读取范围**，不要传入。
+
+**schema/版本不匹配（`schema_version_mismatch` / `schema_unknown` / 启动 503）→ 显式二选一**（`src/util/store.py` 为 init-only，无在线 upgrade/downgrade/auto-repair）：
+
+- **A) Fresh-DB rebuild（丢弃重建）**：冷停 → 备份并移走旧 DB → 空库首启用一次性 `--settings` 重建 → 验证。
+  ```bash
+  ssh m5air 'pid=$(cat /Users/mlp/LLMTier-dev/llmtier.pid); kill -TERM "$pid"'
+  ssh m5air "cp /Users/mlp/LLMTier-dev/state.sqlite3 /Users/mlp/LLMTier-dev/state.sqlite3.\$(date +%s).bak"
+  ssh m5air "mv /Users/mlp/LLMTier-dev/state.sqlite3 /Users/mlp/LLMTier-dev/state.sqlite3.rebuild"
+  # 按 §7.1.2 重启命令追加 --settings config/settings.json（仅空库首启有效）
+  ```
+- **B) Offline migration（离线迁移，保留数据）**：冷停 → 保全日志+DB → 用迁移 SQL 将 `schema_version` 带到 `EXPECTED_SCHEMA_VERSION=2`，或恢复**同版本冷备份** → 按上重启 → 验证 `SELECT schema_version ...` 与 `/readyz`。
+
+**authority 后果（无死区）**：初始化后 **SQLite 是唯一运行 authority**，`--settings` 仅空库首启有效；因此重建**必须**在空库上进行，迁移**必须**离线完成并保持 DB authority。**禁止**在版本不匹配时删除 `schema_meta` 行当"未知库"（会触发 `schema_unknown`，且让 authority 在 settings 与 SQLite 间悬空）。重建会丢账本/使用历史，执行前先导出/备份。
+
+#### 7.1.3 B 类恢复（临时实例）
+
+- **执行机 = 开发机**；**可移植 `cwd`** = 仓库根：`cd "$(git rev-parse --show-toplevel)"`，`export PYTHONPATH=src`。`conftest.py` 的 `LLMTierInstance` 以该根为子进程 cwd 启动（当前硬编码 `/Users/ben/work/LLMTier`；换 checkout 路径时须同步该 cwd）。
+- **实例启动失败（`LLMTier did not become healthy`）逐项检查后重启**：
+  - 端口：`lsof -nP -iTCP:<port> -sTCP:LISTEN`；占用则让 fixture 重选空闲端口（`_find_free_port`）后重试。
+  - DB：`ls -l "$LLMTIER_DATABASE"`；报 `schema_version_mismatch`/`schema_unknown` → 删除临时 DB 后空库重建（本类 DB 可丢弃）。
+  - 临时目录：`ls -ld "${TMPDIR:-/tmp}"/llmtier_b_*`；不可写或残留 → `rm -rf` 后重起；确认 `/tmp` 可写、端口可 bind。
+  - 重启：`stop()`（`terminate`→等 5 s→`kill`）→ `start()`（轮询 `/healthz` 最多 40×0.25 s）。
+
+#### 7.1.4 多阻塞诊断阈值（机器可读）
+
+达阈值即**暂停批次**、判根因（环境 vs 测试设计/脚本），修后**断点续跑**（§7.1.6）。阈值与 owner/tool/artifact：
+
+| 指标 | 阈值 | 动作 | Owner | Tool | Artifact |
+|---|---|---|---|---|---|
+| 同批次 BLOCKED 比例 | > 50% | 暂停批次、诊断单一根因 | 执行者 + 环境 owner | pytest 摘要 / runner 日志 | `<date>/diagnosis.md` |
+| 同根因连续 BLOCKED | ≥ 3 case | 暂停、定位该端点/构造 | 执行者 | `case-status.json` 分组 | `<date>/diagnosis.md` |
+| 同根因累计 BLOCKED | ≥ 5 case | 判系统性、修环境或改 case | 测试设计 owner | ledger 聚合 | `<date>/diagnosis.md` |
+| flaky 重试仍失败 | > 3 次 | 转 BLOCKED，记录并发度/时间窗 | 执行者 | 重试记录 | §10 报告 |
+| SKIP 超上限 | A > 5 / B > 3 | 覆盖不足，补 fixture/注入后重跑 | 测试设计 owner | runner exit code 2 | §10 报告 |
+
+#### 7.1.5 恢复目录（阻塞源 → 检测事实 → 可运行恢复动作 → 复位）
+
+| 阻塞源 | 检测事实 | 恢复动作（可运行） | 复位 |
+|---|---|---|---|
+| 环境不就绪 | §7.1.0 任一失败 | A 类按 §7.1.2 重启 / 修 `secret_ref` / 重建 bootstrap；B 类按 §7.1.3 | 重新执行 §7.1.0 |
+| 上游超时 | 建连/首字节/流空闲超时（`delay` 可复现） | 调大 deployment runtime profile（`deployment_runtime_profiles.connect_timeout_ms`/`stream_idle_timeout_ms`，默认 30000/60000；B：`sqlite3 "$LLMTIER_DATABASE" "UPDATE deployment_runtime_profiles SET connect_timeout_ms=60000, stream_idle_timeout_ms=120000 WHERE deployment_id='depl_b'"`）；有界重试 ≤ 3；换候选 provider | 恢复 profile 原值；补跑 |
+| 鉴权/配置 | 401/403/503 `auth_not_configured` | **`unset` 环境中的 `LLMTIER_ADMIN_TOKEN`/`LLMTIER_DATA_TOKEN`（LAN trust 场景不要追加 token）**；仅当目标实例确实未配置时，才对 B 类用 `LLMTIER_DEV_MODE=1`、对 A 类在服务端 env 设置 | unset 临时变量；复位基线 settings |
+| store 忙/锁 | SQLite `database is locked` | 退避重试（`sleep 1`→`2`→`4`，≤ 3 次；连接超时 10 s） | 无残留 |
+| provider endpoint 被改 | `PATCH` 后 endpoint 非基线 | **恢复原值**：`PATCH /v1/providers/{id}`（带正确 `If-Match`）写回 §5.3 矩阵中的基线 endpoint | `GET` 核验回基线 |
+| 注入未清 | diagnostics `items` 非空 | `curl -X PATCH -H 'Authorization: Bearer dev-admin' -H 'Content-Type: application/json' -d '{"items":[]}' http://…/v1/deployments/{id}/diagnostics`（或同 `type` `enabled=false`） | `GET` 确认空 |
+| 账本污染 | usage 记录影响断言 | A：`curl -X DELETE -H 'Authorization: Bearer dev-admin' http://192.168.1.9:8181/v1/usage`；B：丢弃临时 DB 重起 | 重建/核验记录基线 |
+| cursor/快照过期 | 400 `cursor_expired` | 重开查询：去掉 `cursor`，重设 `from`/`to`（`/v1/diagnostics/stats` 用 `since`/`until`）时间窗 | 无状态残留 |
+| flaky（并发/上游非确定） | 同输入结果不稳定 | 有限重试 ≤ 3（记录并发度与时间窗）；超阈值转 BLOCKED | 该 case；无残留 |
+| schema/版本不匹配 | 启动 503 `schema_version_mismatch`/`schema_unknown` | A：§7.1.2 显式二选一；B：删除临时 DB 后空库重建 | 重验 `schema_version` 与 `/readyz` |
+
+#### 7.1.6 续跑语义
+
+**续跑 = 只执行未 PASS 的 case（按依赖顺序）**，已 PASS 的不重跑；依赖链上被跳过的 case 若前置恢复后满足则补跑，否则保持 `SKIP`；一轮结束产出汇总（每 case 终态 + 原因）。
+
+```bash
+# 只跑 A 类 / B 类（marker 注册于 pyproject.toml）
+PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/ -m api_a -q
+PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/ -m api_b -q
+# 只跑上次失败的（--lf = last-failed）
+PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/ --lf -q
+# 按批次/表达式选 case
+PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/ -k "adm_prov_05 or adm_prov_06" -q
+# 单批 runner（均为 marker 选择）：runner_a.sh = -m api_a，runner_b.sh = -m api_b
+bash tests/system/api_test_v03/runner_a.sh
+bash tests/system/api_test_v03/runner_b.sh
+```
+
+- **Case 状态账本（定义文件）**：`tests/system/reports/<date>/case-status.json`，逐 Case 记录终态，供续跑筛选与回归 diff：
+  ```json
+  {"run_id":"<date>/<class>-<phase>",
+   "cases":{"<CASE-ID>":{"status":"PASS|FAIL|BLOCKED|SKIP|INVALID|NOT_RUN",
+                          "reason":"","owner":"","eta":"","artifact":""}}}
+  ```
+- **续跑选择**：读取账本，取 `status != PASS` 的 Case，按各 `cases/<lowercased-case-id>.md` 的"依赖"字段拓扑排序后执行；或用 `-m api_a`/`-m api_b` + `--lf`/`-k` 选批。
+- **禁止**重跑已 PASS 的 case（除非其基线/契约变更，§9 Regression）。
+
+#### 7.1.7 复位约束
+
+每个恢复动作后**必做状态复位**（清注入 / 重置账本 / 复位被改字段与 version / 换独立 DB），确保后续批次从干净状态开始；核验 `/readyz` 7 tier、provider/deployment 列表回基线、无遗留端口、无未清空注入（§11.3）。**A 类对 m5air 现有 state 的副作用须可复位**且不得删除既有资源或用户 usage。
 
 ### 7.2 Entry、Exit 与状态判定
 
 **Entry（开始门）**：基线可解析（openapi + §7.8）；§5.2 就绪检查全过；B 类临时实例可启动；测试代码头部满足 TS-002。
+
+**适用（applicable）定义**：一个 Case 在本轮**适用**，当且仅当 (a) 其前置/环境（A 类 m5air 或 B 类临时实例）可用，(b) 其 `cases/<lowercased-case-id>.md` 的 Oracle 可独立判定，且 (c) 该平台确有该行为（例如功耗/FPGA 时序不适用）。不适用须给**裁剪依据**（如功耗 N/A）并具名批准，不得用 `SKIP` 掩盖。**Gate 口径只统计适用 Case。**
 
 **Exit（结束门）**：**本轮跑完 = 所有 case 有终态（PASS/FAIL/BLOCKED/SKIP）且无未诊断的系统性阻塞**（而非"全 PASS 才结束"）；FAIL/BLOCKED/INVALID 均已登记并给出根因/恢复动作；结果落 §10 报告；teardown/复位完成且初态可核验。
 
@@ -261,9 +447,13 @@
 | **BLOCKED** | 无法执行/无法判定且**可重试**（测试代码/契约问题且恢复动作未解除：fixture 写不出、断言逻辑错、ISD/OpenAPI 语义不清、注入无法命中） | **是** | `block_reason`、`required_resolution`、**已执行/待执行的恢复动作**、`reproduction_cmd` |
 | **SKIP** | 明确不适用或依赖失败（§5.2 环境限制、上游离线、临时实例不可用、依赖链前置未满足） | 否（有上限） | `skip_reason`（引用 §5.2 项/依赖）、`fix_owner`、`eta` |
 | **INVALID** | 注入未命中却按行为判定；或用 `127.0.0.1`/mock 冒充真实路径 | **是** | `invalid_reason`、证据缺口 |
-| **NOT_RUN** | Case 已定义但本轮未执行，含 MISSING 实现（37 个） | 不适用 | 缺口引用（测试设计 §3） |
+| **NOT_RUN** | Case 已定义但本轮未执行，含 MISSING 实现（52 个） | **P0 MISSING 阻断；非 P0 MISSING 具名批准** | 缺口引用（测试设计 §3）、owner、ETA |
 
-**关键区分**：上游离线/前置不满足 → SKIP（本轮不重跑，恢复后按 §7.1 补跑前置）；fixture 写不出且恢复动作未解除 → BLOCKED（可重试）；status 对但字段缺 → FAIL。**单 case 的 BLOCKED/SKIP 不终止整轮**（§7.1）；**本轮 Exit ≠ 全 PASS**，以"所有 case 有终态且无未诊断系统性阻塞"为准。**SKIP 上限**：A 类 ≤ 5、B 类 ≤ 3；超出视为覆盖不足，须补 fixture/注入后重跑。**禁止"未跑"无状态**：runner 必须每项给明确结果。**跨 backend 隔离**：A 类 PASS 不关闭 B 类；静态 contract PASS 不关闭本计划。
+**P0 MISSING 规则**：MISSING 是**缺口**不是 SKIP。**P0 且 MISSING** 的 Case 阻断 release（不得以 NOT_RUN 放行）；非 P0 MISSING 记缺口并具名批准（owner/ETA）。
+
+**关键区分**：上游离线/前置不满足 → SKIP（本轮不重跑，恢复后按 §7.1 补跑前置）；fixture 写不出且恢复动作未解除 → BLOCKED（可重试）；status 对但字段缺 → FAIL。**单 case 的 BLOCKED/SKIP 不终止整轮**（§7.1）；**本轮 Exit ≠ 全 PASS**，以"所有 case 有终态且无未诊断系统性阻塞"为准。**禁止"未跑"无状态**：runner 必须每项给明确结果。**跨 backend 隔离**：A 类 PASS 不关闭 B 类；静态 contract PASS 不关闭本计划。
+
+**Flake / SKIP 上限与 runner 退出码**：**SKIP 上限** A 类 ≤ 5、B 类 ≤ 3；超出视为覆盖不足，须补 fixture/注入后重跑。Runner 退出码契约：`0` = 全部适用 Case PASS 且 SKIP 在上限内；`1` = 存在 FAIL/BLOCKED/INVALID；`2` = SKIP 超上限（覆盖不足门）。可对非确定性 Case 设 quarantine/isolate（`-m "not quarantine"` 排除出 Gate，具名批准），quarantine 计入 §10 报告但不静默豁免。
 
 ## 8. 组织、职责、排期和资源
 
@@ -274,7 +464,7 @@
 | 执行者 | 按 §3.4 顺序跑 A/B 批次、teardown、记录 Run | Run 报告 |
 | 见证/裁决 | BLOCKED/INVALID 裁决、回归门 | Gate 结论 |
 
-排期沿用执行层计划阶段：P0 基线+conftest/runner → P1 A 类批次 → P2 B 类批次（临时实例）→ P3 首跑+报告 → P4（可选）CI。**冲突处理**：A/B 互斥同一实例；并发写测试独占 B 类，不与 A 类并行；MISSING 37 项的补实现优先于新增范围。
+排期沿用执行层计划阶段：P0 基线+conftest/runner → P1 A 类批次 → P2 B 类批次（临时实例）→ P3 首跑+报告 → P4（可选）CI。**冲突处理**：A/B 互斥同一实例；并发写测试独占 B 类，不与 A 类并行；MISSING 52 项的补实现优先于新增范围。
 
 ## 9. Defect、Deviation、Rerun 与 Regression
 
@@ -283,6 +473,7 @@
 - **修复基线**：修复后必须回到同一基线重跑，并保留首轮失败与重测的关联（不覆盖旧失败）。
 - **Rerun / 续跑**：生成新 Run ID；**续跑按 §7.1 只执行未 PASS 的 case（依赖顺序）**，已 PASS 不重跑；依赖链上被跳过者其前置恢复后满足则补跑，否则标 SKIP；非确定性 Case（并发/上游）重跑须记录并发度与时间窗；重跑只重跑受影响批次（§3.3）。
 - **Regression 邻域**：契约/错误码/路由变更 → 全量；单模块修复 → 本 family + 共享 `T-*`/`VRC-*` 的家族（如 Registry 改 → ADM-PROV/DEPL/SL + DP-MODELS/RESP/EMB 路由）；错误信封改 → 全部负向 Case；case 设计变更 → 该 Case 及其依赖边下游（§3.4）。
+- **Golden / baseline 回归产物（机制）**：在同一基线上把一份**全 PASS 的 Run** 固化为 golden：`tests/system/reports/<date>/baseline/expected.json`（Case ID → 归一化期望：HTTP status、body 关键字段集、error `code`/`param`、SSE 事件序列骨架），与 `baseline/run_id` 指向的原始证据并存。回归执行时用 **case-status 账本 + diff**：`case-status.json`（§7.1.6）与 `expected.json` 逐 Case 比对，产出 `reports/<date>/regression-diff.md`（新增/消失/翻转的 Case 与字段）；差异即回归缺陷。**基线随契约变更显式升版**（不静默覆盖旧 golden），首轮失败与重测关联保留。
 
 ## 10. Evidence、Traceability、Reporting 与 Gate
 
@@ -290,7 +481,17 @@
 - **原始证据**：命令、HTTP status/headers/body、SSE 逐帧、exit code、耗时、环境快照（`/healthz`/`/readyz` + provider/deployment 列表 + `api_smoke_test.py` 输出）。失败现场保留不截断。
 - **保存位置**：`tests/system/reports/<date>/`；本计划的 Case ↔ Run 对应表随报告维护。
 - **Traceability**：Case → 测试设计 §3.2 `设计 V`（`VRC-*`/`T-*`）→ openapi/§7.8/ISD；每 Case 的详细追踪见 `cases/<id>.md`；`ERR-*` 目录逐条映射 Case 或缺口。
-- **Reporting/Gate**：报告须给出覆盖数（应跑/已跑/PASS/FAIL/SKIP/BLOCKED/INVALID/NOT_RUN）、未关闭缺陷、MISSING 缺口。**Gate**：适用 Case 全 PASS 且 FAIL/BLOCKED/INVALID=0、SKIP 在上限内方可放行；MISSING 记 NOT_RUN 缺口不自动阻断，但需具名批准。**注意：本 Gate 是 release 放行门槛，不等于"本轮跑完"**——"本轮跑完"见 §7.2 Exit（所有 case 有终态且无未诊断的系统性阻塞）。
+- **Reporting/Gate**：报告须给出覆盖数（应跑/已跑/PASS/FAIL/SKIP/BLOCKED/INVALID/NOT_RUN）、未关闭缺陷、MISSING 缺口、具名缺口清单（§3.6.2）。**Gate 判定**：**适用 Case**（§7.2）全 PASS 且 FAIL/BLOCKED/INVALID=0、SKIP 在上限内（§7.2）；**P0 MISSING 阻断**；非 P0 MISSING 与具名缺口需具名批准（owner/ETA）。**注意：本 Gate 是 release 放行门槛，不等于"本轮跑完"**——"本轮跑完"见 §7.2 Exit（所有 case 有终态且无未诊断的系统性阻塞）。
+- **Gate owner / 审批元数据（进入 Gate 状态时填写，不伪造）**：
+
+| 字段 | 值 |
+|---|---|
+| Gate Owner | 待填（执行负责人） |
+| Gate Approver | 待填（见证/裁决） |
+| Gate Approval Date | 待填（ISO-8601） |
+| Gate Result | 待填（PASS / CONDITIONAL / REJECT） |
+| Approved Gaps | 待填（具名缺口 ID + owner + ETA） |
+| Baseline Run ID | 待填（golden Run，§9） |
 
 ## 11. 风险、安全与清理恢复
 
@@ -317,7 +518,7 @@
 - A 类每个写 Case teardown（恢复原名/删除创建物）；B 类整班销毁临时实例与临时 SQLite；注入 Case 清空 items。
 - 清理后下一轮可核验初态（§5.2 + `/readyz`）；不得删除用户 usage 或其他任务数据。
 - 测试进程退出 ≠ 设备停止：B 类须显式 `terminate` 并等待。
-- **恢复后复位（§7.1 第 6 条）**：每个就地恢复动作执行后必做状态复位（清注入 / 重置账本 `DELETE /v1/usage` / 换独立 DB），确保后续批次从干净状态开始；A 类对 m5air 现有 state 的副作用须可复位（§2.8）。
+- **恢复后复位（§7.1.7）**：每个就地恢复动作执行后必做状态复位（清注入 / 重置账本 `DELETE /v1/usage` / 换独立 DB），确保后续批次从干净状态开始；A 类对 m5air 现有 state 的副作用须可复位（§2.8）。
 
 ### 11.4 历史踩坑回归检查（执行前逐项确认已修复）
 

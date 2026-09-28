@@ -13,14 +13,17 @@ from __future__ import annotations
 
 import pytest
 
+from tests.system.api_test_v03.constants import recent_window
+
 
 @pytest.mark.api_a
 def test_adm_admin_usage_02_pagination(admin_client):
+    since, until = recent_window()
     resp = admin_client.get(
         "/v1/usage",
         params={
-            "from": "2026-09-20T00:00:00Z",
-            "to": "2026-09-22T00:00:00Z",
+            "from": since,
+            "to": until,
             "limit": 1,
         },
     )

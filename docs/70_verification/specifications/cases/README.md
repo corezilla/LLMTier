@@ -26,14 +26,14 @@ case 脚本（tests/system/api_test_v03/at_*.py 与 tools/inference_smoke.py 等
 
 1. Case ID
 2. 标题
-3. 目的（被测契约）
+3. 目的（被测契约）——须回指 `LT-*`/`VRC-*`/`R-*`/`T-*`/`CT-*`（测试设计 §3.6）
 4. 前置与环境
 5. 输入与构造
 6. 执行过程（逐步调用）
 7. 重点关注步骤
 8. 期望结果与独立 Oracle
-9. 判定（Pass/Fail/Blocked/Invalid）
-10. 证据与 Run
+9. 判定（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）
+10. 证据与 Run（含每 Case `manifest.json` 与被测 artifact pin，测试设计 §4.8/§10）
 11. 清理与复位
 12. 依赖
 

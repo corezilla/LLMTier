@@ -69,7 +69,7 @@ class Result:
 
 def sse_events(base, token, body):
     """Stream POST /v1/responses and yield the ordered event names + payloads."""
-    events, terminal, seen_done, text = [], None, False, []
+    events, terminals, seen_done, text = [], [], False, []
     with http(base, "/v1/responses", token, method="POST", body=body) as response:
         buffer = ""
         for chunk in iter(lambda: response.read(1), b""):
@@ -94,10 +94,10 @@ def sse_events(base, token, body):
                         continue
                     kind = payload.get("type", name)
                     if kind in {"response.completed", "response.incomplete", "response.failed"}:
-                        terminal = terminal or payload
+                        terminals.append(payload)
                     if kind == "response.output_text.delta":
                         text.append(payload.get("delta", ""))
-    return events, terminal, seen_done, "".join(text)
+    return events, terminals, seen_done, "".join(text)
 
 
 def run(args):
@@ -112,7 +112,7 @@ def run(args):
     print("\n[2] POST /v1/responses (SSE)")
     started = time.monotonic()
     try:
-        events, terminal, seen_done, text = sse_events(base, token, {
+        events, terminals, seen_done, text = sse_events(base, token, {
             "model": model,
             "input": [{"role": "user", "content": "Reply with the single word: pong"}],
             "stream": True,
@@ -127,9 +127,11 @@ def run(args):
     result.check("stream opened (HTTP 200)", True, f"{elapsed:.0f} ms")
     result.check("event response.created", "response.created" in events)
     result.check(">=1 output_text.delta", bool(text), f"text={text[:40]!r}")
-    result.check("exactly one terminal", terminal is not None, f"terminal={terminal.get('type') if terminal else None}")
+    result.check("exactly one terminal", len(terminals) == 1,
+                 f"terminals={[t.get('type') for t in terminals]}")
     result.check("SEE [DONE]", seen_done)
-    if terminal:
+    if len(terminals) == 1:
+        terminal = terminals[0]
         usage = terminal.get("response", {}).get("usage")
         result.check("terminal usage field", "usage" in terminal.get("response", {}), f"usage={usage}")
 

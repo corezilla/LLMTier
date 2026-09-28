@@ -17,13 +17,15 @@ import uuid
 
 import pytest
 
+from tests.system.api_test_v03.constants import LAN_PROVIDER_ENDPOINT
+
 
 @pytest.mark.api_b
 def test_adm_prov_07_patch_wrong_etag(admin_client_b):
     create_resp = admin_client_b.post("/v1/providers", json={
         "name": f"Provider For ETag Test {uuid.uuid4().hex[:8]}",
         "kind": "local",
-        "endpoint": "http://localhost:7777/v1",
+        "endpoint": LAN_PROVIDER_ENDPOINT,
         "secret_ref": None,
         "enabled": True,
     })

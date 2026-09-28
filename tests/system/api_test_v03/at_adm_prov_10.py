@@ -5,7 +5,7 @@ Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-admin
 
-前置条件：provider 有 active deployment（prov_b → depl_b，来自 _BASELINE_SETTINGS）
+前置条件：provider 有 active deployment（prov_b → depl_b，来自 baseline settings）
 
 断言：
 - DELETE 带正确 If-Match
@@ -20,9 +20,14 @@ import pytest
 
 @pytest.mark.api_b
 def test_adm_prov_10_delete_provider_with_active_deployment(admin_client_b):
+    current = admin_client_b.get("/v1/providers/prov_b")
+    assert current.status_code == 200, f"GET prov_b 失败: {current.status_code}: {current.text}"
+    etag = current.headers.get("ETag")
+    assert etag, "GET prov_b 缺 ETag"
+
     r = admin_client_b.delete(
         "/v1/providers/prov_b",
-        headers={"If-Match": '"prov_b.v1"'},
+        headers={"If-Match": etag},
     )
     assert r.status_code == 409, f"期望 409，实际 {r.status_code}: {r.text}"
     err = r.json().get("error") or {}

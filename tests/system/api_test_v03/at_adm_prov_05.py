@@ -19,13 +19,15 @@ import uuid
 
 import pytest
 
+from tests.system.api_test_v03.constants import LAN_PROVIDER_ENDPOINT
+
 
 @pytest.mark.api_b
 def test_adm_prov_05_update_provider(admin_client_b):
     create_resp = admin_client_b.post("/v1/providers", json={
         "name": f"Provider To Update {uuid.uuid4().hex[:8]}",
         "kind": "cloud",
-        "endpoint": "http://example.com/v1",
+        "endpoint": LAN_PROVIDER_ENDPOINT,
         "secret_ref": None,
         "enabled": True,
     })

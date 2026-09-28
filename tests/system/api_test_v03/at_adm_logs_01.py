@@ -14,19 +14,23 @@ from __future__ import annotations
 
 import pytest
 
+from tests.system.api_test_v03.constants import recent_window
+
 
 @pytest.mark.api_a
 def test_adm_logs_01_list_no_secret_leak(admin_client):
+    since, until = recent_window()
     resp = admin_client.get(
         "/v1/logs",
-        params={"from": "2026-09-20T00:00:00Z", "to": "2026-09-22T00:00:00Z"},
+        params={"from": since, "to": until},
     )
     assert resp.status_code == 200, f"返回 {resp.status_code}: {resp.text}"
     body = resp.json()
     data = body.get("data") or []
     assert isinstance(data, list), f"data 非数组"
+    assert data, f"时间窗内无任何日志记录: {body}"
 
-    forbidden_in_content = ("omlx-secret-key.txt", "mnm_api_key")
+    forbidden_in_content = ("9832", "omlx-secret-key.txt", "mnm_api_key")
     for entry in data:
         for field in ("message", "module"):
             val = entry.get(field, "")

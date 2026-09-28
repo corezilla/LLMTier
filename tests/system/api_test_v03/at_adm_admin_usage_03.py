@@ -18,7 +18,13 @@ reset 后通过 GET /v1/usage 验证记录已清空。
 """
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 import pytest
+
+
+def _stamp() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 
 @pytest.mark.api_b
@@ -33,7 +39,7 @@ def test_adm_admin_usage_03_reset_all(admin_client_b, llmtier_b):
         for i in range(2):
             principal = f"bulk_{model}_{i}"
             req = f"bulk_req_{model}_{i}"
-            stamp = "2026-09-22T10:00:00.000Z"
+            stamp = _stamp()
             conn.execute("INSERT INTO usage_obligations VALUES(?,?,?,?,?,?)",
                 (principal, req, model, "/v1/responses", stamp, stamp))
             conn.execute("INSERT INTO usage_record_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
@@ -69,7 +75,7 @@ def test_adm_admin_usage_03_reset_by_model(admin_client_b, llmtier_b):
         for i in range(2):
             principal = f"model_test_{model}_{i}"
             req = f"model_req_{model}_{i}"
-            stamp = "2026-09-22T11:00:00.000Z"
+            stamp = _stamp()
             conn.execute("INSERT INTO usage_obligations VALUES(?,?,?,?,?,?)",
                 (principal, req, model, "/v1/responses", stamp, stamp))
             conn.execute("INSERT INTO usage_record_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
@@ -125,7 +131,7 @@ def test_adm_admin_usage_03_reset_by_deployment(admin_client_b, llmtier_b):
         for i in range(2):
             principal = f"depl_test_{depl[-8:]}_{i}"
             req = f"depl_req_{depl[-8:]}_{i}"
-            stamp = "2026-09-22T12:00:00.000Z"
+            stamp = _stamp()
             conn.execute("INSERT INTO usage_obligations VALUES(?,?,?,?,?,?)",
                 (principal, req, "Worker", "/v1/responses", stamp, stamp))
             conn.execute("INSERT INTO usage_record_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",

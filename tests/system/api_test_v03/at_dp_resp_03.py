@@ -5,12 +5,14 @@ Upstream Provider: 调度器选
 Model: Worker
 Auth: Bearer dev-data
 
-断言：
-- HTTP 200，SSE 完整
-- 收集所有 output_text.delta 文本，断言含 "390"（最终结果）且含 "15" 和 "23"（输入数字）
+断言（structure/events only — 不断言上游 LLM 的具体内容）：
+- HTTP 200，Content-Type: text/event-stream
+- 事件序列包含 response.created / response.output_text.delta / response.output_text.done
+  / response.output_item.done / response.completed
+- 至少一个 output_text.delta 的 delta 是非空字符串
+- response.completed 的 response.status == "completed"
 
-注：上游是 gemma-4-e2b-it-4bit (本地 OMLX)。gemma 可能把推理步骤内嵌在
-output_text 而非独立 reasoning_text 事件——本 case 只断言 output_text 内容。
+注：上游模型输出格式不稳定，本 case 只验 LLMTier 的 SSE 契约，不把模型内容当 oracle。
 """
 from __future__ import annotations
 
@@ -19,8 +21,8 @@ import json
 import pytest
 
 
-def _parse_sse_text(resp) -> str:
-    full = ""
+def _parse_sse(resp) -> list[tuple[str, dict]]:
+    events: list[tuple[str, dict]] = []
     event_name = None
     data_buf: list[str] = []
     for raw in resp.iter_lines():
@@ -32,19 +34,20 @@ def _parse_sse_text(resp) -> str:
         elif line.startswith("data:"):
             data_buf.append(line[len("data:"):].strip())
         elif line == "":
-            if event_name == "response.output_text.delta" and data_buf:
+            if event_name and data_buf:
+                payload_str = "\n".join(data_buf)
                 try:
-                    payload = json.loads("\n".join(data_buf))
+                    payload = json.loads(payload_str)
                 except json.JSONDecodeError:
-                    payload = {}
-                full += payload.get("delta", "")
+                    payload = {"_raw": payload_str}
+                events.append((event_name, payload))
             event_name = None
             data_buf = []
-    return full
+    return events
 
 
 @pytest.mark.api_a
-def test_dp_resp_03_reasoning_contains_390(api_client):
+def test_dp_resp_03_streaming_structure(api_client):
     with api_client.stream(
         "POST",
         "/v1/responses",
@@ -57,9 +60,27 @@ def test_dp_resp_03_reasoning_contains_390(api_client):
         },
     ) as resp:
         assert resp.status_code == 200, f"status {resp.status_code}: {resp.text}"
-        text = _parse_sse_text(resp)
+        ct = resp.headers.get("content-type", "")
+        assert "text/event-stream" in ct, f"content-type={ct!r}"
+        events = _parse_sse(resp)
 
-    assert text, "output_text 为空"
-    assert "390" in text, f"output_text 缺 '390': {text[:200]!r}"
-    assert "15" in text, f"output_text 缺 '15': {text[:200]!r}"
-    assert "23" in text, f"output_text 缺 '23': {text[:200]!r}"
+    assert events, "无 SSE 事件"
+    names = [name for name, _ in events]
+    for expected in (
+        "response.created",
+        "response.output_text.delta",
+        "response.output_text.done",
+        "response.output_item.done",
+    ):
+        assert expected in names, f"缺事件 {expected}: {names}"
+
+    deltas = [
+        data.get("delta", "")
+        for name, data in events
+        if name == "response.output_text.delta"
+    ]
+    assert any(isinstance(delta, str) and delta for delta in deltas), f"无非空 delta: {deltas!r}"
+
+    assert names[-1] == "response.completed", f"最后事件应为 response.completed，实际 {names[-1]}"
+    completed = next(data for name, data in events if name == "response.completed")
+    assert (completed.get("response") or {}).get("status") == "completed", f"status != completed: {completed}"

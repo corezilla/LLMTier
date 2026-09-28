@@ -17,13 +17,15 @@ import uuid
 
 import pytest
 
+from tests.system.api_test_v03.constants import LAN_PROVIDER_ENDPOINT
+
 
 @pytest.mark.api_b
 def test_adm_prov_02_create_provider(admin_client_b):
     body = {
         "name": f"Test Provider {uuid.uuid4().hex[:8]}",
         "kind": "local",
-        "endpoint": "http://localhost:9999/v1",
+        "endpoint": LAN_PROVIDER_ENDPOINT,
         "secret_ref": None,
         "enabled": True,
     }

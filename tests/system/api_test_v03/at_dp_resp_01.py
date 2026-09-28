@@ -24,10 +24,11 @@ import json
 import pytest
 
 
-def _parse_sse(resp) -> list[tuple[str, dict]]:
+def _parse_sse(resp) -> tuple[list[tuple[str, dict]], bool]:
     events: list[tuple[str, dict]] = []
     event_name = None
     data_buf: list[str] = []
+    saw_done = False
     for raw in resp.iter_lines():
         if raw is None:
             continue
@@ -35,7 +36,10 @@ def _parse_sse(resp) -> list[tuple[str, dict]]:
         if line.startswith("event:"):
             event_name = line[len("event:"):].strip()
         elif line.startswith("data:"):
-            data_buf.append(line[len("data:"):].strip())
+            value = line[len("data:"):].strip()
+            if value == "[DONE]":
+                saw_done = True
+            data_buf.append(value)
         elif line == "":
             if event_name and data_buf:
                 payload_str = "\n".join(data_buf)
@@ -46,7 +50,7 @@ def _parse_sse(resp) -> list[tuple[str, dict]]:
                 events.append((event_name, payload))
             event_name = None
             data_buf = []
-    return events
+    return events, saw_done
 
 
 @pytest.mark.api_a
@@ -66,9 +70,10 @@ def test_dp_resp_01_streaming_sse_complete(api_client):
         ct = resp.headers.get("content-type", "")
         assert "text/event-stream" in ct, f"content-type={ct!r}, expect text/event-stream"
 
-        events = _parse_sse(resp)
+        events, saw_done = _parse_sse(resp)
 
     assert events, "无 SSE 事件"
+    assert saw_done, "SSE 流缺 data: [DONE] 终止标记"
 
     # 抽取事件名序列
     names = [e[0] for e in events]
@@ -93,6 +98,3 @@ def test_dp_resp_01_streaming_sse_complete(api_client):
             seqs.append(data["sequence_number"])
     for i in range(1, len(seqs)):
         assert seqs[i] > seqs[i-1], f"sequence_number 非单调递增: {seqs}"
-
-    # 验证 data: [DONE] 终止标记：在 events 之外，由 parse_sse 不解析 [DONE] 数据行
-    # 这里不强求——某些 client 实现可能不发送 [DONE]

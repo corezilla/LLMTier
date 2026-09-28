@@ -38,7 +38,7 @@
   - 事件序列（有序）：`response.created` 首帧；含 `response.output_item.added`、`response.output_text.delta`（≥1，累积文本非空）、`response.output_text.done`、`response.output_item.done`；终态事件恰好 1 个且为 `response.completed`（`status="completed"`）；最后一帧为 `data: [DONE]`。
   - 帧内：所有含 `sequence_number` 的事件从 0 起严格递增。
   - `response.completed.response.usage`：`input_tokens`、`output_tokens`、`total_tokens` 均非 null。
-- **判定（Pass/Fail/Blocked/Invalid）**：
+- **判定（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
   - **PASS**：上述期望结果与独立 Oracle 全部 match（status + content-type + 事件 identity/顺序 + terminal 唯一 + `[DONE]` + sequence 递增 + usage 非空）。
   - **FAIL**：任一断言不符（status/字段错、SSE 序列断裂、terminal 缺失或重复、`[DONE]` 缺失、sequence 非递增）。
   - **BLOCKED**：测试代码/契约本身问题（如解析器逻辑错、断言不可实现）——见[测试设计 §9](../llmtier-api-test-specification.md)。

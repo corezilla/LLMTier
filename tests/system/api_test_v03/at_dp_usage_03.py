@@ -15,14 +15,17 @@ from __future__ import annotations
 
 import pytest
 
+from tests.system.api_test_v03.constants import recent_window
+
 
 @pytest.mark.api_a
 def test_dp_usage_03_pagination(api_client):
+    since, until = recent_window()
     resp = api_client.get(
         "/v1/usage",
         params={
-            "from": "2026-09-20T00:00:00Z",
-            "to": "2026-09-22T00:00:00Z",
+            "from": since,
+            "to": until,
             "limit": 1,
         },
     )

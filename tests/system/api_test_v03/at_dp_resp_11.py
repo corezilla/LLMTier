@@ -1,76 +1,58 @@
 """Case ID: DP-RESP-11
 
 Endpoint: POST /v1/responses
-Upstream Provider: 故障注入（503）
-Model: Worker（指向故障 provider）
+Upstream Provider: 故障注入（fault_502，depl_b）
+Model: Senior（指向 depl_b）
 Auth: Bearer dev-data
 
-目标：验证上游 provider 返回 503 时 LLMTier 的错误传播行为。
+目标：验证上游 provider 返回 502 时 LLMTier 的错误传播行为。
 
-实现：
-- B-class 测试：在临时实例中，将 prov_b 的 endpoint 改为指向测试进程内的 mock server
-- mock server 在 127.0.0.1 随机端口监听，永远返回 HTTP 503
-- LLMTier 向 prov_b 发请求 → 503 → LLMTier 返回 500 internal_error
+实现（design：走真实注入 API，不再 monkeypatch prov_b.endpoint）：
+- B-class：PATCH /v1/deployments/depl_b/diagnostics 写入 fault_502
+- 注入命中后 POST /v1/responses（stream=true）→ 502 provider_failure
+- teardown 必须 items:[] 清空注入，绝不残留 prov_b.endpoint 指向死端口
 
 断言：
-- HTTP 503
-- error.code == "model_unavailable"
-- error.message 包含 "unhealthy"
+- HTTP 502
+- error.code == "provider_failure"
+- error.retryable is True
+- error.message 含注入的 error_body
 """
 from __future__ import annotations
 
-import http.server
-import socketserver
-import threading
-
+import httpx
 import pytest
 
 
-class _503Handler(http.server.BaseHTTPRequestHandler):
-    def do_POST(self):
-        self.send_response(503)
-        self.send_header("Content-Type", "application/json")
-        self.end_headers()
-        self.wfile.write(b'{"error": "fault injected"}')
-
-    def log_message(self, fmt, *args):
-        pass
-
-
-class _ThreadedTCPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
-    daemon_threads = True
-
-
-class _FaultServer:
-    def __init__(self):
-        import socket
-        with socket.socket() as s:
-            s.bind(("127.0.0.1", 0))
-            self.port = s.getsockname()[1]
-        self.server = _ThreadedTCPServer(("127.0.0.1", self.port), _503Handler)
-        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
-
-    def start(self):
-        self.thread.start()
-
-    def stop(self):
-        self.server.shutdown()
-
-
 @pytest.mark.api_b
-def test_dp_resp_11_upstream_503_propagation(admin_client_b):
-    fault = _FaultServer()
-    fault.start()
+def test_dp_resp_11_upstream_502_provider_failure(admin_client_b, llmtier_b):
+    deployment_id = "depl_b"
+    endpoint = f"/v1/deployments/{deployment_id}/diagnostics"
+    injection = {
+        "items": [
+            {
+                "type": "fault_502",
+                "config": {"error_body": "injected upstream failure"},
+                "enabled": True,
+            }
+        ]
+    }
     try:
-        fault_url = f"http://127.0.0.1:{fault.port}"
-        admin_client_b.patch(
-            "/v1/providers/prov_b",
-            json={"endpoint": fault_url},
-            headers={"If-Match": '"prov_b.v1"'},
+        set_resp = admin_client_b.patch(endpoint, json=injection)
+        assert set_resp.status_code == 200, (
+            f"写入 fault_502 失败: {set_resp.status_code}: {set_resp.text}"
         )
+        configured = set_resp.json()
+        assert any(
+            item.get("type") == "fault_502" and item.get("enabled")
+            for item in configured
+        ), f"fault_502 未生效: {configured}"
 
-        import httpx
-        with httpx.Client(base_url=admin_client_b.base_url, headers={"Authorization": "Bearer dev-data"}, timeout=10.0) as api_client:
+        with httpx.Client(
+            base_url=llmtier_b.base_url,
+            headers={"Authorization": "Bearer dev-data"},
+            timeout=httpx.Timeout(30.0, connect=5.0),
+        ) as api_client:
             resp = api_client.post(
                 "/v1/responses",
                 json={
@@ -80,9 +62,16 @@ def test_dp_resp_11_upstream_503_propagation(admin_client_b):
                     "store": False,
                 },
             )
-        assert resp.status_code == 503, f"期望 503，实际 {resp.status_code}: {resp.text}"
+        assert resp.status_code == 502, f"期望 502，实际 {resp.status_code}: {resp.text}"
         err = resp.json().get("error") or {}
-        assert err.get("code") == "model_unavailable", f"error.code != 'model_unavailable': {err}"
-        assert "unhealthy" in err.get("message", "").lower(), f"message 不含 unhealthy: {err}"
+        assert err.get("code") == "provider_failure", f"error.code != 'provider_failure': {err}"
+        assert err.get("retryable") is True, f"error.retryable != True: {err}"
+        assert "injected upstream failure" in err.get("message", ""), f"message 不符: {err}"
     finally:
-        fault.stop()
+        clear = admin_client_b.patch(endpoint, json={"items": []})
+        assert clear.status_code == 200, f"清空注入失败: {clear.status_code}: {clear.text}"
+        remaining = admin_client_b.get(endpoint)
+        assert remaining.status_code == 200
+        assert all(not item.get("enabled") for item in remaining.json()), (
+            f"注入未清空: {remaining.json()}"
+        )

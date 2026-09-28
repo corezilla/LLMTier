@@ -8,6 +8,10 @@
 B 类 fixtures（_b suffix）—— 临时 LLMTier 实例（session-scope）：
   llmtier_b: 基线实例（prov_b + depl_b）
   llmtier_b_empty: 空实例（无任何资源）
+
+TS-003：B 类上游 provider 的 *endpoint* 必须是 LAN IP。conftest 在
+机器 LAN IP 上起一个 fake provider（`tests/fixtures/v03_fake_provider.py`），
+或用 `LLMTIER_TEST_PROVIDER_URL` 指定一个 LAN URL；绝不用 127.0.0.1/localhost。
 """
 from __future__ import annotations
 
@@ -26,12 +30,21 @@ from typing import Generator
 import httpx
 import pytest
 
+REPO_ROOT = Path(__file__).resolve().parents[3]
+SRC_ROOT = REPO_ROOT / "src"
+FAKE_PROVIDER_SCRIPT = REPO_ROOT / "tests" / "fixtures" / "v03_fake_provider.py"
+
 M5AIR_BASE = "http://192.168.1.9:8181"
 M5AIR_OMLX = "http://192.168.1.9:9000/v1"
 M5MAC_OMLX = "http://192.168.1.8:9000/v1"
 OMLX_TOKEN = "9832"
 
 FIXED_TIERS = ("Senior", "Junior", "Worker", "Associate", "Engineer", "Executor", "Embedding-v1")
+
+REQUIRED_A_PROVIDERS = ("provider_local", "provider_minimax", "provider_omlx_m5mac")
+REQUIRED_A_DEPLOYMENTS = ("dep_local_gemma", "dep_local_bge_m3", "dep_omlx_qwen36", "dep_minimax_m27")
+
+PYTHON = os.environ.get("LLMTIER_TEST_PYTHON", sys.executable)
 
 
 def _http_status(url: str, headers: dict | None = None, timeout: float = 5.0) -> tuple[int, str]:
@@ -98,12 +111,27 @@ def _check_provider_omlx_m5mac_secret_ref() -> tuple[bool, str]:
     return True, "ok (has_secret=True)"
 
 
+def _check_required_a_resources() -> tuple[bool, str]:
+    """§2.1.6 — A 类依赖的 m5air provider / deployment 必须实际存在。"""
+    headers = {"Authorization": "Bearer dev-admin"}
+    for pid in REQUIRED_A_PROVIDERS:
+        status, _ = _http_status(f"{M5AIR_BASE}/v1/providers/{pid}", headers)
+        if status != 200:
+            return False, f"provider {pid} missing (HTTP {status})"
+    for did in REQUIRED_A_DEPLOYMENTS:
+        status, _ = _http_status(f"{M5AIR_BASE}/v1/deployments/{did}", headers)
+        if status != 200:
+            return False, f"deployment {did} missing (HTTP {status})"
+    return True, f"ok ({len(REQUIRED_A_PROVIDERS)} providers, {len(REQUIRED_A_DEPLOYMENTS)} deployments)"
+
+
 _CHECKS = [
     ("§2.1.1 m5air LLMTier /healthz 200", _check_m5air_healthz),
     ("§2.1.2 m5air LLMTier /readyz 200 + 7 tier", _check_m5air_readyz),
     ("§2.1.3 m5air OMLX 9000 健康", lambda: _check_omlx(M5AIR_OMLX, "m5air")),
     ("§2.1.4 m5mac OMLX 9000 健康", lambda: _check_omlx(M5MAC_OMLX, "m5mac")),
     ("§2.1.5 provider_omlx_m5mac.secret_ref = file: 路径", _check_provider_omlx_m5mac_secret_ref),
+    ("§2.1.6 必需 provider/deployment 已注册", _check_required_a_resources),
 ]
 
 
@@ -143,6 +171,57 @@ def pytest_collection_modifyitems(config, items):
         item.add_marker(skip)
 
 
+# ---------------------------------------------------------------------------
+# httpx client policy — configurable timeout + bounded retry (P1)
+# ---------------------------------------------------------------------------
+
+_MAX_RETRIES = 3
+
+
+def _test_timeout() -> httpx.Timeout:
+    try:
+        seconds = float(os.environ.get("LLMTIER_TEST_TIMEOUT", "30"))
+    except ValueError:
+        seconds = 30.0
+    return httpx.Timeout(seconds, connect=min(5.0, seconds))
+
+
+def _test_retries() -> int:
+    try:
+        value = int(os.environ.get("LLMTIER_TEST_RETRIES", "2"))
+    except ValueError:
+        value = 2
+    return max(0, min(value, _MAX_RETRIES))
+
+
+class _RetryTransport(httpx.HTTPTransport):
+    """Retry transient connect/read/timeout failures, bounded to ≤3 attempts."""
+
+    def __init__(self, retries: int = 0, **kwargs):
+        super().__init__(**kwargs)
+        self._retries = max(0, min(int(retries), _MAX_RETRIES))
+
+    def handle_request(self, request: httpx.Request) -> httpx.Response:
+        attempt = 0
+        while True:
+            try:
+                return super().handle_request(request)
+            except (httpx.TimeoutException, httpx.ConnectError, httpx.ReadError):
+                if attempt >= self._retries:
+                    raise
+                attempt += 1
+
+
+def _make_client(base_url: str, token: str | None) -> httpx.Client:
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
+    return httpx.Client(
+        base_url=base_url,
+        headers=headers,
+        timeout=_test_timeout(),
+        transport=_RetryTransport(retries=_test_retries()),
+    )
+
+
 @pytest.fixture(scope="session")
 def m5air_base_url() -> str:
     return M5AIR_BASE
@@ -150,20 +229,12 @@ def m5air_base_url() -> str:
 
 @pytest.fixture(scope="session")
 def api_client() -> httpx.Client:
-    return httpx.Client(
-        base_url=M5AIR_BASE,
-        headers={"Authorization": "Bearer dev-data"},
-        timeout=httpx.Timeout(30.0, connect=5.0),
-    )
+    return _make_client(M5AIR_BASE, "dev-data")
 
 
 @pytest.fixture(scope="session")
 def admin_client() -> httpx.Client:
-    return httpx.Client(
-        base_url=M5AIR_BASE,
-        headers={"Authorization": "Bearer dev-admin"},
-        timeout=httpx.Timeout(30.0, connect=5.0),
-    )
+    return _make_client(M5AIR_BASE, "dev-admin")
 
 
 def parse_sse(response: httpx.Response) -> list[dict]:
@@ -201,10 +272,94 @@ def parse_sse_raw(response: httpx.Response) -> list[tuple[str, dict]]:
 # B-class fixtures — 临时 LLMTier 实例（session-scope）
 # ---------------------------------------------------------------------------
 
-def _find_free_port() -> int:
+def _find_free_port(bind_ip: str = "127.0.0.1") -> int:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(("127.0.0.1", 0))
+        s.bind((bind_ip, 0))
         return s.getsockname()[1]
+
+
+def _detect_lan_ip() -> str | None:
+    """Return this machine's RFC1918 LAN IP (TS-003), trying env override first."""
+    override = os.environ.get("LLMTIER_TEST_LAN_IP")
+    if override:
+        return override
+    probes = (os.environ.get("LLMTIER_LAN_PROBE_HOST"), "192.168.1.9", "192.168.1.1", "10.0.0.1")
+    for host in probes:
+        if not host:
+            continue
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+                s.connect((host, 8181))
+                ip = s.getsockname()[0]
+        except OSError:
+            continue
+        if ip and not ip.startswith("127."):
+            return ip
+    try:
+        ip = socket.gethostbyname(socket.gethostname())
+    except OSError:
+        return None
+    return ip if ip and not ip.startswith("127.") else None
+
+
+class _FakeProvider:
+    """A LAN-bound OpenAI-compatible fake upstream (TS-003 compliant)."""
+
+    def __init__(self, host: str, port: int):
+        self.host = host
+        self.port = port
+        self.url = f"http://{host}:{port}/v1"
+        self.health_url = f"http://{host}:{port}/healthz"
+        self._proc: subprocess.Popen | None = None
+
+    def start(self) -> None:
+        self._proc = subprocess.Popen(
+            [PYTHON, str(FAKE_PROVIDER_SCRIPT), "--host", self.host, "--port", str(self.port)],
+            cwd=str(REPO_ROOT),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        for _ in range(40):
+            if self._proc.poll() is not None:
+                raise RuntimeError("fake provider exited during startup")
+            try:
+                with urllib.request.urlopen(self.health_url, timeout=1) as resp:
+                    if resp.status == 200:
+                        return
+            except (urllib.error.URLError, OSError):
+                pass
+            time.sleep(0.25)
+        self.stop()
+        raise RuntimeError(f"fake provider did not become healthy at {self.health_url}")
+
+    def stop(self) -> None:
+        if self._proc is None:
+            return
+        self._proc.terminate()
+        try:
+            self._proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            self._proc.kill()
+            self._proc.wait()
+        self._proc = None
+
+
+@pytest.fixture(scope="session")
+def provider_endpoint_b() -> Generator[str, None, None]:
+    """LAN-IP upstream URL for the B-class baseline provider (TS-003)."""
+    override = os.environ.get("LLMTIER_TEST_PROVIDER_URL")
+    if override:
+        yield override
+        return
+    lan_ip = _detect_lan_ip()
+    if not lan_ip:
+        pytest.skip("TS-003: no LAN IP available for the B-class upstream provider")
+    provider = _FakeProvider(lan_ip, _find_free_port(lan_ip))
+    provider.start()
+    try:
+        yield provider.url
+    finally:
+        provider.stop()
 
 
 class LLMTierInstance:
@@ -220,20 +375,31 @@ class LLMTierInstance:
         if settings is not None:
             self._settings_path.write_text(json.dumps(settings))
 
+        # Start from a clean LLMTIER_* env so leaked tokens / DEV_MODE from the
+        # parent pytest process cannot change auth behaviour (AUTH-07 etc.).
         env = os.environ.copy()
+        for key in [k for k in env if k.startswith("LLMTIER_")]:
+            del env[key]
         if dev_mode:
             env["LLMTIER_DEV_MODE"] = "1"
+            env["LLMTIER_ADMIN_TOKEN"] = "dev-admin"
+            env["LLMTIER_DATA_TOKEN"] = "dev-data"
+        # Design note (spec §4.2): auth.py does not currently read
+        # LLMTIER_TRUSTED_LAN_MODE; loopback/RFC1918 without an Authorization
+        # header always resolves to the shared trusted-LAN role. We still set it
+        # to 1 so the child matches the documented intended configuration.
+        env["LLMTIER_TRUSTED_LAN_MODE"] = "1"
         env["LLMTIER_DATABASE"] = str(self._db_path)
-        env["PYTHONPATH"] = "src"
+        env["PYTHONPATH"] = str(SRC_ROOT)
         if settings is not None:
             env["LLMTIER_SETTINGS"] = str(self._settings_path)
 
         self._proc = subprocess.Popen(
-            [sys.executable, "-m", "http_api",
+            [PYTHON, "-m", "http_api",
              "--host", "127.0.0.1",
              "--port", str(self.port)],
             env=env,
-            cwd="/Users/ben/work/LLMTier",
+            cwd=str(REPO_ROOT),
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
@@ -266,59 +432,53 @@ class LLMTierInstance:
             pass
 
     def admin_client(self) -> httpx.Client:
-        return httpx.Client(
-            base_url=self.base_url,
-            headers={"Authorization": "Bearer dev-admin"},
-            timeout=httpx.Timeout(30.0, connect=5.0),
-        )
+        return _make_client(self.base_url, "dev-admin")
 
     def api_client(self) -> httpx.Client:
-        return httpx.Client(
-            base_url=self.base_url,
-            headers={"Authorization": "Bearer dev-data"},
-            timeout=httpx.Timeout(30.0, connect=5.0),
-        )
+        return _make_client(self.base_url, "dev-data")
 
 
-_BASELINE_SETTINGS = {
-    "providers": [
-        {
-            "id": "prov_b",
-            "name": "Baseline Provider B",
-            "kind": "local",
-            "endpoint": "http://127.0.0.1:9000/v1",
-            "secret_ref": None,
-            "enabled": True,
-        }
-    ],
-    "deployments": [
-        {
-            "id": "depl_b",
-            "name": "Baseline Deployment B",
-            "provider_id": "prov_b",
-            "backend_model": "test-model",
-            "capabilities": {
-                "responses": True,
-                "embeddings": False,
-                "tools": False,
-                "structured_outputs": False,
-                "input_modalities": ["text"],
-                "output_modalities": ["text"],
-                "context_window": 4096,
-                "max_output_tokens": 2048,
-                "embedding_space_id": None,
-                "embedding_dimensions": None,
-                "embedding_max_batch_inputs": None,
-                "embedding_max_input_tokens": None,
-            },
-            "enabled": True,
-        }
-    ],
-    "service_levels": [
-        {"id": tier, "deployment_ids": ["depl_b"], "enabled": True}
-        for tier in ("Senior", "Junior", "Worker", "Associate", "Engineer", "Executor", "Embedding-v1")
-    ],
-}
+def _baseline_settings(provider_endpoint: str) -> dict:
+    return {
+        "providers": [
+            {
+                "id": "prov_b",
+                "name": "Baseline Provider B",
+                "kind": "local",
+                "endpoint": provider_endpoint,
+                "secret_ref": None,
+                "enabled": True,
+            }
+        ],
+        "deployments": [
+            {
+                "id": "depl_b",
+                "name": "Baseline Deployment B",
+                "provider_id": "prov_b",
+                "backend_model": "test-model",
+                "capabilities": {
+                    "responses": True,
+                    "embeddings": False,
+                    "tools": False,
+                    "structured_outputs": False,
+                    "input_modalities": ["text"],
+                    "output_modalities": ["text"],
+                    "context_window": 4096,
+                    "max_output_tokens": 2048,
+                    "embedding_space_id": None,
+                    "embedding_dimensions": None,
+                    "embedding_max_batch_inputs": None,
+                    "embedding_max_input_tokens": None,
+                },
+                "enabled": True,
+            }
+        ],
+        "service_levels": [
+            {"id": tier, "deployment_ids": ["depl_b"], "enabled": True}
+            for tier in FIXED_TIERS
+        ],
+    }
+
 
 _EMPTY_SETTINGS = {
     "providers": [],
@@ -333,10 +493,26 @@ _NO_AUTH_SETTINGS = {
 }
 
 
+def _probe_deployment(inst: "LLMTierInstance", deployment_id: str) -> str:
+    """Probe a deployment so its health becomes routable; return the status."""
+    client = inst.admin_client()
+    try:
+        resp = client.post(
+            "/v1/probes",
+            json={"deployment_id": deployment_id, "confirm_external_call": True},
+        )
+        assert resp.status_code == 200, f"probe {deployment_id} failed: {resp.status_code}: {resp.text}"
+        return resp.json().get("status", "")
+    finally:
+        client.close()
+
+
 @pytest.fixture(scope="session")
-def llmtier_b() -> Generator[LLMTierInstance, None, None]:
-    inst = LLMTierInstance(_BASELINE_SETTINGS)
+def llmtier_b(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, None]:
+    inst = LLMTierInstance(_baseline_settings(provider_endpoint_b))
     inst.start()
+    status = _probe_deployment(inst, "depl_b")
+    assert status == "healthy", f"baseline depl_b probe not healthy: {status}"
     yield inst
     inst.stop()
 

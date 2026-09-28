@@ -13,12 +13,15 @@ from __future__ import annotations
 
 import pytest
 
+from tests.system.api_test_v03.constants import recent_window
+
 
 @pytest.mark.api_a
 def test_adm_admin_usage_01(admin_client):
+    since, until = recent_window()
     resp = admin_client.get(
         "/v1/usage",
-        params={"from": "2026-09-20T00:00:00Z", "to": "2026-09-22T00:00:00Z"},
+        params={"from": since, "to": until},
     )
     assert resp.status_code == 200, f"返回 {resp.status_code}: {resp.text}"
     body = resp.json()
