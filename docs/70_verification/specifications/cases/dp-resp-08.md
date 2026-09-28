@@ -30,7 +30,7 @@
   5. **记录 `param` 实测值**并与 §3.2 声明比对（见下"已知偏差"）。
   6. 交叉核对零副作用：无上游调用、无账本义务（可选，[§4.6](../llmtier-api-test-specification.md)）。
 - **重点关注步骤**：① **拒绝先于模型解析**——齐备性检查在 `get_service_level`/`admit` 之前，缺 `model` 不得报 `model_not_found`；② **信封 identity**（5 键、`type=request_error`、无 `category`）；③ **非 SSE**；④ **`param` 归因**见偏差；⑤ **零副作用**。
-- **已知偏差（必须登记）**：§3.2 权威清单与本 case 标题把本项记为 `400 invalid_request,param=model`；但当前实现 `src/inference/responses.py` 的齐备性检查以 `require(...)` **未传 `param`** 调用，`ApiError.param` 默认为 `None`，故 wire `error.param` 实为 `null`。本设计的**硬 Oracle 为 status + code**（`400` + `invalid_request`）；`param` 按**实测**记录（当前应为 `null`），并作为偏差上报代码 owner（要么实现补 `param="model"`，要么修正 §3.2）。不得为迎合文档而伪造 `param=model`。
+> **已知偏差（必须登记）**：§3.2 权威清单与本 case 标题把本项记为 `400 invalid_request,param=model`；但当前实现 `src/inference/responses.py` 的齐备性检查以 `require(...)` **未传 `param`** 调用，`ApiError.param` 默认为 `None`，故 wire `error.param` 实为 `null`。本设计的**硬 Oracle 为 status + code**（`400` + `invalid_request`）；`param` 按**实测**记录（当前应为 `null`），并作为偏差上报代码 owner（要么实现补 `param="model"`，要么修正 §3.2）。不得为迎合文档而伪造 `param=model`。
 - **期望结果与独立 Oracle**：独立 Oracle = OpenAPI `ResponsesRequest.required`（`model` 必填）+ `ErrorEnvelope`/`ErrorDetail` + 系统设计 §7.8 `ERR-REQ-VALIDATION`。
   - HTTP：`400`；`Content-Type: application/json`。
   - body：`error.code=="invalid_request"`、`type=="request_error"`、`retryable==false`；`message` 含 `"required"` 语义（实现为 `"model, input, stream, and store are required"`）。
