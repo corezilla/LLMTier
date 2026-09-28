@@ -299,93 +299,93 @@ LLMTIER_ADMIN_TOKEN='...' LLMTIER_DATA_TOKEN='...' \
 | DP-USAGE-06 | Usage 查询 | `GET /v1/usage`；data ⊆ admin 主体隔离（VRC-MGMT-006,T-TRUST-SHARED,R-MET-02） | data/admin | 主体隔离：data 只见自身，admin 见全局 | A | P1 | MISSING | 已写 |
 | DP-USAGE-07 | Usage 查询 | `GET /v1/usage`；同一 cursor 重放返回同一冻结 record version 成员（幂等/重放，R-MET-02,T-MET-PAGE） | data | 分页重放幂等 | A | P1 | MISSING | 已写 |
 | DP-USAGE-08 | Usage 查询 | `GET /v1/usage`；store 不可用→503 usage_store_unavailable（ERR-STORE,R-MET-04） | data | store 不可用不返回空页 | B | P1 | MISSING | 已写 |
-| ADM-PROV-01 | Provider CRUD | `GET /v1/providers`；列表+`has_more`（VRC-MGMT-001） | admin | 列出 providers | A | P0 | `at_adm_prov_01.py` | 待写 |
-| ADM-PROV-02 | Provider CRUD | `POST /v1/providers`；201+自动 id+has_secret（VRC-MGMT-001,R-CFG-01） | admin | 创建 provider | B | P0 | `at_adm_prov_02.py` | 待写 |
-| ADM-PROV-03 | Provider CRUD | `GET /v1/providers/{id}`；详情字段（VRC-MGMT-001） | admin | 获取 provider 详情 | A | P0 | `at_adm_prov_03.py` | 待写 |
-| ADM-PROV-04 | Provider CRUD | `GET /v1/providers/{id}`；不存在→404 not_found（ERR-NOTFOUND,VRC-MGMT-001） | admin | 不存在 provider | A | P0 | `at_adm_prov_04.py` | 待写 |
-| ADM-PROV-05 | Provider CRUD | `PATCH /v1/providers/{id}`；If-Match/ETag（VRC-MGMT-002,T-CFG-CAS） | admin | 更新 provider | B | P0 | `at_adm_prov_05.py` | 待写 |
-| ADM-PROV-06 | Provider CRUD | `PATCH`；缺 If-Match→412 version_conflict（ERR-STALE,T-CFG-CAS） | admin | 更新缺 If-Match | B | P0 | `at_adm_prov_06.py` | 待写 |
-| ADM-PROV-07 | Provider CRUD | `PATCH`；过期 ETag→412 version_conflict（ERR-STALE） | admin | 过期 ETag | B | P1 | `at_adm_prov_07.py` | 待写 |
-| ADM-PROV-08 | Provider CRUD | `DELETE /v1/providers/{id}`；204（VRC-MGMT-001） | admin | 删除 provider | B | P0 | `at_adm_prov_08.py` | 待写 |
-| ADM-PROV-09 | Provider CRUD | `DELETE`；缺 If-Match→412 version_conflict（ERR-STALE） | admin | 删除缺 If-Match | B | P1 | `at_adm_prov_09.py` | 待写 |
-| ADM-PROV-10 | Provider CRUD | `DELETE`；被引用→409 resource_in_use（ERR-INUSE,T-CFG-DELREF） | admin | 删除被引用 provider | B | P1 | `at_adm_prov_10.py` | 待写 |
-| ADM-PROV-11 | Provider CRUD | `POST`；`kind` 非法→400 invalid_request（VRC-MGMT-001） | admin | kind 枚举校验 | B | P1 | `at_adm_prov_11.py` | 待写 |
-| ADM-PROV-12 | Provider CRUD | `POST`；`secret_ref` 格式（T-CFG-SECRET） | admin | secret_ref 格式 | B | P2 | `at_adm_prov_12.py` | 待写 |
-| ADM-PROV-13 | Provider CRUD | `PATCH`；usage 子对象更新（VRC-MGMT-002） | admin | usage 子对象更新 | B | P2 | `at_adm_prov_13.py` | 待写 |
-| ADM-PROV-14 | Provider CRUD | `GET /v1/providers` 与 `GET /v1/providers/{id}`；**响应永不回显 secret 值**（仅 `has_secret`/`secret_ref` 引用）（LT-SEC-001,VRC-MGMT-001,R-CFG-01,T-CFG-SECRET） | admin | provider 不泄露 secret | A | P0 | MISSING | 待写 |
-| ADM-PROV-MODELS-01 | provider 上游模型目录 | `GET /v1/providers/{id}/models`（VRC-MGMT-001,R-CFG-01） | admin | provider 上游模型目录 | A | P1 | MISSING | 待写 |
-| ADM-PROV-MODELS-02 | provider 上游模型目录 | `GET /v1/providers/{id}/models`；未知 id→404 not_found（ERR-NOTFOUND） | admin | 不存在 provider | A | P1 | MISSING | 待写 |
-| ADM-PROV-USAGE-01 | provider usage 快照 | `GET /v1/providers/{id}/usage`（VRC-MGMT-006） | admin | 读取 provider usage 快照 | A | P1 | `at_adm_prov_usage_01.py` | 待写 |
-| ADM-PROV-USAGE-02 | provider usage 快照 | `POST /v1/providers/{id}/usage`；缺确认→400（ERR-CONFIRM） | admin | 刷新缺确认 | A | P1 | `at_adm_prov_usage_02.py` | 待写 |
-| ADM-PROV-USAGE-03 | provider usage 快照 | `POST /v1/providers/{id}/usage`；带确认→200（T-CFG-SECRET） | admin | 刷新带确认 | A | P1 | `at_adm_prov_usage_03.py` | 待写 |
-| ADM-PROV-USAGE-04 | provider usage 快照 | `GET /v1/providers/{id}/usage`；未知 provider→404 not_found（ERR-NOTFOUND,R-CFG-01） | admin | usage 未知 provider | A | P1 | MISSING | 待写 |
-| ADM-DEPL-01 | Deployment CRUD | `GET /v1/deployments`；列表（VRC-MGMT-001） | admin | 列出 deployments | A | P0 | `at_adm_depl_01.py` | 待写 |
-| ADM-DEPL-02 | Deployment CRUD | `POST /v1/deployments`；201+capabilities 12 键（VRC-MGMT-001） | admin | 创建 deployment | B | P0 | `at_adm_depl_02.py` | 待写 |
-| ADM-DEPL-03 | Deployment CRUD | `GET /v1/deployments/{id}`（VRC-MGMT-001） | admin | 获取 deployment | A | P0 | `at_adm_depl_03.py` | 待写 |
-| ADM-DEPL-04 | Deployment CRUD | `PATCH /v1/deployments/{id}`；If-Match，provider_id 不可改（VRC-MGMT-002） | admin | 更新 deployment | B | P1 | `at_adm_depl_04.py` | 待写 |
-| ADM-DEPL-05 | Deployment CRUD | `DELETE /v1/deployments/{id}`；204（VRC-MGMT-001） | admin | 删除 deployment | B | P0 | `at_adm_depl_05.py` | 待写 |
-| ADM-DEPL-06 | Deployment CRUD | `POST`；capabilities 缺字段→400（VRC-MGMT-001） | admin | capabilities 缺字段 | B | P1 | `at_adm_depl_06.py` | 待写 |
-| ADM-DEPL-07 | Deployment CRUD | `POST`；capabilities 未知字段→400（VRC-MGMT-001） | admin | capabilities 未知字段 | B | P1 | `at_adm_depl_07.py` | 待写 |
-| ADM-DEPL-08 | Deployment CRUD | `POST`；引用不存在 provider→400（ERR-REQ-VALIDATION） | admin | 引用不存在 provider | B | P1 | `at_adm_depl_08.py` | 待写 |
-| ADM-DEPL-09 | Deployment CRUD | `PATCH`；`provider_id` 不可改→400（VRC-MGMT-002） | admin | provider_id 不可 PATCH | B | P1 | `at_adm_depl_09.py` | 待写 |
-| ADM-SL-01 | Service Level CRUD | `GET /v1/service-levels`；7 fixed tier（VRC-MGMT-002） | admin | 列出 service-levels | A | P0 | `at_adm_sl_01.py` | 待写 |
-| ADM-SL-02 | Service Level CRUD | `POST /v1/service-levels`；非 fixed tier→400（VRC-MGMT-002） | admin | 创建非 fixed tier | B | P1 | `at_adm_sl_02.py` | 待写 |
-| ADM-SL-02b | Service Level CRUD | `POST /v1/service-levels`；已存在 fixed tier→409 resource_conflict（ERR-CONFLICT） | admin | 创建已存在 fixed tier | B | P1 | `at_adm_sl_02b.py` | 待写 |
-| ADM-SL-03 | Service Level CRUD | `GET /v1/service-levels/{id}`（VRC-MGMT-002） | admin | 获取 service-level | A | P0 | `at_adm_sl_03.py` | 待写 |
-| ADM-SL-04 | Service Level CRUD | `PATCH /v1/service-levels/{id}`；If-Match（VRC-MGMT-002） | admin | 更新 service-level | B | P1 | `at_adm_sl_04.py` | 待写 |
-| ADM-SL-04b | Service Level CRUD | `PATCH`；非法字段→400（VRC-MGMT-002） | admin | 更新非法字段 | B | P1 | `at_adm_sl_04b.py` | 待写 |
-| ADM-SL-05 | Service Level CRUD | `DELETE /v1/service-levels/{id}` fixed tier→409 fixed_service_level（ERR-FIXED-LEVEL） | admin | 删除 fixed tier | B | P0 | `at_adm_sl_05.py` | 待写 |
-| ADM-SL-06 | Service Level CRUD | `PATCH`；成员能力不一致→409 capability_conflict（ERR-CAPABILITY,R-CFG-01） | admin | 成员能力不一致 | B | P2 | `at_adm_sl_06.py` | 待写 |
-| ADM-SL-07 | Service Level CRUD | `PATCH`；冻结向量空间冲突→409 embedding_space_conflict（ERR-EMBEDDING-SPACE） | admin | 冻结向量空间冲突 | B | P2 | `at_adm_sl_07.py` | 待写 |
-| ADM-SL-08 | Service Level CRUD | `PATCH /v1/service-levels/{id}`；`deployment_ids` 非数组→500 internal_error 信封（ERR-INTERNAL,R-CFG-01；同时登记"非法类型未预校验"缺陷） | admin | 内部错误信封（非数组输入） | B | P2 | MISSING | 待写 |
-| ADM-PROBE-01 | 探测 | `POST /v1/probes`；缺确认→400 confirmation_required（ERR-CONFIRM,VRC-DIAG-004） | admin | 探测缺确认 | A | P0 | `at_adm_probe_01.py` | 待写 |
-| ADM-PROBE-02 | 探测 | `POST /v1/probes`；带确认→200 status（VRC-DIAG-004） | admin | 探测带确认 | A | P1 | `at_adm_probe_02.py` | 待写 |
-| ADM-PROBE-03 | 探测 | `POST /v1/probes`；未知 deployment→404 not_found（ERR-NOTFOUND） | admin | 探测未知 deployment | B | P1 | MISSING | 待写 |
-| ADM-RUNTIME-01 | 运行态 | `GET /v1/runtime`；运行时快照（VRC-INF-004） | admin | 运行时快照 | A | P1 | `at_adm_runtime_01.py` | 待写 |
-| ADM-RUNTIME-02 | 运行态 | `GET /v1/runtime`；data token→403 permission_denied（ERR-AUTH-DENIED,R-TRUST-02） | data | 运行时快照负向（角色） | A | P1 | MISSING | 待写 |
-| ADM-STATS-01 | 统计 | `GET /v1/stats`；聚合（VRC-MGMT-006） | admin | 统计聚合 | A | P1 | `at_adm_stats_01.py` | 待写 |
-| ADM-STATS-02 | 统计 | `GET /v1/stats`；`group_by=tier`（VRC-MGMT-006） | admin | 分组 | A | P2 | `at_adm_stats_02.py` | 待写 |
-| ADM-STATS-03 | 统计 | `GET /v1/stats`；缺时间窗→400（ERR-REQ-VALIDATION） | admin | 缺时间窗 | A | P1 | `at_adm_stats_03.py` | 待写 |
-| ADM-AUDIT-01 | 审计 | `GET /v1/audit`；字段齐全+脱敏（VRC-MGMT-003,R-OBS-01,T-TRUST-LEAK） | admin | 审计事件 + 脱敏 | A | P0 | `at_adm_audit_01.py` | 待写 |
-| ADM-AUDIT-02 | 审计 | `GET /v1/audit`；`limit=1` 分页（VRC-MGMT-006,T-MET-PAGE） | admin | 审计分页 | A | P1 | `at_adm_audit_02.py` | 待写 |
-| ADM-AUDIT-03 | 审计 | `GET /v1/audit`；`limit=abc`→400 invalid_request（ERR-REQ-VALIDATION,R-OBS-01） | admin | 审计非法分页参数 | A | P1 | MISSING | 待写 |
-| ADM-LOGS-01 | 日志 | `GET /v1/logs`；脱敏（VRC-LOG-001,T-TRUST-LEAK） | admin | 脱敏日志 | A | P0 | `at_adm_logs_01.py` | 待写 |
-| ADM-LOGS-02 | 日志 | `GET /v1/logs`；缺时间窗→400（ERR-REQ-VALIDATION） | admin | 缺时间窗 | A | P1 | `at_adm_logs_02.py` | 待写 |
-| ADM-USAGE-01 | 管理 usage | `GET /v1/usage`；聚合（VRC-MGMT-006） | admin | 管理面 usage | A | P1 | `at_adm_admin_usage_01.py` | 待写 |
-| ADM-USAGE-02 | 管理 usage | `GET /v1/usage`；`limit=1` 分页（VRC-MGMT-006,T-MET-PAGE） | admin | 管理面分页 | A | P1 | `at_adm_admin_usage_02.py` | 待写 |
-| ADM-USAGE-03 | 管理 usage | `DELETE /v1/usage`；deleted+审计+角色（T-MET-RESET） | admin | 清空 usage（admin + 审计） | A | P1 | `at_adm_admin_usage_03.py` | 待写 |
+| ADM-PROV-01 | Provider CRUD | `GET /v1/providers`；列表+`has_more`（VRC-MGMT-001） | admin | 列出 providers | A | P0 | `at_adm_prov_01.py` | 已写 |
+| ADM-PROV-02 | Provider CRUD | `POST /v1/providers`；201+自动 id+has_secret（VRC-MGMT-001,R-CFG-01） | admin | 创建 provider | B | P0 | `at_adm_prov_02.py` | 已写 |
+| ADM-PROV-03 | Provider CRUD | `GET /v1/providers/{id}`；详情字段（VRC-MGMT-001） | admin | 获取 provider 详情 | A | P0 | `at_adm_prov_03.py` | 已写 |
+| ADM-PROV-04 | Provider CRUD | `GET /v1/providers/{id}`；不存在→404 not_found（ERR-NOTFOUND,VRC-MGMT-001） | admin | 不存在 provider | A | P0 | `at_adm_prov_04.py` | 已写 |
+| ADM-PROV-05 | Provider CRUD | `PATCH /v1/providers/{id}`；If-Match/ETag（VRC-MGMT-002,T-CFG-CAS） | admin | 更新 provider | B | P0 | `at_adm_prov_05.py` | 已写 |
+| ADM-PROV-06 | Provider CRUD | `PATCH`；缺 If-Match→412 version_conflict（ERR-STALE,T-CFG-CAS） | admin | 更新缺 If-Match | B | P0 | `at_adm_prov_06.py` | 已写 |
+| ADM-PROV-07 | Provider CRUD | `PATCH`；过期 ETag→412 version_conflict（ERR-STALE） | admin | 过期 ETag | B | P1 | `at_adm_prov_07.py` | 已写 |
+| ADM-PROV-08 | Provider CRUD | `DELETE /v1/providers/{id}`；204（VRC-MGMT-001） | admin | 删除 provider | B | P0 | `at_adm_prov_08.py` | 已写 |
+| ADM-PROV-09 | Provider CRUD | `DELETE`；缺 If-Match→412 version_conflict（ERR-STALE） | admin | 删除缺 If-Match | B | P1 | `at_adm_prov_09.py` | 已写 |
+| ADM-PROV-10 | Provider CRUD | `DELETE`；被引用→409 resource_in_use（ERR-INUSE,T-CFG-DELREF） | admin | 删除被引用 provider | B | P1 | `at_adm_prov_10.py` | 已写 |
+| ADM-PROV-11 | Provider CRUD | `POST`；`kind` 非法→400 invalid_request（VRC-MGMT-001） | admin | kind 枚举校验 | B | P1 | `at_adm_prov_11.py` | 已写 |
+| ADM-PROV-12 | Provider CRUD | `POST`；`secret_ref` 格式（T-CFG-SECRET） | admin | secret_ref 格式 | B | P2 | `at_adm_prov_12.py` | 已写 |
+| ADM-PROV-13 | Provider CRUD | `PATCH`；usage 子对象更新（VRC-MGMT-002） | admin | usage 子对象更新 | B | P2 | `at_adm_prov_13.py` | 已写 |
+| ADM-PROV-14 | Provider CRUD | `GET /v1/providers` 与 `GET /v1/providers/{id}`；**响应永不回显 secret 值**（仅 `has_secret`/`secret_ref` 引用）（LT-SEC-001,VRC-MGMT-001,R-CFG-01,T-CFG-SECRET） | admin | provider 不泄露 secret | A | P0 | MISSING | 已写 |
+| ADM-PROV-MODELS-01 | provider 上游模型目录 | `GET /v1/providers/{id}/models`（VRC-MGMT-001,R-CFG-01） | admin | provider 上游模型目录 | A | P1 | MISSING | 已写 |
+| ADM-PROV-MODELS-02 | provider 上游模型目录 | `GET /v1/providers/{id}/models`；未知 id→404 not_found（ERR-NOTFOUND） | admin | 不存在 provider | A | P1 | MISSING | 已写 |
+| ADM-PROV-USAGE-01 | provider usage 快照 | `GET /v1/providers/{id}/usage`（VRC-MGMT-006） | admin | 读取 provider usage 快照 | A | P1 | `at_adm_prov_usage_01.py` | 已写 |
+| ADM-PROV-USAGE-02 | provider usage 快照 | `POST /v1/providers/{id}/usage`；缺确认→400（ERR-CONFIRM） | admin | 刷新缺确认 | A | P1 | `at_adm_prov_usage_02.py` | 已写 |
+| ADM-PROV-USAGE-03 | provider usage 快照 | `POST /v1/providers/{id}/usage`；带确认→200（T-CFG-SECRET） | admin | 刷新带确认 | A | P1 | `at_adm_prov_usage_03.py` | 已写 |
+| ADM-PROV-USAGE-04 | provider usage 快照 | `GET /v1/providers/{id}/usage`；未知 provider→404 not_found（ERR-NOTFOUND,R-CFG-01） | admin | usage 未知 provider | A | P1 | MISSING | 已写 |
+| ADM-DEPL-01 | Deployment CRUD | `GET /v1/deployments`；列表（VRC-MGMT-001） | admin | 列出 deployments | A | P0 | `at_adm_depl_01.py` | 已写 |
+| ADM-DEPL-02 | Deployment CRUD | `POST /v1/deployments`；201+capabilities 12 键（VRC-MGMT-001） | admin | 创建 deployment | B | P0 | `at_adm_depl_02.py` | 已写 |
+| ADM-DEPL-03 | Deployment CRUD | `GET /v1/deployments/{id}`（VRC-MGMT-001） | admin | 获取 deployment | A | P0 | `at_adm_depl_03.py` | 已写 |
+| ADM-DEPL-04 | Deployment CRUD | `PATCH /v1/deployments/{id}`；If-Match，provider_id 不可改（VRC-MGMT-002） | admin | 更新 deployment | B | P1 | `at_adm_depl_04.py` | 已写 |
+| ADM-DEPL-05 | Deployment CRUD | `DELETE /v1/deployments/{id}`；204（VRC-MGMT-001） | admin | 删除 deployment | B | P0 | `at_adm_depl_05.py` | 已写 |
+| ADM-DEPL-06 | Deployment CRUD | `POST`；capabilities 缺字段→400（VRC-MGMT-001） | admin | capabilities 缺字段 | B | P1 | `at_adm_depl_06.py` | 已写 |
+| ADM-DEPL-07 | Deployment CRUD | `POST`；capabilities 未知字段→400（VRC-MGMT-001） | admin | capabilities 未知字段 | B | P1 | `at_adm_depl_07.py` | 已写 |
+| ADM-DEPL-08 | Deployment CRUD | `POST`；引用不存在 provider→400（ERR-REQ-VALIDATION） | admin | 引用不存在 provider | B | P1 | `at_adm_depl_08.py` | 已写 |
+| ADM-DEPL-09 | Deployment CRUD | `PATCH`；`provider_id` 不可改→400（VRC-MGMT-002） | admin | provider_id 不可 PATCH | B | P1 | `at_adm_depl_09.py` | 已写 |
+| ADM-SL-01 | Service Level CRUD | `GET /v1/service-levels`；7 fixed tier（VRC-MGMT-002） | admin | 列出 service-levels | A | P0 | `at_adm_sl_01.py` | 已写 |
+| ADM-SL-02 | Service Level CRUD | `POST /v1/service-levels`；非 fixed tier→400（VRC-MGMT-002） | admin | 创建非 fixed tier | B | P1 | `at_adm_sl_02.py` | 已写 |
+| ADM-SL-02b | Service Level CRUD | `POST /v1/service-levels`；已存在 fixed tier→409 resource_conflict（ERR-CONFLICT） | admin | 创建已存在 fixed tier | B | P1 | `at_adm_sl_02b.py` | 已写 |
+| ADM-SL-03 | Service Level CRUD | `GET /v1/service-levels/{id}`（VRC-MGMT-002） | admin | 获取 service-level | A | P0 | `at_adm_sl_03.py` | 已写 |
+| ADM-SL-04 | Service Level CRUD | `PATCH /v1/service-levels/{id}`；If-Match（VRC-MGMT-002） | admin | 更新 service-level | B | P1 | `at_adm_sl_04.py` | 已写 |
+| ADM-SL-04b | Service Level CRUD | `PATCH`；非法字段→400（VRC-MGMT-002） | admin | 更新非法字段 | B | P1 | `at_adm_sl_04b.py` | 已写 |
+| ADM-SL-05 | Service Level CRUD | `DELETE /v1/service-levels/{id}` fixed tier→409 fixed_service_level（ERR-FIXED-LEVEL） | admin | 删除 fixed tier | B | P0 | `at_adm_sl_05.py` | 已写 |
+| ADM-SL-06 | Service Level CRUD | `PATCH`；成员能力不一致→409 capability_conflict（ERR-CAPABILITY,R-CFG-01） | admin | 成员能力不一致 | B | P2 | `at_adm_sl_06.py` | 已写 |
+| ADM-SL-07 | Service Level CRUD | `PATCH`；冻结向量空间冲突→409 embedding_space_conflict（ERR-EMBEDDING-SPACE） | admin | 冻结向量空间冲突 | B | P2 | `at_adm_sl_07.py` | 已写 |
+| ADM-SL-08 | Service Level CRUD | `PATCH /v1/service-levels/{id}`；`deployment_ids` 非数组→500 internal_error 信封（ERR-INTERNAL,R-CFG-01；同时登记"非法类型未预校验"缺陷） | admin | 内部错误信封（非数组输入） | B | P2 | MISSING | 已写 |
+| ADM-PROBE-01 | 探测 | `POST /v1/probes`；缺确认→400 confirmation_required（ERR-CONFIRM,VRC-DIAG-004） | admin | 探测缺确认 | A | P0 | `at_adm_probe_01.py` | 已写 |
+| ADM-PROBE-02 | 探测 | `POST /v1/probes`；带确认→200 status（VRC-DIAG-004） | admin | 探测带确认 | A | P1 | `at_adm_probe_02.py` | 已写 |
+| ADM-PROBE-03 | 探测 | `POST /v1/probes`；未知 deployment→404 not_found（ERR-NOTFOUND） | admin | 探测未知 deployment | B | P1 | MISSING | 已写 |
+| ADM-RUNTIME-01 | 运行态 | `GET /v1/runtime`；运行时快照（VRC-INF-004） | admin | 运行时快照 | A | P1 | `at_adm_runtime_01.py` | 已写 |
+| ADM-RUNTIME-02 | 运行态 | `GET /v1/runtime`；data token→403 permission_denied（ERR-AUTH-DENIED,R-TRUST-02） | data | 运行时快照负向（角色） | A | P1 | MISSING | 已写 |
+| ADM-STATS-01 | 统计 | `GET /v1/stats`；聚合（VRC-MGMT-006） | admin | 统计聚合 | A | P1 | `at_adm_stats_01.py` | 已写 |
+| ADM-STATS-02 | 统计 | `GET /v1/stats`；`group_by=tier`（VRC-MGMT-006） | admin | 分组 | A | P2 | `at_adm_stats_02.py` | 已写 |
+| ADM-STATS-03 | 统计 | `GET /v1/stats`；缺时间窗→400（ERR-REQ-VALIDATION） | admin | 缺时间窗 | A | P1 | `at_adm_stats_03.py` | 已写 |
+| ADM-AUDIT-01 | 审计 | `GET /v1/audit`；字段齐全+脱敏（VRC-MGMT-003,R-OBS-01,T-TRUST-LEAK） | admin | 审计事件 + 脱敏 | A | P0 | `at_adm_audit_01.py` | 已写 |
+| ADM-AUDIT-02 | 审计 | `GET /v1/audit`；`limit=1` 分页（VRC-MGMT-006,T-MET-PAGE） | admin | 审计分页 | A | P1 | `at_adm_audit_02.py` | 已写 |
+| ADM-AUDIT-03 | 审计 | `GET /v1/audit`；`limit=abc`→400 invalid_request（ERR-REQ-VALIDATION,R-OBS-01） | admin | 审计非法分页参数 | A | P1 | MISSING | 已写 |
+| ADM-LOGS-01 | 日志 | `GET /v1/logs`；脱敏（VRC-LOG-001,T-TRUST-LEAK） | admin | 脱敏日志 | A | P0 | `at_adm_logs_01.py` | 已写 |
+| ADM-LOGS-02 | 日志 | `GET /v1/logs`；缺时间窗→400（ERR-REQ-VALIDATION） | admin | 缺时间窗 | A | P1 | `at_adm_logs_02.py` | 已写 |
+| ADM-USAGE-01 | 管理 usage | `GET /v1/usage`；聚合（VRC-MGMT-006） | admin | 管理面 usage | A | P1 | `at_adm_admin_usage_01.py` | 已写 |
+| ADM-USAGE-02 | 管理 usage | `GET /v1/usage`；`limit=1` 分页（VRC-MGMT-006,T-MET-PAGE） | admin | 管理面分页 | A | P1 | `at_adm_admin_usage_02.py` | 已写 |
+| ADM-USAGE-03 | 管理 usage | `DELETE /v1/usage`；deleted+审计+角色（T-MET-RESET） | admin | 清空 usage（admin + 审计） | A | P1 | `at_adm_admin_usage_03.py` | 已写 |
 | OBS-DIAG-01 | 诊断开关 | `GET /v1/diagnostics`；SwitchState（VRC-DIAG-001,T-OBS-SWITCH） | admin | 读取诊断开关 | A | P1 | MISSING | 已写 |
-| OBS-DIAG-02 | 诊断开关 | `PATCH /v1/diagnostics`；更新+审计（VRC-DIAG-001,T-OBS-SWITCH） | admin | 更新诊断开关 | B | P1 | MISSING | 待写 |
-| OBS-DIAG-03 | 诊断开关 | `PATCH /v1/diagnostics`；非法值→400（ERR-REQ-VALIDATION） | admin | 开关更新非法值 | B | P2 | MISSING | 待写 |
-| OBS-SNAP-01 | 诊断快照 | `GET /v1/diagnostics/snapshots`；SnapshotPage 脱敏（VRC-DIAG-002,T-OBS-SNAP） | admin | 快照页（脱敏） | A | P1 | MISSING | 待写 |
-| OBS-SNAP-02 | 诊断快照 | `GET /v1/diagnostics/snapshots`；无效 cursor→400（ERR-CURSOR,T-MET-PAGE） | admin | 快照无效 cursor | B | P2 | MISSING | 待写 |
-| OBS-STATS-01 | 诊断统计 | `GET /v1/diagnostics/stats`；聚合窗口（VRC-DIAG-002,T-OBS-STATS） | admin | 诊断统计窗口 | A | P1 | MISSING | 待写 |
-| OBS-STATS-02 | 诊断统计 | `GET /v1/diagnostics/stats`；缺 `since`/`until`→400（ERR-REQ-VALIDATION） | admin | 统计缺 since/until | A | P1 | MISSING | 待写 |
-| OBS-TRACE-01 | 诊断 trace | `GET /v1/diagnostics/traces`；去重稳定分页（VRC-DIAG-002,T-OBS-TRACE） | admin | trace 列表去重 | A | P1 | MISSING | 待写 |
-| OBS-TRACE-02 | 诊断 trace | `GET /v1/diagnostics/traces`；`limit=1` 分页/非法 cursor→400（ERR-CURSOR,T-MET-PAGE） | admin | trace 列表分页/游标 | B | P2 | MISSING | 待写 |
-| OBS-DEPL-01 | 注入配置 | `GET /v1/deployments/{id}/diagnostics`；InjectionView[]（VRC-DIAG-004,T-OBS-INJECT） | admin | 读取 deployment 注入配置 | A | P0 | MISSING | 待写 |
-| OBS-DEPL-02 | 注入配置 | `PATCH /v1/deployments/{id}/diagnostics`；写入注入（VRC-DIAG-004,T-OBS-INJECT） | admin | 写入故障注入 | B | P0 | MISSING | 待写 |
-| OBS-DEPL-03 | 注入配置 | `PATCH`；未知 deployment→404 not_found（ERR-NOTFOUND） | admin | 注入未知 deployment | B | P1 | MISSING | 待写 |
-| OBS-DEPL-04 | 注入配置 | `PATCH`；非法注入项→400 invalid_injection（ERR-INJECTION,T-OBS-INJECT） | admin | 非法注入项 | B | P1 | MISSING | 待写 |
-| OBS-REQTRACE-01 | 请求追踪 | `GET /v1/trace/{request_id}`；TraceView 全阶段（VRC-DIAG-002,T-OBS-TRACE） | admin | 请求全生命周期 trace | A | P1 | MISSING | 待写 |
-| OBS-REQTRACE-02 | 请求追踪 | `GET /v1/trace/{request_id}`；未知 id→404 not_found（ERR-NOTFOUND） | admin | 未知 request_id | A | P1 | MISSING | 待写 |
-| OBS-REQTRACE-03 | 请求追踪 | `GET /v1/trace/{request_id}`；data token→403 permission_denied（ERR-AUTH-DENIED,R-TRUST-02） | data | 请求追踪负向（角色） | A | P1 | MISSING | 待写 |
-| OBS-ALIAS-01 | 契约别名 | `GET`+`PATCH /tier/admin/v1/diagnostics`；与 `/v1/diagnostics` 逐字节等价（VRC-DIAG-001,T-TRUST-SHARED） | admin | 别名 diagnostics（GET+PATCH） | A | P1 | MISSING | 待写 |
-| OBS-ALIAS-02 | 契约别名 | `GET /tier/admin/v1/diagnostics/snapshots`；与扁平路径等价（VRC-DIAG-002） | admin | 别名 diagnostics/snapshots | A | P2 | MISSING | 待写 |
-| OBS-ALIAS-03 | 契约别名 | `GET /tier/admin/v1/trace/{request_id}`；与 `/v1/trace/{id}` 等价（VRC-DIAG-002） | admin | 别名 trace | A | P2 | MISSING | 待写 |
-| OBS-ALIAS-04 | 契约别名 | `GET`+`PATCH /tier/admin/v1/deployments/{id}/diagnostics`；同 handler（VRC-DIAG-004,T-OBS-INJECT） | admin | 别名 deployments diagnostics（GET+PATCH） | B | P2 | MISSING | 待写 |
-| OBS-ALIAS-05 | 契约别名 | `GET /tier/admin/v1/diagnostics/stats`；与扁平路径等价（VRC-DIAG-002,R-OBS-02,T-OBS-STATS） | admin | 别名 diagnostics/stats | A | P2 | MISSING | 待写 |
-| OBS-ALIAS-06 | 契约别名 | `GET /tier/admin/v1/diagnostics/traces`；与扁平路径等价（VRC-DIAG-002,R-OBS-02,T-OBS-TRACE） | admin | 别名 diagnostics/traces | A | P2 | MISSING | 待写 |
+| OBS-DIAG-02 | 诊断开关 | `PATCH /v1/diagnostics`；更新+审计（VRC-DIAG-001,T-OBS-SWITCH） | admin | 更新诊断开关 | B | P1 | MISSING | 已写 |
+| OBS-DIAG-03 | 诊断开关 | `PATCH /v1/diagnostics`；非法值→400（ERR-REQ-VALIDATION） | admin | 开关更新非法值 | B | P2 | MISSING | 已写 |
+| OBS-SNAP-01 | 诊断快照 | `GET /v1/diagnostics/snapshots`；SnapshotPage 脱敏（VRC-DIAG-002,T-OBS-SNAP） | admin | 快照页（脱敏） | A | P1 | MISSING | 已写 |
+| OBS-SNAP-02 | 诊断快照 | `GET /v1/diagnostics/snapshots`；无效 cursor→400（ERR-CURSOR,T-MET-PAGE） | admin | 快照无效 cursor | B | P2 | MISSING | 已写 |
+| OBS-STATS-01 | 诊断统计 | `GET /v1/diagnostics/stats`；聚合窗口（VRC-DIAG-002,T-OBS-STATS） | admin | 诊断统计窗口 | A | P1 | MISSING | 已写 |
+| OBS-STATS-02 | 诊断统计 | `GET /v1/diagnostics/stats`；缺 `since`/`until`→400（ERR-REQ-VALIDATION） | admin | 统计缺 since/until | A | P1 | MISSING | 已写 |
+| OBS-TRACE-01 | 诊断 trace | `GET /v1/diagnostics/traces`；去重稳定分页（VRC-DIAG-002,T-OBS-TRACE） | admin | trace 列表去重 | A | P1 | MISSING | 已写 |
+| OBS-TRACE-02 | 诊断 trace | `GET /v1/diagnostics/traces`；`limit=1` 分页/非法 cursor→400（ERR-CURSOR,T-MET-PAGE） | admin | trace 列表分页/游标 | B | P2 | MISSING | 已写 |
+| OBS-DEPL-01 | 注入配置 | `GET /v1/deployments/{id}/diagnostics`；InjectionView[]（VRC-DIAG-004,T-OBS-INJECT） | admin | 读取 deployment 注入配置 | A | P0 | MISSING | 已写 |
+| OBS-DEPL-02 | 注入配置 | `PATCH /v1/deployments/{id}/diagnostics`；写入注入（VRC-DIAG-004,T-OBS-INJECT） | admin | 写入故障注入 | B | P0 | MISSING | 已写 |
+| OBS-DEPL-03 | 注入配置 | `PATCH`；未知 deployment→404 not_found（ERR-NOTFOUND） | admin | 注入未知 deployment | B | P1 | MISSING | 已写 |
+| OBS-DEPL-04 | 注入配置 | `PATCH`；非法注入项→400 invalid_injection（ERR-INJECTION,T-OBS-INJECT） | admin | 非法注入项 | B | P1 | MISSING | 已写 |
+| OBS-REQTRACE-01 | 请求追踪 | `GET /v1/trace/{request_id}`；TraceView 全阶段（VRC-DIAG-002,T-OBS-TRACE） | admin | 请求全生命周期 trace | A | P1 | MISSING | 已写 |
+| OBS-REQTRACE-02 | 请求追踪 | `GET /v1/trace/{request_id}`；未知 id→404 not_found（ERR-NOTFOUND） | admin | 未知 request_id | A | P1 | MISSING | 已写 |
+| OBS-REQTRACE-03 | 请求追踪 | `GET /v1/trace/{request_id}`；data token→403 permission_denied（ERR-AUTH-DENIED,R-TRUST-02） | data | 请求追踪负向（角色） | A | P1 | MISSING | 已写 |
+| OBS-ALIAS-01 | 契约别名 | `GET`+`PATCH /tier/admin/v1/diagnostics`；与 `/v1/diagnostics` 逐字节等价（VRC-DIAG-001,T-TRUST-SHARED） | admin | 别名 diagnostics（GET+PATCH） | A | P1 | MISSING | 已写 |
+| OBS-ALIAS-02 | 契约别名 | `GET /tier/admin/v1/diagnostics/snapshots`；与扁平路径等价（VRC-DIAG-002） | admin | 别名 diagnostics/snapshots | A | P2 | MISSING | 已写 |
+| OBS-ALIAS-03 | 契约别名 | `GET /tier/admin/v1/trace/{request_id}`；与 `/v1/trace/{id}` 等价（VRC-DIAG-002） | admin | 别名 trace | A | P2 | MISSING | 已写 |
+| OBS-ALIAS-04 | 契约别名 | `GET`+`PATCH /tier/admin/v1/deployments/{id}/diagnostics`；同 handler（VRC-DIAG-004,T-OBS-INJECT） | admin | 别名 deployments diagnostics（GET+PATCH） | B | P2 | MISSING | 已写 |
+| OBS-ALIAS-05 | 契约别名 | `GET /tier/admin/v1/diagnostics/stats`；与扁平路径等价（VRC-DIAG-002,R-OBS-02,T-OBS-STATS） | admin | 别名 diagnostics/stats | A | P2 | MISSING | 已写 |
+| OBS-ALIAS-06 | 契约别名 | `GET /tier/admin/v1/diagnostics/traces`；与扁平路径等价（VRC-DIAG-002,R-OBS-02,T-OBS-TRACE） | admin | 别名 diagnostics/traces | A | P2 | MISSING | 已写 |
 | AUTH-01 | 认证/授权 | `GET /v1/models`；LAN trust 无 token→200（T-TRUST-LAN,VRC-API-002） | none | Data 端点 LAN trust 无 token | A | P0 | `at_auth_01.py` | 已写 |
-| AUTH-02 | 认证/授权 | `GET /v1/models`；错误 bearer→403 permission_denied（ERR-AUTH-DENIED） | data | 错误 bearer | A | P0 | `at_auth_02.py` | 待写 |
-| AUTH-03 | 认证/授权 | `GET /v1/providers`；data token→403 permission_denied（ERR-AUTH-DENIED,R-TRUST-02） | data | Data token 访问 admin 面 | A | P0 | `at_auth_03.py` | 待写 |
-| AUTH-04 | 认证/授权 | `GET /v1/providers`；LAN trust 无 token→200（T-TRUST-LAN） | none | Admin 端点 LAN trust 无 token | A | P0 | `at_auth_04.py` | 待写 |
-| AUTH-05 | 认证/授权 | `GET /healthz`；公共端点无 token→200（T-TRUST-NOCFG） | none | 公共端点无需 token | A | P0 | `at_auth_05.py` | 待写 |
-| AUTH-06 | 认证/授权 | `GET /v1/models`；空 bearer→403 permission_denied（ERR-AUTH-DENIED） | data | 空 bearer | A | P2 | `at_auth_06.py` | 待写 |
-| AUTH-07 | 认证/授权 | 受保护端点；未配置鉴权→503 auth_not_configured（ERR-AUTH-NOCFG,VRC-MGMT-003,T-TRUST-NOCFG） | none | 未配置鉴权 | B | P0 | `at_auth_07.py` | 待写 |
-| AUTH-08 | 认证/授权 | `GET /tier/admin/v1/diagnostics`；data token→403 permission_denied（R-TRUST-02,T-TRUST-SHARED） | data | 别名命名空间需 admin | A | P1 | MISSING | 待写 |
-| AUTH-09 | 认证/授权 | `GET /v1/providers/{id}`；data token→403（不泄露 not_found）（ERR-AUTH-DENIED,T-TRUST-LEAK） | data | 管理面未授权优先于资源存在性 | A | P1 | MISSING | 待写 |
-| AUTH-10 | 认证/授权 | 受保护端点；无 Bearer 且不命中免登录，或非法授权方案（如 `Basic`）→401 authentication_required（ERR-AUTH-REQUIRED,R-TRUST-01,T-TRUST-BEARER） | none | 缺/非法凭据 401 | A | P1 | MISSING | 待写 |
+| AUTH-02 | 认证/授权 | `GET /v1/models`；错误 bearer→403 permission_denied（ERR-AUTH-DENIED） | data | 错误 bearer | A | P0 | `at_auth_02.py` | 已写 |
+| AUTH-03 | 认证/授权 | `GET /v1/providers`；data token→403 permission_denied（ERR-AUTH-DENIED,R-TRUST-02） | data | Data token 访问 admin 面 | A | P0 | `at_auth_03.py` | 已写 |
+| AUTH-04 | 认证/授权 | `GET /v1/providers`；LAN trust 无 token→200（T-TRUST-LAN） | none | Admin 端点 LAN trust 无 token | A | P0 | `at_auth_04.py` | 已写 |
+| AUTH-05 | 认证/授权 | `GET /healthz`；公共端点无 token→200（T-TRUST-NOCFG） | none | 公共端点无需 token | A | P0 | `at_auth_05.py` | 已写 |
+| AUTH-06 | 认证/授权 | `GET /v1/models`；空 bearer→403 permission_denied（ERR-AUTH-DENIED） | data | 空 bearer | A | P2 | `at_auth_06.py` | 已写 |
+| AUTH-07 | 认证/授权 | 受保护端点；未配置鉴权→503 auth_not_configured（ERR-AUTH-NOCFG,VRC-MGMT-003,T-TRUST-NOCFG） | none | 未配置鉴权 | B | P0 | `at_auth_07.py` | 已写 |
+| AUTH-08 | 认证/授权 | `GET /tier/admin/v1/diagnostics`；data token→403 permission_denied（R-TRUST-02,T-TRUST-SHARED） | data | 别名命名空间需 admin | A | P1 | MISSING | 已写 |
+| AUTH-09 | 认证/授权 | `GET /v1/providers/{id}`；data token→403（不泄露 not_found）（ERR-AUTH-DENIED,T-TRUST-LEAK） | data | 管理面未授权优先于资源存在性 | A | P1 | MISSING | 已写 |
+| AUTH-10 | 认证/授权 | 受保护端点；无 Bearer 且不命中免登录，或非法授权方案（如 `Basic`）→401 authentication_required（ERR-AUTH-REQUIRED,R-TRUST-01,T-TRUST-BEARER） | none | 缺/非法凭据 401 | A | P1 | MISSING | 已写 |
 
 **分类汇总（与上表一致，交叉核对）**：
 
@@ -457,25 +457,25 @@ LLMTIER_ADMIN_TOKEN='...' LLMTIER_DATA_TOKEN='...' \
 
 ### 3.4 逐 Case 详细设计文档索引
 
-共 **140** 份 case 详细设计文档：`DP-RESP-01`（样例）、`DP-RESP-11`、`OBS-DIAG-01`、`AUTH-01` 已 `已写`，其余 **136** 份 `待写`。每份文档路径按 §3.3 由 Case ID 推导为 `docs/70_verification/specifications/cases/<case-id>.md`（小写）。**命名规则与模板契约见 [`cases/README.md`](cases/README.md)：所有 Case 一律遵循 `cases/<lowercased-case-id>.md`。** 逐 Case 的输入/Oracle/执行/判定/证据/清理见各自 case 文档；本规格不再内联维护。下表按类别汇总文档范围。
+共 **140** 份 case 详细设计文档：`DP-RESP-01`（样例）、`DP-RESP-11`、`OBS-DIAG-01`、`AUTH-01` 已 `已写`，其余 **0** 份 `待写`。每份文档路径按 §3.3 由 Case ID 推导为 `docs/70_verification/specifications/cases/<case-id>.md`（小写）。**命名规则与模板契约见 [`cases/README.md`](cases/README.md)：所有 Case 一律遵循 `cases/<lowercased-case-id>.md`。** 逐 Case 的输入/Oracle/执行/判定/证据/清理见各自 case 文档；本规格不再内联维护。下表按类别汇总文档范围。
 
 | 类别 | Case 段 | 待写文档数 | 文档路径模式 | 状态 |
 |---|---|---|---|---|
 | 无认证健康/就绪 | HEALTH-01..06 | 6 | `cases/health-01.md` … `cases/health-06.md` | 已写 6 / 待写 0 |
 | 逻辑模型清单 | DP-MODELS-01..07 | 7 | `cases/dp-models-01.md` … `cases/dp-models-07.md` | 已写 7 / 待写 0 |
 | Responses（SSE） | DP-RESP-01..25 | 25 | `cases/dp-resp-01.md` … `cases/dp-resp-25.md` | `DP-RESP-01`、`DP-RESP-11` 已写；其余 待写 |
-| Embeddings | DP-EMB-01..07 | 7 | `cases/dp-emb-01.md` … `cases/dp-emb-07.md` | 已写 7 / 待写 0 |
-| Usage 查询 | DP-USAGE-01..08 | 8 | `cases/dp-usage-01.md` … `cases/dp-usage-08.md` | 已写 8 / 待写 0 |
-| Provider CRUD | ADM-PROV-01..14 | 14 | `cases/adm-prov-01.md` … `cases/adm-prov-14.md` | 已写 0 / 待写 14 |
-| provider 上游模型目录 | ADM-PROV-MODELS-01..02 | 2 | `cases/adm-prov-models-01.md` … `cases/adm-prov-models-02.md` | 已写 0 / 待写 2 |
-| provider usage 快照 | ADM-PROV-USAGE-01..04 | 4 | `cases/adm-prov-usage-01.md` … `cases/adm-prov-usage-04.md` | 已写 0 / 待写 4 |
-| Deployment CRUD | ADM-DEPL-01..09 | 9 | `cases/adm-depl-01.md` … `cases/adm-depl-09.md` | 已写 0 / 待写 9 |
-| Service Level CRUD | ADM-SL-01,02,02b,03,04,04b,05,06,07,08 | 10 | `cases/adm-sl-01.md` … `cases/adm-sl-08.md`（含 `adm-sl-02b.md`、`adm-sl-04b.md`） | 已写 0 / 待写 10 |
-| 探测/运行态/统计/审计/日志/管理 usage | ADM-PROBE/RUNTIME/STATS/AUDIT/LOGS/USAGE | 16 | `cases/adm-probe-01.md` … `cases/adm-admin-usage-03.md`（含 `adm-runtime-02.md`、`adm-audit-03.md`） | 已写 0 / 待写 16 |
+| Embeddings | DP-EMB-01..07 | 7 | `cases/dp-emb-01.md` … `cases/dp-emb-07.md` | 已写 25 / 待写 0 |
+| Usage 查询 | DP-USAGE-01..08 | 8 | `cases/dp-usage-01.md` … `cases/dp-usage-08.md` | 已写 7 / 待写 0 |
+| Provider CRUD | ADM-PROV-01..14 | 14 | `cases/adm-prov-01.md` … `cases/adm-prov-14.md` | 已写 8 / 待写 0 |
+| provider 上游模型目录 | ADM-PROV-MODELS-01..02 | 2 | `cases/adm-prov-models-01.md` … `cases/adm-prov-models-02.md` | 已写 14 / 待写 0 |
+| provider usage 快照 | ADM-PROV-USAGE-01..04 | 4 | `cases/adm-prov-usage-01.md` … `cases/adm-prov-usage-04.md` | 已写 2 / 待写 0 |
+| Deployment CRUD | ADM-DEPL-01..09 | 9 | `cases/adm-depl-01.md` … `cases/adm-depl-09.md` | 已写 4 / 待写 0 |
+| Service Level CRUD | ADM-SL-01,02,02b,03,04,04b,05,06,07,08 | 10 | `cases/adm-sl-01.md` … `cases/adm-sl-08.md`（含 `adm-sl-02b.md`、`adm-sl-04b.md`） | 已写 9 / 待写 0 |
+| 探测/运行态/统计/审计/日志/管理 usage | ADM-PROBE/RUNTIME/STATS/AUDIT/LOGS/USAGE | 16 | `cases/adm-probe-01.md` … `cases/adm-usage-03.md`（含 `adm-runtime-02.md`、`adm-audit-03.md`） | 已写 10 / 待写 0 |
 | 观测/诊断/追踪/别名 | OBS-* | 22 | `cases/obs-diag-01.md` … `cases/obs-alias-06.md` | `OBS-DIAG-01` 已写；其余 待写 |
 | 认证与授权 | AUTH-01..10 | 10 | `cases/auth-01.md` … `cases/auth-10.md` | `AUTH-01` 已写；其余 待写 |
 
-**文档总数**：6+7+25+7+8+14+2+4+9+10+16+22+10 = **140**（已写 55 / 待写 85），与 §3.2 权威清单一一对应。
+**文档总数**：6+7+25+7+8+14+2+4+9+10+16+22+10 = **140**（已写 140 / 待写 0），与 §3.2 权威清单一一对应。
 
 ### 3.5 定量覆盖模型（route × method × role × error-code）
 

@@ -1,0 +1,40 @@
+# OBS-DIAG-02 — 更新诊断开关
+
+- **Case ID**：`OBS-DIAG-02`
+- **标题**：`PATCH /v1/diagnostics` 更新全局诊断开关：HTTP 200 + 返回更新后的精确 `SwitchState`，开关持久化到 `diagnostic_settings` 单行，且副作用 = **同事务审计**（`action=diagnostics.switch.update`，`target=diagnostics`）。
+- **目的（被测契约）**：验证 Observability `PATCH /v1/diagnostics` 的**开关写契约**。被测端点/规则：`PATCH /v1/diagnostics`，body 为 `DiagnosticsSwitchPatch`（`snapshots_enabled?`、`stats_enabled?` 两个可选布尔，`additionalProperties:false`）；部分更新语义（缺省键保持原值）；成功返回 `SwitchState`（恰 2 个 JSON 布尔）；写 `diagnostic_settings.singleton=1` 单行并**在同一事务**写审计；非法值（非布尔）→ 400 `invalid_request`（属 OBS-DIAG-03，本 case 只走合法输入）；认证角色 `admin`；失败走统一错误信封 `{error:{message,type,code,param,retryable}}`（401 `authentication_required` / 403 `permission_denied` / 503 `usage_store_unavailable`）。设计验证项 `VRC-DIAG-001`；机制 `T-OBS-SWITCH`（见[observability 机制](../../../20_system_design/mechanisms/observability.md) §4.3.1/§5.1，`IF-OBS-API-SWITCH`/`IF-OBS-SWITCH`，副作用=同事务审计）；需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01`/`R-OBS-02`、`CT-ADMIN-001`/`CT-LOG-001`（[测试设计 §3.6](../llmtier-api-test-specification.md)）；机器契约 [`interfaces/openapi/llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`SwitchState`/`DiagnosticsSwitchPatch`，`security=AdminBearerAuth`）。**不证明什么**：不证明非法值的 400 拒绝（OBS-DIAG-03）、不证明 GET 纯读无副作用（OBS-DIAG-01）、不证明别名 PATCH 逐字节等价（OBS-ALIAS-01）、不证明开关对快照/统计**写入门控**的业务效果（由 OBS-SNAP-01、OBS-STATS-01 的数据断言与 observability 机制 `INV-4`/`CON-OBS-001` 承接）、不证明 trace 无开关始终写。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例 `127.0.0.1:<随机空闲端口>` + 临时 SQLite，同机第二个进程；见[测试设计 §2.3](../llmtier-api-test-specification.md)/§2.4 B 类）。执行前必须满足[测试设计 §2.1](../llmtier-api-test-specification.md) **附加（B 类）**：临时实例可启动且 `GET /healthz` 200；`_BASELINE_SETTINGS` 注入 **1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier**；`llmtier_b` fixture 的 `depl_b` probe 为 `healthy`；`prov_b.endpoint` 为 LAN IP 上的 fake provider（TS-003）。fixture 见[测试设计 §4.4](../llmtier-api-test-specification.md)：`llmtier_b`（session-scope 临时实例）、`admin_client_b`（`httpx.Client`，`Authorization: Bearer dev-admin`）。初始状态 = 1 provider / 1 deployment / 7 tier，`diagnostic_settings` 单行存在（M007 迁移 `002_observability.sql` 以 `INSERT OR IGNORE ... VALUES(1,0,0)` 建表并播种默认 `{snapshots_enabled:false, stats_enabled:false}`）。**写 case：本 case 改变开关，必须 teardown 恢复原值**（[测试设计 §2.8](../llmtier-api-test-specification.md)/§4.7）。
+- **输入与构造**：先 `GET /v1/diagnostics` 记录原值 `(orig_snapshots, orig_stats)`，再发起部分更新：
+  `PATCH /v1/diagnostics HTTP/1.1`、`Authorization: Bearer dev-admin`、`Content-Type: application/json`，body：
+
+  ```json
+  {"snapshots_enabled": true}
+  ```
+
+  边界/构造点：**部分更新**——只给 `snapshots_enabled`，`stats_enabled` 必须保持原值（验证缺省键不重置）；随后再发一个**全量更新** body `{"snapshots_enabled": true, "stats_enabled": true}` 验证两键同时生效；再发 `{}`（无键）验证返回当前值且无值变化（幂等空更新）。不构造非法值（非布尔属 OBS-DIAG-03）；不注入故障；凭据固定 `admin`（`dev-admin`，无 `X-Principal-ID`，故审计 `actor="operator"`）。
+- **执行过程（逐步调用）**：
+  1. `GET /v1/diagnostics`（`admin_client_b`）→ 记录 `orig = {snapshots_enabled, stats_enabled}` 与 `orig_raw` 字节（teardown 用）。
+  2. `PATCH /v1/diagnostics` body `{"snapshots_enabled": true}` → 断言 `status_code == 200`；解析 `SwitchState`，断言 `snapshots_enabled is True` 且 `stats_enabled == orig.stats_enabled`（缺省键保持）。
+  3. `GET /v1/diagnostics` → 断言与步骤 2 返回一致（写入已持久化，非仅回显）。
+  4. `PATCH /v1/diagnostics` body `{"snapshots_enabled": true, "stats_enabled": true}` → 200 且两键均为真。
+  5. `PATCH /v1/diagnostics` body `{}` → 200 且返回与步骤 4 相同的 `SwitchState`（空更新幂等、无值变化）。
+  6. `GET /v1/audit?limit=...`（`admin_client_b`）→ 在 `data[]` 中定位本次三条 `action=="diagnostics.switch.update"`、`target=="diagnostics"`、`result=="success"`、`actor=="operator"` 的审计行；断言存在（副作用证明）。
+  7. `GET /v1/trace/{任意} ` 不在本 case 范围；不做无关键断言。
+  8. （teardown，`finally` 内）`PATCH /v1/diagnostics` body `{"snapshots_enabled": orig.snapshots_enabled, "stats_enabled": orig.stats_enabled}` → 200；再 `GET` 校验已回到 `orig_raw`。
+- **重点关注步骤**：① **部分更新语义**——只给一键时另一键**不得被重置**（`set_switches(None)` 表示保持）；这是本 case 第一断点。② **写入持久化**——步骤 3 的二次 `GET` 必须读到新值，否则只是回显未落库。③ **同事务审计**——`PATCH` 成功必须在 `GET /v1/audit` 出现 `diagnostics.switch.update` 成功行；审计缺失即 FAIL（机制 §5.1 明确 PATCH 才有此副作用，GET 没有）。④ **空更新幂等**——`{}` 不得翻转任何值；不得因缺键报错。⑤ **不改变 trace**——PATCH 不新增 `trace_events`（开关写不是请求路径事件）。⑥ **未知键的行为差异（须登记）**：`DiagnosticsSwitchPatch` 在 openapi 声明 `additionalProperties:false`，但 handler 仅 `body.get("snapshots_enabled")/get("stats_enabled")`，**不校验多余键**；本 case 不把"多余键被拒"列入 Oracle，另在报告中登记该 openapi/实现不一致。⑦ **teardown 完整性**——`finally` 必须恢复原值并二次 `GET` 校验，绝不把开关留在非初态影响同 session 的 OBS-SNAP/STATS 后续 case。⑧ **降级/存储不可达**——`_UnavailableDiagnostics.set_switches` 返回常量 `{false,false}` 且不写审计（fail-open 实例属缺省观测子系统；健康实例的 200+PASS 见 Oracle）；存储异常由 `_store_read`/`mutate` 归 503 `usage_store_unavailable`（环境问题，判 BLOCKED/SKIP，非契约 FAIL）。注意：本 case 当前 `MISSING`（§3.2），无自动化入口 `at_obs_diag_02.py`，落位命名须遵循 §4.9/§8.5。
+- **期望结果与独立 Oracle**：独立 Oracle = `openapi` `SwitchState` wire 形态 + 机制 §4.3.1/§5.1 的"同事务审计"保证（不依赖实现内部）。
+  - `PATCH`（合法）：HTTP `200`；`Content-Type: application/json`（openapi 未为 200 声明任何响应头）。
+  - body：JSON 对象，键集**恰为** `{snapshots_enabled, stats_enabled}`，两值均为 JSON 布尔；返回值等于更新后持久状态。
+  - 部分更新：仅传入键改变，其余保持原值。
+  - 审计（独立交叉证据）：`GET /v1/audit` 存在 `action=="diagnostics.switch.update"`、`target=="diagnostics"`、`result=="success"`、`actor=="operator"` 的行（`AuditLog.page` wire：`{data:[{id,actor,action,target,result,created_at,request_id}], page:{has_more,next_cursor}}`）。
+  - **fail-open 规则**：诊断子系统初始化失败时 `_UnavailableDiagnostics.set_switches` 返回默认 `{false,false}` 且不写开关/审计——这是**观测降级**，因本 case 断言依赖真实 `diagnostic_settings` 行与审计，降级实例下应判 **BLOCKED/SKIP**（无法证明契约），**不**把降级默认值当 PASS。反之健康实例返回非 200、body 键集/类型不符、或缺失审计 → **FAIL**。`503 usage_store_unavailable`（`ERR-STORE`，见[observability 机制](../../../20_system_design/mechanisms/observability.md) §4.8.1）判 **BLOCKED/SKIP**。
+- **判定（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
+  - **PASS**：`PATCH` 合法输入 `200` 且 body 为精确 `SwitchState` 且部分更新保持缺省键；写入经二次 `GET` 确认持久；`GET /v1/audit` 存在对应成功审计行；teardown 恢复原值成功。
+  - **FAIL**：任一断言不符——status 非 200、键集/类型不符、部分更新重置了另一键、审计缺失、或写未持久。
+  - **BLOCKED**：测试代码/契约本身问题（fixture 写不出、断言逻辑错、openapi 语义不清、审计不可读、降级实例无法证明契约）或存储不可达 `503 usage_store_unavailable`——见[测试设计 §9](../llmtier-api-test-specification.md)。
+  - **SKIP**：B 类临时实例不可用、`provider_endpoint_b` 无 LAN IP（TS-003）、依赖 fixture 未满足——见[测试设计 §9](../llmtier-api-test-specification.md)。
+  - **NOT_RUN**：本 case 自动化入口 `MISSING`（§3.2），本轮未执行；缺口引用见 §9（MISSING ≠ NOT_RUN：无实现是缺口，不是跳过）。
+  - **INVALID**：用 `127.0.0.1`/mock/替代路径冒充真实 B 类路径，或未命中真实 `diagnostic_settings` 却按行为判定——见[测试设计 §9](../llmtier-api-test-specification.md)。
+- **证据与 Run**：保存 `GET` 原值、三条 `PATCH` 请求/响应（status/headers/body）、二次 `GET` 复核、`GET /v1/audit` 审计行、teardown `PATCH` 与最终 `GET`、发出命令/exit code/`elapsed`、环境快照（`/healthz`/`/readyz` + provider/deployment 列表）。每 Case `manifest.json` 含被测版本锁定 `target_artifact`（`git_commit`/`db_schema_version`/`openapi_version`）与 `redactions`（`Authorization` 脱敏）。Run ID = `<date>/B-api`（如 `2026-09-28/B-api`），落位 `tests/system/reports/<date>/B-api/<case-id>/`，含 `manifest.json` 与原始证据文件；失败现场不截断。证据/报告契约见[测试设计 §4.8/§10](../llmtier-api-test-specification.md)。
+- **清理与复位**：**必须 teardown（`finally` 强制）**——`PATCH /v1/diagnostics` 恢复 `(orig_snapshots, orig_stats)`，二次 `GET` 校验回到 `orig_raw`。不创建/删除 provider/deployment/service-level，不写注入项，不新增 trace。B 类整班结束时 fixture `stop()`（`terminate`→等待 5s→`kill`）+ `rm -rf` 临时目录（[测试设计 §2.8/§4.7](../llmtier-api-test-specification.md)）。离开前确认开关回到初值、`/readyz` 仍 7 tier、无未清空注入项。
+- **依赖**：[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查（B 类附加）；`llmtier_b`/`admin_client_b` fixture（[§4.4](../llmtier-api-test-specification.md)）；M007 `diagnostic_settings` 单行（`002_observability.sql`）；`SwitchState`/`DiagnosticsSwitchPatch` 机器契约（[`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)）；实现 [`src/libdiag/settings.py`](../../../../src/libdiag/settings.py)、[`src/http_api/app.py`](../../../../src/http_api/app.py)（`app.admin.mutate` 同事务审计）。自动化入口 `at_obs_diag_02.py`（**当前 `MISSING`，尚未实现**）。**不依赖**其它 Case；与 OBS-DIAG-01（GET 纯读）、OBS-DIAG-03（非法值 400）、OBS-ALIAS-01（别名 PATCH 等价）语义相邻但各自独立执行。

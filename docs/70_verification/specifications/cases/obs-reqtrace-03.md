@@ -1,0 +1,35 @@
+# OBS-REQTRACE-03 — 请求追踪负向（角色）
+
+- **Case ID**：`OBS-REQTRACE-03`
+- **标题**：`GET /v1/trace/{request_id}` 以 `data` token 访问：HTTP 403 `permission_denied`，无信息泄露（不返回 404 的存在性差异）。
+- **目的（被测契约）**：验证单请求 trace 的**角色授权负向契约**。被测端点/规则：`GET /v1/trace/{request_id}` 属 Observability（admin 面），路由在 `_dispatch` 中经 `principal = self._auth("admin")` 解析；`data` token 不匹配配置的 admin token → `authenticate` 抛 `ApiError(403, "permission_denied", "The credential is not authorized")`（[`src/http_api/auth.py`](../../../../src/http_api/auth.py)），**先于**资源存在性检查（因此对任意 id 都 403，不泄露该 id 是否存在）；错误信封恰 5 键（`type="request_error"`，`retryable=false`）。设计验证项 `VRC-API-002` + `R-TRUST-02`；机制 `T-TRUST-SHARED`/`T-TRUST-LEAK`（[access-trust 机制](../../../20_system_design/mechanisms/access-trust.md)）；错误目录 `ERR-AUTH-DENIED` → `permission_denied`（[测试设计 §11.1](../llmtier-api-test-specification.md) `ERR-AUTH-DENIED → ...、OBS-REQTRACE-03`；§3.5 `/v1/trace/{id}` 覆盖 `permission_denied`）；需求链 `LT-INT-001`/`LT-SEC-001/003`、`R-TRUST-01..04`、`CT-WEBSEC-001`/`CT-ADMIN-001`（[测试设计 §3.6](../llmtier-api-test-specification.md)）；机器契约 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`Forbidden`，`security=AdminBearerAuth`）。**不证明什么**：不证明正向 trace（OBS-REQTRACE-01）、不证明未知 id 404（OBS-REQTRACE-02）、不证明无凭据/非法方案 401（AUTH-10）、不证明别名命名空间需 admin（AUTH-08，虽同思路）、不证明快照/统计角色负向（未单列）。
+- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `data`；见[测试设计 §2.3](../llmtier-api-test-specification.md)）。执行前必须通过[测试设计 §2.1](../llmtier-api-test-specification.md) 的 **6 项**就绪检查；任一失败 → 整班 BLOCKED/SKIP。fixture：`api_client`（`httpx.Client`，`Authorization: Bearer dev-data`，[§4.4](../llmtier-api-test-specification.md)）；对照可另用 `admin_client`（`Bearer dev-admin`）。初始状态 = 3 provider / 4 deployment / 7 tier；本 case 纯 GET、零写入，初态即终态。
+- **输入与构造**：固定请求（无 body）：
+  - 主：`GET /v1/trace/req_does_not_exist`、`Authorization: Bearer dev-data` → 期望 **403**（不是 404）。
+  - 存在性不泄露对照：`GET /v1/trace/<真实 id>`、`Authorization: Bearer dev-data` → 期望 **403**（与未知 id 同状态，证明授权先于存在性）。
+  - 别名对照（旁证）：`GET /tier/admin/v1/trace/req_does_not_exist`、`Bearer dev-data` → 期望 **403**（AUTH-08 语义，本 case 仅作旁证）。
+  - 正相对照：同 id 用 `Bearer dev-admin` → 未知 id 返回 **404 not_found**；证明该 id 确实不存在且 admin 可达（用于区分"403 是因为不存在"的误判）。
+- **执行过程（逐步调用）**：
+  1. `GET /healthz`、`GET /readyz`（§2.1，自动执行）。
+  2. `api_client.get("/v1/trace/req_does_not_exist")` → 记录 status/body。
+  3. 断言 `resp.status_code == 403`；`err = resp.json()["error"]`：键集恰 5、`err["code"]=="permission_denied"`、`err["type"]=="request_error"`、`err["retryable"] is False`。
+  4. （存在性不泄露）取一条真实 `request_id`（经 `admin_client` 的 `GET /v1/diagnostics/traces?limit=1`）→ 以 `Bearer dev-data` 请求 → 断言同样 **403**（且 body 与步骤 2 等价，不出现 404/200 差异）。
+  5. （对照）同一未知 id 用 `admin_client`（`Bearer dev-admin`）→ 断言 `404 not_found`，证明步骤 2 的 403 不是"资源不存在"的伪装。
+  6. （别名旁证）`GET /tier/admin/v1/trace/req_does_not_exist` + `Bearer dev-data` → 断言 `403 permission_denied`。
+- **重点关注步骤**：① **授权先于存在性**——data token 对存在/未知 id 都应 403，**不得**因 id 不存在而返回 404（信息泄露）；这是本 case 核心。② **403 vs 401**——`Bearer dev-data` 形态合法但不是 admin 凭据 → **403**（不是 401；401 属缺/非法凭据，AUTH-10）。③ **错误信封 identity**——恰 5 键、`type=request_error`、`retryable=false`。④ **不泄露存在性**——两种 id 的响应体应一致（除 message 中可能无 id 信息）。⑤ **admin 可达对照**——用 admin 证明端点本身可用且未知 id 为 404，排除把"端点整体坏"误判为授权拒绝。⑥ **别名同保护**——别名路径同样要求 admin（AUTH-08），本 case 作旁证。⑦ **降级/存储**——`_UnavailableDiagnostics.trace` 在授权**之后**才执行，故不影响 403；`503 usage_store_unavailable` 判 BLOCKED/SKIP（仅在 admin 对照路径可能出现）。注意：本 case 当前 `MISSING`（§3.2），无 `at_obs_reqtrace_03.py`。
+- **期望结果与独立 Oracle**：独立 Oracle = `openapi` `Forbidden`（`ErrorEnvelope`）+ access-trust 机制的角色语义（授权先于资源）。
+  - data token 访问 `/v1/trace/{id}`（任意 id）：HTTP `403`；`Content-Type: application/json`；body `{"error":{"message":"The credential is not authorized","type":"request_error","code":"permission_denied","param":<string|null>,"retryable":false}}`（恰 5 键；`message` 措辞以实现为准）。
+  - 存在性不泄露：真实 id 与未知 id 的 data 响应一致（均 403）。
+  - 对照：admin 对未知 id → `404 not_found`。
+  - 别名旁证：`/tier/admin/v1/trace/{id}` + data → 403。
+  - **fail-open**：授权在诊断调用之前，降级不影响 403；若健康实例对 data token 返回 200/404 → **FAIL**；`503 usage_store_unavailable` 判 **BLOCKED/SKIP**。
+- **判定（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
+  - **PASS**：data token 对存在/未知 id 均 `403 + permission_denied`（无信息泄露）；admin 对照 404 正确；别名旁证 403。
+  - **FAIL**：data token 返回 200/404、`code` 非 `permission_denied`、或对未知 id 与已知 id 状态不同（泄露存在性）。
+  - **BLOCKED**：测试代码/契约问题、降级实例、存储不可达——见[测试设计 §9](../llmtier-api-test-specification.md)。
+  - **SKIP**：§2.1 前置不满足——见[测试设计 §9](../llmtier-api-test-specification.md)。
+  - **NOT_RUN**：自动化入口 `MISSING`（§3.2），本轮未执行；缺口引用见 §9。
+  - **INVALID**：用 `127.0.0.1`/mock/替代路径冒充真实 m5air，或未命中真实鉴权路径却按行为判定——见[测试设计 §9](../llmtier-api-test-specification.md)。
+- **证据与 Run**：保存 data token 的 403 信封（未知与真实 id）、admin 对照 404、别名旁证、命令/exit code/`elapsed`、环境快照。`manifest.json` 含 `target_artifact` 与 `redactions`（`Authorization` 脱敏，测试凭据 `dev-data`/`dev-admin` 按 §10 处理）。Run ID = `<date>/A-api`，落位 `tests/system/reports/<date>/A-api/<case-id>/`；失败现场不截断（[测试设计 §4.8/§10](../llmtier-api-test-specification.md)）。
+- **清理与复位**：**无需 teardown**——纯 GET，零副作用。退出前确认 `/readyz` 仍 7 tier、无未清空注入项；若误跑于 B 类实例，按[测试设计 §4.7](../llmtier-api-test-specification.md) 整班 `stop()` + `rm -rf`。
+- **依赖**：[测试设计 §2.1](../llmtier-api-test-specification.md) 6 项就绪检查；`api_client`（data）/`admin_client`（admin）fixture（[§4.4](../llmtier-api-test-specification.md)）；`ERR-AUTH-DENIED`；实现 [`src/http_api/auth.py`](../../../../src/http_api/auth.py)、[`src/http_api/app.py`](../../../../src/http_api/app.py)（OBS 路由统一 `_auth("admin")`）；access-trust 机制。自动化入口 `at_obs_reqtrace_03.py`（**当前 `MISSING`，尚未实现**）。**不依赖**其它 Case；与 OBS-REQTRACE-01/02（正向/404）、AUTH-08（别名需 admin）互补但各自独立执行。
