@@ -161,6 +161,14 @@ def handler_factory(app: Application):
             if not isinstance(data, dict): raise ApiError(400, "invalid_json", "Request body must be a JSON object")
             return data
 
+        def _optional_boolean(self, body: dict, key: str) -> bool | None:
+            if key not in body:
+                return None
+            value = body[key]
+            if not isinstance(value, bool):
+                raise ApiError(400, "invalid_request", f"{key} must be a boolean", param=key)
+            return value
+
         def _static(self, path: str):
             root = Path(__file__).resolve().parent.parent / "web_ui"
             name = "index.html" if path in {"/", "/ui", "/ui/"} else path.removeprefix("/ui/")
@@ -299,7 +307,11 @@ def handler_factory(app: Application):
             if path == "/v1/diagnostics" and method == "GET": return self._json(200, self._store_read(app.diagnostics.switches))
             if path == "/v1/diagnostics" and method == "PATCH":
                 body = self._body()
-                result = app.admin.mutate(principal.principal_id, "diagnostics.switch.update", "diagnostics", self.request_id, lambda conn: app.diagnostics.set_switches(body.get("snapshots_enabled"), body.get("stats_enabled"), conn=conn))
+                if not set(body) <= {"snapshots_enabled", "stats_enabled"}:
+                    raise ApiError(400, "invalid_request", "Diagnostics patch accepts only snapshots_enabled and stats_enabled")
+                snapshots = self._optional_boolean(body, "snapshots_enabled")
+                stats = self._optional_boolean(body, "stats_enabled")
+                result = app.admin.mutate(principal.principal_id, "diagnostics.switch.update", "diagnostics", self.request_id, lambda conn: app.diagnostics.set_switches(snapshots, stats, conn=conn))
                 return self._json(200, result)
             if path == "/v1/diagnostics/snapshots" and method == "GET":
                 return self._json(200, self._store_read(app.diagnostics.snapshots_page, query.get("since", [None])[0], query.get("until", [None])[0], query.get("deployment_id", [None])[0], query.get("model", [None])[0], _int_param(query, "limit", 50), query.get("cursor", [None])[0]))
@@ -315,7 +327,9 @@ def handler_factory(app: Application):
                 if method == "GET": return self._json(200, self._store_read(app.diagnostics.injections, did))
                 if method == "PATCH":
                     body = self._body()
-                    result = app.admin.mutate(principal.principal_id, "diagnostics.injection.update", did, self.request_id, lambda conn: app.diagnostics.set_injections(did, body.get("items", []), conn=conn))
+                    if "items" not in body:
+                        raise ApiError(400, "invalid_request", "diagnostics injection patch requires items")
+                    result = app.admin.mutate(principal.principal_id, "diagnostics.injection.update", did, self.request_id, lambda conn: app.diagnostics.set_injections(did, body["items"], conn=conn))
                     return self._json(200, result)
             match = re.fullmatch(r"/tier/admin/v1/deployments/([^/]+)/diagnostics", path)
             if match:
@@ -323,7 +337,9 @@ def handler_factory(app: Application):
                 if method == "GET": return self._json(200, self._store_read(app.diagnostics.injections, did))
                 if method == "PATCH":
                     body = self._body()
-                    result = app.admin.mutate(principal.principal_id, "diagnostics.injection.update", did, self.request_id, lambda conn: app.diagnostics.set_injections(did, body.get("items", []), conn=conn))
+                    if "items" not in body:
+                        raise ApiError(400, "invalid_request", "diagnostics injection patch requires items")
+                    result = app.admin.mutate(principal.principal_id, "diagnostics.injection.update", did, self.request_id, lambda conn: app.diagnostics.set_injections(did, body["items"], conn=conn))
                     return self._json(200, result)
             match = re.fullmatch(r"/v1/trace/([^/]+)", path)
             if match and method == "GET": return self._json(200, self._store_read(app.diagnostics.trace, match.group(1)))
@@ -331,7 +347,11 @@ def handler_factory(app: Application):
             if path == "/tier/admin/v1/diagnostics" and method == "GET": return self._json(200, self._store_read(app.diagnostics.switches))
             if path == "/tier/admin/v1/diagnostics" and method == "PATCH":
                 body = self._body()
-                result = app.admin.mutate(principal.principal_id, "diagnostics.switch.update", "diagnostics", self.request_id, lambda conn: app.diagnostics.set_switches(body.get("snapshots_enabled"), body.get("stats_enabled"), conn=conn))
+                if not set(body) <= {"snapshots_enabled", "stats_enabled"}:
+                    raise ApiError(400, "invalid_request", "Diagnostics patch accepts only snapshots_enabled and stats_enabled")
+                snapshots = self._optional_boolean(body, "snapshots_enabled")
+                stats = self._optional_boolean(body, "stats_enabled")
+                result = app.admin.mutate(principal.principal_id, "diagnostics.switch.update", "diagnostics", self.request_id, lambda conn: app.diagnostics.set_switches(snapshots, stats, conn=conn))
                 return self._json(200, result)
             if path == "/tier/admin/v1/diagnostics/snapshots" and method == "GET":
                 return self._json(200, self._store_read(app.diagnostics.snapshots_page, query.get("since", [None])[0], query.get("until", [None])[0], query.get("deployment_id", [None])[0], query.get("model", [None])[0], _int_param(query, "limit", 50), query.get("cursor", [None])[0]))
@@ -347,7 +367,9 @@ def handler_factory(app: Application):
                 if method == "GET": return self._json(200, self._store_read(app.diagnostics.injections, did))
                 if method == "PATCH":
                     body = self._body()
-                    result = app.admin.mutate(principal.principal_id, "diagnostics.injection.update", did, self.request_id, lambda conn: app.diagnostics.set_injections(did, body.get("items", []), conn=conn))
+                    if "items" not in body:
+                        raise ApiError(400, "invalid_request", "diagnostics injection patch requires items")
+                    result = app.admin.mutate(principal.principal_id, "diagnostics.injection.update", did, self.request_id, lambda conn: app.diagnostics.set_injections(did, body["items"], conn=conn))
                     return self._json(200, result)
             match = re.fullmatch(r"/tier/admin/v1/trace/([^/]+)", path)
             if match and method == "GET": return self._json(200, self._store_read(app.diagnostics.trace, match.group(1)))

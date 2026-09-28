@@ -1,6 +1,11 @@
 import json
+import threading
 import unittest
+import urllib.error
+import urllib.request
+from http.server import ThreadingHTTPServer
 
+from http_api.app import handler_factory
 from http_api.errors import ApiError
 from .fakes import AppFixture, FakeAdapter
 
@@ -128,3 +133,127 @@ class TracesQueryTests(unittest.TestCase):
         with self.assertRaises(ApiError) as cm:
             self.d.set_switches(snapshots_enabled="yes")
         self.assertEqual(cm.exception.code, "invalid_request")
+
+
+class DiagnosticCursorContractTests(unittest.TestCase):
+    """Cursor validation: invalid cursors must be rejected, not silently ignored."""
+
+    def setUp(self):
+        self.fx = AppFixture(); self.fx.seed(); self.d = self.fx.app.diagnostics
+
+    def tearDown(self): self.fx.close()
+
+    def test_snapshots_invalid_cursor_rejected(self):
+        with self.assertRaises(ApiError) as cm:
+            self.d.snapshots_page(None, None, None, None, 50, "snap_does_not_exist")
+        self.assertEqual(cm.exception.status, 400)
+        self.assertEqual(cm.exception.code, "cursor_expired")
+
+    def test_traces_cursor_without_separator_rejected(self):
+        with self.assertRaises(ApiError) as cm:
+            self.d.traces(cursor="not-a-cursor")
+        self.assertEqual(cm.exception.status, 400)
+        self.assertEqual(cm.exception.code, "cursor_expired")
+
+    def test_traces_valid_cursor_still_pages(self):
+        self.d.record_trace("r1", "received", None)
+        self.d.record_trace("r2", "received", None)
+        first = self.d.traces(limit=1, since="2000-01-01T00:00:00Z", until="2100-01-01T00:00:00Z")
+        second = self.d.traces(limit=1, cursor=first["next_cursor"], since="2000-01-01T00:00:00Z", until="2100-01-01T00:00:00Z")
+        self.assertEqual(len(second["items"]), 1)
+
+
+class InjectionEnabledContractTests(unittest.TestCase):
+    """InjectionWrite.enabled must be a real boolean (openapi: type boolean)."""
+
+    def setUp(self):
+        self.fx = AppFixture(); self.fx.seed(); self.d = self.fx.app.diagnostics; self.did = self.fx.app.registry.list_deployments()[0]["id"]
+
+    def tearDown(self): self.fx.close()
+
+    def test_non_boolean_enabled_rejected(self):
+        for value in ("false", 1, 0, None, "true"):
+            with self.assertRaises(ApiError) as cm:
+                self.d.set_injections(self.did, [{"type": "delay", "config": {"delay_ms": 1}, "enabled": value}])
+            self.assertEqual(cm.exception.code, "invalid_injection")
+
+    def test_missing_enabled_rejected(self):
+        with self.assertRaises(ApiError) as cm:
+            self.d.set_injections(self.did, [{"type": "delay", "config": {"delay_ms": 1}}])
+        self.assertEqual(cm.exception.code, "invalid_injection")
+
+    def test_boolean_enabled_still_accepted(self):
+        self.d.set_injections(self.did, [{"type": "delay", "config": {"delay_ms": 1}, "enabled": False}])
+        self.assertFalse(self.d.injections(self.did)[0]["enabled"])
+        self.d.set_injections(self.did, [{"type": "delay", "config": {"delay_ms": 1}, "enabled": True}])
+        self.assertTrue(self.d.injections(self.did)[0]["enabled"])
+
+
+class DiagnosticsHttpContractTests(unittest.TestCase):
+    """HTTP contract: request handlers enforce the openapi schema (unknown keys,
+    required items, boolean switch values)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.fx = AppFixture(); cls.fx.seed()
+        cls.server = ThreadingHTTPServer(("127.0.0.1", 0), handler_factory(cls.fx.app))
+        cls.port = cls.server.server_address[1]
+        cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
+        cls.thread.start()
+        cls.did = cls.fx.app.registry.list_deployments()[0]["id"]
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.server.shutdown(); cls.server.server_close(); cls.fx.close()
+
+    def request(self, method, path, body=None):
+        data = json.dumps(body).encode() if body is not None else None
+        req = urllib.request.Request(f"http://127.0.0.1:{self.port}{path}", data=data, method=method,
+                                     headers={"Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(req) as resp:
+                return resp.status, json.loads(resp.read())
+        except urllib.error.HTTPError as exc:
+            return exc.code, json.loads(exc.read())
+
+    def test_snapshots_invalid_cursor_is_400_expired(self):
+        status, payload = self.request("GET", "/v1/diagnostics/snapshots?cursor=snap_bogus")
+        self.assertEqual(400, status)
+        self.assertEqual("cursor_expired", payload["error"]["code"])
+
+    def test_traces_invalid_cursor_is_400_expired(self):
+        status, payload = self.request("GET", "/v1/diagnostics/traces?cursor=bogus")
+        self.assertEqual(400, status)
+        self.assertEqual("cursor_expired", payload["error"]["code"])
+
+    def test_switch_patch_rejects_unknown_key(self):
+        status, payload = self.request("PATCH", "/v1/diagnostics", {"enabled": True})
+        self.assertEqual(400, status)
+        self.assertEqual("invalid_request", payload["error"]["code"])
+
+    def test_switch_patch_rejects_null_value(self):
+        status, payload = self.request("PATCH", "/v1/diagnostics", {"snapshots_enabled": None})
+        self.assertEqual(400, status)
+        self.assertEqual("invalid_request", payload["error"]["code"])
+
+    def test_switch_patch_accepts_boolean_and_empty_body(self):
+        for body in ({"snapshots_enabled": True}, {}):
+            status, _ = self.request("PATCH", "/v1/diagnostics", body)
+            self.assertEqual(200, status)
+
+    def test_injection_patch_requires_items(self):
+        status, payload = self.request("PATCH", f"/v1/deployments/{self.did}/diagnostics", {})
+        self.assertEqual(400, status)
+        self.assertEqual("invalid_request", payload["error"]["code"])
+
+    def test_injection_patch_explicit_empty_items_revokes(self):
+        status, _ = self.request("PATCH", f"/v1/deployments/{self.did}/diagnostics", {"items": []})
+        self.assertEqual(200, status)
+
+    def test_injection_patch_rejects_non_boolean_enabled(self):
+        status, payload = self.request("PATCH", f"/v1/deployments/{self.did}/diagnostics",
+                                       {"items": [{"type": "delay", "config": {"delay_ms": 1}, "enabled": "false"}]})
+        self.assertEqual(400, status)
+        self.assertEqual("invalid_injection", payload["error"]["code"])
+
+

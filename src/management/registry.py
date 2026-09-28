@@ -262,6 +262,9 @@ class Registry:
             row = conn.execute("SELECT * FROM deployments WHERE id=?", (rid,)).fetchone()
             if row is None: raise ApiError(404, "not_found", "Deployment not found")
             if if_match != _etag(rid, row["version"]): raise ApiError(412, "version_conflict", "Deployment version changed", extra={"current_version": row["version"]})
+            # ADM-DEPL: provider_id is immutable; a same-value no-op is allowed.
+            if "provider_id" in body and body["provider_id"] != row["provider_id"]:
+                raise ApiError(400, "invalid_request", "Deployment provider_id cannot be changed", "provider_id")
             values = {"name": row["name"], "provider_id": row["provider_id"], "backend_model": row["backend_model"], "capabilities": json.loads(row["capabilities_json"]), "enabled": _bool(row["enabled"])}
             values.update(body)
             require(conn.execute("SELECT 1 FROM providers WHERE id=?", (values["provider_id"],)).fetchone() is not None, 400, "invalid_request", "Unknown provider", "provider_id")
@@ -292,6 +295,9 @@ class Registry:
             conn.execute("DELETE FROM deployments WHERE id=?", (rid,))
 
     def _capability_intersection(self, deployment_ids: list[str]) -> dict[str, Any]:
+        # E-MGMT-INVALID: a non-array deployment_ids (or non-string element) is a
+        # 400 invalid_request, not a TypeError that leaks as a 500 internal_error.
+        require(isinstance(deployment_ids, list) and all(isinstance(rid, str) for rid in deployment_ids), 400, "invalid_request", "deployment_ids must be an array of strings", "deployment_ids")
         # E-MGMT-INVALID: an unknown deployment reference is a 400, not a 404.
         values: list[dict[str, Any]] = []
         for rid in deployment_ids:

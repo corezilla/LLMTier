@@ -82,7 +82,9 @@ class TraceDiagnostics:
         grouped = (f"SELECT te.request_id AS rid, MIN(te.stage_timestamp) AS first_ts"
                    f" FROM trace_events te{clause} GROUP BY te.request_id")
         outer_where, outer_params = [], []
-        if cursor and "|" in cursor:
+        if cursor:
+            if "|" not in cursor:
+                raise ApiError(400, "cursor_expired", "Trace cursor is invalid or expired")
             cur_ts, cur_rid = cursor.split("|", 1)
             outer_where.append("(first_ts, rid) < (?, ?)"); outer_params.extend([cur_ts, cur_rid])
         sql = f"SELECT * FROM ({grouped}) WHERE {' AND '.join(outer_where)}" if outer_where else grouped

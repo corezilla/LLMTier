@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import uuid
 
+from http_api.errors import ApiError
 from util.store import Store
 
 from .common import now
@@ -45,7 +46,10 @@ class SnapshotDiagnostics:
         if until: where.append("captured_at<=?"); params.append(until)
         if deployment_id: where.append("deployment_id=?"); params.append(deployment_id)
         if model: where.append("model=?"); params.append(model)
-        if cursor: where.append("(captured_at||id)<(SELECT captured_at||id FROM diagnostic_snapshots WHERE id=?)"); params.append(cursor)
+        if cursor:
+            if self.store.one("SELECT 1 FROM diagnostic_snapshots WHERE id=?", (cursor,)) is None:
+                raise ApiError(400, "cursor_expired", "Snapshot cursor is invalid or expired")
+            where.append("(captured_at||id)<(SELECT captured_at||id FROM diagnostic_snapshots WHERE id=?)"); params.append(cursor)
         rows = self.store.all(
             f"SELECT * FROM diagnostic_snapshots WHERE {' AND '.join(where)} ORDER BY captured_at DESC,id DESC LIMIT ?", (*params, limit + 1))
         more = len(rows) > limit

@@ -10,6 +10,7 @@ Auth: Bearer dev-admin
 断言：
 - HTTP 400
 - error.code == "invalid_request"
+- error.param == "provider_id"
 """
 from __future__ import annotations
 
@@ -42,3 +43,4 @@ def test_adm_depl_08_nonexistent_provider(admin_client_b):
     assert resp.status_code == 400, f"期望 400，实际 {resp.status_code}: {resp.text}"
     err = resp.json().get("error") or {}
     assert err.get("code") == "invalid_request"
+    assert err.get("param") == "provider_id", f"期望 param=provider_id，实际 {err.get('param')!r}"

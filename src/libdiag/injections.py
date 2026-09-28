@@ -31,7 +31,9 @@ class InjectionDiagnostics:
         kind = item.get("type")
         if kind not in _TYPES:
             raise ApiError(400, "invalid_injection", f"unknown injection type: {kind}", param="type")
-        enabled = bool(item.get("enabled"))
+        enabled = item.get("enabled")
+        if not isinstance(enabled, bool):
+            raise ApiError(400, "invalid_injection", "enabled must be a boolean", param="enabled")
         config = item.get("config") or {}
         if not isinstance(config, dict):
             raise ApiError(400, "invalid_injection", "config must be an object", param="config")
@@ -52,7 +54,7 @@ class InjectionDiagnostics:
                 if not isinstance(value, int) or isinstance(value, bool) or not (low <= value <= high):
                     raise ApiError(400, "invalid_injection", f"{field} out of range [{low},{high}]", param=field)
                 clean[field] = value
-        return {"type": kind, "config": clean, "enabled": bool(item.get("enabled"))}
+        return {"type": kind, "config": clean, "enabled": enabled}
 
     def set_injections(self, deployment_id: str, actor_items: list[dict], conn=None) -> list[dict]:
         if self.store.one("SELECT 1 FROM deployments WHERE id=?", (deployment_id,)) is None:

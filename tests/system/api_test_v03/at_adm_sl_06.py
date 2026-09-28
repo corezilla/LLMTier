@@ -51,11 +51,21 @@ def test_adm_sl_06_capability_conflict(admin_client_b):
     assert new_depl.status_code == 201
     new_depl_id = new_depl.json()["id"]
 
-    patch_resp = admin_client_b.patch(
-        "/v1/service-levels/Senior",
-        json={"deployment_ids": ["depl_b", new_depl_id]},
-        headers={"If-Match": etag},
-    )
-    assert patch_resp.status_code == 409, f"期望 409，实际 {patch_resp.status_code}: {patch_resp.text}"
-    err = patch_resp.json().get("error") or {}
-    assert err.get("code") == "capability_conflict"
+    try:
+        patch_resp = admin_client_b.patch(
+            "/v1/service-levels/Senior",
+            json={"deployment_ids": ["depl_b", new_depl_id]},
+            headers={"If-Match": etag},
+        )
+        assert patch_resp.status_code == 409, f"期望 409，实际 {patch_resp.status_code}: {patch_resp.text}"
+        err = patch_resp.json().get("error") or {}
+        assert err.get("code") == "capability_conflict"
+    finally:
+        # teardown: PATCH 失败已回滚，new deployment 未被任何 tier 引用，可直接删除。
+        current = admin_client_b.get(f"/v1/deployments/{new_depl_id}")
+        if current.status_code == 200:
+            del_resp = admin_client_b.delete(
+                f"/v1/deployments/{new_depl_id}",
+                headers={"If-Match": current.headers["ETag"]},
+            )
+            assert del_resp.status_code == 204, f"teardown 删除失败: {del_resp.status_code}: {del_resp.text}"

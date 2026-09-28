@@ -125,29 +125,42 @@ def test_adm_admin_usage_03_reset_by_deployment(admin_client_b, llmtier_b):
     assert depl_resp.status_code == 201
     depl2_id = depl_resp.json()["id"]
 
-    conn = sqlite3.connect(db_path)
-    # Insert records for depl_b and depl2
-    for depl in ("depl_b", depl2_id):
-        for i in range(2):
-            principal = f"depl_test_{depl[-8:]}_{i}"
-            req = f"depl_req_{depl[-8:]}_{i}"
-            stamp = _stamp()
-            conn.execute("INSERT INTO usage_obligations VALUES(?,?,?,?,?,?)",
-                (principal, req, "Worker", "/v1/responses", stamp, stamp))
-            conn.execute("INSERT INTO usage_record_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                (principal, req, 1, 1, "Worker", "/v1/responses", stamp, stamp, "measured", "provider", 10, 5, 15, 0, 0, 0))
-            conn.execute("INSERT INTO usage_heads VALUES(?,?,?,?)", (principal, req, 1, stamp))
-            conn.execute("INSERT INTO provider_request_bindings(principal_id,request_id,provider_id,deployment_id,bound_at) VALUES(?,?,?,?,?)", (principal, req, "prov_b", depl, stamp))
-    conn.commit()
+    try:
+        conn = sqlite3.connect(db_path)
+        # Insert records for depl_b and depl2
+        for depl in ("depl_b", depl2_id):
+            for i in range(2):
+                principal = f"depl_test_{depl[-8:]}_{i}"
+                req = f"depl_req_{depl[-8:]}_{i}"
+                stamp = _stamp()
+                conn.execute("INSERT INTO usage_obligations VALUES(?,?,?,?,?,?)",
+                    (principal, req, "Worker", "/v1/responses", stamp, stamp))
+                conn.execute("INSERT INTO usage_record_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    (principal, req, 1, 1, "Worker", "/v1/responses", stamp, stamp, "measured", "provider", 10, 5, 15, 0, 0, 0))
+                conn.execute("INSERT INTO usage_heads VALUES(?,?,?,?)", (principal, req, 1, stamp))
+                conn.execute("INSERT INTO provider_request_bindings(principal_id,request_id,provider_id,deployment_id,bound_at) VALUES(?,?,?,?,?)", (principal, req, "prov_b", depl, stamp))
+        conn.commit()
 
-    # Reset only depl_b
-    resp = admin_client_b.delete("/v1/usage", params={"deployment_id": "depl_b"})
-    assert resp.status_code == 200, f"期望 200，实际 {resp.status_code}: {resp.text}"
-    body = resp.json()
-    assert body["deleted"] == 2, f"deleted={body['deleted']} expected 2 (depl_b records)"
+        # Reset only depl_b
+        resp = admin_client_b.delete("/v1/usage", params={"deployment_id": "depl_b"})
+        assert resp.status_code == 200, f"期望 200，实际 {resp.status_code}: {resp.text}"
+        body = resp.json()
+        assert body["deleted"] == 2, f"deleted={body['deleted']} expected 2 (depl_b records)"
 
-    # Verify depl2 still has records
-    conn2 = sqlite3.connect(db_path)
-    remaining = conn2.execute("SELECT COUNT(*) FROM provider_request_bindings WHERE deployment_id=?", (depl2_id,)).fetchone()[0]
-    conn2.close()
-    assert remaining == 2, f"depl2 should have 2 records, got {remaining}"
+        # Verify depl2 still has records
+        conn2 = sqlite3.connect(db_path)
+        remaining = conn2.execute("SELECT COUNT(*) FROM provider_request_bindings WHERE deployment_id=?", (depl2_id,)).fetchone()[0]
+        conn2.close()
+        assert remaining == 2, f"depl2 should have 2 records, got {remaining}"
+    finally:
+        # teardown: 先清除本 case 为 depl2 造的 usage 绑定（provider_request_bindings
+        # 对 deployments(id) 有 FK，残留会让部署 DELETE 触发 IntegrityError），
+        # 再删除本 case 新建的 deployment，避免污染同 session 的后续用例。
+        admin_client_b.delete("/v1/usage", params={"deployment_id": depl2_id})
+        current = admin_client_b.get(f"/v1/deployments/{depl2_id}")
+        if current.status_code == 200:
+            del_resp = admin_client_b.delete(
+                f"/v1/deployments/{depl2_id}",
+                headers={"If-Match": current.headers["ETag"]},
+            )
+            assert del_resp.status_code == 204, f"teardown 删除失败: {del_resp.status_code}: {del_resp.text}"

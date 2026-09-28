@@ -151,6 +151,14 @@ class OpenAIProvider:
             headers["Authorization"] = f"Bearer {secret}"
         req = urllib.request.Request(self.endpoint + "/models", headers=headers, method="GET")
         req.add_header("Connection", "close")
-        with urllib.request.urlopen(req, timeout=min(self.timeout, 10.0), context=self._ssl) as response:
-            payload = json.loads(response.read())
+        try:
+            with urllib.request.urlopen(req, timeout=min(self.timeout, 10.0), context=self._ssl) as response:
+                payload = json.loads(response.read())
+        except urllib.error.HTTPError as exc:
+            # E-INF-UPSTREAM: upstream 5xx surfaces as 503 provider_unavailable.
+            if exc.code >= 500:
+                raise ApiError(503, "provider_unavailable", f"Provider returned HTTP {exc.code}", retryable=True) from exc
+            raise ApiError(exc.code, "provider_error", f"Provider returned HTTP {exc.code}", retryable=exc.code in {408, 429}) from exc
+        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+            raise ApiError(503, "provider_unavailable", "Provider model catalog request failed", retryable=True) from exc
         return [m["id"] for m in payload.get("data", []) if isinstance(m.get("id"), str)]

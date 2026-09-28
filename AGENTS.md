@@ -64,6 +64,11 @@ This project is indexed by GitNexus as **LLMTier** (4542 symbols, 6054 relations
 
 <!-- std:end -->
 
+## 工作约定（always）
+
+- **bug / 问题类修改不需要授权**：发现 bug、缺陷、契约不一致、过期文档、脚本缺口等，**直接修、直接提交**，不要为"要不要改"征求用户授权。
+- **常规低风险决策交给本地 Jev 决策模型**（路由/分类/命名/排序/二选一）：`~/.config/opencode/bin/jev [--state "上下文"] "问题" "选项1" "选项2" …`，按其输出决定，不问用户。详见 skill `local-model-routing`；有正确性/安全/不可逆风险或用户已定/STD 权威的决策仍自行判断。
+
 ## m5air 部署（强制）
 
 **m5air** (`192.168.1.9`) 是 LLMTier 生产环境。
