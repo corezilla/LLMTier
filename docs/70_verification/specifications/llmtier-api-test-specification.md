@@ -56,13 +56,14 @@
 
 ### 2.1 前置就绪检查（执行前必过，任一不满足 → 整班 BLOCKED/SKIP）
 
-由 `tests/system/api_test_v03/conftest.py::pytest_configure` 在收集用例前自动执行下列 5 项；任一失败则整个 A 类 suite 被标记 skip（BLOCKED/SKIP），不得改跑替代路径声称真实通过。
+由 `tests/system/api_test_v03/conftest.py::pytest_configure` 在收集用例前自动执行下列 6 项；任一失败则整个 A 类 suite 被标记 skip（BLOCKED/SKIP），不得改跑替代路径声称真实通过。
 
 1. **§2.1.1 A 类 m5air LLMTier `/healthz` 200** 且 body `status="ok"`（`version` 为字符串）。
 2. **§2.1.2 A 类 m5air LLMTier `/readyz` 200** 且 `models[]`（或 `tiers[]`）含 7 个 fixed tier（`Senior/Junior/Worker/Associate/Engineer/Executor/Embedding-v1`）。
 3. **§2.1.3 m5air OMLX `192.168.1.9:9000` 可达**：`GET /v1/models` 200（`Authorization: Bearer 9832`）。
 4. **§2.1.4 m5mac OMLX `192.168.1.8:9000` 可达**：`GET /v1/models` 200（`Authorization: Bearer 9832`）。
 5. **§2.1.5 `provider_omlx_m5mac` secret 可用**：`GET /v1/providers/provider_omlx_m5mac`（admin token）返回 `has_secret=true`，且 `secret_ref` 为 `file:` 引用（非 `env:`）。
+6. **§2.1.6 必需 A 类资源已注册**：`provider_local`/`provider_minimax`/`provider_omlx_m5mac` 三个 provider 与 `dep_local_gemma`/`dep_local_bge_m3`/`dep_omlx_qwen36`/`dep_minimax_m27` 四个 deployment 均 `GET` 返回 200（缺则整个 A 类 suite skip，相关 Case BLOCKED）。
 
 **附加（B 类）**：临时实例可启动并 `GET /healthz` 200；`_BASELINE_SETTINGS` fixture 注入 **1 provider（`prov_b`）+ 1 deployment（`depl_b`）** + 7 fixed tier（service-levels 由 bootstrap 建立）。注意：3 provider / 4 deployment 是 **A 类 m5air 已部署实例**的基线（§2.3/§2.4），不是 B 类 fixture。
 
@@ -241,7 +242,7 @@ LLMTIER_ADMIN_TOKEN='...' LLMTIER_DATA_TOKEN='...' \
 
 **Case 总数：140**（RUN 88 / MISSING 52；环境 A 89 / B 51；Priority P0 45 / P1 72 / P2 23）。**本表是唯一权威 Case 清单**：一行一个 Case，任何 case 详细设计文档（§3.3）的 Case ID 必须与本节一致。
 
-列语义：`分类` 为家族/主题；`被测契约/端点` 为端点、关键契约/错误码与需求/设计/机制验证项（`LT-*`/`VRC-*`/`R-*`/`T-*`）；`角色` ∈ {`none`,`data`,`admin`}；`A/B` 为环境（§2.3）；`自动化入口` 为现有 `tests/system/api_test_v03/at_*.py`（`MISSING` = 尚无自动化实现，对应 RUN 88 之外的 52 项）；`设计状态` 为该 Case 独立详细设计文档（§3.3）的状态，当前 `DP-RESP-01` 已 `已写`（样例），其余 `待写`。逐 Case 的前置/输入/Oracle/执行/判定/证据/清理**见各自 case 文档**（§3.4）。
+列语义：`分类` 为家族/主题；`被测契约/端点` 为端点、关键契约/错误码与需求/设计/机制验证项（`LT-*`/`VRC-*`/`R-*`/`T-*`）；`角色` ∈ {`none`,`data`,`admin`}；`A/B` 为环境（§2.3）；`自动化入口` 为现有 `tests/system/api_test_v03/at_*.py`（`MISSING` = 尚无自动化实现，对应 RUN 88 之外的 52 项）；`设计状态` 为该 Case 独立详细设计文档（§3.3）的状态，当前 `DP-RESP-01`、`DP-RESP-11`、`OBS-DIAG-01`、`AUTH-01` 已 `已写`，其余 `待写`。逐 Case 的前置/输入/Oracle/执行/判定/证据/清理**见各自 case 文档**（§3.4）。
 
 | Case ID | 分类 | 被测契约/端点 | 角色 | 标题 | A/B | 优先级 | 自动化入口 | 设计状态 |
 |---|---|---|---|---|---|---|---|---|
@@ -268,7 +269,7 @@ LLMTIER_ADMIN_TOKEN='...' LLMTIER_DATA_TOKEN='...' \
 | DP-RESP-08 | Responses(SSE) | `POST /v1/responses`；缺 `model`→400 invalid_request,param=model（ERR-REQ-VALIDATION,LT-FUN-001） | data | 缺 model | A | P0 | `at_dp_resp_08.py` | 待写 |
 | DP-RESP-09 | Responses(SSE) | `POST /v1/responses`；禁字段 `previous_response_id`→400 unsupported_field（ERR-REQ-FIELD,LT-FUN-001） | data | 禁字段 previous_response_id | A | P0 | `at_dp_resp_09.py` | 待写 |
 | DP-RESP-10 | Responses(SSE) | `POST /v1/responses`；`max_output_tokens=10`→incomplete（VRC-INF-001,T-STREAM） | data | max_output_tokens 截断 | A | P1 | `at_dp_resp_10.py` | 待写 |
-| DP-RESP-11 | Responses(SSE) | `POST /v1/responses`+注入 fault_502→502/503 provider_failure（VRC-DIAG-004,T-OBS-INJECT,ERR-PROVIDER-INJECTED） | data | 注入上游 502 → provider_failure | B | P0 | `at_dp_resp_11.py` | 待写 |
+| DP-RESP-11 | Responses(SSE) | `POST /v1/responses`+注入 fault_502→502/503 provider_failure（VRC-DIAG-004,T-OBS-INJECT,ERR-PROVIDER-INJECTED） | data | 注入上游 502 → provider_failure | B | P0 | `at_dp_resp_11.py` | 已写 |
 | DP-RESP-12 | Responses(SSE) | `POST /v1/responses`；`conversation_id` 静默忽略（VRC-INF-001） | data | conversation_id 静默忽略 | A | P2 | `at_dp_resp_12.py` | 待写 |
 | DP-RESP-13 | Responses(SSE) | `POST /v1/responses`；`truncation` 静默忽略（VRC-INF-001） | data | truncation 静默忽略 | A | P2 | `at_dp_resp_13.py` | 待写 |
 | DP-RESP-14 | Responses(SSE) | `POST /v1/responses`；`max_tokens` 别名（VRC-INF-001） | data | max_tokens 别名 | A | P2 | `at_dp_resp_14.py` | 待写 |
@@ -353,7 +354,7 @@ LLMTIER_ADMIN_TOKEN='...' LLMTIER_DATA_TOKEN='...' \
 | ADM-USAGE-01 | 管理 usage | `GET /v1/usage`；聚合（VRC-MGMT-006） | admin | 管理面 usage | A | P1 | `at_adm_admin_usage_01.py` | 待写 |
 | ADM-USAGE-02 | 管理 usage | `GET /v1/usage`；`limit=1` 分页（VRC-MGMT-006,T-MET-PAGE） | admin | 管理面分页 | A | P1 | `at_adm_admin_usage_02.py` | 待写 |
 | ADM-USAGE-03 | 管理 usage | `DELETE /v1/usage`；deleted+审计+角色（T-MET-RESET） | admin | 清空 usage（admin + 审计） | A | P1 | `at_adm_admin_usage_03.py` | 待写 |
-| OBS-DIAG-01 | 诊断开关 | `GET /v1/diagnostics`；SwitchState（VRC-DIAG-001,T-OBS-SWITCH） | admin | 读取诊断开关 | A | P1 | MISSING | 待写 |
+| OBS-DIAG-01 | 诊断开关 | `GET /v1/diagnostics`；SwitchState（VRC-DIAG-001,T-OBS-SWITCH） | admin | 读取诊断开关 | A | P1 | MISSING | 已写 |
 | OBS-DIAG-02 | 诊断开关 | `PATCH /v1/diagnostics`；更新+审计（VRC-DIAG-001,T-OBS-SWITCH） | admin | 更新诊断开关 | B | P1 | MISSING | 待写 |
 | OBS-DIAG-03 | 诊断开关 | `PATCH /v1/diagnostics`；非法值→400（ERR-REQ-VALIDATION） | admin | 开关更新非法值 | B | P2 | MISSING | 待写 |
 | OBS-SNAP-01 | 诊断快照 | `GET /v1/diagnostics/snapshots`；SnapshotPage 脱敏（VRC-DIAG-002,T-OBS-SNAP） | admin | 快照页（脱敏） | A | P1 | MISSING | 待写 |
@@ -375,7 +376,7 @@ LLMTIER_ADMIN_TOKEN='...' LLMTIER_DATA_TOKEN='...' \
 | OBS-ALIAS-04 | 契约别名 | `GET`+`PATCH /tier/admin/v1/deployments/{id}/diagnostics`；同 handler（VRC-DIAG-004,T-OBS-INJECT） | admin | 别名 deployments diagnostics（GET+PATCH） | B | P2 | MISSING | 待写 |
 | OBS-ALIAS-05 | 契约别名 | `GET /tier/admin/v1/diagnostics/stats`；与扁平路径等价（VRC-DIAG-002,R-OBS-02,T-OBS-STATS） | admin | 别名 diagnostics/stats | A | P2 | MISSING | 待写 |
 | OBS-ALIAS-06 | 契约别名 | `GET /tier/admin/v1/diagnostics/traces`；与扁平路径等价（VRC-DIAG-002,R-OBS-02,T-OBS-TRACE） | admin | 别名 diagnostics/traces | A | P2 | MISSING | 待写 |
-| AUTH-01 | 认证/授权 | `GET /v1/models`；LAN trust 无 token→200（T-TRUST-LAN,VRC-API-002） | none | Data 端点 LAN trust 无 token | A | P0 | `at_auth_01.py` | 待写 |
+| AUTH-01 | 认证/授权 | `GET /v1/models`；LAN trust 无 token→200（T-TRUST-LAN,VRC-API-002） | none | Data 端点 LAN trust 无 token | A | P0 | `at_auth_01.py` | 已写 |
 | AUTH-02 | 认证/授权 | `GET /v1/models`；错误 bearer→403 permission_denied（ERR-AUTH-DENIED） | data | 错误 bearer | A | P0 | `at_auth_02.py` | 待写 |
 | AUTH-03 | 认证/授权 | `GET /v1/providers`；data token→403 permission_denied（ERR-AUTH-DENIED,R-TRUST-02） | data | Data token 访问 admin 面 | A | P0 | `at_auth_03.py` | 待写 |
 | AUTH-04 | 认证/授权 | `GET /v1/providers`；LAN trust 无 token→200（T-TRUST-LAN） | none | Admin 端点 LAN trust 无 token | A | P0 | `at_auth_04.py` | 待写 |
@@ -456,13 +457,13 @@ LLMTIER_ADMIN_TOKEN='...' LLMTIER_DATA_TOKEN='...' \
 
 ### 3.4 逐 Case 详细设计文档索引
 
-共 **140** 份 case 详细设计文档：`DP-RESP-01` 已 `已写`（样例，[`cases/dp-resp-01.md`](cases/dp-resp-01.md)），其余 **139** 份 `待写`。每份文档路径按 §3.3 由 Case ID 推导为 `docs/70_verification/specifications/cases/<case-id>.md`（小写）。**命名规则与模板契约见 [`cases/README.md`](cases/README.md)：所有 Case 一律遵循 `cases/<lowercased-case-id>.md`。** 逐 Case 的输入/Oracle/执行/判定/证据/清理见各自 case 文档；本规格不再内联维护。下表按类别汇总文档范围。
+共 **140** 份 case 详细设计文档：`DP-RESP-01`（样例）、`DP-RESP-11`、`OBS-DIAG-01`、`AUTH-01` 已 `已写`，其余 **136** 份 `待写`。每份文档路径按 §3.3 由 Case ID 推导为 `docs/70_verification/specifications/cases/<case-id>.md`（小写）。**命名规则与模板契约见 [`cases/README.md`](cases/README.md)：所有 Case 一律遵循 `cases/<lowercased-case-id>.md`。** 逐 Case 的输入/Oracle/执行/判定/证据/清理见各自 case 文档；本规格不再内联维护。下表按类别汇总文档范围。
 
 | 类别 | Case 段 | 待写文档数 | 文档路径模式 | 状态 |
 |---|---|---|---|---|
 | 无认证健康/就绪 | HEALTH-01..06 | 6 | `cases/health-01.md` … `cases/health-06.md` | 待写 |
 | 逻辑模型清单 | DP-MODELS-01..07 | 7 | `cases/dp-models-01.md` … `cases/dp-models-07.md` | 待写 |
-| Responses（SSE） | DP-RESP-01..25 | 25 | `cases/dp-resp-01.md` … `cases/dp-resp-25.md` | `DP-RESP-01` 已写；其余 待写 |
+| Responses（SSE） | DP-RESP-01..25 | 25 | `cases/dp-resp-01.md` … `cases/dp-resp-25.md` | `DP-RESP-01`、`DP-RESP-11` 已写；其余 待写 |
 | Embeddings | DP-EMB-01..07 | 7 | `cases/dp-emb-01.md` … `cases/dp-emb-07.md` | 待写 |
 | Usage 查询 | DP-USAGE-01..08 | 8 | `cases/dp-usage-01.md` … `cases/dp-usage-08.md` | 待写 |
 | Provider CRUD | ADM-PROV-01..14 | 14 | `cases/adm-prov-01.md` … `cases/adm-prov-14.md` | 待写 |
@@ -471,10 +472,10 @@ LLMTIER_ADMIN_TOKEN='...' LLMTIER_DATA_TOKEN='...' \
 | Deployment CRUD | ADM-DEPL-01..09 | 9 | `cases/adm-depl-01.md` … `cases/adm-depl-09.md` | 待写 |
 | Service Level CRUD | ADM-SL-01,02,02b,03,04,04b,05,06,07,08 | 10 | `cases/adm-sl-01.md` … `cases/adm-sl-08.md`（含 `adm-sl-02b.md`、`adm-sl-04b.md`） | 待写 |
 | 探测/运行态/统计/审计/日志/管理 usage | ADM-PROBE/RUNTIME/STATS/AUDIT/LOGS/USAGE | 16 | `cases/adm-probe-01.md` … `cases/adm-admin-usage-03.md`（含 `adm-runtime-02.md`、`adm-audit-03.md`） | 待写 |
-| 观测/诊断/追踪/别名 | OBS-* | 22 | `cases/obs-diag-01.md` … `cases/obs-alias-06.md` | 待写 |
-| 认证与授权 | AUTH-01..10 | 10 | `cases/auth-01.md` … `cases/auth-10.md` | 待写 |
+| 观测/诊断/追踪/别名 | OBS-* | 22 | `cases/obs-diag-01.md` … `cases/obs-alias-06.md` | `OBS-DIAG-01` 已写；其余 待写 |
+| 认证与授权 | AUTH-01..10 | 10 | `cases/auth-01.md` … `cases/auth-10.md` | `AUTH-01` 已写；其余 待写 |
 
-**文档总数**：6+7+25+7+8+14+2+4+9+10+16+22+10 = **140**（已写 1 / 待写 139），与 §3.2 权威清单一一对应。
+**文档总数**：6+7+25+7+8+14+2+4+9+10+16+22+10 = **140**（已写 4 / 待写 136），与 §3.2 权威清单一一对应。
 
 ### 3.5 定量覆盖模型（route × method × role × error-code）
 

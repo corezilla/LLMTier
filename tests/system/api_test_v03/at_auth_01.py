@@ -8,8 +8,8 @@ Auth: 无（LAN trust）
 断言：
 - HTTP 200
 - body 含 data[]
-- 原因：客户端在 192.168.x RFC1918 LAN，LLMTIER_TRUSTED_LAN_MODE 默认开启
-  （auth.py:33-34 unauthenticated_principal() 返回 trusted-lan-consumer）
+- 原因：客户端在 192.168.x RFC1918 LAN；auth.py:33-34 对 loopback 或 RFC1918/ULA
+  地址**无条件**返回 trusted-lan-consumer（无 LLMTIER_TRUSTED_LAN_MODE 开关）
 """
 from __future__ import annotations
 
