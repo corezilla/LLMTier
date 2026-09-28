@@ -67,7 +67,7 @@
 | 机制 | `mechanisms/{inference-stream,access-trust,usage-metering,observability,config-lifecycle}.md` | `T-*`/`VRC-*` 映射 Case |
 | case 设计 | `docs/70_verification/specifications/cases/<lowercased-case-id>.md`（per §3.3） | 该 Case 的输入/Oracle 变更时只重跑该 Case |
 | 测试规范 | `testing-standard.md`（TS-002 依赖头部、TS-003 LAN IP） | 全部 Case |
-| 项目标准 | `docs/std.lock.json`（STD `0.1.0-draft.41`） | 文档质量门 |
+| 项目标准 | `docs/std.lock.json`（STD `0.1.0-draft.44`） | 文档质量门 |
 | 代码 | 当前 `main` 工作树（m5air 部署版本） | 全量 |
 
 **排除项与依据**：FD/耐久/性能压测排除（`llmtier-test-plan.md` §2.2 已定 m5air 不适合污染性 Case）；外部 MiniMax 返回内容排除（费用与不确定性，A 类只验 HTTP 200）；Web UI 认证（无浏览器 SSO，由 `llmtier-test-plan.md` 独立承接）。

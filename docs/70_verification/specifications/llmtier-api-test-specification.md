@@ -79,7 +79,7 @@
 | 机制 | `docs/20_system_design/mechanisms/{inference-stream,access-trust,usage-metering,observability,config-lifecycle}.md` | INC/INV/T-* 可验证断言 |
 | 测试规范 | `testing-standard.md`（TS-002 依赖头部、TS-003 LAN IP） | 强制约束 |
 | 运维基线 | `docs/80_operations/manuals/m5air-deploy-guide.md`、`docs/80_operations/m5air-operations-manual.md`、`docs/80_operations/llmtier-release-and-operations.md` | m5air 部署/启动/停止/复位命令的权威来源 |
-| 项目标准 | `docs/std.lock.json`（STD `0.1.0-draft.41`） | 文档/流程基线 |
+| 项目标准 | `docs/std.lock.json`（STD `0.1.0-draft.44`） | 文档/流程基线 |
 
 ### 2.3 环境拓扑（A/B 两班）
 

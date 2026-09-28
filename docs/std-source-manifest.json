@@ -1,15 +1,15 @@
 {
   "schema_version": "std-source-manifest.v1",
-  "std_version": "0.1.0-draft.41",
+  "std_version": "0.1.0-draft.44",
   "source_repository": "corezilla/STD",
-  "source_revision": "5c0be5e59296bfbab12b1a86eddf379615c89055",
+  "source_revision": "318b037e3d582d7e2b79ec94da9779eddcc9681e",
   "source_tag": null,
-  "generated_at": "2026-09-26",
+  "generated_at": "2026-09-28",
   "artifacts": [
     {
       "path": "README.md",
       "role": "guidance",
-      "sha256": "ba732bd608e14c5360ce39ce54af8ba699b87b211f23ae9d0dec02a0d491ea42"
+      "sha256": "8687acc54de1224f57c2ec4a624f44847945b7014f941fb25855bed3a12a38f1"
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
@@ -19,7 +19,7 @@
     {
       "path": "VERSION",
       "role": "guidance",
-      "sha256": "605875195bd2bad8c8f882885e2d94fdf0f7f940e6ea91821691f86402e1741f"
+      "sha256": "afa4c71aae983875b88d9fa2589358a357139835e8746f21d9621956b7e985d3"
     },
     {
       "path": "docs/adoption.md",
@@ -29,12 +29,12 @@
     {
       "path": "docs/ai-authoring-guide.md",
       "role": "guidance",
-      "sha256": "29038857431f4096a72104a18bce176aa0ca24f8dfff4dd2e75ba3d2c5c3f704"
+      "sha256": "9ed6fb263394cd14299cbff33ebcc0f42710d5d1e69ab15968e68d9446e22b3f"
     },
     {
       "path": "docs/ai-authoring-guides.json",
       "role": "guidance",
-      "sha256": "f62c619519a57110d82c6a73139c68b4b0409761202cbedfe43507604cdd90eb"
+      "sha256": "8dd90722cb0addd59edea9e6b9063293364699c3f51c7d351e3cba486ed783db"
     },
     {
       "path": "docs/ai-guides/fpga.md",
@@ -99,17 +99,17 @@
     {
       "path": "docs/ai-guides/unit-design.md",
       "role": "guidance",
-      "sha256": "62df35ac4b7739928b46efd53e7d35a09ee1b2976ab104e88ec892e3ad28a4eb"
+      "sha256": "b623a2f6106bcde0fd6363e036eddb23d63fb2cc34f096d08429997c530ad922"
     },
     {
       "path": "docs/ai-guides/verification.md",
       "role": "guidance",
-      "sha256": "71168c8e5588f18483ca202ef79d28e3a8dda60da86c32060bc21b6abb85e530"
+      "sha256": "08b82f72c22ca6535178ab1f7f3392fa9daa7fe882720c7d3bb1ac24f40d6ca9"
     },
     {
       "path": "docs/ai-system-design-authoring-guide.md",
       "role": "guidance",
-      "sha256": "6f2605903fe2e0d3eb8fbc21b13995b8f3ec6a3d6a9ddf97a0ba0d73ddb4d33c"
+      "sha256": "7e9ffbae14c1d1199b06f0ae22fef8384a39aa444756bdb6338959c4ca3cb06f"
     },
     {
       "path": "docs/architecture-design-authoring-guide.md",
@@ -439,7 +439,7 @@
     {
       "path": "docs/template-selection.md",
       "role": "guidance",
-      "sha256": "e53f62ee38f3057631f6e5c76b6b4c117afa879f6877a18b045664979da7dea0"
+      "sha256": "0d402236a41f56cc14a55fef6f02d1d6dcc99d40052176d8e49de0bf8f3cd2b7"
     },
     {
       "path": "docs/versioning.md",
@@ -449,7 +449,7 @@
     {
       "path": "examples/std.lock.example.json",
       "role": "example",
-      "sha256": "15efba2cce8b84bd8f2b2dd68996288ef23b58f32b3cb5300e25846c4727f02d"
+      "sha256": "4c38e63d7a90d8178414a270c6f79d33c1474bdb1c39209dd539f13a794629d3"
     },
     {
       "path": "schemas/document-metadata.schema.json",
@@ -504,7 +504,7 @@
     {
       "path": "scripts/new-design",
       "role": "tool",
-      "sha256": "3e1e2b11ef179ec8b9b38b7a83afd31c5532fe65dbfce95846e4537e2d45e022"
+      "sha256": "f9c2361cd37144b47e1125a10096d8d92656ebc1c7697aa1a25c3ef070e1afc5"
     },
     {
       "path": "scripts/sync-template-covers",
@@ -594,7 +594,7 @@
     {
       "path": "templates/catalog.json",
       "role": "template",
-      "sha256": "65e3594cd0b838108ee7b38bad37f8a33952bf12eb989e01a5eb9d6cd06f834f"
+      "sha256": "2eab60ebfff23a4fe87a7974e3fdadf2dabe48a2b1fcf79d97082566b478f84a"
     },
     {
       "path": "templates/contracts/contract-specification.md",
@@ -619,7 +619,7 @@
     {
       "path": "templates/design/design-definition.md",
       "role": "template",
-      "sha256": "bb109b09296e6a27dcf776b0bf62b11fe821f27784cdb3b6c93121709922ca82"
+      "sha256": "562ab6fe056d4fd8509a4c6ae570ae98d6b93b9af2e041ee45ef7471dbb1cfeb"
     },
     {
       "path": "templates/design/fpga-design.md",
@@ -634,12 +634,12 @@
     {
       "path": "templates/design/implementation-design.md",
       "role": "template",
-      "sha256": "c53ccf8ae585222101e0aba019638005b314271354d79a068a0a9fde9c5c1616"
+      "sha256": "6fe77479cc01850ea9697788eb3f9ede2d60e421a9f11a5c474da19cc825a535"
     },
     {
       "path": "templates/design/software-system-design.md",
       "role": "template",
-      "sha256": "094649fcf21136915dc506b5cbab759a05bd321629f48e8863471534504d4dea"
+      "sha256": "61d9139105a0d23aa27e22d6198c77552598c28db6c9f1a915619257a9040a3b"
     },
     {
       "path": "templates/design/subsystem-design.md",
@@ -999,7 +999,7 @@
     {
       "path": "templates/path-policy.json",
       "role": "template",
-      "sha256": "b4b5ecab29da801c6e924799d30238fd8616a60a92004acc24e306e6e6faacd0"
+      "sha256": "9007bd8325bcef55d1ea1710a50320801c8d49c8e54c47cbd86da3ace66dc7e3"
     },
     {
       "path": "templates/product/roadmap.md",
@@ -1045,6 +1045,11 @@
       "path": "templates/review/schematic-pcb-review-checklist.md",
       "role": "template",
       "sha256": "dbcd552be09030476d21bf77b0a993e6a2c8ff640e32f2f3d0196abfd54564af"
+    },
+    {
+      "path": "templates/tests/unit-test-design.md",
+      "role": "template",
+      "sha256": "e4e9bce0cc515916f58ae5e07cc5190fece77d73e144e28a15e077b93a076726"
     }
   ]
 }
