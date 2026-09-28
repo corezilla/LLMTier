@@ -27,18 +27,18 @@
   2. `POST /v1/responses`（上表 body）。
   3. 断言 `resp.status_code == 400`，响应为 JSON 错误信封（非 SSE）。
   4. 解析 `resp.json()["error"]`，断言 `code=="invalid_request"`、`type=="request_error"`、`retryable is False`；键集恰 5 键。
-  5. **记录 `param` 实测值**并与 §3.2 声明比对（见下"已知偏差"）。
+  5. 断言 `error.param == "model"`（§3.2 / OpenAPI `ResponsesRequest.required` 契约；见下"实现修复说明"），并记录实测值。
   6. 交叉核对零副作用：无上游调用、无账本义务（可选，[§4.6](../llmtier-api-test-specification.md)）。
-- **重点关注步骤**：① **拒绝先于模型解析**——齐备性检查在 `get_service_level`/`admit` 之前，缺 `model` 不得报 `model_not_found`；② **信封 identity**（5 键、`type=request_error`、无 `category`）；③ **非 SSE**；④ **`param` 归因**见偏差；⑤ **零副作用**。
-> **已知偏差（必须登记）**：§3.2 权威清单与本 case 标题把本项记为 `400 invalid_request,param=model`；但当前实现 `src/inference/responses.py` 的齐备性检查以 `require(...)` **未传 `param`** 调用，`ApiError.param` 默认为 `None`，故 wire `error.param` 实为 `null`。本设计的**硬 Oracle 为 status + code**（`400` + `invalid_request`）；`param` 按**实测**记录（当前应为 `null`），并作为偏差上报代码 owner（要么实现补 `param="model"`，要么修正 §3.2）。不得为迎合文档而伪造 `param=model`。
+- **重点关注步骤**：① **拒绝先于模型解析**——齐备性检查在 `get_service_level`/`admit` 之前，缺 `model` 不得报 `model_not_found`；② **信封 identity**（5 键、`type=request_error`、无 `category`）；③ **非 SSE**；④ **`param` 归因**——契约值 `param=="model"`（实现修复见下）；⑤ **零副作用**。
+> **实现修复说明（登记）**：本 case 的契约值保持 `error.param == "model"`（§3.2 权威清单与 OpenAPI `ResponsesRequest.required` 均如此）。当前实现 `src/inference/responses.py` 的齐备性检查历史上以 `require(...)` **未传 `param`** 调用，wire 上曾为 `null`；该缺口正由代码 owner 修复（补 `param="model"`）。修复落地前若实测为 `null`，按**已知实现偏差**登记并判 FAIL（修复后重跑确认），不得为迎合实现而把 Oracle 降级为 `null`。
 - **期望结果与独立 Oracle**：独立 Oracle = OpenAPI `ResponsesRequest.required`（`model` 必填）+ `ErrorEnvelope`/`ErrorDetail` + 系统设计 §7.8 `ERR-REQ-VALIDATION`。
   - HTTP：`400`；`Content-Type: application/json`。
   - body：`error.code=="invalid_request"`、`type=="request_error"`、`retryable==false`；`message` 含 `"required"` 语义（实现为 `"model, input, stream, and store are required"`）。
-  - `error.param`：实测记录（当前实现为 `null`；§3.2 声称 `model`，见偏差）。
+  - `error.param == "model"`（§3.2 / OpenAPI；实现修复见上"实现修复说明"）。
   - 无 SSE 帧/`[DONE]`。
 - **判定（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
-  - **PASS**：status 400 + `code=invalid_request` + `type=request_error` + `retryable=false` + 非 SSE + 零副作用；`param` 实测值与代码一致（当前 `null`），偏差已登记。
-  - **FAIL**：status/code 错、报 `model_not_found`、返回 200/SSE、信封键集错。
+  - **PASS**：status 400 + `code=invalid_request` + `type=request_error` + `retryable=false` + `param=="model"` + 非 SSE + 零副作用。
+  - **FAIL**：status/code 错、`param` 非 `"model"`（如 `null`，属待修复的实现偏差，须重跑确认）、报 `model_not_found`、返回 200/SSE、信封键集错。
   - **BLOCKED**：测试代码/契约问题——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **SKIP**：§2.1 前置不满足——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **INVALID**：以 mock/替代路径冒充真实路径——见[测试设计 §9](../llmtier-api-test-specification.md)。

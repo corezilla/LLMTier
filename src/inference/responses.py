@@ -69,7 +69,8 @@ class ResponsesService:
             if diag: diag.record_latency(deployment_id, body.get("model"), status, (time.monotonic() - t0) * 1000)
 
         try:
-            require({"model", "input", "stream", "store"} <= set(body), 400, "invalid_request", "model, input, stream, and store are required")
+            missing = next((name for name in ("model", "input", "stream", "store") if name not in body), None)
+            require(missing is None, 400, "invalid_request", "model, input, stream, and store are required", missing)
             require(body.get("stream") is True and body.get("store") is False, 400, "unsupported_request", "Only stream=true and store=false are supported")
             require(not (FORBIDDEN_FIELDS & set(body)), 400, "unsupported_field", "Unsupported provider continuation or cache field")
             require(set(body) <= ALLOWED_FIELDS, 400, "invalid_request", "Request body contains unknown fields")

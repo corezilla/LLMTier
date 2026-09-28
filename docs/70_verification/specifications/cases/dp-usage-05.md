@@ -31,6 +31,6 @@
   - **SKIP**：§2.1 前置不满足——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **INVALID**：用 mock/替代路径冒充真实路径——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **NOT_RUN**：本 Case 自动化入口 `MISSING`（§3.2），本轮未执行；缺口引用见 §9（MISSING ≠ NOT_RUN：无实现是缺口，不是跳过）。
-- **证据与 Run**：保存 7 个变体的完整请求（含 query 实际值）与原始 status/headers/body、对照合法查询响应、可选 `ssh sqlite3` 的 `COUNT(*)` 前后值、命令/exit code、环境快照。`manifest.json` 含 `target_artifact`（三 pin）与 `redactions`（`Authorization` 脱敏）。Run ID = `<date>/A-api`，落位 `tests/system/reports/<date>/dp-usage-05/`。证据/报告契约见[测试设计 §4.8/§10](../llmtier-api-test-specification.md)。
+- **证据与 Run**：保存 7 个变体的完整请求（含 query 实际值）与原始 status/headers/body、对照合法查询响应、可选 `ssh sqlite3` 的 `COUNT(*)` 前后值、命令/exit code、环境快照。`manifest.json` 含 `target_artifact`（三 pin）与 `redactions`（`Authorization` 脱敏）。Run ID = `<date>/A-api`，落位 `tests/system/reports/<date>/A-api/dp-usage-05/`。证据/报告契约见[测试设计 §4.8/§10](../llmtier-api-test-specification.md)。
 - **清理与复位**：**无需 teardown**——全部请求在 dispatch/建快照前被拒，不产生状态变更；不创建/修改 provider/deployment/service-level、不写注入、不删除用户 usage。退出前 `/readyz` 仍 7 tier；若误跑 B 类则按[测试设计 §4.7](../llmtier-api-test-specification.md) 销毁。
 - **依赖**：[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查；`api_client`（[§4.4](../llmtier-api-test-specification.md)）；`constants.recent_window()` 动态值；`listUsage` 机器契约与 `ERR-REQ-VALIDATION`；可选 `ssh m5air sqlite3`（仅加强证据，非 PASS 必要条件）。自动化入口 `at_dp_usage_05.py`（**当前 `MISSING`**）。**不依赖**其它 Case；与 DP-USAGE-01（正常查询）、DP-USAGE-04（过期 cursor）区分参数缺失/坏值与 cursor 过期两类 400。

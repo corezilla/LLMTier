@@ -7,7 +7,10 @@ Auth: Bearer dev-data
 
 断言：
 - HTTP 404
-- error.code == "not_found"（service-level 找不到；区别于 /v1/responses 的 model_not_found）
+- error.code == "model_not_found"
+
+注：registry.get_service_level 抛 404 not_found；EmbeddingsService.create 捕获该
+404 并 remap 为 404 model_not_found（src/inference/embeddings.py:36-39）。
 """
 from __future__ import annotations
 
@@ -23,4 +26,4 @@ def test_dp_emb_04_unknown_model(api_client):
     assert resp.status_code == 404, f"返回 {resp.status_code}（期望 404）: {resp.text}"
     body = resp.json()
     err = body.get("error") or {}
-    assert err.get("code") == "not_found", f"error.code != 'not_found': {err}"
+    assert err.get("code") == "model_not_found", f"error.code != 'model_not_found': {err}"

@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-api-test-specification` |
-| Document Version | `0.4.0-draft.4` |
+| Document Version | `0.4.0-draft.5` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -240,65 +240,65 @@ LLMTIER_ADMIN_TOKEN='...' LLMTIER_DATA_TOKEN='...' \
 
 ### 3.2 权威 Case 清单（全部 140 个）
 
-**Case 总数：140**（RUN 88 / MISSING 52；环境 A 89 / B 51；Priority P0 45 / P1 72 / P2 23）。**本表是唯一权威 Case 清单**：一行一个 Case，任何 case 详细设计文档（§3.3）的 Case ID 必须与本节一致。
+**Case 总数：140**（RUN 88 / MISSING 52；环境 A 90 / B 50；Priority P0 45 / P1 72 / P2 23）。**本表是唯一权威 Case 清单**：一行一个 Case，任何 case 详细设计文档（§3.3）的 Case ID 必须与本节一致。
 
 列语义：`分类` 为家族/主题；`被测契约/端点` 为端点、关键契约/错误码与需求/设计/机制验证项（`LT-*`/`VRC-*`/`R-*`/`T-*`）；`角色` ∈ {`none`,`data`,`admin`}；`A/B` 为环境（§2.3）；`自动化入口` 为现有 `tests/system/api_test_v03/at_*.py`（`MISSING` = 尚无自动化实现，对应 RUN 88 之外的 52 项）；`设计状态` 为该 Case 独立详细设计文档（§3.3）的状态，当前 `DP-RESP-01`、`DP-RESP-11`、`OBS-DIAG-01`、`AUTH-01` 已 `已写`，其余 `待写`。逐 Case 的前置/输入/Oracle/执行/判定/证据/清理**见各自 case 文档**（§3.4）。
 
 | Case ID | 分类 | 被测契约/端点 | 角色 | 标题 | A/B | 优先级 | 自动化入口 | 设计状态 |
 |---|---|---|---|---|---|---|---|---|
-| HEALTH-01 | 健康/就绪 | `GET /healthz`；`status="ok"`,`version:str`（VRC-API-002,T-TRUST-ENDPOINTS） | none | healthz 始终存活 | A | P0 | `at_obs_01.py` | 待写 |
-| HEALTH-02 | 健康/就绪 | `GET /readyz`；就绪=7 tier 可用（VRC-MGMT-003,T-OBS） | none | readyz 就绪=全部 tier 可用 | A | P0 | `at_obs_02.py` | 待写 |
-| HEALTH-03 | 健康/就绪 | `GET /readyz`；某候选非 healthy→503 degraded（VRC-MGMT-003,T-OBS） | none | readyz degraded | B | P1 | MISSING | 待写 |
-| HEALTH-04 | 健康/就绪 | `GET /readyz`；无 deployment→503 not_ready（VRC-MGMT-003,VRC-UTIL-001/002） | none | readyz not_ready（无 deployment） | B | P0 | `at_obs_03.py` | 待写 |
-| HEALTH-05 | 健康/就绪 | `GET /readyz`；bootstrap 失败→503（VRC-MGMT-003,VRC-UTIL-001/002） | none | readyz bootstrap 失败 | B | P1 | MISSING | 待写 |
-| HEALTH-06 | 健康/就绪 | `GET /healthz`,`GET /readyz`；无需鉴权（T-TRUST-NOCFG,T-TRUST-SHARED） | none | 健康端点无需鉴权 | B | P1 | MISSING | 待写 |
-| DP-MODELS-01 | 逻辑模型清单 | `GET /v1/models`；object=list,data[7]（VRC-INF-002,R-CFG-01） | data | 列出全部可见 tier | A | P0 | `at_dp_models_01.py` | 待写 |
-| DP-MODELS-02 | 逻辑模型清单 | `GET /v1/models/{model}`；精确返回（VRC-INF-001/002,R-INF-04） | data | 精确返回模型 | A | P0 | `at_dp_models_02.py` | 待写 |
-| DP-MODELS-03 | 逻辑模型清单 | `GET /v1/models/{model}`；小写→404 model_not_found（VRC-INF-001,R-INF-04） | data | 大小写敏感（小写） | A | P0 | `at_dp_models_03.py` | 待写 |
-| DP-MODELS-04 | 逻辑模型清单 | `GET /v1/models/{model}`；全大写→404 model_not_found（VRC-INF-001,R-INF-04） | data | 大小写敏感（全大写） | A | P1 | `at_dp_models_04.py` | 待写 |
-| DP-MODELS-05 | 逻辑模型清单 | `GET /v1/models/{model}`；URL 编码尾空格→404（VRC-INF-001,R-INF-04） | data | URL 编码尾空格不匹配 | A | P1 | `at_dp_models_05.py` | 待写 |
-| DP-MODELS-06 | 逻辑模型清单 | `GET /v1/models/{model}`；不存在→404 model_not_found（VRC-INF-001,R-INF-04） | data | 不存在模型 | A | P0 | `at_dp_models_06.py` | 待写 |
-| DP-MODELS-07 | 逻辑模型清单 | `GET /v1/models`；capabilities 固定 12 键（VRC-INF-002） | data | capabilities 固定 12 键 | A | P1 | `at_dp_models_07.py` | 待写 |
+| HEALTH-01 | 健康/就绪 | `GET /healthz`；`status="ok"`,`version:str`（VRC-API-002,T-TRUST-ENDPOINTS） | none | healthz 始终存活 | A | P0 | `at_obs_01.py` | 已写 |
+| HEALTH-02 | 健康/就绪 | `GET /readyz`；就绪=7 tier 可用（VRC-MGMT-003,T-OBS） | none | readyz 就绪=全部 tier 可用 | A | P0 | `at_obs_02.py` | 已写 |
+| HEALTH-03 | 健康/就绪 | `GET /readyz`；某候选非 healthy→503 degraded（VRC-MGMT-003,T-OBS） | none | readyz degraded | B | P1 | MISSING | 已写 |
+| HEALTH-04 | 健康/就绪 | `GET /readyz`；无 deployment→503 not_ready（VRC-MGMT-003,VRC-UTIL-001/002） | none | readyz not_ready（无 deployment） | B | P0 | `at_obs_03.py` | 已写 |
+| HEALTH-05 | 健康/就绪 | `GET /readyz`；bootstrap 失败→503（VRC-MGMT-003,VRC-UTIL-001/002） | none | readyz bootstrap 失败 | B | P1 | MISSING | 已写 |
+| HEALTH-06 | 健康/就绪 | `GET /healthz`,`GET /readyz`；无需鉴权（T-TRUST-NOCFG,T-TRUST-SHARED） | none | 健康端点无需鉴权 | B | P1 | MISSING | 已写 |
+| DP-MODELS-01 | 逻辑模型清单 | `GET /v1/models`；object=list,data[7]（VRC-INF-002,R-CFG-01） | data | 列出全部可见 tier | A | P0 | `at_dp_models_01.py` | 已写 |
+| DP-MODELS-02 | 逻辑模型清单 | `GET /v1/models/{model}`；精确返回（VRC-INF-001/002,R-INF-04） | data | 精确返回模型 | A | P0 | `at_dp_models_02.py` | 已写 |
+| DP-MODELS-03 | 逻辑模型清单 | `GET /v1/models/{model}`；小写→404 model_not_found（VRC-INF-001,R-INF-04） | data | 大小写敏感（小写） | A | P0 | `at_dp_models_03.py` | 已写 |
+| DP-MODELS-04 | 逻辑模型清单 | `GET /v1/models/{model}`；全大写→404 model_not_found（VRC-INF-001,R-INF-04） | data | 大小写敏感（全大写） | A | P1 | `at_dp_models_04.py` | 已写 |
+| DP-MODELS-05 | 逻辑模型清单 | `GET /v1/models/{model}`；URL 编码尾空格→404（VRC-INF-001,R-INF-04） | data | URL 编码尾空格不匹配 | A | P1 | `at_dp_models_05.py` | 已写 |
+| DP-MODELS-06 | 逻辑模型清单 | `GET /v1/models/{model}`；不存在→404 model_not_found（VRC-INF-001,R-INF-04） | data | 不存在模型 | A | P0 | `at_dp_models_06.py` | 已写 |
+| DP-MODELS-07 | 逻辑模型清单 | `GET /v1/models`；capabilities 固定 12 键（VRC-INF-002） | data | capabilities 固定 12 键 | A | P1 | `at_dp_models_07.py` | 已写 |
 | DP-RESP-01 | Responses(SSE) | `POST /v1/responses`；事件序列+唯一 terminal+`[DONE]`+usage（VRC-INF-001,T-STREAM） | data | 流式成功 + 事件序列 | A | P0 | `at_dp_resp_01.py` | 已写 |
-| DP-RESP-02 | Responses(SSE) | `POST /v1/responses`；`stream=false`→400 unsupported_request（ERR-REQ-UNSUPPORTED） | data | stream=false 被拒 | A | P0 | `at_dp_resp_02.py` | 待写 |
-| DP-RESP-03 | Responses(SSE) | `POST /v1/responses`；结果数字串 `390`（VRC-INF-001,T-STREAM） | data | 推理任务结果（数字串） | A | P1 | `at_dp_resp_03.py` | 待写 |
-| DP-RESP-04 | Responses(SSE) | `POST /v1/responses`；`tools` 透传（VRC-INF-001,T-TOOLS） | data | tools 透传 | A | P1 | `at_dp_resp_04.py` | 待写 |
-| DP-RESP-05 | Responses(SSE) | `POST /v1/responses`；未知 model→404 model_not_found（ERR-MODEL-NOTFOUND,VRC-INF-001/004） | data | unknown model 路由失败 | A | P0 | `at_dp_resp_05.py` | 待写 |
-| DP-RESP-06 | Responses(SSE) | `POST /v1/responses`；`stream=true` 受理（VRC-INF-001,T-STREAM） | data | stream=true 唯一受理形态 | A | P0 | `at_dp_resp_06.py` | 待写 |
-| DP-RESP-07 | Responses(SSE) | `POST /v1/responses`；`store=true`→400 unsupported_request（ERR-REQ-UNSUPPORTED,LT-INT-006） | data | store=true 被拒 | A | P0 | `at_dp_resp_07.py` | 待写 |
-| DP-RESP-08 | Responses(SSE) | `POST /v1/responses`；缺 `model`→400 invalid_request,param=model（ERR-REQ-VALIDATION,LT-FUN-001） | data | 缺 model | A | P0 | `at_dp_resp_08.py` | 待写 |
-| DP-RESP-09 | Responses(SSE) | `POST /v1/responses`；禁字段 `previous_response_id`→400 unsupported_field（ERR-REQ-FIELD,LT-FUN-001） | data | 禁字段 previous_response_id | A | P0 | `at_dp_resp_09.py` | 待写 |
-| DP-RESP-10 | Responses(SSE) | `POST /v1/responses`；`max_output_tokens=10`→incomplete（VRC-INF-001,T-STREAM） | data | max_output_tokens 截断 | A | P1 | `at_dp_resp_10.py` | 待写 |
+| DP-RESP-02 | Responses(SSE) | `POST /v1/responses`；`stream=false`→400 unsupported_request（ERR-REQ-UNSUPPORTED） | data | stream=false 被拒 | A | P0 | `at_dp_resp_02.py` | 已写 |
+| DP-RESP-03 | Responses(SSE) | `POST /v1/responses`；推理输出 SSE 结构（`output_text.delta` 非空、终态 `completed`；不把模型内容当 oracle）（VRC-INF-001,T-STREAM） | data | 推理输出结构（不含内容 oracle） | A | P1 | `at_dp_resp_03.py` | 已写 |
+| DP-RESP-04 | Responses(SSE) | `POST /v1/responses`；`tools` 透传（VRC-INF-001,T-TOOLS） | data | tools 透传 | A | P1 | `at_dp_resp_04.py` | 已写 |
+| DP-RESP-05 | Responses(SSE) | `POST /v1/responses`；未知 model→404 model_not_found（ERR-MODEL-NOTFOUND,VRC-INF-001/004） | data | unknown model 路由失败 | A | P0 | `at_dp_resp_05.py` | 已写 |
+| DP-RESP-06 | Responses(SSE) | `POST /v1/responses`；`stream=true` 受理（VRC-INF-001,T-STREAM） | data | stream=true 唯一受理形态 | A | P0 | `at_dp_resp_06.py` | 已写 |
+| DP-RESP-07 | Responses(SSE) | `POST /v1/responses`；`store=true`→400 unsupported_request（ERR-REQ-UNSUPPORTED,LT-INT-006） | data | store=true 被拒 | A | P0 | `at_dp_resp_07.py` | 已写 |
+| DP-RESP-08 | Responses(SSE) | `POST /v1/responses`；缺 `model`→400 invalid_request,param=model（ERR-REQ-VALIDATION,LT-FUN-001） | data | 缺 model | A | P0 | `at_dp_resp_08.py` | 已写 |
+| DP-RESP-09 | Responses(SSE) | `POST /v1/responses`；禁字段 `previous_response_id`→400 unsupported_field（ERR-REQ-FIELD,LT-FUN-001） | data | 禁字段 previous_response_id | A | P0 | `at_dp_resp_09.py` | 已写 |
+| DP-RESP-10 | Responses(SSE) | `POST /v1/responses`；`max_output_tokens=10`→incomplete（VRC-INF-001,T-STREAM） | data | max_output_tokens 截断 | A | P1 | `at_dp_resp_10.py` | 已写 |
 | DP-RESP-11 | Responses(SSE) | `POST /v1/responses`+注入 fault_502→502/503 provider_failure（VRC-DIAG-004,T-OBS-INJECT,ERR-PROVIDER-INJECTED） | data | 注入上游 502 → provider_failure | B | P0 | `at_dp_resp_11.py` | 已写 |
-| DP-RESP-12 | Responses(SSE) | `POST /v1/responses`；`conversation_id` 静默忽略（VRC-INF-001） | data | conversation_id 静默忽略 | A | P2 | `at_dp_resp_12.py` | 待写 |
-| DP-RESP-13 | Responses(SSE) | `POST /v1/responses`；`truncation` 静默忽略（VRC-INF-001） | data | truncation 静默忽略 | A | P2 | `at_dp_resp_13.py` | 待写 |
-| DP-RESP-14 | Responses(SSE) | `POST /v1/responses`；`max_tokens` 别名（VRC-INF-001） | data | max_tokens 别名 | A | P2 | `at_dp_resp_14.py` | 待写 |
-| DP-RESP-15 | Responses(SSE) | `POST /v1/responses`；`temperature`/`top_p`（VRC-INF-001） | data | temperature/top_p | A | P2 | `at_dp_resp_15.py` | 待写 |
-| DP-RESP-16 | Responses(SSE) | `POST /v1/responses`；非法 JSON→400 invalid_json（ERR-REQ-JSON,LT-FUN-001） | data | 非法 JSON body | B | P1 | MISSING | 待写 |
-| DP-RESP-17 | Responses(SSE) | `POST /v1/responses`；embedding-only 等级→400 unsupported_model（ERR-REQ-MODEL） | data | embedding-only 等级发 Responses | A | P1 | MISSING | 待写 |
-| DP-RESP-18 | Responses(SSE) | `POST /v1/responses`；body 超 2 MB→413 request_too_large（ERR-REQ-TOO-LARGE,VRC-INF-001） | data | body 超 2 MB | B | P2 | MISSING | 待写 |
-| DP-RESP-19 | Responses(SSE) | `POST /v1/responses`；全部候选不健康→503 model_unavailable（ERR-MODEL-UNAVAIL,VRC-INF-004） | data | 全部候选不健康 | B | P1 | MISSING | 待写 |
-| DP-RESP-20 | Responses(SSE) | `POST /v1/responses`；准入饱和→429 rate_limit_exceeded+Retry-After（ERR-RATE-LIMIT,T-QUEUE,VRC-INF-004） | data | 准入饱和 → 429 | B | P1 | MISSING | 待写 |
-| DP-RESP-21 | Responses(SSE) | `POST /v1/responses`；客户端中途断开→aborted（T-DISCONNECT,VRC-INF-001） | data | 客户端中途断开 | B | P1 | MISSING | 待写 |
-| DP-RESP-22 | Responses(SSE) | `POST /v1/responses`+注入 `fault_503`→503 provider_unavailable（ERR-PROVIDER-UNAVAIL,R-INF-05,T-OBS-INJECT） | data | 注入上游 503 → provider_unavailable | B | P1 | MISSING | 待写 |
-| DP-RESP-23 | Responses(SSE) | `POST /v1/responses`；上游非成功 HTTP→沿用上游状态 provider_error（ERR-PROVIDER-FAIL,R-INF-05） | data | 上游 4xx/5xx → provider_error | B | P1 | MISSING | 待写 |
-| DP-RESP-24 | Responses(SSE) | `POST /v1/responses`；`secret_ref` 不可解析→503 provider_secret_unavailable（ERR-PROVIDER-SECRET,R-INF-05） | data | provider 凭据缺失 | B | P1 | MISSING | 待写 |
-| DP-RESP-25 | Responses(SSE) | `POST /v1/responses`；上游响应无法归一→502 provider_contract_error（ERR-PROVIDER-CONTRACT,R-INF-05） | data | 上游契约错误 | B | P1 | MISSING | 待写 |
-| DP-EMB-01 | Embeddings | `POST /v1/embeddings`；1024 维 finite（VRC-INF-001,LT-FUN-003） | data | 基本 embedding | A | P0 | `at_dp_emb_01.py` | 待写 |
-| DP-EMB-02 | Embeddings | `POST /v1/embeddings`；`encoding_format=base64`（VRC-INF-001,LT-FUN-003） | data | base64 编码 | A | P0 | `at_dp_emb_02.py` | 待写 |
-| DP-EMB-03 | Embeddings | `POST /v1/embeddings`；同输入 ×5 不变量（VRC-INF-002,LT-FUN-003） | data | 不变量（同输入 ×5） | A | P1 | `at_dp_emb_03.py` | 待写 |
-| DP-EMB-04 | Embeddings | `POST /v1/embeddings`；未知 model→404 model_not_found（ERR-MODEL-NOTFOUND,VRC-INF-001） | data | unknown model | A | P0 | `at_dp_emb_04.py` | 待写 |
-| DP-EMB-05 | Embeddings | `POST /v1/embeddings`；batch 33（VRC-INF-002） | data | batch 33 不强制上限 | A | P2 | `at_dp_emb_05.py` | 待写 |
-| DP-EMB-06 | Embeddings | `POST /v1/embeddings`；`dimensions=768`→400 unsupported_dimensions（ERR-REQ-DIM） | data | dimensions 与冻结空间不符 | A | P1 | MISSING | 待写 |
-| DP-EMB-07 | Embeddings | `POST /v1/embeddings`；`encoding_format=hex`→400 invalid_request（ERR-REQ-VALIDATION） | data | 非法 encoding_format | B | P2 | MISSING | 待写 |
-| DP-USAGE-01 | Usage 查询 | `GET /v1/usage`；时间窗+cursor 元数据（VRC-MGMT-006,R-MET-02） | data | 时间窗查询 | A | P0 | `at_dp_usage_01.py` | 待写 |
-| DP-USAGE-02 | Usage 查询 | `GET /v1/usage`；请求后可见记录（VRC-MGMT-006,T-MET-FINAL） | data | 请求后可见记录 | A | P1 | `at_dp_usage_02.py` | 待写 |
-| DP-USAGE-03 | Usage 查询 | `GET /v1/usage`；`limit=1` cursor 分页（VRC-MGMT-006,T-MET-PAGE） | data | cursor 分页 | A | P1 | `at_dp_usage_03.py` | 待写 |
-| DP-USAGE-04 | Usage 查询 | `GET /v1/usage`；过期 cursor→400 cursor_expired（ERR-CURSOR,T-MET-PAGE） | data | 过期 cursor | A | P2 | `at_dp_usage_04.py` | 待写 |
-| DP-USAGE-05 | Usage 查询 | `GET /v1/usage`；缺 `from`/`to`→400 invalid_request（ERR-REQ-VALIDATION） | data | 缺 from/to | A | P1 | MISSING | 待写 |
-| DP-USAGE-06 | Usage 查询 | `GET /v1/usage`；data ⊆ admin 主体隔离（VRC-MGMT-006,T-TRUST-SHARED,R-MET-02） | data/admin | 主体隔离：data 只见自身，admin 见全局 | A | P1 | MISSING | 待写 |
-| DP-USAGE-07 | Usage 查询 | `GET /v1/usage`；同一 cursor 重放返回同一冻结 record version 成员（幂等/重放，R-MET-02,T-MET-PAGE） | data | 分页重放幂等 | A | P1 | MISSING | 待写 |
-| DP-USAGE-08 | Usage 查询 | `GET /v1/usage`；store 不可用→503 usage_store_unavailable（ERR-STORE,R-MET-04） | data | store 不可用不返回空页 | B | P1 | MISSING | 待写 |
+| DP-RESP-12 | Responses(SSE) | `POST /v1/responses`；未知字段 `conversation_id`→400 invalid_request（ERR-REQ-VALIDATION,VRC-INF-001） | data | conversation_id 未知字段被拒 | A | P2 | `at_dp_resp_12.py` | 已写 |
+| DP-RESP-13 | Responses(SSE) | `POST /v1/responses`；未知字段 `truncation`→400 invalid_request（ERR-REQ-VALIDATION,VRC-INF-001） | data | truncation 未知字段被拒 | A | P2 | `at_dp_resp_13.py` | 已写 |
+| DP-RESP-14 | Responses(SSE) | `POST /v1/responses`；未知字段 `max_tokens`（非 `max_output_tokens`）→400 invalid_request（ERR-REQ-VALIDATION,VRC-INF-001） | data | max_tokens 未知字段被拒 | A | P2 | `at_dp_resp_14.py` | 已写 |
+| DP-RESP-15 | Responses(SSE) | `POST /v1/responses`；`temperature` 接受、未知字段 `top_p`→400 invalid_request（ERR-REQ-VALIDATION,VRC-INF-001） | data | temperature 接受 / top_p 未知字段被拒 | A | P2 | `at_dp_resp_15.py` | 已写 |
+| DP-RESP-16 | Responses(SSE) | `POST /v1/responses`；非法 JSON→400 invalid_json（ERR-REQ-JSON,LT-FUN-001） | data | 非法 JSON body | B | P1 | MISSING | 已写 |
+| DP-RESP-17 | Responses(SSE) | `POST /v1/responses`；embedding-only 等级→400 unsupported_model（ERR-REQ-MODEL） | data | embedding-only 等级发 Responses | A | P1 | MISSING | 已写 |
+| DP-RESP-18 | Responses(SSE) | `POST /v1/responses`；body 超 2 MB→413 request_too_large（ERR-REQ-TOO-LARGE,VRC-INF-001） | data | body 超 2 MB | B | P2 | MISSING | 已写 |
+| DP-RESP-19 | Responses(SSE) | `POST /v1/responses`；全部候选不健康→503 model_unavailable（ERR-MODEL-UNAVAIL,VRC-INF-004） | data | 全部候选不健康 | B | P1 | MISSING | 已写 |
+| DP-RESP-20 | Responses(SSE) | `POST /v1/responses`；准入饱和→429 rate_limit_exceeded+Retry-After（ERR-RATE-LIMIT,T-QUEUE,VRC-INF-004） | data | 准入饱和 → 429 | B | P1 | MISSING | 已写 |
+| DP-RESP-21 | Responses(SSE) | `POST /v1/responses`；客户端中途断开→aborted（T-DISCONNECT,VRC-INF-001） | data | 客户端中途断开 | B | P1 | MISSING | 已写 |
+| DP-RESP-22 | Responses(SSE) | `POST /v1/responses`+注入 `fault_503`→503 provider_unavailable（ERR-PROVIDER-UNAVAIL,R-INF-05,T-OBS-INJECT） | data | 注入上游 503 → provider_unavailable | B | P1 | MISSING | 已写 |
+| DP-RESP-23 | Responses(SSE) | `POST /v1/responses`；上游非成功 HTTP→沿用上游状态 provider_error（ERR-PROVIDER-FAIL,R-INF-05） | data | 上游 4xx/5xx → provider_error | B | P1 | MISSING | 已写 |
+| DP-RESP-24 | Responses(SSE) | `POST /v1/responses`；`secret_ref` 不可解析→503 provider_secret_unavailable（ERR-PROVIDER-SECRET,R-INF-05） | data | provider 凭据缺失 | B | P1 | MISSING | 已写 |
+| DP-RESP-25 | Responses(SSE) | `POST /v1/responses`；上游响应无法归一→502 provider_contract_error（ERR-PROVIDER-CONTRACT,R-INF-05） | data | 上游契约错误 | B | P1 | MISSING | 已写 |
+| DP-EMB-01 | Embeddings | `POST /v1/embeddings`；1024 维 finite（VRC-INF-001,LT-FUN-003） | data | 基本 embedding | A | P0 | `at_dp_emb_01.py` | 已写 |
+| DP-EMB-02 | Embeddings | `POST /v1/embeddings`；`encoding_format=base64`（VRC-INF-001,LT-FUN-003） | data | base64 编码 | A | P0 | `at_dp_emb_02.py` | 已写 |
+| DP-EMB-03 | Embeddings | `POST /v1/embeddings`；同输入 ×5 不变量（VRC-INF-002,LT-FUN-003） | data | 不变量（同输入 ×5） | A | P1 | `at_dp_emb_03.py` | 已写 |
+| DP-EMB-04 | Embeddings | `POST /v1/embeddings`；未知 model→404 model_not_found（ERR-MODEL-NOTFOUND,VRC-INF-001） | data | unknown model | A | P0 | `at_dp_emb_04.py` | 已写 |
+| DP-EMB-05 | Embeddings | `POST /v1/embeddings`；batch 33（VRC-INF-002） | data | batch 33 不强制上限 | A | P2 | `at_dp_emb_05.py` | 已写 |
+| DP-EMB-06 | Embeddings | `POST /v1/embeddings`；`dimensions=768`→400 unsupported_dimensions（ERR-REQ-DIM） | data | dimensions 与冻结空间不符 | A | P1 | MISSING | 已写 |
+| DP-EMB-07 | Embeddings | `POST /v1/embeddings`；`encoding_format ∉ {float,base64}`（如 `hex`）→400 invalid_request,param=encoding_format（ERR-REQ-VALIDATION,VRC-INF-001） | data | 非法 encoding_format | A | P2 | MISSING | 已写 |
+| DP-USAGE-01 | Usage 查询 | `GET /v1/usage`；时间窗+cursor 元数据（VRC-MGMT-006,R-MET-02） | data | 时间窗查询 | A | P0 | `at_dp_usage_01.py` | 已写 |
+| DP-USAGE-02 | Usage 查询 | `GET /v1/usage`；请求后可见记录（VRC-MGMT-006,T-MET-FINAL） | data | 请求后可见记录 | A | P1 | `at_dp_usage_02.py` | 已写 |
+| DP-USAGE-03 | Usage 查询 | `GET /v1/usage`；`limit=1` cursor 分页（VRC-MGMT-006,T-MET-PAGE） | data | cursor 分页 | A | P1 | `at_dp_usage_03.py` | 已写 |
+| DP-USAGE-04 | Usage 查询 | `GET /v1/usage`；过期 cursor→400 cursor_expired（ERR-CURSOR,T-MET-PAGE） | data | 过期 cursor | A | P2 | `at_dp_usage_04.py` | 已写 |
+| DP-USAGE-05 | Usage 查询 | `GET /v1/usage`；缺 `from`/`to`→400 invalid_request（ERR-REQ-VALIDATION） | data | 缺 from/to | A | P1 | MISSING | 已写 |
+| DP-USAGE-06 | Usage 查询 | `GET /v1/usage`；data ⊆ admin 主体隔离（VRC-MGMT-006,T-TRUST-SHARED,R-MET-02） | data/admin | 主体隔离：data 只见自身，admin 见全局 | A | P1 | MISSING | 已写 |
+| DP-USAGE-07 | Usage 查询 | `GET /v1/usage`；同一 cursor 重放返回同一冻结 record version 成员（幂等/重放，R-MET-02,T-MET-PAGE） | data | 分页重放幂等 | A | P1 | MISSING | 已写 |
+| DP-USAGE-08 | Usage 查询 | `GET /v1/usage`；store 不可用→503 usage_store_unavailable（ERR-STORE,R-MET-04） | data | store 不可用不返回空页 | B | P1 | MISSING | 已写 |
 | ADM-PROV-01 | Provider CRUD | `GET /v1/providers`；列表+`has_more`（VRC-MGMT-001） | admin | 列出 providers | A | P0 | `at_adm_prov_01.py` | 待写 |
 | ADM-PROV-02 | Provider CRUD | `POST /v1/providers`；201+自动 id+has_secret（VRC-MGMT-001,R-CFG-01） | admin | 创建 provider | B | P0 | `at_adm_prov_02.py` | 待写 |
 | ADM-PROV-03 | Provider CRUD | `GET /v1/providers/{id}`；详情字段（VRC-MGMT-001） | admin | 获取 provider 详情 | A | P0 | `at_adm_prov_03.py` | 待写 |
@@ -394,7 +394,7 @@ LLMTIER_ADMIN_TOKEN='...' LLMTIER_DATA_TOKEN='...' \
 | `HEALTH-01..06` | 无认证健康/就绪 | `GET /healthz`、`GET /readyz`；无鉴权 | 6 | A 2 / B 4 |
 | `DP-MODELS-01..07` | 逻辑模型清单 | `GET /v1/models`、`/v1/models/{model}`；data | 7 | A 7 |
 | `DP-RESP-01..25` | Responses（SSE） | `POST /v1/responses`；data | 25 | A 15 / B 10 |
-| `DP-EMB-01..07` | Embeddings | `POST /v1/embeddings`；data | 7 | A 6 / B 1 |
+| `DP-EMB-01..07` | Embeddings | `POST /v1/embeddings`；data | 7 | A 7 |
 | `DP-USAGE-01..08` | Usage 查询 | `GET /v1/usage`；data / admin | 8 | A 7 / B 1 |
 | `ADM-PROV-01..14` | Provider CRUD | `/v1/providers(/{id})`；admin | 14 | A 4 / B 10 |
 | `ADM-PROV-MODELS-01..02` | provider 上游模型目录 | `GET /v1/providers/{id}/models`；admin | 2 | A 2 |
@@ -405,7 +405,7 @@ LLMTIER_ADMIN_TOKEN='...' LLMTIER_DATA_TOKEN='...' \
 | `OBS-01..22` | 观测/诊断/追踪/别名 | `/v1/diagnostics*`、`/v1/deployments/{id}/diagnostics`、`/v1/trace/{id}`、`/tier/admin/v1/*`；admin | 22 | A 14 / B 8 |
 | `AUTH-01..10` | 认证与授权 | 全端点角色 / LAN trust / no-auth | 10 | A 9 / B 1 |
 
-**Case 计数**：HEALTH 6 + DP-MODELS 7 + DP-RESP 25 + DP-EMB 7 + DP-USAGE 8 + ADM 55（14+2+4+9+10+16）+ OBS 22 + AUTH 10 = **140 个 Case**（RUN 88 / MISSING 52；A 89 / B 51；P0 45 / P1 72 / P2 23）。125 原有 + 15 新增（AUTH-10、DP-RESP-22..25、DP-USAGE-07..08、ADM-PROV-14、ADM-PROV-USAGE-04、ADM-RUNTIME-02、ADM-AUDIT-03、ADM-SL-08、OBS-REQTRACE-03、OBS-ALIAS-05..06）= 140；**以 §3.2 逐行权威清单为准**。
+**Case 计数**：HEALTH 6 + DP-MODELS 7 + DP-RESP 25 + DP-EMB 7 + DP-USAGE 8 + ADM 55（14+2+4+9+10+16）+ OBS 22 + AUTH 10 = **140 个 Case**（RUN 88 / MISSING 52；A 90 / B 50；P0 45 / P1 72 / P2 23）。125 原有 + 15 新增（AUTH-10、DP-RESP-22..25、DP-USAGE-07..08、ADM-PROV-14、ADM-PROV-USAGE-04、ADM-RUNTIME-02、ADM-AUDIT-03、ADM-SL-08、OBS-REQTRACE-03、OBS-ALIAS-05..06）= 140；**以 §3.2 逐行权威清单为准**。
 
 ### 3.3 每 Case 详细设计文档契约
 
@@ -415,7 +415,7 @@ LLMTIER_ADMIN_TOKEN='...' LLMTIER_DATA_TOKEN='...' \
 
 - 目录：`docs/70_verification/specifications/cases/`
 - 文件名：`<case-id>.md`，`<case-id>` 为 Case ID **小写**（例 `docs/70_verification/specifications/cases/dp-resp-01.md`、`docs/70_verification/specifications/cases/adm-sl-02b.md`）。
-- 与报告分离：设计写在该文件；Run 证据写在 `tests/system/reports/<date>/`（§10）。
+- 与报告分离：设计写在该文件；Run 证据写在 `tests/system/reports/<date>/<A-api|B-api>/<case-id>/`（§10）。
 
 **固定字段（必须齐备，固定顺序）**：
 
@@ -461,21 +461,21 @@ LLMTIER_ADMIN_TOKEN='...' LLMTIER_DATA_TOKEN='...' \
 
 | 类别 | Case 段 | 待写文档数 | 文档路径模式 | 状态 |
 |---|---|---|---|---|
-| 无认证健康/就绪 | HEALTH-01..06 | 6 | `cases/health-01.md` … `cases/health-06.md` | 待写 |
-| 逻辑模型清单 | DP-MODELS-01..07 | 7 | `cases/dp-models-01.md` … `cases/dp-models-07.md` | 待写 |
+| 无认证健康/就绪 | HEALTH-01..06 | 6 | `cases/health-01.md` … `cases/health-06.md` | 已写 6 / 待写 0 |
+| 逻辑模型清单 | DP-MODELS-01..07 | 7 | `cases/dp-models-01.md` … `cases/dp-models-07.md` | 已写 7 / 待写 0 |
 | Responses（SSE） | DP-RESP-01..25 | 25 | `cases/dp-resp-01.md` … `cases/dp-resp-25.md` | `DP-RESP-01`、`DP-RESP-11` 已写；其余 待写 |
-| Embeddings | DP-EMB-01..07 | 7 | `cases/dp-emb-01.md` … `cases/dp-emb-07.md` | 待写 |
-| Usage 查询 | DP-USAGE-01..08 | 8 | `cases/dp-usage-01.md` … `cases/dp-usage-08.md` | 待写 |
-| Provider CRUD | ADM-PROV-01..14 | 14 | `cases/adm-prov-01.md` … `cases/adm-prov-14.md` | 待写 |
-| provider 上游模型目录 | ADM-PROV-MODELS-01..02 | 2 | `cases/adm-prov-models-01.md` … `cases/adm-prov-models-02.md` | 待写 |
-| provider usage 快照 | ADM-PROV-USAGE-01..04 | 4 | `cases/adm-prov-usage-01.md` … `cases/adm-prov-usage-04.md` | 待写 |
-| Deployment CRUD | ADM-DEPL-01..09 | 9 | `cases/adm-depl-01.md` … `cases/adm-depl-09.md` | 待写 |
-| Service Level CRUD | ADM-SL-01,02,02b,03,04,04b,05,06,07,08 | 10 | `cases/adm-sl-01.md` … `cases/adm-sl-08.md`（含 `adm-sl-02b.md`、`adm-sl-04b.md`） | 待写 |
-| 探测/运行态/统计/审计/日志/管理 usage | ADM-PROBE/RUNTIME/STATS/AUDIT/LOGS/USAGE | 16 | `cases/adm-probe-01.md` … `cases/adm-admin-usage-03.md`（含 `adm-runtime-02.md`、`adm-audit-03.md`） | 待写 |
+| Embeddings | DP-EMB-01..07 | 7 | `cases/dp-emb-01.md` … `cases/dp-emb-07.md` | 已写 7 / 待写 0 |
+| Usage 查询 | DP-USAGE-01..08 | 8 | `cases/dp-usage-01.md` … `cases/dp-usage-08.md` | 已写 8 / 待写 0 |
+| Provider CRUD | ADM-PROV-01..14 | 14 | `cases/adm-prov-01.md` … `cases/adm-prov-14.md` | 已写 0 / 待写 14 |
+| provider 上游模型目录 | ADM-PROV-MODELS-01..02 | 2 | `cases/adm-prov-models-01.md` … `cases/adm-prov-models-02.md` | 已写 0 / 待写 2 |
+| provider usage 快照 | ADM-PROV-USAGE-01..04 | 4 | `cases/adm-prov-usage-01.md` … `cases/adm-prov-usage-04.md` | 已写 0 / 待写 4 |
+| Deployment CRUD | ADM-DEPL-01..09 | 9 | `cases/adm-depl-01.md` … `cases/adm-depl-09.md` | 已写 0 / 待写 9 |
+| Service Level CRUD | ADM-SL-01,02,02b,03,04,04b,05,06,07,08 | 10 | `cases/adm-sl-01.md` … `cases/adm-sl-08.md`（含 `adm-sl-02b.md`、`adm-sl-04b.md`） | 已写 0 / 待写 10 |
+| 探测/运行态/统计/审计/日志/管理 usage | ADM-PROBE/RUNTIME/STATS/AUDIT/LOGS/USAGE | 16 | `cases/adm-probe-01.md` … `cases/adm-admin-usage-03.md`（含 `adm-runtime-02.md`、`adm-audit-03.md`） | 已写 0 / 待写 16 |
 | 观测/诊断/追踪/别名 | OBS-* | 22 | `cases/obs-diag-01.md` … `cases/obs-alias-06.md` | `OBS-DIAG-01` 已写；其余 待写 |
 | 认证与授权 | AUTH-01..10 | 10 | `cases/auth-01.md` … `cases/auth-10.md` | `AUTH-01` 已写；其余 待写 |
 
-**文档总数**：6+7+25+7+8+14+2+4+9+10+16+22+10 = **140**（已写 4 / 待写 136），与 §3.2 权威清单一一对应。
+**文档总数**：6+7+25+7+8+14+2+4+9+10+16+22+10 = **140**（已写 55 / 待写 85），与 §3.2 权威清单一一对应。
 
 ### 3.5 定量覆盖模型（route × method × role × error-code）
 
@@ -510,7 +510,7 @@ LLMTIER_ADMIN_TOKEN='...' LLMTIER_DATA_TOKEN='...' \
 | `/v1/trace/{id}` | GET | admin / data | 3 | 1 / 2 | `not_found`、`permission_denied` |
 | `/tier/admin/v1/*`（6 条别名路径） | GET / PATCH | admin | 6 | 6 / 0 | —（负向由 AUTH-08 覆盖） |
 | `/healthz` | GET | none | 1 | 1 / 0 | — |
-| `/readyz` | GET | none | 5 | 1 / 4 | `bootstrap_required`（以 `not_ready` 表达） |
+| `/readyz` | GET | none | 5 | 1 / 4 | —（503 body 为 `ReadinessView`，非 `ErrorEnvelope`，无 `code`；启动失败状态以 `status="not_ready"` 表达） |
 | （跨切面 AUTH） | GET / POST | none / data / admin | 10 | 8 / 2（401/403/503） | `authentication_required`、`permission_denied`、`auth_not_configured` |
 | **合计** | | | **140** | | |
 
@@ -580,7 +580,7 @@ LLMTIER_ADMIN_TOKEN='...' LLMTIER_DATA_TOKEN='...' \
 ### 4.5 SSE 解析与 terminal 断言
 
 - **解析**：逐帧读取 `text/event-stream`，解析 `event:`/`data:`，累积 `output_text`。
-- **事件序列**（DP-RESP-01）：`response.created → output_item.added → output_text.delta×N → output_text.done → output_item.done → response.completed → [DONE]`。
+- **事件序列**（DP-RESP-01）：`response.created → response.output_item.added → response.output_text.delta×N → response.output_item.done → response.completed`（或 `response.incomplete`/`response.failed`）`→ data: [DONE]`；序列中**不存在**独立的 `output_text` 完成事件。
 - **terminal**：恰好一个 `response.completed` / `response.incomplete` / `response.failed`，且以 `[DONE]` 收尾；`sequence_number` 自 0 **严格递增**。
 - **异常路径**：`stream_terminate` / `malformed_event` / 客户端断开（DP-RESP-21）不得产生半个成功（§6）。
 
@@ -589,7 +589,7 @@ LLMTIER_ADMIN_TOKEN='...' LLMTIER_DATA_TOKEN='...' \
 - **wire 信封**：`{error:{message,type,code,param,retryable}}` —— 与 `src/http_api/errors.py::ApiError.envelope` 及 `openapi` `ErrorDetail` 一致，恰 5 个必填键。**没有 `category` 键**；**`type` 就是错误类别**（`request_error`|`server_error`），不要另加/另读 `category`。`additionalProperties: true`（`extra` 可并入 `error`，如 412 的 `current_version`）。
 - **`type`**：由 HTTP 状态导出（`<500` = `request_error`，否则 `server_error`）。
 - **`code`**：稳定码值（系统设计 §7.8 `ERR-*` 目录，machine `openapi` `ErrorDetail.code` enum）；负向 Case 断言 `status + code`（必要时 `param`）。
-- **拒绝即零副作用**：400/403/404/409/412/429 必须在 dispatch 之前完成，无上游调用、无账本义务；以 usage/runtime/trace 交叉核对。
+- **拒绝与副作用**：校验/鉴权类失败（400/403/404/409/412）在 dispatch 之前完成，无上游调用、无账本义务。**但 `authorize_dispatch` 先于 `admit`**（`src/inference/responses.py:94/98`；embeddings 同构），故 `admit` 阶段的拒绝（429 `rate_limit_exceeded`、503 `model_unavailable`）可能已在账本留下 pending/orphan obligation（`measurement_status="unknown"`）；必须以 usage/runtime/trace 交叉核对并在报告中解释该记录，**不得**宣称绝对零义务。
 - **别名等价**：同一错误在 `/v1/*` 与 `/tier/admin/v1/*` 上逐字节等价。
 
 ### 4.7 DB 初始化 / 复位 / 清理
@@ -606,7 +606,7 @@ LLMTIER_ADMIN_TOKEN='...' LLMTIER_DATA_TOKEN='...' \
   1. `git_commit`：被测代码的完整 40 位 commit SHA（`git -C <repo> rev-parse HEAD`；m5air 部署目录非 git 工作树时，记录同步来源 commit SHA）。
   2. `db_schema_version`：运行库 `schema_meta.version`（SQLite 读取；B 类为临时库，A 类为 `state.sqlite3`）。
   3. `openapi_version`：`interfaces/openapi/llmtier.openapi.json` 的 `info.version`。
-- **每 Case 证据 Artifact**：每个 Case 产出目录 `tests/system/reports/<date>/<case-id>/`（A/B 同 Run 分 `A-api`/`B-api` 子目录），内含 `manifest.json` 与原始证据文件（`response.http.txt`、`sse.events.jsonl`、`headers.txt`、`stdout/stderr` 等）。
+- **每 Case 证据 Artifact**：每个 Case 产出目录 `tests/system/reports/<date>/<A-api|B-api>/<case-id>/`（A/B 各占 `A-api`/`B-api` 子目录），内含 `manifest.json` 与原始证据文件（`response.http.txt`、`sse.events.jsonl`、`headers.txt`、`stdout/stderr` 等）。
 - **Manifest 必填字段**（每个 Case 一份，缺项该 Case 不得判 PASS）：
   | 字段 | 内容 |
   |---|---|
@@ -622,7 +622,7 @@ LLMTIER_ADMIN_TOKEN='...' LLMTIER_DATA_TOKEN='...' \
   | `redactions` | 已脱敏项清单（§10/§11） |
   | `reproduction_cmd` | 复现命令（FAIL/BLOCKED/INVALID 必填） |
 - **证据**：命令、exit code、HTTP status/headers/body、SSE 逐帧、注入命中（trace `source=injected`）、环境快照（`/healthz`/`/readyz` + provider/deployment 列表）；与 manifest `actual` 同源。
-- **报告落位**：`tests/system/reports/<date>/`；失败现场不截断；重跑生成新 Run（§10）。
+- **报告落位**：`tests/system/reports/<date>/<A-api|B-api>/<case-id>/`（含 `manifest.json`）；失败现场不截断；重跑生成新 Run（§10）。
 
 ### 4.9 Case → 自动化入口映射
 
@@ -639,7 +639,7 @@ LLMTIER_ADMIN_TOKEN='...' LLMTIER_DATA_TOKEN='...' \
 - **`confirm_external_call`**：`POST /v1/providers/{id}/usage` 与 `POST /v1/probes` 需显式确认。`/v1/providers/{id}/usage` body 键集必须等于 `{confirm_external_call}`（否则 400 `invalid_request`）；`/v1/probes` body 键集必须等于 `{deployment_id, confirm_external_call}`（缺 → 400 `confirmation_required`）。`GET /v1/providers/{id}/models` 可能触上游（只读目录）。
 - **`capabilities` 12 键全集**（registry `CAPABILITY_KEYS`）：`responses, embeddings, tools, structured_outputs, input_modalities, output_modalities, context_window, max_output_tokens, embedding_space_id, embedding_dimensions, embedding_max_batch_inputs, embedding_max_input_tokens`；缺/多即 400。
 - **固定 tier**：service-level `id` 必须在 7 个 FIXED_TIERS（`Senior/Junior/Worker/Associate/Engineer/Executor/Embedding-v1`）内，否则 400 `invalid_request`；删除固定 tier → 409 `fixed_service_level`；PATCH 仅接受 `deployment_ids`/`enabled`。
-- **`/readyz` 状态**：`ready`（全 available，200）| `degraded`（有候选但非全健康，503）| `not_ready`（无候选/启动失败，503）；body `{status, models[{id,availability}]}`。
+- **`/readyz` 状态**：`ready`（全 available，200）| `degraded`（有候选但非全健康，503）| `not_ready`（无候选/启动失败，503）；body `{status, models[{id,availability}]}`。**503 wire shape 是 `ReadinessView`（`{"status":"degraded"|"not_ready","models":[…]}`）而非 `ErrorEnvelope`**——`/readyz` 不返回 `{error:...}`（`openapi` 正修正为一致，现网以实现为准）。
 - **分页时间参数**：`/v1/usage`、`/v1/stats`、`/v1/logs` 用 **`from`/`to`**；`/v1/diagnostics/stats` 用 **`since`/`until`**（缺 → 400 `invalid_request`）。
 - **别名命名空间**：`/tier/admin/v1/*` 的 6 条诊断/追踪路由与 `/v1/*` 为**同一 handler 的精确别名**（openapi `x-llmtier-contract-aliases`），body 应逐字节等价；仍要求 `admin` 角色。
 - **错误信封/SSE/注入**：分别见 §4.6 / §4.5 / §6，本节不重复。
@@ -667,7 +667,7 @@ LLMTIER_ADMIN_TOKEN='...' LLMTIER_DATA_TOKEN='...' \
 - 资源与并发：404 `not_found`/`model_not_found`、409 `resource_conflict`/`capability_conflict`/`embedding_space_conflict`/`fixed_service_level`/`resource_in_use`、412 `version_conflict`、400 `cursor_expired`/`invalid_injection`/`confirmation_required`。
 - 上游：502/503 `provider_unavailable`（DP-RESP-22）/`provider_error`（DP-RESP-23）/`provider_failure`（DP-RESP-11）/`provider_secret_unavailable`（DP-RESP-24）/`provider_contract_error`（DP-RESP-25）；504 超时；`model_unavailable`；429 `rate_limit_exceeded` + `Retry-After`。
 - 存储与兜底：`usage_store_unavailable`（DP-USAGE-08，503 不用空页冒充）；`internal_error`（ADM-SL-08，500 信封不含栈/Secret）。
-- **拒绝即无副作用**：无上游 dispatch、无账本义务；需以 usage/runtime/trace 交叉核对（例如 DP-RESP-20 后 `GET /v1/usage` 无新增 obligation）。
+- **拒绝与副作用**：校验/鉴权拒绝（400/403/404/409/412）无上游 dispatch、无账本义务；但 `authorize_dispatch` 先于 `admit`，429/503 可能在账本留下 pending/orphan obligation，需以 usage/runtime/trace 交叉核对（DP-RESP-20 的 429 后应核对 `GET /v1/usage` 中该 request 的 pending/`unknown` 记录并解释，而非假定无新增）。
 
 **并发**
 
@@ -675,7 +675,7 @@ LLMTIER_ADMIN_TOKEN='...' LLMTIER_DATA_TOKEN='...' \
 - ADM-PROV-05/06/07：并发编辑以 `If-Match` / 412 串行化；两写者同 version 只能一个成功。
 - OBS-DEPL-02 + 并发推理：注入配置变更与在途流的关系按 §6 定义，不假设原子。
 
-**LLM 判据**：所有 Responses 断言基于**结构/事件序列/可复现字符串**（如数字 `"390"`），不写"答案正确"；temperature/top_p 不参与断言。
+**LLM 判据**：所有 Responses 断言基于**结构/事件序列/字段契约**，不写"答案正确"、不把上游模型的具体内容（如某个数字串）当 oracle；`temperature` 的采样语义不参与内容断言，`top_p` 仅以未知字段被拒（DP-RESP-15）作结构断言。
 
 ## 6. Recovery、重放、幂等与故障注入
 
@@ -714,7 +714,7 @@ LLMTIER_ADMIN_TOKEN='...' LLMTIER_DATA_TOKEN='...' \
 
 ### 8.1 端到端执行流程（环境就绪 → 部署/启动 → 跑 case → 收证据 → 复位）
 
-1. **环境就绪（§2.1）**：在开发机对 m5air 执行 5 项检查（`/healthz`、`/readyz` 7 tier、m5air/m5mac OMLX、`provider_omlx_m5mac` secret）。`pytest_configure` 自动执行；任一失败 → 整班 SKIP/BLOCKED，**不得**静默改用模拟路径声称真实通过。
+1. **环境就绪（§2.1）**：在开发机对 m5air 执行 6 项检查（`/healthz`、`/readyz` 7 tier、m5air OMLX、m5mac OMLX、`provider_omlx_m5mac` secret、A 类既有 provider/deployment 资源注册）。`pytest_configure` 自动执行；任一失败 → 整班 SKIP/BLOCKED，**不得**静默改用模拟路径声称真实通过。
 2. **部署 / 启动待测版本**：
    - **A 类**：m5air 已部署。如需更新，按 §2.5 顺序执行：`rsync` 源码（排除运行数据）→ 查旧进程/端口 → `kill -TERM` 并等待 → 用 Python 3.14 重启 → `curl http://192.168.1.9:8181/healthz` 验证 → 确认无旧进程残留。
    - **B 类**：`conftest.py` 的 `LLMTierInstance` 按 fixture 启动本机临时实例（临时端口 + 临时 SQLite + 每 run settings），`start()` 轮询 `/healthz`。
@@ -724,7 +724,7 @@ LLMTIER_ADMIN_TOKEN='...' LLMTIER_DATA_TOKEN='...' \
    - A/B 分跑：`bash tests/system/api_test_v03/runner_a.sh` / `runner_b.sh`；
    - Data Plane smoke：`python3 tools/inference_smoke.py --base http://192.168.1.9:8181`。
    - **建议顺序**：A 类只读/无状态写 → 每写完立即 teardown → B 类串行（含注入/并发）→ 注入 case 必须与 `OBS-DEPL-02` 配套（写入 → 命中 → 清空）。A/B 互斥同一实例，不与 A 类并行跑并发写。
-4. **收证据（§10）**：记录命令、exit code、HTTP status/headers/body、SSE 逐帧、注入命中证据（trace `source=injected`）、环境快照（`/healthz`/`/readyz` + provider/deployment 列表）。Run ID `<date>/<class>-<phase>`；存 `tests/system/reports/<date>/`；失败现场不截断。
+4. **收证据（§10）**：记录命令、exit code、HTTP status/headers/body、SSE 逐帧、注入命中证据（trace `source=injected`）、环境快照（`/healthz`/`/readyz` + provider/deployment 列表）。Run ID `<date>/<class>-<phase>`；存 `tests/system/reports/<date>/<A-api|B-api>/<case-id>/`；失败现场不截断。
 5. **复位**：A 类每个写 case teardown（PATCH 复原/ DELETE 本次创建物）、注入 `items:[]`、DP-USAGE-04 复位 `query_snapshots.expires_at`；B 类整班 `stop()` 终止进程并 `rm -rf` 临时目录。核验 `/readyz` + provider/deployment 列表回到 §2.1 基线、无遗留端口监听、无未清空注入。
 6. **判定与登记**：按 §9 为每个执行项给出 PASS/FAIL/BLOCKED/SKIP/INVALID/NOT_RUN；FAIL/BLOCKED/INVALID 登记缺陷并保留现场，不得把未运行项补造为成功。**单 Case 受阻不中断整轮**（就地恢复后继续下一个 Case）；某批小范围系统性受阻时先诊断根因再**断点续跑**（不回跑已 PASS），见执行层计划 §7.1。
 
@@ -736,7 +736,7 @@ LLMTIER_ADMIN_TOKEN='...' LLMTIER_DATA_TOKEN='...' \
 - **容器 / 上游超时**：V0.3 首版不做容器化（container image 非必要，见 release-and-operations §2/§3），因此超时关注点集中在上游 provider 建连 30 s、首字节 30 s、SSE 空闲 60 s 与准入队列上限 30 s（系统设计 §5.3）；用 `delay` 注入命中超时路径并记录观测时点；本规格不设 ms 级 SLO 门限。
 - **注入命中证明**（`OBS-DEPL-02/04` + DP-RESP-11）：注入必须留下 trace `source=injected` 或响应状态/错误码证据，否则判 INVALID；撤销 `items:[]` 后必须回到合法终态。
 - **分页 cursor**（DP-USAGE-03/04、ADM-AUDIT-02、ADM-USAGE-02、OBS-*）：稳定排序 `(recorded_at, request_id)`；同 cursor 重放返回同一冻结的 record version 成员；非法/过期 → 400 `cursor_expired`。
-- **拒绝零副作用**：400/403/404/409/412/429 必须在 dispatch 之前完成；以 usage/runtime/trace 交叉核对无新增账本义务、无上游调用。
+- **拒绝与副作用**：校验/鉴权类（400/403/404/409/412）在 dispatch 之前完成，无上游调用、无账本义务；但 `authorize_dispatch` 先于 `admit`（`responses.py:94/98`），429/503 可能有 pending/orphan obligation，须以 usage/runtime/trace 交叉核对并解释，**不假定**绝对为零。
 
 ### 8.3 入口（命令）
 
@@ -794,11 +794,11 @@ PYTHONPATH=src python3 tests/integration/v03_smoke.py
 ## 10. Artifact、日志、测量与证据保存
 
 - **Run ID 与被测版本锁定**：同 §4.8。每个 Run 必录 `{git_commit, db_schema_version, openapi_version}`；`db_schema_version` 在运行开始时与恢复到的新库上分别记录，作为 schema 恢复（§2.9）的前后对照。
-- **每 Case artifact + manifest**：`tests/system/reports/<date>/<case-id>/manifest.json`（字段见 §4.8 表）+ 原始证据文件；Case ↔ Run 对应表在 Run 报告中维护。
+- **每 Case artifact + manifest**：`tests/system/reports/<date>/<A-api|B-api>/<case-id>/manifest.json`（字段见 §4.8 表）+ 原始证据文件；Case ↔ Run 对应表在 Run 报告中维护。
 - **固定输入**：prompt、model、时间窗、注入项、If-Match ETag 字面值、fixture settings；随 Run manifest 存档。
 - **原始输出**：命令、HTTP status/headers、body、SSE 逐帧、exit code、耗时；失败现场保留不截断（脱敏后）。
 - **环境快照**：m5air 部署版本（commit SHA）、DB `schema_version`、`/healthz`/`/readyz` 响应、provider/deployment 列表、`tools/api_smoke_test.py` 输出。
-- **保存位置**：`tests/system/reports/<date>/`（沿用现有约定）。
+- **保存位置**：`tests/system/reports/<date>/<A-api|B-api>/<case-id>/`（沿用现有约定；每 Case 一份 `manifest.json`）。
 - **重跑**：生成新 Run，不覆盖旧失败，不把未运行项目补造为成功。
 - **保密/脱敏（强制）**：Artifact 入库前必须 scrub：`Authorization` 头（`Bearer dev-data`/`Bearer dev-admin` 可保留为测试凭据，但真实凭据一律替换为 `<redacted>`）、上游 OMLX Bearer 字面 `9832`、任何 key 文件内容（如 `omlx-secret-key.txt`）与解析后的 secret 值、完整 provider payload。manifest `redactions` 必须列出已脱敏项。
 
@@ -818,7 +818,7 @@ PYTHONPATH=src python3 tests/integration/v03_smoke.py
 
 | `ERR-*`（源 ID） | wire `code` | 端点 / 模块 | 承接 Case 或具名缺口 |
 |---|---|---|---|
-| ERR-REQ-VALIDATION | `invalid_request` | 全端点 | DP-RESP-08、DP-EMB-07、DP-USAGE-05、ADM-PROV-11、ADM-DEPL-08、ADM-STATS-03、ADM-AUDIT-03、ADM-LOGS-02、OBS-DIAG-03、OBS-STATS-02 |
+| ERR-REQ-VALIDATION | `invalid_request` | 全端点 | DP-RESP-08、DP-RESP-12..15、DP-EMB-07、DP-USAGE-05、ADM-PROV-11、ADM-DEPL-08、ADM-STATS-03、ADM-AUDIT-03、ADM-LOGS-02、OBS-DIAG-03、OBS-STATS-02 |
 | ERR-REQ-UNSUPPORTED | `unsupported_request` | `/v1/responses` | DP-RESP-02、DP-RESP-07 |
 | ERR-REQ-FIELD | `unsupported_field` | `/v1/responses` | DP-RESP-09 |
 | ERR-REQ-MODEL | `unsupported_model` | `/v1/responses` | DP-RESP-17 |
@@ -846,7 +846,7 @@ PYTHONPATH=src python3 tests/integration/v03_smoke.py
 | ERR-MODEL-UNAVAIL | `model_unavailable` | responses/embeddings | DP-RESP-19 |
 | ERR-STORE | `usage_store_unavailable` | usage/audit/logs/观测查询 | DP-USAGE-08 |
 | ERR-INTERNAL | `internal_error` | 全端点 | ADM-SL-08（信封契约；同时登记输入校验缺陷） |
-| ERR-BOOT | `bootstrap_required` / `bootstrap_invalid` | 启动、`/readyz` | **具名缺口**：HEALTH-04/05 仅以 `/readyz not_ready` 覆盖表现，不覆盖 envelope code |
+| ERR-BOOT | `bootstrap_required` / `bootstrap_invalid` | 启动、`/readyz` | **具名缺口**：`/readyz` 503 body 为 `ReadinessView`（非 `ErrorEnvelope`，无 `code`）；HEALTH-04/05 仅以 `/readyz status="not_ready"` 覆盖表现，不覆盖 envelope code |
 | ERR-SCHEMA | `schema_version_mismatch` / `schema_unknown` / `schema_integrity_failed` | 启动、`/readyz` | **具名缺口**：需 M007 特有构造；恢复路径见 §2.9 |
 | ERR-PATH-UNSAFE | `store_path_unsafe` | 启动、`/readyz` | **具名缺口**：需 symlink DB 路径的破坏性构造 |
 | ERR-UTIL-TXN | `E-UTIL-NESTED-TXN` | 全部写入/事务路径 | **具名缺口**：嵌套事务为内部不变量，无法从 HTTP 无破坏触发 |

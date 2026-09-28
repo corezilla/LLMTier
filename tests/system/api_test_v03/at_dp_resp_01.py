@@ -10,11 +10,11 @@ Auth: Bearer dev-data
 - SSE 事件序列（按 sse.py 真相）：
   response.created → response.output_item.added
   → response.output_text.delta ×N
-  → response.output_text.done
   → response.output_item.done
   → response.completed (status=completed)
   → data: [DONE]
 - 每帧含 sequence_number，单调递增从 0 开始
+- 恰有一个 terminal 事件（completed/incomplete/failed）
 - response.completed 事件内 usage.input_tokens/output_tokens/total_tokens 都非 null
 """
 from __future__ import annotations
@@ -77,10 +77,17 @@ def test_dp_resp_01_streaming_sse_complete(api_client):
 
     # 抽取事件名序列
     names = [e[0] for e in events]
-    assert "response.created" in names, f"缺 response.created: {names}"
+    assert names[0] == "response.created", f"首个事件应为 response.created: {names}"
     assert "response.output_item.added" in names, f"缺 output_item.added: {names}"
-    assert "response.output_text.done" in names
-    assert "response.output_item.done" in names
+    assert "response.output_text.delta" in names, f"缺 output_text.delta: {names}"
+    assert "response.output_item.done" in names, f"缺 output_item.done: {names}"
+    # sse.py 从不发 response.output_text.done，锁定真实契约
+    assert "response.output_text.done" not in names, f"sse.py 不发出 output_text.done: {names}"
+
+    terminal = {"response.completed", "response.incomplete", "response.failed"}
+    terminal_events = [n for n in names if n in terminal]
+    assert len(terminal_events) == 1, f"应恰有 1 个 terminal 事件，实际 {terminal_events}: {names}"
+    assert terminal_events[0] == "response.completed", f"terminal 应为 response.completed: {terminal_events}"
     assert names[-1] == "response.completed", f"最后事件应为 response.completed，实际 {names[-1]}"
 
     # response.completed 必有 usage

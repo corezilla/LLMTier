@@ -8,7 +8,7 @@ Auth: 无（公开端点）
 断言：
 - HTTP 200
 - body.status == "ready"
-- body.models 含 7 个 FIXED_TIERS，全部 availability == "available"
+- body.models 恰为 7 个 FIXED_TIERS（无缺无多），全部 availability == "available"
 """
 from __future__ import annotations
 
@@ -26,8 +26,13 @@ def test_obs_02_readyz_returns_7_tiers(api_client):
 
     models = body.get("models") or body.get("tiers") or []
     ids = {m.get("id") if isinstance(m, dict) else m for m in models}
-    missing = set(FIXED_TIERS) - ids
-    assert not missing, f"readyz missing tiers: {sorted(missing)}"
+    assert len(models) == len(FIXED_TIERS), (
+        f"readyz 期望 {len(FIXED_TIERS)} 个 tier，实际 {len(models)}: {sorted(ids)}"
+    )
+    assert ids == set(FIXED_TIERS), (
+        f"readyz tier 集合不符: missing={sorted(set(FIXED_TIERS) - ids)}, "
+        f"extra={sorted(ids - set(FIXED_TIERS))}"
+    )
 
     for m in models:
         if isinstance(m, dict) and m.get("id") in FIXED_TIERS:

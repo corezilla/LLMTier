@@ -50,7 +50,7 @@
             }
           },
           "503": {
-            "$ref": "#/components/responses/Unavailable"
+            "$ref": "#/components/responses/NotReady"
           }
         }
       }
@@ -1762,7 +1762,7 @@
       "get": {
         "operationId": "listUsage",
         "summary": "Token usage facts for the authenticated caller; [from,to) ordered by (recorded_at,request_id)",
-        "description": "Token usage facts. With a data credential the caller sees only its own records; with the admin credential the response includes all principals. The first page persists an expiring snapshot of exact request_id/record_version members. Cursor is bound to principal, current authorization and the exact original filters. Revisions and inserts after page one are visible only to a new snapshot. Expired, unauthorized or mismatched cursors return 400 invalid_request. One logical record exists per server request_id; revisions replace, never add to, the earlier fact.",
+        "description": "Token usage facts. With a data credential the caller sees only its own records; with the admin credential the response includes all principals. The first page persists an expiring snapshot of exact request_id/record_version members. Cursor is bound to principal, current authorization and the exact original filters. Revisions and inserts after page one are visible only to a new snapshot. Expired cursors return 400 cursor_expired; a cursor belonging to another principal or whose authorization digest does not match returns 403 permission_denied; a cursor whose filters do not match the original query returns 400 invalid_request. One logical record exists per server request_id; revisions replace, never add to, the earlier fact.",
         "parameters": [
           {
             "name": "from",
@@ -2100,6 +2100,16 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "NotReady": {
+        "description": "Service is degraded or not ready; readiness view still reports per-tier availability",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ReadinessView"
             }
           }
         }

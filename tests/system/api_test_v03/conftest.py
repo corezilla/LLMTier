@@ -384,10 +384,9 @@ class LLMTierInstance:
             env["LLMTIER_DEV_MODE"] = "1"
             env["LLMTIER_ADMIN_TOKEN"] = "dev-admin"
             env["LLMTIER_DATA_TOKEN"] = "dev-data"
-        # Design note (spec §4.2): auth.py does not currently read
-        # LLMTIER_TRUSTED_LAN_MODE; loopback/RFC1918 without an Authorization
-        # header always resolves to the shared trusted-LAN role. We still set it
-        # to 1 so the child matches the documented intended configuration.
+        # auth.py derives trusted-LAN access from the client address only
+        # (loopback / RFC1918); it does not read LLMTIER_TRUSTED_LAN_MODE.
+        # Keep the var set for parity with the deployed instance config.
         env["LLMTIER_TRUSTED_LAN_MODE"] = "1"
         env["LLMTIER_DATABASE"] = str(self._db_path)
         env["PYTHONPATH"] = str(SRC_ROOT)

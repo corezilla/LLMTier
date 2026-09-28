@@ -52,7 +52,7 @@
 
 **不在本计划范围**：Web UI、FD 资源泄漏、SQLite 持久化文件格式、auth mock 单元测试、静态契约验证、性能 SLO 校准（分别由 `llmtier-test-plan.md` ST-18/19/21、contract specification、unit 承接）。
 
-**Case 总数**：140（RUN 88 / MISSING 52；A 89 / B 51；P0 45 / P1 72 / P2 23）。执行通过标准：**适用 Case**（§7.2）全 PASS；MISSING 记为 NOT_RUN 缺口而非跳过，**P0 MISSING 阻断**（§7.2/§10）。**权威清单**见测试设计 §3.2（计数以该处为准，测试设计升版时本节随之回填）；**每个 Case 的预期/Oracle**见 `cases/<lowercased-case-id>.md`（§3.3 契约）。
+**Case 总数**：140（RUN 88 / MISSING 52；A 90 / B 50；P0 45 / P1 72 / P2 23）。执行通过标准：**适用 Case**（§7.2）全 PASS；MISSING 记为 NOT_RUN 缺口而非跳过，**P0 MISSING 阻断**（§7.2/§10）。**权威清单**见测试设计 §3.2（计数以该处为准，测试设计升版时本节随之回填）；**每个 Case 的预期/Oracle**见 `cases/<lowercased-case-id>.md`（§3.3 契约）。
 
 ## 2. 被测基线、排除项与依赖
 

@@ -2,7 +2,7 @@
 
 - **Case ID**：`DP-RESP-18`
 - **标题**：`POST /v1/responses` body 超过 2 MB：`413 request_too_large`，读取前拒绝（**MISSING** 自动化）。
-- **目的（被测契约）**：验证 Data Plane `POST /v1/responses` 的**请求体上限制**：`Content-Length > 2 MiB` 时在解析业务体前返回 `413 request_too_large`。被测端点/规则：`POST /v1/responses`；设计验证项 `VRC-INF-001`；错误目录 `ERR-REQ-TOO-LARGE` → wire `code=request_too_large`；实现 `src/http_api/app.py` `_body()`（`if int(Content-Length) > 2 * 1024 * 1024: raise ApiError(413, "request_too_large", "Request body is too large")`，系统设计 §11.1）。**不证明什么**：不证明恰好 2 MB 的边界（`<=` 应受理，建议作为同 case 下边界子测）；不证明非法 `Content-Length`（`400 invalid_request`）或非法 JSON（DP-RESP-16）；不证明上游调用。
+- **目的（被测契约）**：验证 Data Plane `POST /v1/responses` 的**请求体上限制**：`Content-Length > 2 MiB` 时在解析业务体前返回 `413 request_too_large`。被测端点/规则：`POST /v1/responses`；设计验证项 `VRC-INF-001`；错误目录 `ERR-REQ-TOO-LARGE` → wire `code=request_too_large`；实现 `src/http_api/app.py` `_body()`（`if int(Content-Length) > 2 * 1024 * 1024: raise ApiError(413, "request_too_large", "Request body is too large")`，系统设计 §11.1）。**不证明什么**：不证明非法 `Content-Length`（`400 invalid_request`）或非法 JSON（DP-RESP-16）；不证明上游调用。恰好 2 MiB 的边界（`== 2097152` 应受理）作为本 case 的边界子测（见"输入与构造"与"执行过程"）。
 - **前置与环境**：**环境 B**（临时 LLMTier 实例 `127.0.0.1:<随机空闲端口>` + 临时 SQLite；见[测试设计 §2.3](../llmtier-api-test-specification.md) / §2.4 B 类）。执行前须满足[测试设计 §2.1](../llmtier-api-test-specification.md) **附加（B 类）**：`llmtier_b` 可启动且 `GET /healthz` 200。fixture `llmtier_b`、`api_client_b`（Bearer `dev-data`，[§4.4](../llmtier-api-test-specification.md)）。初始状态 = 1 provider / 1 deployment / 7 tier。**不需要上游**（在上限检查阶段拒绝）。
 - **输入与构造**：构造 `Content-Length` 略超 2 MiB 的请求体（关键：必须设置 `Content-Length`）：
 
@@ -11,10 +11,10 @@
   Host: 127.0.0.1:<port>
   Authorization: Bearer dev-data
   Content-Type: application/json
-  Content-Length: <>2097152>
+  Content-Length: 2097153
   ```
 
-  body 形如 `{"model":"Senior","input":"<约 2.1 MiB 的 'a' 串>","stream":true,"store":false}`，用 `httpx` 的 `content=`（bytes）发送以自动带 `Content-Length`。边界子测：`Content-Length == 2097152`（恰好 2 MiB）应进入 JSON 解析，不因本上限被拒。
+  body 为合法 JSON，但总字节数 **严格大于 `2097152`**（2 MiB）——例如 `2097153` 字节（约 2 MiB + 1 B，用一段 `'a'` 串填充 `input`）；用 `httpx` 的 `content=`（bytes）发送以自动带 `Content-Length`。**边界语义（显式）**：上限判定为 `Content-Length > 2 * 1024 * 1024`，故 `Content-Length == 2097152`（恰好 2 MiB）**不**因本上限被拒、应进入 JSON 解析；`2097153` 起才触发 `413`。
 - **执行过程（逐步调用）**：
   1. （fixture 前置）`llmtier_b` 启动并轮询 `/healthz` 200。
   2. 构造 >2 MiB 的 bytes body，`api_client_b.post("/v1/responses", content=body, headers={"Content-Type":"application/json"})`。

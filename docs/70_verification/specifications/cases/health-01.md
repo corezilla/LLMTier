@@ -20,7 +20,7 @@
   4. 断言 `content-type` 含 `application/json`。
   5. 解析 body：断言键集**恰为** `{status, version}`（`HealthView` `additionalProperties:false`），`status == "ok"`，`version` 为**非空字符串**。
   6. （交叉核对，不改变本 case 判定）在环境快照中同时记录同一时刻 `/readyz` 的 status，用于说明存活与就绪的语义分离；本 case 不对 `/readyz` 做契约断言。
-- **重点关注步骤**：① **`version` 是字符串**——§3.2 契约要求 `version:str`；现有 [`at_obs_01.py`](../../../../tests/system/api_test_v03/at_obs_01.py) 只断言 200 + `status=="ok"`，**未断言 `version` 的存在或类型**，case 级入口须补齐 `version` 非空字符串断言后方可判本 case PASS。② **200 的真实含义**——`/healthz` 只证明进程存活，**不是**就绪；不得把 200 当作可接流量。③ **无凭据**——端点 `security:[]`，请求不应带 `Authorization`；本 case 以零凭据为契约点。④ **不得被错误信封冒充**——若返回非 200，需确认是可解释环境问题（§9），而非把 `{"error":...}` 当 `HealthView` 读。⑤ 不在此 case 断言 `/readyz` 的 tier 状态（属 HEALTH-02..05）。
+- **重点关注步骤**：① **`version` 是字符串**——§3.2 契约要求 `version:str`；现有 [`at_obs_01.py`](../../../../tests/system/api_test_v03/at_obs_01.py) 已断言 200 + `status=="ok"` + `version` 为非空字符串（脚本已补齐），本 case 与该断言一致。② **200 的真实含义**——`/healthz` 只证明进程存活，**不是**就绪；不得把 200 当作可接流量。③ **无凭据**——端点 `security:[]`，请求不应带 `Authorization`；本 case 以零凭据为契约点。④ **不得被错误信封冒充**——若返回非 200，需确认是可解释环境问题（§9），而非把 `{"error":...}` 当 `HealthView` 读。⑤ 不在此 case 断言 `/readyz` 的 tier 状态（属 HEALTH-02..05）。
 - **期望结果与独立 Oracle**：独立 Oracle = `openapi` `HealthView`（[`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)），不依赖实现内部状态。
   - HTTP：`200`；响应头 `Content-Type: application/json; charset=utf-8`；`X-Request-ID` 存在。
   - body：JSON 对象，键集**恰为** `{status, version}`；`status=="ok"`；`version` 为非空字符串。
@@ -32,6 +32,6 @@
   - **SKIP**：§2.1 前置不满足（m5air 不可达等）——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **INVALID**：以 `127.0.0.1`/mock/替代路径冒充 m5air 真实路径——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **NOT_RUN**：Case 有实现（§3.2 `RUN`）但本轮未执行——见[测试设计 §9](../llmtier-api-test-specification.md)；不得补造为 PASS。
-- **证据与 Run**：保存发出命令、exit code、原始 HTTP status/headers/body、`elapsed`、环境快照（`/healthz`/`/readyz` + provider/deployment 列表）。每 Case `manifest.json` 含被测版本锁定 `target_artifact{git_commit,db_schema_version,openapi_version}` 与 `redactions`（本 case 无凭据可保留为无）。Run ID = `<date>/A-api`（如 `2026-09-28/A-api`），落位 `tests/system/reports/<date>/`，失败现场不截断。证据/报告契约见[测试设计 §4.8/§10](../llmtier-api-test-specification.md)。
+- **证据与 Run**：保存发出命令、exit code、原始 HTTP status/headers/body、`elapsed`、环境快照（`/healthz`/`/readyz` + provider/deployment 列表）。每 Case `manifest.json` 含被测版本锁定 `target_artifact{git_commit,db_schema_version,openapi_version}` 与 `redactions`（本 case 无凭据可保留为无）。Run ID = `<date>/A-api`（如 `2026-09-28/A-api`），落位 `tests/system/reports/<date>/A-api/health-01/`，失败现场不截断。证据/报告契约见[测试设计 §4.8/§10](../llmtier-api-test-specification.md)。
 - **清理与复位**：**无需 teardown**——纯读、无副作用、无凭据；不创建/修改 provider/deployment/service-level、不写注入、不写 usage/账本。退出前确认 `/readyz` 仍显示 7 tier 且无未清空注入项（本 case 不注入）；若被误跑于 B 类临时实例，则按[测试设计 §4.7](../llmtier-api-test-specification.md) 整班 `stop()` + `rm -rf` 临时目录。
 - **依赖**：[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查（m5air `/healthz`、`/readyz` 7 tier、双 OMLX、`provider_omlx_m5mac` secret）；`api_client` fixture（[§4.4](../llmtier-api-test-specification.md)）；`HealthView` 机器契约（[`openapi`](../../../../interfaces/openapi/llmtier.openapi.json)）；自动化入口 [`at_obs_01.py`](../../../../tests/system/api_test_v03/at_obs_01.py)。**不依赖**其它 Case；与 HEALTH-02 共享同一探测入口但语义独立（存活 vs 就绪）。

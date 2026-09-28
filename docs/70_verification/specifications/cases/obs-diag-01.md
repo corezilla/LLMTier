@@ -16,14 +16,14 @@
   边界/构造点：**无请求体**（GET 不携带 body）；**无查询参数**（`SwitchState` 读取不接受参数，注入无关 query 不在本 case 范围）；凭据固定为 `admin`（`dev-admin`）；不注入故障；不构造非法输入（非法/缺凭据属 AUTH-*，非法 PATCH body 属 OBS-DIAG-03）。值的期望**不固定**（开关默认关闭，但 m5air 实际值以读取为准），只断言字段集与类型。
 - **执行过程（逐步调用）**：
   1. `GET /healthz`、`GET /readyz` —— 确认 §2.1 基线（由 `pytest_configure` 自动执行，本 case 不重复）。
-  2. `GET /v1/diagnostics`（上表），`resp = admin_client.get("/v1/diagnostics")`；记录 status、`Content-Type`、`X-Request-ID`。
+  2. `GET /v1/diagnostics`（上表），`resp = admin_client.get("/v1/diagnostics")`；记录 status、`Content-Type`（`X-Request-ID` 为运行时注入，openapi 未将其声明为 `/v1/diagnostics` 的 200 头，仅作旁证记录、不作契约断言）。
   3. 断言 `resp.status_code == 200` 且 `content-type` 含 `application/json`。
   4. 解析 JSON body，断言其为对象且键集**恰为** `{snapshots_enabled, stats_enabled}`（不多不少；`additionalProperties:false`）。
   5. 断言两键值类型均为 JSON 布尔（`type(v) is bool`，不得把 `0/1` 当 `true/false`）。
   6. （交叉核对，不改变本 case 判定）与别名 `GET /tier/admin/v1/diagnostics` 同凭据下的响应体逐字节比对，作为 OBS-ALIAS-01 的旁证；本 case 不承担别名等价判定。
 - **重点关注步骤**：① **字段集精确性**——不是"含两个字段"，而是"键集恰好等于 `SwitchState`"，多一个键即违反 `additionalProperties:false`；② **类型精确性**——`snapshots_enabled`/`stats_enabled` 必须是 JSON 布尔，不能是 `0/1`/字符串；③ **纯读、无副作用**——GET 不得写 `diagnostic_settings`（不改开关）、不得写审计（机制 §5.1 明确 PATCH 才"副作用=同事务审计"）、不得新增 trace；④ **不得被错误信封冒充**——若返回非 200，需确认是可解释的 `ERR-AUTH-*`/`ERR-STORE`，而非把错误体当 `SwitchState` 读；⑤ **不依赖开关值**——不对 `true/false` 做业务断言（m5air 实际值未知，默认关）；⑥ **降级判定**——区分"诊断服务降级返回默认 `SwitchState`"（仍 200，PASS）与"存储不可达返回 503 `usage_store_unavailable`"（环境问题，非本 case 的契约 FAIL，见判定）。注意：本 case 当前 `MISSING`（§3.2），尚无自动化入口 `at_obs_diag_01.py`，其落位与命名须遵循 §4.9/§8.5（`at_<family>_<seq>.py`）。
 - **期望结果与独立 Oracle**：独立 Oracle = `openapi` `SwitchState` 的 wire 形态（不依赖实现的开关值）。
-  - HTTP：`200`；响应头 `Content-Type: application/json`；`X-Request-ID` 存在。
+  - HTTP：`200`；响应头 `Content-Type: application/json`（openapi 未为 `/v1/diagnostics` 的 200 声明任何响应头；`X-Request-ID` 为运行时注入、非契约，不列入 Oracle）。
   - body：JSON 对象，键集**恰为** `{snapshots_enabled, stats_enabled}`；两键均存在且为 JSON 布尔。
   - 值域：无额外约束（默认 `{false,false}`，实际值以库中 `diagnostic_settings.singleton=1` 行为准）。
   - **缺失/降级诊断子系统的表现（fail-open 规则）**：按[observability 机制](../../../20_system_design/mechanisms/observability.md) §4.10/§8.1（`CON-OBS-002`/`INV-6`，`DiagnosticsService` 初始化失败时降级运行），实现以 `_UnavailableDiagnostics` 兜底，其 `switches()` 恒返回 `{"snapshots_enabled": false, "stats_enabled": false}`（[`src/http_api/app.py`](../../../../src/http_api/app.py)）。因此**缺失/降级**表现为 `HTTP 200 + {false,false}`——因 Oracle 只约束字段集/类型、观测故障不得制造新的失败面，这**仍是本 case 的 PASS**。反之，若健康实例返回非 200、或返回体不是合法 `SwitchState`（键集不符/类型非 bool/以错误信封冒充），即 **FAIL**。唯一例外是存储层读取异常由 handler 的 `_store_read` 转为 `503 usage_store_unavailable`（`ERR-STORE`）——这是机制 §4.8.1 明示的存储不可达语义，属环境问题按[测试设计 §9](../llmtier-api-test-specification.md) 判 BLOCKED/SKIP，不作为契约 FAIL。
@@ -34,6 +34,6 @@
   - **SKIP**：§2.1 前置不满足（m5air 不可达、`/readyz` 非 7 tier、双 OMLX 离线等）——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **NOT_RUN**：本 case 自动化入口 `MISSING`（§3.2），本轮未执行；缺口引用见 §9（MISSING ≠ NOT_RUN：无实现是缺口，不是跳过）。
   - **INVALID**：用 `127.0.0.1`/mock/替代路径冒充真实 m5air 路径，或未命中真实诊断服务却按行为判定——见[测试设计 §9](../llmtier-api-test-specification.md)。
-- **证据与 Run**：保存原始 HTTP status/headers/body、发出命令（`curl`/httpx）、exit code、`elapsed`、环境快照（`/healthz`/`/readyz` + provider/deployment 列表）。每 Case `manifest.json` 含被测版本锁定 `target_artifact`（`git_commit`/`db_schema_version`/`openapi_version`）与 `redactions`（`Authorization` 脱敏）。Run ID = `<date>/A-api`（如 `2026-09-28/A-api`），落位 `tests/system/reports/<date>/`，失败现场不截断。证据/报告契约见[测试设计 §4.8/§10](../llmtier-api-test-specification.md)。
+- **证据与 Run**：保存原始 HTTP status/headers/body、发出命令（`curl`/httpx）、exit code、`elapsed`、环境快照（`/healthz`/`/readyz` + provider/deployment 列表）。每 Case `manifest.json` 含被测版本锁定 `target_artifact`（`git_commit`/`db_schema_version`/`openapi_version`）与 `redactions`（`Authorization` 脱敏）。Run ID = `<date>/A-api`（如 `2026-09-28/A-api`），落位 `tests/system/reports/<date>/A-api/<case-id>/`，含 `manifest.json` 与原始证据文件；失败现场不截断。证据/报告契约见[测试设计 §4.8/§10](../llmtier-api-test-specification.md)。
 - **清理与复位**：**无需 teardown**——本 case 为纯读，不写 `diagnostic_settings`、不改开关、不创建/修改 provider/deployment/service-level、不写注入项、不新增 trace。退出前确认无未清空的注入项（本 case 不注入）、`/readyz` 仍显示 7 tier；若被误跑于 B 类临时实例，则按[测试设计 §4.7](../llmtier-api-test-specification.md) 整班 `stop()` + `rm -rf` 临时目录。
 - **依赖**：[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查（m5air `/healthz`、`/readyz` 7 tier、双 OMLX、`provider_omlx_m5mac` secret）；`admin_client` fixture（[§4.4](../llmtier-api-test-specification.md)）；M007 `diagnostic_settings` 单行（`002_observability.sql`）；`SwitchState` 机器契约（`interfaces/openapi/llmtier.openapi.json`）。自动化入口 `at_obs_diag_01.py`（**当前 `MISSING`，尚未实现**，落位按 §4.9/§8.5）。**不依赖**其它 Case；与 OBS-ALIAS-01（别名 `/tier/admin/v1/diagnostics` 逐字节等价）、OBS-DIAG-02（PATCH 更新开关 + 审计）、OBS-DIAG-03（PATCH 非法值 400）语义相邻但各自独立执行；角色负向参照 OBS-REQTRACE-03 风格（data token → 403）与 AUTH-08。

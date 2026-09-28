@@ -8,7 +8,7 @@ Auth: 无（公开端点）
 断言：
 - HTTP 200
 - body.status == "ok"
-- body 含 version 字段
+- body.version 为非空字符串（HEALTH-01 要求 version:str）
 """
 from __future__ import annotations
 
@@ -21,3 +21,5 @@ def test_obs_01_healthz_returns_ok(api_client):  # noqa: api_a mark 仅供过滤
     assert resp.status_code == 200, f"healthz 返回 {resp.status_code}: {resp.text}"
     body = resp.json()
     assert body.get("status") == "ok", f"healthz status != 'ok': {body}"
+    assert isinstance(body.get("version"), str), f"healthz version 非 str: {body}"
+    assert body["version"], f"healthz version 为空: {body}"

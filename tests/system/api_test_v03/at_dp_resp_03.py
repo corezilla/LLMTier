@@ -7,8 +7,9 @@ Auth: Bearer dev-data
 
 断言（structure/events only — 不断言上游 LLM 的具体内容）：
 - HTTP 200，Content-Type: text/event-stream
-- 事件序列包含 response.created / response.output_text.delta / response.output_text.done
+- 事件序列包含 response.created / response.output_text.delta
   / response.output_item.done / response.completed
+  （sse.py 不发 response.output_text.done）
 - 至少一个 output_text.delta 的 delta 是非空字符串
 - response.completed 的 response.status == "completed"
 
@@ -69,10 +70,10 @@ def test_dp_resp_03_streaming_structure(api_client):
     for expected in (
         "response.created",
         "response.output_text.delta",
-        "response.output_text.done",
         "response.output_item.done",
     ):
         assert expected in names, f"缺事件 {expected}: {names}"
+    assert "response.output_text.done" not in names, f"sse.py 不发出 output_text.done: {names}"
 
     deltas = [
         data.get("delta", "")

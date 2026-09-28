@@ -31,6 +31,7 @@ class EmbeddingsService:
     def create(self, principal: str, request_id: str, body: dict[str, Any]) -> dict[str, Any]:
         require(set(body) <= {"model", "input", "encoding_format", "dimensions", "user"} and {"model", "input"} <= set(body), 400, "invalid_request", "Invalid embedding request")
         model, encoding = body["model"], body.get("encoding_format", "float")
+        require(encoding in {"float", "base64"}, 400, "invalid_request", "encoding_format must be one of: float, base64", "encoding_format")
         try:
             caps = self.registry.get_service_level(model)[0]["capabilities"]
         except ApiError as exc:

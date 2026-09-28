@@ -3,7 +3,7 @@
 - **Case ID**：`DP-RESP-24`
 - **标题**：`POST /v1/responses` provider `secret_ref` 不可解析：`503 provider_secret_unavailable`（**MISSING** 自动化）。
 - **目的（被测契约）**：验证 Data Plane `POST /v1/responses` 的**provider 凭据可用性契约**：所选 provider 的 `secret_ref` 指向缺失/不可读的凭据时，适配层在建立上游请求前抛 `503 provider_secret_unavailable`。被测端点/规则：`POST /v1/responses`；需求 `R-INF-05`；设计验证项 `VRC-INF-001`；错误目录 `ERR-PROVIDER-SECRET` → wire `code=provider_secret_unavailable`；实现 `src/inference/providers/openai.py`（`_secret()`：`file:` 读取 `OSError` → `ApiError(503, "provider_secret_unavailable", "Provider secret file is unreadable")`；非 `env:`/`file:` → "Unsupported provider secret reference"）。**不证明什么**：不证明 `secret_ref` 格式校验的 400 `invalid_request`（`registry._validate_secret_ref`，属写侧管理契约，见 ADM-PROV-12）；不证明 401/403 上游鉴权失败；不证明上游不可达（`provider_unavailable`）；不证明答案。
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 `127.0.0.1:<随机空闲端口>` + 临时 SQLite；见[测试设计 §2.3](../llmtier-api-test-specification.md) / §2.4 B 类）。建议专属实例以免改动共享 `prov_b`。`_BASELINE_SETTINGS`：`prov_b` + `depl_b` + 7 tier；`depl_b` 已 probe `healthy`（此时 `secret_ref=None`）。fixture `LLMTierInstance`、`admin_client_b`、`api_client_b`（[§4.4](../llmtier-api-test-specification.md)）。初始状态无注入项。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例 `127.0.0.1:<随机空闲端口>` + 临时 SQLite；见[测试设计 §2.3](../llmtier-api-test-specification.md) / §2.4 B 类）。建议专属实例以免改动共享 `prov_b`。`_baseline_settings`：`prov_b` + `depl_b` + 7 tier；`depl_b` 已 probe `healthy`（此时 `secret_ref=None`）。fixture `LLMTierInstance`、`admin_client_b`、`api_client_b`（[§4.4](../llmtier-api-test-specification.md)）。初始状态无注入项。
 - **输入与构造**：先以 admin PATCH 把 `prov_b.secret_ref` 改为一个**语法合法但文件不存在**的 `file:` 引用（通过 `_validate_secret_ref`，但读取时失败），再发被测请求。
 
   改 `secret_ref`（需 `If-Match`，先 `GET /v1/providers/prov_b` 取 `ETag`）：
@@ -12,12 +12,13 @@
   PATCH /v1/providers/prov_b HTTP/1.1
   Authorization: Bearer dev-admin
   Content-Type: application/json
-  If-Match: "prov_b.v1"
   ```
 
   ```json
   {"secret_ref": "file:/nonexistent/llmtier-test/secret.txt"}
   ```
+
+  > **`If-Match` 取值**：必须在发送 `PATCH` 前先 `GET /v1/providers/prov_b`，取响应头返回的**当前** `ETag`（形如 `"prov_b.v<N>"`，含双引号）作为 `If-Match` 值，**不得硬编码**；teardown 恢复时同样须重新 `GET` 取新 `ETag`（[§4.10](../llmtier-api-test-specification.md)）。
 
   被测请求：
 

@@ -8,7 +8,7 @@ Auth: Bearer dev-data (LAN trust 可缺省)
 断言：
 - HTTP 200
 - body.object == "list"
-- body.data[] 含 7 个 FIXED_TIERS，全部 id 唯一
+- body.data 恰为 7 个 FIXED_TIERS（无缺无多），全部 id 唯一
 """
 from __future__ import annotations
 
@@ -27,5 +27,8 @@ def test_dp_models_01_list_contains_7_tiers(api_client):
     data = body.get("data") or []
     ids = [m.get("id") for m in data]
     assert len(ids) == len(set(ids)), f"id 不唯一: {ids}"
-    missing = set(FIXED_TIERS) - set(ids)
-    assert not missing, f"缺 tier: {sorted(missing)}"
+    assert len(data) == len(FIXED_TIERS), f"期望 {len(FIXED_TIERS)} 个 model，实际 {len(data)}: {ids}"
+    assert set(ids) == set(FIXED_TIERS), (
+        f"model 集合不符: missing={sorted(set(FIXED_TIERS) - set(ids))}, "
+        f"extra={sorted(set(ids) - set(FIXED_TIERS))}"
+    )

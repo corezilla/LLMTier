@@ -5,11 +5,11 @@ Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-data (LAN trust 可缺省)
 
-目标：验证每个 tier 的 capabilities 字段含全部 12 个标准 key。
+目标：验证每个 tier 的 capabilities 字段键集恰为全部 12 个标准 key（无缺无多）。
 
 断言：
 - HTTP 200
-- data[].capabilities 含 12 个固定字段：
+- data[].capabilities 的键集恰为 12 个固定字段（openapi additionalProperties:false）：
   responses, embeddings, tools, structured_outputs,
   input_modalities, output_modalities,
   context_window, max_output_tokens,
@@ -37,12 +37,11 @@ def test_dp_models_07_capabilities_structure(api_client):
     data = body.get("data") or []
     assert len(data) > 0, "data 为空"
 
-    missing_keys: dict[str, set[str]] = {}
     for tier in data:
         tier_id = tier.get("id") or "?"
         caps = tier.get("capabilities") or {}
-        tier_missing = CAPABILITY_KEYS - set(caps.keys())
-        if tier_missing:
-            missing_keys[tier_id] = tier_missing
-
-    assert not missing_keys, f"以下 tier capabilities 缺字段: {missing_keys}"
+        actual = set(caps.keys())
+        assert actual == CAPABILITY_KEYS, (
+            f"tier {tier_id} capabilities 键集不符: "
+            f"missing={sorted(CAPABILITY_KEYS - actual)}, extra={sorted(actual - CAPABILITY_KEYS)}"
+        )

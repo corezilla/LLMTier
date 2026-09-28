@@ -13,7 +13,8 @@ Auth: Bearer dev-data
 - A 类：GET /v1/usage 生成 snapshot（记录 snapshot_id）
 - 直连 m5air `state.sqlite3`（ssh + sqlite3），记录原 expires_at 并 UPDATE 到过去
 - 用同一 filter 的 cursor=<snapshot_id>:0 重放 → 400 cursor_expired
-- finally 复位原 expires_at；无 ssh/sqlite3 权限 → skip（BLOCKED，不计 FAIL）
+- finally 复位原 expires_at
+- 无 ssh/sqlite3 权限 → `pytest.xfail` 记为 BLOCKED（可重试），不计 FAIL/SKIP
 """
 from __future__ import annotations
 
@@ -44,7 +45,7 @@ def _ssh_sqlite(sql: str) -> str:
 @pytest.mark.api_a
 def test_dp_usage_04_expired_cursor(api_client):
     if shutil.which("ssh") is None:
-        pytest.skip("ssh not available for m5air sqlite3 access")
+        pytest.xfail("BLOCKED (DP-USAGE-04): ssh not available for m5air sqlite3 access")
 
     since, until = recent_window()
     params = {"from": since, "to": until}
@@ -56,8 +57,8 @@ def test_dp_usage_04_expired_cursor(api_client):
 
     try:
         _ssh_sqlite("SELECT 1;")
-    except Exception as exc:  # noqa: BLE001 - BLOCKED, not FAIL
-        pytest.skip(f"m5air sqlite3 access unavailable: {exc}")
+    except Exception as exc:  # noqa: BLE001 - BLOCKED (xfail), not FAIL
+        pytest.xfail(f"BLOCKED (DP-USAGE-04): m5air sqlite3 access unavailable: {exc}")
 
     original = _ssh_sqlite(
         f"SELECT expires_at FROM query_snapshots WHERE snapshot_id='{snapshot_id}';"

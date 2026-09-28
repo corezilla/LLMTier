@@ -3,7 +3,7 @@
 - **Case ID**：`DP-RESP-16`
 - **标题**：`POST /v1/responses` 发送非法 JSON body：`400 invalid_json`，dispatch 前拒绝（**MISSING** 自动化）。
 - **目的（被测契约）**：验证 Data Plane `POST /v1/responses` 的**请求体解析契约**：body 不是合法 JSON（或不是 JSON 对象）时，M001 在业务校验/dispatch 前返回 `400 invalid_json`。被测端点/规则：`POST /v1/responses`；需求 `LT-FUN-001`；错误目录 `ERR-REQ-JSON` → wire `code=invalid_json`；实现 `src/http_api/app.py` `_body()`（`json.loads` 失败 → `ApiError(400, "invalid_json", "Request body is not valid JSON")`；解析成功但非对象 → `ApiError(400, "invalid_json", "Request body must be a JSON object")`）。**不证明什么**：不证明 schema 级字段校验（缺 `model` 见 DP-RESP-08；未知字段见 DP-RESP-12..15）；不证明 `Content-Length` 非法（`400 invalid_request`）或超限（DP-RESP-18）；不证明上游调用。
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 `127.0.0.1:<随机空闲端口>` + 临时 SQLite；见[测试设计 §2.3](../llmtier-api-test-specification.md) / §2.4 B 类）。执行前必须满足[测试设计 §2.1](../llmtier-api-test-specification.md) **附加（B 类）**：`llmtier_b` 可启动且 `GET /healthz` 200（`_BASELINE_SETTINGS`：`prov_b` + `depl_b` + 7 tier）。fixture 见[测试设计 §4.4](../llmtier-api-test-specification.md)：`llmtier_b`、`api_client_b`（Bearer `dev-data`）。初始状态 = 1 provider / 1 deployment / 7 tier。**不需要上游**（在解析阶段拒绝，早于路由）。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例 `127.0.0.1:<随机空闲端口>` + 临时 SQLite；见[测试设计 §2.3](../llmtier-api-test-specification.md) / §2.4 B 类）。执行前必须满足[测试设计 §2.1](../llmtier-api-test-specification.md) **附加（B 类）**：`llmtier_b` 可启动且 `GET /healthz` 200（`_baseline_settings`：`prov_b` + `depl_b` + 7 tier）。fixture 见[测试设计 §4.4](../llmtier-api-test-specification.md)：`llmtier_b`、`api_client_b`（Bearer `dev-data`）。初始状态 = 1 provider / 1 deployment / 7 tier。**不需要上游**（在解析阶段拒绝，早于路由）。
 - **输入与构造**：固定请求（原始 body 为非法 JSON 字节）：
 
   ```http
