@@ -29,7 +29,7 @@
   3. 断言 `resp.status_code == 404`，响应为 JSON 错误信封（非 SSE）。
   4. 解析 `resp.json()["error"]`，断言 `code=="model_not_found"`、`type=="request_error"`、`param is None`、`retryable is False`，键集恰 5 键。
   5. 交叉核对零副作用：无上游调用、无账本义务（可选 `GET /v1/usage`，[§4.6](../llmtier-api-test-specification.md)）。
-- **重点关注步骤**：① **`model_not_found` 而非 `not_found`**——m5air 上 7 tier 由 bootstrap 建立，未知 tier 的 `get_service_level` 抛 `404 not_found` 后被 M003 统一改写为 `model_not_found`；无候选的 tier 亦走 `model_not_found`；② **拒绝在 dispatch 前**（`INV-5`）；③ **信封 identity**（5 键、无 `category`）；④ **非 SSE**。**已知脚本偏差**：现有 [`at_dp_resp_05.py`](../../../../tests/system/api_test_v03/at_dp_resp_05.py) 注释/断言把未知 model 记为 `code=="not_found"`，与当前实现（`responses.py` 将 404 改写为 `model_not_found`）及 §3.2 权威清单不符；以本设计的 `model_not_found` 为准，脚本须修正后方可与本 case 一致。
+- **重点关注步骤**：① **`model_not_found` 而非 `not_found`**——m5air 上 7 tier 由 bootstrap 建立，未知 tier 的 `get_service_level` 抛 `404 not_found` 后被 M003 统一改写为 `model_not_found`；无候选的 tier 亦走 `model_not_found`；② **拒绝在 dispatch 前**（`INV-5`）；③ **信封 identity**（5 键、无 `category`）；④ **非 SSE**。脚本 [`at_dp_resp_05.py`](../../../../tests/system/api_test_v03/at_dp_resp_05.py) 第 36 行已断言 `code=="model_not_found"`，与当前实现及 §3.2 权威清单一致。
 - **期望结果与独立 Oracle**：独立 Oracle = OpenAPI `ErrorEnvelope`/`ErrorDetail` + 系统设计 §7.8 `ERR-MODEL-NOTFOUND`（不依赖实现答案）。
   - HTTP：`404`；`Content-Type: application/json`。
   - body：`{"error":{"message":"Model not found","type":"request_error","code":"model_not_found","param":null,"retryable":false}}`；无 SSE 帧/`[DONE]`。
@@ -42,4 +42,4 @@
   - **NOT_RUN**：本 Case 有实现（§3.2 `RUN`），未执行时按 §9 记 `NOT_RUN`。
 - **证据与 Run**：保存请求 body、HTTP status/headers、原始错误信封、发出命令、exit code、环境快照。Run ID = `<date>/A-api`，落位 `tests/system/reports/<date>/A-api/<case-id>/`，含 `manifest.json`（[§4.8](../llmtier-api-test-specification.md)）；失败现场不截断。
 - **清理与复位**：**无需 teardown**——环境 A 无状态，未创建/修改资源；退出前确认 `/readyz` 仍 7 tier。
-- **依赖**：[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查；`api_client`（[§4.4](../llmtier-api-test-specification.md)）；自动化入口 [`at_dp_resp_05.py`](../../../../tests/system/api_test_v03/at_dp_resp_05.py)（须修正为断言 `model_not_found`）；错误目录 `ERR-MODEL-NOTFOUND`（[llmtier-system-design.md](../../../20_system_design/llmtier-system-design.md) §7.8）。**不依赖**其它 Case；与 DP-RESP-08（缺 `model`）区分：本 case 有 `model` 但未知。
+- **依赖**：[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查；`api_client`（[§4.4](../llmtier-api-test-specification.md)）；自动化入口 [`at_dp_resp_05.py`](../../../../tests/system/api_test_v03/at_dp_resp_05.py)（已断言 `model_not_found`）；错误目录 `ERR-MODEL-NOTFOUND`（[llmtier-system-design.md](../../../20_system_design/llmtier-system-design.md) §7.8）。**不依赖**其它 Case；与 DP-RESP-08（缺 `model`）区分：本 case 有 `model` 但未知。

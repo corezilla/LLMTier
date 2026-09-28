@@ -1,6 +1,6 @@
 # ADM-USAGE-02 — 管理面分页
 
-- **Case ID**：`ADM-USAGE-02`（与 §3.2 权威清单一致；本文件名 `adm-admin-usage-02.md`，对应 §3.4 索引 `cases/adm-admin-usage-02.md`）。
+- **Case ID**：`ADM-USAGE-02`（与 §3.2 权威清单一致；本文件名 `adm-usage-02.md`，对应 §3.4 索引 `cases/adm-usage-02.md`）。
 - **标题**：`GET /v1/usage?from&to&limit=1`（admin 视角）有界分页：HTTP 200 + `data.length ≤ 1` + 页元数据一致。
 - **目的（被测契约）**：验证管理面 usage 的**有界分页与 cursor 元数据契约**。被测端点/规则：`GET /v1/usage`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listUsage`，query `limit` 默认 100/上限 200，`cursor` 可选）；[`UsageRecorder._page`](../../../../src/inference/usage.py) 冻结快照后 `LIMIT limit+1`，`more = len(rows) > limit`，返回 `next_cursor="<snapshot_id>:<offset+limit>" if more else None`，稳定排序 `(recorded_at,request_id)`。设计验证项 `VRC-MGMT-006`；机制 `T-MET-PAGE`；需求/机制链 `LT-FUN-004`、`R-MET-02`、`CT-USAGE-001`。**不证明什么**：不证明 cursor 跨页去重/重放（DP-USAGE-03/07）、不证明过期 cursor 400（DP-USAGE-04）、不证明清空（ADM-USAGE-03）、不证明 data 主体隔离（DP-USAGE-06）。本 case 只断 `limit=1` 边界与页元数据一致性。
 - **前置与环境**：**环境 A**（m5air 已部署实例，角色 `admin`；见[测试设计 §2.3](../llmtier-api-test-specification.md)）。就绪检查同[测试设计 §2.1](../llmtier-api-test-specification.md)（**6** 项，`pytest_configure` 自动执行）。fixture：`admin_client`（[§4.4](../llmtier-api-test-specification.md)）。时间窗用动态 [`recent_window()`](../../../../tests/system/api_test_v03/constants.py)。只读（会写一条临时 `query_snapshots`）。

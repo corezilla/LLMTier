@@ -2,7 +2,7 @@
 
 - **Case ID**：`DP-RESP-17`
 - **标题**：`POST /v1/responses` 使用 embedding-only 等级：`400 unsupported_model`（`param=model`）（**MISSING** 自动化）。
-- **目的（被测契约）**：验证 Data Plane `POST /v1/responses` 的**能力门契约**：所选 model 的能力声明必须 `capabilities.responses == true`，否则在 dispatch 前拒绝。被测端点/规则：`POST /v1/responses`；错误目录 `ERR-REQ-MODEL` → wire `code=unsupported_model`；实现 `src/inference/responses.py`（`require(caps.get("responses") is True, 400, "unsupported_model", "Selected model does not support Responses", "model")`）。**不证明什么**：不证明缺少 `model`（DP-RESP-08）或未知 model（DP-RESP-05）；不证明 `tools`/`max_output_tokens` 的次级能力门；不证明上游调用（在能力门拒绝）。
+- **目的（被测契约）**：验证 Data Plane `POST /v1/responses` 的**能力门契约**：所选 model 的能力声明必须 `capabilities.responses == true`，否则在 dispatch 前拒绝。被测端点/规则：`POST /v1/responses`；错误目录 `ERR-REQ-MODEL` → wire `code=unsupported_model`；实现 `src/inference/responses.py`（`require(caps.get("responses") is True, 400, "unsupported_model", "Selected model does not support Responses", "model")`）；需求链 `LT-FUN-001`/`LT-INT-001`、`R-INF-01`、设计验证项 `VRC-INF-001`、机制 `T-STREAM`（[测试设计 §3.6](../llmtier-api-test-specification.md)）。**不证明什么**：不证明缺少 `model`（DP-RESP-08）或未知 model（DP-RESP-05）；不证明 `tools`/`max_output_tokens` 的次级能力门；不证明上游调用（在能力门拒绝）。
 - **前置与环境**：**环境 A**（m5air 已部署实例 `http://192.168.1.9:8181`，角色 `data`，无状态；见[测试设计 §2.3](../llmtier-api-test-specification.md)）。执行前必须通过[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查，且 `/readyz` 含 7 fixed tier（含 `Embedding-v1`）。fixture `api_client`（Bearer `dev-data`，[§4.4](../llmtier-api-test-specification.md)）。初始状态 = 3 provider / 4 deployment / 7 fixed tier；`Embedding-v1` 为 embedding-only（`capabilities.responses == false`）。**不需要上游可用**（能力门在 dispatch 前）。
 - **输入与构造**：固定请求（embedding-only 等级 + responses 形态 body）：
 

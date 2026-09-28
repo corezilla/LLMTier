@@ -3,7 +3,7 @@
 - **Case ID**：`ADM-SL-07`（与 §3.2 权威清单一致；本文件名 `adm-sl-07.md`，唯一对应）。
 - **标题**：`PATCH /v1/service-levels/Embedding-v1` 绑定非冻结向量空间的 embedding deployment：HTTP 409 `embedding_space_conflict`。
 - **目的（被测契约）**：验证 `Embedding-v1` 的**冻结 BGE-M3 向量空间契约**。被测端点/规则：`PATCH /v1/service-levels/{service_level_id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `updateServiceLevel`）；[`registry._validate_level`](../../../../src/management/registry.py) 对 `level_id=="Embedding-v1"` 要求 `embedding_space_id=="bge-m3-dense-1024-v1"`、`embedding_dimensions==[1024]`、`embedding_max_batch_inputs==32`、`embedding_max_input_tokens==8192`，否则 `raise ApiError(409, "embedding_space_conflict", …)`。设计验证项 `VRC-MGMT-002`；错误目录 `ERR-EMBEDDING-SPACE` → wire `code=embedding_space_conflict`；机制 `T-CFG-SPACE`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明能力键缺失型的 `capability_conflict`（ADM-SL-06）、不证明非 Embedding-v1 tier 的 responses 校验、不证明 embedding 数据面（DP-EMB-*）。
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[测试设计 §2.3/§2.4](../llmtier-api-test-specification.md)）。执行前须满足[测试设计 §2.1](../llmtier-api-test-specification.md) **附加（B 类）**（`/healthz` 200；`_BASELINE_SETTINGS`）。fixture 见[测试设计 §4.4](../llmtier-api-test-specification.md)：`admin_client_b`。初始状态：`Embedding-v1` 存在。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[测试设计 §2.3/§2.4](../llmtier-api-test-specification.md)）。执行前须满足[测试设计 §2.1](../llmtier-api-test-specification.md) **附加（B 类）**（`/healthz` 200；`_baseline_settings`）。fixture 见[测试设计 §4.4](../llmtier-api-test-specification.md)：`admin_client_b`。初始状态：`Embedding-v1` 存在。
 - **输入与构造**：先创建 embedding deployment（错误的 `embedding_space_id`），再 PATCH：
   ```http
   POST /v1/deployments HTTP/1.1

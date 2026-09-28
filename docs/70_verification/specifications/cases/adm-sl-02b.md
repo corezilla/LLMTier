@@ -3,7 +3,7 @@
 - **Case ID**：`ADM-SL-02b`（与 §3.2 权威清单一致；本文件名 `adm-sl-02b.md`，唯一对应）。
 - **标题**：`POST /v1/service-levels` 用已存在的固定 Tier `id`（`Senior`）创建：HTTP 409 `resource_conflict`。
 - **目的（被测契约）**：验证固定 Tier 的**唯一性冲突契约**。被测端点/规则：`POST /v1/service-levels`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `createServiceLevel`）；[`registry.create_service_level`](../../../../src/management/registry.py) 通过白名单与能力校验后 `INSERT INTO service_levels`，主键冲突时捕获 `UNIQUE` 并抛 `ApiError(409, "resource_conflict", "Service level already exists")`。设计验证项 `VRC-MGMT-002`；错误目录 `ERR-CONFLICT` → wire `code=resource_conflict`（[系统设计 §7.8](../../../20_system_design/llmtier-system-design.md)）；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明非白名单 id 的 400（ADM-SL-02）、不证明成员能力/向量空间校验（ADM-SL-06/07）、不证明 PATCH/DELETE（ADM-SL-04/05）。本 case **只**锁 409 `resource_conflict`。
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[测试设计 §2.3/§2.4](../llmtier-api-test-specification.md)）。执行前须满足[测试设计 §2.1](../llmtier-api-test-specification.md) **附加（B 类）**（实例 `/healthz` 200；`_BASELINE_SETTINGS` = `prov_b`+`depl_b`+7 tier）。fixture 见[测试设计 §4.4](../llmtier-api-test-specification.md)：`admin_client_b`。初始状态 = `Senior` 已由 bootstrap 预创建（`_BASELINE_SETTINGS` 的 7 tier 各含 `["depl_b"]`、`enabled=true`）。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[测试设计 §2.3/§2.4](../llmtier-api-test-specification.md)）。执行前须满足[测试设计 §2.1](../llmtier-api-test-specification.md) **附加（B 类）**（实例 `/healthz` 200；`_baseline_settings` = `prov_b`+`depl_b`+7 tier）。fixture 见[测试设计 §4.4](../llmtier-api-test-specification.md)：`admin_client_b`。初始状态 = `Senior` 已由 bootstrap 预创建（`_baseline_settings` 的 7 tier 各含 `["depl_b"]`、`enabled=true`）。
 - **输入与构造**：固定请求：
   ```http
   POST /v1/service-levels HTTP/1.1

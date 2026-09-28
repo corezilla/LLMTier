@@ -6,7 +6,7 @@
 
   > **构造诚实性（如何触发）**：B 类临时实例监听 `127.0.0.1`（loopback，`auth.py:33`），若请求**不带** `Authorization` 头，`unauthenticated_principal()` 会授予 loopback 共享主体而返回 200——**无法**用"完全无头"触发 503。因此本 case 通过 `admin_client_b_no_auth` fixture 特意携带一个**未配置**的 `Authorization: Bearer dev-admin`，使 `unauthenticated_principal()` 返回 `None` 从而进入 `authenticate()`，再由"无配置 token"抛 503。该 bearer 字面量为测试占位符，与 503 的成立无关（无任何 token 被配置）。
 
-- **前置与环境**：**环境 B**（临时 LLMTier 实例：临时端口 + 临时 SQLite，`dev_mode=False`；见[测试设计 §2.3](../llmtier-api-test-specification.md)）。使用 [`conftest.py`](../../../../tests/system/api_test_v03/conftest.py) 的 `llmtier_b_no_auth` fixture：`LLMTierInstance(_NO_AUTH_SETTINGS, dev_mode=False)`，启动时**清除全部 `LLMTIER_*` 环境变量**（`conftest.py:380-382`），因此既无 `LLMTIER_ADMIN_TOKEN`/`LLMTIER_DATA_TOKEN`，也无 `LLMTIER_DEV_MODE`，`_configured_token()` 必返回 `None`。执行前需 B 类附加前置：临时实例可启动并 `GET /healthz` 200（[测试设计 §2.1](../llmtier-api-test-specification.md)）。初始状态 = 空库（`_NO_AUTH_SETTINGS`：无 provider/deployment/service-level）。本 case 使用 `admin_client_b_no_auth` fixture（base `http://127.0.0.1:<port>`，默认头 `Authorization: Bearer dev-admin`）。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例：临时端口 + 临时 SQLite，`dev_mode=False`；见[测试设计 §2.3](../llmtier-api-test-specification.md)）。使用 [`conftest.py`](../../../../tests/system/api_test_v03/conftest.py) 的 `llmtier_b_no_auth` fixture：`LLMTierInstance(_NO_AUTH_SETTINGS, dev_mode=False)`，启动时先**清除全部 `LLMTIER_*` 环境变量**（`conftest.py:380-382`），随后**重新写入 `LLMTIER_TRUSTED_LAN_MODE=1`**（`conftest.py:390`，注释说明仅为与部署实例配置对齐；`auth.py` 的受信 LAN 判定只依据客户端地址、**不读**该变量），且因 `dev_mode=False` **不**写 `LLMTIER_ADMIN_TOKEN`/`LLMTIER_DATA_TOKEN`/`LLMTIER_DEV_MODE`，故 `_configured_token()` 必返回 `None`。执行前需 B 类附加前置：临时实例可启动并 `GET /healthz` 200（[测试设计 §2.1](../llmtier-api-test-specification.md)）。初始状态 = 空库（`_NO_AUTH_SETTINGS`：无 provider/deployment/service-level）。本 case 使用 `admin_client_b_no_auth` fixture（base `http://127.0.0.1:<port>`，默认头 `Authorization: Bearer dev-admin`）。
 - **输入与构造**：固定请求（无请求体、无查询参数）：
   ```http
   GET /v1/models HTTP/1.1
@@ -14,7 +14,7 @@
   Authorization: Bearer dev-admin
   Accept: application/json
   ```
-  构造点：实例**未配置任何 token**（`dev_mode=False` + `LLMTIER_*` 清空）；请求**特意携带一个 bearer**（`dev-admin`）以绕开 loopback LAN trust、强制走 `authenticate()`；bearer 字面量不重要（无 token 可匹配）。不注入故障；不构造非法输入。**不得**把本 case 跑在 A 类 m5air（其已配置 token，会得 403 而非 503）。
+  构造点：实例**未配置任何 token**（`dev_mode=False`：清除 `LLMTIER_*` 后不写 token/DEV_MODE；`LLMTIER_TRUSTED_LAN_MODE=1` 被重设但不参与鉴权）；请求**特意携带一个 bearer**（`dev-admin`）以绕开 loopback LAN trust、强制走 `authenticate()`；bearer 字面量不重要（无 token 可匹配）。不注入故障；不构造非法输入。**不得**把本 case 跑在 A 类 m5air（其已配置 token，会得 403 而非 503）。
 - **执行过程（逐步调用）**：
   1. 启动/复用 `llmtier_b_no_auth`（fixture session-scope；`start()` 轮询 `/healthz` 至 200）。记录临时实例端口。
   2. （可选前置确认）断言该实例上 `X` 环境不含 token（fixture 语义保证）；不重复 A 类就绪检查。

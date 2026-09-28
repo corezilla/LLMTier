@@ -2,7 +2,7 @@
 
 - **Case ID**：`ADM-AUDIT-02`（与 §3.2 权威清单一致；本文件名 `adm-audit-02.md`，唯一对应）。
 - **标题**：`GET /v1/audit?limit=1` 有界分页：HTTP 200 + `data.length ≤ 1` + `page.has_more`/`next_cursor` 一致。
-- **目的（被测契约）**：验证审计的**有界页契约**。被测端点/规则：`GET /v1/audit`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listAudit`，query `limit` 默认 50/上限 200）；[`AuditLog.page`](../../../../src/management/audit.py) `LIMIT max(1,min(limit,200))`，固定返回 `page={has_more:false,next_cursor:null}`（当前实现**不提供** cursor 翻页）。设计验证项 `VRC-MGMT-006`；机制 `T-MET-PAGE`；需求/机制链 `LT-FUN-006`、`R-OBS-01`、`CT-ADMIN-001`、`CT-LOG-001`。**不证明什么**：不证明 cursor 跨页去重/重放（审计当前无 cursor；`/v1/usage` 的 cursor 语义见 DP-USAGE-03/07）、不证明非法 `limit` 400（ADM-AUDIT-03）、不证明字段脱敏（ADM-AUDIT-01）、不证明稳定排序的全部语义（本 case 只断 `limit=1` 边界）。
+- **目的（被测契约）**：验证审计的**有界页契约**。被测端点/规则：`GET /v1/audit`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listAuditEvents`，query `limit` 默认 50/上限 200）；[`AuditLog.page`](../../../../src/management/audit.py) `LIMIT max(1,min(limit,200))`，固定返回 `page={has_more:false,next_cursor:null}`（当前实现**不提供** cursor 翻页）。设计验证项 `VRC-MGMT-006`；机制 `T-MET-PAGE`；需求/机制链 `LT-FUN-006`、`R-OBS-01`、`CT-ADMIN-001`、`CT-LOG-001`。**不证明什么**：不证明 cursor 跨页去重/重放（审计当前无 cursor；`/v1/usage` 的 cursor 语义见 DP-USAGE-03/07）、不证明非法 `limit` 400（ADM-AUDIT-03）、不证明字段脱敏（ADM-AUDIT-01）、不证明稳定排序的全部语义（本 case 只断 `limit=1` 边界）。
 - **前置与环境**：**环境 A**（m5air 已部署实例，角色 `admin`；见[测试设计 §2.3](../llmtier-api-test-specification.md)）。就绪检查同[测试设计 §2.1](../llmtier-api-test-specification.md)（**6** 项，`pytest_configure` 自动执行）。fixture：`admin_client`（[§4.4](../llmtier-api-test-specification.md)）。初始状态：审计表非空；只读。
 - **输入与构造**：
   ```http

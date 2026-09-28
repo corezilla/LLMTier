@@ -1,9 +1,9 @@
-# ADM-DEPL-09 — provider_id 不可 PATCH
+# ADM-DEPL-09 — provider_id 改为不存在 provider
 
 - **Case ID**：`ADM-DEPL-09`（与 §3.2 权威清单一致；本文件名 `adm-depl-09.md`，唯一对应）。
 - **标题**：`PATCH /v1/deployments/{id}` 试图把 `provider_id` 改为不存在的 provider：HTTP 400 + `error.code=="invalid_request"`、`param=="provider_id"`，统一错误信封，`provider_id`/`version` 不变。
 - **目的（被测契约）**：验证 Deployment **`provider_id` 变更的引用负向契约**。被测端点/规则：`PATCH /v1/deployments/{deployment_id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `updateDeployment`，`security=AdminBearerAuth`），`If-Match` 必须等于当前 ETag `"<id>.v<N>"`；[`registry.update_deployment`](../../../../src/management/registry.py) 在 `If-Match` 校验通过后 `require(SELECT 1 FROM providers WHERE id=values["provider_id"], 400, "invalid_request", "Unknown provider", "provider_id")`。设计验证项 `VRC-MGMT-002`；错误目录 `ERR-REQ-VALIDATION`（[测试设计 §11.1](../llmtier-api-test-specification.md)）；需求/机制链 `LT-FUN-005`、`LT-INT-008`、`R-CFG-01`、`T-CFG-CAS`、`CT-ADMIN-001`。**不证明什么**：不证明正常更新（ADM-DEPL-04）、不证明缺/过期 `If-Match` 的 412（本 case 用正确 ETag）、不证明删除（ADM-DEPL-05）、不证明 provider CRUD（ADM-PROV-*）；本 case 为纯负向，**不得**改动 deployment。
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 `127.0.0.1:<随机空闲端口>` + 临时 SQLite；见[测试设计 §2.3/§2.4](../llmtier-api-test-specification.md)）。执行前须满足[测试设计 §2.1](../llmtier-api-test-specification.md) **附加（B 类）**（实例可启动 + `/healthz` 200；`_BASELINE_SETTINGS` 1 provider `prov_b` + 1 deployment `depl_b` + 7 tier；`depl_b` probe `healthy`）。fixture 见[测试设计 §4.4](../llmtier-api-test-specification.md)：`llmtier_b`、`admin_client_b`（`Bearer dev-admin`）。**被测对象**：基线 `depl_b`（provider_id 原值 `prov_b`），本 case 只 PATCH 一个非法 `provider_id`，不改动 baseline。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例 `127.0.0.1:<随机空闲端口>` + 临时 SQLite；见[测试设计 §2.3/§2.4](../llmtier-api-test-specification.md)）。执行前须满足[测试设计 §2.1](../llmtier-api-test-specification.md) **附加（B 类）**（实例可启动 + `/healthz` 200；`_baseline_settings` 1 provider `prov_b` + 1 deployment `depl_b` + 7 tier；`depl_b` probe `healthy`）。fixture 见[测试设计 §4.4](../llmtier-api-test-specification.md)：`llmtier_b`、`admin_client_b`（`Bearer dev-admin`）。**被测对象**：基线 `depl_b`（provider_id 原值 `prov_b`），本 case 只 PATCH 一个非法 `provider_id`，不改动 baseline。
 - **输入与构造**：先 `GET` 基线 deployment 取 `ETag`，再 PATCH 非法引用：
   ```http
   GET /v1/deployments/depl_b HTTP/1.1

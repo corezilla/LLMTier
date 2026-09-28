@@ -20,7 +20,7 @@
   6. 断言 body **不含** `{"error":{...}}`（公共存活端点不返回错误信封）。
 - **重点关注步骤**：① **真正无凭据**——不得用带默认头的 `api_client`/`admin_client`；必须独立无头客户端，否则无法证明"无需 token"；② **`/healthz` ≠ `/readyz`**——本 case 只断言存活；`/readyz` 的就绪/降级/未就绪属 HEALTH-02/03/04/05，不可混入；③ **`/healthz` 不调用 `_auth*`**——断言前应在源码确认 `app.py:187` 位于所有 `_auth*` 之前，避免把"受信 LAN 恰好免登录"误当"公共端点无需鉴权"（后者在非受信来源也应为 200，但本 case 不构造非受信来源）；④ **body 必为 `health_view`**——只断言 200 不够，须验证 `status="ok"` + `version:str`；⑤ 不在此 case 断言 `/readyz` 或任何受保护端点。
 - **期望结果与独立 Oracle**：独立 Oracle = 公开端点契约本身——"`GET /healthz` 无凭据 ⇒ 200 + `{status:"ok",version:<str>}`"，与来源、凭据、bootstrap 状态无关。
-  - HTTP：`200`；响应头含 `X-Request-ID`。
+  - HTTP：`200`；响应头 `X-Request-ID` **非契约**（openapi `getHealth` 的 `200` 未声明任何响应头；该头由 [`app.py`](../../../../src/http_api/app.py) 运行时注入，**仅实现行为**，不列入 Oracle）。
   - body：`{"status":"ok","version":<str>, ...}`（`health_view` 字段）。
   - 无错误信封：本 case 不应出现 `{"error":{...}}`。
 - **判定（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：

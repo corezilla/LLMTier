@@ -2,7 +2,7 @@
 
 - **Case ID**：`ADM-STATS-03`（与 §3.2 权威清单一致；本文件名 `adm-stats-03.md`，唯一对应）。
 - **标题**：`GET /v1/stats` 缺 `from`/`to`：HTTP 400 `invalid_request`。
-- **目的（被测契约）**：验证统计查询的**必填时间窗校验**。被测端点/规则：`GET /v1/stats`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getStats`，`from`/`to` 均 `required:true`）；[`app.py`](../../../../src/http_api/app.py) `since, until = query.get("from"), query.get("to"); if not since or not until: raise ApiError(400, "invalid_request", "from and to are required")`（在鉴权后、handler 前）。设计验证项 `VRC-MGMT-006`；错误目录 `ERR-REQ-VALIDATION` → wire `code=invalid_request`；需求/机制链 `LT-FUN-006`、`R-MET-03`、`CT-USAGE-001`。**不证明什么**：不证明缺窗时的 usage/logs 同类校验（ADM-USAGE-* 无缺窗 case、ADM-LOGS-02）、不证明非法 `group_by` 400（未单独构 case）、不证明成功聚合（ADM-STATS-01/02）、不证明认证负向（AUTH-03/09）。
+- **目的（被测契约）**：验证统计查询的**必填时间窗校验**。被测端点/规则：`GET /v1/stats`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getUsageStats`，`from`/`to` 均 `required:true`）；[`app.py`](../../../../src/http_api/app.py) 在鉴权后、handler 前执行 `from`/`to` 必填校验（缺任一 → 400 `invalid_request`）。设计验证项 `VRC-MGMT-006`；错误目录 `ERR-REQ-VALIDATION` → wire `code=invalid_request`；需求/机制链 `LT-FUN-006`、`R-MET-03`、`CT-USAGE-001`。**不证明什么**：不证明缺窗时的 usage/logs 同类校验（ADM-USAGE-* 无缺窗 case、ADM-LOGS-02）、不证明非法 `group_by` 400（未单独构 case）、不证明成功聚合（ADM-STATS-01/02）、不证明认证负向（AUTH-03/09）。
 - **前置与环境**：**环境 A**（m5air 已部署实例，角色 `admin`；见[测试设计 §2.3](../llmtier-api-test-specification.md)）。就绪检查同[测试设计 §2.1](../llmtier-api-test-specification.md)（**6** 项，`pytest_configure` 自动执行；任一失败 → 整班 BLOCKED/SKIP）。fixture：`admin_client`（[§4.4](../llmtier-api-test-specification.md)）。初始状态 = m5air 基线；拒绝路径无副作用。
 - **输入与构造**：
   ```http

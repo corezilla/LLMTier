@@ -66,6 +66,8 @@ def _check_m5air_healthz() -> tuple[bool, str]:
         data = json.loads(body)
         if data.get("status") != "ok":
             return False, f"/healthz status field != 'ok': {data}"
+        if not isinstance(data.get("version"), str):
+            return False, f"/healthz version field not a string: {data}"
     except json.JSONDecodeError as e:
         return False, f"/healthz body not JSON: {e}"
     return True, "ok"
@@ -166,8 +168,12 @@ def pytest_configure(config):
 def pytest_collection_modifyitems(config, items):
     if not getattr(config, "_env_checks_failed", None):
         return
+    # §2.1 就绪检查只覆盖 A 类（m5air 已部署实例）。A 与 B 独立（§2.3/§2.9）：
+    # readiness 失败只 skip A 类（api_a）用例；B 类（api_b）用各自临时实例，仍须执行。
     skip = pytest.mark.skip(reason=f"§2.1 check failed: {config._env_checks_failed}")
     for item in items:
+        if item.get_closest_marker("api_b") is not None:
+            continue
         item.add_marker(skip)
 
 

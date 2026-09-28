@@ -37,7 +37,7 @@
   2. `POST /v1/responses`（子请求 a，仅 `temperature`）：断言 `status_code == 200`、`Content-Type` 含 `text/event-stream`、含 `response.completed`。
   3. `POST /v1/responses`（子请求 b，含 `top_p`）：断言 `status_code == 400`，响应为 JSON 错误信封（非 SSE）。
   4. 解析 (b) 的 `error`，断言 `code=="invalid_request"`、`message` 含 `"unknown fields"`、`type=="request_error"`、`param is None`、`retryable is False`，键集恰 5 键。
-- **重点关注步骤**：① **字段白名单**——只有 `temperature` 合法，`top_p` 是未知字段；② **错误码归因**——`invalid_request`（非 `unsupported_field`）；③ **temperature 不参与数值断言**（§5）；④ **旧描述过时（登记）**——§3.2 旧行"`temperature`/`top_p`"与 [`at_dp_resp_15.py`](../../../../tests/system/api_test_v03/at_dp_resp_15.py)（断言 200）把两者都当可接受字段；`top_p` 不在 OpenAPI/`ALLOWED_FIELDS`，§3.2 正修正为"`temperature` 接受、`top_p` 未知字段被拒"，脚本须同步修正。
+- **重点关注步骤**：① **字段白名单**——只有 `temperature` 合法，`top_p` 是未知字段；② **错误码归因**——`invalid_request`（非 `unsupported_field`）；③ **temperature 不参与数值断言**（§5）；④ **§3.2 与脚本一致**——§3.2 该行已为"`temperature` 接受、`top_p` 未知字段被拒"，[`at_dp_resp_15.py`](../../../../tests/system/api_test_v03/at_dp_resp_15.py) 第 37-49 行亦断言 `temperature` 200 + `top_p` 400 `invalid_request`（`top_p` 不在 OpenAPI/`ALLOWED_FIELDS`）。
 - **期望结果与独立 Oracle**：独立 Oracle = OpenAPI `ResponsesRequest`（含 `temperature`、不含 `top_p`）+ `ErrorEnvelope`/`ErrorDetail`（[`interfaces/openapi/llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)）。
   - (a)：HTTP `200` + `text/event-stream` + `response.completed`。
   - (b)：HTTP `400`；`Content-Type: application/json`；`error.code=="invalid_request"`、`type=="request_error"`、`param=null`、`retryable=false`；无 SSE。
@@ -50,4 +50,4 @@
   - **NOT_RUN**：本 Case 有实现（§3.2 `RUN`），未执行时按 §9 记 `NOT_RUN`。
 - **证据与 Run**：保存 (a)/(b) 请求 body、HTTP status/headers、原始响应（SSE 与错误信封）、发出命令、exit code、环境快照。Run ID = `<date>/A-api`，落位 `tests/system/reports/<date>/A-api/<case-id>/`，含 `manifest.json`（[§4.8](../llmtier-api-test-specification.md)）；失败/偏差现场不截断。
 - **清理与复位**：**无需 teardown**——`store=false`、环境 A 无状态；退出前确认 `/readyz` 仍 7 tier。
-- **依赖**：[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查；`api_client`（[§4.4](../llmtier-api-test-specification.md)）；OpenAPI `ResponsesRequest`；实现 `src/inference/responses.py`（`ALLOWED_FIELDS`）；自动化入口 [`at_dp_resp_15.py`](../../../../tests/system/api_test_v03/at_dp_resp_15.py)（当前断言 200，须按修正后的 §3.2/契约改为 `temperature` 200 + `top_p` 400 `invalid_request`）。**不依赖**其它 Case。
+- **依赖**：[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查；`api_client`（[§4.4](../llmtier-api-test-specification.md)）；OpenAPI `ResponsesRequest`；实现 `src/inference/responses.py`（`ALLOWED_FIELDS`）；自动化入口 [`at_dp_resp_15.py`](../../../../tests/system/api_test_v03/at_dp_resp_15.py)（已断言 `temperature` 200 + `top_p` 400 `invalid_request`）。**不依赖**其它 Case。

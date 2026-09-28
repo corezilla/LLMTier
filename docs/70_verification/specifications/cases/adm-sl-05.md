@@ -3,7 +3,7 @@
 - **Case ID**：`ADM-SL-05`（与 §3.2 权威清单一致；本文件名 `adm-sl-05.md`，唯一对应）。
 - **标题**：`DELETE /v1/service-levels/{id}` 删除固定 Tier：HTTP 409 `fixed_service_level`（"cannot be deleted"）。
 - **目的（被测契约）**：验证固定 Tier 的**不可删除契约**。被测端点/规则：`DELETE /v1/service-levels/{service_level_id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `deleteServiceLevel`，header `If-Match`）；[`registry.delete_service_level`](../../../../src/management/registry.py) **无条件** `raise ApiError(409, "fixed_service_level", "Fixed Tier service levels cannot be deleted")`（不存在可删除分支）。设计验证项 `VRC-MGMT-002`；错误目录 `ERR-FIXED-LEVEL` → wire `code=fixed_service_level`；机制 `T-CFG-DELREF` 的固定 Tier 特例；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明 `If-Match` 的 412（本实现对该路由先返回 409、不校验 ETag）、不证明其它资源删除（provider/deployment 引用 409 见 ADM-PROV-10）、不证明 PATCH/创建（ADM-SL-04/02/02b）。本 case **只**锁 409 `fixed_service_level`。
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[测试设计 §2.3/§2.4](../llmtier-api-test-specification.md)）。执行前须满足[测试设计 §2.1](../llmtier-api-test-specification.md) **附加（B 类）**（`/healthz` 200；`_BASELINE_SETTINGS` = `prov_b`+`depl_b`+7 tier）。fixture 见[测试设计 §4.4](../llmtier-api-test-specification.md)：`admin_client_b`。本 case 选 `Engineer`。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[测试设计 §2.3/§2.4](../llmtier-api-test-specification.md)）。执行前须满足[测试设计 §2.1](../llmtier-api-test-specification.md) **附加（B 类）**（`/healthz` 200；`_baseline_settings` = `prov_b`+`depl_b`+7 tier）。fixture 见[测试设计 §4.4](../llmtier-api-test-specification.md)：`admin_client_b`。本 case 选 `Engineer`。
 - **输入与构造**：
   ```http
   DELETE /v1/service-levels/Engineer HTTP/1.1

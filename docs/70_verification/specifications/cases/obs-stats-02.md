@@ -9,14 +9,14 @@
   - 缺 `until`：`GET /v1/diagnostics/stats?since=2000-01-01T00:00:00Z`
   - 缺 `since`：`GET /v1/diagnostics/stats?until=2100-01-01T00:00:00Z`
 
-  以及对照（应 200）：`GET /v1/diagnostics/stats?since=2000-01-01T00:00:00Z&until=2100-01-01T00:00:00Z`。边界点：空串 `since=`/`until=` 在实现中 `not since` 为真 → 同样 400（作为边界等价样例）；本 case 不用 `from`/`to`（那是别的端点约定）。
+  以及对照（应 200）：`GET /v1/diagnostics/stats?since=2000-01-01T00:00:00Z&until=2100-01-01T00:00:00Z`。  边界点：空串 `since=`/`until=` 在实现中因 [`parse_qs(parsed.query)`](../../../../src/http_api/app.py)（`app.py:185`）默认 `keep_blank_values=False` 而**被丢弃**，`query.get(...)` 得 `None`（等价于缺参）→ 同样 400（作为边界等价样例，机制与 `not ""` 不同）；本 case 不用 `from`/`to`（那是别的端点约定）。
 - **执行过程（逐步调用）**：
   1. 对三种缺参构造逐个 `GET`，断言 `resp.status_code == 400`。
   2. 每次取 `err = resp.json()["error"]`：断言键集恰 `{message,type,code,param,retryable}`、`err["code"]=="invalid_request"`、`err["type"]=="request_error"`、`err["retryable"] is False`。
-  3. （边界）`?since=`（空值）→ 断言 400（与缺失等价）。
+  3. （边界）`?since=`（空值）→ 断言 400：因 `parse_qs`（`app.py:185`，`keep_blank_values` 默认 False）丢弃空白值，`since` 得 `None`（等价缺失），非"空串被 `not ""` 判真"。
   4. （对照）完整 `since`+`until` → 断言 `200` 且顶层键集 `{windows}`（证明端点本体可用，排除"端点坏"被误判为缺参拒绝）。
   5. 断言缺参 400 **不是** `200 {"windows":[]}`（不得用"空窗口"冒充参数校验）。
-- **重点关注步骤**：① **必填校验先于存储读取**——缺参必须在 `_store_read` 之前 400，不得尝试读库（否则存储故障会被误报为 500/503 而非 400）。② **`since`/`until` 而非 `from`/`to`**——本端点唯一正确参数名是 `since`/`until`；用错参数名等价于缺参 → 400。③ **错误信封 identity**——恰 5 键、`type` 由 400 导出为 `request_error`、`retryable=false`。④ **不得空页冒充**——缺参返回 `200 + {"windows":[]}` 即 FAIL。⑤ **空串边界**——`since=` 视为缺失（`not ""` 为真）；作为边界证据记录。⑥ **零副作用**——400 不写库、不新增 trace。⑦ **降级/存储**——本校验在 HTTP 层，降级实例仍应 400（与 diagnostics 降级无关）；`503 usage_store_unavailable` 仅可能出现在正相对照，判 BLOCKED/SKIP。注意：本 case 当前 `MISSING`（§3.2），无 `at_obs_stats_02.py`。
+- **重点关注步骤**：① **必填校验先于存储读取**——缺参必须在 `_store_read` 之前 400，不得尝试读库（否则存储故障会被误报为 500/503 而非 400）。② **`since`/`until` 而非 `from`/`to`**——本端点唯一正确参数名是 `since`/`until`；用错参数名等价于缺参 → 400。③ **错误信封 identity**——恰 5 键、`type` 由 400 导出为 `request_error`、`retryable=false`。④ **不得空页冒充**——缺参返回 `200 + {"windows":[]}` 即 FAIL。⑤ **空串边界**——`since=` 之所以视为缺失，是依赖解析层 [`parse_qs(parsed.query)`](../../../../src/http_api/app.py)（`app.py:185`）默认 `keep_blank_values=False` **丢弃空白值**（`query.get("since")` 得 `None`），而非 `not ""` 为真（若改用保留空白的解析，`not ""` 同样为真，但当前实现的实际机制是丢弃；400 结论不变）；作为边界证据记录。⑥ **零副作用**——400 不写库、不新增 trace。⑦ **降级/存储**——本校验在 HTTP 层，降级实例仍应 400（与 diagnostics 降级无关）；`503 usage_store_unavailable` 仅可能出现在正相对照，判 BLOCKED/SKIP。注意：本 case 当前 `MISSING`（§3.2），无 `at_obs_stats_02.py`。
 - **期望结果与独立 Oracle**：独立 Oracle = `openapi` `BadRequest`（`ErrorEnvelope`）+ `/v1/diagnostics/stats` 参数 `required:true` + 测试设计 §4.10 时间参数约定。
   - 每个缺参/空参：HTTP `400`；`Content-Type: application/json`；body `{"error":{"message":"since and until are required","type":"request_error","code":"invalid_request","param":null,"retryable":false}}`（恰 5 键；openapi 未为响应声明头）。
   - 对照：完整参数 → `200` + `{windows}`。

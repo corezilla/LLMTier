@@ -30,10 +30,10 @@
   3. 断言观测形态，按**当前机器契约**判定：`status_code == 400`，响应为 JSON 错误信封（非 SSE）。
   4. 解析 `resp.json()["error"]`，断言 `code=="invalid_request"`、`message` 含 `"unknown fields"`、`type=="request_error"`、`param is None`、`retryable is False`，键集恰 5 键。
   5. 可选对照：去掉 `truncation` 重发，断言 `200` + SSE。
-- **重点关注步骤**：① **未知字段路径**——`truncation` 既不在 OpenAPI `ResponsesRequest`，也不在 `ALLOWED_FIELDS`；② **错误码归因**——未知字段 → `invalid_request`（非 `unsupported_field`）；③ **拒绝在 dispatch 前、零副作用**；④ **旧描述过时（登记）**——§3.2 旧行与 [`at_dp_resp_13.py`](../../../../tests/system/api_test_v03/at_dp_resp_13.py)（断言 200）描述的是 440eb19 之前的旧行为；§3.2 正修正为拒绝语义、脚本须同步修正，当前契约以 `400 invalid_request` 为准。
+- **重点关注步骤**：① **未知字段路径**——`truncation` 既不在 OpenAPI `ResponsesRequest`，也不在 `ALLOWED_FIELDS`；② **错误码归因**——未知字段 → `invalid_request`（非 `unsupported_field`）；③ **拒绝在 dispatch 前、零副作用**；④ **§3.2 与脚本一致**——§3.2 该行为 `400 invalid_request`，[`at_dp_resp_13.py`](../../../../tests/system/api_test_v03/at_dp_resp_13.py) 第 32-33 行亦断言 `400` + `invalid_request`，契约已收敛于拒绝语义。
 - **期望结果与独立 Oracle**：独立 Oracle = OpenAPI `ResponsesRequest.additionalProperties:false` + `ErrorEnvelope`/`ErrorDetail`（[`interfaces/openapi/llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)），不依赖实现答案。
   - HTTP `400`；`Content-Type: application/json`；`error.code=="invalid_request"`、`type=="request_error"`、`param=null`、`retryable=false`；无 SSE。
-  - 旧的"静默忽略"（200 + SSE）不再是候选真值：§3.2 旧行与脚本属 440eb19 前行为，正被修正。
+  - "静默忽略"（200 + SSE）不是候选真值：§3.2 与脚本均为拒绝语义。
 - **判定（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
   - **PASS**：`400` + `invalid_request` + 非 SSE + 零副作用。
   - **FAIL**：返回 `200`（未知字段被接受，违反 `additionalProperties:false`）；或 status/code 不符、返回 SSE、信封键集错。
@@ -43,4 +43,4 @@
   - **NOT_RUN**：本 Case 有实现（§3.2 `RUN`），未执行时按 §9 记 `NOT_RUN`。
 - **证据与 Run**：保存请求 body、HTTP status/headers、原始错误信封、可选对照、发出命令、exit code、环境快照。Run ID = `<date>/A-api`，落位 `tests/system/reports/<date>/A-api/<case-id>/`，含 `manifest.json`（[§4.8](../llmtier-api-test-specification.md)）；失败/偏差现场不截断。
 - **清理与复位**：**无需 teardown**——环境 A 无状态；退出前确认 `/readyz` 仍 7 tier。
-- **依赖**：[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查；`api_client`（[§4.4](../llmtier-api-test-specification.md)）；OpenAPI `ResponsesRequest`；实现 `src/inference/responses.py`（`ALLOWED_FIELDS`）；自动化入口 [`at_dp_resp_13.py`](../../../../tests/system/api_test_v03/at_dp_resp_13.py)（当前断言 200，须按修正后的 §3.2/契约改断 `400 invalid_request`）。**不依赖**其它 Case；与 DP-RESP-12/14 同类。
+- **依赖**：[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查；`api_client`（[§4.4](../llmtier-api-test-specification.md)）；OpenAPI `ResponsesRequest`；实现 `src/inference/responses.py`（`ALLOWED_FIELDS`）；自动化入口 [`at_dp_resp_13.py`](../../../../tests/system/api_test_v03/at_dp_resp_13.py)（已断言 `400 invalid_request`）。**不依赖**其它 Case；与 DP-RESP-12/14 同类。

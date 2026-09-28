@@ -26,7 +26,7 @@
   4. 断言 `status_code == 422`（**沿用**上游非 5xx 状态）。
   5. 解析 `error`：`code=="provider_error"`、`type=="request_error"`、`param is None`、`retryable is False`，键集恰 5 键。
   6. 子测（可选）：stub 改返回 `429`，断言 `status==429` + `provider_error` + `retryable is True`。
-  7. 子测（对照）：stub 改返回 `503`，断言归一为 `503 provider_unavailable` + `retryable=true`（证明 5xx 分支：本条为**真实上游** 5xx，与 DP-RESP-22 的 M006 **注入** 503 是不同来源；DP-RESP-22 不是"真实上游"用例）。
+  7. 子测（对照）：stub 改返回 `503`，断言归一为 `503 provider_unavailable` + `retryable=true`（证明 5xx 分支：本条为**真实上游** 5xx；DP-RESP-22 是 M006 **注入** 503，两者来源不同）。
 - **重点关注步骤**：① **4xx 沿用原状态**——非 5xx 的 `exc.code` 作为 HTTP status，`code=provider_error`；② **5xx 分支不同**——真实上游 5xx 归一为 `503 provider_unavailable`（**偏差**：§3.2 标题写"上游 4xx/5xx → provider_error"，而实现 `openai.py` 对 5xx 返回 `provider_unavailable`；以代码为准并登记）；③ **`retryable` 规则**——仅 `{408,429}` 为真；④ **信封 identity**（5 键、无 `category`）；⑤ **无注入**——不得用 `PATCH .../diagnostics` 伪造（注入是 DP-RESP-11/22 的来源）；⑥ **MISSING**——§3.2 自动化入口为 `MISSING`，须先实现 `at_dp_resp_23.py` 与 4xx stub。
 - **期望结果与独立 Oracle**：独立 Oracle = OpenAPI `ErrorEnvelope`/`ErrorDetail` + 系统设计 §7.8 `ERR-PROVIDER-FAIL`（不依赖实现答案）。
   - 4xx 子测：HTTP `422`（或所配 4xx）；`Content-Type: application/json`；`{"error":{"message":"Provider returned HTTP 422","type":"request_error","code":"provider_error","param":null,"retryable":false}}`；无 SSE。

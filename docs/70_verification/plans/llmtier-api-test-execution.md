@@ -32,7 +32,7 @@
 
 ## 1. 目标与定位
 
-把 [`llmtier-api-test-specification.md`](../specifications/llmtier-api-test-specification.md) 的**权威 140 个 Case**（A 90 / B 50；P0 45 / P1 72 / P2 23）从"设计"落到"可执行 + 可回归"，并把执行编排、恢复、门禁落地。
+把 [`llmtier-api-test-specification.md`](../specifications/llmtier-api-test-specification.md) 的**权威 140 个 Case**（A 89 / B 51；P0 45 / P1 72 / P2 23）从"设计"落到"可执行 + 可回归"，并把执行编排、恢复、门禁落地。
 
 **当前实现状态**：**88 RUN / 52 MISSING**（按环境：RUN = A 60 + B 28；MISSING = A 29 + B 23）。计数以测试设计 §3.2 权威清单为准，测试设计升版时本节随之回填。
 
@@ -53,8 +53,8 @@
 
 | 类 | 含义 | 设计数 | 已实现 (RUN) | 执行方式 |
 |---|---|---|---|---|
-| **A** | 读 / 观察 / 无状态写 | 90 | 60 | **开发机**经 LAN 打 m5air (`192.168.1.9:8181`) 现有实例 |
-| **B** | 创建/修改/删除 / 空库 / 无鉴权 / 注入/并发 | 50 | 28 | **开发机**本机第二进程：临时 SQLite + 临时端口，teardown 清理 |
+| **A** | 读 / 观察 / 无状态写 | 89 | 60 | **开发机**经 LAN 打 m5air (`192.168.1.9:8181`) 现有实例 |
+| **B** | 创建/修改/删除 / 空库 / 无鉴权 / 注入/并发 | 51 | 28 | **开发机**本机第二进程：临时 SQLite + 临时端口，teardown 清理 |
 
 A 类与 B 类不能共享同一进程的 SQLite（写干扰），所以分两阶段跑；A/B 不并行（执行层计划 §3.2）。
 
@@ -85,7 +85,7 @@ A 类与 B 类不能共享同一进程的 SQLite（写干扰），所以分两�
    - `fixture(scope="session") api_client`：httpx.Client，base_url=`http://192.168.1.9:8181`，`Authorization: Bearer dev-data`
    - `fixture(scope="session") admin_client`：同上 + `Authorization: Bearer dev-admin`
    - `parse_sse` / `parse_sse_raw`：SSE 逐帧解析 helper
-   - `LLMTierInstance` + B fixtures：`llmtier_b`（`_BASELINE_SETTINGS`：`prov_b` + `depl_b` + 7 tier）、`llmtier_b_empty`（`_EMPTY_SETTINGS`）、`llmtier_b_no_auth`（`_NO_AUTH_SETTINGS`，`dev_mode=False`）；session-scope，临时端口 + 临时 SQLite，`stop()` `terminate`→5 s→`kill` + `rm -rf`
+   - `LLMTierInstance` + B fixtures：`llmtier_b`（`_baseline_settings`：`prov_b` + `depl_b` + 7 tier）、`llmtier_b_empty`（`_EMPTY_SETTINGS`）、`llmtier_b_no_auth`（`_NO_AUTH_SETTINGS`，`dev_mode=False`）；session-scope，临时端口 + 临时 SQLite，`stop()` `terminate`→5 s→`kill` + `rm -rf`
 3. 写 `runner_a.sh`（`pytest -m api_a`）与 `runner_b.sh`（`pytest -m api_b`）；markers 注册于 `pyproject.toml`，runner 不再手工维护文件清单
 4. **首次跑验证**：故意把 m5air 关掉 → 确认 suite skip + 输出"§2.1 第 1 项 /healthz 不通"
 
@@ -147,7 +147,7 @@ A 类与 B 类不能共享同一进程的 SQLite（写干扰），所以分两�
 1. `bash tests/system/api_test_v03/runner_a.sh && bash tests/system/api_test_v03/runner_b.sh`（或全量 `pytest tests/system/api_test_v03/ -q`），捕获所有 case 结果与 `case-status.json`
 2. 按执行层计划 §7.2 判定 PASS/FAIL/SKIP/BLOCKED/INVALID/NOT_RUN；跑 `-m api_a` / `-m api_b` 分开汇总
 3. 写 `tests/system/reports/<date>/<date>-api-test-report.md`：
-   - 总览（140 设计 case 状态分布；A 90 / B 50；RUN 88 / MISSING 52）
+   - 总览（140 设计 case 状态分布；A 89 / B 51；RUN 88 / MISSING 52）
    - 失败 case 详情（`failure_reason` + `reproduction_cmd`）
    - 跳过 case 列表（`skip_reason` + `fix_owner` + `eta`）
    - 阻塞 case 列表（`block_reason` + `required_resolution`）
@@ -209,7 +209,7 @@ A 类与 B 类不能共享同一进程的 SQLite（写干扰），所以分两�
 | B fixtures 收敛进单文件 `conftest.py` | 避免 `conftest_b.py` 与 A fixture 冲突；session-scope `LLMTierInstance` |
 | 全量入口用 `-m api_a` / `-m api_b` | markers 注册于 `pyproject.toml`；取代早期四散 runner |
 | 移除 `runner_all.sh` | 该脚本从未存在；全量用 `pytest tests/system/api_test_v03/ -q`，A/B 用 `-m` 或 `runner_a.sh`/`runner_b.sh` |
-| case 总数 89 → **140** | 测试设计升版后的权威清单（A 90 / B 50；P0 45 / P1 72 / P2 23） |
+| case 总数 89 → **140** | 测试设计升版后的权威清单（A 89 / B 51；P0 45 / P1 72 / P2 23） |
 | 设计状态与实现分离 | `RUN 88 / MISSING 52` 如实登记；MISSING 是缺口不是 SKIP，P0 MISSING 阻断 |
 | `DP-USAGE-04` 用 sqlite3 UPDATE | 真造过期 cursor，而非 `cursor="expired"` 字面值 |
 | 执行韧性 + 恢复手册 | 单 case 受阻就地恢复继续；系统性受阻诊断后断点续跑（执行层计划 §7.1） |

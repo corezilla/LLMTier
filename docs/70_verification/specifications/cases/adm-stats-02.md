@@ -2,7 +2,7 @@
 
 - **Case ID**：`ADM-STATS-02`（与 §3.2 权威清单一致；本文件名 `adm-stats-02.md`，唯一对应）。
 - **标题**：`GET /v1/stats?group_by=tier` 显式按 tier 分组：HTTP 200 + `group_by=="tier"` + tier 聚合行。
-- **目的（被测契约）**：验证统计的**显式 `group_by=tier` 契约**。被测端点/规则：`GET /v1/stats`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getStats`，query `group_by` enum `tier|deployment`）；[`AdminService.stats`](../../../../src/management/admin.py) 在 `group_by=="tier"` 分支按 `v.model` 聚合（行含 `tier` 键）。设计验证项 `VRC-MGMT-006`；需求/机制链 `LT-FUN-006`、`R-MET-03`、`CT-USAGE-001`。**不证明什么**：不证明默认分组（ADM-STATS-01）、不证明 `group_by=deployment` 分支（未单独构 case）、不证明缺窗 400（ADM-STATS-03）、不证明非法 `group_by` 的 400（`group_by ∉ {tier,deployment}` → 400，未单独构 case）。
+- **目的（被测契约）**：验证统计的**显式 `group_by=tier` 契约**。被测端点/规则：`GET /v1/stats`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getUsageStats`，query `group_by` enum `tier|deployment`）；[`AdminService.stats`](../../../../src/management/admin.py) 在 `group_by=="tier"` 分支按 `v.model` 聚合（行含 `tier` 键）。设计验证项 `VRC-MGMT-006`；需求/机制链 `LT-FUN-006`、`R-MET-03`、`CT-USAGE-001`。**不证明什么**：不证明默认分组（ADM-STATS-01）、不证明 `group_by=deployment` 分支（未单独构 case）、不证明缺窗 400（ADM-STATS-03）、不证明非法 `group_by` 的 400（`group_by ∉ {tier,deployment}` → 400，未单独构 case）。
 - **前置与环境**：**环境 A**（m5air 已部署实例，角色 `admin`；见[测试设计 §2.3](../llmtier-api-test-specification.md)）。就绪检查同[测试设计 §2.1](../llmtier-api-test-specification.md)（**6** 项，`pytest_configure` 自动执行）。fixture：`admin_client`（[§4.4](../llmtier-api-test-specification.md)）。时间窗用动态 [`recent_window()`](../../../../tests/system/api_test_v03/constants.py)。初始状态 = m5air 基线；只读。
 - **输入与构造**：
   ```http

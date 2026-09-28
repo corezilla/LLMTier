@@ -24,17 +24,17 @@
   }
   ```
 
-  边界/构造点：显式 `stream=true`；`store=false`；`max_output_tokens=30` 限制流长；不注入故障。与 DP-RESP-01 相比，本 case 只断言"受理 + `response.completed` 存在"这一前沿。
+  边界/构造点：显式 `stream=true`；`store=false`；`max_output_tokens=30` 限制流长；不注入故障；其余字段构造与 DP-RESP-01 一致，本 case 只保留 `stream=true` 受理这一 delta。
 - **执行过程（逐步调用）**：
   1. `GET /healthz`、`GET /readyz` —— 确认 §2.1 基线（由 `pytest_configure` 自动执行）。
   2. `POST /v1/responses`（上表 body）。
-  3. 断言 `status_code == 200` 且 `content-type` 含 `text/event-stream`。
-  4. 同步读取 body，断言含 `event: response.completed`（唯一 terminal 的存在性）。
+  3. 断言 `status_code == 200` 且 `content-type` 含 `text/event-stream`（受理形态 delta；事件序列完整断言见 DP-RESP-01）。
+  4. 同步读取 body，断言含 `event: response.completed`（terminal 存在性）。
   5. 断言出现 `data: [DONE]`（[§4.5](../llmtier-api-test-specification.md)）。
-- **重点关注步骤**：① **正向与负向配对**——本 case 与 DP-RESP-02（`stream=false`）/DP-RESP-07（`store=true`）构成受理边界的三联，各自独立执行；② **受理即返回 SSE**——`Content-Type: text/event-stream` 而非错误信封；③ **terminal 存在**——本 case 只断 `response.completed` 存在，逐帧唯一性/顺序由 DP-RESP-01 承担；④ **不把答案文本当 Oracle**。
-- **期望结果与独立 Oracle**：独立 Oracle = OpenAPI `stream.const=true` 受理 + 标准 SSE 终止形态（[§4.5](../llmtier-api-test-specification.md)），不依赖实现答案。
+- **重点关注步骤**：① **正向与负向配对**——本 case 与 DP-RESP-02（`stream=false`）/DP-RESP-07（`store=true`）构成受理边界的三联，各自独立执行；② **受理即返回 SSE**——`Content-Type: text/event-stream` 而非错误信封；③ **terminal 存在**——本 case 只断 `response.completed` 存在，逐帧 identity/唯一性/顺序由 DP-RESP-01 承担（不重复其断言）；④ **不把答案文本当 Oracle**。
+- **期望结果与独立 Oracle**：独立 Oracle = OpenAPI `stream.const=true` 受理（[§4.5](../llmtier-api-test-specification.md)），不依赖实现答案。事件序列/唯一 terminal/`[DONE]`/usage 的完整判定见 DP-RESP-01；本 case 只断"受理形态"这一前沿。
   - HTTP：`200`；`Content-Type: text/event-stream`。
-  - 事件：含 `response.created` 与唯一 terminal `response.completed`；`data: [DONE]` 收尾。
+  - 事件：含 `response.created` 与 terminal `response.completed`；`data: [DONE]` 收尾。
 - **判定（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
   - **PASS**：status 200 + `text/event-stream` + `response.completed` + `[DONE]` match。
   - **FAIL**：status 非 200、无 SSE、`response.completed` 缺失、`[DONE]` 缺失。
