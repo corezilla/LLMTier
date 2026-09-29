@@ -19,7 +19,7 @@
 | Template ID | `assurance.test-plan` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | std-tailoring |
-| Migration Map Reference | `llmtier-vv-plan, llmtier-contract-test-specification` |
+| Migration Map Reference | `llmtier-vv-plan, llmtier-system-test-scheme` |
 | Repository | `corezilla/LLMTier` |
 | Canonical Path | `docs/70_verification/plans/llmtier-test-plan.md` |
 | Supersedes | none |
@@ -29,7 +29,7 @@
 
 本文件按 STD `assurance.test-plan` 模板覆盖 **runtime** 端到端测试。区别于：
 
-- `llmtier-contract-test-specification.md`：静态契约 + case matrix（CT-*）；本 plan 是其在 runtime 上的落地与扩展。
+- [`llmtier-system-test-scheme.md`](../schemes/llmtier-system-test-scheme.md)：系统层测试分类与 Case 清单唯一登记；本 plan 是其在 runtime 上的落地与扩展。
 - `llmtier-vv-plan.md`：高层 V&V 方法论；本 plan 是其 system 层的执行细节。
 
 测试层级：system（HTTP/SSE 真实启服 + 真实或受控 provider + 真实 SQLite）。**不**替代 unit（24 个文件，191 cases）和 contract static 测试。

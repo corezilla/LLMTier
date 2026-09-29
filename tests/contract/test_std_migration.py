@@ -51,7 +51,6 @@ class StdAndAuthorityTests(unittest.TestCase):
             ROOT / "docs/60_interfaces/contracts/llmtier-contract-specification.md",
             ROOT / "docs/60_interfaces/contracts/llmtier-cross-system-finalization.md",
             ROOT / "docs/70_verification/plans/llmtier-vv-plan.md",
-            ROOT / "docs/70_verification/specifications/llmtier-contract-test-specification.md",
             ROOT / "docs/80_operations/llmtier-release-and-operations.md",
         ]
         for path in paths:

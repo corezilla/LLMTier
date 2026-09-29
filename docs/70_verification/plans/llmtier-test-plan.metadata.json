@@ -16,7 +16,7 @@
   "template_sha256": "e9059289c60ae4ddc89c9e9f92ac14f5e105ff84fee1d1accc36d29cc83ac143",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
-  "migration_map_ref": "llmtier-vv-plan, llmtier-contract-test-specification",
+  "migration_map_ref": "llmtier-vv-plan, llmtier-system-test-scheme",
   "design_level": "cross-level",
   "domain": [
     "software"

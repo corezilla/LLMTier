@@ -2,7 +2,7 @@
 
 > **Document Status: Superseded（2026-09-07）** 当前 V&V/traceability prose authority 已迁至
 > [`llmtier-vv-plan`](../../70_verification/plans/llmtier-vv-plan.md)、
-> [`llmtier-contract-test-specification`](../../70_verification/specifications/llmtier-contract-test-specification.md)
+> [`llmtier-system-test-scheme`](../../70_verification/schemes/llmtier-system-test-scheme.md)
 > 和 [`llmtier-traceability`](../../10_requirements/llmtier-traceability.md)。测试源码与 fixtures
 > 继续是 executable oracle；本文件仅保留历史 review ledger。逐 scope disposition 见
 > `legacy-v03-scope-mapping.md`。
