@@ -2,18 +2,20 @@
 # LLMTier V0.3 API Test Execution Plan
 
 > 配套文档：[`llmtier-api-test-plan.md`](./llmtier-api-test-plan.md)（执行层：顺序/批次/门禁/恢复/回归）与 [`llmtier-api-test-specification.md`](../specifications/llmtier-api-test-specification.md)（测试设计 + 权威 Case 清单）。本文件是**项目管理层**计划：分阶段、产出物、依赖、人/工时估算、风险与回滚。
+>
+> **测试环境设计**（环境拓扑与隔离决策、被测版本锚定、启动/重启、复位、结果回收、与运维文档分工）见 [`llmtier-api-test-plan.md`](./llmtier-api-test-plan.md) **§2-E1–§2-E6**；本文件**不重复**该设计，只引用。执行 A/B 类、更新 m5air、重启或复位前，先按 §2-E2–§2-E4 操作。
 
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-api-test-execution` |
-| Document Version | `0.2.0-draft.6` |
+| Document Version | `0.2.0-draft.7` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-21` |
-| Last Modified Date | `2026-09-28` |
+| Last Modified Date | `2026-09-29` |
 | Template ID | `assurance.test-plan` |
 | Template Version | `0.2.0` |
 | Template Conformance | `tailored` |
@@ -56,7 +58,7 @@
 | **A** | 读 / 观察 / 无状态写 | 89 | 60 | **开发机**经 LAN 打 m5air (`192.168.1.9:8181`) 现有实例 |
 | **B** | 创建/修改/删除 / 空库 / 无鉴权 / 注入/并发 | 51 | 28 | **开发机**本机第二进程：临时 SQLite + 临时端口，teardown 清理 |
 
-A 类与 B 类不能共享同一进程的 SQLite（写干扰），所以分两阶段跑；A/B 不并行（执行层计划 §3.2）。
+A 类与 B 类不能共享同一进程的 SQLite（写干扰），所以分两阶段跑；A/B 不并行（执行层计划 §3.2）。**A 类沿用 m5air 现有实例**（隔离决策与"专用测试部署"的级联后果见执行层计划 §2-E1）；**启停与复位按执行层计划 §2-E3/§2-E4**，部署/备份/回滚的权威仍是 `m5air-deploy-guide.md` 与 `m5air-operations-manual.md`（分工见 §2-E6）。
 
 ### 2.2 阶段表
 
@@ -87,7 +89,7 @@ A 类与 B 类不能共享同一进程的 SQLite（写干扰），所以分两�
    - `parse_sse` / `parse_sse_raw`：SSE 逐帧解析 helper
    - `LLMTierInstance` + B fixtures：`llmtier_b`（`_baseline_settings`：`prov_b` + `depl_b` + 7 tier）、`llmtier_b_empty`（`_EMPTY_SETTINGS`）、`llmtier_b_no_auth`（`_NO_AUTH_SETTINGS`，`dev_mode=False`）；session-scope，临时端口 + 临时 SQLite，`stop()` `terminate`→5 s→`kill` + `rm -rf`
 3. 写 `runner_a.sh`（`pytest -m api_a`）与 `runner_b.sh`（`pytest -m api_b`）；markers 注册于 `pyproject.toml`，runner 不再手工维护文件清单
-4. **首次跑验证**：故意把 m5air 关掉 → 确认 suite skip + 输出"§2.1 第 1 项 /healthz 不通"
+4. **首次跑验证**：故意把 m5air 关掉 → 确认 suite skip + 输出"§2.1 第 1 项 /healthz 不通"；随后按执行层计划 §2-E3（Python 3.14 重启 → `/healthz` 验证）恢复，并重跑 §2.1 就绪检查（§2-E4）
 
 **验收**：
 - `PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/ -q` 跑起来不报错
@@ -172,7 +174,7 @@ A 类与 B 类不能共享同一进程的 SQLite（写干扰），所以分两�
 
 | 依赖 | 详情 | 状态 |
 |---|---|---|
-| m5air LLMTier 服务运行 | `192.168.1.9:8181` | ✅ 已知运行 |
+| m5air LLMTier 服务运行 | `192.168.1.9:8181`（**现有实例**，隔离决策见执行层计划 §2-E1） | ✅ 已知运行 |
 | m5air OMLX 9000 | 上游 `provider_local` | ✅ 已知健康 |
 | m5mac OMLX 9000 | 上游 `provider_omlx_m5mac` | ⚠️ 修复后需实测 |
 | `provider_omlx_m5mac.secret_ref` | `file:` 路径 + `chmod 600` | ✅ 已修 |
@@ -192,7 +194,8 @@ A 类与 B 类不能共享同一进程的 SQLite（写干扰），所以分两�
 | m5mac OMLX 挂掉 | DP-RESP fallback case SKIP | 中 | §2.1 检查第 4 项；P1 跑完后看 SKIP 列表 |
 | OMLX 临时挂 | 多 case SKIP | 中 | `conftest.py` 输出原因 + §2.1 检查项编号 |
 | B 类 teardown 不彻底 | m5air 残留 provider/deployment | 中 | runner kill 临时实例 + 校验 m5air 状态对比 |
-| schema_version 不匹配 | 启动 503、整班 BLOCKED | 低 | §7.1.0 schema_version 检查；§7.1.2 显式二选一恢复 |
+| schema_version 不匹配 | 启动 503、整班 BLOCKED | 低 | §7.1.0 schema_version 检查；§7.1.2 显式二选一恢复；复位前先冷备份（§2-E4） |
+| 误把 A 类测试打到 m5air 生产 state | 既有资源/usage 被误删或被污染 | 低 | A 类只做只读/无状态写且写后 teardown；残留核验按 §2-E4；隔离决策与专用测试部署触发条件见 §2-E1 |
 | BLOCKED vs FAIL 判定分歧 | 报告不统一 | 中 | runner 强制六态判定；FAIL/BLOCKED/INVALID 都阻塞 release |
 | If-Match / capabilities 断言脆弱 | 412/400 假阴性 | 低 | 测试设计 §4.10 常量 + `cases/<id>.md` Oracle |
 | SSE 解析器随 httpx 版本漂移 | false PASS | 低 | 锁定 httpx 版本；纯字节解析（不用 httpx SSE helper） |
@@ -213,6 +216,8 @@ A 类与 B 类不能共享同一进程的 SQLite（写干扰），所以分两�
 | 设计状态与实现分离 | `RUN 88 / MISSING 52` 如实登记；MISSING 是缺口不是 SKIP，P0 MISSING 阻断 |
 | `DP-USAGE-04` 用 sqlite3 UPDATE | 真造过期 cursor，而非 `cursor="expired"` 字面值 |
 | 执行韧性 + 恢复手册 | 单 case 受阻就地恢复继续；系统性受阻诊断后断点续跑（执行层计划 §7.1） |
+| A 类沿用 m5air 现有实例（不引入专用测试部署） | 与测试设计 §2.3/§2.4、`M5AIR_BASE`、§2.1 就绪检查一致；A 类定义为只读/无状态写且可 teardown。专用测试部署属拓扑变更，其级联后果与触发条件已登记在执行层计划 §2-E1 |
+| 证据回收 + `xfailed → BLOCKED` 映射 | 报告工具强制把 `xfailed` 映射为 BLOCKED、`xpassed` 告警、`skipped` 为 SKIP（执行层计划 §2-E5），防 xfail 静默豁免 |
 
 ---
 
@@ -254,7 +259,7 @@ Day 4（可选）：P4
 ## 9. 文档索引
 
 - 测试设计（权威 Case 清单）：[`llmtier-api-test-specification.md`](../specifications/llmtier-api-test-specification.md)（v0.4.0-draft.3）
-- 执行层计划（顺序/批次/门禁/恢复/回归）：[`llmtier-api-test-plan.md`](./llmtier-api-test-plan.md)（v0.3.0-draft.11）
+- 执行层计划（顺序/批次/门禁/恢复/回归 + 测试环境设计 §2-E1–§2-E6）：[`llmtier-api-test-plan.md`](./llmtier-api-test-plan.md)（v0.3.0-draft.12）
 - 逐 Case 设计：`docs/70_verification/specifications/cases/<lowercased-case-id>.md`
 - 高层 V&V：[`llmtier-vv-plan.md`](./llmtier-vv-plan.md)
 - 系统测试：[`llmtier-test-plan.md`](./llmtier-test-plan.md)（ST-01~ST-26）

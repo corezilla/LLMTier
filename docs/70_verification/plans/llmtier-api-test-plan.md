@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-api-test-plan` |
-| Document Version | `0.3.0-draft.11` |
+| Document Version | `0.3.0-draft.12` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-21` |
-| Last Modified Date | `2026-09-28` |
+| Last Modified Date | `2026-09-29` |
 | Template ID | `assurance.test-plan` |
 | Template Version | `0.2.0` |
 | Template Conformance | `tailored` |
@@ -74,6 +74,180 @@
 
 **依赖**：m5air OMLX `192.168.1.9:9000`、m5mac OMLX `192.168.1.8:9000`（Bearer `9832`）；B 类临时实例依赖 Python 3.14 + 可用临时端口 + 临时 SQLite 权限。**依赖不可用 → BLOCKED/SKIP**（见 §7）。
 
+**本节定位**：本节只规定**测试环境怎么搭、被测版本怎么锚定、怎么启停、怎么复位、证据怎么回收**——即"跑这些 Case 需要什么样的环境、谁提供、失败如何回退"；逐 Case 的输入/Oracle 见 `cases/<lowercased-case-id>.md`，共同机制常量见测试设计 §4，**证据字段与 manifest 表见测试设计 §4.8/§10（本节引用，不复制）**。
+
+> 编号约定：本环境设计的小节记为 `§2-E1`…`§2-E6`，以区别于**测试设计**的 `§2.1`…`§2.9`（就绪检查/部署位置/更新/复位等）。正文中"§2.1 就绪检查"等未被本设计改写引用的编号，一律指**测试设计**的对应小节。
+
+### 2-E1 环境拓扑与隔离策略
+
+**两层被测对象，一套执行机**
+
+| 环境 ID | 被测对象 | 监听 / 端口 | 数据库 | 日志 | 用途 | 运行位置 |
+|---|---|---|---|---|---|---|
+| **A** | 已在 m5air 部署的 LLMTier | `0.0.0.0:8181`（`192.168.1.9:8181`） | `/Users/mlp/LLMTier-dev/state.sqlite3` | `/Users/mlp/LLMTier-dev/llmtier.log` | 只读 / 观察 / 一次性无状态写（88 中的 A 子集） | m5air（被测目标机） |
+| **B** | 临时 LLMTier 实例（每班新建） | `127.0.0.1:<随机空闲端口>` | `tempfile.mkdtemp(prefix="llmtier_b_")/test.sqlite3` | 子进程 `DEVNULL`（必要时按 §7.1.3 收集） | 创建/修改/删除、空库、无鉴权、注入/并发 | 执行机（局部 m5pro / 开发机） |
+
+- **执行机 = 开发机**（m5pro，`192.168.1.8`）：在项目根 `cwd = "$(git rev-parse --show-toplevel)"`、`PYTHONPATH=src` 下运行 `pytest` 与 `tools/inference_smoke.py`。
+- **A 类执行机 → 被测目标机**：经 LAN 连 m5air 现有实例（客户端方向 loopback 禁令不适用，测试设计 §2.7）。
+- **B 类执行机 → 本机第二进程**：`127.0.0.1:<port>` 仅指**客户端 → LLMTier** 的连接；**被测 LLMTier 内部的上游 provider endpoint 仍必须是 LAN IP**（TS-003，`conftest.py::provider_endpoint_b` 在本机 LAN IP 上起 `v03_fake_provider.py`）。
+- **上游 OMLX**：m5air OMLX `192.168.1.9:9000`、m5mac OMLX `192.168.1.8:9000`（Bearer `9832`）；A 类 provider 路由见 §5.3，B 类上游为 LAN fake provider。
+
+**隔离决策（A 类：现有实例 vs 专用测试部署）**
+
+> **推荐（本轮）：沿用"直接打 m5air*现有*实例"**，与测试设计 §2.3/§2.4 的 A 类定义、`conftest.py::M5AIR_BASE`（`http://192.168.1.9:8181`）与 §2.1 就绪检查保持一致。
+> **不在本轮引入"m5air 专用测试部署"**（独立目录 + 独立 DB + 独立端口 + 独立日志），因为：当前 A 类被定义为**只读 / 观察 / 一次性无状态写**（§3.2、测试设计 §2.8），其副作用必须且能够 teardown 复位；专用测试部署属于**环境拓扑变更**，会改变 §2.1 的前提与 `M5AIR_BASE`，需作为独立变更评审后实施，不能在本设计里静默假设。
+
+- **生产安全理由**：m5air 是**可信局域网调试/验证部署**，非公网 production（`m5air-operations-manual.md` §1、§17）。A 类禁止删除既有 provider/deployment/service-level 或用户 usage（§11.3、测试设计 §2.8），每个写 Case 立即 teardown。
+- **专用测试部署的适用条件（本文档显式登记为"推荐变更"而非现状）**：当出现以下任一情况，A 类应迁到 m5air 上的**专用测试部署**（建议目录 `/Users/mlp/LLMTier-test/` + 独立 DB + 独立端口如 `8182` + 独立日志）——
+  1. A 类需要**有状态写**而不只是"无状态写"；
+  2. m5air 现有 state（3 provider / 4 deployment / usage/audit 历史）需要被视作**不可污染的生产数据**；
+  3. A/B 需要同一台机器上**并行**（当前 A/B 互斥、不并行，§3.2）。
+
+**该决策的级联后果（不得静默假设）**
+
+| 若改为"专用测试部署" | 连带改动 | 现状（本轮） |
+|---|---|---|
+| 测试设计 §2 A/B 前提 | A 类环境从"现有实例"改为"专属实例"，需重写测试设计 §2.3/§2.4 | 保持现有实例 |
+| `conftest.py::M5AIR_BASE` | 需改为测试部署 base（端口 8182 或新主机） | `http://192.168.1.9:8181` |
+| 测试设计 §2.1 conftest 就绪检查 | `/healthz`/`/readyz`/secret/§2.1.6 资源基线需指向新实例并**重新 bootstrap** 出 3 provider/4 deployment/7 tier | 检查项不变 |
+| 部署/启停/复位编排（§2-E2–§2-E4、§7.1.2） | 端口、PID、DB、日志路径全部改名 | `/Users/mlp/LLMTier-dev/` 一套路径 |
+
+**不确定性登记（不臆造事实）**：本次**未核实 m5air 上是否已存在专用测试目录/第二实例**（如 `/Users/mlp/LLMTier-test/` 或 `8182` 监听者）。现有运维手册只描述单一部署 `/Users/mlp/LLMTier-dev/`（§2、§7）与"只有一个 LLMTier 进程和一个 SQLite"（§1）。执行前应以 `ssh m5air "/usr/sbin/lsof -nP -iTCP:8181 -iTCP:8182 -sTCP:LISTEN"` 与 `ssh m5air "ls -d /Users/mlp/LLMTier-*"` 实测确认；**若发现已存在第二实例/专用目录，本节的隔离决策需重新评审并回填**。
+
+### 2-E2 版本锚定与更新到 m5air
+
+**被测 artifact pin（进入测试的前置，强制）**：每个 Run 必须在 manifest 记录三项，禁止以 branch/tag/`HEAD` 名代替（字段与 manifest 表见测试设计 §4.8/§10，此处只给取值方法）：
+
+| pin | 取值命令（执行机） | 说明 |
+|---|---|---|
+| `git_commit` | `git -C /Users/ben/work/LLMTier rev-parse HEAD` | 被测代码完整 40 位 SHA；m5air 目录非 git 工作树，记录**同步来源** commit SHA |
+| `db_schema_version` | A：`ssh m5air "sqlite3 /Users/mlp/LLMTier-dev/state.sqlite3 'SELECT schema_version FROM schema_meta WHERE singleton=1'"`；B：临时库同查 | 期望 `2`（`src/util/store.py::EXPECTED_SCHEMA_VERSION = 2`） |
+| `openapi_version` | `python3 -c "import json;print(json.load(open('interfaces/openapi/llmtier.openapi.json'))['info']['version'])"` | 当前 `0.3-simplified-candidate.8`；变化即触发机器契约相关 Case 重跑（§7.2 Entry） |
+
+**pin 作为前置**：§7.2 Entry 要求"基线可解析"；三者缺任一 → 本轮 Run 不得开跑（或该 Run 结果不带 pin 即不可用于 Gate）。
+
+**代码如何到 m5air（权威 = `m5air-deploy-guide.md` / `m5air-operations-manual.md` §15）**：m5air 部署目录不是 git 工作树，`git push` 不更新它；必须从开发机受控 `rsync`，并**排除运行数据**（`state.sqlite3*`、`secrets/`、`llmtier.log`、`llmtier.pid`、`backups/`）。
+
+```bash
+# 1) 记录当前部署版本与 DB 摘要（回滚锚点）
+git -C /Users/ben/work/LLMTier rev-parse HEAD
+ssh m5air "/usr/bin/sqlite3 /Users/mlp/LLMTier-dev/state.sqlite3 'PRAGMA integrity_check;'"
+
+# 2) 同步源码（保留运行数据）
+rsync -avz --exclude 'state.sqlite3*' --exclude 'secrets/' \
+  --exclude 'llmtier.log' --exclude 'llmtier.pid' --exclude 'backups/' \
+  /Users/ben/work/LLMTier/src/ m5air:/Users/mlp/LLMTier-dev/src/
+```
+
+**回滚**：代码回滚 = 用**旧 commit 的源码快照**重新 `rsync` 覆盖 `src/`（m5air 无 git，不能 `git checkout`）；数据回滚 = 按 `m5air-operations-manual.md` §14/§15 恢复**同版本冷备份**。回滚必须同时满足"旧代码与当前 DB schema 兼容"；当前**无自动 migration rollback / 蓝绿部署**。**pin 未记录的部署不得用于测试**——否则 Run 无法回溯到被测 artifact。
+
+### 2-E3 启动 / 重启（A 类 m5air 实例）
+
+命令/解释器/环境变量 authority 为 `m5air-deploy-guide.md` 与 `m5air-operations-manual.md`（§7/§12）；下列为其**测试用镜像**。
+
+```bash
+# 1) 查找运行进程（记住 PID）
+ssh m5air "ps aux | grep 'http_api.*8181' | grep -v grep"
+ssh m5air "/usr/sbin/lsof -nP -iTCP:8181 -sTCP:LISTEN"   # 若有输出，记下监听者
+
+# 2) 停旧进程（优先 TERM；勿直接 kill -9）
+ssh m5air 'pid=$(cat /Users/mlp/LLMTier-dev/llmtier.pid); kill -TERM "$pid"'
+ssh m5air "/usr/sbin/lsof -nP -iTCP:8181 -sTCP:LISTEN"   # 期望无输出（端口已释放）
+
+# 3) 用 Python 3.14 启动
+ssh m5air "cd /Users/mlp/LLMTier-dev && \
+  LLMTIER_ADMIN_TOKEN=dev-admin LLMTIER_DATA_TOKEN=dev-data \
+  PYTHONPATH=src /Library/Frameworks/Python.framework/Versions/3.14/bin/python3 \
+  -m http_api --host 0.0.0.0 --port 8181 \
+  --database /Users/mlp/LLMTier-dev/state.sqlite3 \
+  >> /Users/mlp/LLMTier-dev/llmtier.log 2>&1 &"
+
+# 4) 健康检查 + 幂等核验（应恰好一个 PID、一个 *:8181 监听者）
+curl -fsS http://192.168.1.9:8181/healthz && curl -fsS http://192.168.1.9:8181/readyz
+ssh m5air "/usr/sbin/lsof -nP -iTCP:8181 -sTCP:LISTEN"
+```
+
+- **解释器**：`/Library/Frameworks/Python.framework/Versions/3.14/bin/python3`（或 `/usr/local/bin/python3`）；**禁止系统 Python 3.9**（`dataclass slots` 会 TypeError）。**`LLMTIER_TRUSTED_LAN_MODE` 不在源码读取范围**，不要传入。
+- **幂等**：步骤 3 重复执行（先按步骤 2 停旧进程）应得到同一可服务状态；**已启动即已满足**——"already running" 时**不得启动第二实例**，先按步骤 1 定位监听者并核对是否即被测实例。
+- **失败**：启动后 `/healthz` 不通或出现 `schema_version_mismatch`/`schema_unknown` → 按 §7.1.2 显式二选一（fresh-DB rebuild / offline migration）恢复，再重跑本节。
+
+### 2-E4 复位（reset，A 类；B 类为实例销毁）
+
+**顺序强制**：**先备份，再复位**。任何复位动作不得在无备份的情况下执行。
+
+```bash
+# 0) 复位前 DB 备份（冷备份，遵循 operations-manual §14.1）
+ssh m5air "cd /Users/mlp/LLMTier-dev && \
+  /usr/bin/sqlite3 state.sqlite3 'PRAGMA wal_checkpoint(FULL); PRAGMA integrity_check;' && \
+  stamp=\$(date -u +%Y%m%dT%H%M%SZ) && mkdir -m 700 -p backups/\$stamp && \
+  cp -p state.sqlite3 backups/\$stamp/state.sqlite3 && \
+  shasum -a 256 backups/\$stamp/state.sqlite3 > backups/\$stamp/SHA256SUMS"
+
+# 1) DB 恢复-or-重建：仅在 schema/数据被破坏时使用
+#    (a) restore：operations-manual §14.2（保全 .failed.<stamp> 后 cp 回同版本备份）
+#    (b) rebuild：停服务→移走旧 DB→空库首启一次性 --settings 重建→重跑测试设计 §2.1
+#        （rebuild 会丢 usage/audit 历史，故步骤 0 必须先备份）
+
+# 2) settings 复位（被写 Case 改过的 provider/deployment/service-level 字段回基线）
+curl -fsS -H 'Authorization: Bearer dev-admin' http://192.168.1.9:8181/v1/providers
+curl -fsS -H 'Authorization: Bearer dev-admin' http://192.168.1.9:8181/v1/deployments
+
+# 3) 清空全部诊断注入（对每个被改过的 deployment 逐个清；GET 确认 items 为空）
+curl -fsS -X PATCH -H 'Authorization: Bearer dev-admin' -H 'Content-Type: application/json' \
+  -d '{"items":[]}' \
+  http://192.168.1.9:8181/v1/deployments/<deployment_id>/diagnostics
+
+# 4) 复位 usage 账本（A 类污染；或整轮改用隔离 DB —— 见下方说明）
+curl -fsS -X DELETE -H 'Authorization: Bearer dev-admin' http://192.168.1.9:8181/v1/usage
+
+# 5) 清临时实例/端口（B 类）：kill 临时进程 + 删除临时目录
+lsof -nP -iTCP -sTCP:LISTEN | grep -E 'llmtier|python3'   # 人工确认；不应有 llmtier_b 残留
+rm -rf "${TMPDIR:-/tmp}"/llmtier_b_*
+```
+
+- **诊断注入清空**：`{"items":[]}` 是"清空"语义（`src/http_api/app.py` 的 `PATCH /v1/deployments/{id}/diagnostics` 要求 body 含 `items`）；也可对同 `type` 项 `enabled=false`。离开前必须 `GET` 确认空（§11.3）。
+- **settings 复位**：A 类禁止删除既有资源；被修改的字段用带正确 `If-Match` 的 `PATCH` 写回基线（§5.3 矩阵）。`diagnostic_settings` 开关复位为 `snapshots_enabled`/`stats_enabled` 的初值（`src/libdiag/settings.py`）。
+- **usage 账本**：`DELETE /v1/usage` 清**全部**（可选 `model`/`deployment_id` 过滤）。若轮次需要**隔离账本**且不愿动 m5air 既有 usage，可行方案是 §2-E1 决策里登记的**专用测试部署/隔离 DB**（推荐变更）；在沿用现有实例的现状下，只能用 `DELETE` 并**先备份**（步骤 0），且不得删非本轮产生的用户 usage。
+- **可重跑**：本节能被安全重复执行——备份按时间戳分目录、`items:[]`/`DELETE` 幂等、临时目录 `rm -rf` 幂等。
+- **复位后核验**：重跑**测试设计 §2.1** 的 6 项就绪检查（`pytest` 的 `pytest_configure` 自动执行；或 §7.1.0 表格逐条 `curl`）——`/readyz` 7 tier、provider/deployment 列表回测试设计 §2.1.6 基线、无遗留端口、无未清空注入。
+
+### 2-E5 结果回收
+
+- **报告目录**：`tests/system/reports/<date>/<A-api|B-api>/<case-id>/`，每 Case 一份 `manifest.json` + 原始证据文件（`response.http.txt`、`sse.events.jsonl`、`headers.txt`、`stdout/stderr`）。字段、必填项、脱敏清单见**测试设计 §4.8/§10**，本节不复制。
+- **artifact pin**：每份 manifest 的 `target_artifact = {git_commit, db_schema_version, openapi_version}`（§2-E2）。**缺 pin 的 Case 不得判 PASS**。
+- **从 m5air 拉回证据**：A 类证据在 m5air 侧（`llmtier.log`、DB 快照），执行机按需拉回并入对应 case 目录：
+
+```bash
+# 日志（对应时间窗/Request ID 片段）
+rsync -avz m5air:/Users/mlp/LLMTier-dev/llmtier.log \
+  tests/system/reports/<date>/A-api/_env/llmtier.log
+# DB schema 快照（只读查询，不拉整库）
+ssh m5air "sqlite3 /Users/mlp/LLMTier-dev/state.sqlite3 \
+  'SELECT schema_version FROM schema_meta WHERE singleton=1'" \
+  > tests/system/reports/<date>/A-api/_env/schema_version.txt
+```
+
+- **exit code 语义**（§7.2）：
+  - `0` = 全部适用 Case PASS 且 SKIP 在上限内（A ≤ 5 / B ≤ 3）；
+  - `1` = 存在 FAIL/BLOCKED/INVALID；
+  - `2` = SKIP 超上限（覆盖不足门）。
+- **`xfailed → BLOCKED` 状态映射（报告工具强制）**：当前测试以 `xfail`/`skip` 表达"预期的未实现/受阻"，但本计划 Gate 只认六态（PASS/FAIL/BLOCKED/SKIP/INVALID/NOT_RUN，§7.2）。**报告工具必须把 pytest 的 `xfailed` 映射为 `BLOCKED`**（"无法执行/无法判定且可重试"），把 `xpassed` 映射为告警（`XPASS` 不得计为 PASS，须登记），`skipped` 映射为 `SKIP`——
+  - `xfailed → BLOCKED`：这是防"用 xfail 静默豁免真实失败"的关键；`xfailed` 不产生"全 PASS"，仍进 §10 缺口与 §7.2 的 release 阻断口径（BLOCKED 阻断 release）。
+  - `xpassed → FAIL/告警`：预期失败却通过，说明 Oracle/实现漂移，须登记，不得静默计 PASS。
+  - 映射以 `case-status.json`（§7.1.6）为落点，逐 Case 写终态+原因。
+
+### 2-E6 与现有运维文档的分工
+
+**引用，不复制**：部署/启动/停止/备份/恢复/版本更新的**唯一 authority** 是 [`m5air-deploy-guide.md`](../../80_operations/manuals/m5air-deploy-guide.md)（进程查找、rsync、重启、验证）与 [`llmtier-m5air-operations-manual.md`](../../80_operations/m5air-operations-manual.md)（§6–§8 启停、§12 停止、§13 日志、§14 备份恢复、§15 版本更新回滚、§16 故障处理）。本节 §2-E2–§2-E4 是其**测试用镜像**；二者不一致时**以运维手册为准并回填本节**。
+
+| 职责 | Owner | 产物 |
+|---|---|---|
+| **部署 / 启停 / 备份 / 回滚 / 故障恢复**（m5air 环境） | 环境提供（m5air owner） | 运维手册所载步骤与结果；测试设计 §2.1 全绿 |
+| **测试执行 / 复位 / 证据回收 / 结果判定** | 测试执行者（§8） | Run 报告、`manifest.json`、`case-status.json` |
+| **被测版本锚定与更新决策** | 执行者 + 代码 owner | `target_artifact` pin（§2-E2） |
+
+环境 owner 负责"让 m5air 到测试设计 §2.1 就绪"，测试执行者负责"用它跑 Case 并复位、留证"；**执行者不擅自改部署拓扑**（含新增第二实例/专用测试部署），拓扑变更走 §2-E1 决策的评审。
+
 ## 3. Test Strategy 与执行模型
 
 **本节定位**：只描述**如何执行**（执行分层、批次、顺序、流程）；Case 的契约与预期见测试设计 §3 与 `cases/<id>.md`，本节不复制断言内容。
@@ -112,7 +286,7 @@
 
 ### 3.4 执行顺序（依赖驱动）
 
-1. **门禁**：先跑 §2.1 就绪检查（`pytest_configure` 5 项）。不通过 → 整班 BLOCKED/SKIP，**停止**后续批次，不得改用模拟路径。
+1. **门禁**：先跑**测试设计 §2.1** 就绪检查（`pytest_configure` 6 项）。不通过 → 整班 BLOCKED/SKIP，**停止**后续批次，不得改用模拟路径。
 2. **先 A 后 B**：A 类（只读/无状态写）先跑；同一实例上 A、B 互斥且不并行；A 类每个写 Case 立即 teardown。B 类每班启临时实例、串行执行、跑完销毁。
 3. **A 内部顺序**：`A-gate` → `A-data`（models → responses → embeddings → usage 读）→ `A-mgmt`（读 → 无状态写）→ `A-alias`。
 4. **B 内部顺序**（串行）：启动临时实例 → `B-empty-noauth` → `B-crud`（CRUD 链：create → read → patch/delete，按资源依赖）→ `B-inject`（写注入 → 命中 → 清空）→ `B-alias` → `stop()` + 清理临时目录。
@@ -121,11 +295,11 @@
 
 ### 3.5 执行流程（环境就绪 → 部署/启动 → 跑批次 → 收证据 → 复位）
 
-1. **环境就绪**：开发机执行 §2.1 的 5 项检查（`/healthz`、`/readyz` 7 tier、m5air OMLX、m5mac OMLX、`provider_omlx_m5mac` secret）；由 `pytest_configure` 自动执行。任一失败 → 整班 SKIP/BLOCKED。
-2. **部署 / 启动待测版本**：A 类 m5air 已部署，如需更新按测试设计 §2.5（`rsync` → 查旧进程/端口 → `kill -TERM` → Python 3.14 重启 → `/healthz` 验证 → 确认无残留）；B 类由 `LLMTierInstance` fixture 起临时实例（临时端口 + 临时 SQLite + 每 run settings，`start()` 轮询 `/healthz`）。
+1. **环境就绪**：开发机执行**测试设计 §2.1** 的 6 项检查（`/healthz`、`/readyz` 7 tier、m5air OMLX、m5mac OMLX、`provider_omlx_m5mac` secret、必需 provider/deployment 已注册）；由 `pytest_configure` 自动执行。任一失败 → 整班 SKIP/BLOCKED。环境搭法/隔离决策见 §2-E1；启用/重启见 §2-E3。
+2. **部署 / 启动待测版本**：A 类按 §2-E2（版本锚定 + `rsync`）与 §2-E3（查旧进程/端口 → `kill -TERM` → Python 3.14 重启 → `/healthz` 验证 → 确认无残留）更新；B 类由 `LLMTierInstance` fixture 起临时实例（临时端口 + 临时 SQLite + 每 run settings，`start()` 轮询 `/healthz`）。
 3. **跑批次**：按 §3.3/§3.4 顺序执行——全量 `PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/ -q`；A/B 分跑 `bash tests/system/api_test_v03/runner_a.sh` / `runner_b.sh`；Data Plane smoke `python3 tools/inference_smoke.py --base http://192.168.1.9:8181`（smoke 只验建连/骨架，不替代逐 Case 断言）。
 4. **收证据**：记录命令、exit code、HTTP status/headers/body、SSE 逐帧、注入命中证据（trace `source=injected`）、环境快照；Run ID `<date>/<class>-<phase>`；落 §10 位置，失败现场不截断。
-5. **复位**：A 类每个写 Case teardown、注入 `items:[]` 清空、`DP-USAGE-04` 复位 `query_snapshots.expires_at`；B 类整班 `stop()` 终止进程并 `rm -rf` 临时目录。核验 `/readyz` 与 provider/deployment 列表回到基线、无遗留端口监听、无未清空注入。
+5. **复位**：A 类每个写 Case teardown、注入 `items:[]` 清空、`DP-USAGE-04` 复位 `query_snapshots.expires_at`；B 类整班 `stop()` 终止进程并 `rm -rf` 临时目录。**完整复位流程（先备份再复位、settings/注入/账本/临时端口）见 §2-E4**；核验 `/readyz` 与 provider/deployment 列表回到基线、无遗留端口监听、无未清空注入。
 6. **判定与登记**：按 §7 为每个执行项给出 PASS/FAIL/BLOCKED/SKIP/INVALID/NOT_RUN；FAIL/BLOCKED/INVALID 登记缺陷并保留现场，不得把未运行项补造为成功。
 
 ### 3.6 断言策略与定量覆盖模型
@@ -244,7 +418,7 @@
 
 ### 5.1 执行机与拓扑
 
-**执行机 = 开发机**（与测试设计 §2.7/§8 一致）：在项目根目录运行 `pytest` 与 `tools/inference_smoke.py`；`cwd = "$(git rev-parse --show-toplevel)"`，`PYTHONPATH=src`。
+**执行机 = 开发机**（与测试设计 §2.7/§8 一致）：在项目根目录运行 `pytest` 与 `tools/inference_smoke.py`；`cwd = "$(git rev-parse --show-toplevel)"`，`PYTHONPATH=src`。**完整拓扑与隔离决策见 §2-E1**，本节只列执行视角。
 
 - **A 类**：执行机经 LAN 连**被测目标机 m5air**（`192.168.1.9:8181`）现有实例；m5air 不是执行机。
 - **B 类**：执行机本机起临时实例（临时端口 + 临时 SQLite，`127.0.0.1:<port>`；loopback 仅客户端→LLMTier，见测试设计 §2.7）。
@@ -254,15 +428,17 @@
 ### 5.2 环境就绪检查清单（执行前必过；任一失败 → 整班 skip/BLOCKED）
 
 ```
-[OK] §2.1.1 m5air /healthz 200 且 {"status":"ok"}
+[OK] §2.1.1 m5air /healthz 200 且 {"status":"ok"}（version 为字符串）
 [OK] §2.1.2 m5air /readyz 200 且 models 含 7 个固定 tier
           (Senior/Junior/Worker/Associate/Engineer/Executor/Embedding-v1)
 [OK] §2.1.3 m5air OMLX :9000 /models 200（Bearer 9832）
 [OK] §2.1.4 m5mac OMLX :9000 /models 200（Bearer 9832）
 [OK] §2.1.5 provider_omlx_m5mac.secret_ref 为 file: 路径（has_secret=true；非 env:）
+[OK] §2.1.6 provider_local/provider_minimax/provider_omlx_m5mac 与
+          dep_local_gemma/dep_local_bge_m3/dep_omlx_qwen36/dep_minimax_m27 均 GET 200
 ```
 
-由 `tests/system/api_test_v03/conftest.py` 的 `pytest_configure` 自动执行。Python 3.14、LAN trust、TS-003 已在 m5air 部署成立。
+由 `tests/system/api_test_v03/conftest.py` 的 `pytest_configure` 自动执行（6 项）。Python 3.14、LAN trust、TS-003 已在 m5air 部署成立。**复位后需重跑本清单**（§2-E4）。
 
 ### 5.3 Provider / Deployment 路由矩阵
 
@@ -479,7 +655,7 @@ bash tests/system/api_test_v03/runner_b.sh
 
 - **Run ID**：`<date>/<class>-<phase>`（如 `2026-09-28/A-api`、`2026-09-28/B-api`）。
 - **原始证据**：命令、HTTP status/headers/body、SSE 逐帧、exit code、耗时、环境快照（`/healthz`/`/readyz` + provider/deployment 列表 + `api_smoke_test.py` 输出）。失败现场保留不截断。
-- **保存位置**：`tests/system/reports/<date>/`；本计划的 Case ↔ Run 对应表随报告维护。
+- **保存位置**：`tests/system/reports/<date>/<A-api|B-api>/<case-id>/`（每 Case 一份 `manifest.json` + 原始证据，字段见测试设计 §4.8/§10）；**artifact pin、从 m5air 拉回日志/证据、exit code 语义、`xfailed → BLOCKED` 状态映射见 §2-E5**；本计划的 Case ↔ Run 对应表随报告维护。
 - **Traceability**：Case → 测试设计 §3.2 `设计 V`（`VRC-*`/`T-*`）→ openapi/§7.8/ISD；每 Case 的详细追踪见 `cases/<id>.md`；`ERR-*` 目录逐条映射 Case 或缺口。
 - **Reporting/Gate**：报告须给出覆盖数（应跑/已跑/PASS/FAIL/SKIP/BLOCKED/INVALID/NOT_RUN）、未关闭缺陷、MISSING 缺口、具名缺口清单（§3.6.2）。**Gate 判定**：**适用 Case**（§7.2）全 PASS 且 FAIL/BLOCKED/INVALID=0、SKIP 在上限内（§7.2）；**P0 MISSING 阻断**；非 P0 MISSING 与具名缺口需具名批准（owner/ETA）。**注意：本 Gate 是 release 放行门槛，不等于"本轮跑完"**——"本轮跑完"见 §7.2 Exit（所有 case 有终态且无未诊断的系统性阻塞）。
 - **Gate owner / 审批元数据（进入 Gate 状态时填写，不伪造）**：
