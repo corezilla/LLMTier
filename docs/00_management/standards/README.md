@@ -30,4 +30,4 @@
 
 - [STD 裁剪清单](../std-tailoring.md)
 - [v0.3 实现计划](../llmtier-implementation-plan.md)
-- [测试计划](../../70_verification/plans/llmtier-test-plan.md)
+- [系统测试计划](../../70_verification/plans/llmtier-system-test-plan.md)

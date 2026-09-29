@@ -18,7 +18,7 @@
 | Template Version | `0.3.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | std-tailoring |
-| Migration Map Reference | `llmtier-api-test-plan, llmtier-api-test-execution` |
+| Migration Map Reference | `llmtier-api-test-plan, llmtier-api-test-execution, llmtier-test-plan, llmtier-vv-plan` |
 | Repository | `corezilla/LLMTier` |
 | Canonical Path | `docs/70_verification/plans/llmtier-system-test-plan.md` |
 | Supersedes | none |
@@ -50,6 +50,8 @@
 
 **不证明什么**：本计划不证明 Web UI 行为、FD 泄漏、30min 耐久、性能 SLO 校准、上游模型答案质量与上游 provider 实际推理正确性；也不证明静态契约一致（后者由 `docs/60_interfaces/contracts/llmtier-contract-specification.md` 与静态契约测试承接）。**静态契约 PASS ≠ 运行行为 PASS**，反之亦然。
 
+**测试策略**：单服务 / 单进程 / 单 SQLite 部署边界内的 runtime 端到端；unit mock 与假上游 provider 仅用于无法隔离的子路径（如 SSE stream、限速注入）。浏览器 E2E、生产 TLS/SSO/CSRF、`runtime_activation=true`、多实例/HA、跨系统恢复不在本层（见 scheme §4 裁决与 §9）。覆盖模型＝surface → contract → case：每个对外 surface（启服/健康就绪、Data Plane、Embedding、Admin CRUD/probe/refresh、Audit/Log、观测诊断、Auth/TRUSTED_LAN）映射到来源 ID 与契约（`CT-*`），再落到 scheme §3 的 Case ID；缺口显式列入 scheme §4，不静默从分母消失。
+
 **构成清单**（只索引，不复制清单或 Case 细节）：
 
 | 构成层 | 文档 / 入口（Document ID 或缺口） | 覆盖责任摘要 | 条目状态 |
@@ -59,6 +61,18 @@
 | 测试资产 ×N | `tests.asset-design`（尚未建立） | harness/客户端/假上游/受控构造的契约与自检 | Blocked（见 §9-O2） |
 | 子系统计划引用 | 无（LLMTier 为单服务，当前无独立子系统测试层） | — | Deferred（无对象，§9-O1） |
 | 验收交接 | 验收活动（tailoring 承接，不在 tests 家族） | 客户/发布验收场景 | Deferred（按项目 tailoring 承接） |
+
+**责任边界**（谁证明什么；下层/相邻方 PASS 不关闭本层，本层 PASS 不关闭上层组合目标）：
+
+| 层级 | Owner | 证据 | 与本计划关系 |
+|---|---|---|---|
+| 系统（本计划） | LLMTier | 本 Run 证据 + `tests.system-test-report` | 运行中 HTTP API 行为 |
+| Contract static（`CT-*`） | LLMTier | `tests/contract/` + fixtures | 静态契约一致；**不替代**运行行为 |
+| Provider adapter | LLMTier | 受控捕获（假上游） | 本层替身边界，只证明本服务行为 |
+| Piko consumer | Piko | Responses SDK/agent test | 真实 consumer 联调，非本层分母（scheme §4 Gap） |
+| Embeddings consumer | Slinky | Memory integration test | 同上 |
+| Admin UI/operations | LLMTier | browser/API/security test | Web UI 行为不在本层 |
+| 验收活动 | LLMTier + Piko + Slinky | 验收报告 | **不在 tests 家族**，按 tailoring 承接（见 std-tailoring） |
 
 ## 2. 被测基线与变更重跑范围
 
@@ -83,6 +97,21 @@
 | Case 实现状态盘点 | 140 设计 Case 中 88 RUN / 52 MISSING（A 60/B 28 RUN）；MISSING 清单见 `llmtier-system-test-scheme` §3 与逐 Case 设计文档 | 全部 RUN，或 MISSING 已具名登记；P0 MISSING 阻断 | No-Go 或按 §4 记 NOT_RUN 缺口；P0 MISSING 阻断 |
 | 环境与工具（引用 `tests.asset-design` 的 Verified 状态） | m5air `/healthz`、`/readyz`(7 tier)、双 OMLX、`secret_ref=file:`、provider/deployment 就绪（6 项，§5）；B 类临时实例可启停 | `pytest_configure` 6 项全过；临时实例可启动 | 整班 Blocked/Skip，不静默降级 |
 | 构建接线（全量交付构建 / 消费者链接实际库） | m5air 部署版本已 pin 且与执行机同步来源一致；解释器为 Python 3.14（禁系统 3.9）；`schema_version=2` | pin 三项可解析；服务可服务 | 按 §5 恢复（重启／schema 二选一）；仍失败 → Blocked |
+
+**Entry criteria**：上表 4 项全过（commit/schema/openapi 三项 pin、单测基线全绿、双 OMLX 存活、环境的 6 项就绪检查通过）方可起跑。
+
+**Exit criteria 与判定口径**（本计划只固定口径，实际判定只在报告与 Run 证据）：
+
+| 状态 | 含义 |
+|---|---|
+| PASS | Case 全部预期字段与独立 Oracle 一致，exit 0，证据完整 |
+| FAIL | 实际输出与预期至少一处不一致；记录 `failure_reason`（预期 vs 实际＋复现命令） |
+| BLOCKED | 受真实外部依赖限制无法跑（OMLX 未运行、云端限流等）；记录 blocker 与解除条件 |
+| SKIP | 依赖链前置未满足（如 B 类整班环境不可用），按依赖顺序补跑 |
+| INVALID | Case 设计错误或预期本身不成立；记录 issue，需重新设计 |
+| NOT_RUN | 未运行（自动化入口未实现 / 未排入本轮）；如实保留，不补造成功 |
+
+**Exit**：全部适用 Case 走完且 FAIL/INVALID＝0、BLOCKED/SKIP 在上限内（A ≤5 / B ≤3）→ 可提 Gate 建议；任一 FAIL/INVALID 或 P0 MISSING → 阻断 release；BLOCKED 同样阻断 release。
 
 ## 4. 执行流程（逐 Case 作业序列）
 

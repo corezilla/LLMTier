@@ -14,7 +14,7 @@
   "template_sha256": "9af8c3ef4769f9eaa984c738ebf5eeb308ad6a4a9a033b54738ae252deecb357",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
-  "migration_map_ref": "llmtier-api-test-plan, llmtier-api-test-execution",
+  "migration_map_ref": "llmtier-api-test-plan, llmtier-api-test-execution, llmtier-test-plan, llmtier-vv-plan",
   "design_level": "system",
   "domain": [
     "software"

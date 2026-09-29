@@ -14,7 +14,7 @@
 | Approver |  |
 | Approval Date |  |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-28` |
+| Last Modified Date | `2026-09-29` |
 | Template Version | `0.2.0` |
 | Template ID | `management.tailoring` |
 | Template Conformance | `native` |
@@ -61,13 +61,17 @@
 | `requirements.traceability` | software | 是，C3 active | `docs/10_requirements/llmtier-traceability.md` | LLMTier |
 | `interfaces.control` | software | 是，C1 active | Data Plane、Observation、Management interface migration | LLMTier；消费边界由 Piko/Slinky reviewer 复核 |
 | `contracts.specification` | software | 是，C1 active | OpenAPI/manifest/error/schema 说明层；机器文件在 `interfaces/` 保持唯一 authority | LLMTier |
-| `assurance.vv-plan` | software | 是，C2 candidate | V0.3 activation-gate V&V plan | LLMTier |
-| `assurance.test-plan` | software | 是，C2 candidate | Runtime 端到端系统测试计划与策略；与 contract test specification 互补 | LLMTier |
-| `assurance.test-specification` | software | 是，C2 candidate | Contract/SDK/recovery/isolation tests | LLMTier |
-| `assurance.test-procedure` | software | 条件必需，当前 omit | 单次可复现 case 的逐步执行步骤文档；与 `tests/system/` 落地同步 | LLMTier |
-| `assurance.test-report` | software | 条件必需，当前 omit | 测试实际发生什么；按最新 STD 路径存于 `tests/{level}/reports/<run-id>/`（与 case 同级，不集中到根 `tests/reports/`） | LLMTier |
-| `assurance.acceptance-plan` | software | 条件必需，当前 omit | release 前正式验收自动化计划 | LLMTier + Piko + Slinky |
-| `assurance.acceptance-report` | software | 条件必需，当前 omit | release 前正式验收报告；按最新 STD 路径存于 `tests/acceptance/reports/` | LLMTier + Piko + Slinky |
+| `assurance.vv-plan` | software | 已退役 | 见 §3 LT-TL-021；验收/validation 由 LT-TL-022 按 tailoring 承接，不在 tests 家族 | LLMTier |
+| `assurance.test-plan` | software | 已退役 | 见 §3 LT-TL-020；迁移为 `tests.system-test-plan`（`docs/70_verification/plans/llmtier-system-test-plan.md`） | LLMTier |
+| `tests.system-test-scheme` | software | 是 | Case 清单唯一登记 | [llmtier-system-test-scheme](../70_verification/schemes/llmtier-system-test-scheme.md) | LLMTier |
+| `tests.system-test-design` | software | 是 | 逐 Case 设计（一 Case 一文档） | `docs/70_verification/specifications/cases/<lowercased-case-id>.md` | LLMTier |
+| `tests.system-test-plan` | software | 是 | 系统测试可执行作业指令 | [llmtier-system-test-plan](../70_verification/plans/llmtier-system-test-plan.md) | LLMTier |
+| `tests.system-test-report` | software | 是 | 系统 Run 报告；按 Run ID 存于 `tests/system/reports/<run-id>/` | `tests/system/reports/` | LLMTier |
+| `assurance.test-specification` | software | 已退役 | 140-Case 权威清单已迁入 `tests.system-test-scheme` §3（见 LT-TL-019） | LLMTier |
+| `assurance.test-procedure` | software | 已退役 | 单 Case 执行步骤现由 `tests.system-test-design` 承接 | LLMTier |
+| `assurance.test-report` | software | 已退役 | 由 `tests.system-test-report` 承接；按 Run ID 存于 `tests/{level}/reports/<run-id>/` | LLMTier |
+| `assurance.acceptance-plan` | software | deferred（不在 tests 家族） | release 前正式验收自动化计划；见 LT-TL-022 | LLMTier + Piko + Slinky |
+| `assurance.acceptance-report` | software | deferred（不在 tests 家族） | 按 LT-TL-022，正式验收报告使用 `tests/acceptance/reports/` | LLMTier + Piko + Slinky |
 | `assurance.fpga-implementation-report` | software | omit | LLMTier 不拥有 FPGA；保留以备跨项目扩展 | N/A |
 | `review.packet` | management/software | omit（迁移批次已完成） | 原迁移 review packet 记录已随版本演进删除；新的重大评审再按需建立 | 无 |
 | `decisions.adr` | software | 条件必需 | persistence/HA/deployment 等新重大决定 | LLMTier |
@@ -96,6 +100,9 @@
 | LT-TL-015 | 顶层 `interfaces/` 与 `docs/99_reference/` | keep，C7 complete | HTTP/OpenAPI、compatibility、Schema 和 vectors 是多 consumer 机器 authority；历史 prose/future 不应继续占用非标准 `docs/contracts|design|qa|future` 路径 | 路径断链或双 authority | Owner ACCEPTED | 不适用 |
 | LT-TL-016 | `config/`、`state/` 与 `src/<module>/` | keep | 单服务：配置、Secret、状态和 entry point 均由本仓库拥有；无须多服务 workspace。源码按 STD 0.1.0-draft.31 的 `src/<module>/`（本项目无软件子系统，故不用 `src/<subsystem>/<module>/`）分模块：`http_api`/`web_ui`/`inference`/`management`/`observability`/`libdiag`/`util`/`log` | 把历史 Slinky path 当成当前路径会造成双 authority | 用户 2026-09-24 指示；STD `0.1.0-draft.31`（`dbcf87a`） | ownership/deploy boundary 改变时重审 |
 | LT-TL-019 | ~~`assurance.test-specification` 增补 §4 Common Mechanisms（共同机制）~~ → 已退役 | retired（随模板族退役） | STD `0.1.0-draft.56` 用 `tests.<level>-{test-scheme,test-design,test-plan,test-report}` 取代整个 `assurance.*` 家族。原 `llmtier-api-test-specification.md` / `llmtier-contract-test-specification.md` 的 140-Case 权威清单、定量覆盖模型与 Traceability 已迁入系统测试方案 [`llmtier-system-test-scheme`](../70_verification/schemes/llmtier-system-test-scheme.md)（§3 Case 清单唯一登记）；逐 Case 细节迁入 `tests.system-test-design`（`docs/70_verification/specifications/cases/<lowercased-case-id>.md`）。 | 旧项目的模板章节扩展不再适用；机制/环境共同契约改由 system-test-design/plan 承载 | 本轮 review | N/A |
+| LT-TL-020 | ~~`assurance.test-plan`（`llmtier-test-plan.md`）~~ → 已退役 | retired（随模板族退役） | 该文原为 `assurance.test-plan`（invalid Template ID）。按 `template-selection.md`，项目级 runtime 端到端测试计划属 **system 层**，映射为 `tests.system-test-plan`：仍需要的内容（测试策略与覆盖模型、Test Types/Case Families、Entry/Exit 与 PASS/FAIL/BLOCKED/INVALID 判定口径、环境前置与证据规则、风险）已并入 [`llmtier-system-test-plan`](../70_verification/plans/llmtier-system-test-plan.md)；Case 清单唯一登记在 `llmtier-system-test-scheme` §3；容量/耐久（原 ST-18/19/21）不在 tests 家族分母，转 scheme §4 Gap 由性能/运维专项承接。 | 双计划文档会造成 authority 漂移 | 本轮 review | N/A |
+| LT-TL-021 | ~~`assurance.vv-plan`（`llmtier-vv-plan.md`）~~ → 已退役 | retired（随模板族退役） | 该文原为 `assurance.vv-plan`（invalid Template ID，vv-plan 已不存在）。按 `template-selection.md`：**正式验收不在 tests 家族**（"如何进行正式验收 → 验收活动，按项目 tailoring 承接"）。仍需要的 V&V 内容迁入系统测试方案/计划：verification 方法、测试层级与责任边界表、故障注入与恢复路径、判定与重测规则 → `llmtier-system-test-plan` §1/§3 与 `llmtier-system-test-scheme` §3–§4（其验收/validation 场景的承接见下方 LT-TL-022）。 | V&V 计划退役后若不显式承接验收，会造成"已验收"的误读 | 本轮 review | N/A |
+| LT-TL-022 | 验收活动（acceptance / validation）承接 | **deferred（按 tailoring 承接，不在 tests 家族）** | 原 `assurance.vv-plan` 的 validation 目标（Piko 完整输入 text/tool loop、Slinky Memory 获得 embedding、Operator Web UI 一屏 tier 状态/CRUD/脱敏日志、服务恢复后分层确认）与验收判据**不属于 tests 家族**。按 `template-selection.md` 与 `repository-layout.md` §4.1.1，正式验收使用 `tests/acceptance/reports/<run-id>/`，报告模板由验收活动按项目 tailoring 选择；**当前 V0.3 candidate 阶段尚未启动正式验收**，系统测试 Gate 只给放行建议、不等于验收或上线授权。启动条件：真实 Piko / 真 Slinky Memory 联调可用且 `runtime_activation` 决策启动时。Owner：LLMTier + Piko + Slinky（consumer reviewer）。 | 把系统测试 PASS 误当客户验收，或把验收结论泄进 tests 家族 | 本轮 review | 启动验收时新增 ADR |
 
 ## 4. 禁止裁剪项
 

@@ -67,7 +67,7 @@
 
 ### 改进项 2：更新测试计划 §2.2
 
-**文件位置**：`docs/70_verification/plans/llmtier-test-plan.md`
+**文件位置**：`docs/70_verification/plans/llmtier-system-test-plan.md`
 
 **添加内容**：
 ```
@@ -117,7 +117,7 @@ PR Review 时需确认：
 |---|--------|----------|
 | 1 | PR Review Guide 文件存在 | `ls docs/20_arch_and_design/PR-REVIEW-GUIDE.md` |
 | 2 | PR Review Guide 包含 LAN 服务检查项 | `grep -c "127.0.0.1" docs/20_arch_and_design/PR-REVIEW-GUIDE.md` 应为 0 |
-| 3 | 测试计划 §2.2 包含 OMLX 环境信息 | `grep -c "192.168.1.9" docs/70_verification/plans/llmtier-test-plan.md` > 0 |
+| 3 | 测试计划 §2.2 包含 OMLX 环境信息 | `grep -c "192.168.1.9" docs/70_verification/plans/llmtier-system-test-plan.md` > 0 |
 | 4 | ST-12 注释包含 LAN 服务说明 | `grep -c "LAN service" tests/system/st_12_embedding_invariant.py` > 0 |
 | 5 | ST-12 不使用 127.0.0.1 | `grep "127.0.0.1" tests/system/st_12_embedding_invariant.py` 应无输出 |
 | 6 | 所有测试仍然通过 | `PYTHONPATH=src python3 -m pytest tests/ tests/system/st_*.py -q` 221 pass |

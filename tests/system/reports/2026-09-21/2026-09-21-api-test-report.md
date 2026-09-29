@@ -5,8 +5,8 @@
 | Date | 2026-09-21 |
 | Branch | `docs/std-draft21-upgrade` |
 | Base Commit | `4c1afd8` (P0 scaffold) |
-| Test Plan | `llmtier-api-test-plan.md` v0.3.0-draft.3（已退役，现由 [`llmtier-system-test-plan.md`](./../plans/llmtier-system-test-plan.md) 承接） |
-| Execution Plan | `llmtier-api-test-execution.md` v0.2.0-draft.2（已退役，现由 [`llmtier-system-test-plan.md`](./../plans/llmtier-system-test-plan.md) 承接） |
+| Test Plan | `llmtier-api-test-plan.md` v0.3.0-draft.3（已退役，现由 [`llmtier-system-test-plan.md`](../../../../docs/70_verification/plans/llmtier-system-test-plan.md) 承接） |
+| Execution Plan | `llmtier-api-test-execution.md` v0.2.0-draft.2（已退役，现由 [`llmtier-system-test-plan.md`](../../../../docs/70_verification/plans/llmtier-system-test-plan.md) 承接） |
 | Test Runner | `pytest tests/system/api_test_v03/ -v` (Python 3.14, pytest 9.1.0, httpx 0.28.1) |
 | Execution Machine | m5air `192.168.1.9:8181`（现有 state，A 类直接打） |
 | B 类 | 未执行（待 P2） |

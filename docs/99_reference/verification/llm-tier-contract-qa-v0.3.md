@@ -1,7 +1,7 @@
 # LLMTier 三方契约 QA v0.3
 
 > **Document Status: Superseded（2026-09-07）** 当前 V&V/traceability prose authority 已迁至
-> [`llmtier-vv-plan`](../../70_verification/plans/llmtier-vv-plan.md)、
+> [`llmtier-system-test-plan`](../../70_verification/plans/llmtier-system-test-plan.md)（原 `llmtier-vv-plan` 已退役）、
 > [`llmtier-system-test-scheme`](../../70_verification/schemes/llmtier-system-test-scheme.md)
 > 和 [`llmtier-traceability`](../../10_requirements/llmtier-traceability.md)。测试源码与 fixtures
 > 继续是 executable oracle；本文件仅保留历史 review ledger。逐 scope disposition 见

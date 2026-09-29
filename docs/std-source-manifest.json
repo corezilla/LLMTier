@@ -1,15 +1,15 @@
 {
   "schema_version": "std-source-manifest.v1",
-  "std_version": "0.1.0-draft.56",
+  "std_version": "0.1.0-draft.57",
   "source_repository": "corezilla/STD",
-  "source_revision": "45e1786c88f33886a6ba47ce1437802b3a2d2f6c",
+  "source_revision": "e02f381ba0e9d6343d0172a5355bd449ab2d7a81",
   "source_tag": null,
   "generated_at": "2026-09-29",
   "artifacts": [
     {
       "path": "README.md",
       "role": "guidance",
-      "sha256": "d7188b2e6f744380754336194bfd49aebf2b89552f0ec85279448eb39ed56644"
+      "sha256": "81b1706b40e0a57a7cd1125f2f42bc8c2b99a7c2b274d6cf1e4867f2da3168a2"
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
@@ -19,7 +19,7 @@
     {
       "path": "VERSION",
       "role": "guidance",
-      "sha256": "79eb77053cb87de2b2208b2e85cdb08e90cfa5b9f94be17a3a663fbac1588453"
+      "sha256": "700301845dcda05a02c584cfa215ee3598aa85e2a5008805eb128fb89ad53827"
     },
     {
       "path": "docs/adoption.md",
@@ -454,7 +454,7 @@
     {
       "path": "examples/std.lock.example.json",
       "role": "example",
-      "sha256": "cdedaf0f947120a3ad072a549a29cee45df056639143e1d43756c76b4ed1cafc"
+      "sha256": "730231d5926228af056a98fbde2d074b458c96871d4d13c82c43566d6f9fca05"
     },
     {
       "path": "schemas/document-metadata.schema.json",
@@ -559,7 +559,7 @@
     {
       "path": "templates/catalog.json",
       "role": "template",
-      "sha256": "fec42412d47fbe6149afa46c657cd262dd64e787dc2e755656d1fa20a8efdea0"
+      "sha256": "1361a4bd7ee015ce023eba12e71ee1208757d967a5cb55891dfa419d9ee15464"
     },
     {
       "path": "templates/contracts/contract-specification.md",
@@ -1019,7 +1019,7 @@
     {
       "path": "templates/tests/module-test-design.md",
       "role": "template",
-      "sha256": "404a5cf5b66ed86141644b6b2107e5692778f0de08a97428df6a463347c6d6ea"
+      "sha256": "92f7d6c9b1167f892c14eefe9671d23144b6bdd44465f64e2ce81c2a3ec483ac"
     },
     {
       "path": "templates/tests/module-test-plan.md",
@@ -1029,17 +1029,17 @@
     {
       "path": "templates/tests/module-test-report.md",
       "role": "template",
-      "sha256": "14dad94545fbf364609ebdd1d0cc8438136105bec63d574f7652ae9bcb29dce2"
+      "sha256": "9015574976961bcbe1c3fd37ca589dcd45a91a0b2195cf063a9463b172f244fc"
     },
     {
       "path": "templates/tests/module-test-scheme.md",
       "role": "template",
-      "sha256": "19d5c6f92f5c98548a34c16873f1bf53c67e7b513c36884815a5cbe2e6a2c453"
+      "sha256": "5f087268179d016ca47d90752260df044693b2d9591918cf6d1eb4e68fdefd3f"
     },
     {
       "path": "templates/tests/subsystem-test-design.md",
       "role": "template",
-      "sha256": "ae07131b921830cfeb06eab658aa1611e634f276630413313769b4d69110ba56"
+      "sha256": "b81f526faea92c1ca5fa1344da0146571aa5778ac19cf8e35a1e1f0df7f0b029"
     },
     {
       "path": "templates/tests/subsystem-test-plan.md",
@@ -1049,17 +1049,17 @@
     {
       "path": "templates/tests/subsystem-test-report.md",
       "role": "template",
-      "sha256": "138a45cfb65751cb4dc71f4808e53f07a4b8a39df428419be96d508c936c73d8"
+      "sha256": "86088b702fac8fcff1d70ac391cda57c774480ed3131a938e89f198294c4991c"
     },
     {
       "path": "templates/tests/subsystem-test-scheme.md",
       "role": "template",
-      "sha256": "069aad733aec8bed218ba02c6f48a17731242c46cae939ebd7eeed66da84b0f7"
+      "sha256": "edb14f797d01692306086de6862436872cb3448ec277f9e71e463fd6b9dd5c78"
     },
     {
       "path": "templates/tests/system-test-design.md",
       "role": "template",
-      "sha256": "d169c969b5dc1e598a393451b7c1bdac70490c118906f22659950d6a53a16190"
+      "sha256": "3ebc0494793d9972442ed3de95dd542a9d277cff906f0bfc4e33f3b65cb67915"
     },
     {
       "path": "templates/tests/system-test-plan.md",
@@ -1069,17 +1069,17 @@
     {
       "path": "templates/tests/system-test-report.md",
       "role": "template",
-      "sha256": "a094bce8ef343ddebbea1e789f738596f007a67c8e23bc995cb369224b943982"
+      "sha256": "9bef954470a042f609834bd451107b3edf87bd931cfc35d021d582942b90f22b"
     },
     {
       "path": "templates/tests/system-test-scheme.md",
       "role": "template",
-      "sha256": "6c7841b099e945a98d48cb99fe2548e3088d634dd82b1a8104fc551e002240c7"
+      "sha256": "9f9383586d36217ac035253226a64a48a623840b15ba1c36960ca5653fdca5ba"
     },
     {
       "path": "templates/tests/unit-test-design.md",
       "role": "template",
-      "sha256": "fc4653b6a005db1011179c9b6d131da1b492c747a353389efc7d6cb009ce1a91"
+      "sha256": "16510b7d0e7770cb5428597ed6f9a2a8141c09699f0eed99eb778a8b7fb01b27"
     },
     {
       "path": "templates/tests/unit-test-plan.md",
@@ -1089,12 +1089,12 @@
     {
       "path": "templates/tests/unit-test-report.md",
       "role": "template",
-      "sha256": "8d5007c3c4fb090e93bd573a8652d472748a2ea35b0e18991e98a20332cc0cf2"
+      "sha256": "07efd09d4c75decd081dfd78bd86de706e47cd9a0a6bf2f1610c35bb57be5ede"
     },
     {
       "path": "templates/tests/unit-test-scheme.md",
       "role": "template",
-      "sha256": "118ff683bcfbf47d5784549b2c89b1b3e9f25fb447c106bbfc7cb080226a63c5"
+      "sha256": "91dc3e71b01227d31117c5a7b582cd7da95b9aae543aaa457d14015cb4368e9c"
     }
   ]
 }
