@@ -3,7 +3,7 @@
 - **Case ID**：`ADM-AUDIT-01`（与 §3.2 权威清单一致；本文件名 `adm-audit-01.md`，唯一对应）。
 - **标题**：`GET /v1/audit` 返回字段齐全（含 `request_id`）且脱敏的审计事件：HTTP 200 + `AuditPage`，默认 `limit=50`。
 - **目的（被测契约）**：验证审计读取的**字段完整性、默认条数与脱敏契约**。被测端点/规则：`GET /v1/audit`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listAuditEvents`，query `limit` 默认 `50`、`minimum:1`/`maximum:200`，`security=AdminBearerAuth`）；[`AuditLog.page`](../../../../src/management/audit.py) `ORDER BY created_at DESC,id DESC LIMIT min(limit,200)`，返回 `{data:[AuditEvent],page:{has_more,next_cursor}}`；[`AuditEvent`](../../../../interfaces/openapi/llmtier.openapi.json) 必填 7 键 `{id,actor,action,target,result,created_at,request_id}`（`request_id` 可 null）。设计验证项 `VRC-MGMT-003`；机制 `R-OBS-01`、`T-TRUST-LEAK`；需求/机制链 `LT-FUN-006`、`LT-SEC-004`、`CT-ADMIN-001`、`CT-LOG-001`。**不证明什么**：不证明 `limit=1` 分页（ADM-AUDIT-02）、不证明非法 `limit` 400（ADM-AUDIT-03）、不证明 operational logs 脱敏（ADM-LOGS-01）、不证明 provider 读取不回显 secret（ADM-PROV-14）。本 case 锁定"字段齐全 + 无 secret 泄露 + 默认 limit"。
-- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `admin`；见[测试设计 §2.3](../llmtier-api-test-specification.md)）。执行前必须通过[测试设计 §2.1](../llmtier-api-test-specification.md) 的 **6** 项就绪检查，由 [`conftest.py`](../../../../tests/system/api_test_v03/conftest.py) `pytest_configure` 自动执行；任一失败 → 整班 BLOCKED/SKIP。fixture 见[测试设计 §4.4](../llmtier-api-test-specification.md)：`admin_client`。初始状态：m5air 审计表非空（bootstrap 及既往管理操作已写 `audit_events`）。本 case 只读。
+- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `admin`，只读；见[测试设计 §2.3](../llmtier-api-test-specification.md)）；前置=§2.1 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；fixture `admin_client`（[测试设计 §4.4](../llmtier-api-test-specification.md)）；初始状态：m5air 审计表非空（bootstrap 及既往管理操作已写 `audit_events`）。本 case 只读。
 - **输入与构造**：
   ```http
   GET /v1/audit HTTP/1.1
@@ -31,6 +31,6 @@
   - **SKIP**：§2.1 前置不满足——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **INVALID**：用 `127.0.0.1`/mock 冒充真实 m5air，或把脱敏扫描当作"注入命中"——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **NOT_RUN**：本 Case 有实现（§3.2 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
-- **证据与 Run**：保存原始 HTTP status/headers/body（**入库前将 Authorization、`9832`、key 文件内容脱敏**）、发出命令、exit code、`elapsed`、环境快照。`manifest.json` 必含 `{…,environment:"a",inputs,oracle,actual,verdict,evidence_files,redactions,reproduction_cmd}`，`redactions` 列出已脱敏项（[测试设计 §10/§11](../llmtier-api-test-specification.md)）。Run ID = `<date>/A-api`，落位 `tests/system/reports/<date>/A-api/<case-id>/`；失败现场不截断。证据/报告契约见[测试设计 §4.8/§10](../llmtier-api-test-specification.md)。
-- **清理与复位**：**无需 teardown**——纯读，不改审计/配置/注入。退出前确认 `/readyz` 仍 7 tier、无未清空注入项。若被误跑于 B 类实例则整班 `stop()` + `rm -rf`（[测试设计 §4.7](../llmtier-api-test-specification.md)）。
+- **证据与 Run**：保存原始 HTTP status/headers/body（入库前将 Authorization、`9832`、key 文件内容脱敏）、发出命令、exit code、`elapsed`、环境快照；落位与契约见[测试设计 §4.8/§10](../llmtier-api-test-specification.md)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
+- **清理与复位**：**无需 teardown**——纯读，不改审计/配置/注入。退出前确认 `/readyz` 仍 7 tier、无未清空注入项。 若被误跑于 B 类实例则整班 `stop()` + `rm -rf`（[测试设计 §4.7](../llmtier-api-test-specification.md)）。
 - **依赖**：[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查；`admin_client` fixture（[§4.4](../llmtier-api-test-specification.md)）；`AuditPage`/`AuditEvent` 机器契约；`AuditLog.page`；机制 `R-OBS-01`/`T-TRUST-LEAK`。自动化入口 [`at_adm_audit_01.py`](../../../../tests/system/api_test_v03/at_adm_audit_01.py)（**须补齐 7 字段断言后方可判 PASS**）。**不依赖**其它 Case；与 ADM-AUDIT-02/03、ADM-LOGS-01 互补。

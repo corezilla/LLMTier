@@ -6,7 +6,7 @@
 
   > **构造诚实性（如何触发）**：本 case 的契约有两半——(a)"无 Bearer 且不命中免登录"、(b)"非法授权方案"。在 A/B 两班**均无法构造 (a)**：A 类 m5air 监听 LAN，执行机源地址为 `192.168.1.x`（RFC1918 受信）；B 类临时实例监听 `127.0.0.1`（loopback 受信）；源码 `unauthenticated_principal()`（`auth.py:33-34`）对 loopback/RFC1918 在**无 `Authorization` 头**时**无条件**授予共享角色（不读 `LLMTIER_TRUSTED_LAN_MODE`），因此"完全无头"在 A/B 上恒为 200，非受信来源需公网源地址，A/B 不可得（[测试设计 §4.2/§11.2 第 5 项](../llmtier-api-test-specification.md)）。故本 case 以 **(b) 非法方案**（`Authorization: Basic …`）触发 401——它进入同一 `authenticate()` 的"非法方案"分支，产出契约要求的 401 `authentication_required`；但**不得**据此声称已验证 (a) 的"来源不受信"门。若伪造来源（`X-Forwarded-For`、改 `client_address`、mock）冒充 (a)，判 INVALID。
 
-- **前置与环境**：**环境 A**（m5air 已部署实例 `http://192.168.1.9:8181`，已配置 `LLMTIER_ADMIN_TOKEN=dev-admin`/`LLMTIER_DATA_TOKEN=dev-data`；见[测试设计 §2.3](../llmtier-api-test-specification.md)）。执行前必须通过[测试设计 §2.1](../llmtier-api-test-specification.md) 的 **6** 项就绪检查，由 [`conftest.py`](../../../../tests/system/api_test_v03/conftest.py) `pytest_configure` 自动执行；任一失败 → 整班 BLOCKED/SKIP。初始状态 = m5air 现有 3 provider / 4 deployment / 7 fixed tier。本 case **不复用** `api_client`/`admin_client`（它们注入合法 bearer，会 200），使用独立 `httpx.Client`（无默认头）并显式设置 `Basic` 方案。
+- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `none`（§3.2）；见[测试设计 §2.3](../llmtier-api-test-specification.md)）；前置=§2.1 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；本 case **不复用** `api_client`/`admin_client`（它们注入合法 bearer，会 200），使用独立 `httpx.Client`（无默认头）并显式设置 `Basic` 方案；初始状态=§2.3 A 类基线（3 provider / 4 deployment / 7 fixed tier）。
 - **输入与构造**：固定请求（无请求体、无查询参数）：
   ```http
   GET /v1/models HTTP/1.1
@@ -35,6 +35,6 @@
   - **SKIP**：§2.1 前置不满足——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **INVALID**：用 `127.0.0.1`/mock/替代路径冒充真实 m5air 路径，或以 `X-Forwarded-For`/改 `client_address` 伪造非受信来源冒充 (a)，或以错误/空 bearer 冒充本 case——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **NOT_RUN**：Case 已定义但本轮未执行（**当前自动化入口 `MISSING`，默认即 NOT_RUN，直至补 `at_auth_10.py`**）。
-- **证据与 Run**：保存独立请求的原始命令、发送 headers 快照（证明为 `Basic` 方案）、HTTP status/headers/body、执行机 LAN IP、exit code、`elapsed`、环境快照（`/healthz`/`/readyz`）。Run ID = `<date>/A-api`，落位 `tests/system/reports/<date>/A-api/<case-id>/`，`manifest.json` 必含 `{git_commit, db_schema_version, openapi_version}` 与 `redactions`（`Basic ZGV2LWRhdGE=` 为形态占位、非有效凭据）。证据/报告契约见[测试设计 §4.8/§10](../llmtier-api-test-specification.md)。
-- **清理与复位**：**无需 teardown**——本 case 为只读 `GET`，无状态，不创建/修改 provider/deployment/service-level，不写 usage/账本。退出前确认 `/readyz` 仍显示 7 tier 且无未清空注入项（本 case 不注入）。若被误跑于 B 类临时实例，则按[测试设计 §4.7](../llmtier-api-test-specification.md) 整班 `stop()` + `rm -rf` 临时目录。
+- **证据与 Run**：保存独立请求的原始命令、发送 headers 快照（证明为 `Basic` 方案）、HTTP status/headers/body、执行机 LAN IP、exit code、`elapsed`、环境快照（`/healthz`/`/readyz`）；落位与契约见[测试设计 §4.8/§10](../llmtier-api-test-specification.md)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
+- **清理与复位**：**无需 teardown**——本 case 为只读 `GET`，无状态，不创建/修改/删除资源、不写 usage/账本。退出前确认 `/readyz` 仍 7 tier、无未清空注入项。 若被误跑于 B 类实例则整班 `stop()` + `rm -rf`（[测试设计 §4.7](../llmtier-api-test-specification.md)）。
 - **依赖**：[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查；独立 `httpx` 无默认头客户端（不复用 `api_client`/`admin_client`）；m5air `GET /v1/models` 可用；**自动化入口 `MISSING`**（需新建 `tests/system/api_test_v03/at_auth_10.py`）。**不依赖**其它 Case；与 AUTH-01/AUTH-02/AUTH-06 构成"凭据形态→状态码"矩阵（200/403/403/401）但各自独立执行、互不关闭。

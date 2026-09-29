@@ -3,7 +3,7 @@
 - **Case ID**：`DP-RESP-08`
 - **标题**：`POST /v1/responses` 缺 `model`：字段齐备性校验失败，`400 invalid_request`（§3.2 记为 `param=model`）。
 - **目的（被测契约）**：验证 Data Plane `POST /v1/responses` 的**必填字段齐备性**：`model`/`input`/`stream`/`store` 四者缺一即在 dispatch 前拒绝。被测端点/规则：`POST /v1/responses`；需求 `LT-FUN-001`；设计验证项 `VRC-INF-001`；错误目录 `ERR-REQ-VALIDATION` → wire `code=invalid_request`；实现 `src/inference/responses.py`（`require({"model","input","stream","store"} <= set(body), 400, "invalid_request", "model, input, stream, and store are required")`）。**不证明什么**：不证明未知 model 的解析失败（DP-RESP-05，属 `model_not_found`）；不证明 `stream=false`/`store=true` 的跨字段拒绝（DP-RESP-02/07）；不证明上游调用或答案。
-- **前置与环境**：**环境 A**（m5air 已部署实例 `http://192.168.1.9:8181`，角色 `data`，无状态；见[测试设计 §2.3](../llmtier-api-test-specification.md)）。执行前必须通过[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查；fixture `api_client`（Bearer `dev-data`，[§4.4](../llmtier-api-test-specification.md)）。初始状态 = 3 provider / 4 deployment / 7 fixed tier。**不需要上游可用**（校验在 dispatch 之前）。
+- **前置与环境**：**环境 A**（m5air 现有实例，角色 `data`，无状态；见[测试设计 §2.3](../llmtier-api-test-specification.md)）。前置 = §2.1 就绪检查（由 `conftest.py::pytest_configure` 自动执行；任一失败 → 整班 BLOCKED/SKIP）。fixture `api_client`（Data 角色客户端，见[§4.4](../llmtier-api-test-specification.md)）。初始状态 = 3 provider / 4 deployment / 7 fixed tier。**不需要上游可用**（校验在 dispatch 之前）。
 - **输入与构造**：固定请求（省略 `model`，其余三字段齐备）：
 
   ```http
@@ -43,6 +43,6 @@
   - **SKIP**：§2.1 前置不满足——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **INVALID**：以 mock/替代路径冒充真实路径——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **NOT_RUN**：本 Case 有实现（§3.2 `RUN`），未执行时按 §9 记 `NOT_RUN`。
-- **证据与 Run**：保存请求 body、HTTP status/headers、原始错误信封（含 `param` 实测）、发出命令、exit code、环境快照。Run ID = `<date>/A-api`，落位 `tests/system/reports/<date>/A-api/<case-id>/`，含 `manifest.json`（[§4.8](../llmtier-api-test-specification.md)）；失败现场不截断。
+- **证据与 Run**：保存请求 body、HTTP status/headers、原始错误信封（含 `param` 实测）、发出命令、exit code、环境快照。manifest 与报告落位见 §4.8/§10（本 case `environment:"a"`）。
 - **清理与复位**：**无需 teardown**——环境 A 无状态；退出前确认 `/readyz` 仍 7 tier。
 - **依赖**：[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查；`api_client`（[§4.4](../llmtier-api-test-specification.md)）；需求 `LT-FUN-001`；自动化入口 [`at_dp_resp_08.py`](../../../../tests/system/api_test_v03/at_dp_resp_08.py)（只断 status+code，未断 `param`）。**不依赖**其它 Case；与 DP-RESP-05 区分：本 case 无 `model` 字段，非未知值。

@@ -3,7 +3,7 @@
 - **Case ID**：`DP-RESP-24`
 - **标题**：`POST /v1/responses` provider `secret_ref` 不可解析：`503 provider_secret_unavailable`（**MISSING** 自动化）。
 - **目的（被测契约）**：验证 Data Plane `POST /v1/responses` 的**provider 凭据可用性契约**：所选 provider 的 `secret_ref` 指向缺失/不可读的凭据时，适配层在建立上游请求前抛 `503 provider_secret_unavailable`。被测端点/规则：`POST /v1/responses`；需求 `R-INF-05`；设计验证项 `VRC-INF-001`；错误目录 `ERR-PROVIDER-SECRET` → wire `code=provider_secret_unavailable`；实现 `src/inference/providers/openai.py`（`_secret()`：`file:` 读取 `OSError` → `ApiError(503, "provider_secret_unavailable", "Provider secret file is unreadable")`；非 `env:`/`file:` → "Unsupported provider secret reference"）。**不证明什么**：不证明 `secret_ref` 格式校验的 400 `invalid_request`（`registry._validate_secret_ref`，属写侧管理契约，见 ADM-PROV-12）；不证明 401/403 上游鉴权失败；不证明上游不可达（`provider_unavailable`）；不证明答案。
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 `127.0.0.1:<随机空闲端口>` + 临时 SQLite；见[测试设计 §2.3](../llmtier-api-test-specification.md) / §2.4 B 类）。建议专属实例以免改动共享 `prov_b`。`_baseline_settings`：`prov_b` + `depl_b` + 7 tier；`depl_b` 已 probe `healthy`（此时 `secret_ref=None`）。fixture `LLMTierInstance`、`admin_client_b`、`api_client_b`（[§4.4](../llmtier-api-test-specification.md)）。初始状态无注入项。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例，见[测试设计 §2.3](../llmtier-api-test-specification.md)/§2.4 B 类）。建议专属实例以免改动共享 `prov_b`。`_baseline_settings`：`prov_b` + `depl_b` + 7 tier；`depl_b` 已 probe `healthy`（此时 `secret_ref=None`）。fixture = `LLMTierInstance`、`admin_client_b`、`api_client_b`（[§4.4](../llmtier-api-test-specification.md)）。初始状态无注入项。
 - **输入与构造**：先以 admin PATCH 把 `prov_b.secret_ref` 改为一个**语法合法但文件不存在**的 `file:` 引用（通过 `_validate_secret_ref`，但读取时失败），再发被测请求。
 
   改 `secret_ref`（需 `If-Match`，先 `GET /v1/providers/prov_b` 取 `ETag`）：
@@ -53,6 +53,6 @@
   - **SKIP**：B 类临时实例不可用——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **INVALID**：以 mock/替代路径冒充真实路径、或凭据未真正缺失却按行为判定——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **NOT_RUN**：本 Case **无自动化实现**（§3.2 `MISSING`）；未执行按 §9 记 `NOT_RUN`。
-- **证据与 Run**：保存原始/新 `secret_ref` 与 `ETag`、PATCH 请求响应、被测请求与原始 503 信封、teardown 恢复请求与 `GET` 校验、发出命令、exit code、环境快照。**脱敏**：不得记录任何真实 secret 值（[§10](../llmtier-api-test-specification.md)）。Run ID = `<date>/B-api`，落位 `tests/system/reports/<date>/B-api/<case-id>/`，含 `manifest.json`（[§4.8](../llmtier-api-test-specification.md)）；失败现场不截断。**当前无脚本/artifact**。
-- **清理与复位**：**必须 teardown（`finally`）**——将 `prov_b.secret_ref` 恢复为原值（新 `ETag` + PATCH），`GET` 校验；不删除 `prov_b`/`depl_b`；无注入。专属实例由 fixture `stop()` + `rm -rf` 销毁（[测试设计 §2.8/§4.7](../llmtier-api-test-specification.md)）。
+- **证据与 Run**：保存原始/新 `secret_ref` 与 `ETag`、PATCH 请求响应、被测请求与原始 503 信封、teardown 恢复请求与 `GET` 校验、发出命令、exit code、环境快照。**脱敏**：不得记录任何真实 secret 值（[§10](../llmtier-api-test-specification.md)）。manifest 与报告落位见 §4.8/§10（本 case `environment:"b"`）。
+- **清理与复位**：**必须 teardown（`finally`）**——将 `prov_b.secret_ref` 恢复为原值（新 `ETag` + PATCH），`GET` 校验；不删除 `prov_b`/`depl_b`；无注入。专属实例按 §4.7 整班销毁。
 - **依赖**：B 类 fixture `LLMTierInstance` / `admin_client_b` / `api_client_b`（[§4.4](../llmtier-api-test-specification.md)）；`PATCH /v1/providers/{id}`（ADM-PROV-05/06，[§4.10](../llmtier-api-test-specification.md)）；实现 `src/inference/providers/openai.py`（`_secret`）、`src/management/registry.py`（`_validate_secret_ref`）；错误目录 `ERR-PROVIDER-SECRET`（[llmtier-system-design.md](../../../20_system_design/llmtier-system-design.md) §7.8）。**自动化入口 `at_dp_resp_24.py` MISSING（§3.2）**；与 ADM-PROV-12（`secret_ref` 格式）区分。

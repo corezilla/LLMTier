@@ -3,7 +3,7 @@
 - **Case ID**：`ADM-STATS-02`（与 §3.2 权威清单一致；本文件名 `adm-stats-02.md`，唯一对应）。
 - **标题**：`GET /v1/stats?group_by=tier` 显式按 tier 分组：HTTP 200 + `group_by=="tier"` + tier 聚合行。
 - **目的（被测契约）**：验证统计的**显式 `group_by=tier` 契约**。被测端点/规则：`GET /v1/stats`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getUsageStats`，query `group_by` enum `tier|deployment`）；[`AdminService.stats`](../../../../src/management/admin.py) 在 `group_by=="tier"` 分支按 `v.model` 聚合（行含 `tier` 键）。设计验证项 `VRC-MGMT-006`；需求/机制链 `LT-FUN-006`、`R-MET-03`、`CT-USAGE-001`。**不证明什么**：不证明默认分组（ADM-STATS-01）、不证明 `group_by=deployment` 分支（未单独构 case）、不证明缺窗 400（ADM-STATS-03）、不证明非法 `group_by` 的 400（`group_by ∉ {tier,deployment}` → 400，未单独构 case）。
-- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `admin`；见[测试设计 §2.3](../llmtier-api-test-specification.md)）。就绪检查同[测试设计 §2.1](../llmtier-api-test-specification.md)（**6** 项，`pytest_configure` 自动执行）。fixture：`admin_client`（[§4.4](../llmtier-api-test-specification.md)）。时间窗用动态 [`recent_window()`](../../../../tests/system/api_test_v03/constants.py)。初始状态 = m5air 基线；只读。
+- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `admin`，只读；见[测试设计 §2.3](../llmtier-api-test-specification.md)）；前置=§2.1 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；fixture `admin_client`（[测试设计 §4.4](../llmtier-api-test-specification.md)）；时间窗用动态 [`recent_window()`](../../../../tests/system/api_test_v03/constants.py)。初始状态=§2.3 A 类基线；只读。
 - **输入与构造**：
   ```http
   GET /v1/stats?from=<recent_window.from>&to=<recent_window.to>&group_by=tier HTTP/1.1
@@ -30,6 +30,6 @@
   - **SKIP**：§2.1 前置不满足——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **INVALID**：用 `127.0.0.1`/mock 冒充真实 m5air——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **NOT_RUN**：本 Case 有实现（§3.2 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
-- **证据与 Run**：保存请求 URL（含 group_by）、原始 HTTP status/body、发出命令、exit code、`elapsed`、环境快照。`manifest.json` 必含 `{…,environment:"a",inputs,oracle,actual,verdict,evidence_files,redactions,reproduction_cmd}`。Run ID = `<date>/A-api`，落位 `tests/system/reports/<date>/A-api/<case-id>/`；失败现场不截断。证据/报告契约见[测试设计 §4.8/§10](../llmtier-api-test-specification.md)。
-- **清理与复位**：**无需 teardown**——纯读。退出前确认 `/readyz` 仍 7 tier、无未清空注入项。若被误跑于 B 类实例则整班 `stop()` + `rm -rf`（[测试设计 §4.7](../llmtier-api-test-specification.md)）。
+- **证据与 Run**：保存请求 URL（含 group_by）、原始 HTTP status/body、发出命令、exit code、`elapsed`、环境快照；落位与契约见[测试设计 §4.8/§10](../llmtier-api-test-specification.md)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
+- **清理与复位**：**无需 teardown**——纯读。退出前确认 `/readyz` 仍 7 tier、无未清空注入项。 若被误跑于 B 类实例则整班 `stop()` + `rm -rf`（[测试设计 §4.7](../llmtier-api-test-specification.md)）。
 - **依赖**：[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查；`admin_client` fixture（[§4.4](../llmtier-api-test-specification.md)）；`constants.recent_window`；`AdminService.stats` 的 tier 分支。自动化入口 [`at_adm_stats_02.py`](../../../../tests/system/api_test_v03/at_adm_stats_02.py)。**不依赖**其它 Case；与 ADM-STATS-01（默认分组）/03 互补。

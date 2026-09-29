@@ -3,7 +3,7 @@
 - **Case ID**：`DP-RESP-04`
 - **标题**：`POST /v1/responses` 携带合法 `tools`：被受理并透传，SSE 结构完整。
 - **目的（被测契约）**：验证 Data Plane `POST /v1/responses` 对**合法 `tools` 数组**的受理与透传契约：当所选 model 的能力声明 `tools=true` 时，`tools` 作为可选字段被接受并转发给上游，不因出现 `tools` 而拒绝。被测端点/规则：`POST /v1/responses`；设计验证项 `VRC-INF-001`；机制 `T-TOOLS`；字段约束来自 OpenAPI `ResponsesRequest.tools`（`FunctionTool[]`）与实现 `src/inference/responses.py`（`ALLOWED_FIELDS` 含 `tools`；`require(caps.get("tools") ...)` 仅在能力为 `false` 时拒绝）。**不证明什么**：不证明上游是否真正调用工具（`function_call_arguments.*` 事件属上游行为，非 LLMTier 契约）；不证明工具执行结果；不证明 `tools` 语义正确性；不证明 `stream=false`/`store=true` 被拒（DP-RESP-02/07）。
-- **前置与环境**：**环境 A**（m5air 已部署实例 `http://192.168.1.9:8181`，角色 `data`，无状态；见[测试设计 §2.3](../llmtier-api-test-specification.md)）。执行前必须通过[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查；fixture `api_client`（Bearer `dev-data`，[§4.4](../llmtier-api-test-specification.md)）。初始状态 = 3 provider / 4 deployment / 7 fixed tier。**执行门（强制，先于发请求）**：经 `GET /v1/models` 确认所选 responses-capable tier（本例 `Worker`）的 `capabilities.tools == true`；若为 `false`，本 case **BLOCKED**（能力前置不满足），**不得静默 PASS、也不得降级为可选负向观测**。
+- **前置与环境**：**环境 A**（m5air 现有实例，角色 `data`，无状态；见[测试设计 §2.3](../llmtier-api-test-specification.md)）。前置 = §2.1 就绪检查（由 `conftest.py::pytest_configure` 自动执行；任一失败 → 整班 BLOCKED/SKIP）。fixture `api_client`（Data 角色客户端，见[§4.4](../llmtier-api-test-specification.md)）。初始状态 = 3 provider / 4 deployment / 7 fixed tier。**执行门（强制，先于发请求）**：经 `GET /v1/models` 确认所选 responses-capable tier（本例 `Worker`）的 `capabilities.tools == true`；若为 `false`，本 case **BLOCKED**（能力前置不满足），**不得静默 PASS、也不得降级为可选负向观测**。
 - **输入与构造**：固定请求（`tools` 含单个合法 `function` 工具）：
 
   ```http
@@ -52,6 +52,6 @@
   - **SKIP**：§2.1 前置不满足——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **INVALID**：以 mock/替代路径冒充真实路径——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **NOT_RUN**：本 Case 有实现（§3.2 `RUN`），未执行时按 §9 记 `NOT_RUN`。
-- **证据与 Run**：保存请求 body（含 `tools`）、HTTP status/headers、原始 SSE 逐帧、发出命令、exit code、环境快照。Run ID = `<date>/A-api`，落位 `tests/system/reports/<date>/A-api/<case-id>/`，含 `manifest.json`（[§4.8](../llmtier-api-test-specification.md)）；失败现场不截断。
+- **证据与 Run**：保存请求 body（含 `tools`）、HTTP status/headers、原始 SSE 逐帧、发出命令、exit code、环境快照。manifest 与报告落位见 §4.8/§10（本 case `environment:"a"`）。
 - **清理与复位**：**无需 teardown**——`store=false`、环境 A 无状态，不创建/修改资源；退出前确认 `/readyz` 仍 7 tier。
 - **依赖**：[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查；`api_client`（[§4.4](../llmtier-api-test-specification.md)）；`tools=true` 的 responses-capable tier；自动化入口 [`at_dp_resp_04.py`](../../../../tests/system/api_test_v03/at_dp_resp_04.py)。**不依赖**其它 Case；能力门负向不在本 case 范围（`tools=false` → BLOCKED，不并入 PASS/FAIL）。

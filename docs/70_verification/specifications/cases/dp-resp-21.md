@@ -3,7 +3,7 @@
 - **Case ID**：`DP-RESP-21`
 - **标题**：`POST /v1/responses` 客户端在 SSE 发送阶段断开：出口记 `aborted`、无成功终态、许可释放（**MISSING** 自动化）。
 - **目的（被测契约）**：验证 Data Plane `POST /v1/responses` 的**客户端断开契约**：SSE 发送阶段 `BrokenPipeError`/`ConnectionResetError` 被 M001 捕获，记录 trace `aborted`（reason `client disconnected`），不产生"半个成功"，且准入许可被释放。被测端点/规则：`POST /v1/responses`；设计验证项 `VRC-INF-001`；机制 `T-DISCONNECT`（[inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）；实现 `src/http_api/app.py`（`except (BrokenPipeError, ConnectionResetError): diagnostics.record_trace(request_id, "aborted", {"reason":"client disconnected"}); return`）。**不证明什么**：不证明 `stream_terminate`/`malformed_event` 注入路径（§6，分别属流阶段注入）；不证明账本在 `create()` 返回前已收敛的细节（本 case 只要求无"半个成功"）；不证明答案。
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 `127.0.0.1:<随机空闲端口>` + 临时 SQLite；见[测试设计 §2.3](../llmtier-api-test-specification.md) / §2.4 B 类）。建议专属实例以避免与其它 case 抢占许可。`_baseline_settings`：`prov_b` + `depl_b` + 7 tier；`depl_b` 已 probe `healthy`。fixture `LLMTierInstance`、`api_client_b`（[§4.4](../llmtier-api-test-specification.md)）。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例，见[测试设计 §2.3](../llmtier-api-test-specification.md)/§2.4 B 类）。建议专属实例以避免与其它 case 抢占许可。`_baseline_settings`：`prov_b` + `depl_b` + 7 tier；`depl_b` 已 probe `healthy`。fixture = `LLMTierInstance`、`api_client_b`（[§4.4](../llmtier-api-test-specification.md)）。
 - **输入与构造**：被测请求（`stream=true`，请求足够长的输出以留出中途断开窗口）：
 
   ```http
@@ -39,6 +39,6 @@
   - **SKIP**：B 类临时实例不可用——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **INVALID**：以 mock/替代路径冒充真实路径——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **NOT_RUN**：本 Case **无自动化实现**（§3.2 `MISSING`）；未执行按 §9 记 `NOT_RUN`。
-- **证据与 Run**：保存请求、首响 status/headers（含 `X-Request-ID`）、已读事件与断开位置、`GET /v1/trace/{request_id}` 的 `aborted`、后续请求响应、发出命令、exit code、环境快照。Run ID = `<date>/B-api`，落位 `tests/system/reports/<date>/B-api/<case-id>/`，含 `manifest.json`（[§4.8](../llmtier-api-test-specification.md)）；失败现场不截断。**当前无脚本/artifact**。
-- **清理与复位**：无注入/无持久写；断开只影响本连接。专属实例由 fixture `stop()` + `rm -rf` 销毁（[测试设计 §2.8/§4.7](../llmtier-api-test-specification.md)）。
+- **证据与 Run**：保存请求、首响 status/headers（含 `X-Request-ID`）、已读事件与断开位置、`GET /v1/trace/{request_id}` 的 `aborted`、后续请求响应、发出命令、exit code、环境快照。manifest 与报告落位见 §4.8/§10（本 case `environment:"b"`）。
+- **清理与复位**：无注入/无持久写；断开只影响本连接。专属实例按 §4.7 整班销毁。
 - **依赖**：B 类 fixture `LLMTierInstance` / `api_client_b`（[§4.4](../llmtier-api-test-specification.md)）；`GET /v1/trace/{request_id}`（OBS-REQTRACE-01）；实现 `src/http_api/app.py`；机制 `T-DISCONNECT`（[inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）。**自动化入口 `at_dp_resp_21.py` MISSING（§3.2）**；**不依赖**其它 Case。

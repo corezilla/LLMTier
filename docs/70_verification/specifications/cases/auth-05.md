@@ -3,7 +3,7 @@
 - **Case ID**：`AUTH-05`（与 §3.2 权威清单一致；本文件名 `auth-05.md`，唯一对应）。
 - **标题**：`GET /healthz` 在**不带任何凭据、任意来源**下被受理，返回 200 + `status="ok"`（公共存活端点不进入鉴权路径）。
 - **目的（被测契约）**：验证公开存活端点的 **no-auth 契约**。被测端点/规则：`GET /healthz`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `healthz`，无 securityScheme）；[`app.py`](../../../../src/http_api/app.py) 在 `_dispatch()` 最前段直接返回 `self._json(200, health_view(__version__))`（`app.py:187`），**不调用** `self._auth()`/`_auth("admin")`/`_auth_either()`，也不等待 bootstrap；因此 `/healthz` 不受凭据角色、LAN trust、`_configured_token` 或 bootstrap 状态影响。设计验证项 `VRC-API-002`；机制 `T-TRUST-NOCFG`、`T-TRUST-SHARED`（机制需求 `R-TRUST-04`；见 [access-trust 机制 §5.1/§12.2](../../../20_system_design/mechanisms/access-trust.md)）。**不证明什么**：不证明 `/readyz` 的就绪语义（HEALTH-02/03/04/05）、不证明任何受保护端点（`/v1/*`）的鉴权（AUTH-01/02/03/04/06/07/08/09/10）、不证明 LAN trust 免登录（AUTH-01/04）、不证明未配置鉴权时受保护端点的 503（AUTH-07）。本 case **不断言** `/healthz` 不受 bootstrap 失败影响之外的 `/readyz` 行为。
-- **前置与环境**：**环境 A**（m5air 已部署实例 `http://192.168.1.9:8181`；见[测试设计 §2.3](../llmtier-api-test-specification.md)）。执行前必须通过[测试设计 §2.1](../llmtier-api-test-specification.md) 的 **6** 项就绪检查，由 [`conftest.py`](../../../../tests/system/api_test_v03/conftest.py) `pytest_configure` 自动执行；任一失败 → 整班 BLOCKED/SKIP。初始状态 = m5air 现有 3 provider / 4 deployment / 7 fixed tier。本 case 使用独立 `httpx.Client`（无默认头）；`/healthz` 在源码中先于 `app.bootstrap_error` 判空（`app.py:187` 早于 `app.py:192`），故本 case 亦可在 bootstrap 异常实例上通过，但 A 类就绪检查已排除该场景。角色 `none`（§3.2）。
+- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `none`（§3.2）；见[测试设计 §2.3](../llmtier-api-test-specification.md)）；前置=§2.1 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；本 case 使用独立 `httpx.Client`（无默认头）；`/healthz` 在源码中先于 `app.bootstrap_error` 判空，故本 case 亦可在 bootstrap 异常实例上通过，但 A 类就绪检查已排除该场景；初始状态=§2.3 A 类基线（3 provider / 4 deployment / 7 fixed tier）。
 - **输入与构造**：固定请求（无请求体、无查询参数、无凭据）：
   ```http
   GET /healthz HTTP/1.1
@@ -30,6 +30,6 @@
   - **SKIP**：§2.1 前置不满足（m5air 不可达）——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **INVALID**：用 `127.0.0.1`/mock/替代路径冒充真实 m5air 路径，或以带凭据请求冒充"无需 token"——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **NOT_RUN**：Case 已定义但本轮未执行（例如 suite 因 §2.1 失败整班 skip）。
-- **证据与 Run**：保存独立请求的原始命令、发送 headers 快照（证明无 `Authorization`）、HTTP status/headers/body、exit code、`elapsed`、环境快照（`/healthz`/`/readyz`）。Run ID = `<date>/A-api`，落位 `tests/system/reports/<date>/A-api/<case-id>/`，`manifest.json` 必含 `{git_commit, db_schema_version, openapi_version}` 与 `redactions`（本 case 无凭据，`redactions` 可为空）。证据/报告契约见[测试设计 §4.8/§10](../llmtier-api-test-specification.md)。
-- **清理与复位**：**无需 teardown**——本 case 为只读 `GET`，无状态，不创建/修改 provider/deployment/service-level，不写 usage/账本。退出前确认 `/readyz` 仍显示 7 tier 且无未清空注入项（本 case 不注入）。若被误跑于 B 类临时实例，则按[测试设计 §4.7](../llmtier-api-test-specification.md) 整班 `stop()` + `rm -rf` 临时目录。
+- **证据与 Run**：保存独立请求的原始命令、发送 headers 快照（证明无 `Authorization`）、HTTP status/headers/body、exit code、`elapsed`、环境快照（`/healthz`/`/readyz`）；落位与契约见[测试设计 §4.8/§10](../llmtier-api-test-specification.md)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
+- **清理与复位**：**无需 teardown**——本 case 为只读 `GET`，无状态，不创建/修改/删除资源、不写 usage/账本。退出前确认 `/readyz` 仍 7 tier、无未清空注入项。 若被误跑于 B 类实例则整班 `stop()` + `rm -rf`（[测试设计 §4.7](../llmtier-api-test-specification.md)）。
 - **依赖**：[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查；独立 `httpx` 无头客户端；m5air `GET /healthz` 可用；自动化入口 [`at_auth_05.py`](../../../../tests/system/api_test_v03/at_auth_05.py)。**不依赖**其它 Case；与 HEALTH-01 观测同一端点但本 case 只从鉴权视角断言"无需 token"，二者独立执行。

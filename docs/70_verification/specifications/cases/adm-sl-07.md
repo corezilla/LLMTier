@@ -3,7 +3,7 @@
 - **Case ID**：`ADM-SL-07`（与 §3.2 权威清单一致；本文件名 `adm-sl-07.md`，唯一对应）。
 - **标题**：`PATCH /v1/service-levels/Embedding-v1` 绑定非冻结向量空间的 embedding deployment：HTTP 409 `embedding_space_conflict`。
 - **目的（被测契约）**：验证 `Embedding-v1` 的**冻结 BGE-M3 向量空间契约**。被测端点/规则：`PATCH /v1/service-levels/{service_level_id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `updateServiceLevel`）；[`registry._validate_level`](../../../../src/management/registry.py) 对 `level_id=="Embedding-v1"` 要求 `embedding_space_id=="bge-m3-dense-1024-v1"`、`embedding_dimensions==[1024]`、`embedding_max_batch_inputs==32`、`embedding_max_input_tokens==8192`，否则 `raise ApiError(409, "embedding_space_conflict", …)`。设计验证项 `VRC-MGMT-002`；错误目录 `ERR-EMBEDDING-SPACE` → wire `code=embedding_space_conflict`；机制 `T-CFG-SPACE`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明能力键缺失型的 `capability_conflict`（ADM-SL-06）、不证明非 Embedding-v1 tier 的 responses 校验、不证明 embedding 数据面（DP-EMB-*）。
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[测试设计 §2.3/§2.4](../llmtier-api-test-specification.md)）。执行前须满足[测试设计 §2.1](../llmtier-api-test-specification.md) **附加（B 类）**（`/healthz` 200；`_baseline_settings`）。fixture 见[测试设计 §4.4](../llmtier-api-test-specification.md)：`admin_client_b`。初始状态：`Embedding-v1` 存在。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[测试设计 §2.3/§2.4](../llmtier-api-test-specification.md)）；前置=§2.1 附加（B 类）；fixture `admin_client_b`（[测试设计 §4.4](../llmtier-api-test-specification.md)）；初始状态=`Embedding-v1` 存在。
 - **输入与构造**：先创建 embedding deployment（错误的 `embedding_space_id`），再 PATCH：
   ```http
   POST /v1/deployments HTTP/1.1
@@ -47,6 +47,6 @@
   - **SKIP**：B 类临时实例不可用——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **INVALID**：用 `127.0.0.1`/mock 冒充，或未命中真实向量空间检查——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **NOT_RUN**：本 Case 有实现（§3.2 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
-- **证据与 Run**：保存 GET/POST/PATCH/DELETE 的请求与原始响应（含 ETag 头，脱敏后）、`Embedding-v1` 前后对比、发出命令、exit code、`elapsed`、环境快照。`manifest.json` 必含 `{…,environment:"b",inputs,oracle,actual,verdict,evidence_files,redactions,reproduction_cmd}`。Run ID = `<date>/B-api`，落位 `tests/system/reports/<date>/B-api/<case-id>/`；失败现场不截断。证据/报告契约见[测试设计 §4.8/§10](../llmtier-api-test-specification.md)。
-- **清理与复位**：**必须 teardown（`finally` 强制）**——删除本 case 新建的 embedding deployment（最新 ETag；412 先重取），不改 `depl_b`/`Embedding-v1`、不写注入。退出前确认无残留 deployment、7 tier 齐全。B 类整班结束 `stop()` + `rm -rf`（[测试设计 §4.7](../llmtier-api-test-specification.md)）。
+- **证据与 Run**：保存GET/POST/PATCH/DELETE 的请求与原始响应（含 ETag 头，脱敏后）、`Embedding-v1` 前后对比、发出命令、exit code、`elapsed`、环境快照；落位与契约见[测试设计 §4.8/§10](../llmtier-api-test-specification.md)（Run ID=`<date>/B-api`，`environment:"b"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
+- **清理与复位**：**必须 teardown（`finally` 强制）**——删除本 case 新建的 embedding deployment（最新 ETag；412 先重取），不改 `depl_b`/`Embedding-v1`、不写注入。退出前确认无残留 deployment、7 tier 齐全。 B 类整班结束由 fixture `stop()` + `rm -rf` 临时目录（[测试设计 §2.8/§4.7](../llmtier-api-test-specification.md)）。
 - **依赖**：B 类 fixture `llmtier_b` / `admin_client_b`（[§4.4](../llmtier-api-test-specification.md)）；`registry.update_service_level`/`_validate_level`；错误目录 `ERR-EMBEDDING-SPACE`；机制 `T-CFG-SPACE`。自动化入口 [`at_adm_sl_07.py`](../../../../tests/system/api_test_v03/at_adm_sl_07.py)。**不依赖**其它 Case；与 ADM-SL-06 共享 PATCH 但校验分支不同。

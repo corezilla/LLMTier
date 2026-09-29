@@ -3,7 +3,7 @@
 - **Case ID**：`DP-RESP-03`
 - **标题**：`POST /v1/responses` 固定推理 prompt：SSE 结构完整（事件序列/唯一 terminal/`[DONE]`），不把模型输出内容当 oracle。
 - **目的（被测契约）**：验证 Data Plane `POST /v1/responses`（`stream=true`）在**固定推理 prompt** 下的正常路径：事件序列有序、恰好一个 terminal、`output_text.delta` 累积文本非空。被测端点/规则：`POST /v1/responses`；设计验证项 `VRC-INF-001`；机制 `T-STREAM`（[inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）；固定 prompt 见[测试设计 §5 LLM 判据](../llmtier-api-test-specification.md)（结构/事件序列，不写"答案正确"、不把内容当 oracle）。**不证明什么**：不证明模型答案的语义正确性、不证明 upstream 推理质量、不发布时延 SLO；不证明 `stream=false`/`store=true` 被拒（DP-RESP-02/07）、不证明截断（DP-RESP-10）或异常路径（DP-RESP-11/21）。
-- **前置与环境**：**环境 A**（m5air 已部署实例 `http://192.168.1.9:8181`，角色 `data`，无状态；见[测试设计 §2.3](../llmtier-api-test-specification.md)）。执行前必须通过[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查（含 m5air OMLX `192.168.1.9:9000`、m5mac OMLX `192.168.1.8:9000`）；fixture `api_client`（Bearer `dev-data`，[§4.4](../llmtier-api-test-specification.md)）。初始状态 = 3 provider / 4 deployment / 7 fixed tier；`model="Worker"` 由三选一调度，只断言最终 200 + SSE 合法。
+- **前置与环境**：**环境 A**（m5air 现有实例，角色 `data`，无状态；见[测试设计 §2.3](../llmtier-api-test-specification.md)）。前置 = §2.1 就绪检查（由 `conftest.py::pytest_configure` 自动执行；任一失败 → 整班 BLOCKED/SKIP）。fixture `api_client`（Data 角色客户端，见[§4.4](../llmtier-api-test-specification.md)）。初始状态 = 3 provider / 4 deployment / 7 fixed tier；`model="Worker"` 由三选一调度，只断言最终 200 + SSE 合法。
 - **输入与构造**：固定请求（固定推理 prompt `Calculate 15 * 23 + 45 step by step`；**模型输出内容不作为 Oracle**，见下可复现性风险）：
 
   ```http
@@ -46,6 +46,6 @@
   - **SKIP**：§2.1 前置不满足（上游 OMLX 离线等）——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **INVALID**：以 `127.0.0.1`/mock/替代路径冒充真实 m5air——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **NOT_RUN**：本 Case 有实现（§3.2 `RUN`），未执行时按 §9 记 `NOT_RUN`。
-- **证据与 Run**：保存原始 SSE 逐帧、HTTP status/headers、累积文本、发出命令、exit code、`elapsed`、环境快照（`/healthz`/`/readyz`）。Run ID = `<date>/A-api`，落位 `tests/system/reports/<date>/A-api/<case-id>/`，含 `manifest.json`（[§4.8](../llmtier-api-test-specification.md)）与原始证据；失败现场不截断。**注**：现有 [`at_dp_resp_03.py`](../../../../tests/system/api_test_v03/at_dp_resp_03.py) 断言事件集合（`response.created`/`response.output_text.delta`/`response.output_item.done`）与 `status=completed`，并显式断言 `response.output_text.done not in names`（第 76 行），与本设计的事件序列（见 DP-RESP-01）一致。`"390"` 已移出 PASS 条件，无需补齐。
+- **证据与 Run**：保存原始 SSE 逐帧、HTTP status/headers、累积文本、发出命令、exit code、`elapsed`、环境快照（`/healthz`/`/readyz`）。manifest 与报告落位见 §4.8/§10（本 case `environment:"a"`）。
 - **清理与复位**：**无需 teardown**——`store=false`、环境 A 无状态，不创建/修改资源；退出前确认无注入项、`/readyz` 仍 7 tier。
 - **依赖**：[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查；`api_client`（[§4.4](../llmtier-api-test-specification.md)）；上游 tier `Worker`；自动化入口 [`at_dp_resp_03.py`](../../../../tests/system/api_test_v03/at_dp_resp_03.py)。**不依赖**其它 Case；与 DP-RESP-01（通用流式成功）共享 SSE 机制但用固定推理 prompt 区分。

@@ -3,7 +3,7 @@
 - **Case ID**：`DP-RESP-10`
 - **标题**：`POST /v1/responses` 传 `max_output_tokens=10`：SSE 以 `response.incomplete` 终止，`incomplete_details.reason=="max_output_tokens"`。
 - **目的（被测契约）**：验证 Data Plane `POST /v1/responses` 的**截断终止契约**：当输出达到 `max_output_tokens` 上限时，终态为 `incomplete`（非 `completed`）且 `incomplete_details.reason=="max_output_tokens"`，SSE 仍以唯一 terminal + `[DONE]` 收尾。被测端点/规则：`POST /v1/responses`；设计验证项 `VRC-INF-001`；机制 `T-STREAM`（[inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）；实现 `src/http_api/sse.py`（terminal 类型 `f"response.{response['status']}"`）与 provider 归一（`src/inference/providers/openai.py` 透传 upstream `status`/`incomplete_details`）。**不证明什么**：不证明 `context_window` 硬上限边界（§5 注：Qwen 实测 API 层未触发，本 case 只覆盖可测的 `max_output_tokens` 截断）；不证明超时/断开异常（DP-RESP-11/21）；不证明模型内容。
-- **前置与环境**：**环境 A**（m5air 已部署实例 `http://192.168.1.9:8181`，角色 `data`，无状态；见[测试设计 §2.3](../llmtier-api-test-specification.md)）。执行前必须通过[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查；fixture `api_client`（Bearer `dev-data`，[§4.4](../llmtier-api-test-specification.md)）。初始状态 = 3 provider / 4 deployment / 7 fixed tier；所选 tier `Worker` 的 `capabilities.max_output_tokens` 必须 `>=10`，否则请求会先被字段范围校验拒为 `400 invalid_request`（`param="max_output_tokens"`）。
+- **前置与环境**：**环境 A**（m5air 现有实例，角色 `data`，无状态；见[测试设计 §2.3](../llmtier-api-test-specification.md)）。前置 = §2.1 就绪检查（由 `conftest.py::pytest_configure` 自动执行；任一失败 → 整班 BLOCKED/SKIP）。fixture `api_client`（Data 角色客户端，见[§4.4](../llmtier-api-test-specification.md)）。初始状态 = 3 provider / 4 deployment / 7 fixed tier；所选 tier `Worker` 的 `capabilities.max_output_tokens` 必须 `>=10`，否则请求会先被字段范围校验拒为 `400 invalid_request`（`param="max_output_tokens"`）。
 - **输入与构造**：固定请求（长输出 prompt 迫使达到 10 token 上限）：
 
   ```http
@@ -43,6 +43,6 @@
   - **SKIP**：§2.1 前置不满足——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **INVALID**：以 mock/替代路径冒充真实路径——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **NOT_RUN**：本 Case 有实现（§3.2 `RUN`），未执行时按 §9 记 `NOT_RUN`。
-- **证据与 Run**：保存请求 body、HTTP status/headers、原始 SSE 逐帧（含 terminal 与 `incomplete_details`）、发出命令、exit code、`elapsed`、环境快照。Run ID = `<date>/A-api`，落位 `tests/system/reports/<date>/A-api/<case-id>/`，含 `manifest.json`（[§4.8](../llmtier-api-test-specification.md)）；失败现场不截断。
+- **证据与 Run**：保存请求 body、HTTP status/headers、原始 SSE 逐帧（含 terminal 与 `incomplete_details`）、发出命令、exit code、`elapsed`、环境快照。manifest 与报告落位见 §4.8/§10（本 case `environment:"a"`）。
 - **清理与复位**：**无需 teardown**——`store=false`、环境 A 无状态；退出前确认 `/readyz` 仍 7 tier。
 - **依赖**：[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查；`api_client`（[§4.4](../llmtier-api-test-specification.md)）；上游 tier `Worker`（`capabilities.max_output_tokens >= 10`）；自动化入口 [`at_dp_resp_10.py`](../../../../tests/system/api_test_v03/at_dp_resp_10.py)。**不依赖**其它 Case；与 DP-RESP-01（`completed`）互为 terminal 类型对照。

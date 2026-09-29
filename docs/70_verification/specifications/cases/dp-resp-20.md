@@ -3,7 +3,7 @@
 - **Case ID**：`DP-RESP-20`
 - **标题**：`POST /v1/responses` 准入饱和：`429 rate_limit_exceeded` 且带 `Retry-After`（**MISSING** 自动化）。
 - **目的（被测契约）**：验证 Data Plane `POST /v1/responses` 的**准入/排队契约**：并发超过 `depl_b` 的运行时并发许可与队列上限（队列 32）时，`Router.admit` 拒绝并返回稳定 `429` 与 `Retry-After`。被测端点/规则：`POST /v1/responses`；设计验证项 `VRC-INF-004`；需求 `R-INF-05`；错误目录 `ERR-RATE-LIMIT` → wire `code=rate_limit_exceeded`；机制 `T-QUEUE`；实现 `src/inference/routing.py`（队列满 `len(self._queues[level_id]) >= 32` → `ApiError(429, "rate_limit_exceeded", "Service-level queue is full", retryable=True, headers={"Retry-After":"30"})`；等待超时 → `Retry-After:"1"`）。**不证明什么**：不证明 `model_unavailable`（DP-RESP-19）；不证明超时预算的 ms 级时点（§7 不设 SLO）；不证明 exactly-once/重试语义（§6）。
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 `127.0.0.1:<随机空闲端口>` + 临时 SQLite；见[测试设计 §2.3](../llmtier-api-test-specification.md) / §2.4 B 类）。建议使用专属实例，避免与其它 case 的并发/注入互相干扰。`_baseline_settings`：`prov_b` + `depl_b` + 7 tier；`depl_b` 的运行时 `max_in_flight` 默认 1，provider 并发默认 1。fixture `LLMTierInstance`、`admin_client_b`、`api_client_b`（[§4.4](../llmtier-api-test-specification.md)）。初始状态无菌注入项。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例，见[测试设计 §2.3](../llmtier-api-test-specification.md)/§2.4 B 类）。建议使用专属实例，避免与其它 case 的并发/注入互相干扰。`_baseline_settings`：`prov_b` + `depl_b` + 7 tier；`depl_b` 的运行时 `max_in_flight` 默认 1，provider 并发默认 1。fixture = `LLMTierInstance`、`admin_client_b`、`api_client_b`（[§4.4](../llmtier-api-test-specification.md)）。初始状态无启用注入项。
 - **输入与构造**：以 `delay` 注入占用许可（`delay` 前置阶段在 `admit` 上下文内 sleep，占住唯一并发槽），再并发灌入请求。
 
   占槽注入（`PATCH /v1/deployments/depl_b/diagnostics`，`admin`）：
@@ -39,6 +39,6 @@
   - **SKIP**：B 类临时实例不可用——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **INVALID**：以 mock/替代路径冒充真实路径，或注入未命中却按 429 判定——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **NOT_RUN**：本 Case **无自动化实现**（§3.2 `MISSING`）；未执行按 §9 记 `NOT_RUN`。
-- **证据与 Run**：保存注入写/清空、并发请求清单与各响应（含 429 与 `Retry-After`）、上游调用计数/runtime 快照、发出命令、exit code、环境快照。Run ID = `<date>/B-api`，落位 `tests/system/reports/<date>/B-api/<case-id>/`，含 `manifest.json`（[§4.8](../llmtier-api-test-specification.md)）；失败现场不截断。**当前无脚本/artifact**。
-- **清理与复位**：**必须 teardown**——`PATCH /v1/deployments/depl_b/diagnostics {"items":[]}` 清空 `delay` 后 `GET` 校验；不修改 `prov_b`/`depl_b`。专属实例由 fixture `stop()` + `rm -rf` 销毁（[测试设计 §2.8/§4.7](../llmtier-api-test-specification.md)）。
+- **证据与 Run**：保存注入写/清空、并发请求清单与各响应（含 429 与 `Retry-After`）、上游调用计数/runtime 快照、发出命令、exit code、环境快照。manifest 与报告落位见 §4.8/§10（本 case `environment:"b"`）。
+- **清理与复位**：**必须 teardown**——`PATCH /v1/deployments/depl_b/diagnostics {"items":[]}` 清空 `delay` 后 `GET` 校验；不修改 `prov_b`/`depl_b`。专属实例按 §4.7 整班销毁。
 - **依赖**：B 类 fixture `LLMTierInstance` / `admin_client_b` / `api_client_b`（[§4.4](../llmtier-api-test-specification.md)）；`OBS-DEPL-02`（`PATCH .../diagnostics` 注入，[§3.2](../llmtier-api-test-specification.md)）；实现 `src/inference/routing.py`；错误目录 `ERR-RATE-LIMIT`（[llmtier-system-design.md](../../../20_system_design/llmtier-system-design.md) §7.8）。**自动化入口 `at_dp_resp_20.py` MISSING（§3.2）**；**不依赖**其它 Case。

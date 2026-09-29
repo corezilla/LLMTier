@@ -3,7 +3,7 @@
 - **Case ID**：`ADM-SL-05`（与 §3.2 权威清单一致；本文件名 `adm-sl-05.md`，唯一对应）。
 - **标题**：`DELETE /v1/service-levels/{id}` 删除固定 Tier：HTTP 409 `fixed_service_level`（"cannot be deleted"）。
 - **目的（被测契约）**：验证固定 Tier 的**不可删除契约**。被测端点/规则：`DELETE /v1/service-levels/{service_level_id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `deleteServiceLevel`，header `If-Match`）；[`registry.delete_service_level`](../../../../src/management/registry.py) **无条件** `raise ApiError(409, "fixed_service_level", "Fixed Tier service levels cannot be deleted")`（不存在可删除分支）。设计验证项 `VRC-MGMT-002`；错误目录 `ERR-FIXED-LEVEL` → wire `code=fixed_service_level`；机制 `T-CFG-DELREF` 的固定 Tier 特例；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明 `If-Match` 的 412（本实现对该路由先返回 409、不校验 ETag）、不证明其它资源删除（provider/deployment 引用 409 见 ADM-PROV-10）、不证明 PATCH/创建（ADM-SL-04/02/02b）。本 case **只**锁 409 `fixed_service_level`。
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[测试设计 §2.3/§2.4](../llmtier-api-test-specification.md)）。执行前须满足[测试设计 §2.1](../llmtier-api-test-specification.md) **附加（B 类）**（`/healthz` 200；`_baseline_settings` = `prov_b`+`depl_b`+7 tier）。fixture 见[测试设计 §4.4](../llmtier-api-test-specification.md)：`admin_client_b`。本 case 选 `Engineer`。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[测试设计 §2.3/§2.4](../llmtier-api-test-specification.md)）；前置=§2.1 附加（B 类）；fixture `admin_client_b`（[测试设计 §4.4](../llmtier-api-test-specification.md)）；本 case 选 `Engineer`。
 - **输入与构造**：
   ```http
   DELETE /v1/service-levels/Engineer HTTP/1.1
@@ -30,6 +30,6 @@
   - **SKIP**：B 类临时实例不可用——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **INVALID**：用 `127.0.0.1`/mock 冒充，或未命中真实固定 Tier 规则——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **NOT_RUN**：本 Case 有实现（§3.2 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
-- **证据与 Run**：保存 GET/DELETE 请求与原始 409 响应（脱敏后）、DELETE 后 `GET` 的 `version`、发出命令、exit code、`elapsed`、环境快照。`manifest.json` 必含 `{…,environment:"b",inputs,oracle,actual,verdict,evidence_files,redactions,reproduction_cmd}`。Run ID = `<date>/B-api`，落位 `tests/system/reports/<date>/B-api/<case-id>/`；失败现场不截断。证据/报告契约见[测试设计 §4.8/§10](../llmtier-api-test-specification.md)。
-- **清理与复位**：**无需 teardown**——删除被拒未改库。退出前确认 7 tier 齐全、`Engineer.version` 未变、无注入残留。B 类整班结束 `stop()` + `rm -rf`（[测试设计 §4.7](../llmtier-api-test-specification.md)）。
+- **证据与 Run**：保存GET/DELETE 请求与原始 409 响应（脱敏后）、DELETE 后 `GET` 的 `version`、发出命令、exit code、`elapsed`、环境快照；落位与契约见[测试设计 §4.8/§10](../llmtier-api-test-specification.md)（Run ID=`<date>/B-api`，`environment:"b"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
+- **清理与复位**：**无需 teardown**——删除被拒未改库。退出前确认 7 tier 齐全、`Engineer.version` 未变、无注入残留。 B 类整班结束由 fixture `stop()` + `rm -rf` 临时目录（[测试设计 §2.8/§4.7](../llmtier-api-test-specification.md)）。
 - **依赖**：B 类 fixture `llmtier_b` / `admin_client_b`（[§4.4](../llmtier-api-test-specification.md)）；`registry.delete_service_level`；错误目录 `ERR-FIXED-LEVEL`。自动化入口 [`at_adm_sl_05.py`](../../../../tests/system/api_test_v03/at_adm_sl_05.py)。**不依赖**其它 Case；与 ADM-SL-06/07 同走 PATCH 冲突语义但独立执行。

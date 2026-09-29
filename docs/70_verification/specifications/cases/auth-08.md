@@ -6,7 +6,7 @@
 
   > **实现状态（MISSING）**：§3.2 登记本 Case 的自动化入口为 `MISSING`（尚无 `at_auth_08.py`）。本设计定义 Case；在执行脚本补齐前，Run 应为 `NOT_RUN`，**不得**以 OBS-ALIAS 系列或手工 curl 冒充实现（[测试设计 §4.9/§9](../llmtier-api-test-specification.md)）。
 
-- **前置与环境**：**环境 A**（m5air 已部署实例 `http://192.168.1.9:8181`，已配置 `LLMTIER_ADMIN_TOKEN=dev-admin`/`LLMTIER_DATA_TOKEN=dev-data`；见[测试设计 §2.3](../llmtier-api-test-specification.md)）。执行前必须通过[测试设计 §2.1](../llmtier-api-test-specification.md) 的 **6** 项就绪检查，由 [`conftest.py`](../../../../tests/system/api_test_v03/conftest.py) `pytest_configure` 自动执行；任一失败 → 整班 BLOCKED/SKIP。初始状态 = m5air 现有 3 provider / 4 deployment / 7 fixed tier。本 case 使用独立 `httpx.Client`（无默认头）并显式设置 `Authorization: Bearer dev-data`（或复用 `api_client`，其恰好发送 `dev-data`）；**不得**使用 `admin_client`。
+- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `data`（§3.2）；见[测试设计 §2.3](../llmtier-api-test-specification.md)）；前置=§2.1 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；本 case 使用独立 `httpx.Client`（无默认头）并显式设置 `Authorization: Bearer dev-data`（或复用 `api_client`）；**不得**使用 `admin_client`；初始状态=§2.3 A 类基线（3 provider / 4 deployment / 7 fixed tier）。
 - **输入与构造**：固定请求（无请求体、无查询参数）：
   ```http
   GET /tier/admin/v1/diagnostics HTTP/1.1
@@ -35,6 +35,6 @@
   - **SKIP**：§2.1 前置不满足——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **INVALID**：用 `127.0.0.1`/mock/替代路径冒充真实 m5air 路径，或以 admin/错误凭据冒充本 case——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **NOT_RUN**：Case 已定义但本轮未执行（**当前自动化入口 `MISSING`，默认即 NOT_RUN，直至补 `at_auth_08.py`**）。
-- **证据与 Run**：保存原始命令、发送 headers 快照（证明 `Bearer dev-data`）、HTTP status/headers/body、执行机 LAN IP、exit code、`elapsed`、环境快照（`/healthz`/`/readyz`）。Run ID = `<date>/A-api`，落位 `tests/system/reports/<date>/A-api/<case-id>/`，`manifest.json` 必含 `{git_commit, db_schema_version, openapi_version}` 与 `redactions`（`Bearer dev-data` 属测试凭据可保留）。证据/报告契约见[测试设计 §4.8/§10](../llmtier-api-test-specification.md)。
-- **清理与复位**：**无需 teardown**——本 case 为只读 `GET`，无状态，不创建/修改 provider/deployment/service-level，不写 usage/账本。退出前确认 `/readyz` 仍显示 7 tier 且无未清空注入项（本 case 不注入）。若被误跑于 B 类临时实例，则按[测试设计 §4.7](../llmtier-api-test-specification.md) 整班 `stop()` + `rm -rf` 临时目录。
+- **证据与 Run**：保存原始命令、发送 headers 快照（证明 `Bearer dev-data`）、HTTP status/headers/body、执行机 LAN IP、exit code、`elapsed`、环境快照（`/healthz`/`/readyz`）；落位与契约见[测试设计 §4.8/§10](../llmtier-api-test-specification.md)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
+- **清理与复位**：**无需 teardown**——本 case 为只读 `GET`，无状态，不创建/修改/删除资源、不写 usage/账本。退出前确认 `/readyz` 仍 7 tier、无未清空注入项。 若被误跑于 B 类实例则整班 `stop()` + `rm -rf`（[测试设计 §4.7](../llmtier-api-test-specification.md)）。
 - **依赖**：[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查；m5air 别名 `/tier/admin/v1/diagnostics` 可用；独立 `httpx` 客户端或 `api_client`（带 `dev-data`）；**自动化入口 `MISSING`**（需新建 `tests/system/api_test_v03/at_auth_08.py`）。**不依赖**其它 Case；与 AUTH-03/AUTH-09 共享 admin 面角色隔离但各自独立执行、互不关闭。

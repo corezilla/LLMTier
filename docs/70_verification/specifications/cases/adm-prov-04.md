@@ -3,7 +3,7 @@
 - **Case ID**：`ADM-PROV-04`（与 §3.2 权威清单一致；本文件名 `adm-prov-04.md`，唯一对应）。
 - **标题**：`GET /v1/providers/{id}` 读取不存在 provider：HTTP 404 + `error.code=="not_found"`，统一错误信封，无副作用。
 - **目的（被测契约）**：验证 Management Provider CRUD 的**不存在负向契约**。被测端点/规则：`GET /v1/providers/{id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getProvider`，`security=AdminBearerAuth`），认证角色 `admin`；未知 id 走统一错误信封 `{error:{message,type,code,param,retryable}}` 的 `404` + `code=not_found`（[`registry.get_provider`](../../../../src/management/registry.py) `raise ApiError(404,"not_found",…)`）；`type=request_error`（<500）、`param=null`、`retryable=false`。设计验证项 `VRC-MGMT-001`；错误目录 `ERR-NOTFOUND`（[测试设计 §11.1](../llmtier-api-test-specification.md)）；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明存在（ADM-PROV-03）、不证明 update/delete 的 404（更新/删除未知 id 同属 `not_found`，但本 case 只发 GET）、不证明 `/usage`、`/models` 子路径的 404（ADM-PROV-MODELS-02、ADM-PROV-USAGE-04）、不证明鉴权优先于存在性（AUTH-09）。
-- **前置与环境**：**环境 A**（m5air 已部署实例 `http://192.168.1.9:8181`，角色 `admin`，只读；见[测试设计 §2.3](../llmtier-api-test-specification.md)）。执行前必须通过[测试设计 §2.1](../llmtier-api-test-specification.md) 的 **6 项就绪检查**，由 `pytest_configure` 自动执行；任一失败 → 整班 BLOCKED/SKIP。fixture 见[测试设计 §4.4](../llmtier-api-test-specification.md)：`admin_client`（`Bearer dev-admin`）。初始状态 = m5air 现有 3 provider / 4 deployment / 7 tier。
+- **前置与环境**：**环境 A**（m5air 已部署实例；角色 `admin`，只读；见[§2.3](../llmtier-api-test-specification.md)）。执行前必须通过[§2.1](../llmtier-api-test-specification.md) 的 6 项就绪检查（详见 §2.1）；任一失败 → 整班 BLOCKED/SKIP，不得改用模拟路径。fixture（[§4.4](../llmtier-api-test-specification.md)）：`admin_client`。初始状态：m5air 现有 3 provider / 4 deployment / 7 tier。
 - **输入与构造**：固定请求（无请求体）：
   ```http
   GET /v1/providers/provider_does_not_exist_xyz HTTP/1.1
@@ -30,6 +30,6 @@
   - **SKIP**：§2.1 前置不满足——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **INVALID**：用替代路径/伪造 404 冒充——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **NOT_RUN**：本 Case 有实现（§3.2 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
-- **证据与 Run**：保存原始 status/headers/body（脱敏后）、发出命令、exit code、`elapsed`、请求前后 provider 列表快照；`manifest.json` 必含 `target_artifact`、`oracle`、`redactions`。Run ID = `<date>/A-api`，落位 `tests/system/reports/<date>/A-api/<case-id>/`；失败现场不截断。
-- **清理与复位**：**无需 teardown**——负向读失败对 provider 资源无写副作用；第 5 步列表 GET 的 `query_snapshots` 分页快照（10 分钟 TTL）由服务端自身产生，等待过期即可，不手工删除。退出前确认 `/readyz` 7 tier、provider 列表未变、无未清空注入。若误跑于 B 类实例，则整班 `stop()` + `rm -rf`（[测试设计 §4.7](../llmtier-api-test-specification.md)）。
+- **证据与 Run**：证据与 Run 契约见[§4.8/§10](../llmtier-api-test-specification.md)：Run ID=`<date>/A-api`；保存原始 status/headers/body（脱敏后）、发出命令、exit code、`elapsed`、环境快照；`manifest.json` 必填字段与报告落位（`tests/system/reports/...`）见 §4.8/§10；失败现场不截断。**本 case 额外证据**：请求前后 provider 列表快照。
+- **清理与复位**：**无需 teardown**——负向读失败对 provider 资源无写副作用；第 5 步列表 GET 的 `query_snapshots` 分页快照（10 分钟 TTL）由服务端自身产生，等待过期即可，不手工删除。退出前确认 `/readyz` 仍 7 tier、无未清空注入项；若误跑于 B 类实例，则按[§4.7](../llmtier-api-test-specification.md) 整班 `stop()` + `rm -rf`。
 - **依赖**：[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查；`admin_client` fixture（[§4.4](../llmtier-api-test-specification.md)）；`ErrorEnvelope` 机器契约；自动化入口 [`at_adm_prov_04.py`](../../../../tests/system/api_test_v03/at_adm_prov_04.py)。**不依赖**其它 Case；与 ADM-PROV-03 成对但各自独立。

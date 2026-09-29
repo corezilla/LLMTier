@@ -3,7 +3,7 @@
 - **Case ID**：`DP-RESP-12`
 - **标题**：`POST /v1/responses` 携带 `conversation_id`（未知顶层字段）：`400 invalid_request`（"Request body contains unknown fields"），dispatch 前拒绝、零副作用。
 - **目的（被测契约）**：验证 Data Plane `POST /v1/responses` 对**非请求字段 `conversation_id`** 的处理契约。契约由 OpenAPI `ResponsesRequest.additionalProperties:false` + 实现 `src/inference/responses.py` 的 `ALLOWED_FIELDS`（不含 `conversation_id`）与 `require(set(body) <= ALLOWED_FIELDS, 400, "invalid_request", "Request body contains unknown fields")` 共同定义：未知顶层字段在 dispatch 前被拒。设计验证项 `VRC-INF-001`。**不证明什么**：不证明任何 conversation 持久化/续写（本版本不存在，[piko-data-plane-control.md](../../../60_interfaces/piko-data-plane-control.md)）；不证明禁字段清单路径（DP-RESP-09，`previous_response_id` 命中 `unsupported_field`）；不证明合法流式成功（DP-RESP-01/06）。
-- **前置与环境**：**环境 A**（m5air 已部署实例 `http://192.168.1.9:8181`，角色 `data`，无状态；见[测试设计 §2.3](../llmtier-api-test-specification.md)）。执行前必须通过[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查；fixture `api_client`（Bearer `dev-data`，[§4.4](../llmtier-api-test-specification.md)）。初始状态 = 3 provider / 4 deployment / 7 fixed tier。**不需要上游可用**（校验在 dispatch 之前）。
+- **前置与环境**：**环境 A**（m5air 现有实例，角色 `data`，无状态；见[测试设计 §2.3](../llmtier-api-test-specification.md)）。前置 = §2.1 就绪检查（由 `conftest.py::pytest_configure` 自动执行；任一失败 → 整班 BLOCKED/SKIP）。fixture `api_client`（Data 角色客户端，见[§4.4](../llmtier-api-test-specification.md)）。初始状态 = 3 provider / 4 deployment / 7 fixed tier。**不需要上游可用**（校验在 dispatch 之前）。
 - **输入与构造**：固定请求（合法四字段 + 非请求字段）：
 
   ```http
@@ -41,6 +41,6 @@
   - **SKIP**：§2.1 前置不满足——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **INVALID**：以 mock/替代路径冒充真实路径——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **NOT_RUN**：本 Case 有实现（§3.2 `RUN`），未执行时按 §9 记 `NOT_RUN`。
-- **证据与 Run**：保存请求 body、HTTP status/headers、原始错误信封、可选对照请求响应、发出命令、exit code、环境快照。Run ID = `<date>/A-api`，落位 `tests/system/reports/<date>/A-api/<case-id>/`，含 `manifest.json`（[§4.8](../llmtier-api-test-specification.md)）；失败/偏差现场不截断。
+- **证据与 Run**：保存请求 body、HTTP status/headers、原始错误信封、可选对照请求响应、发出命令、exit code、环境快照。manifest 与报告落位见 §4.8/§10（本 case `environment:"a"`）。
 - **清理与复位**：**无需 teardown**——环境 A 无状态；退出前确认 `/readyz` 仍 7 tier。
 - **依赖**：[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查；`api_client`（[§4.4](../llmtier-api-test-specification.md)）；OpenAPI `ResponsesRequest`；实现 `src/inference/responses.py`（`ALLOWED_FIELDS`）；自动化入口 [`at_dp_resp_12.py`](../../../../tests/system/api_test_v03/at_dp_resp_12.py)（已断言 `400 invalid_request`）。**不依赖**其它 Case；与 DP-RESP-13/14 同类（未知字段），与 DP-RESP-09（显式禁字段）区分。

@@ -3,7 +3,7 @@
 - **Case ID**：`HEALTH-02`（与 §3.2 权威清单一致；本文件名 `health-02.md`，唯一对应）。
 - **标题**：`GET /readyz` 在全部 7 个 fixed tier 均 `available` 时返回 HTTP 200 + `ReadinessView{status:"ready", models[7]}`。
 - **目的（被测契约）**：验证 IF-HEALTH 的**就绪聚合**契约。端点 `GET /readyz`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getReadiness`，`security:[]`，200 = `ReadinessView`）。实现 [`readiness_view`](../../../../src/http_api/health.py) 对 7 个 `FIXED_TIERS` 逐个聚合：某 tier 的候选 deployment `health=="healthy"` 计数 >0 ⇒ `availability="available"`；全部 7 个 `available` ⇒ `status="ready"`、HTTP 200（否则 503，见 HEALTH-03/04/05）。设计验证项 `VRC-MGMT-003`；机制 `T-OBS`（见 [observability 机制](../../../20_system_design/mechanisms/observability.md)）与 `T-CFG-BOOT`/`R-CFG-02`（见 [config-lifecycle 机制](../../../20_system_design/mechanisms/config-lifecycle.md)）；需求链 `LT-FUN-006`/`LT-OPS-001`、`VRC-UTIL-001/002`、`CT-OPS-001`（[测试设计 §3.6](../llmtier-api-test-specification.md)）。**不证明什么**：不证明降级 `degraded`（HEALTH-03）、无 deployment `not_ready`（HEALTH-04）、bootstrap 失败（HEALTH-05）、health 端点的鉴权行为（HEALTH-06/AUTH-05）；不证明 `models[]` 中每 tier 的路由/推理可用（只证明 readiness 聚合字段）；不触发 provider 计费调用（`LT-OPS-001`）。
-- **前置与环境**：**环境 A**（`M5AIR_BASE`，m5air 已部署实例 `http://192.168.1.9:8181`，角色 `none`；见[测试设计 §2.3](../llmtier-api-test-specification.md)）。执行前必须通过[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查（含 §2.1.2 `/readyz` 200 + 7 fixed tier；由 [`conftest.py`](../../../../tests/system/api_test_v03/conftest.py) `pytest_configure` 自动执行；任一失败 → 整班 BLOCKED/SKIP）。初始状态 = m5air 现有 3 provider / 4 deployment / 7 fixed tier，且 7 tier 均已探测为 `healthy`（否则 §2.1.2 不就绪，本 case 无法达成 ready）。**客户端**：本 case 的零凭据契约点用裸 `httpx.get(M5AIR_BASE + "/readyz")`（无头）；**不得**用 `api_client`（[§4.4](../llmtier-api-test-specification.md)），它注入 `Authorization: Bearer dev-data`。本 case 纯读，不探测、不改 health。
+- **前置与环境**：**环境 A**（m5air 现有实例，角色 `none`，见[测试设计 §2.3](../llmtier-api-test-specification.md)）；前置 = §2.1 就绪检查（含 §2.1.2 `/readyz` 200 + 7 fixed tier；由 `conftest.py::pytest_configure` 自动执行，任一失败 → 整班 BLOCKED/SKIP）。初始状态 = m5air 现有 3 provider / 4 deployment / 7 fixed tier，且 7 tier 均已探测为 `healthy`（否则 §2.1.2 不就绪，本 case 无法达成 ready）。**客户端**：本 case 的零凭据契约点必须用裸客户端（**不用** `api_client`，其注入 `Authorization`）；具体 fixture/客户端构造见 §4.4。本 case 纯读，不探测、不改 health。
 - **输入与构造**：固定请求（无 body、无查询参数、无 `Authorization`）：
 
   ```http
@@ -12,10 +12,10 @@
   Accept: application/json
   ```
 
-  边界/构造点：零凭据（端点 `security:[]`）——本 case 的凭据点必须由**裸客户端**（`httpx.get(M5AIR_BASE + "/readyz")`，无 `Authorization`）发出，`api_client` 固定注入 `Bearer dev-data` 不可用于此；不构造非法输入；不改任何 deployment 的健康状态（`ready` 由 §2.1.6 的 m5air 基线资源与既有探测保证，不在此 case 重新 probe）。
+  边界/构造点：零凭据（端点 `security:[]`）——本 case 的凭据点必须由**裸客户端**（无 `Authorization`）发出，`api_client` 固定注入凭据不可用于此；不构造非法输入；不改任何 deployment 的健康状态（`ready` 由 §2.1.6 的 m5air 基线资源与既有探测保证，不在此 case 重新 probe）。
 - **执行过程（逐步调用）**：
   1. `GET /healthz`、`GET /readyz` —— 确认 §2.1 基线（由 `pytest_configure` 自动执行，本 case 不重复）。
-  2. `resp = httpx.get(M5AIR_BASE + "/readyz")` —— **裸客户端、不携带任何头**（**不得**用 `api_client`：它注入 `Authorization: Bearer dev-data`，与零凭据契约点矛盾）；记录 status、`Content-Type`、`X-Request-ID`、body。
+  2. `resp = httpx.get(base + "/readyz")` —— **裸客户端、不携带任何头**（**不得**用 `api_client`：它注入 `Authorization`，与零凭据契约点矛盾）；记录 status、`Content-Type`、`X-Request-ID`、body。
   3. 断言 `resp.status_code == 200`。
   4. 解析 body：断言 `status == "ready"`。
   5. 断言 `models` 为长度 **7** 的数组，元素 `id` 集合**恰为** `{Senior, Junior, Worker, Associate, Engineer, Executor, Embedding-v1}`（与 `FIXED_TIERS`/§4.10 一致）。
@@ -32,6 +32,6 @@
   - **SKIP**：§2.1 前置不满足（m5air 不可达、`/readyz` 非 7 tier 就绪等）——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **INVALID**：以 `127.0.0.1`/mock/替代路径冒充 m5air 真实路径——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **NOT_RUN**：Case 有实现（§3.2 `RUN`）但本轮未执行——见[测试设计 §9](../llmtier-api-test-specification.md)；不得补造为 PASS。
-- **证据与 Run**：保存命令、exit code、原始 HTTP status/headers/body、`elapsed`、环境快照（`/healthz`/`/readyz` + provider/deployment 列表）。`manifest.json` 含 `target_artifact{git_commit,db_schema_version,openapi_version}` 与 `redactions`。Run ID = `<date>/A-api`，落位 `tests/system/reports/<date>/A-api/health-02/`，失败现场不截断。契约见[测试设计 §4.8/§10](../llmtier-api-test-specification.md)。
+- **证据与 Run**：保存命令、exit code、原始 HTTP status/headers/body、`elapsed`、环境快照（`/healthz`/`/readyz` + provider/deployment 列表）；manifest 与报告落位见 §4.8/§10（本 case `environment:"a"`）。
 - **清理与复位**：**无需 teardown**——纯读、无副作用、无凭据；不创建/修改资源、不写注入、不改 deployment health。退出前确认 `/readyz` 仍显示 7 tier 且无未清空注入项（本 case 不注入）；若被误跑于 B 类临时实例，则按[测试设计 §4.7](../llmtier-api-test-specification.md) 整班销毁。
 - **依赖**：[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查；**裸 `httpx` 客户端**（`M5AIR_BASE` 直连、无 `Authorization`；**不用** `api_client`）；`ReadinessView`（[`openapi`](../../../../interfaces/openapi/llmtier.openapi.json)）；实现 [`health.py`](../../../../src/http_api/health.py)；自动化入口 [`at_obs_02.py`](../../../../tests/system/api_test_v03/at_obs_02.py)。**不依赖**其它 Case；与 HEALTH-03/04/05 同入口但状态互斥（ready / degraded / not_ready），各自独立执行。

@@ -3,7 +3,7 @@
 - **Case ID**：`ADM-SL-06`（与 §3.2 权威清单一致；本文件名 `adm-sl-06.md`，唯一对应）。
 - **标题**：`PATCH /v1/service-levels/{id}` 绑定能力不一致的 deployment 集合：HTTP 409 `capability_conflict`。
 - **目的（被测契约）**：验证 Service Level 成员的**能力交集一致性契约**。被测端点/规则：`PATCH /v1/service-levels/{service_level_id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `updateServiceLevel`）；[`registry.update_service_level`](../../../../src/management/registry.py) 计算 `_capability_intersection(ids)`（非布尔键要求 `all(v == values[0])`，否则丢弃该键），再看 `_validate_level` 的 `set(capabilities) == CAPABILITY_KEYS`——一旦交集丢键即 `raise ApiError(409, "capability_conflict", …)`。设计验证项 `VRC-MGMT-002`；错误目录 `ERR-CAPABILITY` → wire `code=capability_conflict`；机制 `R-CFG-01`、`T-CFG-SPACE`；需求/机制链 `LT-FUN-005`、`CT-ADMIN-001`。**不证明什么**：不证明向量空间冲突（ADM-SL-07）、不证明非白名单/非法字段 400（ADM-SL-02/04b）、不证明合法 PATCH 成功（ADM-SL-04）、不证明 provider_id 不可改（ADM-DEPL-09）。
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[测试设计 §2.3/§2.4](../llmtier-api-test-specification.md)）。执行前须满足[测试设计 §2.1](../llmtier-api-test-specification.md) **附加（B 类）**（`/healthz` 200；`_baseline_settings`：`depl_b` `context_window=4096`、`max_output_tokens=2048`、`input_modalities=["text"]`、`responses=True`）。fixture 见[测试设计 §4.4](../llmtier-api-test-specification.md)：`admin_client_b`。初始状态：`Senior` 存在且 `deployment_ids=["depl_b"]`。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[测试设计 §2.3/§2.4](../llmtier-api-test-specification.md)）；前置=§2.1 附加（B 类）；fixture `admin_client_b`（[测试设计 §4.4](../llmtier-api-test-specification.md)）；初始状态=`Senior` 存在且 `deployment_ids=["depl_b"]`；`depl_b` `context_window=4096`、`max_output_tokens=2048`、`input_modalities=["text"]`、`responses=True`。
 - **输入与构造**：分两步：先创建一个 `context_window` 不同的 deployment（用 LAN provider，避免 TS-003 违规——此处只创建引用 `prov_b` 的 deployment，不触发上游），再 PATCH。
   ```http
   POST /v1/deployments HTTP/1.1
@@ -47,6 +47,6 @@
   - **SKIP**：B 类临时实例不可用——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **INVALID**：用 `127.0.0.1`/mock 冒充，或未命中真实交集冲突——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **NOT_RUN**：本 Case 有实现（§3.2 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
-- **证据与 Run**：保存 GET/POST/PATCH/DELETE 的请求与原始响应（含 ETag 头，脱敏后）、`Senior` 前后对比、发出命令、exit code、`elapsed`、环境快照。`manifest.json` 必含 `{…,environment:"b",inputs,oracle,actual,verdict,evidence_files,redactions,reproduction_cmd}`。Run ID = `<date>/B-api`，落位 `tests/system/reports/<date>/B-api/<case-id>/`；失败现场不截断。证据/报告契约见[测试设计 §4.8/§10](../llmtier-api-test-specification.md)。
-- **清理与复位**：**必须 teardown（`finally` 强制）**——删除本 case 新建的 deployment（最新 ETag；若 412 先重取），不改 `depl_b`、不删既有 tier、不写注入。退出前确认无本次创建的 deployment 残留、7 tier 齐全。B 类整班结束 `stop()` + `rm -rf`（[测试设计 §4.7](../llmtier-api-test-specification.md)）。
+- **证据与 Run**：保存GET/POST/PATCH/DELETE 的请求与原始响应（含 ETag 头，脱敏后）、`Senior` 前后对比、发出命令、exit code、`elapsed`、环境快照；落位与契约见[测试设计 §4.8/§10](../llmtier-api-test-specification.md)（Run ID=`<date>/B-api`，`environment:"b"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
+- **清理与复位**：**必须 teardown（`finally` 强制）**——删除本 case 新建的 deployment（最新 ETag；若 412 先重取），不改 `depl_b`、不删既有 tier、不写注入。退出前确认无本次创建的 deployment 残留、7 tier 齐全。 B 类整班结束由 fixture `stop()` + `rm -rf` 临时目录（[测试设计 §2.8/§4.7](../llmtier-api-test-specification.md)）。
 - **依赖**：B 类 fixture `llmtier_b` / `admin_client_b`（[§4.4](../llmtier-api-test-specification.md)）；`registry.update_service_level`/`_capability_intersection`/`_validate_level`；错误目录 `ERR-CAPABILITY`；机制 `R-CFG-01`/`T-CFG-SPACE`。自动化入口 [`at_adm_sl_06.py`](../../../../tests/system/api_test_v03/at_adm_sl_06.py)。**不依赖**其它 Case；与 ADM-SL-07（向量空间冲突）共享 PATCH 但不同校验分支。

@@ -3,7 +3,7 @@
 - **Case ID**：`ADM-PROBE-03`（与 §3.2 权威清单一致；本文件名 `adm-probe-03.md`，唯一对应）。
 - **标题**：`POST /v1/probes` 带确认探测未知 deployment：HTTP 404 `not_found`。
 - **目的（被测契约）**：验证探测对**不存在 deployment** 的资源解析契约。被测端点/规则：`POST /v1/probes`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `probeDeployment`，`security=AdminBearerAuth`）；[`AdminService.probe`](../../../../src/management/admin.py) 通过确认门后 `self.registry.get_deployment(body["deployment_id"])`，[`registry.get_deployment`](../../../../src/management/registry.py) 对未知 id 抛 404 `not_found`。设计验证项 `VRC-DIAG-004`；错误目录 `ERR-NOTFOUND` → wire `code=not_found`；需求/机制链 `LT-FUN-005`、`LT-OPS-002`、`R-OBS-01`、`CT-ADMIN-001`。**不证明什么**：不证明缺确认的 400（ADM-PROBE-01）、不证明成功探测（ADM-PROBE-02）、不证明 provider 未知（无独立 case）、不证明认证负向（AUTH-03/09）。
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[测试设计 §2.3/§2.4](../llmtier-api-test-specification.md)）。执行前须满足[测试设计 §2.1](../llmtier-api-test-specification.md) **附加（B 类）**（`/healthz` 200；`_baseline_settings` = `prov_b`+`depl_b`+7 tier）。fixture 见[测试设计 §4.4](../llmtier-api-test-specification.md)：`admin_client_b`。初始状态：仅有 `depl_b`，无其它 deployment。本 case 为 **MISSING**（§3.2 无 `at_adm_probe_03.py`），设计已写、实现待补。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[测试设计 §2.3/§2.4](../llmtier-api-test-specification.md)）；前置=§2.1 附加（B 类）；fixture `admin_client_b`（[测试设计 §4.4](../llmtier-api-test-specification.md)）；初始状态=仅有 `depl_b`，无其它 deployment。本 case 为 **MISSING**（§3.2 无 `at_adm_probe_03.py`），设计已写、实现待补。
 - **输入与构造**：
   ```http
   POST /v1/probes HTTP/1.1
@@ -32,6 +32,6 @@
   - **SKIP**：B 类临时实例不可用——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **NOT_RUN**：本 Case 自动化入口 **`MISSING`**（§3.2），本轮未执行；缺口引用 §3.2/§9（MISSING ≠ NOT_RUN）。
   - **INVALID**：用 `127.0.0.1`/mock 冒充，或未命中真实资源解析——见[测试设计 §9](../llmtier-api-test-specification.md)。
-- **证据与 Run**：保存 GET/POST 请求与原始 404 响应（脱敏后）、发出命令、exit code、`elapsed`、环境快照（`/healthz` + deployment 列表前后）。`manifest.json` 必含 `{…,environment:"b",inputs,oracle,actual,verdict,evidence_files,redactions,reproduction_cmd}`。Run ID = `<date>/B-api`，落位 `tests/system/reports/<date>/B-api/<case-id>/`；失败现场不截断。证据/报告契约见[测试设计 §4.8/§10](../llmtier-api-test-specification.md)。
-- **清理与复位**：**无需 teardown**——未产生资源/health 变更。退出前确认 deployment 列表仍为 `{depl_b}`、无注入残留。B 类整班结束 `stop()` + `rm -rf`（[测试设计 §4.7](../llmtier-api-test-specification.md)）。
+- **证据与 Run**：保存GET/POST 请求与原始 404 响应（脱敏后）、发出命令、exit code、`elapsed`、环境快照（`/healthz` + deployment 列表前后）；落位与契约见[测试设计 §4.8/§10](../llmtier-api-test-specification.md)（Run ID=`<date>/B-api`，`environment:"b"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
+- **清理与复位**：**无需 teardown**——未产生资源/health 变更。退出前确认 deployment 列表仍为 `{depl_b}`、无注入残留。 B 类整班结束由 fixture `stop()` + `rm -rf` 临时目录（[测试设计 §2.8/§4.7](../llmtier-api-test-specification.md)）。
 - **依赖**：B 类 fixture `llmtier_b` / `admin_client_b`（[§4.4](../llmtier-api-test-specification.md)）；`registry.get_deployment`；错误目录 `ERR-NOTFOUND`；机制 `R-OBS-01`。自动化入口 **`MISSING`**（待补 `at_adm_probe_03.py`，落位按 §4.9/§8.5）。**不依赖**其它 Case；与 ADM-PROBE-01/02 互补。

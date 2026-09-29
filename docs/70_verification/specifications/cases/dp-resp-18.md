@@ -3,7 +3,7 @@
 - **Case ID**：`DP-RESP-18`
 - **标题**：`POST /v1/responses` body 超过 2 MB：`413 request_too_large`，读取前拒绝（**MISSING** 自动化）。
 - **目的（被测契约）**：验证 Data Plane `POST /v1/responses` 的**请求体上限制**：`Content-Length > 2 MiB` 时在解析业务体前返回 `413 request_too_large`。被测端点/规则：`POST /v1/responses`；设计验证项 `VRC-INF-001`；错误目录 `ERR-REQ-TOO-LARGE` → wire `code=request_too_large`；实现 `src/http_api/app.py` `_body()`（`if int(Content-Length) > 2 * 1024 * 1024: raise ApiError(413, "request_too_large", "Request body is too large")`，系统设计 §11.1）。**不证明什么**：不证明非法 `Content-Length`（`400 invalid_request`）或非法 JSON（DP-RESP-16）；不证明上游调用。恰好 2 MiB 的边界（`== 2097152` 应受理）作为本 case 的边界子测（见"输入与构造"与"执行过程"）。
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 `127.0.0.1:<随机空闲端口>` + 临时 SQLite；见[测试设计 §2.3](../llmtier-api-test-specification.md) / §2.4 B 类）。执行前须满足[测试设计 §2.1](../llmtier-api-test-specification.md) **附加（B 类）**：`llmtier_b` 可启动且 `GET /healthz` 200。fixture `llmtier_b`、`api_client_b`（Bearer `dev-data`，[§4.4](../llmtier-api-test-specification.md)）。初始状态 = 1 provider / 1 deployment / 7 tier。**不需要上游**（在上限检查阶段拒绝）。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例，见[测试设计 §2.3](../llmtier-api-test-specification.md)/§2.4 B 类）。前置 = §2.1 附加（B 类）就绪检查（`llmtier_b` 可启动且 `/healthz` 200）。fixture = `llmtier_b`、`api_client_b`（[测试设计 §4.4](../llmtier-api-test-specification.md)）。初始状态 = 1 provider / 1 deployment / 7 tier。**不需要上游**（在上限检查阶段拒绝）。
 - **输入与构造**：构造 `Content-Length` 略超 2 MiB 的请求体（关键：必须设置 `Content-Length`）：
 
   ```http
@@ -33,6 +33,6 @@
   - **SKIP**：B 类临时实例不可用——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **INVALID**：以 mock/替代路径冒充真实路径——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **NOT_RUN**：本 Case **无自动化实现**（§3.2 `MISSING`）；未执行按 §9 记 `NOT_RUN`。
-- **证据与 Run**：保存请求 `Content-Length` 与字节数、HTTP status/headers、原始错误信封、边界子测结果、发出命令、exit code、环境快照。Run ID = `<date>/B-api`，落位 `tests/system/reports/<date>/B-api/<case-id>/`，含 `manifest.json`（[§4.8](../llmtier-api-test-specification.md)）；失败现场不截断。**当前无脚本/artifact**。
-- **清理与复位**：**无需 teardown**——只在上限检查层拒绝；B 类实例整班 `stop()` + `rm -rf`（[测试设计 §2.8/§4.7](../llmtier-api-test-specification.md)）。
+- **证据与 Run**：保存请求 `Content-Length` 与字节数、HTTP status/headers、原始错误信封、边界子测结果、发出命令、exit code、环境快照。manifest 与报告落位见 §4.8/§10（本 case `environment:"b"`）。
+- **清理与复位**：**无需 teardown**——只在上限检查层拒绝；B 类实例按 §4.7 整班销毁。
 - **依赖**：B 类 fixture `llmtier_b` / `api_client_b`（[§4.4](../llmtier-api-test-specification.md)）；实现 `src/http_api/app.py` `_body()`；错误目录 `ERR-REQ-TOO-LARGE`（[llmtier-system-design.md](../../../20_system_design/llmtier-system-design.md) §7.8/§11.1）。**自动化入口 `at_dp_resp_18.py` MISSING（§3.2）**；**不依赖**其它 Case。

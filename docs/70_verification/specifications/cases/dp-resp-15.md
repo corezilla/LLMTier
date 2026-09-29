@@ -3,7 +3,7 @@
 - **Case ID**：`DP-RESP-15`
 - **标题**：`POST /v1/responses` 携带 `temperature` 与 `top_p`：`temperature` 为合法字段被受理，`top_p` 不属请求字段、组合命中 `400 invalid_request`。
 - **目的（被测契约）**：验证 Data Plane `POST /v1/responses` 对**采样参数**的处理：OpenAPI `ResponsesRequest` 声明 `temperature`（`number`，`[0,2]`）为合法可选字段，但**未声明 `top_p`**；实现 `src/inference/responses.py` 的 `ALLOWED_FIELDS` 同样只含 `temperature`。故 `temperature` 单独出现被受理（对上游为透传，不参与本文断言），而 `top_p` 出现触发未知字段拒绝。被测端点/规则：`POST /v1/responses`；设计验证项 `VRC-INF-001`；机制 `T-STREAM`。**不证明什么**：不证明 `temperature` 对生成结果的数值影响（§5 LLM 判据明确 temperature/top_p 不参与断言）；不证明任何别名；不证明合法流式成功（DP-RESP-01/06）。
-- **前置与环境**：**环境 A**（m5air 已部署实例 `http://192.168.1.9:8181`，角色 `data`，无状态；见[测试设计 §2.3](../llmtier-api-test-specification.md)）。执行前必须通过[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查；fixture `api_client`（Bearer `dev-data`，[§4.4](../llmtier-api-test-specification.md)）。初始状态 = 3 provider / 4 deployment / 7 fixed tier。`temperature` 路径需要上游可用；`top_p` 拒绝路径不需要。
+- **前置与环境**：**环境 A**（m5air 现有实例，角色 `data`，无状态；见[测试设计 §2.3](../llmtier-api-test-specification.md)）。前置 = §2.1 就绪检查（由 `conftest.py::pytest_configure` 自动执行；任一失败 → 整班 BLOCKED/SKIP）。fixture `api_client`（Data 角色客户端，见[§4.4](../llmtier-api-test-specification.md)）。初始状态 = 3 provider / 4 deployment / 7 fixed tier。`temperature` 路径需要上游可用；`top_p` 拒绝路径不需要。
 - **输入与构造**：两个子请求。
 
   （a）`temperature` 单独（期望受理）：
@@ -48,6 +48,6 @@
   - **SKIP**：§2.1 前置不满足——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **INVALID**：以 mock/替代路径冒充真实路径——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **NOT_RUN**：本 Case 有实现（§3.2 `RUN`），未执行时按 §9 记 `NOT_RUN`。
-- **证据与 Run**：保存 (a)/(b) 请求 body、HTTP status/headers、原始响应（SSE 与错误信封）、发出命令、exit code、环境快照。Run ID = `<date>/A-api`，落位 `tests/system/reports/<date>/A-api/<case-id>/`，含 `manifest.json`（[§4.8](../llmtier-api-test-specification.md)）；失败/偏差现场不截断。
+- **证据与 Run**：保存 (a)/(b) 请求 body、HTTP status/headers、原始响应（SSE 与错误信封）、发出命令、exit code、环境快照。manifest 与报告落位见 §4.8/§10（本 case `environment:"a"`）。
 - **清理与复位**：**无需 teardown**——`store=false`、环境 A 无状态；退出前确认 `/readyz` 仍 7 tier。
 - **依赖**：[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查；`api_client`（[§4.4](../llmtier-api-test-specification.md)）；OpenAPI `ResponsesRequest`；实现 `src/inference/responses.py`（`ALLOWED_FIELDS`）；自动化入口 [`at_dp_resp_15.py`](../../../../tests/system/api_test_v03/at_dp_resp_15.py)（已断言 `temperature` 200 + `top_p` 400 `invalid_request`）。**不依赖**其它 Case。

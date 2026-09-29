@@ -3,7 +3,7 @@
 - **Case ID**：`ADM-SL-03`（与 §3.2 权威清单一致；本文件名 `adm-sl-03.md`，唯一对应）。
 - **标题**：`GET /v1/service-levels/{id}` 精确返回单个固定 Tier：HTTP 200 + `ServiceLevelView` + `ETag`。
 - **目的（被测契约）**：验证 Service Level **单条详情读契约**。被测端点/规则：`GET /v1/service-levels/{service_level_id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getServiceLevel`，路径参数 `service_level_id`，`security=AdminBearerAuth`），成功 `200` + `ServiceLevelView`（`{id,deployment_ids,enabled,capabilities,version}`，`additionalProperties:false`）+ 响应头 `ETag: "<id>.v<N>"`（[`registry.get_service_level`](../../../../src/management/registry.py) 返回 `_etag`）。设计验证项 `VRC-MGMT-002`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明列表（ADM-SL-01）、不证明更新/删除（ADM-SL-04/04b/05/06/07/08）、不证明不存在 id 的 404（未单独构 case；由 `registry.get_service_level` 的 `not_found` 语义承载）、不证明 If-Match/CAS（ADM-SL-04）。
-- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `admin`，只读；见[测试设计 §2.3](../llmtier-api-test-specification.md)）。执行前必须通过[测试设计 §2.1](../llmtier-api-test-specification.md) 的 **6** 项就绪检查，由 [`conftest.py`](../../../../tests/system/api_test_v03/conftest.py) `pytest_configure` 自动执行；任一失败 → 整班 BLOCKED/SKIP。fixture 见[测试设计 §4.4](../llmtier-api-test-specification.md)：`admin_client`（`Bearer dev-admin`）。初始状态 = m5air 现有 7 fixed tier。本 case 选 `Worker`（responses-capable 固定 Tier，A 类必在）。
+- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `admin`，只读；见[测试设计 §2.3](../llmtier-api-test-specification.md)）；前置=§2.1 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；fixture `admin_client`（[测试设计 §4.4](../llmtier-api-test-specification.md)）；初始状态=§2.3 A 类基线（7 fixed tier）。本 case 选 `Worker`（responses-capable 固定 Tier，A 类必在）。
 - **输入与构造**：固定请求：
   ```http
   GET /v1/service-levels/Worker HTTP/1.1
@@ -30,6 +30,6 @@
   - **SKIP**：§2.1 前置不满足——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **INVALID**：用 `127.0.0.1`/mock 冒充真实 m5air——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **NOT_RUN**：本 Case 有实现（§3.2 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
-- **证据与 Run**：保存原始 HTTP status/headers（含 `ETag`）/body、发出命令、exit code、`elapsed`、环境快照。`manifest.json` 必含 `{…,environment:"a",inputs,oracle,actual,verdict,evidence_files,redactions,reproduction_cmd}`。Run ID = `<date>/A-api`，落位 `tests/system/reports/<date>/A-api/<case-id>/`；失败现场不截断。证据/报告契约见[测试设计 §4.8/§10](../llmtier-api-test-specification.md)。
-- **清理与复位**：**无需 teardown**——只读 `GET`，不改 `service_levels`/`service_level_deployments`、不写注入。退出前确认 `/readyz` 仍 7 tier、`GET /v1/service-levels/Worker` 的 `version` 未变。若被误跑于 B 类实例则整班 `stop()` + `rm -rf`（[测试设计 §4.7](../llmtier-api-test-specification.md)）。
+- **证据与 Run**：保存原始 HTTP status/headers（含 `ETag`）/body、发出命令、exit code、`elapsed`、环境快照；落位与契约见[测试设计 §4.8/§10](../llmtier-api-test-specification.md)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
+- **清理与复位**：**无需 teardown**——只读 `GET`，不改 `service_levels`/`service_level_deployments`、不写注入。退出前确认 `/readyz` 仍 7 tier、`GET /v1/service-levels/Worker` 的 `version` 未变。 若被误跑于 B 类实例则整班 `stop()` + `rm -rf`（[测试设计 §4.7](../llmtier-api-test-specification.md)）。
 - **依赖**：[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查；`admin_client` fixture（[§4.4](../llmtier-api-test-specification.md)）；`ServiceLevelView` 机器契约；`registry.get_service_level`/`_etag`。自动化入口 [`at_adm_sl_03.py`](../../../../tests/system/api_test_v03/at_adm_sl_03.py)。**不依赖**其它 Case；其 ETag 语义被 ADM-SL-04/04b/05 复用但各自独立执行。

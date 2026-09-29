@@ -3,7 +3,7 @@
 - **Case ID**：`ADM-SL-08`（与 §3.2 权威清单一致；本文件名 `adm-sl-08.md`，唯一对应）。
 - **标题**：`PATCH /v1/service-levels/{id}` 用非数组 `deployment_ids`：HTTP 500 `internal_error` 信封（无栈/无 secret）；同时登记"非法类型未预校验"缺陷。
 - **目的（被测契约）**：验证统一**服务器错误信封**在兜底 500 路径上的契约，并**登记**输入类型校验缺陷。被测端点/规则：`PATCH /v1/service-levels/{service_level_id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `updateServiceLevel`，`ServiceLevelPatch.deployment_ids` 类型应为 `array`）；[`registry.update_service_level`](../../../../src/management/registry.py) 只做键集校验（`set(body) <= {"deployment_ids","enabled"}`）**不做类型校验**，把 `deployment_ids` 直接交给 `_capability_intersection` 迭代；当其为非可迭代 JSON 类型（如整数）时抛 `TypeError`，被 [`app.py`](../../../../src/http_api/app.py) 的兜底 `except Exception` 转为 `ApiError(500, "internal_error", "Internal server error")`（5 键信封，[测试设计 §4.6](../llmtier-api-test-specification.md)）。设计验证项 `VRC-MGMT-002`；错误目录 `ERR-INTERNAL` → wire `code=internal_error`；机制 `R-CFG-01`；需求/机制链 `LT-FUN-005`、`CT-ADMIN-001`。**不证明什么**：不证明合法 PATCH（ADM-SL-04）、不证明键白名单 400（ADM-SL-04b）、不证明能力/向量空间冲突 409（ADM-SL-06/07）、不证明审计/日志（ADM-AUDIT-01/ADM-LOGS-01）。本 case **不把 500 当正确行为**——它验证信封契约并登记缺陷。
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[测试设计 §2.3/§2.4](../llmtier-api-test-specification.md)）。执行前须满足[测试设计 §2.1](../llmtier-api-test-specification.md) **附加（B 类）**（`/healthz` 200；`_baseline_settings`）。fixture 见[测试设计 §4.4](../llmtier-api-test-specification.md)：`admin_client_b`。本 case 为 **MISSING**（§3.2 无 `at_adm_sl_08.py`），设计已写、实现待补。初始状态：`Worker` 存在。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[测试设计 §2.3/§2.4](../llmtier-api-test-specification.md)）；前置=§2.1 附加（B 类）；fixture `admin_client_b`（[测试设计 §4.4](../llmtier-api-test-specification.md)）；本 case 为 **MISSING**（§3.2 无 `at_adm_sl_08.py`），设计已写、实现待补。初始状态=`Worker` 存在。
 - **输入与构造**：
   ```http
   PATCH /v1/service-levels/Worker HTTP/1.1
@@ -38,6 +38,6 @@
   - **SKIP**：B 类临时实例不可用——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **NOT_RUN**：本 Case 自动化入口 **`MISSING`**（§3.2），本轮未执行；缺口引用 §3.2/§9（MISSING ≠ NOT_RUN：无实现是缺口，不是跳过）。
   - **INVALID**：用 `127.0.0.1`/mock 冒充，或用字符串/对象等会得 400 的输入冒充 500 路径——见[测试设计 §9](../llmtier-api-test-specification.md)。
-- **证据与 Run**：保存 GET/PATCH 的请求与原始 500 响应（脱敏后）、`Worker` 前后 `version`、缺陷登记条目（含 `reproduction_cmd`）、发出命令、exit code、`elapsed`、环境快照。`manifest.json` 必含 `{…,environment:"b",inputs,oracle,actual,verdict,evidence_files,redactions,reproduction_cmd}`。Run ID = `<date>/B-api`，落位 `tests/system/reports/<date>/B-api/<case-id>/`；失败现场不截断。证据/报告契约见[测试设计 §4.8/§10](../llmtier-api-test-specification.md)。
-- **清理与复位**：**无需业务 teardown**——500 前回滚，无资源改动。退出前确认 7 tier 齐全、`Worker.version` 未变、无注入残留。B 类整班结束 `stop()` + `rm -rf`（[测试设计 §4.7](../llmtier-api-test-specification.md)）。
+- **证据与 Run**：保存GET/PATCH 的请求与原始 500 响应（脱敏后）、`Worker` 前后 `version`、缺陷登记条目（含 `reproduction_cmd`）、发出命令、exit code、`elapsed`、环境快照；落位与契约见[测试设计 §4.8/§10](../llmtier-api-test-specification.md)（Run ID=`<date>/B-api`，`environment:"b"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
+- **清理与复位**：**无需业务 teardown**——500 前回滚，无资源改动。退出前确认 7 tier 齐全、`Worker.version` 未变、无注入残留。 B 类整班结束由 fixture `stop()` + `rm -rf` 临时目录（[测试设计 §2.8/§4.7](../llmtier-api-test-specification.md)）。
 - **依赖**：B 类 fixture `llmtier_b` / `admin_client_b`（[§4.4](../llmtier-api-test-specification.md)）；`registry.update_service_level`/`_capability_intersection`（缺类型校验）；[`app.py`](../../../../src/http_api/app.py) 兜底 500；错误目录 `ERR-INTERNAL`；机制 `R-CFG-01`。自动化入口 **`MISSING`**（待补 `at_adm_sl_08.py`，落位按 §4.9/§8.5）。**不依赖**其它 Case；与 ADM-SL-04b（键白名单 400）互为"输入校验"的正/反例。

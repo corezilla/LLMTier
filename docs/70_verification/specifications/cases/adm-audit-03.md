@@ -4,7 +4,7 @@
 - **标题**：`GET /v1/audit?limit=abc` 非法分页参数：HTTP 400 `invalid_request`。
 - **目的（被测契约）**：验证审计 `limit` 的**整数参数校验**。被测端点/规则：`GET /v1/audit`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listAuditEvents`，query `limit` `type:integer`）；[`app.py`](../../../../src/http_api/app.py) `app.audit.page(_int_param(query, "limit", 50))`，[`_int_param`](../../../../src/http_api/app.py) 对无法 `int()` 的输入抛 400 `invalid_request`（在 admin 鉴权后、handler 前）。设计验证项 `VRC-MGMT-003`；错误目录 `ERR-REQ-VALIDATION` → wire `code=invalid_request`；机制 `R-OBS-01`；需求/机制链 `LT-FUN-006`、`R-OBS-01`、`CT-ADMIN-001`。**不证明什么**：不证明默认 50/边界 `limit=1`（ADM-AUDIT-01/02）、不证明字段脱敏（ADM-AUDIT-01）、不证明角色负向（`/v1/audit` 为 admin 守门，data 凭据的 403 属 AUTH-03/09 的跨切面角色覆盖，**不是本 case**）、不证明 `cursor`（审计无 cursor）。
   > **规格注记**：§3.2 将 `ADM-AUDIT-03` 登记为"审计非法分页参数 → 400 `invalid_request`"，§11.1 亦将 `ERR-REQ-VALIDATION` 映射到本 Case。`ADM-RUNTIME-02` 才是 `data→403` 的角色负向。运行时若以 data 凭据访问 `/v1/audit`，会在 `_int_param` 之前被 admin 守门以 403 拒绝——本 case 不构造该路径。
-- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `admin`；见[测试设计 §2.3](../llmtier-api-test-specification.md)）。就绪检查同[测试设计 §2.1](../llmtier-api-test-specification.md)（**6** 项，`pytest_configure` 自动执行；任一失败 → 整班 BLOCKED/SKIP）。fixture：`admin_client`（[§4.4](../llmtier-api-test-specification.md)）。初始状态 = m5air 基线；本 case 为 **MISSING**（§3.2 无 `at_adm_audit_03.py`），设计已写、实现待补。拒绝路径无副作用。
+- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `admin`，只读；见[测试设计 §2.3](../llmtier-api-test-specification.md)）；前置=§2.1 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；fixture `admin_client`（[测试设计 §4.4](../llmtier-api-test-specification.md)）；初始状态=§2.3 A 类基线；本 case 为 **MISSING**（§3.2 无 `at_adm_audit_03.py`），设计已写、实现待补。拒绝路径无副作用。
 - **输入与构造**：
   ```http
   GET /v1/audit?limit=abc HTTP/1.1
@@ -30,6 +30,6 @@
   - **SKIP**：§2.1 前置不满足——见[测试设计 §9](../llmtier-api-test-specification.md)。
   - **NOT_RUN**：本 Case 自动化入口 **`MISSING`**（§3.2），本轮未执行；缺口引用 §3.2/§9（MISSING ≠ NOT_RUN）。
   - **INVALID**：用 `127.0.0.1`/mock 冒充真实 m5air——见[测试设计 §9](../llmtier-api-test-specification.md)。
-- **证据与 Run**：保存请求 URL（含非法 `limit`）、原始 400 响应（脱敏后）、`limit=1` 对照响应、发出命令、exit code、`elapsed`、环境快照。`manifest.json` 必含 `{…,environment:"a",inputs,oracle,actual,verdict,evidence_files,redactions,reproduction_cmd}`。Run ID = `<date>/A-api`，落位 `tests/system/reports/<date>/A-api/<case-id>/`；失败现场不截断。证据/报告契约见[测试设计 §4.8/§10](../llmtier-api-test-specification.md)。
-- **清理与复位**：**无需 teardown**——拒绝路径无状态变更。退出前确认 `/readyz` 仍 7 tier、无未清空注入项。若被误跑于 B 类实例则整班 `stop()` + `rm -rf`（[测试设计 §4.7](../llmtier-api-test-specification.md)）。
+- **证据与 Run**：保存请求 URL（含非法 `limit`）、原始 400 响应（脱敏后）、`limit=1` 对照响应、发出命令、exit code、`elapsed`、环境快照；落位与契约见[测试设计 §4.8/§10](../llmtier-api-test-specification.md)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
+- **清理与复位**：**无需 teardown**——拒绝路径无状态变更。退出前确认 `/readyz` 仍 7 tier、无未清空注入项。 若被误跑于 B 类实例则整班 `stop()` + `rm -rf`（[测试设计 §4.7](../llmtier-api-test-specification.md)）。
 - **依赖**：[测试设计 §2.1](../llmtier-api-test-specification.md) 就绪检查；`admin_client` fixture（[§4.4](../llmtier-api-test-specification.md)）；`app.py::_int_param`；错误目录 `ERR-REQ-VALIDATION`。自动化入口 **`MISSING`**（待补 `at_adm_audit_03.py`，落位按 §4.9/§8.5）。**不依赖**其它 Case；与 ADM-AUDIT-01/02（成功/边界读）互补。
