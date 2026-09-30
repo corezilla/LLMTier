@@ -132,7 +132,7 @@ _CHECKS = [
     ("§2.1.2 m5air LLMTier /readyz 200 + 7 tier", _check_m5air_readyz),
     ("§2.1.3 m5air OMLX 9000 健康", lambda: _check_omlx(M5AIR_OMLX, "m5air")),
     ("§2.1.4 m5mac OMLX 9000 健康", lambda: _check_omlx(M5MAC_OMLX, "m5mac")),
-    ("§2.1.5 provider_omlx_m5mac.secret_ref = file: 路径", _check_provider_omlx_m5mac_secret_ref),
+    ("§2.1.5 provider_omlx_m5mac 已注册且 has_secret=true（secret_ref 只写不返回）", _check_provider_omlx_m5mac_secret_ref),
     ("§2.1.6 必需 provider/deployment 已注册", _check_required_a_resources),
 ]
 

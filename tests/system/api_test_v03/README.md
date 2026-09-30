@@ -2,12 +2,12 @@
 
 > 配套：[`llmtier-system-test-plan.md`](../../../docs/70_verification/plans/llmtier-system-test-plan.md) §4
 
-已实现（RUN）**88** 个 `at_*.py`（权威设计清单共 **140** 个 Case，其余 52 项为 MISSING 缺口；见测试设计 §3.2），按 pytest marker 分流：
+已实现（RUN）**163** 个 `at_*.py`（权威设计清单共 **163** 个 Case，**无 MISSING**；见 `llmtier-system-test-scheme` §3），按 pytest marker 分流。`--collect-only` 实际 collect=**176** 项（多出者为参数化/双臂测试）：
 
-| 类 | marker | 数量 | 执行环境 |
+| 类 | marker | collected | 执行环境 |
 |---|---|---|---|
-| A | `@pytest.mark.api_a` | 60 | 直接打 m5air (`192.168.1.9:8181`) 现有实例（读 / 无状态写） |
-| B | `@pytest.mark.api_b` | 28 | 临时 SQLite + 临时端口 LLMTier 实例（CRUD / 注入），teardown 清理 |
+| A | `@pytest.mark.api_a` | 105 | 直接打 m5air (`192.168.1.9:8181`) 现有实例（读 / 无状态写） |
+| B | `@pytest.mark.api_b` | 71 | 临时 SQLite + 临时端口 LLMTier 实例（CRUD / 注入），teardown 清理 |
 
 B 类 fixtures 与 A 类共用同一个 `conftest.py`（`_b` suffix fixtures）；没有独立的
 `conftest_b.py`，也没有 `at_b_*.py`——B 类与 A 类用同一套 `at_*.py` 命名 + marker 区分。
@@ -98,7 +98,7 @@ runner 每次执行在 `tests/system/reports/<date>/<class>-<phase>/`（如
 2. m5air `/readyz` 200 + 含 7 个 tier
 3. m5air OMLX 9000 健康
 4. m5mac OMLX 9000 健康
-5. provider_omlx_m5mac.secret_ref = file: 路径（非 env:）
+5. provider_omlx_m5mac 已注册且 `has_secret=true`（`secret_ref` 只写不返回，见 OpenAPI `ProviderView`）
 6. A 类依赖的 provider / deployment 已注册（`provider_local`、`provider_minimax`、
    `provider_omlx_m5mac`；`dep_local_gemma`、`dep_local_bge_m3`、`dep_omlx_qwen36`、
    `dep_minimax_m27`）

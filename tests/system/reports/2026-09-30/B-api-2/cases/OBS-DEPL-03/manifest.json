@@ -1,0 +1,14 @@
+{
+  "artifacts": [],
+  "case_id": "OBS-DEPL-03",
+  "command": "python3 -m pytest --junitxml=tests/system/reports/2026-09-30/B-api-2/junit.xml tests/system/api_test_v03/ -m api_b -v --tb=short -o addopts=",
+  "git_commit": "b02a301a55fb129b9613f09a8b239eb1eab8b0ea",
+  "node_id": "tests.system.api_test_v03.at_obs_depl_03::test_obs_depl_03_unknown_deployment_404",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "2026-09-30/B-api-2",
+  "schema_version_db": "2",
+  "started_at": "2026-09-30T17:38:19Z",
+  "status": "PASS"
+}

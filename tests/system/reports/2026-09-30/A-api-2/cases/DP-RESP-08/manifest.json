@@ -1,0 +1,14 @@
+{
+  "artifacts": [],
+  "case_id": "DP-RESP-08",
+  "command": "python3 -m pytest --junitxml=tests/system/reports/2026-09-30/A-api-2/junit.xml tests/system/api_test_v03/ -m api_a -v --tb=short -o addopts=",
+  "git_commit": "b02a301a55fb129b9613f09a8b239eb1eab8b0ea",
+  "node_id": "tests.system.api_test_v03.at_dp_resp_08::test_dp_resp_08_missing_model",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "2026-09-30/A-api-2",
+  "schema_version_db": "2",
+  "started_at": "2026-09-30T17:37:41Z",
+  "status": "PASS"
+}

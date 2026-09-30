@@ -304,12 +304,25 @@ def main(argv: list[str] | None = None) -> int:
     metadata = _read_metadata(args.run_metadata)
     if args.layer and not metadata.get("layer"):
         metadata["layer"] = args.layer
-    report = build_report(args.junit, metadata, rootdir)
+
+    # A junit that exists but cannot be parsed (truncated/not XML) is equally a
+    # harness/collection error (plan §8): never a false-safe exit 0 and never an
+    # uncaught traceback. --check-cap prints "1" (harness error) and exits 2.
+    try:
+        records = harvest(args.junit, rootdir)
+    except (ET.ParseError, OSError, ValueError) as exc:
+        print(f"test_report: unreadable junit at {args.junit}: {exc}", file=sys.stderr)
+        if args.check_cap:
+            print("1")
+            return 2
+        return 2
 
     if args.check_cap:
-        breached = cap_breached(harvest(args.junit, rootdir), args.layer)
+        breached = cap_breached(records, args.layer)
         print("1" if breached else "0")
         return 1 if breached else 0
+
+    report = build_report(args.junit, metadata, rootdir)
 
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)
@@ -321,7 +334,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.manifests:
         emit_manifests(args.out.parent if args.out else args.junit.parent,
-                       harvest(args.junit, rootdir), metadata)
+                       records, metadata)
     return 0
 
 

@@ -9,8 +9,12 @@
 #   - map pytest exit code -> llmtier run exit code (0/1/2)
 #
 # Run ID rules:
-#   system : <date>/<class>-<phase>   e.g. 2026-09-30/A-api
-#   unit   : run-YYYYMMDD-NN           e.g. run-20260930-01
+#   system : <date>/<class>-api      e.g. 2026-09-30/A-api   (first run today)
+#            <date>/<class>-api-N    e.g. 2026-09-30/A-api-2 (rerun; never clobber)
+#   unit   : run-YYYYMMDD-NN         e.g. run-20260930-01
+#
+# Reruns always allocate a fresh run dir (plan §7: 重跑生成新 Run、新报告，
+# 不覆盖旧失败).
 #
 # Exit semantics (plan §8 / §9):
 #   0 = ok (no FAIL / BLOCKED / INVALID; SKIP within cap)
@@ -70,6 +74,30 @@ _run_unit_run_id() {
     fi
   done
   echo "run-${date}-99"
+}
+
+# Allocate the next system run id for today (plan §7: a rerun must produce a
+# NEW run and must never overwrite an earlier failure).
+# The canonical first run is <date>/<class>-api (e.g. 2026-09-30/A-api); reruns
+# append a phase ordinal: <date>/<class>-api-2, <date>/<class>-api-3, ...
+#   _run_system_run_id <layer-root> <class-label>
+_run_system_run_id() {
+  local layer_root="$1" class_label="$2" date today i candidate
+  today="$(_run_date)"
+  mkdir -p "$layer_root/reports"
+  candidate="$today/${class_label}-api"
+  if [ ! -d "$layer_root/reports/$candidate" ]; then
+    echo "$candidate"
+    return 0
+  fi
+  for i in $(seq 2 99); do
+    candidate="$today/${class_label}-api-${i}"
+    if [ ! -d "$layer_root/reports/$candidate" ]; then
+      echo "$candidate"
+      return 0
+    fi
+  done
+  echo "$today/${class_label}-api-99"
 }
 
 # Write test-run.env metadata (key=value, machine readable).
@@ -139,11 +167,16 @@ PY
   esac
 
   # Cap breach -> exit 2 (plan §8: SKIP cap A<=5 / B<=3; runner exit code 2).
+  # NOTE: --check-cap prints the verdict ("1"/"0") on stdout AND sets its own
+  # exit status (1 on breach). Capture stdout only and ignore the tool's exit
+  # code; using `|| echo 0` here would append a second line and break the
+  # string comparison, silently killing the cap->exit-2 path.
   local cap_breached
   cap_breached="$(python3 "$_RUN_REPO_ROOT/tools/test_report.py" \
       --junit "$xml" --run-metadata "$run_dir/test-run.env" \
       --rootdir "$_RUN_REPO_ROOT" \
-      --check-cap --layer "$layer" 2>/dev/null || echo "0")"
+      --check-cap --layer "$layer" 2>/dev/null || true)"
+  cap_breached="$(printf '%s' "$cap_breached" | head -n1 | tr -d '[:space:]')"
   if [ "$cap_breached" = "1" ]; then
     run_rc=2
   fi

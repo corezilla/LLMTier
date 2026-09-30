@@ -18,7 +18,7 @@ source "$_RUN_REPO_ROOT/tests/lib/run_harness.sh"
 cd "$_RUN_REPO_ROOT"
 export PYTHONPATH=src
 
-RUN_ID="$(date -u +%Y-%m-%d)/B-api"
+RUN_ID="$(_run_system_run_id "$_RUN_REPO_ROOT/tests/system" "B")"
 RUN_DIR="tests/system/reports/$RUN_ID"
 
 rc="$(_run_pytest tests/system "$RUN_ID" "B" "system" \

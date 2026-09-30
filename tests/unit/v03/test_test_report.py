@@ -169,6 +169,16 @@ class ReportTests(unittest.TestCase):
         rc = main(["--junit", "/nonexistent/junit.xml", "--check-cap", "--layer", "A"])
         self.assertEqual(2, rc)
 
+    def test_check_cap_malformed_junit_is_harness_error(self):
+        # A junit that exists but is not parseable XML (truncated/corrupt) is a
+        # harness error too: --check-cap must print 1 and exit 2, never emit an
+        # uncaught traceback or a false-safe 0.
+        with tempfile.TemporaryDirectory() as d:
+            xml = Path(d) / "junit.xml"
+            xml.write_text("<testsuites><testsuite><testcase", encoding="utf-8")
+            self.assertEqual(2, main(["--junit", str(xml), "--check-cap", "--layer", "A"]))
+            self.assertEqual(2, main(["--junit", str(xml), "--out", str(Path(d) / "x.json")]))
+
     def test_check_cap_within_limit_exits_zero(self):
         cases = [_case(f"test_skip_{i}", '<skipped message="env"/>') for i in range(2)]
         with tempfile.TemporaryDirectory() as d:
