@@ -1,4 +1,4 @@
-"""Case ID: ADM-ADMIN-USAGE-03
+"""Case ID: ADM-USAGE-03
 
 Endpoint: DELETE /v1/usage
 Upstream Provider: 无（直接写 SQLite 造测试数据）

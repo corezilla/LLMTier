@@ -1,4 +1,4 @@
-"""Case ID: HEALTH-03 / OBS-04
+"""Case ID: HEALTH-03
 
 Endpoint: GET /readyz
 Upstream Provider: prov_b（endpoint 为本机 LAN IP 上的 fake provider，TS-003）

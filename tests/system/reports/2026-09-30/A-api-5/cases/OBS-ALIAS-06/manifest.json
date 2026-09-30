@@ -1,0 +1,14 @@
+{
+  "artifacts": [],
+  "case_id": "OBS-ALIAS-06",
+  "command": "python3 -m pytest --junitxml=tests/system/reports/2026-09-30/A-api-5/junit.xml tests/system/api_test_v03/ -m api_a -v --tb=short -o addopts=",
+  "git_commit": "b86be7ba4f4d2dee9ecd578a5a73745d71f4d3be",
+  "node_id": "tests.system.api_test_v03.at_obs_alias_06::test_obs_alias_06_traces_equivalence",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "2026-09-30/A-api-5",
+  "schema_version_db": "2",
+  "started_at": "2026-09-30T18:11:54Z",
+  "status": "PASS"
+}

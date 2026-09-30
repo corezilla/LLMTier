@@ -1,0 +1,89 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.14.3, pytest-9.1.0, pluggy-1.6.0 -- /Library/Frameworks/Python.framework/Versions/3.14/bin/python3
+cachedir: .pytest_cache
+A 类 API 测试套件 — m5air 直连
+  [OK] §2.1.1 m5air LLMTier /healthz 200 — ok
+  [OK] §2.1.2 m5air LLMTier /readyz 200 + 7 tier — ok (7 models)
+  [OK] §2.1.3 m5air OMLX 9000 健康 — ok
+  [OK] §2.1.4 m5mac OMLX 9000 健康 — ok
+  [OK] §2.1.5 provider_omlx_m5mac 已注册且 has_secret=true（secret_ref 只写不返回） — ok (has_secret=True)
+  [OK] §2.1.6 必需 provider/deployment 已注册 — ok (3 providers, 4 deployments)
+rootdir: /Users/ben/work/LLMTier
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 176 items / 105 deselected / 71 selected
+
+tests/system/api_test_v03/at_adm_admin_usage_03.py::test_adm_admin_usage_03_reset_all PASSED [  1%]
+tests/system/api_test_v03/at_adm_admin_usage_03.py::test_adm_admin_usage_03_reset_by_model PASSED [  2%]
+tests/system/api_test_v03/at_adm_admin_usage_03.py::test_adm_admin_usage_03_reset_by_deployment PASSED [  4%]
+tests/system/api_test_v03/at_adm_admin_usage_03.py::test_adm_admin_usage_03_reset_double_scope PASSED [  5%]
+tests/system/api_test_v03/at_adm_admin_usage_03.py::test_adm_admin_usage_03_reset_role_negative PASSED [  7%]
+tests/system/api_test_v03/at_adm_admin_usage_03.py::test_adm_admin_usage_03_half_open_window PASSED [  8%]
+tests/system/api_test_v03/at_adm_depl_02.py::test_adm_depl_02_create_deployment PASSED [  9%]
+tests/system/api_test_v03/at_adm_depl_04.py::test_adm_depl_04_update_deployment PASSED [ 11%]
+tests/system/api_test_v03/at_adm_depl_05.py::test_adm_depl_05_delete_deployment PASSED [ 12%]
+tests/system/api_test_v03/at_adm_depl_06.py::test_adm_depl_06_capabilities_missing_field PASSED [ 14%]
+tests/system/api_test_v03/at_adm_depl_07.py::test_adm_depl_07_capabilities_unknown_field PASSED [ 15%]
+tests/system/api_test_v03/at_adm_depl_08.py::test_adm_depl_08_nonexistent_provider PASSED [ 16%]
+tests/system/api_test_v03/at_adm_depl_09.py::test_adm_depl_09_provider_id_immutable PASSED [ 18%]
+tests/system/api_test_v03/at_adm_probe_03.py::test_adm_probe_03_unknown_deployment PASSED [ 19%]
+tests/system/api_test_v03/at_adm_prov_02.py::test_adm_prov_02_create_provider PASSED [ 21%]
+tests/system/api_test_v03/at_adm_prov_05.py::test_adm_prov_05_update_provider PASSED [ 22%]
+tests/system/api_test_v03/at_adm_prov_06.py::test_adm_prov_06_patch_missing_if_match PASSED [ 23%]
+tests/system/api_test_v03/at_adm_prov_07.py::test_adm_prov_07_patch_wrong_etag PASSED [ 25%]
+tests/system/api_test_v03/at_adm_prov_08.py::test_adm_prov_08_delete_provider PASSED [ 26%]
+tests/system/api_test_v03/at_adm_prov_09.py::test_adm_prov_09_delete_missing_if_match PASSED [ 28%]
+tests/system/api_test_v03/at_adm_prov_10.py::test_adm_prov_10_delete_provider_with_active_deployment PASSED [ 29%]
+tests/system/api_test_v03/at_adm_prov_11.py::test_adm_prov_11_kind_enum_validation PASSED [ 30%]
+tests/system/api_test_v03/at_adm_prov_12.py::test_adm_prov_12_secret_ref_format_validation PASSED [ 32%]
+tests/system/api_test_v03/at_adm_prov_13.py::test_adm_prov_13_usage_subobject_update PASSED [ 33%]
+tests/system/api_test_v03/at_adm_sl_02.py::test_adm_sl_02_create_non_fixed_tier PASSED [ 35%]
+tests/system/api_test_v03/at_adm_sl_02b.py::test_adm_sl_02b_create_duplicate_fixed_tier PASSED [ 36%]
+tests/system/api_test_v03/at_adm_sl_04.py::test_adm_sl_04_update_service_level PASSED [ 38%]
+tests/system/api_test_v03/at_adm_sl_04b.py::test_adm_sl_04b_update_with_unknown_field PASSED [ 39%]
+tests/system/api_test_v03/at_adm_sl_05.py::test_adm_sl_05_delete_fixed_tier PASSED [ 40%]
+tests/system/api_test_v03/at_adm_sl_06.py::test_adm_sl_06_capability_conflict PASSED [ 42%]
+tests/system/api_test_v03/at_adm_sl_07.py::test_adm_sl_07_embedding_space_conflict PASSED [ 43%]
+tests/system/api_test_v03/at_adm_sl_08.py::test_adm_sl_08_non_array_deployment_ids PASSED [ 45%]
+tests/system/api_test_v03/at_auth_07.py::test_auth_07_no_auth_configured PASSED [ 46%]
+tests/system/api_test_v03/at_dp_emb_08.py::test_dp_emb_08_admission_saturation_429 PASSED [ 47%]
+tests/system/api_test_v03/at_dp_emb_09.py::test_dp_emb_09_upstream_contract_error_502 PASSED [ 49%]
+tests/system/api_test_v03/at_dp_emb_10.py::test_dp_emb_10_upstream_unavailable_503 PASSED [ 50%]
+tests/system/api_test_v03/at_dp_resp_04.py::test_dp_resp_04_tools_passthrough_echo_b PASSED [ 52%]
+tests/system/api_test_v03/at_dp_resp_11.py::test_dp_resp_11_upstream_502_provider_failure PASSED [ 53%]
+tests/system/api_test_v03/at_dp_resp_16.py::test_dp_resp_16_malformed_json_body PASSED [ 54%]
+tests/system/api_test_v03/at_dp_resp_16.py::test_dp_resp_16_non_object_json_body PASSED [ 56%]
+tests/system/api_test_v03/at_dp_resp_18.py::test_dp_resp_18_body_too_large PASSED [ 57%]
+tests/system/api_test_v03/at_dp_resp_18.py::test_dp_resp_18_exact_two_mib_accepted PASSED [ 59%]
+tests/system/api_test_v03/at_dp_resp_19.py::test_dp_resp_19_all_candidates_unhealthy PASSED [ 60%]
+tests/system/api_test_v03/at_dp_resp_20.py::test_dp_resp_20_admission_saturation_429 PASSED [ 61%]
+tests/system/api_test_v03/at_dp_resp_21.py::test_dp_resp_21_client_disconnect_marks_aborted PASSED [ 63%]
+tests/system/api_test_v03/at_dp_resp_22.py::test_dp_resp_22_injected_503_provider_unavailable PASSED [ 64%]
+tests/system/api_test_v03/at_dp_resp_23.py::test_dp_resp_23_upstream_non_success_http PASSED [ 66%]
+tests/system/api_test_v03/at_dp_resp_24.py::test_dp_resp_24_provider_secret_unavailable PASSED [ 67%]
+tests/system/api_test_v03/at_dp_resp_25.py::test_dp_resp_25_upstream_contract_error PASSED [ 69%]
+tests/system/api_test_v03/at_dp_resp_26.py::test_dp_resp_26_stream_terminate PASSED [ 70%]
+tests/system/api_test_v03/at_dp_resp_27.py::test_dp_resp_27_malformed_event[invalid_json] PASSED [ 71%]
+tests/system/api_test_v03/at_dp_resp_27.py::test_dp_resp_27_malformed_event[unknown_event_type] PASSED [ 73%]
+tests/system/api_test_v03/at_dp_usage_08.py::test_dp_usage_08_store_unavailable_not_empty_page PASSED [ 74%]
+tests/system/api_test_v03/at_dp_usage_09.py::test_dp_usage_09_orphan_unknown_survives_real_crash PASSED [ 76%]
+tests/system/api_test_v03/at_dp_usage_09.py::test_dp_usage_09_orphan_unknown_survives_restart PASSED [ 77%]
+tests/system/api_test_v03/at_obs_03.py::test_obs_03_no_deployments_readyz PASSED [ 78%]
+tests/system/api_test_v03/at_obs_04.py::test_obs_04_readyz_degraded PASSED [ 80%]
+tests/system/api_test_v03/at_obs_05.py::test_obs_05_readyz_bootstrap_failure PASSED [ 81%]
+tests/system/api_test_v03/at_obs_06.py::test_obs_06_health_endpoints_need_no_auth PASSED [ 83%]
+tests/system/api_test_v03/at_obs_alias_04.py::test_obs_alias_04_deployments_injections_equivalence PASSED [ 84%]
+tests/system/api_test_v03/at_obs_depl_02.py::test_obs_depl_02_write_upsert_multi_and_audit PASSED [ 85%]
+tests/system/api_test_v03/at_obs_depl_03.py::test_obs_depl_03_unknown_deployment_404 PASSED [ 87%]
+tests/system/api_test_v03/at_obs_depl_04.py::test_obs_depl_04_invalid_items_400_no_write PASSED [ 88%]
+tests/system/api_test_v03/at_obs_depl_05.py::test_obs_depl_05_store_unavailable_503 PASSED [ 90%]
+tests/system/api_test_v03/at_obs_diag_02.py::test_obs_diag_02_patch_switches_partial_upsert_and_audit PASSED [ 91%]
+tests/system/api_test_v03/at_obs_diag_03.py::test_obs_diag_03_invalid_switch_value_400_no_side_effect PASSED [ 92%]
+tests/system/api_test_v03/at_obs_snap_02.py::test_obs_snap_02_invalid_cursor_400 PASSED [ 94%]
+tests/system/api_test_v03/at_obs_snap_03.py::test_obs_snap_03_store_unavailable_503 PASSED [ 95%]
+tests/system/api_test_v03/at_obs_stats_03.py::test_obs_stats_03_store_unavailable_503 PASSED [ 97%]
+tests/system/api_test_v03/at_obs_trace_02.py::test_obs_trace_02_limit1_paging_and_invalid_cursor PASSED [ 98%]
+tests/system/api_test_v03/at_obs_trace_03.py::test_obs_trace_03_store_unavailable_503 PASSED [100%]
+
+- generated xml file: /Users/ben/work/LLMTier/tests/system/reports/2026-09-30/B-api-3/junit.xml -
+===================== 71 passed, 105 deselected in 14.47s ======================

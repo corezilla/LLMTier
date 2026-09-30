@@ -1,4 +1,4 @@
-"""Case ID: OBS-02 / HEALTH-02
+"""Case ID: HEALTH-02
 
 Endpoint: GET /readyz
 Upstream Provider: 无

@@ -1,0 +1,31 @@
+{
+  "project": "LLMTier",
+  "authority": "LLMTier",
+  "document_id": "llmtier-system-test-report-2026-09-30",
+  "document_type": "tests.system-test-report",
+  "document_version": "0.1.0-draft.1",
+  "title": "LLMTier V0.3 System Test Report — Run 2026-09-30",
+  "document_owner": "LLMTier",
+  "authors": [
+    "LLMTier"
+  ],
+  "template_id": "tests.system-test-report",
+  "template_version": "0.3.1",
+  "template_sha256": "f8c6987744a611c0f00b63c5d78c0a7c819c37aafab8200cd0246b61e06dc9bc",
+  "template_conformance": "tailored",
+  "tailoring_ref": "std-tailoring",
+  "migration_map_ref": null,
+  "design_level": "system",
+  "domain": [
+    "software"
+  ],
+  "status": "draft",
+  "visibility": "project",
+  "source_repository": "corezilla/LLMTier",
+  "source_path": "tests/system/reports/2026-09-30/system-test-report.md",
+  "reviewed_commit": "b86be7ba4f4d2dee9ecd578a5a73745d71f4d3be",
+  "parent_document_id": "llmtier-system-design",
+  "supersedes": null,
+  "created_at": "2026-09-30",
+  "last_modified_at": "2026-09-30"
+}

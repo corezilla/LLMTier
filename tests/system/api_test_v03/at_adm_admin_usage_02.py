@@ -1,4 +1,4 @@
-"""Case ID: ADM-ADMIN-USAGE-02
+"""Case ID: ADM-USAGE-02
 
 Endpoint: GET /v1/usage?limit=1
 Upstream Provider: 无
