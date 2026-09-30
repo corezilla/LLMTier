@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-INF-006` / M003 inference §14.1 · `ResponsesService._validate` v0.1.0-draft.1 / `VRC-INF-001` / negative / P0（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
-- 要测什么（责任展开）：被测：`ResponsesService._validate` 的校验顺序与错误码——未知字段→`invalid_request`；`tools` 无能力→`unsupported_request`；`max_output_tokens` 范围/布尔→`invalid_request`；responses 能力 false→`unsupported_model`。
+- 要测什么（责任展开）：被测：`ResponsesService._validate` 的校验顺序与错误码——未知字段/禁字段→`unsupported_field`（`param`=首个违规字段名，系统 §7.8 ERR-REQ-FIELD）；`tools` 无能力→`unsupported_request`；`max_output_tokens` 范围/布尔→`invalid_request`；responses 能力 false→`unsupported_model`。
 - 明确不测什么 / 失败含义：不测：成功归一（UT-INF-001）；不测 provider 协议 wire。失败含义＝校验顺序或错误码实现错误。
 
 ## 2. 被测入口与前置
@@ -64,7 +64,7 @@ _validate(body, caps)  # 顺序：required/stream-store → unknown fields → r
 
 ## 3. 输入构造
 
-- 逐参数输入构造：未知字段 body；`tools`+无 tools 能力；`max_output_tokens=0`/超能力上限/布尔；无 responses 能力 model
+- 逐参数输入构造：未知字段 body（如 `bogus`）；禁字段 body（`previous_response_id`）；`tools`+无 tools 能力；`max_output_tokens=0`/超能力上限/布尔；无 responses 能力 model
 - 边界/非法取值及理由：各错误类互斥；`max_output_tokens` 合法区间接受
 - 规模 / 时间域（数量、分页、复杂度、观测开销）：单请求，O(1)
 
@@ -72,7 +72,7 @@ _validate(body, caps)  # 顺序：required/stream-store → unknown fields → r
 
 | Step | 动作 | 观察点 |
 |---|---|---|
-| 1 | 未知字段 | 400 `invalid_request` |
+| 1 | 未知字段 / 禁字段 | 400 `unsupported_field` + `param`=违规字段名 |
 | 2 | `tools` 无能力 | 400 `unsupported_request` |
 | 3 | `max_output_tokens` 越界/布尔 | 400 `invalid_request` |
 | 4 | responses 能力 false | 400 `unsupported_model` |
@@ -81,7 +81,7 @@ _validate(body, caps)  # 顺序：required/stream-store → unknown fields → r
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：`RULE-INF-VALIDATE` 校验顺序 + OpenAPI 错误码 + 人工推导；不调用被测复算。**判据语义以设计验证项 `VRC-INF-001` 为唯一权威**；本节仅细化不改写，冲突回溯设计修订。
-- 互斥预期（成功 / 各错误分支）：未知字段`invalid_request`；tools 无能力`unsupported_request`；max tokens 非法`invalid_request`；无 responses 能力`unsupported_model`；合法接受；互斥
+- 互斥预期（成功 / 各错误分支）：未知字段/禁字段`unsupported_field`（`param`=违规字段名）；tools 无能力`unsupported_request`；max tokens 非法`invalid_request`；无 responses 能力`unsupported_model`；合法接受；互斥
 
 ## 6. 错误路径、副作用与清理
 
@@ -90,6 +90,6 @@ _validate(body, caps)  # 顺序：required/stream-store → unknown fields → r
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_responses.py::ResponsesValidationGapTests::test_unknown_field_is_400_invalid_request` / `test_tools_without_capability_is_400_unsupported_request` / `test_max_output_tokens_zero_is_400` / `test_max_output_tokens_non_integer_bool_is_400` / `test_max_output_tokens_over_capability_is_400` / `test_max_output_tokens_within_range_accepted` / `test_unsupported_responses_capability_is_400_unsupported_model`
+- 测试文件 / 测试函数：`tests/unit/v03/test_responses.py::ResponsesValidationGapTests::test_unknown_field_is_400_unsupported_field`（`param="bogus"`）/ `test_forbidden_field_carries_param`（`param="previous_response_id"`）/ `test_tools_without_capability_is_400_unsupported_request` / `test_max_output_tokens_zero_is_400` / `test_max_output_tokens_non_integer_bool_is_400` / `test_max_output_tokens_over_capability_is_400` / `test_max_output_tokens_within_range_accepted` / `test_unsupported_responses_capability_is_400_unsupported_model`
 - 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_responses.py -q`
 - 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03/test_responses.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。

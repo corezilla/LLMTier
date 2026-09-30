@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-RESP-14` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -30,7 +30,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-RESP-14` / 系统设计 §8 Responses 接口 / `VRC-INF-001` / negative / P2（[方案清单 `DP-RESP-14`](../../schemes/llmtier-system-test-scheme.md)）。
-- 要测什么（责任展开）：`POST /v1/responses` 携带 `max_tokens`（非 `max_output_tokens`）：不存在别名，`400 invalid_request`（"Request body contains unknown fields"）。OpenAPI `ResponsesRequest` 仅声明 `max_output_tokens`，且实现 `src/inference/responses.py` 的 `ALLOWED_FIELDS` 不含 `max_tokens`，`require(set(body) <= ALLOWED_FIELDS, ...)` 将其作为未知顶层字段拒绝。
+- 要测什么（责任展开）：`POST /v1/responses` 携带 `max_tokens`（非 `max_output_tokens`）：不存在别名，`400 unsupported_field`（"Request body contains unknown fields"，`param="max_tokens"`）。OpenAPI `ResponsesRequest` 仅声明 `max_output_tokens`，且实现 `src/inference/responses.py` 的 `ALLOWED_FIELDS` 不含 `max_tokens`，`require(unknown is None, 400, "unsupported_field", ...)` 将其作为未知顶层字段拒绝。
 - 明确不测什么 / 失败含义：不测截断语义（DP-RESP-10 用 `max_output_tokens`）；不测别名映射（本版本无映射）；不测合法流式成功（DP-RESP-01/06）。失败含义＝`max_tokens` 被当作别名接受。
 
 ## 2. 被测入口与前置
@@ -71,30 +71,30 @@ Content-Type: application/json
 | 1 | `GET /healthz`、`GET /readyz`（由 `pytest_configure` 自动执行） | §2.1 基线 |
 | 2 | `POST /v1/responses`（上表 body） | status / Content-Type / body |
 | 3 | 断言观测形态，按当前机器契约判定 | `status_code == 400`，JSON 错误信封（非 SSE） |
-| 4 | 解析 `resp.json()["error"]` | `code=="invalid_request"`、`message` 含 `"unknown fields"`、`type=="request_error"`、`param is None`、`retryable is False`，键集恰 5 键 |
+| 4 | 解析 `resp.json()["error"]` | `code=="unsupported_field"`、`message` 含 `"unknown fields"`、`type=="request_error"`、`param=="max_tokens"`、`retryable is False`，键集恰 5 键 |
 | 5 | **对照（必做）**：以 `max_output_tokens:50` 重发 | `200` + SSE（证明正名字段受理、反证无别名） |
 
-- 重点关注步骤：① **无别名**——`max_tokens` 不映射到 `max_output_tokens`，直接拒绝；② **错误码归因**——未知字段 → `invalid_request`（非 `unsupported_field`）；③ **拒绝在 dispatch 前、零副作用**；④ **方案与脚本一致**——该行为 `400 invalid_request`，[`at_dp_resp_14.py`](../../../../tests/system/api_test_v03/at_dp_resp_14.py) 第 32-33 行亦断言 `400` + `invalid_request`。
+- 重点关注步骤：① **无别名**——`max_tokens` 不映射到 `max_output_tokens`，直接拒绝；② **错误码归因**——未知字段 → `unsupported_field`（系统 §7.8 `ERR-REQ-FIELD`），`param` 为未知字段名；③ **拒绝在 dispatch 前、零副作用**；④ **方案与脚本一致**——该行为 `400 unsupported_field`，[`at_dp_resp_14.py`](../../../../tests/system/api_test_v03/at_dp_resp_14.py) 第 34-38 行亦断言 `400` + `unsupported_field` + `param=="max_tokens"`。
 
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：OpenAPI `ResponsesRequest`（无 `max_tokens` 属性）+ `ErrorEnvelope`/`ErrorDetail`（[`interfaces/openapi/llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)）。**判据语义以设计验证项 `VRC-INF-001` 为唯一权威**；本节仅细化不改写，冲突回溯设计修订。
-- 互斥预期（成功 / 各错误分支）：HTTP `400`；`Content-Type: application/json`；`error.code=="invalid_request"`、`type=="request_error"`、`param=null`、`retryable=false`；无 SSE。别名语义（`max_tokens` → 200 + SSE）不是候选真值。
+- 互斥预期（成功 / 各错误分支）：HTTP `400`；`Content-Type: application/json`；`error.code=="unsupported_field"`、`type=="request_error"`、`param=="max_tokens"`、`retryable=false`；无 SSE。别名语义（`max_tokens` → 200 + SSE）不是候选真值。
 
 ## 6. 错误路径、副作用与清理
 
-- 错误出口与表现：未知顶层字段 `max_tokens` → `400 invalid_request`，可观察且非 SSE。
+- 错误出口与表现：未知顶层字段 `max_tokens` → `400 unsupported_field`（`param="max_tokens"`），可观察且非 SSE。
 - 副作用断言与清理：**无需 teardown**——环境 A 无状态；拒绝在 dispatch 前，无上游调用。退出前确认 `/readyz` 仍 7 tier。
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：[`tests/system/api_test_v03/at_dp_resp_14.py`](../../../../tests/system/api_test_v03/at_dp_resp_14.py)（已断言 `400 invalid_request`）。
+- 测试文件 / 测试函数：[`tests/system/api_test_v03/at_dp_resp_14.py`](../../../../tests/system/api_test_v03/at_dp_resp_14.py)（已断言 `400 unsupported_field` + `param=="max_tokens"`）。
 - 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_resp_14.py -q`。
 - 实现状态：Implemented；执行与 Verdict 归 Run 报告。
 
 **判定口径（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
-- PASS：`400` + `invalid_request` + 非 SSE + 零副作用；且对照（必做）中 `max_output_tokens:50` 重发得到 `200` + SSE。
-- FAIL：返回 `200`（`max_tokens` 被当别名接受）；或 status/code 不符；或对照的 `max_output_tokens` 重发未成功。
+- PASS：`400` + `unsupported_field` + `param=="max_tokens"` + 非 SSE + 零副作用；且对照（必做）中 `max_output_tokens:50` 重发得到 `200` + SSE。
+- FAIL：返回 `200`（`max_tokens` 被当别名接受）；或 status/code 不符（如 `invalid_request`）、`param` 非 `"max_tokens"`；或对照的 `max_output_tokens` 重发未成功。
 - BLOCKED：测试代码/契约问题。
 - SKIP：就绪检查不满足。
 - INVALID：以 mock/替代路径冒充真实路径。

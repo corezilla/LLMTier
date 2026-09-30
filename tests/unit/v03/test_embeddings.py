@@ -21,9 +21,10 @@ class EmbeddingsTests(unittest.TestCase):
     def tearDown(self):self.fx.close()
     def test_float_success(self):self.assertEqual(len(self.service.create("p","e1",self.body)["data"][0]["embedding"]),1024)
     def test_test_adapter_hook_bypasses_construction(self):
-        """CR-EMBEDDINGS-ADAPTER-HOOK: `_test_adapter` injects a double, no provider build."""
-        from .fakes import FakeAdapter
+        """CR-EMBEDDINGS-ADAPTER-HOOK: `_test_adapter` injects a double and the real
+        `_adapter` method returns it without building a provider (no network)."""
         self.service._test_adapter=FakeAdapter()
+        del self.service._adapter  # drop the setUp shadow so the real _adapter method runs
         self.assertEqual(len(self.service.create("p","e-hook",self.body)["data"][0]["embedding"]),1024)
     def test_batch_count(self):
         body=dict(self.body,input=["a","b"]);self.assertEqual(len(self.service.create("p","e2",body)["data"]),2)

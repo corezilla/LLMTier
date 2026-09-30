@@ -169,6 +169,17 @@ class AdminCursorGuardTests(unittest.TestCase):
             self.fx.app.admin.page([], "op", "deployments", first["page"]["next_cursor"], limit=1)
         self.assertEqual((cm.exception.status, cm.exception.code), (400, "cursor_expired"))
 
+    def test_cursor_filter_digest_is_checked(self):
+        # Tampering the stored filter digest (same principal + same kind row) makes
+        # the cursor invalid; only the `filter_digest` recheck catches this, so the
+        # `snapshot_kind` equality alone is not relied upon.
+        first = self.fx.app.admin.page([{"id": "1"}, {"id": "2"}], "op", "x", limit=1)
+        cursor = first["page"]["next_cursor"]; sid = cursor.split(":")[0]
+        self.fx.app.store.connection().execute("UPDATE query_snapshots SET filter_digest='tampered' WHERE snapshot_id=?", (sid,))
+        with self.assertRaises(ApiError) as cm:
+            self.fx.app.admin.page([], "op", "x", cursor, limit=1)
+        self.assertEqual((cm.exception.status, cm.exception.code), (400, "cursor_expired"))
+
     def test_cursor_authorization_digest_is_checked(self):
         # Tampering the stored authorization digest (same principal row) makes the
         # cursor invalid instead of silently resuming.

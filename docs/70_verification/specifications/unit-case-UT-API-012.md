@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-API-012` / M001 http-api §14.1 · `_UnavailableDiagnostics`/引导 v0.1.0-draft.2 / `VRC-API-001` / recovery / P1（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
-- 要测什么（责任展开）：被测：`DiagnosticsService` 初始化失败时降级为 `_UnavailableDiagnostics`（全方法 no-op、开关默认关），推理仍成功；`bootstrap_error` 置位时 `/healthz`+`/ui/*` 仍可达、`/readyz` →503、数据面 503。
+- 要测什么（责任展开）：被测：`DiagnosticsService` 初始化失败时降级为 `_UnavailableDiagnostics`（全方法 no-op、开关默认关），推理仍成功；`bootstrap_error` 置位时 `/healthz`+`/ui/*` 仍可达、`/readyz` →503、数据面 503；**`Application` 对非 `ApiError` 引导异常兜底为 `bootstrap_error`(503 `bootstrap_invalid`) 而非崩溃（CR-BOOTSTRAP-CATCH）**。
 - 明确不测什么 / 失败含义：不测：诊断正常路径（UT-DIAG-*）；不测 systemd 启动。失败含义＝fail-open 降级或引导错误面实现错误。
 
 ## 2. 被测入口与前置
@@ -77,11 +77,12 @@ Application(database, settings)  # DiagnosticsService 失败时 self.diagnostics
 | 3 | 降级下发起推理 | 推理仍成功 |
 | 4 | `bootstrap_error` 下 `GET /healthz`/`/ui/` | 200 |
 | 5 | `bootstrap_error` 下 `GET /readyz` / 数据面 | 503 not_ready / 503 |
+| 6 | 非 `ApiError` 引导异常（patch `bootstrap_settings` 抛 `OSError`） | `bootstrap_error`=(503,`bootstrap_invalid`)、进程不崩 |
 
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：`CON-INFER-005` fail-open + `T-MGMT-02` not_ready 语义 + 人工推导；不调用被测复算。**判据语义以设计验证项 `VRC-API-001` 为唯一权威**；本节仅细化不改写，冲突回溯设计修订。
-- 互斥预期（成功 / 各错误分支）：降级为 no-op 且开关默认关；推理成功；bootstrap_error 下 `/healthz`+`/ui/*` 200、`/readyz` 503、数据面 503；互斥
+- 互斥预期（成功 / 各错误分支）：降级为 no-op 且开关默认关；推理成功；bootstrap_error 下 `/healthz`+`/ui/*` 200、`/readyz` 503、数据面 503；非 `ApiError` 引导异常 → 503 `bootstrap_invalid` 且不崩溃；互斥
 
 ## 6. 错误路径、副作用与清理
 
@@ -90,6 +91,6 @@ Application(database, settings)  # DiagnosticsService 失败时 self.diagnostics
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_app_dispatch.py::UnavailableDiagnosticsTests::test_degrades_to_unavailable_observer` / `test_switches_default_off` / `test_void_methods_are_noops` / `test_inference_still_succeeds_when_diagnostics_unavailable` + `BootstrapErrorTests::test_healthz_still_reachable` / `test_ui_still_reachable` / `test_readyz_is_503_not_ready` / `test_data_plane_returns_bootstrap_error`
+- 测试文件 / 测试函数：`tests/unit/v03/test_app_dispatch.py::UnavailableDiagnosticsTests::test_degrades_to_unavailable_observer` / `test_switches_default_off` / `test_void_methods_are_noops` / `test_inference_still_succeeds_when_diagnostics_unavailable` + `BootstrapErrorTests::test_healthz_still_reachable` / `test_ui_still_reachable` / `test_readyz_is_503_not_ready` / `test_data_plane_returns_bootstrap_error` + `tests/unit/v03/test_app_startup.py::StartupTests::test_non_apierror_bootstrap_does_not_crash`（CR-BOOTSTRAP-CATCH）
 - 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_app_dispatch.py -q`
 - 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03/test_app_dispatch.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。

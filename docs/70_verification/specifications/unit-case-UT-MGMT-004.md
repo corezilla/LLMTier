@@ -46,8 +46,8 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-MGMT-004` / `VRC-MGMT-004`（management 模块设计 §14 / management-isd §9.1，management 0.1.0-draft.2） / `VRC-MGMT-004` / boundary / P0（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
-- 要测什么（责任展开）：被测：用量查询分页 cursor 首屏冻结、cursor 过期/跨 principal 400/403、范围清空计数一致。
-- 明确不测什么 / 失败含义：不测：账本写入（M003）；不测 HTTP 层。失败含义＝分页快照/清空范围实现错误。
+- 要测什么（责任展开）：被测：用量查询分页 cursor 首屏冻结、cursor 过期/跨 principal 400/403、范围清空计数一致；admin cursor 首屏快照与跨 principal 绑定（畸形 cursor 与摘要绑定归 UT-MGMT-009 细化）。
+- 明确不测什么 / 失败含义：不测：账本写入（M003）；不测 HTTP 层；不测 cursor TTL 过期/畸形解析/摘要绑定（由 UT-MGMT-009）。失败含义＝分页快照/清空范围实现错误。
 
 ## 2. 被测入口与前置
 
@@ -81,7 +81,7 @@ page(items, principal, kind, cursor, limit); usage.page(...); usage.reset_usage(
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：`RULE-MGMT-SNAPSHOT`/`CON-METER-004`；人工推导。**判据语义以设计验证项 `VRC-MGMT-004` 为唯一权威**；本节仅细化不改写，冲突回溯设计修订。
-- 互斥预期（成功 / 各错误分支）：首屏快照冻结；跨 principal cursor 拒绝；范围清空后计数与范围一致
+- 互斥预期（成功 / 各错误分支）：首屏快照冻结；跨 principal cursor 拒绝（`cursor_expired`）；范围清空后计数与范围一致
 
 ## 6. 错误路径、副作用与清理
 

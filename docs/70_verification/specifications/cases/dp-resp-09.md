@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-RESP-09` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -32,10 +32,10 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-RESP-09` / 系统设计 §8 Responses 接口（POST /v1/responses） / `VRC-INF-001` / `negative` / `P0`。本文件名 `dp-resp-09.md`，与 Case ID 唯一对应。
-- 要测什么（责任展开）：`POST /v1/responses` 携带禁字段 `previous_response_id`：`400 unsupported_field`，零副作用。
+- 要测什么（责任展开）：`POST /v1/responses` 携带禁字段 `previous_response_id`：`400 unsupported_field`（`param="previous_response_id"`），零副作用。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明未知/多余字段的拒绝（本 case 只覆盖显式禁字段清单；`additionalProperties:false` 路径见 DP-RESP-12..15 等）；不证明合法续写（本版本不存在）；不证明上游调用或答案。**失败含义＝禁用字段契约破坏**。
 
-**目的（被测契约）**：验证 Data Plane `POST /v1/responses` 的**禁用字段契约**：provider 续写/缓存类字段 `prompt_cache_key`/`prompt_cache_retention`/`previous_response_id` 出现即拒绝（本版本无 conversation 续写）。被测端点/规则：`POST /v1/responses`；需求 `LT-FUN-001`；设计验证项 `VRC-INF-001`；错误目录 `ERR-REQ-FIELD` → wire `code=unsupported_field`；实现 `src/inference/responses.py`（`FORBIDDEN_FIELDS`，`require(not (FORBIDDEN_FIELDS & set(body)), 400, "unsupported_field", "Unsupported provider continuation or cache field")`）（[系统测试方案 §3](../../schemes/llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明未知/多余字段的拒绝（本 case 只覆盖显式禁字段清单；`additionalProperties:false` 路径见 DP-RESP-12..15 等）；不证明合法续写（本版本不存在）；不证明上游调用或答案。
+**目的（被测契约）**：验证 Data Plane `POST /v1/responses` 的**禁用字段契约**：provider 续写/缓存类字段 `prompt_cache_key`/`prompt_cache_retention`/`previous_response_id` 出现即拒绝（本版本无 conversation 续写）。被测端点/规则：`POST /v1/responses`；需求 `LT-FUN-001`；设计验证项 `VRC-INF-001`；错误目录 `ERR-REQ-FIELD` → wire `code=unsupported_field`、`param`=该禁字段名；实现 `src/inference/responses.py`（`FORBIDDEN_FIELDS`，`require(forbidden is None, 400, "unsupported_field", "Unsupported provider continuation or cache field", forbidden)`）（[系统测试方案 §3](../../schemes/llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明未知/多余字段的拒绝（本 case 只覆盖显式禁字段清单；`additionalProperties:false` 路径见 DP-RESP-12..15 等）；不证明合法续写（本版本不存在）；不证明上游调用或答案。
 
 ## 2. 被测入口与前置
 
@@ -82,7 +82,7 @@
   1. `GET /healthz`、`GET /readyz` —— 确认基线（由 `pytest_configure` 自动执行）。
   2. `POST /v1/responses`（上表 body）。
   3. 断言 `resp.status_code == 400`，响应为 JSON 错误信封（非 SSE）。
-  4. 解析 `resp.json()["error"]`，断言键集恰 5 键、`code=="unsupported_field"`、`type=="request_error"`、`param is None`、`retryable is False`。
+  4. 解析 `resp.json()["error"]`，断言键集恰 5 键、`code=="unsupported_field"`、`type=="request_error"`、`param=="previous_response_id"`、`retryable is False`。
   5. 可选边界：分别以 `prompt_cache_key`、`prompt_cache_retention` 替换，断言同样 `unsupported_field`。
   6. 交叉核对零副作用（可选 `GET /v1/usage`）。
 
@@ -91,11 +91,11 @@
 | 1 | 确认基线（`pytest_configure` 自动执行） | 就绪检查通过 |
 | 2 | `POST /v1/responses`（携带禁字段） | status / headers / body |
 | 3 | 断言 400 且为 JSON 错误信封（非 SSE） | 响应头/体 |
-| 4 | `code=="unsupported_field"`、`type=="request_error"`、`param None`、`retryable False`、5 键 | 响应体 |
+| 4 | `code=="unsupported_field"`、`type=="request_error"`、`param=="previous_response_id"`、`retryable False`、5 键 | 响应体 |
 | 5 | （可选）替换 `prompt_cache_*` 断言同码 | 响应体 |
 | 6 | 交叉核对零副作用（可选） | 账本 |
 
-**重点关注步骤**：① **`unsupported_field` 而非 `invalid_request`**——`previous_response_id` 在 `FORBIDDEN_FIELDS` 显式清单内，检查顺序决定错误码；② **拒绝在 dispatch 前**；③ **信封 identity**（5 键、`type=request_error`、无 `category`）；④ **非 SSE**；⑤ **零副作用**。
+**重点关注步骤**：① **`unsupported_field` 而非 `invalid_request`**——`previous_response_id` 在 `FORBIDDEN_FIELDS` 显式清单内，检查顺序决定错误码；`param`=该禁字段名（系统 §7.8 `ERR-REQ-FIELD` 要求 `param=未知字段名`）；② **拒绝在 dispatch 前**；③ **信封 identity**（5 键、`type=request_error`、无 `category`）；④ **非 SSE**；⑤ **零副作用**。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -103,12 +103,12 @@
 
 - **期望结果与独立 Oracle**：独立 Oracle = OpenAPI `ResponsesRequest`（不含续写字段）+ `ErrorEnvelope` + 系统设计 §7.8 `ERR-REQ-FIELD`。**判据语义以设计验证项 `VRC-INF-001` 为唯一权威**。
   - HTTP：`400`；`Content-Type: application/json`。
-  - body：`{"error":{"message":"Unsupported provider continuation or cache field","type":"request_error","code":"unsupported_field","param":null,"retryable":false}}`。
+  - body：`{"error":{"message":"Unsupported provider continuation or cache field","type":"request_error","code":"unsupported_field","param":"previous_response_id","retryable":false}}`。
   - 无 SSE 帧/`[DONE]`。
 
 - **判定（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
-  - **PASS**：status 400 + `code=unsupported_field` + `type=request_error` + `param=null` + `retryable=false` + 非 SSE。
-  - **FAIL**：status/code 错（如返回 `invalid_request`）、返回 200/SSE、信封键集错。
+  - **PASS**：status 400 + `code=unsupported_field` + `type=request_error` + `param=="previous_response_id"` + `retryable=false` + 非 SSE。
+  - **FAIL**：status/code 错（如返回 `invalid_request`）、`param` 非 `"previous_response_id"`、返回 200/SSE、信封键集错。
   - **BLOCKED**：测试代码/契约问题——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **SKIP**：就绪前置不满足——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **INVALID**：以 mock/替代路径冒充真实路径——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。

@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "DP-EMB-07",
   "document_type": "tests.system-case",
-  "document_version": "0.1.0-draft.2",
+  "document_version": "0.1.0-draft.3",
   "title": "DP-EMB-07 — 非法 encoding_format",
   "document_owner": "LLMTier",
   "authors": [

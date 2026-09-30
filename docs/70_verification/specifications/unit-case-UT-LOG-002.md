@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-LOG-002` / M008 log §14.1 · `page` 边界 v0.1.0-draft.1 / `VRC-LOG-001` / negative / P1（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
-- 要测什么（责任展开）：被测：`page` 缺 `since`/`until` → 400 `invalid_request`；`page` 存储失败 → 503 `usage_store_unavailable`；`token=` 与 `api_key` 脱敏用例。
+- 要测什么（责任展开）：被测：`page` 缺 `since`/`until` → 400 `invalid_request`；`page` 存储失败 → 503 `usage_store_unavailable`；`token=`/`api_key` 键名**与值**整体脱敏用例（`RISK-LOG-1` 已关闭）。
 - 明确不测什么 / 失败含义：不测：脱敏主用例（UT-LOG-001）；不测 `limit` 夹取（UT-LOG-001）。失败含义＝窗口必填校验/存储失败显式化/补充脱敏实现错误。
 
 ## 2. 被测入口与前置
@@ -79,7 +79,7 @@ OperationalLog.page(limit=50, level=None, module=None, request_id=None, since=No
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：`RULE-LOG-REDACT/ORDER` + `IF-LOG` 窗口必填 + 人工推导；不调用被测复算。**判据语义以设计验证项 `VRC-LOG-001` 为唯一权威**；本节仅细化不改写，冲突回溯设计修订。
-- 互斥预期（成功 / 各错误分支）：无窗口 400 `invalid_request`；存储失败 503 `usage_store_unavailable`；`token=`/`api_key` 脱敏；互斥
+- 互斥预期（成功 / 各错误分支）：无窗口 400 `invalid_request`；存储失败 503 `usage_store_unavailable`；`token=`/`api_key`/`apikey` 键名与值整体脱敏；互斥
 
 ## 6. 错误路径、副作用与清理
 
@@ -88,6 +88,6 @@ OperationalLog.page(limit=50, level=None, module=None, request_id=None, since=No
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_logs.py::LogHttpFailureTests::test_missing_window_is_400` / `test_store_failure_is_503` + 补充脱敏 `LogsTests::test_token_query_redacted` / `test_api_key_redacted` / `test_secret_redacted`
+- 测试文件 / 测试函数：`tests/unit/v03/test_logs.py::LogHttpFailureTests::test_missing_window_is_400` / `test_store_failure_is_503` + 补充脱敏 `LogRedactionGapTests::test_token_query_redacted` / `test_api_key_value_redaction`（值不落库） / `test_secret_redacted`
 - 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_logs.py -q`
 - 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03/test_logs.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
