@@ -11,7 +11,9 @@ class SettingsDiagnostics:
 
     def switches(self) -> dict[str, bool]:
         row = self.store.one("SELECT snapshots_enabled,stats_enabled FROM diagnostic_settings WHERE singleton=1")
-        return {"snapshots_enabled": bool(row["snapshots_enabled"]), "stats_enabled": bool(row["stats_enabled"])}
+        # Fail-open: a missing singleton row (e.g. an un-seeded store) means all switches off.
+        return {"snapshots_enabled": bool(row["snapshots_enabled"] if row else False),
+                "stats_enabled": bool(row["stats_enabled"] if row else False)}
 
     def set_switches(self, snapshots_enabled: bool | None = None, stats_enabled: bool | None = None, conn=None) -> dict[str, bool]:
         for name, value in (("snapshots_enabled", snapshots_enabled), ("stats_enabled", stats_enabled)):
