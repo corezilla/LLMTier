@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-test-plan` |
-| Document Version | `0.1.0-draft.8` |
+| Document Version | `0.1.0-draft.9` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-test-plan` |
 | Template Version | `0.9.2` |
 | Template Conformance | `tailored` |
@@ -97,7 +97,7 @@
 |---|---|---|---|
 | 方案就绪度 | `llmtier-system-test-scheme` §3 权威清单 163 条（**设计数**：A 102 / B 61）、计数与 A/B、P0/P1/P2 分布固定；与 §2 分类体系交叉核对 | 清单无未登记缺口、版本固定 | No-Go：Blocked＋缺口语义（§9-O1） |
 | Case 实现状态盘点 | **设计数 = 已实现数 163（A 102 / B 61）**：全部 163 个设计 Case 均有自动化入口（163 个 `at_*.py` 文件；`--collect-only` 实际 collect=176 项，多出者为参数化/双臂测试——`-m api_a`＝105、`-m api_b`＝71），**无 MISSING**。逐 Case 清单见 `llmtier-system-test-scheme` §3 与逐 Case 设计文档 | 全部已实现；无 P0 缺口 | No-Go 或按 §4 记 NOT_RUN 缺口 |
-| 环境与工具（引用 `tests.asset-design` 的 Verified 状态） | A 类：m5air `/healthz`、`/readyz`(7 tier)、双 OMLX、`secret_ref=file:`、provider/deployment 就绪（6 项，§6）；B 类：执行机临时实例（`tests/fixtures/v03_fake_provider.py`＋`llmtier_b` fixtures 已在位） | A 类：`pytest_configure` 6 项全过；B 类：执行机具 LAN IP（`_detect_lan_ip()` 命中 RFC1918）且临时实例可启停 | **按类分别判定**：A 类 6 项不过 → 仅 A 类 Blocked/Skip（§6，不静默降级）；B 类无 LAN IP／临时实例不可用／`llmtier_b` 基线 probe 不健康 → B 类整体 Blocked（§6-B，见 §3 Exit 与 §9 风险） |
+| 环境与工具（引用 `tests.asset-design` 的 Verified 状态） | A 类：m5air `/healthz`、`/readyz`(7 tier)、双 OMLX、`secret_ref=file:`、provider/deployment 就绪（6 项，§6）；B 类：执行机临时实例（`tests/fixtures/v03_fake_provider.py`＋`llmtier_b` fixtures 已在位）。**可执行实现**：`tools/check_env.py`（§3 前检 Go/No-Go 的独立入口，`--class a\|b\|all`，human table＋`--json`，exit 0 全过 / 2 任一失败）复算上述 6 项 A 检查与 2 项 B 前置 | A 类：`pytest_configure` 6 项全过（或 `tools/check_env.py --class a` exit 0）；B 类：执行机具 LAN IP（`_detect_lan_ip()` 命中 RFC1918）且临时实例可启停（或 `tools/check_env.py --class b` exit 0） | **按类分别判定**：A 类 6 项不过 → 仅 A 类 Blocked/Skip（§6，不静默降级）；B 类无 LAN IP／临时实例不可用／`llmtier_b` 基线 probe 不健康 → B 类整体 Blocked（§6-B，见 §3 Exit 与 §9 风险） |
 | 构建接线（全量交付构建 / 消费者链接实际库） | m5air 部署版本已 pin 且与执行机同步来源一致；解释器为 Python 3.14（禁系统 3.9）；`schema_version=2` | pin 三项可解析；服务可服务 | 按 §6 恢复（重启／schema 二选一）；仍失败 → Blocked |
 
 **Entry criteria**：上表 4 项全过（commit/schema/openapi 三项 pin、单测基线全绿、A 类 6 项就绪、B 类 LAN＋临时实例可用）方可起跑。**A 与 B 独立判定**：A 类就绪失败只阻断 A 类，B 类照跑；反之亦然（见 §6 与 conftest `pytest_collection_modifyitems`——就绪失败只 skip `api_a`，`api_b` 继续）。
@@ -156,14 +156,14 @@
 
 - 环境搭建与复位操作：**两层被测对象，一套执行机**。A 类＝m5air 现有实例（`192.168.1.9:8181`，只读/观察/一次性无状态写，写后即 teardown）；B 类＝执行机本机临时实例（随机空闲端口＋`tempfile.mkdtemp(prefix="llmtier_b_")` 临时 SQLite，CRUD/空库/无鉴权/注入/并发，整班销毁）。执行机＝开发机，`cwd="$(git rev-parse --show-toplevel)"`、`PYTHONPATH=src`。
   - 版本锚定与更新：每 Run pin `{git_commit, db_schema_version, openapi_version}`（§7），缺任一不得开跑；m5air 部署目录非 git 工作树，须从开发机受控 `rsync`（排除 `state.sqlite3*`、`secrets/`、`llmtier.log`、`llmtier.pid`、`backups/`）；回滚＝用旧 commit 源码快照重新 `rsync`。
-  - 启动/重启（A 类）：查旧进程与端口 → `kill -TERM`（勿 `kill -9`）→ Python 3.14 `python3 -m http_api --host 0.0.0.0 --port 8181 --database …/state.sqlite3` → `curl /healthz`＋`/readyz` 验证 → 确认恰好一个 PID、一个 `*:8181` 监听者。幂等：已启动即已满足，不得起第二实例。**部署/启停/备份/恢复唯一 authority 是 `m5air-deploy-guide.md` 与 `m5air-operations-manual.md`；本节是其测试用镜像，冲突以运维手册为准并回填本节。**
-- 隔离键与清理：A 类与 B 类**不共享 SQLite/进程且不并行**；B 类隔离键＝临时端口＋临时目录＋每 run `settings.json`；清理＝A 类写 Case teardown、注入 `items:[]` 清空、`DELETE /v1/usage` 复位账本；B 类 `stop()`（`terminate`→等 5 s→`kill`）＋`rm -rf` 临时目录。**不得删除 m5air 既有 provider/deployment/service-level 或用户 usage。**
+  - 启动/重启（A 类）：查旧进程与端口 → `kill -TERM`（勿 `kill -9`）→ Python 3.14 `python3 -m http_api --host 0.0.0.0 --port 8181 --database …/state.sqlite3` → `curl /healthz`＋`/readyz` 验证 → 确认恰好一个 PID、一个 `*:8181` 监听者。幂等：已启动即已满足，不得起第二实例。**可执行实现**：`tools/deploy.py` 将本节＋`m5air-deploy-guide.md` 的事实固化为脚本——pin `{git_commit, openapi_version, schema_version}` → `rsync src/` → `lsof -iTCP:8181 -sTCP:LISTEN` 找旧 PID 并 `kill -TERM` → 以 Python 3.14＋`LLMTIER_{ADMIN,DATA}_TOKEN`＋`PYTHONPATH=src -m http_api` 启动 → `curl /healthz`＋`/readyz`；`--rollback <db-bak>` 恢复 DB，`--dry-run` 只打印命令，不打印任何 secret。**部署/启停/备份/恢复唯一 authority 是 `m5air-deploy-guide.md` 与 `m5air-operations-manual.md`；本节是其测试用镜像，脚本冲突以运维手册为准并回填本节。**
+- 隔离键与清理：A 类与 B 类**不共享 SQLite/进程且不并行**；B 类隔离键＝临时端口＋临时目录＋每 run `settings.json`；清理＝A 类写 Case teardown、注入 `items:[]` 清空、`DELETE /v1/usage` 复位账本；B 类 `stop()`（`terminate`→等 5 s→`kill`）＋`rm -rf` 临时目录。**不得删除 m5air 既有 provider/deployment/service-level 或用户 usage。** **可执行实现**：`tools/reset_env.py`（幂等、安全）——先 sqlite backup API 备份 DB（`--no-backup` 跳过）→ 可选 `--restore <bak>` / `--rebuild` → 逐 deployment `GET diagnostics` 后 `PATCH {"items":[]}` 并断言为空 → `DELETE /v1/usage`（`--no-ledger` 跳过）→ 杀死遗留本地测试 `LLMTierInstance`/临时实例进程并释放临时端口 → 末尾重跑 `tools/check_env.py`；`--dry-run` 只打印动作、`--yes` 为非交互 guard，任一步失败退出非零。
 - 复位阶梯与时限（软复位→重启→驱动恢复）：
-  1. **case 前检查**：跑 §3 A 类 6 项（`pytest_configure` 自动执行）；**不通过只 skip A 类**（`pytest_collection_modifyitems` 只对非 `api_b` 用例加 skip），**B 类用各自临时实例照跑**——不存在“整班 Blocked/Skip”，A 与 B 独立判定（方案 §1.7）。
-  2. **软复位**：A 类每个写 Case 后恢复被改字段（带正确 `If-Match` 的 `PATCH`）、清注入（`PATCH …/diagnostics {"items":[]}` 后 `GET` 确认空）、`DELETE /v1/usage`；B 类丢弃临时 DB 重起。
-  3. **重启**：`/healthz` 不通或 schema/版本不匹配 → A 类按 §6 重启；schema 不匹配走**显式二选一**（fresh-DB rebuild / offline migration），`--settings` 仅空库首启有效，禁止删 `schema_meta` 行当未知库。
+  1. **case 前检查**：跑 §3 A 类 6 项（`pytest_configure` 自动执行；或 `tools/check_env.py --class a`）；**不通过只 skip A 类**（`pytest_collection_modifyitems` 只对非 `api_b` 用例加 skip），**B 类用各自临时实例照跑**——不存在“整班 Blocked/Skip”，A 与 B 独立判定（方案 §1.7）。
+  2. **软复位**：A 类每个写 Case 后恢复被改字段（带正确 `If-Match` 的 `PATCH`）、清注入（`PATCH …/diagnostics {"items":[]}` 后 `GET` 确认空）、`DELETE /v1/usage`；B 类丢弃临时 DB 重起。**可执行实现**：`tools/reset_env.py` 步骤 (c)/(d)，见上。
+  3. **重启**：`/healthz` 不通或 schema/版本不匹配 → A 类按 §6 重启；schema 不匹配走**显式二选一**（fresh-DB rebuild / offline migration），`--settings` 仅空库首启有效，禁止删 `schema_meta` 行当未知库。**可执行实现**：`tools/deploy.py`（重启）与 `tools/reset_env.py --rebuild`｜`--restore <bak>`（二选一）。
   4. **驱动恢复/时限**：上游超时→调大 deployment runtime profile（`connect_timeout_ms`/`stream_idle_timeout_ms`，默认 30000/60000）＋有界重试 ≤3；store 锁→退避重试（1→2→4 s，≤3 次）；flaky→有限重试 ≤3 并记录并发度与时间窗。
-  5. **复位后核验**：A 类重跑 §3 6 项，确认 `/readyz` 7 tier、provider/deployment 列表回基线、无遗留端口、无未清空注入。**失败后必须确认回到基线，不能只 kill 后继续。**
+  5. **复位后核验**：A 类重跑 §3 6 项，确认 `/readyz` 7 tier、provider/deployment 列表回基线、无遗留端口、无未清空注入。**失败后必须确认回到基线，不能只 kill 后继续。** **可执行实现**：`tools/reset_env.py` 步骤 (f) 末尾自动重跑 `tools/check_env.py`。
 
 #### 6-B B 类前检与恢复语义（单点毒性诚实披露）
 

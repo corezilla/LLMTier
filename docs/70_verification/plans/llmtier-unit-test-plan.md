@@ -55,8 +55,8 @@
 
 | 构成层 | 文档 / 入口（Document ID 或缺口） | 覆盖责任摘要 | 条目状态 |
 |---|---|---|---|
-| 单元方案 ×1 | `llmtier-unit-test-scheme` v0.1.0-draft.8（方案 §3 清单；§1.6/§1.7 环境类型） | 8 模块 33 VRC（64 Case）的清单与设计状态唯一登记 | Planned |
-| Case 文档 ×64（64/64 已建） | 全部 64 份 `docs/70_verification/specifications/unit-case-*.md`（含新增 `UT-API-005…013`、`UT-UI-007…010`、`UT-INF-006…009`、`UT-MGMT-007…011`、`UT-OBS-006…007`、`UT-DIAG-005…008`、`UT-UTIL-003…004`、`UT-LOG-002`） | 逐 Case 输入构造、Oracle 与运行入口；见方案 §3 每行责任摘要 | Planned |
+| 单元方案 ×1 | `llmtier-unit-test-scheme` v0.1.0-draft.9（方案 §3 清单；§1.6/§1.7 环境类型） | 8 模块 33 VRC（64 Case）的清单与设计状态唯一登记 | Planned |
+| Case 文档 ×66（66/66 已建） | 全部 66 份 `docs/70_verification/specifications/unit-case-*.md`（含新增 `UT-API-005…013`、`UT-UI-007…010`、`UT-INF-006…009`、`UT-MGMT-007…011`、`UT-OBS-006…007`、`UT-DIAG-005…008`、`UT-UTIL-003…004`、`UT-LOG-002`；工具 `UT-TOOL-001`/`UT-TOOL-002`） | 逐 Case 输入构造、Oracle 与运行入口；见方案 §3 每行责任摘要 | Planned |
 | 测试资产 ×1 | `llmtier-unit-fakes`（`docs/70_verification/assets/llmtier-unit-fakes.md`；`FakeAdapter`/`AppFixture`，候选 ID `FAKE-LLMTIER-ADAPTER`） | 上游进程内 fake 的契约与自检 | Planned（`Implemented`/`Unverified`；自检 Run 待录制） |
 | 相邻层交接出口 | `tests.module-test-scheme`/`-plan`（组装后流程）、`llmtier-system-test-scheme`（wire/E2E） | 组合保证与验收承接 | Planned |
 
@@ -78,7 +78,7 @@
 
 | 前检项 | 判定事实 | 通过条件 | 不满足时 |
 |---|---|---|---|
-| 方案就绪度 | `llmtier-unit-test-scheme` v0.1.0-draft.8；64 Case 清单（33 VRC）均登记；原缺口 G-UT-1/G-UT-2/G-UT-5 已关闭、G-UT-3/G-UT-4 定稿 Tailored-N/A（无剩留 Gap，见方案 §4/计划 §10） | 分母闭合、版本固定且无未关闭缺口 | Blocked＋登记缺口 |
+| 方案就绪度 | `llmtier-unit-test-scheme` v0.1.0-draft.9；64 Case 清单（33 VRC）均登记；原缺口 G-UT-1/G-UT-2/G-UT-5 已关闭、G-UT-3/G-UT-4 定稿 Tailored-N/A（无剩留 Gap，见方案 §4/计划 §10） | 分母闭合、版本固定且无未关闭缺口 | Blocked＋登记缺口 |
 | Case 文档盘点 | 33 个 unit-case 文档已建（`docs/70_verification/specifications/unit-case-UT-*.md`），均记录测试代码位置于 `tests/unit/v03/*.py`（§7），并**自述** `Implemented`；但其中部分 §7 映射为近似映射（如 `UT-UI-005` 映射 `test_stats_page_present`/`test_diagnostics_page` 与其 VRC 责任不完全对应，且 case 文档自带"若与设计 VRC 不一致，以设计修订回溯后重裁"免责）→ 前检不得将近似映射一律当已实现；方案 §5 列出的 31 个新 Case 文档待建（未建前不得称 `Implemented`） | 已建 Case 有可定位的测试函数，近似映射逐条登记待回溯；待建 Case 先入清单 | 未能对应到测试函数或映射待回溯的 Case 标 NOT_RUN＋登记原因；待建 Case 标 NOT_RUN |
 | 环境与工具（引用 tests.asset-design 的 Verified 状态） | `PYTHONPATH=src python3 -m pytest tests/unit/v03 -q` 可收集并执行（当前收集 353 个测试；该数为随代码演进的可变量，以 harness 实际 collect 为准）；`tests/unit/v03/fakes.py` 仅定义 `AppFixture`/`FakeAdapter`（**无 `FakeResponse`**；`FakeResponse` 是 `test_account_usage.py`/`test_provider_openai.py` 各自的本地 stub）；替身资产已建 `llmtier-unit-fakes`（`Implemented`/`Unverified`） | 全量单元可收集执行且替身契约就位 | 收集失败或 Python/pytest 缺失→环境性 Blocked；替身契约缺→引用 `llmtier-unit-fakes`，不静默用它物 |
 | 构建接线 / 隔离确认 | 单元层**不需要** LAN / m5air / 真实 provider / 真实端口路由；HTTP 测试仅绑 loopback `127.0.0.1:0` 临时端口（ENV-2），provider 用进程内 `FakeAdapter`（ENV-3）；无 `PYTHONPATH=src` 外依赖 | 全量单元在本机隔离可运行，无 LAN 依赖 | 需外部服务→不属单元层，退回模块/系统层登记 |
@@ -102,7 +102,7 @@
 | Step | 动作 | 输入 / 依据 | 产出 |
 |---|---|---|---|
 | 0 | 资产就位：确认 ENV-1/ENV-2 就绪、`fakes.py` 在位、ENV-3 契约 `llmtier-unit-fakes` 就位并跑 self-check | `llmtier-unit-fakes`（`docs/70_verification/assets/`） | 就绪清单（Verified 或 Blocked 原因） |
-| 1 | 读取方案清单并按优先级（P0→P1→P2）与批次排序 | 方案 `llmtier-unit-test-scheme` v0.1.0-draft.8 §3 | 执行队列 |
+| 1 | 读取方案清单并按优先级（P0→P1→P2）与批次排序 | 方案 `llmtier-unit-test-scheme` v0.1.0-draft.9 §3 | 执行队列 |
 | 2 | 逐 Case：定位 Case 文档 | Case ID | 实施依据 |
 | 3 | 按 Case 文档 §2–§7 执行前检与运行（按 §5.1 批次命令） | Case 文档 §2–§7 | Run 记录 |
 | 4 | 判定并分路（PASS/FAIL/BLOCKED/INVALID） | 断言与环境事实 | Verdict 归报告 |

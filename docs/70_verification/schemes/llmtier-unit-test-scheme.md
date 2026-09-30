@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-unit-test-scheme` |
-| Document Version | `0.1.0-draft.8` |
+| Document Version | `0.1.0-draft.9` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-test-scheme` |
 | Template Version | `0.6.1` |
 | Template Conformance | `tailored` |
@@ -201,12 +201,13 @@
 | M008 log §14.1 · `OperationalLog.record/page` v0.1.0-draft.1 | VRC-LOG-001 | UT-LOG-001 | security | P0 | 脱敏与查询：Bearer/api_key/token 落库 `[REDACTED]`、长度 ≤512、倒序、过滤、`limit` 夹到 200 | Designed | M004 / M002 |
 | M008 log §14.1 · `page` 边界 v0.1.0-draft.1 | VRC-LOG-001 | UT-LOG-002 | negative | P1 | `page` 缺 `since`/`until`→400；`page` 存储失败→503 `usage_store_unavailable`；`token=` 与 `api_key` 脱敏用例 | Designed | M004 / M002 |
 | M-TOOL 验证工具 `tools/test_report.py`（单元计划 §7 状态映射） | none（工具，非模块 VRC） | UT-TOOL-001 | normal | P1 | 证据链工具：JUnit→状态映射（`passed→PASS`/`failed→FAIL`/`xfailed→BLOCKED` 带原因/`xpassed→XPASS` 不计 PASS/环境 skip→SKIP、计划 skip→NOT_RUN/`error→BLOCKED`）、运行级 SKIP 上限（A≤5/B≤3）、`case_id_from_source`、`build_report` 计数与阻塞口径、`emit_manifests` | Designed | 单元计划 §7 / 证据链 |
+| M-TOOL 环境工具 `tools/check_env.py`＋`tools/reset_env.py`＋`tools/deploy.py`（系统计划 §3 Go/No-Go、§6 环境操作） | none（工具，非模块 VRC） | UT-TOOL-002 | normal | P1 | 环境工具纯逻辑：`check_env` A/B 检查聚合＋exit 码（0 全过 / 2 任一失败）、`--class` 选择、`detect_lan_ip` override；`reset_env` 复位阶梯顺序（backup→restore/rebuild→clear-injections→reset-ledger→kill-leftovers→recheck）、dry-run、`--yes` guard、sqlite backup、遗留进程解析；`deploy` 制品 pin（git/openapi/schema）、rsync/ssh/lsof/kill/start/rollback 命令构造、不泄漏 secret、dry-run 不触网。（经 mock，无网络/ssh） | Designed | 系统计划 §3/§6 / 证据链 |
 
-**Case 总数：65**（分类：normal 14 / boundary 16 / negative 14 / concurrency 2 / recovery 12 / security 7；Priority P0 23 / P1 39 / P2 3）。其中 8 模块（`M001-M008`）Case 64 个；验证工具（`TOOL` 家族）Case 1 个（`UT-TOOL-001`，不归属模块 VRC，见下）。
+**Case 总数：66**（分类：normal 15 / boundary 16 / negative 14 / concurrency 2 / recovery 12 / security 7；Priority P0 23 / P1 40 / P2 3）。其中 8 模块（`M001-M008`）Case 64 个；验证工具（`TOOL` 家族）Case 2 个（`UT-TOOL-001`、`UT-TOOL-002`，不归属模块 VRC，见下）。
 
-**设计验证项覆盖（契约级）**：33 个模块设计 §14 验证项**全部至少一个 Case**——登记覆盖 33/33，无未登记 VRC。**注意**：该 33/33 为**清单登记覆盖**（每个 VRC 至少一个 Case 入清单），不等于"行为级全覆盖"——但**所有行为级未覆盖子项均已按 §4 定稿为 Tailored-N/A（非 Gap）**：M002 `VRC-UI-001..006` 的静态/契约子项由 `UT-UI-001..010` 承接，纯视觉子项（tabs/Disabled 渲染）因本项目无浏览器/JS 宿主定稿 N/A（见 §4，取代原 G-UT-3）；M005 视觉子项同裁决（取代原 G-UT-4）。故「33/33」= 清单登记覆盖，行为级以此 N/A 裁决为准。逐 VRC 覆盖：`VRC-API-001` 7、`VRC-API-002` 2、`VRC-API-003` 2、`VRC-API-004` 2、`VRC-UI-001` 3、`VRC-UI-002` 2、`VRC-UI-003` 1、`VRC-UI-004` 2、`VRC-UI-005` 1、`VRC-UI-006` 1、`VRC-INF-001` 2、`VRC-INF-002` 2、`VRC-INF-003` 2、`VRC-INF-004` 2、`VRC-INF-005` 1、`VRC-MGMT-001` 2、`VRC-MGMT-002` 2、`VRC-MGMT-003` 1、`VRC-MGMT-004` 2、`VRC-MGMT-005` 2、`VRC-MGMT-006` 2、`VRC-OBS-001` 1、`VRC-OBS-002` 2、`VRC-OBS-003` 1、`VRC-OBS-004` 2、`VRC-OBS-005` 1、`VRC-DIAG-001` 1、`VRC-DIAG-002` 3、`VRC-DIAG-003` 2、`VRC-DIAG-004` 2、`VRC-UTIL-001` 2、`VRC-UTIL-002` 2、`VRC-LOG-001` 2。**工具 Case `UT-TOOL-001` 不映射任何模块 VRC**（工具非产品行为）；`M-TOOL` 不计入 33 个模块 VRC 分母，模块 VRC 覆盖仍为 33/33。
+**设计验证项覆盖（契约级）**：33 个模块设计 §14 验证项**全部至少一个 Case**——登记覆盖 33/33，无未登记 VRC。**工具 Case `UT-TOOL-001`/`UT-TOOL-002` 不映射任何模块 VRC**（工具非产品行为）；`M-TOOL` 不计入 33 个模块 VRC 分母，模块 VRC 覆盖仍为 33/33。**注意**：该 33/33 为**清单登记覆盖**（每个 VRC 至少一个 Case 入清单），不等于"行为级全覆盖"——但**所有行为级未覆盖子项均已按 §4 定稿为 Tailored-N/A（非 Gap）**：M002 `VRC-UI-001..006` 的静态/契约子项由 `UT-UI-001..010` 承接，纯视觉子项（tabs/Disabled 渲染）因本项目无浏览器/JS 宿主定稿 N/A（见 §4，取代原 G-UT-3）；M005 视觉子项同裁决（取代原 G-UT-4）。故「33/33」= 清单登记覆盖，行为级以此 N/A 裁决为准。逐 VRC 覆盖：`VRC-API-001` 7、`VRC-API-002` 2、`VRC-API-003` 2、`VRC-API-004` 2、`VRC-UI-001` 3、`VRC-UI-002` 2、`VRC-UI-003` 1、`VRC-UI-004` 2、`VRC-UI-005` 1、`VRC-UI-006` 1、`VRC-INF-001` 2、`VRC-INF-002` 2、`VRC-INF-003` 2、`VRC-INF-004` 2、`VRC-INF-005` 1、`VRC-MGMT-001` 2、`VRC-MGMT-002` 2、`VRC-MGMT-003` 1、`VRC-MGMT-004` 2、`VRC-MGMT-005` 2、`VRC-MGMT-006` 2、`VRC-OBS-001` 1、`VRC-OBS-002` 2、`VRC-OBS-003` 1、`VRC-OBS-004` 2、`VRC-OBS-005` 1、`VRC-DIAG-001` 1、`VRC-DIAG-002` 3、`VRC-DIAG-003` 2、`VRC-DIAG-004` 2、`VRC-UTIL-001` 2、`VRC-UTIL-002` 2、`VRC-LOG-001` 2。**工具 Case `UT-TOOL-001` 不映射任何模块 VRC**（工具非产品行为）；`M-TOOL` 不计入 33 个模块 VRC 分母，模块 VRC 覆盖仍为 33/33。
 
-> **unit-case 文档映射（清单登记 65 Case，文档 65/65 已建）**：`UT-API-001..004`、`UT-UI-001..006`、`UT-INF-001..005`、`UT-MGMT-001..006`、`UT-OBS-001..005`、`UT-DIAG-001..004`、`UT-UTIL-001..002`、`UT-LOG-001` 为原有 33 份；其后**新增 31 个 Case ID**（`UT-API-005..013`、`UT-UI-007..010`、`UT-INF-006..009`、`UT-MGMT-007..011`、`UT-OBS-006..007`、`UT-DIAG-005..008`、`UT-UTIL-003..004`、`UT-LOG-002`），其 `tests.unit-case` 文档已建齐（`docs/70_verification/specifications/unit-case-UT-*.md`），保留原 ID/VRC 归属；本轮再补登**工具 Case `UT-TOOL-001`**（`tools/test_report.py` 证据链工具，文档 `unit-case-UT-TOOL-001.md`），使登记 Case 总数为 65。**注意**：文档已建 ≠ 全层闭合；首个 Run `run-20260930-01`（341 PASS）已录制，逐 Case Verdict 以 Run 报告为准。逐 Case 实现状态以对应 unit-case 文档 §7 为准（本清单新增 Case 的实现状态由各自文档声称，本表设计状态仍为 `Designed`）。
+> **unit-case 文档映射（清单登记 65 Case，文档 65/65 已建）**：`UT-API-001..004`、`UT-UI-001..006`、`UT-INF-001..005`、`UT-MGMT-001..006`、`UT-OBS-001..005`、`UT-DIAG-001..004`、`UT-UTIL-001..002`、`UT-LOG-001` 为原有 33 份；其后**新增 31 个 Case ID**（`UT-API-005..013`、`UT-UI-007..010`、`UT-INF-006..009`、`UT-MGMT-007..011`、`UT-OBS-006..007`、`UT-DIAG-005..008`、`UT-UTIL-003..004`、`UT-LOG-002`），其 `tests.unit-case` 文档已建齐（`docs/70_verification/specifications/unit-case-UT-*.md`），保留原 ID/VRC 归属；本轮再补登**工具 Case `UT-TOOL-001`**（`tools/test_report.py` 证据链工具，文档 `unit-case-UT-TOOL-001.md`），使登记 Case 总数为 65。**再补登工具 Case `UT-TOOL-002`**（`tools/check_env.py`＋`tools/reset_env.py`＋`tools/deploy.py` 环境工具，文档 `unit-case-UT-TOOL-002.md`），使登记 Case 总数为 66。**注意**：文档已建 ≠ 全层闭合；首个 Run `run-20260930-01`（341 PASS）已录制，逐 Case Verdict 以 Run 报告为准。逐 Case 实现状态以对应 unit-case 文档 §7 为准（本清单新增 Case 的实现状态由各自文档声称，本表设计状态仍为 `Designed`）。
 
 ## 4. 不适用与缺口裁决
 
@@ -228,8 +229,8 @@
 
 - 方案冻结与变更规则：清单随各模块设计/ISD 基线冻结；新增 Case 先在本清单登记再建 `tests.unit-case` 文档；VRC 变更时同步 §3 与附录 A；Case ID 一经登记不复用、不改名。
 - 与 case-design / 计划的同步规则：Case 文档 ID＝Case ID；计划构成表引用本方案版本；本方案合并 8 模块，逐模块切片由 Case ID 前缀承担。
-- 新增 Case 的文档状态：本版新增的 `UT-API-005..013`、`UT-UI-007..010`、`UT-INF-006..009`、`UT-MGMT-007..011`、`UT-OBS-006..007`、`UT-DIAG-005..008`、`UT-UTIL-003..004`、`UT-LOG-002` 共 31 个 Case 已入本清单（§3），其 `tests.unit-case` 文档现已建齐于 `docs/70_verification/specifications/`；另补登工具 Case `UT-TOOL-001`（`tools/test_report.py` 证据链工具，文档 `unit-case-UT-TOOL-001.md`）。各 Case 的实现状态以对应文档 §7 为准，执行与 Verdict 归 Run 报告（首个 Run `run-20260930-01` 已录）。
-- 新增 Case 示例：新增 `UT-INF-010`（尾随字节）先入本清单再建 `tests.unit-case` 文档；单元计划引用本方案 `0.1.0-draft.8`。
+- 新增 Case 的文档状态：本版新增的 `UT-API-005..013`、`UT-UI-007..010`、`UT-INF-006..009`、`UT-MGMT-007..011`、`UT-OBS-006..007`、`UT-DIAG-005..008`、`UT-UTIL-003..004`、`UT-LOG-002` 共 31 个 Case 已入本清单（§3），其 `tests.unit-case` 文档现已建齐于 `docs/70_verification/specifications/`；另补登工具 Case `UT-TOOL-001`（`tools/test_report.py` 证据链工具，文档 `unit-case-UT-TOOL-001.md`）与 `UT-TOOL-002`（`tools/check_env.py`＋`tools/reset_env.py`＋`tools/deploy.py` 环境工具，文档 `unit-case-UT-TOOL-002.md`）。各 Case 的实现状态以对应文档 §7 为准，执行与 Verdict 归 Run 报告（首个 Run `run-20260930-01` 已录）。
+- 新增 Case 示例：新增 `UT-INF-010`（尾随字节）先入本清单再建 `tests.unit-case` 文档；单元计划引用本方案 `0.1.0-draft.9`。
 
 ## 附录 A. 本层设计验证项 VRC 汇集（对照用）
 
