@@ -198,13 +198,13 @@ DELETE /v1/service-levels/{service_level_id} If-Match  -> 204
 
 ```text
 POST /v1/probes {deployment_id, confirm_external_call:true} -> 200 ProbeResult
-  -> 4xx/5xx: ErrorEnvelope
+  -> 4xx: ErrorEnvelope
 ```
 
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-ADM-PROBES`；规格已定、Implemented；`openapi` candidate.8；`src/management/admin.py`。
 - **输入与前提**：`ProbeRequest`；Admin Bearer + 二次确认。
 - **成功输出与保证**：`ProbeResult`（§3.2）；可能产生费用。
-- **错误与合法下一步**：缺确认→`ERR-CONFIRM`（400）；未知 deployment→`ERR-NOTFOUND`（404）；上游失败→`ERR-PROVIDER-*`（502）。
+- **错误与合法下一步**：缺确认→`ERR-CONFIRM`（400）；未知 deployment→`ERR-NOTFOUND`（404）。上游不可达/失败是探测观测结果，不抛 `ERR-PROVIDER-*`（无 502）：返回 `200 ProbeResult{status:"unhealthy"}` 并落库 health。
 - **交互与生命周期**：同步显式触发，不自动轮询。
 - **实现与验证**：正常带确认；拒绝缺确认。`VRC-DIAG-004`。
 

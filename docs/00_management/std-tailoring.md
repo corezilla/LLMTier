@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `std-tailoring` |
-| Document Version | `0.1.4-draft.2` |
+| Document Version | `0.1.4-draft.3` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -14,7 +14,7 @@
 | Approver |  |
 | Approval Date |  |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-29` |
+| Last Modified Date | `2026-09-30` |
 | Template Version | `0.2.0` |
 | Template ID | `management.tailoring` |
 | Template Conformance | `native` |
@@ -68,10 +68,10 @@
 | `tests.system-test-plan` | software | 是 | 系统测试可执行作业指令 | [llmtier-system-test-plan](../70_verification/plans/llmtier-system-test-plan.md) | LLMTier |
 | `tests.system-test-report` | software | 是 | 系统 Run 报告；按 Run ID 存于 `tests/system/reports/<run-id>/` | `tests/system/reports/` | LLMTier |
 | `tests.unit-test-scheme` | software | 是 | 单元 Case 清单唯一登记；本项目按授权合并 M001-M008 为一份（LT-TL-023） | [llmtier-unit-test-scheme](../70_verification/schemes/llmtier-unit-test-scheme.md) | LLMTier |
-| `tests.unit-case` | software | 是 | 单元逐 Case 设计（一 Case 一文档，共 33 份，按 VRC 一来源一 Case） | `docs/70_verification/specifications/unit-case-<Case-ID>.md` | LLMTier |
+| `tests.unit-case` | software | 是 | 单元逐 Case 设计（一 Case 一文档，共 64 份，按 VRC 一来源一 Case 并入覆盖洞新增） | `docs/70_verification/specifications/unit-case-<Case-ID>.md` | LLMTier |
 | `tests.unit-test-plan` | software | 是 | 单元测试可执行作业指令；本项目按授权合并 M001-M008 为一份（LT-TL-023） | [llmtier-unit-test-plan](../70_verification/plans/llmtier-unit-test-plan.md) | LLMTier |
-| `tests.unit-test-report` | software | 是，尚未产出 | 首次真实执行 `tests/unit/v03` 后生成；按 Run ID 存于 `tests/unit/<module>/reports/<run-id>/` | `tests/unit/<module>/reports/` | LLMTier |
-| `tests.asset-design` | software | 待建（G-UT-2） | 单元替身（`FakeAdapter`/`FakeResponse`）契约与自检；建立前单元结论不声称真实 provider 协议 | `docs/70_verification/assets/` | LLMTier |
+| `tests.unit-test-report` | software | 是，首个 Run 已产出（Markdown 汇总待 Gate） | 首个 Run `run-20260930-01` 存于 `tests/unit/v03/reports/`（证据根见单元计划 §7 位置决定） | `tests/unit/v03/reports/` | LLMTier |
+| `tests.asset-design` | software | 是（已建立 `llmtier-unit-fakes`） | 单元替身（`FakeAdapter`/`AppFixture`）契约与自检；`FakeResponse` 为各测试模块本地 stub（非本资产） | `docs/70_verification/assets/llmtier-unit-fakes.md` | LLMTier |
 | `assurance.test-specification` | software | 已退役 | 140-Case 权威清单已迁入 `tests.system-test-scheme` §3（见 LT-TL-019） | LLMTier |
 | `assurance.test-procedure` | software | 已退役 | 单 Case 执行步骤现由 `tests.system-case` 承接 | LLMTier |
 | `assurance.test-report` | software | 已退役 | 由 `tests.system-test-report` 承接；按 Run ID 存于 `tests/{level}/reports/<run-id>/` | LLMTier |
@@ -108,7 +108,8 @@
 | LT-TL-020 | ~~`assurance.test-plan`（`llmtier-test-plan.md`）~~ → 已退役 | retired（随模板族退役） | 该文原为 `assurance.test-plan`（invalid Template ID）。按 `template-selection.md`，项目级 runtime 端到端测试计划属 **system 层**，映射为 `tests.system-test-plan`：仍需要的内容（测试策略与覆盖模型、Test Types/Case Families、Entry/Exit 与 PASS/FAIL/BLOCKED/INVALID 判定口径、环境前置与证据规则、风险）已并入 [`llmtier-system-test-plan`](../70_verification/plans/llmtier-system-test-plan.md)；Case 清单唯一登记在 `llmtier-system-test-scheme` §3；容量/耐久（原 ST-18/19/21）不在 tests 家族分母，转 scheme §4 Gap 由性能/运维专项承接。 | 双计划文档会造成 authority 漂移 | 本轮 review | N/A |
 | LT-TL-021 | ~~`assurance.vv-plan`（`llmtier-vv-plan.md`）~~ → 已退役 | retired（随模板族退役） | 该文原为 `assurance.vv-plan`（invalid Template ID，vv-plan 已不存在）。按 `template-selection.md`：**正式验收不在 tests 家族**（"如何进行正式验收 → 验收活动，按项目 tailoring 承接"）。仍需要的 V&V 内容迁入系统测试方案/计划：verification 方法、测试层级与责任边界表、故障注入与恢复路径、判定与重测规则 → `llmtier-system-test-plan` §1/§3 与 `llmtier-system-test-scheme` §3–§4（其验收/validation 场景的承接见下方 LT-TL-022）。 | V&V 计划退役后若不显式承接验收，会造成"已验收"的误读 | 本轮 review | N/A |
 | LT-TL-022 | 验收活动（acceptance / validation）承接 | **deferred（按 tailoring 承接，不在 tests 家族）** | 原 `assurance.vv-plan` 的 validation 目标（Piko 完整输入 text/tool loop、Slinky Memory 获得 embedding、Operator Web UI 一屏 tier 状态/CRUD/脱敏日志、服务恢复后分层确认）与验收判据**不属于 tests 家族**。按 `template-selection.md` 与 `repository-layout.md` §4.1.1，正式验收使用 `tests/acceptance/reports/<run-id>/`，报告模板由验收活动按项目 tailoring 选择；**当前 V0.3 candidate 阶段尚未启动正式验收**，系统测试 Gate 只给放行建议、不等于验收或上线授权。启动条件：真实 Piko / 真 Slinky Memory 联调可用且 `runtime_activation` 决策启动时。Owner：LLMTier + Piko + Slinky（consumer reviewer）。 | 把系统测试 PASS 误当客户验收，或把验收结论泄进 tests 家族 | 本轮 review | 启动验收时新增 ADR |
-| LT-TL-023 | 单元测试方案/计划合并登记（`tests.unit-test-scheme`/`tests.unit-test-plan` 模板默认“单一模块/一模块一份”） | **tailored（合并为项目级一份，逐模块切片由 Case ID 前缀承担）** | `tests.unit-test-scheme` 模板要求绑定单一软件模块、`tests.unit-test-plan` 模板要求一模块一份。LLMTier 8 个模块（M001-M008）边界清晰，用户授权将单元层 Case 清单与作业编排合并为项目级一份，避免 8 份碎片文档；逐模块访问由 Case ID 前缀 `UT-API-*`/`UT-UI-*`/`UT-INF-*`/`UT-MGMT-*`/`UT-OBS-*`/`UT-DIAG-*`/`UT-UTIL-*`/`UT-LOG-*` 与来源列承担。合并只关登记位置，不改变 Case↔VRC 追溯。另：锁定模板 `tests.unit-case@2.3.2` 一 Case 一文档，本项目按“一个设计验证项（VRC）一个 Case”实现（33 份），未按单个测试函数拆分为上百份。 | 8 份碎片文档造成清单漂移；或误按测试函数粒度产生大量无独立 Oracle 的 Case | 本轮 review | N/A |
+| LT-TL-023 | 单元测试方案/计划合并登记（`tests.unit-test-scheme`/`tests.unit-test-plan` 模板默认“单一模块/一模块一份”） | **tailored（合并为项目级一份，逐模块切片由 Case ID 前缀承担）** | `tests.unit-test-scheme` 模板要求绑定单一软件模块、`tests.unit-test-plan` 模板要求一模块一份。LLMTier 8 个模块（M001-M008）边界清晰，用户授权将单元层 Case 清单与作业编排合并为项目级一份，避免 8 份碎片文档；逐模块访问由 Case ID 前缀 `UT-API-*`/`UT-UI-*`/`UT-INF-*`/`UT-MGMT-*`/`UT-OBS-*`/`UT-DIAG-*`/`UT-UTIL-*`/`UT-LOG-*` 与来源列承担。合并只关登记位置，不改变 Case↔VRC 追溯。另：锁定模板 `tests.unit-case@2.3.2` 一 Case 一文档，本项目按“一个设计验证项（VRC）一个 Case”实现（当前 64 份，含覆盖洞新增），未按单个测试函数拆分为上百份。 | 8 份碎片文档造成清单漂移；或误按测试函数粒度产生大量无独立 Oracle 的 Case | 本轮 review | N/A |
+| LT-TL-024 | 测试范围裁剪的**定稿 N/A**（系统方案 §4 与单元方案 §4 的收口） | **Tailored-N/A（不在 tests 家族；权威本表）** | 经代码/设计复核，以下条目**定稿为 Tailored-N/A，不再保留为具名 Gap**（本表为其权威记录；各方案 §4 只引用本表）：①**无浏览器/JS 宿主**——M002 `VRC-UI-001..006` 纯视觉子项与 M005 诊断页视觉子项（`VRC-OBS-001..005` 视觉部分），本项目 harness 无 node/jsdom/playwright/selenium（`LT-TL-013` 单服务），静态渲染不可驱动；静态/契约子项已由 `UT-UI-001..010`/`UT-OBS-001..007` 承接（恢复条件＝引入浏览器/JS 宿主）。②**生产部署面**（`LT-SEC-003` TLS/SSO/MFA/CSRF、真实生产环境）——归验收活动（`LT-TL-022`）与运维手册，非 HTTP 黑盒分母。③**运维/恢复/容量活动**（`LT-OPS-003/004/005`、进程 crash/restart 恢复、备份/恢复演练、容量/耐久 FD/30min/50并发）——归运维手册与性能专项（`LT-TL-020`）。④**声明性/absence 约束**（`LT-PERF-003` 未测量不宣称 SLO、`LT-FUN-007`/`LT-INT-003`/`LT-REL-002` absence）——由静态契约与发布声明承接。⑤**上游模型答案质量**——内容非 Oracle（系统设计 §1）。⑥**实现/部署 Gate**（`LT-OPEN-03`）——设计已关闭、待部署证据。⑦**子系统测试级别**——无 `design.subsystem` 对象（`LT-TL-003`）。⑧**误报偏差**（OpenAPI `422`/probes `502`/Embeddings `provider_failure`）——经复核无偏差或已改声明对齐，无 Case 需要。 | 把 N/A 当 Gap 反复挂起，或误把视觉/运维活动写进运行层分母产生空 Case | 本轮 review | N/A |
 
 ## 4. 禁止裁剪项
 

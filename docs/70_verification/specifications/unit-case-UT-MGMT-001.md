@@ -75,6 +75,7 @@ bootstrap_settings(settings) ; ensure_fixed_tiers()
 | 1 | 合法 bootstrap | Registry 与 hash 一致 |
 | 2 | 重复启动 / 忽略外部 settings | 不重复写 |
 | 3 | 缺节 / env 空 / file 不存在 | 503 + 回滚 + not_ready |
+| 4 | 空库且不提供 settings 路径 | 503 `bootstrap_required` |
 | 4 | 固定 tier | 7 个 |
 
 ## 5. 独立 Oracle 与预期结果
@@ -89,7 +90,7 @@ bootstrap_settings(settings) ; ensure_fixed_tiers()
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_app_startup.py`（7 个）+ `tests/unit/v03/test_registry.py::test_fixed_tiers_exist`（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_app_startup.py -q`
+- 测试文件 / 测试函数：`tests/unit/v03/test_app_startup.py`（7 个）+ `tests/unit/v03/test_registry.py::test_fixed_tiers_exist` + `tests/unit/v03/test_management_gaps.py::BootstrapTests`（含 `test_empty_store_without_settings_is_bootstrap_required`（`bootstrap_required`）、`test_missing_section_fails`/`test_env_secret_ref_unavailable_fails`/`test_file_secret_ref_missing_fails`（`bootstrap_invalid`））（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_app_startup.py tests/unit/v03/test_management_gaps.py -q`
 - 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
 

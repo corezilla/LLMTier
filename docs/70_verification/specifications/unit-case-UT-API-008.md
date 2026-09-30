@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-API-008` / M001 http-api §14.2 · `authorize` 角色选择 v0.1.0-draft.2 / `VRC-API-002` / security / P0（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
-- 要测什么（责任展开）：被测：data 凭据访问 admin 端点 → 403（分发层 `_auth("admin")`）；admin 凭据访问 admin 端点 → 200；`_auth_either` 的 admin-first 角色选择。
+- 要测什么（责任展开）：被测：data 凭据访问 admin 端点 → 403（分发层 `_auth("admin")`）；admin 凭据访问 admin 端点 → 200；`_auth_either` 的 admin-first 角色选择；**非受信来源（合成公网地址如 `8.8.8.8`）无 `Authorization` 头 → 401 `authentication_required`**（`unauthenticated_principal` 返回 `None` 后 `authenticate` 抛 401；系统层 A/B 无法构造非受信来源，故在此单元承接）。
 - 明确不测什么 / 失败含义：不测：信任地址免登录（UT-API-002）；不测深层安全。失败含义＝分发层角色判定或 403 实现错误。
 
 ## 2. 被测入口与前置
@@ -75,6 +75,7 @@ Handler._auth(role="data"); Handler._auth_either() -> (Principal, is_admin)
 | 1 | data token 访问 admin 端点 | 403 |
 | 2 | admin token 访问 admin 端点 | 200 |
 | 3 | 校验角色选择为 admin-first | 返回角色来自 admin 判定 |
+| 4 | 非受信地址（`8.8.8.8`）无 `Authorization` 头 | `unauthenticated_principal`→`None`；`authenticate`→401 `authentication_required` |
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -88,6 +89,6 @@ Handler._auth(role="data"); Handler._auth_either() -> (Principal, is_admin)
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_app_dispatch.py::AdminDispatchAuthTests::test_data_token_on_admin_endpoint_is_403` / `test_admin_token_on_admin_endpoint_is_200`；角色选择另由 `test_auth.py::test_admin_token`/`test_principal_header` 覆盖
+- 测试文件 / 测试函数：`tests/unit/v03/test_app_dispatch.py::AdminDispatchAuthTests::test_data_token_on_admin_endpoint_is_403` / `test_admin_token_on_admin_endpoint_is_200`；角色选择另由 `test_auth.py::test_admin_token`/`test_principal_header` 覆盖；**非受信来源缺凭据 401** 由 `test_auth.py::test_non_trusted_address_without_credential_is_401` 覆盖（系统层 AUTH-10 以非法授权方案触发同一 401 分支；非受信来源无系统级构造）。
 - 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_app_dispatch.py tests/unit/v03/test_auth.py -q`
 - 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03/test_app_dispatch.py`、`test_auth.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。

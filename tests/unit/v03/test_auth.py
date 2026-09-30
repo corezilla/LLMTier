@@ -39,3 +39,8 @@ class AuthTests(unittest.TestCase):
         self.assertIsNone(unauthenticated_principal("8.8.8.8",Headers(),"admin"))
     def test_explicit_bearer_disables_no_auth_path(self):
         self.assertIsNone(unauthenticated_principal("192.168.1.20",Headers(Authorization="Bearer x"),"admin"))
+    def test_non_trusted_address_without_credential_is_401(self):
+        with patch.dict(os.environ,{"LLMTIER_DATA_TOKEN":"x"},clear=True):
+            self.assertIsNone(unauthenticated_principal("8.8.8.8",Headers(),"data"))
+            with self.assertRaises(ApiError) as cm:authenticate(Headers(),"data")
+        self.assertEqual((cm.exception.status,cm.exception.code),(401,"authentication_required"))

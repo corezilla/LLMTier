@@ -3038,7 +3038,7 @@ POST /v1/probes {deployment_id, confirm_external_call: true} -> 200 ProbeResult
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-ADM-PROBES`；部署探测（有费用/改变状态）；M004（`admin`）；状态=规格已定、Implemented；唯一契约=`openapi`；文件·symbol `src/management/admin.py` `probe`。
 - **输入与前提**：`ProbeRequest {deployment_id, confirm_external_call}`；授权=`admin` + 二次确认。
 - **成功输出与保证**：`ProbeResult {deployment_id,status,checked_at,may_have_incurred_cost}`；副作用=可能产生上游调用费用（由 `may_have_incurred_cost` 声明）。
-- **错误与合法下一步**：缺确认 → `ERR-CONFIRM`（400）；未知 deployment → `ERR-NOTFOUND`（404）；上游失败 → `ERR-PROVIDER-*`（502）。
+- **错误与合法下一步**：缺确认 → `ERR-CONFIRM`（400）；未知 deployment → `ERR-NOTFOUND`（404）。上游不可达/失败是**探测观测结果**，不抛 `ERR-PROVIDER-*`：`adapter.probe()` 返回 false → `200 ProbeResult{status:"unhealthy"}` 并落库 health（`providers/openai.py` `probe()` 捕获所有上游异常；模块设计 M004 §4.2「探测失败 → `unhealthy`」）；故本接口不声明 502。
 - **交互与生命周期**：同步；显式触发，不自动轮询。
 - **实现与验证**：正常带确认探测；拒绝缺确认 → 400。`VRC-DIAG-004`。
 

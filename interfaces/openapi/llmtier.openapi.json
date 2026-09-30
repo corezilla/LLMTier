@@ -971,7 +971,7 @@
         },
         "responses": {
           "200": {
-            "description": "Probe result",
+            "description": "Probe result; an unreachable or failing upstream is an observation and is reported as status=unhealthy with HTTP 200, not as an upstream error status",
             "content": {
               "application/json": {
                 "schema": {
@@ -989,8 +989,8 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
-          "502": {
-            "$ref": "#/components/responses/ProviderFailure"
+          "404": {
+            "$ref": "#/components/responses/NotFound"
           }
         }
       }

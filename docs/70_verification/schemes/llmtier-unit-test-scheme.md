@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-unit-test-scheme` |
-| Document Version | `0.1.0-draft.6` |
+| Document Version | `0.1.0-draft.8` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -48,7 +48,7 @@
 ## 1. 目标、范围与被测对象
 
 - 被测对象、设计基线与父对象：LLMTier 源码 `src/http_api`(M001)、`src/web_ui`(M002)、`src/inference`(M003)、`src/management`(M004)、`src/observability`(M005)、`src/libdiag`(M006)、`src/util`(M007)、`src/log`(M008)；父对象为软件系统设计 `llmtier-system-design`；模块/ISD 基线见 §1.5。**M005 `src/observability/` 无独立实现文件**（仅空 `__init__.py`），其单元行为落在 M001 `app.py` 的诊断路由与 M006 `diagnostics.py` 查询面（见 M005 设计 §3/§4；本方案 §3 的 M005 行据此归属）。
-- 本阶段测试边界（真实组成 / 边界替身）：被测模块内部为真实代码（`Store` 隔离临时库、`Registry`/`Router`/`UsageRecorder`/`AuditLog`/`OperationalLog`/`DiagnosticsService` 真实实例）；边界替身仅用于外部 collaborator——上游 provider 用进程内 `FakeAdapter`（`tests/unit/v03/fakes.py` 定义的共享 fake）、HTTP 层测试用 `ThreadingHTTPServer` 绑 `127.0.0.1:0` 的 loopback 测试实例、`FakeResponse` 为各测试模块内的**本地 HTTP 响应 stub**（定义于 `test_account_usage.py` / `test_provider_openai.py`，非 `fakes.py` 共享资产），用于 account-usage HTTP 与 OpenAI SSE 响应替身；替身契约待 `tests.asset-design` 承载（见 §1.6、§4 Gap G-UT-2）。
+- 本阶段测试边界（真实组成 / 边界替身）：被测模块内部为真实代码（`Store` 隔离临时库、`Registry`/`Router`/`UsageRecorder`/`AuditLog`/`OperationalLog`/`DiagnosticsService` 真实实例）；边界替身仅用于外部 collaborator——上游 provider 用进程内 `FakeAdapter`（`tests/unit/v03/fakes.py` 定义的共享 fake）、HTTP 层测试用 `ThreadingHTTPServer` 绑 `127.0.0.1:0` 的 loopback 测试实例、`FakeResponse` 为各测试模块内的**本地 HTTP 响应 stub**（定义于 `test_account_usage.py` / `test_provider_openai.py`，非 `fakes.py` 共享资产），用于 account-usage HTTP 与 OpenAI SSE 响应替身；替身契约由 `llmtier-unit-fakes`（`tests.asset-design` 实例，见 §1.6/§1.7）承载。
 - 不证明的组合保证及承接入口：组装后的进程级流程（启动/systemd、反向代理、Piko 联调）、wire 互操作与 OpenAPI 端到端一致性、浏览器 E2E、真实上游 provider 协议；承接＝系统测试方案/计划（`llmtier-system-test-scheme`/`-plan`）与契约层。**本项目未采用独立模块测试层**（无 `tests.module-test-scheme`：模板要求方案绑定单一模块而本项目有 8 个模块，建立合并方案需授权）；本方案已按"被测模块内部为真实实现"即整模块组装层语义运行，模块级 VRC 的行为承接见系统测试方案 §4 裁决。
 - 被测函数集合（每个 Case 的具体入口见对应 unit-case §2）：`src/http_api`（`errors.py`、`auth.py`、`sse.py`、`health.py`、`app.py` 含 `Handler._dispatch`/`_auth`/`_auth_either`/`_body`/`_json`/`_static`/`_store_read`/`_correlation`/`_optional_boolean`、模块级 `_int_param`、`_UnavailableDiagnostics`）、`src/inference`（`responses.py`、`embeddings.py`、`models.py`、`routing.py`、`usage.py`、`providers/openai.py`、`providers/base.py`）、`src/management`（`registry.py`、`admin.py`、`audit.py`、`account_usage.py`）、`src/libdiag`（`diagnostics.py`、`injections.py`、`snapshots.py`、`stats.py`、`traces.py`、`settings.py`）、`src/util`（`store.py`）、`src/log`（`logs.py`）、`src/web_ui`（`index.html`/`app.js` 契约）。
 
@@ -88,14 +88,14 @@
 
 - **决策准则**：被测模块内部一切真实；仅替换进程外的上游 provider 与真实网络端口。`Store` 使用临时隔离库（真实 SQLite，非 mock）；provider 用进程内 `FakeAdapter`；HTTP 层用真实 `ThreadingHTTPServer` 绑 `127.0.0.1:0`（loopback 测试实例，真实 socket）。
 - **替身形态**：`FakeAdapter` 为进程内 fake（只代返回值/异常/终态，共享于 `tests/unit/v03/fakes.py`）；`FakeResponse` 为各测试模块**本地**定义的 HTTP 响应 stub（`test_account_usage.py` / `test_provider_openai.py` 各自定义，未进 `fakes.py`，也非共享探针 stub）；不用 mock 框架打桩被测自身。
-- **替身保真度与契约**：替身契约与自检归 `tests.asset-design`（一资产一文档），本方案与 Case 只引用其 ID 不复制行为。当前 `tests/asset-design` 尚未建立实例（见 §4 Gap G-UT-2）。
+- **替身保真度与契约**：替身契约与自检归 `tests.asset-design`（一资产一文档），本方案与 Case 只引用其 ID 不复制行为。**资产实例已建立**：`llmtier-unit-fakes`（`docs/70_verification/assets/llmtier-unit-fakes.md`，覆盖 `FakeAdapter`/`AppFixture`，候选 ID `FAKE-LLMTIER-ADAPTER`）；§3 各 Case 只引用该文档 ID。
 - **交互断言 vs 返回值断言**：优先断言公开返回值、落库行与 wire 信封；必要时断言 `ApiError` 类型/错误码与关键调用序，不耦合被测内部实现。
 - **反模式（逐项排除）**：不 mock 被测拥有的接口；不 mock 值对象/纯数据（dict/JSON 直接构造）；不为凑覆盖率而 mock；不过度断言内部细节。
 
 | 协作者类型 | 替身形态 | 替身契约文档（tests.asset-design） | 决策理由 |
 |---|---|---|---|
-| 上游 provider adapter | 进程内 fake（`FakeAdapter`） | 待建（Gap G-UT-2，候选 ID `FAKE-LLMTIER-ADAPTER`） | 真实 provider 不可控；fake 只代返回值/异常/终态 |
-| provider HTTP 响应 | 本地 stub（各测试模块自定义 `FakeResponse`） | 待建（Gap G-UT-2；非 `fakes.py` 共享资产） | 代 account-usage HTTP 与 OpenAI SSE 的响应体（非 `probe(models)`） |
+| 上游 provider adapter | 进程内 fake（`FakeAdapter`） | `llmtier-unit-fakes`（`docs/70_verification/assets/llmtier-unit-fakes.md`） | 真实 provider 不可控；fake 只代返回值/异常/终态 |
+| provider HTTP 响应 | 本地 stub（各测试模块自定义 `FakeResponse`） | `llmtier-unit-fakes` §2/§3（明确声明 `FakeResponse` 为各模块本地 stub、非本资产成员） | 代 account-usage HTTP 与 OpenAI SSE 的响应体（非 `probe(models)`） |
 | SQLite 存储 | 真实 `Store` + 临时隔离库 | 不适用（真实依赖） | 存储是被测对象一部分，用真实实现 + 密隔离 |
 | HTTP 监听端口 | 真实 `ThreadingHTTPServer`（`127.0.0.1:0`） | 不适用（真实网络） | 端口是真实路径，仅绑 loopback 临时端口 |
 | Web UI 静态产物 | 真实文件读取（`Path.read_text`） | 不适用（真实产物） | UI 契约对真实 `index.html`/`app.js` 断言 |
@@ -108,10 +108,10 @@
 | | · 契约：真实 SQLite 落库；`settings.json` 由 fixture 写入；不复用跨 Case 状态 | | · 用法：`setUp` 建 `AppFixture`、`tearDown` `close()` |
 | ENV-2 loopback 测试 HTTP 实例 | 真实：`ThreadingHTTPServer((127.0.0.1, 0), handler_factory(app))` | — | HTTP/wire 契约层 Case（诊断 HTTP、鉴权、别名、静态） |
 | | · 契约：真实 socket、临时端口、真实 handler 栈；不代被测 `app.py` 逻辑 | | · 用法：`setUpClass` 起服务、`tearDownClass` shutdown |
-| ENV-3 provider 进程内 fake | fake：`FakeAdapter` 只代返回值/异常/终态 | 待建（Gap G-UT-2） | 上游交互/失败注入 Case |
+| ENV-3 provider 进程内 fake | fake：`FakeAdapter` 只代返回值/异常/终态 | `llmtier-unit-fakes` | 上游交互/失败注入 Case |
 | | · 契约：`complete`/`embed`/`probe` 返回可配置结果；不证明真实 provider 协议 | | · 用法：`ResponsesService(..., adapter=FakeAdapter(...))` |
 
-**总体说明**：Python 3.14（`python3 -m pytest`），`PYTHONPATH=src`；fixture 来源为 `tests/unit/v03/fakes.py`（`AppFixture`/`FakeAdapter`）；替身资产归 `tests.asset-design`（待建）；CI 入口为 `PYTHONPATH=src python3 -m pytest tests/unit/v03 -q`（或按 `-k` 选单 Case）；并发隔离按临时库实例；缺 Python/依赖记 Blocked，不静默换环境。
+**总体说明**：Python 3.14（`python3 -m pytest`），`PYTHONPATH=src`；fixture 来源为 `tests/unit/v03/fakes.py`（`AppFixture`/`FakeAdapter`）；替身资产契约见 `llmtier-unit-fakes`（`docs/70_verification/assets/`，`Implemented`/`Unverified`）；CI 入口为 `PYTHONPATH=src python3 -m pytest tests/unit/v03 -q`（或按 `-k` 选单 Case）；并发隔离按临时库实例；缺 Python/依赖记 Blocked，不静默换环境。
 
 ## 2. 测试分类体系
 
@@ -168,7 +168,7 @@
 | M003 inference §14.4 · `Router.admit`/`models` v0.1.0-draft.1 | VRC-INF-004 | UT-INF-004 | concurrency | P0 | 准入与目录：占满队列 429、全不健康 503、同等级 FIFO、availability 三态 | Designed | M001 / 系统测试 |
 | M003 inference §14.4 · `Router` 限流/快照/模型码 v0.1.0-draft.1 | VRC-INF-004 | UT-INF-009 | boundary | P0 | 队列满/Wait 超时 429+`Retry-After`；`provider RPM`/`min_interval` 节流；`snapshot()` 形状；degraded/unknown→503；`model_unavailable` 码 | Designed | M001 / 系统测试 |
 | M003 inference §14.5 · `CON-INFER-005` fail-open v0.1.0-draft.1 | VRC-INF-005 | UT-INF-005 | recovery | P1 | 观测 fail-open / 不二次鉴权：诊断抛错时推理结果不变 | Designed | M-OBS / 系统测试 |
-| M004 management §14.1 · `Registry.bootstrap_settings` v0.1.0-draft.2 | VRC-MGMT-001 | UT-MGMT-001 | normal | P0 | 引导与 Secret 引用：合法 settings、重复启动 no-op、缺节、`env:` 空/`file:` 不存在→503 回滚 | Designed | 启动 / M001 |
+| M004 management §14.1 · `Registry.bootstrap_settings` v0.1.0-draft.2 | VRC-MGMT-001 | UT-MGMT-001 | normal | P0 | 引导与 Secret 引用：合法 settings、重复启动 no-op、空库无 settings→503 `bootstrap_required`、缺节、`env:` 空/`file:` 不存在→503 `bootstrap_invalid` 回滚 | Designed | 启动 / M001 |
 | M004 management §14.1 · `bootstrap_settings`/`ensure_fixed_tiers` v0.1.0-draft.2 | VRC-MGMT-001 | UT-MGMT-007 | recovery | P0 | bootstrap 事务中途失败→空库回滚 + not_ready；`ensure_fixed_tiers` 幂等二次补建（与 bootstrap 配置能力不冲突） | Designed | 启动 / M001 |
 | M004 management §14.2 · `Registry` CRUD v0.1.0-draft.2 | VRC-MGMT-002 | UT-MGMT-002 | negative | P0 | CRUD 不变量：重复/引用/能力不兼容/冻结等错误路径与 ETag stale(412)、删除被引用、能力编辑冲突回滚（`test_registry.py` 为负向不变量断言，无并发线程） | Designed | M003 / 契约层 |
 | M004 management §14.2 · `Registry` 引用删除 v0.1.0-draft.2 | VRC-MGMT-002 | UT-MGMT-008 | negative | P1 | `resource_in_use`：删除被 deployment 引用的 provider / 被 tier 引用的 deployment → 409 | Designed | M003 / 契约层 |
@@ -203,29 +203,32 @@
 
 **Case 总数：64**（分类：normal 13 / boundary 16 / negative 14 / concurrency 2 / recovery 12 / security 7；Priority P0 23 / P1 38 / P2 3）。
 
-**设计验证项覆盖（契约级）**：33 个模块设计 §14 验证项**全部至少一个 Case**——登记覆盖 33/33，无未登记 VRC。**注意**：该 33/33 为**清单登记覆盖**（每个 VRC 至少一个 Case 入清单），不等于行为级全覆盖——M002 `VRC-UI-001..006` 的行为级断言缺口登记为 **G-UT-3**（当前仅字符串契约），M005 视觉缺口为 **G-UT-4**（见 §4）；故「33/33」不含行为级覆盖。逐 VRC 覆盖：`VRC-API-001` 7、`VRC-API-002` 2、`VRC-API-003` 2、`VRC-API-004` 2、`VRC-UI-001` 3、`VRC-UI-002` 2、`VRC-UI-003` 1、`VRC-UI-004` 2、`VRC-UI-005` 1、`VRC-UI-006` 1、`VRC-INF-001` 2、`VRC-INF-002` 2、`VRC-INF-003` 2、`VRC-INF-004` 2、`VRC-INF-005` 1、`VRC-MGMT-001` 2、`VRC-MGMT-002` 2、`VRC-MGMT-003` 1、`VRC-MGMT-004` 2、`VRC-MGMT-005` 2、`VRC-MGMT-006` 2、`VRC-OBS-001` 1、`VRC-OBS-002` 2、`VRC-OBS-003` 1、`VRC-OBS-004` 2、`VRC-OBS-005` 1、`VRC-DIAG-001` 1、`VRC-DIAG-002` 3、`VRC-DIAG-003` 2、`VRC-DIAG-004` 2、`VRC-UTIL-001` 2、`VRC-UTIL-002` 2、`VRC-LOG-001` 2。
+**设计验证项覆盖（契约级）**：33 个模块设计 §14 验证项**全部至少一个 Case**——登记覆盖 33/33，无未登记 VRC。**注意**：该 33/33 为**清单登记覆盖**（每个 VRC 至少一个 Case 入清单），不等于"行为级全覆盖"——但**所有行为级未覆盖子项均已按 §4 定稿为 Tailored-N/A（非 Gap）**：M002 `VRC-UI-001..006` 的静态/契约子项由 `UT-UI-001..010` 承接，纯视觉子项（tabs/Disabled 渲染）因本项目无浏览器/JS 宿主定稿 N/A（见 §4，取代原 G-UT-3）；M005 视觉子项同裁决（取代原 G-UT-4）。故「33/33」= 清单登记覆盖，行为级以此 N/A 裁决为准。逐 VRC 覆盖：`VRC-API-001` 7、`VRC-API-002` 2、`VRC-API-003` 2、`VRC-API-004` 2、`VRC-UI-001` 3、`VRC-UI-002` 2、`VRC-UI-003` 1、`VRC-UI-004` 2、`VRC-UI-005` 1、`VRC-UI-006` 1、`VRC-INF-001` 2、`VRC-INF-002` 2、`VRC-INF-003` 2、`VRC-INF-004` 2、`VRC-INF-005` 1、`VRC-MGMT-001` 2、`VRC-MGMT-002` 2、`VRC-MGMT-003` 1、`VRC-MGMT-004` 2、`VRC-MGMT-005` 2、`VRC-MGMT-006` 2、`VRC-OBS-001` 1、`VRC-OBS-002` 2、`VRC-OBS-003` 1、`VRC-OBS-004` 2、`VRC-OBS-005` 1、`VRC-DIAG-001` 1、`VRC-DIAG-002` 3、`VRC-DIAG-003` 2、`VRC-DIAG-004` 2、`VRC-UTIL-001` 2、`VRC-UTIL-002` 2、`VRC-LOG-001` 2。
 
-> **unit-case 文档映射（清单登记 64 Case，文档 64/64 已建）**：`UT-API-001..004`、`UT-UI-001..006`、`UT-INF-001..005`、`UT-MGMT-001..006`、`UT-OBS-001..005`、`UT-DIAG-001..004`、`UT-UTIL-001..002`、`UT-LOG-001` 为原有 33 份；本版**新增 31 个 Case ID**（`UT-API-005..013`、`UT-UI-007..010`、`UT-INF-006..009`、`UT-MGMT-007..011`、`UT-OBS-006..007`、`UT-DIAG-005..008`、`UT-UTIL-003..004`、`UT-LOG-002`），其 `tests.unit-case` 文档现已建齐（`docs/70_verification/specifications/unit-case-UT-*.md`），保留原 ID/VRC 归属。**注意**：文档已建 ≠ 报告层闭合；执行与 Verdict 仍归 Run 报告（G-UT-1）。逐 Case 实现状态以对应 unit-case 文档 §7 为准（本清单新增 Case 的实现状态由各自文档声称，本表设计状态仍为 `Designed`）。
+> **unit-case 文档映射（清单登记 64 Case，文档 64/64 已建）**：`UT-API-001..004`、`UT-UI-001..006`、`UT-INF-001..005`、`UT-MGMT-001..006`、`UT-OBS-001..005`、`UT-DIAG-001..004`、`UT-UTIL-001..002`、`UT-LOG-001` 为原有 33 份；本版**新增 31 个 Case ID**（`UT-API-005..013`、`UT-UI-007..010`、`UT-INF-006..009`、`UT-MGMT-007..011`、`UT-OBS-006..007`、`UT-DIAG-005..008`、`UT-UTIL-003..004`、`UT-LOG-002`），其 `tests.unit-case` 文档现已建齐（`docs/70_verification/specifications/unit-case-UT-*.md`），保留原 ID/VRC 归属。**注意**：文档已建 ≠ 全层闭合；首个 Run `run-20260930-01`（341 PASS）已录制，逐 Case Verdict 以 Run 报告为准。逐 Case 实现状态以对应 unit-case 文档 §7 为准（本清单新增 Case 的实现状态由各自文档声称，本表设计状态仍为 `Designed`）。
 
 ## 4. 不适用与缺口裁决
 
-| 来源 ID / 事实依据 | 裁决（Tailored-N/A 或 Gap） | Owner / 恢复条件 |
+> **本表无具名 Gap**：原 `G-UT-1`（Run 证据）/`G-UT-2`（`tests.asset-design`）/`G-UT-5`（损坏库映射）已按事实**修复/覆盖关闭**；原 `G-UT-3`/`G-UT-4`（UI/OBS 视觉）因无浏览器宿主**定稿 Tailored-N/A**（权威 `std-tailoring`＋系统方案 §4）。模块级 VRC 的行为级承接方逐项指向 `llmtier-unit-test-scheme` §3 具体 Case。
+
+| 来源 ID / 事实依据 | 裁决（Tailored-N/A / 已修复 / 已覆盖） | Owner / 权威与恢复条件 |
 |---|---|---|
 | 模块组装后的进程级流程、systemd/反向代理、Piko 联调 | Tailored-N/A（本层不测；各模块设计 §14「父级组合验证交接」已列承接方） | 归系统测试方案（`llmtier-system-test-scheme`）；本项目未采用独立模块测试层（无 `tests.module-test-scheme`），模块级 VRC 行为承接见系统方案 §4 裁决 |
 | 真实上游 provider 协议与 wire 互操作、浏览器 E2E | Tailored-N/A（本层不测；系统方案已承接） | 归契约层与 `llmtier-system-test-scheme` |
 | performance / endurance 分类 | Tailored-N/A（本层不纳入；见 §2 裁剪依据） | 归系统测试方案 |
-| M002 web-ui 六项 VRC（`VRC-UI-001..006`）的**行为级**（非字符串契约）断言 | Gap（G-UT-3） | Owner：M002 web-ui。当前 `test_webui_contract.py` 只做静态字符串/契约断言，无法驱动 `app.js` 行为；恢复条件＝引入 JS 行为测试宿主（如 node/jsdom）后，`UT-UI-001..010` 由字符串契约升级为行为断言 |
-| M005 observability 的浏览器呈现（诊断页 tabs/Disabled 视觉） | Gap（G-UT-4） | Owner：M002/M005。单元层只能对静态资源字符串断言；**本项目无浏览器/E2E 宿主**（系统方案 §4 已将 `VRC-UI-001..006` 与 OBS 视觉子项定稿为 Tailored-N/A），故本项**不承接给系统/E2E 层**，保持单元层具名 Gap；恢复条件＝引入浏览器/JS 宿主后重评（与 G-UT-3 同一恢复条件） |
-| 替身契约文档 `tests.asset-design`（`FakeAdapter`） | Gap（G-UT-2） | LLMTier / 恢复条件＝补建 `tests/asset-design` 实例并在 §1.6 填 ID；关闭前 §1.6 保持“待建”。注：`FakeResponse` 为各测试模块本地 stub，非共享资产，不纳入本缺口 |
-| 单元测试正式报告与 Run 证据 | Gap（G-UT-1） | LLMTier / 恢复条件＝首次真实执行 `tests/unit/v03` 并按计划 §7 生成 `tests.unit-test-report`；当前无录制 Run |
+| M002 web-ui 六项 VRC（`VRC-UI-001..006`）的**行为级**（非字符串契约，即真实 JS 执行）断言 | **Tailored-N/A（定稿；非 Gap）** | Owner：M002 web-ui。**权威**：`std-tailoring.md` `LT-TL-013`（单服务、不引入第二宿主）＋系统方案 §4（`VRC-UI-001..006` 定稿 Tailored-N/A）＋本项目 harness 无浏览器/JS 宿主（全仓无 node/jsdom/playwright/selenium）。**已覆盖部分（真实现有宿主）**：模块级 VRC-UI-001..006 的静态/契约子项由 `UT-UI-001..010`（`tests/unit/v03/test_webui_contract.py`）承接——含 `UT-UI-001`（5 页/tier 状态/readyz 映射/图标 sprite/无 bearer 存储）、`UT-UI-002/008`（错误分派与 load 失败保屏）、`UT-UI-003`（pause/resume 复用 deployment PATCH）、`UT-UI-004/009`（Unknown≠0/usageSummary 四态）、`UT-UI-005`（探测付费确认/gated POST）、`UT-UI-006`（诊断页 4 tabs/Disabled）、`UT-UI-007/010`（状态优先级/etag/statsRange）。**未覆盖的纯视觉子项**（tabs/Disabled 的渲染像素）**定稿 N/A**：无 JS 宿主无法驱动，恢复条件＝引入浏览器/JS 宿主后由单元层升级为行为断言。`std-tailoring` 已记录。 |
+| M005 observability 的浏览器呈现（诊断页 tabs/Disabled 视觉） | **Tailored-N/A（定稿；非 Gap）** | Owner：M005（视觉）/M002。同上（无浏览器/JS 宿主）；行为级已由 `UT-OBS-001..007`（开关/查询脱敏/注入 fail-open/trace 关联/时间窗）单元承接，视觉子项无宿主故 N/A。与 `VRC-UI-*` 同一裁决，`std-tailoring` 已记录；恢复条件＝引入浏览器/JS 宿主后重评。 |
+| 替身契约文档 `tests.asset-design`（`FakeAdapter`） | **已修复（G-UT-2 关闭）** | LLMTier。**关闭事实**：已建立 `llmtier-unit-fakes`（`docs/70_verification/assets/llmtier-unit-fakes.md`，Template `tests.asset-design@0.2.2`，`Implemented`/`Unverified`），覆盖 `FakeAdapter`/`AppFixture` 的 §2 行为契约、§3 可测试性依赖、§4 实现耦合、§5 自检与 §6 状态；§1.6 与 §1.7 已引用其 ID。`FakeResponse` 在资产 §2/§3 明示为各测试模块本地 stub、非本资产成员。仅余自检 Run 录制（记于资产 §7，与 G-UT-1 同批）。 |
+| 单元测试正式报告与 Run 证据 | **已修复（G-UT-1 关闭）** | LLMTier。**关闭事实**：已真实执行 `tests/unit/v03`，产出 Run `tests/unit/v03/reports/run-20260930-01`（`junit.xml`＋`test-run.env`（pin `git_commit/schema_version/openapi_version`）＋`case-status.json`（PASS 341/0 FAIL/0 BLOCKED）＋逐 Case `manifest.json`）。单元层首次录制 Run 已落地；正式 `tests.unit-test-report` 的 Markdown 汇总在 Gate 前按计划 §8 依此 Run 生成。 |
+| `UT-UTIL-004` 损坏文件的 envelope code（`CorruptStoreTests`） | **已覆盖（G-UT-5 关闭；非 Gap）** | LLMTier。**关闭事实**：损坏库**不被静默接受**由 `tests/unit/v03/test_store_gaps.py::CorruptStoreTests::test_corrupt_file_raises` 断言（抛 `ApiError` 或 `sqlite3.DatabaseError`）；`schema_integrity_failed` 的**确定性映射**由同文件 `IntegrityMappingTests::test_integrity_failure_is_503` 覆盖（`PRAGMA integrity_check != ok` → 503 `schema_integrity_failed`）。即：坏 sqlite 头/页由 `DatabaseError` 直接上抛（非静默）、完整性失败走映射，两条路径均有真实断言，无需新 Case。 |
 | `_static` mime/`Cache-Control` 与 `/ui/` exact 字节 | Tailored-N/A（表现层细节由系统层契约测试锁定） | 归系统/契约层；单元层只断言 404 穿越与 `index.html` 命中（`UT-API-010`） |
 
 ## 5. 文档联动与清单变更规则
 
 - 方案冻结与变更规则：清单随各模块设计/ISD 基线冻结；新增 Case 先在本清单登记再建 `tests.unit-case` 文档；VRC 变更时同步 §3 与附录 A；Case ID 一经登记不复用、不改名。
 - 与 case-design / 计划的同步规则：Case 文档 ID＝Case ID；计划构成表引用本方案版本；本方案合并 8 模块，逐模块切片由 Case ID 前缀承担。
-- 新增 Case 的文档状态：本版新增的 `UT-API-005..013`、`UT-UI-007..010`、`UT-INF-006..009`、`UT-MGMT-007..011`、`UT-OBS-006..007`、`UT-DIAG-005..008`、`UT-UTIL-003..004`、`UT-LOG-002` 共 31 个 Case 已入本清单（§3），其 `tests.unit-case` 文档现已建齐于 `docs/70_verification/specifications/`；各 Case 的实现状态以对应文档 §7 为准，执行与 Verdict 归 Run 报告（G-UT-1）。
-- 新增 Case 示例：新增 `UT-INF-010`（尾随字节）先入本清单再建 `tests.unit-case` 文档；单元计划引用本方案 `0.1.0-draft.6`。
+- 新增 Case 的文档状态：本版新增的 `UT-API-005..013`、`UT-UI-007..010`、`UT-INF-006..009`、`UT-MGMT-007..011`、`UT-OBS-006..007`、`UT-DIAG-005..008`、`UT-UTIL-003..004`、`UT-LOG-002` 共 31 个 Case 已入本清单（§3），其 `tests.unit-case` 文档现已建齐于 `docs/70_verification/specifications/`；各 Case 的实现状态以对应文档 §7 为准，执行与 Verdict 归 Run 报告（首个 Run `run-20260930-01` 已录）。
+- 新增 Case 示例：新增 `UT-INF-010`（尾随字节）先入本清单再建 `tests.unit-case` 文档；单元计划引用本方案 `0.1.0-draft.8`。
 
 ## 附录 A. 本层设计验证项 VRC 汇集（对照用）
 

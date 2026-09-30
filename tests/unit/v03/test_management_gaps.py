@@ -72,6 +72,15 @@ class BootstrapTests(unittest.TestCase):
         finally:
             app.store.close()
 
+    def test_empty_store_without_settings_is_bootstrap_required(self):
+        """ERR-BOOT: empty store + no settings path → real registry raises bootstrap_required."""
+        app = self._app("g.db", None)
+        try:
+            self.assertIsNotNone(app.bootstrap_error)
+            self.assertEqual((app.bootstrap_error.status, app.bootstrap_error.code), (503, "bootstrap_required"))
+        finally:
+            app.store.close()
+
     def test_env_secret_ref_unavailable_fails(self):
         config = _valid_config()
         config["providers"][0]["secret_ref"] = "env:LLMTIER_UT_NOPE"
