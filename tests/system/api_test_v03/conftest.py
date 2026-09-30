@@ -349,23 +349,42 @@ class _FakeProvider:
             self._proc.wait()
         self._proc = None
 
+    def _control(self, path: str) -> None:
+        try:
+            with urllib.request.urlopen(f"http://{self.host}:{self.port}{path}", timeout=5):
+                pass
+        except (urllib.error.URLError, OSError):
+            pass
+
+    def release_slow(self) -> None:
+        """Open the slow-embeddings gate so blocked requests drain immediately."""
+        self._control("/control/release")
+
+    def reset_slow(self) -> None:
+        self._control("/control/reset")
+
 
 @pytest.fixture(scope="session")
-def provider_endpoint_b() -> Generator[str, None, None]:
-    """LAN-IP upstream URL for the B-class baseline provider (TS-003)."""
+def fake_provider_b() -> Generator[_FakeProvider, None, None]:
+    """The LAN-bound fake upstream for B-class cases (TS-003)."""
     override = os.environ.get("LLMTIER_TEST_PROVIDER_URL")
     if override:
-        yield override
-        return
+        pytest.skip("LLMTIER_TEST_PROVIDER_URL set: fake provider control unavailable")
     lan_ip = _detect_lan_ip()
     if not lan_ip:
         pytest.skip("TS-003: no LAN IP available for the B-class upstream provider")
     provider = _FakeProvider(lan_ip, _find_free_port(lan_ip))
     provider.start()
     try:
-        yield provider.url
+        yield provider
     finally:
         provider.stop()
+
+
+@pytest.fixture(scope="session")
+def provider_endpoint_b(fake_provider_b: _FakeProvider) -> str:
+    """LAN-IP upstream URL for the B-class baseline provider (TS-003)."""
+    return fake_provider_b.url
 
 
 class LLMTierInstance:
@@ -377,16 +396,23 @@ class LLMTierInstance:
         self._tmpdir = Path(tempfile.mkdtemp(prefix="llmtier_b_"))
         self._db_path = self._tmpdir / "test.sqlite3"
         self._settings_path = self._tmpdir / "settings.json"
+        self._settings = settings
+        self._dev_mode = dev_mode
 
         if settings is not None:
             self._settings_path.write_text(json.dumps(settings))
 
+        self._proc: subprocess.Popen | None = None
+        self._spawn()
+
+    def _spawn(self) -> None:
+        """Start the LLMTier process on the existing db/settings (no health wait)."""
         # Start from a clean LLMTIER_* env so leaked tokens / DEV_MODE from the
         # parent pytest process cannot change auth behaviour (AUTH-07 etc.).
         env = os.environ.copy()
         for key in [k for k in env if k.startswith("LLMTIER_")]:
             del env[key]
-        if dev_mode:
+        if self._dev_mode:
             env["LLMTIER_DEV_MODE"] = "1"
             env["LLMTIER_ADMIN_TOKEN"] = "dev-admin"
             env["LLMTIER_DATA_TOKEN"] = "dev-data"
@@ -396,7 +422,7 @@ class LLMTierInstance:
         env["LLMTIER_TRUSTED_LAN_MODE"] = "1"
         env["LLMTIER_DATABASE"] = str(self._db_path)
         env["PYTHONPATH"] = str(SRC_ROOT)
-        if settings is not None:
+        if self._settings is not None:
             env["LLMTIER_SETTINGS"] = str(self._settings_path)
 
         self._proc = subprocess.Popen(
@@ -408,6 +434,35 @@ class LLMTierInstance:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
+
+    def _terminate(self) -> None:
+        if self._proc is None:
+            return
+        self._proc.terminate()
+        try:
+            self._proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            self._proc.kill()
+            self._proc.wait()
+        self._proc = None
+
+    def kill(self) -> None:
+        """Hard-kill the process (SIGKILL) without removing the db (T-MET-CRASH)."""
+        if self._proc is None:
+            return
+        self._proc.kill()
+        self._proc.wait()
+        self._proc = None
+
+    def restart(self) -> None:
+        """Stop then start again on the SAME port/db/settings (crash-recovery)."""
+        self._terminate()
+        self._spawn()
+        self.start()
+
+    @property
+    def db_path(self) -> Path:
+        return self._db_path
 
     def start(self) -> None:
         for _ in range(40):
@@ -422,14 +477,7 @@ class LLMTierInstance:
         raise RuntimeError(f"LLMTier did not become healthy on port {self.port}")
 
     def stop(self) -> None:
-        if self._proc is not None:
-            self._proc.terminate()
-            try:
-                self._proc.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                self._proc.kill()
-                self._proc.wait()
-            self._proc = None
+        self._terminate()
         try:
             import shutil
             shutil.rmtree(self._tmpdir)
@@ -522,6 +570,60 @@ def llmtier_b(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, None
     inst.stop()
 
 
+def _embeddings_settings(provider_endpoint: str, backend_model: str) -> dict:
+    """Baseline B settings with an embeddings-capable deployment.
+
+    `Senior` (and every non-Embedding tier) also requires `responses`, so the
+    deployment advertises both; `EmbeddingsService.create` additionally requires
+    `embeddings is True` on the resolved service level.
+    """
+    settings = _baseline_settings(provider_endpoint)
+    caps = settings["deployments"][0]["capabilities"]
+    caps["embeddings"] = True
+    settings["deployments"][0]["backend_model"] = backend_model
+    return settings
+
+
+def _embeddings_instance(endpoint: str, backend_model: str) -> LLMTierInstance:
+    inst = LLMTierInstance(_embeddings_settings(endpoint, backend_model))
+    inst.start()
+    status = _probe_deployment(inst, "depl_b")
+    assert status == "healthy", f"embeddings depl_b probe not healthy: {status}"
+    return inst
+
+
+@pytest.fixture(scope="session")
+def llmtier_b_emb(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, None]:
+    """Embeddings baseline instance: the fake provider answers /v1/embeddings."""
+    inst = _embeddings_instance(provider_endpoint_b, "test-model")
+    yield inst
+    inst.stop()
+
+
+@pytest.fixture(scope="session")
+def llmtier_b_emb_slow(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, None]:
+    """Embeddings instance whose upstream blocks, to saturate admission (DP-EMB-08)."""
+    inst = _embeddings_instance(provider_endpoint_b, "slow-embeddings")
+    yield inst
+    inst.stop()
+
+
+@pytest.fixture(scope="session")
+def llmtier_b_emb_contract(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, None]:
+    """Embeddings instance whose upstream violates the payload contract (DP-EMB-09)."""
+    inst = _embeddings_instance(provider_endpoint_b, "force-bad-contract")
+    yield inst
+    inst.stop()
+
+
+@pytest.fixture(scope="session")
+def llmtier_b_emb_503(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, None]:
+    """Embeddings instance whose upstream returns 503 (DP-EMB-10)."""
+    inst = _embeddings_instance(provider_endpoint_b, "force-503")
+    yield inst
+    inst.stop()
+
+
 @pytest.fixture(scope="session")
 def llmtier_b_empty() -> Generator[LLMTierInstance, None, None]:
     inst = LLMTierInstance(_EMPTY_SETTINGS)
@@ -569,3 +671,100 @@ def admin_client_b_no_auth(llmtier_b_no_auth: LLMTierInstance) -> Generator[http
     client = llmtier_b_no_auth.admin_client()
     yield client
     client.close()
+
+
+# ---------------------------------------------------------------------------
+# B-class store-unavailability helpers (OBS-STATS/SNAP/TRACE-03, OBS-DEPL-05)
+# ---------------------------------------------------------------------------
+
+class StoreTriplet:
+    """Make a live SQLite store unavailable by replacing the db path with a dir.
+
+    Mirrors the DP-USAGE-08 technique: move ``<db>``/``<db>-wal``/``<db>-shm``
+    aside and drop an empty *directory* at the db path so every new
+    ``sqlite3.connect(<db>)`` fails (the implementation opens a per-request
+    connection and closes it in ``_run``). ``restore()`` is idempotent and
+    atomic enough for tests; always call it in a ``finally``.
+    """
+
+    def __init__(self, db_path: str | Path):
+        self.db_path = Path(db_path)
+        self._stash = self.db_path.with_name(self.db_path.name + ".stash")
+        self._moved: list[tuple[Path, Path]] = []
+        self._placeholder: Path | None = None
+
+    def break_store(self) -> None:
+        self._stash.mkdir(parents=True, exist_ok=True)
+        for suffix in ("", "-wal", "-shm"):
+            src = Path(str(self.db_path) + suffix)
+            if src.exists():
+                dst = self._stash / (src.name)
+                os.replace(src, dst)
+                self._moved.append((dst, src))
+        # Drop a directory in place of the db file so sqlite3.connect() fails.
+        self._placeholder = self.db_path
+        self._placeholder.mkdir()
+
+    def restore(self) -> None:
+        if self._placeholder is not None and self._placeholder.is_dir():
+            self._placeholder.rmdir()
+            self._placeholder = None
+        for dst, src in self._moved:
+            if dst.exists():
+                os.replace(dst, src)
+        self._moved = []
+
+
+@pytest.fixture
+def store_triplet() -> StoreTriplet:
+    """Factory fixture: ``store_triplet(db_path)`` → StoreTriplet breaker."""
+    return StoreTriplet
+
+
+def _dedicated_diag_instance(provider_endpoint: str) -> LLMTierInstance:
+    """A fresh, isolated live instance for store-unavailability cases."""
+    inst = LLMTierInstance(_baseline_settings(provider_endpoint))
+    inst.start()
+    status = _probe_deployment(inst, "depl_b")
+    assert status == "healthy", f"diag-store depl_b probe not healthy: {status}"
+    return inst
+
+
+@pytest.fixture
+def llmtier_b_diag_store(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, None]:
+    """Dedicated LLMTierInstance (own tmp SQLite/port) for OBS store-503 cases.
+
+    Function-scoped on purpose: the case moves this instance's db triplet, so it
+    must never be the session-scoped ``llmtier_b`` (whose db is shared).
+    """
+    inst = _dedicated_diag_instance(provider_endpoint_b)
+    yield inst
+    inst.stop()
+
+
+# ---------------------------------------------------------------------------
+# B-class restart fixture — ledger crash/restart recovery (DP-USAGE-09)
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def llmtier_b_restart(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, None]:
+    """Dedicated baseline instance exposing ``restart()``/``kill()`` (T-MET-CRASH).
+
+    Starts WITHOUT probing ``depl_b`` so DP-USAGE-09 path A can create an orphan
+    unknown obligation via a 503 ``model_unavailable`` admission rejection.
+    """
+    inst = LLMTierInstance(_baseline_settings(provider_endpoint_b))
+    inst.start()
+    yield inst
+    inst.stop()
+
+
+def error_envelope(response) -> dict:
+    """Return the ``error`` object from a typed error response (asserts shape)."""
+    body = response.json()
+    assert set(body.keys()) == {"error"}, f"envelope must have exactly one 'error' key: {body}"
+    err = body["error"]
+    assert set(err.keys()) == {"message", "type", "code", "param", "retryable"}, (
+        f"error envelope must have exactly 5 keys: {sorted(err.keys())}"
+    )
+    return err

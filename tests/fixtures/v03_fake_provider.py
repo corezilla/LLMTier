@@ -7,9 +7,19 @@ import hashlib
 import json
 import math
 import struct
+import threading
 import time
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+
+# Slow-embeddings gate: cleared by default (closed). Requests to
+# /v1/embeddings with model == "slow-embeddings" block until the test releases
+# the gate (GET /control/release) or the bounded timeout elapses. This lets a
+# system test hold the sole deployment concurrency slot deterministically while
+# keeping teardown clean (release drains every blocked request immediately).
+_GATE = threading.Event()
+_GATE_TIMEOUT_S = 30.0
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -21,6 +31,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(200); self.send_header("Content-Type","text/event-stream"); self.send_header("Content-Length",str(len(raw))); self.send_header("X-Request-ID",f"fake_{uuid.uuid4().hex[:8]}"); self.end_headers(); self.wfile.write(raw)
     def do_GET(self):
         if self.path == "/healthz": self.reply(200,{"status":"ok"})
+        elif self.path == "/control/release": _GATE.set(); self.reply(200,{"gate":"released"})
+        elif self.path == "/control/reset": _GATE.clear(); self.reply(200,{"gate":"closed"})
         elif self.path == "/v1/models": self.reply(200,{"object":"list","data":[{"id":"synthetic-chat","object":"model"},{"id":"BAAI/bge-m3","object":"model"}]})
         else: self.reply(404,{"error":"not found"})
     def do_POST(self):
@@ -28,6 +40,7 @@ class Handler(BaseHTTPRequestHandler):
         delay = int(body.get("metadata", {}).get("synthetic_delay_ms", "0")) if isinstance(body.get("metadata"), dict) else 0
         if delay: time.sleep(min(delay, 35000) / 1000)
         if body.get("model")=="force-503": return self.reply(503,{"error":{"message":"synthetic failure"}})
+        if body.get("model")=="slow-embeddings": _GATE.wait(_GATE_TIMEOUT_S)
         if self.path=="/v1/responses":
             prompt=json.dumps(body.get("input"),ensure_ascii=False); inp=max(1,len(prompt)//4)
             if "REFUSE" in prompt: content=[{"type":"refusal","refusal":"Cannot comply with synthetic request"}]
@@ -37,6 +50,7 @@ class Handler(BaseHTTPRequestHandler):
             response={"id":"resp_upstream","object":"response","created_at":int(time.time()),"status":"completed","model":body["model"],"output":output,"usage":{"input_tokens":inp,"output_tokens":4,"total_tokens":inp+4,"input_tokens_details":{"cached_tokens":0,"cache_write_tokens":0},"output_tokens_details":{"reasoning_tokens":0}},"error":None}
             return self.reply_sse(response) if body.get("stream") is True else self.reply(400,{"error":{"message":"stream=true required"}})
         if self.path=="/v1/embeddings":
+            if body.get("model")=="force-bad-contract": return self.reply(200,{"object":"wrong","data":[]})
             inputs=body.get("input"); inputs=[inputs] if isinstance(inputs,str) else inputs; dim=body.get("dimensions",8); fmt=body.get("encoding_format","float"); data=[]
             for i,text in enumerate(inputs):
                 seed=hashlib.sha256(text.encode()).digest(); vec=[((seed[j%len(seed)]/255)*2-1) for j in range(dim)]; norm=math.sqrt(sum(x*x for x in vec)) or 1; vec=[x/norm for x in vec]
