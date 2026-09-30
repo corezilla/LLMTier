@@ -52,7 +52,7 @@
 
 **不证明什么**：本计划不证明 Web UI 行为、FD 泄漏、30min 耐久、性能 SLO 校准、上游模型答案质量与上游 provider 实际推理正确性；也不证明静态契约一致（后者由 `docs/60_interfaces/contracts/llmtier-contract-specification.md` 与静态契约测试承接）。**静态契约 PASS ≠ 运行行为 PASS**，反之亦然。
 
-**测试策略**：单服务 / 单进程 / 单 SQLite 部署边界内的 runtime 端到端；unit mock 与假上游 provider 仅用于无法隔离的子路径（如 SSE stream、限速注入）。浏览器 E2E、生产 TLS/SSO/CSRF、`runtime_activation=true`、多实例/HA、跨系统恢复不在本层（见 scheme §4 裁决与 §9）。覆盖模型＝surface → contract → case：每个对外 surface（启服/健康就绪、Data Plane、Embedding、Admin CRUD/probe/refresh、Audit/Log、观测诊断、Auth/TRUSTED_LAN）映射到来源 ID 与契约（`CT-*`），再落到 scheme §3 的 Case ID；缺口显式列入 scheme §4，不静默从分母消失。
+**测试策略**：单服务 / 单进程 / 单 SQLite 部署边界内的 runtime 端到端；unit mock 与假上游 provider 仅用于无法隔离的子路径（如 SSE stream、限速注入）。**浏览器 UI 行为级（真实 headless Chrome over CDP，`UIT-UI-*`，`-m ui`）在本层**；生产 TLS/SSO/CSRF、`runtime_activation=true`、多实例/HA、跨系统恢复不在本层（见 scheme §4 裁决与 §9）。覆盖模型＝surface → contract → case：每个对外 surface（启服/健康就绪、Data Plane、Embedding、Admin CRUD/probe/refresh、Audit/Log、观测诊断、Auth/TRUSTED_LAN）映射到来源 ID 与契约（`CT-*`），再落到 scheme §3 的 Case ID；缺口显式列入 scheme §4，不静默从分母消失。
 
 **构成清单**（只索引，不复制清单或 Case 细节）：
 

@@ -116,7 +116,7 @@
 |---|---|---|---|
 | A 类：m5air 已部署实例 | 真实（只读/观察/一次性无状态写，不污染 SQLite） | `m5air-deploy-guide.md`/`m5air-operations-manual.md` | 只读观察面与无状态写用例（HEALTH/DP-*/只读 ADM-*） |
 | B 类：执行机临时实例 | 真实进程＋临时端口＋临时 SQLite | `testing-standard.md`（TS-002/TS-003） | CRUD/空库/无鉴权/注入/并发用例（`_baseline_settings` 种子） |
-| UI 类：真实浏览器 over CDP（复用 B 类实例） | 真实 headless Chrome/Chromium 驱动真实 `src/web_ui`；CDP 记录真实 DOM/网络 | `testing-standard.md`（TS-002/TS-003）＋ `tests/ui/browser_driver.mjs` | UI 行为级用例（`UIT-UI-001..007`）：页面渲染/tab 切换/编辑 PATCH/用量/探测/诊断页/错误态（同源 `/ui/`，`-m ui`） |
+| UI 类：真实浏览器 over CDP（复用 B 类实例） | **驱动**：真实 headless Chrome/Chromium（`LLMTIER_BROWSER`）经 CDP 驱动真实 `src/web_ui`，node ≥22 内置 WebSocket、无 npm/下载。**交互操作**：`click`（真实 `el.click()`）、`fill`（设 `value` 并派发 `input`+`change`）、`submit`、`check`、`waitFor`。**观测与断言**：真实 DOM 查询、`.page.active`、以及 CDP `Network.*`（请求/响应/请求头）断言（`assert`/`assertText`/`assertActive`/`assertNetwork`/`assertRequestHeader`）。**证据**：每 Case 产出 PNG 截图（`Page.captureScreenshot`）＋网络日志，落 `tests/ui/artifacts/<case>/`。**判定**：步骤级 DOM 断言＋网络断言（行为级，非源码字符串）。**边界**：hermetic 临时实例＋LAN 假上游；无浏览器/node<22 → 整类 SKIP（非缺口） | `testing-standard.md`（TS-002/TS-003）＋ `tests/ui/browser_driver.mjs` | UI 行为级用例（`UIT-UI-001..007`）：页面渲染/tab 切换/确认门控编辑 PATCH/用量未知/探测确认/诊断页/错误态（同源 `/ui/`，`-m ui`） |
 
 <span style="color:#6e7681">**拓扑**（ENV 类型 → ENV 实例 → 被测对象）：</span>
 
