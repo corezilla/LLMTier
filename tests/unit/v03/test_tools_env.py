@@ -68,7 +68,10 @@ class CheckEnvAChecksTests(unittest.TestCase):
         self._patch_get({f"{self.cfg.base_url}/healthz": (200, '{"status":"ok"}')})
         self.assertFalse(check_env.check_healthz(self.cfg).ok)
 
-    def test_readyz_requires_exactly_seven_fixed_tiers(self):
+    def test_readyz_requires_all_seven_fixed_tiers(self):
+        # §2.1.2 oracle (matches api_test_v03 conftest `_check_m5air_readyz` and
+        # tools/check_env.check_readyz): all 7 fixed tiers must be present.
+        # Extra (non-fixed) tiers are informational, not a readiness failure.
         good = {"models": [{"id": t} for t in check_env.FIXED_TIERS]}
         self._patch_get({f"{self.cfg.base_url}/readyz": (200, __import__("json").dumps(good))})
         self.assertTrue(check_env.check_readyz(self.cfg).ok)
@@ -77,15 +80,16 @@ class CheckEnvAChecksTests(unittest.TestCase):
         self.assertFalse(check_env.check_readyz(self.cfg).ok)
         extra = {"models": [{"id": t} for t in check_env.FIXED_TIERS] + [{"id": "Bonus"}]}
         self._patch_get({f"{self.cfg.base_url}/readyz": (200, __import__("json").dumps(extra))})
-        self.assertFalse(check_env.check_readyz(self.cfg).ok)
+        self.assertTrue(check_env.check_readyz(self.cfg).ok)
 
-    def test_secret_ref_must_be_file_and_has_secret(self):
+    def test_secret_ref_must_have_secret(self):
+        # §2.1.5: `secret_ref` is write-only (ProviderView never returns it), so
+        # readiness asserts the observable fact `has_secret=true` only
+        # (matches api_test_v03 conftest `_check_provider_omlx_m5mac_secret_ref`).
         url = f"{self.cfg.base_url}/v1/providers/provider_omlx_m5mac"
-        self._patch_get({url: (200, '{"secret_ref":"file:/x/secret.txt","has_secret":true}')})
+        self._patch_get({url: (200, '{"has_secret":true}')})
         self.assertTrue(check_env.check_provider_omlx_m5mac_secret_ref(self.cfg).ok)
-        self._patch_get({url: (200, '{"secret_ref":"env:FOO","has_secret":true}')})
-        self.assertFalse(check_env.check_provider_omlx_m5mac_secret_ref(self.cfg).ok)
-        self._patch_get({url: (200, '{"secret_ref":"file:/x/secret.txt","has_secret":false}')})
+        self._patch_get({url: (200, '{"has_secret":false}')})
         self.assertFalse(check_env.check_provider_omlx_m5mac_secret_ref(self.cfg).ok)
 
     def test_required_resources_missing_provider_fails(self):
@@ -228,6 +232,65 @@ class ResetBackupTests(unittest.TestCase):
         now = dt.datetime(2026, 9, 30, 12, 34, 56)
         path = reset_env.default_backup_path(self.db, now)
         self.assertEqual("state.sqlite3.bak-20260930-123456", path.name)
+
+
+class ResetRemoteBackupTests(unittest.TestCase):
+    """Remote (m5air) backup — the safety invariant for the live LAN instance."""
+
+    def test_remote_backup_dest_defaults_to_sibling_backups_dir(self):
+        cfg = reset_env.ResetConfig(
+            remote_db_host="m5air",
+            remote_db_path="/Users/mlp/LLMTier-dev/state.sqlite3",
+        )
+        dest = reset_env.remote_backup_dest(cfg, stamp="20261001-010101")
+        self.assertEqual(
+            "/Users/mlp/LLMTier-dev/backups/state.sqlite3.bak-20261001-010101", dest
+        )
+
+    def test_remote_backup_command_is_ssh_with_online_backup(self):
+        cfg = reset_env.ResetConfig(
+            remote_db_host="m5air",
+            remote_db_path="/Users/mlp/LLMTier-dev/state.sqlite3",
+        )
+        cmd = reset_env.remote_backup_command(cfg, "/Users/mlp/LLMTier-dev/backups/x.bak")
+        self.assertEqual("ssh", cmd[0])
+        self.assertEqual("m5air", cmd[1])
+        self.assertIn("sqlite3", cmd[2])
+        self.assertIn(".backup", cmd[2])
+
+    def test_step_backup_remote_dry_run(self):
+        cfg = reset_env.ResetConfig(
+            dry_run=True,
+            remote_db_host="m5air",
+            remote_db_path="/Users/mlp/LLMTier-dev/state.sqlite3",
+        )
+        result = reset_env.step_backup(cfg)
+        self.assertTrue(result.ok)
+        self.assertIn("would back up /Users/mlp/LLMTier-dev/state.sqlite3", result.detail)
+
+    def test_step_backup_remote_runs_online_backup(self):
+        cfg = reset_env.ResetConfig(
+            remote_db_host="m5air",
+            remote_db_path="/Users/mlp/LLMTier-dev/state.sqlite3",
+        )
+        fake = mock.Mock(returncode=0, stdout="", stderr="")
+        with mock.patch("reset_env.subprocess.run", return_value=fake) as runner:
+            result = reset_env.step_backup(cfg)
+        self.assertTrue(result.ok, result.detail)
+        args = runner.call_args.args[0]
+        self.assertEqual("ssh", args[0])
+        self.assertIn(".backup", args[-1])
+
+    def test_step_backup_remote_failure_is_reported(self):
+        cfg = reset_env.ResetConfig(
+            remote_db_host="m5air",
+            remote_db_path="/Users/mlp/LLMTier-dev/state.sqlite3",
+        )
+        fake = mock.Mock(returncode=1, stdout="", stderr="sqlite3: not found")
+        with mock.patch("reset_env.subprocess.run", return_value=fake):
+            result = reset_env.step_backup(cfg)
+        self.assertFalse(result.ok)
+        self.assertIn("remote backup failed", result.detail)
 
 
 class ResetRestoreTests(unittest.TestCase):
@@ -413,9 +476,20 @@ class DeployCommandTests(unittest.TestCase):
     def test_start_command_never_contains_token_values(self):
         cfg = deploy.DeployConfig(repo_root=REPO, admin_token="SUPERSECRET",
                                   data_token="ALSOSECRET")
+        cmd = deploy.start_command(cfg)
+        for token in ("SUPERSECRET", "ALSOSECRET"):
+            self.assertNotIn(token, " ".join(cmd))
+            self.assertNotIn(token, cmd[-1])
+
+    def test_start_command_reads_tokens_from_stdin(self):
+        # Tokens are delivered on stdin, never argv (local or remote ps).
+        cfg = deploy.DeployConfig(repo_root=REPO, admin_token="SUPERSECRET",
+                                  data_token="ALSOSECRET")
         remote = deploy.start_command(cfg)[-1]
-        self.assertNotIn("SUPERSECRET", remote)
-        self.assertNotIn("ALSOSECRET", remote)
+        self.assertIn("read -r LLMTIER_ADMIN_TOKEN", remote)
+        self.assertIn("read -r LLMTIER_DATA_TOKEN", remote)
+        payload = deploy.start_command_stdin(cfg)
+        self.assertEqual("SUPERSECRET\nALSOSECRET\n", payload)
 
     def test_rollback_command_copies_backup(self):
         cmd = deploy.rollback_command(self.cfg, Path("/remote/backups/state.bak"))
@@ -461,6 +535,19 @@ class DeployFlowTests(unittest.TestCase):
         with mock.patch("deploy.subprocess.run", return_value=fake):
             results = deploy.run_rollback(cfg, Path("/nope.bak"))
         self.assertFalse(results[-1].ok)
+
+    def test_step_start_delivers_tokens_on_stdin_not_argv(self):
+        cfg = deploy.DeployConfig(repo_root=REPO, admin_token="SUPERSECRET",
+                                  data_token="ALSOSECRET")
+        fake = mock.Mock(returncode=0, stdout="", stderr="")
+        with mock.patch("deploy.subprocess.run", return_value=fake) as runner:
+            result = deploy.step_start(cfg)
+        self.assertTrue(result.ok, result.detail)
+        call = runner.call_args
+        argv = call.args[0]
+        self.assertNotIn("SUPERSECRET", " ".join(argv))
+        self.assertNotIn("ALSOSECRET", " ".join(argv))
+        self.assertEqual("SUPERSECRET\nALSOSECRET\n", call.kwargs.get("input"))
 
 
 if __name__ == "__main__":

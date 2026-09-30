@@ -19,8 +19,9 @@ The deploy action:
      `PYTHONPATH=src -m http_api`.
   5. verify `/healthz` + `/readyz`.
 
-Never prints secrets: the tokens are passed as env vars over ssh and never
-echoed in the recorded command or output.
+Never prints secrets: the tokens are delivered on the ssh process's stdin (one
+per line) and read into env vars remotely, so they never appear in the local or
+remote argv, the remote `ps` listing, or the recorded command/output.
 
 `--rollback <db-bak>` restores a DB backup. `--dry-run` prints every command
 without executing. Exit non-zero on any failed step.
@@ -167,16 +168,28 @@ def kill_command(cfg: DeployConfig, pid: str) -> list[str]:
 
 
 def start_command(cfg: DeployConfig) -> list[str]:
-    """Build the remote start command. Tokens go in via env, never inline."""
+    """Build the remote start command.
+
+    Tokens are delivered on the ssh process's **stdin** (one per line, admin
+    first) and read by the remote shell into env vars before ``exec``. They are
+    therefore never part of argv — not the local ssh argv, not the remote
+    ``http_api`` argv/``ps`` listing, and not the recorded command.
+    """
     inner = (
         f"cd {cfg.code_dir} && "
-        f"export LLMTIER_ADMIN_TOKEN=\"$LLMTIER_ADMIN_TOKEN\" LLMTIER_DATA_TOKEN=\"$LLMTIER_DATA_TOKEN\"; "
+        f"IFS= read -r LLMTIER_ADMIN_TOKEN && "
+        f"IFS= read -r LLMTIER_DATA_TOKEN && "
+        f"export LLMTIER_ADMIN_TOKEN LLMTIER_DATA_TOKEN && "
         f"PYTHONPATH=src nohup {cfg.python} -m http_api "
         f"--host 0.0.0.0 --port {cfg.port} --database {cfg.remote_db} "
         f">> {cfg.remote_log} 2>&1 & echo $! > {cfg.remote_pidfile}"
     )
-    # The tokens are supplied via `send_env` so they are not rendered in argv.
     return ssh_command(cfg, inner)
+
+
+def start_command_stdin(cfg: DeployConfig) -> str:
+    """The stdin payload for :func:`start_command` (admin token, data token)."""
+    return f"{cfg.admin_token}\n{cfg.data_token}\n"
 
 
 def rollback_command(cfg: DeployConfig, backup: Path) -> list[str]:
@@ -191,19 +204,16 @@ def rollback_command(cfg: DeployConfig, backup: Path) -> list[str]:
 # Execution helpers
 # ---------------------------------------------------------------------------
 
-def _run(cmd: list[str], cfg: DeployConfig, env: dict | None = None) -> tuple[int, str, str]:
+def _run(cmd: list[str], cfg: DeployConfig, env: dict | None = None,
+         stdin: str | None = None) -> tuple[int, str, str]:
     if cfg.dry_run:
         return 0, f"(dry-run) {' '.join(cmd)}", ""
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=cfg.timeout, env=env)
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=cfg.timeout,
+                              env=env, input=stdin)
         return proc.returncode, proc.stdout, proc.stderr
     except (OSError, subprocess.SubprocessError) as exc:
         return 1, "", f"{type(exc).__name__}: {exc}"
-
-
-def _ssh_env(cfg: DeployConfig):
-    """Wrapper so tests can substitute; returns os.environ with no secrets added."""
-    return None
 
 
 # ---------------------------------------------------------------------------
@@ -247,10 +257,10 @@ def step_kill_old(cfg: DeployConfig) -> StepResult:
 
 def step_start(cfg: DeployConfig) -> StepResult:
     cmd = start_command(cfg)
-    code, out, err = _run(cmd, cfg)
+    code, out, err = _run(cmd, cfg, stdin=start_command_stdin(cfg))
     if code != 0:
         return StepResult("start", False, f"start failed ({code}): {err.strip()[:200]}")
-    return StepResult("start", True, "service started with Python 3.14 + tokens env")
+    return StepResult("start", True, "service started with Python 3.14 + tokens via stdin")
 
 
 def step_verify(cfg: DeployConfig) -> StepResult:

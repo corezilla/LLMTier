@@ -37,6 +37,7 @@ from tools.test_report import (  # noqa: E402
     case_id_from_source,
     emit_manifests,
     harvest,
+    main,
 )
 
 METADATA = {
@@ -161,6 +162,26 @@ class ReportTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             xml = _write(Path(d), _xml(*cases))
             self.assertTrue(cap_breached(harvest(xml), "A"))
+
+    def test_check_cap_missing_junit_is_harness_error(self):
+        # A missing junit must not be a false-safe "cap not breached": exit 2
+        # (plan §8 harness error), printing 1.
+        rc = main(["--junit", "/nonexistent/junit.xml", "--check-cap", "--layer", "A"])
+        self.assertEqual(2, rc)
+
+    def test_check_cap_within_limit_exits_zero(self):
+        cases = [_case(f"test_skip_{i}", '<skipped message="env"/>') for i in range(2)]
+        with tempfile.TemporaryDirectory() as d:
+            xml = _write(Path(d), _xml(*cases))
+            self.assertEqual(0, main(["--junit", str(xml), "--check-cap", "--layer", "A"]))
+
+    def test_check_cap_breached_exits_one(self):
+        # Established contract: --check-cap exits 1 on breach, 0 when within cap
+        # (the runner maps the printed "1" to its own exit 2). See run_harness.sh.
+        cases = [_case(f"test_skip_{i}", '<skipped message="env"/>') for i in range(6)]
+        with tempfile.TemporaryDirectory() as d:
+            xml = _write(Path(d), _xml(*cases))
+            self.assertEqual(1, main(["--junit", str(xml), "--check-cap", "--layer", "A"]))
 
     def test_emit_manifests(self):
         with tempfile.TemporaryDirectory() as d:

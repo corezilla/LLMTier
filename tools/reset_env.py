@@ -4,8 +4,11 @@
 Steps, in order:
 
   (a) backup — copy the SQLite DB first via the sqlite3 online-backup API,
-      unless ``--no-backup``. A-class DB is backed up in place; ``--db`` selects
-      the file.
+      unless ``--no-backup``. ``--db`` selects a **local** file; when
+      ``--remote-db-host`` + ``--remote-db-path`` are given (e.g. m5air) the
+      backup runs **on the remote host** (``sqlite3 .backup`` over ssh) into
+      ``--remote-backup-dir`` (default ``<remote-db-dir>/backups``), so the live
+      LAN instance is snapshotted before any destructive step.
   (b) restore/rebuild — optional ``--restore <bak>`` (replace the live DB with a
       backup) or ``--rebuild`` (start a fresh empty DB file).
   (c) clear injections — for every deployment, ``GET`` its diagnostics and
@@ -25,7 +28,9 @@ Safety:
 Usage::
 
     tools/reset_env.py --dry-run
-    tools/reset_env.py --yes --class a --db /Users/mlp/LLMTier-dev/state.sqlite3
+    tools/reset_env.py --yes --remote-db-host m5air \
+        --remote-db-path /Users/mlp/LLMTier-dev/state.sqlite3
+    tools/reset_env.py --yes --class a --db ./state.sqlite3
     tools/reset_env.py --yes --restore backups/state-20260930.sqlite3
     tools/reset_env.py --yes --rebuild --no-ledger
 """
@@ -80,6 +85,10 @@ class ResetConfig:
     lan_ip_override: str | None = None
     python: str = sys.executable
     repo_root: Path = REPO_ROOT
+    remote_db_host: str | None = None
+    remote_db_path: str | None = None
+    remote_backup_dir: str | None = None
+    ssh_opts: tuple[str, ...] = ()
 
 
 # ---------------------------------------------------------------------------
@@ -128,12 +137,51 @@ def backup_database(db_path: Path, dest: Path) -> None:
         source.close()
 
 
+def remote_backup_dest(cfg: ResetConfig, stamp: str | None = None) -> str:
+    """Remote destination path for the online backup (mirrors default_backup_path)."""
+    db = Path(cfg.remote_db_path or "")
+    backup_dir = cfg.remote_backup_dir or f"{db.parent}/backups"
+    stamp = stamp or _dt.datetime.now().strftime("%Y%m%d-%H%M%S")
+    return f"{backup_dir}/{db.name}.bak-{stamp}"
+
+
+def remote_backup_command(cfg: ResetConfig, dest: str) -> list[str]:
+    """ssh argv running sqlite3's **online** backup so the live service is safe.
+
+    ``.backup`` uses the SQLite online backup API on the remote host, so the
+    running m5air service keeps working and the snapshot is consistent.
+    """
+    db = cfg.remote_db_path
+    remote = f"mkdir -p \"$(dirname {dest})\" && sqlite3 {db} \".backup '{dest}'\""
+    cmd = ["ssh"]
+    if cfg.ssh_opts:
+        cmd.extend(cfg.ssh_opts)
+    cmd.extend([cfg.remote_db_host, remote])
+    return cmd
+
+
 def step_backup(cfg: ResetConfig) -> StepResult:
     name = "backup"
     if cfg.no_backup:
         return StepResult(name, True, "--no-backup: skipped", skipped=True)
+    # Remote (m5air) online backup takes precedence when a remote DB is named:
+    # this is what satisfies "back up before any destructive action" for the
+    # live LAN instance whose SQLite file is not on the executor.
+    if cfg.remote_db_host and cfg.remote_db_path:
+        dest = remote_backup_dest(cfg)
+        if cfg.dry_run:
+            return StepResult(name, True, f"would back up {cfg.remote_db_path} -> {dest}")
+        try:
+            proc = subprocess.run(remote_backup_command(cfg, dest), capture_output=True,
+                                  text=True, timeout=max(cfg.timeout, 120))
+        except (OSError, subprocess.SubprocessError) as exc:
+            return StepResult(name, False, f"remote backup failed: {type(exc).__name__}: {exc}")
+        if proc.returncode != 0:
+            return StepResult(name, False,
+                              f"remote backup failed ({proc.returncode}): {proc.stderr.strip()[:200]}")
+        return StepResult(name, True, f"backed up {cfg.remote_db_path} -> {dest}")
     if cfg.db_path is None:
-        return StepResult(name, True, "no --db supplied: skipped", skipped=True)
+        return StepResult(name, True, "no --db/--remote-db supplied: skipped", skipped=True)
     if not cfg.db_path.exists():
         return StepResult(name, True, f"no db at {cfg.db_path}: skipped", skipped=True)
     dest = default_backup_path(cfg.db_path)
@@ -440,6 +488,10 @@ def build_config(args: argparse.Namespace) -> ResetConfig:
         lan_ip_override=args.lan_ip,
         python=args.python,
         repo_root=args.repo_root,
+        remote_db_host=args.remote_db_host,
+        remote_db_path=args.remote_db_path,
+        remote_backup_dir=args.remote_backup_dir,
+        ssh_opts=tuple(args.ssh_opt or ()),
     )
 
 
@@ -453,6 +505,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--db", type=Path, default=None, help="path to the SQLite DB to back up")
     parser.add_argument("--backup-dir", type=Path, default=REPO_ROOT / "backups",
                         help="directory for backups (default: <repo>/backups)")
+    parser.add_argument("--remote-db-host", default=None,
+                        help="ssh host whose SQLite DB is backed up online (e.g. m5air)")
+    parser.add_argument("--remote-db-path", default=None,
+                        help="remote SQLite DB path (e.g. /Users/mlp/LLMTier-dev/state.sqlite3)")
+    parser.add_argument("--remote-backup-dir", default=None,
+                        help="remote backup dir (default: <remote-db-dir>/backups)")
+    parser.add_argument("--ssh-opt", action="append", help="extra ssh -o option (repeatable)")
     parser.add_argument("--no-backup", action="store_true", help="skip the pre-reset backup")
     parser.add_argument("--restore", type=Path, default=None, help="restore this backup into --db")
     parser.add_argument("--rebuild", action="store_true", help="replace --db with a fresh empty DB")

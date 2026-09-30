@@ -11,7 +11,8 @@ A-class checks (§2.1.1–§2.1.6):
   2. m5air `/readyz` 200 + exactly the 7 fixed tiers
   3. m5air OMLX `192.168.1.9:9000` `/models` 200
   4. m5mac OMLX `192.168.1.8:9000` `/models` 200
-  5. `provider_omlx_m5mac.secret_ref` is a ``file:`` path and ``has_secret=true``
+  5. `provider_omlx_m5mac` is registered with ``has_secret=true`` (``secret_ref``
+     is write-only and never returned by the API, so it is not asserted here)
   6. required A providers/deployments are registered
 
 B-class preconditions:
@@ -132,7 +133,7 @@ def check_healthz(cfg: EnvConfig) -> CheckResult:
 
 def check_readyz(cfg: EnvConfig) -> CheckResult:
     status, body = http_get(f"{cfg.base_url}/readyz", timeout=cfg.timeout)
-    label = "§2.1.2 m5air LLMTier /readyz 200 + exactly 7 fixed tiers"
+    label = "§2.1.2 m5air LLMTier /readyz 200 + all 7 fixed tiers present"
     if status != 200:
         return CheckResult("A2", label, False, f"/readyz returned {status}: {body[:120]}")
     try:
@@ -144,10 +145,13 @@ def check_readyz(cfg: EnvConfig) -> CheckResult:
     missing = set(FIXED_TIERS) - ids
     if missing:
         return CheckResult("A2", label, False, f"/readyz missing tiers: {sorted(missing)}")
+    # Extra tiers are informational: the §2.1.2 oracle only requires the 7 fixed
+    # tiers to be present (matches api_test_v03 conftest `_check_m5air_readyz`).
     extra = ids - set(FIXED_TIERS)
+    detail = f"ok ({len(models)} models, all 7 fixed tiers)"
     if extra:
-        return CheckResult("A2", label, False, f"/readyz has non-fixed tiers: {sorted(extra)}")
-    return CheckResult("A2", label, True, f"ok ({len(models)} models, 7 fixed tiers)")
+        detail += f"; note: non-fixed tiers present {sorted(extra)}"
+    return CheckResult("A2", label, True, detail)
 
 
 def check_omlx(url: str, name: str, cfg: EnvConfig) -> CheckResult:
@@ -160,7 +164,14 @@ def check_omlx(url: str, name: str, cfg: EnvConfig) -> CheckResult:
 
 
 def check_provider_omlx_m5mac_secret_ref(cfg: EnvConfig) -> CheckResult:
-    label = "§2.1.5 provider_omlx_m5mac.secret_ref = file: 且 has_secret=true"
+    """§2.1.5 — the m5mac provider must be registered with a secret.
+
+    ``secret_ref`` is **write-only** per the OpenAPI contract
+    (`ProviderView` never returns it — see `test_admin_secret_is_not_returned`),
+    so readiness can only assert the observable fact: ``has_secret=true``.
+    Asserting on ``secret_ref`` in a GET response is a contract violation.
+    """
+    label = "§2.1.5 provider_omlx_m5mac 已注册且 has_secret=true"
     status, body = http_get(f"{cfg.base_url}/v1/providers/provider_omlx_m5mac",
                             _admin_headers(cfg), timeout=cfg.timeout)
     if status != 200:
@@ -169,12 +180,9 @@ def check_provider_omlx_m5mac_secret_ref(cfg: EnvConfig) -> CheckResult:
         data = json.loads(body)
     except json.JSONDecodeError as exc:
         return CheckResult("A5", label, False, f"body not JSON: {exc}")
-    if not str(data.get("secret_ref") or "").startswith("file:"):
-        return CheckResult("A5", label, False,
-                           f"secret_ref not a file: reference: {data.get('secret_ref')!r}")
     if not data.get("has_secret"):
         return CheckResult("A5", label, False, "provider_omlx_m5mac.has_secret=False (expect True)")
-    return CheckResult("A5", label, True, "ok (secret_ref=file:, has_secret=true)")
+    return CheckResult("A5", label, True, "ok (has_secret=true)")
 
 
 def check_required_a_resources(cfg: EnvConfig) -> CheckResult:

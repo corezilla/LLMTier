@@ -27,7 +27,12 @@ Usage::
 
     tools/test_report.py --junit <run-dir>/junit.xml \
         --run-metadata <run-dir>/test-run.env --out <run-dir>/case-status.json
-    tools/test_report.py --junit <xml> --check-cap --layer <label> --run-id <id>
+    tools/test_report.py --junit <xml> --check-cap --layer <label>
+
+``--check-cap`` prints the verdict ``1`` when the SKIP cap is breached (exit 1)
+and ``0`` when within the cap (exit 0). A missing/unreadable junit XML is a
+harness error: it prints ``1`` and exits 2 (never a false-safe 0). The runners
+consume the printed verdict (see ``tests/lib/run_harness.sh``).
 """
 from __future__ import annotations
 
@@ -290,8 +295,10 @@ def main(argv: list[str] | None = None) -> int:
     if not args.junit or not args.junit.exists():
         print(f"test_report: no junit at {args.junit}", file=sys.stderr)
         if args.check_cap:
-            print("0")
-            return 0
+            # A missing junit means the run could not be evaluated — that is a
+            # harness error (plan §8: exit 2), never a false "cap not breached".
+            print("1")
+            return 2
         return 1
 
     metadata = _read_metadata(args.run_metadata)
