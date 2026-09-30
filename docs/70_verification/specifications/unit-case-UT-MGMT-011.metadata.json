@@ -1,20 +1,20 @@
 {
   "project": "LLMTier",
   "authority": "LLMTier",
-  "document_id": "llmtier-unit-test-plan",
-  "document_type": "tests.unit-test-plan",
-  "document_version": "0.1.0-draft.5",
-  "title": "LLMTier V0.3 Unit Test Plan",
+  "document_id": "UT-MGMT-011",
+  "document_type": "tests.unit-case",
+  "document_version": "0.1.0-draft.1",
+  "title": "UT-MGMT-011 — 账号用量刷新分支与错误快照",
   "document_owner": "LLMTier",
   "authors": [
     "LLMTier"
   ],
-  "template_id": "tests.unit-test-plan",
-  "template_version": "0.9.2",
-  "template_sha256": "20de6af764ee77fb00a2a11eafee0541b89acfc312ec4ca91a4127c6a21637c6",
+  "template_id": "tests.unit-case",
+  "template_version": "2.3.2",
+  "template_sha256": "cc7ac7e1f9f6473433956138838dafd36cdacd0a48bd5287d3f4e6827606e687",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
-  "migration_map_ref": "llmtier-implementation-plan",
+  "migration_map_ref": null,
   "design_level": "module",
   "domain": [
     "software"
@@ -22,7 +22,7 @@
   "status": "draft",
   "visibility": "project",
   "source_repository": "corezilla/LLMTier",
-  "source_path": "docs/70_verification/plans/llmtier-unit-test-plan.md",
+  "source_path": "docs/70_verification/specifications/unit-case-UT-MGMT-011.md",
   "reviewed_commit": null,
   "parent_document_id": "llmtier-unit-test-scheme",
   "supersedes": null,

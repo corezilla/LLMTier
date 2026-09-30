@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-unit-test-scheme` |
-| Document Version | `0.1.0-draft.5` |
+| Document Version | `0.1.0-draft.6` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -205,7 +205,7 @@
 
 **设计验证项覆盖（契约级）**：33 个模块设计 §14 验证项**全部至少一个 Case**——登记覆盖 33/33，无未登记 VRC。**注意**：该 33/33 为**清单登记覆盖**（每个 VRC 至少一个 Case 入清单），不等于行为级全覆盖——M002 `VRC-UI-001..006` 的行为级断言缺口登记为 **G-UT-3**（当前仅字符串契约），M005 视觉缺口为 **G-UT-4**（见 §4）；故「33/33」不含行为级覆盖。逐 VRC 覆盖：`VRC-API-001` 7、`VRC-API-002` 2、`VRC-API-003` 2、`VRC-API-004` 2、`VRC-UI-001` 3、`VRC-UI-002` 2、`VRC-UI-003` 1、`VRC-UI-004` 2、`VRC-UI-005` 1、`VRC-UI-006` 1、`VRC-INF-001` 2、`VRC-INF-002` 2、`VRC-INF-003` 2、`VRC-INF-004` 2、`VRC-INF-005` 1、`VRC-MGMT-001` 2、`VRC-MGMT-002` 2、`VRC-MGMT-003` 1、`VRC-MGMT-004` 2、`VRC-MGMT-005` 2、`VRC-MGMT-006` 2、`VRC-OBS-001` 1、`VRC-OBS-002` 2、`VRC-OBS-003` 1、`VRC-OBS-004` 2、`VRC-OBS-005` 1、`VRC-DIAG-001` 1、`VRC-DIAG-002` 3、`VRC-DIAG-003` 2、`VRC-DIAG-004` 2、`VRC-UTIL-001` 2、`VRC-UTIL-002` 2、`VRC-LOG-001` 2。
 
-> **已存在 33 个 unit-case 文档的映射**：`UT-API-001..004`、`UT-UI-001..006`、`UT-INF-001..005`、`UT-MGMT-001..006`、`UT-OBS-001..005`、`UT-DIAG-001..004`、`UT-UTIL-001..002`、`UT-LOG-001` 仍有效并保留原 ID/VRC 归属；本版**新增 31 个 Case ID**（`UT-API-005..013`、`UT-UI-007..010`、`UT-INF-006..009`、`UT-MGMT-007..011`、`UT-OBS-006..007`、`UT-DIAG-005..008`、`UT-UTIL-003..004`、`UT-LOG-002`），其 unit-case 文档待建（见 §5）。
+> **unit-case 文档映射（清单登记 64 Case，文档 64/64 已建）**：`UT-API-001..004`、`UT-UI-001..006`、`UT-INF-001..005`、`UT-MGMT-001..006`、`UT-OBS-001..005`、`UT-DIAG-001..004`、`UT-UTIL-001..002`、`UT-LOG-001` 为原有 33 份；本版**新增 31 个 Case ID**（`UT-API-005..013`、`UT-UI-007..010`、`UT-INF-006..009`、`UT-MGMT-007..011`、`UT-OBS-006..007`、`UT-DIAG-005..008`、`UT-UTIL-003..004`、`UT-LOG-002`），其 `tests.unit-case` 文档现已建齐（`docs/70_verification/specifications/unit-case-UT-*.md`），保留原 ID/VRC 归属。**注意**：文档已建 ≠ 报告层闭合；执行与 Verdict 仍归 Run 报告（G-UT-1）。逐 Case 实现状态以对应 unit-case 文档 §7 为准（本清单新增 Case 的实现状态由各自文档声称，本表设计状态仍为 `Designed`）。
 
 ## 4. 不适用与缺口裁决
 
@@ -215,7 +215,7 @@
 | 真实上游 provider 协议与 wire 互操作、浏览器 E2E | Tailored-N/A（本层不测；系统方案已承接） | 归契约层与 `llmtier-system-test-scheme` |
 | performance / endurance 分类 | Tailored-N/A（本层不纳入；见 §2 裁剪依据） | 归系统测试方案 |
 | M002 web-ui 六项 VRC（`VRC-UI-001..006`）的**行为级**（非字符串契约）断言 | Gap（G-UT-3） | Owner：M002 web-ui。当前 `test_webui_contract.py` 只做静态字符串/契约断言，无法驱动 `app.js` 行为；恢复条件＝引入 JS 行为测试宿主（如 node/jsdom）后，`UT-UI-001..010` 由字符串契约升级为行为断言 |
-| M005 observability 的浏览器呈现（诊断页 tabs/Disabled 视觉） | Gap（G-UT-4） | Owner：M002/M005。单元层只能对静态资源字符串断言；视觉与交互归 M002 承担（系统/E2E），本方案不重复登记 |
+| M005 observability 的浏览器呈现（诊断页 tabs/Disabled 视觉） | Gap（G-UT-4） | Owner：M002/M005。单元层只能对静态资源字符串断言；**本项目无浏览器/E2E 宿主**（系统方案 §4 已将 `VRC-UI-001..006` 与 OBS 视觉子项定稿为 Tailored-N/A），故本项**不承接给系统/E2E 层**，保持单元层具名 Gap；恢复条件＝引入浏览器/JS 宿主后重评（与 G-UT-3 同一恢复条件） |
 | 替身契约文档 `tests.asset-design`（`FakeAdapter`） | Gap（G-UT-2） | LLMTier / 恢复条件＝补建 `tests/asset-design` 实例并在 §1.6 填 ID；关闭前 §1.6 保持“待建”。注：`FakeResponse` 为各测试模块本地 stub，非共享资产，不纳入本缺口 |
 | 单元测试正式报告与 Run 证据 | Gap（G-UT-1） | LLMTier / 恢复条件＝首次真实执行 `tests/unit/v03` 并按计划 §7 生成 `tests.unit-test-report`；当前无录制 Run |
 | `_static` mime/`Cache-Control` 与 `/ui/` exact 字节 | Tailored-N/A（表现层细节由系统层契约测试锁定） | 归系统/契约层；单元层只断言 404 穿越与 `index.html` 命中（`UT-API-010`） |
@@ -224,8 +224,8 @@
 
 - 方案冻结与变更规则：清单随各模块设计/ISD 基线冻结；新增 Case 先在本清单登记再建 `tests.unit-case` 文档；VRC 变更时同步 §3 与附录 A；Case ID 一经登记不复用、不改名。
 - 与 case-design / 计划的同步规则：Case 文档 ID＝Case ID；计划构成表引用本方案版本；本方案合并 8 模块，逐模块切片由 Case ID 前缀承担。
-- 新增 Case 的文档待建清单：本版新增的 `UT-API-005..013`、`UT-UI-007..010`、`UT-INF-006..009`、`UT-MGMT-007..011`、`UT-OBS-006..007`、`UT-DIAG-005..008`、`UT-UTIL-003..004`、`UT-LOG-002` 共 31 个 Case 先入本清单（§3），其 `tests.unit-case` 文档在后续步骤补建；在文档建立前这些 Case 的实现状态不可声称 `Implemented`。
-- 新增 Case 示例：新增 `UT-INF-010`（尾随字节）先入本清单再建 `tests.unit-case` 文档；单元计划引用本方案 `0.1.0-draft.3`。
+- 新增 Case 的文档状态：本版新增的 `UT-API-005..013`、`UT-UI-007..010`、`UT-INF-006..009`、`UT-MGMT-007..011`、`UT-OBS-006..007`、`UT-DIAG-005..008`、`UT-UTIL-003..004`、`UT-LOG-002` 共 31 个 Case 已入本清单（§3），其 `tests.unit-case` 文档现已建齐于 `docs/70_verification/specifications/`；各 Case 的实现状态以对应文档 §7 为准，执行与 Verdict 归 Run 报告（G-UT-1）。
+- 新增 Case 示例：新增 `UT-INF-010`（尾随字节）先入本清单再建 `tests.unit-case` 文档；单元计划引用本方案 `0.1.0-draft.6`。
 
 ## 附录 A. 本层设计验证项 VRC 汇集（对照用）
 

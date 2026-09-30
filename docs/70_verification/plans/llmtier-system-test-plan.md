@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-test-plan` |
-| Document Version | `0.1.0-draft.5` |
+| Document Version | `0.1.0-draft.6` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -96,7 +96,7 @@
 | 前检项 | 判定事实 | 通过条件 | 不满足时 |
 |---|---|---|---|
 | 方案就绪度 | `llmtier-system-test-scheme` §3 权威清单 163 条（**设计数**：A 102 / B 61）、计数与 A/B、P0/P1/P2 分布固定；与 §2 分类体系交叉核对 | 清单无未登记缺口、版本固定 | No-Go：Blocked＋缺口语义（§9-O1） |
-| Case 实现状态盘点 | **设计数 163（A 102 / B 61）≠ 已实现数**：截至本版 harness 已实现 90（88 个测试文件：`-m api_a`＝60、`-m api_b`＝30），**尚余 73 个设计 Case 无自动化入口**（MISSING）；已实现数随测试代码增长，以 harness 实际 collect 为准。MISSING 清单见 `llmtier-system-test-scheme` §3 与逐 Case 设计文档 | 全部已实现，或 MISSING 已具名登记；P0 MISSING 阻断 | No-Go 或按 §4 记 NOT_RUN 缺口；P0 MISSING 阻断 |
+| Case 实现状态盘点 | **设计数 163（A 102 / B 61）≠ 已实现数**：截至本版 harness 已实现 114（112 个测试文件：`-m api_a`＝73、`-m api_b`＝41），**尚余 49 个设计 Case 无自动化入口**（MISSING）；已实现数随测试代码增长，以 harness 实际 collect 为准。MISSING 清单见 `llmtier-system-test-scheme` §3 与逐 Case 设计文档 | 全部已实现，或 MISSING 已具名登记；P0 MISSING 阻断 | No-Go 或按 §4 记 NOT_RUN 缺口；P0 MISSING 阻断 |
 | 环境与工具（引用 `tests.asset-design` 的 Verified 状态） | A 类：m5air `/healthz`、`/readyz`(7 tier)、双 OMLX、`secret_ref=file:`、provider/deployment 就绪（6 项，§6）；B 类：执行机临时实例（`tests/fixtures/v03_fake_provider.py`＋`llmtier_b` fixtures 已在位） | A 类：`pytest_configure` 6 项全过；B 类：执行机具 LAN IP（`_detect_lan_ip()` 命中 RFC1918）且临时实例可启停 | **按类分别判定**：A 类 6 项不过 → 仅 A 类 Blocked/Skip（§6，不静默降级）；B 类无 LAN IP／临时实例不可用／`llmtier_b` 基线 probe 不健康 → B 类整体 Blocked（§6-B，见 §3 Exit 与 §9 风险） |
 | 构建接线（全量交付构建 / 消费者链接实际库） | m5air 部署版本已 pin 且与执行机同步来源一致；解释器为 Python 3.14（禁系统 3.9）；`schema_version=2` | pin 三项可解析；服务可服务 | 按 §6 恢复（重启／schema 二选一）；仍失败 → Blocked |
 
@@ -126,8 +126,8 @@
 
 | ENV 实例编号 | 环境类型 | 具体配置/位置 | Owner | 分配给哪些 Case | 准备时限 | 状态 |
 |---|---|---|---|---|---|---|
-| ENV-A | A 类 m5air 已部署实例 | `192.168.1.9:8181`，现有 state.sqlite3（只读/观察/一次性无状态写） | 环境 Owner（m5air owner） | HEALTH/DP-*/只读 ADM-*/只读 OBS-*（**设计 A 类 102**，其中**已实现 60**） | 每班开跑前 | Ready（以 §3 A 类 6 项为准） |
-| ENV-B | B 类执行机临时实例 | 随机空闲端口＋临时 SQLite（`tempfile.mkdtemp(prefix="llmtier_b_")`）＋LAN 绑定的假上游（`tests/fixtures/v03_fake_provider.py`） | 执行者 | CRUD/空库/无鉴权/注入/并发（**设计 B 类 61**，其中**已实现 30**） | Step 0 前 | Ready（fixtures/假上游已在位、`llmtier_b` 可启停）；**运行期若执行机无 RFC1918 LAN IP 或基线 probe 不健康 → 整类 Blocked**（§6-B，非 asset-design 缺口） |
+| ENV-A | A 类 m5air 已部署实例 | `192.168.1.9:8181`，现有 state.sqlite3（只读/观察/一次性无状态写） | 环境 Owner（m5air owner） | HEALTH/DP-*/只读 ADM-*/只读 OBS-*（**设计 A 类 102**，其中**已实现 73**） | 每班开跑前 | Ready（以 §3 A 类 6 项为准） |
+| ENV-B | B 类执行机临时实例 | 随机空闲端口＋临时 SQLite（`tempfile.mkdtemp(prefix="llmtier_b_")`）＋LAN 绑定的假上游（`tests/fixtures/v03_fake_provider.py`） | 执行者 | CRUD/空库/无鉴权/注入/并发（**设计 B 类 61**，其中**已实现 41**） | Step 0 前 | Ready（fixtures/假上游已在位、`llmtier_b` 可启停）；**运行期若执行机无 RFC1918 LAN IP 或基线 probe 不健康 → 整类 Blocked**（§6-B，非 asset-design 缺口） |
 
 > ENV-A 与 ENV-B 不共享 SQLite/端口/进程且不并行（方案 §1.7）；A 类 PASS 不关闭 B 类，反之亦然。准备未完成标 Blocked 并登记缺口，不静默以 A 类替代 B 类。**B 类不依赖 `tests.asset-design`**：其 fixtures（假上游＋`llmtier_b`）已在 `tests/system/api_test_v03/conftest.py` 实现；`tests.asset-design` 缺口（§10-O2）只影响 A 类资产的正式契约登记，不阻断 B 类执行。
 
@@ -199,7 +199,7 @@ B 类的"可运行"取决于**执行机网络与基线 probe**，非 `tests.asse
 | 构成项 / 风险 | Owner | 时间窗 / 最晚 Gate | 冲突或缓解出口 |
 |---|---|---|---|
 | 方案维护（scheme／现行清单） | LLMTier（测试设计 Owner） | 本迭代 | 清单变更同步本计划 §1 构成表 |
-| Case 编写与实现（设计 163；已实现 90，尚余 73 无自动化入口待补） | LLMTier（Case 作者） | 进入 Gate 前 | MISSING 优先级高于新增范围；P0 优先 |
+| Case 编写与实现（设计 163；已实现 114，尚余 49 无自动化入口待补） | LLMTier（Case 作者） | 进入 Gate 前 | MISSING 优先级高于新增范围；P0 优先 |
 | 环境提供（m5air 部署/secret/OMLX/就绪） | 环境 Owner（m5air owner） | 每班开跑前 | 执行者不擅自改部署拓扑；拓扑变更走评审（§10-O3） |
 | 执行（按 §5 序列跑批次、teardown、记录 Run） | 执行者 / Agent | 每班 | A/B 互斥同一实例，不并行 |
 | 见证/裁决（BLOCKED/INVALID 裁决、回归门） | 见证者 | Gate | 失败分级见 §8 |
@@ -218,5 +218,5 @@ B 类的"可运行"取决于**执行机网络与基线 probe**，非 `tests.asse
 | O2：`tests.asset-design` 测试资产文档尚未建立（harness/假上游/受控构造的契约与自检） | 测试设计 Owner / Step 0 执行前 | 建立资产文档并给出 Verified 状态；在此之前 §5 Step 0 无法判定就绪 |
 | O3：A 类是否改用 m5air 专用测试部署（独立目录/DB/端口/日志），当前沿用现有实例 | 环境 Owner / 拓扑变更评审时 | 出现"需有状态写／现 state 视为不可污染生产数据／A-B 需并行"任一情形时评审；同时核实 m5air 是否已存在第二实例 |
 | O4：LLMTier 单服务无独立子系统测试层，子系统计划引用为空 | 测试设计 Owner / 若引入子系统时 | 保持空并具名登记；引入子系统时补 `tests.subsystem-test-plan` 引用 |
-| O5：设计 163（A 102 / B 61）中尚余 73 项 MISSING（自动化入口未实现；已实现 90）中 P0 项的补实现排期；MISSING 清单见 `llmtier-system-test-scheme` §3 与逐 Case 设计文档 | Case 作者 / 进入 Gate 前 | 补齐实现或经批准登记；P0 MISSING 阻断 Gate |
+| O5：设计 163（A 102 / B 61）中尚余 49 项 MISSING（自动化入口未实现；已实现 114）中 P0 项的补实现排期；MISSING 清单见 `llmtier-system-test-scheme` §3 与逐 Case 设计文档 | Case 作者 / 进入 Gate 前 | 补齐实现或经批准登记；P0 MISSING 阻断 Gate |
 

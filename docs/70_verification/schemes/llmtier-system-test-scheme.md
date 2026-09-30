@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-test-scheme` |
-| Document Version | `0.1.0-draft.6` |
+| Document Version | `0.1.0-draft.7` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -90,7 +90,7 @@
 | negative | 错误猜测 + 反例驱动（错误目录 `ERR-*`） | 异常路径以设计已识别的反例为准 | 不用模糊异常注入（无 Oracle / 无归因） |
 | concurrency | 状态机驱动 + 固定并发度/种子 | 并发语义需可控时序；`If-Match`/412 串行化 | 不用随机并发（不可复现 + flaky） |
 | recovery | 故障注入 + 有界重试 + 复位阶梯 | 恢复路径与回滚基线需在失败路径覆盖 | 不用"重试即可"模拟恢复（掩盖根因） |
-| performance | 单 Case 基线采样 + 观察断言（准入上限/超时/`Retry-After`） | 本层只保留时序/预算类可观察断言，非容量结论 | 不用负载/容量压测（本层不负责系统预算，见 §4 Gap） |
+| performance | 单 Case 基线采样 + 观察断言（准入上限/超时/`Retry-After`） | 本层只保留时序/预算类可观察断言，非容量结论 | 不用负载/容量压测（本层不负责系统预算，见 §4 容量/耐久裁决） |
 | security | 鉴权/授权/脱敏冒烟 + 角色隔离 | 上游/集成层已覆盖语义，本层验证暴露面 | 不用模糊安全测试（不可复现 + 上游责任） |
 
 ## 1.6 替身使用策略与边界
@@ -141,8 +141,8 @@
 | concurrency | 适用 | 7 个 Case：准入饱和 429+`Retry-After`（`DP-RESP-20`、`DP-EMB-08`）、`If-Match`/412 串行化并发编辑、注入变更与在途流（`ADM-PROV-05/06/07`、`ADM-DEPL-04`、`ADM-SL-04`）。 |
 | recovery | 适用 | 26 个 Case：故障注入（`fault_502`/`fault_503`/`stream_terminate`/`malformed_event`）、上游/存储失败、客户端断开、账本崩溃/重启恢复（`DP-USAGE-09`）、`/readyz` degraded/not_ready、schema 引导不可用。 |
 | security | 适用 | 16 个 Case：认证/授权/角色隔离、LAN trust、无鉴权配置、secret 不泄露、审计与日志脱敏、别名命名空间鉴权。 |
-| performance | 裁剪 | 纯软件、无 FPGA/硬件时序；本阶段只保留**时序/预算类可观察断言**（准入队列上限、超时路径、`Retry-After`），**不发布 SLO/容量结论**。功耗/容量压测（FD 泄漏、30min 耐久、50 并发）不在本方案分母内；原 `llmtier-test-plan`（已退役）的 ST-18/19/21 容量项现按 §4 Gap 由运维/性能专项承接（tailoring）。 |
-| endurance | 裁剪 | 长稳/耐久另立专项，不在本方案分母内（tailoring）；见 §4 容量/耐久 Gap。 |
+| performance | 裁剪 | 纯软件、无 FPGA/硬件时序；本阶段只保留**时序/预算类可观察断言**（准入队列上限、超时路径、`Retry-After`），**不发布 SLO/容量结论**。功耗/容量压测（FD 泄漏、30min 耐久、50 并发）不在本方案分母内；原 `llmtier-test-plan`（已退役）的 ST-18/19/21 容量项现按 §4 Tailored-N/A（非缺口）由运维/性能专项承接（tailoring）。 |
+| endurance | 裁剪 | 长稳/耐久另立专项，不在本方案分母内（tailoring）；见 §4 容量/耐久裁决（Tailored-N/A）。 |
 
 > 上表与 §3 清单交叉核对：normal 50 + boundary 7 + negative 57 + concurrency 7 + recovery 26 + security 16 = **163**。未列入的任何 STD 家族分类在本阶段**不适用**（见 §4 裁决）。
 
@@ -323,9 +323,9 @@
 | 系统设计 §8 认证与授权跨切面（角色/LAN trust/无鉴权） | VRC-API-002 | AUTH-09 | security | P1 | 管理面未授权优先于资源存在性 | 已设计 | — |
 | 系统设计 §8 认证与授权跨切面（角色/LAN trust/无鉴权） | VRC-API-002 | AUTH-10 | security | P1 | 缺/非法凭据 401 | 已设计 | — |
 
-**Case 总数：163（设计数）**（分类：normal 50 / boundary 7 / negative 57 / concurrency 7 / recovery 26 / security 16；环境 A 102 / B 61；Priority P0 46 / P1 93 / P2 24）。**设计数 ≠ 已实现数**：截至本版，自动化入口**已实现 90**（88 个测试文件：`-m api_a`＝60、`-m api_b`＝30），**尚余 73 个设计 Case 无自动化入口**（MISSING，逐 Case 登记见下方与 `llmtier-system-test-plan` §3/§10-O5）。"已实现数"随测试代码增长变化，**以 harness 实际 collect 为准**，本方案不把实现数写成恒定事实。本表是**唯一权威 Case 清单**：一行一个 Case；逐 Case 的输入/执行/Oracle/判定/证据/清理见 `tests.system-case` 文档（`cases/<lowercased-case-id>.md`），本方案不展开。
+**Case 总数：163（设计数）**（分类：normal 50 / boundary 7 / negative 57 / concurrency 7 / recovery 26 / security 16；环境 A 102 / B 61；Priority P0 46 / P1 93 / P2 24）。**设计数 ≠ 已实现数**：截至本版，自动化入口**已实现 114**（112 个测试文件：`-m api_a`＝73、`-m api_b`＝41），**尚余 49 个设计 Case 无自动化入口**（MISSING，逐 Case 登记见下方与 `llmtier-system-test-plan` §3/§10-O5）。"已实现数"随测试代码增长变化，**以 harness 实际 collect 为准**，本方案不把实现数写成恒定事实。本表是**唯一权威 Case 清单**：一行一个 Case；逐 Case 的输入/执行/Oracle/判定/证据/清理见 `tests.system-case` 文档（`cases/<lowercased-case-id>.md`），本方案不展开。
 
-**设计验证项覆盖**：本清单 `设计验证项 ID` 取自各 Case 的 `tests.system-case` 文档所声明的设计验证项（`DP-RESP-16`/`DP-RESP-23` 两 Case 的 case 文档未声明，按系统设计 §7.8 错误目录 `ERR-REQ-JSON`→`VRC-INF-001`、`ERR-PROVIDER-FAIL`→`VRC-INF-003` 反查补全；未新增任何 VRC ID）。设计文档（系统设计 §7/§8/§14、机制 §15、模块设计 §14、ISD §9.1）共声明 **33 个设计验证项**；本清单覆盖 **14 个**，**19 个无系统层 Case**（逐项裁决见 §4；其中 13 项为模块级验证项、行为由单元层承接，6 项为无宿主 Gap）。逐项覆盖数：`VRC-INF-001` 31、`VRC-MGMT-006` 21、`VRC-MGMT-001` 22、`VRC-MGMT-002` 22、`VRC-API-002` 13、`VRC-DIAG-002` 15、`VRC-DIAG-004` 15、`VRC-MGMT-003` 9、`VRC-INF-002` 5、`VRC-DIAG-001` 4、`VRC-INF-004` 7、`VRC-LOG-001` 3、`VRC-UTIL-001` 2、`VRC-INF-003` 1。
+**设计验证项覆盖**：本清单 `设计验证项 ID` 取自各 Case 的 `tests.system-case` 文档所声明的设计验证项（`DP-RESP-16`/`DP-RESP-23` 两 Case 的 case 文档未声明，按系统设计 §7.8 错误目录 `ERR-REQ-JSON`→`VRC-INF-001`、`ERR-PROVIDER-FAIL`→`VRC-INF-003` 反查补全；未新增任何 VRC ID）。设计文档（系统设计 §7/§8/§14、机制 §15、模块设计 §14、ISD §9.1）共声明 **33 个设计验证项**；本清单覆盖 **14 个**，**19 个无系统层 Case**（逐项裁决见 §4；其中 13 项为模块级验证项、行为由单元层承接＝Tailored-N/A，6 项 `VRC-UI-001..006` 因本项目无浏览器/JS 宿主定稿为 Tailored-N/A）。逐项覆盖数：`VRC-INF-001` 31、`VRC-MGMT-006` 21、`VRC-MGMT-001` 22、`VRC-MGMT-002` 22、`VRC-API-002` 13、`VRC-DIAG-002` 15、`VRC-DIAG-004` 15、`VRC-MGMT-003` 9、`VRC-INF-002` 5、`VRC-DIAG-001` 4、`VRC-INF-004` 7、`VRC-LOG-001` 3、`VRC-UTIL-001` 2、`VRC-INF-003` 1。
 
 ### 3.6 需求（`LT-*`）到 Case 的可追溯映射（§3 的 §3.6-等价节）
 
@@ -356,7 +356,7 @@
 <span style="color:#1f6feb"><em>**抽象示例**：见灰字。</em></span>
 <span style="color:#1f6feb"><em>**完成条件**：每条裁决有事实或 Owner；无“顺手 N/A”。</em></span>
 
-> **模块级验证项裁决依据（重要）**：下表中 19 项模块级验证项（`VRC-INF-005`、`VRC-UTIL-002`、`VRC-API-001/003/004`、`VRC-MGMT-004/005`、`VRC-DIAG-003`、`VRC-OBS-001..005`、`VRC-UI-001..006`）是**模块设计 §14 的验证项**，系统层清单不承载其中内部行为者。**本项目未采用独立模块测试层**——不存在 `tests.module-test-scheme`（`tests.module-test-plan` 模板要求方案绑定单一软件模块，本项目有 M001–M008 共 8 个模块；建立合并模块方案需与 LT-TL-023 同级的用户授权，当前无此授权，故不虚构该层，不复制第二 authority）。各模块 §14 验证项的**行为级承接方**是 `llmtier-unit-test-scheme` §3（该方案 §1 明确被测模块内部为真实实现、仅替换进程外上游，即整模块组装层语义），**不是**任何"模块测试设计"；故本方案**不再声称"归模块测试设计承接"**，按事实登记：有真实行为宿主者标 `Tailored-N/A（下层承接）`，仅字符串契约/无宿主者标 `Gap`。
+> **模块级验证项裁决依据（重要）**：下表中 19 项模块级验证项（`VRC-INF-005`、`VRC-UTIL-002`、`VRC-API-001/003/004`、`VRC-MGMT-004/005`、`VRC-DIAG-003`、`VRC-OBS-001..005`、`VRC-UI-001..006`）是**模块设计 §14 的验证项**，系统层清单不承载其中内部行为者。**本项目未采用独立模块测试层**——不存在 `tests.module-test-scheme`（`tests.module-test-plan` 模板要求方案绑定单一软件模块，本项目有 M001–M008 共 8 个模块；建立合并模块方案需与 LT-TL-023 同级的用户授权，当前无此授权，故不虚构该层，不复制第二 authority）。各模块 §14 验证项的**行为级承接方**是 `llmtier-unit-test-scheme` §3（该方案 §1 明确被测模块内部为真实实现、仅替换进程外上游，即整模块组装层语义），**不是**任何"模块测试设计"；故本方案**不再声称"归模块测试设计承接"**，按事实登记：有真实行为宿主者标 `Tailored-N/A（下层承接）`；**唯一无宿主者 `VRC-UI-001..006` 已定稿为 `Tailored-N/A`（事实＝本项目无浏览器/JS 宿主，见下行），不再保留为 Gap**；`VRC-OBS-001..005` 的行为级有单元宿主（Tailored-N/A 下层承接），仅其视觉子项无宿主、同定稿 Tailored-N/A。本表不再有"具名 Gap 承接方不存在"的条目。
 
 | 来源 ID / 事实依据 | 裁决（Tailored-N/A 或 Gap） | Owner / 恢复条件 |
 |---|---|---|
@@ -364,7 +364,7 @@
 | 验收活动 | Tailored-N/A（不在 tests 家族） | 客户/项目验收与 release 放行授权**不属于 tests 家族**（STD 模板选择规则：验收按项目 tailoring 承接）。本方案不承载验收判定；`Gate` 只给放行建议，不等于验收或上线授权。 |
 | 真实生产环境（TLS 反向代理、生产 SSO/MFA、浏览器无 bearer、HttpOnly/CSRF） | Gap | Owner：运维/安全。恢复条件：生产部署面可用并有授权后补测；当前由安全评估与运维手册承接，非系统测试分母。 |
 | 上游模型答案质量与推理正确性 | Gap | Owner：模型/推理。恢复条件：定义独立内容 Oracle 与统计口径后另立评测；本方案只断言结构/事件序列/字段契约，不把模型内容当 Oracle。 |
-| 容量/耐久（FD 泄漏、30min 耐久、50 并发） | Gap | Owner：性能/运维。恢复条件：另立性能/运维专项执行容量测试（原退役 `llmtier-test-plan` 的 ST-18/19/21 内容）；结果不合并进本方案分母。 |
+| 容量/耐久（FD 泄漏、30min 耐久、50 并发） | Tailored-N/A（本层不测；非缺口） | Owner：性能/运维。**事实依据**：本项目测试 harness 是**功能性 pytest 黑盒**（`tests/system/api_test_v03/*`＋`runner_a/b.sh`，`exec pytest`），无负载驱动、无 FD 采样器、无长稳计时运行器；系统设计未把 FD/30min/50 并发列为系统层组合保证（§1 已声明不证明）。故**不写空 Case、不保留"无 ETA"的 Gap**——本项按 tailoring 明确不在本方案分母内；原退役 `llmtier-test-plan` 的 ST-18/19/21 与 §2 `endurance` 裁剪一致。恢复条件（若需容量结论）：另立性能/运维专项（自有负载工具与计时运行器）执行，结果不合并进本方案分母。 |
 | 进程 crash/restart 后的运维恢复、备份/恢复演练 | Gap | Owner：运维。恢复条件：运维手册 `m5air-operations-manual.md` §14/§15 承接。**注**：账本在崩溃/重启后的**核心不变量**（orphan unknown 不回填 0，`T-MET-CRASH`）已由 `DP-USAGE-09` 覆盖，不在本条缺口内；本条仅指运维级恢复/备份演练。 |
 | `ERR-BOOT`/`ERR-SCHEMA`/`ERR-PATH-UNSAFE`/`ERR-UTIL-TXN` 的 envelope code | Gap（具名缺口，4 项） | Owner：M007/规格。恢复条件：`/readyz` 503 body 为 `ReadinessView` 而非 `ErrorEnvelope`（无 `code`）；其余需破坏性构造（symlink DB、嵌套事务）从 HTTP 无法无破坏触发。`ERR-BOOT` 的表现层由 HEALTH-04/05 覆盖，envelope code 保留具名缺口。 |
 | 非受信来源的真实"缺凭据" 401 | Gap | Owner：代码 owner（`src/http_api/auth.py`）。恢复条件：当前实现对 loopback/RFC1918 无 `Authorization` 头**无条件**授予共享角色，无法从 A/B 受信网段制造真实缺凭据 401；AUTH-10 改以非法授权方案触发。若引入显式 env 门控须重新评审。 |
@@ -373,11 +373,13 @@
 | `VRC-API-001/003/004`（M001 分发/错误、body/SSE、静态与健康；模块设计 http-api §14.1/§14.3/§14.5/§14.6） | Tailored-N/A（下层承接） | Owner：M001。本层不测；承接＝`llmtier-unit-test-scheme` §3 `UT-API-001/003/004/005/006/007/009/010/011/012/013`（分发/错误信封/body/SSE 单帧/静态穿越/fail-open 降级）。 |
 | `VRC-MGMT-004/005`（M004 分页与清空、探测；模块设计 management §14.4/§14.5） | Tailored-N/A（下层承接） | Owner：M004。本层不测；承接＝`llmtier-unit-test-scheme` §3 `UT-MGMT-004/005/009/010`（cursor 过期/`reset_usage` 范围/探测不可达）。系统层 `DP-USAGE-*`/`ADM-USAGE-*`/`ADM-PROBE-*` 以表现层 Case 间接覆盖（登记于 `VRC-MGMT-006`/`VRC-DIAG-004`）。 |
 | `VRC-DIAG-003`（M006 libdiag fail-open；模块设计 libdiag §14.3） | Tailored-N/A（下层承接） | Owner：M006。本层不测；承接＝`llmtier-unit-test-scheme` §3 `UT-DIAG-003`/`UT-DIAG-007`（写入/初始化失败不阻断、降级）。 |
-| `VRC-OBS-001..005`（M005 observability：开关/查询脱敏/注入/关联标识/诊断页；模块设计 observability §14.1–§14.5） | Tailored-N/A（下层承接；含视觉子缺口） | Owner：M005。本层不测；行为承接＝`llmtier-unit-test-scheme` §3 `UT-OBS-001..007`。**视觉子项**（诊断页 tabs/Disabled 呈现）无行为宿主，见 `llmtier-unit-test-scheme` §4 `G-UT-4`（owner M002/M005）。 |
-| `VRC-UI-001..006`（M002 web-ui：加载/编辑鉴权/Pause/用量未知/探测确认/诊断页；模块设计 web-ui §14.1–§14.7） | Gap（行为级无宿主） | Owner：M002 web-ui。本层无 HTTP 端点 Case；下层当前仅有**字符串契约**（`UT-UI-001..010`，静态断言），无 JS 行为宿主——与 `llmtier-unit-test-scheme` §4 `G-UT-3` 同一缺口。恢复条件：引入 JS 行为测试宿主（node/jsdom）后由单元层升级为行为断言；在此之前 6 项保持具名 Gap，不声称已承接。 |
+| `VRC-OBS-001..005`（M005 observability：开关/查询脱敏/注入/关联标识/诊断页；模块设计 observability §14.1–§14.5） | Tailored-N/A（下层承接）＋**视觉子项 Tailored-N/A** | Owner：M005（视觉子项 Owner：M002 web-ui）。本层不测；行为承接＝`llmtier-unit-test-scheme` §3 `UT-OBS-001..007`。**视觉子项**（诊断页 tabs/Disabled 呈现）**定稿为 Tailored-N/A**：本项目 harness 无浏览器/JS 宿主（无 node/jsdom/playwright/selenium，已核实全仓零命中），静态渲染无法驱动，故不写空 Case、不保留 Gap；单元层同步以 `G-UT-4` 具名（owner M002/M005），恢复条件＝引入浏览器/E2E 宿主后重评。 |
+| `VRC-UI-001..006`（M002 web-ui：加载/编辑鉴权/Pause/用量未知/探测确认/诊断页；模块设计 web-ui §14.1–§14.7） | Tailored-N/A（定稿；非 Gap） | Owner：M002 web-ui。**事实依据**：本项目 harness **无浏览器/E2E 宿主**——全仓无 node/jsdom/playwright/selenium（已核实零命中），系统层为 HTTP 黑盒且本层无 UI 端点 Case；静态渲染不可驱动，**不写空 Case**。故该 6 项行为级断言**定稿为 Tailored-N/A**（明确不在本方案分母内），**不再登记为"具名 Gap"**，也不"承接"到不存在的文档。下层现状：`llmtier-unit-test-scheme` §3 有 `UT-UI-001..010` 但仅为**字符串契约**（`test_webui_contract.py`），同一事实在单元方案 §4 `G-UT-3` 具名（Owner M002）。恢复条件：引入浏览器/JS 宿主后由单元层升级为行为断言并重评本裁决。 |
 | `POST /v1/responses` 声明的 `422`（OpenAPI） | Gap（契约偏差，无 Case） | Owner：M001 http-api/规格。恢复条件：实现从不产生 422——非法/非对象 JSON body 走 `_body()` 的 `ApiError(400, "invalid_json")`（`app.py:161-162`），schema 级字段违例走 `400`（`invalid_request`/`unsupported_request`/`unsupported_field`/`unsupported_model`），已由 `DP-RESP-16`/`DP-RESP-08/12..15` 覆盖。**无代码路径产生 422**，故不写空 Case；OpenAPI 声明与实现的偏差按规格修订（改声明为 400）或补实现后重评。 |
 | `POST /v1/probes` 声明的 `502`（OpenAPI） | Gap（契约偏差，无 Case） | Owner：M005 管理/M003 推理/规格。恢复条件：实现从不产生 502——`AdminService.probe` 调 `adapter.probe()`，而 `OpenAIProvider.probe` 对**所有**上游异常 `except Exception: return False`（`providers/openai.py`），上游故障表现为 `200` + `status:"unhealthy"`，不抛错。**上游 502 路径不存在**，故不写空 Case；`ADM-PROBE-02/03` 覆盖 200/404 表现。偏差按规格修订（改声明）或补实现（probe 失败映射 502）后重评。 |
-| Embeddings 的 `provider_failure`（`fault_502` 注入码） | Gap（不可达，无 Case） | Owner：M003 推理/规格。恢复条件：`provider_failure` 仅在 `ResponsesService.create` 的注入分支产生（`responses.py:110`）；`EmbeddingsService.create` **不读** `enabled_injection`（`embeddings.py`），故 Embeddings 无故障注入路径，`provider_failure` 码在 Embeddings 不可达。`DP-EMB-09` 以真实/假上游契约错误覆盖其可达的 `502 provider_contract_error`；若未来为 Embeddings 增加注入支持须重评。 |
+| Embeddings 的 `provider_failure`（`fault_502` 注入码） | Gap（不可达，无 Case） | Owner：M003 推理/规格。恢复条件：`provider_failure` 仅在 `ResponsesService.create` 的注入分支产生（`responses.py:110`）；`EmbeddingsService.create` **不读** `enabled_injection`（`embeddings.py` 无该符号），故 Embeddings 无故障注入路径，`provider_failure` 码在 Embeddings 不可达。`DP-EMB-09` 以真实/假上游契约错误覆盖其可达的 `502 provider_contract_error`；若未来为 Embeddings 增加注入支持须重评。 |
+
+> **三项具名缺口的代码复核（本版重核，结论未变）**：`POST /v1/responses` 的 `422`、`POST /v1/probes` 的 `502`、Embeddings 的 `provider_failure` 三项在本版对当前源码重核——`grep -rn "422" src/` 零命中（`app.py` 仅 400/413）；`OpenAIProvider.probe` 仍 `except Exception: return False`（`providers/openai.py`）；`EmbeddingsService.create` 仍不读 `enabled_injection`。**三项均保持不可达/无代码路径**，故不写空 Case；按规格修订（改声明）或补实现后重评。
 
 ### 需求缺口裁决（`LT-*`，对照 §3.6）
 
@@ -388,7 +390,7 @@
 | `LT-FUN-007`（不保存/压缩 Agent 历史、不执行工具、不创建 Session/Conversation、不管理 backend KV） | Tailored-N/A（范围外：absence 静态契约） | Owner：LLMTier。**非 HTTP 运行层可测**——属"不存在"断言，由静态契约 `CT-BOUNDARY-001` 与 `tests/system/st_04_forbidden_scan.py` 承接（范围与非目标见退役规格 §11.2；当前运行层只测 current `/v1/*`）。 |
 | `LT-INT-003`（不定义 SourceInstance/Idempotency-Key/Invocation/recovery/Seat/Cost/compatibility） | Tailored-N/A（范围外：absence 静态契约） | Owner：LLMTier。同上，由 `CT-SCOPE-001`/`CT-BOUNDARY-001` 与 `st_04_forbidden_scan.py` 承接，非运行层分母。 |
 | `LT-REL-002`（内部可靠性/retry/防重不得创建对外 Invocation/recovery/session contract） | Tailored-N/A（范围外：absence 静态契约） | Owner：LLMTier。同上（`CT-SCOPE-001`）。 |
-| `LT-PERF-003`（未测量前不得宣称 production latency/throughput/availability SLO） | Tailored-N/A（范围外：声明性约束） | Owner：LLMTier。属发布声明约束，非运行行为；由 release/运维 Gate 与 SLO 专项承接（对照上方「容量/耐久」Gap）。 |
+| `LT-PERF-003`（未测量前不得宣称 production latency/throughput/availability SLO） | Tailored-N/A（范围外：声明性约束） | Owner：LLMTier。属发布声明约束，非运行行为；由 release/运维 Gate 与 SLO 专项承接（对照上方「容量/耐久」裁决）。 |
 | `LT-SEC-003`（production Web UI 同源 TLS 反代 SSO/MFA、HttpOnly/CSRF、浏览器无 bearer、不加账号/登录 API） | Gap | Owner：运维/安全。生产部署面（TLS/SSO/CSRF）非 HTTP 运行层；恢复条件：生产部署面可用并有授权后补测（对照上方「真实生产环境」Gap）。 |
 | `LT-OPS-003`（restart/reload/restore 使用自有 runbook，不建跨系统恢复状态机） | Gap | Owner：运维。恢复条件：`m5air-operations-manual.md` runbook 承接并执行记录（对照上方「进程 crash/restart 后的运维恢复」Gap）。 |
 | `LT-OPS-004`（恢复确认分层检查 process/config/model availability/Usage store，仅授权后 smoke） | Gap | Owner：运维。恢复条件：运维分层恢复检查与授权 smoke 流程落地后登记（同上 Gap）。 |
@@ -443,7 +445,7 @@
 | `VRC-LOG-001` | 日志/审计脱敏 | 系统设计 §12 | ADM-LOGS-01..03 |
 | `VRC-UTIL-001` | 存储引导/就绪引导表现 | 系统设计 §12 | HEALTH-04/05 |
 | `VRC-INF-005`、`VRC-UTIL-002`、`VRC-API-001/003/004`、`VRC-MGMT-004/005`、`VRC-DIAG-003`、`VRC-OBS-001..005` | 模块级验证项（无系统层 Case；行为由单元层 `llmtier-unit-test-scheme` §3 承接） | 模块设计 §14、ISD §9.1 | §4 裁决：Tailored-N/A（下层承接），逐项列 UT Case |
-| `VRC-UI-001..006` | M002 web-ui 行为级验证项（无系统层 Case；下层当前仅字符串契约） | 模块设计 web-ui §14、ISD §9.1 | §4 裁决：Gap（同 `llmtier-unit-test-scheme` §4 `G-UT-3`） |
+| `VRC-UI-001..006` | M002 web-ui 行为级验证项（无系统层 Case；本项目无浏览器/JS 宿主） | 模块设计 web-ui §14、ISD §9.1 | §4 裁决：**Tailored-N/A（定稿；非 Gap）**，同 `llmtier-unit-test-scheme` §4 `G-UT-3` |
 
 
 

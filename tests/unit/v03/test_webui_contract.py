@@ -103,3 +103,54 @@ class WebUIContractTests(unittest.TestCase):
         self.assertIn('max_concurrent',self.js)
         self.assertIn('Unknown',self.js)
     def test_no_bearer_storage(self):self.assertNotIn('localStorage',self.js);self.assertNotIn('Bearer ',self.js)
+
+
+class WebUIBranchContractTests(unittest.TestCase):
+    """M002 behavior branches (UT-UI-007/008/009/010) — STRING-CONTRACT ONLY.
+
+    No JS execution host (node/jsdom) is available in this layer, so these
+    assertions verify the source encodes the required branch/contract; they do
+    NOT drive `app.js`. Behavior-level UI verification is the named gap G-UT-3
+    (scheme §4). Treat every assertion here as a static contract check.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.js = (ROOT / "app.js").read_text()
+
+    def test_dispatch_ui_error_branches(self):
+        for token in ("error.status===401", "error.status===403", "error.status===409",
+                      "error.status===412", "error.status===429", "error.status===503"):
+            self.assertIn(token, self.js)
+        self.assertIn("window.location.assign(LOGIN_URL)", self.js)
+        self.assertIn("error.staleEdit=true", self.js)
+        self.assertIn("error.retry_after", self.js)
+
+    def test_report_load_failure_keeps_last_screen(self):
+        self.assertIn("function reportLoadFailure(error)", self.js)
+        self.assertIn("[401,403,409,412,429,503].includes(error.status)", self.js)
+        self.assertIn("markStale('Refresh failed — showing the last known data.')", self.js)
+
+    def test_backend_state_precedence(self):
+        self.assertIn("if(!provider?.enabled)return ['Disabled','muted']", self.js)
+        self.assertIn("if(!deployment.enabled)return ['Paused','muted']", self.js)
+
+    def test_tier_state_unknown_when_availability_absent(self):
+        self.assertIn("const availability=state.tierAvailability[tier.id]", self.js)
+        self.assertIn("if(!tier.deployment_ids.length)return ['Empty','muted']", self.js)
+        self.assertIn("return ['Unknown','muted']", self.js)
+
+    def test_usage_summary_four_states(self):
+        self.assertIn("snapshot.status==='not_refreshed'", self.js)
+        self.assertIn("snapshot.status==='unlimited'", self.js)
+        self.assertIn("snapshot.status!=='ok'", self.js)
+        self.assertIn("const metric=value=>", self.js)
+
+    def test_stats_range_and_etag_and_model_cache(self):
+        self.assertIn("function statsRange()", self.js)
+        self.assertIn("const etag=item=>`\"${item.id}.v${item.version}\"`", self.js)
+        self.assertIn("if(state.modelCache[providerId]) return state.modelCache[providerId]", self.js)
+        self.assertIn("catch{return []}", self.js)
+
+    def test_field_value_missing_returns_empty(self):
+        self.assertIn("return element?element.value:''", self.js)
