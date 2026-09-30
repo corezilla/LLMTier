@@ -127,7 +127,7 @@ async function main() {
     "about:blank",
   ], { stdio: ["ignore", "ignore", "pipe"] });
 
-  const result = { ok: false, browser, steps: [], failures: [], network: [], consoleErrors: [] };
+  const result = { ok: false, browser, steps: [], failures: [], network: [], consoleErrors: [], screenshots: [], _screenshotPath: scenario.screenshot || null };
   let cdp = null;
   let sessionId = null;
   let browserWs = null;
@@ -172,10 +172,11 @@ async function main() {
     // Wait for the app's initial render to settle (network idle-ish + a tick).
     await waitForReady(browserWs, sessionId, scenario.readyExpression);
 
+    const shots = [];
     for (const step of scenario.steps || []) {
       const record = { action: step.action };
       try {
-        const value = await runStep(browserWs, sessionId, step, result);
+        const value = await runStep(browserWs, sessionId, step, result, shots);
         record.ok = true;
         if (value !== undefined) record.value = value;
       } catch (e) {
@@ -192,6 +193,7 @@ async function main() {
       fs.writeFileSync(scenario.screenshot, Buffer.from(shot.data, "base64"));
       result.screenshot = scenario.screenshot;
     }
+    result.screenshots = shots;
     if (scenario.networkLog) {
       fs.mkdirSync(path.dirname(scenario.networkLog), { recursive: true });
       fs.writeFileSync(scenario.networkLog, JSON.stringify(result.network, null, 2));
@@ -228,7 +230,7 @@ async function evaluate(cdp, sessionId, expression) {
   return r.result?.value;
 }
 
-async function runStep(cdp, sessionId, step, result) {
+async function runStep(cdp, sessionId, step, result, shots = []) {
   switch (step.action) {
     case "wait": await sleep(step.ms || 100); return;
     case "waitFor": {
@@ -237,6 +239,18 @@ async function runStep(cdp, sessionId, step, result) {
         await sleep(100);
       }
       throw new Error(`waitFor timed out: ${step.expression}`);
+    }
+    case "screenshot": {
+      if (!result._screenshotPath) throw new Error("screenshot step requires a scenario screenshot path");
+      const base = path.basename(result._screenshotPath, path.extname(result._screenshotPath));
+      const dir = path.dirname(result._screenshotPath);
+      const labeled = `${base}.${step.name || "step"}.png`;
+      const out = path.join(dir, labeled);
+      const shot = await cdp.send("Page.captureScreenshot", { format: "png" }, sessionId);
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(out, Buffer.from(shot.data, "base64"));
+      shots.push(out);
+      return out;
     }
     case "click": {
       const ok = await evaluate(cdp, sessionId, `(()=>{const el=document.querySelector(${JSON.stringify(step.selector)});if(!el)return false;el.click();return true;})()`);
@@ -283,6 +297,24 @@ async function runStep(cdp, sessionId, step, result) {
       const matches = result.network.filter((n) => n.url.includes(step.urlContains) && (!step.method || n.method === step.method));
       const ok = step.status ? matches.some((n) => n.status === step.status) : matches.length > 0;
       if (!ok) throw new Error(`assertNetwork failed: no ${step.method || "*"} ${step.urlContains}${step.status ? ` -> ${step.status}` : ""}; saw ${JSON.stringify(result.network.map((n) => `${n.method} ${n.url} ${n.status}`))}`);
+      return matches.length;
+    }
+    case "waitForNetwork": {
+      // Deterministic replacement for a fixed sleep: poll the CDP network log
+      // until the expected request/response is observed (or time out).
+      const deadline = Date.now() + (step.timeoutMs || 10000);
+      for (;;) {
+        const matches = result.network.filter((n) => n.url.includes(step.urlContains) && (!step.method || n.method === step.method) && (!step.status || n.status === step.status));
+        if (matches.length >= (step.atLeast || 1)) return matches.length;
+        if (Date.now() >= deadline) {
+          throw new Error(`waitForNetwork timed out: ${step.method || "*"} ${step.urlContains}${step.status ? ` -> ${step.status}` : ""}; saw ${JSON.stringify(result.network.map((n) => `${n.method} ${n.url} ${n.status}`))}`);
+        }
+        await sleep(100);
+      }
+    }
+    case "assertNetworkCount": {
+      const matches = result.network.filter((n) => n.url.includes(step.urlContains) && (!step.method || n.method === step.method));
+      if (matches.length !== step.count) throw new Error(`assertNetworkCount failed: ${step.method || "*"} ${step.urlContains} seen ${matches.length}, expected ${step.count}; saw ${JSON.stringify(matches.map((n) => `${n.method} ${n.url}`))}`);
       return matches.length;
     }
     case "assertNoNetwork": {

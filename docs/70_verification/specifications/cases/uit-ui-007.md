@@ -49,6 +49,8 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UIT-UI-007` / 模块设计 web-ui §14（ISD §9.1） / `VRC-UI-002` / `recovery` / `P0`
 - 方案清单登记：`UIT-UI-007`
+- **UI 方法模式（§1.5 方法表行）**：**错误 / 降级**——注入 API 错误/超时/5xx，触发该请求，断言显示错误态且**保留上一屏**（不空白、不臆造、不静默），并**可恢复**（重试后正常）。
+- **六要素映射（约束「每 Case 必须写明」）**：模式＝本节；构造的状态＝§3（先健康渲染 tier 树，再注入 `/v1/*` 500）；执行的操作＝§4（切 tab 触发失败加载 → 恢复 fetch 后重试）；DOM 断言＝§4（`body.stale`、`#ui-banner` 可见非空、`#tree details` 仍含 `Baseline Deployment B`、恢复后 `stale` 消失且树正常）；网络断言＝§4（注入的 500 响应 + 恢复后的 200）；证据位置＝§7。
 - 要测什么（责任展开）：页面先以健康实例渲染出 tier 树；随后将 `/v1/*` fetch 注入 500 并切换 tab：UI 必须显示 stale banner（`Refresh failed — showing the last known data.`）并 **保留上一屏 DOM**，不得变空白屏。
 - 明确不测什么 / 失败含义：不证明 412/409/401 的专用分支（归 `UT-UI-002/008` 与后续；本 Case 覆盖「其它状态→保留旧屏」兜底路径）。
 
@@ -75,6 +77,7 @@
 | 3 | 切到 Providers 再切回 Home（触发失败加载）。 |
 | 4 | 等待 `document.body.classList.contains('stale')`；断言 banner 可见且非空。 |
 | 5 | 断言 `#tree details` 仍存在且含 `Baseline Deployment B`（未空白化）。 |
+| 6 | 恢复 `window.fetch`；再次切到 Home；等待 `stale` 消失；断言树重新渲染正常（错误可恢复）。 |
 
 **重点关注步骤**：真实 DOM 与真实网络为准；断言对象是 `document.*` 的实时值或 CDP 网络记录，**不是** `app.js` 源码文本。
 

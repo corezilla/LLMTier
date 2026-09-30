@@ -1,0 +1,31 @@
+{
+  "project": "LLMTier",
+  "authority": "LLMTier",
+  "document_id": "UIT-UI-008",
+  "document_type": "tests.system-case",
+  "document_version": "0.1.0-draft.1",
+  "title": "UIT-UI-008 \u2014 \u914d\u4e86 secret \u7684 provider \u53ea\u663e\u793a\u8131\u654f\u6807\u8bb0\uff0csecret \u503c\u4e0d\u843d DOM/URL/\u65e5\u5fd7",
+  "document_owner": "LLMTier",
+  "authors": [
+    "LLMTier"
+  ],
+  "template_id": "tests.system-case",
+  "template_version": "2.3.2",
+  "template_sha256": "d52aae730246dc9a3cca5a870a17bd390921858b9f74cc3de7c6f5b64a250aad",
+  "template_conformance": "tailored",
+  "tailoring_ref": "std-tailoring",
+  "migration_map_ref": null,
+  "design_level": "system",
+  "domain": [
+    "software"
+  ],
+  "status": "draft",
+  "visibility": "project",
+  "source_repository": "corezilla/LLMTier",
+  "source_path": "docs/70_verification/specifications/cases/uit-ui-008.md",
+  "reviewed_commit": null,
+  "parent_document_id": "llmtier-system-design",
+  "supersedes": null,
+  "created_at": "2026-10-01",
+  "last_modified_at": "2026-10-01"
+}

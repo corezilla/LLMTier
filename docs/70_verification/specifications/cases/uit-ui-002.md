@@ -49,6 +49,8 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UIT-UI-002` / 模块设计 web-ui §14（ISD §9.1） / `VRC-UI-001` / `normal` / `P1`
 - 方案清单登记：`UIT-UI-002`
+- **UI 方法模式（§1.5 方法表行）**：**交互 → 能力调用（按钮/菜单/表单）**——点击 nav tab，断言发出的调用正确（方法+路径+状态），且**不该调用时零调用**。
+- **六要素映射（约束「每 Case 必须写明」）**：模式＝本节；构造的状态＝§3（页面已加载、目标 tab 可操作）；执行的操作＝§4（click Stats/Diagnostics/traces）；DOM 断言＝§4 Step 1–4（`.page.active`/`.dsub.active`）；网络断言＝§4 Step 2/4（`GET /v1/stats`→200、`GET /v1/diagnostics/traces`→200）＋**零调用**（Home 不得触发 `/v1/stats`）；证据位置＝§7。
 - 要测什么（责任展开）：点击 nav tab 必须切换 `.page.active`；切换到 Stats/Diagnostics 时触发对应 GET 且渲染表体：`GET /v1/stats`、`GET /v1/diagnostics/traces`。
 - 明确不测什么 / 失败含义：不证明各表的分页/空态渲染细节（由其它 Case 承接）。
 
@@ -70,7 +72,7 @@
 
 | Step | 动作 | 观察点 |
 |---|---|---|
-| 1 | 加载 `/ui/`；断言初始 `.page.active` = `home`。 |
+| 1 | 加载 `/ui/`；断言初始 `.page.active` = `home`；断言 **`GET /v1/stats` 计数为 0**（Home 不应触发 Stats 能力调用）。 |
 | 2 | 点击 `data-page='stats'`；断言 `#stats.page.active`；等待 `#stats-body` 有子节点；断言 `GET /v1/stats`→200。 |
 | 3 | 点击 `data-page='diagnostics'`；断言 `#diagnostics.page.active`；断言 4 个 `[data-dtab]`。 |
 | 4 | 点击 `[data-dtab='traces']`；断言 `#traces.dsub.active`；断言 `GET /v1/diagnostics/traces`→200。 |

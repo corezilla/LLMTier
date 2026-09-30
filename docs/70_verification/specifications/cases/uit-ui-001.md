@@ -49,6 +49,8 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UIT-UI-001` / 模块设计 web-ui §14（ISD §9.1） / `VRC-UI-001` / `normal` / `P1`
 - 方案清单登记：`UIT-UI-001`
+- **UI 方法模式（§1.5 方法表行）**：**数据呈现（渲染）**——构造底层数据（临时实例播种 + API 返回），打开页面，断言真实 DOM 与数据一致。
+- **六要素映射（约束「每 Case 必须写明」）**：模式＝本节；构造的状态＝§3（播种 `prov_b`/`depl_b` + fake 上游）；执行的操作＝§4 Step 1–2（navigate + 点击 Providers）；DOM 断言＝§4 Step 3/5（`document.title`、5 个 nav、`#home.page.active`、tier 树、provider 行文本）；网络断言＝§4 Step 6（`GET /v1/providers`→200）；证据位置＝§7（PNG + 网络日志）。
 - 要测什么（责任展开）：在真实浏览器中加载 `/ui/`：断言 `document.title`、5 个 `nav button[data-page]`、Home 默认激活、tier 树已渲染；切到 Providers 后 provider 行由 `GET /v1/providers` 的真实响应渲染（断言行内文本 `Baseline Provider B` 与 CDP 记录的 200 响应并存），而非源码字符串。
 - 明确不测什么 / 失败含义：不证明其它 provider 的账户用量刷新（ADM-PROV-USAGE-*）、不证明表单保存（ADM-PROV-05/16）。
 

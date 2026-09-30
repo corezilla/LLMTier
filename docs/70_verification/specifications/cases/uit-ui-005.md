@@ -49,6 +49,8 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UIT-UI-005` / 模块设计 web-ui §14（ISD §9.1） / `VRC-UI-005` / `boundary` / `P1`
 - 方案清单登记：`UIT-UI-005`
+- **UI 方法模式（§1.5 方法表行）**：**门控 / 确认（破坏性/开销性动作）**——先**不确认**点击（断言零调用）→ 再确认（断言调用且成功）。
+- **六要素映射（约束「每 Case 必须写明」）**：模式＝本节；构造的状态＝§3（探测为显式付费动作、可操作）；执行的操作＝§4（confirm=false 点击 → confirm=true 点击）；DOM 断言＝§4（confirm 计数 ≥1；按钮存在）；网络断言＝§4（未确认 `assertNoNetwork POST /v1/probes`（零调用）、确认后 `POST /v1/probes`→200 且计数 =1）；证据位置＝§7。
 - 要测什么（责任展开）：点击后端 Probe：`window.confirm` 返回 false 时 **不得**发出 `POST /v1/probes`；确认后发出 `POST /v1/probes` 并得到 200。
 - 明确不测什么 / 失败含义：不证明探测结果到状态的映射（ADM-PROBE-02）。
 
@@ -72,8 +74,8 @@
 |---|---|---|
 | 1 | 加载 `/ui/`；`window.confirm=()=>{count++;return false}`；等待 `#tree .backend-probe`。 |
 | 2 | 点击 probe；断言 `confirm` 计数 ≥1。 |
-| 3 | 断言网络日志 **无** `POST /v1/probes`。 |
-| 4 | `window.confirm=()=>true`；再次点击 probe；断言 `POST /v1/probes`→200。 |
+| 3 | 断言网络日志 **无** `POST /v1/probes`（未确认零调用）。 |
+| 4 | `window.confirm=()=>true`；再次点击 probe；等待 `POST /v1/probes`→200；断言调用计数 = 1。 |
 
 **重点关注步骤**：真实 DOM 与真实网络为准；断言对象是 `document.*` 的实时值或 CDP 网络记录，**不是** `app.js` 源码文本。
 

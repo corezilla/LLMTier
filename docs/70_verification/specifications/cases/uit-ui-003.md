@@ -49,6 +49,9 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UIT-UI-003` / 模块设计 web-ui §14（ISD §9.1） / `VRC-UI-003` / `boundary` / `P1`
 - 方案清单登记：`UIT-UI-003`
+- **UI 方法模式（§1.5 方法表行）**：**数据变更（写路径）**——已知初值 → 页面执行启停 → **两侧都变**：①服务端数据真的变了（`GET /v1/deployments` 读回 == 期望）；②页面重新渲染、旧值消失。
+- **六要素映射（约束「每 Case 必须写明」）**：模式＝本节；构造的状态＝§3（`depl_b` 初始 `enabled=true`，先 GET 读回基线）；执行的操作＝§4（click Pause → click Resume）；DOM 断言＝§4（`aria-label` Idle→Paused→Idle，断言旧值 `Idle` 消失）；网络断言＝§4（`PATCH /v1/deployments/`→200、`If-Match` 头、`GET /v1/deployments` 读回）；证据位置＝§7（改前/改后截图 + 网络日志）。
+- **不适用项说明**：本模式表列的「非法输入被拒且不改数据」对本 Case 不适用——Pause/Resume 为无参开关，无用户可输入字段；非法输入分支由 `UIT-UI-007`（错误注入）与 API 层 negative Case 承接。
 - 要测什么（责任展开）：Home 后端行点击 Pause：`window.confirm` 通过后发出 `PATCH /v1/deployments/{id}`（带 `If-Match` 前置条件），响应 200 后行状态由 `Idle` 重渲染为 `Paused`；Resume 恢复。
 - 明确不测什么 / 失败含义：不证明 `running>0` 时的确认文案分支（该分支需在途请求，归分析/后续）；不证明鉴权负向（AUTH-*）。
 
@@ -71,10 +74,11 @@
 | Step | 动作 | 观察点 |
 |---|---|---|
 | 1 | 加载 `/ui/`；`window.confirm=()=>true`；等待 `#tree .backend-toggle`。 |
-| 2 | 断言 `#tree .backend .status-icon` 的 `aria-label` = `Idle`。 |
+| 2 | 断言 `#tree .backend .status-icon` 的 `aria-label` = `Idle`；`GET /v1/deployments` 读回 `enabled=true`（改前基线）；截图 `before`。 |
 | 3 | 点击 `#tree .backend-toggle`；等待 `aria-label` = `Paused`。 |
 | 4 | 断言 `PATCH /v1/deployments/`→200，且请求头 `If-Match` 匹配 `^"depl_b\.v[0-9]+"$`。 |
-| 5 | 再次点击恢复 `Idle`（保持实例初态）。 |
+| 5 | **两侧都变**：①`GET /v1/deployments` 读回 `enabled=false`（服务端真的变了）；②`aria-label` = `Paused` 且旧值 `Idle` 消失（页面重渲染）；截图 `after`。 |
+| 6 | 再次点击恢复 `Idle`，并断言读回 `enabled=true`（保持实例初态）。 |
 
 **重点关注步骤**：真实 DOM 与真实网络为准；断言对象是 `document.*` 的实时值或 CDP 网络记录，**不是** `app.js` 源码文本。
 

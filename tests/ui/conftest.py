@@ -151,6 +151,11 @@ def ui_instance(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, No
     inst.stop()
 
 
+def baseline_settings(provider_endpoint: str) -> dict:
+    """The canonical B-class baseline settings (1 provider/deployment/7 tiers)."""
+    return _b._baseline_settings(provider_endpoint)
+
+
 def run_scenario(node: str, scenario: dict, tmp_dir: Path, name: str) -> dict:
     """Run one scenario through the CDP driver and return its JSON verdict.
 

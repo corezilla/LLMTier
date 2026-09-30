@@ -49,6 +49,8 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UIT-UI-006` / 模块设计 web-ui §14（ISD §9.1） / `VRC-UI-006` / `normal` / `P1`
 - 方案清单登记：`UIT-UI-006`
+- **UI 方法模式（§1.5 方法表行）**：**导航 / 可见性**——切换 tab/子 tab，断言 `.page.active`/`.dsub.active` 真的变了，且懒加载调用**按需触发（不重复、不遗漏）**。
+- **六要素映射（约束「每 Case 必须写明」）**：模式＝本节；构造的状态＝§3（页面已加载；诊断开关默认关闭）；执行的操作＝§4（点击 Diagnostics → 点击 dstats）；DOM 断言＝§4（4 个 `[data-dtab]`、`#snapshots.dsub.active`、`#dstats.dsub.active`、Disabled 行真实绘制）；网络断言＝§4（`GET /v1/diagnostics`→200；dstats 关闭时 `assertNoNetwork GET /v1/diagnostics/stats`）；证据位置＝§7。
 - 要测什么（责任展开）：Diagnostics 页 4 个子 tab 渲染并可切换；开关关闭时 Snapshots/Stats 表体真实渲染 `Disabled — ...`（OBS 视觉子项：Disabled 状态被实际绘制，非空屏）。
 - 明确不测什么 / 失败含义：不证明开关读写的服务端语义（OBS-DIAG-01/02）。
 
@@ -74,7 +76,7 @@
 | 2 | 断言 `[data-dtab]` 计数 = 4；`#snapshots.dsub.active`。 |
 | 3 | 等待并断言 `#snapshots-body` 文本含 `Disabled`。 |
 | 4 | 点击 `[data-dtab='dstats']`；断言 `#dstats.dsub.active`；等待并断言 `#dstats-body` 文本含 `Disabled`。 |
-| 5 | 断言 `GET /v1/diagnostics`→200。 |
+| 5 | 断言 `GET /v1/diagnostics`→200；**负向**：dstats 开关关闭时断言 **无** `GET /v1/diagnostics/stats`（懒加载按需、不遗漏也不多余）。 |
 
 **重点关注步骤**：真实 DOM 与真实网络为准；断言对象是 `document.*` 的实时值或 CDP 网络记录，**不是** `app.js` 源码文本。
 

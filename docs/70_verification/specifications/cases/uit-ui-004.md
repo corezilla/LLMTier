@@ -49,6 +49,8 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UIT-UI-004` / 模块设计 web-ui §14（ISD §9.1） / `VRC-UI-004` / `normal` / `P0`
 - 方案清单登记：`UIT-UI-004`
+- **UI 方法模式（§1.5 方法表行）**：**数据呈现（渲染）**——构造未知/空态数据，打开页面，断言真实 DOM 呈现未知/空态，**绝不臆造 0**。
+- **六要素映射（约束「每 Case 必须写明」）**：模式＝本节；构造的状态＝§3（provider 未配置用量 + 无 usage 记录 + 空统计窗）；执行的操作＝§4（点击 Providers/Logs/Stats）；DOM 断言＝§4（`.unknown` 含 `Not refreshed`、`No records`、`No calls recorded` 且**均不含数字 0**）；网络断言＝§4（对应 GET 200）；证据位置＝§7。
 - 要测什么（责任展开）：未知用量必须渲染为未知/空态，而非臆造 0：Providers 页未配置用量的 provider 渲染显式未知态 `Not refreshed`（非 0%）；Logs 页用量表无记录渲染 `No records`（非清零表）；Stats 页空窗渲染 `No calls recorded in this window.`。
 - 明确不测什么 / 失败含义：不证明有记录时的数值投影与服务端版本去重（由 `UT-UI-004/009` 与 DP-USAGE-* 承接）。
 
@@ -70,9 +72,9 @@
 
 | Step | 动作 | 观察点 |
 |---|---|---|
-| 1 | 加载 `/ui/`；点击 Providers tab；等待 `#provider-tree .provider-row`；断言行内 `.unknown` 文本含 `Not refreshed`（未知态，非 0）。 |
-| 2 | 点击 Logs tab；等待 `#usage-body` 有子节点；断言 `#usage-body td[colspan]` 文本含 `No records`。 |
-| 3 | 点击 Stats tab；等待 `#stats-body` 有子节点；断言 `#stats-body td[colspan]` 文本含 `No calls recorded`。 |
+| 1 | 加载 `/ui/`；点击 Providers tab；等待 `#provider-tree .provider-row`；断言行内 `.unknown` 文本含 `Not refreshed`（未知态，非 0）；**负向**：该文本不含任何数字（不臆造 0）。 |
+| 2 | 点击 Logs tab；等待 `#usage-body` 有子节点；断言 `#usage-body td[colspan]` 文本含 `No records` 且不含数字。 |
+| 3 | 点击 Stats tab；等待 `#stats-body` 有子节点；断言 `#stats-body td[colspan]` 文本含 `No calls recorded` 且不含数字。 |
 
 **重点关注步骤**：真实 DOM 与真实网络为准；断言对象是 `document.*` 的实时值或 CDP 网络记录，**不是** `app.js` 源码文本。
 

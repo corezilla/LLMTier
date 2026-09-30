@@ -94,7 +94,7 @@ src/web_ui/
   - 图标/状态：`iconSvg`、`statusIconName`、`statusMarkup`、`iconButton`、`backendState`、`tierState`
   - 装载/渲染：`api`、`loadRegistry/loadUsageSnapshot/loadHome/loadProviders/loadUsage/loadAudit/loadLogs/loadStats`、`loadDiagSwitches/saveDiagSwitches/loadSnapshots/loadDiagStats/loadTraces/showTrace/loadInjections/loadDiagnostics`、`renderTree/renderProviders/renderTierMembers`、`fetchProviderModels`、`modelOptions`、`providerOptions`、`usageSummary`、`reloadMemberModels`、`reloadAddMemberModels`、`showUsageFields`、`statsRange`、`diagWindow`
   - mutation：`openTierEditor/openProviderEditor/saveProvider/saveMember/addMember/removeMember/deleteProvider/addModelAsDeployment/toggleDeployment/probeDeployment/refreshProviderUsage`
-  - I9/错误：`dispatchUiError`、`reportLoadFailure`、`showBanner`、`markStale`
+  - I9/错误：`dispatchUiError`、`reportLoadFailure`、`showBanner`、`markStale`、`clearStale`（T-UI-05 Stale→Loading→正常：成功重载清除 stale 标记与 banner）
 - **可见性**：private（浏览器）
 - **调用与类型依赖**：只经 `api()` 调 M001 同源 HTTP
 - **构建目标 / 生成源 / 输出**：静态资源

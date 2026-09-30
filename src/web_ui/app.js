@@ -5,6 +5,9 @@ const fieldValue=(root,name)=>{const element=root.querySelector(`[name="${name}"
 const LOGIN_URL='/login';
 function showBanner(message){const banner=$('#ui-banner');if(banner){banner.textContent=message;banner.hidden=false}}
 function markStale(message){document.body.classList.add('stale');showBanner(message)}
+// T-UI-05 (Stale -> Loading -> normal): a successful reload recovers the view,
+// so a load that previously marked the page stale clears the marker + banner.
+function clearStale(){document.body.classList.remove('stale');const banner=$('#ui-banner');if(banner){banner.hidden=true;banner.textContent=''}}
 // I9 error dispatch (web-ui ISD §5.2): 401 -> session/redirect, 409/412 -> keep page for reload, 429/503 -> stale.
 function dispatchUiError(error){
   if(error.status===401){document.body.classList.add('stale');window.location.assign(LOGIN_URL);return}
@@ -126,6 +129,7 @@ async function loadHome(){
     $('#build-meta').textContent=`Version ${health.version} · Updated ${new Date(document.lastModified).toLocaleString()}`;
     renderTree();
     $('#stamp').textContent=`Last refreshed ${new Date().toLocaleTimeString()}`;
+    clearStale();
   }catch(error){reportLoadFailure(error)}
 }
 
@@ -356,7 +360,7 @@ async function addMember(event){
   }catch(error){$('#tier-form-error').textContent=error.message}
 }
 
-async function loadUsage(){try{const page=await api('/v1/usage?'+windowQuery());$('#usage-body').innerHTML=page.data.map(item=>`<tr><td>${esc(item.request_id)}</td><td>${esc(item.model)}</td><td>${esc(item.endpoint)}</td><td>${item.input_tokens??'Unknown'}</td><td>${item.output_tokens??'Unknown'}</td><td>${item.total_tokens??'Unknown'}</td><td>${statusMarkup(item.measurement_status,item.measurement_status==='measured'?'ok':'warn')}</td></tr>`).join('')||'<tr><td colspan="7">No records</td></tr>'}catch(error){reportLoadFailure(error)}}
+async function loadUsage(){try{const page=await api('/v1/usage?'+windowQuery());$('#usage-body').innerHTML=page.data.map(item=>`<tr><td>${esc(item.request_id)}</td><td>${esc(item.model)}</td><td>${esc(item.endpoint)}</td><td>${item.input_tokens??'Unknown'}</td><td>${item.output_tokens??'Unknown'}</td><td>${item.total_tokens??'Unknown'}</td><td>${statusMarkup(item.measurement_status,item.measurement_status==='measured'?'ok':'warn')}</td></tr>`).join('')||'<tr><td colspan="7">No records</td></tr>';clearStale()}catch(error){reportLoadFailure(error)}}
 
 const statsState={group_by:'tier',range:'24h'};
 function statsRange(){
@@ -384,8 +388,8 @@ async function loadStats(){
     return `<tr><td><b>${esc(row.deployment_name)}</b><div class="subline">${esc(row.deployment_id)}</div></td><td>${esc(row.provider_name)}<div class="subline">${esc(row.provider_kind)}</div></td><td><code>${esc(row.backend_model)}</code></td><td>${metric(row.calls)}</td><td>${metric(row.measured_calls)}</td><td>${metric(row.input_tokens)}</td><td>${metric(row.output_tokens)}</td><td>${metric(row.total_tokens)}</td><td>${metric(row.cached_tokens)}</td><td>${metric(row.reasoning_tokens)}</td></tr>`;
   }).join('');
 }
-async function loadAudit(){try{const page=await api('/v1/audit');$('#audit-body').innerHTML=page.data.map(item=>`<tr><td>${new Date(item.created_at).toLocaleString()}</td><td>${esc(item.actor)}</td><td>${esc(item.action)}</td><td>${esc(item.target)}</td><td>${esc(item.result)}</td></tr>`).join('')||'<tr><td colspan="5">No records</td></tr>'}catch(error){reportLoadFailure(error)}}
-async function loadLogs(){try{const query=new URLSearchParams(windowQuery());if($('#log-level').value)query.set('level',$('#log-level').value);if($('#log-module').value)query.set('module',$('#log-module').value);const page=await api('/v1/logs?'+query);$('#log-body').innerHTML=page.data.map(item=>`<tr><td>${new Date(item.created_at).toLocaleString()}</td><td>${esc(item.level)}</td><td>${esc(item.module)}</td><td>${esc(item.event)}</td><td>${esc(item.message)}</td><td>${esc(item.request_id||'—')}</td></tr>`).join('')||'<tr><td colspan="6">No records</td></tr>'}catch(error){reportLoadFailure(error)}}
+async function loadAudit(){try{const page=await api('/v1/audit');$('#audit-body').innerHTML=page.data.map(item=>`<tr><td>${new Date(item.created_at).toLocaleString()}</td><td>${esc(item.actor)}</td><td>${esc(item.action)}</td><td>${esc(item.target)}</td><td>${esc(item.result)}</td></tr>`).join('')||'<tr><td colspan="5">No records</td></tr>';clearStale()}catch(error){reportLoadFailure(error)}}
+async function loadLogs(){try{const query=new URLSearchParams(windowQuery());if($('#log-level').value)query.set('level',$('#log-level').value);if($('#log-module').value)query.set('module',$('#log-module').value);const page=await api('/v1/logs?'+query);$('#log-body').innerHTML=page.data.map(item=>`<tr><td>${new Date(item.created_at).toLocaleString()}</td><td>${esc(item.level)}</td><td>${esc(item.module)}</td><td>${esc(item.event)}</td><td>${esc(item.message)}</td><td>${esc(item.request_id||'—')}</td></tr>`).join('')||'<tr><td colspan="6">No records</td></tr>';clearStale()}catch(error){reportLoadFailure(error)}}
 
 const diagState={tab:'snapshots',snapshotsEnabled:false,statsEnabled:false};
 function diagWindow(){const to=new Date();return {from:new Date(to.getTime()-86400000).toISOString(),to:to.toISOString()};}
