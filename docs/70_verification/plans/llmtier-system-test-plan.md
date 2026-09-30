@@ -6,16 +6,16 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-test-plan` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-29` |
+| Last Modified Date | `2026-09-30` |
 | Template ID | `tests.system-test-plan` |
-| Template Version | `0.3.0` |
+| Template Version | `0.9.1` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | std-tailoring |
 | Migration Map Reference | `llmtier-api-test-plan, llmtier-api-test-execution, llmtier-test-plan, llmtier-vv-plan` |
@@ -27,13 +27,15 @@
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
-> 本计划绑定软件系统：父设计 Document ID 经 `--parent-document-id` 写入 metadata；系统设计基线在 §2 固定。
+> 本计划绑定软件系统
 
-### 模板定位：方案、Case 设计、计划与报告的边界
+> 本文档对设计验证项（VRC/V-xxx）的引用规则：只引用 ID 与状态，不复制定义/判据；ENV 实例编号归 tests.asset-design，本计划编排 ENV 编号与 Case 分配时若变更设计须回溯修订并记录。：父设计 Document ID 经 `--parent-document-id` 写入 metadata；系统设计基线在 §2 固定。
 
-- **权威分工**：Case 清单归 `tests.system-test-scheme`；单 Case 展开归 `tests.system-test-design`（一 Case 一文档）；本计划是**可执行作业指令**——执行者（含 Agent）按它从执行前检做到报告产出；执行结果与 Verdict 权威在 `tests.system-test-report` 与 Run 证据。
+### 模板定位：方案、用例、计划与报告的边界
+
+- **权威分工**：Case 清单归 `tests.system-test-scheme`；单 Case 展开归 `tests.system-case`（一 Case 一文档）；本计划是**可执行作业指令**——执行者（含 Agent）按它从执行前检做到报告产出；执行结果与 Verdict 权威在 `tests.system-test-report` 与 Run 证据。
 - **只索引**：构成表引用方案版本与 Case ID 范围，不复制清单或 Case 细节。
-- **测试资产**：工具/夹具/替身/受控时钟的契约与自检在 `tests.asset-design`（一资产一文档，阶段共享）；本计划 §4 Step 0 使其就位。
+- **测试资产**：工具/夹具/替身/受控时钟的契约与自检在 `tests.asset-design`（一资产一文档，阶段共享）；本计划 §5 Step 0 使其就位。
 - **不是授权书**：按用户当前授权交付；计划到期不改判任何事实状态。
 
 ### 计划条目状态语义
@@ -78,7 +80,7 @@
 
 - 设计 / 源码 / 依赖基线：
   - 设计基线：`llmtier-system-design`（`design.software-system`）§5–§7、§11；机器契约 `interfaces/openapi/llmtier.openapi.json`（OpenAPI 3.1.0）；系统设计 §7.8 公共错误目录（`ERR-*` 八字段）。
-  - 源码 / 部署基线：**当前 `main` 工作树的 m5air 部署版本**；每 Run 必须 pin `{git_commit, db_schema_version, openapi_version}`（§6），禁止以 branch/tag/`HEAD` 名代替。
+  - 源码 / 部署基线：**当前 `main` 工作树的 m5air 部署版本**；每 Run 必须 pin `{git_commit, db_schema_version, openapi_version}`（§7），禁止以 branch/tag/`HEAD` 名代替。
   - 依赖：m5air OMLX `192.168.1.9:9000`、m5mac OMLX `192.168.1.8:9000`（Bearer `9832`）；Python 3.14；`docs/std.lock.json`（STD `0.1.0-draft.56`）；`testing-standard.md`（TS-002 依赖头部、TS-003 LAN IP）。
   - 数据库：`schema_version = 2`（`src/util/store.py::EXPECTED_SCHEMA_VERSION`）。
 - 变更 → 重跑范围规则（重跑生成新 Run 与新报告，**不覆盖旧失败**）：
@@ -95,8 +97,8 @@
 |---|---|---|---|
 | 方案就绪度 | `llmtier-system-test-scheme` §3 权威清单 140 条、计数与 A/B、P0/P1/P2 分布固定；与 §2 分类体系交叉核对 | 清单无未登记缺口、版本固定 | No-Go：Blocked＋缺口语义（§9-O1） |
 | Case 实现状态盘点 | 140 设计 Case 中 88 RUN / 52 MISSING（A 60/B 28 RUN）；MISSING 清单见 `llmtier-system-test-scheme` §3 与逐 Case 设计文档 | 全部 RUN，或 MISSING 已具名登记；P0 MISSING 阻断 | No-Go 或按 §4 记 NOT_RUN 缺口；P0 MISSING 阻断 |
-| 环境与工具（引用 `tests.asset-design` 的 Verified 状态） | m5air `/healthz`、`/readyz`(7 tier)、双 OMLX、`secret_ref=file:`、provider/deployment 就绪（6 项，§5）；B 类临时实例可启停 | `pytest_configure` 6 项全过；临时实例可启动 | 整班 Blocked/Skip，不静默降级 |
-| 构建接线（全量交付构建 / 消费者链接实际库） | m5air 部署版本已 pin 且与执行机同步来源一致；解释器为 Python 3.14（禁系统 3.9）；`schema_version=2` | pin 三项可解析；服务可服务 | 按 §5 恢复（重启／schema 二选一）；仍失败 → Blocked |
+| 环境与工具（引用 `tests.asset-design` 的 Verified 状态） | m5air `/healthz`、`/readyz`(7 tier)、双 OMLX、`secret_ref=file:`、provider/deployment 就绪（6 项，§6）；B 类临时实例可启停 | `pytest_configure` 6 项全过；临时实例可启动 | 整班 Blocked/Skip，不静默降级 |
+| 构建接线（全量交付构建 / 消费者链接实际库） | m5air 部署版本已 pin 且与执行机同步来源一致；解释器为 Python 3.14（禁系统 3.9）；`schema_version=2` | pin 三项可解析；服务可服务 | 按 §6 恢复（重启／schema 二选一）；仍失败 → Blocked |
 
 **Entry criteria**：上表 4 项全过（commit/schema/openapi 三项 pin、单测基线全绿、双 OMLX 存活、环境的 6 项就绪检查通过）方可起跑。
 
@@ -113,16 +115,44 @@
 
 **Exit**：全部适用 Case 走完且 FAIL/INVALID＝0、BLOCKED/SKIP 在上限内（A ≤5 / B ≤3）→ 可提 Gate 建议；任一 FAIL/INVALID 或 P0 MISSING → 阻断 release；BLOCKED 同样阻断 release。
 
-## 4. 执行流程（逐 Case 作业序列）
+### 3.5 环境实例分配（plan 编排）
+
+<span style="color:#1f6feb"><em>**本节目相**：把方案 §1.7 的环境类型落实为具体的**实例编号**，并分配给具体 Case——同一类型可多套（如多 docker 用于并行），编号与分配是 plan 的责任，Case 只引用编号。</em></span>
+<span style="color:#1f6feb"><em>**必须写清楚**：列出本计划分配的全部 ENV 实例（编号 + 类型 + 具体配置/位置 + Owner + 分配给哪些 Case + 准备时限 + 状态）；ENV 实例类型与方案 §1.7 类型一致；准备失败标 Blocked 并登记缺口，不静默换其他实例。</em></span>
+<span style="color:#1f6feb"><em>**抽象示例**：见下方灰字——为同一 Case 分配多个 ENV 实例以并行/隔离，或多 Case 复用同一 ENV 实例。</em></span>
+<span style="color:#1f6feb"><em>**完成条件**：每个 §3.1 的 Case 在本表有 ENV 实例；类型一致；准备未完成标 Blocked 并登记缺口，不静默换实例。</em></span>
+
+| ENV 实例编号 | 环境类型 | 契约文档引用（tests.asset-design） | 具体配置/位置 | Owner | 分配给哪些 Case | 准备时限 | 状态 | 契约校验（Verified/降级原因） |
+|---|---|---|---|---|---|---|---|---|
+| ENV-A | A 类 m5air 已部署实例 | —（m5air 部署面） | `192.168.1.9:8181`，现有 state.sqlite3（不污染） | 环境 Owner（m5air owner） | HEALTH/DP-*/只读 ADM-*/只读 OBS-*（A 类 89） | 每班开跑前 | Ready（以 §3 环境 6 项为准） | §3 6 项自检通过即 Verified |
+| ENV-B | B 类执行机临时实例 | 假上游契约（tests.asset-design，尚未建立） | 随机空闲端口＋`tempfile.mkdtemp(prefix="llmtier_b_")` 临时 SQLite | 执行者 | CRUD/空库/无鉴权/注入/并发（B 类 51） | Step 0 前 | Blocked（`tests.asset-design` 未建立，§10-O2） | 缺资产自检时降级 Blocked，不静默以 A 类替代 |
+
+> §4 的「环境与工具」前检项与 §5 Step 0 ENV 自检是同一项不重复：§4 是 Go/No-Go 判定，§5 Step 0 是按消费方索引的 ENV 实例分配执行；ENV 实例归 tests.asset-design 自检。
+
+## 4. 环境实例分配（plan 编排）
+
+<span style="color:#1f6feb"><em>**本节目相**：把方案 §1.7 的环境类型落实为具体的**实例编号**，并分配给具体 Case——同一类型可多套（如多 docker 用于并行），编号与分配是 plan 的责任，Case 只引用编号。</em></span>
+<span style="color:#1f6feb"><em>**必须写清楚**：列出本计划分配的全部 ENV 实例（编号 + 类型 + 具体配置/位置 + Owner + 分配给哪些 Case + 准备时限 + 状态）；ENV 实例类型与方案 §1.7 类型一致；准备失败标 Blocked 并登记缺口，不静默换其他实例。</em></span>
+<span style="color:#1f6feb"><em>**抽象示例**：见下方灰字——系统层 ENV 实例分配（同一类型多套用于并行/隔离，多 Case 复用同一实例）。</em></span>
+<span style="color:#1f6feb"><em>**完成条件**：每个 §3.1 的 Case 在本表有 ENV 实例；类型一致；准备未完成标 Blocked 并登记缺口，不静默换实例。</em></span>
+
+| ENV 实例编号 | 环境类型 | 具体配置/位置 | Owner | 分配给哪些 Case | 准备时限 | 状态 |
+|---|---|---|---|---|---|---|
+| ENV-A | A 类 m5air 已部署实例 | `192.168.1.9:8181`，现有 state.sqlite3（只读/观察/一次性无状态写） | 环境 Owner（m5air owner） | HEALTH/DP-*/只读 ADM-*/只读 OBS-*（A 类 89） | 每班开跑前 | Ready（以 §3 环境 6 项为准） |
+| ENV-B | B 类执行机临时实例 | 随机空闲端口＋临时 SQLite（`tempfile.mkdtemp`） | 执行者 | CRUD/空库/无鉴权/注入/并发（B 类 51） | Step 0 前 | Blocked（`tests.asset-design` 未建立，§10-O2） |
+
+> ENV-A 与 ENV-B 不共享 SQLite/端口/进程且不并行（方案 §1.7）；A 类 PASS 不关闭 B 类，反之亦然。准备未完成标 Blocked 并登记缺口，不静默以 A 类替代 B 类。
+
+## 5. 执行流程（逐 Case 作业序列）
 
 | Step | 动作 | 输入 / 依据 | 产出 |
 |---|---|---|---|
-| 0 | 资产就位：按消费索引构建全部依赖测试资产（harness、客户端、假上游、受控构造）并跑自检 | `tests.asset-design` 文档（§9-O2） | 就绪清单（Verified）；自检不过即环境性 Blocked，不进入 Case 执行 |
+| 0 | 资产就位：按消费索引构建全部依赖测试资产（harness、客户端、假上游、受控构造）并跑自检 | `tests.asset-design` 文档（§10-O2） | 就绪清单（Verified）；自检不过即环境性 Blocked，不进入 Case 执行 |
 | 1 | 读取方案清单并按优先级排序（A 先于 B，家族内按依赖） | 方案 §3（`llmtier-system-test-scheme`） | 执行队列 |
 | 2 | 逐 Case：定位 Case 文档（`cases/<lowercased-case-id>.md`） | Case ID | 实施依据 |
-| 3 | 按 Case 文档执行前检与运行（A 类按 §5 打 m5air；B 类临时实例） | Case 文档 §2–§7 | Run 记录 |
+| 3 | 按 Case 文档执行前检与运行（A 类按 §6 打 m5air；B 类临时实例） | Case 文档 §2–§7 | Run 记录 |
 | 4 | 判定并分路（PASS/FAIL/BLOCKED/SKIP/INVALID/NOT_RUN） | 断言与环境事实 | Verdict 归报告 |
-| 5 | 全部完成后生成测试报告 | 本计划 §7 | `tests.system-test-report` |
+| 5 | 全部完成后生成测试报告 | 本计划 §8 | `tests.system-test-report` |
 
 | 阶段门 | 目的 | 进入条件 |
 |---|---|---|
@@ -132,22 +162,22 @@
 | 4 恢复 / 全量回归 | 故障注入、恢复路径与契约回归 | 阶段 3 完成；基线/golden 就位 |
 
 - 失败（FAIL）处理路径：保留现场与 Run 证据 → 登记缺陷并关联 Case ID → **继续后续 Case**；不重跑覆盖原失败；回归重跑按 §2 范围生成新 Run。
-- 阻塞/无效（BLOCKED/INVALID）处理路径：BLOCKED（环境缺失/可重试无法判定）→ 就地恢复（§5 阶梯）后继续，不中断整轮；INVALID（流程未真正走到观察点，如注入未命中却判行为）→ 修 Case 或标无效；依赖链前置未满足 → 标 SKIP 并按依赖顺序补跑。
+- 阻塞/无效（BLOCKED/INVALID）处理路径：BLOCKED（环境缺失/可重试无法判定）→ 就地恢复（§6 阶梯）后继续，不中断整轮；INVALID（流程未真正走到观察点，如注入未命中却判行为）→ 修 Case 或标无效；依赖链前置未满足 → 标 SKIP 并按依赖顺序补跑。
 
-## 5. 环境操作（搭建 / 复位 / 隔离 / 清理）
+## 6. 环境操作（搭建 / 复位 / 隔离 / 清理）
 
 - 环境搭建与复位操作：**两层被测对象，一套执行机**。A 类＝m5air 现有实例（`192.168.1.9:8181`，只读/观察/一次性无状态写，写后即 teardown）；B 类＝执行机本机临时实例（随机空闲端口＋`tempfile.mkdtemp(prefix="llmtier_b_")` 临时 SQLite，CRUD/空库/无鉴权/注入/并发，整班销毁）。执行机＝开发机，`cwd="$(git rev-parse --show-toplevel)"`、`PYTHONPATH=src`。
-  - 版本锚定与更新：每 Run pin `{git_commit, db_schema_version, openapi_version}`（§6），缺任一不得开跑；m5air 部署目录非 git 工作树，须从开发机受控 `rsync`（排除 `state.sqlite3*`、`secrets/`、`llmtier.log`、`llmtier.pid`、`backups/`）；回滚＝用旧 commit 源码快照重新 `rsync`。
+  - 版本锚定与更新：每 Run pin `{git_commit, db_schema_version, openapi_version}`（§7），缺任一不得开跑；m5air 部署目录非 git 工作树，须从开发机受控 `rsync`（排除 `state.sqlite3*`、`secrets/`、`llmtier.log`、`llmtier.pid`、`backups/`）；回滚＝用旧 commit 源码快照重新 `rsync`。
   - 启动/重启（A 类）：查旧进程与端口 → `kill -TERM`（勿 `kill -9`）→ Python 3.14 `python3 -m http_api --host 0.0.0.0 --port 8181 --database …/state.sqlite3` → `curl /healthz`＋`/readyz` 验证 → 确认恰好一个 PID、一个 `*:8181` 监听者。幂等：已启动即已满足，不得起第二实例。**部署/启停/备份/恢复唯一 authority 是 `m5air-deploy-guide.md` 与 `m5air-operations-manual.md`；本节是其测试用镜像，冲突以运维手册为准并回填本节。**
 - 隔离键与清理：A 类与 B 类**不共享 SQLite/进程且不并行**；B 类隔离键＝临时端口＋临时目录＋每 run `settings.json`；清理＝A 类写 Case teardown、注入 `items:[]` 清空、`DELETE /v1/usage` 复位账本；B 类 `stop()`（`terminate`→等 5 s→`kill`）＋`rm -rf` 临时目录。**不得删除 m5air 既有 provider/deployment/service-level 或用户 usage。**
 - 复位阶梯与时限（软复位→重启→驱动恢复）：
   1. **case 前检查**：跑 §3 环境 6 项（`pytest_configure` 自动执行）；不通过 → 整班 Blocked/Skip，不改跑模拟路径。
   2. **软复位**：A 类每个写 Case 后恢复被改字段（带正确 `If-Match` 的 `PATCH`）、清注入（`PATCH …/diagnostics {"items":[]}` 后 `GET` 确认空）、`DELETE /v1/usage`；B 类丢弃临时 DB 重起。
-  3. **重启**：`/healthz` 不通或 schema/版本不匹配 → A 类按 §5 重启；schema 不匹配走**显式二选一**（fresh-DB rebuild / offline migration），`--settings` 仅空库首启有效，禁止删 `schema_meta` 行当未知库。
+  3. **重启**：`/healthz` 不通或 schema/版本不匹配 → A 类按 §6 重启；schema 不匹配走**显式二选一**（fresh-DB rebuild / offline migration），`--settings` 仅空库首启有效，禁止删 `schema_meta` 行当未知库。
   4. **驱动恢复/时限**：上游超时→调大 deployment runtime profile（`connect_timeout_ms`/`stream_idle_timeout_ms`，默认 30000/60000）＋有界重试 ≤3；store 锁→退避重试（1→2→4 s，≤3 次）；flaky→有限重试 ≤3 并记录并发度与时间窗。
   5. **复位后核验**：重跑 §3 6 项，确认 `/readyz` 7 tier、provider/deployment 列表回基线、无遗留端口、无未清空注入。**失败后必须确认回到基线，不能只 kill 后继续。**
 
-## 6. 证据与 Run 记录规则
+## 7. 证据与 Run 记录规则
 
 - Run ID 规则与证据位置：
   - Run ID＝`<date>/<class>-<phase>`（如 `2026-09-29/A-api`、`2026-09-29/B-api`）。
@@ -158,7 +188,7 @@
 - 重跑规则：重跑生成**新 Run、新报告，不覆盖旧失败**；不把未运行项目补造为成功。
 - **`xfailed → BLOCKED` 状态映射（报告工具强制）**：`xfailed` 必须映射为 `BLOCKED`（无法执行/无法判定且可重试），`xpassed` 映射为告警（`XPASS` 不得计 PASS，须登记），`skipped` 映射为 `SKIP`。**`xfailed` 不产生"全 PASS"，仍进缺口与 release 阻断口径（BLOCKED 阻断 release）。** 映射以 `case-status.json`（每 Case 终态＋原因＋owner＋eta）为落点。
 
-## 7. 报告产出与 Gate 规则
+## 8. 报告产出与 Gate 规则
 
 - 报告生成时机与模板：全部 Case 走完（或按 Exit 出口准则提前结束）后生成 `tests.system-test-report` 实例（Gate 是 release 决策，"本轮跑完"是执行里程碑，二者不得互相替代）；报告只汇总实际运行，分开预期/实际结果、未运行、阻塞与失败，引用 Run 证据不复制原始输出。
 - Gate 建议规则（报告只按规则给建议，**不越权批准**）：
@@ -167,28 +197,28 @@
   - 覆盖复算：路由×方法×角色×错误码四维下限满足（scheme §3 分类计数与逐 Case 责任摘要）。
   - 报告给出覆盖数（应跑/已跑/PASS/FAIL/SKIP/BLOCKED/INVALID/NOT_RUN）、未关闭缺陷、MISSING 与具名缺口清单；Gate Owner/Approver/Baseline Run ID 进入 Gate 状态时填写，不伪造。
 
-## 8. 责任、排期与风险
+## 9. 责任、排期与风险
 
 | 构成项 / 风险 | Owner | 时间窗 / 最晚 Gate | 冲突或缓解出口 |
 |---|---|---|---|
 | 方案维护（scheme／现行清单） | LLMTier（测试设计 Owner） | 本迭代 | 清单变更同步本计划 §1 构成表 |
 | Case 编写与实现（140，其中 52 MISSING 待补） | LLMTier（Case 作者） | 进入 Gate 前 | MISSING 优先级高于新增范围；P0 优先 |
-| 环境提供（m5air 部署/secret/OMLX/就绪） | 环境 Owner（m5air owner） | 每班开跑前 | 执行者不擅自改部署拓扑；拓扑变更走评审（§9-O3） |
-| 执行（按 §4 序列跑批次、teardown、记录 Run） | 执行者 / Agent | 每班 | A/B 互斥同一实例，不并行 |
-| 见证/裁决（BLOCKED/INVALID 裁决、回归门） | 见证者 | Gate | 失败分级见 §7 |
+| 环境提供（m5air 部署/secret/OMLX/就绪） | 环境 Owner（m5air owner） | 每班开跑前 | 执行者不擅自改部署拓扑；拓扑变更走评审（§10-O3） |
+| 执行（按 §5 序列跑批次、teardown、记录 Run） | 执行者 / Agent | 每班 | A/B 互斥同一实例，不并行 |
+| 见证/裁决（BLOCKED/INVALID 裁决、回归门） | 见证者 | Gate | 失败分级见 §8 |
 | 风险：上游 provider 离线 | 环境 Owner | 触发＝§3 检查失败 | 受影响批次标 SKIP，不终止整轮，恢复后补跑 |
-| 风险：写测试污染 m5air 现有 state | 执行者 | 触发＝teardown 失败/残留 | 停止 B 类、隔离实例，不删既有资源，按 §5 复位 |
+| 风险：写测试污染 m5air 现有 state | 执行者 | 触发＝teardown 失败/残留 | 停止 B 类、隔离实例，不删既有资源，按 §6 复位 |
 | 风险：注入未清除 | 执行者 | 触发＝`GET diagnostics` 非空 | 阻止下一轮，`items:[]` 清空后复核 |
-| 风险：`schema_version` 不匹配 | 环境 Owner | 触发＝启动 503/`schema_version_mismatch` | §5 显式二选一；复位前先冷备份 |
+| 风险：`schema_version` 不匹配 | 环境 Owner | 触发＝启动 503/`schema_version_mismatch` | §6 显式二选一；复位前先冷备份 |
 | 风险：SKIP 超上限 | 执行者 | 触发＝A>5 / B>3 | 补 fixture/注入后重跑，runner exit code 2 |
 | 风险：BLOCKED vs FAIL 判定分歧 | 见证者 | 全局 | 强制六态判定；FAIL/BLOCKED/INVALID 均阻断 release |
 
-## 9. 未决项
+## 10. 未决项
 
 | 未决项 / 关联 | Owner / 最晚 Gate | 关闭所需事实或决定 |
 |---|---|---|
 | O1（已关闭）：`llmtier-system-test-scheme` 已填充并成为 Case 清单唯一登记（140 条）；原 `llmtier-api-test-specification` §3.2 已退役并迁入 scheme §3 | 测试设计 Owner / 进入 Gate 前 | 权威清单现为 scheme §3；本计划引用 scheme 版本，不再引用已退役规格 |
-| O2：`tests.asset-design` 测试资产文档尚未建立（harness/假上游/受控构造的契约与自检） | 测试设计 Owner / Step 0 执行前 | 建立资产文档并给出 Verified 状态；在此之前 §4 Step 0 无法判定就绪 |
+| O2：`tests.asset-design` 测试资产文档尚未建立（harness/假上游/受控构造的契约与自检） | 测试设计 Owner / Step 0 执行前 | 建立资产文档并给出 Verified 状态；在此之前 §5 Step 0 无法判定就绪 |
 | O3：A 类是否改用 m5air 专用测试部署（独立目录/DB/端口/日志），当前沿用现有实例 | 环境 Owner / 拓扑变更评审时 | 出现"需有状态写／现 state 视为不可污染生产数据／A-B 需并行"任一情形时评审；同时核实 m5air 是否已存在第二实例 |
 | O4：LLMTier 单服务无独立子系统测试层，子系统计划引用为空 | 测试设计 Owner / 若引入子系统时 | 保持空并具名登记；引入子系统时补 `tests.subsystem-test-plan` 引用 |
 | O5：52 项 MISSING（自动化入口未实现）中 P0 项的补实现排期；MISSING 清单见 `llmtier-system-test-scheme` §3 与逐 Case 设计文档 | Case 作者 / 进入 Gate 前 | 补齐实现或经批准登记；P0 MISSING 阻断 Gate |

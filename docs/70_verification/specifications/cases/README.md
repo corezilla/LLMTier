@@ -1,6 +1,6 @@
 # LLMTier Case 详细设计文档目录
 
-本目录承载 LLMTier 的**逐 Case 详细设计文档**（case design，STD `tests.system-test-design`）。它是文档链的中间层：
+本目录承载 LLMTier 的**逐 Case 详细设计文档**（case design，STD `tests.system-case`）。它是文档链的中间层：
 
 ```
 系统测试方案（llmtier-system-test-scheme.md：分类体系 + §3 Case 清单唯一登记）
@@ -21,7 +21,7 @@ case 脚本（tests/system/api_test_v03/at_*.py 等可执行断言）
 - **一 Case 一文件**，文件名与 Case ID 唯一对应；Case ID 以系统测试方案 §3 权威清单为准，本目录不得引入清单外的 ID。
 - **Document ID＝Case ID**（小写），写入 metadata；设计状态在方案清单，实现状态在本文档 §7，执行状态与 Verdict 只在 Run 报告。
 
-## 模板契约（STD `tests.system-test-design` 固定章节）
+## 模板契约（STD `tests.system-case` 固定章节）
 
 每份 case 文档**必须齐备且按固定顺序**使用以下章节：
 

@@ -1,11 +1,11 @@
 {
   "schema_version": "std-lock.v1",
-  "std_version": "0.1.0-draft.57",
+  "std_version": "0.1.0-draft.69",
   "source_repository": "corezilla/STD",
-  "source_revision": "e02f381ba0e9d6343d0172a5355bd449ab2d7a81",
+  "source_revision": "8fe0cd2acbd841305fd74b03b7cedfc59479e021",
   "source_tag": null,
   "source_manifest_path": "docs/std-source-manifest.json",
-  "adopted_at": "2026-09-29",
+  "adopted_at": "2026-09-30",
   "project_profile": "software",
   "enabled_domains": [
     "management",

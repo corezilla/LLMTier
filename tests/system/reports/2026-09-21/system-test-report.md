@@ -4,16 +4,16 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-test-report-2026-09-21` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-21` |
-| Last Modified Date | `2026-09-29` |
+| Last Modified Date | `2026-09-30` |
 | Template ID | `tests.system-test-report` |
-| Template Version | `0.3.0` |
+| Template Version | `0.3.1` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | std-tailoring |
 | Migration Map Reference | none |
@@ -27,7 +27,7 @@
 
 > 本报告由历史 Run 目录 `tests/system/reports/2026-09-21/` 的松散执行记录整理成 STD 系统测试报告；仅使用该 Run 已记录的制品事实，未运行/未实现项一律保留 `NOT_RUN`，不补造结果。
 
-### 模板定位：报告、方案、Case 设计、计划与 Run 证据的边界
+### 模板定位：报告、方案、用例、计划与 Run 证据的边界
 
 - **Verdict 唯一持有**：执行状态（NOT_RUN/BLOCKED/INVALID）与实际判定（PASS/FAIL）只在测试报告与 Run 证据中产生；方案与 Case 文档不预填任何结果。
 - **引用不复制**：逐 Case 结果引用 Run ID 与证据路径，不把 stdout 全文搬进报告。
@@ -115,30 +115,30 @@
 
 ## 5. 覆盖复算（对照方案分母）
 
-对照 `llmtier-system-test-scheme` §3 的每个来源 ID 与其设计验证项（VRC）逐条复算。本 Run 的 A 类 PASS 覆盖如下；未覆盖的家庭保留 `NOT_RUN`，缺口不关闭。
+对照 `llmtier-system-test-scheme` §3 的每个来源 ID 与其设计验证项（VRC）逐条复算。本 Run 的 A 类 PASS 覆盖如下；未覆盖的家庭保留 `NOT_RUN`，缺口不关闭。除 Verdict 外记录三列——结果已知性（结果是否可独立判定/是否有未知分支）、副作用（Case 执行后是否改变被测状态/调用了哪些外部资源/变更了哪些持久化数据）、清理状态（资源是否已释放/状态是否回滚基线/未清理项是否登记）。覆盖复算以本报告事实为准，不以计划口径代替。
 
-| 方案来源 ID | 设计验证项 ID | Case ID | 报告状态 | 剩余缺口 |
-|---|---|---|---|---|
-| §8 健康/就绪接口 | VRC-API-002、VRC-MGMT-003 | HEALTH-01/02 | PASS | HEALTH-03..06 NOT_RUN |
-| §8 逻辑模型清单接口 | VRC-INF-001、VRC-INF-002 | DP-MODELS-01..06 | PASS | DP-MODELS-07 NOT_RUN |
-| §8 Responses 接口 | VRC-INF-001、VRC-INF-003、VRC-INF-004、VRC-DIAG-004 | DP-RESP-01..09 | PASS | DP-RESP-10..25 NOT_RUN（含故障注入/429/上游错误） |
-| §8 Embeddings 接口 | VRC-INF-001、VRC-INF-002 | DP-EMB-01..04 | PASS | DP-EMB-05..07 NOT_RUN |
-| §8 Usage 查询接口 | VRC-MGMT-006 | DP-USAGE-01..04 | PASS | DP-USAGE-05..08 NOT_RUN |
-| §8 Provider CRUD 接口 | VRC-MGMT-001、VRC-MGMT-002 | ADM-PROV-01/03/04 | PASS | ADM-PROV-02/05..14 NOT_RUN（B 类 MISSING） |
-| §8 provider 上游模型目录接口 | VRC-MGMT-001 | — | NOT_RUN | ADM-PROV-MODELS-01/02 未跑 |
-| §8 provider usage 快照接口 | VRC-MGMT-006、VRC-DIAG-004 | ADM-PROV-USAGE-01..03 | PASS | ADM-PROV-USAGE-04 NOT_RUN |
-| §8 Deployment CRUD 接口 | VRC-MGMT-001、VRC-MGMT-002 | ADM-DEPL-01/03 | PASS | ADM-DEPL-02/04..09 NOT_RUN（B 类 MISSING） |
-| §8 Service Level CRUD 接口 | VRC-MGMT-002 | ADM-SL-01/03 | PASS | ADM-SL-02/02b/04/04b/05..08 NOT_RUN（B 类 MISSING） |
-| §8 探测接口 | VRC-DIAG-004 | ADM-PROBE-01/02 | PASS | ADM-PROBE-03 NOT_RUN |
-| §8 运行态接口 | VRC-INF-004 | ADM-RUNTIME-01 | PASS | ADM-RUNTIME-02 NOT_RUN |
-| §8 统计接口 | VRC-MGMT-006 | ADM-STATS-01..03 | PASS | — |
-| §8 审计接口 | VRC-MGMT-003、VRC-MGMT-006 | ADM-AUDIT-01/02 | PASS | ADM-AUDIT-03 NOT_RUN |
-| §8 日志接口 | VRC-LOG-001 | ADM-LOGS-01/02 | PASS | 负向 NOT_RUN |
-| §8 管理 usage 接口 | VRC-MGMT-006 | ADM-USAGE-01/02 | PASS | ADM-USAGE-03 NOT_RUN |
-| §8 认证与授权跨切面 | VRC-API-002、VRC-MGMT-003 | AUTH-01..06 | PASS | AUTH-07..10 NOT_RUN |
-| §8 诊断开关/快照/统计/trace/请求追踪接口 | VRC-DIAG-001、VRC-DIAG-002、VRC-API-002 | — | NOT_RUN | OBS-* 全部未跑 |
-| §8 契约别名命名空间 | VRC-DIAG-001/002/004 | — | NOT_RUN | OBS-ALIAS-* 未跑 |
-| §8 注入配置接口 | VRC-DIAG-004 | — | NOT_RUN | OBS-DEPL-* 未跑 |
+| 方案来源 ID | 设计验证项 ID | Case ID | 报告状态 | 结果已知性 | 副作用 | 清理状态 | 剩余缺口 |
+|---|---|---|---|---|---|---|---|
+| §8 健康/就绪接口 | VRC-API-002、VRC-MGMT-003 | HEALTH-01/02 | PASS | 可独立判定（status body） | 只读，无状态改变 | 无需清理 | HEALTH-03..06 NOT_RUN |
+| §8 逻辑模型清单接口 | VRC-INF-001、VRC-INF-002 | DP-MODELS-01..06 | PASS | 可独立判定 | 只读，无状态改变 | 无需清理 | DP-MODELS-07 NOT_RUN |
+| §8 Responses 接口 | VRC-INF-001、VRC-INF-003、VRC-INF-004、VRC-DIAG-004 | DP-RESP-01..09 | PASS | 可独立判定（事件序列） | 只读（A 类无写） | 无需清理 | DP-RESP-10..25 NOT_RUN（含故障注入/429/上游错误） |
+| §8 Embeddings 接口 | VRC-INF-001、VRC-INF-002 | DP-EMB-01..04 | PASS | 可独立判定 | 只读 | 无需清理 | DP-EMB-05..07 NOT_RUN |
+| §8 Usage 查询接口 | VRC-MGMT-006 | DP-USAGE-01..04 | PASS | 可独立判定 | 只读（查询产生用量记录） | 无需清理 | DP-USAGE-05..08 NOT_RUN |
+| §8 Provider CRUD 接口 | VRC-MGMT-001、VRC-MGMT-002 | ADM-PROV-01/03/04 | PASS | 可独立判定 | 只读 | 无需清理 | ADM-PROV-02/05..14 NOT_RUN（B 类 MISSING） |
+| §8 provider 上游模型目录接口 | VRC-MGMT-001 | — | NOT_RUN | — | — | — | ADM-PROV-MODELS-01/02 未跑 |
+| §8 provider usage 快照接口 | VRC-MGMT-006、VRC-DIAG-004 | ADM-PROV-USAGE-01..03 | PASS | 可独立判定 | 读快照；刷新为一次性状态写（已 teardown） | 已回基线 | ADM-PROV-USAGE-04 NOT_RUN |
+| §8 Deployment CRUD 接口 | VRC-MGMT-001、VRC-MGMT-002 | ADM-DEPL-01/03 | PASS | 可独立判定 | 只读 | 无需清理 | ADM-DEPL-02/04..09 NOT_RUN（B 类 MISSING） |
+| §8 Service Level CRUD 接口 | VRC-MGMT-002 | ADM-SL-01/03 | PASS | 可独立判定 | 只读 | 无需清理 | ADM-SL-02/02b/04/04b/05..08 NOT_RUN（B 类 MISSING） |
+| §8 探测接口 | VRC-DIAG-004 | ADM-PROBE-01/02 | PASS | 可独立判定 | 探测为一次性状态写（已 teardown） | 已回基线 | ADM-PROBE-03 NOT_RUN |
+| §8 运行态接口 | VRC-INF-004 | ADM-RUNTIME-01 | PASS | 可独立判定 | 只读 | 无需清理 | ADM-RUNTIME-02 NOT_RUN |
+| §8 统计接口 | VRC-MGMT-006 | ADM-STATS-01..03 | PASS | 可独立判定 | 只读 | 无需清理 | — |
+| §8 审计接口 | VRC-MGMT-003、VRC-MGMT-006 | ADM-AUDIT-01/02 | PASS | 可独立判定 | 只读 | 无需清理 | ADM-AUDIT-03 NOT_RUN |
+| §8 日志接口 | VRC-LOG-001 | ADM-LOGS-01/02 | PASS | 可独立判定 | 只读 | 无需清理 | 负向 NOT_RUN |
+| §8 管理 usage 接口 | VRC-MGMT-006 | ADM-USAGE-01/02 | PASS | 可独立判定 | 只读 | 无需清理 | ADM-USAGE-03 NOT_RUN |
+| §8 认证与授权跨切面 | VRC-API-002、VRC-MGMT-003 | AUTH-01..06 | PASS | 可独立判定 | 只读 | 无需清理 | AUTH-07..10 NOT_RUN |
+| §8 诊断开关/快照/统计/trace/请求追踪接口 | VRC-DIAG-001、VRC-DIAG-002、VRC-API-002 | — | NOT_RUN | — | — | — | OBS-* 全部未跑 |
+| §8 契约别名命名空间 | VRC-DIAG-001/002/004 | — | NOT_RUN | — | — | — | OBS-ALIAS-* 未跑 |
+| §8 注入配置接口 | VRC-DIAG-004 | — | NOT_RUN | — | — | — | OBS-DEPL-* 未跑 |
 
 **VRC 覆盖小结**：本轮命中 `VRC-API-002`、`VRC-INF-001/002/004`、`VRC-MGMT-001/002/003/006`、`VRC-DIAG-004`、`VRC-LOG-001`；未命中 `VRC-INF-003`（上游非 5xx provider_error）、`VRC-DIAG-001/002`（诊断面）、`VRC-UTIL-001`（scheme §4 裁决为表现层缺口）。方案 §4 具名缺口（`ERR-BOOT`/`ERR-SCHEMA`/`ERR-PATH-UNSAFE`/`ERR-UTIL-TXN`、`VRC-INF-005`、`VRC-UTIL-002`、模块级 `VRC-*`）在本 Run 保持开放，未关闭。
 

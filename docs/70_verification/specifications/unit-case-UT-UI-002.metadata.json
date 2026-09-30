@@ -1,0 +1,31 @@
+{
+  "project": "LLMTier",
+  "authority": "LLMTier",
+  "document_id": "UT-UI-002",
+  "document_type": "tests.unit-case",
+  "document_version": "0.1.0-draft.1",
+  "title": "UT-UI-002 — 编辑并发与鉴权呈现",
+  "document_owner": "LLMTier",
+  "authors": [
+    "LLMTier"
+  ],
+  "template_id": "tests.unit-case",
+  "template_version": "2.3.2",
+  "template_sha256": "4b91faed9720dfb072accbb3906a100239552b30ccfbf945dd49bda1089eb686",
+  "template_conformance": "tailored",
+  "tailoring_ref": "std-tailoring",
+  "migration_map_ref": null,
+  "design_level": "module",
+  "domain": [
+    "software"
+  ],
+  "status": "draft",
+  "visibility": "project",
+  "source_repository": "corezilla/LLMTier",
+  "source_path": "docs/70_verification/specifications/unit-case-UT-UI-002.md",
+  "reviewed_commit": null,
+  "parent_document_id": "llmtier-unit-test-scheme",
+  "supersedes": null,
+  "created_at": "2026-09-30",
+  "last_modified_at": "2026-09-30"
+}

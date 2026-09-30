@@ -6,16 +6,16 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-MODELS-01` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-29` |
-| Template ID | `tests.system-test-design` |
-| Template Version | `2.3.0` |
+| Last Modified Date | `2026-09-30` |
+| Template ID | `tests.system-case` |
+| Template Version | `2.3.2` |
 | Template Conformance | `native` |
 | Tailoring Reference | none |
 | Migration Map Reference | none |

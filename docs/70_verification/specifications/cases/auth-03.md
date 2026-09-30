@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `AUTH-03` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -14,10 +14,10 @@
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
 | Last Modified Date | `2026-09-29` |
-| Template ID | `tests.system-test-design` |
-| Template Version | `2.3.0` |
-| Template Conformance | `native` |
-| Tailoring Reference | none |
+| Template ID | `tests.system-case` |
+| Template Version | `2.3.2` |
+| Template Conformance | `tailored` |
+| Tailoring Reference | std-tailoring |
 | Migration Map Reference | none |
 | Repository | `corezilla/LLMTier` |
 | Canonical Path | `docs/70_verification/specifications/cases/auth-03.md` |
@@ -28,6 +28,22 @@
 <!-- STD_DOCUMENT_COVER_END -->
 
 > 本 Case 文档绑定：系统设计经 `--parent-document-id`、所属方案经方案清单行引用写入 metadata；Document ID＝Case ID。
+
+### 模板定位：方案、用例与计划的边界
+
+- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`AUTH-03`）；责任摘要、分类与优先级以 [系统测试方案 §3 覆盖分母与 Case 清单](../../schemes/llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
+- **测试脚本的唯一依据**：编码者按本文档写测试代码，不需要回读方案或设计正文猜测意图。
+- **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
+
+### 状态语义：实现状态
+
+| 状态 | 取值 | 唯一权威记录处 | 禁止 |
+|---|---|---|---|
+| 测试代码实现状态 | `Planned` / `Implemented` | 本文档 §7 | 计划中的测试函数冒充可执行入口 |
+| 执行状态 | `NOT_RUN` / `BLOCKED` / `INVALID` | Run 报告 | 在本文档预填执行或判定 |
+| 实际判定 Verdict | `PASS` / `FAIL` | 仅 Run 报告 | 在本文档预填 Actual 或 Verdict |
+
+本 Case 沿 Case ID `AUTH-03` 可追到方案清单行与 Run 报告。
 
 ## 1. Case 概述与责任
 

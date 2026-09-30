@@ -27,7 +27,7 @@
 
 ## 与STD的关系、例外及冲突
 
-- 本规范补充 `tests.system-test-design` / `tests.system-test-plan` 模板的项目特定实现要求
+- 本规范补充 `tests.system-case` / `tests.system-test-plan` 模板的项目特定实现要求
 - 测试计划详见 `docs/70_verification/plans/llmtier-system-test-plan.md`
 
 ## 修订与替代记录

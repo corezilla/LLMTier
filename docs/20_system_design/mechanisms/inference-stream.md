@@ -15,7 +15,7 @@
 | Created Date | `2026-09-22` |
 | Last Modified Date | `2026-09-25` |
 | Template ID | `design.system-mechanism` |
-| Template Version | `3.3.0` |
+| Template Version | `3.3.1` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `std-tailoring` |
 | Migration Map Reference | none |

@@ -6,16 +6,16 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-USAGE-06` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-29` |
-| Template ID | `tests.system-test-design` |
-| Template Version | `2.3.0` |
+| Last Modified Date | `2026-09-30` |
+| Template ID | `tests.system-case` |
+| Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | std-tailoring |
 | Migration Map Reference | none |
@@ -26,6 +26,22 @@
 > Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
+
+### 模板定位：方案、用例与计划的边界
+
+- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`DP-USAGE-06`）；责任摘要、分类与优先级以 [系统测试方案 §3](../../schemes/llmtier-system-test-scheme.md) 清单行为准。
+- **来源**：系统设计 §8 Usage 查询接口（parent `llmtier-system-design`），设计验证项 `VRC-MGMT-006`；所属方案 `llmtier-system-test-scheme`。
+- **边界**：系统层 Case（整软件系统组装，被测为 m5air 真实部署或按 tests.asset-design 约束的替身）；本文档持有实现状态，执行状态与 Verdict 只在 Run 报告。
+
+### 状态语义：实现状态
+
+| 状态 | 取值 | 唯一权威记录处 | 禁止 |
+|---|---|---|---|
+| 测试代码实现状态 | `Planned` / `Implemented` | 本文档 §7 | 计划中的测试函数冒充可执行入口 |
+| 执行状态 | `NOT_RUN` / `BLOCKED` / `INVALID` | Run 报告 | 在本文档预填执行或判定 |
+| 实际判定 Verdict | `PASS` / `FAIL` | 仅 Run 报告 | 在本文档预填 Actual 或 Verdict |
+
+本 Case 沿 Case ID `DP-USAGE-06` 可追到方案清单行与 Run 报告。
 
 ## 1. Case 概述与责任
 

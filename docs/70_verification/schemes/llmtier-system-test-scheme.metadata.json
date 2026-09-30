@@ -3,15 +3,15 @@
   "authority": "LLMTier",
   "document_id": "llmtier-system-test-scheme",
   "document_type": "tests.system-test-scheme",
-  "document_version": "0.1.0-draft.2",
+  "document_version": "0.1.0-draft.3",
   "title": "LLMTier V0.3 System Test Scheme",
   "document_owner": "LLMTier",
   "authors": [
     "LLMTier"
   ],
   "template_id": "tests.system-test-scheme",
-  "template_version": "0.2.0",
-  "template_sha256": "9f9383586d36217ac035253226a64a48a623840b15ba1c36960ca5653fdca5ba",
+  "template_version": "0.6.1",
+  "template_sha256": "ded76a663c0d266a10e9a652267c0acd4e50ff709dc9dbfe2cdad234e94ea1d1",
   "template_conformance": "native",
   "tailoring_ref": null,
   "migration_map_ref": null,
@@ -27,5 +27,5 @@
   "parent_document_id": "llmtier-system-design",
   "supersedes": null,
   "created_at": "2026-09-29",
-  "last_modified_at": "2026-09-29"
+  "last_modified_at": "2026-09-30"
 }
