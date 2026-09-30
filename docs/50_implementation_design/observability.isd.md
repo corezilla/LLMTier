@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `observability-isd` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Document Owner | LLMTier |
-| Last Modified Date | `2026-09-25` |
+| Last Modified Date | `2026-09-30` |
 | Template ID | `design.implementation` |
 | Template Version | `1.2.2` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -85,6 +85,8 @@ diagnostics.py    # 查询方法：switches/set_switches/snapshots_page/stats/tr
 - **调用与类型依赖**：调用 `DiagnosticsService`；`admin.mutate`（写）
 - **构建目标 / 生成源 / 输出**：随 M001 进程
 - **实现状态**：PLANNED
+
+> **实现位置说明（无 `src/observability/`）**：本模块**没有**独立的 `src/observability/` 代码——`src/observability/__init__.py` 为 0 字节空包。M005 是**薄模块**：路由与呈现全部落在 `src/http_api/app.py`（`app.py:305-386` 的诊断路由 + `_correlation()`/`_UnavailableDiagnostics`）+ M006 查询方法上。上文 §3.1/§3.2 的"文件"即为此意，非本模块自有的 Python 模块。
 
 ### 3.2 `diagnostics.py`（查询）
 
@@ -566,11 +568,11 @@ load*() -> Promise<void>
 - **输入与前提**
 
   - **输入参数 / 数据结构 authority**：`X-Correlation-ID` / `traceparent`
-  - **输入约束 / 校验顺序 / 失败映射**：仅当 consumer 提供时回显
+  - **输入约束 / 校验顺序 / 失败映射**：`X-Correlation-ID` 优先；缺失时取 `traceparent`，并用 W3C 正则 `^[0-9a-fA-F]{2}-([0-9a-fA-F]{32})-[0-9a-fA-F]{16}-[0-9a-fA-F]{2}$` 提取 **32-hex trace-id**（`group(1)`）作为关联 ID；不匹配则回退为 `traceparent` 原文；均缺省为 `null`；**仅当 consumer 提供时回显**
 
 - **成功输出与保证**
 
-  - **成功输出 / 数据结构 / 后置条件**：回显头 + trace detail
+  - **成功输出 / 数据结构 / 后置条件**：回显头 + trace detail（`detail.x_correlation_id` 记录提取后的关联 ID）
 
 - **错误与合法下一步**
 
@@ -587,7 +589,7 @@ load*() -> Promise<void>
 
 - **实现与验证**
 
-  - **不可改变的规则 / Constraint ID**：**仅提供时回显**
+  - **不可改变的规则 / Constraint ID**：`X-Correlation-ID` 优先、缺失时 `traceparent`→trace-id 提取；**仅提供时回显**
   - **实现自由度**：解析实现
   - **实现状态 / 验证项**：PLANNED；`VRC-OBS-004`
 ### 5.2 消息与数据流接口（适用时）
@@ -652,6 +654,16 @@ flowchart TD
 - **状态 / 错误 / 结果已知性**：无
 - **保留 / 释放责任**：M006
 - **允许的 query / replay / takeover / retry**：尽力而为
+- **验证项**：`VRC-OBS-003`
+
+#### 7.1.2 `CF-OBS-INIT-DEGRADE` · 诊断初始化降级（fail-open）
+
+- **参与线程 / 回调 / 事务**：启动（`Application.__init__`，`app.py:105-110`）
+- **已产生或可能产生的副作用**：无（`DiagnosticsService` 构造失败时改绑 `_UnavailableDiagnostics` 空实现门面）
+- **检测事实 / 期限**：构造异常
+- **状态 / 错误 / 结果已知性**：已知失败——空门面使开关返回 `{false,false}`、查询返回空列表/空视图、写为 no-op、`stream_wrapper` 原样透传、`cleanup` 返回 `0`
+- **保留 / 释放责任**：宿主降级运行，Data Plane 不受影响；记录一条 `logs.record("error","diagnostics","init_failed",…)`（自身 fail-open）
+- **允许的 query / replay / takeover / retry**：重启
 - **验证项**：`VRC-OBS-003`
 
 <a id="isd-persistence"></a>
@@ -871,14 +883,14 @@ flowchart TD
 ### 10.3.2 `OPEN-OBS-1` · 与 M006 文件边界
 
 - **既有台账引用 / 具体缺口 / 反例**：`OPEN-OBS-1`
-- **风险等级 / 判定依据**：Low；`diagnostics.py` 同时含 M005 查询与 M006 记录
+- **风险等级 / 判定依据**：Low；`diagnostics.py` 同时含 M005 查询与 M006 记录（已按职责确认）
 - **Owner**：LLMTier
 - **最晚关闭阶段 / 截止 Gate**：本轮 review
 - **阻断范围**：§3
-- **分析 / 决策引用**：模块 §15.2
-- **所需输入 / 下一步选择判据**：确认划分
-- **解决动作 / 完成条件**：以"记录=M006 / 查询呈现=M005"划分，或后续拆文件
-- **状态**：Open
+- **分析 / 决策引用**：模块 §15.2；代码确证拆分（M005=app.py 路由 + 空包 `src/observability/`；M006=diagnostics.py 记录/查询）
+- **所需输入 / 下一步选择判据**：无
+- **解决动作 / 完成条件**：采用"记录=M006 / 查询呈现=M005"划分（不拆文件）
+- **状态**：Resolved
 
 ### 10.4 Metadata 与 coverage 交付检查
 

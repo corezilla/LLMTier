@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `log-isd` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Document Owner | LLMTier |
-| Last Modified Date | `2026-09-25` |
+| Last Modified Date | `2026-09-30` |
 | Template ID | `design.implementation` |
 | Template Version | `1.2.2` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -125,7 +125,7 @@ LogEvent {
   level: LogLevel
   module: str
   event: str
-  message: str          // ≤512B，已脱敏
+  message: str          // ≤512 字符（码点），已脱敏
   request_id?: str
 }
 ```
@@ -142,9 +142,9 @@ LogEvent {
 
   `LogLevel`；调用方标识。
 
-- **`message`**（必填、已脱敏、≤512B）
+- **`message`**（必填、已脱敏、≤512 字符）
 
-  `str`；写前已脱敏且截断到 512。
+  `str`；写前已脱敏且截断到 512 **字符（Unicode 码点）**——`str(message)[:512]` 按码点截断，非按字节；含中文/emoji 的文本可对应 >512 字节。
 
 - **`request_id`**（可空）
 
@@ -152,7 +152,7 @@ LogEvent {
 
 - **跨字段与寿命**
 
-  `message` 写前已脱敏且 ≤512；持久（`operational_logs`），`record` 写、`page` 读，随库寿命（保留期由运维）。
+  `message` 写前已脱敏且 ≤512 字符（码点）；持久（`operational_logs`），`record` 写、`page` 读，随库寿命（保留期由运维）。
 
 - **合法/拒绝实例**
 
@@ -196,7 +196,7 @@ _SENSITIVE = re.compile(r"authorization|bearer\s+\S+|secret|api[_-]?key|token\s*
 
 - **Data/Type ID、用途与来源**
 
-  `D-TABLE-OPERATIONAL-LOGS`；Authority=`migrations/001_initial.sql`（由 M007 `migrate()` 执行）；本模块消费，不新增表。
+  `D-TABLE-OPERATIONAL-LOGS`；Authority=`src/util/migrations/001_initial.sql`（由 M007 `migrate()` 执行）；本模块消费，不新增表。
 
 - **逐列与约束**（矩阵）
 
@@ -210,7 +210,7 @@ _SENSITIVE = re.compile(r"authorization|bearer\s+\S+|secret|api[_-]?key|token\s*
 
 - **跨字段与寿命**
 
-  `message` ≤512 且**写前已脱敏**；`level ∈ LogLevel`；持久，随库寿命。
+  `message` ≤512 字符（码点）且**写前已脱敏**；`level ∈ LogLevel`；持久，随库寿命。
 
 - **合法/拒绝实例**
 
@@ -254,7 +254,7 @@ _SENSITIVE = re.compile(r"authorization|bearer\s+\S+|secret|api[_-]?key|token\s*
 |---|---|---|---|
 | `E-LOG-WRITE` | `Store`/SQLite 写失败 | 私有（fail-open，非公共码；`record` 捕获静默） | 无需调用方动作 |
 | `E-LOG-VALIDATION` | `page` 缺 `since`/`until` | `ERR-REQ-VALIDATION`（400 `invalid_request`） | 补时间窗后重试 |
-| `E-LOG-QUERY` | 存储不可读 | `ERR-STORE`（503 `store_unavailable`，不伪装空页） | 稍后重试 |
+| `E-LOG-QUERY` | 存储不可读 | `ERR-STORE`（503 `usage_store_unavailable`，不伪装空页） | 稍后重试 |
 
 ## 5. 接口设计
 
@@ -280,11 +280,11 @@ record(self, level: str, module: str, event: str, message: str, request_id: str 
 - **输入与前提**
 
   - **输入参数 / 数据结构 authority**：`level/module/event`（短标识）；`message`（任意文本）；`request_id` 可空；ownership=调用方传入
-  - **输入约束 / 校验顺序 / 失败映射**：`message` 先换行折叠（`\n`→空格）→ `_SENSITIVE.sub("[REDACTED]", …)` → `[:512]`；失败 → `E-LOG-WRITE`
+  - **输入约束 / 校验顺序 / 失败映射**：`message` 先换行折叠（`\n`→空格）→ `_SENSITIVE.sub("[REDACTED]", …)` → `[:512]`（**按字符/码点截断，非字节**）；失败 → `E-LOG-WRITE`
 
 - **成功输出与保证**
 
-  - **成功输出 / 数据结构 / 后置条件**：写入一行，`message` 已脱敏且 ≤512
+  - **成功输出 / 数据结构 / 后置条件**：写入一行，`message` 已脱敏且 ≤512 字符
 
 - **错误与合法下一步**
 
@@ -309,7 +309,7 @@ record(self, level: str, module: str, event: str, message: str, request_id: str 
 
 - **实现与验证**
 
-  - **不可改变的规则 / Constraint ID**：**写前脱敏**、截断 ≤512、不阻塞主路径
+  - **不可改变的规则 / Constraint ID**：**写前脱敏**、截断 ≤512（字符/码点）、不阻塞主路径
   - **实现自由度**：正则/截断实现
   - **实现状态 / 验证项**：PLANNED；`VRC-LOG-001`
 
@@ -337,7 +337,7 @@ page(self, limit:int=50, level=None, module=None, request_id=None, since=None, u
 
 - **错误与合法下一步**
 
-  - **错误输出 / 触发条件 / 优先级**：E-LOG-VALIDATION（ERR-REQ-VALIDATION · invalid_request）：400 缺时间窗；E-LOG-QUERY（ERR-STORE · store_unavailable）：503 `store_unavailable`（不伪装空页）
+  - **错误输出 / 触发条件 / 优先级**：E-LOG-VALIDATION（ERR-REQ-VALIDATION · invalid_request）：400 缺时间窗；E-LOG-QUERY（ERR-STORE · usage_store_unavailable）：503 `usage_store_unavailable`（不伪装空页）
   - **E-LOG-VALIDATION（公共 ERR-REQ-VALIDATION · invalid_request）**
     - **底层异常 / 失败事实**：缺 `since`/`until`
     - **模块是否处理及处理函数**：reject（`page` 入口）
@@ -346,11 +346,11 @@ page(self, limit:int=50, level=None, module=None, request_id=None, since=None, u
     - **日志级别 / 脱敏 / 关联字段**：无
     - **是否可重试及前提**：补时间窗后重试
     - **状态与副作用影响 / 验证项**：不查询、无副作用；`VRC-LOG-001`
-  - **E-LOG-QUERY（公共 ERR-STORE · store_unavailable）**
+  - **E-LOG-QUERY（公共 ERR-STORE · usage_store_unavailable）**
     - **底层异常 / 失败事实**：存储不可读
     - **模块是否处理及处理函数**：propagate
     - **Typed 异常与原生异常所有权**：原生 `sqlite3.Error`；由 M004/宿主映射
-    - **宿主 / public payload 或状态码**：503 `store_unavailable`（不伪装空页）
+    - **宿主 / public payload 或状态码**：503 `usage_store_unavailable`（不伪装空页）
     - **日志级别 / 脱敏 / 关联字段**：warning
     - **是否可重试及前提**：稍后重试
     - **状态与副作用影响 / 验证项**：`VRC-LOG-001`
@@ -425,8 +425,8 @@ flowchart TD
 
 - **参与线程 / 回调 / 事务**：请求线程
 - **已产生或可能产生的副作用**：无（未写入）
-- **检测事实 / 期限**：`sqlite3.Error`
-- **状态 / 错误 / 结果已知性**：已知失败
+  - **检测事实 / 期限**：`sqlite3.Error`
+- **状态 / 错误 / 结果已知性**：已知失败（`record` 静默丢弃该条日志；`page` 透传，由 M001 映射为 503 `usage_store_unavailable`）
 - **保留 / 释放责任**：调用方
 - **允许的 query / replay / takeover / retry**：调用方可选重试
 - **验证项**：`VRC-LOG-001`
@@ -533,7 +533,7 @@ flowchart TD
 - **Rule / 成员**：`F-LOG-WRITE`、`F-LOG-QUERY`、`RULE-LOG-REDACT`、`RULE-LOG-ORDER`
 - **V / Case / Vector**：v1 含 `Authorization: Bearer …`；v2 含 `api_key: x`/`token=…`；v3 超长 message；v4 过滤查询；v5 `limit=1000`
 - **输入 / 故障 / 环境**：见上；隔离库
-- **独立 Oracle / Expected**：落库文本含 `[REDACTED]`；长度 ≤512；顺序倒序；`limit` 夹到 200
+- **独立 Oracle / Expected**：落库文本含 `[REDACTED]`；长度 ≤512 **字符（码点）**（注：含中文/emoji 时字节数可 >512）；顺序倒序；`limit` 夹到 200
 - **Actual / Evidence**：NOT_RUN
 - **Verdict**：NOT_RUN
 - **测试入口 / 清理**：`tests/unit/v03`；隔离库

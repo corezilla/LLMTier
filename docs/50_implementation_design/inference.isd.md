@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `inference-isd` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Document Owner | LLMTier |
-| Last Modified Date | `2026-09-25` |
+| Last Modified Date | `2026-09-30` |
 | Template ID | `design.implementation` |
 | Template Version | `1.2.2` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -100,7 +100,7 @@
 ### 2.1 适用性
 
 - **适用性**：`not_applicable`
-- **依据**：greenfield/设计先行
+- **依据**：greenfield/设计先行；无「待修改的既有实现」——本模块为新建代码（`src/inference/*`），非 brownfield 改造，故本章不列 Current/Target 差异项。代码与单元测试**均已存在**（模块设计 `inference-design` §13.1.1–13.1.7 全部 `Implemented`；`tests/unit/v03/` 覆盖 VRC-INF-001..005）。§3/§5/§9/§10 的 `Planned` 声明不再适用，已随本次同步改为 `IMPLEMENTED`。
 - **Tailoring / 范围决定引用**：`std-tailoring`（设计先行）
 
 ## 3. 文件、内部组件与调用关系
@@ -125,7 +125,7 @@ usage.py        UsageRecorder.authorize_dispatch/bind_backend/record_provider_re
 - **可见性**：private
 - **调用与类型依赖**：依赖 Registry/Router/Usage/Diagnostics/Provider 适配
 - **构建目标 / 生成源 / 输出**：随包
-- **实现状态**：PLANNED
+- **实现状态**：IMPLEMENTED
 
 ### 3.2 `models.py` / `routing.py`
 
@@ -134,16 +134,16 @@ usage.py        UsageRecorder.authorize_dispatch/bind_backend/record_provider_re
 - **可见性**：private
 - **调用与类型依赖**：依赖 Registry
 - **构建目标 / 生成源 / 输出**：随包
-- **实现状态**：PLANNED
+- **实现状态**：IMPLEMENTED
 
 ### 3.3 `providers/*` / `usage.py`
 
 - **职责及调用者**：上游适配；用量记账；caller=编排
-- **类型 / 函数**：`ProviderAdapter`、`OpenAIProvider`/`LocalProvider`、`UsageRecorder`
+- **类型 / 函数**：`ProviderAdapter`（Protocol：`complete`/`embed`/`probe`/`list_models`，`base.py:17-21`）、`OpenAIProvider`/`LocalProvider`、`UsageRecorder`
 - **可见性**：private
 - **调用与类型依赖**：`urllib`；`Store`（用法）
 - **构建目标 / 生成源 / 输出**：随包
-- **实现状态**：PLANNED
+- **实现状态**：IMPLEMENTED
 
 ## 4. 数据结构设计
 
@@ -151,26 +151,34 @@ usage.py        UsageRecorder.authorize_dispatch/bind_backend/record_provider_re
 
 > 按 STD `design-data-interface-format` 1.2.0：主章“数据结构设计”，章内按**数据性质**分类（§4.1–§4.8）。仅保留适用类别，不适用类别在章首给出原因与 tailoring 依据；每个结构以真实名称为带编号的粗体标题，先给代码式声明，再逐项写 `Data/Type ID、用途与来源`、逐字段记录（必填·缺省·可空 / 类型·范围·枚举·含义 / 条件有效性）、`跨字段与寿命`、`合法/拒绝实例` 与 `验证`。继承结构只定位原定义与固定机器源，不复制字段。
 
-**类别适用性**：§4.1 公共基础类型与枚举 ✗（`status`/`availability`/`health` 取值继承 OpenAPI 与 Registry，无本层独立枚举）｜§4.2 业务与操作数据结构 ✓｜§4.3 配置与规则数据结构 ✗（超时/队列为固定常量，见 §8.1）｜§4.4 通信报文结构 ✗（无本层拥有的消息结构；SSE 由 M001）｜§4.5 设备与 FPGA 表项结构 ✗（纯软件）｜§4.6 运行状态数据结构 ✓（`RouterState` 准入计数 + 账本义务；触发：§6.1 P-INFER 跨步骤准入排队与 `usage_obligations` 义务）｜§4.7 数据库表结构 ✗（账本表归 M007）｜§4.8 错误码与错误结构 ✓。
+**类别适用性**：§4.1 公共基础类型与枚举 ✗（`status`/`availability`/`health` 取值继承 OpenAPI 与 Registry，无本层独立枚举）｜§4.2 业务与操作数据结构 ✓｜§4.3 配置与规则数据结构 ✗（本层无自有配置结构：超时/队列既有固定常量，也有 DB 驱动的 `deployment_runtime_profiles`/`provider_usage_profiles` 只读消费，权威归 M004；详见 §8.1）｜§4.4 通信报文结构 ✗（无本层拥有的消息结构；SSE 由 M001）｜§4.5 设备与 FPGA 表项结构 ✗（纯软件）｜§4.6 运行状态数据结构 ✓（`RouterState` 准入计数 + 账本义务；触发：§6.1 P-INFER 跨步骤准入排队与 `usage_obligations` 义务）｜§4.7 数据库表结构 ✗（账本表归 M007）｜§4.8 错误码与错误结构 ✓。
 
 ### 4.2 业务与操作数据结构
 
 **4.2.1 `ResponsesRequest`（`responses.py`）**
 
 ```text
-ResponsesRequest {
+ResponsesRequest {                     # 机器权威 = OpenAPI ResponsesRequest（$ref）
+  # 必填（4）
   model: str
-  input: object | array
+  input: str | ResponseInputItem[]
   stream: true
   store: false
-  tools?: object[]
+  # 可选透传（8）
+  tools?: FunctionTool[]
+  tool_choice?: "auto"|"none"|"required" | object
+  temperature?: number                 # 0..2
   max_output_tokens?: int
+  reasoning?: object
+  include?: "reasoning.encrypted_content"[]
+  service_tier?: str
+  metadata?: map<str,str>
 }
 ```
 
 - **Data/Type ID、用途与来源**
 
-  `D-RESPONSES-REQUEST`；推理请求。机器权威=`interfaces/openapi/llmtier.openapi.json`，本层只投影，不复制字段全集。
+  `D-RESPONSES-REQUEST`；推理请求。机器权威=`interfaces/openapi/llmtier.openapi.json` `ResponsesRequest`（`additionalProperties:false`，`required=[model,input,stream,store]`），本层只投影；运行时允许字段集唯一来源=`responses.py` `ALLOWED_FIELDS`（12 项，须与 OpenAPI 同步）。
 
 - **`model`**（必填）
 
@@ -178,31 +186,44 @@ ResponsesRequest {
 
 - **`input`**（必填）
 
-  `object | array`；对话/文本输入，形状由 OpenAPI 定义。
+  `str | array`；对话/文本输入，形状由 OpenAPI 定义。
 
 - **`stream`**（必填、固定）
 
-  恒 `true`；`false` 不受支持 → `ERR-REQ-UNSUPPORTED`。
+  恒 `true`；`false` 不受支持 → `ERR-REQ-UNSUPPORTED`（`unsupported_request`）。
 
 - **`store`**（必填、固定）
 
-  恒 `false`；`true` 不受支持 → `ERR-REQ-UNSUPPORTED`。
+  恒 `false`；`true` 不受支持 → `ERR-REQ-UNSUPPORTED`（`unsupported_request`）。
 
-- **`tools` / `max_output_tokens`**（可选）
+- **可选透传字段**（`tools` / `tool_choice` / `temperature` / `max_output_tokens` / `reasoning` / `include` / `service_tier` / `metadata`）
 
-  `object[]?` / `int?`；能力需在等级声明内，否则 `ERR-REQ-UNSUPPORTED`。
+  形状与取值范围完全由 OpenAPI 定义，本层不复制其内部 schema；除下列能力/范围校验外，字段原样透传给上游 Provider。
+
+- **`ALLOWED_FIELDS` / `FORBIDDEN_FIELDS`**（字段集 authority）
+
+  `responses.py:16-20`：`ALLOWED_FIELDS = {model,input,stream,store,tools,tool_choice,temperature,max_output_tokens,reasoning,include,service_tier,metadata}`（12）；`FORBIDDEN_FIELDS = {prompt_cache_key,prompt_cache_retention,previous_response_id}`（3）。二者均为 `frozenset`。
+
+- **未知字段**（未知字段守卫）
+
+  若 `set(body) ⊄ ALLOWED_FIELDS`（含任意不在白名单的键）→ `400 invalid_request`（`responses.py:76` `require(set(body) <= ALLOWED_FIELDS, 400, "invalid_request", …)`）。即 OpenAPI `additionalProperties:false` 的运行时强制点。
 
 - **禁用字段**（条件有效性）
 
-  禁止 `prompt_cache_key`/`prompt_cache_retention`/`previous_response_id`；出现即 `ERR-REQ-FIELD`。
+  禁止 `prompt_cache_key`/`prompt_cache_retention`/`previous_response_id`；出现即 `ERR-REQ-FIELD`（`unsupported_field`）。
+
+- **能力校验**（条件有效性）
+
+  - `tools` 出现且等级 `caps["tools"] is False` → `400 unsupported_request`（`responses.py:85-86`）。
+  - `max_output_tokens` 出现且等级 `caps["max_output_tokens"] is not None` 时，要求 `isinstance(int) 且非 bool 且 1 ≤ v ≤ limit`，越界/非整数/布尔 → `400 invalid_request`（`responses.py:87-90`，**非** `unsupported_request`）。
 
 - **跨字段与寿命**
 
-  `additionalProperties:false`；`stream` 恒 true、`store` 恒 false 为跨字段硬约束；请求级所有权，M001 传入只读，本层不修改、不持久。
+  `additionalProperties:false`（未知字段拒绝，见上）；`stream` 恒 true、`store` 恒 false 为跨字段硬约束；请求级所有权，M001 传入只读，本层不修改、不持久。
 
 - **合法/拒绝实例**
 
-  合法 `{model:"Worker", input:"hi", stream:true, store:false}`；拒绝 `store=true` → `ERR-REQ-UNSUPPORTED`。
+  合法 `{model:"Worker", input:"hi", stream:true, store:false}`；拒绝 `store=true` → `ERR-REQ-UNSUPPORTED`；`{…,foo:1}`（未知字段）→ `400 invalid_request`；`{…,max_output_tokens:0}`（越界）→ `400 invalid_request`。
 
 - **验证**
 
@@ -332,7 +353,7 @@ Candidate {
 
 - **`health`**（必填、枚举）
 
-  四值枚举；来自 Registry 事实，`unhealthy` 候选不得被选中。
+  四值枚举；来自 Registry 事实。`admit` 仅从 `health == "healthy"` 的候选中选择（`routing.py:83` `healthy = [c for c in candidates if c.health == "healthy"]`）；`degraded`/`unknown`/`unhealthy` 一律**不可被选中**（非仅 `unhealthy`）。
 
 - **`ordinal`**（必填、范围）
 
@@ -344,7 +365,7 @@ Candidate {
 
 - **合法/拒绝实例**
 
-  合法 `health=healthy`；边界：全部 `unhealthy` → `ERR-MODEL-UNAVAIL`。
+  合法 `health=healthy`；边界：等级内全部非 healthy（`unhealthy`/`degraded`/`unknown`）→ `503 ERR-MODEL-UNAVAIL`（`model_unavailable`）。
 
 - **验证**
 
@@ -386,7 +407,7 @@ UsageRecordView {              # UsageRecorder.page().data[]
 
 - **`input_tokens` / `output_tokens` / `total_tokens` / `cached_input_tokens` / `cache_write_tokens` / `reasoning_tokens`**（可空）
 
-  `int | null`；仅 `measured` 时为整数，`unknown` 不得补零。
+  `int | null`；仅 `measured` 时为整数，`unknown` 不得补零。**例外（embeddings）**：当上游给出 `prompt_tokens`/`total_tokens` 时，`output_tokens` 及其 `output_tokens_details.reasoning_tokens`、`input_tokens_details.cached_tokens`/`cache_write_tokens` 记为结构性 `0`（见 §6.2 零填充规则）——这是对**已存在**的 usage 的归一，非缺失补零。
 
 - **跨字段与寿命**
 
@@ -394,7 +415,7 @@ UsageRecordView {              # UsageRecorder.page().data[]
 
 - **合法/拒绝实例**
 
-  合法：measured 三值齐备；边界：上游缺 usage → `unknown` 且所有计数为 `null`，不补零。
+  合法：measured 三值齐备；embeddings 归一示例 `{input_tokens:1,output_tokens:0,total_tokens:1,…}`；边界：上游缺 usage → `unknown` 且所有计数为 `null`，不补零。
 
 - **验证**
 
@@ -406,11 +427,11 @@ UsageRecordView {              # UsageRecorder.page().data[]
 
 ```text
 RouterState {
-  inflight: map<deployment_id, uint32>
-  provider_inflight: map<provider_id, uint32>
-  provider_dispatches: map<provider_id, deque<timestamp>>
-  provider_last_dispatch: map<provider_id, timestamp>
-  queues: map<level_id, deque<ticket>>
+  inflight: defaultdict(deployment_id, int)       # 缺省 0，未初始化访问无 KeyError
+  provider_inflight: defaultdict(provider_id, int)
+  provider_dispatches: defaultdict(provider_id, deque[float])
+  provider_last_dispatch: defaultdict(provider_id, float)   # 缺省 0.0
+  queues: defaultdict(level_id, deque[ticket])
   lock: Lock
   condition: Condition
 }
@@ -418,23 +439,23 @@ RouterState {
 
 - **Data/Type ID、用途与来源**
 
-  `D-INF-ADMISSION-STATE`；同等级准入与 provider 限流的运行时状态；唯一来源=`src/inference/routing.py` `Router`（进程级内存）。
+  `D-INF-ADMISSION-STATE`；同等级准入与 provider 限流的运行时状态；唯一来源=`src/inference/routing.py` `Router.__init__`（`routing.py:19-23`，进程级内存）。
 
 - **`inflight` / `provider_inflight`**（必填映射）
 
-  per-deployment / per-provider in-flight 计数；`admit` 上下文退出即递减（§4.6.2 `T-INF-05`）。
+  `defaultdict(int)`（缺省 `0`）；per-deployment / per-provider in-flight 计数；`admit` 上下文退出即递减（§4.6.2 `T-INF-05`）。缺省值保证「无泄漏/未初始化访问」不会因缺键而失败。
 
 - **`provider_dispatches` / `provider_last_dispatch`**（必填映射）
 
-  provider 最近派发时间队列与上次派发时刻；用于 `min_request_interval_ms` / `requests_per_minute` 限流 Guard。
+  `defaultdict(deque)` / `defaultdict(float)`（后者缺省 `0.0`）；provider 最近派发时间队列与上次派发时刻；用于 `min_request_interval_ms` / `requests_per_minute` 限流 Guard。
 
 - **`queues`**（必填映射）
 
-  每等级 FIFO 等待 ticket 队列；队列长度即等待事实来源。
+  `defaultdict(deque)`；每等级 FIFO 等待 ticket 队列；队列长度即等待事实来源。
 
 - **`lock` / `condition`**（内部）
 
-  保护上述可变状态；条件变量唤醒等待者。
+  保护上述可变状态；条件变量唤醒等待者。锁仅在「选择候选并占用许可」期间持有（`routing.py:76-109`），在 `yield` 前释放；许可递减在 `finally` 中**重新加锁**（`routing.py:112-116`），锁不跨 permit 生命周期持有。
 
 - **跨字段与寿命**
 
@@ -505,14 +526,16 @@ ApiError {
 
 **本层公共错误引用**（ID 定义见系统 §8.8）：
 
-| 本层别名 | 条件 | 系统 Error ID | 合法下一步 |
-|---|---|---|---|
-| `E-INF-VALIDATE` | 字段/形态/能力不满足 | `ERR-REQ-VALIDATION` / `ERR-REQ-UNSUPPORTED` / `ERR-REQ-FIELD` | 修请求 |
-| `E-INF-MODEL` | 等级不存在 | `ERR-MODEL-NOTFOUND` | 换模型 |
-| `E-INF-ADMIT` | 队列满/超时/全不健康 | `ERR-RATE-LIMIT` / `ERR-MODEL-UNAVAIL` | 按 `Retry-After` |
-| `E-INF-CONTRACT` | terminal 缺失/多个/载荷非法 | `ERR-PROVIDER-CONTRACT` | 不重试、上报 |
-| `E-INF-UPSTREAM` | 连接/超时/5xx | `ERR-PROVIDER-UNAVAIL` / `ERR-PROVIDER-FAIL` | 标准重试 |
-| `E-INF-USAGE` | 账本写失败 | `ERR-STORE` | 稍后重试 / 核对账本 |
+| 本层别名 | 条件 | 系统 Error ID | 公共 `code`（OpenAPI §code enum） | 合法下一步 |
+|---|---|---|---|---|
+| `E-INF-VALIDATE` | 字段/形态/能力不满足 | `ERR-REQ-VALIDATION` / `ERR-REQ-UNSUPPORTED` / `ERR-REQ-FIELD` | `invalid_request` / `unsupported_request` / `unsupported_field` / `unsupported_model` / `unsupported_dimensions` | 修请求 |
+| `E-INF-MODEL` | 等级不存在 | `ERR-MODEL-NOTFOUND` | `model_not_found` | 换模型 |
+| `E-INF-ADMIT` | 队列满/超时/全不健康 | `ERR-RATE-LIMIT` / `ERR-MODEL-UNAVAIL` | `rate_limit_exceeded` / `model_unavailable` | 按 `Retry-After` |
+| `E-INF-CONTRACT` | terminal 缺失/多个/载荷非法 | `ERR-PROVIDER-CONTRACT` | `provider_contract_error` | 不重试、上报 |
+| `E-INF-UPSTREAM` | 连接/超时/5xx；注入故障 | `ERR-PROVIDER-UNAVAIL` / `ERR-PROVIDER-FAIL` | `provider_unavailable` / `provider_secret_unavailable` / `provider_error` / **`provider_failure`（注入 `fault_502`）** | 标准重试 |
+| `E-INF-USAGE` | 账本写失败 | `ERR-STORE` | `usage_store_unavailable` | 稍后重试 / 核对账本 |
+
+> `provider_failure`（502）**仅**由测试注入 `fault_502` 产生（`responses.py:106-113`），上游真实 5xx 映射为 `provider_unavailable`（503，`providers/openai.py`）。`unsupported_dimensions`（400）由 embeddings 维数校验产生（`embeddings.py:43`）。
 
 ## 5. 接口设计
 
@@ -530,7 +553,7 @@ create(principal, request_id, body, diagnostics=None, correlation_id=None, out=N
 
 - **Interface/Member ID、用途、提供责任与唯一来源**
 
-  - **Interface/Member ID、状态**：`FUNC-INF-RESPONSES` / PLANNED
+  - **Interface/Member ID、状态**：`FUNC-INF-RESPONSES` / IMPLEMENTED
   - **文件 / symbol / 可见性**：`responses.py` / `ResponsesService.create` / private
   - **原成员 ID 或私有来源**：`F-INF-RESPONSES`、`F-INF-VALIDATE`
   - **完整签名与 caller**：`create(principal, request_id, body, diagnostics=None, correlation_id=None, out=None) -> dict`；caller=M001
@@ -538,7 +561,16 @@ create(principal, request_id, body, diagnostics=None, correlation_id=None, out=N
 - **输入与前提**
 
   - **输入参数 / 数据结构 authority**：`principal:str`（来自 `Principal`，只读）；`request_id:str`；`body:dict`（`ResponsesRequest` 形状，OpenAPI）
-  - **输入约束 / 校验顺序 / 失败映射**：必填 → `stream/store` → 禁字段 → 模型存在 → 能力；失败 → `E-INF-VALIDATE`
+  - **输入约束 / 校验顺序 / 失败映射**（8 步，`responses.py:72-90`）：① 必填 `model,input,stream,store`（缺 → 400 `invalid_request`）→ ② `stream=true && store=false`（否则 400 `unsupported_request`）→ ③ 禁字段 `FORBIDDEN_FIELDS`（否则 400 `unsupported_field`）→ ④ **未知字段 `set(body) ⊆ ALLOWED_FIELDS`**（否则 400 `invalid_request`）→ ⑤ 模型存在（404 `model_not_found`）→ ⑥ `caps.responses is True`（否则 400 `unsupported_model`）→ ⑦ `tools` 能力（否则 400 `unsupported_request`）→ ⑧ `max_output_tokens` 数值范围 `1 ≤ v ≤ caps.max_output_tokens`（否则 400 `invalid_request`）。失败 → `E-INF-VALIDATE`（模型存在失败 → `E-INF-MODEL`）。
+  - **`_adapter(candidate)`（每次调用构造 Provider）**：`responses.py:28-58`。若 `self._test_adapter` 已注入则直接返回（测试用）；否则读 `providers.secret_ref` 与 `deployment_runtime_profiles.connect_timeout_ms/stream_idle_timeout_ms`（缺省 30000/60000），按 `candidate.kind == "local"` 选择 `LocalProvider`，否则 `OpenAIProvider`。**每请求调用一次**，不缓存。
+  - **`LLMTIER_SLOW_ADAPTER_DELAY` / 本地 `SlowAdapter`**：`responses.py:31-49`。当环境变量存在时，`_adapter` 返回一个在 `complete()` 内 `time.sleep(delay)` 后伪造完整 `ProviderResult` 的局部类 `SlowAdapter`（固定 usage `{input_tokens:2, output_tokens:1, total_tokens:3}`，`status="completed"`）；`embed()` 抛 `NotImplementedError`；`probe()` 恒 `True`。**仅 Responses 有此类注入；Embeddings 无对应注入。**
+  - **故障注入（`diag.enabled_injection`）**：`responses.py:106-120`。按 `injection_type` 分派：
+    - `fault_502` → `ApiError(fault_status or 502, "provider_failure", …)`（`retryable=True`）
+    - `fault_503` → `ApiError(fault_status or 503, "provider_unavailable", …)`（`retryable=True`）
+    - `rate_limit` → `ApiError(429, "rate_limit_exceeded", …)`，带 `Retry-After` 头（`retry_after_sec or 1`）
+    - `delay` → `time.sleep(delay_ms/1000)`，随后正常调用
+    注入错误打上 `piko_injected` 标记；注入路径在 `finish` 时以 `source="injected"` 记账。
+  - **`_trace` 阶段**：`validated`（成功与失败均记，`responses.py:92/94`）、`routed`、`upstream_started`、`upstream_ended`；`capture_snapshot` 在失败路径传 `status=None`、成功传 `200`（`responses.py:131/137`）。`received`/`completed|error` 属 M001，不在本层。
 
 - **成功输出与保证**
 
@@ -546,7 +578,7 @@ create(principal, request_id, body, diagnostics=None, correlation_id=None, out=N
 
 - **错误与合法下一步**
 
-  - **错误输出 / 触发条件 / 优先级**：E-INF-VALIDATE（ERR-REQ-VALIDATION / ERR-REQ-UNSUPPORTED / ERR-REQ-FIELD）：400（`invalid_request`/`unsupported_request`/`unsupported_field`/`unsupported_model`）；E-INF-MODEL（ERR-MODEL-NOTFOUND · model_not_found）：404 `model_not_found`；E-INF-ADMIT（ERR-RATE-LIMIT / ERR-MODEL-UNAVAIL / ERR-MODEL-NOTFOUND）：404/429（+`Retry-After`）/503；E-INF-UPSTREAM（ERR-PROVIDER-UNAVAIL / ERR-PROVIDER-FAIL）：503 `provider_unavailable`/`provider_secret_unavailable`、上游 4xx 原码 `provider_error`
+  - **错误输出 / 触发条件 / 优先级**：E-INF-VALIDATE（ERR-REQ-VALIDATION / ERR-REQ-UNSUPPORTED / ERR-REQ-FIELD）：400（`invalid_request`/`unsupported_request`/`unsupported_field`/`unsupported_model`）；E-INF-MODEL（ERR-MODEL-NOTFOUND · model_not_found）：404 `model_not_found`；E-INF-ADMIT（ERR-RATE-LIMIT / ERR-MODEL-UNAVAIL / ERR-MODEL-NOTFOUND）：404/429（+`Retry-After`）/503；E-INF-UPSTREAM（ERR-PROVIDER-UNAVAIL / ERR-PROVIDER-FAIL）：503 `provider_unavailable`/`provider_secret_unavailable`、上游 4xx 原码 `provider_error`、注入 `fault_502` `provider_failure`
   - **E-INF-VALIDATE（公共 ERR-REQ-VALIDATION / ERR-REQ-UNSUPPORTED / ERR-REQ-FIELD）**
     - **底层异常 / 失败事实**：字段/能力不满足
     - **模块是否处理及处理函数**：reject（`create` 前段）
@@ -593,7 +625,7 @@ create(principal, request_id, body, diagnostics=None, correlation_id=None, out=N
 
   - **不可改变的规则 / Constraint ID**：标准 SSE、终态唯一、未知不补零、不跨等级、fail-open
   - **实现自由度**：编排/归一实现
-  - **实现状态 / 验证项**：PLANNED；`VRC-INF-001/003/004`
+  - **实现状态 / 验证项**：IMPLEMENTED；`VRC-INF-001/003/004`
 
 #### 5.1.2 `create(principal, request_id, body) -> dict`
 
@@ -603,15 +635,16 @@ create(principal, request_id, body) -> dict
 
 - **Interface/Member ID、用途、提供责任与唯一来源**
 
-  - **Interface/Member ID、状态**：`FUNC-INF-EMBED` / PLANNED
+  - **Interface/Member ID、状态**：`FUNC-INF-EMBED` / IMPLEMENTED
   - **文件 / symbol / 可见性**：`embeddings.py` / `EmbeddingsService.create` / private
   - **原成员 ID 或私有来源**：`F-INF-EMBED`
   - **完整签名与 caller**：`create(principal, request_id, body) -> dict`；caller=M001
 
 - **输入与前提**
 
-  - **输入参数 / 数据结构 authority**：`{model,input,encoding_format?,dimensions?,user?}`
-  - **输入约束 / 校验顺序 / 失败映射**：字段 → 能力 → 维数；失败 → 400
+  - **输入参数 / 数据结构 authority**：`{model,input,encoding_format?,dimensions?,user?}`（允许字段集 `{model,input,encoding_format,dimensions,user}`，`embeddings.py:32`）
+  - **输入约束 / 校验顺序 / 失败映射**：字段白名单 + 必填 → `encoding_format ∈ {float,base64}` → 模型存在 → `caps.embeddings` → 维数；失败 → 400（**未知字段与超集同判 `invalid_request`**）
+  - **`_adapter(candidate)`（每次调用构造 Provider）**：`embeddings.py:20-29`；与 Responses 同逻辑，读 `secret_ref` 与 `deployment_runtime_profiles` 超时，按 `kind` 选择 `LocalProvider`/`OpenAIProvider`。**无 `LLMTIER_SLOW_ADAPTER_DELAY` / `SlowAdapter` 注入。**
 
 - **成功输出与保证**
 
@@ -619,12 +652,13 @@ create(principal, request_id, body) -> dict
 
 - **错误与合法下一步**
 
-  - **错误输出 / 触发条件 / 优先级**：E-INF-VALIDATE（ERR-REQ-VALIDATION / ERR-REQ-UNSUPPORTED / ERR-REQ-FIELD）：400（`invalid_request`/`unsupported_request`/`unsupported_field`/`unsupported_model`）；E-INF-MODEL（ERR-MODEL-NOTFOUND · model_not_found）：404 `model_not_found`；E-INF-CONTRACT（ERR-PROVIDER-CONTRACT · provider_contract_error）：502 `provider_contract_error`（base64 非法或向量非有限/为空）；E-INF-UPSTREAM（ERR-PROVIDER-UNAVAIL / ERR-PROVIDER-FAIL）：503 `provider_unavailable`/`provider_secret_unavailable`、上游 4xx 原码 `provider_error`
+  - **错误输出 / 触发条件 / 优先级**：E-INF-VALIDATE（ERR-REQ-VALIDATION / ERR-REQ-UNSUPPORTED / ERR-REQ-FIELD）：400（`invalid_request`/`unsupported_request`/`unsupported_field`/`unsupported_model`/**`unsupported_dimensions`**）；E-INF-MODEL（ERR-MODEL-NOTFOUND · model_not_found）：404 `model_not_found`；E-INF-CONTRACT（ERR-PROVIDER-CONTRACT · provider_contract_error）：502 `provider_contract_error`（base64 非法或向量非有限/为空）；E-INF-UPSTREAM（ERR-PROVIDER-UNAVAIL / ERR-PROVIDER-FAIL）：503 `provider_unavailable`/`provider_secret_unavailable`、上游 4xx 原码 `provider_error`
   - **E-INF-VALIDATE（公共 ERR-REQ-VALIDATION / ERR-REQ-UNSUPPORTED / ERR-REQ-FIELD）**
-    - **底层异常 / 失败事实**：字段/能力不满足
+    - **底层异常 / 失败事实**：字段/能力/维数不满足
     - **模块是否处理及处理函数**：reject（`create` 前段）
     - **Typed 异常与原生异常所有权**：编排抛 `ApiError(400)`；M001 映射
-    - **宿主 / public payload 或状态码**：400（`invalid_request`/`unsupported_request`/`unsupported_field`/`unsupported_model`）
+    - **宿主 / public payload 或状态码**：400（`invalid_request`/`unsupported_request`/`unsupported_field`/`unsupported_model`/`unsupported_dimensions`）
+    - **`dimensions` 专有码**：`dimensions` 出现且等级声明了 `embedding_dimensions` 时，要求 `body["dimensions"] ∈ caps["embedding_dimensions"]`，否则 `400 unsupported_dimensions`（`embeddings.py:42-43`）
     - **日志级别 / 脱敏 / 关联字段**：无
     - **是否可重试及前提**：修请求
     - **状态与副作用影响 / 验证项**：无副作用；`VRC-INF-001`
@@ -658,7 +692,7 @@ create(principal, request_id, body) -> dict
 
   - **不可改变的规则 / Constraint ID**：`Embedding-v1` 冻结 space；向量有限性校验
   - **实现自由度**：解码实现
-  - **实现状态 / 验证项**：PLANNED；`VRC-INF-002`
+  - **实现状态 / 验证项**：IMPLEMENTED；`VRC-INF-002`
 
 #### 5.1.3 `list() -> dict`
 
@@ -669,7 +703,7 @@ get(model_id) -> dict
 
 - **Interface/Member ID、用途、提供责任与唯一来源**
 
-  - **Interface/Member ID、状态**：`FUNC-INF-MODELS` / PLANNED
+  - **Interface/Member ID、状态**：`FUNC-INF-MODELS` / IMPLEMENTED
   - **文件 / symbol / 可见性**：`models.py` / `ModelCatalog.list/get/_view` / private
   - **原成员 ID 或私有来源**：`F-INF-MODELS`
   - **完整签名与 caller**：`list() -> dict`；`get(model_id) -> dict`；caller=M001
@@ -708,7 +742,7 @@ get(model_id) -> dict
 
   - **不可改变的规则 / Constraint ID**：availability 规则
   - **实现自由度**：实现
-  - **实现状态 / 验证项**：PLANNED；`VRC-INF-004`
+  - **实现状态 / 验证项**：IMPLEMENTED；`VRC-INF-004`
 
 #### 5.1.4 `admit(level_id) -> ContextManager[Candidate]`
 
@@ -719,7 +753,7 @@ snapshot() -> dict
 
 - **Interface/Member ID、用途、提供责任与唯一来源**
 
-  - **Interface/Member ID、状态**：`FUNC-INF-ADMIT` / PLANNED
+  - **Interface/Member ID、状态**：`FUNC-INF-ADMIT` / IMPLEMENTED
   - **文件 / symbol / 可见性**：`routing.py` / `Router.admit/snapshot` / private
   - **原成员 ID 或私有来源**：`F-INF-ROUTE`、`R-INF-03/04`
   - **完整签名与 caller**：`admit(level_id) -> ContextManager[Candidate]`；`snapshot() -> dict`；caller=编排/Observability
@@ -758,7 +792,7 @@ snapshot() -> dict
 
   - **不可改变的规则 / Constraint ID**：同等级、许可释放、`Retry-After`
   - **实现自由度**：队列/排序实现
-  - **实现状态 / 验证项**：PLANNED；`VRC-INF-004`
+  - **实现状态 / 验证项**：IMPLEMENTED；`VRC-INF-004`
 
 #### 5.1.5 `complete(model, request) -> ProviderResult`
 
@@ -768,7 +802,7 @@ complete(model, request) -> ProviderResult
 
 - **Interface/Member ID、用途、提供责任与唯一来源**
 
-  - **Interface/Member ID、状态**：`FUNC-INF-COMPLETE` / PLANNED
+  - **Interface/Member ID、状态**：`FUNC-INF-COMPLETE` / IMPLEMENTED
   - **文件 / symbol / 可见性**：`providers/openai.py` / `OpenAIProvider.complete`（`LocalProvider` 复用）/ private
   - **原成员 ID 或私有来源**：`F-INF-ROUTES`→Adapter、`R-INF-05`
   - **完整签名与 caller**：`complete(model, request) -> ProviderResult`；caller=编排
@@ -815,7 +849,7 @@ complete(model, request) -> ProviderResult
 
   - **不可改变的规则 / Constraint ID**：terminal 唯一/一致；typed error
   - **实现自由度**：解析实现
-  - **实现状态 / 验证项**：PLANNED；`VRC-INF-003`
+  - **实现状态 / 验证项**：IMPLEMENTED；`VRC-INF-003`
 
 #### 5.1.6 `embed(model, request) -> dict`
 
@@ -825,7 +859,7 @@ embed(model, request) -> dict
 
 - **Interface/Member ID、用途、提供责任与唯一来源**
 
-  - **Interface/Member ID、状态**：`FUNC-INF-EMBED-CALL` / PLANNED
+  - **Interface/Member ID、状态**：`FUNC-INF-EMBED-CALL` / IMPLEMENTED
   - **文件 / symbol / 可见性**：`providers/openai.py` / `OpenAIProvider.embed` / private
   - **原成员 ID 或私有来源**：`R-INF-05`
   - **完整签名与 caller**：`embed(model, request) -> dict`；caller=编排
@@ -872,7 +906,7 @@ embed(model, request) -> dict
 
   - **不可改变的规则 / Constraint ID**：载荷校验
   - **实现自由度**：实现
-  - **实现状态 / 验证项**：PLANNED；`VRC-INF-002`
+  - **实现状态 / 验证项**：IMPLEMENTED；`VRC-INF-002`
 
 #### 5.1.7 `authorize_dispatch(principal, request_id, model, endpoint) -> None`
 
@@ -885,7 +919,7 @@ finish(principal, request_id, usage, source_override=None) -> None
 
 - **Interface/Member ID、用途、提供责任与唯一来源**
 
-  - **Interface/Member ID、状态**：`FUNC-INF-USAGE` / PLANNED
+  - **Interface/Member ID、状态**：`FUNC-INF-USAGE` / IMPLEMENTED
   - **文件 / symbol / 可见性**：`usage.py` / `authorize_dispatch/bind_backend/record_provider_request_id/finish` / private
   - **原成员 ID 或私有来源**：`F-INF-USAGE`、`R-MET-01`
   - **完整签名与 caller**：`authorize_dispatch(principal, request_id, model, endpoint) -> None`；`bind_backend(principal, request_id, provider_id, deployment_id) -> None`；`record_provider_request_id(principal, request_id, provider_request_id) -> None`；`finish(principal, request_id, usage, source_override=None) -> None`；caller=编排
@@ -893,11 +927,11 @@ finish(principal, request_id, usage, source_override=None) -> None
 - **输入与前提**
 
   - **输入参数 / 数据结构 authority**：`(principal, request_id, …)`；`record_provider_request_id` 取上游 `provider_request_id`（可空）
-  - **输入约束 / 校验顺序 / 失败映射**：dispatch 前先写义务；失败 → 不 dispatch（`E-INF-USAGE`）；`provider_request_id` 为空时不回填
+  - **输入约束 / 校验顺序 / 失败映射**：dispatch 前先写义务；失败 → 不 dispatch（`E-INF-USAGE`）；`provider_request_id` 为 `None`/空串时**直接 no-op 返回**，绑定行的 `provider_request_id` 保持 `NULL`（`usage.py:35-37`，被 `test_missing_provider_request_id_stays_null` 断言）
 
 - **成功输出与保证**
 
-  - **成功输出 / 数据结构 / 后置条件**：账本版本；`record_provider_request_id` 更新 `provider_request_bindings.provider_request_id`
+  - **成功输出 / 数据结构 / 后置条件**：账本版本；`record_provider_request_id` 更新 `provider_request_bindings.provider_request_id`（仅当非空）
 
 - **错误与合法下一步**
 
@@ -905,7 +939,7 @@ finish(principal, request_id, usage, source_override=None) -> None
 
 - **交互与生命周期**
 
-  - **副作用 / 执行上下文 / 幂等性**：写账本；`authorize_dispatch` 可重入（`INSERT OR IGNORE`）
+  - **副作用 / 执行上下文 / 幂等性**：写账本；`authorize_dispatch` 可重入——`usage_obligations` 用 `INSERT OR IGNORE`（`usage.py:23`），且仅在 `usage_heads` 无该 (principal,request) 行时插入 v1 头版本（`usage.py:24-26` `SELECT 1 … IS NULL` 守卫），因此重复调用不产生重复 head。
   - **输入输出 ownership 与寿命**：持久（M007）
   - **Thread-safe / reentrant**：经事务
   - **Nested-call policy**：allowed
@@ -916,7 +950,7 @@ finish(principal, request_id, usage, source_override=None) -> None
 
   - **不可改变的规则 / Constraint ID**：只追加、head 单调、unknown 不补零
   - **实现自由度**：存储实现
-  - **实现状态 / 验证项**：PLANNED；`VRC-INF-003`
+  - **实现状态 / 验证项**：IMPLEMENTED；`VRC-INF-003`
 
 #### 5.1.8 `page(principal, cursor, limit, admin, since, until, model, request_id) -> dict` / `reset_usage(model, deployment_id, conn=None) -> dict`
 
@@ -927,7 +961,7 @@ reset_usage(model=None, deployment_id=None, conn=None) -> dict
 
 - **Interface/Member ID、用途、提供责任与唯一来源**
 
-  - **Interface/Member ID、状态**：`FUNC-INF-USAGE-PAGE` / PLANNED
+  - **Interface/Member ID、状态**：`FUNC-INF-USAGE-PAGE` / IMPLEMENTED
   - **文件 / symbol / 可见性**：`usage.py` / `UsageRecorder.page`、`UsageRecorder.reset_usage` / private
   - **原成员 ID 或私有来源**：`F-INF-USAGE`、`R-MET-01`（M004 消费）
   - **完整签名与 caller**：`page(principal, cursor, limit=50, admin=False, since=None, until=None, model=None, request_id=None) -> dict`；`reset_usage(model=None, deployment_id=None, conn=None) -> dict`；caller=M001/M004
@@ -935,7 +969,8 @@ reset_usage(model=None, deployment_id=None, conn=None) -> dict
 - **输入与前提**
 
   - **输入参数 / 数据结构 authority**：分页/范围参数；`since`/`until` 为 RFC3339
-  - **输入约束 / 校验顺序 / 失败映射**：`[since,until)` 必需（缺失/倒置 → 400 `invalid_request`）；cursor 冻结；跨 principal → 403
+  - **输入约束 / 校验顺序 / 失败映射**：`[since,until)` 必需——`since` 与 `until` 皆不可缺（`usage.py:73` 对空串 `fromisoformat` 抛 `ValueError` → `400 invalid_request`），`start >= end`（倒置）→ `400 invalid_request`（`usage.py:75`；代码错误文案用 "from/to"）；cursor 冻结；跨 principal → 403
+  - **`reset_usage` 作用域矩阵**：`usage.py:108-158`——`model` 仅删该等级；`deployment_id` 仅删绑定到该 deployment 的记录；两者皆给删交集；**皆缺省删全部**。返回 `{"deleted": <int>}`。
 
 - **成功输出与保证**
 
@@ -943,7 +978,7 @@ reset_usage(model=None, deployment_id=None, conn=None) -> dict
 
 - **错误与合法下一步**
 
-  - **错误输出 / 触发条件 / 优先级**：400 `invalid_request`/`cursor_expired`；403 `permission_denied`；503 `usage_store_unavailable`
+  - **错误输出 / 触发条件 / 优先级**：400 `invalid_request`/`cursor_expired`；403 `permission_denied`；503 `usage_store_unavailable`（`page` 包裹任意非 `ApiError` 异常，`usage.py:68-69`）
 
 - **交互与生命周期**
 
@@ -958,7 +993,7 @@ reset_usage(model=None, deployment_id=None, conn=None) -> dict
 
   - **不可改变的规则 / Constraint ID**：只追加、head 单调、unknown 不补零、冻结分页
   - **实现自由度**：分页/范围实现
-  - **实现状态 / 验证项**：PLANNED；`VRC-INF-003`
+  - **实现状态 / 验证项**：IMPLEMENTED；`VRC-INF-003`
 
 ### 5.2 消息与数据流接口（适用时）
 
@@ -992,7 +1027,7 @@ flowchart TD
 - **步骤 / 算法 / 复杂度**：校验 → 能力 → 义务（`T-INF-06`）→ 准入（`T-INF-01`/`T-INF-04`→`T-INF-02`）→ 绑定 → 调用 → 归一 → 终态（`T-INF-07`/`T-INF-08`）；O(候选数)
 - **判断事实来源**：字段/Registry 能力/Router 许可
 - **成功可见点**：`ResponsesResponse`
-- **失败、取消与清理**：typed error（流开始前经 HTTP `D-ERROR-ENVELOPE` 返回）；异常路径 `finish(None)`（`T-INF-08`）；许可在 `admit` 上下文退出时释放（`T-INF-05`，先于 `finish` 与 SSE）；`T-INF-03` 队列满/超时 → 429 + `Retry-After`；客户端断开发生在 SSE 阶段，不触发 `finish(None)`
+- **失败、取消与清理**：typed error（流开始前经 HTTP `D-ERROR-ENVELOPE` 返回）；**准入成功后**的异常路径 `finish(None)`（`T-INF-08`，`responses.py:154-158` 仅在 `admitted=True` 时调用）；**准入失败**（404/429/503）未达后端，仅保留 v1 orphan、不调用 `finish`；许可在 `admit` 上下文退出时释放（`T-INF-05`，先于 `finish` 与 SSE）；`T-INF-03` 队列满/超时 → 429 + `Retry-After`；客户端断开发生在 SSE 阶段，不触发 `finish(None)`
 - **代表输入与中间值**：`{model:"Worker", input:"hi", stream:true, store:false}` → SSE
 - **规则 / 接口 / 验证引用**：`RULE-INF-VALIDATE/ROUTE/TERMINAL`；相位 §4.6.2 `T-INF-01..08`；`VRC-INF-001..004`
 
@@ -1005,17 +1040,18 @@ flowchart TD
 - **成功可见点**：Embeddings 载荷
 - **失败、取消与清理**：400/502/503
 - **代表输入与中间值**：base64 → `struct.unpack("<f*")`
+- **usage 归一（**零填充规则**）**：`embeddings.py:61-70`。仅当上游 usage 为 `dict` 且 `prompt_tokens`、`total_tokens` 皆 `int` 时，构造 `{input_tokens:prompt_tokens, output_tokens:0, total_tokens, input_tokens_details:{cached_tokens:0, cache_write_tokens:0}, output_tokens_details:{reasoning_tokens:0}}`；否则 `normalized_usage=None`（`unknown`，不补零）。**语义判定**：embeddings 无生成输出，`output_tokens=0` 及其子项是**由缺失维度推导的结构性零**（派生自 `prompt_tokens`/`total_tokens` 的存在性），**非**「上游缺 usage 时补零」；上游整体缺 usage 仍走 `unknown`+`null`，不违反「未知不补零」。此规则不适用于 Responses（Responses 直传上游原始 usage）。
 - **规则 / 接口 / 验证引用**：`RULE-INF-EMBED`；`VRC-INF-002`
 
 ### 6.3 `P-MODELS` · 目录查询
 
 - **触发与执行者**：M001 → `ModelCatalog`
 - **入口函数及数据**：`list/get`
-- **步骤 / 算法 / 复杂度**：按候选健康度求 availability；O(候选数)
+- **步骤 / 算法 / 复杂度**：按候选健康度求 availability（`models.py:13-17`）：**无候选或全 `unhealthy` → `unavailable`**；否则**任一为 `degraded`/`unhealthy`/`unknown` → `degraded`**；否则 `available`。O(候选数)
 - **判断事实来源**：Registry 候选
 - **成功可见点**：模型列表/单体
 - **失败、取消与清理**：404
-- **代表输入与中间值**：混合健康 → degraded
+- **代表输入与中间值**：`unknown` 候选存在 → `degraded`（`test_unknown_is_degraded` 断言）
 - **规则 / 接口 / 验证引用**：`RULE-INF-MODELS`；`VRC-INF-004`
 
 ## 7. 并发、失败、持久化与安全生命周期
@@ -1040,7 +1076,7 @@ flowchart TD
 - **已产生或可能产生的副作用**：可能已调用后端
 - **检测事实 / 期限**：M001 写失败
 - **状态 / 错误 / 结果已知性**：未知
-- **保留 / 释放责任**：许可已在 `create()` 返回前释放；终态已记账；出口记 `aborted`，不再 `finish(None)`
+- **保留 / 释放责任**：许可已在 `create()` 返回前释放；终态已记账；出口记 `aborted`（**由 M001 记录，M003 无 `aborted` 符号**），不再 `finish(None)`
 - **允许的 query / replay / takeover / retry**：新请求为新调用
 - **验证项**：`VRC-INF-005`
 
@@ -1097,7 +1133,7 @@ flowchart TD
 - **检查函数 / 时点**：不鉴权；只消费 `principal_id`
 - **拒绝 / 宿主交付出口**：无
 - **脱敏 / 禁止输出**：provider 凭据只经 `secret_ref` 解析；不落日志
-- **日志 / 指标 / trace 口径及触发**：`record_trace`/`capture_snapshot`/`record_latency`；fail-open
+- **日志 / 指标 / trace 口径及触发**：M003 仅发 `record_trace` 阶段 `validated`（成功与失败）、`routed`、`upstream_started`、`upstream_ended`，以及 `capture_snapshot`/`record_latency`；`received`/`completed|error` 由 M001 发出，**不属 M003**。写入失败 fail-open（不阻断推理）
 - **验证项**：`VRC-INF-005`
 
 #### 7.3.2.1 `LSS-INF-DB` · 存储安全
@@ -1118,11 +1154,14 @@ flowchart TD
 ### 8.1 配置实现（条件项）
 
 - **适用性 / 固定 authority**：applicable（超时/队列/测试注入）
-- **配置 key / 来源 / 优先级**：`LLMTIER_SLOW_ADAPTER_DELAY`（测试用）；队列 32、等待 30 s 为 `routing.py` 固定常量；上游超时读自 `deployment_runtime_profiles.connect_timeout_ms`/`stream_idle_timeout_ms`（缺省 30000/60000）
+- **配置 key / 来源 / 优先级**：
+  - `LLMTIER_SLOW_ADAPTER_DELAY`（**仅测试**）：存在时 `ResponsesService._adapter` 返回局部类 `SlowAdapter`，`complete()` 睡眠该秒数后伪造固定 usage `{2,1,3}` 的 `ProviderResult`；`EmbeddingsService._adapter` **无**此注入。
+  - **固定常量**：队列长度 32、等待 30 s（`routing.py`，`Router.admit`）。
+  - **DB 驱动（非固定常量）**：`max_in_flight` 读自 `deployment_runtime_profiles`（缺省 1）；`max_concurrent_requests`/`min_request_interval_ms`/`requests_per_minute` 读自 `provider_usage_profiles`；`connect_timeout_ms`/`stream_idle_timeout_ms` 读自 `deployment_runtime_profiles`（缺省 30000/60000）。
 - **类型 / 单位 / 默认值 / 范围 / 字段约束**：`SLOW_ADAPTER_DELAY` 秒（浮点）；profile 超时为毫秒
-- **读取 / 解析 / 校验 symbol**：`ResponsesService._adapter`（测试注入）
-- **生效点 / reload / 原子性 / 在途操作**：测试注入进程级；无 reload
-- **缺失 / 非法 / 部分更新的错误出口**：非法浮点 → 异常（仅测试）
+- **读取 / 解析 / 校验 symbol**：`ResponsesService._adapter`（测试注入）；`Router._limit`/`_provider_profile`/`_provider_ready_in`（DB 限流）
+- **生效点 / reload / 原子性 / 在途操作**：测试注入进程级；DB 配置每次准入读取；无 reload
+- **缺失 / 非法 / 部分更新的错误出口**：非法浮点 → 异常（仅测试）；profile 缺失 → 用缺省
 - **敏感值存储 / 日志脱敏**：无敏感配置
 - **验证项**：`VRC-INF-003`
 
@@ -1144,13 +1183,13 @@ flowchart TD
 ### 9.1.1 `VRC-INF-001` · 推理与校验
 
 - **Rule / 成员**：`FUNC-INF-RESPONSES`、`RULE-INF-VALIDATE`
-- **V / Case / Vector**：v1 固定 request；v2 缺字段/`store=true`/禁字段；v3 未知 model
+- **V / Case / Vector**：v1 固定 request；v2 缺字段/`store=true`/禁字段；v3 未知 model；v4 未知字段/`max_output_tokens` 越界
 - **输入 / 故障 / 环境**：请求；隔离库
 - **独立 Oracle / Expected**：SSE 事件子集 + terminal 唯一；400/404
-- **Actual / Evidence**：NOT_RUN
-- **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/system`（Piko 联调）
-- **Run ID / Status**：NOT_RUN
+- **Actual / Evidence**：`tests/unit/v03/test_responses.py`（success/missing-required/nonstream/store=true/forbidden 字段/`provider_failure` 留 unknown usage）
+- **Verdict**：PASS（v1/v2 覆盖；**v3 未知 model 与 v4 未知字段/范围在 responses 路径未单测**——未知 model 仅在 `test_models.test_missing_model` 覆盖，标注为待补）
+- **测试入口 / 清理**：`tests/unit/v03/test_responses.py`；隔离库
+- **Run ID / Status**：PASS（`tests/unit/v03`）
 
 ### 9.1.2 `VRC-INF-002` · 向量化
 
@@ -1158,10 +1197,10 @@ flowchart TD
 - **V / Case / Vector**：v1 正常向量；v2 base64；v3 非有限值；v4 非法维数
 - **输入 / 故障 / 环境**：请求；`Embedding-v1`
 - **独立 Oracle / Expected**：长度/有限性；usage→`prompt_tokens`；400/502
-- **Actual / Evidence**：NOT_RUN
-- **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/system`
-- **Run ID / Status**：NOT_RUN
+- **Actual / Evidence**：`tests/unit/v03/test_embeddings.py`（`test_float_success`/`test_base64_success`/`test_nonfinite_rejected`/`test_wrong_dimension_rejected`/`test_usage_normalized`）
+- **Verdict**：PASS（v4 维数拒绝已断言；`unsupported_dimensions` 码断言、非法 base64 `provider_contract_error`、空向量待补单测）
+- **测试入口 / 清理**：`tests/unit/v03/test_embeddings.py`
+- **Run ID / Status**：PASS（`tests/unit/v03`）
 
 ### 9.1.3 `VRC-INF-003` · 失败与用量
 
@@ -1169,10 +1208,10 @@ flowchart TD
 - **V / Case / Vector**：v1 上游 5xx/超时；v2 两个 terminal；v3 usage 缺失
 - **输入 / 故障 / 环境**：`LLMTIER_SLOW_ADAPTER_DELAY`/故障注入；隔离库
 - **独立 Oracle / Expected**：unknown 不补零；head 单调；typed error
-- **Actual / Evidence**：NOT_RUN
-- **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/system` + M-METER
-- **Run ID / Status**：NOT_RUN
+- **Actual / Evidence**：`tests/unit/v03/test_provider_openai.py`（重复 terminal/状态不一致）、`test_responses.py::test_provider_failure_leaves_unknown_usage`、`test_usage.py`（unknown 前置/`null` 不补零/版本不可变/provider_request_id 回填与 no-op）
+- **Verdict**：PASS（v2/v3 与 provider_request_id 覆盖；**v1 上游超时/5xx 的 URL 级注入待补**；system 用例 `st_22/st_23` 覆盖 `LLMTIER_SLOW_ADAPTER_DELAY` 并发）
+- **测试入口 / 清理**：`tests/unit/v03/test_provider_openai.py`、`tests/unit/v03/test_responses.py`、`tests/unit/v03/test_usage.py`；`tests/system/st_2x`
+- **Run ID / Status**：PASS（`tests/unit/v03`）
 
 ### 9.1.4 `VRC-INF-004` · 准入与目录
 
@@ -1180,10 +1219,10 @@ flowchart TD
 - **V / Case / Vector**：v1 占满队列 429；v2 全不健康 503；v3 availability 三态
 - **输入 / 故障 / 环境**：并发请求；隔离库
 - **独立 Oracle / Expected**：429/503；availability
-- **Actual / Evidence**：NOT_RUN
-- **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit` + 并发
-- **Run ID / Status**：NOT_RUN
+- **Actual / Evidence**：`tests/unit/v03/test_routing.py`（健康准入/404/`unhealthy` 503/`unknown` 不可选/FIFO/不跨等级）、`test_models.py`（available/degraded/未知 404）
+- **Verdict**：PASS（v2/v3 覆盖；**v1 队列占满 429 与 `Retry-After` 待补单测**；system `st_23` 覆盖队列满）
+- **测试入口 / 清理**：`tests/unit/v03/test_routing.py`、`tests/unit/v03/test_models.py`
+- **Run ID / Status**：PASS（`tests/unit/v03`）
 
 ### 9.1.5 `VRC-INF-005` · 观测 fail-open / 不二次校验
 
@@ -1191,10 +1230,10 @@ flowchart TD
 - **V / Case / Vector**：v1 观测库写失败；v2 断开；v3 无二次鉴权
 - **输入 / 故障 / 环境**：故障注入
 - **独立 Oracle / Expected**：推理结果不变；无鉴权调用点
-- **Actual / Evidence**：NOT_RUN
-- **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit`
-- **Run ID / Status**：NOT_RUN
+- **Actual / Evidence**：`test_diagnostics.py` 覆盖 M006 注入面（`fault_502`/`rate_limit`/`delay` 经 Responses 生效并记 `source=injected`）；M003 自身无二次鉴权调用点（代码审查）
+- **Verdict**：PARTIAL（`source=injected`/注入生效有单测；**观测写失败 fail-open 的 M003 路径无专项单测**，待补）
+- **测试入口 / 清理**：`tests/unit/v03/test_diagnostics.py`（注入面）
+- **Run ID / Status**：PARTIAL
 
 **运行命令**：全量 `PYTHONPATH=src python3 -m pytest tests/ tests/system/st_*.py -q`
 
@@ -1207,8 +1246,8 @@ flowchart TD
 - **不可改变的规则**：校验顺序、SSE/向量校验、未知不补零
 - **实施动作**：实现编排与归一
 - **完成检查**：`VRC-INF-001/002`
-- **实现状态**：PLANNED
-- **验证状态 / Run**：NOT_RUN
+- **实现状态**：IMPLEMENTED
+- **验证状态 / Run**：PASS（`tests/unit/v03`）
 
 ### 9.2.2 `TASK-INF-ADMIT` · 准入与路由
 
@@ -1217,8 +1256,8 @@ flowchart TD
 - **不可改变的规则**：同等级、许可释放、`Retry-After`
 - **实施动作**：实现队列/许可/选择
 - **完成检查**：`VRC-INF-004`
-- **实现状态**：PLANNED
-- **验证状态 / Run**：NOT_RUN
+- **实现状态**：IMPLEMENTED
+- **验证状态 / Run**：PASS（`tests/unit/v03`）
 
 ### 9.2.3 `TASK-INF-ADAPTER` · Provider 适配与记账
 
@@ -1227,8 +1266,8 @@ flowchart TD
 - **不可改变的规则**：terminal 唯一/一致、不补零
 - **实施动作**：实现适配与记账
 - **完成检查**：`VRC-INF-003`
-- **实现状态**：PLANNED
-- **验证状态 / Run**：NOT_RUN
+- **实现状态**：IMPLEMENTED
+- **验证状态 / Run**：PASS（`tests/unit/v03`）
 
 ## 10. 映射、复核与未决项
 
@@ -1239,22 +1278,22 @@ flowchart TD
 - **模块 / 原成员 ID**：M003 / `F-INF-*`
 - **唯一来源 / 版本 / selector / hash**：`inference` / `0.1.0-draft.1`
 - **提供或消费 / backend**：提供 / provider
-- **实际位置或 Planned 计划位置**：`src/inference/{responses,embeddings,models,routing,usage}.py`、`src/inference/providers/*`
+- **实际位置或 Planned 计划位置**：`src/inference/{responses,embeddings,models,routing,usage}.py`、`src/inference/providers/*`（均已实现）
 - **验证项**：`VRC-INF-001..005`
-- **实现状态**：PLANNED
-- **验证状态 / Run**：NOT_RUN
+- **实现状态**：IMPLEMENTED
+- **验证状态 / Run**：PASS（`tests/unit/v03`）
 
 <a id="isd-status"></a>
 
 ### 10.2.1 `SC-INF` · 状态一致性复核
 
 - **上游承接状态 / 固定来源**：模块 `inference` §15.ISD 声明 `separate`
-- **本层派生状态 / 事实依据**：无实际实现/Run；全部 `PLANNED`/`NOT_RUN`
-- **§2 Current / Target**：N/A（greenfield）
-- **§3 / §5 文件与函数状态**：PLANNED
-- **§9 任务 / Actual / Verdict / Run**：PLANNED / NOT_RUN / NOT_RUN / NOT_RUN
-- **§10 汇总状态**：PLANNED
-- **差异解释 / Owner / 收敛动作**：none
+- **本层派生状态 / 事实依据**：代码与单元测试**均已实现**；全部 `src/inference/*` 现有实现，`tests/unit/v03/` 覆盖 VRC-INF-001..005（部分向量待补，见 §9.1）
+- **§2 Current / Target**：N/A（greenfield；无既有待改实现，见 §2.1）
+- **§3 / §5 文件与函数状态**：IMPLEMENTED
+- **§9 任务 / Actual / Verdict / Run**：IMPLEMENTED / PASS / PASS / PASS（部分待补向量在 §9.1 标注）
+- **§10 汇总状态**：IMPLEMENTED
+- **差异解释 / Owner / 收敛动作**：none（本轮按 ISD↔code review 同步）
 
 ### 10.3.1 `RISK-INF-1` · 上游长尾延迟
 

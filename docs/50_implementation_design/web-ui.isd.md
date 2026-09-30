@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `web-ui-isd` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Document Owner | LLMTier |
-| Last Modified Date | `2026-09-25` |
+| Last Modified Date | `2026-09-30` |
 | Template ID | `design.implementation` |
 | Template Version | `1.2.2` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -23,7 +23,7 @@
 
 - **模块 ID / 名称**：M002 / Web UI
 - **直属父对象 / 父设计**：LLMTier 软件系统 / `llmtier-system-design`（§3.2 登记）
-- **模块设计 Document ID / 版本 / 路径 / 摘要**：`web-ui` / `0.1.0-draft.1` / `docs/40_module_design/web-ui-design.md` / §3 页面清单、§5.1 I1–I9、§8 RULE-UI-*
+- **模块设计 Document ID / 版本 / 路径 / 摘要**：`web-ui` / `0.1.0-draft.2` / `docs/40_module_design/web-ui-design.md` / §3 页面清单、§5.1 I1–I9、§8 RULE-UI-*
 - **需求与 Constraint ID**：`CON-TRUST-001`、`C-METER`（未知不填零）、`CON-OBS-001`；机制 `R-CFG-05`、`R-OBS-05`
 - **实现范围 / 非目标**：实现浏览器端 operator 控制台（框架/导航/5 页 + 2 抽屉、页面渲染、mutation、交互状态）；**非目标**：服务端逻辑、访问控制、账号库、直读 DB/Secret
 - **ISD 默认落位或项目批准路径**：`docs/50_implementation_design/web-ui.isd.md`
@@ -65,7 +65,14 @@
 ```text
 src/web_ui/
  ├─ index.html   # 结构壳：侧栏 5 项 + 页头 + 5 个 .page 容器 + 2 个抽屉表单 + datalist
- ├─ app.js       # api()/路由/load*/render*/mutation/状态映射/I9
+ ├─ app.js
+ │    ├─ 基础助手  # $/$$、esc、etag、windowQuery、caps、metric、tierLabel
+ │    ├─ 图标/状态  # iconSvg、statusIconName、statusMarkup、iconButton
+ │    ├─ 装载/渲染  # api、load*、render*、fetchProviderModels、modelOptions、providerOptions、
+ │    │            #   usageSummary、reloadMemberModels、reloadAddMemberModels、statsRange、diagWindow
+ │    ├─ mutation   # saveProvider/saveMember/addMember/removeMember/deleteProvider/
+ │    │            #   addModelAsDeployment/toggleDeployment/probeDeployment/refreshProviderUsage
+ │    └─ I9/错误    # dispatchUiError、reportLoadFailure、showBanner、markStale
  ├─ styles.css   # 基础/框架/页面/组件/树/抽屉 6 分区
  └─ icons.svg    # 单线图标 sprite（<symbol id>）
 ```
@@ -77,16 +84,21 @@ src/web_ui/
 - **可见性**：public（静态资源）
 - **调用与类型依赖**：装配 `styles.css`/`icons.svg`/`app.js`
 - **构建目标 / 生成源 / 输出**：由 M001 静态交付
-- **实现状态**：PLANNED
+- **实现状态**：Implemented
 
 ### 3.2 `app.js` · 客户端逻辑
 
 - **职责及调用者**：路由、装载、渲染、mutation、交互状态；caller=`index.html`
-- **类型 / 函数**：`api`、`loadRegistry/loadUsageSnapshot/loadHome/loadProviders/loadUsage/loadAudit/loadLogs/loadStats`、`loadDiagSwitches/saveDiagSwitches/loadSnapshots/loadDiagStats/loadTraces/showTrace/loadInjections/loadDiagnostics`、`renderTree/renderProviders/renderTierMembers`、`openTierEditor/openProviderEditor/saveProvider/saveMember/addMember/removeMember/deleteProvider/addModelAsDeployment/toggleDeployment/probeDeployment/refreshProviderUsage`、`backendState/tierState/statusMarkup/dispatchUiError`
+- **类型 / 函数**：
+  - 基础助手：`$`、`$$`、`fieldValue`、`esc`、`etag`、`windowQuery`、`caps`、`metric`、`tierLabel`
+  - 图标/状态：`iconSvg`、`statusIconName`、`statusMarkup`、`iconButton`、`backendState`、`tierState`
+  - 装载/渲染：`api`、`loadRegistry/loadUsageSnapshot/loadHome/loadProviders/loadUsage/loadAudit/loadLogs/loadStats`、`loadDiagSwitches/saveDiagSwitches/loadSnapshots/loadDiagStats/loadTraces/showTrace/loadInjections/loadDiagnostics`、`renderTree/renderProviders/renderTierMembers`、`fetchProviderModels`、`modelOptions`、`providerOptions`、`usageSummary`、`reloadMemberModels`、`reloadAddMemberModels`、`showUsageFields`、`statsRange`、`diagWindow`
+  - mutation：`openTierEditor/openProviderEditor/saveProvider/saveMember/addMember/removeMember/deleteProvider/addModelAsDeployment/toggleDeployment/probeDeployment/refreshProviderUsage`
+  - I9/错误：`dispatchUiError`、`reportLoadFailure`、`showBanner`、`markStale`
 - **可见性**：private（浏览器）
 - **调用与类型依赖**：只经 `api()` 调 M001 同源 HTTP
 - **构建目标 / 生成源 / 输出**：静态资源
-- **实现状态**：PLANNED
+- **实现状态**：Implemented
 
 ### 3.3 `styles.css` / `icons.svg`
 
@@ -95,7 +107,7 @@ src/web_ui/
 - **可见性**：public（静态资源）
 - **调用与类型依赖**：无
 - **构建目标 / 生成源 / 输出**：静态资源
-- **实现状态**：PLANNED
+- **实现状态**：Implemented
 
 ## 4. 数据结构设计
 
@@ -253,7 +265,7 @@ FormDraft {
 
 - **`fields`**（必填、可变）
 
-  `map`；**无 input 事件跟踪**，字段在提交时由 `fieldValue(form,name)` 直接从 DOM 读取；Secret 字段空白表示保持原值；提交成功后销毁、失败（412）保留供复制。
+  `map`；**无 input 事件跟踪**，字段在提交时直接从 DOM 读取（provider 表单用 `form.elements.<name>.value`，成员表单用 `fieldValue(form,name)`）；Secret 字段空白表示保持原值；提交成功后销毁、失败（412）保留供复制。
 
 - **跨字段与寿命**
 
@@ -327,11 +339,11 @@ PagingCursor {
 |---|---|---|---|---|---|---|
 | `T-UI-01` | Loading → Ready | `loadXxx()` fetch 成功且非空 | M001 HTTP 响应（`data`/分页） | `load*()`（如 `loadProviders`/`loadTraces`）成功分支 → `render*()` | — | `VRC-UI-001` |
 | `T-UI-02` | Loading → Empty | fetch 成功但结果为空 | 服务端返回空集合 | `load*()` 空集合分支 → `render*()` 空态 | — | `VRC-UI-001` |
-| `T-UI-03` | Loading → Stale | fetch 失败（503 等） | `ErrorStatus`（§4.8） | `load*()` catch → `dispatchUiError` 保留旧数据 | 不渲染空表 | `VRC-UI-001` |
+| `T-UI-03` | Loading → Stale | fetch 失败（503 等） | `ErrorStatus`（§4.8）+ 状态是否属已列集合 | `load*()` catch → `reportLoadFailure`（兜底）与 `dispatchUiError`（已列状态）保留旧数据 | 不渲染空表 | `VRC-UI-001` |
 | `T-UI-04` | Ready/Empty → Loading | 用户刷新或切换页 | 用户动作 | 页面切换/刷新重新调 `load*()` | — | `VRC-UI-001` |
 | `T-UI-05` | Stale → Loading | 用户重试 | 用户动作 | `dispatchUiError` 提供重试 → `load*()` | — | `VRC-UI-001` |
 | `T-UI-06` | Closed → Open | 打开编辑抽屉 | 用户动作 | 编辑入口初始化 `FormDraft`（§4.6.2）、暂存 `EditEtag`（§4.6.3） | — | `VRC-UI-002` |
-| `T-UI-07` | Open → Dirty | 用户修改字段 | 提交时 DOM 控件值 | **无 input 事件监听**；`saveProvider`/`saveMember` 提交时用 `fieldValue(form,name)` 直接读 DOM | — | `VRC-UI-002` |
+| `T-UI-07` | Open → Dirty | 用户修改字段 | 提交时 DOM 控件值 | **无 input 事件监听**；`saveProvider` 提交时用 `form.elements.<name>.value` 直接读 DOM，`saveMember` 用 `fieldValue(form,name)` 读 DOM | — | `VRC-UI-002` |
 | `T-UI-08` | Dirty → Saving | 用户提交 | `EditEtag`（§4.6.3） | `saveProvider`/`saveMember`/`toggleDeployment` 发 `PATCH + If-Match` | 超时 → §7.1.2 | `VRC-UI-002` |
 | `T-UI-09` | Saving → Closed | 2xx 成功 | M001 成功响应 | 保存函数成功分支：清草稿 + `load*()` | — | `VRC-UI-002` |
 | `T-UI-10` | Saving → Conflict | 412 stale | ETag 过期事实 | `dispatchUiError` 处理 412：提示 stale、保留草稿 | 不自动覆盖 | `VRC-UI-002` |
@@ -345,8 +357,10 @@ PagingCursor {
 | 本层别名 | 条件 | 系统 Error ID | 合法下一步 |
 |---|---|---|---|
 | `E-UI-401` | 会话过期 | `ERR-AUTH-REQUIRED` | 重新登录 |
+| `E-UI-403` | 权限不足 | `ERR-AUTH-DENIED` | 留当前页 |
 | `E-UI-409` | 引用冲突 | `ERR-INUSE`/`ERR-CONFLICT` | 先解绑 |
 | `E-UI-412` | stale 编辑 | `ERR-STALE` | 重新 GET 后重试 |
+| `E-UI-429` | 触发限流 | `ERR-RATE-LIMITED` | 按 `Retry-After` 退避 |
 | `E-UI-503` | 存储不可用 | `ERR-STORE` | 稍后重试 |
 
 **4.8.1 web-ui 错误呈现结构（引用系统 §8.8）**
@@ -391,7 +405,7 @@ api(path, {method='GET', body, headers={}}) -> Promise<object>
 
 - **Interface/Member ID、用途、提供责任与唯一来源**
 
-  - **Interface/Member ID、状态**：`FUNC-UI-API` / PLANNED
+  - **Interface/Member ID、状态**：`FUNC-UI-API` / Implemented
   - **文件 / symbol / 可见性**：`app.js` / `api` / private
   - **原成员 ID 或私有来源**：`F-UI-*`
   - **完整签名与 caller**：`api(path, {method='GET', body, headers={}}) -> Promise<object>`；caller=各 `load*/mutation`
@@ -399,15 +413,15 @@ api(path, {method='GET', body, headers={}}) -> Promise<object>
 - **输入与前提**
 
   - **输入参数 / 数据结构 authority**：`path`、options；字段形状由 OpenAPI 决定
-  - **输入约束 / 校验顺序 / 失败映射**：`credentials:'same-origin'`；非 2xx → 抛错交 I9
+  - **输入约束 / 校验顺序 / 失败映射**：`credentials:'same-origin'`；非 2xx → 抛错并调 I9（`dispatchUiError`），再向上抛出
 
 - **成功输出与保证**
 
-  - **成功输出 / 数据结构 / 后置条件**：解析后的对象
+  - **成功输出 / 数据结构 / 后置条件**：解析后的对象（204 → `null`）
 
 - **错误与合法下一步**
 
-  - **错误输出 / 触发条件 / 优先级**：E-UI-401（ERR-AUTH-REQUIRED · authentication_required）：跳外部登录；E-UI-409（ERR-INUSE / ERR-CONFLICT）：留当前页；E-UI-412（ERR-STALE · version_conflict）：不自动覆盖；E-UI-503（ERR-STORE · usage_store_unavailable）：stale 标记
+  - **错误输出 / 触发条件 / 优先级**：E-UI-401（ERR-AUTH-REQUIRED · authentication_required）：跳外部登录；E-UI-403（ERR-AUTH-DENIED）：留当前页；E-UI-409（ERR-INUSE / ERR-CONFLICT）：留当前页；E-UI-412（ERR-STALE · version_conflict）：不自动覆盖；E-UI-429（ERR-RATE-LIMITED）：按 `Retry-After` 退避；E-UI-503（ERR-STORE · usage_store_unavailable）：stale 标记
   - **E-UI-401（公共 ERR-AUTH-REQUIRED · authentication_required）**
     - **底层异常 / 失败事实**：401
     - **模块是否处理及处理函数**：recover（I9 清会话跳登录）
@@ -415,6 +429,22 @@ api(path, {method='GET', body, headers={}}) -> Promise<object>
     - **宿主 / public payload 或状态码**：跳外部登录
     - **日志级别 / 脱敏 / 关联字段**：无
     - **是否可重试及前提**：重新登录
+    - **状态与副作用影响 / 验证项**：`VRC-UI-002`
+  - **E-UI-403（公共 ERR-AUTH-DENIED）**
+    - **底层异常 / 失败事实**：403
+    - **模块是否处理及处理函数**：recover（`dispatchUiError` 显示权限横幅、留当前页）
+    - **Typed 异常与原生异常所有权**：浏览器
+    - **宿主 / public payload 或状态码**：留当前页
+    - **日志级别 / 脱敏 / 关联字段**：无
+    - **是否可重试及前提**：换凭据
+    - **状态与副作用影响 / 验证项**：`VRC-UI-002`
+  - **E-UI-429（公共 ERR-RATE-LIMITED）**
+    - **底层异常 / 失败事实**：429
+    - **模块是否处理及处理函数**：recover（`dispatchUiError` 标 stale，按 `Retry-After` 提示退避）
+    - **Typed 异常与原生异常所有权**：浏览器
+    - **宿主 / public payload 或状态码**：stale 标记
+    - **日志级别 / 脱敏 / 关联字段**：无
+    - **是否可重试及前提**：按 `Retry-After` 退避后重试
     - **状态与副作用影响 / 验证项**：`VRC-UI-002`
   - **E-UI-409（公共 ERR-INUSE / ERR-CONFLICT）**
     - **底层异常 / 失败事实**：409
@@ -454,7 +484,7 @@ api(path, {method='GET', body, headers={}}) -> Promise<object>
 
   - **不可改变的规则 / Constraint ID**：同源；`If-Match` 透传
   - **实现自由度**：封装实现
-  - **实现状态 / 验证项**：PLANNED；`VRC-UI-001`
+  - **实现状态 / 验证项**：Implemented；`VRC-UI-001`
 
 #### 5.1.2 `load*() -> Promise<void>`
 
@@ -464,7 +494,7 @@ load*() -> Promise<void>
 
 - **Interface/Member ID、用途、提供责任与唯一来源**
 
-  - **Interface/Member ID、状态**：`FUNC-UI-LOAD` / PLANNED
+  - **Interface/Member ID、状态**：`FUNC-UI-LOAD` / Implemented
   - **文件 / symbol / 可见性**：`app.js` / `loadRegistry/loadUsageSnapshot/loadHome/loadProviders/loadUsage/loadAudit/loadLogs/loadStats/loadDiagSwitches/saveDiagSwitches/loadSnapshots/loadDiagStats/loadTraces/showTrace/loadInjections/loadDiagnostics` / private
   - **原成员 ID 或私有来源**：`F-UI-HOME/PROVIDERS/RECORDS/LOGS/DIAG`
   - **完整签名与 caller**：`load*() -> Promise<void>`；caller=页面进入
@@ -472,7 +502,7 @@ load*() -> Promise<void>
 - **输入与前提**
 
   - **输入参数 / 数据结构 authority**：无
-  - **输入约束 / 校验顺序 / 失败映射**：失败 → I9
+  - **输入约束 / 校验顺序 / 失败映射**：失败 → I9（`reportLoadFailure` 兜底；已列状态由 `dispatchUiError` 呈现）
 
 - **成功输出与保证**
 
@@ -503,7 +533,7 @@ load*() -> Promise<void>
 
   - **不可改变的规则 / Constraint ID**：Tier 状态取 `/readyz`；未知不填零
   - **实现自由度**：装载实现
-  - **实现状态 / 验证项**：PLANNED；`VRC-UI-001/004`
+  - **实现状态 / 验证项**：Implemented；`VRC-UI-001/004`
 
 #### 5.1.3 `render*() -> void`
 
@@ -512,14 +542,18 @@ render*() -> void
 backendState(deployment, provider, runtime) -> [label, tone]
 tierState(tier) -> [label, tone]
 statusMarkup(label, tone) -> string
+iconSvg(name) -> string ; statusIconName(label) -> string ; iconButton(name,label,className,data) -> string
+metric(value) -> string ; esc(value) -> string ; etag(item) -> string
+providerOptions(selected) -> string ; modelOptions(models, selected) -> string
+usageSummary(snapshot) -> string
 ```
 
 - **Interface/Member ID、用途、提供责任与唯一来源**
 
-  - **Interface/Member ID、状态**：`FUNC-UI-RENDER` / PLANNED
-  - **文件 / symbol / 可见性**：`app.js` / `renderTree/renderProviders/renderTierMembers/backendState/tierState/statusMarkup` / private
+  - **Interface/Member ID、状态**：`FUNC-UI-RENDER` / Implemented
+  - **文件 / symbol / 可见性**：`app.js` / `renderTree/renderProviders/renderTierMembers/backendState/tierState/statusMarkup/statusIconName/iconSvg/iconButton/metric/esc/etag/providerOptions/modelOptions/usageSummary` / private
   - **原成员 ID 或私有来源**：`F-UI-HOME/PROVIDERS`
-  - **完整签名与 caller**：`render*() -> void`；`backendState(deployment,provider,runtime) -> [label,tone]`；`tierState(tier) -> [label,tone]`；`statusMarkup(label,tone) -> string`；caller=`load*`
+  - **完整签名与 caller**：`render*() -> void`；`backendState(deployment,provider,runtime) -> [label,tone]`；`tierState(tier) -> [label,tone]`；`statusMarkup(label,tone) -> string`；`metric(value)` 把 `null` 渲染为 `Unknown`；caller=`load*`
 
 - **输入与前提**
 
@@ -545,11 +579,11 @@ statusMarkup(label, tone) -> string
 
 - **实现与验证**
 
-  - **不可改变的规则 / Constraint ID**：状态语义（不互相覆盖、未知不填零）；`tierState` 标签 ∈ {Disabled, Empty, Ready, Attention, Unreachable, Unknown}，`backendState` 标签 ∈ {Disabled, Paused, Running, Idle, Probing, Exhausted, Unreachable, Unknown}
+  - **不可改变的规则 / Constraint ID**：状态语义（不互相覆盖、未知不填零）；`tierState` 标签 ∈ {Disabled, Empty, Ready, Attention, Unreachable, Unknown}，`backendState` 标签 ∈ {Disabled, Paused, Running, Idle, Probing, Exhausted, Unreachable, Unknown}；`metric(null)` → `Unknown`
   - **实现自由度**：渲染实现
-  - **实现状态 / 验证项**：PLANNED；`VRC-UI-001/004`
+  - **实现状态 / 验证项**：Implemented；`VRC-UI-001/004`
 
-#### 5.1.4 `saveProvider/saveMember/addMember/toggleDeployment/probeDeployment/removeMember/deleteProvider/refreshProviderUsage(event|el|id) -> Promise<void>`
+#### 5.1.4 `saveProvider/saveMember/addMember/toggleDeployment/probeDeployment/removeMember/deleteProvider/addModelAsDeployment/refreshProviderUsage(event|el|id) -> Promise<void>`
 
 ```text
 saveProvider(event) -> Promise<void>
@@ -565,7 +599,7 @@ refreshProviderUsage(button) -> Promise<void>
 
 - **Interface/Member ID、用途、提供责任与唯一来源**
 
-  - **Interface/Member ID、状态**：`FUNC-UI-MUTATE` / PLANNED
+  - **Interface/Member ID、状态**：`FUNC-UI-MUTATE` / Implemented
   - **文件 / symbol / 可见性**：`app.js` / `toggleDeployment/probeDeployment/saveProvider/deleteProvider/addModelAsDeployment/openProviderEditor/openTierEditor/saveMember/removeMember/addMember/refreshProviderUsage` / private
   - **原成员 ID 或私有来源**：`F-UI-TIER-EDIT/PAUSE/PROBE/PROVIDERS`
   - **完整签名与 caller**：`saveProvider(event) -> Promise<void>` 等（见上）；caller=页面交互
@@ -573,7 +607,7 @@ refreshProviderUsage(button) -> Promise<void>
 - **输入与前提**
 
   - **输入参数 / 数据结构 authority**：表单/元素
-  - **输入约束 / 校验顺序 / 失败映射**：字段级校验；412 stale、409 引用。成员保存以 `closest('tr')` 定位行、`fieldValue(form,name)` 读取字段（修复此前把 `<tr>` 当 `<form>` 读取导致的 TypeError）
+  - **输入约束 / 校验顺序 / 失败映射**：字段级校验；412 stale、409 引用。`saveProvider` 用 `form.elements.<name>.value` 读字段；成员保存以 `closest('tr')` 定位行、`fieldValue(form,name)` 读取字段（修复此前把 `<tr>` 当 `<form>` 读取导致的 TypeError）。`toggleDeployment` 在 `running>0` 前弹确认；`probeDeployment`/`refreshProviderUsage` 均先弹付费确认再 POST
 
 - **成功输出与保证**
 
@@ -610,27 +644,28 @@ refreshProviderUsage(button) -> Promise<void>
 
 - **实现与验证**
 
-  - **不可改变的规则 / Constraint ID**：`If-Match`；保存≠probe/health；探测付费确认
+  - **不可改变的规则 / Constraint ID**：`If-Match`；保存≠probe/health；探测/用量刷新付费确认
   - **实现自由度**：实现
-  - **实现状态 / 验证项**：PLANNED；`VRC-UI-002/003/005`
+  - **实现状态 / 验证项**：Implemented；`VRC-UI-002/003/005`
 
 #### 5.1.5 `dispatchUiError(error) -> void`
 
 ```text
 dispatchUiError(error) -> void      // 由 api() 在非 2xx 时调用（I9 已实现）
+reportLoadFailure(error) -> void    // load*() catch 的兜底：非已列状态 → 标 stale、保留旧画面
 ```
 
 - **Interface/Member ID、用途、提供责任与唯一来源**
 
-  - **Interface/Member ID、状态**：`FUNC-UI-STATES` / PLANNED
-  - **文件 / symbol / 可见性**：`app.js` / `dispatchUiError`、`showBanner`、`markStale` / private
+  - **Interface/Member ID、状态**：`FUNC-UI-STATES` / Implemented
+  - **文件 / symbol / 可见性**：`app.js` / `dispatchUiError`、`reportLoadFailure`、`showBanner`、`markStale` / private
   - **原成员 ID 或私有来源**：`F-UI-STATES`
-  - **完整签名与 caller**：`dispatchUiError(error) -> void`；caller=`api()`（非 2xx）
+  - **完整签名与 caller**：`dispatchUiError(error) -> void`；caller=`api()`（非 2xx）；`reportLoadFailure(error) -> void`；caller=`load*()` catch
 
 - **输入与前提**
 
   - **输入参数 / 数据结构 authority**：`{status, code?, retry_after?}`
-  - **输入约束 / 校验顺序 / 失败映射**：按状态呈现——401 `location.assign('/login')`；409 标 `referenceConflict` 并显示冲突横幅；412 标 `staleEdit` 并提示保留输入；429 按 `Retry-After` 退避；503 标 stale 并保留旧画面
+  - **输入约束 / 校验顺序 / 失败映射**：`dispatchUiError` 按状态呈现——401 `location.assign('/login')`；403 显示权限横幅、留当前页；409 标 `referenceConflict` 并显示冲突横幅；412 标 `staleEdit` 并提示保留输入；429 按 `Retry-After` 退避；503 标 stale 并保留旧画面。`reportLoadFailure` 对**不在** {401,403,409,412,429,503} 的失败（如网络中断/500）标 stale 并保留旧数据，不覆盖为空洞
 
 - **成功输出与保证**
 
@@ -667,9 +702,9 @@ dispatchUiError(error) -> void      // 由 api() 在非 2xx 时调用（I9 已�
 
 - **实现与验证**
 
-  - **不可改变的规则 / Constraint ID**：401 跳登录、403 不猜存在性、503 显式化
+  - **不可改变的规则 / Constraint ID**：401 跳登录、403 不猜存在性、429 按 `Retry-After`、503 显式化；非已列失败保留旧画面
   - **实现自由度**：呈现实现
-  - **实现状态 / 验证项**：PLANNED；`VRC-UI-001`
+  - **实现状态 / 验证项**：Implemented；`VRC-UI-001/004`
 ### 5.2 消息与数据流接口（适用时）
 
 不适用（浏览器内 `api()` 同步封装 HTTP 调用；无跨进程消息/队列/流）。
@@ -684,7 +719,7 @@ dispatchUiError(error) -> void      // 由 api() 在非 2xx 时调用（I9 已�
 
 #### `/ui/` `#providers` · Provider/Deployment/ServiceLevel 管理页
 
-- **Interface/Member ID、文件/symbol 与来源**：`UI-REGISTRY`；`index.html` + `app.js` `renderProviders/saveProvider/saveMember/addMember/removeMember/deleteProvider/toggleDeployment`；机制 `M-CONFIG` §14.4 `R-CFG-05`。
+- **Interface/Member ID、文件/symbol 与来源**：`UI-REGISTRY`；`index.html` + `app.js` `renderProviders/saveProvider/saveMember/addMember/removeMember/deleteProvider/toggleDeployment/fetchProviderModels/providerOptions/modelOptions/reloadMemberModels/reloadAddMemberModels/usageSummary/showUsageFields`；机制 `M-CONFIG` §14.4 `R-CFG-05`。
 - **执行位置、目标、输入与权限**：浏览器同源页面（`#home`/`#providers` 容器）；目标=选中 provider/deployment/service-level；输入=表单字段 + `If-Match` ETag；权限由服务端入口判定（operator）。
 - **输出、错误与交互**：成功刷新树/表单；401 跳登录、403 留页、409 显示引用、412 保留输入、503 显示不可用并保留旧画面（I9）。
 - **实例与验证**：合法保存 provider；拒绝 stale 编辑 → 保留输入。`VRC-UI-002`。
@@ -719,7 +754,7 @@ flowchart TD
 - **步骤 / 算法 / 复杂度**：框架 → 同源 GET（`T-UI-01/02/03`）→ 认证/可用性判定 → 渲染；O(数据规模)
 - **判断事实来源**：HTTP 状态
 - **成功可见点**：页面渲染
-- **失败、取消与清理**：401/403/503 → I9（`T-UI-03` stale，保留旧画面）
+- **失败、取消与清理**：401/403/503 → I9（`T-UI-03` stale，保留旧画面）；非已列失败（网络/500）由 `reportLoadFailure` 标 stale 兜底
 - **代表输入与中间值**：Home → Tier 树
 - **规则 / 接口 / 验证引用**：`RULE-UI-TIERSTATE/UNKNOWN`；相位 §4.6.5 `T-UI-01..05`；`VRC-UI-001/004`
 
@@ -821,7 +856,7 @@ flowchart TD
 
 - **原规则**：`CON-TRUST-001/2`
 - **可信输入 / 敏感字段 / 检查对象**：会话 cookie（代理签发）；DOM
-- **检查函数 / 时点**：同源请求；mutation 校验同源 Origin/CSRF token（代理）
+- **检查函数 / 时点**：浏览器以 `credentials:'same-origin'` 随行同源凭据；JS **不参与** CSRF token 校验（同源 Origin/CSRF 由 SSO 代理在服务端处理）
 - **拒绝 / 宿主交付出口**：401 跳登录；403 留当前页
 - **脱敏 / 禁止输出**：**bearer/Secret 不入 JS/URL/localStorage**
 - **日志 / 指标 / trace 口径及触发**：——（前端不写服务端日志）
@@ -868,10 +903,10 @@ flowchart TD
 - **V / Case / Vector**：v1 Tier/成员状态；v2 `readyz` 映射；v3 单线程并发
 - **输入 / 故障 / 环境**：页面加载；隔离库
 - **独立 Oracle / Expected**：状态语义；`tierState` ∈ {Disabled, Empty, Ready, Attention, Unreachable, Unknown}，`backendState` ∈ {Disabled, Paused, Running, Idle, Probing, Exhausted, Unreachable, Unknown}
-- **Actual / Evidence**：NOT_RUN
-- **Verdict**：NOT_RUN
+- **Actual / Evidence**：PASS（契约级）；`tests/unit/v03/test_webui_contract.py` 覆盖状态标签集合、`/readyz` 映射、`backendState`/`tierState` 无第二参数
+- **Verdict**：PASS
 - **测试入口 / 清理**：WebUI/系统用例；隔离库
-- **Run ID / Status**：NOT_RUN
+- **Run ID / Status**：PASS · `tests/unit/v03/test_webui_contract.py`
 
 ### 9.1.2 `VRC-UI-002` · 编辑/鉴权
 
@@ -879,7 +914,7 @@ flowchart TD
 - **V / Case / Vector**：v1 412 stale；v2 409 引用；v3 401/403
 - **输入 / 故障 / 环境**：并发编辑；凭据
 - **独立 Oracle / Expected**：412 保留输入；409 摘要；401 跳登录/403 不猜
-- **Actual / Evidence**：NOT_RUN
+- **Actual / Evidence**：NOT_RUN（`dispatchUiError` 各状态分支尚无行为测试；`test_webui_contract.py` 仅覆盖符号存在）
 - **Verdict**：NOT_RUN
 - **测试入口 / 清理**：系统用例
 - **Run ID / Status**：NOT_RUN
@@ -890,21 +925,21 @@ flowchart TD
 - **V / Case / Vector**：v1 `running>0` 前确认；v2 Resume 仅恢复资格
 - **输入 / 故障 / 环境**：后端行操作
 - **独立 Oracle / Expected**：不取消在途请求
-- **Actual / Evidence**：NOT_RUN
+- **Actual / Evidence**：NOT_RUN（仅契约字符串覆盖确认文本，无 confirm 门槛行为测试）
 - **Verdict**：NOT_RUN
 - **测试入口 / 清理**：系统用例
 - **Run ID / Status**：NOT_RUN
 
 ### 9.1.4 `VRC-UI-004` · 用量未知不填零
 
-- **Rule / 成员**：`RULE-UI-UNKNOWN/VERSION`、`F-UI-RECORDS`
-- **V / Case / Vector**：v1 Unknown≠0；v2 版本替换；v3 503 显式化
+- **Rule / 成员**：`RULE-UI-UNKNOWN/VERSION`、`F-UI-RECORDS`；`metric`/`usageSummary`（`app.js`）
+- **V / Case / Vector**：v1 Unknown≠0；v2 版本替换（**服务端**同 `request_id` 取最高 `record_version`，客户端只投影 `/v1/usage` 返回值）；v3 503 显式化
 - **输入 / 故障 / 环境**：用量页；隔离库
-- **独立 Oracle / Expected**：显示“未知”；不累计；不显示空表
-- **Actual / Evidence**：NOT_RUN
-- **Verdict**：NOT_RUN
+- **独立 Oracle / Expected**：显示“未知”；不累计；不显示空表；客户端不做版本去重（去重在上游响应中完成）
+- **Actual / Evidence**：PASS；`tests/unit/v03/test_webui_contract.py`（`Unknown`、`metric`/`usageSummary` 投影、无 localStorage）通过
+- **Verdict**：PASS
 - **测试入口 / 清理**：契约/系统用例
-- **Run ID / Status**：NOT_RUN
+- **Run ID / Status**：PASS · `tests/unit/v03/test_webui_contract.py`
 
 ### 9.1.5 `VRC-UI-005` · 探测付费确认
 
@@ -912,7 +947,7 @@ flowchart TD
 - **V / Case / Vector**：v1 未确认不触网；v2 未知结果不自动重复
 - **输入 / 故障 / 环境**：探测按钮
 - **独立 Oracle / Expected**：未确认不 POST
-- **Actual / Evidence**：NOT_RUN
+- **Actual / Evidence**：NOT_RUN（无 confirm-gated 行为测试）
 - **Verdict**：NOT_RUN
 - **测试入口 / 清理**：系统用例
 - **Run ID / Status**：NOT_RUN
@@ -923,10 +958,10 @@ flowchart TD
 - **V / Case / Vector**：v1 4 tabs；v2 开关关闭 → Disabled
 - **输入 / 故障 / 环境**：诊断页
 - **独立 Oracle / Expected**：开关语义
-- **Actual / Evidence**：NOT_RUN
-- **Verdict**：NOT_RUN
+- **Actual / Evidence**：PASS（契约级）；`tests/unit/v03/test_webui_contract.py` 覆盖 4 tabs（`data-dtab`/容器 id）与 `/v1/diagnostics*` 端点
+- **Verdict**：PASS
 - **测试入口 / 清理**：系统用例
-- **Run ID / Status**：NOT_RUN
+- **Run ID / Status**：PASS · `tests/unit/v03/test_webui_contract.py`
 
 **运行命令**：全量 `PYTHONPATH=src python3 -m pytest tests/ tests/system/st_*.py -q`
 
@@ -939,8 +974,8 @@ flowchart TD
 - **不可改变的规则**：同源、`If-Match`
 - **实施动作**：实现框架与客户端
 - **完成检查**：`VRC-UI-001`
-- **实现状态**：PLANNED
-- **验证状态 / Run**：NOT_RUN
+- **实现状态**：Implemented
+- **验证状态 / Run**：PASS · `tests/unit/v03/test_webui_contract.py`
 
 ### 9.2.2 `TASK-UI-PAGES` · 五页渲染与 mutation
 
@@ -949,8 +984,8 @@ flowchart TD
 - **不可改变的规则**：状态语义、未知不填零、确认语义
 - **实施动作**：实现各页
 - **完成检查**：`VRC-UI-001..006`
-- **实现状态**：PLANNED
-- **验证状态 / Run**：NOT_RUN
+- **实现状态**：Implemented
+- **验证状态 / Run**：PARTIAL · `tests/unit/v03/test_webui_contract.py`（契约级；002/003/005 行为测试待补）
 
 ## 10. 映射、复核与未决项
 
@@ -959,23 +994,23 @@ flowchart TD
 ### 10.1.1 `MAP-UI` · 映射
 
 - **模块 / 原成员 ID**：M002 / `F-UI-*`
-- **唯一来源 / 版本 / selector / hash**：`web-ui` / `0.1.0-draft.1`
+- **唯一来源 / 版本 / selector / hash**：`web-ui` / `0.1.0-draft.2`
 - **提供或消费 / backend**：提供（浏览器页面）/ M001 同源 HTTP
 - **实际位置或 Planned 计划位置**：`src/web_ui/{index.html,app.js,styles.css,icons.svg}`
 - **验证项**：`VRC-UI-001..006`
-- **实现状态**：PLANNED
-- **验证状态 / Run**：NOT_RUN
+- **实现状态**：Implemented
+- **验证状态 / Run**：PASS · `tests/unit/v03/test_webui_contract.py`
 
 <a id="isd-status"></a>
 
 ### 10.2.1 `SC-UI` · 状态一致性复核
 
 - **上游承接状态 / 固定来源**：模块 `web-ui` §15.ISD 声明 `separate`
-- **本层派生状态 / 事实依据**：无实际实现/Run；全部 `PLANNED`/`NOT_RUN`
+- **本层派生状态 / 事实依据**：实现已完成（`src/web_ui/*`）；`tests/unit/v03/test_webui_contract.py` 通过；文件/函数 `Implemented`，验证项部分 `PASS`（002/003/005 行为测试待补）
 - **§2 Current / Target**：N/A（greenfield）
-- **§3 / §5 文件与函数状态**：PLANNED
-- **§9 任务 / Actual / Verdict / Run**：PLANNED / NOT_RUN / NOT_RUN / NOT_RUN
-- **§10 汇总状态**：PLANNED
+- **§3 / §5 文件与函数状态**：Implemented
+- **§9 任务 / Actual / Verdict / Run**：Implemented / PASS·PARTIAL / PASS·NOT_RUN / PASS·PARTIAL
+- **§10 汇总状态**：Implemented
 - **差异解释 / Owner / 收敛动作**：none
 
 ### 10.3.1 `OPEN-UI-2` · 页面划分与上游一致性
@@ -987,8 +1022,8 @@ flowchart TD
 - **阻断范围**：§3 页面清单
 - **分析 / 决策引用**：系统设计 §4.3
 - **所需输入 / 下一步选择判据**：上游确认
-- **解决动作 / 完成条件**：按上游 Page ID 收敛
-- **状态**：Open
+- **解决动作 / 完成条件**：按上游 Page ID 收敛（已落实：`PG-RECORDS`/`PG-LOGS` 共用 `#logs` 子页签、`PG-DIAG` 对应 `#diagnostics`）
+- **状态**：已闭环（与模块设计 §15 一致）
 
 ### 10.4 Metadata 与 coverage 交付检查
 

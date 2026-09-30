@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `http-api-isd` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Document Owner | LLMTier |
-| Last Modified Date | `2026-09-25` |
+| Last Modified Date | `2026-09-30` |
 | Template ID | `design.implementation` |
 | Template Version | `1.2.2` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -73,12 +73,18 @@
 
 ```text
 app.py
+ ├─ _int_param(query, key, default) -> int   # 模块级；非整数 → 400 invalid_request
+ ├─ _UnavailableDiagnostics                  # F-OBS-4；DiagnosticsService 初始化失败降级为 no-op observer
  ├─ Application（装配 Store/Registry/Router/Usage/... + Handler）
  ├─ handler_factory(app) -> Handler
+ │    ├─ log_message()    # 经 app.logs 记录请求行
  │    ├─ _run()           # request_id + 统一错误出口 + finally close
- │    ├─ _dispatch()      # 路由
+ │    ├─ _dispatch()      # 路由；含 /v1/* 与 /tier/admin/v1/* 契约别名
+ │    ├─ _store_read(fn,*a,**kw)  # 读路径异常 → 503 usage_store_unavailable
+ │    ├─ _correlation()   # X-Correlation-ID / traceparent 解析
  │    ├─ _auth(role)/_auth_either()
  │    ├─ _body()/_json()/_static()
+ │    ├─ _optional_boolean(body,key)  # 非 bool → 400 invalid_request
  │    └─ do_GET/do_POST/do_PATCH/do_DELETE = _run
  └─ serve(host, port, database, settings)
 auth.py     # Principal / authenticate / authenticate_any / unauthenticated_principal
@@ -88,14 +94,16 @@ health.py   # health_view / readiness_view
 src/web_ui/  # 静态资源（M002 产物）
 ```
 
+> **契约别名命名空间**：除扁平 `/v1/*` 外，`_dispatch` 末尾并存 `llmtier-management-contract-v0.3` 的契约层别名 `/tier/admin/v1/*`（诊断子集：`diagnostics`、`diagnostics/snapshots|stats|traces`、`deployments/{id}/diagnostics`、`trace/{id}`），与对应 `/v1/*` 路由逐字等价（同 `app.diagnostics.*` 实现、同 `_store_read` 503 映射）；权威见模块设计 §9 `IF-API-CONTRACT-ALIAS`。
+
 ### 3.1 `app.py` · `Application` / `Handler`
 
 - **职责及调用者**：路由、信任分发、body 限长、SSE、静态、健康、错误信封；caller=HTTP 客户端
-- **类型 / 函数**：`Application`、`handler_factory`、`Handler._run/_dispatch/_auth/_auth_either/_body/_json/_static`、`serve`
+- **类型 / 函数**：`Application`、`handler_factory`、`_int_param`、`_UnavailableDiagnostics`、`Handler.log_message/_run/_dispatch/_auth/_auth_either/_body/_json/_static/_store_read/_correlation/_optional_boolean`、`serve`
 - **可见性**：public（进程入口）
 - **调用与类型依赖**：依赖 M003/M004/M005 服务；`auth`/`errors`/`sse`/`health`
 - **构建目标 / 生成源 / 输出**：进程入口
-- **实现状态**：PLANNED
+- **实现状态**：Implemented
 
 ### 3.2 `auth.py` · 信任判定
 
@@ -104,7 +112,7 @@ src/web_ui/  # 静态资源（M002 产物）
 - **可见性**：private
 - **调用与类型依赖**：标准库 `hmac`/`ipaddress`
 - **构建目标 / 生成源 / 输出**：随包
-- **实现状态**：PLANNED
+- **实现状态**：Implemented
 
 ### 3.3 `errors.py` / `sse.py` / `health.py`
 
@@ -113,7 +121,7 @@ src/web_ui/  # 静态资源（M002 产物）
 - **可见性**：private
 - **调用与类型依赖**：标准库
 - **构建目标 / 生成源 / 输出**：随包
-- **实现状态**：PLANNED
+- **实现状态**：Implemented
 
 ## 4. 数据结构设计
 
@@ -140,7 +148,7 @@ Principal {
 
 - **`principal_id`**（必填、非空、不可空）
 
-  `str`，长度 ≤128；来源为凭据解析结果：免登录为 `trusted-lan-consumer`/`trusted-lan-operator`（`LLMTIER_DEV_MODE=1` 回环时 `loopback-consumer`/`loopback-operator`），Bearer 为 `X-Principal-ID` 或回退 `consumer`/`operator`；`local` 从不出现。一次请求内恒定；不落库、不落日志。
+  `str`，长度 ≤128；来源为凭据解析结果：免登录为 `trusted-lan-consumer`/`trusted-lan-operator`（`LLMTIER_DEV_MODE=1` 回环时 `loopback-consumer`/`loopback-operator`），Bearer 为 `X-Principal-ID` 或回退 `consumer`/`operator`；`local` 从不出现。超长值由代码**截断** `principal[:128]`（而非拒绝）。一次请求内恒定；不落库、不落日志。
 
 - **`role`**（必填、两值约定）
 
@@ -176,7 +184,7 @@ SseFrame {
 
 - **`event`**（必填、枚举）
 
-  `<name>\n`，取值 `response.created`/`response.output_text.delta`/…/`response.completed`；帧序固定，`sequence_number` 单调。
+  `<name>\n`，取值 `response.created`/`response.output_text.delta`/…；terminal 事件名**动态**为 `response.<status>`（权威=OpenAPI `ResponseTerminalEvent`，如 `response.completed`、`response.incomplete`）。`created` 恒为首帧、terminal 恒为末帧；`sequence_number` 单调。
 
 - **`data`**（必填）
 
@@ -241,7 +249,7 @@ Handler._run() / Handler._dispatch()   # 控制流阶段：RECEIVED→ROUTED→H
 |---|---|---|---|---|---|---|
 | `T-API-01` | RECEIVED → ROUTED | `_dispatch` 命中路由 | `RULE-API-ROUTE` 路由表 | `Handler._dispatch` 路径/方法分类命中已知路由 | 未命中 → `T-API-03` | `VRC-API-001` |
 | `T-API-02` | ROUTED → HANDLED | 业务处理器正常返回 | 处理器结果或 `ApiError` | `_dispatch` 业务分支 `ResponsesService.create`/`Registry.*` 返回后 | 抛 `ApiError` → `T-API-03` | `VRC-API-002/003` |
-| `T-API-03` | RECEIVED/ROUTED → ERRORED | `ApiError` 或未知异常 | `ApiError` 实例；`_run` 的 `except Exception` | `Handler._run` 捕获 → `ApiError.envelope()` 写错误响应 | 未知异常记 `unhandled_error` 后 500 | `VRC-API-001` |
+| `T-API-03` | RECEIVED/ROUTED → ERRORED | `ApiError` / `sqlite3.Error` / 未知异常 | `ApiError` 实例；`_run` 的 `except sqlite3.Error` 与 `except Exception` | `Handler._run` 捕获 → `ApiError.envelope()` 写错误响应；读路径另经 `_store_read` 映射 | `sqlite3.Error` → 记 `store_error` 后 503 `usage_store_unavailable`；未知异常记 `unhandled_error` 后 500 | `VRC-API-001` |
 | `T-API-04` | HANDLED → STREAMING | `stream=true` 且首帧写出 | M003 `response_stream` 产出首帧 | `/v1/responses` 分支：发 SSE 头 + `sse.frame` 首帧 `flush` | 写失败 → `T-API-07` | `VRC-API-003` |
 | `T-API-05` | HANDLED → COMPLETED | 同步响应体写出成功 | 业务结果已序列化 | `Handler._json`/`_static` 写响应体后 | 写失败 → `T-API-07` | `VRC-API-001` |
 | `T-API-06` | STREAMING → COMPLETED | terminal 帧与 `[DONE]` flush 完成 | M003 terminal（`response.completed` 等） | `_dispatch` SSE 循环遇 `response_stream` 终态后 | 迟到帧被同连接丢弃 | `VRC-API-003` |
@@ -306,7 +314,8 @@ envelope() -> {"error": {message, type, code, param, retryable} + extra}
 |---|---|---|---|
 | `E-API-404` | 路由未命中 | `ERR-NOTFOUND` | 修路径 |
 | `E-API-AUTH` | 缺配置 / 缺凭据 / 角色不足 | `ERR-AUTH-NOCFG` / `ERR-AUTH-REQUIRED` / `ERR-AUTH-DENIED` | 修凭据 / 配置 |
-| `E-API-BODY` | body 超 2 MB / 非法 JSON / 非 JSON 对象 | `ERR-REQ-TOO-LARGE` / `ERR-REQ-JSON` | 修 body |
+| `E-API-BODY` | body 超 2 MB / 非法 JSON / 非 JSON 对象 / Content-Length 非整数 / 字段类型非法 | `ERR-REQ-TOO-LARGE` / `ERR-REQ-JSON` / `ERR-REQ-INVALID` | 修 body |
+| `E-API-STORE` | 读路径异常 / `sqlite3.Error`（`_store_read`、`_run` 的 `except sqlite3.Error`） | `ERR-STORE` | 稍后重试 |
 | `E-API-INTERNAL` | 未捕获异常 | `ERR-INTERNAL` | 上报 / 核对权威状态 |
 
 ## 5. 接口设计
@@ -325,7 +334,7 @@ _dispatch(self) -> None
 
 - **Interface/Member ID、用途、提供责任与唯一来源**
 
-  - **Interface/Member ID、状态**：`FUNC-API-DISPATCH` / PLANNED
+  - **Interface/Member ID、状态**：`FUNC-API-DISPATCH` / Implemented
   - **文件 / symbol / 可见性**：`app.py` / `Handler._dispatch` / private
   - **原成员 ID 或私有来源**：`F-API-DISPATCH`
   - **完整签名与 caller**：`_dispatch(self) -> None`；caller=`_run`
@@ -333,15 +342,16 @@ _dispatch(self) -> None
 - **输入与前提**
 
   - **输入参数 / 数据结构 authority**：`self.path/command/headers`
-  - **输入约束 / 校验顺序 / 失败映射**：健康/静态优先 → `bootstrap_error` 拦截 → 业务路由；未知 → `E-API-404`
+  - **输入约束 / 校验顺序 / 失败映射**：健康/静态优先（`/healthz`、`/readyz`、`/ui/*` 在 `bootstrap_error` 拦截**之前**处理）→ `bootstrap_error` 拦截（`/readyz` 经其返回 503 `not_ready`；其余路径抛出该 `ApiError`）→ 鉴权 → 业务路由；未知 → `E-API-404`
 
 - **成功输出与保证**
 
   - **成功输出 / 数据结构 / 后置条件**：写响应；调用业务服务
+  - **端点差异（原子性/成功码）**：`/v1/usage` DELETE 成功返回 200 + 删除计数（非 204）；`/v1/providers/{id}/usage` POST 以 `atomic=False` 执行（外部调用不纳入管理事务）；CRUD POST 返回 201 + `ETag`、DELETE 返回 204。
 
 - **错误与合法下一步**
 
-  - **错误输出 / 触发条件 / 优先级**：E-API-404（ERR-NOTFOUND · not_found）：404 `not_found`；E-API-INTERNAL（ERR-INTERNAL · internal_error）：500 `internal_error`
+  - **错误输出 / 触发条件 / 优先级**：E-API-404（ERR-NOTFOUND · not_found）：404 `not_found`；E-API-BODY（ERR-REQ-INVALID · invalid_request）：400 `invalid_request`（`Content-Length` 非整数、`_int_param` 非整数、`_optional_boolean` 非 bool）；E-API-STORE（ERR-STORE · usage_store_unavailable）：503 `usage_store_unavailable`（`_store_read` 读路径）；E-API-INTERNAL（ERR-INTERNAL · internal_error）：500 `internal_error`
   - **E-API-404（公共 ERR-NOTFOUND · not_found）**
     - **底层异常 / 失败事实**：路由未命中
     - **模块是否处理及处理函数**：reject（`_dispatch` 抛 `ApiError`）
@@ -349,6 +359,22 @@ _dispatch(self) -> None
     - **宿主 / public payload 或状态码**：404 `not_found`
     - **日志级别 / 脱敏 / 关联字段**：无
     - **是否可重试及前提**：修路径
+    - **状态与副作用影响 / 验证项**：`VRC-API-001`
+  - **E-API-BODY（公共 ERR-REQ-INVALID · invalid_request）**
+    - **底层异常 / 失败事实**：`Content-Length` 非整数 / 查询参数非整数 / 布尔字段非 bool
+    - **模块是否处理及处理函数**：reject（`_int_param`、`_optional_boolean`、`_body`）
+    - **Typed 异常与原生异常所有权**：`ApiError(400)`；`_run` 捕获 → 信封
+    - **宿主 / public payload 或状态码**：400 `invalid_request`
+    - **日志级别 / 脱敏 / 关联字段**：无
+    - **是否可重试及前提**：修参数
+    - **状态与副作用影响 / 验证项**：`VRC-API-001/003`
+  - **E-API-STORE（公共 ERR-STORE · usage_store_unavailable）**
+    - **底层异常 / 失败事实**：读路径异常（`_store_read`）/ `sqlite3.Error` 逃逸至 `_run`
+    - **模块是否处理及处理函数**：recover（`_store_read` 与 `_run` 的 `except sqlite3.Error` 记 `store_error`）
+    - **Typed 异常与原生异常所有权**：`ApiError(503)`；读路径由 `_store_read` 包装
+    - **宿主 / public payload 或状态码**：503 `usage_store_unavailable`
+    - **日志级别 / 脱敏 / 关联字段**：error（`store_error`，脱敏）
+    - **是否可重试及前提**：稍后重试
     - **状态与副作用影响 / 验证项**：`VRC-API-001`
   - **E-API-INTERNAL（公共 ERR-INTERNAL · internal_error）**
     - **底层异常 / 失败事实**：未捕获异常
@@ -372,7 +398,7 @@ _dispatch(self) -> None
 
   - **不可改变的规则 / Constraint ID**：路由优先级
   - **实现自由度**：路由表实现
-  - **实现状态 / 验证项**：PLANNED；`VRC-API-001`
+  - **实现状态 / 验证项**：Implemented；`VRC-API-001`
 
 #### 5.1.2 `_auth(role="data") -> Principal`
 
@@ -383,7 +409,7 @@ _auth_either() -> (Principal,bool)
 
 - **Interface/Member ID、用途、提供责任与唯一来源**
 
-  - **Interface/Member ID、状态**：`FUNC-API-AUTH` / PLANNED
+  - **Interface/Member ID、状态**：`FUNC-API-AUTH` / Implemented
   - **文件 / symbol / 可见性**：`app.py` / `Handler._auth/_auth_either` / private
   - **原成员 ID 或私有来源**：`F-API-AUTH`（`R-TRUST-02`）
   - **完整签名与 caller**：`_auth(role="data") -> Principal`；`_auth_either() -> (Principal,bool)`
@@ -422,7 +448,7 @@ _auth_either() -> (Principal,bool)
 
   - **不可改变的规则 / Constraint ID**：端点→角色固定；恒定时间；401/403 不泄露存在性
   - **实现自由度**：解析实现
-  - **实现状态 / 验证项**：PLANNED；`VRC-API-002`
+  - **实现状态 / 验证项**：Implemented；`VRC-API-002`
 
 #### 5.1.3 `_body(self) -> dict`
 
@@ -432,7 +458,7 @@ _body(self) -> dict
 
 - **Interface/Member ID、用途、提供责任与唯一来源**
 
-  - **Interface/Member ID、状态**：`FUNC-API-BODY` / PLANNED
+  - **Interface/Member ID、状态**：`FUNC-API-BODY` / Implemented
   - **文件 / symbol / 可见性**：`app.py` / `Handler._body` / private
   - **原成员 ID 或私有来源**：`F-API-BODY`
   - **完整签名与 caller**：`_body(self) -> dict`；caller=`_dispatch`
@@ -471,7 +497,7 @@ _body(self) -> dict
 
   - **不可改变的规则 / Constraint ID**：2 MB 上限
   - **实现自由度**：解析实现
-  - **实现状态 / 验证项**：PLANNED；`VRC-API-003`
+  - **实现状态 / 验证项**：Implemented；`VRC-API-003`
 
 #### 5.1.4 `_static(self, path) -> None`
 
@@ -481,7 +507,7 @@ _static(self, path) -> None
 
 - **Interface/Member ID、用途、提供责任与唯一来源**
 
-  - **Interface/Member ID、状态**：`FUNC-API-STATIC` / PLANNED
+  - **Interface/Member ID、状态**：`FUNC-API-STATIC` / Implemented
   - **文件 / symbol / 可见性**：`app.py` / `Handler._static` / private
   - **原成员 ID 或私有来源**：`F-API-STATIC`
   - **完整签名与 caller**：`_static(self, path) -> None`
@@ -512,7 +538,7 @@ _static(self, path) -> None
 
   - **不可改变的规则 / Constraint ID**：无目录穿越
   - **实现自由度**：解析实现
-  - **实现状态 / 验证项**：PLANNED；`VRC-API-004`
+  - **实现状态 / 验证项**：Implemented；`VRC-API-004`
 
 #### 5.1.5 `frame(event, data) -> bytes`
 
@@ -523,7 +549,7 @@ response_stream(response) -> Iterable[bytes]
 
 - **Interface/Member ID、用途、提供责任与唯一来源**
 
-  - **Interface/Member ID、状态**：`FUNC-API-SSE` / PLANNED
+  - **Interface/Member ID、状态**：`FUNC-API-SSE` / Implemented
   - **文件 / symbol / 可见性**：`sse.py` / `frame`、`response_stream` / private
   - **原成员 ID 或私有来源**：`F-API-SSE`（`R-INF-01`）
   - **完整签名与 caller**：`frame(event, data) -> bytes`；`response_stream(response) -> Iterable[bytes]`；caller=`_dispatch`（responses 分支）
@@ -554,7 +580,7 @@ response_stream(response) -> Iterable[bytes]
 
   - **不可改变的规则 / Constraint ID**：帧序/terminal 唯一（`CON-INFER-001/2`）
   - **实现自由度**：缓冲实现
-  - **实现状态 / 验证项**：PLANNED；`VRC-API-003`
+  - **实现状态 / 验证项**：Implemented；`VRC-API-003`
 
 #### 5.1.6 `health_view(version) -> dict`
 
@@ -565,7 +591,7 @@ readiness_view(registry) -> (dict,int)
 
 - **Interface/Member ID、用途、提供责任与唯一来源**
 
-  - **Interface/Member ID、状态**：`FUNC-API-HEALTH` / PLANNED
+  - **Interface/Member ID、状态**：`FUNC-API-HEALTH` / Implemented
   - **文件 / symbol / 可见性**：`health.py` / `health_view`、`readiness_view` / private
   - **原成员 ID 或私有来源**：`F-API-HEALTH`
   - **完整签名与 caller**：`health_view(version) -> dict`；`readiness_view(registry) -> (dict,int)`
@@ -596,7 +622,7 @@ readiness_view(registry) -> (dict,int)
 
   - **不可改变的规则 / Constraint ID**：无副作用健康
   - **实现自由度**：实现
-  - **实现状态 / 验证项**：PLANNED；`VRC-API-004`
+  - **实现状态 / 验证项**：Implemented；`VRC-API-004`
 ### 5.2 消息与数据流接口（适用时）
 
 不适用（SSE 为函数式字节流，已在 §5.1.5 `response_stream` 记录；本模块不拥有独立消息代理/队列/文件交换）。
@@ -616,9 +642,9 @@ readiness_view(registry) -> (dict,int)
 ```mermaid
 flowchart TD
     A["HTTP 请求进入 _run"] --> B{"健康/静态?"}
-    B -->|是| H["health/static 响应"]
+    B -->|"是（/ui/* 与 /healthz 恒 200；/readyz 见下）"| H["health/static 响应"]
     B -->|否| C{"bootstrap_error?"}
-    C -->|是| E["503 引导失败"]
+    C -->|"是（仅非健康/静态路径；/healthz、/ui/* 已在上一步豁免，/readyz 返回 503）"| E["503 引导失败"]
     C -->|否| D["_dispatch 路由"]
     D --> F["_auth 鉴权"]
     F -->|失败| E2["401/403 E-API-AUTH"]
@@ -794,10 +820,10 @@ flowchart TD
 - **V / Case / Vector**：v1 已知/未知路由；v2 未知异常→500；v3 fd 基线；v4 端口占用
 - **输入 / 故障 / 环境**：请求；异常注入；隔离库
 - **独立 Oracle / Expected**：200/404；500 + 日志；fd 稳定
-- **Actual / Evidence**：NOT_RUN
-- **Verdict**：NOT_RUN
+- **Actual / Evidence**：PASS；`tests/unit/v03/test_app_startup.py`（bootstrap）、`test_errors.py`（信封）、`test_health.py`（readyz）通过
+- **Verdict**：PASS
 - **测试入口 / 清理**：`tests/unit`；隔离库
-- **Run ID / Status**：NOT_RUN
+- **Run ID / Status**：PASS · `PYTHONPATH=src python3 -m pytest tests/unit/v03 -q`
 
 ### 9.1.2 `VRC-API-002` · 鉴权
 
@@ -805,10 +831,10 @@ flowchart TD
 - **V / Case / Vector**：v1 免登录；v2 Bearer 正确/错误；v3 data 访问 admin；v4 不泄露存在性
 - **输入 / 故障 / 环境**：地址/凭据；隔离库
 - **独立 Oracle / Expected**：Principal；403；响应不可区分
-- **Actual / Evidence**：NOT_RUN
-- **Verdict**：NOT_RUN
+- **Actual / Evidence**：PASS；`tests/unit/v03/test_auth.py`（缺配置 503、缺 Bearer 401、错误 403、data/admin token、`X-Principal-ID`、dev/loopback/LAN）通过
+- **Verdict**：PASS
 - **测试入口 / 清理**：`tests/unit` + 契约
-- **Run ID / Status**：NOT_RUN
+- **Run ID / Status**：PASS · `tests/unit/v03/test_auth.py`
 
 ### 9.1.3 `VRC-API-003` · body 与 SSE
 
@@ -816,10 +842,10 @@ flowchart TD
 - **V / Case / Vector**：v1 正常 SSE；v2 超限 413；v3 非法 JSON / 非 JSON 对象 400；v4 断开
 - **输入 / 故障 / 环境**：请求/断开；隔离库
 - **独立 Oracle / Expected**：事件子集 + terminal 唯一；413/400
-- **Actual / Evidence**：NOT_RUN
-- **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/system`（Piko 联调）
-- **Run ID / Status**：NOT_RUN
+- **Actual / Evidence**：PASS；`tests/unit/v03/test_sse.py`（帧、`[DONE]`、`sequence_number` 单调、created 首帧、terminal 末帧、incomplete）通过
+- **Verdict**：PASS
+- **测试入口 / 清理**：`tests/unit` + `tests/system`（Piko 联调）
+- **Run ID / Status**：PASS · `tests/unit/v03/test_sse.py`
 
 ### 9.1.4 `VRC-API-004` · 静态与健康
 
@@ -827,10 +853,10 @@ flowchart TD
 - **V / Case / Vector**：v1 目录穿越负例；v2 引导失败 `/readyz` 503
 - **输入 / 故障 / 环境**：路径；空库
 - **独立 Oracle / Expected**：404；503 not_ready
-- **Actual / Evidence**：NOT_RUN
-- **Verdict**：NOT_RUN
+- **Actual / Evidence**：PASS；`tests/unit/v03/test_health.py`（空库→not_ready、单模型→degraded、503）通过
+- **Verdict**：PASS
 - **测试入口 / 清理**：`tests/unit`
-- **Run ID / Status**：NOT_RUN
+- **Run ID / Status**：PASS · `tests/unit/v03/test_health.py`
 
 **运行命令**：全量 `PYTHONPATH=src python3 -m pytest tests/ tests/system/st_*.py -q`
 
@@ -843,8 +869,8 @@ flowchart TD
 - **不可改变的规则**：路由优先级、统一信封
 - **实施动作**：实现路由与错误出口
 - **完成检查**：`VRC-API-001`
-- **实现状态**：PLANNED
-- **验证状态 / Run**：NOT_RUN
+- **实现状态**：Implemented
+- **验证状态 / Run**：PASS · `tests/unit/v03/test_app_startup.py`
 
 ### 9.2.2 `TASK-API-AUTH` · 鉴权分发
 
@@ -853,8 +879,8 @@ flowchart TD
 - **不可改变的规则**：端点→角色、恒定时间、不泄露
 - **实施动作**：实现信任分发
 - **完成检查**：`VRC-API-002`
-- **实现状态**：PLANNED
-- **验证状态 / Run**：NOT_RUN
+- **实现状态**：Implemented
+- **验证状态 / Run**：PASS · `tests/unit/v03/test_auth.py`
 
 ### 9.2.3 `TASK-API-SSE` · SSE/静态/健康
 
@@ -863,8 +889,8 @@ flowchart TD
 - **不可改变的规则**：帧序/terminal、无穿越、503 语义
 - **实施动作**：实现 SSE/静态/健康
 - **完成检查**：`VRC-API-003/004`
-- **实现状态**：PLANNED
-- **验证状态 / Run**：NOT_RUN
+- **实现状态**：Implemented
+- **验证状态 / Run**：PASS · `tests/unit/v03/test_sse.py` + `test_health.py`
 
 ## 10. 映射、复核与未决项
 
@@ -877,19 +903,19 @@ flowchart TD
 - **提供或消费 / backend**：提供（HTTP/SSE）/ 客户端
 - **实际位置或 Planned 计划位置**：`src/http_api/app.py`、`auth.py`、`errors.py`、`sse.py`、`health.py`
 - **验证项**：`VRC-API-001..004`
-- **实现状态**：PLANNED
-- **验证状态 / Run**：NOT_RUN
+- **实现状态**：Implemented
+- **验证状态 / Run**：PASS · `tests/unit/v03`
 
 <a id="isd-status"></a>
 
 ### 10.2.1 `SC-API` · 状态一致性复核
 
 - **上游承接状态 / 固定来源**：模块 `http-api` §15.ISD 声明 `separate`
-- **本层派生状态 / 事实依据**：无实际实现/Run；全部 `PLANNED`/`NOT_RUN`
+- **本层派生状态 / 事实依据**：实现已完成（`src/http_api/*`）；`tests/unit/v03` 全绿；全部 `Implemented`/`PASS`
 - **§2 Current / Target**：N/A（greenfield）
-- **§3 / §5 文件与函数状态**：PLANNED
-- **§9 任务 / Actual / Verdict / Run**：PLANNED / NOT_RUN / NOT_RUN / NOT_RUN
-- **§10 汇总状态**：PLANNED
+- **§3 / §5 文件与函数状态**：Implemented
+- **§9 任务 / Actual / Verdict / Run**：Implemented / PASS / PASS / PASS
+- **§10 汇总状态**：Implemented
 - **差异解释 / Owner / 收敛动作**：none
 
 ### 10.3.1 `RISK-API-1` · 单点鉴权网络边界

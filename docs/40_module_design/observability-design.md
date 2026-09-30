@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `observability` |
-| Document Version | `0.1.0-draft.6` |
+| Document Version | `0.1.0-draft.7` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | llmtier |
 | Created Date | `2026-09-23` |
-| Last Modified Date | `2026-09-25` |
+| Last Modified Date | `2026-09-30` |
 | Template ID | `design.definition` |
 | Template Version | `3.4.3` |
 | Template Conformance | `tailored` |
@@ -529,7 +529,7 @@ StatsWindow {
 
 - **跨字段与寿命**：
 
-  可丢、非账本；`error_*_count` 与 `status_breakdown` 一致；请求级只读，底层内存聚合。
+  可丢、非账本；`error_*_count` 与 `status_breakdown` 一致；请求级只读，底层直写持久表（无内存聚合）。
 
 - **合法/拒绝实例**：
 
@@ -950,7 +950,7 @@ apply_correlation(headers) -> (correlation_id: str | None, trace_detail: dict | 
 **事实联动**：本节与 §3（N/A：无自有操作面，端点由 M001 暴露）、§5.4（N/A：无自有宿主）、§6.6（N/A：无跨步骤状态，状态权威归 M006）、§6.7（N/A：表归 M006/libdiag）联动。故本节只推演请求级查询/写入失败与初始化降级，不设本模块事务/崩溃/重放路径（写 N/A + 归属 M006/M007）。
 
 #### 10.1 `F-OBS-WRITE` · 观测写入失败
-- **初始条件 / 并发交错 / 失败点**：库/缓存错误
+- **初始条件 / 并发交错 / 失败点**：库错误/写事务失败
 - **检测事实 / authority / 期限**：异常（M006）
 - **处理行为 / 副作用边界**：记 warning，返回空/继续；**不改推理结果**
 - **状态查询 / 同请求重放 / 接管 / 新业务重试**：N/A + 理由：尽力而为
@@ -991,13 +991,13 @@ apply_correlation(headers) -> (correlation_id: str | None, trace_detail: dict | 
 - **超限行为 / 责任出口**：过期删除
 - **验证项 / Evidence**：`VRC-OBS-002`；NOT_RUN
 
-#### 12.2 `CAP-OBS-STATS` · 统计缓存上限
-- **目标 / 限制 / 单位**：内存上限 + LRU/TTL
+#### 12.2 `CAP-OBS-STATS` · 统计写容量
+- **目标 / 限制 / 单位**：每次请求一次 UPSERT + 追加（无内存上限）
 - **适用版本 / 配置 / 硬件 / 虚拟化 / 依赖**：`record_latency`/`stats`
 - **负载、数据规模与并发口径**：并发累积
 - **推导 / 测量方法与证据等级**：Specified（可丢）
 - **共享资源扣减 / 峰值重叠 / 余量**：—
-- **超限行为 / 责任出口**：淘汰最旧
+- **超限行为 / 责任出口**：写失败 fail-open
 - **验证项 / Evidence**：`VRC-OBS-002`；NOT_RUN
 
 #### 12.3 `CAP-OBS-PAGE` · 分页
@@ -1116,9 +1116,9 @@ apply_correlation(headers) -> (correlation_id: str | None, trace_detail: dict | 
 - **metadata 覆盖映射入口**：`observability-isd` 的 `implementation_specification.coverage_mapping`
 - **理由 / 决定引用**：呈现/路由逻辑与 M006 同文件但职责分离，本文已覆盖
 
-#### 15.1 `RISK-OBS-1` · 统计为内存、可丢
+#### 15.1 `RISK-OBS-1` · 统计为非账本、可丢
 - **类型 / 影响的规则、接口、流程或约束**：Risk；影响 `F-OBS-STATS`
-- **事实缺口 / 触发条件**：进程重启/缓存满
+- **事实缺口 / 触发条件**：写事务失败（fail-open 丢弃；统计直写持久表，无缓存）
 - **影响 / 阻塞边界**：统计不连续；不影响账本
 - **Owner / 最晚关闭 Gate**：LLMTier / —
 - **选项 / 推荐 / 下一步取证**：明示"非账本语义"
@@ -1129,8 +1129,8 @@ apply_correlation(headers) -> (correlation_id: str | None, trace_detail: dict | 
 - **事实缺口 / 触发条件**：`diagnostics.py` 同时含 M005 查询与 M006 记录
 - **影响 / 阻塞边界**：文件分解的职责划分需与 M006 保持一致
 - **Owner / 最晚关闭 Gate**：LLMTier / 本轮 review
-- **选项 / 推荐 / 下一步取证**：以"记录= M006 / 查询呈现= M005"划分，或后续拆分文件
-- **关闭条件 / 决定或当前状态**：未决
+- **选项 / 推荐 / 下一步取证**：已按"记录= M006 / 查询呈现= M005"划分确认（M005 无 `src/observability/` 代码，落在 `app.py` 路由）
+- **关闭条件 / 决定或当前状态**：已关闭（Resolved）
 
 引用：系统设计 §3.2/§11.3；机制 M-OBS §14.4（`R-OBS-02`）、M-INFER §14.4（`R-INF-08`）、M-TRUST §14.4（`R-TRUST-03`）；`libdiag-design.md`；`interfaces/openapi/llmtier.openapi.json`。
 

@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `libdiag-isd` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Document Owner | LLMTier |
-| Last Modified Date | `2026-09-25` |
+| Last Modified Date | `2026-09-30` |
 | Template ID | `design.implementation` |
 | Template Version | `1.2.2` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -305,7 +305,7 @@ TraceStage {
 
 - **`correlation_id` / `snapshot` / `usage`**（可空）
 
-  关联 ID、快照视图与用量视图；缺失为 `null`。
+  关联 ID、快照视图与用量视图；缺失为 `null`。**`correlation_id` 由阶段 `detail.x_correlation_id` 反查得出**（取最后一条含该字段的阶段），**并非**读 `trace_events.correlation_id` 列（该列 `record_trace` 会写入但查询不读）。
 
 - **`stage` / `timestamp` / `detail`**（`TraceStage` 字段）
 
@@ -344,11 +344,11 @@ SnapshotPage = TracePage<SnapshotView>
 
 - **跨字段与寿命**
 
-  cursor 稳定（trace=`first_ts|request_id`；快照=末条 `id`）；请求级只读。
+  cursor 稳定（trace=`first_ts|request_id`；快照=末条 `id`）；**cursor 非法/失效 → `ApiError(400,"cursor_expired")`**（trace 游标无 `|` 分隔符、快照游标 id 不存在时触发）；请求级只读。
 
 - **合法/拒绝实例**
 
-  合法：翻页；边界：空匹配 → `items=[]`、`has_more=false`。
+  合法：翻页；边界：空匹配 → `items=[]`、`has_more=false`；拒绝：非法 cursor → 400 `cursor_expired`（不静默忽略）。
 
 - **验证**
 
@@ -565,7 +565,7 @@ DiagnosticsRuntimeState {
 
   `VRC-DIAG-001`。
 
-**4.6.2 开关与注入状态转换（`T-DIAG-01…T-DIAG-07`）**
+**4.6.2 开关与注入状态转换（`T-DIAG-01…T-DIAG-08`）**
 
 状态机定义与不变量权威见模块设计 `libdiag-design` §6.6.2；开关与注入均为持久事实（`diagnostic_settings`/`diagnostic_injections`），直读 DB、无内存缓存。本 ISD 细化每个转换的落点函数（真实 symbol）。
 
@@ -577,7 +577,8 @@ DiagnosticsRuntimeState {
 | `T-DIAG-04` | Off → Off | `record_latency`/`capture_snapshot` | `switches.enabled=false` | `snapshots.py`/`stats.py` 入口短路分支，不写库；`record_trace` 不短路 | — | `VRC-DIAG-001` |
 | `T-DIAG-05` | Absent/Disabled → Enabled | `set_injections` 请求线程 | `_validate`（§8.4） | `injections.py` `set_injections` 按 `(deployment_id,injection_type)` upsert | 校验失败 → 400，不落库 | `VRC-DIAG-004` |
 | `T-DIAG-06` | Enabled → Disabled | `set_injections` | 同 `T-DIAG-05` | `injections.py` `set_injections` upsert `enabled=0` | — | `VRC-DIAG-004` |
-| `T-DIAG-07` | Disabled → Disabled（行保留） | deployment 移除 / 再次配置禁用 | 无删除事实 | `injections.py` 无删除分支：禁用仅置 `enabled=0`，**行持久保留、无 FK cascade**，按 `deployment_id` 查询仍返回 | — | `VRC-DIAG-004` |
+| `T-DIAG-07` | 全量撤销（Enabled/Disabled → Absent） | `set_injections(items=[])` 提交 | 显式空列表 | `injections.py:67-69` `if not validated:` 走 **`DELETE FROM diagnostic_injections WHERE deployment_id=?`**，整行删除 | 校验失败 → 400，不落库 | `VRC-DIAG-004` |
+| `T-DIAG-08` | Disabled → Disabled（行保留） | 再次配置 `enabled=false` / deployment 移除 | 无删除事实 | `injections.py` 非空 items 的 upsert 分支：禁用仅置 `enabled=0`，**行持久保留、无 FK cascade**，按 `deployment_id` 查询仍返回 | — | `VRC-DIAG-004` |
 
 ### 4.7 数据库表结构
 
@@ -649,7 +650,8 @@ record_* 失败 → fail-open warning，无错误返回
 |---|---|---|---|
 | `E-DIAG-WRITE` | `record_*` 写失败 | 私有（fail-open，非公共码） | 尽力而为 |
 | `E-DIAG-INJECT-INVALID` | 注入类型/字段/范围非法 | `ERR-INJECTION` | 修注入项 |
-| `E-DIAG-QUERY` | 存储不可读 | `ERR-STORE` | 稍后重试 |
+| `E-DIAG-QUERY` | 存储不可读 | `ERR-STORE`（`usage_store_unavailable`） | 稍后重试 |
+| `E-DIAG-CURSOR` | 快照/traces 分页 cursor 非法或失效 | `ERR-CURSOR`（400 `cursor_expired`） | 去掉 cursor 重新翻页 |
 | `trace()` 无记录 | 未知 request_id | `ERR-NOTFOUND` | 修 id |
 
 ## 5. 接口设计
@@ -769,7 +771,7 @@ snapshots_page(since, until, deployment_id, model, limit=50, cursor=None) -> dic
 - **输入与前提**
 
   - **输入参数 / 数据结构 authority**：快照字段；`snapshots_page` 过滤条件
-  - **输入约束 / 校验顺序 / 失败映射**：开关关闭 → 直接返回 `None`；`upstream_url` **原样存储**（去 query 由调用方 M003 在传入前完成）；`error_summary[:256]`；写失败 → warning + `None`
+  - **输入约束 / 校验顺序 / 失败映射**：开关关闭 → 直接返回 `None`；`upstream_url` **原样存储**（去 query 由调用方 M003 在传入前完成）；`error_summary[:256]` **按 UTF-8 字节安全截断**；写失败 → warning + `None`；`snapshots_page` 传入非法 `cursor` → `ApiError(400,"cursor_expired")`
 
 - **成功输出与保证**
 
@@ -777,7 +779,7 @@ snapshots_page(since, until, deployment_id, model, limit=50, cursor=None) -> dic
 
 - **错误与合法下一步**
 
-  - **错误输出 / 触发条件 / 优先级**：E-DIAG-WRITE（私有（fail-open，非公共码））：无
+  - **错误输出 / 触发条件 / 优先级**：E-DIAG-WRITE（私有（fail-open，非公共码））：无；E-DIAG-CURSOR（公共 `ERR-CURSOR` · `cursor_expired`）：400（`snapshots_page` 非法 cursor）
   - **E-DIAG-WRITE（公共 私有（fail-open，非公共码））**
     - **底层异常 / 失败事实**：Store 写失败
     - **模块是否处理及处理函数**：recover（`_warn` 记录后继续）
@@ -868,7 +870,7 @@ traces(since=None, until=None, deployment_id=None, model=None, limit=50, cursor=
 - **输入与前提**
 
   - **输入参数 / 数据结构 authority**：时间窗 + 过滤 + 分页
-  - **输入约束 / 校验顺序 / 失败映射**：`limit` 夹到 `[1,500]`；cursor 基于 `(min_ts, request_id)`
+  - **输入约束 / 校验顺序 / 失败映射**：`limit` 夹到 `[1,500]`；cursor 基于 `(min_ts, request_id)`；cursor 无 `|` 分隔符 → `ApiError(400,"cursor_expired")`
 
 - **成功输出与保证**
 
@@ -876,7 +878,7 @@ traces(since=None, until=None, deployment_id=None, model=None, limit=50, cursor=
 
 - **错误与合法下一步**
 
-  - **错误输出 / 触发条件 / 优先级**：E-DIAG-QUERY（ERR-STORE · usage_store_unavailable）：503（不伪装空结果）
+  - **错误输出 / 触发条件 / 优先级**：E-DIAG-CURSOR（公共 `ERR-CURSOR` · `cursor_expired`）：400（cursor 非法/失效）；E-DIAG-QUERY（ERR-STORE · usage_store_unavailable）：503（不伪装空结果）
   - **E-DIAG-QUERY（公共 ERR-STORE · usage_store_unavailable）**
     - **底层异常 / 失败事实**：存储不可读
     - **模块是否处理及处理函数**：propagate
@@ -920,11 +922,11 @@ enabled_stream_injection(did) -> dict|None
 - **输入与前提**
 
   - **输入参数 / 数据结构 authority**：注入项列表
-  - **输入约束 / 校验顺序 / 失败映射**：白名单/参数范围；非法 → `ApiError(400, "invalid_injection")`；未知 deployment → 404
+  - **输入约束 / 校验顺序 / 失败映射**：白名单/参数范围；非法 → `ApiError(400, "invalid_injection")`；未知 deployment → 404；**空列表 `items=[]` = 显式撤销**（删除该 deployment 全部注入行）
 
 - **成功输出与保证**
 
-  - **成功输出 / 数据结构 / 后置条件**：注入项列表；**单条** enabled（多启用项优先 `fault_502→fault_503→rate_limit→delay`）
+  - **成功输出 / 数据结构 / 后置条件**：注入项列表；**空 items → 撤销后返回 `[]`**；**单条** enabled（多启用项优先 `fault_502→fault_503→rate_limit→delay`）
 
 - **错误与合法下一步**
 
@@ -940,7 +942,7 @@ enabled_stream_injection(did) -> dict|None
 
 - **交互与生命周期**
 
-  - **副作用 / 执行上下文 / 幂等性**：部分更新 upsert
+  - **副作用 / 执行上下文 / 幂等性**：部分更新 upsert；**空 items 触发删除分支**（撤销）
   - **输入输出 ownership 与寿命**：持久
   - **Thread-safe / reentrant**：经线程内连接
   - **Nested-call policy**：allowed
@@ -949,7 +951,7 @@ enabled_stream_injection(did) -> dict|None
 
 - **实现与验证**
 
-  - **不可改变的规则 / Constraint ID**：白名单；单条 enabled；优先级确定
+  - **不可改变的规则 / Constraint ID**：白名单；单条 enabled；优先级确定；空 items = 撤销（删除该 deployment 全部行）
   - **实现自由度**：校验实现
   - **实现状态 / 验证项**：PLANNED；`VRC-DIAG-004`
 
@@ -1083,12 +1085,12 @@ flowchart TD
 
 - **触发与执行者**：M003 请求路径 / M001 流；调用线程
 - **入口函数及数据**：`enabled_injection`/`enabled_stream_injection`/`stream_wrapper`
-- **步骤 / 算法 / 复杂度**：查 enabled（`T-DIAG-05/06/07` 维护的 `diagnostic_injections`）→ 按优先级取**单条** → 命中动作（fault/delay/rate_limit/流截断/畸形）；O(items)
+- **步骤 / 算法 / 复杂度**：查 enabled（`T-DIAG-05/06/07/08` 维护的 `diagnostic_injections`）→ 按优先级取**单条** → 命中动作（fault/delay/rate_limit/流截断/畸形）；O(items)
 - **判断事实来源**：`diagnostic_injections`（enabled）
 - **成功可见点**：注入生效
-- **失败、取消与清理**：无注入透传；非法参数 → `T-DIAG-05` 400 不落库
+- **失败、取消与清理**：无注入透传；非法参数 → `T-DIAG-05` 400 不落库；空 items → `T-DIAG-07` 撤销删除
 - **代表输入与中间值**：`delay_ms=2000` → sleep 2s
-- **规则 / 接口 / 验证引用**：`RULE-DIAG-INJECT`；相位 §4.6.2 `T-DIAG-05/06/07`；`VRC-DIAG-004`
+- **规则 / 接口 / 验证引用**：`RULE-DIAG-INJECT`；相位 §4.6.2 `T-DIAG-05/06/07/08`；`VRC-DIAG-004`
 
 ### 6.3 `P-DIAG-PCTL` · 百分位
 
@@ -1119,11 +1121,11 @@ flowchart TD
 
 #### 7.1.2 `CF-DIAG-INIT` · 初始化失败
 
-- **参与线程 / 回调 / 事务**：启动
-- **已产生或可能产生的副作用**：无
-- **检测事实 / 期限**：构造异常
-- **状态 / 错误 / 结果已知性**：已知失败
-- **保留 / 释放责任**：宿主降级运行
+- **参与线程 / 回调 / 事务**：启动（`Application.__init__`）
+- **已产生或可能产生的副作用**：无（构造 `DiagnosticsService` 抛异常时，宿主改绑 `_UnavailableDiagnostics` 空实现门面）
+- **检测事实 / 期限**：构造异常（`app.py:105-110`）
+- **状态 / 错误 / 结果已知性**：已知失败——`_UnavailableDiagnostics` 对每个方法返回空/默认（开关 `{false,false}`、列表 `[]`、`trace` 空视图、`stream_wrapper` 原样透传、`cleanup` 返回 `0`），写方法为 no-op
+- **保留 / 释放责任**：宿主降级运行；记录一条 `logs.record("error","diagnostics","init_failed",…)`（该记录自身亦 fail-open）
 - **允许的 query / replay / takeover / retry**：重启
 - **验证项**：`VRC-DIAG-003`
 
@@ -1343,14 +1345,14 @@ flowchart TD
 ### 10.3.2 `OPEN-DIAG-1` · 流注入实现门禁
 
 - **既有台账引用 / 具体缺口 / 反例**：`LT-OPEN-05`
-- **风险等级 / 判定依据**：Medium；流注入需改造流式输出
+- **风险等级 / 判定依据**：Low；`stream_wrapper` 已实现（`stream.py`）并接线（`app.py:222`）
 - **Owner**：LLMTier
-- **最晚关闭阶段 / 截止 Gate**：实现门禁
+- **最晚关闭阶段 / 截止 Gate**：已关闭
 - **阻断范围**：`F-DIAG-STREAM`
-- **分析 / 决策引用**：机制 M-OBS
-- **所需输入 / 下一步选择判据**：确认 `stream_wrapper` 集成方案
-- **解决动作 / 完成条件**：集成并提供向量
-- **状态**：Open
+- **分析 / 决策引用**：机制 M-OBS §16 `LT-OPEN-05`（已定）
+- **所需输入 / 下一步选择判据**：无
+- **解决动作 / 完成条件**：`stream_wrapper` 已集成并提供 `VRC-DIAG-004`
+- **状态**：Resolved
 
 ### 10.4 Metadata 与 coverage 交付检查
 

@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `util-isd` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Document Owner | LLMTier |
-| Last Modified Date | `2026-09-25` |
+| Last Modified Date | `2026-09-30` |
 | Template ID | `design.implementation` |
 | Template Version | `1.2.2` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -222,7 +222,7 @@ sqlite3.Connection {
 
 - **`row_factory` / `isolation_level` / `timeout`**（连接期固定）
 
-  `Row` / `None` / `10`；由 `connection()` 首次创建时设置。
+  `Row` / `None` / `10`；由 `connection()` 首次创建时设置。`isolation_level=None` 即 **autocommit**——sqlite3 不隐式开事务，事务显式由 `Store.transaction` 的 `BEGIN`/`BEGIN IMMEDIATE` + `commit`/`rollback` 管理；连接可被查询 helper 直接使用（autocommit 单语句）。
 
 - **`PRAGMA foreign_keys` / `PRAGMA journal_mode`**（连接期固定）
 
@@ -279,7 +279,7 @@ txn(store, conn=None) -> ContextManager[sqlite3.Connection]
 | Transition ID | 原状态 → 新状态 | 事件 / 执行者 | Guard 事实来源 | 实现落点（`store.py` 函数 / 分支） | 失败出口 | VRC |
 |---|---|---|---|---|---|---|
 | `T-UTIL-01` | Unknown → Empty | 打开非空/空库 | 表清单（无业务表） | `Store.__init__`/`migrate` 判定空库分支 | — | `VRC-UTIL-002` |
-| `T-UTIL-02` | Empty → Ready | `migrate()`（M001 装配） | migrations 文件有序集合 | `Store.migrate` 单事务执行全部迁移 + 写 `schema_meta` | 逐语句失败 → 抛错，事务回滚 | `VRC-UTIL-002` |
+| `T-UTIL-02` | Empty → Ready | `migrate()`（M001 装配） | `migrations/*.sql` 按文件名字典序 glob | `Store._initialize(conn)` 单事务逐语句执行全部 `*.sql`（`schema_version` 行由 `001_initial.sql` 内 `INSERT OR IGNORE` 写入，非 `migrate()` 代码写） | 逐语句失败 → 抛错，事务回滚 | `VRC-UTIL-002` |
 | `T-UTIL-03` | Unknown → Ready | `migrate()` | `schema_meta.schema_version` 等于期望 | `Store.migrate` 幂等校验分支，不写 | — | `VRC-UTIL-002` |
 | `T-UTIL-04` | Unknown → Mismatch | `migrate()` | 有业务表却无 `schema_meta` 或版本不等 | `Store.migrate` 抛 `ERR-SCHEMA` 分支 | 运维离线处理 | `VRC-UTIL-002` |
 | `T-UTIL-05` | Unknown → Corrupt | `migrate()` | `PRAGMA integrity_check` | `Store.migrate` 抛 `ERR-SCHEMA` 分支 | 运维离线处理 | `VRC-UTIL-002` |
@@ -299,6 +299,8 @@ Schema authority=`migrations/001_initial.sql` + `migrations/002_observability.sq
 - **Data/Type ID、用途与来源**
 
   `D-SCHEMA-BASE` / `D-SCHEMA-OBS`；本层唯一 schema authority=`migrations/001_initial.sql` + `migrations/002_observability.sql`。
+
+> **加载语义**：`Store._initialize` 按 `sorted(migrations.glob("*.sql"))`（文件名字典序）读取**目录下全部 `*.sql`** 并拼接执行；上表两个文件名是**当前**内容，新增任何 `*.sql` 都会被连带执行（既定的迁移归属纪律：迁移仅由本层维护）。`schema_version` 由 `001_initial.sql` 内的 `INSERT OR IGNORE INTO schema_meta(...,schema_version,...) VALUES(1,2,...)` 写入。
 
 - **逐列、主外键与约束**（矩阵）
 
@@ -337,11 +339,11 @@ Schema authority=`migrations/001_initial.sql` + `migrations/002_observability.sq
 
 - **读写 / 迁移 symbol、事务边界与提交点**
 
-  初始化行 `INSERT OR IGNORE schema_meta(1,2,...)`；`provider_usage_profiles` 对每个 provider 补默认（`local`→`local`，否则 `none`）；由 `Store.migrate()` 原子初始化（幂等）。
+  初始化行 `INSERT OR IGNORE schema_meta(1,2,...)`；`provider_usage_profiles` 对每个 provider 补默认（`local`→`local`，否则 `none`）；由 `Store.migrate()` → `Store._initialize(conn)` 单事务原子执行（幂等）。
 
 - **跨字段与寿命**
 
-  持久；`Store.migrate()` 原子初始化；业务模块经 `Store.one/all/transaction` 访问；库寿命。
+  持久；`Store.migrate()`（经 `_initialize`）原子初始化；业务模块经 `Store.one/all/transaction` 访问；库寿命。
 
 - **合法/拒绝实例**
 
@@ -389,7 +391,7 @@ ApiError { status: int, code: str, message: str, ... }
 | `E-UTIL-SCHEMA-INTEGRITY` | `PRAGMA integrity_check != ok` | `ERR-SCHEMA`（`schema_integrity_failed`） | 备份/修复 |
 | `E-UTIL-PATH-UNSAFE` | DB 路径为 symlink | `ERR-PATH-UNSAFE` | 修路径后重启 |
 | `E-UTIL-DB-RUNTIME` | `OperationalError`/`IntegrityError` | 原生 `sqlite3.Error`（busy → `ERR-STORE`） | busy 退避重试；constraint 否 |
-| `E-UTIL-NESTED-TXN` | 事务内再开事务 | 私有（非公共码） | 改写为使用传入 `Connection` |
+| `E-UTIL-NESTED-TXN` | 事务内再开事务 | `ERR-UTIL-TXN`（`E-UTIL-NESTED-TXN`，**公共码**，409） | 改写为使用传入 `Connection` |
 
 ## 5. 接口设计
 
@@ -514,7 +516,7 @@ txn(store, conn=None) -> ContextManager[Connection]     # 模块级 helper（§4
 - **输入与前提**
 
   - **输入参数 / 数据结构 authority**：`immediate: bool`（默认 False）；`txn` 的 `conn`（默认 None）
-  - **输入约束 / 校验顺序 / 失败映射**：不可在已有事务内调用（SQLite 不允许嵌套）；违规 → `E-UTIL-NESTED-TXN`（显式 guard）
+  - **输入约束 / 校验顺序 / 失败映射**：不可在已有事务内调用（SQLite 不允许嵌套）；`BEGIN`/`BEGIN IMMEDIATE` 抛 `OperationalError("...within a transaction...")` → 捕获该错误并抛 `E-UTIL-NESTED-TXN`（公共码，409）；其余 `OperationalError` 原样透传
 
 - **成功输出与保证**
 
@@ -522,7 +524,15 @@ txn(store, conn=None) -> ContextManager[Connection]     # 模块级 helper（§4
 
 - **错误与合法下一步**
 
-  - **错误输出 / 触发条件 / 优先级**：E-UTIL-DB-RUNTIME（原生 `sqlite3.Error`（busy → ERR-STORE））：busy → 503 `store_unavailable`；constraint → 409/400（按业务）
+  - **错误输出 / 触发条件 / 优先级**：E-UTIL-NESTED-TXN（ERR-UTIL-TXN · E-UTIL-NESTED-TXN）：409 `E-UTIL-NESTED-TXN`；E-UTIL-DB-RUNTIME（原生 `sqlite3.Error`（busy → ERR-STORE））：busy → 503 `store_unavailable`；constraint → 409/400（按业务）
+  - **E-UTIL-NESTED-TXN（公共 ERR-UTIL-TXN · E-UTIL-NESTED-TXN）**
+    - **底层异常 / 失败事实**：同连接已有活动事务（`BEGIN` 抛 "within a transaction"）
+    - **模块是否处理及处理函数**：reject（`transaction` 捕获并翻译）
+    - **Typed 异常与原生异常所有权**：`Store` 抛 `ApiError(409, "E-UTIL-NESTED-TXN")`
+    - **宿主 / public payload 或状态码**：409 `E-UTIL-NESTED-TXN`
+    - **日志级别 / 脱敏 / 关联字段**：warning
+    - **是否可重试及前提**：否（修正调用方事务边界，改用传入 `Connection`）
+    - **状态与副作用影响 / 验证项**：事务未开启、连接状态不变；`VRC-UTIL-002`
   - **E-UTIL-DB-RUNTIME（公共 原生 `sqlite3.Error`（busy → ERR-STORE））**
     - **底层异常 / 失败事实**：`OperationalError`（busy/locked）、`IntegrityError`（约束）等
     - **模块是否处理及处理函数**：propagate（不翻译）
@@ -543,7 +553,7 @@ txn(store, conn=None) -> ContextManager[Connection]     # 模块级 helper（§4
 
 - **实现与验证**
 
-  - **不可改变的规则 / Constraint ID**：异常必 rollback；`immediate=True` 用 `BEGIN IMMEDIATE`，默认 `immediate=False` 用 `BEGIN`；模块级 `txn(store, conn)` 在 `conn is None` 时走 `BEGIN IMMEDIATE`，`conn` 非空时并入调用方事务；不可嵌套（`E-UTIL-NESTED-TXN`）、不提供 SAVEPOINT
+  - **不可改变的规则 / Constraint ID**：异常必 rollback；`immediate=True` 用 `BEGIN IMMEDIATE`，默认 `immediate=False` 用 `BEGIN`；模块级 `txn(store, conn)` 在 `conn is None` 时走 `BEGIN IMMEDIATE`，`conn` 非空时并入调用方事务；不可嵌套（`E-UTIL-NESTED-TXN`）、不提供 SAVEPOINT。**当前 `immediate=False`（`BEGIN`）分支无调用方**（现有调用点均 `transaction(True)` 或 `txn`）；保留为契约但标注为未使用路径。
   - **实现自由度**：上下文管理器实现
   - **实现状态 / 验证项**：PLANNED；`VRC-UTIL-002`
 
@@ -873,7 +883,7 @@ flowchart TD
 - **备份 / 恢复 / 敏感数据静态保护**：库**不含 Secret 明文**（只 `secret_ref` 引用）；备份由运维
 - **删除 / 擦除 / 保留期限**：由运维；本层不管理
 - **磁盘耗尽 / 只读文件系统行为**：写失败 → `OperationalError`（由宿主映射 503）
-- **检查时点 / 判定 / 拒绝或降级出口**：打开**前**检查；symlink → 拒绝；world-writable（`mode & 0o002`）→ **warning 并继续**
+- **检查时点 / 判定 / 拒绝或降级出口**：打开**前**检查；`os.lstat` 只判 **DB 文件本身**；symlink → 拒绝；world-writable（`mode & 0o002`）→ **warning 并继续**。**注**：父目录的 symlink 不被检查（当前实现只预检文件路径）。
 - **验证项**：`VRC-UTIL-001`
 
 ## 8. 资源、构建与宿主接入
@@ -900,7 +910,7 @@ flowchart TD
 - **峰值构成 / 上限 / 共享额度**：每线程 1 连接；fd 非稳定契约（WAL/SHM 可共享）
 - **分段预算 / 总期限 / 计时点**：无自有预算；由宿主请求生命周期约束
 - **超限、部分启动与清理出口**：fd 上限由宿主 + `close()` 缓解；锁等待超时 → `OperationalError`
-- **构建或运行命令及前置条件**：`PYTHONPATH=src python3 -m pytest tests/unit/v03 -q`（仓库根）
+- **构建或运行命令及前置条件**：单元 `PYTHONPATH=src python3 -m pytest tests/unit/v03 -q`；全量（AGENTS 契约要求含系统测试）`PYTHONPATH=src python3 -m pytest tests/ tests/system/st_*.py -q`（仓库根）
 
 ## 9. 验证规格与实现任务
 

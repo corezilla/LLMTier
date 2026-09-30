@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `management-isd` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Document Owner | LLMTier |
-| Last Modified Date | `2026-09-25` |
+| Last Modified Date | `2026-09-30` |
 | Template ID | `design.implementation` |
 | Template Version | `1.2.2` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -85,9 +85,9 @@ registry.py       Registry.bootstrap_settings/ensure_fixed_tiers/create_*/get_*/
 admin.py          AdminService.mutate/page/stats/probe/list_provider_models
 account_usage.py  AccountUsageService.latest/refresh
 audit.py          AuditLog.record/page
-logs.py           OperationalLog.record/page（属 M008，本模块消费）
-health.py         health_view/readiness_view/apply_probe_result
 ```
+
+> 本模块构建产物仅 `src/management/{registry,admin,account_usage,audit}.py`。所属 M008 的 `OperationalLog.record/page` 落在 `src/log/logs.py`、健康视图 `health_view/readiness_view/apply_probe_result` 落在 `src/http_api/health.py`，均为**本模块消费**的其它模块产物，不在 `src/management/`。
 
 ### 3.1 `registry.py` · 配置权威
 
@@ -107,13 +107,13 @@ health.py         health_view/readiness_view/apply_probe_result
 - **构建目标 / 生成源 / 输出**：随包
 - **实现状态**：PLANNED
 
-### 3.3 `audit.py` / `logs.py` / `health.py`
+### 3.3 `audit.py`（`logs.py`/`health.py` 为跨模块消费）
 
-- **职责及调用者**：审计/日志/健康；caller=AdminService/入口
-- **类型 / 函数**：`AuditLog`、`OperationalLog`（M008）、`health_view/readiness_view/apply_probe_result`
+- **职责及调用者**：审计落库/分页；caller=AdminService。`OperationalLog`（M008）实现在 `src/log/logs.py`、健康视图实现在 `src/http_api/health.py`——二者**不是本模块构建产物**，本模块仅消费。
+- **类型 / 函数**：`AuditLog.record/page`；消费 `OperationalLog.record/page`（`src/log/logs.py`）、`health_view/readiness_view/apply_probe_result`（`src/http_api/health.py`）
 - **可见性**：private
 - **调用与类型依赖**：依赖 `Store`
-- **构建目标 / 生成源 / 输出**：随包
+- **构建目标 / 生成源 / 输出**：随包（仅 `audit.py`）
 - **实现状态**：PLANNED
 
 ## 4. 数据结构设计
@@ -136,8 +136,21 @@ Provider {
   endpoint: str
   has_secret: bool
   enabled: bool
-  usage: object
-  request_usage: object
+  usage: {
+    usage_provider: "none" | "local" | "minimax" | "volc"   // 用量提供方类别（非 provider id）
+    has_usage_api_key: bool
+    has_usage_access_key: bool
+    has_usage_secret_key: bool
+    max_concurrent_requests: int
+    min_request_interval_ms: int
+    requests_per_minute: int
+  }
+  request_usage: {
+    calls: int
+    input_tokens: int | null
+    output_tokens: int | null
+    total_tokens: int | null
+  }
   version: int
 }
 ```
@@ -164,7 +177,8 @@ Provider {
 
 - **`usage` / `request_usage`**（必填、对象）
 
-  用量视图；未知按 `unknown`，不补零。
+  `usage` 为用量画像视图（源自 `provider_usage_profiles`，唯一来源=`registry.py:_usage_view`）：键固定为 `usage_provider`（∈ `{none,local,minimax,volc}`）、`has_usage_api_key`/`has_usage_access_key`/`has_usage_secret_key`（布尔，只暴露是否配置，**不回显引用/密钥**）、`max_concurrent_requests`、`min_request_interval_ms`、`requests_per_minute`。
+  `request_usage` 为已绑定请求的累计（源自 `provider_request_bindings` ⋈ `usage_heads` ⋈ `usage_record_versions`）：键固定为 `calls`（int）与 `input_tokens`/`output_tokens`/`total_tokens`（int，仅当所有已绑定请求的该分量为已测时给值，否则 `null`；不补零）。
 
 - **跨字段与寿命**
 
@@ -346,7 +360,7 @@ AccountSnapshot {
   window: str              // 主窗口名：5hour | weekly | monthly
   windows: object[]        // 各窗口 {name,used,quota,remaining,percent,reset_at}
   checked_at: str
-  error: str | null
+  error: str          // 缺省空串 ""（非 null）
 }
 ```
 
@@ -362,9 +376,9 @@ AccountSnapshot {
 
   从 `windows` 中主窗口（优先 `weekly`，否则首项）提取的扁平字段：`used`/`quota`/`remaining`/`percent`/`reset_at` 可空，`window` 为主窗口名；无窗口时为空/空串。
 
-- **`error`**（可空）
+- **`error`**（可空串）
 
-  `str | null`；账号缺字段记 `Unknown`，不补零。
+  `str`；缺省为**空串 `""`（不是 `null`）**；账号缺字段记 Unknown / 错误时给出短错误标识（如 `credentials_missing`、`minimax_usage_requires_api_key`、`usage_http_<code>`），不补零。
 
 - **跨字段与寿命**
 
@@ -428,7 +442,7 @@ QuerySnapshotLifecycle {
 
 - **跨字段与寿命**
 
-  写入一次、不可变；到期或 principal 不符 → 拒绝续页 `ERR-CURSOR`（`T-MGMT-08`，不返回空页）；TTL 10 分钟，到期废弃。
+  写入一次、不可变；到期或 principal 不符 → 拒绝续页 `ERR-CURSOR`（`T-MGMT-08`，不返回空页）；TTL 10 分钟，到期废弃。**注意**：`admin.page` 的续页 guard 只比较 `snapshot_kind`、`principal_id` 与 `expires_at`（`query_snapshots.authorization_digest`/`filter_digest` 仅存储、不复核）；比较 `authorization_digest` 与 `filter_digest` 的是用量分页 `inference/usage.py` `UsageRecorder.page`（§5.1.3）。
 
 - **合法/拒绝实例**
 
@@ -451,7 +465,7 @@ QuerySnapshotLifecycle {
 | `T-MGMT-05` | NotReady → Ready | 修正后重启 | 修正后的 settings 校验结果 | 同 `T-MGMT-01` | 仍失败 → NotReady | — |
 | `T-MGMT-06` | （无快照）→ Active | `AdminService.page` 首次查询 | 查询参数 + principal | `admin.py` `page` 写 `query_snapshots`/`query_snapshot_items` | 写失败 → 503（不返回空页） | `VRC-MGMT-004` |
 | `T-MGMT-07` | Active → Active | 续页（带 cursor） | `query_snapshots.expires_at` 与 principal | `admin.py` `page` 读冻结项分支 | 过期/不符 → `T-MGMT-08` | `VRC-MGMT-004` |
-| `T-MGMT-08` | Active → Expired | TTL 到期或 principal 不符 | `expires_at` / `authorization_digest` | `admin.py` `page` 返回 `ERR-CURSOR` | — | `VRC-MGMT-004` |
+| `T-MGMT-08` | Active → Expired | TTL 到期或 principal 不符 | `query_snapshots.expires_at` 与 `principal_id`（`admin.page` 不复核 `authorization_digest`/`filter_digest`；见模块设计 §6.2.5） | `admin.py` `page` 返回 `ERR-CURSOR` | — | `VRC-MGMT-004` |
 
 ### 4.8 错误码与错误结构
 
@@ -488,7 +502,9 @@ ApiError { status: int, code: str, message: str, param: str | null,
 |---|---|---|---|
 | `E-MGMT-BOOT` | settings 不可读/非法/引用不可达 | `ERR-BOOT` | 修正后重启 |
 | `E-MGMT-INVALID` | 字段/引用/能力非法、重名 | `ERR-REQ-VALIDATION` / `ERR-CONFLICT` | 修正后重试 |
-| `E-MGMT-FIXED` | 删除固定 Tier | `ERR-CONFLICT`（`fixed_service_level`） | 不可删除 |
+| `E-MGMT-CAPABILITY` | 绑定成员能力交集缺键（非固定形状） | `ERR-CAPABILITY`（`capability_conflict`） | 改能力一致的成员 |
+| `E-MGMT-EMBEDDING-SPACE` | `Embedding-v1` 不满足冻结 BGE-M3 空间 | `ERR-EMBEDDING-SPACE`（`embedding_space_conflict`） | 改用冻结空间成员 |
+| `E-MGMT-FIXED` | 删除固定 Tier | `ERR-FIXED-LEVEL`（`fixed_service_level`） | 不可删除 |
 | `E-MGMT-CAS` | ETag 不匹配 | `ERR-STALE` | 重新 GET 后重试 |
 | `E-MGMT-USAGE` | Store 读失败 | `ERR-STORE` | 稍后重试 |
 | `E-MGMT-CONFIRM` | 缺二次确认 | `ERR-CONFIRM` | 补确认 |
@@ -506,6 +522,7 @@ ApiError { status: int, code: str, message: str, param: str | null,
 
 ```text
 bootstrap_settings(path) -> None
+ensure_fixed_tiers() -> None
 create_{provider,deployment,service_level}(data, conn=None) -> (view, etag)
 get_/list_{provider,deployment,service_level}(...) -> view/list
 update_{provider,deployment,service_level}(id, data, if_match, conn=None) -> (view, etag)
@@ -518,7 +535,7 @@ candidates(level_id) -> list[Candidate]
   - **Interface/Member ID、状态**：`FUNC-MGMT-REGISTRY` / PLANNED
   - **文件 / symbol / 可见性**：`registry.py` / `Registry.*` / private
   - **原成员 ID 或私有来源**：`F-MGMT-BOOTSTRAP`、`F-MGMT-CRUD`、`R-CFG-01/02/03`
-  - **完整签名与 caller**：`bootstrap_settings(path) -> None`；`create_{provider,deployment,service_level}(data, conn=None)`；`get_/list_{...}`；`update_{...}(id, data, if_match, conn=None)`；`delete_{...}(id, if_match, conn=None)`；`candidates(level_id) -> list[Candidate]`；caller=M001/AdminService
+  - **完整签名与 caller**：`bootstrap_settings(path) -> None`；`ensure_fixed_tiers() -> None`（启动装配在 bootstrap 后调用，`INSERT OR IGNORE` 补缺 Tier）；`create_{provider,deployment,service_level}(data, conn=None)`；`get_/list_{...}`；`update_{...}(id, data, if_match, conn=None)`；`delete_{...}(id, if_match, conn=None)`；`candidates(level_id) -> list[Candidate]`；caller=M001/AdminService
 
 - **输入与前提**
 
@@ -531,7 +548,7 @@ candidates(level_id) -> list[Candidate]
 
 - **错误与合法下一步**
 
-  - **错误输出 / 触发条件 / 优先级**：E-MGMT-BOOT（ERR-BOOT · bootstrap_required / bootstrap_invalid）：503 `bootstrap_required`/`bootstrap_invalid`；not_ready；E-MGMT-INVALID（ERR-REQ-VALIDATION / ERR-CONFLICT）：400/409；E-MGMT-FIXED（ERR-CONFLICT · fixed_service_level）：409 `fixed_service_level`（固定 Tier 不可删除）；E-MGMT-CAS（ERR-STALE · version_conflict）：412 + `current_version`
+  - **错误输出 / 触发条件 / 优先级**：E-MGMT-BOOT（ERR-BOOT · bootstrap_required / bootstrap_invalid）：503 `bootstrap_required`/`bootstrap_invalid`；not_ready；E-MGMT-INVALID（ERR-REQ-VALIDATION / ERR-CONFLICT）：400/409；E-MGMT-CAPABILITY（ERR-CAPABILITY · capability_conflict）：409 `capability_conflict`；E-MGMT-EMBEDDING-SPACE（ERR-EMBEDDING-SPACE · embedding_space_conflict）：409 `embedding_space_conflict`；E-MGMT-FIXED（ERR-FIXED-LEVEL · fixed_service_level）：409 `fixed_service_level`（固定 Tier 不可删除）；E-MGMT-CAS（ERR-STALE · version_conflict）：412 + `current_version`
   - **E-MGMT-BOOT（公共 ERR-BOOT · bootstrap_required / bootstrap_invalid）**
     - **底层异常 / 失败事实**：settings 不可读/非法/引用不可达
     - **模块是否处理及处理函数**：reject（`bootstrap_settings`）
@@ -548,7 +565,7 @@ candidates(level_id) -> list[Candidate]
     - **日志级别 / 脱敏 / 关联字段**：无
     - **是否可重试及前提**：修正后重试
     - **状态与副作用影响 / 验证项**：`VRC-MGMT-002`
-  - **E-MGMT-FIXED（公共 ERR-CONFLICT · fixed_service_level）**
+  - **E-MGMT-FIXED（公共 ERR-FIXED-LEVEL · fixed_service_level）**
     - **底层异常 / 失败事实**：删除固定 Tier（`delete_service_level` 恒拒绝）
     - **模块是否处理及处理函数**：reject（`delete_service_level` 直接抛）
     - **Typed 异常与原生异常所有权**：`ApiError(409)`
@@ -603,7 +620,7 @@ stats(from_ts, to_ts, group_by)
 
 - **成功输出与保证**
 
-  - **成功输出 / 数据结构 / 后置条件**：结果 / `{data, page:{has_more,next_cursor}}` / 统计；审计 success
+  - **成功输出 / 数据结构 / 后置条件**：结果 / `{data, page:{has_more,next_cursor}}` / 统计；审计 success。`probe` 返回 `{deployment_id,status,checked_at,may_have_incurred_cost}`，其中 `may_have_incurred_cost` **当前恒为 `False`**（探活适配器不计费）；`stats` 无 `principal` 入参，服务端恒按 `principal_filter=None` 聚合（不做主体隔离）。`page` 缺省 `limit=100`，钳制 1..200。
 
 - **错误与合法下一步**
 
@@ -658,7 +675,7 @@ reset_usage(model=None, deployment_id=None, conn=None) -> dict
 - **Interface/Member ID、用途、提供责任与唯一来源**
 
   - **Interface/Member ID、状态**：`FUNC-MGMT-USAGE` / PLANNED
-  - **文件 / symbol / 可见性**：`inference/usage.py` / `UsageRecorder.page`、`UsageRecorder.reset_usage` / private
+  - **文件 / symbol / 可见性**：`src/inference/usage.py` / `UsageRecorder.page`、`UsageRecorder.reset_usage` / private（**M003 提供、M004 消费**，见 `management-design` §2 `IF-MGMT-06` / `IF-INF-USAGE`）
   - **原成员 ID 或私有来源**：`F-MGMT-USAGE-QUERY/RESET`、`R-MET-02/03`
   - **完整签名与 caller**：`page(principal, cursor, limit=50, admin=False, since=None, until=None, model=None, request_id=None) -> dict`；`reset_usage(model=None, deployment_id=None, conn=None) -> dict`；caller=M001
 
@@ -778,7 +795,7 @@ flowchart TD
 
 - **触发与执行者**：启动；单线程
 - **入口函数及数据**：`bootstrap_settings`；settings JSON
-- **步骤 / 算法 / 复杂度**：判定空库 → 校验（`T-MGMT-01`）→ 单事务写入 + hash + 审计；O(条目)
+- **步骤 / 算法 / 复杂度**：判定空库 → 校验（`T-MGMT-01`）→ 单事务写入 + hash + 审计（bootstrap 已写全 7 个固定 Tier，含配置能力交集）；启动装配随后再调 `ensure_fixed_tiers`（`app.py`，`INSERT OR IGNORE` 补空能力，仅创建缺失 Tier）；O(条目)
 - **判断事实来源**：`schema_meta.bootstrap_sha256`
 - **成功可见点**：Registry 可接流量；`/readyz` 成功后初始为 `degraded`（deployments `health=unknown`），探测出健康候选后才 `ready`
 - **失败、取消与清理**：回滚；not_ready（`T-MGMT-02`；重复启动 `T-MGMT-04` no-op）
@@ -917,14 +934,14 @@ flowchart TD
 
 ### 8.2.1 `RB-MGMT-BUILD` · 构建与装配
 
-- **目标文件 / 产物 / 构建目标**：`registry.py`+`admin.py`+`account_usage.py`+`audit.py`+`logs.py`+`health.py`
+- **目标文件 / 产物 / 构建目标**：`src/management/{registry,admin,account_usage,audit}.py`（`logs.py`=`src/log/logs.py`、`health.py`=`src/http_api/health.py` 为跨模块消费，非本模块产物）
 - **工具链 / 语言 / 依赖版本**：Python 3.14；标准库 + `urllib`/`hmac`（火山签名）
 - **宿主接入 / 初始化 / 退出次序**：宿主装配；启动 `bootstrap_settings` + `ensure_fixed_tiers`
 - **环境 / 数据规模 / 冷热条件**：配置量小、变更低频
 - **峰值构成 / 上限 / 共享额度**：`limit ≤ 200`；snapshot TTL 10 分钟
 - **分段预算 / 总期限 / 计时点**：探测 5 s、账号用量 15 s
 - **超限、部分启动与清理出口**：回滚/not_ready
-- **构建或运行命令及前置条件**：`PYTHONPATH=src python3 -m pytest tests/ -q`
+- **构建或运行命令及前置条件**：全量 `PYTHONPATH=src python3 -m pytest tests/ tests/system/st_*.py -q`（仓库根）
 
 ## 9. 验证规格与实现任务
 
@@ -938,7 +955,7 @@ flowchart TD
 - **独立 Oracle / Expected**：Registry 与 hash 一致；503 + 回滚 + not_ready
 - **Actual / Evidence**：NOT_RUN
 - **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit`；独立库
+- **测试入口 / 清理**：`tests/unit/v03`；独立库
 - **Run ID / Status**：NOT_RUN
 
 ### 9.1.2 `VRC-MGMT-002` · CRUD 与不变量
@@ -949,7 +966,7 @@ flowchart TD
 - **独立 Oracle / Expected**：412/409/`capability_conflict`/`embedding_space_conflict`
 - **Actual / Evidence**：NOT_RUN
 - **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit` + 契约
+- **测试入口 / 清理**：`tests/unit/v03` + 契约
 - **Run ID / Status**：NOT_RUN
 
 ### 9.1.3 `VRC-MGMT-003` · 审计与日志
@@ -960,7 +977,7 @@ flowchart TD
 - **独立 Oracle / Expected**：审计 success/failed；日志脱敏 `[REDACTED]`
 - **Actual / Evidence**：NOT_RUN
 - **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit`
+- **测试入口 / 清理**：`tests/unit/v03`
 - **Run ID / Status**：NOT_RUN
 
 ### 9.1.4 `VRC-MGMT-004` · 分页与清空
@@ -971,7 +988,7 @@ flowchart TD
 - **独立 Oracle / Expected**：旧页冻结；400/403；计数一致
 - **Actual / Evidence**：NOT_RUN
 - **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit`
+- **测试入口 / 清理**：`tests/unit/v03`
 - **Run ID / Status**：NOT_RUN
 
 ### 9.1.5 `VRC-MGMT-005` · 探测
@@ -982,7 +999,7 @@ flowchart TD
 - **独立 Oracle / Expected**：400；`healthy`/`unhealthy` 落库
 - **Actual / Evidence**：NOT_RUN
 - **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit`
+- **测试入口 / 清理**：`tests/unit/v03`
 - **Run ID / Status**：NOT_RUN
 
 ### 9.1.6 `VRC-MGMT-006` · 账号用量
@@ -993,7 +1010,7 @@ flowchart TD
 - **独立 Oracle / Expected**：`not_refreshed`/`unavailable`+`error`；快照持久
 - **Actual / Evidence**：NOT_RUN
 - **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit`
+- **测试入口 / 清理**：`tests/unit/v03`
 - **Run ID / Status**：NOT_RUN
 
 **运行命令**：全量 `PYTHONPATH=src python3 -m pytest tests/ tests/system/st_*.py -q`
@@ -1013,7 +1030,7 @@ flowchart TD
 ### 9.2.2 `TASK-MGMT-ACTIONS` · 管理动作/探测/账号用量
 
 - **顺序 / 前置项**：2 / `TASK-MGMT-REGISTRY`
-- **文件 / symbol / 构建目标**：`admin.py`、`account_usage.py`、`audit.py`、`health.py`
+- **文件 / symbol / 构建目标**：`admin.py`、`account_usage.py`、`audit.py`（健康视图 `health_view/readiness_view/apply_probe_result` 在 `src/http_api/health.py`，M002 提供、本模块消费）
 - **不可改变的规则**：审计必写、确认语义
 - **实施动作**：实现管理动作
 - **完成检查**：`VRC-MGMT-003/005/006`
@@ -1023,7 +1040,7 @@ flowchart TD
 ### 9.2.3 `TASK-MGMT-USAGE` · 分页与清空
 
 - **顺序 / 前置项**：3 / `TASK-MGMT-REGISTRY`
-- **文件 / symbol / 构建目标**：`usage.py`
+- **文件 / symbol / 构建目标**：`src/inference/usage.py` `UsageRecorder.page/reset_usage`（M003 产物，M004 消费）
 - **不可改变的规则**：冻结/只追加/不累计
 - **实施动作**：实现分页与清空
 - **完成检查**：`VRC-MGMT-004`

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `libdiag` |
-| Document Version | `0.1.0-draft.6` |
+| Document Version | `0.1.0-draft.7` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | llmtier |
 | Created Date | `2026-09-23` |
-| Last Modified Date | `2026-09-25` |
+| Last Modified Date | `2026-09-30` |
 | Template ID | `design.definition` |
 | Template Version | `3.4.3` |
 | Template Conformance | `tailored` |
@@ -108,19 +108,19 @@
 - **上级需求 / Constraint ID**：机制 M-OBS CAP-OBS-2；契约 §5.3（口径）
 - **调用方**：M003 写；M005 读
 - **输入与前提**：`(deployment_id, model, status_code, latency_ms)`
-- **行为**：按小时桶 + 内存聚合（**per-status 计数**）；查询计数 + `status_breakdown{status:count}` + P50/P95/min/max/avg
+- **行为**：按小时桶直写持久表（**per-status 计数**）；查询计数 + `status_breakdown{status:count}` + P50/P95/min/max
 - **输出**：`{request_count, error_count, status_breakdown:{"200":n,"503":m,"429":k,"upstream_error":x}, latency_p50_ms, latency_p95_ms, latency_min_ms, latency_max_ms, latency_sum_ms}`
-- **错误与边界**：缓存满 LRU 淘汰
+- **错误与边界**：写失败 fail-open（`_warn`）；**无内存缓存**
 - **验收条件**：`status_breakdown` 按 HTTP status 分列；可丢、非账本
 
 ### 2.5 `F-DIAG-INJECT` · 注入配置读写
 - **上级需求 / Constraint ID**：`CON-OBS-004`；机制 M-OBS CAP-OBS-5
 - **调用方**：M005 写；M003 读
 - **输入与前提**：注入项列表（部分更新）
-- **行为**：白名单与参数范围校验；按 deployment 持久化；查 enabled——**多启用项仍存储，暴露"下一步要触发的一条"**，优先级 `fault_502 → fault_503 → rate_limit → delay`（流阶段 `stream_terminate → malformed_event`）
+- **行为**：白名单与参数范围校验；按 deployment 持久化；查 enabled——**多启用项仍存储，暴露"下一步要触发的一条"**，优先级 `fault_502 → fault_503 → rate_limit → delay`（流阶段 `stream_terminate → malformed_event`）；**空 `items=[]` = 显式撤销**（删除该 deployment 全部注入行）
 - **输出**：注入项列表 / **单条** enabled 项（`enabled_injection` / `enabled_stream_injection`）
 - **错误与边界**：非法 → `ApiError(400)`
-- **验收条件**：白名单/范围；`UNIQUE(deployment_id, type)`；多 enabled 时返回确定单条
+- **验收条件**：白名单/范围；`UNIQUE(deployment_id, type)`；多 enabled 时返回确定单条；空 items 触发删除
 
 ### 2.5.1 `F-DIAG-TRACES` · trace 时间窗查询（G-1）
 - **上级需求 / Constraint ID**：机制 M-OBS CAP-OBS-6；Piko 缺口 G-1
@@ -128,8 +128,8 @@
 - **输入与前提**：`since/until/deployment_id/model/limit/cursor`
 - **行为**：按时间窗聚合 `trace_events`（去重 request_id）、快照 join 过滤 deployment/model、与 snapshots 对称分页
 - **输出**：`{items:[TraceView], next_cursor, has_more}`
-- **错误与边界**：无匹配 → 空 items
-- **验收条件**：时间窗/分页稳定。**当前状态：Planned（未实现，见 review G-1）**
+- **错误与边界**：无匹配 → 空 items；cursor 非法/失效 → 400 `cursor_expired`
+- **验收条件**：时间窗/分页稳定。**当前状态：Implemented（`traces.py`，G-1 已实现）**
 
 ### 2.6 `F-DIAG-STREAM` · 流注入包装
 - **上级需求 / Constraint ID**：机制 M-OBS（流注入，`LT-OPEN-05`）
@@ -220,11 +220,11 @@
 - **拆分依据与替代方案代价**：快照带外部证据（URL/status/latency）
 
 #### 5.1.4 `I4` · 统计聚合
-- **职责与非职责**：小时桶 + 内存缓存 + 百分位；可丢
+- **职责与非职责**：小时桶直写持久表 + 百分位；可丢
 - **输入、处理与输出**：`(deployment_id, model, status_code, latency_ms)` → 聚合
 - **协作对象**：I1
 - **文件 / symbol / 实现状态**：`stats.py` `record_latency/stats`、`common.py` `percentile/hour_of`；Implemented
-- **拆分依据与替代方案代价**：内存聚合避免每请求写库
+- **拆分依据与替代方案代价**：直写持久表（**无内存缓存**），重启不丢统计
 
 #### 5.1.5 `I5` · 注入配置
 - **职责与非职责**：白名单/范围校验、按 deployment 持久化、查 enabled
@@ -647,7 +647,7 @@ StatsWindow {
 
 - **跨字段与寿命**：
 
-  可丢、非账本；无样本 ⇒ 百分位 `null`、`sum=0`；请求级只读；内存聚合非持久。
+  可丢、非账本；无样本 ⇒ 百分位 `null`、`sum=0`；请求级只读；**直写持久表，无内存聚合**。
 
 - **合法/拒绝实例**：
 
@@ -768,22 +768,17 @@ InjectionConfig {
 ```text
 DiagnosticsRuntimeState {
   switches: SwitchState,
-  stats_cache: map<key, Agg>(上限 + LRU),
   last_cleanup: object?
 }
 ```
 
 - **Data/Type ID、用途与来源**：
 
-  `D-DIAG-RUNTIME-STATE`；诊断开关的运行时事实与统计缓存；唯一来源 `settings.py`（开关）与 `stats.py`（内存聚合 LRU）。
+  `D-DIAG-RUNTIME-STATE`；诊断开关的运行时事实；唯一来源 `settings.py`（开关）。**统计无进程内缓存**（`record_latency` 直写 `data_plane_stats`/`data_plane_latency_samples`）。
 
 - **`switches`**：
 
   必填；等同 `D-DIAG-SWITCH`（§6.2.1）。
-
-- **`stats_cache`**：
-
-  必填映射；统计内存缓存，上限 + LRU 淘汰。
 
 - **`last_cleanup`**：
 
@@ -791,11 +786,11 @@ DiagnosticsRuntimeState {
 
 - **跨字段与寿命**：
 
-  唯一写者=`set_switches`/`record_latency`；记录前判定（关闭零写入，CON-OBS-001）；缓存满 LRU 淘汰；单行持久 + 请求级过程量；进程退出丢失内存统计（不承诺恢复）。
+  唯一写者=`set_switches`/`record_latency`；记录前判定（关闭零写入，CON-OBS-001）；单行持久 + 请求级过程量；统计直写持久表，进程退出不丢。
 
 - **合法/拒绝实例**：
 
-  关 → 无新行；开 → 正常写入；缓存满 → 淘汰最旧。
+  关 → 无新行；开 → 正常写入。
 
 - **验证**：
 
@@ -823,17 +818,18 @@ stateDiagram-v2
     Disabled --> Absent: T-DIAG-07 / 删除或 deployment 移除
 ```
 
-图 M006-D3 · M006 · Target / Planned。开关与注入均为持久事实（`diagnostic_settings`/`diagnostic_injections`），内存缓存不构成权威。
+图 M006-D3 · M006 · Target / Planned。开关与注入均为持久事实（`diagnostic_settings`/`diagnostic_injections`），无内存缓存构成权威。
 
 | Transition ID | 原状态 | 事件/执行者 | Guard 的权威事实来源 | 动作及提交点 | 新状态 | 迟到/失败出口 | 不变量与 VRC |
 |---|---|---|---|---|---|---|---|
 | T-DIAG-01 | Off | `set_switches` 请求线程 | `diagnostic_settings` 行 | 单事务 upsert `enabled=true`，提交后生效 | On | 写失败 → 保持 Off（不改业务） | fail-open；VRC-DIAG-001 |
 | T-DIAG-02 | On | `set_switches` 请求线程 | `diagnostic_settings` 行 | 单事务 upsert `enabled=false` | Off | 写失败 → 保持 On | 关闭零写入；VRC-DIAG-001 |
-| T-DIAG-03 | On | `record_latency`/`capture_snapshot`/`record_trace` | `switches` 权威读 | 按开关写入对应表；统计走内存缓存 | On | 写失败 → `_warn`，不改推理（§10.1） | 记录不改推理结果；VRC-DIAG-002 |
+| T-DIAG-03 | On | `record_latency`/`capture_snapshot`/`record_trace` | `switches` 权威读 | 按开关写入对应表（统计直写持久表，无缓存） | On | 写失败 → `_warn`，不改推理（§10.1） | 记录不改推理结果；VRC-DIAG-002 |
 | T-DIAG-04 | Off | 任一记录调用 | `switches.enabled=false` | 短路，不写库 | Off | — | 关闭零开销；VRC-DIAG-001 |
 | T-DIAG-05 | Absent/Disabled | `set_injections` 请求线程 | `_validate`（§8.4） | 按 `(deployment_id,injection_type)` upsert，提交后生效 | Enabled | 校验失败 → 400，不落库（§10.2） | 非法参数拒绝；VRC-DIAG-004 |
 | T-DIAG-06 | Enabled | `set_injections` | 同 T-DIAG-05 | upsert `enabled=false` | Disabled | — | 停用不改历史 fault 语义；VRC-DIAG-004 |
-| T-DIAG-07 | Disabled | 删除注入或 deployment 移除 | 上游删除事实 | 删除行 | Absent | — | 无悬空注入；VRC-DIAG-004 |
+| T-DIAG-07 | 全量撤销（Enabled/Disabled） | `set_injections(items=[])` | 显式空列表 | `DELETE FROM diagnostic_injections WHERE deployment_id=?`（`injections.py:67-69`），整行删除 | Absent | 校验失败 → 400，不落库 | 撤销=删除该 deployment 全部行；VRC-DIAG-004 |
+| T-DIAG-08 | Disabled | 再次配置禁用 / deployment 移除 | 无删除事实 | 非空 items upsert 分支：禁用仅置 `enabled=0`，行持久保留、无 FK cascade | Disabled | — | 无悬空注入；VRC-DIAG-004 |
 
 ### 6.7 数据库表结构
 
@@ -934,7 +930,7 @@ enum DiagnosticErrorRef { ERR-NOTFOUND, ERR-INJECTION, ERR-REQ-VALIDATION, ERR-S
 
 ## 7. 主流程与数据流
 
-**内部流程正文**：记录路径由 M003/M001 调用记录原语：先判开关（I1），关闭即短路；开启则写 `Store`（trace/snapshot）或更新内存聚合（stats），失败捕获后 `_warn`。流注入路径由 M001 用 `stream_wrapper` 包装 SSE 字节流，按 enabled 注入截断/畸形。清理在启动时按 7 天删除。
+**内部流程正文**：记录路径由 M003/M001 调用记录原语：先判开关（I1），关闭即短路；开启则写 `Store`（trace/snapshot/stats 均直写对应表），失败捕获后 `_warn`。流注入路径由 M001 用 `stream_wrapper` 包装 SSE 字节流，按 enabled 注入截断/畸形。清理在启动时按 7 天删除。
 
 #### 7.1 `P-DIAG-RECORD` · 记录
 - **触发/适用条件**：推理路径各阶段
@@ -1221,13 +1217,13 @@ cleanup(days: int = 7) -> int
 - **超限行为 / 责任出口**：删除过期
 - **验证项 / Evidence**：`VRC-DIAG-002`；NOT_RUN
 
-#### 12.2 `CAP-DIAG-STATS` · 统计内存
-- **目标 / 限制 / 单位**：内存上限 + LRU
+#### 12.2 `CAP-DIAG-STATS` · 统计写容量
+- **目标 / 限制 / 单位**：每次请求一次 UPSERT + 追加（无内存上限）
 - **适用版本 / 配置 / 硬件 / 虚拟化 / 依赖**：`record_latency`
 - **负载、数据规模与并发口径**：并发请求
 - **推导 / 测量方法与证据等级**：Specified
 - **共享资源扣减 / 峰值重叠 / 余量**：—
-- **超限行为 / 责任出口**：淘汰最旧
+- **超限行为 / 责任出口**：写失败 fail-open
 - **验证项 / Evidence**：`VRC-DIAG-002`；NOT_RUN
 
 #### 12.3 `CAP-DIAG-SNAP` · 快照分页
@@ -1336,7 +1332,7 @@ cleanup(days: int = 7) -> int
 
 #### 15.1 `RISK-DIAG-1` · 统计可丢
 - **类型 / 影响的规则、接口、流程或约束**：Risk；影响 `F-DIAG-STATS`
-- **事实缺口 / 触发条件**：重启/缓存满
+- **事实缺口 / 触发条件**：写事务失败（fail-open 丢弃；统计直写持久表，无缓存）
 - **影响 / 阻塞边界**：统计不连续；不影响账本
 - **Owner / 最晚关闭 Gate**：LLMTier / —
 - **选项 / 推荐 / 下一步取证**：明示非账本语义
@@ -1346,9 +1342,9 @@ cleanup(days: int = 7) -> int
 - **类型 / 影响的规则、接口、流程或约束**：Open Question；`LT-OPEN-05`
 - **事实缺口 / 触发条件**：`stream_terminate`/`malformed_event` 需改造流式输出
 - **影响 / 阻塞边界**：流注入验收待实现确认
-- **Owner / 最晚关闭 Gate**：LLMTier / 实现门禁
-- **选项 / 推荐 / 下一步取证**：确认 `stream_wrapper` 集成方案
-- **关闭条件 / 决定或当前状态**：未决
+- **Owner / 最晚关闭 Gate**：LLMTier / 已关闭
+- **选项 / 推荐 / 下一步取证**：`stream_wrapper`（`stream.py`）已实现并接线（`app.py:222`）
+- **关闭条件 / 决定或当前状态**：已实现（Implemented）
 
 引用：系统设计 §3.2/§11.3；机制 M-OBS §14.4（`R-OBS-01`）、M-INFER §14.4（`R-INF-08`）；`observability-design.md`；`src/util/migrations/002_observability.sql`。
 
