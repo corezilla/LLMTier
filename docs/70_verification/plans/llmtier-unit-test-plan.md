@@ -15,7 +15,7 @@
 | Created Date | `2026-09-30` |
 | Last Modified Date | `2026-09-30` |
 | Template ID | `tests.unit-test-plan` |
-| Template Version | `0.9.1` |
+| Template Version | `0.9.2` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | std-tailoring |
 | Migration Map Reference | llmtier-implementation-plan |

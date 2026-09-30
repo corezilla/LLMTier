@@ -15,7 +15,7 @@
 | Created Date | `2026-09-29` |
 | Last Modified Date | `2026-09-30` |
 | Template ID | `tests.system-test-plan` |
-| Template Version | `0.9.1` |
+| Template Version | `0.9.2` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | std-tailoring |
 | Migration Map Reference | `llmtier-api-test-plan, llmtier-api-test-execution, llmtier-test-plan, llmtier-vv-plan` |

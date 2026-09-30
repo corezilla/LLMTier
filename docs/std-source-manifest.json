@@ -1,15 +1,15 @@
 {
   "schema_version": "std-source-manifest.v1",
-  "std_version": "0.1.0-draft.69",
+  "std_version": "0.1.0-draft.72",
   "source_repository": "corezilla/STD",
-  "source_revision": "8fe0cd2acbd841305fd74b03b7cedfc59479e021",
+  "source_revision": "f0bc34cc6a93f9894fd2a61f1f6855b03816b0b9",
   "source_tag": null,
   "generated_at": "2026-09-30",
   "artifacts": [
     {
       "path": "README.md",
       "role": "guidance",
-      "sha256": "ee1d579f705a1def662cd9339da1fb393eeab2f6ddfe2389a1ae21cba197c0c8"
+      "sha256": "8878eaa280037df034e6d6cab8239191041c42fc6af5d4276f2fb47d72bee0a7"
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
@@ -19,7 +19,7 @@
     {
       "path": "VERSION",
       "role": "guidance",
-      "sha256": "5a22c90baf78575ebc4a7f1eb008b95df5950a0317b974a1cc8ac63ae95dcfad"
+      "sha256": "1c61f48642396b0f817b304e8c06aa500d7fb2710017ae227bf0c2a86d7ac5a9"
     },
     {
       "path": "docs/adoption.md",
@@ -29,12 +29,12 @@
     {
       "path": "docs/ai-authoring-guide.md",
       "role": "guidance",
-      "sha256": "c7bcc2f2b77fd7ab1daa0ac6352650134e6e29b5e8cd03b1319f70a9a213f552"
+      "sha256": "56d64724154d6cde475b4e2547d1497b5107a5e537da07bffcae8a45702c776b"
     },
     {
       "path": "docs/ai-authoring-guides.json",
       "role": "guidance",
-      "sha256": "60d29138e6464baf40f3e9461e4661b63027e6e93b16fa414e08d46d7b9525ba"
+      "sha256": "50134f6d88c05fbcb4d3f28d465980139ad798072c047c0cba9b41981d25fb3d"
     },
     {
       "path": "docs/ai-guides/fpga.md",
@@ -454,7 +454,7 @@
     {
       "path": "examples/std.lock.example.json",
       "role": "example",
-      "sha256": "ca870c3799f7bd17b327f18386b20b70c7f8595a17a24b628745843529cd4732"
+      "sha256": "6cff2c2b79345b7a3fbc2d8c01dc63b10ff72e52a55c92e815716292569384fc"
     },
     {
       "path": "schemas/document-metadata.schema.json",
@@ -559,7 +559,7 @@
     {
       "path": "templates/catalog.json",
       "role": "template",
-      "sha256": "02f16848b876a7bb232ef51b66a0385fd160cb0a00fcf6c1bc408529be087efc"
+      "sha256": "415648f5d8b7b6e3202a4ef0a0ffd412851edc30d3cc97e13c54a2dbd0048575"
     },
     {
       "path": "templates/contracts/contract-specification.md",
@@ -1052,6 +1052,11 @@
       "sha256": "dbcd552be09030476d21bf77b0a993e6a2c8ff640e32f2f3d0196abfd54564af"
     },
     {
+      "path": "templates/review/tests.code-review-checklist.md",
+      "role": "template",
+      "sha256": "5a737d66c6a7d935c6c4e4d8fd94942ac57d4483c2c990efef68a3963a0b0d6a"
+    },
+    {
       "path": "templates/tests/asset-design.md",
       "role": "template",
       "sha256": "58f905bfadb7019b20bb2e6fb3d2c84641d73b6741337c801ff63735e79e908a"
@@ -1059,12 +1064,12 @@
     {
       "path": "templates/tests/module-case.md",
       "role": "template",
-      "sha256": "96e03ec8cde27e1d3cb5785199219d2cf94fe7c98b3aef6655d7d826624af857"
+      "sha256": "6bd33c3c0b69c702ac2420dcf8b3e191fe587c921cbdeee217e8dd55e446f55a"
     },
     {
       "path": "templates/tests/module-test-plan.md",
       "role": "template",
-      "sha256": "63959246c05194957de46e760162743a4276191211879e74625e799ea75b6e33"
+      "sha256": "33f5251104b5990d3d8b82ef5204cff630199284a3c9bbb7be90bfae6d51fc3a"
     },
     {
       "path": "templates/tests/module-test-report.md",
@@ -1074,17 +1079,17 @@
     {
       "path": "templates/tests/module-test-scheme.md",
       "role": "template",
-      "sha256": "6254b9d138f77b20d20ae7c5f19ec43e09bc333360248908a4d3353d0c533187"
+      "sha256": "c92e35ca24796300f258bb0d4156d01fd82f50050dbaca459d99caac1c1ff0ba"
     },
     {
       "path": "templates/tests/subsystem-case.md",
       "role": "template",
-      "sha256": "7f104b7f07344124f9ae09ca2d97cf998408e3b1b63985925c5eb4b631d07352"
+      "sha256": "33e73048025381ff5d2d98ca4fbf77fc49f3d84065d76f6f4a0bb45ca194e6a0"
     },
     {
       "path": "templates/tests/subsystem-test-plan.md",
       "role": "template",
-      "sha256": "eba053bed7aefb7da3363a27add0353f2f632847647fd56a44f0392ce0432d72"
+      "sha256": "1751aefb52d9c7b433c7cea1d517990708d531b3d498a8b8f482667cc2236673"
     },
     {
       "path": "templates/tests/subsystem-test-report.md",
@@ -1094,17 +1099,17 @@
     {
       "path": "templates/tests/subsystem-test-scheme.md",
       "role": "template",
-      "sha256": "e3e5bed8dcc8fb726d3b08ca45c753df8c0d15d9c7e7e2f6f8fc9c10de4a4ac0"
+      "sha256": "cc039cc831922df7c10ed8f6fcbced05559fa9fe1b74e769a351d053310e4bc9"
     },
     {
       "path": "templates/tests/system-case.md",
       "role": "template",
-      "sha256": "bd2d5de25f411a15dd4af0909d251050a128d52b07ed6cb41b185f3431954712"
+      "sha256": "d52aae730246dc9a3cca5a870a17bd390921858b9f74cc3de7c6f5b64a250aad"
     },
     {
       "path": "templates/tests/system-test-plan.md",
       "role": "template",
-      "sha256": "0a3cdca42524972bacccc9b25e8e41936eab423b218ed326624a0e67f0be6ae9"
+      "sha256": "5e7d24a9d7f3e0f252b970ee2933a9fca96e93ee5644c88a3b4ce5062fb6d319"
     },
     {
       "path": "templates/tests/system-test-report.md",
@@ -1114,27 +1119,27 @@
     {
       "path": "templates/tests/system-test-scheme.md",
       "role": "template",
-      "sha256": "ded76a663c0d266a10e9a652267c0acd4e50ff709dc9dbfe2cdad234e94ea1d1"
+      "sha256": "aec91b825c75dbd9ca957f55499153e3adec8b5102b86c71885fea82a137cb04"
     },
     {
       "path": "templates/tests/unit-case.md",
       "role": "template",
-      "sha256": "4b91faed9720dfb072accbb3906a100239552b30ccfbf945dd49bda1089eb686"
+      "sha256": "cc7ac7e1f9f6473433956138838dafd36cdacd0a48bd5287d3f4e6827606e687"
     },
     {
       "path": "templates/tests/unit-test-plan.md",
       "role": "template",
-      "sha256": "a1a176225b9f46ce4428560ca2ea0c21bd79924589ceb19e7893a2567dc2c55c"
+      "sha256": "20de6af764ee77fb00a2a11eafee0541b89acfc312ec4ca91a4127c6a21637c6"
     },
     {
       "path": "templates/tests/unit-test-report.md",
       "role": "template",
-      "sha256": "05bd824e1f945d68b54f6c859facc0c19d6f31948398348558812cf717c0a348"
+      "sha256": "24dc8437141aa084673a07b2785833df97e808f1f86865d9a7d7cd2faa6cab94"
     },
     {
       "path": "templates/tests/unit-test-scheme.md",
       "role": "template",
-      "sha256": "13a7caa84c482b90ba808722179cbabf1c664ca02e403db0b4011d533a2783dd"
+      "sha256": "409e67867384137d12441577adeb3f63b6be8088ef71fdee281c45bd1ba885b2"
     }
   ]
 }

@@ -11,7 +11,7 @@
   ],
   "template_id": "tests.system-test-scheme",
   "template_version": "0.6.1",
-  "template_sha256": "ded76a663c0d266a10e9a652267c0acd4e50ff709dc9dbfe2cdad234e94ea1d1",
+  "template_sha256": "aec91b825c75dbd9ca957f55499153e3adec8b5102b86c71885fea82a137cb04",
   "template_conformance": "native",
   "tailoring_ref": null,
   "migration_map_ref": null,
