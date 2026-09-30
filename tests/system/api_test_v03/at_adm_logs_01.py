@@ -13,9 +13,9 @@ Auth: Bearer dev-admin
 - **全 resp.text 扫描**：不含上游 secret 字面 "9832"、key 文件名
   "omlx-secret-key.txt"、"mnm_api_key"
 
-脱敏缺口（登记，非本 case FAIL 依据）：`_SENSITIVE` 对 `api_key=`/`apikey=` 只替换
-键名，值保留（`api_key=x` → `[REDACTED]=x`）；设计 §40 log-design §6.3 固定该正则，
-并以 `RISK-LOG-1 · 脱敏正则漏网`（状态"观察"）跟踪，故此处不改代码，仅登记该已知边界。
+脱敏（RISK-LOG-1 已关闭）：`_SENSITIVE` 现在同时消费键名后的值
+（`api_key=`/`apikey=`/`secret`/`access_key[_id]`/`token` + `[:=]`），故 `api_key=x`
+整段 → `[REDACTED]`；log-design §15.1 / log.isd §10.3.1 状态已更新为 Closed。
 """
 from __future__ import annotations
 

@@ -167,7 +167,7 @@ LogEvent {
 **4.3.1 `_SENSITIVE`（`logs.py`，模块级脱敏规则）**
 
 ```text
-_SENSITIVE = re.compile(r"authorization|bearer\s+\S+|secret|api[_-]?key|token\s*[=:]\s*\S+", re.I)
+_SENSITIVE = re.compile(r"(?i)(authorization|bearer\s+\S+|(?:api[_-]?key|apikey|secret|access[_-]?key(?:_id)?|token)\s*[:=]\s*\S+)")
 ```
 
 - **Data/Type ID、用途与来源**
@@ -176,7 +176,7 @@ _SENSITIVE = re.compile(r"authorization|bearer\s+\S+|secret|api[_-]?key|token\s*
 
 - **`pattern`**（私有、只读）
 
-  `re.Pattern`，匹配 `authorization|bearer\s+\S+|secret|api[_-]?key|token\s*[=:]\s*\S+`（IGNORECASE）。
+  `re.Pattern`，匹配 `authorization` / `bearer\s+\S+` / `(api[_-]?key|apikey|secret|access[_-]?key(_id)?|token)\s*[:=]\s*\S+`（IGNORECASE）；**键名后的值一并吞掉**。
 
 - **跨字段与寿命**
 
@@ -184,7 +184,7 @@ _SENSITIVE = re.compile(r"authorization|bearer\s+\S+|secret|api[_-]?key|token\s*
 
 - **合法/拒绝实例**
 
-  合法 `Authorization: Bearer x` → `Authorization: [REDACTED]`；边界：无匹配 → 原样（仍受 512 截断）。
+  合法 `Authorization: Bearer x` → `Authorization: [REDACTED]`；`api_key=x`/`apikey=x`/`access_key=x` 的键名与值整体 → `[REDACTED]`；边界：无匹配 → 原样（仍受 512 截断）。
 
 - **验证**
 
@@ -591,7 +591,7 @@ flowchart TD
 
 ### 10.3.1 `RISK-LOG-1` · 脱敏正则漏网
 
-- **既有台账引用 / 具体缺口 / 反例**：`log` §15.1
+- **既有台账引用 / 具体缺口 / 反例**：`log` §15.1（`api_key=`/`apikey=`/`access_key=` 曾仅键名脱敏、值保留）
 - **风险等级 / 判定依据**：Medium；出现未覆盖凭据形态则潜在泄漏
 - **Owner**：LLMTier
 - **最晚关闭阶段 / 截止 Gate**：安全评审
@@ -599,7 +599,7 @@ flowchart TD
 - **分析 / 决策引用**：`log` §15.1
 - **所需输入 / 下一步选择判据**：脱敏用例集
 - **解决动作 / 完成条件**：补正则；禁记正文作兜底
-- **状态**：Open
+- **状态**：Closed（2026-09-30）——正则扩展为键名+值一并替换；`VRC-LOG-001` 回归通过
 
 ### 10.4 Metadata 与 coverage 交付检查
 

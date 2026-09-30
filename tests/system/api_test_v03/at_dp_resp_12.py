@@ -11,7 +11,7 @@ Auth: Bearer dev-data
 断言：
 - HTTP 400；Content-Type: application/json（非 SSE）
 - error 键集恰 5 键 {message,type,code,param,retryable}
-- error.code == "invalid_request"、type == "request_error"、param is None、retryable is False
+- error.code == "unsupported_field"、type == "request_error"、param == "conversation_id"、retryable is False
 - error.message 含 "unknown fields"
 - 对照：去掉 conversation_id 的同一请求应 200 + SSE（隔离归因）
 """
@@ -40,9 +40,9 @@ def test_dp_resp_12_conversation_id_rejected(api_client):
     assert ct.startswith("application/json"), f"错误响应应 JSON（非 SSE）: {ct!r}"
 
     err = error_envelope(resp)
-    assert err["code"] == "invalid_request", f"error.code != 'invalid_request': {err}"
+    assert err["code"] == "unsupported_field", f"error.code != 'unsupported_field': {err}"
     assert err["type"] == "request_error", f"error.type != 'request_error': {err}"
-    assert err["param"] is None, f"error.param 非 null: {err}"
+    assert err["param"] == "conversation_id", f"error.param != 'conversation_id': {err}"
     assert err["retryable"] is False, f"error.retryable 非 False: {err}"
     assert "unknown fields" in err["message"], f"message 未含 'unknown fields': {err}"
 

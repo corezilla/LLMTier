@@ -2,6 +2,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from http_api import __version__
 from http_api.app import Application, handler_factory
@@ -25,3 +26,12 @@ class StartupTests(unittest.TestCase):
         db=str(self.root/"e.db");app=Application(db,self.settings());app.store.close();again=Application(db,str(self.root/"missing"));self.assertIsNone(again.bootstrap_error);again.store.close()
     def test_handler_factory(self):
         app=Application(str(self.root/"f.db"),self.settings());self.assertTrue(issubclass(handler_factory(app),__import__('http.server').server.BaseHTTPRequestHandler));app.store.close()
+    def test_non_apierror_bootstrap_does_not_crash(self):
+        """CR-BOOTSTRAP-CATCH: a non-ApiError bootstrap failure → not_ready, no crash."""
+        with patch("management.registry.Registry.bootstrap_settings",side_effect=OSError("disk gone")):
+            app=Application(str(self.root/"g.db"),self.settings())
+            try:
+                self.assertIsNotNone(app.bootstrap_error)
+                self.assertEqual((app.bootstrap_error.status,app.bootstrap_error.code),(503,"bootstrap_invalid"))
+            finally:
+                app.store.close()

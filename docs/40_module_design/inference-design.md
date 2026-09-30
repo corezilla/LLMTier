@@ -934,7 +934,7 @@ Authority = `util/migrations/001_initial.sql`（由 M007 执行）。M003 经 `U
 |---|---|---|---|
 | 400 invalid_request | 字段/结构非法 | `ERR-REQ-VALIDATION` | 修字段 |
 | 400 unsupported_request | `stream=false` | `ERR-REQ-UNSUPPORTED` | 改标准 SSE |
-| 400 unsupported_field | 含禁字段 | `ERR-REQ-FIELD` | 移除字段 |
+| 400 unsupported_field | 含禁字段或未知字段（`additionalProperties:false`）；`param`=首个字段名 | `ERR-REQ-FIELD` | 移除字段 |
 | 404 model_not_found | exact 等级不存在，或无候选 | `ERR-MODEL-NOTFOUND` | 用 `/v1/models` exact 名 |
 | 429 rate_limit_exceeded | 队列满/等待超时 | `ERR-RATE-LIMIT` | 按 `Retry-After` 退避 |
 | 503 model_unavailable | 全候选不健康 | `ERR-MODEL-UNAVAIL` | 稍后/换等级 |

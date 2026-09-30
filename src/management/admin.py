@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import uuid
 import json
 from datetime import datetime, timedelta, timezone
@@ -20,15 +21,26 @@ class AdminService:
 
     def page(self, data, actor: str, kind: str, cursor: str | None = None, limit: int = 100):
         limit = max(1, min(limit, 200))
+        filter_digest = hashlib.sha256(kind.encode()).hexdigest()
+        authorization_digest = hashlib.sha256(actor.encode()).hexdigest()
         if cursor:
-            sid, _, raw_offset = cursor.partition(":"); offset = int(raw_offset or "0")
+            sid, _, raw_offset = cursor.partition(":")
+            try:
+                offset = int(raw_offset)
+            except ValueError:
+                raise ApiError(400, "cursor_expired", "Admin cursor is invalid or expired")
             snapshot = self.registry.store.one("SELECT * FROM query_snapshots WHERE snapshot_id=? AND snapshot_kind=?", (sid, f"admin:{kind}"))
-            if snapshot is None or snapshot["principal_id"] != actor or datetime.fromisoformat(snapshot["expires_at"].replace("Z", "+00:00")) <= datetime.now(timezone.utc): raise ApiError(400, "cursor_expired", "Admin cursor is invalid or expired")
+            if (snapshot is None
+                    or snapshot["principal_id"] != actor
+                    or snapshot["authorization_digest"] != authorization_digest
+                    or snapshot["filter_digest"] != filter_digest
+                    or datetime.fromisoformat(snapshot["expires_at"].replace("Z", "+00:00")) <= datetime.now(timezone.utc)):
+                raise ApiError(400, "cursor_expired", "Admin cursor is invalid or expired")
         else:
             sid, offset = f"admin_{uuid.uuid4().hex}", 0
             stamp = datetime.now(timezone.utc); expires = stamp + timedelta(minutes=10)
             with self.registry.store.transaction(True) as conn:
-                conn.execute("INSERT INTO query_snapshots VALUES(?,?,?,?,?,?,?)", (sid, actor, f"admin:{kind}", "all", actor, stamp.isoformat().replace("+00:00", "Z"), expires.isoformat().replace("+00:00", "Z")))
+                conn.execute("INSERT INTO query_snapshots VALUES(?,?,?,?,?,?,?)", (sid, actor, f"admin:{kind}", filter_digest, authorization_digest, stamp.isoformat().replace("+00:00", "Z"), expires.isoformat().replace("+00:00", "Z")))
                 for ordinal, item in enumerate(data): conn.execute("INSERT INTO query_snapshot_items VALUES(?,?,?,?,?,?)", (sid, ordinal, str(item.get("id", ordinal)), None, json.dumps(item, separators=(",", ":")), None))
         rows = self.registry.store.all("SELECT frozen_view_json FROM query_snapshot_items WHERE snapshot_id=? AND ordinal>=? ORDER BY ordinal LIMIT ?", (sid, offset, limit + 1)); more = len(rows) > limit
         return {"data": [json.loads(r["frozen_view_json"]) for r in rows[:limit]], "page": {"has_more": more, "next_cursor": f"{sid}:{offset+limit}" if more else None}}

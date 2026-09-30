@@ -63,10 +63,10 @@
 - **上级需求 / Constraint ID**：脱敏约束（§1.1.1）
 - **调用方**：M001/M003/M004/M006
 - **输入与前提**：`(level, module, event, message, request_id?)`
-- **行为**：`_SENSITIVE` 正则替换 `[REDACTED]`；换行折叠；截断 ≤512；写入 `operational_logs`
+- **行为**：`_SENSITIVE` 正则替换 `[REDACTED]`（键名与键名后的值一并吞掉）；换行折叠；截断 ≤512；写入 `operational_logs`
 - **输出**：日志行
 - **错误与边界**：写入失败不抛到主路径
-- **验收条件**：含 `Authorization`/`Bearer …`/`secret`/`api_key`/`token=` 的文本被脱敏
+- **验收条件**：含 `Authorization`/`Bearer …`/`secret: x`/`api_key=x`/`apikey=x`/`access_key=x`/`token=` 的文本被整体脱敏（键名与值）
 
 ### 2.2 `F-LOG-QUERY` · 查询运行日志
 - **上级需求 / Constraint ID**：机制 M-OBS（日志查询）
@@ -319,7 +319,7 @@ RedactionRule {
 
 - **`pattern`**：
 
-  必填正则 `(?i)(authorization|bearer\s+\S+|secret|api[_-]?key|token\s*[=:]\s*\S+)`；匹配敏感文本。
+  必填正则 `(?i)(authorization|bearer\s+\S+|(?:api[_-]?key|apikey|secret|access[_-]?key(?:_id)?|token)\s*[:=]\s*\S+)`；匹配敏感文本（含键名后的值）。
 
 - **`replacement`**：
 
@@ -339,7 +339,7 @@ RedactionRule {
 
 - **合法/拒绝实例**：
 
-  合法 `Authorization: Bearer x` → `Authorization: [REDACTED]`；边界：未覆盖的凭据形态由 §15 `RISK-LOG-1` 跟踪。
+  合法 `Authorization: Bearer x` → `Authorization: [REDACTED]`；边界：`api_key=x`/`apikey=x`/`access_key=x` 的键名与值整体 → `[REDACTED]`（`RISK-LOG-1` 已关闭）。
 
 - **验证**：
 
@@ -447,7 +447,7 @@ CREATE TABLE operational_logs (
 
 #### 8.1 `RULE-LOG-REDACT` · 写前脱敏
 - **输入前提 / 适用条件**：任意写入
-- **算法 / 规则 / 选择依据**：`_SENSITIVE = (?i)(authorization|bearer\s+\S+|secret|api[_-]?key|token\s*[=:]\s*\S+)` → `[REDACTED]`；换行折叠；`[:512]`
+- **算法 / 规则 / 选择依据**：`_SENSITIVE = (?i)(authorization|bearer\s+\S+|(?:api[_-]?key|apikey|secret|access[_-]?key(?:_id)?|token)\s*[:=]\s*\S+)` → `[REDACTED]`；换行折叠；`[:512]`
 - **结果 / 不变量 / 边界**：落库文本不含匹配敏感串
 - **复杂度 / 资源限制**：O(len)
 - **允许替换范围 / 不可改变保证**：正则可自选；写前脱敏不可变
@@ -619,11 +619,11 @@ page(limit: int = 50, level: str | None = None, module: str | None = None, reque
 
 #### 15.1 `RISK-LOG-1` · 脱敏正则漏网
 - **类型 / 影响的规则、接口、流程或约束**：Risk；影响 §8.1
-- **事实缺口 / 触发条件**：出现未覆盖的凭据形态
+- **事实缺口 / 触发条件**：曾出现未覆盖的凭据形态（`api_key=`/`apikey=`/`access_key=` 仅键名被替换，值保留）
 - **影响 / 阻塞边界**：潜在泄漏；不阻塞设计
 - **Owner / 最晚关闭 Gate**：LLMTier / 安全评审
 - **选项 / 推荐 / 下一步取证**：补充正则；禁记正文作为兜底
-- **关闭条件 / 决定或当前状态**：观察
+- **关闭条件 / 决定或当前状态**：**Closed**（2026-09-30）——`_SENSITIVE` 扩展为键名与值一并吞（`(?:api[_-]?key|apikey|secret|access[_-]?key(?:_id)?|token)\s*[:=]\s*\S+`）；回归 Case `UT-LOG-002`（`test_api_key_value_redaction`/`test_access_key_value_redacted`/`test_x_api_key_header_value_redacted`）通过
 
 引用：系统设计 §3.2/§11.3；`src/log/logs.py`；`migrations/001_initial.sql`。
 

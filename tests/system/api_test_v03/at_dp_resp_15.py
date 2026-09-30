@@ -11,7 +11,7 @@ ALLOWED_FIELDS 中，出现即触发未知字段拒绝。
 断言：
 - (a) 仅 temperature：HTTP 200，Content-Type text/event-stream，含 response.completed
 - (b) temperature + top_p：HTTP 400，application/json（非 SSE）；
-  error 键集恰 5 键、code=="invalid_request"、type=="request_error"、param is None、
+  error 键集恰 5 键、code=="unsupported_field"、type=="request_error"、param=="top_p"、
   retryable is False、message 含 "unknown fields"
 """
 from __future__ import annotations
@@ -50,8 +50,8 @@ def test_dp_resp_15_temperature_top_p(api_client):
     assert ct.startswith("application/json"), f"错误响应应 JSON（非 SSE）: {ct!r}"
 
     err = error_envelope(resp)
-    assert err["code"] == "invalid_request", f"error.code != 'invalid_request': {err}"
+    assert err["code"] == "unsupported_field", f"error.code != 'unsupported_field': {err}"
     assert err["type"] == "request_error", f"error.type != 'request_error': {err}"
-    assert err["param"] is None, f"error.param 非 null: {err}"
+    assert err["param"] == "top_p", f"error.param != 'top_p': {err}"
     assert err["retryable"] is False, f"error.retryable 非 False: {err}"
     assert "unknown fields" in err["message"], f"message 未含 'unknown fields': {err}"

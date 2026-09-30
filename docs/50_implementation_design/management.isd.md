@@ -442,7 +442,7 @@ QuerySnapshotLifecycle {
 
 - **跨字段与寿命**
 
-  写入一次、不可变；到期或 principal 不符 → 拒绝续页 `ERR-CURSOR`（`T-MGMT-08`，不返回空页）；TTL 10 分钟，到期废弃。**注意**：`admin.page` 的续页 guard 只比较 `snapshot_kind`、`principal_id` 与 `expires_at`（`query_snapshots.authorization_digest`/`filter_digest` 仅存储、不复核）；比较 `authorization_digest` 与 `filter_digest` 的是用量分页 `inference/usage.py` `UsageRecorder.page`（§5.1.3）。
+  写入一次、不可变；到期或 principal 不符 → 拒绝续页 `ERR-CURSOR`（`T-MGMT-08`，不返回空页）；TTL 10 分钟，到期废弃。**注意**：`admin.page` 的续页 guard 比较 `snapshot_kind`、`principal_id`、`authorization_digest`、`filter_digest` 与 `expires_at`（`filter_digest=sha256(kind)`、`authorization_digest=sha256(actor)`），与系统 §7.10「cursor 绑定 principal、当前授权和原 filter」一致；比较方式的实现同样见用量分页 `inference/usage.py` `UsageRecorder.page`（§5.1.3）。
 
 - **合法/拒绝实例**
 
@@ -464,8 +464,8 @@ QuerySnapshotLifecycle {
 | `T-MGMT-04` | Ready → Booting | 进程重启 | 已提交 settings 指纹匹配 | `Application.__init__` 再调 `bootstrap_settings`（no-op） | 指纹不符 → `T-MGMT-02` | `VRC-MGMT-001` |
 | `T-MGMT-05` | NotReady → Ready | 修正后重启 | 修正后的 settings 校验结果 | 同 `T-MGMT-01` | 仍失败 → NotReady | — |
 | `T-MGMT-06` | （无快照）→ Active | `AdminService.page` 首次查询 | 查询参数 + principal | `admin.py` `page` 写 `query_snapshots`/`query_snapshot_items` | 写失败 → 503（不返回空页） | `VRC-MGMT-004` |
-| `T-MGMT-07` | Active → Active | 续页（带 cursor） | `query_snapshots.expires_at` 与 principal | `admin.py` `page` 读冻结项分支 | 过期/不符 → `T-MGMT-08` | `VRC-MGMT-004` |
-| `T-MGMT-08` | Active → Expired | TTL 到期或 principal 不符 | `query_snapshots.expires_at` 与 `principal_id`（`admin.page` 不复核 `authorization_digest`/`filter_digest`；见模块设计 §6.2.5） | `admin.py` `page` 返回 `ERR-CURSOR` | — | `VRC-MGMT-004` |
+| `T-MGMT-07` | Active → Active | 续页（带 cursor） | `query_snapshots.expires_at`、`principal_id`、`authorization_digest`、`filter_digest` | `admin.py` `page` 读冻结项分支 | 过期/不符 → `T-MGMT-08` | `VRC-MGMT-004` |
+| `T-MGMT-08` | Active → Expired | TTL 到期、principal 不符、cursor 格式非法，或 `authorization_digest`/`filter_digest` 不符 | `query_snapshots.expires_at`/`principal_id`/`authorization_digest`/`filter_digest`（`admin.page` 复核全部四者，见模块设计 §6.2.5） | `admin.py` `page` 返回 `ERR-CURSOR` | — | `VRC-MGMT-004` |
 
 ### 4.8 错误码与错误结构
 

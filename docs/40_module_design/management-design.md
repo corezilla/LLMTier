@@ -788,7 +788,7 @@ QuerySnapshot {
 
 - **`authorization_digest`**：
 
-  必填字符串；授权主体（principal 或 `admin`）摘要，**仅存储**；cursor 复核实际比较 `principal_id`（非 admin 时）与 `filter_digest`，不复核本摘要。
+  必填字符串；授权主体（principal 或 `admin`）摘要；cursor 复核时比较本摘要（与 `principal_id`、`filter_digest` 一起）。
 
 - **`created_at`/`expires_at`**：
 
@@ -800,7 +800,7 @@ QuerySnapshot {
 
 - **跨字段与寿命**：
 
-  TTL 10 分钟；同一主键的后续页按 `ordinal` 读冻结视图；cursor 复核 `principal_id`（非 admin）与 `filter_digest`，不复核 `authorization_digest`；到期 → `ERR-CURSOR`。
+  TTL 10 分钟；同一主键的后续页按 `ordinal` 读冻结视图；cursor 复核 `principal_id`、`filter_digest` 与 `authorization_digest`；到期 → `ERR-CURSOR`。
 
 - **合法/拒绝实例**：
 
@@ -1090,7 +1090,7 @@ Authority = `util/migrations/001_initial.sql`、`002_observability.sql`（由 M0
 | `usage_obligations` | `(principal_id,request_id)` | I8 / M-METER | unknown 义务 |
 | `usage_record_versions` | `(principal_id,request_id,record_version)` | I8 / M-METER | 只追加版本 |
 | `usage_heads` | `(principal_id,request_id)` | I8 / M-METER | 最高版本指针 |
-| `query_snapshots` | `snapshot_id` | I2/I8 / I2 | 分页冻结（`principal_id` 复核 + TTL；`authorization_digest` 仅存储） |
+| `query_snapshots` | `snapshot_id` | I2/I8 / I2 | 分页冻结（`principal_id`/`authorization_digest`/`filter_digest` 复核 + TTL） |
 | `query_snapshot_items` | `(snapshot_id,ordinal)` | I2/I8 / I2 | 冻结项（`request_id`/`record_version`/`etag`） |
 | `probe_results` | `deployment_id` | I4 / M001 | 探测结果 |
 | `audit_events` | `id` | I5 / I2 | 审计 |
@@ -1184,7 +1184,7 @@ Authority = `util/migrations/001_initial.sql`、`002_observability.sql`（由 M0
 #### 8.5 `RULE-MGMT-SNAPSHOT` · 分页冻结
 - **输入前提 / 适用条件**：首屏查询
 - **算法 / 规则 / 选择依据**：同事务建 `query_snapshots` + 固化有序成员；后续按 `ordinal` 读
-- **结果 / 不变量 / 边界**：TTL 10 分钟；cursor 复核 principal_id（非 admin）与 filter_digest
+- **结果 / 不变量 / 边界**：TTL 10 分钟；cursor 复核 principal_id、authorization_digest 与 filter_digest
 - **复杂度 / 资源限制**：O(页大小)
 - **允许替换范围 / 不可改变保证**：实现可自选；冻结语义不可变
 - **具体输入推演 / 验证项**：首屏后更正 → 旧页不变；`VRC-MGMT-004`

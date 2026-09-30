@@ -20,6 +20,11 @@ class EmbeddingsTests(unittest.TestCase):
         self.fx=AppFixture();self.fx.seed("Embedding-v1",embedding_capabilities(),"BAAI/bge-m3");self.service=self.fx.app.embeddings;self.service._adapter=lambda _:FakeAdapter();self.body={"model":"Embedding-v1","input":"a","dimensions":1024,"encoding_format":"float"}
     def tearDown(self):self.fx.close()
     def test_float_success(self):self.assertEqual(len(self.service.create("p","e1",self.body)["data"][0]["embedding"]),1024)
+    def test_test_adapter_hook_bypasses_construction(self):
+        """CR-EMBEDDINGS-ADAPTER-HOOK: `_test_adapter` injects a double, no provider build."""
+        from .fakes import FakeAdapter
+        self.service._test_adapter=FakeAdapter()
+        self.assertEqual(len(self.service.create("p","e-hook",self.body)["data"][0]["embedding"]),1024)
     def test_batch_count(self):
         body=dict(self.body,input=["a","b"]);self.assertEqual(len(self.service.create("p","e2",body)["data"]),2)
     def test_logical_model_returned(self):self.assertEqual(self.service.create("p","e3",self.body)["model"],"Embedding-v1")
@@ -29,6 +34,15 @@ class EmbeddingsTests(unittest.TestCase):
         with self.assertRaises(ApiError):self.service.create("p","e5",dict(self.body,dimensions=8))
     def test_unknown_field_rejected(self):
         with self.assertRaises(ApiError):self.service.create("p","e6",dict(self.body,extra=True))
+    def test_unknown_field_is_unsupported_field_with_param(self):
+        with self.assertRaises(ApiError) as cm:self.service.create("p","e6u",dict(self.body,extra=True))
+        self.assertEqual((cm.exception.status,cm.exception.code,cm.exception.param),(400,"unsupported_field","extra"))
+    def test_missing_model_is_invalid_request_with_param(self):
+        with self.assertRaises(ApiError) as cm:self.service.create("p","e6m",{"input":"a"})
+        self.assertEqual((cm.exception.status,cm.exception.code,cm.exception.param),(400,"invalid_request","model"))
+    def test_invalid_encoding_format_carries_param(self):
+        with self.assertRaises(ApiError) as cm:self.service.create("p","e6e",dict(self.body,encoding_format="nope"))
+        self.assertEqual((cm.exception.status,cm.exception.code,cm.exception.param),(400,"invalid_request","encoding_format"))
     def test_nonfinite_rejected(self):
         self.service._adapter=lambda _:BadAdapter()
         with self.assertRaises(ApiError):self.service.create("p","e7",self.body)

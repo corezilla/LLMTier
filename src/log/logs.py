@@ -8,7 +8,13 @@ from util.store import Store
 from http_api.errors import ApiError
 
 
-_SENSITIVE = re.compile(r"(?i)(authorization|bearer\s+\S+|secret|api[_-]?key|token\s*[=:]\s*\S+)")
+_SENSITIVE = re.compile(
+    r"(?i)("
+    r"authorization"
+    r"|bearer\s+\S+"
+    r"|(?:api[_-]?key|apikey|secret|access[_-]?key(?:_id)?|token)\s*[:=]\s*\S+"
+    r")"
+)
 
 
 def _now() -> str:

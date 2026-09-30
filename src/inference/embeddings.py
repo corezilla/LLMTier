@@ -14,10 +14,17 @@ from .routing import Router
 from .usage import UsageRecorder
 
 
+_ALLOWED_FIELDS = frozenset({"model", "input", "encoding_format", "dimensions", "user"})
+
+
 class EmbeddingsService:
-    def __init__(self, registry: Registry, router: Router, usage: UsageRecorder): self.registry, self.router, self.usage = registry, router, usage
+    def __init__(self, registry: Registry, router: Router, usage: UsageRecorder):
+        self.registry, self.router, self.usage = registry, router, usage
+        self._test_adapter = None
 
     def _adapter(self, candidate):
+        if self._test_adapter is not None:
+            return self._test_adapter
         row = self.registry.store.one("SELECT secret_ref FROM providers WHERE id=?", (candidate.provider_id,))
         cls = LocalProvider if candidate.kind == "local" else OpenAIProvider
         profile = self.registry.store.one("SELECT connect_timeout_ms,stream_idle_timeout_ms FROM deployment_runtime_profiles WHERE deployment_id=?", (candidate.deployment_id,))
@@ -29,7 +36,10 @@ class EmbeddingsService:
         )
 
     def create(self, principal: str, request_id: str, body: dict[str, Any]) -> dict[str, Any]:
-        require(set(body) <= {"model", "input", "encoding_format", "dimensions", "user"} and {"model", "input"} <= set(body), 400, "invalid_request", "Invalid embedding request")
+        missing = next((name for name in ("model", "input") if name not in body), None)
+        require(missing is None, 400, "invalid_request", "model and input are required", missing)
+        unknown = next((name for name in body if name not in _ALLOWED_FIELDS), None)
+        require(unknown is None, 400, "unsupported_field", "Request body contains unknown fields", unknown)
         model, encoding = body["model"], body.get("encoding_format", "float")
         require(encoding in {"float", "base64"}, 400, "invalid_request", "encoding_format must be one of: float, base64", "encoding_format")
         try:

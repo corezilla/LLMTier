@@ -59,9 +59,15 @@ class ResponsesValidationGapTests(unittest.TestCase):
         exc=self._code({**self.body,"model":"Nope"})
         self.assertEqual((exc.status,exc.code),(404,"model_not_found"))
 
-    def test_unknown_field_is_400_invalid_request(self):
+    def test_unknown_field_is_400_unsupported_field(self):
+        # System §7.8 ERR-REQ-FIELD (authority): unknown field -> unsupported_field,
+        # param = offending field name.
         exc=self._code({**self.body,"bogus":1})
-        self.assertEqual((exc.status,exc.code),(400,"invalid_request"))
+        self.assertEqual((exc.status,exc.code,exc.param),(400,"unsupported_field","bogus"))
+
+    def test_forbidden_field_carries_param(self):
+        exc=self._code({**self.body,"previous_response_id":"resp_old"})
+        self.assertEqual((exc.status,exc.code,exc.param),(400,"unsupported_field","previous_response_id"))
 
     def test_max_output_tokens_zero_is_400(self):
         exc=self._code({**self.body,"max_output_tokens":0})

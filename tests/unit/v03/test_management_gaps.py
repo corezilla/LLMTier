@@ -140,6 +140,45 @@ class AdminCursorExpiryTests(unittest.TestCase):
             self.fx.app.admin.page([], "op", "x", cursor, limit=1)
         self.assertEqual((cm.exception.status, cm.exception.code), (400, "cursor_expired"))
 
+    def test_malformed_offset_cursor_is_400_not_500(self):
+        """CR-ADMIN-CURSOR: `<sid>:<non-integer>` → 400 cursor_expired, never ValueError→500."""
+        first = self.fx.app.admin.page([{"id": "1"}, {"id": "2"}], "op", "x", limit=1)
+        sid = first["page"]["next_cursor"].split(":")[0]
+        with self.assertRaises(ApiError) as cm:
+            self.fx.app.admin.page([], "op", "x", f"{sid}:abc", limit=1)
+        self.assertEqual((cm.exception.status, cm.exception.code), (400, "cursor_expired"))
+
+    def test_non_integer_offset_cursor_is_400_not_valueerror(self):
+        # `validstyle:abc` must not leak an uncaught ValueError to the 500 path.
+        with self.assertRaises(ApiError) as cm:
+            self.fx.app.admin.page([], "op", "x", "validstyle:abc", limit=1)
+        self.assertEqual((cm.exception.status, cm.exception.code), (400, "cursor_expired"))
+
+
+class AdminCursorGuardTests(unittest.TestCase):
+    """CR-ADMIN-CURSOR-GUARD: cursor binds principal, authorization and original filter."""
+
+    def setUp(self): self.fx = AppFixture()
+    def tearDown(self): self.fx.close()
+
+    def test_cursor_filter_kind_mismatch_is_400(self):
+        # A cursor minted for `providers` must not resume `deployments`: the
+        # `filter_digest`/`snapshot_kind` binding rejects it.
+        first = self.fx.app.admin.page([{"id": "1"}, {"id": "2"}], "op", "providers", limit=1)
+        with self.assertRaises(ApiError) as cm:
+            self.fx.app.admin.page([], "op", "deployments", first["page"]["next_cursor"], limit=1)
+        self.assertEqual((cm.exception.status, cm.exception.code), (400, "cursor_expired"))
+
+    def test_cursor_authorization_digest_is_checked(self):
+        # Tampering the stored authorization digest (same principal row) makes the
+        # cursor invalid instead of silently resuming.
+        first = self.fx.app.admin.page([{"id": "1"}, {"id": "2"}], "op", "x", limit=1)
+        cursor = first["page"]["next_cursor"]; sid = cursor.split(":")[0]
+        self.fx.app.store.connection().execute("UPDATE query_snapshots SET authorization_digest='tampered' WHERE snapshot_id=?", (sid,))
+        with self.assertRaises(ApiError) as cm:
+            self.fx.app.admin.page([], "op", "x", cursor, limit=1)
+        self.assertEqual((cm.exception.status, cm.exception.code), (400, "cursor_expired"))
+
 
 class ResetUsageScopeTests(unittest.TestCase):
     """UT-MGMT-009: reset_usage scope matrix (model/deployment/both/neither)."""

@@ -99,6 +99,10 @@ class Application:
             self.registry.bootstrap_settings(settings); self.registry.ensure_fixed_tiers()
         except ApiError as exc:
             self.bootstrap_error = exc
+        except Exception as exc:
+            # CF-API-LIFECYCLE: any bootstrap failure (not just ApiError) must keep
+            # the app in `not_ready` with an observable bootstrap_error, never crash.
+            self.bootstrap_error = ApiError(503, "bootstrap_invalid", f"Bootstrap failed: {exc}")
         self.router = Router(self.registry); self.usage = UsageRecorder(self.store)
         self.account_usage = AccountUsageService(self.store)
         self.audit = AuditLog(self.store); self.logs = OperationalLog(self.store)
