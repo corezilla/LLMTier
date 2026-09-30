@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `util` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -333,36 +333,22 @@ Store {
 
   `VRC-UTIL-001`；实现 `src/util/store.py`。
 
-**6.6.2 `TxnContext`（运行状态数据结构）**
+**6.6.2 事务上下文（运行状态数据结构）**
 
-```text
-TxnContext {
-  store: Store,
-  conn: sqlite3.Connection,
-  immediate: bool,
-  owns_txn: bool           // txn(conn) 传入时为外借，不提交
-}
-```
+> **实现事实**：M007 **不定义 `TxnContext` 类/结构**。事务上下文由两个 `@contextlib.contextmanager` 函数提供，`with` 语句内直接得到 `sqlite3.Connection`（非包装对象）：`Store.transaction(immediate: bool = False)`（开新事务，退出 commit / 异常 rollback）与模块级 `txn(store, conn=None)`（`conn` 为 `None` 时委托 `store.transaction(True)` 开新事务，`conn` 非空时直接 `yield` 该连接、**并入调用方事务不提交**）。因此"是否拥有事务"由 **`txn` 的调用形态**（传入 `conn` 与否）隐式决定，不存在 `owns_txn` 字段。文件·symbol：`src/util/store.py::Store.transaction` / `src/util/store.py::txn`。
 
 - **Data/Type ID、用途与来源**：
 
-  `D-TXN`；一次事务的运行时上下文；来源 `store.transaction` / `txn`。
+  `D-TXN`；一次事务的运行时上下文；来源 `store.transaction` / `txn`。**形态＝`Iterator[sqlite3.Connection]` 的上下文管理器（context manager），非数据结构类**。
 
-- **`store`**：
+- **非显式字段（由上下文管理器语义承载）**：
 
-  必填；所属 `Store`。
-
-- **`conn`**：
-
-  必填；本次事务使用的连接。
-
-- **`immediate`**：
-
-  必填布尔；见 §6.1.2 `TxnMode`。
-
-- **`owns_txn`**：
-
-  必填布尔；`txn(conn)` 传入已有连接时为 `false`（并入调用方事务，不提交）。
+  | 概念 | 由什么承载 | 语义 |
+  |---|---|---|
+  | `store` | `Store.transaction` 绑定的实例 / `txn` 的 `store` 参数 | 所属 `Store` |
+  | `conn` | `with` 的 yield 值（`sqlite3.Connection`） | 本次事务使用的连接 |
+  | `immediate` | `Store.transaction(immediate=...)` 参数 | `true` → `BEGIN IMMEDIATE`；见 §6.1.2 `TxnMode` |
+  | `owns_txn` | 无字段；由 `txn(conn)` 是否传入 `conn` 决定 | `conn` 传入时为外借（并入调用方事务，不提交）；未传入时开新事务并负责提交 |
 
 - **跨字段与寿命**：
 
@@ -370,7 +356,7 @@ TxnContext {
 
 - **合法/拒绝实例**：
 
-  合法 `with store.transaction(True)`；边界：业务传入已有 `conn` → 并入调用方事务。
+  合法 `with store.transaction(True) as conn:`；或 `with txn(store) as conn:`（新事务）、`with txn(store, existing_conn) as conn:`（并入调用方事务，不提交）。边界：业务传入已有 `conn` → 并入调用方事务。
 
 - **验证**：
 
@@ -414,7 +400,7 @@ stateDiagram-v2
 | T-UTIL-05 | Unknown | `migrate()` | `PRAGMA integrity_check` | 抛 `ERR-SCHEMA`，拒绝启动 | Corrupt | 运维离线处理 | 损坏不改写；VRC-UTIL-002 |
 | T-UTIL-06 | Ready | 再次 `migrate()` | migrations 幂等（`IF NOT EXISTS`/`INSERT OR IGNORE`） | 无变更 | Ready | — | 不改变已建表；VRC-UTIL-002 |
 | T-UTIL-07 | Absent | `connection()`（业务线程） | `threading.local` | 建连接、设 PRAGMA，缓存于本线程 | Open | 失败抛 sqlite3 异常（§10.1） | 每线程一连接；VRC-UTIL-001 |
-| T-UTIL-08 | Open | `transaction(immediate=True)` | 调用方请求 | `BEGIN IMMEDIATE`，返回 `TxnContext` | Txn | 冲突抛异常 → T-UTIL-10 | 单写者提交；VRC-UTIL-002 |
+| T-UTIL-08 | Open | `transaction(immediate=True)` | 调用方请求 | `BEGIN IMMEDIATE`，`with` 上下文 yield 连接 | Txn | 冲突抛异常 → T-UTIL-10 | 单写者提交；VRC-UTIL-002 |
 | T-UTIL-09 | Txn | 上下文正常退出 | 无异常 | commit 为提交点 | Open | 提交失败 → 抛错 | 原子提交；VRC-UTIL-002 |
 | T-UTIL-10 | Txn | 上下文异常退出 | 异常 | rollback，库不变 | Open | — | 失败不改库；VRC-UTIL-002 |
 | T-UTIL-11 | Open | `close()`（请求 `finally`/停机） | 调用方 | 关闭连接并置 `None` | Absent | — | 回收 db/wal/shm fd；VRC-UTIL-001 |
@@ -567,7 +553,7 @@ migrations/*.sql {
 
 > 按 STD `design-data-interface-format` 1.2.0 §3：主章“接口设计”，按**接口设计用途**分类（面向使用方的 API 与组件/系统间协作的消息与数据流接口），逐接口完整记录；标题为真实调用形式，标题下先给**完整接口声明**，再就地说明参数/结果字段，最后按固定六项。本模块接口全部为进程内方法调用，归 API；消息流/硬件/人机三类不适用。数据结构引用 §6。`Store`（`src/util/store.py`）为唯一对外面。
 
-**§9↔§6 交叉核对**：本节每个接口的必填输入与输出字段，均逐项定位到 §6 结构（`Store`→§6.6.1、`TxnContext`/`TxnMode`→§6.6.2、`SchemaVersion`→§6.1、`schema_meta`→§6.7.1）或本接口内写明的构造规则（`sqlite3.Row` 由 SQL 列构造）；无接口返回 §6 无任何操作可产生的字段。
+**§9↔§6 交叉核对**：本节每个接口的必填输入与输出字段，均逐项定位到 §6 结构（`Store`→§6.6.1、事务上下文（`Store.transaction`/`txn` 的 `with` yield）→§6.6.2、`SchemaVersion`→§6.1、`schema_meta`→§6.7.1）或本接口内写明的构造规则（`sqlite3.Row` 由 SQL 列构造）；无接口返回 §6 无任何操作可产生的字段。
 
 ### 9.1 API（适用时）
 

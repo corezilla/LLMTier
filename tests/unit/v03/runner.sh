@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Unit runner (plan §7, unit test plan §5.1).
+#
+# Usage:
+#   bash tests/unit/v03/runner.sh                # full suite
+#   bash tests/unit/v03/runner.sh -k UT-UTIL     # slice by -k
+#   bash tests/unit/v03/runner.sh tests/unit/v03/test_store.py
+#
+# Run ID: run-YYYYMMDD-NN (unit test plan §7).
+# Product: tests/unit/v03/reports/<run-id>/{junit.xml,test-run.env,
+#          case-status.json,cases/<case-id>/manifest.json,pytest.log,artifacts/}
+#
+# 退出码：
+#   0 = 全部 PASS（或非阻断状态），1 = 有 FAIL/BLOCKED/INVALID，2 = harness/采集错误
+set -euo pipefail
+
+_RUN_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+# shellcheck source=tests/lib/run_harness.sh
+source "$_RUN_REPO_ROOT/tests/lib/run_harness.sh"
+
+cd "$_RUN_REPO_ROOT"
+export PYTHONPATH=src
+
+RUN_ID="$(_run_unit_run_id "$_RUN_REPO_ROOT")"
+RUN_DIR="tests/unit/v03/reports/$RUN_ID"
+
+# Default target is the whole unit suite; extra args (paths / -k) override.
+if [ "$#" -eq 0 ]; then
+  set -- tests/unit/v03
+fi
+
+rc="$(_run_pytest tests/unit/v03 "$RUN_ID" "UNIT" "unit" "$@")"
+
+echo "run dir : $RUN_DIR" >&2
+echo "status  : $(python3 - "$RUN_DIR/case-status.json" <<'PY'
+import json, sys
+try:
+    d = json.load(open(sys.argv[1]))
+    print(d["counts"])
+except Exception as exc:  # noqa: BLE001
+    print(f"no status ({exc})")
+PY
+)" >&2
+
+exit "$rc"

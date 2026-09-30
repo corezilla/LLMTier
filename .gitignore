@@ -12,3 +12,13 @@ build/
 runtime/
 state/
 logs/
+
+# Test run evidence (plan §7). Heavy/binary raw output is not committed;
+# artifacts/ is always ignored, junit/pytest logs are regenerated each run.
+tests/**/reports/*/artifacts/
+tests/**/reports/*/junit.xml
+tests/**/reports/*/pytest.log
+tests/**/reports/*/case-status.json
+tests/**/reports/*/test-run.env
+tests/**/reports/*/cases/
+

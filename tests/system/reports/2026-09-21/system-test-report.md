@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-test-report-2026-09-21` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -47,11 +47,12 @@
   - 方案：`llmtier-system-test-scheme`（`docs/70_verification/schemes/llmtier-system-test-scheme.md`，Case 清单 140 条）。
   - 计划：本 Run 执行期间对应 `llmtier-api-test-plan.md` v0.3.0-draft.3 / `llmtier-api-test-execution.md` v0.2.0-draft.2（均已退役，内容现由 `llmtier-system-test-plan` 承接）。
 - 结果分布与总结论：
-  - **A 类 API 用例**：53 PASS / 0 FAIL / 0 SKIP / 0 BLOCKED。
+  - **A 类 API 用例（本 Run 实际执行）**：53 PASS / 0 FAIL / 0 SKIP / 0 BLOCKED（本 Run 时点的 A 类自动化入口）。
   - **系统层 ST-* 用例**：30 PASS / 0 FAIL（11 个 `tests/system/st_*.py` 文件）。
   - **单元测试**：191 PASS / 0 FAIL。
-  - 本报告分母（方案 §3 共 140 Case）：已执行并 PASS 53；其余 87 为 `NOT_RUN`（其中 52 为自动化入口未实现的 MISSING，35 为已实现但本轮未跑的 B 类/其余用例）。
-- Gate 达成情况：**按计划 §8 口径 = REJECT（阻断 release）**——存在 **3 个 P0 MISSING**（`ADM-PROV-14`、`OBS-DEPL-01`、`OBS-DEPL-02`），且分母未闭合（87 NOT_RUN，含 52 MISSING）；A 类 53/53 PASS 且无 FAIL 只支持"系统层 A 类回归可用"这一受限工程观察，**不构成 release 放行、不构成"条件接受"**。本报告仅给 Gate 建议，不等同验收或上线授权。
+  - **设计数 vs 已实现数（口径提示）**：本报告分母＝方案 §3 设计清单 **140 Case**（A 89 / B 51，设计数，恒定）。**已实现数随 harness 演进，不能与本 Run 的 53 混同**：截至本报告整理时点，harness 已实现 90（88 文件：`-m api_a`＝60、`-m api_b`＝30），**本 Run 仅执行了其中 A 类 53 例**；本 Run 的"53"是**当时点已执行的 A 类子集**，不是当前 A 类实现数（60），也不是设计数（A 89）。
+  - 本报告分母（方案 §3 共 140 Case，设计数）：本 Run 已执行并 PASS 53；其余 87 为 `NOT_RUN`（其中按当时口径 **52 为自动化入口未实现的 MISSING、35 为已实现但本轮未跑的 B 类/其余用例**）。**该 52 MISSING 为历史时点数字**，当前实现已推进至 90，MISSING 余量以 `llmtier-system-test-plan` §3/§10-O5 为准（不得引用旧 52 作为现行事实）。
+- Gate 达成情况：**按计划 §8 口径 = REJECT（阻断 release）**——存在 **3 个 P0 MISSING**（`ADM-PROV-14`、`OBS-DEPL-01`、`OBS-DEPL-02`），且分母未闭合（87 NOT_RUN，含当时 52 MISSING）；A 类 53/53 PASS 且无 FAIL 只支持"系统层 A 类回归可用"这一受限工程观察，**不构成 release 放行、不构成"条件接受"**。本报告仅给 Gate 建议，不等同验收或上线授权。
 
 ## 2. 被测基线与实际环境
 
@@ -154,7 +155,7 @@
   - P5（capabilities 必填）、P6/API-001（PATCH 412 缺 `current_version`）、P7（If-Match ETag 格式）、P9（provider create 多传 id）本轮 **未涉及**（A 类无 create/PATCH/DELETE），待 B 类验证——保留为开放项。
   - 少量 case 期望与实测不一致（§4 三行），以实测为契约并已改 case，非产品缺陷。
 - 残余风险：
-  - **分母未闭合**：方案 140 Case 中 87 项 `NOT_RUN`（含 52 MISSING 自动化入口）。在此状态下不得引用本报告作为发布依据。
+  - **分母未闭合**：方案 140 Case（设计数）中，本 Run 时点 87 项 `NOT_RUN`（其中 52 为当时 MISSING 自动化入口；当前实现已推进至 90，见 §1 口径提示）。在此状态下不得引用本报告作为发布依据，且不得把历史 52 当作现行 MISSING 数。
   - **真实 consumer 未联调**：Piko / Slinky 真实集成未验证；A 类 PASS 只证明 LLMTier 自身运行行为。
   - **容量/耐久未覆盖**：FD 泄漏、30min 耐久、性能 SLO 不在本层（scheme §4 Gap，转运维/性能专项）。
   - **上游模型内容非 Oracle**：仅断言结构/事件序列/字段契约，不证明推理正确性。
@@ -174,7 +175,7 @@
 
 | 未决项 / 关联 | Owner / 最晚 Gate | 关闭所需事实或决定 |
 |---|---|---|
-| 87 NOT_RUN（含 52 MISSING）补齐并执行 | Case 作者 / 进入 Gate 前 | 补齐自动化入口并跑出 PASS，或经批准登记 |
+| 本 Run 时点 87 NOT_RUN（含当时 52 MISSING；现行 MISSING 余量见 plan §3/§10-O5）补齐并执行 | Case 作者 / 进入 Gate 前 | 补齐自动化入口并跑出 PASS，或经批准登记 |
 | P5/P6/P7/P9 待 B 类验证 | 执行者 / 下一 Run | B 类 provider/deployment CRUD 执行结果 |
 | DP-RESP-11/19/20/22/23 等故障注入与 429 路径 | 执行者 / 下一 Run | 注入命中并记录 Run |
 | 诊断面 OBS-*、AUTH-07..10 | 执行者 / 下一 Run | 执行结果 |

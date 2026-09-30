@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-unit-test-scheme` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.5` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -49,12 +49,12 @@
 
 - 被测对象、设计基线与父对象：LLMTier 源码 `src/http_api`(M001)、`src/web_ui`(M002)、`src/inference`(M003)、`src/management`(M004)、`src/observability`(M005)、`src/libdiag`(M006)、`src/util`(M007)、`src/log`(M008)；父对象为软件系统设计 `llmtier-system-design`；模块/ISD 基线见 §1.5。**M005 `src/observability/` 无独立实现文件**（仅空 `__init__.py`），其单元行为落在 M001 `app.py` 的诊断路由与 M006 `diagnostics.py` 查询面（见 M005 设计 §3/§4；本方案 §3 的 M005 行据此归属）。
 - 本阶段测试边界（真实组成 / 边界替身）：被测模块内部为真实代码（`Store` 隔离临时库、`Registry`/`Router`/`UsageRecorder`/`AuditLog`/`OperationalLog`/`DiagnosticsService` 真实实例）；边界替身仅用于外部 collaborator——上游 provider 用进程内 `FakeAdapter`（`tests/unit/v03/fakes.py` 定义的共享 fake）、HTTP 层测试用 `ThreadingHTTPServer` 绑 `127.0.0.1:0` 的 loopback 测试实例、`FakeResponse` 为各测试模块内的**本地 HTTP 响应 stub**（定义于 `test_account_usage.py` / `test_provider_openai.py`，非 `fakes.py` 共享资产），用于 account-usage HTTP 与 OpenAI SSE 响应替身；替身契约待 `tests.asset-design` 承载（见 §1.6、§4 Gap G-UT-2）。
-- 不证明的组合保证及承接入口：组装后的进程级流程（启动/systemd、反向代理、Piko 联调）、wire 互操作与 OpenAPI 端到端一致性、浏览器 E2E、真实上游 provider 协议；承接＝模块测试方案/计划（`tests.module-test-scheme`/`-plan`）、契约层与系统测试方案（`llmtier-system-test-scheme`）。
+- 不证明的组合保证及承接入口：组装后的进程级流程（启动/systemd、反向代理、Piko 联调）、wire 互操作与 OpenAPI 端到端一致性、浏览器 E2E、真实上游 provider 协议；承接＝系统测试方案/计划（`llmtier-system-test-scheme`/`-plan`）与契约层。**本项目未采用独立模块测试层**（无 `tests.module-test-scheme`：模板要求方案绑定单一模块而本项目有 8 个模块，建立合并方案需授权）；本方案已按"被测模块内部为真实实现"即整模块组装层语义运行，模块级 VRC 的行为承接见系统测试方案 §4 裁决。
 - 被测函数集合（每个 Case 的具体入口见对应 unit-case §2）：`src/http_api`（`errors.py`、`auth.py`、`sse.py`、`health.py`、`app.py` 含 `Handler._dispatch`/`_auth`/`_auth_either`/`_body`/`_json`/`_static`/`_store_read`/`_correlation`/`_optional_boolean`、模块级 `_int_param`、`_UnavailableDiagnostics`）、`src/inference`（`responses.py`、`embeddings.py`、`models.py`、`routing.py`、`usage.py`、`providers/openai.py`、`providers/base.py`）、`src/management`（`registry.py`、`admin.py`、`audit.py`、`account_usage.py`）、`src/libdiag`（`diagnostics.py`、`injections.py`、`snapshots.py`、`stats.py`、`traces.py`、`settings.py`）、`src/util`（`store.py`）、`src/log`（`logs.py`）、`src/web_ui`（`index.html`/`app.js` 契约）。
 
 ## 1.5 测试方法与测试设计技术
 
-- **模块/ISD 基线**：M001 `http-api` v0.1.0-draft.2 / ISD `http-api-isd`；M002 `web-ui` v0.1.0-draft.2 / `web-ui-isd`；M003 `inference` v0.1.0-draft.1 / `inference-isd`；M004 `management` v0.1.0-draft.2 / `management-isd`；M005 `observability` v0.1.0-draft.6 / `observability-isd`；M006 `libdiag` v0.1.0-draft.6 / `libdiag-isd`；M007 `util` v0.1.0-draft.1 / `util-isd`；M008 `log` v0.1.0-draft.1 / `log-isd`。设计要求见各模块设计 §14 与 ISD §9.1。
+- **模块/ISD 基线**：M001 `http-api` v0.1.0-draft.2 / ISD `http-api-isd`；M002 `web-ui` v0.1.0-draft.2 / `web-ui-isd`；M003 `inference` v0.1.0-draft.1 / `inference-isd`；M004 `management` v0.1.0-draft.3 / `management-isd`；M005 `observability` v0.1.0-draft.6 / `observability-isd`；M006 `libdiag` v0.1.0-draft.6 / `libdiag-isd`；M007 `util` v0.1.0-draft.2 / `util-isd`；M008 `log` v0.1.0-draft.1 / `log-isd`。设计要求见各模块设计 §14 与 ISD §9.1。
 
 | Case 家族 | 测试设计技术 | 环境类型引用 | 自动化与判定规则 |
 |---|---|---|---|
@@ -131,7 +131,7 @@
 > 来源 ID 与设计验证项（VRC）的边界：本表登记 ID+责任摘要；判据/Oracle/Owner/契约权威归 design 与 tests.asset-design，不在此行复写；变更设计时同步 VRC 同步本清单。
 > **分母来源**：8 个模块设计 §14 / ISD §9.1 声明的验证项，共 33 项——M001 `VRC-API-001..004`、M002 `VRC-UI-001..006`、M003 `VRC-INF-001..005`、M004 `VRC-MGMT-001..006`、M005 `VRC-OBS-001..005`、M006 `VRC-DIAG-001..004`、M007 `VRC-UTIL-001..002`、M008 `VRC-LOG-001`。**每个 VRC 至少一条记录**；一个 VRC 可由多 Case 分担（分别写责任摘要），下表逐行登记。
 > **粒度来源**：Case 不仅取自 33 个 VRC，还取自 ISD↔code 复核给出的**具体未测行为**（M001 分发/参数/关联标识/别名/fail-open 分支；M002 六项 UI 行为（当前仅字符串契约）；M003 校验顺序/上游失败/准入/用量边界；M004 bootstrap/审计/分页/探测/账号用量缺口；M006 DIAG-002/003 分支；M007 UTIL-001/002 边界；M008 过滤与边界）。这些新增 Case 仍归属其源 VRC。
-> **来源 ID 读法**：来源 ID 指向被测模块/单元本体——「模块设计 §14 验证项 / 被测符号」（如 `http-api-design §14.1 · Handler._dispatch`），固定版本随模块行首标注。
+> **来源 ID 读法**：来源 ID 指向被测模块/单元本体——「模块设计 §14 验证项 / 被测符号」（如 `http-api-design §14.1 · Handler._dispatch`），固定版本随模块行首标注。**版本以 §1.5「模块/ISD 基线」为准**；下表行末 `v0.1.0-draft.N` 为清单登记时点的模块设计版本标签，模块设计升版（如 M004→draft.3、M007→draft.2）不改变 Case ID 与责任摘要，逐行标签可滞后于 §1.5。
 > **用例归属（本项目合并方案的补充列）**：M001→`UT-API-*`；M002→`UT-UI-*`；M003→`UT-INF-*`；M004→`UT-MGMT-*`；M005→`UT-OBS-*`；M006→`UT-DIAG-*`；M007→`UT-UTIL-*`；M008→`UT-LOG-*`。
 
 | 来源 ID / 固定版本 | 设计验证项 ID | Case ID | 分类 | 优先级 | 责任摘要（要测什么） | 设计状态 | 上级组合验证入口 |
@@ -211,7 +211,7 @@
 
 | 来源 ID / 事实依据 | 裁决（Tailored-N/A 或 Gap） | Owner / 恢复条件 |
 |---|---|---|
-| 模块组装后的进程级流程、systemd/反向代理、Piko 联调 | Tailored-N/A（本层不测；各模块设计 §14「父级组合验证交接」已列承接方） | 归 `tests.module-test-scheme`/系统方案；恢复条件＝模块/系统层建立 |
+| 模块组装后的进程级流程、systemd/反向代理、Piko 联调 | Tailored-N/A（本层不测；各模块设计 §14「父级组合验证交接」已列承接方） | 归系统测试方案（`llmtier-system-test-scheme`）；本项目未采用独立模块测试层（无 `tests.module-test-scheme`），模块级 VRC 行为承接见系统方案 §4 裁决 |
 | 真实上游 provider 协议与 wire 互操作、浏览器 E2E | Tailored-N/A（本层不测；系统方案已承接） | 归契约层与 `llmtier-system-test-scheme` |
 | performance / endurance 分类 | Tailored-N/A（本层不纳入；见 §2 裁剪依据） | 归系统测试方案 |
 | M002 web-ui 六项 VRC（`VRC-UI-001..006`）的**行为级**（非字符串契约）断言 | Gap（G-UT-3） | Owner：M002 web-ui。当前 `test_webui_contract.py` 只做静态字符串/契约断言，无法驱动 `app.js` 行为；恢复条件＝引入 JS 行为测试宿主（如 node/jsdom）后，`UT-UI-001..010` 由字符串契约升级为行为断言 |

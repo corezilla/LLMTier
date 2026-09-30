@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `management` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -1069,7 +1069,7 @@ stateDiagram-v2
 | T-MGMT-05 | NotReady | 修正后重启 | 修正后的 settings 校验结果 | 同 T-MGMT-01 | Ready | 仍失败 → NotReady | — |
 | T-MGMT-06 | （无快照） | `AdminService.page` 首次查询 | 查询参数 + principal | 写 `query_snapshots`/`query_snapshot_items`，冻结 `request_id`/`record_version` | Active | 写失败 → 503（不返回空页） | 快照按 ordinal 只读；VRC-MGMT-004 |
 | T-MGMT-07 | Active | 续页（带 cursor） | `query_snapshots.expires_at` 与 principal | 读冻结项，不重查活数据 | Active | 过期/不符 → T-MGMT-08 | 分页稳定不重复；VRC-MGMT-004 |
-| T-MGMT-08 | Active | TTL 到期或 principal 不符 | `expires_at` / `authorization_digest` | 拒绝续页，返回 `ERR-CURSOR` | Expired | — | 不返回空页误导；VRC-MGMT-004 |
+| T-MGMT-08 | Active | TTL 到期或 principal 不符 | `expires_at` / `query_snapshots.principal_id` | 拒绝续页，返回 `ERR-CURSOR` | Expired | — | 不返回空页误导；VRC-MGMT-004 |
 
 ### 6.7 数据库表结构
 
@@ -1090,7 +1090,7 @@ Authority = `util/migrations/001_initial.sql`、`002_observability.sql`（由 M0
 | `usage_obligations` | `(principal_id,request_id)` | I8 / M-METER | unknown 义务 |
 | `usage_record_versions` | `(principal_id,request_id,record_version)` | I8 / M-METER | 只追加版本 |
 | `usage_heads` | `(principal_id,request_id)` | I8 / M-METER | 最高版本指针 |
-| `query_snapshots` | `snapshot_id` | I2/I8 / I2 | 分页冻结（含 `authorization_digest`，TTL） |
+| `query_snapshots` | `snapshot_id` | I2/I8 / I2 | 分页冻结（`principal_id` 复核 + TTL；`authorization_digest` 仅存储） |
 | `query_snapshot_items` | `(snapshot_id,ordinal)` | I2/I8 / I2 | 冻结项（`request_id`/`record_version`/`etag`） |
 | `probe_results` | `deployment_id` | I4 / M001 | 探测结果 |
 | `audit_events` | `id` | I5 / I2 | 审计 |

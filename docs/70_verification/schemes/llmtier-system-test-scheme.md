@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-test-scheme` |
-| Document Version | `0.1.0-draft.4` |
+| Document Version | `0.1.0-draft.6` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -122,7 +122,7 @@
 - **ENV 类型 A（m5air 实例）** → ENV 实例编号由 `tests.system-test-plan` §4 分配 → 被测对象＝m5air 上的 `http_api` 进程（`192.168.1.9:8181`）。
 - **ENV 类型 B（临时实例）** → 每 run 随机空闲端口＋`tempfile.mkdtemp(prefix="llmtier_b_")` 临时 SQLite → 被测对象＝执行机本机 `http_api` 子进程。
 
-**总体说明**：A/B 不共享 SQLite/端口/进程且不并行（A 类 PASS 不关闭 B 类，反之亦然）；A 类写用例 teardown 后复位，B 类整班销毁；缺关键环境时整批降级为 Blocked 并登记缺口，不静默换工具链。
+**总体说明**：A/B 不共享 SQLite/端口/进程且不并行（A 类 PASS 不关闭 B 类，反之亦然）；A 类就绪失败只 skip A 类，B 类用各自临时实例照跑（A/B 独立判定）；A 类写用例 teardown 后复位，B 类整班销毁；缺关键环境时**按类**降级为 Blocked 并登记缺口（A 类缺 m5air 就绪 / B 类缺 LAN IP 或基线 probe 不健康），不静默换工具链。**B 类静默 skip 提示**：执行机无 RFC1918 LAN IP 时 `_detect_lan_ip()` 使 B 类 fixtures `pytest.skip`，须以 Run 记录的 skip 计数核对，不得当 PASS（详见 plan §6-B）。
 
 > 环境拓扑（ENV 类型 → ENV 实例 → 被测对象）以本表与上下两条为准；STD 模板附带的 `system-env-topology.svg` 为虚构教学图，本项目未引入（项目图资产统一存 `docs/assets/diagrams/`）。
 
@@ -137,14 +137,14 @@
 |---|---|---|
 | normal | 适用 | 50 个 Case：各端点正向契约（清单/精确返回/SSE 成功/embedding/CRUD 正常流/健康就绪等）。 |
 | boundary | 适用 | 7 个 Case：大小写与 URL 编码、`limit=1` 分页、`max_output_tokens=10`、batch 33、分页重放等边界。 |
-| negative | 适用 | 45 个 Case：校验/鉴权/资源冲突/上游错误/存储不可用等拒绝路径（含 400/401/403/404/409/412/413/429/503）。 |
-| concurrency | 适用 | 6 个 Case：准入饱和 429+`Retry-After`、`If-Match`/412 串行化并发编辑、注入变更与在途流（`DP-RESP-20`、`ADM-PROV-05/06/07`、`ADM-DEPL-04`、`ADM-SL-04`）。 |
-| recovery | 适用 | 17 个 Case：故障注入（`fault_502`/`fault_503`/`stream_terminate`/`malformed_event`）、上游/存储失败、客户端断开、`/readyz` degraded/not_ready、schema 引导不可用。 |
-| security | 适用 | 15 个 Case：认证/授权/角色隔离、LAN trust、无鉴权配置、secret 不泄露、审计与日志脱敏、别名命名空间鉴权。 |
+| negative | 适用 | 57 个 Case：校验/鉴权/资源冲突/上游错误/存储不可用等拒绝路径（含 400/401/403/404/409/412/413/429/503）。 |
+| concurrency | 适用 | 7 个 Case：准入饱和 429+`Retry-After`（`DP-RESP-20`、`DP-EMB-08`）、`If-Match`/412 串行化并发编辑、注入变更与在途流（`ADM-PROV-05/06/07`、`ADM-DEPL-04`、`ADM-SL-04`）。 |
+| recovery | 适用 | 26 个 Case：故障注入（`fault_502`/`fault_503`/`stream_terminate`/`malformed_event`）、上游/存储失败、客户端断开、账本崩溃/重启恢复（`DP-USAGE-09`）、`/readyz` degraded/not_ready、schema 引导不可用。 |
+| security | 适用 | 16 个 Case：认证/授权/角色隔离、LAN trust、无鉴权配置、secret 不泄露、审计与日志脱敏、别名命名空间鉴权。 |
 | performance | 裁剪 | 纯软件、无 FPGA/硬件时序；本阶段只保留**时序/预算类可观察断言**（准入队列上限、超时路径、`Retry-After`），**不发布 SLO/容量结论**。功耗/容量压测（FD 泄漏、30min 耐久、50 并发）不在本方案分母内；原 `llmtier-test-plan`（已退役）的 ST-18/19/21 容量项现按 §4 Gap 由运维/性能专项承接（tailoring）。 |
 | endurance | 裁剪 | 长稳/耐久另立专项，不在本方案分母内（tailoring）；见 §4 容量/耐久 Gap。 |
 
-> 上表与 §3 清单交叉核对：normal 50 + boundary 7 + negative 45 + concurrency 6 + recovery 17 + security 15 = **140**。未列入的任何 STD 家族分类在本阶段**不适用**（见 §4 裁决）。
+> 上表与 §3 清单交叉核对：normal 50 + boundary 7 + negative 57 + concurrency 7 + recovery 26 + security 16 = **163**。未列入的任何 STD 家族分类在本阶段**不适用**（见 §4 裁决）。
 
 
 
@@ -197,6 +197,8 @@
 | 系统设计 §8 Responses 接口（POST /v1/responses） | VRC-INF-003 | DP-RESP-23 | recovery | P1 | 上游非 5xx → provider_error | 已设计 | — |
 | 系统设计 §8 Responses 接口（POST /v1/responses） | VRC-INF-001 | DP-RESP-24 | recovery | P1 | provider 凭据缺失 | 已设计 | — |
 | 系统设计 §8 Responses 接口（POST /v1/responses） | VRC-INF-001 | DP-RESP-25 | recovery | P1 | 上游契约错误 | 已设计 | — |
+| 系统设计 §8 Responses 接口（POST /v1/responses） | VRC-DIAG-004 | DP-RESP-26 | recovery | P1 | 流截断注入 stream_terminate | 已设计 | — |
+| 系统设计 §8 Responses 接口（POST /v1/responses） | VRC-DIAG-004 | DP-RESP-27 | recovery | P1 | 畸形事件注入 malformed_event | 已设计 | — |
 | 系统设计 §8 Embeddings 接口（POST /v1/embeddings） | VRC-INF-001、VRC-INF-002 | DP-EMB-01 | normal | P0 | 基本 embedding | 已设计 | — |
 | 系统设计 §8 Embeddings 接口（POST /v1/embeddings） | VRC-INF-001 | DP-EMB-02 | normal | P0 | base64 编码 | 已设计 | — |
 | 系统设计 §8 Embeddings 接口（POST /v1/embeddings） | VRC-INF-002 | DP-EMB-03 | normal | P1 | 不变量（同输入 ×5） | 已设计 | — |
@@ -204,6 +206,9 @@
 | 系统设计 §8 Embeddings 接口（POST /v1/embeddings） | VRC-INF-002 | DP-EMB-05 | boundary | P2 | batch 33 不强制上限 | 已设计 | — |
 | 系统设计 §8 Embeddings 接口（POST /v1/embeddings） | VRC-INF-001 | DP-EMB-06 | negative | P1 | dimensions 与冻结空间不符 | 已设计 | — |
 | 系统设计 §8 Embeddings 接口（POST /v1/embeddings） | VRC-INF-001 | DP-EMB-07 | negative | P2 | 非法 encoding_format | 已设计 | — |
+| 系统设计 §8 Embeddings 接口（POST /v1/embeddings） | VRC-INF-004 | DP-EMB-08 | concurrency | P1 | embeddings 准入饱和 429 | 已设计 | — |
+| 系统设计 §8 Embeddings 接口（POST /v1/embeddings） | VRC-INF-001 | DP-EMB-09 | recovery | P1 | embeddings 上游契约错误 502 | 已设计 | — |
+| 系统设计 §8 Embeddings 接口（POST /v1/embeddings） | VRC-INF-004 | DP-EMB-10 | recovery | P1 | embeddings 上游不可用 503 | 已设计 | — |
 | 系统设计 §8 Usage 查询接口（GET /v1/usage） | VRC-MGMT-006 | DP-USAGE-01 | normal | P0 | 时间窗查询 | 已设计 | — |
 | 系统设计 §8 Usage 查询接口（GET /v1/usage） | VRC-MGMT-006 | DP-USAGE-02 | normal | P1 | 请求后可见记录 | 已设计 | — |
 | 系统设计 §8 Usage 查询接口（GET /v1/usage） | VRC-MGMT-006 | DP-USAGE-03 | boundary | P1 | cursor 分页 | 已设计 | — |
@@ -212,6 +217,7 @@
 | 系统设计 §8 Usage 查询接口（GET /v1/usage） | VRC-MGMT-006 | DP-USAGE-06 | normal | P1 | 主体隔离：data 只见自身，admin 见全局 | 已设计 | — |
 | 系统设计 §8 Usage 查询接口（GET /v1/usage） | VRC-MGMT-006 | DP-USAGE-07 | boundary | P1 | 分页重放幂等 | 已设计 | — |
 | 系统设计 §8 Usage 查询接口（GET /v1/usage） | VRC-MGMT-006 | DP-USAGE-08 | recovery | P1 | store 不可用不返回空页 | 已设计 | — |
+| 系统设计 §8 Usage 查询接口（GET /v1/usage）；机制 §15 计量（T-MET-CRASH） | VRC-INF-004、VRC-MGMT-006 | DP-USAGE-09 | recovery | P0 | 账本崩溃/重启恢复（orphan unknown 不回填 0） | 已设计 | — |
 | 系统设计 §8 Provider CRUD 接口（/v1/providers） | VRC-MGMT-001 | ADM-PROV-01 | normal | P0 | 列出 providers | 已设计 | — |
 | 系统设计 §8 Provider CRUD 接口（/v1/providers） | VRC-MGMT-001 | ADM-PROV-02 | normal | P0 | 创建 provider | 已设计 | — |
 | 系统设计 §8 Provider CRUD 接口（/v1/providers） | VRC-MGMT-001 | ADM-PROV-03 | normal | P0 | 获取 provider 详情 | 已设计 | — |
@@ -226,6 +232,9 @@
 | 系统设计 §8 Provider CRUD 接口（/v1/providers） | VRC-MGMT-001 | ADM-PROV-12 | normal | P2 | secret_ref 格式 | 已设计 | — |
 | 系统设计 §8 Provider CRUD 接口（/v1/providers） | VRC-MGMT-002 | ADM-PROV-13 | normal | P2 | usage 子对象更新 | 已设计 | — |
 | 系统设计 §8 Provider CRUD 接口（/v1/providers） | VRC-MGMT-001 | ADM-PROV-14 | security | P0 | provider 不泄露 secret | 已设计 | — |
+| 系统设计 §8 Provider CRUD 接口（/v1/providers） | VRC-MGMT-001 | ADM-PROV-15 | negative | P1 | 创建 provider data token 403 | 已设计 | — |
+| 系统设计 §8 Provider CRUD 接口（/v1/providers） | VRC-MGMT-002 | ADM-PROV-16 | negative | P1 | 更新 provider data token 403 | 已设计 | — |
+| 系统设计 §8 Provider CRUD 接口（/v1/providers） | VRC-MGMT-001 | ADM-PROV-17 | negative | P1 | 删除 provider data token 403 | 已设计 | — |
 | 系统设计 §8 provider 上游模型目录接口（GET /v1/providers/{id}/models） | VRC-MGMT-001 | ADM-PROV-MODELS-01 | normal | P1 | provider 上游模型目录 | 已设计 | — |
 | 系统设计 §8 provider 上游模型目录接口（GET /v1/providers/{id}/models） | VRC-MGMT-001 | ADM-PROV-MODELS-02 | negative | P1 | 不存在 provider | 已设计 | — |
 | 系统设计 §8 provider usage 快照接口（/v1/providers/{id}/usage） | VRC-MGMT-006 | ADM-PROV-USAGE-01 | normal | P1 | 读取 provider usage 快照 | 已设计 | — |
@@ -241,6 +250,9 @@
 | 系统设计 §8 Deployment CRUD 接口（/v1/deployments） | VRC-MGMT-001 | ADM-DEPL-07 | negative | P1 | capabilities 未知字段 | 已设计 | — |
 | 系统设计 §8 Deployment CRUD 接口（/v1/deployments） | VRC-MGMT-001 | ADM-DEPL-08 | negative | P1 | 引用不存在 provider | 已设计 | — |
 | 系统设计 §8 Deployment CRUD 接口（/v1/deployments） | VRC-MGMT-002 | ADM-DEPL-09 | negative | P1 | provider_id 不可 PATCH | 已设计 | — |
+| 系统设计 §8 Deployment CRUD 接口（/v1/deployments） | VRC-MGMT-001 | ADM-DEPL-10 | negative | P1 | 创建 deployment data token 403 | 已设计 | — |
+| 系统设计 §8 Deployment CRUD 接口（/v1/deployments） | VRC-MGMT-002 | ADM-DEPL-11 | negative | P1 | 更新 deployment data token 403 | 已设计 | — |
+| 系统设计 §8 Deployment CRUD 接口（/v1/deployments） | VRC-MGMT-001 | ADM-DEPL-12 | negative | P1 | 删除 deployment data token 403 | 已设计 | — |
 | 系统设计 §8 Service Level CRUD 接口（/v1/service-levels） | VRC-MGMT-002 | ADM-SL-01 | normal | P0 | 列出 service-levels | 已设计 | — |
 | 系统设计 §8 Service Level CRUD 接口（/v1/service-levels） | VRC-MGMT-002 | ADM-SL-02 | negative | P1 | 创建非 fixed tier | 已设计 | — |
 | 系统设计 §8 Service Level CRUD 接口（/v1/service-levels） | VRC-MGMT-002 | ADM-SL-02b | negative | P1 | 创建已存在 fixed tier | 已设计 | — |
@@ -251,19 +263,26 @@
 | 系统设计 §8 Service Level CRUD 接口（/v1/service-levels） | VRC-MGMT-002 | ADM-SL-06 | negative | P2 | 成员能力不一致 | 已设计 | — |
 | 系统设计 §8 Service Level CRUD 接口（/v1/service-levels） | VRC-MGMT-002 | ADM-SL-07 | negative | P2 | 冻结向量空间冲突 | 已设计 | — |
 | 系统设计 §8 Service Level CRUD 接口（/v1/service-levels） | VRC-MGMT-002 | ADM-SL-08 | recovery | P2 | 内部错误信封（非数组输入） | 已设计 | — |
+| 系统设计 §8 Service Level CRUD 接口（/v1/service-levels） | VRC-MGMT-002 | ADM-SL-09 | negative | P1 | 创建 service-level data token 403 | 已设计 | — |
+| 系统设计 §8 Service Level CRUD 接口（/v1/service-levels） | VRC-MGMT-002 | ADM-SL-10 | negative | P1 | 更新 service-level data token 403 | 已设计 | — |
+| 系统设计 §8 Service Level CRUD 接口（/v1/service-levels） | VRC-MGMT-002 | ADM-SL-11 | negative | P1 | 删除 service-level data token 403 | 已设计 | — |
 | 系统设计 §8 探测接口（POST /v1/probes） | VRC-DIAG-004 | ADM-PROBE-01 | negative | P0 | 探测缺确认 | 已设计 | — |
 | 系统设计 §8 探测接口（POST /v1/probes） | VRC-DIAG-004 | ADM-PROBE-02 | normal | P1 | 探测带确认 | 已设计 | — |
 | 系统设计 §8 探测接口（POST /v1/probes） | VRC-DIAG-004 | ADM-PROBE-03 | negative | P1 | 探测未知 deployment | 已设计 | — |
 | 系统设计 §8 运行态接口（GET /v1/runtime） | VRC-INF-004 | ADM-RUNTIME-01 | normal | P1 | 运行时快照 | 已设计 | — |
 | 系统设计 §8 运行态接口（GET /v1/runtime） | VRC-INF-004 | ADM-RUNTIME-02 | security | P1 | 运行时快照负向（角色） | 已设计 | — |
+| 系统设计 §8 运行态接口（GET /v1/runtime） | VRC-API-002 | ADM-RUNTIME-03 | security | P2 | 运行时快照缺凭据 401 | 已设计 | — |
 | 系统设计 §8 统计接口（GET /v1/stats） | VRC-MGMT-006 | ADM-STATS-01 | normal | P1 | 统计聚合 | 已设计 | — |
 | 系统设计 §8 统计接口（GET /v1/stats） | VRC-MGMT-006 | ADM-STATS-02 | normal | P2 | 分组 | 已设计 | — |
 | 系统设计 §8 统计接口（GET /v1/stats） | VRC-MGMT-006 | ADM-STATS-03 | negative | P1 | 缺时间窗 | 已设计 | — |
+| 系统设计 §8 统计接口（GET /v1/stats） | VRC-MGMT-006 | ADM-STATS-04 | negative | P1 | 统计接口 data token 403 | 已设计 | — |
 | 系统设计 §8 审计接口（GET /v1/audit） | VRC-MGMT-003 | ADM-AUDIT-01 | security | P0 | 审计事件 + 脱敏 | 已设计 | — |
 | 系统设计 §8 审计接口（GET /v1/audit） | VRC-MGMT-006 | ADM-AUDIT-02 | boundary | P1 | 审计分页 | 已设计 | — |
 | 系统设计 §8 审计接口（GET /v1/audit） | VRC-MGMT-003 | ADM-AUDIT-03 | negative | P1 | 审计非法分页参数 | 已设计 | — |
+| 系统设计 §8 审计接口（GET /v1/audit） | VRC-MGMT-003 | ADM-AUDIT-04 | negative | P1 | 审计接口 data token 403 | 已设计 | — |
 | 系统设计 §8 日志接口（GET /v1/logs） | VRC-LOG-001 | ADM-LOGS-01 | security | P0 | 脱敏日志 | 已设计 | — |
 | 系统设计 §8 日志接口（GET /v1/logs） | VRC-LOG-001 | ADM-LOGS-02 | negative | P1 | 缺时间窗 | 已设计 | — |
+| 系统设计 §8 日志接口（GET /v1/logs） | VRC-LOG-001 | ADM-LOGS-03 | negative | P1 | 日志接口 data token 403 | 已设计 | — |
 | 系统设计 §8 管理 usage 接口（GET/DELETE /v1/usage） | VRC-MGMT-006 | ADM-USAGE-01 | normal | P1 | 管理面 usage | 已设计 | — |
 | 系统设计 §8 管理 usage 接口（GET/DELETE /v1/usage） | VRC-MGMT-006 | ADM-USAGE-02 | boundary | P1 | 管理面分页 | 已设计 | — |
 | 系统设计 §8 管理 usage 接口（GET/DELETE /v1/usage） | VRC-MGMT-006 | ADM-USAGE-03 | normal | P1 | 清空 usage（admin + 审计） | 已设计 | — |
@@ -272,14 +291,18 @@
 | 系统设计 §8 诊断开关接口（/v1/diagnostics） | VRC-DIAG-001 | OBS-DIAG-03 | negative | P2 | 开关更新非法值 | 已设计 | — |
 | 系统设计 §8 诊断快照接口（/v1/diagnostics/snapshots） | VRC-DIAG-002 | OBS-SNAP-01 | normal | P1 | 快照页（脱敏） | 已设计 | — |
 | 系统设计 §8 诊断快照接口（/v1/diagnostics/snapshots） | VRC-DIAG-002 | OBS-SNAP-02 | recovery | P2 | 快照无效 cursor | 已设计 | — |
+| 系统设计 §8 诊断快照接口（/v1/diagnostics/snapshots） | VRC-DIAG-002 | OBS-SNAP-03 | recovery | P1 | 诊断快照 store 不可用 503 | 已设计 | — |
 | 系统设计 §8 诊断统计接口（/v1/diagnostics/stats） | VRC-DIAG-002 | OBS-STATS-01 | normal | P1 | 诊断统计窗口 | 已设计 | — |
 | 系统设计 §8 诊断统计接口（/v1/diagnostics/stats） | VRC-DIAG-002 | OBS-STATS-02 | negative | P1 | 统计缺 since/until | 已设计 | — |
+| 系统设计 §8 诊断统计接口（/v1/diagnostics/stats） | VRC-DIAG-002 | OBS-STATS-03 | recovery | P1 | 诊断统计 store 不可用 503 | 已设计 | — |
 | 系统设计 §8 诊断 trace 接口（/v1/diagnostics/traces） | VRC-DIAG-002 | OBS-TRACE-01 | normal | P1 | trace 列表去重 | 已设计 | — |
 | 系统设计 §8 诊断 trace 接口（/v1/diagnostics/traces） | VRC-DIAG-002 | OBS-TRACE-02 | recovery | P2 | trace 列表分页/游标 | 已设计 | — |
+| 系统设计 §8 诊断 trace 接口（/v1/diagnostics/traces） | VRC-DIAG-002 | OBS-TRACE-03 | recovery | P1 | 诊断 trace store 不可用 503 | 已设计 | — |
 | 系统设计 §8 注入配置接口（/v1/deployments/{id}/diagnostics） | VRC-DIAG-004 | OBS-DEPL-01 | normal | P0 | 读取 deployment 注入配置 | 已设计 | — |
 | 系统设计 §8 注入配置接口（/v1/deployments/{id}/diagnostics） | VRC-DIAG-004 | OBS-DEPL-02 | normal | P0 | 写入故障注入 | 已设计 | — |
 | 系统设计 §8 注入配置接口（/v1/deployments/{id}/diagnostics） | VRC-DIAG-004 | OBS-DEPL-03 | negative | P1 | 注入未知 deployment | 已设计 | — |
 | 系统设计 §8 注入配置接口（/v1/deployments/{id}/diagnostics） | VRC-DIAG-004 | OBS-DEPL-04 | negative | P1 | 非法注入项 | 已设计 | — |
+| 系统设计 §8 注入配置接口（/v1/deployments/{id}/diagnostics） | VRC-DIAG-004 | OBS-DEPL-05 | recovery | P1 | 写入故障注入 store 不可用 503 | 已设计 | — |
 | 系统设计 §8 请求追踪接口（/v1/trace/{request_id}） | VRC-DIAG-002 | OBS-REQTRACE-01 | normal | P1 | 请求全生命周期 trace | 已设计 | — |
 | 系统设计 §8 请求追踪接口（/v1/trace/{request_id}） | VRC-DIAG-002 | OBS-REQTRACE-02 | negative | P1 | 未知 request_id | 已设计 | — |
 | 系统设计 §8 请求追踪接口（/v1/trace/{request_id}） | VRC-API-002 | OBS-REQTRACE-03 | security | P1 | 请求追踪负向（角色） | 已设计 | — |
@@ -300,11 +323,31 @@
 | 系统设计 §8 认证与授权跨切面（角色/LAN trust/无鉴权） | VRC-API-002 | AUTH-09 | security | P1 | 管理面未授权优先于资源存在性 | 已设计 | — |
 | 系统设计 §8 认证与授权跨切面（角色/LAN trust/无鉴权） | VRC-API-002 | AUTH-10 | security | P1 | 缺/非法凭据 401 | 已设计 | — |
 
-**Case 总数：140**（分类：normal 50 / boundary 7 / negative 45 / concurrency 6 / recovery 17 / security 15；环境 A 89 / B 51；Priority P0 45 / P1 72 / P2 23）。本表是**唯一权威 Case 清单**：一行一个 Case；逐 Case 的输入/执行/Oracle/判定/证据/清理见 `tests.system-case` 文档（`cases/<lowercased-case-id>.md`），本方案不展开。
+**Case 总数：163（设计数）**（分类：normal 50 / boundary 7 / negative 57 / concurrency 7 / recovery 26 / security 16；环境 A 102 / B 61；Priority P0 46 / P1 93 / P2 24）。**设计数 ≠ 已实现数**：截至本版，自动化入口**已实现 90**（88 个测试文件：`-m api_a`＝60、`-m api_b`＝30），**尚余 73 个设计 Case 无自动化入口**（MISSING，逐 Case 登记见下方与 `llmtier-system-test-plan` §3/§10-O5）。"已实现数"随测试代码增长变化，**以 harness 实际 collect 为准**，本方案不把实现数写成恒定事实。本表是**唯一权威 Case 清单**：一行一个 Case；逐 Case 的输入/执行/Oracle/判定/证据/清理见 `tests.system-case` 文档（`cases/<lowercased-case-id>.md`），本方案不展开。
 
-**设计验证项覆盖**：本清单 `设计验证项 ID` 取自各 Case 的 `tests.system-case` 文档所声明的设计验证项（`DP-RESP-16`/`DP-RESP-23` 两 Case 的 case 文档未声明，按系统设计 §7.8 错误目录 `ERR-REQ-JSON`→`VRC-INF-001`、`ERR-PROVIDER-FAIL`→`VRC-INF-003` 反查补全；未新增任何 VRC ID）。设计文档（系统设计 §7/§8/§14、机制 §15、模块设计 §14、ISD §9.1）共声明 **33 个设计验证项**；本清单覆盖 **14 个**，**19 个无 Case**（清单见 §4 缺口裁决）。逐项覆盖数：`VRC-INF-001` 30、`VRC-MGMT-006` 19、`VRC-MGMT-001` 18、`VRC-MGMT-002` 17、`VRC-API-002` 12、`VRC-DIAG-002` 12、`VRC-DIAG-004` 12、`VRC-MGMT-003` 8、`VRC-INF-002` 5、`VRC-DIAG-001` 4、`VRC-INF-004` 4、`VRC-LOG-001` 2、`VRC-UTIL-001` 2、`VRC-INF-003` 1。
+**设计验证项覆盖**：本清单 `设计验证项 ID` 取自各 Case 的 `tests.system-case` 文档所声明的设计验证项（`DP-RESP-16`/`DP-RESP-23` 两 Case 的 case 文档未声明，按系统设计 §7.8 错误目录 `ERR-REQ-JSON`→`VRC-INF-001`、`ERR-PROVIDER-FAIL`→`VRC-INF-003` 反查补全；未新增任何 VRC ID）。设计文档（系统设计 §7/§8/§14、机制 §15、模块设计 §14、ISD §9.1）共声明 **33 个设计验证项**；本清单覆盖 **14 个**，**19 个无系统层 Case**（逐项裁决见 §4；其中 13 项为模块级验证项、行为由单元层承接，6 项为无宿主 Gap）。逐项覆盖数：`VRC-INF-001` 31、`VRC-MGMT-006` 21、`VRC-MGMT-001` 22、`VRC-MGMT-002` 22、`VRC-API-002` 13、`VRC-DIAG-002` 15、`VRC-DIAG-004` 15、`VRC-MGMT-003` 9、`VRC-INF-002` 5、`VRC-DIAG-001` 4、`VRC-INF-004` 7、`VRC-LOG-001` 3、`VRC-UTIL-001` 2、`VRC-INF-003` 1。
 
+### 3.6 需求（`LT-*`）到 Case 的可追溯映射（§3 的 §3.6-等价节）
 
+> 命名沿用已退役 `llmtier-api-test-specification` §3.6 的链式定义（`LT-*` → `R-*` → `VRC-*` → `T-*` → `CT-*` → Case 家族），**不新增顶层章节**（本节是 §3 的子节）。链的**唯一权威来源**是需求文档 [`llmtier-requirements.md`](../../10_requirements/llmtier-requirements.md) 的 `LT-*` 条目、系统设计、机制需求与 `CT-*` 静态契约；本节只登记映射，不复制定义。Case 家族按 Case ID 前缀分组，成员以 §3 清单为准（含本版新增 23 个 Case）。任一 case 文档的"目的/来源"字段可回指本表。
+
+| Case 家族（按 §3 前缀） | 需求 `LT-*` | 机制需求 `R-*` | 设计验证 `VRC-*` | 机制 `T-*` | 契约 `CT-*` |
+|---|---|---|---|---|---|
+| `HEALTH-*` | LT-FUN-006、LT-OPS-001 | R-CFG-02、R-TRUST-04 | VRC-API-002、VRC-MGMT-003、VRC-UTIL-001 | T-TRUST-NOCFG、T-OBS | CT-OPS-001 |
+| `DP-MODELS-*` | LT-FUN-002 | R-INF-04、R-INF-07 | VRC-INF-001/002 | T-TRUST-ENDPOINTS | CT-MODEL-001 |
+| `DP-RESP-*` | LT-FUN-001/008、LT-INT-001/006、LT-PERF-001、LT-REL-001 | R-INF-01..06、R-TRUST-01、R-TRUST-02 | VRC-INF-001/003/004、VRC-DIAG-004 | T-STREAM、T-TOOLS、T-QUEUE、T-TIMEOUT、T-DISCONNECT、T-OBS-INJECT | CT-DP-001、CT-BOUNDARY-001、CT-ADM-001 |
+| `DP-EMB-*` | LT-FUN-003、LT-OPEN-02 | R-INF-04/05/07 | VRC-INF-001/002/004 | T-QUEUE（准入）、T-STREAM（无） | CT-EMB-001 |
+| `DP-USAGE-*` | LT-FUN-004、LT-INT-004/005/007、LT-REL-003 | R-MET-01..04 | VRC-MGMT-006、VRC-INF-004 | T-MET-FINAL、T-MET-PAGE、T-MET-RESET、T-MET-UNKNOWN、T-MET-CRASH（`DP-USAGE-09`） | CT-USAGE-001、CT-STORE-001 |
+| `ADM-PROV-*` | LT-FUN-005、LT-SEC-001、LT-INT-008、LT-REL-004 | R-CFG-01、R-CFG-03 | VRC-MGMT-001/002 | T-CFG-CAS、T-CFG-SECRET、T-CFG-DELREF、T-CFG-BADREF、T-TRUST-ENDPOINTS | CT-ADMIN-001 |
+| `ADM-PROV-MODELS-*` | LT-FUN-005 | R-CFG-01 | VRC-MGMT-001 | T-CFG-SECRET | CT-ADMIN-001 |
+| `ADM-PROV-USAGE-*` | LT-FUN-005/006、LT-OPS-002 | R-CFG-01、R-OBS-01 | VRC-MGMT-006、VRC-DIAG-004 | T-CFG-SECRET | CT-ADMIN-001、CT-OPS-001 |
+| `ADM-DEPL-*` | LT-FUN-005、LT-INT-008 | R-CFG-01 | VRC-MGMT-001/002 | T-CFG-CAS、T-TRUST-ENDPOINTS | CT-ADMIN-001 |
+| `ADM-SL-*` | LT-FUN-005、LT-PERF-002 | R-CFG-01 | VRC-MGMT-002 | T-CFG-SPACE、T-CFG-CAS、T-TRUST-ENDPOINTS | CT-ADMIN-001 |
+| `ADM-PROBE/RUNTIME/STATS/AUDIT/LOGS/USAGE-*` | LT-FUN-005/006、LT-OPS-002/006、LT-SEC-002/004、LT-INT-002 | R-OBS-01/02、R-MET-03、R-CFG-01、R-INF-03 | VRC-MGMT-003/006、VRC-LOG-001、VRC-DIAG-001、VRC-INF-004 | T-OBS、T-MET-RESET、T-MET-PAGE | CT-ADMIN-001、CT-LOG-001、CT-OPS-001、CT-USAGE-001 |
+| `OBS-*` | LT-FUN-005、LT-OPS-006、LT-INT-002/007、LT-SEC-002 | R-OBS-01..06 | VRC-DIAG-001/002/004 | T-OBS-SWITCH、T-OBS-SNAP、T-OBS-STATS、T-OBS-TRACE、T-OBS-INJECT | CT-ADMIN-001、CT-LOG-001 |
+| `AUTH-*` | LT-INT-001、LT-SEC-001 | R-TRUST-01..04 | VRC-API-002、VRC-MGMT-003 | T-TRUST-BEARER、T-TRUST-LAN、T-TRUST-SHARED、T-TRUST-NOCFG、T-TRUST-LEAK、T-TRUST-ENDPOINTS | CT-ADMIN-001 |
+
+**需求覆盖结论（35 项 `LT-*`）**：上表以"家族级"重建追溯链，**26 项有 Case 家族承接**（`LT-FUN-001..006/008`、`LT-INT-001/002/004/005/006/007/008`、`LT-OPEN-02`、`LT-OPS-001/002/006`、`LT-PERF-001/002`、`LT-REL-001/003/004`、`LT-SEC-001/002/004`），**9 项具名缺口/范围外**（逐项见下方「需求缺口裁决」）：`LT-FUN-007`、`LT-INT-003`、`LT-REL-002`（静态 absence/边界，由 `CT-BOUNDARY-001`/`CT-SCOPE-001` 与 `tests/system/st_04_forbidden_scan.py` 承接，非本运行层分母）；`LT-OPS-003/004/005`、`LT-OPEN-03`（运维/实现 Gate 承接）；`LT-PERF-003`（声明性约束）；`LT-SEC-003`（生产 TLS/SSO 部署面）。**家族级覆盖 ≠ 逐 Case 文档均引用该 `LT-*`**：本表是设计级映射权威，不要求每个 case 文档重复列出家族内全部 `LT-*`；case 文档按需引用其直接相关者。原评审以"逐 case 文档字面出现"计数（18/35）低估了这些家族级承接；本表按 STD 需求→Case 追溯语义重建。
 
 ## 4. 不适用与缺口裁决
 
@@ -313,6 +356,8 @@
 <span style="color:#1f6feb"><em>**抽象示例**：见灰字。</em></span>
 <span style="color:#1f6feb"><em>**完成条件**：每条裁决有事实或 Owner；无“顺手 N/A”。</em></span>
 
+> **模块级验证项裁决依据（重要）**：下表中 19 项模块级验证项（`VRC-INF-005`、`VRC-UTIL-002`、`VRC-API-001/003/004`、`VRC-MGMT-004/005`、`VRC-DIAG-003`、`VRC-OBS-001..005`、`VRC-UI-001..006`）是**模块设计 §14 的验证项**，系统层清单不承载其中内部行为者。**本项目未采用独立模块测试层**——不存在 `tests.module-test-scheme`（`tests.module-test-plan` 模板要求方案绑定单一软件模块，本项目有 M001–M008 共 8 个模块；建立合并模块方案需与 LT-TL-023 同级的用户授权，当前无此授权，故不虚构该层，不复制第二 authority）。各模块 §14 验证项的**行为级承接方**是 `llmtier-unit-test-scheme` §3（该方案 §1 明确被测模块内部为真实实现、仅替换进程外上游，即整模块组装层语义），**不是**任何"模块测试设计"；故本方案**不再声称"归模块测试设计承接"**，按事实登记：有真实行为宿主者标 `Tailored-N/A（下层承接）`，仅字符串契约/无宿主者标 `Gap`。
+
 | 来源 ID / 事实依据 | 裁决（Tailored-N/A 或 Gap） | Owner / 恢复条件 |
 |---|---|---|
 | **子系统测试级别** | Tailored-N/A | 本项目**无 `design.subsystem` 设计文档**：LLMTier 是纯软件系统，软件系统设计（`llmtier-system-design`）直接展开为模块（M001/M003/M004/M005/M006/M007 等），不存在软件子系统对象。故不采用 `tests.subsystem-test-scheme`；系统层方案直接承接系统设计 §7/§8 与机制端到端的测试分母。若将来引入 `design.subsystem`，本裁决须重新评审并补建子系统方案。 |
@@ -320,18 +365,35 @@
 | 真实生产环境（TLS 反向代理、生产 SSO/MFA、浏览器无 bearer、HttpOnly/CSRF） | Gap | Owner：运维/安全。恢复条件：生产部署面可用并有授权后补测；当前由安全评估与运维手册承接，非系统测试分母。 |
 | 上游模型答案质量与推理正确性 | Gap | Owner：模型/推理。恢复条件：定义独立内容 Oracle 与统计口径后另立评测；本方案只断言结构/事件序列/字段契约，不把模型内容当 Oracle。 |
 | 容量/耐久（FD 泄漏、30min 耐久、50 并发） | Gap | Owner：性能/运维。恢复条件：另立性能/运维专项执行容量测试（原退役 `llmtier-test-plan` 的 ST-18/19/21 内容）；结果不合并进本方案分母。 |
-| 进程 crash/restart 后的运维恢复、备份/恢复演练 | Gap | Owner：运维。恢复条件：运维手册 `m5air-operations-manual.md` §14/§15 承接。 |
+| 进程 crash/restart 后的运维恢复、备份/恢复演练 | Gap | Owner：运维。恢复条件：运维手册 `m5air-operations-manual.md` §14/§15 承接。**注**：账本在崩溃/重启后的**核心不变量**（orphan unknown 不回填 0，`T-MET-CRASH`）已由 `DP-USAGE-09` 覆盖，不在本条缺口内；本条仅指运维级恢复/备份演练。 |
 | `ERR-BOOT`/`ERR-SCHEMA`/`ERR-PATH-UNSAFE`/`ERR-UTIL-TXN` 的 envelope code | Gap（具名缺口，4 项） | Owner：M007/规格。恢复条件：`/readyz` 503 body 为 `ReadinessView` 而非 `ErrorEnvelope`（无 `code`）；其余需破坏性构造（symlink DB、嵌套事务）从 HTTP 无法无破坏触发。`ERR-BOOT` 的表现层由 HEALTH-04/05 覆盖，envelope code 保留具名缺口。 |
 | 非受信来源的真实"缺凭据" 401 | Gap | Owner：代码 owner（`src/http_api/auth.py`）。恢复条件：当前实现对 loopback/RFC1918 无 `Authorization` 头**无条件**授予共享角色，无法从 A/B 受信网段制造真实缺凭据 401；AUTH-10 改以非法授权方案触发。若引入显式 env 门控须重新评审。 |
-| 设计验证项 `VRC-INF-005`（观测 fail-open / 不二次校验，M003；系统设计 §7.4） | Gap（无 Case） | Owner：M003 推理/规格。恢复条件：需系统层可观察的 fail-open 断言；当前系统 Case 只锁事件序列/terminal 契约（`VRC-INF-002`），未覆盖"观测失败不阻断、不二次校验"语义，归 M003 模块测试设计承接。 |
-| 设计验证项 `VRC-UTIL-002`（事务/初始化/拒绝，M004；系统设计 §7.7、`ERR-PATH-UNSAFE`） | Gap（无 Case） | Owner：M004 存储/规格。恢复条件：事务回滚、schema 不匹配/损坏、路径不安全等需破坏性构造（symlink DB、嵌套事务），非 HTTP 可达；HEALTH-04/05 仅覆盖 schema 引导表现层，事务/拒绝语义归 M004 模块测试设计承接。 |
-| 设计验证项 `VRC-API-001/003/004`（M001 分发/错误、body/SSE、静态与健康） | Gap（模块级，无 Case） | Owner：M001 http-api。恢复条件：模块级验证项（分发路由/错误信封/body 解析/SSE 单帧/静态交付）；系统层 Case 以端点契约（`VRC-INF-001`/`VRC-API-002`）间接覆盖其表现，未逐项登记，归 M001 模块测试设计承接。 |
-| 设计验证项 `VRC-MGMT-004/005`（M005 分页与清空、探测） | Gap（模块级，无 Case） | Owner：M005 管理。恢复条件：`query_snapshots` 分页/清空、`/v1/probes` 探测语义；系统层 Case（`DP-USAGE-*`/`ADM-USAGE-*`/`ADM-PROBE-*`）归入 `VRC-MGMT-006`/`VRC-DIAG-004`，未逐项登记，归 M005 模块测试设计承接。 |
-| 设计验证项 `VRC-DIAG-003`（M007 libdiag fail-open） | Gap（模块级，无 Case） | Owner：M007 诊断。恢复条件：诊断记录失败不阻断业务（fail-open）；系统层未构造该失败路径，归 M007 模块测试设计承接。 |
-| 设计验证项 `VRC-OBS-001..005`（M006 observability：开关/查询脱敏/注入/关联标识/诊断页） | Gap（模块级，无 Case） | Owner：M006 观测。恢复条件：审计/日志/诊断观测语义；系统层 `OBS-*` Case 登记为 `VRC-DIAG-*`/`VRC-MGMT-*`，未按 M006 验证项逐项登记，归 M006 模块测试设计承接。 |
-| 设计验证项 `VRC-UI-001..006`（M002 web-ui：加载/编辑鉴权/Pause/用量未知/探测确认/诊断页） | Gap（模块级，无 Case） | Owner：M002 web-ui。恢复条件：浏览器端静态资源与交互契约不在系统测试分母（无 HTTP 端点 Case）；web-ui 模块设计已声明其验证方法，待模块测试设计承接。 |
+| `VRC-INF-005`（观测 fail-open / 不二次校验，M003；模块设计 inference §14.5） | Tailored-N/A（下层承接） | Owner：M003。本层不测；行为承接＝`llmtier-unit-test-scheme` §3 `UT-INF-005`（观测抛错时推理结果不变）。**非 Gap**——宿主存在。 |
+| `VRC-UTIL-002`（事务/初始化/拒绝，M007；模块设计 util §14.2、`ERR-PATH-UNSAFE`） | Tailored-N/A（下层承接） | Owner：M007。本层不测；承接＝`llmtier-unit-test-scheme` §3 `UT-UTIL-002`/`UT-UTIL-004`（回滚/幂等/损坏库/嵌套事务 409/并发启动）。`ERR-PATH-UNSAFE` 的 HTTP envelope code 保留于上方具名缺口。 |
+| `VRC-API-001/003/004`（M001 分发/错误、body/SSE、静态与健康；模块设计 http-api §14.1/§14.3/§14.5/§14.6） | Tailored-N/A（下层承接） | Owner：M001。本层不测；承接＝`llmtier-unit-test-scheme` §3 `UT-API-001/003/004/005/006/007/009/010/011/012/013`（分发/错误信封/body/SSE 单帧/静态穿越/fail-open 降级）。 |
+| `VRC-MGMT-004/005`（M004 分页与清空、探测；模块设计 management §14.4/§14.5） | Tailored-N/A（下层承接） | Owner：M004。本层不测；承接＝`llmtier-unit-test-scheme` §3 `UT-MGMT-004/005/009/010`（cursor 过期/`reset_usage` 范围/探测不可达）。系统层 `DP-USAGE-*`/`ADM-USAGE-*`/`ADM-PROBE-*` 以表现层 Case 间接覆盖（登记于 `VRC-MGMT-006`/`VRC-DIAG-004`）。 |
+| `VRC-DIAG-003`（M006 libdiag fail-open；模块设计 libdiag §14.3） | Tailored-N/A（下层承接） | Owner：M006。本层不测；承接＝`llmtier-unit-test-scheme` §3 `UT-DIAG-003`/`UT-DIAG-007`（写入/初始化失败不阻断、降级）。 |
+| `VRC-OBS-001..005`（M005 observability：开关/查询脱敏/注入/关联标识/诊断页；模块设计 observability §14.1–§14.5） | Tailored-N/A（下层承接；含视觉子缺口） | Owner：M005。本层不测；行为承接＝`llmtier-unit-test-scheme` §3 `UT-OBS-001..007`。**视觉子项**（诊断页 tabs/Disabled 呈现）无行为宿主，见 `llmtier-unit-test-scheme` §4 `G-UT-4`（owner M002/M005）。 |
+| `VRC-UI-001..006`（M002 web-ui：加载/编辑鉴权/Pause/用量未知/探测确认/诊断页；模块设计 web-ui §14.1–§14.7） | Gap（行为级无宿主） | Owner：M002 web-ui。本层无 HTTP 端点 Case；下层当前仅有**字符串契约**（`UT-UI-001..010`，静态断言），无 JS 行为宿主——与 `llmtier-unit-test-scheme` §4 `G-UT-3` 同一缺口。恢复条件：引入 JS 行为测试宿主（node/jsdom）后由单元层升级为行为断言；在此之前 6 项保持具名 Gap，不声称已承接。 |
+| `POST /v1/responses` 声明的 `422`（OpenAPI） | Gap（契约偏差，无 Case） | Owner：M001 http-api/规格。恢复条件：实现从不产生 422——非法/非对象 JSON body 走 `_body()` 的 `ApiError(400, "invalid_json")`（`app.py:161-162`），schema 级字段违例走 `400`（`invalid_request`/`unsupported_request`/`unsupported_field`/`unsupported_model`），已由 `DP-RESP-16`/`DP-RESP-08/12..15` 覆盖。**无代码路径产生 422**，故不写空 Case；OpenAPI 声明与实现的偏差按规格修订（改声明为 400）或补实现后重评。 |
+| `POST /v1/probes` 声明的 `502`（OpenAPI） | Gap（契约偏差，无 Case） | Owner：M005 管理/M003 推理/规格。恢复条件：实现从不产生 502——`AdminService.probe` 调 `adapter.probe()`，而 `OpenAIProvider.probe` 对**所有**上游异常 `except Exception: return False`（`providers/openai.py`），上游故障表现为 `200` + `status:"unhealthy"`，不抛错。**上游 502 路径不存在**，故不写空 Case；`ADM-PROBE-02/03` 覆盖 200/404 表现。偏差按规格修订（改声明）或补实现（probe 失败映射 502）后重评。 |
+| Embeddings 的 `provider_failure`（`fault_502` 注入码） | Gap（不可达，无 Case） | Owner：M003 推理/规格。恢复条件：`provider_failure` 仅在 `ResponsesService.create` 的注入分支产生（`responses.py:110`）；`EmbeddingsService.create` **不读** `enabled_injection`（`embeddings.py`），故 Embeddings 无故障注入路径，`provider_failure` 码在 Embeddings 不可达。`DP-EMB-09` 以真实/假上游契约错误覆盖其可达的 `502 provider_contract_error`；若未来为 Embeddings 增加注入支持须重评。 |
 
+### 需求缺口裁决（`LT-*`，对照 §3.6）
 
+`LT-*` 需求共 **35 项**；§3.6 家族级重建后 **26 项有 Case 家族承接**，下列 **9 项**无本运行层承接，按事实具名裁决（不静默）：
+
+| 需求 `LT-*` / 事实依据 | 裁决（Tailored-N/A 或 Gap） | Owner / 恢复条件 |
+|---|---|---|
+| `LT-FUN-007`（不保存/压缩 Agent 历史、不执行工具、不创建 Session/Conversation、不管理 backend KV） | Tailored-N/A（范围外：absence 静态契约） | Owner：LLMTier。**非 HTTP 运行层可测**——属"不存在"断言，由静态契约 `CT-BOUNDARY-001` 与 `tests/system/st_04_forbidden_scan.py` 承接（范围与非目标见退役规格 §11.2；当前运行层只测 current `/v1/*`）。 |
+| `LT-INT-003`（不定义 SourceInstance/Idempotency-Key/Invocation/recovery/Seat/Cost/compatibility） | Tailored-N/A（范围外：absence 静态契约） | Owner：LLMTier。同上，由 `CT-SCOPE-001`/`CT-BOUNDARY-001` 与 `st_04_forbidden_scan.py` 承接，非运行层分母。 |
+| `LT-REL-002`（内部可靠性/retry/防重不得创建对外 Invocation/recovery/session contract） | Tailored-N/A（范围外：absence 静态契约） | Owner：LLMTier。同上（`CT-SCOPE-001`）。 |
+| `LT-PERF-003`（未测量前不得宣称 production latency/throughput/availability SLO） | Tailored-N/A（范围外：声明性约束） | Owner：LLMTier。属发布声明约束，非运行行为；由 release/运维 Gate 与 SLO 专项承接（对照上方「容量/耐久」Gap）。 |
+| `LT-SEC-003`（production Web UI 同源 TLS 反代 SSO/MFA、HttpOnly/CSRF、浏览器无 bearer、不加账号/登录 API） | Gap | Owner：运维/安全。生产部署面（TLS/SSO/CSRF）非 HTTP 运行层；恢复条件：生产部署面可用并有授权后补测（对照上方「真实生产环境」Gap）。 |
+| `LT-OPS-003`（restart/reload/restore 使用自有 runbook，不建跨系统恢复状态机） | Gap | Owner：运维。恢复条件：`m5air-operations-manual.md` runbook 承接并执行记录（对照上方「进程 crash/restart 后的运维恢复」Gap）。 |
+| `LT-OPS-004`（恢复确认分层检查 process/config/model availability/Usage store，仅授权后 smoke） | Gap | Owner：运维。恢复条件：运维分层恢复检查与授权 smoke 流程落地后登记（同上 Gap）。 |
+| `LT-OPS-005`（单节点 systemd 基线、优雅摘流 ≤60s、QuerySnapshot TTL 15min、Usage/Audit 保留 30/90 天、加密备份 7日+4周、RPO 24h/RTO 4h、release 前隔离 restore 演练） | Gap（运维承接；仅 TTL 间接触及） | Owner：运维。容量/保留/备份/恢复演练属运维专项；本运行层仅 `DP-USAGE-04`（过期 cursor）间接触及 snapshot TTL，不测备份/恢复演练。 |
+| `LT-OPEN-03`（单节点 Linux + TLS 反代 + systemd + 加密备份 + runbook；design closed / implementation gate） | Gap（实现 Gate，非测试缺口） | Owner：LLMTier。设计已关闭，缺**部署证据**；恢复条件＝runtime activation 前完成部署证据（系统设计 §16 `LT-OPEN-03`）。 |
 
 ## 5. 文档联动与清单变更规则
 
@@ -342,18 +404,18 @@
 
 - **方案冻结与变更规则**：Case 清单随系统设计基线**冻结**；系统设计或机制变更导致分母变化时，本方案升版并同步 `tests.system-test-plan` 的构成表。Case ID 一经登记**不复用、不改名**；新增 Case 取同家族下一个未占用序号（含补丁后缀，如 `ADM-SL-02b`）；废弃 Case 标 `superseded`，不删除、不重编号。
 - **与 case-design / 计划的同步规则**：**新 Case 先入本清单 §3，再建 case-design 文档**；case-design 文档路径固定为 `docs/70_verification/specifications/cases/<lowercased-case-id>.md`（例：`DP-RESP-01` → `cases/dp-resp-01.md`），文档 ID = Case ID；`tests.system-test-plan` 只引用本方案版本，不复制 Case 清单。本方案只登记 Case **设计状态**（Designed/Gap/Tailored-N/A），不承载实现状态（在 case-design 文档）与执行状态/Verdict（只在 Run 报告）。
-- **本方案的退役与吸收映射**：本方案**唯一吸收并取代**旧 `assurance.test-specification` 家族的 `llmtier-api-test-specification`（140-Case 权威清单、定量覆盖模型、Traceability、环境与共同机制）与 `llmtier-contract-test-specification`（静态契约 `CT-*` 的 runtime 落地边界）。二者已从 `docs/70_verification/specifications/` 退役（git rm）；其 Case ID 与数量（140）**保持不变**，逐 Case 细节现由 `tests.system-case` 文档承载。
-- **需求到本方案的可追溯入口**：本方案各 Case 家族的可追溯链维持 `LT-*` → `R-*` → `VRC-*` → `T-*` → `CT-*` → Case（原规格 §3.6 的映射表已随 source 文档退役；追迹数据由逐 Case 设计文档与 Run manifest 的 `target_artifact` 共同锁定）。
+- **本方案的退役与吸收映射**：本方案**唯一吸收并取代**旧 `assurance.test-specification` 家族的 `llmtier-api-test-specification`（140-Case 权威清单、定量覆盖模型、Traceability、环境与共同机制）与 `llmtier-contract-test-specification`（静态契约 `CT-*` 的 runtime 落地边界）。二者已从 `docs/70_verification/specifications/` 退役（git rm）；其原 Case ID 与数量（140）作为基线**保持不变**（不重命名、不重编号），逐 Case 细节现由 `tests.system-case` 文档承载；本版在该基线上按覆盖洞评审（`coverage_review`）**新增 23 个 Case**（`DP-EMB-08..10`、`ADM-*-15..`、`OBS-*-03..`、`DP-USAGE-09`、`DP-RESP-26/27` 等，见 §3），清单总数 140 → **163**。
+- **需求到本方案的可追溯入口**：本方案各 Case 家族的追溯链 `LT-*` → `R-*` → `VRC-*` → `T-*` → `CT-*` → Case **已重建并落于 §3.6**（由退役 `llmtier-api-test-specification` §3.6 与需求文档重建；不再依赖已退役 source）。需求缺口（9 项 `LT-*`）见 §4「需求缺口裁决」；逐 Case 的 Run 侧追迹另由 case 文档与 Run manifest 的 `target_artifact` 锁定。
 
 ### 未决项与歧义记录（本方案自记录）
 
 > 以下为实施本方案时发现的 STD 读数歧义；本方案按"采取 STD 读数并显式登记"处理，未静默猜测。列出以提请 STD 维护者裁决。
 
-1. **Case ID 命名语法**：模板 §3 示例使用 `SYS-<对象>-<NNN>` 语法，且"必须写清楚"要求 Case ID 稳定唯一（`SYS-<对象>-<NNN>`）。本方案沿用 LLMTier 既有 140 个 Case ID（`HEALTH-*`/`DP-*`/`ADM-*`/`OBS-*`/`AUTH-*`），与模板语法不一致。**采取读数**：任务明确要求 Case ID 保持不变（140）；Case ID 的"稳定且唯一"是本质要求，前缀族名形式由项目既有惯例决定。**歧义**：模板是否强制 `SYS-` 前缀，或仅为示例，待 STD 裁决。
+1. **Case ID 命名语法**：模板 §3 示例使用 `SYS-<对象>-<NNN>` 语法，且"必须写清楚"要求 Case ID 稳定唯一（`SYS-<对象>-<NNN>`）。本方案沿用 LLMTier 既有 Case ID 前缀（`HEALTH-*`/`DP-*`/`ADM-*`/`OBS-*`/`AUTH-*`，140 个基线 ID 加后续按覆盖洞新增的 23 个同族 ID），与模板语法不一致。**采取读数**：任务明确要求既有 Case ID 保持不变（140 基线不重命名）；Case ID 的"稳定且唯一"是本质要求，前缀族名形式由项目既有惯例决定。**歧义**：模板是否强制 `SYS-` 前缀，或仅为示例，待 STD 裁决。
 2. **"未决项章节"**：任务要求"在方案的未决项章节记录歧义"，但 `tests.system-test-scheme` 模板**没有**未决项章节（正文仅 §1–§5，另有附录 A）。**采取读数**：遵守"匹配模板精确章节集、不得自创章节"，将未决项作为 §5 内的具名小节记录，而非新增顶层章节。
 3. **`来源 ID` 粒度**：模板要求"一个来源 ID 至少一条记录"。原规格以 route×method×role×error-code 为覆盖分母，未给"来源 ID"独立编号。**采取读数**：按系统设计 §8 接口/机制分组作为来源 ID（如"系统设计 §8 Responses 接口"），一个来源对应多条 Case；不新造记录编号。
 4. **`design_level` 取值**：`new-design` 对 `tests.system-test-scheme` 未在层级映射中登记，生成默认 `cross-level`；STD 指南称系统方案"对应 design.software-system（系统设计阶段）"。**采取读数**：metadata 置 `design_level=system`、`domain=[software]`（与系统层语义一致）；`validate-design` 不对此强制，故为语义读数而非工具强制。
-5. **（已关闭）逐 Case 设计文档的入站链接（跨任务移交）**：原记录为"140 份 `tests.system-case` 文档仍指向已退役的 `../llmtier-api-test-specification.md`，重写前 `validate-design docs` 会报告 `link.missing`"。**关闭事实**：并行工作项已完成 case 文档重写——全部 141 份 case 文档（140 Case + README）**均不再**引用任何退役规格（0 处），且全部以真实路径引用本方案（`llmtier-system-test-scheme.md`）；`validate-design docs` 不再报告该类 `link.missing`。本条歧义已消解，保留以存档。
+5. **（已关闭）逐 Case 设计文档的入站链接（跨任务移交）**：原记录为"140 份 `tests.system-case` 文档仍指向已退役的 `../llmtier-api-test-specification.md`，重写前 `validate-design docs` 会报告 `link.missing`"。**关闭事实**：并行工作项已完成 case 文档重写——当时全部 141 份 case 文档（140 Case + README）**均不再**引用任何退役规格（0 处），且全部以真实路径引用本方案（`llmtier-system-test-scheme.md`）；`validate-design docs` 不再报告该类 `link.missing`。本条歧义已消解，保留以存档（其后按覆盖洞新增的 23 份 case 文档同样不引用退役规格）。
 
 ## 附录 A. 本层设计验证项 VRC 汇集（对照用）
 
@@ -366,21 +428,22 @@
 
 | 设计验证项 ID | 要验证什么（名称/责任） | 设计来源 | §3 Case 覆盖 |
 |---|---|---|---|
-| `VRC-API-002` | HTTP 入口/鉴权/序列化与健康表现 | 系统设计 §12 | HEALTH-01..06、AUTH-01..10、ADM-RUNTIME-02、OBS-REQTRACE-03 |
-| `VRC-MGMT-003` | 就绪/审计/未配置鉴权语义 | 系统设计 §12 | HEALTH-02..05、ADM-AUDIT-01/03、AUTH-07 |
-| `VRC-MGMT-006` | 用量/统计/分页口径 | 系统设计 §12 | DP-USAGE-01..08、ADM-PROV-USAGE-*、ADM-STATS-*、ADM-USAGE-*、ADM-AUDIT-02 |
-| `VRC-MGMT-001` | Provider/Deployment 管理语义 | 系统设计 §12 | ADM-PROV-01..14、ADM-PROV-MODELS-01/02、ADM-DEPL-01/03/05/06/07/08 |
-| `VRC-MGMT-002` | 更新/并发/ETag 与 Service Level 语义 | 系统设计 §12 | ADM-PROV-05..07/09/13、ADM-DEPL-04/09、ADM-SL-01..08 |
-| `VRC-INF-001` | 推理/模型/嵌入路由与请求契约 | 系统设计 §12 | DP-MODELS-01..07、DP-RESP-01..25、DP-EMB-* |
+| `VRC-API-002` | HTTP 入口/鉴权/序列化与健康表现 | 系统设计 §12 | HEALTH-01..06、AUTH-01..10、ADM-RUNTIME-02/03、OBS-REQTRACE-03 |
+| `VRC-MGMT-003` | 就绪/审计/未配置鉴权语义 | 系统设计 §12 | HEALTH-02..05、ADM-AUDIT-01/03/04、AUTH-07 |
+| `VRC-MGMT-006` | 用量/统计/分页口径 | 系统设计 §12 | DP-USAGE-01..09、ADM-PROV-USAGE-*、ADM-STATS-01..04、ADM-USAGE-*、ADM-AUDIT-02 |
+| `VRC-MGMT-001` | Provider/Deployment 管理语义 | 系统设计 §12 | ADM-PROV-01..15/17、ADM-PROV-MODELS-01/02、ADM-DEPL-01/03/05/06/07/08/10/12 |
+| `VRC-MGMT-002` | 更新/并发/ETag 与 Service Level 语义 | 系统设计 §12 | ADM-PROV-05..07/09/13/16、ADM-DEPL-04/09/11、ADM-SL-01..11 |
+| `VRC-INF-001` | 推理/模型/嵌入路由与请求契约 | 系统设计 §12 | DP-MODELS-01..07、DP-RESP-01..25、DP-EMB-01..09 |
 | `VRC-INF-002` | 推理输出/能力集结构契约 | 系统设计 §12 | DP-MODELS-01/07、DP-EMB-03/05 |
 | `VRC-INF-003` | 上游非 5xx → provider_error | 系统设计 §12 | DP-RESP-23 |
-| `VRC-INF-004` | 准入饱和/候选健康/运行时快照 | 系统设计 §12 | DP-RESP-19/20、ADM-RUNTIME-01 |
+| `VRC-INF-004` | 准入饱和/候选健康/运行时快照 | 系统设计 §12 | DP-RESP-19/20、DP-EMB-08/10、DP-USAGE-09、ADM-RUNTIME-01 |
 | `VRC-DIAG-001` | 诊断开关读写 | 系统设计 §12 | OBS-DIAG-01..03、OBS-ALIAS-01 |
-| `VRC-DIAG-002` | 诊断快照/统计/trace/请求追踪 | 系统设计 §12 | OBS-SNAP-*、OBS-STATS-*、OBS-TRACE-*、OBS-REQTRACE-01/02、OBS-ALIAS-02..06 |
-| `VRC-DIAG-004` | 故障注入配置与探测 | 系统设计 §12 | DP-RESP-11/22、ADM-PROV-USAGE-02/03、ADM-PROBE-01..03、OBS-DEPL-01..04、OBS-ALIAS-04 |
-| `VRC-LOG-001` | 日志/审计脱敏 | 系统设计 §12 | ADM-LOGS-01/02 |
+| `VRC-DIAG-002` | 诊断快照/统计/trace/请求追踪 | 系统设计 §12 | OBS-SNAP-01..03、OBS-STATS-01..03、OBS-TRACE-01..03、OBS-REQTRACE-01/02、OBS-ALIAS-02..06 |
+| `VRC-DIAG-004` | 故障注入配置与探测 | 系统设计 §12 | DP-RESP-11/22/26/27、ADM-PROV-USAGE-02/03、ADM-PROBE-01..03、OBS-DEPL-01..05、OBS-ALIAS-04 |
+| `VRC-LOG-001` | 日志/审计脱敏 | 系统设计 §12 | ADM-LOGS-01..03 |
 | `VRC-UTIL-001` | 存储引导/就绪引导表现 | 系统设计 §12 | HEALTH-04/05 |
-| `VRC-INF-005`、`VRC-UTIL-002`、`VRC-API-001/003/004`、`VRC-MGMT-004/005`、`VRC-DIAG-003`、`VRC-OBS-001..005`、`VRC-UI-001..006` | 模块级/表现层验证项（无系统层 Case） | 系统设计 §12/§14、机制 §15、模块设计 §14、ISD §9.1 | 见 §4 缺口裁决（Gap） |
+| `VRC-INF-005`、`VRC-UTIL-002`、`VRC-API-001/003/004`、`VRC-MGMT-004/005`、`VRC-DIAG-003`、`VRC-OBS-001..005` | 模块级验证项（无系统层 Case；行为由单元层 `llmtier-unit-test-scheme` §3 承接） | 模块设计 §14、ISD §9.1 | §4 裁决：Tailored-N/A（下层承接），逐项列 UT Case |
+| `VRC-UI-001..006` | M002 web-ui 行为级验证项（无系统层 Case；下层当前仅字符串契约） | 模块设计 web-ui §14、ISD §9.1 | §4 裁决：Gap（同 `llmtier-unit-test-scheme` §4 `G-UT-3`） |
 
 
 

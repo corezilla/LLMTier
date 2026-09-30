@@ -54,6 +54,35 @@ PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_obs_01.py -v
 PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/ -q --override-ini="addopts="
 ```
 
+## Run 证据（plan §7）
+
+runner 每次执行在 `tests/system/reports/<date>/<class>-<phase>/`（如
+`tests/system/reports/2026-09-30/A-api/`）下产出：
+
+| 文件 | 内容 |
+|---|---|
+| `junit.xml` | pytest JUnit XML（`--junitxml`） |
+| `pytest.log` | pytest 完整 stdout/stderr |
+| `test-run.env` | 元数据：run id、layer、`git_commit`、`schema_version`、`openapi_version`、命令、Python 版本 |
+| `case-status.json` | 每 Case 终态（`PASS/FAIL/BLOCKED/SKIP/XPASS/NOT_RUN/INVALID`）＋ reason |
+| `cases/<case-id>/manifest.json` | 每 Case manifest（Run ID、node id、状态、commit、pin、redactions、artifacts） |
+| `artifacts/` | 大型/敏感原始证据（默认不入 Git） |
+
+条件：`git_commit`/`schema_version`/`openapi_version` 三项 pin 缺任一不得判 PASS。
+
+### runner 退出码
+
+| 码 | 含义 |
+|---|---|
+| 0 | 无 `FAIL`/`BLOCKED`/`INVALID`，且 SKIP 未超上限 |
+| 1 | 存在 `FAIL`/`BLOCKED`/`INVALID`（均阻断 release） |
+| 2 | SKIP 超上限（A ≤5 / B ≤3）或采集/harness 错误 |
+
+状态映射（`tools/test_report.py`，强制）：`failed→FAIL`、`xfailed→BLOCKED`
+（reason 取 `BLOCKED (...)` 消息）、`xpassed→XPASS`（告警，不计 PASS）、
+`skipped→SKIP`（环境性）/`NOT_RUN`（计划性）、`error→BLOCKED`（环境性）。
+
+
 可调环境变量：`LLMTIER_TEST_TIMEOUT`（httpx 超时秒数，默认 30）、
 `LLMTIER_TEST_RETRIES`（瞬时超时重试，0–3，默认 2）、
 `LLMTIER_TEST_LAN_IP` / `LLMTIER_TEST_PROVIDER_URL`（B 类 LAN upstream）、
