@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-unit-test-plan` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -27,7 +27,7 @@
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
-> 本计划绑定软件模块集合：`design_object_id` 按本计划约定记录为 `M001-M008`（模块切片与 Case ID 前缀见 §1）；ISD 基线在 §2 固定。
+> 本计划绑定软件模块集合：本计划编排 8 个软件模块 `M001-M008`（模块切片与 Case ID 前缀见 §1）；`design_object_id` 为本项目元数据可选字段，本计划 metadata 未写入该字段（合并计划跨 8 模块，单一 `design_object_id` 无法承载），模块归属改由 §1 构成表模块切片与 §5 批次承担；ISD 基线在 §2 固定。
 > **裁剪说明（tailored）**：模板默认“一模块一份计划”。本项目按用户授权将 8 个模块的单元层活动编排为一份项目级可执行作业指令（`M001-M008` 一次编排，LT-TL-023）；逐模块差异由 §1 构成表的模块切片、§5 的执行批次与 Case ID 前缀（`UT-API-*`/`UT-UI-*`/`UT-INF-*`/`UT-MGMT-*`/`UT-OBS-*`/`UT-DIAG-*`/`UT-UTIL-*`/`UT-LOG-*`）承担。裁剪依据见 [STD 裁剪清单](../../00_management/std-tailoring.md)。
 
 ### 模板定位：方案、用例、计划与报告的边界
@@ -55,9 +55,9 @@
 
 | 构成层 | 文档 / 入口（Document ID 或缺口） | 覆盖责任摘要 | 条目状态 |
 |---|---|---|---|
-| 单元方案 ×1 | `llmtier-unit-test-scheme` v0.1.0-draft.2（方案 §3 清单；§1.6/§1.7 环境类型） | 8 模块 33 VRC（64 Case）的清单与设计状态唯一登记 | Planned |
+| 单元方案 ×1 | `llmtier-unit-test-scheme` v0.1.0-draft.3（方案 §3 清单；§1.6/§1.7 环境类型） | 8 模块 33 VRC（64 Case）的清单与设计状态唯一登记 | Planned |
 | Case 文档 ×64 = ×33 已建 + ×31 待建 | 已建：`UT-API-001…004`、`UT-UI-001…006`、`UT-INF-001…005`、`UT-MGMT-001…006`、`UT-OBS-001…005`、`UT-DIAG-001…004`、`UT-UTIL-001…002`、`UT-LOG-001`；待建见方案 §5（`docs/70_verification/specifications/unit-case-*.md`） | 逐 Case 输入构造、Oracle 与运行入口；见方案 §3 每行责任摘要 | Planned |
-| 测试资产 ×2（候选） | `tests.asset-design`（`FakeAdapter`/`FakeResponse`，候选 ID `FAKE-LLMTIER-ADAPTER`）；缺口 G-UT-2 | 上游/HTTP 替身的契约与自检 | Blocked（G-UT-2） |
+| 测试资产 ×1（候选） | `tests.asset-design`（`FakeAdapter`，候选 ID `FAKE-LLMTIER-ADAPTER`）；缺口 G-UT-2。`FakeResponse` 为各测试模块本地 stub，非共享资产，不单列 | 上游进程内 fake 的契约与自检 | Blocked（G-UT-2） |
 | 相邻层交接出口 | `tests.module-test-scheme`/`-plan`（组装后流程）、`llmtier-system-test-scheme`（wire/E2E） | 组合保证与验收承接 | Planned |
 
 ## 2. 被测基线与变更重跑范围
@@ -78,20 +78,21 @@
 
 | 前检项 | 判定事实 | 通过条件 | 不满足时 |
 |---|---|---|---|
-| 方案就绪度 | `llmtier-unit-test-scheme` v0.1.0-draft.2；33 VRC 均有 Case（共 64）；缺口 G-UT-1/G-UT-2 已登记 | 分母闭合且版本固定 | Blocked＋登记缺口 |
-| Case 实现状态盘点 | 33 个 unit-case 文档均记录测试代码位置于 `tests/unit/v03/*.py`（§7「测试文件 / 测试函数」），全部 `Implemented`；方案 §5 列出的 31 个新 Case 文档待建（未建前不得称 `Implemented`） | 已建 Case 的测试函数均 Implemented 或明确跳过登记；待建 Case 先入清单 | 未实现项标 NOT_RUN 并登记 |
-| 环境与工具（引用 tests.asset-design 的 Verified 状态） | `PYTHONPATH=src python3 -m pytest tests/unit/v03 -q` 可收集并执行（当前收集 197 个测试）；`tests/unit/v03/fakes.py`（`AppFixture`/`FakeAdapter`/`FakeResponse`）在位；替身资产 `tests.asset-design` 未建（G-UT-2） | 全量单元可收集执行且替身契约就位 | 收集失败或 Python/pytest 缺失→环境性 Blocked；替身契约缺→登记 G-UT-2，不静默用它物 |
+| 方案就绪度 | `llmtier-unit-test-scheme` v0.1.0-draft.3；64 Case 清单（33 VRC）均登记；缺口 G-UT-1/G-UT-2/G-UT-3/G-UT-4 已登记（G-UT-3/G-UT-4 见方案 §4） | 分母闭合且版本固定 | Blocked＋登记缺口 |
+| Case 文档盘点 | 33 个 unit-case 文档已建（`docs/70_verification/specifications/unit-case-UT-*.md`），均记录测试代码位置于 `tests/unit/v03/*.py`（§7），并**自述** `Implemented`；但其中部分 §7 映射为近似映射（如 `UT-UI-005` 映射 `test_stats_page_present`/`test_diagnostics_page` 与其 VRC 责任不完全对应，且 case 文档自带"若与设计 VRC 不一致，以设计修订回溯后重裁"免责）→ 前检不得将近似映射一律当已实现；方案 §5 列出的 31 个新 Case 文档待建（未建前不得称 `Implemented`） | 已建 Case 有可定位的测试函数，近似映射逐条登记待回溯；待建 Case 先入清单 | 未能对应到测试函数或映射待回溯的 Case 标 NOT_RUN＋登记原因；待建 Case 标 NOT_RUN |
+| 环境与工具（引用 tests.asset-design 的 Verified 状态） | `PYTHONPATH=src python3 -m pytest tests/unit/v03 -q` 可收集并执行（当前收集 197 个测试）；`tests/unit/v03/fakes.py` 仅定义 `AppFixture`/`FakeAdapter`（**无 `FakeResponse`**；`FakeResponse` 是 `test_account_usage.py`/`test_provider_openai.py` 各自的本地 stub）；替身资产 `tests.asset-design` 未建（G-UT-2） | 全量单元可收集执行且替身契约就位 | 收集失败或 Python/pytest 缺失→环境性 Blocked；替身契约缺→登记 G-UT-2，不静默用它物 |
 | 构建接线 / 隔离确认 | 单元层**不需要** LAN / m5air / 真实 provider / 真实端口路由；HTTP 测试仅绑 loopback `127.0.0.1:0` 临时端口（ENV-2），provider 用进程内 `FakeAdapter`（ENV-3）；无 `PYTHONPATH=src` 外依赖 | 全量单元在本机隔离可运行，无 LAN 依赖 | 需外部服务→不属单元层，退回模块/系统层登记 |
 
 ## 4. 环境实例分配（plan 编排）
 
 > ENV 实例类型与方案 §1.7 一致；编号在本表唯一登记。ENV-1/ENV-2 为真实实现（无替身契约），ENV-3 为进程内 fake（契约待建 G-UT-2）。
+> **裁剪声明**：pinned 计划 §3.5 的 ENV 表含「契约校验（Verified/降级原因）」列；本项目 ENV-1/ENV-2 为真实依赖（无 tests.asset-design 契约文档），仅 ENV-3 有资产契约，故本表以「状态」列（Ready/Blocked）承载校验结论，不单列契约校验列——此为已声明的裁剪，非遗漏；ENV-3 契约就位后其 Verified 结论写入 §5 Step 0 就绪清单。
 
 | ENV 实例编号 | 环境类型 | 契约文档引用（tests.asset-design） | 具体配置/位置 | Owner | 分配给哪些 Case | 准备时限 | 状态 |
 |---|---|---|---|---|---|---|---|
 | ENV-1 | 隔离 Python 临时库 | 不适用（真实依赖） | `tempfile.TemporaryDirectory` + `Application`（`tests/unit/v03/fakes.py::AppFixture`）；`setUp` 建、`tearDown.close()` 销毁 | LLMTier | `UT-*` 全部（默认环境） | 每次执行前 | Ready |
-| ENV-2 | loopback 测试 HTTP 实例 | 不适用（真实 socket） | `ThreadingHTTPServer((127.0.0.1, 0), handler_factory(app))`（`test_diagnostics.py` HTTP 契约类） | LLMTier | `UT-API-002`、`UT-API-003`、`UT-DIAG-004`、`UT-OBS-002`、`UT-OBS-004` | 每次执行前 | Ready |
-| ENV-3 | provider 进程内 fake | 待建（G-UT-2；候选 ID `FAKE-LLMTIER-ADAPTER`） | `tests/unit/v03/fakes.py::FakeAdapter` / `FakeResponse` | LLMTier | `UT-INF-001…005`、`UT-MGMT-005`、`UT-MGMT-006` | 替身文档建立前 | Blocked（G-UT-2） |
+| ENV-2 | loopback 测试 HTTP 实例 | 不适用（真实 socket） | `ThreadingHTTPServer((127.0.0.1, 0), handler_factory(app))`（仅 `test_diagnostics.py`、`test_app_startup.py` 使用 `ThreadingHTTPServer`/`handler_factory`） | LLMTier | 实际消费 `ThreadingHTTPServer`/`handler_factory` 的 Case：`UT-DIAG-004`（HTTP 注入契约类）、`UT-OBS-004`（HTTP cursor 契约）；`UT-MGMT-001` 的 `test_app_startup.py::test_handler_factory` 亦属 ENV-2 | 每次执行前 | Ready |
+| ENV-3 | provider 进程内 fake | 待建（G-UT-2；候选 ID `FAKE-LLMTIER-ADAPTER`） | `tests/unit/v03/fakes.py::FakeAdapter`（`FakeResponse` 为各测试模块本地 stub，不在此） | LLMTier | `UT-INF-001…005`、`UT-MGMT-005`、`UT-MGMT-006` | 替身文档建立前 | Blocked（G-UT-2） |
 
 ## 5. 执行流程（逐 Case 作业序列）
 
@@ -101,7 +102,7 @@
 | Step | 动作 | 输入 / 依据 | 产出 |
 |---|---|---|---|
 | 0 | 资产就位：确认 ENV-1/ENV-2 就绪、`fakes.py` 在位；ENV-3 契约未建标 Blocked（G-UT-2）并跑 self-check | `tests.asset-design` 文档（G-UT-2 未建） | 就绪清单（Verified 或 Blocked 原因） |
-| 1 | 读取方案清单并按优先级（P0→P1→P2）与批次排序 | 方案 `llmtier-unit-test-scheme` v0.1.0-draft.2 §3 | 执行队列 |
+| 1 | 读取方案清单并按优先级（P0→P1→P2）与批次排序 | 方案 `llmtier-unit-test-scheme` v0.1.0-draft.3 §3 | 执行队列 |
 | 2 | 逐 Case：定位 Case 文档 | Case ID | 实施依据 |
 | 3 | 按 Case 文档 §2–§7 执行前检与运行（按 §5.1 批次命令） | Case 文档 §2–§7 | Run 记录 |
 | 4 | 判定并分路（PASS/FAIL/BLOCKED/INVALID） | 断言与环境事实 | Verdict 归报告 |
@@ -109,19 +110,20 @@
 
 ### 5.1 逐模块执行批次与命令
 
-> 每批次＝一个模块切片；命令为整批收集/执行入口，单 Case 用其文档 §7「单 Case 执行命令」（`-k` 或指定文件）。批次内 Case 不共享可变状态（ENV-1 每 Case 新建临时库）。
+> 每批次＝一个模块切片；Case 范围为该模块**方案 §3 全部 Case 切片**（已建 33 份 Case 文档 + 该模块的待建 Case），⚠ 标记的待建 Case 当前无测试函数，按 NOT_RUN 计入（见 §3 前检）。命令为整批收集/执行入口，单 Case 用其文档 §7「单 Case 执行命令」（`-k` 或指定文件）。批次内 Case 不共享可变状态（ENV-1 每 Case 新建临时库）。
+> 「覆盖测试文件」列为**已建 Case 的测试文件映射**（文件→Case 关系逐条对应，便于批次范围核对）；待建 Case 的测试文件在其文档建立后补入。
 
-| 批次 | 模块（M-id） | Case 范围 | 覆盖测试文件 | 批次执行命令 |
+| 批次 | 模块（M-id） | Case 范围（该模块全切片） | 覆盖测试文件（文件→Case） | 批次执行命令 |
 |---|---|---|---|---|
-| B1 | `util`（M007） | `UT-UTIL-001…002` | `test_store.py`、`test_store_schema.py` | `PYTHONPATH=src python3 -m pytest tests/unit/v03/test_store.py tests/unit/v03/test_store_schema.py -q` |
-| B2 | `log`（M008） | `UT-LOG-001` | `test_logs.py` | `PYTHONPATH=src python3 -m pytest tests/unit/v03/test_logs.py -q` |
-| B3 | `http-api`（M001） | `UT-API-001…004` | `test_errors.py`、`test_health.py`、`test_auth.py`、`test_sse.py` | `PYTHONPATH=src python3 -m pytest tests/unit/v03/test_errors.py tests/unit/v03/test_health.py tests/unit/v03/test_auth.py tests/unit/v03/test_sse.py -q` |
-| B4 | `inference`（M003） | `UT-INF-001…005` | `test_responses.py`、`test_embeddings.py`、`test_usage.py`、`test_provider_openai.py`、`test_runtime_snapshot.py`、`test_routing.py`、`test_models.py` | `PYTHONPATH=src python3 -m pytest tests/unit/v03/test_responses.py tests/unit/v03/test_embeddings.py tests/unit/v03/test_usage.py tests/unit/v03/test_provider_openai.py tests/unit/v03/test_runtime_snapshot.py tests/unit/v03/test_routing.py tests/unit/v03/test_models.py -q` |
-| B5 | `management`（M004） | `UT-MGMT-001…006` | `test_app_startup.py`、`test_registry.py`、`test_admin.py`、`test_audit.py`、`test_account_usage.py` | `PYTHONPATH=src python3 -m pytest tests/unit/v03/test_app_startup.py tests/unit/v03/test_registry.py tests/unit/v03/test_admin.py tests/unit/v03/test_audit.py tests/unit/v03/test_account_usage.py -q` |
-| B6 | `observability`（M005） | `UT-OBS-001…005` | `test_diagnostics.py`（含 HTTP 契约类）、`test_admin_stats.py` | `PYTHONPATH=src python3 -m pytest tests/unit/v03/test_diagnostics.py tests/unit/v03/test_admin_stats.py -q` |
-| B7 | `libdiag`（M006） | `UT-DIAG-001…004` | `test_diagnostics.py`、`test_runtime_snapshot.py`、`test_app_startup.py`（`_UnavailableDiagnostics` 路径） | `PYTHONPATH=src python3 -m pytest tests/unit/v03/test_diagnostics.py tests/unit/v03/test_runtime_snapshot.py tests/unit/v03/test_app_startup.py -q` |
-| B8 | `web-ui`（M002） | `UT-UI-001…006` | `test_webui_contract.py` | `PYTHONPATH=src python3 -m pytest tests/unit/v03/test_webui_contract.py -q` |
-| BALL | 全量回归（8 模块） | 全部 33 Case | `tests/unit/v03/*.py` | `PYTHONPATH=src python3 -m pytest tests/unit/v03 -q` |
+| B1 | `util`（M007） | `UT-UTIL-001…002`；⚠待建 `UT-UTIL-003…004` | `test_store.py`、`test_store_schema.py` → `UT-UTIL-001/002` | `PYTHONPATH=src python3 -m pytest tests/unit/v03/test_store.py tests/unit/v03/test_store_schema.py -q` |
+| B2 | `log`（M008） | `UT-LOG-001`；⚠待建 `UT-LOG-002` | `test_logs.py` → `UT-LOG-001` | `PYTHONPATH=src python3 -m pytest tests/unit/v03/test_logs.py -q` |
+| B3 | `http-api`（M001） | `UT-API-001…004`；⚠待建 `UT-API-005…013` | `test_errors.py`、`test_health.py` → `UT-API-001/004`；`test_auth.py` → `UT-API-002`；`test_sse.py` → `UT-API-003` | `PYTHONPATH=src python3 -m pytest tests/unit/v03/test_errors.py tests/unit/v03/test_health.py tests/unit/v03/test_auth.py tests/unit/v03/test_sse.py -q` |
+| B4 | `inference`（M003） | `UT-INF-001…005`；⚠待建 `UT-INF-006…009` | `test_responses.py` → `UT-INF-001`；`test_embeddings.py` → `UT-INF-002`；`test_usage.py`、`test_provider_openai.py`、`test_runtime_snapshot.py` → `UT-INF-003/005`；`test_routing.py`、`test_models.py` → `UT-INF-004` | `PYTHONPATH=src python3 -m pytest tests/unit/v03/test_responses.py tests/unit/v03/test_embeddings.py tests/unit/v03/test_usage.py tests/unit/v03/test_provider_openai.py tests/unit/v03/test_runtime_snapshot.py tests/unit/v03/test_routing.py tests/unit/v03/test_models.py -q` |
+| B5 | `management`（M004） | `UT-MGMT-001…006`；⚠待建 `UT-MGMT-007…011` | `test_app_startup.py` → `UT-MGMT-001`；`test_registry.py` → `UT-MGMT-002`；`test_admin.py`、`test_audit.py`、`test_logs.py` → `UT-MGMT-003`；`test_admin.py`、`test_usage.py`、`test_admin_stats.py` → `UT-MGMT-004`；`test_admin.py`、`test_health.py` → `UT-MGMT-005`；`test_account_usage.py` → `UT-MGMT-006` | `PYTHONPATH=src python3 -m pytest tests/unit/v03/test_app_startup.py tests/unit/v03/test_registry.py tests/unit/v03/test_admin.py tests/unit/v03/test_audit.py tests/unit/v03/test_account_usage.py -q` |
+| B6 | `observability`（M005） | `UT-OBS-001…005`；⚠待建 `UT-OBS-006…007` | `test_diagnostics.py`（含 HTTP 契约类）→ `UT-OBS-001/003/004`；`test_admin_stats.py` → `UT-OBS-002` | `PYTHONPATH=src python3 -m pytest tests/unit/v03/test_diagnostics.py tests/unit/v03/test_admin_stats.py -q` |
+| B7 | `libdiag`（M006） | `UT-DIAG-001…004`；⚠待建 `UT-DIAG-005…008` | `test_diagnostics.py` → `UT-DIAG-001/002/004`；`test_runtime_snapshot.py`、`test_app_startup.py`（`_UnavailableDiagnostics` 路径）→ `UT-DIAG-003` | `PYTHONPATH=src python3 -m pytest tests/unit/v03/test_diagnostics.py tests/unit/v03/test_runtime_snapshot.py tests/unit/v03/test_app_startup.py -q` |
+| B8 | `web-ui`（M002） | `UT-UI-001…006`；⚠待建 `UT-UI-007…010` | `test_webui_contract.py` → `UT-UI-001…006` | `PYTHONPATH=src python3 -m pytest tests/unit/v03/test_webui_contract.py -q` |
+| BALL | 全量回归（8 模块） | 全部 64 Case（33 已建 + 31 待建） | `tests/unit/v03/*.py` | `PYTHONPATH=src python3 -m pytest tests/unit/v03 -q` |
 
 | 阶段门 | 目的 | 进入条件 |
 |---|---|---|
@@ -141,7 +143,7 @@
 
 ## 7. 证据与 Run 记录规则
 
-- Run ID 规则与证据位置：`run-YYYYMMDD-NN`；证据位置 `tests/unit/<module>/reports/<run-id>/`（`<module>` 使用源码模块目录名，如 `tests/unit/http_api/reports/run-20260930-01/`）；本轮无录制 Run，首次执行时按此落位。正式报告与 metadata 同在 Run 目录，机器输出放 `reports/<run-id>/artifacts/`（默认不入 Git，按 CI 保留策略）。
+- Run ID 规则与证据位置：`run-YYYYMMDD-NN`。**位置决定（诚实声明）**：STD `repository-layout §4.1.2` / `verification.md` 示例为 `tests/unit/<module>/reports/<run-id>/`（`<module>`＝方案 §3 的模块切片名 `M001` 等，而非源码目录名）。本项目**实际被测套件位于 `tests/unit/v03/`**，`tests/unit/<module>/` 目录**当前不存在**，且 STD 的 `<module>` 与方案的源码目录名（如 `http_api`）不一致；故本计划**裁剪为单一证据根** `tests/unit/v03/reports/<run-id>/`（以套件目录为根，避免与 `v03` 并列再建同名 `reports` 于非源码路径），并在首次执行前将该证据根登记到项目 `repository-layout` 说明。正式报告与 metadata 同在 Run 目录，机器输出放 `tests/unit/v03/reports/<run-id>/artifacts/`（默认不入 Git，按 CI 保留策略）。本轮无录制 Run，首次执行时按此落位。
 - 保存内容与脱敏要求：命令、Python 版本、被测源码 commit、`PYTHONPATH`、pytest stdout/退出码、失败种子与并发交错样本、ENV 实例编号；不保存 secret/正文，日志样例须为已脱敏 `[REDACTED]` 形式（与 `UT-LOG-001` 断言一致）。
 - 状态映射（Run 级）：pytest 单测试函数失败（`F`）→ 该 Case `FAIL`；pytest 收集/执行错误（`E`，含 import/fixture 错误）→ 该 Case `BLOCKED`（环境性）或按结论归 `FAIL`（断言性），不得静默记为 PASS；`skipped` → `NOT_RUN` 并登记原因，不计入 PASS；注入未命中/并发未交错 → `INVALID`。
 - 重跑规则：重跑生成新 Run，不覆盖旧失败；INVALID 需记录复现状态与修复状态分开。
@@ -149,8 +151,8 @@
 ## 8. 报告产出与 Gate 规则
 
 - 报告生成时机与模板：全部 Case 走完（或出口准则触发）后生成 `tests.unit-test-report` 实例，落位见 §7。**当前无录制 Run（G-UT-1），本阶段不生成报告实例**；报告在首次执行后按此规则生成。整体 BLOCKED（环境性，如 Python/pytest 缺失）→ 该轮不生成 report 实例，只记缺口与原因；部分 Case FAIL/INVALID → 仍生成 report（含完整 FAIL/INVALID 记录），不掩盖。
-- Gate 建议规则：单元层闭合＝全部适用 Case `PASS`（33 VRC 均有 `PASS` 或显式 `NOT_RUN`/`BLOCKED` 并登记原因），且缺口 G-UT-1/G-UT-2 有 Owner/Gate。存在 FAIL 时报告按分级给条件接受/拒绝建议，不越权批准。
-- **层级边界**：单元层 `PASS` **不替代**契约层与系统层结论；局部通过不关闭上层组合目标（wire/E2E/真实 provider 协议由 `llmtier-system-test-scheme` 承接）。
+- Gate 建议规则：单元层闭合的**分母＝方案 §3 的 64 Case 清单**（非 33 VRC）。闭合条件＝全部 64 Case 有 `PASS`；`NOT_RUN`/`BLOCKED` 只对**非 P0** Case 计入闭合，且必须逐条给出**具名原因 + Owner**（不得只写状态）。**P0 Case 不得以 `NOT_RUN` 关闭**——任一 P0 Case 处于 `NOT_RUN`/`BLOCKED` 即整体未闭合，Gate 判 No-Go，缺口登记并指定 Owner/恢复条件。缺口 G-UT-1/G-UT-2/G-UT-3/G-UT-4 须各有 Owner/Gate。存在 FAIL 时报告按分级给条件接受/拒绝建议，不越权批准。33 份已建 Case 文档中 §7 映射待回溯的近似映射 Case，在回溯裁决前其 `PASS` 不被承认（按 `NOT_RUN`＋原因处理）。
+- **层级边界**：单元层 `PASS` **不等于**契约层/系统层结论，`PASS` 不替代也不蕴含上层通过；局部通过不关闭上层组合目标（wire/E2E/真实 provider 协议由 `llmtier-system-test-scheme` 承接）。报告须显式声明"unit PASS ≠ contract/system PASS"。
 
 ## 9. 责任、排期与风险
 
@@ -161,14 +163,16 @@
 | 实测基线漂移（模块设计与 ISD 版本不一致） | LLMTier | 执行前 | 以模块设计 §14/ISD §9.1 为准，冲突回溯设计修订 |
 | 替身契约缺失 G-UT-2 | LLMTier | 首次执行前 | 补建 `tests/asset-design`；关闭前不声称证明真实 provider 协议 |
 | 无录制 Run G-UT-1 | LLMTier | 首次执行 | 执行后按 §7/§8 补报告 |
-| TS-003（LAN IP）适用性：单元层 provider endpoint 当前在 `fakes.py`/`test_runtime_snapshot.py`/`test_auth.py` 使用 `127.0.0.1`（loopback 测试实例或占位 endpoint） | LLMTier | 执行前确认 | 单元层不触真实 provider，TS-003 的“生产 provider endpoint 用 LAN IP”约束在**系统/契约层**强制；本层 loopback 属真实本地测试实例，须在 Run 记录中说明并复核不泄露到非单元层配置 |
+| TS-003（LAN IP）适用性：`fakes.py` 的 `127.0.0.1` 是 `seed()` 写入的**占位 provider endpoint**（`http://127.0.0.1:9`，不真正拨号），`test_auth.py` 的 `127.0.0.1` 是 `unauthenticated_principal` 的**客户端 IP 字符串**（loopback 来源判定），二者**均非真实 provider endpoint** | LLMTier | 执行前确认 | 单元层不触真实 provider，TS-003 的“生产 provider endpoint 用 LAN IP”约束在**系统/契约层**强制；本层 `127.0.0.1` 属占位/来源字符串，须在 Run 记录中说明并复核不泄露到非单元层配置 |
 
 ## 10. 未决项
 
 | 未决项 / 关联 | Owner / 最晚 Gate | 关闭所需事实或决定 |
 |---|---|---|
-| G-UT-1 单元测试正式报告与 Run 证据缺失 | LLMTier / 首次执行后的报告评审 | 真实执行 `tests/unit/v03` 并按 §7/§8 生成 `tests.unit-test-report` 实例于 `tests/unit/<module>/reports/<run-id>/` |
-| G-UT-2 替身契约文档 `tests.asset-design` 未建 | LLMTier / 首次执行前 | 建立 `FakeAdapter`/`FakeResponse` 资产文档并在方案 §1.6 填 ID |
-| TS-003 与单元层 loopback 的边界确认 | LLMTier / 首次执行前 | 确认单元层 loopback `127.0.0.1` 仅用于本地测试实例，LAN IP 约束由系统/契约层强制；在 Run 记录备注 |
+| G-UT-1 单元测试正式报告与 Run 证据缺失 | LLMTier / 首次执行后的报告评审 | 真实执行 `tests/unit/v03` 并按 §7/§8 生成 `tests.unit-test-report` 实例于 `tests/unit/v03/reports/<run-id>/`（证据根见 §7 位置决定） |
+| G-UT-2 替身契约文档 `tests.asset-design` 未建 | LLMTier / 首次执行前 | 建立 `FakeAdapter` 资产文档并在方案 §1.6 填 ID（`FakeResponse` 为各测试模块本地 stub，不纳入） |
+| G-UT-3 M002 六项 VRC 行为级断言缺口（当前仅字符串契约） | LLMTier / M002 web-ui；恢复条件＝引入 JS 行为测试宿主（node/jsdom）后 `UT-UI-001…010` 由字符串契约升级为行为断言（方案 §4） | 关闭前 `VRC-UI-001..006` 的行为级覆盖保持未闭合，Gate 不判其行为级闭合 |
+| G-UT-4 M005 浏览器呈现（诊断页 tabs/Disabled 视觉）缺口 | LLMTier / M002/M005；视觉与交互归 M002 承担（系统/E2E）（方案 §4） | 关闭前单元层不重复登记；由 M002 系统/E2E 层承接并确认 |
+| TS-003 与单元层 loopback 的边界确认 | LLMTier / 首次执行前 | 确认单元层 loopback `127.0.0.1` 仅用于本地测试实例（`TestClient`/`ThreadingHTTPServer` 临时端口），非 provider endpoint；LAN IP 约束由系统/契约层强制；在 Run 记录备注 |
 
 <!-- 交付自查：执行者能否只凭本计划从 Go/No-Go 走到报告产出；计划里是否出现任何执行结论或 Verdict；到期条目是否被偷偷改判？ -->

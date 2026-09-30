@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-test-report-2026-09-21` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -51,12 +51,17 @@
   - **系统层 ST-* 用例**：30 PASS / 0 FAIL（11 个 `tests/system/st_*.py` 文件）。
   - **单元测试**：191 PASS / 0 FAIL。
   - 本报告分母（方案 §3 共 140 Case）：已执行并 PASS 53；其余 87 为 `NOT_RUN`（其中 52 为自动化入口未实现的 MISSING，35 为已实现但本轮未跑的 B 类/其余用例）。
-- Gate 达成情况：**条件接受**——A 类 53/53 PASS 且无 FAIL；但分母未闭合（87 NOT_RUN，含 52 MISSING），**不构成 release 放行**。本报告仅给 Gate 建议，不等同验收或上线授权。
+- Gate 达成情况：**按计划 §8 口径 = REJECT（阻断 release）**——存在 **3 个 P0 MISSING**（`ADM-PROV-14`、`OBS-DEPL-01`、`OBS-DEPL-02`），且分母未闭合（87 NOT_RUN，含 52 MISSING）；A 类 53/53 PASS 且无 FAIL 只支持"系统层 A 类回归可用"这一受限工程观察，**不构成 release 放行、不构成"条件接受"**。本报告仅给 Gate 建议，不等同验收或上线授权。
 
 ## 2. 被测基线与实际环境
 
 - 实际基线（与计划对照）：
   - 分支 `docs/std-draft21-upgrade`；被测 commit `4c1afd8`（P0 scaffold）起，系统 ST-* 结果对应 commits `21dbd27`、`c42dcee`、`24643f4`。
+  - **制品 pin（对照计划 §7 `{git_commit, db_schema_version, openapi_version}`）**：本 Run 的执行记录**未记录**该三元组，无法机械复算——故三项均以"未记录"标注，不臆造：
+    - `git_commit`：**未记录**（仅有上列 branch/commit 说明，非可解析的单一 pin）。
+    - `db_schema_version`：**未记录**（当前源码 `src/util/store.py::EXPECTED_SCHEMA_VERSION=2`，但该 Run 未记录其运行期值）。
+    - `openapi_version`：**未记录**（当前机器契约 `interfaces/openapi/llmtier.openapi.json` 为 `0.3-simplified-candidate.8`，但该 Run 未记录其运行期值）。
+    - 结论：本 Run 因缺三项 pin，按计划 §7"缺 pin 的 Case 不得判 PASS"的口径，其 PASS 结论**仅在历史执行记录内成立**；作为现行 release 证据不充分，须以带完整 pin 的新 Run 重验。
   - A 类直接打 m5air 现有实例 `192.168.1.9:8181`（现有 state）。
   - 运行器：Python 3.14，pytest 9.1.0，httpx 0.28.1。
 - 环境偏差及影响：
@@ -121,13 +126,13 @@
 |---|---|---|---|---|---|---|---|
 | §8 健康/就绪接口 | VRC-API-002、VRC-MGMT-003 | HEALTH-01/02 | PASS | 可独立判定（status body） | 只读，无状态改变 | 无需清理 | HEALTH-03..06 NOT_RUN |
 | §8 逻辑模型清单接口 | VRC-INF-001、VRC-INF-002 | DP-MODELS-01..06 | PASS | 可独立判定 | 只读，无状态改变 | 无需清理 | DP-MODELS-07 NOT_RUN |
-| §8 Responses 接口 | VRC-INF-001、VRC-INF-003、VRC-INF-004、VRC-DIAG-004 | DP-RESP-01..09 | PASS | 可独立判定（事件序列） | 只读（A 类无写） | 无需清理 | DP-RESP-10..25 NOT_RUN（含故障注入/429/上游错误） |
+| §8 Responses 接口 | VRC-INF-001 | DP-RESP-01..09 | PASS | 可独立判定（事件序列） | 只读（A 类无写） | 无需清理 | DP-RESP-10..25 NOT_RUN（含故障注入/429/上游错误；其 VRC（`VRC-INF-003`=DP-RESP-23、`VRC-INF-004`=DP-RESP-19/20、`VRC-DIAG-004`=DP-RESP-11/22）未命中） |
 | §8 Embeddings 接口 | VRC-INF-001、VRC-INF-002 | DP-EMB-01..04 | PASS | 可独立判定 | 只读 | 无需清理 | DP-EMB-05..07 NOT_RUN |
 | §8 Usage 查询接口 | VRC-MGMT-006 | DP-USAGE-01..04 | PASS | 可独立判定 | 只读（查询产生用量记录） | 无需清理 | DP-USAGE-05..08 NOT_RUN |
-| §8 Provider CRUD 接口 | VRC-MGMT-001、VRC-MGMT-002 | ADM-PROV-01/03/04 | PASS | 可独立判定 | 只读 | 无需清理 | ADM-PROV-02/05..14 NOT_RUN（B 类 MISSING） |
+| §8 Provider CRUD 接口 | VRC-MGMT-001 | ADM-PROV-01/03/04 | PASS | 可独立判定 | 只读 | 无需清理 | ADM-PROV-02/05..14 NOT_RUN（B 类 MISSING；其 `VRC-MGMT-002` 未由本行命中） |
 | §8 provider 上游模型目录接口 | VRC-MGMT-001 | — | NOT_RUN | — | — | — | ADM-PROV-MODELS-01/02 未跑 |
 | §8 provider usage 快照接口 | VRC-MGMT-006、VRC-DIAG-004 | ADM-PROV-USAGE-01..03 | PASS | 可独立判定 | 读快照；刷新为一次性状态写（已 teardown） | 已回基线 | ADM-PROV-USAGE-04 NOT_RUN |
-| §8 Deployment CRUD 接口 | VRC-MGMT-001、VRC-MGMT-002 | ADM-DEPL-01/03 | PASS | 可独立判定 | 只读 | 无需清理 | ADM-DEPL-02/04..09 NOT_RUN（B 类 MISSING） |
+| §8 Deployment CRUD 接口 | VRC-MGMT-001 | ADM-DEPL-01/03 | PASS | 可独立判定 | 只读 | 无需清理 | ADM-DEPL-02/04..09 NOT_RUN（B 类 MISSING；其 `VRC-MGMT-002` 未由本行命中） |
 | §8 Service Level CRUD 接口 | VRC-MGMT-002 | ADM-SL-01/03 | PASS | 可独立判定 | 只读 | 无需清理 | ADM-SL-02/02b/04/04b/05..08 NOT_RUN（B 类 MISSING） |
 | §8 探测接口 | VRC-DIAG-004 | ADM-PROBE-01/02 | PASS | 可独立判定 | 探测为一次性状态写（已 teardown） | 已回基线 | ADM-PROBE-03 NOT_RUN |
 | §8 运行态接口 | VRC-INF-004 | ADM-RUNTIME-01 | PASS | 可独立判定 | 只读 | 无需清理 | ADM-RUNTIME-02 NOT_RUN |
@@ -135,7 +140,7 @@
 | §8 审计接口 | VRC-MGMT-003、VRC-MGMT-006 | ADM-AUDIT-01/02 | PASS | 可独立判定 | 只读 | 无需清理 | ADM-AUDIT-03 NOT_RUN |
 | §8 日志接口 | VRC-LOG-001 | ADM-LOGS-01/02 | PASS | 可独立判定 | 只读 | 无需清理 | 负向 NOT_RUN |
 | §8 管理 usage 接口 | VRC-MGMT-006 | ADM-USAGE-01/02 | PASS | 可独立判定 | 只读 | 无需清理 | ADM-USAGE-03 NOT_RUN |
-| §8 认证与授权跨切面 | VRC-API-002、VRC-MGMT-003 | AUTH-01..06 | PASS | 可独立判定 | 只读 | 无需清理 | AUTH-07..10 NOT_RUN |
+| §8 认证与授权跨切面 | VRC-API-002 | AUTH-01..06 | PASS | 可独立判定 | 只读 | 无需清理 | AUTH-07..10 NOT_RUN（其 `VRC-MGMT-003`=AUTH-07 未命中） |
 | §8 诊断开关/快照/统计/trace/请求追踪接口 | VRC-DIAG-001、VRC-DIAG-002、VRC-API-002 | — | NOT_RUN | — | — | — | OBS-* 全部未跑 |
 | §8 契约别名命名空间 | VRC-DIAG-001/002/004 | — | NOT_RUN | — | — | — | OBS-ALIAS-* 未跑 |
 | §8 注入配置接口 | VRC-DIAG-004 | — | NOT_RUN | — | — | — | OBS-DEPL-* 未跑 |
@@ -156,7 +161,8 @@
 
 ## 7. Gate 结论与建议
 
-- Gate 结论（接受/条件接受/拒绝）：**条件接受（仅限于"系统层 A 类回归可用"）**。依据：A 类 53/53 PASS、st_* 30 PASS、unit 191 PASS，无 FAIL；但分母未闭合，`NOT_RUN` 87。
+- Gate 结论（接受/条件接受/拒绝）：**按计划 §8 口径判定 = REJECT（阻断 release）**。依据：计划 §8 明确"**P0 MISSING 阻断**（MISSING＝NOT_RUN 缺口，非 SKIP）""任一 FAIL/INVALID 或 P0 MISSING → 阻断 release；BLOCKED 同样阻断 release"；本 Run 存在 **3 个 P0 MISSING**——`ADM-PROV-14`（provider 不泄露 secret）、`OBS-DEPL-01`（读取 deployment 注入配置）、`OBS-DEPL-02`（写入故障注入），均为 P0 且自动化入口未实现；分母亦未闭合（87 `NOT_RUN`）。故对 **release 放行**而言，本 Run 的 Gate 结论是**拒绝**，本报告不主张任何形式的发布闭合。
+- 适用说明（不改变上一条判定）：本报告另记录一个**受限的工程观察结论**——**仅"系统层 A 类回归可用"**。依据：A 类 53/53 PASS、st_* 30 PASS、unit 191 PASS，无 FAIL。该观察**不构成** Gate 接受、不等同"条件接受"，也不授权 release；其范围仅为在**存在 P0 MISSING 与分母未闭合**前提下的局部回归可用性陈述。
 - 开放问题与责任方：
   - 52 项 MISSING 自动化入口补齐（Case 作者）。
   - B 类 CRUD/注入类用例执行（执行者，P2）。

@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-test-scheme` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -353,7 +353,7 @@
 2. **"未决项章节"**：任务要求"在方案的未决项章节记录歧义"，但 `tests.system-test-scheme` 模板**没有**未决项章节（正文仅 §1–§5，另有附录 A）。**采取读数**：遵守"匹配模板精确章节集、不得自创章节"，将未决项作为 §5 内的具名小节记录，而非新增顶层章节。
 3. **`来源 ID` 粒度**：模板要求"一个来源 ID 至少一条记录"。原规格以 route×method×role×error-code 为覆盖分母，未给"来源 ID"独立编号。**采取读数**：按系统设计 §8 接口/机制分组作为来源 ID（如"系统设计 §8 Responses 接口"），一个来源对应多条 Case；不新造记录编号。
 4. **`design_level` 取值**：`new-design` 对 `tests.system-test-scheme` 未在层级映射中登记，生成默认 `cross-level`；STD 指南称系统方案"对应 design.software-system（系统设计阶段）"。**采取读数**：metadata 置 `design_level=system`、`domain=[software]`（与系统层语义一致）；`validate-design` 不对此强制，故为语义读数而非工具强制。
-5. **逐 Case 设计文档的入站链接（跨任务移交）**：本方案退役旧规格后，`docs/70_verification/specifications/cases/<case-id>.md` 中指向 `../llmtier-api-test-specification.md` 的引用（§2 环境、§4 共同机制、§9 判定、§10 证据）暂**未**在本任务内改写——该 140 份 `tests.system-case` 文档由并行工作项负责重写并使自身自洽。**采取读数**：按任务边界，本任务只保证本方案以真实路径引用 case 文档；case 文档的入站链接在其重写时统一修正。在重写完成前，`validate-design docs` 会报告这些 `link.missing`（不会报告本方案的任何问题）。
+5. **（已关闭）逐 Case 设计文档的入站链接（跨任务移交）**：原记录为"140 份 `tests.system-case` 文档仍指向已退役的 `../llmtier-api-test-specification.md`，重写前 `validate-design docs` 会报告 `link.missing`"。**关闭事实**：并行工作项已完成 case 文档重写——全部 141 份 case 文档（140 Case + README）**均不再**引用任何退役规格（0 处），且全部以真实路径引用本方案（`llmtier-system-test-scheme.md`）；`validate-design docs` 不再报告该类 `link.missing`。本条歧义已消解，保留以存档。
 
 ## 附录 A. 本层设计验证项 VRC 汇集（对照用）
 

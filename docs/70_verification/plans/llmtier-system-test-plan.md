@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-test-plan` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -48,7 +48,7 @@
 
 ## 1. 目标、范围与测试构成
 
-**验证对象**：LLMTier V0.3 在 m5air 生产部署（及其临时实例）上对外暴露的**运行中 HTTP API 行为**——全部 28 条对外路由（Data Plane／Usage／Management／Observability／No-auth／Alias）、认证角色（`none`/`data`/`admin`）、统一错误信封与稳定错误码、SSE 事件序列、分页 cursor 语义。被测对象是**运行中的 LAN 服务**，不是静态 OpenAPI 文本。
+**验证对象**：LLMTier V0.3 在 m5air 生产部署（及其临时实例）上对外暴露的**运行中 HTTP API 行为**——机器契约 `interfaces/openapi/llmtier.openapi.json`（OpenAPI 3.1.0，`info.version=0.3-simplified-candidate.8`）声明的 **26 条 path / 39 个 operation**（Data Plane／Usage／Management／Observability／No-auth／Alias）、认证角色（`none`/`data`/`admin`）、统一错误信封与稳定错误码、SSE 事件序列、分页 cursor 语义。被测对象是**运行中的 LAN 服务**，不是静态 OpenAPI 文本。
 
 **不证明什么**：本计划不证明 Web UI 行为、FD 泄漏、30min 耐久、性能 SLO 校准、上游模型答案质量与上游 provider 实际推理正确性；也不证明静态契约一致（后者由 `docs/60_interfaces/contracts/llmtier-contract-specification.md` 与静态契约测试承接）。**静态契约 PASS ≠ 运行行为 PASS**，反之亦然。
 
@@ -81,7 +81,7 @@
 - 设计 / 源码 / 依赖基线：
   - 设计基线：`llmtier-system-design`（`design.software-system`）§5–§7、§11；机器契约 `interfaces/openapi/llmtier.openapi.json`（OpenAPI 3.1.0）；系统设计 §7.8 公共错误目录（`ERR-*` 八字段）。
   - 源码 / 部署基线：**当前 `main` 工作树的 m5air 部署版本**；每 Run 必须 pin `{git_commit, db_schema_version, openapi_version}`（§7），禁止以 branch/tag/`HEAD` 名代替。
-  - 依赖：m5air OMLX `192.168.1.9:9000`、m5mac OMLX `192.168.1.8:9000`（Bearer `9832`）；Python 3.14；`docs/std.lock.json`（STD `0.1.0-draft.56`）；`testing-standard.md`（TS-002 依赖头部、TS-003 LAN IP）。
+  - 依赖：m5air OMLX `192.168.1.9:9000`、m5mac OMLX `192.168.1.8:9000`（Bearer `9832`）；Python 3.14；`docs/std.lock.json`（STD `0.1.0-draft.69`，`source_revision=8fe0cd2`，adopted 2026-09-30）；`testing-standard.md`（TS-002 依赖头部、TS-003 LAN IP）。
   - 数据库：`schema_version = 2`（`src/util/store.py::EXPECTED_SCHEMA_VERSION`）。
 - 变更 → 重跑范围规则（重跑生成新 Run 与新报告，**不覆盖旧失败**）：
   - 机器契约（路由/schema/securitySchemes）变更 → 全部路由/schema 相关 Case 重跑。
@@ -114,20 +114,6 @@
 | NOT_RUN | 未运行（自动化入口未实现 / 未排入本轮）；如实保留，不补造成功 |
 
 **Exit**：全部适用 Case 走完且 FAIL/INVALID＝0、BLOCKED/SKIP 在上限内（A ≤5 / B ≤3）→ 可提 Gate 建议；任一 FAIL/INVALID 或 P0 MISSING → 阻断 release；BLOCKED 同样阻断 release。
-
-### 3.5 环境实例分配（plan 编排）
-
-<span style="color:#1f6feb"><em>**本节目相**：把方案 §1.7 的环境类型落实为具体的**实例编号**，并分配给具体 Case——同一类型可多套（如多 docker 用于并行），编号与分配是 plan 的责任，Case 只引用编号。</em></span>
-<span style="color:#1f6feb"><em>**必须写清楚**：列出本计划分配的全部 ENV 实例（编号 + 类型 + 具体配置/位置 + Owner + 分配给哪些 Case + 准备时限 + 状态）；ENV 实例类型与方案 §1.7 类型一致；准备失败标 Blocked 并登记缺口，不静默换其他实例。</em></span>
-<span style="color:#1f6feb"><em>**抽象示例**：见下方灰字——为同一 Case 分配多个 ENV 实例以并行/隔离，或多 Case 复用同一 ENV 实例。</em></span>
-<span style="color:#1f6feb"><em>**完成条件**：每个 §3.1 的 Case 在本表有 ENV 实例；类型一致；准备未完成标 Blocked 并登记缺口，不静默换实例。</em></span>
-
-| ENV 实例编号 | 环境类型 | 契约文档引用（tests.asset-design） | 具体配置/位置 | Owner | 分配给哪些 Case | 准备时限 | 状态 | 契约校验（Verified/降级原因） |
-|---|---|---|---|---|---|---|---|---|
-| ENV-A | A 类 m5air 已部署实例 | —（m5air 部署面） | `192.168.1.9:8181`，现有 state.sqlite3（不污染） | 环境 Owner（m5air owner） | HEALTH/DP-*/只读 ADM-*/只读 OBS-*（A 类 89） | 每班开跑前 | Ready（以 §3 环境 6 项为准） | §3 6 项自检通过即 Verified |
-| ENV-B | B 类执行机临时实例 | 假上游契约（tests.asset-design，尚未建立） | 随机空闲端口＋`tempfile.mkdtemp(prefix="llmtier_b_")` 临时 SQLite | 执行者 | CRUD/空库/无鉴权/注入/并发（B 类 51） | Step 0 前 | Blocked（`tests.asset-design` 未建立，§10-O2） | 缺资产自检时降级 Blocked，不静默以 A 类替代 |
-
-> §4 的「环境与工具」前检项与 §5 Step 0 ENV 自检是同一项不重复：§4 是 Go/No-Go 判定，§5 Step 0 是按消费方索引的 ENV 实例分配执行；ENV 实例归 tests.asset-design 自检。
 
 ## 4. 环境实例分配（plan 编排）
 
