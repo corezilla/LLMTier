@@ -60,7 +60,7 @@ ProviderAdapter._request(...) -> (dict, headers); UsageRecorder.record_provider_
 - 初态构造（经公开入口）：`AppFixture().seed()`；`service._adapter` 注入失败 `FakeAdapter` 或 patch `urllib.request.urlopen` 抛 `URLError`（ENV-3）
 - Fixture / 向量及版本：`tests/unit/v03/test_responses.py::ResponsesValidationGapTests` / `test_provider_openai.py` / `test_inference_failopen.py`；`fakes.py::AppFixture`（ENV-1）/`FakeAdapter`（ENV-3）
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../plans/llmtier-unit-test-plan.md) 分配）：ENV-1 隔离 Python 临时库 / ENV-3 provider 进程内 fake
-- 依赖的测试资产（tests.asset-design 文档）：`FakeAdapter`（G-UT-2）
+- 依赖的测试资产（tests.asset-design 文档）：`FakeAdapter`（`llmtier-unit-fakes`，资产文档已建）
 
 ## 3. 输入构造
 

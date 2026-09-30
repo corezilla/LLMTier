@@ -60,7 +60,7 @@ AccountUsage.latest(provider_id) -> dict; AccountUsage.refresh(principal_id, pro
 - 初态构造（经公开入口）：`AppFixture().seed()`；本地 `FakeResponse` stub 模拟 provider 报错/缺凭据（ENV-1+ENV-3）
 - Fixture / 向量及版本：`tests/unit/v03/test_management_gaps.py::AccountUsageGapTests`；`fakes.py::AppFixture`（ENV-1）、本地 `FakeResponse`
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../plans/llmtier-unit-test-plan.md) 分配）：ENV-1 隔离 Python 临时库 / ENV-3 provider 进程内 fake
-- 依赖的测试资产（tests.asset-design 文档）：本地 `FakeResponse`（G-UT-2；非 `fakes.py` 共享资产）
+- 依赖的测试资产（tests.asset-design 文档）：本地 `FakeResponse`（`llmtier-unit-fakes` §2/§3 明示为本地 stub，非共享资产）
 
 ## 3. 输入构造
 

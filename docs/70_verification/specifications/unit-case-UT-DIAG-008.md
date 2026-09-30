@@ -60,7 +60,7 @@ DiagnosticsService.stream_wrapper(deployment_id, base_stream); enabled_stream_in
 - 初态构造（经公开入口）：`AppFixture` 建 `DiagnosticsService`；配置 stream 注入与 pre-call 注入（ENV-1）
 - Fixture / 向量及版本：`tests/unit/v03/test_diagnostics_gaps.py::StreamWrapperTests`；`fakes.py::AppFixture`（ENV-1）
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../plans/llmtier-unit-test-plan.md) 分配）：ENV-1 隔离 Python 临时库 / ENV-3 provider 进程内 fake
-- 依赖的测试资产（tests.asset-design 文档）：`FakeAdapter`（G-UT-2）
+- 依赖的测试资产（tests.asset-design 文档）：`FakeAdapter`（`llmtier-unit-fakes`，资产文档已建）
 
 ## 3. 输入构造
 

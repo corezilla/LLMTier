@@ -60,7 +60,7 @@ AdminService.probe(principal, body, request_id); apply_probe_result(registry, de
 - 初态构造（经公开入口）：`AppFixture`；`patch("management.admin.LocalProvider", ProbeAdapter)`
 - Fixture / 向量及版本：`tests/unit/v03/fakes.py::AppFixture`（ENV-1）
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../plans/llmtier-unit-test-plan.md) 分配）：ENV-1 隔离 Python 临时库 / ENV-2 loopback 测试 HTTP 实例 / ENV-3 provider 进程内 fake（按 Case 需要，见 §4）
-- 依赖的测试资产（tests.asset-design 文档）：`FakeAdapter`/`ProbeAdapter`（G-UT-2）
+- 依赖的测试资产（tests.asset-design 文档）：`AppFixture`＋本地 `DeadAdapter`（`test_management_gaps.py::ProbeUnreachableTests` 内定义；探测不可达用）；资产文档 `llmtier-unit-fakes` 已建
 
 ## 3. 输入构造
 

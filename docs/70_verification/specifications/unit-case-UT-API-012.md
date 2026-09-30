@@ -60,7 +60,7 @@ Application(database, settings)  # DiagnosticsService 失败时 self.diagnostics
 - 初态构造（经公开入口）：构造 `Application` 使诊断初始化失败（禁用/坏路径）或显式注入 `bootstrap_error`，起 loopback 实例（ENV-2）
 - Fixture / 向量及版本：`tests/unit/v03/fakes.py::AppFixture`（ENV-1）+ `test_app_dispatch.py::UnavailableDiagnosticsTests`/`BootstrapErrorTests`（ENV-2）
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../plans/llmtier-unit-test-plan.md) 分配）：ENV-2 loopback 测试 HTTP 实例 + ENV-3 `FakeAdapter`（推理仍成功断言）
-- 依赖的测试资产（tests.asset-design 文档）：`FakeAdapter`（G-UT-2）
+- 依赖的测试资产（tests.asset-design 文档）：`FakeAdapter`（`llmtier-unit-fakes`，资产文档已建）
 
 ## 3. 输入构造
 

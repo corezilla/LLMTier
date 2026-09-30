@@ -60,7 +60,7 @@ ResponsesService.create(principal_id, request_id, body, diagnostics=None, correl
 - 初态构造（经公开入口）：`AppFixture.seed()` 建 1 tier/1 deployment；`service._adapter = lambda _: FakeAdapter(...)`（ENV-3）
 - Fixture / 向量及版本：`tests/unit/v03/fakes.py::AppFixture`/`FakeAdapter`（ENV-3）
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../plans/llmtier-unit-test-plan.md) 分配）：ENV-1 隔离 Python 临时库 / ENV-2 loopback 测试 HTTP 实例 / ENV-3 provider 进程内 fake（按 Case 需要，见 §4）
-- 依赖的测试资产（tests.asset-design 文档）：`FakeAdapter`（G-UT-2）
+- 依赖的测试资产（tests.asset-design 文档）：`FakeAdapter`（`llmtier-unit-fakes`，资产文档已建）
 
 ## 3. 输入构造
 

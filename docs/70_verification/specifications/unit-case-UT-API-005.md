@@ -60,7 +60,7 @@ Handler._run() -> None  # 捕获 ApiError / sqlite3.Error / Exception 并写出�
 - 初态构造（经公开入口）：`AppFixture()` + `AppFixture.seed()`（1 tier/1 deployment）挂到真实 `ThreadingHTTPServer((127.0.0.1,0), handler_factory(app))`（ENV-2）
 - Fixture / 向量及版本：`tests/unit/v03/fakes.py::AppFixture`（ENV-1）+ `test_app_dispatch.py::LoopbackApp`（ENV-2）
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../plans/llmtier-unit-test-plan.md) 分配）：ENV-2 loopback 测试 HTTP 实例（真实 `Application` + 真实 socket）
-- 依赖的测试资产（tests.asset-design 文档）：`FakeAdapter`（G-UT-2）；本 Case 用不到
+- 依赖的测试资产（tests.asset-design 文档）：`FakeAdapter`（`llmtier-unit-fakes`）；本 Case 用不到
 
 ## 3. 输入构造
 
