@@ -29,4 +29,5 @@ python_functions = ["test_*"]
 markers = [
   "api_a: A 类 case（m5air 现有 state 直接打）",
   "api_b: B 类 case（临时 SQLite 实例）",
+  "ui: 真实浏览器 UI case（headless Chrome over CDP；临时实例 + 假上游）",
 ]

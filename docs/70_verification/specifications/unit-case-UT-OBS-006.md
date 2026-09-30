@@ -47,7 +47,7 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-OBS-006` / M005 observability §14.2 · 快照 URL 脱敏 v0.1.0-draft.6 / `VRC-OBS-002` / security / P1（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
 - 要测什么（责任展开）：被测：快照/轨迹端到端 URL 去 query（`?token=` 不落库）；查询存储不可读 → 503 `usage_store_unavailable`，不伪装空页。
-- 明确不测什么 / 失败含义：不测：统计口径/百分位（UT-DIAG-002/005）；不测浏览器呈现（G-UT-4）。失败含义＝URL 脱敏或存储失败显式化实现错误。
+- 明确不测什么 / 失败含义：不测：统计口径/百分位（UT-DIAG-002/005）；**浏览器呈现由系统层 `UIT-UI-006`（诊断页 4 tabs/Disabled 真实渲染）执行（`tests/ui/`；原 G-UT-4 已关闭）**。失败含义＝URL 脱敏或存储失败显式化实现错误。
 
 ## 2. 被测入口与前置
 

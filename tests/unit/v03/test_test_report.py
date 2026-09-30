@@ -132,6 +132,23 @@ class CaseIdTests(unittest.TestCase):
             case_id_from_source(None, "tests/system/api_test_v03/at_dp_models_01.py::test_x"),
         )
 
+    def test_record_property_case_id_wins_over_source_header(self):
+        # A parametrized module (real-browser UI suite) hosts several Cases that
+        # one module-level ``Case ID:`` header cannot express; the per-test
+        # ``record_property("case_id", ...)`` property must win.
+        xml = (
+            '<testsuites><testsuite>'
+            '<testcase classname="tests.ui.test_ui_browser" name="test_ui_scenario[UIT-UI-002]">'
+            '<properties><property name="case_id" value="UIT-UI-002" /></properties>'
+            '</testcase></testsuite></testsuites>'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            junit = root / "junit.xml"
+            junit.write_text(xml)
+            records = harvest(junit, rootdir=REPO)
+        self.assertEqual(["UIT-UI-002"], [r["case_id"] for r in records])
+
 
 class ReportTests(unittest.TestCase):
     def test_build_report_counts_and_blocking(self):

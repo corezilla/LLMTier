@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-test-scheme` |
-| Document Version | `0.1.0-draft.10` |
+| Document Version | `0.1.0-draft.11` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-test-scheme` |
 | Template Version | `0.6.1` |
 | Template Conformance | `native` |
@@ -116,6 +116,7 @@
 |---|---|---|---|
 | A 类：m5air 已部署实例 | 真实（只读/观察/一次性无状态写，不污染 SQLite） | `m5air-deploy-guide.md`/`m5air-operations-manual.md` | 只读观察面与无状态写用例（HEALTH/DP-*/只读 ADM-*） |
 | B 类：执行机临时实例 | 真实进程＋临时端口＋临时 SQLite | `testing-standard.md`（TS-002/TS-003） | CRUD/空库/无鉴权/注入/并发用例（`_baseline_settings` 种子） |
+| UI 类：真实浏览器 over CDP（复用 B 类实例） | 真实 headless Chrome/Chromium 驱动真实 `src/web_ui`；CDP 记录真实 DOM/网络 | `testing-standard.md`（TS-002/TS-003）＋ `tests/ui/browser_driver.mjs` | UI 行为级用例（`UIT-UI-001..007`）：页面渲染/tab 切换/编辑 PATCH/用量/探测/诊断页/错误态（同源 `/ui/`，`-m ui`） |
 
 <span style="color:#6e7681">**拓扑**（ENV 类型 → ENV 实例 → 被测对象）：</span>
 
@@ -322,10 +323,17 @@
 | 系统设计 §8 认证与授权跨切面（角色/LAN trust/无鉴权） | VRC-API-002 | AUTH-08 | security | P1 | 别名命名空间需 admin | 已设计 | — |
 | 系统设计 §8 认证与授权跨切面（角色/LAN trust/无鉴权） | VRC-API-002 | AUTH-09 | security | P1 | 管理面未授权优先于资源存在性 | 已设计 | — |
 | 系统设计 §8 认证与授权跨切面（角色/LAN trust/无鉴权） | VRC-API-002 | AUTH-10 | security | P1 | 缺/非法凭据 401 | 已设计 | — |
+| 模块设计 web-ui §14（ISD §9.1）；系统设计 §8 同源 `/ui/` 静态服务 | VRC-UI-001 | UIT-UI-001 | normal | P1 | 真实浏览器渲染页面与 Provider 行（来自 API 数据） | 已设计 | — |
+| 模块设计 web-ui §14（ISD §9.1） | VRC-UI-001 | UIT-UI-002 | normal | P1 | 真实浏览器 tab 切换改可见区并触发对应 API | 已设计 | — |
+| 模块设计 web-ui §14（ISD §9.1）；`RULE-UI-ETAG`/`RULE-UI-PAUSE` | VRC-UI-003 | UIT-UI-003 | boundary | P1 | 真实浏览器确认门控 Pause 发 If-Match PATCH 并重渲染 | 已设计 | — |
+| 模块设计 web-ui §14（ISD §9.1）；`RULE-UI-UNKNOWN` | VRC-UI-004 | UIT-UI-004 | normal | P0 | 真实浏览器用量未知渲染 Unknown 不臆造零点 | 已设计 | — |
+| 模块设计 web-ui §14（ISD §9.1）；`RULE-UI-PROBE` | VRC-UI-005 | UIT-UI-005 | boundary | P1 | 真实浏览器未确认探测不触网、确认后 POST | 已设计 | — |
+| 模块设计 web-ui §14（ISD §9.1）；`F-UI-DIAG`/`R-OBS-05` | VRC-UI-006 | UIT-UI-006 | normal | P1 | 真实浏览器诊断页 4 tabs 与 Disabled 视觉 | 已设计 | — |
+| 模块设计 web-ui §14（ISD §9.1）；`RULE-UI-TIERSTATE`/`reportLoadFailure` | VRC-UI-002 | UIT-UI-007 | recovery | P0 | 真实浏览器注入 API 错误显示错误态并保留上一屏 | 已设计 | — |
 
-**Case 总数：163（设计数）**（分类：normal 50 / boundary 7 / negative 57 / concurrency 7 / recovery 26 / security 16；环境 A 102 / B 61；Priority P0 46 / P1 93 / P2 24）。**设计数 = 已实现数 163**：全部 163 个设计 Case 均有自动化入口（163 个 `at_*.py` 文件；`--collect-only` 实际 collect=176 项，多出者为参数化/双臂测试——`-m api_a`＝105、`-m api_b`＝71）。逐 Case 的输入/执行/Oracle/判定/证据/清理见 `tests.system-case` 文档（`cases/<lowercased-case-id>.md`），本方案不展开。
+**Case 总数：170（设计数）**（分类：normal 53 / boundary 9 / negative 57 / concurrency 7 / recovery 27 / security 16；环境 A 102 / B 61 / UI 7；Priority P0 47 / P1 96 / P2 24）。**设计数 = 已实现数 170**：原 163 个设计 Case 均有 `at_*.py` 自动化入口（`--collect-only` 实际 collect=176 项，多出者为参数化/双臂测试——`-m api_a`＝105、`-m api_b`＝71）；**新增 7 个真实浏览器 UI Case（`UIT-UI-001..007`，环境列 `UI`/`-m ui`）由 `tests/ui/test_ui_browser.py` + `tests/ui/browser_driver.mjs`（headless Chrome over CDP）实现**，取代此前仅有的源码字符串契约（关闭 `RISK-UI-EXEC-1`）。逐 Case 的输入/执行/Oracle/判定/证据/清理见 `tests.system-case` 文档（`cases/<lowercased-case-id>.md`），本方案不展开。
 
-**设计验证项覆盖**：本清单 `设计验证项 ID` 取自各 Case 的 `tests.system-case` 文档所声明的设计验证项（`DP-RESP-16`/`DP-RESP-23` 两 Case 的 case 文档未声明，按系统设计 §7.8 错误目录 `ERR-REQ-JSON`→`VRC-INF-001`、`ERR-PROVIDER-FAIL`→`VRC-INF-003` 反查补全；未新增任何 VRC ID）。设计文档（系统设计 §7/§8/§14、机制 §15、模块设计 §14、ISD §9.1）共声明 **33 个设计验证项**；本清单覆盖 **14 个**，**19 个无系统层 Case**（逐项裁决见 §4 本版审计重分类：**16 项为 (a) COVERED**——模块级验证项有真实**单元行为测试**直接断言，指向具体 `test_*`；**3 项行为子项为 (c) REAL HOLE**——`VRC-UI-001..006` 与 `VRC-OBS-*` 纯视觉子项仅有字符串契约，因无浏览器/JS 宿主登记为具名开放 RISK `RISK-UI-EXEC-1`，不再写成 Tailored-N/A）。逐项覆盖数：`VRC-INF-001` 31、`VRC-MGMT-006` 21、`VRC-MGMT-001` 22、`VRC-MGMT-002` 22、`VRC-API-002` 13、`VRC-DIAG-002` 15、`VRC-DIAG-004` 15、`VRC-MGMT-003` 9、`VRC-INF-002` 5、`VRC-DIAG-001` 4、`VRC-INF-004` 7、`VRC-LOG-001` 3、`VRC-UTIL-001` 2、`VRC-INF-003` 1。
+**设计验证项覆盖**：本清单 `设计验证项 ID` 取自各 Case 的 `tests.system-case` 文档所声明的设计验证项（`DP-RESP-16`/`DP-RESP-23` 两 Case 的 case 文档未声明，按系统设计 §7.8 错误目录 `ERR-REQ-JSON`→`VRC-INF-001`、`ERR-PROVIDER-FAIL`→`VRC-INF-003` 反查补全；未新增任何 VRC ID）。设计文档（系统设计 §7/§8/§14、机制 §15、模块设计 §14、ISD §9.1）共声明 **33 个设计验证项**；本清单覆盖 **20 个**（较上版新增 `VRC-UI-001..006` 六项——由新增的真实浏览器 Case `UIT-UI-001..007` 直接承接），**13 个无系统层 Case**（逐项裁决见 §4 本版审计重分类：**13 项为 (a) COVERED**——模块级验证项有真实**单元行为测试**直接断言，指向具体 `test_*`；原 3 项 (c) REAL HOLE 中 `VRC-UI-001..006` 已由真实浏览器执行关闭 `RISK-UI-EXEC-1`，`VRC-OBS-*` 纯视觉子项中「诊断页 tabs/Disabled 实际渲染」已由 `UIT-UI-006` 承接、其余视觉子项已由 `UIT-UI-002/006` 覆盖诊断页渲染）。逐项覆盖数：`VRC-INF-001` 31、`VRC-MGMT-006` 21、`VRC-MGMT-001` 22、`VRC-MGMT-002` 22、`VRC-API-002` 13、`VRC-DIAG-002` 15、`VRC-DIAG-004` 15、`VRC-MGMT-003` 9、`VRC-INF-002` 5、`VRC-DIAG-001` 4、`VRC-INF-004` 7、`VRC-UI-001` 2、`VRC-UI-002` 1、`VRC-UI-003` 1、`VRC-UI-004` 1、`VRC-UI-005` 1、`VRC-UI-006` 1、`VRC-LOG-001` 3、`VRC-UTIL-001` 2、`VRC-INF-003` 1。
 
 ### 3.6 需求（`LT-*`）到 Case 的可追溯映射（§3 的 §3.6-等价节）
 
@@ -346,6 +354,7 @@
 | `ADM-PROBE/RUNTIME/STATS/AUDIT/LOGS/USAGE-*` | LT-FUN-005/006、LT-OPS-002/006、LT-SEC-002/004、LT-INT-002 | R-OBS-01/02、R-MET-03、R-CFG-01、R-INF-03 | VRC-MGMT-003/006、VRC-LOG-001、VRC-DIAG-001、VRC-INF-004 | T-OBS、T-MET-RESET、T-MET-PAGE | CT-ADMIN-001、CT-LOG-001、CT-OPS-001、CT-USAGE-001 |
 | `OBS-*` | LT-FUN-005、LT-OPS-006、LT-INT-002/007、LT-SEC-002 | R-OBS-01..06 | VRC-DIAG-001/002/004 | T-OBS-SWITCH、T-OBS-SNAP、T-OBS-STATS、T-OBS-TRACE、T-OBS-INJECT | CT-ADMIN-001、CT-LOG-001 |
 | `AUTH-*` | LT-INT-001、LT-SEC-001 | R-TRUST-01..04 | VRC-API-002、VRC-MGMT-003 | T-TRUST-BEARER、T-TRUST-LAN、T-TRUST-SHARED、T-TRUST-NOCFG、T-TRUST-LEAK、T-TRUST-ENDPOINTS | CT-ADMIN-001 |
+| `UIT-*`（真实浏览器 UI） | LT-FUN-005（控制台）、LT-OPS-006（可观测） | R-OBS-05 | VRC-UI-001..006 | T-UI-*（T-UI-01..12 相位）、T-OBS-SWITCH（诊断页） | CT-ADMIN-001（同源 API）、RULE-UI-* |
 
 **需求覆盖结论（35 项 `LT-*`）**：上表以"家族级"重建追溯链，**26 项有 Case 家族承接**（`LT-FUN-001..006/008`、`LT-INT-001/002/004/005/006/007/008`、`LT-OPEN-02`、`LT-OPS-001/002/006`、`LT-PERF-001/002`、`LT-REL-001/003/004`、`LT-SEC-001/002/004`），**9 项不在本运行层分母**（逐项见下方「需求缺口裁决」，**全部定稿 Tailored-N/A，无具名 Gap**）：`LT-FUN-007`、`LT-INT-003`、`LT-REL-002`（静态 absence/边界，由 `CT-BOUNDARY-001`/`CT-SCOPE-001`、`tests/system/st_04_forbidden_scan.py` 与 `tests/contract/test_contract_semantics_v03.py` 承接，非本运行层分母）；`LT-OPS-003/004/005`、`LT-OPEN-03`（运维/实现 Gate 承接，权威＝运维手册与 release 文档）；`LT-PERF-003`（声明性约束，权威＝release §7）；`LT-SEC-003`（生产 TLS/SSO 部署面，权威＝`std-tailoring` `LT-TL-022`）。**家族级覆盖 ≠ 逐 Case 文档均引用该 `LT-*`**：本表是设计级映射权威，不要求每个 case 文档重复列出家族内全部 `LT-*`；case 文档按需引用其直接相关者。原评审以"逐 case 文档字面出现"计数（18/35）低估了这些家族级承接；本表按 STD 需求→Case 追溯语义重建。
 
@@ -359,9 +368,10 @@
 > **模块级验证项裁决依据（本版审计重分类，重要）**：下表中模块级验证项（`VRC-INF-005`、`VRC-UTIL-002`、`VRC-API-001/003/004`、`VRC-MGMT-004/005`、`VRC-DIAG-003`、`VRC-OBS-001..005`、`VRC-UI-001..006`）是**模块设计 §14 的验证项**，系统层清单不承载其中内部行为者。**本项目未采用独立模块测试层**——不存在 `tests.module-test-scheme`（需 `LT-TL-023` 同级授权，当前无）。各模块 §14 验证项的**行为级承接方**是 `llmtier-unit-test-scheme` §3（被测模块内部真实、仅替换进程外上游），**不是**任何"模块测试设计"。本版按任务要求**逐项审计并按事实重分类**（不再一律写成 `Tailored-N/A`）：
 >
 > - **(a) COVERED（16 项）**：`VRC-API-001/003/004`、`VRC-INF-005`、`VRC-UTIL-002`、`VRC-MGMT-004/005`、`VRC-DIAG-003`、`VRC-OBS-001..005`（**行为级**）——均有**真实单元行为测试**（非字符串契约）直接断言，逐项证据见下表。系统层清单不重复承载，但**它们是真实被验证的**，不是"缺失"。
-> - **(c) REAL HOLE → 具名 RISK（7 项）**：`VRC-UI-001..006` 与 `VRC-OBS-*` 的**纯视觉/真实 JS 执行子项**——本项目 harness 无浏览器/JS 宿主（全仓零 node/jsdom/playwright/selenium），现有 `UT-UI-*`/`UT-OBS-*` 只做**字符串契约断言**，不能证明真实 JS 执行行为。**不再写成 `Tailored-N/A`，改登记为具名、有 Owner、有恢复条件的开放 RISK：`RISK-UI-EXEC-1`**（见下表与单元方案 §4）。任务明确：字符串契约 ≠ 行为验证，须显式承担风险而非静默 N/A。
+> - **(c) REAL HOLE → 本版已关闭（原 7 项 → 0 项）**：`VRC-UI-001..006` 与 `VRC-OBS-*` 的**纯视觉/真实 JS 执行子项**原为具名开放 RISK `RISK-UI-EXEC-1`（本项目 harness 原无浏览器/JS 宿主，`UT-UI-*`/`UT-OBS-*` 只做**字符串契约断言**）。**本版引入真实浏览器 harness（headless Chrome over CDP）并新增系统层 Case `UIT-UI-001..007`，在真实 DOM 与真实网络上执行 UI 行为，`RISK-UI-EXEC-1` 关闭**（见下表第二行与系统计划 §10-O6）。`UT-UI-*` 的字符串契约保留为**快速下位防线**，不再单独承担行为验证。
+> - **(a) COVERED（新增浏览器行为级，6 项）**：`VRC-UI-001..006` 现由 `UIT-UI-001..007`（真实浏览器）直接承接，逐项映射见下表。
 
-> **本表裁决口径（本版审计）**：适用性裁决分三类——**(a) COVERED**（有真实行为测试，指向具体 case/test）、**(b) OUT-OF-SCOPE**（不在 tests 家族，引用 STD tailoring/设计/ADR 权威）、**(c) REAL HOLE**（登记为具名、有 Owner 的 RISK 或补 Case）。**无"静默 N/A"**：凡行为未被真实验证者一律以 `RISK-UI-EXEC-1` 显式承担，不冒充 `Tailored-N/A`。
+> **本表裁决口径（本版审计）**：适用性裁决分三类——**(a) COVERED**（有真实行为测试，指向具体 case/test，含真实浏览器 UI Case）、**(b) OUT-OF-SCOPE**（不在 tests 家族，引用 STD tailoring/设计/ADR 权威）、**(c) REAL HOLE**（登记为具名、有 Owner 的 RISK 或补 Case）。**本版 (c) 归零**：唯一 REAL HOLE `RISK-UI-EXEC-1` 已由真实浏览器执行关闭，无"静默 N/A"。
 
 | 来源 ID / 事实依据 | 裁决（Tailored-N/A / 已关闭 / 已覆盖） | Owner / 权威与恢复条件 |
 |---|---|---|
@@ -378,9 +388,9 @@
 | `VRC-API-001/003/004`（M001 分发/错误、body/SSE、静态与健康；模块设计 http-api §14.1/§14.3/§14.5/§14.6） | **(a) COVERED**（真实单元行为测试，loopback HTTP） | Owner：M001。**证据（VRC-API-001）**：`test_app_dispatch.py::DispatchTests::test_unknown_route_is_404_not_found`、`::test_unhandled_error_is_500_and_logged`、`::test_read_path_store_failure_is_503_usage_store_unavailable`；`test_app_startup.py::test_valid_bootstrap`/`::test_missing_settings_not_ready`。**（VRC-API-003）**：`test_app_dispatch.py::BodyTests::test_body_over_2mb_is_413`、`::test_invalid_json_is_400`、`::test_top_level_non_object_is_400`、`::test_non_integer_content_length_is_400`；`test_sse.py`（首帧 `response.created`、序号单调、terminal 唯一、`[DONE]`）。**（VRC-API-004）**：`test_app_dispatch.py::test_directory_traversal_is_404`、`::test_ui_root_serves_index`、`ReadinessStatusTests`、`BootstrapErrorTests`。 |
 | `VRC-MGMT-004/005`（M004 分页与清空、探测；模块设计 management §14.4/§14.5） | **(a) COVERED**（真实单元行为测试） | Owner：M004。**证据（VRC-MGMT-004）**：`tests/unit/v03/test_management_gaps.py::AdminCursorExpiryTests::test_expired_admin_cursor_is_400`、`::test_malformed_offset_cursor_is_400_not_500`；`ResetUsageScopeTests::test_reset_by_model_only`/`::test_reset_by_deployment_only`/`::test_reset_by_model_and_deployment`/`::test_reset_all`（范围矩阵）。**（VRC-MGMT-005）**：`ProbeUnreachableTests::test_unreachable_probe_is_unhealthy_persisted`（不可达→`unhealthy` 落库）；`test_health.py::ProbeTests::test_probe_persists`/`::test_probe_unknown_deployment`/`::test_probe_invalid_status`。系统层 `DP-USAGE-*`/`ADM-USAGE-*`/`ADM-PROBE-*` 以表现层 Case 交叉印证。 |
 | `VRC-DIAG-003`（M006 libdiag fail-open；模块设计 libdiag §14.3） | **(a) COVERED**（真实单元行为测试） | Owner：M006。**证据**：`tests/unit/v03/test_diagnostics_gaps.py::FailOpenTests::test_record_trace_failure_is_swallowed`、`::test_record_latency_failure_is_swallowed`、`::test_capture_snapshot_failure_returns_none`、`::test_cleanup_failure_returns_zero`、`::test_failed_write_is_warned_to_operator_log`；`test_app_dispatch.py::UnavailableDiagnosticsTests::test_degrades_to_unavailable_observer`/`::test_inference_still_succeeds_when_diagnostics_unavailable`。均真实调用被测服务并断言不阻断。 |
-| `VRC-OBS-001..005`（M005 observability：开关/查询脱敏/注入/关联标识/诊断页；模块设计 observability §14.1–§14.5） | **(a) COVERED（行为级）＋ (c) REAL HOLE（视觉子项 → `RISK-UI-EXEC-1`）** | Owner：M005（视觉子项 Owner：M002 web-ui）。**行为级证据**：`tests/unit/v03/test_diagnostics.py::SwitchTests`（开关默认关/运行时切换）、`tests/unit/v03/test_observability_gaps.py::SnapshotRedactionTests::test_query_secret_is_not_stored_in_snapshot`（`?token=` 不落库）、`::test_trace_stage_url_also_stripped`、`::DiagnosticsAvailabilityTests::test_snapshots_store_failure_is_503_not_empty_page`、`::CorrelationObservabilityTests::test_explicit_correlation_id_is_echoed`/`::test_traceparent_trace_id_is_extracted`；`test_diagnostics_gaps.py::InjectionPriorityTests`。**视觉子项**（诊断页 tabs/Disabled 真实渲染）无 JS 宿主，见 `RISK-UI-EXEC-1`——不写空 Case，但**登记为开放风险**。 |
-| `VRC-UI-001..006`（M002 web-ui：加载/编辑鉴权/Pause/用量未知/探测确认/诊断页；模块设计 web-ui §14.1–§14.7） | **(c) REAL HOLE → RISK-UI-EXEC-1**（字符串契约 ≠ 真实 JS 执行） | Owner：M002 web-ui。**事实**：`tests/unit/v03/test_webui_contract.py` 的 `UT-UI-001..010` 全部是**字符串契约断言**（`assertIn` 于 `app.js`/`index.html` 源码文本，如 `test_pause_resume` 断言 `"body:{enabled:!deployment.enabled}"` 出现在源码；类 docstring 自述 "STRING-CONTRACT ONLY"）。它们**不执行 JS**，无法证明真实运行行为（分支实际走对、DOM 实际渲染、事件实际绑定）。本项目 harness 无浏览器/JS 宿主（全仓零 node/jsdom/playwright/selenium），无法升级为行为断言。故按任务要求登记为**具名开放 RISK `RISK-UI-EXEC-1`**（非 `Tailored-N/A`，非空 Case）。恢复条件：引入浏览器/JS 宿主后把 `UT-UI-*` 升级为真实执行断言并关闭本 RISK。 |
-| **`RISK-UI-EXEC-1`（开放 RISK，本版新增；覆盖 `VRC-UI-001..006` 与 `VRC-OBS-*` 纯视觉子项）** | **(c) REAL HOLE（具名、有 Owner、有恢复条件的 RISK）** | **Owner：M002 web-ui（视觉子项共同 Owner：M005）。** **风险陈述**：M002 六项行为级验证项与 M005 诊断页视觉子项**从未被真实执行验证**——现有 `UT-UI-001..010` 仅为源码字符串契约，若无 JS 宿主则行为回归（分支顺序错误、DOM 未渲染、事件未绑定）**不会被任何测试发现**。 **影响**：Web UI 回归可在系统测试全绿（163/163 PASS）与单元全绿（425/425 PASS）下漏检。 **当前缓解**：仅静态契约（函数存在、分支 token 存在、顺序也做字符串位置断言）。 **恢复/关闭条件**：引入浏览器/JS 宿主（node+jsdom 或 playwright）→ 将 `UT-UI-*` 升级为真实执行断言 → RISK 关闭。 **重评触发**：新增/修改任一 UI 行为分支。 |
+| `VRC-OBS-001..005`（M005 observability：开关/查询脱敏/注入/关联标识/诊断页；模块设计 observability §14.1–§14.5） | **(a) COVERED（行为级）＋ 视觉子项已由真实浏览器承接** | Owner：M005（视觉子项 Owner：M002 web-ui）。**行为级证据**：`tests/unit/v03/test_diagnostics.py::SwitchTests`（开关默认关/运行时切换）、`tests/unit/v03/test_observability_gaps.py::SnapshotRedactionTests::test_query_secret_is_not_stored_in_snapshot`（`?token=` 不落库）、`::test_trace_stage_url_also_stripped`、`::DiagnosticsAvailabilityTests::test_snapshots_store_failure_is_503_not_empty_page`、`::CorrelationObservabilityTests::test_explicit_correlation_id_is_echoed`/`::test_traceparent_trace_id_is_extracted`；`test_diagnostics_gaps.py::InjectionPriorityTests`。**视觉子项**（诊断页 tabs/Disabled 真实渲染）现由真实浏览器 Case `UIT-UI-006`（4 tabs 渲染/切换 + `#snapshots-body`/`#dstats-body` 真实绘制 `Disabled`）与 `UIT-UI-002`（tabs 切换 API）承接——原 `RISK-UI-EXEC-1` 已关闭。 |
+| `VRC-UI-001..006`（M002 web-ui：加载/编辑鉴权/Pause/用量未知/探测确认/诊断页；模块设计 web-ui §14.1–§14.7） | **(a) COVERED（真实浏览器执行，本版关闭 `RISK-UI-EXEC-1`）** | Owner：M002 web-ui。**关闭证据**：新增真实浏览器系统层 Case `UIT-UI-001`（`VRC-UI-001` 页面渲染 + Provider 行来自 API）、`UIT-UI-002`（`VRC-UI-001` tab 切换改可见区并触发 API）、`UIT-UI-003`（`VRC-UI-003` 确认门控 Pause 发 `If-Match` PATCH 并重渲染）、`UIT-UI-004`（`VRC-UI-004` 用量未知渲染 Unknown 不臆造零点）、`UIT-UI-005`（`VRC-UI-005` 未确认探测不触网、确认后 POST）、`UIT-UI-006`（`VRC-UI-006` 诊断页 4 tabs 与 Disabled 视觉）、`UIT-UI-007`（`VRC-UI-002` 注入 API 错误显示错误态并保留上一屏）。实现＝`tests/ui/test_ui_browser.py` + `tests/ui/browser_driver.mjs`（headless Chrome over CDP，hermetic 临时实例 + LAN fake provider）；运行＝`PYTHONPATH=src python3 -m pytest tests/ui -m ui -q`；证据＝每 Case PNG 截图 + 网络日志。`UT-UI-001..010` 的源码字符串契约保留为快速下位防线，**不再单独承担行为验证**。 |
+| **`RISK-UI-EXEC-1`（原开放 RISK —— 本版已关闭）** | **Closed — 已引入真实浏览器执行；风险消解** | **Owner：M002 web-ui（视觉子项共同 Owner：M005）。** **关闭事实**：引入真实浏览器 harness（headless Chrome over CDP，`tests/ui/browser_driver.mjs`），新增系统层 Case `UIT-UI-001..007` 在真实 DOM 与真实网络（CDP `Network.*`）上执行 UI 行为，`VRC-UI-001..006` 与 `VRC-OBS-*` 诊断页视觉子项**已由真实执行验证**；行为回归（分支顺序错误、DOM 未渲染、事件未绑定）现可被 `-m ui` 用例发现。**关闭条件达成**：原条件＝"引入浏览器/JS 宿主 → 将 `UT-UI-*` 升级为真实执行断言"——已由浏览器执行替代（保留字符串契约为下位防线）。**重评触发**：新增/修改任一 UI 行为分支时，须同步 `UIT-UI-*`。 |
 | ~~`POST /v1/responses` 声明的 `422`（OpenAPI）~~ **已关闭（无偏差）** | **Closed — 无偏差，无需 Case** | Owner：M001 http-api/规格。**结案事实**：复核 `interfaces/openapi/llmtier.openapi.json` `/v1/responses` 的 responses 恰为 `200/400/401/404/429/502/503`，**不含 422**；`grep -rn "422" src/` 零命中、`grep -rn "422" docs/20_system_design` 零命中。实现与设计一致使用 `400 invalid_json`（`app.py:161-162` `_body()`；系统设计 §7.8 `ERR-REQ-JSON`），已由 `DP-RESP-16` 覆盖、schema 级违例由 `DP-RESP-08/12..15` 覆盖。原条目所称"OpenAPI 声明的 422"为过时陈述：OpenAPI 从未声明 422。**无偏差可消**，条目关闭。 |
 | ~~`POST /v1/probes` 声明的 `502`（OpenAPI）~~ **已关闭（改声明对齐实现）** | **Closed — 按观测语义改契约声明** | Owner：M004 管理/M003 推理/规格。**裁决**：探测是**观测**，上游不可达/失败是观测结果而非接口错误——`OpenAIProvider.probe` 对**所有**上游异常 `except Exception: return False`（`providers/openai.py:144-145`），`AdminService.probe` 据此返回 `200 ProbeResult{status:"unhealthy"}` 并落库 health（`admin.py:119-122`）；模块设计 M004 §4.2「探测失败 → `unhealthy`」、health 枚举「`unhealthy`：探测失败」为设计意图权威，单元测试 `test_management_gaps.py::test_unreachable_probe_is_unhealthy_persisted` 锁定该行为。故**改声明对齐实现**：已从 OpenAPI `/v1/probes` 删除 `502 ProviderFailure`（并入 `404 NotFound`）；系统设计 §8、`llmtier-api-reference.md` §3.2 同步为"无 502"；`http-api-design.md`、机制 `inference-stream.md` §5 原即无 502。`ADM-PROBE-02/03` 已覆盖 200/404 表现。**偏差消除，条目关闭**。 |
 | ~~Embeddings 的 `provider_failure`（`fault_502` 注入码）~~ **已关闭（不可达声明已移除）** | **Closed — 对齐已实现契约** | Owner：M003 推理/规格。**裁决**：`provider_failure` 仅在 `ResponsesService.create` 的注入分支产生（`responses.py:110`）；`EmbeddingsService.create` **不读** `enabled_injection`，无故障注入路径，该码在 Embeddings 不可达。设计不要求 Embeddings 注入（系统 §7.8 承接索引 `ERR-PROVIDER-INJECTED` 仅登记 `/v1/responses`；机制 `observability.md` 注入仅作用于推理流）。故移除"Embeddings `provider_failure`"声明，确认 Embeddings 错误码恰为可达集：`400`（`invalid_request`/`unsupported_model`/`unsupported_dimensions`/`invalid_json`/`request_too_large`）、`404 model_not_found`、`429 rate_limit_exceeded`、`502 provider_contract_error`、`503 provider_unavailable`/`provider_secret_unavailable`/`usage_store_unavailable`；OpenAPI `/v1/embeddings` 与系统 §7.8 一致。`DP-EMB-09`（502 契约错误）/`DP-EMB-10`（503 不可用）已覆盖可达集。**偏差消除，条目关闭**；若未来为 Embeddings 增加注入支持须重评。 |
@@ -456,7 +466,13 @@
 | `VRC-LOG-001` | 日志/审计脱敏 | 系统设计 §12 | ADM-LOGS-01..03 |
 | `VRC-UTIL-001` | 存储引导/就绪引导表现 | 系统设计 §12 | HEALTH-04/05 |
 | `VRC-INF-005`、`VRC-UTIL-002`、`VRC-API-001/003/004`、`VRC-MGMT-004/005`、`VRC-DIAG-003`、`VRC-OBS-001..005`（行为级） | 模块级验证项（无系统层 Case；**行为级由单元层真实行为测试覆盖**） | 模块设计 §14、ISD §9.1 | §4 裁决：**(a) COVERED**——逐项列为真实 `test_*`（见 §4 表），非字符串契约 |
-| `VRC-UI-001..006`＋`VRC-OBS-*` 纯视觉子项 | M002/M005 行为级验证项（无系统层 Case；本项目无浏览器/JS 宿主） | 模块设计 web-ui §14、observability §14、ISD §9.1 | §4 裁决：**(c) REAL HOLE → 开放 RISK `RISK-UI-EXEC-1`**（Owner M002/M005；恢复条件＝引入浏览器/JS 宿主后升级 `UT-UI-*` 为真实执行断言） |
+| `VRC-UI-001` | M002 web-ui 加载与状态 | 模块设计 web-ui §14.1、ISD §9.1.1 | UIT-UI-001、UIT-UI-002 |
+| `VRC-UI-002` | M002 web-ui 编辑/鉴权 | 模块设计 web-ui §14.2、ISD §9.1.2 | UIT-UI-007 |
+| `VRC-UI-003` | M002 web-ui Pause 边界 | 模块设计 web-ui §14.3、ISD §9.1.3 | UIT-UI-003 |
+| `VRC-UI-004` | M002 web-ui 用量未知不填零 | 模块设计 web-ui §14.5、ISD §9.1.4 | UIT-UI-004 |
+| `VRC-UI-005` | M002 web-ui 探测付费确认 | 模块设计 web-ui §14.4、ISD §9.1.5 | UIT-UI-005 |
+| `VRC-UI-006` | M002 web-ui 诊断页 | 模块设计 web-ui §14.7、ISD §9.1.6 | UIT-UI-006 |
+| `VRC-OBS-*` 纯视觉子项 | M005 诊断页 tabs/Disabled 真实渲染 | 模块设计 observability §14、ISD §9.1 | §4 裁决：**(a) COVERED**——由真实浏览器 `UIT-UI-006`（4 tabs/Disabled 真实绘制）与 `UIT-UI-002` 承接；原 `RISK-UI-EXEC-1` 已关闭 |
 
 
 

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-unit-test-plan` |
-| Document Version | `0.1.0-draft.6` |
+| Document Version | `0.1.0-draft.7` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-test-plan` |
 | Template Version | `0.9.2` |
 | Template Conformance | `tailored` |
@@ -173,7 +173,7 @@
 |---|---|---|
 | G-UT-1 单元测试正式报告与 Run 证据缺失 → **已关闭** | LLMTier / 首次执行后的报告评审 | 已真实执行 `tests/unit/v03`，产出 Run `tests/unit/v03/reports/run-20260930-01`（`junit.xml`＋`test-run.env`（pin `git_commit=0c1e56c`/`schema_version=2`/`openapi_version=0.3-simplified-candidate.8`）＋`case-status.json`（PASS 341 / 0 FAIL / 0 BLOCKED / 0 INVALID）＋逐 Case `manifest.json`）。§7 证据根现存在。 |
 | G-UT-2 替身契约文档 `tests.asset-design` 未建 → **已关闭（已修复）** | LLMTier / 首次执行前 | 已建立 `llmtier-unit-fakes`（`docs/70_verification/assets/llmtier-unit-fakes.md`，Template `tests.asset-design@0.2.2`，`Implemented`/`Unverified`）；方案 §1.6/§1.7 已引用其 ID。仅余自检 Run 录制（资产 §7，与 G-UT-1 同批）。 |
-| G-UT-3 M002 六项 VRC 行为级断言未覆盖（纯视觉子项）→ **定稿 Tailored-N/A** | LLMTier / M002 web-ui | 静态/契约子项由 `UT-UI-001..010` 承接；纯视觉子项因本项目无浏览器/JS 宿主（`std-tailoring` `LT-TL-013`、系统方案 §4）定稿 N/A，**不再是 Gap**；恢复条件＝引入浏览器/JS 宿主后由单元层升级为行为断言。 |
+| G-UT-3 M002 六项 VRC 行为级断言未覆盖 → **已关闭（由系统层真实浏览器承接）** | LLMTier / M002 web-ui | 静态/契约子项继续由 `UT-UI-001..010` 承接（快速下位防线）；**行为级已由系统层真实浏览器 `UIT-UI-001..007`（`tests/ui/`，headless Chrome over CDP）执行**，原开放 RISK `RISK-UI-EXEC-1` 关闭（见 `llmtier-system-test-scheme` §4、`llmtier-system-test-plan` §10-O6）。恢复条件已达成。 |
 | G-UT-4 M005 浏览器呈现（诊断页 tabs/Disabled 视觉）→ **定稿 Tailored-N/A** | LLMTier / M002/M005 | 同 G-UT-3；行为级由 `UT-OBS-001..007` 承接，视觉子项无宿主故 N/A（`std-tailoring` 记录）。 |
 | G-UT-5（`UT-UTIL-004` 损坏文件 envelope code）→ **已关闭（已覆盖）** | LLMTier | `test_store_gaps.py::CorruptStoreTests::test_corrupt_file_raises`（不静默接受）＋ `IntegrityMappingTests::test_integrity_failure_is_503`（`schema_integrity_failed` 确定性映射）均为真实断言；无新 Case 需要。 |
 | TS-003 与单元层 loopback 的边界确认 → **已确认关闭** | LLMTier | 单元层 `127.0.0.1` 仅用于 `fakes.py::seed()` 的占位 provider endpoint（`http://127.0.0.1:9`，不拨号）与 `test_auth.py` 的 `unauthenticated_principal` 客户端来源字符串（loopback 判定），**非真实 provider endpoint**；TS-003 的"生产 provider endpoint 用 LAN IP"约束由系统/契约层强制（系统方案 §1.5 环境类型与 B 类 fixtures）。已记于 Run `test-run.env` 上下文。 |

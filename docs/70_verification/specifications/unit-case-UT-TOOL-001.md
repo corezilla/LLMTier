@@ -80,6 +80,7 @@ emit_manifests(run_dir, records, metadata) -> int
 | 4 | `build_report` | `counts` 与 `release_blocking` 口径 |
 | 5 | `emit_manifests` | 逐 Case `manifest.json`（case_id/git_commit/redactions） |
 | 6 | `case_id_from_source` | docstring 头 `Case ID:` 优先，缺失回退路径 |
+| 7 | `record_property("case_id", ...)` 优先级 | JUnit `<property>` 中的 `case_id` 优先于源码头/路径回退（供多 Case 参数化的真实浏览器 UI 套件 `tests/ui` 归集） |
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -93,6 +94,6 @@ emit_manifests(run_dir, records, metadata) -> int
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_test_report.py`（`StatusMappingTests` 7 + `CaseIdTests` 2 + `ReportTests` 4 = 13 个）（注意：本 Case 的测试函数当前按子句（test case method）映射；若与计划/方案不一致，以修订回溯后重裁）。
+- 测试文件 / 测试函数：`tests/unit/v03/test_test_report.py`（`StatusMappingTests` 7 + `CaseIdTests` 3（含 `test_record_property_case_id_wins_over_source_header`）+ `ReportTests` 8 = 18 个）（注意：本 Case 的测试函数当前按子句（test case method）映射；若与计划/方案不一致，以修订回溯后重裁）。
 - 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_test_report.py -q`
 - 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03/test_test_report.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。

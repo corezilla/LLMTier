@@ -47,7 +47,7 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-UI-007` / M002 web-ui §14.1 · `tierState`/`backendState` 行为 v0.1.0-draft.2 / `VRC-UI-001` / normal / P1（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
 - 要测什么（责任展开）：被测（字符串契约层）：`tierState` 在 availability 缺失时 → Unknown 标签/色调；`backendState` provider-disabled 优先于 deployment 状态（`if(!provider?.enabled)` 先于 `if(!deployment.enabled)`）。
-- 明确不测什么 / 失败含义：不测：`app.js` 运行时行为（G-UT-3，无 JS 宿主）；不测视觉（G-UT-4）。失败含义＝状态映射分支源码契约缺失/顺序错误。
+- 明确不测什么 / 失败含义：本 Case 只做源码字符串契约；**`app.js` 运行时行为与视觉现由系统层真实浏览器 `UIT-UI-001..007` 执行（`tests/ui/`，headless Chrome over CDP；原 G-UT-3/G-UT-4 与 `RISK-UI-EXEC-1` 已关闭）**。失败含义＝状态映射分支源码契约缺失/顺序错误。
 
 ## 2. 被测入口与前置
 

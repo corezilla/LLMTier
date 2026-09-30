@@ -13,6 +13,10 @@ runtime/
 state/
 logs/
 
+# Real-browser UI artifacts: PNG screenshots + captured network logs are
+# regenerated each run and are environment-specific binaries (RISK-UI-EXEC-1).
+tests/ui/artifacts/
+
 # Test run evidence (plan §7). Heavy/binary raw output is not committed;
 # artifacts/ is always ignored, junit/pytest logs are regenerated each run.
 tests/**/reports/*/artifacts/

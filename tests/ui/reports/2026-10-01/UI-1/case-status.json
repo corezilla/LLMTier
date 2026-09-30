@@ -1,0 +1,63 @@
+{
+  "cases": {
+    "UIT-UI-001": {
+      "node_id": "tests.ui.test_ui_browser::test_ui_scenario[UIT-UI-001]",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 1.542
+    },
+    "UIT-UI-002": {
+      "node_id": "tests.ui.test_ui_browser::test_ui_scenario[UIT-UI-002]",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 1.44
+    },
+    "UIT-UI-003": {
+      "node_id": "tests.ui.test_ui_browser::test_ui_scenario[UIT-UI-003]",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 1.208
+    },
+    "UIT-UI-004": {
+      "node_id": "tests.ui.test_ui_browser::test_ui_scenario[UIT-UI-004]",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 1.458
+    },
+    "UIT-UI-005": {
+      "node_id": "tests.ui.test_ui_browser::test_ui_scenario[UIT-UI-005]",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 1.613
+    },
+    "UIT-UI-006": {
+      "node_id": "tests.ui.test_ui_browser::test_ui_scenario[UIT-UI-006]",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 1.205
+    },
+    "UIT-UI-007": {
+      "node_id": "tests.ui.test_ui_browser::test_ui_error_state_keeps_last_screen",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 1.224
+    }
+  },
+  "counts": {
+    "BLOCKED": 0,
+    "FAIL": 0,
+    "INVALID": 0,
+    "NOT_RUN": 0,
+    "PASS": 7,
+    "SKIP": 0,
+    "XPASS": 0
+  },
+  "generated_at": "2026-09-30T19:32:57Z",
+  "git_commit": "6bae28a71729f3919640b572235f8b51cf05494c",
+  "layer": "ui",
+  "openapi_version": "",
+  "release_blocking": false,
+  "run_id": "2026-10-01/UI-1",
+  "schema_version": 1,
+  "schema_version_db": ""
+}

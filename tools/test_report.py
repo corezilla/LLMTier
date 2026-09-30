@@ -153,6 +153,21 @@ def _xfail_reason(message: str) -> str:
     return (message or "xfailed").strip()
 
 
+def _case_id_property(testcase) -> str | None:
+    """Return the first ``record_property("case_id", ...)`` value, if any.
+
+    A test module may host several Cases (e.g. a parametrized real-browser UI
+    suite) that a single module-level ``Case ID:`` header cannot express. Such a
+    test tags each parametrization with ``record_property("case_id", "UIT-...")``
+    and that property wins over the source-header/name heuristics.
+    """
+    for prop in testcase.iter("property"):
+        if prop.get("name") == "case_id":
+            value = (prop.get("value") or "").strip()
+            return value or None
+    return None
+
+
 def _case_source(classname: str, file_attr: str | None, rootdir: Path) -> str | None:
     """Best-effort read of a test module's source for its ``Case ID:`` header.
 
@@ -187,7 +202,7 @@ def harvest(junit_path: Path, rootdir: Path | None = None) -> list[dict]:
         classname = testcase.get("classname", "")
         node_id = f"{classname}::{name}" if classname else name
         source = _case_source(classname, testcase.get("file"), rootdir)
-        case_id = case_id_from_source(source, node_id)
+        case_id = _case_id_property(testcase) or case_id_from_source(source, node_id)
         status, reason = _classify_failure(testcase)
         if status == STATUS_BLOCKED and "BLOCKED" in reason:
             reason = _xfail_reason(reason)

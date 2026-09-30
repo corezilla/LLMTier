@@ -13,7 +13,7 @@
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-test-report` |
 | Template Version | `0.3.1` |
 | Template Conformance | `tailored` |
@@ -27,9 +27,10 @@
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
-> 本报告由 Run 目录 `tests/system/reports/2026-09-30/`（A 类 `A-api-6`、B 类 `B-api-5`）与
-> `tests/unit/v03/reports/run-20260930-05/` 的机器产物整理而成；只使用这些 Run 的 `junit.xml` /
-> `test-run.env` / `case-status.json` 记录的事实，未运行/未实现项一律保留 `NOT_RUN`，不补造结果。
+> 本报告由 Run 目录 `tests/system/reports/2026-09-30/`（A 类 `A-api-6`、B 类 `B-api-5`）、
+> `tests/unit/v03/reports/run-20260930-05/` 与真实浏览器 UI Run `tests/ui/reports/2026-10-01/UI-1/`
+> 的机器产物整理而成；只使用这些 Run 的 `junit.xml` / `test-run.env` / `case-status.json` 记录的事实，
+> 未运行/未实现项一律保留 `NOT_RUN`，不补造结果。
 
 ### 模板定位：报告、方案、用例、计划与 Run 证据的边界
 
@@ -56,8 +57,8 @@
   - **A 类**（Run `2026-09-30/A-api-6`）：collected=105、`PASS=105`、`FAIL=0`、`BLOCKED=0`、`SKIP=0`、`INVALID=0`、`XPASS=0`、`NOT_RUN=0`；exit code=**0**。
   - **B 类**（Run `2026-09-30/B-api-5`）：collected=71、`PASS=71`、`FAIL=0`、`BLOCKED=0`、`SKIP=0`、`INVALID=0`、`XPASS=0`、`NOT_RUN=0`；exit code=**0**。
   - **单元层**（Run `run-20260930-05`）：`PASS=425`、`FAIL=0`、`BLOCKED=0`、`SKIP=0`、`INVALID=0`、`XPASS=0`、`NOT_RUN=0`；exit code=**0**（绿色）。
-  - **汇总（按设计 Case ID 去重）**：方案 §3 设计 **163/163** 个 Case 全部有有效 Run、全部 **PASS**；`FAIL/BLOCKED/INVALID/NOT_RUN = 0`；`SKIP=0`（A 上限 ≤5、B 上限 ≤3 均满足）。
-- Gate 达成情况：**按计划 §8 口径 = ACCEPT 建议（Gate 建议，非批准）**——全部适用 163 Case PASS，FAIL/BLOCKED/INVALID=0，SKIP 在上限内，无 MISSING（`NOT_RUN`=0），单元结果绿色。方案 §4 的裁决按本版审计重分类：**(a) COVERED 16 项**模块级 VRC 由真实单元行为测试覆盖；**(b) OUT-OF-SCOPE**（验收/生产环境/容量耐久/运维恢复等）不在 tests 家族，引用 `std-tailoring`/设计权威；**(c) REAL HOLE 1 项具名开放 RISK `RISK-UI-EXEC-1`**（M002 `VRC-UI-001..006`＋M005 视觉子项仅有字符串契约、无 JS 宿主，见 §6）。报告只给 Gate 建议，不等同验收或上线授权。
+  - **汇总（按设计 Case ID 去重）**：方案 §3 设计 **170/170** 个 Case（A/B 163 + 真实浏览器 UI 7）全部有有效 Run、全部 **PASS**；`FAIL/BLOCKED/INVALID/NOT_RUN = 0`；`SKIP=0`（A 上限 ≤5、B 上限 ≤3 均满足）。
+- Gate 达成情况：**按计划 §8 口径 = ACCEPT 建议（Gate 建议，非批准）**——全部适用 170 Case（A/B 163 + UI 7）PASS，FAIL/BLOCKED/INVALID=0，SKIP 在上限内，无 MISSING（`NOT_RUN`=0），单元结果绿色。方案 §4 的裁决按本版审计重分类：**(a) COVERED**模块级 VRC 由真实单元行为测试覆盖；**(b) OUT-OF-SCOPE**（验收/生产环境/容量耐久/运维恢复等）不在 tests 家族，引用 `std-tailoring`/设计权威；**(c) REAL HOLE 归零**——唯一的具名开放 RISK **`RISK-UI-EXEC-1` 本版已关闭**：新增真实浏览器系统层 Run `2026-10-01/UI-1`（7 Case，`-m ui`，headless Chrome over CDP）执行 `VRC-UI-001..006`＋M005 诊断页视觉子项（见 §3/§5/§6）。报告只给 Gate 建议，不等同验收或上线授权。
 
 ## 2. 被测基线与实际环境
 
@@ -106,6 +107,7 @@
 | OBS-ALIAS-01..06 | 有效 Run | PASS | 2026-09-30/A-api-6 | 6/6 PASS |
 | AUTH-01..10 | 有效 Run | PASS | 2026-09-30/A-api-6 | 10/10 PASS |
 | 单元层 `tests/unit/v03`（全量） | 有效 Run | PASS | run-20260930-05 | 425/425 PASS，非系统层 Case，佐证不阻断 |
+| UIT-UI-001..007（真实浏览器 UI，新增） | 有效 Run | PASS | 2026-10-01/UI-1 | 7/7 PASS（headless Chrome over CDP；每 Case PNG 截图 + 网络日志） |
 
 > **Case ID 归一对齐（本 Run 修复）**：`test-report` 从测试源头部 `Case ID:` 提取 Case ID。`at_obs_01..04.py` / `at_adm_admin_usage_0{1,2,3}.py` 原头部写有历史别名（`OBS-01/02/03/04`、`ADM-ADMIN-USAGE-01/02/03`），与方案 §3 权威 ID（`HEALTH-01/02/03/04`、`ADM-USAGE-01/02/03`）不一致，导致前序 Run 的 `case-status.json` 出现 ID 漂移。本 Run 前已将上述 7 个文件头部改为权威 Case ID，Run 后按设计 ID 去重复算 **163/163 全部命中，无漂移、无别名残留**。该修复属测试报告缺陷（非产品缺陷）。
 
@@ -149,12 +151,14 @@
 | §8 请求追踪接口 | VRC-DIAG-002、VRC-API-002 | OBS-REQTRACE-01..03 | PASS | 可独立判定 | 只读 | 无需清理 | — |
 | §8 契约别名命名空间 | VRC-DIAG-001/002/004 | OBS-ALIAS-01..06 | PASS | 可独立判定 | 只读/一次性写 | 已回基线 | — |
 | §8 认证与授权跨切面 | VRC-API-002、VRC-MGMT-003 | AUTH-01..10 | PASS | 可独立判定 | 只读 | 无需清理 | — |
+| 模块设计 web-ui §14（同源 `/ui/`，真实浏览器） | VRC-UI-001..006、VRC-OBS-* 视觉子项 | UIT-UI-001..007 | PASS | 可独立判定（真实 DOM + CDP 网络） | 只读（UI-003 用例内 Resume 回初态）；实例销毁 | 已回基线 | — |
 
 **覆盖复算小结**：
-- **设计数 vs 已跑数**：方案 §3 设计 **163**；本 Run 按设计 Case ID 去重命中 **163/163 已跑**（`NOT_RUN=0`）；**PASS 163/163**。原始 collect 计数 A=105 / B=71（同一 Case 的多臂/参数化条目在 `case-status.json` 中按 Case ID 收敛为 A 102 / B 62 条记录，去重后与设计 163 一一对应）。
+- **设计数 vs 已跑数**：方案 §3 设计 **170（163 A/B + 7 UI）**；本 Run 按设计 Case ID 去重命中 **170/170 已跑**（`NOT_RUN=0`）；**PASS 170/170**（系统 Run 163/163 + 浏览器 UI Run `2026-10-01/UI-1` 7/7）。原始 collect 计数 A=105 / B=71 / UI=7（A/B 的多臂/参数化条目在 `case-status.json` 中按 Case ID 收敛为 A 102 / B 62 条记录，去重后与设计 163 一一对应）。
 - **逐来源 ID**：25 个来源 ID 组，每组 `已跑=设计`、`PASS=已跑`（例：Responses 27/27、Provider CRUD 17/17、Service Level 13/13、Auth 10/10）。
-- **逐 VRC（本层 14 项有 Case 的）**：`VRC-INF-001` 31/31、`VRC-MGMT-006` 21/21、`VRC-MGMT-001` 22/22、`VRC-MGMT-002` 22/22、`VRC-API-002` 13/13、`VRC-DIAG-002` 15/15、`VRC-DIAG-004` 15/15、`VRC-MGMT-003` 9/9、`VRC-INF-002` 5/5、`VRC-INF-004` 7/7、`VRC-DIAG-001` 4/4、`VRC-LOG-001` 3/3、`VRC-UTIL-001` 2/2、`VRC-INF-003` 1/1 —— **全部已跑且 PASS，覆盖计数与方案 §3 声明完全一致**。
-- **其余 19 个 VRC 按方案 §4 本版审计重分类**：`VRC-INF-005`、`VRC-UTIL-002`、`VRC-API-001/003/004`、`VRC-MGMT-004/005`、`VRC-DIAG-003`、`VRC-OBS-001..005`（行为级）= **(a) COVERED**，由**真实单元行为测试**（`test_*` 断言被测返回/落库）覆盖，见方案 §4 逐项证据；`VRC-UI-001..006`＋`VRC-OBS-*` 视觉子项 = **(c) REAL HOLE → 开放 RISK `RISK-UI-EXEC-1`**（字符串契约≠JS 执行验证，无宿主）。本 Run 系统层 `NOT_RUN=0`、无 MISSING；`RISK-UI-EXEC-1` 为**已登记的独立残留风险**（不阻断本层运行结论，但阻断 Web UI 行为级断言的可信度），见 §6。
+- **逐 VRC（本层 20 项有 Case 的）**：`VRC-INF-001` 31/31、`VRC-MGMT-006` 21/21、`VRC-MGMT-001` 22/22、`VRC-MGMT-002` 22/22、`VRC-API-002` 13/13、`VRC-DIAG-002` 15/15、`VRC-DIAG-004` 15/15、`VRC-MGMT-003` 9/9、`VRC-INF-002` 5/5、`VRC-INF-004` 7/7、`VRC-DIAG-001` 4/4、**`VRC-UI-001` 2/2、`VRC-UI-002` 1/1、`VRC-UI-003` 1/1、`VRC-UI-004` 1/1、`VRC-UI-005` 1/1、`VRC-UI-006` 1/1**、`VRC-LOG-001` 3/3、`VRC-UTIL-001` 2/2、`VRC-INF-003` 1/1 —— **全部已跑且 PASS，覆盖计数与方案 §3 声明完全一致**。
+- **其余 VRC 按方案 §4 本版审计重分类**：`VRC-INF-005`、`VRC-UTIL-002`、`VRC-API-001/003/004`、`VRC-MGMT-004/005`、`VRC-DIAG-003`、`VRC-OBS-001..005`（行为级）= **(a) COVERED**，由**真实单元行为测试**（`test_*` 断言被测返回/落库）覆盖，见方案 §4 逐项证据。
+- **`VRC-UI-001..006`＋`VRC-OBS-*` 视觉子项 = 已由真实浏览器 Run `2026-10-01/UI-1` 执行（PASS 7/7）**：`UIT-UI-001`(`VRC-UI-001`)、`UIT-UI-002`(`VRC-UI-001`)、`UIT-UI-003`(`VRC-UI-003`)、`UIT-UI-004`(`VRC-UI-004`)、`UIT-UI-005`(`VRC-UI-005`)、`UIT-UI-006`(`VRC-UI-006`)、`UIT-UI-007`(`VRC-UI-002`)，外加诊断页视觉子项并入 `UIT-UI-006`。原 `RISK-UI-EXEC-1`（字符串契约≠JS 执行验证、无宿主）**已关闭**（见 §6）。本 Run 系统层 `NOT_RUN=0`、无 MISSING、无开放 RISK。
 
 ## 6. 缺陷与残余风险
 
@@ -163,19 +167,20 @@
   - **产品缺陷**：本 Run **无 FAIL**，未发现产品缺陷。
 - 残余风险：
   - **内容与容量不在本层**：不证明上游模型输出质量、不证明 FD 泄漏/30min 耐久/性能 SLO（方案 §1 已声明不证明；方案 §4 **(b) OUT-OF-SCOPE**，权威＝系统设计 §11.1「V0.3 不承诺未测量 SLO」＋`std-tailoring` `LT-TL-020`/`LT-TL-024`）。
-  - **`RISK-UI-EXEC-1`（本版新增，开放）**：M002 `VRC-UI-001..006` 与 M005 诊断页视觉子项的**行为级从未被真实执行验证**——`UT-UI-001..010` 仅对 `app.js`/`index.html` 源码做字符串契约断言（`assertIn`），不执行 JS；本项目无浏览器/JS 宿主（零 node/jsdom/playwright/selenium），无法升级。**影响**：Web UI 行为回归（分支顺序、DOM 渲染、事件绑定）可在本报告 163/163 PASS 与单元 425/425 PASS 下漏检。**Owner**：M002（共同 M005）。**关闭条件**：引入浏览器/JS 宿主 → 将 `UT-UI-*` 升级为真实执行断言 → RISK 关闭。权威登记：scheme §4、unit scheme §4、plan §10-O6。
+  - **`RISK-UI-EXEC-1`（原开放 —— 本版已关闭）**：M002 `VRC-UI-001..006` 与 M005 诊断页视觉子项的行为级原仅由 `UT-UI-001..010` 的源码字符串契约断言覆盖，不执行 JS，行为回归可在 163/163 PASS 与 425/425 PASS 下漏检。**关闭事实**：引入真实浏览器 harness（headless Chrome over CDP，`tests/ui/browser_driver.mjs`，node ≥ 22 内置 WebSocket，无 npm/下载依赖）＋系统层新增 `UIT-UI-001..007`，本报告新增 Run `2026-10-01/UI-1` 在真实 DOM 与 CDP 网络记录上执行并通过（7/7 PASS）；每 Case 产出 PNG 截图 + 网络日志证据。`UT-UI-*` 字符串契约保留为快速下位防线。**Owner**：M002（共同 M005）。权威登记：scheme §4、unit scheme §4、plan §10-O6（均已更新为 Closed）。**重评触发**：新增/修改任一 UI 行为分支时须同步 `UIT-UI-*`。
   - **真实 consumer 未联调**：Piko / Slinky 真实集成未验证；本层 PASS 只证明 LLMTier 自身运行行为。
   - **生产部署面未验证**：TLS/SSO/CSRF、`runtime_activation=true` 不在本层（方案 §4 Tailored-N/A，运维/验收承接）。
 
 ## 7. Gate 结论与建议
 
 - Gate 结论（接受/条件接受/拒绝）：**ACCEPT 建议**（按计划 §8 口径给出，**非批准**）。
-  - 适用 Case（方案 §3 全部 163，无裁剪）**全 PASS**：163/163。
+  - 适用 Case（方案 §3 全部 170，无裁剪）**全 PASS**：170/170（A/B 163 + UI 7）。
   - `FAIL=0`、`BLOCKED=0`、`INVALID=0`。
   - `SKIP=0`，在计划 §8 上限内（A ≤5 / B ≤3）。
   - 无 P0 MISSING（`NOT_RUN=0`）；无具名缺口新增。
-  - 覆盖复算：25 来源 ID 与 14 个本层 VRC 全部命中，计数与方案 §3 一致。
+  - 覆盖复算：26 个来源 ID 组与 20 个本层 VRC（含新增 `VRC-UI-001..006`）全部命中，计数与方案 §3 一致。
   - 单元层结果**绿色**（425/425 PASS），不阻断。
+  - 真实浏览器 UI Run `2026-10-01/UI-1` 绿色（UIT-UI-001..007，7/7 PASS），`RISK-UI-EXEC-1` 关闭。
 - 开放问题与责任方：
   - Piko / Slinky 真实 consumer 联调（consumer owner）——属验收/相邻方，不在本层分母。
   - 生产部署面（TLS/SSO/runtime activation）由运维/验收承接（`std-tailoring` `LT-TL-022`）。
