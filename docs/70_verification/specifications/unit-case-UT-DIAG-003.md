@@ -87,7 +87,7 @@ DiagnosticsService(...) 构造异常 / record_trace 抛错
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_runtime_snapshot.py`（诊断不可用路径）+ `app.py::_UnavailableDiagnostics` 行为（见 `test_app_startup`）（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03 -q`
+- 测试文件 / 测试函数：`tests/unit/v03/test_inference_failopen.py::InferenceFailOpenTests`（写入失败时推理结果/账本不变）+ `tests/unit/v03/test_diagnostics_gaps.py::FailOpenWriteTests` / `UnavailableDiagnosticsUnitTests`（降级运行）+ `tests/unit/v03/test_app_dispatch.py::UnavailableDiagnosticsTests`（`DiagnosticsService` 初始化失败→`_UnavailableDiagnostics`）
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_inference_failopen.py tests/unit/v03/test_diagnostics_gaps.py -q`
 - 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
 

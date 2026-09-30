@@ -59,6 +59,11 @@ class Handler(BaseHTTPRequestHandler):
         if delay: time.sleep(min(delay, 35000) / 1000)
         if body.get("model")=="force-503": return self.reply(503,{"error":{"message":"synthetic failure"}})
         if body.get("model")=="slow-embeddings": _GATE.wait(_GATE_TIMEOUT_S)
+        # Deterministic slot holder for DP-RESP-20: blocks until the gate is
+        # released (/control/release) or the bounded timeout elapses, so the B
+        # instance's sole admission slot is held without a long sleep leaking
+        # past teardown.
+        if body.get("model")=="slow-responses": _GATE.wait(_GATE_TIMEOUT_S)
         if self.path=="/v1/responses":
             model=body.get("model")
             # DP-RESP-23: real upstream non-success HTTP (no injection).
@@ -66,12 +71,16 @@ class Handler(BaseHTTPRequestHandler):
                 code=int(model.rsplit("-",1)[1])
                 return self.reply(code,{"error":{"message":f"synthetic upstream {code}"}})
             prompt=json.dumps(body.get("input"),ensure_ascii=False); inp=max(1,len(prompt)//4)
-            if model=="force-long-stream":
+            if model in {"force-long-stream", "force-huge-stream"}:
                 # Many delta events so a mid-stream client disconnect reliably
                 # surfaces as BrokenPipeError at the gateway (DP-RESP-21).
-                content=[{"type":"output_text","text":f"chunk-{i} ","annotations":[]} for i in range(500)]
+                # force-huge-stream is deliberately far larger than any socket
+                # buffer, making the server-side write block after the client
+                # closes -> a deterministic (non-racy) aborted trace.
+                n = 20000 if model == "force-huge-stream" else 500
+                content=[{"type":"output_text","text":f"chunk-{i} ","annotations":[]} for i in range(n)]
                 output=[{"id":"msg_long","type":"message","role":"assistant","status":"completed","content":content}]
-                response={"id":"resp_upstream","object":"response","created_at":int(time.time()),"status":"completed","model":model,"output":output,"usage":{"input_tokens":inp,"output_tokens":500,"total_tokens":inp+500,"input_tokens_details":{"cached_tokens":0,"cache_write_tokens":0},"output_tokens_details":{"reasoning_tokens":0}},"error":None}
+                response={"id":"resp_upstream","object":"response","created_at":int(time.time()),"status":"completed","model":model,"output":output,"usage":{"input_tokens":inp,"output_tokens":n,"total_tokens":inp+n,"input_tokens_details":{"cached_tokens":0,"cache_write_tokens":0},"output_tokens_details":{"reasoning_tokens":0}},"error":None}
                 return self.reply_sse(response)
             if model in {"force-non-sse","force-two-terminals","force-no-terminal","force-status-mismatch"}:
                 output=[{"id":"msg_fake","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"Synthetic provider response","annotations":[]}]}]
@@ -84,7 +93,19 @@ class Handler(BaseHTTPRequestHandler):
             response={"id":"resp_upstream","object":"response","created_at":int(time.time()),"status":"completed","model":body["model"],"output":output,"usage":{"input_tokens":inp,"output_tokens":4,"total_tokens":inp+4,"input_tokens_details":{"cached_tokens":0,"cache_write_tokens":0},"output_tokens_details":{"reasoning_tokens":0}},"error":None}
             return self.reply_sse(response) if body.get("stream") is True else self.reply(400,{"error":{"message":"stream=true required"}})
         if self.path=="/v1/embeddings":
+            # DP-EMB-09: distinct upstream contract violations, one per model.
             if body.get("model")=="force-bad-contract": return self.reply(200,{"object":"wrong","data":[]})
+            if body.get("model")=="force-bad-object": return self.reply(200,{"object":"wrong","data":[{"object":"embedding","index":0,"embedding":[0.0]}]})
+            if body.get("model")=="force-non-array-data": return self.reply(200,{"object":"list","data":{"not":"an array"}})
+            if body.get("model")=="force-bad-vector": return self.reply(200,{"object":"list","data":[{"object":"embedding","index":0}]})
+            if body.get("model")=="force-bad-base64": return self.reply(200,{"object":"list","data":[{"object":"embedding","index":0,"embedding":"@@@not-base64@@@"}]})
+            # DP-EMB-10: transport failure (drop the connection, no HTTP response).
+            if body.get("model")=="force-drop":
+                self.close_connection = True
+                try: self.connection.shutdown(2)
+                except OSError: pass
+                self.connection.close()
+                return
             inputs=body.get("input"); inputs=[inputs] if isinstance(inputs,str) else inputs; dim=body.get("dimensions",8); fmt=body.get("encoding_format","float"); data=[]
             for i,text in enumerate(inputs):
                 seed=hashlib.sha256(text.encode()).digest(); vec=[((seed[j%len(seed)]/255)*2-1) for j in range(dim)]; norm=math.sqrt(sum(x*x for x in vec)) or 1; vec=[x/norm for x in vec]

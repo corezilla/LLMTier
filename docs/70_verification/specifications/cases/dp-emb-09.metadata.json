@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "DP-EMB-09",
   "document_type": "tests.system-case",
-  "document_version": "0.1.0-draft.1",
+  "document_version": "0.1.0-draft.2",
   "title": "DP-EMB-09 — embeddings 上游契约错误 502",
   "document_owner": "LLMTier",
   "authors": [

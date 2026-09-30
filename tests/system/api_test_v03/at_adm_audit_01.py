@@ -14,6 +14,8 @@ Auth: Bearer dev-admin
 """
 from __future__ import annotations
 
+import re
+
 import pytest
 
 AUDIT_EVENT_KEYS = {"id", "actor", "action", "target", "result", "created_at", "request_id"}
@@ -37,6 +39,15 @@ def test_adm_audit_01_list_no_secret_leak(admin_client):
             f"事件键集不符（缺/多）: {set(event)} != {AUDIT_EVENT_KEYS}")
 
     body_text = resp.text
-    forbidden_strings = ["9832", "omlx-secret-key.txt", "mnm_api_key"]
-    for s in forbidden_strings:
+    # "9832" is a 4-digit token that can coincidentally appear inside a random
+    # request-id hex run / RFC3339 timestamp / counter value. Require it to be a
+    # standalone alphanumeric token (not embedded in a longer hex/digit sequence)
+    # so the leak check does not false-positive on unrelated IDs/values while
+    # still catching a real `Bearer 9832`-style echo. A digit-only boundary is
+    # insufficient: hex ids contain letters (`ab9832cd`), so it must also reject
+    # neighbours in [0-9A-Za-z].
+    assert not re.search(r"(?<![0-9A-Za-z])9832(?![0-9A-Za-z])", body_text), (
+        "audit 响应含敏感 token 字面 '9832'（敏感信息泄露）"
+    )
+    for s in ["omlx-secret-key.txt", "mnm_api_key"]:
         assert s not in body_text, f"audit 响应含敏感字符串 '{s}'（敏感信息泄露）"

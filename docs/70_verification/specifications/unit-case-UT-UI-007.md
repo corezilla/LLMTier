@@ -72,13 +72,13 @@ tierState(...) / backendState(...)  # 源码分支契约（无 JS 执行宿主�
 
 | Step | 动作 | 观察点 |
 |---|---|---|
-| 1 | 断言 `backendState` provider-disabled 分支 | 存在 `if(!provider?.enabled)return ['Disabled','muted']` 先于 deployment 分支 |
-| 2 | 断言 `tierState` availability 缺失与空 tier | 存在 `tierAvailability` 读取、空 tier `Empty`、缺省 `Unknown` |
+| 1 | 提取 `backendState` 函数体断言 provider-disabled 分支 | `if(!provider?.enabled)...` 在函数体内**先于** `if(!deployment.enabled)...`（索引比较，顺序被验证） |
+| 2 | 提取 `tierState` 函数体断言顺序与缺省 | Empty 守卫先于 `tierAvailability` 读取，`Unknown` 为末位回退（索引比较） |
 
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：web-ui §14.1 状态语义表（Unknown≠Idle、Disabled 优先）+ 人工比对源码；字符串契约层非行为 Oracle。**判据语义以设计验证项 `VRC-UI-001` 为唯一权威**；本节仅细化不改写，冲突回溯设计修订。
-- 互斥预期（成功 / 各错误分支）：provider-disabled 优先、deployment-paused 次之；availability 缺失→Unknown、空 tier→Empty；token 存在且顺序正确
+- 互斥预期（成功 / 各错误分支）：provider-disabled 优先、deployment-paused 次之；availability 缺失→Unknown、空 tier→Empty；函数体内 token 存在**且顺序正确**（`backendState`/`tierState` 各自函数体抽取后按索引比较）
 
 ## 6. 错误路径、副作用与清理
 

@@ -74,7 +74,7 @@
   6. **脱敏断言**：逐项扫描 `upstream_url`（不得含 `?` 后 query 串）、`error_summary`、以及整段原始 body：不得出现上游凭据字面 `9832`、`Authorization`、`Bearer `、key 文件内容或任何 secret 值。
   7. （交叉核对，不改变判定）若 `items` 非空，取末条 `id` 作为 `cursor` 重放 `GET ...&cursor=<id>`，确认只读分页可用；本 case 不承担 cursor 负向判定。
 
-**重点关注步骤**：① **页键集精确**——恰 3 键（`items`/`next_cursor`/`has_more`），多/少即违反；② **项键集精确**——每项恰 11 键，`additionalProperties:false`；③ **`snapshot_type` 枚举**——只允许 `upstream`/`error`（`upstream⇒http_status` 非空、`error⇒http_status` 空是机制 §4.2 不变量，可作交叉核对）；④ **`upstream_url` 去 query**——必须已剥离 `?` 后部分，这是 `D-OBS-SNAPSHOT` 的明确映射约束；⑤ **`error_summary` ≤256B**——按 UTF-8 截断，不得 >256；⑥ **脱敏不变量**——整段 body 不得含 `9832`/`Authorization`/secret；⑦ **空页合法**——`snapshots_enabled=false` 时 `items=[]` 仍是合法 `SnapshotPage`（形状 PASS），**不得**因空而判 FAIL；⑧ **降级/存储**——`_UnavailableDiagnostics.snapshots_page` 恒返回 `{items:[],next_cursor:null,has_more:false}` 的 **200**（fail-open，形状 PASS）；`503 usage_store_unavailable` 判 BLOCKED/SKIP。注意：本 case 当前 `MISSING`（§3.2），无 `at_obs_snap_01.py`；落位按 §4.9/§8.5。
+**重点关注步骤**：① **页键集精确**——恰 3 键（`items`/`next_cursor`/`has_more`），多/少即违反；② **项键集精确**——每项恰 11 键，`additionalProperties:false`；③ **`snapshot_type` 枚举**——只允许 `upstream`/`error`（`upstream⇒http_status` 非空、`error⇒http_status` 空是机制 §4.2 不变量，可作交叉核对）；④ **`upstream_url` 去 query**——必须已剥离 `?` 后部分，这是 `D-OBS-SNAPSHOT` 的明确映射约束；⑤ **`error_summary` ≤256B**——按 UTF-8 截断，不得 >256；⑥ **脱敏不变量**——整段 body 不得含 `9832`/`Authorization`/secret；⑦ **空页合法**——`snapshots_enabled=false` 时 `items=[]` 仍是合法 `SnapshotPage`（形状 PASS），**不得**因空而判 FAIL；⑧ **降级/存储**——`_UnavailableDiagnostics.snapshots_page` 恒返回 `{items:[],next_cursor:null,has_more:false}` 的 **200**（fail-open，形状 PASS）；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `at_obs_snap_01.py` 已实现（构造非空数据后断言项级/脱敏；落位遵循 §4.9/§8.5）。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -92,7 +92,7 @@
   - **FAIL**：非 200（存储健康时）、页/项键集不符、`snapshot_type` 越枚举、`upstream_url` 含 query、`error_summary` >256B、或响应含 Secret/凭据。
   - **BLOCKED**：测试代码/契约问题（解析器/断言逻辑错、openapi 语义不清）或存储不可达 `503 usage_store_unavailable`——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **SKIP**：§2.1 前置不满足（m5air/双 OMLX 离线、tier 或资源缺失）——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：自动化入口 `MISSING`（§3.2），本轮未执行；缺口引用见 §9。
+  - **NOT_RUN**：无（自动化入口已实现；执行状态见 Run 报告）。
   - **INVALID**：用 `127.0.0.1`/mock/替代路径冒充真实 m5air，或未命中真实诊断服务却按行为判定——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
 
 ## 6. 错误路径、副作用与清理
@@ -103,6 +103,6 @@
 
 - **证据与 Run**：保存原始 HTTP status/headers/body、发出命令、exit code、`elapsed`、环境快照、`redactions`（确认 `Authorization` 与任何上游 Bearer 已脱敏）；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../../plans/llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../../plans/llmtier-system-test-plan.md#3-执行前检go--no-go) 6 项就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../../schemes/llmtier-system-test-scheme.md)）；M007 `diagnostic_snapshots`（`002_observability.sql`）；`SnapshotPage`/`SnapshotView` 机器契约；实现 [`src/libdiag/snapshots.py`](../../../../src/libdiag/snapshots.py)、[`src/http_api/app.py`](../../../../src/http_api/app.py)。自动化入口 `at_obs_snap_01.py`（**当前 `MISSING`，尚未实现**）。**不依赖**其它 Case；与 OBS-SNAP-02（无效 cursor 负向）、OBS-DIAG-02（开关写）语义相邻但各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../../plans/llmtier-system-test-plan.md#3-执行前检go--no-go) 6 项就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../../schemes/llmtier-system-test-scheme.md)）；M007 `diagnostic_snapshots`（`002_observability.sql`）；`SnapshotPage`/`SnapshotView` 机器契约；实现 [`src/libdiag/snapshots.py`](../../../../src/libdiag/snapshots.py)、[`src/http_api/app.py`](../../../../src/http_api/app.py)。自动化入口 `at_obs_snap_01.py`（已实现）。**不依赖**其它 Case；与 OBS-SNAP-02（无效 cursor 负向）、OBS-DIAG-02（开关写）语义相邻但各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

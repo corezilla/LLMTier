@@ -90,7 +90,7 @@ page(items, principal, kind, cursor, limit); usage.page(...); usage.reset_usage(
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_admin.py::test_page_shape/test_page_limit/test_page_cursor/test_cursor_principal_bound` + `tests/unit/v03/test_usage.py::test_snapshot_is_stable/test_cursor_filter_mismatch/test_invalid_window` + `tests/unit/v03/test_admin_stats.py`（5 个）（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
+- 测试文件 / 测试函数：`tests/unit/v03/test_admin.py::test_page_shape/test_page_limit/test_page_cursor/test_cursor_principal_bound/test_first_page_snapshot_is_frozen` + `tests/unit/v03/test_usage.py::test_snapshot_is_stable/test_cursor_filter_mismatch/test_invalid_window` + `tests/unit/v03/test_admin_stats.py`（5 个）（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
 - 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_admin.py tests/unit/v03/test_usage.py tests/unit/v03/test_admin_stats.py -q`
 - 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
 

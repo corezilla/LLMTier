@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-EMB-08` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -42,7 +42,7 @@
 ## 2. 被测入口与前置
 
 - **前置与环境**：**环境 B**（临时 LLMTier 实例，专属实例，避免与其它并发/注入 Case 互相干扰）。前置 = 方案 §5 附加（B 类）就绪检查；`_baseline_settings` 注入 1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier，`llmtier_b` probe `depl_b` 为 `healthy`（否则 BLOCKED/SKIP）。`prov_b.endpoint` 必须是 LAN IP 上的 fake provider（TS-003）。初始状态 = 无启用注入项；`depl_b` 运行时 `max_in_flight` 默认 1、provider 并发默认 1。
-- **专用 fixture 需求**：本 case 需**占住 `depl_b` 的唯一并发槽**。Embeddings 无 Responses 的 `delay` 注入路径（`embeddings.py` 不读 `enabled_injection`），故需扩展假上游（`tests/fixtures/v03_fake_provider.py` 或等价）使 `POST /v1/embeddings` 在 `model == "slow-embeddings"` 时 `time.sleep`（例如 60s），并把 `depl_b.backend_model` 设为 `slow-embeddings`。该 fixture 落地前本 case 为 **BLOCKED**（不得以 Responses 的 `delay` 注入冒充 Embeddings 占槽）。
+- **专用 fixture（已落地）**：本 case 需**占住 `depl_b` 的唯一并发槽**。Embeddings 无 Responses 的 `delay` 注入路径（`embeddings.py` 不读 `enabled_injection`），故假上游 [`tests/fixtures/v03_fake_provider.py`](../../../../tests/fixtures/v03_fake_provider.py) 已扩展：`POST /v1/embeddings` 在 `model == "slow-embeddings"` 时 `time.sleep`（门控释放），`depl_b.backend_model` 设为 `slow-embeddings`（fixture `llmtier_b_emb_slow` + `fake_provider_b.release_slow()`）。**不得**以 Responses 的 `delay` 注入冒充 Embeddings 占槽。
 - **被测入口**：
 
   ```http
@@ -70,14 +70,14 @@
 
 | Step | 动作 | 观察点 |
 |---|---|---|
-| 1 | （fixture 前置）启动专属实例（`backend_model="slow-embeddings"`）并 probe `depl_b` → `healthy` | 实例就绪 |
+| 1 | （fixture 前置）启动专属实例 `llmtier_b_emb_slow`（`backend_model="slow-embeddings"`）并 probe `depl_b` → `healthy` | 实例就绪 |
 | 2 | 以线程/异步并发发起 `N` 个 `POST /v1/embeddings` | 各响应 status |
 | 3 | 收集状态码分布 | 至少一个 `429`（队列满），其余 200（占槽/在队）或 429 |
 | 4 | 断言 429 响应体 | `error.code=="rate_limit_exceeded"`、`type=="request_error"`、`retryable is True`、键集恰 5 键 |
 | 5 | 断言 429 响应含 `Retry-After` 头 | 值为正整数秒（队列满为 `"30"`，等待超时为 `"1"`） |
 | 6 | （teardown）专属实例整班销毁 | 无残留 |
 
-- **重点关注步骤**：① **饱和才 429**——只有超过许可+队列上限时拒绝，非首个请求；② **`Retry-After` 存在且为正整数**；③ **区分两条 429 分支**——队列满（`Retry-After:30`）vs 等待超时（`Retry-After:1`），只断"存在+正整数"以免耦合内部时点；④ **占槽必须来自真实慢上游**——不得 monkeypatch/注入冒充（INVALID）；⑤ **共享同一 tier 的许可/队列**；⑥ **不触碰 Responses 路径**；⑦ **BLOCKED 语义**——慢上游 fixture 未落地时记 BLOCKED，不得跳过。
+- **重点关注步骤**：① **饱和才 429**——只有超过许可+队列上限时拒绝，非首个请求；② **`Retry-After` 存在且为正整数**；③ **区分两条 429 分支**——队列满（`Retry-After:30`）vs 等待超时（`Retry-After:1`），只断"存在+正整数"以免耦合内部时点；④ **占槽必须来自真实慢上游**——不得 monkeypatch/注入冒充（INVALID）；⑤ **共享同一 tier 的许可/队列**；⑥ **不触碰 Responses 路径**；⑦ **BLOCKED 语义**——慢上游 fixture 不可用（或并发夹具不可实现）时记 BLOCKED，不得跳过。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -88,7 +88,7 @@
 - **判定（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
   - **PASS**：并发请求中至少一个 `429` + `error.code=="rate_limit_exceeded"` + `retryable is True` + `Retry-After` 为正整数。
   - **FAIL**：从未 429（饱和构造失败）、`Retry-After` 缺失/非正整数、code/type 错。
-  - **BLOCKED**：慢上游 fixture 未落地或并发夹具不可实现。
+  - **BLOCKED**：慢上游 fixture 不可用或并发夹具不可实现；fixture 已落地，不再构成 BLOCKED。
   - **SKIP**：B 类临时实例不可用、附加前置不满足。
   - **INVALID**：以 mock/注入/替代路径冒充 Embeddings 占槽。
   - **NOT_RUN**：本 Case 有实现但本轮未执行。
@@ -100,11 +100,11 @@
 
 ## 7. 自动化位置与状态
 
-- **测试文件 / 测试函数**：`tests/system/api_test_v03/at_dp_emb_08.py`（**MISSING**，须新建；依赖慢上游 fixture 扩展）。
+- **测试文件 / 测试函数**：`tests/system/api_test_v03/at_dp_emb_08.py`（已实现；慢上游 fixture `v03_fake_provider.py` 的 `slow-embeddings` 门控）。
 - **单 Case 执行命令**：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_emb_08.py -q`。
-- **实现状态**：Planned；执行与 Verdict 归 Run 报告。
+- **实现状态**：Implemented；执行与 Verdict 归 Run 报告。
 
 **证据与 Run**：保存并发请求清单与各响应（含 429 与 `Retry-After`）、上游调用计数/runtime 快照、发出命令、exit code、`elapsed`、环境快照（本 case `environment:"b"`）。
 
-**依赖**：B 类专属 `LLMTierInstance` / `api_client_b`；**慢上游 fixture 扩展**（当前缺失，需新增）；实现 `src/inference/routing.py`、`src/inference/embeddings.py`；错误目录 `ERR-RATE-LIMIT`。**不依赖**其它 Case；与 DP-RESP-20 共享 `Router.admit` 但端点不同，各自独立执行。
+**依赖**：B 类专属 `LLMTierInstance` `llmtier_b_emb_slow` / `api_client_b`；**慢上游 fixture**（`v03_fake_provider.py` 的 `slow-embeddings` 门控，**已落地**）；实现 `src/inference/routing.py`、`src/inference/embeddings.py`；错误目录 `ERR-RATE-LIMIT`。**不依赖**其它 Case；与 DP-RESP-20 共享 `Router.admit` 但端点不同，各自独立执行。
 

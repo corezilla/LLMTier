@@ -33,10 +33,11 @@ code 有效。
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from tests.system.api_test_v03.constants import recent_window
+from tests.system.api_test_v03.constants import iso_sec
 
 EMBED_BODY = {"model": "Embedding-v1", "input": "isolation probe"}
 
@@ -47,9 +48,6 @@ def _request_ids(page: dict) -> set[str]:
 
 @pytest.mark.api_a
 def test_dp_usage_06_subject_isolation(api_client, admin_client):
-    since, until = recent_window()
-    window = {"from": since, "to": until}
-
     # Two distinct data principals distinguished by X-Principal-ID (explicit creds).
     principal_a = f"consumer-{uuid.uuid4().hex[:8]}"
     principal_b = f"consumer-{uuid.uuid4().hex[:8]}"
@@ -66,6 +64,15 @@ def test_dp_usage_06_subject_isolation(api_client, admin_client):
     rid_b = emb_b.headers.get("X-Request-ID")
     assert rid_b, "主体B embeddings 响应缺 X-Request-ID"
     assert rid_a != rid_b, "两主体 request_id 意外相同"
+
+    # Window is computed AFTER the writes so this case's own records are inside
+    # it. The `to` bound also carries headroom: the server compares against the
+    # storage's millisecond-precision `recorded_at`, so a second-precision `to`
+    # equal to "now" would truncate records written later in the same second
+    # (the original flake / S2).
+    now = datetime.now(timezone.utc)
+    since, until = iso_sec(now - timedelta(minutes=5)), iso_sec(now + timedelta(minutes=5))
+    window = {"from": since, "to": until}
 
     # Subject A sees its own record.
     own = api_client.get("/v1/usage", params={**window, "request_id": rid_a}, headers=headers_a)

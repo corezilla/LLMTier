@@ -61,10 +61,11 @@ GET /v1/usage?from=&to=
 GET /v1/usage?from=not-a-date&to=<now>
 GET /v1/usage?from=<now-30d>&to=2026-13-45
 GET /v1/usage?from=<now>&to=<now-30d>
+GET /v1/usage?from=<now>&to=<now>
 Authorization: Bearer dev-data
 ```
 
-- 初态构造（经公开入口）：**环境 A**（m5air 已部署实例，只读/无状态）。初始状态 = m5air 现有基线。**本 Case 自动化入口当前 `MISSING`**，尚无 `at_dp_usage_05.py`；实现时须按命名规范命名 `at_<family>_<seq>.py`。
+- 初态构造（经公开入口）：**环境 A**（m5air 已部署实例，只读/无状态）。初始状态 = m5air 现有基线。
 - Fixture / 向量及版本：7 个非法/缺失变体 + 1 次合法对照；动态值（`constants.recent_window()` 或 `now()`），禁止硬编码日期。
 - 依赖的测试资产（tests.asset-design 文档）：`api_client`；可选 `ssh m5air sqlite3`（仅加强证据）。
 
@@ -77,7 +78,7 @@ Authorization: Bearer dev-data
   4. 空串：`GET /v1/usage?from=&to=`
   5. 非法日期：`GET /v1/usage?from=not-a-date&to=<now>`
   6. 非法日期：`GET /v1/usage?from=<now-30d>&to=2026-13-45`
-  7. 逆序/等值：`GET /v1/usage?from=<now>&to=<now-30d>` 与 `from=<now>&to=<now>`
+   7. 逆序 `GET /v1/usage?from=<now>&to=<now-30d>` 与**等值** `from=<now>&to=<now>`（`start >= end` 两个边界）
 - 边界/非法取值及理由：`from`/`to` 用动态值（`constants.recent_window()` 或 `now()`），**禁止硬编码日期**；合法值仅用于构造对照（变体 5/7）。
 - 规模 / 时间域：7 个变体 + 1 次对照；全部在建快照前被拒。
 
@@ -91,7 +92,7 @@ Authorization: Bearer dev-data
 | 4 | （零副作用交叉核对，可选）若具备 `ssh m5air sqlite3`，在变体前后 `SELECT COUNT(*) FROM query_snapshots;` | 计数**不变**（校验"校验先于建 snapshot"）；无 SSH 权限时跳过该子检查，**不**因此判变体失败 |
 | 5 | （对照，不改变本 case 判定）对同一 `api_client` 发一次**合法**查询 `?from&to` | 返回 200——佐证拒绝来自参数而非端点/存储不可用 |
 
-- 重点关注步骤：① **缺参 vs 坏日期都要 400 `invalid_request`**——`not since or not until` 在 handler 层、日期解析/`from>=to` 在 `_page` 层，两处都要覆盖；② **空串视同缺失**——`query.get("from",[None])[0]` 得到 `""` 为假值，应走 `invalid_request`；③ **零副作用**——拒绝必须发生在 `query_snapshots` INSERT 之前；④ **错误信封 identity**——恰 5 键、无 `category`，`type` 由 `<500` 导出为 `request_error`；⑤ **不夸大**——`param` 实现为 `null`，不断言具体字段名；⑥ **MISSING 语义**——无实现是缺口（NOT_RUN），不是跳过；实现时须补脚本，本设计即为其 Oracle。
+- 重点关注步骤：① **缺参 vs 坏日期都要 400 `invalid_request`**——`not since or not until` 在 handler 层、日期解析/`from>=to` 在 `_page` 层，两处都要覆盖；② **空串视同缺失**——`query.get("from",[None])[0]` 得到 `""` 为假值，应走 `invalid_request`；③ **零副作用**——拒绝必须发生在 `query_snapshots` INSERT 之前；④ **错误信封 identity**——恰 5 键、无 `category`，`type` 由 `<500` 导出为 `request_error`；⑤ **不夸大**——`param` 实现为 `null`，不断言具体字段名；⑥ **等值边界**——`from==to` 与逆序 `from>to` 均须 400 `invalid_request`（同一 `start >= end` 分支）。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -105,9 +106,9 @@ Authorization: Bearer dev-data
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/system/api_test_v03/at_dp_usage_05.py`（当前 **MISSING，尚未实现**）。
-- 单 Case 执行命令（实现后）：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_usage_05.py -q`。
-- 实现状态：Implemented（`at_dp_usage_05.py`）；执行与 Verdict 归 Run 报告。
+- 测试文件 / 测试函数：`tests/system/api_test_v03/at_dp_usage_05.py`（已实现；7 个非法变体含 `from==to` 等值边界 + 1 次合法对照）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_usage_05.py -q`。
+- 实现状态：Implemented；执行与 Verdict 归 Run 报告。
 
 **判定口径（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
 - PASS：变体 1–7 均 `400 + invalid_request + request_error`，合法对照 `200`（可选的计数不变不改变结论）。
@@ -115,8 +116,8 @@ Authorization: Bearer dev-data
 - BLOCKED：断言逻辑/契约问题（如 `param` 语义不清）。
 - SKIP：就绪检查不满足。
 - INVALID：用 mock/替代路径冒充真实路径。
-- NOT_RUN：本 Case 自动化入口 `MISSING`；缺口引用方案 §9（MISSING ≠ NOT_RUN：无实现是缺口，不是跳过）。
+- NOT_RUN：本 Case 有实现，本轮未执行时记 `NOT_RUN`。
 
 **证据与 Run**：Run ID=`<date>/A-api`；保存 7 个变体的完整请求（含 query 实际值）与原始 status/headers/body、对照合法查询响应、可选 `ssh sqlite3` 的 `COUNT(*)` 前后值、发出命令、exit code、`elapsed`、环境快照（本 case `environment:"a"`）。
 
-**依赖**：就绪检查；`api_client`；`constants.recent_window()` 动态值；`listUsage` 机器契约与 `ERR-REQ-VALIDATION`；可选 `ssh m5air sqlite3`（仅加强证据，非 PASS 必要条件）。自动化入口 `at_dp_usage_05.py`（**当前 `MISSING`**）。**不依赖**其它 Case；与 DP-USAGE-01（正常查询）、DP-USAGE-04（过期 cursor）区分参数缺失/坏值与 cursor 过期两类 400。
+**依赖**：就绪检查；`api_client`；`constants.recent_window()` 动态值；`listUsage` 机器契约与 `ERR-REQ-VALIDATION`；可选 `ssh m5air sqlite3`（仅加强证据，非 PASS 必要条件）。自动化入口 `at_dp_usage_05.py`（已实现）。**不依赖**其它 Case；与 DP-USAGE-01（正常查询）、DP-USAGE-04（过期 cursor）区分参数缺失/坏值与 cursor 过期两类 400。

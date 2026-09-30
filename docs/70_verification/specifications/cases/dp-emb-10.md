@@ -99,9 +99,9 @@
 
 ## 7. 自动化位置与状态
 
-- **测试文件 / 测试函数**：`tests/system/api_test_v03/at_dp_emb_10.py`（**MISSING**，须新建）。
+- **测试文件 / 测试函数**：`tests/system/api_test_v03/at_dp_emb_10.py`（已实现；`v03_fake_provider.py` 的 `force-503` 覆盖 HTTP 5xx、`force-drop` 覆盖传输失败/断连分支）。
 - **单 Case 执行命令**：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_emb_10.py -q`。
-- **实现状态**：Planned；执行与 Verdict 归 Run 报告。
+- **实现状态**：Implemented；执行与 Verdict 归 Run 报告。
 
 **证据与 Run**：保存被测请求与原始响应（脱敏后）、上游返回证据、发出命令、exit code、`elapsed`、环境快照（本 case `environment:"b"`）。
 

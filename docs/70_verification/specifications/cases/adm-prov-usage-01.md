@@ -79,8 +79,8 @@
   5. 断言 `status` 属于枚举 `{ok,unavailable,unsupported,unlimited,not_refreshed}`；`provider`/`source`/`window`/`reset_at`/`checked_at`/`error` 为字符串；`used`/`quota`/`remaining`/`percent` 为 number 或 `null`；`windows` 为数组（元素为对象）。
   6. （交叉核对，不改变判定）`GET /v1/providers/provider_local` 断言 `200` 且 `id=="provider_local"`，佐证快照归属的 provider 存在。
 
-**重点关注步骤**：① **字段集精确性**——不是"含 provider/status"，而是"键集恰为 12 键"，多/少一键即违反 `additionalProperties:false`；② **枚举约束**——`status` 只允许 5 个值之一，不能是任意字符串；③ **纯读、无副作用**——GET 不刷新、不触上游、不写 `provider_usage_snapshots`（刷新仅在 ADM-PROV-USAGE-03 的 POST）；④ **禁止硬编码动态值**——`checked_at`/`reset_at`/`windows`/`status` 随运行与上游变化，不得写成固定时间或固定 `ok`；⑤ **不得被错误信封冒充**——非 200 需确认是可解释的 `ERR-AUTH-*`/`ERR-NOTFOUND`，而非把 `{error:...}` 当快照读。
-  > **脚本覆盖缺口（登记，不在本 case 失败面）**：现有 [`at_adm_prov_usage_01.py`](../../../../tests/system/api_test_v03/at_adm_prov_usage_01.py) 仅断言 `{provider,source,status,checked_at}` 四个键存在，**未断言 12 键全集与 `status` 枚举**；按本设计需补齐"键集恰等于 `ProviderAccountUsageSnapshot`"与枚举断言后方可判本 case PASS。
+**重点关注步骤**：① **字段集精确性**——不是"含 provider/status"，而是"键集恰为 12 键"，多/少一键即违反 `additionalProperties:false`；② **枚举约束**——`status` 只允许 5 个值之一，不能是任意字符串；③ **纯读、无副作用**——GET 不刷新、不触上游、不写 `provider_usage_snapshots`（刷新仅在 ADM-PROV-USAGE-03 的 POST）；④ **禁止硬编码动态值**——`checked_at`/`reset_at`/`windows`/`status` 随运行与上游变化，不得写成固定时间或固定 `ok`；  ⑤ **不得被错误信封冒充**——非 200 需确认是可解释的 `ERR-AUTH-*`/`ERR-NOTFOUND`，而非把 `{error:...}` 当快照读。
+  > **脚本覆盖（已补齐）**：现有 [`at_adm_prov_usage_01.py`](../../../../tests/system/api_test_v03/at_adm_prov_usage_01.py) 已断言键集**恰为** `ProviderAccountUsageSnapshot` 的 12 键、`status` 枚举，以及各字段类型（字符串/number|null/数组）；与 §4 step 4/5 一致。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -109,4 +109,4 @@
 
 - **依赖**：[系统测试计划 §3 执行前检](../../plans/llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查（含 §2.1.6 必需 provider）；`admin_client` fixture（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../../schemes/llmtier-system-test-scheme.md)）；既存 provider `provider_local`；`ProviderAccountUsageSnapshot` 机器契约（`interfaces/openapi/llmtier.openapi.json`）；实现 `src/management/account_usage.py`；自动化入口 [`at_adm_prov_usage_01.py`](../../../../tests/system/api_test_v03/at_adm_prov_usage_01.py)。**不依赖**其它 Case；与 ADM-PROV-USAGE-02/03（POST 确认路径）、ADM-PROV-USAGE-04（未知 provider 404）语义相邻但各自独立执行。
 
-> 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。
+> 实现状态：Implemented（[`at_adm_prov_usage_01.py`](../../../../tests/system/api_test_v03/at_adm_prov_usage_01.py)）；执行状态与 Verdict 只在 Run 报告。

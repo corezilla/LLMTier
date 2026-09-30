@@ -94,7 +94,7 @@
   6. （零副作用核验）`GET /v1/service-levels/Embedding-v1` 断言 `deployment_ids` 与 `version` 均为原值。
   7. （teardown，`finally` 内）`DELETE /v1/deployments/{new_depl_id}`（最新 ETag）→ `204`；`GET` 断言 404。
 
-**重点关注步骤**：① **命中正确分支**——`embedding_space_id` 错误但 embedding/responses 标志正确，必须得 `embedding_space_conflict`；若得 `capability_conflict` 说明构造使交集丢键（错误构造）；② **Embedding-v1 专属**——该冻结检查仅对 `level_id=="Embedding-v1"` 生效；③ **零副作用**——失败后 `Embedding-v1` 成员/版本不变；④ **teardown 完整性**——新建 embedding deployment 未被引用（PATCH 失败回滚），可删除；必须删，否则残留；现有 [`at_adm_sl_07.py`](../../../../tests/system/api_test_v03/at_adm_sl_07.py) **未删除**该 deployment，须补齐；⑤ **错误信封 identity**——恰 5 键、`type=request_error`。
+**重点关注步骤**：① **命中正确分支**——`embedding_space_id` 错误但 embedding/responses 标志正确，必须得 `embedding_space_conflict`；若得 `capability_conflict` 说明构造使交集丢键（错误构造）；② **Embedding-v1 专属**——该冻结检查仅对 `level_id=="Embedding-v1"` 生效；③ **零副作用**——失败后 `Embedding-v1` 成员/版本不变；④ **teardown 完整性**——新建 embedding deployment 未被引用（PATCH 失败回滚），可删除；现有 [`at_adm_sl_07.py`](../../../../tests/system/api_test_v03/at_adm_sl_07.py) 已在 `finally` 内 `DELETE` 并断言 `204`/随后 `404`，同时回读 `Embedding-v1` 证明 `deployment_ids`/`version` 未变（零副作用）；⑤ **错误信封 identity**——恰 5 键、`type=request_error`。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -116,7 +116,7 @@
 
 ## 6. 错误路径、副作用与清理
 
-- **清理与复位**：**必须 teardown（`finally` 强制）**——删除本 case 新建的 embedding deployment（最新 ETag；412 先重取），不改 `depl_b`/`Embedding-v1`、不写注入。退出前确认无残留 deployment、7 tier 齐全。 B 类整班结束由 fixture `stop()` + `rm -rf` 临时目录（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。
+- **清理与复位**：**必须 teardown（`finally` 强制）**——删除本 case 新建的 embedding deployment（最新 ETag；412 先重取），不改 `depl_b`/`Embedding-v1`、不写注入。现有脚本已实现该 teardown（`finally` 内 `DELETE` → `204` → `GET 404`）。退出前确认无残留 deployment、7 tier 齐全。 B 类整班结束由 fixture `stop()` + `rm -rf` 临时目录（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。
 
 ## 7. 自动化位置与状态
 

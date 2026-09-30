@@ -75,7 +75,7 @@
   7. **有序断言**：每个 `item.stages` 的 `timestamp` 序列非降序（机制 `INV-5` 升序）。
   8. （分页稳定性交叉核对，不改变判定）若 `has_more` 为真且 `next_cursor` 非空，重放 `GET ...&cursor=<next_cursor>`，断言返回合法 `TracePage` 且不与前一页 `request_id` 重叠；本 case 不承担 cursor 负向/`limit=1` 判定。
 
-**重点关注步骤**：① **去重是本 case 核心**——不是"列表里有 trace"，而是"同一 `request_id` 至多一次"；重复即 FAIL。② **`stages` 有序**——按 `timestamp` 升序（`INV-5`），乱序即 FAIL。③ **`stages` 非空**——`minItems:1`；空 `stages` 的 `TraceView` 非法（但 `items` 为空是合法的空页）。④ **页/项键集精确**——顶层 3 键、项 5 键、stage 3 键。⑤ **`snapshot`/`usage` 可为 `null`**——`snapshots_enabled=false` 时 `snapshot=null` 合法；`usage` 取决于账本，不得因 `null` 判 FAIL。⑥ **空页合法**——无 trace 时 `{"items":[],"next_cursor":null,"has_more":false}` 合法（PASS），不要求非空。⑦ **降级/存储**——`_UnavailableDiagnostics.traces` 恒返回空页 **200**（fail-open，形状 PASS）；`503 usage_store_unavailable` 判 BLOCKED/SKIP。注意：本 case 当前 `MISSING`（§3.2），无 `at_obs_trace_01.py`。
+**重点关注步骤**：① **去重是本 case 核心**——不是"列表里有 trace"，而是"同一 `request_id` 至多一次"；重复即 FAIL。② **`stages` 有序**——按 `timestamp` 升序（`INV-5`），乱序即 FAIL。③ **`stages` 非空**——`minItems:1`；空 `stages` 的 `TraceView` 非法（但 `items` 为空是合法的空页）。④ **页/项键集精确**——顶层 3 键、项 5 键、stage 3 键。⑤ **`snapshot`/`usage` 可为 `null`**——`snapshots_enabled=false` 时 `snapshot=null` 合法；`usage` 取决于账本，不得因 `null` 判 FAIL。⑥ **空页合法**——无 trace 时 `{"items":[],"next_cursor":null,"has_more":false}` 合法（PASS），不要求非空。⑦ **降级/存储**——`_UnavailableDiagnostics.traces` 恒返回空页 **200**（fail-open，形状 PASS）；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `at_obs_trace_01.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -94,7 +94,7 @@
   - **FAIL**：非 200（存储健康时）、键集不符、`request_id` 重复、`stages` 为空或乱序、stage 键集不符。
   - **BLOCKED**：测试代码/契约问题或存储不可达 `503 usage_store_unavailable`——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **SKIP**：§2.1 前置不满足——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：自动化入口 `MISSING`（§3.2），本轮未执行；缺口引用见 §9。
+  - **NOT_RUN**：无（自动化入口已实现；执行状态见 Run 报告）。
   - **INVALID**：用 `127.0.0.1`/mock/替代路径冒充真实 m5air，或未命中真实诊断服务却按行为判定——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
 
 ## 6. 错误路径、副作用与清理
@@ -105,6 +105,6 @@
 
 - **证据与 Run**：保存原始 HTTP status/headers/body、命令/exit code/`elapsed`、环境快照；分页稳定性交叉证据（重放页与去重统计）；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../../plans/llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../../plans/llmtier-system-test-plan.md#3-执行前检go--no-go) 6 项就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../../schemes/llmtier-system-test-scheme.md)）；M007 `trace_events`（`002_observability.sql`，trace 不受开关）；`TracePage`/`TraceView`/`TraceStage` 机器契约；实现 [`src/libdiag/traces.py`](../../../../src/libdiag/traces.py)、[`src/http_api/app.py`](../../../../src/http_api/app.py)。自动化入口 `at_obs_trace_01.py`（**当前 `MISSING`，尚未实现**）。**不依赖**其它 Case；与 OBS-TRACE-02（分页/游标）、OBS-REQTRACE-01（单请求全生命周期）语义相邻但各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../../plans/llmtier-system-test-plan.md#3-执行前检go--no-go) 6 项就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../../schemes/llmtier-system-test-scheme.md)）；M007 `trace_events`（`002_observability.sql`，trace 不受开关）；`TracePage`/`TraceView`/`TraceStage` 机器契约；实现 [`src/libdiag/traces.py`](../../../../src/libdiag/traces.py)、[`src/http_api/app.py`](../../../../src/http_api/app.py)。自动化入口 `at_obs_trace_01.py`（已实现）。**不依赖**其它 Case；与 OBS-TRACE-02（分页/游标）、OBS-REQTRACE-01（单请求全生命周期）语义相邻但各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `HEALTH-05` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -39,11 +39,11 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 B**（临时 LLMTier 实例，见[系统测试方案 §1 测试边界](../../schemes/llmtier-system-test-scheme.md)）。执行前须满足方案 §5 **附加（B 类）**：临时实例可启动。**当前状态：BLOCKED——所需 fixture 尚不存在，本 case 在补齐前无法执行。** 本 case 的关键构造是让 `bootstrap_settings` 失败，两种等价臂：
+- **前置与环境**：**环境 B**（临时 LLMTier 实例，见[系统测试方案 §1 测试边界](../../schemes/llmtier-system-test-scheme.md)）。执行前须满足方案 §5 **附加（B 类）**：临时实例可启动。**当前状态：Implemented——fixture `llmtier_b_no_bootstrap`（[`conftest.py`](../../../../tests/system/api_test_v03/conftest.py)）与脚本 [`at_obs_05.py`](../../../../tests/system/api_test_v03/at_obs_05.py) 已落地并通过。** 本 case 的关键构造是让 `bootstrap_settings` 失败，两种等价臂：
   - **(a) 缺 bootstrap**：以空/新 SQLite 启动且**不提供** `LLMTIER_SETTINGS`/`--settings`；`bootstrap_settings(None)` 在空库（`schema_meta.bootstrap_sha256` 为空）时抛 `ApiError(503, "bootstrap_required")`。
   - **(b) 非法 bootstrap**：提供指向**不存在/无法解析/校验失败**的 settings 文件；`bootstrap_settings` 抛 `ApiError(503, "bootstrap_invalid")`。
 
-  两种构造下 [`serve`](../../../../src/http_api/app.py) 仍启动并监听（`Application` 只把异常记入 `bootstrap_error`），且 `/healthz` 分支（[`app.py:187`](../../../../src/http_api/app.py)）在 bootstrap 检查之前，故可轮询 200。**所需 fixture——当前缺失**：[`conftest.py`](../../../../tests/system/api_test_v03/conftest.py) **未提供**"无引导/坏引导"实例（既无 `llmtier_b_no_bootstrap`，也无等价入口），故本 case **BLOCKED 直到该 fixture 落地**。必须新增的 fixture 状态（供实现者）：**(a) 无引导臂**——`LLMTierInstance(settings=None)`（其 `__init__` 在不传 settings 时不写 `LLMTIER_SETTINGS`），以空/新 SQLite 启动，`bootstrap_settings(None)` 抛 `bootstrap_required`；**(b) 坏引导臂**——传入指向不存在/非法 JSON/校验失败文件的 settings，抛 `bootstrap_invalid`。两臂均需 `start()` 后 `/healthz` 200 且 `/readyz` 503 `not_ready` + `models==[]`。**不得复用 `llmtier_b`/`llmtier_b_empty`**：二者 bootstrap 均成功，`bootstrap_error` 为 `None`。TS-003 与上游无关（本构造不接上游）。
+  两种构造下 [`serve`](../../../../src/http_api/app.py) 仍启动并监听（`Application` 只把异常记入 `bootstrap_error`），且 `/healthz` 分支（[`app.py:187`](../../../../src/http_api/app.py)）在 bootstrap 检查之前，故可轮询 200。**fixture（已落地）**：[`conftest.py`](../../../../tests/system/api_test_v03/conftest.py) 提供 `llmtier_b_no_bootstrap`（**(a) 无引导臂**——`LLMTierInstance(settings=None)`（其 `__init__` 在不传 settings 时不写 `LLMTIER_SETTINGS`），以空/新 SQLite 启动，`bootstrap_settings(None)` 抛 `bootstrap_required`；脚本 [`at_obs_05.py`](../../../../tests/system/api_test_v03/at_obs_05.py) 已断言 `/healthz` 200 + `/readyz` 503 `not_ready` + `models==[]`。（**(b) 坏引导臂**可选，本轮以 (a) 覆盖。）**不得复用 `llmtier_b`/`llmtier_b_empty`**：二者 bootstrap 均成功，`bootstrap_error` 为 `None`。TS-003 与上游无关（本构造不接上游）。
 - **被测入口**：
 
   ```http
@@ -57,7 +57,7 @@
   ```
 
 - **初态构造（经公开入口）**：空库 + 无/坏 bootstrap；**不**提供合法 settings；不创建任何 provider/deployment/service-level；不注入故障；不构造非法 query（非法输入不在本 case 范围）。
-- **Fixture / 向量及版本**：B 类 fixture 当前缺失（见上）；依赖 [`registry.py`](../../../../src/management/registry.py) 的 `bootstrap_required`/`bootstrap_invalid` 与 [`app.py:188-189`](../../../../src/http_api/app.py) 的短路（[系统测试方案 §4 共同机制](../../schemes/llmtier-system-test-scheme.md)）。
+- **Fixture / 向量及版本**：B 类 fixture `llmtier_b_no_bootstrap` 已落地（见 §2）；依赖 [`registry.py`](../../../../src/management/registry.py) 的 `bootstrap_required`/`bootstrap_invalid` 与 [`app.py:188-189`](../../../../src/http_api/app.py) 的短路（[系统测试方案 §4 共同机制](../../schemes/llmtier-system-test-scheme.md)）。
 - **依赖的测试资产（tests.asset-design 文档）**：本阶段 `tests.asset-design` 文档尚未建立；B 类实例夹具契约见方案 §4，引用其版本而不复制字节。
 
 ## 3. 输入构造
@@ -80,7 +80,7 @@
 ## 4. 执行步骤与观察点
 
 - **执行过程（逐步调用）**：
-  1. （fixture 前置——**当前 BLOCKED**）所需"无引导/坏引导"实例 fixture 在 [`conftest.py`](../../../../tests/system/api_test_v03/conftest.py) 中**尚不存在**，故本步无法执行；补齐后：以构造 (a) 或 (b) 启动临时实例，轮询 `GET /healthz` 200（`LLMTierInstance.start()` 依赖此点，故启动应成功）。
+  1. （fixture 前置——已完成）"无引导/坏引导"实例 fixture `llmtier_b_no_bootstrap` 已在 [`conftest.py`](../../../../tests/system/api_test_v03/conftest.py) 中落地（脚本 [`at_obs_05.py`](../../../../tests/system/api_test_v03/at_obs_05.py) 已通过），故可执行本步：以构造 (a) 或 (b) 启动临时实例，轮询 `GET /healthz` 200（`LLMTierInstance.start()` 依赖此点，故启动应成功）。
   2. `GET /healthz`：断言 `status_code == 200`，`status == "ok"`——证明"引导失败 ≠ 进程死亡"。
   3. `GET /readyz`：断言 `status_code == 503`。
   4. 解析 body：断言键集**恰为** `{status, models}`，`status == "not_ready"`，`models == []`（**空数组**）。
@@ -89,7 +89,7 @@
 
 | Step | 动作 | 观察点 |
 |---|---|---|
-| 1 | （BLOCKED）以构造 (a)/(b) 启动临时实例，轮询 `/healthz` 200 | 实例启动成功且 bootstrap 失败 |
+| 1 | 以构造 (a)/(b) 启动临时实例，轮询 `/healthz` 200 | 实例启动成功且 bootstrap 失败 |
 | 2 | `GET /healthz` 断言 200 + `status=="ok"` | 引导失败 ≠ 进程死亡 |
 | 3 | `GET /readyz` 断言 503 | HTTP 状态 |
 | 4 | 解析 body：键集恰 `{status, models}`、`status=="not_ready"`、`models==[]` | 响应体 |
@@ -109,10 +109,10 @@
 - **判定（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
   - **PASS**：`/healthz` 200 + `{"status":"ok",...}`；`/readyz` 503 + `status=="not_ready"` + `models==[]` + 无 envelope。
   - **FAIL**：`/readyz` status/body 不符——含误为 `models` 非空（HEALTH-04 路径）、误为 200、或返回错误信封；`/healthz` 非 200；给预期 vs 实际与 `reproduction_cmd`。
-  - **BLOCKED（当前判定）**：所需"无引导/坏引导"实例 fixture 在 [`conftest.py`](../../../../tests/system/api_test_v03/conftest.py) 中**尚不存在**（无 `llmtier_b_no_bootstrap` 或等价入口），无法构造引导失败实例——须先补齐该 fixture（(a) `LLMTierInstance(settings=None)` 空库；(b) 指向不存在/非法/校验失败的 settings）。其它同因情形：`LLMTierInstance(settings=None)` 无法启动、或进程在 `Application.__init__` 之外提前退出导致 `/healthz` 不可达（依赖失败，视情形 BLOCKED/SKIP）；或测试代码/断言不可实现。本 case 同时 `自动化入口 = MISSING`（清单），无脚本时应记为缺口而非 PASS。
+  - **BLOCKED**：仅在 `llmtier_b_no_bootstrap` 不可启动、或进程在 `Application.__init__` 之外提前退出导致 `/healthz` 不可达（依赖失败）时判 BLOCKED/SKIP。fixture（`llmtier_b_no_bootstrap`）与脚本（[`at_obs_05.py`](../../../../tests/system/api_test_v03/at_obs_05.py)）均已落地并通过，不再是当前状态。
   - **SKIP**：B 类临时实例不可用等 §2 前置不满足——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **INVALID**：未真实制造引导失败却按 `not_ready` 判定，或以 mock/替代路径冒充真实临时实例——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：本 case `自动化入口 = MISSING`（清单），本轮未执行；缺口引用见[系统测试方案 §4 缺口裁决](../../schemes/llmtier-system-test-scheme.md)（MISSING ≠ NOT_RUN：无实现是缺口，不是跳过）。
+  - **NOT_RUN**：本 case 有实现（[`at_obs_05.py`](../../../../tests/system/api_test_v03/at_obs_05.py)），未执行时记 `NOT_RUN`；不得以未跑冒充 PASS。
 
 ## 6. 错误路径、副作用与清理
 
@@ -122,6 +122,6 @@
 ## 7. 自动化位置与状态
 
 - **证据与 Run**：证据与 Run 契约见[§4.8/§10](../../schemes/llmtier-system-test-scheme.md)：保存构造证据（选 (a)/(b)、坏 settings 内容或"未提供 settings"、DB 为空且无 `bootstrap_sha256`）、`/healthz` 与 `/readyz` 的原始 HTTP status/headers/body、`elapsed`；manifest 与报告落位（`tests/system/reports/...`）见 §4.8/§10（本 case `environment:"b"`）；失败现场不截断。
-- **依赖**：B 类 fixture——**当前缺失**：需要一个"无引导/坏引导"实例（如 `llmtier_b_no_bootstrap`：(a) `LLMTierInstance(settings=None)` 空库 → `bootstrap_required`；(b) 指向不存在/非法/校验失败的 settings → `bootstrap_invalid`）；**不可复用** `llmtier_b`/`llmtier_b_empty`（bootstrap 均成功）。该 fixture 在 [`conftest.py`](../../../../tests/system/api_test_v03/conftest.py) 中**尚不存在**，故本 case 现在 **BLOCKED**。另依赖[系统测试方案 §4 共同机制](../../schemes/llmtier-system-test-scheme.md)；[`registry.py`](../../../../src/management/registry.py) 的 `bootstrap_required`/`bootstrap_invalid` 与 [`app.py:188-189`](../../../../src/http_api/app.py) 的短路；系统设计 `ERR-BOOT` 与 §8.1（[llmtier-system-design.md](../../../20_system_design/llmtier-system-design.md)；`ERR-BOOT` envelope 码的单元层宿主见 §1）；自动化入口 **`MISSING`**（清单，尚无脚本）。**不依赖**其它 Case；与 HEALTH-04 同 `not_ready` 但 `models` 形态互斥（空 vs 7×`unavailable`），各自独立执行。
+- **依赖**：B 类 fixture `llmtier_b_no_bootstrap`（[`conftest.py`](../../../../tests/system/api_test_v03/conftest.py)：(a) `LLMTierInstance(settings=None)` 空库 → `bootstrap_required`；**(b) 臂可选**）；**不可复用** `llmtier_b`/`llmtier_b_empty`（bootstrap 均成功）。另依赖[系统测试方案 §4 共同机制](../../schemes/llmtier-system-test-scheme.md)；[`registry.py`](../../../../src/management/registry.py) 的 `bootstrap_required`/`bootstrap_invalid` 与 [`app.py:188-189`](../../../../src/http_api/app.py) 的短路；系统设计 `ERR-BOOT` 与 §8.1（[llmtier-system-design.md](../../../20_system_design/llmtier-system-design.md)；`ERR-BOOT` envelope 码的单元层宿主见 §1）；自动化入口 [`at_obs_05.py`](../../../../tests/system/api_test_v03/at_obs_05.py)。**不依赖**其它 Case；与 HEALTH-04 同 `not_ready` 但 `models` 形态互斥（空 vs 7×`unavailable`），各自独立执行。
 
-> 实现状态：Planned（自动化入口 `MISSING`，缺口见 §5 BLOCKED）；执行状态与 Verdict 只在 Run 报告。
+> 实现状态：Implemented（`at_obs_05.py` 已断言 `/healthz` 200 + `/readyz` 503 `not_ready` + `models==[]`）；执行状态与 Verdict 只在 Run 报告。

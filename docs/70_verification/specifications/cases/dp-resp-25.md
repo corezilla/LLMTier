@@ -30,7 +30,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-RESP-25` / 系统设计 §8 Responses 接口 / `VRC-INF-001` / recovery / P1（[方案清单 `DP-RESP-25`](../../schemes/llmtier-system-test-scheme.md)）。
-- 要测什么（责任展开）：`POST /v1/responses` 上游响应无法归一：`502 provider_contract_error`（**MISSING** 自动化）。无法从上游响应提取合法 terminal 时，适配层以 `502 provider_contract_error` 拒绝。需求 `R-INF-05`；错误目录 `ERR-PROVIDER-CONTRACT` → wire `code=provider_contract_error`；实现 `src/inference/providers/openai.py`（非 `text/event-stream` → "Provider did not return Responses SSE"；多个 terminal → "more than one terminal"；无合法 terminal → "no valid terminal response"；`status` 与 terminal 类型不一致 → "terminal event and response status disagree"）。
+- 要测什么（责任展开）：`POST /v1/responses` 上游响应无法归一：`502 provider_contract_error`（自动化入口 `at_dp_resp_25.py`）。无法从上游响应提取合法 terminal 时，适配层以 `502 provider_contract_error` 拒绝。需求 `R-INF-05`；错误目录 `ERR-PROVIDER-CONTRACT` → wire `code=provider_contract_error`；实现 `src/inference/providers/openai.py`（非 `text/event-stream` → "Provider did not return Responses SSE"；多个 terminal → "more than one terminal"；无合法 terminal → "no valid terminal response"；`status` 与 terminal 类型不一致 → "terminal event and response status disagree"）。
 - 明确不测什么 / 失败含义：不测上游非成功 HTTP（DP-RESP-23）；不测真实 5xx/不可达（`provider_unavailable`）；不测 SSE `malformed_event` 注入路径；不测答案。失败含义＝上游响应契约归一破坏（把非法上游响应当成功流出）。
 
 ## 2. 被测入口与前置
@@ -69,7 +69,7 @@ Accept: text/event-stream
 | 4 | 断言 `status_code == 502`；解析 `error` | `code=="provider_contract_error"`、`type=="server_error"`、`retryable is False`、`param is None`，键集恰 5 键 |
 | 5 | 断言 `message` 与子测语义一致 | 非 SSE / 多 terminal / 无 terminal / status 不一致 |
 
-- 重点关注步骤：① **契约归一在适配层完成**——不把非法上游响应当成功流出给客户端；② **502 而非 503**——契约错误是 `provider_contract_error`，与 `provider_unavailable`（5xx/不可达）区分；③ **`retryable=false`**（实现默认）；④ **信封 identity**（5 键、`type=server_error`）；⑤ **四个子测各自独立**，不得以一个子测的 PASS 覆盖其它；⑥ **MISSING**——自动化入口为 `MISSING`，须先实现 `at_dp_resp_25.py` 与违规 stub。
+- 重点关注步骤：① **契约归一在适配层完成**——不把非法上游响应当成功流出给客户端；② **502 而非 503**——契约错误是 `provider_contract_error`，与 `provider_unavailable`（5xx/不可达）区分；③ **`retryable=false`**（实现默认）；④ **信封 identity**（5 键、`type=server_error`）；⑤ **四个子测各自独立**，不得以一个子测的 PASS 覆盖其它；⑥ **自动化入口**——`at_dp_resp_25.py` 与违规 stub（`force-*`）已实现。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -83,9 +83,9 @@ Accept: text/event-stream
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/system/api_test_v03/at_dp_resp_25.py`（当前 **MISSING，尚未实现**；依赖违规 stub）。
-- 单 Case 执行命令（实现后）：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_resp_25.py -q`。
-- 实现状态：Planned（MISSING）；执行与 Verdict 归 Run 报告。
+- 测试文件 / 测试函数：[`tests/system/api_test_v03/at_dp_resp_25.py`](../../../../tests/system/api_test_v03/at_dp_resp_25.py)（已实现；依赖违规 stub）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_resp_25.py -q`。
+- 实现状态：Implemented；执行与 Verdict 归 Run 报告。
 
 **判定口径（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
 - PASS：每个子测均 `502` + `provider_contract_error` + `type=server_error` + `retryable=false` + 非 SSE，且 `message` 与违规对应。
@@ -93,7 +93,7 @@ Accept: text/event-stream
 - BLOCKED：无法稳定让 stub 产出四类违规之一。
 - SKIP：B 类临时实例不可用、无 LAN IP 部署 stub（TS-003）。
 - INVALID：以 `127.0.0.1`/mock 冒充真实上游 endpoint。
-- NOT_RUN：本 Case **无自动化实现**（MISSING）；未执行记 `NOT_RUN`。
+- NOT_RUN：本 Case 有实现（`at_dp_resp_25.py`），未执行记 `NOT_RUN`。
 
 **证据与 Run**：保存 stub 配置（违规形态）、被测请求与原始 502 信封、四个子测结果、发出命令、exit code、环境快照（本 case `environment:"b"`）。
 

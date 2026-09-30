@@ -27,6 +27,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 EMBED_BODY = {"model": "Embedding-v1", "input": "page probe"}
+BEYOND_END_OFFSET = 100000
 
 
 def _iso(dt: datetime) -> str:
@@ -83,8 +84,27 @@ def test_dp_usage_07_cursor_replay_idempotent(api_client):
     assert all(r["request_id"] != rid_4 for r in body_r2["data"]), (
         f"rid_4 泄漏进旧页: {body_r2['data']}")
 
-    # Control: a fresh snapshot (no cursor) does include rid_4.
-    fresh = api_client.get("/v1/usage", params={**window, "limit": 200})
+    # Control: a fresh snapshot (no cursor) does include rid_4. Filter by
+    # request_id: the shared window exceeds one page and pages are ordered
+    # ascending, so a wide fresh page may not reach the newest row.
+    fresh = api_client.get("/v1/usage", params={**window, "request_id": rid_4})
     assert fresh.status_code == 200, f"新快照失败: {fresh.text}"
     fresh_ids = {r["request_id"] for r in fresh.json()["data"]}
     assert rid_4 in fresh_ids, f"rid_4 应出现在新快照中: {fresh_ids}"
+
+    # Last-page invariant on the SAME frozen snapshot. m5air is shared, so the
+    # window holds background traffic and walking limit=1 to exhaustion is not
+    # bounded; an offset beyond the frozen member count deterministically yields
+    # the terminal page (empty data, has_more=false, next_cursor=null).
+    end = api_client.get(
+        "/v1/usage",
+        params={**window, "limit": 1, "cursor": f"{sid}:{BEYOND_END_OFFSET}"},
+    )
+    assert end.status_code == 200, f"越界 cursor 失败: {end.text}"
+    end_body = end.json()
+    assert end_body["snapshot_id"] == sid, "越界页 snapshot_id 漂移"
+    assert end_body["data"] == [], f"越界 offset 应返回空页: {end_body['data']}"
+    assert end_body["has_more"] is False, f"越界 offset 应 has_more=false: {end_body['has_more']}"
+    assert end_body["next_cursor"] is None, (
+        f"末页 has_more=false 但 next_cursor 非 null: {end_body['next_cursor']!r}"
+    )

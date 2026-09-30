@@ -62,7 +62,13 @@ class StatsDiagnostics:
                                               "status_breakdown": {}, "request_count": 0, "error_count": 0, "latencies": []})
             bucket["latencies"].append(row["latency_ms"])
         windows = []
-        for key in sorted(buckets):
+        # Bucket keys are (stat_hour, deployment_id, model); deployment_id/model may be
+        # NULL for traffic that never bound a deployment, so a raw tuple sort raises
+        # TypeError on None vs str. Map each component to a comparable (is_none, value).
+        def _sort_key(key: tuple) -> tuple:
+            return tuple((part is None, "" if part is None else str(part)) for part in key)
+
+        for key in sorted(buckets, key=_sort_key):
             b = buckets[key]
             latencies = sorted(b["latencies"])
             breakdown = b["status_breakdown"]

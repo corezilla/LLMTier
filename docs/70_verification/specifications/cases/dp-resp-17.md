@@ -30,7 +30,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-RESP-17` / 系统设计 §8 Responses 接口 / `VRC-INF-001` / recovery / P1（[方案清单 `DP-RESP-17`](../../schemes/llmtier-system-test-scheme.md)）；机制 `T-STREAM`。
-- 要测什么（责任展开）：`POST /v1/responses` 使用 embedding-only 等级：`400 unsupported_model`（`param=model`）（**MISSING** 自动化）。所选 model 的能力声明必须 `capabilities.responses == true`，否则在 dispatch 前拒绝。错误目录 `ERR-REQ-MODEL` → wire `code=unsupported_model`；实现 `src/inference/responses.py`（`require(caps.get("responses") is True, 400, "unsupported_model", "Selected model does not support Responses", "model")`）；需求链 `LT-FUN-001`/`LT-INT-001`、`R-INF-01`。
+- 要测什么（责任展开）：`POST /v1/responses` 使用 embedding-only 等级：`400 unsupported_model`（`param=model`）（自动化入口 `at_dp_resp_17.py`）。所选 model 的能力声明必须 `capabilities.responses == true`，否则在 dispatch 前拒绝。错误目录 `ERR-REQ-MODEL` → wire `code=unsupported_model`；实现 `src/inference/responses.py`（`require(caps.get("responses") is True, 400, "unsupported_model", "Selected model does not support Responses", "model")`）；需求链 `LT-FUN-001`/`LT-INT-001`、`R-INF-01`。
 - 明确不测什么 / 失败含义：不测缺少 `model`（DP-RESP-08）或未知 model（DP-RESP-05）；不测 `tools`/`max_output_tokens` 的次级能力门；不测上游调用（在能力门拒绝）。失败含义＝能力门契约破坏。
 
 ## 2. 被测入口与前置
@@ -72,7 +72,7 @@ Content-Type: application/json
 | 3 | 断言观测形态 | `status_code == 400`，JSON 错误信封（非 SSE） |
 | 4 | 解析 `error` | `code=="unsupported_model"`、`param=="model"`、`type=="request_error"`、`retryable is False`，键集恰 5 键 |
 
-- 重点关注步骤：① **能力门先于路由**——在 `get_service_level` 成功后、`admit` 前拒绝；不得为 embedding-only 等级尝试路由；② **`param="model"`**——本错误码实现显式带 `param`（与 DP-RESP-08 的 `null` 不同）；③ **信封 identity**（5 键、无 `category`）；④ **非 SSE**；⑤ **MISSING**——自动化入口为 `MISSING`，须先实现 `at_dp_resp_17.py`。
+- 重点关注步骤：① **能力门先于路由**——在 `get_service_level` 成功后、`admit` 前拒绝；不得为 embedding-only 等级尝试路由；② **`param="model"`**——本错误码实现显式带 `param`（与 DP-RESP-08 的 `null` 不同）；③ **信封 identity**（5 键、无 `category`）；④ **非 SSE**；⑤ **自动化入口**——`at_dp_resp_17.py` 已实现并覆盖上述断言。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -86,9 +86,9 @@ Content-Type: application/json
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/system/api_test_v03/at_dp_resp_17.py`（当前 **MISSING，尚未实现**）。
-- 单 Case 执行命令（实现后）：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_resp_17.py -q`。
-- 实现状态：Planned（MISSING）；执行与 Verdict 归 Run 报告。
+- 测试文件 / 测试函数：[`tests/system/api_test_v03/at_dp_resp_17.py`](../../../../tests/system/api_test_v03/at_dp_resp_17.py)（已实现）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_resp_17.py -q`。
+- 实现状态：Implemented；执行与 Verdict 归 Run 报告。
 
 **判定口径（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
 - PASS：status 400 + `code=unsupported_model` + `param="model"` + `type=request_error` + `retryable=false` + 非 SSE。
@@ -96,7 +96,7 @@ Content-Type: application/json
 - BLOCKED：测试代码/契约问题。
 - SKIP：就绪检查不满足（`Embedding-v1` 缺失等）。
 - INVALID：以 mock/替代路径冒充真实路径。
-- NOT_RUN：本 Case **无自动化实现**（MISSING）；须先实现入口，未执行记 `NOT_RUN`。
+- NOT_RUN：本 Case 有实现（`at_dp_resp_17.py`），未执行记 `NOT_RUN`。
 
 **证据与 Run**：保存请求 body、HTTP status/headers、原始错误信封、发出命令、exit code、环境快照（`/readyz` 含 `Embedding-v1`；本 case `environment:"a"`）。
 

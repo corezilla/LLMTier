@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "OBS-TRACE-03",
   "document_type": "tests.system-case",
-  "document_version": "0.1.0-draft.1",
+  "document_version": "0.1.0-draft.2",
   "title": "OBS-TRACE-03 — 诊断 trace store 不可用 503",
   "document_owner": "LLMTier",
   "authors": [

@@ -6,10 +6,15 @@ Model: Worker
 Auth: Bearer dev-data
 
 断言：
-- HTTP 400
-- error.code == "unsupported_field"
+- HTTP 400；Content-Type: application/json（非 SSE）
+- error 键集恰 5 键 {message,type,code,param,retryable}（无 category）
+- error.code == "unsupported_field"、type == "request_error"、param is None、retryable is False
+
+注：FORBIDDEN_FIELDS 检查先于 ALLOWED_FIELDS，故本 case 观测 unsupported_field 而非 invalid_request。
 """
 from __future__ import annotations
+
+from tests.system.api_test_v03.conftest import error_envelope
 
 import pytest
 
@@ -27,6 +32,11 @@ def test_dp_resp_09_previous_response_id_rejected(api_client):
         },
     )
     assert resp.status_code == 400, f"返回 {resp.status_code}（期望 400）: {resp.text}"
-    body = resp.json()
-    err = body.get("error") or {}
-    assert err.get("code") == "unsupported_field", f"error.code != 'unsupported_field': {err}"
+    ct = resp.headers.get("content-type", "")
+    assert ct.startswith("application/json"), f"错误响应应 JSON（非 SSE）: {ct!r}"
+
+    err = error_envelope(resp)
+    assert err["code"] == "unsupported_field", f"error.code != 'unsupported_field': {err}"
+    assert err["type"] == "request_error", f"error.type != 'request_error': {err}"
+    assert err["param"] is None, f"error.param 非 null: {err}"
+    assert err["retryable"] is False, f"error.retryable 非 False: {err}"

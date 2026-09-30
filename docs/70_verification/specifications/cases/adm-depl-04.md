@@ -84,7 +84,7 @@
   6. （teardown，`finally` 内）以最新 `GET` 的 `ETag` `DELETE` 本 deployment，断言 `204`；随后 `GET` 断言 `404`。
 
 **重点关注步骤**：① **CAS 语义**——`If-Match` 必须与当前版本严格相等，用**真实读取的 ETag**（绝不硬编码 `v1`）；② **版本推进**——`version` 必 +1 且新 ETag 与之一致，旧 ETag 立即失效；③ **字段生效、未提交字段保持**——`name`/`enabled` 回显新值，`provider_id`/`backend_model`/`capabilities` 保持原值；④ **412 后必须重取**——若因并发得 412，不得覆盖式重发旧 ETag，须重新 `GET` 取新 ETag；⑤ **teardown 用最新 ETag**——更新后版本已推进；⑥ **拒绝零副作用**——若 400/404/409，确认 deployment 未被改。
-  > **契约 vs 实现偏差（登记，不在本 case 失败面）**：§3.2 `ADM-DEPL-04` 标注"`provider_id` 不可改"。实际 [`registry.update_deployment`](../../../../src/management/registry.py) 允许 PATCH `provider_id`，只要新值指向**已存在** provider（`require(SELECT 1 FROM providers ...)`）；仅"换成不存在 provider"才 400（ADM-DEPL-09 覆盖该负向）。即"不可改"当前**未被真正强制**：把 `provider_id` 改为另一个既存 provider 会成功。本 case 只 PATCH `name`/`enabled` 并断言 `provider_id` 不变；偏差在运行报告登记。
+  > **契约与实现（已对齐）**：§3.2 `ADM-DEPL-04` 标注"`provider_id` 不可改"，[`registry.update_deployment`](../../../../src/management/registry.py) 已**强制**该不变量（L266-267：`provider_id` 改值即 400 `invalid_request`，仅同值 no-op 允许）。本 case 只 PATCH `name`/`enabled`，并断言 `provider_id`/`backend_model`/`capabilities` 保持原值；`provider_id` 改值的负向由 ADM-DEPL-09 覆盖。
 
 ## 5. 独立 Oracle 与预期结果
 

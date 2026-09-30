@@ -94,7 +94,7 @@
   7. （teardown，`finally` 内）`GET /v1/deployments/{new_depl_id}` 取最新 ETag；`DELETE /v1/deployments/{new_depl_id}`（`If-Match`）→ 断言 `204`；`GET` 断言 404。
 
 **重点关注步骤**：① **交集丢键**——`context_window` 因 `4096≠8192` 被 `_capability_intersection` 丢弃，`set(capabilities) != CAPABILITY_KEYS` 触发 409；须确认失败码是 `capability_conflict` 而非 `resource_conflict`/`embedding_space_conflict`；② **两个真实 deployment**——`deployment_ids` 必须引用已存在 deployment（否则 `_capability_intersection` 早退 400 `invalid_request`，非本 case）；③ **零副作用**——失败后 `Senior` 成员与版本不变；④ **teardown 完整性**——新建 deployment **未被任何 tier 引用**（PATCH 失败回滚），因此可 `DELETE`；必须删除，否则残留污染同 session 的 deployment 列表与 `ADM-DEPL-01`；⑤ **错误信封 identity**——恰 5 键、`type=request_error`。
-  > **实现缺口（登记）**：现有 [`at_adm_sl_06.py`](../../../../tests/system/api_test_v03/at_adm_sl_06.py) 创建了 `Deployment Different Context` 却**未在 `finally` 删除**，违反 §2.8 teardown。按本设计，case 级入口须补 `DELETE` 清理后方可判 PASS。
+  > **脚本覆盖（已对齐）**：现有 [`at_adm_sl_06.py`](../../../../tests/system/api_test_v03/at_adm_sl_06.py) 已在 `finally` 内 `DELETE` 临时 deployment（断言 `204`、随后 `GET` 404），并回读 `Senior` 证明 `deployment_ids`/`version` 未变（零副作用）。
 
 ## 5. 独立 Oracle 与预期结果
 

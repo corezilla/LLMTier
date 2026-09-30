@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-API-004` / `VRC-API-004`（http-api 模块设计 §14 / http-api-isd §9.1，http-api 0.1.0-draft.2） / `VRC-API-004` / security / P1（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
-- 要测什么（责任展开）：被测：静态资源路径目录穿越拒绝（`../` → 404）、`/readyz` 空库 503 not_ready 不伪装空页。
+- 要测什么（责任展开）：被测：`/readyz` 空库 503 not_ready 不伪装空页（`readiness_view`）；静态资源路径目录穿越拒绝（`../` → 404，`Handler._static`）。
 - 明确不测什么 / 失败含义：不测：浏览器渲染；不测真实文档根部署。失败含义＝静态交付安全/就绪语义实现错误。
 
 ## 2. 被测入口与前置
@@ -64,8 +64,8 @@ readiness_view(registry) -> (payload, status)
 
 ## 3. 输入构造
 
-- 逐参数输入构造：空库 readiness；探针持久化
-- 边界/非法取值及理由：空库边界
+- 逐参数输入构造：空库 readiness；probe 持久化；`GET /ui/../http_api/app.py`（raw socket，未归一化路径穿越）
+- 边界/非法取值及理由：空库边界；穿越路径指向 root 外已存在文件（去掉守卫即 200 泄露）
 - 规模 / 时间域（数量、分页、复杂度、观测开销）：单次调用，O(1)
 
 ## 4. 执行步骤与观察点
@@ -74,6 +74,7 @@ readiness_view(registry) -> (payload, status)
 |---|---|---|
 | 1 | 空库 `readiness_view` | not_ready + 503 |
 | 2 | `apply_probe_result` 持久化 | health 落库 |
+| 3 | raw `GET /ui/../http_api/app.py` | 404 + `error.code=not_found` |
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -87,7 +88,7 @@ readiness_view(registry) -> (payload, status)
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_health.py::test_empty_is_not_ready/test_not_ready_http_status/test_probe_persists`（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_health.py -q`
+- 测试文件 / 测试函数：`tests/unit/v03/test_health.py::test_empty_is_not_ready/test_not_ready_http_status/test_probe_persists`（就绪/探针落库）+ `tests/unit/v03/test_app_dispatch.py::StaticAndReadinessTests::test_directory_traversal_is_404`（静态穿越，raw socket 未归一化路径）（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_health.py tests/unit/v03/test_app_dispatch.py -q`
 - 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
 

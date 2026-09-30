@@ -45,6 +45,7 @@ def test_dp_usage_05_missing_or_invalid_window(api_client):
         ("bad from", {"from": "not-a-date", "to": until}),
         ("bad to", {"from": since, "to": "2026-13-45"}),
         ("reversed", {"from": _iso(now), "to": _iso(now - timedelta(days=30))}),
+        ("equal from==to", {"from": _iso(now), "to": _iso(now)}),
     ]
 
     for label, params in invalid_variants:

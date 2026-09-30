@@ -30,7 +30,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-RESP-18` / 系统设计 §8 Responses 接口 / `VRC-INF-001` / recovery / P2（[方案清单 `DP-RESP-18`](../../schemes/llmtier-system-test-scheme.md)）。
-- 要测什么（责任展开）：`POST /v1/responses` body 超过 2 MB：`413 request_too_large`，读取前拒绝（**MISSING** 自动化）。`Content-Length > 2 MiB` 时在解析业务体前返回 `413 request_too_large`。错误目录 `ERR-REQ-TOO-LARGE` → wire `code=request_too_large`；实现 `src/http_api/app.py` `_body()`（`if int(Content-Length) > 2 * 1024 * 1024: raise ApiError(413, "request_too_large", "Request body is too large")`，系统设计 §11.1）。
+- 要测什么（责任展开）：`POST /v1/responses` body 超过 2 MB：`413 request_too_large`，读取前拒绝（自动化入口 `at_dp_resp_18.py`）。`Content-Length > 2 MiB` 时在解析业务体前返回 `413 request_too_large`。错误目录 `ERR-REQ-TOO-LARGE` → wire `code=request_too_large`；实现 `src/http_api/app.py` `_body()`（`if int(Content-Length) > 2 * 1024 * 1024: raise ApiError(413, "request_too_large", "Request body is too large")`，系统设计 §11.1）。
 - 明确不测什么 / 失败含义：不测非法 `Content-Length`（`400 invalid_request`）或非法 JSON（DP-RESP-16）；不测上游调用。恰好 2 MiB 的边界（`== 2097152` 应受理）作为本 case 的边界子测。失败含义＝请求体上限制破坏。
 
 ## 2. 被测入口与前置
@@ -62,14 +62,14 @@ Content-Length: 2097153
 | 2 | 构造 >2 MiB 的 bytes body，`api_client_b.post("/v1/responses", content=body, headers={"Content-Type":"application/json"})` | status / Content-Type / body |
 | 3 | 断言观测形态 | `status_code == 413`，JSON 错误信封（非 SSE） |
 | 4 | 解析 `error` | `code=="request_too_large"`、`type=="request_error"`、`param is None`、`retryable is False`，键集恰 5 键 |
-| 5 | 边界子测：构造恰好 2 MiB 的合法 body | 不走 413（可为 200 SSE 或业务校验错误，但不得是 `request_too_large`） |
+| 5 | 边界子测：构造恰好 2 MiB 的合法 body | 精确断言被受理：`200` + `text/event-stream` + 含 `response.completed`（非 413、非其它错误） |
 
-- 重点关注步骤：① **上限在读取前检查**——>2 MiB 直接 413，不解析 JSON；② **必须有 `Content-Length`**——若缺（chunked/未设），`_body()` 读 0 字节，会偏离 413 路径；③ **边界语义**——`>` 2 MiB 拒绝、`==` 2 MiB 允许；④ **信封 identity**（5 键、无 `category`）；⑤ **MISSING**——自动化入口为 `MISSING`，须先实现 `at_dp_resp_18.py`。
+- 重点关注步骤：① **上限在读取前检查**——>2 MiB 直接 413，不解析 JSON；② **必须有 `Content-Length`**——若缺（chunked/未设），`_body()` 读 0 字节，会偏离 413 路径；③ **边界语义**——`>` 2 MiB 拒绝、`==` 2 MiB 允许；④ **信封 identity**（5 键、无 `category`）；⑤ **边界可判别**——超限子测断 413 + `request_too_large`；边界子测精确断 200 + `text/event-stream`（不再用 `code != request_too_large` 的宽松门）；⑥ **自动化入口**——`at_dp_resp_18.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：OpenAPI `ErrorEnvelope`/`ErrorDetail` + 系统设计 §7.8 / §11.1 `ERR-REQ-TOO-LARGE`。**判据语义以设计验证项 `VRC-INF-001` 为唯一权威**；本节仅细化不改写，冲突回溯设计修订。
-- 互斥预期（成功 / 各错误分支）：HTTP `413`；`Content-Type: application/json`；body：`{"error":{"message":"Request body is too large","type":"request_error","code":"request_too_large","param":null,"retryable":false}}`；无 SSE 帧/`[DONE]`；恰好 2 MiB 时不出现该 code。
+- 互斥预期（成功 / 各错误分支）：HTTP `413`；`Content-Type: application/json`；body：`{"error":{"message":"Request body is too large","type":"request_error","code":"request_too_large","param":null,"retryable":false}}`；无 SSE 帧/`[DONE]`；恰好 2 MiB 被受理（`200` + `text/event-stream`）。
 
 ## 6. 错误路径、副作用与清理
 
@@ -78,17 +78,17 @@ Content-Length: 2097153
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/system/api_test_v03/at_dp_resp_18.py`（当前 **MISSING，尚未实现**）。
-- 单 Case 执行命令（实现后）：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_resp_18.py -q`。
-- 实现状态：Planned（MISSING）；执行与 Verdict 归 Run 报告。
+- 测试文件 / 测试函数：[`tests/system/api_test_v03/at_dp_resp_18.py`](../../../../tests/system/api_test_v03/at_dp_resp_18.py)（已实现：超限 413 + 边界 200 两子测）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_resp_18.py -q`。
+- 实现状态：Implemented；执行与 Verdict 归 Run 报告。
 
 **判定口径（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
-- PASS：>2 MiB → 413 + `request_too_large` + 非 SSE；边界 2 MiB 不被本上限拒绝。
+- PASS：>2 MiB → 413 + `request_too_large` + 非 SSE；边界 2 MiB 被受理（`200` + `text/event-stream` + `response.completed`）。
 - FAIL：status/code 错、超限未被拒、边界误拒。
 - BLOCKED：测试代码/契约问题。
 - SKIP：B 类临时实例不可用。
 - INVALID：以 mock/替代路径冒充真实路径。
-- NOT_RUN：本 Case **无自动化实现**（MISSING）；未执行记 `NOT_RUN`。
+- NOT_RUN：本 Case 有实现（`at_dp_resp_18.py`），未执行记 `NOT_RUN`。
 
 **证据与 Run**：保存请求 `Content-Length` 与字节数、HTTP status/headers、原始错误信封、边界子测结果、发出命令、exit code、环境快照（本 case `environment:"b"`）。
 

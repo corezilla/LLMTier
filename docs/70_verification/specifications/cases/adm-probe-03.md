@@ -56,7 +56,7 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=§2.1 附加（B 类）；fixture `admin_client_b`（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；初始状态=仅有 `depl_b`，无其它 deployment。本 case 为 **MISSING**（§3.2 无 `at_adm_probe_03.py`），设计已写、实现待补。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=§2.1 附加（B 类）；fixture `admin_client_b`（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；初始状态=仅有 `depl_b`，无其它 deployment。本 case 自动化入口 [`at_adm_probe_03.py`](../../../../tests/system/api_test_v03/at_adm_probe_03.py) 已实现（§3.2 `RUN`）。
 
 ## 3. 输入构造
 
@@ -96,7 +96,7 @@
   - **FAIL**：status 非 404（含 400/200）、`code` 错、或产生副作用。
   - **BLOCKED**：fixture/断言逻辑问题——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **SKIP**：B 类临时实例不可用——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：本 Case 自动化入口 **`MISSING`**（§3.2），本轮未执行；缺口引用 §3.2/§9（MISSING ≠ NOT_RUN）。
+  - **NOT_RUN**：本 Case 有实现（§3.2 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
   - **INVALID**：用 `127.0.0.1`/mock 冒充，或未命中真实资源解析——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
 
 ## 6. 错误路径、副作用与清理
@@ -107,6 +107,6 @@
 
 - **证据与 Run**：保存GET/POST 请求与原始 404 响应（脱敏后）、发出命令、exit code、`elapsed`、环境快照（`/healthz` + deployment 列表前后）；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../../plans/llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/B-api`，`environment:"b"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：B 类 fixture `llmtier_b` / `admin_client_b`（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../../schemes/llmtier-system-test-scheme.md)）；`registry.get_deployment`；错误目录 `ERR-NOTFOUND`；机制 `R-OBS-01`。自动化入口 **`MISSING`**（待补 `at_adm_probe_03.py`，落位按 §4.9/§8.5）。**不依赖**其它 Case；与 ADM-PROBE-01/02 互补。
+- **依赖**：B 类 fixture `llmtier_b` / `admin_client_b`（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../../schemes/llmtier-system-test-scheme.md)）；`registry.get_deployment`；错误目录 `ERR-NOTFOUND`；机制 `R-OBS-01`。自动化入口 [`at_adm_probe_03.py`](../../../../tests/system/api_test_v03/at_adm_probe_03.py)。**不依赖**其它 Case；与 ADM-PROBE-01/02 互补。
 
 > 实现状态：Implemented（`at_adm_probe_03.py`）；执行状态与 Verdict 只在 Run 报告。

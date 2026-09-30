@@ -1,7 +1,9 @@
+import http.client
 import io
 import json
 import tempfile
 import unittest
+import urllib.error
 from email.message import Message
 from pathlib import Path
 from unittest.mock import patch
@@ -58,3 +60,26 @@ class OpenAIProviderTests(unittest.TestCase):
             with self.assertRaises(ApiError) as caught:
                 OpenAIProvider("https://provider.example",None).complete("m",{"input":"x"})
         self.assertEqual(caught.exception.code,"provider_contract_error")
+
+    def test_remote_disconnect_maps_to_provider_unavailable(self):
+        # DP-EMB-10 transport branch: an upstream that drops the connection
+        # without a response raises http.client.RemoteDisconnected, which is NOT
+        # a urllib.error.URLError. It must still map to 503 provider_unavailable.
+        with patch("urllib.request.urlopen",side_effect=http.client.RemoteDisconnected("remote closed")):
+            with self.assertRaises(ApiError) as caught:
+                OpenAIProvider("https://provider.example",None).embed("m",{"input":"x"})
+        self.assertEqual((caught.exception.status,caught.exception.code,caught.exception.retryable),(503,"provider_unavailable",True))
+
+    def test_url_error_maps_to_provider_unavailable(self):
+        # E-INF-UPSTREAM: a URL/transport error (unreachable host) → 503.
+        with patch("urllib.request.urlopen",side_effect=urllib.error.URLError("no route to host")):
+            with self.assertRaises(ApiError) as caught:
+                OpenAIProvider("https://provider.example",None).embed("m",{"input":"x"})
+        self.assertEqual((caught.exception.status,caught.exception.code,caught.exception.retryable),(503,"provider_unavailable",True))
+
+    def test_timeout_maps_to_provider_unavailable(self):
+        # E-INF-UPSTREAM: a connect/read timeout → 503.
+        with patch("urllib.request.urlopen",side_effect=TimeoutError("timed out")):
+            with self.assertRaises(ApiError) as caught:
+                OpenAIProvider("https://provider.example",None).embed("m",{"input":"x"})
+        self.assertEqual((caught.exception.status,caught.exception.code,caught.exception.retryable),(503,"provider_unavailable",True))

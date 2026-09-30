@@ -33,12 +33,19 @@ class AuthTests(unittest.TestCase):
             self.assertEqual(unauthenticated_principal("127.0.0.1",Headers(),"admin").principal_id,"loopback-operator")
             self.assertEqual(unauthenticated_principal("192.168.1.20",Headers(),"admin").principal_id,"trusted-lan-operator")
     def test_trusted_lan_mode_accepts_private_addresses(self):
-        self.assertEqual(unauthenticated_principal("192.168.1.20",Headers(),"admin").principal_id,"trusted-lan-operator")
-        self.assertEqual(unauthenticated_principal("10.0.0.7",Headers(),"data").principal_id,"trusted-lan-consumer")
-        self.assertEqual(unauthenticated_principal("fd00::7",Headers(),"data").principal_id,"trusted-lan-consumer")
-        self.assertIsNone(unauthenticated_principal("8.8.8.8",Headers(),"admin"))
+        # patch.dict(clear=True) pins the state: without it a leaked
+        # LLMTIER_DEV_MODE would flip loopback handling and mask the assertion.
+        with patch.dict(os.environ,{},clear=True):
+            self.assertEqual(unauthenticated_principal("192.168.1.20",Headers(),"admin").principal_id,"trusted-lan-operator")
+            self.assertEqual(unauthenticated_principal("10.0.0.7",Headers(),"data").principal_id,"trusted-lan-consumer")
+            self.assertEqual(unauthenticated_principal("fd00::7",Headers(),"data").principal_id,"trusted-lan-consumer")
+            self.assertIsNone(unauthenticated_principal("8.8.8.8",Headers(),"admin"))
+            # Public IPv6 and a spoofed X-Forwarded-For must not grant a principal.
+            self.assertIsNone(unauthenticated_principal("2001:4860:4860::8888",Headers(),"admin"))
+            self.assertIsNone(unauthenticated_principal("8.8.8.8",Headers(**{"X-Forwarded-For":"192.168.1.20"}),"admin"))
     def test_explicit_bearer_disables_no_auth_path(self):
-        self.assertIsNone(unauthenticated_principal("192.168.1.20",Headers(Authorization="Bearer x"),"admin"))
+        with patch.dict(os.environ,{},clear=True):
+            self.assertIsNone(unauthenticated_principal("192.168.1.20",Headers(Authorization="Bearer x"),"admin"))
     def test_non_trusted_address_without_credential_is_401(self):
         with patch.dict(os.environ,{"LLMTIER_DATA_TOKEN":"x"},clear=True):
             self.assertIsNone(unauthenticated_principal("8.8.8.8",Headers(),"data"))

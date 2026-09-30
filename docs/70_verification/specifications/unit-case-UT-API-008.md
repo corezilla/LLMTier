@@ -74,7 +74,7 @@ Handler._auth(role="data"); Handler._auth_either() -> (Principal, is_admin)
 |---|---|---|
 | 1 | data token 访问 admin 端点 | 403 |
 | 2 | admin token 访问 admin 端点 | 200 |
-| 3 | 校验角色选择为 admin-first | 返回角色来自 admin 判定 |
+| 3 | 校验角色选择为 admin-first | 双 token 配置下经 `/v1/usage` DELETE 驱动：admin token→200、data token→403 |
 | 4 | 非受信地址（`8.8.8.8`）无 `Authorization` 头 | `unauthenticated_principal`→`None`；`authenticate`→401 `authentication_required` |
 
 ## 5. 独立 Oracle 与预期结果
@@ -89,6 +89,6 @@ Handler._auth(role="data"); Handler._auth_either() -> (Principal, is_admin)
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_app_dispatch.py::AdminDispatchAuthTests::test_data_token_on_admin_endpoint_is_403` / `test_admin_token_on_admin_endpoint_is_200`；角色选择另由 `test_auth.py::test_admin_token`/`test_principal_header` 覆盖；**非受信来源缺凭据 401** 由 `test_auth.py::test_non_trusted_address_without_credential_is_401` 覆盖（系统层 AUTH-10 以非法授权方案触发同一 401 分支；非受信来源无系统级构造）。
+- 测试文件 / 测试函数：`tests/unit/v03/test_app_dispatch.py::AdminDispatchAuthTests::test_data_token_on_admin_endpoint_is_403` / `test_admin_token_on_admin_endpoint_is_200` / `test_auth_either_admin_first_role_selection`（双 token 配置下经 `/v1/usage` DELETE 驱动 `_auth_either` admin-first 角色选择：admin token→200、data token→403）；角色选择另由 `test_auth.py::test_admin_token`/`test_principal_header` 覆盖；**非受信来源缺凭据 401** 由 `test_auth.py::test_non_trusted_address_without_credential_is_401` 覆盖（系统层 AUTH-10 以非法授权方案触发同一 401 分支；非受信来源无系统级构造）。
 - 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_app_dispatch.py tests/unit/v03/test_auth.py -q`
 - 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03/test_app_dispatch.py`、`test_auth.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。

@@ -1,0 +1,14 @@
+{
+  "artifacts": [],
+  "case_id": "ADM-PROBE-02",
+  "command": "python3 -m pytest --junitxml=tests/system/reports/2026-09-30/A-api/junit.xml tests/system/api_test_v03/ -m api_a -v --tb=short -o addopts=",
+  "git_commit": "f2b4500d48c7fe741ba5223091b740eebca76ffe",
+  "node_id": "tests.system.api_test_v03.at_adm_probe_02::test_adm_probe_02_with_confirm",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "2026-09-30/A-api",
+  "schema_version_db": "2",
+  "started_at": "2026-09-30T12:50:45Z",
+  "status": "PASS"
+}

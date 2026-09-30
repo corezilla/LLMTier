@@ -30,7 +30,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-RESP-20` / 系统设计 §8 Responses 接口 / `VRC-INF-004` / concurrency / P1（[方案清单 `DP-RESP-20`](../../schemes/llmtier-system-test-scheme.md)）；机制 `T-QUEUE`。
-- 要测什么（责任展开）：`POST /v1/responses` 准入饱和：`429 rate_limit_exceeded` 且带 `Retry-After`（**MISSING** 自动化）。并发超过 `depl_b` 的运行时并发许可与队列上限（队列 32）时，`Router.admit` 拒绝并返回稳定 `429` 与 `Retry-After`。需求 `R-INF-05`；错误目录 `ERR-RATE-LIMIT` → wire `code=rate_limit_exceeded`；实现 `src/inference/routing.py`（队列满 `len(self._queues[level_id]) >= 32` → `ApiError(429, "rate_limit_exceeded", "Service-level queue is full", retryable=True, headers={"Retry-After":"30"})`；等待超时 → `Retry-After:"1"`）。
+- 要测什么（责任展开）：`POST /v1/responses` 准入饱和：`429 rate_limit_exceeded` 且带 `Retry-After`（自动化入口 `at_dp_resp_20.py`）。并发超过 `depl_b` 的运行时并发许可与队列上限（队列 32）时，`Router.admit` 拒绝并返回稳定 `429` 与 `Retry-After`。需求 `R-INF-05`；错误目录 `ERR-RATE-LIMIT` → wire `code=rate_limit_exceeded`；实现 `src/inference/routing.py`（队列满 `len(self._queues[level_id]) >= 32` → `ApiError(429, "rate_limit_exceeded", "Service-level queue is full", retryable=True, headers={"Retry-After":"30"})`；等待超时 → `Retry-After:"1"`）。
 - 明确不测什么 / 失败含义：不测 `model_unavailable`（DP-RESP-19）；不测超时预算的 ms 级时点（不设 SLO）；不测 exactly-once/重试语义。失败含义＝准入/排队契约破坏。
 
 ## 2. 被测入口与前置
@@ -48,36 +48,35 @@ PATCH /v1/deployments/depl_b/diagnostics            Authorization: Bearer dev-ad
 
 ## 3. 输入构造
 
-- 逐参数输入构造：以 `delay` 注入占用许可（`delay` 前置阶段在 `admit` 上下文内 sleep，占住唯一并发槽），再并发灌入请求。
+- 逐参数输入构造：**以确定性门控占槽**——先发**一个**请求占住唯一并发槽（上游 `backend_model="slow-responses"` 在 fake provider 侧阻塞直到 release；`GET /v1/runtime` 确认 `depl_b.running>=1`），再并发灌入请求。
 
-占槽注入（`PATCH /v1/deployments/depl_b/diagnostics`，`admin`）：
+占槽（专属 fixture `llmtier_b_resp_slow`：`backend_model="slow-responses"`，上游在 fake provider 门控上阻塞；teardown `release_slow()` 立即排空）：
 
-```json
-{"items": [{"type": "delay", "config": {"delay_ms": 60000}, "enabled": true}]}
+```text
+POST /v1/responses  （占槽者，1 个）
 ```
 
-被测并发：以同一 `data` token 同时发起 `N`（建议 `N >= 34`）个相同请求：
+被测并发：占槽确证后，以同一 `data` token 同时发起 `N`（建议 `N >= 34`）个相同请求：
 
 ```json
 {"model": "Senior", "input": [{"role": "user", "content": "hi"}], "stream": true, "store": false}
 ```
 
-- 边界/非法取值及理由：`delay_ms` 取上限 `60000`（`_RANGES.delay_ms ∈ [0,60000]`）使槽位长时间占用；`N` 需超过 1（占槽）+ 32（队列上限）；`delay` 属前置阶段注入，命中后 `time.sleep` 发生在 `with router.admit(model)` 内（`responses.py`），故确实持槽。
-- 规模 / 时间域：`N >= 34` 并发；`delay_ms=60000` 保持槽位占用；不发布时延 SLO。
+- 边界/非法取值及理由：槽由上游门控（`slow-responses`）阻塞占住（`GET /v1/runtime` 观测 `depl_b.running>=1` 确证）；`N` 需超过 1（占槽）+ 32（队列上限）。
+- 规模 / 时间域：`N >= 34` 并发；门控持续占槽直至 teardown release；不发布时延 SLO。
 
 ## 4. 执行步骤与观察点
 
 | Step | 动作 | 观察点 |
 |---|---|---|
-| 1 | （fixture 前置）启动专属实例并 probe `depl_b` → `healthy`；确认无启用注入 | 实例就绪 |
-| 2 | `PATCH /v1/deployments/depl_b/diagnostics`（上表注入） | 200 且 `delay` 生效 |
-| 3 | 以线程/异步并发发起 `N` 个 `POST /v1/responses` | 各响应 status |
-| 4 | 收集响应：断言**至少一个**为 `429`；对首个 429 解析 `error` | `code=="rate_limit_exceeded"`、`type=="request_error"`、`retryable is True`、`param is None` |
+| 1 | （fixture 前置）启动专属实例 `llmtier_b_resp_slow`（`slow-responses`）并 probe `depl_b` → `healthy` | 实例就绪 |
+| 2 | fake provider 门控关闭（`reset_slow`）；发**一个**请求占槽 | 上游阻塞 |
+| 3 | 轮询 `GET /v1/runtime` 直到 `depl_b.running >= 1` | 占槽确证 |
+| 4 | 并发发起 `N` 个 `POST /v1/responses`；断言**至少一个**为 `429`（队列满立即返回） | `code=="rate_limit_exceeded"`、`type=="request_error"`、`retryable is True`、`param is None`、5 键 |
 | 5 | 断言 429 响应含 `Retry-After` 头 | 值为正整数秒（队列满为 `"30"`，等待超时为 `"1"`） |
-| 6 | （teardown，`finally`）`PATCH .../diagnostics` body `{"items": []}` | 清空注入，`GET` 校验为空 |
-| 7 | 交叉核对拒绝零副作用 | 429 无上游调用；账本按实现处理（准入失败可能保留 orphan，不作为"零义务"硬断言，只断言无上游调用） |
+| 6 | （teardown，`finally`）`fake_provider_b.release_slow()` | 占槽/排队请求立即排空，无残留长睡眠 |
 
-- 重点关注步骤：① **饱和才 429**——只有超过许可+队列上限时拒绝，非首个请求；② **`Retry-After` 存在且为正整数**；③ **区分两条 429 分支**——队列满（`Retry-After:30`）vs 等待超时（`Retry-After:1`），只断"存在+正整数"以免耦合内部时点；④ **并发共享同一 tier 的许可/队列**，不得假设各请求独立资源；⑤ **注入必须清空**，不得残留 `delay`；⑥ **MISSING**——自动化入口为 `MISSING`，须先实现 `at_dp_resp_20.py`。
+- 重点关注步骤：① **饱和才 429**——只有超过许可+队列上限时拒绝，非首个请求；② **`Retry-After` 存在且为正整数**；③ **区分两条 429 分支**——队列满（`Retry-After:30`）vs 等待超时（`Retry-After:1`），只断"存在+正整数"以免耦合内部时点；④ **并发共享同一 tier 的许可/队列**，不得假设各请求独立资源；⑤ **确定性饱和**——占槽经 `GET /v1/runtime` 确认 `depl_b.running>=1` 后并发入队，队列满立即 429（不依赖 `FIRST_COMPLETED`/并发完成时序）；槽由上游门控（`slow-responses`）占住，teardown release 立即排空，无残留长睡眠；⑥ **自动化入口**——`at_dp_resp_20.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -87,13 +86,13 @@ PATCH /v1/deployments/depl_b/diagnostics            Authorization: Bearer dev-ad
 ## 6. 错误路径、副作用与清理
 
 - 错误出口与表现：准入饱和 → `429 rate_limit_exceeded` + `Retry-After`，可观察且非 SSE。
-- 副作用断言与清理：**必须 teardown**——`PATCH /v1/deployments/depl_b/diagnostics {"items":[]}` 清空 `delay` 后 `GET` 校验；不修改 `prov_b`/`depl_b`。专属实例按计划整班销毁。
+- 副作用断言与清理：**必须 teardown**——`fake_provider_b.release_slow()` 释放门控（占槽/排队请求立即排空）；不修改 `prov_b`/`depl_b`。专属实例（function-scope）按计划销毁。
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/system/api_test_v03/at_dp_resp_20.py`（当前 **MISSING，尚未实现**）。
-- 单 Case 执行命令（实现后）：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_resp_20.py -q`。
-- 实现状态：Planned（MISSING）；执行与 Verdict 归 Run 报告。
+- 测试文件 / 测试函数：[`tests/system/api_test_v03/at_dp_resp_20.py`](../../../../tests/system/api_test_v03/at_dp_resp_20.py)（已实现；fixture `llmtier_b_resp_slow`）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_resp_20.py -q`。
+- 实现状态：Implemented；执行与 Verdict 归 Run 报告。
 
 **判定口径（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
 - PASS：饱和时至少一个 `429 rate_limit_exceeded` + `Retry-After` 正整数 + `retryable=true`；teardown 清空。
@@ -101,7 +100,7 @@ PATCH /v1/deployments/depl_b/diagnostics            Authorization: Bearer dev-ad
 - BLOCKED：并发/注入 fixture 不可实现。
 - SKIP：B 类临时实例不可用。
 - INVALID：以 mock/替代路径冒充真实路径，或注入未命中却按 429 判定。
-- NOT_RUN：本 Case **无自动化实现**（MISSING）；未执行记 `NOT_RUN`。
+- NOT_RUN：本 Case 有实现（`at_dp_resp_20.py`），未执行记 `NOT_RUN`。
 
 **证据与 Run**：保存注入写/清空、并发请求清单与各响应（含 429 与 `Retry-After`）、上游调用计数/runtime 快照、发出命令、exit code、环境快照（本 case `environment:"b"`）。
 

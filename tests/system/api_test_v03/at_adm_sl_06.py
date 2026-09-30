@@ -16,6 +16,9 @@ context_window 不一致（如 4096 vs 8192）时该 key 被丢弃，
 断言：
 - HTTP 409
 - error.code == "capability_conflict"
+- error 键集恰 5 键、type == "request_error"、retryable == False
+- 零副作用：Senior 的 deployment_ids/version 未变
+- teardown（finally）：删除新建 deployment（204，随后 404）
 """
 from __future__ import annotations
 
@@ -27,6 +30,9 @@ def test_adm_sl_06_capability_conflict(admin_client_b):
     get_resp = admin_client_b.get("/v1/service-levels/Senior")
     assert get_resp.status_code == 200
     etag = get_resp.headers.get("ETag")
+    senior = get_resp.json()
+    version_before = senior["version"]
+    ids_before = senior["deployment_ids"]
 
     new_depl = admin_client_b.post("/v1/deployments", json={
         "name": "Deployment Different Context",
@@ -60,6 +66,13 @@ def test_adm_sl_06_capability_conflict(admin_client_b):
         assert patch_resp.status_code == 409, f"期望 409，实际 {patch_resp.status_code}: {patch_resp.text}"
         err = patch_resp.json().get("error") or {}
         assert err.get("code") == "capability_conflict"
+        assert err.get("type") == "request_error", f"type != request_error: {err}"
+        assert err.get("retryable") is False, f"retryable != False: {err}"
+
+        after = admin_client_b.get("/v1/service-levels/Senior")
+        assert after.status_code == 200
+        assert after.json()["deployment_ids"] == ids_before, "被拒 PATCH 改动了 Senior.deployment_ids"
+        assert after.json()["version"] == version_before, "被拒 PATCH 推进了 Senior.version"
     finally:
         # teardown: PATCH 失败已回滚，new deployment 未被任何 tier 引用，可直接删除。
         current = admin_client_b.get(f"/v1/deployments/{new_depl_id}")

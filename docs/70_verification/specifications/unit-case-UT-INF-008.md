@@ -89,6 +89,6 @@ ProviderAdapter._request(...) -> (dict, headers); UsageRecorder.record_provider_
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_provider_openai.py::test_probe_uses_authenticated_models_endpoint`（URL）+ `test_responses.py::ResponsesValidationGapTests::test_usage_non_integer_partial_is_unknown_with_nulls` / `test_empty_provider_request_id_is_noop_via_service` / `test_injected_source_recorded_on_injected_fault` + `test_inference_failopen.py::test_upstream_fault_still_surfaces_when_diagnostic_writes_fail`
+- 测试文件 / 测试函数：`tests/unit/v03/test_provider_openai.py::test_probe_uses_authenticated_models_endpoint`（URL/auth）+ `test_url_error_maps_to_provider_unavailable` / `test_timeout_maps_to_provider_unavailable` / `test_remote_disconnect_maps_to_provider_unavailable`（URL/超时/断开 → 503 `provider_unavailable`）+ `test_responses.py::ResponsesValidationGapTests::test_usage_non_integer_partial_is_unknown_with_nulls` / `test_empty_provider_request_id_is_noop_via_service` / `test_injected_source_recorded_on_injected_fault` + `test_inference_failopen.py::test_upstream_fault_still_surfaces_when_diagnostic_writes_fail`
 - 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_responses.py tests/unit/v03/test_provider_openai.py tests/unit/v03/test_inference_failopen.py -q`
 - 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03`；上游 503 映射另由 `test_provider_openai.py`/`test_inference_failopen.py` 覆盖）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。

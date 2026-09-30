@@ -72,13 +72,13 @@ usageSummary(...) / const metric=value=>...  # 源码分支契约
 
 | Step | 动作 | 观察点 |
 |---|---|---|
-| 1 | 断言 not_refreshed/unlimited/非 ok 分支 | `snapshot.status==='not_refreshed'`、`'unlimited'`、`!=='ok'` |
-| 2 | 断言 unknown 不填零的 metric 分支 | `const metric=value=>` |
+| 1 | 提取 `usageSummary` 函数体断言四态分支与输出 | not_refreshed→`Not refreshed`、unlimited→`Unlimited`、`!=='ok'`→`Unavailable`，且三分支顺序正确（索引比较） |
+| 2 | 断言 unknown 不填零的 metric 分支 | `const metric=value=>value==null?...Unknown...` 存在；ok 分支以 `snapshot.percent==null?null` 调 `metric` |
 
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：web-ui §14.5「Unknown ≠ 0」语义 + 人工比对源码；字符串契约层。**判据语义以设计验证项 `VRC-UI-004` 为唯一权威**；本节仅细化不改写，冲突回溯设计修订。
-- 互斥预期（成功 / 各错误分支）：not_refreshed/unlimited/Unavailable/percent-null 四态分支 token 存在；互斥（缺任一分支出错）
+- 互斥预期（成功 / 各错误分支）：not_refreshed/unlimited/Unavailable/percent-null 四态分支各自映射到独立输出 token，且**分支有先后顺序**（索引比较），非仅 token 存在；互斥（缺任一分支出错）
 
 ## 6. 错误路径、副作用与清理
 

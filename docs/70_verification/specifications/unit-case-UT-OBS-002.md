@@ -46,8 +46,8 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-OBS-002` / `VRC-OBS-002`（observability 模块设计 §14 / observability-isd §9.1，observability 0.1.0-draft.6） / `VRC-OBS-002` / boundary / P1（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
-- 要测什么（责任展开）：被测：一次上游调用后 snapshots/stats 字段完整、URL 去 query、统计口径（按 tier/deployment 聚合、跨 principal）、非法 group_by 拒绝、空记录返回空。
-- 明确不测什么 / 失败含义：不测：真实 dashboard（M002）；不测 HTTP 形状（M006）。失败含义＝查询/脱敏/统计口径实现错误。
+- 要测什么（责任展开）：被测：统计口径（按 tier/deployment 聚合、含 provider 元数据、跨 principal）、非法 group_by 拒绝、空记录返回空；快照字段完整与 URL 去 query（与 UT-OBS-006 共享 `SnapshotRedactionTests`）。
+- 明确不测什么 / 失败含义：不测：真实 dashboard（M002）；不测 HTTP 形状（M006）。失败含义＝查询/统计口径/脱敏实现错误。
 
 ## 2. 被测入口与前置
 
@@ -77,6 +77,7 @@ DiagnosticsService.page_snapshots/stats(...)
 | 3 | 跨 principal 聚合 | 总数 |
 | 4 | 非法 group_by | 400 |
 | 5 | 空记录 | 空 data |
+| 6 | 上游调用后快照 URL | `?token=` 不落库、字段完整 |
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -90,7 +91,7 @@ DiagnosticsService.page_snapshots/stats(...)
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_admin_stats.py`（全部 5 个）（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_admin_stats.py -q`
+- 测试文件 / 测试函数：`tests/unit/v03/test_admin_stats.py`（全部 5 个：tier/deployment 聚合、跨 principal、非法 group_by、空记录）+ `tests/unit/v03/test_observability_gaps.py::SnapshotRedactionTests::test_query_secret_is_not_stored_in_snapshot` / `test_trace_stage_url_also_stripped`（快照 URL 去 query 与字段落库；与 UT-OBS-006 共享）（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_admin_stats.py tests/unit/v03/test_observability_gaps.py -q`
 - 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
 

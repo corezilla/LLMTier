@@ -74,7 +74,7 @@ PATCH body 仅允许 snapshots_enabled/stats_enabled 且值为布尔
 |---|---|---|
 | 1 | `/v1/diagnostics` PATCH 未知键 | 400 + `error.code=invalid_request` |
 | 2 | 别名 PATCH 未知键 | 400 + `error.code=invalid_request` |
-| 3 | 非布尔开关值 | 400（与 UT-API-006 共担观测点） |
+| 3 | 非布尔开关值 | 400；且前后 `GET /v1/diagnostics` 一致（未落库） |
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -88,6 +88,6 @@ PATCH body 仅允许 snapshots_enabled/stats_enabled 且值为布尔
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_app_dispatch.py::DiagnosticsPatchContractTests::test_unknown_key_is_400` / `test_alias_unknown_key_is_400`
+- 测试文件 / 测试函数：`tests/unit/v03/test_app_dispatch.py::DiagnosticsPatchContractTests::test_unknown_key_is_400` / `test_alias_unknown_key_is_400` / `test_non_boolean_switch_is_400_and_not_persisted`（非布尔→400 + 前后开关读取证明未落库）
 - 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_app_dispatch.py -q`
 - 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03/test_app_dispatch.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。

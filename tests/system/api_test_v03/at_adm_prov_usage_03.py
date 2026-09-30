@@ -10,6 +10,7 @@ Auth: Bearer dev-admin
 - body 键集恰为 ProviderAccountUsageSnapshot 的 12 个必填键
 - status 属于枚举 {ok,unavailable,unsupported,unlimited,not_refreshed}
 - provider_local 为 local：status == "unlimited"、source == "quota_config"
+- 持久化：GET 回读 checked_at 与刷新响应一致（证明落库，非仅响应回显）
 
 注：provider_local 是 local 类型，refresh 返回 "unlimited" snapshot（account_usage.py:167）。
 """
@@ -36,3 +37,9 @@ def test_adm_prov_usage_03_refresh_with_confirm(admin_client):
     assert body["status"] in SNAPSHOT_STATUSES, f"status 非枚举: {body['status']!r}"
     assert body["status"] == "unlimited", f"local 臂 status 期望 unlimited，实际 {body['status']!r}"
     assert body["source"] == "quota_config", f"local 臂 source 期望 quota_config，实际 {body['source']!r}"
+
+    # Persistence readback: GET must return the same snapshot (checked_at equal).
+    readback = admin_client.get("/v1/providers/provider_local/usage")
+    assert readback.status_code == 200, f"回读 GET usage 失败: {readback.status_code}: {readback.text}"
+    assert readback.json()["checked_at"] == body["checked_at"], (
+        "刷新未持久化：GET 回读 checked_at 与刷新响应不一致")

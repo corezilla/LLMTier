@@ -18,7 +18,8 @@ invalid_injection（param 指向被拒字段），不写入任何注入行。
 注（实现 vs case doc，见报告 discrepancy）：case doc §1 断言实现用
 `bool(item.get("enabled"))` 接受任意 truthy；实测 `_validate` 已要求
 `isinstance(enabled, bool)`，非 bool（含缺失）→ 400 invalid_injection param="enabled"
-（`src/libdiag/injections.py:34-36`）。本脚本按实现断言该严格校验。
+（`src/libdiag/injections.py:34-36`）。本脚本按实现断言该严格校验，并正面覆盖
+`enabled` 非 bool（字符串/整数/缺失）三类样例（INVALID_ITEMS 末尾三组）。
 """
 from __future__ import annotations
 
@@ -39,6 +40,10 @@ INVALID_ITEMS = [
     ({"type": "stream_terminate", "config": {"stream_terminate_after_events": 0}, "enabled": True}, "stream_terminate_after_events"),
     ({"type": "malformed_event", "config": {"malformed_after_events": 10001, "malformed_event_type": "invalid_json"}, "enabled": True}, "malformed_after_events"),
     ({"type": "malformed_event", "config": {"malformed_after_events": 1, "malformed_event_type": "bogus"}, "enabled": True}, "malformed_event_type"),
+    # `enabled` 严格 bool（实现 `isinstance(enabled, bool)`，config/type 合法以抵达该校验）。
+    ({"type": "delay", "config": {"delay_ms": 1000}, "enabled": "yes"}, "enabled"),
+    ({"type": "delay", "config": {"delay_ms": 1000}, "enabled": 1}, "enabled"),
+    ({"type": "delay", "config": {"delay_ms": 1000}}, "enabled"),
 ]
 
 

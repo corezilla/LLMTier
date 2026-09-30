@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "DP-EMB-08",
   "document_type": "tests.system-case",
-  "document_version": "0.1.0-draft.1",
+  "document_version": "0.1.0-draft.2",
   "title": "DP-EMB-08 — embeddings 准入饱和 429",
   "document_owner": "LLMTier",
   "authors": [

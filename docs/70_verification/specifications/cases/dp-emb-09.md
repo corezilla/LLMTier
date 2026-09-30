@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-EMB-09` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -41,7 +41,7 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 B**（临时 LLMTier 实例，专属实例）。前置 = 方案 §5 附加（B 类）就绪检查；`_baseline_settings` 注入 1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier。`prov_b.endpoint` 必须是 LAN IP 上的**专属违规 stub**（扩展 `tests/fixtures/v03_fake_provider.py` 或等价），对 `POST /v1/embeddings` 返回**违反契约**的载荷；`depl_b` 已 probe `healthy`（probe 打 `/models`，需返回合法目录）。TS-003：endpoint 必须是 LAN IP。专属 stub 落地前本 case 为 **BLOCKED**。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例，专属实例）。前置 = 方案 §5 附加（B 类）就绪检查；`_baseline_settings` 注入 1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier。`prov_b.endpoint` 必须是 LAN IP 上的**专属违规 stub**（[`tests/fixtures/v03_fake_provider.py`](../../../../tests/fixtures/v03_fake_provider.py)，**已落地**），对 `POST /v1/embeddings` 返回**违反契约**的载荷；`depl_b` 已 probe `healthy`（probe 打 `/models`，需返回合法目录）。TS-003：endpoint 必须是 LAN IP。
 - **被测入口**：
 
   ```http
@@ -87,7 +87,7 @@
 - **判定（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
   - **PASS**：`502` + `code=="provider_contract_error"` + `type=="server_error"` + `retryable is False` + 键集恰 5。
   - **FAIL**：status 非 502、码/类型/键集不符、或把非法载荷当成功流出。
-  - **BLOCKED**：专属违规 stub 未落地。
+  - **BLOCKED**：专属违规 stub 不可用；stub 已落地，不再构成 BLOCKED。
   - **SKIP**：B 类临时实例不可用、附加前置不满足。
   - **INVALID**：用 mock/替代路径伪造 502。
   - **NOT_RUN**：有实现但本轮未执行。
@@ -99,11 +99,11 @@
 
 ## 7. 自动化位置与状态
 
-- **测试文件 / 测试函数**：`tests/system/api_test_v03/at_dp_emb_09.py`（**MISSING**，须新建；依赖违规 stub 扩展）。
+- **测试文件 / 测试函数**：`tests/system/api_test_v03/at_dp_emb_09.py`（已实现；`v03_fake_provider.py` 提供 `force-bad-object`/`force-non-array-data`/`force-bad-vector`/`force-bad-base64` 四种违规载荷）。
 - **单 Case 执行命令**：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_emb_09.py -q`。
-- **实现状态**：Planned；执行与 Verdict 归 Run 报告。
+- **实现状态**：Implemented；执行与 Verdict 归 Run 报告。
 
 **证据与 Run**：保存 stub 违规配置、被测请求与原始响应（脱敏后）、发出命令、exit code、`elapsed`、环境快照（本 case `environment:"b"`）。
 
-**依赖**：B 类专属 `LLMTierInstance` / `api_client_b`；**违规 stub fixture 扩展**（当前缺失，需新增）；实现 `src/inference/providers/openai.py`、`src/inference/embeddings.py`；错误目录 `ERR-PROVIDER-CONTRACT`。**不依赖**其它 Case；与 DP-RESP-25 同属 `provider_contract_error` 家族但端点不同。
+**依赖**：B 类专属 `LLMTierInstance` / `api_client_b`；**违规 stub fixture**（[`v03_fake_provider.py`](../../../../tests/fixtures/v03_fake_provider.py)，**已落地**）；实现 `src/inference/providers/openai.py`、`src/inference/embeddings.py`；错误目录 `ERR-PROVIDER-CONTRACT`。**不依赖**其它 Case；与 DP-RESP-25 同属 `provider_contract_error` 家族但端点不同。
 

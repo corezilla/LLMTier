@@ -71,12 +71,12 @@
     "input": [{"role": "user", "content": "Calculate 15 * 23 + 45 step by step"}],
     "stream": true,
     "store": false,
-    "max_output_tokens": 200
+    "max_output_tokens": 1500
   }
   ```
 
-  构造点：`max_output_tokens=200` 保证推理任务不易被截断（不触发 DP-RESP-10）；`model` 为 responses-capable tier；`store=false` 避免落库副作用；不注入故障。
-- **规模 / 时间域**：单个 SSE 流（`max_output_tokens=200`）；无分页/并发；记录 `elapsed` 供报告，不发布 SLO。
+  构造点：`max_output_tokens=1500`（远大于步进推理输出）保证推理任务不被截断、terminal 为 `completed`（不触发 DP-RESP-10；上游 Qwen 推理可能较长，上限过小会误判为 `incomplete`）；`model` 为 responses-capable tier；`store=false` 避免落库副作用；不注入故障。
+- **规模 / 时间域**：单个 SSE 流（`max_output_tokens=1500`）；无分页/并发；记录 `elapsed` 供报告，不发布 SLO。
 
 ## 4. 执行步骤与观察点
 

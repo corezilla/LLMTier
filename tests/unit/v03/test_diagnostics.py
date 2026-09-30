@@ -129,6 +129,15 @@ class TracesQueryTests(unittest.TestCase):
         self.assertGreaterEqual(deleted, 1)
         self.assertEqual(self.d.traces(**self.window)["items"], [])
 
+    def test_traces_out_of_window_is_empty(self):
+        self.d.record_trace("r1", "received", None)
+        # Window entirely in the future relative to the recorded trace.
+        self.assertEqual(self.d.traces(since="2100-01-01T00:00:00Z", until="2200-01-01T00:00:00Z")["items"], [])
+        # Window entirely in the past.
+        self.assertEqual(self.d.traces(since="1900-01-01T00:00:00Z", until="2000-01-01T00:00:00Z")["items"], [])
+        # Same trace IS returned by a window that contains it (discriminating).
+        self.assertEqual(len(self.d.traces(**self.window)["items"]), 1)
+
     def test_set_switches_rejects_non_boolean(self):
         with self.assertRaises(ApiError) as cm:
             self.d.set_switches(snapshots_enabled="yes")

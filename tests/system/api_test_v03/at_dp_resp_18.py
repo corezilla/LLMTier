@@ -18,7 +18,9 @@ TS-002 依赖：
 断言：
 - >2 MiB：HTTP 413 + code "request_too_large" + type "request_error" + param null
   + retryable False + 键集恰 5 键
-- ==2 MiB：不得出现 request_too_large
+- ==2 MiB（边界）：精确断言"不被上限拒绝且被受理"——HTTP 200 + text/event-stream
+  （合法 ResponsesRequest 经路由到 fake provider）。若边界误判为 413 即 FAIL；
+  任一其它错误（500 等）亦 FAIL，不再用 `code != request_too_large` 的宽松门。
 """
 from __future__ import annotations
 
@@ -77,16 +79,20 @@ def test_dp_resp_18_body_too_large(api_client_b):
 
 
 @pytest.mark.api_b
-def test_dp_resp_18_exact_two_mib_not_rejected(api_client_b):
+def test_dp_resp_18_exact_two_mib_accepted(api_client_b):
     raw = _exact_body()
+    assert len(raw) == MAX_BODY, f"边界 body 长度 {len(raw)} != {MAX_BODY}"
     resp = api_client_b.post(
         "/v1/responses",
         content=raw,
         headers={"Content-Type": "application/json"},
     )
-    err = (resp.json().get("error") or {}) if resp.headers.get(
-        "content-type", ""
-    ).startswith("application/json") else {}
-    assert err.get("code") != "request_too_large", (
-        f"恰好 2 MiB 不应因上限被拒: {resp.status_code}: {resp.text[:200]}"
+    # 边界语义：恰好 2 MiB **不**触发 >2MiB 上限，合法请求被受理 → 200 + SSE。
+    assert resp.status_code == 200, (
+        f"恰好 2 MiB 应被受理（200 + SSE），实际 {resp.status_code}: {resp.text[:200]}"
     )
+    content_type = resp.headers.get("content-type", "")
+    assert content_type.startswith("text/event-stream"), (
+        f"边界受理应返回 SSE：content-type={content_type!r}"
+    )
+    assert "response.completed" in resp.text, "边界受理流缺 response.completed"

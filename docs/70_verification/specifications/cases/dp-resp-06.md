@@ -83,25 +83,25 @@
 - **执行过程（逐步调用）**：
   1. `GET /healthz`、`GET /readyz` —— 确认基线（由 `pytest_configure` 自动执行）。
   2. `POST /v1/responses`（上表 body）。
-  3. 断言 `status_code == 200` 且 `content-type` 含 `text/event-stream`（受理形态 delta；事件序列完整断言见 DP-RESP-01）。
-  4. 同步读取 body，断言含 `event: response.completed`（terminal 存在性）。
-  5. 断言出现 `data: [DONE]`。
+  3. 断言 `status_code == 200` 且 `content-type` 含 `text/event-stream`。
+  4. 逐帧解析：含 `event: response.created`；**恰一个** terminal 且为 `response.completed`。
+  5. 断言 `sequence_number` 严格递增；出现 `data: [DONE]`。
 
 | Step | 动作 | 观察点 |
 |---|---|---|
 | 1 | 确认基线（`pytest_configure` 自动执行） | 就绪检查通过 |
 | 2 | `POST /v1/responses`（`stream=true`） | status / headers / body |
 | 3 | 断言 200 + `text/event-stream` | 响应头 |
-| 4 | 断言含 `event: response.completed` | terminal 存在性 |
-| 5 | 断言出现 `data: [DONE]` | 流收尾 |
+| 4 | 断言 created + 唯一 terminal `response.completed` | 事件序列 |
+| 5 | 断言 `sequence_number` 递增、`data: [DONE]` | 流收尾 |
 
-**重点关注步骤**：① **正向与负向配对**——本 case 与 DP-RESP-02（`stream=false`）/DP-RESP-07（`store=true`）构成受理边界的三联，各自独立执行；② **受理即返回 SSE**——`Content-Type: text/event-stream` 而非错误信封；③ **terminal 存在**——本 case 只断 `response.completed` 存在，逐帧 identity/唯一性/顺序由 DP-RESP-01 承担（不重复其断言）；④ **不把答案文本当 Oracle**。
+**重点关注步骤**：① **正向与负向配对**——本 case 与 DP-RESP-02（`stream=false`）/DP-RESP-07（`store=true`）构成受理边界的三联，各自独立执行；② **受理即返回 SSE**——`Content-Type: text/event-stream` 而非错误信封；③ **受理形态 + 收尾**——本 case 断 `response.created` 存在、**唯一** terminal 为 `response.completed`、`sequence_number` 严格递增、`data: [DONE]` 收尾（受理前沿的完整收尾；更深逐帧 identity 仍由 DP-RESP-01 承担）；④ **不把答案文本当 Oracle**。
 
 ## 5. 独立 Oracle 与预期结果
 
 > 判据语义以设计验证项（VRC）为唯一权威，本文细化为可执行断言但不改写；冲突回溯设计修订。
 
-- **期望结果与独立 Oracle**：独立 Oracle = OpenAPI `stream.const=true` 受理，不依赖实现答案。事件序列/唯一 terminal/`[DONE]`/usage 的完整判定见 DP-RESP-01；本 case 只断"受理形态"这一前沿。**判据语义以设计验证项 `VRC-INF-001` 为唯一权威**。
+- **期望结果与独立 Oracle**：独立 Oracle = OpenAPI `stream.const=true` 受理，不依赖实现答案。本 case 断"受理形态 + 收尾"（created、唯一 terminal `completed`、`sequence_number` 递增、`[DONE]`）；更完整的 usage/逐帧 identity 见 DP-RESP-01。**判据语义以设计验证项 `VRC-INF-001` 为唯一权威**。
   - HTTP：`200`；`Content-Type: text/event-stream`。
   - 事件：含 `response.created` 与 terminal `response.completed`；`data: [DONE]` 收尾。
 

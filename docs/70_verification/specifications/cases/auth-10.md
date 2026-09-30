@@ -84,7 +84,7 @@
   6. 断言 body **不含** `object=="list"`/`data` 等 `ModelList` 字段（拒绝路径不得返回业务载荷）。
   7. （可选）对变体 `Authorization: Token dev-data` 重复第 3–6 步，确认同样 401（同一分支）。
 
-**重点关注步骤**：① **401 与 403 的分界**——非法方案/缺 Bearer 前缀 ⇒ 401；形态合法（`Bearer `）但值错 ⇒ 403（AUTH-02/06）。把 403 当 401 或反之即 FAIL；② **不能以"完全无头"构造本 case**——A/B 上无头因 LAN/loopback trust 得 200；若观察到 200，说明构造错误而非行为错误；③ **不得伪造来源**——代码以 socket `client_address[0]` 判定（`app.py:175`），`X-Forwarded-For` 等头不参与；伪造/改地址冒充非受信来源判 INVALID（[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)）；④ **401 的 `type` 是 `request_error`**（401 < 500），信封恰 5 键（无 `category`）；⑤ **拒绝先于 dispatch**——无上游调用、无账本义务（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；⑥ 不在此 case 断言 403/404/503 或角色隔离。
+**重点关注步骤**：① **401 与 403 的分界**——非法方案/缺 Bearer 前缀 ⇒ 401；形态合法（`Bearer `）但值错 ⇒ 403（AUTH-02/06）。把 403 当 401 或反之即 FAIL；② **不能以"完全无头"构造本 case**——A/B 上无头因 LAN/loopback trust 得 200；若观察到 200，说明构造错误而非行为错误；③ **不得伪造来源**——代码以 socket `client_address[0]` 判定（`app.py:184`），`X-Forwarded-For` 等头不参与；伪造/改地址冒充非受信来源判 INVALID（[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)）；④ **401 的 `type` 是 `request_error`**（401 < 500），信封恰 5 键（无 `category`）；⑤ **拒绝先于 dispatch**——无上游调用、无账本义务（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；⑥ 不在此 case 断言 403/404/503 或角色隔离。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -101,7 +101,7 @@
   - **BLOCKED**：测试代码/契约本身问题（如无法构造非法方案、断言不可实现）；**另**：若执行者只尝试"完全无头"路径并因 A/B 恒 200 而无法触达 401，应判 BLOCKED（构造失败）而非 FAIL，并在报告中说明非受信来源不可得（[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)）。
   - **SKIP**：§2.1 前置不满足——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **INVALID**：用 `127.0.0.1`/mock/替代路径冒充真实 m5air 路径，或以 `X-Forwarded-For`/改 `client_address` 伪造非受信来源冒充 (a)，或以错误/空 bearer 冒充本 case——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：Case 已定义但本轮未执行（**当前自动化入口 `MISSING`，默认即 NOT_RUN，直至补 `at_auth_10.py`**）。
+  - **NOT_RUN**：无（自动化入口已实现；执行状态见 Run 报告）。
 
 ## 6. 错误路径、副作用与清理
 
@@ -111,6 +111,6 @@
 
 - **证据与 Run**：保存独立请求的原始命令、发送 headers 快照（证明为 `Basic` 方案）、HTTP status/headers/body、执行机 LAN IP、exit code、`elapsed`、环境快照（`/healthz`/`/readyz`）；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../../plans/llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../../plans/llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；独立 `httpx` 无默认头客户端（不复用 `api_client`/`admin_client`）；m5air `GET /v1/models` 可用；**自动化入口 `MISSING`**（需新建 `tests/system/api_test_v03/at_auth_10.py`）。**不依赖**其它 Case；与 AUTH-01/AUTH-02/AUTH-06 构成"凭据形态→状态码"矩阵（200/403/403/401）但各自独立执行、互不关闭。
+- **依赖**：[系统测试计划 §3 执行前检](../../plans/llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；独立 `httpx` 无默认头客户端（不复用 `api_client`/`admin_client`）；m5air `GET /v1/models` 可用；自动化入口 `tests/system/api_test_v03/at_auth_10.py`（已实现）。**不依赖**其它 Case；与 AUTH-01/AUTH-02/AUTH-06 构成"凭据形态→状态码"矩阵（200/403/403/401）但各自独立执行、互不关闭。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

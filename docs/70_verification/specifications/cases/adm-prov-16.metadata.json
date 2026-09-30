@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "ADM-PROV-16",
   "document_type": "tests.system-case",
-  "document_version": "0.1.0-draft.1",
+  "document_version": "0.1.0-draft.2",
   "title": "ADM-PROV-16 — 更新 provider data token 403",
   "document_owner": "LLMTier",
   "authors": [

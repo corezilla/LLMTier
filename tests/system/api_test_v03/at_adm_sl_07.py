@@ -15,6 +15,9 @@ Auth: Bearer dev-admin
 断言：
 - HTTP 409
 - error.code == "embedding_space_conflict"
+- error 键集恰 5 键、type == "request_error"、retryable == False
+- 零副作用：Embedding-v1 的 deployment_ids/version 未变
+- teardown（finally）：删除新建 deployment（204，随后 404）
 """
 from __future__ import annotations
 
@@ -26,6 +29,9 @@ def test_adm_sl_07_embedding_space_conflict(admin_client_b):
     get_resp = admin_client_b.get("/v1/service-levels/Embedding-v1")
     assert get_resp.status_code == 200
     etag = get_resp.headers.get("ETag")
+    embed = get_resp.json()
+    version_before = embed["version"]
+    ids_before = embed["deployment_ids"]
 
     new_depl = admin_client_b.post("/v1/deployments", json={
         "name": "Embedding Wrong Space",
@@ -59,6 +65,13 @@ def test_adm_sl_07_embedding_space_conflict(admin_client_b):
         assert patch_resp.status_code == 409, f"期望 409，实际 {patch_resp.status_code}: {patch_resp.text}"
         err = patch_resp.json().get("error") or {}
         assert err.get("code") == "embedding_space_conflict"
+        assert err.get("type") == "request_error", f"type != request_error: {err}"
+        assert err.get("retryable") is False, f"retryable != False: {err}"
+
+        after = admin_client_b.get("/v1/service-levels/Embedding-v1")
+        assert after.status_code == 200
+        assert after.json()["deployment_ids"] == ids_before, "被拒 PATCH 改动了 Embedding-v1.deployment_ids"
+        assert after.json()["version"] == version_before, "被拒 PATCH 推进了 Embedding-v1.version"
     finally:
         # teardown: PATCH 失败已回滚，new deployment 未被引用，直接删除。
         current = admin_client_b.get(f"/v1/deployments/{new_depl_id}")

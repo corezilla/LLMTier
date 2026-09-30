@@ -109,9 +109,9 @@
 
 ## 7. 自动化位置与状态
 
-- **测试文件 / 测试函数**：`tests/system/api_test_v03/at_dp_resp_27.py`（**MISSING**，须新建）。
+- **测试文件 / 测试函数**：[`tests/system/api_test_v03/at_dp_resp_27.py`](../../../../tests/system/api_test_v03/at_dp_resp_27.py)（已实现）。
 - **单 Case 执行命令**：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_resp_27.py -q`。
-- **实现状态**：Planned；执行与 Verdict 归 Run 报告。
+- **实现状态**：Implemented；执行与 Verdict 归 Run 报告。
 
 **证据与 Run**：保存注入写请求/响应、被测 SSE 原始字节流（含畸形帧）、teardown 的 `PATCH items:[]` 与随后 `GET`、发出命令、exit code、`elapsed`、环境快照（本 case `environment:"b"`）。
 

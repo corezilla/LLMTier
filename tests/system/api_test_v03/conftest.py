@@ -243,6 +243,155 @@ def admin_client() -> httpx.Client:
     return _make_client(M5AIR_BASE, "dev-admin")
 
 
+@pytest.fixture(scope="session")
+def bare_client() -> httpx.Client:
+    """A credential-free client for the ``security:[]`` health endpoints.
+
+    HEALTH-01/02 require the 免鉴权 contract point to be *constructed*: the
+    端点 is ``security:[]`` (openapi) and ``app._dispatch`` handles it before
+    any ``_auth()`` call, so it must be reachable with **no** ``Authorization``
+    header. ``api_client`` injects ``Bearer dev-data`` and therefore cannot
+    falsify that claim (a route mistakenly moved behind auth would still 200
+    with a valid token).
+    """
+    return httpx.Client(base_url=M5AIR_BASE, timeout=_test_timeout())
+
+
+def is_retryable_error(response: httpx.Response) -> bool:
+    """True when a non-2xx response is a *retryable* gateway error.
+
+    The gateway marks transient upstream unavailability (503
+    ``provider_unavailable`` / ``model_unavailable``) and admission back-pressure
+    (429 ``rate_limit_exceeded``) with ``error.retryable == true``. A-class cases
+    share one live m5air instance, so concurrent work can transiently trip these.
+    Callers use this to retry the whole request a bounded number of times instead
+    of failing on a genuinely external, non-deterministic condition.
+    """
+    if response.status_code < 400:
+        return False
+    try:
+        body = response.json()
+    except Exception:
+        return False
+    err = body.get("error") if isinstance(body, dict) else None
+    return isinstance(err, dict) and err.get("retryable") is True
+
+
+def request_with_retry(client: httpx.Client, method: str, path: str, *, attempts: int = 4,
+                       backoff: float = 0.75, **kwargs) -> httpx.Response:
+    """Send a request, retrying bounded on a retryable (5xx/429) gateway error.
+
+    Retries only when the response is a retryable gateway error; any other
+    outcome (2xx or a non-retryable error) is returned immediately so a genuine
+    contract failure still fails fast. Returns the last response received.
+    """
+    resp = client.request(method, path, **kwargs)
+    for attempt in range(1, max(1, attempts)):
+        if not is_retryable_error(resp):
+            return resp
+        time.sleep(backoff * attempt)
+        resp = client.request(method, path, **kwargs)
+    return resp
+
+
+def send_stream_with_retry(client: httpx.Client, method: str, path: str, *, attempts: int = 4,
+                           backoff: float = 0.75, **kwargs) -> httpx.Response:
+    """Open a streaming request, retrying bounded on a retryable status.
+
+    Returns the first response whose status is not a retryable gateway error.
+    Rejected responses are closed before retrying. The caller must close the
+    returned response when done (``with resp:`` or ``resp.close()``).
+    """
+    request = client.build_request(method, path, **kwargs)
+    resp = client.send(request, stream=True)
+    for attempt in range(1, max(1, attempts)):
+        if not is_retryable_error(resp):
+            return resp
+        resp.close()
+        time.sleep(backoff * attempt)
+        request = client.build_request(method, path, **kwargs)
+        resp = client.send(request, stream=True)
+    return resp
+
+
+_TERMINAL_NAMES = ("response.completed", "response.incomplete", "response.failed")
+
+
+def _collect_sse_with_done(resp: httpx.Response) -> tuple[list[tuple[str, dict]], bool]:
+    """Parse SSE events AND retain the `data: [DONE]` sentinel flag."""
+    events: list[tuple[str, dict]] = []
+    event_name = None
+    data_buf: list[str] = []
+    saw_done = False
+    for raw in resp.iter_lines():
+        if raw is None:
+            continue
+        line = raw.decode("utf-8", errors="replace") if isinstance(raw, bytes) else raw
+        if line.startswith("event:"):
+            event_name = line[len("event:"):].strip()
+        elif line.startswith("data:"):
+            value = line[len("data:"):].strip()
+            if value == "[DONE]":
+                saw_done = True
+            data_buf.append(value)
+        elif line == "":
+            if event_name and data_buf:
+                payload_str = "\n".join(data_buf)
+                try:
+                    payload = json.loads(payload_str)
+                except json.JSONDecodeError:
+                    payload = {"_raw": payload_str}
+                events.append((event_name, payload))
+            event_name = None
+            data_buf = []
+    return events, saw_done
+
+
+def post_stream_collect(client: httpx.Client, body: dict, *, attempts: int = 4,
+                        backoff: float = 0.75) -> tuple[list[tuple[str, dict]], bool]:
+    """POST a streaming request; return ``(events, saw_done)`` with retry.
+
+    Retries the whole request on a retryable gateway error (shared-instance
+    noise) and returns the first fully-parsed stream. Does not retry on
+    truncation — callers needing a specific terminal use
+    :func:`post_stream_until_terminal`.
+    """
+    last_status = None
+    for attempt in range(1, max(1, attempts) + 1):
+        resp = send_stream_with_retry(client, "POST", "/v1/responses", json=body,
+                                      attempts=attempts, backoff=backoff)
+        try:
+            if resp.status_code != 200:
+                last_status = resp.status_code
+                time.sleep(backoff * attempt)
+                continue
+            return _collect_sse_with_done(resp)
+        finally:
+            resp.close()
+    raise AssertionError(f"stream request kept failing with a retryable status (last={last_status})")
+
+
+def post_stream_until_terminal(client: httpx.Client, body: dict, *, terminal: str = "response.completed",
+                               attempts: int = 4, backoff: float = 0.75):
+    """POST streaming; retry (bounded) until the unique terminal is ``terminal``.
+
+    ``terminal`` is the full SSE event name (default ``"response.completed"``).
+    Returns ``(events, saw_done, attempts_used)``. Retries on retryable status
+    and on a truncation terminal (``response.incomplete``) when a completion
+    terminal is required. A ``response.failed`` terminal is returned immediately
+    (caller decides).
+    """
+    events, saw_done = [], False
+    for attempt in range(1, max(1, attempts) + 1):
+        events, saw_done = post_stream_collect(client, body, attempts=1, backoff=backoff)
+        names = [n for n, _ in events]
+        terminals = [n for n in names if n in _TERMINAL_NAMES]
+        if terminals == [terminal] or (terminals and terminals[0] == "response.failed"):
+            return events, saw_done, attempt
+        time.sleep(backoff * attempt)
+    return events, saw_done, max(1, attempts)
+
+
 def parse_sse(response: httpx.Response) -> list[dict]:
     """解析 SSE 流，yield 每个 event 完整 payload（含 event 名与 data JSON）。"""
     events = []
@@ -390,7 +539,7 @@ def provider_endpoint_b(fake_provider_b: _FakeProvider) -> str:
 class LLMTierInstance:
     """Manage a temporary LLMTier v0.3 process with an isolated SQLite DB."""
 
-    def __init__(self, settings: dict | None = None, dev_mode: bool = True):
+    def __init__(self, settings: dict | None = None, dev_mode: bool = True, extra_env: dict | None = None):
         self.port = _find_free_port()
         self.base_url = f"http://127.0.0.1:{self.port}"
         self._tmpdir = Path(tempfile.mkdtemp(prefix="llmtier_b_"))
@@ -398,6 +547,7 @@ class LLMTierInstance:
         self._settings_path = self._tmpdir / "settings.json"
         self._settings = settings
         self._dev_mode = dev_mode
+        self._extra_env = extra_env or {}
 
         if settings is not None:
             self._settings_path.write_text(json.dumps(settings))
@@ -424,6 +574,8 @@ class LLMTierInstance:
         env["PYTHONPATH"] = str(SRC_ROOT)
         if self._settings is not None:
             env["LLMTIER_SETTINGS"] = str(self._settings_path)
+        for key, value in self._extra_env.items():
+            env[key] = str(value)
 
         self._proc = subprocess.Popen(
             [PYTHON, "-m", "http_api",
@@ -570,6 +722,24 @@ def llmtier_b(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, None
     inst.stop()
 
 
+@pytest.fixture(scope="session")
+def llmtier_b_unprobed(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, None]:
+    """HEALTH-03: a bootstrapped baseline instance whose ``depl_b`` is never probed.
+
+    ``_baseline_settings`` seeds 1 provider / 1 deployment / 7 fixed tiers;
+    ``deployments.health`` defaults to ``'unknown'`` (migration 001). Because
+    ``_probe_deployment`` is **not** called, every tier has a candidate
+    (``candidates()`` non-empty) but ``healthy == 0`` ⇒ ``readiness_view``
+    yields ``degraded`` / HTTP 503. Must NOT reuse ``llmtier_b``: it probes
+    ``depl_b`` to ``healthy`` at start ⇒ ``ready``. The instance is read-only
+    against the health endpoint (no ``POST /v1/probes`` is ever issued).
+    """
+    inst = LLMTierInstance(_baseline_settings(provider_endpoint_b))
+    inst.start()
+    yield inst
+    inst.stop()
+
+
 def _embeddings_settings(provider_endpoint: str, backend_model: str) -> dict:
     """Baseline B settings with an embeddings-capable deployment.
 
@@ -590,6 +760,30 @@ def _embeddings_instance(endpoint: str, backend_model: str) -> LLMTierInstance:
     status = _probe_deployment(inst, "depl_b")
     assert status == "healthy", f"embeddings depl_b probe not healthy: {status}"
     return inst
+
+
+def _tools_settings(provider_endpoint: str) -> dict:
+    """Baseline B settings whose deployment advertises ``tools=True`` (DP-RESP-04).
+
+    The fake provider deterministically echoes the tool name as a
+    ``function_call`` when the prompt contains ``CALL_TOOL`` and ``tools`` is
+    present (see ``tests/fixtures/v03_fake_provider.py``), which makes the
+    "tools 透传" claim falsifiable.
+    """
+    settings = _baseline_settings(provider_endpoint)
+    settings["deployments"][0]["capabilities"]["tools"] = True
+    return settings
+
+
+@pytest.fixture(scope="session")
+def llmtier_b_tools(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, None]:
+    """DP-RESP-04: tools-capable B instance backed by the echoing fake provider."""
+    inst = LLMTierInstance(_tools_settings(provider_endpoint_b))
+    inst.start()
+    status = _probe_deployment(inst, "depl_b")
+    assert status == "healthy", f"tools depl_b probe not healthy: {status}"
+    yield inst
+    inst.stop()
 
 
 @pytest.fixture(scope="session")
@@ -644,6 +838,21 @@ def _instance_with_backend(endpoint: str, backend_model: str, probe: bool = True
 def llmtier_b_unhealthy(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, None]:
     """DP-RESP-19: depl_b points at an unreachable LAN endpoint, never probed healthily."""
     inst = _instance_with_backend("http://192.168.1.254:9/v1", "test-model", probe=False)
+    yield inst
+    inst.stop()
+
+
+@pytest.fixture
+def llmtier_b_resp_slow(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, None]:
+    """DP-RESP-20: dedicated instance whose upstream blocks on the fake provider gate.
+
+    The sole admission slot is held deterministically by one in-flight request
+    (backend_model ``slow-responses`` blocks in the fake provider until
+    ``fake_provider_b.release_slow()``); teardown releases the gate so every
+    queued request drains immediately (no leaked long sleep). Function-scoped
+    for an isolated SQLite/port.
+    """
+    inst = _instance_with_backend(provider_endpoint_b, "slow-responses", probe=True)
     yield inst
     inst.stop()
 
@@ -834,6 +1043,24 @@ def llmtier_b_restart(provider_endpoint_b: str) -> Generator[LLMTierInstance, No
     inst.stop()
 
 
+@pytest.fixture
+def llmtier_b_crash(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, None]:
+    """Dedicated instance for DP-USAGE-09 path B (real in-flight crash).
+
+    ``depl_b`` IS probed ``healthy`` (so a Responses request is admitted and
+    enters the adapter), and ``LLMTIER_SLOW_ADAPTER_DELAY`` keeps the request
+    in-flight inside ``SlowAdapter.complete`` long enough for the test to
+    SIGKILL the process with a committed obligation and no ``finish``.
+    """
+    settings = _baseline_settings(provider_endpoint_b)
+    inst = LLMTierInstance(settings, extra_env={"LLMTIER_SLOW_ADAPTER_DELAY": "30"})
+    inst.start()
+    status = _probe_deployment(inst, "depl_b")
+    assert status == "healthy", f"crash-path depl_b probe not healthy: {status}"
+    yield inst
+    inst.stop()
+
+
 def error_envelope(response) -> dict:
     """Return the ``error`` object from a typed error response (asserts shape)."""
     body = response.json()
@@ -841,5 +1068,16 @@ def error_envelope(response) -> dict:
     err = body["error"]
     assert set(err.keys()) == {"message", "type", "code", "param", "retryable"}, (
         f"error envelope must have exactly 5 keys: {sorted(err.keys())}"
+    )
+    return err
+
+
+def version_conflict_envelope(response) -> dict:
+    """Return the ``error`` object of a 412 ``version_conflict`` (5 keys + ``current_version``)."""
+    body = response.json()
+    assert set(body.keys()) == {"error"}, f"envelope must have exactly one 'error' key: {body}"
+    err = body["error"]
+    assert set(err.keys()) == {"message", "type", "code", "param", "retryable", "current_version"}, (
+        f"412 envelope must be the 5 required keys plus 'current_version': {sorted(err.keys())}"
     )
     return err

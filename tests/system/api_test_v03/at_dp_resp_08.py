@@ -6,10 +6,14 @@ Model: 无
 Auth: Bearer dev-data
 
 断言：
-- HTTP 400
-- error.code == "invalid_request"
+- HTTP 400；Content-Type: application/json（非 SSE）
+- error 键集恰 5 键 {message,type,code,param,retryable}（无 category）
+- error.code == "invalid_request"、type == "request_error"、retryable is False
+- error.param == "model"（清单/OpenAPI ResponsesRequest.required；responses.py:72-73 传入缺失字段名）
 """
 from __future__ import annotations
+
+from tests.system.api_test_v03.conftest import error_envelope
 
 import pytest
 
@@ -25,6 +29,11 @@ def test_dp_resp_08_missing_model(api_client):
         },
     )
     assert resp.status_code == 400, f"返回 {resp.status_code}（期望 400）: {resp.text}"
-    body = resp.json()
-    err = body.get("error") or {}
-    assert err.get("code") == "invalid_request", f"error.code != 'invalid_request': {err}"
+    ct = resp.headers.get("content-type", "")
+    assert ct.startswith("application/json"), f"错误响应应 JSON（非 SSE）: {ct!r}"
+
+    err = error_envelope(resp)
+    assert err["code"] == "invalid_request", f"error.code != 'invalid_request': {err}"
+    assert err["type"] == "request_error", f"error.type != 'request_error': {err}"
+    assert err["retryable"] is False, f"error.retryable 非 False: {err}"
+    assert err["param"] == "model", f"error.param != 'model': {err}"

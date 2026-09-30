@@ -49,10 +49,10 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`OBS-DIAG-03` / 系统设计 §8 诊断开关接口（/v1/diagnostics） / `VRC-DIAG-001` / `negative` / `P2`
 - 方案清单登记：`OBS-DIAG-03`
-- 要测什么（责任展开）：`PATCH /v1/diagnostics` 提交非布尔开关值（含依 openapi 应被拒的 `null`）：HTTP 400 `invalid_request`（`param` 指向被拒键），开关状态不变、无部分写入；`null` 若实现按"保持"返回 200，登记为实现/openapi 偏差。
-- 明确不测什么 / 失败含义：不证明 合法更新的成功/审计（OBS-DIAG-02）、不证明 GET 读契约（OBS-DIAG-01）、不证明**未知键**被拒（openapi 虽声明 `additionalProperties:false`，当前 handler 不校验多余键——见重点关注，作为实现/openapi 不一致单独登记）、不证明认证负向（AUTH-08/OBS-REQTRACE-03 风格）。**契约冲突已登记**：`null` 被 openapi `boolean` 拒绝（应 400），实现按"保持"返回 200——见输入与构造"契约一致性登记"。
+- 要测什么（责任展开）：`PATCH /v1/diagnostics` 提交非布尔开关值（含 `null`）：HTTP 400 `invalid_request`（`param` 指向被拒键），开关状态不变、无部分写入。`null` 在 HTTP 层 `_optional_boolean`（`app.py:165-171`）即被 400 拒绝（键在 body 且值非 bool），**不**到达 libdiag `set_switches`，与 openapi `boolean` 一致。
+- 明确不测什么 / 失败含义：不证明 合法更新的成功/审计（OBS-DIAG-02）、不证明 GET 读契约（OBS-DIAG-01）、不证明**未知键**被拒（openapi 虽声明 `additionalProperties:false`，当前 handler 不校验多余键——见重点关注，作为实现/openapi 不一致单独登记）、不证明认证负向（AUTH-08/OBS-REQTRACE-03 风格）。**实现现状（已对齐 openapi）**：HTTP 层 `_optional_boolean`（`app.py:165-171`）对 `key in body` 且值非 bool（含 `null`）先抛 400 `invalid_request` `param=key`，故 openapi `boolean` 要求的 400 得到满足。
 
-**目的（被测契约）**：验证 `PATCH /v1/diagnostics` 的**输入校验负向契约**。被测端点/规则：`PATCH /v1/diagnostics`，`set_switches` 对每个传入的非 `None` 值要求 `isinstance(value, bool)`，否则抛 `ApiError(400, "invalid_request", "<name> must be a boolean", param=<name>)`（[`src/libdiag/settings.py`](../../../../src/libdiag/settings.py)）；错误走统一信封 `{error:{message,type,code,param,retryable}}`（`type="request_error"`，`retryable=false`）；校验发生在事务之前，**零副作用**（`diagnostic_settings` 不变、无成功审计；`app.admin.mutate` 失败路径会记一条 `result="failed"` 审计）。设计验证项 `VRC-DIAG-001`；机制 `T-OBS-SWITCH`（[observability 机制](../../../20_system_design/mechanisms/observability.md) §4.3.1/§5.1，`IF-OBS-SWITCH` "校验=非 bool 且非 None → 拒绝；失败无副作用"）；错误目录 `ERR-REQ-VALIDATION` → wire `code=invalid_request`（[系统设计 §7.8](../../../20_system_design/llmtier-system-design.md)）；需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01`/`R-OBS-02`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../../schemes/llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；机器契约 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`DiagnosticsSwitchPatch`，400 → `BadRequest`）。**不证明什么**：不证明合法更新的成功/审计（OBS-DIAG-02）、不证明 GET 读契约（OBS-DIAG-01）、不证明**未知键**被拒（openapi 虽声明 `additionalProperties:false`，当前 handler 不校验多余键——见重点关注，作为实现/openapi 不一致单独登记）、不证明认证负向（AUTH-08/OBS-REQTRACE-03 风格）。**契约冲突已登记**：`null` 被 openapi `boolean` 拒绝（应 400），实现按"保持"返回 200——见输入与构造"契约一致性登记"。
+**目的（被测契约）**：验证 `PATCH /v1/diagnostics` 的**输入校验负向契约**。被测端点/规则：`PATCH /v1/diagnostics`，`set_switches` 对每个传入的非 `None` 值要求 `isinstance(value, bool)`，否则抛 `ApiError(400, "invalid_request", "<name> must be a boolean", param=<name>)`（[`src/libdiag/settings.py`](../../../../src/libdiag/settings.py)）；错误走统一信封 `{error:{message,type,code,param,retryable}}`（`type="request_error"`，`retryable=false`）；校验发生在事务之前，**零副作用**（`diagnostic_settings` 不变、无成功审计；`app.admin.mutate` 失败路径会记一条 `result="failed"` 审计）。设计验证项 `VRC-DIAG-001`；机制 `T-OBS-SWITCH`（[observability 机制](../../../20_system_design/mechanisms/observability.md) §4.3.1/§5.1，`IF-OBS-SWITCH` "校验=非 bool 且非 None → 拒绝；失败无副作用"）；错误目录 `ERR-REQ-VALIDATION` → wire `code=invalid_request`（[系统设计 §7.8](../../../20_system_design/llmtier-system-design.md)）；需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01`/`R-OBS-02`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../../schemes/llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；机器契约 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`DiagnosticsSwitchPatch`，400 → `BadRequest`）。**不证明什么**：不证明合法更新的成功/审计（OBS-DIAG-02）、不证明 GET 读契约（OBS-DIAG-01）、不证明**未知键**被拒（openapi 虽声明 `additionalProperties:false`，当前 handler 不校验多余键——见重点关注，作为实现/openapi 不一致单独登记）、不证明认证负向（AUTH-08/OBS-REQTRACE-03 风格）。**实现现状（已对齐 openapi）**：HTTP 层 `_optional_boolean`（`app.py:165-171`）对 `key in body` 且值非 bool（含 `null`）先抛 400 `invalid_request` `param=key`，故 openapi `boolean` 要求的 400 得到满足。
 
 ## 2. 被测入口与前置
 
@@ -63,13 +63,13 @@
 - **输入与构造**：先 `GET /v1/diagnostics` 记录 `orig_raw`，再对每种非法输入独立发起（每次前确保开关仍是 `orig`）：
   - `{"snapshots_enabled": "yes"}`（字符串）
   - `{"snapshots_enabled": 1}`（整数——注意 Python `isinstance(1, bool) is False`，必须拒）
-  - `{"stats_enabled": null}`（显式 `null`：实现 `body.get` 得 `None`，`set_switches` 对 `None` 跳过校验、**按"保持"处理**；但 openapi `DiagnosticsSwitchPatch` 把两键类型声明为 `boolean`（`additionalProperties:false`，无 `nullable`），**严格契约下 `null` 是类型违规 ⇒ 400**。此为实现/openapi 冲突，见下"契约一致性登记"；本 case 按 openapi 期望 **400**，不以"保持"为预期。）
+  - `{"stats_enabled": null}`（显式 `null`：HTTP 层 `_optional_boolean` 见 `key in body` 且值非 bool ⇒ **400 `invalid_request` `param="stats_enabled"`**；不会到达 `set_switches`。openapi `DiagnosticsSwitchPatch` 把两键声明为 `boolean`（无 `nullable`），400 与之一致。）
   - `{"stats_enabled": "true"}` / `{"stats_enabled": 0}`（字符串/整数）
   - `{"snapshots_enabled": []}`（数组）、`{"stats_enabled": {}}`（对象）
 
-  请求：`PATCH /v1/diagnostics`、`Authorization: Bearer dev-admin`、`Content-Type: application/json`。  边界点：每种非法值必须命中 400 且 `param` 等于该键名；`null` 按 **openapi 契约**为类型违规（应 400），实现当前按"保持"处理——差异见下"契约一致性登记"。
+  请求：`PATCH /v1/diagnostics`、`Authorization: Bearer dev-admin`、`Content-Type: application/json`。  边界点：每种非法值（含 `null`）必须命中 400 且 `param` 等于该键名；HTTP 层 `_optional_boolean` 对 `null` 与 openapi `boolean` 一致地返回 400。
 
-  > **契约一致性登记（机制/实现 vs openapi）**：`DiagnosticsSwitchPatch` 将 `snapshots_enabled`/`stats_enabled` 声明为 `"type":"boolean"`（`additionalProperties:false`，**不可空**），故机器契约下 `{"stats_enabled": null}` ⇒ **400**；而机制 §5.1 `IF-OBS-SWITCH` 只拒绝"非 bool **且非 None**"，实现 `set_switches`（`settings.py:16-18`）对 `None` 跳过校验 ⇒ 返回 `200` 保持。二者冲突。本 case 的 Oracle 依 openapi 断言 **400**，并把实现的 `200 保持` 作为**已知偏差登记**（报告 `result="failed"`/不一致注记），**不**把 400 当 FAIL、也**不**把 200 当契约通过。
+  > **实现 vs openapi（一致）**：`DiagnosticsSwitchPatch` 将 `snapshots_enabled`/`stats_enabled` 声明为 `"type":"boolean"`（`additionalProperties:false`，不可空）。HTTP 层 `_optional_boolean`（`app.py:165-171`）在键存在且值非 bool 时即抛 `ApiError(400, "invalid_request", "<name> must be a boolean", param=<name>)`，故 `{"stats_enabled": null}` ⇒ **400**。libdiag `set_switches`（`settings.py:18-21`）本身对 `None` 跳过，但 `null` 已被 HTTP 层先拦截，永不到达。二者与 openapi 一致，无冲突。
 
 ## 4. 执行步骤与观察点
 
@@ -78,10 +78,10 @@
   2. 对每个非法 body（上述字符串/整数/数组/对象样例）逐个 `PATCH`；每个后立即 `GET` 复核开关未变。
   3. 每次断言 `resp.status_code == 400`；`err = resp.json()["error"]`：`err["code"]=="invalid_request"`、`err["type"]=="request_error"`、`err["retryable"] is False`、`err["param"]` 等于被拒键名（`snapshots_enabled` 或 `stats_enabled`）。
   4. 全部非法样例后 `GET /v1/diagnostics` → 断言字节等于 `orig_raw`（无任何写入）。
-  5. （契约一致性）`PATCH` body `{"stats_enabled": null}` → 依 openapi 断言 `400 invalid_request`（`null` 违反 `boolean`）；若实现返回 `200`（保持），**登记为实现偏离 openapi 的已知偏差**，不属于本 case 的契约 FAIL 判据之外（见"契约一致性登记"）；实现返回 200 时随即 `GET` 确认开关未变。
+  5. `PATCH` body `{"stats_enabled": null}` → 断言 `400 invalid_request`（HTTP 层 `_optional_boolean` 拦截 `null`）；随后 `GET` 确认开关未变。
   6. （可选交叉证据）`GET /v1/audit` → 断言非法尝试对应 `result=="failed"` 的 `diagnostics.switch.update` 行存在，且**不存在**由本 case 产生的成功行。
 
-**重点关注步骤**：① **bool vs int**——`1`/`0` 必须是非法（Python 中 `bool` 是 `int` 子类，但校验用的是 `isinstance(value, bool)`，故 `1` 被拒）；若观测到 `1` 被接受为 `true`，判 FAIL。② **`param` 精确性**——必须指向被拒字段名，而非笼统。③ **零副作用**——400 后 `diagnostic_settings` 逐字节不变，不得出现"一半写入"（例如先写 `snapshots_enabled` 再在 `stats_enabled` 校验失败）。④ **失败审计**——`mutate` 失败路径记 `result="failed"`；不得把失败审计当作契约成功。⑤ **`null` 的契约处置**——openapi 把两键声明为 `boolean`（无 `nullable`），故 `{"stats_enabled": null}` 依**机器契约应 400**；而实现/机制按"保持"返回 200，此差异单独登记（见"契约一致性登记"），**不得**把实现的 200 保持当作契约通过、也**不得**把契约要求的 400 判为 FAIL。⑥ **未知键差异（登记）**——`DiagnosticsSwitchPatch` openapi `additionalProperties:false`，但实现忽略多余键；本 case 可在报告中作为**已知不一致**记录：`{"snapshots_enabled": true, "bogus": 1}` 当前预期 200（实现）而契约声明应 400——本 case 的 PASS 判据**不含**未知键，避免混淆。⑦ **降级/存储**——`_UnavailableDiagnostics.set_switches` 不校验直接返回默认，属降级实例（本 case 无法证明校验逻辑）→ BLOCKED/SKIP；`503 usage_store_unavailable` 判 BLOCKED/SKIP。注意：本 case 当前 `MISSING`（§3.2），无 `at_obs_diag_03.py`。
+**重点关注步骤**：① **bool vs int**——`1`/`0` 必须是非法（Python 中 `bool` 是 `int` 子类，但校验用的是 `isinstance(value, bool)`，故 `1` 被拒）；若观测到 `1` 被接受为 `true`，判 FAIL。② **`param` 精确性**——必须指向被拒字段名，而非笼统。③ **零副作用**——400 后 `diagnostic_settings` 逐字节不变，不得出现"一半写入"（例如先写 `snapshots_enabled` 再在 `stats_enabled` 校验失败）。④ **失败审计**——`mutate` 失败路径记 `result="failed"`；不得把失败审计当作契约成功。⑤ **`null` 的处置**——HTTP 层 `_optional_boolean`（`app.py:165-171`）对 `key in body` 且值非 bool（含 `null`）抛 400；故 `{"stats_enabled": null}` 与 openapi `boolean` 一致地返回 400（不会到达 libdiag `set_switches`）。⑥ **未知键差异（登记）**——`DiagnosticsSwitchPatch` openapi `additionalProperties:false`，但实现忽略多余键；本 case 可在报告中作为**已知不一致**记录：`{"snapshots_enabled": true, "bogus": 1}` 当前预期 200（实现）而契约声明应 400——本 case 的 PASS 判据**不含**未知键，避免混淆。⑦ **降级/存储**——`_UnavailableDiagnostics.set_switches` 不校验直接返回默认，属降级实例（本 case 无法证明校验逻辑）→ BLOCKED/SKIP；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `at_obs_diag_03.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -90,15 +90,15 @@
 - **期望结果与独立 Oracle**：独立 Oracle = `openapi` `BadRequest`（`ErrorEnvelope`）+ 机制 §5.1 `IF-OBS-SWITCH` 校验语义 + 错误目录 `ERR-REQ-VALIDATION`。
   - 每个非法输入：HTTP `400`；`Content-Type: application/json`；body `{"error":{"message":"<name> must be a boolean","type":"request_error","code":"invalid_request","param":"<name>","retryable":false}}`（恰 5 键；openapi 未为 200/400 声明响应头）。
   - 状态不变量：非法序列后 `GET /v1/diagnostics` 与 `orig_raw` 逐字节相同。
-  - 契约一致性项：`{"stats_enabled": null}` 依 openapi `boolean` 类型 ⇒ `400`；实现返回 200 保持属**已登记偏差**，不计入 FAIL（见"契约一致性登记"）。
+  - 一致性项：`{"stats_enabled": null}` 因 HTTP 层 `_optional_boolean` ⇒ `400`，与 openapi `boolean` 一致。
   - **fail-open**：降级实例（`_UnavailableDiagnostics`）不执行校验、恒返回默认——本 case 依赖真实校验，降级下判 BLOCKED/SKIP，**不**把默认值当 PASS。存储不可达 503 `usage_store_unavailable` 判 BLOCKED/SKIP。
 
 - **判定（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
-  - **PASS**：所有非法样例（含依 openapi 应 400 的 `null`）均 `400 + invalid_request + type=request_error + retryable=false + param=键名`，且状态逐字节不变；`null` 若实测 200 保持，按已登记偏差记录、不判 FAIL。
-  - **FAIL**：任一**非 `null`** 非法值返回非 400、`code`/`type`/`param` 错、接受了 `1`/`0`/字符串，或出现部分写入/状态改变（`null` 的 400 vs 200 差异属已登记偏差，不计 FAIL）。
+  - **PASS**：所有非法样例（含 `null`）均 `400 + invalid_request + type=request_error + retryable=false + param=键名`，且状态逐字节不变。
+  - **FAIL**：任一非法值（含 `null`）返回非 400、`code`/`type`/`param` 错、接受了 `1`/`0`/字符串/`null`，或出现部分写入/状态改变。
   - **BLOCKED**：测试代码/契约本身问题或降级实例无法证明校验、存储不可达——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **SKIP**：B 类实例不可用、依赖 fixture 未满足——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：自动化入口 `MISSING`（§3.2），本轮未执行；缺口引用见 §9（MISSING ≠ NOT_RUN）。
+  - **NOT_RUN**：无（自动化入口已实现；执行状态见 Run 报告）。
   - **INVALID**：用 mock/替代路径冒充真实实例，或未真正提交非法 body 却按行为判定——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
 
 ## 6. 错误路径、副作用与清理
@@ -109,6 +109,6 @@
 
 - **证据与 Run**：保存每个非法请求 body 与原始 400 信封、`GET` 前后 `orig_raw` 对比、失败审计行（可选）、`null` 对照、命令/exit code/`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../../plans/llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/B-api`，`environment:"b"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../../plans/llmtier-system-test-plan.md#3-执行前检go--no-go)（B 类附加）；`llmtier_b`/`admin_client_b` fixture（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../../schemes/llmtier-system-test-scheme.md)）；`diagnostic_settings`；`DiagnosticsSwitchPatch` 机器契约（`boolean`、`additionalProperties:false`，`null` 应 400 — 见"契约一致性登记"）；实现 [`src/libdiag/settings.py`](../../../../src/libdiag/settings.py)、[`src/http_api/app.py`](../../../../src/http_api/app.py)。自动化入口 `at_obs_diag_03.py`（**当前 `MISSING`，尚未实现**）。**不依赖**其它 Case；与 OBS-DIAG-02（合法更新成功）互为正向/负向，各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../../plans/llmtier-system-test-plan.md#3-执行前检go--no-go)（B 类附加）；`llmtier_b`/`admin_client_b` fixture（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../../schemes/llmtier-system-test-scheme.md)）；`diagnostic_settings`；`DiagnosticsSwitchPatch` 机器契约（`boolean`、`additionalProperties:false`，`null` 由 HTTP 层 400）；实现 [`src/libdiag/settings.py`](../../../../src/libdiag/settings.py)、[`src/http_api/app.py`](../../../../src/http_api/app.py)（`_optional_boolean` `app.py:165-171`）。自动化入口 `at_obs_diag_03.py`（已实现）。**不依赖**其它 Case；与 OBS-DIAG-02（合法更新成功）互为正向/负向，各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

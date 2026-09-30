@@ -78,7 +78,7 @@
   8. 断言本次成功请求的 `stages` 至少包含一个 **上游阶段**（`stage` 含 `upstream_started`/`upstream_ended`）与入口阶段（`received`）——"全生命周期"的结构证据；若仅有 `received` 而缺上游阶段，说明组合不完整，判 FAIL（或若响应为可解释错误，允许结构相应缩减，需在证据中说明）。
   9. 断言 `snapshot` 为 `null` 或合法 `SnapshotView`（11 键）；`usage` 为 `null` 或合法 `UsageView`（8 键：`record_version,is_final,model,input_tokens,output_tokens,total_tokens,measurement_status,source`）。
 
-**重点关注步骤**：① **全阶段组合**——不是"200 即可"，而是 `stages` 覆盖入口到上游结束的完整链且有序（`INV-5`）。② **键集精确**——`TraceView` 恰 5 键、`TraceStage` 恰 3 键。③ **`request_id` 回指**——返回的 `request_id` 必须等于查询 id（同一资源）。④ **`snapshot` 可为 `null`**——`snapshots_enabled=false`（m5air 默认）时 `snapshot=null` **合法**，不得判 FAIL；开启后应出现 `snapshot`。⑤ **`usage` 组合**——来自 `usage_record_versions` 最新版，`null` 合法（尚未记账），但成功请求通常有记录。⑥ **取得 id 的手段不是 Oracle**——`X-Request-ID`/traces 列表仅用于 harness；不得把响应头本身列入断言。⑦ **不依赖模型答案**——只断言结构/阶段，不写"答案正确"。⑧ **降级/存储**——`_UnavailableDiagnostics.trace` 对任意 id 返回 `{stages:[],...}` **200**，`stages=[]` 违反 `minItems:1`，属降级实例 → BLOCKED/SKIP；`503 usage_store_unavailable` 判 BLOCKED/SKIP。注意：本 case 当前 `MISSING`（§3.2），无 `at_obs_reqtrace_01.py`。
+**重点关注步骤**：① **全阶段组合**——不是"200 即可"，而是 `stages` 覆盖入口到上游结束的完整链且有序（`INV-5`）。② **键集精确**——`TraceView` 恰 5 键、`TraceStage` 恰 3 键。③ **`request_id` 回指**——返回的 `request_id` 必须等于查询 id（同一资源）。④ **`snapshot` 可为 `null`**——`snapshots_enabled=false`（m5air 默认）时 `snapshot=null` **合法**，不得判 FAIL；开启后应出现 `snapshot`。⑤ **`usage` 组合**——来自 `usage_record_versions` 最新版，`null` 合法（尚未记账），但成功请求通常有记录。⑥ **取得 id 的手段不是 Oracle**——`X-Request-ID`/traces 列表仅用于 harness；不得把响应头本身列入断言。⑦ **不依赖模型答案**——只断言结构/阶段，不写"答案正确"。⑧ **降级/存储**——`_UnavailableDiagnostics.trace` 对任意 id 返回 `{stages:[],...}` **200**，`stages=[]` 违反 `minItems:1`，属降级实例 → BLOCKED/SKIP；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `at_obs_reqtrace_01.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -95,7 +95,7 @@
   - **FAIL**：非 200（存储健康时）、键集不符、`request_id` 不匹配、`stages` 为空/乱序、或成功请求缺上游阶段。
   - **BLOCKED**：测试代码/契约问题、无法取得 `request_id`（trace 列表为空）、降级实例、存储不可达——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **SKIP**：§2.1 前置不满足（含 responses-capable 上游离线）——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：自动化入口 `MISSING`（§3.2），本轮未执行；缺口引用见 §9。
+  - **NOT_RUN**：无（自动化入口已实现；执行状态见 Run 报告）。
   - **INVALID**：用 `127.0.0.1`/mock/替代路径冒充真实 m5air，或未命中真实诊断服务却按行为判定——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
 
 ## 6. 错误路径、副作用与清理
@@ -106,6 +106,6 @@
 
 - **证据与 Run**：保存制造请求及其响应（SSE 或可解释错误）、取得 `request_id` 的 traces 列表、`GET /v1/trace/{id}` 原始 status/headers/body、`stages` 有序证据、命令/exit code/`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../../plans/llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../../plans/llmtier-system-test-plan.md#3-执行前检go--no-go) 6 项就绪检查；`admin_client`/`api_client` fixture（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../../schemes/llmtier-system-test-scheme.md)）；responses-capable tier（`Worker`/`Senior`）；M007 `trace_events`/`diagnostic_snapshots` + 账本 `usage_record_versions`；`TraceView` 等机器契约；实现 [`src/libdiag/traces.py`](../../../../src/libdiag/traces.py)、[`src/http_api/app.py`](../../../../src/http_api/app.py)、[`src/inference/responses.py`](../../../../src/inference/responses.py)。自动化入口 `at_obs_reqtrace_01.py`（**当前 `MISSING`，尚未实现**）。**不依赖**其它 Case；与 OBS-REQTRACE-02/03（负向）、OBS-TRACE-01（列表去重）语义相邻但各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../../plans/llmtier-system-test-plan.md#3-执行前检go--no-go) 6 项就绪检查；`admin_client`/`api_client` fixture（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../../schemes/llmtier-system-test-scheme.md)）；responses-capable tier（`Worker`/`Senior`）；M007 `trace_events`/`diagnostic_snapshots` + 账本 `usage_record_versions`；`TraceView` 等机器契约；实现 [`src/libdiag/traces.py`](../../../../src/libdiag/traces.py)、[`src/http_api/app.py`](../../../../src/http_api/app.py)、[`src/inference/responses.py`](../../../../src/inference/responses.py)。自动化入口 `at_obs_reqtrace_01.py`（已实现）。**不依赖**其它 Case；与 OBS-REQTRACE-02/03（负向）、OBS-TRACE-01（列表去重）语义相邻但各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

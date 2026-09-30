@@ -55,20 +55,25 @@ def test_dp_emb_08_admission_saturation_429(llmtier_b_emb_slow, fake_provider_b)
             f"status 分布={[r.status_code for r in responses]}"
         )
 
-        resp = rejected[0]
-        assert resp.headers.get("content-type", "").startswith("application/json")
-        err = resp.json().get("error") or {}
-        assert err.get("code") == "rate_limit_exceeded", f"error.code 不符: {err}"
-        assert err.get("type") == "request_error", f"error.type 不符: {err}"
-        assert err.get("retryable") is True, f"error.retryable 非 True: {err}"
-        assert err.get("param") is None, f"error.param 非 null: {err}"
-        assert set(err) == ERROR_KEYS, f"error 键集不符: {sorted(err)}"
-
-        retry_after = resp.headers.get("retry-after")
-        assert retry_after is not None, "429 响应缺少 Retry-After 头"
-        assert re.fullmatch(r"[1-9][0-9]*", retry_after.strip()), (
-            f"Retry-After 非正整数秒: {retry_after!r}"
-        )
+        # Every rejected response must carry the full contract identity, not just
+        # the first sampled one.
+        for idx, resp in enumerate(rejected):
+            assert resp.headers.get("content-type", "").startswith("application/json"), (
+                f"rejected[{idx}] 非 JSON: {resp.headers.get('content-type')!r}"
+            )
+            body = resp.json()
+            assert set(body) == {"error"}, f"rejected[{idx}] 顶层键集不符: {sorted(body)}"
+            err = body["error"]
+            assert set(err) == ERROR_KEYS, f"rejected[{idx}] error 键集不符: {sorted(err)}"
+            assert err["code"] == "rate_limit_exceeded", f"rejected[{idx}] error.code 不符: {err}"
+            assert err["type"] == "request_error", f"rejected[{idx}] error.type 不符: {err}"
+            assert err["retryable"] is True, f"rejected[{idx}] error.retryable 非 True: {err}"
+            assert err["param"] is None, f"rejected[{idx}] error.param 非 null: {err}"
+            retry_after = resp.headers.get("retry-after")
+            assert retry_after is not None, f"rejected[{idx}] 429 响应缺少 Retry-After 头"
+            assert re.fullmatch(r"[1-9][0-9]*", retry_after.strip()), (
+                f"rejected[{idx}] Retry-After 非正整数秒: {retry_after!r}"
+            )
     finally:
         fake_provider_b.release_slow()
         executor.shutdown(wait=True)

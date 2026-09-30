@@ -51,10 +51,10 @@
 - 方案清单登记：`ADM-PROV-14`（与 §3.2 权威清单一致；本文件名 `adm-prov-14.md`，唯一对应）。
 - 要测什么（责任展开）：`GET /v1/providers` 与 `GET /v1/providers/{id}` **响应永不回显 secret 值**——仅 `has_secret` 布尔与（写-only 的）`secret_ref` 引用，响应体不含解析后的秘密。
 - 明确不测什么 / 失败含义：不证明 写入/更新（ADM-PROV-02/05）、不证明 `secret_ref` 格式校验（ADM-PROV-12）、不证明审计/日志脱敏（ADM-AUDIT-01、ADM-LOGS-01）、不证明 `/v1/providers/{id}/models` 或 `/usage` 的出站凭据处理；本 case 只覆盖 provider **读取响应体**的安全不变量。
-  > 实现状态：本 case 在 §3.2 的自动化入口为 **`MISSING`**（尚无 `at_adm_prov_14.py`），`设计状态` 现为 `待写`；本设计完成后其文档状态达 `已写`，但**实现缺口**仍阻断 release Gate（[测试设计 §9](../../schemes/llmtier-system-test-scheme.md)：MISSING = NOT_RUN 缺口，不得冒充 PASS）。
+  > 实现状态：本 case 的自动化入口为 **`Implemented`**（`at_adm_prov_14.py`，A 类）；实现状态以 §7 为唯一权威，执行状态与 Verdict 只在 Run 报告。
 
 **目的（被测契约）**：验证 Management Provider CRUD 的**秘密不泄露契约**。被测端点/规则：`GET /v1/providers`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listProviders`）与 `GET /v1/providers/{id}`（`getProvider`），角色 `admin`；`ProviderView` 为 `additionalProperties:false`，**不含 `secret_ref` 键**，仅以 `has_secret:boolean` 表达"是否配置了秘密"；[`registry.get_provider`](../../../../src/management/registry.py) 只拼装 `has_secret = bool(row["secret_ref"])`，从不解引用/回传秘密值或引用串。设计验证项 `VRC-MGMT-001`；机制 `T-CFG-SECRET`；需求/机制链 `LT-FUN-005`、`LT-SEC-001`、`R-CFG-01`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../../schemes/llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明写入/更新（ADM-PROV-02/05）、不证明 `secret_ref` 格式校验（ADM-PROV-12）、不证明审计/日志脱敏（ADM-AUDIT-01、ADM-LOGS-01）、不证明 `/v1/providers/{id}/models` 或 `/usage` 的出站凭据处理；本 case 只覆盖 provider **读取响应体**的安全不变量。
-  > 实现状态：本 case 在 §3.2 的自动化入口为 **`MISSING`**（尚无 `at_adm_prov_14.py`），`设计状态` 现为 `待写`；本设计完成后其文档状态达 `已写`，但**实现缺口**仍阻断 release Gate（[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)：MISSING = NOT_RUN 缺口，不得冒充 PASS）。
+  > 实现状态：本 case 的自动化入口为 **`Implemented`**（`at_adm_prov_14.py`，A 类）；实现状态以 §7 为唯一权威，执行状态与 Verdict 只在 Run 报告。
 
 ## 2. 被测入口与前置
 
@@ -103,7 +103,7 @@
   - **BLOCKED**：无法执行/无法判定且可重试（断言不可实现、秘密来源不可解析导致无法做否定扫描）——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **SKIP**：§2.1 前置不满足（含 §2.1.5 `provider_omlx_m5mac` 秘密不可用）——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **INVALID**：用 `127.0.0.1`/mock/替代路径冒充真实 m5air，或伪造否定扫描结论——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：本 case 自动化入口 **`MISSING`**（§3.2，尚无 `at_adm_prov_14.py`），本轮未执行按 §9 记 `NOT_RUN`（MISSING = 缺口，不得以"未实现"当 PASS/SKIP）；`ADM-PROV-14` 为 **P0 MISSING**，阻断 release Gate（[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)）。
+  - **NOT_RUN**：本 Case 有实现（§7，`at_adm_prov_14.py`），本轮未执行时按 §9 记 `NOT_RUN`；不得以未跑冒充 PASS。
 
 ## 6. 错误路径、副作用与清理
 
@@ -112,8 +112,8 @@
 ## 7. 自动化位置与状态
 
 - **证据与 Run**：证据与 Run 契约见[系统测试计划 §6 证据与 Run 记录规则](../../plans/llmtier-system-test-plan.md#6-证据与-run-记录规则)(../../schemes/llmtier-system-test-scheme.md)：Run ID=`<date>/A-api`；保存原始 status/headers/body（脱敏后）、发出命令、exit code、`elapsed`、环境快照；`manifest.json` 必填字段与报告落位（`tests/system/reports/...`）见 §4.8/§10；失败现场不截断。**本 case 额外证据**：列表/详情原始 status/headers/body（**脱敏后**：`Authorization`、`9832`、key 文件内容 → `<redacted>`）、否定扫描方法与被扫字符串的哈希/占位；`redactions` 必须显式列出上述三项。
-  > 自动化缺口：本 case 尚无 `at_adm_prov_14.py`，须由实现者按 §4.9/§8.5 新增 `at_adm_prov_14.py`（A 类，`admin_client`）并接入 runner；在实现落地前，本 case 保持 `NOT_RUN`（P0 缺口）。
+  > 自动化入口：`at_adm_prov_14.py`（A 类，`admin_client`）；实现状态见文末。
 
-- **依赖**：[系统测试计划 §3 执行前检](../../plans/llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查，尤其 **§2.1.5**（`provider_omlx_m5mac` `has_secret=true`、`secret_ref` 为 `file:`）；`admin_client` fixture（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../../schemes/llmtier-system-test-scheme.md)）；`ProviderView` 机器契约（`interfaces/openapi/llmtier.openapi.json`）；`registry.get_provider`/`list_providers`；机制 `T-CFG-SECRET`；自动化入口 **`MISSING`（待实现 `at_adm_prov_14.py`）**。**不依赖**其它 Case；与 ADM-PROV-01/03 共享读路径，但承担其安全断言；与 ADM-AUDIT-01/ADM-LOGS-01（审计/日志脱敏）互补但各自独立。
+- **依赖**：[系统测试计划 §3 执行前检](../../plans/llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查，尤其 **§2.1.5**（`provider_omlx_m5mac` `has_secret=true`、`secret_ref` 为 `file:`）；`admin_client` fixture（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../../schemes/llmtier-system-test-scheme.md)）；`ProviderView` 机器契约（`interfaces/openapi/llmtier.openapi.json`）；`registry.get_provider`/`list_providers`；机制 `T-CFG-SECRET`；自动化入口 `at_adm_prov_14.py`。**不依赖**其它 Case；与 ADM-PROV-01/03 共享读路径，但承担其安全断言；与 ADM-AUDIT-01/ADM-LOGS-01（审计/日志脱敏）互补但各自独立。
 
 > 实现状态：Implemented（`at_adm_prov_14.py`）；执行状态与 Verdict 只在 Run 报告。

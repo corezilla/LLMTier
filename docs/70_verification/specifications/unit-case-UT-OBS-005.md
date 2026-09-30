@@ -88,7 +88,7 @@ page_traces(since, until, cursor, limit)
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_diagnostics.py::test_traces_dedups_by_request_and_stable_paging/test_traces_valid_cursor_still_pages/test_traces_cursor_without_separator_rejected`（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
+- 测试文件 / 测试函数：`tests/unit/v03/test_diagnostics.py::test_traces_dedups_by_request_and_stable_paging/test_traces_valid_cursor_still_pages/test_traces_cursor_without_separator_rejected/test_traces_out_of_window_is_empty`（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
 - 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_diagnostics.py -q`
 - 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
 

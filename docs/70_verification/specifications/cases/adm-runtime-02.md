@@ -56,7 +56,7 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `admin`，只读；见[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=§2.1 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；fixture `api_client`（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；本 case 为 **MISSING**（§3.2 无 `at_adm_runtime_02.py`），设计已写、实现待补。初始状态=§2.3 A 类基线；本 case 只读、无副作用。
+- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `admin`，只读；见[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=§2.1 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；fixture `api_client`（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；本 case 自动化入口 [`at_adm_runtime_02.py`](../../../../tests/system/api_test_v03/at_adm_runtime_02.py) 已实现（§3.2 `RUN`）。初始状态=§2.3 A 类基线；本 case 只读、无副作用。
   > **关键构造约束**：必须使用**显式且有效的 data bearer**（`Bearer dev-data`）。**不得**用"缺 `Authorization` 头"来构造 403——受信 LAN/loopback 的无头请求会被 [`unauthenticated_principal`](../../../../src/http_api/auth.py) 无条件授予**共享角色主体**（`trusted-lan-operator`/`trusted-lan-consumer`，本端点按 role=admin 解析为 operator），从而得到 200 而非 403（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。角色负向必须靠"有效但角色不符的凭据"。
 
 ## 3. 输入构造
@@ -94,7 +94,7 @@
   - **FAIL**：status 非 403（含 200/401/503）、`code` 错、或泄露 runtime 内容。
   - **BLOCKED**：fixture/断言逻辑问题——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **SKIP**：§2.1 前置不满足——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：本 Case 自动化入口 **`MISSING`**（§3.2），本轮未执行；缺口引用 §3.2/§9（MISSING ≠ NOT_RUN）。
+  - **NOT_RUN**：本 Case 有实现（§3.2 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
   - **INVALID**：用缺 `Authorization` 头冒充角色负向（实际会因 LAN trust 得 200），或用 `127.0.0.1`/mock 冒充真实 m5air——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
 
 ## 6. 错误路径、副作用与清理
@@ -105,6 +105,6 @@
 
 - **证据与 Run**：保存正向对照与负向请求的 headers 快照（证明发送 `Bearer dev-data`）、原始 403 响应（脱敏后）、发出命令、exit code、`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../../plans/llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../../plans/llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client` fixture（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../../schemes/llmtier-system-test-scheme.md)）；`auth.authenticate`；错误目录 `ERR-AUTH-DENIED`；机制 `R-TRUST-02`/`T-TRUST-SHARED`。自动化入口 **`MISSING`**（待补 `at_adm_runtime_02.py`，落位按 §4.9/§8.5）。**不依赖**其它 Case；与 ADM-RUNTIME-01（admin 正向）互补，与 AUTH-03（`/v1/providers` 角色负向）同机制不同端点。
+- **依赖**：[系统测试计划 §3 执行前检](../../plans/llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client` fixture（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../../schemes/llmtier-system-test-scheme.md)）；`auth.authenticate`；错误目录 `ERR-AUTH-DENIED`；机制 `R-TRUST-02`/`T-TRUST-SHARED`。自动化入口 [`at_adm_runtime_02.py`](../../../../tests/system/api_test_v03/at_adm_runtime_02.py)。**不依赖**其它 Case；与 ADM-RUNTIME-01（admin 正向）互补，与 AUTH-03（`/v1/providers` 角色负向）同机制不同端点。
 
 > 实现状态：Implemented（`at_adm_runtime_02.py`）；执行状态与 Verdict 只在 Run 报告。

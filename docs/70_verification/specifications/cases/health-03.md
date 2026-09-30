@@ -39,7 +39,7 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 B**（临时 LLMTier 实例，见[系统测试方案 §1 测试边界](../../schemes/llmtier-system-test-scheme.md)）。执行前须满足方案 §5 **附加（B 类）**：临时实例可启动且 `GET /healthz` 200。**当前状态：BLOCKED——所需 fixture 尚不存在，本 case 在补齐前无法执行。** 本 case 需要一个**已 bootstrap 基线资源但未被探测**的实例（每个 tier 的 `deployment_ids` 指向 `depl_b`、`depl_b.health="unknown"`；等价于 `LLMTierInstance(_baseline_settings)` 且**不调用** `_probe_deployment`）。[`conftest.py`](../../../../tests/system/api_test_v03/conftest.py) **当前未提供**该 fixture（既无 `llmtier_b_unprobed`，也无等价入口），故 **BLOCKED 直到该 fixture 落地**。**不可用现有 fixture 替代**：`llmtier_b` 启动即 `_probe_deployment(depl_b)`→`healthy`，把 7 tier 全翻成 `available`（那是 HEALTH-02 的 ready 形态）；`llmtier_b_empty` 是三个空 section 的合法 bootstrap，7 tier 无候选 ⇒ 全 `unavailable` ⇒ `not_ready`（那是 HEALTH-04），**都不是** `degraded`。必须新增的 fixture 状态（供实现者）：**scope=session** 的 `LLMTierInstance(_baseline_settings(provider_endpoint_b))`，`start()` 后**跳过** `_probe_deployment`，产出实例的 7 tier 均 `degraded`（`health=unknown`）；**不得复用** `llmtier_b`。TS-003：`prov_b.endpoint` 必须是本机 **LAN IP** 上的 fake provider（不得用 `127.0.0.1` 作为被测服务的上游 endpoint）。目标初始状态 = 1 provider（`prov_b`）/ 1 deployment（`depl_b`，`health="unknown"`）/ 7 fixed tier 且 `diagnostic_injections` 为空。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例，见[系统测试方案 §1 测试边界](../../schemes/llmtier-system-test-scheme.md)）。执行前须满足方案 §5 **附加（B 类）**：临时实例可启动且 `GET /healthz` 200。**当前状态：Implemented——fixture `llmtier_b_unprobed`（[`conftest.py`](../../../../tests/system/api_test_v03/conftest.py)）与脚本 [`at_obs_04.py`](../../../../tests/system/api_test_v03/at_obs_04.py) 已落地并通过。** 本 case 需要一个**已 bootstrap 基线资源但未被探测**的实例（每个 tier 的 `deployment_ids` 指向 `depl_b`、`depl_b.health="unknown"`；等价于 `LLMTierInstance(_baseline_settings)` 且**不调用** `_probe_deployment`）。[`conftest.py`](../../../../tests/system/api_test_v03/conftest.py) 提供该 fixture `llmtier_b_unprobed`：**scope=session** 的 `LLMTierInstance(_baseline_settings(provider_endpoint_b))`，`start()` 后**跳过** `_probe_deployment`，产出实例的 7 tier 均 `degraded`（`health=unknown`）。**不可用现有 fixture 替代**：`llmtier_b` 启动即 `_probe_deployment(depl_b)`→`healthy`，把 7 tier 全翻成 `available`（那是 HEALTH-02 的 ready 形态）；`llmtier_b_empty` 是三个空 section 的合法 bootstrap，7 tier 无候选 ⇒ 全 `unavailable` ⇒ `not_ready`（那是 HEALTH-04），**都不是** `degraded`；**不得复用** `llmtier_b`。TS-003：`prov_b.endpoint` 必须是本机 **LAN IP** 上的 fake provider（不得用 `127.0.0.1` 作为被测服务的上游 endpoint）。目标初始状态 = 1 provider（`prov_b`）/ 1 deployment（`depl_b`，`health="unknown"`）/ 7 fixed tier 且 `diagnostic_injections` 为空。
 - **被测入口**：
 
   ```http
@@ -49,7 +49,7 @@
   ```
 
 - **初态构造（经公开入口）**：构造"有候选但无健康候选"——由 bootstrap 插入 `depl_b` 时 `health` 初始为 `"unknown"`（[`registry.py`](../../../../src/management/registry.py) `bootstrap_settings` 的 `INSERT INTO deployments ... 'unknown'`），且 7 tier 的 `deployment_ids` 均为 `["depl_b"]`，故每 tier `candidates` 非空、`healthy` 计数为 0 ⇒ `availability="degraded"`。**不在本 case 调用 `POST /v1/probes`**（保持 `unknown`，避免翻成 `healthy`）。备选构造：探测指向不可达上游的 `depl_b` 使其 `health` 变为 `unhealthy`（仍 `degraded`，因候选存在而健康为 0）；但"未探测"更确定、无上游依赖，优先。不注入故障；不构造非法输入。
-- **Fixture / 向量及版本**：B 类 fixture 当前缺失（见上）；依赖 `_baseline_settings`/`provider_endpoint_b`（LAN fake provider，TS-003）（[系统测试方案 §4 共同机制](../../schemes/llmtier-system-test-scheme.md)）。
+- **Fixture / 向量及版本**：`llmtier_b_unprobed` fixture 与 `_baseline_settings(provider_endpoint_b)`（LAN fake provider，TS-003）（[系统测试方案 §4 共同机制](../../schemes/llmtier-system-test-scheme.md)）。
 - **依赖的测试资产（tests.asset-design 文档）**：本阶段 `tests.asset-design` 文档尚未建立；B 类实例与 fake provider 夹具契约见方案 §4，引用其版本而不复制字节。
 
 ## 3. 输入构造
@@ -68,7 +68,7 @@
 ## 4. 执行步骤与观察点
 
 - **执行过程（逐步调用）**：
-  1. （fixture 前置——**当前 BLOCKED**）所需"未探测基线"实例 fixture 在 [`conftest.py`](../../../../tests/system/api_test_v03/conftest.py) 中**尚不存在**，故本步无法执行；补齐后：以 `_baseline_settings` 启动并轮询 `GET /healthz` 200，**不**执行 `_probe_deployment`，确认初始 `GET /readyz` 即为 `degraded`（若已是 `ready`，说明实例被误探测，判 BLOCKED/构造失败）。
+  1. （fixture 前置）`llmtier_b_unprobed` 以 `_baseline_settings` 启动并轮询 `GET /healthz` 200，**不**执行 `_probe_deployment`（`depl_b.health` 保持 `unknown`），故 `GET /readyz` 为 `degraded`（若观测到 `ready`，说明实例被误探测，判 BLOCKED/构造失败）。
   2. `GET /readyz`（上表）；记录 status、`Content-Type`、`X-Request-ID`、body。
   3. 断言 `resp.status_code == 503`。
   4. 解析 body：断言键集**恰为** `{status, models}`，`status == "degraded"`。
@@ -78,7 +78,7 @@
 
 | Step | 动作 | 观察点 |
 |---|---|---|
-| 1 | （BLOCKED）构造未探测基线实例；轮询 `/healthz` 200，不 probe，确认初始 `/readyz` 为 degraded | 实例就绪且未被探测 |
+| 1 | 构造未探测基线实例（`llmtier_b_unprobed`）；轮询 `/healthz` 200，不 probe，确认初始 `/readyz` 为 degraded | 实例就绪且未被探测 |
 | 2 | `GET /readyz` | status / headers / body |
 | 3 | 断言 status == 503 | HTTP 状态 |
 | 4 | 断言 `status == "degraded"` | 响应体 |
@@ -99,10 +99,10 @@
 - **判定（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
   - **PASS**：`status==503` + `status=="degraded"` + `models` 恰为 7 个 fixed tier 且全 `degraded`。
   - **FAIL**：status/字段/聚合不符——含误为 `ready`（被探测）或 `not_ready`（无候选），或返回错误信封；给预期 vs 实际与 `reproduction_cmd`。
-  - **BLOCKED（当前判定）**：所需"未探测基线"实例 fixture 在 [`conftest.py`](../../../../tests/system/api_test_v03/conftest.py) 中**尚不存在**（无 `llmtier_b_unprobed` 或等价入口），无法构造"有候选但无健康候选"的确定性实例——须先补齐该 fixture（session-scope `LLMTierInstance(_baseline_settings(provider_endpoint_b))`，`start()` 后跳过 `_probe_deployment`）。其它同因情形：实例启动即被探测成 healthy、无法在 B 类实例上保留 `health=unknown`；或测试代码/断言不可实现。本 case 同时 `自动化入口 = MISSING`（清单），无脚本时应记为缺口而非 PASS。若实例根本起不来/`/healthz` 不就绪，属依赖失败，视情形 BLOCKED 或 SKIP。
+  - **BLOCKED**：仅在 `llmtier_b_unprobed` 不可启动、或实例被误探测成 healthy（无法保留 `health=unknown`）时判 BLOCKED/构造失败。fixture（`llmtier_b_unprobed`）与脚本（[`at_obs_04.py`](../../../../tests/system/api_test_v03/at_obs_04.py)）均已落地并通过，不再是当前状态。若实例根本起不来/`/healthz` 不就绪，属依赖失败，视情形 BLOCKED 或 SKIP。
   - **SKIP**：B 类临时实例不可用、`provider_endpoint_b` 无 LAN IP 可用（TS-003）等 §2 前置不满足——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **INVALID**：用 `127.0.0.1`/mock 当上游 endpoint，或以替代路径冒充真实临时实例——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：本 case `自动化入口 = MISSING`（清单），本轮未执行；缺口引用见[系统测试方案 §4 缺口裁决](../../schemes/llmtier-system-test-scheme.md)（MISSING ≠ NOT_RUN：无实现是缺口，不是跳过）。
+  - **NOT_RUN**：本 case 有实现（[`at_obs_04.py`](../../../../tests/system/api_test_v03/at_obs_04.py)），未执行时记 `NOT_RUN`；不得以未跑冒充 PASS。
 
 ## 6. 错误路径、副作用与清理
 
@@ -112,6 +112,6 @@
 ## 7. 自动化位置与状态
 
 - **证据与 Run**：证据与 Run 契约见[§4.8/§10](../../schemes/llmtier-system-test-scheme.md)：保存实例启动参数/settings（`_baseline_settings` 内容，脱敏后）、确认"未探测"的证据（未调用 `POST /v1/probes` 的请求日志）、原始 HTTP status/headers/body、`elapsed`、环境快照（`/healthz` + `/readyz`）；manifest 与报告落位（`tests/system/reports/...`）见 §4.8/§10（本 case `environment:"b"`）；失败现场不截断。
-- **依赖**：B 类 fixture——**当前缺失**：需要一个"未探测基线"实例（如 `llmtier_b_unprobed`：session-scope `LLMTierInstance(_baseline_settings(provider_endpoint_b))`，`start()` 后跳过 `_probe_deployment`）；**不可复用** `llmtier_b`（启动即 probe 成 `healthy`）。该 fixture 在 [`conftest.py`](../../../../tests/system/api_test_v03/conftest.py) 中**尚不存在**，故本 case 现在 **BLOCKED**。另依赖 `_baseline_settings`/`provider_endpoint_b`（LAN fake provider，TS-003）（[系统测试方案 §4 共同机制](../../schemes/llmtier-system-test-scheme.md)）；`ReadinessView`（[`openapi`](../../../../interfaces/openapi/llmtier.openapi.json)）；实现 [`health.py`](../../../../src/http_api/health.py)；系统设计 §8.1 的 `degraded` 初始态（[llmtier-system-design.md](../../../20_system_design/llmtier-system-design.md)）；自动化入口：**`MISSING`**（尚无 HEALTH-03 脚本——`at_obs_03.py` 承接的是 HEALTH-04，不承接本 case）。**不依赖**其它 Case；与 HEALTH-02/04/05 同入口但状态互斥。
+- **依赖**：B 类 fixture `llmtier_b_unprobed`（[`conftest.py`](../../../../tests/system/api_test_v03/conftest.py)：session-scope `LLMTierInstance(_baseline_settings(provider_endpoint_b))`，`start()` 后跳过 `_probe_deployment`）；**不可复用** `llmtier_b`（启动即 probe 成 `healthy`）。另依赖 `_baseline_settings`/`provider_endpoint_b`（LAN fake provider，TS-003）（[系统测试方案 §4 共同机制](../../schemes/llmtier-system-test-scheme.md)）；`ReadinessView`（[`openapi`](../../../../interfaces/openapi/llmtier.openapi.json)）；实现 [`health.py`](../../../../src/http_api/health.py)；系统设计 §8.1 的 `degraded` 初始态（[llmtier-system-design.md](../../../20_system_design/llmtier-system-design.md)）；自动化入口 [`at_obs_04.py`](../../../../tests/system/api_test_v03/at_obs_04.py)（`at_obs_03.py` 承接 HEALTH-04，本 case 用 `at_obs_04.py`，不与其冲突）。**不依赖**其它 Case；与 HEALTH-02/04/05 同入口但状态互斥。
 
-> 实现状态：Planned（自动化入口 `MISSING`，缺口见 §5 BLOCKED）；执行状态与 Verdict 只在 Run 报告。
+> 实现状态：Implemented（`at_obs_04.py` 已断言 503 + `degraded` + 7×`degraded`）；执行状态与 Verdict 只在 Run 报告。

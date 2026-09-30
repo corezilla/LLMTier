@@ -81,7 +81,7 @@
   5. 断言两键值类型均为 JSON 布尔（`type(v) is bool`，不得把 `0/1` 当 `true/false`）。
   6. （交叉核对，不改变本 case 判定）与别名 `GET /tier/admin/v1/diagnostics` 同凭据下的响应体逐字节比对，作为 OBS-ALIAS-01 的旁证；本 case 不承担别名等价判定。
 
-**重点关注步骤**：① **字段集精确性**——不是"含两个字段"，而是"键集恰好等于 `SwitchState`"，多一个键即违反 `additionalProperties:false`；② **类型精确性**——`snapshots_enabled`/`stats_enabled` 必须是 JSON 布尔，不能是 `0/1`/字符串；③ **纯读、无副作用**——GET 不得写 `diagnostic_settings`（不改开关）、不得写审计（机制 §5.1 明确 PATCH 才"副作用=同事务审计"）、不得新增 trace；④ **不得被错误信封冒充**——若返回非 200，需确认是可解释的 `ERR-AUTH-*`/`ERR-STORE`，而非把错误体当 `SwitchState` 读；⑤ **不依赖开关值**——不对 `true/false` 做业务断言（m5air 实际值未知，默认关）；⑥ **降级判定**——区分"诊断服务降级返回默认 `SwitchState`"（仍 200，PASS）与"存储不可达返回 503 `usage_store_unavailable`"（环境问题，非本 case 的契约 FAIL，见判定）。注意：本 case 当前 `MISSING`（§3.2），尚无自动化入口 `at_obs_diag_01.py`，其落位与命名须遵循 §4.9/§8.5（`at_<family>_<seq>.py`）。
+**重点关注步骤**：① **字段集精确性**——不是"含两个字段"，而是"键集恰好等于 `SwitchState`"，多一个键即违反 `additionalProperties:false`；② **类型精确性**——`snapshots_enabled`/`stats_enabled` 必须是 JSON 布尔，不能是 `0/1`/字符串；③ **纯读、无副作用**——GET 不得写 `diagnostic_settings`（不改开关）、不得写审计（机制 §5.1 明确 PATCH 才"副作用=同事务审计"）、不得新增 trace；④ **不得被错误信封冒充**——若返回非 200，需确认是可解释的 `ERR-AUTH-*`/`ERR-STORE`，而非把错误体当 `SwitchState` 读；⑤ **不依赖开关值**——不对 `true/false` 做业务断言（m5air 实际值未知，默认关）；⑥ **降级判定**——区分"诊断服务降级返回默认 `SwitchState`"（仍 200，PASS）与"存储不可达返回 503 `usage_store_unavailable`"（环境问题，非本 case 的契约 FAIL，见判定）。自动化入口 `at_obs_diag_01.py` 已实现（落位遵循 §4.9/§8.5）。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -98,7 +98,7 @@
   - **FAIL**：`status!=200` 且存储健康；或 body 键集不等/缺失/多键；或值非 JSON 布尔；或以错误信封冒充 `SwitchState`。
   - **BLOCKED**：测试代码/契约本身问题（如 fixture 写不出、断言逻辑错、`openapi` 语义不清），或**存储层读取异常被 handler 的 `_store_read` 转为 `503 usage_store_unavailable`（`ERR-STORE`，机制 §4.8.1 明示的存储不可达语义，属环境问题）**——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **SKIP**：§2.1 前置不满足（m5air 不可达、`/readyz` 非 7 tier、双 OMLX 离线等）——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：本 case 自动化入口 `MISSING`（§3.2），本轮未执行；缺口引用见 §9（MISSING ≠ NOT_RUN：无实现是缺口，不是跳过）。
+  - **NOT_RUN**：无（自动化入口已实现；执行状态见 Run 报告）。
   - **INVALID**：用 `127.0.0.1`/mock/替代路径冒充真实 m5air 路径，或未命中真实诊断服务却按行为判定——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
 
 ## 6. 错误路径、副作用与清理
@@ -109,6 +109,6 @@
 
 - **证据与 Run**：保存原始 HTTP status/headers/body、发出命令（`curl`/httpx）、exit code、`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../../plans/llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../../plans/llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查（m5air `/healthz`、`/readyz` 7 tier、双 OMLX、`provider_omlx_m5mac` secret）；`admin_client` fixture（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../../schemes/llmtier-system-test-scheme.md)）；M007 `diagnostic_settings` 单行（`002_observability.sql`）；`SwitchState` 机器契约（`interfaces/openapi/llmtier.openapi.json`）。自动化入口 `at_obs_diag_01.py`（**当前 `MISSING`，尚未实现**，落位按 §4.9/§8.5）。**不依赖**其它 Case；与 OBS-ALIAS-01（别名 `/tier/admin/v1/diagnostics` 逐字节等价）、OBS-DIAG-02（PATCH 更新开关 + 审计）、OBS-DIAG-03（PATCH 非法值 400）语义相邻但各自独立执行；角色负向参照 OBS-REQTRACE-03 风格（data token → 403）与 AUTH-08。
+- **依赖**：[系统测试计划 §3 执行前检](../../plans/llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查（m5air `/healthz`、`/readyz` 7 tier、双 OMLX、`provider_omlx_m5mac` secret）；`admin_client` fixture（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../../schemes/llmtier-system-test-scheme.md)）；M007 `diagnostic_settings` 单行（`002_observability.sql`）；`SwitchState` 机器契约（`interfaces/openapi/llmtier.openapi.json`）。自动化入口 `at_obs_diag_01.py`（已实现，落位遵循 §4.9/§8.5）。**不依赖**其它 Case；与 OBS-ALIAS-01（别名 `/tier/admin/v1/diagnostics` 逐字节等价）、OBS-DIAG-02（PATCH 更新开关 + 审计）、OBS-DIAG-03（PATCH 非法值 400）语义相邻但各自独立执行；角色负向参照 OBS-REQTRACE-03 风格（data token → 403）与 AUTH-08。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

@@ -74,7 +74,7 @@
   6. 断言每个 `item.deployment_id == "dep_local_gemma"`（只返回该 deployment 的注入）。
   7. （交叉核对，不改变判定）与别名 `GET /tier/admin/v1/deployments/dep_local_gemma/diagnostics` 同凭据下响应体逐字节比对，作为 OBS-ALIAS-04 的旁证；本 case 不承担别名判定。
 
-**重点关注步骤**：① **顶层数组 vs 包封对象**——成功体是 `InjectionView[]` 裸数组；若是 `{items:[...]}` 判 FAIL（PATCH body 才是 `{items}`）。② **项键集精确**——恰 6 键（`additionalProperties:false`）。③ **`type` 枚举**——6 值白名单，越界即 FAIL。④ **`config` 为对象**——不得为 `null`/字符串；具体字段随 `type` 变化（如 `fault_502` → `error_body`、`delay` → `delay_ms`）。⑤ **`enabled` 布尔**——不得用 `0/1`。⑥ **deployment 作用域**——返回项必须与路径 id 一致，不得混入其它 deployment。⑦ **空数组合法**——无注入时 `[]` 合法（PASS），不要求非空。⑧ **降级/存储**——`_UnavailableDiagnostics.injections` 恒返回 `[]` 的 **200**（fail-open，形状 PASS）；`503 usage_store_unavailable` 判 BLOCKED/SKIP。注意：本 case 当前 `MISSING`（§3.2），无 `at_obs_depl_01.py`；且 §3.5 将 OBS-DEPL-01 列为 **P0 MISSING Gate 阻断项**。
+**重点关注步骤**：① **顶层数组 vs 包封对象**——成功体是 `InjectionView[]` 裸数组；若是 `{items:[...]}` 判 FAIL（PATCH body 才是 `{items}`）。② **项键集精确**——恰 6 键（`additionalProperties:false`）。③ **`type` 枚举**——6 值白名单，越界即 FAIL。④ **`config` 为对象**——不得为 `null`/字符串；具体字段随 `type` 变化（如 `fault_502` → `error_body`、`delay` → `delay_ms`）。⑤ **`enabled` 布尔**——不得用 `0/1`。⑥ **deployment 作用域**——返回项必须与路径 id 一致，不得混入其它 deployment。⑦ **空数组合法**——无注入时 `[]` 合法（PASS），不要求非空。⑧ **降级/存储**——`_UnavailableDiagnostics.injections` 恒返回 `[]` 的 **200**（fail-open，形状 PASS）；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `at_obs_depl_01.py` 已实现（§3.5 P0 Gate 阻断项已消解）。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -91,7 +91,7 @@
   - **FAIL**：非 200（存储健康时）、顶层为对象、项键集不符、`type` 越枚举、`enabled` 非布尔、或返回别的 deployment 的注入。
   - **BLOCKED**：测试代码/契约问题或存储不可达 `503 usage_store_unavailable`——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **SKIP**：§2.1 前置不满足（含 `dep_local_gemma` 未注册）——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：自动化入口 `MISSING`（§3.2；P0 Gate 阻断项），本轮未执行；缺口引用见 §9。
+  - **NOT_RUN**：无（自动化入口已实现；P0 Gate 阻断项已消解，执行状态见 Run 报告）。
   - **INVALID**：用 `127.0.0.1`/mock/替代路径冒充真实 m5air，或未命中真实诊断服务却按行为判定——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
 
 ## 6. 错误路径、副作用与清理
@@ -102,6 +102,6 @@
 
 - **证据与 Run**：保存原始 HTTP status/headers/body、命令/exit code/`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../../plans/llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../../plans/llmtier-system-test-plan.md#3-执行前检go--no-go) 6 项就绪检查（含 `dep_local_gemma` 注册）；`admin_client` fixture（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../../schemes/llmtier-system-test-scheme.md)）；M007 `diagnostic_injections`（`002_observability.sql`）；`InjectionView` 机器契约；实现 [`src/libdiag/injections.py`](../../../../src/libdiag/injections.py)、[`src/http_api/app.py`](../../../../src/http_api/app.py)。自动化入口 `at_obs_depl_01.py`（**当前 `MISSING`，尚未实现**）。**不依赖**其它 Case；与 OBS-DEPL-02（写入）、OBS-DEPL-03（未知 404）、OBS-DEPL-04（非法项 400）语义相邻但各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../../plans/llmtier-system-test-plan.md#3-执行前检go--no-go) 6 项就绪检查（含 `dep_local_gemma` 注册）；`admin_client` fixture（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../../schemes/llmtier-system-test-scheme.md)）；M007 `diagnostic_injections`（`002_observability.sql`）；`InjectionView` 机器契约；实现 [`src/libdiag/injections.py`](../../../../src/libdiag/injections.py)、[`src/http_api/app.py`](../../../../src/http_api/app.py)。自动化入口 `at_obs_depl_01.py`（已实现）。**不依赖**其它 Case；与 OBS-DEPL-02（写入）、OBS-DEPL-03（未知 404）、OBS-DEPL-04（非法项 400）语义相邻但各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

@@ -9,14 +9,17 @@ Auth: Bearer dev-admin
 
 断言：
 - DELETE 带正确 If-Match
-- HTTP 204
-- 随后 GET 返回 404
+- HTTP 204 且响应体为空
+- 随后 GET 返回 404 + 5 键错误信封（code=="not_found"）
+- 基线 depl_b 仍在
 """
 from __future__ import annotations
 
 import pytest
 
 BASELINE_PROVIDER_ID = "prov_b"
+
+ERROR_KEYS = {"message", "type", "code", "param", "retryable"}
 
 
 @pytest.mark.api_b
@@ -50,6 +53,17 @@ def test_adm_depl_05_delete_deployment(admin_client_b):
         headers={"If-Match": etag},
     )
     assert del_resp.status_code == 204, f"期望 204，实际 {del_resp.status_code}: {del_resp.text}"
+    assert del_resp.content == b"", f"204 响应体应为空，实际 {del_resp.content!r}"
 
     get_resp = admin_client_b.get(f"/v1/deployments/{rid}")
     assert get_resp.status_code == 404
+    body = get_resp.json()
+    assert set(body) == {"error"}, f"顶层键集不符（应为错误信封）: {set(body)}"
+    err = body["error"]
+    assert set(err) == ERROR_KEYS, f"error 键集不符（恰 5 键）: {set(err)}"
+    assert err["code"] == "not_found", f"code != not_found: {err}"
+    assert err["type"] == "request_error", f"type != request_error: {err}"
+    assert err["retryable"] is False, f"retryable != False: {err}"
+
+    baseline = admin_client_b.get("/v1/deployments/depl_b")
+    assert baseline.status_code == 200, "基线 depl_b 应仍然存在"

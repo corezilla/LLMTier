@@ -73,6 +73,16 @@ class UsageRecorder:
             start = datetime.fromisoformat((since or "").replace("Z", "+00:00")); end = datetime.fromisoformat((until or "").replace("Z", "+00:00"))
         except ValueError as exc: raise ApiError(400, "invalid_request", "from and to must be RFC3339 date-times") from exc
         if start >= end: raise ApiError(400, "invalid_request", "from must be before to")
+        # `recorded_at` is stored as canonical millisecond-precision UTC
+        # ("...Z"). Comparing it against the caller's `from`/`to` as raw strings
+        # is only temporally correct when both share a precision: a second-
+        # precision `to` sorts *after* a same-second millisecond `recorded_at`
+        # ('.' < 'Z'), so a record at/after the half-open boundary could leak in.
+        # Normalize both bounds to the storage precision so the `[from,to)`
+        # comparison is a true temporal one. The raw `since`/`until` are still
+        # used for `filter_digest` (cursor filter identity).
+        from_str = start.astimezone(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+        until_str = end.astimezone(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
         filters = json.dumps({"from": since, "to": until, "model": model, "request_id": request_id}, sort_keys=True, separators=(",", ":"))
         filter_digest = hashlib.sha256(filters.encode()).hexdigest()
         if cursor:
@@ -91,7 +101,7 @@ class UsageRecorder:
             auth = hashlib.sha256(("admin" if admin else principal).encode()).hexdigest()
             with self.store.transaction(True) as conn:
                 conn.execute("INSERT INTO query_snapshots VALUES(?,?,?,?,?,?,?)", (sid, principal, "usage", filter_digest, auth, stamp, expires))
-                clauses, params = ["v.recorded_at>=?", "v.recorded_at<?"], [since, until]
+                clauses, params = ["v.recorded_at>=?", "v.recorded_at<?"], [from_str, until_str]
                 if not admin: clauses.append("h.principal_id=?"); params.append(principal)
                 if model: clauses.append("v.model=?"); params.append(model)
                 if request_id: clauses.append("v.request_id=?"); params.append(request_id)

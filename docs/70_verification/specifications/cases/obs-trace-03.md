@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `OBS-TRACE-03` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -41,7 +41,7 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite，同机第二个进程）。执行前满足**附加（B 类）**：实例可启动且 `GET /healthz` 200；`_baseline_settings` 注入 1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier。fixture：本 case **必须使用专用 `LLMTierInstance`**（独立临时 SQLite 与端口），**不得**复用或就地改动 session-scope 的 `llmtier_b`（其库被其它 B 类 case 共享，就地移库会污染它们）。**当前 `conftest.py` 尚未提供此专用 fixture**（需新增，如 `llmtier_b_diag_store`/等价，并暴露临时库路径只读访问器）；fixture 落地前本 case 为 **BLOCKED**。TS-003：本 case 不触上游。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite，同机第二个进程）。执行前满足**附加（B 类）**：实例可启动且 `GET /healthz` 200；`_baseline_settings` 注入 1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier。fixture（**已落地**）：本 case 使用专用 `LLMTierInstance` fixture `llmtier_b_diag_store`（[`conftest.py`](../../../../tests/system/api_test_v03/conftest.py)，独立临时 SQLite 与端口，暴露临时库路径只读访问器）+ `store_triplet`（三件套移开/恢复工厂），**不得**复用或就地改动 session-scope 的 `llmtier_b`（其库被其它 B 类 case 共享，就地移库会污染它们）。TS-003：本 case 不触上游。
 - **被测入口**：
 
   ```http
@@ -82,7 +82,7 @@
 - **判定（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
   - **PASS**：存储不可用时 `503 + usage_store_unavailable + type=server_error`；`finally` 恢复后回到 `200`。
   - **FAIL**：返回 `200`（含空结果冒充）、码非 `usage_store_unavailable`、信封不合规、或恢复后无法回到 200。
-  - **BLOCKED**：专用 fixture 未落地、或路径法因连接池失效。
+  - **BLOCKED**：路径法因连接池失效（存储变为持久连接后"路径→目录"不再触发）、或无法安全恢复 / 无法取得专用实例的临时库路径——**可重试**，须写 `required_resolution` 与 `reproduction_cmd`；专用 fixture 已落地，不再构成 BLOCKED。
   - **SKIP**：B 类临时实例不可用、附加前置不满足。
   - **INVALID**：mock/替代路径伪造 503（未真正使存储不可用）。
   - **NOT_RUN**：有实现但本轮未执行。
@@ -94,11 +94,11 @@
 
 ## 7. 自动化位置与状态
 
-- **测试文件 / 测试函数**：`tests/system/api_test_v03/at_obs_trace_03.py`（**MISSING**，须新建；依赖专用实例 fixture）。
+- **测试文件 / 测试函数**：`tests/system/api_test_v03/at_obs_trace_03.py`（已实现；依赖专用实例 fixture）。
 - **单 Case 执行命令**：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_obs_trace_03.py -q`。
-- **实现状态**：Planned；执行与 Verdict 归 Run 报告。
+- **实现状态**：Implemented（`at_obs_trace_03.py` 已断言 store 不可用 → 503 `usage_store_unavailable` + 恢复 200；B 类运行通过）；执行与 Verdict 归 Run 报告。
 
 **证据与 Run**：保存基线请求/响应、触发动作（移动文件清单与 `mkdir` 结果、`db_path`）、故障请求原始 status/headers/body、恢复动作与恢复后请求、发出命令、exit code、`elapsed`、环境快照（本 case `environment:"b"`）。
 
-**依赖**：附加（B 类）就绪检查；**专用 `LLMTierInstance` fixture**（独立库/端口，当前缺失，需新增）；实现 `src/http_api/app.py::_store_read`、`src/libdiag/*`；错误目录 `ERR-STORE`。**不依赖**其它 Case；与 DP-USAGE-08 同技法但端点不同。
+**依赖**：附加（B 类）就绪检查；**专用 `LLMTierInstance` fixture**（独立库/端口，**已落地** `llmtier_b_diag_store` + `store_triplet`）；实现 `src/http_api/app.py::_store_read`、`src/libdiag/*`；错误目录 `ERR-STORE`。**不依赖**其它 Case；与 DP-USAGE-08 同技法但端点不同。
 

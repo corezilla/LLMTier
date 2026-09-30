@@ -75,6 +75,16 @@ class StatsBranchTests(unittest.TestCase):
         self.d.record_latency(None, "Worker", 200, 1)
         self.assertEqual(self.d.stats("2000-01-01T00:00", "2100-01-01T00:00")["windows"], [])
 
+    def test_stats_mixed_null_and_string_keys_do_not_crash(self):
+        # Regression: bucket keys (stat_hour, deployment_id, model) may contain None
+        # (traffic that never bound a deployment) alongside strings; a raw tuple
+        # sort raised TypeError on None vs str (m5air /v1/diagnostics/stats 503).
+        self.d.record_latency(None, "Worker", 400, 1)
+        self.d.record_latency("depl_b", "Worker", 200, 2)
+        windows = self.d.stats("2000-01-01T00:00", "2100-01-01T00:00")["windows"]
+        self.assertEqual(len(windows), 2)
+        self.assertEqual({w["deployment_id"] for w in windows}, {None, "depl_b"})
+
 
 class FailOpenWriteTests(unittest.TestCase):
     """UT-DIAG-003/007: write-failure degradation + cleanup failure returns 0."""

@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "HEALTH-05",
   "document_type": "tests.system-case",
-  "document_version": "0.1.0-draft.2",
+  "document_version": "0.1.0-draft.3",
   "title": "HEALTH-05 — readyz bootstrap 失败",
   "document_owner": "LLMTier",
   "authors": [

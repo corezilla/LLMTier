@@ -102,7 +102,7 @@
 
 ## 6. 错误路径、副作用与清理
 
-- **清理与复位**：**隔离由 B 类承担**——重置即本 case 的目的状态；退出前确认 `usage_record_versions` 计数为 0（或本次断言终态）、无本次新建 deployment 残留（部署 scope 变体若新建 deployment 须删除）。> **teardown 缺口（登记）**：实现 [`at_adm_admin_usage_03.py`](../../../../tests/system/api_test_v03/at_adm_admin_usage_03.py) 在部署 scope 变体中创建 `Reset Test Depl 2` 且**从不 DELETE**（同 ADM-SL-06/07 的资源泄漏，§3.2/实现缺口）；本设计以"`finally` 中 DELETE 该 deployment"为 PASS 前置，缺口在 Run 报告具名登记。 B 类整班结束由 fixture `stop()` + `rm -rf` 临时目录（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。 **不得**在 A 类执行。
+- **清理与复位**：**隔离由 B 类承担**——重置即本 case 的目的状态；退出前确认 `usage_record_versions` 计数为 0（或本次断言终态）、无本次新建 deployment 残留（部署 scope 变体若新建 deployment 须删除）。> **teardown（已修复）**：实现 [`at_adm_admin_usage_03.py`](../../../../tests/system/api_test_v03/at_adm_admin_usage_03.py) 的部署 scope 变体在 `finally` 中先 `DELETE /v1/usage?deployment_id=<depl2>`（清除 FK 绑定）再删除本 case 新建的 `Reset Test Depl 2`（`If-Match` 删除），不再泄漏资源。 B 类整班结束由 fixture `stop()` + `rm -rf` 临时目录（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。 **不得**在 A 类执行。
 
 ## 7. 自动化位置与状态
 

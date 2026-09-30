@@ -32,9 +32,16 @@ STAGE_KEYS = {"stage", "timestamp", "detail"}
 
 @pytest.mark.api_a
 def test_obs_reqtrace_01_full_lifecycle(admin_client, api_client):
+    status = None
     with api_client.stream("POST", "/v1/responses", json=TRACE_BODY) as resp:
+        status = resp.status_code
         for _chunk in resp.iter_bytes():
             pass
+    # 构造前提：制造 trace 的请求本身必须成功。若该请求失败（非 200），
+    # "无 traces" 反映的是真实故障而非数据缺失 —— 不得据此 BLOCKED 掩盖 FAIL。
+    assert status == 200, (
+        f"制造 trace 的 POST /v1/responses 返回 {status}（非 200）——真实故障，非数据缺失"
+    )
 
     listing = admin_client.get("/v1/diagnostics/traces", params={"limit": 1})
     assert listing.status_code == 200, (
@@ -42,7 +49,11 @@ def test_obs_reqtrace_01_full_lifecycle(admin_client, api_client):
     )
     items = listing.json()["items"]
     if not items:
-        pytest.xfail("BLOCKED (OBS-REQTRACE-01): traces 列表为空，无法取得 request_id")
+        # xfail → BLOCKED：请求已 200 成功，但入口未落任何 trace（观测数据缺失）。
+        # 这是合法的 BLOCKED（不能判定契约），且前置已排除"制造请求失败"的假 BLOCKED。
+        pytest.xfail(
+            "BLOCKED (OBS-REQTRACE-01): responses 请求成功但 traces 列表为空，无法取得 request_id"
+        )
     request_id = items[0]["request_id"]
 
     resp = admin_client.get(f"/v1/trace/{request_id}")

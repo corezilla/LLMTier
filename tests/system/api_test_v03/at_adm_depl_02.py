@@ -49,11 +49,11 @@ def test_adm_depl_02_create_deployment(admin_client_b):
     assert data["enabled"] == body["enabled"]
     assert data["capabilities"] == body["capabilities"]
     assert "id" in data
-    assert "version" in data
-    assert "ETag" in resp.headers
+    assert data["version"] == 1, f"新建 deployment 版本应为 1，实际 {data['version']}"
 
     rid = data["id"]
     etag = resp.headers["ETag"]
+    assert etag == f'"{rid}.v1"', f"新建 ETag 应为 \"{rid}.v1\"，实际 {etag!r}"
     get_resp = admin_client_b.get(f"/v1/deployments/{rid}")
     assert get_resp.status_code == 200
     assert get_resp.headers.get("ETag") == etag

@@ -142,9 +142,19 @@ class StaticAndReadinessTests(LoopbackApp):
     """UT-API-004/010: static traversal, `/ui/` index, readyz mapping."""
 
     def test_directory_traversal_is_404(self):
-        status, payload, _ = self.request("GET", "/ui/../app.py")
+        # The traversal guard lives in `_static`. `urllib` normalizes
+        # `/ui/../x` to `/x` before sending, so a urllib request never reaches
+        # `_static` and would pass even if the guard were removed. Send the raw
+        # path over a real socket instead. `/ui/../http_api/app.py` resolves to
+        # an existing file OUTSIDE the web_ui root, so removing the
+        # `root not in target.parents` guard would serve it (200, source leak)
+        # — this test goes red exactly then.
+        status, payload = self.raw_status("GET", "/ui/../http_api/app.py")
         self.assertEqual(404, status)
-        self.assertEqual("not_found", payload["error"]["code"])
+        self.assertEqual("not_found", json.loads(payload)["error"]["code"])
+        # A second, deeper raw traversal that also resolves outside the root.
+        status, _ = self.raw_status("GET", "/ui/../../etc/passwd")
+        self.assertEqual(404, status)
 
     def test_ui_root_serves_index(self):
         req = urllib.request.Request(f"http://127.0.0.1:{self.port}/ui/", method="GET")
@@ -308,6 +318,14 @@ class AdminDispatchAuthTests(unittest.TestCase):
         except urllib.error.HTTPError as exc:
             return exc.code, json.loads(exc.read())
 
+    def request_method(self, method, path, token):
+        req = urllib.request.Request(f"http://127.0.0.1:{self.port}{path}", method=method, headers={"Authorization": f"Bearer {token}"})
+        try:
+            with urllib.request.urlopen(req) as resp:
+                return resp.status, json.loads(resp.read())
+        except urllib.error.HTTPError as exc:
+            return exc.code, json.loads(exc.read())
+
     def test_data_token_on_admin_endpoint_is_403(self):
         status, payload = self.request("/v1/providers", "dt")
         self.assertEqual(403, status)
@@ -316,6 +334,16 @@ class AdminDispatchAuthTests(unittest.TestCase):
     def test_admin_token_on_admin_endpoint_is_200(self):
         status, _ = self.request("/v1/providers", "at")
         self.assertEqual(200, status)
+
+    def test_auth_either_admin_first_role_selection(self):
+        # `/v1/usage` DELETE requires admin. With BOTH tokens configured, the
+        # admin token must resolve to the admin role (allowed) and the data
+        # token must not (403). This is the admin-first branch of `_auth_either`.
+        status, _ = self.request_method("DELETE", "/v1/usage", "at")
+        self.assertEqual(200, status)
+        status, payload = self.request_method("DELETE", "/v1/usage", "dt")
+        self.assertEqual(403, status)
+        self.assertEqual("permission_denied", payload["error"]["code"])
 
 
 class DiagnosticsPatchContractTests(LoopbackApp):
@@ -330,6 +358,14 @@ class DiagnosticsPatchContractTests(LoopbackApp):
         status, payload, _ = self.request("PATCH", "/tier/admin/v1/diagnostics", {"enabled": True})
         self.assertEqual(400, status)
         self.assertEqual("invalid_request", payload["error"]["code"])
+
+    def test_non_boolean_switch_is_400_and_not_persisted(self):
+        before = self.request("GET", "/v1/diagnostics")[1]
+        status, payload, _ = self.request("PATCH", "/v1/diagnostics", {"snapshots_enabled": "yes"})
+        self.assertEqual(400, status)
+        self.assertEqual("invalid_request", payload["error"]["code"])
+        after = self.request("GET", "/v1/diagnostics")[1]
+        self.assertEqual(before, after)  # rejected request must not mutate the switches
 
 
 if __name__ == "__main__":

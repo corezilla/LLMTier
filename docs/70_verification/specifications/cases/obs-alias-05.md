@@ -74,7 +74,7 @@
   4. **缺参等价**：两路径都不带 `since`/`until` → 断言两 `400` 且 `resp.content` **逐字节相等**，`code=="invalid_request"`。
   5. 断言两路径 status 与 body 一致；仅 `X-Request-ID` 不同（不参与断言）。
 
-**重点关注步骤**：① **参数严格对齐**——同 query 才可逐字节比较。② **逐字节 body 等价**——比较 `resp.content`。③ **错误路径也等价**——缺参 400 信封在两路径逐字节相同（确定性锚点，且不依赖是否已有统计数据）。④ **只比 body**——`X-Request-ID` 不参与、不列入 Oracle。⑤ **鉴权等价**——都需 `admin`（正向；负向 AUTH-08）。⑥ **无数据也等价**——`windows=[]` 时两路径仍完全一致。⑦ **降级/存储**——降级实例两路径同样 `{"windows":[]}`（等价成立，判 BLOCKED/SKIP 说明语义）；`503 usage_store_unavailable` 判 BLOCKED/SKIP。注意：本 case 当前 `MISSING`（§3.2），无 `at_obs_alias_05.py`。
+**重点关注步骤**：① **参数严格对齐**——同 query 才可逐字节比较。② **逐字节 body 等价**——比较 `resp.content`。③ **错误路径也等价**——缺参 400 信封在两路径逐字节相同（确定性锚点，且不依赖是否已有统计数据）。④ **只比 body**——`X-Request-ID` 不参与、不列入 Oracle。⑤ **鉴权等价**——都需 `admin`（正向；负向 AUTH-08）。⑥ **无数据也等价**——`windows=[]` 时两路径仍完全一致。⑦ **降级/存储**——降级实例两路径同样 `{"windows":[]}`（等价成立，判 BLOCKED/SKIP 说明语义）；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `at_obs_alias_05.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -90,7 +90,7 @@
   - **FAIL**：status/body 不等价、别名 404 或错误 code 不同。
   - **BLOCKED**：测试代码/契约问题、降级实例、存储不可达——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **SKIP**：§2.1 前置不满足——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：自动化入口 `MISSING`（§3.2），本轮未执行；缺口引用见 §9。
+  - **NOT_RUN**：无（自动化入口已实现；执行状态见 Run 报告）。
   - **INVALID**：用 `127.0.0.1`/mock/替代路径冒充真实 m5air，或未真正比较两路径却按等价判定——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
 
 ## 6. 错误路径、副作用与清理
@@ -101,6 +101,6 @@
 
 - **证据与 Run**：保存两路径正向响应、两路径缺参 400、逐字节对比结果、命令/exit code/`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../../plans/llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../../plans/llmtier-system-test-plan.md#3-执行前检go--no-go) 6 项就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../../schemes/llmtier-system-test-scheme.md)）；openapi `x-llmtier-contract-aliases`；实现 [`src/http_api/app.py`](../../../../src/http_api/app.py)（`/tier/admin/v1/diagnostics/stats` 分支）。自动化入口 `at_obs_alias_05.py`（**当前 `MISSING`，尚未实现**）。**不依赖**其它 Case；与 OBS-STATS-01/02（内容/缺参）、AUTH-08 语义相邻，与其它别名并列但各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../../plans/llmtier-system-test-plan.md#3-执行前检go--no-go) 6 项就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../../schemes/llmtier-system-test-scheme.md)）；openapi `x-llmtier-contract-aliases`；实现 [`src/http_api/app.py`](../../../../src/http_api/app.py)（`/tier/admin/v1/diagnostics/stats` 分支）。自动化入口 `at_obs_alias_05.py`（已实现）。**不依赖**其它 Case；与 OBS-STATS-01/02（内容/缺参）、AUTH-08 语义相邻，与其它别名并列但各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

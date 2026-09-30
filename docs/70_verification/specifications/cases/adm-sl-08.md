@@ -1,5 +1,5 @@
 <!-- STD_DOCUMENT_COVER_BEGIN -->
-# ADM-SL-08 — 内部错误信封（非数组输入）
+# ADM-SL-08 — 非法类型输入校验（非数组 deployment_ids）
 
 > STD 使用入口：[项目采用说明与标准导航](../../../../README.md#std-entry)
 
@@ -49,14 +49,14 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ADM-SL-08` / 系统设计 §8 Service Level CRUD 接口（/v1/service-levels） / `VRC-MGMT-002` / `recovery` / `P2`
 - 方案清单登记：`ADM-SL-08`（与 §3.2 权威清单一致；本文件名 `adm-sl-08.md`，唯一对应）。
-- 要测什么（责任展开）：`PATCH /v1/service-levels/{id}` 用非数组 `deployment_ids`：HTTP 500 `internal_error` 信封（无栈/无 secret）；同时登记"非法类型未预校验"缺陷。
-- 明确不测什么 / 失败含义：不证明 合法 PATCH（ADM-SL-04）、不证明键白名单 400（ADM-SL-04b）、不证明能力/向量空间冲突 409（ADM-SL-06/07）、不证明审计/日志（ADM-AUDIT-01/ADM-LOGS-01）。本 case **不把 500 当正确行为**——它验证信封契约并登记缺陷。
+- 要测什么（责任展开）：`PATCH /v1/service-levels/{id}` 用非数组 `deployment_ids`：HTTP 400 `invalid_request`、`param="deployment_ids"`，零副作用。
+- 明确不测什么 / 失败含义：不证明 合法 PATCH（ADM-SL-04）、不证明键白名单 400（ADM-SL-04b）、不证明能力/向量空间冲突 409（ADM-SL-06/07）、不证明审计/日志（ADM-AUDIT-01/ADM-LOGS-01）。本 case 锁 400 类型校验契约（见 §7 修订注记）。
 
-**目的（被测契约）**：验证统一**服务器错误信封**在兜底 500 路径上的契约，并**登记**输入类型校验缺陷。被测端点/规则：`PATCH /v1/service-levels/{service_level_id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `updateServiceLevel`，`ServiceLevelPatch.deployment_ids` 类型应为 `array`）；[`registry.update_service_level`](../../../../src/management/registry.py) 只做键集校验（`set(body) <= {"deployment_ids","enabled"}`）**不做类型校验**，把 `deployment_ids` 直接交给 `_capability_intersection` 迭代；当其为非可迭代 JSON 类型（如整数）时抛 `TypeError`，被 [`app.py`](../../../../src/http_api/app.py) 的兜底 `except Exception` 转为 `ApiError(500, "internal_error", "Internal server error")`（5 键信封，[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。设计验证项 `VRC-MGMT-002`；错误目录 `ERR-INTERNAL` → wire `code=internal_error`；机制 `R-CFG-01`；需求/机制链 `LT-FUN-005`、`CT-ADMIN-001`。**不证明什么**：不证明合法 PATCH（ADM-SL-04）、不证明键白名单 400（ADM-SL-04b）、不证明能力/向量空间冲突 409（ADM-SL-06/07）、不证明审计/日志（ADM-AUDIT-01/ADM-LOGS-01）。本 case **不把 500 当正确行为**——它验证信封契约并登记缺陷。
+**目的（被测契约）**：验证统一 `ErrorEnvelope` 在**非法类型输入**路径上的契约。被测端点/规则：`PATCH /v1/service-levels/{service_level_id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `updateServiceLevel`，`ServiceLevelPatch.deployment_ids` 类型应为 `array`）；[`registry._capability_intersection`](../../../../src/management/registry.py) 在迭代前显式校验 `isinstance(deployment_ids, list) and all(isinstance(rid, str) for rid in deployment_ids)`，非数组输入 `raise ApiError(400, "invalid_request", "deployment_ids must be an array of strings", "deployment_ids")`（L300），不再抛 `TypeError → 500`。设计验证项 `VRC-MGMT-002`；错误目录 `ERR-REQ-VALIDATION` → wire `code=invalid_request`；机制 `R-CFG-01`；需求/机制链 `LT-FUN-005`、`CT-ADMIN-001`。**不证明什么**：不证明合法 PATCH（ADM-SL-04）、不证明键白名单 400（ADM-SL-04b）、不证明能力/向量空间冲突 409（ADM-SL-06/07）、不证明审计/日志（ADM-AUDIT-01/ADM-LOGS-01）。
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=§2.1 附加（B 类）；fixture `admin_client_b`（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；本 case 为 **MISSING**（§3.2 无 `at_adm_sl_08.py`），设计已写、实现待补。初始状态=`Worker` 存在。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=§2.1 附加（B 类）；fixture `admin_client_b`（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；本 case 已有实现（`at_adm_sl_08.py`）。初始状态=`Worker` 存在。
 
 ## 3. 输入构造
 
@@ -71,8 +71,8 @@
   ```json
   {"deployment_ids": 1}
   ```
-  构造点：`deployment_ids` 为 JSON **number**（非 array；非可迭代 → 触发 `TypeError`）；`If-Match` 取真实 ETag（使失败点落在类型处理而非 412）；body 键集仍 ⊆ 白名单（否则被 400 拦，无法到达 500 路径）。
-  > **类型选择**：须用**非可迭代** JSON 类型（整数/布尔/null）才能命中 500。字符串会逐字符迭代并被当作未知 deployment 引用而返回 400 `invalid_request`、对象会迭代键同理——均**不**满足本 case 的 500 断言。
+  构造点：`deployment_ids` 为 JSON **number**（非 array；`_capability_intersection` 的类型守卫当场拒绝）；`If-Match` 取真实 ETag（使失败点落在类型校验而非 412）；body 键集仍 ⊆ 白名单（否则被更早的键校验拦）。
+  > **类型选择**：`ServiceLevelPatch.deployment_ids` 类型应为 `array`；任意非数组 JSON 类型（整数/布尔/null/字符串/对象）都应返回 400 `invalid_request`——本 case 以整数为例。
 
 ## 4. 执行步骤与观察点
 
@@ -80,41 +80,43 @@
   1. （fixture 前置）`llmtier_b` `/healthz` 200；`_probe_deployment(depl_b)` 断言 `healthy`。
   2. `get = admin_client_b.get("/v1/service-levels/Worker")`；断言 200；记 `etag`、`version_before`。
   3. `resp = admin_client_b.patch("/v1/service-levels/Worker", json={"deployment_ids": 1}, headers={"If-Match": etag})`。
-  4. 断言 `resp.status_code == 500`；`err = resp.json()["error"]`：断言键集**恰为** `{message,type,code,param,retryable}`（无 `category`）、`err["code"]=="internal_error"`、`err["type"]=="server_error"`、`err["retryable"] is False`。
+  4. 断言 `resp.status_code == 400`；`err = resp.json()["error"]`：断言键集**恰为** `{message,type,code,param,retryable}`、`err["code"]=="invalid_request"`、`err["type"]=="request_error"`、`err["param"]=="deployment_ids"`、`err["retryable"] is False`。
   5. 断言响应体**不含** Python traceback（`Traceback`/`File "`）、`TypeError`、`'int' object`、secret 字面 `9832`、`omlx-secret-key.txt`（脱敏校验）。
-  6. （零副作用核验）`GET /v1/service-levels/Worker` 断言 `version==version_before`（异常在 `txn` 内抛出、事务回滚）。
-  7. （缺陷登记）在 Run 报告写出缺陷记录：`deployment_ids` 缺失 JSON 类型预校验，非法类型未返回 400 `invalid_request` 而泄漏为 500 `internal_error`；`reproduction_cmd` 指向本 case 步骤 3。
+  6. （零副作用核验）`GET /v1/service-levels/Worker` 断言 `version==version_before`。
 
-**重点关注步骤**：① **命中真实 500 路径**——非数组、非可迭代输入导致 `_capability_intersection` 迭代 `TypeError`；字符串/对象会得 400，不能冒充本 case；② **信封 identity**——恰 5 键、`type` 由 500 导出为 `server_error`、`code=internal_error`；③ **不泄露**——body 不得含 traceback/内部类型信息/secret；④ **零副作用**——500 前事务必须回滚，`Worker.version` 不变；⑤ **现状与期望的区分**——500 是**已登记缺陷**的现状表现，PASS 判定的是"信封契约成立 + 缺陷被登记"，不是"500 是期望行为"；⑥ **审计**——失败经 `mutate` 记 `result="failed"`，属允许的审计记录。
+**重点关注步骤**：① **命中类型守卫**——非数组输入被 `_capability_intersection` 的 `isinstance(deployment_ids, list)` 守卫拒绝为 400 `invalid_request`（不再 500）；② **信封 identity**——恰 5 键、`type="request_error"`、`code=invalid_request`、`param="deployment_ids"`；③ **不泄露**——body 不得含 traceback/内部类型信息/secret；④ **零副作用**——`Worker.version` 不变；⑤ **审计**——失败经 `mutate` 记 `result="failed"`，属允许的审计记录。
 
 ## 5. 独立 Oracle 与预期结果
 
 > 判据语义以设计验证项（VRC）为唯一权威，本文细化为可执行断言但不改写；冲突回溯设计修订。
 
-- **期望结果与独立 Oracle**：独立 Oracle = `openapi` `ErrorEnvelope`/`ErrorDetail`（5 键）+ `ApiError.envelope` 的 `type` 由状态导出规则。
-  - HTTP：`500`；`Content-Type: application/json`；body `{"error":{"message":"Internal server error","type":"server_error","code":"internal_error","param":null,"retryable":false}}`。
+- **期望结果与独立 Oracle**：独立 Oracle = `openapi` `ErrorEnvelope`/`ErrorDetail`（5 键）+ `ServiceLevelPatch.deployment_ids` 的 `array` 类型约束 + `ApiError.envelope` 的 `type` 由状态导出规则。
+  - HTTP：`400`；`Content-Type: application/json`；body `{"error":{"message":"<nonempty>","type":"request_error","code":"invalid_request","param":"deployment_ids","retryable":false}}`。
   - 脱敏：body 不含 traceback / `TypeError` / 内部类型字符串 / secret 字面。
   - 资源：`Worker.version` 不变。
-  - 缺陷：Run 报告登记"非数组 `deployment_ids` 缺失类型预校验（应 400 `invalid_request`）"。
 
 - **判定（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
-  - **PASS**：`500` + 恰 5 键信封 + `code=="internal_error"` + `type=="server_error"` + 无栈/无 secret；`Worker.version` 不变；缺陷已具名登记。
-  - **FAIL**：status 非 500（如实现修复后返回 400——则须更新本 case 与 §3.2/§11.1 后再判）、信封键集不符、`code`/`type` 错、泄露内部信息、或 `Worker` 被改。
-  - **BLOCKED**：无法执行/无法判定且可重试（实现尚未暴露该路径、断言不可实现）——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
+  - **PASS**：`400` + 恰 5 键信封 + `code=="invalid_request"` + `type=="request_error"` + `param=="deployment_ids"`；`Worker.version` 不变。
+  - **FAIL**：status 非 400（尤其 500 `internal_error`——类型守卫缺失）、信封键集不符、`code`/`param`/`type` 错、泄露内部信息、或 `Worker` 被改。
+  - **BLOCKED**：无法执行/无法判定且可重试——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **SKIP**：B 类临时实例不可用——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：本 Case 自动化入口 **`MISSING`**（§3.2），本轮未执行；缺口引用 §3.2/§9（MISSING ≠ NOT_RUN：无实现是缺口，不是跳过）。
-  - **INVALID**：用 `127.0.0.1`/mock 冒充，或用字符串/对象等会得 400 的输入冒充 500 路径——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
+  - **NOT_RUN**：本 Case 有实现（§3.2 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
+  - **INVALID**：用 `127.0.0.1`/mock 冒充被测服务——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
 
 ## 6. 错误路径、副作用与清理
 
-- **清理与复位**：**无需业务 teardown**——500 前回滚，无资源改动。退出前确认 7 tier 齐全、`Worker.version` 未变、无注入残留。 B 类整班结束由 fixture `stop()` + `rm -rf` 临时目录（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。
+- **清理与复位**：**无需业务 teardown**——拒绝在写库前发生，无资源改动。退出前确认 7 tier 齐全、`Worker.version` 未变、无注入残留。 B 类整班结束由 fixture `stop()` + `rm -rf` 临时目录（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。
 
 ## 7. 自动化位置与状态
 
-- **证据与 Run**：保存GET/PATCH 的请求与原始 500 响应（脱敏后）、`Worker` 前后 `version`、缺陷登记条目（含 `reproduction_cmd`）、发出命令、exit code、`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../../plans/llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/B-api`，`environment:"b"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
+- **测试文件 / 测试函数**：`tests/system/api_test_v03/at_adm_sl_08.py`（**Implemented**）。
+- **单 Case 执行命令**：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_adm_sl_08.py -q`。
+- **实现状态**：Implemented；执行与 Verdict 归 Run 报告。
 
-- **依赖**：B 类 fixture `llmtier_b` / `admin_client_b`（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../../schemes/llmtier-system-test-scheme.md)）；`registry.update_service_level`/`_capability_intersection`（缺类型校验）；[`app.py`](../../../../src/http_api/app.py) 兜底 500；错误目录 `ERR-INTERNAL`；机制 `R-CFG-01`。自动化入口 **`MISSING`**（待补 `at_adm_sl_08.py`，落位按 §4.9/§8.5）。**不依赖**其它 Case；与 ADM-SL-04b（键白名单 400）互为"输入校验"的正/反例。
+- **证据与 Run**：保存GET/PATCH 的请求与原始 400 响应（脱敏后）、`Worker` 前后 `version`、发出命令、exit code、`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../../plans/llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/B-api`，`environment:"b"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
+
+- **依赖**：B 类 fixture `llmtier_b` / `admin_client_b`（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../../schemes/llmtier-system-test-scheme.md)）；`registry._capability_intersection`（含类型守卫）；错误目录 `ERR-REQ-VALIDATION`；机制 `R-CFG-01`。自动化入口 [`at_adm_sl_08.py`](../../../../tests/system/api_test_v03/at_adm_sl_08.py)。**不依赖**其它 Case；与 ADM-SL-04b（键白名单 400）互为"输入校验"的正/反例。
 
 > 实现状态：Implemented（`at_adm_sl_08.py`）；执行状态与 Verdict 只在 Run 报告。
 
-> **实现 vs 设计偏差（2026-09-30，已登记）**：本 case §1/§4/§5 的 500 `internal_error` 前提已过期。当前实现 [`registry._capability_intersection`](../../../../src/management/registry.py) 在迭代前显式校验 `deployment_ids` 必须是字符串数组（`registry.py:300`），非数组输入返回 **400 `invalid_request`（param=`deployment_ids`）**，不再抛 `TypeError` → 500。按本 case §5 的 FAIL 条款（"如实现修复后返回 400——则须更新本 case 与 §3.2/§11.1 后再判"），`at_adm_sl_08.py` 以**当前 code 行为**为 Oracle 断言 400 `invalid_request`，并核验零副作用（`Worker.version` 不变）。原"输入类型未预校验"缺陷已修复关闭；§1/§4/§5 的 500 描述待后续设计修订对齐。
+> **设计修订（2026-09-30）**：本 case 早期设计假设 `deployment_ids` 缺失类型预校验、非数组输入会抛 `TypeError → 500 internal_error`，并据此把本 case 建为"服务器错误信封"案例。当前实现 [`registry._capability_intersection`](../../../../src/management/registry.py) 已在迭代前显式校验 `deployment_ids` 必须是字符串数组（`registry.py:300`），非数组输入返回 **400 `invalid_request`（param=`deployment_ids`）**，500 路径不再存在。本 case 已按**当前 code 行为（400）**为 Oracle 修订 §1/§3/§4/§5/§7：验证非法类型输入的 400 类型校验契约与零副作用，不再断言 500，也不再登记已关闭的"类型未预校验"缺陷。

@@ -8,16 +8,21 @@ Auth: Bearer dev-admin
 断言：
 - HTTP 404
 - error.code == "not_found"
+- 5 键错误信封：type=="request_error"、param is None、retryable is False
 """
 from __future__ import annotations
 
 import pytest
+
+from tests.system.api_test_v03.conftest import error_envelope
 
 
 @pytest.mark.api_a
 def test_adm_prov_04_get_nonexistent(admin_client):
     resp = admin_client.get("/v1/providers/provider_does_not_exist_xyz")
     assert resp.status_code == 404, f"返回 {resp.status_code}（期望 404）: {resp.text}"
-    body = resp.json()
-    err = body.get("error") or {}
-    assert err.get("code") == "not_found", f"error.code != 'not_found': {err}"
+    err = error_envelope(resp)
+    assert err["code"] == "not_found", f"error.code != 'not_found': {err}"
+    assert err["type"] == "request_error", f"error.type != 'request_error': {err}"
+    assert err["param"] is None, f"error.param != None: {err}"
+    assert err["retryable"] is False, f"error.retryable != False: {err}"

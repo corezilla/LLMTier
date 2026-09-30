@@ -23,6 +23,8 @@ import json
 
 import pytest
 
+from tests.system.api_test_v03.conftest import post_stream_until_terminal
+
 
 def _parse_sse(resp) -> tuple[list[tuple[str, dict]], bool]:
     events: list[tuple[str, dict]] = []
@@ -55,22 +57,20 @@ def _parse_sse(resp) -> tuple[list[tuple[str, dict]], bool]:
 
 @pytest.mark.api_a
 def test_dp_resp_01_streaming_sse_complete(api_client):
-    with api_client.stream(
-        "POST",
-        "/v1/responses",
-        json={
+    # A 臂要求 terminal 恰为 response.completed（本 case 专测完整序列与 usage）。
+    # 共享实例并发（retryable 5xx/429）与上游在 max_output_tokens 处截断
+    # （response.incomplete）均为非确定性条件，helper 做有界重试直至 completed。
+    events, saw_done, _attempts = post_stream_until_terminal(
+        api_client,
+        {
             "model": "Worker",
             "input": [{"role": "user", "content": "Hello"}],
             "stream": True,
             "store": False,
-            "max_output_tokens": 50,
+            "max_output_tokens": 512,
         },
-    ) as resp:
-        assert resp.status_code == 200, f"status {resp.status_code}"
-        ct = resp.headers.get("content-type", "")
-        assert "text/event-stream" in ct, f"content-type={ct!r}, expect text/event-stream"
-
-        events, saw_done = _parse_sse(resp)
+        terminal="response.completed",
+    )
 
     assert events, "无 SSE 事件"
     assert saw_done, "SSE 流缺 data: [DONE] 终止标记"

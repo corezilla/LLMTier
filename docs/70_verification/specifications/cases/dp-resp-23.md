@@ -30,7 +30,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-RESP-23` / 系统设计 §8 Responses 接口 / `VRC-INF-003` / recovery / P1（[方案清单 `DP-RESP-23`](../../schemes/llmtier-system-test-scheme.md)）。
-- 要测什么（责任展开）：`POST /v1/responses` 上游返回非成功 HTTP（4xx）：沿用非 5xx 状态并归一为 `provider_error`（**MISSING** 自动化；5xx 分支为 `provider_unavailable`，见偏差）。需求 `R-INF-05`；错误目录 `ERR-PROVIDER-FAIL` → wire `code=provider_error`；实现 `src/inference/providers/openai.py`（`except urllib.error.HTTPError as exc:` — `if exc.code >= 500: raise ApiError(503, "provider_unavailable", ..., retryable=True)`；否则 `raise ApiError(exc.code, "provider_error", f"Provider returned HTTP {exc.code}", retryable=exc.code in {408,429})`）。
+- 要测什么（责任展开）：`POST /v1/responses` 上游返回非成功 HTTP（4xx）：沿用非 5xx 状态并归一为 `provider_error`（自动化入口 `at_dp_resp_23.py`；5xx 分支为 `provider_unavailable`，见偏差）。需求 `R-INF-05`；错误目录 `ERR-PROVIDER-FAIL` → wire `code=provider_error`；实现 `src/inference/providers/openai.py`（`except urllib.error.HTTPError as exc:` — `if exc.code >= 500: raise ApiError(503, "provider_unavailable", ..., retryable=True)`；否则 `raise ApiError(exc.code, "provider_error", f"Provider returned HTTP {exc.code}", retryable=exc.code in {408,429})`）。
 - 明确不测什么 / 失败含义：不测注入类故障（DP-RESP-11/22，`fault_502`/`fault_503` 是 M006 注入，非真实上游 HTTP）；不测上游不可达/超时（亦归一 `provider_unavailable`）；不测上游契约异常（DP-RESP-25，`provider_contract_error`）；不测答案。失败含义＝真实上游非成功 HTTP 归一契约破坏。
 
 ## 2. 被测入口与前置
@@ -71,7 +71,7 @@ Accept: text/event-stream
 | 6 | 子测（可选）：stub 改返回 `429` | `status==429` + `provider_error` + `retryable is True` |
 | 7 | 子测（对照）：stub 改返回 `503` | 归一为 `503 provider_unavailable` + `retryable=true`（证明 5xx 分支：本条为**真实上游** 5xx；DP-RESP-22 是 M006 **注入** 503，两者来源不同） |
 
-- 重点关注步骤：① **4xx 沿用原状态**——非 5xx 的 `exc.code` 作为 HTTP status，`code=provider_error`；② **5xx 分支不同**——真实上游 5xx 归一为 `503 provider_unavailable`（**偏差**：方案标题写"上游 4xx/5xx → provider_error"，而实现 `openai.py` 对 5xx 返回 `provider_unavailable`；以代码为准并登记）；③ **`retryable` 规则**——仅 `{408,429}` 为真；④ **信封 identity**（5 键、无 `category`）；⑤ **无注入**——不得用 `PATCH .../diagnostics` 伪造（注入是 DP-RESP-11/22 的来源）；⑥ **MISSING**——自动化入口为 `MISSING`，须先实现 `at_dp_resp_23.py` 与 4xx stub。
+- 重点关注步骤：① **4xx 沿用原状态**——非 5xx 的 `exc.code` 作为 HTTP status，`code=provider_error`；② **5xx 分支不同**——真实上游 5xx 归一为 `503 provider_unavailable`（**偏差**：方案标题写"上游 4xx/5xx → provider_error"，而实现 `openai.py` 对 5xx 返回 `provider_unavailable`；以代码为准并登记）；③ **`retryable` 规则**——仅 `{408,429}` 为真；④ **信封 identity**（5 键、无 `category`）；⑤ **无注入**——不得用 `PATCH .../diagnostics` 伪造（注入是 DP-RESP-11/22 的来源）；⑥ **自动化入口**——`at_dp_resp_23.py` 与 4xx/5xx stub（`force-http-*`）已实现。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -85,9 +85,9 @@ Accept: text/event-stream
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/system/api_test_v03/at_dp_resp_23.py`（当前 **MISSING，尚未实现**；依赖 4xx stub）。
-- 单 Case 执行命令（实现后）：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_resp_23.py -q`。
-- 实现状态：Planned（MISSING）；执行与 Verdict 归 Run 报告。
+- 测试文件 / 测试函数：[`tests/system/api_test_v03/at_dp_resp_23.py`](../../../../tests/system/api_test_v03/at_dp_resp_23.py)（已实现；依赖 4xx stub）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_resp_23.py -q`。
+- 实现状态：Implemented；执行与 Verdict 归 Run 报告。
 
 **判定口径（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
 - PASS：4xx → 沿用状态 + `provider_error` + `type=request_error` + `retryable` 符合 `{408,429}` 规则；无 SSE。
@@ -95,7 +95,7 @@ Accept: text/event-stream
 - BLOCKED：无法稳定让 stub 返回目标 4xx/5xx、4xx stub 不可实现。
 - SKIP：B 类临时实例不可用、无 LAN IP 部署 stub（TS-003）。
 - INVALID：以 `127.0.0.1`/mock 冒充真实上游 endpoint、或注入未命中却按行为判定。
-- NOT_RUN：本 Case **无自动化实现**（MISSING）；未执行记 `NOT_RUN`。
+- NOT_RUN：本 Case 有实现（`at_dp_resp_23.py`），未执行记 `NOT_RUN`。
 
 **证据与 Run**：保存 stub 配置（返回码）、被测请求与原始错误信封、5xx 对照、发出命令、exit code、环境快照（本 case `environment:"b"`）。
 

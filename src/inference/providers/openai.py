@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import http.client
 import json
 import os
 import ssl
@@ -65,7 +66,7 @@ class OpenAIProvider:
             if exc.code >= 500:
                 raise ApiError(503, "provider_unavailable", f"Provider returned HTTP {exc.code}", retryable=True) from exc
             raise ApiError(exc.code, "provider_error", f"Provider returned HTTP {exc.code}", retryable=exc.code in {408, 429}) from exc
-        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+        except (urllib.error.URLError, TimeoutError, OSError, http.client.HTTPException, json.JSONDecodeError) as exc:
             raise ApiError(503, "provider_unavailable", "Provider request failed", retryable=True) from exc
 
     def complete(self, model: str, request: dict[str, Any]) -> ProviderResult:
@@ -117,7 +118,7 @@ class OpenAIProvider:
             if exc.code >= 500:
                 raise ApiError(503, "provider_unavailable", f"Provider returned HTTP {exc.code}", retryable=True) from exc
             raise ApiError(exc.code, "provider_error", f"Provider returned HTTP {exc.code}", retryable=exc.code in {408, 429}) from exc
-        except (urllib.error.URLError, TimeoutError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        except (urllib.error.URLError, TimeoutError, OSError, http.client.HTTPException, UnicodeDecodeError, json.JSONDecodeError) as exc:
             raise ApiError(503, "provider_unavailable", f"Provider streaming request failed: {type(exc).__name__}: {str(exc)[:80]}", retryable=True) from exc
 
     def embed(self, model: str, request: dict[str, Any]) -> dict[str, Any]:
@@ -159,6 +160,6 @@ class OpenAIProvider:
             if exc.code >= 500:
                 raise ApiError(503, "provider_unavailable", f"Provider returned HTTP {exc.code}", retryable=True) from exc
             raise ApiError(exc.code, "provider_error", f"Provider returned HTTP {exc.code}", retryable=exc.code in {408, 429}) from exc
-        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+        except (urllib.error.URLError, TimeoutError, OSError, http.client.HTTPException, json.JSONDecodeError) as exc:
             raise ApiError(503, "provider_unavailable", "Provider model catalog request failed", retryable=True) from exc
         return [m["id"] for m in payload.get("data", []) if isinstance(m.get("id"), str)]

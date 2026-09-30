@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-USAGE-09` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -41,10 +41,10 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite，同机第二个进程）。执行前满足**附加（B 类）**：实例可启动且 `GET /healthz` 200；`_baseline_settings` 注入 1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier。fixture：本 case **必须使用专用 `LLMTierInstance`**（独立临时 SQLite 与端口）并需**重启能力**（以同一 `db_path`/settings 再次 `start()`）——**当前 `conftest.py` 尚未提供重启助手**（需新增，如 `LLMTierInstance.restart()` 或 `llmtier_b_restart` fixture）；落地前本 case 为 **BLOCKED**。**不得**复用 session-scope `llmtier_b`。TS-003：上游为 LAN fake provider。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite，同机第二个进程）。执行前满足**附加（B 类）**：实例可启动且 `GET /healthz` 200；`_baseline_settings` 注入 1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier。fixture：本 case **使用专用 `LLMTierInstance`**（独立临时 SQLite 与端口）并具备**重启/硬杀能力**——`conftest.py` 提供 `LLMTierInstance.restart()`（同 db/settings 重启）、`kill()`（SIGKILL）与 fixture `llmtier_b_restart`（路径 A）、`llmtier_b_crash`（路径 B，`LLMTIER_SLOW_ADAPTER_DELAY=30` + probe healthy）。**不得**复用 session-scope `llmtier_b`。TS-003：上游为 LAN fake provider。
 - **构造 orphan unknown 的两条路径**（择一或并用，均经公开入口）：
   - **(A) 准入失败法**（无需慢上游）：不 probe `depl_b`（health 非 `healthy`），`POST /v1/responses` 经校验后先 `authorize_dispatch` 提交义务，随后 `Router.admit` 因无健康候选抛 `503 model_unavailable`，`admitted=False` ⇒ **不调 `finish`** ⇒ 库中留 orphan unknown（head=1）。
-  - **(B) 崩溃窗法**（更贴近 `T-MET-CRASH`）：以 `LLMTIER_SLOW_ADAPTER_DELAY` 启动，`depl_b` 健康；`POST /v1/responses` 在 `authorize_dispatch`+`bind_backend` 后于 `SlowAdapter.complete` 中 sleep；在 sleep 窗口内 `kill` 进程 ⇒ `finish` 未执行 ⇒ orphan unknown。
+  - **(B) 崩溃窗法**（更贴近 `T-MET-CRASH`，**已实现**）：以 `LLMTIER_SLOW_ADAPTER_DELAY=30` 启动，`depl_b` 健康；`POST /v1/responses` 在 `authorize_dispatch`+`bind_backend` 后于 `SlowAdapter.complete` 中 sleep；测试轮询 `usage_obligations` 确认义务已提交后 `kill()`（**SIGKILL，非 graceful SIGTERM**）进程 ⇒ `finish` 未执行 ⇒ orphan unknown。重启后验证不丢失 + **不重复**（直读账本三表各恰 1 行）。
 - **被测入口**：
 
   ```http
@@ -77,14 +77,14 @@
 
 | Step | 动作 | 观察点 |
 |---|---|---|
-| 1 | 启动专用实例；触发 orphan（路径 A 或 B）；记录 `X-Request-ID` | 义务已提交、进程终止/拒绝 |
+| 1 | 启动专用实例；触发 orphan——路径 A（准入失败）或路径 B（SlowAdapter 挂起后 SIGKILL）；记录 `X-Request-ID`（路径 B 从已提交的 obligation 行取） | 义务已提交、进程被硬杀/被拒 |
 | 2 | **重启**同一实例（同 `db_path`/settings） | `/healthz` 200 |
-| 3 | `GET /v1/usage`（admin，窗口覆盖触发时刻） | 200；含该 `request_id` |
+| 3 | `GET /v1/usage`（admin，窗口覆盖触发时刻） | 200；含该 `request_id`，且**恰 1 条** |
 | 4 | 断言记录字段 | `measurement_status=="unknown"`、token 全 `None`（**非 0**）、`is_final is False`、`record_version==1` |
-| 5 | （对照，可选）完成一次正常请求后重启 | 该 `request_id` 为 `measured`、token 为整数 |
+| 5 | **唯一性直读账本**（不变量"不重复"半）：直接读 `usage_obligations`/`usage_heads`/`usage_record_versions` | 该 `request_id` 各表**恰 1 行**（`_page` JOIN head 使重复对 API 不可见，故须直读） |
 | 6 | （teardown）专用实例整班销毁 | 无残留 |
 
-- **重点关注步骤**：① **unknown 义务跨重启存活**——重启后仍能查到该 `request_id`；② **unknown ≠ 0**——token 必须为 `None`，**不是** 0（0 会被误读为"没有调用"，INV-5/CON-METER-002）；③ **不得回填**——重启不得把 orphan 改写为 measured 或删除；④ **head 不降级**——`is_final=false`、`record_version==1`；⑤ **真实进程崩溃/重启**——路径 B 必须真正 `kill` 并重启，不得以"进程内异常"冒充；⑥ **专用实例隔离**；⑦ **BLOCKED 语义**——重启助手未落地时记 BLOCKED。
+- **重点关注步骤**：① **unknown 义务跨重启存活**——重启后仍能查到该 `request_id`；② **unknown ≠ 0**——token 必须为 `None`，**不是** 0（0 会被误读为"没有调用"，INV-5/CON-METER-002）；③ **不得回填**——重启不得把 orphan 改写为 measured 或删除；④ **head 不降级**——`is_final=false`、`record_version==1`；⑤ **真实进程崩溃/重启**——路径 B 必须真正 `kill` 并重启，不得以"进程内异常"冒充；⑥ **专用实例隔离**；⑦ **BLOCKED 语义**——重启助手不可用（或无法取得专用实例临时库路径）时记 BLOCKED。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -96,7 +96,7 @@
 - **判定（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
   - **PASS**：重启后 orphan 记录仍在且 `unknown` + token 全 `null`（非 0）+ `is_final=false`。
   - **FAIL**：重启后记录消失、被回填为 measured、token 为 0、或查询为空页冒充。
-  - **BLOCKED**：重启助手/专用 fixture 未落地。
+  - **BLOCKED**：重启助手/专用 fixture 不可用，或路径 B 的 in-flight obligation 未在超时内出现。
   - **SKIP**：B 类临时实例不可用、附加前置不满足。
   - **INVALID**：未真正崩溃/重启，或 mock/直改库伪造。
   - **NOT_RUN**：有实现但本轮未执行。
@@ -108,11 +108,11 @@
 
 ## 7. 自动化位置与状态
 
-- **测试文件 / 测试函数**：`tests/system/api_test_v03/at_dp_usage_09.py`（**MISSING**，须新建；依赖专用实例 + 重启助手）。
+- **测试文件 / 测试函数**：`tests/system/api_test_v03/at_dp_usage_09.py`（已实现；`test_dp_usage_09_orphan_unknown_survives_real_crash` 路径 B + `test_dp_usage_09_orphan_unknown_survives_restart` 路径 A）。
 - **单 Case 执行命令**：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_usage_09.py -q`。
-- **实现状态**：Planned；执行与 Verdict 归 Run 报告。
+- **实现状态**：Implemented；执行与 Verdict 归 Run 报告。
 
 **证据与 Run**：保存触发请求与响应/进程终止证据、重启命令、重启后 `GET /v1/usage` 原始响应（脱敏后）、库路径与 `db_schema_version`、发出命令、exit code、`elapsed`、环境快照（本 case `environment:"b"`）。
 
-**依赖**：附加（B 类）就绪检查；**专用 `LLMTierInstance` + 重启助手 fixture**（当前缺失，需新增）；机制 [`usage-metering` §9/§14.3](../../../20_system_design/mechanisms/usage-metering.md)；`UsagePage`/`ErrorEnvelope` 机器契约；自动化入口 `at_dp_usage_09.py`。**不依赖**其它 Case；与 DP-USAGE-08（存储不可用）同属账本持久性但语义不同。
+**依赖**：附加（B 类）就绪检查；专用 `LLMTierInstance` + 重启/硬杀助手 fixture（`llmtier_b_restart`/`llmtier_b_crash`，已落地）；机制 [`usage-metering` §9/§14.3](../../../20_system_design/mechanisms/usage-metering.md)；`UsagePage`/`ErrorEnvelope` 机器契约；自动化入口 `at_dp_usage_09.py`（已实现）。**不依赖**其它 Case；与 DP-USAGE-08（存储不可用）同属账本持久性但语义不同。
 

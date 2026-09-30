@@ -37,17 +37,34 @@ class LogRedactionGapTests(unittest.TestCase):
         self.assertNotIn("supersecretvalue",self.page()["data"][0]["message"])
 
     def test_api_key_redacted(self):
-        self.logs.record("info","m","e","api_key=supersecretvalue")
-        self.assertNotIn("supersecretvalue",self.page()["data"][0]["message"])
+        # RISK-LOG-1 登记：`_SENSITIVE` 的 `api[_-]?key` 分支只匹配键名，不捕获值
+        # （`token=` 分支才有 `\s*[=:]\s*\S+`）。设计 §40 log-design §6.3 固定该正则、
+        # RISK-LOG-1 状态"观察"，故此处锁定**当前已文档化行为**：键名脱敏、值保留。
+        # 注意：旧断言用含 "secret" 的值会因 `secret` 分支误命中而假通过，改用中性值。
+        self.logs.record("info","m","e","api_key=abc123")
+        message=self.page()["data"][0]["message"]
+        self.assertIn("[REDACTED]",message)
+        self.assertIn("abc123",message)  # 已知缺口（RISK-LOG-1）：值未脱敏
+
+    def test_api_key_value_redaction_gap(self):
+        """RISK-LOG-1：api_key/apikey 的值当前不脱敏（设计已登记，不改代码）。"""
+        self.logs.record("info","apikey","e","apikey=9832")
+        self.logs.record("info","token","e","token=abcd1234")
+        by_module={e["module"]:e["message"] for e in self.page()["data"]}
+        self.assertIn("9832",by_module["apikey"])  # 已知缺口：值未脱敏
+        self.assertNotIn("abcd1234",by_module["token"])  # token= 分支正确脱敏
 
     def test_secret_redacted(self):
         self.logs.record("info","m","e","client_secret: supersecretvalue")
         self.assertNotIn("supersecretvalue",self.page()["data"][0]["message"])
 
     def test_limit_clamped_to_200(self):
-        for index in range(3):
+        # Seed MORE than the cap so removing `min(limit,200)` is observable.
+        for index in range(205):
             self.logs.record("info","m","e",str(index))
-        self.assertEqual(len(self.page(limit=500)["data"]),3)
+        self.assertEqual(len(self.page(limit=500)["data"]),200)
+        # Below the cap the caller's limit is honored unchanged.
+        self.assertEqual(len(self.page(limit=7)["data"]),7)
 
     def test_page_requires_window(self):
         with self.assertRaises(ApiError) as cm:

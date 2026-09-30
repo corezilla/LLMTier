@@ -83,7 +83,7 @@ GET /v1/usage?from=<w>&to=<w>&limit=1&cursor=<sid>:1  → page2''（追加一条
 | 7 | `page2r2 = GET ?...&cursor=c`（再次重放） | `page2r2.data == page2.data`（旧页**不受**新增 `rid_4` 影响；`rid_4` 不得出现在重放结果中） |
 | 8 | （对照，不改变判定）`fresh = GET ?from&to&limit=200`（无 cursor，新快照） | `rid_4` **出现**在新快照中 |
 
-- 重点关注步骤：① **重放相等必须含 `record_version`**——冻结的是 `(request_id, record_version)` 成员，版本号必须一致；② **snapshot 不因重放新建**——`snapshot_id` 在三/四次请求间恒为 `sid`；③ **旧页冻结**——page1 后新增 `rid_4` 对 `cursor=c` 的重放不可见（INV-6）；④ **读不改账本**——重放不推进 `usage_heads.head_record_version`；⑤ **filter 一致**——重放的 `from`/`to`/`limit` 必须与原 cursor 完全一致，否则 400 `invalid_request`（属误操作，非本 case 期望）；⑥ **cursor 为 null 兜底**——若 `limit=1` 窗口内仅 1 条，`next_cursor=null`，改用 `f"{sid}:1"` 生成第二页 cursor，但需确保窗口内确有 ≥2 条；⑦ **MISSING 语义**——无实现是缺口（NOT_RUN），不是跳过。
+- 重点关注步骤：① **重放相等必须含 `record_version`**——冻结的是 `(request_id, record_version)` 成员，版本号必须一致；② **snapshot 不因重放新建**——`snapshot_id` 在三/四次请求间恒为 `sid`；③ **旧页冻结**——page1 后新增 `rid_4` 对 `cursor=c` 的重放不可见（INV-6）；④ **读不改账本**——重放不推进 `usage_heads.head_record_version`；⑤ **filter 一致**——重放的 `from`/`to`/`limit` 必须与原 cursor 完全一致，否则 400 `invalid_request`（属误操作，非本 case 期望）；⑥ **cursor 为 null 兜底**——若 `limit=1` 窗口内仅 1 条，`next_cursor=null`，改用 `f"{sid}:1"` 生成第二页 cursor，但需确保窗口内确有 ≥2 条；⑦ **末页 invariant**——沿 cursor 走到 `has_more=false` 时 `next_cursor is null`（同 `snapshot_id`）。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -97,9 +97,9 @@ GET /v1/usage?from=<w>&to=<w>&limit=1&cursor=<sid>:1  → page2''（追加一条
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/system/api_test_v03/at_dp_usage_07.py`（当前 **MISSING，尚未实现**，新增 Case）。
-- 单 Case 执行命令（实现后）：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_usage_07.py -q`。
-- 实现状态：Implemented（`at_dp_usage_07.py`）；执行与 Verdict 归 Run 报告。
+- 测试文件 / 测试函数：`tests/system/api_test_v03/at_dp_usage_07.py`（已实现；含末页 invariant）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_usage_07.py -q`。
+- 实现状态：Implemented；执行与 Verdict 归 Run 报告。
 
 **判定口径（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
 - PASS：步骤 5 与 7 的重放逐字段相等、`snapshot_id` 稳定、`rid_4` 不进旧页，且步骤 8 新快照可见 `rid_4`。
@@ -107,8 +107,8 @@ GET /v1/usage?from=<w>&to=<w>&limit=1&cursor=<sid>:1  → page2''（追加一条
 - BLOCKED：断言逻辑/契约问题、embeddings 前置无法命中。
 - SKIP：就绪检查不满足。
 - INVALID：mock/替代路径冒充真实路径。
-- NOT_RUN：本 Case 自动化入口 `MISSING`；缺口引用方案 §9。
+- NOT_RUN：本 Case 有实现，本轮未执行时记 `NOT_RUN`。
 
 **证据与 Run**：Run ID=`<date>/A-api`；保存 4 次前置 embeddings 的 `X-Request-ID`、page1/page2/各次重放/新快照的完整响应（`request_id`、`record_version`、`snapshot_id`、`next_cursor`、`has_more`）、cursor 实际值、动态窗口值、发出命令、exit code、`elapsed`、环境快照（本 case `environment:"a"`）。
 
-**依赖**：就绪检查；`api_client`；embeddings tier `Embedding-v1`；机制 [`usage-metering` §4.7/CON-METER-004/INV-6](../../../20_system_design/mechanisms/usage-metering.md)；重放/幂等边界说明；`UsagePage`/`UsageRecord` 机器契约。自动化入口 `at_dp_usage_07.py`（**当前 `MISSING`，新增 Case**）。**不依赖**其它 Case；与 DP-USAGE-03（游标推进）、DP-USAGE-04（过期）、DP-USAGE-06（主体绑定）共享 cursor 语义但各自独立执行。
+**依赖**：就绪检查；`api_client`；embeddings tier `Embedding-v1`；机制 [`usage-metering` §4.7/CON-METER-004/INV-6](../../../20_system_design/mechanisms/usage-metering.md)；重放/幂等边界说明；`UsagePage`/`UsageRecord` 机器契约。自动化入口 `at_dp_usage_07.py`（已实现）。**不依赖**其它 Case；与 DP-USAGE-03（游标推进）、DP-USAGE-04（过期）、DP-USAGE-06（主体绑定）共享 cursor 语义但各自独立执行。

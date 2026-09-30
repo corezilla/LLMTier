@@ -1,0 +1,14 @@
+{
+  "artifacts": [],
+  "case_id": "ADM-LOGS-01",
+  "command": "python3 -m pytest --junitxml=tests/system/reports/2026-09-30/A-api/junit.xml tests/system/api_test_v03/ -m api_a -v --tb=short -o addopts=",
+  "git_commit": "f2b4500d48c7fe741ba5223091b740eebca76ffe",
+  "node_id": "tests.system.api_test_v03.at_adm_logs_01::test_adm_logs_01_list_no_secret_leak",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "AssertionError: logs \u54cd\u5e94\u6574\u4f53\u542b\u654f\u611f\u5b57\u9762 '9832'\uff08\u654f\u611f\u4fe1\u606f\u6cc4\u9732\uff09\nassert '9832' not in '{\"data\":[{\"...rsor\":null}}'\n  \n  '9832' is contained here:\n    {\"data\":[{\"id\":\"log_9a3967503bf44339\",\"created_at\":\"2026-09-30T12:50:47.424458Z\",\"level\":\"info\",\"module\":\"http\",\"event\":\"request\",\"message\":\"\\\"GET /v1/deployments/dep_local_gemma HTTP/1.1\\\" 200 -\",\"request_id\":\"req_752e4d3538944980bfe5f28c0c3a0b48\"},{\"id\":\"log_6dd1d2459303485e\",\"created_at\":\"2026-09-30T12:50:47.403234Z\",\"level\":\"info\",\"module\":\"http\",\"event\":\"request\",\"message\":\"\\\"DELETE /v1/deployments/dep_local_gemma HTTP/1.1\\\" 403 -\",\"request_id\":\"req_cab684592a5f4e258824f581ae09921b\"},{\"id\":\"log_458721fef38745c8\",\"created_at\":\"2026-09-30T12:50:47.394980Z\",\"leve...\n  \n  ...Full output truncated (2 lines hidden), use '-vv' to show",
+  "redactions": [],
+  "run_id": "2026-09-30/A-api",
+  "schema_version_db": "2",
+  "started_at": "2026-09-30T12:50:45Z",
+  "status": "FAIL"
+}

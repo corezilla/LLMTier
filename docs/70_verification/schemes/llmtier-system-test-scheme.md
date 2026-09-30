@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-test-scheme` |
-| Document Version | `0.1.0-draft.9` |
+| Document Version | `0.1.0-draft.10` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -323,7 +323,7 @@
 | 系统设计 §8 认证与授权跨切面（角色/LAN trust/无鉴权） | VRC-API-002 | AUTH-09 | security | P1 | 管理面未授权优先于资源存在性 | 已设计 | — |
 | 系统设计 §8 认证与授权跨切面（角色/LAN trust/无鉴权） | VRC-API-002 | AUTH-10 | security | P1 | 缺/非法凭据 401 | 已设计 | — |
 
-**Case 总数：163（设计数）**（分类：normal 50 / boundary 7 / negative 57 / concurrency 7 / recovery 26 / security 16；环境 A 102 / B 61；Priority P0 46 / P1 93 / P2 24）。**设计数 ≠ 已实现数**：截至本版，自动化入口**已实现 114**（112 个测试文件：`-m api_a`＝73、`-m api_b`＝41），**尚余 49 个设计 Case 无自动化入口**（MISSING，逐 Case 登记见下方与 `llmtier-system-test-plan` §3/§10-O5）。"已实现数"随测试代码增长变化，**以 harness 实际 collect 为准**，本方案不把实现数写成恒定事实。本表是**唯一权威 Case 清单**：一行一个 Case；逐 Case 的输入/执行/Oracle/判定/证据/清理见 `tests.system-case` 文档（`cases/<lowercased-case-id>.md`），本方案不展开。
+**Case 总数：163（设计数）**（分类：normal 50 / boundary 7 / negative 57 / concurrency 7 / recovery 26 / security 16；环境 A 102 / B 61；Priority P0 46 / P1 93 / P2 24）。**设计数 = 已实现数 163**：全部 163 个设计 Case 均有自动化入口（163 个 `at_*.py` 文件；`--collect-only` 实际 collect=176 项，多出者为参数化/双臂测试——`-m api_a`＝105、`-m api_b`＝71）。逐 Case 的输入/执行/Oracle/判定/证据/清理见 `tests.system-case` 文档（`cases/<lowercased-case-id>.md`），本方案不展开。
 
 **设计验证项覆盖**：本清单 `设计验证项 ID` 取自各 Case 的 `tests.system-case` 文档所声明的设计验证项（`DP-RESP-16`/`DP-RESP-23` 两 Case 的 case 文档未声明，按系统设计 §7.8 错误目录 `ERR-REQ-JSON`→`VRC-INF-001`、`ERR-PROVIDER-FAIL`→`VRC-INF-003` 反查补全；未新增任何 VRC ID）。设计文档（系统设计 §7/§8/§14、机制 §15、模块设计 §14、ISD §9.1）共声明 **33 个设计验证项**；本清单覆盖 **14 个**，**19 个无系统层 Case**（逐项裁决见 §4；其中 13 项为模块级验证项、行为由单元层承接＝Tailored-N/A，6 项 `VRC-UI-001..006` 因本项目无浏览器/JS 宿主定稿为 Tailored-N/A）。逐项覆盖数：`VRC-INF-001` 31、`VRC-MGMT-006` 21、`VRC-MGMT-001` 22、`VRC-MGMT-002` 22、`VRC-API-002` 13、`VRC-DIAG-002` 15、`VRC-DIAG-004` 15、`VRC-MGMT-003` 9、`VRC-INF-002` 5、`VRC-DIAG-001` 4、`VRC-INF-004` 7、`VRC-LOG-001` 3、`VRC-UTIL-001` 2、`VRC-INF-003` 1。
 

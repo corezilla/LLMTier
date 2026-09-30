@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ADM-PROV-16` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -92,9 +92,9 @@
 
 ## 7. 自动化位置与状态
 
-- **测试文件 / 测试函数**：`tests/system/api_test_v03/at_adm_prov_16.py`（**MISSING**，须新建）。
+- **测试文件 / 测试函数**：`tests/system/api_test_v03/at_adm_prov_16.py::test_adm_prov_16_patch_with_data_token`。
 - **单 Case 执行命令**：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_adm_prov_16.py -q`。
-- **实现状态**：Planned；执行与 Verdict 归 Run 报告。
+- **实现状态**：Implemented（`at_adm_prov_16.py` 已断言 `PATCH /v1/providers/provider_local` 403 + `permission_denied` + `request_error`；A 类运行通过）；执行与 Verdict 归 Run 报告。
 
 **证据与 Run**：保存原始命令、发送 headers 快照（证明为 `Bearer dev-data`）、HTTP status/headers/body、执行机 LAN IP、exit code、`elapsed`、环境快照（`/healthz`/`/readyz`）；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../../plans/llmtier-system-test-plan.md#6-证据与-run-记录规则)（本 case `environment:"a"`）。
 

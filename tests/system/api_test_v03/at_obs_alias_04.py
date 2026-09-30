@@ -13,7 +13,8 @@ TS-002 依赖：
 TS-003：本 case 不触发推理，无 provider endpoint 请求。
 
 目标：注入配置别名与扁平路径由同一 handler 服务：GET body 逐字节等价；PATCH 因
-updated_at 为服务端时间戳，等价判定为除 updated_at 外逐字段相等。teardown 清空。
+updated_at 为服务端时间戳，等价判定为除 updated_at 外逐字段相等（JSON 规范化后比较，
+非对 dict_items 排序）。teardown 清空。
 """
 from __future__ import annotations
 
@@ -24,11 +25,26 @@ ALIAS = "/tier/admin/v1/deployments/depl_b/diagnostics"
 BODY = {"items": [{"type": "delay", "config": {"delay_ms": 1000}, "enabled": True}]}
 
 
-def _sorted_key(items):
-    return sorted(
-        {k: v for k, v in item.items() if k != "updated_at"}.items()
+def _canonical(items):
+    """Field-level canonical form: drop the server timestamp, sort by item then keys.
+
+    `sorted()` must receive *values* it can order; sorting raw ``dict_items``
+    relies on set-subset ``__lt__`` and is not a field-level ordering. Here each
+    item is reduced to a JSON-canonical string (keys sorted) so equal field maps
+    compare equal regardless of insertion order, and the list is ordered by that
+    canonical string.
+    """
+    import json
+
+    canon = [
+        json.dumps(
+            {k: v for k, v in item.items() if k != "updated_at"},
+            sort_keys=True,
+            separators=(",", ":"),
+        )
         for item in items
-    )
+    ]
+    return sorted(canon)
 
 
 @pytest.mark.api_b
@@ -54,7 +70,7 @@ def test_obs_alias_04_deployments_injections_equivalence(llmtier_b):
         assert len(patch_flat.json()) == len(patch_alias.json()), (
             f"PATCH 数组长度不等: {len(patch_flat.json())} != {len(patch_alias.json())}"
         )
-        assert _sorted_key(patch_flat.json()) == _sorted_key(patch_alias.json()), (
+        assert _canonical(patch_flat.json()) == _canonical(patch_alias.json()), (
             f"PATCH 除 updated_at 外字段不等: {patch_flat.json()} != {patch_alias.json()}"
         )
     finally:

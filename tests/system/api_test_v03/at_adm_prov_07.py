@@ -8,8 +8,10 @@ Auth: Bearer dev-admin
 断言：
 - PATCH 带过期（错误）的 If-Match ETag
 - HTTP 412
-- error.code == "version_conflict"
-- body.extra.current_version 字段存在
+- error.code == "version_conflict"；type=="request_error"；retryable is False
+- error.current_version == version_before（≠ 99）
+- 零副作用：GET 回读 name/version/ETag 未变
+- teardown（finally 强制）：DELETE 并以 GET 404 确认
 """
 from __future__ import annotations
 
@@ -18,27 +20,58 @@ import uuid
 import pytest
 
 from tests.system.api_test_v03.constants import LAN_PROVIDER_ENDPOINT
+from tests.system.api_test_v03.conftest import version_conflict_envelope
+
+
+def _delete_provider(client, rid) -> None:
+    got = client.get(f"/v1/providers/{rid}")
+    if got.status_code == 404:
+        return
+    assert got.status_code == 200, f"teardown GET 失败: {got.status_code}: {got.text}"
+    etag = got.headers.get("ETag")
+    assert etag, "teardown GET 缺 ETag"
+    deleted = client.delete(f"/v1/providers/{rid}", headers={"If-Match": etag})
+    assert deleted.status_code == 204, f"teardown DELETE 期望 204，实际 {deleted.status_code}: {deleted.text}"
+    assert client.get(f"/v1/providers/{rid}").status_code == 404, "teardown 后 provider 仍存在"
 
 
 @pytest.mark.api_b
 def test_adm_prov_07_patch_wrong_etag(admin_client_b):
-    create_resp = admin_client_b.post("/v1/providers", json={
-        "name": f"Provider For ETag Test {uuid.uuid4().hex[:8]}",
-        "kind": "local",
-        "endpoint": LAN_PROVIDER_ENDPOINT,
-        "secret_ref": None,
-        "enabled": True,
-    })
-    assert create_resp.status_code == 201
-    rid = create_resp.json()["id"]
+    rid = None
+    try:
+        create_resp = admin_client_b.post("/v1/providers", json={
+            "name": f"Provider For ETag Test {uuid.uuid4().hex[:8]}",
+            "kind": "local",
+            "endpoint": LAN_PROVIDER_ENDPOINT,
+            "secret_ref": None,
+            "enabled": True,
+        })
+        assert create_resp.status_code == 201
+        created = create_resp.json()
+        rid = created["id"]
+        version_before = created["version"]
+        etag_before = create_resp.headers["ETag"]
 
-    bad_etag = '"' + rid + '.v99"'
-    patch_resp = admin_client_b.patch(
-        f"/v1/providers/{rid}",
-        json={"name": "Stale Update"},
-        headers={"If-Match": bad_etag},
-    )
-    assert patch_resp.status_code == 412, f"期望 412，实际 {patch_resp.status_code}: {patch_resp.text}"
-    err = patch_resp.json().get("error") or {}
-    assert err.get("code") == "version_conflict"
-    assert "current_version" in err, f"期望 error.current_version，实际 error={err}"
+        bad_etag = '"' + rid + '.v99"'
+        assert bad_etag != etag_before, "构造的过期 ETag 不应等于当前 ETag"
+        patch_resp = admin_client_b.patch(
+            f"/v1/providers/{rid}",
+            json={"name": "Stale Update"},
+            headers={"If-Match": bad_etag},
+        )
+        assert patch_resp.status_code == 412, f"期望 412，实际 {patch_resp.status_code}: {patch_resp.text}"
+        err = version_conflict_envelope(patch_resp)
+        assert err["code"] == "version_conflict", f"error.code != version_conflict: {err}"
+        assert err["type"] == "request_error", f"error.type != request_error: {err}"
+        assert err["retryable"] is False, f"error.retryable != False: {err}"
+        assert err.get("current_version") == version_before, (
+            f"current_version 期望 {version_before}（非 99），实际 {err.get('current_version')!r}")
+
+        readback = admin_client_b.get(f"/v1/providers/{rid}")
+        assert readback.status_code == 200
+        assert readback.json()["name"] == created["name"], "被拒 PATCH 却改了 name"
+        assert readback.json()["version"] == version_before, "被拒 PATCH 却推进了 version"
+        assert readback.headers.get("ETag") == etag_before, "被拒 PATCH 却改了 ETag"
+    finally:
+        if rid is not None:
+            _delete_provider(admin_client_b, rid)

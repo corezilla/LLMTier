@@ -76,7 +76,7 @@
   5. （对照）同一未知 id 用 `admin_client`（`Bearer dev-admin`）→ 断言 `404 not_found`，证明步骤 2 的 403 不是"资源不存在"的伪装。
   6. （别名旁证）`GET /tier/admin/v1/trace/req_does_not_exist` + `Bearer dev-data` → 断言 `403 permission_denied`。
 
-**重点关注步骤**：① **授权先于存在性**——data token 对存在/未知 id 都应 403，**不得**因 id 不存在而返回 404（信息泄露）；这是本 case 核心。② **403 vs 401**——`Bearer dev-data` 形态合法但不是 admin 凭据 → **403**（不是 401；401 属缺/非法凭据，AUTH-10）。③ **错误信封 identity**——恰 5 键、`type=request_error`、`retryable=false`。④ **不泄露存在性**——两种 id 的响应体应一致（除 message 中可能无 id 信息）。⑤ **admin 可达对照**——用 admin 证明端点本身可用且未知 id 为 404，排除把"端点整体坏"误判为授权拒绝。⑥ **别名同保护**——别名路径同样要求 admin（AUTH-08），本 case 作旁证。⑦ **降级/存储**——`_UnavailableDiagnostics.trace` 在授权**之后**才执行，故不影响 403；`503 usage_store_unavailable` 判 BLOCKED/SKIP（仅在 admin 对照路径可能出现）。注意：本 case 当前 `MISSING`（§3.2），无 `at_obs_reqtrace_03.py`。
+**重点关注步骤**：① **授权先于存在性**——data token 对存在/未知 id 都应 403，**不得**因 id 不存在而返回 404（信息泄露）；这是本 case 核心。② **403 vs 401**——`Bearer dev-data` 形态合法但不是 admin 凭据 → **403**（不是 401；401 属缺/非法凭据，AUTH-10）。③ **错误信封 identity**——恰 5 键、`type=request_error`、`retryable=false`。④ **不泄露存在性**——两种 id 的响应体应一致（除 message 中可能无 id 信息）。⑤ **admin 可达对照**——用 admin 证明端点本身可用且未知 id 为 404，排除把"端点整体坏"误判为授权拒绝。⑥ **别名同保护**——别名路径同样要求 admin（AUTH-08），本 case 作旁证。⑦ **降级/存储**——`_UnavailableDiagnostics.trace` 在授权**之后**才执行，故不影响 403；`503 usage_store_unavailable` 判 BLOCKED/SKIP（仅在 admin 对照路径可能出现）。自动化入口 `at_obs_reqtrace_03.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -94,7 +94,7 @@
   - **FAIL**：data token 返回 200/404、`code` 非 `permission_denied`、或对未知 id 与已知 id 状态不同（泄露存在性）。
   - **BLOCKED**：测试代码/契约问题、降级实例、存储不可达——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **SKIP**：§2.1 前置不满足——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：自动化入口 `MISSING`（§3.2），本轮未执行；缺口引用见 §9。
+  - **NOT_RUN**：无（自动化入口已实现；执行状态见 Run 报告）。
   - **INVALID**：用 `127.0.0.1`/mock/替代路径冒充真实 m5air，或未命中真实鉴权路径却按行为判定——见[系统测试计划 §7 报告产出与 Gate 规则](../../plans/llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
 
 ## 6. 错误路径、副作用与清理
@@ -105,6 +105,6 @@
 
 - **证据与 Run**：保存 data token 的 403 信封（未知与真实 id）、admin 对照 404、别名旁证、命令/exit code/`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../../plans/llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../../plans/llmtier-system-test-plan.md#3-执行前检go--no-go) 6 项就绪检查；`api_client`（data）/`admin_client`（admin）fixture（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../../schemes/llmtier-system-test-scheme.md)）；`ERR-AUTH-DENIED`；实现 [`src/http_api/auth.py`](../../../../src/http_api/auth.py)、[`src/http_api/app.py`](../../../../src/http_api/app.py)（OBS 路由统一 `_auth("admin")`）；access-trust 机制。自动化入口 `at_obs_reqtrace_03.py`（**当前 `MISSING`，尚未实现**）。**不依赖**其它 Case；与 OBS-REQTRACE-01/02（正向/404）、AUTH-08（别名需 admin）互补但各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../../plans/llmtier-system-test-plan.md#3-执行前检go--no-go) 6 项就绪检查；`api_client`（data）/`admin_client`（admin）fixture（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../../schemes/llmtier-system-test-scheme.md)）；`ERR-AUTH-DENIED`；实现 [`src/http_api/auth.py`](../../../../src/http_api/auth.py)、[`src/http_api/app.py`](../../../../src/http_api/app.py)（OBS 路由统一 `_auth("admin")`）；access-trust 机制。自动化入口 `at_obs_reqtrace_03.py`（已实现）。**不依赖**其它 Case；与 OBS-REQTRACE-01/02（正向/404）、AUTH-08（别名需 admin）互补但各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

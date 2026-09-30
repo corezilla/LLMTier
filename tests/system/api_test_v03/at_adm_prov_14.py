@@ -21,6 +21,8 @@ TS-002 依赖：
 """
 from __future__ import annotations
 
+import re
+
 import pytest
 
 PROVIDER_VIEW_KEYS = {
@@ -28,10 +30,21 @@ PROVIDER_VIEW_KEYS = {
     "enabled", "usage", "request_usage", "version",
 }
 
+# "9832" is a 4-digit token that can coincidentally appear inside a random
+# request-id hex run / RFC3339 timestamp / counter value, so match it only as a
+# standalone alphanumeric token (not surrounded by [0-9A-Za-z]) — this still
+# catches a real `Bearer 9832`-style echo without the substring false positive.
+# A digit-only boundary is insufficient because hex ids contain letters.
+_SECRET_NEEDLES = ("secret_ref", "Bearer ")
+_TOKEN_RE = re.compile(r"(?<![0-9A-Za-z])9832(?![0-9A-Za-z])")
+
 
 def _assert_no_secret_fields(raw_text: str, label: str) -> None:
-    for needle in ("secret_ref", "9832", "Bearer "):
+    for needle in _SECRET_NEEDLES:
         assert needle not in raw_text, f"{label} 响应含敏感串 {needle!r}（秘密泄露）"
+    assert not _TOKEN_RE.search(raw_text), (
+        f"{label} 响应含敏感 token 字面 '9832'（秘密泄露）"
+    )
 
 
 @pytest.mark.api_a

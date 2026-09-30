@@ -16,12 +16,15 @@ TS-002 依赖：
 断言：
 - 正向对照 admin_client GET /v1/runtime == 200
 - api_client（Bearer dev-data）GET /v1/runtime == 403
-- error.code=="permission_denied"、type=="request_error"、retryable is False
+- 顶层键集恰 {"error"}；error 恰 5 键；code=="permission_denied"、
+  type=="request_error"、param is None、retryable is False
 - body 为错误信封，不含 deployments/providers/queues 快照字段
 """
 from __future__ import annotations
 
 import pytest
+
+from tests.system.api_test_v03.conftest import error_envelope
 
 SNAPSHOT_FIELDS = {"deployments", "providers", "queues"}
 
@@ -37,10 +40,11 @@ def test_adm_runtime_02_data_credential_forbidden(api_client, admin_client):
         f"data 凭据期望 403，实际 {resp.status_code}: {resp.text}")
     body = resp.json()
     assert set(body) == {"error"}, f"顶层键集不符（应为错误信封）: {set(body)}"
-    err = body["error"]
-    assert err.get("code") == "permission_denied", f"code != permission_denied: {err}"
-    assert err.get("type") == "request_error", f"type != request_error: {err}"
-    assert err.get("retryable") is False, f"retryable != False: {err}"
+    err = error_envelope(resp)
+    assert err["code"] == "permission_denied", f"code != permission_denied: {err}"
+    assert err["type"] == "request_error", f"type != request_error: {err}"
+    assert err["param"] is None, f"param != None: {err}"
+    assert err["retryable"] is False, f"retryable != False: {err}"
 
     leaked = SNAPSHOT_FIELDS & set(body)
     assert not leaked, f"403 响应泄露 runtime 快照字段: {leaked}"

@@ -30,6 +30,18 @@ class UsageTests(unittest.TestCase):
         with self.assertRaises(ApiError):self.u.page("p",page["snapshot_id"]+":0",since="2001-01-01T00:00:00Z",until=END)
     def test_invalid_window(self):
         with self.assertRaises(ApiError):self.u.page("p",None,since=END,until=START)
+    def test_half_open_boundary_is_temporal_not_lexicographic(self):
+        # S2 regression: recorded_at is ms-precision ("...T00:00:00.500Z") while a
+        # caller's `to` may be second-precision ("...T00:00:00Z"). A lexicographic
+        # string compare wrongly includes the same-second record ('.' < 'Z'); the
+        # [from,to) contract must exclude it. The record instant equals the second
+        # boundary, so `to`=that second excludes it and `from`=that second includes it.
+        self.u.authorize_dispatch("p","r","Worker","/v1/responses");self.u.finish("p","r",{"input_tokens":1,"output_tokens":1,"total_tokens":2})
+        with self.fx.app.store.transaction(True) as conn:
+            conn.execute("UPDATE usage_obligations SET recorded_at='2026-01-01T00:00:00.500Z' WHERE principal_id='p' AND request_id='r'")
+            conn.execute("UPDATE usage_record_versions SET recorded_at='2026-01-01T00:00:00.500Z' WHERE principal_id='p' AND request_id='r'")
+        self.assertEqual(self.u.page("p",None,since="2025-12-31T00:00:00Z",until="2026-01-01T00:00:00Z")["data"],[])
+        self.assertEqual(len(self.u.page("p",None,since="2026-01-01T00:00:00Z",until="2026-01-02T00:00:00Z")["data"]),1)
     def test_record_provider_request_id_updates_binding(self):
         provider,deployment=self.fx.seed();self.u.authorize_dispatch("p","r","Worker","/v1/responses");self.u.bind_backend("p","r",provider["id"],deployment["id"]);self.u.record_provider_request_id("p","r","up-1");self.assertEqual(self.fx.app.store.one("SELECT provider_request_id FROM provider_request_bindings WHERE principal_id='p' AND request_id='r'")[0],"up-1")
     def test_record_provider_request_id_null_is_noop(self):

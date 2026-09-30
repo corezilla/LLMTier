@@ -75,8 +75,10 @@ authenticate(headers, config, remote_addr) -> Principal
 | 1 | 无配置 → authenticate | 503 语义 |
 | 2 | 缺 Bearer / 错 token | 401 / 403 |
 | 3 | data/admin/dev token 与 principal 头 | Principal 角色 |
-| 4 | loopback 与 192.168.x 地址信任 | 是否免登录 |
-| 5 | 显式 Bearer 覆盖 no-auth 路径 | 按凭据判定 |
+| 4 | loopback 与 192.168.x 地址信任 | 是否免登录（`patch.dict(clear=True)` 固定环境，防 `LLMTIER_DEV_MODE` 泄漏翻转） |
+| 5 | 显式 Bearer 覆盖 no-auth 路径 | 按凭据判定（环境固定） |
+
+> 说明：`test_trusted_lan_mode_accepts_private_addresses` 额外断言公网 IPv6（`2001:...`）与伪造 `X-Forwarded-For` 不授予 principal，`test_explicit_bearer_disables_no_auth_path` 亦在清空环境下运行。
 
 ## 5. 独立 Oracle 与预期结果
 
