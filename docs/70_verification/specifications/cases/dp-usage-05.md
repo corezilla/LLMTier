@@ -107,7 +107,7 @@ Authorization: Bearer dev-data
 
 - 测试文件 / 测试函数：`tests/system/api_test_v03/at_dp_usage_05.py`（当前 **MISSING，尚未实现**）。
 - 单 Case 执行命令（实现后）：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_usage_05.py -q`。
-- 实现状态：Planned（MISSING）；执行与 Verdict 归 Run 报告。
+- 实现状态：Implemented（`at_dp_usage_05.py`）；执行与 Verdict 归 Run 报告。
 
 **判定口径（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
 - PASS：变体 1–7 均 `400 + invalid_request + request_error`，合法对照 `200`（可选的计数不变不改变结论）。

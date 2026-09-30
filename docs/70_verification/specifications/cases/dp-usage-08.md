@@ -109,7 +109,7 @@ os.mkdir(db)          # 原路径变成目录 → 连接失败（不新建空库
 
 - 测试文件 / 测试函数：`tests/system/api_test_v03/at_dp_usage_08.py`（当前 **MISSING，尚未实现**，新增 Case；依赖专用 fixture）。
 - 单 Case 执行命令（实现后）：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_usage_08.py -q`。
-- 实现状态：Planned（MISSING）；执行与 Verdict 归 Run 报告。
+- 实现状态：Implemented（`at_dp_usage_08.py`）；执行与 Verdict 归 Run 报告。
 
 **判定口径（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
 - PASS：存储不可用时 `503 + usage_store_unavailable + type=server_error` 且响应形态为错误信封（非 `UsagePage`）；`finally` 恢复后查询回到 `200`。

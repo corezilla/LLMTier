@@ -79,6 +79,7 @@ class ST22RateLimitByQueue(unittest.TestCase):
             "service_levels": [{
                 "id": "Worker",
                 "deployment_ids": ["dep_slow"],
+                "enabled": True,
             }],
         }
         (root / "settings.json").write_text(json.dumps(settings))

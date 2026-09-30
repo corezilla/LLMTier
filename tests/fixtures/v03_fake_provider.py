@@ -26,9 +26,27 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, *_): pass
     def reply(self, status, data):
         raw=json.dumps(data,separators=(",", ":")).encode(); self.send_response(status); self.send_header("Content-Type","application/json"); self.send_header("Content-Length",str(len(raw))); self.send_header("X-Request-ID",f"fake_{uuid.uuid4().hex[:8]}"); self.end_headers(); self.wfile.write(raw)
-    def reply_sse(self, response):
-        event={"type":"response.completed","sequence_number":0,"response":response}; raw=("event: response.completed\ndata: "+json.dumps(event,separators=(",", ":"))+"\n\ndata: [DONE]\n\n").encode()
-        self.send_response(200); self.send_header("Content-Type","text/event-stream"); self.send_header("Content-Length",str(len(raw))); self.send_header("X-Request-ID",f"fake_{uuid.uuid4().hex[:8]}"); self.end_headers(); self.wfile.write(raw)
+    def reply_sse(self, response, stream_body=None, content_type="text/event-stream", status=200):
+        if stream_body is None:
+            event={"type":"response.completed","sequence_number":0,"response":response}; stream_body="event: response.completed\ndata: "+json.dumps(event,separators=(",", ":"))+"\n\ndata: [DONE]\n\n"
+        raw=stream_body.encode()
+        self.send_response(status); self.send_header("Content-Type",content_type); self.send_header("Content-Length",str(len(raw))); self.send_header("X-Request-ID",f"fake_{uuid.uuid4().hex[:8]}"); self.end_headers(); self.wfile.write(raw)
+    def reply_responses_contract(self, model, response):
+        """Emit a Responses SSE that violates the terminal contract for DP-RESP-25."""
+        def frame(name, response_obj):
+            ev={"type":name,"sequence_number":0,"response":response_obj}
+            return f"event: {name}\ndata: "+json.dumps(ev,separators=(",", ":"))+"\n\n"
+        created=dict(response); created["status"]="in_progress"; created["output"]=[]; created["usage"]=None
+        if model=="force-non-sse":
+            return self.reply_sse(response, stream_body=json.dumps({"object":"response","status":"completed"}), content_type="application/json")
+        if model=="force-two-terminals":
+            return self.reply_sse(response, stream_body=frame("response.created", created)+frame("response.completed", response)+frame("response.completed", response)+"data: [DONE]\n\n")
+        if model=="force-no-terminal":
+            return self.reply_sse(response, stream_body=frame("response.created", created)+"data: [DONE]\n\n")
+        if model=="force-status-mismatch":
+            bad=dict(response); bad["status"]="failed"
+            return self.reply_sse(response, stream_body=frame("response.created", created)+frame("response.completed", bad)+"data: [DONE]\n\n")
+        return self.reply_sse(response)
     def do_GET(self):
         if self.path == "/healthz": self.reply(200,{"status":"ok"})
         elif self.path == "/control/release": _GATE.set(); self.reply(200,{"gate":"released"})
@@ -42,7 +60,23 @@ class Handler(BaseHTTPRequestHandler):
         if body.get("model")=="force-503": return self.reply(503,{"error":{"message":"synthetic failure"}})
         if body.get("model")=="slow-embeddings": _GATE.wait(_GATE_TIMEOUT_S)
         if self.path=="/v1/responses":
+            model=body.get("model")
+            # DP-RESP-23: real upstream non-success HTTP (no injection).
+            if model in {"force-http-422","force-http-429","force-http-500"}:
+                code=int(model.rsplit("-",1)[1])
+                return self.reply(code,{"error":{"message":f"synthetic upstream {code}"}})
             prompt=json.dumps(body.get("input"),ensure_ascii=False); inp=max(1,len(prompt)//4)
+            if model=="force-long-stream":
+                # Many delta events so a mid-stream client disconnect reliably
+                # surfaces as BrokenPipeError at the gateway (DP-RESP-21).
+                content=[{"type":"output_text","text":f"chunk-{i} ","annotations":[]} for i in range(500)]
+                output=[{"id":"msg_long","type":"message","role":"assistant","status":"completed","content":content}]
+                response={"id":"resp_upstream","object":"response","created_at":int(time.time()),"status":"completed","model":model,"output":output,"usage":{"input_tokens":inp,"output_tokens":500,"total_tokens":inp+500,"input_tokens_details":{"cached_tokens":0,"cache_write_tokens":0},"output_tokens_details":{"reasoning_tokens":0}},"error":None}
+                return self.reply_sse(response)
+            if model in {"force-non-sse","force-two-terminals","force-no-terminal","force-status-mismatch"}:
+                output=[{"id":"msg_fake","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"Synthetic provider response","annotations":[]}]}]
+                response={"id":"resp_upstream","object":"response","created_at":int(time.time()),"status":"completed","model":model,"output":output,"usage":{"input_tokens":inp,"output_tokens":4,"total_tokens":inp+4,"input_tokens_details":{"cached_tokens":0,"cache_write_tokens":0},"output_tokens_details":{"reasoning_tokens":0}},"error":None}
+                return self.reply_responses_contract(model, response)
             if "REFUSE" in prompt: content=[{"type":"refusal","refusal":"Cannot comply with synthetic request"}]
             elif body.get("tools") and "CALL_TOOL" in prompt: content=None
             else: content=[{"type":"output_text","text":"Synthetic provider response","annotations":[]}]

@@ -115,4 +115,6 @@
 
 - **依赖**：B 类 fixture `llmtier_b` / `admin_client_b`（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../../schemes/llmtier-system-test-scheme.md)）；`registry.update_service_level`/`_capability_intersection`（缺类型校验）；[`app.py`](../../../../src/http_api/app.py) 兜底 500；错误目录 `ERR-INTERNAL`；机制 `R-CFG-01`。自动化入口 **`MISSING`**（待补 `at_adm_sl_08.py`，落位按 §4.9/§8.5）。**不依赖**其它 Case；与 ADM-SL-04b（键白名单 400）互为"输入校验"的正/反例。
 
-> 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。
+> 实现状态：Implemented（`at_adm_sl_08.py`）；执行状态与 Verdict 只在 Run 报告。
+
+> **实现 vs 设计偏差（2026-09-30，已登记）**：本 case §1/§4/§5 的 500 `internal_error` 前提已过期。当前实现 [`registry._capability_intersection`](../../../../src/management/registry.py) 在迭代前显式校验 `deployment_ids` 必须是字符串数组（`registry.py:300`），非数组输入返回 **400 `invalid_request`（param=`deployment_ids`）**，不再抛 `TypeError` → 500。按本 case §5 的 FAIL 条款（"如实现修复后返回 400——则须更新本 case 与 §3.2/§11.1 后再判"），`at_adm_sl_08.py` 以**当前 code 行为**为 Oracle 断言 400 `invalid_request`，并核验零副作用（`Worker.version` 不变）。原"输入类型未预校验"缺陷已修复关闭；§1/§4/§5 的 500 描述待后续设计修订对齐。

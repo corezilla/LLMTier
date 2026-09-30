@@ -624,6 +624,62 @@ def llmtier_b_emb_503(provider_endpoint_b: str) -> Generator[LLMTierInstance, No
     inst.stop()
 
 
+def _instance_with_backend(endpoint: str, backend_model: str, probe: bool = True) -> LLMTierInstance:
+    """Baseline B instance whose depl_b targets ``backend_model`` at ``endpoint``.
+
+    ``probe=False`` leaves depl_b unrouted (health unknown) — used by cases that
+    need to control health explicitly (e.g. DP-RESP-19).
+    """
+    settings = _baseline_settings(endpoint)
+    settings["deployments"][0]["backend_model"] = backend_model
+    inst = LLMTierInstance(settings)
+    inst.start()
+    if probe:
+        status = _probe_deployment(inst, "depl_b")
+        assert status == "healthy", f"depl_b probe not healthy: {status}"
+    return inst
+
+
+@pytest.fixture(scope="session")
+def llmtier_b_unhealthy(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, None]:
+    """DP-RESP-19: depl_b points at an unreachable LAN endpoint, never probed healthily."""
+    inst = _instance_with_backend("http://192.168.1.254:9/v1", "test-model", probe=False)
+    yield inst
+    inst.stop()
+
+
+@pytest.fixture
+def llmtier_b_diag(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, None]:
+    """Dedicated baseline instance for mutation cases (DP-RESP-20/21/22/24).
+
+    Function-scoped so each case gets an isolated SQLite/port and its injection
+    or provider edits never leak into the session-scoped ``llmtier_b``.
+    """
+    inst = _instance_with_backend(provider_endpoint_b, "test-model", probe=True)
+    yield inst
+    inst.stop()
+
+
+@pytest.fixture(scope="session")
+def llmtier_b_http_stub(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, None]:
+    """DP-RESP-23: depl_b whose upstream returns configured non-success HTTP codes."""
+    inst = _instance_with_backend(provider_endpoint_b, "force-http-422", probe=True)
+    yield inst
+    inst.stop()
+
+
+@pytest.fixture(scope="session")
+def llmtier_b_contract_stub(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, None]:
+    """DP-RESP-25: depl_b whose upstream emits contract-violating Responses SSE.
+
+    The backend_model is reconfigured per sub-test via the admin API; the initial
+    value only has to be a healthy model (probe hits /v1/models).
+    """
+    inst = _instance_with_backend(provider_endpoint_b, "test-model", probe=True)
+    yield inst
+    inst.stop()
+
+
 @pytest.fixture(scope="session")
 def llmtier_b_empty() -> Generator[LLMTierInstance, None, None]:
     inst = LLMTierInstance(_EMPTY_SETTINGS)
@@ -671,6 +727,25 @@ def admin_client_b_no_auth(llmtier_b_no_auth: LLMTierInstance) -> Generator[http
     client = llmtier_b_no_auth.admin_client()
     yield client
     client.close()
+
+
+@pytest.fixture(scope="session")
+def llmtier_b_no_bootstrap() -> Generator[LLMTierInstance, None, None]:
+    """HEALTH-05 arm (a): an empty store started WITHOUT a settings path.
+
+    ``LLMTierInstance(settings=None)`` never writes ``LLMTIER_SETTINGS``, so the
+    fresh SQLite store has no ``bootstrap_sha256`` and
+    ``registry.bootstrap_settings(None)`` raises ``ApiError(503,
+    "bootstrap_required")`` — captured into ``app.bootstrap_error``. The process
+    still serves ``/healthz`` (200) while ``/readyz`` short-circuits to 503
+    ``{"status":"not_ready","models":[]}``. Must NOT be reused for HEALTH-04
+    (bootstrap succeeds there); the fixture is read-only and never contacts an
+    upstream (TS-003 not applicable).
+    """
+    inst = LLMTierInstance(settings=None)
+    inst.start()
+    yield inst
+    inst.stop()
 
 
 # ---------------------------------------------------------------------------

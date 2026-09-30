@@ -107,4 +107,4 @@
 
 - **依赖**：[系统测试计划 §3 执行前检](../../plans/llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client` fixture（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../../schemes/llmtier-system-test-scheme.md)）；`auth.authenticate`；错误目录 `ERR-AUTH-DENIED`；机制 `R-TRUST-02`/`T-TRUST-SHARED`。自动化入口 **`MISSING`**（待补 `at_adm_runtime_02.py`，落位按 §4.9/§8.5）。**不依赖**其它 Case；与 ADM-RUNTIME-01（admin 正向）互补，与 AUTH-03（`/v1/providers` 角色负向）同机制不同端点。
 
-> 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。
+> 实现状态：Implemented（`at_adm_runtime_02.py`）；执行状态与 Verdict 只在 Run 报告。

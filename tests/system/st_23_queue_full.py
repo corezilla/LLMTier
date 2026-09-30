@@ -60,6 +60,7 @@ class ST23QueueFull429(unittest.TestCase):
             "service_levels": [{
                 "id": "Worker",
                 "deployment_ids": ["dep_queue_test"],
+                "enabled": True,
             }],
         }
         (root / "settings.json").write_text(json.dumps(settings))

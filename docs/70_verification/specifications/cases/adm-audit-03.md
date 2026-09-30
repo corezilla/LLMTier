@@ -108,4 +108,4 @@
 
 - **依赖**：[系统测试计划 §3 执行前检](../../plans/llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../../schemes/llmtier-system-test-scheme.md)）；`app.py::_int_param`；错误目录 `ERR-REQ-VALIDATION`。自动化入口 **`MISSING`**（待补 `at_adm_audit_03.py`，落位按 §4.9/§8.5）。**不依赖**其它 Case；与 ADM-AUDIT-01/02（成功/边界读）互补。
 
-> 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。
+> 实现状态：Implemented（`at_adm_audit_03.py`）；执行状态与 Verdict 只在 Run 报告。

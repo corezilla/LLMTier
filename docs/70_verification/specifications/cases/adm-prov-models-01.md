@@ -109,4 +109,4 @@
 
 - **依赖**：[系统测试计划 §3 执行前检](../../plans/llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查（含 §2.1.6 必需 provider/deployment）；`admin_client` fixture（[系统测试计划 §5 环境操作](../../plans/llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../../schemes/llmtier-system-test-scheme.md)）；既存 provider `provider_local`；`ProviderModelsView` 机器契约（`interfaces/openapi/llmtier.openapi.json`）；实现 `src/management/admin.py` / `src/inference/providers/openai.py`；自动化入口 `at_adm_prov_models_01.py`（**当前 `MISSING`，尚未实现**）。**不依赖**其它 Case；与 ADM-PROV-MODELS-02（未知 provider → 404）成对但各自独立执行。
 
-> 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。
+> 实现状态：Implemented（`at_adm_prov_models_01.py`）；执行状态与 Verdict 只在 Run 报告。
