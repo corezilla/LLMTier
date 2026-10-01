@@ -92,7 +92,7 @@ Accept: application/json
 | 6 | （可选加强）对缺 `input`/缺 `model`/未知顶层键各发一次 | 缺字段：`400 invalid_request`（`param`=缺失字段名）；未知键：`400 unsupported_field`（`param`=未知键名） |
 | 7 | （可选）核对 usage 基线未新增 dispatch | 零副作用交叉核对 |
 
-- 重点关注步骤：① **错误码 `invalid_request` 与 `param="encoding_format"`**——因第 44 行 `require(..., "encoding_format")` 显式传参，`param` 必须为 `"encoding_format"`；写成 `null` 即 FAIL；② **值级校验已落地**——非法值在 model/能力/`dimensions` 校验之前被拒；③ **model 指向 embeddings-capable tier**——`Embedding-v1` 必须指向 `dep_local_bge_m3`（A 基线），否则观测到的 400 不是编码值校验；④ **零副作用**——校验失败须在 dispatch 前完成；⑤ **实现状态**——`at_dp_emb_07.py` 已实现；执行与 Verdict 归 Run 报告；⑥ **相邻负向边界**——缺字段走第 40 行齐备性 `require`，`param`=缺失字段名；未知顶层键走第 41-42 行键集 `require`，`code=unsupported_field`、`param`=未知键名；与值级校验的 `param=="encoding_format"` 区分记录。
+- 重点关注步骤：① **错误码 `invalid_request` 与 `param="encoding_format"`**——因第 44 行 `require(..., "encoding_format")` 显式传参，`param` 必须为 `"encoding_format"`；写成 `null` 即 FAIL；② **值级校验已落地**——非法值在 model/能力/`dimensions` 校验之前被拒；③ **model 指向 embeddings-capable tier**——`Embedding-v1` 必须指向 `dep_local_bge_m3`（A 基线），否则观测到的 400 不是编码值校验；④ **零副作用**——校验失败须在 dispatch 前完成；⑤ **实现状态**——`ST-EMB-007.py` 已实现；执行与 Verdict 归 Run 报告；⑥ **相邻负向边界**——缺字段走第 40 行齐备性 `require`，`param`=缺失字段名；未知顶层键走第 41-42 行键集 `require`，`code=unsupported_field`、`param`=未知键名；与值级校验的 `param=="encoding_format"` 区分记录。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -106,8 +106,8 @@ Accept: application/json
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/system/api_test_v03/at_dp_emb_07.py`（已实现）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_emb_07.py -q`。
+- 测试文件 / 测试函数：`tests/system/cases/ST-EMB-007.py`（已实现）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/cases/ST-EMB-007.py -q`。
 - 实现状态：Implemented；执行与 Verdict 归 Run 报告。
 
 **判定口径（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
@@ -120,4 +120,4 @@ Accept: application/json
 
 **证据与 Run**：Run ID=`<date>/A-api`；保存原始 status/headers/body（脱敏后）、发出命令、exit code、`elapsed`、环境快照。**额外证据**：请求/响应、可选 usage 前后快照、环境快照（`/healthz` + provider/deployment 列表；确认 `Embedding-v1`→`dep_local_bge_m3`）（本 case `environment:"a"`）。
 
-**依赖**：就绪检查；`api_client`；A 基线 embeddings-capable 部署 `dep_local_bge_m3` / 固定 tier `Embedding-v1`；`EmbeddingRequest.encoding_format` 机器契约；实现 `src/inference/embeddings.py` 第 39–44/51–53 行与 `src/inference/routing.py`；`ErrorDetail.code` 机器契约。自动化入口 `at_dp_emb_07.py`（已实现）。**不依赖**其它 Case；与 ST-EMB-006（`dimensions` 不符）同属 embeddings 本地校验负向，各自独立执行。
+**依赖**：就绪检查；`api_client`；A 基线 embeddings-capable 部署 `dep_local_bge_m3` / 固定 tier `Embedding-v1`；`EmbeddingRequest.encoding_format` 机器契约；实现 `src/inference/embeddings.py` 第 39–44/51–53 行与 `src/inference/routing.py`；`ErrorDetail.code` 机器契约。自动化入口 `ST-EMB-007.py`（已实现）。**不依赖**其它 Case；与 ST-EMB-006（`dimensions` 不符）同属 embeddings 本地校验负向，各自独立执行。

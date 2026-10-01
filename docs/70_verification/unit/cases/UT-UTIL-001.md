@@ -59,7 +59,7 @@ Store(path); Store.connection(); Store.transaction(); PRAGMA
 ```
 
 - 初态构造（经公开入口）：`tempfile.TemporaryDirectory` 隔离库（ENV-1）
-- Fixture / 向量及版本：`tests/unit/v03/test_store.py::setUp`；`test_store_schema`
+- Fixture / 向量及版本：`tests/unit/cases/UT-UTIL-001.py::setUp`；`test_store_schema`
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../llmtier-unit-test-plan.md) 分配）：ENV-1 隔离 Python 临时库 / ENV-2 loopback 测试 HTTP 实例 / ENV-3 provider 进程内 fake（按 Case 需要，见 §4）
 - 依赖的测试资产（tests.asset-design 文档）：无（真实 SQLite）
 
@@ -90,7 +90,7 @@ Store(path); Store.connection(); Store.transaction(); PRAGMA
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_store.py::test_migration_creates_schema/test_integrity_is_ok/test_foreign_keys_enabled/test_wal_enabled/test_transaction_commits/test_thread_gets_connection` + `test_store_schema.py::test_symlink_path_rejected`（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_store.py tests/unit/v03/test_store_schema.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 测试文件 / 测试函数：`tests/unit/cases/UT-UTIL-001.py::test_migration_creates_schema/test_integrity_is_ok/test_foreign_keys_enabled/test_wal_enabled/test_transaction_commits/test_thread_gets_connection` + `test_store_schema.py::test_symlink_path_rejected`（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/store.py tests/unit/cases/store_schema.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
 

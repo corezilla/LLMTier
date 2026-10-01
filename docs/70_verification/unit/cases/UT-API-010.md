@@ -59,7 +59,7 @@ Handler._static(path: str) -> None; readiness_view(registry) -> (dict, int)
 ```
 
 - 初态构造（经公开入口）：`AppFixture`（空库未 seed 与已 seed 两态）+ loopback 实例（ENV-2）
-- Fixture / 向量及版本：`tests/unit/v03/fakes.py::AppFixture`（ENV-1）+ `test_app_dispatch.py::StaticAndReadinessTests`/`ReadinessStatusTests`（ENV-2）
+- Fixture / 向量及版本：`tests/common/fakes.py::AppFixture`（ENV-1）+ `test_app_dispatch.py::StaticAndReadinessTests`/`ReadinessStatusTests`（ENV-2）
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../llmtier-unit-test-plan.md) 分配）：ENV-2 loopback 测试 HTTP 实例
 - 依赖的测试资产（tests.asset-design 文档）：无（真实静态产物）
 
@@ -89,6 +89,6 @@ Handler._static(path: str) -> None; readiness_view(registry) -> (dict, int)
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_app_dispatch.py::StaticAndReadinessTests::test_directory_traversal_is_404` / `test_ui_root_serves_index` / `test_readyz_seeded_is_degraded_503` / `ReadinessStatusTests::test_empty_is_not_ready_503`
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_app_dispatch.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03/test_app_dispatch.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 测试文件 / 测试函数：`tests/unit/cases/UT-API-010.py::StaticAndReadinessTests::test_directory_traversal_is_404` / `test_ui_root_serves_index` / `test_readyz_seeded_is_degraded_503` / `ReadinessStatusTests::test_empty_is_not_ready_503`
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/app_dispatch.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-API-010.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。

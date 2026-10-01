@@ -79,7 +79,7 @@
   5. 解析 body：断言为 `ProviderPage`，即含 `data` 数组（可能为空数组，但 m5air 基线非空），抽查元素关键字段（`id:str`、`name`、`kind`、`enabled`、`has_secret`、`secret_ref`）；若响应含 `has_more`，断言为布尔。
   6. （可选交叉核对）对同一 `GET /v1/providers` 注入 `Authorization: Bearer dev-admin` 再发一次，确认除请求头外 body 语义一致——佐证 LAN trust 与 admin token 落到同一 handler（该次请求的通过不由本 case 断言）。
 
-**重点关注步骤**：① **头缺省而非空值**——必须完全不发送 `Authorization`；`Bearer `（空 bearer）会因 `compare_digest` 失败而 403（ST-AUTH-006），从而把本 case 误判 FAIL；② **来源受信**——200 成立的前提是 `client_address` 命中 loopback/RFC1918；断言前应确认执行机 LAN IP，非受信来源的 401 属环境前置不满足（SKIP），不是 ST-AUTH-004 的行为错误；③ **Oracle 是"trusted-LAN 规则"而非"admin 凭据可用"**——只断言 200 不够，必须同时验证合法 `ProviderPage` body，排除把其它 200 当成功；④ **不得用带 token 的 fixture**——`admin_client` 已带 header，误用会把"admin token 生效"当成"LAN trust 生效"；⑤ **不要声称 env 门控**——`LLMTIER_TRUSTED_LAN_MODE` 不被源码读取，本 case 不得断言"门控开启才 200"（现有 [`at_auth_04.py`](../../../../tests/system/api_test_v03/at_auth_04.py) 文件头注释称该 env "默认开启"属不准确表述，设计以源码行为为准）；⑥ 不在此 case 断言 401/403 负向（属 ST-AUTH-002/03/06/09/10）。
+**重点关注步骤**：① **头缺省而非空值**——必须完全不发送 `Authorization`；`Bearer `（空 bearer）会因 `compare_digest` 失败而 403（ST-AUTH-006），从而把本 case 误判 FAIL；② **来源受信**——200 成立的前提是 `client_address` 命中 loopback/RFC1918；断言前应确认执行机 LAN IP，非受信来源的 401 属环境前置不满足（SKIP），不是 ST-AUTH-004 的行为错误；③ **Oracle 是"trusted-LAN 规则"而非"admin 凭据可用"**——只断言 200 不够，必须同时验证合法 `ProviderPage` body，排除把其它 200 当成功；④ **不得用带 token 的 fixture**——`admin_client` 已带 header，误用会把"admin token 生效"当成"LAN trust 生效"；⑤ **不要声称 env 门控**——`LLMTIER_TRUSTED_LAN_MODE` 不被源码读取，本 case 不得断言"门控开启才 200"（现有 [`ST-AUTH-004.py`](../../../../tests/system/cases/ST-AUTH-004.py) 文件头注释称该 env "默认开启"属不准确表述，设计以源码行为为准）；⑥ 不在此 case 断言 401/403 负向（属 ST-AUTH-002/03/06/09/10）。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -106,6 +106,6 @@
 
 - **证据与 Run**：保存独立请求的原始命令、发送 headers 快照（证明**无** `Authorization`）、HTTP status/headers/body、执行机 LAN IP、exit code、`elapsed`、环境快照（`/healthz`/`/readyz` + provider 列表）；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；执行机位于 `192.168.x` LAN（TS-003）；独立 `httpx` 无头客户端（不复用 `admin_client`）；m5air `GET /v1/providers` 可用；自动化入口 [`at_auth_04.py`](../../../../tests/system/api_test_v03/at_auth_04.py)。**不依赖**其它 Case；与 ST-AUTH-001/ST-AUTH-003/ST-AUTH-008/ST-AUTH-009 共享 admin/data 面鉴权但各自独立执行、互不关闭。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；执行机位于 `192.168.x` LAN（TS-003）；独立 `httpx` 无头客户端（不复用 `admin_client`）；m5air `GET /v1/providers` 可用；自动化入口 [`ST-AUTH-004.py`](../../../../tests/system/cases/ST-AUTH-004.py)。**不依赖**其它 Case；与 ST-AUTH-001/ST-AUTH-003/ST-AUTH-008/ST-AUTH-009 共享 admin/data 面鉴权但各自独立执行、互不关闭。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

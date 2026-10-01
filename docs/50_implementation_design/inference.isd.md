@@ -100,7 +100,7 @@
 ### 2.1 适用性
 
 - **适用性**：`not_applicable`
-- **依据**：greenfield/设计先行；无「待修改的既有实现」——本模块为新建代码（`src/inference/*`），非 brownfield 改造，故本章不列 Current/Target 差异项。代码与单元测试**均已存在**（模块设计 `inference-design` §13.1.1–13.1.7 全部 `Implemented`；`tests/unit/v03/` 覆盖 VRC-INF-001..005）。§3/§5/§9/§10 的 `Planned` 声明不再适用，已随本次同步改为 `IMPLEMENTED`。
+- **依据**：greenfield/设计先行；无「待修改的既有实现」——本模块为新建代码（`src/inference/*`），非 brownfield 改造，故本章不列 Current/Target 差异项。代码与单元测试**均已存在**（模块设计 `inference-design` §13.1.1–13.1.7 全部 `Implemented`；`tests/unit/cases/` 覆盖 VRC-INF-001..005）。§3/§5/§9/§10 的 `Planned` 声明不再适用，已随本次同步改为 `IMPLEMENTED`。
 - **Tailoring / 范围决定引用**：`std-tailoring`（设计先行）
 
 ## 3. 文件、内部组件与调用关系
@@ -1186,10 +1186,10 @@ flowchart TD
 - **V / Case / Vector**：v1 固定 request；v2 缺字段/`store=true`/禁字段；v3 未知 model；v4 未知字段/`max_output_tokens` 越界
 - **输入 / 故障 / 环境**：请求；隔离库
 - **独立 Oracle / Expected**：SSE 事件子集 + terminal 唯一；400/404
-- **Actual / Evidence**：`tests/unit/v03/test_responses.py`（success/missing-required/nonstream/store=true/forbidden 字段/`provider_failure` 留 unknown usage）
+- **Actual / Evidence**：`tests/unit/cases/UT-INF-001.py`（success/missing-required/nonstream/store=true/forbidden 字段/`provider_failure` 留 unknown usage）
 - **Verdict**：PASS（v1/v2 覆盖；**v3 未知 model 与 v4 未知字段/范围在 responses 路径未单测**——未知 model 仅在 `test_models.test_missing_model` 覆盖，标注为待补）
-- **测试入口 / 清理**：`tests/unit/v03/test_responses.py`；隔离库
-- **Run ID / Status**：PASS（`tests/unit/v03`）
+- **测试入口 / 清理**：`tests/unit/cases/UT-INF-001.py`；隔离库
+- **Run ID / Status**：PASS（`tests/unit/cases`）
 
 ### 9.1.2 `VRC-INF-002` · 向量化
 
@@ -1197,10 +1197,10 @@ flowchart TD
 - **V / Case / Vector**：v1 正常向量；v2 base64；v3 非有限值；v4 非法维数
 - **输入 / 故障 / 环境**：请求；`Embedding-v1`
 - **独立 Oracle / Expected**：长度/有限性；usage→`prompt_tokens`；400/502
-- **Actual / Evidence**：`tests/unit/v03/test_embeddings.py`（`test_float_success`/`test_base64_success`/`test_nonfinite_rejected`/`test_wrong_dimension_rejected`/`test_usage_normalized`）
+- **Actual / Evidence**：`tests/unit/cases/UT-INF-002.py`（`test_float_success`/`test_base64_success`/`test_nonfinite_rejected`/`test_wrong_dimension_rejected`/`test_usage_normalized`）
 - **Verdict**：PASS（v4 维数拒绝已断言；`unsupported_dimensions` 码断言、非法 base64 `provider_contract_error`、空向量待补单测）
-- **测试入口 / 清理**：`tests/unit/v03/test_embeddings.py`
-- **Run ID / Status**：PASS（`tests/unit/v03`）
+- **测试入口 / 清理**：`tests/unit/cases/UT-INF-002.py`
+- **Run ID / Status**：PASS（`tests/unit/cases`）
 
 ### 9.1.3 `VRC-INF-003` · 失败与用量
 
@@ -1208,10 +1208,10 @@ flowchart TD
 - **V / Case / Vector**：v1 上游 5xx/超时；v2 两个 terminal；v3 usage 缺失
 - **输入 / 故障 / 环境**：`LLMTIER_SLOW_ADAPTER_DELAY`/故障注入；隔离库
 - **独立 Oracle / Expected**：unknown 不补零；head 单调；typed error
-- **Actual / Evidence**：`tests/unit/v03/test_provider_openai.py`（重复 terminal/状态不一致）、`test_responses.py::test_provider_failure_leaves_unknown_usage`、`test_usage.py`（unknown 前置/`null` 不补零/版本不可变/provider_request_id 回填与 no-op）
+- **Actual / Evidence**：`tests/unit/cases/UT-INF-003.py`（重复 terminal/状态不一致）、`test_responses.py::test_provider_failure_leaves_unknown_usage`、`test_usage.py`（unknown 前置/`null` 不补零/版本不可变/provider_request_id 回填与 no-op）
 - **Verdict**：PASS（v2/v3 与 provider_request_id 覆盖；**v1 上游超时/5xx 的 URL 级注入待补**；system 用例 `st_22/st_23` 覆盖 `LLMTIER_SLOW_ADAPTER_DELAY` 并发）
-- **测试入口 / 清理**：`tests/unit/v03/test_provider_openai.py`、`tests/unit/v03/test_responses.py`、`tests/unit/v03/test_usage.py`；`tests/system/st_2x`
-- **Run ID / Status**：PASS（`tests/unit/v03`）
+- **测试入口 / 清理**：`tests/unit/cases/UT-INF-003.py`、`tests/unit/cases/UT-INF-001.py`、`tests/unit/cases/UT-INF-003.py`；`tests/system/st_2x`
+- **Run ID / Status**：PASS（`tests/unit/cases`）
 
 ### 9.1.4 `VRC-INF-004` · 准入与目录
 
@@ -1219,10 +1219,10 @@ flowchart TD
 - **V / Case / Vector**：v1 占满队列 429；v2 全不健康 503；v3 availability 三态
 - **输入 / 故障 / 环境**：并发请求；隔离库
 - **独立 Oracle / Expected**：429/503；availability
-- **Actual / Evidence**：`tests/unit/v03/test_routing.py`（健康准入/404/`unhealthy` 503/`unknown` 不可选/FIFO/不跨等级）、`test_models.py`（available/degraded/未知 404）
+- **Actual / Evidence**：`tests/unit/cases/UT-INF-004.py`（健康准入/404/`unhealthy` 503/`unknown` 不可选/FIFO/不跨等级）、`test_models.py`（available/degraded/未知 404）
 - **Verdict**：PASS（v2/v3 覆盖；**v1 队列占满 429 与 `Retry-After` 待补单测**；system `st_23` 覆盖队列满）
-- **测试入口 / 清理**：`tests/unit/v03/test_routing.py`、`tests/unit/v03/test_models.py`
-- **Run ID / Status**：PASS（`tests/unit/v03`）
+- **测试入口 / 清理**：`tests/unit/cases/UT-INF-004.py`、`tests/unit/cases/UT-INF-004.py`
+- **Run ID / Status**：PASS（`tests/unit/cases`）
 
 ### 9.1.5 `VRC-INF-005` · 观测 fail-open / 不二次校验
 
@@ -1232,7 +1232,7 @@ flowchart TD
 - **独立 Oracle / Expected**：推理结果不变；无鉴权调用点
 - **Actual / Evidence**：`test_diagnostics.py` 覆盖 M006 注入面（`fault_502`/`rate_limit`/`delay` 经 Responses 生效并记 `source=injected`）；M003 自身无二次鉴权调用点（代码审查）
 - **Verdict**：PARTIAL（`source=injected`/注入生效有单测；**观测写失败 fail-open 的 M003 路径无专项单测**，待补）
-- **测试入口 / 清理**：`tests/unit/v03/test_diagnostics.py`（注入面）
+- **测试入口 / 清理**：`tests/unit/cases/UT-DIAG-001.py`（注入面）
 - **Run ID / Status**：PARTIAL
 
 **运行命令**：全量 `PYTHONPATH=src python3 -m pytest tests/ tests/system/st_*.py -q`
@@ -1247,7 +1247,7 @@ flowchart TD
 - **实施动作**：实现编排与归一
 - **完成检查**：`VRC-INF-001/002`
 - **实现状态**：IMPLEMENTED
-- **验证状态 / Run**：PASS（`tests/unit/v03`）
+- **验证状态 / Run**：PASS（`tests/unit/cases`）
 
 ### 9.2.2 `TASK-INF-ADMIT` · 准入与路由
 
@@ -1257,7 +1257,7 @@ flowchart TD
 - **实施动作**：实现队列/许可/选择
 - **完成检查**：`VRC-INF-004`
 - **实现状态**：IMPLEMENTED
-- **验证状态 / Run**：PASS（`tests/unit/v03`）
+- **验证状态 / Run**：PASS（`tests/unit/cases`）
 
 ### 9.2.3 `TASK-INF-ADAPTER` · Provider 适配与记账
 
@@ -1267,7 +1267,7 @@ flowchart TD
 - **实施动作**：实现适配与记账
 - **完成检查**：`VRC-INF-003`
 - **实现状态**：IMPLEMENTED
-- **验证状态 / Run**：PASS（`tests/unit/v03`）
+- **验证状态 / Run**：PASS（`tests/unit/cases`）
 
 ## 10. 映射、复核与未决项
 
@@ -1281,14 +1281,14 @@ flowchart TD
 - **实际位置或 Planned 计划位置**：`src/inference/{responses,embeddings,models,routing,usage}.py`、`src/inference/providers/*`（均已实现）
 - **验证项**：`VRC-INF-001..005`
 - **实现状态**：IMPLEMENTED
-- **验证状态 / Run**：PASS（`tests/unit/v03`）
+- **验证状态 / Run**：PASS（`tests/unit/cases`）
 
 <a id="isd-status"></a>
 
 ### 10.2.1 `SC-INF` · 状态一致性复核
 
 - **上游承接状态 / 固定来源**：模块 `inference` §15.ISD 声明 `separate`
-- **本层派生状态 / 事实依据**：代码与单元测试**均已实现**；全部 `src/inference/*` 现有实现，`tests/unit/v03/` 覆盖 VRC-INF-001..005（部分向量待补，见 §9.1）
+- **本层派生状态 / 事实依据**：代码与单元测试**均已实现**；全部 `src/inference/*` 现有实现，`tests/unit/cases/` 覆盖 VRC-INF-001..005（部分向量待补，见 §9.1）
 - **§2 Current / Target**：N/A（greenfield；无既有待改实现，见 §2.1）
 - **§3 / §5 文件与函数状态**：IMPLEMENTED
 - **§9 任务 / Actual / Verdict / Run**：IMPLEMENTED / PASS / PASS / PASS（部分待补向量在 §9.1 标注）

@@ -50,7 +50,7 @@
   ```
 
 - **初态构造与客户端**：状态型初态无需构造（健康端点无内部状态依赖）；本 case 的零凭据契约点必须用**裸客户端**（**不用** `api_client`，其注入 `Authorization`）；具体 fixture/客户端构造见[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)。
-- **依赖的测试资产（tests.asset-design 文档）**：本阶段 `tests.asset-design` 文档尚未建立（系统测试资产以 `tests/system/api_test_v03/conftest.py` 的 `LLMTierInstance` / `provider_endpoint_*` 夹具承载，契约见方案 §4）；引用其版本而不复制字节。
+- **依赖的测试资产（tests.asset-design 文档）**：本阶段 `tests.asset-design` 文档尚未建立（系统测试资产以 `tests/system/conftest.py` 的 `LLMTierInstance` / `provider_endpoint_*` 夹具承载，契约见方案 §4）；引用其版本而不复制字节。
 
 ## 3. 输入构造
 
@@ -84,7 +84,7 @@
 | 5 | 解析 body 键集恰为 `{status, version}`、`status=="ok"`、`version` 非空字符串 | 响应体 |
 | 6 | 交叉核对同刻 `/readyz` status | 存活 vs 就绪语义分离 |
 
-**重点关注步骤**：① **`version` 是字符串**——契约要求 `version:str`；现有 [`at_obs_01.py`](../../../../tests/system/api_test_v03/at_obs_01.py) 已断言 200 + `status=="ok"` + `version` 为非空字符串，本 case 与该断言一致。② **200 的真实含义**——`/healthz` 只证明进程存活，**不是**就绪；不得把 200 当作可接流量。③ **零凭据（`security:[]`）**——本 case 的凭据点必须由**裸客户端**（无 `Authorization`）发出；`api_client` 固定注入凭据，用它即失去零凭据语义（只有 ST-AUTH-005 覆盖无 token，本 case 也不得冒充）。④ **不得被错误信封冒充**——若返回非 200，需确认是可解释环境问题，而非把 `{"error":...}` 当 `HealthView` 读。⑤ 不在此 case 断言 `/readyz` 的 tier 状态（属 ST-HEALTH-002..05）。
+**重点关注步骤**：① **`version` 是字符串**——契约要求 `version:str`；现有 [`ST-HEALTH-001.py`](../../../../tests/system/cases/ST-HEALTH-001.py) 已断言 200 + `status=="ok"` + `version` 为非空字符串，本 case 与该断言一致。② **200 的真实含义**——`/healthz` 只证明进程存活，**不是**就绪；不得把 200 当作可接流量。③ **零凭据（`security:[]`）**——本 case 的凭据点必须由**裸客户端**（无 `Authorization`）发出；`api_client` 固定注入凭据，用它即失去零凭据语义（只有 ST-AUTH-005 覆盖无 token，本 case 也不得冒充）。④ **不得被错误信封冒充**——若返回非 200，需确认是可解释环境问题，而非把 `{"error":...}` 当 `HealthView` 读。⑤ 不在此 case 断言 `/readyz` 的 tier 状态（属 ST-HEALTH-002..05）。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -111,6 +111,6 @@
 ## 7. 自动化位置与状态
 
 - **证据与 Run**：证据与 Run 契约见[§4.8/§10](../llmtier-system-test-scheme.md)：保存发命令、exit code、原始 HTTP status/headers/body、`elapsed`、环境快照（`/healthz`/`/readyz` + provider/deployment 列表）；manifest 与报告落位（`tests/system/reports/...`）见 §4.8/§10（本 case `environment:"a"`）；失败现场不截断。
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；**裸 `httpx` 客户端**（`M5AIR_BASE` 直连、无 `Authorization`；**不用** `api_client`）；`HealthView` 机器契约（[`openapi`](../../../../interfaces/openapi/llmtier.openapi.json)）；自动化入口 [`at_obs_01.py`](../../../../tests/system/api_test_v03/at_obs_01.py)。**不依赖**其它 Case；与 ST-HEALTH-002 共享同一探测入口但语义独立（存活 vs 就绪）。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；**裸 `httpx` 客户端**（`M5AIR_BASE` 直连、无 `Authorization`；**不用** `api_client`）；`HealthView` 机器契约（[`openapi`](../../../../interfaces/openapi/llmtier.openapi.json)）；自动化入口 [`ST-HEALTH-001.py`](../../../../tests/system/cases/ST-HEALTH-001.py)。**不依赖**其它 Case；与 ST-HEALTH-002 共享同一探测入口但语义独立（存活 vs 就绪）。
 
-> 实现状态：Implemented（`at_obs_01.py` 已断言本 case 契约）；执行状态与 Verdict 只在 Run 报告。
+> 实现状态：Implemented（`ST-HEALTH-001.py` 已断言本 case 契约）；执行状态与 Verdict 只在 Run 报告。

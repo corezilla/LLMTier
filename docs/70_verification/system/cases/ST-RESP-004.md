@@ -141,6 +141,6 @@
 ## 7. 自动化位置与状态
 
 - **证据与 Run**：证据与 Run 契约见[§4.8/§10](../llmtier-system-test-scheme.md)：保存请求 body（含 `tools`）、HTTP status/headers、原始 SSE 逐帧、发出命令、exit code、环境快照；manifest 与报告落位见 §4.8/§10（本 case `environment:"a"`）；失败现场不截断。
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client`（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）；`tools=true` 的 responses-capable tier（A 臂 `Worker`；B 臂 `llmtier_b_tools`/`Senior`）；LAN fake provider 回声（TS-003）；自动化入口 [`at_dp_resp_04.py`](../../../../tests/system/api_test_v03/at_dp_resp_04.py)。**不依赖**其它 Case；能力门负向不在本 case 范围（`tools=false` → BLOCKED，不并入 PASS/FAIL）。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client`（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）；`tools=true` 的 responses-capable tier（A 臂 `Worker`；B 臂 `llmtier_b_tools`/`Senior`）；LAN fake provider 回声（TS-003）；自动化入口 [`ST-RESP-004.py`](../../../../tests/system/cases/ST-RESP-004.py)。**不依赖**其它 Case；能力门负向不在本 case 范围（`tools=false` → BLOCKED，不并入 PASS/FAIL）。
 
-> 实现状态：Implemented（`at_dp_resp_04.py` 已断言本 case 契约）；执行状态与 Verdict 只在 Run 报告。
+> 实现状态：Implemented（`ST-RESP-004.py` 已断言本 case 契约）；执行状态与 Verdict 只在 Run 报告。

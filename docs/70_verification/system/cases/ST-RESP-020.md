@@ -31,7 +31,7 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-RESP-020` / 系统设计 §8 Responses 接口 / `VRC-INF-004` / concurrency / P1（[方案清单 `ST-RESP-020`](../llmtier-system-test-scheme.md)）；机制 `T-QUEUE`。
 - **测试方法（§1.5 方法表行）**：状态机驱动（准入饱和 429 + Retry-After）+ 固定并发度/种子
-- 要测什么（责任展开）：`POST /v1/responses` 准入饱和：`429 rate_limit_exceeded` 且带 `Retry-After`（自动化入口 `at_dp_resp_20.py`）。并发超过 `depl_b` 的运行时并发许可与队列上限（队列 32）时，`Router.admit` 拒绝并返回稳定 `429` 与 `Retry-After`。需求 `R-INF-05`；错误目录 `ERR-RATE-LIMIT` → wire `code=rate_limit_exceeded`；实现 `src/inference/routing.py`（队列满 `len(self._queues[level_id]) >= 32` → `ApiError(429, "rate_limit_exceeded", "Service-level queue is full", retryable=True, headers={"Retry-After":"30"})`；等待超时 → `Retry-After:"1"`）。
+- 要测什么（责任展开）：`POST /v1/responses` 准入饱和：`429 rate_limit_exceeded` 且带 `Retry-After`（自动化入口 `ST-RESP-020.py`）。并发超过 `depl_b` 的运行时并发许可与队列上限（队列 32）时，`Router.admit` 拒绝并返回稳定 `429` 与 `Retry-After`。需求 `R-INF-05`；错误目录 `ERR-RATE-LIMIT` → wire `code=rate_limit_exceeded`；实现 `src/inference/routing.py`（队列满 `len(self._queues[level_id]) >= 32` → `ApiError(429, "rate_limit_exceeded", "Service-level queue is full", retryable=True, headers={"Retry-After":"30"})`；等待超时 → `Retry-After:"1"`）。
 - 明确不测什么 / 失败含义：不测 `model_unavailable`（ST-RESP-019）；不测超时预算的 ms 级时点（不设 SLO）；不测 exactly-once/重试语义。失败含义＝准入/排队契约破坏。
 
 ## 2. 被测入口与前置
@@ -77,7 +77,7 @@ POST /v1/responses  （占槽者，1 个）
 | 5 | 断言 429 响应含 `Retry-After` 头 | 值为正整数秒（队列满为 `"30"`，等待超时为 `"1"`） |
 | 6 | （teardown，`finally`）`fake_provider_b.release_slow()` | 占槽/排队请求立即排空，无残留长睡眠 |
 
-- 重点关注步骤：① **饱和才 429**——只有超过许可+队列上限时拒绝，非首个请求；② **`Retry-After` 存在且为正整数**；③ **区分两条 429 分支**——队列满（`Retry-After:30`）vs 等待超时（`Retry-After:1`），只断"存在+正整数"以免耦合内部时点；④ **并发共享同一 tier 的许可/队列**，不得假设各请求独立资源；⑤ **确定性饱和**——占槽经 `GET /v1/runtime` 确认 `depl_b.running>=1` 后并发入队，队列满立即 429（不依赖 `FIRST_COMPLETED`/并发完成时序）；槽由上游门控（`slow-responses`）占住，teardown release 立即排空，无残留长睡眠；⑥ **自动化入口**——`at_dp_resp_20.py` 已实现。
+- 重点关注步骤：① **饱和才 429**——只有超过许可+队列上限时拒绝，非首个请求；② **`Retry-After` 存在且为正整数**；③ **区分两条 429 分支**——队列满（`Retry-After:30`）vs 等待超时（`Retry-After:1`），只断"存在+正整数"以免耦合内部时点；④ **并发共享同一 tier 的许可/队列**，不得假设各请求独立资源；⑤ **确定性饱和**——占槽经 `GET /v1/runtime` 确认 `depl_b.running>=1` 后并发入队，队列满立即 429（不依赖 `FIRST_COMPLETED`/并发完成时序）；槽由上游门控（`slow-responses`）占住，teardown release 立即排空，无残留长睡眠；⑥ **自动化入口**——`ST-RESP-020.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -91,8 +91,8 @@ POST /v1/responses  （占槽者，1 个）
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：[`tests/system/api_test_v03/at_dp_resp_20.py`](../../../../tests/system/api_test_v03/at_dp_resp_20.py)（已实现；fixture `llmtier_b_resp_slow`）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_resp_20.py -q`。
+- 测试文件 / 测试函数：[`tests/system/cases/ST-RESP-020.py`](../../../../tests/system/cases/ST-RESP-020.py)（已实现；fixture `llmtier_b_resp_slow`）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/cases/ST-RESP-020.py -q`。
 - 实现状态：Implemented；执行与 Verdict 归 Run 报告。
 
 **判定口径（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
@@ -101,7 +101,7 @@ POST /v1/responses  （占槽者，1 个）
 - BLOCKED：并发/注入 fixture 不可实现。
 - SKIP：B 类临时实例不可用。
 - INVALID：以 mock/替代路径冒充真实路径，或注入未命中却按 429 判定。
-- NOT_RUN：本 Case 有实现（`at_dp_resp_20.py`），未执行记 `NOT_RUN`。
+- NOT_RUN：本 Case 有实现（`ST-RESP-020.py`），未执行记 `NOT_RUN`。
 
 **证据与 Run**：保存注入写/清空、并发请求清单与各响应（含 429 与 `Retry-After`）、上游调用计数/runtime 快照、发出命令、exit code、环境快照（本 case `environment:"b"`）。
 

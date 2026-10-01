@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Standalone environment readiness check (system test plan §3 Go/No-Go).
 
-Reproduces the six A-class checks that `tests/system/api_test_v03/conftest.py`
+Reproduces the six A-class checks that `tests/system/conftest.py`
 runs in `pytest_configure`, plus the B-class preconditions (a temporary
 `LLMTierInstance` can start and answer ``/healthz`` 200, and a fake upstream is
 reachable on a LAN IP per `testing-standard.md` TS-003).
@@ -49,7 +49,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = REPO_ROOT / "src"
-FAKE_PROVIDER_SCRIPT = REPO_ROOT / "tests" / "fixtures" / "v03_fake_provider.py"
+FAKE_PROVIDER_SCRIPT = REPO_ROOT / "tests" / "fixtures" / "models" / "v03_fake_provider.py"
 
 DEFAULT_BASE_URL = "http://192.168.1.9:8181"
 DEFAULT_ADMIN_TOKEN = "dev-admin"
@@ -146,7 +146,7 @@ def check_readyz(cfg: EnvConfig) -> CheckResult:
     if missing:
         return CheckResult("A2", label, False, f"/readyz missing tiers: {sorted(missing)}")
     # Extra tiers are informational: the §2.1.2 oracle only requires the 7 fixed
-    # tiers to be present (matches api_test_v03 conftest `_check_m5air_readyz`).
+    # tiers to be present (matches the system conftest `_check_m5air_readyz`).
     extra = ids - set(FIXED_TIERS)
     detail = f"ok ({len(models)} models, all 7 fixed tiers)"
     if extra:
@@ -385,7 +385,7 @@ def build_config(args: argparse.Namespace) -> EnvConfig:
         python=args.python,
         repo_root=args.repo_root,
         src_root=args.repo_root / "src",
-        fake_provider_script=args.repo_root / "tests" / "fixtures" / "v03_fake_provider.py",
+        fake_provider_script=args.repo_root / "tests" / "fixtures" / "models" / "v03_fake_provider.py",
     )
 
 

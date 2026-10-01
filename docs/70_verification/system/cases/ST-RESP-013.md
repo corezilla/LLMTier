@@ -75,7 +75,7 @@ Content-Type: application/json
 | 4 | 解析 `resp.json()["error"]` | `code=="unsupported_field"`、`message` 含 `"unknown fields"`、`type=="request_error"`、`param=="truncation"`、`retryable is False`，键集恰 5 键 |
 | 5 | 可选对照：去掉 `truncation` 重发 | `200` + SSE |
 
-- 重点关注步骤：① **未知字段路径**——`truncation` 既不在 OpenAPI `ResponsesRequest`，也不在 `ALLOWED_FIELDS`；② **错误码归因**——未知字段 → `unsupported_field`（系统 §7.8 `ERR-REQ-FIELD`），`param` 为未知字段名；③ **拒绝在 dispatch 前、零副作用**；④ **方案与脚本一致**——该行为 `400 unsupported_field`，[`at_dp_resp_13.py`](../../../../tests/system/api_test_v03/at_dp_resp_13.py) 第 34-38 行亦断言 `400` + `unsupported_field` + `param=="truncation"`。
+- 重点关注步骤：① **未知字段路径**——`truncation` 既不在 OpenAPI `ResponsesRequest`，也不在 `ALLOWED_FIELDS`；② **错误码归因**——未知字段 → `unsupported_field`（系统 §7.8 `ERR-REQ-FIELD`），`param` 为未知字段名；③ **拒绝在 dispatch 前、零副作用**；④ **方案与脚本一致**——该行为 `400 unsupported_field`，[`ST-RESP-013.py`](../../../../tests/system/cases/ST-RESP-013.py) 第 34-38 行亦断言 `400` + `unsupported_field` + `param=="truncation"`。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -89,8 +89,8 @@ Content-Type: application/json
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：[`tests/system/api_test_v03/at_dp_resp_13.py`](../../../../tests/system/api_test_v03/at_dp_resp_13.py)（已断言 `400 unsupported_field` + `param=="truncation"`）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_resp_13.py -q`。
+- 测试文件 / 测试函数：[`tests/system/cases/ST-RESP-013.py`](../../../../tests/system/cases/ST-RESP-013.py)（已断言 `400 unsupported_field` + `param=="truncation"`）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/cases/ST-RESP-013.py -q`。
 - 实现状态：Implemented；执行与 Verdict 归 Run 报告。
 
 **判定口径（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
@@ -103,4 +103,4 @@ Content-Type: application/json
 
 **证据与 Run**：保存请求 body、HTTP status/headers、原始错误信封、可选对照、发出命令、exit code、环境快照（本 case `environment:"a"`）。
 
-**依赖**：就绪检查；`api_client`；OpenAPI `ResponsesRequest`；实现 `src/inference/responses.py`（`ALLOWED_FIELDS`）；自动化入口 `at_dp_resp_13.py`。**不依赖**其它 Case；与 ST-RESP-012/14 同类。
+**依赖**：就绪检查；`api_client`；OpenAPI `ResponsesRequest`；实现 `src/inference/responses.py`（`ALLOWED_FIELDS`）；自动化入口 `ST-RESP-013.py`。**不依赖**其它 Case；与 ST-RESP-012/14 同类。

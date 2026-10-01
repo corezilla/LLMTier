@@ -52,10 +52,10 @@
 - 方案清单登记：`ST-PROV-010`（与 §3.2 权威清单一致；本文件名 `st-prov-010.md`，唯一对应）。
 - 要测什么（责任展开）：`DELETE /v1/providers/{id}` 删除被活动 deployment 引用的 provider：HTTP 409 + `error.code=="resource_in_use"`，provider 保留。
 - 明确不测什么 / 失败含义：不证明 成功删除（ST-PROV-008）、不证明缺/过期 If-Match 412（ST-PROV-009）、不证明 deployment 侧删除被 service-level 引用的 409；本 case 依赖 baseline `prov_b → depl_b` 的引用关系，不删除任何资源（删除必然被拒）。
-  > 规范注记：§3.2 行与 §11.1 均记本 case 错误码为 `resource_in_use`（`ERR-INUSE`）；实现与 [`at_adm_prov_10.py`](../../../../tests/system/api_test_v03/at_adm_prov_10.py) 一致。若外部简报把它写作 `resource_conflict`，以 `openapi` enum + 源码为准（`resource_conflict` 是**重名/已存在**语义，见 ST-PROV-002 重名分支，非引用保护）。
+  > 规范注记：§3.2 行与 §11.1 均记本 case 错误码为 `resource_in_use`（`ERR-INUSE`）；实现与 [`ST-PROV-010.py`](../../../../tests/system/cases/ST-PROV-010.py) 一致。若外部简报把它写作 `resource_conflict`，以 `openapi` enum + 源码为准（`resource_conflict` 是**重名/已存在**语义，见 ST-PROV-002 重名分支，非引用保护）。
 
 **目的（被测契约）**：验证 Management Provider CRUD 的**引用完整性（删除引用保护）契约**。被测端点/规则：`DELETE /v1/providers/{id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `deleteProvider`，`security=AdminBearerAuth`）；当该 provider 被任一 deployment 引用时，[`registry.delete_provider`](../../../../src/management/registry.py) 抛 `ApiError(409, "resource_in_use", "Provider is referenced by a deployment")`；前提是 `If-Match` 已匹配（否则先 412）。设计验证项 `VRC-MGMT-001`；错误目录 `ERR-INUSE` → `resource_in_use`；机制 `T-CFG-DELREF`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明成功删除（ST-PROV-008）、不证明缺/过期 If-Match 412（ST-PROV-009）、不证明 deployment 侧删除被 service-level 引用的 409；本 case 依赖 baseline `prov_b → depl_b` 的引用关系，不删除任何资源（删除必然被拒）。
-  > 规范注记：§3.2 行与 §11.1 均记本 case 错误码为 `resource_in_use`（`ERR-INUSE`）；实现与 [`at_adm_prov_10.py`](../../../../tests/system/api_test_v03/at_adm_prov_10.py) 一致。若外部简报把它写作 `resource_conflict`，以 `openapi` enum + 源码为准（`resource_conflict` 是**重名/已存在**语义，见 ST-PROV-002 重名分支，非引用保护）。
+  > 规范注记：§3.2 行与 §11.1 均记本 case 错误码为 `resource_in_use`（`ERR-INUSE`）；实现与 [`ST-PROV-010.py`](../../../../tests/system/cases/ST-PROV-010.py) 一致。若外部简报把它写作 `resource_conflict`，以 `openapi` enum + 源码为准（`resource_conflict` 是**重名/已存在**语义，见 ST-PROV-002 重名分支，非引用保护）。
 
 ## 2. 被测入口与前置
 
@@ -111,6 +111,6 @@
 
 - **证据与 Run**：证据与 Run 契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)(../llmtier-system-test-scheme.md)：Run ID=`<date>/B-api`；保存请求与原始响应（脱敏后）、发出命令、exit code、`elapsed`、环境快照；`manifest.json` 必填字段与报告落位（`tests/system/reports/...`）见 §4.8/§10；失败现场不截断。**本 case 额外证据**：`GET prov_b`（含 ETag）、`DELETE` 请求与 409 原始响应、拒绝后回读、`GET /v1/deployments/depl_b` 引用快照。
 
-- **依赖**：B 类 fixture `llmtier_b` / `admin_client_b` 与 baseline `prov_b`+`depl_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`deleteProvider`/`ErrorEnvelope` 机器契约；`registry.delete_provider` 引用检查；机制 `T-CFG-DELREF`；错误目录 `ERR-INUSE`；自动化入口 [`at_adm_prov_10.py`](../../../../tests/system/api_test_v03/at_adm_prov_10.py)。**不依赖**其它 Case（依赖 baseline 引用关系，而非某 case 先跑）；与 ST-PROV-008/09 互补但各自独立。
+- **依赖**：B 类 fixture `llmtier_b` / `admin_client_b` 与 baseline `prov_b`+`depl_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`deleteProvider`/`ErrorEnvelope` 机器契约；`registry.delete_provider` 引用检查；机制 `T-CFG-DELREF`；错误目录 `ERR-INUSE`；自动化入口 [`ST-PROV-010.py`](../../../../tests/system/cases/ST-PROV-010.py)。**不依赖**其它 Case（依赖 baseline 引用关系，而非某 case 先跑）；与 ST-PROV-008/09 互补但各自独立。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

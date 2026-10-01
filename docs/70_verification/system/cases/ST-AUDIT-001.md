@@ -80,7 +80,7 @@
   5. 断言 `len(data) <= 50`（默认 `limit=50`）；进一步断言 `data` 每条键集**恰为** `{id,actor,action,target,result,created_at,request_id}`——**特别断言 `request_id` 键存在**（可 null）。
   6. 脱敏断言：`resp.text` **不含**上游 secret 字面 `"9832"`、key 文件名 `"omlx-secret-key.txt"`、`"mnm_api_key"`、`"Bearer "` 后的真实凭据、`"secret"` 明文值。
 
-**重点关注步骤**：① **`request_id` 键必须存在**——`AuditEvent.required` 含 `request_id`（可 null），仅断"data 是数组"不足（现有 [`at_adm_audit_01.py`](../../../../tests/system/api_test_v03/at_adm_audit_01.py) 只断数组与脱敏，**未断 7 字段**，须补齐）；② **默认 `limit=50`**——无参请求 `len(data) ≤ 50`（`AuditLog.page` 默认 50、上限 200）；③ **脱敏**——审计 `target`/`action` 等不得回显 secret；注意 `AuditLog.record` 存的是 `actor/action/target/result`，本身不含 header/凭据，但仍须显式断言（防未来字段泄漏）；④ **`type` 字段非本 case**——`AuditEvent` 无 `type` 键，不得按错误信封 5 键预期；⑤ **纯读**——`GET /v1/audit` 不写审计（读操作不产生审计行）。
+**重点关注步骤**：① **`request_id` 键必须存在**——`AuditEvent.required` 含 `request_id`（可 null），仅断"data 是数组"不足（现有 [`ST-AUDIT-001.py`](../../../../tests/system/cases/ST-AUDIT-001.py) 只断数组与脱敏，**未断 7 字段**，须补齐）；② **默认 `limit=50`**——无参请求 `len(data) ≤ 50`（`AuditLog.page` 默认 50、上限 200）；③ **脱敏**——审计 `target`/`action` 等不得回显 secret；注意 `AuditLog.record` 存的是 `actor/action/target/result`，本身不含 header/凭据，但仍须显式断言（防未来字段泄漏）；④ **`type` 字段非本 case**——`AuditEvent` 无 `type` 键，不得按错误信封 5 键预期；⑤ **纯读**——`GET /v1/audit` 不写审计（读操作不产生审计行）。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -107,6 +107,6 @@
 
 - **证据与 Run**：保存原始 HTTP status/headers/body（入库前将 Authorization、`9832`、key 文件内容脱敏）、发出命令、exit code、`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`AuditPage`/`AuditEvent` 机器契约；`AuditLog.page`；机制 `R-OBS-01`/`T-TRUST-LEAK`。自动化入口 [`at_adm_audit_01.py`](../../../../tests/system/api_test_v03/at_adm_audit_01.py)（**须补齐 7 字段断言后方可判 PASS**）。**不依赖**其它 Case；与 ST-AUDIT-002/03、ST-LOGS-001 互补。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`AuditPage`/`AuditEvent` 机器契约；`AuditLog.page`；机制 `R-OBS-01`/`T-TRUST-LEAK`。自动化入口 [`ST-AUDIT-001.py`](../../../../tests/system/cases/ST-AUDIT-001.py)（**须补齐 7 字段断言后方可判 PASS**）。**不依赖**其它 Case；与 ST-AUDIT-002/03、ST-LOGS-001 互补。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

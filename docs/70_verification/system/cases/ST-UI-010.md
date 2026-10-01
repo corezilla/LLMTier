@@ -54,13 +54,13 @@
 - 要测什么（责任展开）：极端文本必须按契约转义为文本（不解析为标记）、完整呈现、且不使页面水平溢出。
 - 明确不测什么 / 失败含义：不证明大数值/科学计数的格式化（本 UI 的数值经 `metric()` 原样呈现，无科学计数逻辑；见下「不适用项说明」）。失败含义＝极值输入导致 XSS/布局破坏/呈现失真。
 
-**目的（被测契约）**：极值文本在真实浏览器中渲染为转义文本、布局不溢出、无标记注入。被测入口：`src/web_ui/`（同源 `/ui/`）；驱动：headless Chrome + CDP；编排：`tests/ui/test_ui_browser.py`。
+**目的（被测契约）**：极值文本在真实浏览器中渲染为转义文本、布局不溢出、无标记注入。被测入口：`src/web_ui/`（同源 `/ui/`）；驱动：headless Chrome + CDP；编排：`tests/system/cases/ST-UI-001.py`。
 
 ## 2. 被测入口与前置
 
 - **前置与环境**：**环境 B**（hermetic 临时 `LLMTierInstance`，loopback；上游为 LAN-bound fake provider，TS-003）。本 Case 自建实例，将 baseline `depl_b` 的 `name`/`backend_model` 替换为极值文本。规范依赖：`LLMTIER_BROWSER`、`LLMTIER_NODE`。无需 m5air。
 - 被测入口声明与位置：`src/web_ui/index.html`、`src/web_ui/app.js`（同源 `/ui/`）。
-- Fixture / 向量：`tests/ui/conftest.py::provider_endpoint_b`、`LLMTierInstance`、`baseline_settings`。
+- Fixture / 向量：`tests/system/cases conftest.py::provider_endpoint_b`、`LLMTierInstance`、`baseline_settings`。
 
 ## 3. 输入构造
 
@@ -102,14 +102,14 @@
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/ui/test_ui_browser.py::test_ui_boundary_long_text_renders_without_overflow`（`Case ID: ST-UI-010` 经 `record_property` 写入 JUnit）；驱动 `tests/ui/browser_driver.mjs`。入口：
+- 测试文件 / 测试函数：`tests/system/cases/ST-UI-001.py::test_ui_boundary_long_text_renders_without_overflow`（`Case ID: ST-UI-010` 经 `record_property` 写入 JUnit）；驱动 `tests/common/drivers/browser_driver.mjs`。入口：
   ```text
-  PYTHONPATH=src python3 -m pytest tests/ui -m ui -q -k ST-UI-010
+  PYTHONPATH=src python3 -m pytest tests/system/cases -m ui -q -k ST-UI-010
   # 或 tools/run_ui_tests.sh
   ```
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/ui -m ui -q -k ST-UI-010`
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/cases -m ui -q -k ST-UI-010`
 - 实现状态：`Implemented`（本地 PASS）；执行状态与 Verdict 归 Run 报告。
-- **证据与 Run**：截图 `tests/ui/artifacts/ST-UI-010/ST-UI-010.png` 与 `ST-UI-010.boundary.png`，网络日志 `ST-UI-010.network.json`。
+- **证据与 Run**：截图 `tests/system/artifacts/ST-UI-010/ST-UI-010.png` 与 `ST-UI-010.boundary.png`，网络日志 `ST-UI-010.network.json`。
 
 ## 8. 需求与设计可追溯
 

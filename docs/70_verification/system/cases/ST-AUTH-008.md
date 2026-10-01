@@ -53,11 +53,11 @@
 - 要测什么（责任展开）：别名端点 `GET /tier/admin/v1/diagnostics` 在**携带有效 data token**时被拒，返回 403 + `permission_denied`（别名命名空间与扁平路径同样要求 `admin` 角色）。
 - 明确不测什么 / 失败含义：不证明 别名与扁平路径的**响应逐字节等价**（ST-OBSALIAS-001、`admin` 正向）、不证明 **admin 无 token 的 LAN trust**（ST-AUTH-004，扁平路径）、**错误 bearer** 被拒（ST-AUTH-002）、**缺/非法凭据→401**（ST-AUTH-010）、**未配置鉴权→503**（ST-AUTH-007）、**管理面未授权优先于资源存在性**（ST-AUTH-009）。本 case **只**断言别名命名空间的角色隔离。
 
-  > **实现状态（Implemented）**：自动化入口 `at_auth_08.py` 已实现，见 §7。
+  > **实现状态（Implemented）**：自动化入口 `ST-AUTH-008.py` 已实现，见 §7。
 
 **目的（被测契约）**：验证 `/tier/admin/v1/*` **别名命名空间的鉴权与 `/v1/*` 等价**。被测端点/规则：`GET /tier/admin/v1/diagnostics`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `x-llmtier-contract-aliases` 映射到 `/v1/diagnostics`，securityScheme `AdminBearerAuth`）；[`app.py`](../../../../src/http_api/app.py) 的 `principal = self._auth("admin")`（`app.py:248`）位于所有 `/tier/admin/v1/*` 别名分支（`app.py:348-376`）**之前**，因此 [`authenticate()`](../../../../src/http_api/auth.py) 先以 role=`admin` 校验，data token（`dev-data`）与 `dev-admin` 不匹配 ⇒ 403 `permission_denied`，**在到达别名 handler 之前**即被拒。设计验证项 `VRC-API-002`；机制 `T-TRUST-SHARED`、`T-TRUST-ENDPOINTS`（机制需求 `R-TRUST-02`；见 [access-trust 机制 §5.1/§8 INV-4](../../../20_system_design/mechanisms/access-trust.md)）；错误信封 `{error:{message,type,code,param,retryable}}`。**不证明什么**：不证明别名与扁平路径的**响应逐字节等价**（ST-OBSALIAS-001、`admin` 正向）、不证明 **admin 无 token 的 LAN trust**（ST-AUTH-004，扁平路径）、**错误 bearer** 被拒（ST-AUTH-002）、**缺/非法凭据→401**（ST-AUTH-010）、**未配置鉴权→503**（ST-AUTH-007）、**管理面未授权优先于资源存在性**（ST-AUTH-009）。本 case **只**断言别名命名空间的角色隔离。
 
-  > **实现状态（Implemented）**：自动化入口 `at_auth_08.py` 已实现，见 §7。
+  > **实现状态（Implemented）**：自动化入口 `ST-AUTH-008.py` 已实现，见 §7。
 
 ## 2. 被测入口与前置
 
@@ -112,6 +112,6 @@
 
 - **证据与 Run**：保存原始命令、发送 headers 快照（证明 `Bearer dev-data`）、HTTP status/headers/body、执行机 LAN IP、exit code、`elapsed`、环境快照（`/healthz`/`/readyz`）；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；m5air 别名 `/tier/admin/v1/diagnostics` 可用；独立 `httpx` 客户端或 `api_client`（带 `dev-data`）；自动化入口 `tests/system/api_test_v03/at_auth_08.py`（已实现）。**不依赖**其它 Case；与 ST-AUTH-003/ST-AUTH-009 共享 admin 面角色隔离但各自独立执行、互不关闭。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；m5air 别名 `/tier/admin/v1/diagnostics` 可用；独立 `httpx` 客户端或 `api_client`（带 `dev-data`）；自动化入口 `tests/system/cases/ST-AUTH-008.py`（已实现）。**不依赖**其它 Case；与 ST-AUTH-003/ST-AUTH-009 共享 admin 面角色隔离但各自独立执行、互不关闭。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

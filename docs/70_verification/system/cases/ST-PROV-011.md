@@ -115,6 +115,6 @@
 
 - **证据与 Run**：证据与 Run 契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)(../llmtier-system-test-scheme.md)：Run ID=`<date>/B-api`；保存请求与原始响应（脱敏后）、发出命令、exit code、`elapsed`、环境快照；`manifest.json` 必填字段与报告落位（`tests/system/reports/...`）见 §4.8/§10；失败现场不截断。**本 case 额外证据**：请求与 400 原始响应、请求前后 provider 列表。
 
-- **依赖**：B 类 fixture `llmtier_b` / `admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`ProviderWrite`/`ErrorEnvelope` 机器契约；`registry.create_provider` 枚举校验；错误目录 `ERR-REQ-VALIDATION`；自动化入口 [`at_adm_prov_11.py`](../../../../tests/system/api_test_v03/at_adm_prov_11.py)。**不依赖**其它 Case；与 ST-PROV-012 同属写校验负向但各自独立。
+- **依赖**：B 类 fixture `llmtier_b` / `admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`ProviderWrite`/`ErrorEnvelope` 机器契约；`registry.create_provider` 枚举校验；错误目录 `ERR-REQ-VALIDATION`；自动化入口 [`ST-PROV-011.py`](../../../../tests/system/cases/ST-PROV-011.py)。**不依赖**其它 Case；与 ST-PROV-012 同属写校验负向但各自独立。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

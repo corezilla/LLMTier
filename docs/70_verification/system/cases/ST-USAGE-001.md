@@ -82,7 +82,7 @@ Accept: application/json
 | 6 | 对 `data` 每条记录断言 `UsageRecord` 必填键齐备 | `endpoint ∈ {"/v1/responses","/v1/embeddings"}`；`measurement_status ∈ {measured,estimated,unknown}`；`source ∈ {provider,gateway_estimate,unavailable}`；`unknown ⇒ 各 token 字段为 null`（INV-5） |
 | 7 | 对每条记录断言 `recorded_at >= since` 且 `recorded_at < until` | `[from,to)` 边界 |
 
-- 重点关注步骤：① **时间窗动态化**——`from`/`to` 必须由执行时刻生成，不得写死；② **`next_cursor`/`has_more` 同步**——"`has_more=false ⇒ next_cursor=null`"这一 openapi 不变式；③ **键集精确**——`UsagePage` `additionalProperties:false`，多键/缺键即 FAIL；④ **`[from,to)` 半开区间**——`recorded_at == to` 的记录必须被排除，`== from` 必须包含；⑤ **不把错误当空页**——非 200 时必须确认是可解释的 `ERR-AUTH-*`/`ERR-STORE` 信封；⑥ **不夸大**——本 case **不**断言 `data` 非空，空 `data` + 合法 `snapshot_id`/`snapshot_at` 仍是 PASS。注意：现有 [`at_dp_usage_01.py`](../../../../tests/system/api_test_v03/at_dp_usage_01.py) 已覆盖步骤 3/5，但**未**断言步骤 4 的精确键集与步骤 6/7；覆盖缺口须补齐后方可判 PASS。
+- 重点关注步骤：① **时间窗动态化**——`from`/`to` 必须由执行时刻生成，不得写死；② **`next_cursor`/`has_more` 同步**——"`has_more=false ⇒ next_cursor=null`"这一 openapi 不变式；③ **键集精确**——`UsagePage` `additionalProperties:false`，多键/缺键即 FAIL；④ **`[from,to)` 半开区间**——`recorded_at == to` 的记录必须被排除，`== from` 必须包含；⑤ **不把错误当空页**——非 200 时必须确认是可解释的 `ERR-AUTH-*`/`ERR-STORE` 信封；⑥ **不夸大**——本 case **不**断言 `data` 非空，空 `data` + 合法 `snapshot_id`/`snapshot_at` 仍是 PASS。注意：现有 [`ST-USAGE-001.py`](../../../../tests/system/cases/ST-USAGE-001.py) 已覆盖步骤 3/5，但**未**断言步骤 4 的精确键集与步骤 6/7；覆盖缺口须补齐后方可判 PASS。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -96,8 +96,8 @@ Accept: application/json
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：[`tests/system/api_test_v03/at_dp_usage_01.py`](../../../../tests/system/api_test_v03/at_dp_usage_01.py)（脚本须补齐步骤 4/6/7）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_usage_01.py -q`。
+- 测试文件 / 测试函数：[`tests/system/cases/ST-USAGE-001.py`](../../../../tests/system/cases/ST-USAGE-001.py)（脚本须补齐步骤 4/6/7）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/cases/ST-USAGE-001.py -q`。
 - 实现状态：Implemented；执行与 Verdict 归 Run 报告。
 
 **判定口径（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
@@ -110,4 +110,4 @@ Accept: application/json
 
 **证据与 Run**：Run ID=`<date>/A-api`；保存原始 status/headers/body（脱敏后）、发出命令、exit code、`elapsed`、环境快照（本 case `environment:"a"`）。
 
-**依赖**：就绪检查；`api_client`；`constants.recent_window()` 动态窗口；`UsagePage`/`UsageRecord` 机器契约；机制 [`usage-metering` §4.5/§4.7](../../../20_system_design/mechanisms/usage-metering.md)；自动化入口 `at_dp_usage_01.py`。**不依赖**其它 Case；与 ST-USAGE-002/03（记录可见/分页）、ST-USAGE-005（缺参负向）语义相邻但各自独立执行。
+**依赖**：就绪检查；`api_client`；`constants.recent_window()` 动态窗口；`UsagePage`/`UsageRecord` 机器契约；机制 [`usage-metering` §4.5/§4.7](../../../20_system_design/mechanisms/usage-metering.md)；自动化入口 `ST-USAGE-001.py`。**不依赖**其它 Case；与 ST-USAGE-002/03（记录可见/分页）、ST-USAGE-005（缺参负向）语义相邻但各自独立执行。

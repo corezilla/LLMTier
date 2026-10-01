@@ -522,7 +522,7 @@ flowchart TD
 - **峰值构成 / 上限 / 共享额度**：单条 ≤512 字符；`limit ≤ 200`
 - **分段预算 / 总期限 / 计时点**：无
 - **超限、部分启动与清理出口**：截断（写）/ 上限（查）
-- **构建或运行命令及前置条件**：`PYTHONPATH=src python3 -m pytest tests/unit/v03 -q`
+- **构建或运行命令及前置条件**：`PYTHONPATH=src python3 -m pytest tests/unit/cases -q`
 
 ## 9. 验证规格与实现任务
 
@@ -536,7 +536,7 @@ flowchart TD
 - **独立 Oracle / Expected**：落库文本含 `[REDACTED]`；长度 ≤512 **字符（码点）**（注：含中文/emoji 时字节数可 >512）；顺序倒序；`limit` 夹到 200
 - **Actual / Evidence**：NOT_RUN
 - **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit/v03`；隔离库
+- **测试入口 / 清理**：`tests/unit/cases`；隔离库
 - **Run ID / Status**：NOT_RUN
 
 **运行命令**：全量 `PYTHONPATH=src python3 -m pytest tests/ tests/system/st_*.py -q`

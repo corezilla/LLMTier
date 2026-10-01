@@ -122,6 +122,6 @@
 ## 7. 自动化位置与状态
 
 - **证据与 Run**：证据与 Run 契约见[§4.8/§10](../llmtier-system-test-scheme.md)：保存请求 body、HTTP status/headers、原始错误信封（脱敏后）、发出命令、exit code、环境快照（`/healthz`/`/readyz`）；manifest 与报告落位见 §4.8/§10（本 case `environment:"a"`）；失败现场不截断。
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client` fixture（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）；responses-capable tier `Worker`；自动化入口 [`at_dp_resp_02.py`](../../../../tests/system/api_test_v03/at_dp_resp_02.py)。**不依赖**其它 Case；与 ST-RESP-007（`store=true`）互补但各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client` fixture（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）；responses-capable tier `Worker`；自动化入口 [`ST-RESP-002.py`](../../../../tests/system/cases/ST-RESP-002.py)。**不依赖**其它 Case；与 ST-RESP-007（`store=true`）互补但各自独立执行。
 
-> 实现状态：Implemented（`at_dp_resp_02.py` 已断言本 case 契约）；执行状态与 Verdict 只在 Run 报告。
+> 实现状态：Implemented（`ST-RESP-002.py` 已断言本 case 契约）；执行状态与 Verdict 只在 Run 报告。

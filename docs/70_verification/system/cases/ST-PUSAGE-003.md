@@ -85,7 +85,7 @@
   7. 回读：`after = admin_client.get("/v1/providers/provider_local/usage")`；断言 `200` 且 `after.json()["checked_at"] == resp.json()["checked_at"]`（刷新已持久化、GET 返回同一快照）。
 
 **重点关注步骤**：① **确认是成功前提**——只有 body 键集恰 `{confirm_external_call}` 且值为 `true` 才到刷新分支（缺键/值非真属 ST-PUSAGE-002）；② **local 臂的确定输出**——`provider_local` 为 local，刷新不触外部 API，`status="unlimited"`、`source="quota_config"` 可强断言；③ **持久化副作用**——刷新写 `provider_usage_snapshots`（`ON CONFLICT DO UPDATE`），第 7 步回读同 `checked_at` 证明落库，**必须登记该写入**；④ **值动态**——`checked_at` 动态，不得硬编码；⑤ **无费用**——local 臂不产生外部调用（与 minimax/volc 臂不同），报告须写明未触费用；  ⑥ **不把错误信封当快照**——非 200 需先确认是可解释的 `ERR-*`（缺键→`invalid_request`、值非真→`confirmation_required`、未知 provider→`not_found`）。
-  > **脚本覆盖（已补齐）**：现有 [`at_adm_prov_usage_03.py`](../../../../tests/system/api_test_v03/at_adm_prov_usage_03.py) 已断言 12 键全集、`status` 枚举、local 臂 `unlimited`/`quota_config` 强值，并按 §4 step 7 回读 `GET .../usage` 断言 `checked_at` 与刷新响应一致（证明落库持久化）。
+  > **脚本覆盖（已补齐）**：现有 [`ST-PUSAGE-003.py`](../../../../tests/system/cases/ST-PUSAGE-003.py) 已断言 12 键全集、`status` 枚举、local 臂 `unlimited`/`quota_config` 强值，并按 §4 step 7 回读 `GET .../usage` 断言 `checked_at` 与刷新响应一致（证明落库持久化）。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -113,6 +113,6 @@
 
 - **证据与 Run**：证据与 Run 契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)(../llmtier-system-test-scheme.md)：Run ID=`<date>/A-api`；保存原始 status/headers/body（脱敏后）、发出命令、exit code、`elapsed`、环境快照；`manifest.json` 必填字段与报告落位（`tests/system/reports/...`）见 §4.8/§10；失败现场不截断。**本 case 额外证据**：刷新请求/响应、刷新前/后 `GET .../usage`（含 `checked_at`，证明持久化）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；既存 provider `provider_local`（local 类型）；`ProviderAccountUsageSnapshot` 机器契约；实现 `src/management/account_usage.py`；自动化入口 [`at_adm_prov_usage_03.py`](../../../../tests/system/api_test_v03/at_adm_prov_usage_03.py)。**不依赖**其它 Case；与 ST-PUSAGE-002（缺确认拒绝）互补，各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；既存 provider `provider_local`（local 类型）；`ProviderAccountUsageSnapshot` 机器契约；实现 `src/management/account_usage.py`；自动化入口 [`ST-PUSAGE-003.py`](../../../../tests/system/cases/ST-PUSAGE-003.py)。**不依赖**其它 Case；与 ST-PUSAGE-002（缺确认拒绝）互补，各自独立执行。
 
-> 实现状态：Implemented（[`at_adm_prov_usage_03.py`](../../../../tests/system/api_test_v03/at_adm_prov_usage_03.py)）；执行状态与 Verdict 只在 Run 报告。
+> 实现状态：Implemented（[`ST-PUSAGE-003.py`](../../../../tests/system/cases/ST-PUSAGE-003.py)）；执行状态与 Verdict 只在 Run 报告。

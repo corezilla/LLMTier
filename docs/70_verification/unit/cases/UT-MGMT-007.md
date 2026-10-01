@@ -59,7 +59,7 @@ Registry.bootstrap_settings(settings) ; Registry.ensure_fixed_tiers(conn=None)
 ```
 
 - 初态构造（经公开入口）：`AppFixture` / 隔离临时库；构造可致中途失败（缺节/坏 Secret 引用）的 settings（ENV-1）
-- Fixture / 向量及版本：`tests/unit/v03/test_management_gaps.py::BootstrapTests`；`fakes.py::AppFixture`（ENV-1）
+- Fixture / 向量及版本：`tests/unit/cases/UT-MGMT-007.py::BootstrapTests`；`fakes.py::AppFixture`（ENV-1）
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../llmtier-unit-test-plan.md) 分配）：ENV-1 隔离 Python 临时库
 - 依赖的测试资产（tests.asset-design 文档）：无（真实实现）
 
@@ -90,6 +90,6 @@ Registry.bootstrap_settings(settings) ; Registry.ensure_fixed_tiers(conn=None)
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_management_gaps.py::BootstrapTests::test_valid_bootstrap_succeeds` / `test_repeated_start_is_noop` / `test_missing_section_fails` / `test_env_secret_ref_unavailable_fails` / `test_file_secret_ref_missing_fails` / `test_failed_bootstrap_rolls_back_to_empty_store`
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_management_gaps.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03/test_management_gaps.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 测试文件 / 测试函数：`tests/unit/cases/UT-MGMT-007.py::BootstrapTests::test_valid_bootstrap_succeeds` / `test_repeated_start_is_noop` / `test_missing_section_fails` / `test_env_secret_ref_unavailable_fails` / `test_file_secret_ref_missing_fails` / `test_failed_bootstrap_rolls_back_to_empty_store`
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/management_gaps.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-MGMT-007.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。

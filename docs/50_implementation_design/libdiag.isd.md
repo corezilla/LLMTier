@@ -1220,7 +1220,7 @@ flowchart TD
 - **峰值构成 / 上限 / 共享额度**：统计直写 DB（无缓存）；快照/traces 500/页
 - **分段预算 / 总期限 / 计时点**：清理为启动期；无总期限
 - **超限、部分启动与清理出口**：写失败 fail-open；清理失败静默
-- **构建或运行命令及前置条件**：`PYTHONPATH=src python3 -m pytest tests/unit/v03 -q`
+- **构建或运行命令及前置条件**：`PYTHONPATH=src python3 -m pytest tests/unit/cases -q`
 
 ## 9. 验证规格与实现任务
 
@@ -1234,7 +1234,7 @@ flowchart TD
 - **独立 Oracle / Expected**：默认 `{False,False}`；关闭时无新行
 - **Actual / Evidence**：NOT_RUN
 - **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit/v03`；隔离库
+- **测试入口 / 清理**：`tests/unit/cases`；隔离库
 - **Run ID / Status**：NOT_RUN
 
 ### 9.1.2 `VRC-DIAG-002` · 记录与查询
@@ -1245,7 +1245,7 @@ flowchart TD
 - **独立 Oracle / Expected**：字段/脱敏/百分位正确；7 天前删除
 - **Actual / Evidence**：NOT_RUN
 - **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit/v03`；隔离库
+- **测试入口 / 清理**：`tests/unit/cases`；隔离库
 - **Run ID / Status**：NOT_RUN
 
 ### 9.1.3 `VRC-DIAG-003` · fail-open
@@ -1256,7 +1256,7 @@ flowchart TD
 - **独立 Oracle / Expected**：推理结果不变；降级运行
 - **Actual / Evidence**：NOT_RUN
 - **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit/v03`
+- **测试入口 / 清理**：`tests/unit/cases`
 - **Run ID / Status**：NOT_RUN
 
 ### 9.1.4 `VRC-DIAG-004` · 注入与 traces
@@ -1267,7 +1267,7 @@ flowchart TD
 - **独立 Oracle / Expected**：400；命中确定性；单条优先级；去重 request
 - **Actual / Evidence**：NOT_RUN
 - **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit/v03`；隔离库
+- **测试入口 / 清理**：`tests/unit/cases`；隔离库
 - **Run ID / Status**：NOT_RUN
 
 **运行命令**：全量 `PYTHONPATH=src python3 -m pytest tests/ tests/system/st_*.py -q`

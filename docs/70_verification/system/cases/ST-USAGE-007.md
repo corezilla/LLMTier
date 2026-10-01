@@ -98,8 +98,8 @@ GET /v1/usage?from=<w>&to=<w>&limit=1&cursor=<sid>:1  → page2''（追加一条
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/system/api_test_v03/at_dp_usage_07.py`（已实现；含末页 invariant）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_usage_07.py -q`。
+- 测试文件 / 测试函数：`tests/system/cases/ST-USAGE-007.py`（已实现；含末页 invariant）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/cases/ST-USAGE-007.py -q`。
 - 实现状态：Implemented；执行与 Verdict 归 Run 报告。
 
 **判定口径（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
@@ -112,4 +112,4 @@ GET /v1/usage?from=<w>&to=<w>&limit=1&cursor=<sid>:1  → page2''（追加一条
 
 **证据与 Run**：Run ID=`<date>/A-api`；保存 4 次前置 embeddings 的 `X-Request-ID`、page1/page2/各次重放/新快照的完整响应（`request_id`、`record_version`、`snapshot_id`、`next_cursor`、`has_more`）、cursor 实际值、动态窗口值、发出命令、exit code、`elapsed`、环境快照（本 case `environment:"a"`）。
 
-**依赖**：就绪检查；`api_client`；embeddings tier `Embedding-v1`；机制 [`usage-metering` §4.7/CON-METER-004/INV-6](../../../20_system_design/mechanisms/usage-metering.md)；重放/幂等边界说明；`UsagePage`/`UsageRecord` 机器契约。自动化入口 `at_dp_usage_07.py`（已实现）。**不依赖**其它 Case；与 ST-USAGE-003（游标推进）、ST-USAGE-004（过期）、ST-USAGE-006（主体绑定）共享 cursor 语义但各自独立执行。
+**依赖**：就绪检查；`api_client`；embeddings tier `Embedding-v1`；机制 [`usage-metering` §4.7/CON-METER-004/INV-6](../../../20_system_design/mechanisms/usage-metering.md)；重放/幂等边界说明；`UsagePage`/`UsageRecord` 机器契约。自动化入口 `ST-USAGE-007.py`（已实现）。**不依赖**其它 Case；与 ST-USAGE-003（游标推进）、ST-USAGE-004（过期）、ST-USAGE-006（主体绑定）共享 cursor 语义但各自独立执行。

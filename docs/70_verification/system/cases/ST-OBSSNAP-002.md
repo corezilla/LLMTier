@@ -79,7 +79,7 @@
   4. 断言**不得**出现 `200 + {items:[],has_more:false}` 的"假空页"——出现即 FAIL（当前实现已 400，不会出现）。
   5. （对照）无 `cursor` 的 `GET /v1/diagnostics/snapshots?limit=1` → 断言 `200` 且页形状正确（正向控制，证明端点本体可用，排除把"端点坏了"误判为 cursor 拒绝）。
 
-**重点关注步骤**：① **"假空页"陷阱**——无效 cursor 最危险的误判是把它当合法空结果；实现已在 `snapshots.py:49-51` 显式拒绝，仍必须显式断言 400，不得以"空页合法"放行。② **code 精确**——必须 `cursor_expired`（§11.1 `ERR-CURSOR`），不是 `invalid_request`/`not_found`。③ **错误信封 identity**——恰 5 键、`type` 由状态导出、`param`（如有）可空。④ **与 `limit` 非法区分**——`limit=abc` 走 `_int_param` 的 `400 invalid_request`；本 case 不用该路径。⑤ **实现现状**——实现已校验 cursor 并 400；openapi `/v1/diagnostics/snapshots` 未必声明 400，但实现行为与设计契约一致，可直接判定（不再 BLOCKED）。⑥ **零副作用**——GET 拒绝不写任何行。⑦ **降级/存储**——`_UnavailableDiagnostics.snapshots_page` 忽略 cursor 返回空页 200，属降级实例 → BLOCKED/SKIP；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `at_obs_snap_02.py` 已实现。
+**重点关注步骤**：① **"假空页"陷阱**——无效 cursor 最危险的误判是把它当合法空结果；实现已在 `snapshots.py:49-51` 显式拒绝，仍必须显式断言 400，不得以"空页合法"放行。② **code 精确**——必须 `cursor_expired`（§11.1 `ERR-CURSOR`），不是 `invalid_request`/`not_found`。③ **错误信封 identity**——恰 5 键、`type` 由状态导出、`param`（如有）可空。④ **与 `limit` 非法区分**——`limit=abc` 走 `_int_param` 的 `400 invalid_request`；本 case 不用该路径。⑤ **实现现状**——实现已校验 cursor 并 400；openapi `/v1/diagnostics/snapshots` 未必声明 400，但实现行为与设计契约一致，可直接判定（不再 BLOCKED）。⑥ **零副作用**——GET 拒绝不写任何行。⑦ **降级/存储**——`_UnavailableDiagnostics.snapshots_page` 忽略 cursor 返回空页 200，属降级实例 → BLOCKED/SKIP；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSSNAP-002.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -107,6 +107,6 @@
 
 - **证据与 Run**：保存每个无效 cursor 的原始 400 信封（或当前实现的 200 空页实测）、正向对照、命令/exit code/`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/B-api`，`environment:"b"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go)（B 类附加）；`llmtier_b`/`admin_client_b` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`ERR-CURSOR`（[系统设计 §7.8](../../../20_system_design/llmtier-system-design.md)）；实现 [`src/libdiag/snapshots.py`](../../../../src/libdiag/snapshots.py)（`snapshots.py:49-51` 校验 cursor，与契约一致）、[`src/http_api/app.py`](../../../../src/http_api/app.py)。自动化入口 `at_obs_snap_02.py`（已实现）。**不依赖**其它 Case；与 ST-OBSSNAP-001（正向页）、ST-OBSTRACE-002（trace cursor）互补但各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go)（B 类附加）；`llmtier_b`/`admin_client_b` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`ERR-CURSOR`（[系统设计 §7.8](../../../20_system_design/llmtier-system-design.md)）；实现 [`src/libdiag/snapshots.py`](../../../../src/libdiag/snapshots.py)（`snapshots.py:49-51` 校验 cursor，与契约一致）、[`src/http_api/app.py`](../../../../src/http_api/app.py)。自动化入口 `ST-OBSSNAP-002.py`（已实现）。**不依赖**其它 Case；与 ST-OBSSNAP-001（正向页）、ST-OBSTRACE-002（trace cursor）互补但各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

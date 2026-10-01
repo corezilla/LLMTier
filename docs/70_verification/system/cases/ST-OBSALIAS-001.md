@@ -76,7 +76,7 @@
   5. （旁证）`GET /v1/diagnostics` 与别名 GET 再比对一次（确认 PATCH 后仍等价）。
   6. （teardown，`finally` 内）`PATCH /v1/diagnostics` body `{"snapshots_enabled": orig.snapshots_enabled, "stats_enabled": orig.stats_enabled}` → 200；`GET` 校验回到 `orig_raw`。
 
-**重点关注步骤**：① **逐字节 body 等价**——GET 与 PATCH 均须 `content` 相同；仅"schema 相同"不够。② **只比 body，不比 header**——`X-Request-ID` 每次请求不同，**不得**把响应头纳入逐字节断言，也不得列入 Oracle（openapi 未声明 200 头）。③ **鉴权等价**——两条路径都需 `admin`；本 case 以 `dev-admin` 正向，负向（data → 403）由 ST-AUTH-008 承接。④ **幂等 PATCH**——两次同值 body 的返回应相等；不得因 `updated_at`/审计导致 body 差异（`SwitchState` 不含这些字段）。⑤ **teardown 完整性**——`finally` 恢复原值并字节校验，绝不把开关留在非初态影响 OBS-SNAP/STATS。⑥ **降级/存储**——`_UnavailableDiagnostics` 下两条路径仍同 handler、应同样返回默认，等价断言仍可做（但无法证明真实开关语义，判 BLOCKED/SKIP）；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `at_obs_alias_01.py` 已实现。
+**重点关注步骤**：① **逐字节 body 等价**——GET 与 PATCH 均须 `content` 相同；仅"schema 相同"不够。② **只比 body，不比 header**——`X-Request-ID` 每次请求不同，**不得**把响应头纳入逐字节断言，也不得列入 Oracle（openapi 未声明 200 头）。③ **鉴权等价**——两条路径都需 `admin`；本 case 以 `dev-admin` 正向，负向（data → 403）由 ST-AUTH-008 承接。④ **幂等 PATCH**——两次同值 body 的返回应相等；不得因 `updated_at`/审计导致 body 差异（`SwitchState` 不含这些字段）。⑤ **teardown 完整性**——`finally` 恢复原值并字节校验，绝不把开关留在非初态影响 OBS-SNAP/STATS。⑥ **降级/存储**——`_UnavailableDiagnostics` 下两条路径仍同 handler、应同样返回默认，等价断言仍可做（但无法证明真实开关语义，判 BLOCKED/SKIP）；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSALIAS-001.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -104,6 +104,6 @@
 
 - **证据与 Run**：保存两路径 GET body、两路径 PATCH 请求/响应、逐字节对比结果、teardown 与恢复校验、命令/exit code/`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 6 项就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；openapi `x-llmtier-contract-aliases`；实现 [`src/http_api/app.py`](../../../../src/http_api/app.py)（`/v1/diagnostics` 与 `/tier/admin/v1/diagnostics` 分支）。自动化入口 `at_obs_alias_01.py`（已实现）。**不依赖**其它 Case；与 ST-AUTH-008（别名需 admin）语义相邻，与 ST-OBSALIAS-002..06 并列但各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 6 项就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；openapi `x-llmtier-contract-aliases`；实现 [`src/http_api/app.py`](../../../../src/http_api/app.py)（`/v1/diagnostics` 与 `/tier/admin/v1/diagnostics` 分支）。自动化入口 `ST-OBSALIAS-001.py`（已实现）。**不依赖**其它 Case；与 ST-AUTH-008（别名需 admin）语义相邻，与 ST-OBSALIAS-002..06 并列但各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

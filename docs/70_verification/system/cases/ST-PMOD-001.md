@@ -57,7 +57,7 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 A**（m5air 已部署实例；角色 `admin`，只读；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）。执行前必须通过[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go)(../llmtier-system-test-scheme.md) 的 6 项就绪检查（详见 §2.1）；任一失败 → 整班 BLOCKED/SKIP，不得改用模拟路径。fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）：`admin_client`。初始状态：m5air 现有 3 provider / 4 deployment / 7 fixed tier；被测 provider 取 §2.1.6 必需的 `provider_local`（必在，避免依赖历史 provider）。**自动化入口 `at_adm_prov_models_01.py` 为 `Implemented`（A 类）**，落位与命名按 §4.9/§8.5。
+- **前置与环境**：**环境 A**（m5air 已部署实例；角色 `admin`，只读；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）。执行前必须通过[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go)(../llmtier-system-test-scheme.md) 的 6 项就绪检查（详见 §2.1）；任一失败 → 整班 BLOCKED/SKIP，不得改用模拟路径。fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）：`admin_client`。初始状态：m5air 现有 3 provider / 4 deployment / 7 fixed tier；被测 provider 取 §2.1.6 必需的 `provider_local`（必在，避免依赖历史 provider）。**自动化入口 `ST-PMOD-001.py` 为 `Implemented`（A 类）**，落位与命名按 §4.9/§8.5。
 
 ## 3. 输入构造
 
@@ -98,7 +98,7 @@
   - **BLOCKED**：无法执行/无法判定且可重试（测试代码/契约问题、上游目录端点在窗口内不可达而无法建立 Oracle）——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **SKIP**：§2.1 前置不满足（m5air 不可达、`/readyz` 非 7 tier、双 OMLX 离线、`provider_local` 未注册）——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **INVALID**：用 `127.0.0.1`/mock/替代路径冒充真实 m5air 路径，或伪造目录列表——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：本 Case 有实现（§7，`at_adm_prov_models_01.py`），本轮未执行时按 §9 记 `NOT_RUN`；不得以未跑冒充 PASS。
+  - **NOT_RUN**：本 Case 有实现（§7，`ST-PMOD-001.py`），本轮未执行时按 §9 记 `NOT_RUN`；不得以未跑冒充 PASS。
 
 ## 6. 错误路径、副作用与清理
 
@@ -108,6 +108,6 @@
 
 - **证据与 Run**：证据与 Run 契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)(../llmtier-system-test-scheme.md)：Run ID=`<date>/A-api`；保存原始 status/headers/body（脱敏后）、发出命令、exit code、`elapsed`、环境快照；`manifest.json` 必填字段与报告落位（`tests/system/reports/...`）见 §4.8/§10；失败现场不截断。**本 case 额外证据**：上游目录端点被调用的事实记录；`inputs` 含 `provider_id`。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查（含 §2.1.6 必需 provider/deployment）；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；既存 provider `provider_local`；`ProviderModelsView` 机器契约（`interfaces/openapi/llmtier.openapi.json`）；实现 `src/management/admin.py` / `src/inference/providers/openai.py`；自动化入口 `at_adm_prov_models_01.py`（`Implemented`）。**不依赖**其它 Case；与 ST-PMOD-002（未知 provider → 404）成对但各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查（含 §2.1.6 必需 provider/deployment）；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；既存 provider `provider_local`；`ProviderModelsView` 机器契约（`interfaces/openapi/llmtier.openapi.json`）；实现 `src/management/admin.py` / `src/inference/providers/openai.py`；自动化入口 `ST-PMOD-001.py`（`Implemented`）。**不依赖**其它 Case；与 ST-PMOD-002（未知 provider → 404）成对但各自独立执行。
 
-> 实现状态：Implemented（`at_adm_prov_models_01.py`）；执行状态与 Verdict 只在 Run 报告。
+> 实现状态：Implemented（`ST-PMOD-001.py`）；执行状态与 Verdict 只在 Run 报告。

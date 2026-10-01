@@ -48,7 +48,7 @@
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-UI-007` / M002 web-ui §14.1 · `tierState`/`backendState` 行为 v0.1.0-draft.2 / `VRC-UI-001` / normal / P1（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：等价类划分（availability 缺失/优先级状态映射）
 - 要测什么（责任展开）：被测（字符串契约层）：`tierState` 在 availability 缺失时 → Unknown 标签/色调；`backendState` provider-disabled 优先于 deployment 状态（`if(!provider?.enabled)` 先于 `if(!deployment.enabled)`）。
-- 明确不测什么 / 失败含义：本 Case 只做源码字符串契约；**`app.js` 运行时行为与视觉现由系统层真实浏览器 `ST-UI-001..010` 执行（`tests/ui/`，headless Chrome over CDP；原 G-UT-3/G-UT-4 与 `RISK-UI-EXEC-1` 已关闭）**。失败含义＝状态映射分支源码契约缺失/顺序错误。
+- 明确不测什么 / 失败含义：本 Case 只做源码字符串契约；**`app.js` 运行时行为与视觉现由系统层真实浏览器 `ST-UI-001..010` 执行（`tests/system/cases/` (ST-UI-*)，headless Chrome over CDP；原 G-UT-3/G-UT-4 与 `RISK-UI-EXEC-1` 已关闭）**。失败含义＝状态映射分支源码契约缺失/顺序错误。
 
 ## 2. 被测入口与前置
 
@@ -59,7 +59,7 @@ tierState(...) / backendState(...)  # 源码分支契约（无 JS 执行宿主�
 ```
 
 - 初态构造（经公开入口）：读取真实 `src/web_ui/app.js` 文件文本（`setUpClass`）
-- Fixture / 向量及版本：`tests/unit/v03/test_webui_contract.py::WebUIBranchContractTests`（读取真实 `app.js`）
+- Fixture / 向量及版本：`tests/unit/cases/UT-UI-007.py::WebUIBranchContractTests`（读取真实 `app.js`）
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../llmtier-unit-test-plan.md) 分配）：无（静态文件读取，真实产物）
 - 依赖的测试资产（tests.asset-design 文档）：无（真实静态产物）
 
@@ -88,6 +88,6 @@ tierState(...) / backendState(...)  # 源码分支契约（无 JS 执行宿主�
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_webui_contract.py::WebUIBranchContractTests::test_backend_state_precedence` / `test_tier_state_unknown_when_availability_absent`
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_webui_contract.py -q`
+- 测试文件 / 测试函数：`tests/unit/cases/UT-UI-007.py::WebUIBranchContractTests::test_backend_state_precedence` / `test_tier_state_unknown_when_availability_absent`
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/webui_contract.py -q`
 - 实现状态：`Implemented`（字符串契约测试函数已存在；**行为级**验证为 Gap G-UT-3）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。

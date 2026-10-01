@@ -72,7 +72,7 @@ deploy:    artifact_pin(repo_root) -> dict; read_git_commit/read_openapi_version
 ```
 
 - 初态构造（经公开入口）：`check_env.EnvConfig` / `reset_env.ResetConfig` / `deploy.DeployConfig` 直接构造；`tempfile.TemporaryDirectory` 造临时 sqlite；HTTP 用 `mock.patch.object(module, "_request"|"http_get")`；子进程用 `mock.patch("module.subprocess.run")`。无真实网络/ssh。
-- Fixture / 向量及版本：`tests/unit/v03/test_tools_env.py`（内联 mock，无外部资产）
+- Fixture / 向量及版本：`tests/unit/cases/UT-TOOL-002.py`（内联 mock，无外部资产）
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../llmtier-unit-test-plan.md) 分配）：ENV-TOOL 工具进程内（`tempfile.TemporaryDirectory`；无时钟/网络依赖）
 - 依赖的测试资产（tests.asset-design 文档）：无（真实工具实现）
 
@@ -112,6 +112,6 @@ deploy:    artifact_pin(repo_root) -> dict; read_git_commit/read_openapi_version
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_tools_env.py`（`CheckEnvConfigTests` 1 + `CheckEnvAChecksTests` 5 + `CheckEnvAggregationTests` 6 + `ResetPlanTests` 4 + `ResetBackupTests` 4 + `ResetRestoreTests` 4 + `ResetInjectionTests` 2 + `ResetLedgerTests` 2 + `ResetKillTests` 3 + `ResetRecheckTests` 2 + `DeployPinTests` 3 + `DeployCommandTests` 7 + `DeployFlowTests` 5 = 48 个）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_tools_env.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03/test_tools_env.py`）；执行状态与 Verdict 归 Run 报告。
+- 测试文件 / 测试函数：`tests/unit/cases/UT-TOOL-002.py`（`CheckEnvConfigTests` 1 + `CheckEnvAChecksTests` 5 + `CheckEnvAggregationTests` 6 + `ResetPlanTests` 4 + `ResetBackupTests` 4 + `ResetRestoreTests` 4 + `ResetInjectionTests` 2 + `ResetLedgerTests` 2 + `ResetKillTests` 3 + `ResetRecheckTests` 2 + `DeployPinTests` 3 + `DeployCommandTests` 7 + `DeployFlowTests` 5 = 48 个）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/tools_env.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-TOOL-002.py`）；执行状态与 Verdict 归 Run 报告。

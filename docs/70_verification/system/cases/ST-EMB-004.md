@@ -62,7 +62,7 @@ Accept: application/json
 ```
 
 - 初态构造（经公开入口）：**环境 A**（m5air 已部署实例，只读/无状态）。所选未知 id **不在** 7 个 fixed tier（`Senior/Junior/Worker/Associate/Engineer/Executor/Embedding-v1`）内。本 case 为纯负向读，无副作用。
-- Fixture / 向量及版本：固定请求 body（`model="NonExistentModel"`），字面量与 [`at_dp_emb_04.py`](../../../../tests/system/api_test_v03/at_dp_emb_04.py) 一致，随 Run manifest 固定。
+- Fixture / 向量及版本：固定请求 body（`model="NonExistentModel"`），字面量与 [`ST-EMB-004.py`](../../../../tests/system/cases/ST-EMB-004.py) 一致，随 Run manifest 固定。
 - 依赖的测试资产（tests.asset-design 文档）：`api_client`；`conftest.py::pytest_configure` 就绪检查。
 
 ## 3. 输入构造
@@ -104,8 +104,8 @@ Accept: application/json
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：[`tests/system/api_test_v03/at_dp_emb_04.py`](../../../../tests/system/api_test_v03/at_dp_emb_04.py)（脚本已断言 `model_not_found`）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_emb_04.py -q`。
+- 测试文件 / 测试函数：[`tests/system/cases/ST-EMB-004.py`](../../../../tests/system/cases/ST-EMB-004.py)（脚本已断言 `model_not_found`）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/cases/ST-EMB-004.py -q`。
 - 实现状态：Implemented；执行与 Verdict 归 Run 报告。
 
 **判定口径（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
@@ -118,4 +118,4 @@ Accept: application/json
 
 **证据与 Run**：Run ID=`<date>/A-api`；保存原始 status/headers/body（脱敏后）、请求/响应、可选 usage 前后快照、发出命令、exit code、`elapsed`、环境快照（本 case `environment:"a"`）。
 
-**依赖**：就绪检查；`api_client`；7 个 fixed tier 清单与"未知 id 不在其中"的初态；`ErrorDetail.code` 机器契约；实现 `src/inference/embeddings.py` 第 36–39 行与 `src/inference/routing.py` 的 `admit`；自动化入口 `at_dp_emb_04.py`。**不依赖**其它 Case；与 ST-MODEL-006、ST-RESP-005 同属 `model_not_found` 家族但端点不同。
+**依赖**：就绪检查；`api_client`；7 个 fixed tier 清单与"未知 id 不在其中"的初态；`ErrorDetail.code` 机器契约；实现 `src/inference/embeddings.py` 第 36–39 行与 `src/inference/routing.py` 的 `admit`；自动化入口 `ST-EMB-004.py`。**不依赖**其它 Case；与 ST-MODEL-006、ST-RESP-005 同属 `model_not_found` 家族但端点不同。

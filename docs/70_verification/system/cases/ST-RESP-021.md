@@ -31,7 +31,7 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-RESP-021` / 系统设计 §8 Responses 接口 / `VRC-INF-001` / recovery / P1（[方案清单 `ST-RESP-021`](../llmtier-system-test-scheme.md)）；机制 `T-DISCONNECT`（[inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）。
 - **测试方法（§1.5 方法表行）**：故障注入（客户端中途断开）+ 有界重试 + 复位阶梯
-- 要测什么（责任展开）：`POST /v1/responses` 客户端在 SSE 发送阶段断开：出口记 `aborted`、无成功终态、许可释放（自动化入口 `at_dp_resp_21.py`）。SSE 发送阶段 `BrokenPipeError`/`ConnectionResetError` 被 M001 捕获，记录 trace `aborted`（reason `client disconnected`），不产生"半个成功"，且准入许可被释放。实现 `src/http_api/app.py`（`except (BrokenPipeError, ConnectionResetError): diagnostics.record_trace(request_id, "aborted", {"reason":"client disconnected"}); return`）。
+- 要测什么（责任展开）：`POST /v1/responses` 客户端在 SSE 发送阶段断开：出口记 `aborted`、无成功终态、许可释放（自动化入口 `ST-RESP-021.py`）。SSE 发送阶段 `BrokenPipeError`/`ConnectionResetError` 被 M001 捕获，记录 trace `aborted`（reason `client disconnected`），不产生"半个成功"，且准入许可被释放。实现 `src/http_api/app.py`（`except (BrokenPipeError, ConnectionResetError): diagnostics.record_trace(request_id, "aborted", {"reason":"client disconnected"}); return`）。
 - 明确不测什么 / 失败含义：不测 `stream_terminate`/`malformed_event` 注入路径；不测账本在 `create()` 返回前已收敛的细节（本 case 只要求无"半个成功"）；不测答案。失败含义＝客户端断开契约破坏。
 
 ## 2. 被测入口与前置
@@ -70,7 +70,7 @@ GET  /v1/trace/{request_id}        Authorization: Bearer dev-admin
 | 6 | 校验无"半个成功" | 本次流中**不出现** terminal（`response.completed`/`response.incomplete`/`response.failed`）与 `[DONE]` |
 | 7 | 紧随其后发一个正常 `POST /v1/responses` | 可正常准入（许可已释放）并返回 `200` + terminal |
 
-- 重点关注步骤：① **服务端捕获断开**——必须记录 trace `aborted`（`reason=client disconnected`），而非静默或崩溃；② **无半个成功**——断开后不得把已发事件当完成成功；③ **许可释放**——后续请求可准入（验证 `finally` 释放）；④ **账本已在 `create()` 返回前收敛**——`usage.finish` 早于流发送；⑤ **确定性构造**——上游 `force-huge-stream` 输出远超 socket 缓冲，断开后服务端写入必然失败 ⇒ `aborted` 确定出现；测试用硬断言轮询 trace，**不使用非 strict `pytest.xfail`**（不得掩盖真实缺陷）；⑥ **自动化入口**——`at_dp_resp_21.py` 已实现。
+- 重点关注步骤：① **服务端捕获断开**——必须记录 trace `aborted`（`reason=client disconnected`），而非静默或崩溃；② **无半个成功**——断开后不得把已发事件当完成成功；③ **许可释放**——后续请求可准入（验证 `finally` 释放）；④ **账本已在 `create()` 返回前收敛**——`usage.finish` 早于流发送；⑤ **确定性构造**——上游 `force-huge-stream` 输出远超 socket 缓冲，断开后服务端写入必然失败 ⇒ `aborted` 确定出现；测试用硬断言轮询 trace，**不使用非 strict `pytest.xfail`**（不得掩盖真实缺陷）；⑥ **自动化入口**——`ST-RESP-021.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -84,8 +84,8 @@ GET  /v1/trace/{request_id}        Authorization: Bearer dev-admin
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：[`tests/system/api_test_v03/at_dp_resp_21.py`](../../../../tests/system/api_test_v03/at_dp_resp_21.py)（已实现）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_resp_21.py -q`。
+- 测试文件 / 测试函数：[`tests/system/cases/ST-RESP-021.py`](../../../../tests/system/cases/ST-RESP-021.py)（已实现）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/cases/ST-RESP-021.py -q`。
 - 实现状态：Implemented；执行与 Verdict 归 Run 报告。
 
 **判定口径（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
@@ -94,7 +94,7 @@ GET  /v1/trace/{request_id}        Authorization: Bearer dev-admin
 - BLOCKED：trace 视图不可读（`GET /v1/trace/{request_id}` 不可用）。断开路径已确定性构造（`force-huge-stream` + 硬断言），不再以 xfail 兜底。
 - SKIP：B 类临时实例不可用。
 - INVALID：以 mock/替代路径冒充真实路径。
-- NOT_RUN：本 Case 有实现（`at_dp_resp_21.py`），未执行记 `NOT_RUN`。
+- NOT_RUN：本 Case 有实现（`ST-RESP-021.py`），未执行记 `NOT_RUN`。
 
 **证据与 Run**：保存请求、首响 status/headers（含 `X-Request-ID`）、已读事件与断开位置、`GET /v1/trace/{request_id}` 的 `aborted`、后续请求响应、发出命令、exit code、环境快照（本 case `environment:"b"`）。
 

@@ -111,6 +111,6 @@
 
 - **证据与 Run**：保存启动参数快照（证明 `dev_mode=False` 且无 `LLMTIER_*` token）、原始命令、发送 headers 快照（证明携带 bearer）、HTTP status/headers/body、临时实例端口、exit code、`elapsed`、`/healthz` 快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/B-api`，`environment:"b"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：B 类临时实例可启动（[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go)）；fixture `llmtier_b_no_auth` 与 `admin_client_b_no_auth`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)，[`conftest.py`](../../../../tests/system/api_test_v03/conftest.py)）；自动化入口 [`at_auth_07.py`](../../../../tests/system/api_test_v03/at_auth_07.py)。**不依赖**其它 Case；与 ST-AUTH-002/ST-AUTH-003/ST-AUTH-010 构成"凭据状态→状态码"矩阵但各自独立执行、互不关闭。
+- **依赖**：B 类临时实例可启动（[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go)）；fixture `llmtier_b_no_auth` 与 `admin_client_b_no_auth`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)，[`conftest.py`](../../../../tests/system/conftest.py)）；自动化入口 [`ST-AUTH-007.py`](../../../../tests/system/cases/ST-AUTH-007.py)。**不依赖**其它 Case；与 ST-AUTH-002/ST-AUTH-003/ST-AUTH-010 构成"凭据状态→状态码"矩阵但各自独立执行、互不关闭。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

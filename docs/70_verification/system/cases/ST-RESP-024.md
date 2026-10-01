@@ -31,7 +31,7 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-RESP-024` / 系统设计 §8 Responses 接口 / `VRC-INF-001` / recovery / P1（[方案清单 `ST-RESP-024`](../llmtier-system-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：故障注入（provider 凭据缺失）+ 复位阶梯
-- 要测什么（责任展开）：`POST /v1/responses` provider `secret_ref` 不可解析：`503 provider_secret_unavailable`（自动化入口 `at_dp_resp_24.py`）。所选 provider 的 `secret_ref` 指向缺失/不可读的凭据时，适配层在建立上游请求前抛 `503 provider_secret_unavailable`。需求 `R-INF-05`；错误目录 `ERR-PROVIDER-SECRET` → wire `code=provider_secret_unavailable`；实现 `src/inference/providers/openai.py`（`_secret()`：`file:` 读取 `OSError` → `ApiError(503, "provider_secret_unavailable", "Provider secret file is unreadable")`；非 `env:`/`file:` → "Unsupported provider secret reference"）。
+- 要测什么（责任展开）：`POST /v1/responses` provider `secret_ref` 不可解析：`503 provider_secret_unavailable`（自动化入口 `ST-RESP-024.py`）。所选 provider 的 `secret_ref` 指向缺失/不可读的凭据时，适配层在建立上游请求前抛 `503 provider_secret_unavailable`。需求 `R-INF-05`；错误目录 `ERR-PROVIDER-SECRET` → wire `code=provider_secret_unavailable`；实现 `src/inference/providers/openai.py`（`_secret()`：`file:` 读取 `OSError` → `ApiError(503, "provider_secret_unavailable", "Provider secret file is unreadable")`；非 `env:`/`file:` → "Unsupported provider secret reference"）。
 - 明确不测什么 / 失败含义：不测 `secret_ref` 格式校验的 400 `invalid_request`（`registry._validate_secret_ref`，属写侧管理契约，见 ST-PROV-012）；不测 401/403 上游鉴权失败；不测上游不可达（`provider_unavailable`）；不测答案。失败含义＝provider 凭据可用性契约破坏。
 
 ## 2. 被测入口与前置
@@ -80,7 +80,7 @@ PATCH /v1/providers/prov_b          Authorization: Bearer dev-admin
 | 5 | 断言 `status_code == 503`；解析 `error` | `code=="provider_secret_unavailable"`、`type=="server_error"`、`retryable is False`、`param is None`，键集恰 5 键 |
 | 6 | （teardown，`finally`）`PATCH /v1/providers/prov_b` 用新 `ETag` 将 `secret_ref` 恢复为原始值 → 断言 200；`GET` 校验 | `has_secret` 与原始一致 |
 
-- 重点关注步骤：① **格式校验 vs 读取失败**——`file:` 通过写侧格式校验，失败发生在适配层读取凭据；② **拒绝位置**——在 `urlopen` 上游请求前抛错；③ **`retryable=false`**——凭据缺失不可重试（与 `provider_unavailable` 的 `true` 区分）；④ **信封 identity**（5 键、`type=server_error`）；⑤ **teardown 必恢复 `secret_ref`**，且必须重新 `GET` 取新 `ETag` 再 PATCH（412 后不覆盖）；⑥ **自动化入口**——`at_dp_resp_24.py` 已实现。
+- 重点关注步骤：① **格式校验 vs 读取失败**——`file:` 通过写侧格式校验，失败发生在适配层读取凭据；② **拒绝位置**——在 `urlopen` 上游请求前抛错；③ **`retryable=false`**——凭据缺失不可重试（与 `provider_unavailable` 的 `true` 区分）；④ **信封 identity**（5 键、`type=server_error`）；⑤ **teardown 必恢复 `secret_ref`**，且必须重新 `GET` 取新 `ETag` 再 PATCH（412 后不覆盖）；⑥ **自动化入口**——`ST-RESP-024.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -94,8 +94,8 @@ PATCH /v1/providers/prov_b          Authorization: Bearer dev-admin
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：[`tests/system/api_test_v03/at_dp_resp_24.py`](../../../../tests/system/api_test_v03/at_dp_resp_24.py)（已实现）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_resp_24.py -q`。
+- 测试文件 / 测试函数：[`tests/system/cases/ST-RESP-024.py`](../../../../tests/system/cases/ST-RESP-024.py)（已实现）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/cases/ST-RESP-024.py -q`。
 - 实现状态：Implemented；执行与 Verdict 归 Run 报告。
 
 **判定口径（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
@@ -104,7 +104,7 @@ PATCH /v1/providers/prov_b          Authorization: Bearer dev-admin
 - BLOCKED：PATCH/If-Match 流程不可用、无法构造不可读 secret。
 - SKIP：B 类临时实例不可用。
 - INVALID：以 mock/替代路径冒充真实路径、或凭据未真正缺失却按行为判定。
-- NOT_RUN：本 Case 有实现（`at_dp_resp_24.py`），未执行记 `NOT_RUN`。
+- NOT_RUN：本 Case 有实现（`ST-RESP-024.py`），未执行记 `NOT_RUN`。
 
 **证据与 Run**：保存原始/新 `secret_ref` 与 `ETag`、PATCH 请求响应、被测请求与原始 503 信封、teardown 恢复请求与 `GET` 校验、发出命令、exit code、环境快照。**脱敏**：不得记录任何真实 secret 值（本 case `environment:"b"`）。
 

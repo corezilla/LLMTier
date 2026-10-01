@@ -59,7 +59,7 @@ Registry.delete_provider(provider_id, conn=None); Registry.delete_deployment(dep
 ```
 
 - 初态构造（经公开入口）：`AppFixture().seed()` 建 provider→deployment→tier 引用链（ENV-1）
-- Fixture / 向量及版本：`tests/unit/v03/test_management_gaps.py::ResourceInUseTests`；`fakes.py::AppFixture`（ENV-1）
+- Fixture / 向量及版本：`tests/unit/cases/UT-MGMT-008.py::ResourceInUseTests`；`fakes.py::AppFixture`（ENV-1）
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../llmtier-unit-test-plan.md) 分配）：ENV-1 隔离 Python 临时库
 - 依赖的测试资产（tests.asset-design 文档）：无（真实实现）
 
@@ -88,6 +88,6 @@ Registry.delete_provider(provider_id, conn=None); Registry.delete_deployment(dep
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_management_gaps.py::ResourceInUseTests::test_delete_provider_referenced_by_deployment_is_409` / `test_delete_deployment_referenced_by_tier_is_409`
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_management_gaps.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03/test_management_gaps.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 测试文件 / 测试函数：`tests/unit/cases/UT-MGMT-008.py::ResourceInUseTests::test_delete_provider_referenced_by_deployment_is_409` / `test_delete_deployment_referenced_by_tier_is_409`
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/management_gaps.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-MGMT-008.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。

@@ -109,6 +109,6 @@
 
 - **证据与 Run**：保存GET/PATCH 请求与原始 400 响应（脱敏后）、PATCH 后 `GET` 的 `version`、发出命令、exit code、`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/B-api`，`environment:"b"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：B 类 fixture `llmtier_b` / `admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`ServiceLevelPatch` 机器契约；`registry.update_service_level` 的白名单 `require`。自动化入口 [`at_adm_sl_04b.py`](../../../../tests/system/api_test_v03/at_adm_sl_04b.py)。**不依赖**其它 Case；与 ST-SL-004（合法 PATCH）互补。
+- **依赖**：B 类 fixture `llmtier_b` / `admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`ServiceLevelPatch` 机器契约；`registry.update_service_level` 的白名单 `require`。自动化入口 [`ST-SL-013.py`](../../../../tests/system/cases/ST-SL-013.py)。**不依赖**其它 Case；与 ST-SL-004（合法 PATCH）互补。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

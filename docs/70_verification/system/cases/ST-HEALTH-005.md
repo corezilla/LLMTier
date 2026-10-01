@@ -40,11 +40,11 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 B**（临时 LLMTier 实例，见[系统测试方案 §1 测试边界](../llmtier-system-test-scheme.md)）。执行前须满足方案 §5 **附加（B 类）**：临时实例可启动。**当前状态：Implemented——fixture `llmtier_b_no_bootstrap`（[`conftest.py`](../../../../tests/system/api_test_v03/conftest.py)）与脚本 [`at_obs_05.py`](../../../../tests/system/api_test_v03/at_obs_05.py) 已落地并通过。** 本 case 的关键构造是让 `bootstrap_settings` 失败，两种等价臂：
+- **前置与环境**：**环境 B**（临时 LLMTier 实例，见[系统测试方案 §1 测试边界](../llmtier-system-test-scheme.md)）。执行前须满足方案 §5 **附加（B 类）**：临时实例可启动。**当前状态：Implemented——fixture `llmtier_b_no_bootstrap`（[`conftest.py`](../../../../tests/system/conftest.py)）与脚本 [`ST-HEALTH-005.py`](../../../../tests/system/cases/ST-HEALTH-005.py) 已落地并通过。** 本 case 的关键构造是让 `bootstrap_settings` 失败，两种等价臂：
   - **(a) 缺 bootstrap**：以空/新 SQLite 启动且**不提供** `LLMTIER_SETTINGS`/`--settings`；`bootstrap_settings(None)` 在空库（`schema_meta.bootstrap_sha256` 为空）时抛 `ApiError(503, "bootstrap_required")`。
   - **(b) 非法 bootstrap**：提供指向**不存在/无法解析/校验失败**的 settings 文件；`bootstrap_settings` 抛 `ApiError(503, "bootstrap_invalid")`。
 
-  两种构造下 [`serve`](../../../../src/http_api/app.py) 仍启动并监听（`Application` 只把异常记入 `bootstrap_error`），且 `/healthz` 分支（[`app.py:187`](../../../../src/http_api/app.py)）在 bootstrap 检查之前，故可轮询 200。**fixture（已落地）**：[`conftest.py`](../../../../tests/system/api_test_v03/conftest.py) 提供 `llmtier_b_no_bootstrap`（**(a) 无引导臂**——`LLMTierInstance(settings=None)`（其 `__init__` 在不传 settings 时不写 `LLMTIER_SETTINGS`），以空/新 SQLite 启动，`bootstrap_settings(None)` 抛 `bootstrap_required`；脚本 [`at_obs_05.py`](../../../../tests/system/api_test_v03/at_obs_05.py) 已断言 `/healthz` 200 + `/readyz` 503 `not_ready` + `models==[]`。（**(b) 坏引导臂**可选，本轮以 (a) 覆盖。）**不得复用 `llmtier_b`/`llmtier_b_empty`**：二者 bootstrap 均成功，`bootstrap_error` 为 `None`。TS-003 与上游无关（本构造不接上游）。
+  两种构造下 [`serve`](../../../../src/http_api/app.py) 仍启动并监听（`Application` 只把异常记入 `bootstrap_error`），且 `/healthz` 分支（[`app.py:187`](../../../../src/http_api/app.py)）在 bootstrap 检查之前，故可轮询 200。**fixture（已落地）**：[`conftest.py`](../../../../tests/system/conftest.py) 提供 `llmtier_b_no_bootstrap`（**(a) 无引导臂**——`LLMTierInstance(settings=None)`（其 `__init__` 在不传 settings 时不写 `LLMTIER_SETTINGS`），以空/新 SQLite 启动，`bootstrap_settings(None)` 抛 `bootstrap_required`；脚本 [`ST-HEALTH-005.py`](../../../../tests/system/cases/ST-HEALTH-005.py) 已断言 `/healthz` 200 + `/readyz` 503 `not_ready` + `models==[]`。（**(b) 坏引导臂**可选，本轮以 (a) 覆盖。）**不得复用 `llmtier_b`/`llmtier_b_empty`**：二者 bootstrap 均成功，`bootstrap_error` 为 `None`。TS-003 与上游无关（本构造不接上游）。
 - **被测入口**：
 
   ```http
@@ -81,7 +81,7 @@
 ## 4. 执行步骤与观察点
 
 - **执行过程（逐步调用）**：
-  1. （fixture 前置——已完成）"无引导/坏引导"实例 fixture `llmtier_b_no_bootstrap` 已在 [`conftest.py`](../../../../tests/system/api_test_v03/conftest.py) 中落地（脚本 [`at_obs_05.py`](../../../../tests/system/api_test_v03/at_obs_05.py) 已通过），故可执行本步：以构造 (a) 或 (b) 启动临时实例，轮询 `GET /healthz` 200（`LLMTierInstance.start()` 依赖此点，故启动应成功）。
+  1. （fixture 前置——已完成）"无引导/坏引导"实例 fixture `llmtier_b_no_bootstrap` 已在 [`conftest.py`](../../../../tests/system/conftest.py) 中落地（脚本 [`ST-HEALTH-005.py`](../../../../tests/system/cases/ST-HEALTH-005.py) 已通过），故可执行本步：以构造 (a) 或 (b) 启动临时实例，轮询 `GET /healthz` 200（`LLMTierInstance.start()` 依赖此点，故启动应成功）。
   2. `GET /healthz`：断言 `status_code == 200`，`status == "ok"`——证明"引导失败 ≠ 进程死亡"。
   3. `GET /readyz`：断言 `status_code == 503`。
   4. 解析 body：断言键集**恰为** `{status, models}`，`status == "not_ready"`，`models == []`（**空数组**）。
@@ -110,10 +110,10 @@
 - **判定（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
   - **PASS**：`/healthz` 200 + `{"status":"ok",...}`；`/readyz` 503 + `status=="not_ready"` + `models==[]` + 无 envelope。
   - **FAIL**：`/readyz` status/body 不符——含误为 `models` 非空（ST-HEALTH-004 路径）、误为 200、或返回错误信封；`/healthz` 非 200；给预期 vs 实际与 `reproduction_cmd`。
-  - **BLOCKED**：仅在 `llmtier_b_no_bootstrap` 不可启动、或进程在 `Application.__init__` 之外提前退出导致 `/healthz` 不可达（依赖失败）时判 BLOCKED/SKIP。fixture（`llmtier_b_no_bootstrap`）与脚本（[`at_obs_05.py`](../../../../tests/system/api_test_v03/at_obs_05.py)）均已落地并通过，不再是当前状态。
+  - **BLOCKED**：仅在 `llmtier_b_no_bootstrap` 不可启动、或进程在 `Application.__init__` 之外提前退出导致 `/healthz` 不可达（依赖失败）时判 BLOCKED/SKIP。fixture（`llmtier_b_no_bootstrap`）与脚本（[`ST-HEALTH-005.py`](../../../../tests/system/cases/ST-HEALTH-005.py)）均已落地并通过，不再是当前状态。
   - **SKIP**：B 类临时实例不可用等 §2 前置不满足——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **INVALID**：未真实制造引导失败却按 `not_ready` 判定，或以 mock/替代路径冒充真实临时实例——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：本 case 有实现（[`at_obs_05.py`](../../../../tests/system/api_test_v03/at_obs_05.py)），未执行时记 `NOT_RUN`；不得以未跑冒充 PASS。
+  - **NOT_RUN**：本 case 有实现（[`ST-HEALTH-005.py`](../../../../tests/system/cases/ST-HEALTH-005.py)），未执行时记 `NOT_RUN`；不得以未跑冒充 PASS。
 
 ## 6. 错误路径、副作用与清理
 
@@ -123,6 +123,6 @@
 ## 7. 自动化位置与状态
 
 - **证据与 Run**：证据与 Run 契约见[§4.8/§10](../llmtier-system-test-scheme.md)：保存构造证据（选 (a)/(b)、坏 settings 内容或"未提供 settings"、DB 为空且无 `bootstrap_sha256`）、`/healthz` 与 `/readyz` 的原始 HTTP status/headers/body、`elapsed`；manifest 与报告落位（`tests/system/reports/...`）见 §4.8/§10（本 case `environment:"b"`）；失败现场不截断。
-- **依赖**：B 类 fixture `llmtier_b_no_bootstrap`（[`conftest.py`](../../../../tests/system/api_test_v03/conftest.py)：(a) `LLMTierInstance(settings=None)` 空库 → `bootstrap_required`；**(b) 臂可选**）；**不可复用** `llmtier_b`/`llmtier_b_empty`（bootstrap 均成功）。另依赖[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)；[`registry.py`](../../../../src/management/registry.py) 的 `bootstrap_required`/`bootstrap_invalid` 与 [`app.py:188-189`](../../../../src/http_api/app.py) 的短路；系统设计 `ERR-BOOT` 与 §8.1（[llmtier-system-design.md](../../../20_system_design/llmtier-system-design.md)；`ERR-BOOT` envelope 码的单元层宿主见 §1）；自动化入口 [`at_obs_05.py`](../../../../tests/system/api_test_v03/at_obs_05.py)。**不依赖**其它 Case；与 ST-HEALTH-004 同 `not_ready` 但 `models` 形态互斥（空 vs 7×`unavailable`），各自独立执行。
+- **依赖**：B 类 fixture `llmtier_b_no_bootstrap`（[`conftest.py`](../../../../tests/system/conftest.py)：(a) `LLMTierInstance(settings=None)` 空库 → `bootstrap_required`；**(b) 臂可选**）；**不可复用** `llmtier_b`/`llmtier_b_empty`（bootstrap 均成功）。另依赖[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)；[`registry.py`](../../../../src/management/registry.py) 的 `bootstrap_required`/`bootstrap_invalid` 与 [`app.py:188-189`](../../../../src/http_api/app.py) 的短路；系统设计 `ERR-BOOT` 与 §8.1（[llmtier-system-design.md](../../../20_system_design/llmtier-system-design.md)；`ERR-BOOT` envelope 码的单元层宿主见 §1）；自动化入口 [`ST-HEALTH-005.py`](../../../../tests/system/cases/ST-HEALTH-005.py)。**不依赖**其它 Case；与 ST-HEALTH-004 同 `not_ready` 但 `models` 形态互斥（空 vs 7×`unavailable`），各自独立执行。
 
-> 实现状态：Implemented（`at_obs_05.py` 已断言 `/healthz` 200 + `/readyz` 503 `not_ready` + `models==[]`）；执行状态与 Verdict 只在 Run 报告。
+> 实现状态：Implemented（`ST-HEALTH-005.py` 已断言 `/healthz` 200 + `/readyz` 503 `not_ready` + `models==[]`）；执行状态与 Verdict 只在 Run 报告。

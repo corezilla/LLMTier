@@ -76,7 +76,7 @@
   4. 对每个无效 cursor 变体 `GET` → 断言 `400`；`err["code"]=="cursor_expired"`、`err["type"]=="request_error"`、`err["retryable"] is False`、键集恰 5。
   5. 断言无效 cursor（无 `|`）返回 `400`；含 `|` 的构造 cursor 返回 `200`（合法游标，正向对照）。
 
-**重点关注步骤**：① **无效 cursor 必须 400**——最危险的是"cursor 被忽略 → 200"；实现已在 `traces.py:85-88` 拒绝无 `|` cursor，若出现 200 即 FAIL。② **`limit=1` 单页不变量**——`len(items) ≤ 1`；`has_more`/`next_cursor` 与数据量一致（有下一页则 `next_cursor` 非空）。③ **稳定分页**——同 cursor 重放返回相同成员（`first_ts|rid` 排序确定性），跨页不重不漏（`(first_ts,rid)` 严格递减）。④ **code 精确**——`cursor_expired`（§11.1 `ERR-CURSOR`）。⑤ **与 `limit` 非法区分**——`limit=abc` 是 `invalid_request`；本 case 不混用。⑥ **trace 制造不改变 oracle**——用真实请求产生 trace，但断言只针对页/游标契约，不针对响应内容。⑦ **实现现状**——`traces.py:85-88` 对无 `|` 的 cursor 抛 400 `cursor_expired`，含 `|` 的走合法路径（脚本显式断言含 `|` 返回 200，作为正向对照）。⑧ **降级/存储**——`_UnavailableDiagnostics.traces` 忽略 cursor 返回空页 200，属降级 → BLOCKED/SKIP；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `at_obs_trace_02.py` 已实现。
+**重点关注步骤**：① **无效 cursor 必须 400**——最危险的是"cursor 被忽略 → 200"；实现已在 `traces.py:85-88` 拒绝无 `|` cursor，若出现 200 即 FAIL。② **`limit=1` 单页不变量**——`len(items) ≤ 1`；`has_more`/`next_cursor` 与数据量一致（有下一页则 `next_cursor` 非空）。③ **稳定分页**——同 cursor 重放返回相同成员（`first_ts|rid` 排序确定性），跨页不重不漏（`(first_ts,rid)` 严格递减）。④ **code 精确**——`cursor_expired`（§11.1 `ERR-CURSOR`）。⑤ **与 `limit` 非法区分**——`limit=abc` 是 `invalid_request`；本 case 不混用。⑥ **trace 制造不改变 oracle**——用真实请求产生 trace，但断言只针对页/游标契约，不针对响应内容。⑦ **实现现状**——`traces.py:85-88` 对无 `|` 的 cursor 抛 400 `cursor_expired`，含 `|` 的走合法路径（脚本显式断言含 `|` 返回 200，作为正向对照）。⑧ **降级/存储**——`_UnavailableDiagnostics.traces` 忽略 cursor 返回空页 200，属降级 → BLOCKED/SKIP；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSTRACE-002.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -104,6 +104,6 @@
 
 - **证据与 Run**：保存制造 trace 的请求、`limit=1` 两页响应、跨页 `request_id` 对比、每个无效 cursor 的原始 400（或当前实现的 200 实测）、命令/exit code/`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/B-api`，`environment:"b"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go)（B 类附加）；`llmtier_b`/`admin_client_b`/`api_client_b` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`ERR-CURSOR`；实现 [`src/libdiag/traces.py`](../../../../src/libdiag/traces.py)（`traces.py:85-88` 校验 cursor，与契约一致）、[`src/http_api/app.py`](../../../../src/http_api/app.py)。自动化入口 `at_obs_trace_02.py`（已实现）。**不依赖**其它 Case；与 ST-OBSTRACE-001（去重/正向页）、ST-OBSSNAP-002（快照 cursor）互补但各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go)（B 类附加）；`llmtier_b`/`admin_client_b`/`api_client_b` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`ERR-CURSOR`；实现 [`src/libdiag/traces.py`](../../../../src/libdiag/traces.py)（`traces.py:85-88` 校验 cursor，与契约一致）、[`src/http_api/app.py`](../../../../src/http_api/app.py)。自动化入口 `ST-OBSTRACE-002.py`（已实现）。**不依赖**其它 Case；与 ST-OBSTRACE-001（去重/正向页）、ST-OBSSNAP-002（快照 cursor）互补但各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

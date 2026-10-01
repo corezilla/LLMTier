@@ -57,7 +57,7 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `admin`，只读；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=§2.1 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；fixture `api_client`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；本 case 自动化入口 [`at_adm_runtime_02.py`](../../../../tests/system/api_test_v03/at_adm_runtime_02.py) 已实现（§3.2 `RUN`）。初始状态=§2.3 A 类基线；本 case 只读、无副作用。
+- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `admin`，只读；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=§2.1 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；fixture `api_client`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；本 case 自动化入口 [`ST-RUNTIME-002.py`](../../../../tests/system/cases/ST-RUNTIME-002.py) 已实现（§3.2 `RUN`）。初始状态=§2.3 A 类基线；本 case 只读、无副作用。
   > **关键构造约束**：必须使用**显式且有效的 data bearer**（`Bearer dev-data`）。**不得**用"缺 `Authorization` 头"来构造 403——受信 LAN/loopback 的无头请求会被 [`unauthenticated_principal`](../../../../src/http_api/auth.py) 无条件授予**共享角色主体**（`trusted-lan-operator`/`trusted-lan-consumer`，本端点按 role=admin 解析为 operator），从而得到 200 而非 403（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。角色负向必须靠"有效但角色不符的凭据"。
 
 ## 3. 输入构造
@@ -106,6 +106,6 @@
 
 - **证据与 Run**：保存正向对照与负向请求的 headers 快照（证明发送 `Bearer dev-data`）、原始 403 响应（脱敏后）、发出命令、exit code、`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`auth.authenticate`；错误目录 `ERR-AUTH-DENIED`；机制 `R-TRUST-02`/`T-TRUST-SHARED`。自动化入口 [`at_adm_runtime_02.py`](../../../../tests/system/api_test_v03/at_adm_runtime_02.py)。**不依赖**其它 Case；与 ST-RUNTIME-001（admin 正向）互补，与 ST-AUTH-003（`/v1/providers` 角色负向）同机制不同端点。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`auth.authenticate`；错误目录 `ERR-AUTH-DENIED`；机制 `R-TRUST-02`/`T-TRUST-SHARED`。自动化入口 [`ST-RUNTIME-002.py`](../../../../tests/system/cases/ST-RUNTIME-002.py)。**不依赖**其它 Case；与 ST-RUNTIME-001（admin 正向）互补，与 ST-AUTH-003（`/v1/providers` 角色负向）同机制不同端点。
 
-> 实现状态：Implemented（`at_adm_runtime_02.py`）；执行状态与 Verdict 只在 Run 报告。
+> 实现状态：Implemented（`ST-RUNTIME-002.py`）；执行状态与 Verdict 只在 Run 报告。

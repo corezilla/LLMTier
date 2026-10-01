@@ -48,7 +48,7 @@
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-OBS-006` / M005 observability §14.2 · 快照 URL 脱敏 v0.1.0-draft.6 / `VRC-OBS-002` / security / P1（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：鉴权/脱敏/注入边界冒烟（URL 去 query/503 不伪装空页）
 - 要测什么（责任展开）：被测：快照/轨迹端到端 URL 去 query（`?token=` 不落库）；查询存储不可读 → 503 `usage_store_unavailable`，不伪装空页。
-- 明确不测什么 / 失败含义：不测：统计口径/百分位（UT-DIAG-002/005）；**浏览器呈现由系统层 `ST-UI-006`（诊断页 4 tabs/Disabled 真实渲染）执行（`tests/ui/`；原 G-UT-4 已关闭）**。失败含义＝URL 脱敏或存储失败显式化实现错误。
+- 明确不测什么 / 失败含义：不测：统计口径/百分位（UT-DIAG-002/005）；**浏览器呈现由系统层 `ST-UI-006`（诊断页 4 tabs/Disabled 真实渲染）执行（`tests/system/cases/` (ST-UI-*)；原 G-UT-4 已关闭）**。失败含义＝URL 脱敏或存储失败显式化实现错误。
 
 ## 2. 被测入口与前置
 
@@ -59,7 +59,7 @@ DiagnosticsService.capture_snapshot(...); Handler._store_read(fn, ...) -> 200 | 
 ```
 
 - 初态构造（经公开入口）：`AppFixture().seed()`；带 `?token=` 的上游调用；patch 查询存储抛 `sqlite3.OperationalError`（ENV-1+ENV-2）
-- Fixture / 向量及版本：`tests/unit/v03/test_observability_gaps.py::SnapshotRedactionTests`/`DiagnosticsAvailabilityTests`；`fakes.py::AppFixture`（ENV-1）
+- Fixture / 向量及版本：`tests/unit/cases/UT-OBS-006.py::SnapshotRedactionTests`/`DiagnosticsAvailabilityTests`；`fakes.py::AppFixture`（ENV-1）
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../llmtier-unit-test-plan.md) 分配）：ENV-1 隔离 Python 临时库 / ENV-2 loopback 测试 HTTP 实例
 - 依赖的测试资产（tests.asset-design 文档）：无（真实实现）
 
@@ -90,6 +90,6 @@ DiagnosticsService.capture_snapshot(...); Handler._store_read(fn, ...) -> 200 | 
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_observability_gaps.py::SnapshotRedactionTests::test_query_secret_is_not_stored_in_snapshot` / `test_trace_stage_url_also_stripped` / `DiagnosticsAvailabilityTests::test_snapshots_store_failure_is_503_not_empty_page` / `test_switches_read_still_200`
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_observability_gaps.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03/test_observability_gaps.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 测试文件 / 测试函数：`tests/unit/cases/UT-OBS-006.py::SnapshotRedactionTests::test_query_secret_is_not_stored_in_snapshot` / `test_trace_stage_url_also_stripped` / `DiagnosticsAvailabilityTests::test_snapshots_store_failure_is_503_not_empty_page` / `test_switches_read_still_200`
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/observability_gaps.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-OBS-006.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。

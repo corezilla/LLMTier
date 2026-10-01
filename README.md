@@ -50,7 +50,7 @@ LLMTIER_ADMIN_TOKEN='...' LLMTIER_DATA_TOKEN='...' \
   --settings config/settings.json
 ```
 
-仅限loopback合成调试时可设置`LLMTIER_DEV_MODE=1`；这会启用固定开发凭据并允许同源Web UI在loopback免Bearer访问，禁止用于共享或生产监听地址。English Web UI位于`/ui/`。开发期Fake Provider和冒烟入口分别为`tests/fixtures/v03_fake_provider.py`与`tests/integration/v03_smoke.py`。
+仅限loopback合成调试时可设置`LLMTIER_DEV_MODE=1`；这会启用固定开发凭据并允许同源Web UI在loopback免Bearer访问，禁止用于共享或生产监听地址。English Web UI位于`/ui/`。开发期Fake Provider和冒烟入口分别为`tests/fixtures/models/v03_fake_provider.py`与`tests/integration/v03_smoke.py`。
 
 ## 文档导航
 

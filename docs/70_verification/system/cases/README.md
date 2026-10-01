@@ -7,7 +7,7 @@
         ↓
 case 设计（本目录：一 Case 一文档，承载入口/前置/输入/执行/Oracle/判定/清理/自动化位置）
         ↓
-case 脚本（tests/system/api_test_v03/at_*.py 等可执行断言；UI 类在 tests/ui/）
+case 脚本（tests/system/cases/ST-*.py 等可执行断言；UI 类在 tests/system/cases ）
 ```
 
 阶段/用例/计划/资产的域级落位见 [`../../README.md`](../../README.md)。
@@ -42,7 +42,7 @@ case 脚本（tests/system/api_test_v03/at_*.py 等可执行断言；UI 类在 t
 - 单元层 case：`- **测试方法（§1.5 方法表行）**：<technique(s)>`，`<technique(s)>` 须指名单元测试方案 [§1.5 测试方法与测试设计技术](../../unit/llmtier-unit-test-scheme.md#15-测试方法与测试设计技术) 家族表的**确切行/技术组合**（`等价类划分`/`边界值`/`错误猜测 + 反例驱动`/`线程对偶 + 受控时序`/`故障注入 + 异常路径恢复`/`鉴权·脱敏·注入边界冒烟`）。
 - **诚实性**：技术须由该 case 的**实际分类 + 步骤/断言**推导；跨两类技术时并列（如 412/ETag case＝`状态机驱动 + 契约字段比对`；`fault_502`/流中断＝`故障注入`；role-403＝`鉴权/角色隔离冒烟`；边界值 case＝`边界值抽样`）。**禁止**不读步骤直接按分类照抄。
 
-case 文档**引用**系统测试方案 §3（Case 清单）与系统测试计划（§3 执行前检、§5 环境操作、§6 证据与 Run、§7 报告产出与 Gate 规则），不重复其定义。样例见 [`st-resp-001.md`](./st-resp-001.md)（系统层）与 [`../../unit/cases/unit-case-UT-API-005.md`](../../unit/cases/unit-case-UT-API-005.md)（单元层）。
+case 文档**引用**系统测试方案 §3（Case 清单）与系统测试计划（§3 执行前检、§5 环境操作、§6 证据与 Run、§7 报告产出与 Gate 规则），不重复其定义。样例见 [`ST-RESP-001.md`](./ST-RESP-001.md)（系统层）与 [`../../unit/cases/UT-API-005.md`](../../unit/cases/UT-API-005.md)（单元层）。
 
 ## 状态语义（三层分离）
 

@@ -59,7 +59,7 @@ function statsRange(); const etag=item=>`"${item.id}.v${item.version}"`; fetchPr
 ```
 
 - 初态构造（经公开入口）：读取真实 `src/web_ui/app.js` 文件文本
-- Fixture / 向量及版本：`tests/unit/v03/test_webui_contract.py::WebUIBranchContractTests`
+- Fixture / 向量及版本：`tests/unit/cases/UT-UI-010.py::WebUIBranchContractTests`
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../llmtier-unit-test-plan.md) 分配）：无（静态文件读取，真实产物）
 - 依赖的测试资产（tests.asset-design 文档）：无（真实静态产物）
 
@@ -90,6 +90,6 @@ function statsRange(); const etag=item=>`"${item.id}.v${item.version}"`; fetchPr
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_webui_contract.py::WebUIBranchContractTests::test_stats_range_and_etag_and_model_cache`
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_webui_contract.py -q`
+- 测试文件 / 测试函数：`tests/unit/cases/UT-UI-010.py::WebUIBranchContractTests::test_stats_range_and_etag_and_model_cache`
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/webui_contract.py -q`
 - 实现状态：`Implemented`（字符串契约测试函数已存在；**行为级**验证为 Gap G-UT-3）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。

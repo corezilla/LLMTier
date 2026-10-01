@@ -59,7 +59,7 @@ Router.admit(level_id); Router.snapshot() -> dict; 429 带 Retry-After；503 mod
 ```
 
 - 初态构造（经公开入口）：`AppFixture().seed()` 并构造队列占满/限流配置；`Router` 真实实例（ENV-1）
-- Fixture / 向量及版本：`tests/unit/v03/test_routing.py::RoutingAdmissionGapTests`；`fakes.py::AppFixture`（ENV-1）
+- Fixture / 向量及版本：`tests/unit/cases/UT-INF-009.py::RoutingAdmissionGapTests`；`fakes.py::AppFixture`（ENV-1）
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../llmtier-unit-test-plan.md) 分配）：ENV-1 隔离 Python 临时库
 - 依赖的测试资产（tests.asset-design 文档）：无（真实实现）
 
@@ -91,6 +91,6 @@ Router.admit(level_id); Router.snapshot() -> dict; 429 带 Retry-After；503 mod
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_routing.py::RoutingAdmissionGapTests::test_queue_full_is_429_with_retry_after` / `test_wait_timeout_is_429_with_retry_after` / `test_provider_min_interval_throttles` / `test_provider_rpm_throttles` / `test_snapshot_shape` / `test_degraded_health_blocks_admission_503` / `test_unknown_health_blocks_admission_503`
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_routing.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03/test_routing.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 测试文件 / 测试函数：`tests/unit/cases/UT-INF-009.py::RoutingAdmissionGapTests::test_queue_full_is_429_with_retry_after` / `test_wait_timeout_is_429_with_retry_after` / `test_provider_min_interval_throttles` / `test_provider_rpm_throttles` / `test_snapshot_shape` / `test_degraded_health_blocks_admission_503` / `test_unknown_health_blocks_admission_503`
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/routing.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-INF-009.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。

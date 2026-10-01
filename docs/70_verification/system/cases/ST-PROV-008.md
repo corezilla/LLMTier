@@ -107,6 +107,6 @@
 
 - **证据与 Run**：证据与 Run 契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)(../llmtier-system-test-scheme.md)：Run ID=`<date>/B-api`；保存请求与原始响应（脱敏后）、发出命令、exit code、`elapsed`、环境快照；`manifest.json` 必填字段与报告落位（`tests/system/reports/...`）见 §4.8/§10；失败现场不截断。**本 case 额外证据**：创建/DELETE/回读/列表的请求与原始响应。
 
-- **依赖**：B 类 fixture `llmtier_b` / `admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`deleteProvider` 机器契约；CAS/ETag 规则 `registry.delete_provider`/`_etag`；机制 `T-CFG-CAS`；自动化入口 [`at_adm_prov_08.py`](../../../../tests/system/api_test_v03/at_adm_prov_08.py)。**不依赖**其它 Case；与 ST-PROV-009（缺 If-Match 412）、ST-PROV-010（被引用 409）互补但各自独立。
+- **依赖**：B 类 fixture `llmtier_b` / `admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`deleteProvider` 机器契约；CAS/ETag 规则 `registry.delete_provider`/`_etag`；机制 `T-CFG-CAS`；自动化入口 [`ST-PROV-008.py`](../../../../tests/system/cases/ST-PROV-008.py)。**不依赖**其它 Case；与 ST-PROV-009（缺 If-Match 412）、ST-PROV-010（被引用 409）互补但各自独立。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

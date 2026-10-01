@@ -92,7 +92,7 @@ Accept: application/json
 | 6 | 解析 `err = resp.json()["error"]` | 键集恰为 `{message,type,code,param,retryable}`，`code=="unsupported_dimensions"`、`param=="dimensions"`、`type=="request_error"`、`retryable is False` |
 | 7 | （可选）核对 usage 基线未新增 dispatch | 零副作用交叉核对 |
 
-- 重点关注步骤：① **精确错误码与 `param`**——`unsupported_dimensions` + `param="dimensions"`（见第 43 行 `require(..., "dimensions")`）；写成 `invalid_request` 或 `param=null` 即 FAIL；② **冻结空间成员语义**——比较对象是 `capabilities.embedding_dimensions` 列表（`[1024]`），不是单值；③ **不被后置错误掩盖**——必须确保 `model` 已启用且 embeddings-capable，否则会先命中 404/`unsupported_model`；④ **零副作用**——400 在 dispatch 之前，无上游调用、无账本义务；⑤ **`dimensions` 缺省不受影响**——双重条件：缺省时不进入校验，本 case 仅覆盖"提供且不符"；⑥ **实现状态**——本 case 已实现 `at_dp_emb_06.py`；执行与 Verdict 归 Run 报告。
+- 重点关注步骤：① **精确错误码与 `param`**——`unsupported_dimensions` + `param="dimensions"`（见第 43 行 `require(..., "dimensions")`）；写成 `invalid_request` 或 `param=null` 即 FAIL；② **冻结空间成员语义**——比较对象是 `capabilities.embedding_dimensions` 列表（`[1024]`），不是单值；③ **不被后置错误掩盖**——必须确保 `model` 已启用且 embeddings-capable，否则会先命中 404/`unsupported_model`；④ **零副作用**——400 在 dispatch 之前，无上游调用、无账本义务；⑤ **`dimensions` 缺省不受影响**——双重条件：缺省时不进入校验，本 case 仅覆盖"提供且不符"；⑥ **实现状态**——本 case 已实现 `ST-EMB-006.py`；执行与 Verdict 归 Run 报告。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -106,8 +106,8 @@ Accept: application/json
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/system/api_test_v03/at_dp_emb_06.py`（已实现）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_emb_06.py -q`。
+- 测试文件 / 测试函数：`tests/system/cases/ST-EMB-006.py`（已实现）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/cases/ST-EMB-006.py -q`。
 - 实现状态：Implemented；执行与 Verdict 归 Run 报告。
 
 **判定口径（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
@@ -120,4 +120,4 @@ Accept: application/json
 
 **证据与 Run**：Run ID=`<date>/A-api`；保存原始 status/headers/body（脱敏后）、`/v1/models/Embedding-v1` 的 `embedding_dimensions` 快照、请求/响应、可选 usage 前后快照、发出命令、exit code、`elapsed`、环境快照（本 case `environment:"a"`）。
 
-**依赖**：就绪检查；`api_client`；`Embedding-v1` 冻结空间 `embedding_dimensions=[1024]`（OpenAPI + `src/management/registry.py`）；实现 `src/inference/embeddings.py` 第 42–43 行；`ErrorDetail.code` 机器契约。自动化入口 `at_dp_emb_06.py`（已实现）。**不依赖**其它 Case；与 ST-EMB-007（非法 `encoding_format`）同属 embeddings 本地校验负向，各自独立执行。
+**依赖**：就绪检查；`api_client`；`Embedding-v1` 冻结空间 `embedding_dimensions=[1024]`（OpenAPI + `src/management/registry.py`）；实现 `src/inference/embeddings.py` 第 42–43 行；`ErrorDetail.code` 机器契约。自动化入口 `ST-EMB-006.py`（已实现）。**不依赖**其它 Case；与 ST-EMB-007（非法 `encoding_format`）同属 embeddings 本地校验负向，各自独立执行。

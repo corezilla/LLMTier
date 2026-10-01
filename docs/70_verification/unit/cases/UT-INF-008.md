@@ -59,7 +59,7 @@ ProviderAdapter._request(...) -> (dict, headers); UsageRecorder.record_provider_
 ```
 
 - 初态构造（经公开入口）：`AppFixture().seed()`；`service._adapter` 注入失败 `FakeAdapter` 或 patch `urllib.request.urlopen` 抛 `URLError`（ENV-3）
-- Fixture / 向量及版本：`tests/unit/v03/test_responses.py::ResponsesValidationGapTests` / `test_provider_openai.py` / `test_inference_failopen.py`；`fakes.py::AppFixture`（ENV-1）/`FakeAdapter`（ENV-3）
+- Fixture / 向量及版本：`tests/unit/cases/UT-INF-008.py::ResponsesValidationGapTests` / `test_provider_openai.py` / `test_inference_failopen.py`；`fakes.py::AppFixture`（ENV-1）/`FakeAdapter`（ENV-3）
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../llmtier-unit-test-plan.md) 分配）：ENV-1 隔离 Python 临时库 / ENV-3 provider 进程内 fake
 - 依赖的测试资产（tests.asset-design 文档）：`FakeAdapter`（`llmtier-unit-fakes`，资产文档已建）
 
@@ -90,6 +90,6 @@ ProviderAdapter._request(...) -> (dict, headers); UsageRecorder.record_provider_
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_provider_openai.py::test_probe_uses_authenticated_models_endpoint`（URL/auth）+ `test_url_error_maps_to_provider_unavailable` / `test_timeout_maps_to_provider_unavailable` / `test_remote_disconnect_maps_to_provider_unavailable`（URL/超时/断开 → 503 `provider_unavailable`）+ `test_responses.py::ResponsesValidationGapTests::test_usage_non_integer_partial_is_unknown_with_nulls` / `test_empty_provider_request_id_is_noop_via_service` / `test_injected_source_recorded_on_injected_fault` + `test_inference_failopen.py::test_upstream_fault_still_surfaces_when_diagnostic_writes_fail`
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_responses.py tests/unit/v03/test_provider_openai.py tests/unit/v03/test_inference_failopen.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03`；上游 503 映射另由 `test_provider_openai.py`/`test_inference_failopen.py` 覆盖）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 测试文件 / 测试函数：`tests/unit/cases/UT-INF-008.py::test_probe_uses_authenticated_models_endpoint`（URL/auth）+ `test_url_error_maps_to_provider_unavailable` / `test_timeout_maps_to_provider_unavailable` / `test_remote_disconnect_maps_to_provider_unavailable`（URL/超时/断开 → 503 `provider_unavailable`）+ `test_responses.py::ResponsesValidationGapTests::test_usage_non_integer_partial_is_unknown_with_nulls` / `test_empty_provider_request_id_is_noop_via_service` / `test_injected_source_recorded_on_injected_fault` + `test_inference_failopen.py::test_upstream_fault_still_surfaces_when_diagnostic_writes_fail`
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/responses.py tests/unit/cases/provider_openai.py tests/unit/cases/inference_failopen.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`；上游 503 映射另由 `test_provider_openai.py`/`test_inference_failopen.py` 覆盖）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。

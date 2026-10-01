@@ -107,6 +107,6 @@
 
 - **证据与 Run**：保存原始命令、发送 headers 快照（证明为 `Bearer dev-data`）、HTTP status/headers/body、执行机 LAN IP、exit code、`elapsed`、环境快照（`/healthz`/`/readyz`）；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client` fixture（带 `dev-data`，[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；m5air admin 端点 `/v1/providers` 可用；自动化入口 [`at_auth_03.py`](../../../../tests/system/api_test_v03/at_auth_03.py)。**不依赖**其它 Case；与 ST-AUTH-004/ST-AUTH-008/ST-AUTH-009 共享 admin 面鉴权但各自独立执行、互不关闭。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client` fixture（带 `dev-data`，[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；m5air admin 端点 `/v1/providers` 可用；自动化入口 [`ST-AUTH-003.py`](../../../../tests/system/cases/ST-AUTH-003.py)。**不依赖**其它 Case；与 ST-AUTH-004/ST-AUTH-008/ST-AUTH-009 共享 admin 面鉴权但各自独立执行、互不关闭。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

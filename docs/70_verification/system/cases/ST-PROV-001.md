@@ -108,6 +108,6 @@
 
 - **证据与 Run**：证据与 Run 契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)(../llmtier-system-test-scheme.md)：Run ID=`<date>/A-api`；保存原始 status/headers/body（脱敏后）、发出命令、exit code、`elapsed`、环境快照；`manifest.json` 必填字段与报告落位（`tests/system/reports/...`）见 §4.8/§10；失败现场不截断。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查（含 §2.1.6 必需 provider/deployment）；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`ProviderPage` 机器契约（`interfaces/openapi/llmtier.openapi.json`）；自动化入口 [`at_adm_prov_01.py`](../../../../tests/system/api_test_v03/at_adm_prov_01.py)。**不依赖**其它 Case；与 ST-PROV-003/14 共享列表/详情读路径但各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查（含 §2.1.6 必需 provider/deployment）；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`ProviderPage` 机器契约（`interfaces/openapi/llmtier.openapi.json`）；自动化入口 [`ST-PROV-001.py`](../../../../tests/system/cases/ST-PROV-001.py)。**不依赖**其它 Case；与 ST-PROV-003/14 共享列表/详情读路径但各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

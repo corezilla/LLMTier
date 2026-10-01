@@ -48,7 +48,7 @@
 ## 1. 目标、范围与被测对象
 
 - 被测对象、设计基线与父对象：LLMTier 源码 `src/http_api`(M001)、`src/web_ui`(M002)、`src/inference`(M003)、`src/management`(M004)、`src/observability`(M005)、`src/libdiag`(M006)、`src/util`(M007)、`src/log`(M008)；父对象为软件系统设计 `llmtier-system-design`；模块/ISD 基线见 §1.5。**M005 `src/observability/` 无独立实现文件**（仅空 `__init__.py`），其单元行为落在 M001 `app.py` 的诊断路由与 M006 `diagnostics.py` 查询面（见 M005 设计 §3/§4；本方案 §3 的 M005 行据此归属）。
-- 本阶段测试边界（真实组成 / 边界替身）：被测模块内部为真实代码（`Store` 隔离临时库、`Registry`/`Router`/`UsageRecorder`/`AuditLog`/`OperationalLog`/`DiagnosticsService` 真实实例）；边界替身仅用于外部 collaborator——上游 provider 用进程内 `FakeAdapter`（`tests/unit/v03/fakes.py` 定义的共享 fake）、HTTP 层测试用 `ThreadingHTTPServer` 绑 `127.0.0.1:0` 的 loopback 测试实例、`FakeResponse` 为各测试模块内的**本地 HTTP 响应 stub**（定义于 `test_account_usage.py` / `test_provider_openai.py`，非 `fakes.py` 共享资产），用于 account-usage HTTP 与 OpenAI SSE 响应替身；替身契约由 `llmtier-unit-fakes`（`tests.asset-design` 实例，见 §1.6/§1.7）承载。
+- 本阶段测试边界（真实组成 / 边界替身）：被测模块内部为真实代码（`Store` 隔离临时库、`Registry`/`Router`/`UsageRecorder`/`AuditLog`/`OperationalLog`/`DiagnosticsService` 真实实例）；边界替身仅用于外部 collaborator——上游 provider 用进程内 `FakeAdapter`（`tests/common/fakes.py` 定义的共享 fake）、HTTP 层测试用 `ThreadingHTTPServer` 绑 `127.0.0.1:0` 的 loopback 测试实例、`FakeResponse` 为各测试模块内的**本地 HTTP 响应 stub**（定义于 `test_account_usage.py` / `test_provider_openai.py`，非 `fakes.py` 共享资产），用于 account-usage HTTP 与 OpenAI SSE 响应替身；替身契约由 `llmtier-unit-fakes`（`tests.asset-design` 实例，见 §1.6/§1.7）承载。
 - 不证明的组合保证及承接入口：组装后的进程级流程（启动/systemd、反向代理、Piko 联调）、wire 互操作与 OpenAPI 端到端一致性、浏览器 E2E、真实上游 provider 协议；承接＝系统测试方案/计划（`llmtier-system-test-scheme`/`-plan`）与契约层。**本项目未采用独立模块测试层**（无 `tests.module-test-scheme`：模板要求方案绑定单一模块而本项目有 8 个模块，建立合并方案需授权）；本方案已按"被测模块内部为真实实现"即整模块组装层语义运行，模块级 VRC 的行为承接见系统测试方案 §4 裁决。
 - 被测函数集合（每个 Case 的具体入口见对应 unit-case §2）：`src/http_api`（`errors.py`、`auth.py`、`sse.py`、`health.py`、`app.py` 含 `Handler._dispatch`/`_auth`/`_auth_either`/`_body`/`_json`/`_static`/`_store_read`/`_correlation`/`_optional_boolean`、模块级 `_int_param`、`_UnavailableDiagnostics`）、`src/inference`（`responses.py`、`embeddings.py`、`models.py`、`routing.py`、`usage.py`、`providers/openai.py`、`providers/base.py`）、`src/management`（`registry.py`、`admin.py`、`audit.py`、`account_usage.py`）、`src/libdiag`（`diagnostics.py`、`injections.py`、`snapshots.py`、`stats.py`、`traces.py`、`settings.py`）、`src/util`（`store.py`）、`src/log`（`logs.py`）、`src/web_ui`（`index.html`/`app.js` 契约）。
 
@@ -87,7 +87,7 @@
 ## 1.6 替身使用策略与边界
 
 - **决策准则**：被测模块内部一切真实；仅替换进程外的上游 provider 与真实网络端口。`Store` 使用临时隔离库（真实 SQLite，非 mock）；provider 用进程内 `FakeAdapter`；HTTP 层用真实 `ThreadingHTTPServer` 绑 `127.0.0.1:0`（loopback 测试实例，真实 socket）。
-- **替身形态**：`FakeAdapter` 为进程内 fake（只代返回值/异常/终态，共享于 `tests/unit/v03/fakes.py`）；`FakeResponse` 为各测试模块**本地**定义的 HTTP 响应 stub（`test_account_usage.py` / `test_provider_openai.py` 各自定义，未进 `fakes.py`，也非共享探针 stub）；不用 mock 框架打桩被测自身。
+- **替身形态**：`FakeAdapter` 为进程内 fake（只代返回值/异常/终态，共享于 `tests/common/fakes.py`）；`FakeResponse` 为各测试模块**本地**定义的 HTTP 响应 stub（`test_account_usage.py` / `test_provider_openai.py` 各自定义，未进 `fakes.py`，也非共享探针 stub）；不用 mock 框架打桩被测自身。
 - **替身保真度与契约**：替身契约与自检归 `tests.asset-design`（一资产一文档），本方案与 Case 只引用其 ID 不复制行为。**资产实例已建立**：`llmtier-unit-fakes`（`docs/70_verification/unit/assets/llmtier-unit-fakes.md`，覆盖 `FakeAdapter`/`AppFixture`，候选 ID `FAKE-LLMTIER-ADAPTER`）；§3 各 Case 只引用该文档 ID。
 - **交互断言 vs 返回值断言**：优先断言公开返回值、落库行与 wire 信封；必要时断言 `ApiError` 类型/错误码与关键调用序，不耦合被测内部实现。
 - **反模式（逐项排除）**：不 mock 被测拥有的接口；不 mock 值对象/纯数据（dict/JSON 直接构造）；不为凑覆盖率而 mock；不过度断言内部细节。
@@ -104,14 +104,14 @@
 
 | 环境类型 | 行为/真伪 | 契约文档 | 在本层用例中的角色 |
 |---|---|---|---|
-| ENV-1 隔离 Python 临时库 | 真实：`tempfile.TemporaryDirectory` + `Application`（`Store`+`Registry`+服务）；每 Case 新建、`tearDown` 销毁 | — | 绝大多数单元 Case 的默认环境（`tests/unit/v03/fakes.py::AppFixture`） |
+| ENV-1 隔离 Python 临时库 | 真实：`tempfile.TemporaryDirectory` + `Application`（`Store`+`Registry`+服务）；每 Case 新建、`tearDown` 销毁 | — | 绝大多数单元 Case 的默认环境（`tests/common/fakes.py::AppFixture`） |
 | | · 契约：真实 SQLite 落库；`settings.json` 由 fixture 写入；不复用跨 Case 状态 | | · 用法：`setUp` 建 `AppFixture`、`tearDown` `close()` |
 | ENV-2 loopback 测试 HTTP 实例 | 真实：`ThreadingHTTPServer((127.0.0.1, 0), handler_factory(app))` | — | HTTP/wire 契约层 Case（诊断 HTTP、鉴权、别名、静态） |
 | | · 契约：真实 socket、临时端口、真实 handler 栈；不代被测 `app.py` 逻辑 | | · 用法：`setUpClass` 起服务、`tearDownClass` shutdown |
 | ENV-3 provider 进程内 fake | fake：`FakeAdapter` 只代返回值/异常/终态 | `llmtier-unit-fakes` | 上游交互/失败注入 Case |
 | | · 契约：`complete`/`embed`/`probe` 返回可配置结果；不证明真实 provider 协议 | | · 用法：`ResponsesService(..., adapter=FakeAdapter(...))` |
 
-**总体说明**：Python 3.14（`python3 -m pytest`），`PYTHONPATH=src`；fixture 来源为 `tests/unit/v03/fakes.py`（`AppFixture`/`FakeAdapter`）；替身资产契约见 `llmtier-unit-fakes`（`docs/70_verification/unit/assets/`，`Implemented`/`Unverified`）；CI 入口为 `PYTHONPATH=src python3 -m pytest tests/unit/v03 -q`（或按 `-k` 选单 Case）；并发隔离按临时库实例；缺 Python/依赖记 Blocked，不静默换环境。
+**总体说明**：Python 3.14（`python3 -m pytest`），`PYTHONPATH=src`；fixture 来源为 `tests/common/fakes.py`（`AppFixture`/`FakeAdapter`）；替身资产契约见 `llmtier-unit-fakes`（`docs/70_verification/unit/assets/`，`Implemented`/`Unverified`）；CI 入口为 `PYTHONPATH=src:tools python3 -m pytest tests/unit/cases -q`（或按 `-k` 选单 Case）；并发隔离按临时库实例；缺 Python/依赖记 Blocked，不静默换环境。
 
 ## 2. 测试分类体系
 
@@ -218,11 +218,11 @@
 | 模块组装后的进程级流程、systemd/反向代理、Piko 联调 | Tailored-N/A（本层不测；各模块设计 §14「父级组合验证交接」已列承接方） | 归系统测试方案（`llmtier-system-test-scheme`）；本项目未采用独立模块测试层（无 `tests.module-test-scheme`），模块级 VRC 行为承接见系统方案 §4 裁决 |
 | 真实上游 provider 协议与 wire 互操作、浏览器 E2E | Tailored-N/A（本层不测；系统方案已承接） | 归契约层与 `llmtier-system-test-scheme` |
 | performance / endurance 分类 | Tailored-N/A（本层不纳入；见 §2 裁剪依据） | 归系统测试方案 |
-| M002 web-ui 六项 VRC（`VRC-UI-001..006`）的**行为级**（非字符串契约，即真实 JS 执行）断言 | **(a) COVERED（系统层真实浏览器执行；`RISK-UI-EXEC-1` 已关闭）** | Owner：M002 web-ui。**事实**：`UT-UI-001..010`（`tests/unit/v03/test_webui_contract.py`）仍为**字符串契约断言**（`assertIn` 于 `app.js` 源码文本），保留为**快速下位防线**；但其**行为级**已由系统层真实浏览器 Case `ST-UI-001..010`（`tests/ui/test_ui_browser.py` + `tests/ui/browser_driver.mjs`，headless Chrome over CDP）承接——在真实 DOM 与 CDP 网络记录上断言页面渲染/tab 切换/Pause If-Match PATCH/用量未知/探测确认/诊断页/错误态保留上一屏。原登记为开放 RISK `RISK-UI-EXEC-1`（字符串契约 ≠ 行为验证）已**按恢复条件关闭**（见 `llmtier-system-test-scheme` §4 与 `llmtier-system-test-plan` §10-O6）。`std-tailoring` `LT-TL-024` 同步修订。 |
+| M002 web-ui 六项 VRC（`VRC-UI-001..006`）的**行为级**（非字符串契约，即真实 JS 执行）断言 | **(a) COVERED（系统层真实浏览器执行；`RISK-UI-EXEC-1` 已关闭）** | Owner：M002 web-ui。**事实**：`UT-UI-001..010`（`tests/unit/cases/UT-UI-001.py`）仍为**字符串契约断言**（`assertIn` 于 `app.js` 源码文本），保留为**快速下位防线**；但其**行为级**已由系统层真实浏览器 Case `ST-UI-001..010`（`tests/system/cases/ST-UI-001.py` + `tests/common/drivers/browser_driver.mjs`，headless Chrome over CDP）承接——在真实 DOM 与 CDP 网络记录上断言页面渲染/tab 切换/Pause If-Match PATCH/用量未知/探测确认/诊断页/错误态保留上一屏。原登记为开放 RISK `RISK-UI-EXEC-1`（字符串契约 ≠ 行为验证）已**按恢复条件关闭**（见 `llmtier-system-test-scheme` §4 与 `llmtier-system-test-plan` §10-O6）。`std-tailoring` `LT-TL-024` 同步修订。 |
 | M005 observability 的浏览器呈现（诊断页 tabs/Disabled 视觉） | **(a) COVERED（系统层真实浏览器执行）** | Owner：M005（视觉）/M002。行为级已由 `UT-OBS-001..007`（开关/查询脱敏/注入 fail-open/trace 关联/时间窗）真实单元测试承接；**纯视觉子项**（tabs/Disabled 实际渲染）现由系统层真实浏览器 `ST-UI-006`（4 tabs 渲染/切换 + `#snapshots-body`/`#dstats-body` 真实绘制 `Disabled`）与 `ST-UI-002` 承接——原 `RISK-UI-EXEC-1` 已关闭。 |
 | 替身契约文档 `tests.asset-design`（`FakeAdapter`） | **已修复（G-UT-2 关闭）** | LLMTier。**关闭事实**：已建立 `llmtier-unit-fakes`（`docs/70_verification/unit/assets/llmtier-unit-fakes.md`，Template `tests.asset-design@0.2.2`，`Implemented`/`Unverified`），覆盖 `FakeAdapter`/`AppFixture` 的 §2 行为契约、§3 可测试性依赖、§4 实现耦合、§5 自检与 §6 状态；§1.6 与 §1.7 已引用其 ID。`FakeResponse` 在资产 §2/§3 明示为各测试模块本地 stub、非本资产成员。仅余自检 Run 录制（记于资产 §7，与 G-UT-1 同批）。 |
-| 单元测试正式报告与 Run 证据 | **已修复（G-UT-1 关闭）** | LLMTier。**关闭事实**：已真实执行 `tests/unit/v03`，产出 Run `tests/unit/v03/reports/run-20260930-01`（`junit.xml`＋`test-run.env`（pin `git_commit/schema_version/openapi_version`）＋`case-status.json`（PASS 341/0 FAIL/0 BLOCKED）＋逐 Case `manifest.json`）。单元层首次录制 Run 已落地；正式 `tests.unit-test-report` 的 Markdown 汇总在 Gate 前按计划 §8 依此 Run 生成。 |
-| `UT-UTIL-004` 损坏文件的 envelope code（`CorruptStoreTests`） | **已覆盖（G-UT-5 关闭；非 Gap）** | LLMTier。**关闭事实**：损坏库**不被静默接受**由 `tests/unit/v03/test_store_gaps.py::CorruptStoreTests::test_corrupt_file_raises` 断言（抛 `ApiError` 或 `sqlite3.DatabaseError`）；`schema_integrity_failed` 的**确定性映射**由同文件 `IntegrityMappingTests::test_integrity_failure_is_503` 覆盖（`PRAGMA integrity_check != ok` → 503 `schema_integrity_failed`）。即：坏 sqlite 头/页由 `DatabaseError` 直接上抛（非静默）、完整性失败走映射，两条路径均有真实断言，无需新 Case。 |
+| 单元测试正式报告与 Run 证据 | **已修复（G-UT-1 关闭）** | LLMTier。**关闭事实**：已真实执行 `tests/unit`，产出 Run `tests/unit/reports/run-20260930-01`（`junit.xml`＋`test-run.env`（pin `git_commit/schema_version/openapi_version`）＋`case-status.json`（PASS 341/0 FAIL/0 BLOCKED）＋逐 Case `manifest.json`）。单元层首次录制 Run 已落地；正式 `tests.unit-test-report` 的 Markdown 汇总在 Gate 前按计划 §8 依此 Run 生成。 |
+| `UT-UTIL-004` 损坏文件的 envelope code（`CorruptStoreTests`） | **已覆盖（G-UT-5 关闭；非 Gap）** | LLMTier。**关闭事实**：损坏库**不被静默接受**由 `tests/unit/cases/UT-UTIL-003.py::CorruptStoreTests::test_corrupt_file_raises` 断言（抛 `ApiError` 或 `sqlite3.DatabaseError`）；`schema_integrity_failed` 的**确定性映射**由同文件 `IntegrityMappingTests::test_integrity_failure_is_503` 覆盖（`PRAGMA integrity_check != ok` → 503 `schema_integrity_failed`）。即：坏 sqlite 头/页由 `DatabaseError` 直接上抛（非静默）、完整性失败走映射，两条路径均有真实断言，无需新 Case。 |
 | `_static` mime/`Cache-Control` 与 `/ui/` exact 字节 | Tailored-N/A（表现层细节由系统层契约测试锁定） | 归系统/契约层；单元层只断言 404 穿越与 `index.html` 命中（`UT-API-010`） |
 
 ## 5. 文档联动与清单变更规则

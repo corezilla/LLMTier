@@ -910,7 +910,7 @@ flowchart TD
 - **峰值构成 / 上限 / 共享额度**：每线程 1 连接；fd 非稳定契约（WAL/SHM 可共享）
 - **分段预算 / 总期限 / 计时点**：无自有预算；由宿主请求生命周期约束
 - **超限、部分启动与清理出口**：fd 上限由宿主 + `close()` 缓解；锁等待超时 → `OperationalError`
-- **构建或运行命令及前置条件**：单元 `PYTHONPATH=src python3 -m pytest tests/unit/v03 -q`；全量（AGENTS 契约要求含系统测试）`PYTHONPATH=src python3 -m pytest tests/ tests/system/st_*.py -q`（仓库根）
+- **构建或运行命令及前置条件**：单元 `PYTHONPATH=src python3 -m pytest tests/unit/cases -q`；全量（AGENTS 契约要求含系统测试）`PYTHONPATH=src python3 -m pytest tests/ tests/system/st_*.py -q`（仓库根）
 
 ## 9. 验证规格与实现任务
 
@@ -924,7 +924,7 @@ flowchart TD
 - **独立 Oracle / Expected**：`foreign_keys=1`、`journal_mode=wal`；fd 不随请求数增长；busy → `OperationalError`；close 异常向上抛；world-writable → warning；symlink → `store_path_unsafe`
 - **Actual / Evidence**：NOT_RUN
 - **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit/v03`；隔离库
+- **测试入口 / 清理**：`tests/unit/cases`；隔离库
 - **Run ID / Status**：NOT_RUN
 
 ### 9.1.2 `VRC-UTIL-002` · 事务/初始化/拒绝
@@ -935,7 +935,7 @@ flowchart TD
 - **独立 Oracle / Expected**：无半写；幂等；`schema_integrity_failed`；`schema_version_mismatch`；回滚后库空；`E-UTIL-NESTED-TXN`；无部分/损坏表；`schema_unknown`
 - **Actual / Evidence**：NOT_RUN
 - **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit/v03` + 并发/故障注入；隔离库
+- **测试入口 / 清理**：`tests/unit/cases` + 并发/故障注入；隔离库
 - **Run ID / Status**：NOT_RUN
 
 **运行命令**：全量 `PYTHONPATH=src python3 -m pytest tests/ tests/system/st_*.py -q`

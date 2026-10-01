@@ -52,10 +52,10 @@
 - 方案清单登记：`ST-AUSAGE-003`（与 §3.2 权威清单一致；本文件名 `st-ausage-003.md`，对应 §3.4 索引 `cases/st-ausage-003.md`）。
 - 要测什么（责任展开）：`DELETE /v1/usage` 清空用量记录：仅 admin 受理（data→403），返回 `{"deleted":N}` 并写审计。
 - 明确不测什么 / 失败含义：不证明 查询/分页（ST-AUSAGE-001/02、ST-USAGE-*）、不证明重置后新请求重新计账（temporal 时序，未单独构 case）、不证明 provider 的 usage 快照刷新（ST-PUSAGE-002/03）。本 case 锁定"admin 清空 + `deleted` 计数 + 审计 + data 拒绝"。
-  > **A/B 归属不一致（登记）**：§3.2 将本 Case 登记为**环境 A**；但全量/部分重置为**破坏性写**（§4.3 将"删除/修改"归 B 类），实现 [`at_adm_admin_usage_03.py`](../../../../tests/system/api_test_v03/at_adm_admin_usage_03.py) 标记 `@pytest.mark.api_b` 并在 `llmtier_b` 上执行。为避免污染 m5air 用户在途账本，本设计以**环境 B** 为准执行，并把"§3.2 A vs 实现/安全 B"登记为规格/实现不一致。
+  > **A/B 归属不一致（登记）**：§3.2 将本 Case 登记为**环境 A**；但全量/部分重置为**破坏性写**（§4.3 将"删除/修改"归 B 类），实现 [`ST-AUSAGE-003.py`](../../../../tests/system/cases/ST-AUSAGE-003.py) 标记 `@pytest.mark.api_b` 并在 `llmtier_b` 上执行。为避免污染 m5air 用户在途账本，本设计以**环境 B** 为准执行，并把"§3.2 A vs 实现/安全 B"登记为规格/实现不一致。
 
 **目的（被测契约）**：验证用量**重置契约、角色门与审计副作用**。被测端点/规则：`DELETE /v1/usage`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `resetUsage`，query `model`/`deployment_id` 可选，`security=AdminBearerAuth`）；[`app.py`](../../../../src/http_api/app.py) 以 `_auth_either()` 取主体，非 admin → 403 `permission_denied`；admin 路径经 [`AdminService.mutate`](../../../../src/management/admin.py) 调 [`UsageRecorder.reset_usage`](../../../../src/inference/usage.py) 按 scope 删记录并返回 `{"deleted":<int>}`，同一事务写审计 `action="usage.reset"`、`target="all"`、`result="success"`。设计验证项 `VRC-MGMT-006`；机制 `T-MET-RESET`；需求/机制链 `LT-FUN-004`、`LT-INT-004`、`R-MET-01`、`CT-USAGE-001`。**不证明什么**：不证明查询/分页（ST-AUSAGE-001/02、ST-USAGE-*）、不证明重置后新请求重新计账（temporal 时序，未单独构 case）、不证明 provider 的 usage 快照刷新（ST-PUSAGE-002/03）。本 case 锁定"admin 清空 + `deleted` 计数 + 审计 + data 拒绝"。
-  > **A/B 归属不一致（登记）**：§3.2 将本 Case 登记为**环境 A**；但全量/部分重置为**破坏性写**（§4.3 将"删除/修改"归 B 类），实现 [`at_adm_admin_usage_03.py`](../../../../tests/system/api_test_v03/at_adm_admin_usage_03.py) 标记 `@pytest.mark.api_b` 并在 `llmtier_b` 上执行。为避免污染 m5air 用户在途账本，本设计以**环境 B** 为准执行，并把"§3.2 A vs 实现/安全 B"登记为规格/实现不一致。
+  > **A/B 归属不一致（登记）**：§3.2 将本 Case 登记为**环境 A**；但全量/部分重置为**破坏性写**（§4.3 将"删除/修改"归 B 类），实现 [`ST-AUSAGE-003.py`](../../../../tests/system/cases/ST-AUSAGE-003.py) 标记 `@pytest.mark.api_b` 并在 `llmtier_b` 上执行。为避免污染 m5air 用户在途账本，本设计以**环境 B** 为准执行，并把"§3.2 A vs 实现/安全 B"登记为规格/实现不一致。
 
 ## 2. 被测入口与前置
 
@@ -103,12 +103,12 @@
 
 ## 6. 错误路径、副作用与清理
 
-- **清理与复位**：**隔离由 B 类承担**——重置即本 case 的目的状态；退出前确认 `usage_record_versions` 计数为 0（或本次断言终态）、无本次新建 deployment 残留（部署 scope 变体若新建 deployment 须删除）。> **teardown（已修复）**：实现 [`at_adm_admin_usage_03.py`](../../../../tests/system/api_test_v03/at_adm_admin_usage_03.py) 的部署 scope 变体在 `finally` 中先 `DELETE /v1/usage?deployment_id=<depl2>`（清除 FK 绑定）再删除本 case 新建的 `Reset Test Depl 2`（`If-Match` 删除），不再泄漏资源。 B 类整班结束由 fixture `stop()` + `rm -rf` 临时目录（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。 **不得**在 A 类执行。
+- **清理与复位**：**隔离由 B 类承担**——重置即本 case 的目的状态；退出前确认 `usage_record_versions` 计数为 0（或本次断言终态）、无本次新建 deployment 残留（部署 scope 变体若新建 deployment 须删除）。> **teardown（已修复）**：实现 [`ST-AUSAGE-003.py`](../../../../tests/system/cases/ST-AUSAGE-003.py) 的部署 scope 变体在 `finally` 中先 `DELETE /v1/usage?deployment_id=<depl2>`（清除 FK 绑定）再删除本 case 新建的 `Reset Test Depl 2`（`If-Match` 删除），不再泄漏资源。 B 类整班结束由 fixture `stop()` + `rm -rf` 临时目录（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。 **不得**在 A 类执行。
 
 ## 7. 自动化位置与状态
 
 - **证据与 Run**：保存种子 SQL/计数、`DELETE` 请求与原始 200 响应（含 `deleted`）、直连 SQL 复核、审计查询响应、角色负向 403（脱敏后）、发出命令、exit code、`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/B-api`，`environment:"b"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：B 类 fixture `llmtier_b` / `admin_client_b` / `api_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`resetUsage` 机器契约；`UsageRecorder.reset_usage`；`AdminService.mutate` 审计；机制 `T-MET-RESET`。自动化入口 [`at_adm_admin_usage_03.py`](../../../../tests/system/api_test_v03/at_adm_admin_usage_03.py)。**不依赖**其它 Case；与 ST-AUSAGE-001/02 读路径互补。
+- **依赖**：B 类 fixture `llmtier_b` / `admin_client_b` / `api_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`resetUsage` 机器契约；`UsageRecorder.reset_usage`；`AdminService.mutate` 审计；机制 `T-MET-RESET`。自动化入口 [`ST-AUSAGE-003.py`](../../../../tests/system/cases/ST-AUSAGE-003.py)。**不依赖**其它 Case；与 ST-AUSAGE-001/02 读路径互补。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

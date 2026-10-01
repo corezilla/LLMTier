@@ -31,7 +31,7 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-RESP-016` / 系统设计 §8 Responses 接口 / `VRC-INF-001` / recovery / P1（[方案清单 `ST-RESP-016`](../llmtier-system-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-REQ-JSON：非法 JSON body）
-- 要测什么（责任展开）：`POST /v1/responses` 发送非法 JSON body：`400 invalid_json`，dispatch 前拒绝（自动化入口 `at_dp_resp_16.py`）。body 不是合法 JSON（或不是 JSON 对象）时，M001 在业务校验/dispatch 前返回 `400 invalid_json`。需求 `LT-FUN-001`；错误目录 `ERR-REQ-JSON` → wire `code=invalid_json`；实现 `src/http_api/app.py` `_body()`（`json.loads` 失败 → `ApiError(400, "invalid_json", "Request body is not valid JSON")`；解析成功但非对象 → `ApiError(400, "invalid_json", "Request body must be a JSON object")`）。
+- 要测什么（责任展开）：`POST /v1/responses` 发送非法 JSON body：`400 invalid_json`，dispatch 前拒绝（自动化入口 `ST-RESP-016.py`）。body 不是合法 JSON（或不是 JSON 对象）时，M001 在业务校验/dispatch 前返回 `400 invalid_json`。需求 `LT-FUN-001`；错误目录 `ERR-REQ-JSON` → wire `code=invalid_json`；实现 `src/http_api/app.py` `_body()`（`json.loads` 失败 → `ApiError(400, "invalid_json", "Request body is not valid JSON")`；解析成功但非对象 → `ApiError(400, "invalid_json", "Request body must be a JSON object")`）。
 - 明确不测什么 / 失败含义：不测 schema 级字段校验（缺 `model` 见 ST-RESP-008；未知字段见 ST-RESP-012..15）；不测 `Content-Length` 非法（`400 invalid_request`）或超限（ST-RESP-018）；不测上游调用。失败含义＝请求体解析契约破坏。
 
 ## 2. 被测入口与前置
@@ -70,7 +70,7 @@ Content-Type: application/json
 | 4 | 解析 `error` | `code=="invalid_json"`、`type=="request_error"`、`param is None`、`retryable is False`，键集恰 5 键 |
 | 5 | 边界：以 `content=b'[1,2,3]'` 重发 | 同样 `400 invalid_json`（"must be a JSON object"） |
 
-- 重点关注步骤：① **解析先于业务校验**——非法 JSON 不得报 `invalid_request`/`unsupported_request`；② **`Content-Length` 必须存在**——否则 `_body()` 读 0 字节变 `{}`，会错误地走到字段齐备性校验；③ **信封 identity**（5 键、无 `category`）；④ **非 SSE**；⑤ **自动化入口**——`at_dp_resp_16.py` 已实现并覆盖上述断言。
+- 重点关注步骤：① **解析先于业务校验**——非法 JSON 不得报 `invalid_request`/`unsupported_request`；② **`Content-Length` 必须存在**——否则 `_body()` 读 0 字节变 `{}`，会错误地走到字段齐备性校验；③ **信封 identity**（5 键、无 `category`）；④ **非 SSE**；⑤ **自动化入口**——`ST-RESP-016.py` 已实现并覆盖上述断言。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -84,8 +84,8 @@ Content-Type: application/json
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：[`tests/system/api_test_v03/at_dp_resp_16.py`](../../../../tests/system/api_test_v03/at_dp_resp_16.py)（已实现：`invalid_json` 两子测）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_resp_16.py -q`。
+- 测试文件 / 测试函数：[`tests/system/cases/ST-RESP-016.py`](../../../../tests/system/cases/ST-RESP-016.py)（已实现：`invalid_json` 两子测）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/cases/ST-RESP-016.py -q`。
 - 实现状态：Implemented；执行与 Verdict 归 Run 报告。
 
 **判定口径（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
@@ -94,7 +94,7 @@ Content-Type: application/json
 - BLOCKED：测试代码/契约问题。
 - SKIP：B 类临时实例不可用。
 - INVALID：以 mock/替代路径冒充真实路径。
-- NOT_RUN：本 Case 有实现（`at_dp_resp_16.py`），未执行记 `NOT_RUN`。
+- NOT_RUN：本 Case 有实现（`ST-RESP-016.py`），未执行记 `NOT_RUN`。
 
 **证据与 Run**：保存原始请求字节、`Content-Length`、HTTP status/headers、原始错误信封、发出命令、exit code、环境快照（本 case `environment:"b"`）。
 

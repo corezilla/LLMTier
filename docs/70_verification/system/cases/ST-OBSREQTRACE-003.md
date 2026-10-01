@@ -77,7 +77,7 @@
   5. （对照）同一未知 id 用 `admin_client`（`Bearer dev-admin`）→ 断言 `404 not_found`，证明步骤 2 的 403 不是"资源不存在"的伪装。
   6. （别名旁证）`GET /tier/admin/v1/trace/req_does_not_exist` + `Bearer dev-data` → 断言 `403 permission_denied`。
 
-**重点关注步骤**：① **授权先于存在性**——data token 对存在/未知 id 都应 403，**不得**因 id 不存在而返回 404（信息泄露）；这是本 case 核心。② **403 vs 401**——`Bearer dev-data` 形态合法但不是 admin 凭据 → **403**（不是 401；401 属缺/非法凭据，ST-AUTH-010）。③ **错误信封 identity**——恰 5 键、`type=request_error`、`retryable=false`。④ **不泄露存在性**——两种 id 的响应体应一致（除 message 中可能无 id 信息）。⑤ **admin 可达对照**——用 admin 证明端点本身可用且未知 id 为 404，排除把"端点整体坏"误判为授权拒绝。⑥ **别名同保护**——别名路径同样要求 admin（ST-AUTH-008），本 case 作旁证。⑦ **降级/存储**——`_UnavailableDiagnostics.trace` 在授权**之后**才执行，故不影响 403；`503 usage_store_unavailable` 判 BLOCKED/SKIP（仅在 admin 对照路径可能出现）。自动化入口 `at_obs_reqtrace_03.py` 已实现。
+**重点关注步骤**：① **授权先于存在性**——data token 对存在/未知 id 都应 403，**不得**因 id 不存在而返回 404（信息泄露）；这是本 case 核心。② **403 vs 401**——`Bearer dev-data` 形态合法但不是 admin 凭据 → **403**（不是 401；401 属缺/非法凭据，ST-AUTH-010）。③ **错误信封 identity**——恰 5 键、`type=request_error`、`retryable=false`。④ **不泄露存在性**——两种 id 的响应体应一致（除 message 中可能无 id 信息）。⑤ **admin 可达对照**——用 admin 证明端点本身可用且未知 id 为 404，排除把"端点整体坏"误判为授权拒绝。⑥ **别名同保护**——别名路径同样要求 admin（ST-AUTH-008），本 case 作旁证。⑦ **降级/存储**——`_UnavailableDiagnostics.trace` 在授权**之后**才执行，故不影响 403；`503 usage_store_unavailable` 判 BLOCKED/SKIP（仅在 admin 对照路径可能出现）。自动化入口 `ST-OBSREQTRACE-003.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -106,6 +106,6 @@
 
 - **证据与 Run**：保存 data token 的 403 信封（未知与真实 id）、admin 对照 404、别名旁证、命令/exit code/`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 6 项就绪检查；`api_client`（data）/`admin_client`（admin）fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`ERR-AUTH-DENIED`；实现 [`src/http_api/auth.py`](../../../../src/http_api/auth.py)、[`src/http_api/app.py`](../../../../src/http_api/app.py)（OBS 路由统一 `_auth("admin")`）；access-trust 机制。自动化入口 `at_obs_reqtrace_03.py`（已实现）。**不依赖**其它 Case；与 ST-OBSREQTRACE-001/02（正向/404）、ST-AUTH-008（别名需 admin）互补但各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 6 项就绪检查；`api_client`（data）/`admin_client`（admin）fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`ERR-AUTH-DENIED`；实现 [`src/http_api/auth.py`](../../../../src/http_api/auth.py)、[`src/http_api/app.py`](../../../../src/http_api/app.py)（OBS 路由统一 `_auth("admin")`）；access-trust 机制。自动化入口 `ST-OBSREQTRACE-003.py`（已实现）。**不依赖**其它 Case；与 ST-OBSREQTRACE-001/02（正向/404）、ST-AUTH-008（别名需 admin）互补但各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

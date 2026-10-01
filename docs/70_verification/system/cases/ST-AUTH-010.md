@@ -112,6 +112,6 @@
 
 - **证据与 Run**：保存独立请求的原始命令、发送 headers 快照（证明为 `Basic` 方案）、HTTP status/headers/body、执行机 LAN IP、exit code、`elapsed`、环境快照（`/healthz`/`/readyz`）；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；独立 `httpx` 无默认头客户端（不复用 `api_client`/`admin_client`）；m5air `GET /v1/models` 可用；自动化入口 `tests/system/api_test_v03/at_auth_10.py`（已实现）。**不依赖**其它 Case；与 ST-AUTH-001/ST-AUTH-002/ST-AUTH-006 构成"凭据形态→状态码"矩阵（200/403/403/401）但各自独立执行、互不关闭。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；独立 `httpx` 无默认头客户端（不复用 `api_client`/`admin_client`）；m5air `GET /v1/models` 可用；自动化入口 `tests/system/cases/ST-AUTH-010.py`（已实现）。**不依赖**其它 Case；与 ST-AUTH-001/ST-AUTH-002/ST-AUTH-006 构成"凭据形态→状态码"矩阵（200/403/403/401）但各自独立执行、互不关闭。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

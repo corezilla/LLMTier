@@ -75,7 +75,7 @@
   6. 断言每个 `item.deployment_id == "dep_local_gemma"`（只返回该 deployment 的注入）。
   7. （交叉核对，不改变判定）与别名 `GET /tier/admin/v1/deployments/dep_local_gemma/diagnostics` 同凭据下响应体逐字节比对，作为 ST-OBSALIAS-004 的旁证；本 case 不承担别名判定。
 
-**重点关注步骤**：① **顶层数组 vs 包封对象**——成功体是 `InjectionView[]` 裸数组；若是 `{items:[...]}` 判 FAIL（PATCH body 才是 `{items}`）。② **项键集精确**——恰 6 键（`additionalProperties:false`）。③ **`type` 枚举**——6 值白名单，越界即 FAIL。④ **`config` 为对象**——不得为 `null`/字符串；具体字段随 `type` 变化（如 `fault_502` → `error_body`、`delay` → `delay_ms`）。⑤ **`enabled` 布尔**——不得用 `0/1`。⑥ **deployment 作用域**——返回项必须与路径 id 一致，不得混入其它 deployment。⑦ **空数组合法**——无注入时 `[]` 合法（PASS），不要求非空。⑧ **降级/存储**——`_UnavailableDiagnostics.injections` 恒返回 `[]` 的 **200**（fail-open，形状 PASS）；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `at_obs_depl_01.py` 已实现（§3.5 P0 Gate 阻断项已消解）。
+**重点关注步骤**：① **顶层数组 vs 包封对象**——成功体是 `InjectionView[]` 裸数组；若是 `{items:[...]}` 判 FAIL（PATCH body 才是 `{items}`）。② **项键集精确**——恰 6 键（`additionalProperties:false`）。③ **`type` 枚举**——6 值白名单，越界即 FAIL。④ **`config` 为对象**——不得为 `null`/字符串；具体字段随 `type` 变化（如 `fault_502` → `error_body`、`delay` → `delay_ms`）。⑤ **`enabled` 布尔**——不得用 `0/1`。⑥ **deployment 作用域**——返回项必须与路径 id 一致，不得混入其它 deployment。⑦ **空数组合法**——无注入时 `[]` 合法（PASS），不要求非空。⑧ **降级/存储**——`_UnavailableDiagnostics.injections` 恒返回 `[]` 的 **200**（fail-open，形状 PASS）；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSDEPL-001.py` 已实现（§3.5 P0 Gate 阻断项已消解）。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -103,6 +103,6 @@
 
 - **证据与 Run**：保存原始 HTTP status/headers/body、命令/exit code/`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 6 项就绪检查（含 `dep_local_gemma` 注册）；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；M007 `diagnostic_injections`（`002_observability.sql`）；`InjectionView` 机器契约；实现 [`src/libdiag/injections.py`](../../../../src/libdiag/injections.py)、[`src/http_api/app.py`](../../../../src/http_api/app.py)。自动化入口 `at_obs_depl_01.py`（已实现）。**不依赖**其它 Case；与 ST-OBSDEPL-002（写入）、ST-OBSDEPL-003（未知 404）、ST-OBSDEPL-004（非法项 400）语义相邻但各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 6 项就绪检查（含 `dep_local_gemma` 注册）；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；M007 `diagnostic_injections`（`002_observability.sql`）；`InjectionView` 机器契约；实现 [`src/libdiag/injections.py`](../../../../src/libdiag/injections.py)、[`src/http_api/app.py`](../../../../src/http_api/app.py)。自动化入口 `ST-OBSDEPL-001.py`（已实现）。**不依赖**其它 Case；与 ST-OBSDEPL-002（写入）、ST-OBSDEPL-003（未知 404）、ST-OBSDEPL-004（非法项 400）语义相邻但各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

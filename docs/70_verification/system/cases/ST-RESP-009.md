@@ -123,6 +123,6 @@
 ## 7. 自动化位置与状态
 
 - **证据与 Run**：证据与 Run 契约见[§4.8/§10](../llmtier-system-test-scheme.md)：保存请求 body、HTTP status/headers、原始错误信封、发出命令、exit code、环境快照；manifest 与报告落位见 §4.8/§10（本 case `environment:"a"`）；失败现场不截断。
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client`（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）；需求 `LT-FUN-001`；自动化入口 [`at_dp_resp_09.py`](../../../../tests/system/api_test_v03/at_dp_resp_09.py)。**不依赖**其它 Case；与 ST-RESP-012..15（未知字段路径）区分：本 case 命中显式禁字段清单，错误码为 `unsupported_field`。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client`（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）；需求 `LT-FUN-001`；自动化入口 [`ST-RESP-009.py`](../../../../tests/system/cases/ST-RESP-009.py)。**不依赖**其它 Case；与 ST-RESP-012..15（未知字段路径）区分：本 case 命中显式禁字段清单，错误码为 `unsupported_field`。
 
-> 实现状态：Implemented（`at_dp_resp_09.py` 已断言本 case 契约）；执行状态与 Verdict 只在 Run 报告。
+> 实现状态：Implemented（`ST-RESP-009.py` 已断言本 case 契约）；执行状态与 Verdict 只在 Run 报告。

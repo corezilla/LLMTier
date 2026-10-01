@@ -59,7 +59,7 @@ Handler._correlation() -> str | None
 ```
 
 - 初态构造（经公开入口）：`AppFixture().seed()` + loopback `handler_factory(app)`（ENV-2）
-- Fixture / 向量及版本：`tests/unit/v03/fakes.py::AppFixture`（ENV-1）+ loopback（ENV-2，见 `test_observability_gaps.py`）
+- Fixture / 向量及版本：`tests/common/fakes.py::AppFixture`（ENV-1）+ loopback（ENV-2，见 `test_observability_gaps.py`）
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../llmtier-unit-test-plan.md) 分配）：ENV-2 loopback 测试 HTTP 实例
 - 依赖的测试资产（tests.asset-design 文档）：无（真实实现）
 
@@ -89,6 +89,6 @@ Handler._correlation() -> str | None
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_observability_gaps.py::CorrelationObservabilityTests::test_explicit_correlation_id_is_echoed` / `test_traceparent_trace_id_is_extracted` / `test_no_correlation_header_is_absent`
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_observability_gaps.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03/test_observability_gaps.py`；两条与 UT-OBS-007 共担）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 测试文件 / 测试函数：`tests/unit/cases/UT-API-007.py::CorrelationObservabilityTests::test_explicit_correlation_id_is_echoed` / `test_traceparent_trace_id_is_extracted` / `test_no_correlation_header_is_absent`
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/observability_gaps.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-API-007.py`；两条与 UT-OBS-007 共担）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。

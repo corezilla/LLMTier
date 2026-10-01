@@ -106,8 +106,8 @@ Accept: application/json
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：[`tests/system/api_test_v03/at_dp_emb_02.py`](../../../../tests/system/api_test_v03/at_dp_emb_02.py)。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_emb_02.py -q`。
+- 测试文件 / 测试函数：[`tests/system/cases/ST-EMB-002.py`](../../../../tests/system/cases/ST-EMB-002.py)。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/cases/ST-EMB-002.py -q`。
 - 实现状态：Implemented；执行与 Verdict 归 Run 报告。
 
 **判定口径（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
@@ -120,4 +120,4 @@ Accept: application/json
 
 **证据与 Run**：Run ID=`<date>/A-api`；保存原始 status/headers/body（脱敏后）、测试侧解码脚本与 `raw` 字节数/`arr` 摘要、发出命令、exit code、`elapsed`、环境快照（本 case `environment:"a"`）。
 
-**依赖**：就绪检查；`api_client`；`Embedding-v1` 上游 tier；`EmbeddingItem.embedding` 机器契约；实现 [`src/inference/embeddings.py`](../../../../src/inference/embeddings.py)（第 53–58 行解码分支）；自动化入口 `at_dp_emb_02.py`。**不依赖**其它 Case；与 ST-EMB-001（float 形态）互补。
+**依赖**：就绪检查；`api_client`；`Embedding-v1` 上游 tier；`EmbeddingItem.embedding` 机器契约；实现 [`src/inference/embeddings.py`](../../../../src/inference/embeddings.py)（第 53–58 行解码分支）；自动化入口 `ST-EMB-002.py`。**不依赖**其它 Case；与 ST-EMB-001（float 形态）互补。

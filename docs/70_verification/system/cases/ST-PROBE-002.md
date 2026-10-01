@@ -110,6 +110,6 @@
 
 - **证据与 Run**：保存POST 请求与原始 200 响应（脱敏后）、探测前后 `GET deployment`（`health`/`version`）、审计交叉核对、发出命令、exit code、`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`ProbeRequest`/`ProbeResult` 机器契约；`AdminService.probe`/`apply_probe_result`；`dep_local_gemma` + 其 local provider；机制 `T-OBS`/`R-OBS-01`。自动化入口 [`at_adm_probe_02.py`](../../../../tests/system/api_test_v03/at_adm_probe_02.py)。**不依赖**其它 Case；与 ST-PROBE-001/03 互补但各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`ProbeRequest`/`ProbeResult` 机器契约；`AdminService.probe`/`apply_probe_result`；`dep_local_gemma` + 其 local provider；机制 `T-OBS`/`R-OBS-01`。自动化入口 [`ST-PROBE-002.py`](../../../../tests/system/cases/ST-PROBE-002.py)。**不依赖**其它 Case；与 ST-PROBE-001/03 互补但各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

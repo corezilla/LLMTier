@@ -1372,7 +1372,7 @@ response_stream(response: ResponsesResponse) -> Iterable[bytes]   # text/event-s
 - **截止/Gate**：本轮 review
 - **决定或状态**：已闭环
 
-引用：系统设计 §3.2/§7；机制 M-TRUST/M-INFER/M-METER/M-CONFIG/M-OBS §14.4；`interfaces/openapi/llmtier.openapi.json`；`tests/system/api_test_v03/`。
+引用：系统设计 §3.2/§7；机制 M-TRUST/M-INFER/M-METER/M-CONFIG/M-OBS §14.4；`interfaces/openapi/llmtier.openapi.json`；`tests/system/cases/`。
 
 ## 附录 A. 机制承接表
 

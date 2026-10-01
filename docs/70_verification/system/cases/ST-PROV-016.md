@@ -93,11 +93,11 @@
 
 ## 7. 自动化位置与状态
 
-- **测试文件 / 测试函数**：`tests/system/api_test_v03/at_adm_prov_16.py::test_adm_prov_16_patch_with_data_token`。
-- **单 Case 执行命令**：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_adm_prov_16.py -q`。
-- **实现状态**：Implemented（`at_adm_prov_16.py` 已断言 `PATCH /v1/providers/provider_local` 403 + `permission_denied` + `request_error`；A 类运行通过）；执行与 Verdict 归 Run 报告。
+- **测试文件 / 测试函数**：`tests/system/cases/ST-PROV-016.py::test_adm_prov_16_patch_with_data_token`。
+- **单 Case 执行命令**：`PYTHONPATH=src python3 -m pytest tests/system/cases/ST-PROV-016.py -q`。
+- **实现状态**：Implemented（`ST-PROV-016.py` 已断言 `PATCH /v1/providers/provider_local` 403 + `permission_denied` + `request_error`；A 类运行通过）；执行与 Verdict 归 Run 报告。
 
 **证据与 Run**：保存原始命令、发送 headers 快照（证明为 `Bearer dev-data`）、HTTP status/headers/body、执行机 LAN IP、exit code、`elapsed`、环境快照（`/healthz`/`/readyz`）；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（本 case `environment:"a"`）。
 
-**依赖**：就绪检查；`api_client` fixture（带 `dev-data`）；m5air 管理写端点 `PATCH /v1/providers/provider_local` 可用；自动化入口 `at_adm_prov_16.py`。**不依赖**其它 Case；与 ST-AUTH-003（读面 403）及本组其它写面 403 各自独立执行。
+**依赖**：就绪检查；`api_client` fixture（带 `dev-data`）；m5air 管理写端点 `PATCH /v1/providers/provider_local` 可用；自动化入口 `ST-PROV-016.py`。**不依赖**其它 Case；与 ST-AUTH-003（读面 403）及本组其它写面 403 各自独立执行。
 

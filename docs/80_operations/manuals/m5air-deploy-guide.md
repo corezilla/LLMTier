@@ -70,7 +70,7 @@ rsync -avz /Users/ben/work/LLMTier/src/web_ui/styles.css m5air:/Users/mlp/LLMTie
 rsync -avz /Users/ben/work/LLMTier/src/web_ui/icons.svg m5air:/Users/mlp/LLMTier-dev/src/web_ui/icons.svg
 
 # 测试文件（修改了测试时同步）
-rsync -avz /Users/ben/work/LLMTier/tests/unit/v03/test_webui_contract.py m5air:/Users/mlp/LLMTier-dev/tests/unit/v03/test_webui_contract.py
+rsync -avz /Users/ben/work/LLMTier/tests/unit/cases/UT-UI-001.py m5air:/Users/mlp/LLMTier-dev/tests/unit/cases/UT-UI-001.py
 ```
 
 **注意**：`/Users/mlp/LLMTier-dev/` 本身不是 git repo，所以 git push 不会更新 m5air，必须手动 rsync。

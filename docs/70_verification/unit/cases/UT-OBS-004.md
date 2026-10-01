@@ -59,7 +59,7 @@ record_trace(request_id, stage, payload, correlation_id=None); page_traces(...)
 ```
 
 - 初态构造（经公开入口）：`AppFixture`
-- Fixture / 向量及版本：`tests/unit/v03/fakes.py::AppFixture`（ENV-1）
+- Fixture / 向量及版本：`tests/common/fakes.py::AppFixture`（ENV-1）
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../llmtier-unit-test-plan.md) 分配）：ENV-1 隔离 Python 临时库 / ENV-2 loopback 测试 HTTP 实例 / ENV-3 provider 进程内 fake（按 Case 需要，见 §4）
 - 依赖的测试资产（tests.asset-design 文档）：无（真实实现）
 
@@ -90,7 +90,7 @@ record_trace(request_id, stage, payload, correlation_id=None); page_traces(...)
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_diagnostics.py::TracesQueryTests::test_traces_dedups_by_request_and_stable_paging/test_cleanup_removes_expired_and_returns_count` + `DiagnosticCursorContractTests`（3 个）+ `DiagnosticsHttpContractTests::test_traces_invalid_cursor_is_400_expired`（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_diagnostics.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 测试文件 / 测试函数：`tests/unit/cases/UT-OBS-004.py::TracesQueryTests::test_traces_dedups_by_request_and_stable_paging/test_cleanup_removes_expired_and_returns_count` + `DiagnosticCursorContractTests`（3 个）+ `DiagnosticsHttpContractTests::test_traces_invalid_cursor_is_400_expired`（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/diagnostics.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
 

@@ -42,7 +42,7 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 B**（临时 LLMTier 实例，专属实例）。前置 = 方案 §5 附加（B 类）就绪检查；`_baseline_settings` 注入 1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier。`prov_b.endpoint` 必须是 LAN IP 上的**专属违规 stub**（[`tests/fixtures/v03_fake_provider.py`](../../../../tests/fixtures/v03_fake_provider.py)，**已落地**），对 `POST /v1/embeddings` 返回**违反契约**的载荷；`depl_b` 已 probe `healthy`（probe 打 `/models`，需返回合法目录）。TS-003：endpoint 必须是 LAN IP。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例，专属实例）。前置 = 方案 §5 附加（B 类）就绪检查；`_baseline_settings` 注入 1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier。`prov_b.endpoint` 必须是 LAN IP 上的**专属违规 stub**（[`tests/fixtures/models/v03_fake_provider.py`](../../../../tests/fixtures/models/v03_fake_provider.py)，**已落地**），对 `POST /v1/embeddings` 返回**违反契约**的载荷；`depl_b` 已 probe `healthy`（probe 打 `/models`，需返回合法目录）。TS-003：endpoint 必须是 LAN IP。
 - **被测入口**：
 
   ```http
@@ -100,11 +100,11 @@
 
 ## 7. 自动化位置与状态
 
-- **测试文件 / 测试函数**：`tests/system/api_test_v03/at_dp_emb_09.py`（已实现；`v03_fake_provider.py` 提供 `force-bad-object`/`force-non-array-data`/`force-bad-vector`/`force-bad-base64` 四种违规载荷）。
-- **单 Case 执行命令**：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_emb_09.py -q`。
+- **测试文件 / 测试函数**：`tests/system/cases/ST-EMB-009.py`（已实现；`v03_fake_provider.py` 提供 `force-bad-object`/`force-non-array-data`/`force-bad-vector`/`force-bad-base64` 四种违规载荷）。
+- **单 Case 执行命令**：`PYTHONPATH=src python3 -m pytest tests/system/cases/ST-EMB-009.py -q`。
 - **实现状态**：Implemented；执行与 Verdict 归 Run 报告。
 
 **证据与 Run**：保存 stub 违规配置、被测请求与原始响应（脱敏后）、发出命令、exit code、`elapsed`、环境快照（本 case `environment:"b"`）。
 
-**依赖**：B 类专属 `LLMTierInstance` / `api_client_b`；**违规 stub fixture**（[`v03_fake_provider.py`](../../../../tests/fixtures/v03_fake_provider.py)，**已落地**）；实现 `src/inference/providers/openai.py`、`src/inference/embeddings.py`；错误目录 `ERR-PROVIDER-CONTRACT`。**不依赖**其它 Case；与 ST-RESP-025 同属 `provider_contract_error` 家族但端点不同。
+**依赖**：B 类专属 `LLMTierInstance` / `api_client_b`；**违规 stub fixture**（[`v03_fake_provider.py`](../../../../tests/fixtures/models/v03_fake_provider.py)，**已落地**）；实现 `src/inference/providers/openai.py`、`src/inference/embeddings.py`；错误目录 `ERR-PROVIDER-CONTRACT`。**不依赖**其它 Case；与 ST-RESP-025 同属 `provider_contract_error` 家族但端点不同。
 

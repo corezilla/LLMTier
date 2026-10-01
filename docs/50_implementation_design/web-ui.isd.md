@@ -903,10 +903,10 @@ flowchart TD
 - **V / Case / Vector**：v1 Tier/成员状态；v2 `readyz` 映射；v3 单线程并发
 - **输入 / 故障 / 环境**：页面加载；隔离库
 - **独立 Oracle / Expected**：状态语义；`tierState` ∈ {Disabled, Empty, Ready, Attention, Unreachable, Unknown}，`backendState` ∈ {Disabled, Paused, Running, Idle, Probing, Exhausted, Unreachable, Unknown}
-- **Actual / Evidence**：PASS（契约级）；`tests/unit/v03/test_webui_contract.py` 覆盖状态标签集合、`/readyz` 映射、`backendState`/`tierState` 无第二参数
+- **Actual / Evidence**：PASS（契约级）；`tests/unit/cases/UT-UI-001.py` 覆盖状态标签集合、`/readyz` 映射、`backendState`/`tierState` 无第二参数
 - **Verdict**：PASS
 - **测试入口 / 清理**：WebUI/系统用例；隔离库
-- **Run ID / Status**：PASS · `tests/unit/v03/test_webui_contract.py`
+- **Run ID / Status**：PASS · `tests/unit/cases/UT-UI-001.py`
 
 ### 9.1.2 `VRC-UI-002` · 编辑/鉴权
 
@@ -936,10 +936,10 @@ flowchart TD
 - **V / Case / Vector**：v1 Unknown≠0；v2 版本替换（**服务端**同 `request_id` 取最高 `record_version`，客户端只投影 `/v1/usage` 返回值）；v3 503 显式化
 - **输入 / 故障 / 环境**：用量页；隔离库
 - **独立 Oracle / Expected**：显示“未知”；不累计；不显示空表；客户端不做版本去重（去重在上游响应中完成）
-- **Actual / Evidence**：PASS；`tests/unit/v03/test_webui_contract.py`（`Unknown`、`metric`/`usageSummary` 投影、无 localStorage）通过
+- **Actual / Evidence**：PASS；`tests/unit/cases/UT-UI-001.py`（`Unknown`、`metric`/`usageSummary` 投影、无 localStorage）通过
 - **Verdict**：PASS
 - **测试入口 / 清理**：契约/系统用例
-- **Run ID / Status**：PASS · `tests/unit/v03/test_webui_contract.py`
+- **Run ID / Status**：PASS · `tests/unit/cases/UT-UI-001.py`
 
 ### 9.1.5 `VRC-UI-005` · 探测付费确认
 
@@ -958,10 +958,10 @@ flowchart TD
 - **V / Case / Vector**：v1 4 tabs；v2 开关关闭 → Disabled
 - **输入 / 故障 / 环境**：诊断页
 - **独立 Oracle / Expected**：开关语义
-- **Actual / Evidence**：PASS（契约级）；`tests/unit/v03/test_webui_contract.py` 覆盖 4 tabs（`data-dtab`/容器 id）与 `/v1/diagnostics*` 端点
+- **Actual / Evidence**：PASS（契约级）；`tests/unit/cases/UT-UI-001.py` 覆盖 4 tabs（`data-dtab`/容器 id）与 `/v1/diagnostics*` 端点
 - **Verdict**：PASS
 - **测试入口 / 清理**：系统用例
-- **Run ID / Status**：PASS · `tests/unit/v03/test_webui_contract.py`
+- **Run ID / Status**：PASS · `tests/unit/cases/UT-UI-001.py`
 
 **运行命令**：全量 `PYTHONPATH=src python3 -m pytest tests/ tests/system/st_*.py -q`
 
@@ -975,7 +975,7 @@ flowchart TD
 - **实施动作**：实现框架与客户端
 - **完成检查**：`VRC-UI-001`
 - **实现状态**：Implemented
-- **验证状态 / Run**：PASS · `tests/unit/v03/test_webui_contract.py`
+- **验证状态 / Run**：PASS · `tests/unit/cases/UT-UI-001.py`
 
 ### 9.2.2 `TASK-UI-PAGES` · 五页渲染与 mutation
 
@@ -985,7 +985,7 @@ flowchart TD
 - **实施动作**：实现各页
 - **完成检查**：`VRC-UI-001..006`
 - **实现状态**：Implemented
-- **验证状态 / Run**：PARTIAL · `tests/unit/v03/test_webui_contract.py`（契约级；002/003/005 行为测试待补）
+- **验证状态 / Run**：PARTIAL · `tests/unit/cases/UT-UI-001.py`（契约级；002/003/005 行为测试待补）
 
 ## 10. 映射、复核与未决项
 
@@ -999,14 +999,14 @@ flowchart TD
 - **实际位置或 Planned 计划位置**：`src/web_ui/{index.html,app.js,styles.css,icons.svg}`
 - **验证项**：`VRC-UI-001..006`
 - **实现状态**：Implemented
-- **验证状态 / Run**：PASS · `tests/unit/v03/test_webui_contract.py`
+- **验证状态 / Run**：PASS · `tests/unit/cases/UT-UI-001.py`
 
 <a id="isd-status"></a>
 
 ### 10.2.1 `SC-UI` · 状态一致性复核
 
 - **上游承接状态 / 固定来源**：模块 `web-ui` §15.ISD 声明 `separate`
-- **本层派生状态 / 事实依据**：实现已完成（`src/web_ui/*`）；`tests/unit/v03/test_webui_contract.py` 通过；文件/函数 `Implemented`，验证项部分 `PASS`（002/003/005 行为测试待补）
+- **本层派生状态 / 事实依据**：实现已完成（`src/web_ui/*`）；`tests/unit/cases/UT-UI-001.py` 通过；文件/函数 `Implemented`，验证项部分 `PASS`（002/003/005 行为测试待补）
 - **§2 Current / Target**：N/A（greenfield）
 - **§3 / §5 文件与函数状态**：Implemented
 - **§9 任务 / Actual / Verdict / Run**：Implemented / PASS·PARTIAL / PASS·NOT_RUN / PASS·PARTIAL

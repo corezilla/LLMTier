@@ -60,7 +60,7 @@ GET /v1/usage?from=<now-30d>&to=<now>&cursor=<sid>:0
 Authorization: Bearer dev-data
 ```
 
-- 初态构造（经公开入口）：**环境 A**（m5air 已部署实例，只读/无状态）。初始状态 = m5air 现有基线。**关键额外权限**：允许 ST-USAGE-004 直接读取/改写 m5air `state.sqlite3` 的 `query_snapshots.expires_at`（执行前记录原值，执行后复位）——需要 `ssh m5air` 免交互（BatchMode）与非交互 `sqlite3`。DB 路径与 SSH 主机可由环境变量覆盖（现有脚本 `at_dp_usage_04.py` 用 `LLMTIER_M5AIR_SSH` 默认 `m5air`、`LLMTIER_M5AIR_DB` 默认 `/Users/mlp/LLMTier-dev/state.sqlite3`）。窗口由 `constants.recent_window()` **动态**生成（禁止硬编码日期）。
+- 初态构造（经公开入口）：**环境 A**（m5air 已部署实例，只读/无状态）。初始状态 = m5air 现有基线。**关键额外权限**：允许 ST-USAGE-004 直接读取/改写 m5air `state.sqlite3` 的 `query_snapshots.expires_at`（执行前记录原值，执行后复位）——需要 `ssh m5air` 免交互（BatchMode）与非交互 `sqlite3`。DB 路径与 SSH 主机可由环境变量覆盖（现有脚本 `ST-USAGE-004.py` 用 `LLMTIER_M5AIR_SSH` 默认 `m5air`、`LLMTIER_M5AIR_DB` 默认 `/Users/mlp/LLMTier-dev/state.sqlite3`）。窗口由 `constants.recent_window()` **动态**生成（禁止硬编码日期）。
 - Fixture / 向量及版本：`api_client`（`consumer`）；`ssh m5air` + `sqlite3` 渠道；Run manifest 存档。
 - 依赖的测试资产（tests.asset-design 文档）：`api_client`；`ssh m5air` 非交互与非交互 `sqlite3`；`constants.recent_window()`。
 
@@ -91,7 +91,7 @@ ssh -o BatchMode=yes m5air "sqlite3 /Users/mlp/LLMTier-dev/state.sqlite3 \
 | 5 | **try**：`UPDATE ... expires_at='2000-01-01T00:00:00.000Z'`；重放 `GET ...&cursor=<sid>:0` | `status_code == 400`；`err["code"]=="cursor_expired"`、`err["type"]=="request_error"`、信封恰 5 键 |
 | 6 | **finally**：`UPDATE ... expires_at='<original>'`；`SELECT` 回读 | 与 `original` 逐字节相等，证明复位成功 |
 
-- 重点关注步骤：① **真实 TTL 分支**——必须走"快照存在但 `expires_at` 已过"的分支，不得用不存在的 `snapshot_id`/字面量 "expired"；② **改写命中确认**——UPDATE 后应 `SELECT` 回读确认值为过去，证明改写生效；③ **复位完整性**——`finally` 必须恢复**原字符串**（不要用 `now()+10min` 重算），并回读校验；复位失败须保留证据并按 BLOCKED 报，**不得**把 m5air 快照留在过期状态；④ **principal/filter 一致**——用同一 `api_client`（consumer）与同一 `from`/`to`，避免把 403/400 混入；⑤ **无 SSH/DB 权限**——按 **BLOCKED**（可重试，需补 `ssh`/`sqlite3` 权限），并写 `required_resolution`；**不得**记为 SKIP；现有 [`at_dp_usage_04.py`](../../../../tests/system/api_test_v03/at_dp_usage_04.py) 在无权限时调用 `pytest.xfail`，报告工具必须把 `xfailed` **翻译**成 BLOCKED；⑥ **纯 A 类**。
+- 重点关注步骤：① **真实 TTL 分支**——必须走"快照存在但 `expires_at` 已过"的分支，不得用不存在的 `snapshot_id`/字面量 "expired"；② **改写命中确认**——UPDATE 后应 `SELECT` 回读确认值为过去，证明改写生效；③ **复位完整性**——`finally` 必须恢复**原字符串**（不要用 `now()+10min` 重算），并回读校验；复位失败须保留证据并按 BLOCKED 报，**不得**把 m5air 快照留在过期状态；④ **principal/filter 一致**——用同一 `api_client`（consumer）与同一 `from`/`to`，避免把 403/400 混入；⑤ **无 SSH/DB 权限**——按 **BLOCKED**（可重试，需补 `ssh`/`sqlite3` 权限），并写 `required_resolution`；**不得**记为 SKIP；现有 [`ST-USAGE-004.py`](../../../../tests/system/cases/ST-USAGE-004.py) 在无权限时调用 `pytest.xfail`，报告工具必须把 `xfailed` **翻译**成 BLOCKED；⑥ **纯 A 类**。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -105,8 +105,8 @@ ssh -o BatchMode=yes m5air "sqlite3 /Users/mlp/LLMTier-dev/state.sqlite3 \
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：[`tests/system/api_test_v03/at_dp_usage_04.py`](../../../../tests/system/api_test_v03/at_dp_usage_04.py)。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_usage_04.py -q`。
+- 测试文件 / 测试函数：[`tests/system/cases/ST-USAGE-004.py`](../../../../tests/system/cases/ST-USAGE-004.py)。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/cases/ST-USAGE-004.py -q`。
 - 实现状态：Implemented；执行与 Verdict 归 Run 报告。
 
 **判定口径（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
@@ -119,4 +119,4 @@ ssh -o BatchMode=yes m5air "sqlite3 /Users/mlp/LLMTier-dev/state.sqlite3 \
 
 **证据与 Run**：Run ID=`<date>/A-api`；保存首屏响应（`snapshot_id`）、SSH 命令与输出（`SELECT` 原值、`UPDATE`、回读校验）、过期重放的原始 status/headers/body、动态窗口值、发出命令、exit code、`elapsed`、环境快照。**证据脱敏**：SSH/DB 命令不含 Secret；`Authorization` 脱敏；`git_commit` 取 m5air 同步来源 commit SHA（本 case `environment:"a"`）。
 
-**依赖**：就绪检查与 ST-USAGE-004 直改 `expires_at` 授权；`ssh m5air` 非交互与非交互 `sqlite3`；`api_client`；机制 [`usage-metering` §4.7 TTL](../../../20_system_design/mechanisms/usage-metering.md)；自动化入口 `at_dp_usage_04.py`。**不依赖**其它 Case；与 ST-USAGE-003（正常分页）、ST-USAGE-007（同 cursor 重放）共享 cursor 语义但各自独立执行。
+**依赖**：就绪检查与 ST-USAGE-004 直改 `expires_at` 授权；`ssh m5air` 非交互与非交互 `sqlite3`；`api_client`；机制 [`usage-metering` §4.7 TTL](../../../20_system_design/mechanisms/usage-metering.md)；自动化入口 `ST-USAGE-004.py`。**不依赖**其它 Case；与 ST-USAGE-003（正常分页）、ST-USAGE-007（同 cursor 重放）共享 cursor 语义但各自独立执行。

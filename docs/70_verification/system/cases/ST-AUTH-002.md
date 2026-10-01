@@ -110,6 +110,6 @@
 
 - **证据与 Run**：保存独立请求的原始命令、发送 headers 快照（证明 bearer 存在且错误）、HTTP status/headers/body、执行机 LAN IP、exit code、`elapsed`、环境快照（`/healthz`/`/readyz`）；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；独立 `httpx` 无默认头客户端（不复用 `api_client`）；m5air 已配置 dev-data/dev-admin 凭据；自动化入口 [`at_auth_02.py`](../../../../tests/system/api_test_v03/at_auth_02.py)。**不依赖**其它 Case；与 ST-AUTH-001/ST-AUTH-003/ST-AUTH-006/ST-AUTH-010 共享同一鉴权机制但各自独立执行、互不关闭。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；独立 `httpx` 无默认头客户端（不复用 `api_client`）；m5air 已配置 dev-data/dev-admin 凭据；自动化入口 [`ST-AUTH-002.py`](../../../../tests/system/cases/ST-AUTH-002.py)。**不依赖**其它 Case；与 ST-AUTH-001/ST-AUTH-003/ST-AUTH-006/ST-AUTH-010 共享同一鉴权机制但各自独立执行、互不关闭。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

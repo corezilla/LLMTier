@@ -50,7 +50,7 @@
   ```
 
 - **初态构造与客户端**：状态型初态由 m5air 基线资源与既有探测保证（不在本 case 重新 probe）；本 case 的零凭据契约点必须用**裸客户端**（**不用** `api_client`，其注入 `Authorization`）；具体 fixture/客户端构造见[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)。
-- **依赖的测试资产（tests.asset-design 文档）**：本阶段 `tests.asset-design` 文档尚未建立（系统测试资产以 `tests/system/api_test_v03/conftest.py` 的 `LLMTierInstance` / `provider_endpoint_*` 夹具承载，契约见方案 §4）；引用其版本而不复制字节。
+- **依赖的测试资产（tests.asset-design 文档）**：本阶段 `tests.asset-design` 文档尚未建立（系统测试资产以 `tests/system/conftest.py` 的 `LLMTierInstance` / `provider_endpoint_*` 夹具承载，契约见方案 §4）；引用其版本而不复制字节。
 
 ## 3. 输入构造
 
@@ -86,7 +86,7 @@
 | 6 | 断言每个元素 `availability == "available"` | 响应体 |
 | 7 | 与 `/v1/models` 数量交叉核对（不改判定） | 佐证同一固定 tier 集合 |
 
-**重点关注步骤**：① **`status` 必须是 `"ready"` 而非仅 200**——200 与 ready 在本实现同生，但仍显式断言 `status=="ready"`。② **7 是精确数**——固定 7 项；现有 [`at_obs_02.py`](../../../../tests/system/api_test_v03/at_obs_02.py) 已断言 `len(models)==len(FIXED_TIERS)` 且 `ids==set(FIXED_TIERS)`（无缺无多），本 case 与该断言一致。③ **每 tier 必须 `available`**——任何 `degraded`/`unavailable` 都使整体不为 ready，须按对应 Case（ST-HEALTH-003/04）处理，不得在本 case 判 PASS。④ **不得被错误信封冒充**——非 200 时确认是可解释状态（degraded/not_ready 的 `ReadinessView`，或环境错误），而非把 `{"error":...}` 当就绪体。⑤ **字段集**——`ReadinessView` `additionalProperties:false`，只允许 `{status, models}`；每个模型元素只允许 `{id, availability}`。
+**重点关注步骤**：① **`status` 必须是 `"ready"` 而非仅 200**——200 与 ready 在本实现同生，但仍显式断言 `status=="ready"`。② **7 是精确数**——固定 7 项；现有 [`ST-HEALTH-002.py`](../../../../tests/system/cases/ST-HEALTH-002.py) 已断言 `len(models)==len(FIXED_TIERS)` 且 `ids==set(FIXED_TIERS)`（无缺无多），本 case 与该断言一致。③ **每 tier 必须 `available`**——任何 `degraded`/`unavailable` 都使整体不为 ready，须按对应 Case（ST-HEALTH-003/04）处理，不得在本 case 判 PASS。④ **不得被错误信封冒充**——非 200 时确认是可解释状态（degraded/not_ready 的 `ReadinessView`，或环境错误），而非把 `{"error":...}` 当就绪体。⑤ **字段集**——`ReadinessView` `additionalProperties:false`，只允许 `{status, models}`；每个模型元素只允许 `{id, availability}`。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -112,6 +112,6 @@
 ## 7. 自动化位置与状态
 
 - **证据与 Run**：证据与 Run 契约见[§4.8/§10](../llmtier-system-test-scheme.md)：保存命令、exit code、原始 HTTP status/headers/body、`elapsed`、环境快照（`/healthz`/`/readyz` + provider/deployment 列表）；manifest 与报告落位（`tests/system/reports/...`）见 §4.8/§10（本 case `environment:"a"`）；失败现场不截断。
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；**裸 `httpx` 客户端**（`M5AIR_BASE` 直连、无 `Authorization`；**不用** `api_client`）；`ReadinessView`（[`openapi`](../../../../interfaces/openapi/llmtier.openapi.json)）；实现 [`health.py`](../../../../src/http_api/health.py)；自动化入口 [`at_obs_02.py`](../../../../tests/system/api_test_v03/at_obs_02.py)。**不依赖**其它 Case；与 ST-HEALTH-003/04/05 同入口但状态互斥。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；**裸 `httpx` 客户端**（`M5AIR_BASE` 直连、无 `Authorization`；**不用** `api_client`）；`ReadinessView`（[`openapi`](../../../../interfaces/openapi/llmtier.openapi.json)）；实现 [`health.py`](../../../../src/http_api/health.py)；自动化入口 [`ST-HEALTH-002.py`](../../../../tests/system/cases/ST-HEALTH-002.py)。**不依赖**其它 Case；与 ST-HEALTH-003/04/05 同入口但状态互斥。
 
-> 实现状态：Implemented（`at_obs_02.py` 已断言本 case 契约）；执行状态与 Verdict 只在 Run 报告。
+> 实现状态：Implemented（`ST-HEALTH-002.py` 已断言本 case 契约）；执行状态与 Verdict 只在 Run 报告。

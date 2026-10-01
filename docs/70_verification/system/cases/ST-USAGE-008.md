@@ -58,7 +58,7 @@
 GET /v1/usage?from=<now-30d>&to=<now>       Authorization: Bearer dev-data
 ```
 
-- 初态构造（经公开入口）：**环境 B**（临时 LLMTier 实例 `127.0.0.1:<port>` + 临时 SQLite，同机第二个进程）。执行前满足**附加（B 类）**：临时实例可启动且 `GET /healthz` 200；`_baseline_settings` 注入 1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier。fixture（**已落地**）：本 case 使用专用 `LLMTierInstance` fixture `llmtier_b_diag_store`（[`conftest.py`](../../../../tests/system/api_test_v03/conftest.py)，session/module-scope，独立临时 SQLite 与端口，暴露临时库路径只读访问器）+ `store_triplet`，**不得**复用或就地改动 session-scope 的 `llmtier_b`（其 `_db_path` 被其它 B 类 case 共享，就地移库会污染它们）。**TS-003**：本 case 不触上游 provider，但仍不得把 `127.0.0.1` 写进被测服务上游 endpoint（`_baseline_settings` 已用 LAN fake provider）。
+- 初态构造（经公开入口）：**环境 B**（临时 LLMTier 实例 `127.0.0.1:<port>` + 临时 SQLite，同机第二个进程）。执行前满足**附加（B 类）**：临时实例可启动且 `GET /healthz` 200；`_baseline_settings` 注入 1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier。fixture（**已落地**）：本 case 使用专用 `LLMTierInstance` fixture `llmtier_b_diag_store`（[`conftest.py`](../../../../tests/system/conftest.py)，session/module-scope，独立临时 SQLite 与端口，暴露临时库路径只读访问器）+ `store_triplet`，**不得**复用或就地改动 session-scope 的 `llmtier_b`（其 `_db_path` 被其它 B 类 case 共享，就地移库会污染它们）。**TS-003**：本 case 不触上游 provider，但仍不得把 `127.0.0.1` 写进被测服务上游 endpoint（`_baseline_settings` 已用 LAN fake provider）。
 - Fixture / 向量及版本：专用 `LLMTierInstance` + 临时库只读访问器；触发动作脚本；Run manifest 存档。
 - 依赖的测试资产（tests.asset-design 文档）：专用 B 类 fixture `llmtier_b_diag_store` + `store_triplet`（**已落地**）；`dev-data` 客户端。
 
@@ -108,8 +108,8 @@ os.mkdir(db)          # 原路径变成目录 → 连接失败（不新建空库
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/system/api_test_v03/at_dp_usage_08.py`（已实现；专用 fixture `llmtier_b_diag_store` + `StoreTriplet`）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_usage_08.py -q`。
+- 测试文件 / 测试函数：`tests/system/cases/ST-USAGE-008.py`（已实现；专用 fixture `llmtier_b_diag_store` + `StoreTriplet`）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/cases/ST-USAGE-008.py -q`。
 - 实现状态：Implemented；执行与 Verdict 归 Run 报告。
 
 **判定口径（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
@@ -122,4 +122,4 @@ os.mkdir(db)          # 原路径变成目录 → 连接失败（不新建空库
 
 **证据与 Run**：Run ID=`<date>/B-api`；保存原始 status/headers/body（脱敏后）、发出命令、exit code、`elapsed`、环境快照。**额外证据**：基线查询、触发动作（移动的文件清单与 `os.mkdir` 结果、`db_path`）、故障查询的原始 status/headers/body、恢复动作与恢复后查询、动态窗口值、环境快照（`/healthz`/`/readyz`）；B 类 `db_schema_version` 取临时库 `schema_meta.version`（本 case `environment:"b"`）。
 
-**依赖**：附加（B 类）就绪检查；**本 case 专用 `LLMTierInstance` fixture**（独立临时库/端口，**已落地** `llmtier_b_diag_store` + `store_triplet`，暴露临时库只读访问器；**不得**复用 session-scope `llmtier_b`）；机制 [`usage-metering` §4.7/§7](../../../20_system_design/mechanisms/usage-metering.md)；`UsageStoreUnavailable`/`ErrorEnvelope` 机器契约；`ERR-STORE`。自动化入口 `at_dp_usage_08.py`（已实现）。**不依赖**其它 Case；与 ST-OBSDIAG-001 的 `ERR-STORE` 503 语义相邻（同一 `_store_read` 映射），但各自独立执行；与 ST-USAGE-004（TTL 过期，非存储故障）严格区分。
+**依赖**：附加（B 类）就绪检查；**本 case 专用 `LLMTierInstance` fixture**（独立临时库/端口，**已落地** `llmtier_b_diag_store` + `store_triplet`，暴露临时库只读访问器；**不得**复用 session-scope `llmtier_b`）；机制 [`usage-metering` §4.7/§7](../../../20_system_design/mechanisms/usage-metering.md)；`UsageStoreUnavailable`/`ErrorEnvelope` 机器契约；`ERR-STORE`。自动化入口 `ST-USAGE-008.py`（已实现）。**不依赖**其它 Case；与 ST-OBSDIAG-001 的 `ERR-STORE` 503 语义相邻（同一 `_store_read` 映射），但各自独立执行；与 ST-USAGE-004（TTL 过期，非存储故障）严格区分。

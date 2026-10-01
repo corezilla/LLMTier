@@ -98,11 +98,11 @@
 
 ## 7. 自动化位置与状态
 
-- **测试文件 / 测试函数**：`tests/system/api_test_v03/at_adm_runtime_03.py`（Implemented）。
-- **单 Case 执行命令**：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_adm_runtime_03.py -q`。
+- **测试文件 / 测试函数**：`tests/system/cases/ST-RUNTIME-003.py`（Implemented）。
+- **单 Case 执行命令**：`PYTHONPATH=src python3 -m pytest tests/system/cases/ST-RUNTIME-003.py -q`。
 - **实现状态**：Implemented；执行与 Verdict 归 Run 报告。
 
 **证据与 Run**：保存独立请求的原始命令、发送 headers 快照（证明为 `Basic` 方案）、HTTP status/headers/body、执行机 LAN IP、exit code、`elapsed`、环境快照（`/healthz`/`/readyz`）；落位见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（本 case `environment:"a"`）。
 
-**依赖**：就绪检查；独立 `httpx` 无默认头客户端；m5air `GET /v1/runtime` 可用；自动化入口 `at_adm_runtime_03.py`。**不依赖**其它 Case；与 ST-RUNTIME-002（data token→403）构成"凭据形态→状态码"对照（403/401）。
+**依赖**：就绪检查；独立 `httpx` 无默认头客户端；m5air `GET /v1/runtime` 可用；自动化入口 `ST-RUNTIME-003.py`。**不依赖**其它 Case；与 ST-RUNTIME-002（data token→403）构成"凭据形态→状态码"对照（403/401）。
 

@@ -17,7 +17,7 @@
 #   tools/run_ui_tests.sh -k ST-UI-006   # extra pytest args are forwarded
 #   LLMTIER_BROWSER=/path/to/chrome tools/run_ui_tests.sh
 #
-# Artifacts: tests/ui/artifacts/<case>/{<case>.png,<case>.network.json}
+# Artifacts: tests/system/artifacts/<case>/{<case>.png,<case>.network.json}
 # (override the base dir with LLMTIER_UI_ARTIFACT_DIR).
 set -euo pipefail
 
@@ -30,4 +30,4 @@ export PYTHONPATH="${REPO_ROOT}/src"
 # junit_family=xunit1 keeps ``record_property("case_id", ...)`` in the JUnit XML
 # (the evidence-chain Case ID mapping in tools/test_report.py) without pytest's
 # xunit2 incompatibility warning.
-exec "$PYTHON" -m pytest tests/ui -m ui -q -o junit_family=xunit1 "$@"
+exec "$PYTHON" -m pytest tests/system/cases -m ui -q -o junit_family=xunit1 "$@"

@@ -31,7 +31,7 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-RESP-022` / 系统设计 §8 Responses 接口 / `VRC-DIAG-004` / recovery / P1（[方案清单 `ST-RESP-022`](../llmtier-system-test-scheme.md)）；机制 `T-OBS-INJECT`（[observability 机制](../../../20_system_design/mechanisms/observability.md)）。
 - **测试方法（§1.5 方法表行）**：故障注入（fault_503）+ 复位阶梯
-- 要测什么（责任展开）：`POST /v1/responses` 注入 `fault_503`：下一次命中 `depl_b` 的推理在 dispatch 上游前被拒，返回 `503 provider_unavailable`（`retryable=true`、`message` 含注入 `error_body`）（自动化入口 `at_dp_resp_22.py`）。先 `PATCH /v1/deployments/{deployment_id}/diagnostics` 写入 `fault_503`；随后命中该 deployment 的 `POST /v1/responses`（`stream=true`）在 dispatch 上游**之前**由 M003 抛出 `ApiError(status=503, code="provider_unavailable", retryable=True)`，入口以**普通 JSON 错误信封**返回（非 `text/event-stream`）。需求 `R-INF-05`；错误目录 `ERR-PROVIDER-UNAVAIL` → wire `code=provider_unavailable`；实现 `src/inference/responses.py` 与 `src/libdiag/injections.py`。
+- 要测什么（责任展开）：`POST /v1/responses` 注入 `fault_503`：下一次命中 `depl_b` 的推理在 dispatch 上游前被拒，返回 `503 provider_unavailable`（`retryable=true`、`message` 含注入 `error_body`）（自动化入口 `ST-RESP-022.py`）。先 `PATCH /v1/deployments/{deployment_id}/diagnostics` 写入 `fault_503`；随后命中该 deployment 的 `POST /v1/responses`（`stream=true`）在 dispatch 上游**之前**由 M003 抛出 `ApiError(status=503, code="provider_unavailable", retryable=True)`，入口以**普通 JSON 错误信封**返回（非 `text/event-stream`）。需求 `R-INF-05`；错误目录 `ERR-PROVIDER-UNAVAIL` → wire `code=provider_unavailable`；实现 `src/inference/responses.py` 与 `src/libdiag/injections.py`。
 - 明确不测什么 / 失败含义：不测 `fault_502`→`provider_failure`（ST-RESP-011）；不测真实上游 5xx 的归一（ST-RESP-023）；不测 SSE 序列（注入在流开始前抛出）；不测重试/exactly-once；本 case 的 503 由注入产生，**不是"上游真的不可用"**。失败含义＝注入命中→错误传播契约破坏。
 
 ## 2. 被测入口与前置
@@ -89,8 +89,8 @@ PATCH /v1/deployments/depl_b/diagnostics   Authorization: Bearer dev-admin
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：[`tests/system/api_test_v03/at_dp_resp_22.py`](../../../../tests/system/api_test_v03/at_dp_resp_22.py)（已实现）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_resp_22.py -q`。
+- 测试文件 / 测试函数：[`tests/system/cases/ST-RESP-022.py`](../../../../tests/system/cases/ST-RESP-022.py)（已实现）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/cases/ST-RESP-022.py -q`。
 - 实现状态：Implemented；执行与 Verdict 归 Run 报告。
 
 **判定口径（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
@@ -99,7 +99,7 @@ PATCH /v1/deployments/depl_b/diagnostics   Authorization: Bearer dev-admin
 - BLOCKED：注入写 API 不可用、注入无法命中。
 - SKIP：B 类临时实例不可用、`provider_endpoint_b` 无 LAN IP（TS-003）。
 - INVALID：注入未命中却按行为判定、或 `monkeypatch` 端点伪造 503（要求命中证明）。
-- NOT_RUN：本 Case 有实现（`at_dp_resp_22.py`），未执行记 `NOT_RUN`。
+- NOT_RUN：本 Case 有实现（`ST-RESP-022.py`），未执行记 `NOT_RUN`。
 
 **证据与 Run**：保存注入写/清空（`PATCH` body + `200` + 空数组）、被测请求与原始 503 信封、teardown 二次 `GET`、发出命令、exit code、环境快照（`/healthz` + 注入前/后 `GET .../diagnostics`）；可选 trace（`usage.source=="injected"`）（本 case `environment:"b"`）。
 

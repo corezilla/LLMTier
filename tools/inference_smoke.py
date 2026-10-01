@@ -8,7 +8,7 @@ plus GET /healthz and GET /readyz.
 
 Per testing-standard TS-003 this targets a LAN service by default
 (http://192.168.1.9:8181 = m5air). A fake upstream is available for local runs:
-  PYTHONPATH=src python3 tests/fixtures/v03_fake_provider.py --port 9191
+  PYTHONPATH=src python3 tests/fixtures/models/v03_fake_provider.py --port 9191
   PYTHONPATH=src python3 -m http_api --host 0.0.0.0 --port 8181 \
       --database /tmp/lt.sqlite3 --settings /tmp/settings.json   # provider endpoint = LAN IP
 

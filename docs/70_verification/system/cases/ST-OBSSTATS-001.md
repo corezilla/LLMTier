@@ -74,7 +74,7 @@
   5. 对每个 `window`：断言键集**恰为** 13 键；`stat_hour` 匹配 `^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}$`；`deployment_id`/`model` 为字符串或 `null`；`status_breakdown` 为对象（值 ∈ 非负整数）；`error_4xx_count`/`error_5xx_count`/`request_count`/`error_count` 为非负整数；`latency_p50_ms`/`latency_p95_ms`/`latency_min_ms`/`latency_max_ms` 为 `null` 或数值；`latency_sum_ms` 为数值（≥0；无样本为 0）。
   6. （`deployment_id`/`model` 过滤交叉核对，不改变判定）带 `&deployment_id=dep_omlx_qwen36` 再请求一次，断言 200 且过滤窗口的 `deployment_id` 均等于该值；本 case 不承担过滤语义判定。
 
-**重点关注步骤**：① **顶层键集精确**——恰 `{windows}`（`additionalProperties:false`）；② **窗口键集精确**——恰 13 键；③ **`stat_hour` 形状**——小时桶字符串，不是完整 timestamp、不是毫秒；④ **计数类型**——计数键必须是非负整数（不是字符串/浮点/`null`）；⑤ **百分位 `null` vs 0**——无延迟样本时 `latency_p50/p95/min/max` 必须为 `null`，`latency_sum_ms` 为 `0`（机制 §4.10 明确"样本缺失 → null 而非 0"）；⑥ **空 `windows` 合法**——`stats_enabled=false` 或无数据时 `{"windows":[]}` 仍合法形状（PASS），**不得**因空判 FAIL；⑦ **降级/存储**——`_UnavailableDiagnostics.stats` 恒返回 `{"windows":[]}` 的 **200**（fail-open，形状 PASS）；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `at_obs_stats_01.py` 已实现。
+**重点关注步骤**：① **顶层键集精确**——恰 `{windows}`（`additionalProperties:false`）；② **窗口键集精确**——恰 13 键；③ **`stat_hour` 形状**——小时桶字符串，不是完整 timestamp、不是毫秒；④ **计数类型**——计数键必须是非负整数（不是字符串/浮点/`null`）；⑤ **百分位 `null` vs 0**——无延迟样本时 `latency_p50/p95/min/max` 必须为 `null`，`latency_sum_ms` 为 `0`（机制 §4.10 明确"样本缺失 → null 而非 0"）；⑥ **空 `windows` 合法**——`stats_enabled=false` 或无数据时 `{"windows":[]}` 仍合法形状（PASS），**不得**因空判 FAIL；⑦ **降级/存储**——`_UnavailableDiagnostics.stats` 恒返回 `{"windows":[]}` 的 **200**（fail-open，形状 PASS）；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSSTATS-001.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -102,6 +102,6 @@
 
 - **证据与 Run**：保存原始 HTTP status/headers/body、命令/exit code/`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 6 项就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；M007 `data_plane_stats`/`data_plane_latency_samples`（`002_observability.sql`）；`StatsView`/`StatsWindow` 机器契约；实现 [`src/libdiag/stats.py`](../../../../src/libdiag/stats.py)、[`src/http_api/app.py`](../../../../src/http_api/app.py)。自动化入口 `at_obs_stats_01.py`（已实现）。**不依赖**其它 Case；与 ST-OBSSTATS-002（缺参 400）、ST-OBSDIAG-002（开关写）语义相邻但各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 6 项就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；M007 `data_plane_stats`/`data_plane_latency_samples`（`002_observability.sql`）；`StatsView`/`StatsWindow` 机器契约；实现 [`src/libdiag/stats.py`](../../../../src/libdiag/stats.py)、[`src/http_api/app.py`](../../../../src/http_api/app.py)。自动化入口 `ST-OBSSTATS-001.py`（已实现）。**不依赖**其它 Case；与 ST-OBSSTATS-002（缺参 400）、ST-OBSDIAG-002（开关写）语义相邻但各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

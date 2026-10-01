@@ -128,6 +128,6 @@
 ## 7. 自动化位置与状态
 
 - **证据与 Run**：证据与 Run 契约见[§4.8/§10](../llmtier-system-test-scheme.md)：保存原始 SSE 逐帧、HTTP status/headers、累积文本、发出命令、exit code、`elapsed`、环境快照（`/healthz`/`/readyz`）；manifest 与报告落位见 §4.8/§10（本 case `environment:"a"`）；失败现场不截断。
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client`（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）；上游 tier `Worker`；自动化入口 [`at_dp_resp_03.py`](../../../../tests/system/api_test_v03/at_dp_resp_03.py)。**不依赖**其它 Case；与 ST-RESP-001（通用流式成功）共享 SSE 机制但用固定推理 prompt 区分。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client`（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）；上游 tier `Worker`；自动化入口 [`ST-RESP-003.py`](../../../../tests/system/cases/ST-RESP-003.py)。**不依赖**其它 Case；与 ST-RESP-001（通用流式成功）共享 SSE 机制但用固定推理 prompt 区分。
 
-> 实现状态：Implemented（`at_dp_resp_03.py` 已断言本 case 的结构契约）；执行状态与 Verdict 只在 Run 报告。
+> 实现状态：Implemented（`ST-RESP-003.py` 已断言本 case 的结构契约）；执行状态与 Verdict 只在 Run 报告。

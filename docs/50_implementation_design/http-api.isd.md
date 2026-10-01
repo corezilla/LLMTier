@@ -820,10 +820,10 @@ flowchart TD
 - **V / Case / Vector**：v1 已知/未知路由；v2 未知异常→500；v3 fd 基线；v4 端口占用
 - **输入 / 故障 / 环境**：请求；异常注入；隔离库
 - **独立 Oracle / Expected**：200/404；500 + 日志；fd 稳定
-- **Actual / Evidence**：PASS；`tests/unit/v03/test_app_startup.py`（bootstrap）、`test_errors.py`（信封）、`test_health.py`（readyz）通过
+- **Actual / Evidence**：PASS；`tests/unit/cases/UT-API-012.py`（bootstrap）、`test_errors.py`（信封）、`test_health.py`（readyz）通过
 - **Verdict**：PASS
 - **测试入口 / 清理**：`tests/unit`；隔离库
-- **Run ID / Status**：PASS · `PYTHONPATH=src python3 -m pytest tests/unit/v03 -q`
+- **Run ID / Status**：PASS · `PYTHONPATH=src python3 -m pytest tests/unit/cases -q`
 
 ### 9.1.2 `VRC-API-002` · 鉴权
 
@@ -831,10 +831,10 @@ flowchart TD
 - **V / Case / Vector**：v1 免登录；v2 Bearer 正确/错误；v3 data 访问 admin；v4 不泄露存在性
 - **输入 / 故障 / 环境**：地址/凭据；隔离库
 - **独立 Oracle / Expected**：Principal；403；响应不可区分
-- **Actual / Evidence**：PASS；`tests/unit/v03/test_auth.py`（缺配置 503、缺 Bearer 401、错误 403、data/admin token、`X-Principal-ID`、dev/loopback/LAN）通过
+- **Actual / Evidence**：PASS；`tests/unit/cases/UT-API-002.py`（缺配置 503、缺 Bearer 401、错误 403、data/admin token、`X-Principal-ID`、dev/loopback/LAN）通过
 - **Verdict**：PASS
 - **测试入口 / 清理**：`tests/unit` + 契约
-- **Run ID / Status**：PASS · `tests/unit/v03/test_auth.py`
+- **Run ID / Status**：PASS · `tests/unit/cases/UT-API-002.py`
 
 ### 9.1.3 `VRC-API-003` · body 与 SSE
 
@@ -842,10 +842,10 @@ flowchart TD
 - **V / Case / Vector**：v1 正常 SSE；v2 超限 413；v3 非法 JSON / 非 JSON 对象 400；v4 断开
 - **输入 / 故障 / 环境**：请求/断开；隔离库
 - **独立 Oracle / Expected**：事件子集 + terminal 唯一；413/400
-- **Actual / Evidence**：PASS；`tests/unit/v03/test_sse.py`（帧、`[DONE]`、`sequence_number` 单调、created 首帧、terminal 末帧、incomplete）通过
+- **Actual / Evidence**：PASS；`tests/unit/cases/UT-API-003.py`（帧、`[DONE]`、`sequence_number` 单调、created 首帧、terminal 末帧、incomplete）通过
 - **Verdict**：PASS
 - **测试入口 / 清理**：`tests/unit` + `tests/system`（Piko 联调）
-- **Run ID / Status**：PASS · `tests/unit/v03/test_sse.py`
+- **Run ID / Status**：PASS · `tests/unit/cases/UT-API-003.py`
 
 ### 9.1.4 `VRC-API-004` · 静态与健康
 
@@ -853,10 +853,10 @@ flowchart TD
 - **V / Case / Vector**：v1 目录穿越负例；v2 引导失败 `/readyz` 503
 - **输入 / 故障 / 环境**：路径；空库
 - **独立 Oracle / Expected**：404；503 not_ready
-- **Actual / Evidence**：PASS；`tests/unit/v03/test_health.py`（空库→not_ready、单模型→degraded、503）通过
+- **Actual / Evidence**：PASS；`tests/unit/cases/UT-API-001.py`（空库→not_ready、单模型→degraded、503）通过
 - **Verdict**：PASS
 - **测试入口 / 清理**：`tests/unit`
-- **Run ID / Status**：PASS · `tests/unit/v03/test_health.py`
+- **Run ID / Status**：PASS · `tests/unit/cases/UT-API-001.py`
 
 **运行命令**：全量 `PYTHONPATH=src python3 -m pytest tests/ tests/system/st_*.py -q`
 
@@ -870,7 +870,7 @@ flowchart TD
 - **实施动作**：实现路由与错误出口
 - **完成检查**：`VRC-API-001`
 - **实现状态**：Implemented
-- **验证状态 / Run**：PASS · `tests/unit/v03/test_app_startup.py`
+- **验证状态 / Run**：PASS · `tests/unit/cases/UT-API-012.py`
 
 ### 9.2.2 `TASK-API-AUTH` · 鉴权分发
 
@@ -880,7 +880,7 @@ flowchart TD
 - **实施动作**：实现信任分发
 - **完成检查**：`VRC-API-002`
 - **实现状态**：Implemented
-- **验证状态 / Run**：PASS · `tests/unit/v03/test_auth.py`
+- **验证状态 / Run**：PASS · `tests/unit/cases/UT-API-002.py`
 
 ### 9.2.3 `TASK-API-SSE` · SSE/静态/健康
 
@@ -890,7 +890,7 @@ flowchart TD
 - **实施动作**：实现 SSE/静态/健康
 - **完成检查**：`VRC-API-003/004`
 - **实现状态**：Implemented
-- **验证状态 / Run**：PASS · `tests/unit/v03/test_sse.py` + `test_health.py`
+- **验证状态 / Run**：PASS · `tests/unit/cases/UT-API-003.py` + `test_health.py`
 
 ## 10. 映射、复核与未决项
 
@@ -904,14 +904,14 @@ flowchart TD
 - **实际位置或 Planned 计划位置**：`src/http_api/app.py`、`auth.py`、`errors.py`、`sse.py`、`health.py`
 - **验证项**：`VRC-API-001..004`
 - **实现状态**：Implemented
-- **验证状态 / Run**：PASS · `tests/unit/v03`
+- **验证状态 / Run**：PASS · `tests/unit/cases`
 
 <a id="isd-status"></a>
 
 ### 10.2.1 `SC-API` · 状态一致性复核
 
 - **上游承接状态 / 固定来源**：模块 `http-api` §15.ISD 声明 `separate`
-- **本层派生状态 / 事实依据**：实现已完成（`src/http_api/*`）；`tests/unit/v03` 全绿；全部 `Implemented`/`PASS`
+- **本层派生状态 / 事实依据**：实现已完成（`src/http_api/*`）；`tests/unit/cases` 全绿；全部 `Implemented`/`PASS`
 - **§2 Current / Target**：N/A（greenfield）
 - **§3 / §5 文件与函数状态**：Implemented
 - **§9 任务 / Actual / Verdict / Run**：Implemented / PASS / PASS / PASS

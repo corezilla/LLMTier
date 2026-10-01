@@ -40,7 +40,7 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 B**（临时 LLMTier 实例，见[系统测试方案 §1 测试边界](../llmtier-system-test-scheme.md)）。执行前须满足方案 §5 **附加（B 类）**：临时实例可启动且 `GET /healthz` 200。**当前状态：Implemented——fixture `llmtier_b_unprobed`（[`conftest.py`](../../../../tests/system/api_test_v03/conftest.py)）与脚本 [`at_obs_04.py`](../../../../tests/system/api_test_v03/at_obs_04.py) 已落地并通过。** 本 case 需要一个**已 bootstrap 基线资源但未被探测**的实例（每个 tier 的 `deployment_ids` 指向 `depl_b`、`depl_b.health="unknown"`；等价于 `LLMTierInstance(_baseline_settings)` 且**不调用** `_probe_deployment`）。[`conftest.py`](../../../../tests/system/api_test_v03/conftest.py) 提供该 fixture `llmtier_b_unprobed`：**scope=session** 的 `LLMTierInstance(_baseline_settings(provider_endpoint_b))`，`start()` 后**跳过** `_probe_deployment`，产出实例的 7 tier 均 `degraded`（`health=unknown`）。**不可用现有 fixture 替代**：`llmtier_b` 启动即 `_probe_deployment(depl_b)`→`healthy`，把 7 tier 全翻成 `available`（那是 ST-HEALTH-002 的 ready 形态）；`llmtier_b_empty` 是三个空 section 的合法 bootstrap，7 tier 无候选 ⇒ 全 `unavailable` ⇒ `not_ready`（那是 ST-HEALTH-004），**都不是** `degraded`；**不得复用** `llmtier_b`。TS-003：`prov_b.endpoint` 必须是本机 **LAN IP** 上的 fake provider（不得用 `127.0.0.1` 作为被测服务的上游 endpoint）。目标初始状态 = 1 provider（`prov_b`）/ 1 deployment（`depl_b`，`health="unknown"`）/ 7 fixed tier 且 `diagnostic_injections` 为空。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例，见[系统测试方案 §1 测试边界](../llmtier-system-test-scheme.md)）。执行前须满足方案 §5 **附加（B 类）**：临时实例可启动且 `GET /healthz` 200。**当前状态：Implemented——fixture `llmtier_b_unprobed`（[`conftest.py`](../../../../tests/system/conftest.py)）与脚本 [`ST-HEALTH-003.py`](../../../../tests/system/cases/ST-HEALTH-003.py) 已落地并通过。** 本 case 需要一个**已 bootstrap 基线资源但未被探测**的实例（每个 tier 的 `deployment_ids` 指向 `depl_b`、`depl_b.health="unknown"`；等价于 `LLMTierInstance(_baseline_settings)` 且**不调用** `_probe_deployment`）。[`conftest.py`](../../../../tests/system/conftest.py) 提供该 fixture `llmtier_b_unprobed`：**scope=session** 的 `LLMTierInstance(_baseline_settings(provider_endpoint_b))`，`start()` 后**跳过** `_probe_deployment`，产出实例的 7 tier 均 `degraded`（`health=unknown`）。**不可用现有 fixture 替代**：`llmtier_b` 启动即 `_probe_deployment(depl_b)`→`healthy`，把 7 tier 全翻成 `available`（那是 ST-HEALTH-002 的 ready 形态）；`llmtier_b_empty` 是三个空 section 的合法 bootstrap，7 tier 无候选 ⇒ 全 `unavailable` ⇒ `not_ready`（那是 ST-HEALTH-004），**都不是** `degraded`；**不得复用** `llmtier_b`。TS-003：`prov_b.endpoint` 必须是本机 **LAN IP** 上的 fake provider（不得用 `127.0.0.1` 作为被测服务的上游 endpoint）。目标初始状态 = 1 provider（`prov_b`）/ 1 deployment（`depl_b`，`health="unknown"`）/ 7 fixed tier 且 `diagnostic_injections` 为空。
 - **被测入口**：
 
   ```http
@@ -100,10 +100,10 @@
 - **判定（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
   - **PASS**：`status==503` + `status=="degraded"` + `models` 恰为 7 个 fixed tier 且全 `degraded`。
   - **FAIL**：status/字段/聚合不符——含误为 `ready`（被探测）或 `not_ready`（无候选），或返回错误信封；给预期 vs 实际与 `reproduction_cmd`。
-  - **BLOCKED**：仅在 `llmtier_b_unprobed` 不可启动、或实例被误探测成 healthy（无法保留 `health=unknown`）时判 BLOCKED/构造失败。fixture（`llmtier_b_unprobed`）与脚本（[`at_obs_04.py`](../../../../tests/system/api_test_v03/at_obs_04.py)）均已落地并通过，不再是当前状态。若实例根本起不来/`/healthz` 不就绪，属依赖失败，视情形 BLOCKED 或 SKIP。
+  - **BLOCKED**：仅在 `llmtier_b_unprobed` 不可启动、或实例被误探测成 healthy（无法保留 `health=unknown`）时判 BLOCKED/构造失败。fixture（`llmtier_b_unprobed`）与脚本（[`ST-HEALTH-003.py`](../../../../tests/system/cases/ST-HEALTH-003.py)）均已落地并通过，不再是当前状态。若实例根本起不来/`/healthz` 不就绪，属依赖失败，视情形 BLOCKED 或 SKIP。
   - **SKIP**：B 类临时实例不可用、`provider_endpoint_b` 无 LAN IP 可用（TS-003）等 §2 前置不满足——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **INVALID**：用 `127.0.0.1`/mock 当上游 endpoint，或以替代路径冒充真实临时实例——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：本 case 有实现（[`at_obs_04.py`](../../../../tests/system/api_test_v03/at_obs_04.py)），未执行时记 `NOT_RUN`；不得以未跑冒充 PASS。
+  - **NOT_RUN**：本 case 有实现（[`ST-HEALTH-003.py`](../../../../tests/system/cases/ST-HEALTH-003.py)），未执行时记 `NOT_RUN`；不得以未跑冒充 PASS。
 
 ## 6. 错误路径、副作用与清理
 
@@ -113,6 +113,6 @@
 ## 7. 自动化位置与状态
 
 - **证据与 Run**：证据与 Run 契约见[§4.8/§10](../llmtier-system-test-scheme.md)：保存实例启动参数/settings（`_baseline_settings` 内容，脱敏后）、确认"未探测"的证据（未调用 `POST /v1/probes` 的请求日志）、原始 HTTP status/headers/body、`elapsed`、环境快照（`/healthz` + `/readyz`）；manifest 与报告落位（`tests/system/reports/...`）见 §4.8/§10（本 case `environment:"b"`）；失败现场不截断。
-- **依赖**：B 类 fixture `llmtier_b_unprobed`（[`conftest.py`](../../../../tests/system/api_test_v03/conftest.py)：session-scope `LLMTierInstance(_baseline_settings(provider_endpoint_b))`，`start()` 后跳过 `_probe_deployment`）；**不可复用** `llmtier_b`（启动即 probe 成 `healthy`）。另依赖 `_baseline_settings`/`provider_endpoint_b`（LAN fake provider，TS-003）（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）；`ReadinessView`（[`openapi`](../../../../interfaces/openapi/llmtier.openapi.json)）；实现 [`health.py`](../../../../src/http_api/health.py)；系统设计 §8.1 的 `degraded` 初始态（[llmtier-system-design.md](../../../20_system_design/llmtier-system-design.md)）；自动化入口 [`at_obs_04.py`](../../../../tests/system/api_test_v03/at_obs_04.py)（`at_obs_03.py` 承接 ST-HEALTH-004，本 case 用 `at_obs_04.py`，不与其冲突）。**不依赖**其它 Case；与 ST-HEALTH-002/04/05 同入口但状态互斥。
+- **依赖**：B 类 fixture `llmtier_b_unprobed`（[`conftest.py`](../../../../tests/system/conftest.py)：session-scope `LLMTierInstance(_baseline_settings(provider_endpoint_b))`，`start()` 后跳过 `_probe_deployment`）；**不可复用** `llmtier_b`（启动即 probe 成 `healthy`）。另依赖 `_baseline_settings`/`provider_endpoint_b`（LAN fake provider，TS-003）（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）；`ReadinessView`（[`openapi`](../../../../interfaces/openapi/llmtier.openapi.json)）；实现 [`health.py`](../../../../src/http_api/health.py)；系统设计 §8.1 的 `degraded` 初始态（[llmtier-system-design.md](../../../20_system_design/llmtier-system-design.md)）；自动化入口 [`ST-HEALTH-003.py`](../../../../tests/system/cases/ST-HEALTH-003.py)（`ST-HEALTH-004.py` 承接 ST-HEALTH-004，本 case 用 `ST-HEALTH-003.py`，不与其冲突）。**不依赖**其它 Case；与 ST-HEALTH-002/04/05 同入口但状态互斥。
 
-> 实现状态：Implemented（`at_obs_04.py` 已断言 503 + `degraded` + 7×`degraded`）；执行状态与 Verdict 只在 Run 报告。
+> 实现状态：Implemented（`ST-HEALTH-003.py` 已断言 503 + `degraded` + 7×`degraded`）；执行状态与 Verdict 只在 Run 报告。

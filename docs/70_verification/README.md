@@ -14,10 +14,10 @@
 
 | 阶段目录 | 测试阶段 | Case 前缀 | 方案（scheme，1 份） | 用例（case，一 Case 一文档） | 计划（plan，1 份） | 资产（asset） |
 |---|---|---|---|---|---|---|
-| `unit/` | 单元测试 | `UT` | `unit/llmtier-unit-test-scheme.md` | `unit/cases/unit-case-<ID>.md` | `unit/llmtier-unit-test-plan.md` | `unit/assets/llmtier-unit-fakes.md` |
+| `unit/` | 单元测试 | `UT` | `unit/llmtier-unit-test-scheme.md` | `unit/cases/UT-<OBJ>-<NNN>.md` | `unit/llmtier-unit-test-plan.md` | `unit/assets/llmtier-unit-fakes.md` |
 | `module/` | 模块测试 | `MT` | N/A（本项目未设独立模块阶段，见 §3） | — | — | — |
 | `subsystem/` | 子系统/集成测试 | `IT` | N/A（本项目未设独立子系统阶段，见 §3） | — | — | — |
-| `system/` | 系统测试 | `ST` | `system/llmtier-system-test-scheme.md` | `system/cases/<ID 小写>.md` | `system/llmtier-system-test-plan.md` | 暂无（系统层资产由 `tests/system/api_test_v03/conftest.py` 承载，见 §3） |
+| `system/` | 系统测试 | `ST` | `system/llmtier-system-test-scheme.md` | `system/cases/<ID 小写>.md` | `system/llmtier-system-test-plan.md` | 暂无（系统层资产由 `tests/system/conftest.py` 承载，见 §3） |
 
 - 命名规则：方案/计划/资产文档沿用项目既有 document-id 命名；**用例文档文件名＝Case ID 全小写**（`<ID 小写>.md`），
   Document ID ＝ Case ID。每份文档配同名 `<文件名>.metadata.json`。
@@ -51,7 +51,7 @@ Case ID 格式 **`<阶段前缀>-<对象>-<NNN>`**：
 - **subsystem（`IT`）**：**N/A**。本项目未单独设立子系统/集成测试阶段；子系统集成语义由系统层
   `ST-*`（`tests/system/`）承接，不另建目录。
 - **system 资产**：系统层测试资产（`LLMTierInstance` / `provider_endpoint_*` / B 类 fixture）以
-  `tests/system/api_test_v03/conftest.py` 承载，尚未落为 `tests.asset-design` 文档；在建立前
+  `tests/system/conftest.py` 承载，尚未落为 `tests.asset-design` 文档；在建立前
   `system/assets/` 为空、不创建（仅创建实际需要的目录）。
 
 ## 4. 报告落位（不在本目录维护副本）
@@ -59,7 +59,7 @@ Case ID 格式 **`<阶段前缀>-<对象>-<NNN>`**：
 正式报告与运行证据按测试类型共置于 `tests/` 侧（STD `repository-layout.md` §4.1.1）：
 
 - 系统测试：`tests/system/reports/<run-id>/`（如 `2026-09-30/system-test-report.md`）。
-- 单元测试：`tests/unit/v03/reports/<run-id>/`。
-- UI（系统层真实浏览器）：`tests/ui/reports/<run-id>/`。
+- 单元测试：`tests/unit/reports/<run-id>/`（脚本 `tests/unit/cases/`）。
+- UI（系统层真实浏览器）：`tests/system/reports/<run-id>/`。
 
 本目录只引用报告，不复制原始结果。历史 Run 报告保留原 Case ID 键（迁移不改写既有 Run 证据）。

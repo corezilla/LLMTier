@@ -59,7 +59,7 @@ Handler._dispatch()  # 契约层 `/tier/admin/v1/*` 与扁平 `/v1/*` 两命名�
 ```
 
 - 初态构造（经公开入口）：`AppFixture().seed()` + loopback `handler_factory(app)`（ENV-2）
-- Fixture / 向量及版本：`tests/unit/v03/fakes.py::AppFixture`（ENV-1）+ `test_app_dispatch.py::AliasParityTests`（ENV-2）
+- Fixture / 向量及版本：`tests/common/fakes.py::AppFixture`（ENV-1）+ `test_app_dispatch.py::AliasParityTests`（ENV-2）
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../llmtier-unit-test-plan.md) 分配）：ENV-2 loopback 测试 HTTP 实例
 - 依赖的测试资产（tests.asset-design 文档）：无（真实实现）
 
@@ -89,6 +89,6 @@ Handler._dispatch()  # 契约层 `/tier/admin/v1/*` 与扁平 `/v1/*` 两命名�
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_app_dispatch.py::AliasParityTests::test_diagnostics_switches_parity` / `test_snapshots_parity` / `test_traces_parity_empty`
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_app_dispatch.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03/test_app_dispatch.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 测试文件 / 测试函数：`tests/unit/cases/UT-API-011.py::AliasParityTests::test_diagnostics_switches_parity` / `test_snapshots_parity` / `test_traces_parity_empty`
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/app_dispatch.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-API-011.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。

@@ -54,13 +54,13 @@
 - 要测什么（责任展开）：确认通过后，同一任务内连点 Probe 两次，因首次点击**同步**置 `button.disabled=true`，第二次点击为 no-op，只发出一次 `POST /v1/probes`，页面不重复追加行。
 - 明确不测什么 / 失败含义：不证明服务端探测去重（本 Case 只证明 UI 防重语义）。失败含义＝连点导致重复调用/重复渲染。
 
-**目的（被测契约）**：UI 的付费/开销性动作在 in-flight 期间禁用，连点只产生一次有效能力调用，页面不重复追加。被测入口：`src/web_ui/`（同源 `/ui/`）；驱动：headless Chrome + CDP；编排：`tests/ui/test_ui_browser.py`。
+**目的（被测契约）**：UI 的付费/开销性动作在 in-flight 期间禁用，连点只产生一次有效能力调用，页面不重复追加。被测入口：`src/web_ui/`（同源 `/ui/`）；驱动：headless Chrome + CDP；编排：`tests/system/cases/ST-UI-001.py`。
 
 ## 2. 被测入口与前置
 
 - **前置与环境**：**环境 B**（hermetic 临时 `LLMTierInstance`，loopback；上游为 LAN-bound fake provider，TS-003）。baseline（1 provider/1 deployment（探测 healthy）/7 fixed tiers）。规范依赖：`LLMTIER_BROWSER`、`LLMTIER_NODE`。无需 m5air。
 - 被测入口声明与位置：`src/web_ui/index.html`、`src/web_ui/app.js`（同源 `/ui/`）。
-- Fixture / 向量：`tests/ui/conftest.py::ui_instance` / `fake_provider_b`。
+- Fixture / 向量：`tests/system/cases conftest.py::ui_instance` / `fake_provider_b`。
 
 ## 3. 输入构造
 
@@ -100,14 +100,14 @@
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/ui/test_ui_browser.py::test_ui_double_click_probe_is_not_duplicated`（`Case ID: ST-UI-009` 经 `record_property` 写入 JUnit）；驱动 `tests/ui/browser_driver.mjs`。入口：
+- 测试文件 / 测试函数：`tests/system/cases/ST-UI-001.py::test_ui_double_click_probe_is_not_duplicated`（`Case ID: ST-UI-009` 经 `record_property` 写入 JUnit）；驱动 `tests/common/drivers/browser_driver.mjs`。入口：
   ```text
-  PYTHONPATH=src python3 -m pytest tests/ui -m ui -q -k ST-UI-009
+  PYTHONPATH=src python3 -m pytest tests/system/cases -m ui -q -k ST-UI-009
   # 或 tools/run_ui_tests.sh
   ```
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/ui -m ui -q -k ST-UI-009`
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/cases -m ui -q -k ST-UI-009`
 - 实现状态：`Implemented`（本地 PASS）；执行状态与 Verdict 归 Run 报告。
-- **证据与 Run**：截图 `tests/ui/artifacts/ST-UI-009/ST-UI-009.png` 与网络日志 `ST-UI-009.network.json`（网络计数为判据）。
+- **证据与 Run**：截图 `tests/system/artifacts/ST-UI-009/ST-UI-009.png` 与网络日志 `ST-UI-009.network.json`（网络计数为判据）。
 
 ## 8. 需求与设计可追溯
 

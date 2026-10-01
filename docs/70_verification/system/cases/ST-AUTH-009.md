@@ -53,11 +53,11 @@
 - 要测什么（责任展开）：`GET /v1/providers/{id}` 在**携带有效 data token**时，**无论 `{id}` 是否存在**都先返回 403 + `permission_denied`，不泄露 `not_found`（授权先于资源存在性）。
 - 明确不测什么 / 失败含义：不证明 **admin 凭据下不存在的 provider→404 `not_found`**（ST-PROV-004）、**data token 访问 provider 列表**被拒（ST-AUTH-003）、**别名命名空间**需 admin（ST-AUTH-008）、**错误 bearer** 被拒（ST-AUTH-002）、**缺/非法凭据→401**（ST-AUTH-010）、**未配置鉴权→503**（ST-AUTH-007）。本 case **只**断言认证拒绝发生在资源存在性判定之前、且拒绝形态不因存在性而异。
 
-  > **实现状态（Implemented）**：自动化入口 `at_auth_09.py` 已实现，见 §7。
+  > **实现状态（Implemented）**：自动化入口 `ST-AUTH-009.py` 已实现，见 §7。
 
 **目的（被测契约）**：验证 access-trust 的 **INV-3：401/403 不泄露资源存在性**。被测端点/规则：`GET /v1/providers/{id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getProvider`，securityScheme `AdminBearerAuth`）；[`app.py`](../../../../src/http_api/app.py) 在解析 `{id}` 后**先**执行 `principal = self._auth("admin")`（`app.py:248`），**再**进入 provider 详情分支与 `app.registry.get_provider(rid)`（`app.py:287-295`）。data token（`dev-data`）对 `admin` role 不匹配 ⇒ [`authenticate()`](../../../../src/http_api/auth.py) 抛 403 `permission_denied`，**在 `get_provider()` 之前**完成，因此不存在的 `{id}` 也只得到 403、绝不得到 404 `not_found`。设计验证项 `VRC-API-002`；机制 `T-TRUST-LEAK`（机制需求 `R-TRUST-01`/`R-TRUST-02`；见 [access-trust 机制 §4.4/§8 INV-3/§11](../../../20_system_design/mechanisms/access-trust.md)）；错误信封 `{error:{message,type,code,param,retryable}}`。**不证明什么**：不证明 **admin 凭据下不存在的 provider→404 `not_found`**（ST-PROV-004）、**data token 访问 provider 列表**被拒（ST-AUTH-003）、**别名命名空间**需 admin（ST-AUTH-008）、**错误 bearer** 被拒（ST-AUTH-002）、**缺/非法凭据→401**（ST-AUTH-010）、**未配置鉴权→503**（ST-AUTH-007）。本 case **只**断言认证拒绝发生在资源存在性判定之前、且拒绝形态不因存在性而异。
 
-  > **实现状态（Implemented）**：自动化入口 `at_auth_09.py` 已实现，见 §7。
+  > **实现状态（Implemented）**：自动化入口 `ST-AUTH-009.py` 已实现，见 §7。
 
 ## 2. 被测入口与前置
 
@@ -117,6 +117,6 @@
 
 - **证据与 Run**：保存两条原始命令、发送 headers 快照（证明 `Bearer dev-data`）、两组 HTTP status/headers/body、执行机 LAN IP、exit code、`elapsed`、环境快照（`/healthz`/`/readyz` + provider 列表）；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查（含 §2.1.6 `provider_local` 注册）；独立 `httpx` 客户端或 `api_client`（带 `dev-data`）；m5air `GET /v1/providers/{id}` 可用；自动化入口 `tests/system/api_test_v03/at_auth_09.py`（已实现）。**不依赖**其它 Case；与 ST-AUTH-003/ST-AUTH-008 共享 admin 面角色隔离，与 ST-PROV-004（admin 正向 not_found）互补但独立执行、互不关闭。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查（含 §2.1.6 `provider_local` 注册）；独立 `httpx` 客户端或 `api_client`（带 `dev-data`）；m5air `GET /v1/providers/{id}` 可用；自动化入口 `tests/system/cases/ST-AUTH-009.py`（已实现）。**不依赖**其它 Case；与 ST-AUTH-003/ST-AUTH-008 共享 admin 面角色隔离，与 ST-PROV-004（admin 正向 not_found）互补但独立执行、互不关闭。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

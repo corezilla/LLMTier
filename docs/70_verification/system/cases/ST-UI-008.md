@@ -54,13 +54,13 @@
 - 要测什么（责任展开）：provider 视图只暴露 `has_secret`（布尔），**不得**暴露 secret 值或其引用串；UI 只显示脱敏标记 `Configured`，编辑态不回填任何 secret。
 - 明确不测什么 / 失败含义：不证明服务端密钥存储加密、不证明上游鉴权（归 ST-AUTH-* / 安全 Case）。失败含义＝secret 值/引用以任何形式泄露到浏览器可见面。
 
-**目的（被测契约）**：配了 `secret_ref` 的 provider 在真实浏览器中只呈现脱敏标记，secret 值与引用串不得出现在 DOM、URL 或 CDP 网络日志中。被测入口：`src/web_ui/`（同源 `/ui/`）；驱动：headless Chrome + CDP（`tests/ui/browser_driver.mjs`）；编排：`tests/ui/test_ui_browser.py`。
+**目的（被测契约）**：配了 `secret_ref` 的 provider 在真实浏览器中只呈现脱敏标记，secret 值与引用串不得出现在 DOM、URL 或 CDP 网络日志中。被测入口：`src/web_ui/`（同源 `/ui/`）；驱动：headless Chrome + CDP（`tests/common/drivers/browser_driver.mjs`）；编排：`tests/system/cases/ST-UI-001.py`。
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 B**（hermetic 临时 `LLMTierInstance`，loopback；上游为 LAN-bound fake provider `tests/fixtures/v03_fake_provider.py`，TS-003）。本 Case 自建实例并注入 `LLMTIER_UI_SECRET_008` 环境值（哨兵）；baseline 之上追加 `prov_secret`（`kind=cloud`，`secret_ref="env:LLMTIER_UI_SECRET_008"`）。规范依赖：`LLMTIER_BROWSER`、`LLMTIER_NODE`。无需 m5air。
+- **前置与环境**：**环境 B**（hermetic 临时 `LLMTierInstance`，loopback；上游为 LAN-bound fake provider `tests/fixtures/models/v03_fake_provider.py`，TS-003）。本 Case 自建实例并注入 `LLMTIER_UI_SECRET_008` 环境值（哨兵）；baseline 之上追加 `prov_secret`（`kind=cloud`，`secret_ref="env:LLMTIER_UI_SECRET_008"`）。规范依赖：`LLMTIER_BROWSER`、`LLMTIER_NODE`。无需 m5air。
 - 被测入口声明与位置：`src/web_ui/index.html`、`src/web_ui/app.js`（同源 `/ui/`）。
-- Fixture / 向量：`tests/ui/conftest.py::provider_endpoint_b`、`LLMTierInstance`、`baseline_settings`。
+- Fixture / 向量：`tests/system/cases conftest.py::provider_endpoint_b`、`LLMTierInstance`、`baseline_settings`。
 
 ## 3. 输入构造
 
@@ -100,14 +100,14 @@
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/ui/test_ui_browser.py::test_ui_provider_secret_never_shown`（`Case ID: ST-UI-008` 经 `record_property` 写入 JUnit）；驱动 `tests/ui/browser_driver.mjs`。入口：
+- 测试文件 / 测试函数：`tests/system/cases/ST-UI-001.py::test_ui_provider_secret_never_shown`（`Case ID: ST-UI-008` 经 `record_property` 写入 JUnit）；驱动 `tests/common/drivers/browser_driver.mjs`。入口：
   ```text
-  PYTHONPATH=src python3 -m pytest tests/ui -m ui -q -k ST-UI-008
+  PYTHONPATH=src python3 -m pytest tests/system/cases -m ui -q -k ST-UI-008
   # 或 tools/run_ui_tests.sh
   ```
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/ui -m ui -q -k ST-UI-008`
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/cases -m ui -q -k ST-UI-008`
 - 实现状态：`Implemented`（本地 PASS）；执行状态与 Verdict 归 Run 报告。
-- **证据与 Run**：截图 `tests/ui/artifacts/ST-UI-008/ST-UI-008.png` 与网络日志 `ST-UI-008.network.json`；另经 DOM/URL/网络日志全扫描断言无泄露。
+- **证据与 Run**：截图 `tests/system/artifacts/ST-UI-008/ST-UI-008.png` 与网络日志 `ST-UI-008.network.json`；另经 DOM/URL/网络日志全扫描断言无泄露。
 
 ## 8. 需求与设计可追溯
 

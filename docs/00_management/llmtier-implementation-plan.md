@@ -92,8 +92,8 @@ V0.3本轮固定为25个生产代码文件和2个调试工具文件，共27个�
 
 | # | 路径 | 职责 | 里程碑 | 初始状态 |
 |---:|---|---|---|---|
-| 26 | `tools/v03_fake_provider.py` | 本地确定性Responses/Embeddings故障模拟 | C4 | Planned |
-| 27 | `tools/v03_smoke.py` | 启动、Admin、Data Plane、重启和Web UI冒烟 | C7 | Planned |
+| 26 | `tests/fixtures/models/v03_fake_provider.py` | 本地确定性Responses/Embeddings故障模拟 | C4 | Planned |
+| 27 | `tests/integration/v03_smoke.py` | 启动、Admin、Data Plane、重启和Web UI冒烟 | C7 | Planned |
 
 ### 4.3 里程碑与完成条件
 

@@ -59,7 +59,7 @@ AdminService.page(...); UsageRecorder.reset_usage(...)  # 范围：model/deploym
 ```
 
 - 初态构造（经公开入口）：`AppFixture().seed()` + 写入用量行与查询快照；构造过期 cursor（ENV-1）
-- Fixture / 向量及版本：`tests/unit/v03/test_management_gaps.py::AdminCursorExpiryTests`/`ResetUsageScopeTests`；`fakes.py::AppFixture`（ENV-1）
+- Fixture / 向量及版本：`tests/unit/cases/UT-MGMT-009.py::AdminCursorExpiryTests`/`ResetUsageScopeTests`；`fakes.py::AppFixture`（ENV-1）
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../llmtier-unit-test-plan.md) 分配）：ENV-1 隔离 Python 临时库
 - 依赖的测试资产（tests.asset-design 文档）：无（真实实现）
 
@@ -93,6 +93,6 @@ AdminService.page(...); UsageRecorder.reset_usage(...)  # 范围：model/deploym
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_management_gaps.py::AdminCursorExpiryTests::test_expired_admin_cursor_is_400` / `test_malformed_offset_cursor_is_400_not_500` / `test_non_integer_offset_cursor_is_400_not_valueerror` + `AdminCursorGuardTests::test_cursor_filter_digest_is_checked` / `test_cursor_authorization_digest_is_checked` / `test_cursor_filter_kind_mismatch_is_400` + `ResetUsageScopeTests::test_reset_by_model_only` / `test_reset_by_deployment_only` / `test_reset_by_model_and_deployment` / `test_reset_all`
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_management_gaps.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03/test_management_gaps.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 测试文件 / 测试函数：`tests/unit/cases/UT-MGMT-009.py::AdminCursorExpiryTests::test_expired_admin_cursor_is_400` / `test_malformed_offset_cursor_is_400_not_500` / `test_non_integer_offset_cursor_is_400_not_valueerror` + `AdminCursorGuardTests::test_cursor_filter_digest_is_checked` / `test_cursor_authorization_digest_is_checked` / `test_cursor_filter_kind_mismatch_is_400` + `ResetUsageScopeTests::test_reset_by_model_only` / `test_reset_by_deployment_only` / `test_reset_by_model_and_deployment` / `test_reset_all`
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/management_gaps.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-MGMT-009.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。

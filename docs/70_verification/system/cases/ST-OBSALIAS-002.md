@@ -75,7 +75,7 @@
   4. 断言两 `status == 200`、`Content-Type` 相同、`resp.content` **逐字节相等**。
   5. 断言两者均为合法 `SnapshotPage`（顶层键集恰 `{items, next_cursor, has_more}`）；本 case 仅判等价，形状细节归 ST-OBSSNAP-001。
 
-**重点关注步骤**：① **参数严格对齐**——两请求 query 完全一致才可逐字节比较。② **逐字节 body 等价**——比较 `resp.content`，不是解析后对象。③ **只比 body**——`X-Request-ID` 不参与，也不列入 Oracle。④ **鉴权等价**——都需 `admin`（本 case 正向；负向 ST-AUTH-008）。⑤ **空页也须等价**——`items=[]` 时两路径仍应完全一致。⑥ **降级/存储**——降级实例两路径同样返回空页（等价仍成立，判 BLOCKED/SKIP 说明语义）；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `at_obs_alias_02.py` 已实现。
+**重点关注步骤**：① **参数严格对齐**——两请求 query 完全一致才可逐字节比较。② **逐字节 body 等价**——比较 `resp.content`，不是解析后对象。③ **只比 body**——`X-Request-ID` 不参与，也不列入 Oracle。④ **鉴权等价**——都需 `admin`（本 case 正向；负向 ST-AUTH-008）。⑤ **空页也须等价**——`items=[]` 时两路径仍应完全一致。⑥ **降级/存储**——降级实例两路径同样返回空页（等价仍成立，判 BLOCKED/SKIP 说明语义）；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSALIAS-002.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -102,6 +102,6 @@
 
 - **证据与 Run**：保存两路径响应与逐字节对比、命令/exit code/`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 6 项就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；openapi `x-llmtier-contract-aliases`；实现 [`src/http_api/app.py`](../../../../src/http_api/app.py)（`/tier/admin/v1/diagnostics/snapshots` 分支）。自动化入口 `at_obs_alias_02.py`（已实现）。**不依赖**其它 Case；与 ST-OBSSNAP-001（内容/脱敏）、ST-AUTH-008（别名鉴权）语义相邻，与其它别名并列但各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 6 项就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；openapi `x-llmtier-contract-aliases`；实现 [`src/http_api/app.py`](../../../../src/http_api/app.py)（`/tier/admin/v1/diagnostics/snapshots` 分支）。自动化入口 `ST-OBSALIAS-002.py`（已实现）。**不依赖**其它 Case；与 ST-OBSSNAP-001（内容/脱敏）、ST-AUTH-008（别名鉴权）语义相邻，与其它别名并列但各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

@@ -59,7 +59,7 @@ Store.close(); Store.connection(); Store.transaction(immediate=True)
 ```
 
 - 初态构造（经公开入口）：`tempfile.TemporaryDirectory` 隔离库；构造 holding 写事务以触发 lock（ENV-1）
-- Fixture / 向量及版本：`tests/unit/v03/test_store_gaps.py::FdHygieneTests`/`BusyLockTests`/`CloseRaisesTests`/`WorldWritableTests`
+- Fixture / 向量及版本：`tests/unit/cases/UT-UTIL-003.py::FdHygieneTests`/`BusyLockTests`/`CloseRaisesTests`/`WorldWritableTests`
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../llmtier-unit-test-plan.md) 分配）：ENV-1 隔离 Python 临时库
 - 依赖的测试资产（tests.asset-design 文档）：无（真实 SQLite）
 
@@ -91,6 +91,6 @@ Store.close(); Store.connection(); Store.transaction(immediate=True)
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_store_gaps.py::FdHygieneTests::test_close_releases_and_reconnects_after_request` / `test_close_is_idempotent` / `BusyLockTests::test_locked_write_raises_operational_error` / `CloseRaisesTests::test_close_exception_propagates` / `WorldWritableTests::test_world_writable_warns`
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_store_gaps.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03/test_store_gaps.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 测试文件 / 测试函数：`tests/unit/cases/UT-UTIL-003.py::FdHygieneTests::test_close_releases_and_reconnects_after_request` / `test_close_is_idempotent` / `BusyLockTests::test_locked_write_raises_operational_error` / `CloseRaisesTests::test_close_exception_propagates` / `WorldWritableTests::test_world_writable_warns`
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/store_gaps.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-UTIL-003.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。

@@ -59,7 +59,7 @@ DiagnosticsService.page_snapshots/stats(...)
 ```
 
 - 初态构造（经公开入口）：`AppFixture`；`UsageRecorder` 写账本；stats 经 `StatsEndpointTests`
-- Fixture / 向量及版本：`tests/unit/v03/fakes.py::AppFixture`
+- Fixture / 向量及版本：`tests/common/fakes.py::AppFixture`
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../llmtier-unit-test-plan.md) 分配）：ENV-1 隔离 Python 临时库 / ENV-2 loopback 测试 HTTP 实例 / ENV-3 provider 进程内 fake（按 Case 需要，见 §4）
 - 依赖的测试资产（tests.asset-design 文档）：无（真实实现）
 
@@ -92,7 +92,7 @@ DiagnosticsService.page_snapshots/stats(...)
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_admin_stats.py`（全部 5 个：tier/deployment 聚合、跨 principal、非法 group_by、空记录）+ `tests/unit/v03/test_observability_gaps.py::SnapshotRedactionTests::test_query_secret_is_not_stored_in_snapshot` / `test_trace_stage_url_also_stripped`（快照 URL 去 query 与字段落库；与 UT-OBS-006 共享）（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_admin_stats.py tests/unit/v03/test_observability_gaps.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 测试文件 / 测试函数：`tests/unit/cases/UT-OBS-002.py`（全部 5 个：tier/deployment 聚合、跨 principal、非法 group_by、空记录）+ `tests/unit/cases/UT-OBS-002.py::SnapshotRedactionTests::test_query_secret_is_not_stored_in_snapshot` / `test_trace_stage_url_also_stripped`（快照 URL 去 query 与字段落库；与 UT-OBS-006 共享）（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/admin_stats.py tests/unit/cases/observability_gaps.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
 

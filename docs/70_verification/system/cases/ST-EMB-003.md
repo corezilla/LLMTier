@@ -88,7 +88,7 @@ Accept: application/json
 | 3 | 对每一对 `(i,j)`（`0<=i<j<5`）计算 `cosine(vectors[i], vectors[j])` | 断言 `> 0.99` |
 | 4 | 记录 5 次 `X-Request-ID` 与 `elapsed` | 仅供证据，不参与 PASS/FAIL |
 
-- 重点关注步骤：① **同输入一致性**——5 次必须使用**完全相同的 body**（尤其 `input` 与省略字段一致），任一字段漂移会使比较失去意义；② **相似度而非相等**——Oracle 是 `cosine > 0.99`（软阈值，容忍上游推理的浮点/批次差异），**不是**逐位相等；③ **维度一致性**——5 个向量都须 1024，长度不一致须先判 FAIL；④ **cosine 实现独立**——测试侧自行计算点积/范数（见 [`at_dp_emb_03.py`](../../../../tests/system/api_test_v03/at_dp_emb_03.py) 的 `_cosine`），不调用被测实现的归一化；⑤ **零向量保护**——范数为 0 时 cosine 未定义，测试实现返回 0（判 FAIL），须显式处理；⑥ **串行执行**——避免并发导致的不相关差异。
+- 重点关注步骤：① **同输入一致性**——5 次必须使用**完全相同的 body**（尤其 `input` 与省略字段一致），任一字段漂移会使比较失去意义；② **相似度而非相等**——Oracle 是 `cosine > 0.99`（软阈值，容忍上游推理的浮点/批次差异），**不是**逐位相等；③ **维度一致性**——5 个向量都须 1024，长度不一致须先判 FAIL；④ **cosine 实现独立**——测试侧自行计算点积/范数（见 [`ST-EMB-003.py`](../../../../tests/system/cases/ST-EMB-003.py) 的 `_cosine`），不调用被测实现的归一化；⑤ **零向量保护**——范数为 0 时 cosine 未定义，测试实现返回 0（判 FAIL），须显式处理；⑥ **串行执行**——避免并发导致的不相关差异。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -102,8 +102,8 @@ Accept: application/json
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：[`tests/system/api_test_v03/at_dp_emb_03.py`](../../../../tests/system/api_test_v03/at_dp_emb_03.py)。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_emb_03.py -q`。
+- 测试文件 / 测试函数：[`tests/system/cases/ST-EMB-003.py`](../../../../tests/system/cases/ST-EMB-003.py)。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/cases/ST-EMB-003.py -q`。
 - 实现状态：Implemented；执行与 Verdict 归 Run 报告。
 
 **判定口径（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
@@ -116,4 +116,4 @@ Accept: application/json
 
 **证据与 Run**：Run ID=`<date>/A-api`；保存原始 status/headers/body（脱敏后）、5 次请求/响应（或各自向量摘要）、测试侧 cosine 矩阵、发出命令、exit code、`elapsed`、环境快照（本 case `environment:"a"`）。
 
-**依赖**：就绪检查；`api_client`；`Embedding-v1` 上游 tier；方案不变量阈值；实现 `src/inference/embeddings.py`；自动化入口 `at_dp_emb_03.py`。**不依赖**其它 Case；与 ST-EMB-001/02 共享成功路径但独立执行。
+**依赖**：就绪检查；`api_client`；`Embedding-v1` 上游 tier；方案不变量阈值；实现 `src/inference/embeddings.py`；自动化入口 `ST-EMB-003.py`。**不依赖**其它 Case；与 ST-EMB-001/02 共享成功路径但独立执行。

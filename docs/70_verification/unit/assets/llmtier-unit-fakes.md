@@ -44,7 +44,7 @@
 
 ## 1. 用途与消费方
 
-- 资产 ID / 名称 / 形态：`llmtier-unit-fakes`（候选 ID `FAKE-LLMTIER-ADAPTER`）——单元层进程内替身资产，含 `FakeAdapter`（上游 provider adapter fake）与 `AppFixture`（隔离 `Application` 装配夹具，含 `seed()` 固定 tier/deployment）；实现于 `tests/unit/v03/fakes.py`。
+- 资产 ID / 名称 / 形态：`llmtier-unit-fakes`（候选 ID `FAKE-LLMTIER-ADAPTER`）——单元层进程内替身资产，含 `FakeAdapter`（上游 provider adapter fake）与 `AppFixture`（隔离 `Application` 装配夹具，含 `seed()` 固定 tier/deployment）；实现于 `tests/common/fakes.py`。
 - 用途与解决的问题：让单元层在**不触真实上游 provider、不依赖真实网络**的前提下，对 `ResponsesService`/`EmbeddingsService`/`Router` 的成功、失败、用量缺失、拒绝与终态路径做确定性断言；`AppFixture` 提供每 Case 隔离的临时 SQLite 与固定 tier 种子。
 
 | 消费方 | 类型 | 依赖点 |
@@ -79,7 +79,7 @@
 
 ## 4. 实现设计与版本耦合
 
-- 实现位置与结构：`tests/unit/v03/fakes.py`（单文件）；`AppFixture`（隔离库装配）、`FakeAdapter`（provider fake）、`response_capabilities()`/`embedding_capabilities()`（能力键构造）。
+- 实现位置与结构：`tests/common/fakes.py`（单文件）；`AppFixture`（隔离库装配）、`FakeAdapter`（provider fake）、`response_capabilities()`/`embedding_capabilities()`（能力键构造）。
 - 版本耦合与适配规则：绑定 `src/inference/providers/base.py::ProviderResult` 与 `src/http_api/app.py::Application` 公开签名；二者变更时先改本契约再适配，消费方逐 Case 复跑。
 - 并行隔离：`AppFixture` 每实例独立 `tempfile.TemporaryDirectory`＋新 SQLite；`FakeAdapter` 每 Case 新建实例，无跨 Case 状态。
 
@@ -94,18 +94,18 @@
 | `FakeAdapter.probe()` 返回 `True` | §2 probe | 断言 |
 | `AppFixture.seed()` 后 tier 含该 deployment 且 `health` 已写 | §2 seed | 断言 |
 
-- 自检执行入口：`PYTHONPATH=src python3 -m pytest tests/unit/v03 -q`（消费方 Case 即自检入口；资产无独立 runner，自检由使用它的单元 Case 覆盖）。
-- 自检 Run 证据位置：`tests/unit/v03/reports/<run-id>/`（单元 Run 根；当前尚无录制 Run，见 `G-UT-1`）。
+- 自检执行入口：`PYTHONPATH=src python3 -m pytest tests/unit -q`（消费方 Case 即自检入口；资产无独立 runner，自检由使用它的单元 Case 覆盖）。
+- 自检 Run 证据位置：`tests/unit/reports/<run-id>/`（单元 Run 根；当前尚无录制 Run，见 `G-UT-1`）。
 
 ## 6. 状态与版本
 
-- 开发状态 / 验证状态（自检 Run 引用）：`Implemented` / `Unverified`（资产已实现并被全部单元 Case 消费，但形式化自检 Run 尚未录制，见 `G-UT-1`；`tests/unit/v03` 当前 364 收集级通过，属于消费方 Case 的执行证据，不冒充本资产自检）。
+- 开发状态 / 验证状态（自检 Run 引用）：`Implemented` / `Unverified`（资产已实现并被全部单元 Case 消费，但形式化自检 Run 尚未录制，见 `G-UT-1`；`tests/unit` 当前 364 收集级通过，属于消费方 Case 的执行证据，不冒充本资产自检）。
 - 最近契约变更与消费方影响：v1 初版；`FakeAdapter` 增加 `status`/`provider_request_id` 参数后 `UT-INF-003/008` 复评无影响。
 
 ## 7. 未决项
 
 | 未决项 / 关联 | Owner / 最晚 Gate | 关闭所需事实或决定 |
 |---|---|---|
-| 自检 Run 正式录制与 `Verified` 状态 | LLMTier / 首次执行后报告评审 | 按 §5 录制一次自检 Run 于 `tests/unit/v03/reports/<run-id>/`，置 `Verified`；与 `G-UT-1` 同批关闭 |
+| 自检 Run 正式录制与 `Verified` 状态 | LLMTier / 首次执行后报告评审 | 按 §5 录制一次自检 Run 于 `tests/unit/reports/<run-id>/`，置 `Verified`；与 `G-UT-1` 同批关闭 |
 
 <!-- 交付自查：契约是否完整到 Case 作者无需读源码；每个消费方是否都能反向找到本文档；Verified 是否可追到自检 Run；有没有用工具绕产品缺陷的痕迹？ -->

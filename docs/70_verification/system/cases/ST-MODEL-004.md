@@ -40,7 +40,7 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 A**（m5air 现有实例，角色 `data`，无副作用；见[系统测试方案 §1 测试边界](../llmtier-system-test-scheme.md)）；前置 = 就绪检查（由 `conftest.py::pytest_configure` 自动执行，任一失败 → 整班 BLOCKED/SKIP）。fixture = `api_client`（Data 角色客户端）。初始状态 = 3 provider / 4 deployment / 7 fixed tier；被拒绝的目标 `WORKER` 是全大写形态，**不在** `FIXED_TIERS`（[`constants.py`](../../../../tests/system/api_test_v03/constants.py)）中。
+- **前置与环境**：**环境 A**（m5air 现有实例，角色 `data`，无副作用；见[系统测试方案 §1 测试边界](../llmtier-system-test-scheme.md)）；前置 = 就绪检查（由 `conftest.py::pytest_configure` 自动执行，任一失败 → 整班 BLOCKED/SKIP）。fixture = `api_client`（Data 角色客户端）。初始状态 = 3 provider / 4 deployment / 7 fixed tier；被拒绝的目标 `WORKER` 是全大写形态，**不在** `FIXED_TIERS`（[`constants.py`](../../../../tests/system/constants.py)）中。
 - **被测入口**：
 
   ```http
@@ -113,6 +113,6 @@
 ## 7. 自动化位置与状态
 
 - **证据与 Run**：证据与 Run 契约见[§4.8/§10](../llmtier-system-test-scheme.md)：保存原始 HTTP status/headers/body、发出命令、exit code、`elapsed`、环境快照（`/healthz`/`/readyz`），以及**证明输入为全大写**的请求行快照；manifest 与报告落位见 §4.8/§10（本 case `environment:"a"`）；失败现场不截断。
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client` fixture（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）；实现 [`src/inference/models.py`](../../../../src/inference/models.py) `ModelCatalog.get()` 与 [`Registry.get_service_level()`](../../../../src/management/registry.py)；`ModelNotFound`/`ErrorDetail` 机器契约（[`interfaces/openapi/llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)）；自动化入口 [`at_dp_models_04.py`](../../../../tests/system/api_test_v03/at_dp_models_04.py)。**不依赖**其它 Case；与 ST-MODEL-003（全小写）、ST-MODEL-005（URL 编码尾空格）、ST-MODEL-006（不存在）都以同一个 404 `model_not_found` 收口，但输入与"敏感维度"不同，各自独立执行、互不关闭。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client` fixture（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）；实现 [`src/inference/models.py`](../../../../src/inference/models.py) `ModelCatalog.get()` 与 [`Registry.get_service_level()`](../../../../src/management/registry.py)；`ModelNotFound`/`ErrorDetail` 机器契约（[`interfaces/openapi/llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)）；自动化入口 [`ST-MODEL-004.py`](../../../../tests/system/cases/ST-MODEL-004.py)。**不依赖**其它 Case；与 ST-MODEL-003（全小写）、ST-MODEL-005（URL 编码尾空格）、ST-MODEL-006（不存在）都以同一个 404 `model_not_found` 收口，但输入与"敏感维度"不同，各自独立执行、互不关闭。
 
-> 实现状态：Implemented（`at_dp_models_04.py` 已断言本 case 契约）；执行状态与 Verdict 只在 Run 报告。
+> 实现状态：Implemented（`ST-MODEL-004.py` 已断言本 case 契约）；执行状态与 Verdict 只在 Run 报告。

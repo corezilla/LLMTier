@@ -42,7 +42,7 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite，同机第二个进程）。执行前满足**附加（B 类）**：实例可启动且 `GET /healthz` 200；`_baseline_settings` 注入 1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier。fixture（**已落地**）：本 case 使用专用 `LLMTierInstance` fixture `llmtier_b_diag_store`（[`conftest.py`](../../../../tests/system/api_test_v03/conftest.py)，独立临时 SQLite 与端口，暴露临时库路径只读访问器）+ `store_triplet`（三件套移开/恢复工厂），**不得**复用或就地改动 session-scope 的 `llmtier_b`（其库被其它 B 类 case 共享，就地移库会污染它们）。TS-003：本 case 不触上游。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite，同机第二个进程）。执行前满足**附加（B 类）**：实例可启动且 `GET /healthz` 200；`_baseline_settings` 注入 1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier。fixture（**已落地**）：本 case 使用专用 `LLMTierInstance` fixture `llmtier_b_diag_store`（[`conftest.py`](../../../../tests/system/conftest.py)，独立临时 SQLite 与端口，暴露临时库路径只读访问器）+ `store_triplet`（三件套移开/恢复工厂），**不得**复用或就地改动 session-scope 的 `llmtier_b`（其库被其它 B 类 case 共享，就地移库会污染它们）。TS-003：本 case 不触上游。
 - **被测入口**：
 
   ```http
@@ -95,9 +95,9 @@
 
 ## 7. 自动化位置与状态
 
-- **测试文件 / 测试函数**：`tests/system/api_test_v03/at_obs_trace_03.py`（已实现；依赖专用实例 fixture）。
-- **单 Case 执行命令**：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_obs_trace_03.py -q`。
-- **实现状态**：Implemented（`at_obs_trace_03.py` 已断言 store 不可用 → 503 `usage_store_unavailable` + 恢复 200；B 类运行通过）；执行与 Verdict 归 Run 报告。
+- **测试文件 / 测试函数**：`tests/system/cases/ST-OBSTRACE-003.py`（已实现；依赖专用实例 fixture）。
+- **单 Case 执行命令**：`PYTHONPATH=src python3 -m pytest tests/system/cases/ST-OBSTRACE-003.py -q`。
+- **实现状态**：Implemented（`ST-OBSTRACE-003.py` 已断言 store 不可用 → 503 `usage_store_unavailable` + 恢复 200；B 类运行通过）；执行与 Verdict 归 Run 报告。
 
 **证据与 Run**：保存基线请求/响应、触发动作（移动文件清单与 `mkdir` 结果、`db_path`）、故障请求原始 status/headers/body、恢复动作与恢复后请求、发出命令、exit code、`elapsed`、环境快照（本 case `environment:"b"`）。
 

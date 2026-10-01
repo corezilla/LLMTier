@@ -89,7 +89,7 @@ Authorization: Bearer dev-data
 | 6 | 断言 `measurement_status ∈ {measured,estimated,unknown}` 且 `source` 与之一致 | `measured⇒provider`、`estimated⇒gateway_estimate`、`unknown⇒unavailable`；`unknown` 时 token 字段全为 `null`（**不得为 0**，INV-5）；否则为非负整数 |
 | 7 | 断言 `recorded_at`/`updated_at` 为合法 RFC3339 且 `recorded_at ∈ [since,until)` | `[from,to)` 边界 |
 
-- 重点关注步骤：① **`request_id` 捕获**——必须取前置响应头 `X-Request-ID`（服务端生成），不要自行编造；② **head 单条、不累加**——`data` 中同一 `request_id` 只应出现一条（head 指向的版本），若出现同 `request_id` 的多条即 FAIL；③ **终态而非 v1 obligation**——`is_final=true` 且 `record_version>=1`；④ **unknown ⇒ NULL 而非 0**——`T-MET-UNKNOWN`/INV-5 的强断言；⑤ **不夸大计量**——不对 token 数值做业务断言；⑥ **窗口动态**。注意：现有 [`at_dp_usage_02.py`](../../../../tests/system/api_test_v03/at_dp_usage_02.py) **未自建前置调用、未按 `request_id` 过滤、未断言 `is_final`/head 唯一/unknown⇒null**；脚本须补齐后方可判 PASS。
+- 重点关注步骤：① **`request_id` 捕获**——必须取前置响应头 `X-Request-ID`（服务端生成），不要自行编造；② **head 单条、不累加**——`data` 中同一 `request_id` 只应出现一条（head 指向的版本），若出现同 `request_id` 的多条即 FAIL；③ **终态而非 v1 obligation**——`is_final=true` 且 `record_version>=1`；④ **unknown ⇒ NULL 而非 0**——`T-MET-UNKNOWN`/INV-5 的强断言；⑤ **不夸大计量**——不对 token 数值做业务断言；⑥ **窗口动态**。注意：现有 [`ST-USAGE-002.py`](../../../../tests/system/cases/ST-USAGE-002.py) **未自建前置调用、未按 `request_id` 过滤、未断言 `is_final`/head 唯一/unknown⇒null**；脚本须补齐后方可判 PASS。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -103,8 +103,8 @@ Authorization: Bearer dev-data
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：[`tests/system/api_test_v03/at_dp_usage_02.py`](../../../../tests/system/api_test_v03/at_dp_usage_02.py)（脚本须补齐前置调用与上述断言）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_usage_02.py -q`。
+- 测试文件 / 测试函数：[`tests/system/cases/ST-USAGE-002.py`](../../../../tests/system/cases/ST-USAGE-002.py)（脚本须补齐前置调用与上述断言）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/cases/ST-USAGE-002.py -q`。
 - 实现状态：Implemented；执行与 Verdict 归 Run 报告。
 
 **判定口径（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
@@ -117,4 +117,4 @@ Authorization: Bearer dev-data
 
 **证据与 Run**：Run ID=`<date>/A-api`；保存前置 `POST /v1/embeddings` 的请求/响应（含 `X-Request-ID`）、随后的 `GET /v1/usage?request_id=...` 请求/响应、动态窗口实际值、发出命令、exit code、`elapsed`、环境快照（本 case `environment:"a"`）。
 
-**依赖**：就绪检查；`api_client`；embeddings-capable tier `Embedding-v1` / `dep_local_bge_m3`；`constants.recent_window()`；`UsageRecord`/`UsagePage` 机器契约；机制 [`usage-metering` §4.5/§4.6](../../../20_system_design/mechanisms/usage-metering.md)；自动化入口 `at_dp_usage_02.py`。**不依赖**其它 Case；与 ST-EMB-001（基本 embedding）共享同一调用形态但各自独立执行。
+**依赖**：就绪检查；`api_client`；embeddings-capable tier `Embedding-v1` / `dep_local_bge_m3`；`constants.recent_window()`；`UsageRecord`/`UsagePage` 机器契约；机制 [`usage-metering` §4.5/§4.6](../../../20_system_design/mechanisms/usage-metering.md)；自动化入口 `ST-USAGE-002.py`。**不依赖**其它 Case；与 ST-EMB-001（基本 embedding）共享同一调用形态但各自独立执行。

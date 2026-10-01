@@ -75,7 +75,7 @@
   4. **边界等价**：两路径同带 `?limit=1&cursor=not-a-real-cursor` → 断言两路径 **status 与 body 逐字节相同**（不判该状态是否为 400；负向判定归 ST-OBSTRACE-002）。
   5. 断言两路径 status 与 body 一致；仅 `X-Request-ID` 不同（不参与断言）。
 
-**重点关注步骤**：① **参数严格对齐**——同 query 才可逐字节比较。② **逐字节 body 等价**——比较 `resp.content`。③ **边界路径只判等价**——无效 cursor 下只要求两路径**行为一致**，不在此判定 cursor 负向是否合规（避免与 ST-OBSTRACE-002 重复/冲突）。④ **只比 body**——`X-Request-ID` 不参与、不列入 Oracle。⑤ **鉴权等价**——都需 `admin`（正向；负向 ST-AUTH-008）。⑥ **空页也须等价**——`items=[]` 时两路径仍完全一致。⑦ **降级/存储**——降级实例两路径同样空页（等价成立，判 BLOCKED/SKIP 说明语义）；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `at_obs_alias_06.py` 已实现。
+**重点关注步骤**：① **参数严格对齐**——同 query 才可逐字节比较。② **逐字节 body 等价**——比较 `resp.content`。③ **边界路径只判等价**——无效 cursor 下只要求两路径**行为一致**，不在此判定 cursor 负向是否合规（避免与 ST-OBSTRACE-002 重复/冲突）。④ **只比 body**——`X-Request-ID` 不参与、不列入 Oracle。⑤ **鉴权等价**——都需 `admin`（正向；负向 ST-AUTH-008）。⑥ **空页也须等价**——`items=[]` 时两路径仍完全一致。⑦ **降级/存储**——降级实例两路径同样空页（等价成立，判 BLOCKED/SKIP 说明语义）；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSALIAS-006.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -102,6 +102,6 @@
 
 - **证据与 Run**：保存两路径正向响应与逐字节对比、无效 cursor 边界两路径响应、命令/exit code/`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 6 项就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；openapi `x-llmtier-contract-aliases`；实现 [`src/http_api/app.py`](../../../../src/http_api/app.py)（`/tier/admin/v1/diagnostics/traces` 分支）。自动化入口 `at_obs_alias_06.py`（已实现）。**不依赖**其它 Case；与 ST-OBSTRACE-001/02（内容/分页）、ST-AUTH-008 语义相邻，与其它别名并列但各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 6 项就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；openapi `x-llmtier-contract-aliases`；实现 [`src/http_api/app.py`](../../../../src/http_api/app.py)（`/tier/admin/v1/diagnostics/traces` 分支）。自动化入口 `ST-OBSALIAS-006.py`（已实现）。**不依赖**其它 Case；与 ST-OBSTRACE-001/02（内容/分页）、ST-AUTH-008 语义相邻，与其它别名并列但各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

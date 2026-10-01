@@ -955,7 +955,7 @@ flowchart TD
 - **独立 Oracle / Expected**：Registry 与 hash 一致；503 + 回滚 + not_ready
 - **Actual / Evidence**：NOT_RUN
 - **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit/v03`；独立库
+- **测试入口 / 清理**：`tests/unit/cases`；独立库
 - **Run ID / Status**：NOT_RUN
 
 ### 9.1.2 `VRC-MGMT-002` · CRUD 与不变量
@@ -966,7 +966,7 @@ flowchart TD
 - **独立 Oracle / Expected**：412/409/`capability_conflict`/`embedding_space_conflict`
 - **Actual / Evidence**：NOT_RUN
 - **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit/v03` + 契约
+- **测试入口 / 清理**：`tests/unit/cases` + 契约
 - **Run ID / Status**：NOT_RUN
 
 ### 9.1.3 `VRC-MGMT-003` · 审计与日志
@@ -977,7 +977,7 @@ flowchart TD
 - **独立 Oracle / Expected**：审计 success/failed；日志脱敏 `[REDACTED]`
 - **Actual / Evidence**：NOT_RUN
 - **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit/v03`
+- **测试入口 / 清理**：`tests/unit/cases`
 - **Run ID / Status**：NOT_RUN
 
 ### 9.1.4 `VRC-MGMT-004` · 分页与清空
@@ -988,7 +988,7 @@ flowchart TD
 - **独立 Oracle / Expected**：旧页冻结；400/403；计数一致
 - **Actual / Evidence**：NOT_RUN
 - **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit/v03`
+- **测试入口 / 清理**：`tests/unit/cases`
 - **Run ID / Status**：NOT_RUN
 
 ### 9.1.5 `VRC-MGMT-005` · 探测
@@ -999,7 +999,7 @@ flowchart TD
 - **独立 Oracle / Expected**：400；`healthy`/`unhealthy` 落库
 - **Actual / Evidence**：NOT_RUN
 - **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit/v03`
+- **测试入口 / 清理**：`tests/unit/cases`
 - **Run ID / Status**：NOT_RUN
 
 ### 9.1.6 `VRC-MGMT-006` · 账号用量
@@ -1010,7 +1010,7 @@ flowchart TD
 - **独立 Oracle / Expected**：`not_refreshed`/`unavailable`+`error`；快照持久
 - **Actual / Evidence**：NOT_RUN
 - **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit/v03`
+- **测试入口 / 清理**：`tests/unit/cases`
 - **Run ID / Status**：NOT_RUN
 
 **运行命令**：全量 `PYTHONPATH=src python3 -m pytest tests/ tests/system/st_*.py -q`

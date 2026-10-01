@@ -122,8 +122,8 @@
 ## 7. 自动化位置与状态
 
 - **证据与 Run**：证据与 Run 契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)(../llmtier-system-test-scheme.md)：Run ID=`<date>/B-api`；保存请求与原始响应（脱敏后）、发出命令、exit code、`elapsed`、环境快照；`manifest.json` 必填字段与报告落位（`tests/system/reports/...`）见 §4.8/§10；失败现场不截断。**本 case 额外证据**：POST 请求/原始响应、请求前后 deployment 列表（证明零副作用）。
-  > **脚本覆盖（已对齐）**：现有 [`at_adm_depl_07.py`](../../../../tests/system/api_test_v03/at_adm_depl_07.py) 断言 `400` + `code=="invalid_request"` + `param=="capabilities"` + 5 键信封 + `type=="request_error"` + `retryable is False`，并回读 deployment 集合证明零副作用。
+  > **脚本覆盖（已对齐）**：现有 [`ST-DEPL-007.py`](../../../../tests/system/cases/ST-DEPL-007.py) 断言 `400` + `code=="invalid_request"` + `param=="capabilities"` + 5 键信封 + `type=="request_error"` + `retryable is False`，并回读 deployment 集合证明零副作用。
 
-- **依赖**：B 类 fixture `llmtier_b`/`admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；基线 provider `prov_b`；`ModelCapabilities`/`ErrorEnvelope` 机器契约；实现 `src/management/registry.py` `_validate_capabilities`/`create_deployment`；自动化入口 [`at_adm_depl_07.py`](../../../../tests/system/api_test_v03/at_adm_depl_07.py)。**不依赖**其它 Case；与 ST-DEPL-006（缺字段）互补但各自独立执行。
+- **依赖**：B 类 fixture `llmtier_b`/`admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；基线 provider `prov_b`；`ModelCapabilities`/`ErrorEnvelope` 机器契约；实现 `src/management/registry.py` `_validate_capabilities`/`create_deployment`；自动化入口 [`ST-DEPL-007.py`](../../../../tests/system/cases/ST-DEPL-007.py)。**不依赖**其它 Case；与 ST-DEPL-006（缺字段）互补但各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

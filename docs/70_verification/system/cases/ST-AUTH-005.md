@@ -106,6 +106,6 @@
 
 - **证据与 Run**：保存独立请求的原始命令、发送 headers 快照（证明无 `Authorization`）、HTTP status/headers/body、exit code、`elapsed`、环境快照（`/healthz`/`/readyz`）；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；独立 `httpx` 无头客户端；m5air `GET /healthz` 可用；自动化入口 [`at_auth_05.py`](../../../../tests/system/api_test_v03/at_auth_05.py)。**不依赖**其它 Case；与 ST-HEALTH-001 观测同一端点但本 case 只从鉴权视角断言"无需 token"，二者独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；独立 `httpx` 无头客户端；m5air `GET /healthz` 可用；自动化入口 [`ST-AUTH-005.py`](../../../../tests/system/cases/ST-AUTH-005.py)。**不依赖**其它 Case；与 ST-HEALTH-001 观测同一端点但本 case 只从鉴权视角断言"无需 token"，二者独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

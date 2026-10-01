@@ -43,7 +43,7 @@
 ## 2. 被测入口与前置
 
 - **前置与环境**：**环境 B**（临时 LLMTier 实例，专属实例，避免与其它并发/注入 Case 互相干扰）。前置 = 方案 §5 附加（B 类）就绪检查；`_baseline_settings` 注入 1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier，`llmtier_b` probe `depl_b` 为 `healthy`（否则 BLOCKED/SKIP）。`prov_b.endpoint` 必须是 LAN IP 上的 fake provider（TS-003）。初始状态 = 无启用注入项；`depl_b` 运行时 `max_in_flight` 默认 1、provider 并发默认 1。
-- **专用 fixture（已落地）**：本 case 需**占住 `depl_b` 的唯一并发槽**。Embeddings 无 Responses 的 `delay` 注入路径（`embeddings.py` 不读 `enabled_injection`），故假上游 [`tests/fixtures/v03_fake_provider.py`](../../../../tests/fixtures/v03_fake_provider.py) 已扩展：`POST /v1/embeddings` 在 `model == "slow-embeddings"` 时 `time.sleep`（门控释放），`depl_b.backend_model` 设为 `slow-embeddings`（fixture `llmtier_b_emb_slow` + `fake_provider_b.release_slow()`）。**不得**以 Responses 的 `delay` 注入冒充 Embeddings 占槽。
+- **专用 fixture（已落地）**：本 case 需**占住 `depl_b` 的唯一并发槽**。Embeddings 无 Responses 的 `delay` 注入路径（`embeddings.py` 不读 `enabled_injection`），故假上游 [`tests/fixtures/models/v03_fake_provider.py`](../../../../tests/fixtures/models/v03_fake_provider.py) 已扩展：`POST /v1/embeddings` 在 `model == "slow-embeddings"` 时 `time.sleep`（门控释放），`depl_b.backend_model` 设为 `slow-embeddings`（fixture `llmtier_b_emb_slow` + `fake_provider_b.release_slow()`）。**不得**以 Responses 的 `delay` 注入冒充 Embeddings 占槽。
 - **被测入口**：
 
   ```http
@@ -101,8 +101,8 @@
 
 ## 7. 自动化位置与状态
 
-- **测试文件 / 测试函数**：`tests/system/api_test_v03/at_dp_emb_08.py`（已实现；慢上游 fixture `v03_fake_provider.py` 的 `slow-embeddings` 门控）。
-- **单 Case 执行命令**：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_emb_08.py -q`。
+- **测试文件 / 测试函数**：`tests/system/cases/ST-EMB-008.py`（已实现；慢上游 fixture `v03_fake_provider.py` 的 `slow-embeddings` 门控）。
+- **单 Case 执行命令**：`PYTHONPATH=src python3 -m pytest tests/system/cases/ST-EMB-008.py -q`。
 - **实现状态**：Implemented；执行与 Verdict 归 Run 报告。
 
 **证据与 Run**：保存并发请求清单与各响应（含 429 与 `Retry-After`）、上游调用计数/runtime 快照、发出命令、exit code、`elapsed`、环境快照（本 case `environment:"b"`）。

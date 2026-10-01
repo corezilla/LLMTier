@@ -61,7 +61,7 @@ emit_manifests(run_dir, records, metadata) -> int
 ```
 
 - 初态构造（经公开入口）：内联 JUnit XML fixture（`_xml`/`_case`）写入临时目录；`METADATA` 字典固定 run 元数据
-- Fixture / 向量及版本：`tests/unit/v03/test_test_report.py`（内联 XML fixture，无外部资产）
+- Fixture / 向量及版本：`tests/unit/cases/UT-TOOL-001.py`（内联 XML fixture，无外部资产）
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../llmtier-unit-test-plan.md) 分配）：ENV-TOOL 工具进程内（`tempfile.TemporaryDirectory`；无时钟/网络依赖，除自身写出的固定 `run-metadata` 文件）
 - 依赖的测试资产（tests.asset-design 文档）：无（真实工具实现）
 
@@ -81,7 +81,7 @@ emit_manifests(run_dir, records, metadata) -> int
 | 4 | `build_report` | `counts` 与 `release_blocking` 口径 |
 | 5 | `emit_manifests` | 逐 Case `manifest.json`（case_id/git_commit/redactions） |
 | 6 | `case_id_from_source` | docstring 头 `Case ID:` 优先，缺失回退路径 |
-| 7 | `record_property("case_id", ...)` 优先级 | JUnit `<property>` 中的 `case_id` 优先于源码头/路径回退（供多 Case 参数化的真实浏览器 UI 套件 `tests/ui` 归集） |
+| 7 | `record_property("case_id", ...)` 优先级 | JUnit `<property>` 中的 `case_id` 优先于源码头/路径回退（供多 Case 参数化的真实浏览器 UI 套件 `tests/system/cases`（ST-UI-*） 归集） |
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -95,6 +95,6 @@ emit_manifests(run_dir, records, metadata) -> int
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_test_report.py`（`StatusMappingTests` 7 + `CaseIdTests` 3（含 `test_record_property_case_id_wins_over_source_header`）+ `ReportTests` 8 = 18 个）（注意：本 Case 的测试函数当前按子句（test case method）映射；若与计划/方案不一致，以修订回溯后重裁）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_test_report.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03/test_test_report.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 测试文件 / 测试函数：`tests/unit/cases/UT-TOOL-001.py`（`StatusMappingTests` 7 + `CaseIdTests` 3（含 `test_record_property_case_id_wins_over_source_header`）+ `ReportTests` 8 = 18 个）（注意：本 Case 的测试函数当前按子句（test case method）映射；若与计划/方案不一致，以修订回溯后重裁）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/test_report.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-TOOL-001.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。

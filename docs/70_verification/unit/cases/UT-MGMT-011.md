@@ -59,7 +59,7 @@ AccountUsage.latest(provider_id) -> dict; AccountUsage.refresh(principal_id, pro
 ```
 
 - 初态构造（经公开入口）：`AppFixture().seed()`；本地 `FakeResponse` stub 模拟 provider 报错/缺凭据（ENV-1+ENV-3）
-- Fixture / 向量及版本：`tests/unit/v03/test_management_gaps.py::AccountUsageGapTests`；`fakes.py::AppFixture`（ENV-1）、本地 `FakeResponse`
+- Fixture / 向量及版本：`tests/unit/cases/UT-MGMT-011.py::AccountUsageGapTests`；`fakes.py::AppFixture`（ENV-1）、本地 `FakeResponse`
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../llmtier-unit-test-plan.md) 分配）：ENV-1 隔离 Python 临时库 / ENV-3 provider 进程内 fake
 - 依赖的测试资产（tests.asset-design 文档）：本地 `FakeResponse`（`llmtier-unit-fakes` §2/§3 明示为本地 stub，非共享资产）
 
@@ -91,6 +91,6 @@ AccountUsage.latest(provider_id) -> dict; AccountUsage.refresh(principal_id, pro
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_management_gaps.py::AccountUsageGapTests::test_latest_never_touches_network` / `test_local_provider_not_refreshed` / `test_credentials_missing_snapshot` / `test_refresh_requires_confirmation` / `test_provider_api_error_is_unavailable_with_error_string`
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_management_gaps.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03/test_management_gaps.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 测试文件 / 测试函数：`tests/unit/cases/UT-MGMT-011.py::AccountUsageGapTests::test_latest_never_touches_network` / `test_local_provider_not_refreshed` / `test_credentials_missing_snapshot` / `test_refresh_requires_confirmation` / `test_provider_api_error_is_unavailable_with_error_string`
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/management_gaps.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-MGMT-011.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。

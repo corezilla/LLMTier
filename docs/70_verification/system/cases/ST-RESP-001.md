@@ -98,7 +98,7 @@
 | 5 | 读 `response.completed.response.usage` | `input/output/total_tokens` 非 null |
 | 6 | 读到流关闭 | `data: [DONE]` 收尾 |
 
-**重点关注步骤**：① **terminal 唯一性**——不是"出现 `response.completed`"而是"恰好一个终态事件（`response.completed`|`response.incomplete`|`response.failed`）"，重复/缺失即 FAIL；② **`[DONE]` 哨兵**——必须位于 terminal 之后，是独立于 JSON 事件的收尾；③ **事件 identity 与顺序**——`delta` 至少 1 个且累积文本非空；④ **`sequence_number` 严格递增**（不允许相等/回退）；⑤ **`Content-Type`** 必须为 `text/event-stream`，防止把错误信封当成功流吞掉；⑥ **不依赖答案文本**——不对生成内容做语义断言。注意：现有 [`at_dp_resp_01.py`](../../../../tests/system/api_test_v03/at_dp_resp_01.py) **已断言** `[DONE]`（约第 76 行 `assert saw_done, ...`）**且已断言"恰好一个 terminal"**（第 87-89 行 `assert len(terminal_events) == 1`，terminal 为 `{response.completed, response.incomplete, response.failed}`），并断言 `[DONE]` 收尾与 `response.completed` 为唯一终态；[`tools/inference_smoke.py`](../../../../tools/inference_smoke.py) 的 `sse_events()` 仅作 smoke 级交叉核对，不替代断言。
+**重点关注步骤**：① **terminal 唯一性**——不是"出现 `response.completed`"而是"恰好一个终态事件（`response.completed`|`response.incomplete`|`response.failed`）"，重复/缺失即 FAIL；② **`[DONE]` 哨兵**——必须位于 terminal 之后，是独立于 JSON 事件的收尾；③ **事件 identity 与顺序**——`delta` 至少 1 个且累积文本非空；④ **`sequence_number` 严格递增**（不允许相等/回退）；⑤ **`Content-Type`** 必须为 `text/event-stream`，防止把错误信封当成功流吞掉；⑥ **不依赖答案文本**——不对生成内容做语义断言。注意：现有 [`ST-RESP-001.py`](../../../../tests/system/cases/ST-RESP-001.py) **已断言** `[DONE]`（约第 76 行 `assert saw_done, ...`）**且已断言"恰好一个 terminal"**（第 87-89 行 `assert len(terminal_events) == 1`，terminal 为 `{response.completed, response.incomplete, response.failed}`），并断言 `[DONE]` 收尾与 `response.completed` 为唯一终态；[`tools/inference_smoke.py`](../../../../tools/inference_smoke.py) 的 `sse_events()` 仅作 smoke 级交叉核对，不替代断言。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -126,6 +126,6 @@
 ## 7. 自动化位置与状态
 
 - **证据与 Run**：证据与 Run 契约见[§4.8/§10](../llmtier-system-test-scheme.md)：保存原始 SSE 逐帧、HTTP status/headers、发出命令、exit code、`elapsed`、环境快照（`/healthz`/`/readyz`）；manifest 与报告落位见 §4.8/§10（本 case `environment:"a"`）；失败现场不截断。
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查（m5air `/healthz`、`/readyz` 7 tier、双 OMLX、`provider_omlx_m5mac` secret）；`api_client` fixture（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）；responses-capable 上游 tier `Worker`；自动化入口 [`at_dp_resp_01.py`](../../../../tests/system/api_test_v03/at_dp_resp_01.py)（case 级）与 [`tools/inference_smoke.py`](../../../../tools/inference_smoke.py)（smoke 级交叉核对，不替代断言）。**不依赖**其它 Case；与 ST-USAGE-002（成功后可见记录）共享同一成功请求语义，但各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查（m5air `/healthz`、`/readyz` 7 tier、双 OMLX、`provider_omlx_m5mac` secret）；`api_client` fixture（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）；responses-capable 上游 tier `Worker`；自动化入口 [`ST-RESP-001.py`](../../../../tests/system/cases/ST-RESP-001.py)（case 级）与 [`tools/inference_smoke.py`](../../../../tools/inference_smoke.py)（smoke 级交叉核对，不替代断言）。**不依赖**其它 Case；与 ST-USAGE-002（成功后可见记录）共享同一成功请求语义，但各自独立执行。
 
-> 实现状态：Implemented（`at_dp_resp_01.py` 已断言本 case 契约）；执行状态与 Verdict 只在 Run 报告。
+> 实现状态：Implemented（`ST-RESP-001.py` 已断言本 case 契约）；执行状态与 Verdict 只在 Run 报告。

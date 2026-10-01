@@ -115,11 +115,11 @@ GET  /v1/usage?from=<w>&to=<w>&request_id=<rid_b>   (admin) → 期望 1 条
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/system/api_test_v03/at_dp_usage_06.py::test_dp_usage_06_subject_isolation`（已实现）。
-- 单 Case 执行命令（实现后）：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_usage_06.py -q`。
-- 实现状态：Implemented（`at_dp_usage_06.py`）；执行与 Verdict 归 Run 报告。
+- 测试文件 / 测试函数：`tests/system/cases/ST-USAGE-006.py::test_dp_usage_06_subject_isolation`（已实现）。
+- 单 Case 执行命令（实现后）：`PYTHONPATH=src python3 -m pytest tests/system/cases/ST-USAGE-006.py -q`。
+- 实现状态：Implemented（`ST-USAGE-006.py`）；执行与 Verdict 归 Run 报告。
 
-> **实现 vs 设计偏差（2026-09-30，已登记）**：本 case §2/§3 设计用 `admin_client`（Bearer dev-admin）发 `POST /v1/embeddings` 构造 admin 主体 record。当前实现 `app.py:232` 的 embeddings 路由走 `self._auth()`（默认 `role="data"`），admin 凭据被拒（403 `permission_denied`）——embeddings 是 data-plane 写入，不接受 admin 凭据。`at_dp_usage_06.py` 改用**两个不同 data 主体**（同一 `Bearer dev-data` + 不同 `X-Principal-ID`）演示同/异主体可见性 + admin 全局可见 + `data ⊆ admin` + 跨主体 cursor 403；隔离语义等价且对当前 code 有效。
+> **实现 vs 设计偏差（2026-09-30，已登记）**：本 case §2/§3 设计用 `admin_client`（Bearer dev-admin）发 `POST /v1/embeddings` 构造 admin 主体 record。当前实现 `app.py:232` 的 embeddings 路由走 `self._auth()`（默认 `role="data"`），admin 凭据被拒（403 `permission_denied`）——embeddings 是 data-plane 写入，不接受 admin 凭据。`ST-USAGE-006.py` 改用**两个不同 data 主体**（同一 `Bearer dev-data` + 不同 `X-Principal-ID`）演示同/异主体可见性 + admin 全局可见 + `data ⊆ admin` + 跨主体 cursor 403；隔离语义等价且对当前 code 有效。
 >
 > **子集构造修正（2026-09-30，已登记）**：原 step 7 直接比较 `?limit=200` 的两个宽窗口首页集合。共享 m5air 实例窗口内记录数远超一页（实测 >5000 条）且 `_page` 按 `recorded_at` **升序**分页，data 侧按主体过滤后首页与 admin 全局首页互不覆盖，`data ⊆ admin` 因**分页截断**而假失败（并非隔离破坏）。修正为：data 宽查询仅取 `ids(data_wide) ∩ {rid_a, rid_b}`（本 case 自建记录），admin 侧对每个自建 rid 用 `?request_id=` 精确查询；断言 `data_visible == {rid_a}`、`data_visible ⊆ admin_visible == {rid_a, rid_b}`。口径与隔离契约一致，且与实例历史规模无关。
 
@@ -129,8 +129,8 @@ GET  /v1/usage?from=<w>&to=<w>&request_id=<rid_b>   (admin) → 期望 1 条
 - BLOCKED：断言逻辑/契约问题、双主体前置无法命中。
 - SKIP：就绪检查不满足。
 - INVALID：用无头/带 token 混淆冒充角色、mock/替代路径冒充真实路径。
-- NOT_RUN：本 Case 有实现（`at_dp_usage_06.py`），本轮未执行时记 `NOT_RUN`。
+- NOT_RUN：本 Case 有实现（`ST-USAGE-006.py`），本轮未执行时记 `NOT_RUN`。
 
 **证据与 Run**：Run ID=`<date>/A-api`；保存两次前置 embeddings（含 `X-Request-ID`）、各主体查询的请求/响应（`request_id`、`data` 长度、cursor 值）、宽窗口集合、跨主体重放的原始响应、动态窗口值、发出命令、exit code、`elapsed`、环境快照（本 case `environment:"a"`）。
 
-**依赖**：就绪检查与鉴权模型；`api_client`/`admin_client`；embeddings tier `Embedding-v1`；机制 [`usage-metering` §4.6/§4.7](../../../20_system_design/mechanisms/usage-metering.md)、[`access-trust`](../../../20_system_design/mechanisms/access-trust.md)；`listUsage` 机器契约。自动化入口 `at_dp_usage_06.py`（已实现）。**不依赖**其它 Case；与 ST-AUTH-001（LAN 免登录）、ST-AUTH-003（data 访问 admin 面 403）区分但机制相邻；与 ST-USAGE-007（同主体重放）互补。
+**依赖**：就绪检查与鉴权模型；`api_client`/`admin_client`；embeddings tier `Embedding-v1`；机制 [`usage-metering` §4.6/§4.7](../../../20_system_design/mechanisms/usage-metering.md)、[`access-trust`](../../../20_system_design/mechanisms/access-trust.md)；`listUsage` 机器契约。自动化入口 `ST-USAGE-006.py`（已实现）。**不依赖**其它 Case；与 ST-AUTH-001（LAN 免登录）、ST-AUTH-003（data 访问 admin 面 403）区分但机制相邻；与 ST-USAGE-007（同主体重放）互补。

@@ -40,7 +40,7 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 B**（临时 LLMTier 实例，见[系统测试方案 §1 测试边界](../llmtier-system-test-scheme.md)）。执行前必须满足方案 §5 **附加（B 类）**：临时实例可启动且 `GET /healthz` 200。fixture 见[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)：`llmtier_b_no_auth`（[`conftest.py`](../../../../tests/system/api_test_v03/conftest.py) `LLMTierInstance(_NO_AUTH_SETTINGS, dev_mode=False)`）——`dev_mode=False` 时**不设** `LLMTIER_DEV_MODE`/`LLMTIER_ADMIN_TOKEN`/`LLMTIER_DATA_TOKEN`，`_NO_AUTH_SETTINGS` 为三个空 section。**关键客户端约束**：必须使用**不携带 `Authorization` 的裸 `httpx.Client`**（如 `httpx.Client(base_url=llmtier_b_no_auth.base_url, timeout=...)`）；**不得复用 `admin_client_b_no_auth`**——该 fixture 由 `_make_client` 注入 `Authorization: Bearer dev-admin`（[`conftest.py`](../../../../tests/system/api_test_v03/conftest.py) `_make_client`），在未配置 token 的实例上会走 [`authenticate`](../../../../src/http_api/auth.py) → 503 `auth_not_configured`，与本 case 契约无关。初始状态 = 无 provider/deployment（`_NO_AUTH_SETTINGS` 合法 bootstrap）+ 7 个空 fixed tier；故 `not_ready`。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例，见[系统测试方案 §1 测试边界](../llmtier-system-test-scheme.md)）。执行前必须满足方案 §5 **附加（B 类）**：临时实例可启动且 `GET /healthz` 200。fixture 见[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)：`llmtier_b_no_auth`（[`conftest.py`](../../../../tests/system/conftest.py) `LLMTierInstance(_NO_AUTH_SETTINGS, dev_mode=False)`）——`dev_mode=False` 时**不设** `LLMTIER_DEV_MODE`/`LLMTIER_ADMIN_TOKEN`/`LLMTIER_DATA_TOKEN`，`_NO_AUTH_SETTINGS` 为三个空 section。**关键客户端约束**：必须使用**不携带 `Authorization` 的裸 `httpx.Client`**（如 `httpx.Client(base_url=llmtier_b_no_auth.base_url, timeout=...)`）；**不得复用 `admin_client_b_no_auth`**——该 fixture 由 `_make_client` 注入 `Authorization: Bearer dev-admin`（[`conftest.py`](../../../../tests/system/conftest.py) `_make_client`），在未配置 token 的实例上会走 [`authenticate`](../../../../src/http_api/auth.py) → 503 `auth_not_configured`，与本 case 契约无关。初始状态 = 无 provider/deployment（`_NO_AUTH_SETTINGS` 合法 bootstrap）+ 7 个空 fixed tier；故 `not_ready`。
 - **被测入口**：
 
   ```http
@@ -109,10 +109,10 @@
 - **判定（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
   - **PASS**：无凭据下 `/healthz` 200 + 合法 `HealthView`，且 `/readyz` 返回合法 `ReadinessView`（本实例 503 `not_ready`），两者均非鉴权错误信封。
   - **FAIL**：任一健康端点返回 401/403，或返回带 `auth_not_configured` 的错误信封，或返回体不是合法视图；给预期 vs 实际与 `reproduction_cmd`。
-  - **BLOCKED**：仅在 `llmtier_b_no_auth` fixture 无法启动、或无法在无 token 条件下保持健康端点可达时判 BLOCKED。fixture（`llmtier_b_no_auth`）与脚本（[`at_obs_06.py`](../../../../tests/system/api_test_v03/at_obs_06.py)）均已落地并通过，不再是当前状态。
+  - **BLOCKED**：仅在 `llmtier_b_no_auth` fixture 无法启动、或无法在无 token 条件下保持健康端点可达时判 BLOCKED。fixture（`llmtier_b_no_auth`）与脚本（[`ST-HEALTH-006.py`](../../../../tests/system/cases/ST-HEALTH-006.py)）均已落地并通过，不再是当前状态。
   - **SKIP**：B 类临时实例不可用等 §2 前置不满足——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **INVALID**：用带 token 的请求冒充"无凭据"判定，或以 mock/替代路径冒充真实实例——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：本 case 有实现（[`at_obs_06.py`](../../../../tests/system/api_test_v03/at_obs_06.py)），未执行时记 `NOT_RUN`；不得以未跑冒充 PASS。
+  - **NOT_RUN**：本 case 有实现（[`ST-HEALTH-006.py`](../../../../tests/system/cases/ST-HEALTH-006.py)），未执行时记 `NOT_RUN`；不得以未跑冒充 PASS。
 
 ## 6. 错误路径、副作用与清理
 
@@ -122,6 +122,6 @@
 ## 7. 自动化位置与状态
 
 - **证据与 Run**：证据与 Run 契约见[§4.8/§10](../llmtier-system-test-scheme.md)：保存裸客户端的发送 headers 快照（证明**无** `Authorization`）、两请求的原始 HTTP status/headers/body、实例环境证据（确认未设 token / `dev_mode=False`）、`elapsed`；manifest 与报告落位（`tests/system/reports/...`）见 §4.8/§10（本 case `environment:"b"`）；失败现场不截断。
-- **依赖**：`llmtier_b_no_auth` fixture 与 `_NO_AUTH_SETTINGS`（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）；独立无头 `httpx.Client`（不复用 `admin_client_b_no_auth`）；`HealthView`/`ReadinessView`（[`openapi`](../../../../interfaces/openapi/llmtier.openapi.json)）；实现 [`app.py:187-190`](../../../../src/http_api/app.py) 与 [`auth.py`](../../../../src/http_api/auth.py)；自动化入口 [`at_obs_06.py`](../../../../tests/system/api_test_v03/at_obs_06.py)。**不依赖**其它 Case；与 ST-AUTH-005（A 类公共端点无 token 200）、ST-AUTH-007（未配置鉴权下受保护端点 503）语义相邻但各自独立执行、互不关闭。
+- **依赖**：`llmtier_b_no_auth` fixture 与 `_NO_AUTH_SETTINGS`（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）；独立无头 `httpx.Client`（不复用 `admin_client_b_no_auth`）；`HealthView`/`ReadinessView`（[`openapi`](../../../../interfaces/openapi/llmtier.openapi.json)）；实现 [`app.py:187-190`](../../../../src/http_api/app.py) 与 [`auth.py`](../../../../src/http_api/auth.py)；自动化入口 [`ST-HEALTH-006.py`](../../../../tests/system/cases/ST-HEALTH-006.py)。**不依赖**其它 Case；与 ST-AUTH-005（A 类公共端点无 token 200）、ST-AUTH-007（未配置鉴权下受保护端点 503）语义相邻但各自独立执行、互不关闭。
 
-> 实现状态：Implemented（`at_obs_06.py` 以裸客户端断言 `/healthz` 200 + 合法 `ReadinessView` 且非鉴权错误）；执行状态与 Verdict 只在 Run 报告。
+> 实现状态：Implemented（`ST-HEALTH-006.py` 以裸客户端断言 `/healthz` 200 + 合法 `ReadinessView` 且非鉴权错误）；执行状态与 Verdict 只在 Run 报告。

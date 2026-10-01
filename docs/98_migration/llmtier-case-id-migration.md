@@ -234,7 +234,7 @@ STD `78876c9` 在 `docs/software-object-identifiers.md` §2 正式codify Case ID
 
 ## 5. 未迁移项（显式例外）
 
-- `tests/system/reports/**`、`tests/ui/reports/**` 下的**历史 Run 证据**（`case-status.json`、`cases/<id>/manifest.json`）
+- `tests/system/reports/**`、`tests/system/cases reports/**` 下的**历史 Run 证据**（`case-status.json`、`cases/<id>/manifest.json`）
   保留原 Case ID 键：STD `repository-layout.md` §4.1.1「既有项目不自动搬迁历史报告；采用新布局时保留旧引用」。
   这些目录记录既往执行（各自 `git_commit` 固定），改写会篡改历史；新 Run 将按新 Case ID 生成证据。
 - `docs/00_management/std-tailoring.md` 等历史评审/裁剪记录中出现的旧 ID 仅作为**存档**保留。

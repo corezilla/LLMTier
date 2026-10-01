@@ -59,7 +59,7 @@ DiagnosticsService.capture_snapshot(...); DiagnosticsService.stats(since, until,
 ```
 
 - 初态构造（经公开入口）：`AppFixture` 建 `DiagnosticsService`；写入 200/None 状态快照与多延迟样本（ENV-1）
-- Fixture / 向量及版本：`tests/unit/v03/test_diagnostics_gaps.py::SnapshotBranchTests`/`StatsBranchTests`；`fakes.py::AppFixture`（ENV-1）
+- Fixture / 向量及版本：`tests/unit/cases/UT-DIAG-005.py::SnapshotBranchTests`/`StatsBranchTests`；`fakes.py::AppFixture`（ENV-1）
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../llmtier-unit-test-plan.md) 分配）：ENV-1 隔离 Python 临时库
 - 依赖的测试资产（tests.asset-design 文档）：无（真实实现）
 
@@ -90,6 +90,6 @@ DiagnosticsService.capture_snapshot(...); DiagnosticsService.stats(since, until,
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_diagnostics_gaps.py::SnapshotBranchTests::test_error_summary_truncated_to_256_utf8_bytes` / `test_snapshot_type_upstream_when_status_present` / `test_snapshot_type_error_when_status_absent` / `test_switch_off_captures_nothing` / `StatsBranchTests::test_stats_empty_windows_when_no_samples` / `test_percentiles_and_error_buckets` / `test_stats_switch_off_writes_nothing`
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_diagnostics_gaps.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03/test_diagnostics_gaps.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 测试文件 / 测试函数：`tests/unit/cases/UT-DIAG-005.py::SnapshotBranchTests::test_error_summary_truncated_to_256_utf8_bytes` / `test_snapshot_type_upstream_when_status_present` / `test_snapshot_type_error_when_status_absent` / `test_switch_off_captures_nothing` / `StatsBranchTests::test_stats_empty_windows_when_no_samples` / `test_percentiles_and_error_buckets` / `test_stats_switch_off_writes_nothing`
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/diagnostics_gaps.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-DIAG-005.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。

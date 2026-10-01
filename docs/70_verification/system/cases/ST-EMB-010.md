@@ -42,7 +42,7 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 B**（临时 LLMTier 实例，专属实例）。前置 = 方案 §5 附加（B 类）就绪检查；`_baseline_settings` 注入 1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier。`prov_b.endpoint` 必须是 LAN IP 上的 fake provider（TS-003，`tests/fixtures/v03_fake_provider.py`）。**构造点**：fake provider 对 `model == "force-503"` 的任意 POST 返回 `503`（`v03_fake_provider.py:30`）；故把 `depl_b.backend_model` 设为 `force-503`，使上游收到 `model="force-503"` 并返回 503；同时 fake provider 的 `/models` 仍 200，保证 probe `depl_b=healthy`。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例，专属实例）。前置 = 方案 §5 附加（B 类）就绪检查；`_baseline_settings` 注入 1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier。`prov_b.endpoint` 必须是 LAN IP 上的 fake provider（TS-003，`tests/fixtures/models/v03_fake_provider.py`）。**构造点**：fake provider 对 `model == "force-503"` 的任意 POST 返回 `503`（`v03_fake_provider.py:30`）；故把 `depl_b.backend_model` 设为 `force-503`，使上游收到 `model="force-503"` 并返回 503；同时 fake provider 的 `/models` 仍 200，保证 probe `depl_b=healthy`。
 - **被测入口**：
 
   ```http
@@ -100,8 +100,8 @@
 
 ## 7. 自动化位置与状态
 
-- **测试文件 / 测试函数**：`tests/system/api_test_v03/at_dp_emb_10.py`（已实现；`v03_fake_provider.py` 的 `force-503` 覆盖 HTTP 5xx、`force-drop` 覆盖传输失败/断连分支）。
-- **单 Case 执行命令**：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_emb_10.py -q`。
+- **测试文件 / 测试函数**：`tests/system/cases/ST-EMB-010.py`（已实现；`v03_fake_provider.py` 的 `force-503` 覆盖 HTTP 5xx、`force-drop` 覆盖传输失败/断连分支）。
+- **单 Case 执行命令**：`PYTHONPATH=src python3 -m pytest tests/system/cases/ST-EMB-010.py -q`。
 - **实现状态**：Implemented；执行与 Verdict 归 Run 报告。
 
 **证据与 Run**：保存被测请求与原始响应（脱敏后）、上游返回证据、发出命令、exit code、`elapsed`、环境快照（本 case `environment:"b"`）。

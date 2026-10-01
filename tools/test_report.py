@@ -32,7 +32,7 @@ Usage::
 ``--check-cap`` prints the verdict ``1`` when the SKIP cap is breached (exit 1)
 and ``0`` when within the cap (exit 0). A missing/unreadable junit XML is a
 harness error: it prints ``1`` and exits 2 (never a false-safe 0). The runners
-consume the printed verdict (see ``tests/lib/run_harness.sh``).
+consume the printed verdict (see ``tests/common/harness/run_harness.sh``).
 """
 from __future__ import annotations
 
@@ -59,6 +59,8 @@ _CASE_ID_HEADER = re.compile(r"^\s*[\"']{0,3}\s*Case ID:\s*(\S+?)[\s\"']*$", re.
 _CASE_ID_IN_NAME = re.compile(
     r"(?:^|/)(?:at|st)_([a-z0-9_]+?)_(\d+[a-z]?)(?:$|[/.])", re.IGNORECASE
 )
+# STD 78876c9: the executable file name is the Case ID (UT-*/ST-*).
+_CASE_ID_IN_FILENAME = re.compile(r"(?:^|[./])((?:UT|ST)-[A-Z0-9]+-\d+[a-z]?)(?:$|::|\.)")
 # System-test executable files keep their historical ``at_<legacy>_<n>.py`` names,
 # but Case IDs now follow ``ST-<object>-<NNN>`` (STD 78876c9,
 # docs/software-object-identifiers.md §2). This map lets the path fallback
@@ -108,6 +110,12 @@ def case_id_from_source(source: str | None, fallback_name: str) -> str:
         match = _CASE_ID_HEADER.search(source)
         if match:
             return match.group(1)
+    # STD 78876c9: executable case scripts are named by Case ID
+    # (tests/unit/cases/UT-<OBJ>-<NNN>.py, tests/system/cases/ST-<OBJ>-<NNN>.py),
+    # so the file name IS the Case ID — the trivial, authoritative fallback.
+    match = _CASE_ID_IN_FILENAME.search(fallback_name)
+    if match:
+        return match.group(1).upper()
     match = _CASE_ID_IN_NAME.search(fallback_name)
     if match:
         family = match.group(1).lower()

@@ -1490,7 +1490,7 @@ index.html -> 5 × <section class="page">（#home/#providers/#stats/#logs/#diagn
 - **截止/Gate**：—
 - **决定或状态**：已接受
 
-引用：系统设计 §3.2/§4.3；机制 M-CONFIG/M-OBS §14.4；`interfaces/openapi/llmtier.openapi.json`；`docs/assets/webui*`；`tests/system/api_test_v03/`（含 WebUI 行为用例）。
+引用：系统设计 §3.2/§4.3；机制 M-CONFIG/M-OBS §14.4；`interfaces/openapi/llmtier.openapi.json`；`docs/assets/webui*`；`tests/system/cases/`（含 WebUI 行为用例）。
 
 ## 附录 A. 机制承接表
 

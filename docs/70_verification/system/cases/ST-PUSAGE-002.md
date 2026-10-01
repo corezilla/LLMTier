@@ -87,7 +87,7 @@
   6. 断言零副作用：再次 `GET /v1/providers/provider_local/usage`，`checked_at` 与第 2 步 `before` 一致（未刷新、未触上游）。
 
 **重点关注步骤**：① **两条拒绝臂的 code 不同**——空对象（缺键）实际为 `invalid_request`（入口键集检查先于确认值检查），`confirmation_required` 仅由"键在、值非真"触发；不得把两者混为一谈；② **拒绝先于外部调用**——400 必须在触上游与写 `provider_usage_snapshots` 之前完成（第 6 步以 `checked_at` 不变证明）；③ **信封 identity**——恰 5 键、`type="request_error"`、`param=null`、`retryable=false`；④ **provider 存在性不干扰**——用既存 `provider_local`，使唯一拒绝原因就是缺确认；⑤ **不依赖 message 文本**——只断言 code/type/param/retryable。
-  > **契约 vs 实现偏差（登记，本 case 以实际源码为准断言）**：§3.2 `ST-PUSAGE-002` 与系统设计 §7.8 `ERR-CONFIRM` 描述"缺二次确认 → `confirmation_required`（400）"，但实际实现中**缺键**返回 `invalid_request`（[`app.py`](../../../../src/http_api/app.py) 第 269 行的键集检查），仅 `{"confirm_external_call": false}` 才返回 `confirmation_required`（[`account_usage.py`](../../../../src/management/account_usage.py) 第 158 行）。现有 [`at_adm_prov_usage_02.py`](../../../../tests/system/api_test_v03/at_adm_prov_usage_02.py) 只覆盖空对象臂并断言 `invalid_request`。本 case 同时断言两臂，以完整覆盖 `ERR-CONFIRM` 语义；偏差在运行报告登记。
+  > **契约 vs 实现偏差（登记，本 case 以实际源码为准断言）**：§3.2 `ST-PUSAGE-002` 与系统设计 §7.8 `ERR-CONFIRM` 描述"缺二次确认 → `confirmation_required`（400）"，但实际实现中**缺键**返回 `invalid_request`（[`app.py`](../../../../src/http_api/app.py) 第 269 行的键集检查），仅 `{"confirm_external_call": false}` 才返回 `confirmation_required`（[`account_usage.py`](../../../../src/management/account_usage.py) 第 158 行）。现有 [`ST-PUSAGE-002.py`](../../../../tests/system/cases/ST-PUSAGE-002.py) 只覆盖空对象臂并断言 `invalid_request`。本 case 同时断言两臂，以完整覆盖 `ERR-CONFIRM` 语义；偏差在运行报告登记。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -114,6 +114,6 @@
 
 - **证据与 Run**：证据与 Run 契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)(../llmtier-system-test-scheme.md)：Run ID=`<date>/A-api`；保存原始 status/headers/body（脱敏后）、发出命令、exit code、`elapsed`、环境快照；`manifest.json` 必填字段与报告落位（`tests/system/reports/...`）见 §4.8/§10；失败现场不截断。**本 case 额外证据**：两条 POST 的请求与原始响应、前置与后置 `GET .../usage` 快照（证明零副作用）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；既存 provider `provider_local`；`ErrorEnvelope` 机器契约；系统设计 §7.8 `ERR-CONFIRM`；实现 `src/http_api/app.py` / `src/management/account_usage.py`；自动化入口 [`at_adm_prov_usage_02.py`](../../../../tests/system/api_test_v03/at_adm_prov_usage_02.py)。**不依赖**其它 Case；与 ST-PUSAGE-003（带确认成功）互补，各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；既存 provider `provider_local`；`ErrorEnvelope` 机器契约；系统设计 §7.8 `ERR-CONFIRM`；实现 `src/http_api/app.py` / `src/management/account_usage.py`；自动化入口 [`ST-PUSAGE-002.py`](../../../../tests/system/cases/ST-PUSAGE-002.py)。**不依赖**其它 Case；与 ST-PUSAGE-003（带确认成功）互补，各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

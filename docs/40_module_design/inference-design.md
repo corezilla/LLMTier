@@ -1228,7 +1228,7 @@ list_models() -> list
 - **承接 Function / Rule / Constraint / Interface ID**：`F-INF-RESPONSES`、`F-INF-VALIDATE`、`RULE-INF-VALIDATE`、`CON-INFER-001/2/3`、`IF-RESPONSES`
 - **构建目标 / 依赖 / 宿主装配**：随 `Application` 装配；依赖 Registry/Router/Usage/Diagnostics
 - **实现状态**：Implemented（含 `LLMTIER_SLOW_ADAPTER_DELAY` 测试注入）
-- **验证入口**：`VRC-INF-001`；`tests/system/api_test_v03/`
+- **验证入口**：`VRC-INF-001`；`tests/system/cases/`
 
 #### 13.1.2 `src/inference/embeddings.py`
 - **职责 / 非职责**：I3 向量化编排 + 向量/base64 校验；不处理 Responses

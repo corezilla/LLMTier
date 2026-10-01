@@ -94,7 +94,7 @@
 | 4 | `code=="unsupported_field"`、message 含 `"unknown fields"`、`type=="request_error"`、`param=="conversation_id"`、`retryable False`、5 键 | 响应体 |
 | 5 | （可选）去掉字段重发断言 200 + SSE | 隔离归因 |
 
-**重点关注步骤**：① **未知字段路径**——`conversation_id` 不在 OpenAPI `ResponsesRequest` 属性、亦不在 `ALLOWED_FIELDS`，故被 `additionalProperties:false` 等价校验拒绝；② **错误码归因**——未知字段 → `unsupported_field`（系统 §7.8 `ERR-REQ-FIELD`），`param` 为未知字段名；③ **拒绝在 dispatch 前、零副作用**；④ **方案清单与脚本一致**——清单记 `400 unsupported_field`，[`at_dp_resp_12.py`](../../../../tests/system/api_test_v03/at_dp_resp_12.py) 第 34-38 行亦断言 `400` + `unsupported_field` + `param=="conversation_id"`，契约已收敛于拒绝语义。
+**重点关注步骤**：① **未知字段路径**——`conversation_id` 不在 OpenAPI `ResponsesRequest` 属性、亦不在 `ALLOWED_FIELDS`，故被 `additionalProperties:false` 等价校验拒绝；② **错误码归因**——未知字段 → `unsupported_field`（系统 §7.8 `ERR-REQ-FIELD`），`param` 为未知字段名；③ **拒绝在 dispatch 前、零副作用**；④ **方案清单与脚本一致**——清单记 `400 unsupported_field`，[`ST-RESP-012.py`](../../../../tests/system/cases/ST-RESP-012.py) 第 34-38 行亦断言 `400` + `unsupported_field` + `param=="conversation_id"`，契约已收敛于拒绝语义。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -120,6 +120,6 @@
 ## 7. 自动化位置与状态
 
 - **证据与 Run**：证据与 Run 契约见[§4.8/§10](../llmtier-system-test-scheme.md)：保存请求 body、HTTP status/headers、原始错误信封、可选对照请求响应、发出命令、exit code、环境快照；manifest 与报告落位见 §4.8/§10（本 case `environment:"a"`）；失败现场不截断。
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client`（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）；OpenAPI `ResponsesRequest`；实现 `src/inference/responses.py`（`ALLOWED_FIELDS`）；自动化入口 [`at_dp_resp_12.py`](../../../../tests/system/api_test_v03/at_dp_resp_12.py)（已断言 `400 unsupported_field` + `param=="conversation_id"`）。**不依赖**其它 Case；与 ST-RESP-013/14 同类（未知字段），与 ST-RESP-009（显式禁字段）区分。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client`（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）；OpenAPI `ResponsesRequest`；实现 `src/inference/responses.py`（`ALLOWED_FIELDS`）；自动化入口 [`ST-RESP-012.py`](../../../../tests/system/cases/ST-RESP-012.py)（已断言 `400 unsupported_field` + `param=="conversation_id"`）。**不依赖**其它 Case；与 ST-RESP-013/14 同类（未知字段），与 ST-RESP-009（显式禁字段）区分。
 
-> 实现状态：Implemented（`at_dp_resp_12.py` 已断言本 case 契约）；执行状态与 Verdict 只在 Run 报告。
+> 实现状态：Implemented（`ST-RESP-012.py` 已断言本 case 契约）；执行状态与 Verdict 只在 Run 报告。

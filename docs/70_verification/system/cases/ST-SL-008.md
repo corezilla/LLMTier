@@ -57,7 +57,7 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=§2.1 附加（B 类）；fixture `admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；本 case 已有实现（`at_adm_sl_08.py`）。初始状态=`Worker` 存在。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=§2.1 附加（B 类）；fixture `admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；本 case 已有实现（`ST-SL-008.py`）。初始状态=`Worker` 存在。
 
 ## 3. 输入构造
 
@@ -110,14 +110,14 @@
 
 ## 7. 自动化位置与状态
 
-- **测试文件 / 测试函数**：`tests/system/api_test_v03/at_adm_sl_08.py`（**Implemented**）。
-- **单 Case 执行命令**：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_adm_sl_08.py -q`。
+- **测试文件 / 测试函数**：`tests/system/cases/ST-SL-008.py`（**Implemented**）。
+- **单 Case 执行命令**：`PYTHONPATH=src python3 -m pytest tests/system/cases/ST-SL-008.py -q`。
 - **实现状态**：Implemented；执行与 Verdict 归 Run 报告。
 
 - **证据与 Run**：保存GET/PATCH 的请求与原始 400 响应（脱敏后）、`Worker` 前后 `version`、发出命令、exit code、`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/B-api`，`environment:"b"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：B 类 fixture `llmtier_b` / `admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`registry._capability_intersection`（含类型守卫）；错误目录 `ERR-REQ-VALIDATION`；机制 `R-CFG-01`。自动化入口 [`at_adm_sl_08.py`](../../../../tests/system/api_test_v03/at_adm_sl_08.py)。**不依赖**其它 Case；与 ST-SL-013（键白名单 400）互为"输入校验"的正/反例。
+- **依赖**：B 类 fixture `llmtier_b` / `admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`registry._capability_intersection`（含类型守卫）；错误目录 `ERR-REQ-VALIDATION`；机制 `R-CFG-01`。自动化入口 [`ST-SL-008.py`](../../../../tests/system/cases/ST-SL-008.py)。**不依赖**其它 Case；与 ST-SL-013（键白名单 400）互为"输入校验"的正/反例。
 
-> 实现状态：Implemented（`at_adm_sl_08.py`）；执行状态与 Verdict 只在 Run 报告。
+> 实现状态：Implemented（`ST-SL-008.py`）；执行状态与 Verdict 只在 Run 报告。
 
 > **设计修订（2026-09-30）**：本 case 早期设计假设 `deployment_ids` 缺失类型预校验、非数组输入会抛 `TypeError → 500 internal_error`，并据此把本 case 建为"服务器错误信封"案例。当前实现 [`registry._capability_intersection`](../../../../src/management/registry.py) 已在迭代前显式校验 `deployment_ids` 必须是字符串数组（`registry.py:300`），非数组输入返回 **400 `invalid_request`（param=`deployment_ids`）**，500 路径不再存在。本 case 已按**当前 code 行为（400）**为 Oracle 修订 §1/§3/§4/§5/§7：验证非法类型输入的 400 类型校验契约与零副作用，不再断言 500，也不再登记已关闭的"类型未预校验"缺陷。

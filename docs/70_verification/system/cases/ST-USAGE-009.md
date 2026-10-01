@@ -109,11 +109,11 @@
 
 ## 7. 自动化位置与状态
 
-- **测试文件 / 测试函数**：`tests/system/api_test_v03/at_dp_usage_09.py`（已实现；`test_dp_usage_09_orphan_unknown_survives_real_crash` 路径 B + `test_dp_usage_09_orphan_unknown_survives_restart` 路径 A）。
-- **单 Case 执行命令**：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_usage_09.py -q`。
+- **测试文件 / 测试函数**：`tests/system/cases/ST-USAGE-009.py`（已实现；`test_dp_usage_09_orphan_unknown_survives_real_crash` 路径 B + `test_dp_usage_09_orphan_unknown_survives_restart` 路径 A）。
+- **单 Case 执行命令**：`PYTHONPATH=src python3 -m pytest tests/system/cases/ST-USAGE-009.py -q`。
 - **实现状态**：Implemented；执行与 Verdict 归 Run 报告。
 
 **证据与 Run**：保存触发请求与响应/进程终止证据、重启命令、重启后 `GET /v1/usage` 原始响应（脱敏后）、库路径与 `db_schema_version`、发出命令、exit code、`elapsed`、环境快照（本 case `environment:"b"`）。
 
-**依赖**：附加（B 类）就绪检查；专用 `LLMTierInstance` + 重启/硬杀助手 fixture（`llmtier_b_restart`/`llmtier_b_crash`，已落地）；机制 [`usage-metering` §9/§14.3](../../../20_system_design/mechanisms/usage-metering.md)；`UsagePage`/`ErrorEnvelope` 机器契约；自动化入口 `at_dp_usage_09.py`（已实现）。**不依赖**其它 Case；与 ST-USAGE-008（存储不可用）同属账本持久性但语义不同。
+**依赖**：附加（B 类）就绪检查；专用 `LLMTierInstance` + 重启/硬杀助手 fixture（`llmtier_b_restart`/`llmtier_b_crash`，已落地）；机制 [`usage-metering` §9/§14.3](../../../20_system_design/mechanisms/usage-metering.md)；`UsagePage`/`ErrorEnvelope` 机器契约；自动化入口 `ST-USAGE-009.py`（已实现）。**不依赖**其它 Case；与 ST-USAGE-008（存储不可用）同属账本持久性但语义不同。
 

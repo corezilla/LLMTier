@@ -59,7 +59,7 @@ OperationalLog.page(limit=50, level=None, module=None, request_id=None, since=No
 ```
 
 - 初态构造（经公开入口）：`AppFixture().seed()` + loopback `handler_factory(app)`；patch `logs.page` 抛 `sqlite3.OperationalError`（ENV-1+ENV-2）
-- Fixture / 向量及版本：`tests/unit/v03/test_logs.py::LogHttpFailureTests`/`LogsTests`；`fakes.py::AppFixture`（ENV-1）
+- Fixture / 向量及版本：`tests/unit/cases/UT-LOG-002.py::LogHttpFailureTests`/`LogsTests`；`fakes.py::AppFixture`（ENV-1）
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../llmtier-unit-test-plan.md) 分配）：ENV-1 隔离 Python 临时库 / ENV-2 loopback 测试 HTTP 实例
 - 依赖的测试资产（tests.asset-design 文档）：无（真实实现）
 
@@ -89,6 +89,6 @@ OperationalLog.page(limit=50, level=None, module=None, request_id=None, since=No
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_logs.py::LogHttpFailureTests::test_missing_window_is_400` / `test_store_failure_is_503` + 补充脱敏 `LogRedactionGapTests::test_token_query_redacted` / `test_api_key_value_redaction`（值不落库） / `test_secret_redacted`
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_logs.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03/test_logs.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 测试文件 / 测试函数：`tests/unit/cases/UT-LOG-002.py::LogHttpFailureTests::test_missing_window_is_400` / `test_store_failure_is_503` + 补充脱敏 `LogRedactionGapTests::test_token_query_redacted` / `test_api_key_value_redaction`（值不落库） / `test_secret_redacted`
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/logs.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-LOG-002.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。

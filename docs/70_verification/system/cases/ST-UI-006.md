@@ -54,13 +54,13 @@
 - 要测什么（责任展开）：Diagnostics 页 4 个子 tab 渲染并可切换；开关关闭时 Snapshots/Stats 表体真实渲染 `Disabled — ...`（OBS 视觉子项：Disabled 状态被实际绘制，非空屏）。
 - 明确不测什么 / 失败含义：不证明开关读写的服务端语义（ST-OBSDIAG-001/02）。
 
-**目的（被测契约）**：Diagnostics 页 4 个子 tab 渲染并可切换；开关关闭时 Snapshots/Stats 表体真实渲染 `Disabled — ...`（OBS 视觉子项：Disabled 状态被实际绘制，非空屏）。 本 Case 是 `RISK-UI-EXEC-1` 关闭证据之一——在**真实浏览器**中执行 `src/web_ui/index.html`、`src/web_ui/app.js`，取代此前的源码字符串契约断言。被测入口：`src/web_ui/`（由 LLMTier 同源静态服务 `/ui/`）；驱动：headless Chrome + CDP（`tests/ui/browser_driver.mjs`）；编排：`tests/ui/test_ui_browser.py`。
+**目的（被测契约）**：Diagnostics 页 4 个子 tab 渲染并可切换；开关关闭时 Snapshots/Stats 表体真实渲染 `Disabled — ...`（OBS 视觉子项：Disabled 状态被实际绘制，非空屏）。 本 Case 是 `RISK-UI-EXEC-1` 关闭证据之一——在**真实浏览器**中执行 `src/web_ui/index.html`、`src/web_ui/app.js`，取代此前的源码字符串契约断言。被测入口：`src/web_ui/`（由 LLMTier 同源静态服务 `/ui/`）；驱动：headless Chrome + CDP（`tests/common/drivers/browser_driver.mjs`）；编排：`tests/system/cases/ST-UI-001.py`。
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 B**（hermetic 临时 `LLMTierInstance`，loopback；上游为 LAN-bound fake provider `tests/fixtures/v03_fake_provider.py`，TS-003）。规范依赖：`LLMTIER_BROWSER`（浏览器可执行路径，默认 `/Applications/Google Chrome.app/...` 或缓存 Chromium）、`LLMTIER_NODE`（node ≥ 22，内置 `WebSocket`）。无需 m5air。初始状态=baseline（1 provider `prov_b` / 1 deployment `depl_b`（探测为 healthy）/ 7 fixed tiers）。
+- **前置与环境**：**环境 B**（hermetic 临时 `LLMTierInstance`，loopback；上游为 LAN-bound fake provider `tests/fixtures/models/v03_fake_provider.py`，TS-003）。规范依赖：`LLMTIER_BROWSER`（浏览器可执行路径，默认 `/Applications/Google Chrome.app/...` 或缓存 Chromium）、`LLMTIER_NODE`（node ≥ 22，内置 `WebSocket`）。无需 m5air。初始状态=baseline（1 provider `prov_b` / 1 deployment `depl_b`（探测为 healthy）/ 7 fixed tiers）。
 - 被测入口声明与位置：`src/web_ui/index.html`、`src/web_ui/app.js`（同源 `/ui/`）。
-- Fixture / 向量：`tests/ui/conftest.py::ui_instance` / `fake_provider_b`。
+- Fixture / 向量：`tests/system/cases conftest.py::ui_instance` / `fake_provider_b`。
 
 ## 3. 输入构造
 
@@ -100,14 +100,14 @@
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/ui/test_ui_browser.py`（`Case ID: ST-UI-006` 经 `record_property` 写入 JUnit，供 `tools/test_report.py` 归集）；驱动 `tests/ui/browser_driver.mjs`。入口：
+- 测试文件 / 测试函数：`tests/system/cases/ST-UI-001.py`（`Case ID: ST-UI-006` 经 `record_property` 写入 JUnit，供 `tools/test_report.py` 归集）；驱动 `tests/common/drivers/browser_driver.mjs`。入口：
   ```text
-  PYTHONPATH=src python3 -m pytest tests/ui -m ui -q -k ST-UI-006
+  PYTHONPATH=src python3 -m pytest tests/system/cases -m ui -q -k ST-UI-006
   # 或 tools/run_ui_tests.sh
   ```
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/ui -m ui -q -k ST-UI-006`
-- 实现状态：`Implemented`（`tests/ui/` 已建并本地 PASS）；执行状态与 Verdict 归 Run 报告。
-- **证据与 Run**：截图 `tests/ui/artifacts/ST-UI-006/ST-UI-006.png`与网络日志 `ST-UI-006.network.json`。测试包 `tests/ui` 为独立 `-m ui` 标记，不并入 A/B 系统班；`RISK-UI-EXEC-1` 关闭证据见系统方案 §4 与系统计划 §10-O6。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/cases -m ui -q -k ST-UI-006`
+- 实现状态：`Implemented`（`tests/system/cases/` (ST-UI-*) 已建并本地 PASS）；执行状态与 Verdict 归 Run 报告。
+- **证据与 Run**：截图 `tests/system/artifacts/ST-UI-006/ST-UI-006.png`与网络日志 `ST-UI-006.network.json`。测试包 `tests/system/cases`（ST-UI-*） 为独立 `-m ui` 标记，不并入 A/B 系统班；`RISK-UI-EXEC-1` 关闭证据见系统方案 §4 与系统计划 §10-O6。
 
 ## 8. 需求与设计可追溯
 

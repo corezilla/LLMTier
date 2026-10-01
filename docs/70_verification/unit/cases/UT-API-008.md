@@ -59,7 +59,7 @@ Handler._auth(role="data"); Handler._auth_either() -> (Principal, is_admin)
 ```
 
 - 初态构造（经公开入口）：`AppFixture` 配置鉴权 token，起 loopback 实例（ENV-2）
-- Fixture / 向量及版本：`tests/unit/v03/fakes.py::AppFixture`（ENV-1）+ `test_app_dispatch.py::AdminDispatchAuthTests`（ENV-2）
+- Fixture / 向量及版本：`tests/common/fakes.py::AppFixture`（ENV-1）+ `test_app_dispatch.py::AdminDispatchAuthTests`（ENV-2）
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../llmtier-unit-test-plan.md) 分配）：ENV-2 loopback 测试 HTTP 实例
 - 依赖的测试资产（tests.asset-design 文档）：无（真实实现）
 
@@ -90,6 +90,6 @@ Handler._auth(role="data"); Handler._auth_either() -> (Principal, is_admin)
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_app_dispatch.py::AdminDispatchAuthTests::test_data_token_on_admin_endpoint_is_403` / `test_admin_token_on_admin_endpoint_is_200` / `test_auth_either_admin_first_role_selection`（双 token 配置下经 `/v1/usage` DELETE 驱动 `_auth_either` admin-first 角色选择：admin token→200、data token→403）；角色选择另由 `test_auth.py::test_admin_token`/`test_principal_header` 覆盖；**非受信来源缺凭据 401** 由 `test_auth.py::test_non_trusted_address_without_credential_is_401` 覆盖（系统层 ST-AUTH-010 以非法授权方案触发同一 401 分支；非受信来源无系统级构造）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_app_dispatch.py tests/unit/v03/test_auth.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03/test_app_dispatch.py`、`test_auth.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 测试文件 / 测试函数：`tests/unit/cases/UT-API-008.py::AdminDispatchAuthTests::test_data_token_on_admin_endpoint_is_403` / `test_admin_token_on_admin_endpoint_is_200` / `test_auth_either_admin_first_role_selection`（双 token 配置下经 `/v1/usage` DELETE 驱动 `_auth_either` admin-first 角色选择：admin token→200、data token→403）；角色选择另由 `test_auth.py::test_admin_token`/`test_principal_header` 覆盖；**非受信来源缺凭据 401** 由 `test_auth.py::test_non_trusted_address_without_credential_is_401` 覆盖（系统层 ST-AUTH-010 以非法授权方案触发同一 401 分支；非受信来源无系统级构造）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/app_dispatch.py tests/unit/cases/auth.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-API-008.py`、`test_auth.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。

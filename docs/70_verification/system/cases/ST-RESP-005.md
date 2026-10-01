@@ -93,7 +93,7 @@
 | 4 | `code=="model_not_found"`、`type=="request_error"`、`param None`、`retryable False`、5 键 | 响应体 |
 | 5 | 交叉核对零副作用（可选 `GET /v1/usage`） | 上游/账本 |
 
-**重点关注步骤**：① **`model_not_found` 而非 `not_found`**——m5air 上 7 tier 由 bootstrap 建立，未知 tier 的 `get_service_level` 抛 `404 not_found` 后被 M003 统一改写为 `model_not_found`；无候选的 tier 亦走 `model_not_found`；② **拒绝在 dispatch 前**；③ **信封 identity**（5 键、无 `category`）；④ **非 SSE**。脚本 [`at_dp_resp_05.py`](../../../../tests/system/api_test_v03/at_dp_resp_05.py) 第 36 行已断言 `code=="model_not_found"`，与当前实现及方案清单一致。
+**重点关注步骤**：① **`model_not_found` 而非 `not_found`**——m5air 上 7 tier 由 bootstrap 建立，未知 tier 的 `get_service_level` 抛 `404 not_found` 后被 M003 统一改写为 `model_not_found`；无候选的 tier 亦走 `model_not_found`；② **拒绝在 dispatch 前**；③ **信封 identity**（5 键、无 `category`）；④ **非 SSE**。脚本 [`ST-RESP-005.py`](../../../../tests/system/cases/ST-RESP-005.py) 第 36 行已断言 `code=="model_not_found"`，与当前实现及方案清单一致。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -119,6 +119,6 @@
 ## 7. 自动化位置与状态
 
 - **证据与 Run**：证据与 Run 契约见[§4.8/§10](../llmtier-system-test-scheme.md)：保存请求 body、HTTP status/headers、原始错误信封、发出命令、exit code、环境快照；manifest 与报告落位见 §4.8/§10（本 case `environment:"a"`）；失败现场不截断。
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client`（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）；自动化入口 [`at_dp_resp_05.py`](../../../../tests/system/api_test_v03/at_dp_resp_05.py)（已断言 `model_not_found`）；错误目录 `ERR-MODEL-NOTFOUND`（[llmtier-system-design.md](../../../20_system_design/llmtier-system-design.md) §7.8）。**不依赖**其它 Case；与 ST-RESP-008（缺 `model`）区分：本 case 有 `model` 但未知。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client`（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）；自动化入口 [`ST-RESP-005.py`](../../../../tests/system/cases/ST-RESP-005.py)（已断言 `model_not_found`）；错误目录 `ERR-MODEL-NOTFOUND`（[llmtier-system-design.md](../../../20_system_design/llmtier-system-design.md) §7.8）。**不依赖**其它 Case；与 ST-RESP-008（缺 `model`）区分：本 case 有 `model` 但未知。
 
-> 实现状态：Implemented（`at_dp_resp_05.py` 已断言本 case 契约）；执行状态与 Verdict 只在 Run 报告。
+> 实现状态：Implemented（`ST-RESP-005.py` 已断言本 case 契约）；执行状态与 Verdict 只在 Run 报告。

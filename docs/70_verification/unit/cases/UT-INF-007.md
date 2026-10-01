@@ -59,7 +59,7 @@ EmbeddingsService.create(principal_id, request_id, body) -> dict
 ```
 
 - 初态构造（经公开入口）：`AppFixture().seed()`；`service` 注入本地 `Base64Adapter`/`BadAdapter`（ENV-3）
-- Fixture / 向量及版本：`tests/unit/v03/test_embeddings.py::EmbeddingsFailureGapTests`；`fakes.py::AppFixture`（ENV-1）/`FakeAdapter`（ENV-3）
+- Fixture / 向量及版本：`tests/unit/cases/UT-INF-007.py::EmbeddingsFailureGapTests`；`fakes.py::AppFixture`（ENV-1）/`FakeAdapter`（ENV-3）
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../llmtier-unit-test-plan.md) 分配）：ENV-1 隔离 Python 临时库 / ENV-3 provider 进程内 fake
 - 依赖的测试资产（tests.asset-design 文档）：`FakeAdapter`（`llmtier-unit-fakes`，资产文档已建）
 
@@ -89,6 +89,6 @@ EmbeddingsService.create(principal_id, request_id, body) -> dict
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_embeddings.py::EmbeddingsFailureGapTests::test_invalid_base64_is_502_provider_contract_error` / `test_empty_vector_is_502_provider_contract_error` / `test_unsupported_dimensions_code_and_param` / `test_unknown_model_is_404_model_not_found`
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_embeddings.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03/test_embeddings.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 测试文件 / 测试函数：`tests/unit/cases/UT-INF-007.py::EmbeddingsFailureGapTests::test_invalid_base64_is_502_provider_contract_error` / `test_empty_vector_is_502_provider_contract_error` / `test_unsupported_dimensions_code_and_param` / `test_unknown_model_is_404_model_not_found`
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/embeddings.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-INF-007.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。

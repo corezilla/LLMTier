@@ -81,7 +81,7 @@ Authorization: Bearer dev-data
 | 5 | 沿 `next_cursor` 继续（≤ 页上限）直到 `has_more=false` | `page1.data[0].request_id != page2.data[0].request_id`；累积所有 `request_id`，`rid_a`、`rid_b` 各恰出现 1 次 |
 | 6 | 末页 | `has_more=false ⇒ next_cursor is null` |
 
-- 重点关注步骤：① **cursor 形态与解析**——`<snapshot_id>:<offset>`；服务端按 `cursor.split(":",1)[0]` 取 snapshot、`[1]` 取 offset；把 `cursor` 当不透明字符串带回；② **跨页 snapshot 不变**——`snapshot_id`/`snapshot_at` 在 page1 与 page2 必须一致；若第二页出现**新** `snapshot_id` 即 FAIL；③ **稳定排序 `(recorded_at,request_id)`**；④ **`has_more`/`next_cursor` 同步**——`has_more=false ⇒ next_cursor=null`；⑤ **同 filter**——所有页 `from`/`to` 必须一致；⑥ **缺陷/注意（实现与 openapi 不符）**：handler 用 `_int_param` 只做 `int()` 转换，**不校验** openapi 的 `minimum:1`/`maximum:200`；即 `limit=0`/`limit=500` 不会被拒。本 case 不据此判 FAIL（只测合法 `limit=1`），但应在运行报告登记该"范围未校验"偏差。另：现有 [`at_dp_usage_03.py`](../../../../tests/system/api_test_v03/at_dp_usage_03.py) 只断言单页 `≤1` 与 `next_cursor` 非空，**未跟随 cursor 取第二页、未验证跨页同 snapshot/无重复无遗漏**；设计完整断言须补齐。
+- 重点关注步骤：① **cursor 形态与解析**——`<snapshot_id>:<offset>`；服务端按 `cursor.split(":",1)[0]` 取 snapshot、`[1]` 取 offset；把 `cursor` 当不透明字符串带回；② **跨页 snapshot 不变**——`snapshot_id`/`snapshot_at` 在 page1 与 page2 必须一致；若第二页出现**新** `snapshot_id` 即 FAIL；③ **稳定排序 `(recorded_at,request_id)`**；④ **`has_more`/`next_cursor` 同步**——`has_more=false ⇒ next_cursor=null`；⑤ **同 filter**——所有页 `from`/`to` 必须一致；⑥ **缺陷/注意（实现与 openapi 不符）**：handler 用 `_int_param` 只做 `int()` 转换，**不校验** openapi 的 `minimum:1`/`maximum:200`；即 `limit=0`/`limit=500` 不会被拒。本 case 不据此判 FAIL（只测合法 `limit=1`），但应在运行报告登记该"范围未校验"偏差。另：现有 [`ST-USAGE-003.py`](../../../../tests/system/cases/ST-USAGE-003.py) 只断言单页 `≤1` 与 `next_cursor` 非空，**未跟随 cursor 取第二页、未验证跨页同 snapshot/无重复无遗漏**；设计完整断言须补齐。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -95,8 +95,8 @@ Authorization: Bearer dev-data
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：[`tests/system/api_test_v03/at_dp_usage_03.py`](../../../../tests/system/api_test_v03/at_dp_usage_03.py)（脚本须补齐跨页断言）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_usage_03.py -q`。
+- 测试文件 / 测试函数：[`tests/system/cases/ST-USAGE-003.py`](../../../../tests/system/cases/ST-USAGE-003.py)（脚本须补齐跨页断言）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/cases/ST-USAGE-003.py -q`。
 - 实现状态：Implemented；执行与 Verdict 归 Run 报告。
 
 **判定口径（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
@@ -109,4 +109,4 @@ Authorization: Bearer dev-data
 
 **证据与 Run**：Run ID=`<date>/A-api`；保存两次前置 embeddings 的 `X-Request-ID`、所有分页请求（含 `cursor` 实际值）与响应（`data[].request_id`、`record_version`、`snapshot_id`、`snapshot_at`、`next_cursor`、`has_more`）、动态窗口值、发出命令、exit code、`elapsed`、环境快照（本 case `environment:"a"`）。
 
-**依赖**：就绪检查；`api_client`；embeddings tier `Embedding-v1`/`dep_local_bge_m3`；机制 [`usage-metering` CON-METER-004](../../../20_system_design/mechanisms/usage-metering.md)；自动化入口 `at_dp_usage_03.py`。**不依赖**其它 Case；与 ST-USAGE-004（过期 cursor）、ST-USAGE-007（同 cursor 重放）共享 cursor 语义但各自独立执行。
+**依赖**：就绪检查；`api_client`；embeddings tier `Embedding-v1`/`dep_local_bge_m3`；机制 [`usage-metering` CON-METER-004](../../../20_system_design/mechanisms/usage-metering.md)；自动化入口 `ST-USAGE-003.py`。**不依赖**其它 Case；与 ST-USAGE-004（过期 cursor）、ST-USAGE-007（同 cursor 重放）共享 cursor 语义但各自独立执行。

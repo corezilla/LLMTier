@@ -107,8 +107,8 @@ Authorization: Bearer dev-data
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/system/api_test_v03/at_dp_usage_05.py`（已实现；7 个非法变体含 `from==to` 等值边界 + 1 次合法对照）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_usage_05.py -q`。
+- 测试文件 / 测试函数：`tests/system/cases/ST-USAGE-005.py`（已实现；7 个非法变体含 `from==to` 等值边界 + 1 次合法对照）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/cases/ST-USAGE-005.py -q`。
 - 实现状态：Implemented；执行与 Verdict 归 Run 报告。
 
 **判定口径（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
@@ -121,4 +121,4 @@ Authorization: Bearer dev-data
 
 **证据与 Run**：Run ID=`<date>/A-api`；保存 7 个变体的完整请求（含 query 实际值）与原始 status/headers/body、对照合法查询响应、可选 `ssh sqlite3` 的 `COUNT(*)` 前后值、发出命令、exit code、`elapsed`、环境快照（本 case `environment:"a"`）。
 
-**依赖**：就绪检查；`api_client`；`constants.recent_window()` 动态值；`listUsage` 机器契约与 `ERR-REQ-VALIDATION`；可选 `ssh m5air sqlite3`（仅加强证据，非 PASS 必要条件）。自动化入口 `at_dp_usage_05.py`（已实现）。**不依赖**其它 Case；与 ST-USAGE-001（正常查询）、ST-USAGE-004（过期 cursor）区分参数缺失/坏值与 cursor 过期两类 400。
+**依赖**：就绪检查；`api_client`；`constants.recent_window()` 动态值；`listUsage` 机器契约与 `ERR-REQ-VALIDATION`；可选 `ssh m5air sqlite3`（仅加强证据，非 PASS 必要条件）。自动化入口 `ST-USAGE-005.py`（已实现）。**不依赖**其它 Case；与 ST-USAGE-001（正常查询）、ST-USAGE-004（过期 cursor）区分参数缺失/坏值与 cursor 过期两类 400。

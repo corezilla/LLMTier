@@ -59,7 +59,7 @@ authenticate(headers, config, remote_addr) -> Principal
 ```
 
 - 初态构造（经公开入口）：`AppFixture` 空库；HTTP 层用 ENV-2 loopback 实例 + `handler_factory`
-- Fixture / 向量及版本：`tests/unit/v03/fakes.py::AppFixture`
+- Fixture / 向量及版本：`tests/common/fakes.py::AppFixture`
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../llmtier-unit-test-plan.md) 分配）：ENV-1 隔离 Python 临时库 / ENV-2 loopback 测试 HTTP 实例 / ENV-3 provider 进程内 fake（按 Case 需要，见 §4）
 - 依赖的测试资产（tests.asset-design 文档）：无（真实实现）
 
@@ -93,7 +93,7 @@ authenticate(headers, config, remote_addr) -> Principal
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/v03/test_auth.py`（全部 10 个测试）（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/v03/test_auth.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/v03`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 测试文件 / 测试函数：`tests/unit/cases/UT-API-002.py`（全部 10 个测试）（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/auth.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
 

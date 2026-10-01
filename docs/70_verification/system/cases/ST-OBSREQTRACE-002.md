@@ -77,7 +77,7 @@
   4. 对另外两个边界 id 重复步骤 1–3（超长 id 的 400/404 记录并说明，不作为 FAIL 依据）。
   5. （对照，可选）取一条真实 `request_id`（经 `GET /v1/diagnostics/traces?limit=1`）→ 断言 `200`，证明端点本体可用（排除"端点整体坏"被误判为 404）。
 
-**重点关注步骤**：① **不得空 stages 冒充**——最危险的误判是把 `200 + {stages:[]}` 当"存在但无阶段"；404 才是契约。② **code 精确**——`not_found`（非 `model_not_found`/`invalid_request`）。③ **错误信封 identity**——恰 5 键、`type=request_error`。④ **id 唯一性**——使用不会在库中出现的 id，避免与真实请求冲突造成假 200。⑤ **超长 id 边界**——openapi `maxLength:128`；若实现返回 404（未校验长度）记录为边界说明，不判 FAIL（除非契约要求 400，当前未声明）。⑥ **降级差异**——`_UnavailableDiagnostics` 对任意 id 返回 200 空视图；执行时须确认诊断服务健康（`GET /v1/diagnostics` 200 且非降级默认特征），降级下判 BLOCKED/SKIP。⑦ **零副作用**——404 不写库。⑧ **存储**——`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `at_obs_reqtrace_02.py` 已实现。
+**重点关注步骤**：① **不得空 stages 冒充**——最危险的误判是把 `200 + {stages:[]}` 当"存在但无阶段"；404 才是契约。② **code 精确**——`not_found`（非 `model_not_found`/`invalid_request`）。③ **错误信封 identity**——恰 5 键、`type=request_error`。④ **id 唯一性**——使用不会在库中出现的 id，避免与真实请求冲突造成假 200。⑤ **超长 id 边界**——openapi `maxLength:128`；若实现返回 404（未校验长度）记录为边界说明，不判 FAIL（除非契约要求 400，当前未声明）。⑥ **降级差异**——`_UnavailableDiagnostics` 对任意 id 返回 200 空视图；执行时须确认诊断服务健康（`GET /v1/diagnostics` 200 且非降级默认特征），降级下判 BLOCKED/SKIP。⑦ **零副作用**——404 不写库。⑧ **存储**——`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSREQTRACE-002.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -104,6 +104,6 @@
 
 - **证据与 Run**：保存每个未知 id 的原始 404 信封、超长 id 边界、正相对照、命令/exit code/`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 6 项就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`ERR-NOTFOUND`；实现 [`src/libdiag/traces.py`](../../../../src/libdiag/traces.py)（`trace` 抛 404）、[`src/http_api/app.py`](../../../../src/http_api/app.py)。自动化入口 `at_obs_reqtrace_02.py`（已实现）。**不依赖**其它 Case；与 ST-OBSREQTRACE-001（正向）、ST-OBSREQTRACE-003（角色负向）互补但各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 6 项就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`ERR-NOTFOUND`；实现 [`src/libdiag/traces.py`](../../../../src/libdiag/traces.py)（`trace` 抛 404）、[`src/http_api/app.py`](../../../../src/http_api/app.py)。自动化入口 `ST-OBSREQTRACE-002.py`（已实现）。**不依赖**其它 Case；与 ST-OBSREQTRACE-001（正向）、ST-OBSREQTRACE-003（角色负向）互补但各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

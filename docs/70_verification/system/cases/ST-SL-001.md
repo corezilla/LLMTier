@@ -109,6 +109,6 @@
 
 - **证据与 Run**：保存原始 HTTP status/headers/body、发出命令、exit code、`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`ServiceLevelPage` 机器契约；`registry.list_service_levels`/`FIXED_TIERS`。自动化入口 [`at_adm_sl_01.py`](../../../../tests/system/api_test_v03/at_adm_sl_01.py)。**不依赖**其它 Case；与 ST-SL-003（单条详情）互补。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`ServiceLevelPage` 机器契约；`registry.list_service_levels`/`FIXED_TIERS`。自动化入口 [`ST-SL-001.py`](../../../../tests/system/cases/ST-SL-001.py)。**不依赖**其它 Case；与 ST-SL-003（单条详情）互补。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

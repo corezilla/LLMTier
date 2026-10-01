@@ -122,8 +122,8 @@
 ## 7. 自动化位置与状态
 
 - **证据与 Run**：证据与 Run 契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)(../llmtier-system-test-scheme.md)：Run ID=`<date>/B-api`；保存请求与原始响应（脱敏后）、发出命令、exit code、`elapsed`、环境快照；`manifest.json` 必填字段与报告落位（`tests/system/reports/...`）见 §4.8/§10；失败现场不截断。**本 case 额外证据**：创建请求/原始响应（含 `ETag`）、回读、teardown 的 `DELETE` 与随后 `GET`。
-  > **脚本覆盖缺口（登记，不在本 case 失败面）**：现有 [`at_adm_depl_02.py`](../../../../tests/system/api_test_v03/at_adm_depl_02.py) 创建后仅 `GET` 回读，**未 teardown 删除**本次创建物（依赖整班 B 类临时实例销毁兜底）；按本设计需在 `finally` 中删除后方为完整。
+  > **脚本覆盖缺口（登记，不在本 case 失败面）**：现有 [`ST-DEPL-002.py`](../../../../tests/system/cases/ST-DEPL-002.py) 创建后仅 `GET` 回读，**未 teardown 删除**本次创建物（依赖整班 B 类临时实例销毁兜底）；按本设计需在 `finally` 中删除后方为完整。
 
-- **依赖**：B 类 fixture `llmtier_b`/`admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；基线 provider `prov_b`（§2.1 附加）；`DeploymentWrite`/`DeploymentView` 机器契约；实现 `src/management/registry.py` `create_deployment`/`_etag`；自动化入口 [`at_adm_depl_02.py`](../../../../tests/system/api_test_v03/at_adm_depl_02.py)。**不依赖**其它 Case（自建被测 deployment）；与 ST-DEPL-004/05 共享创建前置但各自独立执行。
+- **依赖**：B 类 fixture `llmtier_b`/`admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；基线 provider `prov_b`（§2.1 附加）；`DeploymentWrite`/`DeploymentView` 机器契约；实现 `src/management/registry.py` `create_deployment`/`_etag`；自动化入口 [`ST-DEPL-002.py`](../../../../tests/system/cases/ST-DEPL-002.py)。**不依赖**其它 Case（自建被测 deployment）；与 ST-DEPL-004/05 共享创建前置但各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

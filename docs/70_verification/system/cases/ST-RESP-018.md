@@ -31,7 +31,7 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-RESP-018` / 系统设计 §8 Responses 接口 / `VRC-INF-001` / recovery / P2（[方案清单 `ST-RESP-018`](../llmtier-system-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：边界值抽样（body 2 MB 边界）+ 错误猜测 + 反例驱动
-- 要测什么（责任展开）：`POST /v1/responses` body 超过 2 MB：`413 request_too_large`，读取前拒绝（自动化入口 `at_dp_resp_18.py`）。`Content-Length > 2 MiB` 时在解析业务体前返回 `413 request_too_large`。错误目录 `ERR-REQ-TOO-LARGE` → wire `code=request_too_large`；实现 `src/http_api/app.py` `_body()`（`if int(Content-Length) > 2 * 1024 * 1024: raise ApiError(413, "request_too_large", "Request body is too large")`，系统设计 §11.1）。
+- 要测什么（责任展开）：`POST /v1/responses` body 超过 2 MB：`413 request_too_large`，读取前拒绝（自动化入口 `ST-RESP-018.py`）。`Content-Length > 2 MiB` 时在解析业务体前返回 `413 request_too_large`。错误目录 `ERR-REQ-TOO-LARGE` → wire `code=request_too_large`；实现 `src/http_api/app.py` `_body()`（`if int(Content-Length) > 2 * 1024 * 1024: raise ApiError(413, "request_too_large", "Request body is too large")`，系统设计 §11.1）。
 - 明确不测什么 / 失败含义：不测非法 `Content-Length`（`400 invalid_request`）或非法 JSON（ST-RESP-016）；不测上游调用。恰好 2 MiB 的边界（`== 2097152` 应受理）作为本 case 的边界子测。失败含义＝请求体上限制破坏。
 
 ## 2. 被测入口与前置
@@ -65,7 +65,7 @@ Content-Length: 2097153
 | 4 | 解析 `error` | `code=="request_too_large"`、`type=="request_error"`、`param is None`、`retryable is False`，键集恰 5 键 |
 | 5 | 边界子测：构造恰好 2 MiB 的合法 body | 精确断言被受理：`200` + `text/event-stream` + 含 `response.completed`（非 413、非其它错误） |
 
-- 重点关注步骤：① **上限在读取前检查**——>2 MiB 直接 413，不解析 JSON；② **必须有 `Content-Length`**——若缺（chunked/未设），`_body()` 读 0 字节，会偏离 413 路径；③ **边界语义**——`>` 2 MiB 拒绝、`==` 2 MiB 允许；④ **信封 identity**（5 键、无 `category`）；⑤ **边界可判别**——超限子测断 413 + `request_too_large`；边界子测精确断 200 + `text/event-stream`（不再用 `code != request_too_large` 的宽松门）；⑥ **自动化入口**——`at_dp_resp_18.py` 已实现。
+- 重点关注步骤：① **上限在读取前检查**——>2 MiB 直接 413，不解析 JSON；② **必须有 `Content-Length`**——若缺（chunked/未设），`_body()` 读 0 字节，会偏离 413 路径；③ **边界语义**——`>` 2 MiB 拒绝、`==` 2 MiB 允许；④ **信封 identity**（5 键、无 `category`）；⑤ **边界可判别**——超限子测断 413 + `request_too_large`；边界子测精确断 200 + `text/event-stream`（不再用 `code != request_too_large` 的宽松门）；⑥ **自动化入口**——`ST-RESP-018.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -79,8 +79,8 @@ Content-Length: 2097153
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：[`tests/system/api_test_v03/at_dp_resp_18.py`](../../../../tests/system/api_test_v03/at_dp_resp_18.py)（已实现：超限 413 + 边界 200 两子测）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_resp_18.py -q`。
+- 测试文件 / 测试函数：[`tests/system/cases/ST-RESP-018.py`](../../../../tests/system/cases/ST-RESP-018.py)（已实现：超限 413 + 边界 200 两子测）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/cases/ST-RESP-018.py -q`。
 - 实现状态：Implemented；执行与 Verdict 归 Run 报告。
 
 **判定口径（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
@@ -89,7 +89,7 @@ Content-Length: 2097153
 - BLOCKED：测试代码/契约问题。
 - SKIP：B 类临时实例不可用。
 - INVALID：以 mock/替代路径冒充真实路径。
-- NOT_RUN：本 Case 有实现（`at_dp_resp_18.py`），未执行记 `NOT_RUN`。
+- NOT_RUN：本 Case 有实现（`ST-RESP-018.py`），未执行记 `NOT_RUN`。
 
 **证据与 Run**：保存请求 `Content-Length` 与字节数、HTTP status/headers、原始错误信封、边界子测结果、发出命令、exit code、环境快照（本 case `environment:"b"`）。
 

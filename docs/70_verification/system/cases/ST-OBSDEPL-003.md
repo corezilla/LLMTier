@@ -80,7 +80,7 @@
   5. 断言 body 含非法 type 时返回 **404 而非 400**（存在性优先于项校验）——若返回 400 则存在性检查顺序错误，判 FAIL（与 `set_injections` 的顺序契约不符）。
   6. （可选交叉证据）`GET /v1/audit` → 断言存在 `result=="failed"` 的 `diagnostics.injection.update` 行，且无成功行。
 
-**重点关注步骤**：① **存在性优先顺序**——`set_injections` 先查 deployment 再校验 items；故未知 deployment + 非法项 → 404（不是 400），未知 deployment + `items:[]` → 404（不是 200 清空）。这是本 case 最易误判点。② **code 精确**——`not_found`（非 `invalid_injection`/`invalid_request`）。③ **零副作用**——404 不写注入行、不写成功审计。④ **错误信封 identity**——恰 5 键、`type=request_error`。⑤ **GET/PATCH 一致**——读与写都做存在性检查，404 语义一致。⑥ **失败审计**——`mutate` 失败路径记 `result="failed"`。⑦ **降级/存储**——`_UnavailableDiagnostics.set_injections` 返回 `[]`（不检查存在性）属降级实例 → BLOCKED/SKIP；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `at_obs_depl_03.py` 已实现。
+**重点关注步骤**：① **存在性优先顺序**——`set_injections` 先查 deployment 再校验 items；故未知 deployment + 非法项 → 404（不是 400），未知 deployment + `items:[]` → 404（不是 200 清空）。这是本 case 最易误判点。② **code 精确**——`not_found`（非 `invalid_injection`/`invalid_request`）。③ **零副作用**——404 不写注入行、不写成功审计。④ **错误信封 identity**——恰 5 键、`type=request_error`。⑤ **GET/PATCH 一致**——读与写都做存在性检查，404 语义一致。⑥ **失败审计**——`mutate` 失败路径记 `result="failed"`。⑦ **降级/存储**——`_UnavailableDiagnostics.set_injections` 返回 `[]`（不检查存在性）属降级实例 → BLOCKED/SKIP；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSDEPL-003.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -108,6 +108,6 @@
 
 - **证据与 Run**：保存每个 body 变体的原始 404 信封、GET 交叉 404、失败审计（可选）、命令/exit code/`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/B-api`，`environment:"b"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go)（B 类附加）；`llmtier_b`/`admin_client_b` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`ERR-NOTFOUND`；实现 [`src/libdiag/injections.py`](../../../../src/libdiag/injections.py)、[`src/http_api/app.py`](../../../../src/http_api/app.py)。自动化入口 `at_obs_depl_03.py`（已实现）。**不依赖**其它 Case；与 ST-OBSDEPL-002（正向写）、ST-OBSDEPL-004（非法项）互补且需注意判定顺序差异，各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go)（B 类附加）；`llmtier_b`/`admin_client_b` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`ERR-NOTFOUND`；实现 [`src/libdiag/injections.py`](../../../../src/libdiag/injections.py)、[`src/http_api/app.py`](../../../../src/http_api/app.py)。自动化入口 `ST-OBSDEPL-003.py`（已实现）。**不依赖**其它 Case；与 ST-OBSDEPL-002（正向写）、ST-OBSDEPL-004（非法项）互补且需注意判定顺序差异，各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

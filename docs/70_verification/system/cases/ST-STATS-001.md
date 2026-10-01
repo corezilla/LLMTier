@@ -57,7 +57,7 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `admin`，只读；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=§2.1 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；fixture `admin_client`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；时间窗用 [`constants.recent_window()`](../../../../tests/system/api_test_v03/constants.py)（**动态**：`now-30d … now`，RFC3339 `Z`，秒精度），不得硬编码日期。初始状态=§2.3 A 类基线；本 case 只读。
+- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `admin`，只读；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=§2.1 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；fixture `admin_client`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；时间窗用 [`constants.recent_window()`](../../../../tests/system/constants.py)（**动态**：`now-30d … now`，RFC3339 `Z`，秒精度），不得硬编码日期。初始状态=§2.3 A 类基线；本 case 只读。
 
 ## 3. 输入构造
 
@@ -107,6 +107,6 @@
 
 - **证据与 Run**：保存请求 URL（含 from/to）、原始 HTTP status/body、发出命令、exit code、`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`constants.recent_window`；`AdminService.stats`；机制 `R-MET-03`/`T-MET-FINAL`。自动化入口 [`at_adm_stats_01.py`](../../../../tests/system/api_test_v03/at_adm_stats_01.py)。**不依赖**其它 Case；与 ST-STATS-002（显式 group_by=tier）/03（缺窗 400）互补。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`constants.recent_window`；`AdminService.stats`；机制 `R-MET-03`/`T-MET-FINAL`。自动化入口 [`ST-STATS-001.py`](../../../../tests/system/cases/ST-STATS-001.py)。**不依赖**其它 Case；与 ST-STATS-002（显式 group_by=tier）/03（缺窗 400）互补。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

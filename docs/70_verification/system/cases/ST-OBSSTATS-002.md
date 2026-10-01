@@ -77,7 +77,7 @@
   4. （对照）完整 `since`+`until` → 断言 `200` 且顶层键集 `{windows}`（证明端点本体可用，排除"端点坏"被误判为缺参拒绝）。
   5. 断言缺参 400 **不是** `200 {"windows":[]}`（不得用"空窗口"冒充参数校验）。
 
-**重点关注步骤**：① **必填校验先于存储读取**——缺参必须在 `_store_read` 之前 400，不得尝试读库（否则存储故障会被误报为 500/503 而非 400）。② **`since`/`until` 而非 `from`/`to`**——本端点唯一正确参数名是 `since`/`until`；用错参数名等价于缺参 → 400。③ **错误信封 identity**——恰 5 键、`type` 由 400 导出为 `request_error`、`retryable=false`。④ **不得空页冒充**——缺参返回 `200 + {"windows":[]}` 即 FAIL。⑤ **空串边界**——`since=` 之所以视为缺失，是依赖解析层 [`parse_qs(parsed.query)`](../../../../src/http_api/app.py)（`app.py:194`）默认 `keep_blank_values=False` **丢弃空白值**（`query.get("since")` 得 `None`），而非 `not ""` 为真（若改用保留空白的解析，`not ""` 同样为真，但当前实现的实际机制是丢弃；400 结论不变）；作为边界证据记录。⑥ **零副作用**——400 不写库、不新增 trace。⑦ **降级/存储**——本校验在 HTTP 层，降级实例仍应 400（与 diagnostics 降级无关）；`503 usage_store_unavailable` 仅可能出现在正相对照，判 BLOCKED/SKIP。自动化入口 `at_obs_stats_02.py` 已实现。
+**重点关注步骤**：① **必填校验先于存储读取**——缺参必须在 `_store_read` 之前 400，不得尝试读库（否则存储故障会被误报为 500/503 而非 400）。② **`since`/`until` 而非 `from`/`to`**——本端点唯一正确参数名是 `since`/`until`；用错参数名等价于缺参 → 400。③ **错误信封 identity**——恰 5 键、`type` 由 400 导出为 `request_error`、`retryable=false`。④ **不得空页冒充**——缺参返回 `200 + {"windows":[]}` 即 FAIL。⑤ **空串边界**——`since=` 之所以视为缺失，是依赖解析层 [`parse_qs(parsed.query)`](../../../../src/http_api/app.py)（`app.py:194`）默认 `keep_blank_values=False` **丢弃空白值**（`query.get("since")` 得 `None`），而非 `not ""` 为真（若改用保留空白的解析，`not ""` 同样为真，但当前实现的实际机制是丢弃；400 结论不变）；作为边界证据记录。⑥ **零副作用**——400 不写库、不新增 trace。⑦ **降级/存储**——本校验在 HTTP 层，降级实例仍应 400（与 diagnostics 降级无关）；`503 usage_store_unavailable` 仅可能出现在正相对照，判 BLOCKED/SKIP。自动化入口 `ST-OBSSTATS-002.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -104,6 +104,6 @@
 
 - **证据与 Run**：保存三种缺参请求与原始 400 信封、空串边界、正相对照 200、命令/exit code/`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 6 项就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`since`/`until` required 机器契约；实现 [`src/http_api/app.py`](../../../../src/http_api/app.py)（行 320–321 校验）。自动化入口 `at_obs_stats_02.py`（已实现）。**不依赖**其它 Case；与 ST-OBSSTATS-001（正向窗口）互为正向/负向，各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 6 项就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`since`/`until` required 机器契约；实现 [`src/http_api/app.py`](../../../../src/http_api/app.py)（行 320–321 校验）。自动化入口 `ST-OBSSTATS-002.py`（已实现）。**不依赖**其它 Case；与 ST-OBSSTATS-001（正向窗口）互为正向/负向，各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

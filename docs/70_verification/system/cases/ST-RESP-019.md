@@ -31,7 +31,7 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-RESP-019` / 系统设计 §8 Responses 接口 / `VRC-INF-004` / recovery / P1（[方案清单 `ST-RESP-019`](../llmtier-system-test-scheme.md)）；机制 `T-QUEUE`。
 - **测试方法（§1.5 方法表行）**：故障注入（全部候选不健康）+ 复位阶梯
-- 要测什么（责任展开）：`POST /v1/responses` 全部候选不健康：`503 model_unavailable`（`retryable=true`），无上游调用（自动化入口 `at_dp_resp_19.py`）。service-level 存在且有候选 deployment，但没有任何 `health=="healthy"` 候选时，`Router.admit` 在 dispatch 前拒绝。错误目录 `ERR-MODEL-UNAVAIL` → wire `code=model_unavailable`；实现 `src/inference/routing.py`（`healthy=[c for c in candidates if c.health=="healthy"]; if not healthy: raise ApiError(503, "model_unavailable", "All configured backends are unhealthy", retryable=True)`）。
+- 要测什么（责任展开）：`POST /v1/responses` 全部候选不健康：`503 model_unavailable`（`retryable=true`），无上游调用（自动化入口 `ST-RESP-019.py`）。service-level 存在且有候选 deployment，但没有任何 `health=="healthy"` 候选时，`Router.admit` 在 dispatch 前拒绝。错误目录 `ERR-MODEL-UNAVAIL` → wire `code=model_unavailable`；实现 `src/inference/routing.py`（`healthy=[c for c in candidates if c.health=="healthy"]; if not healthy: raise ApiError(503, "model_unavailable", "All configured backends are unhealthy", retryable=True)`）。
 - 明确不测什么 / 失败含义：不测"无候选"（`404 model_not_found`，ST-RESP-005）；不测准入饱和 `429`（ST-RESP-020）；不测真实上游故障（ST-RESP-022/23）；不测模型答案。失败含义＝路由可用性契约破坏。
 
 ## 2. 被测入口与前置
@@ -76,7 +76,7 @@ POST /v1/probes             Authorization: Bearer dev-admin
 | 4 | 解析 `error` | `code=="model_unavailable"`、`type=="server_error"`、`retryable is True`、`param is None`，键集恰 5 键 |
 | 5 | 交叉核对 | 无上游调用（trace/runtime 无该次 upstream_started），失败在 `admit` 内 |
 
-- 重点关注步骤：① **区分"无候选"与"有不健康候选"**——本 case 必须让 `candidates()` 非空（deployment/provider 均 enabled）但 `health != healthy`，否则会得到 `404 model_not_found`；② **`retryable=true`**——可用性类错误；③ **拒绝在 dispatch 前**（`INV-5`）；④ **专属实例**——避免污染共享实例的健康状态；⑤ **自动化入口**——`at_dp_resp_19.py` 与"不可达 LAN endpoint"fixture（`llmtier_b_unhealthy`）已实现。
+- 重点关注步骤：① **区分"无候选"与"有不健康候选"**——本 case 必须让 `candidates()` 非空（deployment/provider 均 enabled）但 `health != healthy`，否则会得到 `404 model_not_found`；② **`retryable=true`**——可用性类错误；③ **拒绝在 dispatch 前**（`INV-5`）；④ **专属实例**——避免污染共享实例的健康状态；⑤ **自动化入口**——`ST-RESP-019.py` 与"不可达 LAN endpoint"fixture（`llmtier_b_unhealthy`）已实现。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -90,8 +90,8 @@ POST /v1/probes             Authorization: Bearer dev-admin
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：[`tests/system/api_test_v03/at_dp_resp_19.py`](../../../../tests/system/api_test_v03/at_dp_resp_19.py)（已实现；依赖"不可达 LAN endpoint"fixture `llmtier_b_unhealthy`）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/api_test_v03/at_dp_resp_19.py -q`。
+- 测试文件 / 测试函数：[`tests/system/cases/ST-RESP-019.py`](../../../../tests/system/cases/ST-RESP-019.py)（已实现；依赖"不可达 LAN endpoint"fixture `llmtier_b_unhealthy`）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/cases/ST-RESP-019.py -q`。
 - 实现状态：Implemented；执行与 Verdict 归 Run 报告。
 
 **判定口径（PASS/FAIL/BLOCKED/SKIP/NOT_RUN/INVALID）**：
@@ -100,7 +100,7 @@ POST /v1/probes             Authorization: Bearer dev-admin
 - BLOCKED：测试代码/fixture 不可实现（无法稳定构造不健康候选）。
 - SKIP：B 类临时实例不可用、无可用 LAN IP 构造不可达 endpoint（TS-003）。
 - INVALID：以 mock/`127.0.0.1` 上游冒充真实路径，或未真正置不健康却按行为判定。
-- NOT_RUN：本 Case 有实现（`at_dp_resp_19.py`），未执行记 `NOT_RUN`。
+- NOT_RUN：本 Case 有实现（`ST-RESP-019.py`），未执行记 `NOT_RUN`。
 
 **证据与 Run**：保存探测请求/响应（`status=unhealthy`）、被测请求与原始 `503` 信封、健康状态证据、发出命令、exit code、环境快照（本 case `environment:"b"`）。
 
