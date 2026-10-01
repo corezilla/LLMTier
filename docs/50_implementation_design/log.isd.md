@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `log-isd` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Document Owner | LLMTier |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `design.implementation` |
 | Template Version | `1.2.2` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -522,7 +522,6 @@ flowchart TD
 - **峰值构成 / 上限 / 共享额度**：单条 ≤512 字符；`limit ≤ 200`
 - **分段预算 / 总期限 / 计时点**：无
 - **超限、部分启动与清理出口**：截断（写）/ 上限（查）
-- **构建或运行命令及前置条件**：`PYTHONPATH=src python3 -m pytest tests/unit/cases -q`
 
 ## 9. 验证规格与实现任务
 
@@ -534,12 +533,7 @@ flowchart TD
 - **V / Case / Vector**：v1 含 `Authorization: Bearer …`；v2 含 `api_key: x`/`token=…`；v3 超长 message；v4 过滤查询；v5 `limit=1000`
 - **输入 / 故障 / 环境**：见上；隔离库
 - **独立 Oracle / Expected**：落库文本含 `[REDACTED]`；长度 ≤512 **字符（码点）**（注：含中文/emoji 时字节数可 >512）；顺序倒序；`limit` 夹到 200
-- **Actual / Evidence**：NOT_RUN
-- **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit/cases`；隔离库
-- **Run ID / Status**：NOT_RUN
 
-**运行命令**：全量 `PYTHONPATH=src python3 -m pytest tests/ tests/system/st_*.py -q`
 
 <a id="isd-tasks"></a>
 
@@ -551,7 +545,6 @@ flowchart TD
 - **实施动作**：实现正则脱敏 + 截断 + INSERT
 - **完成检查**：`VRC-LOG-001`
 - **实现状态**：PLANNED
-- **验证状态 / Run**：NOT_RUN
 
 ### 9.2.2 `TASK-LOG-QUERY` · 过滤查询
 
@@ -561,7 +554,6 @@ flowchart TD
 - **实施动作**：实现条件查询
 - **完成检查**：`VRC-LOG-001`
 - **实现状态**：PLANNED
-- **验证状态 / Run**：NOT_RUN
 
 ## 10. 映射、复核与未决项
 
@@ -575,17 +567,15 @@ flowchart TD
 - **实际位置或 Planned 计划位置**：`src/log/logs.py` `OperationalLog.record/page`
 - **验证项**：`VRC-LOG-001`
 - **实现状态**：PLANNED
-- **验证状态 / Run**：NOT_RUN
 
 <a id="isd-status"></a>
 
 ### 10.2.1 `SC-LOG` · 状态一致性复核
 
 - **上游承接状态 / 固定来源**：模块 `log` §15.ISD 声明 `separate`
-- **本层派生状态 / 事实依据**：无实际实现/Run；全部 `PLANNED`/`NOT_RUN`
+- **本层派生状态 / 事实依据**：尚无实际实现；全部实现项为 `PLANNED`
 - **§2 Current / Target**：N/A（greenfield）
 - **§3 / §5 文件与函数状态**：PLANNED
-- **§9 任务 / Actual / Verdict / Run**：PLANNED / NOT_RUN / NOT_RUN / NOT_RUN
 - **§10 汇总状态**：PLANNED
 - **差异解释 / Owner / 收敛动作**：none
 

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `http-api` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | llmtier |
 | Created Date | `2026-09-23` |
-| Last Modified Date | `2026-09-25` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `design.definition` |
 | Template Version | `3.4.3` |
 | Template Conformance | `tailored` |
@@ -45,7 +45,7 @@
 - **继承预算或行为保证**：判定只在入口发生一次，下游不二次校验
 - **可自行选择 / 不可改变**：实现方式可自选；单点不可变
 - **本地落实 / 内部再分配**：I2；§8.2、§8.3
-- **验证方法与结果 / 证据**：`VRC-API-002`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-API-002`
 - **差距 / 变更影响 / 反馈责任**：无
 
 #### 1.1.2 `CON-TRUST-002` · 不建用户/会话/SSO 体系
@@ -54,7 +54,7 @@
 - **继承预算或行为保证**：凭据仅作纵深
 - **可自行选择 / 不可改变**：— 
 - **本地落实 / 内部再分配**：I2
-- **验证方法与结果 / 证据**：`VRC-API-002`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-API-002`
 - **差距 / 变更影响 / 反馈责任**：无
 
 #### 1.1.3 `CON-TRUST-003` · 恒定时间比较
@@ -63,7 +63,7 @@
 - **继承预算或行为保证**：`hmac.compare_digest`
 - **可自行选择 / 不可改变**：实现可自选；恒定时间不可变
 - **本地落实 / 内部再分配**：`auth.py`
-- **验证方法与结果 / 证据**：`VRC-API-002`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-API-002`
 - **差距 / 变更影响 / 反馈责任**：无
 
 #### 1.1.4 `CON-TRUST-004` · 401/403 不泄露存在性
@@ -72,7 +72,7 @@
 - **继承预算或行为保证**：响应不可区分
 - **可自行选择 / 不可改变**：—
 - **本地落实 / 内部再分配**：I1 错误信封；§8.5
-- **验证方法与结果 / 证据**：`VRC-API-002`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-API-002`
 - **差距 / 变更影响 / 反馈责任**：无
 
 #### 1.1.5 `CON-TRUST-005` · 免登录仅限受信网络
@@ -81,7 +81,7 @@
 - **继承预算或行为保证**：loopback / 受信私网 / DEV
 - **可自行选择 / 不可改变**：网络集合可自选；范围不可变
 - **本地落实 / 内部再分配**：`auth.py` `unauthenticated_principal`
-- **验证方法与结果 / 证据**：`VRC-API-002`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-API-002`
 - **差距 / 变更影响 / 反馈责任**：无
 
 #### 1.1.6 `CON-INFER-001/2` · 标准 Responses SSE、terminal 唯一
@@ -90,7 +90,7 @@
 - **继承预算或行为保证**：只发标准事件；恰好一个 terminal
 - **可自行选择 / 不可改变**：传输实现可自选；事件子集/终态不可变
 - **本地落实 / 内部再分配**：I3；§5.2、§7
-- **验证方法与结果 / 证据**：`VRC-API-003`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-API-003`
 - **差距 / 变更影响 / 反馈责任**：与 M003 一致
 
 #### 1.1.7 `CON-OBS-005` · 调试能力经 Observability 暴露
@@ -99,7 +99,7 @@
 - **继承预算或行为保证**：入口层不直连基础层
 - **可自行选择 / 不可改变**：—
 - **本地落实 / 内部再分配**：I1 经 M005；§5.5
-- **验证方法与结果 / 证据**：`VRC-API-001`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-API-001`
 - **差距 / 变更影响 / 反馈责任**：与 M005 一致
 
 ### 1.2 使用场景（谁在什么情况下用它）
@@ -1211,7 +1211,7 @@ response_stream(response: ResponsesResponse) -> Iterable[bytes]   # text/event-s
 - **推导 / 测量方法与证据等级**：Specified
 - **共享资源扣减 / 峰值重叠 / 余量**：—
 - **超限行为 / 责任出口**：413
-- **验证项 / Evidence**：`VRC-API-003`；NOT_RUN
+- **验证项 / Evidence**：`VRC-API-003`
 
 #### 12.2 `CAP-API-CONC` · 并发
 - **目标 / 限制 / 单位**：线程 / 请求
@@ -1220,7 +1220,7 @@ response_stream(response: ResponsesResponse) -> Iterable[bytes]   # text/event-s
 - **推导 / 测量方法与证据等级**：Specified
 - **共享资源扣减 / 峰值重叠 / 余量**：OS 线程上限
 - **超限行为 / 责任出口**：OS 层拒绝
-- **验证项 / Evidence**：`VRC-API-001`；NOT_RUN
+- **验证项 / Evidence**：`VRC-API-001`
 
 #### 12.3 `CAP-API-SSE` · SSE 空闲超时
 - **目标 / 限制 / 单位**：60 s
@@ -1229,7 +1229,7 @@ response_stream(response: ResponsesResponse) -> Iterable[bytes]   # text/event-s
 - **推导 / 测量方法与证据等级**：Specified
 - **共享资源扣减 / 峰值重叠 / 余量**：—
 - **超限行为 / 责任出口**：结束本次调用
-- **验证项 / Evidence**：`VRC-API-003`；NOT_RUN
+- **验证项 / Evidence**：`VRC-API-003`
 
 #### 12.4 `CAP-API-FD` · 每请求 fd
 - **目标 / 限制 / 单位**：每请求 ≤ 1 线程内 Store 连接，`finally` 关闭
@@ -1238,7 +1238,7 @@ response_stream(response: ResponsesResponse) -> Iterable[bytes]   # text/event-s
 - **推导 / 测量方法与证据等级**：Measured（连接泄漏修复）
 - **共享资源扣减 / 峰值重叠 / 余量**：OS fd 上限（macOS 256）
 - **超限行为 / 责任出口**：`finally` 关闭兜底
-- **验证项 / Evidence**：`VRC-API-001`；NOT_RUN
+- **验证项 / Evidence**：`VRC-API-001`
 
 ## 13. 实现步骤与文件清单
 
@@ -1315,46 +1315,34 @@ response_stream(response: ResponsesResponse) -> Iterable[bytes]   # text/event-s
 ## 14. 测试与验收
 
 #### 14.1 F-API-DISPATCH · 路由分发
-- **Test**：`at_*` 路由用例
+- **Test**：测试方案中的路由用例
 - **正常/边界/失败场景**：正常 / 未知路由
 - **Oracle**：200 / 404
-- **Evidence**：系统测试报告
-- **状态**：Implemented
 
 #### 14.2 F-API-AUTH（CON-TRUST-001）· 访问信任
 - **Test**：T-TRUST-ENDPOINTS
 - **正常/边界/失败场景**：data 凭据访问 admin 端点
 - **Oracle**：403
-- **Evidence**：契约 / 系统测试
-- **状态**：Implemented
 
 #### 14.3 F-API-BODY · 请求体
 - **Test**：413 / invalid_json 用例
 - **正常/边界/失败场景**：超限 / 非法 JSON
 - **Oracle**：413 / 400
-- **Evidence**：系统测试
-- **状态**：Implemented
 
 #### 14.4 F-API-SSE（CON-INFER-001/2）· 流式传输
 - **Test**：T-STREAM
 - **正常/边界/失败场景**：事件序 / terminal 唯一
 - **Oracle**：对照 OpenAPI 事件子集
-- **Evidence**：契约测试
-- **状态**：Implemented
 
 #### 14.5 F-API-STATIC · 静态资源
 - **Test**：目录穿越负例
 - **正常/边界/失败场景**：`../` 路径
 - **Oracle**：404
-- **Evidence**：契约测试
-- **状态**：Implemented
 
 #### 14.6 F-API-HEALTH · 健康/就绪
 - **Test**：引导失败用例
 - **正常/边界/失败场景**：空库无 settings
 - **Oracle**：`/readyz` 503
-- **Evidence**：系统测试
-- **状态**：Implemented
 
 ## 15. 风险、未决问题与引用
 
@@ -1372,7 +1360,7 @@ response_stream(response: ResponsesResponse) -> Iterable[bytes]   # text/event-s
 - **截止/Gate**：本轮 review
 - **决定或状态**：已闭环
 
-引用：系统设计 §3.2/§7；机制 M-TRUST/M-INFER/M-METER/M-CONFIG/M-OBS §14.4；`interfaces/openapi/llmtier.openapi.json`；`tests/system/cases/`。
+引用：系统设计 §3.2/§7；机制 M-TRUST/M-INFER/M-METER/M-CONFIG/M-OBS §14.4；`interfaces/openapi/llmtier.openapi.json`。
 
 ## 附录 A. 机制承接表
 

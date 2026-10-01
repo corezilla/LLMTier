@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `util` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | llmtier |
 | Created Date | `2026-09-23` |
-| Last Modified Date | `2026-09-25` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `design.definition` |
 | Template Version | `3.4.3` |
 | Template Conformance | `tailored` |
@@ -45,7 +45,7 @@
 - **继承预算或行为保证**：所有写路径经 M007；不旁路
 - **可自行选择 / 不可改变**：存储引擎可自选（当前 SQLite）；唯一性不可变
 - **本地落实 / 内部再分配**：I1 连接、I2 事务；§8
-- **验证方法与结果 / 证据**：`VRC-UTIL-001`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-UTIL-001`
 - **差距 / 变更影响 / 反馈责任**：无
 
 #### 1.1.2 `C-OBS-…`（观测表）与 `C-METER-…`（账本表）的存储承接
@@ -54,7 +54,7 @@
 - **继承预算或行为保证**：原子事务、只追加语义由业务模块维护，M007 只提供事务
 - **可自行选择 / 不可改变**：表结构可自选；事务语义不可变
 - **本地落实 / 内部再分配**：I2 事务；§8
-- **验证方法与结果 / 证据**：`VRC-UTIL-002`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-UTIL-002`
 - **差距 / 变更影响 / 反馈责任**：与 M-METER/M-OBS 一致
 
 ## 2. 需求、功能与验收条件
@@ -712,7 +712,7 @@ close() -> None
 - **推导 / 测量方法与证据等级**：Measured（连接泄漏修复）
 - **共享资源扣减 / 峰值重叠 / 余量**：macOS 256 fd
 - **超限行为 / 责任出口**：连接泄漏风险 → `close()` 兜底
-- **验证项 / Evidence**：`VRC-UTIL-001`；NOT_RUN
+- **验证项 / Evidence**：`VRC-UTIL-001`
 
 #### 12.2 `CAP-UTIL-TXN` · 写串行化
 - **目标 / 限制 / 单位**：`BEGIN IMMEDIATE` 串行写
@@ -721,7 +721,7 @@ close() -> None
 - **推导 / 测量方法与证据等级**：Specified
 - **共享资源扣减 / 峰值重叠 / 余量**：`timeout=10`
 - **超限行为 / 责任出口**：锁超时 → 异常
-- **验证项 / Evidence**：`VRC-UTIL-002`；NOT_RUN
+- **验证项 / Evidence**：`VRC-UTIL-002`
 
 ## 13. 实现步骤与文件清单
 
@@ -781,8 +781,6 @@ close() -> None
 - **Case / 正常、边界与失败输入**：并发请求；`finally` 关闭
 - **环境 / 配置 / 隔离与复位**：隔离库
 - **独立 Oracle / Expected**：外键=1；fd 稳定
-- **Actual / Evidence / Run ID**：NOT_RUN
-- **Verdict / 状态**：NOT_RUN
 - **父级组合验证交接**：M001
 
 #### 14.2 `VRC-UTIL-002` · 事务与迁移
@@ -790,8 +788,6 @@ close() -> None
 - **Case**：中途异常回滚；重复迁移
 - **环境 / 配置 / 隔离与复位**：隔离库
 - **独立 Oracle / Expected**：无半写；幂等
-- **Actual / Evidence / Run ID**：NOT_RUN
-- **Verdict / 状态**：NOT_RUN
 - **父级组合验证交接**：M004/M-METER/M-OBS
 
 ## 15. 风险、未决问题与引用

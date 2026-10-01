@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `web-ui` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | llmtier |
 | Created Date | `2026-09-23` |
-| Last Modified Date | `2026-09-25` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `design.definition` |
 | Template Version | `3.4.3` |
 | Template Conformance | `tailored` |
@@ -45,7 +45,7 @@
 - **继承预算或行为保证**：Web UI 自身不实现访问控制；由同源反代/入口判定
 - **可自行选择 / 不可改变**：—
 - **本地落实 / 内部再分配**：I2（401/403 呈现）；§8、§11
-- **验证方法与结果 / 证据**：`VRC-UI-002`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-UI-002`
 - **差距 / 变更影响 / 反馈责任**：无
 
 #### 1.1.2 `CON-TRUST-002` · 不建用户/会话/SSO 体系
@@ -54,7 +54,7 @@
 - **继承预算或行为保证**：浏览器只持代理签发 cookie；不新增登录 endpoint
 - **可自行选择 / 不可改变**：—
 - **本地落实 / 内部再分配**：§11
-- **验证方法与结果 / 证据**：`VRC-UI-002`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-UI-002`
 - **差距 / 变更影响 / 反馈责任**：无
 
 #### 1.1.3 `C-METER-…` · 用量未知不填零
@@ -63,7 +63,7 @@
 - **继承预算或行为保证**：Unknown 不显示 0
 - **可自行选择 / 不可改变**：渲染可自选；不填零不可变
 - **本地落实 / 内部再分配**：I5；§8.2
-- **验证方法与结果 / 证据**：`VRC-UI-004`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-UI-004`
 - **差距 / 变更影响 / 反馈责任**：与 M004 一致
 
 #### 1.1.4 `CON-OBS-001` · 调试默认关闭
@@ -72,7 +72,7 @@
 - **继承预算或行为保证**：关闭时对应 tab 显示 Disabled
 - **可自行选择 / 不可改变**：呈现可自选；默认关不可变
 - **本地落实 / 内部再分配**：I7；§8
-- **验证方法与结果 / 证据**：`VRC-UI-006`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-UI-006`
 - **差距 / 变更影响 / 反馈责任**：与 M005 一致
 
 ## 2. 需求、功能与验收条件
@@ -1315,7 +1315,7 @@ index.html -> 5 × <section class="page">（#home/#providers/#stats/#logs/#diagn
 - **推导 / 测量方法与证据等级**：Specified
 - **共享资源扣减 / 峰值重叠 / 余量**：—
 - **超限行为 / 责任出口**：—
-- **验证项 / Evidence**：`VRC-UI-001`；NOT_RUN
+- **验证项 / Evidence**：`VRC-UI-001`
 
 #### 12.2 `CAP-UI-VIEWPORT` · 视口
 - **目标 / 限制 / 单位**：1280×760 基线；<960px 侧栏折叠
@@ -1324,7 +1324,7 @@ index.html -> 5 × <section class="page">（#home/#providers/#stats/#logs/#diagn
 - **推导 / 测量方法与证据等级**：Specified
 - **共享资源扣减 / 峰值重叠 / 余量**：—
 - **超限行为 / 责任出口**：表格横向滚动
-- **验证项 / Evidence**：`VRC-UI-001`；NOT_RUN
+- **验证项 / Evidence**：`VRC-UI-001`
 
 #### 12.3 `CAP-UI-PAGE` · 分页与页面长度
 - **目标 / 限制 / 单位**：cursor-based；Diagnostics 快照 50/页；五页各自短页
@@ -1333,7 +1333,7 @@ index.html -> 5 × <section class="page">（#home/#providers/#stats/#logs/#diagn
 - **推导 / 测量方法与证据等级**：Specified
 - **共享资源扣减 / 峰值重叠 / 余量**：—
 - **超限行为 / 责任出口**：`next_cursor`；页签/抽屉分载
-- **验证项 / Evidence**：`VRC-UI-004`；NOT_RUN
+- **验证项 / Evidence**：`VRC-UI-004`
 
 ## 13. 实现步骤与文件清单
 
@@ -1415,50 +1415,36 @@ index.html -> 5 × <section class="page">（#home/#providers/#stats/#logs/#diagn
 - **Test**：WebUI 用例
 - **正常/边界/失败场景**：Tier/成员状态、`readyz` 映射
 - **Oracle**：状态语义表
-- **Evidence**：系统测试报告
-- **状态**：Implemented
 
 #### 14.2 F-UI-TIER-EDIT · 等级成员编辑
 - **Test**：Admin / 系统用例
 - **正常/边界/失败场景**：412 stale、409 引用
 - **Oracle**：错误呈现
-- **Evidence**：系统测试
-- **状态**：Implemented
 
 #### 14.3 F-UI-PAUSE · 后端暂停/恢复
 - **Test**：系统用例
 - **正常/边界/失败场景**：`running>0` 确认边界
 - **Oracle**：Pause 不取消在途
-- **Evidence**：系统测试
-- **状态**：Implemented
 
 #### 14.4 F-UI-PROVIDERS · 供应商管理
 - **Test**：系统用例
 - **正常/边界/失败场景**：Secret 只写不回显
 - **Oracle**：表单行为
-- **Evidence**：系统测试
-- **状态**：Implemented
 
 #### 14.5 F-UI-RECORDS · 用量与审计
 - **Test**：契约 / 系统用例
 - **正常/边界/失败场景**：Unknown ≠ 0、版本替换
 - **Oracle**：账本语义
-- **Evidence**：系统测试
-- **状态**：Implemented
 
 #### 14.6 F-UI-LOGS · 运行日志
 - **Test**：系统用例
 - **正常/边界/失败场景**：503 显式化、脱敏
 - **Oracle**：日志规范
-- **Evidence**：系统测试
-- **状态**：Implemented
 
 #### 14.7 F-UI-DIAG · 诊断
 - **Test**：系统用例
 - **正常/边界/失败场景**：开关关闭 → Disabled
 - **Oracle**：开关语义
-- **Evidence**：系统测试
-- **状态**：Implemented
 
 ## 15. 风险、未决问题与引用
 
@@ -1490,7 +1476,7 @@ index.html -> 5 × <section class="page">（#home/#providers/#stats/#logs/#diagn
 - **截止/Gate**：—
 - **决定或状态**：已接受
 
-引用：系统设计 §3.2/§4.3；机制 M-CONFIG/M-OBS §14.4；`interfaces/openapi/llmtier.openapi.json`；`docs/assets/webui*`；`tests/system/cases/`（含 WebUI 行为用例）。
+引用：系统设计 §3.2/§4.3；机制 M-CONFIG/M-OBS §14.4；`interfaces/openapi/llmtier.openapi.json`；`docs/assets/webui*`。
 
 ## 附录 A. 机制承接表
 

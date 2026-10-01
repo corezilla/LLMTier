@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `observability` |
-| Document Version | `0.1.0-draft.7` |
+| Document Version | `0.1.0-draft.8` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | llmtier |
 | Created Date | `2026-09-23` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `design.definition` |
 | Template Version | `3.4.3` |
 | Template Conformance | `tailored` |
@@ -45,7 +45,7 @@
 - **继承预算或行为保证**：开关关闭时不写入、零开销
 - **可自行选择 / 不可改变**：开关存储可自选；默认关不可变
 - **本地落实 / 内部再分配**：I1/I2 经 M006 判定开关；§8
-- **验证方法与结果 / 证据**：`VRC-OBS-001`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-OBS-001`
 - **差距 / 变更影响 / 反馈责任**：无
 
 #### 1.1.2 `CON-OBS-002` · fail-open
@@ -54,7 +54,7 @@
 - **继承预算或行为保证**：观测失败不改变推理结果
 - **可自行选择 / 不可改变**：捕获实现可自选；fail-open 不可变
 - **本地落实 / 内部再分配**：I1–I3 捕获；§10
-- **验证方法与结果 / 证据**：`VRC-OBS-003`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-OBS-003`
 - **差距 / 变更影响 / 反馈责任**：与 M006 一致
 
 #### 1.1.3 `CON-OBS-003` · 不记录 Secret/凭据/完整正文
@@ -63,7 +63,7 @@
 - **继承预算或行为保证**：只含脱敏字段
 - **可自行选择 / 不可改变**：脱敏实现可自选；禁记不可变
 - **本地落实 / 内部再分配**：I1–I4 + M006/M008；§11
-- **验证方法与结果 / 证据**：`VRC-OBS-002`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-OBS-002`
 - **差距 / 变更影响 / 反馈责任**：与 M008 一致
 
 #### 1.1.4 `CON-OBS-004` · 注入调用标注 source=injected
@@ -72,7 +72,7 @@
 - **继承预算或行为保证**：账本可区分注入调用
 - **可自行选择 / 不可改变**：标注实现可自选；可区分不可变
 - **本地落实 / 内部再分配**：I3 入口 + M003/M-METER；§8
-- **验证方法与结果 / 证据**：`VRC-OBS-004`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-OBS-004`
 - **差距 / 变更影响 / 反馈责任**：与 M-METER 一致
 
 #### 1.1.5 `CON-OBS-005` · 能力由 libdiag 提供、Observability 呈现
@@ -81,7 +81,7 @@
 - **继承预算或行为保证**：底层读写归 M006；呈现/切换归 M005
 - **可自行选择 / 不可改变**：—（职责边界）
 - **本地落实 / 内部再分配**：§5.1、§5.3
-- **验证方法与结果 / 证据**：`VRC-OBS-001`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-OBS-001`
 - **差距 / 变更影响 / 反馈责任**：无
 
 ## 2. 需求、功能与验收条件
@@ -989,7 +989,7 @@ apply_correlation(headers) -> (correlation_id: str | None, trace_detail: dict | 
 - **推导 / 测量方法与证据等级**：Specified
 - **共享资源扣减 / 峰值重叠 / 余量**：—
 - **超限行为 / 责任出口**：过期删除
-- **验证项 / Evidence**：`VRC-OBS-002`；NOT_RUN
+- **验证项 / Evidence**：`VRC-OBS-002`
 
 #### 12.2 `CAP-OBS-STATS` · 统计写容量
 - **目标 / 限制 / 单位**：每次请求一次 UPSERT + 追加（无内存上限）
@@ -998,7 +998,7 @@ apply_correlation(headers) -> (correlation_id: str | None, trace_detail: dict | 
 - **推导 / 测量方法与证据等级**：Specified（可丢）
 - **共享资源扣减 / 峰值重叠 / 余量**：—
 - **超限行为 / 责任出口**：写失败 fail-open
-- **验证项 / Evidence**：`VRC-OBS-002`；NOT_RUN
+- **验证项 / Evidence**：`VRC-OBS-002`
 
 #### 12.3 `CAP-OBS-PAGE` · 分页
 - **目标 / 限制 / 单位**：快照 50/页
@@ -1007,7 +1007,7 @@ apply_correlation(headers) -> (correlation_id: str | None, trace_detail: dict | 
 - **推导 / 测量方法与证据等级**：Specified
 - **共享资源扣减 / 峰值重叠 / 余量**：—
 - **超限行为 / 责任出口**：`next_cursor`
-- **验证项 / Evidence**：`VRC-OBS-002`；NOT_RUN
+- **验证项 / Evidence**：`VRC-OBS-002`
 
 ## 13. 实现步骤与文件清单
 
@@ -1067,8 +1067,6 @@ apply_correlation(headers) -> (correlation_id: str | None, trace_detail: dict | 
 - **Case / 正常、边界与失败输入**：关/开 snapshots/stats；关闭时推理
 - **环境 / 配置 / 隔离与复位**：隔离库
 - **独立 Oracle / Expected**：关闭时零写入
-- **Actual / Evidence / Run ID**：NOT_RUN
-- **Verdict / 状态**：NOT_RUN
 - **父级组合验证交接**：M002
 
 #### 14.2 `VRC-OBS-002` · 快照/统计查询与脱敏
@@ -1076,8 +1074,6 @@ apply_correlation(headers) -> (correlation_id: str | None, trace_detail: dict | 
 - **Case**：一次上游调用后查询；`?token=` URL
 - **环境 / 配置 / 隔离与复位**：隔离库
 - **独立 Oracle / Expected**：字段完整；URL 去 query；统计口径
-- **Actual / Evidence / Run ID**：NOT_RUN
-- **Verdict / 状态**：NOT_RUN
 - **父级组合验证交接**：M003
 
 #### 14.3 `VRC-OBS-003` · 注入与 fail-open
@@ -1085,8 +1081,6 @@ apply_correlation(headers) -> (correlation_id: str | None, trace_detail: dict | 
 - **Case**：合法/非法注入；注入库写失败
 - **环境 / 配置 / 隔离与复位**：隔离库
 - **独立 Oracle / Expected**：400/404；推理结果不变
-- **Actual / Evidence / Run ID**：NOT_RUN
-- **Verdict / 状态**：NOT_RUN
 - **父级组合验证交接**：M003/M-METER
 
 #### 14.4 `VRC-OBS-004` · trace 与关联标识
@@ -1094,8 +1088,6 @@ apply_correlation(headers) -> (correlation_id: str | None, trace_detail: dict | 
 - **Case**：固定 request_id；带/不带 `X-Correlation-ID`
 - **环境 / 配置 / 隔离与复位**：隔离库
 - **独立 Oracle / Expected**：stage 有序；有则回显
-- **Actual / Evidence / Run ID**：NOT_RUN
-- **Verdict / 状态**：NOT_RUN
 - **父级组合验证交接**：Piko 联调
 
 #### 14.5 `VRC-OBS-005` · trace 时间窗查询
@@ -1103,8 +1095,6 @@ apply_correlation(headers) -> (correlation_id: str | None, trace_detail: dict | 
 - **Case / 正常、边界与失败输入**：多 request 时间窗；分页；越界窗
 - **环境 / 配置 / 隔离与复位**：隔离库
 - **独立 Oracle / Expected**：去重 request、`next_cursor` 稳定、越界为空
-- **Actual / Evidence / Run ID**：NOT_RUN
-- **Verdict / 状态**：NOT_RUN
 - **父级组合验证交接**：Piko 联调（G-1）
 
 ## 15. 风险、未决问题与引用

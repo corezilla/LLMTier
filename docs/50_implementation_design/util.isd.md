@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `util-isd` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Document Owner | LLMTier |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `design.implementation` |
 | Template Version | `1.2.2` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -910,7 +910,6 @@ flowchart TD
 - **峰值构成 / 上限 / 共享额度**：每线程 1 连接；fd 非稳定契约（WAL/SHM 可共享）
 - **分段预算 / 总期限 / 计时点**：无自有预算；由宿主请求生命周期约束
 - **超限、部分启动与清理出口**：fd 上限由宿主 + `close()` 缓解；锁等待超时 → `OperationalError`
-- **构建或运行命令及前置条件**：单元 `PYTHONPATH=src python3 -m pytest tests/unit/cases -q`；全量（AGENTS 契约要求含系统测试）`PYTHONPATH=src python3 -m pytest tests/ tests/system/st_*.py -q`（仓库根）
 
 ## 9. 验证规格与实现任务
 
@@ -922,10 +921,6 @@ flowchart TD
 - **V / Case / Vector**：v1 PRAGMA；v2 fd 基线；v3 busy；v4 close 异常；v5 world-writable；v6 symlink 拒绝
 - **输入 / 故障 / 环境**：打开连接；N 次请求；锁占用；`close` 抛错；权限/符号链接
 - **独立 Oracle / Expected**：`foreign_keys=1`、`journal_mode=wal`；fd 不随请求数增长；busy → `OperationalError`；close 异常向上抛；world-writable → warning；symlink → `store_path_unsafe`
-- **Actual / Evidence**：NOT_RUN
-- **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit/cases`；隔离库
-- **Run ID / Status**：NOT_RUN
 
 ### 9.1.2 `VRC-UTIL-002` · 事务/初始化/拒绝
 
@@ -933,12 +928,7 @@ flowchart TD
 - **V / Case / Vector**：v1 异常回滚；v2 重复 `migrate()`；v3 损坏库；v4 版本不匹配；v5 中途失败；v6 嵌套事务；v7 并发启动；v8 无版本表旧库
 - **输入 / 故障 / 环境**：事务内抛异常；连续 migrate；损坏文件；非空库版本≠期望；脚本中途失败；事务内再 BEGIN；两实例并发；有表无 `schema_meta`
 - **独立 Oracle / Expected**：无半写；幂等；`schema_integrity_failed`；`schema_version_mismatch`；回滚后库空；`E-UTIL-NESTED-TXN`；无部分/损坏表；`schema_unknown`
-- **Actual / Evidence**：NOT_RUN
-- **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit/cases` + 并发/故障注入；隔离库
-- **Run ID / Status**：NOT_RUN
 
-**运行命令**：全量 `PYTHONPATH=src python3 -m pytest tests/ tests/system/st_*.py -q`
 
 <a id="isd-tasks"></a>
 
@@ -950,7 +940,6 @@ flowchart TD
 - **实施动作**：实现连接缓存、PRAGMA、路径预检、关闭
 - **完成检查**：`VRC-UTIL-001`
 - **实现状态**：PLANNED
-- **验证状态 / Run**：NOT_RUN
 
 ### 9.2.2 `TASK-UTIL-TXN` · 事务与查询
 
@@ -960,7 +949,6 @@ flowchart TD
 - **实施动作**：实现事务上下文与查询 helper
 - **完成检查**：`VRC-UTIL-002`
 - **实现状态**：PLANNED
-- **验证状态 / Run**：NOT_RUN
 
 ### 9.2.3 `TASK-UTIL-MIGRATE` · 初始化与拒绝
 
@@ -970,7 +958,6 @@ flowchart TD
 - **实施动作**：实现库状态识别、原子初始化、完整性检查
 - **完成检查**：`VRC-UTIL-002`
 - **实现状态**：PLANNED
-- **验证状态 / Run**：NOT_RUN
 
 ## 10. 映射、复核与未决项
 
@@ -984,7 +971,6 @@ flowchart TD
 - **实际位置或 Planned 计划位置**：`src/util/store.py` `Store.connection`
 - **验证项**：`VRC-UTIL-001`
 - **实现状态**：PLANNED
-- **验证状态 / Run**：NOT_RUN
 
 ### 10.1.2 `MAP-UTIL-TXN` · 事务映射
 
@@ -994,7 +980,6 @@ flowchart TD
 - **实际位置或 Planned 计划位置**：`store.py` `Store.transaction`
 - **验证项**：`VRC-UTIL-002`
 - **实现状态**：PLANNED
-- **验证状态 / Run**：NOT_RUN
 
 ### 10.1.3 `MAP-UTIL-MIGRATE` · 初始化映射
 
@@ -1004,17 +989,15 @@ flowchart TD
 - **实际位置或 Planned 计划位置**：`store.py` `Store.migrate`
 - **验证项**：`VRC-UTIL-002`
 - **实现状态**：PLANNED
-- **验证状态 / Run**：NOT_RUN
 
 <a id="isd-status"></a>
 
 ### 10.2.1 `SC-UTIL` · 状态一致性复核
 
 - **上游承接状态 / 固定来源**：模块 `util` §15.ISD 声明 `separate`
-- **本层派生状态 / 事实依据**：无实际实现/Run；全部 `PLANNED`/`NOT_RUN`
+- **本层派生状态 / 事实依据**：尚无实际实现；全部实现项为 `PLANNED`
 - **§2 Current / Target**：N/A（greenfield，见 §2.1）
 - **§3 / §5 文件与函数状态**：PLANNED
-- **§9 任务 / Actual / Verdict / Run**：PLANNED / NOT_RUN / NOT_RUN / NOT_RUN
 - **§10 汇总状态**：PLANNED
 - **差异解释 / Owner / 收敛动作**：none（设计期一致）
 

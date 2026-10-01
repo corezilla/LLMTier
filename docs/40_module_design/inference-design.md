@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `inference` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | llmtier |
 | Created Date | `2026-09-23` |
-| Last Modified Date | `2026-09-25` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `design.definition` |
 | Template Version | `3.4.3` |
 | Template Conformance | `tailored` |
@@ -45,7 +45,7 @@
 - **继承预算或行为保证**：对外只发标准 Responses SSE，不增 JSON 并行模式
 - **可自行选择 / 不可改变**：内部编排可自选；事件子集不可变
 - **本地落实 / 内部再分配**：I2 编排 + I7 归一；§7、§9
-- **验证方法与结果 / 证据**：`VRC-INF-001`；契约测试；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-INF-001`
 - **差距 / 变更影响 / 反馈责任**：无
 
 #### 1.1.2 `CON-INFER-002` · 每请求恰好一个 terminal 事件
@@ -54,7 +54,7 @@
 - **继承预算或行为保证**：终态唯一
 - **可自行选择 / 不可改变**：事件名由 status 决定
 - **本地落实 / 内部再分配**：I7 归一 + M001 SSE 传输；§8、§10
-- **验证方法与结果 / 证据**：`VRC-INF-001`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-INF-001`
 - **差距 / 变更影响 / 反馈责任**：无
 
 #### 1.1.3 `CON-INFER-003` · 结果未知不补零；账本只追加
@@ -63,7 +63,7 @@
 - **继承预算或行为保证**：unknown 义务先落库；usage 缺失不写 0
 - **可自行选择 / 不可改变**：归一实现可自选；不补零不可变
 - **本地落实 / 内部再分配**：I8 用量记账（M-METER）；§8、§9
-- **验证方法与结果 / 证据**：`VRC-INF-003`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-INF-003`
 - **差距 / 变更影响 / 反馈责任**：与 M-METER 一致
 
 #### 1.1.4 `CON-INFER-004` · 不做跨等级 / 跨空间 fallback
@@ -72,7 +72,7 @@
 - **继承预算或行为保证**：只在同一 exact 等级内选择
 - **可自行选择 / 不可改变**：排序实现可自选；不跨等级不可变
 - **本地落实 / 内部再分配**：I5 准入路由；§8
-- **验证方法与结果 / 证据**：`VRC-INF-004`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-INF-004`
 - **差距 / 变更影响 / 反馈责任**：无
 
 #### 1.1.5 `CON-INFER-005` · 观测 fail-open，不改推理结果
@@ -81,7 +81,7 @@
 - **继承预算或行为保证**：观测失败不得使推理失败
 - **可自行选择 / 不可改变**：捕获实现可自选；fail-open 不可变
 - **本地落实 / 内部再分配**：I8/观测集成；§10、§11
-- **验证方法与结果 / 证据**：`VRC-INF-005`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-INF-005`
 - **差距 / 变更影响 / 反馈责任**：与 M-OBS 一致
 
 ## 2. 需求、功能与验收条件
@@ -1198,7 +1198,7 @@ list_models() -> list
 - **推导 / 测量方法与证据等级**：Specified
 - **共享资源扣减 / 峰值重叠 / 余量**：per-deployment `max_in_flight=1`（首版）
 - **超限行为 / 责任出口**：429 + `Retry-After`
-- **验证项 / Evidence**：`VRC-INF-004`；NOT_RUN
+- **验证项 / Evidence**：`VRC-INF-004`
 
 #### 12.2 `CAP-INF-UPSTREAM` · 上游超时
 - **目标 / 限制 / 单位**：建连 30 s、SSE 空闲 60 s（缺省）
@@ -1207,7 +1207,7 @@ list_models() -> list
 - **推导 / 测量方法与证据等级**：Specified
 - **共享资源扣减 / 峰值重叠 / 余量**：—
 - **超限行为 / 责任出口**：结束本次调用；记 unknown usage
-- **验证项 / Evidence**：`VRC-INF-003`；NOT_RUN
+- **验证项 / Evidence**：`VRC-INF-003`
 
 #### 12.3 `CAP-INF-EMBED` · 向量化上限
 - **目标 / 限制 / 单位**：单项 ≤ 8192 provider tokens；批 ≤ 32 inputs；维数固定 1024
@@ -1216,7 +1216,7 @@ list_models() -> list
 - **推导 / 测量方法与证据等级**：Specified
 - **共享资源扣减 / 峰值重叠 / 余量**：—
 - **超限行为 / 责任出口**：400 `unsupported_dimensions` / provider 侧错误
-- **验证项 / Evidence**：`VRC-INF-002`；NOT_RUN
+- **验证项 / Evidence**：`VRC-INF-002`
 
 ## 13. 实现步骤与文件清单
 
@@ -1228,7 +1228,7 @@ list_models() -> list
 - **承接 Function / Rule / Constraint / Interface ID**：`F-INF-RESPONSES`、`F-INF-VALIDATE`、`RULE-INF-VALIDATE`、`CON-INFER-001/2/3`、`IF-RESPONSES`
 - **构建目标 / 依赖 / 宿主装配**：随 `Application` 装配；依赖 Registry/Router/Usage/Diagnostics
 - **实现状态**：Implemented（含 `LLMTIER_SLOW_ADAPTER_DELAY` 测试注入）
-- **验证入口**：`VRC-INF-001`；`tests/system/cases/`
+- **验证入口**：`VRC-INF-001`
 
 #### 13.1.2 `src/inference/embeddings.py`
 - **职责 / 非职责**：I3 向量化编排 + 向量/base64 校验；不处理 Responses
@@ -1315,8 +1315,6 @@ list_models() -> list
 - **Case / 正常、边界与失败输入**：固定 request（Worker）；缺字段/`store=true`/禁字段；未知 model
 - **环境 / 配置 / 隔离与复位**：本机实例 + 隔离库
 - **独立 Oracle / Expected**：事件子集对照 OpenAPI；恰好一个 terminal
-- **Actual / Evidence / Run ID**：NOT_RUN
-- **Verdict / 状态**：NOT_RUN
 - **父级组合验证交接**：Piko 联调
 
 #### 14.2 `VRC-INF-002` · 向量化契约
@@ -1324,8 +1322,6 @@ list_models() -> list
 - **Case**：正常向量；base64；非有限值；非法维数；`Embedding-v1` 约束
 - **环境 / 配置 / 隔离与复位**：隔离库
 - **独立 Oracle / Expected**：向量长度/有限性；usage→`prompt_tokens`
-- **Actual / Evidence / Run ID**：NOT_RUN
-- **Verdict / 状态**：NOT_RUN
 - **父级组合验证交接**：Slinky（Embeddings）
 
 #### 14.3 `VRC-INF-003` · 失败与用量
@@ -1333,8 +1329,6 @@ list_models() -> list
 - **Case**：上游 5xx/超时；两个 terminal；usage 缺失
 - **环境 / 配置 / 隔离与复位**：`LLMTIER_SLOW_ADAPTER_DELAY` 注入
 - **独立 Oracle / Expected**：unknown 不补零；head 单调；typed error
-- **Actual / Evidence / Run ID**：NOT_RUN
-- **Verdict / 状态**：NOT_RUN
 - **父级组合验证交接**：M-METER
 
 #### 14.4 `VRC-INF-004` · 准入与目录
@@ -1342,8 +1336,6 @@ list_models() -> list
 - **Case**：占满队列→429；全不健康→503；availability 三态
 - **环境 / 配置 / 隔离与复位**：隔离库 + 并发请求
 - **独立 Oracle / Expected**：429/503；availability 规则
-- **Actual / Evidence / Run ID**：NOT_RUN
-- **Verdict / 状态**：NOT_RUN
 - **父级组合验证交接**：M001
 
 #### 14.5 `VRC-INF-005` · 观测 fail-open
@@ -1351,8 +1343,6 @@ list_models() -> list
 - **Case**：注入库写失败/断开
 - **环境 / 配置 / 隔离与复位**：隔离库
 - **独立 Oracle / Expected**：推理结果不变
-- **Actual / Evidence / Run ID**：NOT_RUN
-- **Verdict / 状态**：NOT_RUN
 - **父级组合验证交接**：M-OBS
 
 ## 15. 风险、未决问题与引用

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-observability-mechanism` |
-| Document Version | `0.1.0-draft.7` |
+| Document Version | `0.1.0-draft.8` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | llmtier |
 | Created Date | `2026-09-22` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `design.system-mechanism` |
 | Template Version | `3.3.1` |
 | Template Conformance | `tailored` |
@@ -712,7 +712,7 @@ PATCH /v1/diagnostics {snapshots_enabled?, stats_enabled?} -> 200 {…}
 - **成功输出与保证**：`D-OBS-SWITCH`（§4.3.1）；生效=事务提交；副作用=同事务审计。
 - **错误与合法下一步**：`ERR-REQ-VALIDATION`（400）；`ERR-AUTH-*`；`ERR-STORE`（503）。
 - **交互与生命周期**：同步；幂等；默认关。
-- **实现与验证**：正常切换；拒绝非法布尔 → 400。`T-OBS-SWITCH`；Run=NOT_RUN。
+- **实现与验证**：正常切换；拒绝非法布尔 → 400。`T-OBS-SWITCH`。
 
 #### `GET /v1/diagnostics/snapshots|stats|traces`；`GET/PATCH /v1/deployments/{deployment_id}/diagnostics`；`GET /v1/trace/{request_id}`
 ```text
@@ -729,7 +729,7 @@ GET /v1/trace/{request_id}                                          -> 200 Trace
 - **成功输出与保证**：`D-OBS-SNAPSHOT`/`D-OBS-STATS`/`D-OBS-TRACE`/`D-OBS-PAGE`（§4.2）；无副作用（PATCH 副作用=注入配置写 + 审计）。
 - **错误与合法下一步**：`ERR-INJECTION`（400 PATCH）；`ERR-NOTFOUND`（404 trace/未知 deployment）；`ERR-STORE`（503）；`ERR-REQ-VALIDATION`（400 缺 since/until）。
 - **交互与生命周期**：同步；GET 幂等只读；PATCH partial upsert。
-- **实现与验证**：演练：PATCH `dep_local_gemma`（`delay`/2000ms）→ 推理 → trace `routed` 带注入 → 快照/统计含该请求 → `GET /v1/trace/req_…` 有序 stages + usage。`T-OBS-INJECT`、`T-OBS-TRACE`；Run=NOT_RUN。
+- **实现与验证**：演练：PATCH `dep_local_gemma`（`delay`/2000ms）→ 推理 → trace `routed` 带注入 → 快照/统计含该请求 → `GET /v1/trace/req_…` 有序 stages + usage。`T-OBS-INJECT`、`T-OBS-TRACE`。
 
 #### `DiagnosticsService.switches() / set_switches(snapshots_enabled=None, stats_enabled=None, conn=None) -> SwitchState`
 
@@ -743,7 +743,7 @@ set_switches(snapshots_enabled: bool | None = None, stats_enabled: bool | None =
 - **成功输出与保证**：`D-OBS-SWITCH`（§4.3.1）——受理=返回规范化开关；生效=`conn` 非空并入调用方事务，否则自开 `BEGIN IMMEDIATE` 提交后对外可见；副作用=开关状态更新。
 - **错误与合法下一步**：非法类型 → `ERR-REQ-VALIDATION`（400）；存储异常 → `ERR-STORE`（503）；失败无副作用。
 - **交互与生命周期**：同步；幂等（重复设同值无副作用）；调用方线程。
-- **实现与验证**：正常 `set_switches(stats_enabled=True)`；拒绝 `"yes"` → 400。`T-OBS-SWITCH`；Run=NOT_RUN。
+- **实现与验证**：正常 `set_switches(stats_enabled=True)`；拒绝 `"yes"` → 400。`T-OBS-SWITCH`。
 
 #### `DiagnosticsService.record_trace(request_id, stage, detail=None, correlation_id=None) -> None`
 
@@ -756,7 +756,7 @@ record_trace(request_id: str, stage: str, detail: dict | None = None, correlatio
 - **成功输出与保证**：无返回——受理即追加 `trace_events` 行；完成=行提交；副作用=持久一行。
 - **错误与合法下一步**：写失败 → **fail-open**：不抛、记 `OperationalLog(warning)`；结果已知性=丢失该阶段；无部分写。
 - **交互与生命周期**：同步；不幂等（每次一行）；请求级；无期限。
-- **实现与验证**：正常 `record_trace("req","received")`；边界：DB 只读 → warning 不阻断。`T-OBS-FAILOPEN`；Run=NOT_RUN。
+- **实现与验证**：正常 `record_trace("req","received")`；边界：DB 只读 → warning 不阻断。`T-OBS-FAILOPEN`。
 
 #### `DiagnosticsService.capture_snapshot(request_id, deployment_id, model, upstream_url, backend_model, http_status, latency_ms, error_summary) -> str | None`
 
@@ -769,7 +769,7 @@ capture_snapshot(request_id: str, deployment_id: str | None, model: str | None, 
 - **成功输出与保证**：`snap_id: str`——受理并持久 `diagnostic_snapshots` 行；完成=行提交；副作用=持久一行。
 - **错误与合法下一步**：开关关 → `null`（未受理）；写失败 → `null` + warning（fail-open）；无公共错误。
 - **交互与生命周期**：同步；不幂等（每次新 id）；请求级。
-- **实现与验证**：正常（200）→ `snap_*`；边界：开关关 → `null` 且无行。`T-OBS-SNAP`；Run=NOT_RUN。
+- **实现与验证**：正常（200）→ `snap_*`；边界：开关关 → `null` 且无行。`T-OBS-SNAP`。
 
 #### `DiagnosticsService.record_latency(deployment_id, model, status_code, latency_ms) -> None`
 
@@ -782,7 +782,7 @@ record_latency(deployment_id: str | None, model: str | None, status_code: int | 
 - **成功输出与保证**：无返回——`UPSERT data_plane_stats`（持久）；`latency_ms` 非空时追加 `data_plane_latency_samples`（持久）；**无内存缓存**（直写 DB，不在进程内累加、无 LRU）。
 - **错误与合法下一步**：写失败 → fail-open warning；无公共错误。
 - **交互与生命周期**：同步；不幂等（累加）；请求级。
-- **实现与验证**：正常（200,120ms）；边界 `status_code=None` → `upstream_error`。`T-OBS-STATS`；Run=NOT_RUN。
+- **实现与验证**：正常（200,120ms）；边界 `status_code=None` → `upstream_error`。`T-OBS-STATS`。
 
 #### `DiagnosticsService.trace(request_id) / traces(...) / snapshots_page(...) / stats(...) -> dict`
 
@@ -798,7 +798,7 @@ stats(since: str, until: str, deployment_id=None, model=None) -> dict
 - **成功输出与保证**：`D-OBS-TRACE` / `D-OBS-PAGE` / `D-OBS-SNAPSHOT` / `D-OBS-STATS`（§4.2）——只读；无副作用。
 - **错误与合法下一步**：`trace` 无记录 → `ERR-NOTFOUND`（404）；存储不可达 → `ERR-STORE`（503）；空匹配非错误（返回空页）。
 - **交互与生命周期**：同步只读；幂等；cursor 稳定基于 `(first_ts,request_id)` 或末条 `id`。
-- **实现与验证**：正常窗口分页；边界：空窗口 → `has_more=false`。`T-OBS-TRACE`；Run=NOT_RUN。
+- **实现与验证**：正常窗口分页；边界：空窗口 → `has_more=false`。`T-OBS-TRACE`。
 
 #### `DiagnosticsService.set_injections(deployment_id, actor_items, conn=None) / injections(deployment_id) / enabled_injection(deployment_id) / enabled_stream_injection(deployment_id) -> ...`
 
@@ -814,7 +814,7 @@ enabled_stream_injection(deployment_id: str) -> dict | None
 - **成功输出与保证**：全量 `D-OBS-INJECTION[]`（§4.2.4）——受理=upsert 提交后可见；`enabled_*` 按固定优先级返回**单条**（前置 `fault_502→fault_503→rate_limit→delay`；流 `stream_terminate→malformed_event`）；副作用=持久注入配置。
 - **错误与合法下一步**：类型/字段/范围非法 → `ERR-INJECTION`（400）；未知 deployment（读）→ `ERR-NOTFOUND`（404）；`ERR-STORE`（503）；校验失败不写、副作用无。
 - **交互与生命周期**：同步；`conn` 非空并入调用方事务；按 `(deployment_id,type)` upsert 幂等；`enabled_*` 只读。
-- **实现与验证**：正常 `[{type:"delay",config:{delay_ms:2000},enabled:true}]`；拒绝未知 type → 400。`T-OBS-INJECT`；Run=NOT_RUN。
+- **实现与验证**：正常 `[{type:"delay",config:{delay_ms:2000},enabled:true}]`；拒绝未知 type → 400。`T-OBS-INJECT`。
 
 #### `DiagnosticsService.stream_wrapper(deployment_id, base_stream) -> Iterable[bytes]`
 
@@ -827,7 +827,7 @@ stream_wrapper(deployment_id: str, base_stream: Iterable[bytes]) -> Iterable[byt
 - **成功输出与保证**：惰性字节流——无注入透传；`stream_terminate` 第 N 块后结束；`malformed_event` 第 N 块后追加一帧畸形事件并结束；受理/完成=按块产出；副作用=改变出站流。
 - **错误与合法下一步**：无注入即透传；注入确定性触发。
 - **交互与生命周期**：同步惰性；请求级流；不改变无注入流。
-- **实现与验证**：正常透传；边界 `stream_terminate` → 提前结束。`T-OBS-INJECT`；Run=NOT_RUN。
+- **实现与验证**：正常透传；边界 `stream_terminate` → 提前结束。`T-OBS-INJECT`。
 
 #### `DiagnosticsService.cleanup(days=7) -> int`
 
@@ -840,7 +840,7 @@ cleanup(days: int = 7) -> int
 - **成功输出与保证**：删除行数 `int`（≥0）——删除早于 `now-days` 的快照/trace/统计；副作用=删除过期行。
 - **错误与合法下一步**：失败 → `0` + warning（fail-open，不抛）。
 - **交互与生命周期**：启动/显式调用；同步；幂等。
-- **实现与验证**：正常删除过期；边界：无过期 → `0`。`T-OBS-SNAP`；Run=NOT_RUN。
+- **实现与验证**：正常删除过期；边界：无过期 → `0`。`T-OBS-SNAP`。
 
 ### 5.2 消息与数据流接口（适用时）
 
@@ -862,7 +862,7 @@ joint-diagnose.sh --x-request-id <request_id> -> trace/snapshots
 - **成功输出与保证**：页面=快照/统计/注入/Trace 视图与开关状态反馈；脚本=只读 trace/快照；副作用=开关切换（页面）或只读（脚本）。
 - **错误与合法下一步**：失败走 HTTP 错误（`ERR-AUTH-*`/`ERR-NOTFOUND`/`ERR-STORE`）或非零退出；不直读库；无危险控制/恢复动作。
 - **交互与生命周期**：交互式；页面可取消；脚本一次性执行；审计由管理动作承担。
-- **实现与验证**：组合=Piko 联调（`joint-diagnose.sh`）。`T-OBS-TRACE`；Run=NOT_RUN。
+- **实现与验证**：组合=Piko 联调。`T-OBS-TRACE`。
 
 > **闭合核对**：§3 协作图与 §6、§14.3 的每条真实跨责任单元交接均在 §5.1/§5.4 有唯一接口记录（`IF-OBS-API-SWITCH`、`IF-OBS-API-QUERY`、`IF-OBS-SWITCH`、`IF-OBS-RECORD-*`、`IF-OBS-INJECT`、`IF-OBS-TRACE-QUERY`、`IF-OBS-STREAM-WRAP`、`IF-OBS-CLEANUP`、`IF-OBS-UI`、`IF-OBS-DIAG`）；§5.1 非 N/A，Observability→HTTP Adapter 与 Inference→`libdiag` 的进程内交接已登记。`libdiag`→Store 的持久化边界经 §4.7 表结构与 M006 §9 登记，是无独立跨单元调用接口的持久化边界，不构成规格缺口。记录写失败是 fail-open 的已知语义，不把观测缺失改写为推理失败。
 
@@ -1033,7 +1033,7 @@ joint-diagnose.sh --x-request-id <request_id> -> trace/snapshots
 
 ### 15.3 组合验收、启用与旧机制退出
 
-随 Phase 化实现启用；流注入已由 `stream_wrapper` 实现。组合验收 = Piko 联调（`joint-diagnose.sh`）。
+随 Phase 化实现启用；流注入已由 `stream_wrapper` 实现。组合验收 = Piko 联调。
 
 ## 16. 风险、未决问题与决定
 

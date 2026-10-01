@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `log` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | llmtier |
 | Created Date | `2026-09-23` |
-| Last Modified Date | `2026-09-25` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `design.definition` |
 | Template Version | `3.4.3` |
 | Template Conformance | `tailored` |
@@ -45,7 +45,7 @@
 - **继承预算或行为保证**：写入前完成脱敏，查询侧不再兜底
 - **可自行选择 / 不可改变**：脱敏正则可自选；"写前脱敏"不可变
 - **本地落实 / 内部再分配**：I1 写入；§8
-- **验证方法与结果 / 证据**：`VRC-LOG-001`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-LOG-001`
 - **差距 / 变更影响 / 反馈责任**：与 M006/M004 的脱敏口径一致
 
 #### 1.1.2 不阻塞主路径
@@ -54,7 +54,7 @@
 - **继承预算或行为保证**：日志写入失败不使业务失败
 - **可自行选择 / 不可改变**：— 
 - **本地落实 / 内部再分配**：I1
-- **验证方法与结果 / 证据**：`VRC-LOG-001`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-LOG-001`
 - **差距 / 变更影响 / 反馈责任**：无
 
 ## 2. 需求、功能与验收条件
@@ -550,7 +550,7 @@ page(limit: int = 50, level: str | None = None, module: str | None = None, reque
 - **推导 / 测量方法与证据等级**：Specified
 - **共享资源扣减 / 峰值重叠 / 余量**：—
 - **超限行为 / 责任出口**：截断
-- **验证项 / Evidence**：`VRC-LOG-001`；NOT_RUN
+- **验证项 / Evidence**：`VRC-LOG-001`
 
 #### 12.2 `CAP-LOG-QUERY` · 查询上限
 - **目标 / 限制 / 单位**：`limit ≤ 200`
@@ -559,7 +559,7 @@ page(limit: int = 50, level: str | None = None, module: str | None = None, reque
 - **推导 / 测量方法与证据等级**：Specified
 - **共享资源扣减 / 峰值重叠 / 余量**：—
 - **超限行为 / 责任出口**：上限截断
-- **验证项 / Evidence**：`VRC-LOG-001`；NOT_RUN
+- **验证项 / Evidence**：`VRC-LOG-001`
 
 ## 13. 实现步骤与文件清单
 
@@ -604,8 +604,6 @@ page(limit: int = 50, level: str | None = None, module: str | None = None, reque
 - **Case / 正常、边界与失败输入**：含 `Authorization: Bearer …`/`api_key: x`/`token=…` 的消息；超长；过滤查询
 - **环境 / 配置 / 隔离与复位**：隔离库
 - **独立 Oracle / Expected**：落库文本含 `[REDACTED]`；长度 ≤512；顺序倒序
-- **Actual / Evidence / Run ID**：NOT_RUN
-- **Verdict / 状态**：NOT_RUN
 - **父级组合验证交接**：M004/M002
 
 ## 15. 风险、未决问题与引用
@@ -623,7 +621,7 @@ page(limit: int = 50, level: str | None = None, module: str | None = None, reque
 - **影响 / 阻塞边界**：潜在泄漏；不阻塞设计
 - **Owner / 最晚关闭 Gate**：LLMTier / 安全评审
 - **选项 / 推荐 / 下一步取证**：补充正则；禁记正文作为兜底
-- **关闭条件 / 决定或当前状态**：**Closed**（2026-09-30）——`_SENSITIVE` 扩展为键名与值一并吞（`(?:api[_-]?key|apikey|secret|access[_-]?key(?:_id)?|token)\s*[:=]\s*\S+`）；回归 Case `UT-LOG-002`（`test_api_key_value_redaction`/`test_access_key_value_redacted`/`test_x_api_key_header_value_redacted`）通过
+- **关闭条件 / 决定或当前状态**：**Closed**（2026-09-30）——`_SENSITIVE` 扩展为键名与值一并吞（`(?:api[_-]?key|apikey|secret|access[_-]?key(?:_id)?|token)\s*[:=]\s*\S+`）；该脱敏行为的验证由测试方案承接
 
 引用：系统设计 §3.2/§11.3；`src/log/logs.py`；`migrations/001_initial.sql`。
 

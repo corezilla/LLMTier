@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `libdiag-isd` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Document Owner | LLMTier |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `design.implementation` |
 | Template Version | `1.2.2` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -1220,7 +1220,6 @@ flowchart TD
 - **峰值构成 / 上限 / 共享额度**：统计直写 DB（无缓存）；快照/traces 500/页
 - **分段预算 / 总期限 / 计时点**：清理为启动期；无总期限
 - **超限、部分启动与清理出口**：写失败 fail-open；清理失败静默
-- **构建或运行命令及前置条件**：`PYTHONPATH=src python3 -m pytest tests/unit/cases -q`
 
 ## 9. 验证规格与实现任务
 
@@ -1232,10 +1231,6 @@ flowchart TD
 - **V / Case / Vector**：v1 默认关；v2 开/关切换；v3 关闭零写入；v4 部分更新
 - **输入 / 故障 / 环境**：开关切换；隔离库
 - **独立 Oracle / Expected**：默认 `{False,False}`；关闭时无新行
-- **Actual / Evidence**：NOT_RUN
-- **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit/cases`；隔离库
-- **Run ID / Status**：NOT_RUN
 
 ### 9.1.2 `VRC-DIAG-002` · 记录与查询
 
@@ -1243,10 +1238,6 @@ flowchart TD
 - **V / Case / Vector**：v1 trace/快照/统计；v2 URL 去 query；v3 summary 截断；v4 百分位；v5 清理 7 天
 - **输入 / 故障 / 环境**：一次调用；隔离库
 - **独立 Oracle / Expected**：字段/脱敏/百分位正确；7 天前删除
-- **Actual / Evidence**：NOT_RUN
-- **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit/cases`；隔离库
-- **Run ID / Status**：NOT_RUN
 
 ### 9.1.3 `VRC-DIAG-003` · fail-open
 
@@ -1254,10 +1245,6 @@ flowchart TD
 - **V / Case / Vector**：v1 写入失败；v2 初始化失败
 - **输入 / 故障 / 环境**：库写失败/构造异常
 - **独立 Oracle / Expected**：推理结果不变；降级运行
-- **Actual / Evidence**：NOT_RUN
-- **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit/cases`
-- **Run ID / Status**：NOT_RUN
 
 ### 9.1.4 `VRC-DIAG-004` · 注入与 traces
 
@@ -1265,12 +1252,7 @@ flowchart TD
 - **V / Case / Vector**：v1 四类注入；v2 流截断/畸形；v3 非法类型；v4 多 enabled 单条优先级；v5 traces 时间窗/分页
 - **输入 / 故障 / 环境**：注入配置；隔离库
 - **独立 Oracle / Expected**：400；命中确定性；单条优先级；去重 request
-- **Actual / Evidence**：NOT_RUN
-- **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit/cases`；隔离库
-- **Run ID / Status**：NOT_RUN
 
-**运行命令**：全量 `PYTHONPATH=src python3 -m pytest tests/ tests/system/st_*.py -q`
 
 <a id="isd-tasks"></a>
 
@@ -1282,7 +1264,6 @@ flowchart TD
 - **实施动作**：建表 + 开关读写
 - **完成检查**：`VRC-DIAG-001/002`
 - **实现状态**：PLANNED
-- **验证状态 / Run**：NOT_RUN
 
 ### 9.2.2 `TASK-DIAG-RECORD` · 记录与查询
 
@@ -1292,7 +1273,6 @@ flowchart TD
 - **实施动作**：实现记录与查询原语
 - **完成检查**：`VRC-DIAG-002/003/004`
 - **实现状态**：PLANNED
-- **验证状态 / Run**：NOT_RUN
 
 ### 9.2.3 `TASK-DIAG-INJECT` · 注入与流
 
@@ -1302,7 +1282,6 @@ flowchart TD
 - **实施动作**：实现注入配置与流包装
 - **完成检查**：`VRC-DIAG-004`
 - **实现状态**：PLANNED
-- **验证状态 / Run**：NOT_RUN
 
 ## 10. 映射、复核与未决项
 
@@ -1316,17 +1295,15 @@ flowchart TD
 - **实际位置或 Planned 计划位置**：`src/libdiag/diagnostics.py` `DiagnosticsService`
 - **验证项**：`VRC-DIAG-001..004`
 - **实现状态**：PLANNED
-- **验证状态 / Run**：NOT_RUN
 
 <a id="isd-status"></a>
 
 ### 10.2.1 `SC-DIAG` · 状态一致性复核
 
 - **上游承接状态 / 固定来源**：模块 `libdiag` §15.ISD 声明 `separate`
-- **本层派生状态 / 事实依据**：无实际实现/Run；全部 `PLANNED`/`NOT_RUN`
+- **本层派生状态 / 事实依据**：尚无实际实现；全部实现项为 `PLANNED`
 - **§2 Current / Target**：N/A（greenfield）
 - **§3 / §5 文件与函数状态**：PLANNED
-- **§9 任务 / Actual / Verdict / Run**：PLANNED / NOT_RUN / NOT_RUN / NOT_RUN
 - **§10 汇总状态**：PLANNED
 - **差异解释 / Owner / 收敛动作**：none
 

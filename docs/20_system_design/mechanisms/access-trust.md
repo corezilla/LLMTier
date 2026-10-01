@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-access-trust-mechanism` |
-| Document Version | `0.1.0-draft.6` |
+| Document Version | `0.1.0-draft.7` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | llmtier |
 | Created Date | `2026-09-22` |
-| Last Modified Date | `2026-09-25` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `design.system-mechanism` |
 | Template Version | `3.3.1` |
 | Template Conformance | `tailored` |
@@ -389,7 +389,7 @@ unauthenticated_principal(client_address: str, headers: Headers, role: str) -> P
 - **成功输出与保证**：`D-PRINCIPAL`（§4.2）——受理即时返回；`principal_id` 为 `loopback-*`/`trusted-lan-*`（按 role），`role` 由调用方指定；无副作用、不持久。
 - **错误与合法下一步**：无 Error ID；不命中返回 `None`（非错误，调用方继续凭据路径，§7）；无部分成功或未知结果。
 - **交互与生命周期**：同步纯函数；无期限/取消；幂等只读；不缓存、不记录凭据。
-- **实现与验证**：正常 `client_address="192.168.1.42"`、无 `Authorization`、`role="data"` → `Principal("trusted-lan-consumer","data")`；边界 `1.2.3.4` → `None`。`T-TRUST-LAN`；Run=NOT_RUN。
+- **实现与验证**：正常 `client_address="192.168.1.42"`、无 `Authorization`、`role="data"` → `Principal("trusted-lan-consumer","data")`；边界 `1.2.3.4` → `None`。`T-TRUST-LAN`。
 
 #### `authenticate(headers, role: str) -> Principal`
 
@@ -402,7 +402,7 @@ authenticate(headers: Headers, role: str) -> Principal
 - **成功输出与保证**：`D-PRINCIPAL`——受理=返回 Principal；`principal_id` 取 `X-Principal-ID`（截断 128）或默认 `operator`/`consumer`；生效=本次请求后续按 role 限权；无持久副作用。
 - **错误与合法下一步**：`ERR-AUTH-NOCFG`（503，配置缺失，未受理，无副作用）；`ERR-AUTH-REQUIRED`（401，缺 Bearer）；`ERR-AUTH-DENIED`（403，凭据不匹配，不区分 admin/data）；载荷均 `D-ERROR-ENVELOPE`；合法下一步见 §4.8。
 - **交互与生命周期**：同步；无期限/取消；幂等；只读，无资源释放。
-- **实现与验证**：正常 `Bearer <data-token>` + `X-Principal-ID: piko`、`role="data"` → `Principal("piko","data")`；拒绝错误 token → 403。`T-TRUST-BEARER`；Run=NOT_RUN。
+- **实现与验证**：正常 `Bearer <data-token>` + `X-Principal-ID: piko`、`role="data"` → `Principal("piko","data")`；拒绝错误 token → 403。`T-TRUST-BEARER`。
 
 #### `authenticate_any(headers, client_address: str) -> Principal`
 
@@ -415,7 +415,7 @@ authenticate_any(headers: Headers, client_address: str) -> Principal
 - **成功输出与保证**：`D-PRINCIPAL`——role 反映匹配到的凭据（admin 优先）；生效=调用方按 role 选择视图；无副作用。
 - **错误与合法下一步**：`ERR-AUTH-NOCFG`（503，均未配置）；`ERR-AUTH-DENIED`（403，有 Bearer 但均不匹配）；`ERR-AUTH-REQUIRED`（401，无 Bearer 且免登录不命中）；载荷 `D-ERROR-ENVELOPE`。
 - **交互与生命周期**：同步；固定顺序 admin→data（确定性）；幂等；只读。
-- **实现与验证**：正常 data token 访问 `/v1/usage` → `Principal(...,"data")`；边界：无 token 的受信 LAN → admin 免登录。`T-TRUST-SHARED`；Run=NOT_RUN。
+- **实现与验证**：正常 data token 访问 `/v1/usage` → `Principal(...,"data")`；边界：无 token 的受信 LAN → admin 免登录。`T-TRUST-SHARED`。
 
 ### 5.2 消息与数据流接口（适用时）
 

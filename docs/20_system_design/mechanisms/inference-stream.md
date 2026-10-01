@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-inference-stream-mechanism` |
-| Document Version | `0.1.0-draft.6` |
+| Document Version | `0.1.0-draft.7` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | llmtier |
 | Created Date | `2026-09-22` |
-| Last Modified Date | `2026-09-25` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `design.system-mechanism` |
 | Template Version | `3.3.1` |
 | Template Conformance | `tailored` |
@@ -661,7 +661,7 @@ POST /v1/responses
 - **成功输出与保证**：`D-MSG-SSE` 流（§4.4.1/§5.2）——`response.created … response.completed|incomplete|failed`，已准入且流至完成的请求恰好一个 terminal（见 §8 INV-2），`usage` 仅 terminal 给出；受理=HTTP 建连，完成=terminal 事件；副作用=登记 unknown 用量义务→落账本（`IF-MET-AUTHORIZE`/`IF-MET-BIND`/`IF-MET-FINISH`）；观测 fail-open。
 - **错误与合法下一步**：逐条件见 §4.8；典型：`ERR-REQ-VALIDATION`/`ERR-REQ-FIELD`/`ERR-REQ-JSON`（400，未受理）；`ERR-REQ-UNSUPPORTED`（400，`stream=false`）；`ERR-REQ-TOO-LARGE`（413）；`ERR-ST-auth-*`（401/403/503）；`ERR-MODEL-NOTFOUND`（404）；`ERR-RATE-LIMIT`（429 + `Retry-After`）；`ERR-MODEL-UNAVAIL`/`ERR-PROVIDER-*`（503/502，可能已调用后端=结果可能未知）；载荷统一 `D-ERROR-ENVELOPE`。
 - **交互与生命周期**：同步建连后流式；单请求独立模型调用，无会话；客户端断开结束本次调用并释放许可；**非幂等**（同 input 重发=两次独立调用，无幂等键）；期限=准入等待 ≤30s、建连/首字节 30s、SSE 空闲 60s；不承诺跨系统 exactly-once。
-- **实现与验证**：正常 `{"model":"Worker","input":[{"role":"user","content":"hi"}],"stream":true,"store":false,"max_output_tokens":20}` → 200 SSE + terminal Usage；拒绝 `stream=false` → 400。`T-STREAM`、`T-QUEUE`、`T-TIMEOUT`；Run=NOT_RUN。
+- **实现与验证**：正常 `{"model":"Worker","input":[{"role":"user","content":"hi"}],"stream":true,"store":false,"max_output_tokens":20}` → 200 SSE + terminal Usage；拒绝 `stream=false` → 400。`T-STREAM`、`T-QUEUE`、`T-TIMEOUT`。
 
 #### `ResponsesService.create(principal, request_id, body, diagnostics=None, correlation_id=None, out=None) -> ResponsesResponse`
 
@@ -674,7 +674,7 @@ ResponsesService.create(principal: str, request_id: str, body: dict, diagnostics
 - **成功输出与保证**：归一后的 `ResponsesResponse`（`D-MSG-RESPONSE`，§4.2.1）——受理=开始编排，完成=返回值可用于流式；`out` 回填 `deployment_id` 供流包装；副作用=经 `IF-MET-*` 记义务/绑定/终态、经观测写 trace（fail-open）。
 - **错误与合法下一步**：以 `ApiError` 抛出，交由 M001 序列化为 `D-ERROR-ENVELOPE`；逐条件同 §4.8；失败在准入前无副作用，后端调用后可能已产生上游副作用且结果可能未知。
 - **交互与生命周期**：同步（在流开始前完成归一）；请求级；不幂等；异常由调用方 `finally` 语义释放许可（`IF-INF-ADMIT`）。
-- **实现与验证**：正常返回终态响应；拒绝 `stream=false` → `ERR-REQ-UNSUPPORTED`。`T-STREAM`；Run=NOT_RUN。
+- **实现与验证**：正常返回终态响应；拒绝 `stream=false` → `ERR-REQ-UNSUPPORTED`。`T-STREAM`。
 
 #### `Router.admit(level_id: str) -> ContextManager[Candidate]`
 
@@ -687,7 +687,7 @@ Router.admit(level_id: str) -> ContextManager[Candidate]
 - **成功输出与保证**：上下文产出 `D-CFG-CANDIDATE`（§4.2 config）；生效=许可计数 +1；退出上下文时在 `finally` 释放计数并 `notify_all`；副作用=更新 `D-INF-ADMISSION-STATE`（§4.6.1）。
 - **错误与合法下一步**：`ERR-RATE-LIMIT`（429 队列满，`Retry-After: 30` / 等待超 30s，`Retry-After: 1`）；`ERR-MODEL-NOTFOUND`（404 无候选）；`ERR-MODEL-UNAVAIL`（503 全不健康）；均在准入前、无后端副作用。
 - **交互与生命周期**：同步阻塞式上下文管理器；超时 30s；许可临时、无租约；退出即释放，释放后无残留。
-- **实现与验证**：正常得候选；边界：占满队列 → 429。`T-QUEUE`；Run=NOT_RUN。
+- **实现与验证**：正常得候选；边界：占满队列 → 429。`T-QUEUE`。
 
 #### `ProviderAdapter.complete(model: str, request: dict) -> ProviderResult`
 
@@ -700,7 +700,7 @@ ProviderAdapter.complete(model: str, request: dict) -> ProviderResult
 - **成功输出与保证**：`D-INF-PROVIDER-RESULT`（§4.2.2）——受理=调用发出，完成=返回结果；副作用=上游调用已发生（可能计费）；usage 可能缺失（→ M-METER unknown）。
 - **错误与合法下一步**：建连/首字节超时或 5xx → `ERR-PROVIDER-UNAVAIL`；注入/上游故障 → `ERR-PROVIDER-FAIL`；响应无法归一 → `ERR-PROVIDER-CONTRACT`；结果可能未知、可能已调用后端；合法下一步见 §9。
 - **交互与生命周期**：同步；建连/首字节 30s、流空闲 60s；不做跨等级 fallback（CON-INFER-004）；不重放（避免重复输出）。
-- **实现与验证**：正常返回 usage；边界：超时 → typed error + 许可释放。`T-TIMEOUT`；Run=NOT_RUN。
+- **实现与验证**：正常返回 usage；边界：超时 → typed error + 许可释放。`T-TIMEOUT`。
 
 #### `Router.snapshot() -> dict`
 
@@ -713,7 +713,7 @@ Router.snapshot() -> dict
 - **成功输出与保证**：`D-INF-ADMISSION-STATE`（§4.6.1）的只读时点视图（deployments/providers/queues）；副作用=无。
 - **错误与合法下一步**：无。
 - **交互与生命周期**：同步只读；点时刻；幂等。
-- **实现与验证**：正常返回并发现状。`T-QUEUE`；Run=NOT_RUN。
+- **实现与验证**：正常返回并发现状。`T-QUEUE`。
 
 ### 5.2 消息与数据流接口（适用时）
 
@@ -730,7 +730,7 @@ response_stream(response: ResponsesResponse) -> Iterable[bytes]   # text/event-s
 - **成功输出与保证**：SSE 字节流——事件名子集 `D-INF-EVENT-NAME`（§4.1.2），帧格式 `event: <name>\ndata: <json>\n\n`；每 output item 稳定 `id`；`sequence_number` 自 0 递增；一个 terminal + `[DONE]`；受理/完成=按事件产出直至 terminal；副作用=输出已出站。
 - **错误与合法下一步**：上游失败在流开始前以 HTTP `D-ERROR-ENVELOPE` 返回，不产生流内 `error` 事件；客户端断开 → `BrokenPipeError`/`ConnectionResetError` → 结束本次调用（`IF-INF-RESPONSES` 记 `aborted`）；流注入可截断/畸形（`IF-OBS-STREAM-WRAP`，Implemented）；结果已部分送达、可能未知；不重传、不重放。
 - **交互与生命周期**：顺序=单请求内严格有序；无背压到推理结果；断开即终止；不重放。
-- **实现与验证**：正常完整流以 terminal 结束；边界：命中 `stream_terminate` → 提前结束。`T-STREAM`、`T-DISCONNECT`；Run=NOT_RUN。
+- **实现与验证**：正常完整流以 terminal 结束；边界：命中 `stream_terminate` → 提前结束。`T-STREAM`、`T-DISCONNECT`。
 
 ### 5.3 硬件与固件接口（适用时）
 
@@ -747,7 +747,7 @@ GET /v1/runtime -> 200 {deployments, providers, queues}
 - **成功输出与保证**：`D-INF-ADMISSION-STATE`（§4.6.1）只读时点快照；受理/生效=即时；副作用=无。
 - **错误与合法下一步**：`ERR-ST-auth-*`（401/403/503）；只读无副作用。
 - **交互与生命周期**：同步只读；幂等；无占用/取消/恢复。
-- **实现与验证**：正常返回并发/队列现状。`T-QUEUE`；Run=NOT_RUN。
+- **实现与验证**：正常返回并发/队列现状。`T-QUEUE`。
 
 #### `POST /v1/probes`
 ```text
@@ -758,7 +758,7 @@ POST /v1/probes {deployment_id} -> 200 probe_result | 4xx: ErrorEnvelope
 - **成功输出与保证**：探活结果——受理/完成=探测返回；副作用=对目标后端发起只读探测，不占数据面许可。
 - **错误与合法下一步**：`ERR-ST-auth-*`（401/403/503）；`ERR-NOTFOUND`（404 未知 deployment）；结果已知、无数据面副作用。
 - **交互与生命周期**：同步；只读探测；幂等；不占用请求许可。
-- **实现与验证**：正常探活；拒绝未知 deployment。探针用例；Run=NOT_RUN。
+- **实现与验证**：正常探活；拒绝未知 deployment。探针用例。
 
 > 单请求 trace `GET /v1/trace/{request_id}` 属 M-OBS（`IF-OBS-*`），本机制只在其 §12.2 引用，不重复定义。用量钩子 `authorize_dispatch`/`bind_backend`/`finish` 由 M-METER §5 完整定义（`IF-MET-AUTHORIZE`/`IF-MET-BIND`/`IF-MET-FINISH`）；本机制在 §5.1/§5.2 记录调用点，不重定义签名与字段。
 

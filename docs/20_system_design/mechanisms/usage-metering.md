@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-usage-metering-mechanism` |
-| Document Version | `0.1.0-draft.6` |
+| Document Version | `0.1.0-draft.7` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | llmtier |
 | Created Date | `2026-09-22` |
-| Last Modified Date | `2026-09-25` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `design.system-mechanism` |
 | Template Version | `3.3.1` |
 | Template Conformance | `tailored` |
@@ -599,7 +599,7 @@ DELETE /v1/usage?model=&deployment_id=                        -> 200 {deleted}
 - **成功输出与保证**：见上；GET 只读；DELETE 副作用=范围删除 + 审计。
 - **错误与合法下一步**：同 `IF-MET-PAGE`/`IF-MET-RESET`；`ERR-STORE`（503 显式化，不用空页冒充）。
 - **交互与生命周期**：同步；GET 幂等只读；DELETE 幂等且不可回滚。
-- **实现与验证**：正常 GET 返回 v2（非 v1+v2）；拒绝非 admin DELETE → 403。`T-MET-PAGE`、`T-MET-RESET`；Run=NOT_RUN。
+- **实现与验证**：正常 GET 返回 v2（非 v1+v2）；拒绝非 admin DELETE → 403。`T-MET-PAGE`、`T-MET-RESET`。
 
 #### `UsageRecorder.authorize_dispatch(principal, request_id, model, endpoint) -> None`
 
@@ -612,7 +612,7 @@ authorize_dispatch(principal: str, request_id: str, model: str, endpoint: str) -
 - **成功输出与保证**：无返回——受理/完成=`usage_obligations` + 首个 `record_version=1`（`unknown`/`unavailable`、`is_final=0`、token 全 NULL）版本 + `usage_heads.head_record_version=1`，单事务提交；副作用=账本锚点持久。
 - **错误与合法下一步**：事务失败 → 抛出（由调用方决定不 dispatch）；结果已知、无半写；**不产生公共错误载荷**（内部）。
 - **交互与生命周期**：同步；可重入（`INSERT OR IGNORE`，已有 head 则 no-op）；请求级；不释放资源。
-- **实现与验证**：正常 `authorize_dispatch("piko","req_1","Worker","/v1/responses")` → v1 义务；边界：重复调用 no-op。`T-MET-CRASH`；Run=NOT_RUN。
+- **实现与验证**：正常 `authorize_dispatch("piko","req_1","Worker","/v1/responses")` → v1 义务；边界：重复调用 no-op。`T-MET-CRASH`。
 
 #### `UsageRecorder.bind_backend(principal, request_id, provider_id, deployment_id) -> None`
 
@@ -625,7 +625,7 @@ bind_backend(principal: str, request_id: str, provider_id: str, deployment_id: s
 - **成功输出与保证**：无返回——写 `provider_request_bindings`（首次为准，`ON CONFLICT DO NOTHING`）；上游返回后由同组件的 `record_provider_request_id(principal, request_id, provider_request_id)` 回填该行可空 `provider_request_id`（空值 no-op）；副作用=绑定持久。
 - **错误与合法下一步**：冲突被忽略（不抛）；事务失败由存储层异常表达（含 `record_provider_request_id` 回填）。
 - **交互与生命周期**：同步；幂等（首次为准；回填为幂等 UPDATE）；请求级。
-- **实现与验证**：正常绑定 `prov_local`/`dep_local_gemma` 后回填 `X-Request-ID`；边界：重复绑定保持首次、无上游 id 时保持 NULL。`T-MET-FINAL`；Run=NOT_RUN。
+- **实现与验证**：正常绑定 `prov_local`/`dep_local_gemma` 后回填 `X-Request-ID`；边界：重复绑定保持首次、无上游 id 时保持 NULL。`T-MET-FINAL`。
 
 #### `UsageRecorder.finish(principal, request_id, usage, source_override=None) -> None`
 
@@ -638,7 +638,7 @@ finish(principal: str, request_id: str, usage: dict | None, source_override: str
 - **成功输出与保证**：无返回——追加 `record_version=n+1` 版本（正常为 2、`is_final=1`）+ 单调推进 head 到该版本，单事务提交；受理/完成=提交后账本事实；副作用=版本持久。
 - **错误与合法下一步**：无义务 → no-op（不影响已返回结果）；写失败 → 由存储层异常表达，结果已返回不改判；结果已知性=保留 unknown 至后续版本或重启可见。
 - **交互与生命周期**：同步；同 request 并发由单事务推进 head；不影响已返回的业务结果。
-- **实现与验证**：正常 `finish(..., {input:2,output:1,total:3})` → head=2、measured；边界：usage 非 int → unknown + NULL。`T-MET-FINAL`、`T-MET-UNKNOWN`；Run=NOT_RUN。
+- **实现与验证**：正常 `finish(..., {input:2,output:1,total:3})` → head=2、measured；边界：usage 非 int → unknown + NULL。`T-MET-FINAL`、`T-MET-UNKNOWN`。
 
 #### `UsageRecorder.page(principal, cursor, limit=50, admin=False, since=None, until=None, model=None, request_id=None) -> dict`
 
@@ -651,7 +651,7 @@ page(principal: str, cursor: str | None, limit: int = 50, admin: bool = False, s
 - **成功输出与保证**：`{data: D-MET-USAGE-VIEW[], next_cursor, has_more, snapshot_id, snapshot_at}`；受理=首屏创建 `D-MET-QUERY-SNAPSHOT`（§4.2.6）并冻结成员；生效=旧页不受后续更正影响；副作用=snapshot 行写入（TTL 10 分钟）。
 - **错误与合法下一步**：`ERR-REQ-VALIDATION`（400 时间窗/`filter_digest` 不符）；`ERR-CURSOR`（400 过期）；`ERR-AUTH-DENIED`（403 他人 cursor）；`ERR-STORE`（503）；载荷 `D-ERROR-ENVELOPE`。
 - **交互与生命周期**：同步只读；cursor 复核 `principal_id`（非 admin 时）、`filter_digest` 与 `auth`（authorization digest 不匹配 → 403 `permission_denied`）；按 `(recorded_at,request_id)` 稳定排序。
-- **实现与验证**：正常首屏 + 后续页；拒绝他人 cursor → 403。`T-MET-PAGE`；Run=NOT_RUN。
+- **实现与验证**：正常首屏 + 后续页；拒绝他人 cursor → 403。`T-MET-PAGE`。
 
 #### `UsageRecorder.reset_usage(model=None, deployment_id=None, conn=None) -> dict`
 
@@ -664,7 +664,7 @@ reset_usage(model: str | None = None, deployment_id: str | None = None, conn: Co
 - **成功输出与保证**：`{deleted: int}`——按范围删除义务+版本+head+绑定，单事务；副作用=删除 + 审计（经 M001 `Admin.mutate`）。
 - **错误与合法下一步**：非 admin → `ERR-AUTH-DENIED`（403）；`ERR-STORE`（503）；失败回滚。
 - **交互与生命周期**：同步；幂等（重复清空 `deleted=0`）；不可回滚。
-- **实现与验证**：正常按 model 清空返回计数；边界：无匹配 → `deleted=0`。`T-MET-RESET`；Run=NOT_RUN。
+- **实现与验证**：正常按 model 清空返回计数；边界：无匹配 → `deleted=0`。`T-MET-RESET`。
 
 ### 5.2 消息与数据流接口（适用时）
 

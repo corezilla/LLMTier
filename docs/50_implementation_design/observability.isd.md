@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `observability-isd` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Document Owner | LLMTier |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `design.implementation` |
 | Template Version | `1.2.2` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -757,7 +757,6 @@ flowchart TD
 - **峰值构成 / 上限 / 共享额度**：快照/traces 500/页；stats 无分页
 - **分段预算 / 总期限 / 计时点**：查询无超时（连接 `timeout=10`）
 - **超限、部分启动与清理出口**：fail-open
-- **构建或运行命令及前置条件**：`PYTHONPATH=src python3 -m pytest tests/ -q`
 
 ## 9. 验证规格与实现任务
 
@@ -769,10 +768,6 @@ flowchart TD
 - **V / Case / Vector**：v1 默认关；v2 开/关；v3 关闭零写入
 - **输入 / 故障 / 环境**：开关切换；隔离库
 - **独立 Oracle / Expected**：默认 `{False,False}`；关闭时无新行
-- **Actual / Evidence**：NOT_RUN
-- **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit`；隔离库
-- **Run ID / Status**：NOT_RUN
 
 ### 9.1.2 `VRC-OBS-002` · 快照/统计查询与脱敏
 
@@ -780,10 +775,6 @@ flowchart TD
 - **V / Case / Vector**：v1 上游调用后查询；v2 `?token=` URL；v3 503
 - **输入 / 故障 / 环境**：隔离库
 - **独立 Oracle / Expected**：字段完整；URL 去 query；503 不空页
-- **Actual / Evidence**：NOT_RUN
-- **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit`
-- **Run ID / Status**：NOT_RUN
 
 ### 9.1.3 `VRC-OBS-003` · 注入与 fail-open
 
@@ -791,10 +782,6 @@ flowchart TD
 - **V / Case / Vector**：v1 合法/非法注入；v2 观测库写失败
 - **输入 / 故障 / 环境**：隔离库
 - **独立 Oracle / Expected**：400/404；推理结果不变
-- **Actual / Evidence**：NOT_RUN
-- **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit`
-- **Run ID / Status**：NOT_RUN
 
 ### 9.1.4 `VRC-OBS-004` · trace/traces 与关联标识
 
@@ -802,10 +789,6 @@ flowchart TD
 - **V / Case / Vector**：v1 固定 request_id；v2 带/不带 `X-Correlation-ID`；v3 traces 时间窗/分页
 - **输入 / 故障 / 环境**：隔离库
 - **独立 Oracle / Expected**：stage 有序；仅提供时回显；去重 request
-- **Actual / Evidence**：NOT_RUN
-- **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit`
-- **Run ID / Status**：NOT_RUN
 
 ### 9.1.5 `VRC-OBS-005` · 诊断页
 
@@ -813,12 +796,7 @@ flowchart TD
 - **V / Case / Vector**：v1 4 tabs；v2 开关关闭 → Disabled
 - **输入 / 故障 / 环境**：诊断页
 - **独立 Oracle / Expected**：开关语义
-- **Actual / Evidence**：NOT_RUN
-- **Verdict**：NOT_RUN
-- **测试入口 / 清理**：系统用例
-- **Run ID / Status**：NOT_RUN
 
-**运行命令**：全量 `PYTHONPATH=src python3 -m pytest tests/ tests/system/st_*.py -q`
 
 <a id="isd-tasks"></a>
 
@@ -830,7 +808,6 @@ flowchart TD
 - **实施动作**：实现诊断路由
 - **完成检查**：`VRC-OBS-001/002/004`
 - **实现状态**：PLANNED
-- **验证状态 / Run**：NOT_RUN
 
 ### 9.2.2 `TASK-OBS-PAGE` · 诊断页
 
@@ -840,7 +817,6 @@ flowchart TD
 - **实施动作**：实现诊断页数据装载
 - **完成检查**：`VRC-OBS-005`
 - **实现状态**：PLANNED
-- **验证状态 / Run**：NOT_RUN
 
 ## 10. 映射、复核与未决项
 
@@ -854,17 +830,15 @@ flowchart TD
 - **实际位置或 Planned 计划位置**：`src/http_api/app.py`、`diagnostics.py`、`src/web_ui/app.js`
 - **验证项**：`VRC-OBS-001..005`
 - **实现状态**：PLANNED
-- **验证状态 / Run**：NOT_RUN
 
 <a id="isd-status"></a>
 
 ### 10.2.1 `SC-OBS` · 状态一致性复核
 
 - **上游承接状态 / 固定来源**：模块 `observability` §15.ISD 声明 `separate`
-- **本层派生状态 / 事实依据**：无实际实现/Run；全部 `PLANNED`/`NOT_RUN`
+- **本层派生状态 / 事实依据**：尚无实际实现；全部实现项为 `PLANNED`
 - **§2 Current / Target**：N/A（greenfield）
 - **§3 / §5 文件与函数状态**：PLANNED
-- **§9 任务 / Actual / Verdict / Run**：PLANNED / NOT_RUN / NOT_RUN / NOT_RUN
 - **§10 汇总状态**：PLANNED
 - **差异解释 / Owner / 收敛动作**：none
 

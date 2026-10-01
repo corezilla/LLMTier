@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `management-isd` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Document Owner | LLMTier |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `design.implementation` |
 | Template Version | `1.2.2` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -941,7 +941,6 @@ flowchart TD
 - **峰值构成 / 上限 / 共享额度**：`limit ≤ 200`；snapshot TTL 10 分钟
 - **分段预算 / 总期限 / 计时点**：探测 5 s、账号用量 15 s
 - **超限、部分启动与清理出口**：回滚/not_ready
-- **构建或运行命令及前置条件**：全量 `PYTHONPATH=src python3 -m pytest tests/ tests/system/st_*.py -q`（仓库根）
 
 ## 9. 验证规格与实现任务
 
@@ -953,10 +952,6 @@ flowchart TD
 - **V / Case / Vector**：v1 合法 settings；v2 重复启动；v3 缺节；v4 `env:` 空/`file:` 不存在
 - **输入 / 故障 / 环境**：空库；隔离临时库
 - **独立 Oracle / Expected**：Registry 与 hash 一致；503 + 回滚 + not_ready
-- **Actual / Evidence**：NOT_RUN
-- **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit/cases`；独立库
-- **Run ID / Status**：NOT_RUN
 
 ### 9.1.2 `VRC-MGMT-002` · CRUD 与不变量
 
@@ -964,10 +959,6 @@ flowchart TD
 - **V / Case / Vector**：v1 并发 PATCH；v2 删除被引用；v3 能力不兼容；v4 `Embedding-v1` 冻结
 - **输入 / 故障 / 环境**：隔离库
 - **独立 Oracle / Expected**：412/409/`capability_conflict`/`embedding_space_conflict`
-- **Actual / Evidence**：NOT_RUN
-- **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit/cases` + 契约
-- **Run ID / Status**：NOT_RUN
 
 ### 9.1.3 `VRC-MGMT-003` · 审计与日志
 
@@ -975,10 +966,6 @@ flowchart TD
 - **V / Case / Vector**：v1 成功/失败动作；v2 含 Authorization/Secret 的消息
 - **输入 / 故障 / 环境**：隔离库
 - **独立 Oracle / Expected**：审计 success/failed；日志脱敏 `[REDACTED]`
-- **Actual / Evidence**：NOT_RUN
-- **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit/cases`
-- **Run ID / Status**：NOT_RUN
 
 ### 9.1.4 `VRC-MGMT-004` · 分页与清空
 
@@ -986,10 +973,6 @@ flowchart TD
 - **V / Case / Vector**：v1 首屏后更正；v2 cursor 过期/跨 principal；v3 范围清空
 - **输入 / 故障 / 环境**：隔离库
 - **独立 Oracle / Expected**：旧页冻结；400/403；计数一致
-- **Actual / Evidence**：NOT_RUN
-- **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit/cases`
-- **Run ID / Status**：NOT_RUN
 
 ### 9.1.5 `VRC-MGMT-005` · 探测
 
@@ -997,10 +980,6 @@ flowchart TD
 - **V / Case / Vector**：v1 未确认；v2 正常探测；v3 不可达
 - **输入 / 故障 / 环境**：隔离库 + 上游可达/不可达
 - **独立 Oracle / Expected**：400；`healthy`/`unhealthy` 落库
-- **Actual / Evidence**：NOT_RUN
-- **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit/cases`
-- **Run ID / Status**：NOT_RUN
 
 ### 9.1.6 `VRC-MGMT-006` · 账号用量
 
@@ -1008,12 +987,7 @@ flowchart TD
 - **V / Case / Vector**：v1 GET 不触网；v2 未确认 POST；v3 凭据缺失；v4 provider 报错
 - **输入 / 故障 / 环境**：隔离库
 - **独立 Oracle / Expected**：`not_refreshed`/`unavailable`+`error`；快照持久
-- **Actual / Evidence**：NOT_RUN
-- **Verdict**：NOT_RUN
-- **测试入口 / 清理**：`tests/unit/cases`
-- **Run ID / Status**：NOT_RUN
 
-**运行命令**：全量 `PYTHONPATH=src python3 -m pytest tests/ tests/system/st_*.py -q`
 
 <a id="isd-tasks"></a>
 
@@ -1025,7 +999,6 @@ flowchart TD
 - **实施动作**：实现引导与 CRUD
 - **完成检查**：`VRC-MGMT-001/002`
 - **实现状态**：PLANNED
-- **验证状态 / Run**：NOT_RUN
 
 ### 9.2.2 `TASK-MGMT-ACTIONS` · 管理动作/探测/账号用量
 
@@ -1035,7 +1008,6 @@ flowchart TD
 - **实施动作**：实现管理动作
 - **完成检查**：`VRC-MGMT-003/005/006`
 - **实现状态**：PLANNED
-- **验证状态 / Run**：NOT_RUN
 
 ### 9.2.3 `TASK-MGMT-USAGE` · 分页与清空
 
@@ -1045,7 +1017,6 @@ flowchart TD
 - **实施动作**：实现分页与清空
 - **完成检查**：`VRC-MGMT-004`
 - **实现状态**：PLANNED
-- **验证状态 / Run**：NOT_RUN
 
 ## 10. 映射、复核与未决项
 
@@ -1059,17 +1030,15 @@ flowchart TD
 - **实际位置或 Planned 计划位置**：`src/management/{registry,admin,account_usage,audit}.py`、`src/log/logs.py`、`src/http_api/health.py`
 - **验证项**：`VRC-MGMT-001..006`
 - **实现状态**：PLANNED
-- **验证状态 / Run**：NOT_RUN
 
 <a id="isd-status"></a>
 
 ### 10.2.1 `SC-MGMT` · 状态一致性复核
 
 - **上游承接状态 / 固定来源**：模块 `management` §15.ISD 声明 `separate`
-- **本层派生状态 / 事实依据**：无实际实现/Run；全部 `PLANNED`/`NOT_RUN`
+- **本层派生状态 / 事实依据**：尚无实际实现；全部实现项为 `PLANNED`
 - **§2 Current / Target**：N/A（greenfield）
 - **§3 / §5 文件与函数状态**：PLANNED
-- **§9 任务 / Actual / Verdict / Run**：PLANNED / NOT_RUN / NOT_RUN / NOT_RUN
 - **§10 汇总状态**：PLANNED
 - **差异解释 / Owner / 收敛动作**：none
 

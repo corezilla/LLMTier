@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `management` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | llmtier |
 | Created Date | `2026-09-23` |
-| Last Modified Date | `2026-09-25` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `design.definition` |
 | Template Version | `3.4.3` |
 | Template Conformance | `tailored` |
@@ -45,7 +45,7 @@
 - **继承预算或行为保证**：文件不再影响运行；不双写
 - **可自行选择 / 不可改变**：存储布局可自选；唯一权威不可变
 - **本地落实 / 内部再分配**：I1 配置权威；§8
-- **验证方法与结果 / 证据**：`VRC-MGMT-001`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-MGMT-001`
 - **差距 / 变更影响 / 反馈责任**：无
 
 #### 1.1.2 `CON-CFG-002` · Secret 只存引用
@@ -54,7 +54,7 @@
 - **继承预算或行为保证**：明文不入库/不入响应/不入 UI
 - **可自行选择 / 不可改变**：引用形式固定（`env:`/`file:`）
 - **本地落实 / 内部再分配**：I1 校验；§8、§11
-- **验证方法与结果 / 证据**：`VRC-MGMT-001`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-MGMT-001`
 - **差距 / 变更影响 / 反馈责任**：无
 
 #### 1.1.3 `CON-CFG-003` · 先验证再原子推进
@@ -63,7 +63,7 @@
 - **继承预算或行为保证**：引用/能力不变量通过才提交；失败不改 active snapshot
 - **可自行选择 / 不可改变**：事务实现可自选；原子性不可变
 - **本地落实 / 内部再分配**：I1 发布事务；§8、§10
-- **验证方法与结果 / 证据**：`VRC-MGMT-002`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-MGMT-002`
 - **差距 / 变更影响 / 反馈责任**：无
 
 #### 1.1.4 `CON-CFG-004` · 变更失败回滚
@@ -72,7 +72,7 @@
 - **继承预算或行为保证**：失败保持旧版本
 - **可自行选择 / 不可改变**：—
 - **本地落实 / 内部再分配**：I1 + Store 事务；§10
-- **验证方法与结果 / 证据**：`VRC-MGMT-002`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-MGMT-002`
 - **差距 / 变更影响 / 反馈责任**：无
 
 #### 1.1.5 `CON-CFG-005` · 初始化失败 not_ready
@@ -81,7 +81,7 @@
 - **继承预算或行为保证**：引导失败服务 not_ready
 - **可自行选择 / 不可改变**：—
 - **本地落实 / 内部再分配**：I3 引导；§10
-- **验证方法与结果 / 证据**：`VRC-MGMT-003`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-MGMT-003`
 - **差距 / 变更影响 / 反馈责任**：无
 
 #### 1.1.6 `CON-METER-004` · 查询稳定分页
@@ -90,7 +90,7 @@
 - **继承预算或行为保证**：snapshot 冻结；cursor 复核 principal/filter
 - **可自行选择 / 不可改变**：cursor 实现可自选；冻结不可变
 - **本地落实 / 内部再分配**：I2 分页；§8
-- **验证方法与结果 / 证据**：`VRC-MGMT-004`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-MGMT-004`
 - **差距 / 变更影响 / 反馈责任**：与 M-METER 一致
 
 ## 2. 需求、功能与验收条件
@@ -1483,7 +1483,7 @@ page(limit: int = 50, level: str | None = None, module: str | None = None, reque
 - **推导 / 测量方法与证据等级**：Specified
 - **共享资源扣减 / 峰值重叠 / 余量**：无专门限流
 - **超限行为 / 责任出口**：—
-- **验证项 / Evidence**：`VRC-MGMT-002`；NOT_RUN
+- **验证项 / Evidence**：`VRC-MGMT-002`
 
 #### 12.2 `CAP-MGMT-PAGE` · 分页上限
 - **目标 / 限制 / 单位**：`limit ≤ 200`；snapshot TTL 10 分钟
@@ -1492,7 +1492,7 @@ page(limit: int = 50, level: str | None = None, module: str | None = None, reque
 - **推导 / 测量方法与证据等级**：Specified
 - **共享资源扣减 / 峰值重叠 / 余量**：—
 - **超限行为 / 责任出口**：400 cursor 过期
-- **验证项 / Evidence**：`VRC-MGMT-004`；NOT_RUN
+- **验证项 / Evidence**：`VRC-MGMT-004`
 
 #### 12.3 `CAP-MGMT-PROBE` · 探测超时
 - **目标 / 限制 / 单位**：5 s（GET `/models`）
@@ -1501,7 +1501,7 @@ page(limit: int = 50, level: str | None = None, module: str | None = None, reque
 - **推导 / 测量方法与证据等级**：Specified
 - **共享资源扣减 / 峰值重叠 / 余量**：—
 - **超限行为 / 责任出口**：`unhealthy`
-- **验证项 / Evidence**：`VRC-MGMT-005`；NOT_RUN
+- **验证项 / Evidence**：`VRC-MGMT-005`
 
 ## 13. 实现步骤与文件清单
 
@@ -1592,8 +1592,6 @@ page(limit: int = 50, level: str | None = None, module: str | None = None, reque
 - **Case / 正常、边界与失败输入**：合法 settings；重复启动；缺节；`env:` 空/`file:` 不存在
 - **环境 / 配置 / 隔离与复位**：独立临时库
 - **独立 Oracle / Expected**：Registry 与 hash 一致；503 + 回滚 + not_ready
-- **Actual / Evidence / Run ID**：NOT_RUN
-- **Verdict / 状态**：NOT_RUN
 - **父级组合验证交接**：启动/M001
 
 #### 14.2 `VRC-MGMT-002` · CRUD 与不变量
@@ -1601,8 +1599,6 @@ page(limit: int = 50, level: str | None = None, module: str | None = None, reque
 - **Case**：并发 PATCH；删除被引用；能力不兼容；`Embedding-v1` 冻结
 - **环境 / 配置 / 隔离与复位**：隔离库
 - **独立 Oracle / Expected**：412/409/`capability_conflict`/`embedding_space_conflict`
-- **Actual / Evidence / Run ID**：NOT_RUN
-- **Verdict / 状态**：NOT_RUN
 - **父级组合验证交接**：M003（候选）
 
 #### 14.3 `VRC-MGMT-003` · 审计与日志
@@ -1610,8 +1606,6 @@ page(limit: int = 50, level: str | None = None, module: str | None = None, reque
 - **Case**：成功/失败管理动作；含 Authorization/Secret 的消息
 - **环境 / 配置 / 隔离与复位**：隔离库
 - **独立 Oracle / Expected**：审计 success/failed；日志脱敏为 `[REDACTED]`
-- **Actual / Evidence / Run ID**：NOT_RUN
-- **Verdict / 状态**：NOT_RUN
 - **父级组合验证交接**：M002（日志页）
 
 #### 14.4 `VRC-MGMT-004` · 分页与清空
@@ -1619,8 +1613,6 @@ page(limit: int = 50, level: str | None = None, module: str | None = None, reque
 - **Case**：首屏后更正；cursor 过期/跨 principal；范围清空
 - **环境 / 配置 / 隔离与复位**：隔离库
 - **独立 Oracle / Expected**：旧页冻结；400/403；计数一致
-- **Actual / Evidence / Run ID**：NOT_RUN
-- **Verdict / 状态**：NOT_RUN
 - **父级组合验证交接**：M-METER
 
 #### 14.5 `VRC-MGMT-005` · 探测
@@ -1628,8 +1620,6 @@ page(limit: int = 50, level: str | None = None, module: str | None = None, reque
 - **Case**：未确认；正常探测；不可达
 - **环境 / 配置 / 隔离与复位**：隔离库 + 上游可达/不可达
 - **独立 Oracle / Expected**：400；`healthy`/`unhealthy` 落库
-- **Actual / Evidence / Run ID**：NOT_RUN
-- **Verdict / 状态**：NOT_RUN
 - **父级组合验证交接**：M003 适配器
 
 #### 14.6 `VRC-MGMT-006` · 账号用量
@@ -1637,8 +1627,6 @@ page(limit: int = 50, level: str | None = None, module: str | None = None, reque
 - **Case**：GET 不触网；未确认 POST；凭据缺失；provider 报错
 - **环境 / 配置 / 隔离与复位**：隔离库
 - **独立 Oracle / Expected**：`not_refreshed`/`unavailable`+`error`；快照持久
-- **Actual / Evidence / Run ID**：NOT_RUN
-- **Verdict / 状态**：NOT_RUN
 - **父级组合验证交接**：M002（Providers 页）
 
 ## 15. 风险、未决问题与引用

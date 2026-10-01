@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-design` |
-| Document Version | `0.5.0-draft.1` |
+| Document Version | `0.5.0-draft.2` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -16,7 +16,7 @@
 | Approver | LLMTier |
 | Approval Date | 待定 |
 | Created Date | `2026-09-06` |
-| Last Modified Date | `2026-09-25` |
+| Last Modified Date | `2026-10-01` |
 | Template Version | `2.1.3` |
 | Template ID | `design.software-system` |
 | Template Conformance | `tailored` |
@@ -3420,7 +3420,7 @@ admission 队列与并发上限可被并发请求验证；测试实例相互隔�
 
 ### 12.5 自动化、复现与验证覆盖
 
-需求 ID、OpenAPI operation、fixture 和测试 case 在 traceability 文档中一对一映射。删除的旧扩展必须有"path/schema absent"负例。测试报告随测试保存（`tests/<level>/reports/<run-id>/`）。
+需求 ID、OpenAPI operation、fixture 和测试 case 在 traceability 文档中一对一映射；验证覆盖与执行证据由测试方案与测试报告承接，本设计只声明验证要求。
 
 ## 13. 信息安全架构
 

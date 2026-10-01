@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-config-lifecycle-mechanism` |
-| Document Version | `0.1.0-draft.6` |
+| Document Version | `0.1.0-draft.7` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | llmtier |
 | Created Date | `2026-09-22` |
-| Last Modified Date | `2026-09-25` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `design.system-mechanism` |
 | Template Version | `3.3.1` |
 | Template Conformance | `tailored` |
@@ -687,7 +687,7 @@ DELETE /v1/providers/{provider_id} If-Match     -> 204（已删除）| 404 not_f
 - **成功输出与保证**：`ProviderView`（`D-PROVIDER` 投影，`secret_ref` 只写不回显）+ 强 `ETag`；受理=写事务未提交前不对外；生效=提交后可见；副作用=同事务写 `D-AUDIT-EVENT`。
 - **错误与合法下一步**：`ERR-AUTH-*`（401/403/503）；`ERR-REQ-VALIDATION`（400）；`ERR-CONFLICT`（409 重名）；`ERR-INUSE`（409 被引用删除）；`ERR-STALE`（412 `If-Match` 过期）；`ERR-NOTFOUND`（404）；`ERR-STORE`（503）；逐条件结果已知、失败无副作用，载荷 `D-ERROR-ENVELOPE`。
 - **交互与生命周期**：同步；PATCH partial（只改出现字段）；DELETE 成功 204，重复删除已不存在的 provider → 404 `not_found`（非幂等 204）；ETag 乐观并发；版本单调 +1。
-- **实现与验证**：正常 POST → 201+ETag；拒绝 stale PATCH → 412。`T-CFG-CAS`、`T-CFG-DELREF`；Run=NOT_RUN。
+- **实现与验证**：正常 POST → 201+ETag；拒绝 stale PATCH → 412。`T-CFG-CAS`、`T-CFG-DELREF`。
 
 #### `GET/POST /v1/deployments`；`GET/PATCH/DELETE /v1/deployments/{deployment_id}`
 
@@ -705,7 +705,7 @@ DELETE /v1/deployments/{deployment_id} If-Match  -> 204（已删除）| 404 not_
 - **成功输出与保证**：`DeploymentView` + `ETag`；副作用=同事务审计；新建时创建 `deployment_runtime_profiles` 行。
 - **错误与合法下一步**：未知 provider/能力非法 → `ERR-REQ-VALIDATION`（400）；重名 `ERR-CONFLICT`；删除被 level 引用 `ERR-INUSE`；`ERR-STALE`/`ERR-NOTFOUND`/`ERR-STORE`。
 - **交互与生命周期**：同步；partial PATCH；DELETE 成功 204，重复删除已不存在的 deployment → 404 `not_found`（非幂等 204）；ETag 乐观并发。
-- **实现与验证**：正常引用已存在 provider；拒绝未知 provider。`T-CFG-BADREF`；Run=NOT_RUN。
+- **实现与验证**：正常引用已存在 provider；拒绝未知 provider。`T-CFG-BADREF`。
 
 #### `GET/POST /v1/service-levels`；`GET/PATCH /v1/service-levels/{level_id}`（DELETE 禁止）
 
@@ -723,7 +723,7 @@ DELETE /v1/service-levels/{level_id}             -> 409 fixed_service_level
 - **成功输出与保证**：`ServiceLevelView`（含 `capabilities`=成员交集）+ `ETag`；副作用=写成员表（ordinal）+ 审计；版本 +1。
 - **错误与合法下一步**：非固定 Tier → `ERR-REQ-VALIDATION`（400）；成员无共同能力 → 409 `capability_conflict`；非兼容 Embedding → 409 `embedding_space_conflict`；删除固定 Tier → 409 `fixed_service_level`（`ERR-CONFLICT` 语义，系统无专码）；`ERR-STALE`/`ERR-NOTFOUND`。
 - **交互与生命周期**：同步；DELETE 恒定拒绝；partial PATCH；ordinal 决定候选顺序，重启后不漂移。
-- **实现与验证**：正常 PATCH Worker 成员 → 交集通过、版本 +1；拒绝 DELETE 固定 Tier → 409。`T-CFG-SPACE`；Run=NOT_RUN。
+- **实现与验证**：正常 PATCH Worker 成员 → 交集通过、版本 +1；拒绝 DELETE 固定 Tier → 409。`T-CFG-SPACE`。
 
 #### `Registry.bootstrap_settings(settings_path: str | None) -> None`
 
@@ -736,7 +736,7 @@ Registry.bootstrap_settings(settings_path: str | None) -> None
 - **成功输出与保证**：无返回值——受理/生效/完成为同一事务：写入 providers/deployments/levels/成员 + `schema_meta.bootstrap_sha256` + bootstrap 审计；副作用=持久化；`/readyz` 可访问但初始为 `degraded`（deployments `health=unknown`），探测出健康候选后才 `ready`（§4.6.1）。
 - **错误与合法下一步**：无 settings 且空库 → `ERR-BOOT`（503 `bootstrap_required`，未受理、无副作用）；解析/校验/事务失败 → `ERR-BOOT`（503 `bootstrap_invalid`，回滚、not_ready）；schema 不符由 M007 提前以 `ERR-SCHEMA` 拒绝；载荷 `D-ERROR-ENVELOPE`。合法下一步：修正 settings/迁移后重启。
 - **交互与生命周期**：同步阻塞；启动期一次；事务全成功或全回滚（`store.transaction(True)`）；可重入：已有 `bootstrap_sha256` → 立即 no-op，不重导入（INV-2）；不热载文件（§13）。
-- **实现与验证**：正常：空库 + 合法三节 settings → hash 置位、`/readyz` 先为 degraded；边界：重复启动 → no-op 且 hash 不变。`T-CFG-BOOT`；Run=NOT_RUN。
+- **实现与验证**：正常：空库 + 合法三节 settings → hash 置位、`/readyz` 先为 degraded；边界：重复启动 → no-op 且 hash 不变。`T-CFG-BOOT`。
 
 #### `Registry.candidates(level_id: str) -> list[Candidate]`
 
@@ -749,7 +749,7 @@ Registry.candidates(level_id: str) -> list[Candidate]
 - **成功输出与保证**：`list[D-CFG-CANDIDATE]`（§4.2.1，按 `ordinal` 升序）；受理/生效=逐次请求重新读取，不缓存陈旧快照；副作用=无。
 - **错误与合法下一步**：无 Error ID；未知/无成员 → 空列表（由 Router 转 404/503）；存储异常 → `ERR-STORE`。
 - **交互与生命周期**：同步只读；请求级；幂等；每次调用重新核验版本与健康。
-- **实现与验证**：正常返回有序候选；边界：未配置成员 → `[]`。路由用例；Run=NOT_RUN。
+- **实现与验证**：正常返回有序候选；边界：未配置成员 → `[]`。路由用例。
 
 #### `Registry.get_service_level(level_id: str) -> tuple[dict, str]`
 
@@ -762,7 +762,7 @@ Registry.get_service_level(level_id: str) -> tuple[dict, str]
 - **成功输出与保证**：`(ServiceLevelView, ETag)`；受理/生效=只读即时；副作用=无。
 - **错误与合法下一步**：未知 ID → `ERR-NOTFOUND`（404）；载荷 `D-ERROR-ENVELOPE`。
 - **交互与生命周期**：同步只读；幂等。
-- **实现与验证**：正常读 `Worker`；拒绝未知 → 404。路由用例；Run=NOT_RUN。
+- **实现与验证**：正常读 `Worker`；拒绝未知 → 404。路由用例。
 
 ### 5.2 消息与数据流接口（适用时）
 
@@ -784,7 +784,7 @@ GET /readyz -> 200 {status:"ready", models:[…]}                    # 全部固
 - **成功输出与保证**：`{status, models:[…]}`——`status` 由各固定等级的 `availability` 聚合：全 `available` → `ready`（200）；任一非 `unavailable` 但未全 `available` → `degraded`（503）；全 `unavailable` 或 bootstrap 失败 → `not_ready`（503）；受理/生效=即时；副作用=无。
 - **错误与合法下一步**：bootstrap 失败 → 503 `{status:"not_ready", models:[]}`；bootstrap 成功后 deployments 初始 `health=unknown`，故 `/readyz` 先返回 `degraded`（503），经 `POST /v1/probes` 探测出至少一个健康候选后才转 `ready`（200）。以就绪状态表达，非 `D-ERROR-ENVELOPE`；结果已知、无副作用。
 - **交互与生命周期**：同步只读；幂等（availability 随 health 变化）；无占用/取消/恢复。
-- **实现与验证**：就绪返回 ready；未探测/degraded 返回 503 degraded；bootstrap 失败返回 503 not_ready。`T-CFG-BOOT`；Run=NOT_RUN。
+- **实现与验证**：就绪返回 ready；未探测/degraded 返回 503 degraded；bootstrap 失败返回 503 not_ready。`T-CFG-BOOT`。
 
 #### 离线迁移（单一版本命令）
 ```text
@@ -795,7 +795,7 @@ migrate(store_path) -> {from_version, to_version} | non-zero exit
 - **成功输出与保证**：`{from_version, to_version}`——受理/完成=迁移提交；副作用=库 schema 变更（先备份）。
 - **错误与合法下一步**：失败 → 非零退出码；结果可能需按备份还原；不双写、不可并行（§13）。
 - **交互与生命周期**：离线执行；不可与运行实例并行；终止后以备份/迁移结果为基线。
-- **实现与验证**：运维演练；Run=NOT_RUN。
+- **实现与验证**：运维演练。
 
 > `GET /healthz`（存活探针）为项目健康契约，记录于 §12.2，不构成本机制的数据/接口分配对象。
 

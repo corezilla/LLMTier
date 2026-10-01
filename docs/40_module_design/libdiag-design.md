@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `libdiag` |
-| Document Version | `0.1.0-draft.7` |
+| Document Version | `0.1.0-draft.8` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | llmtier |
 | Created Date | `2026-09-23` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `design.definition` |
 | Template Version | `3.4.3` |
 | Template Conformance | `tailored` |
@@ -45,7 +45,7 @@
 - **继承预算或行为保证**：开关关 → 短路不写
 - **可自行选择 / 不可改变**：存储可自选；默认关不可变
 - **本地落实 / 内部再分配**：I1 开关；§8
-- **验证方法与结果 / 证据**：`VRC-DIAG-001`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-DIAG-001`
 - **差距 / 变更影响 / 反馈责任**：无
 
 #### 1.1.2 `CON-OBS-002` · fail-open
@@ -54,7 +54,7 @@
 - **继承预算或行为保证**：失败不抛到推理路径
 - **可自行选择 / 不可改变**：捕获实现可自选；fail-open 不可变
 - **本地落实 / 内部再分配**：I2–I7；§10
-- **验证方法与结果 / 证据**：`VRC-DIAG-003`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-DIAG-003`
 - **差距 / 变更影响 / 反馈责任**：无
 
 #### 1.1.3 `CON-OBS-003` · 不记录 Secret/凭据/完整正文
@@ -63,7 +63,7 @@
 - **继承预算或行为保证**：只存脱敏字段
 - **可自行选择 / 不可改变**：脱敏实现可自选；禁记不可变
 - **本地落实 / 内部再分配**：I3/I4 截断；§11
-- **验证方法与结果 / 证据**：`VRC-DIAG-002`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-DIAG-002`
 - **差距 / 变更影响 / 反馈责任**：无
 
 #### 1.1.4 `CON-OBS-005` · 能力提供者
@@ -72,7 +72,7 @@
 - **继承预算或行为保证**：libdiag 提供能力，Observability 呈现
 - **可自行选择 / 不可改变**：—（职责边界）
 - **本地落实 / 内部再分配**：§5.1、§5.3
-- **验证方法与结果 / 证据**：`VRC-DIAG-001`；NOT_RUN
+- **验证方法与结果 / 证据**：`VRC-DIAG-001`
 - **差距 / 变更影响 / 反馈责任**：与 M005 一致
 
 ## 2. 需求、功能与验收条件
@@ -1215,7 +1215,7 @@ cleanup(days: int = 7) -> int
 - **推导 / 测量方法与证据等级**：Specified
 - **共享资源扣减 / 峰值重叠 / 余量**：—
 - **超限行为 / 责任出口**：删除过期
-- **验证项 / Evidence**：`VRC-DIAG-002`；NOT_RUN
+- **验证项 / Evidence**：`VRC-DIAG-002`
 
 #### 12.2 `CAP-DIAG-STATS` · 统计写容量
 - **目标 / 限制 / 单位**：每次请求一次 UPSERT + 追加（无内存上限）
@@ -1224,7 +1224,7 @@ cleanup(days: int = 7) -> int
 - **推导 / 测量方法与证据等级**：Specified
 - **共享资源扣减 / 峰值重叠 / 余量**：—
 - **超限行为 / 责任出口**：写失败 fail-open
-- **验证项 / Evidence**：`VRC-DIAG-002`；NOT_RUN
+- **验证项 / Evidence**：`VRC-DIAG-002`
 
 #### 12.3 `CAP-DIAG-SNAP` · 快照分页
 - **目标 / 限制 / 单位**：50/页
@@ -1233,7 +1233,7 @@ cleanup(days: int = 7) -> int
 - **推导 / 测量方法与证据等级**：Specified
 - **共享资源扣减 / 峰值重叠 / 余量**：—
 - **超限行为 / 责任出口**：`next_cursor`
-- **验证项 / Evidence**：`VRC-DIAG-002`；NOT_RUN
+- **验证项 / Evidence**：`VRC-DIAG-002`
 
 ## 13. 实现步骤与文件清单
 
@@ -1290,8 +1290,6 @@ cleanup(days: int = 7) -> int
 - **Case / 正常、边界与失败输入**：关/开；部分更新
 - **环境 / 配置 / 隔离与复位**：隔离库
 - **独立 Oracle / Expected**：关闭零写入
-- **Actual / Evidence / Run ID**：NOT_RUN
-- **Verdict / 状态**：NOT_RUN
 - **父级组合验证交接**：M005
 
 #### 14.2 `VRC-DIAG-002` · 记录与查询
@@ -1299,8 +1297,6 @@ cleanup(days: int = 7) -> int
 - **Case**：一次调用后 trace/snapshot/stats；URL 带 query
 - **环境 / 配置 / 隔离与复位**：隔离库
 - **独立 Oracle / Expected**：字段/脱敏/百分位正确
-- **Actual / Evidence / Run ID**：NOT_RUN
-- **Verdict / 状态**：NOT_RUN
 - **父级组合验证交接**：M003/M005
 
 #### 14.3 `VRC-DIAG-003` · fail-open
@@ -1308,8 +1304,6 @@ cleanup(days: int = 7) -> int
 - **Case**：写入失败/初始化失败
 - **环境 / 配置 / 隔离与复位**：隔离库
 - **独立 Oracle / Expected**：推理结果不变
-- **Actual / Evidence / Run ID**：NOT_RUN
-- **Verdict / 状态**：NOT_RUN
 - **父级组合验证交接**：M003
 
 #### 14.4 `VRC-DIAG-004` · 注入
@@ -1317,8 +1311,6 @@ cleanup(days: int = 7) -> int
 - **Case**：四类注入 + 流截断/畸形；非法类型
 - **环境 / 配置 / 隔离与复位**：隔离库
 - **独立 Oracle / Expected**：400；命中确定性
-- **Actual / Evidence / Run ID**：NOT_RUN
-- **Verdict / 状态**：NOT_RUN
 - **父级组合验证交接**：M003/M001；`LT-OPEN-05`
 
 ## 15. 风险、未决问题与引用
