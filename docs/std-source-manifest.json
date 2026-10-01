@@ -2,7 +2,7 @@
   "schema_version": "std-source-manifest.v1",
   "std_version": "0.1.0-draft.72",
   "source_repository": "corezilla/STD",
-  "source_revision": "78876c98642131fb64d843f64cbab03256a5c0c4",
+  "source_revision": "37ab8aff5e802c01420d2c7cd6ed46119aee6e71",
   "source_tag": null,
   "generated_at": "2026-10-01",
   "artifacts": [
@@ -429,12 +429,12 @@
     {
       "path": "docs/repository-layout.md",
       "role": "guidance",
-      "sha256": "02033bba6db81330b8d511d4d9a969e7663ee5bb72bf0e04f6090eba81ccd3fd"
+      "sha256": "578452dc306d605c020498909b00421e08a95c8edf9eeac64c335b343e4bb2be"
     },
     {
       "path": "docs/software-object-identifiers.md",
       "role": "guidance",
-      "sha256": "d843dff4cd9e591f285ee35c29c5da8fad235e7683897c24fed3c7f8c4808271"
+      "sha256": "6cc72eff688a432d1cfdeb37587422a2ef17f227d04a1b1e0a0088ad8a12c862"
     },
     {
       "path": "docs/software-project-layout.md",
@@ -509,7 +509,7 @@
     {
       "path": "scripts/new-design",
       "role": "tool",
-      "sha256": "7b6d3b4ceb21315d7907a9271671f1f27bc2fbbe306c9ecfeefe292e393a81c6"
+      "sha256": "49b8a8911436d1135b36753e2b72009807f30a80d69d7a9f44bff48901041c82"
     },
     {
       "path": "scripts/sync-template-covers",
@@ -1004,7 +1004,7 @@
     {
       "path": "templates/path-policy.json",
       "role": "template",
-      "sha256": "8e4480dfe14cdccb92e896b4f259feb89aa3fbb39bc919a8e046295f5d9674fd"
+      "sha256": "d74caff15a6e9cc1bef96780003a3fe0bd30ce02a3b6526d525d231b7f9677a5"
     },
     {
       "path": "templates/product/roadmap.md",
@@ -1124,7 +1124,7 @@
     {
       "path": "templates/tests/unit-case.md",
       "role": "template",
-      "sha256": "cc7ac7e1f9f6473433956138838dafd36cdacd0a48bd5287d3f4e6827606e687"
+      "sha256": "ff37a34040c1834a831baf056bad5a95c9daf6a4d80607c5ea100d4906cb6d61"
     },
     {
       "path": "templates/tests/unit-test-plan.md",
