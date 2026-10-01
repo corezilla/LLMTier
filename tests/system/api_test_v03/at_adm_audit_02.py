@@ -1,4 +1,4 @@
-"""Case ID: ADM-AUDIT-02
+"""Case ID: ST-audit-002
 
 Endpoint: GET /v1/audit?limit=1
 Upstream Provider: 无
@@ -39,7 +39,7 @@ def test_adm_audit_02_pagination(admin_client):
     if page["has_more"] is True:
         # 文档明示当前实现恒 has_more=false（审计无 cursor 分页）。命中此分支即契约漂移。
         pytest.skip(
-            "BLOCKED(ADM-AUDIT-02 §4): 当前实现应恒 has_more=false/next_cursor=null，"
+            "BLOCKED(ST-audit-002 §4): 当前实现应恒 has_more=false/next_cursor=null，"
             f"但实际 has_more=True, next_cursor={page.get('next_cursor')!r}；"
             "该分页分支不可达，需复核契约/实现。")
     assert page["next_cursor"] is None, (

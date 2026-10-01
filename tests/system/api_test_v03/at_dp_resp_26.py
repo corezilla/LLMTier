@@ -1,4 +1,4 @@
-"""Case ID: DP-RESP-26
+"""Case ID: ST-resp-026
 
 Endpoint: PATCH /v1/deployments/depl_b/diagnostics（注入写）;
           POST /v1/responses（stream=true，被测流）

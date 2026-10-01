@@ -1,4 +1,4 @@
-"""Case ID: ADM-SL-08
+"""Case ID: ST-sl-008
 
 Endpoint: PATCH /v1/service-levels/{id}（非数组 deployment_ids）
 Upstream Provider: provider_endpoint_b（LAN fake provider，TS-003）

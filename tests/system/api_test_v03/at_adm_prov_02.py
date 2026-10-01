@@ -1,4 +1,4 @@
-"""Case ID: ADM-PROV-02
+"""Case ID: ST-prov-002
 
 Endpoint: POST /v1/providers
 Upstream Provider: 无（测试 CRUD 路由，不测 upstream）

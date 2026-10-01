@@ -4,14 +4,14 @@
   "document_id": "llmtier-system-test-report-2026-09-30",
   "document_type": "tests.system-test-report",
   "document_version": "0.1.0-draft.1",
-  "title": "LLMTier V0.3 System Test Report \u2014 Run 2026-09-30",
+  "title": "LLMTier V0.3 System Test Report — Run 2026-09-30",
   "document_owner": "LLMTier",
   "authors": [
     "LLMTier"
   ],
   "template_id": "tests.system-test-report",
   "template_version": "0.3.1",
-  "template_sha256": "f8c6987744a611c0f00b63c5d78c0a7c819c37aafab8200cd0246b61e06dc9bc",
+  "template_sha256": "6e4968fec47771883003416ccebaf70492f582ee102738c0bb4212c2b4bee895",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,

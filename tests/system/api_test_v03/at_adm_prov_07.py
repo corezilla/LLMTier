@@ -1,4 +1,4 @@
-"""Case ID: ADM-PROV-07
+"""Case ID: ST-prov-007
 
 Endpoint: PATCH /v1/providers/{id}
 Upstream Provider: 无

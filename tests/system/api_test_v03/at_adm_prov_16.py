@@ -1,4 +1,4 @@
-"""Case ID: ADM-PROV-16
+"""Case ID: ST-prov-016
 
 Endpoint: PATCH /v1/providers/provider_local
 Upstream Provider: 无

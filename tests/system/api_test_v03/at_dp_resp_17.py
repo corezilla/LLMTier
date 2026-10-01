@@ -1,4 +1,4 @@
-"""Case ID: DP-RESP-17
+"""Case ID: ST-resp-017
 
 Endpoint: POST /v1/responses
 Upstream Provider: 无（能力门在 dispatch 前拒绝）

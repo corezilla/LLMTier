@@ -1,4 +1,4 @@
-"""Case ID: DP-RESP-11
+"""Case ID: ST-resp-011
 
 Endpoint: POST /v1/responses
 Upstream Provider: 故障注入（fault_502，depl_b）

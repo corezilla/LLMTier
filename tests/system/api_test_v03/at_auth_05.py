@@ -1,4 +1,4 @@
-"""Case ID: AUTH-05
+"""Case ID: ST-auth-005
 
 Endpoint: GET /healthz
 Upstream Provider: 无

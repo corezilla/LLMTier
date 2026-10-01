@@ -1,4 +1,4 @@
-"""Case ID: OBS-SNAP-01
+"""Case ID: ST-obssnap-001
 
 Endpoint: GET /v1/diagnostics/snapshots
 Upstream Provider: m5air OMLX / m5mac OMLX / minimax（构造快照需一次 responses 调用）

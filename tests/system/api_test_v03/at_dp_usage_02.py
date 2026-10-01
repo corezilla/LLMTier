@@ -1,4 +1,4 @@
-"""Case ID: DP-USAGE-02
+"""Case ID: ST-usage-002
 
 Endpoint: POST /v1/embeddings（前置写）; GET /v1/usage（读取）
 Upstream Provider: provider_local (m5air OMLX bge-m3)

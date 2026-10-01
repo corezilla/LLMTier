@@ -1,4 +1,4 @@
-"""Case ID: DP-USAGE-08
+"""Case ID: ST-usage-008
 
 Endpoint: GET /v1/usage (store 不可用)
 Upstream Provider: provider_endpoint_b（LAN fake provider，TS-003）

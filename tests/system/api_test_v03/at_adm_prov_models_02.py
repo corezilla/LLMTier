@@ -1,4 +1,4 @@
-"""Case ID: ADM-PROV-MODELS-02
+"""Case ID: ST-pmod-002
 
 Endpoint: GET /v1/providers/{id}/models (不存在)
 Upstream Provider: 无

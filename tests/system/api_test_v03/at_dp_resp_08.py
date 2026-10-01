@@ -1,4 +1,4 @@
-"""Case ID: DP-RESP-08
+"""Case ID: ST-resp-008
 
 Endpoint: POST /v1/responses (missing model)
 Upstream Provider: 无

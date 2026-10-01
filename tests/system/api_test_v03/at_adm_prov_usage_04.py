@@ -1,4 +1,4 @@
-"""Case ID: ADM-PROV-USAGE-04
+"""Case ID: ST-pusage-004
 
 Endpoint: GET /v1/providers/{id}/usage (不存在)
 Upstream Provider: 无

@@ -1,4 +1,4 @@
-"""Case ID: ADM-STATS-04
+"""Case ID: ST-stats-004
 
 Endpoint: GET /v1/stats
 Upstream Provider: 无

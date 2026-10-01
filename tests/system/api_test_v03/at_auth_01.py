@@ -1,4 +1,4 @@
-"""Case ID: AUTH-01
+"""Case ID: ST-auth-001
 
 Endpoint: GET /v1/models
 Upstream Provider: 无

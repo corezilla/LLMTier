@@ -48,7 +48,7 @@
 4. 实现规格（ISD）：`docs/50_implementation_design/*.isd.md`（§4 数据结构、§5 接口、§7 生命周期、§9 VRC）。
 5. 机器契约：`interfaces/openapi/llmtier.openapi.json`（`ErrorEnvelope`/`ErrorDetail.code` 枚举、各端点 `security` 与状态码）。
 6. 需求与规范：`docs/10_requirements/llmtier-requirements.md`、`docs/10_requirements/llmtier-observability-debug-requirements.md`、`docs/00_management/standards/testing-standard.md`（TS-003）、`docs/00_management/llmtier-implementation-plan.md`（§8 Gate）。
-7. 验证方案：`docs/70_verification/schemes/llmtier-unit-test-scheme.md`（§3 33 个 VRC → Case 登记）。
+7. 验证方案：`docs/70_verification/unit/llmtier-unit-test-scheme.md`（§3 33 个 VRC → Case 登记）。
 8. 测试基线：本机 `PYTHONPATH=src python3 -m pytest tests/ tests/system/st_*.py -q` → **584 passed**（审查时，Python 3.14.3）。修复复核后同一命令为 **596 passed**（见 §7/§8）。
 
 ### 1.3 审查者
@@ -71,7 +71,7 @@
 - [x] **公开方法可重入/线程安全**：`Router` 用 `threading.Condition` 保护全部可变共享状态（`src/inference/routing.py:17,76,113`）；`Store` 用 `threading.local()` 每线程一个连接（`src/util/store.py:45,61`）；`Registry`/`AdminService`/`UsageRecorder` 无可变全局状态。无文档声明非并发。
 - [x] **过期/替代签名**：无残留旧名；`/tier/admin/v1/*` 与 `/v1/*` 为**并存**契约别名（非旧名），parity 由 `UT-API-011` 覆盖（`src/http_api/app.py:347-376`）。
 - [x] **资源所有权/调用顺序与设计 §8 一致**：`authorize_dispatch`→`admit`→`bind_backend`→dispatch→`finish` 顺序与系统 §7.9 / inference.isd 一致（`src/inference/responses.py:95-142`）。
-- [~] **单元 Case 与方案 §3 VRC 对账**：33 个 VRC 在 `docs/70_verification/schemes/llmtier-unit-test-scheme.md:139-` 均有 Case 登记；本机实跑 584 通过。**但方案 §3 的 VRC 清单仍有一处与本审查相关的覆盖缺口**（admin cursor 非法格式、`param` 具体性）→ 见 §6/§7。
+- [~] **单元 Case 与方案 §3 VRC 对账**：33 个 VRC 在 `docs/70_verification/unit/llmtier-unit-test-scheme.md:139-` 均有 Case 登记；本机实跑 584 通过。**但方案 §3 的 VRC 清单仍有一处与本审查相关的覆盖缺口**（admin cursor 非法格式、`param` 具体性）→ 见 §6/§7。
 
 结论：公开契约整体与上游一致；§7 登记的 `param` 具体性与未知字段码位问题是本节的未关闭项。
 

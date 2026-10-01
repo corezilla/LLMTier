@@ -1,4 +1,4 @@
-"""Case ID: DP-MODELS-01
+"""Case ID: ST-model-001
 
 Endpoint: GET /v1/models
 Upstream Provider: 无

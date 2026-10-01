@@ -59,6 +59,24 @@ _CASE_ID_HEADER = re.compile(r"^\s*[\"']{0,3}\s*Case ID:\s*(\S+?)[\s\"']*$", re.
 _CASE_ID_IN_NAME = re.compile(
     r"(?:^|/)(?:at|st)_([a-z0-9_]+?)_(\d+[a-z]?)(?:$|[/.])", re.IGNORECASE
 )
+# System-test executable files keep their historical ``at_<legacy>_<n>.py`` names,
+# but Case IDs now follow ``ST-<object>-<NNN>`` (STD 78876c9,
+# docs/software-object-identifiers.md §2). This map lets the path fallback
+# recover the current Case ID from a legacy filename; the authoritative source
+# is still the module-level ``Case ID:`` header (see
+# docs/98_migration/llmtier-case-id-migration.md).
+_LEGACY_FAMILY_TO_TOKEN = {
+    "health": "health", "dp_models": "model", "dp_resp": "resp",
+    "dp_emb": "emb", "dp_usage": "usage",
+    "adm_prov_models": "pmod", "adm_prov_usage": "pusage",
+    "adm_prov": "prov", "adm_depl": "depl", "adm_sl": "sl",
+    "adm_probe": "probe", "adm_runtime": "runtime", "adm_stats": "stats",
+    "adm_audit": "audit", "adm_logs": "logs", "adm_admin_usage": "ausage",
+    "obs_diag": "obsdiag", "obs_snap": "obssnap", "obs_stats": "obsstats",
+    "obs_trace": "obstrace", "obs_depl": "obsdepl",
+    "obs_reqtrace": "obsreqtrace", "obs_alias": "obsalias",
+    "auth": "auth", "uit_ui": "ui",
+}
 _BLOCKED_MSG = re.compile(r"BLOCKED\s*\(([^)]*)\)\s*:?\s*(.*)", re.DOTALL)
 
 
@@ -92,6 +110,11 @@ def case_id_from_source(source: str | None, fallback_name: str) -> str:
             return match.group(1)
     match = _CASE_ID_IN_NAME.search(fallback_name)
     if match:
+        family = match.group(1).lower()
+        number = int(re.match(r"\d+", match.group(2)).group(0))
+        token = _LEGACY_FAMILY_TO_TOKEN.get(family)
+        if token is not None:
+            return f"ST-{token}-{number:03d}"
         return match.group(1).upper().replace("_", "-") + "-" + match.group(2)
     # No path/file signal: derive from the full node id so distinct test
     # functions do not collide into one case.

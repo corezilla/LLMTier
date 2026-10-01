@@ -1,4 +1,4 @@
-"""Case ID: OBS-DIAG-01
+"""Case ID: ST-obsdiag-001
 
 Endpoint: GET /v1/diagnostics
 Upstream Provider: 无（仅诊断读面；不触上游）

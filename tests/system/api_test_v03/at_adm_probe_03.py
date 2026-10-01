@@ -1,4 +1,4 @@
-"""Case ID: ADM-PROBE-03
+"""Case ID: ST-probe-003
 
 Endpoint: POST /v1/probes (未知 deployment)
 Upstream Provider: 无（资源解析前 404）

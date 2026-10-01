@@ -1,4 +1,4 @@
-"""Case ID: DP-RESP-24
+"""Case ID: ST-resp-024
 
 Endpoint: POST /v1/responses；GET/PATCH /v1/providers/prov_b
 Upstream Provider: prov_b（secret_ref 改为不可读的 file: 引用）

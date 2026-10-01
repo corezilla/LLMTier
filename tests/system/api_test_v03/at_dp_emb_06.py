@@ -1,4 +1,4 @@
-"""Case ID: DP-EMB-06
+"""Case ID: ST-emb-006
 
 Endpoint: POST /v1/embeddings
 Upstream Provider: 无（本地立即拒绝，不触上游）

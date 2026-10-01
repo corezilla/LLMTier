@@ -1,4 +1,4 @@
-"""Case ID: DP-RESP-06
+"""Case ID: ST-resp-006
 
 Endpoint: POST /v1/responses (stream=true 显式)
 Upstream Provider: 调度器选

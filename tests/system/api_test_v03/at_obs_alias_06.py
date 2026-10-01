@@ -1,4 +1,4 @@
-"""Case ID: OBS-ALIAS-06
+"""Case ID: ST-obsalias-006
 
 Endpoint: GET /tier/admin/v1/diagnostics/traces ≡ /v1/diagnostics/traces
 Upstream Provider: 无（诊断读面；不触上游）

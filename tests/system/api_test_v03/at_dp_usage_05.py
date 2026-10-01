@@ -1,4 +1,4 @@
-"""Case ID: DP-USAGE-05
+"""Case ID: ST-usage-005
 
 Endpoint: GET /v1/usage
 Upstream Provider: 无

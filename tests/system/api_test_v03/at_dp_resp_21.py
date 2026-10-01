@@ -1,4 +1,4 @@
-"""Case ID: DP-RESP-21
+"""Case ID: ST-resp-021
 
 Endpoint: POST /v1/responses（流式）；GET /v1/trace/{request_id}
 Upstream Provider: prov_b（LAN fake provider，backend_model="force-huge-stream"）

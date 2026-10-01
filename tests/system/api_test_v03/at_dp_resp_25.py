@@ -1,4 +1,4 @@
-"""Case ID: DP-RESP-25
+"""Case ID: ST-resp-025
 
 Endpoint: POST /v1/responses
 Upstream Provider: prov_b（endpoint 为专属 LAN fake provider，按 model 返回契约违规响应）

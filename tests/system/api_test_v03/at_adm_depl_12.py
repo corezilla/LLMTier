@@ -1,4 +1,4 @@
-"""Case ID: ADM-DEPL-12
+"""Case ID: ST-depl-012
 
 Endpoint: DELETE /v1/deployments/dep_local_gemma
 Upstream Provider: 无

@@ -1,4 +1,4 @@
-"""Case ID: DP-RESP-16
+"""Case ID: ST-resp-016
 
 Endpoint: POST /v1/responses（原始字节 body）
 Upstream Provider: 无（解析层拒绝，早于路由）

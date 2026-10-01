@@ -1,4 +1,4 @@
-"""Case ID: ADM-LOGS-03
+"""Case ID: ST-logs-003
 
 Endpoint: GET /v1/logs
 Upstream Provider: 无

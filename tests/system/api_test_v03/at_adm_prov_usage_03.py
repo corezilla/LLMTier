@@ -1,4 +1,4 @@
-"""Case ID: ADM-PROV-USAGE-03
+"""Case ID: ST-pusage-003
 
 Endpoint: POST /v1/providers/{id}/usage (带 confirm)
 Upstream Provider: 无

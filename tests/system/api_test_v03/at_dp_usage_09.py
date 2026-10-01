@@ -1,4 +1,4 @@
-"""Case ID: DP-USAGE-09
+"""Case ID: ST-usage-009
 
 Endpoint: POST /v1/responses（触发义务）; GET /v1/usage（观察）
 Upstream Provider: orig（path B: LAN fake provider via depl_b blackend_model + SlowAdapter）

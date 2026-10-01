@@ -1,4 +1,4 @@
-"""Case ID: ADM-PROBE-02
+"""Case ID: ST-probe-002
 
 Endpoint: POST /v1/probes (带 confirm + deployment_id)
 Upstream Provider: 取决于 deployment

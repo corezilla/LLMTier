@@ -1,4 +1,4 @@
-"""Case ID: OBS-ALIAS-01
+"""Case ID: ST-obsalias-001
 
 Endpoint: GET/PATCH /tier/admin/v1/diagnostics ≡ /v1/diagnostics
 Upstream Provider: 无（诊断开关面；不触上游）

@@ -1,4 +1,4 @@
-"""Case ID: OBS-TRACE-02
+"""Case ID: ST-obstrace-002
 
 Endpoint: GET /v1/diagnostics/traces
 Upstream Provider: prov_b（LAN IP fake provider，TS-003）

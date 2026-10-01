@@ -1,0 +1,31 @@
+{
+  "project": "LLMTier",
+  "authority": "LLMTier",
+  "document_id": "UT-INF-008",
+  "document_type": "tests.unit-case",
+  "document_version": "0.1.0-draft.2",
+  "title": "UT-INF-008 — 上游失败映射、usage 部分未知与 provider_request_id no-op",
+  "document_owner": "LLMTier",
+  "authors": [
+    "LLMTier"
+  ],
+  "template_id": "tests.unit-case",
+  "template_version": "2.3.2",
+  "template_sha256": "cc7ac7e1f9f6473433956138838dafd36cdacd0a48bd5287d3f4e6827606e687",
+  "template_conformance": "tailored",
+  "tailoring_ref": "std-tailoring",
+  "migration_map_ref": null,
+  "design_level": "module",
+  "domain": [
+    "software"
+  ],
+  "status": "draft",
+  "visibility": "project",
+  "source_repository": "corezilla/LLMTier",
+  "source_path": "docs/70_verification/unit/cases/unit-case-UT-INF-008.md",
+  "reviewed_commit": null,
+  "parent_document_id": "llmtier-unit-test-scheme",
+  "supersedes": null,
+  "created_at": "2026-09-30",
+  "last_modified_at": "2026-10-01"
+}

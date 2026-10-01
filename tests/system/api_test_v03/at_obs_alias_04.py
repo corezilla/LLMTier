@@ -1,4 +1,4 @@
-"""Case ID: OBS-ALIAS-04
+"""Case ID: ST-obsalias-004
 
 Endpoint: GET/PATCH /tier/admin/v1/deployments/{id}/diagnostics ≡ /v1/deployments/{id}/diagnostics
 Upstream Provider: prov_b（LAN IP fake provider，TS-003）

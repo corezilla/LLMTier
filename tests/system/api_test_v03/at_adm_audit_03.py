@@ -1,4 +1,4 @@
-"""Case ID: ADM-AUDIT-03
+"""Case ID: ST-audit-003
 
 Endpoint: GET /v1/audit
 Upstream Provider: 无

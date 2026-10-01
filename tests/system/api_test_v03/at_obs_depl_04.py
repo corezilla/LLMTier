@@ -1,4 +1,4 @@
-"""Case ID: OBS-DEPL-04
+"""Case ID: ST-obsdepl-004
 
 Endpoint: PATCH /v1/deployments/{deployment_id}/diagnostics
 Upstream Provider: 无（写路径项校验；不触上游）

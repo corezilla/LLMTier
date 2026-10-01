@@ -1,4 +1,4 @@
-"""Case ID: DP-RESP-20
+"""Case ID: ST-resp-020
 
 Endpoint: POST /v1/responses；GET /v1/runtime
 Upstream Provider: prov_b（LAN fake provider，backend_model="slow-responses"，门控占槽）

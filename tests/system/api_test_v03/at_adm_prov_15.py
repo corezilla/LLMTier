@@ -1,4 +1,4 @@
-"""Case ID: ADM-PROV-15
+"""Case ID: ST-prov-015
 
 Endpoint: POST /v1/providers
 Upstream Provider: 无

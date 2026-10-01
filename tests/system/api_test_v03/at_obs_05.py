@@ -1,4 +1,4 @@
-"""Case ID: HEALTH-05
+"""Case ID: ST-health-005
 
 Endpoint: GET /healthz, GET /readyz
 Upstream Provider: 无（引导失败实例，不接上游）
@@ -11,12 +11,12 @@ Auth: 无（公开端点）
         bootstrap_settings(None) 抛 bootstrap_required ⇒ app.bootstrap_error 非空
   上游: 无（本构造不接 provider）
 
-断言（HEALTH-05）：
+断言（ST-health-005）：
 - GET /healthz → 200，status == "ok"（引导失败 ≠ 进程死亡）
 - GET /readyz → 503；body 键集恰为 {status, models}；status == "not_ready"；models == []（空数组）
 - /readyz body 不含 {"error":...} 信封（bootstrap envelope 码由单元层 UT-MGMT-001 断言）
 
-注：核心区分点是 models == []（HEALTH-04 的 not_ready 为 7×unavailable）。
+注：核心区分点是 models == []（ST-health-004 的 not_ready 为 7×unavailable）。
 """
 from __future__ import annotations
 
@@ -38,7 +38,7 @@ def test_obs_05_readyz_bootstrap_failure(llmtier_b_no_bootstrap):
             f"/healthz version 非非空 str: {hbody}"
         )
 
-        # 就绪失败：/readyz 短路返回 503 + 空 models（非 HEALTH-04 的 7×unavailable）。
+        # 就绪失败：/readyz 短路返回 503 + 空 models（非 ST-health-004 的 7×unavailable）。
         resp = client.get("/readyz")
         assert resp.status_code == 503, (
             f"/readyz 返回 {resp.status_code}（期望 503，bootstrap 失败）: {resp.text}"
@@ -48,7 +48,7 @@ def test_obs_05_readyz_bootstrap_failure(llmtier_b_no_bootstrap):
             f"ReadinessView 键集不符（期望恰 {{status, models}}）: {sorted(body.keys())}"
         )
         assert body["models"] == [], (
-            f"bootstrap 失败应返回空 models（HEALTH-04 路径应为 7×unavailable）: {body['models']}"
+            f"bootstrap 失败应返回空 models（ST-health-004 路径应为 7×unavailable）: {body['models']}"
         )
         assert body["status"] == "not_ready", f"期望 not_ready，实际 {body['status']}"
 

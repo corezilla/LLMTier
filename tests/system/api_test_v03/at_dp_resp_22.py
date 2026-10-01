@@ -1,4 +1,4 @@
-"""Case ID: DP-RESP-22
+"""Case ID: ST-resp-022
 
 Endpoint: POST /v1/responses；诊断注入 PATCH /v1/deployments/depl_b/diagnostics
 Upstream Provider: 故障注入（fault_503，depl_b）

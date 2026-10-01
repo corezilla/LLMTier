@@ -1,4 +1,4 @@
-"""Case ID: HEALTH-04
+"""Case ID: ST-health-004
 
 Endpoint: GET /readyz
 Upstream Provider: 无（无 deployments）
@@ -8,7 +8,7 @@ Auth: 无（公共端点）
 前置条件：临时实例使用 _EMPTY_SETTINGS（无 providers，无 deployments）
 
 断言：
-- HTTP 503（HEALTH-04：not_ready ⇒ 503，不接受 200）
+- HTTP 503（ST-health-004：not_ready ⇒ 503，不接受 200）
 - body 键集恰为 {status, models}
 - body.models[].id 属于 FIXED_TIERS
 - body.models[].availability == "unavailable"（因为无任何 deployment）

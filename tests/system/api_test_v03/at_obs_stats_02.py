@@ -1,4 +1,4 @@
-"""Case ID: OBS-STATS-02
+"""Case ID: ST-obsstats-002
 
 Endpoint: GET /v1/diagnostics/stats
 Upstream Provider: 无（仅诊断读面；不触上游）

@@ -1,11 +1,11 @@
-"""Case ID: ADM-PROV-05
+"""Case ID: ST-prov-005
 
 Endpoint: PATCH /v1/providers/{id}
 Upstream Provider: 无
 Model: 无
 Auth: Bearer dev-admin
 
-依赖：先创建一个 provider（由 ADM-PROV-02 创建，或本 case 自创）
+依赖：先创建一个 provider（由 ST-prov-002 创建，或本 case 自创）
 
 断言：
 - HTTP 200

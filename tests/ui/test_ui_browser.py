@@ -1,6 +1,6 @@
 """Real browser-driven UI tests — closes ``RISK-UI-EXEC-1``.
 
-Case IDs: UIT-UI-001..007
+Case IDs: ST-ui-001..007
 
 These cases drive the live ``src/web_ui`` application in a headless Chrome via
 CDP (``browser_driver.mjs``) against a **hermetic** temporary LLMTier instance
@@ -33,7 +33,7 @@ SCENARIOS = [
     # VRC-UI-001 — the page renders (title/tabs present in the live DOM); the
     # provider list is fetched from the API and rendered from that data.
     {
-        "id": "UIT-UI-001",
+        "id": "ST-ui-001",
         "vrc": "VRC-UI-001",
         "title": "page renders live and provider rows come from the API",
         "steps": [
@@ -52,7 +52,7 @@ SCENARIOS = [
     # must issue exactly the expected capability call (method + path + 200) and
     # must NOT issue a call that the current screen does not need (zero-call).
     {
-        "id": "UIT-UI-002",
+        "id": "ST-ui-002",
         "vrc": "VRC-UI-001",
         "title": "tab switch toggles the active section and triggers its API call",
         "steps": [
@@ -76,7 +76,7 @@ SCENARIOS = [
     # must flip BOTH sides: the server data really changes (read back via
     # `GET /v1/deployments`) AND the page re-renders with the old value gone.
     {
-        "id": "UIT-UI-003",
+        "id": "ST-ui-003",
         "vrc": "VRC-UI-003",
         "title": "confirm-gated Pause issues If-Match PATCH and the row re-renders",
         "steps": [
@@ -111,7 +111,7 @@ SCENARIOS = [
     # VRC-UI-004 — Pattern: 数据呈现（渲染）(render). Unknown usage renders as the
     # unknown/empty state, never as a fabricated zero.
     {
-        "id": "UIT-UI-004",
+        "id": "ST-ui-004",
         "vrc": "VRC-UI-004",
         "title": "unknown usage is rendered as unknown/empty, never a fabricated zero",
         "steps": [
@@ -140,7 +140,7 @@ SCENARIOS = [
     # VRC-UI-005 — Pattern: 门控 / 确认 (gate/confirm). An unconfirmed paid
     # action makes zero calls; a confirmed one POSTs exactly once.
     {
-        "id": "UIT-UI-005",
+        "id": "ST-ui-005",
         "vrc": "VRC-UI-005",
         "title": "unconfirmed probe does not touch the network; confirmed probe POSTs",
         "steps": [
@@ -162,7 +162,7 @@ SCENARIOS = [
     # switch the visible section and lazily issue their own call; the Disabled
     # visual is asserted from the live DOM (非空屏, not a source string).
     {
-        "id": "UIT-UI-006",
+        "id": "ST-ui-006",
         "vrc": "VRC-UI-006",
         "title": "diagnostics 4 tabs render/switch and the Disabled state is painted",
         "steps": [
@@ -225,8 +225,8 @@ def test_ui_error_state_keeps_last_screen(ui_instance, ui_node, ui_browser, reco
     page is primed healthy, then the API is forced to fail and the user
     switches tabs; the previous rows must survive and the banner must appear.
     """
-    record_property("case_id", "UIT-UI-007")
-    out_dir = _artifact_dir() / "UIT-UI-007"
+    record_property("case_id", "ST-ui-007")
+    out_dir = _artifact_dir() / "ST-ui-007"
     out_dir.mkdir(parents=True, exist_ok=True)
     result = run_scenario(ui_node, {
         "baseUrl": ui_instance.base_url,
@@ -256,8 +256,8 @@ def test_ui_error_state_keeps_last_screen(ui_instance, ui_node, ui_browser, reco
             {"action": "waitFor", "expression": "document.querySelectorAll('#tree details').length > 0"},
             {"action": "assert", "expression": "document.querySelector('#tree').textContent.includes('Baseline Deployment B')", "op": "truthy"},
         ],
-    }, out_dir, "UIT-UI-007")
-    assert result["ok"], f"UIT-UI-007 failed: {result['failures']}\nnetwork={result['_networkLog']}"
+    }, out_dir, "ST-ui-007")
+    assert result["ok"], f"ST-ui-007 failed: {result['failures']}\nnetwork={result['_networkLog']}"
     _assert_evidence(result)
 
 
@@ -276,7 +276,7 @@ def _run_custom_scenario(ui_node, inst, steps, case_id, record_property):
 
 @pytest.mark.ui
 def test_ui_provider_secret_never_shown(provider_endpoint_b, ui_node, ui_browser, record_property):
-    """UIT-UI-008 — Pattern: 脱敏 / 安全呈现 (redaction).
+    """ST-ui-008 — Pattern: 脱敏 / 安全呈现 (redaction).
 
     A provider configured with a secret reference must render only the
     redaction marker (``Configured``): the secret VALUE and the reference
@@ -307,7 +307,7 @@ def test_ui_provider_secret_never_shown(provider_endpoint_b, ui_node, ui_browser
             {"action": "assert", "expression": f"!document.documentElement.outerHTML.includes({json.dumps(secret_ref)})", "op": "truthy"},
             {"action": "assert", "expression": f"!location.href.includes({json.dumps(secret_value)}) && !location.href.includes({json.dumps(secret_ref)})", "op": "truthy"},
         ]
-        out_dir, result = _run_custom_scenario(ui_node, inst, steps, "UIT-UI-008", record_property)
+        out_dir, result = _run_custom_scenario(ui_node, inst, steps, "ST-ui-008", record_property)
         # Network-log scan: the value/reference must not appear in any recorded
         # URL or request header either.
         log = Path(result["_networkLog"]).read_text(encoding="utf-8")
@@ -319,7 +319,7 @@ def test_ui_provider_secret_never_shown(provider_endpoint_b, ui_node, ui_browser
 
 @pytest.mark.ui
 def test_ui_double_click_probe_is_not_duplicated(ui_instance, ui_node, ui_browser, record_property):
-    """UIT-UI-009 — Pattern: 幂等 / 防重 (idempotency).
+    """ST-ui-009 — Pattern: 幂等 / 防重 (idempotency).
 
     A rapid double activation of the confirm-gated Probe button must produce
     exactly ONE ``POST /v1/probes`` and must not append duplicate rows: the
@@ -337,12 +337,12 @@ def test_ui_double_click_probe_is_not_duplicated(ui_instance, ui_node, ui_browse
         {"action": "assertNetworkCount", "urlContains": "/v1/probes", "method": "POST", "count": 1},
         {"action": "assert", "expression": "document.querySelectorAll('#tree details').length", "op": "equals", "expected": 7},
     ]
-    _run_custom_scenario(ui_node, ui_instance, steps, "UIT-UI-009", record_property)
+    _run_custom_scenario(ui_node, ui_instance, steps, "ST-ui-009", record_property)
 
 
 @pytest.mark.ui
 def test_ui_boundary_long_text_renders_without_overflow(provider_endpoint_b, ui_node, ui_browser, record_property):
-    """UIT-UI-010 — Pattern: 边界呈现 (boundary rendering).
+    """ST-ui-010 — Pattern: 边界呈现 (boundary rendering).
 
     Extreme text (very long name + HTML metacharacters) must render exactly as
     escaped text without injecting markup and without causing horizontal page
@@ -367,7 +367,7 @@ def test_ui_boundary_long_text_renders_without_overflow(provider_endpoint_b, ui_
             {"action": "assert", "expression": "document.documentElement.scrollWidth <= window.innerWidth + 2", "op": "truthy"},
             {"action": "screenshot", "name": "boundary"},
         ]
-        _run_custom_scenario(ui_node, inst, steps, "UIT-UI-010", record_property)
+        _run_custom_scenario(ui_node, inst, steps, "ST-ui-010", record_property)
     finally:
         inst.stop()
 

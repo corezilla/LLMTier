@@ -1,4 +1,4 @@
-"""Case ID: ADM-SL-01
+"""Case ID: ST-sl-001
 
 Endpoint: GET /v1/service-levels
 Upstream Provider: 无

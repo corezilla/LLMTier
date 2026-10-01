@@ -1,4 +1,4 @@
-"""Case ID: DP-USAGE-06
+"""Case ID: ST-usage-006
 
 Endpoint: GET /v1/usage（多主体凭据）
 Upstream Provider: provider_local (m5air OMLX bge-m3)

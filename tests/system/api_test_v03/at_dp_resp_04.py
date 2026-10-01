@@ -1,4 +1,4 @@
-"""Case ID: DP-RESP-04
+"""Case ID: ST-resp-004
 
 Endpoint: POST /v1/responses (tools 透传)
 Upstream Provider: 调度器选（A 类）；LAN fake provider（B 类回声臂）
@@ -84,7 +84,7 @@ def _tools_capable(api_client, model: str) -> bool:
 def test_dp_resp_04_tools_accepted_a(api_client):
     # 执行门（强制）：能力前置不满足 → BLOCKED。
     if not _tools_capable(api_client, "Worker"):
-        pytest.skip("BLOCKED (DP-RESP-04): Worker.capabilities.tools != true")
+        pytest.skip("BLOCKED (ST-resp-004): Worker.capabilities.tools != true")
 
     resp = send_stream_with_retry(
         api_client,

@@ -1,4 +1,4 @@
-"""Case ID: OBS-STATS-03
+"""Case ID: ST-obsstats-003
 
 Endpoint: GET /v1/diagnostics/stats?since=...&until=...
 Upstream Provider: 无（仅诊断读面；不触上游）
@@ -16,7 +16,7 @@ TS-003：不触上游，无 provider endpoint。
 usage_store_unavailable（typed server error），不得以 200/空结果冒充
 "无数据"；恢复存储后回到 200。
 
-技法（同 DP-USAGE-08）：本实例自有临时库，把 SQLite 三件套移到 stash 并在
+技法（同 ST-usage-008）：本实例自有临时库，把 SQLite 三件套移到 stash 并在
 原 db 路径 mkdir 成目录，使 sqlite3.connect 失败；finally 恢复。
 """
 from __future__ import annotations

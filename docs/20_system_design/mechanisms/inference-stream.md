@@ -51,9 +51,9 @@ Consumer（Piko）提交一次模型推理请求后，需要拿到**标准 Respo
 
 | Capability ID | 业务任务与触发 | 输入与可观察结果 | 提供方 / 消费者 | 实现状态 | 验证判据 |
 |---|---|---|---|---|---|
-| CAP-RESP | Consumer 单轮推理（固定 Pi） | 完整 input → 标准 SSE + terminal usage | Inference / Consumer | Implemented | 契约 + 系统用例 DP-RESP-* |
+| CAP-RESP | Consumer 单轮推理（固定 Pi） | 完整 input → 标准 SSE + terminal usage | Inference / Consumer | Implemented | 契约 + 系统用例 ST-resp-* |
 | CAP-RESP-STREAM | 以 SSE 增量消费输出 | 事件序 + 稳定 item id | Inference / Consumer | Implemented | 事件子集与终态断言 |
-| CAP-TOOLS | 模型返回 function call，Consumer 执行后以新请求回传 | `response.function_call_arguments.*` 事件 | Inference / Consumer | Implemented | DP-RESP-04 透传 |
+| CAP-TOOLS | 模型返回 function call，Consumer 执行后以新请求回传 | `response.function_call_arguments.*` 事件 | Inference / Consumer | Implemented | ST-resp-004 透传 |
 | CAP-WAIT-FAIL | 队列满 / 等待超时 | 429 + `Retry-After` | Inference / Consumer | Implemented | 并发用例 |
 | CAP-CANCEL | Consumer 断开连接 | 结束本次调用，不产生可恢复 Invocation | Inference | Implemented | 断开用例 |
 
@@ -659,7 +659,7 @@ POST /v1/responses
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-INF-RESPONSES`；标准模型调用（Consumer 单轮推理，固定 `stream:true`/`store:false`，返回标准 SSE）；M001 HTTP API 终止 HTTP/SSE、M003 Inference 编排；交接边界=HTTP/SSE 入站→推理服务内部调用；状态=规格已定、Implemented；唯一契约=`openapi`；`src/http_api/app.py` `_dispatch` → `src/inference/responses.py` `ResponsesService.create`。
 - **输入与前提**：`D-MSG-RESPONSE`（§4.2.1）——`model`（必填 exact 逻辑等级）、`input`（必填）、`stream`（必须 true）、`store`（必须 false）、`tools`/`max_output_tokens` 等；授权=`data` 角色或受信免登录（`IF-TRUST-*`）；校验顺序=鉴权 → JSON/schema → 形态（stream/store）→ 禁字段 → 模型存在 → 能力 `responses=true` → 准入。
 - **成功输出与保证**：`D-MSG-SSE` 流（§4.4.1/§5.2）——`response.created … response.completed|incomplete|failed`，已准入且流至完成的请求恰好一个 terminal（见 §8 INV-2），`usage` 仅 terminal 给出；受理=HTTP 建连，完成=terminal 事件；副作用=登记 unknown 用量义务→落账本（`IF-MET-AUTHORIZE`/`IF-MET-BIND`/`IF-MET-FINISH`）；观测 fail-open。
-- **错误与合法下一步**：逐条件见 §4.8；典型：`ERR-REQ-VALIDATION`/`ERR-REQ-FIELD`/`ERR-REQ-JSON`（400，未受理）；`ERR-REQ-UNSUPPORTED`（400，`stream=false`）；`ERR-REQ-TOO-LARGE`（413）；`ERR-AUTH-*`（401/403/503）；`ERR-MODEL-NOTFOUND`（404）；`ERR-RATE-LIMIT`（429 + `Retry-After`）；`ERR-MODEL-UNAVAIL`/`ERR-PROVIDER-*`（503/502，可能已调用后端=结果可能未知）；载荷统一 `D-ERROR-ENVELOPE`。
+- **错误与合法下一步**：逐条件见 §4.8；典型：`ERR-REQ-VALIDATION`/`ERR-REQ-FIELD`/`ERR-REQ-JSON`（400，未受理）；`ERR-REQ-UNSUPPORTED`（400，`stream=false`）；`ERR-REQ-TOO-LARGE`（413）；`ERR-ST-auth-*`（401/403/503）；`ERR-MODEL-NOTFOUND`（404）；`ERR-RATE-LIMIT`（429 + `Retry-After`）；`ERR-MODEL-UNAVAIL`/`ERR-PROVIDER-*`（503/502，可能已调用后端=结果可能未知）；载荷统一 `D-ERROR-ENVELOPE`。
 - **交互与生命周期**：同步建连后流式；单请求独立模型调用，无会话；客户端断开结束本次调用并释放许可；**非幂等**（同 input 重发=两次独立调用，无幂等键）；期限=准入等待 ≤30s、建连/首字节 30s、SSE 空闲 60s；不承诺跨系统 exactly-once。
 - **实现与验证**：正常 `{"model":"Worker","input":[{"role":"user","content":"hi"}],"stream":true,"store":false,"max_output_tokens":20}` → 200 SSE + terminal Usage；拒绝 `stream=false` → 400。`T-STREAM`、`T-QUEUE`、`T-TIMEOUT`；Run=NOT_RUN。
 
@@ -745,7 +745,7 @@ GET /v1/runtime -> 200 {deployments, providers, queues}
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-INF-RUNTIME`；运行时并发/队列只读快照；M003 Internal Admission 提供、M001 暴露、operator 消费；状态=Implemented；`src/http_api/app.py` → `Router.snapshot`。
 - **输入与前提**：无参数；前置=进程存活；执行位置=LLMTier 管理面；授权=operator；校验=无。
 - **成功输出与保证**：`D-INF-ADMISSION-STATE`（§4.6.1）只读时点快照；受理/生效=即时；副作用=无。
-- **错误与合法下一步**：`ERR-AUTH-*`（401/403/503）；只读无副作用。
+- **错误与合法下一步**：`ERR-ST-auth-*`（401/403/503）；只读无副作用。
 - **交互与生命周期**：同步只读；幂等；无占用/取消/恢复。
 - **实现与验证**：正常返回并发/队列现状。`T-QUEUE`；Run=NOT_RUN。
 
@@ -756,7 +756,7 @@ POST /v1/probes {deployment_id} -> 200 probe_result | 4xx: ErrorEnvelope
 - **Interface/Member ID、用途、提供责任与唯一来源**：`IF-INF-PROBE`；对目标后端发起只读探活；M004 Management（`admin`）提供、M001 暴露、operator 消费；状态=Implemented；`src/http_api/app.py` → `src/management/admin.py` `probe`。
 - **输入与前提**：请求 `{deployment_id}`；前置=deployment 存在；执行位置=LLMTier → 目标后端；授权=operator。
 - **成功输出与保证**：探活结果——受理/完成=探测返回；副作用=对目标后端发起只读探测，不占数据面许可。
-- **错误与合法下一步**：`ERR-AUTH-*`（401/403/503）；`ERR-NOTFOUND`（404 未知 deployment）；结果已知、无数据面副作用。
+- **错误与合法下一步**：`ERR-ST-auth-*`（401/403/503）；`ERR-NOTFOUND`（404 未知 deployment）；结果已知、无数据面副作用。
 - **交互与生命周期**：同步；只读探测；幂等；不占用请求许可。
 - **实现与验证**：正常探活；拒绝未知 deployment。探针用例；Run=NOT_RUN。
 

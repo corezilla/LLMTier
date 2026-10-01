@@ -1,4 +1,4 @@
-"""Case ID: DP-RESP-10
+"""Case ID: ST-resp-010
 
 Endpoint: POST /v1/responses
 Upstream Provider: m5air OMLX (Qwen3.6)
@@ -37,7 +37,7 @@ def test_dp_resp_10_max_output_tokens_truncated(api_client):
     assert worker is not None, "Worker 不在 /v1/models 清单中"
     limit = (worker.get("capabilities") or {}).get("max_output_tokens")
     if not (isinstance(limit, int) and limit >= 10):
-        pytest.skip(f"BLOCKED (DP-RESP-10): Worker.capabilities.max_output_tokens={limit} < 10")
+        pytest.skip(f"BLOCKED (ST-resp-010): Worker.capabilities.max_output_tokens={limit} < 10")
 
     events, saw_done = post_stream_collect(
         api_client,

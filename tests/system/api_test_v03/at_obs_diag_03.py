@@ -1,4 +1,4 @@
-"""Case ID: OBS-DIAG-03
+"""Case ID: ST-obsdiag-003
 
 Endpoint: PATCH /v1/diagnostics
 Upstream Provider: 无（注入开关写面；不触上游）

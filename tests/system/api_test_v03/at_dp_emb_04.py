@@ -1,4 +1,4 @@
-"""Case ID: DP-EMB-04
+"""Case ID: ST-emb-004
 
 Endpoint: POST /v1/embeddings (unknown model)
 Upstream Provider: 无

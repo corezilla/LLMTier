@@ -1,4 +1,4 @@
-"""Case ID: ADM-PROBE-01
+"""Case ID: ST-probe-001
 
 Endpoint: POST /v1/probes (缺 confirm_external_call)
 Upstream Provider: 无

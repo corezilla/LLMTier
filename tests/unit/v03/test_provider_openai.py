@@ -62,7 +62,7 @@ class OpenAIProviderTests(unittest.TestCase):
         self.assertEqual(caught.exception.code,"provider_contract_error")
 
     def test_remote_disconnect_maps_to_provider_unavailable(self):
-        # DP-EMB-10 transport branch: an upstream that drops the connection
+        # ST-emb-010 transport branch: an upstream that drops the connection
         # without a response raises http.client.RemoteDisconnected, which is NOT
         # a urllib.error.URLError. It must still map to 503 provider_unavailable.
         with patch("urllib.request.urlopen",side_effect=http.client.RemoteDisconnected("remote closed")):

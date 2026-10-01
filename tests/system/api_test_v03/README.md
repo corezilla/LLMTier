@@ -1,6 +1,6 @@
 # LLMTier V0.3 API Test Suite — A/B Class
 
-> 配套：[`llmtier-system-test-plan.md`](../../../docs/70_verification/plans/llmtier-system-test-plan.md) §4
+> 配套：[`llmtier-system-test-plan.md`](../../../docs/70_verification/system/llmtier-system-test-plan.md) §4
 
 已实现（RUN）**163** 个 `at_*.py`（权威设计清单共 **163** 个 Case，**无 MISSING**；见 `llmtier-system-test-scheme` §3），按 pytest marker 分流。`--collect-only` 实际 collect=**176** 项（多出者为参数化/双臂测试）：
 
@@ -126,6 +126,6 @@ B 类子进程环境会清空继承的 `LLMTIER_*` 变量，再显式设置
 
 `at_<类别>_<编号>.py`，如 `at_obs_01.py`、`at_dp_resp_01.py`、`at_adm_prov_05.py`。
 
-例外：`at_adm_admin_usage_01..03.py` 对应 Case ID `ADM-USAGE-01..03`，文件名由
-[`llmtier-system-test-scheme.md`](../../../docs/70_verification/schemes/llmtier-system-test-scheme.md)
+例外：`at_adm_admin_usage_01..03.py` 对应 Case ID `ST-ausage-001..03`，文件名由
+[`llmtier-system-test-scheme.md`](../../../docs/70_verification/system/llmtier-system-test-scheme.md)
 §3 Case 清单显式声明。

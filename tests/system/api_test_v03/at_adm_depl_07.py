@@ -1,4 +1,4 @@
-"""Case ID: ADM-DEPL-07
+"""Case ID: ST-depl-007
 
 Endpoint: POST /v1/deployments
 Upstream Provider: 无

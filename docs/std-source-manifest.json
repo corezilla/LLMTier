@@ -2,9 +2,9 @@
   "schema_version": "std-source-manifest.v1",
   "std_version": "0.1.0-draft.72",
   "source_repository": "corezilla/STD",
-  "source_revision": "e5386d215b095032b1353104cfac0c6e1f95faf8",
+  "source_revision": "78876c98642131fb64d843f64cbab03256a5c0c4",
   "source_tag": null,
-  "generated_at": "2026-09-30",
+  "generated_at": "2026-10-01",
   "artifacts": [
     {
       "path": "README.md",
@@ -429,12 +429,12 @@
     {
       "path": "docs/repository-layout.md",
       "role": "guidance",
-      "sha256": "051cb420c7e514c27c1d792d751195107a1001f7093e3df1abfd761ca5e01e19"
+      "sha256": "02033bba6db81330b8d511d4d9a969e7663ee5bb72bf0e04f6090eba81ccd3fd"
     },
     {
       "path": "docs/software-object-identifiers.md",
       "role": "guidance",
-      "sha256": "e0e3f656560d9644eec3bdd50c709bda4fa1d9dcefdc688264969ead481933af"
+      "sha256": "d843dff4cd9e591f285ee35c29c5da8fad235e7683897c24fed3c7f8c4808271"
     },
     {
       "path": "docs/software-project-layout.md",
@@ -1104,22 +1104,22 @@
     {
       "path": "templates/tests/system-case.md",
       "role": "template",
-      "sha256": "d52aae730246dc9a3cca5a870a17bd390921858b9f74cc3de7c6f5b64a250aad"
+      "sha256": "a02bfb622661e6a8a82e9a597f0ebbb9fd6d5d3aef5b9cb1e1903e1755321ac2"
     },
     {
       "path": "templates/tests/system-test-plan.md",
       "role": "template",
-      "sha256": "059709741e88b638aa8701049dffe8be447abced7e27364bd2184372f83e45e6"
+      "sha256": "2e047b18feaec2b8ef0e97f43e358798281402087c5b88ed62e6448bb1b3fb8f"
     },
     {
       "path": "templates/tests/system-test-report.md",
       "role": "template",
-      "sha256": "f8c6987744a611c0f00b63c5d78c0a7c819c37aafab8200cd0246b61e06dc9bc"
+      "sha256": "6e4968fec47771883003416ccebaf70492f582ee102738c0bb4212c2b4bee895"
     },
     {
       "path": "templates/tests/system-test-scheme.md",
       "role": "template",
-      "sha256": "aec91b825c75dbd9ca957f55499153e3adec8b5102b86c71885fea82a137cb04"
+      "sha256": "dbd507e43ffd0a77078dd6003d0f682469ff01b1cf406697706bad14d25ef6e6"
     },
     {
       "path": "templates/tests/unit-case.md",

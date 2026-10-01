@@ -1,4 +1,4 @@
-"""Case ID: ADM-SL-05
+"""Case ID: ST-sl-005
 
 Endpoint: DELETE /v1/service-levels/{id}
 Upstream Provider: 无
