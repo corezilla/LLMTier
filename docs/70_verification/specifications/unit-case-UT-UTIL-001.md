@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-UTIL-001` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-UTIL-001` / `VRC-UTIL-001`（util 模块设计 §14 / util-isd §9.1，util 0.1.0-draft.1） / `VRC-UTIL-001` / boundary / P0（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：边界值（PRAGMA/回收/fd 基线/symlink 拒绝）
 - 要测什么（责任展开）：被测：`Store` 连接/PRAGMA（`foreign_keys=1`、`journal_mode=wal`）、fd 不随请求增长、事务提交、线程连接、symlink 拒绝。
 - 明确不测什么 / 失败含义：不测：真实高并发压测（系统层）；不测迁移（UT-UTIL-002）。失败含义＝连接/PRAGMA/安全实现错误。
 

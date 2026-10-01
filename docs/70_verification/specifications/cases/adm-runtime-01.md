@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ADM-RUNTIME-01` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ADM-RUNTIME-01` / 系统设计 §8 运行态接口（GET /v1/runtime） / `VRC-INF-004` / `normal` / `P1`
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
 - 方案清单登记：`ADM-RUNTIME-01`（与 §3.2 权威清单一致；本文件名 `adm-runtime-01.md`，唯一对应）。
 - 要测什么（责任展开）：`GET /v1/runtime` 返回运行时并发/队列快照：HTTP 200 + `{deployments,providers,queues}`。
 - 明确不测什么 / 失败含义：不证明 data 角色的 403 负向（ADM-RUNTIME-02）、不证明具体并发数值（运行时动态，不设门限）、不证明队列上限/429（DP-RESP-20 的领域）。

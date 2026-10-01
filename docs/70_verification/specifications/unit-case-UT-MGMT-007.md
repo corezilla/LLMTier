@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-MGMT-007` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-MGMT-007` / M004 management §14.1 · `bootstrap_settings`/`ensure_fixed_tiers` v0.1.0-draft.2 / `VRC-MGMT-001` / recovery / P0（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：故障注入 + 异常路径恢复（bootstrap 事务中途失败回滚）
 - 要测什么（责任展开）：被测：`Registry.bootstrap_settings` 中途失败→空库回滚 + not_ready；`ensure_fixed_tiers` 幂等二次补建且不与 bootstrap 配置能力冲突。
 - 明确不测什么 / 失败含义：不测：合法 bootstrap 主路径（UT-MGMT-001）；不测 systemd 启动流程。失败含义＝引导事务原子性/幂等补建实现错误。
 

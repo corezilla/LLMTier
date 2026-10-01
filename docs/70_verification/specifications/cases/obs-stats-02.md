@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `OBS-STATS-02` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-29` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`OBS-STATS-02` / 系统设计 §8 诊断统计接口（/v1/diagnostics/stats） / `VRC-DIAG-002` / `negative` / `P1`
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
 - 方案清单登记：`OBS-STATS-02`
 - 要测什么（责任展开）：`GET /v1/diagnostics/stats` 缺少必填 `since`/`until`：HTTP 400 `invalid_request`，且不落到空窗口的 `200`。
 - 明确不测什么 / 失败含义：不证明 正向聚合窗口（OBS-STATS-01）、不证明 `from`/`to`（那是 `/v1/usage`、`/v1/stats` 的约定，本端点**不是** `from`/`to`）、不证明 `limit`/cursor（本端点无分页）、不证明别名等价（OBS-ALIAS-05）。

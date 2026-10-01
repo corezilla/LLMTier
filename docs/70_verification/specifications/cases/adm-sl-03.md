@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ADM-SL-03` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ADM-SL-03` / 系统设计 §8 Service Level CRUD 接口（/v1/service-levels） / `VRC-MGMT-002` / `normal` / `P0`
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
 - 方案清单登记：`ADM-SL-03`（与 §3.2 权威清单一致；本文件名 `adm-sl-03.md`，唯一对应）。
 - 要测什么（责任展开）：`GET /v1/service-levels/{id}` 精确返回单个固定 Tier：HTTP 200 + `ServiceLevelView` + `ETag`。
 - 明确不测什么 / 失败含义：不证明 列表（ADM-SL-01）、不证明更新/删除（ADM-SL-04/04b/05/06/07/08）、不证明不存在 id 的 404（未单独构 case；由 `registry.get_service_level` 的 `not_found` 语义承载）、不证明 If-Match/CAS（ADM-SL-04）。

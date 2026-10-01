@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-unit-test-scheme` |
-| Document Version | `0.1.0-draft.10` |
+| Document Version | `0.1.0-draft.11` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -228,7 +228,7 @@
 ## 5. 文档联动与清单变更规则
 
 - 方案冻结与变更规则：清单随各模块设计/ISD 基线冻结；新增 Case 先在本清单登记再建 `tests.unit-case` 文档；VRC 变更时同步 §3 与附录 A；Case ID 一经登记不复用、不改名。
-- 与 case-design / 计划的同步规则：Case 文档 ID＝Case ID；计划构成表引用本方案版本；本方案合并 8 模块，逐模块切片由 Case ID 前缀承担。
+- 与 case-design / 计划的同步规则：Case 文档 ID＝Case ID；计划构成表引用本方案版本；本方案合并 8 模块，逐模块切片由 Case ID 前缀承担。**case 文档的测试方法声明（强制契约条款）**：每份 `tests.unit-case` 文档 §1 **必须**含一条 `- **测试方法（§1.5 方法表行）**：<technique(s)>` 列表项（**不新增章节**），指名本方案 §1.5 家族表的**确切技术行**；技术须由该 Case 的**实际分类 + 步骤/断言**推导，跨两类时并列，**禁止**按分类照抄而不读步骤。缺失或不诚实声明即视为 Case 不完备（与 `specifications/cases/README.md`「模板契约」一致）。
 - 新增 Case 的文档状态：本版新增的 `UT-API-005..013`、`UT-UI-007..010`、`UT-INF-006..009`、`UT-MGMT-007..011`、`UT-OBS-006..007`、`UT-DIAG-005..008`、`UT-UTIL-003..004`、`UT-LOG-002` 共 31 个 Case 已入本清单（§3），其 `tests.unit-case` 文档现已建齐于 `docs/70_verification/specifications/`；另补登工具 Case `UT-TOOL-001`（`tools/test_report.py` 证据链工具，文档 `unit-case-UT-TOOL-001.md`）与 `UT-TOOL-002`（`tools/check_env.py`＋`tools/reset_env.py`＋`tools/deploy.py` 环境工具，文档 `unit-case-UT-TOOL-002.md`）。各 Case 的实现状态以对应文档 §7 为准，执行与 Verdict 归 Run 报告（首个 Run `run-20260930-01` 已录）。
 - 新增 Case 示例：新增 `UT-INF-010`（尾随字节）先入本清单再建 `tests.unit-case` 文档；单元计划引用本方案 `0.1.0-draft.9`。
 

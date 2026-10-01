@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-INF-005` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-INF-005` / `VRC-INF-005`（inference 模块设计 §14 / inference-isd §9.1，inference 0.1.0-draft.1） / `VRC-INF-005` / recovery / P1（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：故障注入 + 异常路径恢复（观测 fail-open/不二次鉴权）
 - 要测什么（责任展开）：被测：观测（diagnostics）不可用时推理结果不变（fail-open），推理路径不做二次鉴权。
 - 明确不测什么 / 失败含义：不测：真观测库故障注入完整性（归 M005/M006）；不测 M001 鉴权。失败含义＝观测故障导致推理失败（不 fail-open）。
 

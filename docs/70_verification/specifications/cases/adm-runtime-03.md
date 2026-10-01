@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ADM-RUNTIME-03` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -32,6 +32,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ADM-RUNTIME-03` / 系统设计 §8 运行态接口（GET /v1/runtime） / `VRC-API-002` / security / P2（[方案清单 `ADM-RUNTIME-03`](../../schemes/llmtier-system-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：鉴权/授权冒烟（缺/非法凭据 401）
 
 - 要测什么（责任展开）：受保护端点 `GET /v1/runtime` 在**携带非法授权方案**（`Authorization: Basic …`）时返回 401 + `authentication_required`。
 

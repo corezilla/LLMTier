@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-RESP-27` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -32,6 +32,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-RESP-27` / 系统设计 §8 Responses 接口（POST /v1/responses） / `VRC-DIAG-004` / recovery / P1（[方案清单 `DP-RESP-27`](../../schemes/llmtier-system-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：故障注入（malformed_event 畸形事件）+ 复位阶梯
 
 - 要测什么（责任展开）：注入 `malformed_event` 后，`POST /v1/responses`（stream=true）的 SSE 流在达到 `malformed_after_events` 个事件后**追加一个畸形帧**（按 `malformed_event_type` 为 `invalid_json` 或 `unknown_event_type`）随后结束，客户端解析该帧会失败。需求 `R-OBS-01`；机制 `T-OBS-INJECT`；实现 `src/libdiag/stream.py`（`_MALFORMED_FRAME` 与 `count >= malformed_after_events → yield _MALFORMED_FRAME; return`）与 `src/libdiag/injections.py`（`malformed_event_type ∈ {invalid_json, unknown_event_type}`）。
 

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-RESP-19` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -30,6 +30,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-RESP-19` / 系统设计 §8 Responses 接口 / `VRC-INF-004` / recovery / P1（[方案清单 `DP-RESP-19`](../../schemes/llmtier-system-test-scheme.md)）；机制 `T-QUEUE`。
+- **测试方法（§1.5 方法表行）**：故障注入（全部候选不健康）+ 复位阶梯
 - 要测什么（责任展开）：`POST /v1/responses` 全部候选不健康：`503 model_unavailable`（`retryable=true`），无上游调用（自动化入口 `at_dp_resp_19.py`）。service-level 存在且有候选 deployment，但没有任何 `health=="healthy"` 候选时，`Router.admit` 在 dispatch 前拒绝。错误目录 `ERR-MODEL-UNAVAIL` → wire `code=model_unavailable`；实现 `src/inference/routing.py`（`healthy=[c for c in candidates if c.health=="healthy"]; if not healthy: raise ApiError(503, "model_unavailable", "All configured backends are unhealthy", retryable=True)`）。
 - 明确不测什么 / 失败含义：不测"无候选"（`404 model_not_found`，DP-RESP-05）；不测准入饱和 `429`（DP-RESP-20）；不测真实上游故障（DP-RESP-22/23）；不测模型答案。失败含义＝路由可用性契约破坏。
 

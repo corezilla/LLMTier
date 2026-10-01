@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-API-011` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-API-011` / M001 http-api §14.1 · 契约别名命名空间 v0.1.0-draft.2 / `VRC-API-001` / normal / P1（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对（别名 parity）
 - 要测什么（责任展开）：被测：`/tier/admin/v1/*` 别名路由与 `/v1/*` 在诊断开关、快照、traces 上的行为对齐（parity）。
 - 明确不测什么 / 失败含义：不测：OpenAPI 全文一致性（契约层）；不测各端点语义（归各自 Case）。失败含义＝别名路由映射或与主命名空间不一致。
 

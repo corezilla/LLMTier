@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ADM-USAGE-01` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ADM-USAGE-01` / 系统设计 §8 管理 usage 接口（GET/DELETE /v1/usage） / `VRC-MGMT-006` / `normal` / `P1`
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
 - 方案清单登记：`ADM-USAGE-01`（与 §3.2 权威清单一致；本文件名 `adm-usage-01.md`，对应 §3.4 索引 `cases/adm-usage-01.md`）。
 - 要测什么（责任展开）：`GET /v1/usage?from&to`（admin 视角）返回聚合用量页：HTTP 200 + `UsagePage`（`data`/`next_cursor`/`has_more`/`snapshot_id`/`snapshot_at`）。
 - 明确不测什么 / 失败含义：不证明 cursor 分页边界（ADM-USAGE-02）、不证明 `DELETE /v1/usage` 清空（ADM-USAGE-03）、不证明 data 主体隔离（DP-USAGE-06）、不证明 cursor 过期（DP-USAGE-04）、不证明缺窗 400（`/v1/usage` 缺 `from`/`to` 由 `app.py` 拒绝，未单独构 case）。

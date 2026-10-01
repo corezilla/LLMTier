@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ADM-STATS-02` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ADM-STATS-02` / 系统设计 §8 统计接口（GET /v1/stats） / `VRC-MGMT-006` / `normal` / `P2`
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
 - 方案清单登记：`ADM-STATS-02`（与 §3.2 权威清单一致；本文件名 `adm-stats-02.md`，唯一对应）。
 - 要测什么（责任展开）：`GET /v1/stats?group_by=tier` 显式按 tier 分组：HTTP 200 + `group_by=="tier"` + tier 聚合行。
 - 明确不测什么 / 失败含义：不证明 默认分组（ADM-STATS-01）、不证明 `group_by=deployment` 分支（未单独构 case）、不证明缺窗 400（ADM-STATS-03）、不证明非法 `group_by` 的 400（`group_by ∉ {tier,deployment}` → 400，未单独构 case）。

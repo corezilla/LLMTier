@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ADM-DEPL-01` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ADM-DEPL-01` / 系统设计 §8 Deployment CRUD 接口（/v1/deployments） / `VRC-MGMT-001` / `normal` / `P0`
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
 - 方案清单登记：`ADM-DEPL-01`（与 §3.2 权威清单一致；本文件名 `adm-depl-01.md`，唯一对应）。
 - 要测什么（责任展开）：`GET /v1/deployments` 列出 deployment 分页页：HTTP 200 + `DeploymentPage`（`data[]` 含 m5air 已知 4 个 deployment，`page.has_more` 为 JSON 布尔）。
 - 明确不测什么 / 失败含义：不证明 创建/详情/更新/删除（ADM-DEPL-02..09）、不证明 capabilities 校验（ADM-DEPL-06/07）、不证明 `provider_id` 引用校验（ADM-DEPL-08/09）、不证明分页 `limit=1` cursor 推进（本 case 只观察 `page` 结构与存在性）；不证明 data/admin 角色隔离（AUTH-03）。

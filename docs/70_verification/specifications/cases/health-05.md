@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `HEALTH-05` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -32,6 +32,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`HEALTH-05` / 系统设计 §8 健康/就绪接口（/healthz、/readyz） / `VRC-MGMT-003`（另记 `VRC-UTIL-001/002`） / `recovery` / `P1`。本文件名 `health-05.md`，与 Case ID 唯一对应。
+- **测试方法（§1.5 方法表行）**：状态机驱动（bootstrap 失败 → not_ready）+ 契约字段比对
 - 要测什么（责任展开）：空库在缺一次性 bootstrap 或 bootstrap 非法时，`GET /readyz` 返回 HTTP 503 + `{status:"not_ready", models:[]}`（空 `models`）；同时 `GET /healthz` 仍为 200（进程存活）。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明无 deployment 但 bootstrap 成功时的 `not_ready`（HEALTH-04，其 `models` 为 7 个 `unavailable`，非 `[]`）；不证明健康端点无需鉴权（HEALTH-06）；不证明错误信封 code——**`ERR-BOOT`（`bootstrap_required`/`bootstrap_invalid`）的 wire envelope code 不在本 case 断言**：它已在单元层关闭（`UT-MGMT-001::test_empty_store_without_settings_is_bootstrap_required`/`test_missing_section_fails` 等直接断言 `ApiError.status/code`，见[系统测试方案 §4](../../schemes/llmtier-system-test-scheme.md)），本 case 只覆盖 `/readyz not_ready` 的表现，不断言其 envelope 码；不证明 schema 不兼容（`ERR-SCHEMA`）；不触发 provider 计费调用（`LT-OPS-001`）。**失败含义＝引导失败就绪契约破坏**。
 

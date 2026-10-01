@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ADM-PROBE-01` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ADM-PROBE-01` / 系统设计 §8 探测接口（POST /v1/probes） / `VRC-DIAG-004` / `negative` / `P0`
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
 - 方案清单登记：`ADM-PROBE-01`（与 §3.2 权威清单一致；本文件名 `adm-probe-01.md`，唯一对应）。
 - 要测什么（责任展开）：`POST /v1/probes` 缺显式确认：HTTP 400 `confirmation_required`。
 - 明确不测什么 / 失败含义：不证明 带确认的成功探测（ADM-PROBE-02）、不证明未知 deployment 的 404（ADM-PROBE-03）、不证明探测对 deployment health 的写入（ADM-PROBE-02/`apply_probe_result`）、不证明认证负向（AUTH-03/09）。

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `AUTH-04` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-29` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`AUTH-04` / 系统设计 §8 认证与授权跨切面（角色/LAN trust/无鉴权） / `VRC-API-002` / `security` / `P0`
+- **测试方法（§1.5 方法表行）**：鉴权/授权/脱敏冒烟 + 角色隔离
 - 方案清单登记：`AUTH-04`（与 §3.2 权威清单一致；本文件名 `auth-04.md`，唯一对应）。
 - 要测什么（责任展开）：`GET /v1/providers` 在受信 LAN 来源且**不带** `Authorization` 头时被无条件受理，返回 200 + 合法 provider 清单（LAN trust 对 admin 面同样生效）。
 - 明确不测什么 / 失败含义：不证明 任何 **凭据** 路径——不证明 data token 在 admin 面被拒（AUTH-03）、错误 bearer 被拒（AUTH-02）、空 bearer 被拒（AUTH-06）、管理面未授权优先于资源存在性（AUTH-09）、别名命名空间需 admin（AUTH-08）、公共端点无需 token（AUTH-05）、未配置鉴权→503（AUTH-07）、缺/非法凭据→401（AUTH-10）。特别地，本 case **不**证明存在 `LLMTIER_TRUSTED_LAN_MODE` 环境门控：源码 [auth.py](../../../../src/http_api/auth.py) **不读取**该变量，LAN 免登录在 `auth.py:33-34` 是**无条件**的（测试设计 §4.2）。

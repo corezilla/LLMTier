@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ADM-PROV-08` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ADM-PROV-08` / 系统设计 §8 Provider CRUD 接口（/v1/providers） / `VRC-MGMT-001` / `normal` / `P0`
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
 - 方案清单登记：`ADM-PROV-08`（与 §3.2 权威清单一致；本文件名 `adm-prov-08.md`，唯一对应）。
 - 要测什么（责任展开）：`DELETE /v1/providers/{id}` 携带正确 `If-Match` 删除无引用 provider：HTTP 204，随后 `GET` 404。
 - 明确不测什么 / 失败含义：不证明 缺/过期 `If-Match` 的 412（ADM-PROV-09）、不证明被引用 409（ADM-PROV-10）、不证明删除 deployment/service-level；本 case 删除**本 case 新建且无引用**的 provider。

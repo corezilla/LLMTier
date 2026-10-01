@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-RESP-08` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -32,6 +32,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-RESP-08` / 系统设计 §8 Responses 接口（POST /v1/responses） / `VRC-INF-001` / `negative` / `P0`。本文件名 `dp-resp-08.md`，与 Case ID 唯一对应。
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
 - 要测什么（责任展开）：`POST /v1/responses` 缺 `model`：字段齐备性校验失败，`400 invalid_request`（清单记 `param=model`）。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明未知 model 的解析失败（DP-RESP-05，属 `model_not_found`）；不证明 `stream=false`/`store=true` 的跨字段拒绝（DP-RESP-02/07）；不证明上游调用或答案。**失败含义＝必填字段齐备性契约破坏**。
 

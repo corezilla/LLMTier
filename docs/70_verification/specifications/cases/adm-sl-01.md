@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ADM-SL-01` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ADM-SL-01` / 系统设计 §8 Service Level CRUD 接口（/v1/service-levels） / `VRC-MGMT-002` / `normal` / `P0`
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
 - 方案清单登记：`ADM-SL-01`（与 §3.2 权威清单一致；本文件名 `adm-sl-01.md`，唯一对应）。
 - 要测什么（责任展开）：`GET /v1/service-levels` 返回全部固定 Tier：HTTP 200 + `ServiceLevelPage` 的 `data[]` 含 7 个 `FIXED_TIERS`。
 - 明确不测什么 / 失败含义：不证明 单条详情（ADM-SL-03）、不证明创建/更新/删除（ADM-SL-02/02b/04/04b/05/06/07/08）、不证明分页 cursor 语义（本 case 7 条 < 默认 limit 100，`has_more=false`）、不证明成员能力交集计算（ADM-SL-06）。

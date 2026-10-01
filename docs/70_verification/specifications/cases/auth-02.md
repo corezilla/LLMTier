@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `AUTH-02` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-29` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`AUTH-02` / 系统设计 §8 认证与授权跨切面（角色/LAN trust/无鉴权） / `VRC-API-002` / `security` / `P0`
+- **测试方法（§1.5 方法表行）**：鉴权/授权/脱敏冒烟 + 角色隔离
 - 方案清单登记：`AUTH-02`（与 §3.2 权威清单一致；本文件名 `auth-02.md`，唯一对应）。
 - 要测什么（责任展开）：`GET /v1/models` 在**携带 Authorization 头但 bearer 值错误**时被拒，返回 403 + `permission_denied`（凭据不匹配 ≠ 缺凭据）。
 - 明确不测什么 / 失败含义：不证明 **空 bearer** 被拒（AUTH-06）、**无 Authorization 头**的 LAN trust 免登录（AUTH-01）、**data token 访问 admin 面**被拒（AUTH-03）、**管理面未授权优先于资源存在性**（AUTH-09）、**未配置鉴权→503**（AUTH-07）、**缺/非法凭据→401**（AUTH-10）；也不证明 `hmac.compare_digest` 的恒定时间性（INV-2 需专门时序测量，不属本 case）。

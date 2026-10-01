@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-OBS-007` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-OBS-007` / M005 observability §14.4 · `_correlation` traceparent v0.1.0-draft.6 / `VRC-OBS-004` / normal / P1（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：等价类划分（关联标识回显/提取）
 - 要测什么（责任展开）：被测：`X-Correlation-ID` 有则回显；缺省时 `traceparent`→提取 trace-id；无头时缺省无该响应头。
 - 明确不测什么 / 失败含义：不测：trace 落库查询（UT-OBS-004）；不测 API 层参数（UT-API-007 与之共担）。失败含义＝关联标识提取/回显实现错误。
 

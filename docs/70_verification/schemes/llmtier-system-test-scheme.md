@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-test-scheme` |
-| Document Version | `0.1.0-draft.11` |
+| Document Version | `0.1.0-draft.12` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -471,6 +471,7 @@
 
 - **方案冻结与变更规则**：Case 清单随系统设计基线**冻结**；系统设计或机制变更导致分母变化时，本方案升版并同步 `tests.system-test-plan` 的构成表。Case ID 一经登记**不复用、不改名**；新增 Case 取同家族下一个未占用序号（含补丁后缀，如 `ADM-SL-02b`）；废弃 Case 标 `superseded`，不删除、不重编号。
 - **与 case-design / 计划的同步规则**：**新 Case 先入本清单 §3，再建 case-design 文档**；case-design 文档路径固定为 `docs/70_verification/specifications/cases/<lowercased-case-id>.md`（例：`DP-RESP-01` → `cases/dp-resp-01.md`），文档 ID = Case ID；`tests.system-test-plan` 只引用本方案版本，不复制 Case 清单。本方案只登记 Case **设计状态**（Designed/Gap/Tailored-N/A），不承载实现状态（在 case-design 文档）与执行状态/Verdict（只在 Run 报告）。
+- **case 文档的测试方法声明（强制契约条款）**：每份 `tests.system-case` 文档 §1 **必须**含一条 `- **测试方法（§1.5 方法表行）**：<technique(s)>` 列表项（**不新增章节**），指名本方案 §1.5 家族表/UI 方法表的**确切技术行**；技术须由该 Case 的**实际分类 + 步骤/断言**推导，跨两类时并列，**禁止**按分类照抄而不读步骤。该条款与 `specifications/cases/README.md`「模板契约」一致；缺失或不诚实声明即视为 Case 不完备。
 - **本方案的退役与吸收映射**：本方案**唯一吸收并取代**旧 `assurance.test-specification` 家族的 `llmtier-api-test-specification`（140-Case 权威清单、定量覆盖模型、Traceability、环境与共同机制）与 `llmtier-contract-test-specification`（静态契约 `CT-*` 的 runtime 落地边界）。二者已从 `docs/70_verification/specifications/` 退役（git rm）；其原 Case ID 与数量（140）作为基线**保持不变**（不重命名、不重编号），逐 Case 细节现由 `tests.system-case` 文档承载；本版在该基线上按覆盖洞评审（`coverage_review`）**新增 23 个 Case**（`DP-EMB-08..10`、`ADM-*-15..`、`OBS-*-03..`、`DP-USAGE-09`、`DP-RESP-26/27` 等，见 §3），清单总数 140 → **163**。
 - **需求到本方案的可追溯入口**：本方案各 Case 家族的追溯链 `LT-*` → `R-*` → `VRC-*` → `T-*` → `CT-*` → Case **已重建并落于 §3.6**（由退役 `llmtier-api-test-specification` §3.6 与需求文档重建；不再依赖已退役 source）。需求缺口（9 项 `LT-*`）见 §4「需求缺口裁决」；逐 Case 的 Run 侧追迹另由 case 文档与 Run manifest 的 `target_artifact` 锁定。
 

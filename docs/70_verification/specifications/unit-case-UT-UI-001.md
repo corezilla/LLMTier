@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-UI-001` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-UI-001` / `VRC-UI-001`（web-ui 模块设计 §14 / web-ui-isd §9.1，web-ui 0.1.0-draft.2） / `VRC-UI-001` / normal / P1（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：等价类划分（合法状态→标签映射）
 - 要测什么（责任展开）：被测：`src/web_ui/index.html`/`app.js` 的 5 页结构、Home 默认页、tier 树目标、成员/后端状态来源独立、`readyz` 映射、图标 sprite 完整、无 Bearer 存储。
 - 明确不测什么 / 失败含义：本 Case 只做源码字符串契约（快速下位防线）；**真实浏览器渲染/交互归系统层 `UIT-UI-001..010`（`tests/ui/`，headless Chrome over CDP，已关闭 `RISK-UI-EXEC-1`）**；不测后端行为。失败含义＝UI 契约/状态语义实现错误。
 

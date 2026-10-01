@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-INF-006` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-INF-006` / M003 inference §14.1 · `ResponsesService._validate` v0.1.0-draft.1 / `VRC-INF-001` / negative / P0（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（校验顺序与码）
 - 要测什么（责任展开）：被测：`ResponsesService._validate` 的校验顺序与错误码——未知字段/禁字段→`unsupported_field`（`param`=首个违规字段名，系统 §7.8 ERR-REQ-FIELD）；`tools` 无能力→`unsupported_request`；`max_output_tokens` 范围/布尔→`invalid_request`；responses 能力 false→`unsupported_model`。
 - 明确不测什么 / 失败含义：不测：成功归一（UT-INF-001）；不测 provider 协议 wire。失败含义＝校验顺序或错误码实现错误。
 

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `OBS-DIAG-03` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-29` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`OBS-DIAG-03` / 系统设计 §8 诊断开关接口（/v1/diagnostics） / `VRC-DIAG-001` / `negative` / `P2`
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
 - 方案清单登记：`OBS-DIAG-03`
 - 要测什么（责任展开）：`PATCH /v1/diagnostics` 提交非布尔开关值（含 `null`）：HTTP 400 `invalid_request`（`param` 指向被拒键），开关状态不变、无部分写入。`null` 在 HTTP 层 `_optional_boolean`（`app.py:165-171`）即被 400 拒绝（键在 body 且值非 bool），**不**到达 libdiag `set_switches`，与 openapi `boolean` 一致。
 - 明确不测什么 / 失败含义：不证明 合法更新的成功/审计（OBS-DIAG-02）、不证明 GET 读契约（OBS-DIAG-01）、不证明**未知键**被拒（openapi 虽声明 `additionalProperties:false`，当前 handler 不校验多余键——见重点关注，作为实现/openapi 不一致单独登记）、不证明认证负向（AUTH-08/OBS-REQTRACE-03 风格）。**实现现状（已对齐 openapi）**：HTTP 层 `_optional_boolean`（`app.py:165-171`）对 `key in body` 且值非 bool（含 `null`）先抛 400 `invalid_request` `param=key`，故 openapi `boolean` 要求的 400 得到满足。

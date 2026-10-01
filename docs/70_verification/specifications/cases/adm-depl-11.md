@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ADM-DEPL-11` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -32,6 +32,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ADM-DEPL-11` / 系统设计 §8 Deployment CRUD 接口（/v1/deployments/dep_local_gemma） / `VRC-MGMT-002` / negative / P1（[方案清单 `ADM-DEPL-11`](../../schemes/llmtier-system-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：鉴权/角色隔离冒烟（data→admin 面 403）+ 错误猜测 + 反例驱动
 
 - 要测什么（责任展开）：`PATCH /v1/deployments/dep_local_gemma` 携带**有效 data token** 时被拒，返回 403 + `permission_denied`（data 角色不授权管理写面）；拒绝发生在任何 body 解析/资源变更之前，**零副作用**。
 

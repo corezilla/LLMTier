@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-RESP-03` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -32,6 +32,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-RESP-03` / 系统设计 §8 Responses 接口（POST /v1/responses） / `VRC-INF-001` / `normal` / `P1`。本文件名 `dp-resp-03.md`，与 Case ID 唯一对应。
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对 + 状态机驱动（SSE 事件序列/唯一 terminal）
 - 要测什么（责任展开）：`POST /v1/responses` 固定推理 prompt：SSE 结构完整（事件序列/唯一 terminal/`[DONE]`），不把模型输出内容当 oracle。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明模型答案的语义正确性、不证明 upstream 推理质量、不发布时延 SLO；不证明 `stream=false`/`store=true` 被拒（DP-RESP-02/07）、不证明截断（DP-RESP-10）或异常路径（DP-RESP-11/21）。**失败含义＝固定推理 prompt 下的流式结构契约破坏**。
 

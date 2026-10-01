@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `HEALTH-02` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -32,6 +32,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`HEALTH-02` / 系统设计 §8 健康/就绪接口（/healthz、/readyz） / `VRC-MGMT-003`（另记 `VRC-UTIL-001/002`） / `normal` / `P0`。本文件名 `health-02.md`，与 Case ID 唯一对应。
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
 - 要测什么（责任展开）：`GET /readyz` 在全部 7 个 fixed tier 均 `available` 时返回 HTTP 200 + `ReadinessView{status:"ready", models[7]}`。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明降级 `degraded`（HEALTH-03）、无 deployment `not_ready`（HEALTH-04）、bootstrap 失败（HEALTH-05）、health 端点的鉴权行为（HEALTH-06/AUTH-05）；不证明 `models[]` 中每 tier 的路由/推理可用（只证明 readiness 聚合字段）；不触发 provider 计费调用（`LT-OPS-001`）。**失败含义＝就绪聚合契约破坏**。
 

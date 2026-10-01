@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-API-001` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-API-001` / `VRC-API-001`（http-api 模块设计 §14 / http-api-isd §9.1，http-api 0.1.0-draft.2） / `VRC-API-001` / normal / P0（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：等价类划分（合法分发/健康/空库 not_ready）
 - 要测什么（责任展开）：被测：请求分发命中/未命中路由、统一错误信封（`ApiError.envelope()`）与 `X-Request-ID`、`/healthz` 与 `/readyz`（空库 not_ready）。
 - 明确不测什么 / 失败含义：不测：真实反向代理/进程启动（模块层与系统层）；不测上游 provider 协议。失败含义＝路由/错误出口/就绪语义实现错误。
 

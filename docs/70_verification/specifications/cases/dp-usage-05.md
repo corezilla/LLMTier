@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-USAGE-05` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-USAGE-05` / 系统设计 §8 Usage 查询接口 / `VRC-MGMT-006` / negative / P1（[方案清单 `DP-USAGE-05`](../../schemes/llmtier-system-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
 - 要测什么（责任展开）：`GET /v1/usage` 缺 `from` 或 `to`（或二者）→ `400 invalid_request`；非法 `date-time` 或 `from >= to` 同样 400，且在**建 snapshot / 读账本之前**被拒（零副作用）。`from`/`to` **required** `date-time`。实现：handler `src/http_api/app.py` 在 `not since or not until` 时直接 `ApiError(400,"invalid_request","from and to are required")`（在建快照前）；`src/inference/usage.py::_page` 在做 `from`/`to` 解析失败或 `start >= end` 时 `ApiError(400,"invalid_request",...)`（仍在 `query_snapshots` 写入前）。机制需求 `R-MET-04`（HTTP 适配层错误映射）；错误目录 `ERR-REQ-VALIDATION` → `invalid_request`；需求链 `LT-FUN-004`、`LT-INT-004/005/007`、`CT-USAGE-001`。
 - 明确不测什么 / 失败含义：不测正常查询（DP-USAGE-01/03）；不测过期 cursor 的 `cursor_expired`（DP-USAGE-04）；不测 filter/cursor 不匹配的 `invalid_request`（属 DP-USAGE-07 的 cursor 组件）；不测主体隔离（DP-USAGE-06）；不测 store 不可用 → 503（DP-USAGE-08）；也不测 `limit` 范围校验（实现只做整数转换）。失败含义＝Usage 查询请求校验契约破坏。
 

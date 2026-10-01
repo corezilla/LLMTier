@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-UTIL-003` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-UTIL-003` / M007 util §14.1 · `Store` 边界分支 v0.1.0-draft.1 / `VRC-UTIL-001` / recovery / P1（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：故障注入 + 异常路径恢复（fd 不泄漏/busy/close 异常/world-writable）
 - 要测什么（责任展开）：被测：`Store` fd 基线（多请求后不泄漏）；busy/lock→`OperationalError`；`close()` 异常上抛；world-writable → `RuntimeWarning`。
 - 明确不测什么 / 失败含义：不测：PRAGMA/事务主路径（UT-UTIL-001/002）；不测迁移（UT-UTIL-004）。失败含义＝fd 回收/锁异常/close 异常/world-writable 告警实现错误。
 

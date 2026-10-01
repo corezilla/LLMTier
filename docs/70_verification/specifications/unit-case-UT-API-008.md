@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-API-008` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-API-008` / M001 http-api §14.2 · `authorize` 角色选择 v0.1.0-draft.2 / `VRC-API-002` / security / P0（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：鉴权/脱敏/注入边界冒烟（角色选择/401）
 - 要测什么（责任展开）：被测：data 凭据访问 admin 端点 → 403（分发层 `_auth("admin")`）；admin 凭据访问 admin 端点 → 200；`_auth_either` 的 admin-first 角色选择；**非受信来源（合成公网地址如 `8.8.8.8`）无 `Authorization` 头 → 401 `authentication_required`**（`unauthenticated_principal` 返回 `None` 后 `authenticate` 抛 401；系统层 A/B 无法构造非受信来源，故在此单元承接）。
 - 明确不测什么 / 失败含义：不测：信任地址免登录（UT-API-002）；不测深层安全。失败含义＝分发层角色判定或 403 实现错误。
 

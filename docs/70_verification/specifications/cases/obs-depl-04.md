@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `OBS-DEPL-04` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-29` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`OBS-DEPL-04` / 系统设计 §8 注入配置接口（/v1/deployments/{id}/diagnostics） / `VRC-DIAG-004` / `negative` / `P1`
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
 - 方案清单登记：`OBS-DEPL-04`
 - 要测什么（责任展开）：`PATCH /v1/deployments/{id}/diagnostics` 提交非法注入项：HTTP 400 `invalid_injection`（`param` 指向被拒字段），不写入任何注入行。
 - 明确不测什么 / 失败含义：不证明 正向写入（OBS-DEPL-02）、不证明未知 deployment 的 404（OBS-DEPL-03，且存在性优先于本校验）、不证明注入命中（DP-RESP-11/22）、不证明别名等价（OBS-ALIAS-04）。**实现现状（严格 bool，已对齐 openapi）**：`_validate` 要求 `isinstance(enabled, bool)`，非 bool（含缺失/字符串/整数）→ 400 `invalid_injection` `param="enabled"`（`injections.py:34-36`），与 openapi `InjectionWrite.enabled: boolean` 一致；本 case 正面覆盖该严格校验。

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-EMB-07` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-EMB-07` / 系统设计 §8 Embeddings 接口 / `VRC-INF-001` / negative / P2（[方案清单 `DP-EMB-07`](../../schemes/llmtier-system-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-ENUM：非法 encoding_format）
 - 要测什么（责任展开）：`POST /v1/embeddings` `encoding_format=hex`（非 `float|base64`）：返回 `400 invalid_request`（`param="encoding_format"`），不触上游。`encoding_format` 仅允许 `float|base64`（OpenAPI `EmbeddingRequest.encoding_format.enum`）；取非法值 `"hex"` 时应在 dispatch 之前被拒。错误目录 `ERR-REQ-VALIDATION`；需求 `LT-FUN-003`；机制需求 `R-INF-04`（[inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）；契约 `CT-EMB-001`。实现 `src/inference/embeddings.py` 第 44 行：`require(encoding in {"float","base64"}, 400, "invalid_request", "encoding_format must be one of: float, base64", "encoding_format")`——该值级校验在 model/`embeddings` 能力/`dimensions` 校验与 `authorize_dispatch` 之前，故非法值零副作用被拒。**同一校验分支的相邻负向（"缺/多字段"）**：`EmbeddingRequest` 顶层 `additionalProperties:false` 且 `required:[model,input]`；缺 `model`/`input` 时第 40 行 `require(missing is None, 400, "invalid_request", ..., missing)` 返回 `400 invalid_request`、`param`=首个缺失字段名（`"input"`/`"model"`）；带未知顶层键时第 41-42 行 `require(unknown is None, 400, "unsupported_field", "Request body contains unknown fields", unknown)` 返回 `400 unsupported_field`、`param`=未知键名（系统 §7.8 `ERR-REQ-FIELD`）。
 - 明确不测什么 / 失败含义：不测合法 `float`/`base64` 的成功（DP-EMB-01/02）；不测未知 model（DP-EMB-04）、`dimensions` 不符（DP-EMB-06）、batch（DP-EMB-05）、base64 形态（DP-EMB-02）。失败含义＝`encoding_format` 值级校验缺失或被后置错误掩盖。
 

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-RESP-04` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -32,6 +32,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-RESP-04` / 系统设计 §8 Responses 接口（POST /v1/responses） / `VRC-INF-001` / `normal` / `P1`。本文件名 `dp-resp-04.md`，与 Case ID 唯一对应。
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对 + 状态机驱动（SSE 事件序列/唯一 terminal）
 - 要测什么（责任展开）：`POST /v1/responses` 携带合法 `tools`：被受理并透传，SSE 结构完整。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明上游是否真正调用工具（`function_call_arguments.*` 事件属上游行为，非 LLMTier 契约）；不证明工具执行结果；不证明 `tools` 语义正确性；不证明 `stream=false`/`store=true` 被拒（DP-RESP-02/07）。**失败含义＝tools 受理与透传契约破坏**。
 

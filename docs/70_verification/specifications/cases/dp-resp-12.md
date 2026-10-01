@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-RESP-12` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -32,6 +32,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-RESP-12` / 系统设计 §8 Responses 接口（POST /v1/responses） / `VRC-INF-001` / `negative` / `P2`。本文件名 `dp-resp-12.md`，与 Case ID 唯一对应。
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
 - 要测什么（责任展开）：`POST /v1/responses` 携带 `conversation_id`（未知顶层字段）：`400 unsupported_field`（"Request body contains unknown fields"，`param="conversation_id"`），dispatch 前拒绝、零副作用。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明任何 conversation 持久化/续写（本版本不存在，[piko-data-plane-control.md](../../../60_interfaces/piko-data-plane-control.md)）；不证明禁字段清单路径（DP-RESP-09，`previous_response_id` 命中 `unsupported_field`）；不证明合法流式成功（DP-RESP-01/06）。**失败含义＝未知字段拒绝契约破坏**。
 

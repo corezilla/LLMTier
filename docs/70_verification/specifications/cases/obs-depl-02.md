@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `OBS-DEPL-02` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-29` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`OBS-DEPL-02` / 系统设计 §8 注入配置接口（/v1/deployments/{id}/diagnostics） / `VRC-DIAG-004` / `normal` / `P0`
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
 - 方案清单登记：`OBS-DEPL-02`
 - 要测什么（责任展开）：`PATCH /v1/deployments/{id}/diagnostics` 写入故障注入：HTTP 200 + 返回更新后的 `InjectionView[]`，按 `(deployment_id, type)` upsert 生效，副作用 = **同事务审计**。
 - 明确不测什么 / 失败含义：不证明 注入对推理的**命中效果**（DP-RESP-11/22 在 B 类以真实 `POST /v1/responses` 证明 `fault_502`/`fault_503` 命中；本 case 只证明"配置写入并可由 GET 读回"）、不证明非法项 400（OBS-DEPL-04）、不证明未知 deployment 404（OBS-DEPL-03）、不证明别名等价（OBS-ALIAS-04）。**实现现状（已对齐 openapi）**：`InjectionList` openapi `required:["items"]`；handler 在 PATCH 前检查 `if "items" not in body: raise ApiError(400, "invalid_request", ...)`（`app.py:331-332` 扁平、`app.py:341-342` 别名），故缺 `items` 是 **400**，不会静默 revoke。本 case 用规范 body。

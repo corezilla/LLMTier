@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-RESP-09` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -32,6 +32,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-RESP-09` / 系统设计 §8 Responses 接口（POST /v1/responses） / `VRC-INF-001` / `negative` / `P0`。本文件名 `dp-resp-09.md`，与 Case ID 唯一对应。
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
 - 要测什么（责任展开）：`POST /v1/responses` 携带禁字段 `previous_response_id`：`400 unsupported_field`（`param="previous_response_id"`），零副作用。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明未知/多余字段的拒绝（本 case 只覆盖显式禁字段清单；`additionalProperties:false` 路径见 DP-RESP-12..15 等）；不证明合法续写（本版本不存在）；不证明上游调用或答案。**失败含义＝禁用字段契约破坏**。
 

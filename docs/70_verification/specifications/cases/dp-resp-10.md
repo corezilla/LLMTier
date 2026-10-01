@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-RESP-10` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -32,6 +32,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-RESP-10` / 系统设计 §8 Responses 接口（POST /v1/responses） / `VRC-INF-001` / `boundary` / `P1`。本文件名 `dp-resp-10.md`，与 Case ID 唯一对应。
+- **测试方法（§1.5 方法表行）**：边界值抽样 + 契约字段比对
 - 要测什么（责任展开）：`POST /v1/responses` 传 `max_output_tokens=10`：SSE 以 `response.incomplete` 终止，`incomplete_details.reason=="max_output_tokens"`。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明 `context_window` 硬上限边界（本 case 只覆盖可测的 `max_output_tokens` 截断）；不证明超时/断开异常（DP-RESP-11/21）；不证明模型内容。**失败含义＝截断终止契约破坏**。
 

@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-TOOL-002` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-TOOL-002` / M-TOOL `tools/check_env.py`＋`tools/reset_env.py`＋`tools/deploy.py`（系统计划 §3 Go/No-Go、§6 环境操作）/ none（工具，无模块 VRC）/ normal / P1（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对（工具纯逻辑）
 - 要测什么（责任展开）：
   - `tools/check_env.py`：A/B 检查聚合（`summarize` 计数与 `all_pass`）、`--class a|b|all` 选择、检查异常不崩溃、exit 码（0 全过 / 2 任一失败）、`detect_lan_ip` override（TS-003）。
   - `tools/reset_env.py`：复位阶梯顺序（backup→restore/rebuild→clear-injections→reset-ledger→kill-leftovers→recheck）、`--dry-run` 不触网/不改、`--yes` 非交互 guard、sqlite backup API 备份、`--restore`/`--rebuild` 互斥与效果、注入清空 `PATCH {"items":[]}`＋断言空、`DELETE /v1/usage`、遗留测试进程解析。

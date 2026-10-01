@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-RESP-13` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -30,6 +30,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-RESP-13` / 系统设计 §8 Responses 接口 / `VRC-INF-001` / negative / P2（[方案清单 `DP-RESP-13`](../../schemes/llmtier-system-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
 - 要测什么（责任展开）：`POST /v1/responses` 携带 `truncation`（未知顶层字段）：`400 unsupported_field`（"Request body contains unknown fields"，`param="truncation"`），dispatch 前拒绝、零副作用。契约由 OpenAPI `ResponsesRequest.additionalProperties:false` + 实现 `src/inference/responses.py` 的 `ALLOWED_FIELDS`（不含 `truncation`）与 `require(unknown is None, 400, "unsupported_field", "Request body contains unknown fields", unknown)` 定义。
 - 明确不测什么 / 失败含义：不测任何截断策略（`truncation` 不改变输入截断行为，本版本无该参数）；不测 `max_output_tokens` 截断（DP-RESP-10）；不测合法流式成功（DP-RESP-01/06）。失败含义＝未知顶层字段未被拒（违反 `additionalProperties:false`）。
 

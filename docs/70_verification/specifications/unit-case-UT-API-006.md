@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-API-006` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-API-006` / M001 http-api §14.1 · `_int_param`/`_optional_boolean` v0.1.0-draft.2 / `VRC-API-001` / negative / P1（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（非整数/非布尔参数）
 - 要测什么（责任展开）：被测：模块级 `_int_param` 对非整数 query 参数抛 400 `invalid_request`、合法整数通过；`Handler._optional_boolean` 对非布尔开关值抛 400、合法布尔通过。
 - 明确不测什么 / 失败含义：不测：其它 body 校验（UT-API-009）；不测限流/业务。失败含义＝参数解析类型校验实现错误。
 

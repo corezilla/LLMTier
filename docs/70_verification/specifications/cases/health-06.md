@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `HEALTH-06` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -32,6 +32,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`HEALTH-06` / 系统设计 §8 健康/就绪接口（/healthz、/readyz） / `VRC-API-002`（另记 `VRC-MGMT-003`） / `normal` / `P1`。本文件名 `health-06.md`，与 Case ID 唯一对应。
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对 + 鉴权/角色隔离冒烟（免鉴权端点）
 - 要测什么（责任展开）：在**未配置任何鉴权凭据**的临时实例上，`GET /healthz` 与 `GET /readyz` 在不带 `Authorization` 头时仍返回各自视图（200/503），不返回 401/403/`auth_not_configured`。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明受保护端点在未配置鉴权时的 503 `auth_not_configured`（AUTH-07）；不证明 A 类公共端点无 token 200（AUTH-05）；不证明 LAN trust 免登录路径（AUTH-01/04）；不证明 `readyz` 的 ready/degraded（HEALTH-02/03）；不触发 provider 计费调用（`LT-OPS-001`）。**失败含义＝健康端点免鉴权契约破坏**。
 

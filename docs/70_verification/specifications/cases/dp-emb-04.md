@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-EMB-04` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-EMB-04` / 系统设计 §8 Embeddings 接口 / `VRC-INF-001` / negative / P0（[方案清单 `DP-EMB-04`](../../schemes/llmtier-system-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-MODEL）
 - 要测什么（责任展开）：`POST /v1/embeddings` 请求未知逻辑 model：返回 `404 model_not_found`（统一错误信封），不触上游。端点在**准入/路由之前**以 OpenAPI `ErrorEnvelope` 返回 HTTP `404` 且 `error.code=="model_not_found"`（`ERR-MODEL-NOTFOUND`，系统设计 §7.8）；`type=="request_error"`（status<500）、`param==null`、`retryable==false`。需求 `LT-FUN-003`；机制需求 `R-INF-04`（[inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）；契约 `CT-EMB-001`。**权威码确认**：`src/inference/embeddings.py` 第 36–39 行捕获 `registry.get_service_level()` 的 `ApiError(404,"not_found")` 并**重映射为 `ApiError(404,"model_not_found")`**；`Router.admit` 无候选时亦抛 `model_not_found`。
 - 明确不测什么 / 失败含义：不测向量形状/维数（DP-EMB-01/02）；不测成功路径（DP-EMB-01）；不测其它错误码（缺字段 400 `invalid_request` 属 DP-EMB-07 邻域）；不测 `/v1/models/{model}` 的 404（DP-MODELS-06）或 `/v1/responses` 的 404（DP-RESP-05）。失败含义＝未知 model 拒绝语义/错误码破坏。
 

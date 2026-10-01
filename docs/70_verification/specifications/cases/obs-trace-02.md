@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `OBS-TRACE-02` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-29` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`OBS-TRACE-02` / 系统设计 §8 诊断 trace 接口（/v1/diagnostics/traces） / `VRC-DIAG-002` / `recovery` / `P2`
+- **测试方法（§1.5 方法表行）**：边界值抽样（limit=1 分页）+ 错误猜测 + 反例驱动（ERR-CURSOR）+ 对照复位
 - 方案清单登记：`OBS-TRACE-02`
 - 要测什么（责任展开）：`GET /v1/diagnostics/traces` `limit=1` 稳定分页 + 无效/过期 cursor → `400 cursor_expired`（`ERR-CURSOR`）。
 - 明确不测什么 / 失败含义：不证明 去重/正向页（OBS-TRACE-01）、不证明快照 cursor（OBS-SNAP-02）、不证明别名等价（OBS-ALIAS-06）、不证明 `limit=abc` 的 `invalid_request`（属 `_int_param`，非本 case 的 `cursor_expired`）。**实现现状（已对齐契约）**：当前实现 [`traces`](../../../../src/libdiag/traces.py) **已校验 cursor**——cursor 不含 `"|"` 即抛 `ApiError(400, "cursor_expired", ...)`（`traces.py:85-88`）；含 `"|"` 的 `"<first_ts>|<rid>"` 才作为合法游标用于 `(first_ts,rid)<(?,?)`。故"400 `cursor_expired`"与实现一致。

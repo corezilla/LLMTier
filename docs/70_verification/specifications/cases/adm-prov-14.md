@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ADM-PROV-14` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ADM-PROV-14` / 系统设计 §8 Provider CRUD 接口（/v1/providers） / `VRC-MGMT-001` / `security` / `P0`
+- **测试方法（§1.5 方法表行）**：鉴权/授权/脱敏冒烟（secret/PII 不泄露）+ 角色隔离
 - 方案清单登记：`ADM-PROV-14`（与 §3.2 权威清单一致；本文件名 `adm-prov-14.md`，唯一对应）。
 - 要测什么（责任展开）：`GET /v1/providers` 与 `GET /v1/providers/{id}` **响应永不回显 secret 值**——仅 `has_secret` 布尔与（写-only 的）`secret_ref` 引用，响应体不含解析后的秘密。
 - 明确不测什么 / 失败含义：不证明 写入/更新（ADM-PROV-02/05）、不证明 `secret_ref` 格式校验（ADM-PROV-12）、不证明审计/日志脱敏（ADM-AUDIT-01、ADM-LOGS-01）、不证明 `/v1/providers/{id}/models` 或 `/usage` 的出站凭据处理；本 case 只覆盖 provider **读取响应体**的安全不变量。

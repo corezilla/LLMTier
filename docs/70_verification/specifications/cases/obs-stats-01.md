@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `OBS-STATS-01` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-29` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`OBS-STATS-01` / 系统设计 §8 诊断统计接口（/v1/diagnostics/stats） / `VRC-DIAG-002` / `normal` / `P1`
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
 - 方案清单登记：`OBS-STATS-01`
 - 要测什么（责任展开）：`GET /v1/diagnostics/stats` 返回按小时桶聚合的 `StatsView`：顶层恰 `{windows}`，每窗口为恰好 13 键的 `StatsWindow`（状态分布、请求/错误计数、4xx/5xx、延迟分位）。
 - 明确不测什么 / 失败含义：不证明 缺 `since`/`until` 的 400（OBS-STATS-02）、不证明 `stats_enabled` 写入门控的业务效果（机制 `INV-4`/`CON-OBS-001`）、不证明 `/v1/stats`（管理面聚合，ADM-STATS-01..03）、不证明快照/trace（OBS-SNAP-01、OBS-TRACE-01）、不证明别名等价（OBS-ALIAS-05）。

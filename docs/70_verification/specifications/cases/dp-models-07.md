@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-MODELS-07` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -32,6 +32,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-MODELS-07` / 系统设计 §8 逻辑模型清单接口（/v1/models） / `VRC-INF-002` / `boundary` / `P1`。本文件名 `dp-models-07.md`，与 Case ID 唯一对应。
+- **测试方法（§1.5 方法表行）**：边界值抽样 + 契约字段比对
 - 要测什么（责任展开）：`GET /v1/models` 返回的每个 tier 的 `capabilities` 键集恰为固定的 **12 个** key。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明清单元素数/顺序（DP-MODELS-01）、单模型精确返回（DP-MODELS-02）、负向（DP-MODELS-03/04/05/06）；不证明各键**取值**的业务正确性（本 case 只锁键集；`responses`/`embeddings`/`tools`/`structured_outputs` 的布尔约束在 deployment/service-level 写入面校验，见 ADM-DEPL-06/07）；不证明 `availability`；不证明凭据与 LAN trust（AUTH-01/02/06）。**失败含义＝capabilities 键集契约破坏**。
 

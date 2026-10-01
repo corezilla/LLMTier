@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ADM-PROV-07` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ADM-PROV-07` / 系统设计 §8 Provider CRUD 接口（/v1/providers） / `VRC-MGMT-002` / `concurrency` / `P1`
+- **测试方法（§1.5 方法表行）**：状态机驱动（If-Match/412 串行化）+ 固定并发度/种子 + 契约字段比对
 - 方案清单登记：`ADM-PROV-07`（与 §3.2 权威清单一致；本文件名 `adm-prov-07.md`，唯一对应）。
 - 要测什么（责任展开）：`PATCH /v1/providers/{id}` 携带**过期/错误** `If-Match`：HTTP 412 + `error.code=="version_conflict"` + `error.current_version`，无写入。
 - 明确不测什么 / 失败含义：不证明 成功更新（ADM-PROV-05）、不证明**缺头** 412（ADM-PROV-06）、不证明 DELETE 的过期 ETag（本 case 只发 PATCH）、不证明并发两写者（§5）；本 case 只锁定"头存在但值过期"。

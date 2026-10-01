@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ADM-PROV-02` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ADM-PROV-02` / 系统设计 §8 Provider CRUD 接口（/v1/providers） / `VRC-MGMT-001` / `normal` / `P0`
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
 - 方案清单登记：`ADM-PROV-02`（与 §3.2 权威清单一致；本文件名 `adm-prov-02.md`，唯一对应）。
 - 要测什么（责任展开）：`POST /v1/providers` 创建 provider：HTTP 201 + 自动 `id` + `has_secret`/`version` + `ETag` 响应头，且可经 `GET /v1/providers/{id}` 回读。
 - 明确不测什么 / 失败含义：不证明 更新/删除/If-Match（ADM-PROV-05..10）、不证明 `kind`/`secret_ref` 负向（ADM-PROV-11/12）、不证明 `usage` 子对象更新（ADM-PROV-13）、不证明重名 409（本 case 用随机名避开）、不证明响应不含 secret 的强断言（ADM-PROV-14）；创建不触上游，故不证明 provider 可达性。

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-MGMT-010` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-MGMT-010` / M004 management §14.5 · `probe` 不可达 v0.1.0-draft.2 / `VRC-MGMT-005` / recovery / P1（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：故障注入 + 异常路径恢复（上游不可达→unhealthy 落库）
 - 要测什么（责任展开）：被测：上游不可达 → `unhealthy` 落库；`probe` 返回含 `may_have_incurred_cost`。
 - 明确不测什么 / 失败含义：不测：未确认 400（UT-MGMT-005）；不测真实上游协议。失败含义＝探测失败落库或成本标记实现错误。
 

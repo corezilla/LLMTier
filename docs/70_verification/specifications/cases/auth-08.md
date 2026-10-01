@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `AUTH-08` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-29` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`AUTH-08` / 系统设计 §8 认证与授权跨切面（角色/LAN trust/无鉴权） / `VRC-API-002` / `security` / `P1`
+- **测试方法（§1.5 方法表行）**：鉴权/授权/脱敏冒烟 + 角色隔离
 - 方案清单登记：`AUTH-08`（与 §3.2 权威清单一致；本文件名 `auth-08.md`，唯一对应）。
 - 要测什么（责任展开）：别名端点 `GET /tier/admin/v1/diagnostics` 在**携带有效 data token**时被拒，返回 403 + `permission_denied`（别名命名空间与扁平路径同样要求 `admin` 角色）。
 - 明确不测什么 / 失败含义：不证明 别名与扁平路径的**响应逐字节等价**（OBS-ALIAS-01、`admin` 正向）、不证明 **admin 无 token 的 LAN trust**（AUTH-04，扁平路径）、**错误 bearer** 被拒（AUTH-02）、**缺/非法凭据→401**（AUTH-10）、**未配置鉴权→503**（AUTH-07）、**管理面未授权优先于资源存在性**（AUTH-09）。本 case **只**断言别名命名空间的角色隔离。

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-EMB-06` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-EMB-06` / 系统设计 §8 Embeddings 接口 / `VRC-INF-001` / negative / P1（[方案清单 `DP-EMB-06`](../../schemes/llmtier-system-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-DIM：维度与冻结空间不符）
 - 要测什么（责任展开）：`POST /v1/embeddings` `dimensions=768`（与 `Embedding-v1` 冻结向量空间不符）：返回 `400 unsupported_dimensions`（`param="dimensions"`），不触上游。`model="Embedding-v1"`（冻结空间 `bge-m3-dense-1024-v1`，`embedding_dimensions=[1024]`）、`dimensions=768`；请求在 dispatch 之前被拒。错误目录 `ERR-REQ-DIM`；需求 `LT-FUN-003`/`LT-OPEN-02`；机制需求 `R-INF-04`（[inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）；契约 `CT-EMB-001`。实现见 `src/inference/embeddings.py` 第 42–43 行（`require(body["dimensions"] in caps["embedding_dimensions"], 400, "unsupported_dimensions", "Unsupported embedding dimensions", "dimensions")`）。
 - 明确不测什么 / 失败含义：不测合法 `dimensions=1024` 的成功；不测未知 model（DP-EMB-04）、非法 `encoding_format`（DP-EMB-07）、batch 上限（DP-EMB-05）、base64 形态（DP-EMB-02）；不测 `dimensions` 的 `minimum:1` 边界或上游对该参数的实际行为（本 case 在本地即被拒，不上游）。失败含义＝冻结维度成员校验破坏。
 

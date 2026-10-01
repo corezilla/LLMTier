@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-API-002` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-API-002` / `VRC-API-002`（http-api 模块设计 §14 / http-api-isd §9.1，http-api 0.1.0-draft.2） / `VRC-API-002` / security / P0（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：鉴权/脱敏/注入边界冒烟（免登录/bearer/缺失配置/角色不可区分）
 - 要测什么（责任展开）：被测：`src/http_api/auth.py::authenticate` 的免登录/凭据/角色/信任地址判定，及 data 凭据访问 admin 端点 403、不泄露存在性。
 - 明确不测什么 / 失败含义：不测：真实 TLS/网关鉴权；不测上游。失败含义＝信任/鉴权语义实现错误（越权或误拒）。
 

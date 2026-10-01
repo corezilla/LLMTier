@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-USAGE-08` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-USAGE-08` / 系统设计 §8 Usage 查询接口 / `VRC-MGMT-006` / recovery / P1（[方案清单 `DP-USAGE-08`](../../schemes/llmtier-system-test-scheme.md)，**新增 Case**）；机制 `T-MET-PAGE`（[usage-metering 机制](../../../20_system_design/mechanisms/usage-metering.md) §4.7「存储不可用返回 typed 503，不用空页冒充无记录」/§7）。
+- **测试方法（§1.5 方法表行）**：故障注入（存储不可用 → 503 不空页）+ 复位阶梯
 - 要测什么（责任展开）：Usage store 不可用时 `GET /v1/usage` 返回 `503 usage_store_unavailable`（typed server error），**不得**以 `200 + 空 data` 冒充"无记录"；恢复存储后查询回到 200。实现三处收敛为同一 wire 码：`src/inference/usage.py::page` 的 `except Exception → ApiError(503,"usage_store_unavailable")`、`src/http_api/app.py::_store_read` 同映射、`_run` 的 `except sqlite3.Error` 兜底到 `usage_store_unavailable`（另有 500 `internal_error` 仅用于非 sqlite 的未知异常）。机制需求 `R-MET-04`（HTTP 适配层 503 显式化 / CON-METER-005）；错误目录 `ERR-STORE` → `usage_store_unavailable`；需求链 `LT-FUN-004`、`LT-INT-004/005/007`、`CT-STORE-001`。
 - 明确不测什么 / 失败含义：不测正常查询内容（DP-USAGE-01/02/03）、过期 cursor（DP-USAGE-04）、主体隔离（DP-USAGE-06）、重放幂等（DP-USAGE-07）；不测**启动期** schema/引导错误（`ERR-SCHEMA`/`ERR-BOOT`）与 symlink 路径拒绝（`ERR-PATH-UNSAFE`）；不测 `DELETE /v1/usage` 的 503 分支（由同机制的 ADM-USAGE-03 邻近，不在本 case 断言）。失败含义＝存储不可用被冒充为"无记录"。
 

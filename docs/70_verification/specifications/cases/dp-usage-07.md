@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-USAGE-07` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-USAGE-07` / 系统设计 §8 Usage 查询接口 / `VRC-MGMT-006` / boundary / P1（[方案清单 `DP-USAGE-07`](../../schemes/llmtier-system-test-scheme.md)，**新增 Case**）；机制 `T-MET-PAGE`（[usage-metering 机制](../../../20_system_design/mechanisms/usage-metering.md) §4.7/CON-METER-004，INV-6「旧页不受后续更正影响」、Step 5 冻结视图）。
+- **测试方法（§1.5 方法表行）**：边界值抽样（cursor 重放幂等/冻结视图）+ 契约字段比对
 - 要测什么（责任展开）：同一 usage `cursor` **重放**返回同一冻结的 record version 成员：后续页重放逐字段相同，不新建 `snapshot`、不推进 head；首屏冻结后新增记录对旧页不可见。首屏在单事务内写 `query_snapshots` 并冻结有序成员 `(principal, request_id, record_version)`；后续页仅按 `<snapshot_id>:<offset>` 读**冻结视图** `query_snapshot_items`（含 `frozen_view_json`）；读操作不写账本。实现 `src/inference/usage.py::UsageRecorder._page`。机制需求 `R-MET-02`；需求链 `LT-FUN-004`、`LT-INT-004/005/007`、`CT-USAGE-001`。
 - 明确不测什么 / 失败含义：不测过期 cursor（DP-USAGE-04）、主体绑定/跨主体拒绝（DP-USAGE-06）、分页稳定排序本身（DP-USAGE-03）、store 不可用（DP-USAGE-08）；不测跨请求的 exactly-once 重试语义（本版本不定义）；不测 `recorded_at`/版本推进（由 DP-USAGE-02 的 `T-MET-FINAL` 承接）。失败含义＝cursor 重放幂等/快照冻结契约破坏。
 

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-USAGE-04` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-USAGE-04` / 系统设计 §8 Usage 查询接口 / `VRC-MGMT-006` / negative / P2（[方案清单 `DP-USAGE-04`](../../schemes/llmtier-system-test-scheme.md)）；机制 `T-MET-PAGE`（[usage-metering 机制](../../../20_system_design/mechanisms/usage-metering.md) §4.7「TTL 10 分钟」/CON-METER-004）。
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-CURSOR：真实过期 cursor）+ 复位阶梯
 - 要测什么（责任展开）：**真实过期**的 usage cursor → `400 cursor_expired`：先查首屏取 `snapshot_id`，经 `ssh m5air sqlite3` 把该行 `query_snapshots.expires_at` 改到过去后重放同一 cursor，`finally` 复位原值。`GET /v1/usage`（`cursor` 可选；过期/非法/不匹配 cursor 的 wire 码见错误目录 `ERR-CURSOR` → `cursor_expired`）。实现 `src/inference/usage.py::UsageRecorder._page`：`snapshot is None or expires_at <= now` → `ApiError(400,"cursor_expired",...)`，且该检查在 `filter_digest`/`authorization_digest` 复核**之前**。机制需求 `R-MET-02`；需求链 `LT-FUN-004`、`LT-OPS-005`、`CT-USAGE-001`。
 - 明确不测什么 / 失败含义：不测 cursor 属于他人或 filter 不匹配时的 403/400（DP-USAGE-06/07）；不测分页内容（DP-USAGE-03）；不测重放幂等（DP-USAGE-07）；不测 store 不可用（DP-USAGE-08）；**不**用字面量 `cursor="expired"` 之类的伪触发（那会命中"snapshot 不存在"分支而非真实 TTL 分支）。失败含义＝cursor TTL 过期拒绝契约破坏。
 

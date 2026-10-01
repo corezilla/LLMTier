@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-MGMT-001` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-MGMT-001` / `VRC-MGMT-001`（management 模块设计 §14 / management-isd §9.1，management 0.1.0-draft.2） / `VRC-MGMT-001` / normal / P0（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：等价类划分（合法 settings/幂等启动）
 - 要测什么（责任展开）：被测：`Registry.bootstrap_settings` 合法 settings、重复启动忽略、缺节、`env:` 空/`file:` 不存在 → 503 + 回滚 + not_ready；`ensure_fixed_tiers`；**`Application` 对非 `ApiError` 引导异常（如 `OSError`）兜底为 503 `bootstrap_invalid` 且不崩溃（CR-BOOTSTRAP-CATCH）**。
 - 明确不测什么 / 失败含义：不测：真实 secret 管理系统；不测进程启动（系统层）。失败含义＝引导/secret 引用实现错误或兜底缺失导致进程崩溃。
 

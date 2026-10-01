@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `OBS-REQTRACE-02` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-29` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`OBS-REQTRACE-02` / 系统设计 §8 请求追踪接口（/v1/trace/{request_id}） / `VRC-DIAG-002` / `negative` / `P1`
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
 - 方案清单登记：`OBS-REQTRACE-02`
 - 要测什么（责任展开）：`GET /v1/trace/{request_id}` 查询不存在的 `request_id`：HTTP 404 `not_found`，不返回空 `TraceView` 的 200。
 - 明确不测什么 / 失败含义：不证明 已知 id 的全生命周期（OBS-REQTRACE-01）、不证明 data token 403（OBS-REQTRACE-03）、不证明注入命中、不证明别名等价（OBS-ALIAS-03）。**契约一致性警示（须登记）**：`_UnavailableDiagnostics.trace` 对**任意** id 返回 `200 + {stages:[]}`（fail-open），与健康实现的 404 语义不同；本 case 的 Oracle 以**健康诊断服务**为准。

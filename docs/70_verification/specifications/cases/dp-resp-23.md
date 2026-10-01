@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-RESP-23` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -30,6 +30,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-RESP-23` / 系统设计 §8 Responses 接口 / `VRC-INF-003` / recovery / P1（[方案清单 `DP-RESP-23`](../../schemes/llmtier-system-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：故障注入（上游非 5xx → provider_error）+ 复位阶梯
 - 要测什么（责任展开）：`POST /v1/responses` 上游返回非成功 HTTP（4xx）：沿用非 5xx 状态并归一为 `provider_error`（自动化入口 `at_dp_resp_23.py`；5xx 分支为 `provider_unavailable`，见偏差）。需求 `R-INF-05`；错误目录 `ERR-PROVIDER-FAIL` → wire `code=provider_error`；实现 `src/inference/providers/openai.py`（`except urllib.error.HTTPError as exc:` — `if exc.code >= 500: raise ApiError(503, "provider_unavailable", ..., retryable=True)`；否则 `raise ApiError(exc.code, "provider_error", f"Provider returned HTTP {exc.code}", retryable=exc.code in {408,429})`）。
 - 明确不测什么 / 失败含义：不测注入类故障（DP-RESP-11/22，`fault_502`/`fault_503` 是 M006 注入，非真实上游 HTTP）；不测上游不可达/超时（亦归一 `provider_unavailable`）；不测上游契约异常（DP-RESP-25，`provider_contract_error`）；不测答案。失败含义＝真实上游非成功 HTTP 归一契约破坏。
 

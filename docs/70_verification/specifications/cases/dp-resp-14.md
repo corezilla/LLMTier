@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-RESP-14` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -30,6 +30,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-RESP-14` / 系统设计 §8 Responses 接口 / `VRC-INF-001` / negative / P2（[方案清单 `DP-RESP-14`](../../schemes/llmtier-system-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
 - 要测什么（责任展开）：`POST /v1/responses` 携带 `max_tokens`（非 `max_output_tokens`）：不存在别名，`400 unsupported_field`（"Request body contains unknown fields"，`param="max_tokens"`）。OpenAPI `ResponsesRequest` 仅声明 `max_output_tokens`，且实现 `src/inference/responses.py` 的 `ALLOWED_FIELDS` 不含 `max_tokens`，`require(unknown is None, 400, "unsupported_field", ...)` 将其作为未知顶层字段拒绝。
 - 明确不测什么 / 失败含义：不测截断语义（DP-RESP-10 用 `max_output_tokens`）；不测别名映射（本版本无映射）；不测合法流式成功（DP-RESP-01/06）。失败含义＝`max_tokens` 被当作别名接受。
 

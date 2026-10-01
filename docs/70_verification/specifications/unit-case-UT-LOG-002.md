@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-LOG-002` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-LOG-002` / M008 log §14.1 · `page` 边界 v0.1.0-draft.1 / `VRC-LOG-001` / negative / P1（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：边界值（缺 since/until/存储失败/脱敏）
 - 要测什么（责任展开）：被测：`page` 缺 `since`/`until` → 400 `invalid_request`；`page` 存储失败 → 503 `usage_store_unavailable`；`token=`/`api_key` 键名**与值**整体脱敏用例（`RISK-LOG-1` 已关闭）。
 - 明确不测什么 / 失败含义：不测：脱敏主用例（UT-LOG-001）；不测 `limit` 夹取（UT-LOG-001）。失败含义＝窗口必填校验/存储失败显式化/补充脱敏实现错误。
 

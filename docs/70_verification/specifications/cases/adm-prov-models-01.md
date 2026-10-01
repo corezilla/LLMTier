@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ADM-PROV-MODELS-01` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ADM-PROV-MODELS-01` / 系统设计 §8 provider 上游模型目录接口（GET /v1/providers/{id}/models） / `VRC-MGMT-001` / `normal` / `P1`
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
 - 方案清单登记：`ADM-PROV-MODELS-01`（与 §3.2 权威清单一致；本文件名 `adm-prov-models-01.md`，唯一对应）。
 - 要测什么（责任展开）：`GET /v1/providers/{id}/models` 读取 provider 上游模型目录：HTTP 200 + `ProviderModelsView`（`data: string[]`），同步只读且不改任何本地资源。
 - 明确不测什么 / 失败含义：不证明 未知 provider 的 404（ADM-PROV-MODELS-02）、不证明 provider 读取不回显 secret（ADM-PROV-14）、不证明 deployment/provider CRUD（ADM-PROV-*/ADM-DEPL-*）、不证明上游目录**内容正确**（上游模型 ID 由上游决定，本 case 只断言 `data` 为字符串数组，**不把具体模型名当 oracle**）；本 case 为注册表（A 类）上的只读目录查询，允许触上游 `/models`（只读），不产生费用类副作用。

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-UI-008` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-UI-008` / M002 web-ui §14.2 · `reportLoadFailure` v0.1.0-draft.2 / `VRC-UI-002` / negative / P1（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（非列举状态保留上一屏）
 - 要测什么（责任展开）：被测（字符串契约层）：非列举状态（网络/500）经 `reportLoadFailure` 保留上一屏并标 stale；与 `dispatchUiError` 分工（后者处理 401/403/409/412/429/503）。
 - 明确不测什么 / 失败含义：不测：`app.js` 运行时行为（G-UT-3）；不测各 HTTP 错误的具体交互。失败含义＝load 失败降级分支源码契约缺失。
 

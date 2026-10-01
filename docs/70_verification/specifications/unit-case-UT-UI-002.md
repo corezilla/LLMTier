@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-UI-002` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-UI-002` / `VRC-UI-002`（web-ui 模块设计 §14 / web-ui-isd §9.1，web-ui 0.1.0-draft.2） / `VRC-UI-002` / negative / P0（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（412/409/401-403/429 分支）
 - 要测什么（责任展开）：被测：UI 契约中 ETag/引用/鉴权错误的呈现路径（412 stale 复用既有 provider、401/403 处理、分区不猜）。
 - 明确不测什么 / 失败含义：本 Case 只做源码字符串契约；**真实浏览器并发编辑/确认门控归系统层 `UIT-UI-003/007`（`tests/ui/`，已关闭 `RISK-UI-EXEC-1`）**；不测后端 ETag 生成（归 M004）。失败含义＝UI 错误处理/鉴权呈现错误。
 

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-INF-003` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-INF-003` / `VRC-INF-003`（inference 模块设计 §14 / inference-isd §9.1，inference 0.1.0-draft.1） / `VRC-INF-003` / recovery / P0（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：故障注入 + 异常路径恢复（上游 5xx/超时/usage 缺失不补零）
 - 要测什么（责任展开）：被测：provider 失败/终态不合法时 `UsageRecorder` 的 unknown 不补零、head 单调、只用记录版本、terminal 唯一校验。
 - 明确不测什么 / 失败含义：不测：M-METER 跨模块账本一致性（模块层）；不测真实超时墙钟。失败含义＝失败路径记账/终态校验实现错误。
 

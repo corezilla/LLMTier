@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ADM-DEPL-09` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ADM-DEPL-09` / 系统设计 §8 Deployment CRUD 接口（/v1/deployments） / `VRC-MGMT-002` / `negative` / `P1`
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
 - 方案清单登记：`ADM-DEPL-09`（与 §3.2 权威清单一致；本文件名 `adm-depl-09.md`，唯一对应）。
 - 要测什么（责任展开）：`PATCH /v1/deployments/{id}` 试图把 `provider_id` 改为**另一个已存在**的 provider：HTTP 400 + `error.code=="invalid_request"`、`param=="provider_id"`，统一错误信封，`provider_id`/`version`/ETag 不变。（用既存 provider 作目标值，确保唯一命中 immutability 分支而非"未知 provider"分支。）
 - 明确不测什么 / 失败含义：不证明 正常更新（ADM-DEPL-04）、不证明缺/过期 `If-Match` 的 412（本 case 用正确 ETag）、不证明删除（ADM-DEPL-05）、不证明 provider CRUD（ADM-PROV-*）；本 case 为纯负向，**不得**改动 deployment。

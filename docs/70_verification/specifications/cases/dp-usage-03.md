@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-USAGE-03` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-USAGE-03` / 系统设计 §8 Usage 查询接口 / `VRC-MGMT-006` / boundary / P1（[方案清单 `DP-USAGE-03`](../../schemes/llmtier-system-test-scheme.md)）；机制 `T-MET-PAGE`（[usage-metering 机制](../../../20_system_design/mechanisms/usage-metering.md) §4.5/§4.7 CON-METER-004）。
+- **测试方法（§1.5 方法表行）**：边界值抽样 + 契约字段比对
 - 要测什么（责任展开）：`GET /v1/usage?limit=1` 每页至多 1 条并给出 `next_cursor`；沿 cursor 取后续页，同 `snapshot_id`/`snapshot_at`、按 `(recorded_at,request_id)` 稳定推进、无重复无遗漏，`has_more=false` 时 `next_cursor=null`。`limit` `1..200` 默认 100，`cursor` 可选；首屏创建 `query_snapshots` 并冻结有序成员，返回 `next_cursor = "<snapshot_id>:<offset>"`；后续页按冻结视图读，`snapshot` 跨页不变。实现 `src/inference/usage.py::UsageRecorder._page`（`ORDER BY v.recorded_at,v.request_id`，`limit+1` 探测 `has_more`）。机制需求 `R-MET-02`；需求链 `LT-FUN-004`、`LT-INT-004/005/007`、`CT-USAGE-001`。
 - 明确不测什么 / 失败含义：不测过期 cursor 拒绝（DP-USAGE-04）、主体隔离（DP-USAGE-06）、同 cursor 重放的逐字节幂等/冻结不变（DP-USAGE-07）、store 不可用（DP-USAGE-08）；不测时间窗元数据完整性（DP-USAGE-01）；不测 `limit` 取值范围校验（实现仅做整数转换）。失败含义＝分页游标契约破坏。
 

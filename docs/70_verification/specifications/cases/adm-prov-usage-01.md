@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ADM-PROV-USAGE-01` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ADM-PROV-USAGE-01` / 系统设计 §8 provider usage 快照接口（/v1/providers/{id}/usage） / `VRC-MGMT-006` / `normal` / `P1`
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
 - 方案清单登记：`ADM-PROV-USAGE-01`（与 §3.2 权威清单一致；本文件名 `adm-prov-usage-01.md`，唯一对应）。
 - 要测什么（责任展开）：`GET /v1/providers/{id}/usage` 读取 provider 账号用量快照：HTTP 200 + 精确 `ProviderAccountUsageSnapshot`（12 个必填键），纯读、无副作用。
 - 明确不测什么 / 失败含义：不证明 刷新（ADM-PROV-USAGE-02/03）、不证明未知 provider 的 404（ADM-PROV-USAGE-04）、不证明上游用量 API 的真实数值正确性（上游决定，本 case 只断言 wire 形状与枚举）、不证明 provider 详情/secret 不泄露（ADM-PROV-14）。

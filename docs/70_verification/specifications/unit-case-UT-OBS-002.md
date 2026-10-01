@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-OBS-002` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-OBS-002` / `VRC-OBS-002`（observability 模块设计 §14 / observability-isd §9.1，observability 0.1.0-draft.6） / `VRC-OBS-002` / boundary / P1（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：边界值（快照/统计字段/去 query/存储 503）
 - 要测什么（责任展开）：被测：统计口径（按 tier/deployment 聚合、含 provider 元数据、跨 principal）、非法 group_by 拒绝、空记录返回空；快照字段完整与 URL 去 query（与 UT-OBS-006 共享 `SnapshotRedactionTests`）。
 - 明确不测什么 / 失败含义：不测：真实 dashboard（M002）；不测 HTTP 形状（M006）。失败含义＝查询/统计口径/脱敏实现错误。
 

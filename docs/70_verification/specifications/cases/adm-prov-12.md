@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ADM-PROV-12` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ADM-PROV-12` / 系统设计 §8 Provider CRUD 接口（/v1/providers） / `VRC-MGMT-001` / `normal` / `P2`
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-CFG-BADREF：非法 secret_ref 格式）
 - 方案清单登记：`ADM-PROV-12`（与 §3.2 权威清单一致；本文件名 `adm-prov-12.md`，唯一对应）。
 - 要测什么（责任展开）：`POST /v1/providers` 提交非法格式 `secret_ref`：HTTP 400 + `error.code=="invalid_request"` + `error.param=="secret_ref"`，不创建资源。
 - 明确不测什么 / 失败含义：不证明 合法 `env:`/`file:` 引用被接受（ADM-PROV-02 用 `null`）、不证明 `secret_ref` 值不被回显（ADM-PROV-14）、不证明 `kind` 枚举（ADM-PROV-11）、不证明 `usage.*_key_ref` 校验（`registry._usage_values`，未单列 case）；本 case 只锁定单一非法格式。

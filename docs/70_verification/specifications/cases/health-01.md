@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `HEALTH-01` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -32,6 +32,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`HEALTH-01` / 系统设计 §8 健康/就绪接口（/healthz、/readyz） / `VRC-API-002` / `normal` / `P0`。本文件名 `health-01.md`，与 Case ID 唯一对应。
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
 - 要测什么（责任展开）：`GET /healthz` 公开存活探针：HTTP 200 + `HealthView{status:"ok", version:<string>}`，无凭据、无副作用；**即使 bootstrap/schema 失败也保持 200**。验证 IF-HEALTH 的**进程存活探针**契约。端点 `GET /healthz`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getHealth`，`security:[]`），实现 [`src/http_api/app.py:187`](../../../../src/http_api/app.py) 在 `_dispatch()` 最前短路返回 `_json(200, health_view(__version__))`；[`health_view`](../../../../src/http_api/health.py) 返回 `{"status":"ok","version":<__version__>}`（`__version__="0.3.0-dev"`，[`src/http_api/__init__.py`](../../../../src/http_api/__init__.py)）。机制 `T-TRUST-ENDPOINTS`（需求 `R-TRUST-04`；见 [access-trust 机制](../../../20_system_design/mechanisms/access-trust.md)）；需求链 `LT-FUN-006`/`LT-OPS-001`、`CT-OPS-001`（[系统测试方案 §3/§5](../../schemes/llmtier-system-test-scheme.md)）。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明就绪（`/readyz` 见 HEALTH-02/03/04/05）；不证明 healthz 也经鉴权（该端点 `security:[]`，鉴权属 AUTH-*）；不证明 `version` 的语义（只断言其为非空字符串）；不触发任何 provider 计费调用（`LT-OPS-001`）。**失败含义＝进程存活探针契约破坏**（返回非 200 或非 `HealthView`），而非就绪语义失败。
 

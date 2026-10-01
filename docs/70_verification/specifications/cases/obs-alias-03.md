@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `OBS-ALIAS-03` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-29` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`OBS-ALIAS-03` / 系统设计 §8 契约别名命名空间（/tier/admin/v1/*） / `VRC-DIAG-002` / `normal` / `P2`
+- **测试方法（§1.5 方法表行）**：契约字段比对（别名/规范路由逐字节 parity）
 - 方案清单登记：`OBS-ALIAS-03`
 - 要测什么（责任展开）：`/tier/admin/v1/trace/{request_id}` 与 `/v1/trace/{request_id}` 的 GET 由同一 handler 服务：status 与响应体逐字节等价（含未知 id 的 404 信封）。
 - 明确不测什么 / 失败含义：不证明 全生命周期内容（OBS-REQTRACE-01）、不证明未知 id 404 语义本身（OBS-REQTRACE-02）、不证明角色负向（OBS-REQTRACE-03、AUTH-08）、不证明其它别名（OBS-ALIAS-01/02/04/05/06）。**契约一致性警示（须登记）**：`_UnavailableDiagnostics.trace` 对任意 id 返回 `200` 空视图，等价比对在降级实例下仍可做但语义受限（判 BLOCKED/SKIP）。

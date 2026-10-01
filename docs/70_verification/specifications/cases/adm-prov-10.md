@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ADM-PROV-10` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ADM-PROV-10` / 系统设计 §8 Provider CRUD 接口（/v1/providers） / `VRC-MGMT-001` / `negative` / `P1`
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
 - 方案清单登记：`ADM-PROV-10`（与 §3.2 权威清单一致；本文件名 `adm-prov-10.md`，唯一对应）。
 - 要测什么（责任展开）：`DELETE /v1/providers/{id}` 删除被活动 deployment 引用的 provider：HTTP 409 + `error.code=="resource_in_use"`，provider 保留。
 - 明确不测什么 / 失败含义：不证明 成功删除（ADM-PROV-08）、不证明缺/过期 If-Match 412（ADM-PROV-09）、不证明 deployment 侧删除被 service-level 引用的 409；本 case 依赖 baseline `prov_b → depl_b` 的引用关系，不删除任何资源（删除必然被拒）。

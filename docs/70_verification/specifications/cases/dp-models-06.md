@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-MODELS-06` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -32,6 +32,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-MODELS-06` / 系统设计 §8 逻辑模型清单接口（/v1/models） / `VRC-INF-001` / `negative` / `P0`。本文件名 `dp-models-06.md`，与 Case ID 唯一对应。
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-MODEL：不存在）
 - 要测什么（责任展开）：`GET /v1/models/NonExistent`（不存在的 id）→ HTTP 404 + `error.code=="model_not_found"`。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明正向精确返回（DP-MODELS-02）、大小写/URL 编码边界（DP-MODELS-03/04/05，虽同以 404 收口但输入不同）；不证明清单聚合（DP-MODELS-01）或 capabilities（DP-MODELS-07）；不证明凭据与 LAN trust（AUTH-01/02/06）；不证明路由到 Responses 的 unknown model（DP-RESP-05，端点不同）。**失败含义＝存在性拒绝契约破坏**。
 

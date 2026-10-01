@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "UT-UI-007",
   "document_type": "tests.unit-case",
-  "document_version": "0.1.0-draft.1",
+  "document_version": "0.1.0-draft.2",
   "title": "UT-UI-007 — tierState/backendState 缺失与优先级分支",
   "document_owner": "LLMTier",
   "authors": [
@@ -27,5 +27,5 @@
   "parent_document_id": "llmtier-unit-test-scheme",
   "supersedes": null,
   "created_at": "2026-09-30",
-  "last_modified_at": "2026-09-30"
+  "last_modified_at": "2026-10-01"
 }

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-RESP-16` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -30,6 +30,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-RESP-16` / 系统设计 §8 Responses 接口 / `VRC-INF-001` / recovery / P1（[方案清单 `DP-RESP-16`](../../schemes/llmtier-system-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-REQ-JSON：非法 JSON body）
 - 要测什么（责任展开）：`POST /v1/responses` 发送非法 JSON body：`400 invalid_json`，dispatch 前拒绝（自动化入口 `at_dp_resp_16.py`）。body 不是合法 JSON（或不是 JSON 对象）时，M001 在业务校验/dispatch 前返回 `400 invalid_json`。需求 `LT-FUN-001`；错误目录 `ERR-REQ-JSON` → wire `code=invalid_json`；实现 `src/http_api/app.py` `_body()`（`json.loads` 失败 → `ApiError(400, "invalid_json", "Request body is not valid JSON")`；解析成功但非对象 → `ApiError(400, "invalid_json", "Request body must be a JSON object")`）。
 - 明确不测什么 / 失败含义：不测 schema 级字段校验（缺 `model` 见 DP-RESP-08；未知字段见 DP-RESP-12..15）；不测 `Content-Length` 非法（`400 invalid_request`）或超限（DP-RESP-18）；不测上游调用。失败含义＝请求体解析契约破坏。
 

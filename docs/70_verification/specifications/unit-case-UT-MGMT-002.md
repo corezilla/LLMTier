@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-MGMT-002` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-MGMT-002` / `VRC-MGMT-002`（management 模块设计 §14 / management-isd §9.1，management 0.1.0-draft.2） / `VRC-MGMT-002` / negative / P0（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（CRUD 不变量/ETag stale）
 - 要测什么（责任展开）：被测：provider/deployment/service_level CRUD 的 ETag 412、重复 409、删除固定 tier 拒绝、引用校验、能力精确匹配、`Embedding-v1` 冻结、能力编辑重算绑定 tier 与冲突回滚。
 - 明确不测什么 / 失败含义：不测：HTTP wire 层（M001）；不测真实 provider。失败含义＝不变量/ETag/引用实现错误。
 

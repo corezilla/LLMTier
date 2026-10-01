@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `AUTH-03` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-29` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`AUTH-03` / 系统设计 §8 认证与授权跨切面（角色/LAN trust/无鉴权） / `VRC-API-002` / `security` / `P0`
+- **测试方法（§1.5 方法表行）**：鉴权/授权/脱敏冒烟 + 角色隔离
 - 方案清单登记：`AUTH-03`（与 §3.2 权威清单一致；本文件名 `auth-03.md`，唯一对应）。
 - 要测什么（责任展开）：`GET /v1/providers` 在**携带有效 data token**时被拒，返回 403 + `permission_denied`（data 角色不授权 admin 面）。
 - 明确不测什么 / 失败含义：不证明 **无 token 的 LAN trust** 是否受理 admin 面（AUTH-04）、**管理面未授权优先于资源存在性**（AUTH-09）、**别名命名空间**需 admin（AUTH-08）、**错误 bearer** 被拒（AUTH-02）、**缺/非法凭据→401**（AUTH-10）、**未配置鉴权→503**（AUTH-07）；也不证明 `permission_denied` 的具体比较是否恒定时间（INV-2）。

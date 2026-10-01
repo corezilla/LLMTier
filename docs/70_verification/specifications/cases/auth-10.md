@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `AUTH-10` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-29` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`AUTH-10` / 系统设计 §8 认证与授权跨切面（角色/LAN trust/无鉴权） / `VRC-API-002` / `security` / `P1`
+- **测试方法（§1.5 方法表行）**：鉴权/授权/脱敏冒烟 + 角色隔离
 - 方案清单登记：`AUTH-10`（与 §3.2 权威清单一致；本文件名 `auth-10.md`，唯一对应）。
 - 要测什么（责任展开）：受保护端点 `GET /v1/models` 在**携带非法授权方案（`Authorization: Basic …`）**时返回 401 + `authentication_required`（非法凭据形态 ≠ 凭据不匹配 403）。
 - 明确不测什么 / 失败含义：不证明 **错误 bearer（形态合法）→403**（AUTH-02）、**空 bearer→403**（AUTH-06）、**data token 访问 admin 面→403**（AUTH-03/08/09）、**未配置鉴权→503**（AUTH-07）、**无 token 的 LAN trust→200**（AUTH-01/04）、**公共端点无需 token**（AUTH-05）。本 case **不**证明非受信来源下"缺 Bearer→401"（见下构造说明）。

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `OBS-TRACE-01` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-29` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`OBS-TRACE-01` / 系统设计 §8 诊断 trace 接口（/v1/diagnostics/traces） / `VRC-DIAG-002` / `normal` / `P1`
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
 - 方案清单登记：`OBS-TRACE-01`
 - 要测什么（责任展开）：`GET /v1/diagnostics/traces` 按 `request_id` 去重列出请求 trace：`TracePage` 中同一 `request_id` 至多出现一次，分页排序稳定，每项为合法 `TraceView`（`stages` 有序且 ≥1）。
 - 明确不测什么 / 失败含义：不证明 `limit=1` 分页/无效 cursor（OBS-TRACE-02）、不证明单请求全生命周期（OBS-REQTRACE-01）、不证明快照/统计（OBS-SNAP-01、OBS-STATS-01）、不证明别名等价（OBS-ALIAS-06）。**契约一致性警示（须登记）**：`since`/`until`/`deployment_id`/`model` 在 openapi 中 `required:false`，实现亦允许缺省——本 case 可用无参或宽窗请求。

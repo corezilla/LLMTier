@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-INF-004` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-INF-004` / `VRC-INF-004`（inference 模块设计 §14 / inference-isd §9.1，inference 0.1.0-draft.1） / `VRC-INF-004` / concurrency / P0（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：线程对偶 + 受控时序（同等级 FIFO/准入 429/全不健康 503）
 - 要测什么（责任展开）：被测：`Router.admit` 同等级候选、未知 model 404、不健康 503、unknown 不合格、许可释放、同 tier FIFO、不跨 tier；`ModelCatalog` 7 tier 与 availability 三态。
 - 明确不测什么 / 失败含义：不测：真实负载下的吞吐（系统层）；不测 M004 目录 CRUD。失败含义＝准入/路由/目录实现错误。
 

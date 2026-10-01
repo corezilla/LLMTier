@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `AUTH-05` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-29` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`AUTH-05` / 系统设计 §8 认证与授权跨切面（角色/LAN trust/无鉴权） / `VRC-API-002` / `security` / `P0`
+- **测试方法（§1.5 方法表行）**：鉴权/授权/脱敏冒烟 + 角色隔离
 - 方案清单登记：`AUTH-05`（与 §3.2 权威清单一致；本文件名 `auth-05.md`，唯一对应）。
 - 要测什么（责任展开）：`GET /healthz` 在**不带任何凭据、任意来源**下被受理，返回 200 + `status="ok"`（公共存活端点不进入鉴权路径）。
 - 明确不测什么 / 失败含义：不证明 `/readyz` 的就绪语义（HEALTH-02/03/04/05）、不证明任何受保护端点（`/v1/*`）的鉴权（AUTH-01/02/03/04/06/07/08/09/10）、不证明 LAN trust 免登录（AUTH-01/04）、不证明未配置鉴权时受保护端点的 503（AUTH-07）。本 case **不断言** `/healthz` 不受 bootstrap 失败影响之外的 `/readyz` 行为。

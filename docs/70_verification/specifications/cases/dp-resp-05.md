@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-RESP-05` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -32,6 +32,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-RESP-05` / 系统设计 §8 Responses 接口（POST /v1/responses） / `VRC-INF-001/004` / `negative` / `P0`。本文件名 `dp-resp-05.md`，与 Case ID 唯一对应。
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
 - 要测什么（责任展开）：`POST /v1/responses` 使用未知 `model`：`404 model_not_found`，无上游调用。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明大小写/URL 编码的模型清单语义（DP-MODELS-03/04/05）；不证明合法模型的流式成功（DP-RESP-01/03/06）；不证明 `model` 字段缺失的校验（DP-RESP-08，属 `invalid_request`）；不证明上游答案。**失败含义＝模型解析失败契约破坏**。
 

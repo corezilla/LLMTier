@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-MGMT-011` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-MGMT-011` / M004 management §14.6 · `AccountUsage.refresh` 分支 v0.1.0-draft.2 / `VRC-MGMT-006` / negative / P1（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（not_refreshed/凭据缺失/上游错误）
 - 要测什么（责任展开）：被测：GET 不触网；`not_refreshed`；`credentials_missing`；provider 报错→`unavailable`+`error`（`""` 非 null）。
 - 明确不测什么 / 失败含义：不测：正常刷新快照（UT-MGMT-006）；不测真实 provider 端点。失败含义＝账号用量分支状态或错误快照实现错误。
 

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ADM-AUDIT-03` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ADM-AUDIT-03` / 系统设计 §8 审计接口（GET /v1/audit） / `VRC-MGMT-003` / `negative` / `P1`
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
 - 方案清单登记：`ADM-AUDIT-03`（与 §3.2 权威清单一致；本文件名 `adm-audit-03.md`，唯一对应）。
 - 要测什么（责任展开）：`GET /v1/audit?limit=abc` 非法分页参数：HTTP 400 `invalid_request`。
 - 明确不测什么 / 失败含义：不证明 默认 50/边界 `limit=1`（ADM-AUDIT-01/02）、不证明字段脱敏（ADM-AUDIT-01）、不证明角色负向（`/v1/audit` 为 admin 守门，data 凭据的 403 属 AUTH-03/09 的跨切面角色覆盖，**不是本 case**）、不证明 `cursor`（审计无 cursor）。

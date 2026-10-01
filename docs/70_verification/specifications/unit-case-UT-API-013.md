@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-API-013` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-API-013` / M001 http-api §14.1 · `/v1/diagnostics` PATCH v0.1.0-draft.2 / `VRC-API-001` / negative / P2（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（未知键/非布尔开关）
 - 要测什么（责任展开）：被测：`/v1/diagnostics`（及别名）PATCH 未知键 → 400 `invalid_request`；非布尔开关值 → 400。
 - 明确不测什么 / 失败含义：不测：合法开关切换落库（UT-OBS-001 / UT-DIAG-001）。失败含义＝诊断 PATCH 白名单/类型校验实现错误。
 

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ADM-PROV-USAGE-03` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ADM-PROV-USAGE-03` / 系统设计 §8 provider usage 快照接口（/v1/providers/{id}/usage） / ``VRC-MGMT-006`、`VRC-DIAG-004`` / `normal` / `P1`
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
 - 方案清单登记：`ADM-PROV-USAGE-03`（与 §3.2 权威清单一致；本文件名 `adm-prov-usage-03.md`，唯一对应）。
 - 要测什么（责任展开）：`POST /v1/providers/{id}/usage` 携带 `{"confirm_external_call": true}` 刷新账号用量：HTTP 200 + 新 `ProviderAccountUsageSnapshot`；`provider_local`（local 类型）返回 `status="unlimited"`、`source="quota_config"`，并持久化快照。
 - 明确不测什么 / 失败含义：不证明 缺确认拒绝（ADM-PROV-USAGE-02）、不证明只读快照（ADM-PROV-USAGE-01）、不证明未知 provider 的 404（ADM-PROV-USAGE-04）、不证明 minimax/volc 的真实上游用量数值（本 case 用 `provider_local`，其刷新为本地合成、不触外部用量 API，故**不产生费用**）；不证明并发刷新。

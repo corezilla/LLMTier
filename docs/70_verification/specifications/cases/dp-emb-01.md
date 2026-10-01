@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-EMB-01` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-EMB-01` / 系统设计 §8 Embeddings 接口 / `VRC-INF-001`、`VRC-INF-002` / normal / P0（[方案清单 `DP-EMB-01`](../../schemes/llmtier-system-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
 - 要测什么（责任展开）：`POST /v1/embeddings` 基本 embedding：`Embedding-v1`（bge-m3，冻结空间 `bge-m3-dense-1024-v1`）成功返回，`object="list"`、`data[0].object="embedding"`、`embedding` 为 1024 个有限数值。`model="Embedding-v1"`、`input` 为字符串、`encoding_format` 缺省（默认 `float`）；成功返回 OpenAPI `EmbeddingResponse`（顶层键 `{object,data,model,usage}`）。需求 `LT-FUN-003`/`LT-OPEN-02`；机制需求 `R-INF-04`/`R-INF-05`/`R-INF-07`（[inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）；契约 `CT-EMB-001`。
 - 明确不测什么 / 失败含义：不测 `encoding_format=base64`（DP-EMB-02）；不测多次同输入不变量/相似度（DP-EMB-03）；不测未知 model 404（DP-EMB-04）；不测 batch>1（DP-EMB-05）；不测 `dimensions` 不符拒绝（DP-EMB-06）；不测非法 `encoding_format`（DP-EMB-07）；不发布时延/吞吐 SLO；不对向量语义/答案/L2 归一化做门限。失败含义＝成功路径 wire 契约破坏。
 

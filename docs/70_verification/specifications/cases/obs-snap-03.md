@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `OBS-SNAP-03` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -32,6 +32,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`OBS-SNAP-03` / 系统设计 §8 诊断快照接口（GET /v1/diagnostics/snapshots） / `VRC-DIAG-002` / recovery / P1（[方案清单 `OBS-SNAP-03`](../../schemes/llmtier-system-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：故障注入（诊断存储不可用 → 503）+ 复位阶梯
 
 - 要测什么（责任展开）：诊断 store 不可用时 `GET /v1/diagnostics/snapshots` 返回 `503 usage_store_unavailable`（typed server error），**不得**以 200/空结果冒充"无数据"；恢复存储后回到 200。实现经 [`_store_read`](../../../../src/http_api/app.py) 或 `mutate` 把存储异常收敛为 `usage_store_unavailable`。
 

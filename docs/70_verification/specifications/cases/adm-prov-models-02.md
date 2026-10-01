@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ADM-PROV-MODELS-02` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ADM-PROV-MODELS-02` / 系统设计 §8 provider 上游模型目录接口（GET /v1/providers/{id}/models） / `VRC-MGMT-001` / `negative` / `P1`
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
 - 方案清单登记：`ADM-PROV-MODELS-02`（与 §3.2 权威清单一致；本文件名 `adm-prov-models-02.md`，唯一对应）。
 - 要测什么（责任展开）：`GET /v1/providers/{id}/models` 读取不存在 provider 的上游模型目录：HTTP 404 + `error.code=="not_found"`，统一错误信封，无副作用。
 - 明确不测什么 / 失败含义：不证明 既存 provider 的正常目录（ADM-PROV-MODELS-01）、不证明 provider 详情/usage 子路径的 404（ADM-PROV-04、ADM-PROV-USAGE-04）、不证明鉴权优先于存在性（AUTH-09）、不证明上游不可用路径（不在本负向 case 范围）。

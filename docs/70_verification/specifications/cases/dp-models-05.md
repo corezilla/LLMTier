@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-MODELS-05` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -32,6 +32,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-MODELS-05` / 系统设计 §8 逻辑模型清单接口（/v1/models） / `VRC-INF-001` / `negative` / `P1`。本文件名 `dp-models-05.md`，与 Case ID 唯一对应。
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-MODEL：URL 编码不匹配）
 - 要测什么（责任展开）：`GET /v1/models/Senior%20`（URL 编码尾空格）不匹配任何 tier → HTTP 404 + `error.code=="model_not_found"`。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明正向精确返回（DP-MODELS-02）、小写/全大写负向（DP-MODELS-03/04）、其它不存在 id（DP-MODELS-06）；不证明服务端对**合法**含空格模型 id 的支持（无此 tier，本 case 只证明其被拒）；不证明凭据与 LAN trust（AUTH-01/02/06）；**不锁定"404 的具体成因是解码后带空格还是字面 `%20`"**——两者都落在"未命中"这一可观察契约上。**失败含义＝编码/空格边界拒绝契约破坏**。
 

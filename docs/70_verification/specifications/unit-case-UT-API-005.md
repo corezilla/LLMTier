@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-API-005` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-API-005` / M001 http-api §14.1 · `_dispatch`/`_run` 错误出口 v0.1.0-draft.2 / `VRC-API-001` / negative / P0（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（未知路由/异常/读路径 sqlite3.Error）
 - 要测什么（责任展开）：被测：`Handler._dispatch`/`_run` 的未知路由 404（`not_found`）、未知异常 500（`internal_error` + `unhandled_error` 落运行日志）、读路径 `sqlite3.Error` → 503 `usage_store_unavailable`；错误响应对应统一信封且带 `X-Request-ID`。
 - 明确不测什么 / 失败含义：不测：成功路径（UT-API-001）；不测 wire 互操作（契约/系统层）。失败含义＝错误出口映射或统一信封实现错误。
 

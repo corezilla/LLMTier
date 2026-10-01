@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `OBS-REQTRACE-03` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-29` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`OBS-REQTRACE-03` / 系统设计 §8 请求追踪接口（/v1/trace/{request_id}） / ``VRC-API-002` + `R-TRUST-02`` / `security` / `P1`
+- **测试方法（§1.5 方法表行）**：鉴权/角色隔离冒烟（data→观测面 403）
 - 方案清单登记：`OBS-REQTRACE-03`
 - 要测什么（责任展开）：`GET /v1/trace/{request_id}` 以 `data` token 访问：HTTP 403 `permission_denied`，无信息泄露（不返回 404 的存在性差异）。
 - 明确不测什么 / 失败含义：不证明 正向 trace（OBS-REQTRACE-01）、不证明未知 id 404（OBS-REQTRACE-02）、不证明无凭据/非法方案 401（AUTH-10）、不证明别名命名空间需 admin（AUTH-08，虽同思路）、不证明快照/统计角色负向（未单列）。

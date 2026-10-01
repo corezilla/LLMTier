@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `AUTH-07` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-29` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`AUTH-07` / 系统设计 §8 认证与授权跨切面（角色/LAN trust/无鉴权） / `VRC-MGMT-003` / `security` / `P0`
+- **测试方法（§1.5 方法表行）**：鉴权/授权/脱敏冒烟 + 角色隔离
 - 方案清单登记：`AUTH-07`（与 §3.2 权威清单一致；本文件名 `auth-07.md`，唯一对应）。
 - 要测什么（责任展开）：受保护端点 `GET /v1/models` 在**未配置任何 token**的实例上、携带未配置的 bearer 时返回 503 + `auth_not_configured`（运行期无凭据可用，拒绝而非放行）。
 - 明确不测什么 / 失败含义：不证明 **错误 bearer** 在**已配置**实例上被拒（AUTH-02）、**空 bearer** 被拒（AUTH-06）、**data token 访问 admin 面**被拒（AUTH-03）、**缺/非法凭据→401**（AUTH-10）、**无 token 的 LAN trust** 免登录（AUTH-01/04）。特别地，本 case **不**证明"未配置鉴权时公共端点也 503"——`/healthz`/`/readyz` 永不进入鉴权（AUTH-05/HEALTH-06）。

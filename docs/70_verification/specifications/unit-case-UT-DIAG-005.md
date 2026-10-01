@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-DIAG-005` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-DIAG-005` / M006 libdiag §14.2 · `snapshots`/`stats` 分支 v0.1.0-draft.6 / `VRC-DIAG-002` / boundary / P1（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：边界值（256B 字节截断/百分位/分桶）
 - 要测什么（责任展开）：被测：快照 `error_summary` 256B UTF-8 字节截断；`snapshot_type` 由 status 判定（有 status→upstream、无→error）；开关关→无行；stats 百分位 P50/P95 与 `windows=[]`、`error_4xx/5xx` 分桶。
 - 明确不测什么 / 失败含义：不测：HTTP 契约（UT-DIAG-002）；不测 fail-open（UT-DIAG-003/007）。失败含义＝截断/类型判定/百分位与分桶实现错误。
 

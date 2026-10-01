@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-LOG-001` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-LOG-001` / `VRC-LOG-001`（log 模块设计 §14 / log-isd §9.1，log 0.1.0-draft.1） / `VRC-LOG-001` / security / P0（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（脱敏/长度/排序/夹取）
 - 要测什么（责任展开）：被测：`OperationalLog.record/page` 脱敏（`Authorization` 键名；`Bearer …`；`api_key`/`apikey`/`secret`/`access_key[_id]`/`token` 后跟 `[:=]` 的**键名与值整段** → `[REDACTED]`，`RISK-LOG-1` 已关闭）、换行折叠、长度 ≤512、倒序、按 level/module 过滤、`limit` 夹到 200。
 - 明确不测什么 / 失败含义：不测：真实日志文件轮转（运维）；不测跨模块事件语义。失败含义＝脱敏漏网或查询实现错误。
 

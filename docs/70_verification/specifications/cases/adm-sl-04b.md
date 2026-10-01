@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ADM-SL-04B` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ADM-SL-04B` / 系统设计 §8 Service Level CRUD 接口（/v1/service-levels） / `VRC-MGMT-002` / `negative` / `P1`
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
 - 方案清单登记：`ADM-SL-04b`（与 §3.2 权威清单一致；本文件名 `adm-sl-04b.md`，唯一对应）。
 - 要测什么（责任展开）：`PATCH /v1/service-levels/{id}` 提交未知字段：HTTP 400 `invalid_request`（"Unknown or empty …"）。
 - 明确不测什么 / 失败含义：不证明 合法 PATCH 成功（ADM-SL-04）、不证明缺/过期 `If-Match` 412（SL 412 未单独构 case）、不证明成员能力/向量空间冲突（ADM-SL-06/07）。

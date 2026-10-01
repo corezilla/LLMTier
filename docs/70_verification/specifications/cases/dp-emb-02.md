@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-EMB-02` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-EMB-02` / 系统设计 §8 Embeddings 接口 / `VRC-INF-001` / normal / P0（[方案清单 `DP-EMB-02`](../../schemes/llmtier-system-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对（base64 严格解码）
 - 要测什么（责任展开）：`POST /v1/embeddings` `encoding_format=base64`：`data[0].embedding` 为 RFC 4648 base64 字符串，独立解码得 1024 个 little-endian IEEE-754 float32，全部 finite。需求 `LT-FUN-003`/`LT-OPEN-02`；机制需求 `R-INF-04`/`R-INF-07`（[inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）；契约 `CT-EMB-001`；OpenAPI `EmbeddingRequest.encoding_format`（`enum:[float,base64]`）与 `EmbeddingItem.embedding`（`contentEncoding:"base64"`，little-endian float32）。
 - 明确不测什么 / 失败含义：不测 `float`（默认）表示的形状/有限性（DP-EMB-01）；不测重复不变量（DP-EMB-03）；不测未知 model（DP-EMB-04）、batch>1（DP-EMB-05）、`dimensions` 不符（DP-EMB-06）、非法 `encoding_format`（DP-EMB-07）；不对向量语义/L2 归一化数值做门限。失败含义＝base64 表示契约破坏。
 

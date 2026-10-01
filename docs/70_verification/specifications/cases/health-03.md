@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `HEALTH-03` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -32,6 +32,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`HEALTH-03` / 系统设计 §8 健康/就绪接口（/healthz、/readyz） / `VRC-MGMT-003`（另记 `VRC-UTIL-001/002`） / `recovery` / `P1`。本文件名 `health-03.md`，与 Case ID 唯一对应。
+- **测试方法（§1.5 方法表行）**：状态机驱动（就绪态构造 degraded）+ 契约字段比对
 - 要测什么（责任展开）：`GET /readyz` 在某 tier 存在候选 deployment 但无 `healthy` 候选时返回 HTTP 503 + `ReadinessView{status:"degraded", models[7]}`（各 tier `availability="degraded"`）。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明全可用 `ready`（HEALTH-02）、无候选 `not_ready`（HEALTH-04）、bootstrap 失败（HEALTH-05）；不证明探测/健康转换过程（`POST /v1/probes` 属 ADM-PROBE-*）、不证明推理路由可用；不触发 provider 计费调用（`LT-OPS-001`）。**失败含义＝降级就绪聚合契约破坏**。
 

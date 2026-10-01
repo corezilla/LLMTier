@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-API-012` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-API-012` / M001 http-api §14.1 · `_UnavailableDiagnostics`/引导 v0.1.0-draft.2 / `VRC-API-001` / recovery / P1（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：故障注入 + 异常路径恢复（诊断初始化失败 fail-open/引导）
 - 要测什么（责任展开）：被测：`DiagnosticsService` 初始化失败时降级为 `_UnavailableDiagnostics`（全方法 no-op、开关默认关），推理仍成功；`bootstrap_error` 置位时 `/healthz`+`/ui/*` 仍可达、`/readyz` →503、数据面 503；**`Application` 对非 `ApiError` 引导异常兜底为 `bootstrap_error`(503 `bootstrap_invalid`) 而非崩溃（CR-BOOTSTRAP-CATCH）**。
 - 明确不测什么 / 失败含义：不测：诊断正常路径（UT-DIAG-*）；不测 systemd 启动。失败含义＝fail-open 降级或引导错误面实现错误。
 

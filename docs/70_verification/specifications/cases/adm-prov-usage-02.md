@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ADM-PROV-USAGE-02` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ADM-PROV-USAGE-02` / 系统设计 §8 provider usage 快照接口（/v1/providers/{id}/usage） / ``VRC-MGMT-006`、`VRC-DIAG-004`` / `negative` / `P1`
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
 - 方案清单登记：`ADM-PROV-USAGE-02`（与 §3.2 权威清单一致；本文件名 `adm-prov-usage-02.md`，唯一对应）。
 - 要测什么（责任展开）：`POST /v1/providers/{id}/usage` 未携带显式二次确认：HTTP 400，统一错误信封；**缺 `confirm_external_call` 键**时实际 `code=="invalid_request"`，键存在但值非 `true` 时为 `code=="confirmation_required"`。
 - 明确不测什么 / 失败含义：不证明 带确认刷新（ADM-PROV-USAGE-03）、不证明只读快照（ADM-PROV-USAGE-01）、不证明未知 provider 的 404（ADM-PROV-USAGE-04）、不证明上游用量 API 行为；本 case 的拒绝必须**在触上游之前**完成（无外部调用、无快照写入）。

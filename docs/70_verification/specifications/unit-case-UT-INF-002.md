@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-INF-002` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-INF-002` / `VRC-INF-002`（inference 模块设计 §14 / inference-isd §9.1，inference 0.1.0-draft.1） / `VRC-INF-002` / boundary / P0（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：边界值（base64/非有限值/维数/usage 边界）
 - 要测什么（责任展开）：被测：`EmbeddingsService.create` 正常 float/base64、批数量、逻辑 model、非法维数、未知字段（`unsupported_field`+`param`）、缺字段（`invalid_request`+`param`）、非有限值拒绝、usage→`prompt_tokens`、`_test_adapter` 注入钩子绕过 provider 构造。
 - 明确不测什么 / 失败含义：不测：OpenAI 真实 embeddings 协议；不测 M004 能力目录。失败含义＝向量校验/归一实现错误。
 

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-UTIL-002` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-UTIL-002` / `VRC-UTIL-002`（util 模块设计 §14 / util-isd §9.1，util 0.1.0-draft.1） / `VRC-UTIL-002` / recovery / P0（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：故障注入 + 异常路径恢复（回滚/幂等 migrate/损坏库/版本不匹配）
 - 要测什么（责任展开）：被测：事务中途异常回滚、`migrate()` 幂等、损坏库/版本不匹配拒绝、无 `schema_meta` 旧库拒绝、持久化跨重开。
 - 明确不测什么 / 失败含义：不测：真实多进程并发启动压测（系统层可补充）；不测业务表语义。失败含义＝回滚/迁移/拒绝实现错误。
 

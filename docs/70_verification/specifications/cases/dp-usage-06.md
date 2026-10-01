@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-USAGE-06` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-USAGE-06` / 系统设计 §8 Usage 查询接口 / `VRC-MGMT-006` / normal / P1（[方案清单 `DP-USAGE-06`](../../schemes/llmtier-system-test-scheme.md)）；机制 `T-TRUST-SHARED`、`R-MET-02`（[usage-metering 机制](../../../20_system_design/mechanisms/usage-metering.md) §4.6/§4.7 与 [access-trust 机制](../../../20_system_design/mechanisms/access-trust.md)）。
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对 + 鉴权/角色隔离冒烟（主体隔离）
 - 要测什么（责任展开）：`GET /v1/usage` 的主体隔离：`data` 凭据只见到本主体的 record（脚本以 `X-Principal-ID` 指派两个不同 data 主体），`admin` 凭据见到全局，`data` 结果集 ⊆ `admin` 结果集；data 产生的 cursor 以 admin 重放被拒 `403 permission_denied`。OpenAPI `listUsage` description 明确 "With a data credential the caller sees only its own records; with the admin credential the response includes all principals"；实现 `src/http_api/app.py` 经 `_auth_either()`→`authenticate_any()` 得 `is_admin`，`src/inference/usage.py::_page` 在 `not admin` 时追加 `h.principal_id=?` 过滤，admin 不加；cursor 的 `authorization_digest = sha256("admin"|principal)` 与 `principal_id` 绑定，跨主体重放 → `403 permission_denied`（**openapi↔code 差异须登记**：实现区分——过期→`400 cursor_expired`、跨主体重放→`403 permission_denied`、filter 不匹配→`400 invalid_request`；本 case 以 **code 为准**取 `403 permission_denied`）。需求链 `LT-FUN-004`、`LT-INT-004/005/007`、`CT-USAGE-001`。
 - 明确不测什么 / 失败含义：不测 LAN 无 token 的免登录解析（`AUTH-01`，且注意无 `Authorization` 会被解析为 **admin** 角色而非 data）；不测分页内容（DP-USAGE-03）、过期 cursor（DP-USAGE-04）、同主体 cursor 重放幂等（DP-USAGE-07）、`DELETE /v1/usage` 的 admin 校验（ADM-USAGE-03）、store 不可用（DP-USAGE-08）。失败含义＝主体隔离/ cursor 绑定契约破坏。
 

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-RESP-20` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -30,6 +30,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-RESP-20` / 系统设计 §8 Responses 接口 / `VRC-INF-004` / concurrency / P1（[方案清单 `DP-RESP-20`](../../schemes/llmtier-system-test-scheme.md)）；机制 `T-QUEUE`。
+- **测试方法（§1.5 方法表行）**：状态机驱动（准入饱和 429 + Retry-After）+ 固定并发度/种子
 - 要测什么（责任展开）：`POST /v1/responses` 准入饱和：`429 rate_limit_exceeded` 且带 `Retry-After`（自动化入口 `at_dp_resp_20.py`）。并发超过 `depl_b` 的运行时并发许可与队列上限（队列 32）时，`Router.admit` 拒绝并返回稳定 `429` 与 `Retry-After`。需求 `R-INF-05`；错误目录 `ERR-RATE-LIMIT` → wire `code=rate_limit_exceeded`；实现 `src/inference/routing.py`（队列满 `len(self._queues[level_id]) >= 32` → `ApiError(429, "rate_limit_exceeded", "Service-level queue is full", retryable=True, headers={"Retry-After":"30"})`；等待超时 → `Retry-After:"1"`）。
 - 明确不测什么 / 失败含义：不测 `model_unavailable`（DP-RESP-19）；不测超时预算的 ms 级时点（不设 SLO）；不测 exactly-once/重试语义。失败含义＝准入/排队契约破坏。
 

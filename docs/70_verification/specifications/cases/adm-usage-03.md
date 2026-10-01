@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ADM-USAGE-03` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ADM-USAGE-03` / 系统设计 §8 管理 usage 接口（GET/DELETE /v1/usage） / `VRC-MGMT-006` / `normal` / `P1`
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对（清空 + 审计）
 - 方案清单登记：`ADM-USAGE-03`（与 §3.2 权威清单一致；本文件名 `adm-usage-03.md`，对应 §3.4 索引 `cases/adm-usage-03.md`）。
 - 要测什么（责任展开）：`DELETE /v1/usage` 清空用量记录：仅 admin 受理（data→403），返回 `{"deleted":N}` 并写审计。
 - 明确不测什么 / 失败含义：不证明 查询/分页（ADM-USAGE-01/02、DP-USAGE-*）、不证明重置后新请求重新计账（temporal 时序，未单独构 case）、不证明 provider 的 usage 快照刷新（ADM-PROV-USAGE-02/03）。本 case 锁定"admin 清空 + `deleted` 计数 + 审计 + data 拒绝"。

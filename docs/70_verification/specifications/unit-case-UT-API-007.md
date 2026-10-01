@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-API-007` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-API-007` / M001 http-api §14.1 · `_correlation` v0.1.0-draft.2 / `VRC-API-001` / normal / P1（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：等价类划分（合法 request-id 回显/派发）
 - 要测什么（责任展开）：被测：`Handler._correlation` 优先回显 `X-Correlation-ID`；缺省时用 W3C `traceparent` 正则提取 32-hex trace-id；两者皆缺返回 `None`。
 - 明确不测什么 / 失败含义：不测：trace 落库查询（UT-OBS-004/007）；不测系统层跨请求关联。失败含义＝关联标识提取实现错误。
 

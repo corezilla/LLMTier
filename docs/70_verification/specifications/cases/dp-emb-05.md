@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-EMB-05` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-EMB-05` / 系统设计 §8 Embeddings 接口 / `VRC-INF-002` / boundary / P2（[方案清单 `DP-EMB-05`](../../schemes/llmtier-system-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：边界值抽样 + 契约字段比对
 - 要测什么（责任展开）：`POST /v1/embeddings` 输入数组长度 33（超过 `embedding_max_batch_inputs=32`）：LLMTier 层不强制该上限，返回 200 且 `data` 含 33 个 embedding 对象。`model="Embedding-v1"`、`input` 为 33 个字符串的数组（`EmbeddingRequest.input` 的数组形态，`minItems:1` 无 `maxItems`）。需求 `LT-FUN-003`/`LT-OPEN-02`（`Embedding-v1` 声明 `batch 32`）；机制需求 `R-INF-04`/`R-INF-07`（[inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）；契约 `CT-EMB-001`。**当前实现的边界事实**：`capabilities.embedding_max_batch_inputs=32` 在 `src/management/registry.py` 中为 **informational**（用于 `/v1/models` 元数据），`src/inference/embeddings.py` 的 `create()` 校验逻辑**不含** batch 上限检查（只校验请求键集、model、`embeddings` 能力、`dimensions`），故 33 项被原样转发上游；实际 batch 限制由上游 bge-m3 处理。
 - 明确不测什么 / 失败含义：不测 batch **上限**（本 case 恰证明"超声明值不被本地拒绝"）；不测超大 batch（如数百项）或上游真实 batch 上限；不测 base64 形态下的 batch 编码（DP-EMB-02）；不测未知 model（DP-EMB-04）、`dimensions`（DP-EMB-06）、非法 `encoding_format`（DP-EMB-07）；不对向量语义做断言。失败含义＝与"本地不强制上限"的实现边界事实不符。
 

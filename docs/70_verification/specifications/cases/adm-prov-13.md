@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ADM-PROV-13` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ADM-PROV-13` / 系统设计 §8 Provider CRUD 接口（/v1/providers） / `VRC-MGMT-002` / `normal` / `P2`
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
 - 方案清单登记：`ADM-PROV-13`（与 §3.2 权威清单一致；本文件名 `adm-prov-13.md`，唯一对应）。
 - 要测什么（责任展开）：`PATCH /v1/providers/{id}` 更新 `usage` 子对象（`max_concurrent_requests`）：HTTP 200，且回读可见新值，随后复位。
 - 明确不测什么 / 失败含义：不证明 标量字段更新（ADM-PROV-05）、不证明 `usage` 校验负向（非法 `usage_provider`/`*_ref`/负值 → 400，见 `_usage_values`，未单列 case）、不证明 `/v1/providers/{id}/usage` 快照刷新（ADM-PROV-USAGE-*）；本 case 只验证合法 `usage` 子对象的持久化与复位。

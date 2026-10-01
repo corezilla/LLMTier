@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ADM-SL-06` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ADM-SL-06` / 系统设计 §8 Service Level CRUD 接口（/v1/service-levels） / `VRC-MGMT-002` / `negative` / `P2`
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-CAPABILITY）
 - 方案清单登记：`ADM-SL-06`（与 §3.2 权威清单一致；本文件名 `adm-sl-06.md`，唯一对应）。
 - 要测什么（责任展开）：`PATCH /v1/service-levels/{id}` 绑定能力不一致的 deployment 集合：HTTP 409 `capability_conflict`。
 - 明确不测什么 / 失败含义：不证明 向量空间冲突（ADM-SL-07）、不证明非白名单/非法字段 400（ADM-SL-02/04b）、不证明合法 PATCH 成功（ADM-SL-04）、不证明 provider_id 不可改（ADM-DEPL-09）。

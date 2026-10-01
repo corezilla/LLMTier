@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-API-010` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-API-010` / M001 http-api §14.1 · `Handler._static` v0.1.0-draft.2 / `VRC-API-004` / security / P1（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：鉴权/脱敏/注入边界冒烟（目录穿越/静态/readyz）
 - 要测什么（责任展开）：被测：`Handler._static` 对 `../` 目录穿越 → 404；`/ui/` 命中 `index.html`；`/readyz` 空库 not_ready → 503。
 - 明确不测什么 / 失败含义：不测：mime/`Cache-Control` exact 字节（方案 §4 Tailored-N/A，归系统/契约层）。失败含义＝静态交付安全或就绪映射实现错误。
 

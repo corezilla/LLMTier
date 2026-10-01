@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-UI-007` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-UI-007` / M002 web-ui §14.1 · `tierState`/`backendState` 行为 v0.1.0-draft.2 / `VRC-UI-001` / normal / P1（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：等价类划分（availability 缺失/优先级状态映射）
 - 要测什么（责任展开）：被测（字符串契约层）：`tierState` 在 availability 缺失时 → Unknown 标签/色调；`backendState` provider-disabled 优先于 deployment 状态（`if(!provider?.enabled)` 先于 `if(!deployment.enabled)`）。
 - 明确不测什么 / 失败含义：本 Case 只做源码字符串契约；**`app.js` 运行时行为与视觉现由系统层真实浏览器 `UIT-UI-001..010` 执行（`tests/ui/`，headless Chrome over CDP；原 G-UT-3/G-UT-4 与 `RISK-UI-EXEC-1` 已关闭）**。失败含义＝状态映射分支源码契约缺失/顺序错误。
 

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-TOOL-001` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-TOOL-001` / M-TOOL `tools/test_report.py`（单元计划 §7 状态映射）/ none（工具，无模块 VRC）/ normal / P1（[方案清单 §3](../schemes/llmtier-unit-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对（工具纯逻辑）
 - 要测什么（责任展开）：被测：`tools/test_report.py` 的 JUnit→状态映射（`passed→PASS`、`failed→FAIL`、`xfailed→BLOCKED`（原因取自 `BLOCKED (...)`）、`xpassed→XPASS`（绝不 PASS）、环境 `skipped→SKIP` / 计划 `skipped→NOT_RUN`、`errored→BLOCKED`）、运行级 SKIP 上限（A≤5 / B≤3）、`case_id_from_source`（docstring 头 / 路径回退）、`build_report` 计数与阻塞口径、`emit_manifests` 逐 Case manifest 产出。
 - 明确不测什么 / 失败含义：不测：pytest 自身执行语义；不测被测产品行为。失败含义＝状态映射错误导致 Run 证据失真（假 PASS / 漏 BLOCKED）。
 

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-EMB-03` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-EMB-03` / 系统设计 §8 Embeddings 接口 / `VRC-INF-002` / normal / P1（[方案清单 `DP-EMB-03`](../../schemes/llmtier-system-test-scheme.md)）。
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对 + 重复采样不变量（同输入 ×5，cosine>0.99）
 - 要测什么（责任展开）：`POST /v1/embeddings` 同一输入连续 5 次：每次 200、维度均 1024，且 5 个向量两两 cosine 相似度 `> 0.99`。`model="Embedding-v1"`、`input` 固定为同一字符串，连续发起 5 次 `POST /v1/embeddings`（`encoding_format` 缺省 `float`）。需求 `LT-FUN-003`/`LT-OPEN-02`；机制需求 `R-INF-04`/`R-INF-07`（[inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）；契约 `CT-EMB-001`；方案正常场景明确"DP-EMB-01/02/03：维度 1024、base64 严格解码、同输入不变量（cosine > 0.99）"。
 - 明确不测什么 / 失败含义：不测"逐位相等"（本 case 接受高相似而非 bitwise 相同）；不测不同输入间的区分度；不测 base64 形态（DP-EMB-02）；不测未知 model（DP-EMB-04）、batch>1（DP-EMB-05）、`dimensions`（DP-EMB-06）、非法 `encoding_format`（DP-EMB-07）；不对向量语义/答案做断言。失败含义＝同输入稳定性契约破坏。
 

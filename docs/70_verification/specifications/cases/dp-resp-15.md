@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-RESP-15` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -30,6 +30,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-RESP-15` / 系统设计 §8 Responses 接口 / `VRC-INF-001` / negative / P2（[方案清单 `DP-RESP-15`](../../schemes/llmtier-system-test-scheme.md)）；机制 `T-STREAM`。
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
 - 要测什么（责任展开）：`POST /v1/responses` 携带 `temperature` 与 `top_p`：`temperature` 为合法字段被受理，`top_p` 不属请求字段、组合命中 `400 unsupported_field`（`param="top_p"`）。OpenAPI `ResponsesRequest` 声明 `temperature`（`number`，`[0,2]`）为合法可选字段，但**未声明 `top_p`**；实现 `src/inference/responses.py` 的 `ALLOWED_FIELDS` 同样只含 `temperature`。
 - 明确不测什么 / 失败含义：不测 `temperature` 对生成结果的数值影响（temperature/top_p 不参与断言）；不测任何别名；不测合法流式成功（DP-RESP-01/06）。失败含义＝字段白名单语义被破坏。
 

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `OBS-ALIAS-04` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-29` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`OBS-ALIAS-04` / 系统设计 §8 契约别名命名空间（/tier/admin/v1/*） / `VRC-DIAG-004` / `normal` / `P2`
+- **测试方法（§1.5 方法表行）**：契约字段比对（别名/规范路由逐字节 parity）
 - 方案清单登记：`OBS-ALIAS-04`
 - 要测什么（责任展开）：`/tier/admin/v1/deployments/{id}/diagnostics` 与 `/v1/deployments/{id}/diagnostics` 的 GET/PATCH 由同一 handler 服务：status 与响应体等价（PATCH 允许服务端 `updated_at` 差异）。
 - 明确不测什么 / 失败含义：不证明 写入/校验语义本身（OBS-DEPL-01/02/03/04 在扁平路径断言）、不证明别名 diagnostics 开关（OBS-ALIAS-01）、不证明其它别名、不证明别名鉴权负向（AUTH-08）。

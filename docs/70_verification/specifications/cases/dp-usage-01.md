@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-USAGE-01` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -46,6 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-USAGE-01` / 系统设计 §8 Usage 查询接口 / `VRC-MGMT-006` / normal / P0（[方案清单 `DP-USAGE-01`](../../schemes/llmtier-system-test-scheme.md)）；机制 `T-MET-PAGE`、`T-MET-FINAL`（[usage-metering 机制](../../../20_system_design/mechanisms/usage-metering.md) §4.5/§4.7 CON-METER-004）。
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
 - 要测什么（责任展开）：`GET /v1/usage` 以**动态时间窗**查询返回合法 `UsagePage`：`from`/`to` 必填且 `from<to`，`data[]` 全部落在 `[from,to)`，`next_cursor`/`has_more` 同步、含 `snapshot_id`/`snapshot_at`。`from`/`to` **必填** `date-time`，服务端按 `[from,to)`（`from` 含、`to` 不含）与稳定排序 `(recorded_at,request_id)` 返回 `UsagePage`（`data[]` + `next_cursor` + `has_more` + `snapshot_id` + `snapshot_at`，`additionalProperties:false`）；首屏在单事务内创建 `query_snapshots` 并冻结有序成员（实现 `src/inference/usage.py::UsageRecorder._page`）。机制需求 `R-MET-02`；需求链 `LT-FUN-004`、`LT-INT-004/005/007`、`CT-USAGE-001`/`CT-STORE-001`；错误码 `invalid_request`、`permission_denied`、`usage_store_unavailable`。
 - 明确不测什么 / 失败含义：不测某次调用后的记录内容/账本终态（DP-USAGE-02）；不测 `limit=1` 分页推进（DP-USAGE-03）；不测过期 cursor 拒绝（DP-USAGE-04）；不测主体隔离（DP-USAGE-06）；不测 cursor 重放幂等（DP-USAGE-07）；不测 store 不可用 → 503（DP-USAGE-08）；不测 `DELETE /v1/usage`（ADM-USAGE-03）。失败含义＝UsagePage wire 契约或时间窗语义破坏。
 

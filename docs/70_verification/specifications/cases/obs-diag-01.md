@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `OBS-DIAG-01` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-29` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`OBS-DIAG-01` / 系统设计 §8 诊断开关接口（/v1/diagnostics） / `VRC-DIAG-001` / `normal` / `P1`
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
 - 方案清单登记：`OBS-DIAG-01`
 - 要测什么（责任展开）：`GET /v1/diagnostics` 读取全局诊断开关：HTTP 200 + 精确 `SwitchState` 字段集/类型（`snapshots_enabled`、`stats_enabled` 均为布尔），纯读、无副作用。
 - 明确不测什么 / 失败含义：不证明：本 case 只读、不改变开关，**不证明**开关值对写入的零写入语义（机制 `INV-4`/`CON-OBS-001`，见 OBS-DIAG-02 的 PATCH 及其后的写入断言），**不证明**快照/统计/trace 查询（OBS-SNAP-01/02、OBS-STATS-01/02、OBS-TRACE-01/02），**不证明**别名逐字节等价（OBS-ALIAS-01），**不证明** `PATCH` 的非法值拒绝（OBS-DIAG-03），也**不证明**角色负向（data token 403，由 AUTH-08 及 OBS-REQTRACE-03 风格的角色负向承接）。

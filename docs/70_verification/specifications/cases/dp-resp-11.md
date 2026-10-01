@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-RESP-11` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -32,6 +32,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-RESP-11` / 系统设计 §8 Responses 接口（POST /v1/responses） / `VRC-DIAG-004` / `recovery` / `P0`。本文件名 `dp-resp-11.md`，与 Case ID 唯一对应。
+- **测试方法（§1.5 方法表行）**：故障注入（fault_502）+ 复位阶梯
 - 要测什么（责任展开）：`POST /v1/responses` 注入 `fault_502`：下一次命中 `depl_b` 的推理在 dispatch 上游前被拒，返回 `502 provider_failure`（`retryable=true`、`message` 含注入 `error_body`）。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明真实上游 5xx 的归一（DP-RESP-23 / `ERR-PROVIDER-FAIL`）与 `fault_503`→`provider_unavailable` 路径（DP-RESP-22 / `ERR-PROVIDER-UNAVAIL`）；不证明 SSE 事件序列/terminal/`[DONE]`（注入在流开始前抛出，响应不是 SSE，见 DP-RESP-01）；不证明重试或 exactly-once；不证明模型答案或上游真实调用——本 case 的 502 由注入产生，**不是"模型失败"**。**失败含义＝注入命中与上游故障传播契约破坏**。
 

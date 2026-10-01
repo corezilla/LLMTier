@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ADM-AUDIT-01` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ADM-AUDIT-01` / 系统设计 §8 审计接口（GET /v1/audit） / `VRC-MGMT-003` / `security` / `P0`
+- **测试方法（§1.5 方法表行）**：鉴权/授权/脱敏冒烟（secret/PII 不泄露）+ 角色隔离
 - 方案清单登记：`ADM-AUDIT-01`（与 §3.2 权威清单一致；本文件名 `adm-audit-01.md`，唯一对应）。
 - 要测什么（责任展开）：`GET /v1/audit` 返回字段齐全（含 `request_id`）且脱敏的审计事件：HTTP 200 + `AuditPage`，默认 `limit=50`。
 - 明确不测什么 / 失败含义：不证明 `limit=1` 分页（ADM-AUDIT-02）、不证明非法 `limit` 400（ADM-AUDIT-03）、不证明 operational logs 脱敏（ADM-LOGS-01）、不证明 provider 读取不回显 secret（ADM-PROV-14）。本 case 锁定"字段齐全 + 无 secret 泄露 + 默认 limit"。

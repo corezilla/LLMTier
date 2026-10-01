@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `OBS-DIAG-02` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-29` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -48,6 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`OBS-DIAG-02` / 系统设计 §8 诊断开关接口（/v1/diagnostics） / `VRC-DIAG-001` / `normal` / `P1`
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
 - 方案清单登记：`OBS-DIAG-02`
 - 要测什么（责任展开）：`PATCH /v1/diagnostics` 更新全局诊断开关：HTTP 200 + 返回更新后的精确 `SwitchState`，开关持久化到 `diagnostic_settings` 单行，且副作用 = **同事务审计**（`action=diagnostics.switch.update`，`target=diagnostics`）。
 - 明确不测什么 / 失败含义：不证明 非法值的 400 拒绝（OBS-DIAG-03）、不证明 GET 纯读无副作用（OBS-DIAG-01）、不证明别名 PATCH 逐字节等价（OBS-ALIAS-01）、不证明开关对快照/统计**写入门控**的业务效果（由 OBS-SNAP-01、OBS-STATS-01 的数据断言与 observability 机制 `INV-4`/`CON-OBS-001` 承接）、不证明 trace 无开关始终写。

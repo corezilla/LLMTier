@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "UT-TOOL-002",
   "document_type": "tests.unit-case",
-  "document_version": "0.1.0-draft.1",
+  "document_version": "0.1.0-draft.2",
   "title": "UT-TOOL-002 — 环境工具：readiness 聚合、复位阶梯与部署命令构造",
   "document_owner": "LLMTier",
   "authors": [

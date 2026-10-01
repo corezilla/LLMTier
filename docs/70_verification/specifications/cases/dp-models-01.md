@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `DP-MODELS-01` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-01` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -32,6 +32,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`DP-MODELS-01` / 系统设计 §8 逻辑模型清单接口（/v1/models） / `VRC-INF-002`（清单行另记 `R-CFG-01`） / `normal` / `P0`。本文件名 `dp-models-01.md`，与 Case ID 唯一对应。
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
 - 要测什么（责任展开）：`GET /v1/models` 返回全部可见逻辑模型（fixed tier）清单：HTTP 200 + `object=="list"` + `data` 恰含 7 个 tier、id 互不重复。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明单模型精确返回（DP-MODELS-02）、大小写/URL 编码/不存在负向（DP-MODELS-03/04/05/06）、`capabilities` 键集完整性（DP-MODELS-07）；不证明凭据负向与 LAN trust（AUTH-01/02/06）；不证明 `availability` 与上游健康一致（本 case 只断言枚举合法，不断言具体值）；不触上游，故不证明任何 provider/模型可用性。**失败含义＝模型清单读契约破坏**。
 
