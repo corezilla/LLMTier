@@ -114,7 +114,7 @@ def case_id_from_source(source: str | None, fallback_name: str) -> str:
         number = int(re.match(r"\d+", match.group(2)).group(0))
         token = _LEGACY_FAMILY_TO_TOKEN.get(family)
         if token is not None:
-            return f"ST-{token}-{number:03d}"
+            return f"ST-{token.upper()}-{number:03d}"
         return match.group(1).upper().replace("_", "-") + "-" + match.group(2)
     # No path/file signal: derive from the full node id so distinct test
     # functions do not collide into one case.
