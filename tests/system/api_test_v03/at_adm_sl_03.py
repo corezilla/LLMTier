@@ -1,4 +1,4 @@
-"""Case ID: ST-sl-003
+"""Case ID: ST-SL-003
 
 Endpoint: GET /v1/service-levels/{id}
 Upstream Provider: 无

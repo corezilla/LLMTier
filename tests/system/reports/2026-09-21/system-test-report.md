@@ -52,7 +52,7 @@
   - **单元测试**：191 PASS / 0 FAIL。
   - **设计数 vs 已实现数（口径提示）**：本报告分母＝方案 §3 设计清单 **140 Case**（A 89 / B 51，设计数，恒定）。**已实现数随 harness 演进，不能与本 Run 的 53 混同**：截至本报告整理时点，harness 已实现 90（88 文件：`-m api_a`＝60、`-m api_b`＝30），**本 Run 仅执行了其中 A 类 53 例**；本 Run 的"53"是**当时点已执行的 A 类子集**，不是当前 A 类实现数（60），也不是设计数（A 89）。
   - 本报告分母（方案 §3 共 140 Case，设计数）：本 Run 已执行并 PASS 53；其余 87 为 `NOT_RUN`（其中按当时口径 **52 为自动化入口未实现的 MISSING、35 为已实现但本轮未跑的 B 类/其余用例**）。**该 52 MISSING 为历史时点数字**，当前实现已推进至 90，MISSING 余量以 `llmtier-system-test-plan` §3/§10-O5 为准（不得引用旧 52 作为现行事实）。
-- Gate 达成情况：**按计划 §8 口径 = REJECT（阻断 release）**——存在 **3 个 P0 MISSING**（`ST-prov-014`、`ST-obsdepl-001`、`ST-obsdepl-002`），且分母未闭合（87 NOT_RUN，含当时 52 MISSING）；A 类 53/53 PASS 且无 FAIL 只支持"系统层 A 类回归可用"这一受限工程观察，**不构成 release 放行、不构成"条件接受"**。本报告仅给 Gate 建议，不等同验收或上线授权。
+- Gate 达成情况：**按计划 §8 口径 = REJECT（阻断 release）**——存在 **3 个 P0 MISSING**（`ST-PROV-014`、`ST-OBSDEPL-001`、`ST-OBSDEPL-002`），且分母未闭合（87 NOT_RUN，含当时 52 MISSING）；A 类 53/53 PASS 且无 FAIL 只支持"系统层 A 类回归可用"这一受限工程观察，**不构成 release 放行、不构成"条件接受"**。本报告仅给 Gate 建议，不等同验收或上线授权。
 
 ## 2. 被测基线与实际环境
 
@@ -66,7 +66,7 @@
   - A 类直接打 m5air 现有实例 `192.168.1.9:8181`（现有 state）。
   - 运行器：Python 3.14，pytest 9.1.0，httpx 0.28.1。
 - 环境偏差及影响：
-  - m5air 上存在第 4 个 provider `provider_volc`（计划预期 3 个），A 类 `ST-prov-*` 改用最小集合断言，不卡额外 provider。
+  - m5air 上存在第 4 个 provider `provider_volc`（计划预期 3 个），A 类 `ST-PROV-*` 改用最小集合断言，不卡额外 provider。
   - `/readyz` 字段名为 `models`（计划 `OBS` 期望 `tiers`）；`/tier/admin/v1/runtime` 的 `providers`/`deployments` 为 dict；`embedding_space_id` 实测恒为 `None`——均以实测为契约，case 已对齐。
 - 证据版本绑定与待重验：
   - A 类证据：`tests/system/reports/2026-09-21/2026-09-21-api-test-report.md`（Run 2026-09-21 A 类）。
@@ -79,44 +79,44 @@
 
 | Case 家族 / 方案 Case ID | 执行状态 | Verdict | Run ID / 证据 | 缺陷 / 备注 |
 |---|---|---|---|---|
-| ST-health-001/02（Observation，报告记 OBS-01/02） | 有效 Run | PASS | 2026-09-21 / 2026-09-21-api-test-report.md §Case 分类结果 | 2/2 PASS |
-| ST-model-001..06 | 有效 Run | PASS | 同上 | 6/6 PASS（ST-03 另覆盖 exact-case） |
-| ST-resp-001..09 | 有效 Run | PASS | 同上 | 9/9 PASS（ST-resp-002 期望已按实测修为 400 unsupported_request） |
-| ST-emb-001..04 | 有效 Run | PASS | 同上 | 4/4 PASS（ST-emb-004 实测 code=`not_found`） |
-| ST-usage-001..04 | 有效 Run | PASS | 同上 | 4/4 PASS |
-| ST-prov-001/03/04（GET） | 有效 Run | PASS | 同上 | 3/3 PASS |
-| ST-depl-001/03（GET） | 有效 Run | PASS | 同上 | 2/2 PASS |
-| ST-sl-001/03（GET） | 有效 Run | PASS | 同上 | 2/2 PASS |
-| ST-probe-001/02 | 有效 Run | PASS | 同上 | 2/2 PASS |
-| ST-pusage-001..03 | 有效 Run | PASS | 同上 | 3/3 PASS（ST-pusage-002 实测 code=`invalid_request`） |
-| ST-ausage-001/02（报告记 ADM-ADMIN-USAGE-01/02） | 有效 Run | PASS | 同上 | 2/2 PASS |
-| ST-audit-001/02 | 有效 Run | PASS | 同上 | 2/2 PASS |
-| ST-logs-001/02 | 有效 Run | PASS | 同上 | 2/2 PASS |
-| ST-runtime-001 | 有效 Run | PASS | 同上 | 1/1 PASS |
-| ST-stats-001..03 | 有效 Run | PASS | 同上 | 3/3 PASS |
-| ST-auth-001..06 | 有效 Run | PASS | 同上 | 6/6 PASS（ST-auth-002/03/06 实测 HTTP 403 `permission_denied`） |
+| ST-HEALTH-001/02（Observation，报告记 OBS-01/02） | 有效 Run | PASS | 2026-09-21 / 2026-09-21-api-test-report.md §Case 分类结果 | 2/2 PASS |
+| ST-MODEL-001..06 | 有效 Run | PASS | 同上 | 6/6 PASS（ST-03 另覆盖 exact-case） |
+| ST-RESP-001..09 | 有效 Run | PASS | 同上 | 9/9 PASS（ST-RESP-002 期望已按实测修为 400 unsupported_request） |
+| ST-EMB-001..04 | 有效 Run | PASS | 同上 | 4/4 PASS（ST-EMB-004 实测 code=`not_found`） |
+| ST-USAGE-001..04 | 有效 Run | PASS | 同上 | 4/4 PASS |
+| ST-PROV-001/03/04（GET） | 有效 Run | PASS | 同上 | 3/3 PASS |
+| ST-DEPL-001/03（GET） | 有效 Run | PASS | 同上 | 2/2 PASS |
+| ST-SL-001/03（GET） | 有效 Run | PASS | 同上 | 2/2 PASS |
+| ST-PROBE-001/02 | 有效 Run | PASS | 同上 | 2/2 PASS |
+| ST-PUSAGE-001..03 | 有效 Run | PASS | 同上 | 3/3 PASS（ST-PUSAGE-002 实测 code=`invalid_request`） |
+| ST-AUSAGE-001/02（报告记 ADM-ADMIN-USAGE-01/02） | 有效 Run | PASS | 同上 | 2/2 PASS |
+| ST-AUDIT-001/02 | 有效 Run | PASS | 同上 | 2/2 PASS |
+| ST-LOGS-001/02 | 有效 Run | PASS | 同上 | 2/2 PASS |
+| ST-RUNTIME-001 | 有效 Run | PASS | 同上 | 1/1 PASS |
+| ST-STATS-001..03 | 有效 Run | PASS | 同上 | 3/3 PASS |
+| ST-AUTH-001..06 | 有效 Run | PASS | 同上 | 6/6 PASS（ST-AUTH-002/03/06 实测 HTTP 403 `permission_denied`） |
 | ST 系统层：ST-01/02/03/04/09/12/15A/22/23/25/26 | 有效 Run | PASS | 2026-09-21 / 2026-09-21-test-report.md | 30 tests PASS（见 §6 历史 ST 明细） |
-| ST-resp-010..25 | NOT_RUN | — | — | 本轮未跑 |
-| ST-emb-005..07 | NOT_RUN | — | — | 本轮未跑 |
-| ST-usage-005..08 | NOT_RUN | — | — | 本轮未跑 |
-| ST-model-007 | NOT_RUN | — | — | 本轮未跑 |
-| ST-health-003..06 | NOT_RUN | — | — | 本轮未跑 |
-| ST-prov-002/05..14 | NOT_RUN | — | — | B 类 provider CRUD，本轮未跑（P2 待办） |
-| ST-depl-002/04..09 | NOT_RUN | — | — | B 类 deployment CRUD，本轮未跑 |
-| ST-sl-002/02b/04/04b/05..08 | NOT_RUN | — | — | B 类 service-level CRUD，本轮未跑 |
-| ST-pmod-001/02 | NOT_RUN | — | — | 本轮未跑 |
-| ST-pusage-004 | NOT_RUN | — | — | 本轮未跑 |
-| ST-audit-003、ADM-LOGS 负向、ADM-STATS 负向、ST-ausage-003 | NOT_RUN | — | — | 本轮未跑 |
-| ST-obsdiag-*、ST-obssnap-*、ST-obsstats-*、ST-obstrace-*、ST-obsreqtrace-*、ST-obsalias-*、ST-obsdepl-* | NOT_RUN | — | — | 本轮未跑 |
-| ST-auth-007..10 | NOT_RUN | — | — | 本轮未跑 |
+| ST-RESP-010..25 | NOT_RUN | — | — | 本轮未跑 |
+| ST-EMB-005..07 | NOT_RUN | — | — | 本轮未跑 |
+| ST-USAGE-005..08 | NOT_RUN | — | — | 本轮未跑 |
+| ST-MODEL-007 | NOT_RUN | — | — | 本轮未跑 |
+| ST-HEALTH-003..06 | NOT_RUN | — | — | 本轮未跑 |
+| ST-PROV-002/05..14 | NOT_RUN | — | — | B 类 provider CRUD，本轮未跑（P2 待办） |
+| ST-DEPL-002/04..09 | NOT_RUN | — | — | B 类 deployment CRUD，本轮未跑 |
+| ST-SL-002/02b/04/04b/05..08 | NOT_RUN | — | — | B 类 service-level CRUD，本轮未跑 |
+| ST-PMOD-001/02 | NOT_RUN | — | — | 本轮未跑 |
+| ST-PUSAGE-004 | NOT_RUN | — | — | 本轮未跑 |
+| ST-AUDIT-003、ADM-LOGS 负向、ADM-STATS 负向、ST-AUSAGE-003 | NOT_RUN | — | — | 本轮未跑 |
+| ST-OBSDIAG-*、ST-OBSSNAP-*、ST-OBSSTATS-*、ST-OBSTRACE-*、ST-OBSREQTRACE-*、ST-OBSALIAS-*、ST-OBSDEPL-* | NOT_RUN | — | — | 本轮未跑 |
+| ST-AUTH-007..10 | NOT_RUN | — | — | 本轮未跑 |
 
 ## 4. 偏差、无效执行与重跑
 
 | 偏差 / 无效项 | 原因 | 影响 Case | 处置与重跑 Run |
 |---|---|---|---|
-| 台账期待 `model_not_found`，实测 `not_found` | service-level 先于 routing 命中 | ST-emb-004、ST-resp-005 | case 已改；测试计划待修（本报告以实测为契约，未重跑） |
-| ST-pusage-002 期待 `confirmation_required`，实测 `invalid_request` | app.py:136 先于 account_usage.py:151 检查 body | ST-pusage-002 | case 已改 |
-| ST-auth-002/03/06 期待 401，实测 403 `permission_denied` | auth.py:56-57 Bearer 不匹配 | ST-auth-002/03/06 | case 已改 |
+| 台账期待 `model_not_found`，实测 `not_found` | service-level 先于 routing 命中 | ST-EMB-004、ST-RESP-005 | case 已改；测试计划待修（本报告以实测为契约，未重跑） |
+| ST-PUSAGE-002 期待 `confirmation_required`，实测 `invalid_request` | app.py:136 先于 account_usage.py:151 检查 body | ST-PUSAGE-002 | case 已改 |
+| ST-AUTH-002/03/06 期待 401，实测 403 `permission_denied` | auth.py:56-57 Bearer 不匹配 | ST-AUTH-002/03/06 | case 已改 |
 | 无无效执行（INVALID） | — | — | — |
 
 ## 5. 覆盖复算（对照方案分母）
@@ -125,33 +125,33 @@
 
 | 方案来源 ID | 设计验证项 ID | Case ID | 报告状态 | 结果已知性 | 副作用 | 清理状态 | 剩余缺口 |
 |---|---|---|---|---|---|---|---|
-| §8 健康/就绪接口 | VRC-API-002、VRC-MGMT-003 | ST-health-001/02 | PASS | 可独立判定（status body） | 只读，无状态改变 | 无需清理 | ST-health-003..06 NOT_RUN |
-| §8 逻辑模型清单接口 | VRC-INF-001、VRC-INF-002 | ST-model-001..06 | PASS | 可独立判定 | 只读，无状态改变 | 无需清理 | ST-model-007 NOT_RUN |
-| §8 Responses 接口 | VRC-INF-001 | ST-resp-001..09 | PASS | 可独立判定（事件序列） | 只读（A 类无写） | 无需清理 | ST-resp-010..25 NOT_RUN（含故障注入/429/上游错误；其 VRC（`VRC-INF-003`=ST-resp-023、`VRC-INF-004`=ST-resp-019/20、`VRC-DIAG-004`=ST-resp-011/22）未命中） |
-| §8 Embeddings 接口 | VRC-INF-001、VRC-INF-002 | ST-emb-001..04 | PASS | 可独立判定 | 只读 | 无需清理 | ST-emb-005..07 NOT_RUN |
-| §8 Usage 查询接口 | VRC-MGMT-006 | ST-usage-001..04 | PASS | 可独立判定 | 只读（查询产生用量记录） | 无需清理 | ST-usage-005..08 NOT_RUN |
-| §8 Provider CRUD 接口 | VRC-MGMT-001 | ST-prov-001/03/04 | PASS | 可独立判定 | 只读 | 无需清理 | ST-prov-002/05..14 NOT_RUN（B 类 MISSING；其 `VRC-MGMT-002` 未由本行命中） |
-| §8 provider 上游模型目录接口 | VRC-MGMT-001 | — | NOT_RUN | — | — | — | ST-pmod-001/02 未跑 |
-| §8 provider usage 快照接口 | VRC-MGMT-006、VRC-DIAG-004 | ST-pusage-001..03 | PASS | 可独立判定 | 读快照；刷新为一次性状态写（已 teardown） | 已回基线 | ST-pusage-004 NOT_RUN |
-| §8 Deployment CRUD 接口 | VRC-MGMT-001 | ST-depl-001/03 | PASS | 可独立判定 | 只读 | 无需清理 | ST-depl-002/04..09 NOT_RUN（B 类 MISSING；其 `VRC-MGMT-002` 未由本行命中） |
-| §8 Service Level CRUD 接口 | VRC-MGMT-002 | ST-sl-001/03 | PASS | 可独立判定 | 只读 | 无需清理 | ST-sl-002/02b/04/04b/05..08 NOT_RUN（B 类 MISSING） |
-| §8 探测接口 | VRC-DIAG-004 | ST-probe-001/02 | PASS | 可独立判定 | 探测为一次性状态写（已 teardown） | 已回基线 | ST-probe-003 NOT_RUN |
-| §8 运行态接口 | VRC-INF-004 | ST-runtime-001 | PASS | 可独立判定 | 只读 | 无需清理 | ST-runtime-002 NOT_RUN |
-| §8 统计接口 | VRC-MGMT-006 | ST-stats-001..03 | PASS | 可独立判定 | 只读 | 无需清理 | — |
-| §8 审计接口 | VRC-MGMT-003、VRC-MGMT-006 | ST-audit-001/02 | PASS | 可独立判定 | 只读 | 无需清理 | ST-audit-003 NOT_RUN |
-| §8 日志接口 | VRC-LOG-001 | ST-logs-001/02 | PASS | 可独立判定 | 只读 | 无需清理 | 负向 NOT_RUN |
-| §8 管理 usage 接口 | VRC-MGMT-006 | ST-ausage-001/02 | PASS | 可独立判定 | 只读 | 无需清理 | ST-ausage-003 NOT_RUN |
-| §8 认证与授权跨切面 | VRC-API-002 | ST-auth-001..06 | PASS | 可独立判定 | 只读 | 无需清理 | ST-auth-007..10 NOT_RUN（其 `VRC-MGMT-003`=ST-auth-007 未命中） |
+| §8 健康/就绪接口 | VRC-API-002、VRC-MGMT-003 | ST-HEALTH-001/02 | PASS | 可独立判定（status body） | 只读，无状态改变 | 无需清理 | ST-HEALTH-003..06 NOT_RUN |
+| §8 逻辑模型清单接口 | VRC-INF-001、VRC-INF-002 | ST-MODEL-001..06 | PASS | 可独立判定 | 只读，无状态改变 | 无需清理 | ST-MODEL-007 NOT_RUN |
+| §8 Responses 接口 | VRC-INF-001 | ST-RESP-001..09 | PASS | 可独立判定（事件序列） | 只读（A 类无写） | 无需清理 | ST-RESP-010..25 NOT_RUN（含故障注入/429/上游错误；其 VRC（`VRC-INF-003`=ST-RESP-023、`VRC-INF-004`=ST-RESP-019/20、`VRC-DIAG-004`=ST-RESP-011/22）未命中） |
+| §8 Embeddings 接口 | VRC-INF-001、VRC-INF-002 | ST-EMB-001..04 | PASS | 可独立判定 | 只读 | 无需清理 | ST-EMB-005..07 NOT_RUN |
+| §8 Usage 查询接口 | VRC-MGMT-006 | ST-USAGE-001..04 | PASS | 可独立判定 | 只读（查询产生用量记录） | 无需清理 | ST-USAGE-005..08 NOT_RUN |
+| §8 Provider CRUD 接口 | VRC-MGMT-001 | ST-PROV-001/03/04 | PASS | 可独立判定 | 只读 | 无需清理 | ST-PROV-002/05..14 NOT_RUN（B 类 MISSING；其 `VRC-MGMT-002` 未由本行命中） |
+| §8 provider 上游模型目录接口 | VRC-MGMT-001 | — | NOT_RUN | — | — | — | ST-PMOD-001/02 未跑 |
+| §8 provider usage 快照接口 | VRC-MGMT-006、VRC-DIAG-004 | ST-PUSAGE-001..03 | PASS | 可独立判定 | 读快照；刷新为一次性状态写（已 teardown） | 已回基线 | ST-PUSAGE-004 NOT_RUN |
+| §8 Deployment CRUD 接口 | VRC-MGMT-001 | ST-DEPL-001/03 | PASS | 可独立判定 | 只读 | 无需清理 | ST-DEPL-002/04..09 NOT_RUN（B 类 MISSING；其 `VRC-MGMT-002` 未由本行命中） |
+| §8 Service Level CRUD 接口 | VRC-MGMT-002 | ST-SL-001/03 | PASS | 可独立判定 | 只读 | 无需清理 | ST-SL-002/02b/04/04b/05..08 NOT_RUN（B 类 MISSING） |
+| §8 探测接口 | VRC-DIAG-004 | ST-PROBE-001/02 | PASS | 可独立判定 | 探测为一次性状态写（已 teardown） | 已回基线 | ST-PROBE-003 NOT_RUN |
+| §8 运行态接口 | VRC-INF-004 | ST-RUNTIME-001 | PASS | 可独立判定 | 只读 | 无需清理 | ST-RUNTIME-002 NOT_RUN |
+| §8 统计接口 | VRC-MGMT-006 | ST-STATS-001..03 | PASS | 可独立判定 | 只读 | 无需清理 | — |
+| §8 审计接口 | VRC-MGMT-003、VRC-MGMT-006 | ST-AUDIT-001/02 | PASS | 可独立判定 | 只读 | 无需清理 | ST-AUDIT-003 NOT_RUN |
+| §8 日志接口 | VRC-LOG-001 | ST-LOGS-001/02 | PASS | 可独立判定 | 只读 | 无需清理 | 负向 NOT_RUN |
+| §8 管理 usage 接口 | VRC-MGMT-006 | ST-AUSAGE-001/02 | PASS | 可独立判定 | 只读 | 无需清理 | ST-AUSAGE-003 NOT_RUN |
+| §8 认证与授权跨切面 | VRC-API-002 | ST-AUTH-001..06 | PASS | 可独立判定 | 只读 | 无需清理 | ST-AUTH-007..10 NOT_RUN（其 `VRC-MGMT-003`=ST-AUTH-007 未命中） |
 | §8 诊断开关/快照/统计/trace/请求追踪接口 | VRC-DIAG-001、VRC-DIAG-002、VRC-API-002 | — | NOT_RUN | — | — | — | OBS-* 全部未跑 |
-| §8 契约别名命名空间 | VRC-DIAG-001/002/004 | — | NOT_RUN | — | — | — | ST-obsalias-* 未跑 |
-| §8 注入配置接口 | VRC-DIAG-004 | — | NOT_RUN | — | — | — | ST-obsdepl-* 未跑 |
+| §8 契约别名命名空间 | VRC-DIAG-001/002/004 | — | NOT_RUN | — | — | — | ST-OBSALIAS-* 未跑 |
+| §8 注入配置接口 | VRC-DIAG-004 | — | NOT_RUN | — | — | — | ST-OBSDEPL-* 未跑 |
 
 **VRC 覆盖小结**：本轮命中 `VRC-API-002`、`VRC-INF-001/002/004`、`VRC-MGMT-001/002/003/006`、`VRC-DIAG-004`、`VRC-LOG-001`；未命中 `VRC-INF-003`（上游非 5xx provider_error）、`VRC-DIAG-001/002`（诊断面）、`VRC-UTIL-001`（scheme §4 裁决为表现层缺口）。方案 §4 具名缺口（`ERR-BOOT`/`ERR-SCHEMA`/`ERR-PATH-UNSAFE`/`ERR-UTIL-TXN`、`VRC-INF-005`、`VRC-UTIL-002`、模块级 `VRC-*`）在本 Run 保持开放，未关闭。
 
 ## 6. 缺陷与残余风险
 
 - 缺陷清单（关联 Case 与 Run）：
-  - 历史问题 P1/P2/P3/P8/P13/P14 在本轮 **未复发**（LAN IP、endpoint 明确、OMLX 健康、usage RFC3339、依赖头部、ST-resp-002 期望修正）。
+  - 历史问题 P1/P2/P3/P8/P13/P14 在本轮 **未复发**（LAN IP、endpoint 明确、OMLX 健康、usage RFC3339、依赖头部、ST-RESP-002 期望修正）。
   - P5（capabilities 必填）、P6/API-001（PATCH 412 缺 `current_version`）、P7（If-Match ETag 格式）、P9（provider create 多传 id）本轮 **未涉及**（A 类无 create/PATCH/DELETE），待 B 类验证——保留为开放项。
   - 少量 case 期望与实测不一致（§4 三行），以实测为契约并已改 case，非产品缺陷。
 - 残余风险：
@@ -162,12 +162,12 @@
 
 ## 7. Gate 结论与建议
 
-- Gate 结论（接受/条件接受/拒绝）：**按计划 §8 口径判定 = REJECT（阻断 release）**。依据：计划 §8 明确"**P0 MISSING 阻断**（MISSING＝NOT_RUN 缺口，非 SKIP）""任一 FAIL/INVALID 或 P0 MISSING → 阻断 release；BLOCKED 同样阻断 release"；本 Run 存在 **3 个 P0 MISSING**——`ST-prov-014`（provider 不泄露 secret）、`ST-obsdepl-001`（读取 deployment 注入配置）、`ST-obsdepl-002`（写入故障注入），均为 P0 且自动化入口未实现；分母亦未闭合（87 `NOT_RUN`）。故对 **release 放行**而言，本 Run 的 Gate 结论是**拒绝**，本报告不主张任何形式的发布闭合。
+- Gate 结论（接受/条件接受/拒绝）：**按计划 §8 口径判定 = REJECT（阻断 release）**。依据：计划 §8 明确"**P0 MISSING 阻断**（MISSING＝NOT_RUN 缺口，非 SKIP）""任一 FAIL/INVALID 或 P0 MISSING → 阻断 release；BLOCKED 同样阻断 release"；本 Run 存在 **3 个 P0 MISSING**——`ST-PROV-014`（provider 不泄露 secret）、`ST-OBSDEPL-001`（读取 deployment 注入配置）、`ST-OBSDEPL-002`（写入故障注入），均为 P0 且自动化入口未实现；分母亦未闭合（87 `NOT_RUN`）。故对 **release 放行**而言，本 Run 的 Gate 结论是**拒绝**，本报告不主张任何形式的发布闭合。
 - 适用说明（不改变上一条判定）：本报告另记录一个**受限的工程观察结论**——**仅"系统层 A 类回归可用"**。依据：A 类 53/53 PASS、st_* 30 PASS、unit 191 PASS，无 FAIL。该观察**不构成** Gate 接受、不等同"条件接受"，也不授权 release；其范围仅为在**存在 P0 MISSING 与分母未闭合**前提下的局部回归可用性陈述。
 - 开放问题与责任方：
   - 52 项 MISSING 自动化入口补齐（Case 作者）。
   - B 类 CRUD/注入类用例执行（执行者，P2）。
-  - 诊断面 OBS-*、ST-auth-007..10、DP-RESP 故障注入执行（执行者）。
+  - 诊断面 OBS-*、ST-AUTH-007..10、DP-RESP 故障注入执行（执行者）。
   - 真 Piko / 真 Slinky 联调（consumer owner）。
   - 本报告不授权 release；`runtime_activation=true` 需独立决定。
 
@@ -177,8 +177,8 @@
 |---|---|---|
 | 本 Run 时点 87 NOT_RUN（含当时 52 MISSING；现行 MISSING 余量见 plan §3/§10-O5）补齐并执行 | Case 作者 / 进入 Gate 前 | 补齐自动化入口并跑出 PASS，或经批准登记 |
 | P5/P6/P7/P9 待 B 类验证 | 执行者 / 下一 Run | B 类 provider/deployment CRUD 执行结果 |
-| ST-resp-011/19/20/22/23 等故障注入与 429 路径 | 执行者 / 下一 Run | 注入命中并记录 Run |
-| 诊断面 OBS-*、ST-auth-007..10 | 执行者 / 下一 Run | 执行结果 |
+| ST-RESP-011/19/20/22/23 等故障注入与 429 路径 | 执行者 / 下一 Run | 注入命中并记录 Run |
+| 诊断面 OBS-*、ST-AUTH-007..10 | 执行者 / 下一 Run | 执行结果 |
 | 真 Piko / 真 Slinky 联调 | consumer owner / 验收前 | 真实 consumer 端到端 |
 | 容量/耐久（FD/30min/SLO） | 性能/运维 / 另立专项 | 见 scheme §4 Gap |
 

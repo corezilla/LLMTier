@@ -1,4 +1,4 @@
-"""Case ID: ST-resp-003
+"""Case ID: ST-RESP-003
 
 Endpoint: POST /v1/responses (推理 prompt)
 Upstream Provider: 调度器选

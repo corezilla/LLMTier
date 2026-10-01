@@ -1,4 +1,4 @@
-"""Case ID: ST-auth-008
+"""Case ID: ST-AUTH-008
 
 Endpoint: GET /tier/admin/v1/diagnostics
 Upstream Provider: 无
@@ -10,7 +10,7 @@ Auth: Bearer dev-data（data token，别名命名空间要求 admin）
   Auth: Bearer dev-data
   上游: 无（本 case 不触发上游）
 
-断言（ST-auth-008）：
+断言（ST-AUTH-008）：
 - HTTP 403（别名命名空间 /tier/admin/v1/* 与扁平 /v1/* 同样要求 admin）
 - error.code == "permission_denied"，error.type == "request_error"，
   error.param is None，error.retryable is False，error 恰 5 键

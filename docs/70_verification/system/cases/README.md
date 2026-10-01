@@ -18,9 +18,9 @@ case 脚本（tests/system/api_test_v03/at_*.py 等可执行断言；UI 类在 t
 - 文件名：`<lowercased-case-id>.md`，即 **Case ID 全小写**，后缀 `.md`；每份文档配一份 `<lowercased-case-id>.metadata.json`（STD `document-metadata` schema）。
 - **Case ID 格式为 `ST-<对象>-<NNN>`**（STD `software-object-identifiers.md` §2：阶段前缀 `ST`；`<对象>`＝被测对象 token；`<NNN>` 三位十进制）。对象 token 与旧→新映射见 `docs/98_migration/llmtier-case-id-migration.md`。
 - 示例：
-  - `ST-resp-001` → `cases/st-resp-001.md` + `cases/st-resp-001.metadata.json`
-  - `ST-sl-012` → `cases/st-sl-012.md`
-  - `ST-obsdepl-004` → `cases/st-obsdepl-004.md`
+  - `ST-RESP-001` → `cases/st-resp-001.md` + `cases/st-resp-001.metadata.json`
+  - `ST-SL-012` → `cases/st-sl-012.md`
+  - `ST-OBSDEPL-004` → `cases/st-obsdepl-004.md`
 - **一 Case 一文件**，文件名与 Case ID 唯一对应；Case ID 以系统测试方案 §3 权威清单为准，本目录不得引入清单外的 ID。
 - **Document ID＝Case ID**，写入 metadata；设计状态在方案清单，实现状态在本文档 §7，执行状态与 Verdict 只在 Run 报告。
 
@@ -38,7 +38,7 @@ case 脚本（tests/system/api_test_v03/at_*.py 等可执行断言；UI 类在 t
 
 **测试方法声明（强制契约条款）**：§1 的固定章节内**必须**含一条方法声明行，且**只作为 §1 的列表项，不新增章节**：
 
-- 系统层 case：`- **测试方法（§1.5 方法表行）**：<technique(s)>`，`<technique(s)>` 须**指名**系统测试方案 [§1.5 测试方法与测试设计技术](../llmtier-system-test-scheme.md#15-测试方法与测试设计技术) 家族表的**确切行/技术组合**（`等价类划分`/`边界值抽样`/`契约字段比对`/`错误猜测`/`反例驱动（ERR-*）`/`状态机驱动`/`固定并发度/种子`/`故障注入`/`有界重试`/`复位阶梯`/`鉴权·授权·脱敏冒烟`/`角色隔离`/`单 Case 基线采样`）。UI 类 case（`ST-ui-*`）沿用 §1.5「UI 类测试方法（按行为模式）」表的模式标签（`- **UI 方法模式（§1.5 方法表行）**：…`），并同时满足 §1.5 的「UI Case 约束」（六要素映射）。
+- 系统层 case：`- **测试方法（§1.5 方法表行）**：<technique(s)>`，`<technique(s)>` 须**指名**系统测试方案 [§1.5 测试方法与测试设计技术](../llmtier-system-test-scheme.md#15-测试方法与测试设计技术) 家族表的**确切行/技术组合**（`等价类划分`/`边界值抽样`/`契约字段比对`/`错误猜测`/`反例驱动（ERR-*）`/`状态机驱动`/`固定并发度/种子`/`故障注入`/`有界重试`/`复位阶梯`/`鉴权·授权·脱敏冒烟`/`角色隔离`/`单 Case 基线采样`）。UI 类 case（`ST-UI-*`）沿用 §1.5「UI 类测试方法（按行为模式）」表的模式标签（`- **UI 方法模式（§1.5 方法表行）**：…`），并同时满足 §1.5 的「UI Case 约束」（六要素映射）。
 - 单元层 case：`- **测试方法（§1.5 方法表行）**：<technique(s)>`，`<technique(s)>` 须指名单元测试方案 [§1.5 测试方法与测试设计技术](../../unit/llmtier-unit-test-scheme.md#15-测试方法与测试设计技术) 家族表的**确切行/技术组合**（`等价类划分`/`边界值`/`错误猜测 + 反例驱动`/`线程对偶 + 受控时序`/`故障注入 + 异常路径恢复`/`鉴权·脱敏·注入边界冒烟`）。
 - **诚实性**：技术须由该 case 的**实际分类 + 步骤/断言**推导；跨两类技术时并列（如 412/ETag case＝`状态机驱动 + 契约字段比对`；`fault_502`/流中断＝`故障注入`；role-403＝`鉴权/角色隔离冒烟`；边界值 case＝`边界值抽样`）。**禁止**不读步骤直接按分类照抄。
 

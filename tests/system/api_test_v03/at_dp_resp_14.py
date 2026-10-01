@@ -1,4 +1,4 @@
-"""Case ID: ST-resp-014
+"""Case ID: ST-RESP-014
 
 Endpoint: POST /v1/responses
 Upstream Provider: 无

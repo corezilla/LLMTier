@@ -1,4 +1,4 @@
-"""Case ID: ST-depl-011
+"""Case ID: ST-DEPL-011
 
 Endpoint: PATCH /v1/deployments/dep_local_gemma
 Upstream Provider: 无

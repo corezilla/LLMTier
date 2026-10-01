@@ -1,4 +1,4 @@
-"""Case ID: ST-emb-010
+"""Case ID: ST-EMB-010
 
 Endpoint: POST /v1/embeddings
 Upstream Provider: prov_b（LAN fake provider，backend_model 逐子测改写）

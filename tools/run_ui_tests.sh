@@ -14,7 +14,7 @@
 #
 # Usage:
 #   tools/run_ui_tests.sh                 # all UI cases (-m ui)
-#   tools/run_ui_tests.sh -k ST-ui-006   # extra pytest args are forwarded
+#   tools/run_ui_tests.sh -k ST-UI-006   # extra pytest args are forwarded
 #   LLMTIER_BROWSER=/path/to/chrome tools/run_ui_tests.sh
 #
 # Artifacts: tests/ui/artifacts/<case>/{<case>.png,<case>.network.json}

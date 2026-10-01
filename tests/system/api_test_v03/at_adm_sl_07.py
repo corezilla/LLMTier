@@ -1,4 +1,4 @@
-"""Case ID: ST-sl-007
+"""Case ID: ST-SL-007
 
 Endpoint: PATCH /v1/service-levels/Embedding-v1
 Upstream Provider: 无

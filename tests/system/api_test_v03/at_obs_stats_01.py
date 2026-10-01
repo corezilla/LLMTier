@@ -1,4 +1,4 @@
-"""Case ID: ST-obsstats-001
+"""Case ID: ST-OBSSTATS-001
 
 Endpoint: GET /v1/diagnostics/stats?since=...&until=...
 Upstream Provider: m5air OMLX / m5mac OMLX / minimax（构造统计需一次 responses 调用）

@@ -1,11 +1,11 @@
-"""Case ID: ST-health-002
+"""Case ID: ST-HEALTH-002
 
 Endpoint: GET /readyz
 Upstream Provider: 无
 Model: 无
 Auth: 无（公开端点 security:[]）——必须用**裸客户端**构造零凭据请求
 
-断言（ST-health-002）：
+断言（ST-HEALTH-002）：
 - 客户端发送头中**不含** Authorization（构造证据）
 - HTTP 200
 - 响应头含 X-Request-ID

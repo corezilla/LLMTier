@@ -1,4 +1,4 @@
-"""Case ID: ST-emb-008
+"""Case ID: ST-EMB-008
 
 Endpoint: POST /v1/embeddings
 Upstream Provider: prov_b（LAN fake provider，backend_model="slow-embeddings"）

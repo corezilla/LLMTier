@@ -1,4 +1,4 @@
-"""Case ID: ST-auth-010
+"""Case ID: ST-AUTH-010
 
 Endpoint: GET /v1/models
 Upstream Provider: 无
@@ -10,7 +10,7 @@ Auth: Authorization: Basic ZGV2LWRhdGE=（非法授权方案）
   Auth: Basic 方案（非法）
   上游: 无
 
-断言（ST-auth-010）：
+断言（ST-AUTH-010）：
 - HTTP 401（非法方案 ≠ 凭据不匹配 403）
 - error.code == "authentication_required"，error.type == "request_error"，
   error.param is None，error.retryable is False，error 恰 5 键

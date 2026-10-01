@@ -1,4 +1,4 @@
-"""Case ID: ST-health-006
+"""Case ID: ST-HEALTH-006
 
 Endpoint: GET /healthz, GET /readyz
 Upstream Provider: 无（未配置鉴权的空实例）
@@ -15,7 +15,7 @@ Auth: 无（裸客户端，完全不带 Authorization 头）
   在未配置 token 的实例上会走 authenticate() → 503 auth_not_configured，
   与本 case 的「健康端点免鉴权」契约无关。
 
-断言（ST-health-006）：
+断言（ST-HEALTH-006）：
 - GET /healthz（无凭据）→ 200，body 键集 {status, version}，status == "ok"，version 非空 str
 - GET /readyz（无凭据）→ 200/503，body 键集 {status, models}，status ∈ {ready, degraded, not_ready}
 - 两者均非 401/403，且 503 不得是 {"error":{"code":"auth_not_configured",...}}

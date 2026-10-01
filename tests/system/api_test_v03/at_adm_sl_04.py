@@ -1,4 +1,4 @@
-"""Case ID: ST-sl-004
+"""Case ID: ST-SL-004
 
 Endpoint: PATCH /v1/service-levels/{id}
 Upstream Provider: 无

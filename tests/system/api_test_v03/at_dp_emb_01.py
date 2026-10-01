@@ -1,4 +1,4 @@
-"""Case ID: ST-emb-001
+"""Case ID: ST-EMB-001
 
 Endpoint: POST /v1/embeddings
 Upstream Provider: provider_local (m5air OMLX bge-m3)

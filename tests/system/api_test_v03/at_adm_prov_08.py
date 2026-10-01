@@ -1,4 +1,4 @@
-"""Case ID: ST-prov-008
+"""Case ID: ST-PROV-008
 
 Endpoint: DELETE /v1/providers/{id}
 Upstream Provider: 无

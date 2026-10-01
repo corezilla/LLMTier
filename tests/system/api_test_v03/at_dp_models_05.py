@@ -1,4 +1,4 @@
-"""Case ID: ST-model-005
+"""Case ID: ST-MODEL-005
 
 Endpoint: GET /v1/models/Senior%20（URL 编码空格）
 Upstream Provider: 无

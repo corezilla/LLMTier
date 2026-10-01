@@ -1,4 +1,4 @@
-"""Case ID: ST-prov-004
+"""Case ID: ST-PROV-004
 
 Endpoint: GET /v1/providers/{id} (不存在)
 Upstream Provider: 无

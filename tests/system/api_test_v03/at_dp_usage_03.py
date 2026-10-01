@@ -1,4 +1,4 @@
-"""Case ID: ST-usage-003
+"""Case ID: ST-USAGE-003
 
 Endpoint: GET /v1/usage?limit=1（沿 cursor 分页）
 Upstream Provider: provider_local (m5air OMLX bge-m3)

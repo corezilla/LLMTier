@@ -1,4 +1,4 @@
-"""Case ID: ST-obsreqtrace-001
+"""Case ID: ST-OBSREQTRACE-001
 
 Endpoint: GET /v1/trace/{request_id}
 Upstream Provider: m5air OMLX / m5mac OMLX（responses-capable tier）
@@ -52,7 +52,7 @@ def test_obs_reqtrace_01_full_lifecycle(admin_client, api_client):
         # xfail → BLOCKED：请求已 200 成功，但入口未落任何 trace（观测数据缺失）。
         # 这是合法的 BLOCKED（不能判定契约），且前置已排除"制造请求失败"的假 BLOCKED。
         pytest.xfail(
-            "BLOCKED (ST-obsreqtrace-001): responses 请求成功但 traces 列表为空，无法取得 request_id"
+            "BLOCKED (ST-OBSREQTRACE-001): responses 请求成功但 traces 列表为空，无法取得 request_id"
         )
     request_id = items[0]["request_id"]
 

@@ -1,4 +1,4 @@
-"""Case ID: ST-sl-011
+"""Case ID: ST-SL-011
 
 Endpoint: DELETE /v1/service-levels/Senior
 Upstream Provider: 无

@@ -1,4 +1,4 @@
-"""Case ID: ST-resp-019
+"""Case ID: ST-RESP-019
 
 Endpoint: POST /v1/responses；探测 POST /v1/probes
 Upstream Provider: prov_b（endpoint 为不可达 LAN 地址 http://192.168.1.254:9/v1）

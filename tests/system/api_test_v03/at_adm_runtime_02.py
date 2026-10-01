@@ -1,4 +1,4 @@
-"""Case ID: ST-runtime-002
+"""Case ID: ST-RUNTIME-002
 
 Endpoint: GET /v1/runtime
 Upstream Provider: 无

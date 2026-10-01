@@ -1,4 +1,4 @@
-"""Case ID: ST-emb-005
+"""Case ID: ST-EMB-005
 
 Endpoint: POST /v1/embeddings
 Upstream Provider: m5air OMLX (bge-m3)

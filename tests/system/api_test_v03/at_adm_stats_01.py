@@ -1,4 +1,4 @@
-"""Case ID: ST-stats-001
+"""Case ID: ST-STATS-001
 
 Endpoint: GET /v1/stats?from=...&to=...
 Upstream Provider: 无
@@ -13,7 +13,7 @@ Auth: Bearer dev-admin
   input_tokens,output_tokens,total_tokens,cached_tokens,cache_write_tokens,
   reasoning_tokens}，且 calls 为 int
 
-半开窗 `[from,to)`：本 case 不断言具体数值；判别性边界见 ST-ausage-003 的
+半开窗 `[from,to)`：本 case 不断言具体数值；判别性边界见 ST-AUSAGE-003 的
 精确 `to` 排除用例。
 """
 from __future__ import annotations

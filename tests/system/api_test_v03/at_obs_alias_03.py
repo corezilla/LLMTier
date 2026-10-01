@@ -1,4 +1,4 @@
-"""Case ID: ST-obsalias-003
+"""Case ID: ST-OBSALIAS-003
 
 Endpoint: GET /tier/admin/v1/trace/{request_id} ≡ /v1/trace/{request_id}
 Upstream Provider: 无（诊断读面；不触上游）

@@ -1,4 +1,4 @@
-"""Case ID: ST-resp-015
+"""Case ID: ST-RESP-015
 
 Endpoint: POST /v1/responses
 Upstream Provider: m5air OMLX (Qwen3.6)

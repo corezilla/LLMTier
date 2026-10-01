@@ -1,4 +1,4 @@
-"""Case ID: ST-pusage-002
+"""Case ID: ST-PUSAGE-002
 
 Endpoint: POST /v1/providers/{id}/usage (body 不是 {confirm_external_call})
 Upstream Provider: 无

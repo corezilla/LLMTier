@@ -1,4 +1,4 @@
-"""Case ID: ST-depl-001
+"""Case ID: ST-DEPL-001
 
 Endpoint: GET /v1/deployments
 Upstream Provider: 无

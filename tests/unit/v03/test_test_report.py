@@ -86,13 +86,13 @@ class StatusMappingTests(unittest.TestCase):
             self.assertEqual(STATUS_FAIL, harvest(xml)[0]["status"])
 
     def test_xfailed_maps_to_blocked_with_reason(self):
-        msg = "BLOCKED (ST-usage-004): ssh not available for m5air sqlite3 access"
+        msg = "BLOCKED (ST-USAGE-004): ssh not available for m5air sqlite3 access"
         inner = f'<failure type="pytest.xfail" message="{msg}">x</failure>'
         with tempfile.TemporaryDirectory() as d:
             xml = _write(Path(d), _xml(_case("test_expired", inner)))
             record = harvest(xml)[0]
             self.assertEqual(STATUS_BLOCKED, record["status"])
-            self.assertIn("BLOCKED (ST-usage-004)", record["reason"])
+            self.assertIn("BLOCKED (ST-USAGE-004)", record["reason"])
             self.assertIn("ssh not available", record["reason"])
 
     def test_xpassed_maps_to_xpass_not_pass(self):
@@ -123,12 +123,12 @@ class StatusMappingTests(unittest.TestCase):
 
 class CaseIdTests(unittest.TestCase):
     def test_case_id_from_docstring_header(self):
-        source = '"""Case ID: ST-usage-004\n\nEndpoint..."""'
-        self.assertEqual("ST-usage-004", case_id_from_source(source, "test_x"))
+        source = '"""Case ID: ST-USAGE-004\n\nEndpoint..."""'
+        self.assertEqual("ST-USAGE-004", case_id_from_source(source, "test_x"))
 
     def test_case_id_falls_back_to_path(self):
         self.assertEqual(
-            "ST-model-001",
+            "ST-MODEL-001",
             case_id_from_source(None, "tests/system/api_test_v03/at_dp_models_01.py::test_x"),
         )
 
@@ -138,8 +138,8 @@ class CaseIdTests(unittest.TestCase):
         # ``record_property("case_id", ...)`` property must win.
         xml = (
             '<testsuites><testsuite>'
-            '<testcase classname="tests.ui.test_ui_browser" name="test_ui_scenario[ST-ui-002]">'
-            '<properties><property name="case_id" value="ST-ui-002" /></properties>'
+            '<testcase classname="tests.ui.test_ui_browser" name="test_ui_scenario[ST-UI-002]">'
+            '<properties><property name="case_id" value="ST-UI-002" /></properties>'
             '</testcase></testsuite></testsuites>'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -147,7 +147,7 @@ class CaseIdTests(unittest.TestCase):
             junit = root / "junit.xml"
             junit.write_text(xml)
             records = harvest(junit, rootdir=REPO)
-        self.assertEqual(["ST-ui-002"], [r["case_id"] for r in records])
+        self.assertEqual(["ST-UI-002"], [r["case_id"] for r in records])
 
 
 class ReportTests(unittest.TestCase):

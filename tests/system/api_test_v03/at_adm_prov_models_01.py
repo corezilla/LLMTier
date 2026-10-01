@@ -1,4 +1,4 @@
-"""Case ID: ST-pmod-001
+"""Case ID: ST-PMOD-001
 
 Endpoint: GET /v1/providers/{id}/models
 Upstream Provider: provider_local

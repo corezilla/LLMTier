@@ -1,4 +1,4 @@
-"""Case ID: ST-pusage-003
+"""Case ID: ST-PUSAGE-003
 
 Endpoint: POST /v1/providers/{id}/usage (带 confirm)
 Upstream Provider: 无

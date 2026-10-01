@@ -1,4 +1,4 @@
-"""Case ID: ST-resp-018
+"""Case ID: ST-RESP-018
 
 Endpoint: POST /v1/responses
 Upstream Provider: 无（上限检查在读取前拒绝 >2 MiB）

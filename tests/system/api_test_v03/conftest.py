@@ -247,7 +247,7 @@ def admin_client() -> httpx.Client:
 def bare_client() -> httpx.Client:
     """A credential-free client for the ``security:[]`` health endpoints.
 
-    ST-health-001/02 require the 免鉴权 contract point to be *constructed*: the
+    ST-HEALTH-001/02 require the 免鉴权 contract point to be *constructed*: the
     端点 is ``security:[]`` (openapi) and ``app._dispatch`` handles it before
     any ``_auth()`` call, so it must be reachable with **no** ``Authorization``
     header. ``api_client`` injects ``Bearer dev-data`` and therefore cannot
@@ -558,7 +558,7 @@ class LLMTierInstance:
     def _spawn(self) -> None:
         """Start the LLMTier process on the existing db/settings (no health wait)."""
         # Start from a clean LLMTIER_* env so leaked tokens / DEV_MODE from the
-        # parent pytest process cannot change auth behaviour (ST-auth-007 etc.).
+        # parent pytest process cannot change auth behaviour (ST-AUTH-007 etc.).
         env = os.environ.copy()
         for key in [k for k in env if k.startswith("LLMTIER_")]:
             del env[key]
@@ -724,7 +724,7 @@ def llmtier_b(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, None
 
 @pytest.fixture(scope="session")
 def llmtier_b_unprobed(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, None]:
-    """ST-health-003: a bootstrapped baseline instance whose ``depl_b`` is never probed.
+    """ST-HEALTH-003: a bootstrapped baseline instance whose ``depl_b`` is never probed.
 
     ``_baseline_settings`` seeds 1 provider / 1 deployment / 7 fixed tiers;
     ``deployments.health`` defaults to ``'unknown'`` (migration 001). Because
@@ -763,7 +763,7 @@ def _embeddings_instance(endpoint: str, backend_model: str) -> LLMTierInstance:
 
 
 def _tools_settings(provider_endpoint: str) -> dict:
-    """Baseline B settings whose deployment advertises ``tools=True`` (ST-resp-004).
+    """Baseline B settings whose deployment advertises ``tools=True`` (ST-RESP-004).
 
     The fake provider deterministically echoes the tool name as a
     ``function_call`` when the prompt contains ``CALL_TOOL`` and ``tools`` is
@@ -777,7 +777,7 @@ def _tools_settings(provider_endpoint: str) -> dict:
 
 @pytest.fixture(scope="session")
 def llmtier_b_tools(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, None]:
-    """ST-resp-004: tools-capable B instance backed by the echoing fake provider."""
+    """ST-RESP-004: tools-capable B instance backed by the echoing fake provider."""
     inst = LLMTierInstance(_tools_settings(provider_endpoint_b))
     inst.start()
     status = _probe_deployment(inst, "depl_b")
@@ -796,7 +796,7 @@ def llmtier_b_emb(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, 
 
 @pytest.fixture(scope="session")
 def llmtier_b_emb_slow(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, None]:
-    """Embeddings instance whose upstream blocks, to saturate admission (ST-emb-008)."""
+    """Embeddings instance whose upstream blocks, to saturate admission (ST-EMB-008)."""
     inst = _embeddings_instance(provider_endpoint_b, "slow-embeddings")
     yield inst
     inst.stop()
@@ -804,7 +804,7 @@ def llmtier_b_emb_slow(provider_endpoint_b: str) -> Generator[LLMTierInstance, N
 
 @pytest.fixture(scope="session")
 def llmtier_b_emb_contract(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, None]:
-    """Embeddings instance whose upstream violates the payload contract (ST-emb-009)."""
+    """Embeddings instance whose upstream violates the payload contract (ST-EMB-009)."""
     inst = _embeddings_instance(provider_endpoint_b, "force-bad-contract")
     yield inst
     inst.stop()
@@ -812,7 +812,7 @@ def llmtier_b_emb_contract(provider_endpoint_b: str) -> Generator[LLMTierInstanc
 
 @pytest.fixture(scope="session")
 def llmtier_b_emb_503(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, None]:
-    """Embeddings instance whose upstream returns 503 (ST-emb-010)."""
+    """Embeddings instance whose upstream returns 503 (ST-EMB-010)."""
     inst = _embeddings_instance(provider_endpoint_b, "force-503")
     yield inst
     inst.stop()
@@ -822,7 +822,7 @@ def _instance_with_backend(endpoint: str, backend_model: str, probe: bool = True
     """Baseline B instance whose depl_b targets ``backend_model`` at ``endpoint``.
 
     ``probe=False`` leaves depl_b unrouted (health unknown) — used by cases that
-    need to control health explicitly (e.g. ST-resp-019).
+    need to control health explicitly (e.g. ST-RESP-019).
     """
     settings = _baseline_settings(endpoint)
     settings["deployments"][0]["backend_model"] = backend_model
@@ -836,7 +836,7 @@ def _instance_with_backend(endpoint: str, backend_model: str, probe: bool = True
 
 @pytest.fixture(scope="session")
 def llmtier_b_unhealthy(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, None]:
-    """ST-resp-019: depl_b points at an unreachable LAN endpoint, never probed healthily."""
+    """ST-RESP-019: depl_b points at an unreachable LAN endpoint, never probed healthily."""
     inst = _instance_with_backend("http://192.168.1.254:9/v1", "test-model", probe=False)
     yield inst
     inst.stop()
@@ -844,7 +844,7 @@ def llmtier_b_unhealthy(provider_endpoint_b: str) -> Generator[LLMTierInstance, 
 
 @pytest.fixture
 def llmtier_b_resp_slow(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, None]:
-    """ST-resp-020: dedicated instance whose upstream blocks on the fake provider gate.
+    """ST-RESP-020: dedicated instance whose upstream blocks on the fake provider gate.
 
     The sole admission slot is held deterministically by one in-flight request
     (backend_model ``slow-responses`` blocks in the fake provider until
@@ -859,7 +859,7 @@ def llmtier_b_resp_slow(provider_endpoint_b: str) -> Generator[LLMTierInstance, 
 
 @pytest.fixture
 def llmtier_b_diag(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, None]:
-    """Dedicated baseline instance for mutation cases (ST-resp-020/21/22/24).
+    """Dedicated baseline instance for mutation cases (ST-RESP-020/21/22/24).
 
     Function-scoped so each case gets an isolated SQLite/port and its injection
     or provider edits never leak into the session-scoped ``llmtier_b``.
@@ -871,7 +871,7 @@ def llmtier_b_diag(provider_endpoint_b: str) -> Generator[LLMTierInstance, None,
 
 @pytest.fixture(scope="session")
 def llmtier_b_http_stub(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, None]:
-    """ST-resp-023: depl_b whose upstream returns configured non-success HTTP codes."""
+    """ST-RESP-023: depl_b whose upstream returns configured non-success HTTP codes."""
     inst = _instance_with_backend(provider_endpoint_b, "force-http-422", probe=True)
     yield inst
     inst.stop()
@@ -879,7 +879,7 @@ def llmtier_b_http_stub(provider_endpoint_b: str) -> Generator[LLMTierInstance, 
 
 @pytest.fixture(scope="session")
 def llmtier_b_contract_stub(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, None]:
-    """ST-resp-025: depl_b whose upstream emits contract-violating Responses SSE.
+    """ST-RESP-025: depl_b whose upstream emits contract-violating Responses SSE.
 
     The backend_model is reconfigured per sub-test via the admin API; the initial
     value only has to be a healthy model (probe hits /v1/models).
@@ -940,14 +940,14 @@ def admin_client_b_no_auth(llmtier_b_no_auth: LLMTierInstance) -> Generator[http
 
 @pytest.fixture(scope="session")
 def llmtier_b_no_bootstrap() -> Generator[LLMTierInstance, None, None]:
-    """ST-health-005 arm (a): an empty store started WITHOUT a settings path.
+    """ST-HEALTH-005 arm (a): an empty store started WITHOUT a settings path.
 
     ``LLMTierInstance(settings=None)`` never writes ``LLMTIER_SETTINGS``, so the
     fresh SQLite store has no ``bootstrap_sha256`` and
     ``registry.bootstrap_settings(None)`` raises ``ApiError(503,
     "bootstrap_required")`` — captured into ``app.bootstrap_error``. The process
     still serves ``/healthz`` (200) while ``/readyz`` short-circuits to 503
-    ``{"status":"not_ready","models":[]}``. Must NOT be reused for ST-health-004
+    ``{"status":"not_ready","models":[]}``. Must NOT be reused for ST-HEALTH-004
     (bootstrap succeeds there); the fixture is read-only and never contacts an
     upstream (TS-003 not applicable).
     """
@@ -958,13 +958,13 @@ def llmtier_b_no_bootstrap() -> Generator[LLMTierInstance, None, None]:
 
 
 # ---------------------------------------------------------------------------
-# B-class store-unavailability helpers (OBS-STATS/SNAP/TRACE-03, ST-obsdepl-005)
+# B-class store-unavailability helpers (OBS-STATS/SNAP/TRACE-03, ST-OBSDEPL-005)
 # ---------------------------------------------------------------------------
 
 class StoreTriplet:
     """Make a live SQLite store unavailable by replacing the db path with a dir.
 
-    Mirrors the ST-usage-008 technique: move ``<db>``/``<db>-wal``/``<db>-shm``
+    Mirrors the ST-USAGE-008 technique: move ``<db>``/``<db>-wal``/``<db>-shm``
     aside and drop an empty *directory* at the db path so every new
     ``sqlite3.connect(<db>)`` fails (the implementation opens a per-request
     connection and closes it in ``_run``). ``restore()`` is idempotent and
@@ -1027,14 +1027,14 @@ def llmtier_b_diag_store(provider_endpoint_b: str) -> Generator[LLMTierInstance,
 
 
 # ---------------------------------------------------------------------------
-# B-class restart fixture — ledger crash/restart recovery (ST-usage-009)
+# B-class restart fixture — ledger crash/restart recovery (ST-USAGE-009)
 # ---------------------------------------------------------------------------
 
 @pytest.fixture
 def llmtier_b_restart(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, None]:
     """Dedicated baseline instance exposing ``restart()``/``kill()`` (T-MET-CRASH).
 
-    Starts WITHOUT probing ``depl_b`` so ST-usage-009 path A can create an orphan
+    Starts WITHOUT probing ``depl_b`` so ST-USAGE-009 path A can create an orphan
     unknown obligation via a 503 ``model_unavailable`` admission rejection.
     """
     inst = LLMTierInstance(_baseline_settings(provider_endpoint_b))
@@ -1045,7 +1045,7 @@ def llmtier_b_restart(provider_endpoint_b: str) -> Generator[LLMTierInstance, No
 
 @pytest.fixture
 def llmtier_b_crash(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, None]:
-    """Dedicated instance for ST-usage-009 path B (real in-flight crash).
+    """Dedicated instance for ST-USAGE-009 path B (real in-flight crash).
 
     ``depl_b`` IS probed ``healthy`` (so a Responses request is admitted and
     enters the adapter), and ``LLMTIER_SLOW_ADAPTER_DELAY`` keeps the request

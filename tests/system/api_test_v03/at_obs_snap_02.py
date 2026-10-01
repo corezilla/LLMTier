@@ -1,4 +1,4 @@
-"""Case ID: ST-obssnap-002
+"""Case ID: ST-OBSSNAP-002
 
 Endpoint: GET /v1/diagnostics/snapshots
 Upstream Provider: 无（仅诊断读面；不触上游）

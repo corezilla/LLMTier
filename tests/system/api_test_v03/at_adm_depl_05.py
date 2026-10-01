@@ -1,4 +1,4 @@
-"""Case ID: ST-depl-005
+"""Case ID: ST-DEPL-005
 
 Endpoint: DELETE /v1/deployments/{id}
 Upstream Provider: 无

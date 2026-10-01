@@ -52,7 +52,7 @@
 
 **不证明什么**：本计划不证明 Web UI 行为、FD 泄漏、30min 耐久、性能 SLO 校准、上游模型答案质量与上游 provider 实际推理正确性；也不证明静态契约一致（后者由 `docs/60_interfaces/contracts/llmtier-contract-specification.md` 与静态契约测试承接）。**静态契约 PASS ≠ 运行行为 PASS**，反之亦然。
 
-**测试策略**：单服务 / 单进程 / 单 SQLite 部署边界内的 runtime 端到端；unit mock 与假上游 provider 仅用于无法隔离的子路径（如 SSE stream、限速注入）。**浏览器 UI 行为级（真实 headless Chrome over CDP，`ST-ui-*`，`-m ui`）在本层**；生产 TLS/SSO/CSRF、`runtime_activation=true`、多实例/HA、跨系统恢复不在本层（见 scheme §4 裁决与 §9）。覆盖模型＝surface → contract → case：每个对外 surface（启服/健康就绪、Data Plane、Embedding、Admin CRUD/probe/refresh、Audit/Log、观测诊断、Auth/TRUSTED_LAN）映射到来源 ID 与契约（`CT-*`），再落到 scheme §3 的 Case ID；缺口显式列入 scheme §4，不静默从分母消失。
+**测试策略**：单服务 / 单进程 / 单 SQLite 部署边界内的 runtime 端到端；unit mock 与假上游 provider 仅用于无法隔离的子路径（如 SSE stream、限速注入）。**浏览器 UI 行为级（真实 headless Chrome over CDP，`ST-UI-*`，`-m ui`）在本层**；生产 TLS/SSO/CSRF、`runtime_activation=true`、多实例/HA、跨系统恢复不在本层（见 scheme §4 裁决与 §9）。覆盖模型＝surface → contract → case：每个对外 surface（启服/健康就绪、Data Plane、Embedding、Admin CRUD/probe/refresh、Audit/Log、观测诊断、Auth/TRUSTED_LAN）映射到来源 ID 与契约（`CT-*`），再落到 scheme §3 的 Case ID；缺口显式列入 scheme §4，不静默从分母消失。
 
 **构成清单**（只索引，不复制清单或 Case 细节）：
 
@@ -96,7 +96,7 @@
 | 前检项 | 判定事实 | 通过条件 | 不满足时 |
 |---|---|---|---|
 | 方案就绪度 | `llmtier-system-test-scheme` §3 权威清单 173 条（**设计数**：A 102 / B 61 / UI 10）、计数与 A/B/UI、P0/P1/P2 分布固定；与 §2 分类体系交叉核对 | 清单无未登记缺口、版本固定 | No-Go：Blocked＋缺口语义（§9-O1） |
-| Case 实现状态盘点 | **设计数 = 已实现数 173（A 102 / B 61 / UI 10）**：原 163 个设计 Case 均有 `at_*.py` 自动化入口（`--collect-only` 实际 collect=176 项，多出者为参数化/双臂测试——`-m api_a`＝105、`-m api_b`＝71）；**真实浏览器 UI Case `ST-ui-001..010`（`-m ui`，`tests/ui/test_ui_browser.py`；本版由 7 增至 10，补齐脱敏/幂等/边界模式）**，**无 MISSING**。逐 Case 清单见 `llmtier-system-test-scheme` §3 与逐 Case 设计文档 | 全部已实现；无 P0 缺口 | No-Go 或按 §4 记 NOT_RUN 缺口 |
+| Case 实现状态盘点 | **设计数 = 已实现数 173（A 102 / B 61 / UI 10）**：原 163 个设计 Case 均有 `at_*.py` 自动化入口（`--collect-only` 实际 collect=176 项，多出者为参数化/双臂测试——`-m api_a`＝105、`-m api_b`＝71）；**真实浏览器 UI Case `ST-UI-001..010`（`-m ui`，`tests/ui/test_ui_browser.py`；本版由 7 增至 10，补齐脱敏/幂等/边界模式）**，**无 MISSING**。逐 Case 清单见 `llmtier-system-test-scheme` §3 与逐 Case 设计文档 | 全部已实现；无 P0 缺口 | No-Go 或按 §4 记 NOT_RUN 缺口 |
 | 环境与工具（引用 `tests.asset-design` 的 Verified 状态） | A 类：m5air `/healthz`、`/readyz`(7 tier)、双 OMLX、`provider_omlx_m5mac` 已注册且 `has_secret=true`（`secret_ref` 只写不返回）、provider/deployment 就绪（6 项，§6）；B 类：执行机临时实例（`tests/fixtures/v03_fake_provider.py`＋`llmtier_b` fixtures 已在位）。**可执行实现**：`tools/check_env.py`（§3 前检 Go/No-Go 的独立入口，`--class a\|b\|all`，human table＋`--json`，exit 0 全过 / 2 任一失败）复算上述 6 项 A 检查与 2 项 B 前置 | A 类：`pytest_configure` 6 项全过（或 `tools/check_env.py --class a` exit 0）；B 类：执行机具 LAN IP（`_detect_lan_ip()` 命中 RFC1918）且临时实例可启停（或 `tools/check_env.py --class b` exit 0） | **按类分别判定**：A 类 6 项不过 → 仅 A 类 Blocked/Skip（§6，不静默降级）；B 类无 LAN IP／临时实例不可用／`llmtier_b` 基线 probe 不健康 → B 类整体 Blocked（§6-B，见 §3 Exit 与 §9 风险） |
 | 构建接线（全量交付构建 / 消费者链接实际库） | m5air 部署版本已 pin 且与执行机同步来源一致；解释器为 Python 3.14（禁系统 3.9）；`schema_version=2` | pin 三项可解析；服务可服务 | 按 §6 恢复（重启／schema 二选一）；仍失败 → Blocked |
 
@@ -128,7 +128,7 @@
 |---|---|---|---|---|---|---|
 | ENV-A | A 类 m5air 已部署实例 | `192.168.1.9:8181`，现有 state.sqlite3（只读/观察/一次性无状态写） | 环境 Owner（m5air owner） | HEALTH/DP-*/只读 ADM-*/只读 OBS-*（**设计 A 类 102，已实现 102**（`-m api_a` collect=105）） | 每班开跑前 | Ready（以 §3 A 类 6 项为准） |
 | ENV-B | B 类执行机临时实例 | 随机空闲端口＋临时 SQLite（`tempfile.mkdtemp(prefix="llmtier_b_")`）＋LAN 绑定的假上游（`tests/fixtures/v03_fake_provider.py`） | 执行者 | CRUD/空库/无鉴权/注入/并发（**设计 B 类 61，已实现 61**（`-m api_b` collect=71）） | Step 0 前 | Ready（fixtures/假上游已在位、`llmtier_b` 可启停）；**运行期若执行机无 RFC1918 LAN IP 或基线 probe 不健康 → 整类 Blocked**（§6-B，非 asset-design 缺口） |
-| ENV-UI | 真实浏览器 UI 执行环境（复用 ENV-B 的临时实例＋假上游；新增 headless 浏览器） | 临时 `LLMTierInstance`（loopback）＋ LAN 假上游 ＋ headless Chrome/chrome-headless-shell（`LLMTIER_BROWSER`，默认 `/Applications/Google Chrome.app/...` 或缓存）＋ node ≥ 22（`LLMTIER_NODE`，内置 WebSocket，无 npm） | 执行者 | UI 行为级（**设计 10，已实现 10**：`ST-ui-001..010`，`-m ui`） | 环境新增后（本轮） | Ready（`tests/ui/` 已在位，本地 10/10 PASS）；**运行期若执行机无浏览器可执行文件或 node<22 → 整类 SKIP**（`ui_browser`/`ui_node` fixture 主动 skip，非覆盖缺口） |
+| ENV-UI | 真实浏览器 UI 执行环境（复用 ENV-B 的临时实例＋假上游；新增 headless 浏览器） | 临时 `LLMTierInstance`（loopback）＋ LAN 假上游 ＋ headless Chrome/chrome-headless-shell（`LLMTIER_BROWSER`，默认 `/Applications/Google Chrome.app/...` 或缓存）＋ node ≥ 22（`LLMTIER_NODE`，内置 WebSocket，无 npm） | 执行者 | UI 行为级（**设计 10，已实现 10**：`ST-UI-001..010`，`-m ui`） | 环境新增后（本轮） | Ready（`tests/ui/` 已在位，本地 10/10 PASS）；**运行期若执行机无浏览器可执行文件或 node<22 → 整类 SKIP**（`ui_browser`/`ui_node` fixture 主动 skip，非覆盖缺口） |
 
 > ENV-A 与 ENV-B 不共享 SQLite/端口/进程且不并行（方案 §1.7）；A 类 PASS 不关闭 B 类，反之亦然。准备未完成标 Blocked 并登记缺口，不静默以 A 类替代 B 类。**B 类不依赖 `tests.asset-design` 文档**：其 fixtures（假上游＋`llmtier_b`）已在 `tests/system/api_test_v03/conftest.py` 实现，契约见 `testing-standard.md` TS-002/TS-003；资产文档 `llmtier-unit-fakes`（O2 已关闭）覆盖单元替身，与 B 类执行互不阻断。
 
@@ -213,7 +213,7 @@ B 类的"可运行"取决于**执行机网络与基线 probe**，非 `tests.asse
 
 ## 10. 未决项
 
-> **关闭状态（本版终审）**：O1/O2 已关闭；O3/O4 为**最终决定**（非开放项）；O5 为**实现排期追踪**（Gate 条件，非覆盖缺口）；**O6（`RISK-UI-EXEC-1`）本版已关闭**（引入真实浏览器 harness + `ST-ui-001..010`）。本表无未解释条目、无开放 RISK。
+> **关闭状态（本版终审）**：O1/O2 已关闭；O3/O4 为**最终决定**（非开放项）；O5 为**实现排期追踪**（Gate 条件，非覆盖缺口）；**O6（`RISK-UI-EXEC-1`）本版已关闭**（引入真实浏览器 harness + `ST-UI-001..010`）。本表无未解释条目、无开放 RISK。
 
 | 未决项 / 关联 | Owner / 最晚 Gate | 关闭事实或最终决定 |
 |---|---|---|
@@ -222,5 +222,5 @@ B 类的"可运行"取决于**执行机网络与基线 probe**，非 `tests.asse
 | O3（最终决定，非开放项）：A 类沿用 m5air 现有实例，不另建专用测试部署 | 环境 Owner / 拓扑变更时重评 | **决定**：A 类只做只读/观察/一次性无状态写（方案 §1.7、§6），不污染 m5air 既有 state；B 类以临时实例承载有状态写。故无需专用 A 类部署。重评触发＝出现"需有状态写／现 state 视为不可污染生产数据／A-B 需并行"任一情形（同 std-tailoring 重评触发 4/7）。 |
 | O4（最终决定，非开放项）：LLMTier 单服务无独立子系统测试层 | 测试设计 Owner / 若引入子系统时 | **决定**：无 `design.subsystem` 对象（单服务，模块 M001–M008 直接归系统设计），子系统计划引用**保持空并具名登记**（与 scheme §4「子系统测试级别」Tailored-N/A 一致）；引入子系统时补 `tests.subsystem-test-plan` 引用。 |
 | O5（已关闭）：设计 163（A 102 / B 61）已全部实现——163 个自动化入口（`at_*.py`），无 MISSING；逐 Case 见 `llmtier-system-test-scheme` §3 与逐 Case 设计文档 | Case 作者 / 进入 Gate 前 | **关闭事实**：163 个设计 Case 均有自动化入口（`--collect-only` collect=176 项，多出者为参数化/双臂测试）。原"尚余 49 MISSING"为旧盘点，已由本轮实现补齐。后续无 MISSING 排期项。 |
-| **O6（已关闭）：`RISK-UI-EXEC-1` — Web UI 真实 JS 执行验证已建立** | **M002 web-ui（共同 Owner M005） / 已关闭** | **原风险事实**：`VRC-UI-001..006`（M002）与 M005 诊断页视觉子项的行为级原仅由 `UT-UI-001..010`/`UT-OBS-*` 的源码字符串契约（`assertIn`）覆盖，不执行 JS，行为回归可在系统 163/163 + 单元全绿下漏检。**关闭事实（本版）**：引入真实浏览器 harness（headless Chrome over CDP，`tests/ui/browser_driver.mjs`，node ≥ 22 内置 WebSocket，无 npm/下载依赖），在**系统层新增真实执行 Case `ST-ui-001..010`**（本版由 7 增至 10：补齐脱敏/幂等/边界呈现，并使数据变更两侧与错误恢复落地）（`tests/ui/test_ui_browser.py`，hermetic 临时 `LLMTierInstance` + LAN fake provider，`-m ui` 标记），在真实 DOM 与 CDP 网络记录上断言：页面渲染 + Provider 行来自 API、tab 切换改可见区并触发 API、确认门控 Pause 发 `If-Match` PATCH 并重渲染、用量未知渲染 Unknown、未确认探测不触网、诊断页 4 tabs 与 Disabled 视觉、注入 API 错误显示错误态并保留上一屏。每 Case 产出 PNG 截图 + 网络日志证据。`VRC-UI-001..006` 与诊断页视觉子项现**已由真实执行验证**，`RISK-UI-EXEC-1` 从 `llmtier-unit-test-scheme` §4 与 `llmtier-system-test-scheme` §4 关闭。**关闭条件达成**：原条件＝引入浏览器/JS 宿主并升级 `UT-UI-*` 为真实执行断言——已由系统层浏览器执行替代（`UT-UI-*` 字符串契约保留为快速下位防线）。**重评触发**：新增/修改任一 UI 行为分支时须同步 `ST-ui-*`。 |
+| **O6（已关闭）：`RISK-UI-EXEC-1` — Web UI 真实 JS 执行验证已建立** | **M002 web-ui（共同 Owner M005） / 已关闭** | **原风险事实**：`VRC-UI-001..006`（M002）与 M005 诊断页视觉子项的行为级原仅由 `UT-UI-001..010`/`UT-OBS-*` 的源码字符串契约（`assertIn`）覆盖，不执行 JS，行为回归可在系统 163/163 + 单元全绿下漏检。**关闭事实（本版）**：引入真实浏览器 harness（headless Chrome over CDP，`tests/ui/browser_driver.mjs`，node ≥ 22 内置 WebSocket，无 npm/下载依赖），在**系统层新增真实执行 Case `ST-UI-001..010`**（本版由 7 增至 10：补齐脱敏/幂等/边界呈现，并使数据变更两侧与错误恢复落地）（`tests/ui/test_ui_browser.py`，hermetic 临时 `LLMTierInstance` + LAN fake provider，`-m ui` 标记），在真实 DOM 与 CDP 网络记录上断言：页面渲染 + Provider 行来自 API、tab 切换改可见区并触发 API、确认门控 Pause 发 `If-Match` PATCH 并重渲染、用量未知渲染 Unknown、未确认探测不触网、诊断页 4 tabs 与 Disabled 视觉、注入 API 错误显示错误态并保留上一屏。每 Case 产出 PNG 截图 + 网络日志证据。`VRC-UI-001..006` 与诊断页视觉子项现**已由真实执行验证**，`RISK-UI-EXEC-1` 从 `llmtier-unit-test-scheme` §4 与 `llmtier-system-test-scheme` §4 关闭。**关闭条件达成**：原条件＝引入浏览器/JS 宿主并升级 `UT-UI-*` 为真实执行断言——已由系统层浏览器执行替代（`UT-UI-*` 字符串契约保留为快速下位防线）。**重评触发**：新增/修改任一 UI 行为分支时须同步 `ST-UI-*`。 |
 

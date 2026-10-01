@@ -1,4 +1,4 @@
-"""Case ID: ST-obsreqtrace-002
+"""Case ID: ST-OBSREQTRACE-002
 
 Endpoint: GET /v1/trace/{request_id}
 Upstream Provider: 无（仅诊断读面；不触上游）

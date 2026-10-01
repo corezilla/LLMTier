@@ -1,4 +1,4 @@
-"""Case ID: ST-obsdepl-001
+"""Case ID: ST-OBSDEPL-001
 
 Endpoint: GET /v1/deployments/{deployment_id}/diagnostics
 Upstream Provider: 无（注入配置读面；不触上游）

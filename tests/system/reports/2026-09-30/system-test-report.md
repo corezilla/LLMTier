@@ -82,40 +82,40 @@
 
 | Case 家族 / 方案 Case ID | 执行状态 | Verdict | Run ID / 证据 | 缺陷 / 备注 |
 |---|---|---|---|---|
-| ST-health-001..06 | 有效 Run | PASS | 2026-09-30/A-api-6（01/02）、B-api-5（03/04/05/06） | 6/6 PASS |
-| ST-model-001..07 | 有效 Run | PASS | 2026-09-30/A-api-6 | 7/7 PASS |
-| ST-resp-001..27 | 有效 Run | PASS | 2026-09-30/A-api-6 | 27/27 PASS |
-| ST-emb-001..10 | 有效 Run | PASS | 2026-09-30/A-api-6 | 10/10 PASS |
-| ST-usage-001..09 | 有效 Run | PASS | 2026-09-30/A-api-6 | 9/9 PASS |
-| ST-prov-001..17 | 有效 Run | PASS | 2026-09-30/A-api-6（01/03/04/14）、B-api-5（其余） | 17/17 PASS |
-| ST-pmod-001/02 | 有效 Run | PASS | 2026-09-30/A-api-6 | 2/2 PASS |
-| ST-pusage-001..04 | 有效 Run | PASS | 2026-09-30/A-api-6 | 4/4 PASS |
-| ST-depl-001..12 | 有效 Run | PASS | 2026-09-30/A-api-6（01/03）、B-api-5（其余） | 12/12 PASS |
-| ST-sl-001..11（含 02b/04b） | 有效 Run | PASS | 2026-09-30/A-api-6（01/03）、B-api-5（其余） | 13/13 PASS |
-| ST-probe-001..03 | 有效 Run | PASS | 2026-09-30/A-api-6 | 3/3 PASS |
-| ST-runtime-001..03 | 有效 Run | PASS | 2026-09-30/A-api-6 | 3/3 PASS |
-| ST-stats-001..04 | 有效 Run | PASS | 2026-09-30/A-api-6 | 4/4 PASS |
-| ST-audit-001..04 | 有效 Run | PASS | 2026-09-30/A-api-6 | 4/4 PASS |
-| ST-logs-001..03 | 有效 Run | PASS | 2026-09-30/A-api-6 | 3/3 PASS |
-| ST-ausage-001..03 | 有效 Run | PASS | 2026-09-30/A-api-6（01/02）、B-api-5（03） | 3/3 PASS |
-| ST-obsdiag-001..03 | 有效 Run | PASS | 2026-09-30/A-api-6 | 3/3 PASS |
-| ST-obssnap-001..03 | 有效 Run | PASS | 2026-09-30/A-api-6 | 3/3 PASS |
-| ST-obsstats-001..03 | 有效 Run | PASS | 2026-09-30/A-api-6 | 3/3 PASS |
-| ST-obstrace-001..03 | 有效 Run | PASS | 2026-09-30/A-api-6 | 3/3 PASS |
-| ST-obsdepl-001..05 | 有效 Run | PASS | 2026-09-30/A-api-6 | 5/5 PASS |
-| ST-obsreqtrace-001..03 | 有效 Run | PASS | 2026-09-30/A-api-6 | 3/3 PASS |
-| ST-obsalias-001..06 | 有效 Run | PASS | 2026-09-30/A-api-6 | 6/6 PASS |
-| ST-auth-001..10 | 有效 Run | PASS | 2026-09-30/A-api-6 | 10/10 PASS |
+| ST-HEALTH-001..06 | 有效 Run | PASS | 2026-09-30/A-api-6（01/02）、B-api-5（03/04/05/06） | 6/6 PASS |
+| ST-MODEL-001..07 | 有效 Run | PASS | 2026-09-30/A-api-6 | 7/7 PASS |
+| ST-RESP-001..27 | 有效 Run | PASS | 2026-09-30/A-api-6 | 27/27 PASS |
+| ST-EMB-001..10 | 有效 Run | PASS | 2026-09-30/A-api-6 | 10/10 PASS |
+| ST-USAGE-001..09 | 有效 Run | PASS | 2026-09-30/A-api-6 | 9/9 PASS |
+| ST-PROV-001..17 | 有效 Run | PASS | 2026-09-30/A-api-6（01/03/04/14）、B-api-5（其余） | 17/17 PASS |
+| ST-PMOD-001/02 | 有效 Run | PASS | 2026-09-30/A-api-6 | 2/2 PASS |
+| ST-PUSAGE-001..04 | 有效 Run | PASS | 2026-09-30/A-api-6 | 4/4 PASS |
+| ST-DEPL-001..12 | 有效 Run | PASS | 2026-09-30/A-api-6（01/03）、B-api-5（其余） | 12/12 PASS |
+| ST-SL-001..11（含 02b/04b） | 有效 Run | PASS | 2026-09-30/A-api-6（01/03）、B-api-5（其余） | 13/13 PASS |
+| ST-PROBE-001..03 | 有效 Run | PASS | 2026-09-30/A-api-6 | 3/3 PASS |
+| ST-RUNTIME-001..03 | 有效 Run | PASS | 2026-09-30/A-api-6 | 3/3 PASS |
+| ST-STATS-001..04 | 有效 Run | PASS | 2026-09-30/A-api-6 | 4/4 PASS |
+| ST-AUDIT-001..04 | 有效 Run | PASS | 2026-09-30/A-api-6 | 4/4 PASS |
+| ST-LOGS-001..03 | 有效 Run | PASS | 2026-09-30/A-api-6 | 3/3 PASS |
+| ST-AUSAGE-001..03 | 有效 Run | PASS | 2026-09-30/A-api-6（01/02）、B-api-5（03） | 3/3 PASS |
+| ST-OBSDIAG-001..03 | 有效 Run | PASS | 2026-09-30/A-api-6 | 3/3 PASS |
+| ST-OBSSNAP-001..03 | 有效 Run | PASS | 2026-09-30/A-api-6 | 3/3 PASS |
+| ST-OBSSTATS-001..03 | 有效 Run | PASS | 2026-09-30/A-api-6 | 3/3 PASS |
+| ST-OBSTRACE-001..03 | 有效 Run | PASS | 2026-09-30/A-api-6 | 3/3 PASS |
+| ST-OBSDEPL-001..05 | 有效 Run | PASS | 2026-09-30/A-api-6 | 5/5 PASS |
+| ST-OBSREQTRACE-001..03 | 有效 Run | PASS | 2026-09-30/A-api-6 | 3/3 PASS |
+| ST-OBSALIAS-001..06 | 有效 Run | PASS | 2026-09-30/A-api-6 | 6/6 PASS |
+| ST-AUTH-001..10 | 有效 Run | PASS | 2026-09-30/A-api-6 | 10/10 PASS |
 | 单元层 `tests/unit/v03`（全量） | 有效 Run | PASS | run-20260930-05 | 425/425 PASS，非系统层 Case，佐证不阻断 |
-| ST-ui-001..007（真实浏览器 UI，新增） | 有效 Run | PASS | 2026-10-01/UI-1 | 7/7 PASS（headless Chrome over CDP；每 Case PNG 截图 + 网络日志） |
+| ST-UI-001..007（真实浏览器 UI，新增） | 有效 Run | PASS | 2026-10-01/UI-1 | 7/7 PASS（headless Chrome over CDP；每 Case PNG 截图 + 网络日志） |
 
-> **Case ID 归一对齐（本 Run 修复）**：`test-report` 从测试源头部 `Case ID:` 提取 Case ID。`at_obs_01..04.py` / `at_adm_admin_usage_0{1,2,3}.py` 原头部写有历史别名（`OBS-01/02/03/04`、`ADM-ADMIN-USAGE-01/02/03`），与方案 §3 权威 ID（`ST-health-001/02/03/04`、`ST-ausage-001/02/03`）不一致，导致前序 Run 的 `case-status.json` 出现 ID 漂移。本 Run 前已将上述 7 个文件头部改为权威 Case ID，Run 后按设计 ID 去重复算 **163/163 全部命中，无漂移、无别名残留**。该修复属测试报告缺陷（非产品缺陷）。
+> **Case ID 归一对齐（本 Run 修复）**：`test-report` 从测试源头部 `Case ID:` 提取 Case ID。`at_obs_01..04.py` / `at_adm_admin_usage_0{1,2,3}.py` 原头部写有历史别名（`OBS-01/02/03/04`、`ADM-ADMIN-USAGE-01/02/03`），与方案 §3 权威 ID（`ST-HEALTH-001/02/03/04`、`ST-AUSAGE-001/02/03`）不一致，导致前序 Run 的 `case-status.json` 出现 ID 漂移。本 Run 前已将上述 7 个文件头部改为权威 Case ID，Run 后按设计 ID 去重复算 **163/163 全部命中，无漂移、无别名残留**。该修复属测试报告缺陷（非产品缺陷）。
 
 ## 4. 偏差、无效执行与重跑
 
 | 偏差 / 无效项 | 原因 | 影响 Case | 处置与重跑 Run |
 |---|---|---|---|
-| Case ID 漂移（历史别名） | 7 个 `at_*.py` 头部 `Case ID:` 使用旧别名（`OBS-01..04`、`ADM-ADMIN-USAGE-01..03`），与方案 §3 权威 ID 不符 | ST-health-001..04、ST-ausage-001..03 | 已改 7 个文件头部为权威 ID；重跑生成 A-api-6 / B-api-5，复算 163/163 命中（见 §3 注） |
+| Case ID 漂移（历史别名） | 7 个 `at_*.py` 头部 `Case ID:` 使用旧别名（`OBS-01..04`、`ADM-ADMIN-USAGE-01..03`），与方案 §3 权威 ID 不符 | ST-HEALTH-001..04、ST-AUSAGE-001..03 | 已改 7 个文件头部为权威 ID；重跑生成 A-api-6 / B-api-5，复算 163/163 命中（见 §3 注） |
 | 无无效执行（INVALID） | — | — | — |
 | 无 SKIP / BLOCKED | B 类夹具 LAN IP 可用、假上游健康 | — | — |
 
@@ -127,47 +127,47 @@
 
 | 方案来源 ID | 设计验证项 ID | Case ID | 报告状态 | 结果已知性 | 副作用 | 清理状态 | 剩余缺口 |
 |---|---|---|---|---|---|---|---|
-| §8 健康/就绪接口 | VRC-API-002、VRC-MGMT-003、VRC-UTIL-001 | ST-health-001..06 | PASS | 可独立判定 | 只读 | 无需清理 | — |
-| §8 逻辑模型清单接口 | VRC-INF-001/002 | ST-model-001..07 | PASS | 可独立判定 | 只读 | 无需清理 | — |
-| §8 Responses 接口 | VRC-INF-001/003/004、VRC-DIAG-004 | ST-resp-001..27 | PASS | 可独立判定（事件序列/注入命中） | 只读 + 一次性状态写（注入已 teardown） | 已回基线 | — |
-| §8 Embeddings 接口 | VRC-INF-001/002/004 | ST-emb-001..10 | PASS | 可独立判定 | 只读 + 一次性写 | 已回基线 | — |
-| §8 Usage 查询接口 | VRC-MGMT-006、VRC-INF-004 | ST-usage-001..09 | PASS | 可独立判定（崩溃恢复不变量） | 只读 + 账本写（已复位） | 已回基线 | — |
-| §8 Provider CRUD 接口 | VRC-MGMT-001/002 | ST-prov-001..17 | PASS | 可独立判定 | 空库 CRUD 写（B 类临时实例） | 实例销毁 | — |
-| §8 provider 上游模型目录接口 | VRC-MGMT-001 | ST-pmod-001/02 | PASS | 可独立判定 | 只读 | 无需清理 | — |
-| §8 provider usage 快照接口 | VRC-MGMT-006、VRC-DIAG-004 | ST-pusage-001..04 | PASS | 可独立判定 | 只读 + 一次性写 | 已回基线 | — |
-| §8 Deployment CRUD 接口 | VRC-MGMT-001/002 | ST-depl-001..12 | PASS | 可独立判定 | 空库 CRUD 写 | 实例销毁 | — |
-| §8 Service Level CRUD 接口 | VRC-MGMT-002 | ST-sl-001..11（含 02b/04b） | PASS | 可独立判定 | 空库 CRUD 写 | 实例销毁 | — |
-| §8 探测接口 | VRC-DIAG-004 | ST-probe-001..03 | PASS | 可独立判定 | 只读 + 一次性写 | 已回基线 | — |
-| §8 运行态接口 | VRC-INF-004、VRC-API-002 | ST-runtime-001..03 | PASS | 可独立判定 | 只读 | 无需清理 | — |
-| §8 统计接口 | VRC-MGMT-006 | ST-stats-001..04 | PASS | 可独立判定 | 只读 | 无需清理 | — |
-| §8 审计接口 | VRC-MGMT-003/006 | ST-audit-001..04 | PASS | 可独立判定 | 只读 | 无需清理 | — |
-| §8 日志接口 | VRC-LOG-001 | ST-logs-001..03 | PASS | 可独立判定 | 只读 | 无需清理 | — |
-| §8 管理 usage 接口 | VRC-MGMT-006 | ST-ausage-001..03 | PASS | 可独立判定 | 账本复位写（已 teardown） | 已回基线 | — |
-| §8 诊断开关接口 | VRC-DIAG-001 | ST-obsdiag-001..03 | PASS | 可独立判定 | 开关一次性写 | 已回基线 | — |
-| §8 诊断快照接口 | VRC-DIAG-002 | ST-obssnap-001..03 | PASS | 可独立判定 | 只读 | 无需清理 | — |
-| §8 诊断统计接口 | VRC-DIAG-002 | ST-obsstats-001..03 | PASS | 可独立判定 | 只读 | 无需清理 | — |
-| §8 诊断 trace 接口 | VRC-DIAG-002 | ST-obstrace-001..03 | PASS | 可独立判定 | 只读 | 无需清理 | — |
-| §8 注入配置接口 | VRC-DIAG-004 | ST-obsdepl-001..05 | PASS | 可独立判定 | 注入写（已清空 teardown） | 已回基线 | — |
-| §8 请求追踪接口 | VRC-DIAG-002、VRC-API-002 | ST-obsreqtrace-001..03 | PASS | 可独立判定 | 只读 | 无需清理 | — |
-| §8 契约别名命名空间 | VRC-DIAG-001/002/004 | ST-obsalias-001..06 | PASS | 可独立判定 | 只读/一次性写 | 已回基线 | — |
-| §8 认证与授权跨切面 | VRC-API-002、VRC-MGMT-003 | ST-auth-001..10 | PASS | 可独立判定 | 只读 | 无需清理 | — |
-| 模块设计 web-ui §14（同源 `/ui/`，真实浏览器） | VRC-UI-001..006、VRC-OBS-* 视觉子项 | ST-ui-001..007 | PASS | 可独立判定（真实 DOM + CDP 网络） | 只读（UI-003 用例内 Resume 回初态）；实例销毁 | 已回基线 | — |
+| §8 健康/就绪接口 | VRC-API-002、VRC-MGMT-003、VRC-UTIL-001 | ST-HEALTH-001..06 | PASS | 可独立判定 | 只读 | 无需清理 | — |
+| §8 逻辑模型清单接口 | VRC-INF-001/002 | ST-MODEL-001..07 | PASS | 可独立判定 | 只读 | 无需清理 | — |
+| §8 Responses 接口 | VRC-INF-001/003/004、VRC-DIAG-004 | ST-RESP-001..27 | PASS | 可独立判定（事件序列/注入命中） | 只读 + 一次性状态写（注入已 teardown） | 已回基线 | — |
+| §8 Embeddings 接口 | VRC-INF-001/002/004 | ST-EMB-001..10 | PASS | 可独立判定 | 只读 + 一次性写 | 已回基线 | — |
+| §8 Usage 查询接口 | VRC-MGMT-006、VRC-INF-004 | ST-USAGE-001..09 | PASS | 可独立判定（崩溃恢复不变量） | 只读 + 账本写（已复位） | 已回基线 | — |
+| §8 Provider CRUD 接口 | VRC-MGMT-001/002 | ST-PROV-001..17 | PASS | 可独立判定 | 空库 CRUD 写（B 类临时实例） | 实例销毁 | — |
+| §8 provider 上游模型目录接口 | VRC-MGMT-001 | ST-PMOD-001/02 | PASS | 可独立判定 | 只读 | 无需清理 | — |
+| §8 provider usage 快照接口 | VRC-MGMT-006、VRC-DIAG-004 | ST-PUSAGE-001..04 | PASS | 可独立判定 | 只读 + 一次性写 | 已回基线 | — |
+| §8 Deployment CRUD 接口 | VRC-MGMT-001/002 | ST-DEPL-001..12 | PASS | 可独立判定 | 空库 CRUD 写 | 实例销毁 | — |
+| §8 Service Level CRUD 接口 | VRC-MGMT-002 | ST-SL-001..11（含 02b/04b） | PASS | 可独立判定 | 空库 CRUD 写 | 实例销毁 | — |
+| §8 探测接口 | VRC-DIAG-004 | ST-PROBE-001..03 | PASS | 可独立判定 | 只读 + 一次性写 | 已回基线 | — |
+| §8 运行态接口 | VRC-INF-004、VRC-API-002 | ST-RUNTIME-001..03 | PASS | 可独立判定 | 只读 | 无需清理 | — |
+| §8 统计接口 | VRC-MGMT-006 | ST-STATS-001..04 | PASS | 可独立判定 | 只读 | 无需清理 | — |
+| §8 审计接口 | VRC-MGMT-003/006 | ST-AUDIT-001..04 | PASS | 可独立判定 | 只读 | 无需清理 | — |
+| §8 日志接口 | VRC-LOG-001 | ST-LOGS-001..03 | PASS | 可独立判定 | 只读 | 无需清理 | — |
+| §8 管理 usage 接口 | VRC-MGMT-006 | ST-AUSAGE-001..03 | PASS | 可独立判定 | 账本复位写（已 teardown） | 已回基线 | — |
+| §8 诊断开关接口 | VRC-DIAG-001 | ST-OBSDIAG-001..03 | PASS | 可独立判定 | 开关一次性写 | 已回基线 | — |
+| §8 诊断快照接口 | VRC-DIAG-002 | ST-OBSSNAP-001..03 | PASS | 可独立判定 | 只读 | 无需清理 | — |
+| §8 诊断统计接口 | VRC-DIAG-002 | ST-OBSSTATS-001..03 | PASS | 可独立判定 | 只读 | 无需清理 | — |
+| §8 诊断 trace 接口 | VRC-DIAG-002 | ST-OBSTRACE-001..03 | PASS | 可独立判定 | 只读 | 无需清理 | — |
+| §8 注入配置接口 | VRC-DIAG-004 | ST-OBSDEPL-001..05 | PASS | 可独立判定 | 注入写（已清空 teardown） | 已回基线 | — |
+| §8 请求追踪接口 | VRC-DIAG-002、VRC-API-002 | ST-OBSREQTRACE-001..03 | PASS | 可独立判定 | 只读 | 无需清理 | — |
+| §8 契约别名命名空间 | VRC-DIAG-001/002/004 | ST-OBSALIAS-001..06 | PASS | 可独立判定 | 只读/一次性写 | 已回基线 | — |
+| §8 认证与授权跨切面 | VRC-API-002、VRC-MGMT-003 | ST-AUTH-001..10 | PASS | 可独立判定 | 只读 | 无需清理 | — |
+| 模块设计 web-ui §14（同源 `/ui/`，真实浏览器） | VRC-UI-001..006、VRC-OBS-* 视觉子项 | ST-UI-001..007 | PASS | 可独立判定（真实 DOM + CDP 网络） | 只读（UI-003 用例内 Resume 回初态）；实例销毁 | 已回基线 | — |
 
 **覆盖复算小结**：
 - **设计数 vs 已跑数**：方案 §3 设计 **170（163 A/B + 7 UI）**；本 Run 按设计 Case ID 去重命中 **170/170 已跑**（`NOT_RUN=0`）；**PASS 170/170**（系统 Run 163/163 + 浏览器 UI Run `2026-10-01/UI-1` 7/7）。原始 collect 计数 A=105 / B=71 / UI=7（A/B 的多臂/参数化条目在 `case-status.json` 中按 Case ID 收敛为 A 102 / B 62 条记录，去重后与设计 163 一一对应）。
 - **逐来源 ID**：25 个来源 ID 组，每组 `已跑=设计`、`PASS=已跑`（例：Responses 27/27、Provider CRUD 17/17、Service Level 13/13、Auth 10/10）。
 - **逐 VRC（本层 20 项有 Case 的）**：`VRC-INF-001` 31/31、`VRC-MGMT-006` 21/21、`VRC-MGMT-001` 22/22、`VRC-MGMT-002` 22/22、`VRC-API-002` 13/13、`VRC-DIAG-002` 15/15、`VRC-DIAG-004` 15/15、`VRC-MGMT-003` 9/9、`VRC-INF-002` 5/5、`VRC-INF-004` 7/7、`VRC-DIAG-001` 4/4、**`VRC-UI-001` 2/2、`VRC-UI-002` 1/1、`VRC-UI-003` 1/1、`VRC-UI-004` 1/1、`VRC-UI-005` 1/1、`VRC-UI-006` 1/1**、`VRC-LOG-001` 3/3、`VRC-UTIL-001` 2/2、`VRC-INF-003` 1/1 —— **全部已跑且 PASS，覆盖计数与方案 §3 声明完全一致**。
 - **其余 VRC 按方案 §4 本版审计重分类**：`VRC-INF-005`、`VRC-UTIL-002`、`VRC-API-001/003/004`、`VRC-MGMT-004/005`、`VRC-DIAG-003`、`VRC-OBS-001..005`（行为级）= **(a) COVERED**，由**真实单元行为测试**（`test_*` 断言被测返回/落库）覆盖，见方案 §4 逐项证据。
-- **`VRC-UI-001..006`＋`VRC-OBS-*` 视觉子项 = 已由真实浏览器 Run `2026-10-01/UI-1` 执行（PASS 7/7）**：`ST-ui-001`(`VRC-UI-001`)、`ST-ui-002`(`VRC-UI-001`)、`ST-ui-003`(`VRC-UI-003`)、`ST-ui-004`(`VRC-UI-004`)、`ST-ui-005`(`VRC-UI-005`)、`ST-ui-006`(`VRC-UI-006`)、`ST-ui-007`(`VRC-UI-002`)，外加诊断页视觉子项并入 `ST-ui-006`。原 `RISK-UI-EXEC-1`（字符串契约≠JS 执行验证、无宿主）**已关闭**（见 §6）。本 Run 系统层 `NOT_RUN=0`、无 MISSING、无开放 RISK。
+- **`VRC-UI-001..006`＋`VRC-OBS-*` 视觉子项 = 已由真实浏览器 Run `2026-10-01/UI-1` 执行（PASS 7/7）**：`ST-UI-001`(`VRC-UI-001`)、`ST-UI-002`(`VRC-UI-001`)、`ST-UI-003`(`VRC-UI-003`)、`ST-UI-004`(`VRC-UI-004`)、`ST-UI-005`(`VRC-UI-005`)、`ST-UI-006`(`VRC-UI-006`)、`ST-UI-007`(`VRC-UI-002`)，外加诊断页视觉子项并入 `ST-UI-006`。原 `RISK-UI-EXEC-1`（字符串契约≠JS 执行验证、无宿主）**已关闭**（见 §6）。本 Run 系统层 `NOT_RUN=0`、无 MISSING、无开放 RISK。
 
 ## 6. 缺陷与残余风险
 
 - 缺陷清单（关联 Case 与 Run）：
-  - **测试报告缺陷（已修）**：7 个 `at_*.py` 的 `Case ID:` 头部使用历史别名，致 `case-status.json` ID 漂移（影响 ST-health-001..04、ST-ausage-001..03 的归集）。已改头部为方案 §3 权威 ID 并重跑验证（§3 注 / §4）。**非产品缺陷**。
+  - **测试报告缺陷（已修）**：7 个 `at_*.py` 的 `Case ID:` 头部使用历史别名，致 `case-status.json` ID 漂移（影响 ST-HEALTH-001..04、ST-AUSAGE-001..03 的归集）。已改头部为方案 §3 权威 ID 并重跑验证（§3 注 / §4）。**非产品缺陷**。
   - **产品缺陷**：本 Run **无 FAIL**，未发现产品缺陷。
 - 残余风险：
   - **内容与容量不在本层**：不证明上游模型输出质量、不证明 FD 泄漏/30min 耐久/性能 SLO（方案 §1 已声明不证明；方案 §4 **(b) OUT-OF-SCOPE**，权威＝系统设计 §11.1「V0.3 不承诺未测量 SLO」＋`std-tailoring` `LT-TL-020`/`LT-TL-024`）。
-  - **`RISK-UI-EXEC-1`（原开放 —— 本版已关闭）**：M002 `VRC-UI-001..006` 与 M005 诊断页视觉子项的行为级原仅由 `UT-UI-001..010` 的源码字符串契约断言覆盖，不执行 JS，行为回归可在 163/163 PASS 与 425/425 PASS 下漏检。**关闭事实**：引入真实浏览器 harness（headless Chrome over CDP，`tests/ui/browser_driver.mjs`，node ≥ 22 内置 WebSocket，无 npm/下载依赖）＋系统层新增 `ST-ui-001..007`，本报告新增 Run `2026-10-01/UI-1` 在真实 DOM 与 CDP 网络记录上执行并通过（7/7 PASS）；每 Case 产出 PNG 截图 + 网络日志证据。`UT-UI-*` 字符串契约保留为快速下位防线。**Owner**：M002（共同 M005）。权威登记：scheme §4、unit scheme §4、plan §10-O6（均已更新为 Closed）。**重评触发**：新增/修改任一 UI 行为分支时须同步 `ST-ui-*`。
+  - **`RISK-UI-EXEC-1`（原开放 —— 本版已关闭）**：M002 `VRC-UI-001..006` 与 M005 诊断页视觉子项的行为级原仅由 `UT-UI-001..010` 的源码字符串契约断言覆盖，不执行 JS，行为回归可在 163/163 PASS 与 425/425 PASS 下漏检。**关闭事实**：引入真实浏览器 harness（headless Chrome over CDP，`tests/ui/browser_driver.mjs`，node ≥ 22 内置 WebSocket，无 npm/下载依赖）＋系统层新增 `ST-UI-001..007`，本报告新增 Run `2026-10-01/UI-1` 在真实 DOM 与 CDP 网络记录上执行并通过（7/7 PASS）；每 Case 产出 PNG 截图 + 网络日志证据。`UT-UI-*` 字符串契约保留为快速下位防线。**Owner**：M002（共同 M005）。权威登记：scheme §4、unit scheme §4、plan §10-O6（均已更新为 Closed）。**重评触发**：新增/修改任一 UI 行为分支时须同步 `ST-UI-*`。
   - **真实 consumer 未联调**：Piko / Slinky 真实集成未验证；本层 PASS 只证明 LLMTier 自身运行行为。
   - **生产部署面未验证**：TLS/SSO/CSRF、`runtime_activation=true` 不在本层（方案 §4 Tailored-N/A，运维/验收承接）。
 
@@ -180,7 +180,7 @@
   - 无 P0 MISSING（`NOT_RUN=0`）；无具名缺口新增。
   - 覆盖复算：26 个来源 ID 组与 20 个本层 VRC（含新增 `VRC-UI-001..006`）全部命中，计数与方案 §3 一致。
   - 单元层结果**绿色**（425/425 PASS），不阻断。
-  - 真实浏览器 UI Run `2026-10-01/UI-1` 绿色（ST-ui-001..007，7/7 PASS），`RISK-UI-EXEC-1` 关闭。
+  - 真实浏览器 UI Run `2026-10-01/UI-1` 绿色（ST-UI-001..007，7/7 PASS），`RISK-UI-EXEC-1` 关闭。
 - 开放问题与责任方：
   - Piko / Slinky 真实 consumer 联调（consumer owner）——属验收/相邻方，不在本层分母。
   - 生产部署面（TLS/SSO/runtime activation）由运维/验收承接（`std-tailoring` `LT-TL-022`）。

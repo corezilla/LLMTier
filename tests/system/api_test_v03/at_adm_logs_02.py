@@ -1,4 +1,4 @@
-"""Case ID: ST-logs-002
+"""Case ID: ST-LOGS-002
 
 Endpoint: GET /v1/logs (缺 from/to)
 Upstream Provider: 无

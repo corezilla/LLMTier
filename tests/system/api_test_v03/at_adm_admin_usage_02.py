@@ -1,4 +1,4 @@
-"""Case ID: ST-ausage-002
+"""Case ID: ST-AUSAGE-002
 
 Endpoint: GET /v1/usage?limit=1
 Upstream Provider: 无

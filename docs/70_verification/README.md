@@ -36,7 +36,7 @@ Case ID 格式 **`<阶段前缀>-<对象>-<NNN>`**：
 | 单元测试 | `UT` | `UT-API-001` |
 | 模块测试 | `MT` | N/A |
 | 子系统/集成测试 | `IT` | N/A |
-| 系统测试 | `ST` | `ST-resp-001` |
+| 系统测试 | `ST` | `ST-RESP-001` |
 
 - `<对象>` 为被测对象命名空间 token（正式短名或对象 ID），项目选定一种后一致使用并保持可反查映射；
   系统层对象 token 映射见各阶段方案 §3 清单与 `docs/98_migration/llmtier-case-id-migration.md`。

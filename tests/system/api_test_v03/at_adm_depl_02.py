@@ -1,4 +1,4 @@
-"""Case ID: ST-depl-002
+"""Case ID: ST-DEPL-002
 
 Endpoint: POST /v1/deployments
 Upstream Provider: 无（测试 CRUD 路由）

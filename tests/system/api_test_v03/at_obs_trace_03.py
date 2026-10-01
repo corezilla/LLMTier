@@ -1,4 +1,4 @@
-"""Case ID: ST-obstrace-003
+"""Case ID: ST-OBSTRACE-003
 
 Endpoint: GET /v1/diagnostics/traces
 Upstream Provider: 无（仅诊断读面；不触上游）
@@ -16,7 +16,7 @@ TS-003：不触上游，无 provider endpoint。
 usage_store_unavailable（typed server error），不得以 200/空结果冒充
 "无数据"；恢复存储后回到 200。
 
-技法（同 ST-usage-008）：把 SQLite 三件套移开并在原 db 路径 mkdir 成目录，
+技法（同 ST-USAGE-008）：把 SQLite 三件套移开并在原 db 路径 mkdir 成目录，
 使 sqlite3.connect 失败；finally 恢复。
 """
 from __future__ import annotations

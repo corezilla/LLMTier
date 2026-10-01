@@ -1,4 +1,4 @@
-"""Case ID: ST-resp-023
+"""Case ID: ST-RESP-023
 
 Endpoint: POST /v1/responses
 Upstream Provider: prov_b（endpoint 为专属 LAN fake provider，按 model 返回预置 HTTP 码）

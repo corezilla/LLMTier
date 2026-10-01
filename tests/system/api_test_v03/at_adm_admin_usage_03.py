@@ -1,4 +1,4 @@
-"""Case ID: ST-ausage-003
+"""Case ID: ST-AUSAGE-003
 
 Endpoint: DELETE /v1/usage
 Upstream Provider: 无（直接写 SQLite 造测试数据）

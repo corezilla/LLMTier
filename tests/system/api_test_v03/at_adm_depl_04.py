@@ -1,4 +1,4 @@
-"""Case ID: ST-depl-004
+"""Case ID: ST-DEPL-004
 
 Endpoint: PATCH /v1/deployments/{id}
 Upstream Provider: 无

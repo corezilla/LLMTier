@@ -1,4 +1,4 @@
-"""Case ID: ST-auth-007
+"""Case ID: ST-AUTH-007
 
 Endpoint: GET /v1/models (no token scenario)
 Upstream Provider: 无

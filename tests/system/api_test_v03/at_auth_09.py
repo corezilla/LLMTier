@@ -1,4 +1,4 @@
-"""Case ID: ST-auth-009
+"""Case ID: ST-AUTH-009
 
 Endpoint: GET /v1/providers/{id}
 Upstream Provider: 无（只读，不触发上游）
@@ -10,7 +10,7 @@ Auth: Bearer dev-data（data token，admin 面要求 admin）
   Auth: Bearer dev-data
   上游: 无
 
-断言（ST-auth-009，access-trust INV-3：401/403 不泄露资源存在性）：
+断言（ST-AUTH-009，access-trust INV-3：401/403 不泄露资源存在性）：
 - 存在 id（provider_local）与不存在 id（provider_does_not_exist_auth09）均返回 403
 - 两者 error.code == "permission_denied"、type == "request_error"、
   param is None、retryable is False，error 恰 5 键；两响应在 status/code 上不可区分

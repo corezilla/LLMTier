@@ -1,4 +1,4 @@
-"""Case ID: ST-obsdepl-002
+"""Case ID: ST-OBSDEPL-002
 
 Endpoint: PATCH /v1/deployments/{deployment_id}/diagnostics
 Upstream Provider: prov_b（LAN IP fake provider，TS-003）

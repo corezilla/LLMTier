@@ -1,4 +1,4 @@
-"""Case ID: ST-obsdepl-005
+"""Case ID: ST-OBSDEPL-005
 
 Endpoint: PATCH /v1/deployments/depl_b/diagnostics
 Upstream Provider: 无（注入配置写面；不触上游）
@@ -16,7 +16,7 @@ TS-003：不触上游，无 provider endpoint。
 usage_store_unavailable（typed server error），不得以 200/空结果冒充
 "无数据"；恢复存储后回到 200。
 
-技法（同 ST-usage-008）：PATCH 经 AdminService.mutate → store.transaction，
+技法（同 ST-USAGE-008）：PATCH 经 AdminService.mutate → store.transaction，
 store.transaction 失败由 _run 的 sqlite3.Error 兜底为同码。把 SQLite 三件套
 移开并在原 db 路径 mkdir 成目录，使 sqlite3.connect 失败；finally 恢复。
 """
