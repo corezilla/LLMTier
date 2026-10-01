@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-DIAG-003` / `VRC-DIAG-003`（libdiag 模块设计 §14 / libdiag-isd §9.1，libdiag 0.1.0-draft.6） / `VRC-DIAG-003` / recovery / P1（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：故障注入 + 异常路径恢复（写入/初始化失败推理不变）
+- **测试方法（§1.5 方法表行）**：故障注入 + 异常路径恢复（写入/初始化失败推理不变）（主要手段：直接调用 + 冻结向量）
 - 要测什么（责任展开）：被测：诊断写入失败/初始化失败时推理结果不变、降级运行（`_UnavailableDiagnostics`）。
 - 明确不测什么 / 失败含义：不测：真实磁盘故障（系统层）；不测 M003 推理语义。失败含义＝诊断故障导致推理失败。
 
@@ -89,6 +89,6 @@ DiagnosticsService(...) 构造异常 / record_trace 抛错
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-DIAG-003.py::InferenceFailOpenTests`（写入失败时推理结果/账本不变）+ `tests/unit/cases/UT-DIAG-003.py::FailOpenWriteTests` / `UnavailableDiagnosticsUnitTests`（降级运行）+ `tests/unit/cases/UT-DIAG-003.py::UnavailableDiagnosticsTests`（`DiagnosticsService` 初始化失败→`_UnavailableDiagnostics`）
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/inference_failopen.py tests/unit/cases/diagnostics_gaps.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-DIAG-003.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。
 

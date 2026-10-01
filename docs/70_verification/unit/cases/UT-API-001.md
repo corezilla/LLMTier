@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-API-001` / `VRC-API-001`（http-api 模块设计 §14 / http-api-isd §9.1，http-api 0.1.0-draft.2） / `VRC-API-001` / normal / P0（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：等价类划分（合法分发/健康/空库 not_ready）
+- **测试方法（§1.5 方法表行）**：等价类划分（合法分发/健康/空库 not_ready）（主要手段：直接调用）
 - 要测什么（责任展开）：被测：请求分发命中/未命中路由、统一错误信封（`ApiError.envelope()`）与 `X-Request-ID`、`/healthz` 与 `/readyz`（空库 not_ready）。
 - 明确不测什么 / 失败含义：不测：真实反向代理/进程启动（模块层与系统层）；不测上游 provider 协议。失败含义＝路由/错误出口/就绪语义实现错误。
 
@@ -90,6 +90,6 @@ ApiError(status, code, message, param=None); health_view(version); readiness_vie
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-API-001.py`（全部 7 个测试）+ `tests/unit/cases/UT-API-001.py::test_health_ok/test_empty_is_not_ready`+`test_not_ready_http_status`（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/errors.py tests/unit/cases/health.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-API-001.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。
 

@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-OBS-005` / `VRC-OBS-005`（observability 模块设计 §14 / observability-isd §9.1，observability 0.1.0-draft.6） / `VRC-OBS-005` / boundary / P2（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：边界值（trace 时间窗分页/越界为空）
+- **测试方法（§1.5 方法表行）**：边界值（trace 时间窗分页/越界为空）（主要手段：直接调用 + 冻结向量 + 替身注入）
 - 要测什么（责任展开）：被测：多 request 时间窗查询、分页游标稳定、越界窗为空（与 UT-OBS-004 共享 test 函数，本 Case 专列越界/分页边界）。
 - 明确不测什么 / 失败含义：不测：真实分布式 trace 持久化；不测 UI。失败含义＝时间窗边界实现错误。
 
@@ -90,6 +90,6 @@ page_traces(since, until, cursor, limit)
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-OBS-005.py::test_traces_dedups_by_request_and_stable_paging/test_traces_valid_cursor_still_pages/test_traces_cursor_without_separator_rejected/test_traces_out_of_window_is_empty`（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/diagnostics.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-OBS-005.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。
 

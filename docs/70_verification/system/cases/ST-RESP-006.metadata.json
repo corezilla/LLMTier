@@ -11,7 +11,7 @@
   ],
   "template_id": "tests.system-case",
   "template_version": "2.3.2",
-  "template_sha256": "a02bfb622661e6a8a82e9a597f0ebbb9fd6d5d3aef5b9cb1e1903e1755321ac2",
+  "template_sha256": "96a57bcbcb29ec3569b308d75af6c1d5b6c803cdae1a4b1513976d477774212e",
   "template_conformance": "native",
   "tailoring_ref": null,
   "migration_map_ref": null,

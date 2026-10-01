@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-UI-004` / `VRC-UI-004`（web-ui 模块设计 §14 / web-ui-isd §9.1，web-ui 0.1.0-draft.2） / `VRC-UI-004` / negative / P0（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（用量 Unknown≠0/503）
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（用量 Unknown≠0/503）（主要手段：直接调用 + 冻结向量）
 - 要测什么（责任展开）：被测：用量/审计/事件 tabs 存在，Unknown≠0 与版本替换呈现契约。
 - 明确不测什么 / 失败含义：不测：后端账本语义（归 M003/M004）。失败含义＝用量呈现误导（把未知显示为 0）。
 
@@ -90,6 +90,6 @@
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-UI-004.py::test_usage_and_audit_tabs/test_log_page/test_no_global_add_model/test_provider_and_tree_operational_fields`（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/webui_contract.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-UI-004.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。
 

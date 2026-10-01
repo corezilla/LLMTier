@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-TOOL-002` / M-TOOL `tools/check_env.py`＋`tools/reset_env.py`＋`tools/deploy.py`（系统计划 §3 Go/No-Go、§6 环境操作）/ none（工具，无模块 VRC）/ normal / P1（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对（工具纯逻辑）
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对（工具纯逻辑）（主要手段：直接调用 + 冻结向量 + 替身注入）
 - 要测什么（责任展开）：
   - `tools/check_env.py`：A/B 检查聚合（`summarize` 计数与 `all_pass`）、`--class a|b|all` 选择、检查异常不崩溃、exit 码（0 全过 / 2 任一失败）、`detect_lan_ip` override（TS-003）。
   - `tools/reset_env.py`：复位阶梯顺序（backup→restore/rebuild→clear-injections→reset-ledger→kill-leftovers→recheck）、`--dry-run` 不触网/不改、`--yes` 非交互 guard、sqlite backup API 备份、`--restore`/`--rebuild` 互斥与效果、注入清空 `PATCH {"items":[]}`＋断言空、`DELETE /v1/usage`、遗留测试进程解析。
@@ -113,5 +113,5 @@ deploy:    artifact_pin(repo_root) -> dict; read_git_commit/read_openapi_version
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-TOOL-002.py`（`CheckEnvConfigTests` 1 + `CheckEnvAChecksTests` 5 + `CheckEnvAggregationTests` 6 + `ResetPlanTests` 4 + `ResetBackupTests` 4 + `ResetRestoreTests` 4 + `ResetInjectionTests` 2 + `ResetLedgerTests` 2 + `ResetKillTests` 3 + `ResetRecheckTests` 2 + `DeployPinTests` 3 + `DeployCommandTests` 7 + `DeployFlowTests` 5 = 48 个）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/tools_env.py -q`
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-TOOL-002.py -q`
 - 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-TOOL-002.py`）；执行状态与 Verdict 归 Run 报告。

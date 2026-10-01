@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-MGMT-005` / `VRC-MGMT-005`（management 模块设计 §14 / management-isd §9.1，management 0.1.0-draft.2） / `VRC-MGMT-005` / normal / P1（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：等价类划分（正常探测/未确认 400）
+- **测试方法（§1.5 方法表行）**：等价类划分（正常探测/未确认 400）（主要手段：直接调用 + 替身注入）
 - 要测什么（责任展开）：被测：`AdminService.probe` 未确认外部调用 400、正常探测落 `healthy`、不可达落 `unhealthy`、未知部署拒绝。
 - 明确不测什么 / 失败含义：不测：真实上游网络；不测 provider 协议。失败含义＝探测确认/落库实现错误。
 
@@ -61,7 +61,7 @@ AdminService.probe(principal, body, request_id); apply_probe_result(registry, de
 - 初态构造（经公开入口）：`AppFixture`；`patch("management.admin.LocalProvider", ProbeAdapter)`
 - Fixture / 向量及版本：`tests/common/fakes.py::AppFixture`（ENV-1）
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../llmtier-unit-test-plan.md) 分配）：ENV-1 隔离 Python 临时库 / ENV-2 loopback 测试 HTTP 实例 / ENV-3 provider 进程内 fake（按 Case 需要，见 §4）
-- 依赖的测试资产（tests.asset-design 文档）：`AppFixture`＋本地 `DeadAdapter`（`test_management_gaps.py::ProbeUnreachableTests` 内定义；探测不可达用）；资产文档 `llmtier-unit-fakes` 已建
+- 依赖的测试资产（tests.asset-design 文档）：`AppFixture`＋本地 `DeadAdapter`（`UT-MGMT-005.py::ProbeUnreachableTests` 内定义；探测不可达用）；资产文档 `llmtier-unit-fakes` 已建
 
 ## 3. 输入构造
 
@@ -90,6 +90,6 @@ AdminService.probe(principal, body, request_id); apply_probe_result(registry, de
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-MGMT-005.py::test_probe_requires_confirmation/test_probe_updates_health` + `tests/unit/cases/UT-MGMT-005.py::test_probe_persists/test_probe_unknown_deployment/test_probe_invalid_status`（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/admin.py tests/unit/cases/health.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-MGMT-005.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。
 

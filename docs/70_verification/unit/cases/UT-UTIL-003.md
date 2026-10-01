@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-UTIL-003` / M007 util §14.1 · `Store` 边界分支 v0.1.0-draft.1 / `VRC-UTIL-001` / recovery / P1（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：故障注入 + 异常路径恢复（fd 不泄漏/busy/close 异常/world-writable）
+- **测试方法（§1.5 方法表行）**：故障注入 + 异常路径恢复（fd 不泄漏/busy/close 异常/world-writable）（主要手段：直接调用 + 冻结向量）
 - 要测什么（责任展开）：被测：`Store` fd 基线（多请求后不泄漏）；busy/lock→`OperationalError`；`close()` 异常上抛；world-writable → `RuntimeWarning`。
 - 明确不测什么 / 失败含义：不测：PRAGMA/事务主路径（UT-UTIL-001/002）；不测迁移（UT-UTIL-004）。失败含义＝fd 回收/锁异常/close 异常/world-writable 告警实现错误。
 
@@ -92,5 +92,5 @@ Store.close(); Store.connection(); Store.transaction(immediate=True)
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-UTIL-003.py::FdHygieneTests::test_close_releases_and_reconnects_after_request` / `test_close_is_idempotent` / `BusyLockTests::test_locked_write_raises_operational_error` / `CloseRaisesTests::test_close_exception_propagates` / `WorldWritableTests::test_world_writable_warns`
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/store_gaps.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-UTIL-003.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-UTIL-003.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-UTIL-003.py`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。

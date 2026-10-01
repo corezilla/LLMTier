@@ -116,5 +116,5 @@ Usage 只保存标准响应或 Provider 可验证事实中的 token 计数：`in
 - System design：`docs/20_system_design/llmtier-system-design.md`；
 - Requirements：`LT-FUN-001..004`、`LT-OPS-001..003`；
 - Machine authority：`interfaces/openapi/llmtier.openapi.json`、`interfaces/compatibility/compatibility-manifest-v0.3.json`；
-- Verification：`docs/70_verification/plans/llmtier-system-test-plan.md`；
+- Verification：`docs/70_verification/system/llmtier-system-test-plan.md`；
 - Tailoring：`docs/00_management/std-tailoring.md`。

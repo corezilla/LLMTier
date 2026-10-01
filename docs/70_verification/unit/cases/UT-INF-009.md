@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-INF-009` / M003 inference §14.4 · `Router` 限流/快照/模型码 v0.1.0-draft.1 / `VRC-INF-004` / boundary / P0（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：边界值（队列满/超时/节流/快照形状）
+- **测试方法（§1.5 方法表行）**：边界值（队列满/超时/节流/快照形状）（主要手段：直接调用 + 替身注入）
 - 要测什么（责任展开）：被测：队列满/Wait 超时 → 429 + `Retry-After`；provider RPM/`min_interval` 节流；`snapshot()` 形状；degraded/unknown 健康 → 503 `model_unavailable`。
 - 明确不测什么 / 失败含义：不测：准入成功/FIFO 主路径（UT-INF-004）；不测真实计时精度。失败含义＝限流边界、快照形状或模型可用性错误码实现错误。
 
@@ -92,5 +92,5 @@ Router.admit(level_id); Router.snapshot() -> dict; 429 带 Retry-After；503 mod
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-INF-009.py::RoutingAdmissionGapTests::test_queue_full_is_429_with_retry_after` / `test_wait_timeout_is_429_with_retry_after` / `test_provider_min_interval_throttles` / `test_provider_rpm_throttles` / `test_snapshot_shape` / `test_degraded_health_blocks_admission_503` / `test_unknown_health_blocks_admission_503`
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/routing.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-INF-009.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-INF-009.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-INF-009.py`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。

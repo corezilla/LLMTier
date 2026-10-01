@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-UTIL-001` / `VRC-UTIL-001`（util 模块设计 §14 / util-isd §9.1，util 0.1.0-draft.1） / `VRC-UTIL-001` / boundary / P0（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：边界值（PRAGMA/回收/fd 基线/symlink 拒绝）
+- **测试方法（§1.5 方法表行）**：边界值（PRAGMA/回收/fd 基线/symlink 拒绝）（主要手段：直接调用 + 冻结向量）
 - 要测什么（责任展开）：被测：`Store` 连接/PRAGMA（`foreign_keys=1`、`journal_mode=wal`）、fd 不随请求增长、事务提交、线程连接、symlink 拒绝。
 - 明确不测什么 / 失败含义：不测：真实高并发压测（系统层）；不测迁移（UT-UTIL-002）。失败含义＝连接/PRAGMA/安全实现错误。
 
@@ -90,7 +90,7 @@ Store(path); Store.connection(); Store.transaction(); PRAGMA
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/cases/UT-UTIL-001.py::test_migration_creates_schema/test_integrity_is_ok/test_foreign_keys_enabled/test_wal_enabled/test_transaction_commits/test_thread_gets_connection` + `test_store_schema.py::test_symlink_path_rejected`（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/store.py tests/unit/cases/store_schema.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 测试文件 / 测试函数：`tests/unit/cases/UT-UTIL-001.py::test_migration_creates_schema/test_integrity_is_ok/test_foreign_keys_enabled/test_wal_enabled/test_transaction_commits/test_thread_gets_connection` + `UT-UTIL-001.py::test_symlink_path_rejected`（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-UTIL-001.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。
 

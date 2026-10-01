@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-API-003` / `VRC-API-003`（http-api 模块设计 §14 / http-api-isd §9.1，http-api 0.1.0-draft.2） / `VRC-API-003` / boundary / P0（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：边界值（单帧/事件序列/terminal 唯一）
+- **测试方法（§1.5 方法表行）**：边界值（单帧/事件序列/terminal 唯一）（主要手段：直接调用 + 冻结向量）
 - 要测什么（责任展开）：被测：body 上限检查（`Content-Length > 2*1024*1024` → 413 `request_too_large`）与非法 JSON 400；`src/http_api/sse.py::frame` 合法帧、事件序列单调、`[DONE]` 终止、terminal 唯一。
 - 明确不测什么 / 失败含义：不测：真实网络断开恢复（系统层）；不测上游事件内容正确性。失败含义＝body 上限/SSE 帧契约实现错误。
 
@@ -91,6 +91,6 @@ frame(event, data) -> bytes; response_stream(response) -> iterable[bytes]; event
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-API-003.py`（全部 9 个测试）+ HTTP 层 413 断言由系统 case 覆盖（本层贡献 SSE 帧/序列）（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/sse.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-API-003.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。
 

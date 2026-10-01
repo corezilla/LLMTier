@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-unit-fakes` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-09-30` |
+| Last Modified Date | `2026-10-02` |
 | Template ID | `tests.asset-design` |
 | Template Version | `0.2.2` |
 | Template Conformance | `tailored` |
@@ -49,8 +49,8 @@
 
 | 消费方 | 类型 | 依赖点 |
 |---|---|---|
-| `llmtier-unit-test-scheme` v0.1.0-draft.7 | 方案 | §1.6 替身矩阵、§1.7 ENV-3 |
-| `llmtier-unit-test-plan` v0.1.0-draft.5 | 计划 | §4 ENV-3、§5 Step 0 资产就位 |
+| `llmtier-unit-test-scheme` v0.1.0-draft.13 | 方案 | §1.6 替身矩阵、§1.7 ENV-3 |
+| `llmtier-unit-test-plan` v0.1.0-draft.11 | 计划 | §4 ENV-3、§5 Step 0 资产就位 |
 | `UT-INF-001..009` | Case | `FakeAdapter`（complete/embed/probe 返回与失败注入） |
 | `UT-MGMT-005/006/010/011` | Case | `FakeAdapter.probe`/账号用量 HTTP 替身 |
 | `UT-OBS-*`/`UT-DIAG-*` | Case | `AppFixture.seed()` 固定 tier/deployment |
@@ -75,7 +75,7 @@
 ## 3. 可测试性依赖与缺口回路
 
 - 依赖的产品钩子（设计出处）：`ResponsesService(adapter=…)` / `EmbeddingsService(adapter=…)` / `Router` 的 adapter 注入点（`inference-design` §13、`inference-isd`）；`Application(database, settings)` 公开装配入口（`http-api-design` §13.1.1、`http-api-isd`）。
-- 缺失钩子的 Gap 与移交：（无缺失——adapter 注入点与 `Application` 构造入口均为公开实现接口）。`FakeResponse`（account-usage HTTP / OpenAI SSE 响应 stub）是各测试模块**本地**定义（`test_account_usage.py`/`test_provider_openai.py`），非本资产成员，不在此登记。
+- 缺失钩子的 Gap 与移交：（无缺失——adapter 注入点与 `Application` 构造入口均为公开实现接口）。`FakeResponse`（account-usage HTTP / OpenAI SSE 响应 stub）是各测试模块**本地**定义（`UT-MGMT-006.py`/`UT-INF-008.py`），非本资产成员，不在此登记。
 
 ## 4. 实现设计与版本耦合
 
@@ -95,17 +95,17 @@
 | `AppFixture.seed()` 后 tier 含该 deployment 且 `health` 已写 | §2 seed | 断言 |
 
 - 自检执行入口：`PYTHONPATH=src python3 -m pytest tests/unit -q`（消费方 Case 即自检入口；资产无独立 runner，自检由使用它的单元 Case 覆盖）。
-- 自检 Run 证据位置：`tests/unit/reports/<run-id>/`（单元 Run 根；当前尚无录制 Run，见 `G-UT-1`）。
+- 自检 Run 证据位置：`tests/unit/reports/<run-id>/`（单元 Run 根；消费方 Run `run-20261001-04` 已录，见单元计划 §7）。
 
 ## 6. 状态与版本
 
-- 开发状态 / 验证状态（自检 Run 引用）：`Implemented` / `Unverified`（资产已实现并被全部单元 Case 消费，但形式化自检 Run 尚未录制，见 `G-UT-1`；`tests/unit` 当前 364 收集级通过，属于消费方 Case 的执行证据，不冒充本资产自检）。
+- 开发状态 / 验证状态（自检 Run 引用）：`Implemented` / `Unverified`（资产已实现并被全部单元 Case 消费；消费方 Run `run-20261001-04` 的 426 个测试函数全 PASS 属**消费方 Case 的执行证据**，与 §5 的形式化**资产自检 Run** 是两回事——后者尚未单独录制，故不冒充自检、不置 `Verified`；见 §7 与单元计划 `G-UT-1`）。
 - 最近契约变更与消费方影响：v1 初版；`FakeAdapter` 增加 `status`/`provider_request_id` 参数后 `UT-INF-003/008` 复评无影响。
 
 ## 7. 未决项
 
 | 未决项 / 关联 | Owner / 最晚 Gate | 关闭所需事实或决定 |
 |---|---|---|
-| 自检 Run 正式录制与 `Verified` 状态 | LLMTier / 首次执行后报告评审 | 按 §5 录制一次自检 Run 于 `tests/unit/reports/<run-id>/`，置 `Verified`；与 `G-UT-1` 同批关闭 |
+| 自检 Run 正式录制与 `Verified` 状态 | LLMTier / 首次执行后报告评审 | 按 §5 录制一次**资产自检** Run 于 `tests/unit/reports/<run-id>/`，置 `Verified`；消费方 Run `run-20261001-04` 已录但属消费方证据，不替代本项 |
 
 <!-- 交付自查：契约是否完整到 Case 作者无需读源码；每个消费方是否都能反向找到本文档；Verified 是否可追到自检 Run；有没有用工具绕产品缺陷的痕迹？ -->

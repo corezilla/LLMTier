@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-OBS-001` / `VRC-OBS-001`（observability 模块设计 §14 / observability-isd §9.1，observability 0.1.0-draft.6） / `VRC-OBS-001` / normal / P1（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：等价类划分（开关默认/切换）
+- **测试方法（§1.5 方法表行）**：等价类划分（开关默认/切换）（主要手段：直接调用 + 替身注入）
 - 要测什么（责任展开）：被测：诊断开关默认 `{False,False}`、运行时切换、关闭时零写入。
 - 明确不测什么 / 失败含义：不测：真实 HTTP 端点（M001/M006）；不测 UI。失败含义＝开关语义实现错误。
 
@@ -90,6 +90,6 @@ switches() -> dict; set_switches(snapshots_enabled=..., stats_enabled=...)
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-OBS-001.py::test_switches_default_off_and_runtime_toggle`（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/diagnostics.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-OBS-001.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。
 

@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-DIAG-002` / `VRC-DIAG-002`（libdiag 模块设计 §14 / libdiag-isd §9.1，libdiag 0.1.0-draft.6） / `VRC-DIAG-002` / boundary / P1（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：边界值（字段/去 query/截断/百分位/清理）
+- **测试方法（§1.5 方法表行）**：边界值（字段/去 query/截断/百分位/清理）（主要手段：直接调用 + 冻结向量 + 替身注入）
 - 要测什么（责任展开）：被测：一次调用后 trace/snapshot/stats 字段、URL 去 query、summary 截断 512、百分位、7 天清理计数。
 - 明确不测什么 / 失败含义：不测：真实长期保留策略（系统层）；不测 UI。失败含义＝记录/截断/清理实现错误。
 
@@ -92,6 +92,6 @@ record_trace(...); cleanup(days) -> int
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-DIAG-002.py::test_error_body_truncated_to_512_bytes/test_traces_dedups_by_request_and_stable_paging/test_cleanup_removes_expired_and_returns_count`（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/diagnostics.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-DIAG-002.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。
 

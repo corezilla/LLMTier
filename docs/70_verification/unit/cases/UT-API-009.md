@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-API-009` / M001 http-api §14.1 · `Handler._body` v0.1.0-draft.2 / `VRC-API-003` / boundary / P0（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：边界值（body 2 MB 边界/非法 JSON）
+- **测试方法（§1.5 方法表行）**：边界值（body 2 MB 边界/非法 JSON）（主要手段：直接调用 + 冻结向量 + 替身注入）
 - 要测什么（责任展开）：被测：`Handler._body` 对 body > 2 MB → 413 `request_too_large`；非法 JSON → 400 `invalid_json`；顶层非对象 → 400 `invalid_json`；`Content-Length` 非整数 → 400 `invalid_request`。
 - 明确不测什么 / 失败含义：不测：body 校验之后的业务；不测 SSE wire（UT-API-003）。失败含义＝请求体限长/解析实现错误。
 
@@ -59,7 +59,7 @@ Handler._body() -> dict  # 读 Content-Length，限长 2 MB，json.loads，要�
 ```
 
 - 初态构造（经公开入口）：`AppFixture().seed()` + loopback `handler_factory(app)`（ENV-2）
-- Fixture / 向量及版本：`tests/common/fakes.py::AppFixture`（ENV-1）+ `test_app_dispatch.py::BodyTests`（ENV-2）
+- Fixture / 向量及版本：`tests/common/fakes.py::AppFixture`（ENV-1）+ `UT-API-009.py::BodyTests`（ENV-2）
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../llmtier-unit-test-plan.md) 分配）：ENV-2 loopback 测试 HTTP 实例
 - 依赖的测试资产（tests.asset-design 文档）：无（真实实现）
 
@@ -91,5 +91,5 @@ Handler._body() -> dict  # 读 Content-Length，限长 2 MB，json.loads，要�
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-API-009.py::BodyTests::test_body_over_2mb_is_413` / `test_invalid_json_is_400` / `test_top_level_non_object_is_400` / `test_non_integer_content_length_is_400`
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/app_dispatch.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-API-009.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-API-009.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-API-009.py`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。

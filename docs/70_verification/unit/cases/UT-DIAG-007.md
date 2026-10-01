@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-DIAG-007` / M006 libdiag §14.3 · 写入失败降级 v0.1.0-draft.6 / `VRC-DIAG-003` / recovery / P1（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：故障注入 + 异常路径恢复（record/capture/cleanup 失败不阻断）
+- **测试方法（§1.5 方法表行）**：故障注入 + 异常路径恢复（record/capture/cleanup 失败不阻断）（主要手段：直接调用 + 冻结向量）
 - 要测什么（责任展开）：被测：`record_trace`/`record_latency`/`capture_snapshot` 写入失败不阻断；cleanup 失败返回 0；`_UnavailableDiagnostics` 全方法降级。
 - 明确不测什么 / 失败含义：不测：正常记录（UT-DIAG-002）；不测推理 fail-open（UT-INF-005）。失败含义＝写入失败降级或 cleanup 容错实现错误。
 
@@ -91,5 +91,5 @@ DiagnosticsService.record_trace(...); record_latency(...); capture_snapshot(...)
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-DIAG-007.py::FailOpenWriteTests::test_record_trace_failure_is_swallowed` / `test_record_latency_failure_is_swallowed` / `test_capture_snapshot_failure_returns_none` / `test_cleanup_failure_returns_zero` / `test_failed_write_is_warned_to_operator_log` / `UnavailableDiagnosticsUnitTests::test_switches_off_and_void_methods` / `test_read_surfaces_are_empty` / `test_stream_wrapper_passes_through`
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/diagnostics_gaps.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-DIAG-007.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-DIAG-007.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-DIAG-007.py`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。

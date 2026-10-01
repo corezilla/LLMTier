@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-MGMT-006` / `VRC-MGMT-006`（management 模块设计 §14 / management-isd §9.1，management 0.1.0-draft.2） / `VRC-MGMT-006` / negative / P1（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（账号用量 GET/凭据/上游错误）
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（账号用量 GET/凭据/上游错误）（主要手段：直接调用 + 冻结向量 + 替身注入）
 - 要测什么（责任展开）：被测：`AccountUsageService` GET 不触网、未确认 POST、凭据缺失、provider 报错 → `not_refreshed`/`unavailable`+`error` 且快照持久、provider usage profile 安全 round-trip、MiniMax 复用 token-plan key。
 - 明确不测什么 / 失败含义：不测：真实 MiniMax 接口；不测 UI 呈现（M002）。失败含义＝账号用量刷新/安全实现错误。
 
@@ -92,6 +92,6 @@ AccountUsageService.get()/refresh(...); registry provider usage profile
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-MGMT-006.py`（全部 5 个）（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/account_usage.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-MGMT-006.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。
 

@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-UTIL-002` / `VRC-UTIL-002`（util 模块设计 §14 / util-isd §9.1，util 0.1.0-draft.1） / `VRC-UTIL-002` / recovery / P0（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：故障注入 + 异常路径恢复（回滚/幂等 migrate/损坏库/版本不匹配）
+- **测试方法（§1.5 方法表行）**：故障注入 + 异常路径恢复（回滚/幂等 migrate/损坏库/版本不匹配）（主要手段：直接调用 + 冻结向量）
 - 要测什么（责任展开）：被测：事务中途异常回滚、`migrate()` 幂等、损坏库/版本不匹配拒绝、无 `schema_meta` 旧库拒绝、持久化跨重开。
 - 明确不测什么 / 失败含义：不测：真实多进程并发启动压测（系统层可补充）；不测业务表语义。失败含义＝回滚/迁移/拒绝实现错误。
 
@@ -59,7 +59,7 @@ Store.transaction(); Store.migrate(); schema_meta
 ```
 
 - 初态构造（经公开入口）：`tempfile.TemporaryDirectory` 隔离库（ENV-1）
-- Fixture / 向量及版本：`tests/unit/cases/UT-UTIL-002.py`/`test_store_schema.py`
+- Fixture / 向量及版本：`tests/unit/cases/UT-UTIL-002.py`
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../llmtier-unit-test-plan.md) 分配）：ENV-1 隔离 Python 临时库 / ENV-2 loopback 测试 HTTP 实例 / ENV-3 provider 进程内 fake（按 Case 需要，见 §4）
 - 依赖的测试资产（tests.asset-design 文档）：无（真实 SQLite）
 
@@ -91,7 +91,7 @@ Store.transaction(); Store.migrate(); schema_meta
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/cases/UT-UTIL-002.py::test_transaction_rolls_back/test_migration_is_idempotent` + `test_store_schema.py::test_fresh_init_sets_expected_version_and_rerun_is_safe/test_persistence_across_reopen/test_version_mismatch_rejected/test_legacy_store_without_schema_meta_rejected`（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/store.py tests/unit/cases/store_schema.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 测试文件 / 测试函数：`tests/unit/cases/UT-UTIL-002.py::test_transaction_rolls_back/test_migration_is_idempotent` + `UT-UTIL-002.py::test_fresh_init_sets_expected_version_and_rerun_is_safe/test_persistence_across_reopen/test_version_mismatch_rejected/test_legacy_store_without_schema_meta_rejected`（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-UTIL-002.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。
 

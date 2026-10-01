@@ -46,13 +46,13 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-TOOL-001` / M-TOOL `tools/test_report.py`（单元计划 §7 状态映射）/ none（工具，无模块 VRC）/ normal / P1（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对（工具纯逻辑）
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对（工具纯逻辑）（主要手段：直接调用 + 冻结向量）
 - 要测什么（责任展开）：被测：`tools/test_report.py` 的 JUnit→状态映射（`passed→PASS`、`failed→FAIL`、`xfailed→BLOCKED`（原因取自 `BLOCKED (...)`）、`xpassed→XPASS`（绝不 PASS）、环境 `skipped→SKIP` / 计划 `skipped→NOT_RUN`、`errored→BLOCKED`）、运行级 SKIP 上限（A≤5 / B≤3）、`case_id_from_source`（docstring 头 / 路径回退）、`build_report` 计数与阻塞口径、`emit_manifests` 逐 Case manifest 产出。
 - 明确不测什么 / 失败含义：不测：pytest 自身执行语义；不测被测产品行为。失败含义＝状态映射错误导致 Run 证据失真（假 PASS / 漏 BLOCKED）。
 
 ## 2. 被测入口与前置
 
-- 被测入口声明与位置：`tools/test_report.py::harvest/build_report/cap_breached/case_id_from_source/emit_manifests`
+- 被测入口声明与位置：`tools/UT-TOOL-001.py::harvest/build_report/cap_breached/case_id_from_source/emit_manifests`
 
 ```text
 harvest(junit_path) -> list[dict]; build_report(junit_path, metadata) -> dict;
@@ -96,5 +96,5 @@ emit_manifests(run_dir, records, metadata) -> int
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-TOOL-001.py`（`StatusMappingTests` 7 + `CaseIdTests` 3（含 `test_record_property_case_id_wins_over_source_header`）+ `ReportTests` 8 = 18 个）（注意：本 Case 的测试函数当前按子句（test case method）映射；若与计划/方案不一致，以修订回溯后重裁）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/test_report.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-TOOL-001.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-TOOL-001.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-TOOL-001.py`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。

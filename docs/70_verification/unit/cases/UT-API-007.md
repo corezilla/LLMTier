@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-API-007` / M001 http-api §14.1 · `_correlation` v0.1.0-draft.2 / `VRC-API-001` / normal / P1（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：等价类划分（合法 request-id 回显/派发）
+- **测试方法（§1.5 方法表行）**：等价类划分（合法 request-id 回显/派发）（主要手段：直接调用 + 冻结向量）
 - 要测什么（责任展开）：被测：`Handler._correlation` 优先回显 `X-Correlation-ID`；缺省时用 W3C `traceparent` 正则提取 32-hex trace-id；两者皆缺返回 `None`。
 - 明确不测什么 / 失败含义：不测：trace 落库查询（UT-OBS-004/007）；不测系统层跨请求关联。失败含义＝关联标识提取实现错误。
 
@@ -59,7 +59,7 @@ Handler._correlation() -> str | None
 ```
 
 - 初态构造（经公开入口）：`AppFixture().seed()` + loopback `handler_factory(app)`（ENV-2）
-- Fixture / 向量及版本：`tests/common/fakes.py::AppFixture`（ENV-1）+ loopback（ENV-2，见 `test_observability_gaps.py`）
+- Fixture / 向量及版本：`tests/common/fakes.py::AppFixture`（ENV-1）+ loopback（ENV-2，见 `UT-OBS-007.py`）
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../llmtier-unit-test-plan.md) 分配）：ENV-2 loopback 测试 HTTP 实例
 - 依赖的测试资产（tests.asset-design 文档）：无（真实实现）
 
@@ -90,5 +90,5 @@ Handler._correlation() -> str | None
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-API-007.py::CorrelationObservabilityTests::test_explicit_correlation_id_is_echoed` / `test_traceparent_trace_id_is_extracted` / `test_no_correlation_header_is_absent`
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/observability_gaps.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-API-007.py`；两条与 UT-OBS-007 共担）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-API-007.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-API-007.py`；两条与 UT-OBS-007 共担）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。

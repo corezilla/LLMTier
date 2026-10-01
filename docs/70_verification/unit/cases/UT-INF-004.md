@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-INF-004` / `VRC-INF-004`（inference 模块设计 §14 / inference-isd §9.1，inference 0.1.0-draft.1） / `VRC-INF-004` / concurrency / P0（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：线程对偶 + 受控时序（同等级 FIFO/准入 429/全不健康 503）
+- **测试方法（§1.5 方法表行）**：线程对偶 + 受控时序（同等级 FIFO/准入 429/全不健康 503）（主要手段：直接调用 + 冻结向量 + 替身注入）
 - 要测什么（责任展开）：被测：`Router.admit` 同等级候选、未知 model 404、不健康 503、unknown 不合格、许可释放、同 tier FIFO、不跨 tier；`ModelCatalog` 7 tier 与 availability 三态。
 - 明确不测什么 / 失败含义：不测：真实负载下的吞吐（系统层）；不测 M004 目录 CRUD。失败含义＝准入/路由/目录实现错误。
 
@@ -93,6 +93,6 @@ Router.admit(level_id) -> context manager; ModelCatalog.list()/get(id)
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-INF-004.py`（全部 7 个）+ `tests/unit/cases/UT-INF-004.py`（全部 7 个）（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/routing.py tests/unit/cases/models.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-INF-004.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。
 

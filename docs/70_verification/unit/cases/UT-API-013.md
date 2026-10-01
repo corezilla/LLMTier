@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-API-013` / M001 http-api §14.1 · `/v1/diagnostics` PATCH v0.1.0-draft.2 / `VRC-API-001` / negative / P2（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（未知键/非布尔开关）
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（未知键/非布尔开关）（主要手段：直接调用 + 冻结向量 + 替身注入）
 - 要测什么（责任展开）：被测：`/v1/diagnostics`（及别名）PATCH 未知键 → 400 `invalid_request`；非布尔开关值 → 400。
 - 明确不测什么 / 失败含义：不测：合法开关切换落库（UT-OBS-001 / UT-DIAG-001）。失败含义＝诊断 PATCH 白名单/类型校验实现错误。
 
@@ -59,7 +59,7 @@ PATCH body 仅允许 snapshots_enabled/stats_enabled 且值为布尔
 ```
 
 - 初态构造（经公开入口）：`AppFixture().seed()` + admin 凭据 + loopback `handler_factory(app)`（ENV-2）
-- Fixture / 向量及版本：`tests/common/fakes.py::AppFixture`（ENV-1）+ `test_app_dispatch.py::DiagnosticsPatchContractTests`（ENV-2）
+- Fixture / 向量及版本：`tests/common/fakes.py::AppFixture`（ENV-1）+ `UT-API-013.py::DiagnosticsPatchContractTests`（ENV-2）
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../llmtier-unit-test-plan.md) 分配）：ENV-2 loopback 测试 HTTP 实例
 - 依赖的测试资产（tests.asset-design 文档）：无（真实实现）
 
@@ -90,5 +90,5 @@ PATCH body 仅允许 snapshots_enabled/stats_enabled 且值为布尔
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-API-013.py::DiagnosticsPatchContractTests::test_unknown_key_is_400` / `test_alias_unknown_key_is_400` / `test_non_boolean_switch_is_400_and_not_persisted`（非布尔→400 + 前后开关读取证明未落库）
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/app_dispatch.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-API-013.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-API-013.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-API-013.py`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。

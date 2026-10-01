@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-INF-002` / `VRC-INF-002`（inference 模块设计 §14 / inference-isd §9.1，inference 0.1.0-draft.1） / `VRC-INF-002` / boundary / P0（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：边界值（base64/非有限值/维数/usage 边界）
+- **测试方法（§1.5 方法表行）**：边界值（base64/非有限值/维数/usage 边界）（主要手段：直接调用 + 冻结向量 + 替身注入）
 - 要测什么（责任展开）：被测：`EmbeddingsService.create` 正常 float/base64、批数量、逻辑 model、非法维数、未知字段（`unsupported_field`+`param`）、缺字段（`invalid_request`+`param`）、非有限值拒绝、usage→`prompt_tokens`、`_test_adapter` 注入钩子绕过 provider 构造。
 - 明确不测什么 / 失败含义：不测：OpenAI 真实 embeddings 协议；不测 M004 能力目录。失败含义＝向量校验/归一实现错误。
 
@@ -93,6 +93,6 @@ EmbeddingsService.create(principal_id, request_id, body) -> dict
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-INF-002.py::EmbeddingsTests`（全部 16 个；含 `test_test_adapter_hook_bypasses_construction`（CR-EMBEDDINGS-ADAPTER-HOOK）、`test_unknown_field_is_unsupported_field_with_param`、`test_missing_model_is_invalid_request_with_param`、`test_invalid_encoding_format_carries_param`）（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/embeddings.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-INF-002.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。
 

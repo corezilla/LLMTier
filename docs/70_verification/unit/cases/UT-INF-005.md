@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-INF-005` / `VRC-INF-005`（inference 模块设计 §14 / inference-isd §9.1，inference 0.1.0-draft.1） / `VRC-INF-005` / recovery / P1（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：故障注入 + 异常路径恢复（观测 fail-open/不二次鉴权）
+- **测试方法（§1.5 方法表行）**：故障注入 + 异常路径恢复（观测 fail-open/不二次鉴权）（主要手段：直接调用 + 替身注入）
 - 要测什么（责任展开）：被测：观测（diagnostics）不可用时推理结果不变（fail-open），推理路径不做二次鉴权。
 - 明确不测什么 / 失败含义：不测：真观测库故障注入完整性（归 M005/M006）；不测 M001 鉴权。失败含义＝观测故障导致推理失败（不 fail-open）。
 
@@ -88,7 +88,7 @@ ResponsesService.create(..., diagnostics=...)
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/cases/UT-INF-005.py::InferenceFailOpenTests::test_inference_result_unchanged_when_diagnostic_writes_fail` / `test_usage_ledger_still_measured_when_diagnostic_writes_fail` / `test_upstream_fault_still_surfaces_when_diagnostic_writes_fail`（观测 fail-open）+ `InferenceNoSecondAuthTests::test_inference_path_does_not_call_authenticate` / `test_inference_modules_do_not_import_auth`（推理路径无二次鉴权调用点）；`_UnavailableDiagnostics` 降级行为另由 `test_diagnostics_gaps.py::UnavailableDiagnosticsUnitTests`、`test_app_dispatch.py::UnavailableDiagnosticsTests` 覆盖。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/inference_failopen.py tests/unit/cases/diagnostics_gaps.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 测试文件 / 测试函数：`tests/unit/cases/UT-INF-005.py::InferenceFailOpenTests::test_inference_result_unchanged_when_diagnostic_writes_fail` / `test_usage_ledger_still_measured_when_diagnostic_writes_fail` / `test_upstream_fault_still_surfaces_when_diagnostic_writes_fail`（观测 fail-open）+ `InferenceNoSecondAuthTests::test_inference_path_does_not_call_authenticate` / `test_inference_modules_do_not_import_auth`（推理路径无二次鉴权调用点）；`_UnavailableDiagnostics` 降级行为另由 `UT-INF-005.py::UnavailableDiagnosticsUnitTests`、`UT-INF-005.py::UnavailableDiagnosticsTests` 覆盖。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-INF-005.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。
 

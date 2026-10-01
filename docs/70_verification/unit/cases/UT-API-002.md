@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-API-002` / `VRC-API-002`（http-api 模块设计 §14 / http-api-isd §9.1，http-api 0.1.0-draft.2） / `VRC-API-002` / security / P0（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：鉴权/脱敏/注入边界冒烟（免登录/bearer/缺失配置/角色不可区分）
+- **测试方法（§1.5 方法表行）**：鉴权/脱敏/注入边界冒烟（免登录/bearer/缺失配置/角色不可区分）（主要手段：直接调用 + 替身注入）
 - 要测什么（责任展开）：被测：`src/http_api/auth.py::authenticate` 的免登录/凭据/角色/信任地址判定，及 data 凭据访问 admin 端点 403、不泄露存在性。
 - 明确不测什么 / 失败含义：不测：真实 TLS/网关鉴权；不测上游。失败含义＝信任/鉴权语义实现错误（越权或误拒）。
 
@@ -94,6 +94,6 @@ authenticate(headers, config, remote_addr) -> Principal
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-API-002.py`（全部 10 个测试）（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/auth.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-API-002.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。
 

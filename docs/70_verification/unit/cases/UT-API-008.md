@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-API-008` / M001 http-api §14.2 · `authorize` 角色选择 v0.1.0-draft.2 / `VRC-API-002` / security / P0（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：鉴权/脱敏/注入边界冒烟（角色选择/401）
+- **测试方法（§1.5 方法表行）**：鉴权/脱敏/注入边界冒烟（角色选择/401）（主要手段：直接调用 + 冻结向量 + 替身注入）
 - 要测什么（责任展开）：被测：data 凭据访问 admin 端点 → 403（分发层 `_auth("admin")`）；admin 凭据访问 admin 端点 → 200；`_auth_either` 的 admin-first 角色选择；**非受信来源（合成公网地址如 `8.8.8.8`）无 `Authorization` 头 → 401 `authentication_required`**（`unauthenticated_principal` 返回 `None` 后 `authenticate` 抛 401；系统层 A/B 无法构造非受信来源，故在此单元承接）。
 - 明确不测什么 / 失败含义：不测：信任地址免登录（UT-API-002）；不测深层安全。失败含义＝分发层角色判定或 403 实现错误。
 
@@ -59,7 +59,7 @@ Handler._auth(role="data"); Handler._auth_either() -> (Principal, is_admin)
 ```
 
 - 初态构造（经公开入口）：`AppFixture` 配置鉴权 token，起 loopback 实例（ENV-2）
-- Fixture / 向量及版本：`tests/common/fakes.py::AppFixture`（ENV-1）+ `test_app_dispatch.py::AdminDispatchAuthTests`（ENV-2）
+- Fixture / 向量及版本：`tests/common/fakes.py::AppFixture`（ENV-1）+ `UT-API-008.py::AdminDispatchAuthTests`（ENV-2）
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../llmtier-unit-test-plan.md) 分配）：ENV-2 loopback 测试 HTTP 实例
 - 依赖的测试资产（tests.asset-design 文档）：无（真实实现）
 
@@ -90,6 +90,6 @@ Handler._auth(role="data"); Handler._auth_either() -> (Principal, is_admin)
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/cases/UT-API-008.py::AdminDispatchAuthTests::test_data_token_on_admin_endpoint_is_403` / `test_admin_token_on_admin_endpoint_is_200` / `test_auth_either_admin_first_role_selection`（双 token 配置下经 `/v1/usage` DELETE 驱动 `_auth_either` admin-first 角色选择：admin token→200、data token→403）；角色选择另由 `test_auth.py::test_admin_token`/`test_principal_header` 覆盖；**非受信来源缺凭据 401** 由 `test_auth.py::test_non_trusted_address_without_credential_is_401` 覆盖（系统层 ST-AUTH-010 以非法授权方案触发同一 401 分支；非受信来源无系统级构造）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/app_dispatch.py tests/unit/cases/auth.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-API-008.py`、`test_auth.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 测试文件 / 测试函数：`tests/unit/cases/UT-API-008.py::AdminDispatchAuthTests::test_data_token_on_admin_endpoint_is_403` / `test_admin_token_on_admin_endpoint_is_200` / `test_auth_either_admin_first_role_selection`（双 token 配置下经 `/v1/usage` DELETE 驱动 `_auth_either` admin-first 角色选择：admin token→200、data token→403）；角色选择另由 `UT-API-008.py::test_admin_token`/`test_principal_header` 覆盖；**非受信来源缺凭据 401** 由 `UT-API-008.py::test_non_trusted_address_without_credential_is_401` 覆盖（系统层 ST-AUTH-010 以非法授权方案触发同一 401 分支；非受信来源无系统级构造）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-API-008.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-API-008.py`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。

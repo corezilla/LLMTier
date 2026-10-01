@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-MGMT-009` / M004 management §14.4 · `admin.page`/`reset_usage` v0.1.0-draft.2 / `VRC-MGMT-004` / boundary / P1（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：边界值（cursor 过期/范围清空矩阵）
+- **测试方法（§1.5 方法表行）**：边界值（cursor 过期/范围清空矩阵）（主要手段：直接调用 + 冻结向量 + 替身注入）
 - 要测什么（责任展开）：被测：admin cursor `expires_at` 过期 → 400 `cursor_expired`；**畸形 cursor（`<sid>:<非整数>`/非整数 offset）→ 400 `cursor_expired` 而非未捕获 `ValueError`→500（CR-ADMIN-CURSOR）**；**cursor 绑定 `authorization_digest`/`filter_digest` 与 `snapshot_kind` 重校验（CR-ADMIN-CURSOR-GUARD）**；usage 快照冻结；`reset_usage` 范围矩阵（model/deployment/both/neither）。
 - 明确不测什么 / 失败含义：不测：首屏分页主路径（UT-MGMT-004）；不测跨 principal 身份（由 UT-MGMT-004 覆盖）。失败含义＝cursor TTL/解析/摘要绑定检查或清空范围实现错误。
 
@@ -94,5 +94,5 @@ AdminService.page(...); UsageRecorder.reset_usage(...)  # 范围：model/deploym
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-MGMT-009.py::AdminCursorExpiryTests::test_expired_admin_cursor_is_400` / `test_malformed_offset_cursor_is_400_not_500` / `test_non_integer_offset_cursor_is_400_not_valueerror` + `AdminCursorGuardTests::test_cursor_filter_digest_is_checked` / `test_cursor_authorization_digest_is_checked` / `test_cursor_filter_kind_mismatch_is_400` + `ResetUsageScopeTests::test_reset_by_model_only` / `test_reset_by_deployment_only` / `test_reset_by_model_and_deployment` / `test_reset_all`
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/management_gaps.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-MGMT-009.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-MGMT-009.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-MGMT-009.py`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。

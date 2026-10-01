@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-UI-010` / M002 web-ui §14.1/§14.5 · `statsRange`/`etag`/`fetchProviderModels` v0.1.0-draft.2 / `VRC-UI-001` / boundary / P2（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：边界值（时间窗/etag 格式/cache 边界）
+- **测试方法（§1.5 方法表行）**：边界值（时间窗/etag 格式/cache 边界）（主要手段：直接调用 + 冻结向量）
 - 要测什么（责任展开）：被测（字符串契约层）：`statsRange` 24h/7d/today/all；`etag()` 格式 `"<id>.v<n>"`；`fetchProviderModels` cache 命中/未命中与失败吞没（`catch{return []}`）。
 - 明确不测什么 / 失败含义：不测：`app.js` 运行时行为（G-UT-3）；不测统计口径（UT-OBS-002/UT-DIAG-002）。失败含义＝统计范围/ETag/模型缓存分支源码契约缺失。
 
@@ -91,5 +91,5 @@ function statsRange(); const etag=item=>`"${item.id}.v${item.version}"`; fetchPr
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-UI-010.py::WebUIBranchContractTests::test_stats_range_and_etag_and_model_cache`
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/webui_contract.py -q`
-- 实现状态：`Implemented`（字符串契约测试函数已存在；**行为级**验证为 Gap G-UT-3）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-UI-010.py -q`
+- 实现状态：`Implemented`（字符串契约测试函数已存在；**行为级**验证为 Gap G-UT-3）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。

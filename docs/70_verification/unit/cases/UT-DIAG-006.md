@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-DIAG-006` / M006 libdiag §14.2/§14.3 · 游标与失败 v0.1.0-draft.6 / `VRC-DIAG-002` / recovery / P1（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（非法 cursor）+ 异常路径恢复
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（非法 cursor）+ 异常路径恢复（主要手段：直接调用 + 冻结向量 + 替身注入）
 - 要测什么（责任展开）：被测：snapshots/traces 非法 cursor → 400 `cursor_expired`；trace cursor 格式 `first_ts|request_id`；correlation 取自 stage detail。
 - 明确不测什么 / 失败含义：不测：游标正常分页（UT-DIAG-002/004）；不测写入失败（UT-DIAG-007）。失败含义＝游标格式/校验或 correlation 提取实现错误。
 
@@ -89,6 +89,6 @@ DiagnosticsService.traces(..., cursor); DiagnosticsService.snapshots_page(..., c
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/cases/UT-DIAG-006.py::CursorContractGapTests::test_trace_cursor_is_first_ts_pipe_request_id` / `test_correlation_id_taken_from_stage_detail` / `test_snapshots_cursor_is_snapshot_id`；非法 cursor 400 另由 `test_diagnostics.py::DiagnosticsHttpContractTests::test_traces_invalid_cursor_is_400_expired` 覆盖
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/diagnostics_gaps.py tests/unit/cases/diagnostics.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-DIAG-006.py`、`test_diagnostics.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 测试文件 / 测试函数：`tests/unit/cases/UT-DIAG-006.py::CursorContractGapTests::test_trace_cursor_is_first_ts_pipe_request_id` / `test_correlation_id_taken_from_stage_detail` / `test_snapshots_cursor_is_snapshot_id`；非法 cursor 400 另由 `UT-DIAG-006.py::DiagnosticsHttpContractTests::test_traces_invalid_cursor_is_400_expired` 覆盖
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-DIAG-006.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-DIAG-006.py`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。

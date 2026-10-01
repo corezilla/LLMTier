@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-MGMT-001` / `VRC-MGMT-001`（management 模块设计 §14 / management-isd §9.1，management 0.1.0-draft.2） / `VRC-MGMT-001` / normal / P0（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：等价类划分（合法 settings/幂等启动）
+- **测试方法（§1.5 方法表行）**：等价类划分（合法 settings/幂等启动）（主要手段：直接调用 + 冻结向量 + 替身注入）
 - 要测什么（责任展开）：被测：`Registry.bootstrap_settings` 合法 settings、重复启动忽略、缺节、`env:` 空/`file:` 不存在 → 503 + 回滚 + not_ready；`ensure_fixed_tiers`；**`Application` 对非 `ApiError` 引导异常（如 `OSError`）兜底为 503 `bootstrap_invalid` 且不崩溃（CR-BOOTSTRAP-CATCH）**。
 - 明确不测什么 / 失败含义：不测：真实 secret 管理系统；不测进程启动（系统层）。失败含义＝引导/secret 引用实现错误或兜底缺失导致进程崩溃。
 
@@ -92,6 +92,6 @@ bootstrap_settings(settings) ; ensure_fixed_tiers()
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-MGMT-001.py`（8 个；含 `test_non_apierror_bootstrap_does_not_crash`（CR-BOOTSTRAP-CATCH，非 `ApiError` → 503 `bootstrap_invalid`））+ `tests/unit/cases/UT-MGMT-001.py::test_fixed_tiers_exist` + `tests/unit/cases/UT-MGMT-001.py::BootstrapTests`（含 `test_empty_store_without_settings_is_bootstrap_required`（`bootstrap_required`）、`test_missing_section_fails`/`test_env_secret_ref_unavailable_fails`/`test_file_secret_ref_missing_fails`（`bootstrap_invalid`））（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/app_startup.py tests/unit/cases/management_gaps.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-MGMT-001.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。
 

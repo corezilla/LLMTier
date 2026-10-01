@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-OBS-004` / `VRC-OBS-004`（observability 模块设计 §14 / observability-isd §9.1，observability 0.1.0-draft.6） / `VRC-OBS-004` / normal / P1（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：等价类划分（trace 有序/关联回显）
+- **测试方法（§1.5 方法表行）**：等价类划分（trace 有序/关联回显）（主要手段：直接调用 + 替身注入）
 - 要测什么（责任展开）：被测：固定 request_id 的 trace stage 有序、`X-Correlation-ID` 有则回显、trace 时间窗查询去重 request、分页 `next_cursor` 稳定、越界窗为空。
 - 明确不测什么 / 失败含义：不测：真实跨请求关联（系统层）；不测 UI。失败含义＝trace 关联/分页实现错误。
 
@@ -91,6 +91,6 @@ record_trace(request_id, stage, payload, correlation_id=None); page_traces(...)
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-OBS-004.py::TracesQueryTests::test_traces_dedups_by_request_and_stable_paging/test_cleanup_removes_expired_and_returns_count` + `DiagnosticCursorContractTests`（3 个）+ `DiagnosticsHttpContractTests::test_traces_invalid_cursor_is_400_expired`（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/diagnostics.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-OBS-004.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。
 

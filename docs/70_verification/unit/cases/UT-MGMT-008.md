@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-MGMT-008` / M004 management §14.2 · `Registry` 引用删除 v0.1.0-draft.2 / `VRC-MGMT-002` / negative / P1（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（resource_in_use 409）
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（resource_in_use 409）（主要手段：直接调用 + 替身注入）
 - 要测什么（责任展开）：被测：`resource_in_use`——删除被 deployment 引用的 provider、删除被 tier 引用的 deployment → 409。
 - 明确不测什么 / 失败含义：不测：其它 CRUD 不变量（UT-MGMT-002）；不测并发 PATCH。失败含义＝引用完整性检查实现错误。
 
@@ -89,5 +89,5 @@ Registry.delete_provider(provider_id, conn=None); Registry.delete_deployment(dep
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-MGMT-008.py::ResourceInUseTests::test_delete_provider_referenced_by_deployment_is_409` / `test_delete_deployment_referenced_by_tier_is_409`
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/management_gaps.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-MGMT-008.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-MGMT-008.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-MGMT-008.py`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。

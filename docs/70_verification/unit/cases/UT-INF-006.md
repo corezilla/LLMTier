@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-INF-006` / M003 inference §14.1 · `ResponsesService._validate` v0.1.0-draft.1 / `VRC-INF-001` / negative / P0（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（校验顺序与码）
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（校验顺序与码）（主要手段：直接调用 + 冻结向量 + 替身注入）
 - 要测什么（责任展开）：被测：`ResponsesService._validate` 的校验顺序与错误码——未知字段/禁字段→`unsupported_field`（`param`=首个违规字段名，系统 §7.8 ERR-REQ-FIELD）；`tools` 无能力→`unsupported_request`；`max_output_tokens` 范围/布尔→`invalid_request`；responses 能力 false→`unsupported_model`。
 - 明确不测什么 / 失败含义：不测：成功归一（UT-INF-001）；不测 provider 协议 wire。失败含义＝校验顺序或错误码实现错误。
 
@@ -92,5 +92,5 @@ _validate(body, caps)  # 顺序：required/stream-store → unknown fields → r
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-INF-006.py::ResponsesValidationGapTests::test_unknown_field_is_400_unsupported_field`（`param="bogus"`）/ `test_forbidden_field_carries_param`（`param="previous_response_id"`）/ `test_tools_without_capability_is_400_unsupported_request` / `test_max_output_tokens_zero_is_400` / `test_max_output_tokens_non_integer_bool_is_400` / `test_max_output_tokens_over_capability_is_400` / `test_max_output_tokens_within_range_accepted` / `test_unsupported_responses_capability_is_400_unsupported_model`
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/responses.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-INF-006.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-INF-006.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-INF-006.py`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。

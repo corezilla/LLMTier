@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-UI-009` / M002 web-ui §14.5 · `usageSummary` 分支 v0.1.0-draft.2 / `VRC-UI-004` / boundary / P1（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：边界值（用量摘要四态边界）
+- **测试方法（§1.5 方法表行）**：边界值（用量摘要四态边界）（主要手段：直接调用 + 冻结向量）
 - 要测什么（责任展开）：被测（字符串契约层）：`usageSummary` 的 not_refreshed / unlimited / Unavailable / percent-null 四态渲染分支（Unknown≠0）。
 - 明确不测什么 / 失败含义：不测：`app.js` 运行时行为（G-UT-3）；不测服务端去重（UT-UI-004）。失败含义＝用量摘要四态分支源码契约缺失。
 
@@ -89,5 +89,5 @@ usageSummary(...) / const metric=value=>...  # 源码分支契约
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-UI-009.py::WebUIBranchContractTests::test_usage_summary_four_states`
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/webui_contract.py -q`
-- 实现状态：`Implemented`（字符串契约测试函数已存在；**行为级**验证为 Gap G-UT-3）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-UI-009.py -q`
+- 实现状态：`Implemented`（字符串契约测试函数已存在；**行为级**验证为 Gap G-UT-3）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。

@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-INF-003` / `VRC-INF-003`（inference 模块设计 §14 / inference-isd §9.1，inference 0.1.0-draft.1） / `VRC-INF-003` / recovery / P0（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：故障注入 + 异常路径恢复（上游 5xx/超时/usage 缺失不补零）
+- **测试方法（§1.5 方法表行）**：故障注入 + 异常路径恢复（上游 5xx/超时/usage 缺失不补零）（主要手段：直接调用 + 冻结向量 + 替身注入）
 - 要测什么（责任展开）：被测：provider 失败/终态不合法时 `UsageRecorder` 的 unknown 不补零、head 单调、只用记录版本、terminal 唯一校验。
 - 明确不测什么 / 失败含义：不测：M-METER 跨模块账本一致性（模块层）；不测真实超时墙钟。失败含义＝失败路径记账/终态校验实现错误。
 
@@ -91,6 +91,6 @@ authorize_dispatch(principal, request_id, model, endpoint); finish(principal, re
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-INF-003.py`（全部 11 个）+ `tests/unit/cases/UT-INF-003.py::test_incomplete_terminal_is_preserved/test_duplicate_terminal_is_rejected/test_terminal_event_status_mismatch_is_rejected` + `tests/unit/cases/UT-INF-003.py`（2 个）（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/usage.py tests/unit/cases/provider_openai.py tests/unit/cases/runtime_snapshot.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-INF-003.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。
 

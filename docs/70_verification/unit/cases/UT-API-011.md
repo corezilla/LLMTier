@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-API-011` / M001 http-api §14.1 · 契约别名命名空间 v0.1.0-draft.2 / `VRC-API-001` / normal / P1（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对（别名 parity）
+- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对（别名 parity）（主要手段：直接调用 + 冻结向量 + 替身注入）
 - 要测什么（责任展开）：被测：`/tier/admin/v1/*` 别名路由与 `/v1/*` 在诊断开关、快照、traces 上的行为对齐（parity）。
 - 明确不测什么 / 失败含义：不测：OpenAPI 全文一致性（契约层）；不测各端点语义（归各自 Case）。失败含义＝别名路由映射或与主命名空间不一致。
 
@@ -59,7 +59,7 @@ Handler._dispatch()  # 契约层 `/tier/admin/v1/*` 与扁平 `/v1/*` 两命名�
 ```
 
 - 初态构造（经公开入口）：`AppFixture().seed()` + loopback `handler_factory(app)`（ENV-2）
-- Fixture / 向量及版本：`tests/common/fakes.py::AppFixture`（ENV-1）+ `test_app_dispatch.py::AliasParityTests`（ENV-2）
+- Fixture / 向量及版本：`tests/common/fakes.py::AppFixture`（ENV-1）+ `UT-API-011.py::AliasParityTests`（ENV-2）
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../llmtier-unit-test-plan.md) 分配）：ENV-2 loopback 测试 HTTP 实例
 - 依赖的测试资产（tests.asset-design 文档）：无（真实实现）
 
@@ -90,5 +90,5 @@ Handler._dispatch()  # 契约层 `/tier/admin/v1/*` 与扁平 `/v1/*` 两命名�
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-API-011.py::AliasParityTests::test_diagnostics_switches_parity` / `test_snapshots_parity` / `test_traces_parity_empty`
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/app_dispatch.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-API-011.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-API-011.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-API-011.py`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。

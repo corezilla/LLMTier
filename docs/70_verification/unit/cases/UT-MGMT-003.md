@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-MGMT-003` / `VRC-MGMT-003`（management 模块设计 §14 / management-isd §9.1，management 0.1.0-draft.2） / `VRC-MGMT-003` / security / P0（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：鉴权/脱敏/注入边界冒烟（审计/Authorization/Secret 脱敏）
+- **测试方法（§1.5 方法表行）**：鉴权/脱敏/注入边界冒烟（审计/Authorization/Secret 脱敏）（主要手段：直接调用 + 替身注入）
 - 要测什么（责任展开）：被测：`AdminService.mutate` 成功/失败动作落审计 success/failed、含 Authorization/Secret 的日志脱敏 `[REDACTED]`、分页共享形状。
 - 明确不测什么 / 失败含义：不测：审计持久化后端（M007）；不测真实营销审计。失败含义＝审计缺失/脱敏失败。
 
@@ -91,6 +91,6 @@ AdminService.mutate(principal, action, target, request_id, fn); AuditLog.record(
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-MGMT-003.py::test_mutate_success_audited/test_mutate_failure_audited/test_mutate_is_atomic_with_registry_write` + `tests/unit/cases/UT-MGMT-003.py`（7 个）+ `tests/unit/cases/UT-MGMT-003.py`（7 个）（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/admin.py tests/unit/cases/audit.py tests/unit/cases/logs.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-MGMT-003.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。
 

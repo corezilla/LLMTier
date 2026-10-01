@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-API-012` / M001 http-api §14.1 · `_UnavailableDiagnostics`/引导 v0.1.0-draft.2 / `VRC-API-001` / recovery / P1（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：故障注入 + 异常路径恢复（诊断初始化失败 fail-open/引导）
+- **测试方法（§1.5 方法表行）**：故障注入 + 异常路径恢复（诊断初始化失败 fail-open/引导）（主要手段：直接调用 + 冻结向量 + 替身注入）
 - 要测什么（责任展开）：被测：`DiagnosticsService` 初始化失败时降级为 `_UnavailableDiagnostics`（全方法 no-op、开关默认关），推理仍成功；`bootstrap_error` 置位时 `/healthz`+`/ui/*` 仍可达、`/readyz` →503、数据面 503；**`Application` 对非 `ApiError` 引导异常兜底为 `bootstrap_error`(503 `bootstrap_invalid`) 而非崩溃（CR-BOOTSTRAP-CATCH）**。
 - 明确不测什么 / 失败含义：不测：诊断正常路径（UT-DIAG-*）；不测 systemd 启动。失败含义＝fail-open 降级或引导错误面实现错误。
 
@@ -59,7 +59,7 @@ Application(database, settings)  # DiagnosticsService 失败时 self.diagnostics
 ```
 
 - 初态构造（经公开入口）：构造 `Application` 使诊断初始化失败（禁用/坏路径）或显式注入 `bootstrap_error`，起 loopback 实例（ENV-2）
-- Fixture / 向量及版本：`tests/common/fakes.py::AppFixture`（ENV-1）+ `test_app_dispatch.py::UnavailableDiagnosticsTests`/`BootstrapErrorTests`（ENV-2）
+- Fixture / 向量及版本：`tests/common/fakes.py::AppFixture`（ENV-1）+ `UT-API-012.py::UnavailableDiagnosticsTests`/`BootstrapErrorTests`（ENV-2）
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../llmtier-unit-test-plan.md) 分配）：ENV-2 loopback 测试 HTTP 实例 + ENV-3 `FakeAdapter`（推理仍成功断言）
 - 依赖的测试资产（tests.asset-design 文档）：`FakeAdapter`（`llmtier-unit-fakes`，资产文档已建）
 
@@ -93,5 +93,5 @@ Application(database, settings)  # DiagnosticsService 失败时 self.diagnostics
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-API-012.py::UnavailableDiagnosticsTests::test_degrades_to_unavailable_observer` / `test_switches_default_off` / `test_void_methods_are_noops` / `test_inference_still_succeeds_when_diagnostics_unavailable` + `BootstrapErrorTests::test_healthz_still_reachable` / `test_ui_still_reachable` / `test_readyz_is_503_not_ready` / `test_data_plane_returns_bootstrap_error` + `tests/unit/cases/UT-API-012.py::StartupTests::test_non_apierror_bootstrap_does_not_crash`（CR-BOOTSTRAP-CATCH）
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/app_dispatch.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-API-012.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-API-012.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-API-012.py`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。

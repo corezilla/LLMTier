@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-MGMT-002` / `VRC-MGMT-002`（management 模块设计 §14 / management-isd §9.1，management 0.1.0-draft.2） / `VRC-MGMT-002` / negative / P0（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（CRUD 不变量/ETag stale）
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（CRUD 不变量/ETag stale）（主要手段：直接调用 + 冻结向量）
 - 要测什么（责任展开）：被测：provider/deployment/service_level CRUD 的 ETag 412、重复 409、删除固定 tier 拒绝、引用校验、能力精确匹配、`Embedding-v1` 冻结、能力编辑重算绑定 tier 与冲突回滚。
 - 明确不测什么 / 失败含义：不测：HTTP wire 层（M001）；不测真实 provider。失败含义＝不变量/ETag/引用实现错误。
 
@@ -93,6 +93,6 @@ create_provider/update_provider/create_deployment/update_service_level/get_servi
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-MGMT-002.py`（全部 14 个）（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/registry.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-MGMT-002.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。
 

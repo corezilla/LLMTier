@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-DIAG-008` / M006 libdiag §14.4 · `stream_wrapper`/优先级 v0.1.0-draft.6 / `VRC-DIAG-004` / boundary / P1（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：边界值（透传/早停/畸形帧/优先级/revoke）
+- **测试方法（§1.5 方法表行）**：边界值（透传/早停/畸形帧/优先级/revoke）（主要手段：直接调用 + 冻结向量）
 - 要测什么（责任展开）：被测：`stream_wrapper` 透传 vs 早停 vs 畸形帧；`enabled_stream_injection` 优先级；空 `items` revoke（DELETE）。
 - 明确不测什么 / 失败含义：不测：四类注入校验（UT-DIAG-004）；不测真实 SSE wire。失败含义＝流包装/注入优先级/revoke 实现错误。
 
@@ -93,5 +93,5 @@ DiagnosticsService.stream_wrapper(deployment_id, base_stream); enabled_stream_in
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-DIAG-008.py::StreamWrapperTests::test_passthrough_without_injection` / `test_stream_terminate_early_end` / `test_malformed_event_appends_broken_frame` / `test_stream_injection_priority_is_terminate_first` / `test_pre_call_injection_priority_is_fault_502_first` / `test_empty_items_revokes_all`
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/diagnostics_gaps.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-DIAG-008.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-DIAG-008.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-DIAG-008.py`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。

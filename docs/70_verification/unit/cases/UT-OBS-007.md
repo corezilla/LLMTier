@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-OBS-007` / M005 observability §14.4 · `_correlation` traceparent v0.1.0-draft.6 / `VRC-OBS-004` / normal / P1（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：等价类划分（关联标识回显/提取）
+- **测试方法（§1.5 方法表行）**：等价类划分（关联标识回显/提取）（主要手段：直接调用 + 冻结向量 + 替身注入）
 - 要测什么（责任展开）：被测：`X-Correlation-ID` 有则回显；缺省时 `traceparent`→提取 trace-id；无头时缺省无该响应头。
 - 明确不测什么 / 失败含义：不测：trace 落库查询（UT-OBS-004）；不测 API 层参数（UT-API-007 与之共担）。失败含义＝关联标识提取/回显实现错误。
 
@@ -90,5 +90,5 @@ Handler._correlation() -> str | None
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-OBS-007.py::CorrelationObservabilityTests::test_explicit_correlation_id_is_echoed` / `test_traceparent_trace_id_is_extracted` / `test_no_correlation_header_is_absent`
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/observability_gaps.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-OBS-007.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-OBS-007.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-OBS-007.py`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。

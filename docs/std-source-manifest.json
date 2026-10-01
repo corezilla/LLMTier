@@ -2,14 +2,14 @@
   "schema_version": "std-source-manifest.v1",
   "std_version": "0.1.0-draft.72",
   "source_repository": "corezilla/STD",
-  "source_revision": "e42472857efaeb40343f2e77188f12b640114d13",
+  "source_revision": "eaca6dcb9ca990bfb9b68ae1c08dfb5d9d4b5da9",
   "source_tag": null,
-  "generated_at": "2026-10-01",
+  "generated_at": "2026-10-02",
   "artifacts": [
     {
       "path": "README.md",
       "role": "guidance",
-      "sha256": "8878eaa280037df034e6d6cab8239191041c42fc6af5d4276f2fb47d72bee0a7"
+      "sha256": "a2a132901f2a811a194ac271c64200c93505fdb7c657e187c43212838356cff2"
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
@@ -29,12 +29,12 @@
     {
       "path": "docs/ai-authoring-guide.md",
       "role": "guidance",
-      "sha256": "41c33dcfbbe467098e5e486d92f8714d3bd6db3f5b5966172e26409bd9b4409c"
+      "sha256": "c0090c5de96a48c43ebaf7d6579caf4b189c5818a1e2308d5592e1b144829acd"
     },
     {
       "path": "docs/ai-authoring-guides.json",
       "role": "guidance",
-      "sha256": "1756290a179336fca5140c9b779bb16a30b9e05baaf876e6449356f56b6256a6"
+      "sha256": "bf74cd4d1763225950f9386df8507b51a1da8c3ae6d230d754bc6f35e0df3938"
     },
     {
       "path": "docs/ai-guides/fpga.md",
@@ -44,7 +44,7 @@
     {
       "path": "docs/ai-guides/hardware.md",
       "role": "guidance",
-      "sha256": "809f56f9fe14e6d32f067a8516a3ca108c6fd3d41ff0b11170729be722f79691"
+      "sha256": "76e1f8ba78da8073297b6e1dc2451de9ad64caf07de9f35fd4c3d573bc9700fd"
     },
     {
       "path": "docs/ai-guides/implementation-design.md",
@@ -109,7 +109,7 @@
     {
       "path": "docs/ai-guides/verification.md",
       "role": "guidance",
-      "sha256": "be3e4c3a91de280c246b57c9351439c48ccacfcaf4009f8dbc58c7d411029da0"
+      "sha256": "f5b26dbc4f308ed61d789c92480f6dfc7185aa7b01d9573139bd3f22681955ac"
     },
     {
       "path": "docs/ai-system-design-authoring-guide.md",
@@ -429,22 +429,27 @@
     {
       "path": "docs/repository-layout.md",
       "role": "guidance",
-      "sha256": "2cff87ccff921973bd44e39cb166db0663053e60204ba626777141947ca38f15"
+      "sha256": "8ec3b777a5f279488996f84fb4bde3f15dabe8b9bdeeeb0de170f6430ea0fa48"
     },
     {
       "path": "docs/software-object-identifiers.md",
       "role": "guidance",
-      "sha256": "40036c320d20a0e2c598d1389b3c98911eeb6a6ad0d490d8f07f29d1c4817522"
+      "sha256": "565e6c8af2427811c02bb986c935281cb57276e47c98f9618a7ac42e3948c613"
     },
     {
       "path": "docs/software-project-layout.md",
       "role": "guidance",
-      "sha256": "7e663e787ae191b1cf4ceff5dfb4feef41b937169316f32bd9f36e74fa5618db"
+      "sha256": "b352b4a23495a72e3cd6e6c4b560b73081c53269431e7921c12adc1aaa1e4b07"
     },
     {
       "path": "docs/template-selection.md",
       "role": "guidance",
-      "sha256": "4ded1f4732e19ae6f74730036079f14baf312c0ef3d7e853c19ea1d9fffc33b7"
+      "sha256": "2dadbaffb8ae12a0921c0675f36b5b29303afe9a2f6ecf544bd3265e74fdcea5"
+    },
+    {
+      "path": "docs/test-standard.md",
+      "role": "guidance",
+      "sha256": "3cb2dc6aaf854e1a2a85a66e17ef89aa9051d5694e42513a7cc912e53522d649"
     },
     {
       "path": "docs/versioning.md",
@@ -559,7 +564,7 @@
     {
       "path": "templates/catalog.json",
       "role": "template",
-      "sha256": "415648f5d8b7b6e3202a4ef0a0ffd412851edc30d3cc97e13c54a2dbd0048575"
+      "sha256": "9d12e00a3eb30c1459f6e142b03c05e8de545ebb84b5885834cc637b70af3333"
     },
     {
       "path": "templates/contracts/contract-specification.md",
@@ -1004,7 +1009,7 @@
     {
       "path": "templates/path-policy.json",
       "role": "template",
-      "sha256": "1bd580a7fc17f9d5ebf933761f6cac2b318e866920e23c62df010d533d4813e0"
+      "sha256": "4b9c678189be7b93419e2b4f789f7733e207dc6d79dcf9a3f6b3073c15f9c377"
     },
     {
       "path": "templates/product/roadmap.md",
@@ -1052,7 +1057,7 @@
       "sha256": "dbcd552be09030476d21bf77b0a993e6a2c8ff640e32f2f3d0196abfd54564af"
     },
     {
-      "path": "templates/review/tests.code-review-checklist.md",
+      "path": "templates/review/tests-code-review-checklist.md",
       "role": "template",
       "sha256": "c83bde9fddd55c0f66b2f32df86fedcf10b5fd650cb5111f7698d4951ef1dc6f"
     },
@@ -1064,27 +1069,27 @@
     {
       "path": "templates/tests/module-case.md",
       "role": "template",
-      "sha256": "34a5da6ab5dec7b608554b762991b0233b5ed9f50fbbd242f8e0550bb10a2d6c"
+      "sha256": "a66fa86963e82e01ab6719e71de219269b816a7b4257622c4e9b312fa5e456f3"
     },
     {
       "path": "templates/tests/module-test-plan.md",
       "role": "template",
-      "sha256": "4cf614e13f1e8df5d54922ae522145a8323715d59e175bb042ac4aa7accf467d"
+      "sha256": "5abef1b0f5bf1e58e8a3717eb879578b60131d7b0ba7b04432d0697bc397b3b7"
     },
     {
       "path": "templates/tests/module-test-report.md",
       "role": "template",
-      "sha256": "5ba453bc54d2fdf7c54eb7dfc687659103769b9191f9a313719babaa23d4061f"
+      "sha256": "17d578222074c2c58040f3b1dec0af88483e11133c3b0fdf045b5be1b6596b61"
     },
     {
       "path": "templates/tests/module-test-scheme.md",
       "role": "template",
-      "sha256": "c92e35ca24796300f258bb0d4156d01fd82f50050dbaca459d99caac1c1ff0ba"
+      "sha256": "c30133a086a7d63409d08d466e0a835f06aae920c5d662e87ab58ae43de2ea0b"
     },
     {
       "path": "templates/tests/subsystem-case.md",
       "role": "template",
-      "sha256": "33e73048025381ff5d2d98ca4fbf77fc49f3d84065d76f6f4a0bb45ca194e6a0"
+      "sha256": "7c0ed4f41350870e3ce55705e82dc7c65859aee283844b7b1b7ea9a189884166"
     },
     {
       "path": "templates/tests/subsystem-test-plan.md",
@@ -1104,7 +1109,7 @@
     {
       "path": "templates/tests/system-case.md",
       "role": "template",
-      "sha256": "a02bfb622661e6a8a82e9a597f0ebbb9fd6d5d3aef5b9cb1e1903e1755321ac2"
+      "sha256": "96a57bcbcb29ec3569b308d75af6c1d5b6c803cdae1a4b1513976d477774212e"
     },
     {
       "path": "templates/tests/system-test-plan.md",
@@ -1124,7 +1129,7 @@
     {
       "path": "templates/tests/unit-case.md",
       "role": "template",
-      "sha256": "ff37a34040c1834a831baf056bad5a95c9daf6a4d80607c5ea100d4906cb6d61"
+      "sha256": "35b62c79cab0a82e2b4f8da814538a522d8952591aba52f30bdf0c074b60e11a"
     },
     {
       "path": "templates/tests/unit-test-plan.md",

@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-MGMT-004` / `VRC-MGMT-004`（management 模块设计 §14 / management-isd §9.1，management 0.1.0-draft.2） / `VRC-MGMT-004` / boundary / P0（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：边界值（分页首屏/更正/过期 cursor）
+- **测试方法（§1.5 方法表行）**：边界值（分页首屏/更正/过期 cursor）（主要手段：直接调用 + 冻结向量 + 替身注入）
 - 要测什么（责任展开）：被测：用量查询分页 cursor 首屏冻结、cursor 过期/跨 principal 400/403、范围清空计数一致；admin cursor 首屏快照与跨 principal 绑定（畸形 cursor 与摘要绑定归 UT-MGMT-009 细化）。
 - 明确不测什么 / 失败含义：不测：账本写入（M003）；不测 HTTP 层；不测 cursor TTL 过期/畸形解析/摘要绑定（由 UT-MGMT-009）。失败含义＝分页快照/清空范围实现错误。
 
@@ -92,6 +92,6 @@ page(items, principal, kind, cursor, limit); usage.page(...); usage.reset_usage(
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-MGMT-004.py::test_page_shape/test_page_limit/test_page_cursor/test_cursor_principal_bound/test_first_page_snapshot_is_frozen` + `tests/unit/cases/UT-MGMT-004.py::test_snapshot_is_stable/test_cursor_filter_mismatch/test_invalid_window` + `tests/unit/cases/UT-MGMT-004.py`（5 个）（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/admin.py tests/unit/cases/usage.py tests/unit/cases/admin_stats.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-MGMT-004.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。
 

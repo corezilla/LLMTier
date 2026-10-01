@@ -1,7 +1,7 @@
 # LLMTier 验证域总索引（docs/70_verification）
 
 > STD 使用入口：[项目采用说明与标准导航](../../README.md#std-entry)。本目录按 **测试阶段** 组织
-> （STD `0.1.0-draft.72` / `78876c9`，见 `docs/std.lock.json`；布局依据 STD
+> （STD `0.1.0-draft.72` / `eaca6dc`，见 `docs/std.lock.json`；布局依据 STD
 > `docs/repository-layout.md` §4「测试authority / 按测试类型保存报告」与 §4.1.2 文件级示例）。
 
 本目录承载 LLMTier 的**测试方案（scheme）**、**用例详细设计（case）**、**测试计划（plan）** 与
@@ -15,7 +15,7 @@
 | 阶段目录 | 测试阶段 | Case 前缀 | 方案（scheme，1 份） | 用例（case，一 Case 一文档） | 计划（plan，1 份） | 资产（asset） |
 |---|---|---|---|---|---|---|
 | `unit/` | 单元测试 | `UT` | `unit/llmtier-unit-test-scheme.md` | `unit/cases/UT-<OBJ>-<NNN>.md` | `unit/llmtier-unit-test-plan.md` | `unit/assets/llmtier-unit-fakes.md` |
-| `module/` | 模块测试 | `MT` | N/A（本项目未设独立模块阶段，见 §3） | — | — | — |
+| `module/` | 模块测试 | `MT` | `module/llmtier-module-test-scheme.md` | `module/cases/MT-<OBJ>-<NNN>.md`（37 份，待建） | `module/llmtier-module-test-plan.md` | 复用 `unit/assets/llmtier-unit-fakes.md`（见 §3） |
 | `subsystem/` | 子系统/集成测试 | `IT` | N/A（本项目未设独立子系统阶段，见 §3） | — | — | — |
 | `system/` | 系统测试 | `ST` | `system/llmtier-system-test-scheme.md` | `system/cases/<ID 小写>.md` | `system/llmtier-system-test-plan.md` | 暂无（系统层资产由 `tests/system/conftest.py` 承载，见 §3） |
 
@@ -34,7 +34,7 @@ Case ID 格式 **`<阶段前缀>-<对象>-<NNN>`**：
 | 测试阶段 | 阶段前缀 | 示例 |
 |---|---|---|
 | 单元测试 | `UT` | `UT-API-001` |
-| 模块测试 | `MT` | N/A |
+| 模块测试 | `MT` | `MT-API-001` |
 | 子系统/集成测试 | `IT` | N/A |
 | 系统测试 | `ST` | `ST-RESP-001` |
 
@@ -46,8 +46,7 @@ Case ID 格式 **`<阶段前缀>-<对象>-<NNN>`**：
 
 ## 3. 本项目实际范围（N/A 声明）
 
-- **module（`MT`）**：**N/A**。本项目未单独设立模块测试阶段；模块级验证由单元层真实行为测试
-  （`UT-*`，见 `unit/llmtier-unit-test-scheme.md` §4）与系统层 `ST-*` 共同承接，不另建目录。
+- **module（`MT`）**：**已设**。本项目按用户授权合并 M001-M008 为一份项目级模块测试方案/计划（LT-TL-025，与单元层 LT-TL-023 同一处理方式），目录 `module/`。模块层测试**整模块组装**（内部单元真实、仅模块边界外协作者用替身，状态只经公开入口，主要手段＝公开入口 + 边界替身），分母＝**四层**（方案 §3：①接口行为 20 ＋ ②分支 36 ＋ ③组合 10 ＋ ④迁移 14 ＝ 80 条），展开为 **57 个 `MT-*` Case**；8 个模块设计 §14 / ISD §9.1 的 33 个验证项只作追溯、不作分母。模块层测试资产**复用** `unit/assets/llmtier-unit-fakes.md`（同一 `FakeAdapter`/`AppFixture`），不另立资产；`module/cases/` 的 57 份 Case 文档为下一交付步建立。**模块层 PASS 不关闭上层**：系统层组合目标（wire/E2E/真实 provider 协议）独立承接。
 - **subsystem（`IT`）**：**N/A**。本项目未单独设立子系统/集成测试阶段；子系统集成语义由系统层
   `ST-*`（`tests/system/`）承接，不另建目录。
 - **system 资产**：系统层测试资产（`LLMTierInstance` / `provider_endpoint_*` / B 类 fixture）以
@@ -60,6 +59,7 @@ Case ID 格式 **`<阶段前缀>-<对象>-<NNN>`**：
 
 - 系统测试：`tests/system/reports/<run-id>/`（如 `2026-09-30/system-test-report.md`）。
 - 单元测试：`tests/unit/reports/<run-id>/`（脚本 `tests/unit/cases/`）。
+- 模块测试：`tests/module/reports/<run-id>/`（脚本 `tests/module/cases/`；首次执行时建立）。
 - UI（系统层真实浏览器）：`tests/system/reports/<run-id>/`。
 
 本目录只引用报告，不复制原始结果。历史 Run 报告保留原 Case ID 键（迁移不改写既有 Run 证据）。

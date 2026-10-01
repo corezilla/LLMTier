@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-MGMT-011` / M004 management §14.6 · `AccountUsage.refresh` 分支 v0.1.0-draft.2 / `VRC-MGMT-006` / negative / P1（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（not_refreshed/凭据缺失/上游错误）
+- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（not_refreshed/凭据缺失/上游错误）（主要手段：直接调用 + 替身注入）
 - 要测什么（责任展开）：被测：GET 不触网；`not_refreshed`；`credentials_missing`；provider 报错→`unavailable`+`error`（`""` 非 null）。
 - 明确不测什么 / 失败含义：不测：正常刷新快照（UT-MGMT-006）；不测真实 provider 端点。失败含义＝账号用量分支状态或错误快照实现错误。
 
@@ -92,5 +92,5 @@ AccountUsage.latest(provider_id) -> dict; AccountUsage.refresh(principal_id, pro
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-MGMT-011.py::AccountUsageGapTests::test_latest_never_touches_network` / `test_local_provider_not_refreshed` / `test_credentials_missing_snapshot` / `test_refresh_requires_confirmation` / `test_provider_api_error_is_unavailable_with_error_string`
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/management_gaps.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-MGMT-011.py`）；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-MGMT-011.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-MGMT-011.py`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。

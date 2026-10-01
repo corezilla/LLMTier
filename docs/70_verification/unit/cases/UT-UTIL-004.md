@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-UTIL-004` / M007 util §14.2 · `migrate`/`_initialize` v0.1.0-draft.1 / `VRC-UTIL-002` / concurrency / P1（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：线程对偶 + 受控时序（并发启动/嵌套事务/损坏库映射）
+- **测试方法（§1.5 方法表行）**：线程对偶 + 受控时序（并发启动/嵌套事务/损坏库映射）（主要手段：直接调用 + 冻结向量）
 - 要测什么（责任展开）：被测：损坏文件→`schema_integrity_failed`；迁移中途失败→回滚空库；嵌套事务→`E-UTIL-NESTED-TXN`（409）；并发启动两实例。
 - 明确不测什么 / 失败含义：不测：幂等 migrate 主路径（UT-UTIL-002）；不测 symlink（UT-UTIL-001）。失败含义＝完整性/迁移原子性/嵌套事务/并发初始化实现错误。
 
@@ -59,7 +59,7 @@ Store.migrate(); Store.transaction(immediate=True); Store(path)
 ```
 
 - 初态构造（经公开入口）：`tempfile.TemporaryDirectory` 隔离库；损坏文件、迁移中途失败、嵌套事务、两实例并发（ENV-1）
-- Fixture / 向量及版本：`tests/unit/cases/UT-UTIL-004.py::IntegrityMappingTests`/`NestedTransactionTests`/`CorruptStoreTests`；`test_store_schema.py`
+- Fixture / 向量及版本：`tests/unit/cases/UT-UTIL-004.py::IntegrityMappingTests`/`NestedTransactionTests`/`CorruptStoreTests`
 - 环境类型 + ENV 实例编号（引用 [单元测试计划 §4](../llmtier-unit-test-plan.md) 分配）：ENV-1 隔离 Python 临时库
 - 依赖的测试资产（tests.asset-design 文档）：无（真实 SQLite）
 
@@ -91,5 +91,5 @@ Store.migrate(); Store.transaction(immediate=True); Store(path)
 ## 7. 自动化位置与状态
 
 - 测试文件 / 测试函数：`tests/unit/cases/UT-UTIL-004.py::IntegrityMappingTests::test_integrity_failure_is_503` / `NestedTransactionTests::test_nested_transaction_is_409` / `test_txn_context_reuses_caller_connection` / `CorruptStoreTests::test_corrupt_file_raises`
-- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/store_gaps.py -q`
-- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-UTIL-004.py`）；`CorruptStoreTests` 另绑定缺口 G-UT-5；执行状态与 Verdict 归 Run 报告（当前无录制 Run，见方案 §4 G-UT-1）。
+- 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-UTIL-004.py -q`
+- 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-UTIL-004.py`）；`CorruptStoreTests` 另绑定缺口 G-UT-5；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。
