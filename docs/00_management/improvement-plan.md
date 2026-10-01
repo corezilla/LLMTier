@@ -78,7 +78,7 @@ OMLX embedding | m5air: http://192.168.1.9:9000/v1 (bge-m3, 1024维)
 
 ### 改进项 3：ST-12 头部加注释
 
-**文件位置**：`tests/system/st_12_embedding_invariant.py`
+**文件位置**：`tests/system/st_12_embedding_invariant.py`（STD `78876c9` 后该脚本已退役，覆盖并入 `tests/system/cases/ST-EMB-003.py`/`ST-EMB-001.py`；本项为历史记录）
 
 **添加注释**：
 ```python
@@ -118,7 +118,7 @@ PR Review 时需确认：
 | 1 | PR Review Guide 文件存在 | `ls docs/20_arch_and_design/PR-REVIEW-GUIDE.md` |
 | 2 | PR Review Guide 包含 LAN 服务检查项 | `grep -c "127.0.0.1" docs/20_arch_and_design/PR-REVIEW-GUIDE.md` 应为 0 |
 | 3 | 测试计划 §2.2 包含 OMLX 环境信息 | `grep -c "192.168.1.9" docs/70_verification/plans/llmtier-system-test-plan.md` > 0 |
-| 4 | ST-12 注释包含 LAN 服务说明 | `grep -c "LAN service" tests/system/st_12_embedding_invariant.py` > 0 |
-| 5 | ST-12 不使用 127.0.0.1 | `grep "127.0.0.1" tests/system/st_12_embedding_invariant.py` 应无输出 |
-| 6 | 所有测试仍然通过 | `PYTHONPATH=src python3 -m pytest tests/ tests/system/st_*.py -q` 221 pass |
+| 4 | ST-12 注释包含 LAN 服务说明 | （历史）`tests/system/st_12_embedding_invariant.py` 已退役；现由 `tests/system/cases/ST-EMB-003.py` 头部 TS-002 依赖承接 |
+| 5 | ST-12 不使用 127.0.0.1 | （历史）legacy 脚本已退役；替代 `tests/system/cases/ST-EMB-001.py`/`ST-EMB-003.py` 无 127.0.0.1 provider endpoint |
+| 6 | 所有测试仍然通过 | `PYTHONPATH=src python3 -m pytest tests/ -q` 全绿 |
 ```

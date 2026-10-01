@@ -1,7 +1,7 @@
 # LLMTier 系统可执行用例 — `tests/system/cases/`
 
 > STD `78876c9`（`docs/repository-layout.md` §4.1.x）：系统层可执行脚本平铺于此，
-> **文件名＝Case ID**（`ST-<对象>-<NNN>.py`）。
+> **文件名＝Case ID**（`ST-<对象>-<NNN>.py`）。legacy `tests/system/st_*.py` 家族已迁移/退役（不再存在）；映射见方案 §4。
 
 设计清单（唯一登记）见 [`llmtier-system-test-scheme.md`](../../../docs/70_verification/system/llmtier-system-test-scheme.md) §3；
 逐 Case 详细设计见 [`docs/70_verification/system/cases/`](../../../docs/70_verification/system/cases/)。
@@ -12,7 +12,7 @@
 | 类 | marker | collected | 执行环境 |
 |---|---|---|---|
 | A | `@pytest.mark.api_a` | 105 | 直连 m5air (`192.168.1.9:8181`) 现有实例（读 / 无状态写） |
-| B | `@pytest.mark.api_b` | 71 | 临时 SQLite + 临时端口 LLMTier 实例（CRUD / 注入），teardown 清理 |
+| B | `@pytest.mark.api_b` | 76 | 临时 SQLite + 临时端口 LLMTier 实例（CRUD / 注入 / absence 扫描），teardown 清理 |
 | UI | `@pytest.mark.ui` | 10 | 真实浏览器 headless Chrome over CDP，hermetic 临时实例 + LAN fake provider |
 
 `conftest.py` / `constants.py` 位于上一层 `tests/system/`；A/B 共用同一套 fixtures

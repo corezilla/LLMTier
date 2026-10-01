@@ -49,7 +49,7 @@
 5. 机器契约：`interfaces/openapi/llmtier.openapi.json`（`ErrorEnvelope`/`ErrorDetail.code` 枚举、各端点 `security` 与状态码）。
 6. 需求与规范：`docs/10_requirements/llmtier-requirements.md`、`docs/10_requirements/llmtier-observability-debug-requirements.md`、`docs/00_management/standards/testing-standard.md`（TS-003）、`docs/00_management/llmtier-implementation-plan.md`（§8 Gate）。
 7. 验证方案：`docs/70_verification/unit/llmtier-unit-test-scheme.md`（§3 33 个 VRC → Case 登记）。
-8. 测试基线：本机 `PYTHONPATH=src python3 -m pytest tests/ tests/system/st_*.py -q` → **584 passed**（审查时，Python 3.14.3）。修复复核后同一命令为 **596 passed**（见 §7/§8）。
+8. 测试基线：本机 `PYTHONPATH=src python3 -m pytest tests/ -q` → **584 passed**（审查时，Python 3.14.3）。修复复核后同一命令为 **596 passed**（见 §7/§8）。
 
 ### 1.3 审查者
 
@@ -146,5 +146,5 @@
    - `CR-PARAM-SPECIFIC` / `CR-UNKNOWN-FIELD-CODE`（Medium）：`param` 已指向首个非法字段；未知字段统一 `unsupported_field`；系统 §7.8（authority）与 ISD/模块设计错误表已同步。
    - `RISK-LOG-1`（Medium）：`_SENSITIVE` 已键名+值整体脱敏，回归 Case 通过；`log-design §15.1`/`log.isd §10.3.1` 状态 Closed。
 3. **其余项**：`CR-ADMIN-CURSOR-GUARD`、`CR-BOOTSTRAP-CATCH`、`CR-PROGRESS-COUNT-DRIFT` 已 Closed；`CR-EMBEDDINGS-ADAPTER-HOOK` 部分关闭（Embeddings 注入点已补；`AdminService` 维持现状，保留低优先 Open 记录）。
-4. **回归证据**：`PYTHONPATH=src python3 -m pytest tests/ tests/system/st_*.py -q` → **596 passed**（0 fail / 0 error，含 m5air A 类实测用例）；`tests/unit tests/contract` → **390 passed**；`bash -n` 各 runner 干净。
+4. **回归证据**：`PYTHONPATH=src python3 -m pytest tests/ -q` → **596 passed**（0 fail / 0 error，含 m5air A 类实测用例）；`tests/unit tests/contract` → **390 passed**；`bash -n` 各 runner 干净。
 5. **再审查入口**：修复后以 `detect_changes()` 复核影响面；`validate-design --project-root .` → 0 errors。

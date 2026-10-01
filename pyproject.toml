@@ -25,7 +25,7 @@ where = ["src"]
 [tool.pytest.ini_options]
 # STD 78876c9 (docs/repository-layout.md §4.1.x): executable case scripts are named
 # by Case ID. Unit cases are UT-<OBJ>-<NNN>.py, system/UI cases ST-<OBJ>-<NNN>.py.
-python_files = ["UT-*.py", "ST-*.py", "test_*.py", "*_test.py", "st_*.py"]
+python_files = ["UT-*.py", "ST-*.py", "test_*.py", "*_test.py"]
 python_classes = ["Test*", "ST*"]
 python_functions = ["test_*"]
 markers = [

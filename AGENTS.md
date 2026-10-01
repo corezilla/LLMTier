@@ -60,7 +60,7 @@ This project is indexed by GitNexus as **LLMTier** (4542 symbols, 6054 relations
 1. **先读规范索引**：开始任务前先读 `docs/00_management/standards/README.md`
 2. **遵循测试规范**（TS-003）：LLMTier 是 LAN 服务，测试的 provider endpoint 必须使用 LAN IP（192.168.1.x），禁止使用 127.0.0.1
 3. **测试依赖必须写清**：测试文件头部必须写明依赖的服务地址、端口、模型
-4. **所有测试通过才能提交**：`PYTHONPATH=src python3 -m pytest tests/ tests/system/st_*.py -q` 必须全绿（0 fail / 0 error；当前 664 pass）。真实浏览器 UI 用例（`tests/ui`，`-m ui`）随全量运行，依赖 `LLMTIER_BROWSER`（默认 Chrome/缓存 Chromium）与 node ≥ 22；单独入口 `tools/run_ui_tests.sh`，无浏览器时会 SKIP 而非失败。
+4. **所有测试通过才能提交**：`PYTHONPATH=src python3 -m pytest tests/ -q` 必须全绿（0 fail / 0 error）。系统层可执行用例位于 `tests/system/cases/`（文件名＝Case ID `ST-<对象>-<NNN>.py`）；legacy `tests/system/st_*.py` 家族已按 STD `78876c9` 迁移/退役，不再存在。真实浏览器 UI 用例（`tests/system/cases/ST-UI-*.py`，`-m ui`）随全量运行，依赖 `LLMTIER_BROWSER`（默认 Chrome/缓存 Chromium）与 node ≥ 22；单独入口 `tools/run_ui_tests.sh`，无浏览器时会 SKIP 而非失败。
 
 <!-- std:end -->
 

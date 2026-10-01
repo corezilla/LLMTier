@@ -23,7 +23,7 @@
 | TS-002 | 测试依赖外部服务时，文件头部必须写明：服务地址、端口、模型名称 | 代码审查：检查文件头部注释是否完整 | Author / Reviewer |
 | TS-003 | LLMTier 是 LAN 服务，测试的 provider endpoint 必须使用 LAN IP（192.168.1.x），禁止使用 127.0.0.1 | 代码审查：检查 provider endpoint 配置 | Author / Reviewer |
 | TS-004 | 测试失败时，错误信息必须足够定位问题 | 代码审查：检查 assertion message 是否清晰 | Author / Reviewer |
-| TS-005 | 所有单元测试和系统测试必须通过后才能提交 | CI 检查：`PYTHONPATH=src python3 -m pytest tests/ tests/system/st_*.py -q` 输出 221 pass | CI |
+| TS-005 | 所有单元测试和系统测试必须通过后才能提交 | CI 检查：`PYTHONPATH=src python3 -m pytest tests/ -q` 全绿（0 fail / 0 error） | CI |
 
 ## 与STD的关系、例外及冲突
 

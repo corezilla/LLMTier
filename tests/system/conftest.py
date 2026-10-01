@@ -1061,6 +1061,39 @@ def llmtier_b_crash(provider_endpoint_b: str) -> Generator[LLMTierInstance, None
     inst.stop()
 
 
+@pytest.fixture
+def llmtier_b_ratelimit(provider_endpoint_b: str) -> Generator[LLMTierInstance, None, None]:
+    """ST-RATELIMIT-001: provider max_concurrent_requests=1 + slow adapter.
+
+    ``LLMTIER_SLOW_ADAPTER_DELAY=1.0`` replaces the real upstream adapter with
+    an in-process ``SlowAdapter`` (no network call), so the single provider
+    concurrency slot is held ~1 s per request and 6 concurrent requests must
+    drain through the 32-deep queue without a 429. ``depl_b`` health is set
+    directly (never probed over the network — the adapter is replaced), keeping
+    the case hermetic on the B-class temporary instance.
+
+    TS-002 依赖：
+      Endpoint: 临时 LLMTier 实例（llmtier_b_ratelimit），127.0.0.1:<临时端口>
+      上游: 无网络调用（SlowAdapter 进程内替身）；
+            provider_usage_profiles.max_concurrent_requests=1
+      Auth: Bearer dev-data
+    """
+    import sqlite3
+
+    settings = _baseline_settings(provider_endpoint_b)
+    inst = LLMTierInstance(settings, extra_env={"LLMTIER_SLOW_ADAPTER_DELAY": "1.0"})
+    inst.start()
+    with sqlite3.connect(str(inst.db_path)) as con:
+        con.execute("UPDATE deployments SET health='healthy' WHERE id='depl_b'")
+        con.execute(
+            "UPDATE provider_usage_profiles SET max_concurrent_requests=1 "
+            "WHERE provider_id='prov_b'"
+        )
+        con.commit()
+    yield inst
+    inst.stop()
+
+
 def error_envelope(response) -> dict:
     """Return the ``error`` object from a typed error response (asserts shape)."""
     body = response.json()

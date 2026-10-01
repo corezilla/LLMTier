@@ -232,6 +232,15 @@ STD `78876c9` 在 `docs/software-object-identifiers.md` §2 正式codify Case ID
 - 无编号冲突、无重复；旧 ID 一律标记为 **Retired**，编号不复用。
 - 单元 Case（`UT-*`）编号未变，不在本表内。
 
+## 4.1 legacy `tests/system/st_*.py`（ST-01..ST-26）退役映射
+
+STD `78876c9` 迁移时仅将 `at_*.py`/`tests/ui` 脚本按 Case ID 改名，遗留的 11 个 legacy `tests/system/st_*.py`（`unittest` 家族，docstring 声明旧 ID `ST-01`/`ST-15A`/`ST-22`…）未合规。本版逐项核对后收口：
+
+- **迁入新 Case（2）**：`st_04_forbidden_scan.py`（ST-04）→ `ST-SCAN-001`；`st_22_rate_limit_queue.py`（ST-22）→ `ST-RATELIMIT-001`。
+- **覆盖性退役（9）**：`st_01_boot_baseline.py`→`ST-HEALTH-001`/`ST-HEALTH-004`；`st_02_contract_validator.py`→`tests/contract/schemas/test_contract_semantics_v03.py`（operational validator，非 case）；`st_03_models_exact_case.py`→`ST-MODEL-002/003/004/005/006`；`st_09_error_directory.py`→`ST-RESP-002/005/007/008/009`；`st_12_embedding_invariant.py`→`ST-EMB-001`/`ST-EMB-003`；`st_15a_audit_log_filter.py`→`ST-AUDIT-001`/`ST-LOGS-001`；`st_23_queue_full.py`→`ST-RESP-020`；`st_25_trusted_lan_routing.py`→`ST-AUTH-001`/`ST-AUTH-004`；`st_26_provider_attribution.py`→`ST-USAGE-001`/`ST-AUTH-001`/`ST-RESP-005`（原 provider 归属计数从未断言）。
+
+系统 Case 设计数 173 → **175**（A 102 / B 63 / UI 10）。逐项映射与理由见方案 §4「legacy `st_*.py`（ST-01..ST-26）退役与覆盖映射」。`tests/system/st_*.py` 家族**不再存在**（无未决文件）。
+
 ## 5. 未迁移项（显式例外）
 
 - `tests/system/reports/**`、`tests/system/cases reports/**` 下的**历史 Run 证据**（`case-status.json`、`cases/<id>/manifest.json`）
