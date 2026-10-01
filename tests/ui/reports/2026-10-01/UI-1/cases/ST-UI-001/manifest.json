@@ -1,0 +1,14 @@
+{
+  "artifacts": [],
+  "case_id": "ST-UI-001",
+  "command": "python3 -m pytest tests/system/cases -m ui -q -o junit_family=xunit1 --junitxml=tests/ui/reports/2026-10-01/UI-1/junit.xml -o addopts=",
+  "git_commit": "36825b932ec0ecc0757fdde4628973572261a7c8",
+  "node_id": "tests.system.cases.ST-UI-001::test_ui_scenario",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "2026-10-01/UI-1",
+  "schema_version_db": "2",
+  "started_at": "2026-10-01T09:10:56Z",
+  "status": "PASS"
+}

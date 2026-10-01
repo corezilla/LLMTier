@@ -1,0 +1,405 @@
+{
+  "cases": {
+    "ST-AUSAGE-003": {
+      "node_id": "tests.system.cases.ST-AUSAGE-003::test_adm_admin_usage_03_half_open_window",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "ST-AUTH-007": {
+      "node_id": "tests.system.cases.ST-AUTH-007::test_auth_07_no_auth_configured",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.28
+    },
+    "ST-DEPL-002": {
+      "node_id": "tests.system.cases.ST-DEPL-002::test_adm_depl_02_create_deployment",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.005
+    },
+    "ST-DEPL-004": {
+      "node_id": "tests.system.cases.ST-DEPL-004::test_adm_depl_04_update_deployment",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.008
+    },
+    "ST-DEPL-005": {
+      "node_id": "tests.system.cases.ST-DEPL-005::test_adm_depl_05_delete_deployment",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "ST-DEPL-006": {
+      "node_id": "tests.system.cases.ST-DEPL-006::test_adm_depl_06_capabilities_missing_field",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "ST-DEPL-007": {
+      "node_id": "tests.system.cases.ST-DEPL-007::test_adm_depl_07_capabilities_unknown_field",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "ST-DEPL-008": {
+      "node_id": "tests.system.cases.ST-DEPL-008::test_adm_depl_08_nonexistent_provider",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "ST-DEPL-009": {
+      "node_id": "tests.system.cases.ST-DEPL-009::test_adm_depl_09_provider_id_immutable",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.005
+    },
+    "ST-EMB-008": {
+      "node_id": "tests.system.cases.ST-EMB-008::test_dp_emb_08_admission_saturation_429",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.437
+    },
+    "ST-EMB-009": {
+      "node_id": "tests.system.cases.ST-EMB-009::test_dp_emb_09_upstream_contract_error_502",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.327
+    },
+    "ST-EMB-010": {
+      "node_id": "tests.system.cases.ST-EMB-010::test_dp_emb_10_upstream_unavailable_503",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.32
+    },
+    "ST-HEALTH-003": {
+      "node_id": "tests.system.cases.ST-HEALTH-003::test_obs_04_readyz_degraded",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.283
+    },
+    "ST-HEALTH-004": {
+      "node_id": "tests.system.cases.ST-HEALTH-004::test_obs_03_no_deployments_readyz",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.278
+    },
+    "ST-HEALTH-005": {
+      "node_id": "tests.system.cases.ST-HEALTH-005::test_obs_05_readyz_bootstrap_failure",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.283
+    },
+    "ST-HEALTH-006": {
+      "node_id": "tests.system.cases.ST-HEALTH-006::test_obs_06_health_endpoints_need_no_auth",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.014
+    },
+    "ST-OBSALIAS-004": {
+      "node_id": "tests.system.cases.ST-OBSALIAS-004::test_obs_alias_04_deployments_injections_equivalence",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.016
+    },
+    "ST-OBSDEPL-002": {
+      "node_id": "tests.system.cases.ST-OBSDEPL-002::test_obs_depl_02_write_upsert_multi_and_audit",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.015
+    },
+    "ST-OBSDEPL-003": {
+      "node_id": "tests.system.cases.ST-OBSDEPL-003::test_obs_depl_03_unknown_deployment_404",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.011
+    },
+    "ST-OBSDEPL-004": {
+      "node_id": "tests.system.cases.ST-OBSDEPL-004::test_obs_depl_04_invalid_items_400_no_write",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.02
+    },
+    "ST-OBSDEPL-005": {
+      "node_id": "tests.system.cases.ST-OBSDEPL-005::test_obs_depl_05_store_unavailable_503",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.303
+    },
+    "ST-OBSDIAG-002": {
+      "node_id": "tests.system.cases.ST-OBSDIAG-002::test_obs_diag_02_patch_switches_partial_upsert_and_audit",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.016
+    },
+    "ST-OBSDIAG-003": {
+      "node_id": "tests.system.cases.ST-OBSDIAG-003::test_obs_diag_03_invalid_switch_value_400_no_side_effect",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.02
+    },
+    "ST-OBSSNAP-002": {
+      "node_id": "tests.system.cases.ST-OBSSNAP-002::test_obs_snap_02_invalid_cursor_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.009
+    },
+    "ST-OBSSNAP-003": {
+      "node_id": "tests.system.cases.ST-OBSSNAP-003::test_obs_snap_03_store_unavailable_503",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.304
+    },
+    "ST-OBSSTATS-003": {
+      "node_id": "tests.system.cases.ST-OBSSTATS-003::test_obs_stats_03_store_unavailable_503",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.307
+    },
+    "ST-OBSTRACE-002": {
+      "node_id": "tests.system.cases.ST-OBSTRACE-002::test_obs_trace_02_limit1_paging_and_invalid_cursor",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.018
+    },
+    "ST-OBSTRACE-003": {
+      "node_id": "tests.system.cases.ST-OBSTRACE-003::test_obs_trace_03_store_unavailable_503",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.302
+    },
+    "ST-PROBE-003": {
+      "node_id": "tests.system.cases.ST-PROBE-003::test_adm_probe_03_unknown_deployment",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "ST-PROV-002": {
+      "node_id": "tests.system.cases.ST-PROV-002::test_adm_prov_02_create_provider",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.005
+    },
+    "ST-PROV-005": {
+      "node_id": "tests.system.cases.ST-PROV-005::test_adm_prov_05_update_provider",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.005
+    },
+    "ST-PROV-006": {
+      "node_id": "tests.system.cases.ST-PROV-006::test_adm_prov_06_patch_missing_if_match",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "ST-PROV-007": {
+      "node_id": "tests.system.cases.ST-PROV-007::test_adm_prov_07_patch_wrong_etag",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.005
+    },
+    "ST-PROV-008": {
+      "node_id": "tests.system.cases.ST-PROV-008::test_adm_prov_08_delete_provider",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "ST-PROV-009": {
+      "node_id": "tests.system.cases.ST-PROV-009::test_adm_prov_09_delete_missing_if_match",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "ST-PROV-010": {
+      "node_id": "tests.system.cases.ST-PROV-010::test_adm_prov_10_delete_provider_with_active_deployment",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "ST-PROV-011": {
+      "node_id": "tests.system.cases.ST-PROV-011::test_adm_prov_11_kind_enum_validation",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "ST-PROV-012": {
+      "node_id": "tests.system.cases.ST-PROV-012::test_adm_prov_12_secret_ref_format_validation",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    "ST-PROV-013": {
+      "node_id": "tests.system.cases.ST-PROV-013::test_adm_prov_13_usage_subobject_update",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "ST-RATELIMIT-001": {
+      "node_id": "tests.system.cases.ST-RATELIMIT-001::test_dp_ratelimit_01_queue_absorbs_six",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 6.352
+    },
+    "ST-RESP-004": {
+      "node_id": "tests.system.cases.ST-RESP-004::test_dp_resp_04_tools_passthrough_echo_b",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.305
+    },
+    "ST-RESP-011": {
+      "node_id": "tests.system.cases.ST-RESP-011::test_dp_resp_11_upstream_502_provider_failure",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.016
+    },
+    "ST-RESP-016": {
+      "node_id": "tests.system.cases.ST-RESP-016::test_dp_resp_16_non_object_json_body",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    "ST-RESP-018": {
+      "node_id": "tests.system.cases.ST-RESP-018::test_dp_resp_18_exact_two_mib_accepted",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.016
+    },
+    "ST-RESP-019": {
+      "node_id": "tests.system.cases.ST-RESP-019::test_dp_resp_19_all_candidates_unhealthy",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.292
+    },
+    "ST-RESP-020": {
+      "node_id": "tests.system.cases.ST-RESP-020::test_dp_resp_20_admission_saturation_429",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.463
+    },
+    "ST-RESP-021": {
+      "node_id": "tests.system.cases.ST-RESP-021::test_dp_resp_21_client_disconnect_marks_aborted",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.441
+    },
+    "ST-RESP-022": {
+      "node_id": "tests.system.cases.ST-RESP-022::test_dp_resp_22_injected_503_provider_unavailable",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.317
+    },
+    "ST-RESP-023": {
+      "node_id": "tests.system.cases.ST-RESP-023::test_dp_resp_23_upstream_non_success_http",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.316
+    },
+    "ST-RESP-024": {
+      "node_id": "tests.system.cases.ST-RESP-024::test_dp_resp_24_provider_secret_unavailable",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.318
+    },
+    "ST-RESP-025": {
+      "node_id": "tests.system.cases.ST-RESP-025::test_dp_resp_25_upstream_contract_error",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.328
+    },
+    "ST-RESP-026": {
+      "node_id": "tests.system.cases.ST-RESP-026::test_dp_resp_26_stream_terminate",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.013
+    },
+    "ST-RESP-027": {
+      "node_id": "tests.system.cases.ST-RESP-027::test_dp_resp_27_malformed_event[unknown_event_type]",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.011
+    },
+    "ST-SCAN-001": {
+      "node_id": "tests.system.cases.ST-SCAN-001::test_scan_04_healthz_no_sensitive_header_echo",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.007
+    },
+    "ST-SL-002": {
+      "node_id": "tests.system.cases.ST-SL-002::test_adm_sl_02_create_non_fixed_tier",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "ST-SL-004": {
+      "node_id": "tests.system.cases.ST-SL-004::test_adm_sl_04_update_service_level",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "ST-SL-005": {
+      "node_id": "tests.system.cases.ST-SL-005::test_adm_sl_05_delete_fixed_tier",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.005
+    },
+    "ST-SL-006": {
+      "node_id": "tests.system.cases.ST-SL-006::test_adm_sl_06_capability_conflict",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "ST-SL-007": {
+      "node_id": "tests.system.cases.ST-SL-007::test_adm_sl_07_embedding_space_conflict",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "ST-SL-008": {
+      "node_id": "tests.system.cases.ST-SL-008::test_adm_sl_08_non_array_deployment_ids",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "ST-SL-012": {
+      "node_id": "tests.system.cases.ST-SL-012::test_adm_sl_02b_create_duplicate_fixed_tier",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "ST-SL-013": {
+      "node_id": "tests.system.cases.ST-SL-013::test_adm_sl_04b_update_with_unknown_field",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    "ST-USAGE-008": {
+      "node_id": "tests.system.cases.ST-USAGE-008::test_dp_usage_08_store_unavailable_not_empty_page",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.297
+    },
+    "ST-USAGE-009": {
+      "node_id": "tests.system.cases.ST-USAGE-009::test_dp_usage_09_orphan_unknown_survives_restart",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.597
+    }
+  },
+  "counts": {
+    "BLOCKED": 0,
+    "FAIL": 0,
+    "INVALID": 0,
+    "NOT_RUN": 0,
+    "PASS": 76,
+    "SKIP": 0,
+    "XPASS": 0
+  },
+  "generated_at": "2026-10-01T09:11:30Z",
+  "git_commit": "36825b932ec0ecc0757fdde4628973572261a7c8",
+  "layer": "B",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "release_blocking": false,
+  "run_id": "2026-10-01/B-api",
+  "schema_version": 1,
+  "schema_version_db": "2"
+}

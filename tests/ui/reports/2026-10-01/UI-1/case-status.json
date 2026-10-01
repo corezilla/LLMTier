@@ -1,0 +1,81 @@
+{
+  "cases": {
+    "ST-UI-001": {
+      "node_id": "tests.system.cases.ST-UI-001::test_ui_scenario",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 1.62
+    },
+    "ST-UI-002": {
+      "node_id": "tests.system.cases.ST-UI-002::test_ui_scenario",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 1.484
+    },
+    "ST-UI-003": {
+      "node_id": "tests.system.cases.ST-UI-003::test_ui_scenario",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 1.281
+    },
+    "ST-UI-004": {
+      "node_id": "tests.system.cases.ST-UI-004::test_ui_scenario",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 1.471
+    },
+    "ST-UI-005": {
+      "node_id": "tests.system.cases.ST-UI-005::test_ui_scenario",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 1.196
+    },
+    "ST-UI-006": {
+      "node_id": "tests.system.cases.ST-UI-006::test_ui_scenario",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 1.229
+    },
+    "ST-UI-007": {
+      "node_id": "tests.system.cases.ST-UI-007::test_ui_error_state_keeps_last_screen",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 1.728
+    },
+    "ST-UI-008": {
+      "node_id": "tests.system.cases.ST-UI-008::test_ui_provider_secret_never_shown",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 1.271
+    },
+    "ST-UI-009": {
+      "node_id": "tests.system.cases.ST-UI-009::test_ui_double_click_probe_is_not_duplicated",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.808
+    },
+    "ST-UI-010": {
+      "node_id": "tests.system.cases.ST-UI-010::test_ui_boundary_long_text_renders_without_overflow",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 1.013
+    }
+  },
+  "counts": {
+    "BLOCKED": 0,
+    "FAIL": 0,
+    "INVALID": 0,
+    "NOT_RUN": 0,
+    "PASS": 10,
+    "SKIP": 0,
+    "XPASS": 0
+  },
+  "generated_at": "2026-10-01T09:16:19Z",
+  "git_commit": "36825b932ec0ecc0757fdde4628973572261a7c8",
+  "layer": "UI",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "release_blocking": false,
+  "run_id": "2026-10-01/UI-1",
+  "schema_version": 1,
+  "schema_version_db": "2"
+}
