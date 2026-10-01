@@ -17,12 +17,16 @@ logs/
 # regenerated each run and are environment-specific binaries (RISK-UI-EXEC-1).
 tests/system/artifacts/
 
-# Test run evidence (plan §7). Heavy/binary raw output is not committed;
-# artifacts/ is always ignored, junit/pytest logs are regenerated each run.
+# Test run evidence (plan §7 / STD repository-layout.md §4.1.1).
+# Framework machine output (JUnit XML + captured logs) lives under
+# reports/<run-id>/artifacts/ and is regenerated each run -> ignored.
+# The formal report (+metadata), the flat per-case <Case ID>.json and
+# case-status.json / test-run.env at the run root ARE committed, so we never
+# ignore the whole reports/ tree.
 tests/**/reports/*/artifacts/
+
+# Legacy/large raw outputs from earlier layouts (kept ignored for safety).
 tests/**/reports/*/junit.xml
 tests/**/reports/*/pytest.log
-tests/**/reports/*/case-status.json
-tests/**/reports/*/test-run.env
 tests/**/reports/*/cases/
 

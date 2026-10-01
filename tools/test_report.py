@@ -19,9 +19,11 @@ errored) test is a release blocker (BLOCKED), never a silent PASS.
 Case IDs come from the ``Case ID:`` header in the test module docstring; when
 absent, they are derived from the test path/function name (deterministic).
 
-Also implements the per-case ``manifest.json`` emission (plan §7): each case
-gets ``<run-dir>/cases/<case-id>/manifest.json`` recording only facts actually
-available (run id, node id, status, reason, timestamps, optional artifacts).
+Also implements the per-case result emission (plan §7): each case gets a flat
+``<run-dir>/<Case ID>.json`` recording only facts actually available (run id,
+node id, status, reason, timestamps, optional artifacts). STD
+``repository-layout.md`` §4.1.1 requires per-case results to be flat under
+``reports/<run-id>/`` (bare ``<Case ID>.json``), not nested under ``cases/``.
 
 Usage::
 
@@ -294,11 +296,15 @@ def build_report(junit_path: Path, metadata: dict, rootdir: Path | None = None) 
 
 
 def emit_manifests(run_dir: Path, records: list[dict], metadata: dict) -> int:
-    """Write a per-case manifest.json (plan §7) under <run-dir>/cases/<id>/."""
+    """Write a flat per-case ``<Case ID>.json`` directly under ``<run-dir>/``.
+
+    STD ``repository-layout.md`` §4.1.1: 逐 Case 结果（``<Case ID>.json``）平铺在
+    ``reports/<run-id>/`` 下、随正式报告提交。The bare file name mirrors the
+    Case ID (e.g. ``UT-API-001.json``); there is no ``cases/<id>/manifest.json``.
+    """
     written = 0
     for record in records:
-        case_dir = run_dir / "cases" / record["case_id"]
-        case_dir.mkdir(parents=True, exist_ok=True)
+        case_path = run_dir / f"{record['case_id']}.json"
         manifest = {
             "run_id": metadata.get("run_id", ""),
             "case_id": record["case_id"],
@@ -313,7 +319,7 @@ def emit_manifests(run_dir: Path, records: list[dict], metadata: dict) -> int:
             "redactions": [],
             "artifacts": [],
         }
-        (case_dir / "manifest.json").write_text(
+        case_path.write_text(
             json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
         )
         written += 1
@@ -330,7 +336,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--rootdir", type=Path, default=None,
                         help="repo root used to resolve classname -> source file")
     parser.add_argument("--manifests", action="store_true",
-                        help="emit per-case manifest.json under <run-dir>/cases/")
+                        help="emit flat per-case <Case ID>.json under <run-dir>/")
     parser.add_argument("--check-cap", action="store_true",
                         help="exit 1 when the SKIP cap for --layer is breached")
     parser.add_argument("--layer", default="", help="layer label (A/B/... )")
@@ -364,12 +370,24 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     if args.check_cap:
+        # Emit case-status.json + flat per-case results first, then print the cap
+        # verdict as the last stdout line (the runner reads it and skips a
+        # second junit parse). --out/--manifests are honored on this path.
+        if args.out:
+            report = build_report(args.junit, metadata, rootdir)
+            args.out.parent.mkdir(parents=True, exist_ok=True)
+            args.out.write_text(
+                json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+            )
+            if args.manifests:
+                emit_manifests(args.out.parent, records, metadata)
+        elif args.manifests:
+            emit_manifests(args.junit.parent, records, metadata)
         breached = cap_breached(records, args.layer)
         print("1" if breached else "0")
         return 1 if breached else 0
 
     report = build_report(args.junit, metadata, rootdir)
-
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(

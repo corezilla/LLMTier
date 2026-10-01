@@ -1,0 +1,2571 @@
+{
+  "cases": {
+    "TESTS-UNIT-V03-TEST-ACCOUNT-USAGE-ACCOUNTUSAGETESTS-TEST-LOCAL-USAGE-IS-UNLIMITED": {
+      "node_id": "tests.unit.v03.test_account_usage.AccountUsageTests::test_local_usage_is_unlimited",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "TESTS-UNIT-V03-TEST-ACCOUNT-USAGE-ACCOUNTUSAGETESTS-TEST-MINIMAX-REFRESH-REUSES-PROVIDER-API-KEY-AND-PERSISTS-SAFE-SNAPSHOT": {
+      "node_id": "tests.unit.v03.test_account_usage.AccountUsageTests::test_minimax_refresh_reuses_provider_api_key_and_persists_safe_snapshot",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-ACCOUNT-USAGE-ACCOUNTUSAGETESTS-TEST-MINIMAX-USES-OFFICIAL-TOKEN-PLAN-API-KEY-WITHOUT-COOKIE": {
+      "node_id": "tests.unit.v03.test_account_usage.AccountUsageTests::test_minimax_uses_official_token_plan_api_key_without_cookie",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-ACCOUNT-USAGE-ACCOUNTUSAGETESTS-TEST-PROVIDER-USAGE-PROFILE-IS-SAFE-AND-ROUND-TRIPS": {
+      "node_id": "tests.unit.v03.test_account_usage.AccountUsageTests::test_provider_usage_profile_is_safe_and_round_trips",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-ACCOUNT-USAGE-ACCOUNTUSAGETESTS-TEST-REQUEST-USAGE-IS-ATTRIBUTED-TO-SELECTED-PROVIDER": {
+      "node_id": "tests.unit.v03.test_account_usage.AccountUsageTests::test_request_usage_is_attributed_to_selected_provider",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-ADMIN-ADMINTESTS-TEST-CURSOR-PRINCIPAL-BOUND": {
+      "node_id": "tests.unit.v03.test_admin.AdminTests::test_cursor_principal_bound",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-ADMIN-ADMINTESTS-TEST-FIRST-PAGE-SNAPSHOT-IS-FROZEN": {
+      "node_id": "tests.unit.v03.test_admin.AdminTests::test_first_page_snapshot_is_frozen",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-ADMIN-ADMINTESTS-TEST-MUTATE-FAILURE-AUDITED": {
+      "node_id": "tests.unit.v03.test_admin.AdminTests::test_mutate_failure_audited",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-ADMIN-ADMINTESTS-TEST-MUTATE-IS-ATOMIC-WITH-REGISTRY-WRITE": {
+      "node_id": "tests.unit.v03.test_admin.AdminTests::test_mutate_is_atomic_with_registry_write",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-ADMIN-ADMINTESTS-TEST-MUTATE-SUCCESS-AUDITED": {
+      "node_id": "tests.unit.v03.test_admin.AdminTests::test_mutate_success_audited",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-ADMIN-ADMINTESTS-TEST-PAGE-CURSOR": {
+      "node_id": "tests.unit.v03.test_admin.AdminTests::test_page_cursor",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-ADMIN-ADMINTESTS-TEST-PAGE-LIMIT": {
+      "node_id": "tests.unit.v03.test_admin.AdminTests::test_page_limit",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-ADMIN-ADMINTESTS-TEST-PAGE-SHAPE": {
+      "node_id": "tests.unit.v03.test_admin.AdminTests::test_page_shape",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-ADMIN-ADMINTESTS-TEST-PROBE-REQUIRES-CONFIRMATION": {
+      "node_id": "tests.unit.v03.test_admin.AdminTests::test_probe_requires_confirmation",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-ADMIN-ADMINTESTS-TEST-PROBE-UPDATES-HEALTH": {
+      "node_id": "tests.unit.v03.test_admin.AdminTests::test_probe_updates_health",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-ADMIN-STATS-STATSENDPOINTTESTS-TEST-STATS-AGGREGATES-ACROSS-PRINCIPALS": {
+      "node_id": "tests.unit.v03.test_admin_stats.StatsEndpointTests::test_stats_aggregates_across_principals",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-ADMIN-STATS-STATSENDPOINTTESTS-TEST-STATS-BY-DEPLOYMENT-INCLUDES-PROVIDER-METADATA": {
+      "node_id": "tests.unit.v03.test_admin_stats.StatsEndpointTests::test_stats_by_deployment_includes_provider_metadata",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-ADMIN-STATS-STATSENDPOINTTESTS-TEST-STATS-BY-TIER-AGGREGATES-CALLS-AND-TOKENS": {
+      "node_id": "tests.unit.v03.test_admin_stats.StatsEndpointTests::test_stats_by_tier_aggregates_calls_and_tokens",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "TESTS-UNIT-V03-TEST-ADMIN-STATS-STATSENDPOINTTESTS-TEST-STATS-REJECTS-INVALID-GROUP-BY": {
+      "node_id": "tests.unit.v03.test_admin_stats.StatsEndpointTests::test_stats_rejects_invalid_group_by",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-ADMIN-STATS-STATSENDPOINTTESTS-TEST-STATS-RETURNS-EMPTY-WHEN-NO-RECORDS": {
+      "node_id": "tests.unit.v03.test_admin_stats.StatsEndpointTests::test_stats_returns_empty_when_no_records",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-ADMINDISPATCHAUTHTESTS-TEST-ADMIN-TOKEN-ON-ADMIN-ENDPOINT-IS-200": {
+      "node_id": "tests.unit.v03.test_app_dispatch.AdminDispatchAuthTests::test_admin_token_on_admin_endpoint_is_200",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.012
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-ADMINDISPATCHAUTHTESTS-TEST-AUTH-EITHER-ADMIN-FIRST-ROLE-SELECTION": {
+      "node_id": "tests.unit.v03.test_app_dispatch.AdminDispatchAuthTests::test_auth_either_admin_first_role_selection",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-ADMINDISPATCHAUTHTESTS-TEST-DATA-TOKEN-ON-ADMIN-ENDPOINT-IS-403": {
+      "node_id": "tests.unit.v03.test_app_dispatch.AdminDispatchAuthTests::test_data_token_on_admin_endpoint_is_403",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.506
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-ALIASPARITYTESTS-TEST-DIAGNOSTICS-SWITCHES-PARITY": {
+      "node_id": "tests.unit.v03.test_app_dispatch.AliasParityTests::test_diagnostics_switches_parity",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.008
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-ALIASPARITYTESTS-TEST-SNAPSHOTS-PARITY": {
+      "node_id": "tests.unit.v03.test_app_dispatch.AliasParityTests::test_snapshots_parity",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-ALIASPARITYTESTS-TEST-TRACES-PARITY-EMPTY": {
+      "node_id": "tests.unit.v03.test_app_dispatch.AliasParityTests::test_traces_parity_empty",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.506
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-BODYTESTS-TEST-BODY-OVER-2MB-IS-413": {
+      "node_id": "tests.unit.v03.test_app_dispatch.BodyTests::test_body_over_2mb_is_413",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.012
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-BODYTESTS-TEST-INVALID-JSON-IS-400": {
+      "node_id": "tests.unit.v03.test_app_dispatch.BodyTests::test_invalid_json_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-BODYTESTS-TEST-NON-INTEGER-CONTENT-LENGTH-IS-400": {
+      "node_id": "tests.unit.v03.test_app_dispatch.BodyTests::test_non_integer_content_length_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-BODYTESTS-TEST-TOP-LEVEL-NON-OBJECT-IS-400": {
+      "node_id": "tests.unit.v03.test_app_dispatch.BodyTests::test_top_level_non_object_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.506
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-BOOTSTRAPERRORTESTS-TEST-DATA-PLANE-RETURNS-BOOTSTRAP-ERROR": {
+      "node_id": "tests.unit.v03.test_app_dispatch.BootstrapErrorTests::test_data_plane_returns_bootstrap_error",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.006
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-BOOTSTRAPERRORTESTS-TEST-HEALTHZ-STILL-REACHABLE": {
+      "node_id": "tests.unit.v03.test_app_dispatch.BootstrapErrorTests::test_healthz_still_reachable",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-BOOTSTRAPERRORTESTS-TEST-READYZ-IS-503-NOT-READY": {
+      "node_id": "tests.unit.v03.test_app_dispatch.BootstrapErrorTests::test_readyz_is_503_not_ready",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-BOOTSTRAPERRORTESTS-TEST-UI-STILL-REACHABLE": {
+      "node_id": "tests.unit.v03.test_app_dispatch.BootstrapErrorTests::test_ui_still_reachable",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.505
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-DIAGNOSTICSPATCHCONTRACTTESTS-TEST-ALIAS-UNKNOWN-KEY-IS-400": {
+      "node_id": "tests.unit.v03.test_app_dispatch.DiagnosticsPatchContractTests::test_alias_unknown_key_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.01
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-DIAGNOSTICSPATCHCONTRACTTESTS-TEST-NON-BOOLEAN-SWITCH-IS-400-AND-NOT-PERSISTED": {
+      "node_id": "tests.unit.v03.test_app_dispatch.DiagnosticsPatchContractTests::test_non_boolean_switch_is_400_and_not_persisted",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-DIAGNOSTICSPATCHCONTRACTTESTS-TEST-UNKNOWN-KEY-IS-400": {
+      "node_id": "tests.unit.v03.test_app_dispatch.DiagnosticsPatchContractTests::test_unknown_key_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.505
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-DISPATCHERRORTESTS-TEST-READ-PATH-STORE-FAILURE-IS-503-USAGE-STORE-UNAVAILABLE": {
+      "node_id": "tests.unit.v03.test_app_dispatch.DispatchErrorTests::test_read_path_store_failure_is_503_usage_store_unavailable",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.006
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-DISPATCHERRORTESTS-TEST-UNHANDLED-ERROR-IS-500-AND-LOGGED": {
+      "node_id": "tests.unit.v03.test_app_dispatch.DispatchErrorTests::test_unhandled_error_is_500_and_logged",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-DISPATCHERRORTESTS-TEST-UNKNOWN-ROUTE-IS-404-NOT-FOUND": {
+      "node_id": "tests.unit.v03.test_app_dispatch.DispatchErrorTests::test_unknown_route_is_404_not_found",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.505
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-QUERYPARAMTESTS-TEST-BOOLEAN-SWITCH-ACCEPTED": {
+      "node_id": "tests.unit.v03.test_app_dispatch.QueryParamTests::test_boolean_switch_accepted",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.011
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-QUERYPARAMTESTS-TEST-INTEGER-LIMIT-ACCEPTED": {
+      "node_id": "tests.unit.v03.test_app_dispatch.QueryParamTests::test_integer_limit_accepted",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-QUERYPARAMTESTS-TEST-NON-BOOLEAN-SWITCH-IS-400": {
+      "node_id": "tests.unit.v03.test_app_dispatch.QueryParamTests::test_non_boolean_switch_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-QUERYPARAMTESTS-TEST-NON-INTEGER-LIMIT-IS-400": {
+      "node_id": "tests.unit.v03.test_app_dispatch.QueryParamTests::test_non_integer_limit_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.506
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-READINESSSTATUSTESTS-TEST-EMPTY-IS-NOT-READY-503": {
+      "node_id": "tests.unit.v03.test_app_dispatch.ReadinessStatusTests::test_empty_is_not_ready_503",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.007
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-READINESSSTATUSTESTS-TEST-ONE-HEALTHY-OTHERS-UNAVAILABLE-IS-DEGRADED-503": {
+      "node_id": "tests.unit.v03.test_app_dispatch.ReadinessStatusTests::test_one_healthy_others_unavailable_is_degraded_503",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.006
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-STATICANDREADINESSTESTS-TEST-DIRECTORY-TRAVERSAL-IS-404": {
+      "node_id": "tests.unit.v03.test_app_dispatch.StaticAndReadinessTests::test_directory_traversal_is_404",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.012
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-STATICANDREADINESSTESTS-TEST-READYZ-SEEDED-IS-DEGRADED-503": {
+      "node_id": "tests.unit.v03.test_app_dispatch.StaticAndReadinessTests::test_readyz_seeded_is_degraded_503",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-STATICANDREADINESSTESTS-TEST-UI-ROOT-SERVES-INDEX": {
+      "node_id": "tests.unit.v03.test_app_dispatch.StaticAndReadinessTests::test_ui_root_serves_index",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.505
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-UNAVAILABLEDIAGNOSTICSTESTS-TEST-DEGRADES-TO-UNAVAILABLE-OBSERVER": {
+      "node_id": "tests.unit.v03.test_app_dispatch.UnavailableDiagnosticsTests::test_degrades_to_unavailable_observer",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.008
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-UNAVAILABLEDIAGNOSTICSTESTS-TEST-INFERENCE-STILL-SUCCEEDS-WHEN-DIAGNOSTICS-UNAVAILABLE": {
+      "node_id": "tests.unit.v03.test_app_dispatch.UnavailableDiagnosticsTests::test_inference_still_succeeds_when_diagnostics_unavailable",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.007
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-UNAVAILABLEDIAGNOSTICSTESTS-TEST-SWITCHES-DEFAULT-OFF": {
+      "node_id": "tests.unit.v03.test_app_dispatch.UnavailableDiagnosticsTests::test_switches_default_off",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.005
+    },
+    "TESTS-UNIT-V03-TEST-APP-DISPATCH-UNAVAILABLEDIAGNOSTICSTESTS-TEST-VOID-METHODS-ARE-NOOPS": {
+      "node_id": "tests.unit.v03.test_app_dispatch.UnavailableDiagnosticsTests::test_void_methods_are_noops",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "TESTS-UNIT-V03-TEST-APP-STARTUP-STARTUPTESTS-TEST-FAILED-BOOTSTRAP-HAS-NO-PROVIDER": {
+      "node_id": "tests.unit.v03.test_app_startup.StartupTests::test_failed_bootstrap_has_no_provider",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.007
+    },
+    "TESTS-UNIT-V03-TEST-APP-STARTUP-STARTUPTESTS-TEST-HANDLER-FACTORY": {
+      "node_id": "tests.unit.v03.test_app_startup.StartupTests::test_handler_factory",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.005
+    },
+    "TESTS-UNIT-V03-TEST-APP-STARTUP-STARTUPTESTS-TEST-INVALID-SETTINGS-NOT-READY": {
+      "node_id": "tests.unit.v03.test_app_startup.StartupTests::test_invalid_settings_not_ready",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "TESTS-UNIT-V03-TEST-APP-STARTUP-STARTUPTESTS-TEST-MISSING-SETTINGS-NOT-READY": {
+      "node_id": "tests.unit.v03.test_app_startup.StartupTests::test_missing_settings_not_ready",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-APP-STARTUP-STARTUPTESTS-TEST-NON-APIERROR-BOOTSTRAP-DOES-NOT-CRASH": {
+      "node_id": "tests.unit.v03.test_app_startup.StartupTests::test_non_apierror_bootstrap_does_not_crash",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "TESTS-UNIT-V03-TEST-APP-STARTUP-STARTUPTESTS-TEST-RESTART-IGNORES-MISSING-SETTINGS": {
+      "node_id": "tests.unit.v03.test_app_startup.StartupTests::test_restart_ignores_missing_settings",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.005
+    },
+    "TESTS-UNIT-V03-TEST-APP-STARTUP-STARTUPTESTS-TEST-VALID-BOOTSTRAP": {
+      "node_id": "tests.unit.v03.test_app_startup.StartupTests::test_valid_bootstrap",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-APP-STARTUP-STARTUPTESTS-TEST-VERSION": {
+      "node_id": "tests.unit.v03.test_app_startup.StartupTests::test_version",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-AUDIT-AUDITTESTS-TEST-ACTION": {
+      "node_id": "tests.unit.v03.test_audit.AuditTests::test_action",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-AUDIT-AUDITTESTS-TEST-ACTOR": {
+      "node_id": "tests.unit.v03.test_audit.AuditTests::test_actor",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-AUDIT-AUDITTESTS-TEST-LIMIT": {
+      "node_id": "tests.unit.v03.test_audit.AuditTests::test_limit",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-AUDIT-AUDITTESTS-TEST-RECORD": {
+      "node_id": "tests.unit.v03.test_audit.AuditTests::test_record",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-AUDIT-AUDITTESTS-TEST-REQUEST-ID-EXPOSED": {
+      "node_id": "tests.unit.v03.test_audit.AuditTests::test_request_id_exposed",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-AUDIT-AUDITTESTS-TEST-RESULT": {
+      "node_id": "tests.unit.v03.test_audit.AuditTests::test_result",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-AUDIT-AUDITTESTS-TEST-TARGET": {
+      "node_id": "tests.unit.v03.test_audit.AuditTests::test_target",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-AUTH-AUTHTESTS-TEST-ADMIN-TOKEN": {
+      "node_id": "tests.unit.v03.test_auth.AuthTests::test_admin_token",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-AUTH-AUTHTESTS-TEST-DATA-TOKEN": {
+      "node_id": "tests.unit.v03.test_auth.AuthTests::test_data_token",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-AUTH-AUTHTESTS-TEST-DEV-TOKEN": {
+      "node_id": "tests.unit.v03.test_auth.AuthTests::test_dev_token",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-AUTH-AUTHTESTS-TEST-EXPLICIT-BEARER-DISABLES-NO-AUTH-PATH": {
+      "node_id": "tests.unit.v03.test_auth.AuthTests::test_explicit_bearer_disables_no_auth_path",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-AUTH-AUTHTESTS-TEST-LOOPBACK-DEV-MODE-IS-LIMITED-TO-LOOPBACK": {
+      "node_id": "tests.unit.v03.test_auth.AuthTests::test_loopback_dev_mode_is_limited_to_loopback",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-AUTH-AUTHTESTS-TEST-MISSING-BEARER-IS-401": {
+      "node_id": "tests.unit.v03.test_auth.AuthTests::test_missing_bearer_is_401",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-AUTH-AUTHTESTS-TEST-MISSING-CONFIG-IS-503": {
+      "node_id": "tests.unit.v03.test_auth.AuthTests::test_missing_config_is_503",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-AUTH-AUTHTESTS-TEST-NON-TRUSTED-ADDRESS-WITHOUT-CREDENTIAL-IS-401": {
+      "node_id": "tests.unit.v03.test_auth.AuthTests::test_non_trusted_address_without_credential_is_401",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-AUTH-AUTHTESTS-TEST-PRINCIPAL-HEADER": {
+      "node_id": "tests.unit.v03.test_auth.AuthTests::test_principal_header",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-AUTH-AUTHTESTS-TEST-TRUSTED-LAN-MODE-ACCEPTS-PRIVATE-ADDRESSES": {
+      "node_id": "tests.unit.v03.test_auth.AuthTests::test_trusted_lan_mode_accepts_private_addresses",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-AUTH-AUTHTESTS-TEST-WRONG-TOKEN-IS-403": {
+      "node_id": "tests.unit.v03.test_auth.AuthTests::test_wrong_token_is_403",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-DIAGNOSTICCURSORCONTRACTTESTS-TEST-SNAPSHOTS-INVALID-CURSOR-REJECTED": {
+      "node_id": "tests.unit.v03.test_diagnostics.DiagnosticCursorContractTests::test_snapshots_invalid_cursor_rejected",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-DIAGNOSTICCURSORCONTRACTTESTS-TEST-TRACES-CURSOR-WITHOUT-SEPARATOR-REJECTED": {
+      "node_id": "tests.unit.v03.test_diagnostics.DiagnosticCursorContractTests::test_traces_cursor_without_separator_rejected",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-DIAGNOSTICCURSORCONTRACTTESTS-TEST-TRACES-VALID-CURSOR-STILL-PAGES": {
+      "node_id": "tests.unit.v03.test_diagnostics.DiagnosticCursorContractTests::test_traces_valid_cursor_still_pages",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-DIAGNOSTICSHTTPCONTRACTTESTS-TEST-INJECTION-PATCH-EXPLICIT-EMPTY-ITEMS-REVOKES": {
+      "node_id": "tests.unit.v03.test_diagnostics.DiagnosticsHttpContractTests::test_injection_patch_explicit_empty_items_revokes",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.005
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-DIAGNOSTICSHTTPCONTRACTTESTS-TEST-INJECTION-PATCH-REJECTS-NON-BOOLEAN-ENABLED": {
+      "node_id": "tests.unit.v03.test_diagnostics.DiagnosticsHttpContractTests::test_injection_patch_rejects_non_boolean_enabled",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-DIAGNOSTICSHTTPCONTRACTTESTS-TEST-INJECTION-PATCH-REQUIRES-ITEMS": {
+      "node_id": "tests.unit.v03.test_diagnostics.DiagnosticsHttpContractTests::test_injection_patch_requires_items",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-DIAGNOSTICSHTTPCONTRACTTESTS-TEST-SNAPSHOTS-INVALID-CURSOR-IS-400-EXPIRED": {
+      "node_id": "tests.unit.v03.test_diagnostics.DiagnosticsHttpContractTests::test_snapshots_invalid_cursor_is_400_expired",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-DIAGNOSTICSHTTPCONTRACTTESTS-TEST-SWITCH-PATCH-ACCEPTS-BOOLEAN-AND-EMPTY-BODY": {
+      "node_id": "tests.unit.v03.test_diagnostics.DiagnosticsHttpContractTests::test_switch_patch_accepts_boolean_and_empty_body",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-DIAGNOSTICSHTTPCONTRACTTESTS-TEST-SWITCH-PATCH-REJECTS-NULL-VALUE": {
+      "node_id": "tests.unit.v03.test_diagnostics.DiagnosticsHttpContractTests::test_switch_patch_rejects_null_value",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-DIAGNOSTICSHTTPCONTRACTTESTS-TEST-SWITCH-PATCH-REJECTS-UNKNOWN-KEY": {
+      "node_id": "tests.unit.v03.test_diagnostics.DiagnosticsHttpContractTests::test_switch_patch_rejects_unknown_key",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-DIAGNOSTICSHTTPCONTRACTTESTS-TEST-TRACES-INVALID-CURSOR-IS-400-EXPIRED": {
+      "node_id": "tests.unit.v03.test_diagnostics.DiagnosticsHttpContractTests::test_traces_invalid_cursor_is_400_expired",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.506
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-DIAGNOSTICSSWITCHTESTS-TEST-SWITCHES-DEFAULT-OFF-AND-RUNTIME-TOGGLE": {
+      "node_id": "tests.unit.v03.test_diagnostics.DiagnosticsSwitchTests::test_switches_default_off_and_runtime_toggle",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-GAPS-CURSORCONTRACTGAPTESTS-TEST-CORRELATION-ID-TAKEN-FROM-STAGE-DETAIL": {
+      "node_id": "tests.unit.v03.test_diagnostics_gaps.CursorContractGapTests::test_correlation_id_taken_from_stage_detail",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-GAPS-CURSORCONTRACTGAPTESTS-TEST-SNAPSHOTS-CURSOR-IS-SNAPSHOT-ID": {
+      "node_id": "tests.unit.v03.test_diagnostics_gaps.CursorContractGapTests::test_snapshots_cursor_is_snapshot_id",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-GAPS-CURSORCONTRACTGAPTESTS-TEST-TRACE-CURSOR-IS-FIRST-TS-PIPE-REQUEST-ID": {
+      "node_id": "tests.unit.v03.test_diagnostics_gaps.CursorContractGapTests::test_trace_cursor_is_first_ts_pipe_request_id",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-GAPS-FAILOPENWRITETESTS-TEST-CAPTURE-SNAPSHOT-FAILURE-RETURNS-NONE": {
+      "node_id": "tests.unit.v03.test_diagnostics_gaps.FailOpenWriteTests::test_capture_snapshot_failure_returns_none",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-GAPS-FAILOPENWRITETESTS-TEST-CLEANUP-FAILURE-RETURNS-ZERO": {
+      "node_id": "tests.unit.v03.test_diagnostics_gaps.FailOpenWriteTests::test_cleanup_failure_returns_zero",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-GAPS-FAILOPENWRITETESTS-TEST-FAILED-WRITE-IS-WARNED-TO-OPERATOR-LOG": {
+      "node_id": "tests.unit.v03.test_diagnostics_gaps.FailOpenWriteTests::test_failed_write_is_warned_to_operator_log",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-GAPS-FAILOPENWRITETESTS-TEST-RECORD-LATENCY-FAILURE-IS-SWALLOWED": {
+      "node_id": "tests.unit.v03.test_diagnostics_gaps.FailOpenWriteTests::test_record_latency_failure_is_swallowed",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-GAPS-FAILOPENWRITETESTS-TEST-RECORD-TRACE-FAILURE-IS-SWALLOWED": {
+      "node_id": "tests.unit.v03.test_diagnostics_gaps.FailOpenWriteTests::test_record_trace_failure_is_swallowed",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-GAPS-SNAPSHOTBRANCHTESTS-TEST-ERROR-SUMMARY-TRUNCATED-TO-256-UTF8-BYTES": {
+      "node_id": "tests.unit.v03.test_diagnostics_gaps.SnapshotBranchTests::test_error_summary_truncated_to_256_utf8_bytes",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.008
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-GAPS-SNAPSHOTBRANCHTESTS-TEST-SNAPSHOT-TYPE-ERROR-WHEN-STATUS-ABSENT": {
+      "node_id": "tests.unit.v03.test_diagnostics_gaps.SnapshotBranchTests::test_snapshot_type_error_when_status_absent",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.006
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-GAPS-SNAPSHOTBRANCHTESTS-TEST-SNAPSHOT-TYPE-UPSTREAM-WHEN-STATUS-PRESENT": {
+      "node_id": "tests.unit.v03.test_diagnostics_gaps.SnapshotBranchTests::test_snapshot_type_upstream_when_status_present",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.005
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-GAPS-SNAPSHOTBRANCHTESTS-TEST-SWITCH-OFF-CAPTURES-NOTHING": {
+      "node_id": "tests.unit.v03.test_diagnostics_gaps.SnapshotBranchTests::test_switch_off_captures_nothing",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.005
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-GAPS-STATSBRANCHTESTS-TEST-PERCENTILES-AND-ERROR-BUCKETS": {
+      "node_id": "tests.unit.v03.test_diagnostics_gaps.StatsBranchTests::test_percentiles_and_error_buckets",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.005
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-GAPS-STATSBRANCHTESTS-TEST-STATS-EMPTY-WINDOWS-WHEN-NO-SAMPLES": {
+      "node_id": "tests.unit.v03.test_diagnostics_gaps.StatsBranchTests::test_stats_empty_windows_when_no_samples",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-GAPS-STATSBRANCHTESTS-TEST-STATS-MIXED-NULL-AND-STRING-KEYS-DO-NOT-CRASH": {
+      "node_id": "tests.unit.v03.test_diagnostics_gaps.StatsBranchTests::test_stats_mixed_null_and_string_keys_do_not_crash",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-GAPS-STATSBRANCHTESTS-TEST-STATS-SWITCH-OFF-WRITES-NOTHING": {
+      "node_id": "tests.unit.v03.test_diagnostics_gaps.StatsBranchTests::test_stats_switch_off_writes_nothing",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-GAPS-STREAMWRAPPERTESTS-TEST-EMPTY-ITEMS-REVOKES-ALL": {
+      "node_id": "tests.unit.v03.test_diagnostics_gaps.StreamWrapperTests::test_empty_items_revokes_all",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-GAPS-STREAMWRAPPERTESTS-TEST-MALFORMED-EVENT-APPENDS-BROKEN-FRAME": {
+      "node_id": "tests.unit.v03.test_diagnostics_gaps.StreamWrapperTests::test_malformed_event_appends_broken_frame",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-GAPS-STREAMWRAPPERTESTS-TEST-PASSTHROUGH-WITHOUT-INJECTION": {
+      "node_id": "tests.unit.v03.test_diagnostics_gaps.StreamWrapperTests::test_passthrough_without_injection",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-GAPS-STREAMWRAPPERTESTS-TEST-PRE-CALL-INJECTION-PRIORITY-IS-FAULT-502-FIRST": {
+      "node_id": "tests.unit.v03.test_diagnostics_gaps.StreamWrapperTests::test_pre_call_injection_priority_is_fault_502_first",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-GAPS-STREAMWRAPPERTESTS-TEST-STREAM-INJECTION-PRIORITY-IS-TERMINATE-FIRST": {
+      "node_id": "tests.unit.v03.test_diagnostics_gaps.StreamWrapperTests::test_stream_injection_priority_is_terminate_first",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-GAPS-STREAMWRAPPERTESTS-TEST-STREAM-TERMINATE-EARLY-END": {
+      "node_id": "tests.unit.v03.test_diagnostics_gaps.StreamWrapperTests::test_stream_terminate_early_end",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-GAPS-UNAVAILABLEDIAGNOSTICSUNITTESTS-TEST-READ-SURFACES-ARE-EMPTY": {
+      "node_id": "tests.unit.v03.test_diagnostics_gaps.UnavailableDiagnosticsUnitTests::test_read_surfaces_are_empty",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-GAPS-UNAVAILABLEDIAGNOSTICSUNITTESTS-TEST-STREAM-WRAPPER-PASSES-THROUGH": {
+      "node_id": "tests.unit.v03.test_diagnostics_gaps.UnavailableDiagnosticsUnitTests::test_stream_wrapper_passes_through",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-GAPS-UNAVAILABLEDIAGNOSTICSUNITTESTS-TEST-SWITCHES-OFF-AND-VOID-METHODS": {
+      "node_id": "tests.unit.v03.test_diagnostics_gaps.UnavailableDiagnosticsUnitTests::test_switches_off_and_void_methods",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-INJECTIONCONFIGTESTS-TEST-ERROR-BODY-TRUNCATED-TO-512-BYTES": {
+      "node_id": "tests.unit.v03.test_diagnostics.InjectionConfigTests::test_error_body_truncated_to_512_bytes",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-INJECTIONCONFIGTESTS-TEST-MISSING-OR-OUT-OF-RANGE-CONFIG-REJECTED": {
+      "node_id": "tests.unit.v03.test_diagnostics.InjectionConfigTests::test_missing_or_out_of_range_config_rejected",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-INJECTIONCONFIGTESTS-TEST-UNKNOWN-DEPLOYMENT-REJECTED": {
+      "node_id": "tests.unit.v03.test_diagnostics.InjectionConfigTests::test_unknown_deployment_rejected",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-INJECTIONCONFIGTESTS-TEST-UNKNOWN-TYPE-REJECTED": {
+      "node_id": "tests.unit.v03.test_diagnostics.InjectionConfigTests::test_unknown_type_rejected",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-INJECTIONCONFIGTESTS-TEST-UPSERT-PARTIAL-UPDATE-KEEPS-OTHER-TYPES": {
+      "node_id": "tests.unit.v03.test_diagnostics.InjectionConfigTests::test_upsert_partial_update_keeps_other_types",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-INJECTIONENABLEDCONTRACTTESTS-TEST-BOOLEAN-ENABLED-STILL-ACCEPTED": {
+      "node_id": "tests.unit.v03.test_diagnostics.InjectionEnabledContractTests::test_boolean_enabled_still_accepted",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-INJECTIONENABLEDCONTRACTTESTS-TEST-MISSING-ENABLED-REJECTED": {
+      "node_id": "tests.unit.v03.test_diagnostics.InjectionEnabledContractTests::test_missing_enabled_rejected",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-INJECTIONENABLEDCONTRACTTESTS-TEST-NON-BOOLEAN-ENABLED-REJECTED": {
+      "node_id": "tests.unit.v03.test_diagnostics.InjectionEnabledContractTests::test_non_boolean_enabled_rejected",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-INJECTIONENFORCEMENTTESTS-TEST-DELAY-INJECTION-STILL-COMPLETES": {
+      "node_id": "tests.unit.v03.test_diagnostics.InjectionEnforcementTests::test_delay_injection_still_completes",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.016
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-INJECTIONENFORCEMENTTESTS-TEST-FAULT-502-RETURNS-INJECTED-ERROR-AND-MARKS-USAGE": {
+      "node_id": "tests.unit.v03.test_diagnostics.InjectionEnforcementTests::test_fault_502_returns_injected_error_and_marks_usage",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-INJECTIONENFORCEMENTTESTS-TEST-RATE-LIMIT-INJECTION-RETURNS-429-WITH-RETRY-AFTER": {
+      "node_id": "tests.unit.v03.test_diagnostics.InjectionEnforcementTests::test_rate_limit_injection_returns_429_with_retry_after",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-TRACESQUERYTESTS-TEST-CLEANUP-REMOVES-EXPIRED-AND-RETURNS-COUNT": {
+      "node_id": "tests.unit.v03.test_diagnostics.TracesQueryTests::test_cleanup_removes_expired_and_returns_count",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-TRACESQUERYTESTS-TEST-SET-SWITCHES-REJECTS-NON-BOOLEAN": {
+      "node_id": "tests.unit.v03.test_diagnostics.TracesQueryTests::test_set_switches_rejects_non_boolean",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-TRACESQUERYTESTS-TEST-TRACES-DEDUPS-BY-REQUEST-AND-STABLE-PAGING": {
+      "node_id": "tests.unit.v03.test_diagnostics.TracesQueryTests::test_traces_dedups_by_request_and_stable_paging",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-DIAGNOSTICS-TRACESQUERYTESTS-TEST-TRACES-OUT-OF-WINDOW-IS-EMPTY": {
+      "node_id": "tests.unit.v03.test_diagnostics.TracesQueryTests::test_traces_out_of_window_is_empty",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-EMBEDDINGS-EMBEDDINGSFAILUREGAPTESTS-TEST-EMPTY-VECTOR-IS-502-PROVIDER-CONTRACT-ERROR": {
+      "node_id": "tests.unit.v03.test_embeddings.EmbeddingsFailureGapTests::test_empty_vector_is_502_provider_contract_error",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-EMBEDDINGS-EMBEDDINGSFAILUREGAPTESTS-TEST-INVALID-BASE64-IS-502-PROVIDER-CONTRACT-ERROR": {
+      "node_id": "tests.unit.v03.test_embeddings.EmbeddingsFailureGapTests::test_invalid_base64_is_502_provider_contract_error",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-EMBEDDINGS-EMBEDDINGSFAILUREGAPTESTS-TEST-UNKNOWN-MODEL-IS-404-MODEL-NOT-FOUND": {
+      "node_id": "tests.unit.v03.test_embeddings.EmbeddingsFailureGapTests::test_unknown_model_is_404_model_not_found",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-EMBEDDINGS-EMBEDDINGSFAILUREGAPTESTS-TEST-UNSUPPORTED-DIMENSIONS-CODE-AND-PARAM": {
+      "node_id": "tests.unit.v03.test_embeddings.EmbeddingsFailureGapTests::test_unsupported_dimensions_code_and_param",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-EMBEDDINGS-EMBEDDINGSTESTS-TEST-BASE64-SUCCESS": {
+      "node_id": "tests.unit.v03.test_embeddings.EmbeddingsTests::test_base64_success",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-EMBEDDINGS-EMBEDDINGSTESTS-TEST-BATCH-COUNT": {
+      "node_id": "tests.unit.v03.test_embeddings.EmbeddingsTests::test_batch_count",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-EMBEDDINGS-EMBEDDINGSTESTS-TEST-FLOAT-SUCCESS": {
+      "node_id": "tests.unit.v03.test_embeddings.EmbeddingsTests::test_float_success",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-EMBEDDINGS-EMBEDDINGSTESTS-TEST-INVALID-ENCODING-FORMAT-CARRIES-PARAM": {
+      "node_id": "tests.unit.v03.test_embeddings.EmbeddingsTests::test_invalid_encoding_format_carries_param",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-EMBEDDINGS-EMBEDDINGSTESTS-TEST-LOGICAL-MODEL-RETURNED": {
+      "node_id": "tests.unit.v03.test_embeddings.EmbeddingsTests::test_logical_model_returned",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-EMBEDDINGS-EMBEDDINGSTESTS-TEST-MISSING-MODEL-IS-INVALID-REQUEST-WITH-PARAM": {
+      "node_id": "tests.unit.v03.test_embeddings.EmbeddingsTests::test_missing_model_is_invalid_request_with_param",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-EMBEDDINGS-EMBEDDINGSTESTS-TEST-NONFINITE-REJECTED": {
+      "node_id": "tests.unit.v03.test_embeddings.EmbeddingsTests::test_nonfinite_rejected",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-EMBEDDINGS-EMBEDDINGSTESTS-TEST-TEST-ADAPTER-HOOK-BYPASSES-CONSTRUCTION": {
+      "node_id": "tests.unit.v03.test_embeddings.EmbeddingsTests::test_test_adapter_hook_bypasses_construction",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-EMBEDDINGS-EMBEDDINGSTESTS-TEST-UNKNOWN-FIELD-IS-UNSUPPORTED-FIELD-WITH-PARAM": {
+      "node_id": "tests.unit.v03.test_embeddings.EmbeddingsTests::test_unknown_field_is_unsupported_field_with_param",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-EMBEDDINGS-EMBEDDINGSTESTS-TEST-UNKNOWN-FIELD-REJECTED": {
+      "node_id": "tests.unit.v03.test_embeddings.EmbeddingsTests::test_unknown_field_rejected",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-EMBEDDINGS-EMBEDDINGSTESTS-TEST-USAGE-NORMALIZED": {
+      "node_id": "tests.unit.v03.test_embeddings.EmbeddingsTests::test_usage_normalized",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-EMBEDDINGS-EMBEDDINGSTESTS-TEST-WRONG-DIMENSION-REJECTED": {
+      "node_id": "tests.unit.v03.test_embeddings.EmbeddingsTests::test_wrong_dimension_rejected",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-ERRORS-ERRORTESTS-TEST-CLIENT-TYPE": {
+      "node_id": "tests.unit.v03.test_errors.ErrorTests::test_client_type",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-ERRORS-ERRORTESTS-TEST-CODE": {
+      "node_id": "tests.unit.v03.test_errors.ErrorTests::test_code",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-ERRORS-ERRORTESTS-TEST-PARAM": {
+      "node_id": "tests.unit.v03.test_errors.ErrorTests::test_param",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-ERRORS-ERRORTESTS-TEST-REQUIRE-FALSE": {
+      "node_id": "tests.unit.v03.test_errors.ErrorTests::test_require_false",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-ERRORS-ERRORTESTS-TEST-REQUIRE-TRUE": {
+      "node_id": "tests.unit.v03.test_errors.ErrorTests::test_require_true",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-ERRORS-ERRORTESTS-TEST-SERVER-TYPE": {
+      "node_id": "tests.unit.v03.test_errors.ErrorTests::test_server_type",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-ERRORS-ERRORTESTS-TEST-STATUS": {
+      "node_id": "tests.unit.v03.test_errors.ErrorTests::test_status",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-HEALTH-HEALTHTESTS-TEST-EMPTY-IS-NOT-READY": {
+      "node_id": "tests.unit.v03.test_health.HealthTests::test_empty_is_not_ready",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-HEALTH-HEALTHTESTS-TEST-HEALTH-OK": {
+      "node_id": "tests.unit.v03.test_health.HealthTests::test_health_ok",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-HEALTH-HEALTHTESTS-TEST-NOT-READY-HTTP-STATUS": {
+      "node_id": "tests.unit.v03.test_health.HealthTests::test_not_ready_http_status",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-HEALTH-HEALTHTESTS-TEST-ONE-MODEL-IS-DEGRADED": {
+      "node_id": "tests.unit.v03.test_health.HealthTests::test_one_model_is_degraded",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-HEALTH-HEALTHTESTS-TEST-PROBE-INVALID-STATUS": {
+      "node_id": "tests.unit.v03.test_health.HealthTests::test_probe_invalid_status",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-HEALTH-HEALTHTESTS-TEST-PROBE-PERSISTS": {
+      "node_id": "tests.unit.v03.test_health.HealthTests::test_probe_persists",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-HEALTH-HEALTHTESTS-TEST-PROBE-UNKNOWN-DEPLOYMENT": {
+      "node_id": "tests.unit.v03.test_health.HealthTests::test_probe_unknown_deployment",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-INFERENCE-FAILOPEN-INFERENCEFAILOPENTESTS-TEST-INFERENCE-RESULT-UNCHANGED-WHEN-DIAGNOSTIC-WRITES-FAIL": {
+      "node_id": "tests.unit.v03.test_inference_failopen.InferenceFailOpenTests::test_inference_result_unchanged_when_diagnostic_writes_fail",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "TESTS-UNIT-V03-TEST-INFERENCE-FAILOPEN-INFERENCEFAILOPENTESTS-TEST-UPSTREAM-FAULT-STILL-SURFACES-WHEN-DIAGNOSTIC-WRITES-FAIL": {
+      "node_id": "tests.unit.v03.test_inference_failopen.InferenceFailOpenTests::test_upstream_fault_still_surfaces_when_diagnostic_writes_fail",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "TESTS-UNIT-V03-TEST-INFERENCE-FAILOPEN-INFERENCEFAILOPENTESTS-TEST-USAGE-LEDGER-STILL-MEASURED-WHEN-DIAGNOSTIC-WRITES-FAIL": {
+      "node_id": "tests.unit.v03.test_inference_failopen.InferenceFailOpenTests::test_usage_ledger_still_measured_when_diagnostic_writes_fail",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "TESTS-UNIT-V03-TEST-INFERENCE-FAILOPEN-INFERENCENOSECONDAUTHTESTS-TEST-INFERENCE-MODULES-DO-NOT-IMPORT-AUTH": {
+      "node_id": "tests.unit.v03.test_inference_failopen.InferenceNoSecondAuthTests::test_inference_modules_do_not_import_auth",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "TESTS-UNIT-V03-TEST-INFERENCE-FAILOPEN-INFERENCENOSECONDAUTHTESTS-TEST-INFERENCE-PATH-DOES-NOT-CALL-AUTHENTICATE": {
+      "node_id": "tests.unit.v03.test_inference_failopen.InferenceNoSecondAuthTests::test_inference_path_does_not_call_authenticate",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-LOGS-LOGHTTPFAILURETESTS-TEST-MISSING-WINDOW-IS-400": {
+      "node_id": "tests.unit.v03.test_logs.LogHttpFailureTests::test_missing_window_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "TESTS-UNIT-V03-TEST-LOGS-LOGHTTPFAILURETESTS-TEST-STORE-FAILURE-IS-503": {
+      "node_id": "tests.unit.v03.test_logs.LogHttpFailureTests::test_store_failure_is_503",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.504
+    },
+    "TESTS-UNIT-V03-TEST-LOGS-LOGREDACTIONGAPTESTS-TEST-ACCESS-KEY-VALUE-REDACTED": {
+      "node_id": "tests.unit.v03.test_logs.LogRedactionGapTests::test_access_key_value_redacted",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-LOGS-LOGREDACTIONGAPTESTS-TEST-API-KEY-REDACTED": {
+      "node_id": "tests.unit.v03.test_logs.LogRedactionGapTests::test_api_key_redacted",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-LOGS-LOGREDACTIONGAPTESTS-TEST-API-KEY-VALUE-REDACTION": {
+      "node_id": "tests.unit.v03.test_logs.LogRedactionGapTests::test_api_key_value_redaction",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-LOGS-LOGREDACTIONGAPTESTS-TEST-LIMIT-CLAMPED-TO-200": {
+      "node_id": "tests.unit.v03.test_logs.LogRedactionGapTests::test_limit_clamped_to_200",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.019
+    },
+    "TESTS-UNIT-V03-TEST-LOGS-LOGREDACTIONGAPTESTS-TEST-PAGE-REQUIRES-WINDOW": {
+      "node_id": "tests.unit.v03.test_logs.LogRedactionGapTests::test_page_requires_window",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-LOGS-LOGREDACTIONGAPTESTS-TEST-SECRET-REDACTED": {
+      "node_id": "tests.unit.v03.test_logs.LogRedactionGapTests::test_secret_redacted",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-LOGS-LOGREDACTIONGAPTESTS-TEST-TOKEN-QUERY-REDACTED": {
+      "node_id": "tests.unit.v03.test_logs.LogRedactionGapTests::test_token_query_redacted",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-LOGS-LOGREDACTIONGAPTESTS-TEST-X-API-KEY-HEADER-VALUE-REDACTED": {
+      "node_id": "tests.unit.v03.test_logs.LogRedactionGapTests::test_x_api_key_header_value_redacted",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-LOGS-LOGTESTS-TEST-AUTHORIZATION-REDACTED": {
+      "node_id": "tests.unit.v03.test_logs.LogTests::test_authorization_redacted",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-LOGS-LOGTESTS-TEST-BEARER-REDACTED": {
+      "node_id": "tests.unit.v03.test_logs.LogTests::test_bearer_redacted",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-LOGS-LOGTESTS-TEST-FILTER-LEVEL": {
+      "node_id": "tests.unit.v03.test_logs.LogTests::test_filter_level",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-LOGS-LOGTESTS-TEST-FILTER-MODULE": {
+      "node_id": "tests.unit.v03.test_logs.LogTests::test_filter_module",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-LOGS-LOGTESTS-TEST-MESSAGE-BOUNDED": {
+      "node_id": "tests.unit.v03.test_logs.LogTests::test_message_bounded",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-LOGS-LOGTESTS-TEST-NEWLINE-REMOVED": {
+      "node_id": "tests.unit.v03.test_logs.LogTests::test_newline_removed",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-LOGS-LOGTESTS-TEST-RECORD": {
+      "node_id": "tests.unit.v03.test_logs.LogTests::test_record",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-MANAGEMENT-GAPS-ACCOUNTUSAGEGAPTESTS-TEST-CREDENTIALS-MISSING-SNAPSHOT": {
+      "node_id": "tests.unit.v03.test_management_gaps.AccountUsageGapTests::test_credentials_missing_snapshot",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-MANAGEMENT-GAPS-ACCOUNTUSAGEGAPTESTS-TEST-LATEST-NEVER-TOUCHES-NETWORK": {
+      "node_id": "tests.unit.v03.test_management_gaps.AccountUsageGapTests::test_latest_never_touches_network",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-MANAGEMENT-GAPS-ACCOUNTUSAGEGAPTESTS-TEST-LOCAL-PROVIDER-NOT-REFRESHED": {
+      "node_id": "tests.unit.v03.test_management_gaps.AccountUsageGapTests::test_local_provider_not_refreshed",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-MANAGEMENT-GAPS-ACCOUNTUSAGEGAPTESTS-TEST-PROVIDER-API-ERROR-IS-UNAVAILABLE-WITH-ERROR-STRING": {
+      "node_id": "tests.unit.v03.test_management_gaps.AccountUsageGapTests::test_provider_api_error_is_unavailable_with_error_string",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-MANAGEMENT-GAPS-ACCOUNTUSAGEGAPTESTS-TEST-REFRESH-REQUIRES-CONFIRMATION": {
+      "node_id": "tests.unit.v03.test_management_gaps.AccountUsageGapTests::test_refresh_requires_confirmation",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-MANAGEMENT-GAPS-ADMINCURSOREXPIRYTESTS-TEST-EXPIRED-ADMIN-CURSOR-IS-400": {
+      "node_id": "tests.unit.v03.test_management_gaps.AdminCursorExpiryTests::test_expired_admin_cursor_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-MANAGEMENT-GAPS-ADMINCURSOREXPIRYTESTS-TEST-MALFORMED-OFFSET-CURSOR-IS-400-NOT-500": {
+      "node_id": "tests.unit.v03.test_management_gaps.AdminCursorExpiryTests::test_malformed_offset_cursor_is_400_not_500",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-MANAGEMENT-GAPS-ADMINCURSOREXPIRYTESTS-TEST-NON-INTEGER-OFFSET-CURSOR-IS-400-NOT-VALUEERROR": {
+      "node_id": "tests.unit.v03.test_management_gaps.AdminCursorExpiryTests::test_non_integer_offset_cursor_is_400_not_valueerror",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-MANAGEMENT-GAPS-ADMINCURSORGUARDTESTS-TEST-CURSOR-AUTHORIZATION-DIGEST-IS-CHECKED": {
+      "node_id": "tests.unit.v03.test_management_gaps.AdminCursorGuardTests::test_cursor_authorization_digest_is_checked",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-MANAGEMENT-GAPS-ADMINCURSORGUARDTESTS-TEST-CURSOR-FILTER-DIGEST-IS-CHECKED": {
+      "node_id": "tests.unit.v03.test_management_gaps.AdminCursorGuardTests::test_cursor_filter_digest_is_checked",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-MANAGEMENT-GAPS-ADMINCURSORGUARDTESTS-TEST-CURSOR-FILTER-KIND-MISMATCH-IS-400": {
+      "node_id": "tests.unit.v03.test_management_gaps.AdminCursorGuardTests::test_cursor_filter_kind_mismatch_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-MANAGEMENT-GAPS-BOOTSTRAPTESTS-TEST-EMPTY-STORE-WITHOUT-SETTINGS-IS-BOOTSTRAP-REQUIRED": {
+      "node_id": "tests.unit.v03.test_management_gaps.BootstrapTests::test_empty_store_without_settings_is_bootstrap_required",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.007
+    },
+    "TESTS-UNIT-V03-TEST-MANAGEMENT-GAPS-BOOTSTRAPTESTS-TEST-ENV-SECRET-REF-UNAVAILABLE-FAILS": {
+      "node_id": "tests.unit.v03.test_management_gaps.BootstrapTests::test_env_secret_ref_unavailable_fails",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.005
+    },
+    "TESTS-UNIT-V03-TEST-MANAGEMENT-GAPS-BOOTSTRAPTESTS-TEST-FAILED-BOOTSTRAP-ROLLS-BACK-TO-EMPTY-STORE": {
+      "node_id": "tests.unit.v03.test_management_gaps.BootstrapTests::test_failed_bootstrap_rolls_back_to_empty_store",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "TESTS-UNIT-V03-TEST-MANAGEMENT-GAPS-BOOTSTRAPTESTS-TEST-FILE-SECRET-REF-MISSING-FAILS": {
+      "node_id": "tests.unit.v03.test_management_gaps.BootstrapTests::test_file_secret_ref_missing_fails",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "TESTS-UNIT-V03-TEST-MANAGEMENT-GAPS-BOOTSTRAPTESTS-TEST-MISSING-SECTION-FAILS": {
+      "node_id": "tests.unit.v03.test_management_gaps.BootstrapTests::test_missing_section_fails",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-MANAGEMENT-GAPS-BOOTSTRAPTESTS-TEST-REPEATED-START-IS-NOOP": {
+      "node_id": "tests.unit.v03.test_management_gaps.BootstrapTests::test_repeated_start_is_noop",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.005
+    },
+    "TESTS-UNIT-V03-TEST-MANAGEMENT-GAPS-BOOTSTRAPTESTS-TEST-VALID-BOOTSTRAP-SUCCEEDS": {
+      "node_id": "tests.unit.v03.test_management_gaps.BootstrapTests::test_valid_bootstrap_succeeds",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "TESTS-UNIT-V03-TEST-MANAGEMENT-GAPS-PROBEUNREACHABLETESTS-TEST-UNREACHABLE-PROBE-IS-UNHEALTHY-PERSISTED": {
+      "node_id": "tests.unit.v03.test_management_gaps.ProbeUnreachableTests::test_unreachable_probe_is_unhealthy_persisted",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-MANAGEMENT-GAPS-RESETUSAGESCOPETESTS-TEST-RESET-ALL": {
+      "node_id": "tests.unit.v03.test_management_gaps.ResetUsageScopeTests::test_reset_all",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "TESTS-UNIT-V03-TEST-MANAGEMENT-GAPS-RESETUSAGESCOPETESTS-TEST-RESET-BY-DEPLOYMENT-ONLY": {
+      "node_id": "tests.unit.v03.test_management_gaps.ResetUsageScopeTests::test_reset_by_deployment_only",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "TESTS-UNIT-V03-TEST-MANAGEMENT-GAPS-RESETUSAGESCOPETESTS-TEST-RESET-BY-MODEL-AND-DEPLOYMENT": {
+      "node_id": "tests.unit.v03.test_management_gaps.ResetUsageScopeTests::test_reset_by_model_and_deployment",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "TESTS-UNIT-V03-TEST-MANAGEMENT-GAPS-RESETUSAGESCOPETESTS-TEST-RESET-BY-MODEL-ONLY": {
+      "node_id": "tests.unit.v03.test_management_gaps.ResetUsageScopeTests::test_reset_by_model_only",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-MANAGEMENT-GAPS-RESOURCEINUSETESTS-TEST-DELETE-DEPLOYMENT-REFERENCED-BY-TIER-IS-409": {
+      "node_id": "tests.unit.v03.test_management_gaps.ResourceInUseTests::test_delete_deployment_referenced_by_tier_is_409",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "TESTS-UNIT-V03-TEST-MANAGEMENT-GAPS-RESOURCEINUSETESTS-TEST-DELETE-PROVIDER-REFERENCED-BY-DEPLOYMENT-IS-409": {
+      "node_id": "tests.unit.v03.test_management_gaps.ResourceInUseTests::test_delete_provider_referenced_by_deployment_is_409",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "TESTS-UNIT-V03-TEST-MODELS-MODELTESTS-TEST-GET-WORKER": {
+      "node_id": "tests.unit.v03.test_models.ModelTests::test_get_worker",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-MODELS-MODELTESTS-TEST-HEALTHY-IS-AVAILABLE": {
+      "node_id": "tests.unit.v03.test_models.ModelTests::test_healthy_is_available",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-MODELS-MODELTESTS-TEST-LIST-HAS-SEVEN-TIERS": {
+      "node_id": "tests.unit.v03.test_models.ModelTests::test_list_has_seven_tiers",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-MODELS-MODELTESTS-TEST-LIST-OBJECT": {
+      "node_id": "tests.unit.v03.test_models.ModelTests::test_list_object",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-MODELS-MODELTESTS-TEST-MISSING-MODEL": {
+      "node_id": "tests.unit.v03.test_models.ModelTests::test_missing_model",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-MODELS-MODELTESTS-TEST-OWNED-BY": {
+      "node_id": "tests.unit.v03.test_models.ModelTests::test_owned_by",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-MODELS-MODELTESTS-TEST-UNKNOWN-IS-DEGRADED": {
+      "node_id": "tests.unit.v03.test_models.ModelTests::test_unknown_is_degraded",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-OBSERVABILITY-GAPS-CORRELATIONOBSERVABILITYTESTS-TEST-EXPLICIT-CORRELATION-ID-IS-ECHOED": {
+      "node_id": "tests.unit.v03.test_observability_gaps.CorrelationObservabilityTests::test_explicit_correlation_id_is_echoed",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "TESTS-UNIT-V03-TEST-OBSERVABILITY-GAPS-CORRELATIONOBSERVABILITYTESTS-TEST-NO-CORRELATION-HEADER-IS-ABSENT": {
+      "node_id": "tests.unit.v03.test_observability_gaps.CorrelationObservabilityTests::test_no_correlation_header_is_absent",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    "TESTS-UNIT-V03-TEST-OBSERVABILITY-GAPS-CORRELATIONOBSERVABILITYTESTS-TEST-TRACEPARENT-TRACE-ID-IS-EXTRACTED": {
+      "node_id": "tests.unit.v03.test_observability_gaps.CorrelationObservabilityTests::test_traceparent_trace_id_is_extracted",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.505
+    },
+    "TESTS-UNIT-V03-TEST-OBSERVABILITY-GAPS-DIAGNOSTICSAVAILABILITYTESTS-TEST-SNAPSHOTS-STORE-FAILURE-IS-503-NOT-EMPTY-PAGE": {
+      "node_id": "tests.unit.v03.test_observability_gaps.DiagnosticsAvailabilityTests::test_snapshots_store_failure_is_503_not_empty_page",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.007
+    },
+    "TESTS-UNIT-V03-TEST-OBSERVABILITY-GAPS-DIAGNOSTICSAVAILABILITYTESTS-TEST-SWITCHES-READ-STILL-200": {
+      "node_id": "tests.unit.v03.test_observability_gaps.DiagnosticsAvailabilityTests::test_switches_read_still_200",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.505
+    },
+    "TESTS-UNIT-V03-TEST-OBSERVABILITY-GAPS-SNAPSHOTREDACTIONTESTS-TEST-QUERY-SECRET-IS-NOT-STORED-IN-SNAPSHOT": {
+      "node_id": "tests.unit.v03.test_observability_gaps.SnapshotRedactionTests::test_query_secret_is_not_stored_in_snapshot",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.011
+    },
+    "TESTS-UNIT-V03-TEST-OBSERVABILITY-GAPS-SNAPSHOTREDACTIONTESTS-TEST-TRACE-STAGE-URL-ALSO-STRIPPED": {
+      "node_id": "tests.unit.v03.test_observability_gaps.SnapshotRedactionTests::test_trace_stage_url_also_stripped",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.007
+    },
+    "TESTS-UNIT-V03-TEST-PROVIDER-OPENAI-OPENAIPROVIDERTESTS-TEST-DUPLICATE-TERMINAL-IS-REJECTED": {
+      "node_id": "tests.unit.v03.test_provider_openai.OpenAIProviderTests::test_duplicate_terminal_is_rejected",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.014
+    },
+    "TESTS-UNIT-V03-TEST-PROVIDER-OPENAI-OPENAIPROVIDERTESTS-TEST-INCOMPLETE-TERMINAL-IS-PRESERVED": {
+      "node_id": "tests.unit.v03.test_provider_openai.OpenAIProviderTests::test_incomplete_terminal_is_preserved",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.012
+    },
+    "TESTS-UNIT-V03-TEST-PROVIDER-OPENAI-OPENAIPROVIDERTESTS-TEST-PROBE-USES-AUTHENTICATED-MODELS-ENDPOINT": {
+      "node_id": "tests.unit.v03.test_provider_openai.OpenAIProviderTests::test_probe_uses_authenticated_models_endpoint",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.011
+    },
+    "TESTS-UNIT-V03-TEST-PROVIDER-OPENAI-OPENAIPROVIDERTESTS-TEST-REMOTE-DISCONNECT-MAPS-TO-PROVIDER-UNAVAILABLE": {
+      "node_id": "tests.unit.v03.test_provider_openai.OpenAIProviderTests::test_remote_disconnect_maps_to_provider_unavailable",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.009
+    },
+    "TESTS-UNIT-V03-TEST-PROVIDER-OPENAI-OPENAIPROVIDERTESTS-TEST-TERMINAL-EVENT-STATUS-MISMATCH-IS-REJECTED": {
+      "node_id": "tests.unit.v03.test_provider_openai.OpenAIProviderTests::test_terminal_event_status_mismatch_is_rejected",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.008
+    },
+    "TESTS-UNIT-V03-TEST-PROVIDER-OPENAI-OPENAIPROVIDERTESTS-TEST-TIMEOUT-MAPS-TO-PROVIDER-UNAVAILABLE": {
+      "node_id": "tests.unit.v03.test_provider_openai.OpenAIProviderTests::test_timeout_maps_to_provider_unavailable",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.008
+    },
+    "TESTS-UNIT-V03-TEST-PROVIDER-OPENAI-OPENAIPROVIDERTESTS-TEST-URL-ERROR-MAPS-TO-PROVIDER-UNAVAILABLE": {
+      "node_id": "tests.unit.v03.test_provider_openai.OpenAIProviderTests::test_url_error_maps_to_provider_unavailable",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.008
+    },
+    "TESTS-UNIT-V03-TEST-REGISTRY-REGISTRYTESTS-TEST-DEPLOYMENT-CAPABILITIES-EXACT": {
+      "node_id": "tests.unit.v03.test_registry.RegistryTests::test_deployment_capabilities_exact",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-REGISTRY-REGISTRYTESTS-TEST-DEPLOYMENT-CAPABILITY-EDIT-CONFLICT-ROLLS-BACK": {
+      "node_id": "tests.unit.v03.test_registry.RegistryTests::test_deployment_capability_edit_conflict_rolls_back",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-REGISTRY-REGISTRYTESTS-TEST-DEPLOYMENT-CAPABILITY-EDIT-RECOMPUTES-BOUND-TIER": {
+      "node_id": "tests.unit.v03.test_registry.RegistryTests::test_deployment_capability_edit_recomputes_bound_tier",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-REGISTRY-REGISTRYTESTS-TEST-DEPLOYMENT-REQUIRES-PROVIDER": {
+      "node_id": "tests.unit.v03.test_registry.RegistryTests::test_deployment_requires_provider",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-REGISTRY-REGISTRYTESTS-TEST-DUPLICATE-PROVIDER-REJECTED": {
+      "node_id": "tests.unit.v03.test_registry.RegistryTests::test_duplicate_provider_rejected",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-REGISTRY-REGISTRYTESTS-TEST-EMBEDDING-PROVIDER-MODEL-ALIAS-IS-ALLOWED": {
+      "node_id": "tests.unit.v03.test_registry.RegistryTests::test_embedding_provider_model_alias_is_allowed",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-REGISTRY-REGISTRYTESTS-TEST-EMBEDDING-SPACE-IS-FROZEN": {
+      "node_id": "tests.unit.v03.test_registry.RegistryTests::test_embedding_space_is_frozen",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-REGISTRY-REGISTRYTESTS-TEST-FIXED-TIER-DELETE-REJECTED": {
+      "node_id": "tests.unit.v03.test_registry.RegistryTests::test_fixed_tier_delete_rejected",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-REGISTRY-REGISTRYTESTS-TEST-FIXED-TIERS-EXIST": {
+      "node_id": "tests.unit.v03.test_registry.RegistryTests::test_fixed_tiers_exist",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-REGISTRY-REGISTRYTESTS-TEST-INFERENCE-TIER-REJECTS-EMBEDDING": {
+      "node_id": "tests.unit.v03.test_registry.RegistryTests::test_inference_tier_rejects_embedding",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-REGISTRY-REGISTRYTESTS-TEST-PROVIDER-ROUND-TRIP": {
+      "node_id": "tests.unit.v03.test_registry.RegistryTests::test_provider_round_trip",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-REGISTRY-REGISTRYTESTS-TEST-PROVIDER-SECRET-NOT-RETURNED": {
+      "node_id": "tests.unit.v03.test_registry.RegistryTests::test_provider_secret_not_returned",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-REGISTRY-REGISTRYTESTS-TEST-PROVIDER-STALE-ETAG": {
+      "node_id": "tests.unit.v03.test_registry.RegistryTests::test_provider_stale_etag",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-REGISTRY-REGISTRYTESTS-TEST-UNKNOWN-DEPLOYMENT-REFERENCE-IS-400": {
+      "node_id": "tests.unit.v03.test_registry.RegistryTests::test_unknown_deployment_reference_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-RESPONSES-RESPONSESTESTS-TEST-INCOMPLETE-STATUS-IS-PRESERVED": {
+      "node_id": "tests.unit.v03.test_responses.ResponsesTests::test_incomplete_status_is_preserved",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-RESPONSES-RESPONSESTESTS-TEST-MISSING-PROVIDER-REQUEST-ID-STAYS-NULL": {
+      "node_id": "tests.unit.v03.test_responses.ResponsesTests::test_missing_provider_request_id_stays_null",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-RESPONSES-RESPONSESTESTS-TEST-MISSING-REQUIRED-REJECTED": {
+      "node_id": "tests.unit.v03.test_responses.ResponsesTests::test_missing_required_rejected",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-RESPONSES-RESPONSESTESTS-TEST-MODEL-IS-LOGICAL-ID": {
+      "node_id": "tests.unit.v03.test_responses.ResponsesTests::test_model_is_logical_id",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "TESTS-UNIT-V03-TEST-RESPONSES-RESPONSESTESTS-TEST-NONSTREAM-REJECTED": {
+      "node_id": "tests.unit.v03.test_responses.ResponsesTests::test_nonstream_rejected",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-RESPONSES-RESPONSESTESTS-TEST-PROVIDER-CONTINUATION-REJECTED": {
+      "node_id": "tests.unit.v03.test_responses.ResponsesTests::test_provider_continuation_rejected",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-RESPONSES-RESPONSESTESTS-TEST-PROVIDER-FAILURE-LEAVES-UNKNOWN-USAGE": {
+      "node_id": "tests.unit.v03.test_responses.ResponsesTests::test_provider_failure_leaves_unknown_usage",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-RESPONSES-RESPONSESTESTS-TEST-PROVIDER-REQUEST-ID-IS-PERSISTED": {
+      "node_id": "tests.unit.v03.test_responses.ResponsesTests::test_provider_request_id_is_persisted",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-RESPONSES-RESPONSESTESTS-TEST-STORE-TRUE-REJECTED": {
+      "node_id": "tests.unit.v03.test_responses.ResponsesTests::test_store_true_rejected",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-RESPONSES-RESPONSESTESTS-TEST-SUCCESS": {
+      "node_id": "tests.unit.v03.test_responses.ResponsesTests::test_success",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-RESPONSES-RESPONSESTESTS-TEST-USAGE-IS-PRESERVED": {
+      "node_id": "tests.unit.v03.test_responses.ResponsesTests::test_usage_is_preserved",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-RESPONSES-RESPONSESVALIDATIONGAPTESTS-TEST-EMPTY-PROVIDER-REQUEST-ID-IS-NOOP-VIA-SERVICE": {
+      "node_id": "tests.unit.v03.test_responses.ResponsesValidationGapTests::test_empty_provider_request_id_is_noop_via_service",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-RESPONSES-RESPONSESVALIDATIONGAPTESTS-TEST-FORBIDDEN-FIELD-CARRIES-PARAM": {
+      "node_id": "tests.unit.v03.test_responses.ResponsesValidationGapTests::test_forbidden_field_carries_param",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-RESPONSES-RESPONSESVALIDATIONGAPTESTS-TEST-INJECTED-SOURCE-RECORDED-ON-INJECTED-FAULT": {
+      "node_id": "tests.unit.v03.test_responses.ResponsesValidationGapTests::test_injected_source_recorded_on_injected_fault",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-RESPONSES-RESPONSESVALIDATIONGAPTESTS-TEST-MAX-OUTPUT-TOKENS-NON-INTEGER-BOOL-IS-400": {
+      "node_id": "tests.unit.v03.test_responses.ResponsesValidationGapTests::test_max_output_tokens_non_integer_bool_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-RESPONSES-RESPONSESVALIDATIONGAPTESTS-TEST-MAX-OUTPUT-TOKENS-OVER-CAPABILITY-IS-400": {
+      "node_id": "tests.unit.v03.test_responses.ResponsesValidationGapTests::test_max_output_tokens_over_capability_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-RESPONSES-RESPONSESVALIDATIONGAPTESTS-TEST-MAX-OUTPUT-TOKENS-WITHIN-RANGE-ACCEPTED": {
+      "node_id": "tests.unit.v03.test_responses.ResponsesValidationGapTests::test_max_output_tokens_within_range_accepted",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-RESPONSES-RESPONSESVALIDATIONGAPTESTS-TEST-MAX-OUTPUT-TOKENS-ZERO-IS-400": {
+      "node_id": "tests.unit.v03.test_responses.ResponsesValidationGapTests::test_max_output_tokens_zero_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-RESPONSES-RESPONSESVALIDATIONGAPTESTS-TEST-TOOLS-WITHOUT-CAPABILITY-IS-400-UNSUPPORTED-REQUEST": {
+      "node_id": "tests.unit.v03.test_responses.ResponsesValidationGapTests::test_tools_without_capability_is_400_unsupported_request",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-RESPONSES-RESPONSESVALIDATIONGAPTESTS-TEST-UNKNOWN-FIELD-IS-400-UNSUPPORTED-FIELD": {
+      "node_id": "tests.unit.v03.test_responses.ResponsesValidationGapTests::test_unknown_field_is_400_unsupported_field",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-RESPONSES-RESPONSESVALIDATIONGAPTESTS-TEST-UNKNOWN-MODEL-IS-404-MODEL-NOT-FOUND": {
+      "node_id": "tests.unit.v03.test_responses.ResponsesValidationGapTests::test_unknown_model_is_404_model_not_found",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-RESPONSES-RESPONSESVALIDATIONGAPTESTS-TEST-UNSUPPORTED-RESPONSES-CAPABILITY-IS-400-UNSUPPORTED-MODEL": {
+      "node_id": "tests.unit.v03.test_responses.ResponsesValidationGapTests::test_unsupported_responses_capability_is_400_unsupported_model",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-RESPONSES-RESPONSESVALIDATIONGAPTESTS-TEST-USAGE-NON-INTEGER-PARTIAL-IS-UNKNOWN-WITH-NULLS": {
+      "node_id": "tests.unit.v03.test_responses.ResponsesValidationGapTests::test_usage_non_integer_partial_is_unknown_with_nulls",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-ROUTING-ROUTINGADMISSIONGAPTESTS-TEST-DEGRADED-HEALTH-BLOCKS-ADMISSION-503": {
+      "node_id": "tests.unit.v03.test_routing.RoutingAdmissionGapTests::test_degraded_health_blocks_admission_503",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-ROUTING-ROUTINGADMISSIONGAPTESTS-TEST-PROVIDER-MIN-INTERVAL-THROTTLES": {
+      "node_id": "tests.unit.v03.test_routing.RoutingAdmissionGapTests::test_provider_min_interval_throttles",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-ROUTING-ROUTINGADMISSIONGAPTESTS-TEST-PROVIDER-RPM-THROTTLES": {
+      "node_id": "tests.unit.v03.test_routing.RoutingAdmissionGapTests::test_provider_rpm_throttles",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-ROUTING-ROUTINGADMISSIONGAPTESTS-TEST-QUEUE-FULL-IS-429-WITH-RETRY-AFTER": {
+      "node_id": "tests.unit.v03.test_routing.RoutingAdmissionGapTests::test_queue_full_is_429_with_retry_after",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-ROUTING-ROUTINGADMISSIONGAPTESTS-TEST-SNAPSHOT-SHAPE": {
+      "node_id": "tests.unit.v03.test_routing.RoutingAdmissionGapTests::test_snapshot_shape",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-ROUTING-ROUTINGADMISSIONGAPTESTS-TEST-UNKNOWN-HEALTH-BLOCKS-ADMISSION-503": {
+      "node_id": "tests.unit.v03.test_routing.RoutingAdmissionGapTests::test_unknown_health_blocks_admission_503",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-ROUTING-ROUTINGADMISSIONGAPTESTS-TEST-WAIT-TIMEOUT-IS-429-WITH-RETRY-AFTER": {
+      "node_id": "tests.unit.v03.test_routing.RoutingAdmissionGapTests::test_wait_timeout_is_429_with_retry_after",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-ROUTING-ROUTINGTESTS-TEST-ADMITS-HEALTHY-CANDIDATE": {
+      "node_id": "tests.unit.v03.test_routing.RoutingTests::test_admits_healthy_candidate",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-ROUTING-ROUTINGTESTS-TEST-DOES-NOT-CROSS-TIER": {
+      "node_id": "tests.unit.v03.test_routing.RoutingTests::test_does_not_cross_tier",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-ROUTING-ROUTINGTESTS-TEST-MISSING-MODEL-IS-404": {
+      "node_id": "tests.unit.v03.test_routing.RoutingTests::test_missing_model_is_404",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-ROUTING-ROUTINGTESTS-TEST-RELEASES-INFLIGHT": {
+      "node_id": "tests.unit.v03.test_routing.RoutingTests::test_releases_inflight",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-ROUTING-ROUTINGTESTS-TEST-SECOND-REQUEST-WAITS-FIFO": {
+      "node_id": "tests.unit.v03.test_routing.RoutingTests::test_second_request_waits_fifo",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.053
+    },
+    "TESTS-UNIT-V03-TEST-ROUTING-ROUTINGTESTS-TEST-UNHEALTHY-IS-503": {
+      "node_id": "tests.unit.v03.test_routing.RoutingTests::test_unhealthy_is_503",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-ROUTING-ROUTINGTESTS-TEST-UNKNOWN-IS-NOT-ELIGIBLE": {
+      "node_id": "tests.unit.v03.test_routing.RoutingTests::test_unknown_is_not_eligible",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-RUNTIME-SNAPSHOT-RUNTIMESNAPSHOTTESTS-TEST-PROVIDER-ACCOUNT-CONCURRENCY-LIMITS-MULTIPLE-DEPLOYMENTS-TOGETHER": {
+      "node_id": "tests.unit.v03.test_runtime_snapshot.RuntimeSnapshotTests::test_provider_account_concurrency_limits_multiple_deployments_together",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.057
+    },
+    "TESTS-UNIT-V03-TEST-RUNTIME-SNAPSHOT-RUNTIMESNAPSHOTTESTS-TEST-SNAPSHOT-REPORTS-CONFIGURED-CONCURRENCY-WITHOUT-INVENTING-USAGE": {
+      "node_id": "tests.unit.v03.test_runtime_snapshot.RuntimeSnapshotTests::test_snapshot_reports_configured_concurrency_without_inventing_usage",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-SSE-SSETESTS-TEST-COMPLETED-IS-LAST-EVENT": {
+      "node_id": "tests.unit.v03.test_sse.SSETests::test_completed_is_last_event",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-SSE-SSETESTS-TEST-CREATED-IS-FIRST": {
+      "node_id": "tests.unit.v03.test_sse.SSETests::test_created_is_first",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-SSE-SSETESTS-TEST-DONE-MARKER": {
+      "node_id": "tests.unit.v03.test_sse.SSETests::test_done_marker",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-SSE-SSETESTS-TEST-FRAME-HAS-EVENT": {
+      "node_id": "tests.unit.v03.test_sse.SSETests::test_frame_has_event",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-SSE-SSETESTS-TEST-FUNCTION-ARGUMENTS-DONE": {
+      "node_id": "tests.unit.v03.test_sse.SSETests::test_function_arguments_done",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-SSE-SSETESTS-TEST-INCOMPLETE-TERMINAL-IS-PRESERVED": {
+      "node_id": "tests.unit.v03.test_sse.SSETests::test_incomplete_terminal_is_preserved",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-SSE-SSETESTS-TEST-REFUSAL-DELTA": {
+      "node_id": "tests.unit.v03.test_sse.SSETests::test_refusal_delta",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-SSE-SSETESTS-TEST-SEQUENCE-IS-MONOTONIC": {
+      "node_id": "tests.unit.v03.test_sse.SSETests::test_sequence_is_monotonic",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-SSE-SSETESTS-TEST-TEXT-DELTA": {
+      "node_id": "tests.unit.v03.test_sse.SSETests::test_text_delta",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-STORE-GAPS-BUSYLOCKTESTS-TEST-LOCKED-WRITE-RAISES-OPERATIONAL-ERROR": {
+      "node_id": "tests.unit.v03.test_store_gaps.BusyLockTests::test_locked_write_raises_operational_error",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.065
+    },
+    "TESTS-UNIT-V03-TEST-STORE-GAPS-CLOSERAISESTESTS-TEST-CLOSE-EXCEPTION-PROPAGATES": {
+      "node_id": "tests.unit.v03.test_store_gaps.CloseRaisesTests::test_close_exception_propagates",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-STORE-GAPS-CORRUPTSTORETESTS-TEST-CORRUPT-FILE-RAISES": {
+      "node_id": "tests.unit.v03.test_store_gaps.CorruptStoreTests::test_corrupt_file_raises",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-STORE-GAPS-FDHYGIENETESTS-TEST-CLOSE-IS-IDEMPOTENT": {
+      "node_id": "tests.unit.v03.test_store_gaps.FdHygieneTests::test_close_is_idempotent",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-STORE-GAPS-FDHYGIENETESTS-TEST-CLOSE-RELEASES-AND-RECONNECTS-AFTER-REQUEST": {
+      "node_id": "tests.unit.v03.test_store_gaps.FdHygieneTests::test_close_releases_and_reconnects_after_request",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-STORE-GAPS-INTEGRITYMAPPINGTESTS-TEST-INTEGRITY-FAILURE-IS-503": {
+      "node_id": "tests.unit.v03.test_store_gaps.IntegrityMappingTests::test_integrity_failure_is_503",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-STORE-GAPS-NESTEDTRANSACTIONTESTS-TEST-NESTED-TRANSACTION-IS-409": {
+      "node_id": "tests.unit.v03.test_store_gaps.NestedTransactionTests::test_nested_transaction_is_409",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-STORE-GAPS-NESTEDTRANSACTIONTESTS-TEST-TXN-CONTEXT-REUSES-CALLER-CONNECTION": {
+      "node_id": "tests.unit.v03.test_store_gaps.NestedTransactionTests::test_txn_context_reuses_caller_connection",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-STORE-GAPS-WORLDWRITABLETESTS-TEST-WORLD-WRITABLE-WARNS": {
+      "node_id": "tests.unit.v03.test_store_gaps.WorldWritableTests::test_world_writable_warns",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-STORE-SCHEMA-STORESCHEMATESTS-TEST-FRESH-INIT-SETS-EXPECTED-VERSION-AND-RERUN-IS-SAFE": {
+      "node_id": "tests.unit.v03.test_store_schema.StoreSchemaTests::test_fresh_init_sets_expected_version_and_rerun_is_safe",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-STORE-SCHEMA-STORESCHEMATESTS-TEST-LEGACY-STORE-WITHOUT-SCHEMA-META-REJECTED": {
+      "node_id": "tests.unit.v03.test_store_schema.StoreSchemaTests::test_legacy_store_without_schema_meta_rejected",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    "TESTS-UNIT-V03-TEST-STORE-SCHEMA-STORESCHEMATESTS-TEST-PERSISTENCE-ACROSS-REOPEN": {
+      "node_id": "tests.unit.v03.test_store_schema.StoreSchemaTests::test_persistence_across_reopen",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-STORE-SCHEMA-STORESCHEMATESTS-TEST-SYMLINK-PATH-REJECTED": {
+      "node_id": "tests.unit.v03.test_store_schema.StoreSchemaTests::test_symlink_path_rejected",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-STORE-SCHEMA-STORESCHEMATESTS-TEST-VERSION-MISMATCH-REJECTED": {
+      "node_id": "tests.unit.v03.test_store_schema.StoreSchemaTests::test_version_mismatch_rejected",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-STORE-STORETESTS-TEST-FOREIGN-KEYS-ENABLED": {
+      "node_id": "tests.unit.v03.test_store.StoreTests::test_foreign_keys_enabled",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-STORE-STORETESTS-TEST-INTEGRITY-IS-OK": {
+      "node_id": "tests.unit.v03.test_store.StoreTests::test_integrity_is_ok",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-STORE-STORETESTS-TEST-MIGRATION-CREATES-SCHEMA": {
+      "node_id": "tests.unit.v03.test_store.StoreTests::test_migration_creates_schema",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-STORE-STORETESTS-TEST-MIGRATION-IS-IDEMPOTENT": {
+      "node_id": "tests.unit.v03.test_store.StoreTests::test_migration_is_idempotent",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-STORE-STORETESTS-TEST-THREAD-GETS-CONNECTION": {
+      "node_id": "tests.unit.v03.test_store.StoreTests::test_thread_gets_connection",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-STORE-STORETESTS-TEST-TRANSACTION-COMMITS": {
+      "node_id": "tests.unit.v03.test_store.StoreTests::test_transaction_commits",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-STORE-STORETESTS-TEST-TRANSACTION-ROLLS-BACK": {
+      "node_id": "tests.unit.v03.test_store.StoreTests::test_transaction_rolls_back",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-STORE-STORETESTS-TEST-WAL-ENABLED": {
+      "node_id": "tests.unit.v03.test_store.StoreTests::test_wal_enabled",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-TEST-REPORT-CASEIDTESTS-TEST-CASE-ID-FALLS-BACK-TO-PATH": {
+      "node_id": "tests.unit.v03.test_test_report.CaseIdTests::test_case_id_falls_back_to_path",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TEST-REPORT-CASEIDTESTS-TEST-CASE-ID-FROM-DOCSTRING-HEADER": {
+      "node_id": "tests.unit.v03.test_test_report.CaseIdTests::test_case_id_from_docstring_header",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TEST-REPORT-REPORTTESTS-TEST-BUILD-REPORT-COUNTS-AND-BLOCKING": {
+      "node_id": "tests.unit.v03.test_test_report.ReportTests::test_build_report_counts_and_blocking",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TEST-REPORT-REPORTTESTS-TEST-CAP-BREACHED-ABOVE-LIMIT": {
+      "node_id": "tests.unit.v03.test_test_report.ReportTests::test_cap_breached_above_limit",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TEST-REPORT-REPORTTESTS-TEST-CAP-NOT-BREACHED-BELOW-LIMIT": {
+      "node_id": "tests.unit.v03.test_test_report.ReportTests::test_cap_not_breached_below_limit",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    "TESTS-UNIT-V03-TEST-TEST-REPORT-REPORTTESTS-TEST-CHECK-CAP-BREACHED-EXITS-ONE": {
+      "node_id": "tests.unit.v03.test_test_report.ReportTests::test_check_cap_breached_exits_one",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    "TESTS-UNIT-V03-TEST-TEST-REPORT-REPORTTESTS-TEST-CHECK-CAP-MALFORMED-JUNIT-IS-HARNESS-ERROR": {
+      "node_id": "tests.unit.v03.test_test_report.ReportTests::test_check_cap_malformed_junit_is_harness_error",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    "TESTS-UNIT-V03-TEST-TEST-REPORT-REPORTTESTS-TEST-CHECK-CAP-MISSING-JUNIT-IS-HARNESS-ERROR": {
+      "node_id": "tests.unit.v03.test_test_report.ReportTests::test_check_cap_missing_junit_is_harness_error",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TEST-REPORT-REPORTTESTS-TEST-CHECK-CAP-WITHIN-LIMIT-EXITS-ZERO": {
+      "node_id": "tests.unit.v03.test_test_report.ReportTests::test_check_cap_within_limit_exits_zero",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    "TESTS-UNIT-V03-TEST-TEST-REPORT-REPORTTESTS-TEST-EMIT-MANIFESTS": {
+      "node_id": "tests.unit.v03.test_test_report.ReportTests::test_emit_manifests",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    "TESTS-UNIT-V03-TEST-TEST-REPORT-STATUSMAPPINGTESTS-TEST-ENVIRONMENTAL-SKIP-MAPS-TO-SKIP": {
+      "node_id": "tests.unit.v03.test_test_report.StatusMappingTests::test_environmental_skip_maps_to_skip",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    "TESTS-UNIT-V03-TEST-TEST-REPORT-STATUSMAPPINGTESTS-TEST-ERROR-MAPS-TO-BLOCKED": {
+      "node_id": "tests.unit.v03.test_test_report.StatusMappingTests::test_error_maps_to_blocked",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TEST-REPORT-STATUSMAPPINGTESTS-TEST-FAILED-MAPS-TO-FAIL": {
+      "node_id": "tests.unit.v03.test_test_report.StatusMappingTests::test_failed_maps_to_fail",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TEST-REPORT-STATUSMAPPINGTESTS-TEST-PASSED-MAPS-TO-PASS": {
+      "node_id": "tests.unit.v03.test_test_report.StatusMappingTests::test_passed_maps_to_pass",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TEST-REPORT-STATUSMAPPINGTESTS-TEST-PLANNED-SKIP-MAPS-TO-NOT-RUN": {
+      "node_id": "tests.unit.v03.test_test_report.StatusMappingTests::test_planned_skip_maps_to_not_run",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TEST-REPORT-STATUSMAPPINGTESTS-TEST-XFAILED-MAPS-TO-BLOCKED-WITH-REASON": {
+      "node_id": "tests.unit.v03.test_test_report.StatusMappingTests::test_xfailed_maps_to_blocked_with_reason",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TEST-REPORT-STATUSMAPPINGTESTS-TEST-XPASSED-MAPS-TO-XPASS-NOT-PASS": {
+      "node_id": "tests.unit.v03.test_test_report.StatusMappingTests::test_xpassed_maps_to_xpass_not_pass",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-CHECKENVACHECKSTESTS-TEST-HEALTHZ-PASS-AND-FAIL": {
+      "node_id": "tests.unit.v03.test_tools_env.CheckEnvAChecksTests::test_healthz_pass_and_fail",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-CHECKENVACHECKSTESTS-TEST-READYZ-REQUIRES-ALL-SEVEN-FIXED-TIERS": {
+      "node_id": "tests.unit.v03.test_tools_env.CheckEnvAChecksTests::test_readyz_requires_all_seven_fixed_tiers",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-CHECKENVACHECKSTESTS-TEST-REQUIRED-RESOURCES-MISSING-PROVIDER-FAILS": {
+      "node_id": "tests.unit.v03.test_tools_env.CheckEnvAChecksTests::test_required_resources_missing_provider_fails",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-CHECKENVACHECKSTESTS-TEST-SECRET-REF-MUST-HAVE-SECRET": {
+      "node_id": "tests.unit.v03.test_tools_env.CheckEnvAChecksTests::test_secret_ref_must_have_secret",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-CHECKENVAGGREGATIONTESTS-TEST-DETECT-LAN-IP-ENV-OVERRIDE": {
+      "node_id": "tests.unit.v03.test_tools_env.CheckEnvAggregationTests::test_detect_lan_ip_env_override",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-CHECKENVAGGREGATIONTESTS-TEST-DETECT-LAN-IP-OVERRIDE-WINS": {
+      "node_id": "tests.unit.v03.test_tools_env.CheckEnvAggregationTests::test_detect_lan_ip_override_wins",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-CHECKENVAGGREGATIONTESTS-TEST-MAIN-EXIT-TWO-WHEN-ANY-FAIL": {
+      "node_id": "tests.unit.v03.test_tools_env.CheckEnvAggregationTests::test_main_exit_two_when_any_fail",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-CHECKENVAGGREGATIONTESTS-TEST-MAIN-EXIT-ZERO-WHEN-ALL-PASS": {
+      "node_id": "tests.unit.v03.test_tools_env.CheckEnvAggregationTests::test_main_exit_zero_when_all_pass",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-CHECKENVAGGREGATIONTESTS-TEST-RUN-CHECKS-NEVER-CRASHES-ON-CHECK-EXCEPTION": {
+      "node_id": "tests.unit.v03.test_tools_env.CheckEnvAggregationTests::test_run_checks_never_crashes_on_check_exception",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-CHECKENVAGGREGATIONTESTS-TEST-RUN-CHECKS-SELECTS-CLASS": {
+      "node_id": "tests.unit.v03.test_tools_env.CheckEnvAggregationTests::test_run_checks_selects_class",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-CHECKENVAGGREGATIONTESTS-TEST-SUMMARIZE-ALL-PASS": {
+      "node_id": "tests.unit.v03.test_tools_env.CheckEnvAggregationTests::test_summarize_all_pass",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-CHECKENVAGGREGATIONTESTS-TEST-SUMMARIZE-ANY-FAIL": {
+      "node_id": "tests.unit.v03.test_tools_env.CheckEnvAggregationTests::test_summarize_any_fail",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-CHECKENVCONFIGTESTS-TEST-BUILD-CONFIG-MAPS-OVERRIDES": {
+      "node_id": "tests.unit.v03.test_tools_env.CheckEnvConfigTests::test_build_config_maps_overrides",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-DEPLOYCOMMANDTESTS-TEST-FIND-PID-USES-LSOF-ON-PORT": {
+      "node_id": "tests.unit.v03.test_tools_env.DeployCommandTests::test_find_pid_uses_lsof_on_port",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-DEPLOYCOMMANDTESTS-TEST-KILL-COMMAND-USES-TERM": {
+      "node_id": "tests.unit.v03.test_tools_env.DeployCommandTests::test_kill_command_uses_term",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-DEPLOYCOMMANDTESTS-TEST-ROLLBACK-COMMAND-COPIES-BACKUP": {
+      "node_id": "tests.unit.v03.test_tools_env.DeployCommandTests::test_rollback_command_copies_backup",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-DEPLOYCOMMANDTESTS-TEST-RSYNC-COMMAND-SYNCED-SRC-AND-TARGET": {
+      "node_id": "tests.unit.v03.test_tools_env.DeployCommandTests::test_rsync_command_synced_src_and_target",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-DEPLOYCOMMANDTESTS-TEST-START-COMMAND-HAS-314-PYTHON-PYTHONPATH-AND-MODULE": {
+      "node_id": "tests.unit.v03.test_tools_env.DeployCommandTests::test_start_command_has_314_python_pythonpath_and_module",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-DEPLOYCOMMANDTESTS-TEST-START-COMMAND-NEVER-CONTAINS-TOKEN-VALUES": {
+      "node_id": "tests.unit.v03.test_tools_env.DeployCommandTests::test_start_command_never_contains_token_values",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-DEPLOYCOMMANDTESTS-TEST-START-COMMAND-READS-TOKENS-FROM-STDIN": {
+      "node_id": "tests.unit.v03.test_tools_env.DeployCommandTests::test_start_command_reads_tokens_from_stdin",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-DEPLOYFLOWTESTS-TEST-DRY-RUN-DOES-NOT-EXECUTE-SUBPROCESS": {
+      "node_id": "tests.unit.v03.test_tools_env.DeployFlowTests::test_dry_run_does_not_execute_subprocess",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-DEPLOYFLOWTESTS-TEST-GUARD-REQUIRES-YES": {
+      "node_id": "tests.unit.v03.test_tools_env.DeployFlowTests::test_guard_requires_yes",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-DEPLOYFLOWTESTS-TEST-PIN-ONLY-STOPS-AFTER-PIN": {
+      "node_id": "tests.unit.v03.test_tools_env.DeployFlowTests::test_pin_only_stops_after_pin",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.011
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-DEPLOYFLOWTESTS-TEST-ROLLBACK-DRY-RUN-OK": {
+      "node_id": "tests.unit.v03.test_tools_env.DeployFlowTests::test_rollback_dry_run_ok",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.01
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-DEPLOYFLOWTESTS-TEST-ROLLBACK-REPORTS-FAILURE": {
+      "node_id": "tests.unit.v03.test_tools_env.DeployFlowTests::test_rollback_reports_failure",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-DEPLOYFLOWTESTS-TEST-STEP-START-DELIVERS-TOKENS-ON-STDIN-NOT-ARGV": {
+      "node_id": "tests.unit.v03.test_tools_env.DeployFlowTests::test_step_start_delivers_tokens_on_stdin_not_argv",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-DEPLOYPINTESTS-TEST-ARTIFACT-PIN-READS-OPENAPI-AND-SCHEMA": {
+      "node_id": "tests.unit.v03.test_tools_env.DeployPinTests::test_artifact_pin_reads_openapi_and_schema",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.013
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-DEPLOYPINTESTS-TEST-READ-HELPER-FALLBACKS": {
+      "node_id": "tests.unit.v03.test_tools_env.DeployPinTests::test_read_helper_fallbacks",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-DEPLOYPINTESTS-TEST-STEP-PIN-REPORTS-MISSING": {
+      "node_id": "tests.unit.v03.test_tools_env.DeployPinTests::test_step_pin_reports_missing",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-RESETBACKUPTESTS-TEST-BACKUP-DATABASE-COPIES-CONTENT": {
+      "node_id": "tests.unit.v03.test_tools_env.ResetBackupTests::test_backup_database_copies_content",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-RESETBACKUPTESTS-TEST-DEFAULT-BACKUP-PATH-IS-STABLE-FOR-FIXED-CLOCK": {
+      "node_id": "tests.unit.v03.test_tools_env.ResetBackupTests::test_default_backup_path_is_stable_for_fixed_clock",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-RESETBACKUPTESTS-TEST-STEP-BACKUP-MAKES-BACKUP-WHEN-DB-PRESENT": {
+      "node_id": "tests.unit.v03.test_tools_env.ResetBackupTests::test_step_backup_makes_backup_when_db_present",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-RESETBACKUPTESTS-TEST-STEP-BACKUP-NO-BACKUP-FLAG-SKIPS": {
+      "node_id": "tests.unit.v03.test_tools_env.ResetBackupTests::test_step_backup_no_backup_flag_skips",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-RESETINJECTIONTESTS-TEST-CLEAR-INJECTIONS-FAILS-WHEN-NOT-EMPTY": {
+      "node_id": "tests.unit.v03.test_tools_env.ResetInjectionTests::test_clear_injections_fails_when_not_empty",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-RESETINJECTIONTESTS-TEST-CLEAR-INJECTIONS-PATCHES-EACH-DEPLOYMENT-AND-VERIFIES": {
+      "node_id": "tests.unit.v03.test_tools_env.ResetInjectionTests::test_clear_injections_patches_each_deployment_and_verifies",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-RESETKILLTESTS-TEST-FIND-LEFTOVER-PIDS-EXCLUDES-SELF": {
+      "node_id": "tests.unit.v03.test_tools_env.ResetKillTests::test_find_leftover_pids_excludes_self",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-RESETKILLTESTS-TEST-FIND-LEFTOVER-PIDS-ONLY-MATCHES-TEMP-INSTANCES": {
+      "node_id": "tests.unit.v03.test_tools_env.ResetKillTests::test_find_leftover_pids_only_matches_temp_instances",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-RESETKILLTESTS-TEST-STEP-KILL-DRY-RUN-LISTS-PIDS": {
+      "node_id": "tests.unit.v03.test_tools_env.ResetKillTests::test_step_kill_dry_run_lists_pids",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-RESETLEDGERTESTS-TEST-LEDGER-DELETES-USAGE": {
+      "node_id": "tests.unit.v03.test_tools_env.ResetLedgerTests::test_ledger_deletes_usage",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-RESETLEDGERTESTS-TEST-LEDGER-SKIP-FLAG": {
+      "node_id": "tests.unit.v03.test_tools_env.ResetLedgerTests::test_ledger_skip_flag",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-RESETPLANTESTS-TEST-DRY-RUN-SKIPS-MUTATION": {
+      "node_id": "tests.unit.v03.test_tools_env.ResetPlanTests::test_dry_run_skips_mutation",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-RESETPLANTESTS-TEST-FAILED-STEP-MAKES-NONZERO": {
+      "node_id": "tests.unit.v03.test_tools_env.ResetPlanTests::test_failed_step_makes_nonzero",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-RESETPLANTESTS-TEST-GUARD-REQUIRES-YES": {
+      "node_id": "tests.unit.v03.test_tools_env.ResetPlanTests::test_guard_requires_yes",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-RESETPLANTESTS-TEST-PLAN-ORDER-MATCHES-PLAN-SECTION": {
+      "node_id": "tests.unit.v03.test_tools_env.ResetPlanTests::test_plan_order_matches_plan_section",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-RESETRECHECKTESTS-TEST-BUILD-READINESS-COMMAND-SHAPE": {
+      "node_id": "tests.unit.v03.test_tools_env.ResetRecheckTests::test_build_readiness_command_shape",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-RESETRECHECKTESTS-TEST-RECHECK-REPORTS-FAILURE": {
+      "node_id": "tests.unit.v03.test_tools_env.ResetRecheckTests::test_recheck_reports_failure",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-RESETREMOTEBACKUPTESTS-TEST-REMOTE-BACKUP-COMMAND-IS-SSH-WITH-ONLINE-BACKUP": {
+      "node_id": "tests.unit.v03.test_tools_env.ResetRemoteBackupTests::test_remote_backup_command_is_ssh_with_online_backup",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-RESETREMOTEBACKUPTESTS-TEST-REMOTE-BACKUP-DEST-DEFAULTS-TO-SIBLING-BACKUPS-DIR": {
+      "node_id": "tests.unit.v03.test_tools_env.ResetRemoteBackupTests::test_remote_backup_dest_defaults_to_sibling_backups_dir",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-RESETREMOTEBACKUPTESTS-TEST-STEP-BACKUP-REMOTE-DRY-RUN": {
+      "node_id": "tests.unit.v03.test_tools_env.ResetRemoteBackupTests::test_step_backup_remote_dry_run",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-RESETREMOTEBACKUPTESTS-TEST-STEP-BACKUP-REMOTE-FAILURE-IS-REPORTED": {
+      "node_id": "tests.unit.v03.test_tools_env.ResetRemoteBackupTests::test_step_backup_remote_failure_is_reported",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-RESETREMOTEBACKUPTESTS-TEST-STEP-BACKUP-REMOTE-RUNS-ONLINE-BACKUP": {
+      "node_id": "tests.unit.v03.test_tools_env.ResetRemoteBackupTests::test_step_backup_remote_runs_online_backup",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-RESETRESTORETESTS-TEST-MUTUALLY-EXCLUSIVE-RESTORE-AND-REBUILD": {
+      "node_id": "tests.unit.v03.test_tools_env.ResetRestoreTests::test_mutually_exclusive_restore_and_rebuild",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-RESETRESTORETESTS-TEST-REBUILD-CREATES-FRESH-DB": {
+      "node_id": "tests.unit.v03.test_tools_env.ResetRestoreTests::test_rebuild_creates_fresh_db",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-RESETRESTORETESTS-TEST-RESTORE-COPIES-BACKUP": {
+      "node_id": "tests.unit.v03.test_tools_env.ResetRestoreTests::test_restore_copies_backup",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    "TESTS-UNIT-V03-TEST-TOOLS-ENV-RESETRESTORETESTS-TEST-RESTORE-REQUIRES-DB": {
+      "node_id": "tests.unit.v03.test_tools_env.ResetRestoreTests::test_restore_requires_db",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-USAGE-USAGETESTS-TEST-ADMIN-SEES-ALL": {
+      "node_id": "tests.unit.v03.test_usage.UsageTests::test_admin_sees_all",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-USAGE-USAGETESTS-TEST-CURSOR-FILTER-MISMATCH": {
+      "node_id": "tests.unit.v03.test_usage.UsageTests::test_cursor_filter_mismatch",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-USAGE-USAGETESTS-TEST-HALF-OPEN-BOUNDARY-IS-TEMPORAL-NOT-LEXICOGRAPHIC": {
+      "node_id": "tests.unit.v03.test_usage.UsageTests::test_half_open_boundary_is_temporal_not_lexicographic",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-USAGE-USAGETESTS-TEST-INVALID-WINDOW": {
+      "node_id": "tests.unit.v03.test_usage.UsageTests::test_invalid_window",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-USAGE-USAGETESTS-TEST-MEASURED-REPLACES-HEAD": {
+      "node_id": "tests.unit.v03.test_usage.UsageTests::test_measured_replaces_head",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-USAGE-USAGETESTS-TEST-PRINCIPAL-SCOPE": {
+      "node_id": "tests.unit.v03.test_usage.UsageTests::test_principal_scope",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-USAGE-USAGETESTS-TEST-RECORD-PROVIDER-REQUEST-ID-NULL-IS-NOOP": {
+      "node_id": "tests.unit.v03.test_usage.UsageTests::test_record_provider_request_id_null_is_noop",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-USAGE-USAGETESTS-TEST-RECORD-PROVIDER-REQUEST-ID-UPDATES-BINDING": {
+      "node_id": "tests.unit.v03.test_usage.UsageTests::test_record_provider_request_id_updates_binding",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-USAGE-USAGETESTS-TEST-SNAPSHOT-IS-STABLE": {
+      "node_id": "tests.unit.v03.test_usage.UsageTests::test_snapshot_is_stable",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "TESTS-UNIT-V03-TEST-USAGE-USAGETESTS-TEST-UNKNOWN-CREATED-BEFORE-FINISH": {
+      "node_id": "tests.unit.v03.test_usage.UsageTests::test_unknown_created_before_finish",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-USAGE-USAGETESTS-TEST-UNKNOWN-VALUES-ARE-NULL": {
+      "node_id": "tests.unit.v03.test_usage.UsageTests::test_unknown_values_are_null",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-USAGE-USAGETESTS-TEST-VERSIONS-ARE-IMMUTABLE": {
+      "node_id": "tests.unit.v03.test_usage.UsageTests::test_versions_are_immutable",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "TESTS-UNIT-V03-TEST-WEBUI-CONTRACT-WEBUIBRANCHCONTRACTTESTS-TEST-BACKEND-STATE-PRECEDENCE": {
+      "node_id": "tests.unit.v03.test_webui_contract.WebUIBranchContractTests::test_backend_state_precedence",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-WEBUI-CONTRACT-WEBUIBRANCHCONTRACTTESTS-TEST-DISPATCH-UI-ERROR-BRANCHES": {
+      "node_id": "tests.unit.v03.test_webui_contract.WebUIBranchContractTests::test_dispatch_ui_error_branches",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-WEBUI-CONTRACT-WEBUIBRANCHCONTRACTTESTS-TEST-FIELD-VALUE-MISSING-RETURNS-EMPTY": {
+      "node_id": "tests.unit.v03.test_webui_contract.WebUIBranchContractTests::test_field_value_missing_returns_empty",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-WEBUI-CONTRACT-WEBUIBRANCHCONTRACTTESTS-TEST-REPORT-LOAD-FAILURE-KEEPS-LAST-SCREEN": {
+      "node_id": "tests.unit.v03.test_webui_contract.WebUIBranchContractTests::test_report_load_failure_keeps_last_screen",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-WEBUI-CONTRACT-WEBUIBRANCHCONTRACTTESTS-TEST-STATS-RANGE-AND-ETAG-AND-MODEL-CACHE": {
+      "node_id": "tests.unit.v03.test_webui_contract.WebUIBranchContractTests::test_stats_range_and_etag_and_model_cache",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-WEBUI-CONTRACT-WEBUIBRANCHCONTRACTTESTS-TEST-TIER-STATE-UNKNOWN-WHEN-AVAILABILITY-ABSENT": {
+      "node_id": "tests.unit.v03.test_webui_contract.WebUIBranchContractTests::test_tier_state_unknown_when_availability_absent",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-WEBUI-CONTRACT-WEBUIBRANCHCONTRACTTESTS-TEST-USAGE-SUMMARY-FOUR-STATES": {
+      "node_id": "tests.unit.v03.test_webui_contract.WebUIBranchContractTests::test_usage_summary_four_states",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-WEBUI-CONTRACT-WEBUICONTRACTTESTS-TEST-APPROVED-ICON-SPRITE-IS-COMPLETE": {
+      "node_id": "tests.unit.v03.test_webui_contract.WebUIContractTests::test_approved_icon_sprite_is_complete",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-WEBUI-CONTRACT-WEBUICONTRACTTESTS-TEST-COMPACT-ICON-ACTIONS": {
+      "node_id": "tests.unit.v03.test_webui_contract.WebUIContractTests::test_compact_icon_actions",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-WEBUI-CONTRACT-WEBUICONTRACTTESTS-TEST-DIAGNOSTICS-PAGE": {
+      "node_id": "tests.unit.v03.test_webui_contract.WebUIContractTests::test_diagnostics_page",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-WEBUI-CONTRACT-WEBUICONTRACTTESTS-TEST-FIVE-PAGES": {
+      "node_id": "tests.unit.v03.test_webui_contract.WebUIContractTests::test_five_pages",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-WEBUI-CONTRACT-WEBUICONTRACTTESTS-TEST-FIXED-TIER-TREE-TARGET": {
+      "node_id": "tests.unit.v03.test_webui_contract.WebUIContractTests::test_fixed_tier_tree_target",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-WEBUI-CONTRACT-WEBUICONTRACTTESTS-TEST-HEADER-SHOWS-RUNTIME-VERSION-AND-UI-UPDATE-TIME": {
+      "node_id": "tests.unit.v03.test_webui_contract.WebUIContractTests::test_header_shows_runtime_version_and_ui_update_time",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-WEBUI-CONTRACT-WEBUICONTRACTTESTS-TEST-HOME-IS-DEFAULT": {
+      "node_id": "tests.unit.v03.test_webui_contract.WebUIContractTests::test_home_is_default",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-WEBUI-CONTRACT-WEBUICONTRACTTESTS-TEST-HOME-SHOWS-AUTHORITATIVE-BACKEND-STATUS": {
+      "node_id": "tests.unit.v03.test_webui_contract.WebUIContractTests::test_home_shows_authoritative_backend_status",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-WEBUI-CONTRACT-WEBUICONTRACTTESTS-TEST-LOG-PAGE": {
+      "node_id": "tests.unit.v03.test_webui_contract.WebUIContractTests::test_log_page",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-WEBUI-CONTRACT-WEBUICONTRACTTESTS-TEST-MODEL-PAUSE-RESUME-USES-EXISTING-DEPLOYMENT-PATCH": {
+      "node_id": "tests.unit.v03.test_webui_contract.WebUIContractTests::test_model_pause_resume_uses_existing_deployment_patch",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-WEBUI-CONTRACT-WEBUICONTRACTTESTS-TEST-NO-BEARER-STORAGE": {
+      "node_id": "tests.unit.v03.test_webui_contract.WebUIContractTests::test_no_bearer_storage",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-WEBUI-CONTRACT-WEBUICONTRACTTESTS-TEST-NO-GLOBAL-ADD-MODEL": {
+      "node_id": "tests.unit.v03.test_webui_contract.WebUIContractTests::test_no_global_add_model",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-WEBUI-CONTRACT-WEBUICONTRACTTESTS-TEST-PROVIDER-AND-TREE-OPERATIONAL-FIELDS": {
+      "node_id": "tests.unit.v03.test_webui_contract.WebUIContractTests::test_provider_and_tree_operational_fields",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-WEBUI-CONTRACT-WEBUICONTRACTTESTS-TEST-PROVIDER-MANAGEMENT-PAGE": {
+      "node_id": "tests.unit.v03.test_webui_contract.WebUIContractTests::test_provider_management_page",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-WEBUI-CONTRACT-WEBUICONTRACTTESTS-TEST-ROOT-ROUTE-ASSETS-REMAIN-SAME-ORIGIN": {
+      "node_id": "tests.unit.v03.test_webui_contract.WebUIContractTests::test_root_route_assets_remain_same_origin",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-WEBUI-CONTRACT-WEBUICONTRACTTESTS-TEST-STATS-PAGE-PRESENT": {
+      "node_id": "tests.unit.v03.test_webui_contract.WebUIContractTests::test_stats_page_present",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-WEBUI-CONTRACT-WEBUICONTRACTTESTS-TEST-TIER-AND-MEMBER-STATUS-SOURCES-ARE-INDEPENDENT": {
+      "node_id": "tests.unit.v03.test_webui_contract.WebUIContractTests::test_tier_and_member_status_sources_are_independent",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-WEBUI-CONTRACT-WEBUICONTRACTTESTS-TEST-TIER-MEMBER-EDITOR-USES-EXISTING-PROVIDER": {
+      "node_id": "tests.unit.v03.test_webui_contract.WebUIContractTests::test_tier_member_editor_uses_existing_provider",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-WEBUI-CONTRACT-WEBUICONTRACTTESTS-TEST-TIER-PARENT-TYPE-CELL-IS-EMPTY": {
+      "node_id": "tests.unit.v03.test_webui_contract.WebUIContractTests::test_tier_parent_type_cell_is_empty",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-WEBUI-CONTRACT-WEBUICONTRACTTESTS-TEST-TREE-HAS-NO-COLUMN-TITLE-ROW": {
+      "node_id": "tests.unit.v03.test_webui_contract.WebUIContractTests::test_tree_has_no_column_title_row",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "TESTS-UNIT-V03-TEST-WEBUI-CONTRACT-WEBUICONTRACTTESTS-TEST-USAGE-AND-AUDIT-TABS": {
+      "node_id": "tests.unit.v03.test_webui_contract.WebUIContractTests::test_usage_and_audit_tabs",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    }
+  },
+  "counts": {
+    "BLOCKED": 0,
+    "FAIL": 0,
+    "INVALID": 0,
+    "NOT_RUN": 0,
+    "PASS": 425,
+    "SKIP": 0,
+    "XPASS": 0
+  },
+  "generated_at": "2026-09-30T18:12:47Z",
+  "git_commit": "b86be7ba4f4d2dee9ecd578a5a73745d71f4d3be",
+  "layer": "UNIT",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "release_blocking": false,
+  "run_id": "run-20260930-04",
+  "schema_version": 1,
+  "schema_version_db": "2"
+}

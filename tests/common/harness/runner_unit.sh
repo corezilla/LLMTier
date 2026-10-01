@@ -7,8 +7,9 @@
 #   bash tests/common/harness/runner_unit.sh tests/unit/cases/UT-UTIL-001.py
 #
 # Run ID: run-YYYYMMDD-NN (unit test plan §7).
-# Product: tests/unit/reports/<run-id>/{junit.xml,test-run.env,
-#          case-status.json,cases/<case-id>/manifest.json,pytest.log,artifacts/}
+# Product (STD repository-layout.md §4.1.1, flat):
+#   tests/unit/reports/<run-id>/{<Case ID>.json,case-status.json,test-run.env,
+#       unit-test-report.md,unit-test-report.metadata.json,artifacts/{junit.xml,pytest.log}}
 #
 # 退出码：
 #   0 = 全部 PASS（或非阻断状态），1 = 有 FAIL/BLOCKED/INVALID，2 = harness/采集错误

@@ -79,7 +79,7 @@ emit_manifests(run_dir, records, metadata) -> int
 | 2 | `xfailed` 带 `BLOCKED (ID): reason` | LLMTier 稳定 BLOCKED 与原因保留 |
 | 3 | `cap_breached` A/B | A 5 不越限 / 6 越限；B 5 越限（B≤3） |
 | 4 | `build_report` | `counts` 与 `release_blocking` 口径 |
-| 5 | `emit_manifests` | 逐 Case `manifest.json`（case_id/git_commit/redactions） |
+| 5 | `emit_manifests` | 逐 Case `<Case ID>.json`（平铺；case_id/git_commit/redactions） |
 | 6 | `case_id_from_source` | docstring 头 `Case ID:` 优先，缺失回退路径 |
 | 7 | `record_property("case_id", ...)` 优先级 | JUnit `<property>` 中的 `case_id` 优先于源码头/路径回退（供多 Case 参数化的真实浏览器 UI 套件 `tests/system/cases`（ST-UI-*） 归集） |
 

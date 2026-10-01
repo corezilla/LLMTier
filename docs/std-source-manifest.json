@@ -2,7 +2,7 @@
   "schema_version": "std-source-manifest.v1",
   "std_version": "0.1.0-draft.72",
   "source_repository": "corezilla/STD",
-  "source_revision": "37ab8aff5e802c01420d2c7cd6ed46119aee6e71",
+  "source_revision": "e42472857efaeb40343f2e77188f12b640114d13",
   "source_tag": null,
   "generated_at": "2026-10-01",
   "artifacts": [
@@ -24,7 +24,7 @@
     {
       "path": "docs/adoption.md",
       "role": "guidance",
-      "sha256": "d2c3ed3d7f8369d014b4698388a89cc3a2ea48903bb8d1b3f2fa0500e74146f4"
+      "sha256": "cf3d0cda696eac0e77a9ae3a888cbccc9b9348becd3525fe389e1f2ce5e3e380"
     },
     {
       "path": "docs/ai-authoring-guide.md",
@@ -109,7 +109,7 @@
     {
       "path": "docs/ai-guides/verification.md",
       "role": "guidance",
-      "sha256": "61e4ba21eedd5ccf5e977d6347603e4800964a5cd448d1cf1f6e6745181b8399"
+      "sha256": "be3e4c3a91de280c246b57c9351439c48ccacfcaf4009f8dbc58c7d411029da0"
     },
     {
       "path": "docs/ai-system-design-authoring-guide.md",
@@ -429,17 +429,17 @@
     {
       "path": "docs/repository-layout.md",
       "role": "guidance",
-      "sha256": "578452dc306d605c020498909b00421e08a95c8edf9eeac64c335b343e4bb2be"
+      "sha256": "2cff87ccff921973bd44e39cb166db0663053e60204ba626777141947ca38f15"
     },
     {
       "path": "docs/software-object-identifiers.md",
       "role": "guidance",
-      "sha256": "6cc72eff688a432d1cfdeb37587422a2ef17f227d04a1b1e0a0088ad8a12c862"
+      "sha256": "40036c320d20a0e2c598d1389b3c98911eeb6a6ad0d490d8f07f29d1c4817522"
     },
     {
       "path": "docs/software-project-layout.md",
       "role": "guidance",
-      "sha256": "39f6c5613f88ba53c616efa762a028efb2835ac9c0ece2e3caa9223cafbc54c9"
+      "sha256": "7e663e787ae191b1cf4ceff5dfb4feef41b937169316f32bd9f36e74fa5618db"
     },
     {
       "path": "docs/template-selection.md",
@@ -544,7 +544,7 @@
     {
       "path": "templates/_shared/project-readme.md",
       "role": "template",
-      "sha256": "b5205630392c3de1eefafec5dfaa784c0cefa8f71358f6a5a326eb45937805dc"
+      "sha256": "eb4e2bd3c24db5059a1d89c1b9606e98a0501220f8bb6ab3f50c6ac23e2afb1d"
     },
     {
       "path": "templates/_shared/project-standard.md",
@@ -1004,7 +1004,7 @@
     {
       "path": "templates/path-policy.json",
       "role": "template",
-      "sha256": "d74caff15a6e9cc1bef96780003a3fe0bd30ce02a3b6526d525d231b7f9677a5"
+      "sha256": "1bd580a7fc17f9d5ebf933761f6cac2b318e866920e23c62df010d533d4813e0"
     },
     {
       "path": "templates/product/roadmap.md",
@@ -1064,12 +1064,12 @@
     {
       "path": "templates/tests/module-case.md",
       "role": "template",
-      "sha256": "6bd33c3c0b69c702ac2420dcf8b3e191fe587c921cbdeee217e8dd55e446f55a"
+      "sha256": "34a5da6ab5dec7b608554b762991b0233b5ed9f50fbbd242f8e0550bb10a2d6c"
     },
     {
       "path": "templates/tests/module-test-plan.md",
       "role": "template",
-      "sha256": "89bfe3b3f7d18b56abecee8aa6ea6ac81a198f2dc01d7845712e98339af912b0"
+      "sha256": "4cf614e13f1e8df5d54922ae522145a8323715d59e175bb042ac4aa7accf467d"
     },
     {
       "path": "templates/tests/module-test-report.md",
@@ -1089,7 +1089,7 @@
     {
       "path": "templates/tests/subsystem-test-plan.md",
       "role": "template",
-      "sha256": "0ce40e3111bd95ae6de5ccad9e2253062a9cb328420e1d46eeaae0b409a8e3d5"
+      "sha256": "7ffad71b751f31b04e3c20ad7d9c257b3fa9caa4f039ac6131b190d2b8d3c71d"
     },
     {
       "path": "templates/tests/subsystem-test-report.md",
@@ -1109,7 +1109,7 @@
     {
       "path": "templates/tests/system-test-plan.md",
       "role": "template",
-      "sha256": "2e047b18feaec2b8ef0e97f43e358798281402087c5b88ed62e6448bb1b3fb8f"
+      "sha256": "20bc5867837abe52ac6d4c4b354f785c97a5a976a7aa825ef58f21a158696cd2"
     },
     {
       "path": "templates/tests/system-test-report.md",
@@ -1129,7 +1129,7 @@
     {
       "path": "templates/tests/unit-test-plan.md",
       "role": "template",
-      "sha256": "34bd9e8a8622231bad92d1ae386d8c8d381d58826055a7e3ac3896bad595b798"
+      "sha256": "02d8efe23b27c04d3a9f2725bd888fc3206d6d8ffa34b97a1c973a678531ca5f"
     },
     {
       "path": "templates/tests/unit-test-report.md",

@@ -1,0 +1,14 @@
+{
+  "artifacts": [],
+  "case_id": "UT-LOG-001",
+  "command": "python3 -m pytest --junitxml=tests/unit/reports/run-20261001-04/artifacts/junit.xml tests/unit/cases",
+  "git_commit": "6b3c650667ea1b075dc01ee6f611eb00943e0933",
+  "node_id": "tests.unit.cases.UT-LOG-001.LogRedactionGapTests::test_x_api_key_header_value_redacted",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261001-04",
+  "schema_version_db": "2",
+  "started_at": "2026-10-01T11:13:30Z",
+  "status": "PASS"
+}

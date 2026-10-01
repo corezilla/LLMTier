@@ -9,6 +9,13 @@
 #   - run pytest with --junitxml + captured stdout
 #   - map pytest exit code -> llmtier run exit code (0/1/2)
 #
+# Report layout (STD repository-layout.md §4.1.1):
+#   reports/<run-id>/<Case ID>.json   flat per-case result (committed)
+#   reports/<run-id>/{unit-test-report.md,*.metadata.json}   formal report
+#   reports/<run-id>/{case-status.json,test-run.env}   run root (committed)
+#   reports/<run-id>/artifacts/{junit.xml,pytest.log}  framework machine
+#       output (ignored / CI-retained), never at the run root.
+#
 # Run ID rules:
 #   system : <date>/<class>-api      e.g. 2026-09-30/A-api   (first run today)
 #            <date>/<class>-api-N    e.g. 2026-09-30/A-api-2 (rerun; never clobber)
@@ -126,10 +133,11 @@ _run_pytest() {
   shift 4
 
   local run_dir="$layer_root/reports/$run_id"
-  local xml="$run_dir/junit.xml"
-  local strip_xml="$run_dir/junit.strip.xml"
-  local log="$run_dir/pytest.log"
-  mkdir -p "$run_dir/artifacts"
+  local artifacts_dir="$run_dir/artifacts"
+  local xml="$artifacts_dir/junit.xml"
+  local strip_xml="$artifacts_dir/junit.strip.xml"
+  local log="$artifacts_dir/pytest.log"
+  mkdir -p "$artifacts_dir"
 
   local cmd="python3 -m pytest --junitxml=$xml $*"
   _run_write_metadata "$run_dir/test-run.env" "$run_id" "$layer" "$cmd"
@@ -150,14 +158,6 @@ PY
     mv "$strip_xml" "$xml"
   fi
 
-  # Produce case-status.json + per-case manifests (plan §7 mandatory mapping).
-  python3 "$_RUN_REPO_ROOT/tools/test_report.py" \
-    --junit "$xml" \
-    --run-metadata "$run_dir/test-run.env" \
-    --rootdir "$_RUN_REPO_ROOT" \
-    --manifests \
-    --out "$run_dir/case-status.json" || true
-
   # Map pytest exit code -> run exit code.
   # pytest: 0 ok, 1 tests failed, 2 interrupted/collect error, 3 internal, 4 usage, 5 no tests.
   local run_rc
@@ -167,20 +167,21 @@ PY
     *) run_rc=1 ;;
   esac
 
-  # Cap breach -> exit 2 (plan §8: SKIP cap A<=5 / B<=3; runner exit code 2).
-  # NOTE: --check-cap prints the verdict ("1"/"0") on stdout AND sets its own
-  # exit status (1 on breach). Capture stdout only and ignore the tool's exit
-  # code; using `|| echo 0` here would append a second line and break the
-  # string comparison, silently killing the cap->exit-2 path.
+  # Produce case-status.json + flat per-case <Case ID>.json (plan §7 mandatory
+  # mapping). test_report.py also prints the SKIP-cap verdict ("1"/"0") as its
+  # last stdout line, so cap check needs no second junit parse. On a harness
+  # error (missing/unreadable junit) the tool prints "1" and exits 2 -> treat
+  # the missing verdict as a breach (exit 2), never a false-safe 0.
   local cap_breached
   cap_breached="$(python3 "$_RUN_REPO_ROOT/tools/test_report.py" \
-      --junit "$xml" --run-metadata "$run_dir/test-run.env" \
-      --rootdir "$_RUN_REPO_ROOT" \
-      --check-cap --layer "$layer" 2>/dev/null || true)"
-  cap_breached="$(printf '%s' "$cap_breached" | head -n1 | tr -d '[:space:]')"
-  if [ "$cap_breached" = "1" ]; then
-    run_rc=2
-  fi
+    --junit "$xml" \
+    --run-metadata "$run_dir/test-run.env" \
+    --rootdir "$_RUN_REPO_ROOT" \
+    --manifests \
+    --check-cap --layer "$layer" \
+    --out "$run_dir/case-status.json" 2>/dev/null)" || true
+  cap_breached="$(printf '%s' "$cap_breached" | tail -n1 | tr -d '[:space:]')"
+  [ "$cap_breached" = "0" ] || run_rc=2
 
   echo "$run_rc"
 }

@@ -7,8 +7,8 @@
 #   1 = 有 FAIL/BLOCKED/INVALID
 #   2 = SKIP 超上限 / 采集或 harness 错误
 #
-# 产物（plan §7）：tests/system/reports/<date>/B-api/{junit.xml,test-run.env,
-# case-status.json,cases/<case-id>/manifest.json,pytest.log,artifacts/}
+# 产物（plan §7 / STD repository-layout.md §4.1.1，平铺）：tests/system/reports/<date>/B-api/{<Case ID>.json,
+# case-status.json,test-run.env,artifacts/{junit.xml,pytest.log}}
 set -euo pipefail
 
 _RUN_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"

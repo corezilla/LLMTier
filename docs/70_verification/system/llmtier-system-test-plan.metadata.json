@@ -11,7 +11,7 @@
   ],
   "template_id": "tests.system-test-plan",
   "template_version": "0.9.2",
-  "template_sha256": "2e047b18feaec2b8ef0e97f43e358798281402087c5b88ed62e6448bb1b3fb8f",
+  "template_sha256": "20bc5867837abe52ac6d4c4b354f785c97a5a976a7aa825ef58f21a158696cd2",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": "llmtier-api-test-plan, llmtier-api-test-execution, llmtier-test-plan, llmtier-vv-plan",

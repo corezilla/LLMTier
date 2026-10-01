@@ -27,7 +27,7 @@
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
-> 本报告由 Run 目录 `tests/unit/reports/run-20261001-03/`（`junit.xml`、`test-run.env`、`case-status.json`、逐 Case `cases/<ID>/manifest.json`、`pytest.log`、`artifacts/`）的机器产物整理而成；只使用该 Run 记录的事实，未运行/未命中项一律保留 `NOT_RUN`，不补造结果。本报告是本 Run 的**官方记录**；更早的 Run（含 `run-20260930-01…05`、`run-20261001-01`、`run-20261001-02`）作为历史保留，不被本报告覆盖。
+> 本报告由 Run 目录 `tests/unit/reports/run-20261001-03/`（`test-run.env`、`case-status.json`、逐 Case `<Case ID>.json`、`artifacts/{junit.xml,pytest.log}`）的机器产物整理而成；只使用该 Run 记录的事实，未运行/未命中项一律保留 `NOT_RUN`，不补造结果。本报告是本 Run 的**官方记录**；更早的 Run（含 `run-20260930-01…05`、`run-20261001-01`、`run-20261001-02`）作为历史保留，不被本报告覆盖。
 
 ### 模板定位：报告、方案、用例、计划与 Run 证据的边界
 
@@ -74,7 +74,7 @@
 
 ## 3. 逐 Case 执行记录
 
-本 Run 一条命令执行 `tests/unit/cases` 全量 426 个 pytest 测试函数。下表按**方案 §3 的 66 个设计 Case**（及其 `VRC-*` 归属）汇总；每个 UT Case 由其 §7 映射的测试函数承担，本 Run 中全部命中且 PASS。逐测试函数的机器记录见 `case-status.json` 与 `cases/<case-id>/manifest.json`。
+本 Run 一条命令执行 `tests/unit/cases` 全量 426 个 pytest 测试函数。下表按**方案 §3 的 66 个设计 Case**（及其 `VRC-*` 归属）汇总；每个 UT Case 由其 §7 映射的测试函数承担，本 Run 中全部命中且 PASS。逐测试函数的机器记录见 `case-status.json` 与逐 Case `<Case ID>.json`。
 
 > **粒度注（426 vs 66/65）**：方案 §3 的设计分母是 **66 个 Case**；`case-status.json` 按 Case ID 收敛出 **65 个被收集 ID**（`UT-API-007` 的断言物理归属其主 Case 文件、ID 不单独收集，见其 `.py` 头注）；`junit.xml` 的 **426** 是 65 个 ID 的参数化/多方法展开后的 pytest 测试函数总数。三者口径不同，无缺失、无虚计。
 

@@ -211,6 +211,8 @@ class ReportTests(unittest.TestCase):
             self.assertEqual(1, main(["--junit", str(xml), "--check-cap", "--layer", "A"]))
 
     def test_emit_manifests(self):
+        # STD repository-layout.md §4.1.1: per-case results are FLAT
+        # (<run-dir>/<Case ID>.json), never cases/<id>/manifest.json.
         with tempfile.TemporaryDirectory() as d:
             run_dir = Path(d) / "run"
             run_dir.mkdir()
@@ -218,12 +220,11 @@ class ReportTests(unittest.TestCase):
             records = harvest(xml)
             written = emit_manifests(run_dir, records, METADATA)
             self.assertEqual(1, written)
-            manifest = json.loads(
-                (run_dir / "cases" / records[0]["case_id"] / "manifest.json").read_text()
-            )
+            manifest = json.loads((run_dir / f"{records[0]['case_id']}.json").read_text())
             self.assertEqual(records[0]["case_id"], manifest["case_id"])
             self.assertEqual("deadbeef", manifest["git_commit"])
             self.assertEqual([], manifest["redactions"])
+            self.assertFalse((run_dir / "cases").exists())
 
 
 if __name__ == "__main__":

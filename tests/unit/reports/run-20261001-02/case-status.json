@@ -1,0 +1,411 @@
+{
+  "cases": {
+    "UT-API-001": {
+      "node_id": "tests.unit.cases.UT-API-001.HealthTests::test_health_ok",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "UT-API-002": {
+      "node_id": "tests.unit.cases.UT-API-002.AuthTests::test_wrong_token_is_403",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "UT-API-003": {
+      "node_id": "tests.unit.cases.UT-API-003.SSETests::test_text_delta",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "UT-API-004": {
+      "node_id": "tests.unit.cases.UT-API-004.HealthTests::test_probe_persists",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.006
+    },
+    "UT-API-005": {
+      "node_id": "tests.unit.cases.UT-API-005.DispatchErrorTests::test_unknown_route_is_404_not_found",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.506
+    },
+    "UT-API-006": {
+      "node_id": "tests.unit.cases.UT-API-006.QueryParamTests::test_non_integer_limit_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.504
+    },
+    "UT-API-008": {
+      "node_id": "tests.unit.cases.UT-API-008.AdminDispatchAuthTests::test_data_token_on_admin_endpoint_is_403",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.505
+    },
+    "UT-API-009": {
+      "node_id": "tests.unit.cases.UT-API-009.BodyTests::test_top_level_non_object_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.505
+    },
+    "UT-API-010": {
+      "node_id": "tests.unit.cases.UT-API-010.HealthTests::test_one_model_is_degraded",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.005
+    },
+    "UT-API-011": {
+      "node_id": "tests.unit.cases.UT-API-011.AliasParityTests::test_traces_parity_empty",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.505
+    },
+    "UT-API-012": {
+      "node_id": "tests.unit.cases.UT-API-012.StartupTests::test_non_apierror_bootstrap_does_not_crash",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "UT-API-013": {
+      "node_id": "tests.unit.cases.UT-API-013.DiagnosticsHttpContractTests::test_switch_patch_rejects_unknown_key",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.506
+    },
+    "UT-DIAG-001": {
+      "node_id": "tests.unit.cases.UT-DIAG-001.TracesQueryTests::test_set_switches_rejects_non_boolean",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.009
+    },
+    "UT-DIAG-002": {
+      "node_id": "tests.unit.cases.UT-DIAG-002.TracesQueryTests::test_traces_dedups_by_request_and_stable_paging",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.005
+    },
+    "UT-DIAG-003": {
+      "node_id": "tests.unit.cases.UT-DIAG-003.UnavailableDiagnosticsUnitTests::test_switches_off_and_void_methods",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "UT-DIAG-004": {
+      "node_id": "tests.unit.cases.UT-DIAG-004.DiagnosticsHttpContractTests::test_injection_patch_requires_items",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.504
+    },
+    "UT-DIAG-005": {
+      "node_id": "tests.unit.cases.UT-DIAG-005.StatsBranchTests::test_stats_switch_off_writes_nothing",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "UT-DIAG-006": {
+      "node_id": "tests.unit.cases.UT-DIAG-006.CursorContractGapTests::test_trace_cursor_is_first_ts_pipe_request_id",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.006
+    },
+    "UT-DIAG-007": {
+      "node_id": "tests.unit.cases.UT-DIAG-007.StatsBranchTests::test_stats_mixed_null_and_string_keys_do_not_crash",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.006
+    },
+    "UT-DIAG-008": {
+      "node_id": "tests.unit.cases.UT-DIAG-008.StreamWrapperTests::test_stream_terminate_early_end",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "UT-INF-001": {
+      "node_id": "tests.unit.cases.UT-INF-001.ResponsesTests::test_usage_is_preserved",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "UT-INF-002": {
+      "node_id": "tests.unit.cases.UT-INF-002.EmbeddingsTests::test_wrong_dimension_rejected",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "UT-INF-003": {
+      "node_id": "tests.unit.cases.UT-INF-003.UsageTests::test_versions_are_immutable",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "UT-INF-004": {
+      "node_id": "tests.unit.cases.UT-INF-004.RoutingTests::test_unknown_is_not_eligible",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "UT-INF-005": {
+      "node_id": "tests.unit.cases.UT-INF-005.InferenceNoSecondAuthTests::test_inference_path_does_not_call_authenticate",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "UT-INF-006": {
+      "node_id": "tests.unit.cases.UT-INF-006.ResponsesValidationGapTests::test_unsupported_responses_capability_is_400_unsupported_model",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "UT-INF-007": {
+      "node_id": "tests.unit.cases.UT-INF-007.EmbeddingsFailureGapTests::test_unsupported_dimensions_code_and_param",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "UT-INF-008": {
+      "node_id": "tests.unit.cases.UT-INF-008.ResponsesValidationGapTests::test_usage_non_integer_partial_is_unknown_with_nulls",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "UT-INF-009": {
+      "node_id": "tests.unit.cases.UT-INF-009.RoutingAdmissionGapTests::test_wait_timeout_is_429_with_retry_after",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "UT-LOG-001": {
+      "node_id": "tests.unit.cases.UT-LOG-001.LogRedactionGapTests::test_x_api_key_header_value_redacted",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "UT-LOG-002": {
+      "node_id": "tests.unit.cases.UT-LOG-002.LogHttpFailureTests::test_store_failure_is_503",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.504
+    },
+    "UT-MGMT-001": {
+      "node_id": "tests.unit.cases.UT-MGMT-001.RegistryTests::test_fixed_tiers_exist",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "UT-MGMT-002": {
+      "node_id": "tests.unit.cases.UT-MGMT-002.RegistryTests::test_unknown_deployment_reference_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "UT-MGMT-003": {
+      "node_id": "tests.unit.cases.UT-MGMT-003.AuditTests::test_target",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "UT-MGMT-004": {
+      "node_id": "tests.unit.cases.UT-MGMT-004.UsageTests::test_snapshot_is_stable",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "UT-MGMT-005": {
+      "node_id": "tests.unit.cases.UT-MGMT-005.HealthTests::test_probe_unknown_deployment",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "UT-MGMT-006": {
+      "node_id": "tests.unit.cases.UT-MGMT-006.AccountUsageTests::test_request_usage_is_attributed_to_selected_provider",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "UT-MGMT-007": {
+      "node_id": "tests.unit.cases.UT-MGMT-007.BootstrapTests::test_valid_bootstrap_succeeds",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "UT-MGMT-008": {
+      "node_id": "tests.unit.cases.UT-MGMT-008.ResourceInUseTests::test_delete_provider_referenced_by_deployment_is_409",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "UT-MGMT-009": {
+      "node_id": "tests.unit.cases.UT-MGMT-009.ResetUsageScopeTests::test_reset_by_model_only",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "UT-MGMT-010": {
+      "node_id": "tests.unit.cases.UT-MGMT-010.ProbeUnreachableTests::test_unreachable_probe_is_unhealthy_persisted",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "UT-MGMT-011": {
+      "node_id": "tests.unit.cases.UT-MGMT-011.AccountUsageGapTests::test_refresh_requires_confirmation",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "UT-OBS-001": {
+      "node_id": "tests.unit.cases.UT-OBS-001.DiagnosticsSwitchTests::test_switches_default_off_and_runtime_toggle",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "UT-OBS-002": {
+      "node_id": "tests.unit.cases.UT-OBS-002.StatsEndpointTests::test_stats_returns_empty_when_no_records",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "UT-OBS-003": {
+      "node_id": "tests.unit.cases.UT-OBS-003.InjectionEnabledContractTests::test_non_boolean_enabled_rejected",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "UT-OBS-004": {
+      "node_id": "tests.unit.cases.UT-OBS-004.DiagnosticsHttpContractTests::test_snapshots_invalid_cursor_is_400_expired",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.508
+    },
+    "UT-OBS-005": {
+      "node_id": "tests.unit.cases.UT-OBS-005.DiagnosticCursorContractTests::test_traces_valid_cursor_still_pages",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.006
+    },
+    "UT-OBS-006": {
+      "node_id": "tests.unit.cases.UT-OBS-006.DiagnosticsAvailabilityTests::test_switches_read_still_200",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.505
+    },
+    "UT-OBS-007": {
+      "node_id": "tests.unit.cases.UT-OBS-007.CorrelationObservabilityTests::test_traceparent_trace_id_is_extracted",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.505
+    },
+    "UT-TOOL-001": {
+      "node_id": "tests.unit.cases.UT-TOOL-001.ReportTests::test_emit_manifests",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    "UT-TOOL-002": {
+      "node_id": "tests.unit.cases.UT-TOOL-002.DeployFlowTests::test_step_start_delivers_tokens_on_stdin_not_argv",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "UT-UI-001": {
+      "node_id": "tests.unit.cases.UT-UI-001.WebUIContractTests::test_tree_has_no_column_title_row",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "UT-UI-002": {
+      "node_id": "tests.unit.cases.UT-UI-002.WebUIContractTests::test_tier_parent_type_cell_is_empty",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "UT-UI-003": {
+      "node_id": "tests.unit.cases.UT-UI-003.WebUIContractTests::test_model_pause_resume_uses_existing_deployment_patch",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "UT-UI-004": {
+      "node_id": "tests.unit.cases.UT-UI-004.WebUIContractTests::test_usage_and_audit_tabs",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "UT-UI-005": {
+      "node_id": "tests.unit.cases.UT-UI-005.WebUIContractTests::test_stats_page_present",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "UT-UI-006": {
+      "node_id": "tests.unit.cases.UT-UI-006.WebUIContractTests::test_root_route_assets_remain_same_origin",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "UT-UI-007": {
+      "node_id": "tests.unit.cases.UT-UI-007.WebUIBranchContractTests::test_tier_state_unknown_when_availability_absent",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "UT-UI-008": {
+      "node_id": "tests.unit.cases.UT-UI-008.WebUIBranchContractTests::test_report_load_failure_keeps_last_screen",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "UT-UI-009": {
+      "node_id": "tests.unit.cases.UT-UI-009.WebUIBranchContractTests::test_usage_summary_four_states",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "UT-UI-010": {
+      "node_id": "tests.unit.cases.UT-UI-010.WebUIBranchContractTests::test_stats_range_and_etag_and_model_cache",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "UT-UTIL-001": {
+      "node_id": "tests.unit.cases.UT-UTIL-001.StoreSchemaTests::test_symlink_path_rejected",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "UT-UTIL-002": {
+      "node_id": "tests.unit.cases.UT-UTIL-002.StoreSchemaTests::test_version_mismatch_rejected",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "UT-UTIL-003": {
+      "node_id": "tests.unit.cases.UT-UTIL-003.WorldWritableTests::test_world_writable_warns",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    "UT-UTIL-004": {
+      "node_id": "tests.unit.cases.UT-UTIL-004.CorruptStoreTests::test_corrupt_file_raises",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    }
+  },
+  "counts": {
+    "BLOCKED": 0,
+    "FAIL": 0,
+    "INVALID": 0,
+    "NOT_RUN": 0,
+    "PASS": 426,
+    "SKIP": 0,
+    "XPASS": 0
+  },
+  "generated_at": "2026-10-01T06:40:14Z",
+  "git_commit": "76b5ab152bc19c129cbd6785d1b19e9723340216",
+  "layer": "UNIT",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "release_blocking": false,
+  "run_id": "run-20261001-02",
+  "schema_version": 1,
+  "schema_version_db": "2"
+}

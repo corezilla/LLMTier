@@ -1,0 +1,14 @@
+{
+  "artifacts": [],
+  "case_id": "UT-OBS-005",
+  "command": "python3 -m pytest --junitxml=tests/unit/reports/run-20261001-03/junit.xml tests/unit/cases",
+  "git_commit": "36825b932ec0ecc0757fdde4628973572261a7c8",
+  "node_id": "tests.unit.cases.UT-OBS-005.DiagnosticCursorContractTests::test_traces_valid_cursor_still_pages",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261001-03",
+  "schema_version_db": "2",
+  "started_at": "2026-10-01T09:10:22Z",
+  "status": "PASS"
+}
