@@ -53,7 +53,11 @@
 - 要测什么（责任展开）：`DELETE /v1/deployments/{id}` 携带正确 `If-Match` 删除 deployment：HTTP 204，随后 `GET` 返回 404。
 - 明确不测什么 / 失败含义：不证明 缺 `If-Match` 的 412（ST-PROV-009 同机制；本 case 走正确 ETag 路径）、不证明被引用删除的 409 `resource_in_use`（基线 `depl_b` 被 7 tier 引用；本 case **不**删它）、不证明列表/详情（ST-DEPL-001/03）、不证明更新（ST-DEPL-004）；本 case 只删本次自建 deployment，不触上游。
 
-**目的（被测契约）**：验证 Management Deployment CRUD 的**删除契约**。被测端点/规则：`DELETE /v1/deployments/{deployment_id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `deleteDeployment`，`security=AdminBearerAuth`），`If-Match` 必须等于当前 ETag `"<id>.v<N>"`；成功 `204` 无 body（[`registry.delete_deployment`](../../../../src/management/registry.py)）；失败 404 `not_found` / 409 `resource_in_use`（被 service level 引用）/ 412 `version_conflict`（缺/过期 If-Match）。设计验证项 `VRC-MGMT-001`；需求/机制链 `LT-FUN-005`、`LT-INT-008`、`R-CFG-01`、`T-CFG-CAS`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明缺 `If-Match` 的 412（ST-PROV-009 同机制；本 case 走正确 ETag 路径）、不证明被引用删除的 409 `resource_in_use`（基线 `depl_b` 被 7 tier 引用；本 case **不**删它）、不证明列表/详情（ST-DEPL-001/03）、不证明更新（ST-DEPL-004）；本 case 只删本次自建 deployment，不触上游。
+**目的（被测契约）**：验证 Management Deployment CRUD 的**删除契约**。被测端点/规则：`DELETE /v1/deployments/{deployment_id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `deleteDeployment`，`security=AdminBearerAuth`），`If-Match` 必须等于当前 ETag `"<id>.v<N>"`；
+成功 `204` 无 body（[`registry.delete_deployment`](../../../../src/management/registry.py)）；失败 404 `not_found` / 409 `resource_in_use`（被 service level 引用）/ 412 `version_conflict`（缺/过期 If-Match）。
+设计验证项 `VRC-MGMT-001`；需求/机制链 `LT-FUN-005`、`LT-INT-008`、`R-CFG-01`、`T-CFG-CAS`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明缺 `If-Match` 的 412（ST-PROV-009 同机制；本 case 走正确 ETag 路径）、不证明被引用删除的 409 `resource_in_use`（基线 `depl_b` 被 7 tier 引用；
+本 case **不**删它）、不证明列表/详情（ST-DEPL-001/03）、不证明更新（ST-DEPL-004）；本 case 只删本次自建 deployment，不触上游。
 
 ## 2. 被测入口与前置
 
@@ -80,7 +84,9 @@
   5. `get = admin_client_b.get(f"/v1/deployments/{rid}")`；断言 `404` 且 `error.code == "not_found"`（信封 5 键、`type=="request_error"`）。
   6. 交叉核对：`GET /v1/deployments`（或按 id 过滤）确认 `rid` 不再出现，且基线 `depl_b` 仍在。**注**：该列表 GET（[`admin.page()`](../../../../src/management/admin.py)）会在 M007 `query_snapshots`/`query_snapshot_items` 落一条 10 分钟 TTL 的分页快照（即使无 `cursor`），属服务端读路径副作用、非用户资源，报告须登记，**不得声称"零写入"**。
 
-**重点关注步骤**：① **204 无 body**——不得把删除响应当 JSON 解析；② **If-Match 必需且正确**——用创建响应的真实 ETag；缺/过期属 412（ST-PROV-009 同机制，本 case 不重测）；③ **删除自己创建物**——**绝不**删基线 `depl_b`（被 7 tier 引用，会 409 `resource_in_use`），否则破坏 B 类基线并威胁整班；④ **二次核验 404**——删除后 `GET` 必须 404 且 `code=not_found`，证明真删；⑤ **不触上游**——删除只写注册表；⑥ **幂等语义**——重复 DELETE 同一 id 期望 404（本 case 只发一次，不重测幂等）；⑦ **列表读路径副作用**——第 6 步列表 GET 会在 `query_snapshots` 落一条 10 分钟 TTL 的分页快照（`admin.page()`），报告须登记，**不得声称"零写入"**。
+**重点关注步骤**：① **204 无 body**——不得把删除响应当 JSON 解析；② **If-Match 必需且正确**——用创建响应的真实 ETag；缺/过期属 412（ST-PROV-009 同机制，本 case 不重测）；
+③ **删除自己创建物**——**绝不**删基线 `depl_b`（被 7 tier 引用，会 409 `resource_in_use`），否则破坏 B 类基线并威胁整班；④ **二次核验 404**——删除后 `GET` 必须 404 且 `code=not_found`，证明真删；
+⑤ **不触上游**——删除只写注册表；⑥ **幂等语义**——重复 DELETE 同一 id 期望 404（本 case 只发一次，不重测幂等）；⑦ **列表读路径副作用**——第 6 步列表 GET 会在 `query_snapshots` 落一条 10 分钟 TTL 的分页快照（`admin.page()`），报告须登记，**不得声称"零写入"**。
 
 ## 5. 独立 Oracle 与预期结果
 

@@ -53,7 +53,14 @@
 - 要测什么（责任展开）：`PATCH /v1/deployments/{id}/diagnostics` 提交非法注入项：HTTP 400 `invalid_injection`（`param` 指向被拒字段），不写入任何注入行。
 - 明确不测什么 / 失败含义：不证明 正向写入（ST-OBSDEPL-002）、不证明未知 deployment 的 404（ST-OBSDEPL-003，且存在性优先于本校验）、不证明注入命中（ST-RESP-011/22）、不证明别名等价（ST-OBSALIAS-004）。**实现现状（严格 bool，已对齐 openapi）**：`_validate` 要求 `isinstance(enabled, bool)`，非 bool（含缺失/字符串/整数）→ 400 `invalid_injection` `param="enabled"`（`injections.py:34-36`），与 openapi `InjectionWrite.enabled: boolean` 一致；本 case 正面覆盖该严格校验。
 
-**目的（被测契约）**：验证注入写路径的**项校验负向契约**。被测端点/规则：`_validate` 要求 `type ∈ _TYPES`（否则 `param="type"`）、`config` 为对象（否则 `param="config"`）、每类型必填 `config` 字段（缺失 → `param=<field>`）、`error_body` 为非空字符串（>512B 按 UTF-8 截断）、`malformed_event_type ∈ {invalid_json, unknown_event_type}`、数值字段范围 `delay_ms∈[0,60000]`、`retry_after_sec∈[0,300]`、`stream_terminate_after_events∈[1,10000]`、`malformed_after_events∈[0,10000]` 且必须是 `int`（`bool` 被拒）（[`src/libdiag/injections.py`](../../../../src/libdiag/injections.py)）；任何非法项 → `ApiError(400, "invalid_injection", ..., param=...)`，**零写入**。设计验证项 `VRC-DIAG-004`；机制 `T-OBS-INJECT`（[observability 机制](../../../20_system_design/mechanisms/observability.md) §4.3.2 `D-OBS-INJECTION-CONFIG`、§5.1 "类型/字段/范围非法 → `ERR-INJECTION`（400）；校验失败不写、副作用无"）；错误目录 `ERR-INJECTION` → `invalid_injection`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理) `ERR-INJECTION → ST-OBSDEPL-004`）；需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；机器契约 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`InjectionList`/`InjectionWrite`，400 → `BadRequest`）。**不证明什么**：不证明正向写入（ST-OBSDEPL-002）、不证明未知 deployment 的 404（ST-OBSDEPL-003，且存在性优先于本校验）、不证明注入命中（ST-RESP-011/22）、不证明别名等价（ST-OBSALIAS-004）。**实现现状（严格 bool，已对齐 openapi）**：`_validate` 要求 `isinstance(enabled, bool)`，非 bool（含缺失/字符串/整数）→ 400 `invalid_injection` `param="enabled"`（`injections.py:34-36`），与 openapi `InjectionWrite.enabled: boolean` 一致；本 case 正面覆盖该严格校验。
+**目的（被测契约）**：验证注入写路径的**项校验负向契约**。被测端点/规则：`_validate` 要求 `type ∈ _TYPES`（否则 `param="type"`）、`config` 为对象（否则 `param="config"`）、每类型必填 `config` 字段（缺失 → `param=<field>`）、`error_body` 为非空字符串（>512B 按 UTF-8 截断）、`malformed_event_type ∈ {invalid_json, unknown_event_type}`、数值字段范围 `delay_ms∈[0,60000]`、`retry_after_sec∈[0,300]`、`stream_terminate_after_events∈[1,10000]`、`malformed_after_events∈[0,10000]` 且必须是 `int`（`bool` 被拒）（[`src/libdiag/injections.py`](../../../../src/libdiag/injections.py)）；
+任何非法项 → `ApiError(400, "invalid_injection", ..., param=...)`，**零写入**。设计验证项 `VRC-DIAG-004`；机制 `T-OBS-INJECT`（[observability 机制](../../../20_system_design/mechanisms/observability.md) §4.3.2 `D-OBS-INJECTION-CONFIG`、§5.1 "类型/字段/范围非法 → `ERR-INJECTION`（400）；
+校验失败不写、副作用无"）；错误目录 `ERR-INJECTION` → `invalid_injection`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理) `ERR-INJECTION → ST-OBSDEPL-004`）；
+需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；
+机器契约 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`InjectionList`/`InjectionWrite`，400 → `BadRequest`）。
+**不证明什么**：不证明正向写入（ST-OBSDEPL-002）、不证明未知 deployment 的 404（ST-OBSDEPL-003，且存在性优先于本校验）、不证明注入命中（ST-RESP-011/22）、不证明别名等价（ST-OBSALIAS-004）。
+**实现现状（严格 bool，已对齐 openapi）**：`_validate` 要求 `isinstance(enabled, bool)`，非 bool（含缺失/字符串/整数）→ 400 `invalid_injection` `param="enabled"`（`injections.py:34-36`），与 openapi `InjectionWrite.enabled: boolean` 一致；
+本 case 正面覆盖该严格校验。
 
 ## 2. 被测入口与前置
 
@@ -86,7 +93,11 @@
   5. 全部非法样例后 `GET /v1/deployments/depl_b/diagnostics` → 断言字节等于 `orig_raw`。
   6. （边界对照）合法端点值 `delay_ms=0` / `retry_after_sec=0` → 断言 `200`；随即 `PATCH {"items":[]}` 清空。（可选交叉证据）`GET /v1/audit` 见 `result=="failed"` 行。
 
-**重点关注步骤**：① **存在性优先**——`depl_b` 存在，故进入项校验并返回 400 `invalid_injection`（不是 404）。② **`param` 精确**——指向被拒字段名，而非笼统。③ **无部分写入**——混合项中即使一项合法也整体 400 且不落库（validate 在 txn 之前全量执行）。④ **范围边界**——`0` 是合法端点值；上限+1 非法；`bool` 是 `int` 子类但必须被拒（`isinstance(value, bool)` 显式排除）。⑤ **`error_body` 512B**——>512B 是**静默截断**（合法），空串/非串才 400；本 case 不把长串当非法。⑥ **错误信封 identity**——恰 5 键、`type=request_error`。⑦ **`enabled` 严格 bool**——openapi `InjectionWrite` 要求 `enabled` 为必填 `boolean`，实现 `_validate` 同样要求 `isinstance(enabled, bool)`（`injections.py:34-36`）；非 bool/缺失 → 400 `param="enabled"`，本 case 末尾三组样例正面覆盖（见输入与构造"实现 vs openapi"）。⑧ **零副作用**——非法序列后注入表逐字节不变。⑨ **降级/存储**——`_UnavailableDiagnostics.set_injections` 不校验、返回 `[]` 属降级实例 → BLOCKED/SKIP；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSDEPL-004.py` 已实现。
+**重点关注步骤**：① **存在性优先**——`depl_b` 存在，故进入项校验并返回 400 `invalid_injection`（不是 404）。② **`param` 精确**——指向被拒字段名，而非笼统。③ **无部分写入**——混合项中即使一项合法也整体 400 且不落库（validate 在 txn 之前全量执行）。
+④ **范围边界**——`0` 是合法端点值；上限+1 非法；`bool` 是 `int` 子类但必须被拒（`isinstance(value, bool)` 显式排除）。⑤ **`error_body` 512B**——>512B 是**静默截断**（合法），空串/非串才 400；
+本 case 不把长串当非法。⑥ **错误信封 identity**——恰 5 键、`type=request_error`。⑦ **`enabled` 严格 bool**——openapi `InjectionWrite` 要求 `enabled` 为必填 `boolean`，实现 `_validate` 同样要求 `isinstance(enabled, bool)`（`injections.py:34-36`）；
+非 bool/缺失 → 400 `param="enabled"`，本 case 末尾三组样例正面覆盖（见输入与构造"实现 vs openapi"）。⑧ **零副作用**——非法序列后注入表逐字节不变。⑨ **降级/存储**——`_UnavailableDiagnostics.set_injections` 不校验、返回 `[]` 属降级实例 → BLOCKED/SKIP；
+`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSDEPL-004.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 

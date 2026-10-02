@@ -54,7 +54,10 @@
 - 明确不测什么 / 失败含义：不证明 默认 50/边界 `limit=1`（ST-AUDIT-001/02）、不证明字段脱敏（ST-AUDIT-001）、不证明角色负向（`/v1/audit` 为 admin 守门，data 凭据的 403 属 ST-AUTH-003/09 的跨切面角色覆盖，**不是本 case**）、不证明 `cursor`（审计无 cursor）。
   > **规格注记**：§3.2 将 `ST-AUDIT-003` 登记为"审计非法分页参数 → 400 `invalid_request`"，§11.1 亦将 `ERR-REQ-VALIDATION` 映射到本 Case。`ST-RUNTIME-002` 才是 `data→403` 的角色负向。运行时若以 data 凭据访问 `/v1/audit`，会在 `_int_param` 之前被 admin 守门以 403 拒绝——本 case 不构造该路径。
 
-**目的（被测契约）**：验证审计 `limit` 的**整数参数校验**。被测端点/规则：`GET /v1/audit`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listAuditEvents`，query `limit` `type:integer`）；[`app.py`](../../../../src/http_api/app.py) `app.audit.page(_int_param(query, "limit", 50))`，[`_int_param`](../../../../src/http_api/app.py) 对无法 `int()` 的输入抛 400 `invalid_request`（在 admin 鉴权后、handler 前）。设计验证项 `VRC-MGMT-003`；错误目录 `ERR-REQ-VALIDATION` → wire `code=invalid_request`；机制 `R-OBS-01`；需求/机制链 `LT-FUN-006`、`R-OBS-01`、`CT-ADMIN-001`。**不证明什么**：不证明默认 50/边界 `limit=1`（ST-AUDIT-001/02）、不证明字段脱敏（ST-AUDIT-001）、不证明角色负向（`/v1/audit` 为 admin 守门，data 凭据的 403 属 ST-AUTH-003/09 的跨切面角色覆盖，**不是本 case**）、不证明 `cursor`（审计无 cursor）。
+**目的（被测契约）**：验证审计 `limit` 的**整数参数校验**。被测端点/规则：`GET /v1/audit`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listAuditEvents`，query `limit` `type:integer`）；
+[`app.py`](../../../../src/http_api/app.py) `app.audit.page(_int_param(query, "limit", 50))`，[`_int_param`](../../../../src/http_api/app.py) 对无法 `int()` 的输入抛 400 `invalid_request`（在 admin 鉴权后、handler 前）。
+设计验证项 `VRC-MGMT-003`；错误目录 `ERR-REQ-VALIDATION` → wire `code=invalid_request`；机制 `R-OBS-01`；需求/机制链 `LT-FUN-006`、`R-OBS-01`、`CT-ADMIN-001`。
+**不证明什么**：不证明默认 50/边界 `limit=1`（ST-AUDIT-001/02）、不证明字段脱敏（ST-AUDIT-001）、不证明角色负向（`/v1/audit` 为 admin 守门，data 凭据的 403 属 ST-AUTH-003/09 的跨切面角色覆盖，**不是本 case**）、不证明 `cursor`（审计无 cursor）。
   > **规格注记**：§3.2 将 `ST-AUDIT-003` 登记为"审计非法分页参数 → 400 `invalid_request`"，§11.1 亦将 `ERR-REQ-VALIDATION` 映射到本 Case。`ST-RUNTIME-002` 才是 `data→403` 的角色负向。运行时若以 data 凭据访问 `/v1/audit`，会在 `_int_param` 之前被 admin 守门以 403 拒绝——本 case 不构造该路径。
 
 ## 2. 被测入口与前置

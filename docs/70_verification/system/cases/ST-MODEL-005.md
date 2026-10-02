@@ -36,7 +36,12 @@
 - 要测什么（责任展开）：`GET /v1/models/Senior%20`（URL 编码尾空格）不匹配任何 tier → HTTP 404 + `error.code=="model_not_found"`。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明正向精确返回（ST-MODEL-002）、小写/全大写负向（ST-MODEL-003/04）、其它不存在 id（ST-MODEL-006）；不证明服务端对**合法**含空格模型 id 的支持（无此 tier，本 case 只证明其被拒）；不证明凭据与 LAN trust（ST-AUTH-001/02/06）；**不锁定"404 的具体成因是解码后带空格还是字面 `%20`"**——两者都落在"未命中"这一可观察契约上。**失败含义＝编码/空格边界拒绝契约破坏**。
 
-**目的（被测契约）**：验证 Data Plane `GET /v1/models/{model}` 对**带编码尾空格的路径段**的负向契约。被测端点/规则：`model` 是**精确标识符**，"`Senior `（带尾空格）"不是任何 tier，必须**不命中**并返回 `404 model_not_found`，信封 `{error:{message,type,code,param,retryable}}`（5 键，`type=="request_error"`、`param==null`、`retryable==false`）。实现侧路径来自 `urlparse(self.path).path` 的 `[^/]+` 捕获（[`app.py`](../../../../src/http_api/app.py) 正则 `/v1/models/([^/]+)`），随后交 [`Registry.get_service_level()`](../../../../src/management/registry.py) 的 SQL `WHERE id=?` 精确等值匹配；[`ModelCatalog.get()`](../../../../src/inference/models.py) 将 404 `not_found` 转译为 `model_not_found`。设计验证项 `VRC-INF-001`；机制 `R-INF-04`（清单行）；家族需求链 `LT-FUN-002`、`R-INF-04`/`R-INF-07`、`T-TRUST-ENDPOINTS`、契约 `CT-MODEL-001`（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明正向精确返回（ST-MODEL-002）、小写/全大写负向（ST-MODEL-003/04）、其它不存在 id（ST-MODEL-006）；不证明服务端对合法含空格模型 id 的支持；不证明凭据与 LAN trust；**不锁定 404 的具体成因**。
+**目的（被测契约）**：验证 Data Plane `GET /v1/models/{model}` 对**带编码尾空格的路径段**的负向契约。被测端点/规则：`model` 是**精确标识符**，"`Senior `（带尾空格）"不是任何 tier，必须**不命中**并返回 `404 model_not_found`，信封 `{error:{message,type,code,param,retryable}}`（5 键，`type=="request_error"`、`param==null`、`retryable==false`）。
+实现侧路径来自 `urlparse(self.path).path` 的 `[^/]+` 捕获（[`app.py`](../../../../src/http_api/app.py) 正则 `/v1/models/([^/]+)`），随后交 [`Registry.get_service_level()`](../../../../src/management/registry.py) 的 SQL `WHERE id=?
+` 精确等值匹配；[`ModelCatalog.get()`](../../../../src/inference/models.py) 将 404 `not_found` 转译为 `model_not_found`。设计验证项 `VRC-INF-001`；
+机制 `R-INF-04`（清单行）；家族需求链 `LT-FUN-002`、`R-INF-04`/`R-INF-07`、`T-TRUST-ENDPOINTS`、契约 `CT-MODEL-001`（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明正向精确返回（ST-MODEL-002）、小写/全大写负向（ST-MODEL-003/04）、其它不存在 id（ST-MODEL-006）；不证明服务端对合法含空格模型 id 的支持；不证明凭据与 LAN trust；
+**不锁定 404 的具体成因**。
 
 ## 2. 被测入口与前置
 
@@ -86,7 +91,10 @@
 | 5 | 顶层键集 `{error}`；error 键集恰 5 键（无 `category`） | 响应体 |
 | 6 | `code=="model_not_found"`、`type=="request_error"`、`param is None`、`retryable is False` | 响应体 |
 
-**重点关注步骤**：① **"未命中"是唯一被锁定的可观察契约**——`Senior `（带尾空格）不是 tier，故 404；实现当前**不做** percent-decode（`app.py` 直接取 `urlparse(...).path` 的 `[^/]+`），因此传入 Registry 的是字面 `Senior%20`，与"解码后 `Senior `"同样都**未命中**。本 case 的 Oracle 只管 `status==404 + code==model_not_found`，**不**断言具体成因；若未来实现改为先 `unquote` 再匹配，本 case 仍应 PASS。② **状态精确 404**；③ **错误信封 identity**——恰 5 键（无 `category`），`type=="request_error"`、`retryable=false`、`param=null`；④ **零副作用**——404 必须在 dispatch 前完成，不触上游、不写账本；⑤ **编码保持**——必须确认发送的是 `%20` 形态（请求行/httpx URL 快照）；⑥ **码值精确**——`model_not_found` 而非泛化 `not_found`。
+**重点关注步骤**：① **"未命中"是唯一被锁定的可观察契约**——`Senior `（带尾空格）不是 tier，故 404；实现当前**不做** percent-decode（`app.py` 直接取 `urlparse(...).path` 的 `[^/]+`），因此传入 Registry 的是字面 `Senior%20`，与"解码后 `Senior `"同样都**未命中**。
+本 case 的 Oracle 只管 `status==404 + code==model_not_found`，**不**断言具体成因；若未来实现改为先 `unquote` 再匹配，本 case 仍应 PASS。② **状态精确 404**；
+③ **错误信封 identity**——恰 5 键（无 `category`），`type=="request_error"`、`retryable=false`、`param=null`；④ **零副作用**——404 必须在 dispatch 前完成，不触上游、不写账本；
+⑤ **编码保持**——必须确认发送的是 `%20` 形态（请求行/httpx URL 快照）；⑥ **码值精确**——`model_not_found` 而非泛化 `not_found`。
 
 ## 5. 独立 Oracle 与预期结果
 

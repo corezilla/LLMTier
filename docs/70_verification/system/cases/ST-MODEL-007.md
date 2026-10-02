@@ -36,7 +36,11 @@
 - 要测什么（责任展开）：`GET /v1/models` 返回的每个 tier 的 `capabilities` 键集恰为固定的 **12 个** key。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明清单元素数/顺序（ST-MODEL-001）、单模型精确返回（ST-MODEL-002）、负向（ST-MODEL-003/04/05/06）；不证明各键**取值**的业务正确性（本 case 只锁键集；`responses`/`embeddings`/`tools`/`structured_outputs` 的布尔约束在 deployment/service-level 写入面校验，见 ST-DEPL-006/07）；不证明 `availability`；不证明凭据与 LAN trust（ST-AUTH-001/02/06）。**失败含义＝capabilities 键集契约破坏**。
 
-**目的（被测契约）**：验证 Data Plane `GET /v1/models` 中每个 `Model.capabilities` 对象满足 `ModelCapabilities` 契约（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `ModelCapabilities`：`additionalProperties:false` + `required` 恰 12 项，故键集**恰等于** 12 键）。12 键固定为：`responses`、`embeddings`、`tools`、`structured_outputs`、`input_modalities`、`output_modalities`、`context_window`、`max_output_tokens`、`embedding_space_id`、`embedding_dimensions`、`embedding_max_batch_inputs`、`embedding_max_input_tokens`（与 [`registry.CAPABILITY_KEYS`](../../../../src/management/registry.py) 完全一致）；`capabilities` 由 tier 绑定的 deployment 能力交集得出并透传（[`ModelCatalog._view`](../../../../src/inference/models.py)），该端点**只读 Registry、不 dispatch 上游**。设计验证项 `VRC-INF-002`；机制 `R-INF-04`/`R-INF-07`、`T-TRUST-ENDPOINTS`、契约 `CT-MODEL-001`（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明清单元素数/顺序（ST-MODEL-001）、单模型精确返回（ST-MODEL-002）、负向（ST-MODEL-003/04/05/06）；不证明各键取值业务正确性；不证明 `availability`；不证明凭据与 LAN trust。
+**目的（被测契约）**：验证 Data Plane `GET /v1/models` 中每个 `Model.capabilities` 对象满足 `ModelCapabilities` 契约（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `ModelCapabilities`：`additionalProperties:false` + `required` 恰 12 项，故键集**恰等于** 12 键）。
+12 键固定为：`responses`、`embeddings`、`tools`、`structured_outputs`、`input_modalities`、`output_modalities`、`context_window`、`max_output_tokens`、`embedding_space_id`、`embedding_dimensions`、`embedding_max_batch_inputs`、`embedding_max_input_tokens`（与 [`registry.CAPABILITY_KEYS`](../../../../src/management/registry.py) 完全一致）；
+`capabilities` 由 tier 绑定的 deployment 能力交集得出并透传（[`ModelCatalog._view`](../../../../src/inference/models.py)），该端点**只读 Registry、不 dispatch 上游**。
+设计验证项 `VRC-INF-002`；机制 `R-INF-04`/`R-INF-07`、`T-TRUST-ENDPOINTS`、契约 `CT-MODEL-001`（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明清单元素数/顺序（ST-MODEL-001）、单模型精确返回（ST-MODEL-002）、负向（ST-MODEL-003/04/05/06）；不证明各键取值业务正确性；不证明 `availability`；不证明凭据与 LAN trust。
 
 ## 2. 被测入口与前置
 
@@ -86,7 +90,9 @@
 | 5 | 每元素 `capabilities` 键集 `==` 12 键 EXPECTED | 响应体（逐 tier） |
 | 6 | 断言 `len(EXPECTED)==12` 且每对象键数 12 | 响应体 |
 
-**重点关注步骤**：① **精确键集而非仅"包含"**——`ModelCapabilities.additionalProperties:false` + `required` 12 项意味着键集**恰为** 12；只查"缺不缺"会漏掉**多余键**，本 case 必须用 `==`，多一键即 FAIL；② **精确计数 12**——显式断言 `len(keys)==12`，便于报告直接给出"12 键"结论；③ **逐 tier 覆盖**——不是只抽查一个 tier，7 个 tier 全部要过；④ **键名逐字匹配**——含 `structured_outputs`、`embedding_max_batch_inputs`、`embedding_max_input_tokens` 等下划线命名，不得近似；⑤ **不以"清单看起来对"代替**——键集来自固定常量/openapi，不从响应自身推导；⑥ **只读**——本 case 不写库。
+**重点关注步骤**：① **精确键集而非仅"包含"**——`ModelCapabilities.additionalProperties:false` + `required` 12 项意味着键集**恰为** 12；只查"缺不缺"会漏掉**多余键**，本 case 必须用 `==`，多一键即 FAIL；
+② **精确计数 12**——显式断言 `len(keys)==12`，便于报告直接给出"12 键"结论；③ **逐 tier 覆盖**——不是只抽查一个 tier，7 个 tier 全部要过；④ **键名逐字匹配**——含 `structured_outputs`、`embedding_max_batch_inputs`、`embedding_max_input_tokens` 等下划线命名，不得近似；
+⑤ **不以"清单看起来对"代替**——键集来自固定常量/openapi，不从响应自身推导；⑥ **只读**——本 case 不写库。
 
 ## 5. 独立 Oracle 与预期结果
 

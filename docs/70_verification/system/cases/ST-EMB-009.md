@@ -34,11 +34,15 @@
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-EMB-009` / 系统设计 §8 Embeddings 接口（POST /v1/embeddings） / `VRC-INF-001` / recovery / P1（[方案清单 `ST-EMB-009`](../llmtier-system-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：故障注入（上游契约错误 → 502）+ 复位阶梯
 
-- 要测什么（责任展开）：`POST /v1/embeddings` 上游响应无法归一：`502 provider_contract_error`。上游返回非 `object:list` 或 `data` 非数组时，适配层拒绝。需求 `R-INF-05`；错误目录 `ERR-PROVIDER-CONTRACT` → wire `code=provider_contract_error`；实现 `src/inference/providers/openai.py::embed`（`data.get("object")!="list" or not isinstance(data.get("data"), list)` → `ApiError(502, "provider_contract_error", "Provider returned an invalid Embeddings payload")`）与 `src/inference/embeddings.py:57/60`（非法 base64/向量 → 同码）。
+- 要测什么（责任展开）：`POST /v1/embeddings` 上游响应无法归一：`502 provider_contract_error`。上游返回非 `object:list` 或 `data` 非数组时，适配层拒绝。需求 `R-INF-05`；
+  错误目录 `ERR-PROVIDER-CONTRACT` → wire `code=provider_contract_error`；实现 `src/inference/providers/openai.py::embed`（`data.get("object")!
+  ="list" or not isinstance(data.get("data"), list)` → `ApiError(502, "provider_contract_error", "Provider returned an invalid Embeddings payload")`）与 `src/inference/embeddings.py:57/60`（非法 base64/向量 → 同码）。
 
 - 明确不测什么 / 失败含义：不测上游 5xx/不可达（`503 provider_unavailable`，ST-EMB-010）；不测 Responses 的 `provider_contract_error`（ST-RESP-025）；不测真实模型答案或向量语义（ST-EMB-003）；不测 Responses 注入的 `provider_failure`（`fault_502`）——**Embeddings 无故障注入路径**（`embeddings.py` 不读 `enabled_injection`），故其上游故障只能由真实/假上游产生，`provider_failure` 码在 Embeddings 不可达。失败含义＝非法上游 Embeddings 载荷被当成功流出。
 
-**目的（被测契约）**：验证 **Embeddings 适配层的上游载荷归一契约**。被测端点/规则：`POST /v1/embeddings`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `createEmbedding`）；入口经 [`EmbeddingsService.create`](../../../../src/inference/embeddings.py) 调用 [`OpenAIProvider.embed`](../../../../src/inference/providers/openai.py)，对非 `list`/非数组载荷抛 `502 provider_contract_error`。设计验证项 `VRC-INF-001`；机制 `E-INF-UPSTREAM`。**不证明什么**：不测上游 5xx/不可达（ST-EMB-010）；不测 Responses 契约错误（ST-RESP-025）；不测答案/向量语义；**不测 `provider_failure`**（Embeddings 无注入路径，该码不可达）。
+**目的（被测契约）**：验证 **Embeddings 适配层的上游载荷归一契约**。被测端点/规则：`POST /v1/embeddings`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `createEmbedding`）；
+入口经 [`EmbeddingsService.create`](../../../../src/inference/embeddings.py) 调用 [`OpenAIProvider.embed`](../../../../src/inference/providers/openai.py)，对非 `list`/非数组载荷抛 `502 provider_contract_error`。
+设计验证项 `VRC-INF-001`；机制 `E-INF-UPSTREAM`。**不证明什么**：不测上游 5xx/不可达（ST-EMB-010）；不测 Responses 契约错误（ST-RESP-025）；不测答案/向量语义；**不测 `provider_failure`**（Embeddings 无注入路径，该码不可达）。
 
 ## 2. 被测入口与前置
 

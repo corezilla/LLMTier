@@ -53,7 +53,14 @@
 - 要测什么（责任展开）：`GET /v1/trace/{request_id}` 查询不存在的 `request_id`：HTTP 404 `not_found`，不返回空 `TraceView` 的 200。
 - 明确不测什么 / 失败含义：不证明 已知 id 的全生命周期（ST-OBSREQTRACE-001）、不证明 data token 403（ST-OBSREQTRACE-003）、不证明注入命中、不证明别名等价（ST-OBSALIAS-003）。**契约一致性警示（须登记）**：`_UnavailableDiagnostics.trace` 对**任意** id 返回 `200 + {stages:[]}`（fail-open），与健康实现的 404 语义不同；本 case 的 Oracle 以**健康诊断服务**为准。
 
-**目的（被测契约）**：验证单请求 trace 的**资源存在性负向契约**。被测端点/规则：`GET /v1/trace/{request_id}`，`TraceDiagnostics.trace` 在 `_trace_view` 无任何 `trace_events` 阶段时抛 `ApiError(404, "not_found", "No trace for this request_id")`（[`src/libdiag/traces.py`](../../../../src/libdiag/traces.py)）；不存在 id 必须 404，**不得**以 `200 + {stages:[]}` 冒充；认证 `admin`；统一信封 5 键（`type="request_error"`，`retryable=false`）。设计验证项 `VRC-DIAG-002`；机制 `T-OBS-TRACE`（[observability 机制](../../../20_system_design/mechanisms/observability.md) §5.1 `IF-OBS-TRACE-QUERY` "`trace` 无记录 → `ERR-NOTFOUND`（404）"）；错误目录 `ERR-NOTFOUND` → `not_found`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理) `ERR-NOTFOUND → ...、ST-OBSREQTRACE-002`）；需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；机器契约 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`NotFound`，`TraceView.request_id maxLength:128`）。**不证明什么**：不证明已知 id 的全生命周期（ST-OBSREQTRACE-001）、不证明 data token 403（ST-OBSREQTRACE-003）、不证明注入命中、不证明别名等价（ST-OBSALIAS-003）。**契约一致性警示（须登记）**：`_UnavailableDiagnostics.trace` 对**任意** id 返回 `200 + {stages:[]}`（fail-open），与健康实现的 404 语义不同；本 case 的 Oracle 以**健康诊断服务**为准。
+**目的（被测契约）**：验证单请求 trace 的**资源存在性负向契约**。被测端点/规则：`GET /v1/trace/{request_id}`，`TraceDiagnostics.trace` 在 `_trace_view` 无任何 `trace_events` 阶段时抛 `ApiError(404, "not_found", "No trace for this request_id")`（[`src/libdiag/traces.py`](../../../../src/libdiag/traces.py)）；
+不存在 id 必须 404，**不得**以 `200 + {stages:[]}` 冒充；认证 `admin`；统一信封 5 键（`type="request_error"`，`retryable=false`）。设计验证项 `VRC-DIAG-002`；
+机制 `T-OBS-TRACE`（[observability 机制](../../../20_system_design/mechanisms/observability.md) §5.1 `IF-OBS-TRACE-QUERY` "`trace` 无记录 → `ERR-NOTFOUND`（404）"）；
+错误目录 `ERR-NOTFOUND` → `not_found`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理) `ERR-NOTFOUND → ...、ST-OBSREQTRACE-002`）；
+需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；
+机器契约 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`NotFound`，`TraceView.request_id maxLength:128`）。
+**不证明什么**：不证明已知 id 的全生命周期（ST-OBSREQTRACE-001）、不证明 data token 403（ST-OBSREQTRACE-003）、不证明注入命中、不证明别名等价（ST-OBSALIAS-003）。**契约一致性警示（须登记）**：`_UnavailableDiagnostics.trace` 对**任意** id 返回 `200 + {stages:[]}`（fail-open），与健康实现的 404 语义不同；
+本 case 的 Oracle 以**健康诊断服务**为准。
 
 ## 2. 被测入口与前置
 
@@ -77,7 +84,10 @@
   4. 对另外两个边界 id 重复步骤 1–3（超长 id 的 400/404 记录并说明，不作为 FAIL 依据）。
   5. （对照，可选）取一条真实 `request_id`（经 `GET /v1/diagnostics/traces?limit=1`）→ 断言 `200`，证明端点本体可用（排除"端点整体坏"被误判为 404）。
 
-**重点关注步骤**：① **不得空 stages 冒充**——最危险的误判是把 `200 + {stages:[]}` 当"存在但无阶段"；404 才是契约。② **code 精确**——`not_found`（非 `model_not_found`/`invalid_request`）。③ **错误信封 identity**——恰 5 键、`type=request_error`。④ **id 唯一性**——使用不会在库中出现的 id，避免与真实请求冲突造成假 200。⑤ **超长 id 边界**——openapi `maxLength:128`；若实现返回 404（未校验长度）记录为边界说明，不判 FAIL（除非契约要求 400，当前未声明）。⑥ **降级差异**——`_UnavailableDiagnostics` 对任意 id 返回 200 空视图；执行时须确认诊断服务健康（`GET /v1/diagnostics` 200 且非降级默认特征），降级下判 BLOCKED/SKIP。⑦ **零副作用**——404 不写库。⑧ **存储**——`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSREQTRACE-002.py` 已实现。
+**重点关注步骤**：① **不得空 stages 冒充**——最危险的误判是把 `200 + {stages:[]}` 当"存在但无阶段"；404 才是契约。② **code 精确**——`not_found`（非 `model_not_found`/`invalid_request`）。
+③ **错误信封 identity**——恰 5 键、`type=request_error`。④ **id 唯一性**——使用不会在库中出现的 id，避免与真实请求冲突造成假 200。⑤ **超长 id 边界**——openapi `maxLength:128`；
+若实现返回 404（未校验长度）记录为边界说明，不判 FAIL（除非契约要求 400，当前未声明）。⑥ **降级差异**——`_UnavailableDiagnostics` 对任意 id 返回 200 空视图；执行时须确认诊断服务健康（`GET /v1/diagnostics` 200 且非降级默认特征），降级下判 BLOCKED/SKIP。
+⑦ **零副作用**——404 不写库。⑧ **存储**——`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSREQTRACE-002.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 

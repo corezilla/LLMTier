@@ -53,7 +53,11 @@
 - 要测什么（责任展开）：`POST /v1/providers` 创建 provider：HTTP 201 + 自动 `id` + `has_secret`/`version` + `ETag` 响应头，且可经 `GET /v1/providers/{id}` 回读。
 - 明确不测什么 / 失败含义：不证明 更新/删除/If-Match（ST-PROV-005..10）、不证明 `kind`/`secret_ref` 负向（ST-PROV-011/12）、不证明 `usage` 子对象更新（ST-PROV-013）、不证明重名 409（本 case 用随机名避开）、不证明响应不含 secret 的强断言（ST-PROV-014）；创建不触上游，故不证明 provider 可达性。
 
-**目的（被测契约）**：验证 Management Provider CRUD 的**创建写契约**。被测端点/规则：`POST /v1/providers`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `createProvider`，`security=AdminBearerAuth`），请求体契约为 `ProviderWrite{name,kind,endpoint,secret_ref,enabled(,usage?)}`；成功 `201 Created` + body `ProviderView` + 响应头 `ETag: "<id>.v<N>"`；`id` 由服务端自动生成（`_id("provider")` → `provider_<hex>`），`has_secret = (secret_ref is not None)`，初始 `version=1`；失败走统一错误信封（400 `invalid_request` / 409 `resource_conflict`）。设计验证项 `VRC-MGMT-001`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`T-CFG-CAS`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明更新/删除/If-Match（ST-PROV-005..10）、不证明 `kind`/`secret_ref` 负向（ST-PROV-011/12）、不证明 `usage` 子对象更新（ST-PROV-013）、不证明重名 409（本 case 用随机名避开）、不证明响应不含 secret 的强断言（ST-PROV-014）；创建不触上游，故不证明 provider 可达性。
+**目的（被测契约）**：验证 Management Provider CRUD 的**创建写契约**。被测端点/规则：`POST /v1/providers`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `createProvider`，`security=AdminBearerAuth`），请求体契约为 `ProviderWrite{name,kind,endpoint,secret_ref,enabled(,usage?)
+}`；成功 `201 Created` + body `ProviderView` + 响应头 `ETag: "<id>.v<N>"`；`id` 由服务端自动生成（`_id("provider")` → `provider_<hex>`），`has_secret = (secret_ref is not None)`，初始 `version=1`；
+失败走统一错误信封（400 `invalid_request` / 409 `resource_conflict`）。设计验证项 `VRC-MGMT-001`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`T-CFG-CAS`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明更新/删除/If-Match（ST-PROV-005..10）、不证明 `kind`/`secret_ref` 负向（ST-PROV-011/12）、不证明 `usage` 子对象更新（ST-PROV-013）、不证明重名 409（本 case 用随机名避开）、不证明响应不含 secret 的强断言（ST-PROV-014）；
+创建不触上游，故不证明 provider 可达性。
 
 ## 2. 被测入口与前置
 
@@ -89,7 +93,10 @@
   5. `get_resp = admin_client_b.get(f"/v1/providers/{rid}")`；断言 `200`、`name` 一致、`get_resp.headers["ETag"] == create` 的 ETag（版本未推进）。
   6. （teardown，`finally` 内）以最新 `GET` 的 `ETag` 发 `DELETE /v1/providers/{rid}`，断言 `204`；再 `GET` 断言 `404`。
 
-**重点关注步骤**：① **201 而非 200**——创建成功必须是 `201`，`ETag` 头必须存在；② **自动 id 与 version 初值**——`id` 由服务端生成、`version==1`，不得回显客户端未提供的字段为随机值；③ **ETag 格式与版本一致性**——`"<id>.v1"` 含双引号，回读 ETag 与创建一致；④ **`has_secret` 语义**——`secret_ref=null` ⇒ `has_secret=false`，且响应体**不含** `secret_ref` 键（ST-PROV-014 的强断言）；⑤ **拒绝零副作用**——若收到 400/409，须确认账本/资源无新建（本 case 用唯一名，不应命中 409）；⑥ **teardown 必达**——创建的 provider 无 deployment 引用，可安全 `DELETE`；若 `DELETE` 412，先重新 `GET` 取新 ETag 再删。
+**重点关注步骤**：① **201 而非 200**——创建成功必须是 `201`，`ETag` 头必须存在；② **自动 id 与 version 初值**——`id` 由服务端生成、`version==1`，不得回显客户端未提供的字段为随机值；
+③ **ETag 格式与版本一致性**——`"<id>.v1"` 含双引号，回读 ETag 与创建一致；④ **`has_secret` 语义**——`secret_ref=null` ⇒ `has_secret=false`，且响应体**不含** `secret_ref` 键（ST-PROV-014 的强断言）；
+⑤ **拒绝零副作用**——若收到 400/409，须确认账本/资源无新建（本 case 用唯一名，不应命中 409）；⑥ **teardown 必达**——创建的 provider 无 deployment 引用，可安全 `DELETE`；
+若 `DELETE` 412，先重新 `GET` 取新 ETag 再删。
 
 ## 5. 独立 Oracle 与预期结果
 

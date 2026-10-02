@@ -47,7 +47,9 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-USAGE-002` / 系统设计 §8 Usage 查询接口 / `VRC-MGMT-006` / normal / P1（[方案清单 `ST-USAGE-002`](../llmtier-system-test-scheme.md)）；机制 `T-MET-FINAL`（[usage-metering 机制](../../../20_system_design/mechanisms/usage-metering.md) §4.5/§4.6 CON-METER-001..003，INV-1/2/3）。
 - **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
-- 要测什么（责任展开）：一次成功的 `POST /v1/embeddings` 之后，其 `request_id` 在同一动态窗口的 `GET /v1/usage` 中可见，记录为 head 终态（`is_final=true`）、`endpoint`/`model` 与调用一致。前置 `POST /v1/embeddings`（生成一条账本义务并 `finish` 为终态版本），随后 `GET /v1/usage`（支持 `request_id` 过滤）读取。实现为 `src/inference/usage.py`：dispatch 前 `authorize_dispatch` 写 `usage_obligations` v1（`unknown`），成功 `finish` 追加 v2（`measured`，head 单调推进，读取只取 head 单条、不累加）。机制需求 `R-MET-01`/`R-MET-02`；需求链 `LT-FUN-004`、`LT-INT-004/005/007`、`CT-USAGE-001`。
+- 要测什么（责任展开）：一次成功的 `POST /v1/embeddings` 之后，其 `request_id` 在同一动态窗口的 `GET /v1/usage` 中可见，记录为 head 终态（`is_final=true`）、`endpoint`/`model` 与调用一致。
+  前置 `POST /v1/embeddings`（生成一条账本义务并 `finish` 为终态版本），随后 `GET /v1/usage`（支持 `request_id` 过滤）读取。实现为 `src/inference/usage.py`：dispatch 前 `authorize_dispatch` 写 `usage_obligations` v1（`unknown`），成功 `finish` 追加 v2（`measured`，head 单调推进，读取只取 head 单条、不累加）。
+  机制需求 `R-MET-01`/`R-MET-02`；需求链 `LT-FUN-004`、`LT-INT-004/005/007`、`CT-USAGE-001`。
 - 明确不测什么 / 失败含义：不测 token 计量数值的准确性（上游未回 usage 时按 `unknown`+`null` 收敛，属正常）；不测分页（ST-USAGE-003）、过期 cursor（04）、主体隔离（06）、重放幂等（07）、store 不可用（08）；不测答案/向量内容正确性。失败含义＝终态账本可见性契约破坏。
 
 ## 2. 被测入口与前置
@@ -89,7 +91,10 @@ Authorization: Bearer dev-data
 | 6 | 断言 `measurement_status ∈ {measured,estimated,unknown}` 且 `source` 与之一致 | `measured⇒provider`、`estimated⇒gateway_estimate`、`unknown⇒unavailable`；`unknown` 时 token 字段全为 `null`（**不得为 0**，INV-5）；否则为非负整数 |
 | 7 | 断言 `recorded_at`/`updated_at` 为合法 RFC3339 且 `recorded_at ∈ [since,until)` | `[from,to)` 边界 |
 
-- 重点关注步骤：① **`request_id` 捕获**——必须取前置响应头 `X-Request-ID`（服务端生成），不要自行编造；② **head 单条、不累加**——`data` 中同一 `request_id` 只应出现一条（head 指向的版本），若出现同 `request_id` 的多条即 FAIL；③ **终态而非 v1 obligation**——`is_final=true` 且 `record_version>=1`；④ **unknown ⇒ NULL 而非 0**——`T-MET-UNKNOWN`/INV-5 的强断言；⑤ **不夸大计量**——不对 token 数值做业务断言；⑥ **窗口动态**。注意：现有 [`ST-USAGE-002.py`](../../../../tests/system/cases/ST-USAGE-002.py) **未自建前置调用、未按 `request_id` 过滤、未断言 `is_final`/head 唯一/unknown⇒null**；脚本须补齐后方可判 PASS。
+- 重点关注步骤：① **`request_id` 捕获**——必须取前置响应头 `X-Request-ID`（服务端生成），不要自行编造；② **head 单条、不累加**——`data` 中同一 `request_id` 只应出现一条（head 指向的版本），若出现同 `request_id` 的多条即 FAIL；
+  ③ **终态而非 v1 obligation**——`is_final=true` 且 `record_version>=1`；④ **unknown ⇒ NULL 而非 0**——`T-MET-UNKNOWN`/INV-5 的强断言；⑤ **不夸大计量**——不对 token 数值做业务断言；
+  ⑥ **窗口动态**。注意：现有 [`ST-USAGE-002.py`](../../../../tests/system/cases/ST-USAGE-002.py) **未自建前置调用、未按 `request_id` 过滤、未断言 `is_final`/head 唯一/unknown⇒null**；
+  脚本须补齐后方可判 PASS。
 
 ## 5. 独立 Oracle 与预期结果
 

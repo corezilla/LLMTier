@@ -53,7 +53,9 @@
 - 要测什么（责任展开）：`GET /v1/runtime` 返回运行时并发/队列快照：HTTP 200 + `{deployments,providers,queues}`。
 - 明确不测什么 / 失败含义：不证明 data 角色的 403 负向（ST-RUNTIME-002）、不证明具体并发数值（运行时动态，不设门限）、不证明队列上限/429（ST-RESP-020 的领域）。
 
-**目的（被测契约）**：验证**运行时快照读契约**。被测端点/规则：`GET /v1/runtime`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getRuntimeSnapshot`，`security=AdminBearerAuth`，响应 schema `type: object`）；[`Router.snapshot`](../../../../src/inference/routing.py) 在条件锁内读 `deployment_runtime_profiles`/`provider_usage_profiles` 并返回 `deployments{id:{running,max_concurrent}}`、`providers{id:{running,max_concurrent,min_request_interval_ms,requests_per_minute}}`、`queues{tier:len}`（只含非空队列）。设计验证项 `VRC-INF-004`；需求/机制链 `LT-FUN-005`、`LT-OPS-002`、`R-INF-03`、`CT-OPS-001`。**不证明什么**：不证明 data 角色的 403 负向（ST-RUNTIME-002）、不证明具体并发数值（运行时动态，不设门限）、不证明队列上限/429（ST-RESP-020 的领域）。
+**目的（被测契约）**：验证**运行时快照读契约**。被测端点/规则：`GET /v1/runtime`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getRuntimeSnapshot`，`security=AdminBearerAuth`，响应 schema `type: object`）；
+[`Router.snapshot`](../../../../src/inference/routing.py) 在条件锁内读 `deployment_runtime_profiles`/`provider_usage_profiles` 并返回 `deployments{id:{running,max_concurrent}}`、`providers{id:{running,max_concurrent,min_request_interval_ms,requests_per_minute}}`、`queues{tier:len}`（只含非空队列）。
+设计验证项 `VRC-INF-004`；需求/机制链 `LT-FUN-005`、`LT-OPS-002`、`R-INF-03`、`CT-OPS-001`。**不证明什么**：不证明 data 角色的 403 负向（ST-RUNTIME-002）、不证明具体并发数值（运行时动态，不设门限）、不证明队列上限/429（ST-RESP-020 的领域）。
 
 ## 2. 被测入口与前置
 

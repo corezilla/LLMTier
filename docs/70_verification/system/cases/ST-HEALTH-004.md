@@ -36,7 +36,11 @@
 - 要测什么（责任展开）：`GET /readyz` 在无任何 deployment（无候选）时返回 HTTP 503 + `ReadinessView{status:"not_ready", models[7]}`（7 个 fixed tier 全 `availability="unavailable"`）。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明有候选但无健康候选的 `degraded`（ST-HEALTH-003）、bootstrap 失败的 `not_ready`（ST-HEALTH-005，后者 body 的 `models` 为空 `[]`）；不证明鉴权行为（ST-HEALTH-006/ST-AUTH-*）；不证明 `/v1/*` 的行为；不触发 provider 计费调用（`LT-OPS-001`）。**失败含义＝不可用就绪聚合契约破坏**。
 
-**目的（被测契约）**：验证 IF-HEALTH 的**不可用就绪**契约。端点 `GET /readyz`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getReadiness`）。实现 [`readiness_view`](../../../../src/http_api/health.py)：fixed tier 无候选 deployment ⇒ `availability="unavailable"`；全部 tier `unavailable` ⇒ `status="not_ready"`、HTTP 503。设计验证项 `VRC-MGMT-003` 与 `VRC-UTIL-001/002`；机制 `T-OBS`（[observability 机制](../../../20_system_design/mechanisms/observability.md)）、`T-CFG-BOOT`/`R-CFG-02`（[config-lifecycle 机制](../../../20_system_design/mechanisms/config-lifecycle.md)）；需求链 `LT-FUN-006`/`LT-OPS-001`、`CT-OPS-001`（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明有候选但无健康候选的 `degraded`（ST-HEALTH-003）、bootstrap 失败的 `not_ready`（ST-HEALTH-005，后者 body 的 `models` 为空 `[]`）；不证明鉴权行为（ST-HEALTH-006/ST-AUTH-*）；不证明 `/v1/*` 的行为；不触发 provider 计费调用（`LT-OPS-001`）。
+**目的（被测契约）**：验证 IF-HEALTH 的**不可用就绪**契约。端点 `GET /readyz`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getReadiness`）。
+实现 [`readiness_view`](../../../../src/http_api/health.py)：fixed tier 无候选 deployment ⇒ `availability="unavailable"`；全部 tier `unavailable` ⇒ `status="not_ready"`、HTTP 503。
+设计验证项 `VRC-MGMT-003` 与 `VRC-UTIL-001/002`；机制 `T-OBS`（[observability 机制](../../../20_system_design/mechanisms/observability.md)）、`T-CFG-BOOT`/`R-CFG-02`（[config-lifecycle 机制](../../../20_system_design/mechanisms/config-lifecycle.md)）；
+需求链 `LT-FUN-006`/`LT-OPS-001`、`CT-OPS-001`（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明有候选但无健康候选的 `degraded`（ST-HEALTH-003）、bootstrap 失败的 `not_ready`（ST-HEALTH-005，后者 body 的 `models` 为空 `[]`）；
+不证明鉴权行为（ST-HEALTH-006/ST-AUTH-*）；不证明 `/v1/*` 的行为；不触发 provider 计费调用（`LT-OPS-001`）。
 
 ## 2. 被测入口与前置
 
@@ -87,7 +91,11 @@
 | 6 | 断言每个元素 `availability == "unavailable"` | 响应体 |
 | 7 | fixture `stop()` 销毁实例 | 无残留 |
 
-**重点关注步骤**：① **`not_ready` vs `degraded`**——无候选是 `unavailable` ⇒ `not_ready`；有候选但无 healthy 是 `degraded`（ST-HEALTH-003）。② **`models` 为 7（非 0）**——本例 `models` 是 7 个全 `unavailable` 的 fixed tier；ST-HEALTH-005 的 bootstrap 失败才是 `models:[]`（[`app.py:188-189`](../../../../src/http_api/app.py) 短路）。若观测到 `models:[]` 说明命中了 bootstrap 失败路径而非本 case。③ **503 而非 200**——现有 [`ST-HEALTH-004.py`](../../../../tests/system/cases/ST-HEALTH-004.py) 已收紧为断言 `status_code == 503`（精确，不接受 200），并断言 body 键集恰为 `{status, models}`；本 case 与该精确断言一致。④ **字段集精确性**——`ReadinessView` `additionalProperties:false`，只允许 `{status, models}`；模型元素只允许 `{id, availability}`。⑤ **不得被错误信封冒充**——503 时确认是 `ReadinessView` 而非 `{"error":...}`。⑥ **构造正确性**——确认实例确为空库/无 deployment；若误用 `llmtier_b`（有 `depl_b`）会得到 `degraded`/`ready`。
+**重点关注步骤**：① **`not_ready` vs `degraded`**——无候选是 `unavailable` ⇒ `not_ready`；有候选但无 healthy 是 `degraded`（ST-HEALTH-003）。② **`models` 为 7（非 0）**——本例 `models` 是 7 个全 `unavailable` 的 fixed tier；
+ST-HEALTH-005 的 bootstrap 失败才是 `models:[]`（[`app.py:188-189`](../../../../src/http_api/app.py) 短路）。若观测到 `models:[]` 说明命中了 bootstrap 失败路径而非本 case。
+③ **503 而非 200**——现有 [`ST-HEALTH-004.py`](../../../../tests/system/cases/ST-HEALTH-004.py) 已收紧为断言 `status_code == 503`（精确，不接受 200），并断言 body 键集恰为 `{status, models}`；
+本 case 与该精确断言一致。④ **字段集精确性**——`ReadinessView` `additionalProperties:false`，只允许 `{status, models}`；模型元素只允许 `{id, availability}`。
+⑤ **不得被错误信封冒充**——503 时确认是 `ReadinessView` 而非 `{"error":...}`。⑥ **构造正确性**——确认实例确为空库/无 deployment；若误用 `llmtier_b`（有 `depl_b`）会得到 `degraded`/`ready`。
 
 ## 5. 独立 Oracle 与预期结果
 

@@ -53,7 +53,13 @@
 - 要测什么（责任展开）：`GET /v1/trace/{request_id}` 以 `data` token 访问：HTTP 403 `permission_denied`，无信息泄露（不返回 404 的存在性差异）。
 - 明确不测什么 / 失败含义：不证明 正向 trace（ST-OBSREQTRACE-001）、不证明未知 id 404（ST-OBSREQTRACE-002）、不证明无凭据/非法方案 401（ST-AUTH-010）、不证明别名命名空间需 admin（ST-AUTH-008，虽同思路）、不证明快照/统计角色负向（未单列）。
 
-**目的（被测契约）**：验证单请求 trace 的**角色授权负向契约**。被测端点/规则：`GET /v1/trace/{request_id}` 属 Observability（admin 面），路由在 `_dispatch` 中经 `principal = self._auth("admin")` 解析；`data` token 不匹配配置的 admin token → `authenticate` 抛 `ApiError(403, "permission_denied", "The credential is not authorized")`（[`src/http_api/auth.py`](../../../../src/http_api/auth.py)），**先于**资源存在性检查（因此对任意 id 都 403，不泄露该 id 是否存在）；错误信封恰 5 键（`type="request_error"`，`retryable=false`）。设计验证项 `VRC-API-002` + `R-TRUST-02`；机制 `T-TRUST-SHARED`/`T-TRUST-LEAK`（[access-trust 机制](../../../20_system_design/mechanisms/access-trust.md)）；错误目录 `ERR-AUTH-DENIED` → `permission_denied`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理) `ERR-AUTH-DENIED → ...、ST-OBSREQTRACE-003`；§3.5 `/v1/trace/{id}` 覆盖 `permission_denied`）；需求链 `LT-INT-001`/`LT-SEC-001/003`、`R-TRUST-01..04`、`CT-WEBSEC-001`/`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；机器契约 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`Forbidden`，`security=AdminBearerAuth`）。**不证明什么**：不证明正向 trace（ST-OBSREQTRACE-001）、不证明未知 id 404（ST-OBSREQTRACE-002）、不证明无凭据/非法方案 401（ST-AUTH-010）、不证明别名命名空间需 admin（ST-AUTH-008，虽同思路）、不证明快照/统计角色负向（未单列）。
+**目的（被测契约）**：验证单请求 trace 的**角色授权负向契约**。被测端点/规则：`GET /v1/trace/{request_id}` 属 Observability（admin 面），路由在 `_dispatch` 中经 `principal = self._auth("admin")` 解析；
+`data` token 不匹配配置的 admin token → `authenticate` 抛 `ApiError(403, "permission_denied", "The credential is not authorized")`（[`src/http_api/auth.py`](../../../../src/http_api/auth.py)），**先于**资源存在性检查（因此对任意 id 都 403，不泄露该 id 是否存在）；
+错误信封恰 5 键（`type="request_error"`，`retryable=false`）。设计验证项 `VRC-API-002` + `R-TRUST-02`；机制 `T-TRUST-SHARED`/`T-TRUST-LEAK`（[access-trust 机制](../../../20_system_design/mechanisms/access-trust.md)）；
+错误目录 `ERR-AUTH-DENIED` → `permission_denied`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理) `ERR-AUTH-DENIED → ...、ST-OBSREQTRACE-003`；
+§3.5 `/v1/trace/{id}` 覆盖 `permission_denied`）；需求链 `LT-INT-001`/`LT-SEC-001/003`、`R-TRUST-01..04`、`CT-WEBSEC-001`/`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；
+机器契约 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`Forbidden`，`security=AdminBearerAuth`）。
+**不证明什么**：不证明正向 trace（ST-OBSREQTRACE-001）、不证明未知 id 404（ST-OBSREQTRACE-002）、不证明无凭据/非法方案 401（ST-AUTH-010）、不证明别名命名空间需 admin（ST-AUTH-008，虽同思路）、不证明快照/统计角色负向（未单列）。
 
 ## 2. 被测入口与前置
 
@@ -77,7 +83,10 @@
   5. （对照）同一未知 id 用 `admin_client`（`Bearer dev-admin`）→ 断言 `404 not_found`，证明步骤 2 的 403 不是"资源不存在"的伪装。
   6. （别名旁证）`GET /tier/admin/v1/trace/req_does_not_exist` + `Bearer dev-data` → 断言 `403 permission_denied`。
 
-**重点关注步骤**：① **授权先于存在性**——data token 对存在/未知 id 都应 403，**不得**因 id 不存在而返回 404（信息泄露）；这是本 case 核心。② **403 vs 401**——`Bearer dev-data` 形态合法但不是 admin 凭据 → **403**（不是 401；401 属缺/非法凭据，ST-AUTH-010）。③ **错误信封 identity**——恰 5 键、`type=request_error`、`retryable=false`。④ **不泄露存在性**——两种 id 的响应体应一致（除 message 中可能无 id 信息）。⑤ **admin 可达对照**——用 admin 证明端点本身可用且未知 id 为 404，排除把"端点整体坏"误判为授权拒绝。⑥ **别名同保护**——别名路径同样要求 admin（ST-AUTH-008），本 case 作旁证。⑦ **降级/存储**——`_UnavailableDiagnostics.trace` 在授权**之后**才执行，故不影响 403；`503 usage_store_unavailable` 判 BLOCKED/SKIP（仅在 admin 对照路径可能出现）。自动化入口 `ST-OBSREQTRACE-003.py` 已实现。
+**重点关注步骤**：① **授权先于存在性**——data token 对存在/未知 id 都应 403，**不得**因 id 不存在而返回 404（信息泄露）；这是本 case 核心。② **403 vs 401**——`Bearer dev-data` 形态合法但不是 admin 凭据 → **403**（不是 401；
+401 属缺/非法凭据，ST-AUTH-010）。③ **错误信封 identity**——恰 5 键、`type=request_error`、`retryable=false`。④ **不泄露存在性**——两种 id 的响应体应一致（除 message 中可能无 id 信息）。
+⑤ **admin 可达对照**——用 admin 证明端点本身可用且未知 id 为 404，排除把"端点整体坏"误判为授权拒绝。⑥ **别名同保护**——别名路径同样要求 admin（ST-AUTH-008），本 case 作旁证。⑦ **降级/存储**——`_UnavailableDiagnostics.trace` 在授权**之后**才执行，故不影响 403；
+`503 usage_store_unavailable` 判 BLOCKED/SKIP（仅在 admin 对照路径可能出现）。自动化入口 `ST-OBSREQTRACE-003.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 

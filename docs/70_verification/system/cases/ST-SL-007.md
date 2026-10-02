@@ -53,7 +53,10 @@
 - 要测什么（责任展开）：`PATCH /v1/service-levels/Embedding-v1` 绑定非冻结向量空间的 embedding deployment：HTTP 409 `embedding_space_conflict`。
 - 明确不测什么 / 失败含义：不证明 能力键缺失型的 `capability_conflict`（ST-SL-006）、不证明非 Embedding-v1 tier 的 responses 校验、不证明 embedding 数据面（ST-EMB-*）。
 
-**目的（被测契约）**：验证 `Embedding-v1` 的**冻结 BGE-M3 向量空间契约**。被测端点/规则：`PATCH /v1/service-levels/{service_level_id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `updateServiceLevel`）；[`registry._validate_level`](../../../../src/management/registry.py) 对 `level_id=="Embedding-v1"` 要求 `embedding_space_id=="bge-m3-dense-1024-v1"`、`embedding_dimensions==[1024]`、`embedding_max_batch_inputs==32`、`embedding_max_input_tokens==8192`，否则 `raise ApiError(409, "embedding_space_conflict", …)`。设计验证项 `VRC-MGMT-002`；错误目录 `ERR-EMBEDDING-SPACE` → wire `code=embedding_space_conflict`；机制 `T-CFG-SPACE`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明能力键缺失型的 `capability_conflict`（ST-SL-006）、不证明非 Embedding-v1 tier 的 responses 校验、不证明 embedding 数据面（ST-EMB-*）。
+**目的（被测契约）**：验证 `Embedding-v1` 的**冻结 BGE-M3 向量空间契约**。被测端点/规则：`PATCH /v1/service-levels/{service_level_id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `updateServiceLevel`）；
+[`registry._validate_level`](../../../../src/management/registry.py) 对 `level_id=="Embedding-v1"` 要求 `embedding_space_id=="bge-m3-dense-1024-v1"`、`embedding_dimensions==[1024]`、`embedding_max_batch_inputs==32`、`embedding_max_input_tokens==8192`，否则 `raise ApiError(409, "embedding_space_conflict", …)`。
+设计验证项 `VRC-MGMT-002`；错误目录 `ERR-EMBEDDING-SPACE` → wire `code=embedding_space_conflict`；机制 `T-CFG-SPACE`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。
+**不证明什么**：不证明能力键缺失型的 `capability_conflict`（ST-SL-006）、不证明非 Embedding-v1 tier 的 responses 校验、不证明 embedding 数据面（ST-EMB-*）。
 
 ## 2. 被测入口与前置
 
@@ -95,7 +98,10 @@
   6. （零副作用核验）`GET /v1/service-levels/Embedding-v1` 断言 `deployment_ids` 与 `version` 均为原值。
   7. （teardown，`finally` 内）`DELETE /v1/deployments/{new_depl_id}`（最新 ETag）→ `204`；`GET` 断言 404。
 
-**重点关注步骤**：① **命中正确分支**——`embedding_space_id` 错误但 embedding/responses 标志正确，必须得 `embedding_space_conflict`；若得 `capability_conflict` 说明构造使交集丢键（错误构造）；② **Embedding-v1 专属**——该冻结检查仅对 `level_id=="Embedding-v1"` 生效；③ **零副作用**——失败后 `Embedding-v1` 成员/版本不变；④ **teardown 完整性**——新建 embedding deployment 未被引用（PATCH 失败回滚），可删除；现有 [`ST-SL-007.py`](../../../../tests/system/cases/ST-SL-007.py) 已在 `finally` 内 `DELETE` 并断言 `204`/随后 `404`，同时回读 `Embedding-v1` 证明 `deployment_ids`/`version` 未变（零副作用）；⑤ **错误信封 identity**——恰 5 键、`type=request_error`。
+**重点关注步骤**：① **命中正确分支**——`embedding_space_id` 错误但 embedding/responses 标志正确，必须得 `embedding_space_conflict`；若得 `capability_conflict` 说明构造使交集丢键（错误构造）；
+② **Embedding-v1 专属**——该冻结检查仅对 `level_id=="Embedding-v1"` 生效；③ **零副作用**——失败后 `Embedding-v1` 成员/版本不变；④ **teardown 完整性**——新建 embedding deployment 未被引用（PATCH 失败回滚），可删除；
+现有 [`ST-SL-007.py`](../../../../tests/system/cases/ST-SL-007.py) 已在 `finally` 内 `DELETE` 并断言 `204`/随后 `404`，同时回读 `Embedding-v1` 证明 `deployment_ids`/`version` 未变（零副作用）；
+⑤ **错误信封 identity**——恰 5 键、`type=request_error`。
 
 ## 5. 独立 Oracle 与预期结果
 

@@ -33,10 +33,16 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-HEALTH-001` / 系统设计 §8 健康/就绪接口（/healthz、/readyz） / `VRC-API-002` / `normal` / `P0`。本文件名 `st-health-001.md`，与 Case ID 唯一对应。
 - **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
-- 要测什么（责任展开）：`GET /healthz` 公开存活探针：HTTP 200 + `HealthView{status:"ok", version:<string>}`，无凭据、无副作用；**即使 bootstrap/schema 失败也保持 200**。验证 IF-HEALTH 的**进程存活探针**契约。端点 `GET /healthz`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getHealth`，`security:[]`），实现 [`src/http_api/app.py:187`](../../../../src/http_api/app.py) 在 `_dispatch()` 最前短路返回 `_json(200, health_view(__version__))`；[`health_view`](../../../../src/http_api/health.py) 返回 `{"status":"ok","version":<__version__>}`（`__version__="0.3.0-dev"`，[`src/http_api/__init__.py`](../../../../src/http_api/__init__.py)）。机制 `T-TRUST-ENDPOINTS`（需求 `R-TRUST-04`；见 [access-trust 机制](../../../20_system_design/mechanisms/access-trust.md)）；需求链 `LT-FUN-006`/`LT-OPS-001`、`CT-OPS-001`（[系统测试方案 §3/§5](../llmtier-system-test-scheme.md)）。
+- 要测什么（责任展开）：`GET /healthz` 公开存活探针：HTTP 200 + `HealthView{status:"ok", version:<string>}`，无凭据、无副作用；**即使 bootstrap/schema 失败也保持 200**。
+  验证 IF-HEALTH 的**进程存活探针**契约。端点 `GET /healthz`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getHealth`，`security:[]`），实现 [`src/http_api/app.py:187`](../../../../src/http_api/app.py) 在 `_dispatch()` 最前短路返回 `_json(200, health_view(__version__))`；
+  [`health_view`](../../../../src/http_api/health.py) 返回 `{"status":"ok","version":<__version__>}`（`__version__="0.3.0-dev"`，[`src/http_api/__init__.py`](../../../../src/http_api/__init__.py)）。
+  机制 `T-TRUST-ENDPOINTS`（需求 `R-TRUST-04`；见 [access-trust 机制](../../../20_system_design/mechanisms/access-trust.md)）；需求链 `LT-FUN-006`/`LT-OPS-001`、`CT-OPS-001`（[系统测试方案 §3/§5](../llmtier-system-test-scheme.md)）。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明就绪（`/readyz` 见 ST-HEALTH-002/03/04/05）；不证明 healthz 也经鉴权（该端点 `security:[]`，鉴权属 ST-AUTH-*）；不证明 `version` 的语义（只断言其为非空字符串）；不触发任何 provider 计费调用（`LT-OPS-001`）。**失败含义＝进程存活探针契约破坏**（返回非 200 或非 `HealthView`），而非就绪语义失败。
 
-**目的（被测契约）**：验证 IF-HEALTH 的**进程存活探针**契约：`GET /healthz` 返回 200 + `HealthView`，且该端点 `security:[]`（无凭据）。**关键实现约束**：[`app.py:187`](../../../../src/http_api/app.py) 的 `/healthz` 分支位于 `if app.bootstrap_error`（[`app.py:192`](../../../../src/http_api/app.py)）之前，故即使 bootstrap 失败仍返回 200——它只代表进程存活。设计验证项 `VRC-API-002`；机制 `T-TRUST-ENDPOINTS`；需求链 `LT-FUN-006`/`LT-OPS-001`、`CT-OPS-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明就绪（`/readyz` 见 ST-HEALTH-002/03/04/05）；不证明 healthz 也经鉴权（该端点 `security:[]`，鉴权属 ST-AUTH-*）；不证明 `version` 的语义（只断言其为非空字符串）；不触发任何 provider 计费调用（`LT-OPS-001`）。
+**目的（被测契约）**：验证 IF-HEALTH 的**进程存活探针**契约：`GET /healthz` 返回 200 + `HealthView`，且该端点 `security:[]`（无凭据）。**关键实现约束**：[`app.py:187`](../../../../src/http_api/app.py) 的 `/healthz` 分支位于 `if app.bootstrap_error`（[`app.py:192`](../../../../src/http_api/app.py)）之前，故即使 bootstrap 失败仍返回 200——它只代表进程存活。
+设计验证项 `VRC-API-002`；机制 `T-TRUST-ENDPOINTS`；需求链 `LT-FUN-006`/`LT-OPS-001`、`CT-OPS-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明就绪（`/readyz` 见 ST-HEALTH-002/03/04/05）；不证明 healthz 也经鉴权（该端点 `security:[]`，鉴权属 ST-AUTH-*）；不证明 `version` 的语义（只断言其为非空字符串）；
+不触发任何 provider 计费调用（`LT-OPS-001`）。
 
 ## 2. 被测入口与前置
 
@@ -84,7 +90,10 @@
 | 5 | 解析 body 键集恰为 `{status, version}`、`status=="ok"`、`version` 非空字符串 | 响应体 |
 | 6 | 交叉核对同刻 `/readyz` status | 存活 vs 就绪语义分离 |
 
-**重点关注步骤**：① **`version` 是字符串**——契约要求 `version:str`；现有 [`ST-HEALTH-001.py`](../../../../tests/system/cases/ST-HEALTH-001.py) 已断言 200 + `status=="ok"` + `version` 为非空字符串，本 case 与该断言一致。② **200 的真实含义**——`/healthz` 只证明进程存活，**不是**就绪；不得把 200 当作可接流量。③ **零凭据（`security:[]`）**——本 case 的凭据点必须由**裸客户端**（无 `Authorization`）发出；`api_client` 固定注入凭据，用它即失去零凭据语义（只有 ST-AUTH-005 覆盖无 token，本 case 也不得冒充）。④ **不得被错误信封冒充**——若返回非 200，需确认是可解释环境问题，而非把 `{"error":...}` 当 `HealthView` 读。⑤ 不在此 case 断言 `/readyz` 的 tier 状态（属 ST-HEALTH-002..05）。
+**重点关注步骤**：① **`version` 是字符串**——契约要求 `version:str`；现有 [`ST-HEALTH-001.py`](../../../../tests/system/cases/ST-HEALTH-001.py) 已断言 200 + `status=="ok"` + `version` 为非空字符串，本 case 与该断言一致。
+② **200 的真实含义**——`/healthz` 只证明进程存活，**不是**就绪；不得把 200 当作可接流量。③ **零凭据（`security:[]`）**——本 case 的凭据点必须由**裸客户端**（无 `Authorization`）发出；
+`api_client` 固定注入凭据，用它即失去零凭据语义（只有 ST-AUTH-005 覆盖无 token，本 case 也不得冒充）。④ **不得被错误信封冒充**——若返回非 200，需确认是可解释环境问题，而非把 `{"error":...}` 当 `HealthView` 读。
+⑤ 不在此 case 断言 `/readyz` 的 tier 状态（属 ST-HEALTH-002..05）。
 
 ## 5. 独立 Oracle 与预期结果
 

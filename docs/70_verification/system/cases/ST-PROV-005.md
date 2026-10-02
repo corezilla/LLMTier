@@ -53,7 +53,11 @@
 - 要测什么（责任展开）：`PATCH /v1/providers/{id}` 携带正确 `If-Match` 更新 provider：HTTP 200 + 字段生效 + `version`/`ETag` 推进。
 - 明确不测什么 / 失败含义：不证明 缺/过期 `If-Match` 的 412（ST-PROV-006/07）、不证明删除（ST-PROV-008/09/10）、不证明 `kind`/`secret_ref` 校验（ST-PROV-011/12）、不证明 `usage` 子对象更新（ST-PROV-013）、不证明并发两写者竞争（[测试设计 §5](../llmtier-system-test-scheme.md) 归并发布前不单独构 case）；本 case 更新 `name`/`enabled` 两个标量，不触上游。
 
-**目的（被测契约）**：验证 Management Provider CRUD 的**乐观并发更新契约**。被测端点/规则：`PATCH /v1/providers/{id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `updateProvider`，`security=AdminBearerAuth`），请求体 `ProviderPatch`（`minProperties:1`，`additionalProperties:false`，可含 `name/kind/endpoint/secret_ref/enabled/usage`）；`If-Match` 头必须等于当前 ETag `"<id>.v<N>"`；成功 `200` + 新 `ProviderView` + 响应头 `ETag: "<id>.v<N+1>"`（`version` 单调 +1，[`registry.update_provider`](../../../../src/management/registry.py)）；失败 400 `invalid_request` / 404 `not_found` / 412 `version_conflict`。设计验证项 `VRC-MGMT-002`；机制 `T-CFG-CAS`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明缺/过期 `If-Match` 的 412（ST-PROV-006/07）、不证明删除（ST-PROV-008/09/10）、不证明 `kind`/`secret_ref` 校验（ST-PROV-011/12）、不证明 `usage` 子对象更新（ST-PROV-013）、不证明并发两写者竞争（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理) 归并发布前不单独构 case）；本 case 更新 `name`/`enabled` 两个标量，不触上游。
+**目的（被测契约）**：验证 Management Provider CRUD 的**乐观并发更新契约**。被测端点/规则：`PATCH /v1/providers/{id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `updateProvider`，`security=AdminBearerAuth`），请求体 `ProviderPatch`（`minProperties:1`，`additionalProperties:false`，可含 `name/kind/endpoint/secret_ref/enabled/usage`）；
+`If-Match` 头必须等于当前 ETag `"<id>.v<N>"`；成功 `200` + 新 `ProviderView` + 响应头 `ETag: "<id>.v<N+1>"`（`version` 单调 +1，[`registry.update_provider`](../../../../src/management/registry.py)）；
+失败 400 `invalid_request` / 404 `not_found` / 412 `version_conflict`。设计验证项 `VRC-MGMT-002`；机制 `T-CFG-CAS`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明缺/过期 `If-Match` 的 412（ST-PROV-006/07）、不证明删除（ST-PROV-008/09/10）、不证明 `kind`/`secret_ref` 校验（ST-PROV-011/12）、不证明 `usage` 子对象更新（ST-PROV-013）、不证明并发两写者竞争（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理) 归并发布前不单独构 case）；
+本 case 更新 `name`/`enabled` 两个标量，不触上游。
 
 ## 2. 被测入口与前置
 

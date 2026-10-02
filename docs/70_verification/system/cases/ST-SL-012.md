@@ -53,7 +53,11 @@
 - 要测什么（责任展开）：`POST /v1/service-levels` 用已存在的固定 Tier `id`（`Senior`）创建：HTTP 409 `resource_conflict`。
 - 明确不测什么 / 失败含义：不证明 非白名单 id 的 400（ST-SL-002）、不证明成员能力/向量空间校验（ST-SL-006/07）、不证明 PATCH/DELETE（ST-SL-004/05）。本 case **只**锁 409 `resource_conflict`。
 
-**目的（被测契约）**：验证固定 Tier 的**唯一性冲突契约**。被测端点/规则：`POST /v1/service-levels`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `createServiceLevel`）；[`registry.create_service_level`](../../../../src/management/registry.py) 通过白名单与能力校验后 `INSERT INTO service_levels`，主键冲突时捕获 `UNIQUE` 并抛 `ApiError(409, "resource_conflict", "Service level already exists")`。设计验证项 `VRC-MGMT-002`；错误目录 `ERR-CONFLICT` → wire `code=resource_conflict`（[系统设计 §7.8](../../../20_system_design/llmtier-system-design.md)）；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明非白名单 id 的 400（ST-SL-002）、不证明成员能力/向量空间校验（ST-SL-006/07）、不证明 PATCH/DELETE（ST-SL-004/05）。本 case **只**锁 409 `resource_conflict`。
+**目的（被测契约）**：验证固定 Tier 的**唯一性冲突契约**。被测端点/规则：`POST /v1/service-levels`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `createServiceLevel`）；
+[`registry.create_service_level`](../../../../src/management/registry.py) 通过白名单与能力校验后 `INSERT INTO service_levels`，主键冲突时捕获 `UNIQUE` 并抛 `ApiError(409, "resource_conflict", "Service level already exists")`。
+设计验证项 `VRC-MGMT-002`；错误目录 `ERR-CONFLICT` → wire `code=resource_conflict`（[系统设计 §7.8](../../../20_system_design/llmtier-system-design.md)）；
+需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明非白名单 id 的 400（ST-SL-002）、不证明成员能力/向量空间校验（ST-SL-006/07）、不证明 PATCH/DELETE（ST-SL-004/05）。
+本 case **只**锁 409 `resource_conflict`。
 
 ## 2. 被测入口与前置
 

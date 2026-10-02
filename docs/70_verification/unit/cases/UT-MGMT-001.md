@@ -91,7 +91,8 @@ bootstrap_settings(settings) ; ensure_fixed_tiers()
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/cases/UT-MGMT-001.py`（8 个；含 `test_non_apierror_bootstrap_does_not_crash`（CR-BOOTSTRAP-CATCH，非 `ApiError` → 503 `bootstrap_invalid`））+ `tests/unit/cases/UT-MGMT-001.py::test_fixed_tiers_exist` + `tests/unit/cases/UT-MGMT-001.py::BootstrapTests`（含 `test_empty_store_without_settings_is_bootstrap_required`（`bootstrap_required`）、`test_missing_section_fails`/`test_env_secret_ref_unavailable_fails`/`test_file_secret_ref_missing_fails`（`bootstrap_invalid`））（注意：本 Case 的测试函数当前按子句（test case method）映射；若与设计 VRC 不一致，以设计修订回溯后重裁）。
+- 测试文件 / 测试函数：`tests/unit/cases/UT-MGMT-001.py`（8 个；含 `test_non_apierror_bootstrap_does_not_crash`（CR-BOOTSTRAP-CATCH，非 `ApiError` → 503 `bootstrap_invalid`））+ `tests/unit/cases/UT-MGMT-001.py::test_fixed_tiers_exist` + `tests/unit/cases/UT-MGMT-001.py::BootstrapTests`（含 `test_empty_store_without_settings_is_bootstrap_required`（`bootstrap_required`）、`test_missing_section_fails`/`test_env_secret_ref_unavailable_fails`/`test_file_secret_ref_missing_fails`（`bootstrap_invalid`））（注意：本 Case 的测试函数当前按子句（test case method）映射；
+  若与设计 VRC 不一致，以设计修订回溯后重裁）。
 - 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-MGMT-001.py -q`
 - 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。
 

@@ -51,9 +51,19 @@
 - **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
 - 方案清单登记：`ST-OBSDEPL-002`
 - 要测什么（责任展开）：`PATCH /v1/deployments/{id}/diagnostics` 写入故障注入：HTTP 200 + 返回更新后的 `InjectionView[]`，按 `(deployment_id, type)` upsert 生效，副作用 = **同事务审计**。
-- 明确不测什么 / 失败含义：不证明 注入对推理的**命中效果**（ST-RESP-011/22 在 B 类以真实 `POST /v1/responses` 证明 `fault_502`/`fault_503` 命中；本 case 只证明"配置写入并可由 GET 读回"）、不证明非法项 400（ST-OBSDEPL-004）、不证明未知 deployment 404（ST-OBSDEPL-003）、不证明别名等价（ST-OBSALIAS-004）。**实现现状（已对齐 openapi）**：`InjectionList` openapi `required:["items"]`；handler 在 PATCH 前检查 `if "items" not in body: raise ApiError(400, "invalid_request", ...)`（`app.py:331-332` 扁平、`app.py:341-342` 别名），故缺 `items` 是 **400**，不会静默 revoke。本 case 用规范 body。
+- 明确不测什么 / 失败含义：不证明 注入对推理的**命中效果**（ST-RESP-011/22 在 B 类以真实 `POST /v1/responses` 证明 `fault_502`/`fault_503` 命中；本 case 只证明"配置写入并可由 GET 读回"）、不证明非法项 400（ST-OBSDEPL-004）、不证明未知 deployment 404（ST-OBSDEPL-003）、不证明别名等价（ST-OBSALIAS-004）。
+  **实现现状（已对齐 openapi）**：`InjectionList` openapi `required:["items"]`；handler 在 PATCH 前检查 `if "items" not in body: raise ApiError(400, "invalid_request", ...)`（`app.py:331-332` 扁平、`app.py:341-342` 别名），故缺 `items` 是 **400**，不会静默 revoke。
+  本 case 用规范 body。
 
-**目的（被测契约）**：验证 `PATCH /v1/deployments/{deployment_id}/diagnostics` 的**注入写契约**。被测端点/规则：request body `InjectionList`（键集必须含 `items`，每项 `InjectionWrite = {type, config, enabled}`）；成功返回全量 `InjectionView[]`；按 `(deployment_id, injection_type)` upsert（幂等）；`enabled=true` 才生效；写在同一事务写审计（`action=diagnostics.injection.update`，`target=<deployment_id>`）；未知 deployment → 404 `not_found`（ST-OBSDEPL-003）；非法项 → 400 `invalid_injection`（ST-OBSDEPL-004）；认证 `admin`；统一信封 5 键。设计验证项 `VRC-DIAG-004`；机制 `T-OBS-INJECT`（[observability 机制](../../../20_system_design/mechanisms/observability.md) §4.3.2 `D-OBS-INJECTION-CONFIG`、§5.1 `IF-OBS-INJECT` "PATCH partial upsert；副作用=注入配置写 + 审计"）；错误目录 `ERR-INJECTION`/`ERR-NOTFOUND`/`ERR-STORE`；需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；机器契约 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`InjectionList`/`InjectionWrite`/`InjectionView`）。**不证明什么**：不证明注入对推理的**命中效果**（ST-RESP-011/22 在 B 类以真实 `POST /v1/responses` 证明 `fault_502`/`fault_503` 命中；本 case 只证明"配置写入并可由 GET 读回"）、不证明非法项 400（ST-OBSDEPL-004）、不证明未知 deployment 404（ST-OBSDEPL-003）、不证明别名等价（ST-OBSALIAS-004）。**实现现状（已对齐 openapi）**：`InjectionList` openapi `required:["items"]`；handler 在 PATCH 前检查 `if "items" not in body: raise ApiError(400, "invalid_request", ...)`（`app.py:331-332` 扁平、`app.py:341-342` 别名），故缺 `items` 是 **400**，不会静默 revoke。本 case 用规范 body。
+**目的（被测契约）**：验证 `PATCH /v1/deployments/{deployment_id}/diagnostics` 的**注入写契约**。被测端点/规则：request body `InjectionList`（键集必须含 `items`，每项 `InjectionWrite = {type, config, enabled}`）；
+成功返回全量 `InjectionView[]`；按 `(deployment_id, injection_type)` upsert（幂等）；`enabled=true` 才生效；写在同一事务写审计（`action=diagnostics.injection.update`，`target=<deployment_id>`）；
+未知 deployment → 404 `not_found`（ST-OBSDEPL-003）；非法项 → 400 `invalid_injection`（ST-OBSDEPL-004）；认证 `admin`；统一信封 5 键。设计验证项 `VRC-DIAG-004`；
+机制 `T-OBS-INJECT`（[observability 机制](../../../20_system_design/mechanisms/observability.md) §4.3.2 `D-OBS-INJECTION-CONFIG`、§5.1 `IF-OBS-INJECT` "PATCH partial upsert；
+副作用=注入配置写 + 审计"）；错误目录 `ERR-INJECTION`/`ERR-NOTFOUND`/`ERR-STORE`；需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；
+机器契约 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`InjectionList`/`InjectionWrite`/`InjectionView`）。
+**不证明什么**：不证明注入对推理的**命中效果**（ST-RESP-011/22 在 B 类以真实 `POST /v1/responses` 证明 `fault_502`/`fault_503` 命中；本 case 只证明"配置写入并可由 GET 读回"）、不证明非法项 400（ST-OBSDEPL-004）、不证明未知 deployment 404（ST-OBSDEPL-003）、不证明别名等价（ST-OBSALIAS-004）。
+**实现现状（已对齐 openapi）**：`InjectionList` openapi `required:["items"]`；handler 在 PATCH 前检查 `if "items" not in body: raise ApiError(400, "invalid_request", ...)`（`app.py:331-332` 扁平、`app.py:341-342` 别名），故缺 `items` 是 **400**，不会静默 revoke。
+本 case 用规范 body。
 
 ## 2. 被测入口与前置
 
@@ -79,7 +89,11 @@
   6. （可选交叉证据）`GET /v1/audit` → 断言存在 `action=="diagnostics.injection.update"`、`target=="depl_b"`、`result=="success"` 的行。
   7. （teardown，`finally` 内）`PATCH` body `{"items": []}` → 断言 `200` 且 `[]`；`GET` 复核为空。
 
-**重点关注步骤**：① **写入可读回**——步骤 3 的 `GET` 必须与 `PATCH` 返回一致，证明持久而非仅回显。② **upsert 幂等**——同 `type` 重复写只保留 1 项（`ON CONFLICT(deployment_id,injection_type) DO UPDATE`），不得追加重复。③ **`enabled` 语义**——`enabled=false` 项仍持久（GET 可见）但不应生效；本 case 只断言持久。④ **项键集/枚举**——`InjectionView` 恰 6 键、`type` 白名单；`InjectionWrite` 恰 3 键。⑤ **revoke 语义**——`{"items":[]}` 清空；**必须**在 `finally` 执行，绝不把启用注入留给同 session 的 ST-RESP-011/22 或后续 case。⑥ **缺 `items` 是 400**——handler 在 PATCH 前 `if "items" not in body: 400`（`app.py:331-332`/`341-342`），缺键不会静默 revoke；本 case 用规范 body（缺键负向不在本 case 范围）。⑦ **同事务审计**——成功写入应可在 `GET /v1/audit` 见到；审计缺失即 FAIL。⑧ **降级/存储**——`_UnavailableDiagnostics.set_injections` 返回 `[]`（fail-open）；健康实例断言以真实库为准；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSDEPL-002.py` 已实现（§3.5 P0 Gate 阻断项已消解）。
+**重点关注步骤**：① **写入可读回**——步骤 3 的 `GET` 必须与 `PATCH` 返回一致，证明持久而非仅回显。② **upsert 幂等**——同 `type` 重复写只保留 1 项（`ON CONFLICT(deployment_id,injection_type) DO UPDATE`），不得追加重复。
+③ **`enabled` 语义**——`enabled=false` 项仍持久（GET 可见）但不应生效；本 case 只断言持久。④ **项键集/枚举**——`InjectionView` 恰 6 键、`type` 白名单；`InjectionWrite` 恰 3 键。
+⑤ **revoke 语义**——`{"items":[]}` 清空；**必须**在 `finally` 执行，绝不把启用注入留给同 session 的 ST-RESP-011/22 或后续 case。⑥ **缺 `items` 是 400**——handler 在 PATCH 前 `if "items" not in body: 400`（`app.py:331-332`/`341-342`），缺键不会静默 revoke；
+本 case 用规范 body（缺键负向不在本 case 范围）。⑦ **同事务审计**——成功写入应可在 `GET /v1/audit` 见到；审计缺失即 FAIL。⑧ **降级/存储**——`_UnavailableDiagnostics.set_injections` 返回 `[]`（fail-open）；
+健康实例断言以真实库为准；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSDEPL-002.py` 已实现（§3.5 P0 Gate 阻断项已消解）。
 
 ## 5. 独立 Oracle 与预期结果
 

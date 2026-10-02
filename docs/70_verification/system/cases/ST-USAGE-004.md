@@ -47,7 +47,9 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-USAGE-004` / 系统设计 §8 Usage 查询接口 / `VRC-MGMT-006` / negative / P2（[方案清单 `ST-USAGE-004`](../llmtier-system-test-scheme.md)）；机制 `T-MET-PAGE`（[usage-metering 机制](../../../20_system_design/mechanisms/usage-metering.md) §4.7「TTL 10 分钟」/CON-METER-004）。
 - **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-CURSOR：真实过期 cursor）+ 复位阶梯
-- 要测什么（责任展开）：**真实过期**的 usage cursor → `400 cursor_expired`：先查首屏取 `snapshot_id`，经 `ssh m5air sqlite3` 把该行 `query_snapshots.expires_at` 改到过去后重放同一 cursor，`finally` 复位原值。`GET /v1/usage`（`cursor` 可选；过期/非法/不匹配 cursor 的 wire 码见错误目录 `ERR-CURSOR` → `cursor_expired`）。实现 `src/inference/usage.py::UsageRecorder._page`：`snapshot is None or expires_at <= now` → `ApiError(400,"cursor_expired",...)`，且该检查在 `filter_digest`/`authorization_digest` 复核**之前**。机制需求 `R-MET-02`；需求链 `LT-FUN-004`、`LT-OPS-005`、`CT-USAGE-001`。
+- 要测什么（责任展开）：**真实过期**的 usage cursor → `400 cursor_expired`：先查首屏取 `snapshot_id`，经 `ssh m5air sqlite3` 把该行 `query_snapshots.expires_at` 改到过去后重放同一 cursor，`finally` 复位原值。
+  `GET /v1/usage`（`cursor` 可选；过期/非法/不匹配 cursor 的 wire 码见错误目录 `ERR-CURSOR` → `cursor_expired`）。实现 `src/inference/usage.py::UsageRecorder._page`：`snapshot is None or expires_at <= now` → `ApiError(400,"cursor_expired",...)`，且该检查在 `filter_digest`/`authorization_digest` 复核**之前**。
+  机制需求 `R-MET-02`；需求链 `LT-FUN-004`、`LT-OPS-005`、`CT-USAGE-001`。
 - 明确不测什么 / 失败含义：不测 cursor 属于他人或 filter 不匹配时的 403/400（ST-USAGE-006/07）；不测分页内容（ST-USAGE-003）；不测重放幂等（ST-USAGE-007）；不测 store 不可用（ST-USAGE-008）；**不**用字面量 `cursor="expired"` 之类的伪触发（那会命中"snapshot 不存在"分支而非真实 TTL 分支）。失败含义＝cursor TTL 过期拒绝契约破坏。
 
 ## 2. 被测入口与前置
@@ -91,7 +93,10 @@ ssh -o BatchMode=yes m5air "sqlite3 /Users/mlp/LLMTier-dev/state.sqlite3 \
 | 5 | **try**：`UPDATE ... expires_at='2000-01-01T00:00:00.000Z'`；重放 `GET ...&cursor=<sid>:0` | `status_code == 400`；`err["code"]=="cursor_expired"`、`err["type"]=="request_error"`、信封恰 5 键 |
 | 6 | **finally**：`UPDATE ... expires_at='<original>'`；`SELECT` 回读 | 与 `original` 逐字节相等，证明复位成功 |
 
-- 重点关注步骤：① **真实 TTL 分支**——必须走"快照存在但 `expires_at` 已过"的分支，不得用不存在的 `snapshot_id`/字面量 "expired"；② **改写命中确认**——UPDATE 后应 `SELECT` 回读确认值为过去，证明改写生效；③ **复位完整性**——`finally` 必须恢复**原字符串**（不要用 `now()+10min` 重算），并回读校验；复位失败须保留证据并按 BLOCKED 报，**不得**把 m5air 快照留在过期状态；④ **principal/filter 一致**——用同一 `api_client`（consumer）与同一 `from`/`to`，避免把 403/400 混入；⑤ **无 SSH/DB 权限**——按 **BLOCKED**（可重试，需补 `ssh`/`sqlite3` 权限），并写 `required_resolution`；**不得**记为 SKIP；现有 [`ST-USAGE-004.py`](../../../../tests/system/cases/ST-USAGE-004.py) 在无权限时调用 `pytest.xfail`，报告工具必须把 `xfailed` **翻译**成 BLOCKED；⑥ **纯 A 类**。
+- 重点关注步骤：① **真实 TTL 分支**——必须走"快照存在但 `expires_at` 已过"的分支，不得用不存在的 `snapshot_id`/字面量 "expired"；② **改写命中确认**——UPDATE 后应 `SELECT` 回读确认值为过去，证明改写生效；
+  ③ **复位完整性**——`finally` 必须恢复**原字符串**（不要用 `now()+10min` 重算），并回读校验；复位失败须保留证据并按 BLOCKED 报，**不得**把 m5air 快照留在过期状态；④ **principal/filter 一致**——用同一 `api_client`（consumer）与同一 `from`/`to`，避免把 403/400 混入；
+  ⑤ **无 SSH/DB 权限**——按 **BLOCKED**（可重试，需补 `ssh`/`sqlite3` 权限），并写 `required_resolution`；**不得**记为 SKIP；现有 [`ST-USAGE-004.py`](../../../../tests/system/cases/ST-USAGE-004.py) 在无权限时调用 `pytest.xfail`，报告工具必须把 `xfailed` **翻译**成 BLOCKED；
+  ⑥ **纯 A 类**。
 
 ## 5. 独立 Oracle 与预期结果
 

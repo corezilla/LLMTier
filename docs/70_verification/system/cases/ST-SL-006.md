@@ -53,7 +53,10 @@
 - 要测什么（责任展开）：`PATCH /v1/service-levels/{id}` 绑定能力不一致的 deployment 集合：HTTP 409 `capability_conflict`。
 - 明确不测什么 / 失败含义：不证明 向量空间冲突（ST-SL-007）、不证明非白名单/非法字段 400（ST-SL-002/04b）、不证明合法 PATCH 成功（ST-SL-004）、不证明 provider_id 不可改（ST-DEPL-009）。
 
-**目的（被测契约）**：验证 Service Level 成员的**能力交集一致性契约**。被测端点/规则：`PATCH /v1/service-levels/{service_level_id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `updateServiceLevel`）；[`registry.update_service_level`](../../../../src/management/registry.py) 计算 `_capability_intersection(ids)`（非布尔键要求 `all(v == values[0])`，否则丢弃该键），再看 `_validate_level` 的 `set(capabilities) == CAPABILITY_KEYS`——一旦交集丢键即 `raise ApiError(409, "capability_conflict", …)`。设计验证项 `VRC-MGMT-002`；错误目录 `ERR-CAPABILITY` → wire `code=capability_conflict`；机制 `R-CFG-01`、`T-CFG-SPACE`；需求/机制链 `LT-FUN-005`、`CT-ADMIN-001`。**不证明什么**：不证明向量空间冲突（ST-SL-007）、不证明非白名单/非法字段 400（ST-SL-002/04b）、不证明合法 PATCH 成功（ST-SL-004）、不证明 provider_id 不可改（ST-DEPL-009）。
+**目的（被测契约）**：验证 Service Level 成员的**能力交集一致性契约**。被测端点/规则：`PATCH /v1/service-levels/{service_level_id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `updateServiceLevel`）；
+[`registry.update_service_level`](../../../../src/management/registry.py) 计算 `_capability_intersection(ids)`（非布尔键要求 `all(v == values[0])`，否则丢弃该键），再看 `_validate_level` 的 `set(capabilities) == CAPABILITY_KEYS`——一旦交集丢键即 `raise ApiError(409, "capability_conflict", …)`。
+设计验证项 `VRC-MGMT-002`；错误目录 `ERR-CAPABILITY` → wire `code=capability_conflict`；机制 `R-CFG-01`、`T-CFG-SPACE`；需求/机制链 `LT-FUN-005`、`CT-ADMIN-001`。
+**不证明什么**：不证明向量空间冲突（ST-SL-007）、不证明非白名单/非法字段 400（ST-SL-002/04b）、不证明合法 PATCH 成功（ST-SL-004）、不证明 provider_id 不可改（ST-DEPL-009）。
 
 ## 2. 被测入口与前置
 
@@ -94,7 +97,10 @@
   6. （零副作用核验）`GET /v1/service-levels/Senior` 断言 `deployment_ids` 仍为 `["depl_b"]`、`version==version_before`。
   7. （teardown，`finally` 内）`GET /v1/deployments/{new_depl_id}` 取最新 ETag；`DELETE /v1/deployments/{new_depl_id}`（`If-Match`）→ 断言 `204`；`GET` 断言 404。
 
-**重点关注步骤**：① **交集丢键**——`context_window` 因 `4096≠8192` 被 `_capability_intersection` 丢弃，`set(capabilities) != CAPABILITY_KEYS` 触发 409；须确认失败码是 `capability_conflict` 而非 `resource_conflict`/`embedding_space_conflict`；② **两个真实 deployment**——`deployment_ids` 必须引用已存在 deployment（否则 `_capability_intersection` 早退 400 `invalid_request`，非本 case）；③ **零副作用**——失败后 `Senior` 成员与版本不变；④ **teardown 完整性**——新建 deployment **未被任何 tier 引用**（PATCH 失败回滚），因此可 `DELETE`；必须删除，否则残留污染同 session 的 deployment 列表与 `ST-DEPL-001`；⑤ **错误信封 identity**——恰 5 键、`type=request_error`。
+**重点关注步骤**：① **交集丢键**——`context_window` 因 `4096≠8192` 被 `_capability_intersection` 丢弃，`set(capabilities) != CAPABILITY_KEYS` 触发 409；
+须确认失败码是 `capability_conflict` 而非 `resource_conflict`/`embedding_space_conflict`；② **两个真实 deployment**——`deployment_ids` 必须引用已存在 deployment（否则 `_capability_intersection` 早退 400 `invalid_request`，非本 case）；
+③ **零副作用**——失败后 `Senior` 成员与版本不变；④ **teardown 完整性**——新建 deployment **未被任何 tier 引用**（PATCH 失败回滚），因此可 `DELETE`；必须删除，否则残留污染同 session 的 deployment 列表与 `ST-DEPL-001`；
+⑤ **错误信封 identity**——恰 5 键、`type=request_error`。
   > **脚本覆盖（已对齐）**：现有 [`ST-SL-006.py`](../../../../tests/system/cases/ST-SL-006.py) 已在 `finally` 内 `DELETE` 临时 deployment（断言 `204`、随后 `GET` 404），并回读 `Senior` 证明 `deployment_ids`/`version` 未变（零副作用）。
 
 ## 5. 独立 Oracle 与预期结果

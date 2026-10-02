@@ -47,15 +47,22 @@
 
 ## 1. 目标、范围与被测对象
 
-- 被测对象、设计基线与父对象：LLMTier 8 个软件模块——M001 `http-api`（`src/http_api/`）、M002 `web-ui`（`src/web_ui/`）、M003 `inference`（`src/inference/`）、M004 `management`（`src/management/`）、M005 `observability`（`src/observability/`）、M006 `libdiag`（`src/libdiag/`）、M007 `util`（`src/util/`）、M008 `log`（`src/log/`）；父对象为软件系统设计 `llmtier-system-design`；模块/ISD 基线见 §1.5。**M005 `src/observability/` 无独立实现文件**（仅空 `__init__.py`），其模块行为落在 M001 `app.py` 的诊断路由与 M006 `diagnostics.py` 查询面（见 M005 设计 §3/§4；本方案 §3 的 M005 行据此归属）。
-- **本层定位＝灰盒（gray-box），主要手段＝公开入口 + 边界替身**（对齐 STD [test-standard.md](https://github.com/corezilla/STD/blob/eaca6dcb9ca990bfb9b68ae1c08dfb5d9d4b5da9/docs/test-standard.md) §3）：模块层经**公开入口**驱动（HTTP 端点 / 服务方法 / `Store` 公开方法——这是黑盒刺激），但被测模块**内部单元真实**，且**允许并鼓励断言模块内部分支、内部状态与内部调用序**（白盒观测）。**边界替身**只在模块边界以外注入（上游 provider 用进程内 `FakeAdapter`；真实网络端口仅绑 loopback 测试实例 `127.0.0.1:0`）；**不测**跨模块协议与边界外真实依赖（归系统层 `ST-*`）。这与单元层的区别不在“测不测内部”，而在：
+- 被测对象、设计基线与父对象：LLMTier 8 个软件模块——M001 `http-api`（`src/http_api/`）、M002 `web-ui`（`src/web_ui/`）、M003 `inference`（`src/inference/`）、M004 `management`（`src/management/`）、M005 `observability`（`src/observability/`）、M006 `libdiag`（`src/libdiag/`）、M007 `util`（`src/util/`）、M008 `log`（`src/log/`）；
+  父对象为软件系统设计 `llmtier-system-design`；模块/ISD 基线见 §1.5。**M005 `src/observability/` 无独立实现文件**（仅空 `__init__.py`），其模块行为落在 M001 `app.py` 的诊断路由与 M006 `diagnostics.py` 查询面（见 M005 设计 §3/§4；
+  本方案 §3 的 M005 行据此归属）。
+- **本层定位＝灰盒（gray-box），主要手段＝公开入口 + 边界替身**（对齐 STD [test-standard.md](https://github.com/corezilla/STD/blob/eaca6dcb9ca990bfb9b68ae1c08dfb5d9d4b5da9/docs/test-standard.md) §3）：模块层经**公开入口**驱动（HTTP 端点 / 服务方法 / `Store` 公开方法——这是黑盒刺激），但被测模块**内部单元真实**，且**允许并鼓励断言模块内部分支、内部状态与内部调用序**（白盒观测）。
+  **边界替身**只在模块边界以外注入（上游 provider 用进程内 `FakeAdapter`；真实网络端口仅绑 loopback 测试实例 `127.0.0.1:0`）；**不测**跨模块协议与边界外真实依赖（归系统层 `ST-*`）。
+  这与单元层的区别不在“测不测内部”，而在：
   - **单元层**逐函数/逐类验证单函数分支（mock 协作者），命令入口是函数调用；
   - **模块层**验证**组装后**才成立的保证——同一公开刺激下，内部真实单元之间的**分支走向、状态迁移与有序接线**是否与设计一致，以及**UT 各自 PASS 但组装后可能不成立**的分支/组合/接线点（见 §3 与 §5 去重规则）。
 - **灰盒边界（可断言 seam vs 不耦合的实现细节）**：**可断言的内部 seam**＝模块内公开类型/方法（如 `Router.admit` 上下文、`UsageRecorder` 账本行、`Registry` 版本号、`DiagnosticsService` 开关列、`Store` 连接 PRAGMA）与**模块内序列**（先鉴权后分发、先 `admit` 后 dispatch、审计与业务同事务、路由→服务→存储）；**不耦合的实现细节**＝私有函数名、变量名、SQL 文本、日志措辞、内部数据结构的偶发形状——这些不作为断言对象。断言优先“模块公开返回/wire 信封/落库行 + 关键内部 seam 的状态/调用序”。
 - **内部真实、仅边界替身**：模块内部全部真实（真实 `Store` + 隔离临时库、真实 `Registry`/`Router`/`UsageRecorder`/`AuditLog`/`OperationalLog`/`DiagnosticsService`、真实 `ThreadingHTTPServer` handler 栈、真实 `webui/` 静态产物），**禁止**对被测模块内部单元或内部字段打桩；仅模块**边界以外**的协作者使用替身（上游 provider 用进程内 `FakeAdapter`，真实网络端口仅绑 loopback 测试实例 `127.0.0.1:0`）。
 - **状态型初态必须经公开入口构造**：凡构造模块初态（造数据、造开关、造用量、造审计、造诊断样本、造注入、造配置）**必须调用被测模块公开入口**（HTTP 端点 / 服务方法 / `Store` 公开方法）；**禁止**测试直写表、直改内部字段或实例属性来建立初态（见 §1.5 规则 1）。
 - 不证明的组合保证及承接入口：跨模块系统级流程（启动/systemd、反向代理、Piko 联调）、wire 互操作与 OpenAPI 端到端一致性、真实上游 provider 协议、浏览器 E2E；承接＝系统测试方案/计划（`llmtier-system-test-scheme`/`-plan`）与契约层。**下层（单元）PASS 不关闭本层**，**本层 PASS 不关闭上层**。
-- 被测入口集合（每个 Case 的具体入口见对应 module-case §2）：M001 `app.py` `Handler` 对外 HTTP 端点 + `errors.py`/`auth.py`/`sse.py`/`health.py`；M002 `webui/index.html` + `webui/app.js` 对外 DOM/API 契约；M003 `ResponsesService.create`/`EmbeddingsService.create` + `Router.admit` + `UsageRecorder.*`；M004 `Registry.*`/`AdminService.*`/`AccountUsage.refresh`；M005 诊断端点（经 M001 `app.py` 路由）；M006 `DiagnosticsService.*`；M007 `Store.*`；M008 `OperationalLog.record/page`。
+- 被测入口集合（每个 Case 的具体入口见对应 module-case §2）：M001 `app.py` `Handler` 对外 HTTP 端点 + `errors.py`/`auth.py`/`sse.py`/`health.py`；
+  M002 `webui/index.html` + `webui/app.js` 对外 DOM/API 契约；M003 `ResponsesService.create`/`EmbeddingsService.create` + `Router.admit` + `UsageRecorder.*`；
+  M004 `Registry.*`/`AdminService.*`/`AccountUsage.refresh`；M005 诊断端点（经 M001 `app.py` 路由）；M006 `DiagnosticsService.*`；M007 `Store.*`；
+  M008 `OperationalLog.record/page`。
 
 ## 1.5 测试方法与测试设计技术
 
@@ -433,7 +440,9 @@
 
 > **分母→Case 说明（多分支/多行合并为 1 Case）**：四层分母 91 条并非 91 个 Case——按 §1.5 “分支/组合/迁移必覆盖”原则，**同模块内相互接近的分支/组合行/迁移可合并入 1 个 Case**，但每一行都必须在 §3.2/§3.3/§3.4 的“映射 Case”列或 §3.7 分支分母表被点名。反向核对：91 条分母每条都映射到 ≥1 个 `MT-*` Case（见 §3.7）。
 > **注入类方法不增分母**：§1.5「注入类方法」的「mock 返回」六类、存储/传输/准入面与数据注入 4 类是**跨家族应用的构造/刺激手段**，其落点映射到四层分母的既有行（见 §3.7 注入面/数据类型核对块）；**§1.5.1「异常/错误注入矩阵」** 是同一手段口径的**全量封闭清单**（37 code + 8 上游类 + 8 传输/时间病态），其落点同样映射到既有/新增分支行——其中 a16/a24、b4/b8、c1–c8 由 **10 个新增分支 Case** 承接（计入层②），其余由既有 Case 承接；矩阵本身不另设 Case、不重复计分母。
-> **module-case 文档映射**：本清单 68 个 Case，对应 68 份 `tests.module-case` 文档（`docs/70_verification/module/cases/MT-<OBJ>-<NNN>.md`）与 68 个可执行脚本（`tests/module/cases/MT-*.py`），**已全部建立（68/68）**（文档与脚本随 `f83f8da` 入库，文档状态 `Draft`/`0.1.0-draft.1`，各 §7 指向对应脚本）。模块层 Run 证据共 **6** 个（`run-20261002-01`…`run-20261002-06`，按模块计划 §7「重跑不覆盖旧失败」全部保留）：`run-01`/`run-03` 为 RED（`MT-INF-015` 读阶段 60s `TimeoutError`→503 `provider_unavailable`，根因在 ENV-3 测试替身写侧的 `Content-Length` 大 body 形态、非产品缺陷，方案的 `stream_idle_timeout` 语义正确），`run-02` 为假绿（仅做 64 KiB 分块缓解、缺陷条件仍在），`run-04` 首次根除（替身改 `Transfer-Encoding: chunked` + 16 KiB 分片），`run-05` 复跑确认但 pin 与执行树不一致（执行树含未入库修复，不可作最终 pin 依据），**`run-20261002-06` 为最终 Run**（68/68 Case `PASS`、354/354 测试函数、`release_blocking=false`、pin `a1cb672` 与被测树逐字一致，证据可采信；正式报告 `llmtier-module-test-report-2026-10-02-06` 判 Gate 闭合）。缺陷 `D-MT-INF-015-1` 已 CLOSED。本表**设计**状态仍全部为 `Designed`（设计状态不因执行结果改写），执行 Verdict 的唯一权威在测试报告与 Run 证据，本方案不预填任何结果。
+> **module-case 文档映射**：本清单 68 个 Case，对应 68 份 `tests.module-case` 文档（`docs/70_verification/module/cases/MT-<OBJ>-<NNN>.md`）与 68 个可执行脚本（`tests/module/cases/MT-*.py`），**已全部建立（68/68）**（文档与脚本随 `f83f8da` 入库，文档状态 `Draft`/`0.1.0-draft.1`，各 §7 指向对应脚本）。
+  模块层 Run 证据共 **6** 个（`run-20261002-01`…`run-20261002-06`，按模块计划 §7「重跑不覆盖旧失败」全部保留）：`run-01`/`run-03` 为 RED（`MT-INF-015` 读阶段 60s `TimeoutError`→503 `provider_unavailable`，根因在 ENV-3 测试替身写侧的 `Content-Length` 大 body 形态、非产品缺陷，方案的 `stream_idle_timeout` 语义正确），`run-02` 为假绿（仅做 64 KiB 分块缓解、缺陷条件仍在），`run-04` 首次根除（替身改 `Transfer-Encoding: chunked` + 16 KiB 分片），`run-05` 复跑确认但 pin 与执行树不一致（执行树含未入库修复，不可作最终 pin 依据），**`run-20261002-06` 为最终 Run**（68/68 Case `PASS`、354/354 测试函数、`release_blocking=false`、pin `a1cb672` 与被测树逐字一致，证据可采信；
+  正式报告 `llmtier-module-test-report-2026-10-02-06` 判 Gate 闭合）。缺陷 `D-MT-INF-015-1` 已 CLOSED。本表**设计**状态仍全部为 `Designed`（设计状态不因执行结果改写），执行 Verdict 的唯一权威在测试报告与 Run 证据，本方案不预填任何结果。
 
 ### 3.7 分支 / 组合 / 迁移分母→Case 映射核对表（全覆盖核对）
 
@@ -574,7 +583,9 @@
   1. **注入命中否则 INVALID**——凡使用故障/延迟/流截断/畸形事件等注入的 Case，**必须**断言注入命中（命中计数 > 0）；注入计数为 0、并发未交错或故障未实际触发 → 该 Case 记 `INVALID`（**不记 PASS**）；**不得用“重试即恢复”掩盖根因**（须断言注入后的分支走向/回滚/无半写/`unknown` 不补零）。
   2. **数据注入经公开入口 + 未知不补零**——数据注入（初态/边界/诊断/冻结向量）**必须经公开入口**驱动（HTTP 端点 / 服务方法 / `Store` 公开方法），**禁止**测试直写表或直改内部字段建立初态；注入值与观测**严格相等**，未知/缺失值以 `unknown`/`Unknown`/NULL 表达，**绝不补零**。
   3. **异常/错误注入矩阵封闭（强制，见 §1.5.1）**——(a) 每个对外 `code`、(b) 上游异常类别、(c) 传输/时间病态**必须各自映射到 ≥1 Case 或具名 Gap**，以 `src/` 为 Oracle；新增/变更 `ApiError(...)` 调用点即触发矩阵回归。**真实 socket 病态（c4/c5）必须用 ENV-2 真实客户端中途断开/RST**，不得以进程内对象模拟替代。
-- 与 case-design / 计划的同步规则：Case 文档 ID＝Case ID；`tests.module-test-plan` 构成表引用本方案版本；本方案合并 8 模块，逐模块切片由 Case ID 前缀承担。**case 文档的测试方法声明（强制契约条款）**：每份 `tests.module-case` 文档 §1 **必须**含一条 `- **测试方法（§1.5 方法表行）**：<technique(s)>` 列表项（**不新增章节**），指名本方案 §1.5 家族表的**确切技术行**；技术须由该 Case 的**实际分类 + 步骤/断言**推导，跨两类时并列；该条**必须**同时点名 STD test-standard §3 规定的模块**主要手段**（**公开入口** + **边界替身**：声明经哪个公开入口驱动、边界外协作者用何替身，或声明「无边界替身、全真实」）；若该 Case 覆盖分支/组合/迁移，须另在 §1 声明其覆盖的**分支 ID / 组合 ID / 迁移 ID**（取自 §3.7）；缺失或不诚实声明即视为 Case 不完备。
+- 与 case-design / 计划的同步规则：Case 文档 ID＝Case ID；`tests.module-test-plan` 构成表引用本方案版本；本方案合并 8 模块，逐模块切片由 Case ID 前缀承担。**case 文档的测试方法声明（强制契约条款）**：每份 `tests.module-case` 文档 §1 **必须**含一条 `- **测试方法（§1.5 方法表行）**：<technique(s)>` 列表项（**不新增章节**），指名本方案 §1.5 家族表的**确切技术行**；
+  技术须由该 Case 的**实际分类 + 步骤/断言**推导，跨两类时并列；该条**必须**同时点名 STD test-standard §3 规定的模块**主要手段**（**公开入口** + **边界替身**：声明经哪个公开入口驱动、边界外协作者用何替身，或声明「无边界替身、全真实」）；
+  若该 Case 覆盖分支/组合/迁移，须另在 §1 声明其覆盖的**分支 ID / 组合 ID / 迁移 ID**（取自 §3.7）；缺失或不诚实声明即视为 Case 不完备。
 - 新增 Case 示例：`0.1.0-draft.6` 已按 §1.5.1 新增 `MT-MGMT-011`（固定 tier 删除 `fixed_service_level`）、`MT-API-012/013`（真实 socket broken pipe / RST）、`MT-INF-013…019`（stall/hang、slow-response、超大 response、截断流、畸形帧、并发超时+许可泄漏、凭据缺失）——先入本清单再建 `tests.module-case` 文档；模块计划引用本方案 `0.1.0-draft.6`。
 
 ## 附录 A. 本层设计验证项 VRC 汇集（对照用）

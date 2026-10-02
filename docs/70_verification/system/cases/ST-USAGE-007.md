@@ -47,7 +47,9 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-USAGE-007` / 系统设计 §8 Usage 查询接口 / `VRC-MGMT-006` / boundary / P1（[方案清单 `ST-USAGE-007`](../llmtier-system-test-scheme.md)，**新增 Case**）；机制 `T-MET-PAGE`（[usage-metering 机制](../../../20_system_design/mechanisms/usage-metering.md) §4.7/CON-METER-004，INV-6「旧页不受后续更正影响」、Step 5 冻结视图）。
 - **测试方法（§1.5 方法表行）**：边界值抽样（cursor 重放幂等/冻结视图）+ 契约字段比对
-- 要测什么（责任展开）：同一 usage `cursor` **重放**返回同一冻结的 record version 成员：后续页重放逐字段相同，不新建 `snapshot`、不推进 head；首屏冻结后新增记录对旧页不可见。首屏在单事务内写 `query_snapshots` 并冻结有序成员 `(principal, request_id, record_version)`；后续页仅按 `<snapshot_id>:<offset>` 读**冻结视图** `query_snapshot_items`（含 `frozen_view_json`）；读操作不写账本。实现 `src/inference/usage.py::UsageRecorder._page`。机制需求 `R-MET-02`；需求链 `LT-FUN-004`、`LT-INT-004/005/007`、`CT-USAGE-001`。
+- 要测什么（责任展开）：同一 usage `cursor` **重放**返回同一冻结的 record version 成员：后续页重放逐字段相同，不新建 `snapshot`、不推进 head；首屏冻结后新增记录对旧页不可见。首屏在单事务内写 `query_snapshots` 并冻结有序成员 `(principal, request_id, record_version)`；
+  后续页仅按 `<snapshot_id>:<offset>` 读**冻结视图** `query_snapshot_items`（含 `frozen_view_json`）；读操作不写账本。实现 `src/inference/usage.py::UsageRecorder._page`。
+  机制需求 `R-MET-02`；需求链 `LT-FUN-004`、`LT-INT-004/005/007`、`CT-USAGE-001`。
 - 明确不测什么 / 失败含义：不测过期 cursor（ST-USAGE-004）、主体绑定/跨主体拒绝（ST-USAGE-006）、分页稳定排序本身（ST-USAGE-003）、store 不可用（ST-USAGE-008）；不测跨请求的 exactly-once 重试语义（本版本不定义）；不测 `recorded_at`/版本推进（由 ST-USAGE-002 的 `T-MET-FINAL` 承接）。失败含义＝cursor 重放幂等/快照冻结契约破坏。
 
 ## 2. 被测入口与前置
@@ -84,7 +86,9 @@ GET /v1/usage?from=<w>&to=<w>&limit=1&cursor=<sid>:1  → page2''（追加一条
 | 7 | `page2r2 = GET ?...&cursor=c`（再次重放） | `page2r2.data == page2.data`（旧页**不受**新增 `rid_4` 影响；`rid_4` 不得出现在重放结果中） |
 | 8 | （对照，不改变判定）`fresh = GET ?from&to&limit=200`（无 cursor，新快照） | `rid_4` **出现**在新快照中 |
 
-- 重点关注步骤：① **重放相等必须含 `record_version`**——冻结的是 `(request_id, record_version)` 成员，版本号必须一致；② **snapshot 不因重放新建**——`snapshot_id` 在三/四次请求间恒为 `sid`；③ **旧页冻结**——page1 后新增 `rid_4` 对 `cursor=c` 的重放不可见（INV-6）；④ **读不改账本**——重放不推进 `usage_heads.head_record_version`；⑤ **filter 一致**——重放的 `from`/`to`/`limit` 必须与原 cursor 完全一致，否则 400 `invalid_request`（属误操作，非本 case 期望）；⑥ **cursor 为 null 兜底**——若 `limit=1` 窗口内仅 1 条，`next_cursor=null`，改用 `f"{sid}:1"` 生成第二页 cursor，但需确保窗口内确有 ≥2 条；⑦ **末页 invariant**——沿 cursor 走到 `has_more=false` 时 `next_cursor is null`（同 `snapshot_id`）。
+- 重点关注步骤：① **重放相等必须含 `record_version`**——冻结的是 `(request_id, record_version)` 成员，版本号必须一致；② **snapshot 不因重放新建**——`snapshot_id` 在三/四次请求间恒为 `sid`；
+  ③ **旧页冻结**——page1 后新增 `rid_4` 对 `cursor=c` 的重放不可见（INV-6）；④ **读不改账本**——重放不推进 `usage_heads.head_record_version`；⑤ **filter 一致**——重放的 `from`/`to`/`limit` 必须与原 cursor 完全一致，否则 400 `invalid_request`（属误操作，非本 case 期望）；
+  ⑥ **cursor 为 null 兜底**——若 `limit=1` 窗口内仅 1 条，`next_cursor=null`，改用 `f"{sid}:1"` 生成第二页 cursor，但需确保窗口内确有 ≥2 条；⑦ **末页 invariant**——沿 cursor 走到 `has_more=false` 时 `next_cursor is null`（同 `snapshot_id`）。
 
 ## 5. 独立 Oracle 与预期结果
 

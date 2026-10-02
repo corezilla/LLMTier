@@ -36,7 +36,12 @@
 - 要测什么（责任展开）：`GET /readyz` 在全部 7 个 fixed tier 均 `available` 时返回 HTTP 200 + `ReadinessView{status:"ready", models[7]}`。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明降级 `degraded`（ST-HEALTH-003）、无 deployment `not_ready`（ST-HEALTH-004）、bootstrap 失败（ST-HEALTH-005）、health 端点的鉴权行为（ST-HEALTH-006/ST-AUTH-005）；不证明 `models[]` 中每 tier 的路由/推理可用（只证明 readiness 聚合字段）；不触发 provider 计费调用（`LT-OPS-001`）。**失败含义＝就绪聚合契约破坏**。
 
-**目的（被测契约）**：验证 IF-HEALTH 的**就绪聚合**契约。端点 `GET /readyz`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getReadiness`，`security:[]`，200 = `ReadinessView`）。实现 [`readiness_view`](../../../../src/http_api/health.py) 对 7 个 `FIXED_TIERS` 逐个聚合：某 tier 的候选 deployment `health=="healthy"` 计数 >0 ⇒ `availability="available"`；全部 7 个 `available` ⇒ `status="ready"`、HTTP 200（否则 503，见 ST-HEALTH-003/04/05）。设计验证项 `VRC-MGMT-003`；机制 `T-OBS`（见 [observability 机制](../../../20_system_design/mechanisms/observability.md)）与 `T-CFG-BOOT`/`R-CFG-02`（见 [config-lifecycle 机制](../../../20_system_design/mechanisms/config-lifecycle.md)）；需求链 `LT-FUN-006`/`LT-OPS-001`、`VRC-UTIL-001/002`、`CT-OPS-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明降级 `degraded`（ST-HEALTH-003）、无 deployment `not_ready`（ST-HEALTH-004）、bootstrap 失败（ST-HEALTH-005）、health 端点的鉴权行为（ST-HEALTH-006/ST-AUTH-005）；不证明 `models[]` 中每 tier 的路由/推理可用（只证明 readiness 聚合字段）；不触发 provider 计费调用（`LT-OPS-001`）。
+**目的（被测契约）**：验证 IF-HEALTH 的**就绪聚合**契约。端点 `GET /readyz`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getReadiness`，`security:[]`，200 = `ReadinessView`）。
+实现 [`readiness_view`](../../../../src/http_api/health.py) 对 7 个 `FIXED_TIERS` 逐个聚合：某 tier 的候选 deployment `health=="healthy"` 计数 >0 ⇒ `availability="available"`；
+全部 7 个 `available` ⇒ `status="ready"`、HTTP 200（否则 503，见 ST-HEALTH-003/04/05）。设计验证项 `VRC-MGMT-003`；机制 `T-OBS`（见 [observability 机制](../../../20_system_design/mechanisms/observability.md)）与 `T-CFG-BOOT`/`R-CFG-02`（见 [config-lifecycle 机制](../../../20_system_design/mechanisms/config-lifecycle.md)）；
+需求链 `LT-FUN-006`/`LT-OPS-001`、`VRC-UTIL-001/002`、`CT-OPS-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明降级 `degraded`（ST-HEALTH-003）、无 deployment `not_ready`（ST-HEALTH-004）、bootstrap 失败（ST-HEALTH-005）、health 端点的鉴权行为（ST-HEALTH-006/ST-AUTH-005）；
+不证明 `models[]` 中每 tier 的路由/推理可用（只证明 readiness 聚合字段）；不触发 provider 计费调用（`LT-OPS-001`）。
 
 ## 2. 被测入口与前置
 
@@ -86,7 +91,9 @@
 | 6 | 断言每个元素 `availability == "available"` | 响应体 |
 | 7 | 与 `/v1/models` 数量交叉核对（不改判定） | 佐证同一固定 tier 集合 |
 
-**重点关注步骤**：① **`status` 必须是 `"ready"` 而非仅 200**——200 与 ready 在本实现同生，但仍显式断言 `status=="ready"`。② **7 是精确数**——固定 7 项；现有 [`ST-HEALTH-002.py`](../../../../tests/system/cases/ST-HEALTH-002.py) 已断言 `len(models)==len(FIXED_TIERS)` 且 `ids==set(FIXED_TIERS)`（无缺无多），本 case 与该断言一致。③ **每 tier 必须 `available`**——任何 `degraded`/`unavailable` 都使整体不为 ready，须按对应 Case（ST-HEALTH-003/04）处理，不得在本 case 判 PASS。④ **不得被错误信封冒充**——非 200 时确认是可解释状态（degraded/not_ready 的 `ReadinessView`，或环境错误），而非把 `{"error":...}` 当就绪体。⑤ **字段集**——`ReadinessView` `additionalProperties:false`，只允许 `{status, models}`；每个模型元素只允许 `{id, availability}`。
+**重点关注步骤**：① **`status` 必须是 `"ready"` 而非仅 200**——200 与 ready 在本实现同生，但仍显式断言 `status=="ready"`。② **7 是精确数**——固定 7 项；现有 [`ST-HEALTH-002.py`](../../../../tests/system/cases/ST-HEALTH-002.py) 已断言 `len(models)==len(FIXED_TIERS)` 且 `ids==set(FIXED_TIERS)`（无缺无多），本 case 与该断言一致。
+③ **每 tier 必须 `available`**——任何 `degraded`/`unavailable` 都使整体不为 ready，须按对应 Case（ST-HEALTH-003/04）处理，不得在本 case 判 PASS。④ **不得被错误信封冒充**——非 200 时确认是可解释状态（degraded/not_ready 的 `ReadinessView`，或环境错误），而非把 `{"error":...}` 当就绪体。
+⑤ **字段集**——`ReadinessView` `additionalProperties:false`，只允许 `{status, models}`；每个模型元素只允许 `{id, availability}`。
 
 ## 5. 独立 Oracle 与预期结果
 

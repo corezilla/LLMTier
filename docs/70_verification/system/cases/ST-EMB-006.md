@@ -47,7 +47,10 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-EMB-006` / 系统设计 §8 Embeddings 接口 / `VRC-INF-001` / negative / P1（[方案清单 `ST-EMB-006`](../llmtier-system-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-DIM：维度与冻结空间不符）
-- 要测什么（责任展开）：`POST /v1/embeddings` `dimensions=768`（与 `Embedding-v1` 冻结向量空间不符）：返回 `400 unsupported_dimensions`（`param="dimensions"`），不触上游。`model="Embedding-v1"`（冻结空间 `bge-m3-dense-1024-v1`，`embedding_dimensions=[1024]`）、`dimensions=768`；请求在 dispatch 之前被拒。错误目录 `ERR-REQ-DIM`；需求 `LT-FUN-003`/`LT-OPEN-02`；机制需求 `R-INF-04`（[inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）；契约 `CT-EMB-001`。实现见 `src/inference/embeddings.py` 第 42–43 行（`require(body["dimensions"] in caps["embedding_dimensions"], 400, "unsupported_dimensions", "Unsupported embedding dimensions", "dimensions")`）。
+- 要测什么（责任展开）：`POST /v1/embeddings` `dimensions=768`（与 `Embedding-v1` 冻结向量空间不符）：返回 `400 unsupported_dimensions`（`param="dimensions"`），不触上游。
+  `model="Embedding-v1"`（冻结空间 `bge-m3-dense-1024-v1`，`embedding_dimensions=[1024]`）、`dimensions=768`；请求在 dispatch 之前被拒。错误目录 `ERR-REQ-DIM`；
+  需求 `LT-FUN-003`/`LT-OPEN-02`；机制需求 `R-INF-04`（[inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）；
+  契约 `CT-EMB-001`。实现见 `src/inference/embeddings.py` 第 42–43 行（`require(body["dimensions"] in caps["embedding_dimensions"], 400, "unsupported_dimensions", "Unsupported embedding dimensions", "dimensions")`）。
 - 明确不测什么 / 失败含义：不测合法 `dimensions=1024` 的成功；不测未知 model（ST-EMB-004）、非法 `encoding_format`（ST-EMB-007）、batch 上限（ST-EMB-005）、base64 形态（ST-EMB-002）；不测 `dimensions` 的 `minimum:1` 边界或上游对该参数的实际行为（本 case 在本地即被拒，不上游）。失败含义＝冻结维度成员校验破坏。
 
 ## 2. 被测入口与前置
@@ -92,7 +95,10 @@ Accept: application/json
 | 6 | 解析 `err = resp.json()["error"]` | 键集恰为 `{message,type,code,param,retryable}`，`code=="unsupported_dimensions"`、`param=="dimensions"`、`type=="request_error"`、`retryable is False` |
 | 7 | （可选）核对 usage 基线未新增 dispatch | 零副作用交叉核对 |
 
-- 重点关注步骤：① **精确错误码与 `param`**——`unsupported_dimensions` + `param="dimensions"`（见第 43 行 `require(..., "dimensions")`）；写成 `invalid_request` 或 `param=null` 即 FAIL；② **冻结空间成员语义**——比较对象是 `capabilities.embedding_dimensions` 列表（`[1024]`），不是单值；③ **不被后置错误掩盖**——必须确保 `model` 已启用且 embeddings-capable，否则会先命中 404/`unsupported_model`；④ **零副作用**——400 在 dispatch 之前，无上游调用、无账本义务；⑤ **`dimensions` 缺省不受影响**——双重条件：缺省时不进入校验，本 case 仅覆盖"提供且不符"；⑥ **实现状态**——本 case 已实现 `ST-EMB-006.py`；执行与 Verdict 归 Run 报告。
+- 重点关注步骤：① **精确错误码与 `param`**——`unsupported_dimensions` + `param="dimensions"`（见第 43 行 `require(..., "dimensions")`）；写成 `invalid_request` 或 `param=null` 即 FAIL；
+  ② **冻结空间成员语义**——比较对象是 `capabilities.embedding_dimensions` 列表（`[1024]`），不是单值；③ **不被后置错误掩盖**——必须确保 `model` 已启用且 embeddings-capable，否则会先命中 404/`unsupported_model`；
+  ④ **零副作用**——400 在 dispatch 之前，无上游调用、无账本义务；⑤ **`dimensions` 缺省不受影响**——双重条件：缺省时不进入校验，本 case 仅覆盖"提供且不符"；⑥ **实现状态**——本 case 已实现 `ST-EMB-006.py`；
+  执行与 Verdict 归 Run 报告。
 
 ## 5. 独立 Oracle 与预期结果
 

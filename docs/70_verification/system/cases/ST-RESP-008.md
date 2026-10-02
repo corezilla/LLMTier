@@ -36,7 +36,9 @@
 - 要测什么（责任展开）：`POST /v1/responses` 缺 `model`：字段齐备性校验失败，`400 invalid_request`（清单记 `param=model`）。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明未知 model 的解析失败（ST-RESP-005，属 `model_not_found`）；不证明 `stream=false`/`store=true` 的跨字段拒绝（ST-RESP-002/07）；不证明上游调用或答案。**失败含义＝必填字段齐备性契约破坏**。
 
-**目的（被测契约）**：验证 Data Plane `POST /v1/responses` 的**必填字段齐备性**：`model`/`input`/`stream`/`store` 四者缺一即在 dispatch 前拒绝。被测端点/规则：`POST /v1/responses`；需求 `LT-FUN-001`；设计验证项 `VRC-INF-001`；错误目录 `ERR-REQ-VALIDATION` → wire `code=invalid_request`；实现 `src/inference/responses.py`（`require({"model","input","stream","store"} <= set(body), 400, "invalid_request", "model, input, stream, and store are required")`）（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明未知 model 的解析失败（ST-RESP-005，属 `model_not_found`）；不证明 `stream=false`/`store=true` 的跨字段拒绝（ST-RESP-002/07）；不证明上游调用或答案。
+**目的（被测契约）**：验证 Data Plane `POST /v1/responses` 的**必填字段齐备性**：`model`/`input`/`stream`/`store` 四者缺一即在 dispatch 前拒绝。被测端点/规则：`POST /v1/responses`；
+需求 `LT-FUN-001`；设计验证项 `VRC-INF-001`；错误目录 `ERR-REQ-VALIDATION` → wire `code=invalid_request`；实现 `src/inference/responses.py`（`require({"model","input","stream","store"} <= set(body), 400, "invalid_request", "model, input, stream, and store are required")`）（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明未知 model 的解析失败（ST-RESP-005，属 `model_not_found`）；不证明 `stream=false`/`store=true` 的跨字段拒绝（ST-RESP-002/07）；不证明上游调用或答案。
 
 ## 2. 被测入口与前置
 

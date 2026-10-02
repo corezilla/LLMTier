@@ -53,7 +53,11 @@
 - 要测什么（责任展开）：`/tier/admin/v1/diagnostics/snapshots` 与 `/v1/diagnostics/snapshots` 的 GET 由同一 handler 服务：status 与响应体逐字节等价。
 - 明确不测什么 / 失败含义：不证明 快照内容/脱敏（ST-OBSSNAP-001）、不证明无效 cursor 负向（ST-OBSSNAP-002）、不证明 diagnostics/stats、traces 或 trace 别名（ST-OBSALIAS-005/06/03）、不证明别名鉴权负向（ST-AUTH-008）。
 
-**目的（被测契约）**：验证快照查询别名的**逐字节等价契约**。被测端点/规则：`GET /tier/admin/v1/diagnostics/snapshots` 是 `/v1/diagnostics/snapshots` 的精确别名（openapi `x-llmtier-contract-aliases`：`"/tier/admin/v1/diagnostics/snapshots": "/v1/diagnostics/snapshots"`），同一 handler、相同 `SnapshotPage` 形状、相同 `admin` 鉴权（[`src/http_api/app.py`](../../../../src/http_api/app.py) 两分支调用同一 `app.diagnostics.snapshots_page`）；body 应逐字节等价（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。设计验证项 `VRC-DIAG-002`；机制 `T-TRUST-SHARED` + `T-OBS-SNAP`（[observability 机制](../../../20_system_design/mechanisms/observability.md) §5.1 `IF-OBS-API-QUERY`）；需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；机器契约 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`x-llmtier-contract-aliases`、`SnapshotPage`）。**不证明什么**：不证明快照内容/脱敏（ST-OBSSNAP-001）、不证明无效 cursor 负向（ST-OBSSNAP-002）、不证明 diagnostics/stats、traces 或 trace 别名（ST-OBSALIAS-005/06/03）、不证明别名鉴权负向（ST-AUTH-008）。
+**目的（被测契约）**：验证快照查询别名的**逐字节等价契约**。被测端点/规则：`GET /tier/admin/v1/diagnostics/snapshots` 是 `/v1/diagnostics/snapshots` 的精确别名（openapi `x-llmtier-contract-aliases`：`"/tier/admin/v1/diagnostics/snapshots": "/v1/diagnostics/snapshots"`），同一 handler、相同 `SnapshotPage` 形状、相同 `admin` 鉴权（[`src/http_api/app.py`](../../../../src/http_api/app.py) 两分支调用同一 `app.diagnostics.snapshots_page`）；
+body 应逐字节等价（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。设计验证项 `VRC-DIAG-002`；机制 `T-TRUST-SHARED` + `T-OBS-SNAP`（[observability 机制](../../../20_system_design/mechanisms/observability.md) §5.1 `IF-OBS-API-QUERY`）；
+需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；
+机器契约 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`x-llmtier-contract-aliases`、`SnapshotPage`）。
+**不证明什么**：不证明快照内容/脱敏（ST-OBSSNAP-001）、不证明无效 cursor 负向（ST-OBSSNAP-002）、不证明 diagnostics/stats、traces 或 trace 别名（ST-OBSALIAS-005/06/03）、不证明别名鉴权负向（ST-AUTH-008）。
 
 ## 2. 被测入口与前置
 

@@ -53,7 +53,11 @@
 - 要测什么（责任展开）：`PATCH /v1/providers/{id}` 更新 `usage` 子对象（`max_concurrent_requests`）：HTTP 200，且回读可见新值，随后复位。
 - 明确不测什么 / 失败含义：不证明 标量字段更新（ST-PROV-005）、不证明 `usage` 校验负向（非法 `usage_provider`/`*_ref`/负值 → 400，见 `_usage_values`，未单列 case）、不证明 `/v1/providers/{id}/usage` 快照刷新（ST-PUSAGE-*）；本 case 只验证合法 `usage` 子对象的持久化与复位。
 
-**目的（被测契约）**：验证 Management Provider CRUD 的**嵌套配置更新契约**。被测端点/规则：`PATCH /v1/providers/{id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `updateProvider`，`ProviderPatch.usage → ProviderUsageProfileWrite`）；[`registry.update_provider`](../../../../src/management/registry.py) 对 `usage` 走 `_usage_values(body.get("usage"), values["kind"], current)` 合并/校验并写 `provider_usage_profiles`（`version` 推进），且**清空该 provider 的 usage 快照**（`DELETE FROM provider_usage_snapshots`）；`If-Match` 必须匹配当前 ETag；成功 `200` + 新 `ProviderView`（`usage.max_concurrent_requests` 为新值）。设计验证项 `VRC-MGMT-002`；机制 `T-CFG-CAS`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明标量字段更新（ST-PROV-005）、不证明 `usage` 校验负向（非法 `usage_provider`/`*_ref`/负值 → 400，见 `_usage_values`，未单列 case）、不证明 `/v1/providers/{id}/usage` 快照刷新（ST-PUSAGE-*）；本 case 只验证合法 `usage` 子对象的持久化与复位。
+**目的（被测契约）**：验证 Management Provider CRUD 的**嵌套配置更新契约**。被测端点/规则：`PATCH /v1/providers/{id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `updateProvider`，`ProviderPatch.usage → ProviderUsageProfileWrite`）；
+[`registry.update_provider`](../../../../src/management/registry.py) 对 `usage` 走 `_usage_values(body.get("usage"), values["kind"], current)` 合并/校验并写 `provider_usage_profiles`（`version` 推进），且**清空该 provider 的 usage 快照**（`DELETE FROM provider_usage_snapshots`）；
+`If-Match` 必须匹配当前 ETag；成功 `200` + 新 `ProviderView`（`usage.max_concurrent_requests` 为新值）。设计验证项 `VRC-MGMT-002`；机制 `T-CFG-CAS`；
+需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明标量字段更新（ST-PROV-005）、不证明 `usage` 校验负向（非法 `usage_provider`/`*_ref`/负值 → 400，见 `_usage_values`，未单列 case）、不证明 `/v1/providers/{id}/usage` 快照刷新（ST-PUSAGE-*）；
+本 case 只验证合法 `usage` 子对象的持久化与复位。
 
 ## 2. 被测入口与前置
 
@@ -86,7 +90,9 @@
   5. `after = admin_client_b.get("/v1/providers/prov_b")`；断言 `200`、`usage.max_concurrent_requests == 5`（持久化）。
   6. （teardown，`finally` 强制）`restore = GET`；若 `restore.usage.max_concurrent_requests != original`，以 `restore` 的 ETag `PATCH` 回 `{"usage":{"max_concurrent_requests": original}}`；再 `GET` 断言已复位。
 
-**重点关注步骤**：① **嵌套更新语义**——`usage` 子对象按白名单键合并，只改提交字段，其余保留；② **`If-Match` 实取**——B 类共享 session，`prov_b` 版本受前序 case 影响，硬编码必 412；③ **持久化回读**——第 5 步确认 5 生效而非仅响应回显；④ **容量约束**——`max_concurrent_requests` 必须 ≥1（`_usage_values` 校验），本 case 用 5；⑤ **快照副作用**——更新 `usage` 会删除该 provider 的 usage 快照（`provider_usage_snapshots`），这是既定行为，报告须登记；⑥ **复位必达**——`prov_b` 是全 B 类 session 的 baseline，必须恢复原值（版本会前进，但值复原），否则影响后继 case（如 ST-PROV-010 取 ETag 仍能工作，但值被污染）。
+**重点关注步骤**：① **嵌套更新语义**——`usage` 子对象按白名单键合并，只改提交字段，其余保留；② **`If-Match` 实取**——B 类共享 session，`prov_b` 版本受前序 case 影响，硬编码必 412；
+③ **持久化回读**——第 5 步确认 5 生效而非仅响应回显；④ **容量约束**——`max_concurrent_requests` 必须 ≥1（`_usage_values` 校验），本 case 用 5；⑤ **快照副作用**——更新 `usage` 会删除该 provider 的 usage 快照（`provider_usage_snapshots`），这是既定行为，报告须登记；
+⑥ **复位必达**——`prov_b` 是全 B 类 session 的 baseline，必须恢复原值（版本会前进，但值复原），否则影响后继 case（如 ST-PROV-010 取 ETag 仍能工作，但值被污染）。
 
 ## 5. 独立 Oracle 与预期结果
 

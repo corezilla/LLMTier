@@ -31,7 +31,8 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-RESP-019` / 系统设计 §8 Responses 接口 / `VRC-INF-004` / recovery / P1（[方案清单 `ST-RESP-019`](../llmtier-system-test-scheme.md)）；机制 `T-QUEUE`。
 - **测试方法（§1.5 方法表行）**：故障注入（全部候选不健康）+ 复位阶梯
-- 要测什么（责任展开）：`POST /v1/responses` 全部候选不健康：`503 model_unavailable`（`retryable=true`），无上游调用（自动化入口 `ST-RESP-019.py`）。service-level 存在且有候选 deployment，但没有任何 `health=="healthy"` 候选时，`Router.admit` 在 dispatch 前拒绝。错误目录 `ERR-MODEL-UNAVAIL` → wire `code=model_unavailable`；实现 `src/inference/routing.py`（`healthy=[c for c in candidates if c.health=="healthy"]; if not healthy: raise ApiError(503, "model_unavailable", "All configured backends are unhealthy", retryable=True)`）。
+- 要测什么（责任展开）：`POST /v1/responses` 全部候选不健康：`503 model_unavailable`（`retryable=true`），无上游调用（自动化入口 `ST-RESP-019.py`）。service-level 存在且有候选 deployment，但没有任何 `health=="healthy"` 候选时，`Router.admit` 在 dispatch 前拒绝。
+  错误目录 `ERR-MODEL-UNAVAIL` → wire `code=model_unavailable`；实现 `src/inference/routing.py`（`healthy=[c for c in candidates if c.health=="healthy"]; if not healthy: raise ApiError(503, "model_unavailable", "All configured backends are unhealthy", retryable=True)`）。
 - 明确不测什么 / 失败含义：不测"无候选"（`404 model_not_found`，ST-RESP-005）；不测准入饱和 `429`（ST-RESP-020）；不测真实上游故障（ST-RESP-022/23）；不测模型答案。失败含义＝路由可用性契约破坏。
 
 ## 2. 被测入口与前置

@@ -53,7 +53,13 @@
 - 要测什么（责任展开）：`GET /v1/diagnostics/stats` 返回按小时桶聚合的 `StatsView`：顶层恰 `{windows}`，每窗口为恰好 13 键的 `StatsWindow`（状态分布、请求/错误计数、4xx/5xx、延迟分位）。
 - 明确不测什么 / 失败含义：不证明 缺 `since`/`until` 的 400（ST-OBSSTATS-002）、不证明 `stats_enabled` 写入门控的业务效果（机制 `INV-4`/`CON-OBS-001`）、不证明 `/v1/stats`（管理面聚合，ST-STATS-001..03）、不证明快照/trace（ST-OBSSNAP-001、ST-OBSTRACE-001）、不证明别名等价（ST-OBSALIAS-005）。
 
-**目的（被测契约）**：验证 Observability `GET /v1/diagnostics/stats` 的**只读聚合契约**。被测端点/规则：`GET /v1/diagnostics/stats?since=<RFC3339>&until=<RFC3339>[&deployment_id=&model=]`，`since`/`until` **必填**；返回 `StatsView`（顶层键集恰 `{windows}`）；每 `StatsWindow` 必填 13 键（`stat_hour, deployment_id, model, status_breakdown, error_4xx_count, error_5xx_count, request_count, error_count, latency_p50_ms, latency_p95_ms, latency_min_ms, latency_max_ms, latency_sum_ms`）；`stat_hour` 匹配 `^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}$`（小时桶）；认证 `admin`；失败走统一信封 `{error:{message,type,code,param,retryable}}`（401/403/503）。设计验证项 `VRC-DIAG-002`；机制 `T-OBS-STATS`（[observability 机制](../../../20_system_design/mechanisms/observability.md) §4.2 `D-OBS-STATS`、§4.9、§4.10 "统计持久、样本缺失时百分位为 null 而非 0"）；需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；机器契约 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`StatsView`/`StatsWindow`，`security=AdminBearerAuth`）。**不证明什么**：不证明缺 `since`/`until` 的 400（ST-OBSSTATS-002）、不证明 `stats_enabled` 写入门控的业务效果（机制 `INV-4`/`CON-OBS-001`）、不证明 `/v1/stats`（管理面聚合，ST-STATS-001..03）、不证明快照/trace（ST-OBSSNAP-001、ST-OBSTRACE-001）、不证明别名等价（ST-OBSALIAS-005）。
+**目的（被测契约）**：验证 Observability `GET /v1/diagnostics/stats` 的**只读聚合契约**。被测端点/规则：`GET /v1/diagnostics/stats?since=<RFC3339>&until=<RFC3339>[&deployment_id=&model=]`，`since`/`until` **必填**；
+返回 `StatsView`（顶层键集恰 `{windows}`）；每 `StatsWindow` 必填 13 键（`stat_hour, deployment_id, model, status_breakdown, error_4xx_count, error_5xx_count, request_count, error_count, latency_p50_ms, latency_p95_ms, latency_min_ms, latency_max_ms, latency_sum_ms`）；
+`stat_hour` 匹配 `^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}$`（小时桶）；认证 `admin`；失败走统一信封 `{error:{message,type,code,param,retryable}}`（401/403/503）。
+设计验证项 `VRC-DIAG-002`；机制 `T-OBS-STATS`（[observability 机制](../../../20_system_design/mechanisms/observability.md) §4.2 `D-OBS-STATS`、§4.9、§4.10 "统计持久、样本缺失时百分位为 null 而非 0"）；
+需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；
+机器契约 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`StatsView`/`StatsWindow`，`security=AdminBearerAuth`）。
+**不证明什么**：不证明缺 `since`/`until` 的 400（ST-OBSSTATS-002）、不证明 `stats_enabled` 写入门控的业务效果（机制 `INV-4`/`CON-OBS-001`）、不证明 `/v1/stats`（管理面聚合，ST-STATS-001..03）、不证明快照/trace（ST-OBSSNAP-001、ST-OBSTRACE-001）、不证明别名等价（ST-OBSALIAS-005）。
 
 ## 2. 被测入口与前置
 
@@ -74,7 +80,10 @@
   5. 对每个 `window`：断言键集**恰为** 13 键；`stat_hour` 匹配 `^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}$`；`deployment_id`/`model` 为字符串或 `null`；`status_breakdown` 为对象（值 ∈ 非负整数）；`error_4xx_count`/`error_5xx_count`/`request_count`/`error_count` 为非负整数；`latency_p50_ms`/`latency_p95_ms`/`latency_min_ms`/`latency_max_ms` 为 `null` 或数值；`latency_sum_ms` 为数值（≥0；无样本为 0）。
   6. （`deployment_id`/`model` 过滤交叉核对，不改变判定）带 `&deployment_id=dep_omlx_qwen36` 再请求一次，断言 200 且过滤窗口的 `deployment_id` 均等于该值；本 case 不承担过滤语义判定。
 
-**重点关注步骤**：① **顶层键集精确**——恰 `{windows}`（`additionalProperties:false`）；② **窗口键集精确**——恰 13 键；③ **`stat_hour` 形状**——小时桶字符串，不是完整 timestamp、不是毫秒；④ **计数类型**——计数键必须是非负整数（不是字符串/浮点/`null`）；⑤ **百分位 `null` vs 0**——无延迟样本时 `latency_p50/p95/min/max` 必须为 `null`，`latency_sum_ms` 为 `0`（机制 §4.10 明确"样本缺失 → null 而非 0"）；⑥ **空 `windows` 合法**——`stats_enabled=false` 或无数据时 `{"windows":[]}` 仍合法形状（PASS），**不得**因空判 FAIL；⑦ **降级/存储**——`_UnavailableDiagnostics.stats` 恒返回 `{"windows":[]}` 的 **200**（fail-open，形状 PASS）；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSSTATS-001.py` 已实现。
+**重点关注步骤**：① **顶层键集精确**——恰 `{windows}`（`additionalProperties:false`）；② **窗口键集精确**——恰 13 键；③ **`stat_hour` 形状**——小时桶字符串，不是完整 timestamp、不是毫秒；
+④ **计数类型**——计数键必须是非负整数（不是字符串/浮点/`null`）；⑤ **百分位 `null` vs 0**——无延迟样本时 `latency_p50/p95/min/max` 必须为 `null`，`latency_sum_ms` 为 `0`（机制 §4.10 明确"样本缺失 → null 而非 0"）；
+⑥ **空 `windows` 合法**——`stats_enabled=false` 或无数据时 `{"windows":[]}` 仍合法形状（PASS），**不得**因空判 FAIL；⑦ **降级/存储**——`_UnavailableDiagnostics.stats` 恒返回 `{"windows":[]}` 的 **200**（fail-open，形状 PASS）；
+`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSSTATS-001.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 

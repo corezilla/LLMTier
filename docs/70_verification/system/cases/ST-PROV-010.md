@@ -54,7 +54,10 @@
 - 明确不测什么 / 失败含义：不证明 成功删除（ST-PROV-008）、不证明缺/过期 If-Match 412（ST-PROV-009）、不证明 deployment 侧删除被 service-level 引用的 409；本 case 依赖 baseline `prov_b → depl_b` 的引用关系，不删除任何资源（删除必然被拒）。
   > 规范注记：§3.2 行与 §11.1 均记本 case 错误码为 `resource_in_use`（`ERR-INUSE`）；实现与 [`ST-PROV-010.py`](../../../../tests/system/cases/ST-PROV-010.py) 一致。若外部简报把它写作 `resource_conflict`，以 `openapi` enum + 源码为准（`resource_conflict` 是**重名/已存在**语义，见 ST-PROV-002 重名分支，非引用保护）。
 
-**目的（被测契约）**：验证 Management Provider CRUD 的**引用完整性（删除引用保护）契约**。被测端点/规则：`DELETE /v1/providers/{id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `deleteProvider`，`security=AdminBearerAuth`）；当该 provider 被任一 deployment 引用时，[`registry.delete_provider`](../../../../src/management/registry.py) 抛 `ApiError(409, "resource_in_use", "Provider is referenced by a deployment")`；前提是 `If-Match` 已匹配（否则先 412）。设计验证项 `VRC-MGMT-001`；错误目录 `ERR-INUSE` → `resource_in_use`；机制 `T-CFG-DELREF`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明成功删除（ST-PROV-008）、不证明缺/过期 If-Match 412（ST-PROV-009）、不证明 deployment 侧删除被 service-level 引用的 409；本 case 依赖 baseline `prov_b → depl_b` 的引用关系，不删除任何资源（删除必然被拒）。
+**目的（被测契约）**：验证 Management Provider CRUD 的**引用完整性（删除引用保护）契约**。被测端点/规则：`DELETE /v1/providers/{id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `deleteProvider`，`security=AdminBearerAuth`）；
+当该 provider 被任一 deployment 引用时，[`registry.delete_provider`](../../../../src/management/registry.py) 抛 `ApiError(409, "resource_in_use", "Provider is referenced by a deployment")`；
+前提是 `If-Match` 已匹配（否则先 412）。设计验证项 `VRC-MGMT-001`；错误目录 `ERR-INUSE` → `resource_in_use`；机制 `T-CFG-DELREF`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。
+**不证明什么**：不证明成功删除（ST-PROV-008）、不证明缺/过期 If-Match 412（ST-PROV-009）、不证明 deployment 侧删除被 service-level 引用的 409；本 case 依赖 baseline `prov_b → depl_b` 的引用关系，不删除任何资源（删除必然被拒）。
   > 规范注记：§3.2 行与 §11.1 均记本 case 错误码为 `resource_in_use`（`ERR-INUSE`）；实现与 [`ST-PROV-010.py`](../../../../tests/system/cases/ST-PROV-010.py) 一致。若外部简报把它写作 `resource_conflict`，以 `openapi` enum + 源码为准（`resource_conflict` 是**重名/已存在**语义，见 ST-PROV-002 重名分支，非引用保护）。
 
 ## 2. 被测入口与前置

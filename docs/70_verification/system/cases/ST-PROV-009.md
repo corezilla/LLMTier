@@ -53,7 +53,11 @@
 - 要测什么（责任展开）：`DELETE /v1/providers/{id}` **缺** `If-Match`：HTTP 412 + `error.code=="version_conflict"` + `error.current_version`，资源保留。
 - 明确不测什么 / 失败含义：不证明 成功删除（ST-PROV-008）、不证明被引用 409（ST-PROV-010）、不证明 PATCH 的缺 If-Match（ST-PROV-006）、不证明过期 ETag 值（本 case 只发**缺头**）；本 case 只锁定"缺头"这一种前置失败。
 
-**目的（被测契约）**：验证 Management Provider CRUD 的**删除前置校验（缺前置条件）**。被测端点/规则：`DELETE /v1/providers/{id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `deleteProvider`，`security=AdminBearerAuth`）；当 `If-Match` 缺省时，[`registry.delete_provider`](../../../../src/management/registry.py) 的版本比较失败，抛 `ApiError(412, "version_conflict", extra={"current_version": <N>})`；wire 信封含额外键 `current_version`。设计验证项 `VRC-MGMT-002`；错误目录 `ERR-STALE` → `version_conflict`；机制 `T-CFG-CAS`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明成功删除（ST-PROV-008）、不证明被引用 409（ST-PROV-010）、不证明 PATCH 的缺 If-Match（ST-PROV-006）、不证明过期 ETag 值（本 case 只发**缺头**）；本 case 只锁定"缺头"这一种前置失败。
+**目的（被测契约）**：验证 Management Provider CRUD 的**删除前置校验（缺前置条件）**。被测端点/规则：`DELETE /v1/providers/{id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `deleteProvider`，`security=AdminBearerAuth`）；
+当 `If-Match` 缺省时，[`registry.delete_provider`](../../../../src/management/registry.py) 的版本比较失败，抛 `ApiError(412, "version_conflict", extra={"current_version": <N>})`；
+wire 信封含额外键 `current_version`。设计验证项 `VRC-MGMT-002`；错误目录 `ERR-STALE` → `version_conflict`；机制 `T-CFG-CAS`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。
+**不证明什么**：不证明成功删除（ST-PROV-008）、不证明被引用 409（ST-PROV-010）、不证明 PATCH 的缺 If-Match（ST-PROV-006）、不证明过期 ETag 值（本 case 只发**缺头**）；
+本 case 只锁定"缺头"这一种前置失败。
 
 ## 2. 被测入口与前置
 

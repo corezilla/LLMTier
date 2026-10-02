@@ -31,7 +31,9 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-RESP-025` / 系统设计 §8 Responses 接口 / `VRC-INF-001` / recovery / P1（[方案清单 `ST-RESP-025`](../llmtier-system-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：故障注入（上游契约错误）+ 复位阶梯
-- 要测什么（责任展开）：`POST /v1/responses` 上游响应无法归一：`502 provider_contract_error`（自动化入口 `ST-RESP-025.py`）。无法从上游响应提取合法 terminal 时，适配层以 `502 provider_contract_error` 拒绝。需求 `R-INF-05`；错误目录 `ERR-PROVIDER-CONTRACT` → wire `code=provider_contract_error`；实现 `src/inference/providers/openai.py`（非 `text/event-stream` → "Provider did not return Responses SSE"；多个 terminal → "more than one terminal"；无合法 terminal → "no valid terminal response"；`status` 与 terminal 类型不一致 → "terminal event and response status disagree"）。
+- 要测什么（责任展开）：`POST /v1/responses` 上游响应无法归一：`502 provider_contract_error`（自动化入口 `ST-RESP-025.py`）。无法从上游响应提取合法 terminal 时，适配层以 `502 provider_contract_error` 拒绝。
+  需求 `R-INF-05`；错误目录 `ERR-PROVIDER-CONTRACT` → wire `code=provider_contract_error`；实现 `src/inference/providers/openai.py`（非 `text/event-stream` → "Provider did not return Responses SSE"；
+  多个 terminal → "more than one terminal"；无合法 terminal → "no valid terminal response"；`status` 与 terminal 类型不一致 → "terminal event and response status disagree"）。
 - 明确不测什么 / 失败含义：不测上游非成功 HTTP（ST-RESP-023）；不测真实 5xx/不可达（`provider_unavailable`）；不测 SSE `malformed_event` 注入路径；不测答案。失败含义＝上游响应契约归一破坏（把非法上游响应当成功流出）。
 
 ## 2. 被测入口与前置

@@ -53,7 +53,12 @@
 - 要测什么（责任展开）：`POST /v1/deployments` 创建 deployment：HTTP 201 + 自动 id + 完整 `DeploymentView` + `ETag`；`capabilities` 恰为 12 键全集。
 - 明确不测什么 / 失败含义：不证明 列表/详情（ST-DEPL-001/03）、不证明更新/删除（ST-DEPL-004/05）、不证明 capabilities 缺/多字段的 400（ST-DEPL-006/07）、不证明 provider 引用不存在（ST-DEPL-008）、不证明 `provider_id` PATCH 行为（ST-DEPL-009）；本 case 只创建、不触上游。
 
-**目的（被测契约）**：验证 Management Deployment CRUD 的**创建契约**。被测端点/规则：`POST /v1/deployments`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `createDeployment`，`security=AdminBearerAuth`），请求体 `DeploymentWrite`（键集恰 `{name,provider_id,backend_model,capabilities,enabled}`，`additionalProperties:false`）；成功 `201` + 自动生成 id（`_id("deployment")`）+ `DeploymentView`（`id,name,provider_id,backend_model,capabilities,enabled,health,version`）+ 响应头 `ETag: "<id>.v1"`；`capabilities` 必须键集恰为 `CAPABILITY_KEYS`（12 键，[`registry._validate_capabilities`](../../../../src/management/registry.py)）；`provider_id` 必须已存在，否则 400 `invalid_request`（`param="provider_id"`）。失败：400 `invalid_request` / 409 `resource_conflict`（重名）。设计验证项 `VRC-MGMT-001`；需求/机制链 `LT-FUN-005`、`LT-INT-008`、`R-CFG-01`、`T-CFG-CAS`、`CT-ADMIN-001`。**不证明什么**：不证明列表/详情（ST-DEPL-001/03）、不证明更新/删除（ST-DEPL-004/05）、不证明 capabilities 缺/多字段的 400（ST-DEPL-006/07）、不证明 provider 引用不存在（ST-DEPL-008）、不证明 `provider_id` PATCH 行为（ST-DEPL-009）；本 case 只创建、不触上游。
+**目的（被测契约）**：验证 Management Deployment CRUD 的**创建契约**。被测端点/规则：`POST /v1/deployments`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `createDeployment`，`security=AdminBearerAuth`），请求体 `DeploymentWrite`（键集恰 `{name,provider_id,backend_model,capabilities,enabled}`，`additionalProperties:false`）；
+成功 `201` + 自动生成 id（`_id("deployment")`）+ `DeploymentView`（`id,name,provider_id,backend_model,capabilities,enabled,health,version`）+ 响应头 `ETag: "<id>.v1"`；
+`capabilities` 必须键集恰为 `CAPABILITY_KEYS`（12 键，[`registry._validate_capabilities`](../../../../src/management/registry.py)）；
+`provider_id` 必须已存在，否则 400 `invalid_request`（`param="provider_id"`）。失败：400 `invalid_request` / 409 `resource_conflict`（重名）。
+设计验证项 `VRC-MGMT-001`；需求/机制链 `LT-FUN-005`、`LT-INT-008`、`R-CFG-01`、`T-CFG-CAS`、`CT-ADMIN-001`。**不证明什么**：不证明列表/详情（ST-DEPL-001/03）、不证明更新/删除（ST-DEPL-004/05）、不证明 capabilities 缺/多字段的 400（ST-DEPL-006/07）、不证明 provider 引用不存在（ST-DEPL-008）、不证明 `provider_id` PATCH 行为（ST-DEPL-009）；
+本 case 只创建、不触上游。
 
 ## 2. 被测入口与前置
 

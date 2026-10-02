@@ -31,7 +31,9 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-RESP-022` / 系统设计 §8 Responses 接口 / `VRC-DIAG-004` / recovery / P1（[方案清单 `ST-RESP-022`](../llmtier-system-test-scheme.md)）；机制 `T-OBS-INJECT`（[observability 机制](../../../20_system_design/mechanisms/observability.md)）。
 - **测试方法（§1.5 方法表行）**：故障注入（fault_503）+ 复位阶梯
-- 要测什么（责任展开）：`POST /v1/responses` 注入 `fault_503`：下一次命中 `depl_b` 的推理在 dispatch 上游前被拒，返回 `503 provider_unavailable`（`retryable=true`、`message` 含注入 `error_body`）（自动化入口 `ST-RESP-022.py`）。先 `PATCH /v1/deployments/{deployment_id}/diagnostics` 写入 `fault_503`；随后命中该 deployment 的 `POST /v1/responses`（`stream=true`）在 dispatch 上游**之前**由 M003 抛出 `ApiError(status=503, code="provider_unavailable", retryable=True)`，入口以**普通 JSON 错误信封**返回（非 `text/event-stream`）。需求 `R-INF-05`；错误目录 `ERR-PROVIDER-UNAVAIL` → wire `code=provider_unavailable`；实现 `src/inference/responses.py` 与 `src/libdiag/injections.py`。
+- 要测什么（责任展开）：`POST /v1/responses` 注入 `fault_503`：下一次命中 `depl_b` 的推理在 dispatch 上游前被拒，返回 `503 provider_unavailable`（`retryable=true`、`message` 含注入 `error_body`）（自动化入口 `ST-RESP-022.py`）。
+  先 `PATCH /v1/deployments/{deployment_id}/diagnostics` 写入 `fault_503`；随后命中该 deployment 的 `POST /v1/responses`（`stream=true`）在 dispatch 上游**之前**由 M003 抛出 `ApiError(status=503, code="provider_unavailable", retryable=True)`，入口以**普通 JSON 错误信封**返回（非 `text/event-stream`）。
+  需求 `R-INF-05`；错误目录 `ERR-PROVIDER-UNAVAIL` → wire `code=provider_unavailable`；实现 `src/inference/responses.py` 与 `src/libdiag/injections.py`。
 - 明确不测什么 / 失败含义：不测 `fault_502`→`provider_failure`（ST-RESP-011）；不测真实上游 5xx 的归一（ST-RESP-023）；不测 SSE 序列（注入在流开始前抛出）；不测重试/exactly-once；本 case 的 503 由注入产生，**不是"上游真的不可用"**。失败含义＝注入命中→错误传播契约破坏。
 
 ## 2. 被测入口与前置

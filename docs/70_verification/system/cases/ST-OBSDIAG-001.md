@@ -53,7 +53,12 @@
 - 要测什么（责任展开）：`GET /v1/diagnostics` 读取全局诊断开关：HTTP 200 + 精确 `SwitchState` 字段集/类型（`snapshots_enabled`、`stats_enabled` 均为布尔），纯读、无副作用。
 - 明确不测什么 / 失败含义：不证明：本 case 只读、不改变开关，**不证明**开关值对写入的零写入语义（机制 `INV-4`/`CON-OBS-001`，见 ST-OBSDIAG-002 的 PATCH 及其后的写入断言），**不证明**快照/统计/trace 查询（ST-OBSSNAP-001/02、ST-OBSSTATS-001/02、ST-OBSTRACE-001/02），**不证明**别名逐字节等价（ST-OBSALIAS-001），**不证明** `PATCH` 的非法值拒绝（ST-OBSDIAG-003），也**不证明**角色负向（data token 403，由 ST-AUTH-008 及 ST-OBSREQTRACE-003 风格的角色负向承接）。
 
-**目的（被测契约）**：验证 Observability `GET /v1/diagnostics` 的**开关读契约**。被测端点/规则：`GET /v1/diagnostics`，成功返回 `SwitchState`（`snapshots_enabled`、`stats_enabled` 两个必填 JSON 布尔，`additionalProperties:false`）；认证角色 `admin`；失败走统一错误信封 `{error:{message,type,code,param,retryable}}`（401 `authentication_required` / 403 `permission_denied` / 503 `usage_store_unavailable`）。设计验证项 `VRC-DIAG-001`；机制 `T-OBS-SWITCH`（见[observability 机制](../../../20_system_design/mechanisms/observability.md) §4.3.1/§5.1，`IF-OBS-API-SWITCH`/`IF-OBS-SWITCH`）；需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01`/`R-OBS-02`、`CT-ADMIN-001`/`CT-LOG-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；机器契约 `interfaces/openapi/llmtier.openapi.json`（`SwitchState`，`security=AdminBearerAuth`）；等价别名 `/tier/admin/v1/diagnostics`（同一 handler）。**不证明什么**：本 case 只读、不改变开关，**不证明**开关值对写入的零写入语义（机制 `INV-4`/`CON-OBS-001`，见 ST-OBSDIAG-002 的 PATCH 及其后的写入断言），**不证明**快照/统计/trace 查询（ST-OBSSNAP-001/02、ST-OBSSTATS-001/02、ST-OBSTRACE-001/02），**不证明**别名逐字节等价（ST-OBSALIAS-001），**不证明** `PATCH` 的非法值拒绝（ST-OBSDIAG-003），也**不证明**角色负向（data token 403，由 ST-AUTH-008 及 ST-OBSREQTRACE-003 风格的角色负向承接）。
+**目的（被测契约）**：验证 Observability `GET /v1/diagnostics` 的**开关读契约**。被测端点/规则：`GET /v1/diagnostics`，成功返回 `SwitchState`（`snapshots_enabled`、`stats_enabled` 两个必填 JSON 布尔，`additionalProperties:false`）；
+认证角色 `admin`；失败走统一错误信封 `{error:{message,type,code,param,retryable}}`（401 `authentication_required` / 403 `permission_denied` / 503 `usage_store_unavailable`）。
+设计验证项 `VRC-DIAG-001`；机制 `T-OBS-SWITCH`（见[observability 机制](../../../20_system_design/mechanisms/observability.md) §4.3.1/§5.1，`IF-OBS-API-SWITCH`/`IF-OBS-SWITCH`）；
+需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01`/`R-OBS-02`、`CT-ADMIN-001`/`CT-LOG-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；
+机器契约 `interfaces/openapi/llmtier.openapi.json`（`SwitchState`，`security=AdminBearerAuth`）；等价别名 `/tier/admin/v1/diagnostics`（同一 handler）。
+**不证明什么**：本 case 只读、不改变开关，**不证明**开关值对写入的零写入语义（机制 `INV-4`/`CON-OBS-001`，见 ST-OBSDIAG-002 的 PATCH 及其后的写入断言），**不证明**快照/统计/trace 查询（ST-OBSSNAP-001/02、ST-OBSSTATS-001/02、ST-OBSTRACE-001/02），**不证明**别名逐字节等价（ST-OBSALIAS-001），**不证明** `PATCH` 的非法值拒绝（ST-OBSDIAG-003），也**不证明**角色负向（data token 403，由 ST-AUTH-008 及 ST-OBSREQTRACE-003 风格的角色负向承接）。
 
 ## 2. 被测入口与前置
 
@@ -82,7 +87,10 @@
   5. 断言两键值类型均为 JSON 布尔（`type(v) is bool`，不得把 `0/1` 当 `true/false`）。
   6. （交叉核对，不改变本 case 判定）与别名 `GET /tier/admin/v1/diagnostics` 同凭据下的响应体逐字节比对，作为 ST-OBSALIAS-001 的旁证；本 case 不承担别名等价判定。
 
-**重点关注步骤**：① **字段集精确性**——不是"含两个字段"，而是"键集恰好等于 `SwitchState`"，多一个键即违反 `additionalProperties:false`；② **类型精确性**——`snapshots_enabled`/`stats_enabled` 必须是 JSON 布尔，不能是 `0/1`/字符串；③ **纯读、无副作用**——GET 不得写 `diagnostic_settings`（不改开关）、不得写审计（机制 §5.1 明确 PATCH 才"副作用=同事务审计"）、不得新增 trace；④ **不得被错误信封冒充**——若返回非 200，需确认是可解释的 `ERR-AUTH-*`/`ERR-STORE`，而非把错误体当 `SwitchState` 读；⑤ **不依赖开关值**——不对 `true/false` 做业务断言（m5air 实际值未知，默认关）；⑥ **降级判定**——区分"诊断服务降级返回默认 `SwitchState`"（仍 200，PASS）与"存储不可达返回 503 `usage_store_unavailable`"（环境问题，非本 case 的契约 FAIL，见判定）。自动化入口 `ST-OBSDIAG-001.py` 已实现（落位遵循 §4.9/§8.5）。
+**重点关注步骤**：① **字段集精确性**——不是"含两个字段"，而是"键集恰好等于 `SwitchState`"，多一个键即违反 `additionalProperties:false`；② **类型精确性**——`snapshots_enabled`/`stats_enabled` 必须是 JSON 布尔，不能是 `0/1`/字符串；
+③ **纯读、无副作用**——GET 不得写 `diagnostic_settings`（不改开关）、不得写审计（机制 §5.1 明确 PATCH 才"副作用=同事务审计"）、不得新增 trace；④ **不得被错误信封冒充**——若返回非 200，需确认是可解释的 `ERR-AUTH-*`/`ERR-STORE`，而非把错误体当 `SwitchState` 读；
+⑤ **不依赖开关值**——不对 `true/false` 做业务断言（m5air 实际值未知，默认关）；⑥ **降级判定**——区分"诊断服务降级返回默认 `SwitchState`"（仍 200，PASS）与"存储不可达返回 503 `usage_store_unavailable`"（环境问题，非本 case 的契约 FAIL，见判定）。
+自动化入口 `ST-OBSDIAG-001.py` 已实现（落位遵循 §4.9/§8.5）。
 
 ## 5. 独立 Oracle 与预期结果
 

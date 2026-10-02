@@ -51,7 +51,10 @@
 - 要测什么（责任展开）：provider `max_concurrent_requests=1` 时，6 个并发 Responses 请求被准入队列**吸收**——全部最终 200、无 429；总耗时随许可数串行化（证明经过队列而非并发直通）。
 - 明确不测什么 / 失败含义：不测队列满→429（ST-RESP-020）、不测 embeddings 准入饱和（ST-EMB-008）、不测 `Retry-After` 值。失败含义＝单槽排队语义破坏（spurious 429 或并发直通绕过许可）。
 
-**目的（被测契约）**：验证准入层的**正向排队语义**。被测端点/规则：`POST /v1/responses`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `createResponse`）；[`Router.admit`](../../../../src/inference/routing.py) 以 provider `max_concurrent_requests`（单槽=1）与部署 `max_in_flight` 为并发许可，超限请求进入 32 深队列等待而非立即 429。设计验证项 `VRC-INF-004`（准入饱和/候选健康）；机制 `T-QUEUE`（[系统测试方案 §3.6](../llmtier-system-test-scheme.md#36-需求lt--到-case-的可追溯映射3-的-36-等价节)）、`CT-DP-001`。**不证明什么**：不证明队列满→429（ST-RESP-020）、不证明 embeddings 饱和（ST-EMB-008）、不发布任何吞吐/延迟 SLO（方案 §4 容量/耐久裁决）。
+**目的（被测契约）**：验证准入层的**正向排队语义**。被测端点/规则：`POST /v1/responses`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `createResponse`）；
+[`Router.admit`](../../../../src/inference/routing.py) 以 provider `max_concurrent_requests`（单槽=1）与部署 `max_in_flight` 为并发许可，超限请求进入 32 深队列等待而非立即 429。
+设计验证项 `VRC-INF-004`（准入饱和/候选健康）；机制 `T-QUEUE`（[系统测试方案 §3.6](../llmtier-system-test-scheme.md#36-需求lt--到-case-的可追溯映射3-的-36-等价节)）、`CT-DP-001`。
+**不证明什么**：不证明队列满→429（ST-RESP-020）、不证明 embeddings 饱和（ST-EMB-008）、不发布任何吞吐/延迟 SLO（方案 §4 容量/耐久裁决）。
 
 ## 2. 被测入口与前置
 

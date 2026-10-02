@@ -36,7 +36,10 @@
 - 要测什么（责任展开）：`POST /v1/responses` 传 `max_output_tokens=10`：SSE 以 `response.incomplete` 终止，`incomplete_details.reason=="max_output_tokens"`。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明 `context_window` 硬上限边界（本 case 只覆盖可测的 `max_output_tokens` 截断）；不证明超时/断开异常（ST-RESP-011/21）；不证明模型内容。**失败含义＝截断终止契约破坏**。
 
-**目的（被测契约）**：验证 Data Plane `POST /v1/responses` 的**截断终止契约**：当输出达到 `max_output_tokens` 上限时，终态为 `incomplete`（非 `completed`）且 `incomplete_details.reason=="max_output_tokens"`，SSE 仍以唯一 terminal + `[DONE]` 收尾。被测端点/规则：`POST /v1/responses`；设计验证项 `VRC-INF-001`；机制 `T-STREAM`（[inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）；实现 `src/http_api/sse.py`（terminal 类型 `f"response.{response['status']}"`）与 provider 归一（`src/inference/providers/openai.py` 透传 upstream `status`/`incomplete_details`）（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明 `context_window` 硬上限边界（Qwen 实测 API 层未触发，本 case 只覆盖可测的 `max_output_tokens` 截断）；不证明超时/断开异常（ST-RESP-011/21）；不证明模型内容。
+**目的（被测契约）**：验证 Data Plane `POST /v1/responses` 的**截断终止契约**：当输出达到 `max_output_tokens` 上限时，终态为 `incomplete`（非 `completed`）且 `incomplete_details.reason=="max_output_tokens"`，SSE 仍以唯一 terminal + `[DONE]` 收尾。
+被测端点/规则：`POST /v1/responses`；设计验证项 `VRC-INF-001`；机制 `T-STREAM`（[inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）；
+实现 `src/http_api/sse.py`（terminal 类型 `f"response.{response['status']}"`）与 provider 归一（`src/inference/providers/openai.py` 透传 upstream `status`/`incomplete_details`）（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明 `context_window` 硬上限边界（Qwen 实测 API 层未触发，本 case 只覆盖可测的 `max_output_tokens` 截断）；不证明超时/断开异常（ST-RESP-011/21）；不证明模型内容。
 
 ## 2. 被测入口与前置
 

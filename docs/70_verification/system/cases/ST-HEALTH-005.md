@@ -34,9 +34,17 @@
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-HEALTH-005` / 系统设计 §8 健康/就绪接口（/healthz、/readyz） / `VRC-MGMT-003`（另记 `VRC-UTIL-001/002`） / `recovery` / `P1`。本文件名 `st-health-005.md`，与 Case ID 唯一对应。
 - **测试方法（§1.5 方法表行）**：状态机驱动（bootstrap 失败 → not_ready）+ 契约字段比对
 - 要测什么（责任展开）：空库在缺一次性 bootstrap 或 bootstrap 非法时，`GET /readyz` 返回 HTTP 503 + `{status:"not_ready", models:[]}`（空 `models`）；同时 `GET /healthz` 仍为 200（进程存活）。
-- 明确不测什么 / 失败含义：**不证明什么**——不证明无 deployment 但 bootstrap 成功时的 `not_ready`（ST-HEALTH-004，其 `models` 为 7 个 `unavailable`，非 `[]`）；不证明健康端点无需鉴权（ST-HEALTH-006）；不证明错误信封 code——**`ERR-BOOT`（`bootstrap_required`/`bootstrap_invalid`）的 wire envelope code 不在本 case 断言**：它已在单元层关闭（`UT-MGMT-001::test_empty_store_without_settings_is_bootstrap_required`/`test_missing_section_fails` 等直接断言 `ApiError.status/code`，见[系统测试方案 §4](../llmtier-system-test-scheme.md)），本 case 只覆盖 `/readyz not_ready` 的表现，不断言其 envelope 码；不证明 schema 不兼容（`ERR-SCHEMA`）；不触发 provider 计费调用（`LT-OPS-001`）。**失败含义＝引导失败就绪契约破坏**。
+- 明确不测什么 / 失败含义：**不证明什么**——不证明无 deployment 但 bootstrap 成功时的 `not_ready`（ST-HEALTH-004，其 `models` 为 7 个 `unavailable`，非 `[]`）；
+  不证明健康端点无需鉴权（ST-HEALTH-006）；不证明错误信封 code——**`ERR-BOOT`（`bootstrap_required`/`bootstrap_invalid`）的 wire envelope code 不在本 case 断言**：它已在单元层关闭（`UT-MGMT-001::test_empty_store_without_settings_is_bootstrap_required`/`test_missing_section_fails` 等直接断言 `ApiError.status/code`，见[系统测试方案 §4](../llmtier-system-test-scheme.md)），本 case 只覆盖 `/readyz not_ready` 的表现，不断言其 envelope 码；
+  不证明 schema 不兼容（`ERR-SCHEMA`）；不触发 provider 计费调用（`LT-OPS-001`）。**失败含义＝引导失败就绪契约破坏**。
 
-**目的（被测契约）**：验证 IF-HEALTH 在**引导失败**时的就绪契约。端点 `GET /readyz`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getReadiness`）。实现 [`Application.__init__`](../../../../src/http_api/app.py) 捕获 `registry.bootstrap_settings()`/`ensure_fixed_tiers()` 抛出的 `ApiError` 到 `app.bootstrap_error`（[`registry.py`](../../../../src/management/registry.py)：空库缺 settings → `bootstrap_required`；settings 读/解析/校验失败 → `bootstrap_invalid`）；随后 [`app.py:188-189`](../../../../src/http_api/app.py) 在 `/readyz` 短路返回 `_json(503, {"status":"not_ready","models":[]})`。设计验证项 `VRC-MGMT-003`、`VRC-UTIL-001/002`；机制 `T-CFG-BOOT`/`R-CFG-02`（[config-lifecycle 机制](../../../20_system_design/mechanisms/config-lifecycle.md)）；需求链 `LT-FUN-006`/`LT-OPS-001`、`CT-OPS-001`（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明无 deployment 但 bootstrap 成功时的 `not_ready`（ST-HEALTH-004）；不证明健康端点无需鉴权（ST-HEALTH-006）；不证明错误信封 code——`ERR-BOOT` 的 wire envelope code 不在本 case 断言（其单元层宿主见 §1，[系统测试方案 §4](../llmtier-system-test-scheme.md) 已按单元覆盖关闭），本 case 只覆盖 `/readyz not_ready` 的表现，不断言其 envelope 码；不证明 schema 不兼容（`ERR-SCHEMA`）；不触发 provider 计费调用（`LT-OPS-001`）。
+**目的（被测契约）**：验证 IF-HEALTH 在**引导失败**时的就绪契约。端点 `GET /readyz`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getReadiness`）。
+实现 [`Application.__init__`](../../../../src/http_api/app.py) 捕获 `registry.bootstrap_settings()`/`ensure_fixed_tiers()` 抛出的 `ApiError` 到 `app.bootstrap_error`（[`registry.py`](../../../../src/management/registry.py)：空库缺 settings → `bootstrap_required`；
+settings 读/解析/校验失败 → `bootstrap_invalid`）；随后 [`app.py:188-189`](../../../../src/http_api/app.py) 在 `/readyz` 短路返回 `_json(503, {"status":"not_ready","models":[]})`。
+设计验证项 `VRC-MGMT-003`、`VRC-UTIL-001/002`；机制 `T-CFG-BOOT`/`R-CFG-02`（[config-lifecycle 机制](../../../20_system_design/mechanisms/config-lifecycle.md)）；
+需求链 `LT-FUN-006`/`LT-OPS-001`、`CT-OPS-001`（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明无 deployment 但 bootstrap 成功时的 `not_ready`（ST-HEALTH-004）；
+不证明健康端点无需鉴权（ST-HEALTH-006）；不证明错误信封 code——`ERR-BOOT` 的 wire envelope code 不在本 case 断言（其单元层宿主见 §1，[系统测试方案 §4](../llmtier-system-test-scheme.md) 已按单元覆盖关闭），本 case 只覆盖 `/readyz not_ready` 的表现，不断言其 envelope 码；
+不证明 schema 不兼容（`ERR-SCHEMA`）；不触发 provider 计费调用（`LT-OPS-001`）。
 
 ## 2. 被测入口与前置
 
@@ -44,7 +52,10 @@
   - **(a) 缺 bootstrap**：以空/新 SQLite 启动且**不提供** `LLMTIER_SETTINGS`/`--settings`；`bootstrap_settings(None)` 在空库（`schema_meta.bootstrap_sha256` 为空）时抛 `ApiError(503, "bootstrap_required")`。
   - **(b) 非法 bootstrap**：提供指向**不存在/无法解析/校验失败**的 settings 文件；`bootstrap_settings` 抛 `ApiError(503, "bootstrap_invalid")`。
 
-  两种构造下 [`serve`](../../../../src/http_api/app.py) 仍启动并监听（`Application` 只把异常记入 `bootstrap_error`），且 `/healthz` 分支（[`app.py:187`](../../../../src/http_api/app.py)）在 bootstrap 检查之前，故可轮询 200。**fixture（已落地）**：[`conftest.py`](../../../../tests/system/conftest.py) 提供 `llmtier_b_no_bootstrap`（**(a) 无引导臂**——`LLMTierInstance(settings=None)`（其 `__init__` 在不传 settings 时不写 `LLMTIER_SETTINGS`），以空/新 SQLite 启动，`bootstrap_settings(None)` 抛 `bootstrap_required`；脚本 [`ST-HEALTH-005.py`](../../../../tests/system/cases/ST-HEALTH-005.py) 已断言 `/healthz` 200 + `/readyz` 503 `not_ready` + `models==[]`。（**(b) 坏引导臂**可选，本轮以 (a) 覆盖。）**不得复用 `llmtier_b`/`llmtier_b_empty`**：二者 bootstrap 均成功，`bootstrap_error` 为 `None`。TS-003 与上游无关（本构造不接上游）。
+  两种构造下 [`serve`](../../../../src/http_api/app.py) 仍启动并监听（`Application` 只把异常记入 `bootstrap_error`），且 `/healthz` 分支（[`app.py:187`](../../../../src/http_api/app.py)）在 bootstrap 检查之前，故可轮询 200。
+**fixture（已落地）**：[`conftest.py`](../../../../tests/system/conftest.py) 提供 `llmtier_b_no_bootstrap`（**(a) 无引导臂**——`LLMTierInstance(settings=None)`（其 `__init__` 在不传 settings 时不写 `LLMTIER_SETTINGS`），以空/新 SQLite 启动，`bootstrap_settings(None)` 抛 `bootstrap_required`；
+脚本 [`ST-HEALTH-005.py`](../../../../tests/system/cases/ST-HEALTH-005.py) 已断言 `/healthz` 200 + `/readyz` 503 `not_ready` + `models==[]`。
+（**(b) 坏引导臂**可选，本轮以 (a) 覆盖。）**不得复用 `llmtier_b`/`llmtier_b_empty`**：二者 bootstrap 均成功，`bootstrap_error` 为 `None`。TS-003 与上游无关（本构造不接上游）。
 - **被测入口**：
 
   ```http
@@ -97,7 +108,12 @@
 | 5 | 断言无 `{"error":...}` 信封 | 响应体 |
 | 6 | fixture `stop()` 销毁实例 | 无残留 |
 
-**重点关注步骤**：① **`models:[]` 是核心区分点**——ST-HEALTH-004 的 `not_ready` 是 7 个 `unavailable`；本 case 的 bootstrap 失败是**空 `models`**（[`app.py:188-189`](../../../../src/http_api/app.py) 直接返回 `models:[]`）。观测到 7 元素即说明命中了 ST-HEALTH-004 路径而非本 case，判 FAIL/BLOCKED。② **`/healthz` 仍 200**——必须同时断言，证明存活与就绪分离（`/healthz` 位于 `bootstrap_error` 检查前）。③ **`bootstrap_error` 的 status 与 `/readyz` 无关**——进程内 `bootstrap_error` 是 `ApiError(503, code∈{bootstrap_required,bootstrap_invalid})`，但 `/readyz` 只回 `{"status":"not_ready","models":[]}`，**不回**该 `code`；不得断言 envelope（其单元层宿主见 §1，[系统测试方案 §4](../llmtier-system-test-scheme.md)）。④ **构造确定性**——缺 settings 与坏 settings 两种臂都可用；若选 (b) 需写明坏 settings 的具体形态（不存在路径/非法 JSON/未知 section）。⑤ **不得被替代路径冒充**——必须真实启动临时实例使其 bootstrap 失败，不得直接 mock `readiness_view` 或 `bootstrap_error`。⑥ **边界注（不属本 case 判定）**：A 类 m5air 的 schema/引导失败场景为 HARD-BLOCKED，且恢复路径为其专属；本 case 只在 B 类空/坏库触发，不触碰 A 类库。
+**重点关注步骤**：① **`models:[]` 是核心区分点**——ST-HEALTH-004 的 `not_ready` 是 7 个 `unavailable`；本 case 的 bootstrap 失败是**空 `models`**（[`app.py:188-189`](../../../../src/http_api/app.py) 直接返回 `models:[]`）。
+观测到 7 元素即说明命中了 ST-HEALTH-004 路径而非本 case，判 FAIL/BLOCKED。② **`/healthz` 仍 200**——必须同时断言，证明存活与就绪分离（`/healthz` 位于 `bootstrap_error` 检查前）。
+③ **`bootstrap_error` 的 status 与 `/readyz` 无关**——进程内 `bootstrap_error` 是 `ApiError(503, code∈{bootstrap_required,bootstrap_invalid})`，但 `/readyz` 只回 `{"status":"not_ready","models":[]}`，**不回**该 `code`；
+不得断言 envelope（其单元层宿主见 §1，[系统测试方案 §4](../llmtier-system-test-scheme.md)）。④ **构造确定性**——缺 settings 与坏 settings 两种臂都可用；若选 (b) 需写明坏 settings 的具体形态（不存在路径/非法 JSON/未知 section）。
+⑤ **不得被替代路径冒充**——必须真实启动临时实例使其 bootstrap 失败，不得直接 mock `readiness_view` 或 `bootstrap_error`。⑥ **边界注（不属本 case 判定）**：A 类 m5air 的 schema/引导失败场景为 HARD-BLOCKED，且恢复路径为其专属；
+本 case 只在 B 类空/坏库触发，不触碰 A 类库。
 
 ## 5. 独立 Oracle 与预期结果
 

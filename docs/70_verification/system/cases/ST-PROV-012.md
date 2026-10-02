@@ -53,7 +53,11 @@
 - 要测什么（责任展开）：`POST /v1/providers` 提交非法格式 `secret_ref`：HTTP 400 + `error.code=="invalid_request"` + `error.param=="secret_ref"`，不创建资源。
 - 明确不测什么 / 失败含义：不证明 合法 `env:`/`file:` 引用被接受（ST-PROV-002 用 `null`）、不证明 `secret_ref` 值不被回显（ST-PROV-014）、不证明 `kind` 枚举（ST-PROV-011）、不证明 `usage.*_key_ref` 校验（`registry._usage_values`，未单列 case）；本 case 只锁定单一非法格式。
 
-**目的（被测契约）**：验证 Management Provider CRUD 的**凭据引用格式校验契约**。被测端点/规则：`POST /v1/providers`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `createProvider`，`ProviderWrite.secret_ref` 为 write-only 引用）；[`registry._validate_secret_ref`](../../../../src/management/registry.py) `require(ref is None or (isinstance(ref,str) and ref.startswith(("env:","file:"))), 400, "invalid_request", "Unsupported provider secret reference", "secret_ref")`；失败走统一错误信封（400 `invalid_request`、`param=="secret_ref"`）。设计验证项 `VRC-MGMT-001`；机制 `T-CFG-SECRET` / `T-CFG-BADREF`；需求/机制链 `LT-FUN-005`、`LT-SEC-001`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明合法 `env:`/`file:` 引用被接受（ST-PROV-002 用 `null`）、不证明 `secret_ref` 值不被回显（ST-PROV-014）、不证明 `kind` 枚举（ST-PROV-011）、不证明 `usage.*_key_ref` 校验（`registry._usage_values`，未单列 case）；本 case 只锁定单一非法格式。
+**目的（被测契约）**：验证 Management Provider CRUD 的**凭据引用格式校验契约**。被测端点/规则：`POST /v1/providers`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `createProvider`，`ProviderWrite.secret_ref` 为 write-only 引用）；
+[`registry._validate_secret_ref`](../../../../src/management/registry.py) `require(ref is None or (isinstance(ref,str) and ref.startswith(("env:","file:"))), 400, "invalid_request", "Unsupported provider secret reference", "secret_ref")`；
+失败走统一错误信封（400 `invalid_request`、`param=="secret_ref"`）。设计验证项 `VRC-MGMT-001`；机制 `T-CFG-SECRET` / `T-CFG-BADREF`；需求/机制链 `LT-FUN-005`、`LT-SEC-001`、`R-CFG-01`、`CT-ADMIN-001`。
+**不证明什么**：不证明合法 `env:`/`file:` 引用被接受（ST-PROV-002 用 `null`）、不证明 `secret_ref` 值不被回显（ST-PROV-014）、不证明 `kind` 枚举（ST-PROV-011）、不证明 `usage.*_key_ref` 校验（`registry._usage_values`，未单列 case）；
+本 case 只锁定单一非法格式。
 
 ## 2. 被测入口与前置
 
@@ -88,7 +92,10 @@
   4. `err = resp.json()["error"]`：`err["code"] == "invalid_request"`、`err["param"] == "secret_ref"`、`err["type"] == "request_error"`、`err["retryable"] is False`。
   5. 交叉核对：`GET /v1/providers` 列表与步骤 2 一致（**对 provider 资源拒绝零副作用**）。**注**：第 2/5 步列表 GET 各自会在 M007 `query_snapshots`/`query_snapshot_items` 落一条 10 分钟 TTL 的分页快照（`admin.page()`，即使无 `cursor`），属服务端读路径副作用、非用户资源，报告须登记，**不得笼统声称"零写入"**。
 
-**重点关注步骤**：① **400 + `param=="secret_ref"`**——必须同时定位到 `secret_ref`（实现显式 `param`），不能只给笼统 400；② **前缀白名单**——只有 `env:`/`file:`（或 `null`）合法；`not-a-ref-format` 必须在写库前被拒；③ **信封 identity**——恰 5 键、`type=="request_error"`、`retryable=false`；④ **对 provider 资源零副作用**——无新 provider、无 usage profile 孤儿行、无 audit 成功；但第 2/5 步列表 GET 会在 `query_snapshots` 落 10 分钟 TTL 分页快照（`admin.page()`），须登记该写入、**不得声称"零写入"**；⑤ **秘密卫生**——证据/日志中不得出现任何真实 secret 值；本 case 使用无效字面量，无需脱敏但 `redactions` 仍须列 `Authorization`；⑥ **不依赖 message 文案**。
+**重点关注步骤**：① **400 + `param=="secret_ref"`**——必须同时定位到 `secret_ref`（实现显式 `param`），不能只给笼统 400；② **前缀白名单**——只有 `env:`/`file:`（或 `null`）合法；
+`not-a-ref-format` 必须在写库前被拒；③ **信封 identity**——恰 5 键、`type=="request_error"`、`retryable=false`；④ **对 provider 资源零副作用**——无新 provider、无 usage profile 孤儿行、无 audit 成功；
+但第 2/5 步列表 GET 会在 `query_snapshots` 落 10 分钟 TTL 分页快照（`admin.page()`），须登记该写入、**不得声称"零写入"**；⑤ **秘密卫生**——证据/日志中不得出现任何真实 secret 值；
+本 case 使用无效字面量，无需脱敏但 `redactions` 仍须列 `Authorization`；⑥ **不依赖 message 文案**。
 
 ## 5. 独立 Oracle 与预期结果
 

@@ -53,7 +53,12 @@
 - 要测什么（责任展开）：`PATCH /v1/deployments/{id}` 试图把 `provider_id` 改为**另一个已存在**的 provider：HTTP 400 + `error.code=="invalid_request"`、`param=="provider_id"`，统一错误信封，`provider_id`/`version`/ETag 不变。（用既存 provider 作目标值，确保唯一命中 immutability 分支而非"未知 provider"分支。）
 - 明确不测什么 / 失败含义：不证明 正常更新（ST-DEPL-004）、不证明缺/过期 `If-Match` 的 412（本 case 用正确 ETag）、不证明删除（ST-DEPL-005）、不证明 provider CRUD（ST-PROV-*）；本 case 为纯负向，**不得**改动 deployment。
 
-**目的（被测契约）**：验证 Deployment **`provider_id` 变更的不可变契约**。被测端点/规则：`PATCH /v1/deployments/{deployment_id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `updateDeployment`，`security=AdminBearerAuth`），`If-Match` 必须等于当前 ETag `"<id>.v<N>"`；[`registry.update_deployment`](../../../../src/management/registry.py) 在 `If-Match` 校验通过后 `if "provider_id" in body and body["provider_id"] != row["provider_id"]: raise ApiError(400, "invalid_request", "Deployment provider_id cannot be changed", "provider_id")`（L266-267）——不论目标 provider 是否存在，改值一律被拒（仅同值 no-op 允许）。设计验证项 `VRC-MGMT-002`；错误目录 `ERR-REQ-VALIDATION`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；需求/机制链 `LT-FUN-005`、`LT-INT-008`、`R-CFG-01`、`T-CFG-CAS`、`CT-ADMIN-001`。**不证明什么**：不证明正常更新（ST-DEPL-004）、不证明缺/过期 `If-Match` 的 412（本 case 用正确 ETag）、不证明删除（ST-DEPL-005）、不证明 provider CRUD（ST-PROV-*）；本 case 为纯负向，**不得**改动 deployment。
+**目的（被测契约）**：验证 Deployment **`provider_id` 变更的不可变契约**。被测端点/规则：`PATCH /v1/deployments/{deployment_id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `updateDeployment`，`security=AdminBearerAuth`），`If-Match` 必须等于当前 ETag `"<id>.v<N>"`；
+[`registry.update_deployment`](../../../../src/management/registry.py) 在 `If-Match` 校验通过后 `if "provider_id" in body and body["provider_id"] !
+= row["provider_id"]: raise ApiError(400, "invalid_request", "Deployment provider_id cannot be changed", "provider_id")`（L266-267）——不论目标 provider 是否存在，改值一律被拒（仅同值 no-op 允许）。
+设计验证项 `VRC-MGMT-002`；错误目录 `ERR-REQ-VALIDATION`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；需求/机制链 `LT-FUN-005`、`LT-INT-008`、`R-CFG-01`、`T-CFG-CAS`、`CT-ADMIN-001`。
+**不证明什么**：不证明正常更新（ST-DEPL-004）、不证明缺/过期 `If-Match` 的 412（本 case 用正确 ETag）、不证明删除（ST-DEPL-005）、不证明 provider CRUD（ST-PROV-*）；
+本 case 为纯负向，**不得**改动 deployment。
 
 ## 2. 被测入口与前置
 
@@ -88,8 +93,13 @@
   7. 零副作用：`after = GET /v1/deployments/depl_b`；断言 `after.json()["provider_id"] == before["provider_id"]`（仍 `prov_b`）、`after.json()["version"] == before["version"]`（未 +1），且 `ETag` 与第 3 步一致。
   8. （teardown，`finally` 内）`GET /v1/providers/{prov_b2}` 取最新 ETag → `DELETE` → 断言 `204`。
 
-**重点关注步骤**：① **先 GET 再 PATCH**——`If-Match` 必须真实有效，否则会先命中 412 而测不到本 case 的 400（`update_deployment` 的 `If-Match` 校验先于 provider 校验）；② **400 + code + param 三断言**——`param=="provider_id"` 定位字段，且**不是 404**；③ **拒绝零副作用**——校验在 `UPDATE` 之前，第 7 步证明 `provider_id`/`version`/ETag 均未变；④ **只改一个字段**——PATCH 体仅 `provider_id`，避免与 capabilities 重算路径混淆；⑤ **不依赖 message 文本**——只断言 code/type/param/retryable；⑥ **目标是既存 provider**——保证唯一命中 immutability 分支。
-  > **契约与实现（已对齐）**：§3.2 `ST-DEPL-009` 标题为"`provider_id` 不可 PATCH"，即 `provider_id` 为不可变字段。实际 [`registry.update_deployment`](../../../../src/management/registry.py) 在 `If-Match` 校验后**强制**该不变量：`if "provider_id" in body and body["provider_id"] != row["provider_id"]: raise ApiError(400, "invalid_request", "Deployment provider_id cannot be changed", "provider_id")`（L266-267）。把 `provider_id` 改为另一个**既存** provider 同样被拒（同一 immutability 分支），仅**同值** no-op 被允许；换成不存在 provider 也 400（本 case 覆盖该值）。故本 case 以**已存在**的另一 provider id 作 PATCH 值，唯一命中 immutability 分支，判别力真实；"不可变"语义已被实现。脚本同时断言 `error.param=="provider_id"`、5 键信封、`type`/`retryable` 与零副作用（`provider_id`/`version`/ETag 不变）。
+**重点关注步骤**：① **先 GET 再 PATCH**——`If-Match` 必须真实有效，否则会先命中 412 而测不到本 case 的 400（`update_deployment` 的 `If-Match` 校验先于 provider 校验）；
+② **400 + code + param 三断言**——`param=="provider_id"` 定位字段，且**不是 404**；③ **拒绝零副作用**——校验在 `UPDATE` 之前，第 7 步证明 `provider_id`/`version`/ETag 均未变；
+④ **只改一个字段**——PATCH 体仅 `provider_id`，避免与 capabilities 重算路径混淆；⑤ **不依赖 message 文本**——只断言 code/type/param/retryable；⑥ **目标是既存 provider**——保证唯一命中 immutability 分支。
+  > **契约与实现（已对齐）**：§3.2 `ST-DEPL-009` 标题为"`provider_id` 不可 PATCH"，即 `provider_id` 为不可变字段。实际 [`registry.update_deployment`](../../../../src/management/registry.py) 在 `If-Match` 校验后**强制**该不变量：`if "provider_id" in body and body["provider_id"] !
+    = row["provider_id"]: raise ApiError(400, "invalid_request", "Deployment provider_id cannot be changed", "provider_id")`（L266-267）。
+    把 `provider_id` 改为另一个**既存** provider 同样被拒（同一 immutability 分支），仅**同值** no-op 被允许；换成不存在 provider 也 400（本 case 覆盖该值）。故本 case 以**已存在**的另一 provider id 作 PATCH 值，唯一命中 immutability 分支，判别力真实；"
+    不可变"语义已被实现。脚本同时断言 `error.param=="provider_id"`、5 键信封、`type`/`retryable` 与零副作用（`provider_id`/`version`/ETag 不变）。
 
 ## 5. 独立 Oracle 与预期结果
 

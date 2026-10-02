@@ -53,7 +53,10 @@
 - 要测什么（责任展开）：`PATCH /v1/service-levels/{id}` 用非数组 `deployment_ids`：HTTP 400 `invalid_request`、`param="deployment_ids"`，零副作用。
 - 明确不测什么 / 失败含义：不证明 合法 PATCH（ST-SL-004）、不证明键白名单 400（ST-SL-013）、不证明能力/向量空间冲突 409（ST-SL-006/07）、不证明审计/日志（ST-AUDIT-001/ST-LOGS-001）。本 case 锁 400 类型校验契约（见 §7 修订注记）。
 
-**目的（被测契约）**：验证统一 `ErrorEnvelope` 在**非法类型输入**路径上的契约。被测端点/规则：`PATCH /v1/service-levels/{service_level_id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `updateServiceLevel`，`ServiceLevelPatch.deployment_ids` 类型应为 `array`）；[`registry._capability_intersection`](../../../../src/management/registry.py) 在迭代前显式校验 `isinstance(deployment_ids, list) and all(isinstance(rid, str) for rid in deployment_ids)`，非数组输入 `raise ApiError(400, "invalid_request", "deployment_ids must be an array of strings", "deployment_ids")`（L300），不再抛 `TypeError → 500`。设计验证项 `VRC-MGMT-002`；错误目录 `ERR-REQ-VALIDATION` → wire `code=invalid_request`；机制 `R-CFG-01`；需求/机制链 `LT-FUN-005`、`CT-ADMIN-001`。**不证明什么**：不证明合法 PATCH（ST-SL-004）、不证明键白名单 400（ST-SL-013）、不证明能力/向量空间冲突 409（ST-SL-006/07）、不证明审计/日志（ST-AUDIT-001/ST-LOGS-001）。
+**目的（被测契约）**：验证统一 `ErrorEnvelope` 在**非法类型输入**路径上的契约。被测端点/规则：`PATCH /v1/service-levels/{service_level_id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `updateServiceLevel`，`ServiceLevelPatch.deployment_ids` 类型应为 `array`）；
+[`registry._capability_intersection`](../../../../src/management/registry.py) 在迭代前显式校验 `isinstance(deployment_ids, list) and all(isinstance(rid, str) for rid in deployment_ids)`，非数组输入 `raise ApiError(400, "invalid_request", "deployment_ids must be an array of strings", "deployment_ids")`（L300），不再抛 `TypeError → 500`。
+设计验证项 `VRC-MGMT-002`；错误目录 `ERR-REQ-VALIDATION` → wire `code=invalid_request`；机制 `R-CFG-01`；需求/机制链 `LT-FUN-005`、`CT-ADMIN-001`。
+**不证明什么**：不证明合法 PATCH（ST-SL-004）、不证明键白名单 400（ST-SL-013）、不证明能力/向量空间冲突 409（ST-SL-006/07）、不证明审计/日志（ST-AUDIT-001/ST-LOGS-001）。
 
 ## 2. 被测入口与前置
 
@@ -120,4 +123,6 @@
 
 > 实现状态：Implemented（`ST-SL-008.py`）；执行状态与 Verdict 只在 Run 报告。
 
-> **设计修订（2026-09-30）**：本 case 早期设计假设 `deployment_ids` 缺失类型预校验、非数组输入会抛 `TypeError → 500 internal_error`，并据此把本 case 建为"服务器错误信封"案例。当前实现 [`registry._capability_intersection`](../../../../src/management/registry.py) 已在迭代前显式校验 `deployment_ids` 必须是字符串数组（`registry.py:300`），非数组输入返回 **400 `invalid_request`（param=`deployment_ids`）**，500 路径不再存在。本 case 已按**当前 code 行为（400）**为 Oracle 修订 §1/§3/§4/§5/§7：验证非法类型输入的 400 类型校验契约与零副作用，不再断言 500，也不再登记已关闭的"类型未预校验"缺陷。
+> **设计修订（2026-09-30）**：本 case 早期设计假设 `deployment_ids` 缺失类型预校验、非数组输入会抛 `TypeError → 500 internal_error`，并据此把本 case 建为"服务器错误信封"案例。
+  当前实现 [`registry._capability_intersection`](../../../../src/management/registry.py) 已在迭代前显式校验 `deployment_ids` 必须是字符串数组（`registry.py:300`），非数组输入返回 **400 `invalid_request`（param=`deployment_ids`）**，500 路径不再存在。
+  本 case 已按**当前 code 行为（400）**为 Oracle 修订 §1/§3/§4/§5/§7：验证非法类型输入的 400 类型校验契约与零副作用，不再断言 500，也不再登记已关闭的"类型未预校验"缺陷。

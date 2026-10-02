@@ -53,7 +53,10 @@
 - 要测什么（责任展开）：`DELETE /v1/providers/{id}` 携带正确 `If-Match` 删除无引用 provider：HTTP 204，随后 `GET` 404。
 - 明确不测什么 / 失败含义：不证明 缺/过期 `If-Match` 的 412（ST-PROV-009）、不证明被引用 409（ST-PROV-010）、不证明删除 deployment/service-level；本 case 删除**本 case 新建且无引用**的 provider。
 
-**目的（被测契约）**：验证 Management Provider CRUD 的**删除契约**。被测端点/规则：`DELETE /v1/providers/{id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `deleteProvider`，`security=AdminBearerAuth`）；`If-Match` 必须等于当前 ETag `"<id>.v<N>"`；被删除前须确认无 deployment 引用；成功 `204 No Content`（空 body）；失败 404 `not_found` / 409 `resource_in_use`（被引用，ST-PROV-010）/ 412 `version_conflict`（ST-PROV-009）。设计验证项 `VRC-MGMT-001`；机制 `T-CFG-CAS`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明缺/过期 `If-Match` 的 412（ST-PROV-009）、不证明被引用 409（ST-PROV-010）、不证明删除 deployment/service-level；本 case 删除**本 case 新建且无引用**的 provider。
+**目的（被测契约）**：验证 Management Provider CRUD 的**删除契约**。被测端点/规则：`DELETE /v1/providers/{id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `deleteProvider`，`security=AdminBearerAuth`）；
+`If-Match` 必须等于当前 ETag `"<id>.v<N>"`；被删除前须确认无 deployment 引用；成功 `204 No Content`（空 body）；失败 404 `not_found` / 409 `resource_in_use`（被引用，ST-PROV-010）/ 412 `version_conflict`（ST-PROV-009）。
+设计验证项 `VRC-MGMT-001`；机制 `T-CFG-CAS`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明缺/过期 `If-Match` 的 412（ST-PROV-009）、不证明被引用 409（ST-PROV-010）、不证明删除 deployment/service-level；
+本 case 删除**本 case 新建且无引用**的 provider。
 
 ## 2. 被测入口与前置
 
@@ -80,7 +83,9 @@
   5. 可选：`GET /v1/providers` 列表确认 `rid` 不再出现。**注**：该列表 GET（[`admin.page()`](../../../../src/management/admin.py)）会在 M007 `query_snapshots`/`query_snapshot_items` 落一条 10 分钟 TTL 的分页快照（即使无 `cursor`），属服务端读路径副作用、非用户资源，报告须登记，**不得笼统声称"零写入"**。
   6. （teardown）**无**——本 case 已在步骤 3 删除创建物；若步骤 3 未成功，则 `finally` 内以 `GET` 的 ETag 重试 `DELETE`。
 
-**重点关注步骤**：① **204 空 body**——删除成功为 `204 No Content`，不得返回 200 带 body；② **删除后不可见**——随后 `GET` 必须 404 `not_found`（软删/残留即 FAIL）；③ **If-Match 正确**——用创建响应的 ETag；若 412，先 `GET` 取新 ETag 再删；④ **不误删基线**——只删本 case 创建的 provider，绝不碰 `prov_b`；⑤ **幂等性边界**——第二次 DELETE 同 id 应为 404；⑥ **零残留**——teardown 后该 id 在列表/详情均不可见；⑦ **列表读路径副作用**——第 5 步可选列表 GET 会在 `query_snapshots` 落一条 10 分钟 TTL 的分页快照（`admin.page()`），报告须登记，**不得声称"零写入"**。
+**重点关注步骤**：① **204 空 body**——删除成功为 `204 No Content`，不得返回 200 带 body；② **删除后不可见**——随后 `GET` 必须 404 `not_found`（软删/残留即 FAIL）；
+③ **If-Match 正确**——用创建响应的 ETag；若 412，先 `GET` 取新 ETag 再删；④ **不误删基线**——只删本 case 创建的 provider，绝不碰 `prov_b`；⑤ **幂等性边界**——第二次 DELETE 同 id 应为 404；
+⑥ **零残留**——teardown 后该 id 在列表/详情均不可见；⑦ **列表读路径副作用**——第 5 步可选列表 GET 会在 `query_snapshots` 落一条 10 分钟 TTL 的分页快照（`admin.page()`），报告须登记，**不得声称"零写入"**。
 
 ## 5. 独立 Oracle 与预期结果
 

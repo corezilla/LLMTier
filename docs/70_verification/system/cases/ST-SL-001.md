@@ -53,7 +53,10 @@
 - 要测什么（责任展开）：`GET /v1/service-levels` 返回全部固定 Tier：HTTP 200 + `ServiceLevelPage` 的 `data[]` 含 7 个 `FIXED_TIERS`。
 - 明确不测什么 / 失败含义：不证明 单条详情（ST-SL-003）、不证明创建/更新/删除（ST-SL-002/02b/04/04b/05/06/07/08）、不证明分页 cursor 语义（本 case 7 条 < 默认 limit 100，`has_more=false`）、不证明成员能力交集计算（ST-SL-006）。
 
-**目的（被测契约）**：验证 Management Service Level CRUD 的**列表契约**。被测端点/规则：`GET /v1/service-levels`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listServiceLevels`，`security=AdminBearerAuth`，query `cursor`/`limit`），成功 `200` + `ServiceLevelPage`（`{data:[ServiceLevelView], page:{has_more,next_cursor}}`，`additionalProperties:false`）；`data[]` 为固定 Tier 集合（`Senior/Junior/Worker/Associate/Engineer/Executor/Embedding-v1`，[`registry.list_service_levels`](../../../../src/management/registry.py) 按 `FIXED_TIERS` 顺序、只列已存在者）。设计验证项 `VRC-MGMT-002`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`T-CFG-CAS`、`T-CFG-SPACE`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明单条详情（ST-SL-003）、不证明创建/更新/删除（ST-SL-002/02b/04/04b/05/06/07/08）、不证明分页 cursor 语义（本 case 7 条 < 默认 limit 100，`has_more=false`）、不证明成员能力交集计算（ST-SL-006）。
+**目的（被测契约）**：验证 Management Service Level CRUD 的**列表契约**。被测端点/规则：`GET /v1/service-levels`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listServiceLevels`，`security=AdminBearerAuth`，query `cursor`/`limit`），成功 `200` + `ServiceLevelPage`（`{data:[ServiceLevelView], page:{has_more,next_cursor}}`，`additionalProperties:false`）；
+`data[]` 为固定 Tier 集合（`Senior/Junior/Worker/Associate/Engineer/Executor/Embedding-v1`，[`registry.list_service_levels`](../../../../src/management/registry.py) 按 `FIXED_TIERS` 顺序、只列已存在者）。
+设计验证项 `VRC-MGMT-002`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`T-CFG-CAS`、`T-CFG-SPACE`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明单条详情（ST-SL-003）、不证明创建/更新/删除（ST-SL-002/02b/04/04b/05/06/07/08）、不证明分页 cursor 语义（本 case 7 条 < 默认 limit 100，`has_more=false`）、不证明成员能力交集计算（ST-SL-006）。
 
 ## 2. 被测入口与前置
 
@@ -81,7 +84,9 @@
   5. `ids = {s["id"] for s in data}`；断言 `set(FIXED_TIERS) - ids == set()`（7 个固定 Tier 全在，A 类基线无缺口）。
   6. 抽查每个元素满足 `ServiceLevelView` 必填键 `{id,deployment_ids,enabled,capabilities,version}`；`enabled` 为 bool、`version≥1`、`capabilities` 为 12 键对象（`ModelCapabilities`）。
 
-**重点关注步骤**：① **数据完整性而非仅 200**——必须核对 7 个固定 Tier 一个不缺（`sorted(missing)==[]`），不能只断言 status；② **页信封形状**——`ServiceLevelPage.additionalProperties:false`，`data`/`page` 两键必在，`page` 恰为 `{has_more,next_cursor}`；③ **固定 Tier 身份**——只列 `FIXED_TIERS`，不得出现自定义 id（自定义 id 在 A 类不应存在；若出现即 FAIL）；④ **读操作副作用**——理解第 2 步会写一条临时 `query_snapshots`，不得据此把它当作"创建了资源"误判 FAIL，也不得声称绝对零写；⑤ **不依赖值**——`deployment_ids`/`capabilities` 具体值以 m5air 现状为准，本 case 只断结构。
+**重点关注步骤**：① **数据完整性而非仅 200**——必须核对 7 个固定 Tier 一个不缺（`sorted(missing)==[]`），不能只断言 status；② **页信封形状**——`ServiceLevelPage.additionalProperties:false`，`data`/`page` 两键必在，`page` 恰为 `{has_more,next_cursor}`；
+③ **固定 Tier 身份**——只列 `FIXED_TIERS`，不得出现自定义 id（自定义 id 在 A 类不应存在；若出现即 FAIL）；④ **读操作副作用**——理解第 2 步会写一条临时 `query_snapshots`，不得据此把它当作"创建了资源"误判 FAIL，也不得声称绝对零写；
+⑤ **不依赖值**——`deployment_ids`/`capabilities` 具体值以 m5air 现状为准，本 case 只断结构。
 
 ## 5. 独立 Oracle 与预期结果
 

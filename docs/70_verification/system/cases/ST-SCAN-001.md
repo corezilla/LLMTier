@@ -51,7 +51,9 @@
 - 要测什么（责任展开）：对机器契约（OpenAPI `paths`、兼容清单 capability `path`）与活体 `/healthz` 响应做 absence 扫描——退役/越界路径（`/call`、`/admin/v0/*`、`/legacy/`）不得出现在契约中，`X-Legacy-*` 响应头与框架版本号不得出现在活体响应头，请求携带的敏感值不得被回显。
 - 明确不测什么 / 失败含义：不测运行层端点的正向/负向契约（由 `ST-MODEL-*`/`ST-RESP-*`/`ST-AUTH-*` 等承接）；不测 secret 在审计/日志中的脱敏（ST-AUDIT-001/ST-LOGS-001）。失败含义＝退役接口回潮或响应头/回显越界。
 
-**目的（被测契约）**：验证 V0.3 契约面的 **absence 边界**——机器契约只暴露当前 `/v1/*` 面，不含退役路径；活体响应不回显敏感头且不暴露框架版本。被测对象：静态 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json) `paths`、[`compatibility-manifest-v0.3.json`](../../../../interfaces/compatibility/compatibility-manifest-v0.3.json)、活体 `GET /healthz`。契约 `CT-SCOPE-001`/`CT-BOUNDARY-001`（[系统测试方案 §3.6](../llmtier-system-test-scheme.md#36-需求lt--到-case-的可追溯映射3-的-36-等价节)）。**不证明什么**：不证明任何运行层端点行为；不证明 secret 在审计/日志脱敏。
+**目的（被测契约）**：验证 V0.3 契约面的 **absence 边界**——机器契约只暴露当前 `/v1/*` 面，不含退役路径；活体响应不回显敏感头且不暴露框架版本。被测对象：静态 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json) `paths`、[`compatibility-manifest-v0.3.json`](../../../../interfaces/compatibility/compatibility-manifest-v0.3.json)、活体 `GET /healthz`。
+契约 `CT-SCOPE-001`/`CT-BOUNDARY-001`（[系统测试方案 §3.6](../llmtier-system-test-scheme.md#36-需求lt--到-case-的可追溯映射3-的-36-等价节)）。**不证明什么**：不证明任何运行层端点行为；
+不证明 secret 在审计/日志脱敏。
 
 ## 2. 被测入口与前置
 

@@ -53,7 +53,9 @@
 - 要测什么（责任展开）：`GET /v1/service-levels/{id}` 精确返回单个固定 Tier：HTTP 200 + `ServiceLevelView` + `ETag`。
 - 明确不测什么 / 失败含义：不证明 列表（ST-SL-001）、不证明更新/删除（ST-SL-004/04b/05/06/07/08）、不证明不存在 id 的 404（未单独构 case；由 `registry.get_service_level` 的 `not_found` 语义承载）、不证明 If-Match/CAS（ST-SL-004）。
 
-**目的（被测契约）**：验证 Service Level **单条详情读契约**。被测端点/规则：`GET /v1/service-levels/{service_level_id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getServiceLevel`，路径参数 `service_level_id`，`security=AdminBearerAuth`），成功 `200` + `ServiceLevelView`（`{id,deployment_ids,enabled,capabilities,version}`，`additionalProperties:false`）+ 响应头 `ETag: "<id>.v<N>"`（[`registry.get_service_level`](../../../../src/management/registry.py) 返回 `_etag`）。设计验证项 `VRC-MGMT-002`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明列表（ST-SL-001）、不证明更新/删除（ST-SL-004/04b/05/06/07/08）、不证明不存在 id 的 404（未单独构 case；由 `registry.get_service_level` 的 `not_found` 语义承载）、不证明 If-Match/CAS（ST-SL-004）。
+**目的（被测契约）**：验证 Service Level **单条详情读契约**。被测端点/规则：`GET /v1/service-levels/{service_level_id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getServiceLevel`，路径参数 `service_level_id`，`security=AdminBearerAuth`），成功 `200` + `ServiceLevelView`（`{id,deployment_ids,enabled,capabilities,version}`，`additionalProperties:false`）+ 响应头 `ETag: "<id>.v<N>"`（[`registry.get_service_level`](../../../../src/management/registry.py) 返回 `_etag`）。
+设计验证项 `VRC-MGMT-002`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明列表（ST-SL-001）、不证明更新/删除（ST-SL-004/04b/05/06/07/08）、不证明不存在 id 的 404（未单独构 case；
+由 `registry.get_service_level` 的 `not_found` 语义承载）、不证明 If-Match/CAS（ST-SL-004）。
 
 ## 2. 被测入口与前置
 

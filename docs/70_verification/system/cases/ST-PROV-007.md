@@ -53,7 +53,10 @@
 - 要测什么（责任展开）：`PATCH /v1/providers/{id}` 携带**过期/错误** `If-Match`：HTTP 412 + `error.code=="version_conflict"` + `error.current_version`，无写入。
 - 明确不测什么 / 失败含义：不证明 成功更新（ST-PROV-005）、不证明**缺头** 412（ST-PROV-006）、不证明 DELETE 的过期 ETag（本 case 只发 PATCH）、不证明并发两写者（§5）；本 case 只锁定"头存在但值过期"。
 
-**目的（被测契约）**：验证 Management Provider CRUD 的**乐观并发前置校验（过期前置条件）**。被测端点/规则：`PATCH /v1/providers/{id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `updateProvider`，`security=AdminBearerAuth`）；当 `If-Match` 形态合法但**不等于**当前 ETag 时，[`registry.update_provider`](../../../../src/management/registry.py) 抛 `ApiError(412, "version_conflict", extra={"current_version": <N>})`；wire 信封含额外键 `current_version`。设计验证项 `VRC-MGMT-002`；错误目录 `ERR-STALE` → `version_conflict`；机制 `T-CFG-CAS`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明成功更新（ST-PROV-005）、不证明**缺头** 412（ST-PROV-006）、不证明 DELETE 的过期 ETag（本 case 只发 PATCH）、不证明并发两写者（§5）；本 case 只锁定"头存在但值过期"。
+**目的（被测契约）**：验证 Management Provider CRUD 的**乐观并发前置校验（过期前置条件）**。被测端点/规则：`PATCH /v1/providers/{id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `updateProvider`，`security=AdminBearerAuth`）；
+当 `If-Match` 形态合法但**不等于**当前 ETag 时，[`registry.update_provider`](../../../../src/management/registry.py) 抛 `ApiError(412, "version_conflict", extra={"current_version": <N>})`；
+wire 信封含额外键 `current_version`。设计验证项 `VRC-MGMT-002`；错误目录 `ERR-STALE` → `version_conflict`；机制 `T-CFG-CAS`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。
+**不证明什么**：不证明成功更新（ST-PROV-005）、不证明**缺头** 412（ST-PROV-006）、不证明 DELETE 的过期 ETag（本 case 只发 PATCH）、不证明并发两写者（§5）；本 case 只锁定"头存在但值过期"。
 
 ## 2. 被测入口与前置
 

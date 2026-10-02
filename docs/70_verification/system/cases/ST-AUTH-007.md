@@ -55,7 +55,11 @@
 
   > **构造诚实性（如何触发）**：B 类临时实例监听 `127.0.0.1`（loopback，`auth.py:33`），若请求**不带** `Authorization` 头，`unauthenticated_principal()` 会授予 loopback 共享主体而返回 200——**无法**用"完全无头"触发 503。因此本 case 通过 `admin_client_b_no_auth` fixture 特意携带一个**未配置**的 `Authorization: Bearer dev-admin`，使 `unauthenticated_principal()` 返回 `None` 从而进入 `authenticate()`，再由"无配置 token"抛 503。该 bearer 字面量为测试占位符，与 503 的成立无关（无任何 token 被配置）。
 
-**目的（被测契约）**：验证 access-trust 机制的 **未配置鉴权运行期语义**。被测端点/规则：`GET /v1/models`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listModels`，securityScheme `BearerAuth`）；入口 [`_auth()`](../../../../src/http_api/app.py) 先经 [`unauthenticated_principal()`](../../../../src/http_api/auth.py)（因请求带 `Authorization` 头而返回 `None`），再落入 [`authenticate()`](../../../../src/http_api/auth.py)：`_configured_token("data")` 在无 `LLMTIER_DATA_TOKEN` 且 `LLMTIER_DEV_MODE≠1` 时返回 `None`，于是抛 `ApiError(503, "auth_not_configured")`（`auth.py:49-51`）。设计验证项 `VRC-MGMT-003`；机制 `T-TRUST-NOCFG`（机制需求 `R-TRUST-04`：env token 存在性、503 `auth_not_configured` 语义；见 [access-trust 机制 §12.2/§14.4 R-TRUST-04](../../../20_system_design/mechanisms/access-trust.md)）；错误信封 `{error:{message,type,code,param,retryable}}`，`type` 由状态导出（503 ≥ 500 ⇒ `server_error`）。**不证明什么**：不证明 **错误 bearer** 在**已配置**实例上被拒（ST-AUTH-002）、**空 bearer** 被拒（ST-AUTH-006）、**data token 访问 admin 面**被拒（ST-AUTH-003）、**缺/非法凭据→401**（ST-AUTH-010）、**无 token 的 LAN trust** 免登录（ST-AUTH-001/04）。特别地，本 case **不**证明"未配置鉴权时公共端点也 503"——`/healthz`/`/readyz` 永不进入鉴权（ST-AUTH-005/ST-HEALTH-006）。
+**目的（被测契约）**：验证 access-trust 机制的 **未配置鉴权运行期语义**。被测端点/规则：`GET /v1/models`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listModels`，securityScheme `BearerAuth`）；
+入口 [`_auth()`](../../../../src/http_api/app.py) 先经 [`unauthenticated_principal()`](../../../../src/http_api/auth.py)（因请求带 `Authorization` 头而返回 `None`），再落入 [`authenticate()`](../../../../src/http_api/auth.py)：`_configured_token("data")` 在无 `LLMTIER_DATA_TOKEN` 且 `LLMTIER_DEV_MODE≠1` 时返回 `None`，于是抛 `ApiError(503, "auth_not_configured")`（`auth.py:49-51`）。
+设计验证项 `VRC-MGMT-003`；机制 `T-TRUST-NOCFG`（机制需求 `R-TRUST-04`：env token 存在性、503 `auth_not_configured` 语义；见 [access-trust 机制 §12.2/§14.4 R-TRUST-04](../../../20_system_design/mechanisms/access-trust.md)）；
+错误信封 `{error:{message,type,code,param,retryable}}`，`type` 由状态导出（503 ≥ 500 ⇒ `server_error`）。**不证明什么**：不证明 **错误 bearer** 在**已配置**实例上被拒（ST-AUTH-002）、**空 bearer** 被拒（ST-AUTH-006）、**data token 访问 admin 面**被拒（ST-AUTH-003）、**缺/非法凭据→401**（ST-AUTH-010）、**无 token 的 LAN trust** 免登录（ST-AUTH-001/04）。
+特别地，本 case **不**证明"未配置鉴权时公共端点也 503"——`/healthz`/`/readyz` 永不进入鉴权（ST-AUTH-005/ST-HEALTH-006）。
 
   > **构造诚实性（如何触发）**：B 类临时实例监听 `127.0.0.1`（loopback，`auth.py:33`），若请求**不带** `Authorization` 头，`unauthenticated_principal()` 会授予 loopback 共享主体而返回 200——**无法**用"完全无头"触发 503。因此本 case 通过 `admin_client_b_no_auth` fixture 特意携带一个**未配置**的 `Authorization: Bearer dev-admin`，使 `unauthenticated_principal()` 返回 `None` 从而进入 `authenticate()`，再由"无配置 token"抛 503。该 bearer 字面量为测试占位符，与 503 的成立无关（无任何 token 被配置）。
 
@@ -84,7 +88,9 @@
   5. 解析 body 的 `error` 信封，断言 `error.code == "auth_not_configured"`、`error.type == "server_error"`（503 ≥ 500）、`error.param is None`、`error.retryable is False`，且 `error` 恰含 5 个键。
   6. 断言 body **不含** `object=="list"`/`data` 等 `ModelList` 字段（拒绝路径不得返回业务载荷）。
 
-**重点关注步骤**：① **必须携带 bearer**——loopback 无头请求会命中 LAN trust 得 200，只有头存在才能进入 `authenticate()` 观察 503；这是本 case 最易误判处；② **`dev_mode` 必须为 False**——若 `LLMTIER_DEV_MODE=1`，`_configured_token()` 会回退到 `dev-data`/`dev-admin` 而不再 503；fixture 已保证；③ **不得跑于 A 类**——m5air 已配置 token，本 case 的 503 前提是其**未配置**，误跑会得 403（ST-AUTH-002 行为）而误判；④ **503 的 `type` 是 `server_error`**（不是 `request_error`），且信封恰 5 键；⑤ **拒绝先于 dispatch**——503 在路由体之前，无上游调用、无账本义务；⑥ 不在此 case 断言 401/403 或公共端点行为。
+**重点关注步骤**：① **必须携带 bearer**——loopback 无头请求会命中 LAN trust 得 200，只有头存在才能进入 `authenticate()` 观察 503；这是本 case 最易误判处；② **`dev_mode` 必须为 False**——若 `LLMTIER_DEV_MODE=1`，`_configured_token()` 会回退到 `dev-data`/`dev-admin` 而不再 503；
+fixture 已保证；③ **不得跑于 A 类**——m5air 已配置 token，本 case 的 503 前提是其**未配置**，误跑会得 403（ST-AUTH-002 行为）而误判；④ **503 的 `type` 是 `server_error`**（不是 `request_error`），且信封恰 5 键；
+⑤ **拒绝先于 dispatch**——503 在路由体之前，无上游调用、无账本义务；⑥ 不在此 case 断言 401/403 或公共端点行为。
 
 ## 5. 独立 Oracle 与预期结果
 

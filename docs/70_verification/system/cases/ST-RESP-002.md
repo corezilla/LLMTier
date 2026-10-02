@@ -36,7 +36,10 @@
 - 要测什么（责任展开）：`POST /v1/responses` 传 `stream=false`：在 dispatch 前返回 `400 unsupported_request`，零副作用。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明 `store=true` 被拒（ST-RESP-007，反向约束）；不证明合法流式成功与事件序列（ST-RESP-001/06）；不证明上游调用、模型答案或账本行为（本 case 在 dispatch 前拒绝）。**失败含义＝`stream` 跨字段硬约束破坏**。
 
-**目的（被测契约）**：验证 Data Plane `POST /v1/responses` 的 **`stream` 跨字段硬约束**——本版本仅受理 `stream=true`（OpenAPI `ResponsesRequest.stream` 为 `const:true`；ISD M003 `additionalProperties:false` + 跨字段硬约束）。被测端点/规则：`POST /v1/responses`；设计验证项 `VRC-INF-001`；错误目录 `ERR-REQ-UNSUPPORTED` → wire `code=unsupported_request`（[llmtier-system-design.md](../../../20_system_design/llmtier-system-design.md) §7.8）；实现 `src/inference/responses.py`（`require(body.get("stream") is True and body.get("store") is False, 400, "unsupported_request", "Only stream=true and store=false are supported")`）（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明 `store=true` 被拒（ST-RESP-007，反向约束）；不证明合法流式成功与事件序列（ST-RESP-001/06）；不证明上游调用、模型答案或账本行为（本 case 在 dispatch 前拒绝）。
+**目的（被测契约）**：验证 Data Plane `POST /v1/responses` 的 **`stream` 跨字段硬约束**——本版本仅受理 `stream=true`（OpenAPI `ResponsesRequest.stream` 为 `const:true`；
+ISD M003 `additionalProperties:false` + 跨字段硬约束）。被测端点/规则：`POST /v1/responses`；设计验证项 `VRC-INF-001`；错误目录 `ERR-REQ-UNSUPPORTED` → wire `code=unsupported_request`（[llmtier-system-design.md](../../../20_system_design/llmtier-system-design.md) §7.8）；
+实现 `src/inference/responses.py`（`require(body.get("stream") is True and body.get("store") is False, 400, "unsupported_request", "Only stream=true and store=false are supported")`）（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明 `store=true` 被拒（ST-RESP-007，反向约束）；不证明合法流式成功与事件序列（ST-RESP-001/06）；不证明上游调用、模型答案或账本行为（本 case 在 dispatch 前拒绝）。
 
 ## 2. 被测入口与前置
 

@@ -36,7 +36,10 @@
 - 要测什么（责任展开）：`POST /v1/responses` 流式成功：SSE 事件序列有序、恰好一个 terminal、`[DONE]` 收尾、usage 非空。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明上游模型答案正确性或文本内容（只断言结构/事件序列），不证明 `stream_terminate`/`malformed_event`/客户端断开等异常路径（见 ST-RESP-010/11/21），不证明 `store=true`/`stream=false` 等被拒形态（ST-RESP-002/06/07），不发布时延 SLO（只记录 `elapsed`）。**失败含义＝流式成功契约破坏**。
 
-**目的（被测契约）**：验证 Data Plane `POST /v1/responses`（`stream=true`）的 **SSE 成功路径契约**。被测端点/规则：`POST /v1/responses`，事件序列 `response.created → response.output_item.added → response.output_text.delta×N → response.output_item.done → response.completed`（或 `response.incomplete`/`response.failed`）`→ data: [DONE]`；恰好一个终态事件，`sequence_number` 自 0 严格递增，`response.completed.response.usage.{input_tokens,output_tokens,total_tokens}` 非 null。设计验证项 `VRC-INF-001`；机制 `T-STREAM`（见 [inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）；响应头 `Content-Type: text/event-stream`（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明上游模型答案正确性或文本内容（只断言结构/事件序列），不证明异常路径（ST-RESP-010/11/21），不证明被拒形态（ST-RESP-002/06/07），不发布时延 SLO。
+**目的（被测契约）**：验证 Data Plane `POST /v1/responses`（`stream=true`）的 **SSE 成功路径契约**。被测端点/规则：`POST /v1/responses`，事件序列 `response.created → response.output_item.added → response.output_text.delta×N → response.output_item.done → response.completed`（或 `response.incomplete`/`response.failed`）`→ data: [DONE]`；
+恰好一个终态事件，`sequence_number` 自 0 严格递增，`response.completed.response.usage.{input_tokens,output_tokens,total_tokens}` 非 null。
+设计验证项 `VRC-INF-001`；机制 `T-STREAM`（见 [inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）；响应头 `Content-Type: text/event-stream`（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明上游模型答案正确性或文本内容（只断言结构/事件序列），不证明异常路径（ST-RESP-010/11/21），不证明被拒形态（ST-RESP-002/06/07），不发布时延 SLO。
 
 ## 2. 被测入口与前置
 
@@ -98,7 +101,10 @@
 | 5 | 读 `response.completed.response.usage` | `input/output/total_tokens` 非 null |
 | 6 | 读到流关闭 | `data: [DONE]` 收尾 |
 
-**重点关注步骤**：① **terminal 唯一性**——不是"出现 `response.completed`"而是"恰好一个终态事件（`response.completed`|`response.incomplete`|`response.failed`）"，重复/缺失即 FAIL；② **`[DONE]` 哨兵**——必须位于 terminal 之后，是独立于 JSON 事件的收尾；③ **事件 identity 与顺序**——`delta` 至少 1 个且累积文本非空；④ **`sequence_number` 严格递增**（不允许相等/回退）；⑤ **`Content-Type`** 必须为 `text/event-stream`，防止把错误信封当成功流吞掉；⑥ **不依赖答案文本**——不对生成内容做语义断言。注意：现有 [`ST-RESP-001.py`](../../../../tests/system/cases/ST-RESP-001.py) **已断言** `[DONE]`（约第 76 行 `assert saw_done, ...`）**且已断言"恰好一个 terminal"**（第 87-89 行 `assert len(terminal_events) == 1`，terminal 为 `{response.completed, response.incomplete, response.failed}`），并断言 `[DONE]` 收尾与 `response.completed` 为唯一终态；[`tools/inference_smoke.py`](../../../../tools/inference_smoke.py) 的 `sse_events()` 仅作 smoke 级交叉核对，不替代断言。
+**重点关注步骤**：① **terminal 唯一性**——不是"出现 `response.completed`"而是"恰好一个终态事件（`response.completed`|`response.incomplete`|`response.failed`）"，重复/缺失即 FAIL；
+② **`[DONE]` 哨兵**——必须位于 terminal 之后，是独立于 JSON 事件的收尾；③ **事件 identity 与顺序**——`delta` 至少 1 个且累积文本非空；④ **`sequence_number` 严格递增**（不允许相等/回退）；
+⑤ **`Content-Type`** 必须为 `text/event-stream`，防止把错误信封当成功流吞掉；⑥ **不依赖答案文本**——不对生成内容做语义断言。注意：现有 [`ST-RESP-001.py`](../../../../tests/system/cases/ST-RESP-001.py) **已断言** `[DONE]`（约第 76 行 `assert saw_done, ...`）**且已断言"恰好一个 terminal"**（第 87-89 行 `assert len(terminal_events) == 1`，terminal 为 `{response.completed, response.incomplete, response.failed}`），并断言 `[DONE]` 收尾与 `response.completed` 为唯一终态；
+[`tools/inference_smoke.py`](../../../../tools/inference_smoke.py) 的 `sse_events()` 仅作 smoke 级交叉核对，不替代断言。
 
 ## 5. 独立 Oracle 与预期结果
 

@@ -90,6 +90,8 @@ Handler._auth(role="data"); Handler._auth_either() -> (Principal, is_admin)
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/cases/UT-API-008.py::AdminDispatchAuthTests::test_data_token_on_admin_endpoint_is_403` / `test_admin_token_on_admin_endpoint_is_200` / `test_auth_either_admin_first_role_selection`（双 token 配置下经 `/v1/usage` DELETE 驱动 `_auth_either` admin-first 角色选择：admin token→200、data token→403）；角色选择另由 `UT-API-008.py::test_admin_token`/`test_principal_header` 覆盖；**非受信来源缺凭据 401** 由 `UT-API-008.py::test_non_trusted_address_without_credential_is_401` 覆盖（系统层 ST-AUTH-010 以非法授权方案触发同一 401 分支；非受信来源无系统级构造）。
+- 测试文件 / 测试函数：`tests/unit/cases/UT-API-008.py::AdminDispatchAuthTests::test_data_token_on_admin_endpoint_is_403` / `test_admin_token_on_admin_endpoint_is_200` / `test_auth_either_admin_first_role_selection`（双 token 配置下经 `/v1/usage` DELETE 驱动 `_auth_either` admin-first 角色选择：admin token→200、data token→403）；
+  角色选择另由 `UT-API-008.py::test_admin_token`/`test_principal_header` 覆盖；**非受信来源缺凭据 401** 由 `UT-API-008.py::test_non_trusted_address_without_credential_is_401` 覆盖（系统层 ST-AUTH-010 以非法授权方案触发同一 401 分支；
+  非受信来源无系统级构造）。
 - 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-API-008.py -q`
 - 实现状态：`Implemented`（测试函数已存在于 `tests/unit/cases/UT-API-008.py`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。

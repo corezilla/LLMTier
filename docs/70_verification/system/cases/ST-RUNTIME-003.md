@@ -38,7 +38,10 @@
 
 - 明确不测什么 / 失败含义：不证明错误 bearer（形态合法）→403（ST-AUTH-002）、空 bearer→403（ST-AUTH-006）、data token 访问 admin 面→403（ST-RUNTIME-002/ST-AUTH-003）、未配置鉴权→503（ST-AUTH-007）、无 token 的 LAN trust→200（ST-AUTH-004）。本 case **不**证明非受信来源下"缺 Bearer→401"（见构造说明）。失败含义＝运行态读面的凭据形态判定缺失。
 
-**目的（被测契约）**：验证 access-trust 的**缺凭据/非法方案判定路径**在 `/v1/runtime` 上的表现。被测端点/规则：`GET /v1/runtime`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getRuntime`，`security=AdminBearerAuth`）；入口 [`_auth("admin")`](../../../../src/http_api/app.py) 先经 [`unauthenticated_principal()`](../../../../src/http_api/auth.py)（因 `Authorization` 头存在返回 `None`），再落入 `authenticate()`：`raw.startswith("Bearer ")` 为假 ⇒ 抛 `ApiError(401, "authentication_required")`（`auth.py:53-54`）。设计验证项 `VRC-API-002`；机制 `T-TRUST-BEARER`。**构造诚实性**：A/B 两班均**无法构造"完全无头"的 401**（源码对 loopback/RFC1918 无 `Authorization` 头无条件授权），故以**非法方案**（`Basic`）触发同一 401 分支；不得据此声称已验证"来源不受信"门。**不证明什么**：不证明 403/503/LAN trust/恒定时间。
+**目的（被测契约）**：验证 access-trust 的**缺凭据/非法方案判定路径**在 `/v1/runtime` 上的表现。被测端点/规则：`GET /v1/runtime`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getRuntime`，`security=AdminBearerAuth`）；
+入口 [`_auth("admin")`](../../../../src/http_api/app.py) 先经 [`unauthenticated_principal()`](../../../../src/http_api/auth.py)（因 `Authorization` 头存在返回 `None`），再落入 `authenticate()`：`raw.startswith("Bearer ")` 为假 ⇒ 抛 `ApiError(401, "authentication_required")`（`auth.py:53-54`）。
+设计验证项 `VRC-API-002`；机制 `T-TRUST-BEARER`。**构造诚实性**：A/B 两班均**无法构造"完全无头"的 401**（源码对 loopback/RFC1918 无 `Authorization` 头无条件授权），故以**非法方案**（`Basic`）触发同一 401 分支；
+不得据此声称已验证"来源不受信"门。**不证明什么**：不证明 403/503/LAN trust/恒定时间。
 
 ## 2. 被测入口与前置
 

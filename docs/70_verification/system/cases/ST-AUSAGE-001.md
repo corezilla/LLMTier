@@ -53,7 +53,9 @@
 - 要测什么（责任展开）：`GET /v1/usage?from&to`（admin 视角）返回聚合用量页：HTTP 200 + `UsagePage`（`data`/`next_cursor`/`has_more`/`snapshot_id`/`snapshot_at`）。
 - 明确不测什么 / 失败含义：不证明 cursor 分页边界（ST-AUSAGE-002）、不证明 `DELETE /v1/usage` 清空（ST-AUSAGE-003）、不证明 data 主体隔离（ST-USAGE-006）、不证明 cursor 过期（ST-USAGE-004）、不证明缺窗 400（`/v1/usage` 缺 `from`/`to` 由 `app.py` 拒绝，未单独构 case）。
 
-**目的（被测契约）**：验证管理面 usage 查询的**聚合读契约与页信封**。被测端点/规则：`GET /v1/usage`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listUsage`，`from`/`to` **必填**，query `model`/`request_id`/`cursor`/`limit` 可选，`security`=data 或 admin）；[`app.py`](../../../../src/http_api/app.py) 用 `_auth_either()`，admin 主体 `admin=True` 时 [`UsageRecorder._page`](../../../../src/inference/usage.py) **不加 principal 过滤**（见全局），返回 `{data,next_cursor,has_more,snapshot_id,snapshot_at}`，窗口 `v.recorded_at>=from AND <to`（**半开**）、稳定排序 `(recorded_at,request_id)`。设计验证项 `VRC-MGMT-006`；机制 `R-MET-02`、`T-MET-FINAL`；需求/机制链 `LT-FUN-004`、`LT-OPS-002`、`CT-USAGE-001`。**不证明什么**：不证明 cursor 分页边界（ST-AUSAGE-002）、不证明 `DELETE /v1/usage` 清空（ST-AUSAGE-003）、不证明 data 主体隔离（ST-USAGE-006）、不证明 cursor 过期（ST-USAGE-004）、不证明缺窗 400（`/v1/usage` 缺 `from`/`to` 由 `app.py` 拒绝，未单独构 case）。
+**目的（被测契约）**：验证管理面 usage 查询的**聚合读契约与页信封**。被测端点/规则：`GET /v1/usage`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listUsage`，`from`/`to` **必填**，query `model`/`request_id`/`cursor`/`limit` 可选，`security`=data 或 admin）；
+[`app.py`](../../../../src/http_api/app.py) 用 `_auth_either()`，admin 主体 `admin=True` 时 [`UsageRecorder._page`](../../../../src/inference/usage.py) **不加 principal 过滤**（见全局），返回 `{data,next_cursor,has_more,snapshot_id,snapshot_at}`，窗口 `v.recorded_at>=from AND <to`（**半开**）、稳定排序 `(recorded_at,request_id)`。
+设计验证项 `VRC-MGMT-006`；机制 `R-MET-02`、`T-MET-FINAL`；需求/机制链 `LT-FUN-004`、`LT-OPS-002`、`CT-USAGE-001`。**不证明什么**：不证明 cursor 分页边界（ST-AUSAGE-002）、不证明 `DELETE /v1/usage` 清空（ST-AUSAGE-003）、不证明 data 主体隔离（ST-USAGE-006）、不证明 cursor 过期（ST-USAGE-004）、不证明缺窗 400（`/v1/usage` 缺 `from`/`to` 由 `app.py` 拒绝，未单独构 case）。
 
 ## 2. 被测入口与前置
 
@@ -81,7 +83,9 @@
   5. 断言一致性：`has_more is False ⇒ next_cursor is None`（`UsagePage.allOf` 的 if/then）；`has_more is True ⇒ next_cursor` 为非空字符串（形如 `"<snapshot_id>:<offset>"`）。
   6. 抽查 `data` 元素含 `UsageRecord` 键 `{request_id,record_version,is_final,model,endpoint,recorded_at,updated_at,measurement_status,source,input_tokens,output_tokens,total_tokens,cached_input_tokens,cache_write_tokens,reasoning_tokens}`。
 
-**重点关注步骤**：① **页信封 identity**——五键缺一不可（与 `AdminPageMeta` 的 `{has_more,next_cursor}` 不同，`UsagePage` 多出 `snapshot_id`/`snapshot_at`）；② **admin 全局视图**——admin 主体不加 principal 过滤（data 主体仅见自身，属 ST-USAGE-006），本 case 只断结构不断言跨主体内容；③ **`snapshot_id`/`snapshot_at`**——无 cursor 请求必回填本次快照 id 与创建时间；④ **半开窗**——`[from,to)`；⑤ **读操作副作用**——第 2 步会写一条 `query_snapshots`，不得据此判 FAIL，也不得宣称绝对零写；⑥ **不硬编码数值**——`data` 条数与内容随 m5air 运行变化。
+**重点关注步骤**：① **页信封 identity**——五键缺一不可（与 `AdminPageMeta` 的 `{has_more,next_cursor}` 不同，`UsagePage` 多出 `snapshot_id`/`snapshot_at`）；
+② **admin 全局视图**——admin 主体不加 principal 过滤（data 主体仅见自身，属 ST-USAGE-006），本 case 只断结构不断言跨主体内容；③ **`snapshot_id`/`snapshot_at`**——无 cursor 请求必回填本次快照 id 与创建时间；
+④ **半开窗**——`[from,to)`；⑤ **读操作副作用**——第 2 步会写一条 `query_snapshots`，不得据此判 FAIL，也不得宣称绝对零写；⑥ **不硬编码数值**——`data` 条数与内容随 m5air 运行变化。
 
 ## 5. 独立 Oracle 与预期结果
 

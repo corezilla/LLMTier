@@ -153,7 +153,11 @@
 
 ## 7. 证据与 Run 记录规则
 
-- Run ID 规则与证据位置：`run-YYYYMMDD-NN`。**位置**：STD `path-policy.json` 指定模块报告根为 `tests/module/reports/`；本计划据此使用**单一证据根** `tests/module/reports/<run-id>/`。**逐 Case 结果平铺**：按 STD `repository-layout §4.1.1`，逐 Case 结果写作 `reports/<run-id>/<Case ID>.json`（如 `MT-API-001.json`），不嵌套 `cases/<case-id>/manifest.json`；正式报告 `module-test-report.md` 与 `case-status.json` / `test-run.env` 同在 Run 根。机器输出（`junit.xml`、`pytest.log`）放 `tests/module/reports/<run-id>/artifacts/`（默认不入 Git，按 CI 保留策略）。**现状**：证据根 `tests/module/reports/` **已建立并已执行**——模块层共 **6 个 Run**（`run-20261002-01`…`-06`），按本节「重跑生成新 Run，不覆盖旧失败」**全部保留、互不覆盖**；机器输出按上述布局落 `artifacts/`。逐 Run 事实如下（字段原样取自各自 `test-run.env` / `case-status.json` / `artifacts/`，详证见对应 Run 目录与报告）：
+- Run ID 规则与证据位置：`run-YYYYMMDD-NN`。**位置**：STD `path-policy.json` 指定模块报告根为 `tests/module/reports/`；本计划据此使用**单一证据根** `tests/module/reports/<run-id>/`。
+  **逐 Case 结果平铺**：按 STD `repository-layout §4.1.1`，逐 Case 结果写作 `reports/<run-id>/<Case ID>.json`（如 `MT-API-001.json`），不嵌套 `cases/<case-id>/manifest.json`；
+  正式报告 `module-test-report.md` 与 `case-status.json` / `test-run.env` 同在 Run 根。机器输出（`junit.xml`、`pytest.log`）放 `tests/module/reports/<run-id>/artifacts/`（默认不入 Git，按 CI 保留策略）。
+  **现状**：证据根 `tests/module/reports/` **已建立并已执行**——模块层共 **6 个 Run**（`run-20261002-01`…`-06`），按本节「重跑生成新 Run，不覆盖旧失败」**全部保留、互不覆盖**；
+  机器输出按上述布局落 `artifacts/`。逐 Run 事实如下（字段原样取自各自 `test-run.env` / `case-status.json` / `artifacts/`，详证见对应 Run 目录与报告）：
 
 | Run | `case-status.json.counts` | 68 Case 级状态 | 正式报告 | 结论（缺陷根因＝ENV-3 替身写侧，非产品） |
 |---|---|---|---|---|
@@ -164,7 +168,9 @@
 | `run-20261002-05` | `PASS=354 / FAIL=0 / BLOCKED=0 / INVALID=0 / NOT_RUN=0` | 68 `PASS`（`cases` 段逐条全 `PASS`），`release_blocking=false` | **无**（该 Run 目录只有证据，无 `module-test-report.md`；报告实例不再补齐，见 §10 已关闭项） | 复跑确认：同为 354/354；逐 Case `MT-*.json` 首次带 `test_functions` 明细；**但 `test-run.env.git_commit=f83f8da` 与执行树不一致**（执行树含未入库的替身/工具/harness 变更）→ **不作最终 pin 依据** |
 | **`run-20261002-06`** | `PASS=354 / FAIL=0 / BLOCKED=0 / INVALID=0 / NOT_RUN=0` | 68 `PASS`（`cases` 段逐条全 `PASS`），`release_blocking=false` | **有，当前最新且为最终报告**（`tests/module/reports/run-20261002-06/module-test-report.md`，`llmtier-module-test-report-2026-10-02-06`，Gate 判闭合） | **最终 Run**：全部测试资产/工具修复入库（`a1cb672`）后执行，`test-run.env` 12 字段、`git_commit=a1cb672` ＝ 执行时 `HEAD` 且工作树无未提交改动 → 被测树与 pin 逐字一致，**证据可采信并作最终 pin 依据** |
 
-- **有据可查的闭合结论出自 run-06 证据**（68/68 Case `PASS` ＋ 354/354、`release_blocking=false`、Gate 闭合，`document_id=llmtier-module-test-report-2026-10-02-06`）；`run-20261002-04`/`-05` 是其前置复跑且同样 354/354，但二者的 `git_commit=f83f8da` 均不覆盖执行时实际生效的未入库替身/工具修复，**不得作为最终 pin 依据**。缺陷根因在 **ENV-3 边界替身写侧**（`Content-Length` 大 body 形态与真实流式上游不符），**不是产品缺陷**：产品读阶段 60s 无进展即 503 `provider_unavailable`，与方案 §1.5.1 c1/c2 的病态设定一致；`src/` 相对 `f83f8da` 零变更（`git diff --stat f83f8da a1cb672 -- src/` 为空）。
+- **有据可查的闭合结论出自 run-06 证据**（68/68 Case `PASS` ＋ 354/354、`release_blocking=false`、Gate 闭合，`document_id=llmtier-module-test-report-2026-10-02-06`）；
+  `run-20261002-04`/`-05` 是其前置复跑且同样 354/354，但二者的 `git_commit=f83f8da` 均不覆盖执行时实际生效的未入库替身/工具修复，**不得作为最终 pin 依据**。缺陷根因在 **ENV-3 边界替身写侧**（`Content-Length` 大 body 形态与真实流式上游不符），**不是产品缺陷**：产品读阶段 60s 无进展即 503 `provider_unavailable`，与方案 §1.5.1 c1/c2 的病态设定一致；
+  `src/` 相对 `f83f8da` 零变更（`git diff --stat f83f8da a1cb672 -- src/` 为空）。
 - 保存内容与脱敏要求：命令、Python 版本、被测源码 commit、`PYTHONPATH`、pytest stdout/退出码、失败种子与并发交错样本、ENV 实例编号；不保存 secret/正文，日志样例须为已脱敏 `[REDACTED]` 形式（与 `MT-LOG-001` 断言一致）。
 - **注入类方法证据（方案 §1.5 / §1.5.1）**：凡使用注入的 Case（主手段「mock 返回」6 类 + 存储/传输/准入 3 面 + 数据注入 4 类 + §1.5.1 异常/错误矩阵 53 条），Run 记录须保存**注入承接证据**——边界替身返回的配置（错误类型/状态码/错误体，如配额耗尽的 429 体、stall/hang 的「accept 后不回字节」、截断流的 early EOF 位置）与模块映射结果（错误码/status/分支走向/SSE 终态 `aborted`），或产品注入的**注入命中计数**与类型/参数（如 `fault_502`/`stream_terminate_after_events`）、注入生效阶段的 trace 或落库行，以及数据注入的**公开入口播种路径**（证明经公开入口而非直写表）。**传输/时间病态专证**：c4/c5（broken pipe/RST）须附 ENV-2 真实 socket 的客户端断开方式与 `aborted(client disconnected)` trace/许可复位、fd 基线不泄漏证据；c1/c2 须附超时参数（`connect_timeout_ms`/`stream_idle_timeout_ms`）与命中证据；c8 须附 `_inflight` 归零证据。产品注入命中计数=0 即 `INVALID`，须记录复现状态与修复状态分开。
 - 状态映射（Run 级）：pytest 单测试函数失败（`F`）→ 该 Case `FAIL`；pytest 收集/执行错误（`E`，含 import/fixture 错误）→ 该 Case `BLOCKED`（环境性）或按结论归 `FAIL`（断言性），不得静默记为 PASS；`skipped` → `NOT_RUN` 并登记原因，不计入 PASS；**注入未命中（命中计数=0）**/并发未交错 → `INVALID`。

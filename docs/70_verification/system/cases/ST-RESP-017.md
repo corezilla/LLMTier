@@ -31,7 +31,9 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-RESP-017` / 系统设计 §8 Responses 接口 / `VRC-INF-001` / recovery / P1（[方案清单 `ST-RESP-017`](../llmtier-system-test-scheme.md)）；机制 `T-STREAM`。
 - **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-MODEL：embedding-only 等级发 Responses）
-- 要测什么（责任展开）：`POST /v1/responses` 使用 embedding-only 等级：`400 unsupported_model`（`param=model`）（自动化入口 `ST-RESP-017.py`）。所选 model 的能力声明必须 `capabilities.responses == true`，否则在 dispatch 前拒绝。错误目录 `ERR-REQ-MODEL` → wire `code=unsupported_model`；实现 `src/inference/responses.py`（`require(caps.get("responses") is True, 400, "unsupported_model", "Selected model does not support Responses", "model")`）；需求链 `LT-FUN-001`/`LT-INT-001`、`R-INF-01`。
+- 要测什么（责任展开）：`POST /v1/responses` 使用 embedding-only 等级：`400 unsupported_model`（`param=model`）（自动化入口 `ST-RESP-017.py`）。所选 model 的能力声明必须 `capabilities.responses == true`，否则在 dispatch 前拒绝。
+  错误目录 `ERR-REQ-MODEL` → wire `code=unsupported_model`；实现 `src/inference/responses.py`（`require(caps.get("responses") is True, 400, "unsupported_model", "Selected model does not support Responses", "model")`）；
+  需求链 `LT-FUN-001`/`LT-INT-001`、`R-INF-01`。
 - 明确不测什么 / 失败含义：不测缺少 `model`（ST-RESP-008）或未知 model（ST-RESP-005）；不测 `tools`/`max_output_tokens` 的次级能力门；不测上游调用（在能力门拒绝）。失败含义＝能力门契约破坏。
 
 ## 2. 被测入口与前置

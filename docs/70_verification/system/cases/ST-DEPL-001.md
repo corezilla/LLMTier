@@ -53,7 +53,12 @@
 - 要测什么（责任展开）：`GET /v1/deployments` 列出 deployment 分页页：HTTP 200 + `DeploymentPage`（`data[]` 含 m5air 已知 4 个 deployment，`page.has_more` 为 JSON 布尔）。
 - 明确不测什么 / 失败含义：不证明 创建/详情/更新/删除（ST-DEPL-002..09）、不证明 capabilities 校验（ST-DEPL-006/07）、不证明 `provider_id` 引用校验（ST-DEPL-008/09）、不证明分页 `limit=1` cursor 推进（本 case 只观察 `page` 结构与存在性）；不证明 data/admin 角色隔离（ST-AUTH-003）。
 
-**目的（被测契约）**：验证 Management Deployment CRUD 的**列表读契约**。被测端点/规则：`GET /v1/deployments`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listDeployments`，`security=AdminBearerAuth`），认证角色 `admin`；成功返回 `DeploymentPage`（`data: DeploymentView[]`，`page: AdminPageMeta{has_more:boolean, next_cursor:string|null}`，`additionalProperties:false`）；失败走统一错误信封（401 `authentication_required` / 403 `permission_denied`）。列表按 `name,id` 排序，允许 `cursor`/`limit`（默认 `limit=100`，`_int_param`）。设计验证项 `VRC-MGMT-001`；需求/机制链 `LT-FUN-005`、`LT-INT-008`、`R-CFG-01`、`T-CFG-CAS`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明创建/详情/更新/删除（ST-DEPL-002..09）、不证明 capabilities 校验（ST-DEPL-006/07）、不证明 `provider_id` 引用校验（ST-DEPL-008/09）、不证明分页 `limit=1` cursor 推进（本 case 只观察 `page` 结构与存在性）；不证明 data/admin 角色隔离（ST-AUTH-003）。
+**目的（被测契约）**：验证 Management Deployment CRUD 的**列表读契约**。被测端点/规则：`GET /v1/deployments`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listDeployments`，`security=AdminBearerAuth`），认证角色 `admin`；
+成功返回 `DeploymentPage`（`data: DeploymentView[]`，`page: AdminPageMeta{has_more:boolean, next_cursor:string|null}`，`additionalProperties:false`）；
+失败走统一错误信封（401 `authentication_required` / 403 `permission_denied`）。列表按 `name,id` 排序，允许 `cursor`/`limit`（默认 `limit=100`，`_int_param`）。
+设计验证项 `VRC-MGMT-001`；需求/机制链 `LT-FUN-005`、`LT-INT-008`、`R-CFG-01`、`T-CFG-CAS`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明创建/详情/更新/删除（ST-DEPL-002..09）、不证明 capabilities 校验（ST-DEPL-006/07）、不证明 `provider_id` 引用校验（ST-DEPL-008/09）、不证明分页 `limit=1` cursor 推进（本 case 只观察 `page` 结构与存在性）；
+不证明 data/admin 角色隔离（ST-AUTH-003）。
 
 ## 2. 被测入口与前置
 
@@ -80,7 +85,9 @@
   5. 断言 `isinstance(page["has_more"], bool)`；`next_cursor` 为字符串或 `null`。
   6. 计算 `ids = {d["id"] for d in data}`，断言基线集合 `{dep_local_gemma, dep_local_bge_m3, dep_omlx_qwen36, dep_minimax_m27}` ⊆ `ids`；抽查每个 `DeploymentView` 必填键 `{id,name,provider_id,backend_model,capabilities,enabled,health,version}` 齐备，且 `capabilities` 键集恰为 12 键。
 
-**重点关注步骤**：① **`page` 是嵌套对象**——不是顶层 `has_more`，读错层级即漏判；② **`has_more` 类型**——必须 JSON 布尔，不能是 `0/1`/字符串；③ **包含而非相等**——只断言 4 个基线 deployment 必在，不硬编码总数（A 类历史可能更多）；④ **每个 `DeploymentView.capabilities` 为 12 键全集**——列表元素也须满足 `ModelCapabilities`；⑤ **不得把错误信封当列表**——非 200 需先确认是可解释的 `ERR-AUTH-*`；⑥ **服务端读路径副作用**——[`admin.page()`](../../../../src/management/admin.py) 每次列表调用会在 M007 `query_snapshots`/`query_snapshot_items` 落一条 10 分钟 TTL 的分页快照（即使无 `cursor`），报告须登记该写入，**不得声称"零写入"**。
+**重点关注步骤**：① **`page` 是嵌套对象**——不是顶层 `has_more`，读错层级即漏判；② **`has_more` 类型**——必须 JSON 布尔，不能是 `0/1`/字符串；③ **包含而非相等**——只断言 4 个基线 deployment 必在，不硬编码总数（A 类历史可能更多）；
+④ **每个 `DeploymentView.capabilities` 为 12 键全集**——列表元素也须满足 `ModelCapabilities`；⑤ **不得把错误信封当列表**——非 200 需先确认是可解释的 `ERR-AUTH-*`；
+⑥ **服务端读路径副作用**——[`admin.page()`](../../../../src/management/admin.py) 每次列表调用会在 M007 `query_snapshots`/`query_snapshot_items` 落一条 10 分钟 TTL 的分页快照（即使无 `cursor`），报告须登记该写入，**不得声称"零写入"**。
 
 ## 5. 独立 Oracle 与预期结果
 

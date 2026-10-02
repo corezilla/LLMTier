@@ -53,7 +53,11 @@
 - 要测什么（责任展开）：`PATCH /v1/deployments/{id}` 携带正确 `If-Match` 更新 deployment：HTTP 200 + 字段生效 + `version`/`ETag` 推进；`provider_id` 保持不变。
 - 明确不测什么 / 失败含义：不证明 缺/过期 `If-Match` 的 412（ST-PROV-006/07 同机制；本 case 走正确 ETag 路径）、不证明删除（ST-DEPL-005）、不证明 capabilities 校验的 400（ST-DEPL-006/07）、不证明 `provider_id` PATCH 的负向（ST-DEPL-009）；本 case 更新 `name`/`enabled` 两个标量，不改 `provider_id`、不触上游。
 
-**目的（被测契约）**：验证 Management Deployment CRUD 的**乐观并发更新契约**。被测端点/规则：`PATCH /v1/deployments/{deployment_id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `updateDeployment`，`security=AdminBearerAuth`），请求体 `DeploymentPatch`（`minProperties:1`、`additionalProperties:false`，可含 `name/provider_id/backend_model/capabilities/enabled`）；`If-Match` 必须等于当前 ETag `"<id>.v<N>"`；成功 `200` + 新 `DeploymentView` + 响应头 `ETag: "<id>.v<N+1>"`（`version` 单调 +1，[`registry.update_deployment`](../../../../src/management/registry.py)）；失败 400 `invalid_request` / 404 `not_found` / 409 `resource_conflict` / 412 `version_conflict`。设计验证项 `VRC-MGMT-002`；机制 `T-CFG-CAS`；需求/机制链 `LT-FUN-005`、`LT-INT-008`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明缺/过期 `If-Match` 的 412（ST-PROV-006/07 同机制；本 case 走正确 ETag 路径）、不证明删除（ST-DEPL-005）、不证明 capabilities 校验的 400（ST-DEPL-006/07）、不证明 `provider_id` PATCH 的负向（ST-DEPL-009）；本 case 更新 `name`/`enabled` 两个标量，不改 `provider_id`、不触上游。
+**目的（被测契约）**：验证 Management Deployment CRUD 的**乐观并发更新契约**。被测端点/规则：`PATCH /v1/deployments/{deployment_id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `updateDeployment`，`security=AdminBearerAuth`），请求体 `DeploymentPatch`（`minProperties:1`、`additionalProperties:false`，可含 `name/provider_id/backend_model/capabilities/enabled`）；
+`If-Match` 必须等于当前 ETag `"<id>.v<N>"`；成功 `200` + 新 `DeploymentView` + 响应头 `ETag: "<id>.v<N+1>"`（`version` 单调 +1，[`registry.update_deployment`](../../../../src/management/registry.py)）；
+失败 400 `invalid_request` / 404 `not_found` / 409 `resource_conflict` / 412 `version_conflict`。设计验证项 `VRC-MGMT-002`；机制 `T-CFG-CAS`；
+需求/机制链 `LT-FUN-005`、`LT-INT-008`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明缺/过期 `If-Match` 的 412（ST-PROV-006/07 同机制；本 case 走正确 ETag 路径）、不证明删除（ST-DEPL-005）、不证明 capabilities 校验的 400（ST-DEPL-006/07）、不证明 `provider_id` PATCH 的负向（ST-DEPL-009）；
+本 case 更新 `name`/`enabled` 两个标量，不改 `provider_id`、不触上游。
 
 ## 2. 被测入口与前置
 

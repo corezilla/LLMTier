@@ -53,7 +53,11 @@
 - 要测什么（责任展开）：`POST /v1/deployments` 的 `capabilities` 缺少必填键：HTTP 400 + `error.code=="invalid_request"`、`param=="capabilities"`，统一错误信封，无副作用。
 - 明确不测什么 / 失败含义：不证明 创建成功（ST-DEPL-002）、不证明未知字段（ST-DEPL-007）、不证明 provider 引用（ST-DEPL-008）、不证明 `provider_id` PATCH（ST-DEPL-009）；本 case 为纯负向，**不得**创建出任何 deployment。
 
-**目的（被测契约）**：验证 Deployment **capabilities 完整性的负向契约**。被测端点/规则：`POST /v1/deployments`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `createDeployment`），请求体 `DeploymentWrite.capabilities` 是 `ModelCapabilities`（`additionalProperties:false`、`required` 恰 12 键）；[`registry._validate_capabilities`](../../../../src/management/registry.py) 断言 `set(value) == CAPABILITY_KEYS`，否则 `raise ApiError(400,"invalid_request",…,"capabilities")`。成功契约与 201 见 ST-DEPL-002；本 case 走缺字段负向。设计验证项 `VRC-MGMT-001`；错误目录 `ERR-REQ-VALIDATION`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；需求/机制链 `LT-FUN-005`、`LT-INT-008`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明创建成功（ST-DEPL-002）、不证明未知字段（ST-DEPL-007）、不证明 provider 引用（ST-DEPL-008）、不证明 `provider_id` PATCH（ST-DEPL-009）；本 case 为纯负向，**不得**创建出任何 deployment。
+**目的（被测契约）**：验证 Deployment **capabilities 完整性的负向契约**。被测端点/规则：`POST /v1/deployments`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `createDeployment`），请求体 `DeploymentWrite.capabilities` 是 `ModelCapabilities`（`additionalProperties:false`、`required` 恰 12 键）；
+[`registry._validate_capabilities`](../../../../src/management/registry.py) 断言 `set(value) == CAPABILITY_KEYS`，否则 `raise ApiError(400,"invalid_request",…,"capabilities")`。
+成功契约与 201 见 ST-DEPL-002；本 case 走缺字段负向。设计验证项 `VRC-MGMT-001`；错误目录 `ERR-REQ-VALIDATION`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；
+需求/机制链 `LT-FUN-005`、`LT-INT-008`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明创建成功（ST-DEPL-002）、不证明未知字段（ST-DEPL-007）、不证明 provider 引用（ST-DEPL-008）、不证明 `provider_id` PATCH（ST-DEPL-009）；
+本 case 为纯负向，**不得**创建出任何 deployment。
 
 ## 2. 被测入口与前置
 
@@ -93,7 +97,9 @@
   5. `err = resp.json()["error"]`：键集恰为 `{message,type,code,param,retryable}`；`err["code"] == "invalid_request"`、`err["type"] == "request_error"`、`err["param"] == "capabilities"`、`err["retryable"] is False`。
   6. 对 deployment 资源零副作用：`after = GET /v1/deployments`；断言 id 集合与 `before` 相同（未创建 `"Bad Deployment"`）。**注**：第 2/6 步列表 GET 各自会在 `query_snapshots` 落一条 10 分钟 TTL 的分页快照（`admin.page()`），属服务端读路径副作用、非 deployment 资源，报告须登记，**不得笼统声称"零写入"**；"no new rows" 检查只针对 `deployments` 表，不得据 `query_snapshots` 新增判 FAIL。
 
-**重点关注步骤**：① **400 + code + param 三断言**——不能只断言 400；`param=="capabilities"` 定位字段；② **对 deployment 资源拒绝零副作用**——校验在 INSERT 之前（`create_deployment` 先校验后落库），第 6 步证明无新 deployment 行；但第 2/6 步列表 GET 会在 `query_snapshots` 落 10 分钟 TTL 分页快照（`admin.page()`），须登记该写入、**不得声称"零写入"**；③ **信封 identity**——恰 5 键、`type="request_error"`（400<500）、`retryable=false`；④ **不得误判**——若因 provider 不存在也 400，需确认根因是 capabilities（本输入 provider 存在，故唯一失败面是 capabilities）；⑤ **不依赖 message 文本**——只断言 code/type/param/retryable。
+**重点关注步骤**：① **400 + code + param 三断言**——不能只断言 400；`param=="capabilities"` 定位字段；② **对 deployment 资源拒绝零副作用**——校验在 INSERT 之前（`create_deployment` 先校验后落库），第 6 步证明无新 deployment 行；
+但第 2/6 步列表 GET 会在 `query_snapshots` 落 10 分钟 TTL 分页快照（`admin.page()`），须登记该写入、**不得声称"零写入"**；③ **信封 identity**——恰 5 键、`type="request_error"`（400<500）、`retryable=false`；
+④ **不得误判**——若因 provider 不存在也 400，需确认根因是 capabilities（本输入 provider 存在，故唯一失败面是 capabilities）；⑤ **不依赖 message 文本**——只断言 code/type/param/retryable。
 
 ## 5. 独立 Oracle 与预期结果
 

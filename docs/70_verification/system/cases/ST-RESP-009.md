@@ -36,7 +36,10 @@
 - 要测什么（责任展开）：`POST /v1/responses` 携带禁字段 `previous_response_id`：`400 unsupported_field`（`param="previous_response_id"`），零副作用。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明未知/多余字段的拒绝（本 case 只覆盖显式禁字段清单；`additionalProperties:false` 路径见 ST-RESP-012..15 等）；不证明合法续写（本版本不存在）；不证明上游调用或答案。**失败含义＝禁用字段契约破坏**。
 
-**目的（被测契约）**：验证 Data Plane `POST /v1/responses` 的**禁用字段契约**：provider 续写/缓存类字段 `prompt_cache_key`/`prompt_cache_retention`/`previous_response_id` 出现即拒绝（本版本无 conversation 续写）。被测端点/规则：`POST /v1/responses`；需求 `LT-FUN-001`；设计验证项 `VRC-INF-001`；错误目录 `ERR-REQ-FIELD` → wire `code=unsupported_field`、`param`=该禁字段名；实现 `src/inference/responses.py`（`FORBIDDEN_FIELDS`，`require(forbidden is None, 400, "unsupported_field", "Unsupported provider continuation or cache field", forbidden)`）（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明未知/多余字段的拒绝（本 case 只覆盖显式禁字段清单；`additionalProperties:false` 路径见 ST-RESP-012..15 等）；不证明合法续写（本版本不存在）；不证明上游调用或答案。
+**目的（被测契约）**：验证 Data Plane `POST /v1/responses` 的**禁用字段契约**：provider 续写/缓存类字段 `prompt_cache_key`/`prompt_cache_retention`/`previous_response_id` 出现即拒绝（本版本无 conversation 续写）。
+被测端点/规则：`POST /v1/responses`；需求 `LT-FUN-001`；设计验证项 `VRC-INF-001`；错误目录 `ERR-REQ-FIELD` → wire `code=unsupported_field`、`param`=该禁字段名；
+实现 `src/inference/responses.py`（`FORBIDDEN_FIELDS`，`require(forbidden is None, 400, "unsupported_field", "Unsupported provider continuation or cache field", forbidden)`）（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明未知/多余字段的拒绝（本 case 只覆盖显式禁字段清单；`additionalProperties:false` 路径见 ST-RESP-012..15 等）；不证明合法续写（本版本不存在）；不证明上游调用或答案。
 
 ## 2. 被测入口与前置
 

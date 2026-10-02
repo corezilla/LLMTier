@@ -36,7 +36,11 @@
 - 要测什么（责任展开）：`POST /v1/responses` 传 `store=true`：在 dispatch 前返回 `400 unsupported_request`，零副作用。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明 `stream=false` 被拒（ST-RESP-002）；不证明合法流式成功（ST-RESP-001/06）；不证明任何持久化/会话恢复语义（本版本不存在）。**失败含义＝`store` 跨字段硬约束破坏**。
 
-**目的（被测契约）**：验证 Data Plane `POST /v1/responses` 的 **`store` 跨字段硬约束**——本版本不保存 provider conversation 状态，仅受理 `store=false`（OpenAPI `ResponsesRequest.store.const=false`；[piko-data-plane-control.md](../../../60_interfaces/piko-data-plane-control.md) §"LLMTier 只透传/规范化，不保存 Agent conversation"）。被测端点/规则：`POST /v1/responses`；需求 `LT-INT-006`；设计验证项 `VRC-INF-001`；错误目录 `ERR-REQ-UNSUPPORTED` → wire `code=unsupported_request`；实现 `src/inference/responses.py`（同一 `require(stream is True and store is False, 400, "unsupported_request", ...)`）（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明 `stream=false` 被拒（ST-RESP-002）；不证明合法流式成功（ST-RESP-001/06）；不证明任何持久化/会话恢复语义（本版本不存在）。
+**目的（被测契约）**：验证 Data Plane `POST /v1/responses` 的 **`store` 跨字段硬约束**——本版本不保存 provider conversation 状态，仅受理 `store=false`（OpenAPI `ResponsesRequest.store.const=false`；
+[piko-data-plane-control.md](../../../60_interfaces/piko-data-plane-control.md) §"LLMTier 只透传/规范化，不保存 Agent conversation"）。
+被测端点/规则：`POST /v1/responses`；需求 `LT-INT-006`；设计验证项 `VRC-INF-001`；错误目录 `ERR-REQ-UNSUPPORTED` → wire `code=unsupported_request`；
+实现 `src/inference/responses.py`（同一 `require(stream is True and store is False, 400, "unsupported_request", ...)`）（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明 `stream=false` 被拒（ST-RESP-002）；不证明合法流式成功（ST-RESP-001/06）；不证明任何持久化/会话恢复语义（本版本不存在）。
 
 ## 2. 被测入口与前置
 

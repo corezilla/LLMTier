@@ -88,7 +88,8 @@ ResponsesService.create(..., diagnostics=...)
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/unit/cases/UT-INF-005.py::InferenceFailOpenTests::test_inference_result_unchanged_when_diagnostic_writes_fail` / `test_usage_ledger_still_measured_when_diagnostic_writes_fail` / `test_upstream_fault_still_surfaces_when_diagnostic_writes_fail`（观测 fail-open）+ `InferenceNoSecondAuthTests::test_inference_path_does_not_call_authenticate` / `test_inference_modules_do_not_import_auth`（推理路径无二次鉴权调用点）；`_UnavailableDiagnostics` 降级行为另由 `UT-INF-005.py::UnavailableDiagnosticsUnitTests`、`UT-INF-005.py::UnavailableDiagnosticsTests` 覆盖。
+- 测试文件 / 测试函数：`tests/unit/cases/UT-INF-005.py::InferenceFailOpenTests::test_inference_result_unchanged_when_diagnostic_writes_fail` / `test_usage_ledger_still_measured_when_diagnostic_writes_fail` / `test_upstream_fault_still_surfaces_when_diagnostic_writes_fail`（观测 fail-open）+ `InferenceNoSecondAuthTests::test_inference_path_does_not_call_authenticate` / `test_inference_modules_do_not_import_auth`（推理路径无二次鉴权调用点）；
+  `_UnavailableDiagnostics` 降级行为另由 `UT-INF-005.py::UnavailableDiagnosticsUnitTests`、`UT-INF-005.py::UnavailableDiagnosticsTests` 覆盖。
 - 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/unit/cases/UT-INF-005.py -q`
 - 实现状态：`Implemented`（测试函数已存在于 `tests/unit`）；执行状态与 Verdict 见 Run 报告 `run-20261001-04`。
 

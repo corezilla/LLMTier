@@ -53,7 +53,11 @@
 - 要测什么（责任展开）：`/tier/admin/v1/diagnostics` 与 `/v1/diagnostics` 的 GET/PATCH 由同一 handler 服务：status 与响应体逐字节等价。
 - 明确不测什么 / 失败含义：不证明 正常/非法开关语义本身（ST-OBSDIAG-001/02/03 分别在扁平路径断言）、不证明其它 5 条别名（ST-OBSALIAS-002..06）、不证明别名鉴权负向（ST-AUTH-008，本 case 用 admin 正向）、不证明错误路径在别名上的等价（本 case 以成功路径为主，404/400 等价可作旁证）。
 
-**目的（被测契约）**：验证契约别名命名空间的**逐字节等价契约**。被测端点/规则：`GET`+`PATCH /tier/admin/v1/diagnostics` 是 `/v1/diagnostics` 的**精确别名**（openapi `x-llmtier-contract-aliases`：`"/tier/admin/v1/diagnostics": "/v1/diagnostics"`），同一 handler、相同请求/响应形状、相同 `admin` 鉴权（[`src/http_api/app.py`](../../../../src/http_api/app.py) 两分支调用同一 `app.diagnostics.switches/set_switches`）；body 应逐字节等价（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；认证 `admin`。设计验证项 `VRC-DIAG-001`；机制 `T-TRUST-SHARED`（同一 handler 别名，[access-trust 机制](../../../20_system_design/mechanisms/access-trust.md)）+ `T-OBS-SWITCH`；需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；机器契约 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`x-llmtier-contract-aliases`、`SwitchState`、`DiagnosticsSwitchPatch`）。**不证明什么**：不证明正常/非法开关语义本身（ST-OBSDIAG-001/02/03 分别在扁平路径断言）、不证明其它 5 条别名（ST-OBSALIAS-002..06）、不证明别名鉴权负向（ST-AUTH-008，本 case 用 admin 正向）、不证明错误路径在别名上的等价（本 case 以成功路径为主，404/400 等价可作旁证）。
+**目的（被测契约）**：验证契约别名命名空间的**逐字节等价契约**。被测端点/规则：`GET`+`PATCH /tier/admin/v1/diagnostics` 是 `/v1/diagnostics` 的**精确别名**（openapi `x-llmtier-contract-aliases`：`"/tier/admin/v1/diagnostics": "/v1/diagnostics"`），同一 handler、相同请求/响应形状、相同 `admin` 鉴权（[`src/http_api/app.py`](../../../../src/http_api/app.py) 两分支调用同一 `app.diagnostics.switches/set_switches`）；
+body 应逐字节等价（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；认证 `admin`。设计验证项 `VRC-DIAG-001`；机制 `T-TRUST-SHARED`（同一 handler 别名，[access-trust 机制](../../../20_system_design/mechanisms/access-trust.md)）+ `T-OBS-SWITCH`；
+需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；
+机器契约 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`x-llmtier-contract-aliases`、`SwitchState`、`DiagnosticsSwitchPatch`）。
+**不证明什么**：不证明正常/非法开关语义本身（ST-OBSDIAG-001/02/03 分别在扁平路径断言）、不证明其它 5 条别名（ST-OBSALIAS-002..06）、不证明别名鉴权负向（ST-AUTH-008，本 case 用 admin 正向）、不证明错误路径在别名上的等价（本 case 以成功路径为主，404/400 等价可作旁证）。
 
 ## 2. 被测入口与前置
 
@@ -76,7 +80,10 @@
   5. （旁证）`GET /v1/diagnostics` 与别名 GET 再比对一次（确认 PATCH 后仍等价）。
   6. （teardown，`finally` 内）`PATCH /v1/diagnostics` body `{"snapshots_enabled": orig.snapshots_enabled, "stats_enabled": orig.stats_enabled}` → 200；`GET` 校验回到 `orig_raw`。
 
-**重点关注步骤**：① **逐字节 body 等价**——GET 与 PATCH 均须 `content` 相同；仅"schema 相同"不够。② **只比 body，不比 header**——`X-Request-ID` 每次请求不同，**不得**把响应头纳入逐字节断言，也不得列入 Oracle（openapi 未声明 200 头）。③ **鉴权等价**——两条路径都需 `admin`；本 case 以 `dev-admin` 正向，负向（data → 403）由 ST-AUTH-008 承接。④ **幂等 PATCH**——两次同值 body 的返回应相等；不得因 `updated_at`/审计导致 body 差异（`SwitchState` 不含这些字段）。⑤ **teardown 完整性**——`finally` 恢复原值并字节校验，绝不把开关留在非初态影响 OBS-SNAP/STATS。⑥ **降级/存储**——`_UnavailableDiagnostics` 下两条路径仍同 handler、应同样返回默认，等价断言仍可做（但无法证明真实开关语义，判 BLOCKED/SKIP）；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSALIAS-001.py` 已实现。
+**重点关注步骤**：① **逐字节 body 等价**——GET 与 PATCH 均须 `content` 相同；仅"schema 相同"不够。② **只比 body，不比 header**——`X-Request-ID` 每次请求不同，**不得**把响应头纳入逐字节断言，也不得列入 Oracle（openapi 未声明 200 头）。
+③ **鉴权等价**——两条路径都需 `admin`；本 case 以 `dev-admin` 正向，负向（data → 403）由 ST-AUTH-008 承接。④ **幂等 PATCH**——两次同值 body 的返回应相等；不得因 `updated_at`/审计导致 body 差异（`SwitchState` 不含这些字段）。
+⑤ **teardown 完整性**——`finally` 恢复原值并字节校验，绝不把开关留在非初态影响 OBS-SNAP/STATS。⑥ **降级/存储**——`_UnavailableDiagnostics` 下两条路径仍同 handler、应同样返回默认，等价断言仍可做（但无法证明真实开关语义，判 BLOCKED/SKIP）；
+`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSALIAS-001.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 

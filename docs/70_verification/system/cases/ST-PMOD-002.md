@@ -53,7 +53,10 @@
 - 要测什么（责任展开）：`GET /v1/providers/{id}/models` 读取不存在 provider 的上游模型目录：HTTP 404 + `error.code=="not_found"`，统一错误信封，无副作用。
 - 明确不测什么 / 失败含义：不证明 既存 provider 的正常目录（ST-PMOD-001）、不证明 provider 详情/usage 子路径的 404（ST-PROV-004、ST-PUSAGE-004）、不证明鉴权优先于存在性（ST-AUTH-009）、不证明上游不可用路径（不在本负向 case 范围）。
 
-**目的（被测契约）**：验证 provider 上游模型目录的**未知 provider 负向契约**。被测端点/规则：`GET /v1/providers/{provider_id}/models`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listProviderModels`，`security=AdminBearerAuth`），认证角色 `admin`；未知 id 由 [`registry.get_provider`](../../../../src/management/registry.py)（`raise ApiError(404,"not_found",…)`，经 [`admin.list_provider_models`](../../../../src/management/admin.py) 先行解析）返回统一错误信封的 `404` + `code=not_found`；`type=request_error`（<500）、`param=null`、`retryable=false`。设计验证项 `VRC-MGMT-001`；错误目录 `ERR-NOTFOUND`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`T-CFG-SECRET`、`CT-ADMIN-001`。**不证明什么**：不证明既存 provider 的正常目录（ST-PMOD-001）、不证明 provider 详情/usage 子路径的 404（ST-PROV-004、ST-PUSAGE-004）、不证明鉴权优先于存在性（ST-AUTH-009）、不证明上游不可用路径（不在本负向 case 范围）。
+**目的（被测契约）**：验证 provider 上游模型目录的**未知 provider 负向契约**。被测端点/规则：`GET /v1/providers/{provider_id}/models`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listProviderModels`，`security=AdminBearerAuth`），认证角色 `admin`；
+未知 id 由 [`registry.get_provider`](../../../../src/management/registry.py)（`raise ApiError(404,"not_found",…)`，经 [`admin.list_provider_models`](../../../../src/management/admin.py) 先行解析）返回统一错误信封的 `404` + `code=not_found`；
+`type=request_error`（<500）、`param=null`、`retryable=false`。设计验证项 `VRC-MGMT-001`；错误目录 `ERR-NOTFOUND`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；
+需求/机制链 `LT-FUN-005`、`R-CFG-01`、`T-CFG-SECRET`、`CT-ADMIN-001`。**不证明什么**：不证明既存 provider 的正常目录（ST-PMOD-001）、不证明 provider 详情/usage 子路径的 404（ST-PROV-004、ST-PUSAGE-004）、不证明鉴权优先于存在性（ST-AUTH-009）、不证明上游不可用路径（不在本负向 case 范围）。
 
 ## 2. 被测入口与前置
 

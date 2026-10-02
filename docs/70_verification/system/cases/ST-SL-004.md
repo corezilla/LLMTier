@@ -53,7 +53,9 @@
 - 要测什么（责任展开）：`PATCH /v1/service-levels/{id}` 携带正确 `If-Match` 切换 `enabled`：HTTP 200 + 字段生效 + `version`/`ETag` 推进。
 - 明确不测什么 / 失败含义：不证明 非法字段 400（ST-SL-013）、不证明成员能力/向量空间冲突 409（ST-SL-006/07）、不证明删除 409（ST-SL-005）、不证明缺/过期 `If-Match` 412（未单独构 SL 的 412 Case，语义同 ST-PROV-006/07）、不证明并发两写者竞争（[测试设计 §5](../llmtier-system-test-scheme.md) 不单独构 case）。
 
-**目的（被测契约）**：验证 Service Level 的**乐观并发更新契约**。被测端点/规则：`PATCH /v1/service-levels/{service_level_id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `updateServiceLevel`，body `ServiceLevelPatch`=`{deployment_ids?,enabled?}` 且 `minProperties:1`，`additionalProperties:false`；header `If-Match` 必填），[`registry.update_service_level`](../../../../src/management/registry.py) 仅接受 `deployment_ids`/`enabled`，`If-Match` 必须等于当前 ETag `"<id>.v<N>"`，成功 `200` + 新 `ServiceLevelView` + `ETag: "<id>.v<N+1>"`。设计验证项 `VRC-MGMT-002`；机制 `T-CFG-CAS`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明非法字段 400（ST-SL-013）、不证明成员能力/向量空间冲突 409（ST-SL-006/07）、不证明删除 409（ST-SL-005）、不证明缺/过期 `If-Match` 412（未单独构 SL 的 412 Case，语义同 ST-PROV-006/07）、不证明并发两写者竞争（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理) 不单独构 case）。
+**目的（被测契约）**：验证 Service Level 的**乐观并发更新契约**。被测端点/规则：`PATCH /v1/service-levels/{service_level_id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `updateServiceLevel`，body `ServiceLevelPatch`=`{deployment_ids?
+,enabled?}` 且 `minProperties:1`，`additionalProperties:false`；header `If-Match` 必填），[`registry.update_service_level`](../../../../src/management/registry.py) 仅接受 `deployment_ids`/`enabled`，`If-Match` 必须等于当前 ETag `"<id>.v<N>"`，成功 `200` + 新 `ServiceLevelView` + `ETag: "<id>.v<N+1>"`。
+设计验证项 `VRC-MGMT-002`；机制 `T-CFG-CAS`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明非法字段 400（ST-SL-013）、不证明成员能力/向量空间冲突 409（ST-SL-006/07）、不证明删除 409（ST-SL-005）、不证明缺/过期 `If-Match` 412（未单独构 SL 的 412 Case，语义同 ST-PROV-006/07）、不证明并发两写者竞争（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理) 不单独构 case）。
 
 ## 2. 被测入口与前置
 
@@ -83,7 +85,9 @@
   4. 断言 `patch.status_code == 200`；`updated = patch.json()`：`enabled is False`、`version > original_version`（期望 `+1`）；`patch.headers` 含 `ETag`。
   5. （teardown，`finally` 内）重新 `GET` 取当前 ETag（版本可能已推进），若 `enabled is not True` 则 PATCH `{"enabled": True}` 复位；断言复位后 `enabled is True`。
 
-**重点关注步骤**：① **真实 ETag**——必须取自刚做的 `GET` 响应头；硬编码版本会在创建/并发后失效；② **版本推进**——`version` 必 `+1` 且新 ETag `"Junior.v<N+1>"` 与之一致；③ **字段生效**——`enabled` 回显更新值，`deployment_ids`/`capabilities` 未提交字段保持原值（PATCH 是合并语义，[`update_service_level`](../../../../src/management/registry.py) 用 `current_ids`）；④ **412 恢复**——若因并发得 412，须重新 `GET` 取新 ETag 再 PATCH，不覆盖式重发（本 case 正常路径不触发）；⑤ **teardown 到位**——复位必须用最新 ETag；复位后不得把后续 Case 置于 `enabled=false` 状态（`enabled=false` 会使 `registry.candidates` 返回空，影响路由类 Case）。
+**重点关注步骤**：① **真实 ETag**——必须取自刚做的 `GET` 响应头；硬编码版本会在创建/并发后失效；② **版本推进**——`version` 必 `+1` 且新 ETag `"Junior.v<N+1>"` 与之一致；
+③ **字段生效**——`enabled` 回显更新值，`deployment_ids`/`capabilities` 未提交字段保持原值（PATCH 是合并语义，[`update_service_level`](../../../../src/management/registry.py) 用 `current_ids`）；
+④ **412 恢复**——若因并发得 412，须重新 `GET` 取新 ETag 再 PATCH，不覆盖式重发（本 case 正常路径不触发）；⑤ **teardown 到位**——复位必须用最新 ETag；复位后不得把后续 Case 置于 `enabled=false` 状态（`enabled=false` 会使 `registry.candidates` 返回空，影响路由类 Case）。
 
 ## 5. 独立 Oracle 与预期结果
 

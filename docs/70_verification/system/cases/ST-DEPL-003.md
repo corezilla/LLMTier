@@ -53,7 +53,11 @@
 - 要测什么（责任展开）：`GET /v1/deployments/{id}` 读取既存 deployment：HTTP 200 + `DeploymentView` + `ETag`，纯读、无副作用。
 - 明确不测什么 / 失败含义：不证明 列表（ST-DEPL-001）、不证明创建/更新/删除（ST-DEPL-002/04/05）、不证明未知 id 的 404（本 case 只读既存 `dep_local_gemma`）、不证明 `capabilities` 校验（ST-DEPL-006/07）；本 case 只读、不触上游。
 
-**目的（被测契约）**：验证 Management Deployment CRUD 的**详情读契约**。被测端点/规则：`GET /v1/deployments/{deployment_id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getDeployment`，`security=AdminBearerAuth`），认证角色 `admin`；成功 `200` + `DeploymentView`（`id,name,provider_id,backend_model,capabilities,enabled,health,version`，`additionalProperties:false`）+ 响应头 `ETag: "<id>.v<N>"`（[`registry.get_deployment`](../../../../src/management/registry.py)）；未知 id → 404 `not_found`；失败走统一错误信封（401/403）。设计验证项 `VRC-MGMT-001`；需求/机制链 `LT-FUN-005`、`LT-INT-008`、`R-CFG-01`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明列表（ST-DEPL-001）、不证明创建/更新/删除（ST-DEPL-002/04/05）、不证明未知 id 的 404（本 case 只读既存 `dep_local_gemma`）、不证明 `capabilities` 校验（ST-DEPL-006/07）；本 case 只读、不触上游。
+**目的（被测契约）**：验证 Management Deployment CRUD 的**详情读契约**。被测端点/规则：`GET /v1/deployments/{deployment_id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getDeployment`，`security=AdminBearerAuth`），认证角色 `admin`；
+成功 `200` + `DeploymentView`（`id,name,provider_id,backend_model,capabilities,enabled,health,version`，`additionalProperties:false`）+ 响应头 `ETag: "<id>.v<N>"`（[`registry.get_deployment`](../../../../src/management/registry.py)）；
+未知 id → 404 `not_found`；失败走统一错误信封（401/403）。设计验证项 `VRC-MGMT-001`；需求/机制链 `LT-FUN-005`、`LT-INT-008`、`R-CFG-01`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明列表（ST-DEPL-001）、不证明创建/更新/删除（ST-DEPL-002/04/05）、不证明未知 id 的 404（本 case 只读既存 `dep_local_gemma`）、不证明 `capabilities` 校验（ST-DEPL-006/07）；
+本 case 只读、不触上游。
 
 ## 2. 被测入口与前置
 

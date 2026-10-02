@@ -55,7 +55,11 @@
 
   > **实现状态（Implemented）**：自动化入口 `ST-AUTH-008.py` 已实现，见 §7。
 
-**目的（被测契约）**：验证 `/tier/admin/v1/*` **别名命名空间的鉴权与 `/v1/*` 等价**。被测端点/规则：`GET /tier/admin/v1/diagnostics`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `x-llmtier-contract-aliases` 映射到 `/v1/diagnostics`，securityScheme `AdminBearerAuth`）；[`app.py`](../../../../src/http_api/app.py) 的 `principal = self._auth("admin")`（`app.py:248`）位于所有 `/tier/admin/v1/*` 别名分支（`app.py:348-376`）**之前**，因此 [`authenticate()`](../../../../src/http_api/auth.py) 先以 role=`admin` 校验，data token（`dev-data`）与 `dev-admin` 不匹配 ⇒ 403 `permission_denied`，**在到达别名 handler 之前**即被拒。设计验证项 `VRC-API-002`；机制 `T-TRUST-SHARED`、`T-TRUST-ENDPOINTS`（机制需求 `R-TRUST-02`；见 [access-trust 机制 §5.1/§8 INV-4](../../../20_system_design/mechanisms/access-trust.md)）；错误信封 `{error:{message,type,code,param,retryable}}`。**不证明什么**：不证明别名与扁平路径的**响应逐字节等价**（ST-OBSALIAS-001、`admin` 正向）、不证明 **admin 无 token 的 LAN trust**（ST-AUTH-004，扁平路径）、**错误 bearer** 被拒（ST-AUTH-002）、**缺/非法凭据→401**（ST-AUTH-010）、**未配置鉴权→503**（ST-AUTH-007）、**管理面未授权优先于资源存在性**（ST-AUTH-009）。本 case **只**断言别名命名空间的角色隔离。
+**目的（被测契约）**：验证 `/tier/admin/v1/*` **别名命名空间的鉴权与 `/v1/*` 等价**。被测端点/规则：`GET /tier/admin/v1/diagnostics`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `x-llmtier-contract-aliases` 映射到 `/v1/diagnostics`，securityScheme `AdminBearerAuth`）；
+[`app.py`](../../../../src/http_api/app.py) 的 `principal = self._auth("admin")`（`app.py:248`）位于所有 `/tier/admin/v1/*` 别名分支（`app.py:348-376`）**之前**，因此 [`authenticate()`](../../../../src/http_api/auth.py) 先以 role=`admin` 校验，data token（`dev-data`）与 `dev-admin` 不匹配 ⇒ 403 `permission_denied`，**在到达别名 handler 之前**即被拒。
+设计验证项 `VRC-API-002`；机制 `T-TRUST-SHARED`、`T-TRUST-ENDPOINTS`（机制需求 `R-TRUST-02`；见 [access-trust 机制 §5.1/§8 INV-4](../../../20_system_design/mechanisms/access-trust.md)）；
+错误信封 `{error:{message,type,code,param,retryable}}`。**不证明什么**：不证明别名与扁平路径的**响应逐字节等价**（ST-OBSALIAS-001、`admin` 正向）、不证明 **admin 无 token 的 LAN trust**（ST-AUTH-004，扁平路径）、**错误 bearer** 被拒（ST-AUTH-002）、**缺/非法凭据→401**（ST-AUTH-010）、**未配置鉴权→503**（ST-AUTH-007）、**管理面未授权优先于资源存在性**（ST-AUTH-009）。
+本 case **只**断言别名命名空间的角色隔离。
 
   > **实现状态（Implemented）**：自动化入口 `ST-AUTH-008.py` 已实现，见 §7。
 

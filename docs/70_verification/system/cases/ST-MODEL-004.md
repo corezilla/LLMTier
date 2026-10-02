@@ -36,7 +36,11 @@
 - 要测什么（责任展开）：`GET /v1/models/WORKER`（全大写）不匹配任何 tier → HTTP 404 + `error.code=="model_not_found"`（大小写敏感）。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明正向精确返回（ST-MODEL-002）、小写负向（ST-MODEL-003）、URL 编码尾空格（ST-MODEL-005）、其他不存在 id（ST-MODEL-006）；不证明凭据与 LAN trust（ST-AUTH-001/02/06）；不证明"错误码目录全集"，只锁定本路径的 `model_not_found`。**失败含义＝大小写敏感契约破坏**。
 
-**目的（被测契约）**：验证 Data Plane `GET /v1/models/{model}` 的**大小写敏感负向契约**（全大写臂）。被测端点/规则：`model` 是**精确大小写敏感**标识符（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getModel` 参数 "Exact case-sensitive logical model ID"）；存在 tier `Worker` 为 `W` 大写 + 其余小写，请求全大写 `WORKER` 必须**不命中**并返回 `404 model_not_found`，信封 `{error:{message,type,code,param,retryable}}`（5 键，`type=="request_error"`、`param==null`、`retryable==false`）。实现 [`Registry.get_service_level()`](../../../../src/management/registry.py) 用 SQL `WHERE id=?` 精确等值匹配，[`ModelCatalog.get()`](../../../../src/inference/models.py) 将 404 `not_found` 转译为 `model_not_found`。设计验证项 `VRC-INF-001`；机制 `R-INF-04`（清单行）；家族需求链 `LT-FUN-002`、`R-INF-04`/`R-INF-07`、`T-TRUST-ENDPOINTS`、契约 `CT-MODEL-001`（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明正向精确返回（ST-MODEL-002）、小写负向（ST-MODEL-003）、URL 编码尾空格（ST-MODEL-005）、其他不存在 id（ST-MODEL-006）；不证明凭据与 LAN trust；不证明"错误码目录全集"。
+**目的（被测契约）**：验证 Data Plane `GET /v1/models/{model}` 的**大小写敏感负向契约**（全大写臂）。被测端点/规则：`model` 是**精确大小写敏感**标识符（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getModel` 参数 "Exact case-sensitive logical model ID"）；
+存在 tier `Worker` 为 `W` 大写 + 其余小写，请求全大写 `WORKER` 必须**不命中**并返回 `404 model_not_found`，信封 `{error:{message,type,code,param,retryable}}`（5 键，`type=="request_error"`、`param==null`、`retryable==false`）。
+实现 [`Registry.get_service_level()`](../../../../src/management/registry.py) 用 SQL `WHERE id=?` 精确等值匹配，[`ModelCatalog.get()`](../../../../src/inference/models.py) 将 404 `not_found` 转译为 `model_not_found`。
+设计验证项 `VRC-INF-001`；机制 `R-INF-04`（清单行）；家族需求链 `LT-FUN-002`、`R-INF-04`/`R-INF-07`、`T-TRUST-ENDPOINTS`、契约 `CT-MODEL-001`（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明正向精确返回（ST-MODEL-002）、小写负向（ST-MODEL-003）、URL 编码尾空格（ST-MODEL-005）、其他不存在 id（ST-MODEL-006）；不证明凭据与 LAN trust；不证明"错误码目录全集"。
 
 ## 2. 被测入口与前置
 

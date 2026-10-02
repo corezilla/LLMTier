@@ -47,7 +47,9 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-USAGE-008` / 系统设计 §8 Usage 查询接口 / `VRC-MGMT-006` / recovery / P1（[方案清单 `ST-USAGE-008`](../llmtier-system-test-scheme.md)，**新增 Case**）；机制 `T-MET-PAGE`（[usage-metering 机制](../../../20_system_design/mechanisms/usage-metering.md) §4.7「存储不可用返回 typed 503，不用空页冒充无记录」/§7）。
 - **测试方法（§1.5 方法表行）**：故障注入（存储不可用 → 503 不空页）+ 复位阶梯
-- 要测什么（责任展开）：Usage store 不可用时 `GET /v1/usage` 返回 `503 usage_store_unavailable`（typed server error），**不得**以 `200 + 空 data` 冒充"无记录"；恢复存储后查询回到 200。实现三处收敛为同一 wire 码：`src/inference/usage.py::page` 的 `except Exception → ApiError(503,"usage_store_unavailable")`、`src/http_api/app.py::_store_read` 同映射、`_run` 的 `except sqlite3.Error` 兜底到 `usage_store_unavailable`（另有 500 `internal_error` 仅用于非 sqlite 的未知异常）。机制需求 `R-MET-04`（HTTP 适配层 503 显式化 / CON-METER-005）；错误目录 `ERR-STORE` → `usage_store_unavailable`；需求链 `LT-FUN-004`、`LT-INT-004/005/007`、`CT-STORE-001`。
+- 要测什么（责任展开）：Usage store 不可用时 `GET /v1/usage` 返回 `503 usage_store_unavailable`（typed server error），**不得**以 `200 + 空 data` 冒充"无记录"；
+  恢复存储后查询回到 200。实现三处收敛为同一 wire 码：`src/inference/usage.py::page` 的 `except Exception → ApiError(503,"usage_store_unavailable")`、`src/http_api/app.py::_store_read` 同映射、`_run` 的 `except sqlite3.Error` 兜底到 `usage_store_unavailable`（另有 500 `internal_error` 仅用于非 sqlite 的未知异常）。
+  机制需求 `R-MET-04`（HTTP 适配层 503 显式化 / CON-METER-005）；错误目录 `ERR-STORE` → `usage_store_unavailable`；需求链 `LT-FUN-004`、`LT-INT-004/005/007`、`CT-STORE-001`。
 - 明确不测什么 / 失败含义：不测正常查询内容（ST-USAGE-001/02/03）、过期 cursor（ST-USAGE-004）、主体隔离（ST-USAGE-006）、重放幂等（ST-USAGE-007）；不测**启动期** schema/引导错误（`ERR-SCHEMA`/`ERR-BOOT`）与 symlink 路径拒绝（`ERR-PATH-UNSAFE`）；不测 `DELETE /v1/usage` 的 503 分支（由同机制的 ST-AUSAGE-003 邻近，不在本 case 断言）。失败含义＝存储不可用被冒充为"无记录"。
 
 ## 2. 被测入口与前置
@@ -58,7 +60,9 @@
 GET /v1/usage?from=<now-30d>&to=<now>       Authorization: Bearer dev-data
 ```
 
-- 初态构造（经公开入口）：**环境 B**（临时 LLMTier 实例 `127.0.0.1:<port>` + 临时 SQLite，同机第二个进程）。执行前满足**附加（B 类）**：临时实例可启动且 `GET /healthz` 200；`_baseline_settings` 注入 1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier。fixture（**已落地**）：本 case 使用专用 `LLMTierInstance` fixture `llmtier_b_diag_store`（[`conftest.py`](../../../../tests/system/conftest.py)，session/module-scope，独立临时 SQLite 与端口，暴露临时库路径只读访问器）+ `store_triplet`，**不得**复用或就地改动 session-scope 的 `llmtier_b`（其 `_db_path` 被其它 B 类 case 共享，就地移库会污染它们）。**TS-003**：本 case 不触上游 provider，但仍不得把 `127.0.0.1` 写进被测服务上游 endpoint（`_baseline_settings` 已用 LAN fake provider）。
+- 初态构造（经公开入口）：**环境 B**（临时 LLMTier 实例 `127.0.0.1:<port>` + 临时 SQLite，同机第二个进程）。执行前满足**附加（B 类）**：临时实例可启动且 `GET /healthz` 200；
+  `_baseline_settings` 注入 1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier。fixture（**已落地**）：本 case 使用专用 `LLMTierInstance` fixture `llmtier_b_diag_store`（[`conftest.py`](../../../../tests/system/conftest.py)，session/module-scope，独立临时 SQLite 与端口，暴露临时库路径只读访问器）+ `store_triplet`，**不得**复用或就地改动 session-scope 的 `llmtier_b`（其 `_db_path` 被其它 B 类 case 共享，就地移库会污染它们）。
+  **TS-003**：本 case 不触上游 provider，但仍不得把 `127.0.0.1` 写进被测服务上游 endpoint（`_baseline_settings` 已用 LAN fake provider）。
 - Fixture / 向量及版本：专用 `LLMTierInstance` + 临时库只读访问器；触发动作脚本；Run manifest 存档。
 - 依赖的测试资产（tests.asset-design 文档）：专用 B 类 fixture `llmtier_b_diag_store` + `store_triplet`（**已落地**）；`dev-data` 客户端。
 
@@ -94,7 +98,11 @@ os.mkdir(db)          # 原路径变成目录 → 连接失败（不新建空库
 | 6 | 断言响应**不是** `UsagePage` | body 顶层**无** `data`/`has_more`/`snapshot_id`，且**有** `error`（非空页冒充的显式反证） |
 | 7 | **finally**：删除占位目录/占位空库，将 `.disabled` 文件原子移回原路径（含 `-wal`/`-shm`），随后再次 `GET` 同一查询 | `200` 且为 `UsagePage`，证明恢复 |
 
-- 重点关注步骤：① **503 而非空页**——核心断言是 `status==503` 且 body 为 `error` 信封；若返回 `200 + {"data":[],...}` 即 FAIL；② **typed 码**——必须 `usage_store_unavailable`（`ERR-STORE`），不是 `internal_error`/`not_found`；③ **触发命中真实进程**——实现每请求新建 per-thread SQLite 连接（`ThreadingHTTPServer` 每请求新线程、`_run` 末尾 `store.close()`），故"路径 → 目录"会使下一次连接失败；**若未来实现改为持久连接池，路径法可能失效**——此时本 case 判 BLOCKED 并登记（不得改判 PASS）；④ **专用实例隔离**——必须使用本 case 专属 `LLMTierInstance`（独立临时库/端口），**不得**碰 session-scope `llmtier_b` 的库；`finally` 仍须移回并二次查询 200；⑤ **不 mock**——不得 monkeypatch handler/`page` 直接抛错来伪造 503（INVALID）；⑥ **信封 identity**——恰 5 键、`type` 由 503≥500 导出 `server_error`；⑦ **恢复校验**——`finally` 移回库三件套后必须二次查询为 200，否则判 BLOCKED/FAIL。
+- 重点关注步骤：① **503 而非空页**——核心断言是 `status==503` 且 body 为 `error` 信封；若返回 `200 + {"data":[],...}` 即 FAIL；② **typed 码**——必须 `usage_store_unavailable`（`ERR-STORE`），不是 `internal_error`/`not_found`；
+  ③ **触发命中真实进程**——实现每请求新建 per-thread SQLite 连接（`ThreadingHTTPServer` 每请求新线程、`_run` 末尾 `store.close()`），故"路径 → 目录"会使下一次连接失败；
+  **若未来实现改为持久连接池，路径法可能失效**——此时本 case 判 BLOCKED 并登记（不得改判 PASS）；④ **专用实例隔离**——必须使用本 case 专属 `LLMTierInstance`（独立临时库/端口），**不得**碰 session-scope `llmtier_b` 的库；
+  `finally` 仍须移回并二次查询 200；⑤ **不 mock**——不得 monkeypatch handler/`page` 直接抛错来伪造 503（INVALID）；⑥ **信封 identity**——恰 5 键、`type` 由 503≥500 导出 `server_error`；
+  ⑦ **恢复校验**——`finally` 移回库三件套后必须二次查询为 200，否则判 BLOCKED/FAIL。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -122,4 +130,7 @@ os.mkdir(db)          # 原路径变成目录 → 连接失败（不新建空库
 
 **证据与 Run**：Run ID=`<date>/B-api`；保存原始 status/headers/body（脱敏后）、发出命令、exit code、`elapsed`、环境快照。**额外证据**：基线查询、触发动作（移动的文件清单与 `os.mkdir` 结果、`db_path`）、故障查询的原始 status/headers/body、恢复动作与恢复后查询、动态窗口值、环境快照（`/healthz`/`/readyz`）；B 类 `db_schema_version` 取临时库 `schema_meta.version`（本 case `environment:"b"`）。
 
-**依赖**：附加（B 类）就绪检查；**本 case 专用 `LLMTierInstance` fixture**（独立临时库/端口，**已落地** `llmtier_b_diag_store` + `store_triplet`，暴露临时库只读访问器；**不得**复用 session-scope `llmtier_b`）；机制 [`usage-metering` §4.7/§7](../../../20_system_design/mechanisms/usage-metering.md)；`UsageStoreUnavailable`/`ErrorEnvelope` 机器契约；`ERR-STORE`。自动化入口 `ST-USAGE-008.py`（已实现）。**不依赖**其它 Case；与 ST-OBSDIAG-001 的 `ERR-STORE` 503 语义相邻（同一 `_store_read` 映射），但各自独立执行；与 ST-USAGE-004（TTL 过期，非存储故障）严格区分。
+**依赖**：附加（B 类）就绪检查；**本 case 专用 `LLMTierInstance` fixture**（独立临时库/端口，**已落地** `llmtier_b_diag_store` + `store_triplet`，暴露临时库只读访问器；
+**不得**复用 session-scope `llmtier_b`）；机制 [`usage-metering` §4.7/§7](../../../20_system_design/mechanisms/usage-metering.md)；
+`UsageStoreUnavailable`/`ErrorEnvelope` 机器契约；`ERR-STORE`。自动化入口 `ST-USAGE-008.py`（已实现）。**不依赖**其它 Case；与 ST-OBSDIAG-001 的 `ERR-STORE` 503 语义相邻（同一 `_store_read` 映射），但各自独立执行；
+与 ST-USAGE-004（TTL 过期，非存储故障）严格区分。

@@ -53,7 +53,13 @@
 - 要测什么（责任展开）：`/tier/admin/v1/trace/{request_id}` 与 `/v1/trace/{request_id}` 的 GET 由同一 handler 服务：status 与响应体逐字节等价（含未知 id 的 404 信封）。
 - 明确不测什么 / 失败含义：不证明 全生命周期内容（ST-OBSREQTRACE-001）、不证明未知 id 404 语义本身（ST-OBSREQTRACE-002）、不证明角色负向（ST-OBSREQTRACE-003、ST-AUTH-008）、不证明其它别名（ST-OBSALIAS-001/02/04/05/06）。**契约一致性警示（须登记）**：`_UnavailableDiagnostics.trace` 对任意 id 返回 `200` 空视图，等价比对在降级实例下仍可做但语义受限（判 BLOCKED/SKIP）。
 
-**目的（被测契约）**：验证单请求 trace 别名的**逐字节等价契约**。被测端点/规则：`GET /tier/admin/v1/trace/{request_id}` 是 `/v1/trace/{request_id}` 的精确别名（openapi `x-llmtier-contract-aliases`：`"/tier/admin/v1/trace/{request_id}": "/v1/trace/{request_id}"`），同一 handler、相同 `TraceView` 形状、相同 `admin` 鉴权与相同错误语义（[`src/http_api/app.py`](../../../../src/http_api/app.py) 两分支调用同一 `app.diagnostics.trace`）；body 应逐字节等价（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；错误在扁平/别名上亦逐字节等价（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。设计验证项 `VRC-DIAG-002`；机制 `T-TRUST-SHARED` + `T-OBS-TRACE`（[observability 机制](../../../20_system_design/mechanisms/observability.md) §5.1）；需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；机器契约 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`x-llmtier-contract-aliases`、`TraceView`、`NotFound`）。**不证明什么**：不证明全生命周期内容（ST-OBSREQTRACE-001）、不证明未知 id 404 语义本身（ST-OBSREQTRACE-002）、不证明角色负向（ST-OBSREQTRACE-003、ST-AUTH-008）、不证明其它别名（ST-OBSALIAS-001/02/04/05/06）。**契约一致性警示（须登记）**：`_UnavailableDiagnostics.trace` 对任意 id 返回 `200` 空视图，等价比对在降级实例下仍可做但语义受限（判 BLOCKED/SKIP）。
+**目的（被测契约）**：验证单请求 trace 别名的**逐字节等价契约**。被测端点/规则：`GET /tier/admin/v1/trace/{request_id}` 是 `/v1/trace/{request_id}` 的精确别名（openapi `x-llmtier-contract-aliases`：`"/tier/admin/v1/trace/{request_id}": "/v1/trace/{request_id}"`），同一 handler、相同 `TraceView` 形状、相同 `admin` 鉴权与相同错误语义（[`src/http_api/app.py`](../../../../src/http_api/app.py) 两分支调用同一 `app.diagnostics.trace`）；
+body 应逐字节等价（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；错误在扁平/别名上亦逐字节等价（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。
+设计验证项 `VRC-DIAG-002`；机制 `T-TRUST-SHARED` + `T-OBS-TRACE`（[observability 机制](../../../20_system_design/mechanisms/observability.md) §5.1）；
+需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；
+机器契约 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`x-llmtier-contract-aliases`、`TraceView`、`NotFound`）。
+**不证明什么**：不证明全生命周期内容（ST-OBSREQTRACE-001）、不证明未知 id 404 语义本身（ST-OBSREQTRACE-002）、不证明角色负向（ST-OBSREQTRACE-003、ST-AUTH-008）、不证明其它别名（ST-OBSALIAS-001/02/04/05/06）。
+**契约一致性警示（须登记）**：`_UnavailableDiagnostics.trace` 对任意 id 返回 `200` 空视图，等价比对在降级实例下仍可做但语义受限（判 BLOCKED/SKIP）。
 
 ## 2. 被测入口与前置
 
@@ -74,7 +80,9 @@
   3. **正向等价（有 id 时）**：对 `request_id` 分别请求两路径 → 断言两 `status == 200` 且 `resp.content` **逐字节相等**；均为合法 `TraceView`（键集恰 `{request_id, correlation_id, stages, snapshot, usage}`）。
   4. 断言 `status` 与 body 在两路径上一致；仅 header 中的 `X-Request-ID` 不同（不参与断言）。
 
-**重点关注步骤**：① **同 id 比较**——两路径必须查同一 `request_id`，否则 body 本可不同。② **逐字节 body 等价**——比较 `resp.content`。③ **错误路径也等价**——404 信封在扁平/别名上应逐字节相同（本 case 用 404 作确定性锚点）。④ **只比 body**——`X-Request-ID` 不参与、不列入 Oracle。⑤ **鉴权等价**——都需 `admin`（本 case 正向；负向 ST-AUTH-008）。⑥ **数据不足处理**——无真实 trace 时以 404 等价完成判定，不算 FAIL（但报告须说明未覆盖正向）。⑦ **降级/存储**——降级实例两路径同样返回 200 空视图（等价成立但语义受限，判 BLOCKED/SKIP）；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSALIAS-003.py` 已实现。
+**重点关注步骤**：① **同 id 比较**——两路径必须查同一 `request_id`，否则 body 本可不同。② **逐字节 body 等价**——比较 `resp.content`。③ **错误路径也等价**——404 信封在扁平/别名上应逐字节相同（本 case 用 404 作确定性锚点）。
+④ **只比 body**——`X-Request-ID` 不参与、不列入 Oracle。⑤ **鉴权等价**——都需 `admin`（本 case 正向；负向 ST-AUTH-008）。⑥ **数据不足处理**——无真实 trace 时以 404 等价完成判定，不算 FAIL（但报告须说明未覆盖正向）。
+⑦ **降级/存储**——降级实例两路径同样返回 200 空视图（等价成立但语义受限，判 BLOCKED/SKIP）；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSALIAS-003.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 

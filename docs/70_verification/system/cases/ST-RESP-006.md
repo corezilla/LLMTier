@@ -36,7 +36,10 @@
 - 要测什么（责任展开）：`POST /v1/responses` 显式 `stream=true`：受理并返回合法 SSE（唯一受理形态的正向基线）。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明事件序列的完整逐帧 identity（ST-RESP-001 承担）、不证明 `stream=false`/`store=true` 被拒（ST-RESP-002/07）、不证明截断（ST-RESP-010）或异常路径；不证明模型答案。**失败含义＝受理形态契约破坏**。
 
-**目的（被测契约）**：验证 Data Plane `POST /v1/responses` 的**唯一受理形态**：`stream=true` + `store=false` 被接受并返回标准 SSE。被测端点/规则：`POST /v1/responses`；设计验证项 `VRC-INF-001`；机制 `T-STREAM`（[inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）；OpenAPI `ResponsesRequest.stream.const=true`（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明事件序列的完整逐帧 identity（ST-RESP-001 承担）、不证明 `stream=false`/`store=true` 被拒（ST-RESP-002/07）、不证明截断（ST-RESP-010）或异常路径；不证明模型答案。
+**目的（被测契约）**：验证 Data Plane `POST /v1/responses` 的**唯一受理形态**：`stream=true` + `store=false` 被接受并返回标准 SSE。被测端点/规则：`POST /v1/responses`；
+设计验证项 `VRC-INF-001`；机制 `T-STREAM`（[inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）；OpenAPI `ResponsesRequest.stream.const=true`（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明事件序列的完整逐帧 identity（ST-RESP-001 承担）、不证明 `stream=false`/`store=true` 被拒（ST-RESP-002/07）、不证明截断（ST-RESP-010）或异常路径；
+不证明模型答案。
 
 ## 2. 被测入口与前置
 

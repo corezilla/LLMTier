@@ -36,7 +36,12 @@
 - 要测什么（责任展开）：在**未配置任何鉴权凭据**的临时实例上，`GET /healthz` 与 `GET /readyz` 在不带 `Authorization` 头时仍返回各自视图（200/503），不返回 401/403/`auth_not_configured`。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明受保护端点在未配置鉴权时的 503 `auth_not_configured`（ST-AUTH-007）；不证明 A 类公共端点无 token 200（ST-AUTH-005）；不证明 LAN trust 免登录路径（ST-AUTH-001/04）；不证明 `readyz` 的 ready/degraded（ST-HEALTH-002/03）；不触发 provider 计费调用（`LT-OPS-001`）。**失败含义＝健康端点免鉴权契约破坏**。
 
-**目的（被测契约）**：验证 IF-HEALTH 的**免鉴权**契约。端点 `GET /healthz`、`GET /readyz`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) 均为 `security:[]`）。实现 [`app.py`](../../../../src/http_api/app.py) 在 `_dispatch()` 中于任何 `_auth()` 调用（[`app.py:193`](../../../../src/http_api/app.py) 起）**之前**处理两个端点（[`app.py:187-190`](../../../../src/http_api/app.py)），故健康路径完全不查询凭据配置。设计验证项 `VRC-API-002`/`VRC-MGMT-003`；机制 `T-TRUST-NOCFG`（未配置凭据时受保护端点的 503 语义）与 `T-TRUST-SHARED`（需求 `R-TRUST-04`；见 [access-trust 机制](../../../20_system_design/mechanisms/access-trust.md)）；需求链 `LT-FUN-006`/`LT-OPS-001`、`CT-OPS-001`（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明受保护端点在未配置鉴权时的 503 `auth_not_configured`（ST-AUTH-007）；不证明 A 类公共端点无 token 200（ST-AUTH-005）；不证明 LAN trust 免登录路径（ST-AUTH-001/04）；不证明 `readyz` 的 ready/degraded（ST-HEALTH-002/03）；不触发 provider 计费调用（`LT-OPS-001`）。
+**目的（被测契约）**：验证 IF-HEALTH 的**免鉴权**契约。端点 `GET /healthz`、`GET /readyz`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) 均为 `security:[]`）。
+实现 [`app.py`](../../../../src/http_api/app.py) 在 `_dispatch()` 中于任何 `_auth()` 调用（[`app.py:193`](../../../../src/http_api/app.py) 起）**之前**处理两个端点（[`app.py:187-190`](../../../../src/http_api/app.py)），故健康路径完全不查询凭据配置。
+设计验证项 `VRC-API-002`/`VRC-MGMT-003`；机制 `T-TRUST-NOCFG`（未配置凭据时受保护端点的 503 语义）与 `T-TRUST-SHARED`（需求 `R-TRUST-04`；见 [access-trust 机制](../../../20_system_design/mechanisms/access-trust.md)）；
+需求链 `LT-FUN-006`/`LT-OPS-001`、`CT-OPS-001`（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明受保护端点在未配置鉴权时的 503 `auth_not_configured`（ST-AUTH-007）；
+不证明 A 类公共端点无 token 200（ST-AUTH-005）；不证明 LAN trust 免登录路径（ST-AUTH-001/04）；不证明 `readyz` 的 ready/degraded（ST-HEALTH-002/03）；
+不触发 provider 计费调用（`LT-OPS-001`）。
 
 ## 2. 被测入口与前置
 
@@ -95,7 +100,10 @@
 | 6 | （可选）受保护端点交叉核对（归 ST-AUTH-*） | 揭示鉴权配置状态，不改判定 |
 | 7 | fixture `stop()` 销毁实例 | 无残留 |
 
-**重点关注步骤**：① **裸客户端而非带 token 的 fixture**——`admin_client_b_no_auth` 带 `Bearer dev-admin` 会得到 503 `auth_not_configured`；用它会把"未配置鉴权"误判成"健康端点需鉴权"，必须用无头客户端。② **不把 503 当失败**——`/readyz` 在无 deployment 的实例上是**合法 503**（`not_ready`）；契约是"免鉴权"，不是"必 200"。③ **区分鉴权错误与就绪错误**——503 时必须检查 body 形态：`ReadinessView`（本 case PASS）vs `{"error":{"code":"auth_not_configured"}}`（ST-AUTH-007 语义，本 case FAIL/构造错误）。④ **`/healthz` 始终 200**——它位于 bootstrap 检查与鉴权之前，是免鉴权的最强证据。⑤ **实现事实**——`unauthenticated_principal` 对 loopback/RFC1918 无头请求会无条件授予共享角色（[`auth.py`](../../../../src/http_api/auth.py)），但健康端点根本不调用它；本 case 的契约点在于**端点本身 `security:[]`、handler 不查凭据**，而非"共享角色恰好生效"。⑥ **不得声称 env 门控**——`LLMTIER_TRUSTED_LAN_MODE` 不被源码读取（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）。
+**重点关注步骤**：① **裸客户端而非带 token 的 fixture**——`admin_client_b_no_auth` 带 `Bearer dev-admin` 会得到 503 `auth_not_configured`；用它会把"未配置鉴权"误判成"健康端点需鉴权"，必须用无头客户端。
+② **不把 503 当失败**——`/readyz` 在无 deployment 的实例上是**合法 503**（`not_ready`）；契约是"免鉴权"，不是"必 200"。③ **区分鉴权错误与就绪错误**——503 时必须检查 body 形态：`ReadinessView`（本 case PASS）vs `{"error":{"code":"auth_not_configured"}}`（ST-AUTH-007 语义，本 case FAIL/构造错误）。
+④ **`/healthz` 始终 200**——它位于 bootstrap 检查与鉴权之前，是免鉴权的最强证据。⑤ **实现事实**——`unauthenticated_principal` 对 loopback/RFC1918 无头请求会无条件授予共享角色（[`auth.py`](../../../../src/http_api/auth.py)），但健康端点根本不调用它；
+本 case 的契约点在于**端点本身 `security:[]`、handler 不查凭据**，而非"共享角色恰好生效"。⑥ **不得声称 env 门控**——`LLMTIER_TRUSTED_LAN_MODE` 不被源码读取（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）。
 
 ## 5. 独立 Oracle 与预期结果
 

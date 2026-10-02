@@ -53,7 +53,11 @@
 - 要测什么（责任展开）：`DELETE /v1/service-levels/{id}` 删除固定 Tier：HTTP 409 `fixed_service_level`（"cannot be deleted"）；并以"同类 DELETE 在 deployment 上成功（204）"为可达正对照，且回读证明 `Engineer` 未被改动。
 - 明确不测什么 / 失败含义：不证明 `If-Match` 的 412（本实现对该路由先返回 409、不校验 ETag）、不证明其它资源删除（provider/deployment 引用 409 见 ST-PROV-010）、不证明 PATCH/创建（ST-SL-004/02/02b）。本 case **只**锁 409 `fixed_service_level`。
 
-**目的（被测契约）**：验证固定 Tier 的**不可删除契约**。被测端点/规则：`DELETE /v1/service-levels/{service_level_id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `deleteServiceLevel`，header `If-Match`）；[`registry.delete_service_level`](../../../../src/management/registry.py) **无条件** `raise ApiError(409, "fixed_service_level", "Fixed Tier service levels cannot be deleted")`（不存在可删除分支）。设计验证项 `VRC-MGMT-002`；错误目录 `ERR-FIXED-LEVEL` → wire `code=fixed_service_level`；机制 `T-CFG-DELREF` 的固定 Tier 特例；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明 `If-Match` 的 412（本实现对该路由先返回 409、不校验 ETag）、不证明其它资源删除（provider/deployment 引用 409 见 ST-PROV-010）、不证明 PATCH/创建（ST-SL-004/02/02b）。本 case **只**锁 409 `fixed_service_level`。
+**目的（被测契约）**：验证固定 Tier 的**不可删除契约**。被测端点/规则：`DELETE /v1/service-levels/{service_level_id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `deleteServiceLevel`，header `If-Match`）；
+[`registry.delete_service_level`](../../../../src/management/registry.py) **无条件** `raise ApiError(409, "fixed_service_level", "Fixed Tier service levels cannot be deleted")`（不存在可删除分支）。
+设计验证项 `VRC-MGMT-002`；错误目录 `ERR-FIXED-LEVEL` → wire `code=fixed_service_level`；机制 `T-CFG-DELREF` 的固定 Tier 特例；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。
+**不证明什么**：不证明 `If-Match` 的 412（本实现对该路由先返回 409、不校验 ETag）、不证明其它资源删除（provider/deployment 引用 409 见 ST-PROV-010）、不证明 PATCH/创建（ST-SL-004/02/02b）。
+本 case **只**锁 409 `fixed_service_level`。
 
 ## 2. 被测入口与前置
 
@@ -79,7 +83,9 @@
   4. 断言 `resp.status_code == 409`；`err = resp.json()["error"]`：断言 `err["code"]=="fixed_service_level"`、`"cannot be deleted" in err["message"]`、`err["type"]=="request_error"`、`err["retryable"] is False`。
   5. （零副作用核验）`GET /v1/service-levels/Engineer` 仍 200，`version` 不变；`GET /v1/service-levels` 仍含全部 7 tier。
 
-**重点关注步骤**：① **不可删除而非未找到**——必须是 409 `fixed_service_level`，不是 404/400/412；② **零副作用**——`Engineer` 行与其 `service_level_deployments` 必须保留（409 抛在 `txn` 内、回滚）；③ **ETag 不参与判定**——本实现删除前不校验 `If-Match`（`delete_service_level` 直接抛 409），因此传任意/缺省 `If-Match` 也应 409；不得因"实现忽略了 ETag"而判 FAIL（这属实现注记，见下）；④ **错误信封 identity**——恰 5 键、`type=request_error`；⑤ **审计**——失败经 `mutate` 记 `action="service_level.delete"`、`result="failed"`。
+**重点关注步骤**：① **不可删除而非未找到**——必须是 409 `fixed_service_level`，不是 404/400/412；② **零副作用**——`Engineer` 行与其 `service_level_deployments` 必须保留（409 抛在 `txn` 内、回滚）；
+③ **ETag 不参与判定**——本实现删除前不校验 `If-Match`（`delete_service_level` 直接抛 409），因此传任意/缺省 `If-Match` 也应 409；不得因"实现忽略了 ETag"而判 FAIL（这属实现注记，见下）；
+④ **错误信封 identity**——恰 5 键、`type=request_error`；⑤ **审计**——失败经 `mutate` 记 `action="service_level.delete"`、`result="failed"`。
   > **正对照与判别力**：`delete_service_level` 对所有 `service-levels/{id}` 删除都返回 409 `fixed_service_level`（当前系统只存在固定 Tier，且 `create_service_level` 仅接受 `FIXED_TIERS`，无非固定 Tier 可删）。为证明 409 不是"DELETE 一律失败"的假象，脚本加入可达正对照：创建并删除一个 **deployment**（同为受 `If-Match` 保护的删除路径）→ `204`，随后 `GET 404`。由此 409 的判别力来自"同类 DELETE 在其它资源上可成功"，而非固定 Tier 专属分支（后者在当前系统无对照物，属实现局限）。
 
 ## 5. 独立 Oracle 与预期结果

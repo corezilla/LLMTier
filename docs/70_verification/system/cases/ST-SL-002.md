@@ -53,7 +53,10 @@
 - 要测什么（责任展开）：`POST /v1/service-levels` 用非固定 Tier 的 `id` 创建：HTTP 400 `invalid_request`，`param="id"`。
 - 明确不测什么 / 失败含义：不证明 已存在固定 Tier 的重复创建 409（ST-SL-012）、不证明成员能力/向量空间校验（ST-SL-006/07）、不证明成功创建（无正向 Case；固定 Tier 由 bootstrap/`ensure_fixed_tiers` 预置）、不证明认证负向（ST-AUTH-003/09）。
 
-**目的（被测契约）**：验证 Service Level 创建的 **固定 Tier 白名单校验**。被测端点/规则：`POST /v1/service-levels`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `createServiceLevel`，body `ServiceLevelWrite`={`id`,`deployment_ids`,`enabled`}，`security=AdminBearerAuth`）；[`registry.create_service_level`](../../../../src/management/registry.py) 先做 body 键集校验，再做固定 Tier 白名单校验（非 `FIXED_TIERS` id → 400 `invalid_request`，[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。设计验证项 `VRC-MGMT-002`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明已存在固定 Tier 的重复创建 409（ST-SL-012）、不证明成员能力/向量空间校验（ST-SL-006/07）、不证明成功创建（无正向 Case；固定 Tier 由 bootstrap/`ensure_fixed_tiers` 预置）、不证明认证负向（ST-AUTH-003/09）。
+**目的（被测契约）**：验证 Service Level 创建的 **固定 Tier 白名单校验**。被测端点/规则：`POST /v1/service-levels`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `createServiceLevel`，body `ServiceLevelWrite`={`id`,`deployment_ids`,`enabled`}，`security=AdminBearerAuth`）；
+[`registry.create_service_level`](../../../../src/management/registry.py) 先做 body 键集校验，再做固定 Tier 白名单校验（非 `FIXED_TIERS` id → 400 `invalid_request`，[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。
+设计验证项 `VRC-MGMT-002`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明已存在固定 Tier 的重复创建 409（ST-SL-012）、不证明成员能力/向量空间校验（ST-SL-006/07）、不证明成功创建（无正向 Case；固定 Tier 由 bootstrap/`ensure_fixed_tiers` 预置）、不证明认证负向（ST-AUTH-003/09）。
 
 ## 2. 被测入口与前置
 
@@ -82,7 +85,9 @@
   4. `err = resp.json()["error"]`：断言 `err["code"]=="invalid_request"`、`err["param"]=="id"`、`"not a fixed Tier" in err["message"]`；核对 `err["type"]=="request_error"`、`err["retryable"] is False`。
   5. （零副作用核验）`GET /v1/service-levels` 断言 `CustomTier` 不存在，且 7 fixed tier 仍在。
 
-**重点关注步骤**：① **拒绝位置**——必须在写库前拒绝（`require` 在 `txn` 之前），`CustomTier` **不得**出现在资源表；② **错误信封 identity**——恰 5 键 `{message,type,code,param,retryable}`（无 `category`），`param=="id"`，`type` 由 400 导出为 `request_error`；③ **区分 400 与 409**——本 case 是非白名单 id（400），不同于已存在固定 Tier 的 409 `resource_conflict`（ST-SL-012）；④ **审计副作用**——经 `AdminService.mutate` 的失败会在 `audit_events` 记 `action="service_level.create"`、`result="failed"`、`request_id`，这是允许的审计记录、不是资源创建；不得误判为零写入；⑤ **不硬编码 message 全文**，断言稳定子串 `"not a fixed Tier"`。
+**重点关注步骤**：① **拒绝位置**——必须在写库前拒绝（`require` 在 `txn` 之前），`CustomTier` **不得**出现在资源表；② **错误信封 identity**——恰 5 键 `{message,type,code,param,retryable}`（无 `category`），`param=="id"`，`type` 由 400 导出为 `request_error`；
+③ **区分 400 与 409**——本 case 是非白名单 id（400），不同于已存在固定 Tier 的 409 `resource_conflict`（ST-SL-012）；④ **审计副作用**——经 `AdminService.mutate` 的失败会在 `audit_events` 记 `action="service_level.create"`、`result="failed"`、`request_id`，这是允许的审计记录、不是资源创建；
+不得误判为零写入；⑤ **不硬编码 message 全文**，断言稳定子串 `"not a fixed Tier"`。
 
 ## 5. 独立 Oracle 与预期结果
 

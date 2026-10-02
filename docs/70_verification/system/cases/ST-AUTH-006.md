@@ -53,7 +53,10 @@
 - 要测什么（责任展开）：`GET /v1/models` 在**携带 `Authorization: Bearer `（Bearer 前缀 + 空 token）**时被拒，返回 403 + `permission_denied`（头存在但 token 为空 ≠ 头缺省的 LAN trust）。
 - 明确不测什么 / 失败含义：不证明 **无 `Authorization` 头**的 LAN trust 免登录（ST-AUTH-001）、**非空错误 bearer** 被拒（ST-AUTH-002）、**非法方案（如 `Basic`）→401**（ST-AUTH-010）、**未配置鉴权→503**（ST-AUTH-007）、**未命中免登录的缺 Bearer→401**（ST-AUTH-010）；也不证明恒定时间比较（INV-2）。
 
-**目的（被测契约）**：验证 access-trust 机制的 **空 token 判定路径**。被测端点/规则：`GET /v1/models`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listModels`，securityScheme `BearerAuth`）；入口 [`_auth()`](../../../../src/http_api/app.py)（默认 role=`data`）先经 [`unauthenticated_principal()`](../../../../src/http_api/auth.py) 判空——因 `Authorization` 头存在（`"Bearer "` 为真值）而返回 `None`（`auth.py:25`），再落入 [`authenticate()`](../../../../src/http_api/auth.py)：`raw.startswith("Bearer ")` 为真，`supplied = ""`，`hmac.compare_digest("", configured)` 为假 ⇒ `ApiError(403, "permission_denied")`（`auth.py:53-57`）。**角色澄清**：§3.2 角色 `data`（`/v1/models` 默认 role）；核心区分点是"头存在但 token 空"，与 ST-AUTH-001 的"头完全缺省"形成对照。设计验证项 `VRC-API-002`；机制 `T-TRUST-BEARER`（机制需求 `R-TRUST-01`：凭据形态合法但值不匹配→403；见 [access-trust 机制 §5.1/§8 INV-2/INV-5](../../../20_system_design/mechanisms/access-trust.md)）；错误信封 `{error:{message,type,code,param,retryable}}`。
+**目的（被测契约）**：验证 access-trust 机制的 **空 token 判定路径**。被测端点/规则：`GET /v1/models`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listModels`，securityScheme `BearerAuth`）；
+入口 [`_auth()`](../../../../src/http_api/app.py)（默认 role=`data`）先经 [`unauthenticated_principal()`](../../../../src/http_api/auth.py) 判空——因 `Authorization` 头存在（`"Bearer "` 为真值）而返回 `None`（`auth.py:25`），再落入 [`authenticate()`](../../../../src/http_api/auth.py)：`raw.startswith("Bearer ")` 为真，`supplied = ""`，`hmac.compare_digest("", configured)` 为假 ⇒ `ApiError(403, "permission_denied")`（`auth.py:53-57`）。
+**角色澄清**：§3.2 角色 `data`（`/v1/models` 默认 role）；核心区分点是"头存在但 token 空"，与 ST-AUTH-001 的"头完全缺省"形成对照。设计验证项 `VRC-API-002`；机制 `T-TRUST-BEARER`（机制需求 `R-TRUST-01`：凭据形态合法但值不匹配→403；
+见 [access-trust 机制 §5.1/§8 INV-2/INV-5](../../../20_system_design/mechanisms/access-trust.md)）；错误信封 `{error:{message,type,code,param,retryable}}`。
 
   > **契约一致性登记（openapi gap）**：openapi `listModels` 的 responses **仅有 `200` 与 `401`**，**未声明 `403`**；本 case 依赖的 403 `permission_denied`（头存在但空 token）由机制 `T-TRUST-BEARER`（`R-TRUST-01`/`INV-2`/`INV-5`）与实现 [`auth.py`](../../../../src/http_api/auth.py) 保障，属机器契约未表达的路径。本 case 的 Oracle 仍为 403，并把该 openapi 缺口**登记**为已知差异；`X-Request-ID` 亦仅在 openapi 声明的 200 响应头中出现、**非契约**。
 **不证明什么**：不证明 **无 `Authorization` 头**的 LAN trust 免登录（ST-AUTH-001）、**非空错误 bearer** 被拒（ST-AUTH-002）、**非法方案（如 `Basic`）→401**（ST-AUTH-010）、**未配置鉴权→503**（ST-AUTH-007）、**未命中免登录的缺 Bearer→401**（ST-AUTH-010）；也不证明恒定时间比较（INV-2）。
@@ -82,7 +85,9 @@
   4. 解析 body 的 `error` 信封，断言 `error.code == "permission_denied"`、`error.type == "request_error"`、`error.param is None`、`error.retryable is False`，且 `error` 恰含 5 个键。
   5. 断言 body **不含** `object=="list"`/`data` 等 `ModelList` 字段（错误路径不得泄露模型清单）。
 
-**重点关注步骤**：① **头存在与否是分界的核心**——`"Bearer "` 使 `unauthenticated_principal()` 返回 `None`，因此不命中 LAN trust；若执行环境把该头裁剪成"无头"，请求会 200（ST-AUTH-001 行为）从而误判，必须验证实际发出的字节；② **空 token 仍是"形态合法"**——`startswith("Bearer ")` 为真 ⇒ 403 而非 401；③ **工具规范化陷阱**——`httpx` 不可靠，须用 `urllib`/原始 socket；④ **信封恰 5 键**（无 `category`）；⑤ **403 在 dispatch 之前**，无上游调用、无账本义务（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；⑥ 不在此 case 断言 401/404 或角色隔离。
+**重点关注步骤**：① **头存在与否是分界的核心**——`"Bearer "` 使 `unauthenticated_principal()` 返回 `None`，因此不命中 LAN trust；若执行环境把该头裁剪成"无头"，请求会 200（ST-AUTH-001 行为）从而误判，必须验证实际发出的字节；
+② **空 token 仍是"形态合法"**——`startswith("Bearer ")` 为真 ⇒ 403 而非 401；③ **工具规范化陷阱**——`httpx` 不可靠，须用 `urllib`/原始 socket；④ **信封恰 5 键**（无 `category`）；
+⑤ **403 在 dispatch 之前**，无上游调用、无账本义务（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；⑥ 不在此 case 断言 401/404 或角色隔离。
 
 ## 5. 独立 Oracle 与预期结果
 

@@ -38,7 +38,9 @@
 
 - 明确不测什么 / 失败含义：不测正常读/写语义（其正向 Case）；不测 400 校验（缺窗/非法 cursor/缺 items）；不测启动期 schema/引导错误（`ERR-SCHEMA`/`ERR-BOOT`）与 symlink 路径拒绝（`ERR-PATH-UNSAFE`）；不测 `/v1/usage` 的 503（ST-USAGE-008）。失败含义＝存储不可用被冒充为空结果/静默降级。
 
-**目的（被测契约）**：验证 **观测读/写面的存储不可用显式化**。被测端点/规则：`PATCH /v1/deployments/depl_b/diagnostics`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json)，声明 `503`）；GET 经 [`_store_read`](../../../../src/http_api/app.py) 包裹，非 `ApiError` 异常 → `ApiError(503, "usage_store_unavailable")`；PATCH 经 [`AdminService.mutate`](../../../../src/management/admin.py) 触发存储异常，由 `_run` 的 `sqlite3.Error` 兜底到同码。设计验证项 `VRC-DIAG-004`；机制 `CON-METER-005`/`ERR-STORE`。**不证明什么**：不测成功语义/400 校验/启动期错误/`/v1/usage` 503。
+**目的（被测契约）**：验证 **观测读/写面的存储不可用显式化**。被测端点/规则：`PATCH /v1/deployments/depl_b/diagnostics`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json)，声明 `503`）；
+GET 经 [`_store_read`](../../../../src/http_api/app.py) 包裹，非 `ApiError` 异常 → `ApiError(503, "usage_store_unavailable")`；PATCH 经 [`AdminService.mutate`](../../../../src/management/admin.py) 触发存储异常，由 `_run` 的 `sqlite3.Error` 兜底到同码。
+设计验证项 `VRC-DIAG-004`；机制 `CON-METER-005`/`ERR-STORE`。**不证明什么**：不测成功语义/400 校验/启动期错误/`/v1/usage` 503。
 
 ## 2. 被测入口与前置
 

@@ -59,7 +59,9 @@
 ## 2. 行为契约（唯一 authority）
 
 - 模拟的行为集：
-  - `FakeAdapter.complete(model, request)`：返回 `ProviderResult`，默认一条 `message` 项（`content` 为 `output_text`，`text="ok"`）＋ `usage={input_tokens:2, output_tokens:1, total_tokens:3}`（`usage=False` 时为 `None`）；`refusal=True` 时 `content` 为 `{"type":"refusal","refusal":"no"}`；`status` 可配置为 `completed`/`incomplete`（`incomplete` 附 `incomplete_details={"reason":"max_output_tokens"}`）；`provider_request_id` 可配置（默认 `None`）；`fail=<Exception>` 时抛该异常。
+  - `FakeAdapter.complete(model, request)`：返回 `ProviderResult`，默认一条 `message` 项（`content` 为 `output_text`，`text="ok"`）＋ `usage={input_tokens:2, output_tokens:1, total_tokens:3}`（`usage=False` 时为 `None`）；
+    `refusal=True` 时 `content` 为 `{"type":"refusal","refusal":"no"}`；`status` 可配置为 `completed`/`incomplete`（`incomplete` 附 `incomplete_details={"reason":"max_output_tokens"}`）；
+    `provider_request_id` 可配置（默认 `None`）；`fail=<Exception>` 时抛该异常。
   - `FakeAdapter.embed(model, request)`：返回标准 `EmbeddingResponse` 形状 `{object:"list", data:[{object:"embedding", index, embedding:[0.0]*dimension}]}`，`dimension=request.get("dimensions",1024)`，计数＝字符串输入 1 / 列表输入长度；`usage={prompt_tokens, total_tokens}`＝计数。
   - `FakeAdapter.probe()`：恒返回 `True`。
   - `AppFixture.seed(tier="Worker", capabilities=None, backend_model="synthetic-chat", health="healthy")`：在隔离库创建 provider＋deployment 并把该 deployment 挂到指定固定 tier；`capabilities` 默认 `response_capabilities()`（12 键）；`health` 写入 `deployments.health`。

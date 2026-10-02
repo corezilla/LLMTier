@@ -36,7 +36,12 @@
 - 要测什么（责任展开）：`GET /v1/models` 返回全部可见逻辑模型（fixed tier）清单：HTTP 200 + `object=="list"` + `data` 恰含 7 个 tier、id 互不重复。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明单模型精确返回（ST-MODEL-002）、大小写/URL 编码/不存在负向（ST-MODEL-003/04/05/06）、`capabilities` 键集完整性（ST-MODEL-007）；不证明凭据负向与 LAN trust（ST-AUTH-001/02/06）；不证明 `availability` 与上游健康一致（本 case 只断言枚举合法，不断言具体值）；不触上游，故不证明任何 provider/模型可用性。**失败含义＝模型清单读契约破坏**。
 
-**目的（被测契约）**：验证 Data Plane `GET /v1/models`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listModels`，全局 `security=BearerAuth`，role=`data`）的**模型清单读契约**。被测端点/规则：成功返回 `ModelList`（`{object:"list", data:[Model...]}`，`additionalProperties:false`）；`data` 元素为 `Model`（`{id,object,created,owned_by,availability,capabilities}`，`additionalProperties:false`），`object=="model"`、`owned_by=="llmtier"`、`availability∈{available,degraded,unavailable}`；`data` 恰含 7 个 fixed tier（`FIXED_TIERS`）。实现见 [`ModelCatalog.list()`](../../../../src/inference/models.py) 与 [`Registry.list_service_levels()`](../../../../src/management/registry.py)；该端点**只读 Registry、不 dispatch 上游**。设计验证项 `VRC-INF-002`；家族需求链 `LT-FUN-002`、机制 `R-INF-04`/`R-INF-07`、`T-TRUST-ENDPOINTS`、契约 `CT-MODEL-001`（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明单模型精确返回（ST-MODEL-002）、大小写/URL 编码/不存在负向（ST-MODEL-003/04/05/06）、`capabilities` 键集完整性（ST-MODEL-007）；不证明凭据负向与 LAN trust（ST-AUTH-001/02/06）；不证明 `availability` 与上游健康一致；不触上游。
+**目的（被测契约）**：验证 Data Plane `GET /v1/models`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listModels`，全局 `security=BearerAuth`，role=`data`）的**模型清单读契约**。
+被测端点/规则：成功返回 `ModelList`（`{object:"list", data:[Model...]}`，`additionalProperties:false`）；`data` 元素为 `Model`（`{id,object,created,owned_by,availability,capabilities}`，`additionalProperties:false`），`object=="model"`、`owned_by=="llmtier"`、`availability∈{available,degraded,unavailable}`；
+`data` 恰含 7 个 fixed tier（`FIXED_TIERS`）。实现见 [`ModelCatalog.list()`](../../../../src/inference/models.py) 与 [`Registry.list_service_levels()`](../../../../src/management/registry.py)；
+该端点**只读 Registry、不 dispatch 上游**。设计验证项 `VRC-INF-002`；家族需求链 `LT-FUN-002`、机制 `R-INF-04`/`R-INF-07`、`T-TRUST-ENDPOINTS`、契约 `CT-MODEL-001`（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明单模型精确返回（ST-MODEL-002）、大小写/URL 编码/不存在负向（ST-MODEL-003/04/05/06）、`capabilities` 键集完整性（ST-MODEL-007）；不证明凭据负向与 LAN trust（ST-AUTH-001/02/06）；
+不证明 `availability` 与上游健康一致；不触上游。
 
 ## 2. 被测入口与前置
 
@@ -86,7 +91,9 @@
 | 5 | `len(data)==7`、id 无重复、集合恰为 `FIXED_TIERS` | 响应体（不判顺序） |
 | 6 | 每元素键集与字段值（`object`/`owned_by`/`created`/`availability`/`capabilities`） | 响应体 |
 
-**重点关注步骤**：① **精确元素数**——不是"至少含 7 个"，而是 `len(data)==7` 且 id 集合恰等于 7 个 fixed tier（多/少/重复即 FAIL）；② **键集精确性**——顶层 `ModelList` 与每个 `Model` 均为 `additionalProperties:false`，多一个键即违约；③ **不得以错误信封冒充**——非 200 时须确认是 `ERR-AUTH-*`/其它可解释错误，而非把 `{error:...}` 当 `ModelList` 读；④ **不触上游**——本端点不应产生上游调用或账本义务，区别于 `/v1/responses`；⑤ **`availability` 只验枚举**——m5air 各 tier 的实际可用性随上游状态变化，不写死具体值；⑥ **`created` 是响应时刻**——实现为 `int(time.time())`（[`models.py`](../../../../src/inference/models.py) `_view`），**不是**持久化创建时间，故只断言"正整数"，不得断言跨请求稳定。
+**重点关注步骤**：① **精确元素数**——不是"至少含 7 个"，而是 `len(data)==7` 且 id 集合恰等于 7 个 fixed tier（多/少/重复即 FAIL）；② **键集精确性**——顶层 `ModelList` 与每个 `Model` 均为 `additionalProperties:false`，多一个键即违约；
+③ **不得以错误信封冒充**——非 200 时须确认是 `ERR-AUTH-*`/其它可解释错误，而非把 `{error:...}` 当 `ModelList` 读；④ **不触上游**——本端点不应产生上游调用或账本义务，区别于 `/v1/responses`；
+⑤ **`availability` 只验枚举**——m5air 各 tier 的实际可用性随上游状态变化，不写死具体值；⑥ **`created` 是响应时刻**——实现为 `int(time.time())`（[`models.py`](../../../../src/inference/models.py) `_view`），**不是**持久化创建时间，故只断言"正整数"，不得断言跨请求稳定。
 
 ## 5. 独立 Oracle 与预期结果
 

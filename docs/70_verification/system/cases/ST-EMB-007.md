@@ -47,7 +47,12 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-EMB-007` / 系统设计 §8 Embeddings 接口 / `VRC-INF-001` / negative / P2（[方案清单 `ST-EMB-007`](../llmtier-system-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-ENUM：非法 encoding_format）
-- 要测什么（责任展开）：`POST /v1/embeddings` `encoding_format=hex`（非 `float|base64`）：返回 `400 invalid_request`（`param="encoding_format"`），不触上游。`encoding_format` 仅允许 `float|base64`（OpenAPI `EmbeddingRequest.encoding_format.enum`）；取非法值 `"hex"` 时应在 dispatch 之前被拒。错误目录 `ERR-REQ-VALIDATION`；需求 `LT-FUN-003`；机制需求 `R-INF-04`（[inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）；契约 `CT-EMB-001`。实现 `src/inference/embeddings.py` 第 44 行：`require(encoding in {"float","base64"}, 400, "invalid_request", "encoding_format must be one of: float, base64", "encoding_format")`——该值级校验在 model/`embeddings` 能力/`dimensions` 校验与 `authorize_dispatch` 之前，故非法值零副作用被拒。**同一校验分支的相邻负向（"缺/多字段"）**：`EmbeddingRequest` 顶层 `additionalProperties:false` 且 `required:[model,input]`；缺 `model`/`input` 时第 40 行 `require(missing is None, 400, "invalid_request", ..., missing)` 返回 `400 invalid_request`、`param`=首个缺失字段名（`"input"`/`"model"`）；带未知顶层键时第 41-42 行 `require(unknown is None, 400, "unsupported_field", "Request body contains unknown fields", unknown)` 返回 `400 unsupported_field`、`param`=未知键名（系统 §7.8 `ERR-REQ-FIELD`）。
+- 要测什么（责任展开）：`POST /v1/embeddings` `encoding_format=hex`（非 `float|base64`）：返回 `400 invalid_request`（`param="encoding_format"`），不触上游。
+  `encoding_format` 仅允许 `float|base64`（OpenAPI `EmbeddingRequest.encoding_format.enum`）；取非法值 `"hex"` 时应在 dispatch 之前被拒。错误目录 `ERR-REQ-VALIDATION`；
+  需求 `LT-FUN-003`；机制需求 `R-INF-04`（[inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）；契约 `CT-EMB-001`。
+  实现 `src/inference/embeddings.py` 第 44 行：`require(encoding in {"float","base64"}, 400, "invalid_request", "encoding_format must be one of: float, base64", "encoding_format")`——该值级校验在 model/`embeddings` 能力/`dimensions` 校验与 `authorize_dispatch` 之前，故非法值零副作用被拒。
+  **同一校验分支的相邻负向（"缺/多字段"）**：`EmbeddingRequest` 顶层 `additionalProperties:false` 且 `required:[model,input]`；缺 `model`/`input` 时第 40 行 `require(missing is None, 400, "invalid_request", ..., missing)` 返回 `400 invalid_request`、`param`=首个缺失字段名（`"input"`/`"model"`）；
+  带未知顶层键时第 41-42 行 `require(unknown is None, 400, "unsupported_field", "Request body contains unknown fields", unknown)` 返回 `400 unsupported_field`、`param`=未知键名（系统 §7.8 `ERR-REQ-FIELD`）。
 - 明确不测什么 / 失败含义：不测合法 `float`/`base64` 的成功（ST-EMB-001/02）；不测未知 model（ST-EMB-004）、`dimensions` 不符（ST-EMB-006）、batch（ST-EMB-005）、base64 形态（ST-EMB-002）。失败含义＝`encoding_format` 值级校验缺失或被后置错误掩盖。
 
 ## 2. 被测入口与前置
@@ -92,7 +97,10 @@ Accept: application/json
 | 6 | （可选加强）对缺 `input`/缺 `model`/未知顶层键各发一次 | 缺字段：`400 invalid_request`（`param`=缺失字段名）；未知键：`400 unsupported_field`（`param`=未知键名） |
 | 7 | （可选）核对 usage 基线未新增 dispatch | 零副作用交叉核对 |
 
-- 重点关注步骤：① **错误码 `invalid_request` 与 `param="encoding_format"`**——因第 44 行 `require(..., "encoding_format")` 显式传参，`param` 必须为 `"encoding_format"`；写成 `null` 即 FAIL；② **值级校验已落地**——非法值在 model/能力/`dimensions` 校验之前被拒；③ **model 指向 embeddings-capable tier**——`Embedding-v1` 必须指向 `dep_local_bge_m3`（A 基线），否则观测到的 400 不是编码值校验；④ **零副作用**——校验失败须在 dispatch 前完成；⑤ **实现状态**——`ST-EMB-007.py` 已实现；执行与 Verdict 归 Run 报告；⑥ **相邻负向边界**——缺字段走第 40 行齐备性 `require`，`param`=缺失字段名；未知顶层键走第 41-42 行键集 `require`，`code=unsupported_field`、`param`=未知键名；与值级校验的 `param=="encoding_format"` 区分记录。
+- 重点关注步骤：① **错误码 `invalid_request` 与 `param="encoding_format"`**——因第 44 行 `require(..., "encoding_format")` 显式传参，`param` 必须为 `"encoding_format"`；
+  写成 `null` 即 FAIL；② **值级校验已落地**——非法值在 model/能力/`dimensions` 校验之前被拒；③ **model 指向 embeddings-capable tier**——`Embedding-v1` 必须指向 `dep_local_bge_m3`（A 基线），否则观测到的 400 不是编码值校验；
+  ④ **零副作用**——校验失败须在 dispatch 前完成；⑤ **实现状态**——`ST-EMB-007.py` 已实现；执行与 Verdict 归 Run 报告；⑥ **相邻负向边界**——缺字段走第 40 行齐备性 `require`，`param`=缺失字段名；
+  未知顶层键走第 41-42 行键集 `require`，`code=unsupported_field`、`param`=未知键名；与值级校验的 `param=="encoding_format"` 区分记录。
 
 ## 5. 独立 Oracle 与预期结果
 

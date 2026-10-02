@@ -53,7 +53,11 @@
 - 要测什么（责任展开）：`GET /v1/audit` 返回字段齐全（含 `request_id`）且脱敏的审计事件：HTTP 200 + `AuditPage`，默认 `limit=50`。
 - 明确不测什么 / 失败含义：不证明 `limit=1` 分页（ST-AUDIT-002）、不证明非法 `limit` 400（ST-AUDIT-003）、不证明 operational logs 脱敏（ST-LOGS-001）、不证明 provider 读取不回显 secret（ST-PROV-014）。本 case 锁定"字段齐全 + 无 secret 泄露 + 默认 limit"。
 
-**目的（被测契约）**：验证审计读取的**字段完整性、默认条数与脱敏契约**。被测端点/规则：`GET /v1/audit`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listAuditEvents`，query `limit` 默认 `50`、`minimum:1`/`maximum:200`，`security=AdminBearerAuth`）；[`AuditLog.page`](../../../../src/management/audit.py) `ORDER BY created_at DESC,id DESC LIMIT min(limit,200)`，返回 `{data:[AuditEvent],page:{has_more,next_cursor}}`；[`AuditEvent`](../../../../interfaces/openapi/llmtier.openapi.json) 必填 7 键 `{id,actor,action,target,result,created_at,request_id}`（`request_id` 可 null）。设计验证项 `VRC-MGMT-003`；机制 `R-OBS-01`、`T-TRUST-LEAK`；需求/机制链 `LT-FUN-006`、`LT-SEC-004`、`CT-ADMIN-001`、`CT-LOG-001`。**不证明什么**：不证明 `limit=1` 分页（ST-AUDIT-002）、不证明非法 `limit` 400（ST-AUDIT-003）、不证明 operational logs 脱敏（ST-LOGS-001）、不证明 provider 读取不回显 secret（ST-PROV-014）。本 case 锁定"字段齐全 + 无 secret 泄露 + 默认 limit"。
+**目的（被测契约）**：验证审计读取的**字段完整性、默认条数与脱敏契约**。被测端点/规则：`GET /v1/audit`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listAuditEvents`，query `limit` 默认 `50`、`minimum:1`/`maximum:200`，`security=AdminBearerAuth`）；
+[`AuditLog.page`](../../../../src/management/audit.py) `ORDER BY created_at DESC,id DESC LIMIT min(limit,200)`，返回 `{data:[AuditEvent],page:{has_more,next_cursor}}`；
+[`AuditEvent`](../../../../interfaces/openapi/llmtier.openapi.json) 必填 7 键 `{id,actor,action,target,result,created_at,request_id}`（`request_id` 可 null）。
+设计验证项 `VRC-MGMT-003`；机制 `R-OBS-01`、`T-TRUST-LEAK`；需求/机制链 `LT-FUN-006`、`LT-SEC-004`、`CT-ADMIN-001`、`CT-LOG-001`。**不证明什么**：不证明 `limit=1` 分页（ST-AUDIT-002）、不证明非法 `limit` 400（ST-AUDIT-003）、不证明 operational logs 脱敏（ST-LOGS-001）、不证明 provider 读取不回显 secret（ST-PROV-014）。
+本 case 锁定"字段齐全 + 无 secret 泄露 + 默认 limit"。
 
 ## 2. 被测入口与前置
 
@@ -80,7 +84,9 @@
   5. 断言 `len(data) <= 50`（默认 `limit=50`）；进一步断言 `data` 每条键集**恰为** `{id,actor,action,target,result,created_at,request_id}`——**特别断言 `request_id` 键存在**（可 null）。
   6. 脱敏断言：`resp.text` **不含**上游 secret 字面 `"9832"`、key 文件名 `"omlx-secret-key.txt"`、`"mnm_api_key"`、`"Bearer "` 后的真实凭据、`"secret"` 明文值。
 
-**重点关注步骤**：① **`request_id` 键必须存在**——`AuditEvent.required` 含 `request_id`（可 null），仅断"data 是数组"不足（现有 [`ST-AUDIT-001.py`](../../../../tests/system/cases/ST-AUDIT-001.py) 只断数组与脱敏，**未断 7 字段**，须补齐）；② **默认 `limit=50`**——无参请求 `len(data) ≤ 50`（`AuditLog.page` 默认 50、上限 200）；③ **脱敏**——审计 `target`/`action` 等不得回显 secret；注意 `AuditLog.record` 存的是 `actor/action/target/result`，本身不含 header/凭据，但仍须显式断言（防未来字段泄漏）；④ **`type` 字段非本 case**——`AuditEvent` 无 `type` 键，不得按错误信封 5 键预期；⑤ **纯读**——`GET /v1/audit` 不写审计（读操作不产生审计行）。
+**重点关注步骤**：① **`request_id` 键必须存在**——`AuditEvent.required` 含 `request_id`（可 null），仅断"data 是数组"不足（现有 [`ST-AUDIT-001.py`](../../../../tests/system/cases/ST-AUDIT-001.py) 只断数组与脱敏，**未断 7 字段**，须补齐）；
+② **默认 `limit=50`**——无参请求 `len(data) ≤ 50`（`AuditLog.page` 默认 50、上限 200）；③ **脱敏**——审计 `target`/`action` 等不得回显 secret；注意 `AuditLog.record` 存的是 `actor/action/target/result`，本身不含 header/凭据，但仍须显式断言（防未来字段泄漏）；
+④ **`type` 字段非本 case**——`AuditEvent` 无 `type` 键，不得按错误信封 5 键预期；⑤ **纯读**——`GET /v1/audit` 不写审计（读操作不产生审计行）。
 
 ## 5. 独立 Oracle 与预期结果
 

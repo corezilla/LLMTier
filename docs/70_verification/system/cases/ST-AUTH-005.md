@@ -53,7 +53,11 @@
 - 要测什么（责任展开）：`GET /healthz` 在**不带任何凭据、任意来源**下被受理，返回 200 + `status="ok"`（公共存活端点不进入鉴权路径）。
 - 明确不测什么 / 失败含义：不证明 `/readyz` 的就绪语义（ST-HEALTH-002/03/04/05）、不证明任何受保护端点（`/v1/*`）的鉴权（ST-AUTH-001/02/03/04/06/07/08/09/10）、不证明 LAN trust 免登录（ST-AUTH-001/04）、不证明未配置鉴权时受保护端点的 503（ST-AUTH-007）。本 case **不断言** `/healthz` 不受 bootstrap 失败影响之外的 `/readyz` 行为。
 
-**目的（被测契约）**：验证公开存活端点的 **no-auth 契约**。被测端点/规则：`GET /healthz`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `healthz`，无 securityScheme）；[`app.py`](../../../../src/http_api/app.py) 在 `_dispatch()` 最前段直接返回 `self._json(200, health_view(__version__))`（`app.py:196`），**不调用** `self._auth()`/`_auth("admin")`/`_auth_either()`，也不等待 bootstrap；因此 `/healthz` 不受凭据角色、LAN trust、`_configured_token` 或 bootstrap 状态影响。设计验证项 `VRC-API-002`；机制 `T-TRUST-NOCFG`、`T-TRUST-SHARED`（机制需求 `R-TRUST-04`；见 [access-trust 机制 §5.1/§12.2](../../../20_system_design/mechanisms/access-trust.md)）。**不证明什么**：不证明 `/readyz` 的就绪语义（ST-HEALTH-002/03/04/05）、不证明任何受保护端点（`/v1/*`）的鉴权（ST-AUTH-001/02/03/04/06/07/08/09/10）、不证明 LAN trust 免登录（ST-AUTH-001/04）、不证明未配置鉴权时受保护端点的 503（ST-AUTH-007）。本 case **不断言** `/healthz` 不受 bootstrap 失败影响之外的 `/readyz` 行为。
+**目的（被测契约）**：验证公开存活端点的 **no-auth 契约**。被测端点/规则：`GET /healthz`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `healthz`，无 securityScheme）；
+[`app.py`](../../../../src/http_api/app.py) 在 `_dispatch()` 最前段直接返回 `self._json(200, health_view(__version__))`（`app.py:196`），**不调用** `self._auth()`/`_auth("admin")`/`_auth_either()`，也不等待 bootstrap；
+因此 `/healthz` 不受凭据角色、LAN trust、`_configured_token` 或 bootstrap 状态影响。设计验证项 `VRC-API-002`；机制 `T-TRUST-NOCFG`、`T-TRUST-SHARED`（机制需求 `R-TRUST-04`；
+见 [access-trust 机制 §5.1/§12.2](../../../20_system_design/mechanisms/access-trust.md)）。**不证明什么**：不证明 `/readyz` 的就绪语义（ST-HEALTH-002/03/04/05）、不证明任何受保护端点（`/v1/*`）的鉴权（ST-AUTH-001/02/03/04/06/07/08/09/10）、不证明 LAN trust 免登录（ST-AUTH-001/04）、不证明未配置鉴权时受保护端点的 503（ST-AUTH-007）。
+本 case **不断言** `/healthz` 不受 bootstrap 失败影响之外的 `/readyz` 行为。
 
 ## 2. 被测入口与前置
 
@@ -79,7 +83,9 @@
   5. 解析 body：断言 `body["status"] == "ok"` 且 `isinstance(body["version"], str)`（`health_view` 契约，[`src/http_api/health.py`](../../../../src/http_api/health.py)）。
   6. 断言 body **不含** `{"error":{...}}`（公共存活端点不返回错误信封）。
 
-**重点关注步骤**：① **真正无凭据**——不得用带默认头的 `api_client`/`admin_client`；必须独立无头客户端，否则无法证明"无需 token"；② **`/healthz` ≠ `/readyz`**——本 case 只断言存活；`/readyz` 的就绪/降级/未就绪属 ST-HEALTH-002/03/04/05，不可混入；③ **`/healthz` 不调用 `_auth*`**——断言前应在源码确认 `app.py:196` 位于所有 `_auth*` 之前，避免把"受信 LAN 恰好免登录"误当"公共端点无需鉴权"（后者在非受信来源也应为 200，但本 case 不构造非受信来源）；④ **body 必为 `health_view`**——只断言 200 不够，须验证 `status="ok"` + `version:str`；⑤ 不在此 case 断言 `/readyz` 或任何受保护端点。
+**重点关注步骤**：① **真正无凭据**——不得用带默认头的 `api_client`/`admin_client`；必须独立无头客户端，否则无法证明"无需 token"；② **`/healthz` ≠ `/readyz`**——本 case 只断言存活；
+`/readyz` 的就绪/降级/未就绪属 ST-HEALTH-002/03/04/05，不可混入；③ **`/healthz` 不调用 `_auth*`**——断言前应在源码确认 `app.py:196` 位于所有 `_auth*` 之前，避免把"受信 LAN 恰好免登录"误当"公共端点无需鉴权"（后者在非受信来源也应为 200，但本 case 不构造非受信来源）；
+④ **body 必为 `health_view`**——只断言 200 不够，须验证 `status="ok"` + `version:str`；⑤ 不在此 case 断言 `/readyz` 或任何受保护端点。
 
 ## 5. 独立 Oracle 与预期结果
 

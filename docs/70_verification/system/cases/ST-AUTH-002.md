@@ -53,7 +53,10 @@
 - 要测什么（责任展开）：`GET /v1/models` 在**携带 Authorization 头但 bearer 值错误**时被拒，返回 403 + `permission_denied`（凭据不匹配 ≠ 缺凭据）。
 - 明确不测什么 / 失败含义：不证明 **空 bearer** 被拒（ST-AUTH-006）、**无 Authorization 头**的 LAN trust 免登录（ST-AUTH-001）、**data token 访问 admin 面**被拒（ST-AUTH-003）、**管理面未授权优先于资源存在性**（ST-AUTH-009）、**未配置鉴权→503**（ST-AUTH-007）、**缺/非法凭据→401**（ST-AUTH-010）；也不证明 `hmac.compare_digest` 的恒定时间性（INV-2 需专门时序测量，不属本 case）。
 
-**目的（被测契约）**：验证 access-trust 机制的 **bearer 不匹配判定路径**。被测端点/规则：`GET /v1/models`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listModels`，securityScheme `BearerAuth`）；入口 [`_auth()`](../../../../src/http_api/app.py)（默认 role=`data`）先经 [`unauthenticated_principal()`](../../../../src/http_api/auth.py) 判空，因 `Authorization` 头存在而返回 `None`，再落入 [`authenticate()`](../../../../src/http_api/auth.py)，以 `hmac.compare_digest(supplied, configured)` 比较（`auth.py:56-57`），不匹配则抛 `ApiError(403, "permission_denied")`。**角色澄清**：§3.2 把本 Case 角色记为 `data`（`/v1/models` 的默认 role），实际观测点是"错误 bearer 被拒"，与是否具备 data 权限无关。设计验证项 `VRC-API-002`；机制 `T-TRUST-BEARER`（机制需求 `R-TRUST-01`：错误凭据→403，见 [access-trust 机制 §5.1/§8 INV-2](../../../20_system_design/mechanisms/access-trust.md)）；错误信封 `{error:{message,type,code,param,retryable}}`（[errors.py](../../../../src/http_api/errors.py)）。
+**目的（被测契约）**：验证 access-trust 机制的 **bearer 不匹配判定路径**。被测端点/规则：`GET /v1/models`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listModels`，securityScheme `BearerAuth`）；
+入口 [`_auth()`](../../../../src/http_api/app.py)（默认 role=`data`）先经 [`unauthenticated_principal()`](../../../../src/http_api/auth.py) 判空，因 `Authorization` 头存在而返回 `None`，再落入 [`authenticate()`](../../../../src/http_api/auth.py)，以 `hmac.compare_digest(supplied, configured)` 比较（`auth.py:56-57`），不匹配则抛 `ApiError(403, "permission_denied")`。
+**角色澄清**：§3.2 把本 Case 角色记为 `data`（`/v1/models` 的默认 role），实际观测点是"错误 bearer 被拒"，与是否具备 data 权限无关。设计验证项 `VRC-API-002`；机制 `T-TRUST-BEARER`（机制需求 `R-TRUST-01`：错误凭据→403，见 [access-trust 机制 §5.1/§8 INV-2](../../../20_system_design/mechanisms/access-trust.md)）；
+错误信封 `{error:{message,type,code,param,retryable}}`（[errors.py](../../../../src/http_api/errors.py)）。
 
   > **契约一致性登记（openapi gap）**：openapi `listModels` 的 responses **仅有 `200` 与 `401`**，**未声明 `403`**；本 case 依赖的 403 `permission_denied` 由机制 `T-TRUST-BEARER`（`R-TRUST-01`：错误凭据→403）与实现 [`auth.py`](../../../../src/http_api/auth.py) 保障，属机器契约未表达的路径。本 case 的 Oracle 仍为 403，并把该 openapi 缺口**登记**为已知差异；`X-Request-ID` 亦仅在 openapi 声明的 200 响应头中出现、**非契约**。
 **不证明什么**：不证明 **空 bearer** 被拒（ST-AUTH-006）、**无 Authorization 头**的 LAN trust 免登录（ST-AUTH-001）、**data token 访问 admin 面**被拒（ST-AUTH-003）、**管理面未授权优先于资源存在性**（ST-AUTH-009）、**未配置鉴权→503**（ST-AUTH-007）、**缺/非法凭据→401**（ST-AUTH-010）；也不证明 `hmac.compare_digest` 的恒定时间性（INV-2 需专门时序测量，不属本 case）。
@@ -83,7 +86,10 @@
   5. 解析 body 的 `error` 信封，断言 `error.code == "permission_denied"`、`error.type == "request_error"`、`error.param is None`、`error.retryable is False`，且 `error` 恰含 5 个键（`message/type/code/param/retryable`）。
   6. 断言 body **不含** `object=="list"`/`data` 等 `ModelList` 字段（错误路径不得泄露模型清单）。
 
-**重点关注步骤**：① **错误 bearer ≠ 缺凭据**——403 `permission_denied` 与 401 `authentication_required` 是两条分支，断言错把 401 当成功即 FAIL；② **误用带凭据 fixture**——`api_client` 发送 `dev-data` 会得到 200，令本 case 失去意义，必须用独立无默认头客户端；③ **空 bearer 与错误 bearer 的区分**——`Bearer `（空串）走 `compare_digest("", …)` 属 ST-AUTH-006，本 case 的 token 非空；④ **信封恰 5 键**——不得把 `category` 当键（本实现无该键，`type` 即类别）；⑤ **403 在 dispatch 之前**——认证失败不得触达 `app.models.list()`、不产生任何账本义务（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；⑥ 不在此 case 断言 401/404 或角色隔离。
+**重点关注步骤**：① **错误 bearer ≠ 缺凭据**——403 `permission_denied` 与 401 `authentication_required` 是两条分支，断言错把 401 当成功即 FAIL；② **误用带凭据 fixture**——`api_client` 发送 `dev-data` 会得到 200，令本 case 失去意义，必须用独立无默认头客户端；
+③ **空 bearer 与错误 bearer 的区分**——`Bearer `（空串）走 `compare_digest("", …)` 属 ST-AUTH-006，本 case 的 token 非空；④ **信封恰 5 键**——不得把 `category` 当键（本实现无该键，`type` 即类别）；
+⑤ **403 在 dispatch 之前**——认证失败不得触达 `app.models.list()`、不产生任何账本义务（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；
+⑥ 不在此 case 断言 401/404 或角色隔离。
 
 ## 5. 独立 Oracle 与预期结果
 

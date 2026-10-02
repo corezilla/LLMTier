@@ -51,9 +51,14 @@
 - **测试方法（§1.5 方法表行）**：鉴权/授权/脱敏冒烟 + 角色隔离
 - 方案清单登记：`ST-AUTH-004`（与 §3.2 权威清单一致；本文件名 `st-auth-004.md`，唯一对应）。
 - 要测什么（责任展开）：`GET /v1/providers` 在受信 LAN 来源且**不带** `Authorization` 头时被无条件受理，返回 200 + 合法 provider 清单（LAN trust 对 admin 面同样生效）。
-- 明确不测什么 / 失败含义：不证明 任何 **凭据** 路径——不证明 data token 在 admin 面被拒（ST-AUTH-003）、错误 bearer 被拒（ST-AUTH-002）、空 bearer 被拒（ST-AUTH-006）、管理面未授权优先于资源存在性（ST-AUTH-009）、别名命名空间需 admin（ST-AUTH-008）、公共端点无需 token（ST-AUTH-005）、未配置鉴权→503（ST-AUTH-007）、缺/非法凭据→401（ST-AUTH-010）。特别地，本 case **不**证明存在 `LLMTIER_TRUSTED_LAN_MODE` 环境门控：源码 [auth.py](../../../../src/http_api/auth.py) **不读取**该变量，LAN 免登录在 `auth.py:33-34` 是**无条件**的（测试设计 §4.2）。
+- 明确不测什么 / 失败含义：不证明 任何 **凭据** 路径——不证明 data token 在 admin 面被拒（ST-AUTH-003）、错误 bearer 被拒（ST-AUTH-002）、空 bearer 被拒（ST-AUTH-006）、管理面未授权优先于资源存在性（ST-AUTH-009）、别名命名空间需 admin（ST-AUTH-008）、公共端点无需 token（ST-AUTH-005）、未配置鉴权→503（ST-AUTH-007）、缺/非法凭据→401（ST-AUTH-010）。
+  特别地，本 case **不**证明存在 `LLMTIER_TRUSTED_LAN_MODE` 环境门控：源码 [auth.py](../../../../src/http_api/auth.py) **不读取**该变量，LAN 免登录在 `auth.py:33-34` 是**无条件**的（测试设计 §4.2）。
 
-**目的（被测契约）**：验证 access-trust 机制的 **LAN trust 免登录路径同样覆盖 admin 端点**。被测端点/规则：`GET /v1/providers`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listProviders`，securityScheme `AdminBearerAuth`）；[`app.py`](../../../../src/http_api/app.py) 在 `principal = self._auth("admin")`（`app.py:248`）内先调 [`unauthenticated_principal()`](../../../../src/http_api/auth.py)：请求**无 `Authorization` 头**且 `client_address` 属 loopback 或 RFC1918（`10/8`、`172.16/12`、`192.168/16`、`fc00::/7`）时返回 `Principal("trusted-lan-operator","admin")`，端点因而在**零凭据**下返回 200。**角色澄清**：§3.2 把本 Case 角色记为 `none`（LAN-trust 免 token）；wire 契约是"无 token + 受信 LAN → 200"，不据此断言任何凭据路径。设计验证项 `VRC-API-002`；机制 `T-TRUST-LAN`（机制需求 `R-TRUST-01`/`R-TRUST-02`；见 [access-trust 机制 §5.1/§8 INV-5](../../../20_system_design/mechanisms/access-trust.md)）。**不证明什么**：不证明任何 **凭据** 路径——不证明 data token 在 admin 面被拒（ST-AUTH-003）、错误 bearer 被拒（ST-AUTH-002）、空 bearer 被拒（ST-AUTH-006）、管理面未授权优先于资源存在性（ST-AUTH-009）、别名命名空间需 admin（ST-AUTH-008）、公共端点无需 token（ST-AUTH-005）、未配置鉴权→503（ST-AUTH-007）、缺/非法凭据→401（ST-AUTH-010）。特别地，本 case **不**证明存在 `LLMTIER_TRUSTED_LAN_MODE` 环境门控：源码 [auth.py](../../../../src/http_api/auth.py) **不读取**该变量，LAN 免登录在 `auth.py:33-34` 是**无条件**的（测试设计 §4.2）。
+**目的（被测契约）**：验证 access-trust 机制的 **LAN trust 免登录路径同样覆盖 admin 端点**。被测端点/规则：`GET /v1/providers`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listProviders`，securityScheme `AdminBearerAuth`）；
+[`app.py`](../../../../src/http_api/app.py) 在 `principal = self._auth("admin")`（`app.py:248`）内先调 [`unauthenticated_principal()`](../../../../src/http_api/auth.py)：请求**无 `Authorization` 头**且 `client_address` 属 loopback 或 RFC1918（`10/8`、`172.16/12`、`192.168/16`、`fc00::/7`）时返回 `Principal("trusted-lan-operator","admin")`，端点因而在**零凭据**下返回 200。
+**角色澄清**：§3.2 把本 Case 角色记为 `none`（LAN-trust 免 token）；wire 契约是"无 token + 受信 LAN → 200"，不据此断言任何凭据路径。设计验证项 `VRC-API-002`；机制 `T-TRUST-LAN`（机制需求 `R-TRUST-01`/`R-TRUST-02`；
+见 [access-trust 机制 §5.1/§8 INV-5](../../../20_system_design/mechanisms/access-trust.md)）。**不证明什么**：不证明任何 **凭据** 路径——不证明 data token 在 admin 面被拒（ST-AUTH-003）、错误 bearer 被拒（ST-AUTH-002）、空 bearer 被拒（ST-AUTH-006）、管理面未授权优先于资源存在性（ST-AUTH-009）、别名命名空间需 admin（ST-AUTH-008）、公共端点无需 token（ST-AUTH-005）、未配置鉴权→503（ST-AUTH-007）、缺/非法凭据→401（ST-AUTH-010）。
+特别地，本 case **不**证明存在 `LLMTIER_TRUSTED_LAN_MODE` 环境门控：源码 [auth.py](../../../../src/http_api/auth.py) **不读取**该变量，LAN 免登录在 `auth.py:33-34` 是**无条件**的（测试设计 §4.2）。
 
 ## 2. 被测入口与前置
 
@@ -79,7 +84,11 @@
   5. 解析 body：断言为 `ProviderPage`，即含 `data` 数组（可能为空数组，但 m5air 基线非空），抽查元素关键字段（`id:str`、`name`、`kind`、`enabled`、`has_secret`、`secret_ref`）；若响应含 `has_more`，断言为布尔。
   6. （可选交叉核对）对同一 `GET /v1/providers` 注入 `Authorization: Bearer dev-admin` 再发一次，确认除请求头外 body 语义一致——佐证 LAN trust 与 admin token 落到同一 handler（该次请求的通过不由本 case 断言）。
 
-**重点关注步骤**：① **头缺省而非空值**——必须完全不发送 `Authorization`；`Bearer `（空 bearer）会因 `compare_digest` 失败而 403（ST-AUTH-006），从而把本 case 误判 FAIL；② **来源受信**——200 成立的前提是 `client_address` 命中 loopback/RFC1918；断言前应确认执行机 LAN IP，非受信来源的 401 属环境前置不满足（SKIP），不是 ST-AUTH-004 的行为错误；③ **Oracle 是"trusted-LAN 规则"而非"admin 凭据可用"**——只断言 200 不够，必须同时验证合法 `ProviderPage` body，排除把其它 200 当成功；④ **不得用带 token 的 fixture**——`admin_client` 已带 header，误用会把"admin token 生效"当成"LAN trust 生效"；⑤ **不要声称 env 门控**——`LLMTIER_TRUSTED_LAN_MODE` 不被源码读取，本 case 不得断言"门控开启才 200"（现有 [`ST-AUTH-004.py`](../../../../tests/system/cases/ST-AUTH-004.py) 文件头注释称该 env "默认开启"属不准确表述，设计以源码行为为准）；⑥ 不在此 case 断言 401/403 负向（属 ST-AUTH-002/03/06/09/10）。
+**重点关注步骤**：① **头缺省而非空值**——必须完全不发送 `Authorization`；`Bearer `（空 bearer）会因 `compare_digest` 失败而 403（ST-AUTH-006），从而把本 case 误判 FAIL；
+② **来源受信**——200 成立的前提是 `client_address` 命中 loopback/RFC1918；断言前应确认执行机 LAN IP，非受信来源的 401 属环境前置不满足（SKIP），不是 ST-AUTH-004 的行为错误；
+③ **Oracle 是"trusted-LAN 规则"而非"admin 凭据可用"**——只断言 200 不够，必须同时验证合法 `ProviderPage` body，排除把其它 200 当成功；④ **不得用带 token 的 fixture**——`admin_client` 已带 header，误用会把"admin token 生效"当成"LAN trust 生效"；
+⑤ **不要声称 env 门控**——`LLMTIER_TRUSTED_LAN_MODE` 不被源码读取，本 case 不得断言"门控开启才 200"（现有 [`ST-AUTH-004.py`](../../../../tests/system/cases/ST-AUTH-004.py) 文件头注释称该 env "默认开启"属不准确表述，设计以源码行为为准）；
+⑥ 不在此 case 断言 401/403 负向（属 ST-AUTH-002/03/06/09/10）。
 
 ## 5. 独立 Oracle 与预期结果
 

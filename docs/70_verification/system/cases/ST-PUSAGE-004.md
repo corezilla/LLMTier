@@ -53,7 +53,10 @@
 - 要测什么（责任展开）：`GET /v1/providers/{id}/usage` 读取不存在 provider 的用量快照：HTTP 404 + `error.code=="not_found"`，统一错误信封，无副作用。
 - 明确不测什么 / 失败含义：不证明 既存 provider 的快照读取（ST-PUSAGE-001）、不证明刷新路径（ST-PUSAGE-002/03）、不证明 provider 详情/目录子路径的 404（ST-PROV-004、ST-PMOD-002）、不证明鉴权优先于存在性（ST-AUTH-009）。
 
-**目的（被测契约）**：验证 provider 账号用量快照的**未知 provider 负向契约**。被测端点/规则：`GET /v1/providers/{provider_id}/usage`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getProviderAccountUsage`，`security=AdminBearerAuth`），认证角色 `admin`；未知 id 由 [`AccountUsageService.latest`](../../../../src/management/account_usage.py)（`SELECT * FROM providers WHERE id=?` 无果 → `raise ApiError(404,"not_found",…)`）返回统一错误信封的 `404` + `code=not_found`；`type=request_error`（<500）、`param=null`、`retryable=false`。设计验证项 `VRC-MGMT-006`；需求/机制链 `LT-FUN-005/006`、`LT-OPS-002`、`R-CFG-01`、`R-OBS-01`、`T-CFG-SECRET`；错误目录 `ERR-NOTFOUND`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。**不证明什么**：不证明既存 provider 的快照读取（ST-PUSAGE-001）、不证明刷新路径（ST-PUSAGE-002/03）、不证明 provider 详情/目录子路径的 404（ST-PROV-004、ST-PMOD-002）、不证明鉴权优先于存在性（ST-AUTH-009）。
+**目的（被测契约）**：验证 provider 账号用量快照的**未知 provider 负向契约**。被测端点/规则：`GET /v1/providers/{provider_id}/usage`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getProviderAccountUsage`，`security=AdminBearerAuth`），认证角色 `admin`；
+未知 id 由 [`AccountUsageService.latest`](../../../../src/management/account_usage.py)（`SELECT * FROM providers WHERE id=?` 无果 → `raise ApiError(404,"not_found",…)`）返回统一错误信封的 `404` + `code=not_found`；
+`type=request_error`（<500）、`param=null`、`retryable=false`。设计验证项 `VRC-MGMT-006`；需求/机制链 `LT-FUN-005/006`、`LT-OPS-002`、`R-CFG-01`、`R-OBS-01`、`T-CFG-SECRET`；
+错误目录 `ERR-NOTFOUND`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。**不证明什么**：不证明既存 provider 的快照读取（ST-PUSAGE-001）、不证明刷新路径（ST-PUSAGE-002/03）、不证明 provider 详情/目录子路径的 404（ST-PROV-004、ST-PMOD-002）、不证明鉴权优先于存在性（ST-AUTH-009）。
 
 ## 2. 被测入口与前置
 

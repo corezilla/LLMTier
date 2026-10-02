@@ -36,7 +36,12 @@
 - 要测什么（责任展开）：`POST /v1/responses` 注入 `fault_502`：下一次命中 `depl_b` 的推理在 dispatch 上游前被拒，返回 `502 provider_failure`（`retryable=true`、`message` 含注入 `error_body`）。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明真实上游 5xx 的归一（ST-RESP-023 / `ERR-PROVIDER-FAIL`）与 `fault_503`→`provider_unavailable` 路径（ST-RESP-022 / `ERR-PROVIDER-UNAVAIL`）；不证明 SSE 事件序列/terminal/`[DONE]`（注入在流开始前抛出，响应不是 SSE，见 ST-RESP-001）；不证明重试或 exactly-once；不证明模型答案或上游真实调用——本 case 的 502 由注入产生，**不是"模型失败"**。**失败含义＝注入命中与上游故障传播契约破坏**。
 
-**目的（被测契约）**：验证 Data Plane `POST /v1/responses` 在 **M006 故障注入（`fault_502`）命中**时的**上游故障传播契约**。被测端点/规则：先 `PATCH /v1/deployments/{deployment_id}/diagnostics` 写入 `fault_502`；随后命中该 deployment 的 `POST /v1/responses`（`stream=true`）在 dispatch 上游**之前**由 M003 抛出 `ApiError(status=502, code="provider_failure", retryable=True)`，入口以**普通 JSON 错误信封**返回（不是 `text/event-stream`）。设计验证项 `VRC-DIAG-004`；机制 `T-OBS-INJECT`（见[observability 机制](../../../20_system_design/mechanisms/observability.md)）；错误目录 `ERR-PROVIDER-INJECTED` → wire `code=provider_failure`（系统设计 §7.8，见[llmtier-system-design.md](../../../20_system_design/llmtier-system-design.md)）；实现见 `src/inference/responses.py` 的 dispatch 前注入分支与 `src/libdiag/injections.py` 的注入校验/优先级（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明真实上游 5xx 的归一（ST-RESP-023）与 `fault_503`→`provider_unavailable` 路径（ST-RESP-022）；不证明 SSE 事件序列/terminal/`[DONE]`（注入在流开始前抛出）；不证明重试或 exactly-once；不证明模型答案或上游真实调用——本 case 的 502 由注入产生，**不是"模型失败"**。
+**目的（被测契约）**：验证 Data Plane `POST /v1/responses` 在 **M006 故障注入（`fault_502`）命中**时的**上游故障传播契约**。被测端点/规则：先 `PATCH /v1/deployments/{deployment_id}/diagnostics` 写入 `fault_502`；
+随后命中该 deployment 的 `POST /v1/responses`（`stream=true`）在 dispatch 上游**之前**由 M003 抛出 `ApiError(status=502, code="provider_failure", retryable=True)`，入口以**普通 JSON 错误信封**返回（不是 `text/event-stream`）。
+设计验证项 `VRC-DIAG-004`；机制 `T-OBS-INJECT`（见[observability 机制](../../../20_system_design/mechanisms/observability.md)）；错误目录 `ERR-PROVIDER-INJECTED` → wire `code=provider_failure`（系统设计 §7.8，见[llmtier-system-design.md](../../../20_system_design/llmtier-system-design.md)）；
+实现见 `src/inference/responses.py` 的 dispatch 前注入分支与 `src/libdiag/injections.py` 的注入校验/优先级（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明真实上游 5xx 的归一（ST-RESP-023）与 `fault_503`→`provider_unavailable` 路径（ST-RESP-022）；不证明 SSE 事件序列/terminal/`[DONE]`（注入在流开始前抛出）；
+不证明重试或 exactly-once；不证明模型答案或上游真实调用——本 case 的 502 由注入产生，**不是"模型失败"**。
 
 ## 2. 被测入口与前置
 
@@ -114,7 +119,13 @@
 | 5 | `code=="provider_failure"`、`retryable is True`、message 含 `error_body`、`type=="server_error"`、`param None` | 响应体（果） |
 | 6 | teardown `items:[]` 并二次 `GET` 校验为空 | 清理完整性 |
 
-**重点关注步骤**：① **注入命中证明（cause）**——不是"模型失败"也不是"恰好返回 502"。步骤 2 的 `200 + fault_502 enabled=true` 是**因**，步骤 4–5 的 `502 + provider_failure + message 含注入 error_body` 是**果**；两者同 deployment（`depl_b`）闭环。按[系统测试方案 §4](../llmtier-system-test-scheme.md)，注入 Case 必须**证明命中**（响应状态/错误码，或 trace `source=injected`）——脚本既以"status+code+type+param+retryable+message"证明，**又**显式抓响应 `X-Request-ID` 并查 `GET /v1/trace/{request_id}` 断言 `usage.source=="injected"`（INV-3）。② **502 vs 503 的区分**——本 case 严格锁定 `fault_502` 臂，必须观测到 **502 + `provider_failure`**；若观测到 **503 + `provider_unavailable`**，说明生效的是 `fault_503`（串了 ST-RESP-022 的注入），判 FAIL。注入类型→错误码/状态的映射与前置优先级见方案 §4 与 [observability 机制](../../../20_system_design/mechanisms/observability.md)，本文不重复实现细节。③ **错误信封 identity**——恰 5 键 `{message,type,code,param,retryable}`（无 `category`），`type` 由状态导出（502≥500 ⇒ `server_error`），`retryable=true`；缺键/多键或 `type` 错即 FAIL。④ **非 SSE**——入口在 `create()` 抛 `ApiError` 时返回 `_json(status, envelope)`（`src/http_api/app.py`），不得把响应当 `text/event-stream` 吞掉或解析。⑤ **message 携带注入体**——`"injected upstream failure"` 与写入的 `error_body` 一致，是把响应与注入配置绑定的强证据。⑥ **teardown 完整性**——`finally` 中 `items:[]` 清空并二次 `GET` 校验为空；**绝不残留** `prov_b.endpoint` 被指向死端口（本设计走真实注入 API，不再 monkeypatch endpoint）；清空失败必须报错，不能把启用注入留给同 session 的后续 Case。
+**重点关注步骤**：① **注入命中证明（cause）**——不是"模型失败"也不是"恰好返回 502"。步骤 2 的 `200 + fault_502 enabled=true` 是**因**，步骤 4–5 的 `502 + provider_failure + message 含注入 error_body` 是**果**；
+两者同 deployment（`depl_b`）闭环。按[系统测试方案 §4](../llmtier-system-test-scheme.md)，注入 Case 必须**证明命中**（响应状态/错误码，或 trace `source=injected`）——脚本既以"status+code+type+param+retryable+message"证明，**又**显式抓响应 `X-Request-ID` 并查 `GET /v1/trace/{request_id}` 断言 `usage.source=="injected"`（INV-3）。
+② **502 vs 503 的区分**——本 case 严格锁定 `fault_502` 臂，必须观测到 **502 + `provider_failure`**；若观测到 **503 + `provider_unavailable`**，说明生效的是 `fault_503`（串了 ST-RESP-022 的注入），判 FAIL。
+注入类型→错误码/状态的映射与前置优先级见方案 §4 与 [observability 机制](../../../20_system_design/mechanisms/observability.md)，本文不重复实现细节。③ **错误信封 identity**——恰 5 键 `{message,type,code,param,retryable}`（无 `category`），`type` 由状态导出（502≥500 ⇒ `server_error`），`retryable=true`；
+缺键/多键或 `type` 错即 FAIL。④ **非 SSE**——入口在 `create()` 抛 `ApiError` 时返回 `_json(status, envelope)`（`src/http_api/app.py`），不得把响应当 `text/event-stream` 吞掉或解析。
+⑤ **message 携带注入体**——`"injected upstream failure"` 与写入的 `error_body` 一致，是把响应与注入配置绑定的强证据。⑥ **teardown 完整性**——`finally` 中 `items:[]` 清空并二次 `GET` 校验为空；
+**绝不残留** `prov_b.endpoint` 被指向死端口（本设计走真实注入 API，不再 monkeypatch endpoint）；清空失败必须报错，不能把启用注入留给同 session 的后续 Case。
 
 ## 5. 独立 Oracle 与预期结果
 

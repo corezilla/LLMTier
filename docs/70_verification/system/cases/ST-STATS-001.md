@@ -53,7 +53,10 @@
 - 要测什么（责任展开）：`GET /v1/stats?from&to` 返回时间窗内 token 用量聚合：HTTP 200 + `{from,to,group_by,data[]}`（半开窗 `[from,to)`）。
 - 明确不测什么 / 失败含义：不证明 `group_by=tier` 的显式分支细节（ST-STATS-002）、不证明缺时间窗 400（ST-STATS-003）、不证明 usage 分页（ST-AUSAGE-002）、不证明账本写入时机（ST-USAGE-002）。
 
-**目的（被测契约）**：验证管理统计的**聚合读契约与半开时间窗**。被测端点/规则：`GET /v1/stats`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getUsageStats`，query `from`/`to` **必填**，`group_by∈{tier,deployment}` 默认 `tier`，`security=AdminBearerAuth`）；[`app.py`](../../../../src/http_api/app.py) 缺 `from`/`to` → 400；[`AdminService.stats`](../../../../src/management/admin.py) 以 `v.recorded_at>=? AND v.recorded_at<?`（**半开**）聚合 `usage_record_versions`（只计 head version），返回 `{from,to,group_by,data[]}`。设计验证项 `VRC-MGMT-006`；需求/机制链 `LT-FUN-006`、`R-MET-03`、`T-MET-FINAL`、`CT-USAGE-001`。**不证明什么**：不证明 `group_by=tier` 的显式分支细节（ST-STATS-002）、不证明缺时间窗 400（ST-STATS-003）、不证明 usage 分页（ST-AUSAGE-002）、不证明账本写入时机（ST-USAGE-002）。
+**目的（被测契约）**：验证管理统计的**聚合读契约与半开时间窗**。被测端点/规则：`GET /v1/stats`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getUsageStats`，query `from`/`to` **必填**，`group_by∈{tier,deployment}` 默认 `tier`，`security=AdminBearerAuth`）；
+[`app.py`](../../../../src/http_api/app.py) 缺 `from`/`to` → 400；[`AdminService.stats`](../../../../src/management/admin.py) 以 `v.recorded_at>=?
+ AND v.recorded_at<?`（**半开**）聚合 `usage_record_versions`（只计 head version），返回 `{from,to,group_by,data[]}`。设计验证项 `VRC-MGMT-006`；
+需求/机制链 `LT-FUN-006`、`R-MET-03`、`T-MET-FINAL`、`CT-USAGE-001`。**不证明什么**：不证明 `group_by=tier` 的显式分支细节（ST-STATS-002）、不证明缺时间窗 400（ST-STATS-003）、不证明 usage 分页（ST-AUSAGE-002）、不证明账本写入时机（ST-USAGE-002）。
 
 ## 2. 被测入口与前置
 
@@ -80,7 +83,9 @@
   5. 抽查每个 `data` 元素键集含 `{tier,calls,measured_calls,unknown_calls,input_tokens,output_tokens,total_tokens,cached_tokens,cache_write_tokens,reasoning_tokens}`（`AdminService.stats` 的 tier 分支，`admin.py:59-61`），且 `calls` 为 int。
   6. （可选）交叉核对：`request_id` 型查询——本 case 不断言具体数值，只断结构。
 
-**重点关注步骤**：① **半开窗**——SQL 条件为 `>=from AND <to`；记录恰好落在 `to` 的记录不计入（可在报告中说明，但本 case 主断言为聚合结构）；② **必填 query**——`from`/`to` 缺任一 → 400（ST-STATS-003），本 case 必传；③ **回显一致性**——`body.from/to` 必须等于请求参数（未做时区/格式改写）；④ **默认 `group_by`**——不传时为 `"tier"`（实现 `query.get("group_by",["tier"])`）；⑤ **只计 head version**——聚合 join `usage_heads` 且 `record_version=head_record_version`，不得重复计历史版本（结构断言，不断言总数）；⑥ **纯读**——`stats` 直接查库，不创建 `query_snapshots`。
+**重点关注步骤**：① **半开窗**——SQL 条件为 `>=from AND <to`；记录恰好落在 `to` 的记录不计入（可在报告中说明，但本 case 主断言为聚合结构）；② **必填 query**——`from`/`to` 缺任一 → 400（ST-STATS-003），本 case 必传；
+③ **回显一致性**——`body.from/to` 必须等于请求参数（未做时区/格式改写）；④ **默认 `group_by`**——不传时为 `"tier"`（实现 `query.get("group_by",["tier"])`）；
+⑤ **只计 head version**——聚合 join `usage_heads` 且 `record_version=head_record_version`，不得重复计历史版本（结构断言，不断言总数）；⑥ **纯读**——`stats` 直接查库，不创建 `query_snapshots`。
 
 ## 5. 独立 Oracle 与预期结果
 

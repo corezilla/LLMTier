@@ -55,7 +55,12 @@
 
   > **实现状态（Implemented）**：自动化入口 `ST-AUTH-009.py` 已实现，见 §7。
 
-**目的（被测契约）**：验证 access-trust 的 **INV-3：401/403 不泄露资源存在性**。被测端点/规则：`GET /v1/providers/{id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getProvider`，securityScheme `AdminBearerAuth`）；[`app.py`](../../../../src/http_api/app.py) 在解析 `{id}` 后**先**执行 `principal = self._auth("admin")`（`app.py:248`），**再**进入 provider 详情分支与 `app.registry.get_provider(rid)`（`app.py:287-295`）。data token（`dev-data`）对 `admin` role 不匹配 ⇒ [`authenticate()`](../../../../src/http_api/auth.py) 抛 403 `permission_denied`，**在 `get_provider()` 之前**完成，因此不存在的 `{id}` 也只得到 403、绝不得到 404 `not_found`。设计验证项 `VRC-API-002`；机制 `T-TRUST-LEAK`（机制需求 `R-TRUST-01`/`R-TRUST-02`；见 [access-trust 机制 §4.4/§8 INV-3/§11](../../../20_system_design/mechanisms/access-trust.md)）；错误信封 `{error:{message,type,code,param,retryable}}`。**不证明什么**：不证明 **admin 凭据下不存在的 provider→404 `not_found`**（ST-PROV-004）、**data token 访问 provider 列表**被拒（ST-AUTH-003）、**别名命名空间**需 admin（ST-AUTH-008）、**错误 bearer** 被拒（ST-AUTH-002）、**缺/非法凭据→401**（ST-AUTH-010）、**未配置鉴权→503**（ST-AUTH-007）。本 case **只**断言认证拒绝发生在资源存在性判定之前、且拒绝形态不因存在性而异。
+**目的（被测契约）**：验证 access-trust 的 **INV-3：401/403 不泄露资源存在性**。被测端点/规则：`GET /v1/providers/{id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getProvider`，securityScheme `AdminBearerAuth`）；
+[`app.py`](../../../../src/http_api/app.py) 在解析 `{id}` 后**先**执行 `principal = self._auth("admin")`（`app.py:248`），**再**进入 provider 详情分支与 `app.registry.get_provider(rid)`（`app.py:287-295`）。
+data token（`dev-data`）对 `admin` role 不匹配 ⇒ [`authenticate()`](../../../../src/http_api/auth.py) 抛 403 `permission_denied`，**在 `get_provider()` 之前**完成，因此不存在的 `{id}` 也只得到 403、绝不得到 404 `not_found`。
+设计验证项 `VRC-API-002`；机制 `T-TRUST-LEAK`（机制需求 `R-TRUST-01`/`R-TRUST-02`；见 [access-trust 机制 §4.4/§8 INV-3/§11](../../../20_system_design/mechanisms/access-trust.md)）；
+错误信封 `{error:{message,type,code,param,retryable}}`。**不证明什么**：不证明 **admin 凭据下不存在的 provider→404 `not_found`**（ST-PROV-004）、**data token 访问 provider 列表**被拒（ST-AUTH-003）、**别名命名空间**需 admin（ST-AUTH-008）、**错误 bearer** 被拒（ST-AUTH-002）、**缺/非法凭据→401**（ST-AUTH-010）、**未配置鉴权→503**（ST-AUTH-007）。
+本 case **只**断言认证拒绝发生在资源存在性判定之前、且拒绝形态不因存在性而异。
 
   > **实现状态（Implemented）**：自动化入口 `ST-AUTH-009.py` 已实现，见 §7。
 
@@ -89,7 +94,10 @@
   6. 断言不存在的 id **不返回** `not_found`/404，且两响应在 status 与 `error.code` 上**无法区分**（无存在性泄露）。
   7. 断言两个 body 均**不含** `ProviderView` 字段（`id`/`name`/`kind`/`secret_ref`）——拒绝路径不得泄露资源内容。
 
-**重点关注步骤**：① **必须用不存在的 id 才能证明"优先"**——若只用存在 id，403 也可以由"handler 内部再次校验"产生，无法排除存在性泄露；本 case 的核心就是 `provider_does_not_exist_auth09` → 403（而非 404）；② **认证在 `get_provider()` 之前**（`app.py:248` 早于 `app.py:287-295`）——断言应确认没有 registry 查询副作用（无账本义务）；③ **两响应不可区分**——status 与 `code` 必须一致，任何差异即 INV-3 违反；④ **不能误用 `admin`**——admin 对不存在 id 会得到 404 `not_found`（ST-PROV-004），本 case 的输入必须是 data token；⑤ **不得把 401 当成功**（属 ST-AUTH-010）；⑥ **信封恰 5 键**（无 `category`）。
+**重点关注步骤**：① **必须用不存在的 id 才能证明"优先"**——若只用存在 id，403 也可以由"handler 内部再次校验"产生，无法排除存在性泄露；本 case 的核心就是 `provider_does_not_exist_auth09` → 403（而非 404）；
+② **认证在 `get_provider()` 之前**（`app.py:248` 早于 `app.py:287-295`）——断言应确认没有 registry 查询副作用（无账本义务）；③ **两响应不可区分**——status 与 `code` 必须一致，任何差异即 INV-3 违反；
+④ **不能误用 `admin`**——admin 对不存在 id 会得到 404 `not_found`（ST-PROV-004），本 case 的输入必须是 data token；⑤ **不得把 401 当成功**（属 ST-AUTH-010）；
+⑥ **信封恰 5 键**（无 `category`）。
 
 ## 5. 独立 Oracle 与预期结果
 

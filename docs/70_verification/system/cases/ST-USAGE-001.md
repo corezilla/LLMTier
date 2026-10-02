@@ -47,7 +47,10 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-USAGE-001` / 系统设计 §8 Usage 查询接口 / `VRC-MGMT-006` / normal / P0（[方案清单 `ST-USAGE-001`](../llmtier-system-test-scheme.md)）；机制 `T-MET-PAGE`、`T-MET-FINAL`（[usage-metering 机制](../../../20_system_design/mechanisms/usage-metering.md) §4.5/§4.7 CON-METER-004）。
 - **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
-- 要测什么（责任展开）：`GET /v1/usage` 以**动态时间窗**查询返回合法 `UsagePage`：`from`/`to` 必填且 `from<to`，`data[]` 全部落在 `[from,to)`，`next_cursor`/`has_more` 同步、含 `snapshot_id`/`snapshot_at`。`from`/`to` **必填** `date-time`，服务端按 `[from,to)`（`from` 含、`to` 不含）与稳定排序 `(recorded_at,request_id)` 返回 `UsagePage`（`data[]` + `next_cursor` + `has_more` + `snapshot_id` + `snapshot_at`，`additionalProperties:false`）；首屏在单事务内创建 `query_snapshots` 并冻结有序成员（实现 `src/inference/usage.py::UsageRecorder._page`）。机制需求 `R-MET-02`；需求链 `LT-FUN-004`、`LT-INT-004/005/007`、`CT-USAGE-001`/`CT-STORE-001`；错误码 `invalid_request`、`permission_denied`、`usage_store_unavailable`。
+- 要测什么（责任展开）：`GET /v1/usage` 以**动态时间窗**查询返回合法 `UsagePage`：`from`/`to` 必填且 `from<to`，`data[]` 全部落在 `[from,to)`，`next_cursor`/`has_more` 同步、含 `snapshot_id`/`snapshot_at`。
+  `from`/`to` **必填** `date-time`，服务端按 `[from,to)`（`from` 含、`to` 不含）与稳定排序 `(recorded_at,request_id)` 返回 `UsagePage`（`data[]` + `next_cursor` + `has_more` + `snapshot_id` + `snapshot_at`，`additionalProperties:false`）；
+  首屏在单事务内创建 `query_snapshots` 并冻结有序成员（实现 `src/inference/usage.py::UsageRecorder._page`）。机制需求 `R-MET-02`；需求链 `LT-FUN-004`、`LT-INT-004/005/007`、`CT-USAGE-001`/`CT-STORE-001`；
+  错误码 `invalid_request`、`permission_denied`、`usage_store_unavailable`。
 - 明确不测什么 / 失败含义：不测某次调用后的记录内容/账本终态（ST-USAGE-002）；不测 `limit=1` 分页推进（ST-USAGE-003）；不测过期 cursor 拒绝（ST-USAGE-004）；不测主体隔离（ST-USAGE-006）；不测 cursor 重放幂等（ST-USAGE-007）；不测 store 不可用 → 503（ST-USAGE-008）；不测 `DELETE /v1/usage`（ST-AUSAGE-003）。失败含义＝UsagePage wire 契约或时间窗语义破坏。
 
 ## 2. 被测入口与前置
@@ -82,7 +85,10 @@ Accept: application/json
 | 6 | 对 `data` 每条记录断言 `UsageRecord` 必填键齐备 | `endpoint ∈ {"/v1/responses","/v1/embeddings"}`；`measurement_status ∈ {measured,estimated,unknown}`；`source ∈ {provider,gateway_estimate,unavailable}`；`unknown ⇒ 各 token 字段为 null`（INV-5） |
 | 7 | 对每条记录断言 `recorded_at >= since` 且 `recorded_at < until` | `[from,to)` 边界 |
 
-- 重点关注步骤：① **时间窗动态化**——`from`/`to` 必须由执行时刻生成，不得写死；② **`next_cursor`/`has_more` 同步**——"`has_more=false ⇒ next_cursor=null`"这一 openapi 不变式；③ **键集精确**——`UsagePage` `additionalProperties:false`，多键/缺键即 FAIL；④ **`[from,to)` 半开区间**——`recorded_at == to` 的记录必须被排除，`== from` 必须包含；⑤ **不把错误当空页**——非 200 时必须确认是可解释的 `ERR-AUTH-*`/`ERR-STORE` 信封；⑥ **不夸大**——本 case **不**断言 `data` 非空，空 `data` + 合法 `snapshot_id`/`snapshot_at` 仍是 PASS。注意：现有 [`ST-USAGE-001.py`](../../../../tests/system/cases/ST-USAGE-001.py) 已覆盖步骤 3/5，但**未**断言步骤 4 的精确键集与步骤 6/7；覆盖缺口须补齐后方可判 PASS。
+- 重点关注步骤：① **时间窗动态化**——`from`/`to` 必须由执行时刻生成，不得写死；② **`next_cursor`/`has_more` 同步**——"`has_more=false ⇒ next_cursor=null`"这一 openapi 不变式；
+  ③ **键集精确**——`UsagePage` `additionalProperties:false`，多键/缺键即 FAIL；④ **`[from,to)` 半开区间**——`recorded_at == to` 的记录必须被排除，`== from` 必须包含；
+  ⑤ **不把错误当空页**——非 200 时必须确认是可解释的 `ERR-AUTH-*`/`ERR-STORE` 信封；⑥ **不夸大**——本 case **不**断言 `data` 非空，空 `data` + 合法 `snapshot_id`/`snapshot_at` 仍是 PASS。
+  注意：现有 [`ST-USAGE-001.py`](../../../../tests/system/cases/ST-USAGE-001.py) 已覆盖步骤 3/5，但**未**断言步骤 4 的精确键集与步骤 6/7；覆盖缺口须补齐后方可判 PASS。
 
 ## 5. 独立 Oracle 与预期结果
 

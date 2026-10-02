@@ -53,7 +53,11 @@
 - 要测什么（责任展开）：`POST /v1/providers` 提交非法 `kind`：HTTP 400 + `error.code=="invalid_request"`（`param=="kind"`），不创建资源。
 - 明确不测什么 / 失败含义：不证明 成功创建（ST-PROV-002）、不证明 `secret_ref` 格式（ST-PROV-012）、不证明 `name`/`enabled`/`usage` 校验；本 case 只锁定单一非法 `kind`。
 
-**目的（被测契约）**：验证 Management Provider CRUD 的**枚举校验（写前置校验）契约**。被测端点/规则：`POST /v1/providers`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `createProvider`，`ProviderWrite.kind` enum `{cloud,local}`）；[`registry.create_provider`](../../../../src/management/registry.py) `require(body["kind"] in {"cloud","local"}, 400, "invalid_request", "Invalid provider kind", "kind")`；失败走统一错误信封 `{error:{message,type,code,param,retryable}}`（400 `invalid_request`、`param=="kind"`）。设计验证项 `VRC-MGMT-001`；错误目录 `ERR-REQ-VALIDATION`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明成功创建（ST-PROV-002）、不证明 `secret_ref` 格式（ST-PROV-012）、不证明 `name`/`enabled`/`usage` 校验；本 case 只锁定单一非法 `kind`。
+**目的（被测契约）**：验证 Management Provider CRUD 的**枚举校验（写前置校验）契约**。被测端点/规则：`POST /v1/providers`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `createProvider`，`ProviderWrite.kind` enum `{cloud,local}`）；
+[`registry.create_provider`](../../../../src/management/registry.py) `require(body["kind"] in {"cloud","local"}, 400, "invalid_request", "Invalid provider kind", "kind")`；
+失败走统一错误信封 `{error:{message,type,code,param,retryable}}`（400 `invalid_request`、`param=="kind"`）。设计验证项 `VRC-MGMT-001`；错误目录 `ERR-REQ-VALIDATION`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；
+需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明成功创建（ST-PROV-002）、不证明 `secret_ref` 格式（ST-PROV-012）、不证明 `name`/`enabled`/`usage` 校验；
+本 case 只锁定单一非法 `kind`。
 
 ## 2. 被测入口与前置
 
@@ -88,7 +92,9 @@
   4. `err = resp.json()["error"]`：`err["code"] == "invalid_request"`、`err["type"] == "request_error"`、`err["retryable"] is False`；若断言严格，`err["param"] == "kind"`。
   5. 交叉核对：`GET /v1/providers` 列表与步骤 2 记的集合一致（**对 provider 资源拒绝零副作用**，无新 provider）。**注**：第 2/5 步列表 GET 各自会在 M007 `query_snapshots`/`query_snapshot_items` 落一条 10 分钟 TTL 的分页快照（`admin.page()`，即使无 `cursor`），属服务端读路径副作用、非用户资源，报告须登记，**不得笼统声称"零写入"**。
 
-**重点关注步骤**：① **400 而非 201**——非法枚举必须在写库前被拒；② **`param=="kind"`**——定位到出错字段（实现显式设置 `param="kind"`），便于调用方修复；③ **信封 identity**——恰 5 键、`type=="request_error"`（400<500）、`retryable=false`、`param` 为字符串；④ **对 provider 资源零副作用**——第 5 步确认无新 provider、无 audit 成功记录、无 usage profile 孤儿行；但第 2/5 步列表 GET 会在 `query_snapshots` 落 10 分钟 TTL 分页快照（`admin.page()`），须登记该写入、**不得声称"零写入"**；⑤ **与 `resource_conflict` 区分**——本 case 是 400 校验错，不是重名 409；⑥ **不依赖 message 文案**。
+**重点关注步骤**：① **400 而非 201**——非法枚举必须在写库前被拒；② **`param=="kind"`**——定位到出错字段（实现显式设置 `param="kind"`），便于调用方修复；③ **信封 identity**——恰 5 键、`type=="request_error"`（400<500）、`retryable=false`、`param` 为字符串；
+④ **对 provider 资源零副作用**——第 5 步确认无新 provider、无 audit 成功记录、无 usage profile 孤儿行；但第 2/5 步列表 GET 会在 `query_snapshots` 落 10 分钟 TTL 分页快照（`admin.page()`），须登记该写入、**不得声称"零写入"**；
+⑤ **与 `resource_conflict` 区分**——本 case 是 400 校验错，不是重名 409；⑥ **不依赖 message 文案**。
 
 ## 5. 独立 Oracle 与预期结果
 

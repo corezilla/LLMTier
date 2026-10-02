@@ -36,7 +36,10 @@
 - 要测什么（责任展开）：`POST /v1/responses` 固定推理 prompt：SSE 结构完整（事件序列/唯一 terminal/`[DONE]`），不把模型输出内容当 oracle。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明模型答案的语义正确性、不证明 upstream 推理质量、不发布时延 SLO；不证明 `stream=false`/`store=true` 被拒（ST-RESP-002/07）、不证明截断（ST-RESP-010）或异常路径（ST-RESP-011/21）。**失败含义＝固定推理 prompt 下的流式结构契约破坏**。
 
-**目的（被测契约）**：验证 Data Plane `POST /v1/responses`（`stream=true`）在**固定推理 prompt** 下的正常路径：事件序列有序、恰好一个 terminal、`output_text.delta` 累积文本非空。被测端点/规则：`POST /v1/responses`；设计验证项 `VRC-INF-001`；机制 `T-STREAM`（[inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）；固定 prompt 见[系统测试方案 §4 LLM 判据](../llmtier-system-test-scheme.md)（结构/事件序列，不写"答案正确"、不把内容当 oracle）。**不证明什么**：不证明模型答案的语义正确性、不证明 upstream 推理质量、不发布时延 SLO；不证明 `stream=false`/`store=true` 被拒（ST-RESP-002/07）、不证明截断（ST-RESP-010）或异常路径（ST-RESP-011/21）。
+**目的（被测契约）**：验证 Data Plane `POST /v1/responses`（`stream=true`）在**固定推理 prompt** 下的正常路径：事件序列有序、恰好一个 terminal、`output_text.delta` 累积文本非空。
+被测端点/规则：`POST /v1/responses`；设计验证项 `VRC-INF-001`；机制 `T-STREAM`（[inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）；
+固定 prompt 见[系统测试方案 §4 LLM 判据](../llmtier-system-test-scheme.md)（结构/事件序列，不写"答案正确"、不把内容当 oracle）。**不证明什么**：不证明模型答案的语义正确性、不证明 upstream 推理质量、不发布时延 SLO；
+不证明 `stream=false`/`store=true` 被拒（ST-RESP-002/07）、不证明截断（ST-RESP-010）或异常路径（ST-RESP-011/21）。
 
 ## 2. 被测入口与前置
 

@@ -31,7 +31,9 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-RESP-016` / 系统设计 §8 Responses 接口 / `VRC-INF-001` / recovery / P1（[方案清单 `ST-RESP-016`](../llmtier-system-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-REQ-JSON：非法 JSON body）
-- 要测什么（责任展开）：`POST /v1/responses` 发送非法 JSON body：`400 invalid_json`，dispatch 前拒绝（自动化入口 `ST-RESP-016.py`）。body 不是合法 JSON（或不是 JSON 对象）时，M001 在业务校验/dispatch 前返回 `400 invalid_json`。需求 `LT-FUN-001`；错误目录 `ERR-REQ-JSON` → wire `code=invalid_json`；实现 `src/http_api/app.py` `_body()`（`json.loads` 失败 → `ApiError(400, "invalid_json", "Request body is not valid JSON")`；解析成功但非对象 → `ApiError(400, "invalid_json", "Request body must be a JSON object")`）。
+- 要测什么（责任展开）：`POST /v1/responses` 发送非法 JSON body：`400 invalid_json`，dispatch 前拒绝（自动化入口 `ST-RESP-016.py`）。body 不是合法 JSON（或不是 JSON 对象）时，M001 在业务校验/dispatch 前返回 `400 invalid_json`。
+  需求 `LT-FUN-001`；错误目录 `ERR-REQ-JSON` → wire `code=invalid_json`；实现 `src/http_api/app.py` `_body()`（`json.loads` 失败 → `ApiError(400, "invalid_json", "Request body is not valid JSON")`；
+  解析成功但非对象 → `ApiError(400, "invalid_json", "Request body must be a JSON object")`）。
 - 明确不测什么 / 失败含义：不测 schema 级字段校验（缺 `model` 见 ST-RESP-008；未知字段见 ST-RESP-012..15）；不测 `Content-Length` 非法（`400 invalid_request`）或超限（ST-RESP-018）；不测上游调用。失败含义＝请求体解析契约破坏。
 
 ## 2. 被测入口与前置

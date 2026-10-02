@@ -53,7 +53,12 @@
 - 要测什么（责任展开）：`GET /v1/providers` 列出 provider 分页页：HTTP 200 + `ProviderPage`（`data[]` 含 m5air 已知核心 provider，`page.has_more` 为 JSON 布尔）。
 - 明确不测什么 / 失败含义：不证明 创建/详情/更新/删除（ST-PROV-002..13）、不证明 `kind`/`secret_ref` 校验（ST-PROV-011/12）、不证明响应不含 secret 的强断言（ST-PROV-014）、不证明分页 `limit=1` cursor 推进（本 case 只观察 `has_more` 布尔，不强求翻页）；不证明 data/admin 角色隔离（ST-AUTH-003/08）。
 
-**目的（被测契约）**：验证 Management Provider CRUD 的**列表读契约**。被测端点/规则：`GET /v1/providers`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listProviders`，`security=AdminBearerAuth`），认证角色 `admin`；成功返回 `ProviderPage`（`data: ProviderView[]`，`page: AdminPageMeta{has_more:boolean, next_cursor:string|null}`，`additionalProperties:false`）；失败走统一错误信封 `{error:{message,type,code,param,retryable}}`（401 `authentication_required` / 403 `permission_denied`）。列表按 `name,id` 排序，允许 `cursor`/`limit` 查询参数（默认 `limit=100`，`_int_param`）。设计验证项 `VRC-MGMT-001`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`T-CFG-CAS`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明创建/详情/更新/删除（ST-PROV-002..13）、不证明 `kind`/`secret_ref` 校验（ST-PROV-011/12）、不证明响应不含 secret 的强断言（ST-PROV-014）、不证明分页 `limit=1` cursor 推进（本 case 只观察 `has_more` 布尔，不强求翻页）；不证明 data/admin 角色隔离（ST-AUTH-003/08）。
+**目的（被测契约）**：验证 Management Provider CRUD 的**列表读契约**。被测端点/规则：`GET /v1/providers`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listProviders`，`security=AdminBearerAuth`），认证角色 `admin`；
+成功返回 `ProviderPage`（`data: ProviderView[]`，`page: AdminPageMeta{has_more:boolean, next_cursor:string|null}`，`additionalProperties:false`）；
+失败走统一错误信封 `{error:{message,type,code,param,retryable}}`（401 `authentication_required` / 403 `permission_denied`）。列表按 `name,id` 排序，允许 `cursor`/`limit` 查询参数（默认 `limit=100`，`_int_param`）。
+设计验证项 `VRC-MGMT-001`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`T-CFG-CAS`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明创建/详情/更新/删除（ST-PROV-002..13）、不证明 `kind`/`secret_ref` 校验（ST-PROV-011/12）、不证明响应不含 secret 的强断言（ST-PROV-014）、不证明分页 `limit=1` cursor 推进（本 case 只观察 `has_more` 布尔，不强求翻页）；
+不证明 data/admin 角色隔离（ST-AUTH-003/08）。
 
 ## 2. 被测入口与前置
 
@@ -80,7 +85,9 @@
   5. 断言 `isinstance(page["has_more"], bool)`；`next_cursor` 为字符串或 `null`。
   6. 计算 `ids = {p["id"] for p in data}`，断言核心集合 `{provider_minimax, provider_local, provider_omlx_m5mac}` ⊆ `ids`；抽查每个 `ProviderView` 必填键 `{id,name,kind,endpoint,has_secret,enabled,usage,request_usage,version}` 齐备。
 
-**重点关注步骤**：① **`page` 是嵌套对象**——不是顶层 `has_more`；读错层级即漏判；② **`has_more` 类型**——必须是 JSON 布尔，不能是 `0/1`/字符串；③ **包含而非相等**——m5air provider 集合会随历史变化，本 case 只断言 3 个核心必在、不硬编码总数；④ **不得把错误信封当列表**——非 200 需先确认是可解释的 `ERR-AUTH-*`，而非把 `{error:...}` 当 `data` 读；⑤ **服务端读路径副作用**——[`admin.page()`](../../../../src/management/admin.py) 每次列表调用会在 M007 `query_snapshots`/`query_snapshot_items` 落一条 10 分钟 TTL 的分页快照（即使无 `cursor`），这是服务端实现行为、非用户资源；报告须登记该写入，**不得声称"零写入"**；⑥ 本 case 不承担 `secret` 不泄露的强断言（ST-PROV-014）。
+**重点关注步骤**：① **`page` 是嵌套对象**——不是顶层 `has_more`；读错层级即漏判；② **`has_more` 类型**——必须是 JSON 布尔，不能是 `0/1`/字符串；③ **包含而非相等**——m5air provider 集合会随历史变化，本 case 只断言 3 个核心必在、不硬编码总数；
+④ **不得把错误信封当列表**——非 200 需先确认是可解释的 `ERR-AUTH-*`，而非把 `{error:...}` 当 `data` 读；⑤ **服务端读路径副作用**——[`admin.page()`](../../../../src/management/admin.py) 每次列表调用会在 M007 `query_snapshots`/`query_snapshot_items` 落一条 10 分钟 TTL 的分页快照（即使无 `cursor`），这是服务端实现行为、非用户资源；
+报告须登记该写入，**不得声称"零写入"**；⑥ 本 case 不承担 `secret` 不泄露的强断言（ST-PROV-014）。
 
 ## 5. 独立 Oracle 与预期结果
 

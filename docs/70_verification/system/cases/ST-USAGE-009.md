@@ -34,7 +34,9 @@
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-USAGE-009` / 系统设计 §8 Usage 查询接口（GET /v1/usage）；机制 §15 计量（T-MET-CRASH） / `VRC-INF-004、VRC-MGMT-006` / recovery / P0（[方案清单 `ST-USAGE-009`](../llmtier-system-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：故障注入（进程崩溃/重启）+ 复位阶梯（账本不变量）
 
-- 要测什么（责任展开）：账本核心不变量：`authorize_dispatch` 在 dispatch 前提交**义务 + v1 `unknown` + head=1**（单事务）；此后进程崩溃/重启，该 orphan unknown **仍在**且**绝不回填为 0**；`GET /v1/usage` 仍返回该 `request_id`，`measurement_status=unknown`、token 全为 NULL、`is_final=false`。需求 `R-MET-04`；机制 `T-MET-CRASH`（[usage-metering §9/§14.3](../../../20_system_design/mechanisms/usage-metering.md)）；实现 `src/inference/usage.py::authorize_dispatch`（`INSERT OR IGNORE usage_obligations` + v1 `unknown/unavailable` + `usage_heads` head=1）与 `src/util/store.py`（SQLite 单文件持久性）。
+- 要测什么（责任展开）：账本核心不变量：`authorize_dispatch` 在 dispatch 前提交**义务 + v1 `unknown` + head=1**（单事务）；此后进程崩溃/重启，该 orphan unknown **仍在**且**绝不回填为 0**；
+  `GET /v1/usage` 仍返回该 `request_id`，`measurement_status=unknown`、token 全为 NULL、`is_final=false`。需求 `R-MET-04`；机制 `T-MET-CRASH`（[usage-metering §9/§14.3](../../../20_system_design/mechanisms/usage-metering.md)）；
+  实现 `src/inference/usage.py::authorize_dispatch`（`INSERT OR IGNORE usage_obligations` + v1 `unknown/unavailable` + `usage_heads` head=1）与 `src/util/store.py`（SQLite 单文件持久性）。
 
 - 明确不测什么 / 失败含义：不测正常 measured 终态（ST-USAGE-002）；不测分页/窗口/隔离（ST-USAGE-001/03/06）；不测注入产生的 `unknown/injected` 终态（ST-RESP-011/22 的 `finish(None, "injected")` 会写 v2，不是 orphan）；不测清空（ST-AUSAGE-003）；不测备份/恢复演练（方案 §4 Gap）。失败含义＝崩溃后"已登记但未测"的调用被静默丢失或回填为 0（误报"没有调用"）。
 

@@ -53,7 +53,10 @@
 - 要测什么（责任展开）：`GET /v1/logs` 缺 `from`/`to`：HTTP 400 `invalid_request`。
 - 明确不测什么 / 失败含义：不证明 成功日志读与脱敏（ST-LOGS-001）、不证明 stats 的同类缺窗（ST-STATS-003）、不证明非法 `limit`（logs 的 `limit` 由 `_int_param` 校验，未单独构 case）、不证明角色负向（AUTH 家族）。
 
-**目的（被测契约）**：验证运行日志查询的**必填时间窗校验**。被测端点/规则：`GET /v1/logs`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listSanitizedLogs`，`from`/`to` 均 `required:true`）；[`app.py`](../../../../src/http_api/app.py) 在 admin 鉴权后、`app.logs.page` 前执行 `from`/`to` 必填校验（缺任一 → 400 `invalid_request`）；[`OperationalLog.page`](../../../../src/log/logs.py) 自身也有同类必填校验（双重防线）。设计验证项 `VRC-LOG-001`；错误目录 `ERR-REQ-VALIDATION` → wire `code=invalid_request`；机制 `R-OBS-01`；需求/机制链 `LT-FUN-006`、`LT-SEC-004`、`CT-LOG-001`。**不证明什么**：不证明成功日志读与脱敏（ST-LOGS-001）、不证明 stats 的同类缺窗（ST-STATS-003）、不证明非法 `limit`（logs 的 `limit` 由 `_int_param` 校验，未单独构 case）、不证明角色负向（AUTH 家族）。
+**目的（被测契约）**：验证运行日志查询的**必填时间窗校验**。被测端点/规则：`GET /v1/logs`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listSanitizedLogs`，`from`/`to` 均 `required:true`）；
+[`app.py`](../../../../src/http_api/app.py) 在 admin 鉴权后、`app.logs.page` 前执行 `from`/`to` 必填校验（缺任一 → 400 `invalid_request`）；
+[`OperationalLog.page`](../../../../src/log/logs.py) 自身也有同类必填校验（双重防线）。设计验证项 `VRC-LOG-001`；错误目录 `ERR-REQ-VALIDATION` → wire `code=invalid_request`；
+机制 `R-OBS-01`；需求/机制链 `LT-FUN-006`、`LT-SEC-004`、`CT-LOG-001`。**不证明什么**：不证明成功日志读与脱敏（ST-LOGS-001）、不证明 stats 的同类缺窗（ST-STATS-003）、不证明非法 `limit`（logs 的 `limit` 由 `_int_param` 校验，未单独构 case）、不证明角色负向（AUTH 家族）。
 
 ## 2. 被测入口与前置
 

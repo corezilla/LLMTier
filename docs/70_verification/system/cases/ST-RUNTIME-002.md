@@ -53,7 +53,10 @@
 - 要测什么（责任展开）：`GET /v1/runtime` 携 data 角色有效凭据：HTTP 403 `permission_denied`（管理面角色隔离）。
 - 明确不测什么 / 失败含义：不证明 成功快照（ST-RUNTIME-001）、不证明无凭据/非法方案 401（ST-AUTH-010）、不证明未配置鉴权 503（ST-AUTH-007）、不证明 LAN 免登录（ST-AUTH-004）。本 case **只**锁"有效 data 凭据 → 403"。
 
-**目的（被测契约）**：验证管理端点对**已认证但角色不足**的拒绝契约。被测端点/规则：`GET /v1/runtime`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getRuntimeSnapshot`，`security=AdminBearerAuth`）；[`app.py`](../../../../src/http_api/app.py) 以 `self._auth("admin")` 守护 → [`auth.authenticate`](../../../../src/http_api/auth.py) 当 Bearer 值合法但等于 data token 时 `raise ApiError(403, "permission_denied", "The credential is not authorized")`。设计验证项 `VRC-INF-004`；需求/机制链 `LT-INT-001`、`LT-SEC-001`、`R-TRUST-02`、`T-TRUST-SHARED`、`CT-ADMIN-001`。错误目录 `ERR-AUTH-DENIED` → wire `code=permission_denied`。**不证明什么**：不证明成功快照（ST-RUNTIME-001）、不证明无凭据/非法方案 401（ST-AUTH-010）、不证明未配置鉴权 503（ST-AUTH-007）、不证明 LAN 免登录（ST-AUTH-004）。本 case **只**锁"有效 data 凭据 → 403"。
+**目的（被测契约）**：验证管理端点对**已认证但角色不足**的拒绝契约。被测端点/规则：`GET /v1/runtime`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getRuntimeSnapshot`，`security=AdminBearerAuth`）；
+[`app.py`](../../../../src/http_api/app.py) 以 `self._auth("admin")` 守护 → [`auth.authenticate`](../../../../src/http_api/auth.py) 当 Bearer 值合法但等于 data token 时 `raise ApiError(403, "permission_denied", "The credential is not authorized")`。
+设计验证项 `VRC-INF-004`；需求/机制链 `LT-INT-001`、`LT-SEC-001`、`R-TRUST-02`、`T-TRUST-SHARED`、`CT-ADMIN-001`。错误目录 `ERR-AUTH-DENIED` → wire `code=permission_denied`。
+**不证明什么**：不证明成功快照（ST-RUNTIME-001）、不证明无凭据/非法方案 401（ST-AUTH-010）、不证明未配置鉴权 503（ST-AUTH-007）、不证明 LAN 免登录（ST-AUTH-004）。本 case **只**锁"有效 data 凭据 → 403"。
 
 ## 2. 被测入口与前置
 
@@ -80,7 +83,9 @@
   4. 断言 `resp.status_code == 403`；`err = resp.json()["error"]`：断言 `err["code"]=="permission_denied"`、`err["type"]=="request_error"`、`err["retryable"] is False`。
   5. 断言 body 为错误信封（不含 `deployments`/`providers`/`queues`）——拒绝不得泄露快照内容。
 
-**重点关注步骤**：① **有效凭据而非缺凭据**——必须显式发 `Bearer dev-data`；缺头会因 LAN trust 得 200，导致误判（ST-AUTH-004 正向）；② **403 而非 401**——凭据形态合法（`Bearer ` 前缀）、只是无权 → 403 `permission_denied`；401 属缺/非法方案（ST-AUTH-010）；③ **拒绝先于 handler**——鉴权在 `_dispatch` 分派前完成，不得泄露 runtime body、不得触业务逻辑；④ **错误信封 identity**——恰 5 键、`type=request_error`；⑤ **与 ST-AUTH-003 的关系**——ST-AUTH-003 覆盖 `GET /v1/providers` 的同类角色负向；本 case 是该负向在 `/v1/runtime` 的承接，二者独立执行。
+**重点关注步骤**：① **有效凭据而非缺凭据**——必须显式发 `Bearer dev-data`；缺头会因 LAN trust 得 200，导致误判（ST-AUTH-004 正向）；② **403 而非 401**——凭据形态合法（`Bearer ` 前缀）、只是无权 → 403 `permission_denied`；
+401 属缺/非法方案（ST-AUTH-010）；③ **拒绝先于 handler**——鉴权在 `_dispatch` 分派前完成，不得泄露 runtime body、不得触业务逻辑；④ **错误信封 identity**——恰 5 键、`type=request_error`；
+⑤ **与 ST-AUTH-003 的关系**——ST-AUTH-003 覆盖 `GET /v1/providers` 的同类角色负向；本 case 是该负向在 `/v1/runtime` 的承接，二者独立执行。
 
 ## 5. 独立 Oracle 与预期结果
 

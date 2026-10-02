@@ -53,7 +53,10 @@
 - 要测什么（责任展开）：`GET /v1/providers/{id}` 读取不存在 provider：HTTP 404 + `error.code=="not_found"`，统一错误信封，无副作用。
 - 明确不测什么 / 失败含义：不证明 存在（ST-PROV-003）、不证明 update/delete 的 404（更新/删除未知 id 同属 `not_found`，但本 case 只发 GET）、不证明 `/usage`、`/models` 子路径的 404（ST-PMOD-002、ST-PUSAGE-004）、不证明鉴权优先于存在性（ST-AUTH-009）。
 
-**目的（被测契约）**：验证 Management Provider CRUD 的**不存在负向契约**。被测端点/规则：`GET /v1/providers/{id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getProvider`，`security=AdminBearerAuth`），认证角色 `admin`；未知 id 走统一错误信封 `{error:{message,type,code,param,retryable}}` 的 `404` + `code=not_found`（[`registry.get_provider`](../../../../src/management/registry.py) `raise ApiError(404,"not_found",…)`）；`type=request_error`（<500）、`param=null`、`retryable=false`。设计验证项 `VRC-MGMT-001`；错误目录 `ERR-NOTFOUND`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明存在（ST-PROV-003）、不证明 update/delete 的 404（更新/删除未知 id 同属 `not_found`，但本 case 只发 GET）、不证明 `/usage`、`/models` 子路径的 404（ST-PMOD-002、ST-PUSAGE-004）、不证明鉴权优先于存在性（ST-AUTH-009）。
+**目的（被测契约）**：验证 Management Provider CRUD 的**不存在负向契约**。被测端点/规则：`GET /v1/providers/{id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getProvider`，`security=AdminBearerAuth`），认证角色 `admin`；
+未知 id 走统一错误信封 `{error:{message,type,code,param,retryable}}` 的 `404` + `code=not_found`（[`registry.get_provider`](../../../../src/management/registry.py) `raise ApiError(404,"not_found",…)`）；
+`type=request_error`（<500）、`param=null`、`retryable=false`。设计验证项 `VRC-MGMT-001`；错误目录 `ERR-NOTFOUND`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；
+需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明存在（ST-PROV-003）、不证明 update/delete 的 404（更新/删除未知 id 同属 `not_found`，但本 case 只发 GET）、不证明 `/usage`、`/models` 子路径的 404（ST-PMOD-002、ST-PUSAGE-004）、不证明鉴权优先于存在性（ST-AUTH-009）。
 
 ## 2. 被测入口与前置
 
@@ -79,7 +82,9 @@
   4. `err = resp.json()["error"]`：断言键集恰为 `{message,type,code,param,retryable}`；`err["code"] == "not_found"`、`err["type"] == "request_error"`、`err["param"] is None`、`err["retryable"] is False`。
   5. 交叉核对：再次 `GET /v1/providers`，确认 provider 集合未因本次请求变化（**provider 列表无新增/删除**；注意该列表 GET 自身会在 `query_snapshots` 落一条 10 分钟 TTL 的分页快照，见 `admin.page()`，此为服务端读路径副作用、非 provider 资源变化，不得据此判 FAIL）。
 
-**重点关注步骤**：① **状态与 code 双断言**——必须同时 `404` 且 `code==not_found`，不能只看到 404 就通过（404 也可能来自路由不命中）；② **信封 identity**——恰 5 键，`type` 由状态导出（404<500 ⇒ `request_error`），无 `category` 键，`param=null`、`retryable=false`；③ **对 provider 资源零副作用**——校验/读取失败在 dispatch 前完成，不改任何资源；第 5 步确认 provider 集合不变；但 **第 5 步的列表 GET 会在 `query_snapshots` 落一条 10 分钟 TTL 的分页快照**（`admin.page()`），这是服务端实现行为、非用户资源，报告须登记该写入，**不得笼统声称"零写入"**；④ **错误源可解释**——不得把鉴权失败（401/403）或路由 404 混入本 case（凭据固定 admin 且路径存在）；⑤ **不依赖 message 文本**——Oracle 只约束 code/type/param/retryable，不对 `message` 语义断言。
+**重点关注步骤**：① **状态与 code 双断言**——必须同时 `404` 且 `code==not_found`，不能只看到 404 就通过（404 也可能来自路由不命中）；② **信封 identity**——恰 5 键，`type` 由状态导出（404<500 ⇒ `request_error`），无 `category` 键，`param=null`、`retryable=false`；
+③ **对 provider 资源零副作用**——校验/读取失败在 dispatch 前完成，不改任何资源；第 5 步确认 provider 集合不变；但 **第 5 步的列表 GET 会在 `query_snapshots` 落一条 10 分钟 TTL 的分页快照**（`admin.page()`），这是服务端实现行为、非用户资源，报告须登记该写入，**不得笼统声称"零写入"**；
+④ **错误源可解释**——不得把鉴权失败（401/403）或路由 404 混入本 case（凭据固定 admin 且路径存在）；⑤ **不依赖 message 文本**——Oracle 只约束 code/type/param/retryable，不对 `message` 语义断言。
 
 ## 5. 独立 Oracle 与预期结果
 

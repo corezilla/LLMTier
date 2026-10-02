@@ -53,7 +53,11 @@
 - 要测什么（责任展开）：`POST /v1/providers/{id}/usage` 携带 `{"confirm_external_call": true}` 刷新账号用量：HTTP 200 + 新 `ProviderAccountUsageSnapshot`；`provider_local`（local 类型）返回 `status="unlimited"`、`source="quota_config"`，并持久化快照。
 - 明确不测什么 / 失败含义：不证明 缺确认拒绝（ST-PUSAGE-002）、不证明只读快照（ST-PUSAGE-001）、不证明未知 provider 的 404（ST-PUSAGE-004）、不证明 minimax/volc 的真实上游用量数值（本 case 用 `provider_local`，其刷新为本地合成、不触外部用量 API，故**不产生费用**）；不证明并发刷新。
 
-**目的（被测契约）**：验证 provider 账号用量**显式刷新成功契约**。被测端点/规则：`POST /v1/providers/{provider_id}/usage`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `refreshProviderAccountUsage`，`security=AdminBearerAuth`），请求体 `{confirm_external_call: true}`（键集必须恰为 `{confirm_external_call}`）；成功 `200` + `ProviderAccountUsageSnapshot`，并按 `usage_provider` 分流：`local` → `_snapshot("local","quota_config","unlimited")`（[`AccountUsageService.refresh`](../../../../src/management/account_usage.py)），写 `provider_usage_snapshots`（`ON CONFLICT DO UPDATE`）；失败 400 `invalid_request`/`confirmation_required`、404 `not_found`。设计验证项 `VRC-MGMT-006`、`VRC-DIAG-004`；需求/机制链 `LT-FUN-005/006`、`LT-OPS-002`、`R-CFG-01`、`R-OBS-01`、`T-CFG-SECRET`、`CT-ADMIN-001`/`CT-OPS-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明缺确认拒绝（ST-PUSAGE-002）、不证明只读快照（ST-PUSAGE-001）、不证明未知 provider 的 404（ST-PUSAGE-004）、不证明 minimax/volc 的真实上游用量数值（本 case 用 `provider_local`，其刷新为本地合成、不触外部用量 API，故**不产生费用**）；不证明并发刷新。
+**目的（被测契约）**：验证 provider 账号用量**显式刷新成功契约**。被测端点/规则：`POST /v1/providers/{provider_id}/usage`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `refreshProviderAccountUsage`，`security=AdminBearerAuth`），请求体 `{confirm_external_call: true}`（键集必须恰为 `{confirm_external_call}`）；
+成功 `200` + `ProviderAccountUsageSnapshot`，并按 `usage_provider` 分流：`local` → `_snapshot("local","quota_config","unlimited")`（[`AccountUsageService.refresh`](../../../../src/management/account_usage.py)），写 `provider_usage_snapshots`（`ON CONFLICT DO UPDATE`）；
+失败 400 `invalid_request`/`confirmation_required`、404 `not_found`。设计验证项 `VRC-MGMT-006`、`VRC-DIAG-004`；需求/机制链 `LT-FUN-005/006`、`LT-OPS-002`、`R-CFG-01`、`R-OBS-01`、`T-CFG-SECRET`、`CT-ADMIN-001`/`CT-OPS-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明缺确认拒绝（ST-PUSAGE-002）、不证明只读快照（ST-PUSAGE-001）、不证明未知 provider 的 404（ST-PUSAGE-004）、不证明 minimax/volc 的真实上游用量数值（本 case 用 `provider_local`，其刷新为本地合成、不触外部用量 API，故**不产生费用**）；
+不证明并发刷新。
 
 ## 2. 被测入口与前置
 
@@ -84,7 +88,9 @@
   6. 对 `provider_local`（local 类型）断言强值：`body["status"] == "unlimited"` 且 `body["source"] == "quota_config"`（`_snapshot("local","quota_config","unlimited")` 的确定输出）；若环境实际 kind 非 local，则退化为只断言 12 键 + 枚举（并在证据中记录 kind，作为偏差）。
   7. 回读：`after = admin_client.get("/v1/providers/provider_local/usage")`；断言 `200` 且 `after.json()["checked_at"] == resp.json()["checked_at"]`（刷新已持久化、GET 返回同一快照）。
 
-**重点关注步骤**：① **确认是成功前提**——只有 body 键集恰 `{confirm_external_call}` 且值为 `true` 才到刷新分支（缺键/值非真属 ST-PUSAGE-002）；② **local 臂的确定输出**——`provider_local` 为 local，刷新不触外部 API，`status="unlimited"`、`source="quota_config"` 可强断言；③ **持久化副作用**——刷新写 `provider_usage_snapshots`（`ON CONFLICT DO UPDATE`），第 7 步回读同 `checked_at` 证明落库，**必须登记该写入**；④ **值动态**——`checked_at` 动态，不得硬编码；⑤ **无费用**——local 臂不产生外部调用（与 minimax/volc 臂不同），报告须写明未触费用；  ⑥ **不把错误信封当快照**——非 200 需先确认是可解释的 `ERR-*`（缺键→`invalid_request`、值非真→`confirmation_required`、未知 provider→`not_found`）。
+**重点关注步骤**：① **确认是成功前提**——只有 body 键集恰 `{confirm_external_call}` 且值为 `true` 才到刷新分支（缺键/值非真属 ST-PUSAGE-002）；② **local 臂的确定输出**——`provider_local` 为 local，刷新不触外部 API，`status="unlimited"`、`source="quota_config"` 可强断言；
+③ **持久化副作用**——刷新写 `provider_usage_snapshots`（`ON CONFLICT DO UPDATE`），第 7 步回读同 `checked_at` 证明落库，**必须登记该写入**；④ **值动态**——`checked_at` 动态，不得硬编码；
+⑤ **无费用**——local 臂不产生外部调用（与 minimax/volc 臂不同），报告须写明未触费用；  ⑥ **不把错误信封当快照**——非 200 需先确认是可解释的 `ERR-*`（缺键→`invalid_request`、值非真→`confirmation_required`、未知 provider→`not_found`）。
   > **脚本覆盖（已补齐）**：现有 [`ST-PUSAGE-003.py`](../../../../tests/system/cases/ST-PUSAGE-003.py) 已断言 12 键全集、`status` 枚举、local 臂 `unlimited`/`quota_config` 强值，并按 §4 step 7 回读 `GET .../usage` 断言 `checked_at` 与刷新响应一致（证明落库持久化）。
 
 ## 5. 独立 Oracle 与预期结果

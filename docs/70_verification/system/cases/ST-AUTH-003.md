@@ -53,7 +53,11 @@
 - 要测什么（责任展开）：`GET /v1/providers` 在**携带有效 data token**时被拒，返回 403 + `permission_denied`（data 角色不授权 admin 面）。
 - 明确不测什么 / 失败含义：不证明 **无 token 的 LAN trust** 是否受理 admin 面（ST-AUTH-004）、**管理面未授权优先于资源存在性**（ST-AUTH-009）、**别名命名空间**需 admin（ST-AUTH-008）、**错误 bearer** 被拒（ST-AUTH-002）、**缺/非法凭据→401**（ST-AUTH-010）、**未配置鉴权→503**（ST-AUTH-007）；也不证明 `permission_denied` 的具体比较是否恒定时间（INV-2）。
 
-**目的（被测契约）**：验证 access-trust 机制的 **per-endpoint 角色选择与角色隔离**。被测端点/规则：`GET /v1/providers`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listProviders`，securityScheme `AdminBearerAuth`）；[`app.py`](../../../../src/http_api/app.py) 在路由分派前先执行 `principal = self._auth("admin")`（`app.py:248`），即 [`authenticate()`](../../../../src/http_api/auth.py) 以 role=`admin` 取 `_configured_token("admin")`（= `dev-admin`），而请求携带的是 data token（`dev-data`），`hmac.compare_digest` 不匹配 ⇒ 403 `permission_denied`（`auth.py:56-57`）。设计验证项 `VRC-API-002`；机制 `T-TRUST-SHARED`、`T-TRUST-ENDPOINTS`（机制需求 `R-TRUST-02`：按端点选 role、分发；见 [access-trust 机制 §5.1/§8 INV-4](../../../20_system_design/mechanisms/access-trust.md)）；错误信封 `{error:{message,type,code,param,retryable}}`。**不证明什么**：不证明 **无 token 的 LAN trust** 是否受理 admin 面（ST-AUTH-004）、**管理面未授权优先于资源存在性**（ST-AUTH-009）、**别名命名空间**需 admin（ST-AUTH-008）、**错误 bearer** 被拒（ST-AUTH-002）、**缺/非法凭据→401**（ST-AUTH-010）、**未配置鉴权→503**（ST-AUTH-007）；也不证明 `permission_denied` 的具体比较是否恒定时间（INV-2）。
+**目的（被测契约）**：验证 access-trust 机制的 **per-endpoint 角色选择与角色隔离**。被测端点/规则：`GET /v1/providers`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listProviders`，securityScheme `AdminBearerAuth`）；
+[`app.py`](../../../../src/http_api/app.py) 在路由分派前先执行 `principal = self._auth("admin")`（`app.py:248`），即 [`authenticate()`](../../../../src/http_api/auth.py) 以 role=`admin` 取 `_configured_token("admin")`（= `dev-admin`），而请求携带的是 data token（`dev-data`），`hmac.compare_digest` 不匹配 ⇒ 403 `permission_denied`（`auth.py:56-57`）。
+设计验证项 `VRC-API-002`；机制 `T-TRUST-SHARED`、`T-TRUST-ENDPOINTS`（机制需求 `R-TRUST-02`：按端点选 role、分发；见 [access-trust 机制 §5.1/§8 INV-4](../../../20_system_design/mechanisms/access-trust.md)）；
+错误信封 `{error:{message,type,code,param,retryable}}`。**不证明什么**：不证明 **无 token 的 LAN trust** 是否受理 admin 面（ST-AUTH-004）、**管理面未授权优先于资源存在性**（ST-AUTH-009）、**别名命名空间**需 admin（ST-AUTH-008）、**错误 bearer** 被拒（ST-AUTH-002）、**缺/非法凭据→401**（ST-AUTH-010）、**未配置鉴权→503**（ST-AUTH-007）；
+也不证明 `permission_denied` 的具体比较是否恒定时间（INV-2）。
 
 ## 2. 被测入口与前置
 

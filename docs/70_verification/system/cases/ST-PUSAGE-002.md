@@ -53,7 +53,11 @@
 - 要测什么（责任展开）：`POST /v1/providers/{id}/usage` 未携带显式二次确认：HTTP 400，统一错误信封；**缺 `confirm_external_call` 键**时实际 `code=="invalid_request"`，键存在但值非 `true` 时为 `code=="confirmation_required"`。
 - 明确不测什么 / 失败含义：不证明 带确认刷新（ST-PUSAGE-003）、不证明只读快照（ST-PUSAGE-001）、不证明未知 provider 的 404（ST-PUSAGE-004）、不证明上游用量 API 行为；本 case 的拒绝必须**在触上游之前**完成（无外部调用、无快照写入）。
 
-**目的（被测契约）**：验证 provider 账号用量**刷新缺确认的拒绝契约**。被测端点/规则：`POST /v1/providers/{provider_id}/usage`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `refreshProviderAccountUsage`，`security=AdminBearerAuth`），请求体 schema `additionalProperties:false`、`required=[confirm_external_call]`、`confirm_external_call.const=true`。入口 [`app.py`](../../../../src/http_api/app.py) 先做**键集精确检查** `set(body) != {"confirm_external_call"}` → 400 `invalid_request`（`param=null`）；仅当键集通过、值非 `true` 时才落入 [`AccountUsageService.refresh`](../../../../src/management/account_usage.py) 的 `require(confirm_external_call is True, 400, "confirmation_required", …)`。设计验证项 `VRC-MGMT-006`、`VRC-DIAG-004`；需求/机制链 `LT-FUN-005/006`、`LT-OPS-002`、`R-CFG-01`、`R-OBS-01`、`T-CFG-SECRET`、`CT-ADMIN-001`/`CT-OPS-001`。**不证明什么**：不证明带确认刷新（ST-PUSAGE-003）、不证明只读快照（ST-PUSAGE-001）、不证明未知 provider 的 404（ST-PUSAGE-004）、不证明上游用量 API 行为；本 case 的拒绝必须**在触上游之前**完成（无外部调用、无快照写入）。
+**目的（被测契约）**：验证 provider 账号用量**刷新缺确认的拒绝契约**。被测端点/规则：`POST /v1/providers/{provider_id}/usage`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `refreshProviderAccountUsage`，`security=AdminBearerAuth`），请求体 schema `additionalProperties:false`、`required=[confirm_external_call]`、`confirm_external_call.const=true`。
+入口 [`app.py`](../../../../src/http_api/app.py) 先做**键集精确检查** `set(body) != {"confirm_external_call"}` → 400 `invalid_request`（`param=null`）；
+仅当键集通过、值非 `true` 时才落入 [`AccountUsageService.refresh`](../../../../src/management/account_usage.py) 的 `require(confirm_external_call is True, 400, "confirmation_required", …)`。
+设计验证项 `VRC-MGMT-006`、`VRC-DIAG-004`；需求/机制链 `LT-FUN-005/006`、`LT-OPS-002`、`R-CFG-01`、`R-OBS-01`、`T-CFG-SECRET`、`CT-ADMIN-001`/`CT-OPS-001`。
+**不证明什么**：不证明带确认刷新（ST-PUSAGE-003）、不证明只读快照（ST-PUSAGE-001）、不证明未知 provider 的 404（ST-PUSAGE-004）、不证明上游用量 API 行为；本 case 的拒绝必须**在触上游之前**完成（无外部调用、无快照写入）。
 
 ## 2. 被测入口与前置
 
@@ -87,7 +91,9 @@
   6. 断言零副作用：再次 `GET /v1/providers/provider_local/usage`，`checked_at` 与第 2 步 `before` 一致（未刷新、未触上游）。
 
 **重点关注步骤**：① **两条拒绝臂的 code 不同**——空对象（缺键）实际为 `invalid_request`（入口键集检查先于确认值检查），`confirmation_required` 仅由"键在、值非真"触发；不得把两者混为一谈；② **拒绝先于外部调用**——400 必须在触上游与写 `provider_usage_snapshots` 之前完成（第 6 步以 `checked_at` 不变证明）；③ **信封 identity**——恰 5 键、`type="request_error"`、`param=null`、`retryable=false`；④ **provider 存在性不干扰**——用既存 `provider_local`，使唯一拒绝原因就是缺确认；⑤ **不依赖 message 文本**——只断言 code/type/param/retryable。
-  > **契约 vs 实现偏差（登记，本 case 以实际源码为准断言）**：§3.2 `ST-PUSAGE-002` 与系统设计 §7.8 `ERR-CONFIRM` 描述"缺二次确认 → `confirmation_required`（400）"，但实际实现中**缺键**返回 `invalid_request`（[`app.py`](../../../../src/http_api/app.py) 第 269 行的键集检查），仅 `{"confirm_external_call": false}` 才返回 `confirmation_required`（[`account_usage.py`](../../../../src/management/account_usage.py) 第 158 行）。现有 [`ST-PUSAGE-002.py`](../../../../tests/system/cases/ST-PUSAGE-002.py) 只覆盖空对象臂并断言 `invalid_request`。本 case 同时断言两臂，以完整覆盖 `ERR-CONFIRM` 语义；偏差在运行报告登记。
+  > **契约 vs 实现偏差（登记，本 case 以实际源码为准断言）**：§3.2 `ST-PUSAGE-002` 与系统设计 §7.8 `ERR-CONFIRM` 描述"缺二次确认 → `confirmation_required`（400）"，但实际实现中**缺键**返回 `invalid_request`（[`app.py`](../../../../src/http_api/app.py) 第 269 行的键集检查），仅 `{"confirm_external_call": false}` 才返回 `confirmation_required`（[`account_usage.py`](../../../../src/management/account_usage.py) 第 158 行）。
+    现有 [`ST-PUSAGE-002.py`](../../../../tests/system/cases/ST-PUSAGE-002.py) 只覆盖空对象臂并断言 `invalid_request`。本 case 同时断言两臂，以完整覆盖 `ERR-CONFIRM` 语义；
+    偏差在运行报告登记。
 
 ## 5. 独立 Oracle 与预期结果
 

@@ -53,7 +53,10 @@
 - 要测什么（责任展开）：`POST /v1/probes` 缺显式确认：HTTP 400 `confirmation_required`。
 - 明确不测什么 / 失败含义：不证明 带确认的成功探测（ST-PROBE-002）、不证明未知 deployment 的 404（ST-PROBE-003）、不证明探测对 deployment health 的写入（ST-PROBE-002/`apply_probe_result`）、不证明认证负向（ST-AUTH-003/09）。
 
-**目的（被测契约）**：验证外部探测的**显式确认门**。被测端点/规则：`POST /v1/probes`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `probeDeployment`，body `ProbeRequest`=`{deployment_id,confirm_external_call}`，`security=AdminBearerAuth`）；[`AdminService.probe`](../../../../src/management/admin.py) 首行按 `confirm_external_call` 确认门规则校验（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。设计验证项 `VRC-DIAG-004`；错误目录 `ERR-CONFIRM` → wire `code=confirmation_required`；需求/机制链 `LT-FUN-005`、`LT-OPS-002`、`R-OBS-01`、`CT-ADMIN-001`、`CT-OPS-001`。**不证明什么**：不证明带确认的成功探测（ST-PROBE-002）、不证明未知 deployment 的 404（ST-PROBE-003）、不证明探测对 deployment health 的写入（ST-PROBE-002/`apply_probe_result`）、不证明认证负向（ST-AUTH-003/09）。
+**目的（被测契约）**：验证外部探测的**显式确认门**。被测端点/规则：`POST /v1/probes`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `probeDeployment`，body `ProbeRequest`=`{deployment_id,confirm_external_call}`，`security=AdminBearerAuth`）；
+[`AdminService.probe`](../../../../src/management/admin.py) 首行按 `confirm_external_call` 确认门规则校验（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。
+设计验证项 `VRC-DIAG-004`；错误目录 `ERR-CONFIRM` → wire `code=confirmation_required`；需求/机制链 `LT-FUN-005`、`LT-OPS-002`、`R-OBS-01`、`CT-ADMIN-001`、`CT-OPS-001`。
+**不证明什么**：不证明带确认的成功探测（ST-PROBE-002）、不证明未知 deployment 的 404（ST-PROBE-003）、不证明探测对 deployment health 的写入（ST-PROBE-002/`apply_probe_result`）、不证明认证负向（ST-AUTH-003/09）。
 
 ## 2. 被测入口与前置
 
@@ -81,7 +84,9 @@
   3. 断言 `resp.status_code == 400`；`err = resp.json()["error"]`：断言 `err["code"]=="confirmation_required"`、`err["type"]=="request_error"`、`err["retryable"] is False`。
   4. （可选交叉核对）`POST /v1/probes` body `{"deployment_id":"dep_local_gemma"}`（有 deployment 但无 confirm）→ 仍 400 `confirmation_required`（确认门先于资源解析）。
 
-**重点关注步骤**：① **确认门优先**——缺 `confirm_external_call` 必须在**任何上游调用/deployment 解析前**返回 400，不得先 404/502；② **错误码正确性**——是 `confirmation_required`（`ERR-CONFIRM`），不是 `invalid_request`（键集/确认联合 `require` 统一抛 `confirmation_required`）；③ **零副作用**——拒绝不触上游、不写 `probe_results`、不改 `deployments.health`、不产生费用；④ **错误信封 identity**——恰 5 键、`type=request_error`；⑤ **审计**——本路径直接用 `app.admin.probe`（非 `mutate`），故**不**写审计；不得期望审计行。
+**重点关注步骤**：① **确认门优先**——缺 `confirm_external_call` 必须在**任何上游调用/deployment 解析前**返回 400，不得先 404/502；② **错误码正确性**——是 `confirmation_required`（`ERR-CONFIRM`），不是 `invalid_request`（键集/确认联合 `require` 统一抛 `confirmation_required`）；
+③ **零副作用**——拒绝不触上游、不写 `probe_results`、不改 `deployments.health`、不产生费用；④ **错误信封 identity**——恰 5 键、`type=request_error`；⑤ **审计**——本路径直接用 `app.admin.probe`（非 `mutate`），故**不**写审计；
+不得期望审计行。
 
 ## 5. 独立 Oracle 与预期结果
 

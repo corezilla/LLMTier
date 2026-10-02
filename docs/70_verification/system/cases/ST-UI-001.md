@@ -54,7 +54,9 @@
 - 要测什么（责任展开）：在真实浏览器中加载 `/ui/`：断言 `document.title`、5 个 `nav button[data-page]`、Home 默认激活、tier 树已渲染；切到 Providers 后 provider 行由 `GET /v1/providers` 的真实响应渲染（断言行内文本 `Baseline Provider B` 与 CDP 记录的 200 响应并存），而非源码字符串。
 - 明确不测什么 / 失败含义：不证明其它 provider 的账户用量刷新（ST-PUSAGE-*）、不证明表单保存（ST-PROV-005/16）。
 
-**目的（被测契约）**：在真实浏览器中加载 `/ui/`：断言 `document.title`、5 个 `nav button[data-page]`、Home 默认激活、tier 树已渲染；切到 Providers 后 provider 行由 `GET /v1/providers` 的真实响应渲染（断言行内文本 `Baseline Provider B` 与 CDP 记录的 200 响应并存），而非源码字符串。 本 Case 是 `RISK-UI-EXEC-1` 关闭证据之一——在**真实浏览器**中执行 `src/web_ui/index.html`、`src/web_ui/app.js`，取代此前的源码字符串契约断言。被测入口：`src/web_ui/`（由 LLMTier 同源静态服务 `/ui/`）；驱动：headless Chrome + CDP（`tests/common/drivers/browser_driver.mjs`）；编排：`tests/system/cases/ST-UI-001.py`。
+**目的（被测契约）**：在真实浏览器中加载 `/ui/`：断言 `document.title`、5 个 `nav button[data-page]`、Home 默认激活、tier 树已渲染；切到 Providers 后 provider 行由 `GET /v1/providers` 的真实响应渲染（断言行内文本 `Baseline Provider B` 与 CDP 记录的 200 响应并存），而非源码字符串。
+ 本 Case 是 `RISK-UI-EXEC-1` 关闭证据之一——在**真实浏览器**中执行 `src/web_ui/index.html`、`src/web_ui/app.js`，取代此前的源码字符串契约断言。被测入口：`src/web_ui/`（由 LLMTier 同源静态服务 `/ui/`）；
+驱动：headless Chrome + CDP（`tests/common/drivers/browser_driver.mjs`）；编排：`tests/system/cases/ST-UI-001.py`。
 
 ## 2. 被测入口与前置
 

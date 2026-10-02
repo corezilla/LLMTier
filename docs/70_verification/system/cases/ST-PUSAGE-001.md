@@ -53,7 +53,12 @@
 - 要测什么（责任展开）：`GET /v1/providers/{id}/usage` 读取 provider 账号用量快照：HTTP 200 + 精确 `ProviderAccountUsageSnapshot`（12 个必填键），纯读、无副作用。
 - 明确不测什么 / 失败含义：不证明 刷新（ST-PUSAGE-002/03）、不证明未知 provider 的 404（ST-PUSAGE-004）、不证明上游用量 API 的真实数值正确性（上游决定，本 case 只断言 wire 形状与枚举）、不证明 provider 详情/secret 不泄露（ST-PROV-014）。
 
-**目的（被测契约）**：验证 Management **provider 账号用量快照读契约**。被测端点/规则：`GET /v1/providers/{provider_id}/usage`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getProviderAccountUsage`，`security=AdminBearerAuth`），认证角色 `admin`；成功 `200` + `ProviderAccountUsageSnapshot`（`additionalProperties:false`，`required` 恰 12 键：`provider,source,status,used,quota,remaining,percent,reset_at,window,windows,checked_at,error`；`status ∈ {ok,unavailable,unsupported,unlimited,not_refreshed}`）；失败走统一错误信封（401 `authentication_required` / 403 `permission_denied` / 404 `not_found`）。实现见 [`AccountUsageService.latest`](../../../../src/management/account_usage.py)（先查 `provider_usage_snapshots`，无快照则按 usage profile 合成 `not_refreshed`/credentials 快照）。设计验证项 `VRC-MGMT-006`；需求/机制链 `LT-FUN-005/006`、`LT-OPS-002`、`R-CFG-01`、`R-OBS-01`、`T-CFG-SECRET`、`CT-ADMIN-001`/`CT-OPS-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明刷新（ST-PUSAGE-002/03）、不证明未知 provider 的 404（ST-PUSAGE-004）、不证明上游用量 API 的真实数值正确性（上游决定，本 case 只断言 wire 形状与枚举）、不证明 provider 详情/secret 不泄露（ST-PROV-014）。
+**目的（被测契约）**：验证 Management **provider 账号用量快照读契约**。被测端点/规则：`GET /v1/providers/{provider_id}/usage`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getProviderAccountUsage`，`security=AdminBearerAuth`），认证角色 `admin`；
+成功 `200` + `ProviderAccountUsageSnapshot`（`additionalProperties:false`，`required` 恰 12 键：`provider,source,status,used,quota,remaining,percent,reset_at,window,windows,checked_at,error`；
+`status ∈ {ok,unavailable,unsupported,unlimited,not_refreshed}`）；失败走统一错误信封（401 `authentication_required` / 403 `permission_denied` / 404 `not_found`）。
+实现见 [`AccountUsageService.latest`](../../../../src/management/account_usage.py)（先查 `provider_usage_snapshots`，无快照则按 usage profile 合成 `not_refreshed`/credentials 快照）。
+设计验证项 `VRC-MGMT-006`；需求/机制链 `LT-FUN-005/006`、`LT-OPS-002`、`R-CFG-01`、`R-OBS-01`、`T-CFG-SECRET`、`CT-ADMIN-001`/`CT-OPS-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明刷新（ST-PUSAGE-002/03）、不证明未知 provider 的 404（ST-PUSAGE-004）、不证明上游用量 API 的真实数值正确性（上游决定，本 case 只断言 wire 形状与枚举）、不证明 provider 详情/secret 不泄露（ST-PROV-014）。
 
 ## 2. 被测入口与前置
 

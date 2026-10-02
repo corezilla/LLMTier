@@ -54,7 +54,10 @@
 - 明确不测什么 / 失败含义：不证明 查询/分页（ST-AUSAGE-001/02、ST-USAGE-*）、不证明重置后新请求重新计账（temporal 时序，未单独构 case）、不证明 provider 的 usage 快照刷新（ST-PUSAGE-002/03）。本 case 锁定"admin 清空 + `deleted` 计数 + 审计 + data 拒绝"。
   > **A/B 归属不一致（登记）**：§3.2 将本 Case 登记为**环境 A**；但全量/部分重置为**破坏性写**（§4.3 将"删除/修改"归 B 类），实现 [`ST-AUSAGE-003.py`](../../../../tests/system/cases/ST-AUSAGE-003.py) 标记 `@pytest.mark.api_b` 并在 `llmtier_b` 上执行。为避免污染 m5air 用户在途账本，本设计以**环境 B** 为准执行，并把"§3.2 A vs 实现/安全 B"登记为规格/实现不一致。
 
-**目的（被测契约）**：验证用量**重置契约、角色门与审计副作用**。被测端点/规则：`DELETE /v1/usage`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `resetUsage`，query `model`/`deployment_id` 可选，`security=AdminBearerAuth`）；[`app.py`](../../../../src/http_api/app.py) 以 `_auth_either()` 取主体，非 admin → 403 `permission_denied`；admin 路径经 [`AdminService.mutate`](../../../../src/management/admin.py) 调 [`UsageRecorder.reset_usage`](../../../../src/inference/usage.py) 按 scope 删记录并返回 `{"deleted":<int>}`，同一事务写审计 `action="usage.reset"`、`target="all"`、`result="success"`。设计验证项 `VRC-MGMT-006`；机制 `T-MET-RESET`；需求/机制链 `LT-FUN-004`、`LT-INT-004`、`R-MET-01`、`CT-USAGE-001`。**不证明什么**：不证明查询/分页（ST-AUSAGE-001/02、ST-USAGE-*）、不证明重置后新请求重新计账（temporal 时序，未单独构 case）、不证明 provider 的 usage 快照刷新（ST-PUSAGE-002/03）。本 case 锁定"admin 清空 + `deleted` 计数 + 审计 + data 拒绝"。
+**目的（被测契约）**：验证用量**重置契约、角色门与审计副作用**。被测端点/规则：`DELETE /v1/usage`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `resetUsage`，query `model`/`deployment_id` 可选，`security=AdminBearerAuth`）；
+[`app.py`](../../../../src/http_api/app.py) 以 `_auth_either()` 取主体，非 admin → 403 `permission_denied`；admin 路径经 [`AdminService.mutate`](../../../../src/management/admin.py) 调 [`UsageRecorder.reset_usage`](../../../../src/inference/usage.py) 按 scope 删记录并返回 `{"deleted":<int>}`，同一事务写审计 `action="usage.reset"`、`target="all"`、`result="success"`。
+设计验证项 `VRC-MGMT-006`；机制 `T-MET-RESET`；需求/机制链 `LT-FUN-004`、`LT-INT-004`、`R-MET-01`、`CT-USAGE-001`。**不证明什么**：不证明查询/分页（ST-AUSAGE-001/02、ST-USAGE-*）、不证明重置后新请求重新计账（temporal 时序，未单独构 case）、不证明 provider 的 usage 快照刷新（ST-PUSAGE-002/03）。
+本 case 锁定"admin 清空 + `deleted` 计数 + 审计 + data 拒绝"。
   > **A/B 归属不一致（登记）**：§3.2 将本 Case 登记为**环境 A**；但全量/部分重置为**破坏性写**（§4.3 将"删除/修改"归 B 类），实现 [`ST-AUSAGE-003.py`](../../../../tests/system/cases/ST-AUSAGE-003.py) 标记 `@pytest.mark.api_b` 并在 `llmtier_b` 上执行。为避免污染 m5air 用户在途账本，本设计以**环境 B** 为准执行，并把"§3.2 A vs 实现/安全 B"登记为规格/实现不一致。
 
 ## 2. 被测入口与前置
@@ -81,7 +84,10 @@
   5. （审计）`admin_client_b.get("/v1/audit?limit=20")` 断言出现 `action=="usage.reset"`、`result=="success"` 的审计行（`mutate` 写）。
   6. （角色负向）`api_client_b.delete("/v1/usage")` 断言 `403` + `error.code=="permission_denied"` + `type=="request_error"`。
 
-**重点关注步骤**：① **角色门**——`_auth_either()` 后 `is_admin` 检查；data 凭据必须 403 `permission_denied`（不是 401/400），且**不得**删除任何记录（零副作用）；② **`deleted` 计数**——返回值须等于该 scope 实际删除的行数（`reset_usage` 的 `deleted`）；全量 scope 与 model/deployment scope 计数不同，测试须分别构造；③ **审计同事务**——`AdminService.mutate` 以 `atomic=True` 在同一事务写 `usage.reset` success；**必须**断言审计行存在（本 case 的"审计"契约）；④ **STORE 错误语义**——store 故障应 503 `usage_store_unavailable`（`app.py` 捕获 `sqlite3.Error`），不得返回 200 空 `deleted`；⑤ **破坏性**——全量重置不可在 A 类 m5air 上执行；⑥ **幂等性**——重置后可再次造种子/重置（本 case 每个断言自造种子）。
+**重点关注步骤**：① **角色门**——`_auth_either()` 后 `is_admin` 检查；data 凭据必须 403 `permission_denied`（不是 401/400），且**不得**删除任何记录（零副作用）；
+② **`deleted` 计数**——返回值须等于该 scope 实际删除的行数（`reset_usage` 的 `deleted`）；全量 scope 与 model/deployment scope 计数不同，测试须分别构造；③ **审计同事务**——`AdminService.mutate` 以 `atomic=True` 在同一事务写 `usage.reset` success；
+**必须**断言审计行存在（本 case 的"审计"契约）；④ **STORE 错误语义**——store 故障应 503 `usage_store_unavailable`（`app.py` 捕获 `sqlite3.Error`），不得返回 200 空 `deleted`；
+⑤ **破坏性**——全量重置不可在 A 类 m5air 上执行；⑥ **幂等性**——重置后可再次造种子/重置（本 case 每个断言自造种子）。
 
 ## 5. 独立 Oracle 与预期结果
 

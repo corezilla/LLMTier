@@ -47,7 +47,9 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-EMB-002` / 系统设计 §8 Embeddings 接口 / `VRC-INF-001` / normal / P0（[方案清单 `ST-EMB-002`](../llmtier-system-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对（base64 严格解码）
-- 要测什么（责任展开）：`POST /v1/embeddings` `encoding_format=base64`：`data[0].embedding` 为 RFC 4648 base64 字符串，独立解码得 1024 个 little-endian IEEE-754 float32，全部 finite。需求 `LT-FUN-003`/`LT-OPEN-02`；机制需求 `R-INF-04`/`R-INF-07`（[inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）；契约 `CT-EMB-001`；OpenAPI `EmbeddingRequest.encoding_format`（`enum:[float,base64]`）与 `EmbeddingItem.embedding`（`contentEncoding:"base64"`，little-endian float32）。
+- 要测什么（责任展开）：`POST /v1/embeddings` `encoding_format=base64`：`data[0].embedding` 为 RFC 4648 base64 字符串，独立解码得 1024 个 little-endian IEEE-754 float32，全部 finite。
+  需求 `LT-FUN-003`/`LT-OPEN-02`；机制需求 `R-INF-04`/`R-INF-07`（[inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）；
+  契约 `CT-EMB-001`；OpenAPI `EmbeddingRequest.encoding_format`（`enum:[float,base64]`）与 `EmbeddingItem.embedding`（`contentEncoding:"base64"`，little-endian float32）。
 - 明确不测什么 / 失败含义：不测 `float`（默认）表示的形状/有限性（ST-EMB-001）；不测重复不变量（ST-EMB-003）；不测未知 model（ST-EMB-004）、batch>1（ST-EMB-005）、`dimensions` 不符（ST-EMB-006）、非法 `encoding_format`（ST-EMB-007）；不对向量语义/L2 归一化数值做门限。失败含义＝base64 表示契约破坏。
 
 ## 2. 被测入口与前置

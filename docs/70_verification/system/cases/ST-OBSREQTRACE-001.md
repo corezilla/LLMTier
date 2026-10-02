@@ -53,7 +53,14 @@
 - 要测什么（责任展开）：`GET /v1/trace/{request_id}` 返回单请求全生命周期 `TraceView`：`stages` 有序且覆盖 `received…completed`，并组合 `snapshot`/`usage`。
 - 明确不测什么 / 失败含义：不证明 未知 id 的 404（ST-OBSREQTRACE-002）、不证明 data token 的 403（ST-OBSREQTRACE-003）、不证明注入命中（ST-RESP-011/22 的 trace `source=injected` 证明）、不证明 trace 列表去重/分页（ST-OBSTRACE-001/02）、不证明别名等价（ST-OBSALIAS-003）。`X-Request-ID` 仅用于获取 `request_id` 的 harness 机制，**不是**本 case 的 Oracle（openapi 未声明 200 响应头）。
 
-**目的（被测契约）**：验证 Observability `GET /v1/trace/{request_id}` 的**单请求全生命周期只读契约**。被测端点/规则：`GET /v1/trace/{request_id}`，成功返回 `TraceView`（键集恰 `{request_id, correlation_id, stages, snapshot, usage}`）；`stages` `minItems:1` 且按 `timestamp` 升序（机制 `INV-5`）；`snapshot` 为 `null` 或 `SnapshotView`、`usage` 为 `null` 或 `UsageView`；该视图**组合** `trace_events`（trace）+ `diagnostic_snapshots`（快照）+ `usage_record_versions`（账本）（[`src/libdiag/traces.py`](../../../../src/libdiag/traces.py) `_trace_view`）；认证 `admin`；错误走统一信封（401/403/404/503）。设计验证项 `VRC-DIAG-002`；机制 `T-OBS-TRACE`（[observability 机制](../../../20_system_design/mechanisms/observability.md) §4.2 `D-OBS-TRACE`、§4.9 `D-OBS-TRACE` 映射、§4.10 `INV-5`）；错误目录 `ERR-NOTFOUND`/`ERR-STORE`；需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；机器契约 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`TraceView`/`TraceStage`/`SnapshotView`/`UsageView`，`security=AdminBearerAuth`）。**不证明什么**：不证明未知 id 的 404（ST-OBSREQTRACE-002）、不证明 data token 的 403（ST-OBSREQTRACE-003）、不证明注入命中（ST-RESP-011/22 的 trace `source=injected` 证明）、不证明 trace 列表去重/分页（ST-OBSTRACE-001/02）、不证明别名等价（ST-OBSALIAS-003）。`X-Request-ID` 仅用于获取 `request_id` 的 harness 机制，**不是**本 case 的 Oracle（openapi 未声明 200 响应头）。
+**目的（被测契约）**：验证 Observability `GET /v1/trace/{request_id}` 的**单请求全生命周期只读契约**。被测端点/规则：`GET /v1/trace/{request_id}`，成功返回 `TraceView`（键集恰 `{request_id, correlation_id, stages, snapshot, usage}`）；
+`stages` `minItems:1` 且按 `timestamp` 升序（机制 `INV-5`）；`snapshot` 为 `null` 或 `SnapshotView`、`usage` 为 `null` 或 `UsageView`；
+该视图**组合** `trace_events`（trace）+ `diagnostic_snapshots`（快照）+ `usage_record_versions`（账本）（[`src/libdiag/traces.py`](../../../../src/libdiag/traces.py) `_trace_view`）；
+认证 `admin`；错误走统一信封（401/403/404/503）。设计验证项 `VRC-DIAG-002`；机制 `T-OBS-TRACE`（[observability 机制](../../../20_system_design/mechanisms/observability.md) §4.2 `D-OBS-TRACE`、§4.9 `D-OBS-TRACE` 映射、§4.10 `INV-5`）；
+错误目录 `ERR-NOTFOUND`/`ERR-STORE`；需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；
+机器契约 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`TraceView`/`TraceStage`/`SnapshotView`/`UsageView`，`security=AdminBearerAuth`）。
+**不证明什么**：不证明未知 id 的 404（ST-OBSREQTRACE-002）、不证明 data token 的 403（ST-OBSREQTRACE-003）、不证明注入命中（ST-RESP-011/22 的 trace `source=injected` 证明）、不证明 trace 列表去重/分页（ST-OBSTRACE-001/02）、不证明别名等价（ST-OBSALIAS-003）。
+`X-Request-ID` 仅用于获取 `request_id` 的 harness 机制，**不是**本 case 的 Oracle（openapi 未声明 200 响应头）。
 
 ## 2. 被测入口与前置
 
@@ -62,7 +69,8 @@
 ## 3. 输入构造
 
 - **输入与构造**：
-  1. 制造一条 trace（`data` 面，固定 prompt）：`POST /v1/responses` body `{"model":"Worker","input":[{"role":"user","content":"Hello"}],"stream":true,"store":false,"max_output_tokens":50}`（成功路径；若上游不稳可用 `Senior` 等 responses-capable tier）。该请求写入 `received`/`validated`/`routed`/`upstream_started`/`upstream_ended`/`completed` 等 stage（[`src/inference/responses.py`](../../../../src/inference/responses.py)、[`src/http_api/app.py`](../../../../src/http_api/app.py)）。
+  1. 制造一条 trace（`data` 面，固定 prompt）：`POST /v1/responses` body `{"model":"Worker","input":[{"role":"user","content":"Hello"}],"stream":true,"store":false,"max_output_tokens":50}`（成功路径；
+     若上游不稳可用 `Senior` 等 responses-capable tier）。该请求写入 `received`/`validated`/`routed`/`upstream_started`/`upstream_ended`/`completed` 等 stage（[`src/inference/responses.py`](../../../../src/inference/responses.py)、[`src/http_api/app.py`](../../../../src/http_api/app.py)）。
   2. **取得 `request_id`（harness，非 Oracle）**：优先 `GET /v1/diagnostics/traces?limit=1`（`admin_client`）取最新一条 `items[0].request_id`（列表按 `first_ts DESC`，最新请求在首）；或读取被测响应头 `X-Request-ID`（运行时注入，**不作契约断言**）。若列表为空则本 case 无数据可查，判 BLOCKED/SKIP。
   3. 查询：`GET /v1/trace/<request_id>`、`Authorization: Bearer dev-admin`。
 
@@ -79,7 +87,11 @@
   8. 断言本次成功请求的 `stages` 至少包含一个 **上游阶段**（`stage` 含 `upstream_started`/`upstream_ended`）与入口阶段（`received`）——"全生命周期"的结构证据；若仅有 `received` 而缺上游阶段，说明组合不完整，判 FAIL（或若响应为可解释错误，允许结构相应缩减，需在证据中说明）。
   9. 断言 `snapshot` 为 `null` 或合法 `SnapshotView`（11 键）；`usage` 为 `null` 或合法 `UsageView`（8 键：`record_version,is_final,model,input_tokens,output_tokens,total_tokens,measurement_status,source`）。
 
-**重点关注步骤**：① **全阶段组合**——不是"200 即可"，而是 `stages` 覆盖入口到上游结束的完整链且有序（`INV-5`）。② **键集精确**——`TraceView` 恰 5 键、`TraceStage` 恰 3 键。③ **`request_id` 回指**——返回的 `request_id` 必须等于查询 id（同一资源）。④ **`snapshot` 可为 `null`**——`snapshots_enabled=false`（m5air 默认）时 `snapshot=null` **合法**，不得判 FAIL；开启后应出现 `snapshot`。⑤ **`usage` 组合**——来自 `usage_record_versions` 最新版，`null` 合法（尚未记账），但成功请求通常有记录。⑥ **取得 id 的手段不是 Oracle**——`X-Request-ID`/traces 列表仅用于 harness；不得把响应头本身列入断言。⑦ **不依赖模型答案**——只断言结构/阶段，不写"答案正确"。⑧ **降级/存储**——`_UnavailableDiagnostics.trace` 对任意 id 返回 `{stages:[],...}` **200**，`stages=[]` 违反 `minItems:1`，属降级实例 → BLOCKED/SKIP；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSREQTRACE-001.py` 已实现。
+**重点关注步骤**：① **全阶段组合**——不是"200 即可"，而是 `stages` 覆盖入口到上游结束的完整链且有序（`INV-5`）。② **键集精确**——`TraceView` 恰 5 键、`TraceStage` 恰 3 键。
+③ **`request_id` 回指**——返回的 `request_id` 必须等于查询 id（同一资源）。④ **`snapshot` 可为 `null`**——`snapshots_enabled=false`（m5air 默认）时 `snapshot=null` **合法**，不得判 FAIL；
+开启后应出现 `snapshot`。⑤ **`usage` 组合**——来自 `usage_record_versions` 最新版，`null` 合法（尚未记账），但成功请求通常有记录。⑥ **取得 id 的手段不是 Oracle**——`X-Request-ID`/traces 列表仅用于 harness；
+不得把响应头本身列入断言。⑦ **不依赖模型答案**——只断言结构/阶段，不写"答案正确"。⑧ **降级/存储**——`_UnavailableDiagnostics.trace` 对任意 id 返回 `{stages:[],...}` **200**，`stages=[]` 违反 `minItems:1`，属降级实例 → BLOCKED/SKIP；
+`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSREQTRACE-001.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 

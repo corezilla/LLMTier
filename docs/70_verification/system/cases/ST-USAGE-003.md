@@ -47,7 +47,10 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-USAGE-003` / 系统设计 §8 Usage 查询接口 / `VRC-MGMT-006` / boundary / P1（[方案清单 `ST-USAGE-003`](../llmtier-system-test-scheme.md)）；机制 `T-MET-PAGE`（[usage-metering 机制](../../../20_system_design/mechanisms/usage-metering.md) §4.5/§4.7 CON-METER-004）。
 - **测试方法（§1.5 方法表行）**：边界值抽样 + 契约字段比对
-- 要测什么（责任展开）：`GET /v1/usage?limit=1` 每页至多 1 条并给出 `next_cursor`；沿 cursor 取后续页，同 `snapshot_id`/`snapshot_at`、按 `(recorded_at,request_id)` 稳定推进、无重复无遗漏，`has_more=false` 时 `next_cursor=null`。`limit` `1..200` 默认 100，`cursor` 可选；首屏创建 `query_snapshots` 并冻结有序成员，返回 `next_cursor = "<snapshot_id>:<offset>"`；后续页按冻结视图读，`snapshot` 跨页不变。实现 `src/inference/usage.py::UsageRecorder._page`（`ORDER BY v.recorded_at,v.request_id`，`limit+1` 探测 `has_more`）。机制需求 `R-MET-02`；需求链 `LT-FUN-004`、`LT-INT-004/005/007`、`CT-USAGE-001`。
+- 要测什么（责任展开）：`GET /v1/usage?limit=1` 每页至多 1 条并给出 `next_cursor`；沿 cursor 取后续页，同 `snapshot_id`/`snapshot_at`、按 `(recorded_at,request_id)` 稳定推进、无重复无遗漏，`has_more=false` 时 `next_cursor=null`。
+  `limit` `1..200` 默认 100，`cursor` 可选；首屏创建 `query_snapshots` 并冻结有序成员，返回 `next_cursor = "<snapshot_id>:<offset>"`；后续页按冻结视图读，`snapshot` 跨页不变。
+  实现 `src/inference/usage.py::UsageRecorder._page`（`ORDER BY v.recorded_at,v.request_id`，`limit+1` 探测 `has_more`）。机制需求 `R-MET-02`；
+  需求链 `LT-FUN-004`、`LT-INT-004/005/007`、`CT-USAGE-001`。
 - 明确不测什么 / 失败含义：不测过期 cursor 拒绝（ST-USAGE-004）、主体隔离（ST-USAGE-006）、同 cursor 重放的逐字节幂等/冻结不变（ST-USAGE-007）、store 不可用（ST-USAGE-008）；不测时间窗元数据完整性（ST-USAGE-001）；不测 `limit` 取值范围校验（实现仅做整数转换）。失败含义＝分页游标契约破坏。
 
 ## 2. 被测入口与前置
@@ -81,7 +84,11 @@ Authorization: Bearer dev-data
 | 5 | 沿 `next_cursor` 继续（≤ 页上限）直到 `has_more=false` | `page1.data[0].request_id != page2.data[0].request_id`；累积所有 `request_id`，`rid_a`、`rid_b` 各恰出现 1 次 |
 | 6 | 末页 | `has_more=false ⇒ next_cursor is null` |
 
-- 重点关注步骤：① **cursor 形态与解析**——`<snapshot_id>:<offset>`；服务端按 `cursor.split(":",1)[0]` 取 snapshot、`[1]` 取 offset；把 `cursor` 当不透明字符串带回；② **跨页 snapshot 不变**——`snapshot_id`/`snapshot_at` 在 page1 与 page2 必须一致；若第二页出现**新** `snapshot_id` 即 FAIL；③ **稳定排序 `(recorded_at,request_id)`**；④ **`has_more`/`next_cursor` 同步**——`has_more=false ⇒ next_cursor=null`；⑤ **同 filter**——所有页 `from`/`to` 必须一致；⑥ **缺陷/注意（实现与 openapi 不符）**：handler 用 `_int_param` 只做 `int()` 转换，**不校验** openapi 的 `minimum:1`/`maximum:200`；即 `limit=0`/`limit=500` 不会被拒。本 case 不据此判 FAIL（只测合法 `limit=1`），但应在运行报告登记该"范围未校验"偏差。另：现有 [`ST-USAGE-003.py`](../../../../tests/system/cases/ST-USAGE-003.py) 只断言单页 `≤1` 与 `next_cursor` 非空，**未跟随 cursor 取第二页、未验证跨页同 snapshot/无重复无遗漏**；设计完整断言须补齐。
+- 重点关注步骤：① **cursor 形态与解析**——`<snapshot_id>:<offset>`；服务端按 `cursor.split(":",1)[0]` 取 snapshot、`[1]` 取 offset；把 `cursor` 当不透明字符串带回；
+  ② **跨页 snapshot 不变**——`snapshot_id`/`snapshot_at` 在 page1 与 page2 必须一致；若第二页出现**新** `snapshot_id` 即 FAIL；③ **稳定排序 `(recorded_at,request_id)`**；
+  ④ **`has_more`/`next_cursor` 同步**——`has_more=false ⇒ next_cursor=null`；⑤ **同 filter**——所有页 `from`/`to` 必须一致；⑥ **缺陷/注意（实现与 openapi 不符）**：handler 用 `_int_param` 只做 `int()` 转换，**不校验** openapi 的 `minimum:1`/`maximum:200`；
+  即 `limit=0`/`limit=500` 不会被拒。本 case 不据此判 FAIL（只测合法 `limit=1`），但应在运行报告登记该"范围未校验"偏差。另：现有 [`ST-USAGE-003.py`](../../../../tests/system/cases/ST-USAGE-003.py) 只断言单页 `≤1` 与 `next_cursor` 非空，**未跟随 cursor 取第二页、未验证跨页同 snapshot/无重复无遗漏**；
+  设计完整断言须补齐。
 
 ## 5. 独立 Oracle 与预期结果
 

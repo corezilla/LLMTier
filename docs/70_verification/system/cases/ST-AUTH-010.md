@@ -53,11 +53,22 @@
 - 要测什么（责任展开）：受保护端点 `GET /v1/models` 在**携带非法授权方案（`Authorization: Basic …`）**时返回 401 + `authentication_required`（非法凭据形态 ≠ 凭据不匹配 403）。
 - 明确不测什么 / 失败含义：不证明 **错误 bearer（形态合法）→403**（ST-AUTH-002）、**空 bearer→403**（ST-AUTH-006）、**data token 访问 admin 面→403**（ST-AUTH-003/08/09）、**未配置鉴权→503**（ST-AUTH-007）、**无 token 的 LAN trust→200**（ST-AUTH-001/04）、**公共端点无需 token**（ST-AUTH-005）。本 case **不**证明非受信来源下"缺 Bearer→401"（见下构造说明）。
 
-  > **构造诚实性（如何触发）**：本 case 的契约有两半——(a)"无 Bearer 且不命中免登录"、(b)"非法授权方案"。在 A/B 两班**均无法构造 (a)**：A 类 m5air 监听 LAN，执行机源地址为 `192.168.1.x`（RFC1918 受信）；B 类临时实例监听 `127.0.0.1`（loopback 受信）；源码 `unauthenticated_principal()`（`auth.py:33-34`）对 loopback/RFC1918 在**无 `Authorization` 头**时**无条件**授予共享角色（不读 `LLMTIER_TRUSTED_LAN_MODE`），因此"完全无头"在 A/B 上恒为 200，非受信来源需公网源地址，A/B 不可得（[测试设计 §4.2/§11.2 第 5 项](../llmtier-system-test-scheme.md)）。故本 case 以 **(b) 非法方案**（`Authorization: Basic …`）触发 401——它进入同一 `authenticate()` 的"非法方案"分支，产出契约要求的 401 `authentication_required`；但**不得**据此声称已验证 (a) 的"来源不受信"门。若伪造来源（`X-Forwarded-For`、改 `client_address`、mock）冒充 (a)，判 INVALID。
+  > **构造诚实性（如何触发）**：本 case 的契约有两半——(a)"无 Bearer 且不命中免登录"、(b)"非法授权方案"。在 A/B 两班**均无法构造 (a)**：A 类 m5air 监听 LAN，执行机源地址为 `192.168.1.x`（RFC1918 受信）；
+    B 类临时实例监听 `127.0.0.1`（loopback 受信）；源码 `unauthenticated_principal()`（`auth.py:33-34`）对 loopback/RFC1918 在**无 `Authorization` 头**时**无条件**授予共享角色（不读 `LLMTIER_TRUSTED_LAN_MODE`），因此"完全无头"在 A/B 上恒为 200，非受信来源需公网源地址，A/B 不可得（[测试设计 §4.2/§11.2 第 5 项](../llmtier-system-test-scheme.md)）。
+    故本 case 以 **(b) 非法方案**（`Authorization: Basic …`）触发 401——它进入同一 `authenticate()` 的"非法方案"分支，产出契约要求的 401 `authentication_required`；
+    但**不得**据此声称已验证 (a) 的"来源不受信"门。若伪造来源（`X-Forwarded-For`、改 `client_address`、mock）冒充 (a)，判 INVALID。
 
-**目的（被测契约）**：验证 access-trust 机制的 **缺凭据/非法方案判定路径**。被测端点/规则：`GET /v1/models`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listModels`）；入口 [`_auth()`](../../../../src/http_api/app.py) 先经 [`unauthenticated_principal()`](../../../../src/http_api/auth.py)（因 `Authorization` 头存在而返回 `None`），再落入 [`authenticate()`](../../../../src/http_api/auth.py)：`raw.startswith("Bearer ")` 为假 ⇒ 抛 `ApiError(401, "authentication_required")`（`auth.py:53-54`）。**角色澄清**：§3.2 角色 `none`（该 case 关注"无效/缺失授权"而非 data 权限）；wire 契约是"非法授权方案 ⇒ 401 `authentication_required`"。设计验证项 `VRC-API-002`；机制 `T-TRUST-BEARER`（机制需求 `R-TRUST-01`：单点判定、错误映射；见 [access-trust 机制 §5.1/§7/§8 INV-1](../../../20_system_design/mechanisms/access-trust.md)）；错误信封 `{error:{message,type,code,param,retryable}}`，`type` 由状态导出（401 < 500 ⇒ `request_error`）。**不证明什么**：不证明 **错误 bearer（形态合法）→403**（ST-AUTH-002）、**空 bearer→403**（ST-AUTH-006）、**data token 访问 admin 面→403**（ST-AUTH-003/08/09）、**未配置鉴权→503**（ST-AUTH-007）、**无 token 的 LAN trust→200**（ST-AUTH-001/04）、**公共端点无需 token**（ST-AUTH-005）。本 case **不**证明非受信来源下"缺 Bearer→401"（见下构造说明）。
+**目的（被测契约）**：验证 access-trust 机制的 **缺凭据/非法方案判定路径**。被测端点/规则：`GET /v1/models`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listModels`）；
+入口 [`_auth()`](../../../../src/http_api/app.py) 先经 [`unauthenticated_principal()`](../../../../src/http_api/auth.py)（因 `Authorization` 头存在而返回 `None`），再落入 [`authenticate()`](../../../../src/http_api/auth.py)：`raw.startswith("Bearer ")` 为假 ⇒ 抛 `ApiError(401, "authentication_required")`（`auth.py:53-54`）。
+**角色澄清**：§3.2 角色 `none`（该 case 关注"无效/缺失授权"而非 data 权限）；wire 契约是"非法授权方案 ⇒ 401 `authentication_required`"。设计验证项 `VRC-API-002`；
+机制 `T-TRUST-BEARER`（机制需求 `R-TRUST-01`：单点判定、错误映射；见 [access-trust 机制 §5.1/§7/§8 INV-1](../../../20_system_design/mechanisms/access-trust.md)）；
+错误信封 `{error:{message,type,code,param,retryable}}`，`type` 由状态导出（401 < 500 ⇒ `request_error`）。**不证明什么**：不证明 **错误 bearer（形态合法）→403**（ST-AUTH-002）、**空 bearer→403**（ST-AUTH-006）、**data token 访问 admin 面→403**（ST-AUTH-003/08/09）、**未配置鉴权→503**（ST-AUTH-007）、**无 token 的 LAN trust→200**（ST-AUTH-001/04）、**公共端点无需 token**（ST-AUTH-005）。
+本 case **不**证明非受信来源下"缺 Bearer→401"（见下构造说明）。
 
-  > **构造诚实性（如何触发）**：本 case 的契约有两半——(a)"无 Bearer 且不命中免登录"、(b)"非法授权方案"。在 A/B 两班**均无法构造 (a)**：A 类 m5air 监听 LAN，执行机源地址为 `192.168.1.x`（RFC1918 受信）；B 类临时实例监听 `127.0.0.1`（loopback 受信）；源码 `unauthenticated_principal()`（`auth.py:33-34`）对 loopback/RFC1918 在**无 `Authorization` 头**时**无条件**授予共享角色（不读 `LLMTIER_TRUSTED_LAN_MODE`），因此"完全无头"在 A/B 上恒为 200，非受信来源需公网源地址，A/B 不可得（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。故本 case 以 **(b) 非法方案**（`Authorization: Basic …`）触发 401——它进入同一 `authenticate()` 的"非法方案"分支，产出契约要求的 401 `authentication_required`；但**不得**据此声称已验证 (a) 的"来源不受信"门。若伪造来源（`X-Forwarded-For`、改 `client_address`、mock）冒充 (a)，判 INVALID。
+  > **构造诚实性（如何触发）**：本 case 的契约有两半——(a)"无 Bearer 且不命中免登录"、(b)"非法授权方案"。在 A/B 两班**均无法构造 (a)**：A 类 m5air 监听 LAN，执行机源地址为 `192.168.1.x`（RFC1918 受信）；
+    B 类临时实例监听 `127.0.0.1`（loopback 受信）；源码 `unauthenticated_principal()`（`auth.py:33-34`）对 loopback/RFC1918 在**无 `Authorization` 头**时**无条件**授予共享角色（不读 `LLMTIER_TRUSTED_LAN_MODE`），因此"完全无头"在 A/B 上恒为 200，非受信来源需公网源地址，A/B 不可得（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。
+    故本 case 以 **(b) 非法方案**（`Authorization: Basic …`）触发 401——它进入同一 `authenticate()` 的"非法方案"分支，产出契约要求的 401 `authentication_required`；
+    但**不得**据此声称已验证 (a) 的"来源不受信"门。若伪造来源（`X-Forwarded-For`、改 `client_address`、mock）冒充 (a)，判 INVALID。
 
 ## 2. 被测入口与前置
 
@@ -85,7 +96,10 @@
   6. 断言 body **不含** `object=="list"`/`data` 等 `ModelList` 字段（拒绝路径不得返回业务载荷）。
   7. （可选）对变体 `Authorization: Token dev-data` 重复第 3–6 步，确认同样 401（同一分支）。
 
-**重点关注步骤**：① **401 与 403 的分界**——非法方案/缺 Bearer 前缀 ⇒ 401；形态合法（`Bearer `）但值错 ⇒ 403（ST-AUTH-002/06）。把 403 当 401 或反之即 FAIL；② **不能以"完全无头"构造本 case**——A/B 上无头因 LAN/loopback trust 得 200；若观察到 200，说明构造错误而非行为错误；③ **不得伪造来源**——代码以 socket `client_address[0]` 判定（`app.py:184`），`X-Forwarded-For` 等头不参与；伪造/改地址冒充非受信来源判 INVALID（[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)）；④ **401 的 `type` 是 `request_error`**（401 < 500），信封恰 5 键（无 `category`）；⑤ **拒绝先于 dispatch**——无上游调用、无账本义务（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；⑥ 不在此 case 断言 403/404/503 或角色隔离。
+**重点关注步骤**：① **401 与 403 的分界**——非法方案/缺 Bearer 前缀 ⇒ 401；形态合法（`Bearer `）但值错 ⇒ 403（ST-AUTH-002/06）。把 403 当 401 或反之即 FAIL；② **不能以"完全无头"构造本 case**——A/B 上无头因 LAN/loopback trust 得 200；
+若观察到 200，说明构造错误而非行为错误；③ **不得伪造来源**——代码以 socket `client_address[0]` 判定（`app.py:184`），`X-Forwarded-For` 等头不参与；伪造/改地址冒充非受信来源判 INVALID（[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)）；
+④ **401 的 `type` 是 `request_error`**（401 < 500），信封恰 5 键（无 `category`）；⑤ **拒绝先于 dispatch**——无上游调用、无账本义务（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；
+⑥ 不在此 case 断言 403/404/503 或角色隔离。
 
 ## 5. 独立 Oracle 与预期结果
 

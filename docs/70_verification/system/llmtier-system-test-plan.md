@@ -52,7 +52,9 @@
 
 **不证明什么**：本计划不证明 Web UI 行为、FD 泄漏、30min 耐久、性能 SLO 校准、上游模型答案质量与上游 provider 实际推理正确性；也不证明静态契约一致（后者由 `docs/60_interfaces/contracts/llmtier-contract-specification.md` 与静态契约测试承接）。**静态契约 PASS ≠ 运行行为 PASS**，反之亦然。
 
-**测试策略**：单服务 / 单进程 / 单 SQLite 部署边界内的 runtime 端到端；unit mock 与假上游 provider 仅用于无法隔离的子路径（如 SSE stream、限速注入）。**浏览器 UI 行为级（真实 headless Chrome over CDP，`ST-UI-*`，`-m ui`）在本层**；生产 TLS/SSO/CSRF、`runtime_activation=true`、多实例/HA、跨系统恢复不在本层（见 scheme §4 裁决与 §9）。覆盖模型＝surface → contract → case：每个对外 surface（启服/健康就绪、Data Plane、Embedding、Admin CRUD/probe/refresh、Audit/Log、观测诊断、Auth/TRUSTED_LAN）映射到来源 ID 与契约（`CT-*`），再落到 scheme §3 的 Case ID；缺口显式列入 scheme §4，不静默从分母消失。
+**测试策略**：单服务 / 单进程 / 单 SQLite 部署边界内的 runtime 端到端；unit mock 与假上游 provider 仅用于无法隔离的子路径（如 SSE stream、限速注入）。**浏览器 UI 行为级（真实 headless Chrome over CDP，`ST-UI-*`，`-m ui`）在本层**；
+生产 TLS/SSO/CSRF、`runtime_activation=true`、多实例/HA、跨系统恢复不在本层（见 scheme §4 裁决与 §9）。覆盖模型＝surface → contract → case：每个对外 surface（启服/健康就绪、Data Plane、Embedding、Admin CRUD/probe/refresh、Audit/Log、观测诊断、Auth/TRUSTED_LAN）映射到来源 ID 与契约（`CT-*`），再落到 scheme §3 的 Case ID；
+缺口显式列入 scheme §4，不静默从分母消失。
 
 **构成清单**（只索引，不复制清单或 Case 细节）：
 
@@ -157,8 +159,13 @@
 
 - 环境搭建与复位操作：**两层被测对象，一套执行机**。A 类＝m5air 现有实例（`192.168.1.9:8181`，只读/观察/一次性无状态写，写后即 teardown）；B 类＝执行机本机临时实例（随机空闲端口＋`tempfile.mkdtemp(prefix="llmtier_b_")` 临时 SQLite，CRUD/空库/无鉴权/注入/并发，整班销毁）。执行机＝开发机，`cwd="$(git rev-parse --show-toplevel)"`、`PYTHONPATH=src`。
   - 版本锚定与更新：每 Run pin `{git_commit, db_schema_version, openapi_version}`（§7），缺任一不得开跑；m5air 部署目录非 git 工作树，须从开发机受控 `rsync`（排除 `state.sqlite3*`、`secrets/`、`llmtier.log`、`llmtier.pid`、`backups/`）；回滚＝用旧 commit 源码快照重新 `rsync`。
-  - 启动/重启（A 类）：查旧进程与端口 → `kill -TERM`（勿 `kill -9`）→ Python 3.14 `python3 -m http_api --host 0.0.0.0 --port 8181 --database …/state.sqlite3` → `curl /healthz`＋`/readyz` 验证 → 确认恰好一个 PID、一个 `*:8181` 监听者。幂等：已启动即已满足，不得起第二实例。**可执行实现**：`tools/deploy.py` 将本节＋`m5air-deploy-guide.md` 的事实固化为脚本——pin `{git_commit, openapi_version, schema_version}` → `rsync src/` → `lsof -iTCP:8181 -sTCP:LISTEN` 找旧 PID 并 `kill -TERM` → 以 Python 3.14＋`LLMTIER_{ADMIN,DATA}_TOKEN`＋`PYTHONPATH=src -m http_api` 启动 → `curl /healthz`＋`/readyz`；`--rollback <db-bak>` 恢复 DB，`--dry-run` 只打印命令，不打印任何 secret。**部署/启停/备份/恢复唯一 authority 是 `m5air-deploy-guide.md` 与 `m5air-operations-manual.md`；本节是其测试用镜像，脚本冲突以运维手册为准并回填本节。**
-- 隔离键与清理：A 类与 B 类**不共享 SQLite/进程且不并行**；B 类隔离键＝临时端口＋临时目录＋每 run `settings.json`；清理＝A 类写 Case teardown、注入 `items:[]` 清空、`DELETE /v1/usage` 复位账本；B 类 `stop()`（`terminate`→等 5 s→`kill`）＋`rm -rf` 临时目录。**不得删除 m5air 既有 provider/deployment/service-level 或用户 usage。** **可执行实现**：`tools/reset_env.py`（幂等、安全）——先 sqlite backup API 备份 DB（`--no-backup` 跳过）→ 可选 `--restore <bak>` / `--rebuild` → 逐 deployment `GET diagnostics` 后 `PATCH {"items":[]}` 并断言为空 → `DELETE /v1/usage`（`--no-ledger` 跳过）→ 杀死遗留本地测试 `LLMTierInstance`/临时实例进程并释放临时端口 → 末尾重跑 `tools/check_env.py`；`--dry-run` 只打印动作、`--yes` 为非交互 guard，任一步失败退出非零。
+  - 启动/重启（A 类）：查旧进程与端口 → `kill -TERM`（勿 `kill -9`）→ Python 3.14 `python3 -m http_api --host 0.0.0.0 --port 8181 --database …/state.sqlite3` → `curl /healthz`＋`/readyz` 验证 → 确认恰好一个 PID、一个 `*:8181` 监听者。
+    幂等：已启动即已满足，不得起第二实例。**可执行实现**：`tools/deploy.py` 将本节＋`m5air-deploy-guide.md` 的事实固化为脚本——pin `{git_commit, openapi_version, schema_version}` → `rsync src/` → `lsof -iTCP:8181 -sTCP:LISTEN` 找旧 PID 并 `kill -TERM` → 以 Python 3.14＋`LLMTIER_{ADMIN,DATA}_TOKEN`＋`PYTHONPATH=src -m http_api` 启动 → `curl /healthz`＋`/readyz`；
+    `--rollback <db-bak>` 恢复 DB，`--dry-run` 只打印命令，不打印任何 secret。**部署/启停/备份/恢复唯一 authority 是 `m5air-deploy-guide.md` 与 `m5air-operations-manual.md`；
+    本节是其测试用镜像，脚本冲突以运维手册为准并回填本节。**
+- 隔离键与清理：A 类与 B 类**不共享 SQLite/进程且不并行**；B 类隔离键＝临时端口＋临时目录＋每 run `settings.json`；清理＝A 类写 Case teardown、注入 `items:[]` 清空、`DELETE /v1/usage` 复位账本；
+  B 类 `stop()`（`terminate`→等 5 s→`kill`）＋`rm -rf` 临时目录。**不得删除 m5air 既有 provider/deployment/service-level 或用户 usage。** **可执行实现**：`tools/reset_env.py`（幂等、安全）——先 sqlite backup API 备份 DB（`--no-backup` 跳过）→ 可选 `--restore <bak>` / `--rebuild` → 逐 deployment `GET diagnostics` 后 `PATCH {"items":[]}` 并断言为空 → `DELETE /v1/usage`（`--no-ledger` 跳过）→ 杀死遗留本地测试 `LLMTierInstance`/临时实例进程并释放临时端口 → 末尾重跑 `tools/check_env.py`；
+  `--dry-run` 只打印动作、`--yes` 为非交互 guard，任一步失败退出非零。
 - 复位阶梯与时限（软复位→重启→驱动恢复）：
   1. **case 前检查**：跑 §3 A 类 6 项（`pytest_configure` 自动执行；或 `tools/check_env.py --class a`）；**不通过只 skip A 类**（`pytest_collection_modifyitems` 只对非 `api_b` 用例加 skip），**B 类用各自临时实例照跑**——不存在“整班 Blocked/Skip”，A 与 B 独立判定（方案 §1.7）。
   2. **软复位**：A 类每个写 Case 后恢复被改字段（带正确 `If-Match` 的 `PATCH`）、清注入（`PATCH …/diagnostics {"items":[]}` 后 `GET` 确认空）、`DELETE /v1/usage`；B 类丢弃临时 DB 重起。**可执行实现**：`tools/reset_env.py` 步骤 (c)/(d)，见上。

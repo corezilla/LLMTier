@@ -47,7 +47,11 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-EMB-005` / 系统设计 §8 Embeddings 接口 / `VRC-INF-002` / boundary / P2（[方案清单 `ST-EMB-005`](../llmtier-system-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：边界值抽样 + 契约字段比对
-- 要测什么（责任展开）：`POST /v1/embeddings` 输入数组长度 33（超过 `embedding_max_batch_inputs=32`）：LLMTier 层不强制该上限，返回 200 且 `data` 含 33 个 embedding 对象。`model="Embedding-v1"`、`input` 为 33 个字符串的数组（`EmbeddingRequest.input` 的数组形态，`minItems:1` 无 `maxItems`）。需求 `LT-FUN-003`/`LT-OPEN-02`（`Embedding-v1` 声明 `batch 32`）；机制需求 `R-INF-04`/`R-INF-07`（[inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）；契约 `CT-EMB-001`。**当前实现的边界事实**：`capabilities.embedding_max_batch_inputs=32` 在 `src/management/registry.py` 中为 **informational**（用于 `/v1/models` 元数据），`src/inference/embeddings.py` 的 `create()` 校验逻辑**不含** batch 上限检查（只校验请求键集、model、`embeddings` 能力、`dimensions`），故 33 项被原样转发上游；实际 batch 限制由上游 bge-m3 处理。
+- 要测什么（责任展开）：`POST /v1/embeddings` 输入数组长度 33（超过 `embedding_max_batch_inputs=32`）：LLMTier 层不强制该上限，返回 200 且 `data` 含 33 个 embedding 对象。
+  `model="Embedding-v1"`、`input` 为 33 个字符串的数组（`EmbeddingRequest.input` 的数组形态，`minItems:1` 无 `maxItems`）。需求 `LT-FUN-003`/`LT-OPEN-02`（`Embedding-v1` 声明 `batch 32`）；
+  机制需求 `R-INF-04`/`R-INF-07`（[inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）；契约 `CT-EMB-001`。
+  **当前实现的边界事实**：`capabilities.embedding_max_batch_inputs=32` 在 `src/management/registry.py` 中为 **informational**（用于 `/v1/models` 元数据），`src/inference/embeddings.py` 的 `create()` 校验逻辑**不含** batch 上限检查（只校验请求键集、model、`embeddings` 能力、`dimensions`），故 33 项被原样转发上游；
+  实际 batch 限制由上游 bge-m3 处理。
 - 明确不测什么 / 失败含义：不测 batch **上限**（本 case 恰证明"超声明值不被本地拒绝"）；不测超大 batch（如数百项）或上游真实 batch 上限；不测 base64 形态下的 batch 编码（ST-EMB-002）；不测未知 model（ST-EMB-004）、`dimensions`（ST-EMB-006）、非法 `encoding_format`（ST-EMB-007）；不对向量语义做断言。失败含义＝与"本地不强制上限"的实现边界事实不符。
 
 ## 2. 被测入口与前置
@@ -90,7 +94,9 @@ Accept: application/json
 | 5 | 断言 `object=="list"`、`data` 为数组且 `len(data) == 33` | 数量一致 |
 | 6 | 断言每个 `item` 的 `object=="embedding"`、`index` 覆盖 `0..32`（顺序稳定）、`embedding` 为有限的 1024 维数值数组 | 逐项形状/有限性 |
 
-- 重点关注步骤：① **长度恰 33**——不是"≥1"也不是"≥33"；本地不得因声明上限 32 而截断/拒绝；② **`index` 与输入顺序对应**——`data[i].index==i`（或按实现稳定排序）；③ **每个向量的维度/有限性**——33 项都须 1024 维 finite，避免只抽查第一项；④ **上游行为风险**——本 case 的 200 依赖上游 bge-m3 接受 33 项；若上游返回非 2xx（经适配层归一为 `provider_error`/`provider_contract_error` 等），设计将其列为正常/边界成功场景，故上游拒绝应按 FAIL 登记；若因上游离线等环境问题则 SKIP；⑤ **"informational" 事实**——`embedding_max_batch_inputs` 不参与 `create()` 校验；⑥ **非性能判定**。
+- 重点关注步骤：① **长度恰 33**——不是"≥1"也不是"≥33"；本地不得因声明上限 32 而截断/拒绝；② **`index` 与输入顺序对应**——`data[i].index==i`（或按实现稳定排序）；③ **每个向量的维度/有限性**——33 项都须 1024 维 finite，避免只抽查第一项；
+  ④ **上游行为风险**——本 case 的 200 依赖上游 bge-m3 接受 33 项；若上游返回非 2xx（经适配层归一为 `provider_error`/`provider_contract_error` 等），设计将其列为正常/边界成功场景，故上游拒绝应按 FAIL 登记；
+  若因上游离线等环境问题则 SKIP；⑤ **"informational" 事实**——`embedding_max_batch_inputs` 不参与 `create()` 校验；⑥ **非性能判定**。
 
 ## 5. 独立 Oracle 与预期结果
 

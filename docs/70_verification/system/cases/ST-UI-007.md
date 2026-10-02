@@ -54,7 +54,9 @@
 - 要测什么（责任展开）：页面先以健康实例渲染出 tier 树；随后将 `/v1/*` fetch 注入 500 并切换 tab：UI 必须显示 stale banner（`Refresh failed — showing the last known data.`）并 **保留上一屏 DOM**，不得变空白屏。
 - 明确不测什么 / 失败含义：不证明 412/409/401 的专用分支（归 `UT-UI-002/008` 与后续；本 Case 覆盖「其它状态→保留旧屏」兜底路径）。
 
-**目的（被测契约）**：页面先以健康实例渲染出 tier 树；随后将 `/v1/*` fetch 注入 500 并切换 tab：UI 必须显示 stale banner（`Refresh failed — showing the last known data.`）并 **保留上一屏 DOM**，不得变空白屏。 本 Case 是 `RISK-UI-EXEC-1` 关闭证据之一——在**真实浏览器**中执行 `src/web_ui/index.html`、`src/web_ui/app.js`，取代此前的源码字符串契约断言。被测入口：`src/web_ui/`（由 LLMTier 同源静态服务 `/ui/`）；驱动：headless Chrome + CDP（`tests/common/drivers/browser_driver.mjs`）；编排：`tests/system/cases/ST-UI-001.py`。
+**目的（被测契约）**：页面先以健康实例渲染出 tier 树；随后将 `/v1/*` fetch 注入 500 并切换 tab：UI 必须显示 stale banner（`Refresh failed — showing the last known data.`）并 **保留上一屏 DOM**，不得变空白屏。
+ 本 Case 是 `RISK-UI-EXEC-1` 关闭证据之一——在**真实浏览器**中执行 `src/web_ui/index.html`、`src/web_ui/app.js`，取代此前的源码字符串契约断言。被测入口：`src/web_ui/`（由 LLMTier 同源静态服务 `/ui/`）；
+驱动：headless Chrome + CDP（`tests/common/drivers/browser_driver.mjs`）；编排：`tests/system/cases/ST-UI-001.py`。
 
 ## 2. 被测入口与前置
 

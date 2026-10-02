@@ -53,7 +53,12 @@
 - 要测什么（责任展开）：`GET /v1/diagnostics/snapshots` 提交无效/过期 cursor：HTTP 400 `cursor_expired`（`ERR-CURSOR`），不返回被游标解引用为零匹配的"假空页"。
 - 明确不测什么 / 失败含义：不证明 正向页/脱敏（ST-OBSSNAP-001）、不证明 trace 分页（ST-OBSTRACE-002）、不证明别名等价（ST-OBSALIAS-002）、不证明 `limit` 非法值的 400（`_int_param` → `invalid_request`，非本 case 的 `cursor_expired`）。**实现现状（已对齐契约）**：当前实现 [`snapshots_page`](../../../../src/libdiag/snapshots.py) **已校验 cursor**——不存在/失效 cursor 显式抛 `ApiError(400, "cursor_expired")`（`snapshots.py:49-51`），不会返回"假空页"。因此本 case 的"400 `cursor_expired`"与实现一致。
 
-**目的（被测契约）**：验证 `GET /v1/diagnostics/snapshots` 的**分页 cursor 负向契约**。被测端点/规则：非法/不可解析/已失效 cursor → `400 cursor_expired`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) ST-OBSSNAP-002；§3.5 `/v1/diagnostics/snapshots` 覆盖 `cursor_expired`；§11.1 `ERR-CURSOR → ST-USAGE-004、ST-OBSSNAP-002、ST-OBSTRACE-002`）；稳定排序基于 `(captured_at, id)`（[`src/libdiag/snapshots.py`](../../../../src/libdiag/snapshots.py) `ORDER BY captured_at DESC,id DESC`，cursor 谓词 `(captured_at||id) < (SELECT ... WHERE id=?)`）；认证 `admin`；统一错误信封 5 键。设计验证项 `VRC-DIAG-002`；机制 `T-OBS-SNAP` + 分页语义 `T-MET-PAGE`（[observability 机制](../../../20_system_design/mechanisms/observability.md) §4.2 `D-OBS-PAGE`、[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明正向页/脱敏（ST-OBSSNAP-001）、不证明 trace 分页（ST-OBSTRACE-002）、不证明别名等价（ST-OBSALIAS-002）、不证明 `limit` 非法值的 400（`_int_param` → `invalid_request`，非本 case 的 `cursor_expired`）。**实现现状（已对齐契约）**：当前实现 [`snapshots_page`](../../../../src/libdiag/snapshots.py) **已校验 cursor**——不存在/失效 cursor 显式抛 `ApiError(400, "cursor_expired")`（`snapshots.py:49-51`），不会返回"假空页"。
+**目的（被测契约）**：验证 `GET /v1/diagnostics/snapshots` 的**分页 cursor 负向契约**。被测端点/规则：非法/不可解析/已失效 cursor → `400 cursor_expired`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) ST-OBSSNAP-002；
+§3.5 `/v1/diagnostics/snapshots` 覆盖 `cursor_expired`；§11.1 `ERR-CURSOR → ST-USAGE-004、ST-OBSSNAP-002、ST-OBSTRACE-002`）；稳定排序基于 `(captured_at, id)`（[`src/libdiag/snapshots.py`](../../../../src/libdiag/snapshots.py) `ORDER BY captured_at DESC,id DESC`，cursor 谓词 `(captured_at||id) < (SELECT ... WHERE id=?)
+`）；认证 `admin`；统一错误信封 5 键。设计验证项 `VRC-DIAG-002`；机制 `T-OBS-SNAP` + 分页语义 `T-MET-PAGE`（[observability 机制](../../../20_system_design/mechanisms/observability.md) §4.2 `D-OBS-PAGE`、[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；
+需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明正向页/脱敏（ST-OBSSNAP-001）、不证明 trace 分页（ST-OBSTRACE-002）、不证明别名等价（ST-OBSALIAS-002）、不证明 `limit` 非法值的 400（`_int_param` → `invalid_request`，非本 case 的 `cursor_expired`）。
+**实现现状（已对齐契约）**：当前实现 [`snapshots_page`](../../../../src/libdiag/snapshots.py) **已校验 cursor**——不存在/失效 cursor 显式抛 `ApiError(400, "cursor_expired")`（`snapshots.py:49-51`），不会返回"假空页"。
 
 ## 2. 被测入口与前置
 
@@ -79,7 +84,11 @@
   4. 断言**不得**出现 `200 + {items:[],has_more:false}` 的"假空页"——出现即 FAIL（当前实现已 400，不会出现）。
   5. （对照）无 `cursor` 的 `GET /v1/diagnostics/snapshots?limit=1` → 断言 `200` 且页形状正确（正向控制，证明端点本体可用，排除把"端点坏了"误判为 cursor 拒绝）。
 
-**重点关注步骤**：① **"假空页"陷阱**——无效 cursor 最危险的误判是把它当合法空结果；实现已在 `snapshots.py:49-51` 显式拒绝，仍必须显式断言 400，不得以"空页合法"放行。② **code 精确**——必须 `cursor_expired`（§11.1 `ERR-CURSOR`），不是 `invalid_request`/`not_found`。③ **错误信封 identity**——恰 5 键、`type` 由状态导出、`param`（如有）可空。④ **与 `limit` 非法区分**——`limit=abc` 走 `_int_param` 的 `400 invalid_request`；本 case 不用该路径。⑤ **实现现状**——实现已校验 cursor 并 400；openapi `/v1/diagnostics/snapshots` 未必声明 400，但实现行为与设计契约一致，可直接判定（不再 BLOCKED）。⑥ **零副作用**——GET 拒绝不写任何行。⑦ **降级/存储**——`_UnavailableDiagnostics.snapshots_page` 忽略 cursor 返回空页 200，属降级实例 → BLOCKED/SKIP；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSSNAP-002.py` 已实现。
+**重点关注步骤**：① **"假空页"陷阱**——无效 cursor 最危险的误判是把它当合法空结果；实现已在 `snapshots.py:49-51` 显式拒绝，仍必须显式断言 400，不得以"空页合法"放行。② **code 精确**——必须 `cursor_expired`（§11.1 `ERR-CURSOR`），不是 `invalid_request`/`not_found`。
+③ **错误信封 identity**——恰 5 键、`type` 由状态导出、`param`（如有）可空。④ **与 `limit` 非法区分**——`limit=abc` 走 `_int_param` 的 `400 invalid_request`；
+本 case 不用该路径。⑤ **实现现状**——实现已校验 cursor 并 400；openapi `/v1/diagnostics/snapshots` 未必声明 400，但实现行为与设计契约一致，可直接判定（不再 BLOCKED）。
+⑥ **零副作用**——GET 拒绝不写任何行。⑦ **降级/存储**——`_UnavailableDiagnostics.snapshots_page` 忽略 cursor 返回空页 200，属降级实例 → BLOCKED/SKIP；`503 usage_store_unavailable` 判 BLOCKED/SKIP。
+自动化入口 `ST-OBSSNAP-002.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 

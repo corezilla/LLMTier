@@ -53,7 +53,10 @@
 - 要测什么（责任展开）：`PATCH /v1/service-levels/{id}` 提交未知字段：HTTP 400 `invalid_request`（"Unknown or empty …"）。
 - 明确不测什么 / 失败含义：不证明 合法 PATCH 成功（ST-SL-004）、不证明缺/过期 `If-Match` 412（SL 412 未单独构 case）、不证明成员能力/向量空间冲突（ST-SL-006/07）。
 
-**目的（被测契约）**：验证 Service Level PATCH 的**字段白名单校验**。被测端点/规则：`PATCH /v1/service-levels/{service_level_id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `updateServiceLevel`，body `ServiceLevelPatch.additionalProperties:false`）；[`registry.update_service_level`](../../../../src/management/registry.py) 首行做 PATCH 字段白名单校验（仅接受 `deployment_ids`/`enabled`，否则 400 `invalid_request`，[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。设计验证项 `VRC-MGMT-002`；错误目录 `ERR-REQ-VALIDATION` → wire `code=invalid_request`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明合法 PATCH 成功（ST-SL-004）、不证明缺/过期 `If-Match` 412（SL 412 未单独构 case）、不证明成员能力/向量空间冲突（ST-SL-006/07）。
+**目的（被测契约）**：验证 Service Level PATCH 的**字段白名单校验**。被测端点/规则：`PATCH /v1/service-levels/{service_level_id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `updateServiceLevel`，body `ServiceLevelPatch.additionalProperties:false`）；
+[`registry.update_service_level`](../../../../src/management/registry.py) 首行做 PATCH 字段白名单校验（仅接受 `deployment_ids`/`enabled`，否则 400 `invalid_request`，[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。
+设计验证项 `VRC-MGMT-002`；错误目录 `ERR-REQ-VALIDATION` → wire `code=invalid_request`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。
+**不证明什么**：不证明合法 PATCH 成功（ST-SL-004）、不证明缺/过期 `If-Match` 412（SL 412 未单独构 case）、不证明成员能力/向量空间冲突（ST-SL-006/07）。
 
 ## 2. 被测入口与前置
 

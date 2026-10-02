@@ -53,7 +53,10 @@
 - 要测什么（责任展开）：`POST /v1/probes` 带确认探测未知 deployment：HTTP 404 `not_found`。
 - 明确不测什么 / 失败含义：不证明 缺确认的 400（ST-PROBE-001）、不证明成功探测（ST-PROBE-002）、不证明 provider 未知（无独立 case）、不证明认证负向（ST-AUTH-003/09）。
 
-**目的（被测契约）**：验证探测对**不存在 deployment** 的资源解析契约。被测端点/规则：`POST /v1/probes`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `probeDeployment`，`security=AdminBearerAuth`）；[`AdminService.probe`](../../../../src/management/admin.py) 通过确认门后 `self.registry.get_deployment(body["deployment_id"])`，[`registry.get_deployment`](../../../../src/management/registry.py) 对未知 id 抛 404 `not_found`。设计验证项 `VRC-DIAG-004`；错误目录 `ERR-NOTFOUND` → wire `code=not_found`；需求/机制链 `LT-FUN-005`、`LT-OPS-002`、`R-OBS-01`、`CT-ADMIN-001`。**不证明什么**：不证明缺确认的 400（ST-PROBE-001）、不证明成功探测（ST-PROBE-002）、不证明 provider 未知（无独立 case）、不证明认证负向（ST-AUTH-003/09）。
+**目的（被测契约）**：验证探测对**不存在 deployment** 的资源解析契约。被测端点/规则：`POST /v1/probes`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `probeDeployment`，`security=AdminBearerAuth`）；
+[`AdminService.probe`](../../../../src/management/admin.py) 通过确认门后 `self.registry.get_deployment(body["deployment_id"])`，[`registry.get_deployment`](../../../../src/management/registry.py) 对未知 id 抛 404 `not_found`。
+设计验证项 `VRC-DIAG-004`；错误目录 `ERR-NOTFOUND` → wire `code=not_found`；需求/机制链 `LT-FUN-005`、`LT-OPS-002`、`R-OBS-01`、`CT-ADMIN-001`。
+**不证明什么**：不证明缺确认的 400（ST-PROBE-001）、不证明成功探测（ST-PROBE-002）、不证明 provider 未知（无独立 case）、不证明认证负向（ST-AUTH-003/09）。
 
 ## 2. 被测入口与前置
 

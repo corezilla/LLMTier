@@ -55,7 +55,9 @@
 - 要测什么（责任展开）：Home 后端行点击 Pause：`window.confirm` 通过后发出 `PATCH /v1/deployments/{id}`（带 `If-Match` 前置条件），响应 200 后行状态由 `Idle` 重渲染为 `Paused`；Resume 恢复。
 - 明确不测什么 / 失败含义：不证明 `running>0` 时的确认文案分支（该分支需在途请求，归分析/后续）；不证明鉴权负向（ST-AUTH-*）。
 
-**目的（被测契约）**：Home 后端行点击 Pause：`window.confirm` 通过后发出 `PATCH /v1/deployments/{id}`（带 `If-Match` 前置条件），响应 200 后行状态由 `Idle` 重渲染为 `Paused`；Resume 恢复。 本 Case 是 `RISK-UI-EXEC-1` 关闭证据之一——在**真实浏览器**中执行 `src/web_ui/index.html`、`src/web_ui/app.js`，取代此前的源码字符串契约断言。被测入口：`src/web_ui/`（由 LLMTier 同源静态服务 `/ui/`）；驱动：headless Chrome + CDP（`tests/common/drivers/browser_driver.mjs`）；编排：`tests/system/cases/ST-UI-001.py`。
+**目的（被测契约）**：Home 后端行点击 Pause：`window.confirm` 通过后发出 `PATCH /v1/deployments/{id}`（带 `If-Match` 前置条件），响应 200 后行状态由 `Idle` 重渲染为 `Paused`；
+Resume 恢复。 本 Case 是 `RISK-UI-EXEC-1` 关闭证据之一——在**真实浏览器**中执行 `src/web_ui/index.html`、`src/web_ui/app.js`，取代此前的源码字符串契约断言。被测入口：`src/web_ui/`（由 LLMTier 同源静态服务 `/ui/`）；
+驱动：headless Chrome + CDP（`tests/common/drivers/browser_driver.mjs`）；编排：`tests/system/cases/ST-UI-001.py`。
 
 ## 2. 被测入口与前置
 

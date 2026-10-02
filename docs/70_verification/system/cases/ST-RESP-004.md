@@ -36,7 +36,10 @@
 - 要测什么（责任展开）：`POST /v1/responses` 携带合法 `tools`：被受理并透传，SSE 结构完整。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明上游是否真正调用工具（`function_call_arguments.*` 事件属上游行为，非 LLMTier 契约）；不证明工具执行结果；不证明 `tools` 语义正确性；不证明 `stream=false`/`store=true` 被拒（ST-RESP-002/07）。**失败含义＝tools 受理与透传契约破坏**。
 
-**目的（被测契约）**：验证 Data Plane `POST /v1/responses` 对**合法 `tools` 数组**的受理与透传契约：当所选 model 的能力声明 `tools=true` 时，`tools` 作为可选字段被接受并转发给上游，不因出现 `tools` 而拒绝。被测端点/规则：`POST /v1/responses`；设计验证项 `VRC-INF-001`；机制 `T-TOOLS`；字段约束来自 OpenAPI `ResponsesRequest.tools`（`FunctionTool[]`）与实现 `src/inference/responses.py`（`ALLOWED_FIELDS` 含 `tools`；`require(caps.get("tools") ...)` 仅在能力为 `false` 时拒绝）（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明上游是否真正调用工具；不证明工具执行结果；不证明 `tools` 语义正确性；不证明 `stream=false`/`store=true` 被拒（ST-RESP-002/07）。
+**目的（被测契约）**：验证 Data Plane `POST /v1/responses` 对**合法 `tools` 数组**的受理与透传契约：当所选 model 的能力声明 `tools=true` 时，`tools` 作为可选字段被接受并转发给上游，不因出现 `tools` 而拒绝。
+被测端点/规则：`POST /v1/responses`；设计验证项 `VRC-INF-001`；机制 `T-TOOLS`；字段约束来自 OpenAPI `ResponsesRequest.tools`（`FunctionTool[]`）与实现 `src/inference/responses.py`（`ALLOWED_FIELDS` 含 `tools`；
+`require(caps.get("tools") ...)` 仅在能力为 `false` 时拒绝）（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明上游是否真正调用工具；
+不证明工具执行结果；不证明 `tools` 语义正确性；不证明 `stream=false`/`store=true` 被拒（ST-RESP-002/07）。
 
 ## 2. 被测入口与前置
 

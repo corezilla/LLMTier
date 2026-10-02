@@ -53,7 +53,12 @@
 - 要测什么（责任展开）：`PATCH /v1/providers/{id}` **缺** `If-Match`：HTTP 412 + `error.code=="version_conflict"` + `error.current_version`，无写入。
 - 明确不测什么 / 失败含义：不证明 带正确 `If-Match` 的成功路径（ST-PROV-005）、不证明**过期但形态合法** ETag 的 412（ST-PROV-007）、不证明 DELETE 的缺 If-Match 412（ST-PROV-009）、不证明并发两写者（§5）；本 case 只锁定"缺头"这一种前置失败。
 
-**目的（被测契约）**：验证 Management Provider CRUD 的**乐观并发前置校验（缺前置条件）**。被测端点/规则：`PATCH /v1/providers/{id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `updateProvider`，`security=AdminBearerAuth`）；当 `If-Match` 缺省（`headers.get("If-Match")` 为 `None`）时，[`registry.update_provider`](../../../../src/management/registry.py) 的 `if_match != _etag(rid,row["version"])` 成立，抛 `ApiError(412, "version_conflict", extra={"current_version": <N>})`；wire 信封 `{error:{message,type,code,param,retryable,current_version}}`（`current_version` 为 `additionalProperties:true` 并入的额外键）。设计验证项 `VRC-MGMT-002`；错误目录 `ERR-STALE` → `version_conflict`；机制 `T-CFG-CAS`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。**不证明什么**：不证明带正确 `If-Match` 的成功路径（ST-PROV-005）、不证明**过期但形态合法** ETag 的 412（ST-PROV-007）、不证明 DELETE 的缺 If-Match 412（ST-PROV-009）、不证明并发两写者（§5）；本 case 只锁定"缺头"这一种前置失败。
+**目的（被测契约）**：验证 Management Provider CRUD 的**乐观并发前置校验（缺前置条件）**。被测端点/规则：`PATCH /v1/providers/{id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `updateProvider`，`security=AdminBearerAuth`）；
+当 `If-Match` 缺省（`headers.get("If-Match")` 为 `None`）时，[`registry.update_provider`](../../../../src/management/registry.py) 的 `if_match !
+= _etag(rid,row["version"])` 成立，抛 `ApiError(412, "version_conflict", extra={"current_version": <N>})`；wire 信封 `{error:{message,type,code,param,retryable,current_version}}`（`current_version` 为 `additionalProperties:true` 并入的额外键）。
+设计验证项 `VRC-MGMT-002`；错误目录 `ERR-STALE` → `version_conflict`；机制 `T-CFG-CAS`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。
+**不证明什么**：不证明带正确 `If-Match` 的成功路径（ST-PROV-005）、不证明**过期但形态合法** ETag 的 412（ST-PROV-007）、不证明 DELETE 的缺 If-Match 412（ST-PROV-009）、不证明并发两写者（§5）；
+本 case 只锁定"缺头"这一种前置失败。
 
 ## 2. 被测入口与前置
 

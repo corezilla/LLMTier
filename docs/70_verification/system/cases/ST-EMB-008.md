@@ -34,11 +34,16 @@
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-EMB-008` / 系统设计 §8 Embeddings 接口（POST /v1/embeddings） / `VRC-INF-004` / concurrency / P1（[方案清单 `ST-EMB-008`](../llmtier-system-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：状态机驱动（准入饱和 429 + Retry-After）+ 固定并发度/种子
 
-- 要测什么（责任展开）：`POST /v1/embeddings` 准入饱和：并发超过 `depl_b` 运行时并发许可与队列上限（队列 32）时，`Router.admit` 拒绝并返回 `429 rate_limit_exceeded` 且带 `Retry-After`。需求 `R-INF-04`；机制需求 `R-MET-04`；错误目录 `ERR-RATE-LIMIT` → wire `code=rate_limit_exceeded`；实现 `src/inference/routing.py`（队列满 `len(self._queues[level_id]) >= 32` → `ApiError(429, "rate_limit_exceeded", "Service-level queue is full", retryable=True, headers={"Retry-After":"30"})`；等待超时 → `Retry-After:"1"`）。
+- 要测什么（责任展开）：`POST /v1/embeddings` 准入饱和：并发超过 `depl_b` 运行时并发许可与队列上限（队列 32）时，`Router.admit` 拒绝并返回 `429 rate_limit_exceeded` 且带 `Retry-After`。
+  需求 `R-INF-04`；机制需求 `R-MET-04`；错误目录 `ERR-RATE-LIMIT` → wire `code=rate_limit_exceeded`；实现 `src/inference/routing.py`（队列满 `len(self._queues[level_id]) >= 32` → `ApiError(429, "rate_limit_exceeded", "Service-level queue is full", retryable=True, headers={"Retry-After":"30"})`；
+  等待超时 → `Retry-After:"1"`）。
 
 - 明确不测什么 / 失败含义：不测 Responses 准入饱和（ST-RESP-020）；不测上游自身返回 429（`openai.py` 非 5xx 分支映射为 `429 provider_error`，非 `rate_limit_exceeded`）；不测模型/维度/编码 400/404（ST-EMB-004/06/07）；不发布时延 SLO。失败含义＝第二条 Data Plane 的准入饱和语义缺失或错误码/`Retry-After` 契约破坏。
 
-**目的（被测契约）**：验证 **Embeddings 数据面** 的准入饱和契约与 `Router.admit` 共享实现。被测端点/规则：`POST /v1/embeddings`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `createEmbedding`，`security=DataBearerAuth`）；入口 [`app.py`](../../../../src/http_api/app.py) 以 data 角色鉴权后调用 [`EmbeddingsService.create`](../../../../src/inference/embeddings.py)，其中 `with self.router.admit(model) as candidate`（`embeddings.py:47`）与 Responses 共用同一 [`Router`](../../../../src/inference/routing.py)。设计验证项 `VRC-INF-004`；机制 `T-MET-PAGE` 无关，本 case 属准入（`E-INF-ADMIT`）。**不证明什么**：不测 Responses 准入饱和（ST-RESP-020）；不测上游自身返回 429；不测模型/维度/编码校验；不发布时延 SLO。
+**目的（被测契约）**：验证 **Embeddings 数据面** 的准入饱和契约与 `Router.admit` 共享实现。被测端点/规则：`POST /v1/embeddings`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `createEmbedding`，`security=DataBearerAuth`）；
+入口 [`app.py`](../../../../src/http_api/app.py) 以 data 角色鉴权后调用 [`EmbeddingsService.create`](../../../../src/inference/embeddings.py)，其中 `with self.router.admit(model) as candidate`（`embeddings.py:47`）与 Responses 共用同一 [`Router`](../../../../src/inference/routing.py)。
+设计验证项 `VRC-INF-004`；机制 `T-MET-PAGE` 无关，本 case 属准入（`E-INF-ADMIT`）。**不证明什么**：不测 Responses 准入饱和（ST-RESP-020）；不测上游自身返回 429；不测模型/维度/编码校验；
+不发布时延 SLO。
 
 ## 2. 被测入口与前置
 

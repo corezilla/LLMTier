@@ -38,7 +38,9 @@
 
 - 明确不测什么 / 失败含义：不证明无 token 的 LAN trust（ST-AUTH-004）、错误 bearer（ST-AUTH-002）、缺/非法凭据 401（ST-AUTH-010）、未配置鉴权 503（ST-AUTH-007）；不证明该写路由的**成功**语义（其正向 Case）；不证明 `permission_denied` 比较是否恒定时间（INV-2）。失败含义＝管理写面的角色门可被 data 凭据绕过。
 
-**目的（被测契约）**：验证 access-trust 机制的**管理写面逐路由角色门**。被测端点/规则：`POST /v1/deployments`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json)）；入口 [`app.py`](../../../../src/http_api/app.py) 在 provider/deployment/service-level 路由块前先执行 `principal = self._auth("admin")`（`app.py:248`），data token 与 admin token `hmac.compare_digest` 不匹配 ⇒ 403 `permission_denied`（[`auth.py`](../../../../src/http_api/auth.py):56-57）。设计验证项 `VRC-MGMT-001`；机制 `T-TRUST-SHARED`、`T-TRUST-ENDPOINTS`。**不证明什么**：不证明 LAN trust/错误 bearer/401/503；不证明成功语义；不证明恒定时间。
+**目的（被测契约）**：验证 access-trust 机制的**管理写面逐路由角色门**。被测端点/规则：`POST /v1/deployments`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json)）；
+入口 [`app.py`](../../../../src/http_api/app.py) 在 provider/deployment/service-level 路由块前先执行 `principal = self._auth("admin")`（`app.py:248`），data token 与 admin token `hmac.compare_digest` 不匹配 ⇒ 403 `permission_denied`（[`auth.py`](../../../../src/http_api/auth.py):56-57）。
+设计验证项 `VRC-MGMT-001`；机制 `T-TRUST-SHARED`、`T-TRUST-ENDPOINTS`。**不证明什么**：不证明 LAN trust/错误 bearer/401/503；不证明成功语义；不证明恒定时间。
 
 ## 2. 被测入口与前置
 

@@ -53,7 +53,11 @@
 - 要测什么（责任展开）：`GET /v1/providers/{id}` 读取已存在 provider 详情：HTTP 200 + `ProviderView` 全字段 + `ETag` 响应头，纯读。
 - 明确不测什么 / 失败含义：不证明 列表（ST-PROV-001）、不证明创建/更新/删除（ST-PROV-002/05..10）、不证明不存在 404 的完整负向（ST-PROV-004）、不证明 `usage` 子对象可写（ST-PROV-013）、不证明响应不含 secret 的强断言（ST-PROV-014）；`request_usage` 的具体计数依赖历史 usage，本 case 只断言字段存在与类型。
 
-**目的（被测契约）**：验证 Management Provider CRUD 的**详情读契约**。被测端点/规则：`GET /v1/providers/{id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getProvider`，`security=AdminBearerAuth`），认证角色 `admin`；成功 `200` + body `ProviderView{id,name,kind,endpoint,has_secret,enabled,usage,request_usage,version}` + 响应头 `ETag: "<id>.v<N>"`；失败走统一错误信封（404 `not_found`）。设计验证项 `VRC-MGMT-001`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`T-CFG-CAS`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明列表（ST-PROV-001）、不证明创建/更新/删除（ST-PROV-002/05..10）、不证明不存在 404 的完整负向（ST-PROV-004）、不证明 `usage` 子对象可写（ST-PROV-013）、不证明响应不含 secret 的强断言（ST-PROV-014）；`request_usage` 的具体计数依赖历史 usage，本 case 只断言字段存在与类型。
+**目的（被测契约）**：验证 Management Provider CRUD 的**详情读契约**。被测端点/规则：`GET /v1/providers/{id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getProvider`，`security=AdminBearerAuth`），认证角色 `admin`；
+成功 `200` + body `ProviderView{id,name,kind,endpoint,has_secret,enabled,usage,request_usage,version}` + 响应头 `ETag: "<id>.v<N>"`；
+失败走统一错误信封（404 `not_found`）。设计验证项 `VRC-MGMT-001`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`T-CFG-CAS`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明列表（ST-PROV-001）、不证明创建/更新/删除（ST-PROV-002/05..10）、不证明不存在 404 的完整负向（ST-PROV-004）、不证明 `usage` 子对象可写（ST-PROV-013）、不证明响应不含 secret 的强断言（ST-PROV-014）；
+`request_usage` 的具体计数依赖历史 usage，本 case 只断言字段存在与类型。
 
 ## 2. 被测入口与前置
 

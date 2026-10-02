@@ -47,7 +47,10 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-USAGE-005` / 系统设计 §8 Usage 查询接口 / `VRC-MGMT-006` / negative / P1（[方案清单 `ST-USAGE-005`](../llmtier-system-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
-- 要测什么（责任展开）：`GET /v1/usage` 缺 `from` 或 `to`（或二者）→ `400 invalid_request`；非法 `date-time` 或 `from >= to` 同样 400，且在**建 snapshot / 读账本之前**被拒（零副作用）。`from`/`to` **required** `date-time`。实现：handler `src/http_api/app.py` 在 `not since or not until` 时直接 `ApiError(400,"invalid_request","from and to are required")`（在建快照前）；`src/inference/usage.py::_page` 在做 `from`/`to` 解析失败或 `start >= end` 时 `ApiError(400,"invalid_request",...)`（仍在 `query_snapshots` 写入前）。机制需求 `R-MET-04`（HTTP 适配层错误映射）；错误目录 `ERR-REQ-VALIDATION` → `invalid_request`；需求链 `LT-FUN-004`、`LT-INT-004/005/007`、`CT-USAGE-001`。
+- 要测什么（责任展开）：`GET /v1/usage` 缺 `from` 或 `to`（或二者）→ `400 invalid_request`；非法 `date-time` 或 `from >= to` 同样 400，且在**建 snapshot / 读账本之前**被拒（零副作用）。
+  `from`/`to` **required** `date-time`。实现：handler `src/http_api/app.py` 在 `not since or not until` 时直接 `ApiError(400,"invalid_request","from and to are required")`（在建快照前）；
+  `src/inference/usage.py::_page` 在做 `from`/`to` 解析失败或 `start >= end` 时 `ApiError(400,"invalid_request",...)`（仍在 `query_snapshots` 写入前）。
+  机制需求 `R-MET-04`（HTTP 适配层错误映射）；错误目录 `ERR-REQ-VALIDATION` → `invalid_request`；需求链 `LT-FUN-004`、`LT-INT-004/005/007`、`CT-USAGE-001`。
 - 明确不测什么 / 失败含义：不测正常查询（ST-USAGE-001/03）；不测过期 cursor 的 `cursor_expired`（ST-USAGE-004）；不测 filter/cursor 不匹配的 `invalid_request`（属 ST-USAGE-007 的 cursor 组件）；不测主体隔离（ST-USAGE-006）；不测 store 不可用 → 503（ST-USAGE-008）；也不测 `limit` 范围校验（实现只做整数转换）。失败含义＝Usage 查询请求校验契约破坏。
 
 ## 2. 被测入口与前置
@@ -93,7 +96,9 @@ Authorization: Bearer dev-data
 | 4 | （零副作用交叉核对，可选）若具备 `ssh m5air sqlite3`，在变体前后 `SELECT COUNT(*) FROM query_snapshots;` | 计数**不变**（校验"校验先于建 snapshot"）；无 SSH 权限时跳过该子检查，**不**因此判变体失败 |
 | 5 | （对照，不改变本 case 判定）对同一 `api_client` 发一次**合法**查询 `?from&to` | 返回 200——佐证拒绝来自参数而非端点/存储不可用 |
 
-- 重点关注步骤：① **缺参 vs 坏日期都要 400 `invalid_request`**——`not since or not until` 在 handler 层、日期解析/`from>=to` 在 `_page` 层，两处都要覆盖；② **空串视同缺失**——`query.get("from",[None])[0]` 得到 `""` 为假值，应走 `invalid_request`；③ **零副作用**——拒绝必须发生在 `query_snapshots` INSERT 之前；④ **错误信封 identity**——恰 5 键、无 `category`，`type` 由 `<500` 导出为 `request_error`；⑤ **不夸大**——`param` 实现为 `null`，不断言具体字段名；⑥ **等值边界**——`from==to` 与逆序 `from>to` 均须 400 `invalid_request`（同一 `start >= end` 分支）。
+- 重点关注步骤：① **缺参 vs 坏日期都要 400 `invalid_request`**——`not since or not until` 在 handler 层、日期解析/`from>=to` 在 `_page` 层，两处都要覆盖；
+  ② **空串视同缺失**——`query.get("from",[None])[0]` 得到 `""` 为假值，应走 `invalid_request`；③ **零副作用**——拒绝必须发生在 `query_snapshots` INSERT 之前；
+  ④ **错误信封 identity**——恰 5 键、无 `category`，`type` 由 `<500` 导出为 `request_error`；⑤ **不夸大**——`param` 实现为 `null`，不断言具体字段名；⑥ **等值边界**——`from==to` 与逆序 `from>to` 均须 400 `invalid_request`（同一 `start >= end` 分支）。
 
 ## 5. 独立 Oracle 与预期结果
 

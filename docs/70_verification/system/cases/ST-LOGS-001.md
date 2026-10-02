@@ -53,7 +53,10 @@
 - 要测什么（责任展开）：`GET /v1/logs?from&to` 返回脱敏的运行日志：HTTP 200 + `LogPage`，且上游 secret `9832` 不出现。
 - 明确不测什么 / 失败含义：不证明 缺时间窗 400（ST-LOGS-002）、不证明审计脱敏（ST-AUDIT-001）、不证明 `level`/`module` 过滤（未单独构 case）、不证明日志完整性/保留策略。
 
-**目的（被测契约）**：验证运行日志读取的**脱敏契约**（`T-TRUST-LEAK`）。被测端点/规则：`GET /v1/logs`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listSanitizedLogs`，query `from`/`to` **必填**、`level`/`module`/`request_id` 可选，`security=AdminBearerAuth`）；[`OperationalLog.page`](../../../../src/log/logs.py) 以 `created_at>=? AND created_at<?`（**半开**）返回 `{data:[LogEntry],page}`；写入侧 [`OperationalLog.record`](../../../../src/log/logs.py) 用 `_SENSITIVE` 正则把 `authorization`/`bearer …`/`secret`/`api_key`/`token=…` 替换为 `[REDACTED]` 并截断 512。设计验证项 `VRC-LOG-001`；机制 `T-TRUST-LEAK`；需求/机制链 `LT-FUN-006`、`LT-SEC-004`、`R-OBS-01`、`CT-LOG-001`。**不证明什么**：不证明缺时间窗 400（ST-LOGS-002）、不证明审计脱敏（ST-AUDIT-001）、不证明 `level`/`module` 过滤（未单独构 case）、不证明日志完整性/保留策略。
+**目的（被测契约）**：验证运行日志读取的**脱敏契约**（`T-TRUST-LEAK`）。被测端点/规则：`GET /v1/logs`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listSanitizedLogs`，query `from`/`to` **必填**、`level`/`module`/`request_id` 可选，`security=AdminBearerAuth`）；
+[`OperationalLog.page`](../../../../src/log/logs.py) 以 `created_at>=? AND created_at<?`（**半开**）返回 `{data:[LogEntry],page}`；
+写入侧 [`OperationalLog.record`](../../../../src/log/logs.py) 用 `_SENSITIVE` 正则把 `authorization`/`bearer …`/`secret`/`api_key`/`token=…` 替换为 `[REDACTED]` 并截断 512。
+设计验证项 `VRC-LOG-001`；机制 `T-TRUST-LEAK`；需求/机制链 `LT-FUN-006`、`LT-SEC-004`、`R-OBS-01`、`CT-LOG-001`。**不证明什么**：不证明缺时间窗 400（ST-LOGS-002）、不证明审计脱敏（ST-AUDIT-001）、不证明 `level`/`module` 过滤（未单独构 case）、不证明日志完整性/保留策略。
 
 ## 2. 被测入口与前置
 

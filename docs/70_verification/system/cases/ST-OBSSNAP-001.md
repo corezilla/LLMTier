@@ -53,7 +53,13 @@
 - 要测什么（责任展开）：`GET /v1/diagnostics/snapshots` 返回 `SnapshotPage`：`{items[], next_cursor, has_more}` 键集精确、每项为恰好 11 键的 `SnapshotView`，且内容**已脱敏**（`upstream_url` 去 query、`error_summary` ≤256B、不含 Secret/凭据/正文）。
 - 明确不测什么 / 失败含义：不证明 非法 cursor 的 400（ST-OBSSNAP-002）、不证明快照**写入**开关门控（`capture_snapshot` 受 `snapshots_enabled` 控制，属机制 `INV-4`/`CON-OBS-001` 与 ST-OBSDIAG-002 的开关写入，本 case 只读现有页）、不证明统计/trace（ST-OBSSTATS-001、ST-OBSTRACE-001）、不证明别名等价（ST-OBSALIAS-002）。
 
-**目的（被测契约）**：验证 Observability `GET /v1/diagnostics/snapshots` 的**只读分页 + 脱敏契约**。被测端点/规则：`GET /v1/diagnostics/snapshots`（可选 `since`/`until`/`deployment_id`/`model`/`limit`/`cursor`），返回 `SnapshotPage`（`items`/`next_cursor`/`has_more` 三键必填）；每项 `SnapshotView` 必填 11 键（`id, request_id, captured_at, upstream_url, backend_model, http_status, latency_ms, error_summary, model, deployment_id, snapshot_type`），`snapshot_type ∈ {upstream,error}`；`upstream_url` "去 query"、`error_summary` ≤256B、`http_status ∈ [100,599]|null`、`latency_ms ≥0|null`；认证角色 `admin`；失败走统一信封 `{error:{message,type,code,param,retryable}}`（401/403/503）。设计验证项 `VRC-DIAG-002`；机制 `T-OBS-SNAP`（[observability 机制](../../../20_system_design/mechanisms/observability.md) §4.2 `D-OBS-SNAPSHOT`、§4.9 `D-OBS-SNAPSHOT` 映射、§4.10、`CON-OBS-003` 不记录 Secret/credential/完整正文）；错误目录 `ERR-STORE` → `usage_store_unavailable`（503）；需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`/`CT-LOG-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；机器契约 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`SnapshotPage`/`SnapshotView`，`security=AdminBearerAuth`）。**不证明什么**：不证明非法 cursor 的 400（ST-OBSSNAP-002）、不证明快照**写入**开关门控（`capture_snapshot` 受 `snapshots_enabled` 控制，属机制 `INV-4`/`CON-OBS-001` 与 ST-OBSDIAG-002 的开关写入，本 case 只读现有页）、不证明统计/trace（ST-OBSSTATS-001、ST-OBSTRACE-001）、不证明别名等价（ST-OBSALIAS-002）。
+**目的（被测契约）**：验证 Observability `GET /v1/diagnostics/snapshots` 的**只读分页 + 脱敏契约**。被测端点/规则：`GET /v1/diagnostics/snapshots`（可选 `since`/`until`/`deployment_id`/`model`/`limit`/`cursor`），返回 `SnapshotPage`（`items`/`next_cursor`/`has_more` 三键必填）；
+每项 `SnapshotView` 必填 11 键（`id, request_id, captured_at, upstream_url, backend_model, http_status, latency_ms, error_summary, model, deployment_id, snapshot_type`），`snapshot_type ∈ {upstream,error}`；
+`upstream_url` "去 query"、`error_summary` ≤256B、`http_status ∈ [100,599]|null`、`latency_ms ≥0|null`；认证角色 `admin`；失败走统一信封 `{error:{message,type,code,param,retryable}}`（401/403/503）。
+设计验证项 `VRC-DIAG-002`；机制 `T-OBS-SNAP`（[observability 机制](../../../20_system_design/mechanisms/observability.md) §4.2 `D-OBS-SNAPSHOT`、§4.9 `D-OBS-SNAPSHOT` 映射、§4.10、`CON-OBS-003` 不记录 Secret/credential/完整正文）；
+错误目录 `ERR-STORE` → `usage_store_unavailable`（503）；需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`/`CT-LOG-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；
+机器契约 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`SnapshotPage`/`SnapshotView`，`security=AdminBearerAuth`）。
+**不证明什么**：不证明非法 cursor 的 400（ST-OBSSNAP-002）、不证明快照**写入**开关门控（`capture_snapshot` 受 `snapshots_enabled` 控制，属机制 `INV-4`/`CON-OBS-001` 与 ST-OBSDIAG-002 的开关写入，本 case 只读现有页）、不证明统计/trace（ST-OBSSTATS-001、ST-OBSTRACE-001）、不证明别名等价（ST-OBSALIAS-002）。
 
 ## 2. 被测入口与前置
 
@@ -75,7 +81,11 @@
   6. **脱敏断言**：逐项扫描 `upstream_url`（不得含 `?` 后 query 串）、`error_summary`、以及整段原始 body：不得出现上游凭据字面 `9832`、`Authorization`、`Bearer `、key 文件内容或任何 secret 值。
   7. （交叉核对，不改变判定）若 `items` 非空，取末条 `id` 作为 `cursor` 重放 `GET ...&cursor=<id>`，确认只读分页可用；本 case 不承担 cursor 负向判定。
 
-**重点关注步骤**：① **页键集精确**——恰 3 键（`items`/`next_cursor`/`has_more`），多/少即违反；② **项键集精确**——每项恰 11 键，`additionalProperties:false`；③ **`snapshot_type` 枚举**——只允许 `upstream`/`error`（`upstream⇒http_status` 非空、`error⇒http_status` 空是机制 §4.2 不变量，可作交叉核对）；④ **`upstream_url` 去 query**——必须已剥离 `?` 后部分，这是 `D-OBS-SNAPSHOT` 的明确映射约束；⑤ **`error_summary` ≤256B**——按 UTF-8 截断，不得 >256；⑥ **脱敏不变量**——整段 body 不得含 `9832`/`Authorization`/secret；⑦ **空页合法**——`snapshots_enabled=false` 时 `items=[]` 仍是合法 `SnapshotPage`（形状 PASS），**不得**因空而判 FAIL；⑧ **降级/存储**——`_UnavailableDiagnostics.snapshots_page` 恒返回 `{items:[],next_cursor:null,has_more:false}` 的 **200**（fail-open，形状 PASS）；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSSNAP-001.py` 已实现（构造非空数据后断言项级/脱敏；落位遵循 §4.9/§8.5）。
+**重点关注步骤**：① **页键集精确**——恰 3 键（`items`/`next_cursor`/`has_more`），多/少即违反；② **项键集精确**——每项恰 11 键，`additionalProperties:false`；
+③ **`snapshot_type` 枚举**——只允许 `upstream`/`error`（`upstream⇒http_status` 非空、`error⇒http_status` 空是机制 §4.2 不变量，可作交叉核对）；④ **`upstream_url` 去 query**——必须已剥离 `?
+` 后部分，这是 `D-OBS-SNAPSHOT` 的明确映射约束；⑤ **`error_summary` ≤256B**——按 UTF-8 截断，不得 >256；⑥ **脱敏不变量**——整段 body 不得含 `9832`/`Authorization`/secret；
+⑦ **空页合法**——`snapshots_enabled=false` 时 `items=[]` 仍是合法 `SnapshotPage`（形状 PASS），**不得**因空而判 FAIL；⑧ **降级/存储**——`_UnavailableDiagnostics.snapshots_page` 恒返回 `{items:[],next_cursor:null,has_more:false}` 的 **200**（fail-open，形状 PASS）；
+`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSSNAP-001.py` 已实现（构造非空数据后断言项级/脱敏；落位遵循 §4.9/§8.5）。
 
 ## 5. 独立 Oracle 与预期结果
 

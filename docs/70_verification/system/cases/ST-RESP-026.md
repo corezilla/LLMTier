@@ -38,7 +38,9 @@
 
 - 明确不测什么 / 失败含义：不测 `malformed_event`（ST-RESP-027）；不测前置阶段注入 `fault_502/503/rate_limit/delay`（ST-RESP-011/22/20）；不测正常流事件序列（ST-RESP-001）；不测注入配置读写校验（ST-OBSDEPL-001..04）。失败含义＝流截断注入未生效或事件计数语义错误。
 
-**目的（被测契约）**：验证 **SSE 流阶段的故障注入**（`stream_terminate`）行为。被测端点/规则：先 `PATCH /v1/deployments/{deployment_id}/diagnostics` 写入 `stream_terminate`；随后 `POST /v1/responses`（stream=true）的响应经 [`app.py`](../../../../src/http_api/app.py) 的 `app.diagnostics.stream_wrapper(...)` 包裹，[`stream.py`](../../../../src/libdiag/stream.py) 在第 N 个事件后 `return`，流提前结束。设计验证项 `VRC-DIAG-004`；机制 `T-OBS-INJECT`。**不证明什么**：不测 `malformed_event`/前置注入/正常序列/配置校验。
+**目的（被测契约）**：验证 **SSE 流阶段的故障注入**（`stream_terminate`）行为。被测端点/规则：先 `PATCH /v1/deployments/{deployment_id}/diagnostics` 写入 `stream_terminate`；
+随后 `POST /v1/responses`（stream=true）的响应经 [`app.py`](../../../../src/http_api/app.py) 的 `app.diagnostics.stream_wrapper(...)` 包裹，[`stream.py`](../../../../src/libdiag/stream.py) 在第 N 个事件后 `return`，流提前结束。
+设计验证项 `VRC-DIAG-004`；机制 `T-OBS-INJECT`。**不证明什么**：不测 `malformed_event`/前置注入/正常序列/配置校验。
 
 ## 2. 被测入口与前置
 

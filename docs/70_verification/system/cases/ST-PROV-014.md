@@ -54,7 +54,11 @@
 - 明确不测什么 / 失败含义：不证明 写入/更新（ST-PROV-002/05）、不证明 `secret_ref` 格式校验（ST-PROV-012）、不证明审计/日志脱敏（ST-AUDIT-001、ST-LOGS-001）、不证明 `/v1/providers/{id}/models` 或 `/usage` 的出站凭据处理；本 case 只覆盖 provider **读取响应体**的安全不变量。
   > 实现状态：本 case 的自动化入口为 **`Implemented`**（`ST-PROV-014.py`，A 类）；实现状态以 §7 为唯一权威，执行状态与 Verdict 只在 Run 报告。
 
-**目的（被测契约）**：验证 Management Provider CRUD 的**秘密不泄露契约**。被测端点/规则：`GET /v1/providers`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listProviders`）与 `GET /v1/providers/{id}`（`getProvider`），角色 `admin`；`ProviderView` 为 `additionalProperties:false`，**不含 `secret_ref` 键**，仅以 `has_secret:boolean` 表达"是否配置了秘密"；[`registry.get_provider`](../../../../src/management/registry.py) 只拼装 `has_secret = bool(row["secret_ref"])`，从不解引用/回传秘密值或引用串。设计验证项 `VRC-MGMT-001`；机制 `T-CFG-SECRET`；需求/机制链 `LT-FUN-005`、`LT-SEC-001`、`R-CFG-01`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明写入/更新（ST-PROV-002/05）、不证明 `secret_ref` 格式校验（ST-PROV-012）、不证明审计/日志脱敏（ST-AUDIT-001、ST-LOGS-001）、不证明 `/v1/providers/{id}/models` 或 `/usage` 的出站凭据处理；本 case 只覆盖 provider **读取响应体**的安全不变量。
+**目的（被测契约）**：验证 Management Provider CRUD 的**秘密不泄露契约**。被测端点/规则：`GET /v1/providers`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listProviders`）与 `GET /v1/providers/{id}`（`getProvider`），角色 `admin`；
+`ProviderView` 为 `additionalProperties:false`，**不含 `secret_ref` 键**，仅以 `has_secret:boolean` 表达"是否配置了秘密"；[`registry.get_provider`](../../../../src/management/registry.py) 只拼装 `has_secret = bool(row["secret_ref"])`，从不解引用/回传秘密值或引用串。
+设计验证项 `VRC-MGMT-001`；机制 `T-CFG-SECRET`；需求/机制链 `LT-FUN-005`、`LT-SEC-001`、`R-CFG-01`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明写入/更新（ST-PROV-002/05）、不证明 `secret_ref` 格式校验（ST-PROV-012）、不证明审计/日志脱敏（ST-AUDIT-001、ST-LOGS-001）、不证明 `/v1/providers/{id}/models` 或 `/usage` 的出站凭据处理；
+本 case 只覆盖 provider **读取响应体**的安全不变量。
   > 实现状态：本 case 的自动化入口为 **`Implemented`**（`ST-PROV-014.py`，A 类）；实现状态以 §7 为唯一权威，执行状态与 Verdict 只在 Run 报告。
 
 ## 2. 被测入口与前置

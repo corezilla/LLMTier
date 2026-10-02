@@ -36,7 +36,13 @@
 - 要测什么（责任展开）：`GET /readyz` 在某 tier 存在候选 deployment 但无 `healthy` 候选时返回 HTTP 503 + `ReadinessView{status:"degraded", models[7]}`（各 tier `availability="degraded"`）。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明全可用 `ready`（ST-HEALTH-002）、无候选 `not_ready`（ST-HEALTH-004）、bootstrap 失败（ST-HEALTH-005）；不证明探测/健康转换过程（`POST /v1/probes` 属 ST-PROBE-*）、不证明推理路由可用；不触发 provider 计费调用（`LT-OPS-001`）。**失败含义＝降级就绪聚合契约破坏**。
 
-**目的（被测契约）**：验证 IF-HEALTH 的**降级就绪**契约。端点 `GET /readyz`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getReadiness`）。实现 [`readiness_view`](../../../../src/http_api/health.py)：某 fixed tier 的候选 deployment 列表非空但 `health=="healthy"` 计数为 0 ⇒ 该 tier `availability="degraded"`；只要存在非 `unavailable` 且非全部 `available` ⇒ `status="degraded"`、HTTP 503。系统设计 §8.1 明确"bootstrap 成功后 deployments 初始 `health=unknown`，故先为 `degraded`"（[llmtier-system-design.md](../../../20_system_design/llmtier-system-design.md)）。设计验证项 `VRC-MGMT-003`；机制 `T-OBS`（[observability 机制](../../../20_system_design/mechanisms/observability.md)）、`T-CFG-BOOT`/`R-CFG-02`（[config-lifecycle 机制](../../../20_system_design/mechanisms/config-lifecycle.md)）；需求链 `LT-FUN-006`/`LT-OPS-001`、`VRC-UTIL-001/002`、`CT-OPS-001`（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明全可用 `ready`（ST-HEALTH-002）、无候选 `not_ready`（ST-HEALTH-004）、bootstrap 失败（ST-HEALTH-005）；不证明探测/健康转换过程、不证明推理路由可用；不触发 provider 计费调用（`LT-OPS-001`）。
+**目的（被测契约）**：验证 IF-HEALTH 的**降级就绪**契约。端点 `GET /readyz`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getReadiness`）。
+实现 [`readiness_view`](../../../../src/http_api/health.py)：某 fixed tier 的候选 deployment 列表非空但 `health=="healthy"` 计数为 0 ⇒ 该 tier `availability="degraded"`；
+只要存在非 `unavailable` 且非全部 `available` ⇒ `status="degraded"`、HTTP 503。系统设计 §8.1 明确"bootstrap 成功后 deployments 初始 `health=unknown`，故先为 `degraded`"（[llmtier-system-design.md](../../../20_system_design/llmtier-system-design.md)）。
+设计验证项 `VRC-MGMT-003`；机制 `T-OBS`（[observability 机制](../../../20_system_design/mechanisms/observability.md)）、`T-CFG-BOOT`/`R-CFG-02`（[config-lifecycle 机制](../../../20_system_design/mechanisms/config-lifecycle.md)）；
+需求链 `LT-FUN-006`/`LT-OPS-001`、`VRC-UTIL-001/002`、`CT-OPS-001`（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明全可用 `ready`（ST-HEALTH-002）、无候选 `not_ready`（ST-HEALTH-004）、bootstrap 失败（ST-HEALTH-005）；不证明探测/健康转换过程、不证明推理路由可用；
+不触发 provider 计费调用（`LT-OPS-001`）。
 
 ## 2. 被测入口与前置
 
@@ -87,7 +93,10 @@
 | 6 | 断言每个元素 `availability == "degraded"` | 响应体 |
 | 7 | fixture `stop()` 销毁实例 | 无残留 |
 
-**重点关注步骤**：① **`degraded` 与 `not_ready`/`ready` 的区分**——`degraded` 要求"候选存在但无 healthy"；无候选是 `unavailable` ⇒ `not_ready`（ST-HEALTH-004），全 healthy ⇒ `ready`（ST-HEALTH-002）。构造错会把状态判错。② **不得复用 `llmtier_b`**——该 fixture 启动即 probe 成 `healthy`，会导致 `ready`；必须用未探测实例。③ **`status` 由聚合导出**——`ReadinessView.status` 不是独立字段，是 7 个 `availability` 的聚合；只断言 503 + status 而不逐 tier 校验会漏判。④ **字段集精确性**——`ReadinessView` `additionalProperties:false`，只允许 `{status, models}`；模型元素只允许 `{id, availability}`。⑤ **不得被错误信封冒充**——503 时必须确认 body 是 `ReadinessView` 而非 `{"error":...}`（本端点未鉴权、不走错误信封）。⑥ **TS-003**——`prov_b.endpoint` 必须为 LAN IP，构造失败时应 BLOCKED/SKIP 而非改用 `127.0.0.1` 冒充。
+**重点关注步骤**：① **`degraded` 与 `not_ready`/`ready` 的区分**——`degraded` 要求"候选存在但无 healthy"；无候选是 `unavailable` ⇒ `not_ready`（ST-HEALTH-004），全 healthy ⇒ `ready`（ST-HEALTH-002）。
+构造错会把状态判错。② **不得复用 `llmtier_b`**——该 fixture 启动即 probe 成 `healthy`，会导致 `ready`；必须用未探测实例。③ **`status` 由聚合导出**——`ReadinessView.status` 不是独立字段，是 7 个 `availability` 的聚合；
+只断言 503 + status 而不逐 tier 校验会漏判。④ **字段集精确性**——`ReadinessView` `additionalProperties:false`，只允许 `{status, models}`；模型元素只允许 `{id, availability}`。
+⑤ **不得被错误信封冒充**——503 时必须确认 body 是 `ReadinessView` 而非 `{"error":...}`（本端点未鉴权、不走错误信封）。⑥ **TS-003**——`prov_b.endpoint` 必须为 LAN IP，构造失败时应 BLOCKED/SKIP 而非改用 `127.0.0.1` 冒充。
 
 ## 5. 独立 Oracle 与预期结果
 

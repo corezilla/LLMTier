@@ -34,11 +34,14 @@
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-RESP-027` / 系统设计 §8 Responses 接口（POST /v1/responses） / `VRC-DIAG-004` / recovery / P1（[方案清单 `ST-RESP-027`](../llmtier-system-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：故障注入（malformed_event 畸形事件）+ 复位阶梯
 
-- 要测什么（责任展开）：注入 `malformed_event` 后，`POST /v1/responses`（stream=true）的 SSE 流在达到 `malformed_after_events` 个事件后**追加一个畸形帧**（按 `malformed_event_type` 为 `invalid_json` 或 `unknown_event_type`）随后结束，客户端解析该帧会失败。需求 `R-OBS-01`；机制 `T-OBS-INJECT`；实现 `src/libdiag/stream.py`（`_MALFORMED_FRAME` 与 `count >= malformed_after_events → yield _MALFORMED_FRAME; return`）与 `src/libdiag/injections.py`（`malformed_event_type ∈ {invalid_json, unknown_event_type}`）。
+- 要测什么（责任展开）：注入 `malformed_event` 后，`POST /v1/responses`（stream=true）的 SSE 流在达到 `malformed_after_events` 个事件后**追加一个畸形帧**（按 `malformed_event_type` 为 `invalid_json` 或 `unknown_event_type`）随后结束，客户端解析该帧会失败。
+  需求 `R-OBS-01`；机制 `T-OBS-INJECT`；实现 `src/libdiag/stream.py`（`_MALFORMED_FRAME` 与 `count >= malformed_after_events → yield _MALFORMED_FRAME; return`）与 `src/libdiag/injections.py`（`malformed_event_type ∈ {invalid_json, unknown_event_type}`）。
 
 - 明确不测什么 / 失败含义：不测 `stream_terminate`（ST-RESP-026）；不测前置阶段注入（ST-RESP-011/22/20）；不测正常流事件序列（ST-RESP-001）；不测注入配置读写校验（ST-OBSDEPL-004）。失败含义＝畸形事件注入未生效或帧形态错误。
 
-**目的（被测契约）**：验证 **SSE 流阶段的畸形事件注入**（`malformed_event`）行为。被测端点/规则：先 `PATCH /v1/deployments/{deployment_id}/diagnostics` 写入 `malformed_event`；随后 `POST /v1/responses`（stream=true）的响应经 [`stream.py::stream_wrapper`](../../../../src/libdiag/stream.py) 包裹，在达到 `malformed_after_events` 后 `yield _MALFORMED_FRAME` 并 `return`。设计验证项 `VRC-DIAG-004`；机制 `T-OBS-INJECT`。**不证明什么**：不测 `stream_terminate`/前置注入/正常序列/配置校验。
+**目的（被测契约）**：验证 **SSE 流阶段的畸形事件注入**（`malformed_event`）行为。被测端点/规则：先 `PATCH /v1/deployments/{deployment_id}/diagnostics` 写入 `malformed_event`；
+随后 `POST /v1/responses`（stream=true）的响应经 [`stream.py::stream_wrapper`](../../../../src/libdiag/stream.py) 包裹，在达到 `malformed_after_events` 后 `yield _MALFORMED_FRAME` 并 `return`。
+设计验证项 `VRC-DIAG-004`；机制 `T-OBS-INJECT`。**不证明什么**：不测 `stream_terminate`/前置注入/正常序列/配置校验。
 
 ## 2. 被测入口与前置
 

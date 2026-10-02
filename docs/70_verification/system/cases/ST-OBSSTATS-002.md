@@ -53,7 +53,12 @@
 - 要测什么（责任展开）：`GET /v1/diagnostics/stats` 缺少必填 `since`/`until`：HTTP 400 `invalid_request`，且不落到空窗口的 `200`。
 - 明确不测什么 / 失败含义：不证明 正向聚合窗口（ST-OBSSTATS-001）、不证明 `from`/`to`（那是 `/v1/usage`、`/v1/stats` 的约定，本端点**不是** `from`/`to`）、不证明 `limit`/cursor（本端点无分页）、不证明别名等价（ST-OBSALIAS-005）。
 
-**目的（被测契约）**：验证 `GET /v1/diagnostics/stats` 的**必填时间窗校验**。被测端点/规则：`since`/`until` 在 openapi 中 `required:true`（[`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json) `/v1/diagnostics/stats` parameters）；handler 在读取存储前校验 `if not since or not until: raise ApiError(400, "invalid_request", "since and until are required")`（[`src/http_api/app.py`](../../../../src/http_api/app.py)）；错误信封恰 5 键（`type="request_error"`，`retryable=false`，`param=null`）；校验先于 `_store_read`，**零副作用**。设计验证项 `VRC-DIAG-002`；机制/错误 `ERR-REQ-VALIDATION` → `invalid_request`（[系统设计 §7.8](../../../20_system_design/llmtier-system-design.md)）；分页时间参数约定 `since`/`until`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)：`/v1/diagnostics/stats` 用 `since`/`until`，缺 → 400 `invalid_request`）；需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明正向聚合窗口（ST-OBSSTATS-001）、不证明 `from`/`to`（那是 `/v1/usage`、`/v1/stats` 的约定，本端点**不是** `from`/`to`）、不证明 `limit`/cursor（本端点无分页）、不证明别名等价（ST-OBSALIAS-005）。
+**目的（被测契约）**：验证 `GET /v1/diagnostics/stats` 的**必填时间窗校验**。被测端点/规则：`since`/`until` 在 openapi 中 `required:true`（[`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json) `/v1/diagnostics/stats` parameters）；
+handler 在读取存储前校验 `if not since or not until: raise ApiError(400, "invalid_request", "since and until are required")`（[`src/http_api/app.py`](../../../../src/http_api/app.py)）；
+错误信封恰 5 键（`type="request_error"`，`retryable=false`，`param=null`）；校验先于 `_store_read`，**零副作用**。设计验证项 `VRC-DIAG-002`；机制/错误 `ERR-REQ-VALIDATION` → `invalid_request`（[系统设计 §7.8](../../../20_system_design/llmtier-system-design.md)）；
+分页时间参数约定 `since`/`until`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)：`/v1/diagnostics/stats` 用 `since`/`until`，缺 → 400 `invalid_request`）；
+需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明正向聚合窗口（ST-OBSSTATS-001）、不证明 `from`/`to`（那是 `/v1/usage`、`/v1/stats` 的约定，本端点**不是** `from`/`to`）、不证明 `limit`/cursor（本端点无分页）、不证明别名等价（ST-OBSALIAS-005）。
 
 ## 2. 被测入口与前置
 
@@ -77,7 +82,11 @@
   4. （对照）完整 `since`+`until` → 断言 `200` 且顶层键集 `{windows}`（证明端点本体可用，排除"端点坏"被误判为缺参拒绝）。
   5. 断言缺参 400 **不是** `200 {"windows":[]}`（不得用"空窗口"冒充参数校验）。
 
-**重点关注步骤**：① **必填校验先于存储读取**——缺参必须在 `_store_read` 之前 400，不得尝试读库（否则存储故障会被误报为 500/503 而非 400）。② **`since`/`until` 而非 `from`/`to`**——本端点唯一正确参数名是 `since`/`until`；用错参数名等价于缺参 → 400。③ **错误信封 identity**——恰 5 键、`type` 由 400 导出为 `request_error`、`retryable=false`。④ **不得空页冒充**——缺参返回 `200 + {"windows":[]}` 即 FAIL。⑤ **空串边界**——`since=` 之所以视为缺失，是依赖解析层 [`parse_qs(parsed.query)`](../../../../src/http_api/app.py)（`app.py:194`）默认 `keep_blank_values=False` **丢弃空白值**（`query.get("since")` 得 `None`），而非 `not ""` 为真（若改用保留空白的解析，`not ""` 同样为真，但当前实现的实际机制是丢弃；400 结论不变）；作为边界证据记录。⑥ **零副作用**——400 不写库、不新增 trace。⑦ **降级/存储**——本校验在 HTTP 层，降级实例仍应 400（与 diagnostics 降级无关）；`503 usage_store_unavailable` 仅可能出现在正相对照，判 BLOCKED/SKIP。自动化入口 `ST-OBSSTATS-002.py` 已实现。
+**重点关注步骤**：① **必填校验先于存储读取**——缺参必须在 `_store_read` 之前 400，不得尝试读库（否则存储故障会被误报为 500/503 而非 400）。② **`since`/`until` 而非 `from`/`to`**——本端点唯一正确参数名是 `since`/`until`；
+用错参数名等价于缺参 → 400。③ **错误信封 identity**——恰 5 键、`type` 由 400 导出为 `request_error`、`retryable=false`。④ **不得空页冒充**——缺参返回 `200 + {"windows":[]}` 即 FAIL。
+⑤ **空串边界**——`since=` 之所以视为缺失，是依赖解析层 [`parse_qs(parsed.query)`](../../../../src/http_api/app.py)（`app.py:194`）默认 `keep_blank_values=False` **丢弃空白值**（`query.get("since")` 得 `None`），而非 `not ""` 为真（若改用保留空白的解析，`not ""` 同样为真，但当前实现的实际机制是丢弃；
+400 结论不变）；作为边界证据记录。⑥ **零副作用**——400 不写库、不新增 trace。⑦ **降级/存储**——本校验在 HTTP 层，降级实例仍应 400（与 diagnostics 降级无关）；`503 usage_store_unavailable` 仅可能出现在正相对照，判 BLOCKED/SKIP。
+自动化入口 `ST-OBSSTATS-002.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 

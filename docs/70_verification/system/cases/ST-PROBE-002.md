@@ -53,7 +53,9 @@
 - 要测什么（责任展开）：`POST /v1/probes` 带 `confirm_external_call=true`：HTTP 200 + `ProbeResult`（`deployment_id`/`status`/`checked_at`/`may_have_incurred_cost`）。
 - 明确不测什么 / 失败含义：不证明 缺确认的 400（ST-PROBE-001）、不证明未知 deployment 的 404（ST-PROBE-003）、不证明 provider 目录（ST-PMOD-*）、不发布上游时延 SLO（本 case 只记录 `elapsed`）。
 
-**目的（被测契约）**：验证**已确认探测**的成功契约与 health 落地。被测端点/规则：`POST /v1/probes`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `probeDeployment`，body `ProbeRequest`，`security=AdminBearerAuth`）；[`AdminService.probe`](../../../../src/management/admin.py) 通过确认门后 `get_deployment`→`get_provider`→构造 `LocalProvider`/`OpenAIProvider`→`adapter.probe()`→`apply_probe_result(...)`（写 `deployments.health` 与 `probe_results`）→`audit.record("deployment.probe")`→返回 `{deployment_id,status,checked_at,may_have_incurred_cost}`。设计验证项 `VRC-DIAG-004`；需求/机制链 `LT-FUN-005`、`LT-OPS-002`、`R-OBS-01`、`CT-ADMIN-001`、`CT-OPS-001`。**不证明什么**：不证明缺确认的 400（ST-PROBE-001）、不证明未知 deployment 的 404（ST-PROBE-003）、不证明 provider 目录（ST-PMOD-*）、不发布上游时延 SLO（本 case 只记录 `elapsed`）。
+**目的（被测契约）**：验证**已确认探测**的成功契约与 health 落地。被测端点/规则：`POST /v1/probes`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `probeDeployment`，body `ProbeRequest`，`security=AdminBearerAuth`）；
+[`AdminService.probe`](../../../../src/management/admin.py) 通过确认门后 `get_deployment`→`get_provider`→构造 `LocalProvider`/`OpenAIProvider`→`adapter.probe()`→`apply_probe_result(...)`（写 `deployments.health` 与 `probe_results`）→`audit.record("deployment.probe")`→返回 `{deployment_id,status,checked_at,may_have_incurred_cost}`。
+设计验证项 `VRC-DIAG-004`；需求/机制链 `LT-FUN-005`、`LT-OPS-002`、`R-OBS-01`、`CT-ADMIN-001`、`CT-OPS-001`。**不证明什么**：不证明缺确认的 400（ST-PROBE-001）、不证明未知 deployment 的 404（ST-PROBE-003）、不证明 provider 目录（ST-PMOD-*）、不发布上游时延 SLO（本 case 只记录 `elapsed`）。
 
 ## 2. 被测入口与前置
 
@@ -83,7 +85,10 @@
   5. （health 落地核验）`GET /v1/deployments/dep_local_gemma` 断言 `health == body["status"]`（`apply_probe_result` 已写入）。
   6. （可选）`GET /v1/audit?limit=5` 断言出现 `action=="deployment.probe"`、`target=="dep_local_gemma"`、`result=="success"` 的审计行。
 
-**重点关注步骤**：① **精确键集**——`admin.probe` 要求 `set(body)=={deployment_id,confirm_external_call}`；多余键（如加 `"foo"`）须 400 `confirmation_required`，不得误当成功；② **真实上游调用与命中**——本 case 是真探测（非注入），`status` 来自 `adapter.probe()`，不能以 mock 替代；③ **health 落地**——响应 `status` 必须等于 `GET deployment` 的 `health`（证明探测结果写库），这是与"仅返回 status"的关键区别；④ **副作用范围**——探测写 `deployments.health` 与 `probe_results`（按 deployment upsert）、写审计与 operational log；**不改 `version`**（`apply_probe_result` 不更新 version）；⑤ **`may_have_incurred_cost`**——OpenAPI 仅为 bool；当前实现硬编码 `False`（即使真实探测可能计费），断言 bool 存在，**不断言其业务真值**，并在报告中记录该实现事实；⑥ **teardown 自恢复性**——探测是幂等观测，重跑得同一 health，无需资源删除。
+**重点关注步骤**：① **精确键集**——`admin.probe` 要求 `set(body)=={deployment_id,confirm_external_call}`；多余键（如加 `"foo"`）须 400 `confirmation_required`，不得误当成功；
+② **真实上游调用与命中**——本 case 是真探测（非注入），`status` 来自 `adapter.probe()`，不能以 mock 替代；③ **health 落地**——响应 `status` 必须等于 `GET deployment` 的 `health`（证明探测结果写库），这是与"仅返回 status"的关键区别；
+④ **副作用范围**——探测写 `deployments.health` 与 `probe_results`（按 deployment upsert）、写审计与 operational log；**不改 `version`**（`apply_probe_result` 不更新 version）；
+⑤ **`may_have_incurred_cost`**——OpenAPI 仅为 bool；当前实现硬编码 `False`（即使真实探测可能计费），断言 bool 存在，**不断言其业务真值**，并在报告中记录该实现事实；⑥ **teardown 自恢复性**——探测是幂等观测，重跑得同一 health，无需资源删除。
 
 ## 5. 独立 Oracle 与预期结果
 

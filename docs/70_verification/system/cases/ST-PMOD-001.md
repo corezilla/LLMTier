@@ -53,7 +53,12 @@
 - 要测什么（责任展开）：`GET /v1/providers/{id}/models` 读取 provider 上游模型目录：HTTP 200 + `ProviderModelsView`（`data: string[]`），同步只读且不改任何本地资源。
 - 明确不测什么 / 失败含义：不证明 未知 provider 的 404（ST-PMOD-002）、不证明 provider 读取不回显 secret（ST-PROV-014）、不证明 deployment/provider CRUD（ST-PROV-*/ST-DEPL-*）、不证明上游目录**内容正确**（上游模型 ID 由上游决定，本 case 只断言 `data` 为字符串数组，**不把具体模型名当 oracle**）；本 case 为注册表（A 类）上的只读目录查询，允许触上游 `/models`（只读），不产生费用类副作用。
 
-**目的（被测契约）**：验证 Management **provider 上游模型目录读契约**。被测端点/规则：`GET /v1/providers/{provider_id}/models`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listProviderModels`，`security=AdminBearerAuth`），认证角色 `admin`；成功 `200` + `ProviderModelsView`（`data: string[]`，`additionalProperties:false`，`required=[data]`）；失败走统一错误信封 `{error:{message,type,code,param,retryable}}`（401 `authentication_required` / 403 `permission_denied` / 404 `not_found`）。实现见 [`admin.list_provider_models`](../../../../src/management/admin.py) → [`registry.get_provider`](../../../../src/management/registry.py) → [`OpenAIProvider.list_models`](../../../../src/inference/providers/openai.py)（`[m["id"] for m in payload.get("data", []) if isinstance(m.get("id"), str)]`——即 `data` 缺省按空数组处理，且仅保留 `id` 为字符串的元素）。设计验证项 `VRC-MGMT-001`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`T-CFG-SECRET`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明未知 provider 的 404（ST-PMOD-002）、不证明 provider 读取不回显 secret（ST-PROV-014）、不证明 deployment/provider CRUD（ST-PROV-*/ST-DEPL-*）、不证明上游目录**内容正确**（上游模型 ID 由上游决定，本 case 只断言 `data` 为字符串数组，**不把具体模型名当 oracle**）；本 case 为注册表（A 类）上的只读目录查询，允许触上游 `/models`（只读），不产生费用类副作用。
+**目的（被测契约）**：验证 Management **provider 上游模型目录读契约**。被测端点/规则：`GET /v1/providers/{provider_id}/models`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listProviderModels`，`security=AdminBearerAuth`），认证角色 `admin`；
+成功 `200` + `ProviderModelsView`（`data: string[]`，`additionalProperties:false`，`required=[data]`）；失败走统一错误信封 `{error:{message,type,code,param,retryable}}`（401 `authentication_required` / 403 `permission_denied` / 404 `not_found`）。
+实现见 [`admin.list_provider_models`](../../../../src/management/admin.py) → [`registry.get_provider`](../../../../src/management/registry.py) → [`OpenAIProvider.list_models`](../../../../src/inference/providers/openai.py)（`[m["id"] for m in payload.get("data", []) if isinstance(m.get("id"), str)]`——即 `data` 缺省按空数组处理，且仅保留 `id` 为字符串的元素）。
+设计验证项 `VRC-MGMT-001`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`T-CFG-SECRET`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明未知 provider 的 404（ST-PMOD-002）、不证明 provider 读取不回显 secret（ST-PROV-014）、不证明 deployment/provider CRUD（ST-PROV-*/ST-DEPL-*）、不证明上游目录**内容正确**（上游模型 ID 由上游决定，本 case 只断言 `data` 为字符串数组，**不把具体模型名当 oracle**）；
+本 case 为注册表（A 类）上的只读目录查询，允许触上游 `/models`（只读），不产生费用类副作用。
 
 ## 2. 被测入口与前置
 
@@ -80,8 +85,12 @@
   5. 断言 `isinstance(body["data"], list)` 且 `all(isinstance(x, str) for x in body["data"])`；允许空数组（上游无模型），但**不得**出现对象/数字元素。
   6. （交叉核对，不改变本 case 判定）`GET /v1/providers/provider_local` 断言 `200`，佐证该 provider 存在（200 是"既存 provider 的目录读取"，不是未知 id 的兜底）。
 
-**重点关注步骤**：① **键集精确性**——不是"含 `data`"，而是"键集恰为 `{data}`"，防止 provider 视图字段误并入；② **元素类型**——必须是字符串（上游 `/models` 返回对象，网关按 `id` 投影），把对象当元素即违反 `ProviderModelsView`；③ **不硬编码模型名**——上游目录随环境变化，Oracle 只约束 `string[]`；④ **允许触上游**——该端点会调 `provider.endpoint + /models`（只读目录，[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)），执行者需授权并登记；`confirm_external_call` **不**是此只读路由的参数（对比 ADM-PROV-USAGE/PROBE）；⑤ **admin 面**——data/none 凭据的 401/403 由 AUTH 家族承接，本 case 不重测；⑥ **不得把错误信封当目录**——非 200 必须先确认是可解释的 `ERR-*`，而非把 `{error:...}` 当 `data` 读。
-  > **实现 vs 契约偏差（登记，不在本 case 失败面）**：系统设计 §`GET /v1/providers/{provider_id}/models` 与 `openapi` 声明"上游不可用 → `ERR-PROVIDER-UNAVAIL`（503）"，实现 [`OpenAIProvider.list_models`](../../../../src/inference/providers/openai.py) 捕获上游失败：上游 5xx/网络/超时/JSON 解析失败 → `503 provider_unavailable`（`retryable=True`），上游 4xx → `provider_error`（状态码沿用上游，`retryable` 仅 408/429）；并非落 `_run` 兜底的 **500 `internal_error`**。本 case 只走 happy path，不据此判 FAIL；偏差在运行报告登记。
+**重点关注步骤**：① **键集精确性**——不是"含 `data`"，而是"键集恰为 `{data}`"，防止 provider 视图字段误并入；② **元素类型**——必须是字符串（上游 `/models` 返回对象，网关按 `id` 投影），把对象当元素即违反 `ProviderModelsView`；
+③ **不硬编码模型名**——上游目录随环境变化，Oracle 只约束 `string[]`；④ **允许触上游**——该端点会调 `provider.endpoint + /models`（只读目录，[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)），执行者需授权并登记；
+`confirm_external_call` **不**是此只读路由的参数（对比 ADM-PROV-USAGE/PROBE）；⑤ **admin 面**——data/none 凭据的 401/403 由 AUTH 家族承接，本 case 不重测；
+⑥ **不得把错误信封当目录**——非 200 必须先确认是可解释的 `ERR-*`，而非把 `{error:...}` 当 `data` 读。
+  > **实现 vs 契约偏差（登记，不在本 case 失败面）**：系统设计 §`GET /v1/providers/{provider_id}/models` 与 `openapi` 声明"上游不可用 → `ERR-PROVIDER-UNAVAIL`（503）"，实现 [`OpenAIProvider.list_models`](../../../../src/inference/providers/openai.py) 捕获上游失败：上游 5xx/网络/超时/JSON 解析失败 → `503 provider_unavailable`（`retryable=True`），上游 4xx → `provider_error`（状态码沿用上游，`retryable` 仅 408/429）；
+    并非落 `_run` 兜底的 **500 `internal_error`**。本 case 只走 happy path，不据此判 FAIL；偏差在运行报告登记。
 
 ## 5. 独立 Oracle 与预期结果
 

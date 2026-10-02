@@ -34,11 +34,15 @@
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-EMB-010` / 系统设计 §8 Embeddings 接口（POST /v1/embeddings） / `VRC-INF-004` / recovery / P1（[方案清单 `ST-EMB-010`](../llmtier-system-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：故障注入（上游 5xx/不可达 → 503）+ 复位阶梯
 
-- 要测什么（责任展开）：`POST /v1/embeddings` 上游 5xx/不可达：`503 provider_unavailable`。适配层把上游 `HTTPError>=500`、`URLError`、超时、JSON 解码失败统一映射为 `503 provider_unavailable`。需求 `R-INF-05`；错误目录 `ERR-PROVIDER-UNAVAIL` → wire `code=provider_unavailable`；实现 `src/inference/providers/openai.py::_request`（`except HTTPError: exc.code>=500 → ApiError(503, "provider_unavailable", retryable=True)`；`except (URLError, TimeoutError, JSONDecodeError) → 同码`）。
+- 要测什么（责任展开）：`POST /v1/embeddings` 上游 5xx/不可达：`503 provider_unavailable`。适配层把上游 `HTTPError>=500`、`URLError`、超时、JSON 解码失败统一映射为 `503 provider_unavailable`。
+  需求 `R-INF-05`；错误目录 `ERR-PROVIDER-UNAVAIL` → wire `code=provider_unavailable`；实现 `src/inference/providers/openai.py::_request`（`except HTTPError: exc.code>=500 → ApiError(503, "provider_unavailable", retryable=True)`；
+  `except (URLError, TimeoutError, JSONDecodeError) → 同码`）。
 
 - 明确不测什么 / 失败含义：不测上游非 5xx（`provider_error`，状态码随上游）；不测契约错误（ST-EMB-009）；不测上游凭据文件不可读（`provider_secret_unavailable`）；不测 Responses 的 `provider_unavailable`（ST-RESP-022 注入 / ST-RESP-024 凭据）；不测模型/维度校验。失败含义＝上游不可用被误报为其它码或成功。
 
-**目的（被测契约）**：验证 **Embeddings 上游不可用的归一契约**。被测端点/规则：`POST /v1/embeddings`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `createEmbedding`，声明 `503`）；入口经 [`EmbeddingsService.create`](../../../../src/inference/embeddings.py) 调用 [`OpenAIProvider.embed`](../../../../src/inference/providers/openai.py) → `_request`，上游 5xx 映射为 `503 provider_unavailable`。设计验证项 `VRC-INF-004`；机制 `E-INF-UPSTREAM`。**不证明什么**：不测非 5xx、契约错误（ST-EMB-009）、凭据不可读、Responses 同类码。
+**目的（被测契约）**：验证 **Embeddings 上游不可用的归一契约**。被测端点/规则：`POST /v1/embeddings`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `createEmbedding`，声明 `503`）；
+入口经 [`EmbeddingsService.create`](../../../../src/inference/embeddings.py) 调用 [`OpenAIProvider.embed`](../../../../src/inference/providers/openai.py) → `_request`，上游 5xx 映射为 `503 provider_unavailable`。
+设计验证项 `VRC-INF-004`；机制 `E-INF-UPSTREAM`。**不证明什么**：不测非 5xx、契约错误（ST-EMB-009）、凭据不可读、Responses 同类码。
 
 ## 2. 被测入口与前置
 

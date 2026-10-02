@@ -36,7 +36,11 @@
 - 要测什么（责任展开）：`POST /v1/responses` 使用未知 `model`：`404 model_not_found`，无上游调用。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明大小写/URL 编码的模型清单语义（ST-MODEL-003/04/05）；不证明合法模型的流式成功（ST-RESP-001/03/06）；不证明 `model` 字段缺失的校验（ST-RESP-008，属 `invalid_request`）；不证明上游答案。**失败含义＝模型解析失败契约破坏**。
 
-**目的（被测契约）**：验证 Data Plane `POST /v1/responses` 的**模型解析失败契约**：请求的 `model` 不在可见 tier 集合内时，M003 在 dispatch 前以 `404 model_not_found` 拒绝。被测端点/规则：`POST /v1/responses`；设计验证项 `VRC-INF-001/004`；错误目录 `ERR-MODEL-NOTFOUND` → wire `code=model_not_found`（系统设计 §7.8）；实现 `src/inference/responses.py`（捕获 `registry.get_service_level` 的 404 后 `raise ApiError(404, "model_not_found", "Model not found")`；`Router.admit` 在无候选时也抛 `404 model_not_found`）（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明大小写/URL 编码的模型清单语义（ST-MODEL-003/04/05）；不证明合法模型的流式成功（ST-RESP-001/03/06）；不证明 `model` 字段缺失的校验（ST-RESP-008，属 `invalid_request`）；不证明上游答案。
+**目的（被测契约）**：验证 Data Plane `POST /v1/responses` 的**模型解析失败契约**：请求的 `model` 不在可见 tier 集合内时，M003 在 dispatch 前以 `404 model_not_found` 拒绝。
+被测端点/规则：`POST /v1/responses`；设计验证项 `VRC-INF-001/004`；错误目录 `ERR-MODEL-NOTFOUND` → wire `code=model_not_found`（系统设计 §7.8）；
+实现 `src/inference/responses.py`（捕获 `registry.get_service_level` 的 404 后 `raise ApiError(404, "model_not_found", "Model not found")`；
+`Router.admit` 在无候选时也抛 `404 model_not_found`）（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明大小写/URL 编码的模型清单语义（ST-MODEL-003/04/05）；
+不证明合法模型的流式成功（ST-RESP-001/03/06）；不证明 `model` 字段缺失的校验（ST-RESP-008，属 `invalid_request`）；不证明上游答案。
 
 ## 2. 被测入口与前置
 

@@ -53,7 +53,9 @@
 - 要测什么（责任展开）：`GET /v1/stats` 缺 `from`/`to`：HTTP 400 `invalid_request`。
 - 明确不测什么 / 失败含义：不证明 缺窗时的 usage/logs 同类校验（ST-AUSAGE-* 无缺窗 case、ST-LOGS-002）、不证明非法 `group_by` 400（未单独构 case）、不证明成功聚合（ST-STATS-001/02）、不证明认证负向（ST-AUTH-003/09）。
 
-**目的（被测契约）**：验证统计查询的**必填时间窗校验**。被测端点/规则：`GET /v1/stats`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getUsageStats`，`from`/`to` 均 `required:true`）；[`app.py`](../../../../src/http_api/app.py) 在鉴权后、handler 前执行 `from`/`to` 必填校验（缺任一 → 400 `invalid_request`）。设计验证项 `VRC-MGMT-006`；错误目录 `ERR-REQ-VALIDATION` → wire `code=invalid_request`；需求/机制链 `LT-FUN-006`、`R-MET-03`、`CT-USAGE-001`。**不证明什么**：不证明缺窗时的 usage/logs 同类校验（ST-AUSAGE-* 无缺窗 case、ST-LOGS-002）、不证明非法 `group_by` 400（未单独构 case）、不证明成功聚合（ST-STATS-001/02）、不证明认证负向（ST-AUTH-003/09）。
+**目的（被测契约）**：验证统计查询的**必填时间窗校验**。被测端点/规则：`GET /v1/stats`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getUsageStats`，`from`/`to` 均 `required:true`）；
+[`app.py`](../../../../src/http_api/app.py) 在鉴权后、handler 前执行 `from`/`to` 必填校验（缺任一 → 400 `invalid_request`）。设计验证项 `VRC-MGMT-006`；
+错误目录 `ERR-REQ-VALIDATION` → wire `code=invalid_request`；需求/机制链 `LT-FUN-006`、`R-MET-03`、`CT-USAGE-001`。**不证明什么**：不证明缺窗时的 usage/logs 同类校验（ST-AUSAGE-* 无缺窗 case、ST-LOGS-002）、不证明非法 `group_by` 400（未单独构 case）、不证明成功聚合（ST-STATS-001/02）、不证明认证负向（ST-AUTH-003/09）。
 
 ## 2. 被测入口与前置
 

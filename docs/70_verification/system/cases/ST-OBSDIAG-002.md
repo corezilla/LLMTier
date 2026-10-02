@@ -53,7 +53,13 @@
 - 要测什么（责任展开）：`PATCH /v1/diagnostics` 更新全局诊断开关：HTTP 200 + 返回更新后的精确 `SwitchState`，开关持久化到 `diagnostic_settings` 单行，且副作用 = **同事务审计**（`action=diagnostics.switch.update`，`target=diagnostics`）。
 - 明确不测什么 / 失败含义：不证明 非法值的 400 拒绝（ST-OBSDIAG-003）、不证明 GET 纯读无副作用（ST-OBSDIAG-001）、不证明别名 PATCH 逐字节等价（ST-OBSALIAS-001）、不证明开关对快照/统计**写入门控**的业务效果（由 ST-OBSSNAP-001、ST-OBSSTATS-001 的数据断言与 observability 机制 `INV-4`/`CON-OBS-001` 承接）、不证明 trace 无开关始终写。
 
-**目的（被测契约）**：验证 Observability `PATCH /v1/diagnostics` 的**开关写契约**。被测端点/规则：`PATCH /v1/diagnostics`，body 为 `DiagnosticsSwitchPatch`（`snapshots_enabled?`、`stats_enabled?` 两个可选布尔，`additionalProperties:false`）；部分更新语义（缺省键保持原值）；成功返回 `SwitchState`（恰 2 个 JSON 布尔）；写 `diagnostic_settings.singleton=1` 单行并**在同一事务**写审计；非法值（非布尔）→ 400 `invalid_request`（属 ST-OBSDIAG-003，本 case 只走合法输入）；认证角色 `admin`；失败走统一错误信封 `{error:{message,type,code,param,retryable}}`（401 `authentication_required` / 403 `permission_denied` / 503 `usage_store_unavailable`）。设计验证项 `VRC-DIAG-001`；机制 `T-OBS-SWITCH`（见[observability 机制](../../../20_system_design/mechanisms/observability.md) §4.3.1/§5.1，`IF-OBS-API-SWITCH`/`IF-OBS-SWITCH`，副作用=同事务审计）；需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01`/`R-OBS-02`、`CT-ADMIN-001`/`CT-LOG-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；机器契约 [`interfaces/openapi/llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`SwitchState`/`DiagnosticsSwitchPatch`，`security=AdminBearerAuth`）。**不证明什么**：不证明非法值的 400 拒绝（ST-OBSDIAG-003）、不证明 GET 纯读无副作用（ST-OBSDIAG-001）、不证明别名 PATCH 逐字节等价（ST-OBSALIAS-001）、不证明开关对快照/统计**写入门控**的业务效果（由 ST-OBSSNAP-001、ST-OBSSTATS-001 的数据断言与 observability 机制 `INV-4`/`CON-OBS-001` 承接）、不证明 trace 无开关始终写。
+**目的（被测契约）**：验证 Observability `PATCH /v1/diagnostics` 的**开关写契约**。被测端点/规则：`PATCH /v1/diagnostics`，body 为 `DiagnosticsSwitchPatch`（`snapshots_enabled?
+`、`stats_enabled?` 两个可选布尔，`additionalProperties:false`）；部分更新语义（缺省键保持原值）；成功返回 `SwitchState`（恰 2 个 JSON 布尔）；写 `diagnostic_settings.singleton=1` 单行并**在同一事务**写审计；
+非法值（非布尔）→ 400 `invalid_request`（属 ST-OBSDIAG-003，本 case 只走合法输入）；认证角色 `admin`；失败走统一错误信封 `{error:{message,type,code,param,retryable}}`（401 `authentication_required` / 403 `permission_denied` / 503 `usage_store_unavailable`）。
+设计验证项 `VRC-DIAG-001`；机制 `T-OBS-SWITCH`（见[observability 机制](../../../20_system_design/mechanisms/observability.md) §4.3.1/§5.1，`IF-OBS-API-SWITCH`/`IF-OBS-SWITCH`，副作用=同事务审计）；
+需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01`/`R-OBS-02`、`CT-ADMIN-001`/`CT-LOG-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；
+机器契约 [`interfaces/openapi/llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`SwitchState`/`DiagnosticsSwitchPatch`，`security=AdminBearerAuth`）。
+**不证明什么**：不证明非法值的 400 拒绝（ST-OBSDIAG-003）、不证明 GET 纯读无副作用（ST-OBSDIAG-001）、不证明别名 PATCH 逐字节等价（ST-OBSALIAS-001）、不证明开关对快照/统计**写入门控**的业务效果（由 ST-OBSSNAP-001、ST-OBSSTATS-001 的数据断言与 observability 机制 `INV-4`/`CON-OBS-001` 承接）、不证明 trace 无开关始终写。
 
 ## 2. 被测入口与前置
 
@@ -82,7 +88,12 @@
   7. `GET /v1/trace/{任意} ` 不在本 case 范围；不做无关键断言。
   8. （teardown，`finally` 内）`PATCH /v1/diagnostics` body `{"snapshots_enabled": orig.snapshots_enabled, "stats_enabled": orig.stats_enabled}` → 200；再 `GET` 校验已回到 `orig_raw`。
 
-**重点关注步骤**：① **部分更新语义**——只给一键时另一键**不得被重置**（`set_switches(None)` 表示保持）；这是本 case 第一断点。② **写入持久化**——步骤 3 的二次 `GET` 必须读到新值，否则只是回显未落库。③ **同事务审计**——`PATCH` 成功必须在 `GET /v1/audit` 出现 `diagnostics.switch.update` 成功行；审计缺失即 FAIL（机制 §5.1 明确 PATCH 才有此副作用，GET 没有）。④ **空更新幂等**——`{}` 不得翻转任何值；不得因缺键报错。⑤ **不改变 trace**——PATCH 不新增 `trace_events`（开关写不是请求路径事件）。⑥ **未知键的行为差异（须登记）**：`DiagnosticsSwitchPatch` 在 openapi 声明 `additionalProperties:false`，但 handler 仅 `body.get("snapshots_enabled")/get("stats_enabled")`，**不校验多余键**；本 case 不把"多余键被拒"列入 Oracle，另在报告中登记该 openapi/实现不一致。⑦ **teardown 完整性**——`finally` 必须恢复原值并二次 `GET` 校验，绝不把开关留在非初态影响同 session 的 OBS-SNAP/STATS 后续 case。⑧ **降级/存储不可达**——`_UnavailableDiagnostics.set_switches` 返回常量 `{false,false}` 且不写审计（fail-open 实例属缺省观测子系统；健康实例的 200+PASS 见 Oracle）；存储异常由 `_store_read`/`mutate` 归 503 `usage_store_unavailable`（环境问题，判 BLOCKED/SKIP，非契约 FAIL）。自动化入口 `ST-OBSDIAG-002.py` 已实现（落位遵循 §4.9/§8.5）。
+**重点关注步骤**：① **部分更新语义**——只给一键时另一键**不得被重置**（`set_switches(None)` 表示保持）；这是本 case 第一断点。② **写入持久化**——步骤 3 的二次 `GET` 必须读到新值，否则只是回显未落库。
+③ **同事务审计**——`PATCH` 成功必须在 `GET /v1/audit` 出现 `diagnostics.switch.update` 成功行；审计缺失即 FAIL（机制 §5.1 明确 PATCH 才有此副作用，GET 没有）。
+④ **空更新幂等**——`{}` 不得翻转任何值；不得因缺键报错。⑤ **不改变 trace**——PATCH 不新增 `trace_events`（开关写不是请求路径事件）。⑥ **未知键的行为差异（须登记）**：`DiagnosticsSwitchPatch` 在 openapi 声明 `additionalProperties:false`，但 handler 仅 `body.get("snapshots_enabled")/get("stats_enabled")`，**不校验多余键**；
+本 case 不把"多余键被拒"列入 Oracle，另在报告中登记该 openapi/实现不一致。⑦ **teardown 完整性**——`finally` 必须恢复原值并二次 `GET` 校验，绝不把开关留在非初态影响同 session 的 OBS-SNAP/STATS 后续 case。
+⑧ **降级/存储不可达**——`_UnavailableDiagnostics.set_switches` 返回常量 `{false,false}` 且不写审计（fail-open 实例属缺省观测子系统；健康实例的 200+PASS 见 Oracle）；
+存储异常由 `_store_read`/`mutate` 归 503 `usage_store_unavailable`（环境问题，判 BLOCKED/SKIP，非契约 FAIL）。自动化入口 `ST-OBSDIAG-002.py` 已实现（落位遵循 §4.9/§8.5）。
 
 ## 5. 独立 Oracle 与预期结果
 

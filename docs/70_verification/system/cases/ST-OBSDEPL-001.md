@@ -53,7 +53,12 @@
 - 要测什么（责任展开）：`GET /v1/deployments/{id}/diagnostics` 返回该 deployment 的故障注入配置：HTTP 200 + `InjectionView[]`（每项恰 6 键）。
 - 明确不测什么 / 失败含义：不证明 写入注入（ST-OBSDEPL-002）、不证明未知 deployment 的 404（ST-OBSDEPL-003）、不证明非法注入项的 400（ST-OBSDEPL-004）、不证明注入对推理的命中效果（ST-RESP-011/22，属 `T-OBS-INJECT` 命中证明）、不证明别名等价（ST-OBSALIAS-004）。
 
-**目的（被测契约）**：验证 Observability `GET /v1/deployments/{deployment_id}/diagnostics` 的**只读注入配置契约**。被测端点/规则：`GET /v1/deployments/{deployment_id}/diagnostics`，成功返回 `InjectionView[]`（顶层为数组），每项 `InjectionView` 必填 6 键（`id, deployment_id, type, config, enabled, updated_at`），`type ∈ {fault_502, fault_503, delay, rate_limit, stream_terminate, malformed_event}`，`config` 为对象、`enabled` 为布尔；未知 deployment → 404 `not_found`（本 case 用已知 id，负向属 ST-OBSDEPL-003）；认证 `admin`；失败走统一信封 `{error:{message,type,code,param,retryable}}`（401/403/404/503）。设计验证项 `VRC-DIAG-004`；机制 `T-OBS-INJECT`（[observability 机制](../../../20_system_design/mechanisms/observability.md) §4.2 `D-OBS-INJECTION[]`、§4.9 `D-OBS-INJECTION-CONFIG`、§5.1 `IF-OBS-INJECT`）；错误目录 `ERR-INJECTION`/`ERR-NOTFOUND`/`ERR-STORE`；需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；机器契约 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`InjectionView`，`security=AdminBearerAuth`）。**不证明什么**：不证明写入注入（ST-OBSDEPL-002）、不证明未知 deployment 的 404（ST-OBSDEPL-003）、不证明非法注入项的 400（ST-OBSDEPL-004）、不证明注入对推理的命中效果（ST-RESP-011/22，属 `T-OBS-INJECT` 命中证明）、不证明别名等价（ST-OBSALIAS-004）。
+**目的（被测契约）**：验证 Observability `GET /v1/deployments/{deployment_id}/diagnostics` 的**只读注入配置契约**。被测端点/规则：`GET /v1/deployments/{deployment_id}/diagnostics`，成功返回 `InjectionView[]`（顶层为数组），每项 `InjectionView` 必填 6 键（`id, deployment_id, type, config, enabled, updated_at`），`type ∈ {fault_502, fault_503, delay, rate_limit, stream_terminate, malformed_event}`，`config` 为对象、`enabled` 为布尔；
+未知 deployment → 404 `not_found`（本 case 用已知 id，负向属 ST-OBSDEPL-003）；认证 `admin`；失败走统一信封 `{error:{message,type,code,param,retryable}}`（401/403/404/503）。
+设计验证项 `VRC-DIAG-004`；机制 `T-OBS-INJECT`（[observability 机制](../../../20_system_design/mechanisms/observability.md) §4.2 `D-OBS-INJECTION[]`、§4.9 `D-OBS-INJECTION-CONFIG`、§5.1 `IF-OBS-INJECT`）；
+错误目录 `ERR-INJECTION`/`ERR-NOTFOUND`/`ERR-STORE`；需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；
+机器契约 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`InjectionView`，`security=AdminBearerAuth`）。
+**不证明什么**：不证明写入注入（ST-OBSDEPL-002）、不证明未知 deployment 的 404（ST-OBSDEPL-003）、不证明非法注入项的 400（ST-OBSDEPL-004）、不证明注入对推理的命中效果（ST-RESP-011/22，属 `T-OBS-INJECT` 命中证明）、不证明别名等价（ST-OBSALIAS-004）。
 
 ## 2. 被测入口与前置
 
@@ -75,7 +80,11 @@
   6. 断言每个 `item.deployment_id == "dep_local_gemma"`（只返回该 deployment 的注入）。
   7. （交叉核对，不改变判定）与别名 `GET /tier/admin/v1/deployments/dep_local_gemma/diagnostics` 同凭据下响应体逐字节比对，作为 ST-OBSALIAS-004 的旁证；本 case 不承担别名判定。
 
-**重点关注步骤**：① **顶层数组 vs 包封对象**——成功体是 `InjectionView[]` 裸数组；若是 `{items:[...]}` 判 FAIL（PATCH body 才是 `{items}`）。② **项键集精确**——恰 6 键（`additionalProperties:false`）。③ **`type` 枚举**——6 值白名单，越界即 FAIL。④ **`config` 为对象**——不得为 `null`/字符串；具体字段随 `type` 变化（如 `fault_502` → `error_body`、`delay` → `delay_ms`）。⑤ **`enabled` 布尔**——不得用 `0/1`。⑥ **deployment 作用域**——返回项必须与路径 id 一致，不得混入其它 deployment。⑦ **空数组合法**——无注入时 `[]` 合法（PASS），不要求非空。⑧ **降级/存储**——`_UnavailableDiagnostics.injections` 恒返回 `[]` 的 **200**（fail-open，形状 PASS）；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSDEPL-001.py` 已实现（§3.5 P0 Gate 阻断项已消解）。
+**重点关注步骤**：① **顶层数组 vs 包封对象**——成功体是 `InjectionView[]` 裸数组；若是 `{items:[...]}` 判 FAIL（PATCH body 才是 `{items}`）。② **项键集精确**——恰 6 键（`additionalProperties:false`）。
+③ **`type` 枚举**——6 值白名单，越界即 FAIL。④ **`config` 为对象**——不得为 `null`/字符串；具体字段随 `type` 变化（如 `fault_502` → `error_body`、`delay` → `delay_ms`）。
+⑤ **`enabled` 布尔**——不得用 `0/1`。⑥ **deployment 作用域**——返回项必须与路径 id 一致，不得混入其它 deployment。⑦ **空数组合法**——无注入时 `[]` 合法（PASS），不要求非空。
+⑧ **降级/存储**——`_UnavailableDiagnostics.injections` 恒返回 `[]` 的 **200**（fail-open，形状 PASS）；`503 usage_store_unavailable` 判 BLOCKED/SKIP。
+自动化入口 `ST-OBSDEPL-001.py` 已实现（§3.5 P0 Gate 阻断项已消解）。
 
 ## 5. 独立 Oracle 与预期结果
 

@@ -53,7 +53,13 @@
 - 要测什么（责任展开）：`PATCH /v1/deployments/{id}/diagnostics` 对未知 deployment：HTTP 404 `not_found`，不写入任何注入行。
 - 明确不测什么 / 失败含义：不证明 正向写入（ST-OBSDEPL-002）、不证明非法注入项的 400（ST-OBSDEPL-004）、不证明 GET 读取侧未知 404（虽同实现检查，本 case 聚焦 PATCH；可将 GET 作为交叉核对）、不证明别名等价（ST-OBSALIAS-004）。
 
-**目的（被测契约）**：验证注入写路径的**资源存在性负向契约**。被测端点/规则：`PATCH /v1/deployments/{deployment_id}/diagnostics`，`set_injections` 首先 `SELECT 1 FROM deployments WHERE id=?`，不存在则抛 `ApiError(404, "not_found", "Unknown deployment: <id>")`（[`src/libdiag/injections.py`](../../../../src/libdiag/injections.py)），**先于**对 `items` 的校验；因此即使 body 为 `{"items":[]}` 或含非法项，未知 deployment 也应是 404（存在性优先）；**零副作用**（不写注入、不写成功审计；`mutate` 失败路径记 `result="failed"`）。设计验证项 `VRC-DIAG-004`；机制 `T-OBS-INJECT`（[observability 机制](../../../20_system_design/mechanisms/observability.md) §5.1 `IF-OBS-INJECT` "未知 deployment（读）→ `ERR-NOTFOUND`（404）；校验失败不写、副作用无"）；错误目录 `ERR-NOTFOUND` → `not_found`（[系统设计 §7.8](../../../20_system_design/llmtier-system-design.md)，见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理) `ERR-NOTFOUND → ...、ST-OBSDEPL-003、...`）；需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明正向写入（ST-OBSDEPL-002）、不证明非法注入项的 400（ST-OBSDEPL-004）、不证明 GET 读取侧未知 404（虽同实现检查，本 case 聚焦 PATCH；可将 GET 作为交叉核对）、不证明别名等价（ST-OBSALIAS-004）。
+**目的（被测契约）**：验证注入写路径的**资源存在性负向契约**。被测端点/规则：`PATCH /v1/deployments/{deployment_id}/diagnostics`，`set_injections` 首先 `SELECT 1 FROM deployments WHERE id=?
+`，不存在则抛 `ApiError(404, "not_found", "Unknown deployment: <id>")`（[`src/libdiag/injections.py`](../../../../src/libdiag/injections.py)），**先于**对 `items` 的校验；
+因此即使 body 为 `{"items":[]}` 或含非法项，未知 deployment 也应是 404（存在性优先）；**零副作用**（不写注入、不写成功审计；`mutate` 失败路径记 `result="failed"`）。设计验证项 `VRC-DIAG-004`；
+机制 `T-OBS-INJECT`（[observability 机制](../../../20_system_design/mechanisms/observability.md) §5.1 `IF-OBS-INJECT` "未知 deployment（读）→ `ERR-NOTFOUND`（404）；
+校验失败不写、副作用无"）；错误目录 `ERR-NOTFOUND` → `not_found`（[系统设计 §7.8](../../../20_system_design/llmtier-system-design.md)，见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理) `ERR-NOTFOUND → ...、ST-OBSDEPL-003、...`）；
+需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明正向写入（ST-OBSDEPL-002）、不证明非法注入项的 400（ST-OBSDEPL-004）、不证明 GET 读取侧未知 404（虽同实现检查，本 case 聚焦 PATCH；可将 GET 作为交叉核对）、不证明别名等价（ST-OBSALIAS-004）。
 
 ## 2. 被测入口与前置
 
@@ -80,7 +86,10 @@
   5. 断言 body 含非法 type 时返回 **404 而非 400**（存在性优先于项校验）——若返回 400 则存在性检查顺序错误，判 FAIL（与 `set_injections` 的顺序契约不符）。
   6. （可选交叉证据）`GET /v1/audit` → 断言存在 `result=="failed"` 的 `diagnostics.injection.update` 行，且无成功行。
 
-**重点关注步骤**：① **存在性优先顺序**——`set_injections` 先查 deployment 再校验 items；故未知 deployment + 非法项 → 404（不是 400），未知 deployment + `items:[]` → 404（不是 200 清空）。这是本 case 最易误判点。② **code 精确**——`not_found`（非 `invalid_injection`/`invalid_request`）。③ **零副作用**——404 不写注入行、不写成功审计。④ **错误信封 identity**——恰 5 键、`type=request_error`。⑤ **GET/PATCH 一致**——读与写都做存在性检查，404 语义一致。⑥ **失败审计**——`mutate` 失败路径记 `result="failed"`。⑦ **降级/存储**——`_UnavailableDiagnostics.set_injections` 返回 `[]`（不检查存在性）属降级实例 → BLOCKED/SKIP；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSDEPL-003.py` 已实现。
+**重点关注步骤**：① **存在性优先顺序**——`set_injections` 先查 deployment 再校验 items；故未知 deployment + 非法项 → 404（不是 400），未知 deployment + `items:[]` → 404（不是 200 清空）。
+这是本 case 最易误判点。② **code 精确**——`not_found`（非 `invalid_injection`/`invalid_request`）。③ **零副作用**——404 不写注入行、不写成功审计。④ **错误信封 identity**——恰 5 键、`type=request_error`。
+⑤ **GET/PATCH 一致**——读与写都做存在性检查，404 语义一致。⑥ **失败审计**——`mutate` 失败路径记 `result="failed"`。⑦ **降级/存储**——`_UnavailableDiagnostics.set_injections` 返回 `[]`（不检查存在性）属降级实例 → BLOCKED/SKIP；
+`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSDEPL-003.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 

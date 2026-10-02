@@ -51,9 +51,18 @@
 - **测试方法（§1.5 方法表行）**：边界值抽样（limit=1 分页）+ 错误猜测 + 反例驱动（ERR-CURSOR）+ 对照复位
 - 方案清单登记：`ST-OBSTRACE-002`
 - 要测什么（责任展开）：`GET /v1/diagnostics/traces` `limit=1` 稳定分页 + 无效/过期 cursor → `400 cursor_expired`（`ERR-CURSOR`）。
-- 明确不测什么 / 失败含义：不证明 去重/正向页（ST-OBSTRACE-001）、不证明快照 cursor（ST-OBSSNAP-002）、不证明别名等价（ST-OBSALIAS-006）、不证明 `limit=abc` 的 `invalid_request`（属 `_int_param`，非本 case 的 `cursor_expired`）。**实现现状（已对齐契约）**：当前实现 [`traces`](../../../../src/libdiag/traces.py) **已校验 cursor**——cursor 不含 `"|"` 即抛 `ApiError(400, "cursor_expired", ...)`（`traces.py:85-88`）；含 `"|"` 的 `"<first_ts>|<rid>"` 才作为合法游标用于 `(first_ts,rid)<(?,?)`。故"400 `cursor_expired`"与实现一致。
+- 明确不测什么 / 失败含义：不证明 去重/正向页（ST-OBSTRACE-001）、不证明快照 cursor（ST-OBSSNAP-002）、不证明别名等价（ST-OBSALIAS-006）、不证明 `limit=abc` 的 `invalid_request`（属 `_int_param`，非本 case 的 `cursor_expired`）。
+  **实现现状（已对齐契约）**：当前实现 [`traces`](../../../../src/libdiag/traces.py) **已校验 cursor**——cursor 不含 `"|"` 即抛 `ApiError(400, "cursor_expired", ...)`（`traces.py:85-88`）；
+  含 `"|"` 的 `"<first_ts>|<rid>"` 才作为合法游标用于 `(first_ts,rid)<(?,?)`。故"400 `cursor_expired`"与实现一致。
 
-**目的（被测契约）**：验证 `GET /v1/diagnostics/traces` 的**分页与 cursor 负向契约**。被测端点/规则：`limit∈[1,500]`（实现 `max(1,min(limit,500))`），`limit=1` 时单页至多 1 项、`has_more`/`next_cursor` 与数据量一致；cursor 稳定基于 `(first_ts, request_id)`（`"<first_ts>|<rid>"`）；**无效/过期 cursor → `400 cursor_expired`**（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) ST-OBSTRACE-002；§3.5 `/v1/diagnostics/traces` 覆盖 `cursor_expired`；§11.1 `ERR-CURSOR → ST-USAGE-004、ST-OBSSNAP-002、ST-OBSTRACE-002`）；openapi `/v1/diagnostics/traces` **声明 400**（`BadRequest`）；认证 `admin`；统一信封 5 键。设计验证项 `VRC-DIAG-002`；机制 `T-OBS-TRACE` + `T-MET-PAGE`（[observability 机制](../../../20_system_design/mechanisms/observability.md)）；需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明去重/正向页（ST-OBSTRACE-001）、不证明快照 cursor（ST-OBSSNAP-002）、不证明别名等价（ST-OBSALIAS-006）、不证明 `limit=abc` 的 `invalid_request`（属 `_int_param`，非本 case 的 `cursor_expired`）。**实现现状（已对齐契约）**：当前实现 [`traces`](../../../../src/libdiag/traces.py) **已校验 cursor**——cursor 不含 `"|"` 即抛 `ApiError(400, "cursor_expired", ...)`（`traces.py:85-88`）；含 `"|"` 的 `"<first_ts>|<rid>"` 才作为合法游标用于 `(first_ts,rid)<(?,?)`。故"400 `cursor_expired`"与实现一致。
+**目的（被测契约）**：验证 `GET /v1/diagnostics/traces` 的**分页与 cursor 负向契约**。被测端点/规则：`limit∈[1,500]`（实现 `max(1,min(limit,500))`），`limit=1` 时单页至多 1 项、`has_more`/`next_cursor` 与数据量一致；
+cursor 稳定基于 `(first_ts, request_id)`（`"<first_ts>|<rid>"`）；**无效/过期 cursor → `400 cursor_expired`**（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) ST-OBSTRACE-002；
+§3.5 `/v1/diagnostics/traces` 覆盖 `cursor_expired`；§11.1 `ERR-CURSOR → ST-USAGE-004、ST-OBSSNAP-002、ST-OBSTRACE-002`）；openapi `/v1/diagnostics/traces` **声明 400**（`BadRequest`）；
+认证 `admin`；统一信封 5 键。设计验证项 `VRC-DIAG-002`；机制 `T-OBS-TRACE` + `T-MET-PAGE`（[observability 机制](../../../20_system_design/mechanisms/observability.md)）；
+需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明去重/正向页（ST-OBSTRACE-001）、不证明快照 cursor（ST-OBSSNAP-002）、不证明别名等价（ST-OBSALIAS-006）、不证明 `limit=abc` 的 `invalid_request`（属 `_int_param`，非本 case 的 `cursor_expired`）。
+**实现现状（已对齐契约）**：当前实现 [`traces`](../../../../src/libdiag/traces.py) **已校验 cursor**——cursor 不含 `"|"` 即抛 `ApiError(400, "cursor_expired", ...)`（`traces.py:85-88`）；
+含 `"|"` 的 `"<first_ts>|<rid>"` 才作为合法游标用于 `(first_ts,rid)<(?,?)`。故"400 `cursor_expired`"与实现一致。
 
 ## 2. 被测入口与前置
 
@@ -76,7 +85,11 @@
   4. 对每个无效 cursor 变体 `GET` → 断言 `400`；`err["code"]=="cursor_expired"`、`err["type"]=="request_error"`、`err["retryable"] is False`、键集恰 5。
   5. 断言无效 cursor（无 `|`）返回 `400`；含 `|` 的构造 cursor 返回 `200`（合法游标，正向对照）。
 
-**重点关注步骤**：① **无效 cursor 必须 400**——最危险的是"cursor 被忽略 → 200"；实现已在 `traces.py:85-88` 拒绝无 `|` cursor，若出现 200 即 FAIL。② **`limit=1` 单页不变量**——`len(items) ≤ 1`；`has_more`/`next_cursor` 与数据量一致（有下一页则 `next_cursor` 非空）。③ **稳定分页**——同 cursor 重放返回相同成员（`first_ts|rid` 排序确定性），跨页不重不漏（`(first_ts,rid)` 严格递减）。④ **code 精确**——`cursor_expired`（§11.1 `ERR-CURSOR`）。⑤ **与 `limit` 非法区分**——`limit=abc` 是 `invalid_request`；本 case 不混用。⑥ **trace 制造不改变 oracle**——用真实请求产生 trace，但断言只针对页/游标契约，不针对响应内容。⑦ **实现现状**——`traces.py:85-88` 对无 `|` 的 cursor 抛 400 `cursor_expired`，含 `|` 的走合法路径（脚本显式断言含 `|` 返回 200，作为正向对照）。⑧ **降级/存储**——`_UnavailableDiagnostics.traces` 忽略 cursor 返回空页 200，属降级 → BLOCKED/SKIP；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSTRACE-002.py` 已实现。
+**重点关注步骤**：① **无效 cursor 必须 400**——最危险的是"cursor 被忽略 → 200"；实现已在 `traces.py:85-88` 拒绝无 `|` cursor，若出现 200 即 FAIL。② **`limit=1` 单页不变量**——`len(items) ≤ 1`；
+`has_more`/`next_cursor` 与数据量一致（有下一页则 `next_cursor` 非空）。③ **稳定分页**——同 cursor 重放返回相同成员（`first_ts|rid` 排序确定性），跨页不重不漏（`(first_ts,rid)` 严格递减）。
+④ **code 精确**——`cursor_expired`（§11.1 `ERR-CURSOR`）。⑤ **与 `limit` 非法区分**——`limit=abc` 是 `invalid_request`；本 case 不混用。⑥ **trace 制造不改变 oracle**——用真实请求产生 trace，但断言只针对页/游标契约，不针对响应内容。
+⑦ **实现现状**——`traces.py:85-88` 对无 `|` 的 cursor 抛 400 `cursor_expired`，含 `|` 的走合法路径（脚本显式断言含 `|` 返回 200，作为正向对照）。⑧ **降级/存储**——`_UnavailableDiagnostics.traces` 忽略 cursor 返回空页 200，属降级 → BLOCKED/SKIP；
+`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSTRACE-002.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 

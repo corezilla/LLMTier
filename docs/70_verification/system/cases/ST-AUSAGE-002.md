@@ -53,7 +53,10 @@
 - 要测什么（责任展开）：`GET /v1/usage?from&to&limit=1`（admin 视角）有界分页：HTTP 200 + `data.length ≤ 1` + 页元数据一致。
 - 明确不测什么 / 失败含义：不证明 cursor 跨页去重/重放（ST-USAGE-003/07）、不证明过期 cursor 400（ST-USAGE-004）、不证明清空（ST-AUSAGE-003）、不证明 data 主体隔离（ST-USAGE-006）。本 case 只断 `limit=1` 边界与页元数据一致性。
 
-**目的（被测契约）**：验证管理面 usage 的**有界分页与 cursor 元数据契约**。被测端点/规则：`GET /v1/usage`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listUsage`，query `limit` 默认 100/上限 200，`cursor` 可选）；[`UsageRecorder._page`](../../../../src/inference/usage.py) 冻结快照后 `LIMIT limit+1`，`more = len(rows) > limit`，返回 `next_cursor="<snapshot_id>:<offset+limit>" if more else None`，稳定排序 `(recorded_at,request_id)`。设计验证项 `VRC-MGMT-006`；机制 `T-MET-PAGE`；需求/机制链 `LT-FUN-004`、`R-MET-02`、`CT-USAGE-001`。**不证明什么**：不证明 cursor 跨页去重/重放（ST-USAGE-003/07）、不证明过期 cursor 400（ST-USAGE-004）、不证明清空（ST-AUSAGE-003）、不证明 data 主体隔离（ST-USAGE-006）。本 case 只断 `limit=1` 边界与页元数据一致性。
+**目的（被测契约）**：验证管理面 usage 的**有界分页与 cursor 元数据契约**。被测端点/规则：`GET /v1/usage`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listUsage`，query `limit` 默认 100/上限 200，`cursor` 可选）；
+[`UsageRecorder._page`](../../../../src/inference/usage.py) 冻结快照后 `LIMIT limit+1`，`more = len(rows) > limit`，返回 `next_cursor="<snapshot_id>:<offset+limit>" if more else None`，稳定排序 `(recorded_at,request_id)`。
+设计验证项 `VRC-MGMT-006`；机制 `T-MET-PAGE`；需求/机制链 `LT-FUN-004`、`R-MET-02`、`CT-USAGE-001`。**不证明什么**：不证明 cursor 跨页去重/重放（ST-USAGE-003/07）、不证明过期 cursor 400（ST-USAGE-004）、不证明清空（ST-AUSAGE-003）、不证明 data 主体隔离（ST-USAGE-006）。
+本 case 只断 `limit=1` 边界与页元数据一致性。
 
 ## 2. 被测入口与前置
 

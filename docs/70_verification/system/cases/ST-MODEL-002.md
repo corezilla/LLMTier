@@ -36,7 +36,12 @@
 - 要测什么（责任展开）：`GET /v1/models/Worker` 按精确 id 返回单个逻辑模型：HTTP 200 + `id=="Worker"` + `object=="model"` + `created` 为正整数。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明清单聚合（ST-MODEL-001）、大小写/URL 编码/不存在负向（ST-MODEL-003/04/05/06）、`capabilities` 键集完整性（ST-MODEL-007）；不证明凭据与 LAN trust（ST-AUTH-001/02/06）；不证明 `availability` 与上游健康一致（只断言枚举合法）；不触上游。**失败含义＝单模型精确读契约破坏**。
 
-**目的（被测契约）**：验证 Data Plane `GET /v1/models/{model}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getModel`，`model` 为**精确大小写敏感**路径参数，全局 `security=BearerAuth`，role=`data`）的**单模型精确读契约**。被测端点/规则：成功返回 `Model`（`{id,object,created,owned_by,availability,capabilities}`，`additionalProperties:false`），其中 `id` 等于请求的 `model` 字面值、`object=="model"`、`owned_by=="llmtier"`；实现 [`Registry.get_service_level(model_id)`](../../../../src/management/registry.py) 以 SQL 精确等值匹配（`WHERE id=?`），[`ModelCatalog.get()`](../../../../src/inference/models.py) 在未命中时转译 404。该端点**只读 Registry、不 dispatch 上游**。设计验证项 `VRC-INF-001/002`；机制 `R-INF-04`（清单行）；家族需求链 `LT-FUN-002`、`R-INF-04`/`R-INF-07`、`T-TRUST-ENDPOINTS`、契约 `CT-MODEL-001`（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明清单聚合（ST-MODEL-001）、大小写/URL 编码/不存在负向（ST-MODEL-003/04/05/06）、`capabilities` 键集完整性（ST-MODEL-007）；不证明凭据与 LAN trust；不证明 `availability` 与上游健康一致；不触上游。
+**目的（被测契约）**：验证 Data Plane `GET /v1/models/{model}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getModel`，`model` 为**精确大小写敏感**路径参数，全局 `security=BearerAuth`，role=`data`）的**单模型精确读契约**。
+被测端点/规则：成功返回 `Model`（`{id,object,created,owned_by,availability,capabilities}`，`additionalProperties:false`），其中 `id` 等于请求的 `model` 字面值、`object=="model"`、`owned_by=="llmtier"`；
+实现 [`Registry.get_service_level(model_id)`](../../../../src/management/registry.py) 以 SQL 精确等值匹配（`WHERE id=?`），[`ModelCatalog.get()`](../../../../src/inference/models.py) 在未命中时转译 404。
+该端点**只读 Registry、不 dispatch 上游**。设计验证项 `VRC-INF-001/002`；机制 `R-INF-04`（清单行）；家族需求链 `LT-FUN-002`、`R-INF-04`/`R-INF-07`、`T-TRUST-ENDPOINTS`、契约 `CT-MODEL-001`（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+**不证明什么**：不证明清单聚合（ST-MODEL-001）、大小写/URL 编码/不存在负向（ST-MODEL-003/04/05/06）、`capabilities` 键集完整性（ST-MODEL-007）；不证明凭据与 LAN trust；
+不证明 `availability` 与上游健康一致；不触上游。
 
 ## 2. 被测入口与前置
 

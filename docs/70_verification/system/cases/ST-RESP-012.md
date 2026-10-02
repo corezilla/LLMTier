@@ -36,7 +36,9 @@
 - 要测什么（责任展开）：`POST /v1/responses` 携带 `conversation_id`（未知顶层字段）：`400 unsupported_field`（"Request body contains unknown fields"，`param="conversation_id"`），dispatch 前拒绝、零副作用。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明任何 conversation 持久化/续写（本版本不存在，[piko-data-plane-control.md](../../../60_interfaces/piko-data-plane-control.md)）；不证明禁字段清单路径（ST-RESP-009，`previous_response_id` 命中 `unsupported_field`）；不证明合法流式成功（ST-RESP-001/06）。**失败含义＝未知字段拒绝契约破坏**。
 
-**目的（被测契约）**：验证 Data Plane `POST /v1/responses` 对**非请求字段 `conversation_id`** 的处理契约。契约由 OpenAPI `ResponsesRequest.additionalProperties:false` + 实现 `src/inference/responses.py` 的 `ALLOWED_FIELDS`（不含 `conversation_id`）与 `require(unknown is None, 400, "unsupported_field", "Request body contains unknown fields", unknown)` 共同定义：未知顶层字段在 dispatch 前被拒，`code=unsupported_field`、`param`=首个未知字段名。设计验证项 `VRC-INF-001`（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明任何 conversation 持久化/续写（本版本不存在）；不证明禁字段清单路径（ST-RESP-009，`previous_response_id` 命中 `unsupported_field`）；不证明合法流式成功（ST-RESP-001/06）。
+**目的（被测契约）**：验证 Data Plane `POST /v1/responses` 对**非请求字段 `conversation_id`** 的处理契约。契约由 OpenAPI `ResponsesRequest.additionalProperties:false` + 实现 `src/inference/responses.py` 的 `ALLOWED_FIELDS`（不含 `conversation_id`）与 `require(unknown is None, 400, "unsupported_field", "Request body contains unknown fields", unknown)` 共同定义：未知顶层字段在 dispatch 前被拒，`code=unsupported_field`、`param`=首个未知字段名。
+设计验证项 `VRC-INF-001`（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明任何 conversation 持久化/续写（本版本不存在）；
+不证明禁字段清单路径（ST-RESP-009，`previous_response_id` 命中 `unsupported_field`）；不证明合法流式成功（ST-RESP-001/06）。
 
 ## 2. 被测入口与前置
 
@@ -94,7 +96,8 @@
 | 4 | `code=="unsupported_field"`、message 含 `"unknown fields"`、`type=="request_error"`、`param=="conversation_id"`、`retryable False`、5 键 | 响应体 |
 | 5 | （可选）去掉字段重发断言 200 + SSE | 隔离归因 |
 
-**重点关注步骤**：① **未知字段路径**——`conversation_id` 不在 OpenAPI `ResponsesRequest` 属性、亦不在 `ALLOWED_FIELDS`，故被 `additionalProperties:false` 等价校验拒绝；② **错误码归因**——未知字段 → `unsupported_field`（系统 §7.8 `ERR-REQ-FIELD`），`param` 为未知字段名；③ **拒绝在 dispatch 前、零副作用**；④ **方案清单与脚本一致**——清单记 `400 unsupported_field`，[`ST-RESP-012.py`](../../../../tests/system/cases/ST-RESP-012.py) 第 34-38 行亦断言 `400` + `unsupported_field` + `param=="conversation_id"`，契约已收敛于拒绝语义。
+**重点关注步骤**：① **未知字段路径**——`conversation_id` 不在 OpenAPI `ResponsesRequest` 属性、亦不在 `ALLOWED_FIELDS`，故被 `additionalProperties:false` 等价校验拒绝；
+② **错误码归因**——未知字段 → `unsupported_field`（系统 §7.8 `ERR-REQ-FIELD`），`param` 为未知字段名；③ **拒绝在 dispatch 前、零副作用**；④ **方案清单与脚本一致**——清单记 `400 unsupported_field`，[`ST-RESP-012.py`](../../../../tests/system/cases/ST-RESP-012.py) 第 34-38 行亦断言 `400` + `unsupported_field` + `param=="conversation_id"`，契约已收敛于拒绝语义。
 
 ## 5. 独立 Oracle 与预期结果
 

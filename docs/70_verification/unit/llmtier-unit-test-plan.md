@@ -149,7 +149,11 @@
 
 ## 7. 证据与 Run 记录规则
 
-- Run ID 规则与证据位置：`run-YYYYMMDD-NN`。**位置决定（诚实声明）**：STD `repository-layout §4.1.2` / `verification.md` 示例为 `tests/unit/<module>/reports/<run-id>/`（`<module>`＝方案 §3 的模块切片名 `M001` 等，而非源码目录名）。本项目**实际被测套件位于 `tests/unit/`**，`tests/unit/<module>/` 目录**当前不存在**，且 STD 的 `<module>` 与方案的源码目录名（如 `http_api`）不一致；故本计划**裁剪为单一证据根** `tests/unit/reports/<run-id>/`（以套件目录为根，避免与 `v03` 并列再建同名 `reports` 于非源码路径），并在首次执行前将该证据根登记到项目 `repository-layout` 说明。正式报告与 metadata 同在 Run 目录；机器输出（`junit.xml`、`pytest.log`）放 `tests/unit/reports/<run-id>/artifacts/`（默认不入 Git，按 CI 保留策略）。**逐 Case 结果平铺**：按 STD `repository-layout §4.1.1`，逐 Case 结果写作 `reports/<run-id>/<Case ID>.json`（如 `UT-API-001.json`），**不再嵌套 `cases/<case-id>/manifest.json`**；`case-status.json` / `test-run.env` 与正式报告同在 Run 根。**现状（最近 Run 已落地）**：证据根 `tests/unit/reports/` **已存在**；当前权威 Run 为 `run-20261001-04`（`git_commit=6b3c650`，`bash tests/common/harness/runner_unit.sh` 产出 `artifacts/{junit.xml,pytest.log}`＋`test-run.env`＋`case-status.json`＋逐 Case `<Case ID>.json`＋正式 `unit-test-report.md`，PASS 426/0 FAIL/0 BLOCKED/0 NOT_RUN）；`runner_unit.sh`（经 `tests/common/harness/run_harness.sh` 与 `tools/test_report.py`）已落盘。更早 Run（`run-20260930-01…05`、`run-20261001-01…03`）保留、互不覆盖。
+- Run ID 规则与证据位置：`run-YYYYMMDD-NN`。**位置决定（诚实声明）**：STD `repository-layout §4.1.2` / `verification.md` 示例为 `tests/unit/<module>/reports/<run-id>/`（`<module>`＝方案 §3 的模块切片名 `M001` 等，而非源码目录名）。
+  本项目**实际被测套件位于 `tests/unit/`**，`tests/unit/<module>/` 目录**当前不存在**，且 STD 的 `<module>` 与方案的源码目录名（如 `http_api`）不一致；故本计划**裁剪为单一证据根** `tests/unit/reports/<run-id>/`（以套件目录为根，避免与 `v03` 并列再建同名 `reports` 于非源码路径），并在首次执行前将该证据根登记到项目 `repository-layout` 说明。
+  正式报告与 metadata 同在 Run 目录；机器输出（`junit.xml`、`pytest.log`）放 `tests/unit/reports/<run-id>/artifacts/`（默认不入 Git，按 CI 保留策略）。**逐 Case 结果平铺**：按 STD `repository-layout §4.1.1`，逐 Case 结果写作 `reports/<run-id>/<Case ID>.json`（如 `UT-API-001.json`），**不再嵌套 `cases/<case-id>/manifest.json`**；
+  `case-status.json` / `test-run.env` 与正式报告同在 Run 根。**现状（最近 Run 已落地）**：证据根 `tests/unit/reports/` **已存在**；当前权威 Run 为 `run-20261001-04`（`git_commit=6b3c650`，`bash tests/common/harness/runner_unit.sh` 产出 `artifacts/{junit.xml,pytest.log}`＋`test-run.env`＋`case-status.json`＋逐 Case `<Case ID>.json`＋正式 `unit-test-report.md`，PASS 426/0 FAIL/0 BLOCKED/0 NOT_RUN）；
+  `runner_unit.sh`（经 `tests/common/harness/run_harness.sh` 与 `tools/test_report.py`）已落盘。更早 Run（`run-20260930-01…05`、`run-20261001-01…03`）保留、互不覆盖。
 - 保存内容与脱敏要求：命令、Python 版本、被测源码 commit、`PYTHONPATH`、pytest stdout/退出码、失败种子与并发交错样本、ENV 实例编号；不保存 secret/正文，日志样例须为已脱敏 `[REDACTED]` 形式（与 `UT-LOG-001` 断言一致）。
 - 状态映射（Run 级）：pytest 单测试函数失败（`F`）→ 该 Case `FAIL`；pytest 收集/执行错误（`E`，含 import/fixture 错误）→ 该 Case `BLOCKED`（环境性）或按结论归 `FAIL`（断言性），不得静默记为 PASS；`skipped` → `NOT_RUN` 并登记原因，不计入 PASS；注入未命中/并发未交错 → `INVALID`。
 - 重跑规则：重跑生成新 Run，不覆盖旧失败；INVALID 需记录复现状态与修复状态分开。
@@ -157,7 +161,9 @@
 ## 8. 报告产出与 Gate 规则
 
 - 报告生成时机与模板：全部 Case 走完（或出口准则触发）后生成 `tests.unit-test-report` 实例，落位见 §7。**权威 Run `run-20261001-04` 已录制并已产出正式 `unit-test-report.md`**（G-UT-1 已关闭，PASS 426 / 66 设计 Case 全覆盖、65 独立收集 ID 全 PASS）。整体 BLOCKED（环境性，如 Python/pytest 缺失）→ 该轮不生成 report 实例，只记缺口与原因；部分 Case FAIL/INVALID → 仍生成 report（含完整 FAIL/INVALID 记录），不掩盖。
-- Gate 建议规则：单元层闭合的**分母＝方案 §3 的 66 Case 清单**（非 33 VRC）。闭合条件＝全部 66 Case 有 `PASS`；`NOT_RUN`/`BLOCKED` 只对**非 P0** Case 计入闭合，且必须逐条给出**具名原因 + Owner**（不得只写状态）。**P0 Case 不得以 `NOT_RUN` 关闭**——任一 P0 Case 处于 `NOT_RUN`/`BLOCKED` 即整体未闭合，Gate 判 No-Go，缺口登记并指定 Owner/恢复条件。原缺口 G-UT-1/G-UT-2/G-UT-5 已关闭、G-UT-3/G-UT-4 定稿 Tailored-N/A（§10），无未关闭缺口需 Owner/Gate。存在 FAIL 时报告按分级给条件接受/拒绝建议，不越权批准。66 份已建 Case 文档中 §7 映射待回溯的近似映射 Case，在回溯裁决前其 `PASS` 不被承认（按 `NOT_RUN`＋原因处理）。
+- Gate 建议规则：单元层闭合的**分母＝方案 §3 的 66 Case 清单**（非 33 VRC）。闭合条件＝全部 66 Case 有 `PASS`；`NOT_RUN`/`BLOCKED` 只对**非 P0** Case 计入闭合，且必须逐条给出**具名原因 + Owner**（不得只写状态）。
+  **P0 Case 不得以 `NOT_RUN` 关闭**——任一 P0 Case 处于 `NOT_RUN`/`BLOCKED` 即整体未闭合，Gate 判 No-Go，缺口登记并指定 Owner/恢复条件。原缺口 G-UT-1/G-UT-2/G-UT-5 已关闭、G-UT-3/G-UT-4 定稿 Tailored-N/A（§10），无未关闭缺口需 Owner/Gate。
+  存在 FAIL 时报告按分级给条件接受/拒绝建议，不越权批准。66 份已建 Case 文档中 §7 映射待回溯的近似映射 Case，在回溯裁决前其 `PASS` 不被承认（按 `NOT_RUN`＋原因处理）。
 - **层级边界**：单元层 `PASS` **不等于**契约层/系统层结论，`PASS` 不替代也不蕴含上层通过；局部通过不关闭上层组合目标（wire/E2E/真实 provider 协议由 `llmtier-system-test-scheme` 承接）。报告须显式声明"unit PASS ≠ contract/system PASS"。
 
 ## 9. 责任、排期与风险

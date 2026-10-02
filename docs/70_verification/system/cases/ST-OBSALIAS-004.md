@@ -53,7 +53,12 @@
 - 要测什么（责任展开）：`/tier/admin/v1/deployments/{id}/diagnostics` 与 `/v1/deployments/{id}/diagnostics` 的 GET/PATCH 由同一 handler 服务：status 与响应体等价（PATCH 允许服务端 `updated_at` 差异）。
 - 明确不测什么 / 失败含义：不证明 写入/校验语义本身（ST-OBSDEPL-001/02/03/04 在扁平路径断言）、不证明别名 diagnostics 开关（ST-OBSALIAS-001）、不证明其它别名、不证明别名鉴权负向（ST-AUTH-008）。
 
-**目的（被测契约）**：验证注入配置别名的**等价契约**。被测端点/规则：`GET`+`PATCH /tier/admin/v1/deployments/{deployment_id}/diagnostics` 是 `/v1/deployments/{deployment_id}/diagnostics` 的精确别名（openapi `x-llmtier-contract-aliases`），同一 handler、相同 `InjectionView[]` 形状、相同 `admin` 鉴权（[`src/http_api/app.py`](../../../../src/http_api/app.py) 两分支调用同一 `app.diagnostics.injections/set_injections`）；GET body 应逐字节等价；PATCH 因 `updated_at` 为服务端时间戳，等价判定为**除 `updated_at` 外逐字段相等**（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理) 的"逐字节"在含服务端时间戳的写路径上须按此理解）。设计验证项 `VRC-DIAG-004`；机制 `T-TRUST-SHARED` + `T-OBS-INJECT`（[observability 机制](../../../20_system_design/mechanisms/observability.md) §5.1 `IF-OBS-INJECT`）；需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；机器契约 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`x-llmtier-contract-aliases`、`InjectionView`）。**不证明什么**：不证明写入/校验语义本身（ST-OBSDEPL-001/02/03/04 在扁平路径断言）、不证明别名 diagnostics 开关（ST-OBSALIAS-001）、不证明其它别名、不证明别名鉴权负向（ST-AUTH-008）。
+**目的（被测契约）**：验证注入配置别名的**等价契约**。被测端点/规则：`GET`+`PATCH /tier/admin/v1/deployments/{deployment_id}/diagnostics` 是 `/v1/deployments/{deployment_id}/diagnostics` 的精确别名（openapi `x-llmtier-contract-aliases`），同一 handler、相同 `InjectionView[]` 形状、相同 `admin` 鉴权（[`src/http_api/app.py`](../../../../src/http_api/app.py) 两分支调用同一 `app.diagnostics.injections/set_injections`）；
+GET body 应逐字节等价；PATCH 因 `updated_at` 为服务端时间戳，等价判定为**除 `updated_at` 外逐字段相等**（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理) 的"逐字节"在含服务端时间戳的写路径上须按此理解）。
+设计验证项 `VRC-DIAG-004`；机制 `T-TRUST-SHARED` + `T-OBS-INJECT`（[observability 机制](../../../20_system_design/mechanisms/observability.md) §5.1 `IF-OBS-INJECT`）；
+需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；
+机器契约 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`x-llmtier-contract-aliases`、`InjectionView`）。
+**不证明什么**：不证明写入/校验语义本身（ST-OBSDEPL-001/02/03/04 在扁平路径断言）、不证明别名 diagnostics 开关（ST-OBSALIAS-001）、不证明其它别名、不证明别名鉴权负向（ST-AUTH-008）。
 
 ## 2. 被测入口与前置
 
@@ -76,7 +81,11 @@
   5. （可选旁证）再 `GET` 两路径比对一次（此时两路径都已写入同一状态 → 应逐字节相等）。
   6. （teardown，`finally` 内）`PATCH {"items":[]}`（任一路径）→ 200；再 `GET` 两路径确认为 `[]` 且逐字节相等。
 
-**重点关注步骤**：① **GET 逐字节**——GET 无服务端时间戳，两路径必须 `content` 完全相同。② **PATCH 的时间戳例外**——`updated_at` 是服务端 `now()`，两次调用必然不同；等价判定必须**排除**该字段（否则会误判 FAIL）；`id`/`config`/`enabled`/`deployment_id`/`type` 必须相等。③ **upsert 一致性**——同 `type` 冲突更新，两路径都不得新增重复项。④ **只比 body**——`X-Request-ID` 不参与、不列入 Oracle。⑤ **鉴权等价**——都需 `admin`（正向；负向 ST-AUTH-008）。⑥ **teardown 完整性**——`finally` 清空并双向 GET 校验，绝不把启用注入留给同 session 的 ST-RESP-011/22。⑦ **降级/存储**——`_UnavailableDiagnostics` 两路径同 handler 返回 `[]`（等价成立，判 BLOCKED/SKIP 说明语义）；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSALIAS-004.py` 已实现。
+**重点关注步骤**：① **GET 逐字节**——GET 无服务端时间戳，两路径必须 `content` 完全相同。② **PATCH 的时间戳例外**——`updated_at` 是服务端 `now()`，两次调用必然不同；等价判定必须**排除**该字段（否则会误判 FAIL）；
+`id`/`config`/`enabled`/`deployment_id`/`type` 必须相等。③ **upsert 一致性**——同 `type` 冲突更新，两路径都不得新增重复项。④ **只比 body**——`X-Request-ID` 不参与、不列入 Oracle。
+⑤ **鉴权等价**——都需 `admin`（正向；负向 ST-AUTH-008）。⑥ **teardown 完整性**——`finally` 清空并双向 GET 校验，绝不把启用注入留给同 session 的 ST-RESP-011/22。
+⑦ **降级/存储**——`_UnavailableDiagnostics` 两路径同 handler 返回 `[]`（等价成立，判 BLOCKED/SKIP 说明语义）；`503 usage_store_unavailable` 判 BLOCKED/SKIP。
+自动化入口 `ST-OBSALIAS-004.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 

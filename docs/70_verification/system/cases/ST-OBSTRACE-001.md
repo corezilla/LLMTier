@@ -53,7 +53,14 @@
 - 要测什么（责任展开）：`GET /v1/diagnostics/traces` 按 `request_id` 去重列出请求 trace：`TracePage` 中同一 `request_id` 至多出现一次，分页排序稳定，每项为合法 `TraceView`（`stages` 有序且 ≥1）。
 - 明确不测什么 / 失败含义：不证明 `limit=1` 分页/无效 cursor（ST-OBSTRACE-002）、不证明单请求全生命周期（ST-OBSREQTRACE-001）、不证明快照/统计（ST-OBSSNAP-001、ST-OBSSTATS-001）、不证明别名等价（ST-OBSALIAS-006）。**契约一致性警示（须登记）**：`since`/`until`/`deployment_id`/`model` 在 openapi 中 `required:false`，实现亦允许缺省——本 case 可用无参或宽窗请求。
 
-**目的（被测契约）**：验证 Observability `GET /v1/diagnostics/traces` 的**去重 + 稳定分页只读契约**。被测端点/规则：`GET /v1/diagnostics/traces?since=&until=&deployment_id=&model=&limit=&cursor=`，返回 `TracePage`（顶层键集恰 `{items, next_cursor, has_more}`）；每项 `TraceView` 必填 5 键（`request_id, correlation_id, stages, snapshot, usage`），`stages` `minItems:1` 且按 `timestamp` 升序（机制 `INV-5`）；同一 `request_id` 在结果集中**去重**（实现 `GROUP BY te.request_id`，一个请求即使有多个 `trace_events` 也只出现一次）；稳定排序基于 `(first_ts, request_id)`（[`src/libdiag/traces.py`](../../../../src/libdiag/traces.py) `ORDER BY first_ts DESC, rid DESC`，cursor = `"<first_ts>|<rid>"`）；认证 `admin`；失败走统一信封（401/403/503）。设计验证项 `VRC-DIAG-002`；机制 `T-OBS-TRACE`（[observability 机制](../../../20_system_design/mechanisms/observability.md) §4.2 `D-OBS-TRACE`/`D-OBS-PAGE`、§4.10 "同 request 的 stages 升序（INV-5）、trace 始终写、保留 7 天"）；需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；机器契约 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`TracePage`/`TraceView`/`TraceStage`，`security=AdminBearerAuth`）。**不证明什么**：不证明 `limit=1` 分页/无效 cursor（ST-OBSTRACE-002）、不证明单请求全生命周期（ST-OBSREQTRACE-001）、不证明快照/统计（ST-OBSSNAP-001、ST-OBSSTATS-001）、不证明别名等价（ST-OBSALIAS-006）。**契约一致性警示（须登记）**：`since`/`until`/`deployment_id`/`model` 在 openapi 中 `required:false`，实现亦允许缺省——本 case 可用无参或宽窗请求。
+**目的（被测契约）**：验证 Observability `GET /v1/diagnostics/traces` 的**去重 + 稳定分页只读契约**。被测端点/规则：`GET /v1/diagnostics/traces?since=&until=&deployment_id=&model=&limit=&cursor=`，返回 `TracePage`（顶层键集恰 `{items, next_cursor, has_more}`）；
+每项 `TraceView` 必填 5 键（`request_id, correlation_id, stages, snapshot, usage`），`stages` `minItems:1` 且按 `timestamp` 升序（机制 `INV-5`）；
+同一 `request_id` 在结果集中**去重**（实现 `GROUP BY te.request_id`，一个请求即使有多个 `trace_events` 也只出现一次）；稳定排序基于 `(first_ts, request_id)`（[`src/libdiag/traces.py`](../../../../src/libdiag/traces.py) `ORDER BY first_ts DESC, rid DESC`，cursor = `"<first_ts>|<rid>"`）；
+认证 `admin`；失败走统一信封（401/403/503）。设计验证项 `VRC-DIAG-002`；机制 `T-OBS-TRACE`（[observability 机制](../../../20_system_design/mechanisms/observability.md) §4.2 `D-OBS-TRACE`/`D-OBS-PAGE`、§4.10 "同 request 的 stages 升序（INV-5）、trace 始终写、保留 7 天"）；
+需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；
+机器契约 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`TracePage`/`TraceView`/`TraceStage`，`security=AdminBearerAuth`）。
+**不证明什么**：不证明 `limit=1` 分页/无效 cursor（ST-OBSTRACE-002）、不证明单请求全生命周期（ST-OBSREQTRACE-001）、不证明快照/统计（ST-OBSSNAP-001、ST-OBSSTATS-001）、不证明别名等价（ST-OBSALIAS-006）。
+**契约一致性警示（须登记）**：`since`/`until`/`deployment_id`/`model` 在 openapi 中 `required:false`，实现亦允许缺省——本 case 可用无参或宽窗请求。
 
 ## 2. 被测入口与前置
 
@@ -76,7 +83,11 @@
   7. **有序断言**：每个 `item.stages` 的 `timestamp` 序列非降序（机制 `INV-5` 升序）。
   8. （分页稳定性交叉核对，不改变判定）若 `has_more` 为真且 `next_cursor` 非空，重放 `GET ...&cursor=<next_cursor>`，断言返回合法 `TracePage` 且不与前一页 `request_id` 重叠；本 case 不承担 cursor 负向/`limit=1` 判定。
 
-**重点关注步骤**：① **去重是本 case 核心**——不是"列表里有 trace"，而是"同一 `request_id` 至多一次"；重复即 FAIL。② **`stages` 有序**——按 `timestamp` 升序（`INV-5`），乱序即 FAIL。③ **`stages` 非空**——`minItems:1`；空 `stages` 的 `TraceView` 非法（但 `items` 为空是合法的空页）。④ **页/项键集精确**——顶层 3 键、项 5 键、stage 3 键。⑤ **`snapshot`/`usage` 可为 `null`**——`snapshots_enabled=false` 时 `snapshot=null` 合法；`usage` 取决于账本，不得因 `null` 判 FAIL。⑥ **空页合法**——无 trace 时 `{"items":[],"next_cursor":null,"has_more":false}` 合法（PASS），不要求非空。⑦ **降级/存储**——`_UnavailableDiagnostics.traces` 恒返回空页 **200**（fail-open，形状 PASS）；`503 usage_store_unavailable` 判 BLOCKED/SKIP。自动化入口 `ST-OBSTRACE-001.py` 已实现。
+**重点关注步骤**：① **去重是本 case 核心**——不是"列表里有 trace"，而是"同一 `request_id` 至多一次"；重复即 FAIL。② **`stages` 有序**——按 `timestamp` 升序（`INV-5`），乱序即 FAIL。
+③ **`stages` 非空**——`minItems:1`；空 `stages` 的 `TraceView` 非法（但 `items` 为空是合法的空页）。④ **页/项键集精确**——顶层 3 键、项 5 键、stage 3 键。⑤ **`snapshot`/`usage` 可为 `null`**——`snapshots_enabled=false` 时 `snapshot=null` 合法；
+`usage` 取决于账本，不得因 `null` 判 FAIL。⑥ **空页合法**——无 trace 时 `{"items":[],"next_cursor":null,"has_more":false}` 合法（PASS），不要求非空。
+⑦ **降级/存储**——`_UnavailableDiagnostics.traces` 恒返回空页 **200**（fail-open，形状 PASS）；`503 usage_store_unavailable` 判 BLOCKED/SKIP。
+自动化入口 `ST-OBSTRACE-001.py` 已实现。
 
 ## 5. 独立 Oracle 与预期结果
 

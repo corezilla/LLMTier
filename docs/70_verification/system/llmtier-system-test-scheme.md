@@ -377,9 +377,15 @@
 | 模块设计 web-ui §14（ISD §9.1）；`RULE-UI-PROBE` | VRC-UI-005 | ST-UI-009 | boundary | P1 | 真实浏览器探测按钮连点只发一次有效调用、页面不重复追加（§1.5 幂等/防重模式） | 已设计 | — |
 | 模块设计 web-ui §14（ISD §9.1）；`esc()` 转义契约 | VRC-UI-001 | ST-UI-010 | boundary | P2 | 真实浏览器极值文本渲染不溢出、不注入、不破坏布局（§1.5 边界呈现模式） | 已设计 | — |
 
-**Case 总数：175（设计数）**（分类：normal 54 / boundary 12 / negative 57 / concurrency 8 / recovery 27 / security 17；环境 A 102 / B 63 / UI 10（collect：`-m api_a`=105 / `-m api_b`=76 / `-m ui`=10）；Priority P0 48 / P1 102 / P2 25）。**设计数 = 已实现数 175**：全部 175 个设计 Case 均有 `ST-*.py`（文件名＝Case ID）自动化入口；**真实浏览器 UI Case（`ST-UI-001..010`，环境列 `UI`/`-m ui`）由 `tests/system/cases/ST-UI-001.py` + `tests/common/drivers/browser_driver.mjs`（headless Chrome over CDP）实现**，取代此前仅有的源码字符串契约（关闭 `RISK-UI-EXEC-1`）。**本版迁移**：退役 legacy `tests/system/st_*.py` 家族（11 个脚本 / 30 测试）——`ST-SCAN-001`（源 `ST-04`）与 `ST-RATELIMIT-001`（源 `ST-22`）为**新登记** Case（173 → 175）；其余 9 个脚本经逐项核对**已被现有设计 Case 覆盖**后退役（映射见 §4「legacy `st_*.py`（ST-01..ST-26）退役与覆盖映射」）。逐 Case 的输入/执行/Oracle/判定/证据/清理见 `tests.system-case` 文档（`cases/<lowercased-case-id>.md`），本方案不展开。
+**Case 总数：175（设计数）**（分类：normal 54 / boundary 12 / negative 57 / concurrency 8 / recovery 27 / security 17；环境 A 102 / B 63 / UI 10（collect：`-m api_a`=105 / `-m api_b`=76 / `-m ui`=10）；
+Priority P0 48 / P1 102 / P2 25）。**设计数 = 已实现数 175**：全部 175 个设计 Case 均有 `ST-*.py`（文件名＝Case ID）自动化入口；**真实浏览器 UI Case（`ST-UI-001..010`，环境列 `UI`/`-m ui`）由 `tests/system/cases/ST-UI-001.py` + `tests/common/drivers/browser_driver.mjs`（headless Chrome over CDP）实现**，取代此前仅有的源码字符串契约（关闭 `RISK-UI-EXEC-1`）。
+**本版迁移**：退役 legacy `tests/system/st_*.py` 家族（11 个脚本 / 30 测试）——`ST-SCAN-001`（源 `ST-04`）与 `ST-RATELIMIT-001`（源 `ST-22`）为**新登记** Case（173 → 175）；
+其余 9 个脚本经逐项核对**已被现有设计 Case 覆盖**后退役（映射见 §4「legacy `st_*.py`（ST-01..ST-26）退役与覆盖映射」）。逐 Case 的输入/执行/Oracle/判定/证据/清理见 `tests.system-case` 文档（`cases/<lowercased-case-id>.md`），本方案不展开。
 
-**设计验证项覆盖**：本清单 `设计验证项 ID` 取自各 Case 的 `tests.system-case` 文档所声明的设计验证项（`ST-RESP-016`/`ST-RESP-023` 两 Case 的 case 文档未声明，按系统设计 §7.8 错误目录 `ERR-REQ-JSON`→`VRC-INF-001`、`ERR-PROVIDER-FAIL`→`VRC-INF-003` 反查补全；未新增任何 VRC ID）。设计文档（系统设计 §7/§8/§14、机制 §15、模块设计 §14、ISD §9.1）共声明 **33 个设计验证项**；本清单覆盖 **20 个**（较上版新增 `VRC-UI-001..006` 六项——由新增的真实浏览器 Case `ST-UI-001..010` 直接承接），**13 个无系统层 Case**（逐项裁决见 §4 本版审计重分类：**13 项为 (a) COVERED**——模块级验证项有真实**单元行为测试**直接断言，指向具体 `test_*`；原 3 项 (c) REAL HOLE 中 `VRC-UI-001..006` 已由真实浏览器执行关闭 `RISK-UI-EXEC-1`，`VRC-OBS-*` 纯视觉子项中「诊断页 tabs/Disabled 实际渲染」已由 `ST-UI-006` 承接、其余视觉子项已由 `ST-UI-002/006` 覆盖诊断页渲染）。逐项覆盖数：`VRC-INF-001` 31、`VRC-MGMT-006` 21、`VRC-MGMT-001` 22、`VRC-MGMT-002` 22、`VRC-API-002` 13、`VRC-DIAG-002` 15、`VRC-DIAG-004` 15、`VRC-MGMT-003` 9、`VRC-INF-002` 5、`VRC-DIAG-001` 4、`VRC-INF-004` 7、`VRC-UI-001` 4、`VRC-UI-002` 1、`VRC-UI-003` 1、`VRC-UI-004` 1、`VRC-UI-005` 2、`VRC-UI-006` 1、`VRC-LOG-001` 3、`VRC-UTIL-001` 2、`VRC-INF-003` 1。
+**设计验证项覆盖**：本清单 `设计验证项 ID` 取自各 Case 的 `tests.system-case` 文档所声明的设计验证项（`ST-RESP-016`/`ST-RESP-023` 两 Case 的 case 文档未声明，按系统设计 §7.8 错误目录 `ERR-REQ-JSON`→`VRC-INF-001`、`ERR-PROVIDER-FAIL`→`VRC-INF-003` 反查补全；
+未新增任何 VRC ID）。设计文档（系统设计 §7/§8/§14、机制 §15、模块设计 §14、ISD §9.1）共声明 **33 个设计验证项**；本清单覆盖 **20 个**（较上版新增 `VRC-UI-001..006` 六项——由新增的真实浏览器 Case `ST-UI-001..010` 直接承接），**13 个无系统层 Case**（逐项裁决见 §4 本版审计重分类：**13 项为 (a) COVERED**——模块级验证项有真实**单元行为测试**直接断言，指向具体 `test_*`；
+原 3 项 (c) REAL HOLE 中 `VRC-UI-001..006` 已由真实浏览器执行关闭 `RISK-UI-EXEC-1`，`VRC-OBS-*` 纯视觉子项中「诊断页 tabs/Disabled 实际渲染」已由 `ST-UI-006` 承接、其余视觉子项已由 `ST-UI-002/006` 覆盖诊断页渲染）。
+逐项覆盖数：`VRC-INF-001` 31、`VRC-MGMT-006` 21、`VRC-MGMT-001` 22、`VRC-MGMT-002` 22、`VRC-API-002` 13、`VRC-DIAG-002` 15、`VRC-DIAG-004` 15、`VRC-MGMT-003` 9、`VRC-INF-002` 5、`VRC-DIAG-001` 4、`VRC-INF-004` 7、`VRC-UI-001` 4、`VRC-UI-002` 1、`VRC-UI-003` 1、`VRC-UI-004` 1、`VRC-UI-005` 2、`VRC-UI-006` 1、`VRC-LOG-001` 3、`VRC-UTIL-001` 2、`VRC-INF-003` 1。
 
 ### 3.6 需求（`LT-*`）到 Case 的可追溯映射（§3 的 §3.6-等价节）
 
@@ -404,7 +410,10 @@
 | `ST-AUTH-*` | LT-INT-001、LT-SEC-001 | R-TRUST-01..04 | VRC-API-002、VRC-MGMT-003 | T-TRUST-BEARER、T-TRUST-LAN、T-TRUST-SHARED、T-TRUST-NOCFG、T-TRUST-LEAK、T-TRUST-ENDPOINTS | CT-ADMIN-001 |
 | `ST-UI-*`（真实浏览器 UI） | LT-FUN-005（控制台）、LT-OPS-006（可观测） | R-OBS-05 | VRC-UI-001..006 | T-UI-*（T-UI-01..12 相位）、T-OBS-SWITCH（诊断页） | CT-ADMIN-001（同源 API）、RULE-UI-* |
 
-**需求覆盖结论（35 项 `LT-*`）**：上表以"家族级"重建追溯链，**26 项有 Case 家族承接**（`LT-FUN-001..006/008`、`LT-INT-001/002/004/005/006/007/008`、`LT-OPEN-02`、`LT-OPS-001/002/006`、`LT-PERF-001/002`、`LT-REL-001/003/004`、`LT-SEC-001/002/004`），**9 项不在本运行层分母**（逐项见下方「需求缺口裁决」，**全部定稿 Tailored-N/A，无具名 Gap**）：`LT-FUN-007`、`LT-INT-003`、`LT-REL-002`（静态 absence/边界，由 `CT-BOUNDARY-001`/`CT-SCOPE-001`、`ST-SCAN-001` 与 `tests/contract/schemas/test_contract_semantics_v03.py` 承接，非本运行层分母）；`LT-OPS-003/004/005`、`LT-OPEN-03`（运维/实现 Gate 承接，权威＝运维手册与 release 文档）；`LT-PERF-003`（声明性约束，权威＝release §7）；`LT-SEC-003`（生产 TLS/SSO 部署面，权威＝`std-tailoring` `LT-TL-022`）。**家族级覆盖 ≠ 逐 Case 文档均引用该 `LT-*`**：本表是设计级映射权威，不要求每个 case 文档重复列出家族内全部 `LT-*`；case 文档按需引用其直接相关者。原评审以"逐 case 文档字面出现"计数（18/35）低估了这些家族级承接；本表按 STD 需求→Case 追溯语义重建。
+**需求覆盖结论（35 项 `LT-*`）**：上表以"家族级"重建追溯链，**26 项有 Case 家族承接**（`LT-FUN-001..006/008`、`LT-INT-001/002/004/005/006/007/008`、`LT-OPEN-02`、`LT-OPS-001/002/006`、`LT-PERF-001/002`、`LT-REL-001/003/004`、`LT-SEC-001/002/004`），**9 项不在本运行层分母**（逐项见下方「需求缺口裁决」，**全部定稿 Tailored-N/A，无具名 Gap**）：`LT-FUN-007`、`LT-INT-003`、`LT-REL-002`（静态 absence/边界，由 `CT-BOUNDARY-001`/`CT-SCOPE-001`、`ST-SCAN-001` 与 `tests/contract/schemas/test_contract_semantics_v03.py` 承接，非本运行层分母）；
+`LT-OPS-003/004/005`、`LT-OPEN-03`（运维/实现 Gate 承接，权威＝运维手册与 release 文档）；`LT-PERF-003`（声明性约束，权威＝release §7）；`LT-SEC-003`（生产 TLS/SSO 部署面，权威＝`std-tailoring` `LT-TL-022`）。
+**家族级覆盖 ≠ 逐 Case 文档均引用该 `LT-*`**：本表是设计级映射权威，不要求每个 case 文档重复列出家族内全部 `LT-*`；case 文档按需引用其直接相关者。原评审以"逐 case 文档字面出现"计数（18/35）低估了这些家族级承接；
+本表按 STD 需求→Case 追溯语义重建。
 
 ## 4. 不适用与缺口裁决
 
@@ -413,7 +422,9 @@
 <span style="color:#1f6feb"><em>**抽象示例**：见灰字。</em></span>
 <span style="color:#1f6feb"><em>**完成条件**：每条裁决有事实或 Owner；无“顺手 N/A”。</em></span>
 
-> **模块级验证项裁决依据（本版审计重分类，重要）**：下表中模块级验证项（`VRC-INF-005`、`VRC-UTIL-002`、`VRC-API-001/003/004`、`VRC-MGMT-004/005`、`VRC-DIAG-003`、`VRC-OBS-001..005`、`VRC-UI-001..006`）是**模块设计 §14 的验证项**，系统层清单不承载其中内部行为者。**本项目已采用合并式独立模块测试层**（`llmtier-module-test-scheme`/`-plan`，整模块组装、内部单元真实、仅边界替身，LT-TL-025），其分母＝同一批模块设计 §14 VRC（33 项）；此前各模块 §14 的**行为级承接方**是 `llmtier-unit-test-scheme` §3（被测模块内部真实、仅替换进程外上游），**现模块层亦独立登记 `MT-*` Case 承接组装保证**。本版按任务要求**逐项审计并按事实重分类**（不再一律写成 `Tailored-N/A`）：
+> **模块级验证项裁决依据（本版审计重分类，重要）**：下表中模块级验证项（`VRC-INF-005`、`VRC-UTIL-002`、`VRC-API-001/003/004`、`VRC-MGMT-004/005`、`VRC-DIAG-003`、`VRC-OBS-001..005`、`VRC-UI-001..006`）是**模块设计 §14 的验证项**，系统层清单不承载其中内部行为者。
+  **本项目已采用合并式独立模块测试层**（`llmtier-module-test-scheme`/`-plan`，整模块组装、内部单元真实、仅边界替身，LT-TL-025），其分母＝同一批模块设计 §14 VRC（33 项）；此前各模块 §14 的**行为级承接方**是 `llmtier-unit-test-scheme` §3（被测模块内部真实、仅替换进程外上游），**现模块层亦独立登记 `MT-*` Case 承接组装保证**。
+  本版按任务要求**逐项审计并按事实重分类**（不再一律写成 `Tailored-N/A`）：
 >
 > - **(a) COVERED（16 项）**：`VRC-API-001/003/004`、`VRC-INF-005`、`VRC-UTIL-002`、`VRC-MGMT-004/005`、`VRC-DIAG-003`、`VRC-OBS-001..005`（**行为级**）——均有**真实单元行为测试**（非字符串契约）直接断言，逐项证据见下表。系统层清单不重复承载，但**它们是真实被验证的**，不是"缺失"。
 > - **(c) REAL HOLE → 本版已关闭（原 7 项 → 0 项）**：`VRC-UI-001..006` 与 `VRC-OBS-*` 的**纯视觉/真实 JS 执行子项**原为具名开放 RISK `RISK-UI-EXEC-1`（本项目 harness 原无浏览器/JS 宿主，`UT-UI-*`/`UT-OBS-*` 只做**字符串契约断言**）。**本版引入真实浏览器 harness（headless Chrome over CDP）并新增系统层 Case `ST-UI-001..010`，在真实 DOM 与真实网络上执行 UI 行为，`RISK-UI-EXEC-1` 关闭**（见下表第二行与系统计划 §10-O6）。`UT-UI-*` 的字符串契约保留为**快速下位防线**，不再单独承担行为验证。
@@ -445,7 +456,9 @@
 
 > **三项具名缺口结案（本版审计复核，含设计意图核对）**：任务要求"读设计意图再判断是否 code 缺行为"，本版逐项按 **code + OpenAPI + 设计意图** 三方核对，结论 **全部为 (b) 声明对齐 / 无偏差，无 code 缺陷**：
 > - **项 1 `POST /v1/responses` `422`**：`interfaces/openapi/llmtier.openapi.json` 该 operation responses 恰为 `200/400/401/404/429/502/503`（**无 422**，程序化核验通过）；`src/` 与 `docs/20_system_design` 无 `422`；设计意图＝`400 invalid_json`（§7.8 `ERR-REQ-JSON`）。**无偏差**，`ST-RESP-016` 覆盖。
-> - **项 2 `POST /v1/probes` `502`**：设计意图权威＝`management-design.md` §4.2/§14.5「探测失败 → `unhealthy`」＋`health.py apply_probe_result` 四值枚举；代码对**所有**上游异常 `probe()→False`（`providers/openai.py:144-145`）并返回 `200 {status:"unhealthy"}`、落库（`admin.py:119-122`）。**设计本就不要求 502**——探测是观测而非接口错误，故"502 声明"为过时文档，已改 OpenAPI 对齐实现。`ST-PROBE-002/03` + `UT-MGMT-010::test_unreachable_probe_is_unhealthy_persisted` 覆盖。**code 正确，无缺陷**。
+> - **项 2 `POST /v1/probes` `502`**：设计意图权威＝`management-design.md` §4.2/§14.5「探测失败 → `unhealthy`」＋`health.py apply_probe_result` 四值枚举；
+  代码对**所有**上游异常 `probe()→False`（`providers/openai.py:144-145`）并返回 `200 {status:"unhealthy"}`、落库（`admin.py:119-122`）。**设计本就不要求 502**——探测是观测而非接口错误，故"502 声明"为过时文档，已改 OpenAPI 对齐实现。
+  `ST-PROBE-002/03` + `UT-MGMT-010::test_unreachable_probe_is_unhealthy_persisted` 覆盖。**code 正确，无缺陷**。
 > - **项 3 Embeddings `provider_failure`**：设计意图权威＝§7.8 承接索引 `ERR-PROVIDER-INJECTED | /v1/responses`（**仅 responses**）；代码 `EmbeddingsService.create` **不读** `enabled_injection`（`embeddings.py`；`provider_failure` 仅在 `responses.py:112` 产生）。**设计不要求 Embeddings 注入**，故"provider_failure"声明为不可达，已移除对齐。`ST-EMB-009`（502 `provider_contract_error`）/`ST-EMB-010`（503）覆盖可达集。**code 正确，无缺陷**。
 >
 > 三项均**不触发 code 修改**；均从 Gap 清单关闭，非重新登记。**未以"只改文档"掩盖任何设计-代码错配**——每项先核对设计意图，确认设计本就如此。
@@ -516,7 +529,8 @@
 <span style="color:#1f6feb"><em>**抽象示例**：见下方灰字。</em></span>
 <span style="color:#1f6feb"><em>**完成条件**：本附录 VRC 集合与设计文档一致；每个 VRC 在 §3 清单有 Case 或缺口。</em></span>
 
-**本层 VRC 集合（33 项）**：`VRC-API-001`、`VRC-API-002`、`VRC-API-003`、`VRC-API-004`、`VRC-INF-001`、`VRC-INF-002`、`VRC-INF-003`、`VRC-INF-004`、`VRC-INF-005`、`VRC-MGMT-001`、`VRC-MGMT-002`、`VRC-MGMT-003`、`VRC-MGMT-004`、`VRC-MGMT-005`、`VRC-MGMT-006`、`VRC-DIAG-001`、`VRC-DIAG-002`、`VRC-DIAG-003`、`VRC-DIAG-004`、`VRC-LOG-001`、`VRC-OBS-001..005`、`VRC-UI-001..006`、`VRC-UTIL-001`、`VRC-UTIL-002`。来源＝各 Case `tests.system-case` 文档所声明者（`ST-RESP-016`/`ST-RESP-023` 按系统设计 §7.8 错误目录反查补全）。
+**本层 VRC 集合（33 项）**：`VRC-API-001`、`VRC-API-002`、`VRC-API-003`、`VRC-API-004`、`VRC-INF-001`、`VRC-INF-002`、`VRC-INF-003`、`VRC-INF-004`、`VRC-INF-005`、`VRC-MGMT-001`、`VRC-MGMT-002`、`VRC-MGMT-003`、`VRC-MGMT-004`、`VRC-MGMT-005`、`VRC-MGMT-006`、`VRC-DIAG-001`、`VRC-DIAG-002`、`VRC-DIAG-003`、`VRC-DIAG-004`、`VRC-LOG-001`、`VRC-OBS-001..005`、`VRC-UI-001..006`、`VRC-UTIL-001`、`VRC-UTIL-002`。
+来源＝各 Case `tests.system-case` 文档所声明者（`ST-RESP-016`/`ST-RESP-023` 按系统设计 §7.8 错误目录反查补全）。
 
 | 设计验证项 ID | 要验证什么（名称/责任） | 设计来源 | §3 Case 覆盖 |
 |---|---|---|---|
