@@ -45,7 +45,7 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-MGMT-001` / M004 management §9 · `Registry.bootstrap_settings`（组装） v0.1.0-draft.3 / VRC-MGMT-001（management-design §14 / management.isd §9.1，management 0.1.0-draft.3） / VRC-MGMT-001 / normal / P0（[方案清单 §3](../llmtier-module-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：组装后真实调用 + 等价类划分 + 分支覆盖（主要手段：无边界替身，全真实（仅 ENV-1/ENV-2 真实实现））
-- **覆盖的分支 / 组合 / 迁移 ID**：迁移：T6、T6/T7
+- **覆盖的分支 / 组合 / 迁移 ID**：迁移：T6
 - 要测什么（责任展开）：组装后引导：合法 settings、重复启动 no-op、空库无 settings→503 `bootstrap_required`、缺节/`env:` 空/`file:` 不存在→503 `bootstrap_invalid` 回滚 + not_ready（本 Case 责任：合法 settings→ready；空库无 settings→503 `bootstrap_required`；重复启动 no-op（审计恰 1 条）（T6））
 - 明确不测什么 / 失败含义：不测跨模块系统级流程、真实上游 provider 协议、浏览器 E2E（归系统层 `ST-*` 与契约层）；本层只断言组装后成立的分支走向、状态迁移与调用序。失败含义＝management 组装后引导四态与幂等与设计不一致。
 

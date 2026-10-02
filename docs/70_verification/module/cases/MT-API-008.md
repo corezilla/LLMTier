@@ -45,7 +45,7 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-API-008` / M001 SSE terminal 三态：completed/client-abort/error-abort（组装） v0.1.0-draft.2 / VRC-API-003（http-api-design §14 / http-api.isd §9.1，http-api 0.1.0-draft.2） / VRC-API-003 / recovery / P0（[方案清单 §3](../llmtier-module-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：故障注入 + 异常路径回滚 + 状态迁移断言（主要手段：边界外协作者用进程内 `FakeAdapter`（`ResponsesService._test_adapter` seam，资产 `llmtier-unit-fakes`）；`LargeFakeAdapter` 为其长流子类）
-- **覆盖的分支 / 组合 / 迁移 ID**：分支：M001-SSE completed/client-abort/error-abort；组合：K2、K2
+- **覆盖的分支 / 组合 / 迁移 ID**：分支：M001-SSE completed/client-abort/error-abort；组合：K2
 - 要测什么（责任展开）：正常流→`completed` trace；客户端断开→`aborted(client disconnected)`；流异常→`aborted(stream_error)` 且落日志；created 首、terminal 唯一、`[DONE]`（本 Case 责任：completed / client-abort / error-abort 三态互斥且可区分；事件子集不越界、terminal 唯一）
 - 明确不测什么 / 失败含义：不测跨模块系统级流程、真实上游 provider 协议、浏览器 E2E（归系统层 `ST-*` 与契约层）；本层只断言组装后成立的分支走向、状态迁移与调用序。失败含义＝http-api 组装后SSE 终态三态与事件子集与设计不一致。
 

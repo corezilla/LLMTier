@@ -45,7 +45,7 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-INF-006` / M003 能力分支：responses=false / tools 无能力 / max_output_tokens 越界（组装） v0.1.0-draft.1 / VRC-INF-001（inference-design §14 / inference.isd §9.1，inference 0.1.0-draft.1） / VRC-INF-001 / negative / P0（[方案清单 §3](../llmtier-module-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（非法字段/凭据/引用/类型/顺序）+ 判定表组合（主要手段：边界外协作者用进程内 `FakeAdapter`（`ResponsesService._test_adapter`/`EmbeddingsService._test_adapter` seam，资产 `llmtier-unit-fakes`））
-- **覆盖的分支 / 组合 / 迁移 ID**：分支：M003-能力三分支；组合：K5、K5
+- **覆盖的分支 / 组合 / 迁移 ID**：分支：M003-能力三分支；组合：K5
 - 要测什么（责任展开）：`unsupported_model` / `unsupported_request`(tools) / `invalid_request`(max 范围/布尔) 三分支（本 Case 责任：K5 四行组合命中：能力拒绝与数值边界；类型守卫（布尔被排除））
 - 明确不测什么 / 失败含义：不测跨模块系统级流程、真实上游 provider 协议、浏览器 E2E（归系统层 `ST-*` 与契约层）；本层只断言组装后成立的分支走向、状态迁移与调用序。失败含义＝inference 组装后能力档与请求形态组合与设计不一致。
 

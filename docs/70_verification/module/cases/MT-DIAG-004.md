@@ -45,7 +45,7 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-DIAG-004` / M006 `set_injections` 分支：非 list 400/未知 deployment 404/空 items revoke（组装） v0.1.0-draft.6 / VRC-DIAG-004（libdiag-design §14 / libdiag.isd §9.1，libdiag 0.1.0-draft.6） / VRC-DIAG-004 / negative / P0（[方案清单 §3](../llmtier-module-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（非法字段/凭据/引用/类型/顺序）+ 判定表组合（主要手段：无边界替身，全真实（仅 ENV-1/ENV-2 真实实现））
-- **覆盖的分支 / 组合 / 迁移 ID**：分支：M006-set_injections 三分支；迁移：T10、T11、T10/T11
+- **覆盖的分支 / 组合 / 迁移 ID**：分支：M006-set_injections 三分支；迁移：T10、T11
 - 要测什么（责任展开）：非 list→400；未知 deployment→404；`items:[]` 撤销全部注入（DELETE）（本 Case 责任：非 list 400/未知 deployment 404/`items:[]` 撤销三分支互斥；T10/T11 迁移完整；作用域隔离）
 - 明确不测什么 / 失败含义：不测跨模块系统级流程、真实上游 provider 协议、浏览器 E2E（归系统层 `ST-*` 与契约层）；本层只断言组装后成立的分支走向、状态迁移与调用序。失败含义＝libdiag 组装后注入写入三分支与状态迁移与设计不一致。
 

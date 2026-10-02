@@ -45,7 +45,7 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-INF-008` / M003 注入四态：fault_502/fault_503/rate_limit/delay/none（组装） v0.1.0-draft.1 / VRC-INF-003（inference-design §14 / inference.isd §9.1，inference 0.1.0-draft.1） / VRC-INF-003 / recovery / P0（[方案清单 §3](../llmtier-module-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：故障注入 + 异常路径回滚 + 状态迁移断言（主要手段：边界外协作者用进程内 `FakeAdapter`（`ResponsesService._test_adapter`/`EmbeddingsService._test_adapter` seam，资产 `llmtier-unit-fakes`））
-- **覆盖的分支 / 组合 / 迁移 ID**：分支：M003-注入四态；组合：K4、K4
+- **覆盖的分支 / 组合 / 迁移 ID**：分支：M003-注入四态；组合：K4
 - 要测什么（责任展开）：502→`provider_failure`；503→`provider_unavailable`；rate_limit→429+`Retry-After`；delay→延迟；none→正常；均标 `piko_injected`（本 Case 责任：K4 前置四行注入全部命中且映射正确；命中可由 `piko_injected` 与账本 `source=injected` 观测）
 - 明确不测什么 / 失败含义：不测跨模块系统级流程、真实上游 provider 协议、浏览器 E2E（归系统层 `ST-*` 与契约层）；本层只断言组装后成立的分支走向、状态迁移与调用序。失败含义＝inference 组装后前置阶段注入四态与设计不一致。
 

@@ -45,7 +45,7 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-MGMT-007` / M004 CRUD 错误分支：412/409-conflict/409-in-use/404/400 provider_id（组装） v0.1.0-draft.3 / VRC-MGMT-002（management-design §14 / management.isd §9.1，management 0.1.0-draft.3） / VRC-MGMT-002 / negative / P0（[方案清单 §3](../llmtier-module-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（非法字段/凭据/引用/类型/顺序）+ 判定表组合（主要手段：无边界替身，全真实（仅 ENV-1/ENV-2 真实实现））
-- **覆盖的分支 / 组合 / 迁移 ID**：分支：M004-CRUD 五错误分支；组合：K6、K6；迁移：T8、T8
+- **覆盖的分支 / 组合 / 迁移 ID**：分支：M004-CRUD 五错误分支；组合：K6；迁移：T8
 - 要测什么（责任展开）：ETag stale 412；UNIQUE 409 `resource_conflict`；删除被引用 409 `resource_in_use`；未知 404；deployment provider_id 变更 400（本 Case 责任：K6 组合行全覆盖（412/409-conflict/409-in-use/404/400）；T8 版本 vN→vN+1 且旧 ETag 失效）
 - 明确不测什么 / 失败含义：不测跨模块系统级流程、真实上游 provider 协议、浏览器 E2E（归系统层 `ST-*` 与契约层）；本层只断言组装后成立的分支走向、状态迁移与调用序。失败含义＝management 组装后CRUD 错误矩阵与版本迁移与设计不一致。
 

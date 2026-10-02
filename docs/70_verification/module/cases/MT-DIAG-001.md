@@ -45,7 +45,7 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-DIAG-001` / M006 libdiag §9 · `DiagnosticsService` 记录与查询（组装） v0.1.0-draft.6 / VRC-DIAG-002（libdiag-design §14 / libdiag.isd §9.1，libdiag 0.1.0-draft.6） / VRC-DIAG-002 / boundary / P1（[方案清单 §3](../llmtier-module-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：边界值（上限/零/空/刚好满、长度、分页越界）+ 条件边界（主要手段：边界外协作者用进程内 `FakeAdapter`（`ResponsesService._test_adapter` seam，资产 `llmtier-unit-fakes`））
-- **覆盖的分支 / 组合 / 迁移 ID**：迁移：T9、T9
+- **覆盖的分支 / 组合 / 迁移 ID**：迁移：T9
 - 要测什么（责任展开）：组装后记录与查询：trace/快照/统计字段、URL 去 query、summary 截断、百分位、7 天清理（本 Case 责任：trace/快照/统计字段完整；summary 截断 256；百分位与错误分类数值精确；7 天清理）
 - 明确不测什么 / 失败含义：不测跨模块系统级流程、真实上游 provider 协议、浏览器 E2E（归系统层 `ST-*` 与契约层）；本层只断言组装后成立的分支走向、状态迁移与调用序。失败含义＝libdiag 组装后观测记录与查询面数值契约与设计不一致。
 

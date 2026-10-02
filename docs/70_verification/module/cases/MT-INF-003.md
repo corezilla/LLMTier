@@ -45,7 +45,7 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-INF-003` / M003 inference §9 · `UsageRecorder` 账本（组装） v0.1.0-draft.1 / VRC-INF-003（inference-design §14 / inference.isd §9.1，inference 0.1.0-draft.1） / VRC-INF-003 / recovery / P0（[方案清单 §3](../llmtier-module-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：故障注入 + 异常路径回滚 + 状态迁移断言（主要手段：边界外协作者用进程内 `FakeAdapter`（`ResponsesService._test_adapter`/`EmbeddingsService._test_adapter` seam，资产 `llmtier-unit-fakes`））
-- **覆盖的分支 / 组合 / 迁移 ID**：迁移：T1、T2、T3、T1/T2/T3
+- **覆盖的分支 / 组合 / 迁移 ID**：迁移：T1、T2、T3
 - 要测什么（责任展开）：组装后失败与用量：上游 5xx/超时、usage 缺失→unknown 不补零、账本终态单调推进（本 Case 责任：measured/unknown 两终态互斥；usage 缺失不补零；上游 5xx/超时后义务收敛 final（T1/T2/T3））
 - 明确不测什么 / 失败含义：不测跨模块系统级流程、真实上游 provider 协议、浏览器 E2E（归系统层 `ST-*` 与契约层）；本层只断言组装后成立的分支走向、状态迁移与调用序。失败含义＝inference 组装后账本终态与未知不补零与设计不一致。
 

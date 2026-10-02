@@ -45,7 +45,7 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-MGMT-009` / M004 分页 cursor 四态：none/expired/cross-principal/filter-mismatch（组装） v0.1.0-draft.3 / VRC-MGMT-004（management-design §14 / management.isd §9.1，management 0.1.0-draft.3） / VRC-MGMT-004 / boundary / P0（[方案清单 §3](../llmtier-module-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：边界值（上限/零/空/刚好满、长度、分页越界）+ 条件边界（主要手段：边界外协作者用进程内 `FakeAdapter`（`ResponsesService._test_adapter` seam，资产 `llmtier-unit-fakes`））
-- **覆盖的分支 / 组合 / 迁移 ID**：分支：M004-cursor 四态；组合：K3、K3
+- **覆盖的分支 / 组合 / 迁移 ID**：分支：M004-cursor 四态；组合：K3
 - 要测什么（责任展开）：无 cursor 首页；过期→400 `cursor_expired`；跨 principal→403；过滤不符→400；旧页冻结（本 Case 责任：K3 四行全覆盖（首页/下一页/过期/越界）；跨 principal 403、过滤不符 400；旧页冻结）
 - 明确不测什么 / 失败含义：不测跨模块系统级流程、真实上游 provider 协议、浏览器 E2E（归系统层 `ST-*` 与契约层）；本层只断言组装后成立的分支走向、状态迁移与调用序。失败含义＝management 组装后用量分页游标四态与设计不一致。
 

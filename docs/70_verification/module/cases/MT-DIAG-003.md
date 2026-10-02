@@ -45,7 +45,7 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-DIAG-003` / M006 注入校验分支：未知类型/enabled 非布尔/config 非对象/缺字段/越界/error_body 空或超长（组装） v0.1.0-draft.6 / VRC-DIAG-004（libdiag-design §14 / libdiag.isd §9.1，libdiag 0.1.0-draft.6） / VRC-DIAG-004 / negative / P0（[方案清单 §3](../llmtier-module-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（非法字段/凭据/引用/类型/顺序）+ 判定表组合（主要手段：无边界替身，全真实（仅 ENV-1/ENV-2 真实实现））
-- **覆盖的分支 / 组合 / 迁移 ID**：分支：M006-注入校验六分支；组合：K8、K8
+- **覆盖的分支 / 组合 / 迁移 ID**：分支：M006-注入校验六分支；组合：K8
 - 要测什么（责任展开）：六类判定分支分别断言 400 `invalid_injection`；error_body >512 截断；`malformed_event_type` 非法 400（本 Case 责任：六类校验出口 400 + `param` 精确；`error_body` 超 512 截断；范围边界值被接受；全批原子性）
 - 明确不测什么 / 失败含义：不测跨模块系统级流程、真实上游 provider 协议、浏览器 E2E（归系统层 `ST-*` 与契约层）；本层只断言组装后成立的分支走向、状态迁移与调用序。失败含义＝libdiag 组装后注入配置校验矩阵与设计不一致。
 

@@ -45,7 +45,7 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-INF-004` / M003 inference §9 · `Router.admit`/`models`（组装） v0.1.0-draft.1 / VRC-INF-004（inference-design §14 / inference.isd §9.1，inference 0.1.0-draft.1） / VRC-INF-004 / concurrency / P0（[方案清单 §3](../llmtier-module-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：线程对偶 + 确定性交错 + 调用序断言（主要手段：边界外协作者用进程内 `FakeAdapter`（`ResponsesService._test_adapter`/`EmbeddingsService._test_adapter` seam，资产 `llmtier-unit-fakes`））
-- **覆盖的分支 / 组合 / 迁移 ID**：迁移：T4、T4
+- **覆盖的分支 / 组合 / 迁移 ID**：迁移：T4
 - 要测什么（责任展开）：组装后准入与目录：占满队列 429、全不健康 503、同等级 FIFO、availability 三态、许可释放（本 Case 责任：占槽/排队/FIFO 释放与 availability 三态在真实线程对偶下成立（T4））
 - 明确不测什么 / 失败含义：不测跨模块系统级流程、真实上游 provider 协议、浏览器 E2E（归系统层 `ST-*` 与契约层）；本层只断言组装后成立的分支走向、状态迁移与调用序。失败含义＝inference 组装后准入槽位、队列与目录视图与设计不一致。
 

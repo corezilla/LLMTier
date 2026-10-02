@@ -45,7 +45,7 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-LOG-002` / M008 脱敏分支：五种敏感模式命中 + 未命中（组装） v0.1.0-draft.1 / VRC-LOG-001（log-design §14 / log.isd §9.1，log 0.1.0-draft.1） / VRC-LOG-001 / security / P0（[方案清单 §3](../llmtier-module-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：鉴权/脱敏/注入边界冒烟 + 契约 + 分支×端点配对（主要手段：无边界替身，全真实（仅 ENV-1/ENV-2 真实实现））
-- **覆盖的分支 / 组合 / 迁移 ID**：分支：M008-脱敏五模式；组合：K10、K10
+- **覆盖的分支 / 组合 / 迁移 ID**：分支：M008-脱敏五模式；组合：K10
 - 要测什么（责任展开）：Bearer/api_key/token/authorization/secret 命中→`[REDACTED]`；普通文本不误伤；长度 ≤512（本 Case 责任：Bearer/token/api_key/authorization/secret 五模式命中与普通文本不误伤）
 - 明确不测什么 / 失败含义：不测跨模块系统级流程、真实上游 provider 协议、浏览器 E2E（归系统层 `ST-*` 与契约层）；本层只断言组装后成立的分支走向、状态迁移与调用序。失败含义＝log 组装后脱敏模式与误伤边界与设计不一致。
 
