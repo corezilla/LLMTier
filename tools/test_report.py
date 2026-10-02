@@ -62,7 +62,7 @@ _CASE_ID_IN_NAME = re.compile(
     r"(?:^|/)(?:at|st)_([a-z0-9_]+?)_(\d+[a-z]?)(?:$|[/.])", re.IGNORECASE
 )
 # STD 78876c9: the executable file name is the Case ID (UT-*/ST-*).
-_CASE_ID_IN_FILENAME = re.compile(r"(?:^|[./])((?:UT|ST)-[A-Z0-9]+-\d+[a-z]?)(?:$|::|\.)")
+_CASE_ID_IN_FILENAME = re.compile(r"(?:^|[./])((?:UT|MT|ST)-[A-Z0-9]+-\d+[a-z]?)(?:$|::|\.)")
 # System-test executable files keep their historical ``at_<legacy>_<n>.py`` names,
 # but Case IDs now follow ``ST-<object>-<NNN>`` (STD 78876c9,
 # docs/software-object-identifiers.md §2). This map lets the path fallback

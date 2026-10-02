@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-module-test-scheme` |
-| Document Version | `0.1.0-draft.6` |
+| Document Version | `0.1.0-draft.7` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -164,7 +164,7 @@
 | a24 | `provider_secret_unavailable` | 503 | `secret_ref` 为 `env:` 无值 / `file:` 不可读 / 非法引用 | **MT-INF-019（新增）** |
 | a25 | `provider_contract_error` | 502 | 非 SSE / 多 terminal / 无合法 terminal / terminal 与 status 矛盾 / 非法 base64·向量 / 截断流 / 畸形帧 | MT-INF-010 / MT-DIAG-005 / MT-INF-016 / MT-INF-017 |
 | a26 | `model_unavailable` | 503 | 全部候选不健康/禁用 | MT-INF-007 |
-| a27 | `usage_store_unavailable` | 503 | SQLite 读/写异常（经 `_store_read`/`_run`） | MT-API-005 |
+| a27 | `usage_store_unavailable` | 503 | SQLite 读/写异常（经 `_store_read`/`_run`） | MT-API-005 / MT-OBS-003（诊断查询面复用同 code，见 §4 O-OBS-STORECODE-1） |
 | a28 | `internal_error` | 500 | 未捕获异常 | MT-API-005 |
 | a29 | `bootstrap_required` | 503 | 空库无 settings | MT-MGMT-001 |
 | a30 | `bootstrap_invalid` | 503 | settings 缺节 / `env:` 空 / `file:` 不存在 / 事务失败 | MT-MGMT-001 / MT-MGMT-006 |
@@ -544,7 +544,8 @@
 
 ## 4. 不适用与缺口裁决
 
-> **本表口径**：Tailored-N/A 必须引用设计章节事实；Gap 须有 Owner 与恢复条件；两者都不从分母静默消失。本层四层分母全部登记 Case，无 `Gap`、无 `Tailored-N/A`；下列为**本层不承接的组合保证**（非分母条目）。
+> **本表口径**：Tailored-N/A 必须引用设计章节事实；Gap 须有 Owner 与恢复条件；两者都不从分母静默消失。本层四层分母全部登记 Case；下列为**本层不承接的组合保证**（非分母条目）与**design-vs-code 缺口/观察项**（本轮 68 Case 实测发现，Oracle ＝ `src/`）。
+> **缺口分类**：`G-*` ＝需回溯设计修订的实质缺口；`O-*` ＝实现现状与规格措辞不一致但不阻断本层判定的观察项。两者都不改变 §3 四层分母与 68 Case 清单，只约束 Oracle 取值与断言深度。
 
 | 来源 ID / 事实依据 | 裁决（Tailored-N/A / Gap） | Owner / 恢复条件 |
 |---|---|---|
@@ -552,6 +553,13 @@
 | 真实上游 provider 协议与 wire 互操作、浏览器 E2E | Tailored-N/A（本层不测；系统方案已承接） | 归契约层与 `llmtier-system-test-scheme` |
 | M002 `VRC-UI-001..006` 的**行为级**（真实 JS 执行） | Tailored-N/A（本层仅静态产物/契约组装；行为级归系统层） | Owner：M002 web-ui。**事实**：`MT-UI-*` 为组装契约层验证；行为级由系统层真实浏览器 `ST-UI-001..010`（headless Chrome over CDP）承接，原 `RISK-UI-EXEC-1` 已关闭（见 `llmtier-system-test-scheme` §4）。 |
 | performance / endurance 分类 | Tailored-N/A（本层不纳入；见 §2 裁剪依据） | 归系统测试方案 |
+| §1.5.1 a25 / b4 / c7：非 JSON `data:` 帧、非 JSON embeddings 响应体 → 预期 `502 provider_contract_error` | **design-vs-code 缺口 G-INF-NONJSON-MAPPING-1**（Oracle ＝ `src/`，实测为准） | Owner：M003 inference ＋ 系统设计 §7.8。**事实**：`OpenAIProvider.complete/_request` 把 `json.JSONDecodeError` 归入传输异常类 → 实测映射 `503 provider_unavailable`（retryable），而非矩阵预期的 `502 provider_contract_error`（对比：非 SSE Content-Type、多 terminal、terminal/status 矛盾、无合法 terminal 确为 502）。`MT-INF-017` 按 `src/` 断言并在此登记偏差。**恢复条件**：设计侧确认权威映射（503 或改实现为 502）后回溯修订 §1.5.1（a25/b4/c7）与本行；若建立 `interfaces/error-codes/` 目录，以其为准。 |
+| `VRC-OBS-004` trace stage 因果序（"诊断 trace stage 有序"） | **design-vs-code 缺口 G-OBS-STAGE-ORDER-1** | Owner：M006 libdiag。**事实**：`libdiag/common.now()` 为毫秒精度，`TraceDiagnostics._trace_view` 按 `(stage_timestamp, id)` 排序而 `id` 为随机 `tev_<uuid4>`；快请求各 stage 落在同一毫秒时返回乱序（实测 40 次中 18 次乱）。`MT-OBS-001` 因此只断言 stage 集合与非递减时戳，不断言位置序。**恢复条件**：增加每请求单调序号列或改 `ORDER BY rowid` 后，回溯修订 `VRC-OBS-004` 并把位置序断言补入 `MT-OBS-001`。 |
+| M002 `app.js` 的 `LOGIN_URL='/login'`（ ISD §5.1 401 跳转） | **design-vs-code 缺口 G-UI-LOGIN-ROUTE-1** | Owner：M002 web-ui ＋ M001 http-api。**事实**：`_static` 只放行 `/`、`/ui`、`/ui/*`，M001 无 `/login` 路由 → loopback 实测 `GET /login` 为 404 `not_found`。`MT-UI-003` 的 401 分支只做静态契约断言与服务端锚点。**恢复条件**：M001 提供 `/login`（或 ISD 改指真实登录入口）后，补 `/login` 端到端断言。 |
+| M001 `_store_read` 统一映射存储读失败为 `usage_store_unavailable`（`app.py:144`），被诊断查询面复用 | **观察项 O-OBS-STORECODE-1**（非阻断，映射行为与契约一致） | Owner：M001。**事实**：§1.5.1 a27 原只映射 `MT-API-005`；实测 `MT-OBS-003` 是同一 `code` 的第二个映射点（诊断快照/统计/traces 查询面）。**恢复条件**：若错误目录按面细分 `code`，回溯修订 a27 与本行；否则把 a27 的映射 Case 补记 `MT-OBS-003`。 |
+| M002 `backendState` 的 4 个 health 分支（`running`/`probing`/`exhausted`/`unreachable`）与 `health.py` 允许的 `degraded` | **观察项 O-UI-HEALTHDOMAIN-1** | Owner：M002 web-ui。**事实**：产品对 `deployments.health` 的全部写点只有 migration 默认 `'unknown'` 与 `apply_probe_result`（`healthy`/`unhealthy`）；`probing`/`exhausted`/`unreachable`/`running` 在 `src/` 内无写点，`degraded` 合法但 UI 无分支（落 Unknown）。`MT-UI-004` 对无写点取值只做静态契约断言。**恢复条件**：health 域扩展（如探测中态写入）后在 `MT-UI-004` 补行为级断言。 |
+| M002 `usageSummary` 的 `ok` 分支（逐 window/percent 渲染） | **观察项 O-UI-USAGEOK-1** | Owner：M002 ＋ M004。**事实**：`ok` 只由真实 MiniMax/Volcengine 响应产生，M004 的 provider HTTP 面无边界替身资产可注入；本层只静态断言渲染分支。**恢复条件**：为 account-usage 面建 `tests.asset-design` 替身后补行为级断言。 |
+| M003 `stream_idle_timeout_ms` 生效性 | 已修（`src/inference/providers/openai.py::_stream_read_timeout`） | **事实**：Python 3.14 `SocketIO` 无 `settimeout`，原实现静默 no-op → 读阶段回落到 `connect_timeout`（默认 30s），`stream_idle_timeout` 形同虚设。已补 `_sock.settimeout` 兜底；`MT-INF-014` 据此在 0.4s 内命中流空闲超时。**恢复条件**：无（已随本轮 fix 落地，见提交记录）。 |
 | §1.5.1（c3）超 2 MB **下游响应**资源预算（超大流的下游预算，非模块内归一） | Gap（G-TRANSPORT-BUDGET-1） | Owner：LLMTier（系统层）。**事实**：模块层仅断言「模块内归一不崩溃」（MT-INF-015）；下游 2 MB/带宽预算属系统层资源预算，归 `llmtier-system-test-scheme`；恢复条件：系统层预算用例建立并引用本行。 |
 | §1.5.1（c4/c5）真实 **跨主机** 网络 RST/半开连接（非 loopback） | Tailored-N/A（本层仅 loopback ENV-2 真实 socket） | Owner：LLMTier。**事实**：模块层用 loopback `127.0.0.1:0` 真实 socket 触发 `BrokenPipeError`/`ConnectionResetError`（MT-API-012/013 已覆盖进程内可复现断连）；跨主机链路病态归系统/运维层。 |
 

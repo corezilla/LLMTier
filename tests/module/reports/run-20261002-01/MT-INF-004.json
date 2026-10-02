@@ -1,0 +1,14 @@
+{
+  "artifacts": [],
+  "case_id": "MT-INF-004",
+  "command": "python3 -m pytest --junitxml=tests/module/reports/run-20261002-01/artifacts/junit.xml tests/module/cases",
+  "git_commit": "982efae93f04621f0d76a17dfb0966a35d0dc08d",
+  "node_id": "tests.module.cases.MT-INF-004.AdmitAndCatalogTests::test_permit_release_and_fifo_queue",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261002-01",
+  "schema_version_db": "2",
+  "started_at": "2026-10-02T08:40:20Z",
+  "status": "PASS"
+}

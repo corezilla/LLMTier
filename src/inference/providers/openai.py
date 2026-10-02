@@ -36,7 +36,11 @@ class OpenAIProvider:
         try:
             response.fp.raw.settimeout(self.stream_idle_timeout)
         except Exception:
-            pass
+            # Python 3.14: SocketIO exposes no settimeout; reach the raw socket.
+            try:
+                response.fp.raw._sock.settimeout(self.stream_idle_timeout)
+            except Exception:
+                pass
 
     def _secret(self) -> str | None:
         if not self.secret_ref:
