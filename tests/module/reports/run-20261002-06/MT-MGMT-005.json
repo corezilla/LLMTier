@@ -1,0 +1,46 @@
+{
+  "artifacts": [],
+  "case_id": "MT-MGMT-005",
+  "command": "python3 -m pytest --junitxml=tests/module/reports/run-20261002-06/artifacts/junit.xml tests/module/cases",
+  "git_commit": "a1cb672b6a7c5892a3dbf61f96d0315486fc6e73",
+  "node_id": "tests.module.cases.MT-MGMT-005.AccountUsageTests::test_get_does_not_touch_network",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261002-06",
+  "schema_version_db": "2",
+  "started_at": "2026-10-02T09:57:55Z",
+  "status": "PASS",
+  "test_functions": [
+    {
+      "node_id": "tests.module.cases.MT-MGMT-005.AccountUsageTests::test_get_does_not_touch_network",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.014
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-005.AccountUsageTests::test_local_provider_is_unlimited",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-005.AccountUsageTests::test_minimax_missing_credentials_is_unavailable",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-005.AccountUsageTests::test_provider_error_is_unavailable_and_persisted",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.017
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-005.AccountUsageTests::test_refresh_without_confirm_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.506
+    }
+  ]
+}

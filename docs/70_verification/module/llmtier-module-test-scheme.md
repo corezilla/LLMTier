@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-module-test-scheme` |
-| Document Version | `0.1.0-draft.9` |
+| Document Version | `0.1.0-draft.10` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -433,7 +433,7 @@
 
 > **分母→Case 说明（多分支/多行合并为 1 Case）**：四层分母 91 条并非 91 个 Case——按 §1.5 “分支/组合/迁移必覆盖”原则，**同模块内相互接近的分支/组合行/迁移可合并入 1 个 Case**，但每一行都必须在 §3.2/§3.3/§3.4 的“映射 Case”列或 §3.7 分支分母表被点名。反向核对：91 条分母每条都映射到 ≥1 个 `MT-*` Case（见 §3.7）。
 > **注入类方法不增分母**：§1.5「注入类方法」的「mock 返回」六类、存储/传输/准入面与数据注入 4 类是**跨家族应用的构造/刺激手段**，其落点映射到四层分母的既有行（见 §3.7 注入面/数据类型核对块）；**§1.5.1「异常/错误注入矩阵」** 是同一手段口径的**全量封闭清单**（37 code + 8 上游类 + 8 传输/时间病态），其落点同样映射到既有/新增分支行——其中 a16/a24、b4/b8、c1–c8 由 **10 个新增分支 Case** 承接（计入层②），其余由既有 Case 承接；矩阵本身不另设 Case、不重复计分母。
-> **module-case 文档映射**：本清单 68 个 Case，对应 68 份 `tests.module-case` 文档（`docs/70_verification/module/cases/MT-<OBJ>-<NNN>.md`）与 68 个可执行脚本（`tests/module/cases/MT-*.py`），**已全部建立（68/68）**（文档与脚本随 `f83f8da` 入库，文档状态 `Draft`/`0.1.0-draft.1`，各 §7 指向对应脚本）。模块层 Run 证据已产生，并按计划 §7「重跑生成新 Run，不覆盖旧失败」**全部保留、互不覆盖**，共 **6 个 Run**（`tests/module/reports/run-20261002-01`…`-05`；逐 Run 事实与工具/harness 变更登记见计划 §7）：`run-20261002-01`（`PASS=353 / FAIL=1`，`MT-INF-015`）→ `run-20261002-02`（`354/354`，**假绿**：替身只改为 64 KiB 分块，仍是 `Content-Length` 单连接写 2 MiB，缺陷条件仍在）→ `run-20261002-03`（`PASS=353 / FAIL=1`，**证伪 run-02**：未再改替身即整批复跑，同一 flake 复现）→ `run-20261002-04`（`354/354`，替身改 `Transfer-Encoding: chunked` + 16 KiB 分片即真实流式上游形态后根除；**现有最新正式报告 `module-test-report.md` 判 68/68 Case `PASS` 且 Gate 闭合**，`document_id=llmtier-module-test-report-2026-10-02-04`）→ `run-20261002-05`（**当前 Run**：`PASS=354 / FAIL=0 / BLOCKED=0 / INVALID=0 / NOT_RUN=0`，`case-status.json` 的 `cases` 段 68 条全 `PASS`、`release_blocking=false`，逐 Case `MT-*.json` 带 `test_functions` 明细；其正式报告实例**待随该 Run 补齐**，故闭合结论以 run-04 证据为据、run-05 为其复跑且同为 354/354）。run-01/run-03 的失败节点恒为 60s 量级（＝`stream_idle_timeout` 默认 60s），根因在 **ENV-3 边界替身的写侧**而非产品；产品的超时行为与 §1.5.1 c1/c2 的病态设定一致。本表**设计**状态仍全部为 `Designed`（设计状态不因执行结果改写），执行 Verdict 的唯一权威在测试报告与 Run 证据，本方案不预填任何结果。
+> **module-case 文档映射**：本清单 68 个 Case，对应 68 份 `tests.module-case` 文档（`docs/70_verification/module/cases/MT-<OBJ>-<NNN>.md`）与 68 个可执行脚本（`tests/module/cases/MT-*.py`），**已全部建立（68/68）**（文档与脚本随 `f83f8da` 入库，文档状态 `Draft`/`0.1.0-draft.1`，各 §7 指向对应脚本）。模块层 Run 证据共 **6** 个（`run-20261002-01`…`run-20261002-06`，按模块计划 §7「重跑不覆盖旧失败」全部保留）：`run-01`/`run-03` 为 RED（`MT-INF-015` 读阶段 60s `TimeoutError`→503 `provider_unavailable`，根因在 ENV-3 测试替身写侧的 `Content-Length` 大 body 形态、非产品缺陷，方案的 `stream_idle_timeout` 语义正确），`run-02` 为假绿（仅做 64 KiB 分块缓解、缺陷条件仍在），`run-04` 首次根除（替身改 `Transfer-Encoding: chunked` + 16 KiB 分片），`run-05` 复跑确认但 pin 与执行树不一致（执行树含未入库修复，不可作最终 pin 依据），**`run-20261002-06` 为最终 Run**（68/68 Case `PASS`、354/354 测试函数、`release_blocking=false`、pin `a1cb672` 与被测树逐字一致，证据可采信；正式报告 `llmtier-module-test-report-2026-10-02-06` 判 Gate 闭合）。缺陷 `D-MT-INF-015-1` 已 CLOSED。本表**设计**状态仍全部为 `Designed`（设计状态不因执行结果改写），执行 Verdict 的唯一权威在测试报告与 Run 证据，本方案不预填任何结果。
 
 ### 3.7 分支 / 组合 / 迁移分母→Case 映射核对表（全覆盖核对）
 

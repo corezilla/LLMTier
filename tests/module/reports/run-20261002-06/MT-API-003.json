@@ -1,0 +1,40 @@
+{
+  "artifacts": [],
+  "case_id": "MT-API-003",
+  "command": "python3 -m pytest --junitxml=tests/module/reports/run-20261002-06/artifacts/junit.xml tests/module/cases",
+  "git_commit": "a1cb672b6a7c5892a3dbf61f96d0315486fc6e73",
+  "node_id": "tests.module.cases.MT-API-003.EmptyAppTests::test_empty_store_readyz_is_503_not_ready",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261002-06",
+  "schema_version_db": "2",
+  "started_at": "2026-10-02T09:57:55Z",
+  "status": "PASS",
+  "test_functions": [
+    {
+      "node_id": "tests.module.cases.MT-API-003.EmptyAppTests::test_empty_store_readyz_is_503_not_ready",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.008
+    },
+    {
+      "node_id": "tests.module.cases.MT-API-003.EmptyAppTests::test_healthz_reachable_on_empty_store",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.505
+    },
+    {
+      "node_id": "tests.module.cases.MT-API-003.StaticDeliveryTests::test_ui_root_serves_index_html",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.012
+    },
+    {
+      "node_id": "tests.module.cases.MT-API-003.StaticDeliveryTests::test_ui_serves_real_app_js",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.505
+    }
+  ]
+}

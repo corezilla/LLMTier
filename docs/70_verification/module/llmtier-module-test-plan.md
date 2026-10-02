@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-module-test-plan` |
-| Document Version | `0.1.0-draft.8` |
+| Document Version | `0.1.0-draft.10` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -56,8 +56,8 @@
 
 | 构成层 | 文档 / 入口（Document ID 或缺口） | 覆盖责任摘要 | 条目状态 |
 |---|---|---|---|
-| 模块方案 ×1 | `llmtier-module-test-scheme` v0.1.0-draft.9（方案 §3 四层分母清单；§1.5 注入类方法；§1.5.1 异常/错误注入矩阵；§1.6/§1.7 环境类型） | 8 模块四层分母（①20/②47/③10/④14）与 68 Case 的清单与设计状态唯一登记；异常/错误矩阵 53 条封闭核对 | Implemented |
-| Case 文档 ×68（68/68 已建） | `docs/70_verification/module/cases/MT-<OBJ>-<NNN>.md`（68 份，**已建**，随 `f83f8da` 入库；各 §7 指向 `tests/module/cases/MT-*.py`） | 逐 Case 输入构造、Oracle 与运行入口；见方案 §3 每行责任摘要 | Implemented（文档状态 `Draft`/`0.1.0-draft.1`；已执行，**当前 Run 为 `tests/module/reports/run-20261002-05`**（`PASS=354 / FAIL=0`、68/68 Case `PASS`，正式报告实例待补），现有最新正式报告为 `tests/module/reports/run-20261002-04/module-test-report.md`；6 个 Run 的沿革见 §7） |
+| 模块方案 ×1 | `llmtier-module-test-scheme` v0.1.0-draft.10（方案 §3 四层分母清单；§1.5 注入类方法；§1.5.1 异常/错误注入矩阵；§1.6/§1.7 环境类型） | 8 模块四层分母（①20/②47/③10/④14）与 68 Case 的清单与设计状态唯一登记；异常/错误矩阵 53 条封闭核对 | Implemented |
+| Case 文档 ×68（68/68 已建） | `docs/70_verification/module/cases/MT-<OBJ>-<NNN>.md`（68 份，**已建**，随 `f83f8da` 入库；各 §7 指向 `tests/module/cases/MT-*.py`） | 逐 Case 输入构造、Oracle 与运行入口；见方案 §3 每行责任摘要 | Implemented（文档状态 `Draft`/`0.1.0-draft.1`；已执行，**当前 Run 为 `tests/module/reports/run-20261002-06`**（`PASS=354 / FAIL=0`、68/68 Case `PASS`，`release_blocking=false`，`test-run.env` 12 字段含 `git_commit=a1cb672` 且与执行树一致），正式报告为 `tests/module/reports/run-20261002-06/module-test-report.md`（`llmtier-module-test-report-2026-10-02-06`，Gate 判闭合）；6 个 Run 的沿革见 §7） |
 | 测试资产 ×1 | `llmtier-unit-fakes`（`docs/70_verification/unit/assets/llmtier-unit-fakes.md`；`FakeAdapter`/`AppFixture`，候选 ID `FAKE-LLMTIER-ADAPTER`） | 上游进程内 fake 与组装夹具的契约与自检（模块层复用） | Implemented（`Implemented`/`Unverified`；自检 Run 待录制） |
 | 相邻层交接出口 | 单元计划（`llmtier-unit-test-plan`，下层）、`llmtier-system-test-scheme`（上层 wire/E2E） | 组合保证与验收承接；UT 去重规则见方案 §5 | Implemented |
 
@@ -79,10 +79,10 @@
 
 | 前检项 | 判定事实 | 通过条件 | 不满足时 |
 |---|---|---|---|
-| 方案就绪度 | `llmtier-module-test-scheme` v0.1.0-draft.9；68 Case 四层分母清单（①20/②47/③10/④14）均登记；无 Gap 未关闭、Tailored-N/A 已具名（见方案 §4：G-TRANSPORT-BUDGET-1 为系统层具名 Gap）；§3.7 分母→Case 核对 0 未映射（含注入面/数据类型核对块与异常/错误矩阵核对块） | 四层分母闭合、版本固定且缺口有主 | Blocked＋登记缺口 |
+| 方案就绪度 | `llmtier-module-test-scheme` v0.1.0-draft.10；68 Case 四层分母清单（①20/②47/③10/④14）均登记；无 Gap 未关闭、Tailored-N/A 已具名（见方案 §4：G-TRANSPORT-BUDGET-1 为系统层具名 Gap）；§3.7 分母→Case 核对 0 未映射（含注入面/数据类型核对块与异常/错误矩阵核对块） | 四层分母闭合、版本固定且缺口有主 | Blocked＋登记缺口 |
 | Case 实现状态盘点 | 68 份 `tests.module-case` 文档**已 68/68 建立**（随 `f83f8da` 入库），各自 §7 指向 `tests/module/cases/MT-*.py`；每份 §1 已声明其覆盖的分支/组合/迁移 ID（方案 §5） | 68/68 已建且测试代码可定位 | 未建/未实现 Case 标 NOT_RUN＋登记原因 |
 | 分支/组合/迁移覆盖达标 | 方案 §3.7 核对：层②47 分支、层③10 组合行、层④14 迁移行**全部映射到 ≥1 Case**（0 未映射）；且 §1.5.1 异常/错误矩阵 (a)37+(b)8+(c)8 全部映射到 Case 或具名 Gap；未覆盖者须具名或 N/A | 91 条分母 + 53 条矩阵项每条有 Case 或具名缺口/N/A | 未映射分母不得进入执行；标 NOT_RUN 并登记 |
-| 环境与工具（引用 tests.asset-design 的 Verified 状态） | `PYTHONPATH=src python3 -m pytest tests/module/cases -q` 可收集并执行（套件已建并已执行：**当前 Run `run-20261002-05`** 收集 354 项、354 passed、0 failed，`test-run.env` 落证 `pythonpath=src`、`exit_code=0`、`pytest_exit_code=0`；收集数随实现演进）；`tests/common/fakes.py` 提供 `AppFixture`/`FakeAdapter`；替身资产 `llmtier-unit-fakes` 已建（`Implemented`/`Unverified`） | 全量模块可收集执行且替身契约就位 | 收集失败或 Python/pytest 缺失→环境性 Blocked；替身契约缺→引用 `llmtier-unit-fakes`，不静默用它物 |
+| 环境与工具（引用 tests.asset-design 的 Verified 状态） | `PYTHONPATH=src python3 -m pytest tests/module/cases -q` 可收集并执行（套件已建并已执行：**当前 Run `run-20261002-06`** 收集 354 项、354 passed、0 failed，`test-run.env` 落证 `pythonpath=src`、`exit_code=0`、`pytest_exit_code=0`；收集数随实现演进）；`tests/common/fakes.py` 提供 `AppFixture`/`FakeAdapter`；替身资产 `llmtier-unit-fakes` 已建（`Implemented`/`Unverified`） | 全量模块可收集执行且替身契约就位 | 收集失败或 Python/pytest 缺失→环境性 Blocked；替身契约缺→引用 `llmtier-unit-fakes`，不静默用它物 |
 | 构建接线 / 隔离确认 | 模块层**不需要** LAN / m5air / 真实 provider；HTTP 仅绑 loopback `127.0.0.1:0` 临时端口（ENV-2），provider 用进程内 `FakeAdapter`（ENV-3），故障用确定性注入（ENV-4）；无 `PYTHONPATH=src` 外依赖 | 全量模块在本机隔离可运行，无 LAN 依赖 | 需外部服务→不属模块层，退回系统层登记 |
 | 注入类方法就绪（方案 §1.5） | 注入类方法可用：**主手段＝边界替身返回错误**（`FakeAdapter`/本地 `FakeResponse` 进程内可配置返回错误数据/异常/终态，含 5xx/超时/断连/配额耗尽/坏数据/畸形流；模块层运行时真实 provider 不可控，故只用进程内 fake，任何 LAN provider endpoint 若启用须按 TS-003 用 LAN IP 192.168.1.x、禁止 127.0.0.1）；**可选补充＝产品诊断注入**（`PATCH /v1/deployments/{id}/diagnostics` 经 ENV-2 loopback 实例；六类 `fault_502`/`fault_503`/`rate_limit`/`delay`/`stream_terminate`/`malformed_event`，见 `src/libdiag/injections.py`） | 边界替身主手段就绪且可返回配置错误（判定＝模块对该错误的映射）；产品注入可用时作为补充，注入可命中（计数可观测） | 边界替身主手段缺→该注入 Case 标 `Blocked` 并登记缺口；产品注入能力缺→标注为「补充不可用」，**不使基线 Case 失效**，不得静默改用他物 |
 | 代码 review | 被测模块（`src/<module>/`）通过 `tests.code-review-checklist` 必查项 | 无 BLOCKED 必查项 | BLOCKED 项不得进入测试 |
@@ -108,7 +108,7 @@
 |---|---|---|---|
 | 0 | 资产就位：确认 ENV-1/ENV-2 就绪、`fakes.py` 在位、ENV-3/ENV-4 契约 `llmtier-unit-fakes` 就位并跑 self-check；确认注入类方法就绪（§3：边界替身主手段可返回配置错误、产品诊断注入 API 作可选补充） | `llmtier-unit-fakes`（`docs/70_verification/unit/assets/`）；§3 前检 | 就绪清单（Verified 或 Blocked 原因） |
 | 0b | 数据注入前置：按方案 §1.5「数据注入」经**公开入口**播种初态（fixed tier/deployment/账本/snapshot/injection 行；`AppFixture.seed`），**禁止直写表/直改内部字段**；核对边界数据（2 MB/`limit`/512/极值）与冻结向量（SSE 字节帧/32-hex traceparent/base64/UI 资产）就位 | 方案 §1.5「数据注入」+ §1.5 规则 1 | 初态播种记录（公开入口路径，不入库证据） |
-| 1 | 读取方案清单并按优先级（P0→P1）与批次排序；每模块内按 ①接口行为→②分支→③组合→④状态迁移 排序 | 方案 `llmtier-module-test-scheme` v0.1.0-draft.9 §3 | 执行队列 |
+| 1 | 读取方案清单并按优先级（P0→P1）与批次排序；每模块内按 ①接口行为→②分支→③组合→④状态迁移 排序 | 方案 `llmtier-module-test-scheme` v0.1.0-draft.10 §3 | 执行队列 |
 | 2 | 逐 Case：定位 Case 文档 | Case ID | 实施依据 |
 | 3 | 按 Case 文档 §2–§7 执行前检与运行（按 §5.1 批次命令）；涉及注入的 Case 先按方案 §1.5 主手段（边界替身返回错误：5xx/超时/断连/配额耗尽/坏数据/畸形流）配置替身返回，或按存储/传输/准入面/产品注入（可选补充）配置并确认注入可命中 | Case 文档 §2–§7；方案 §1.5「错误/故障注入」 | Run 记录（含注入命中计数） |
 | 4 | 判定并分路（PASS/FAIL/BLOCKED/INVALID）；注入 Case 命中计数=0 → `INVALID` | 断言与环境事实 | Verdict 归报告 |
@@ -153,17 +153,18 @@
 
 ## 7. 证据与 Run 记录规则
 
-- Run ID 规则与证据位置：`run-YYYYMMDD-NN`。**位置**：STD `path-policy.json` 指定模块报告根为 `tests/module/reports/`；本计划据此使用**单一证据根** `tests/module/reports/<run-id>/`。**逐 Case 结果平铺**：按 STD `repository-layout §4.1.1`，逐 Case 结果写作 `reports/<run-id>/<Case ID>.json`（如 `MT-API-001.json`），不嵌套 `cases/<case-id>/manifest.json`；正式报告 `module-test-report.md` 与 `case-status.json` / `test-run.env` 同在 Run 根。机器输出（`junit.xml`、`pytest.log`）放 `tests/module/reports/<run-id>/artifacts/`（默认不入 Git，按 CI 保留策略）。**现状**：证据根 `tests/module/reports/` **已建立并已执行**——模块层共 **6 个 Run**，按本节「重跑生成新 Run，不覆盖旧失败」**全部保留、互不覆盖**；机器输出按上述布局落 `artifacts/`。逐 Run 事实如下（字段原样取自各自 `test-run.env` / `case-status.json` / `artifacts/`，详证见对应 Run 目录与报告）：
+- Run ID 规则与证据位置：`run-YYYYMMDD-NN`。**位置**：STD `path-policy.json` 指定模块报告根为 `tests/module/reports/`；本计划据此使用**单一证据根** `tests/module/reports/<run-id>/`。**逐 Case 结果平铺**：按 STD `repository-layout §4.1.1`，逐 Case 结果写作 `reports/<run-id>/<Case ID>.json`（如 `MT-API-001.json`），不嵌套 `cases/<case-id>/manifest.json`；正式报告 `module-test-report.md` 与 `case-status.json` / `test-run.env` 同在 Run 根。机器输出（`junit.xml`、`pytest.log`）放 `tests/module/reports/<run-id>/artifacts/`（默认不入 Git，按 CI 保留策略）。**现状**：证据根 `tests/module/reports/` **已建立并已执行**——模块层共 **6 个 Run**（`run-20261002-01`…`-06`），按本节「重跑生成新 Run，不覆盖旧失败」**全部保留、互不覆盖**；机器输出按上述布局落 `artifacts/`。逐 Run 事实如下（字段原样取自各自 `test-run.env` / `case-status.json` / `artifacts/`，详证见对应 Run 目录与报告）：
 
 | Run | `case-status.json.counts` | 68 Case 级状态 | 正式报告 | 结论（缺陷根因＝ENV-3 替身写侧，非产品） |
 |---|---|---|---|---|
 | `run-20261002-01` | `PASS=353 / FAIL=1` | 67 `PASS` + 1 `FAIL`（`MT-INF-015`），`release_blocking=true` | 无 | **RED**：替身以 `Content-Length` 单次 `write()` 写 2 MiB，失败节点恒 60s 量级（＝`stream_idle_timeout` 默认 60s） |
 | `run-20261002-02` | `PASS=354 / FAIL=0` | 68 `PASS`，`release_blocking=false` | 有（`llmtier-module-test-report-2026-10-02-02`） | **假绿**：处置只把替身改为 64 KiB 分块，仍是 `Content-Length` 单连接写 2 MiB，缺陷条件仍在，全绿不构成缺陷已消除的证据 |
 | `run-20261002-03` | `PASS=353 / FAIL=1` | 68 `PASS`（与 `counts` 不一致，成因见本节末条工具修复），`release_blocking=true` | 无 | **证伪 run-02**：未再改替身即整批复跑，同一 flake 复现 |
-| `run-20261002-04` | `PASS=354 / FAIL=0` | 68 `PASS`，`release_blocking=false` | **有，现有最新**（`llmtier-module-test-report-2026-10-02-04`，Gate 判闭合） | **GREEN**：替身改 `Transfer-Encoding: chunked` + 16 KiB 分片（真实流式上游形态）后根除 |
-| `run-20261002-05` | `PASS=354 / FAIL=0 / BLOCKED=0 / INVALID=0 / NOT_RUN=0` | 68 `PASS`（`cases` 段逐条全 `PASS`），`release_blocking=false` | **待补**（该 Run 目录目前只有证据，无 `module-test-report.md`） | **当前 Run**：run-04 的复跑，同为 354/354；`test-run.env` 12 字段（含 `pythonpath=src`/`exit_code=0`/`pytest_exit_code=0`/`finished_at`），逐 Case `MT-*.json` 带 `test_functions` 明细；**报告实例待随本 Run 补齐**（Owner＝LLMTier，Gate＝报告定稿） |
+| `run-20261002-04` | `PASS=354 / FAIL=0` | 68 `PASS`，`release_blocking=false` | 有（`llmtier-module-test-report-2026-10-02-04`，Gate 判闭合） | **GREEN**：替身改 `Transfer-Encoding: chunked` + 16 KiB 分片（真实流式上游形态）后根除；但当轮替身与工具修复尚未入库，`git_commit=f83f8da` 不含之 |
+| `run-20261002-05` | `PASS=354 / FAIL=0 / BLOCKED=0 / INVALID=0 / NOT_RUN=0` | 68 `PASS`（`cases` 段逐条全 `PASS`），`release_blocking=false` | **无**（该 Run 目录只有证据，无 `module-test-report.md`；报告实例不再补齐，见 §10 已关闭项） | 复跑确认：同为 354/354；逐 Case `MT-*.json` 首次带 `test_functions` 明细；**但 `test-run.env.git_commit=f83f8da` 与执行树不一致**（执行树含未入库的替身/工具/harness 变更）→ **不作最终 pin 依据** |
+| **`run-20261002-06`** | `PASS=354 / FAIL=0 / BLOCKED=0 / INVALID=0 / NOT_RUN=0` | 68 `PASS`（`cases` 段逐条全 `PASS`），`release_blocking=false` | **有，当前最新且为最终报告**（`tests/module/reports/run-20261002-06/module-test-report.md`，`llmtier-module-test-report-2026-10-02-06`，Gate 判闭合） | **最终 Run**：全部测试资产/工具修复入库（`a1cb672`）后执行，`test-run.env` 12 字段、`git_commit=a1cb672` ＝ 执行时 `HEAD` 且工作树无未提交改动 → 被测树与 pin 逐字一致，**证据可采信并作最终 pin 依据** |
 
-- **有据可查的闭合结论出自 run-04 证据**（68/68 Case `PASS` + Gate 闭合，`document_id=llmtier-module-test-report-2026-10-02-04`）；`run-20261002-05` 是其复跑且同样 354/354，**在 run-05 报告实例生成前，不得把 run-05 表述为「已判闭合」**。缺陷根因在 **ENV-3 边界替身写侧**（`Content-Length` 大 body 形态与真实流式上游不符），**不是产品缺陷**：产品读阶段 60s 无进展即 503 `provider_unavailable`，与方案 §1.5.1 c1/c2 的病态设定一致。
+- **有据可查的闭合结论出自 run-06 证据**（68/68 Case `PASS` ＋ 354/354、`release_blocking=false`、Gate 闭合，`document_id=llmtier-module-test-report-2026-10-02-06`）；`run-20261002-04`/`-05` 是其前置复跑且同样 354/354，但二者的 `git_commit=f83f8da` 均不覆盖执行时实际生效的未入库替身/工具修复，**不得作为最终 pin 依据**。缺陷根因在 **ENV-3 边界替身写侧**（`Content-Length` 大 body 形态与真实流式上游不符），**不是产品缺陷**：产品读阶段 60s 无进展即 503 `provider_unavailable`，与方案 §1.5.1 c1/c2 的病态设定一致；`src/` 相对 `f83f8da` 零变更（`git diff --stat f83f8da a1cb672 -- src/` 为空）。
 - 保存内容与脱敏要求：命令、Python 版本、被测源码 commit、`PYTHONPATH`、pytest stdout/退出码、失败种子与并发交错样本、ENV 实例编号；不保存 secret/正文，日志样例须为已脱敏 `[REDACTED]` 形式（与 `MT-LOG-001` 断言一致）。
 - **注入类方法证据（方案 §1.5 / §1.5.1）**：凡使用注入的 Case（主手段「mock 返回」6 类 + 存储/传输/准入 3 面 + 数据注入 4 类 + §1.5.1 异常/错误矩阵 53 条），Run 记录须保存**注入承接证据**——边界替身返回的配置（错误类型/状态码/错误体，如配额耗尽的 429 体、stall/hang 的「accept 后不回字节」、截断流的 early EOF 位置）与模块映射结果（错误码/status/分支走向/SSE 终态 `aborted`），或产品注入的**注入命中计数**与类型/参数（如 `fault_502`/`stream_terminate_after_events`）、注入生效阶段的 trace 或落库行，以及数据注入的**公开入口播种路径**（证明经公开入口而非直写表）。**传输/时间病态专证**：c4/c5（broken pipe/RST）须附 ENV-2 真实 socket 的客户端断开方式与 `aborted(client disconnected)` trace/许可复位、fd 基线不泄漏证据；c1/c2 须附超时参数（`connect_timeout_ms`/`stream_idle_timeout_ms`）与命中证据；c8 须附 `_inflight` 归零证据。产品注入命中计数=0 即 `INVALID`，须记录复现状态与修复状态分开。
 - 状态映射（Run 级）：pytest 单测试函数失败（`F`）→ 该 Case `FAIL`；pytest 收集/执行错误（`E`，含 import/fixture 错误）→ 该 Case `BLOCKED`（环境性）或按结论归 `FAIL`（断言性），不得静默记为 PASS；`skipped` → `NOT_RUN` 并登记原因，不计入 PASS；**注入未命中（命中计数=0）**/并发未交错 → `INVALID`。
@@ -196,8 +197,8 @@
 | 未决项 / 关联 | Owner / 最晚 Gate | 关闭所需事实或决定 |
 |---|---|---|
 | ~~68 份 `tests.module-case` 文档未建（`MT-*`）~~ | LLMTier / 首次执行前 | **已关闭**：68 份文档已建于 `docs/70_verification/module/cases/`（随 `f83f8da` 入库），各自 §7 指向 `tests/module/cases/MT-*.py`，§1 声明覆盖的分支/组合/迁移 ID 与 §1.5.1 矩阵行 |
-| ~~模块可执行套件 `tests/module/cases/` 与 Run 证据未录~~ | LLMTier / 首次执行 | **已关闭**：套件已按 §5.1 批次实现并执行，模块层共 **6 个 Run** 证据落 `tests/module/reports/run-20261002-01`…`-05`（`-01`/`-03` 各 1 `FAIL`、`-02` 假绿、`-04`/`-05` 全 354 passed 且 68/68 Case `PASS`；沿革见 §7），现有最新正式报告为 `tests/module/reports/run-20261002-04/module-test-report.md`（Gate 判闭合） |
-| `run-20261002-05` 的正式报告实例未生成（该 Run 目录只有 `test-run.env`/`case-status.json`/68 份 `MT-*.json`/`artifacts/`，无 `module-test-report.md`） | LLMTier / 报告定稿 | 依 §7/§8 按 run-05 证据（12 字段 `test-run.env`、`cases` 段 68/68 `PASS`、`release_blocking=false`、逐 Case `test_functions` 明细）生成 `llmtier-module-test-report-2026-10-02-05`；在此之前，闭合结论以 run-04 报告为据，run-05 只作其复跑佐证 |
+| ~~模块可执行套件 `tests/module/cases/` 与 Run 证据未录~~ | LLMTier / 首次执行 | **已关闭**：套件已按 §5.1 批次实现并执行，模块层共 **6 个 Run** 证据落 `tests/module/reports/run-20261002-01`…`-06`（`-01`/`-03` 各 1 `FAIL`、`-02` 假绿、`-04`/`-05`/`-06` 全 354 passed 且 68/68 Case `PASS`；沿革见 §7），现有最新且为最终报告为 `tests/module/reports/run-20261002-06/module-test-report.md`（Gate 判闭合） |
+| ~~`run-20261002-05` 的正式报告实例未生成（该 Run 目录只有 `test-run.env`/`case-status.json`/68 份 `MT-*.json`/`artifacts/`，无 `module-test-report.md`）~~ | LLMTier / 报告定稿 | **已关闭**：最终报告落于 `tests/module/reports/run-20261002-06/module-test-report.md`（`llmtier-module-test-report-2026-10-02-06`）——该 Run 68/68 Case `PASS`、`counts.PASS=354 / FAIL=0`、`release_blocking=false`、`test-run.env` 12 字段且 `git_commit=a1cb672` 与执行树一致，Gate 判闭合；run-05 因 pin（`f83f8da`）与执行树不一致不作最终 pin 依据，**其报告实例不再补齐**，证据目录原样保留（§7） |
 | M002 行为级（真实 JS 执行）承接 | LLMTier / M002 | 已由系统层 `ST-UI-001..010` 承接（`RISK-UI-EXEC-1` 已关闭）；本层仅静态产物/契约组装 |
 
 <!-- 交付自查：执行者能否只凭本计划从 Go/No-Go 走到报告产出；计划里是否出现任何执行结论或 Verdict；到期条目是否被偷偷改判？ -->

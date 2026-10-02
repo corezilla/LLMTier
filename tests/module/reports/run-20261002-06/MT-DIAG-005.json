@@ -1,0 +1,52 @@
+{
+  "artifacts": [],
+  "case_id": "MT-DIAG-005",
+  "command": "python3 -m pytest --junitxml=tests/module/reports/run-20261002-06/artifacts/junit.xml tests/module/cases",
+  "git_commit": "a1cb672b6a7c5892a3dbf61f96d0315486fc6e73",
+  "node_id": "tests.module.cases.MT-DIAG-005.StreamWrapperTests::test_disabled_stream_injection_passes_through",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261002-06",
+  "schema_version_db": "2",
+  "started_at": "2026-10-02T09:57:55Z",
+  "status": "PASS",
+  "test_functions": [
+    {
+      "node_id": "tests.module.cases.MT-DIAG-005.StreamWrapperTests::test_disabled_stream_injection_passes_through",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.513
+    },
+    {
+      "node_id": "tests.module.cases.MT-DIAG-005.StreamWrapperTests::test_malformed_event_appends_broken_frame_and_stops",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.512
+    },
+    {
+      "node_id": "tests.module.cases.MT-DIAG-005.StreamWrapperTests::test_no_injection_passes_through_unchanged",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.511
+    },
+    {
+      "node_id": "tests.module.cases.MT-DIAG-005.StreamWrapperTests::test_other_deployment_injection_does_not_affect",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.513
+    },
+    {
+      "node_id": "tests.module.cases.MT-DIAG-005.StreamWrapperTests::test_stream_terminate_default_threshold_is_one",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.513
+    },
+    {
+      "node_id": "tests.module.cases.MT-DIAG-005.StreamWrapperTests::test_stream_terminate_stops_at_configured_event",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.512
+    }
+  ]
+}
