@@ -13,7 +13,7 @@
   "source_path": "docs/60_interfaces/llmtier-management-control.md",
   "template_id": "interfaces.control",
   "template_version": "0.4.0",
-  "template_sha256": "800448585112ba2de34307d358a49727d171f3638720652f3454b26abb54fbf5",
+  "template_sha256": "e40a498750760254f75ebfea103d145e79412c162b21edcef23f9750f7619083",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,

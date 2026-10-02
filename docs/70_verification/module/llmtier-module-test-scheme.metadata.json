@@ -11,7 +11,7 @@
   ],
   "template_id": "tests.module-test-scheme",
   "template_version": "0.6.1",
-  "template_sha256": "c30133a086a7d63409d08d466e0a835f06aae920c5d662e87ab58ae43de2ea0b",
+  "template_sha256": "6d1bd8444f0f90a76f9b1e637a88a66f046193a3031a05daa9fe1f95353c01c8",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,

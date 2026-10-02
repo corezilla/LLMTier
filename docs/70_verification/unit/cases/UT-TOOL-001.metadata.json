@@ -11,7 +11,7 @@
   ],
   "template_id": "tests.unit-case",
   "template_version": "2.3.2",
-  "template_sha256": "35b62c79cab0a82e2b4f8da814538a522d8952591aba52f30bdf0c074b60e11a",
+  "template_sha256": "055c511707d80a86d8d9f1b6b376dd2abe789dbb699a19c26624d274bc754e13",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,

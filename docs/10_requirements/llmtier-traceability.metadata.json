@@ -13,7 +13,7 @@
   "source_path": "docs/10_requirements/llmtier-traceability.md",
   "template_id": "requirements.traceability",
   "template_version": "0.2.0",
-  "template_sha256": "1f9fd1726663d0bcf668f3e6846e631345cb5bc8a3b6655ed301a5101be1dfa2",
+  "template_sha256": "5bd72b321a07d2a452b483a91f36405be9cc421ea83d143ddf0072207521ba54",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,

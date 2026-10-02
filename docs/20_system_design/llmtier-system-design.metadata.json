@@ -13,7 +13,7 @@
   "source_path": "docs/20_system_design/llmtier-system-design.md",
   "template_id": "design.software-system",
   "template_version": "2.1.3",
-  "template_sha256": "b1731a224c2f37ba2eb27c65524f4061ac2c452c45c86cdc6e2e3afc6ce07c7b",
+  "template_sha256": "2855373b83f5ba70cf884b4d2e2047bfb46206e865941b3bfd427f9eb388c428",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,

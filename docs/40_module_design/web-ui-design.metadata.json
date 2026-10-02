@@ -13,7 +13,7 @@
   "source_path": "docs/40_module_design/web-ui-design.md",
   "template_id": "design.definition",
   "template_version": "3.4.3",
-  "template_sha256": "44beb79ae04a200a41bed585a81b1be0a82e397bed329aba08eb7cc1f4f4c7b6",
+  "template_sha256": "2e516f9cdcf85c479637f02fb6d3b12265a64a361180d30aac81d52ea48beb04",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,

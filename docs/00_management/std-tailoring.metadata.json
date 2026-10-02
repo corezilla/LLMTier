@@ -13,7 +13,7 @@
   "source_path": "docs/00_management/std-tailoring.md",
   "template_id": "management.tailoring",
   "template_version": "0.2.0",
-  "template_sha256": "ea464ac869946983b4e0077cef396f70ad650600043a4327894b19aa073cc74b",
+  "template_sha256": "d680b6a05a9048871616f699a4278e02facc09af0ed07b70847ff0552fda03db",
   "template_conformance": "native",
   "tailoring_ref": null,
   "migration_map_ref": null,

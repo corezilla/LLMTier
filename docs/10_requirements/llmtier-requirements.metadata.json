@@ -13,7 +13,7 @@
   "source_path": "docs/10_requirements/llmtier-requirements.md",
   "template_id": "requirements.specification",
   "template_version": "0.2.0",
-  "template_sha256": "080d6d0ab5c7ea1b73eae398588c3581777dce09a7bd7b335ddb395a4458e7f9",
+  "template_sha256": "40d8f6beafd83b92dd90617c6dafc02a4382ea62feb784efa0aa96edd695477d",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,

@@ -13,7 +13,7 @@
   "source_path": "docs/60_interfaces/contracts/llmtier-cross-system-finalization.md",
   "template_id": "contracts.specification",
   "template_version": "0.4.0",
-  "template_sha256": "79e04ee21d41c9c17f95c5bdbcb00db70656bc6c3cbba2c3094de76b019b3e14",
+  "template_sha256": "197c6f8cb3093626091dda73c0b465293bab9ba9adfa5999c17efed99af92b1f",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,

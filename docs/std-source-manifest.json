@@ -2,7 +2,7 @@
   "schema_version": "std-source-manifest.v1",
   "std_version": "0.1.0-draft.72",
   "source_repository": "corezilla/STD",
-  "source_revision": "eaca6dcb9ca990bfb9b68ae1c08dfb5d9d4b5da9",
+  "source_revision": "e1ea56822de4852b3cba68be651b5e06856c1584",
   "source_tag": null,
   "generated_at": "2026-10-02",
   "artifacts": [
@@ -284,7 +284,7 @@
     {
       "path": "docs/design-writing-guide.md",
       "role": "guidance",
-      "sha256": "80a51bebfe7e623d66fd4419c385cfb1bc813f315f5f8a9e96b621b40f640c4b"
+      "sha256": "e1309028351a3e0dd638509d2c0e22bddf79a472e624349143c39166b24c88e5"
     },
     {
       "path": "docs/document-control.md",
@@ -569,7 +569,7 @@
     {
       "path": "templates/contracts/contract-specification.md",
       "role": "template",
-      "sha256": "79e04ee21d41c9c17f95c5bdbcb00db70656bc6c3cbba2c3094de76b019b3e14"
+      "sha256": "197c6f8cb3093626091dda73c0b465293bab9ba9adfa5999c17efed99af92b1f"
     },
     {
       "path": "templates/decisions/adr.md",
@@ -579,47 +579,47 @@
     {
       "path": "templates/design/architecture-design.md",
       "role": "template",
-      "sha256": "ace2362c1f68b0ac9f4ec6572505f7ddd7784bf2ef3ea60cc66c30c8bb2ef71d"
+      "sha256": "41df900e61c372444eb9413ecc26023c147a5449fe72c4fe5f870e62a048a48f"
     },
     {
       "path": "templates/design/data-dictionary.md",
       "role": "template",
-      "sha256": "fb8ea277652b018e4374a9a34f4e5e58e1b8c1fa891b17ff4968ba835e15dd53"
+      "sha256": "0950c42140533dee6f82b9f103aa9e9df2891d011e6675e2c30d1cf77defad90"
     },
     {
       "path": "templates/design/design-definition.md",
       "role": "template",
-      "sha256": "44beb79ae04a200a41bed585a81b1be0a82e397bed329aba08eb7cc1f4f4c7b6"
+      "sha256": "2e516f9cdcf85c479637f02fb6d3b12265a64a361180d30aac81d52ea48beb04"
     },
     {
       "path": "templates/design/fpga-design.md",
       "role": "template",
-      "sha256": "a5b99627789eb4b9346fead05ba7da0c6b69a2e1f960c8e52a1f3e2431f50222"
+      "sha256": "ee72f6a86839f350006cf6c9a5f9171a310c0b72b35d4bedad6a134a05a621da"
     },
     {
       "path": "templates/design/hardware-design.md",
       "role": "template",
-      "sha256": "1c1b8bf6884827dd5311d63860abd72b0b7ab9d60e14acde15ce1fb846cd7132"
+      "sha256": "1d36a668c1eebf28703b95e9a08883efd0a02488ec2e740930d15d7a3acb8c8a"
     },
     {
       "path": "templates/design/implementation-design.md",
       "role": "template",
-      "sha256": "f15445dc0e68a06dceec6c89102233f284455cd1ad514ebf140b54142b33306e"
+      "sha256": "1cfba231dae401895628f5ac388617fc150754d3a526fe28e4944df2a5e8c0c5"
     },
     {
       "path": "templates/design/software-system-design.md",
       "role": "template",
-      "sha256": "b1731a224c2f37ba2eb27c65524f4061ac2c452c45c86cdc6e2e3afc6ce07c7b"
+      "sha256": "2855373b83f5ba70cf884b4d2e2047bfb46206e865941b3bfd427f9eb388c428"
     },
     {
       "path": "templates/design/subsystem-design.md",
       "role": "template",
-      "sha256": "b2e2834f487bc1390b8ec37d17d94061244bed1cb8d36c061bb8c163c0a97e01"
+      "sha256": "9b1fb76dbba01b7cc8f362c66162f48a7a68437bb6d32d5bb4d7c3d283ef83e8"
     },
     {
       "path": "templates/design/system-mechanism-design.md",
       "role": "template",
-      "sha256": "dad16ff51c5b01c5bbde9c99c8d0109cba1bacfe743fed90328f19537ba58681"
+      "sha256": "88157a8e01b20a8c356ad9fcca3b197e3185d96113ef730433a64ab1adf3cfd1"
     },
     {
       "path": "templates/diagrams/README.md",
@@ -909,102 +909,102 @@
     {
       "path": "templates/evaluation/technical-analysis.md",
       "role": "template",
-      "sha256": "73bd308abc7300a8782210cbd76d3ddef7a182c90d7c8bd182d6ff3c9aabe399"
+      "sha256": "0ed16c237c104bce7d51e08b6f0df6bbe5fdd58199a44ec88680d6c42cd55212"
     },
     {
       "path": "templates/hardware/bom-component-selection.md",
       "role": "template",
-      "sha256": "d9c136abb336c470f92a75a24908986831138aa3d8894d803c7f2d09665a9826"
+      "sha256": "b854e5c7074a13e1c1376449e8ce393ce22a309ae282cbc9c9f8c57515e480ec"
     },
     {
       "path": "templates/hardware/manufacturing-assembly-inspection.md",
       "role": "template",
-      "sha256": "d4ba18a0b1f6b1be486d315bceb19226f5a2fd611416a99537eb48317d687f61"
+      "sha256": "d2b3a4a83604c725cbf96798fdd90fcc8243d79f19c7b526899b935f63a823e6"
     },
     {
       "path": "templates/interfaces/interface-control.md",
       "role": "template",
-      "sha256": "800448585112ba2de34307d358a49727d171f3638720652f3454b26abb54fbf5"
+      "sha256": "e40a498750760254f75ebfea103d145e79412c162b21edcef23f9750f7619083"
     },
     {
       "path": "templates/management/configuration-management-plan.md",
       "role": "template",
-      "sha256": "cd6f191d8112c24652a189cfaf4a13fe5d6c12709a4378d1e4cf8c16656a428b"
+      "sha256": "afa9a55fbe9b56d130479546bf899186bfa8cacf5feeb05e98c6890da70c639e"
     },
     {
       "path": "templates/management/development-plan.md",
       "role": "template",
-      "sha256": "9d47413f61a3c30c07117d62c8edd131e584d7f63a3d24a65a8ad2735ca7498f"
+      "sha256": "19d92663298a1377309969821543b6d6b1fef2d3c48ff091343baad890c4ac2f"
     },
     {
       "path": "templates/management/project-plan.md",
       "role": "template",
-      "sha256": "6c83523f67ad03dba7077d7c82d497eabc6184bca0957c7f805360f2a7929c87"
+      "sha256": "0dbecc3e1fcc7deb5d9ce1b7b1bf815b81281439031667c74ec28070129fd3a7"
     },
     {
       "path": "templates/management/quality-assurance-plan.md",
       "role": "template",
-      "sha256": "c4d938058bd30b8093683686fbd196adab35b8e941899bc0cf1ec687ab65d7b1"
+      "sha256": "6db7e47f950e2f9c18ad5ee42687053d727e2217419d7b1997a35e3620606a18"
     },
     {
       "path": "templates/management/risk-management-plan.md",
       "role": "template",
-      "sha256": "dd9498427215b68c3f96519fb560d868c3304e0606623d92c3f557320d029c1e"
+      "sha256": "5cdd0bb1569abe0abbef22d5b409a656c97beb7ba13bb96d7ef13fc7d8153b89"
     },
     {
       "path": "templates/management/safety-plan.md",
       "role": "template",
-      "sha256": "b977a3566205164044acd0e9afcea547c634f22f71fa26c8c833de43ac2814eb"
+      "sha256": "ed4d53a02691a0ce6b494d8ddab43af696c19a2fa9994d110875f44d817f78f7"
     },
     {
       "path": "templates/management/security-plan.md",
       "role": "template",
-      "sha256": "1a8ed3ab27d3dc378d074515ef0513e5a74e6cd07e975124ba8fa99c3adf2386"
+      "sha256": "12666ad3ab5648a86f3790aabb931fd22733339b91707407027c53515caac1a2"
     },
     {
       "path": "templates/management/systems-engineering-management-plan.md",
       "role": "template",
-      "sha256": "ade914ba90fbb955f48301fa614a8cf82137b9239cbe6904dfd0e51d1e429b9c"
+      "sha256": "355436c1c7d268274ae77a7455fbc81235a0ed33d7ae0c78c22c1c5d81d3d0ae"
     },
     {
       "path": "templates/management/tailoring-manifest.md",
       "role": "template",
-      "sha256": "ea464ac869946983b4e0077cef396f70ad650600043a4327894b19aa073cc74b"
+      "sha256": "d680b6a05a9048871616f699a4278e02facc09af0ed07b70847ff0552fda03db"
     },
     {
       "path": "templates/operations/bring-up-guide.md",
       "role": "template",
-      "sha256": "d09a8be6eadd03e3c0d82b4744289ec4377ffb5a6e84557c6e09fbd3ff7997b8"
+      "sha256": "167e5c0568b03fd16dc8d9984bbc197f41384fcda45d72844d8a7496ad5056c6"
     },
     {
       "path": "templates/operations/installation-deployment-guide.md",
       "role": "template",
-      "sha256": "5e0a3dcd0e8b88ccab91b4fa2e62cc62796cbf0334590c374c0c05f7da6e0bc8"
+      "sha256": "c4c606eb4b9b3b239ecd891c65c17f1d5fd8bf16e5d925780435eb22de7c6d8b"
     },
     {
       "path": "templates/operations/maintenance-troubleshooting-manual.md",
       "role": "template",
-      "sha256": "5aa0c19b1747d24bee5eb44fae9213c07fa6d598a90e87de19304ee43bc0a8a0"
+      "sha256": "d9416acb901d2a324bd54792a43ee546d2463cd59d2562ebf50b227c34c38d55"
     },
     {
       "path": "templates/operations/operations-manual.md",
       "role": "template",
-      "sha256": "3da9cee890dfed53f01c1123567d1369083ba4a5cc2ffef4fe3cab0b42f048c6"
+      "sha256": "867d6f0d8d48ec63eb224b7ec06cc181f4b1113bfc6ca8f7aeb33c9abf5988b2"
     },
     {
       "path": "templates/operations/release-and-operations.md",
       "role": "template",
-      "sha256": "3b22cde4da22c6fe2ea9ec9a532424b71ffa9bd2d96e58712a6646250544f1d8"
+      "sha256": "00ef718c5876db69b9d15d01ef0a68b2e2a512e489f3e1787270f501685a4ff5"
     },
     {
       "path": "templates/operations/user-manual.md",
       "role": "template",
-      "sha256": "76f77c1f7408f7418b64e27f108134dc55883a608770b15d9f10c4358a4a70e6"
+      "sha256": "af62d45f83f964c85ee6eff65493bfd648bf3170518bfdb1a98df5c891abb9cf"
     },
     {
       "path": "templates/operations/version-description.md",
       "role": "template",
-      "sha256": "be6343ca1a37eee58642064a3af7f31e4f9b892c34046d4a4854ec758269c67b"
+      "sha256": "6935f84d8714a4d8fbfe6c22009def9870dea21f270397c5f20273b4b3207803"
     },
     {
       "path": "templates/path-policy.json",
@@ -1014,137 +1014,137 @@
     {
       "path": "templates/product/roadmap.md",
       "role": "template",
-      "sha256": "ab6a15e09286834cae40eb7401a38a2e7100f0b8818cfd3e099e4540760f4054"
+      "sha256": "71e17c6002391fe31b605c0fd8bd99e1da557570aedace45b1aa9c984e5d71e1"
     },
     {
       "path": "templates/product/sku-specification.md",
       "role": "template",
-      "sha256": "7141d1ffc36c2af477a77b9262271f96101cfc0b2f5d57a3fe4351d693daf2a1"
+      "sha256": "a62f0b3111b025b92b8e8bd6b86a854ee2c56fb70c1b5a011a8f603f495cb4b0"
     },
     {
       "path": "templates/product/solution-definition.md",
       "role": "template",
-      "sha256": "c6e606f04bfdbcb5d64c498362ad796c5d3ab4e9017562913e287a1a9c3969cb"
+      "sha256": "99e50e81ee61d8a25e5b5ca54c834217ce8a74bddd6eb9e28123c3c47d244b38"
     },
     {
       "path": "templates/requirements/concept-of-operations.md",
       "role": "template",
-      "sha256": "dae112c9c8bc2deace81bd15044e1673f28ee2770d8cd54a2b7721736f73b6f4"
+      "sha256": "315ded2365e4208780dcbe70ac85f79c6c91d5358a17e623b7845c9f64f84346"
     },
     {
       "path": "templates/requirements/requirements-specification.md",
       "role": "template",
-      "sha256": "080d6d0ab5c7ea1b73eae398588c3581777dce09a7bd7b335ddb395a4458e7f9"
+      "sha256": "40d8f6beafd83b92dd90617c6dafc02a4382ea62feb784efa0aa96edd695477d"
     },
     {
       "path": "templates/requirements/stakeholder-needs.md",
       "role": "template",
-      "sha256": "53214c39e88dbcff7190c8f6f34dd6f98e93942dcc9cc3cf8ae3379804ee5923"
+      "sha256": "d92c68e9b8ae3edf1ebbeb9566f5d487e82f20fa40a03b6b6a51b8fc1d8b0146"
     },
     {
       "path": "templates/requirements/traceability-matrix.md",
       "role": "template",
-      "sha256": "1f9fd1726663d0bcf668f3e6846e631345cb5bc8a3b6655ed301a5101be1dfa2"
+      "sha256": "5bd72b321a07d2a452b483a91f36405be9cc421ea83d143ddf0072207521ba54"
     },
     {
       "path": "templates/review/review-packet.md",
       "role": "template",
-      "sha256": "7272a93143e7a13a923344fe5bdeaa0c1d21c64823e3fbaee7f1fcb94a3964e6"
+      "sha256": "6f5fb6b1b27e69aa31c9ee9dfcf909898b91726d7edd0ba9c9746426a2bdd2af"
     },
     {
       "path": "templates/review/schematic-pcb-review-checklist.md",
       "role": "template",
-      "sha256": "dbcd552be09030476d21bf77b0a993e6a2c8ff640e32f2f3d0196abfd54564af"
+      "sha256": "a85c3ea63d8076dd17be2bb83c0d5148d687cb2a9498706e7203d42e2accf916"
     },
     {
       "path": "templates/review/tests-code-review-checklist.md",
       "role": "template",
-      "sha256": "c83bde9fddd55c0f66b2f32df86fedcf10b5fd650cb5111f7698d4951ef1dc6f"
+      "sha256": "3acb514844e352251b31c9f6b869c4934ee16a7bd427541bdd437e12c60300bb"
     },
     {
       "path": "templates/tests/asset-design.md",
       "role": "template",
-      "sha256": "58f905bfadb7019b20bb2e6fb3d2c84641d73b6741337c801ff63735e79e908a"
+      "sha256": "e973954d2dedbc99746102c0dff3dda225ec9c51686324cc79b89ab84d375d39"
     },
     {
       "path": "templates/tests/module-case.md",
       "role": "template",
-      "sha256": "a66fa86963e82e01ab6719e71de219269b816a7b4257622c4e9b312fa5e456f3"
+      "sha256": "3ab984c9b979e6e6077355efdde2a8b91c5dae578c141a8e9e38f348b0e04091"
     },
     {
       "path": "templates/tests/module-test-plan.md",
       "role": "template",
-      "sha256": "5abef1b0f5bf1e58e8a3717eb879578b60131d7b0ba7b04432d0697bc397b3b7"
+      "sha256": "512b89575ea7b160287b0c317cfea8cbdb23cd55475c9be83fd5f027b5cb9a5e"
     },
     {
       "path": "templates/tests/module-test-report.md",
       "role": "template",
-      "sha256": "17d578222074c2c58040f3b1dec0af88483e11133c3b0fdf045b5be1b6596b61"
+      "sha256": "d5154fe0663870439f5549ddb4dcb4be6be897fab4be70872afcf765b117b8c6"
     },
     {
       "path": "templates/tests/module-test-scheme.md",
       "role": "template",
-      "sha256": "c30133a086a7d63409d08d466e0a835f06aae920c5d662e87ab58ae43de2ea0b"
+      "sha256": "6d1bd8444f0f90a76f9b1e637a88a66f046193a3031a05daa9fe1f95353c01c8"
     },
     {
       "path": "templates/tests/subsystem-case.md",
       "role": "template",
-      "sha256": "7c0ed4f41350870e3ce55705e82dc7c65859aee283844b7b1b7ea9a189884166"
+      "sha256": "0a9c57e6f58ae1809f0ae96391438d26374a7335978cf1d6937b3408b4b51f0c"
     },
     {
       "path": "templates/tests/subsystem-test-plan.md",
       "role": "template",
-      "sha256": "7ffad71b751f31b04e3c20ad7d9c257b3fa9caa4f039ac6131b190d2b8d3c71d"
+      "sha256": "b76ff128fc1b5c652672b1791c4712a1b8503227ae97cf126980da68d4b16832"
     },
     {
       "path": "templates/tests/subsystem-test-report.md",
       "role": "template",
-      "sha256": "852d968faa569985f2d530e307bc813f6a2c9861fb8ee8a666f476cdaa09c0ed"
+      "sha256": "b85fc734c7e8dae48eff28447c5d80925461717c5fc8bb963c3a06595f9ae4fc"
     },
     {
       "path": "templates/tests/subsystem-test-scheme.md",
       "role": "template",
-      "sha256": "cc039cc831922df7c10ed8f6fcbced05559fa9fe1b74e769a351d053310e4bc9"
+      "sha256": "c3444cb9f209f4cc36ff3868627a689302833c9bdb3428d45a9cfc9e53272fdc"
     },
     {
       "path": "templates/tests/system-case.md",
       "role": "template",
-      "sha256": "96a57bcbcb29ec3569b308d75af6c1d5b6c803cdae1a4b1513976d477774212e"
+      "sha256": "44ca25ba1f469ff16fa04507e5023438495c6c0d9f05970054efbf071cb5cf4c"
     },
     {
       "path": "templates/tests/system-test-plan.md",
       "role": "template",
-      "sha256": "20bc5867837abe52ac6d4c4b354f785c97a5a976a7aa825ef58f21a158696cd2"
+      "sha256": "3d7aeaa87cb3c88e38b74f259554ab9ac6d540112d2d7799524f14b263ff82be"
     },
     {
       "path": "templates/tests/system-test-report.md",
       "role": "template",
-      "sha256": "6e4968fec47771883003416ccebaf70492f582ee102738c0bb4212c2b4bee895"
+      "sha256": "dac71140a01f02b8fbe23fc84fbf8efca22842333f0c3094f6795f6ba9260a28"
     },
     {
       "path": "templates/tests/system-test-scheme.md",
       "role": "template",
-      "sha256": "dbd507e43ffd0a77078dd6003d0f682469ff01b1cf406697706bad14d25ef6e6"
+      "sha256": "d4ba841ebe617fa88ed438f3ee81cd944373e87e19017150ba7fdd04a07a222e"
     },
     {
       "path": "templates/tests/unit-case.md",
       "role": "template",
-      "sha256": "35b62c79cab0a82e2b4f8da814538a522d8952591aba52f30bdf0c074b60e11a"
+      "sha256": "055c511707d80a86d8d9f1b6b376dd2abe789dbb699a19c26624d274bc754e13"
     },
     {
       "path": "templates/tests/unit-test-plan.md",
       "role": "template",
-      "sha256": "02d8efe23b27c04d3a9f2725bd888fc3206d6d8ffa34b97a1c973a678531ca5f"
+      "sha256": "4632562bd4e71e6365fd81d99e4a4f9ddb377de8a0a33ca5f29213bdb4c93b6c"
     },
     {
       "path": "templates/tests/unit-test-report.md",
       "role": "template",
-      "sha256": "24dc8437141aa084673a07b2785833df97e808f1f86865d9a7d7cd2faa6cab94"
+      "sha256": "023c0c956e088d87818530adb59eb355c6045b5068801df6089a2022f254d191"
     },
     {
       "path": "templates/tests/unit-test-scheme.md",
       "role": "template",
-      "sha256": "409e67867384137d12441577adeb3f63b6be8088ef71fdee281c45bd1ba885b2"
+      "sha256": "6a199d8afe1c050601b3cd8edcde9b70d968fc9ae5441677d5f3f61eec3507e7"
     }
   ]
 }

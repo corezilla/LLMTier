@@ -13,7 +13,7 @@
   "source_path": "docs/91_reviews/llmtier-code-review.md",
   "template_id": "review.tests-code-review-checklist",
   "template_version": "0.1.0",
-  "template_sha256": "c83bde9fddd55c0f66b2f32df86fedcf10b5fd650cb5111f7698d4951ef1dc6f",
+  "template_sha256": "3acb514844e352251b31c9f6b869c4934ee16a7bd427541bdd437e12c60300bb",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,

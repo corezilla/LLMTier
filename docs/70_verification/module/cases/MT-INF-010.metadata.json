@@ -4,7 +4,7 @@
   "document_type": "tests.module-case",
   "template_id": "tests.module-case",
   "template_version": "2.3.2",
-  "template_sha256": "a66fa86963e82e01ab6719e71de219269b816a7b4257622c4e9b312fa5e456f3",
+  "template_sha256": "3ab984c9b979e6e6077355efdde2a8b91c5dae578c141a8e9e38f348b0e04091",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,

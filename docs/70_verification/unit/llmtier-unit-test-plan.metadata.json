@@ -11,7 +11,7 @@
   ],
   "template_id": "tests.unit-test-plan",
   "template_version": "0.9.2",
-  "template_sha256": "02d8efe23b27c04d3a9f2725bd888fc3206d6d8ffa34b97a1c973a678531ca5f",
+  "template_sha256": "4632562bd4e71e6365fd81d99e4a4f9ddb377de8a0a33ca5f29213bdb4c93b6c",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": "llmtier-implementation-plan",

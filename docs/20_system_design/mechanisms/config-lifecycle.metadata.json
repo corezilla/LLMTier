@@ -13,7 +13,7 @@
   "source_path": "docs/20_system_design/mechanisms/config-lifecycle.md",
   "template_id": "design.system-mechanism",
   "template_version": "3.3.1",
-  "template_sha256": "dad16ff51c5b01c5bbde9c99c8d0109cba1bacfe743fed90328f19537ba58681",
+  "template_sha256": "88157a8e01b20a8c356ad9fcca3b197e3185d96113ef730433a64ab1adf3cfd1",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,

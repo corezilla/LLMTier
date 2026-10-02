@@ -13,7 +13,7 @@
   "source_path": "docs/50_implementation_design/log.isd.md",
   "template_id": "design.implementation",
   "template_version": "1.2.2",
-  "template_sha256": "f15445dc0e68a06dceec6c89102233f284455cd1ad514ebf140b54142b33306e",
+  "template_sha256": "1cfba231dae401895628f5ac388617fc150754d3a526fe28e4944df2a5e8c0c5",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,

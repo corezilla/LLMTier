@@ -13,7 +13,7 @@
   "source_path": "docs/80_operations/llmtier-release-and-operations.md",
   "template_id": "operations.release",
   "template_version": "0.2.0",
-  "template_sha256": "3b22cde4da22c6fe2ea9ec9a532424b71ffa9bd2d96e58712a6646250544f1d8",
+  "template_sha256": "00ef718c5876db69b9d15d01ef0a68b2e2a512e489f3e1787270f501685a4ff5",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,

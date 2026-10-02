@@ -11,7 +11,7 @@
   ],
   "template_id": "tests.asset-design",
   "template_version": "0.2.2",
-  "template_sha256": "58f905bfadb7019b20bb2e6fb3d2c84641d73b6741337c801ff63735e79e908a",
+  "template_sha256": "e973954d2dedbc99746102c0dff3dda225ec9c51686324cc79b89ab84d375d39",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,

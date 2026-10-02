@@ -13,7 +13,7 @@
   "source_path": "docs/00_management/improvement-plan.md",
   "template_id": "management.quality-plan",
   "template_version": "0.2.0",
-  "template_sha256": "c4d938058bd30b8093683686fbd196adab35b8e941899bc0cf1ec687ab65d7b1",
+  "template_sha256": "6db7e47f950e2f9c18ad5ee42687053d727e2217419d7b1997a35e3620606a18",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,

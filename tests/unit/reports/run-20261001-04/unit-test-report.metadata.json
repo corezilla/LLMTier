@@ -11,7 +11,7 @@
   ],
   "template_id": "tests.unit-test-report",
   "template_version": "0.3.1",
-  "template_sha256": "24dc8437141aa084673a07b2785833df97e808f1f86865d9a7d7cd2faa6cab94",
+  "template_sha256": "023c0c956e088d87818530adb59eb355c6045b5068801df6089a2022f254d191",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,

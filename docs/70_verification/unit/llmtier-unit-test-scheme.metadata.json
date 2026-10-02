@@ -11,7 +11,7 @@
   ],
   "template_id": "tests.unit-test-scheme",
   "template_version": "0.6.1",
-  "template_sha256": "409e67867384137d12441577adeb3f63b6be8088ef71fdee281c45bd1ba885b2",
+  "template_sha256": "6a199d8afe1c050601b3cd8edcde9b70d968fc9ae5441677d5f3f61eec3507e7",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,
