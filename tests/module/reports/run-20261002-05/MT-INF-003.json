@@ -1,0 +1,46 @@
+{
+  "artifacts": [],
+  "case_id": "MT-INF-003",
+  "command": "python3 -m pytest --junitxml=tests/module/reports/run-20261002-05/artifacts/junit.xml tests/module/cases",
+  "git_commit": "f83f8da70dc9d632392f8d10f4236bd70518f2c5",
+  "node_id": "tests.module.cases.MT-INF-003.UsageLedgerTests::test_ledger_advances_across_requests",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261002-05",
+  "schema_version_db": "2",
+  "started_at": "2026-10-02T09:52:36Z",
+  "status": "PASS",
+  "test_functions": [
+    {
+      "node_id": "tests.module.cases.MT-INF-003.UsageLedgerTests::test_ledger_advances_across_requests",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.517
+    },
+    {
+      "node_id": "tests.module.cases.MT-INF-003.UsageLedgerTests::test_measured_finish_is_final",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.512
+    },
+    {
+      "node_id": "tests.module.cases.MT-INF-003.UsageLedgerTests::test_missing_usage_is_unknown_not_zero",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.51
+    },
+    {
+      "node_id": "tests.module.cases.MT-INF-003.UsageLedgerTests::test_upstream_5xx_maps_503_and_ledger_unknown",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.511
+    },
+    {
+      "node_id": "tests.module.cases.MT-INF-003.UsageLedgerTests::test_upstream_timeout_leaves_ledger_unknown",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.511
+    }
+  ]
+}

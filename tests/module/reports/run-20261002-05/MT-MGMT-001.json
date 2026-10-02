@@ -1,0 +1,40 @@
+{
+  "artifacts": [],
+  "case_id": "MT-MGMT-001",
+  "command": "python3 -m pytest --junitxml=tests/module/reports/run-20261002-05/artifacts/junit.xml tests/module/cases",
+  "git_commit": "f83f8da70dc9d632392f8d10f4236bd70518f2c5",
+  "node_id": "tests.module.cases.MT-MGMT-001.BootstrapAssemblyTests::test_empty_store_without_settings_is_bootstrap_required",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261002-05",
+  "schema_version_db": "2",
+  "started_at": "2026-10-02T09:52:36Z",
+  "status": "PASS",
+  "test_functions": [
+    {
+      "node_id": "tests.module.cases.MT-MGMT-001.BootstrapAssemblyTests::test_empty_store_without_settings_is_bootstrap_required",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-001.BootstrapAssemblyTests::test_readyz_reflects_bootstrap_state",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.506
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-001.BootstrapAssemblyTests::test_second_startup_is_noop_single_bootstrap_audit",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.009
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-001.BootstrapAssemblyTests::test_valid_settings_bootstraps_ready",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.005
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "artifacts": [],
+  "case_id": "MT-UI-001",
+  "command": "python3 -m pytest --junitxml=tests/module/reports/run-20261002-05/artifacts/junit.xml tests/module/cases",
+  "git_commit": "f83f8da70dc9d632392f8d10f4236bd70518f2c5",
+  "node_id": "tests.module.cases.MT-UI-001.MTUI001PageAssembly::test_bootstrap_loads_home_as_the_first_paint_of_the_delivered_page",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261002-05",
+  "schema_version_db": "2",
+  "started_at": "2026-10-02T09:52:36Z",
+  "status": "PASS",
+  "test_functions": [
+    {
+      "node_id": "tests.module.cases.MT-UI-001.MTUI001PageAssembly::test_bootstrap_loads_home_as_the_first_paint_of_the_delivered_page",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-001.MTUI001PageAssembly::test_disabled_wins_and_unknown_is_not_idle",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-001.MTUI001PageAssembly::test_empty_states_are_present_for_tier_provider_and_stats",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-001.MTUI001PageAssembly::test_every_container_app_js_writes_into_exists_in_index_html",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-001.MTUI001PageAssembly::test_index_delivers_five_pages_and_two_drawers",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-001.MTUI001PageAssembly::test_logs_subtabs_and_diagnostics_page_are_wired_to_their_loaders",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-001.MTUI001PageAssembly::test_nav_handler_wires_every_page_to_its_loader_and_title",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-001.MTUI001PageAssembly::test_readyz_status_maps_to_gateway_chip_tier_count_and_healthz_version",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-001.MTUI001PageAssembly::test_tier_state_has_a_single_data_source_readyz_availability",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    }
+  ]
+}

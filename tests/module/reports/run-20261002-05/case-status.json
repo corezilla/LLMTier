@@ -1,0 +1,429 @@
+{
+  "cases": {
+    "MT-API-001": {
+      "node_id": "tests.module.cases.MT-API-001.DispatchAssemblyTests::test_error_envelope_is_uniform",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.007
+    },
+    "MT-API-002": {
+      "node_id": "tests.module.cases.MT-API-002.AliasParityTests::test_alias_unknown_deployment_parity_404",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.013
+    },
+    "MT-API-003": {
+      "node_id": "tests.module.cases.MT-API-003.EmptyAppTests::test_empty_store_readyz_is_503_not_ready",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.01
+    },
+    "MT-API-004": {
+      "node_id": "tests.module.cases.MT-API-004.RouteBranchTests::test_hit_branch_returns_200",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.011
+    },
+    "MT-API-005": {
+      "node_id": "tests.module.cases.MT-API-005.RunExitTests::test_api_error_exit_maps_declared_code",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.011
+    },
+    "MT-API-006": {
+      "node_id": "tests.module.cases.MT-API-006.AuthStateTests::test_bearer_without_config_is_503_auth_not_configured",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.011
+    },
+    "MT-API-007": {
+      "node_id": "tests.module.cases.MT-API-007.BodyBranchTests::test_exactly_2mb_body_passes_body_gate",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.014
+    },
+    "MT-API-008": {
+      "node_id": "tests.module.cases.MT-API-008.SseTerminalTests::test_client_abort_is_aborted_client_disconnected",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.013
+    },
+    "MT-API-009": {
+      "node_id": "tests.module.cases.MT-API-009.StaticBranchTests::test_missing_file_is_404",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.011
+    },
+    "MT-API-010": {
+      "node_id": "tests.module.cases.MT-API-010.CorrelationTests::test_error_envelope_carries_correlation",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.011
+    },
+    "MT-API-011": {
+      "node_id": "tests.module.cases.MT-API-011.AuthPairwiseTests::test_admin_credential_on_admin_endpoint_is_200",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.011
+    },
+    "MT-API-012": {
+      "node_id": "tests.module.cases.MT-API-012.BrokenPipeTests::test_client_disconnect_mid_stream",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.523
+    },
+    "MT-API-013": {
+      "node_id": "tests.module.cases.MT-API-013.ResetTests::test_rst_mid_stream_aborts_without_crash",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.52
+    },
+    "MT-DIAG-001": {
+      "node_id": "tests.module.cases.MT-DIAG-001.RecordQueryTests::test_cleanup_keeps_recent_rows",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.513
+    },
+    "MT-DIAG-002": {
+      "node_id": "tests.module.cases.MT-DIAG-002.InjectionConfigTests::test_all_six_injection_types_configure_and_read_back",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.512
+    },
+    "MT-DIAG-003": {
+      "node_id": "tests.module.cases.MT-DIAG-003.InjectionValidationTests::test_config_non_object_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.514
+    },
+    "MT-DIAG-004": {
+      "node_id": "tests.module.cases.MT-DIAG-004.SetInjectionsTests::test_injections_are_scoped_to_deployment",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.513
+    },
+    "MT-DIAG-005": {
+      "node_id": "tests.module.cases.MT-DIAG-005.StreamWrapperTests::test_disabled_stream_injection_passes_through",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.512
+    },
+    "MT-DIAG-006": {
+      "node_id": "tests.module.cases.MT-DIAG-006.CursorTests::test_limit_clamped_on_both_faces",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.511
+    },
+    "MT-DIAG-007": {
+      "node_id": "tests.module.cases.MT-DIAG-007.FailOpenTests::test_capture_snapshot_returns_none_on_write_failure",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.512
+    },
+    "MT-INF-001": {
+      "node_id": "tests.module.cases.MT-INF-001.ResponsesContractTests::test_full_chain_produces_single_terminal",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.008
+    },
+    "MT-INF-002": {
+      "node_id": "tests.module.cases.MT-INF-002.EmbeddingsContractTests::test_base64_encoding_decoded_and_validated",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.512
+    },
+    "MT-INF-003": {
+      "node_id": "tests.module.cases.MT-INF-003.UsageLedgerTests::test_ledger_advances_across_requests",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.517
+    },
+    "MT-INF-004": {
+      "node_id": "tests.module.cases.MT-INF-004.AdmitAndCatalogTests::test_degraded_when_unhealthy_candidate",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.01
+    },
+    "MT-INF-005": {
+      "node_id": "tests.module.cases.MT-INF-005.ValidationOrderTests::test_forbidden_field_beats_unknown_field",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.513
+    },
+    "MT-INF-006": {
+      "node_id": "tests.module.cases.MT-INF-006.CapabilityTests::test_max_output_tokens_non_integer_rejected",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.512
+    },
+    "MT-INF-007": {
+      "node_id": "tests.module.cases.MT-INF-007.AdmissionTests::test_all_unhealthy_is_503_model_unavailable",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.512
+    },
+    "MT-INF-008": {
+      "node_id": "tests.module.cases.MT-INF-008.InjectionTests::test_delay_injection_delays_but_succeeds",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.514
+    },
+    "MT-INF-009": {
+      "node_id": "tests.module.cases.MT-INF-009.AdmittedBranchTests::test_admitted_false_rejection_has_no_finish_side_effect",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.514
+    },
+    "MT-INF-010": {
+      "node_id": "tests.module.cases.MT-INF-010.EmbeddingBranchTests::test_bad_base64_payload_from_transport_is_502",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.516
+    },
+    "MT-INF-011": {
+      "node_id": "tests.module.cases.MT-INF-011.FailOpenTests::test_diagnostics_write_failure_leaves_inference_unchanged",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.514
+    },
+    "MT-INF-012": {
+      "node_id": "tests.module.cases.MT-INF-012.QuotaExhaustionTests::test_no_cross_tier_fallback",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.515
+    },
+    "MT-INF-013": {
+      "node_id": "tests.module.cases.MT-INF-013.StallTests::test_permit_released_after_stall_timeout",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.517
+    },
+    "MT-INF-014": {
+      "node_id": "tests.module.cases.MT-INF-014.SlowResponseTests::test_permit_released_after_slow_timeout",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.518
+    },
+    "MT-INF-015": {
+      "node_id": "tests.module.cases.MT-INF-015.OversizeTests::test_many_events_normalized",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.524
+    },
+    "MT-INF-016": {
+      "node_id": "tests.module.cases.MT-INF-016.TruncatedStreamTests::test_early_eof_is_502_contract_error",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.518
+    },
+    "MT-INF-017": {
+      "node_id": "tests.module.cases.MT-INF-017.MalformedFrameTests::test_malformed_stream_never_fakes_success",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.516
+    },
+    "MT-INF-018": {
+      "node_id": "tests.module.cases.MT-INF-018.QueueTimeoutTests::test_no_permit_leak_after_timeout",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 1.513
+    },
+    "MT-INF-019": {
+      "node_id": "tests.module.cases.MT-INF-019.SecretRefTests::test_empty_env_secret_sends_request_without_authorization",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.517
+    },
+    "MT-LOG-001": {
+      "node_id": "tests.module.cases.MT-LOG-001.LogAssemblyTests::test_desc_order_and_filters",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.009
+    },
+    "MT-LOG-002": {
+      "node_id": "tests.module.cases.MT-LOG-002.RedactionMatrixTests::test_api_key_at_end",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "MT-LOG-003": {
+      "node_id": "tests.module.cases.MT-LOG-003.PageBranchTests::test_append_order_is_stable_desc",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    "MT-MGMT-001": {
+      "node_id": "tests.module.cases.MT-MGMT-001.BootstrapAssemblyTests::test_empty_store_without_settings_is_bootstrap_required",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    "MT-MGMT-002": {
+      "node_id": "tests.module.cases.MT-MGMT-002.CrudInvariantTests::test_audit_records_success_and_failed",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.013
+    },
+    "MT-MGMT-003": {
+      "node_id": "tests.module.cases.MT-MGMT-003.PaginationFreezeTests::test_first_page_frozen_against_later_writes",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.021
+    },
+    "MT-MGMT-004": {
+      "node_id": "tests.module.cases.MT-MGMT-004.ProbeTests::test_probe_extra_field_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.018
+    },
+    "MT-MGMT-005": {
+      "node_id": "tests.module.cases.MT-MGMT-005.AccountUsageTests::test_get_does_not_touch_network",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.015
+    },
+    "MT-MGMT-006": {
+      "node_id": "tests.module.cases.MT-MGMT-006.BootstrapExitTests::test_bootstrap_required_without_settings",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.006
+    },
+    "MT-MGMT-007": {
+      "node_id": "tests.module.cases.MT-MGMT-007.CrudBranchMatrixTests::test_deployment_in_use_409",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.011
+    },
+    "MT-MGMT-008": {
+      "node_id": "tests.module.cases.MT-MGMT-008.CapabilityValidationTests::test_capability_key_mismatch_is_409_capability_conflict",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.02
+    },
+    "MT-MGMT-009": {
+      "node_id": "tests.module.cases.MT-MGMT-009.UsageCursorTests::test_beyond_total_is_empty_page",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.514
+    },
+    "MT-MGMT-010": {
+      "node_id": "tests.module.cases.MT-MGMT-010.RefreshBranchTests::test_local_no_credentials_confirmed_is_unlimited",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.015
+    },
+    "MT-MGMT-011": {
+      "node_id": "tests.module.cases.MT-MGMT-011.FixedTierDeleteTests::test_all_fixed_tiers_reject_delete",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.021
+    },
+    "MT-OBS-001": {
+      "node_id": "tests.module.cases.MT-OBS-001.MTOBS001DiagnosticsEndToEnd::test_diagnostic_routes_are_served_by_the_m001_handler",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.524
+    },
+    "MT-OBS-002": {
+      "node_id": "tests.module.cases.MT-OBS-002.MTOBS002DiagnosticsSwitches::test_disabled_switches_write_no_snapshot_and_no_stats_row",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.533
+    },
+    "MT-OBS-003": {
+      "node_id": "tests.module.cases.MT-OBS-003.MTOBS003DiagnosticsQueries::test_dropped_diagnostics_tables_are_503_not_an_empty_page",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.527
+    },
+    "MT-OBS-004": {
+      "node_id": "tests.module.cases.MT-OBS-004.MTOBS004DiagnosticsInjection::test_empty_items_revokes_every_injection",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.527
+    },
+    "MT-UI-001": {
+      "node_id": "tests.module.cases.MT-UI-001.MTUI001PageAssembly::test_bootstrap_loads_home_as_the_first_paint_of_the_delivered_page",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    "MT-UI-002": {
+      "node_id": "tests.module.cases.MT-UI-002.MTUI002ApiContract::test_conflict_responses_keep_the_operator_input",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    "MT-UI-003": {
+      "node_id": "tests.module.cases.MT-UI-003.MTUI003DispatchUiError::test_401_clears_the_session_and_redirects_without_echoing_credentials",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    "MT-UI-004": {
+      "node_id": "tests.module.cases.MT-UI-004.MTUI004StateMapping::test_backend_state_disabled_wins_over_paused",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    "MT-UI-005": {
+      "node_id": "tests.module.cases.MT-UI-005.MTUI005UsageSummary::test_any_non_ok_status_becomes_unavailable_with_the_error_reason",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    "MT-UI-006": {
+      "node_id": "tests.module.cases.MT-UI-006.MTUI006ReportLoadFailure::test_failure_without_a_status_is_not_suppressed",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    "MT-UTIL-001": {
+      "node_id": "tests.module.cases.MT-UTIL-001.PragmaTests::test_close_releases_connection",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.009
+    },
+    "MT-UTIL-002": {
+      "node_id": "tests.module.cases.MT-UTIL-002.TxnRollbackTests::test_concurrent_startup_both_migrate",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.013
+    },
+    "MT-UTIL-003": {
+      "node_id": "tests.module.cases.MT-UTIL-003.ConnectionBranchTests::test_close_is_idempotent_and_reconnect_works",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    "MT-UTIL-004": {
+      "node_id": "tests.module.cases.MT-UTIL-004.MigrateRejectionTests::test_corrupted_page_is_integrity_failed",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.017
+    },
+    "MT-UTIL-005": {
+      "node_id": "tests.module.cases.MT-UTIL-005.NestedTxnTests::test_nested_begin_is_409_nested_txn",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    }
+  },
+  "counts": {
+    "BLOCKED": 0,
+    "FAIL": 0,
+    "INVALID": 0,
+    "NOT_RUN": 0,
+    "PASS": 354,
+    "SKIP": 0,
+    "XPASS": 0
+  },
+  "generated_at": "2026-10-02T09:54:18Z",
+  "git_commit": "f83f8da70dc9d632392f8d10f4236bd70518f2c5",
+  "layer": "MODULE",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "release_blocking": false,
+  "run_id": "run-20261002-05",
+  "schema_version": 1,
+  "schema_version_db": "2"
+}

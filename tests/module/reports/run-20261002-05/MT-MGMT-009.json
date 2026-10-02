@@ -1,0 +1,52 @@
+{
+  "artifacts": [],
+  "case_id": "MT-MGMT-009",
+  "command": "python3 -m pytest --junitxml=tests/module/reports/run-20261002-05/artifacts/junit.xml tests/module/cases",
+  "git_commit": "f83f8da70dc9d632392f8d10f4236bd70518f2c5",
+  "node_id": "tests.module.cases.MT-MGMT-009.UsageCursorTests::test_beyond_total_is_empty_page",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261002-05",
+  "schema_version_db": "2",
+  "started_at": "2026-10-02T09:52:36Z",
+  "status": "PASS",
+  "test_functions": [
+    {
+      "node_id": "tests.module.cases.MT-MGMT-009.UsageCursorTests::test_beyond_total_is_empty_page",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.514
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-009.UsageCursorTests::test_cross_principal_cursor_is_403",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.513
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-009.UsageCursorTests::test_expired_cursor_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.511
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-009.UsageCursorTests::test_filter_mismatch_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.513
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-009.UsageCursorTests::test_first_page_then_next_page",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.513
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-009.UsageCursorTests::test_old_page_frozen_against_new_records",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.514
+    }
+  ]
+}

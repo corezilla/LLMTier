@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-unit-test-plan` |
-| Document Version | `0.1.0-draft.11` |
+| Document Version | `0.1.0-draft.12` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -58,7 +58,7 @@
 | 单元方案 ×1 | `llmtier-unit-test-scheme` v0.1.0-draft.13（方案 §3 清单；§1.6/§1.7 环境类型） | 8 模块 33 VRC（66 Case）的清单与设计状态唯一登记 | Implemented |
 | Case 文档 ×66（66/66 已建） | 全部 66 份 `docs/70_verification/unit/cases/UT-*.md`（含新增 `UT-API-005…013`、`UT-UI-007…010`、`UT-INF-006…009`、`UT-MGMT-007…011`、`UT-OBS-006…007`、`UT-DIAG-005…008`、`UT-UTIL-003…004`、`UT-LOG-002`；工具 `UT-TOOL-001`/`UT-TOOL-002`） | 逐 Case 输入构造、Oracle 与运行入口；见方案 §3 每行责任摘要 | Implemented |
 | 测试资产 ×1 | `llmtier-unit-fakes`（`docs/70_verification/unit/assets/llmtier-unit-fakes.md`；`FakeAdapter`/`AppFixture`，候选 ID `FAKE-LLMTIER-ADAPTER`） | 上游进程内 fake 的契约与自检 | Planned（`Implemented`/`Unverified`；自检 Run 待录制） |
-| 相邻层交接出口 | `llmtier-module-test-scheme`/`-plan` v0.1.0-draft.3（整模块组装层，模块设计 §14 的 33 VRC 追溯；四层分母 80 条/57 Case）、`llmtier-system-test-scheme`（wire/E2E） | 组合保证与验收承接（单元层 PASS 不关闭模块层，模块层 PASS 不关闭系统层） | Implemented |
+| 相邻层交接出口 | `llmtier-module-test-scheme`/`-plan` v0.1.0-draft.9（整模块组装层，模块设计 §14 的 33 VRC 追溯；四层分母 91 条/68 Case）、`llmtier-system-test-scheme`（wire/E2E） | 组合保证与验收承接（单元层 PASS 不关闭模块层，模块层 PASS 不关闭系统层） | Implemented |
 
 ## 2. 被测基线与变更重跑范围
 

@@ -1,0 +1,76 @@
+{
+  "artifacts": [],
+  "case_id": "MT-UI-006",
+  "command": "python3 -m pytest --junitxml=tests/module/reports/run-20261002-05/artifacts/junit.xml tests/module/cases",
+  "git_commit": "f83f8da70dc9d632392f8d10f4236bd70518f2c5",
+  "node_id": "tests.module.cases.MT-UI-006.MTUI006ReportLoadFailure::test_failure_without_a_status_is_not_suppressed",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261002-05",
+  "schema_version_db": "2",
+  "started_at": "2026-10-02T09:52:36Z",
+  "status": "PASS",
+  "test_functions": [
+    {
+      "node_id": "tests.module.cases.MT-UI-006.MTUI006ReportLoadFailure::test_failure_without_a_status_is_not_suppressed",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-006.MTUI006ReportLoadFailure::test_last_screen_loaders_route_failures_here_and_clear_stale_on_success",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-006.MTUI006ReportLoadFailure::test_listed_statuses_return_without_touching_the_view",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-006.MTUI006ReportLoadFailure::test_suppressed_set_is_exactly_the_set_dispatch_ui_error_already_presented",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-006.MTUI006ReportLoadFailure::test_the_banner_never_shows_server_text_for_a_stale_refresh",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-006.MTUI006ReportLoadFailure::test_unlisted_failure_marks_stale_and_keeps_the_last_screen",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-006.MTUI006RealStatusRouting::test_real_400_and_404_are_outside_the_suppressed_set",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.516
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-006.MTUI006RealStatusRouting::test_real_409_and_412_are_inside_the_suppressed_set",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.52
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-006.MTUI006RealStatusRouting::test_real_500_and_503_exits_exist_in_m001",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.514
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-006.MTUI006RealStatusRouting::test_the_ui_page_load_calls_satisfy_the_window_precondition",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.52
+    }
+  ]
+}

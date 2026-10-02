@@ -1,0 +1,52 @@
+{
+  "artifacts": [],
+  "case_id": "MT-MGMT-008",
+  "command": "python3 -m pytest --junitxml=tests/module/reports/run-20261002-05/artifacts/junit.xml tests/module/cases",
+  "git_commit": "f83f8da70dc9d632392f8d10f4236bd70518f2c5",
+  "node_id": "tests.module.cases.MT-MGMT-008.CapabilityValidationTests::test_capability_key_mismatch_is_409_capability_conflict",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261002-05",
+  "schema_version_db": "2",
+  "started_at": "2026-10-02T09:52:36Z",
+  "status": "PASS",
+  "test_functions": [
+    {
+      "node_id": "tests.module.cases.MT-MGMT-008.CapabilityValidationTests::test_capability_key_mismatch_is_409_capability_conflict",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.02
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-008.CapabilityValidationTests::test_embedding_v1_with_responses_member_is_conflict",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.007
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-008.CapabilityValidationTests::test_embedding_v1_wrong_limits_are_409",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.006
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-008.CapabilityValidationTests::test_embedding_v1_wrong_space_is_409",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.005
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-008.CapabilityValidationTests::test_inference_tier_without_responses_is_409",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-008.CapabilityValidationTests::test_unknown_deployment_reference_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.506
+    }
+  ]
+}

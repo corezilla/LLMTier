@@ -122,6 +122,7 @@ _run_write_metadata() {
     echo "openapi_version=$openapi"
     echo "started_at=$(_run_timestamp)"
     echo "command=$cmd"
+    echo "pythonpath=${PYTHONPATH:-unset}"
     echo "python=$("python3" -c 'import platform,sys;print(sys.version.split()[0]+" ("+platform.machine()+")")' 2>/dev/null || echo unknown)"
   } > "$path"
 }
@@ -182,6 +183,11 @@ PY
     --out "$run_dir/case-status.json" 2>/dev/null)" || true
   cap_breached="$(printf '%s' "$cap_breached" | tail -n1 | tr -d '[:space:]')"
   [ "$cap_breached" = "0" ] || run_rc=2
+
+  # Persist the mapped run exit code at the run root (plan §7: the Run record
+  # carries command, versions, stdout and exit code).
+  printf 'exit_code=%s\npytest_exit_code=%s\nfinished_at=%s\n' \
+    "$run_rc" "$rc" "$(_run_timestamp)" >> "$run_dir/test-run.env"
 
   echo "$run_rc"
 }

@@ -1,0 +1,70 @@
+{
+  "artifacts": [],
+  "case_id": "MT-OBS-002",
+  "command": "python3 -m pytest --junitxml=tests/module/reports/run-20261002-05/artifacts/junit.xml tests/module/cases",
+  "git_commit": "f83f8da70dc9d632392f8d10f4236bd70518f2c5",
+  "node_id": "tests.module.cases.MT-OBS-002.MTOBS002DiagnosticsSwitches::test_disabled_switches_write_no_snapshot_and_no_stats_row",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261002-05",
+  "schema_version_db": "2",
+  "started_at": "2026-10-02T09:52:36Z",
+  "status": "PASS",
+  "test_functions": [
+    {
+      "node_id": "tests.module.cases.MT-OBS-002.MTOBS002DiagnosticsSwitches::test_disabled_switches_write_no_snapshot_and_no_stats_row",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.533
+    },
+    {
+      "node_id": "tests.module.cases.MT-OBS-002.MTOBS002DiagnosticsSwitches::test_empty_patch_keeps_both_switches",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.519
+    },
+    {
+      "node_id": "tests.module.cases.MT-OBS-002.MTOBS002DiagnosticsSwitches::test_non_boolean_switch_is_400_and_writes_no_audit_row",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.52
+    },
+    {
+      "node_id": "tests.module.cases.MT-OBS-002.MTOBS002DiagnosticsSwitches::test_partial_patch_preserves_the_other_switch",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.52
+    },
+    {
+      "node_id": "tests.module.cases.MT-OBS-002.MTOBS002DiagnosticsSwitches::test_patch_enables_both_switches_and_audit_records_success",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.516
+    },
+    {
+      "node_id": "tests.module.cases.MT-OBS-002.MTOBS002DiagnosticsSwitches::test_snapshots_off_keeps_stats_on",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.528
+    },
+    {
+      "node_id": "tests.module.cases.MT-OBS-002.MTOBS002DiagnosticsSwitches::test_stats_off_keeps_snapshots_on",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.529
+    },
+    {
+      "node_id": "tests.module.cases.MT-OBS-002.MTOBS002DiagnosticsSwitches::test_switches_are_off_by_default_on_a_fresh_store",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.516
+    },
+    {
+      "node_id": "tests.module.cases.MT-OBS-002.MTOBS002DiagnosticsSwitches::test_unknown_switch_field_is_400_and_leaves_state_untouched",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.52
+    }
+  ]
+}

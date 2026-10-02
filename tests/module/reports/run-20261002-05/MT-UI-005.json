@@ -1,0 +1,70 @@
+{
+  "artifacts": [],
+  "case_id": "MT-UI-005",
+  "command": "python3 -m pytest --junitxml=tests/module/reports/run-20261002-05/artifacts/junit.xml tests/module/cases",
+  "git_commit": "f83f8da70dc9d632392f8d10f4236bd70518f2c5",
+  "node_id": "tests.module.cases.MT-UI-005.MTUI005UsageSummary::test_any_non_ok_status_becomes_unavailable_with_the_error_reason",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261002-05",
+  "schema_version_db": "2",
+  "started_at": "2026-10-02T09:52:36Z",
+  "status": "PASS",
+  "test_functions": [
+    {
+      "node_id": "tests.module.cases.MT-UI-005.MTUI005UsageSummary::test_any_non_ok_status_becomes_unavailable_with_the_error_reason",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-005.MTUI005UsageSummary::test_not_refreshed_is_the_first_branch_and_covers_a_missing_snapshot",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-005.MTUI005UsageSummary::test_ok_renders_each_window_name_and_percent",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-005.MTUI005UsageSummary::test_only_the_head_record_version_is_rendered_so_rows_replace",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-005.MTUI005UsageSummary::test_store_failure_keeps_the_last_table_and_marks_the_view_stale",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-005.MTUI005UsageSummary::test_unknown_percent_is_never_rendered_as_zero",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-005.MTUI005UsageSummary::test_unlimited_renders_a_metric_not_a_percentage",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-005.MTUI005RealSnapshotStates::test_no_window_is_rendered_for_any_snapshot_without_windows",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.515
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-005.MTUI005RealSnapshotStates::test_the_three_real_snapshots_hit_three_different_render_branches",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.527
+    }
+  ]
+}

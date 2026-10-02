@@ -69,14 +69,25 @@ class FakeUpstream:
             def _send(self, status, body, content_type="application/json"):
                 self.send_response(status)
                 self.send_header("Content-Type", content_type)
-                self.send_header("Content-Length", str(len(body)))
+                # Real streaming upstream: chunked transfer with small frames.
+                # A single Content-Length'd multi-MB write intermittently stalls
+                # on loopback (the client then trips its stream idle timeout at
+                # 60s) — chunked is both the faithful SSE shape and deterministic.
+                self.send_header("Transfer-Encoding", "chunked")
+                self.send_header("Connection", "close")
+                self.close_connection = True
                 self.end_headers()
                 if body:
-                    # 分块写出：真实 SSE 上游是流式投递的；一次性 send 整个大 body
-                    # 会在负载下卡在客户端 socket 缓冲上（表现为上游 60s 无进展）。
-                    for offset in range(0, len(body), 64 * 1024):
-                        self.wfile.write(body[offset:offset + 64 * 1024])
+                    try:
+                        for offset in range(0, len(body), 16 * 1024):
+                            piece = body[offset:offset + 16 * 1024]
+                            self.wfile.write(b"%X\r\n" % len(piece) + piece + b"\r\n")
+                            self.wfile.flush()
+                        self.wfile.write(b"0\r\n\r\n")
                         self.wfile.flush()
+                    except (BrokenPipeError, ConnectionResetError, TimeoutError, OSError):
+                        # 对端已关闭：结束本连接，不补写（handler 不得挂在 write 上）
+                        self.close_connection = True
 
             def do_POST(self):
                 outer._dispatch(self)

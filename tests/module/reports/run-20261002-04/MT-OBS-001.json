@@ -1,0 +1,14 @@
+{
+  "artifacts": [],
+  "case_id": "MT-OBS-001",
+  "command": "python3 -m pytest --junitxml=tests/module/reports/run-20261002-04/artifacts/junit.xml tests/module/cases",
+  "git_commit": "f83f8da70dc9d632392f8d10f4236bd70518f2c5",
+  "node_id": "tests.module.cases.MT-OBS-001.MTOBS001DiagnosticsEndToEnd::test_trace_stages_cover_the_chain_and_join_snapshot_and_usage",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261002-04",
+  "schema_version_db": "2",
+  "started_at": "2026-10-02T09:40:31Z",
+  "status": "PASS"
+}

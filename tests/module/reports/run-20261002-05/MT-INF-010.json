@@ -1,0 +1,46 @@
+{
+  "artifacts": [],
+  "case_id": "MT-INF-010",
+  "command": "python3 -m pytest --junitxml=tests/module/reports/run-20261002-05/artifacts/junit.xml tests/module/cases",
+  "git_commit": "f83f8da70dc9d632392f8d10f4236bd70518f2c5",
+  "node_id": "tests.module.cases.MT-INF-010.EmbeddingBranchTests::test_bad_base64_payload_from_transport_is_502",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261002-05",
+  "schema_version_db": "2",
+  "started_at": "2026-10-02T09:52:36Z",
+  "status": "PASS",
+  "test_functions": [
+    {
+      "node_id": "tests.module.cases.MT-INF-010.EmbeddingBranchTests::test_bad_base64_payload_from_transport_is_502",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.516
+    },
+    {
+      "node_id": "tests.module.cases.MT-INF-010.EmbeddingBranchTests::test_empty_vector_rejected",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.513
+    },
+    {
+      "node_id": "tests.module.cases.MT-INF-010.EmbeddingBranchTests::test_invalid_base64_is_502_contract_error",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.512
+    },
+    {
+      "node_id": "tests.module.cases.MT-INF-010.EmbeddingBranchTests::test_non_finite_values_rejected",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.513
+    },
+    {
+      "node_id": "tests.module.cases.MT-INF-010.EmbeddingBranchTests::test_usage_missing_is_unknown_not_zero",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.512
+    }
+  ]
+}

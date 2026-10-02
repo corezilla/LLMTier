@@ -1,0 +1,31 @@
+{
+  "project": "LLMTier",
+  "authority": "LLMTier",
+  "document_id": "llmtier-module-test-report-2026-10-02-04",
+  "document_type": "tests.module-test-report",
+  "document_version": "0.1.0-draft.1",
+  "title": "LLMTier V0.3 Module Test Report — Run 2026-10-02-04",
+  "document_owner": "LLMTier",
+  "authors": [
+    "LLMTier"
+  ],
+  "template_id": "tests.module-test-report",
+  "template_version": "0.3.1",
+  "template_sha256": "17d578222074c2c58040f3b1dec0af88483e11133c3b0fdf045b5be1b6596b61",
+  "template_conformance": "tailored",
+  "tailoring_ref": "std-tailoring",
+  "migration_map_ref": null,
+  "design_level": "module",
+  "domain": [
+    "software"
+  ],
+  "status": "draft",
+  "visibility": "project",
+  "source_repository": "corezilla/LLMTier",
+  "source_path": "tests/module/reports/run-20261002-04/module-test-report.md",
+  "reviewed_commit": "f83f8da70dc9d632392f8d10f4236bd70518f2c5",
+  "parent_document_id": "llmtier-module-test-scheme",
+  "supersedes": null,
+  "created_at": "2026-10-02",
+  "last_modified_at": "2026-10-02"
+}

@@ -1,0 +1,82 @@
+{
+  "artifacts": [],
+  "case_id": "MT-UI-003",
+  "command": "python3 -m pytest --junitxml=tests/module/reports/run-20261002-05/artifacts/junit.xml tests/module/cases",
+  "git_commit": "f83f8da70dc9d632392f8d10f4236bd70518f2c5",
+  "node_id": "tests.module.cases.MT-UI-003.MTUI003DispatchUiError::test_401_clears_the_session_and_redirects_without_echoing_credentials",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261002-05",
+  "schema_version_db": "2",
+  "started_at": "2026-10-02T09:52:36Z",
+  "status": "PASS",
+  "test_functions": [
+    {
+      "node_id": "tests.module.cases.MT-UI-003.MTUI003DispatchUiError::test_401_clears_the_session_and_redirects_without_echoing_credentials",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-003.MTUI003DispatchUiError::test_403_presents_a_fixed_banner_without_leaking_existence",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-003.MTUI003DispatchUiError::test_409_flags_reference_conflict_and_keeps_the_server_message",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-003.MTUI003DispatchUiError::test_412_marks_a_stale_edit_and_keeps_the_draft",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-003.MTUI003DispatchUiError::test_429_surfaces_retry_after_and_marks_the_view_stale",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-003.MTUI003DispatchUiError::test_503_marks_stale_and_leaves_unlisted_statuses_to_report_load_failure",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-003.MTUI003DispatchUiError::test_dispatch_covers_exactly_the_designated_statuses",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-003.MTUI003DispatchUiError::test_error_object_fields_match_the_m001_error_envelope",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-003.MTUI003RealAuthStatuses::test_real_401_and_403_share_the_same_envelope_shape",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.514
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-003.MTUI003RealAuthStatuses::test_retry_after_comes_from_the_header_not_the_envelope",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.515
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-003.MTUI003RealAuthStatuses::test_unconfigured_auth_is_503_and_lands_in_the_same_503_branch",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.515
+    }
+  ]
+}

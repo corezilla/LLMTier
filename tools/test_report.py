@@ -273,14 +273,25 @@ def build_report(junit_path: Path, metadata: dict, rootdir: Path | None = None) 
     counts = _counts(records)
     blockers = [r for r in records if r["status"] in (STATUS_FAIL, STATUS_BLOCKED,
                                                       STATUS_INVALID)]
-    cases = {}
+    # One Case can own several test functions. The Case-level status must be the
+    # *worst* outcome across them, otherwise a later passing function overwrites
+    # an earlier failure and the per-Case evidence contradicts ``counts``
+    # (a Case could read PASS while the run counts it FAILED).
+    _SEVERITY = {STATUS_FAIL: 5, STATUS_BLOCKED: 4, STATUS_INVALID: 3, STATUS_XPASS: 2,
+                 STATUS_SKIP: 1, STATUS_NOT_RUN: 0, STATUS_PASS: 0}
+    cases: dict[str, dict] = {}
     for record in records:
-        cases[record["case_id"]] = {
-            "status": record["status"],
-            "reason": record["reason"],
-            "node_id": record["node_id"],
-            "time_seconds": record["time"],
-        }
+        cid = record["case_id"]
+        current = cases.get(cid)
+        if current is None or _SEVERITY.get(record["status"], 0) > _SEVERITY.get(current["status"], 0):
+            cases[cid] = {
+                "status": record["status"],
+                "reason": record["reason"],
+                "node_id": record["node_id"],
+                "time_seconds": record["time"],
+            }
+        elif record["status"] != current["status"]:
+            current["reason"] = (current["reason"] + " | " + record["reason"]).strip(" |")
     return {
         "schema_version": 1,
         "run_id": metadata.get("run_id", ""),
@@ -303,14 +314,22 @@ def emit_manifests(run_dir: Path, records: list[dict], metadata: dict) -> int:
     Case ID (e.g. ``UT-API-001.json``); there is no ``cases/<id>/manifest.json``.
     """
     written = 0
+    # Aggregate per Case first: a Case with several test functions must not be
+    # written PASS just because a later function passed (see build_report).
+    _SEVERITY = {STATUS_FAIL: 5, STATUS_BLOCKED: 4, STATUS_INVALID: 3, STATUS_XPASS: 2,
+                 STATUS_SKIP: 1, STATUS_NOT_RUN: 0, STATUS_PASS: 0}
+    by_case: dict[str, list[dict]] = {}
     for record in records:
-        case_path = run_dir / f"{record['case_id']}.json"
+        by_case.setdefault(record["case_id"], []).append(record)
+    for case_id, group in by_case.items():
+        worst = max(group, key=lambda r: _SEVERITY.get(r["status"], 0))
+        case_path = run_dir / f"{case_id}.json"
         manifest = {
             "run_id": metadata.get("run_id", ""),
-            "case_id": record["case_id"],
-            "node_id": record["node_id"],
-            "status": record["status"],
-            "reason": record["reason"],
+            "case_id": case_id,
+            "node_id": worst["node_id"],
+            "status": worst["status"],
+            "reason": worst["reason"],
             "git_commit": metadata.get("git_commit", ""),
             "schema_version_db": metadata.get("schema_version", ""),
             "openapi_version": metadata.get("openapi_version", ""),
@@ -319,6 +338,12 @@ def emit_manifests(run_dir: Path, records: list[dict], metadata: dict) -> int:
             "redactions": [],
             "artifacts": [],
         }
+        if len(group) > 1:
+            manifest["test_functions"] = [
+                {"node_id": r["node_id"], "status": r["status"],
+                 "reason": r["reason"], "time_seconds": r["time"]}
+                for r in group
+            ]
         case_path.write_text(
             json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
         )

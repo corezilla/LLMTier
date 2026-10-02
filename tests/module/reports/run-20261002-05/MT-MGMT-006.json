@@ -1,0 +1,58 @@
+{
+  "artifacts": [],
+  "case_id": "MT-MGMT-006",
+  "command": "python3 -m pytest --junitxml=tests/module/reports/run-20261002-05/artifacts/junit.xml tests/module/cases",
+  "git_commit": "f83f8da70dc9d632392f8d10f4236bd70518f2c5",
+  "node_id": "tests.module.cases.MT-MGMT-006.BootstrapExitTests::test_bootstrap_required_without_settings",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261002-05",
+  "schema_version_db": "2",
+  "started_at": "2026-10-02T09:52:36Z",
+  "status": "PASS",
+  "test_functions": [
+    {
+      "node_id": "tests.module.cases.MT-MGMT-006.BootstrapExitTests::test_bootstrap_required_without_settings",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.006
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-006.BootstrapExitTests::test_ensure_fixed_tiers_idempotent",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.005
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-006.BootstrapExitTests::test_env_empty_secret_is_invalid",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-006.BootstrapExitTests::test_mid_transaction_failure_rolls_back_empty",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.006
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-006.BootstrapExitTests::test_missing_secret_file_is_invalid",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-006.BootstrapExitTests::test_missing_section_is_invalid",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-006.BootstrapExitTests::test_noop_on_bootstrapped_store",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    }
+  ]
+}
