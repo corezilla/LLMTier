@@ -318,8 +318,8 @@
 | M007 util §9 · `Store` 连接/PRAGMA/回收（组装） v0.1.0-draft.2 | VRC-UTIL-001 | MT-UTIL-001 | boundary | P0 | 组装后连接：`foreign_keys=1`/`wal`、每线程一连接、fd 基线稳定、close 异常、world-writable、symlink 拒绝 | Designed | M004 / M-METER / M-OBS |
 | M007 util §9 · `transaction`/`migrate`（组装） v0.1.0-draft.2 | VRC-UTIL-002 | MT-UTIL-002 | recovery | P0 | 组装后事务与迁移：回滚无半写、幂等 `migrate`、损坏库/版本不匹配拒绝、嵌套事务 409、并发启动 | Designed | M004 / M-METER / M-OBS |
 | M008 log §9 · `OperationalLog.record/page`（组装） v0.1.0-draft.1 | VRC-LOG-001 | MT-LOG-001 | security | P0 | 组装后脱敏与查询：Bearer/api_key/token 落库 `[REDACTED]`、长度 ≤512、倒序、过滤、`limit` 夹到 200、缺 `since`/`until`→400 | Designed | M004 / M002 |
-| M004 management §9 · 资源启用态 × 请求准入（组装） v0.1.0-draft.3 | VRC-MGMT-002 / VRC-MGMT-001 | MT-MGMT-012 | negative | P0 | **配置变更→运行态**：禁用 provider/deployment/service_level（三态，经公开入口）后请求被拒 404 `model_not_found`（非 503/429），恢复后放行；禁用后 `/v1/models` 对应 tier `availability=unavailable`（`Registry.candidates()` 的 `enabled` 过滤 × 请求路径组装接线） | Designed | M003 / M002 |
-| M004 management §9 · provider 模型目录（组装） v0.1.0-draft.3 | VRC-MGMT-005 | MT-MGMT-013 | negative | P1 | 组装后 `/v1/providers/{id}/models`：上游目录 `data` 逐项过滤（非 dict / 缺 id / id 非 str 剔除）、坏元素不致命（不得 500）、上游 5xx→503 `provider_unavailable`、未知 provider→404 | Designed | M003 适配器 / M002 |
+| M004 management §9 · 资源启用态 × 请求准入（组装） v0.1.0-draft.3 | VRC-MGMT-002 / VRC-INF-004 | MT-MGMT-012 | negative | P0 | **配置变更→运行态**：禁用 provider/deployment/service_level（三态，经公开入口）后请求被拒 404 `model_not_found`（非 503/429），恢复后放行；禁用后 `/v1/models` 对应 tier `availability=unavailable`（`Registry.candidates()` 的 `enabled` 过滤 × 请求路径组装接线） | Designed | M003 / M002 |
+| M004 management §9 · provider 模型目录（组装） v0.1.0-draft.3 | VRC-MGMT-002 / VRC-MGMT-005 | MT-MGMT-013 | negative | P1 | 组装后 `/v1/providers/{id}/models`：上游目录 `data` 逐项过滤（非 dict / 缺 id / id 非 str 剔除）、坏元素不致命（不得 500）、上游 5xx→503 `provider_unavailable`、未知 provider→404 | Designed | M003 适配器 / M002 |
 | M004 management §9 · `Admin.stats` 汇总（组装） v0.1.0-draft.3 | VRC-MGMT-004 | MT-MGMT-014 | negative | P1 | 组装后 `/v1/stats`：`from`/`to` 缺失→400（app 层校验）、`group_by` tier/deployment 两分组结构与键、`group_by` 缺省 tier、非法 `group_by`→400 | Designed | M-METER / M002 |
 
 **层①计数：23 条接口行为**（M001 3 / M002 2 / M003 4 / M004 8 / M005 1 / M006 2 / M007 2 / M008 1）。
@@ -377,7 +377,7 @@
 | M003 畸形帧分支：非 JSON `data:` 行 / 坏 SSE 块（组装，ENV-3） v0.1.0-draft.1 | VRC-INF-003 | MT-INF-017 | negative | P0 | `data: {not json}` 或坏块→502 `provider_contract_error`；不伪装成功（§1.5.1 c7） | Designed |
 | M003 并发超时 + 许可泄漏分支：队列等待超时后许可归零（组装，ENV-1） v0.1.0-draft.1 | VRC-INF-004 | MT-INF-018 | concurrency | P1 | `Router.admit` 等待超 `30 s`→429 `rate_limit_exceeded`+`Retry-After`；`_inflight` 归零、无许可泄漏（§1.5.1 c8） | Designed |
 | M003 provider 凭据解析分支：`env:` 无值 / `file:` 不可读 / 非法引用→凭据缺失（组装，ENV-3） v0.1.0-draft.1 | VRC-INF-003 | MT-INF-019 | negative | P1 | `secret_ref` 为 `env:` 空值 / `file:` 不可读 / 非法 scheme→503 `provider_secret_unavailable`；不 dispatch、无义务（§1.5.1 a24/b8） | Designed |
-| M003 provider adapter 重取分支：endpoint/secret_ref 每请求重读（组装，ENV-3） v0.1.0-draft.1 | VRC-INF-003 | MT-INF-020 | normal | P0 | **配置变更→接线**：provider endpoint 或 secret_ref 经公开入口变更后，下一次请求使用新值（打到新上游且旧上游不再命中）；无 adapter/连接缓存跨请求复用 | Designed |
+| M003 provider adapter 重取分支：endpoint/secret_ref 每请求重读（组装，ENV-3） v0.1.0-draft.1 | VRC-INF-001 | MT-INF-020 | normal | P0 | **配置变更→接线**：provider endpoint 或 secret_ref 经公开入口变更后，下一次请求使用新值（打到新上游且旧上游不再命中）；无 adapter/连接缓存跨请求复用 | Designed |
 | M001 鉴权结果 × 端点类别组合（K1，组装） v0.1.0-draft.2 | VRC-API-002 | MT-API-011 | security | P0 | pairwise 组合行：(data-ok, data 端点) / (admin-ok, admin 端点) / (data-cred, admin 端点)→403 / (无凭据, 非受信)→401 / (未配置, 任一端点)→503，断言组装路径上拒绝先于业务 | Designed |
 
 **层②计数：48 条分支**（M001 9 / M002 4 / M003 16 / M004 6 / M005 3 / M006 5 / M007 3 / M008 2），较 `0.1.0-draft.10` 增 **1 条**（M003 provider adapter 重取 `MT-INF-020`；`0.1.0-draft.6` 起的 10 条传输/上游/时间病态与固定 tier 变更见 §1.5.1（a)-(c)）。§3.2 表内另含 **1 条组合落地 Case**（`MT-API-011`，对应 §3.3 K1），其独自分母计入层③，不重复计入层②。
@@ -427,7 +427,7 @@
 ### 3.5 VRC 追溯（不作分母）
 
 > 本层 VRC 对照见附录 A；VRC 在 §3.1–§3.4 只作**追溯列**。33 个模块设计 §14 验证项全部在 §3 有追溯（见附录 A）。
-> **注意**：33/33 为**设计验证项追溯覆盖**；行为覆盖由四层分母（层①20 + 层②47 + 层③10 + 层④14）共同确证。M002 `VRC-UI-001..006` 的模块层 Case 为**静态产物/契约**层面的组装验证；其**真实 JS 行为级**由系统层真实浏览器 `ST-UI-001..010` 承接（见 `llmtier-system-test-scheme` §4）。
+> **注意**：33/33 为**设计验证项追溯覆盖**；行为覆盖由四层分母（层①23 + 层②48 + 层③10 + 层④14）共同确证。M002 `VRC-UI-001..006` 的模块层 Case 为**静态产物/契约**层面的组装验证；其**真实 JS 行为级**由系统层真实浏览器 `ST-UI-001..010` 承接（见 `llmtier-system-test-scheme` §4）。
 
 ### 3.6 分母计数汇总
 
@@ -440,11 +440,11 @@
 | **合计分母** | **95** | 四层相加 |
 | **模块 Case 总数** | **72** | 见下 |
 
-**Case 总数：72**（分类：negative 22 / boundary 13 / normal 12 / recovery 17 / security 6 / concurrency 3；Priority P0 42 / P1 30）。全部归属 8 模块（`M001-M008`），无工具 Case。较 `0.1.0-draft.6`：既有 68 Case ＋ `0.1.0-draft.6` 新增 10 个（`MT-MGMT-011`、`MT-API-012/013`、`MT-INF-013…019`，来自 §1.5.1 a16/a24、b4/b8、c1–c8）＋ `0.1.0-draft.11` 新增 4 个（`MT-MGMT-012/013/014`、`MT-INF-020`，来自"配置变更→运行态"与次要端点组装面反向核对，见 §4 缺口 G-MT-COVERAGE-1）。
+**Case 总数：72**（分类：negative 21 / boundary 13 / normal 12 / recovery 17 / security 6 / concurrency 3；Priority P0 41 / P1 31）。全部归属 8 模块（`M001-M008`），无工具 Case。较 `0.1.0-draft.6`：既有 68 Case ＋ `0.1.0-draft.6` 新增 10 个（`MT-MGMT-011`、`MT-API-012/013`、`MT-INF-013…019`，来自 §1.5.1 a16/a24、b4/b8、c1–c8）＋ `0.1.0-draft.11` 新增 4 个（`MT-MGMT-012/013/014`、`MT-INF-020`，来自"配置变更→运行态"与次要端点组装面反向核对，见 §4 缺口 G-MT-COVERAGE-1）。
 
 > **分母→Case 说明（多分支/多行合并为 1 Case）**：四层分母 95 条并非 95 个 Case——按 §1.5 “分支/组合/迁移必覆盖”原则，**同模块内相互接近的分支/组合行/迁移可合并入 1 个 Case**，但每一行都必须在 §3.2/§3.3/§3.4 的“映射 Case”列或 §3.7 分支分母表被点名。反向核对：95 条分母每条都映射到 ≥1 个 `MT-*` Case（见 §3.7）。
 > **注入类方法不增分母**：§1.5「注入类方法」的「mock 返回」六类、存储/传输/准入面与数据注入 4 类是**跨家族应用的构造/刺激手段**，其落点映射到四层分母的既有行（见 §3.7 注入面/数据类型核对块）；**§1.5.1「异常/错误注入矩阵」** 是同一手段口径的**全量封闭清单**（37 code + 8 上游类 + 8 传输/时间病态），其落点同样映射到既有/新增分支行——其中 a16/a24、b4/b8、c1–c8 由 **10 个新增分支 Case** 承接（计入层②），其余由既有 Case 承接；矩阵本身不另设 Case、不重复计分母。
-> **module-case 文档映射**：本清单 68 个 Case，对应 68 份 `tests.module-case` 文档（`docs/70_verification/module/cases/MT-<OBJ>-<NNN>.md`）与 68 个可执行脚本（`tests/module/cases/MT-*.py`），**已全部建立（68/68）**（文档与脚本随 `f83f8da` 入库，文档状态 `Draft`/`0.1.0-draft.1`，各 §7 指向对应脚本）。
+> **module-case 文档映射**：本清单 72 个 Case，对应 72 份 `tests.module-case` 文档（`docs/70_verification/module/cases/MT-<OBJ>-<NNN>.md`）与 72 个可执行脚本（`tests/module/cases/MT-*.py`），**已全部建立（72/72）**（分批入库：`f83f8da` 起 68、`eb62302` 增 4；文档状态 `Draft`/`0.1.0-draft.1`，各 §7 指向对应脚本）。
   模块层 Run 证据共 **6** 个（`run-20261002-01`…`run-20261002-06`，按模块计划 §7「重跑不覆盖旧失败」全部保留）：`run-01`/`run-03` 为 RED（`MT-INF-015` 读阶段 60s `TimeoutError`→503 `provider_unavailable`，根因在 ENV-3 测试替身写侧的 `Content-Length` 大 body 形态、非产品缺陷，方案的 `stream_idle_timeout` 语义正确），`run-02` 为假绿（仅做 64 KiB 分块缓解、缺陷条件仍在），`run-04` 首次根除（替身改 `Transfer-Encoding: chunked` + 16 KiB 分片），`run-05` 复跑确认但 pin 与执行树不一致（执行树含未入库修复，不可作最终 pin 依据），**`run-20261002-06` 为最终 Run**（68/68 Case `PASS`、354/354 测试函数、`release_blocking=false`、pin `a1cb672` 与被测树逐字一致，证据可采信；
   正式报告 `llmtier-module-test-report-2026-10-02-06` 判 Gate 闭合）。缺陷 `D-MT-INF-015-1` 已 CLOSED。本表**设计**状态仍全部为 `Designed`（设计状态不因执行结果改写），执行 Verdict 的唯一权威在测试报告与 Run 证据，本方案不预填任何结果。
 

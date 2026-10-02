@@ -43,7 +43,7 @@
 
 ## 1. Case 概述与责任
 
-- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-MGMT-013` / M004 management §9 · provider 模型目录（组装） v0.1.0-draft.3 / VRC-MGMT-005（management-design §14 / management.isd §9.1，management 0.1.0-draft.3） / VRC-MGMT-005 / negative / P1（[方案清单 §3](../llmtier-module-test-scheme.md)）。
+- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-MGMT-013` / M004 management §9 · provider 模型目录（组装） v0.1.0-draft.3 / VRC-MGMT-002 / VRC-MGMT-005（management-design §14 / management.isd §9.1，management 0.1.0-draft.3） / VRC-MGMT-002 / VRC-MGMT-005 / negative / P1（[方案清单 §3](../llmtier-module-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（非法字段/凭据/引用/类型/顺序）+ 判定表组合（主要手段：边界外协作者用 loopback `FakeUpstream`（真实 `ThreadingHTTPServer` 上的 OpenAI 兼容假上游，经公开 Registry 入口接线，资产 `llmtier-unit-fakes`））
 - **覆盖的分支 / 组合 / 迁移 ID**：无（层① 接口行为分母行）
 - 要测什么（责任展开）：组装后 `/v1/providers/{id}/models`：上游目录 `data` 逐项过滤（非 dict / 缺 id / id 非 str 剔除）、坏元素不致命（不得 500）、上游 5xx→503 `provider_unavailable`、未知 provider→404（本 Case 责任：`/v1/providers/{id}/models` 组装链：目录逐项过滤（非 dict/缺 id/id 非 str 剔除，不得 500）、上游 5xx→503、未知 provider→404）

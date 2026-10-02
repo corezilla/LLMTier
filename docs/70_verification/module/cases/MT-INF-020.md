@@ -43,7 +43,7 @@
 
 ## 1. Case 概述与责任
 
-- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-INF-020` / M003 provider adapter 重取分支：endpoint/secret_ref 每请求重读（组装，ENV-3） v0.1.0-draft.1 / VRC-INF-003（inference-design §14 / inference.isd §9.1，inference 0.1.0-draft.1） / VRC-INF-003 / normal / P0（[方案清单 §3](../llmtier-module-test-scheme.md)）。
+- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-INF-020` / M003 provider adapter 重取分支：endpoint/secret_ref 每请求重读（组装，ENV-3） v0.1.0-draft.1 / VRC-INF-001（inference-design §14 / inference.isd §9.1，inference 0.1.0-draft.1） / VRC-INF-001 / normal / P0（[方案清单 §3](../llmtier-module-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：组装后真实调用 + 等价类划分 + 分支覆盖（主要手段：边界外协作者用 loopback `FakeUpstream`（真实 `ThreadingHTTPServer` 上的 OpenAI 兼容假上游，经公开 Registry 入口接线，资产 `llmtier-unit-fakes`））
 - **覆盖的分支 / 组合 / 迁移 ID**：分支：M003-provider adapter 重取（endpoint/secret 每请求重读）
 - 要测什么（责任展开）：**配置变更→接线**：provider endpoint 或 secret_ref 经公开入口变更后，下一次请求使用新值（打到新上游且旧上游不再命中）；无 adapter/连接缓存跨请求复用（本 Case 责任：provider endpoint/secret_ref 变更后下一次请求打到新值（新上游命中、旧上游不再命中）；无 adapter/连接跨请求复用）

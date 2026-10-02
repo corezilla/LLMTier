@@ -45,8 +45,8 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-MGMT-005` / M004 management §9 · `AccountUsage.refresh`（组装） v0.1.0-draft.3 / VRC-MGMT-006（management-design §14 / management.isd §9.1，management 0.1.0-draft.3） / VRC-MGMT-006 / negative / P1（[方案清单 §3](../llmtier-module-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（非法字段/凭据/引用/类型/顺序）+ 判定表组合（主要手段：边界外协作者用 loopback `FakeUpstream`（探测 `/models` 与 account-usage 查询的真实 HTTP 面，资产 `llmtier-unit-fakes`））
-- **覆盖的分支 / 组合 / 迁移 ID**：无（层① 接口行为分母行）
-- 要测什么（责任展开）：组装后账号用量：GET 不触网、未确认 POST、凭据缺失、provider 报错→`unavailable`+`error` 快照持久（本 Case 责任：`GET` 零触网返回 `not_refreshed`；未确认 400；凭据缺失/上游报错→`unavailable` 且快照持久）
+- **覆盖的分支 / 组合 / 迁移 ID**：无（层① 接口行为分母行）；另覆盖方案 §4 缺口 `G-MT-COVERAGE-1` 的 `atomic=False` 审计例外（`admin.py::mutate(atomic=False)`，account usage refresh 走 `atomic=False` 路径，业务外部调用不占业务事务）。
+- 要测什么（责任展开）：组装后账号用量：GET 不触网、未确认 POST、凭据缺失、provider 报错→`unavailable`+`error` 快照持久（本 Case 责任：`GET` 零触网返回 `not_refreshed`；未确认 400；凭据缺失/上游报错→`unavailable` 且快照持久）；另验证 `atomic=False`（account usage refresh）的审计例外语义——刷新成功落审计 `success` 行，失败落审计 `failed` 行，且不与业务同事务（失败时业务无半写）。
 - 明确不测什么 / 失败含义：不测跨模块系统级流程、真实上游 provider 协议、浏览器 E2E（归系统层 `ST-*` 与契约层）；本层只断言组装后成立的分支走向、状态迁移与调用序。失败含义＝management 组装后账号用量四态视图与持久化与设计不一致。
 
 ## 2. 被测入口与前置
@@ -77,11 +77,13 @@ latest(provider_id) -> snapshot; refresh(provider_id, confirm_external_call) -> 
 | 4 | minimax 无凭据刷新 | `unavailable` + `credentials_missing` |
 | 5 | minimax 有凭据刷新（上游报错） | `unavailable` + `provider_api_error` + `error` 非空；上游 +1 命中；再 `GET` 仍为该错误快照 |
 | 6 | local 刷新 | `unlimited` |
+| 7 | local 刷新后查审计（`atomic=False` 成功） | `/v1/audit` 含该 provider 的 `provider.usage.refresh` `result=success` 行 |
+| 8 | 未知 provider 刷新（`atomic=False` 失败） | 404 `not_found`；`/v1/audit` 含 `target=provider_missing` 的 `result=failed` 行（`request_id` 非空）；业务无半写（`provider_usage_snapshots` 无该 provider 行） |
 
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：management 模块设计 §14.6 + 账号用量契约；按 `latest`/`refresh` 的分支与快照持久化人工推导
-- 互斥预期（成功 / 各错误分支）：四态视图互斥；`GET` 零触网；错误快照持久可复查
+- 互斥预期（成功 / 各错误分支）：四态视图互斥；`GET` 零触网；错误快照持久可复查；`atomic=False` 审计例外与业务事务分离——成功→审计 `success` 行；失败→审计 `failed` 行（`request_id` 非空）且业务无半写（`provider_usage_snapshots` 零写入）
 
 ## 6. 错误路径、副作用与清理
 
@@ -90,7 +92,7 @@ latest(provider_id) -> snapshot; refresh(provider_id, confirm_external_call) -> 
 
 ## 7. 自动化位置与状态
 
-- 测试文件 / 测试函数：`tests/module/cases/MT-MGMT-005.py`（5 个）：`test_get_does_not_touch_network`、`test_refresh_without_confirm_is_400`、`test_minimax_missing_credentials_is_unavailable`、`test_provider_error_is_unavailable_and_persisted`、`test_local_provider_is_unlimited`
+- 测试文件 / 测试函数：`tests/module/cases/MT-MGMT-005.py`（7 个）：`test_get_does_not_touch_network`、`test_refresh_without_confirm_is_400`、`test_minimax_missing_credentials_is_unavailable`、`test_provider_error_is_unavailable_and_persisted`、`test_local_provider_is_unlimited`、`test_non_atomic_refresh_success_is_audited`、`test_non_atomic_refresh_failure_is_audited_and_writes_nothing`
 - 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/module/cases/MT-MGMT-005.py -q`
 - 实现状态：`Implemented`（测试函数已存在于 `tests/module/cases`）；执行状态与 Verdict 见 Run 报告 `tests/module/reports/<run-id>/`。
 

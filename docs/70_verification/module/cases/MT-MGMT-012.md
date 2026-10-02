@@ -43,7 +43,7 @@
 
 ## 1. Case 概述与责任
 
-- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-MGMT-012` / M004 management §9 · 资源启用态 × 请求准入（组装） v0.1.0-draft.3 / VRC-MGMT-002 / VRC-MGMT-001（management-design §14 / management.isd §9.1，management 0.1.0-draft.3） / VRC-MGMT-002 / VRC-MGMT-001 / negative / P0（[方案清单 §3](../llmtier-module-test-scheme.md)）。
+- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-MGMT-012` / M004 management §9 · 资源启用态 × 请求准入（组装） v0.1.0-draft.3 / VRC-MGMT-002 / VRC-INF-004（management-design §14 / management.isd §9.1，management 0.1.0-draft.3） / VRC-MGMT-002 / VRC-INF-004 / negative / P0（[方案清单 §3](../llmtier-module-test-scheme.md)）。
 - **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（非法字段/凭据/引用/类型/顺序）+ 判定表组合（主要手段：边界外协作者用进程内 `FakeAdapter`（`ResponsesService._test_adapter` seam，资产 `llmtier-unit-fakes`））
 - **覆盖的分支 / 组合 / 迁移 ID**：无（层① 接口行为分母行）
 - 要测什么（责任展开）：**配置变更→运行态**：禁用 provider/deployment/service_level（三态，经公开入口）后请求被拒 404 `model_not_found`（非 503/429），恢复后放行；禁用后 `/v1/models` 对应 tier `availability=unavailable`（`Registry.candidates()` 的 `enabled` 过滤 × 请求路径组装接线）（本 Case 责任：禁用 provider/deployment/service_level 后请求被拒 404 model_not_found（非 503/429），恢复后放行；禁用后模型目录 availability 联动）
