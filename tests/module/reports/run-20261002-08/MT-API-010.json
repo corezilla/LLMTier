@@ -1,0 +1,46 @@
+{
+  "artifacts": [],
+  "case_id": "MT-API-010",
+  "command": "python3 -m pytest --junitxml=tests/module/reports/run-20261002-08/artifacts/junit.xml tests/module/cases",
+  "git_commit": "e27dca9d7bc04a4bbc91e2b34d661298c25c2f88",
+  "node_id": "tests.module.cases.MT-API-010.CorrelationTests::test_error_envelope_carries_correlation",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261002-08",
+  "schema_version_db": "2",
+  "started_at": "2026-10-02T13:58:52Z",
+  "status": "PASS",
+  "test_functions": [
+    {
+      "node_id": "tests.module.cases.MT-API-010.CorrelationTests::test_error_envelope_carries_correlation",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.013
+    },
+    {
+      "node_id": "tests.module.cases.MT-API-010.CorrelationTests::test_invalid_traceparent_kept_verbatim",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.005
+    },
+    {
+      "node_id": "tests.module.cases.MT-API-010.CorrelationTests::test_missing_both_means_no_header",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    {
+      "node_id": "tests.module.cases.MT-API-010.CorrelationTests::test_valid_traceparent_extracts_32hex",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    {
+      "node_id": "tests.module.cases.MT-API-010.CorrelationTests::test_x_correlation_id_echoed",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.505
+    }
+  ]
+}

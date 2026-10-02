@@ -1,0 +1,46 @@
+{
+  "artifacts": [],
+  "case_id": "MT-API-007",
+  "command": "python3 -m pytest --junitxml=tests/module/reports/run-20261002-08/artifacts/junit.xml tests/module/cases",
+  "git_commit": "e27dca9d7bc04a4bbc91e2b34d661298c25c2f88",
+  "node_id": "tests.module.cases.MT-API-007.BodyBranchTests::test_exactly_2mb_body_passes_body_gate",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261002-08",
+  "schema_version_db": "2",
+  "started_at": "2026-10-02T13:58:52Z",
+  "status": "PASS",
+  "test_functions": [
+    {
+      "node_id": "tests.module.cases.MT-API-007.BodyBranchTests::test_exactly_2mb_body_passes_body_gate",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.018
+    },
+    {
+      "node_id": "tests.module.cases.MT-API-007.BodyBranchTests::test_invalid_content_length_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    {
+      "node_id": "tests.module.cases.MT-API-007.BodyBranchTests::test_non_json_body_is_400_invalid_json",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    {
+      "node_id": "tests.module.cases.MT-API-007.BodyBranchTests::test_non_object_json_is_400_invalid_json",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    {
+      "node_id": "tests.module.cases.MT-API-007.BodyBranchTests::test_oversized_body_is_413",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.505
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "artifacts": [],
+  "case_id": "MT-DIAG-003",
+  "command": "python3 -m pytest --junitxml=tests/module/reports/run-20261002-08/artifacts/junit.xml tests/module/cases",
+  "git_commit": "e27dca9d7bc04a4bbc91e2b34d661298c25c2f88",
+  "node_id": "tests.module.cases.MT-DIAG-003.InjectionValidationTests::test_config_non_object_is_400",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261002-08",
+  "schema_version_db": "2",
+  "started_at": "2026-10-02T13:58:52Z",
+  "status": "PASS",
+  "test_functions": [
+    {
+      "node_id": "tests.module.cases.MT-DIAG-003.InjectionValidationTests::test_config_non_object_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.512
+    },
+    {
+      "node_id": "tests.module.cases.MT-DIAG-003.InjectionValidationTests::test_delay_out_of_range_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.511
+    },
+    {
+      "node_id": "tests.module.cases.MT-DIAG-003.InjectionValidationTests::test_enabled_non_boolean_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.512
+    },
+    {
+      "node_id": "tests.module.cases.MT-DIAG-003.InjectionValidationTests::test_error_body_empty_or_non_string_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.512
+    },
+    {
+      "node_id": "tests.module.cases.MT-DIAG-003.InjectionValidationTests::test_error_body_over_512_is_truncated",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.514
+    },
+    {
+      "node_id": "tests.module.cases.MT-DIAG-003.InjectionValidationTests::test_malformed_event_type_invalid_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.514
+    },
+    {
+      "node_id": "tests.module.cases.MT-DIAG-003.InjectionValidationTests::test_missing_config_field_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.513
+    },
+    {
+      "node_id": "tests.module.cases.MT-DIAG-003.InjectionValidationTests::test_range_boundaries_accepted",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.512
+    },
+    {
+      "node_id": "tests.module.cases.MT-DIAG-003.InjectionValidationTests::test_validation_failure_writes_nothing",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.514
+    }
+  ]
+}

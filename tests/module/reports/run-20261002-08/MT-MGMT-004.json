@@ -1,0 +1,46 @@
+{
+  "artifacts": [],
+  "case_id": "MT-MGMT-004",
+  "command": "python3 -m pytest --junitxml=tests/module/reports/run-20261002-08/artifacts/junit.xml tests/module/cases",
+  "git_commit": "e27dca9d7bc04a4bbc91e2b34d661298c25c2f88",
+  "node_id": "tests.module.cases.MT-MGMT-004.ProbeTests::test_probe_extra_field_is_400",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261002-08",
+  "schema_version_db": "2",
+  "started_at": "2026-10-02T13:58:52Z",
+  "status": "PASS",
+  "test_functions": [
+    {
+      "node_id": "tests.module.cases.MT-MGMT-004.ProbeTests::test_probe_extra_field_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.018
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-004.ProbeTests::test_probe_unknown_deployment_is_404",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-004.ProbeTests::test_reachable_upstream_probe_is_healthy_persisted",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.007
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-004.ProbeTests::test_unconfirmed_probe_is_400_confirmation_required",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-004.ProbeTests::test_unreachable_probe_is_unhealthy_persisted",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.51
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "artifacts": [],
+  "case_id": "MT-INF-005",
+  "command": "python3 -m pytest --junitxml=tests/module/reports/run-20261002-08/artifacts/junit.xml tests/module/cases",
+  "git_commit": "e27dca9d7bc04a4bbc91e2b34d661298c25c2f88",
+  "node_id": "tests.module.cases.MT-INF-005.ValidationOrderTests::test_forbidden_field_beats_unknown_field",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261002-08",
+  "schema_version_db": "2",
+  "started_at": "2026-10-02T13:58:52Z",
+  "status": "PASS",
+  "test_functions": [
+    {
+      "node_id": "tests.module.cases.MT-INF-005.ValidationOrderTests::test_forbidden_field_beats_unknown_field",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.513
+    },
+    {
+      "node_id": "tests.module.cases.MT-INF-005.ValidationOrderTests::test_missing_field_is_invalid_request_with_param",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.512
+    },
+    {
+      "node_id": "tests.module.cases.MT-INF-005.ValidationOrderTests::test_unknown_field_is_unsupported_field",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.511
+    },
+    {
+      "node_id": "tests.module.cases.MT-INF-005.ValidationOrderTests::test_wrong_stream_store_shape_is_unsupported_request",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.512
+    }
+  ]
+}

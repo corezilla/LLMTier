@@ -1,0 +1,52 @@
+{
+  "artifacts": [],
+  "case_id": "MT-DIAG-004",
+  "command": "python3 -m pytest --junitxml=tests/module/reports/run-20261002-08/artifacts/junit.xml tests/module/cases",
+  "git_commit": "e27dca9d7bc04a4bbc91e2b34d661298c25c2f88",
+  "node_id": "tests.module.cases.MT-DIAG-004.SetInjectionsTests::test_injections_are_scoped_to_deployment",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261002-08",
+  "schema_version_db": "2",
+  "started_at": "2026-10-02T13:58:52Z",
+  "status": "PASS",
+  "test_functions": [
+    {
+      "node_id": "tests.module.cases.MT-DIAG-004.SetInjectionsTests::test_injections_are_scoped_to_deployment",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.513
+    },
+    {
+      "node_id": "tests.module.cases.MT-DIAG-004.SetInjectionsTests::test_non_list_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.513
+    },
+    {
+      "node_id": "tests.module.cases.MT-DIAG-004.SetInjectionsTests::test_t10_enable_then_hit",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.512
+    },
+    {
+      "node_id": "tests.module.cases.MT-DIAG-004.SetInjectionsTests::test_t11_revoke_by_empty_items",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.513
+    },
+    {
+      "node_id": "tests.module.cases.MT-DIAG-004.SetInjectionsTests::test_unknown_deployment_is_404",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.513
+    },
+    {
+      "node_id": "tests.module.cases.MT-DIAG-004.SetInjectionsTests::test_upsert_replaces_same_type",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.512
+    }
+  ]
+}

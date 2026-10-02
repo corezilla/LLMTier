@@ -1,0 +1,46 @@
+{
+  "artifacts": [],
+  "case_id": "MT-OBS-001",
+  "command": "python3 -m pytest --junitxml=tests/module/reports/run-20261002-08/artifacts/junit.xml tests/module/cases",
+  "git_commit": "e27dca9d7bc04a4bbc91e2b34d661298c25c2f88",
+  "node_id": "tests.module.cases.MT-OBS-001.MTOBS001DiagnosticsEndToEnd::test_diagnostic_routes_are_served_by_the_m001_handler",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261002-08",
+  "schema_version_db": "2",
+  "started_at": "2026-10-02T13:58:52Z",
+  "status": "PASS",
+  "test_functions": [
+    {
+      "node_id": "tests.module.cases.MT-OBS-001.MTOBS001DiagnosticsEndToEnd::test_diagnostic_routes_are_served_by_the_m001_handler",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.531
+    },
+    {
+      "node_id": "tests.module.cases.MT-OBS-001.MTOBS001DiagnosticsEndToEnd::test_snapshot_row_is_written_by_the_full_chain",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.524
+    },
+    {
+      "node_id": "tests.module.cases.MT-OBS-001.MTOBS001DiagnosticsEndToEnd::test_stats_window_records_the_call",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.523
+    },
+    {
+      "node_id": "tests.module.cases.MT-OBS-001.MTOBS001DiagnosticsEndToEnd::test_time_window_excludes_rows_outside_the_window",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.527
+    },
+    {
+      "node_id": "tests.module.cases.MT-OBS-001.MTOBS001DiagnosticsEndToEnd::test_trace_stages_cover_the_chain_and_join_snapshot_and_usage",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.524
+    }
+  ]
+}

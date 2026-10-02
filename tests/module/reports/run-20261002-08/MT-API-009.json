@@ -1,0 +1,40 @@
+{
+  "artifacts": [],
+  "case_id": "MT-API-009",
+  "command": "python3 -m pytest --junitxml=tests/module/reports/run-20261002-08/artifacts/junit.xml tests/module/cases",
+  "git_commit": "e27dca9d7bc04a4bbc91e2b34d661298c25c2f88",
+  "node_id": "tests.module.cases.MT-API-009.StaticBranchTests::test_missing_file_is_404",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261002-08",
+  "schema_version_db": "2",
+  "started_at": "2026-10-02T13:58:52Z",
+  "status": "PASS",
+  "test_functions": [
+    {
+      "node_id": "tests.module.cases.MT-API-009.StaticBranchTests::test_missing_file_is_404",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.008
+    },
+    {
+      "node_id": "tests.module.cases.MT-API-009.StaticBranchTests::test_root_path_serves_index_too",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    {
+      "node_id": "tests.module.cases.MT-API-009.StaticBranchTests::test_traversal_is_404",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    {
+      "node_id": "tests.module.cases.MT-API-009.StaticBranchTests::test_ui_root_maps_to_index",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.504
+    }
+  ]
+}
