@@ -601,10 +601,13 @@ authenticate_any(headers: Headers, client_address: str) -> Principal
 ## A. 输入基线、适用性与图文规则
 
 - 输入基线：系统设计 §3；`src/http_api/auth.py`、`src/http_api/app.py`；`interfaces/openapi/llmtier.openapi.json`（安全方案）。
-- 适用性：纯软件、单进程、入口单点鉴权机制；责任单元按运行边界判定为 M001 入口层与 M003–M005 业务层。§4.5/§5.3（设备/FPGA）不适用（`std-tailoring` `LT-TL-003`）；§4.6（跨步骤状态）、§4.7（持久表）不适用（逐请求无状态、不持久）；§4.9（二进制 ABI）不适用（HTTP + UTF-8 JSON）；§8.1（租约）不适用（无预留）。
-- 图文规则：§1 用途概览 `diagram-mech-trust-usage`（Current）、§3 参与方协作 `diagram-mech-trust-collab`（Current）、§4 数据对象 `diagram-mech-trust-objects`（Current）、§6 正常时序 `diagram-mech-trust-sequence`。一图一问题；交互图用语义方向线，数据图不冒充时序；图内中文与框线以本地浏览器抽查可读。
+- 适用性：纯软件、单进程、入口单点鉴权机制；责任单元按运行边界判定为 M001 入口层与 M003–M005 业务层。§4.5/§5.3（设备/FPGA）不适用（`std-tailoring` `LT-TL-003`）；§4.6（跨步骤状态）、§4.7（持久表）不适用（逐请求无状态、不持久）；§4.9（二进制 ABI）不适用（HTTP + UTF-8 JSON）；
+  §8.1（租约）不适用（无预留）。
+- 图文规则：§1 用途概览 `diagram-mech-trust-usage`（Current）、§3 参与方协作 `diagram-mech-trust-collab`（Current）、§4 数据对象 `diagram-mech-trust-objects`（Current）、§6 正常时序 `diagram-mech-trust-sequence`。一图一问题；
+  交互图用语义方向线，数据图不冒充时序；图内中文与框线以本地浏览器抽查可读。
 - 数据对象图触发：`D-PRINCIPAL` 在入口层与业务层之间发生所有权转移，故按条件画图；本机制无持久化，故不展开恢复边界。
-- 条件图适用性（§8/§9/§15）：§8 状态与资源图**不画**——逐请求无状态判定、无临时资源/租约，§8 不变量表 + §8.1 短表已足。§9 异常处置图**不画**——401/403/503 均为已知失败、无副作用、无结果未知、无接管/多恢复出口，§9 短表逐项给出操作终态与重试条件即可。§15 测试路径图**不画**——`T-TRUST-NOCFG`/`T-TRUST-LEAK` 等在单环境内以具名 arm/hit/release（进程环境变量控制）与独立 Oracle 表达（§15.1 表），不跨环境、无替代依赖。
+- 条件图适用性（§8/§9/§15）：§8 状态与资源图**不画**——逐请求无状态判定、无临时资源/租约，§8 不变量表 + §8.1 短表已足。§9 异常处置图**不画**——401/403/503 均为已知失败、无副作用、无结果未知、无接管/多恢复出口，§9 短表逐项给出操作终态与重试条件即可。
+  §15 测试路径图**不画**——`T-TRUST-NOCFG`/`T-TRUST-LEAK` 等在单环境内以具名 arm/hit/release（进程环境变量控制）与独立 Oracle 表达（§15.1 表），不跨环境、无替代依赖。
 
 ## B. 文档控制与修订记录
 

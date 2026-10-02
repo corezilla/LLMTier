@@ -578,7 +578,8 @@ enum UsageErrorRef { ERR-STORE, ERR-CURSOR, ERR-REQ-VALIDATION, ERR-AUTH-DENIED,
 
 ### 4.10 一致性、可见性与数据寿命
 
-账本局部一致：同一 `(principal_id,request_id)` 的版本只追加，`head_record_version` 在单事务内单调推进，绝不累计（INV-1/2/3）；`recorded_at` 固定为首次记录时间，`updated_at` 随替换推进（INV-6），因此按 `(recorded_at,request_id)` 排序稳定可续。dispatch 前义务已持久，故崩溃/写入失败后重启仍见 unknown，绝不出现“没有调用”的假象（CON-METER-003、INV-5）。查询首屏在单事务内冻结 `query_snapshots` + 有序成员；后续页按 `sid:offset` 读冻结视图，页间的更正/插入/删除只对**新** snapshot 可见。存储不可用返回 typed 503，不用空页冒充无记录。snapshot TTL 10 分钟覆盖一次正常分页；`DELETE /v1/usage` 为管理动作（+审计），一次性删除义务/版本/head/绑定，不可回滚；持久性对应 SQLite 单文件，进程退出以库内事实为准。
+账本局部一致：同一 `(principal_id,request_id)` 的版本只追加，`head_record_version` 在单事务内单调推进，绝不累计（INV-1/2/3）；`recorded_at` 固定为首次记录时间，`updated_at` 随替换推进（INV-6），因此按 `(recorded_at,request_id)` 排序稳定可续。dispatch 前义务已持久，故崩溃/写入失败后重启仍见 unknown，绝不出现“没有调用”的假象（CON-METER-003、INV-5）。查询首屏在单事务内冻结 `query_snapshots` + 有序成员；
+后续页按 `sid:offset` 读冻结视图，页间的更正/插入/删除只对**新** snapshot 可见。存储不可用返回 typed 503，不用空页冒充无记录。snapshot TTL 10 分钟覆盖一次正常分页；`DELETE /v1/usage` 为管理动作（+审计），一次性删除义务/版本/head/绑定，不可回滚；持久性对应 SQLite 单文件，进程退出以库内事实为准。
 
 ## 5. 接口设计
 
@@ -859,9 +860,12 @@ reset_usage(model: str | None = None, deployment_id: str | None = None, conn: Co
 
 - 输入基线：系统设计 §3.4/§8、`LT-ADR-03`；`src/inference/usage.py`、`src/management/store.py`；`util/migrations/*.sql`。
 - 适用性：纯软件、单节点 SQLite 账本机制。§4.4（无独立通信报文 wire；查询报文为 HTTP 投影）、§4.5/§5.3（设备/FPGA，`std-tailoring` `LT-TL-003`）、§4.6（状态均在持久账本）不适用；§4.9（二进制 ABI）不适用（SQLite 行 + JSON）；§8.1 的"预留/释放"映射为义务/清空（无租约）。
-- 图文规则：§1 用途概览 `diagram-mech-meter-usage`（Current）、§3 参与方协作 `diagram-mech-meter-collab`（Current）、§4 数据对象 `diagram-mech-meter-objects`（Current）、§6 正常时序 `diagram-mech-meter-sequence`。一图一问题；交互图用语义方向线，数据图不冒充时序。
+- 图文规则：§1 用途概览 `diagram-mech-meter-usage`（Current）、§3 参与方协作 `diagram-mech-meter-collab`（Current）、§4 数据对象 `diagram-mech-meter-objects`（Current）、§6 正常时序 `diagram-mech-meter-sequence`。一图一问题；
+  交互图用语义方向线，数据图不冒充时序。
 - 数据对象图触发：义务/版本/head/绑定/snapshot 跨编排、recorder、store 与查询责任单元经历持久化、版本推进与冻结投影，故按条件画图并标注 unknown 与 TTL 边界。
-- 条件图适用性（§8/§9/§15）：§8 状态与资源图**不画**——账本状态均在 SQLite 持久表（义务/版本/head/绑定/snapshot），无独立内存状态机，§8 不变量表 + §8.1（义务=预留、终态=交付、`DELETE`=复位）短表已足。§9 异常处置图**不画**——含**崩溃窗口（crash window，`T-MET-CRASH`/F-MET-4）**：崩溃后以库内义务为证据保留 unknown、不回填为 0，属单一恢复出口，无接管/多恢复出口；§9 F-MET-* 短表逐项给出结果已知性、操作终态与重试条件即可，故以短表代替异常图。§15 测试路径图**不画**——`T-MET-CRASH`/`T-MET-UNKNOWN` 在单环境内以具名 arm/hit/release 控制与独立 Oracle 表达（§15.1 表），不跨环境、无替代依赖。
+- 条件图适用性（§8/§9/§15）：§8 状态与资源图**不画**——账本状态均在 SQLite 持久表（义务/版本/head/绑定/snapshot），无独立内存状态机，§8 不变量表 + §8.1（义务=预留、终态=交付、`DELETE`=复位）短表已足。
+  §9 异常处置图**不画**——含**崩溃窗口（crash window，`T-MET-CRASH`/F-MET-4）**：崩溃后以库内义务为证据保留 unknown、不回填为 0，属单一恢复出口，无接管/多恢复出口；§9 F-MET-* 短表逐项给出结果已知性、操作终态与重试条件即可，故以短表代替异常图。
+  §15 测试路径图**不画**——`T-MET-CRASH`/`T-MET-UNKNOWN` 在单环境内以具名 arm/hit/release 控制与独立 Oracle 表达（§15.1 表），不跨环境、无替代依赖。
 
 ## B. 文档控制与修订记录
 

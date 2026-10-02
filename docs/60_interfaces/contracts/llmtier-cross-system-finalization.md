@@ -308,7 +308,8 @@ Authority `util/migrations/*.sql`；公共可观察表见 `llmtier-contract-spec
 
 > 分类同 §2（API/消息与数据流接口适用）；Usage 与 Slinky/Piko 消费语义如下，逐接口结果回写 §2。
 
-- Piko 主要聚合 response usage 形成任务 usage；必要时按 `request_id` 查询 `/v1/usage`。同 request 的更高 record version 替换旧值，response 和 query 不得重复相加；store 失败为 typed `ERR-STORE` 503。Slinky 可为 Memory/运维读取相同 token 事实。没有 Cost、capacity 或执行状态。
+- Piko 主要聚合 response usage 形成任务 usage；必要时按 `request_id` 查询 `/v1/usage`。同 request 的更高 record version 替换旧值，response 和 query 不得重复相加；store 失败为 typed `ERR-STORE` 503。Slinky 可为 Memory/运维读取相同 token 事实。
+  没有 Cost、capacity 或执行状态。
 - 外部契约不承诺 custom idempotency/exactly-once；内部 admission/queue/concurrency 不暴露资源状态。
 - 管理 CRUD（若适用）一致校验引用并审计；PATCH 原子局部更新；失败不得留下 partial write。
 

@@ -956,7 +956,8 @@ Authority = `util/migrations/001_initial.sql`（由 M007 执行）。M003 经 `U
 
 图 M003-P1 · P-INFER 与 P-EMBED 在同一编排族；正常、校验拒绝、能力拒绝、准入拒绝、上游契约失败分支全部展开。判定来自当前请求、Registry 能力与 Router 许可，不依赖远端等待。
 
-**内部流程正文**：M001 调用 `create` 后，**I1** 先校验（必填 → `stream/store` → 禁字段，失败 400）；**I2 Registry 查询**等级能力（不支持 → 404/400）；**I3 I8 记义务**（unknown，M-METER）；**I4 I5 准入**取许可并选候选（队列满/超时 429，全不健康 503）；**I5 I8 绑后端**；**I6 调后端**（`complete`/`embed`，上游契约/不可达 → 502/503）；**I7 归一**为标准响应；**I8 终态记账**（measured/unknown，异常路径 `finish(None)`）；`admit` 上下文退出释放许可、`finish` 均在该响应返回 M001 之前完成（M001 随后才 SSE）。上游失败发生在流开始前，经 HTTP `D-ERROR-ENVELOPE` 返回而非流内 `error` 事件。P-EMBED 复用同一准入/适配，只把归一换成向量校验 + usage→prompt_tokens。
+**内部流程正文**：M001 调用 `create` 后，**I1** 先校验（必填 → `stream/store` → 禁字段，失败 400）；**I2 Registry 查询**等级能力（不支持 → 404/400）；**I3 I8 记义务**（unknown，M-METER）；**I4 I5 准入**取许可并选候选（队列满/超时 429，全不健康 503）；**I5 I8 绑后端**；**I6 调后端**（`complete`/`embed`，上游契约/不可达 → 502/503）；**I7 归一**为标准响应；
+**I8 终态记账**（measured/unknown，异常路径 `finish(None)`）；`admit` 上下文退出释放许可、`finish` 均在该响应返回 M001 之前完成（M001 随后才 SSE）。上游失败发生在流开始前，经 HTTP `D-ERROR-ENVELOPE` 返回而非流内 `error` 事件。P-EMBED 复用同一准入/适配，只把归一换成向量校验 + usage→prompt_tokens。
 
 #### 7.1 `P-INFER` · 推理编排
 - **触发/适用条件**：`POST /v1/responses`

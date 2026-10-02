@@ -987,11 +987,15 @@ migrate(store_path) -> {from_version, to_version} | non-zero exit
 
 ## A. 输入基线、适用性与图文规则
 
-- 输入基线：系统设计 §10、§3.4；`LT-ADR-05`；`src/management/registry.py`、`src/management/store.py`；`util/migrations/*.sql`；`interfaces/schemas/llmtier-settings-v0.3.schema.json`、`interfaces/openapi/llmtier.openapi.json`。
+- 输入基线：系统设计 §10、§3.4；`LT-ADR-05`；`src/management/registry.py`、`src/management/store.py`；`util/migrations/*.sql`；
+  `interfaces/schemas/llmtier-settings-v0.3.schema.json`、`interfaces/openapi/llmtier.openapi.json`。
 - 适用性：纯软件、单节点 SQLite 配置机制。§4.5/§5.3（设备/FPGA）不适用（`std-tailoring` `LT-TL-003`）；§4.9（二进制 ABI）不适用（SQLite 行 + UTF-8 JSON）；§8.1（租约）不适用（无预留/租约，事务代替）。
-- 图文规则：§1 用途概览 `diagram-mech-config-usage`（Current）、§3 参与方协作 `diagram-mech-config-collab`（Current）、§4 数据对象 `diagram-mech-config-objects`（Current）、§6 正常时序 `diagram-mech-config-sequence`。一图一问题；交互图用语义方向线，数据图不冒充时序。
+- 图文规则：§1 用途概览 `diagram-mech-config-usage`（Current）、§3 参与方协作 `diagram-mech-config-collab`（Current）、§4 数据对象 `diagram-mech-config-objects`（Current）、§6 正常时序 `diagram-mech-config-sequence`。一图一问题；
+  交互图用语义方向线，数据图不冒充时序。
 - 数据对象图触发：`settings.json` → SQLite 行存在复制、持久化与所有权转移，故按条件画图并标注损失（`secret_ref` 不回显明文）。
-- 条件图适用性（§8/§9/§15）：§8 状态与资源图**不画**——配置状态为持久行 + ETag 版本，无多状态机、无跨单元资源交付/条件释放，§8 不变量表 + §8.1 短表（事务提交代替预留/租约）已足。§9 异常处置图**不画**——含**提交窗口（commit window）**：bootstrap 与 CRUD 的关键提交点均在单事务内，提交前中断 = 回滚保持空/旧库、提交后中断 = 以已提交版本为准；无结果未知与接管/多恢复出口，§9 F-CFG-* 短表逐项给出终态/释放/重试即可，故以短表代替异常图。§15 测试路径图**不画**——`T-CFG-BOOT`/`T-CFG-BADREF`/`T-CFG-CAS` 在单环境内以具名 arm/hit/release 与独立 Oracle 表达（§15.1 表），不跨环境、无替代依赖。
+- 条件图适用性（§8/§9/§15）：§8 状态与资源图**不画**——配置状态为持久行 + ETag 版本，无多状态机、无跨单元资源交付/条件释放，§8 不变量表 + §8.1 短表（事务提交代替预留/租约）已足。
+  §9 异常处置图**不画**——含**提交窗口（commit window）**：bootstrap 与 CRUD 的关键提交点均在单事务内，提交前中断 = 回滚保持空/旧库、提交后中断 = 以已提交版本为准；无结果未知与接管/多恢复出口，§9 F-CFG-* 短表逐项给出终态/释放/重试即可，故以短表代替异常图。
+  §15 测试路径图**不画**——`T-CFG-BOOT`/`T-CFG-BADREF`/`T-CFG-CAS` 在单环境内以具名 arm/hit/release 与独立 Oracle 表达（§15.1 表），不跨环境、无替代依赖。
 
 ## B. 文档控制与修订记录
 

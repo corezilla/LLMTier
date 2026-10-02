@@ -691,7 +691,8 @@ enum ObservabilityErrorRef { ERR-INJECTION, ERR-NOTFOUND, ERR-STORE, ERR-REQ-VAL
 
 ### 4.10 一致性、可见性与数据寿命
 
-记录为尽力而为：写入失败记 warning、不抛、不阻断推理（CON-OBS-002/INV-6）。同 `request_id` 的 trace 事件有序（INV-5），但跨请求无全局顺序；`stages` 升序由唯一写者保证。**逐开关零写入（INV-4）**：`snapshots_enabled=false` 仅停写 `diagnostic_snapshots`，`stats_enabled=false` 仅停写 `data_plane_stats`/`data_plane_latency_samples`；`trace_events` 无开关、始终写，故不存在全局“关闭后零写入”。统计**持久**于 `data_plane_stats`/`data_plane_latency_samples`，非账本但不随进程退出丢失，样本缺失时百分位为 `null` 而非 0。快照/trace 保留 7 天，由 `cleanup` 删除过期行；`diagnostic_settings` 与注入配置为库寿命。进程退出仅丢失「最近 cleanup 结果」，不丢失已持久统计（**统计无内存缓存**）；`DiagnosticsService` 初始化失败时降级运行，Data Plane 不受影响。观测数据与账本（M-METER）故障域隔离，不得据观测缺失推断“未发生调用”。
+记录为尽力而为：写入失败记 warning、不抛、不阻断推理（CON-OBS-002/INV-6）。同 `request_id` 的 trace 事件有序（INV-5），但跨请求无全局顺序；`stages` 升序由唯一写者保证。**逐开关零写入（INV-4）**：`snapshots_enabled=false` 仅停写 `diagnostic_snapshots`，`stats_enabled=false` 仅停写 `data_plane_stats`/`data_plane_latency_samples`；`trace_events` 无开关、始终写，故不存在全局“关闭后零写入”。
+统计**持久**于 `data_plane_stats`/`data_plane_latency_samples`，非账本但不随进程退出丢失，样本缺失时百分位为 `null` 而非 0。快照/trace 保留 7 天，由 `cleanup` 删除过期行；`diagnostic_settings` 与注入配置为库寿命。进程退出仅丢失「最近 cleanup 结果」，不丢失已持久统计（**统计无内存缓存**）；`DiagnosticsService` 初始化失败时降级运行，Data Plane 不受影响。观测数据与账本（M-METER）故障域隔离，不得据观测缺失推断“未发生调用”。
 
 ## 5. 接口设计
 
@@ -881,7 +882,8 @@ joint-diagnose.sh --x-request-id <request_id> -> trace/snapshots
 5. **completed / error / aborted**：终态 trace；注入命中时账本 `source=injected`。
 6. **查询**：快照/统计/trace 按各自接口返回。
 
-**触发 → 结果 → 释放**：触发 = 请求路径事件或 Operator 管理动作；结果 = 记录落库/查询视图，或注入配置提交；释放 = 记录路径无预留（fail-open 直接返回），对应开关关闭仅停写其所辖表（`snapshots_enabled`→快照，`stats_enabled`→统计；`trace_events` 无开关、始终写）。**关键提交点** = 注入配置 upsert 提交（`IF-OBS-INJECT`）与记录行提交（`IF-OBS-RECORD-*`）。中断点：注入配置提交前中断 → 配置不变，推理路径读旧配置；提交后中断 → 新配置对逐请求读取即时生效，无需重启；记录行提交前中断 → 该阶段缺失（fail-open，不阻断推理），查询得不同完整度 trace，但**不得据此推断"未发生调用"**；统计已持久于 `data_plane_stats`/`data_plane_latency_samples`，进程退出不丢。观测数据与 M-METER 账本故障域隔离。
+**触发 → 结果 → 释放**：触发 = 请求路径事件或 Operator 管理动作；结果 = 记录落库/查询视图，或注入配置提交；释放 = 记录路径无预留（fail-open 直接返回），对应开关关闭仅停写其所辖表（`snapshots_enabled`→快照，`stats_enabled`→统计；`trace_events` 无开关、始终写）。**关键提交点** = 注入配置 upsert 提交（`IF-OBS-INJECT`）与记录行提交（`IF-OBS-RECORD-*`）。中断点：注入配置提交前中断 → 配置不变，推理路径读旧配置；
+提交后中断 → 新配置对逐请求读取即时生效，无需重启；记录行提交前中断 → 该阶段缺失（fail-open，不阻断推理），查询得不同完整度 trace，但**不得据此推断"未发生调用"**；统计已持久于 `data_plane_stats`/`data_plane_latency_samples`，进程退出不丢。观测数据与 M-METER 账本故障域隔离。
 
 ### 6.1 交叠请求、跨轮次与生命周期边界
 
@@ -1050,7 +1052,9 @@ joint-diagnose.sh --x-request-id <request_id> -> trace/snapshots
 - 适用性：纯软件、单节点、默认关闭的可观测机制。§4.4（无独立通信报文 wire，查询报文为 HTTP 投影）、§4.5/§5.3（设备/FPGA）不适用（`std-tailoring` `LT-TL-003`）；§4.9（二进制 ABI）不适用（SQLite 行 + JSON 列）；§8.1（租约）不适用（清理代替释放）。
 - 图文规则：§1 用途概览 `diagram-mech-obs-usage`（Current）、§3 参与方协作 `diagram-mech-obs-collab`（Current）、§4 数据对象 `diagram-mech-obs-objects`（Current）、§6 正常时序 `diagram-mech-obs-sequence`。一图一问题；交互图用语义方向线，数据图不冒充时序。
 - 数据对象图触发：请求路径事实在 Inference/`libdiag`/Store/查询之间脱敏、持久化与只读组合，故按条件画图并标注截断与丢弃边界。
-- 条件图适用性（§8/§9/§15）：§8 状态与资源图**不画**——本机制无多状态转换、无跨单元资源交付/条件释放（开关为单行持久开关，写入为尽力而为无预留），§8 不变量表 + §8.1 短表已足以逐项判定临时状态与寿命，故以等价短表代替。§9 异常处置图**不画**——失败分支统一为「写入失败 → warning、不阻断」的单一 fail-open 出口，无结果未知、无部分副作用、无接管/多恢复出口，§9 短表逐项给出操作终态与重试条件即可。§15 测试路径图**不画**——故障注入（`T-OBS-INJECT`/`T-OBS-FAILOPEN`）在单环境内以具名 arm/hit/release 控制与独立 Oracle 表达（§15.1 表），不跨环境、无替代依赖，故以表格代替测试路径图。
+- 条件图适用性（§8/§9/§15）：§8 状态与资源图**不画**——本机制无多状态转换、无跨单元资源交付/条件释放（开关为单行持久开关，写入为尽力而为无预留），§8 不变量表 + §8.1 短表已足以逐项判定临时状态与寿命，故以等价短表代替。
+  §9 异常处置图**不画**——失败分支统一为「写入失败 → warning、不阻断」的单一 fail-open 出口，无结果未知、无部分副作用、无接管/多恢复出口，§9 短表逐项给出操作终态与重试条件即可。
+  §15 测试路径图**不画**——故障注入（`T-OBS-INJECT`/`T-OBS-FAILOPEN`）在单环境内以具名 arm/hit/release 控制与独立 Oracle 表达（§15.1 表），不跨环境、无替代依赖，故以表格代替测试路径图。
 
 ## B. 文档控制与修订记录
 

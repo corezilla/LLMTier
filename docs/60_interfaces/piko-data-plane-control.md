@@ -338,4 +338,6 @@ Bearer credential 控制 Data Plane 访问；不定义 Client/Source/SourceInsta
 
 ## 11. 定型候选与双方批准
 
-固定 Pi 0.85.1、commit `9767ba275f3e9a5ee0f5c5342249b629ab1b2282` 的 `openai-responses.ts::buildParams` 固定发送 `stream:true` 与 `store:false`；契约据此只支持这一条标准 Responses SSE 路径，不建立 non-stream fallback。必需事件为 created、output item added/done、text delta、refusal delta/done、reasoning summary/text delta/done、function arguments delta/done、completed/incomplete/failed 与 error；同一 output item 的 `item.id`、`output_index` 必须一致，成功流必须恰有一个 terminal，terminal response 携带可用 Usage。Piko 消费签署与真实 capture 仍是 activation gate，runtime activation=false；`interfaces/error-codes/` 未建立（`B-CONTRACT-01`）。
+固定 Pi 0.85.1、commit `9767ba275f3e9a5ee0f5c5342249b629ab1b2282` 的 `openai-responses.ts::buildParams` 固定发送 `stream:true` 与 `store:false`；契约据此只支持这一条标准 Responses SSE 路径，不建立 non-stream fallback。
+必需事件为 created、output item added/done、text delta、refusal delta/done、reasoning summary/text delta/done、function arguments delta/done、completed/incomplete/failed 与 error；同一 output item 的 `item.id`、`output_index` 必须一致，成功流必须恰有一个 terminal，terminal response 携带可用 Usage。
+Piko 消费签署与真实 capture 仍是 activation gate，runtime activation=false；`interfaces/error-codes/` 未建立（`B-CONTRACT-01`）。

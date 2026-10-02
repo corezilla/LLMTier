@@ -151,7 +151,8 @@ usage.py        UsageRecorder.authorize_dispatch/bind_backend/record_provider_re
 
 > 按 STD `design-data-interface-format` 1.2.0：主章“数据结构设计”，章内按**数据性质**分类（§4.1–§4.8）。仅保留适用类别，不适用类别在章首给出原因与 tailoring 依据；每个结构以真实名称为带编号的粗体标题，先给代码式声明，再逐项写 `Data/Type ID、用途与来源`、逐字段记录（必填·缺省·可空 / 类型·范围·枚举·含义 / 条件有效性）、`跨字段与寿命`、`合法/拒绝实例` 与 `验证`。继承结构只定位原定义与固定机器源，不复制字段。
 
-**类别适用性**：§4.1 公共基础类型与枚举 ✗（`status`/`availability`/`health` 取值继承 OpenAPI 与 Registry，无本层独立枚举）｜§4.2 业务与操作数据结构 ✓｜§4.3 配置与规则数据结构 ✗（本层无自有配置结构：超时/队列既有固定常量，也有 DB 驱动的 `deployment_runtime_profiles`/`provider_usage_profiles` 只读消费，权威归 M004；详见 §8.1）｜§4.4 通信报文结构 ✗（无本层拥有的消息结构；SSE 由 M001）｜§4.5 设备与 FPGA 表项结构 ✗（纯软件）｜§4.6 运行状态数据结构 ✓（`RouterState` 准入计数 + 账本义务；触发：§6.1 P-INFER 跨步骤准入排队与 `usage_obligations` 义务）｜§4.7 数据库表结构 ✗（账本表归 M007）｜§4.8 错误码与错误结构 ✓。
+**类别适用性**：§4.1 公共基础类型与枚举 ✗（`status`/`availability`/`health` 取值继承 OpenAPI 与 Registry，无本层独立枚举）｜§4.2 业务与操作数据结构 ✓｜§4.3 配置与规则数据结构 ✗（本层无自有配置结构：超时/队列既有固定常量，也有 DB 驱动的 `deployment_runtime_profiles`/`provider_usage_profiles` 只读消费，权威归 M004；详见 §8.1）｜§4.4 通信报文结构 ✗（无本层拥有的消息结构；
+SSE 由 M001）｜§4.5 设备与 FPGA 表项结构 ✗（纯软件）｜§4.6 运行状态数据结构 ✓（`RouterState` 准入计数 + 账本义务；触发：§6.1 P-INFER 跨步骤准入排队与 `usage_obligations` 义务）｜§4.7 数据库表结构 ✗（账本表归 M007）｜§4.8 错误码与错误结构 ✓。
 
 ### 4.2 业务与操作数据结构
 
@@ -561,7 +562,9 @@ create(principal, request_id, body, diagnostics=None, correlation_id=None, out=N
 - **输入与前提**
 
   - **输入参数 / 数据结构 authority**：`principal:str`（来自 `Principal`，只读）；`request_id:str`；`body:dict`（`ResponsesRequest` 形状，OpenAPI）
-  - **输入约束 / 校验顺序 / 失败映射**（8 步，`responses.py:72-92`）：① 必填 `model,input,stream,store`（缺 → 400 `invalid_request`，`param`=首个缺失字段）→ ② `stream=true && store=false`（否则 400 `unsupported_request`）→ ③ 禁字段 `FORBIDDEN_FIELDS`（否则 400 `unsupported_field`，`param`=命中字段名）→ ④ **未知字段 `set(body) ⊆ ALLOWED_FIELDS`**（否则 400 `unsupported_field`，`param`=首个未知字段名；系统 §7.8 `ERR-REQ-FIELD` 为 authority）→ ⑤ 模型存在（404 `model_not_found`）→ ⑥ `caps.responses is True`（否则 400 `unsupported_model`）→ ⑦ `tools` 能力（否则 400 `unsupported_request`）→ ⑧ `max_output_tokens` 数值范围 `1 ≤ v ≤ caps.max_output_tokens`（否则 400 `invalid_request`）。失败 → `E-INF-VALIDATE`（模型存在失败 → `E-INF-MODEL`）。
+  - **输入约束 / 校验顺序 / 失败映射**（8 步，`responses.py:72-92`）：① 必填 `model,input,stream,store`（缺 → 400 `invalid_request`，`param`=首个缺失字段）→ ② `stream=true && store=false`（否则 400 `unsupported_request`）→ ③ 禁字段 `FORBIDDEN_FIELDS`（否则 400 `unsupported_field`，`param`=命中字段名）→ ④ **未知字段 `set(body) ⊆ ALLOWED_FIELDS`**（否则 400 `unsupported_field`，`param`=首个未知字段名；
+    系统 §7.8 `ERR-REQ-FIELD` 为 authority）→ ⑤ 模型存在（404 `model_not_found`）→ ⑥ `caps.responses is True`（否则 400 `unsupported_model`）→ ⑦ `tools` 能力（否则 400 `unsupported_request`）→ ⑧ `max_output_tokens` 数值范围 `1 ≤ v ≤ caps.max_output_tokens`（否则 400 `invalid_request`）。
+    失败 → `E-INF-VALIDATE`（模型存在失败 → `E-INF-MODEL`）。
   - **`_adapter(candidate)`（每次调用构造 Provider）**：`responses.py:28-58`。若 `self._test_adapter` 已注入则直接返回（测试用）；否则读 `providers.secret_ref` 与 `deployment_runtime_profiles.connect_timeout_ms/stream_idle_timeout_ms`（缺省 30000/60000），按 `candidate.kind == "local"` 选择 `LocalProvider`，否则 `OpenAIProvider`。**每请求调用一次**，不缓存。
   - **`LLMTIER_SLOW_ADAPTER_DELAY` / 本地 `SlowAdapter`**：`responses.py:31-49`。当环境变量存在时，`_adapter` 返回一个在 `complete()` 内 `time.sleep(delay)` 后伪造完整 `ProviderResult` 的局部类 `SlowAdapter`（固定 usage `{input_tokens:2, output_tokens:1, total_tokens:3}`，`status="completed"`）；`embed()` 抛 `NotImplementedError`；`probe()` 恒 `True`。**仅 Responses 有 `LLMTIER_SLOW_ADAPTER_DELAY` 此类时延注入；Embeddings 无对应时延注入，但与 Responses 一致提供 `_test_adapter` 替身注入点（`embeddings.py` `_adapter`）。**
   - **故障注入（`diag.enabled_injection`）**：`responses.py:106-120`。按 `injection_type` 分派：

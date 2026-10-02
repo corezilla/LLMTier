@@ -637,7 +637,8 @@ enum InferenceErrorRef {
 
 ### 4.10 一致性、可见性与数据寿命
 
-请求级一致：同一 `request_id` 内事件有序（`sequence_number` 单调），不同请求各自独立且无全局顺序。流式“已发送”不等于“已完成”——只有 terminal 事件表示本次调用结束；HTTP 200 建连不代表业务成功（INV-3）。准入状态为进程内存，退出/重启即丢失，不承诺跨重启恢复许可；许可在 `admit` 上下文退出时（SSE 发送之前）`finally` 释放，释放后无残留。终态 Usage 一经写入即为 M-METER 账本事实，本机制不保留历史；观测数据独立且 fail-open（CON-INFER-005），失败不改变本机制结果。连通性中断（客户端断开，发生在 SSE 发送阶段）→ 结束本次调用、出口记 `aborted`；许可与终态记账已在 `create()` 返回前完成，不再调用 `finish(None)`；不创建可恢复 Invocation。
+请求级一致：同一 `request_id` 内事件有序（`sequence_number` 单调），不同请求各自独立且无全局顺序。流式“已发送”不等于“已完成”——只有 terminal 事件表示本次调用结束；HTTP 200 建连不代表业务成功（INV-3）。准入状态为进程内存，退出/重启即丢失，不承诺跨重启恢复许可；许可在 `admit` 上下文退出时（SSE 发送之前）`finally` 释放，释放后无残留。终态 Usage 一经写入即为 M-METER 账本事实，本机制不保留历史；观测数据独立且 fail-open（CON-INFER-005），失败不改变本机制结果。
+连通性中断（客户端断开，发生在 SSE 发送阶段）→ 结束本次调用、出口记 `aborted`；许可与终态记账已在 `create()` 返回前完成，不再调用 `finish(None)`；不创建可恢复 Invocation。
 
 ## 5. 接口设计
 
@@ -784,7 +785,9 @@ POST /v1/probes {deployment_id} -> 200 probe_result | 4xx: ErrorEnvelope
 8. **终态记账** `usage.finish(usage)`（异常路径 `finish(None)`，unknown）；`router.admit` 上下文退出即释放许可——两者均在 SSE 开始发送之前完成（`create()` 一次性返回终态响应）。
 9. **流式** `response_stream` 逐事件发送（§4.9 帧格式），终止于一个 terminal + `[DONE]`。
 
-**触发 → 结果 → 释放**：触发 = Consumer 提交 `POST /v1/responses`；结果 = `create()` 返回终态响应（含已写入的终态 usage），随后恰好一个 terminal 事件，或受理前的 typed error；释放 = 准入许可在 `router.admit` 上下文退出时（后端调用完成、`finish` 与 SSE 发送之前）于 `finally` 释放并 `notify_all`。**关键提交点** = 第 3 步 `authorize_dispatch` 的义务事务（dispatch 前唯一持久事实）与第 8 步 `finish` 的终态版本事务（SSE 发送前唯一终态事实）。中断点：义务提交前中断 → 未 dispatch、无上游副作用，重试视为新调用；义务提交后、后端调用发出前中断 → 库中留 unknown 义务，重启不回填为 0、不重放；后端已调用但响应丢失 → 结果未知，本系统不自动重放、不提供结果查询，交 Consumer 按标准 client retry policy（§9 F-IN-3）；SSE 发送中途客户端断开 → 部分输出已出站，账本保留 `create()` 已写入的终态版本（measured/unknown），出口记 `aborted` 且**不再调用** `finish(None)`。
+**触发 → 结果 → 释放**：触发 = Consumer 提交 `POST /v1/responses`；结果 = `create()` 返回终态响应（含已写入的终态 usage），随后恰好一个 terminal 事件，或受理前的 typed error；释放 = 准入许可在 `router.admit` 上下文退出时（后端调用完成、`finish` 与 SSE 发送之前）于 `finally` 释放并 `notify_all`。
+**关键提交点** = 第 3 步 `authorize_dispatch` 的义务事务（dispatch 前唯一持久事实）与第 8 步 `finish` 的终态版本事务（SSE 发送前唯一终态事实）。中断点：义务提交前中断 → 未 dispatch、无上游副作用，重试视为新调用；义务提交后、后端调用发出前中断 → 库中留 unknown 义务，重启不回填为 0、不重放；后端已调用但响应丢失 → 结果未知，本系统不自动重放、不提供结果查询，交 Consumer 按标准 client retry policy（§9 F-IN-3）；
+SSE 发送中途客户端断开 → 部分输出已出站，账本保留 `create()` 已写入的终态版本（measured/unknown），出口记 `aborted` 且**不再调用** `finish(None)`。
 
 ### 6.1 交叠请求、跨轮次与生命周期边界
 
@@ -945,7 +948,8 @@ POST /v1/probes {deployment_id} -> 200 probe_result | 4xx: ErrorEnvelope
 | R-INF-07 | Registry/Config · `inference-design.md` | Step 2、interface `get_service_level` | 等级/能力只读查询 | `get_service_level()` | 快照读一致性（M-CONFIG）| 查询实现 | 契约 |
 | R-INF-08 | 诊断写入 · `inference-design.md、observability-design.md` | CON-INFER-005 | trace/快照、fail-open；推理路径在写入点协同集成 | 观测写入 | 默认关闭零开销、脱敏（M-OBS）| 存储/聚合实现 | 观测用例 |
 
-**约束**：下游模块设计不得改变本机制已固定的对外事件子集与错误语义；跨模块新增接口须回写本节并关联模块设计。R-INF-02 的入口鉴权（M001 Auth/Validation）与推理编排侧校验（M003）分别在 `http-api-design.md`、`inference-design.md` 附录 A 承接；R-INF-08 的推理侧写入集成（M003）与观测侧读写（M005/libdiag）分别在两文档附录 A 承接。R-INF-04（Exact Model Router，代码 `routing.py`）与 R-INF-07（Registry 只读查询，调用方 `responses.py`）的实现承接责任均在 M003，故承接模块记为 `inference-design.md`；M004 仅作为 Registry 的数据提供方（provider 侧由 `R-CFG-01` 承接），不重复承接本机制要求。
+**约束**：下游模块设计不得改变本机制已固定的对外事件子集与错误语义；跨模块新增接口须回写本节并关联模块设计。R-INF-02 的入口鉴权（M001 Auth/Validation）与推理编排侧校验（M003）分别在 `http-api-design.md`、`inference-design.md` 附录 A 承接；R-INF-08 的推理侧写入集成（M003）与观测侧读写（M005/libdiag）分别在两文档附录 A 承接。
+R-INF-04（Exact Model Router，代码 `routing.py`）与 R-INF-07（Registry 只读查询，调用方 `responses.py`）的实现承接责任均在 M003，故承接模块记为 `inference-design.md`；M004 仅作为 Registry 的数据提供方（provider 侧由 `R-CFG-01` 承接），不重复承接本机制要求。
 
 ## 15. 验证、上线与回滚
 
@@ -979,9 +983,12 @@ POST /v1/probes {deployment_id} -> 200 probe_result | 4xx: ErrorEnvelope
 
 - 输入基线：系统设计 §3/§7.2/§9.1；`LT-ADR-01/04`；`interfaces/openapi/llmtier.openapi.json`、`interfaces/vectors/v0.3/*`。
 - 适用性：纯软件、单进程、HTTP API 机制。§4.5/§5.3（设备/FPGA）不适用（`std-tailoring` `LT-TL-003`）；§4.7（持久表）不适用（账本归 M-METER、配置归 M-CONFIG）；§4.9（二进制 ABI）不适用（HTTP/JSON 与 SSE 文本帧）；§8.1（租约/持久预留）不适用（仅临时许可，`finally` 释放）。
-- 图文规则：§1 用途概览 `diagram-mech-infer-usage`（Current）、§3 参与方协作 `diagram-mech-infer-collab`（Current）、§4 数据对象 `diagram-mech-infer-objects`（Current）、§6 正常时序 `diagram-mech-infer-sequence`。一图一问题；交互图用语义方向线，数据图不冒充时序。
+- 图文规则：§1 用途概览 `diagram-mech-infer-usage`（Current）、§3 参与方协作 `diagram-mech-infer-collab`（Current）、§4 数据对象 `diagram-mech-infer-objects`（Current）、§6 正常时序 `diagram-mech-infer-sequence`。一图一问题；
+  交互图用语义方向线，数据图不冒充时序。
 - 数据对象图触发：请求/结果在入口、编排、适配器、出口与账本之间经历归一变换与所有权转移，故按条件画图并标注损失与 unknown 边界。
-- 条件图适用性（§8/§9/§15）：§8 状态与资源图**不画**——准入许可为进程内临时资源、无多状态机、无持久状态，§8.1 短表已给出许可获取/`finally` 释放与无残留语义。§9 异常处置图**不画**——含**流中途客户端断开（disconnect）**分支：结果已部分送达但无持久副作用去重需求，§9 F-IN-4 短表逐项给出「结果已知性/操作终态/资源释放/重新准入」——出口记 `aborted`、不再调用 `finish(None)`（终态已在 `create()` 写入）、许可已在 `create()` 返回前释放；恢复出口单一，故以短表代替异常图；若未来出现跨重启结果恢复或多恢复出口再补图。§15 测试路径图**不画**——`T-DISCONNECT`/`T-QUEUE`/`T-TIMEOUT` 均在单环境内以具名 arm/hit/release 控制与独立 Oracle 表达（§15.1 表），不跨环境、无替代依赖。
+- 条件图适用性（§8/§9/§15）：§8 状态与资源图**不画**——准入许可为进程内临时资源、无多状态机、无持久状态，§8.1 短表已给出许可获取/`finally` 释放与无残留语义。
+  §9 异常处置图**不画**——含**流中途客户端断开（disconnect）**分支：结果已部分送达但无持久副作用去重需求，§9 F-IN-4 短表逐项给出「结果已知性/操作终态/资源释放/重新准入」——出口记 `aborted`、不再调用 `finish(None)`（终态已在 `create()` 写入）、许可已在 `create()` 返回前释放；恢复出口单一，故以短表代替异常图；
+  若未来出现跨重启结果恢复或多恢复出口再补图。§15 测试路径图**不画**——`T-DISCONNECT`/`T-QUEUE`/`T-TIMEOUT` 均在单环境内以具名 arm/hit/release 控制与独立 Oracle 表达（§15.1 表），不跨环境、无替代依赖。
 
 ## B. 文档控制与修订记录
 

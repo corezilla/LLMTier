@@ -897,7 +897,8 @@ Write{`usage_provider`∈{none,local,minimax,volc},`usage_api_key_ref`?/`usage_a
 
 ## 6. Pagination、filter、ordering 与 retention
 
-Usage按from/to必填，可选model/request_id，按 `(recorded_at,request_id)` 稳定排序；首个页面固定有期限snapshot及每个request的具体record version，cursor绑定principal、当前授权和原filter且不跨filter复用。页间更正/插入只进入新snapshot；snapshot到期、权限缩小、签名或filter不符返回400 `invalid_request`。同一request只选择snapshot冻结版本，绝不重复相加。dispatch前必须已有持久unknown Usage义务；因此terminal后计量写失败或崩溃时，重启后仍能返回unknown而不是空页。store不可读返回typed 503。Admin列表同样冻结序列化view/ETag并逐页复核授权。模型列表不分页。Retention是LLMTier内部政策，未知不得伪造成零；不对消费者承诺旧M2-C窗口。
+Usage按from/to必填，可选model/request_id，按 `(recorded_at,request_id)` 稳定排序；首个页面固定有期限snapshot及每个request的具体record version，cursor绑定principal、当前授权和原filter且不跨filter复用。页间更正/插入只进入新snapshot；snapshot到期、权限缩小、签名或filter不符返回400 `invalid_request`。同一request只选择snapshot冻结版本，绝不重复相加。dispatch前必须已有持久unknown Usage义务；
+因此terminal后计量写失败或崩溃时，重启后仍能返回unknown而不是空页。store不可读返回typed 503。Admin列表同样冻结序列化view/ETag并逐页复核授权。模型列表不分页。Retention是LLMTier内部政策，未知不得伪造成零；不对消费者承诺旧M2-C窗口。
 
 ## 7. 身份、权限、Secret 与调用边界
 
@@ -917,7 +918,8 @@ Provider账号用量只在operator对`POST /v1/providers/{provider_id}/usage`提
 
 ## 9. Positive/Negative fixture 与 validator
 
-Current fixtures：`openai-surface-fixtures.json`、`usage-fixtures.json`、`admin-model-fixtures.json`、`stateless-gateway-boundary-fixtures.json`；Admin fixture同时覆盖脱敏日志页。Validator必须解析全部refs，执行SSE sequence/delta/done/terminal identity及refusal形状、Embedding float/base64表示与维数、Usage unknown/source/subset/单调版本、分页snapshot及崩溃顺序、Admin并发条件、LogPage/禁入内容和旧custom术语/path absence检查；不能用“文件可解析”冒充语义通过。向量基线 `interfaces/vectors/v0.3/*`（见 §1 hash 表）。
+Current fixtures：`openai-surface-fixtures.json`、`usage-fixtures.json`、`admin-model-fixtures.json`、`stateless-gateway-boundary-fixtures.json`；Admin fixture同时覆盖脱敏日志页。
+Validator必须解析全部refs，执行SSE sequence/delta/done/terminal identity及refusal形状、Embedding float/base64表示与维数、Usage unknown/source/subset/单调版本、分页snapshot及崩溃顺序、Admin并发条件、LogPage/禁入内容和旧custom术语/path absence检查；不能用“文件可解析”冒充语义通过。向量基线 `interfaces/vectors/v0.3/*`（见 §1 hash 表）。
 
 ## 10. Requirement → Contract → Test traceability
 
