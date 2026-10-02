@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-module-test-scheme` |
-| Document Version | `0.1.0-draft.10` |
+| Document Version | `0.1.0-draft.11` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -318,8 +318,11 @@
 | M007 util §9 · `Store` 连接/PRAGMA/回收（组装） v0.1.0-draft.2 | VRC-UTIL-001 | MT-UTIL-001 | boundary | P0 | 组装后连接：`foreign_keys=1`/`wal`、每线程一连接、fd 基线稳定、close 异常、world-writable、symlink 拒绝 | Designed | M004 / M-METER / M-OBS |
 | M007 util §9 · `transaction`/`migrate`（组装） v0.1.0-draft.2 | VRC-UTIL-002 | MT-UTIL-002 | recovery | P0 | 组装后事务与迁移：回滚无半写、幂等 `migrate`、损坏库/版本不匹配拒绝、嵌套事务 409、并发启动 | Designed | M004 / M-METER / M-OBS |
 | M008 log §9 · `OperationalLog.record/page`（组装） v0.1.0-draft.1 | VRC-LOG-001 | MT-LOG-001 | security | P0 | 组装后脱敏与查询：Bearer/api_key/token 落库 `[REDACTED]`、长度 ≤512、倒序、过滤、`limit` 夹到 200、缺 `since`/`until`→400 | Designed | M004 / M002 |
+| M004 management §9 · 资源启用态 × 请求准入（组装） v0.1.0-draft.3 | VRC-MGMT-002 / VRC-MGMT-001 | MT-MGMT-012 | negative | P0 | **配置变更→运行态**：禁用 provider/deployment/service_level（三态，经公开入口）后请求被拒 404 `model_not_found`（非 503/429），恢复后放行；禁用后 `/v1/models` 对应 tier `availability=unavailable`（`Registry.candidates()` 的 `enabled` 过滤 × 请求路径组装接线） | Designed | M003 / M002 |
+| M004 management §9 · provider 模型目录（组装） v0.1.0-draft.3 | VRC-MGMT-005 | MT-MGMT-013 | negative | P1 | 组装后 `/v1/providers/{id}/models`：上游目录 `data` 逐项过滤（非 dict / 缺 id / id 非 str 剔除）、坏元素不致命（不得 500）、上游 5xx→503 `provider_unavailable`、未知 provider→404 | Designed | M003 适配器 / M002 |
+| M004 management §9 · `Admin.stats` 汇总（组装） v0.1.0-draft.3 | VRC-MGMT-004 | MT-MGMT-014 | negative | P1 | 组装后 `/v1/stats`：`from`/`to` 缺失→400（app 层校验）、`group_by` tier/deployment 两分组结构与键、`group_by` 缺省 tier、非法 `group_by`→400 | Designed | M-METER / M002 |
 
-**层①计数：20 条接口行为**（M001 3 / M002 2 / M003 4 / M004 5 / M005 1 / M006 2 / M007 2 / M008 1）。
+**层①计数：23 条接口行为**（M001 3 / M002 2 / M003 4 / M004 8 / M005 1 / M006 2 / M007 2 / M008 1）。
 
 ### 3.2 层②内部分支（每分支 1 Case）
 
@@ -374,9 +377,10 @@
 | M003 畸形帧分支：非 JSON `data:` 行 / 坏 SSE 块（组装，ENV-3） v0.1.0-draft.1 | VRC-INF-003 | MT-INF-017 | negative | P0 | `data: {not json}` 或坏块→502 `provider_contract_error`；不伪装成功（§1.5.1 c7） | Designed |
 | M003 并发超时 + 许可泄漏分支：队列等待超时后许可归零（组装，ENV-1） v0.1.0-draft.1 | VRC-INF-004 | MT-INF-018 | concurrency | P1 | `Router.admit` 等待超 `30 s`→429 `rate_limit_exceeded`+`Retry-After`；`_inflight` 归零、无许可泄漏（§1.5.1 c8） | Designed |
 | M003 provider 凭据解析分支：`env:` 无值 / `file:` 不可读 / 非法引用→凭据缺失（组装，ENV-3） v0.1.0-draft.1 | VRC-INF-003 | MT-INF-019 | negative | P1 | `secret_ref` 为 `env:` 空值 / `file:` 不可读 / 非法 scheme→503 `provider_secret_unavailable`；不 dispatch、无义务（§1.5.1 a24/b8） | Designed |
+| M003 provider adapter 重取分支：endpoint/secret_ref 每请求重读（组装，ENV-3） v0.1.0-draft.1 | VRC-INF-003 | MT-INF-020 | normal | P0 | **配置变更→接线**：provider endpoint 或 secret_ref 经公开入口变更后，下一次请求使用新值（打到新上游且旧上游不再命中）；无 adapter/连接缓存跨请求复用 | Designed |
 | M001 鉴权结果 × 端点类别组合（K1，组装） v0.1.0-draft.2 | VRC-API-002 | MT-API-011 | security | P0 | pairwise 组合行：(data-ok, data 端点) / (admin-ok, admin 端点) / (data-cred, admin 端点)→403 / (无凭据, 非受信)→401 / (未配置, 任一端点)→503，断言组装路径上拒绝先于业务 | Designed |
 
-**层②计数：47 条分支**（M001 9 / M002 4 / M003 15 / M004 6 / M005 3 / M006 5 / M007 3 / M008 2），较 `0.1.0-draft.5` 增 **10 条**（M001 +2 传输病态、M003 +7 上游/时间病态、M004 +1 固定 tier；见 §1.5.1（a)-(c)）。§3.2 表内另含 **1 条组合落地 Case**（`MT-API-011`，对应 §3.3 K1），其独自分母计入层③，不重复计入层②。
+**层②计数：48 条分支**（M001 9 / M002 4 / M003 16 / M004 6 / M005 3 / M006 5 / M007 3 / M008 2），较 `0.1.0-draft.10` 增 **1 条**（M003 provider adapter 重取 `MT-INF-020`；`0.1.0-draft.6` 起的 10 条传输/上游/时间病态与固定 tier 变更见 §1.5.1（a)-(c)）。§3.2 表内另含 **1 条组合落地 Case**（`MT-API-011`，对应 §3.3 K1），其独自分母计入层③，不重复计入层②。
 
 ### 3.3 层③组合（判定表 / 配对 pairwise 的行）
 
@@ -429,16 +433,16 @@
 
 | 层 | 分母（条/行） | 说明 |
 |---|---|---|
-| ① 对外接口端到端行为 | 20 | §3.1（模块设计 §9 接口行为） |
-| ② 内部分支 | 47 | §3.2（每个判定分支 1 Case） |
+| ① 对外接口端到端行为 | 23 | §3.1（模块设计 §9 接口行为） |
+| ② 内部分支 | 48 | §3.2（每个判定分支 1 Case） |
 | ③ 组合（判定表/配对） | 10 | §3.3（组合行） |
 | ④ 状态转换（迁移表） | 14 | §3.4（迁移行） |
-| **合计分母** | **91** | 四层相加 |
-| **模块 Case 总数** | **68** | 见下 |
+| **合计分母** | **95** | 四层相加 |
+| **模块 Case 总数** | **72** | 见下 |
 
-**Case 总数：68**（分类：negative 18 / boundary 13 / normal 11 / recovery 17 / security 6 / concurrency 3；Priority P0 39 / P1 29）。全部归属 8 模块（`M001-M008`），无工具 Case。较 `0.1.0-draft.5` 增 **10 个 Case**（`MT-MGMT-011`、`MT-API-012/013`、`MT-INF-013…019`），全部来自 §1.5.1 异常/错误注入矩阵的 a16/a24、b4/b8、c1–c8。
+**Case 总数：72**（分类：negative 22 / boundary 13 / normal 12 / recovery 17 / security 6 / concurrency 3；Priority P0 42 / P1 30）。全部归属 8 模块（`M001-M008`），无工具 Case。较 `0.1.0-draft.6`：既有 68 Case ＋ `0.1.0-draft.6` 新增 10 个（`MT-MGMT-011`、`MT-API-012/013`、`MT-INF-013…019`，来自 §1.5.1 a16/a24、b4/b8、c1–c8）＋ `0.1.0-draft.11` 新增 4 个（`MT-MGMT-012/013/014`、`MT-INF-020`，来自"配置变更→运行态"与次要端点组装面反向核对，见 §4 缺口 G-MT-COVERAGE-1）。
 
-> **分母→Case 说明（多分支/多行合并为 1 Case）**：四层分母 91 条并非 91 个 Case——按 §1.5 “分支/组合/迁移必覆盖”原则，**同模块内相互接近的分支/组合行/迁移可合并入 1 个 Case**，但每一行都必须在 §3.2/§3.3/§3.4 的“映射 Case”列或 §3.7 分支分母表被点名。反向核对：91 条分母每条都映射到 ≥1 个 `MT-*` Case（见 §3.7）。
+> **分母→Case 说明（多分支/多行合并为 1 Case）**：四层分母 95 条并非 95 个 Case——按 §1.5 “分支/组合/迁移必覆盖”原则，**同模块内相互接近的分支/组合行/迁移可合并入 1 个 Case**，但每一行都必须在 §3.2/§3.3/§3.4 的“映射 Case”列或 §3.7 分支分母表被点名。反向核对：95 条分母每条都映射到 ≥1 个 `MT-*` Case（见 §3.7）。
 > **注入类方法不增分母**：§1.5「注入类方法」的「mock 返回」六类、存储/传输/准入面与数据注入 4 类是**跨家族应用的构造/刺激手段**，其落点映射到四层分母的既有行（见 §3.7 注入面/数据类型核对块）；**§1.5.1「异常/错误注入矩阵」** 是同一手段口径的**全量封闭清单**（37 code + 8 上游类 + 8 传输/时间病态），其落点同样映射到既有/新增分支行——其中 a16/a24、b4/b8、c1–c8 由 **10 个新增分支 Case** 承接（计入层②），其余由既有 Case 承接；矩阵本身不另设 Case、不重复计分母。
 > **module-case 文档映射**：本清单 68 个 Case，对应 68 份 `tests.module-case` 文档（`docs/70_verification/module/cases/MT-<OBJ>-<NNN>.md`）与 68 个可执行脚本（`tests/module/cases/MT-*.py`），**已全部建立（68/68）**（文档与脚本随 `f83f8da` 入库，文档状态 `Draft`/`0.1.0-draft.1`，各 §7 指向对应脚本）。
   模块层 Run 证据共 **6** 个（`run-20261002-01`…`run-20261002-06`，按模块计划 §7「重跑不覆盖旧失败」全部保留）：`run-01`/`run-03` 为 RED（`MT-INF-015` 读阶段 60s `TimeoutError`→503 `provider_unavailable`，根因在 ENV-3 测试替身写侧的 `Content-Length` 大 body 形态、非产品缺陷，方案的 `stream_idle_timeout` 语义正确），`run-02` 为假绿（仅做 64 KiB 分块缓解、缺陷条件仍在），`run-04` 首次根除（替身改 `Transfer-Encoding: chunked` + 16 KiB 分片），`run-05` 复跑确认但 pin 与执行树不一致（执行树含未入库修复，不可作最终 pin 依据），**`run-20261002-06` 为最终 Run**（68/68 Case `PASS`、354/354 测试函数、`release_blocking=false`、pin `a1cb672` 与被测树逐字一致，证据可采信；
@@ -497,6 +501,10 @@
 | 分支 | M003-畸形帧（§1.5.1 c7） | MT-INF-017 |
 | 分支 | M003-并发超时 + 许可泄漏（§1.5.1 c8） | MT-INF-018 |
 | 分支 | M003-provider 凭据解析 `provider_secret_unavailable`（§1.5.1 a24/b8） | MT-INF-019 |
+| 分支 | M003-provider adapter 重取（endpoint/secret 每请求重读） | MT-INF-020 |
+| 接口行为 | M004-资源启用态 × 请求准入（禁用三态→404） | MT-MGMT-012 |
+| 接口行为 | M004-provider 模型目录 `/v1/providers/{id}/models` | MT-MGMT-013 |
+| 接口行为 | M004-`/v1/stats` 汇总 | MT-MGMT-014 |
 | 组合 | K1 鉴权×端点 | MT-API-006 / MT-API-011 |
 | 组合 | K2 SSE body×终止 | MT-API-008 |
 | 组合 | K3 cursor×越界 | MT-MGMT-009 |
@@ -517,7 +525,7 @@
 | 迁移 | T12/T13 存储初始化/回滚 | MT-UTIL-002 / MT-UTIL-005 |
 | 迁移 | T14 日志顺序 | MT-LOG-003 |
 
-**核对结论**：层②47 条分支、层③10 条组合行、层④14 条迁移行**全部映射到 ≥1 Case**（0 未映射）。
+**核对结论**：层②48 条分支、层③10 条组合行、层④14 条迁移行**全部映射到 ≥1 Case**（0 未映射）。
 
 **注入面 / 数据类型 → Case 核对块**（§1.5「注入类方法」的落点核对；不新增分母、不新增 Case，注入是跨家族手段）：
 
@@ -554,10 +562,11 @@
 ## 4. 不适用与缺口裁决
 
 > **本表口径**：Tailored-N/A 必须引用设计章节事实；Gap 须有 Owner 与恢复条件；两者都不从分母静默消失。本层四层分母全部登记 Case；下列为**本层不承接的组合保证**（非分母条目）与**design-vs-code 缺口/观察项**（本轮 68 Case 实测发现，Oracle ＝ `src/`）。
-> **缺口分类**：`G-*` ＝需回溯设计修订的实质缺口；`O-*` ＝实现现状与规格措辞不一致但不阻断本层判定的观察项。两者都不改变 §3 四层分母与 68 Case 清单，只约束 Oracle 取值与断言深度。
+> **缺口分类**：`G-*` ＝需回溯设计修订的实质缺口；`O-*` ＝实现现状与规格措辞不一致但不阻断本层判定的观察项。两者都不改变 §3 四层分母与 Case 清单，只约束 Oracle 取值与断言深度。
 
 | 来源 ID / 事实依据 | 裁决（Tailored-N/A / Gap） | Owner / 恢复条件 |
 |---|---|---|
+| 反向核对（自 `src/` 提取组装面维度，对照 §3 四层分母）发现：**"配置变更→运行态"类组装保证未登记为分母维度**——禁用 provider/deployment/service_level 后请求行为、endpoint/secret 变更后新请求接线、两个次要端点（`/v1/providers/{id}/models`、`/v1/stats`）、`atomic=False` 审计例外均无 Case | **覆盖缺口 G-MT-COVERAGE-1（已修复）** | Owner：LLMTier。**事实**：原四层分母只含"分支/组合/状态迁移"，未把"资源启用/禁用状态变更 × 请求路径"与"配置变更 × 接线"登记为维度；次要端点因 §3.1 从设计 §9 提取接口清单时遗漏。**处置（`0.1.0-draft.11`）**：新增 `MT-MGMT-012`（禁用三态×请求拒绝）、`MT-INF-020`（adapter 重取接线）、`MT-MGMT-013`（provider 模型目录）、`MT-MGMT-014`（`/v1/stats`），并扩充 `MT-MGMT-005`（`atomic=False` 审计）。分母 91→95、Case 68→72。**恢复条件**：已闭合；后续若新增"运行态可变配置"维度须同步登记。 |
 | 跨模块系统级流程、systemd/反向代理、Piko 联调 | Tailored-N/A（本层不测；各模块设计 §14「父级组合验证交接」已列承接方） | 归系统测试方案（`llmtier-system-test-scheme`） |
 | 真实上游 provider 协议与 wire 互操作、浏览器 E2E | Tailored-N/A（本层不测；系统方案已承接） | 归契约层与 `llmtier-system-test-scheme` |
 | M002 `VRC-UI-001..006` 的**行为级**（真实 JS 执行） | Tailored-N/A（本层仅静态产物/契约组装；行为级归系统层） | Owner：M002 web-ui。**事实**：`MT-UI-*` 为组装契约层验证；行为级由系统层真实浏览器 `ST-UI-001..010`（headless Chrome over CDP）承接，原 `RISK-UI-EXEC-1` 已关闭（见 `llmtier-system-test-scheme` §4）。 |

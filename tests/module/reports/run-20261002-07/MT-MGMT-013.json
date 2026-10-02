@@ -1,0 +1,46 @@
+{
+  "artifacts": [],
+  "case_id": "MT-MGMT-013",
+  "command": "python3 -m pytest --junitxml=tests/module/reports/run-20261002-07/artifacts/junit.xml tests/module/cases",
+  "git_commit": "998d879c2323267b356a63fdc4a308f67ad2ebcc",
+  "node_id": "tests.module.cases.MT-MGMT-013.ProviderModelsTests::test_bad_entries_are_filtered_to_valid_ids",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261002-07",
+  "schema_version_db": "2",
+  "started_at": "2026-10-02T12:54:18Z",
+  "status": "PASS",
+  "test_functions": [
+    {
+      "node_id": "tests.module.cases.MT-MGMT-013.ProviderModelsTests::test_bad_entries_are_filtered_to_valid_ids",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 1.02
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-013.ProviderModelsTests::test_non_object_entry_is_filtered_not_500",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 1.02
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-013.ProviderModelsTests::test_unknown_provider_is_404",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.515
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-013.ProviderModelsTests::test_upstream_5xx_is_503_provider_unavailable",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 1.012
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-013.ProviderModelsTests::test_valid_catalog_returns_id_list",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 1.02
+    }
+  ]
+}

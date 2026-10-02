@@ -166,4 +166,9 @@ class OpenAIProvider:
             raise ApiError(exc.code, "provider_error", f"Provider returned HTTP {exc.code}", retryable=exc.code in {408, 429}) from exc
         except (urllib.error.URLError, TimeoutError, OSError, http.client.HTTPException, json.JSONDecodeError) as exc:
             raise ApiError(503, "provider_unavailable", "Provider model catalog request failed", retryable=True) from exc
-        return [m["id"] for m in payload.get("data", []) if isinstance(m.get("id"), str)]
+        data = payload.get("data")
+        if not isinstance(data, list):
+            return []
+        # E-PROVIDER-CATALOG: tolerate non-object entries instead of raising
+        # AttributeError (which would surface as an internal_error 500).
+        return [m["id"] for m in data if isinstance(m, dict) and isinstance(m.get("id"), str)]

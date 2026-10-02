@@ -3,6 +3,10 @@
 GET 不触网（not_refreshed 快照、上游命中 0）；未确认 POST→400；凭据缺失→
 `unavailable`+error；provider 报错→`unavailable`+error 且快照持久。
 minimax URL 经模块常量重指至 loopback 假上游（边界替身，不触真实外网）。
+
+另覆盖 `admin.mutate(atomic=False)` 审计例外：account usage refresh 走
+`atomic=False` 路径（业务外部调用不占业务事务），成功与失败均须留审计行，
+失败时业务无半写（`admin.py::mutate`）。
 """
 from __future__ import annotations
 
@@ -92,6 +96,29 @@ class AccountUsageTests(LoopbackEnv):
         status, payload, _ = self._refresh(provider["id"])
         self.assertEqual(200, status)
         self.assertEqual("unlimited", payload["status"])
+
+    def _audits(self, action="provider.usage.refresh"):
+        _, page, _ = self.request("GET", "/v1/audit?limit=200")
+        return [r for r in page["data"] if r["action"] == action]
+
+    def test_non_atomic_refresh_success_is_audited(self):
+        provider = self._create("usage-nonatomic-ok", {"usage_provider": "local"})
+        status, payload, _ = self._refresh(provider["id"])
+        self.assertEqual(200, status)
+        rows = [r for r in self._audits() if r["target"] == provider["id"] and r["result"] == "success"]
+        self.assertTrue(rows)
+
+    def test_non_atomic_refresh_failure_is_audited_and_writes_nothing(self):
+        # 未知 provider：refresh 抛 404（业务未写），mutate 的 except 仍留 failed 审计行
+        status, payload, _ = self._refresh("provider_missing")
+        self.assertEqual(404, status)
+        self.assertEqual("not_found", payload["error"]["code"])
+        failed = [r for r in self._audits() if r["target"] == "provider_missing" and r["result"] == "failed"]
+        self.assertTrue(failed)
+        self.assertTrue(all(r["request_id"] for r in failed))
+        # 业务无半写：未知 provider 不留任何账号用量快照
+        snapshots = self.fx.app.store.all("SELECT * FROM provider_usage_snapshots WHERE provider_id=?", ("provider_missing",))
+        self.assertEqual([], snapshots)
 
 
 if __name__ == "__main__":

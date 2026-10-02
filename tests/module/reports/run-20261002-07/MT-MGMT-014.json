@@ -1,0 +1,46 @@
+{
+  "artifacts": [],
+  "case_id": "MT-MGMT-014",
+  "command": "python3 -m pytest --junitxml=tests/module/reports/run-20261002-07/artifacts/junit.xml tests/module/cases",
+  "git_commit": "998d879c2323267b356a63fdc4a308f67ad2ebcc",
+  "node_id": "tests.module.cases.MT-MGMT-014.StatsTests::test_group_by_defaults_to_tier",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261002-07",
+  "schema_version_db": "2",
+  "started_at": "2026-10-02T12:54:18Z",
+  "status": "PASS",
+  "test_functions": [
+    {
+      "node_id": "tests.module.cases.MT-MGMT-014.StatsTests::test_group_by_defaults_to_tier",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.518
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-014.StatsTests::test_group_by_deployment_structure_and_keys",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.517
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-014.StatsTests::test_group_by_tier_structure_and_keys",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.52
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-014.StatsTests::test_invalid_group_by_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.514
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-014.StatsTests::test_missing_from_or_to_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.519
+    }
+  ]
+}

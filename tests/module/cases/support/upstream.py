@@ -34,8 +34,9 @@ def terminal_event(status="completed", output=None, usage=None, etype=None, resp
 class FakeUpstream:
     """mode-driven upstream. `mode` is read per-request; counter tracks hits."""
 
-    def __init__(self, mode="ok", chunk_delay=0.0, events=1, quota_status=429):
+    def __init__(self, mode="ok", chunk_delay=0.0, events=1, quota_status=429, models_mode="ok"):
         self.mode = mode
+        self.models_mode = models_mode
         self.chunk_delay = chunk_delay
         self.events = events
         self.quota_status = quota_status
@@ -109,10 +110,32 @@ class FakeUpstream:
         elif handler.path.endswith("/embeddings"):
             self._embeddings(handler, mode)
         elif handler.path.endswith("/models"):
-            body = json.dumps({"object": "list", "data": [{"id": "backend"}]}).encode()
-            handler._send(200, body)
+            self._models(handler)
         else:
             handler._send(404, b'{"error":{"message":"unknown path"}}')
+
+    def _models(self, handler):
+        """`GET /models` responses; `models_mode` injects catalog pathologies.
+
+        "ok"       → a valid OpenAI-compatible `{object:list, data:[{id}]}`.
+        "mixed"    → entries with missing / non-string `id`, plus a valid id
+                     (the "bad data filtered, keep valid ids" stimulus).
+        "non_dict" → an entry that is not an object (probes the un-filtered
+                     `m.get` path).
+        "error"    → upstream 503.
+        """
+        if self.models_mode == "error":
+            handler._send(503, b'{"error":{"message":"overloaded"}}')
+        elif self.models_mode == "mixed":
+            body = json.dumps({"object": "list",
+                               "data": [{"id": "backend"}, {"noid": 1}, {"id": 7}, {"id": "second"}]}).encode()
+            handler._send(200, body)
+        elif self.models_mode == "non_dict":
+            body = json.dumps({"object": "list", "data": ["oops", {"id": "backend"}]}).encode()
+            handler._send(200, body)
+        else:
+            body = json.dumps({"object": "list", "data": [{"id": "backend"}]}).encode()
+            handler._send(200, body)
 
     def _responses(self, handler, mode):
         usage = {"input_tokens": 2, "output_tokens": 1, "total_tokens": 3}
