@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `MT-DIAG-002` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -63,7 +63,7 @@ set_injections(deployment_id, items, conn=None) -> list; enabled_injection/enabl
 
 ## 3. 输入构造
 
-- 逐参数输入构造：六类注入一次全配；四个前置注入并存（查优先级）；`enabled=false`；`enabled=true` 命中推理；未知类型；3 条 trace 分页（limit=2）与时间窗外查询
+- 逐参数输入构造：六类注入一次全配（冻结参数：`error_body="boom"/"down"`、`delay_ms=5`、`retry_after_sec=1`、`stream_terminate_after_events=1`、`malformed_after_events=1` 且 `malformed_event_type="invalid_json"`）；四个前置注入并存（查优先级）；`enabled=false`；`enabled=true` 命中推理；未知类型；3 条 trace 分页（limit=2）与时间窗外查询
 - 边界/非法取值及理由：六类读回一致（含 `deployment_id`/`enabled`/`updated_at`）；前置优先级 `fault_502` > `fault_503` > `rate_limit` > `delay`；流阶段注入与前置阶段互不干扰；`enabled=false` 不命中；命中可观测（502 `provider_failure`）；分页 2+1 且不重叠；时间窗外为空
 - 规模 / 时间域（数量、分页、复杂度、观测开销）：5 次配置/注入 + 3 条 trace；O(6)
 

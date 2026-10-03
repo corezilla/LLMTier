@@ -21,7 +21,7 @@
   "created_at": "2026-10-02",
   "last_modified_at": "2026-10-03",
   "document_id": "MT-OBS-004",
-  "document_version": "0.1.0-draft.2",
+  "document_version": "0.1.0-draft.3",
   "title": "MT-OBS-004 — 诊断注入与观测 fail-open",
   "document_owner": "LLMTier",
   "authors": [

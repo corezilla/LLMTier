@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `MT-UI-005` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -74,7 +74,7 @@ usageSummary(snapshot) -> html
 | 1 | 四类分支渲染 | 标签逐条断言（`ok` 分支只做静态断言，见 §7 `O-UI-USAGEOK-1`） |
 | 2 | `percent=null` | 渲染 `Unknown` |
 | 3 | `windows=[]` + `percent=null` | 不渲染空 window |
-| 4 | 真实三快照 | 三种 status 落进三个不同渲染分支；仅 `ok` 渲染 window |
+| 4 | 真实三快照 | 三种 status（`not_refreshed` / `unavailable`+`credentials_missing` / `unlimited`）落进三个不同渲染分支；仅 `ok` 渲染 window |
 | 5 | 无 window 的快照 | 不产生空表 |
 | 6 | 503 显式化 | `#provider-error` 有文案而非空表 |
 

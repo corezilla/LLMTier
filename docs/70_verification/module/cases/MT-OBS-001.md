@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `MT-OBS-001` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -75,7 +75,7 @@ PATCH /v1/diagnostics; POST /v1/responses; GET /v1/diagnostics/{snapshots,stats,
 | 2 | 发一次推理请求 | 200（诊断在观测面记录） |
 | 3 | `GET /v1/diagnostics/snapshots` | 1 行且 11 字段完整、`snapshot_type=upstream` |
 | 4 | `GET /v1/diagnostics/stats` | 1 个 window，`request_count=1` |
-| 5 | `GET /v1/diagnostics/traces` + 单 trace | 1 个 request；stages 含六个阶段；含 snapshot 与 usage 视图 |
+| 5 | `GET /v1/diagnostics/traces` + 单 trace | 1 个 request；stages 含六个阶段；含 snapshot 与 usage 视图（usage `measurement_status=measured`） |
 | 6 | 时间窗外查询 | 空（窗口过滤生效） |
 
 ## 5. 独立 Oracle 与预期结果
