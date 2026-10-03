@@ -441,7 +441,7 @@
 | **合计分母** | **95** | 四层相加 |
 | **模块 Case 总数** | **72** | 见下 |
 
-**Case 总数：72**（分类：negative 21 / boundary 13 / normal 12 / recovery 17 / security 6 / concurrency 3；Priority P0 41 / P1 31）。全部归属 8 模块（`M001-M008`），无工具 Case。较 `0.1.0-draft.6`：既有 68 Case ＋ `0.1.0-draft.6` 新增 10 个（`MT-MGMT-011`、`MT-API-012/013`、`MT-INF-013…019`，来自 §2.3 a16/a24、b4/b8、c1–c8）＋ `0.1.0-draft.12` 新增 4 个（`MT-MGMT-012/013/014`、`MT-INF-020`，来自"配置变更→运行态"与次要端点组装面反向核对，见 §7 缺口 G-MT-COVERAGE-1）。
+**Case 总数：72**（分类：negative 21 / boundary 13 / normal 12 / recovery 17 / security 6 / concurrency 3；Priority P0 41 / P1 31）。全部归属 8 模块（`M001-M008`），无工具 Case。较 `0.1.0-draft.6` 的 68（含其相对 draft.5 新增 10 个：`MT-MGMT-011`、`MT-API-012/013`、`MT-INF-013…019`，来自 §2.3 a16/a24、b4/b8、c1–c8）＋ `draft.11` 覆盖补齐新增 4 个（`MT-MGMT-012/013/014`、`MT-INF-020`，来自"配置变更→运行态"与次要端点组装面反向核对，见 §7 缺口 G-MT-COVERAGE-1）。
 
 > **分母→Case 说明（多分支/多行合并为 1 Case）**：四层分母 95 条并非 95 个 Case——按 §2.1 “分支/组合/迁移必覆盖”原则，**同模块内相互接近的分支/组合行/迁移可合并入 1 个 Case**，但每一行都必须在 §6.2/§6.3/§6.4 的“映射 Case”列或 §6.7 分支分母表被点名。反向核对：95 条分母每条都映射到 ≥1 个 `MT-*` Case（见 §6.7）。
 > **注入类方法不增分母**：§2.2「注入类方法」的「mock 返回」六类、存储/传输/准入面与数据注入 4 类是**跨家族应用的构造/刺激手段**，其落点映射到四层分母的既有行（见 §6.7 注入面/数据类型核对块）；**§2.3「异常/错误注入矩阵」** 是同一手段口径的**全量封闭清单**（37 code + 8 上游类 + 8 传输/时间病态），其落点同样映射到既有/新增分支行——其中 a16/a24、b4/b8、c1–c8 由 **10 个新增分支 Case** 承接（计入层②），其余由既有 Case 承接；矩阵本身不另设 Case、不重复计分母。
@@ -567,7 +567,7 @@
 
 | 来源 ID / 事实依据 | 裁决（Tailored-N/A / Gap） | Owner / 恢复条件 |
 |---|---|---|
-| 反向核对（自 `src/` 提取组装面维度，对照 §6 四层分母）发现：**"配置变更→运行态"类组装保证未登记为分母维度**——禁用 provider/deployment/service_level 后请求行为、endpoint/secret 变更后新请求接线、两个次要端点（`/v1/providers/{id}/models`、`/v1/stats`）、`atomic=False` 审计例外均无 Case | **覆盖缺口 G-MT-COVERAGE-1（已修复）** | Owner：LLMTier。**事实**：原四层分母只含"分支/组合/状态迁移"，未把"资源启用/禁用状态变更 × 请求路径"与"配置变更 × 接线"登记为维度；次要端点因 §6.1 从设计 §9 提取接口清单时遗漏。**处置（`0.1.0-draft.12`）**：新增 `MT-MGMT-012`（禁用三态×请求拒绝）、`MT-INF-020`（adapter 重取接线）、`MT-MGMT-013`（provider 模型目录）、`MT-MGMT-014`（`/v1/stats`），并扩充 `MT-MGMT-005`（`atomic=False` 审计）。分母 91→95、Case 68→72。**恢复条件**：已闭合；后续若新增"运行态可变配置"维度须同步登记。 |
+| 反向核对（自 `src/` 提取组装面维度，对照 §6 四层分母）发现：**"配置变更→运行态"类组装保证未登记为分母维度**——禁用 provider/deployment/service_level 后请求行为、endpoint/secret 变更后新请求接线、两个次要端点（`/v1/providers/{id}/models`、`/v1/stats`）、`atomic=False` 审计例外均无 Case | **覆盖缺口 G-MT-COVERAGE-1（已修复）** | Owner：LLMTier。**事实**：原四层分母只含"分支/组合/状态迁移"，未把"资源启用/禁用状态变更 × 请求路径"与"配置变更 × 接线"登记为维度；次要端点因 §6.1 从设计 §9 提取接口清单时遗漏。**处置（`0.1.0-draft.11`；`draft.12` 为其章节重编号）**：新增 `MT-MGMT-012`（禁用三态×请求拒绝）、`MT-INF-020`（adapter 重取接线）、`MT-MGMT-013`（provider 模型目录）、`MT-MGMT-014`（`/v1/stats`），并扩充 `MT-MGMT-005`（`atomic=False` 审计）。分母 91→95、Case 68→72。**恢复条件**：已闭合；后续若新增"运行态可变配置"维度须同步登记。 |
 | 跨模块系统级流程、systemd/反向代理、Piko 联调 | Tailored-N/A（本层不测；各模块设计 §14「父级组合验证交接」已列承接方） | 归系统测试方案（`llmtier-system-test-scheme`） |
 | 真实上游 provider 协议与 wire 互操作、浏览器 E2E | Tailored-N/A（本层不测；系统方案已承接） | 归契约层与 `llmtier-system-test-scheme` |
 | M002 `VRC-UI-001..006` 的**行为级**（真实 JS 执行） | Tailored-N/A（本层仅静态产物/契约组装；行为级归系统层） | Owner：M002 web-ui。**事实**：`MT-UI-*` 为组装契约层验证；行为级由系统层真实浏览器 `ST-UI-001..010`（headless Chrome over CDP）承接，原 `RISK-UI-EXEC-1` 已关闭（见 `llmtier-system-test-scheme` §7）。 |
@@ -612,16 +612,16 @@
 | VRC-UI-004 | 用量未知不填零 | `web-ui-design` §14.5 / `web-ui-isd` §9.1.4 | MT-UI-002/005 |
 | VRC-UI-005 | 探测付费确认 | `web-ui-design` §14.4 / `web-ui-isd` §9.1.5 | MT-UI-002 |
 | VRC-UI-006 | 诊断页 | `web-ui-design` §14.7 / `web-ui-isd` §9.1.6 | MT-UI-002 |
-| VRC-INF-001 | 推理与流式契约 | `inference-design` §14.1 / `inference-isd` §9.1.1 | MT-INF-001/005/006 |
+| VRC-INF-001 | 推理与流式契约 | `inference-design` §14.1 / `inference-isd` §9.1.1 | MT-INF-001/005/006/020 |
 | VRC-INF-002 | 向量化契约 | `inference-design` §14.2 / `inference-isd` §9.1.2 | MT-INF-002/010 |
 | VRC-INF-003 | 失败与用量 | `inference-design` §14.3 / `inference-isd` §9.1.3 | MT-INF-003/008/009/012/013/014/015/016/017/019 |
-| VRC-INF-004 | 准入与目录 | `inference-design` §14.4 / `inference-isd` §9.1.4 | MT-INF-004/007/018 |
+| VRC-INF-004 | 准入与目录 | `inference-design` §14.4 / `inference-isd` §9.1.4 | MT-INF-004/007/018/012 |
 | VRC-INF-005 | 观测 fail-open | `inference-design` §14.5 / `inference-isd` §9.1.5 | MT-INF-011 |
 | VRC-MGMT-001 | 引导与 Secret 引用 | `management-design` §14.1 / `management-isd` §9.1.1 | MT-MGMT-001/006 |
-| VRC-MGMT-002 | CRUD 与不变量 | `management-design` §14.2 / `management-isd` §9.1.2 | MT-MGMT-002/007/008/011 |
+| VRC-MGMT-002 | CRUD 与不变量 | `management-design` §14.2 / `management-isd` §9.1.2 | MT-MGMT-002/007/008/011/012/013 |
 | VRC-MGMT-003 | 审计与日志 | `management-design` §14.3 / `management-isd` §9.1.3 | MT-MGMT-002（审计同事务） |
-| VRC-MGMT-004 | 分页与清空 | `management-design` §14.4 / `management-isd` §9.1.4 | MT-MGMT-003/009 |
-| VRC-MGMT-005 | 探测 | `management-design` §14.5 / `management-isd` §9.1.5 | MT-MGMT-004 |
+| VRC-MGMT-004 | 分页与清空 | `management-design` §14.4 / `management-isd` §9.1.4 | MT-MGMT-003/009/014 |
+| VRC-MGMT-005 | 探测 | `management-design` §14.5 / `management-isd` §9.1.5 | MT-MGMT-004/013 |
 | VRC-MGMT-006 | 账号用量 | `management-design` §14.6 / `management-isd` §9.1.6 | MT-MGMT-005/010 |
 | VRC-OBS-001 | 开关 | `observability-design` §14.1 / `observability-isd` §9.1.1 | MT-OBS-001/002 |
 | VRC-OBS-002 | 快照/统计查询与脱敏 | `observability-design` §14.2 / `observability-isd` §9.1.2 | MT-OBS-001/003 |

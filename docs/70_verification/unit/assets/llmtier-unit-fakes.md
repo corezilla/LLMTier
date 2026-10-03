@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-unit-fakes` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-10-02` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.asset-design` |
 | Template Version | `0.2.2` |
 | Template Conformance | `tailored` |
@@ -50,7 +50,7 @@
 | 消费方 | 类型 | 依赖点 |
 |---|---|---|
 | `llmtier-unit-test-scheme` v0.1.0-draft.13 | 方案 | §1.6 替身矩阵、§1.7 ENV-3 |
-| `llmtier-unit-test-plan` v0.1.0-draft.11 | 计划 | §4 ENV-3、§5 Step 0 资产就位 |
+| `llmtier-unit-test-plan` v0.1.0-draft.13 | 计划 | §4 ENV-3、§5 Step 0 资产就位 |
 | `UT-INF-001..009` | Case | `FakeAdapter`（complete/embed/probe 返回与失败注入） |
 | `UT-MGMT-005/006/010/011` | Case | `FakeAdapter.probe`/账号用量 HTTP 替身 |
 | `UT-OBS-*`/`UT-DIAG-*` | Case | `AppFixture.seed()` 固定 tier/deployment |
