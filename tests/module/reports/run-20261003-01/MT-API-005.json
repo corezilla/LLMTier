@@ -1,0 +1,40 @@
+{
+  "artifacts": [],
+  "case_id": "MT-API-005",
+  "command": "python3 -m pytest --junitxml=tests/module/reports/run-20261003-01/artifacts/junit.xml tests/module/cases",
+  "git_commit": "851d17246ad7dc01965c131abf43fc01f9eaf3cb",
+  "node_id": "tests.module.cases.MT-API-005.RunExitTests::test_api_error_exit_maps_declared_code",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261003-01",
+  "schema_version_db": "2",
+  "started_at": "2026-10-03T04:19:32Z",
+  "status": "PASS",
+  "test_functions": [
+    {
+      "node_id": "tests.module.cases.MT-API-005.RunExitTests::test_api_error_exit_maps_declared_code",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.012
+    },
+    {
+      "node_id": "tests.module.cases.MT-API-005.RunExitTests::test_server_survives_after_error_exits",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    {
+      "node_id": "tests.module.cases.MT-API-005.RunExitTests::test_store_failure_exit_is_503_usage_store_unavailable",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.005
+    },
+    {
+      "node_id": "tests.module.cases.MT-API-005.RunExitTests::test_unknown_exception_exit_is_500_internal_error_and_logged",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.504
+    }
+  ]
+}

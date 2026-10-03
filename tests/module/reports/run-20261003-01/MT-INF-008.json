@@ -1,0 +1,46 @@
+{
+  "artifacts": [],
+  "case_id": "MT-INF-008",
+  "command": "python3 -m pytest --junitxml=tests/module/reports/run-20261003-01/artifacts/junit.xml tests/module/cases",
+  "git_commit": "851d17246ad7dc01965c131abf43fc01f9eaf3cb",
+  "node_id": "tests.module.cases.MT-INF-008.InjectionTests::test_delay_injection_delays_but_succeeds",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261003-01",
+  "schema_version_db": "2",
+  "started_at": "2026-10-03T04:19:32Z",
+  "status": "PASS",
+  "test_functions": [
+    {
+      "node_id": "tests.module.cases.MT-INF-008.InjectionTests::test_delay_injection_delays_but_succeeds",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.513
+    },
+    {
+      "node_id": "tests.module.cases.MT-INF-008.InjectionTests::test_fault_502_is_provider_failure_and_injected_source",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.512
+    },
+    {
+      "node_id": "tests.module.cases.MT-INF-008.InjectionTests::test_fault_503_is_provider_unavailable",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.512
+    },
+    {
+      "node_id": "tests.module.cases.MT-INF-008.InjectionTests::test_none_injection_is_normal",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.51
+    },
+    {
+      "node_id": "tests.module.cases.MT-INF-008.InjectionTests::test_rate_limit_injection_is_429_with_retry_after",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.513
+    }
+  ]
+}

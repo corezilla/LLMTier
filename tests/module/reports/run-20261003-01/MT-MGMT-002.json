@@ -1,0 +1,46 @@
+{
+  "artifacts": [],
+  "case_id": "MT-MGMT-002",
+  "command": "python3 -m pytest --junitxml=tests/module/reports/run-20261003-01/artifacts/junit.xml tests/module/cases",
+  "git_commit": "851d17246ad7dc01965c131abf43fc01f9eaf3cb",
+  "node_id": "tests.module.cases.MT-MGMT-002.CrudInvariantTests::test_audit_records_success_and_failed",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261003-01",
+  "schema_version_db": "2",
+  "started_at": "2026-10-03T04:19:32Z",
+  "status": "PASS",
+  "test_functions": [
+    {
+      "node_id": "tests.module.cases.MT-MGMT-002.CrudInvariantTests::test_audit_records_success_and_failed",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.016
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-002.CrudInvariantTests::test_capability_conflict_on_tier_bind",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.006
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-002.CrudInvariantTests::test_delete_referenced_deployment_is_409_in_use",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.006
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-002.CrudInvariantTests::test_delete_referenced_provider_is_409_in_use",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-002.CrudInvariantTests::test_stale_etag_is_412_with_current_version",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.508
+    }
+  ]
+}

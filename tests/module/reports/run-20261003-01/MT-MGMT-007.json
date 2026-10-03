@@ -1,0 +1,70 @@
+{
+  "artifacts": [],
+  "case_id": "MT-MGMT-007",
+  "command": "python3 -m pytest --junitxml=tests/module/reports/run-20261003-01/artifacts/junit.xml tests/module/cases",
+  "git_commit": "851d17246ad7dc01965c131abf43fc01f9eaf3cb",
+  "node_id": "tests.module.cases.MT-MGMT-007.CrudBranchMatrixTests::test_deployment_in_use_409",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261003-01",
+  "schema_version_db": "2",
+  "started_at": "2026-10-03T04:19:32Z",
+  "status": "PASS",
+  "test_functions": [
+    {
+      "node_id": "tests.module.cases.MT-MGMT-007.CrudBranchMatrixTests::test_deployment_in_use_409",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.013
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-007.CrudBranchMatrixTests::test_deployment_stale_etag_412",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.006
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-007.CrudBranchMatrixTests::test_duplicate_names_are_409_conflict",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-007.CrudBranchMatrixTests::test_provider_in_use_409",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.004
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-007.CrudBranchMatrixTests::test_provider_stale_etag_412",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.003
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-007.CrudBranchMatrixTests::test_service_level_duplicate_conflict_409",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-007.CrudBranchMatrixTests::test_service_level_empty_members_is_400",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-007.CrudBranchMatrixTests::test_unknown_resources_are_404",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.002
+    },
+    {
+      "node_id": "tests.module.cases.MT-MGMT-007.CrudBranchMatrixTests::test_version_transitions_and_provider_id_immutable",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.508
+    }
+  ]
+}

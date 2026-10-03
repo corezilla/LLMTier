@@ -1,0 +1,88 @@
+{
+  "artifacts": [],
+  "case_id": "MT-UI-002",
+  "command": "python3 -m pytest --junitxml=tests/module/reports/run-20261003-01/artifacts/junit.xml tests/module/cases",
+  "git_commit": "851d17246ad7dc01965c131abf43fc01f9eaf3cb",
+  "node_id": "tests.module.cases.MT-UI-002.MTUI002ApiContract::test_conflict_responses_keep_the_operator_input",
+  "openapi_version": "0.3-simplified-candidate.8",
+  "reason": "",
+  "redactions": [],
+  "run_id": "run-20261003-01",
+  "schema_version_db": "2",
+  "started_at": "2026-10-03T04:19:32Z",
+  "status": "PASS",
+  "test_functions": [
+    {
+      "node_id": "tests.module.cases.MT-UI-002.MTUI002ApiContract::test_conflict_responses_keep_the_operator_input",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-002.MTUI002ApiContract::test_diagnostics_tabs_are_wired_to_the_four_backend_faces",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-002.MTUI002ApiContract::test_etag_format_matches_the_registry_writer",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-002.MTUI002ApiContract::test_every_api_path_used_by_app_js_exists_in_the_m001_router",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-002.MTUI002ApiContract::test_pause_requires_confirmation_only_when_requests_are_running",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-002.MTUI002ApiContract::test_probe_and_usage_refresh_require_explicit_confirmation",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.001
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-002.MTUI002ApiContract::test_usage_view_renders_unknown_instead_of_zero",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.0
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-002.MTUI002BackendStatusCrossCheck::test_confirmed_probe_really_dispatch_and_report_cost_flag",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.515
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-002.MTUI002BackendStatusCrossCheck::test_deleting_a_referenced_provider_really_yields_409_resource_in_use",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.519
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-002.MTUI002BackendStatusCrossCheck::test_fixed_service_level_delete_really_yields_409_not_412",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.514
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-002.MTUI002BackendStatusCrossCheck::test_probe_and_usage_refresh_really_reject_unconfirmed_calls",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.52
+    },
+    {
+      "node_id": "tests.module.cases.MT-UI-002.MTUI002BackendStatusCrossCheck::test_stale_if_match_really_yields_412_for_every_resource_the_ui_edits",
+      "reason": "",
+      "status": "PASS",
+      "time_seconds": 0.524
+    }
+  ]
+}
