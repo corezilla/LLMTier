@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `MT-INF-013` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-10-02` |
-| Last Modified Date | `2026-10-02` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.module-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`MT-INF-013`）；责任摘要、分类与优先级以 [模块测试方案 §3](../llmtier-module-test-scheme.md) 清单行为准，不在本文档重复维护。
+- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`MT-INF-013`）；责任摘要、分类与优先级以 [模块测试方案 §6](../llmtier-module-test-scheme.md) 清单行为准，不在本文档重复维护。
 - **测试脚本的唯一依据**：编码者按本文档写测试代码；§7 指向已实现脚本 `tests/module/cases/MT-INF-013.py`。
 - **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
 
@@ -43,10 +43,10 @@
 
 ## 1. Case 概述与责任
 
-- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-INF-013` / M003 stall/hang 分支：上游建连成功但永不响应→超时（组装，ENV-3） v0.1.0-draft.1 / VRC-INF-003（inference-design §14 / inference.isd §9.1，inference 0.1.0-draft.1） / VRC-INF-003 / recovery / P0（[方案清单 §3](../llmtier-module-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：故障注入 + 异常路径回滚 + 状态迁移断言（主要手段：边界外协作者用 loopback `FakeUpstream`（真实 `ThreadingHTTPServer` 上的 OpenAI 兼容假上游，经公开 Registry 入口接线，资产 `llmtier-unit-fakes`））
-- **覆盖的分支 / 组合 / 迁移 ID**：分支：M003-stall/hang 超时（§1.5.1 c1）
-- 要测什么（责任展开）：上游 `accept` 后不回字节，`connect_timeout`/`stream_idle_timeout` 命中→503 `provider_unavailable`（retryable）；账本 `unknown` 收敛、Router 许可释放（§1.5.1 c1）（本 Case 责任：上游 accept 后不回字节→503 `provider_unavailable`；账本 unknown 收敛、Router 许可释放）
+- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-INF-013` / M003 stall/hang 分支：上游建连成功但永不响应→超时（组装，ENV-3） v0.1.0-draft.1 / VRC-INF-003（inference-design §14 / inference.isd §9.1，inference 0.1.0-draft.1） / VRC-INF-003 / recovery / P0（[方案清单 §6](../llmtier-module-test-scheme.md)）。
+- **测试方法（§2.4 方法表行）**：故障注入 + 异常路径回滚 + 状态迁移断言（主要手段：边界外协作者用 loopback `FakeUpstream`（真实 `ThreadingHTTPServer` 上的 OpenAI 兼容假上游，经公开 Registry 入口接线，资产 `llmtier-unit-fakes`））
+- **覆盖的分支 / 组合 / 迁移 ID**：分支：M003-stall/hang 超时（§2.3 c1）
+- 要测什么（责任展开）：上游 `accept` 后不回字节，`connect_timeout`/`stream_idle_timeout` 命中→503 `provider_unavailable`（retryable）；账本 `unknown` 收敛、Router 许可释放（§2.3 c1）（本 Case 责任：上游 accept 后不回字节→503 `provider_unavailable`；账本 unknown 收敛、Router 许可释放）
 - 明确不测什么 / 失败含义：不测跨模块系统级流程、真实上游 provider 协议、浏览器 E2E（归系统层 `ST-*` 与契约层）；本层只断言组装后成立的分支走向、状态迁移与调用序。失败含义＝inference 组装后stall/hang 的超时映射与许可归还与设计不一致。
 
 ## 2. 被测入口与前置
@@ -57,7 +57,7 @@
 create(...)  # 上游 accept 后不回字节
 ```
 
-- 初态构造（经公开入口）：真实 cloud provider → loopback `FakeUpstream(mode=stall)`；超时预算经存储面注入（`deployment_runtime_profiles` 的 `connect_timeout_ms`/`stream_idle_timeout_ms` 置小，方案 §1.5.1 c1 预设）
+- 初态构造（经公开入口）：真实 cloud provider → loopback `FakeUpstream(mode=stall)`；超时预算经存储面注入（`deployment_runtime_profiles` 的 `connect_timeout_ms`/`stream_idle_timeout_ms` 置小，方案 §2.3 c1 预设）
 - 环境类型 + ENV 实例编号（引用 [模块测试计划 §4](../llmtier-module-test-plan.md) 分配）：ENV-1 + ENV-3（loopback 假上游）
 - 依赖的测试资产（tests.asset-design 文档）：组装夹具 `tests/common/fakes.py::AppFixture` + `tests/module/cases/support/inference_env.py::InferenceEnv`（见 `llmtier-unit-fakes`）
 
@@ -78,7 +78,7 @@ create(...)  # 上游 accept 后不回字节
 
 ## 5. 独立 Oracle 与预期结果
 
-- 独立 Oracle 来源与推导：方案 §1.5.1 c1 + a21 + inference 模块设计 §14.3；按 `complete` 传输异常映射与 `admit` finally 人工推导
+- 独立 Oracle 来源与推导：方案 §2.3 c1 + a21 + inference 模块设计 §14.3；按 `complete` 传输异常映射与 `admit` finally 人工推导
 - 互斥预期（成功 / 各错误分支）：stall→503 `provider_unavailable`；账本收敛；许可归还；无卡死
 
 ## 6. 错误路径、副作用与清理

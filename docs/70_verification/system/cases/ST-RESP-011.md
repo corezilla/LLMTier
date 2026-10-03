@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-RESP-011` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -27,25 +27,25 @@
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
-> 本 Case 文档绑定：系统设计经 `--parent-document-id`、所属方案经方案清单行引用写入 metadata；Document ID＝Case ID。方案清单行见[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)。
+> 本 Case 文档绑定：系统设计经 `--parent-document-id`、所属方案经方案清单行引用写入 metadata；Document ID＝Case ID。方案清单行见[系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)。
 
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-RESP-011` / 系统设计 §8 Responses 接口（POST /v1/responses） / `VRC-DIAG-004` / `recovery` / `P0`。本文件名 `st-resp-011.md`，与 Case ID 唯一对应。
-- **测试方法（§1.5 方法表行）**：故障注入（fault_502）+ 复位阶梯
+- **测试方法（§2.2 方法表行）**：故障注入（fault_502）+ 复位阶梯
 - 要测什么（责任展开）：`POST /v1/responses` 注入 `fault_502`：下一次命中 `depl_b` 的推理在 dispatch 上游前被拒，返回 `502 provider_failure`（`retryable=true`、`message` 含注入 `error_body`）。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明真实上游 5xx 的归一（ST-RESP-023 / `ERR-PROVIDER-FAIL`）与 `fault_503`→`provider_unavailable` 路径（ST-RESP-022 / `ERR-PROVIDER-UNAVAIL`）；不证明 SSE 事件序列/terminal/`[DONE]`（注入在流开始前抛出，响应不是 SSE，见 ST-RESP-001）；不证明重试或 exactly-once；不证明模型答案或上游真实调用——本 case 的 502 由注入产生，**不是"模型失败"**。**失败含义＝注入命中与上游故障传播契约破坏**。
 
 **目的（被测契约）**：验证 Data Plane `POST /v1/responses` 在 **M006 故障注入（`fault_502`）命中**时的**上游故障传播契约**。被测端点/规则：先 `PATCH /v1/deployments/{deployment_id}/diagnostics` 写入 `fault_502`；
 随后命中该 deployment 的 `POST /v1/responses`（`stream=true`）在 dispatch 上游**之前**由 M003 抛出 `ApiError(status=502, code="provider_failure", retryable=True)`，入口以**普通 JSON 错误信封**返回（不是 `text/event-stream`）。
 设计验证项 `VRC-DIAG-004`；机制 `T-OBS-INJECT`（见[observability 机制](../../../20_system_design/mechanisms/observability.md)）；错误目录 `ERR-PROVIDER-INJECTED` → wire `code=provider_failure`（系统设计 §7.8，见[llmtier-system-design.md](../../../20_system_design/llmtier-system-design.md)）；
-实现见 `src/inference/responses.py` 的 dispatch 前注入分支与 `src/libdiag/injections.py` 的注入校验/优先级（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+实现见 `src/inference/responses.py` 的 dispatch 前注入分支与 `src/libdiag/injections.py` 的注入校验/优先级（[系统测试方案 §6](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
 **不证明什么**：不证明真实上游 5xx 的归一（ST-RESP-023）与 `fault_503`→`provider_unavailable` 路径（ST-RESP-022）；不证明 SSE 事件序列/terminal/`[DONE]`（注入在流开始前抛出）；
 不证明重试或 exactly-once；不证明模型答案或上游真实调用——本 case 的 502 由注入产生，**不是"模型失败"**。
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 B**（临时 LLMTier 实例，见[系统测试方案 §1 测试边界](../llmtier-system-test-scheme.md)）。前置 = 方案 §5 附加（B 类）就绪检查；`_baseline_settings` 注入 1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier，`llmtier_b` probe `depl_b` 为 `healthy`（否则 BLOCKED/SKIP）。`prov_b.endpoint` 必须是 LAN IP 上的 fake provider（TS-003，见[系统测试方案 §1](../llmtier-system-test-scheme.md)）。fixture = `llmtier_b`、`admin_client_b`（注入写/读）、`api_client_b`（Data Plane），见[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)。初始状态 = 1 provider（`prov_b`）/ 1 deployment（`depl_b`）/ 7 fixed tier，且 **`diagnostic_injections` 为空（无任何启用注入）**；7 个 fixed tier 的 `deployment_ids` 均指向 `depl_b`，故 `model="Senior"` 必然路由到 `depl_b`。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例，见[系统测试方案 §1 测试边界](../llmtier-system-test-scheme.md)）。前置 = 方案 §5 附加（B 类）就绪检查；`_baseline_settings` 注入 1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier，`llmtier_b` probe `depl_b` 为 `healthy`（否则 BLOCKED/SKIP）。`prov_b.endpoint` 必须是 LAN IP 上的 fake provider（TS-003，见[系统测试方案 §1](../llmtier-system-test-scheme.md)）。fixture = `llmtier_b`、`admin_client_b`（注入写/读）、`api_client_b`（Data Plane），见[系统测试方案 §4 测试环境类型](../llmtier-system-test-scheme.md)。初始状态 = 1 provider（`prov_b`）/ 1 deployment（`depl_b`）/ 7 fixed tier，且 **`diagnostic_injections` 为空（无任何启用注入）**；7 个 fixed tier 的 `deployment_ids` 均指向 `depl_b`，故 `model="Senior"` 必然路由到 `depl_b`。
 - **被测入口**：
 
   ```http
@@ -64,7 +64,7 @@
   ```
 
 - **初态构造（经公开入口）**：经 `llmtier_b` 启动 B 类实例并 probe `depl_b` 为 `healthy`；`diagnostic_injections` 初始为空；注入经公开 `PATCH .../diagnostics` 写入（不直改内部状态）。
-- **Fixture / 向量及版本**：`llmtier_b` / `admin_client_b` / `api_client_b` 与 `provider_endpoint_b`（LAN fake provider，TS-003）（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）。
+- **Fixture / 向量及版本**：`llmtier_b` / `admin_client_b` / `api_client_b` 与 `provider_endpoint_b`（LAN fake provider，TS-003）（[系统测试方案 §4 测试环境类型](../llmtier-system-test-scheme.md)）。
 - **依赖的测试资产（tests.asset-design 文档）**：本阶段 `tests.asset-design` 文档尚未建立；B 类实例与 fake provider 夹具契约见方案 §4，引用其版本而不复制字节。
 
 ## 3. 输入构造
@@ -152,7 +152,7 @@
 
 ## 7. 自动化位置与状态
 
-- **证据与 Run**：证据与 Run 契约见[§4.8/§10](../llmtier-system-test-scheme.md)：保存注入写请求/响应（`PATCH` body + `200` + `InjectionView[]`）、被测请求与原始响应（HTTP status/headers/body 错误信封，脱敏后）、teardown 的 `PATCH items:[]` 与随后 `GET` 空数组、`elapsed`、发出命令、exit code、环境快照（`/healthz` + 注入前/后 `GET /deployments/depl_b/diagnostics`）；可选 trace 证据（`GET /v1/trace/{request_id}` 的 `usage.source=injected`）。注意：现有 [`ST-RESP-011.py`](../../../../tests/system/cases/ST-RESP-011.py) 未自建 artifact 目录/manifest，须由 runner/report 层按 §4.8 补齐后方可判本 Case PASS；manifest 与报告落位见 §4.8/§10（本 case `environment:"b"`）；失败现场不截断。
-- **依赖**：`ST-OBSDEPL-002`（`PATCH /v1/deployments/{id}/diagnostics` 写入注入，本 case 的注入写即其机制）；B 类 fixture `llmtier_b` / `admin_client_b` / `api_client_b` 与 `provider_endpoint_b`（LAN fake provider，TS-003）（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）；自动化入口 [`ST-RESP-011.py`](../../../../tests/system/cases/ST-RESP-011.py)；错误目录 `ERR-PROVIDER-INJECTED`（系统设计 §7.8）与实现 `src/libdiag/injections.py` / `src/inference/responses.py`；机制 `T-OBS-INJECT`（[observability 机制](../../../20_system_design/mechanisms/observability.md)）。**不依赖**其它 Case；与 ST-RESP-022（`fault_503`→`provider_unavailable`）互补但各自独立执行，与 ST-RESP-023（真实上游非成功 HTTP）区分注入/真实两类来源。
+- **证据与 Run**：证据与 Run 契约见[计划 §7/§10](../llmtier-system-test-scheme.md)：保存注入写请求/响应（`PATCH` body + `200` + `InjectionView[]`）、被测请求与原始响应（HTTP status/headers/body 错误信封，脱敏后）、teardown 的 `PATCH items:[]` 与随后 `GET` 空数组、`elapsed`、发出命令、exit code、环境快照（`/healthz` + 注入前/后 `GET /deployments/depl_b/diagnostics`）；可选 trace 证据（`GET /v1/trace/{request_id}` 的 `usage.source=injected`）。注意：现有 [`ST-RESP-011.py`](../../../../tests/system/cases/ST-RESP-011.py) 未自建 artifact 目录/manifest，须由 runner/report 层按 §4.8 补齐后方可判本 Case PASS；manifest 与报告落位见计划 §7/§10（本 case `environment:"b"`）；失败现场不截断。
+- **依赖**：`ST-OBSDEPL-002`（`PATCH /v1/deployments/{id}/diagnostics` 写入注入，本 case 的注入写即其机制）；B 类 fixture `llmtier_b` / `admin_client_b` / `api_client_b` 与 `provider_endpoint_b`（LAN fake provider，TS-003）（[系统测试方案 §4 测试环境类型](../llmtier-system-test-scheme.md)）；自动化入口 [`ST-RESP-011.py`](../../../../tests/system/cases/ST-RESP-011.py)；错误目录 `ERR-PROVIDER-INJECTED`（系统设计 §7.8）与实现 `src/libdiag/injections.py` / `src/inference/responses.py`；机制 `T-OBS-INJECT`（[observability 机制](../../../20_system_design/mechanisms/observability.md)）。**不依赖**其它 Case；与 ST-RESP-022（`fault_503`→`provider_unavailable`）互补但各自独立执行，与 ST-RESP-023（真实上游非成功 HTTP）区分注入/真实两类来源。
 
 > 实现状态：Implemented（`ST-RESP-011.py` 已实现注入写与断言，且已含 `finally` teardown）；执行状态与 Verdict 只在 Run 报告。

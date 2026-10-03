@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-AUTH-005` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -31,7 +31,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-AUTH-005`）；责任摘要、分类与优先级以 [系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
+- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-AUTH-005`）；责任摘要、分类与优先级以 [系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
 - **测试脚本的唯一依据**：编码者按本文档写测试代码，不需要回读方案或设计正文猜测意图。
 - **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
 
@@ -48,8 +48,8 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-AUTH-005` / 系统设计 §8 认证与授权跨切面（角色/LAN trust/无鉴权） / `VRC-API-002` / `security` / `P0`
-- **测试方法（§1.5 方法表行）**：鉴权/授权/脱敏冒烟 + 角色隔离
-- 方案清单登记：`ST-AUTH-005`（与 §3.2 权威清单一致；本文件名 `st-auth-005.md`，唯一对应）。
+- **测试方法（§2.2 方法表行）**：鉴权/授权/脱敏冒烟 + 角色隔离
+- 方案清单登记：`ST-AUTH-005`（与 计划 §3 权威清单一致；本文件名 `st-auth-005.md`，唯一对应）。
 - 要测什么（责任展开）：`GET /healthz` 在**不带任何凭据、任意来源**下被受理，返回 200 + `status="ok"`（公共存活端点不进入鉴权路径）。
 - 明确不测什么 / 失败含义：不证明 `/readyz` 的就绪语义（ST-HEALTH-002/03/04/05）、不证明任何受保护端点（`/v1/*`）的鉴权（ST-AUTH-001/02/03/04/06/07/08/09/10）、不证明 LAN trust 免登录（ST-AUTH-001/04）、不证明未配置鉴权时受保护端点的 503（ST-AUTH-007）。本 case **不断言** `/healthz` 不受 bootstrap 失败影响之外的 `/readyz` 行为。
 
@@ -61,7 +61,7 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `none`（§3.2）；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=§2.1 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；本 case 使用独立 `httpx.Client`（无默认头）；`/healthz` 在源码中先于 `app.bootstrap_error` 判空，故本 case 亦可在 bootstrap 异常实例上通过，但 A 类就绪检查已排除该场景；初始状态=§2.3 A 类基线（3 provider / 4 deployment / 7 fixed tier）。
+- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `none`（方案 §6 清单行）；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=计划 §3 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；本 case 使用独立 `httpx.Client`（无默认头）；`/healthz` 在源码中先于 `app.bootstrap_error` 判空，故本 case 亦可在 bootstrap 异常实例上通过，但 A 类就绪检查已排除该场景；初始状态=§2.3 A 类基线（3 provider / 4 deployment / 7 fixed tier）。
 
 ## 3. 输入构造
 
@@ -76,7 +76,7 @@
 ## 4. 执行步骤与观察点
 
 - **执行过程（逐步调用）**：
-  1. `GET /healthz`、`GET /readyz` —— 确认 §2.1 基线（由 `pytest_configure` 自动执行，本 case 不重复）。
+  1. `GET /healthz`、`GET /readyz` —— 确认 计划 §2 基线（由 `pytest_configure` 自动执行，本 case 不重复）。
   2. 建立独立客户端：`httpx.Client(base_url="http://192.168.1.9:8181", timeout=10.0)`，**不设 `Authorization`**。
   3. `resp = client.get("/healthz")`；记录 status、headers、body。
   4. 断言 `resp.status_code == 200`（公共端点未进入鉴权 ⇒ 未被 401/403/503）。
@@ -100,9 +100,9 @@
   - **PASS**：`status==200` 且 `body.status=="ok"` 且 `body.version` 为字符串。
   - **FAIL**：返回非 200，或 `status != "ok"`、`version` 非字符串、出现错误信封；须给预期 vs 实际与 `reproduction_cmd`。
   - **BLOCKED**：测试代码/契约本身问题（如误带凭据、断言不可实现）——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **SKIP**：§2.1 前置不满足（m5air 不可达）——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
+  - **SKIP**：计划 §3 前置不满足（m5air 不可达）——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **INVALID**：用 `127.0.0.1`/mock/替代路径冒充真实 m5air 路径，或以带凭据请求冒充"无需 token"——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：Case 已定义但本轮未执行（例如 suite 因 §2.1 失败整班 skip）。
+  - **NOT_RUN**：Case 已定义但本轮未执行（例如 suite 因计划 §3 失败整班 skip）。
 
 ## 6. 错误路径、副作用与清理
 

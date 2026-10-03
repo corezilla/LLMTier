@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-OBSDIAG-001` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -31,7 +31,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-OBSDIAG-001`）；责任摘要、分类与优先级以 [系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
+- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-OBSDIAG-001`）；责任摘要、分类与优先级以 [系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
 - **测试脚本的唯一依据**：编码者按本文档写测试代码，不需要回读方案或设计正文猜测意图。
 - **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
 
@@ -48,7 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-OBSDIAG-001` / 系统设计 §8 诊断开关接口（/v1/diagnostics） / `VRC-DIAG-001` / `normal` / `P1`
-- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
+- **测试方法（§2.2 方法表行）**：等价类划分 + 契约字段比对
 - 方案清单登记：`ST-OBSDIAG-001`
 - 要测什么（责任展开）：`GET /v1/diagnostics` 读取全局诊断开关：HTTP 200 + 精确 `SwitchState` 字段集/类型（`snapshots_enabled`、`stats_enabled` 均为布尔），纯读、无副作用。
 - 明确不测什么 / 失败含义：不证明：本 case 只读、不改变开关，**不证明**开关值对写入的零写入语义（机制 `INV-4`/`CON-OBS-001`，见 ST-OBSDIAG-002 的 PATCH 及其后的写入断言），**不证明**快照/统计/trace 查询（ST-OBSSNAP-001/02、ST-OBSSTATS-001/02、ST-OBSTRACE-001/02），**不证明**别名逐字节等价（ST-OBSALIAS-001），**不证明** `PATCH` 的非法值拒绝（ST-OBSDIAG-003），也**不证明**角色负向（data token 403，由 ST-AUTH-008 及 ST-OBSREQTRACE-003 风格的角色负向承接）。
@@ -56,13 +56,13 @@
 **目的（被测契约）**：验证 Observability `GET /v1/diagnostics` 的**开关读契约**。被测端点/规则：`GET /v1/diagnostics`，成功返回 `SwitchState`（`snapshots_enabled`、`stats_enabled` 两个必填 JSON 布尔，`additionalProperties:false`）；
 认证角色 `admin`；失败走统一错误信封 `{error:{message,type,code,param,retryable}}`（401 `authentication_required` / 403 `permission_denied` / 503 `usage_store_unavailable`）。
 设计验证项 `VRC-DIAG-001`；机制 `T-OBS-SWITCH`（见[observability 机制](../../../20_system_design/mechanisms/observability.md) §4.3.1/§5.1，`IF-OBS-API-SWITCH`/`IF-OBS-SWITCH`）；
-需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01`/`R-OBS-02`、`CT-ADMIN-001`/`CT-LOG-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；
+需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01`/`R-OBS-02`、`CT-ADMIN-001`/`CT-LOG-001`（[系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；
 机器契约 `interfaces/openapi/llmtier.openapi.json`（`SwitchState`，`security=AdminBearerAuth`）；等价别名 `/tier/admin/v1/diagnostics`（同一 handler）。
 **不证明什么**：本 case 只读、不改变开关，**不证明**开关值对写入的零写入语义（机制 `INV-4`/`CON-OBS-001`，见 ST-OBSDIAG-002 的 PATCH 及其后的写入断言），**不证明**快照/统计/trace 查询（ST-OBSSNAP-001/02、ST-OBSSTATS-001/02、ST-OBSTRACE-001/02），**不证明**别名逐字节等价（ST-OBSALIAS-001），**不证明** `PATCH` 的非法值拒绝（ST-OBSDIAG-003），也**不证明**角色负向（data token 403，由 ST-AUTH-008 及 ST-OBSREQTRACE-003 风格的角色负向承接）。
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `admin`，只读；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=§2.1 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；fixture `admin_client`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；初始状态=§2.3 A 类基线；`diagnostic_settings` 单行存在（默认 `{snapshots_enabled:false, stats_enabled:false}`）。本 case 不写库、不改开关，初态即终态。
+- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `admin`，只读；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=计划 §3 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；fixture `admin_client`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；初始状态=§2.3 A 类基线；`diagnostic_settings` 单行存在（默认 `{snapshots_enabled:false, stats_enabled:false}`）。本 case 不写库、不改开关，初态即终态。
 
 ## 3. 输入构造
 
@@ -80,7 +80,7 @@
 ## 4. 执行步骤与观察点
 
 - **执行过程（逐步调用）**：
-  1. `GET /healthz`、`GET /readyz` —— 确认 §2.1 基线（由 `pytest_configure` 自动执行，本 case 不重复）。
+  1. `GET /healthz`、`GET /readyz` —— 确认 计划 §2 基线（由 `pytest_configure` 自动执行，本 case 不重复）。
   2. `GET /v1/diagnostics`（上表），`resp = admin_client.get("/v1/diagnostics")`；记录 status、`Content-Type`（`X-Request-ID` 为运行时注入，openapi 未将其声明为 `/v1/diagnostics` 的 200 头，仅作旁证记录、不作契约断言）。
   3. 断言 `resp.status_code == 200` 且 `content-type` 含 `application/json`。
   4. 解析 JSON body，断言其为对象且键集**恰为** `{snapshots_enabled, stats_enabled}`（不多不少；`additionalProperties:false`）。
@@ -106,7 +106,7 @@
   - **PASS**：`status==200` 且 body 键集恰为 `{snapshots_enabled, stats_enabled}` 且两值均为 JSON 布尔（含降级实例返回默认 `{false,false}` 的 fail-open 形态）。
   - **FAIL**：`status!=200` 且存储健康；或 body 键集不等/缺失/多键；或值非 JSON 布尔；或以错误信封冒充 `SwitchState`。
   - **BLOCKED**：测试代码/契约本身问题（如 fixture 写不出、断言逻辑错、`openapi` 语义不清），或**存储层读取异常被 handler 的 `_store_read` 转为 `503 usage_store_unavailable`（`ERR-STORE`，机制 §4.8.1 明示的存储不可达语义，属环境问题）**——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **SKIP**：§2.1 前置不满足（m5air 不可达、`/readyz` 非 7 tier、双 OMLX 离线等）——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
+  - **SKIP**：计划 §3 前置不满足（m5air 不可达、`/readyz` 非 7 tier、双 OMLX 离线等）——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **NOT_RUN**：无（自动化入口已实现；执行状态见 Run 报告）。
   - **INVALID**：用 `127.0.0.1`/mock/替代路径冒充真实 m5air 路径，或未命中真实诊断服务却按行为判定——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
 
@@ -118,6 +118,6 @@
 
 - **证据与 Run**：保存原始 HTTP status/headers/body、发出命令（`curl`/httpx）、exit code、`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查（m5air `/healthz`、`/readyz` 7 tier、双 OMLX、`provider_omlx_m5mac` secret）；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；M007 `diagnostic_settings` 单行（`002_observability.sql`）；`SwitchState` 机器契约（`interfaces/openapi/llmtier.openapi.json`）。自动化入口 `ST-OBSDIAG-001.py`（已实现，落位遵循 §4.9/§8.5）。**不依赖**其它 Case；与 ST-OBSALIAS-001（别名 `/tier/admin/v1/diagnostics` 逐字节等价）、ST-OBSDIAG-002（PATCH 更新开关 + 审计）、ST-OBSDIAG-003（PATCH 非法值 400）语义相邻但各自独立执行；角色负向参照 ST-OBSREQTRACE-003 风格（data token → 403）与 ST-AUTH-008。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查（m5air `/healthz`、`/readyz` 7 tier、双 OMLX、`provider_omlx_m5mac` secret）；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；M007 `diagnostic_settings` 单行（`002_observability.sql`）；`SwitchState` 机器契约（`interfaces/openapi/llmtier.openapi.json`）。自动化入口 `ST-OBSDIAG-001.py`（已实现，落位遵循 §4.9/§8.5）。**不依赖**其它 Case；与 ST-OBSALIAS-001（别名 `/tier/admin/v1/diagnostics` 逐字节等价）、ST-OBSDIAG-002（PATCH 更新开关 + 审计）、ST-OBSDIAG-003（PATCH 非法值 400）语义相邻但各自独立执行；角色负向参照 ST-OBSREQTRACE-003 风格（data token → 403）与 ST-AUTH-008。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

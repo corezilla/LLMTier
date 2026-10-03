@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-OBS-006` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`UT-OBS-006`）；责任摘要、分类与优先级以 [单元测试方案 §3](../llmtier-unit-test-scheme.md) 清单行为准。
+- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`UT-OBS-006`）；责任摘要、分类与优先级以 [单元测试方案 §6](../llmtier-unit-test-scheme.md) 清单行为准。
 - **来源**：模块设计 [observability](../../../40_module_design/observability-design.md) §14 / ISD [observability.isd.md](../../../50_implementation_design/observability.isd.md) §9.1，设计验证项 `VRC-OBS-002`（固定版本 `observability 0.1.0-draft.6`）。
 - **裁剪说明**：本 Case 是项目级合并方案 `llmtier-unit-test-scheme` 的模块切片 `observability`；裁剪依据见 [STD 裁剪清单](../../../00_management/std-tailoring.md)。
 
@@ -45,8 +45,8 @@
 
 ## 1. Case 概述与责任
 
-- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-OBS-006` / M005 observability §14.2 · 快照 URL 脱敏 v0.1.0-draft.6 / `VRC-OBS-002` / security / P1（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：鉴权/脱敏/注入边界冒烟（URL 去 query/503 不伪装空页）（主要手段：直接调用 + 替身注入）
+- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-OBS-006` / M005 observability §14.2 · 快照 URL 脱敏 v0.1.0-draft.6 / `VRC-OBS-002` / security / P1（[方案清单 §6](../llmtier-unit-test-scheme.md)）。
+- **测试方法（§2.1 方法表行）**：鉴权/脱敏/注入边界冒烟（URL 去 query/503 不伪装空页）（主要手段：直接调用 + 替身注入）
 - 要测什么（责任展开）：被测：快照/轨迹端到端 URL 去 query（`?token=` 不落库）；查询存储不可读 → 503 `usage_store_unavailable`，不伪装空页。
 - 明确不测什么 / 失败含义：不测：统计口径/百分位（UT-DIAG-002/005）；**浏览器呈现由系统层 `ST-UI-006`（诊断页 4 tabs/Disabled 真实渲染）执行（`tests/system/cases/` (ST-UI-*)；原 G-UT-4 已关闭）**。失败含义＝URL 脱敏或存储失败显式化实现错误。
 

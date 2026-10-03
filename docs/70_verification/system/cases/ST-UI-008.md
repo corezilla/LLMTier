@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-UI-008` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-10-01` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -31,7 +31,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-UI-008`）；责任摘要、分类与优先级以 [系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
+- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-UI-008`）；责任摘要、分类与优先级以 [系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
 - **测试脚本的唯一依据**：编码者按本文档写测试代码，不需要回读方案或设计正文猜测意图。
 - **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
 
@@ -49,7 +49,7 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-UI-008` / 模块设计 web-ui §14（ISD §9.1） / `VRC-UI-001` / `security` / `P1`
 - 方案清单登记：`ST-UI-008`
-- **UI 方法模式（§1.5 方法表行）**：**脱敏 / 安全呈现**——provider 配了 secret，打开展示页与编辑抽屉，断言 secret 值**永不出现**在 DOM/URL/网络日志中，只显示脱敏标记（`Configured`）。
+- **UI 方法模式（§2.2 方法表行）**：**脱敏 / 安全呈现**——provider 配了 secret，打开展示页与编辑抽屉，断言 secret 值**永不出现**在 DOM/URL/网络日志中，只显示脱敏标记（`Configured`）。
 - **六要素映射（约束「每 Case 必须写明」）**：模式＝本节；构造的状态＝§3（播种一个 `secret_ref="env:LLMTIER_UI_SECRET_008"` 的 provider，其环境值为已知哨兵）；执行的操作＝§4（打开 Providers、打开该 provider 的编辑抽屉）；DOM 断言＝§4（行内显示 `Configured`、`secret_ref` 输入为空、`documentElement.outerHTML` 与 `location.href` 均不含哨兵值/引用串）；网络断言＝§5（网络日志不含哨兵值/引用串）；证据位置＝§7。
 - 要测什么（责任展开）：provider 视图只暴露 `has_secret`（布尔），**不得**暴露 secret 值或其引用串；UI 只显示脱敏标记 `Configured`，编辑态不回填任何 secret。
 - 明确不测什么 / 失败含义：不证明服务端密钥存储加密、不证明上游鉴权（归 ST-AUTH-* / 安全 Case）。失败含义＝secret 值/引用以任何形式泄露到浏览器可见面。
@@ -112,4 +112,4 @@
 ## 8. 需求与设计可追溯
 
 - 设计验证项：`VRC-UI-001`（模块设计 web-ui §14.1 / [web-ui ISD §9.1](../../../50_implementation_design/web-ui.isd.md)）。
-- 需求链：`LT-FUN-*`（控制台）/ `LT-OPS-*`（可观测），以系统方案 §3.6 映射为准。本 Case 补充覆盖 §1.5「脱敏 / 安全呈现」模式（原 UI 类无此模式 Case）。
+- 需求链：`LT-FUN-*`（控制台）/ `LT-OPS-*`（可观测），以系统方案 §6.1 映射为准。本 Case 补充覆盖 §2.1「脱敏 / 安全呈现」模式（原 UI 类无此模式 Case）。

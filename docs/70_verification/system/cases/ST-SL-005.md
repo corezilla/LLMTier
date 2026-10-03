@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-SL-005` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -31,7 +31,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-SL-005`）；责任摘要、分类与优先级以 [系统测试方案 §3](../llmtier-system-test-scheme.md) 清单行为准。
+- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-SL-005`）；责任摘要、分类与优先级以 [系统测试方案 §6](../llmtier-system-test-scheme.md) 清单行为准。
 - **来源**：系统设计 §8 Service Level CRUD 接口（/v1/service-levels）（parent `llmtier-system-design`），设计验证项 `VRC-MGMT-002`；所属方案 `llmtier-system-test-scheme`。
 - **边界**：系统层 Case（整软件系统组装，被测为 m5air 真实部署或按 tests.asset-design 约束的替身）；本文档持有实现状态，执行状态与 Verdict 只在 Run 报告。
 
@@ -48,8 +48,8 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-SL-005` / 系统设计 §8 Service Level CRUD 接口（/v1/service-levels） / `VRC-MGMT-002` / `negative` / `P0`
-- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
-- 方案清单登记：`ST-SL-005`（与 §3.2 权威清单一致；本文件名 `st-sl-005.md`，唯一对应）。
+- **测试方法（§2.2 方法表行）**：错误猜测 + 反例驱动（ERR-*）
+- 方案清单登记：`ST-SL-005`（与 计划 §3 权威清单一致；本文件名 `st-sl-005.md`，唯一对应）。
 - 要测什么（责任展开）：`DELETE /v1/service-levels/{id}` 删除固定 Tier：HTTP 409 `fixed_service_level`（"cannot be deleted"）；并以"同类 DELETE 在 deployment 上成功（204）"为可达正对照，且回读证明 `Engineer` 未被改动。
 - 明确不测什么 / 失败含义：不证明 `If-Match` 的 412（本实现对该路由先返回 409、不校验 ETag）、不证明其它资源删除（provider/deployment 引用 409 见 ST-PROV-010）、不证明 PATCH/创建（ST-SL-004/02/02b）。本 case **只**锁 409 `fixed_service_level`。
 
@@ -61,7 +61,7 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=§2.1 附加（B 类）；fixture `admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；本 case 选 `Engineer`。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=计划 §3 附加（B 类）；fixture `admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；本 case 选 `Engineer`。
 
 ## 3. 输入构造
 
@@ -102,7 +102,7 @@
   - **BLOCKED**：fixture/断言逻辑问题——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **SKIP**：B 类临时实例不可用——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **INVALID**：用 `127.0.0.1`/mock 冒充，或未命中真实固定 Tier 规则——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：本 Case 有实现（§3.2 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
+  - **NOT_RUN**：本 Case 有实现（计划 §3 实现盘点 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
 
 ## 6. 错误路径、副作用与清理
 
@@ -112,6 +112,6 @@
 
 - **证据与 Run**：保存GET/DELETE 请求与原始 409 响应（脱敏后）、DELETE 后 `GET` 的 `version`、发出命令、exit code、`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/B-api`，`environment:"b"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：B 类 fixture `llmtier_b` / `admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`registry.delete_service_level`；错误目录 `ERR-FIXED-LEVEL`。自动化入口 [`ST-SL-005.py`](../../../../tests/system/cases/ST-SL-005.py)。**不依赖**其它 Case；与 ST-SL-006/07 同走 PATCH 冲突语义但独立执行。
+- **依赖**：B 类 fixture `llmtier_b` / `admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；`registry.delete_service_level`；错误目录 `ERR-FIXED-LEVEL`。自动化入口 [`ST-SL-005.py`](../../../../tests/system/cases/ST-SL-005.py)。**不依赖**其它 Case；与 ST-SL-006/07 同走 PATCH 冲突语义但独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

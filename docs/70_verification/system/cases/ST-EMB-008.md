@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-EMB-008` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -32,7 +32,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-EMB-008` / 系统设计 §8 Embeddings 接口（POST /v1/embeddings） / `VRC-INF-004` / concurrency / P1（[方案清单 `ST-EMB-008`](../llmtier-system-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：状态机驱动（准入饱和 429 + Retry-After）+ 固定并发度/种子
+- **测试方法（§2.2 方法表行）**：状态机驱动（准入饱和 429 + Retry-After）+ 固定并发度/种子
 
 - 要测什么（责任展开）：`POST /v1/embeddings` 准入饱和：并发超过 `depl_b` 运行时并发许可与队列上限（队列 32）时，`Router.admit` 拒绝并返回 `429 rate_limit_exceeded` 且带 `Retry-After`。
   需求 `R-INF-04`；机制需求 `R-MET-04`；错误目录 `ERR-RATE-LIMIT` → wire `code=rate_limit_exceeded`；实现 `src/inference/routing.py`（队列满 `len(self._queues[level_id]) >= 32` → `ApiError(429, "rate_limit_exceeded", "Service-level queue is full", retryable=True, headers={"Retry-After":"30"})`；

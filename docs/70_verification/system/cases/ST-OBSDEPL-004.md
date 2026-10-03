@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-OBSDEPL-004` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -31,7 +31,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-OBSDEPL-004`）；责任摘要、分类与优先级以 [系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
+- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-OBSDEPL-004`）；责任摘要、分类与优先级以 [系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
 - **测试脚本的唯一依据**：编码者按本文档写测试代码，不需要回读方案或设计正文猜测意图。
 - **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
 
@@ -48,7 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-OBSDEPL-004` / 系统设计 §8 注入配置接口（/v1/deployments/{id}/diagnostics） / `VRC-DIAG-004` / `negative` / `P1`
-- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
+- **测试方法（§2.2 方法表行）**：错误猜测 + 反例驱动（ERR-*）
 - 方案清单登记：`ST-OBSDEPL-004`
 - 要测什么（责任展开）：`PATCH /v1/deployments/{id}/diagnostics` 提交非法注入项：HTTP 400 `invalid_injection`（`param` 指向被拒字段），不写入任何注入行。
 - 明确不测什么 / 失败含义：不证明 正向写入（ST-OBSDEPL-002）、不证明未知 deployment 的 404（ST-OBSDEPL-003，且存在性优先于本校验）、不证明注入命中（ST-RESP-011/22）、不证明别名等价（ST-OBSALIAS-004）。**实现现状（严格 bool，已对齐 openapi）**：`_validate` 要求 `isinstance(enabled, bool)`，非 bool（含缺失/字符串/整数）→ 400 `invalid_injection` `param="enabled"`（`injections.py:34-36`），与 openapi `InjectionWrite.enabled: boolean` 一致；本 case 正面覆盖该严格校验。
@@ -56,7 +56,7 @@
 **目的（被测契约）**：验证注入写路径的**项校验负向契约**。被测端点/规则：`_validate` 要求 `type ∈ _TYPES`（否则 `param="type"`）、`config` 为对象（否则 `param="config"`）、每类型必填 `config` 字段（缺失 → `param=<field>`）、`error_body` 为非空字符串（>512B 按 UTF-8 截断）、`malformed_event_type ∈ {invalid_json, unknown_event_type}`、数值字段范围 `delay_ms∈[0,60000]`、`retry_after_sec∈[0,300]`、`stream_terminate_after_events∈[1,10000]`、`malformed_after_events∈[0,10000]` 且必须是 `int`（`bool` 被拒）（[`src/libdiag/injections.py`](../../../../src/libdiag/injections.py)）；
 任何非法项 → `ApiError(400, "invalid_injection", ..., param=...)`，**零写入**。设计验证项 `VRC-DIAG-004`；机制 `T-OBS-INJECT`（[observability 机制](../../../20_system_design/mechanisms/observability.md) §4.3.2 `D-OBS-INJECTION-CONFIG`、§5.1 "类型/字段/范围非法 → `ERR-INJECTION`（400）；
 校验失败不写、副作用无"）；错误目录 `ERR-INJECTION` → `invalid_injection`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理) `ERR-INJECTION → ST-OBSDEPL-004`）；
-需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；
+需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；
 机器契约 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`InjectionList`/`InjectionWrite`，400 → `BadRequest`）。
 **不证明什么**：不证明正向写入（ST-OBSDEPL-002）、不证明未知 deployment 的 404（ST-OBSDEPL-003，且存在性优先于本校验）、不证明注入命中（ST-RESP-011/22）、不证明别名等价（ST-OBSALIAS-004）。
 **实现现状（严格 bool，已对齐 openapi）**：`_validate` 要求 `isinstance(enabled, bool)`，非 bool（含缺失/字符串/整数）→ 400 `invalid_injection` `param="enabled"`（`injections.py:34-36`），与 openapi `InjectionWrite.enabled: boolean` 一致；
@@ -64,7 +64,7 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=§2.1 附加（B 类）；`depl_b` 存在且 healthy；fixture：`llmtier_b` + `admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。初始状态=基线，`diagnostic_injections` 为空；本 case 期望零写入，结束再次确认库中 `depl_b` 仍为空。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=计划 §3 附加（B 类）；`depl_b` 存在且 healthy；fixture：`llmtier_b` + `admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。初始状态=基线，`diagnostic_injections` 为空；本 case 期望零写入，结束再次确认库中 `depl_b` 仍为空。
 
 ## 3. 输入构造
 
@@ -125,6 +125,6 @@
 
 - **证据与 Run**：保存每个非法请求 body 与原始 400 信封、混合项无部分写入对比、`orig_raw` 前后、合法边界对照、可选失败审计、命令/exit code/`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/B-api`，`environment:"b"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go)（B 类附加）；`llmtier_b`/`admin_client_b` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`ERR-INJECTION`；`InjectionList`/`InjectionWrite` 机器契约（`enabled` 必填 `boolean`，实现严格校验，一致）；实现 [`src/libdiag/injections.py`](../../../../src/libdiag/injections.py)（`_validate`/`_TYPES`/`_RANGES`/`_CONFIG_FIELDS`）、[`src/http_api/app.py`](../../../../src/http_api/app.py)。自动化入口 `ST-OBSDEPL-004.py`（已实现）。**不依赖**其它 Case；与 ST-OBSDEPL-002（正向写）、ST-OBSDEPL-003（未知 404，存在性优先）互补但各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go)（B 类附加）；`llmtier_b`/`admin_client_b` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；`ERR-INJECTION`；`InjectionList`/`InjectionWrite` 机器契约（`enabled` 必填 `boolean`，实现严格校验，一致）；实现 [`src/libdiag/injections.py`](../../../../src/libdiag/injections.py)（`_validate`/`_TYPES`/`_RANGES`/`_CONFIG_FIELDS`）、[`src/http_api/app.py`](../../../../src/http_api/app.py)。自动化入口 `ST-OBSDEPL-004.py`（已实现）。**不依赖**其它 Case；与 ST-OBSDEPL-002（正向写）、ST-OBSDEPL-003（未知 404，存在性优先）互补但各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

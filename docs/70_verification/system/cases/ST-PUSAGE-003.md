@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-PUSAGE-003` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-PUSAGE-003`）；责任摘要、分类与优先级以 [系统测试方案 §3](../llmtier-system-test-scheme.md) 清单行为准。
+- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-PUSAGE-003`）；责任摘要、分类与优先级以 [系统测试方案 §6](../llmtier-system-test-scheme.md) 清单行为准。
 - **来源**：系统设计 §8 provider usage 快照接口（/v1/providers/{id}/usage）（parent `llmtier-system-design`），设计验证项 ``VRC-MGMT-006`、`VRC-DIAG-004``；所属方案 `llmtier-system-test-scheme`。
 - **边界**：系统层 Case（整软件系统组装，被测为 m5air 真实部署或按 tests.asset-design 约束的替身）；本文档持有实现状态，执行状态与 Verdict 只在 Run 报告。
 
@@ -48,20 +48,20 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-PUSAGE-003` / 系统设计 §8 provider usage 快照接口（/v1/providers/{id}/usage） / ``VRC-MGMT-006`、`VRC-DIAG-004`` / `normal` / `P1`
-- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
-- 方案清单登记：`ST-PUSAGE-003`（与 §3.2 权威清单一致；本文件名 `st-pusage-003.md`，唯一对应）。
+- **测试方法（§2.2 方法表行）**：等价类划分 + 契约字段比对
+- 方案清单登记：`ST-PUSAGE-003`（与 计划 §3 权威清单一致；本文件名 `st-pusage-003.md`，唯一对应）。
 - 要测什么（责任展开）：`POST /v1/providers/{id}/usage` 携带 `{"confirm_external_call": true}` 刷新账号用量：HTTP 200 + 新 `ProviderAccountUsageSnapshot`；`provider_local`（local 类型）返回 `status="unlimited"`、`source="quota_config"`，并持久化快照。
 - 明确不测什么 / 失败含义：不证明 缺确认拒绝（ST-PUSAGE-002）、不证明只读快照（ST-PUSAGE-001）、不证明未知 provider 的 404（ST-PUSAGE-004）、不证明 minimax/volc 的真实上游用量数值（本 case 用 `provider_local`，其刷新为本地合成、不触外部用量 API，故**不产生费用**）；不证明并发刷新。
 
 **目的（被测契约）**：验证 provider 账号用量**显式刷新成功契约**。被测端点/规则：`POST /v1/providers/{provider_id}/usage`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `refreshProviderAccountUsage`，`security=AdminBearerAuth`），请求体 `{confirm_external_call: true}`（键集必须恰为 `{confirm_external_call}`）；
 成功 `200` + `ProviderAccountUsageSnapshot`，并按 `usage_provider` 分流：`local` → `_snapshot("local","quota_config","unlimited")`（[`AccountUsageService.refresh`](../../../../src/management/account_usage.py)），写 `provider_usage_snapshots`（`ON CONFLICT DO UPDATE`）；
-失败 400 `invalid_request`/`confirmation_required`、404 `not_found`。设计验证项 `VRC-MGMT-006`、`VRC-DIAG-004`；需求/机制链 `LT-FUN-005/006`、`LT-OPS-002`、`R-CFG-01`、`R-OBS-01`、`T-CFG-SECRET`、`CT-ADMIN-001`/`CT-OPS-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+失败 400 `invalid_request`/`confirmation_required`、404 `not_found`。设计验证项 `VRC-MGMT-006`、`VRC-DIAG-004`；需求/机制链 `LT-FUN-005/006`、`LT-OPS-002`、`R-CFG-01`、`R-OBS-01`、`T-CFG-SECRET`、`CT-ADMIN-001`/`CT-OPS-001`（[系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
 **不证明什么**：不证明缺确认拒绝（ST-PUSAGE-002）、不证明只读快照（ST-PUSAGE-001）、不证明未知 provider 的 404（ST-PUSAGE-004）、不证明 minimax/volc 的真实上游用量数值（本 case 用 `provider_local`，其刷新为本地合成、不触外部用量 API，故**不产生费用**）；
 不证明并发刷新。
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 A**（m5air 已部署实例；角色 `admin`，；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）。执行前必须通过[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go)(../llmtier-system-test-scheme.md) 的 6 项就绪检查（详见 §2.1）；任一失败 → 整班 BLOCKED/SKIP，不得改用模拟路径。fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）：`admin_client`。初始状态：m5air 现有 3 provider / 4 deployment / 7 fixed tier；被测 provider 取 §2.1.6 必需的 `provider_local`（local 类型 → 刷新为本地 `unlimited` 快照，不触费用）。执行前记录 `GET /v1/providers/provider_local/usage` 的原快照（`checked_at`），用于复位核对。
+- **前置与环境**：**环境 A**（m5air 已部署实例；角色 `admin`，；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。执行前必须通过[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 的 6 项就绪检查（详见计划 §3）；任一失败 → 整班 BLOCKED/SKIP，不得改用模拟路径。fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）：`admin_client`。初始状态：m5air 现有 3 provider / 4 deployment / 7 fixed tier；被测 provider 取 计划 §3 必需的 `provider_local`（local 类型 → 刷新为本地 `unlimited` 快照，不触费用）。执行前记录 `GET /v1/providers/provider_local/usage` 的原快照（`checked_at`），用于复位核对。
 
 ## 3. 输入构造
 
@@ -80,7 +80,7 @@
 ## 4. 执行步骤与观察点
 
 - **执行过程（逐步调用）**：
-  1. `GET /healthz`、`GET /readyz` —— 确认 §2.1 基线（由 `pytest_configure` 自动执行，本 case 不重复）。
+  1. `GET /healthz`、`GET /readyz` —— 确认 计划 §2 基线（由 `pytest_configure` 自动执行，本 case 不重复）。
   2. 记录原快照：`before = admin_client.get("/v1/providers/provider_local/usage")`；记 `before.json()`（用于复位核对与证据）。
   3. `resp = admin_client.post("/v1/providers/provider_local/usage", json={"confirm_external_call": True})`；记录 status、headers、body。
   4. 断言 `resp.status_code == 200` 且 `content-type` 含 `application/json`。
@@ -107,18 +107,18 @@
   - **PASS**：`200` + 12 键快照 + local 臂 `status=="unlimited"`/`source=="quota_config"` + 回读 `checked_at` 一致。
   - **FAIL**：status 非 200、键集/枚举不符、local 臂值不符，或回读未持久化。
   - **BLOCKED**：无法执行/无法判定且可重试（fixture/断言逻辑问题）——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **SKIP**：§2.1 前置不满足——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
+  - **SKIP**：计划 §3 前置不满足——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **INVALID**：伪造刷新响应、绕过真实确认键集，或替代路径冒充——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：本 Case 有实现（§3.2 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
+  - **NOT_RUN**：本 Case 有实现（计划 §3 实现盘点 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
 
 ## 6. 错误路径、副作用与清理
 
-- **清理与复位**：**一次性写，尽力复位**——本 case 刷新 `provider_local` 的 `provider_usage_snapshots` 行（替换旧快照）。该端点**没有** DELETE 接口，且按[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md) 不得删除 m5air 既有 provider/用户 usage；因此复位方式为：(a) 在 manifest 记录刷新前的原快照（第 2 步 `before`）作为基线对照；(b) 若需严格回滚到原 `checked_at`，由 operator 在授权下按运维手册对 SQLite 单行恢复（超出 HTTP 测试范围）；否则以"刷新后的快照"为新的合法状态。退出前确认 `/readyz` 7 tier、provider/deployment 列表未变、无未清空注入；不得因本 case 删除任何 provider/deployment/service-level。B 类整班结束由 fixture `stop()` + `rm -rf`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）。
+- **清理与复位**：**一次性写，尽力复位**——本 case 刷新 `provider_local` 的 `provider_usage_snapshots` 行（替换旧快照）。该端点**没有** DELETE 接口，且按[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理) 不得删除 m5air 既有 provider/用户 usage；因此复位方式为：(a) 在 manifest 记录刷新前的原快照（第 2 步 `before`）作为基线对照；(b) 若需严格回滚到原 `checked_at`，由 operator 在授权下按运维手册对 SQLite 单行恢复（超出 HTTP 测试范围）；否则以"刷新后的快照"为新的合法状态。退出前确认 `/readyz` 7 tier、provider/deployment 列表未变、无未清空注入；不得因本 case 删除任何 provider/deployment/service-level。B 类整班结束由 fixture `stop()` + `rm -rf`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。
 
 ## 7. 自动化位置与状态
 
-- **证据与 Run**：证据与 Run 契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)(../llmtier-system-test-scheme.md)：Run ID=`<date>/A-api`；保存原始 status/headers/body（脱敏后）、发出命令、exit code、`elapsed`、环境快照；`manifest.json` 必填字段与报告落位（`tests/system/reports/...`）见 §4.8/§10；失败现场不截断。**本 case 额外证据**：刷新请求/响应、刷新前/后 `GET .../usage`（含 `checked_at`，证明持久化）。
+- **证据与 Run**：证据与 Run 契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)：Run ID=`<date>/A-api`；保存原始 status/headers/body（脱敏后）、发出命令、exit code、`elapsed`、环境快照；`manifest.json` 必填字段与报告落位（`tests/system/reports/...`）见计划 §7/§10；失败现场不截断。**本 case 额外证据**：刷新请求/响应、刷新前/后 `GET .../usage`（含 `checked_at`，证明持久化）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；既存 provider `provider_local`（local 类型）；`ProviderAccountUsageSnapshot` 机器契约；实现 `src/management/account_usage.py`；自动化入口 [`ST-PUSAGE-003.py`](../../../../tests/system/cases/ST-PUSAGE-003.py)。**不依赖**其它 Case；与 ST-PUSAGE-002（缺确认拒绝）互补，各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；既存 provider `provider_local`（local 类型）；`ProviderAccountUsageSnapshot` 机器契约；实现 `src/management/account_usage.py`；自动化入口 [`ST-PUSAGE-003.py`](../../../../tests/system/cases/ST-PUSAGE-003.py)。**不依赖**其它 Case；与 ST-PUSAGE-002（缺确认拒绝）互补，各自独立执行。
 
 > 实现状态：Implemented（[`ST-PUSAGE-003.py`](../../../../tests/system/cases/ST-PUSAGE-003.py)）；执行状态与 Verdict 只在 Run 报告。

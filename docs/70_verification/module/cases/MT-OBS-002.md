@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `MT-OBS-002` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-10-02` |
-| Last Modified Date | `2026-10-02` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.module-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`MT-OBS-002`）；责任摘要、分类与优先级以 [模块测试方案 §3](../llmtier-module-test-scheme.md) 清单行为准，不在本文档重复维护。
+- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`MT-OBS-002`）；责任摘要、分类与优先级以 [模块测试方案 §6](../llmtier-module-test-scheme.md) 清单行为准，不在本文档重复维护。
 - **测试脚本的唯一依据**：编码者按本文档写测试代码；§7 指向已实现脚本 `tests/module/cases/MT-OBS-002.py`。
 - **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
 
@@ -43,8 +43,8 @@
 
 ## 1. Case 概述与责任
 
-- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-OBS-002` / M005 开关分支：默认关/开/部分更新保留/关闭零写入（组装） v0.1.0-draft.6 / VRC-OBS-001（observability-design §14 / observability.isd §9.1，observability 0.1.0-draft.6） / VRC-OBS-001 / normal / P1（[方案清单 §3](../llmtier-module-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：组装后真实调用 + 等价类划分 + 分支覆盖（主要手段：无边界替身，全真实（仅 ENV-1/ENV-2 真实实现））
+- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-OBS-002` / M005 开关分支：默认关/开/部分更新保留/关闭零写入（组装） v0.1.0-draft.6 / VRC-OBS-001（observability-design §14 / observability.isd §9.1，observability 0.1.0-draft.6） / VRC-OBS-001 / normal / P1（[方案清单 §6](../llmtier-module-test-scheme.md)）。
+- **测试方法（§2.4 方法表行）**：组装后真实调用 + 等价类划分 + 分支覆盖（主要手段：无边界替身，全真实（仅 ENV-1/ENV-2 真实实现））
 - **覆盖的分支 / 组合 / 迁移 ID**：分支：M005-开关四分支；迁移：T9
 - 要测什么（责任展开）：经 M001 端点切换快照/统计开关，关闭时零写入，部分更新保留另一开关（本 Case 责任：默认关/部分更新保留/空体保持/非法值 400/关闭态零写入五态互斥（T9））
 - 明确不测什么 / 失败含义：不测跨模块系统级流程、真实上游 provider 协议、浏览器 E2E（归系统层 `ST-*` 与契约层）；本层只断言组装后成立的分支走向、状态迁移与调用序。失败含义＝observability 组装后开关语义与零写入与设计不一致。
@@ -64,7 +64,7 @@ GET/PATCH /v1/diagnostics; libdiag capture_snapshot/record_latency 开关闸门
 ## 3. 输入构造
 
 - 逐参数输入构造：新建实例默认态；`PATCH` 双开；只 PATCH 一个键；空体 PATCH；非布尔值；未知键；关闭后发请求再查
-- 边界/非法取值及理由：默认两开关均 false；部分更新保留另一开关；空体 PATCH 不变；非布尔→400 `invalid_request`（`param=<键>`）；未知键→400 且不改状态；关闭态下快照/统计零写入（trace 无开关闸门，见方案 §4 观察项）
+- 边界/非法取值及理由：默认两开关均 false；部分更新保留另一开关；空体 PATCH 不变；非布尔→400 `invalid_request`（`param=<键>`）；未知键→400 且不改状态；关闭态下快照/统计零写入（trace 无开关闸门，见方案 §7 观察项）
 - 规模 / 时间域（数量、分页、复杂度、观测开销）：9 个测试方法 ×（1–2 请求）；O(1)
 
 ## 4. 执行步骤与观察点
@@ -83,7 +83,7 @@ GET/PATCH /v1/diagnostics; libdiag capture_snapshot/record_latency 开关闸门
 
 ## 5. 独立 Oracle 与预期结果
 
-- 独立 Oracle 来源与推导：observability 模块设计 §14.1 + 方案 §3.4 T9；按 `set_switches` 的 None 保留语义与两个记录面的开关闸门人工推导
+- 独立 Oracle 来源与推导：observability 模块设计 §14.1 + 方案 §6.4 T9；按 `set_switches` 的 None 保留语义与两个记录面的开关闸门人工推导
 - 互斥预期（成功 / 各错误分支）：默认关/部分更新/空体/非法值/未知键五态互斥；关闭态零写入可验证
 
 ## 6. 错误路径、副作用与清理

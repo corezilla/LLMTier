@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-RESP-026` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -32,7 +32,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-RESP-026` / 系统设计 §8 Responses 接口（POST /v1/responses） / `VRC-DIAG-004` / recovery / P1（[方案清单 `ST-RESP-026`](../llmtier-system-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：故障注入（stream_terminate 流截断）+ 复位阶梯
+- **测试方法（§2.2 方法表行）**：故障注入（stream_terminate 流截断）+ 复位阶梯
 
 - 要测什么（责任展开）：注入 `stream_terminate` 后，`POST /v1/responses`（stream=true）的 SSE 流在达到 `stream_terminate_after_events` 个事件后**提前结束**（不再有 terminal 事件与 `[DONE]`），客户端可观察到截断。需求 `R-OBS-01`；机制 `T-OBS-INJECT`（[observability §14.4](../../../20_system_design/mechanisms/observability.md)）；实现 `src/libdiag/stream.py::stream_wrapper`（`count >= stream_terminate_after_events → return`）。
 

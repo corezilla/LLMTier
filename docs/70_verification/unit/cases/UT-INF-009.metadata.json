@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "UT-INF-009",
   "document_type": "tests.unit-case",
-  "document_version": "0.1.0-draft.2",
+  "document_version": "0.1.0-draft.3",
   "title": "UT-INF-009 — Router 限流、快照与模型可用性错误码",
   "document_owner": "LLMTier",
   "authors": [
@@ -27,5 +27,5 @@
   "parent_document_id": "llmtier-unit-test-scheme",
   "supersedes": null,
   "created_at": "2026-09-30",
-  "last_modified_at": "2026-10-01"
+  "last_modified_at": "2026-10-03"
 }

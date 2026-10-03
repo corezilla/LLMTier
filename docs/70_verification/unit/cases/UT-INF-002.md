@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-INF-002` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`UT-INF-002`）；责任摘要、分类与优先级以 [单元测试方案 §3](../llmtier-unit-test-scheme.md) 清单行为准。
+- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`UT-INF-002`）；责任摘要、分类与优先级以 [单元测试方案 §6](../llmtier-unit-test-scheme.md) 清单行为准。
 - **来源**：模块设计 [inference-design.md](../../../40_module_design/inference-design.md) §14 / ISD [inference.isd.md](../../../50_implementation_design/inference.isd.md) §9.1，设计验证项 `VRC-INF-002`（固定版本 `inference 0.1.0-draft.1`）。
 - **裁剪说明**：本 Case 是项目级合并方案 `llmtier-unit-test-scheme` 的模块切片 `INF`；裁剪依据见 [STD 裁剪清单](../../../00_management/std-tailoring.md)。
 
@@ -45,8 +45,8 @@
 
 ## 1. Case 概述与责任
 
-- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-INF-002` / `VRC-INF-002`（inference 模块设计 §14 / inference-isd §9.1，inference 0.1.0-draft.1） / `VRC-INF-002` / boundary / P0（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：边界值（base64/非有限值/维数/usage 边界）（主要手段：直接调用 + 冻结向量 + 替身注入）
+- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-INF-002` / `VRC-INF-002`（inference 模块设计 §14 / inference-isd §9.1，inference 0.1.0-draft.1） / `VRC-INF-002` / boundary / P0（[方案清单 §6](../llmtier-unit-test-scheme.md)）。
+- **测试方法（§2.1 方法表行）**：边界值（base64/非有限值/维数/usage 边界）（主要手段：直接调用 + 冻结向量 + 替身注入）
 - 要测什么（责任展开）：被测：`EmbeddingsService.create` 正常 float/base64、批数量、逻辑 model、非法维数、未知字段（`unsupported_field`+`param`）、缺字段（`invalid_request`+`param`）、非有限值拒绝、usage→`prompt_tokens`、`_test_adapter` 注入钩子绕过 provider 构造。
 - 明确不测什么 / 失败含义：不测：OpenAI 真实 embeddings 协议；不测 M004 能力目录。失败含义＝向量校验/归一实现错误。
 

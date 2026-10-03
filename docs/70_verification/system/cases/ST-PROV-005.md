@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-PROV-005` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-PROV-005`）；责任摘要、分类与优先级以 [系统测试方案 §3](../llmtier-system-test-scheme.md) 清单行为准。
+- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-PROV-005`）；责任摘要、分类与优先级以 [系统测试方案 §6](../llmtier-system-test-scheme.md) 清单行为准。
 - **来源**：系统设计 §8 Provider CRUD 接口（/v1/providers）（parent `llmtier-system-design`），设计验证项 `VRC-MGMT-002`；所属方案 `llmtier-system-test-scheme`。
 - **边界**：系统层 Case（整软件系统组装，被测为 m5air 真实部署或按 tests.asset-design 约束的替身）；本文档持有实现状态，执行状态与 Verdict 只在 Run 报告。
 
@@ -48,20 +48,20 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-PROV-005` / 系统设计 §8 Provider CRUD 接口（/v1/providers） / `VRC-MGMT-002` / `concurrency` / `P0`
-- **测试方法（§1.5 方法表行）**：状态机驱动（If-Match/412 串行化）+ 固定并发度/种子 + 契约字段比对
-- 方案清单登记：`ST-PROV-005`（与 §3.2 权威清单一致；本文件名 `st-prov-005.md`，唯一对应）。
+- **测试方法（§2.2 方法表行）**：状态机驱动（If-Match/412 串行化）+ 固定并发度/种子 + 契约字段比对
+- 方案清单登记：`ST-PROV-005`（与 计划 §3 权威清单一致；本文件名 `st-prov-005.md`，唯一对应）。
 - 要测什么（责任展开）：`PATCH /v1/providers/{id}` 携带正确 `If-Match` 更新 provider：HTTP 200 + 字段生效 + `version`/`ETag` 推进。
 - 明确不测什么 / 失败含义：不证明 缺/过期 `If-Match` 的 412（ST-PROV-006/07）、不证明删除（ST-PROV-008/09/10）、不证明 `kind`/`secret_ref` 校验（ST-PROV-011/12）、不证明 `usage` 子对象更新（ST-PROV-013）、不证明并发两写者竞争（[测试设计 §5](../llmtier-system-test-scheme.md) 归并发布前不单独构 case）；本 case 更新 `name`/`enabled` 两个标量，不触上游。
 
 **目的（被测契约）**：验证 Management Provider CRUD 的**乐观并发更新契约**。被测端点/规则：`PATCH /v1/providers/{id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `updateProvider`，`security=AdminBearerAuth`），请求体 `ProviderPatch`（`minProperties:1`，`additionalProperties:false`，可含 `name/kind/endpoint/secret_ref/enabled/usage`）；
 `If-Match` 头必须等于当前 ETag `"<id>.v<N>"`；成功 `200` + 新 `ProviderView` + 响应头 `ETag: "<id>.v<N+1>"`（`version` 单调 +1，[`registry.update_provider`](../../../../src/management/registry.py)）；
-失败 400 `invalid_request` / 404 `not_found` / 412 `version_conflict`。设计验证项 `VRC-MGMT-002`；机制 `T-CFG-CAS`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+失败 400 `invalid_request` / 404 `not_found` / 412 `version_conflict`。设计验证项 `VRC-MGMT-002`；机制 `T-CFG-CAS`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`（[系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
 **不证明什么**：不证明缺/过期 `If-Match` 的 412（ST-PROV-006/07）、不证明删除（ST-PROV-008/09/10）、不证明 `kind`/`secret_ref` 校验（ST-PROV-011/12）、不证明 `usage` 子对象更新（ST-PROV-013）、不证明并发两写者竞争（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理) 归并发布前不单独构 case）；
 本 case 更新 `name`/`enabled` 两个标量，不触上游。
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)/§2.4）。执行前须满足[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go)(../llmtier-system-test-scheme.md) **附加（B 类）**：实例 `/healthz` 200；`_baseline_settings` 注入 1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier。fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）：`llmtier_b`、`admin_client_b`。初始状态：m5air 上级基线由 `_baseline_settings` 提供。**TS-003**：请求中的 `endpoint` 用 LAN 常量 `LAN_PROVIDER_ENDPOINT`（可用 `LLMTIER_TEST_PROVIDER_URL` 覆盖），**禁止 `127.0.0.1`**。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。执行前须满足[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) **附加（B 类）**：实例 `/healthz` 200；`_baseline_settings` 注入 1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier。fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）：`llmtier_b`、`admin_client_b`。初始状态：m5air 上级基线由 `_baseline_settings` 提供。**TS-003**：请求中的 `endpoint` 用 LAN 常量 `LAN_PROVIDER_ENDPOINT`（可用 `LLMTIER_TEST_PROVIDER_URL` 覆盖），**禁止 `127.0.0.1`**。
 
 ## 3. 输入构造
 
@@ -106,16 +106,16 @@
   - **BLOCKED**：无法执行/无法判定且可重试（fixture/断言逻辑问题）——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **SKIP**：B 类临时实例/fixture 不可用——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **INVALID**：硬编码/伪造 ETag 绕过真实 `GET` 语义，或用 `127.0.0.1` 作上游 endpoint——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：本 Case 有实现（§3.2 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
+  - **NOT_RUN**：本 Case 有实现（计划 §3 实现盘点 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
 
 ## 6. 错误路径、副作用与清理
 
-- **清理与复位**：**必须 teardown（`finally` 强制）**——删除本 case 创建的 provider（用最新 ETag；412 则重取）；不改 `prov_b`/`depl_b`、不写注入。B 类整班结束由 fixture `stop()` + `rm -rf` 销毁（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）。离开前确认无本次创建物残留。
+- **清理与复位**：**必须 teardown（`finally` 强制）**——删除本 case 创建的 provider（用最新 ETag；412 则重取）；不改 `prov_b`/`depl_b`、不写注入。B 类整班结束由 fixture `stop()` + `rm -rf` 销毁（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。离开前确认无本次创建物残留。
 
 ## 7. 自动化位置与状态
 
-- **证据与 Run**：证据与 Run 契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)(../llmtier-system-test-scheme.md)：Run ID=`<date>/B-api`；保存请求与原始响应（脱敏后）、发出命令、exit code、`elapsed`、环境快照；`manifest.json` 必填字段与报告落位（`tests/system/reports/...`）见 §4.8/§10；失败现场不截断。**本 case 额外证据**：创建/PATCH/回读/teardown 的请求与响应（含 `If-Match` 与 `ETag` 头）。
+- **证据与 Run**：证据与 Run 契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)：Run ID=`<date>/B-api`；保存请求与原始响应（脱敏后）、发出命令、exit code、`elapsed`、环境快照；`manifest.json` 必填字段与报告落位（`tests/system/reports/...`）见计划 §7/§10；失败现场不截断。**本 case 额外证据**：创建/PATCH/回读/teardown 的请求与响应（含 `If-Match` 与 `ETag` 头）。
 
-- **依赖**：B 类 fixture `llmtier_b` / `admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`ProviderPatch`/`ProviderView` 机器契约；ETag/CAS 规则 `registry.update_provider`/`_etag`；机制 `T-CFG-CAS`；自动化入口 [`ST-PROV-005.py`](../../../../tests/system/cases/ST-PROV-005.py)。**不依赖**其它 Case（自建被测 provider）；与 ST-PROV-006/07 互补（它们分别构造缺/过期 `If-Match`）但各自独立执行。
+- **依赖**：B 类 fixture `llmtier_b` / `admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；`ProviderPatch`/`ProviderView` 机器契约；ETag/CAS 规则 `registry.update_provider`/`_etag`；机制 `T-CFG-CAS`；自动化入口 [`ST-PROV-005.py`](../../../../tests/system/cases/ST-PROV-005.py)。**不依赖**其它 Case（自建被测 provider）；与 ST-PROV-006/07 互补（它们分别构造缺/过期 `If-Match`）但各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-MODEL-001` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -27,25 +27,25 @@
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
-> 本 Case 文档绑定：系统设计经 `--parent-document-id`、所属方案经方案清单行引用写入 metadata；Document ID＝Case ID。方案清单行见[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)。
+> 本 Case 文档绑定：系统设计经 `--parent-document-id`、所属方案经方案清单行引用写入 metadata；Document ID＝Case ID。方案清单行见[系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)。
 
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-MODEL-001` / 系统设计 §8 逻辑模型清单接口（/v1/models） / `VRC-INF-002`（清单行另记 `R-CFG-01`） / `normal` / `P0`。本文件名 `st-model-001.md`，与 Case ID 唯一对应。
-- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
+- **测试方法（§2.2 方法表行）**：等价类划分 + 契约字段比对
 - 要测什么（责任展开）：`GET /v1/models` 返回全部可见逻辑模型（fixed tier）清单：HTTP 200 + `object=="list"` + `data` 恰含 7 个 tier、id 互不重复。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明单模型精确返回（ST-MODEL-002）、大小写/URL 编码/不存在负向（ST-MODEL-003/04/05/06）、`capabilities` 键集完整性（ST-MODEL-007）；不证明凭据负向与 LAN trust（ST-AUTH-001/02/06）；不证明 `availability` 与上游健康一致（本 case 只断言枚举合法，不断言具体值）；不触上游，故不证明任何 provider/模型可用性。**失败含义＝模型清单读契约破坏**。
 
 **目的（被测契约）**：验证 Data Plane `GET /v1/models`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listModels`，全局 `security=BearerAuth`，role=`data`）的**模型清单读契约**。
 被测端点/规则：成功返回 `ModelList`（`{object:"list", data:[Model...]}`，`additionalProperties:false`）；`data` 元素为 `Model`（`{id,object,created,owned_by,availability,capabilities}`，`additionalProperties:false`），`object=="model"`、`owned_by=="llmtier"`、`availability∈{available,degraded,unavailable}`；
 `data` 恰含 7 个 fixed tier（`FIXED_TIERS`）。实现见 [`ModelCatalog.list()`](../../../../src/inference/models.py) 与 [`Registry.list_service_levels()`](../../../../src/management/registry.py)；
-该端点**只读 Registry、不 dispatch 上游**。设计验证项 `VRC-INF-002`；家族需求链 `LT-FUN-002`、机制 `R-INF-04`/`R-INF-07`、`T-TRUST-ENDPOINTS`、契约 `CT-MODEL-001`（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+该端点**只读 Registry、不 dispatch 上游**。设计验证项 `VRC-INF-002`；家族需求链 `LT-FUN-002`、机制 `R-INF-04`/`R-INF-07`、`T-TRUST-ENDPOINTS`、契约 `CT-MODEL-001`（[系统测试方案 §6](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
 **不证明什么**：不证明单模型精确返回（ST-MODEL-002）、大小写/URL 编码/不存在负向（ST-MODEL-003/04/05/06）、`capabilities` 键集完整性（ST-MODEL-007）；不证明凭据负向与 LAN trust（ST-AUTH-001/02/06）；
 不证明 `availability` 与上游健康一致；不触上游。
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 A**（m5air 现有实例，角色 `data`，只读/无副作用；见[系统测试方案 §1 测试边界](../llmtier-system-test-scheme.md)）；前置 = 就绪检查（由 `conftest.py::pytest_configure` 自动执行，任一失败 → 整班 BLOCKED/SKIP）。fixture = `api_client`（Data 角色客户端，见[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）。初始状态 = m5air 现有 3 provider / 4 deployment / 7 fixed tier；基线 tier 集合见 [`constants.FIXED_TIERS`](../../../../tests/system/constants.py)。
+- **前置与环境**：**环境 A**（m5air 现有实例，角色 `data`，只读/无副作用；见[系统测试方案 §1 测试边界](../llmtier-system-test-scheme.md)）；前置 = 就绪检查（由 `conftest.py::pytest_configure` 自动执行，任一失败 → 整班 BLOCKED/SKIP）。fixture = `api_client`（Data 角色客户端，见[系统测试方案 §4 测试环境类型](../llmtier-system-test-scheme.md)）。初始状态 = m5air 现有 3 provider / 4 deployment / 7 fixed tier；基线 tier 集合见 [`constants.FIXED_TIERS`](../../../../tests/system/constants.py)。
 - **被测入口**：
 
   ```http
@@ -55,7 +55,7 @@
   Accept: application/json
   ```
 
-- **初态构造与客户端**：只读，无状态型初态需构造；凭据固定 `data`（经 `api_client` 注入，见[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）。
+- **初态构造与客户端**：只读，无状态型初态需构造；凭据固定 `data`（经 `api_client` 注入，见[系统测试方案 §4 测试环境类型](../llmtier-system-test-scheme.md)）。
 - **依赖的测试资产（tests.asset-design 文档）**：本阶段 `tests.asset-design` 文档尚未建立；`api_client` 等夹具契约见方案 §4，引用其版本而不复制字节。
 
 ## 3. 输入构造
@@ -117,11 +117,11 @@
 ## 6. 错误路径、副作用与清理
 
 - **错误出口与表现**：本 case 为只读成功路径；非 200/非法 body 时按 §5 判 FAIL 并保留失败现场（含错误信封）。
-- **副作用断言与清理**：**无需 teardown**——本 case 为只读 `GET`，不创建/修改 provider/deployment/service-level、不写注入项、不写 usage/账本。退出前确认 `/readyz` 仍显示 7 tier 且无未清空注入项（本 case 不注入）；若被误跑于 B 类临时实例，则按[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md) 整班 `stop()` + `rm -rf` 临时目录。
+- **副作用断言与清理**：**无需 teardown**——本 case 为只读 `GET`，不创建/修改 provider/deployment/service-level、不写注入项、不写 usage/账本。退出前确认 `/readyz` 仍显示 7 tier 且无未清空注入项（本 case 不注入）；若被误跑于 B 类临时实例，则按[系统测试方案 §4 测试环境类型](../llmtier-system-test-scheme.md) 整班 `stop()` + `rm -rf` 临时目录。
 
 ## 7. 自动化位置与状态
 
-- **证据与 Run**：证据与 Run 契约见[§4.8/§10](../llmtier-system-test-scheme.md)：保存原始 HTTP status/headers/body、发出命令（httpx/`curl`）、exit code、`elapsed`、环境快照（`/healthz`/`/readyz` + provider/deployment 列表）；manifest 与报告落位（`tests/system/reports/...`）见 §4.8/§10（本 case `environment:"a"`）；失败现场不截断。
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client` fixture（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）；`FIXED_TIERS` 基线（[`constants.py`](../../../../tests/system/constants.py) / [`registry.py`](../../../../src/management/registry.py)）；实现 [`src/inference/models.py`](../../../../src/inference/models.py)；`ModelList`/`Model` 机器契约（[`interfaces/openapi/llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)）；自动化入口 [`ST-MODEL-001.py`](../../../../tests/system/cases/ST-MODEL-001.py)。**不依赖**其它 Case；与 ST-MODEL-007（同一清单上的 capabilities 键集断言）共享响应但各自独立执行、互不关闭。
+- **证据与 Run**：证据与 Run 契约见[计划 §7/§10](../llmtier-system-test-scheme.md)：保存原始 HTTP status/headers/body、发出命令（httpx/`curl`）、exit code、`elapsed`、环境快照（`/healthz`/`/readyz` + provider/deployment 列表）；manifest 与报告落位（`tests/system/reports/...`）见计划 §7/§10（本 case `environment:"a"`）；失败现场不截断。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client` fixture（[系统测试方案 §4 测试环境类型](../llmtier-system-test-scheme.md)）；`FIXED_TIERS` 基线（[`constants.py`](../../../../tests/system/constants.py) / [`registry.py`](../../../../src/management/registry.py)）；实现 [`src/inference/models.py`](../../../../src/inference/models.py)；`ModelList`/`Model` 机器契约（[`interfaces/openapi/llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)）；自动化入口 [`ST-MODEL-001.py`](../../../../tests/system/cases/ST-MODEL-001.py)。**不依赖**其它 Case；与 ST-MODEL-007（同一清单上的 capabilities 键集断言）共享响应但各自独立执行、互不关闭。
 
 > 实现状态：Implemented（`ST-MODEL-001.py` 已断言本 case 契约）；执行状态与 Verdict 只在 Run 报告。

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `MT-UI-004` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-10-02` |
-| Last Modified Date | `2026-10-02` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.module-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`MT-UI-004`）；责任摘要、分类与优先级以 [模块测试方案 §3](../llmtier-module-test-scheme.md) 清单行为准，不在本文档重复维护。
+- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`MT-UI-004`）；责任摘要、分类与优先级以 [模块测试方案 §6](../llmtier-module-test-scheme.md) 清单行为准，不在本文档重复维护。
 - **测试脚本的唯一依据**：编码者按本文档写测试代码；§7 指向已实现脚本 `tests/module/cases/MT-UI-004.py`。
 - **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
 
@@ -43,8 +43,8 @@
 
 ## 1. Case 概述与责任
 
-- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-UI-004` / M002 状态映射分支：`backendState`/`tierState` 的 Disabled/Unknown/Empty/Running/Idle（组装契约） v0.1.0-draft.2 / VRC-UI-001（web-ui-design §14 / web-ui.isd §9.1，web-ui 0.1.0-draft.2） / VRC-UI-001 / normal / P1（[方案清单 §3](../llmtier-module-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：组装后真实调用 + 等价类划分 + 分支覆盖（主要手段：无边界替身，全真实（仅 ENV-1/ENV-2 真实实现与真实静态产物））
+- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-UI-004` / M002 状态映射分支：`backendState`/`tierState` 的 Disabled/Unknown/Empty/Running/Idle（组装契约） v0.1.0-draft.2 / VRC-UI-001（web-ui-design §14 / web-ui.isd §9.1，web-ui 0.1.0-draft.2） / VRC-UI-001 / normal / P1（[方案清单 §6](../llmtier-module-test-scheme.md)）。
+- **测试方法（§2.4 方法表行）**：组装后真实调用 + 等价类划分 + 分支覆盖（主要手段：无边界替身，全真实（仅 ENV-1/ENV-2 真实实现与真实静态产物））
 - **覆盖的分支 / 组合 / 迁移 ID**：分支：M002-backendState/tierState 五态
 - 要测什么（责任展开）：provider-disabled→Disabled 优先；availability 缺失→Unknown≠Idle；空 tier→Empty；healthy+running→Running/Idle（本 Case 责任：两映射函数分支全覆盖；Disabled 优先、Unknown≠Idle；映射读取字段在真实响应中存在）
 - 明确不测什么 / 失败含义：不测跨模块系统级流程、真实上游 provider 协议、浏览器 E2E（归系统层 `ST-*` 与契约层）；本层只断言组装后成立的分支走向、状态迁移与调用序。失败含义＝web-ui 组装后后端/层级状态映射分支与设计不一致。
@@ -71,7 +71,7 @@ backendState(deployment, provider, runtime) -> [label, tone]; tierState(tier) ->
 
 | Step | 动作 | 观察点 |
 |---|---|---|
-| 1 | `backendState` 七分支 | 标签与语气逐条断言（无写点的取值只做静态断言，见 §4 `O-UI-HEALTHDOMAIN-1`） |
+| 1 | `backendState` 七分支 | 标签与语气逐条断言（无写点的取值只做静态断言，见 §7 `O-UI-HEALTHDOMAIN-1`） |
 | 2 | `tierState` 五分支 | `Disabled`/`Empty`/`Ready`/`Attention`/`Unreachable`/`Unknown` |
 | 3 | 优先级 | provider 禁用→`Disabled`（即使 health healthy） |
 | 4 | Unknown≠Idle | availability 缺失→`Unknown` 而非 `Idle` |

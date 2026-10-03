@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-RESP-008` |
-| Document Version | `0.1.0-draft.4` |
+| Document Version | `0.1.0-draft.5` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -27,17 +27,17 @@
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
-> 本 Case 文档绑定：系统设计经 `--parent-document-id`、所属方案经方案清单行引用写入 metadata；Document ID＝Case ID。方案清单行见[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)。
+> 本 Case 文档绑定：系统设计经 `--parent-document-id`、所属方案经方案清单行引用写入 metadata；Document ID＝Case ID。方案清单行见[系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)。
 
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-RESP-008` / 系统设计 §8 Responses 接口（POST /v1/responses） / `VRC-INF-001` / `negative` / `P0`。本文件名 `st-resp-008.md`，与 Case ID 唯一对应。
-- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
+- **测试方法（§2.2 方法表行）**：错误猜测 + 反例驱动（ERR-*）
 - 要测什么（责任展开）：`POST /v1/responses` 缺 `model`：字段齐备性校验失败，`400 invalid_request`（清单记 `param=model`）。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明未知 model 的解析失败（ST-RESP-005，属 `model_not_found`）；不证明 `stream=false`/`store=true` 的跨字段拒绝（ST-RESP-002/07）；不证明上游调用或答案。**失败含义＝必填字段齐备性契约破坏**。
 
 **目的（被测契约）**：验证 Data Plane `POST /v1/responses` 的**必填字段齐备性**：`model`/`input`/`stream`/`store` 四者缺一即在 dispatch 前拒绝。被测端点/规则：`POST /v1/responses`；
-需求 `LT-FUN-001`；设计验证项 `VRC-INF-001`；错误目录 `ERR-REQ-VALIDATION` → wire `code=invalid_request`；实现 `src/inference/responses.py`（`require({"model","input","stream","store"} <= set(body), 400, "invalid_request", "model, input, stream, and store are required")`）（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+需求 `LT-FUN-001`；设计验证项 `VRC-INF-001`；错误目录 `ERR-REQ-VALIDATION` → wire `code=invalid_request`；实现 `src/inference/responses.py`（`require({"model","input","stream","store"} <= set(body), 400, "invalid_request", "model, input, stream, and store are required")`）（[系统测试方案 §6](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
 **不证明什么**：不证明未知 model 的解析失败（ST-RESP-005，属 `model_not_found`）；不证明 `stream=false`/`store=true` 的跨字段拒绝（ST-RESP-002/07）；不证明上游调用或答案。
 
 ## 2. 被测入口与前置
@@ -124,7 +124,7 @@
 
 ## 7. 自动化位置与状态
 
-- **证据与 Run**：证据与 Run 契约见[§4.8/§10](../llmtier-system-test-scheme.md)：保存请求 body、HTTP status/headers、原始错误信封（含 `param` 实测）、发出命令、exit code、环境快照；manifest 与报告落位见 §4.8/§10（本 case `environment:"a"`）；失败现场不截断。
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client`（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）；需求 `LT-FUN-001`；自动化入口 [`ST-RESP-008.py`](../../../../tests/system/cases/ST-RESP-008.py)（断言 status+code+5 键信封+`param=="model"`）。**不依赖**其它 Case；与 ST-RESP-005 区分：本 case 无 `model` 字段，非未知值。
+- **证据与 Run**：证据与 Run 契约见[计划 §7/§10](../llmtier-system-test-scheme.md)：保存请求 body、HTTP status/headers、原始错误信封（含 `param` 实测）、发出命令、exit code、环境快照；manifest 与报告落位见计划 §7/§10（本 case `environment:"a"`）；失败现场不截断。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client`（[系统测试方案 §4 测试环境类型](../llmtier-system-test-scheme.md)）；需求 `LT-FUN-001`；自动化入口 [`ST-RESP-008.py`](../../../../tests/system/cases/ST-RESP-008.py)（断言 status+code+5 键信封+`param=="model"`）。**不依赖**其它 Case；与 ST-RESP-005 区分：本 case 无 `model` 字段，非未知值。
 
 > 实现状态：Implemented（`ST-RESP-008.py` 已断言 status+code+5 键信封+`param=="model"`）；执行状态与 Verdict 只在 Run 报告。

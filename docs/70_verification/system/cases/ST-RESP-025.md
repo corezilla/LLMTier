@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-RESP-025` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -30,7 +30,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-RESP-025` / 系统设计 §8 Responses 接口 / `VRC-INF-001` / recovery / P1（[方案清单 `ST-RESP-025`](../llmtier-system-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：故障注入（上游契约错误）+ 复位阶梯
+- **测试方法（§2.2 方法表行）**：故障注入（上游契约错误）+ 复位阶梯
 - 要测什么（责任展开）：`POST /v1/responses` 上游响应无法归一：`502 provider_contract_error`（自动化入口 `ST-RESP-025.py`）。无法从上游响应提取合法 terminal 时，适配层以 `502 provider_contract_error` 拒绝。
   需求 `R-INF-05`；错误目录 `ERR-PROVIDER-CONTRACT` → wire `code=provider_contract_error`；实现 `src/inference/providers/openai.py`（非 `text/event-stream` → "Provider did not return Responses SSE"；
   多个 terminal → "more than one terminal"；无合法 terminal → "no valid terminal response"；`status` 与 terminal 类型不一致 → "terminal event and response status disagree"）。

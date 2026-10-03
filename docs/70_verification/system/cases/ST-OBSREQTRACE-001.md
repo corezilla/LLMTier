@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-OBSREQTRACE-001` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -31,7 +31,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-OBSREQTRACE-001`）；责任摘要、分类与优先级以 [系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
+- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-OBSREQTRACE-001`）；责任摘要、分类与优先级以 [系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
 - **测试脚本的唯一依据**：编码者按本文档写测试代码，不需要回读方案或设计正文猜测意图。
 - **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
 
@@ -48,7 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-OBSREQTRACE-001` / 系统设计 §8 请求追踪接口（/v1/trace/{request_id}） / `VRC-DIAG-002` / `normal` / `P1`
-- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
+- **测试方法（§2.2 方法表行）**：等价类划分 + 契约字段比对
 - 方案清单登记：`ST-OBSREQTRACE-001`
 - 要测什么（责任展开）：`GET /v1/trace/{request_id}` 返回单请求全生命周期 `TraceView`：`stages` 有序且覆盖 `received…completed`，并组合 `snapshot`/`usage`。
 - 明确不测什么 / 失败含义：不证明 未知 id 的 404（ST-OBSREQTRACE-002）、不证明 data token 的 403（ST-OBSREQTRACE-003）、不证明注入命中（ST-RESP-011/22 的 trace `source=injected` 证明）、不证明 trace 列表去重/分页（ST-OBSTRACE-001/02）、不证明别名等价（ST-OBSALIAS-003）。`X-Request-ID` 仅用于获取 `request_id` 的 harness 机制，**不是**本 case 的 Oracle（openapi 未声明 200 响应头）。
@@ -57,14 +57,14 @@
 `stages` `minItems:1` 且按 `timestamp` 升序（机制 `INV-5`）；`snapshot` 为 `null` 或 `SnapshotView`、`usage` 为 `null` 或 `UsageView`；
 该视图**组合** `trace_events`（trace）+ `diagnostic_snapshots`（快照）+ `usage_record_versions`（账本）（[`src/libdiag/traces.py`](../../../../src/libdiag/traces.py) `_trace_view`）；
 认证 `admin`；错误走统一信封（401/403/404/503）。设计验证项 `VRC-DIAG-002`；机制 `T-OBS-TRACE`（[observability 机制](../../../20_system_design/mechanisms/observability.md) §4.2 `D-OBS-TRACE`、§4.9 `D-OBS-TRACE` 映射、§4.10 `INV-5`）；
-错误目录 `ERR-NOTFOUND`/`ERR-STORE`；需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；
+错误目录 `ERR-NOTFOUND`/`ERR-STORE`；需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；
 机器契约 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`TraceView`/`TraceStage`/`SnapshotView`/`UsageView`，`security=AdminBearerAuth`）。
 **不证明什么**：不证明未知 id 的 404（ST-OBSREQTRACE-002）、不证明 data token 的 403（ST-OBSREQTRACE-003）、不证明注入命中（ST-RESP-011/22 的 trace `source=injected` 证明）、不证明 trace 列表去重/分页（ST-OBSTRACE-001/02）、不证明别名等价（ST-OBSALIAS-003）。
 `X-Request-ID` 仅用于获取 `request_id` 的 harness 机制，**不是**本 case 的 Oracle（openapi 未声明 200 响应头）。
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `admin` 读 + 一次 `data` 推理调用；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=§2.1 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；就绪检查含 7 tier 与 responses-capable 上游。fixture：`admin_client`（`admin`）、`api_client`（`data`）（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。初始状态=§2.3 A 类基线；`trace_events` **无开关、始终写**（机制 §4.10 `CON-OBS-001`）。本 case 产生一次 `store=false` 的无状态推理调用（不落账本配置变更）。
+- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `admin` 读 + 一次 `data` 推理调用；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=计划 §3 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；就绪检查含 7 tier 与 responses-capable 上游。fixture：`admin_client`（`admin`）、`api_client`（`data`）（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。初始状态=§2.3 A 类基线；`trace_events` **无开关、始终写**（机制 §4.10 `CON-OBS-001`）。本 case 产生一次 `store=false` 的无状态推理调用（不落账本配置变更）。
 
 ## 3. 输入构造
 
@@ -77,7 +77,7 @@
 ## 4. 执行步骤与观察点
 
 - **执行过程（逐步调用）**：
-  1. `GET /healthz`、`GET /readyz`（§2.1，自动执行）。
+  1. `GET /healthz`、`GET /readyz`（计划 §3，自动执行）。
   2. `POST /v1/responses`（`api_client`，上表 body，流式读取至结束；不把生成内容当 oracle）。
   3. `GET /v1/diagnostics/traces?limit=1` → 取 `items[0].request_id`（若为 `None`/空则 BLOCKED/SKIP）。
   4. `GET /v1/trace/<request_id>`（`admin_client`）→ 记录 status/`Content-Type`/原始 body。
@@ -107,7 +107,7 @@
   - **PASS**：`200` + 键集恰 5 + `request_id` 回指 + `stages` ≥1 有序且含入口/上游阶段 + `snapshot`/`usage` 类型正确。
   - **FAIL**：非 200（存储健康时）、键集不符、`request_id` 不匹配、`stages` 为空/乱序、或成功请求缺上游阶段。
   - **BLOCKED**：测试代码/契约问题、无法取得 `request_id`（trace 列表为空）、降级实例、存储不可达——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **SKIP**：§2.1 前置不满足（含 responses-capable 上游离线）——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
+  - **SKIP**：计划 §3 前置不满足（含 responses-capable 上游离线）——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **NOT_RUN**：无（自动化入口已实现；执行状态见 Run 报告）。
   - **INVALID**：用 `127.0.0.1`/mock/替代路径冒充真实 m5air，或未命中真实诊断服务却按行为判定——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
 
@@ -119,6 +119,6 @@
 
 - **证据与 Run**：保存制造请求及其响应（SSE 或可解释错误）、取得 `request_id` 的 traces 列表、`GET /v1/trace/{id}` 原始 status/headers/body、`stages` 有序证据、命令/exit code/`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 6 项就绪检查；`admin_client`/`api_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；responses-capable tier（`Worker`/`Senior`）；M007 `trace_events`/`diagnostic_snapshots` + 账本 `usage_record_versions`；`TraceView` 等机器契约；实现 [`src/libdiag/traces.py`](../../../../src/libdiag/traces.py)、[`src/http_api/app.py`](../../../../src/http_api/app.py)、[`src/inference/responses.py`](../../../../src/inference/responses.py)。自动化入口 `ST-OBSREQTRACE-001.py`（已实现）。**不依赖**其它 Case；与 ST-OBSREQTRACE-002/03（负向）、ST-OBSTRACE-001（列表去重）语义相邻但各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 6 项就绪检查；`admin_client`/`api_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；responses-capable tier（`Worker`/`Senior`）；M007 `trace_events`/`diagnostic_snapshots` + 账本 `usage_record_versions`；`TraceView` 等机器契约；实现 [`src/libdiag/traces.py`](../../../../src/libdiag/traces.py)、[`src/http_api/app.py`](../../../../src/http_api/app.py)、[`src/inference/responses.py`](../../../../src/inference/responses.py)。自动化入口 `ST-OBSREQTRACE-001.py`（已实现）。**不依赖**其它 Case；与 ST-OBSREQTRACE-002/03（负向）、ST-OBSTRACE-001（列表去重）语义相邻但各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

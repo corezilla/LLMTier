@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-API-007` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`UT-API-007`）；责任摘要、分类与优先级以 [单元测试方案 §3](../llmtier-unit-test-scheme.md) 清单行为准。
+- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`UT-API-007`）；责任摘要、分类与优先级以 [单元测试方案 §6](../llmtier-unit-test-scheme.md) 清单行为准。
 - **来源**：模块设计 [http-api](../../../40_module_design/http-api-design.md) §14 / ISD [http-api.isd.md](../../../50_implementation_design/http-api.isd.md) §9.1，设计验证项 `VRC-API-001`（固定版本 `http-api 0.1.0-draft.2`）。
 - **裁剪说明**：本 Case 是项目级合并方案 `llmtier-unit-test-scheme` 的模块切片 `http_api`；裁剪依据见 [STD 裁剪清单](../../../00_management/std-tailoring.md)。
 
@@ -45,8 +45,8 @@
 
 ## 1. Case 概述与责任
 
-- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-API-007` / M001 http-api §14.1 · `_correlation` v0.1.0-draft.2 / `VRC-API-001` / normal / P1（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：等价类划分（合法 request-id 回显/派发）（主要手段：直接调用 + 冻结向量）
+- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-API-007` / M001 http-api §14.1 · `_correlation` v0.1.0-draft.2 / `VRC-API-001` / normal / P1（[方案清单 §6](../llmtier-unit-test-scheme.md)）。
+- **测试方法（§2.1 方法表行）**：等价类划分（合法 request-id 回显/派发）（主要手段：直接调用 + 冻结向量）
 - 要测什么（责任展开）：被测：`Handler._correlation` 优先回显 `X-Correlation-ID`；缺省时用 W3C `traceparent` 正则提取 32-hex trace-id；两者皆缺返回 `None`。
 - 明确不测什么 / 失败含义：不测：trace 落库查询（UT-OBS-004/007）；不测系统层跨请求关联。失败含义＝关联标识提取实现错误。
 

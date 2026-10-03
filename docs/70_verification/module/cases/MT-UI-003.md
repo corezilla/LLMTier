@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `MT-UI-003` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-10-02` |
-| Last Modified Date | `2026-10-02` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.module-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`MT-UI-003`）；责任摘要、分类与优先级以 [模块测试方案 §3](../llmtier-module-test-scheme.md) 清单行为准，不在本文档重复维护。
+- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`MT-UI-003`）；责任摘要、分类与优先级以 [模块测试方案 §6](../llmtier-module-test-scheme.md) 清单行为准，不在本文档重复维护。
 - **测试脚本的唯一依据**：编码者按本文档写测试代码；§7 指向已实现脚本 `tests/module/cases/MT-UI-003.py`。
 - **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
 
@@ -43,8 +43,8 @@
 
 ## 1. Case 概述与责任
 
-- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-UI-003` / M002 `dispatchUiError` 分支：401/403、409、412、429、503/default（组装契约） v0.1.0-draft.2 / VRC-UI-002（web-ui-design §14 / web-ui.isd §9.1，web-ui 0.1.0-draft.2） / VRC-UI-002 / negative / P0（[方案清单 §3](../llmtier-module-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（非法字段/凭据/引用/类型/顺序）+ 判定表组合（主要手段：无边界替身，全真实（仅 ENV-1/ENV-2 真实实现与真实静态产物））
+- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-UI-003` / M002 `dispatchUiError` 分支：401/403、409、412、429、503/default（组装契约） v0.1.0-draft.2 / VRC-UI-002（web-ui-design §14 / web-ui.isd §9.1，web-ui 0.1.0-draft.2） / VRC-UI-002 / negative / P0（[方案清单 §6](../llmtier-module-test-scheme.md)）。
+- **测试方法（§2.4 方法表行）**：错误猜测 + 反例驱动（非法字段/凭据/引用/类型/顺序）+ 判定表组合（主要手段：无边界替身，全真实（仅 ENV-1/ENV-2 真实实现与真实静态产物））
 - **覆盖的分支 / 组合 / 迁移 ID**：分支：M002-dispatchUiError 五分支
 - 要测什么（责任展开）：五分支：401/403 呈现；409 引用保留输入；412 stale 保留输入；429 `Retry-After`；503/default stale（本 Case 责任：401/403/409/412/429/503 分派互斥且文案固定；403 不泄露存在性；`Retry-After` 取自响应头）
 - 明确不测什么 / 失败含义：不测跨模块系统级流程、真实上游 provider 协议、浏览器 E2E（归系统层 `ST-*` 与契约层）；本层只断言组装后成立的分支走向、状态迁移与调用序。失败含义＝web-ui 组装后UI 错误分派五分支与设计不一致。
@@ -81,7 +81,7 @@ dispatchUiError(error) —— 状态码 → 呈现行为
 
 ## 5. 独立 Oracle 与预期结果
 
-- 独立 Oracle 来源与推导：web-ui 模块设计 §14.2 + 错误信封契约；按 `dispatchUiError` 的 `if` 链与服务端真实状态码人工推导（`/login` 路由缺失见 §4 `G-UI-LOGIN-ROUTE-1`）
+- 独立 Oracle 来源与推导：web-ui 模块设计 §14.2 + 错误信封契约；按 `dispatchUiError` 的 `if` 链与服务端真实状态码人工推导（`/login` 路由缺失见 §7 `G-UI-LOGIN-ROUTE-1`）
 - 互斥预期（成功 / 各错误分支）：五分支互斥且文案固定；`Retry-After` 取值路径正确；403 不泄露存在性
 
 ## 6. 错误路径、副作用与清理

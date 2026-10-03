@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-MODEL-006` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -27,19 +27,19 @@
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
-> 本 Case 文档绑定：系统设计经 `--parent-document-id`、所属方案经方案清单行引用写入 metadata；Document ID＝Case ID。方案清单行见[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)。
+> 本 Case 文档绑定：系统设计经 `--parent-document-id`、所属方案经方案清单行引用写入 metadata；Document ID＝Case ID。方案清单行见[系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)。
 
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-MODEL-006` / 系统设计 §8 逻辑模型清单接口（/v1/models） / `VRC-INF-001` / `negative` / `P0`。本文件名 `st-model-006.md`，与 Case ID 唯一对应。
-- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-MODEL：不存在）
+- **测试方法（§2.2 方法表行）**：错误猜测 + 反例驱动（ERR-MODEL：不存在）
 - 要测什么（责任展开）：`GET /v1/models/NonExistent`（不存在的 id）→ HTTP 404 + `error.code=="model_not_found"`。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明正向精确返回（ST-MODEL-002）、大小写/URL 编码边界（ST-MODEL-003/04/05，虽同以 404 收口但输入不同）；不证明清单聚合（ST-MODEL-001）或 capabilities（ST-MODEL-007）；不证明凭据与 LAN trust（ST-AUTH-001/02/06）；不证明路由到 Responses 的 unknown model（ST-RESP-005，端点不同）。**失败含义＝存在性拒绝契约破坏**。
 
 **目的（被测契约）**：验证 Data Plane `GET /v1/models/{model}` 对**完全不存在模型 id** 的负向契约。被测端点/规则：任何不在 7 个 fixed tier 中的精确 id 必须返回 `404 model_not_found`，信封 `{error:{message,type,code,param,retryable}}`（5 键，`type=="request_error"`、`param==null`、`retryable==false`）。
 实现 [`Registry.get_service_level()`](../../../../src/management/registry.py) 用 SQL `WHERE id=?` 精确等值匹配，未命中抛 `ApiError(404,"not_found")`；
 [`ModelCatalog.get()`](../../../../src/inference/models.py) 将 404 `not_found` 转译为 `model_not_found`。设计验证项 `VRC-INF-001`；
-机制 `R-INF-04`（清单行）；家族需求链 `LT-FUN-002`、`R-INF-04`/`R-INF-07`、`T-TRUST-ENDPOINTS`、契约 `CT-MODEL-001`（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+机制 `R-INF-04`（清单行）；家族需求链 `LT-FUN-002`、`R-INF-04`/`R-INF-07`、`T-TRUST-ENDPOINTS`、契约 `CT-MODEL-001`（[系统测试方案 §6](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
 **不证明什么**：不证明正向精确返回（ST-MODEL-002）、大小写/URL 编码边界（ST-MODEL-003/04/05）；不证明清单聚合（ST-MODEL-001）或 capabilities（ST-MODEL-007）；不证明凭据与 LAN trust；
 不证明路由到 Responses 的 unknown model（ST-RESP-005，端点不同）。
 
@@ -113,11 +113,11 @@
 ## 6. 错误路径、副作用与清理
 
 - **错误出口与表现**：本 case 的"错误出口"即被拒绝的 404（期望路径）；若返回 200/400 则按 §5 判 FAIL 并保留失败现场（含错误信封）。
-- **副作用断言与清理**：**无需 teardown**——本 case 为被拒绝的只读请求，未产生副作用（无上游调用、无账本义务、无注入）。退出前确认 `/readyz` 仍显示 7 tier 且无未清空注入项（本 case 不注入）；若被误跑于 B 类临时实例，则按[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md) 整班 `stop()` + `rm -rf` 临时目录。
+- **副作用断言与清理**：**无需 teardown**——本 case 为被拒绝的只读请求，未产生副作用（无上游调用、无账本义务、无注入）。退出前确认 `/readyz` 仍显示 7 tier 且无未清空注入项（本 case 不注入）；若被误跑于 B 类临时实例，则按[系统测试方案 §4 测试环境类型](../llmtier-system-test-scheme.md) 整班 `stop()` + `rm -rf` 临时目录。
 
 ## 7. 自动化位置与状态
 
-- **证据与 Run**：证据与 Run 契约见[§4.8/§10](../llmtier-system-test-scheme.md)：保存原始 HTTP status/headers/body、发出命令、exit code、`elapsed`、环境快照（`/healthz`/`/readyz`），以及**证明 `NonExistent` 不在清单**的交叉核对证据（可选：`GET /v1/models` 的 id 集合与请求 id 的差集）；manifest 与报告落位见 §4.8/§10（本 case `environment:"a"`）；失败现场不截断。
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client` fixture（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）；实现 [`src/inference/models.py`](../../../../src/inference/models.py) `ModelCatalog.get()` 与 [`Registry.get_service_level()`](../../../../src/management/registry.py)；`ModelNotFound`/`ErrorDetail` 机器契约（[`interfaces/openapi/llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)）；自动化入口 [`ST-MODEL-006.py`](../../../../tests/system/cases/ST-MODEL-006.py)。**不依赖**其它 Case；与 ST-MODEL-003/04/05 都以同一个 404 `model_not_found` 收口，但输入维度不同，各自独立执行、互不关闭。
+- **证据与 Run**：证据与 Run 契约见[计划 §7/§10](../llmtier-system-test-scheme.md)：保存原始 HTTP status/headers/body、发出命令、exit code、`elapsed`、环境快照（`/healthz`/`/readyz`），以及**证明 `NonExistent` 不在清单**的交叉核对证据（可选：`GET /v1/models` 的 id 集合与请求 id 的差集）；manifest 与报告落位见计划 §7/§10（本 case `environment:"a"`）；失败现场不截断。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client` fixture（[系统测试方案 §4 测试环境类型](../llmtier-system-test-scheme.md)）；实现 [`src/inference/models.py`](../../../../src/inference/models.py) `ModelCatalog.get()` 与 [`Registry.get_service_level()`](../../../../src/management/registry.py)；`ModelNotFound`/`ErrorDetail` 机器契约（[`interfaces/openapi/llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)）；自动化入口 [`ST-MODEL-006.py`](../../../../tests/system/cases/ST-MODEL-006.py)。**不依赖**其它 Case；与 ST-MODEL-003/04/05 都以同一个 404 `model_not_found` 收口，但输入维度不同，各自独立执行、互不关闭。
 
 > 实现状态：Implemented（`ST-MODEL-006.py` 已断言本 case 契约）；执行状态与 Verdict 只在 Run 报告。

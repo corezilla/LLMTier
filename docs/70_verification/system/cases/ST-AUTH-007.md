@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-AUTH-007` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -31,7 +31,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-AUTH-007`）；责任摘要、分类与优先级以 [系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
+- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-AUTH-007`）；责任摘要、分类与优先级以 [系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
 - **测试脚本的唯一依据**：编码者按本文档写测试代码，不需要回读方案或设计正文猜测意图。
 - **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
 
@@ -48,8 +48,8 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-AUTH-007` / 系统设计 §8 认证与授权跨切面（角色/LAN trust/无鉴权） / `VRC-MGMT-003` / `security` / `P0`
-- **测试方法（§1.5 方法表行）**：鉴权/授权/脱敏冒烟 + 角色隔离
-- 方案清单登记：`ST-AUTH-007`（与 §3.2 权威清单一致；本文件名 `st-auth-007.md`，唯一对应）。
+- **测试方法（§2.2 方法表行）**：鉴权/授权/脱敏冒烟 + 角色隔离
+- 方案清单登记：`ST-AUTH-007`（与 计划 §3 权威清单一致；本文件名 `st-auth-007.md`，唯一对应）。
 - 要测什么（责任展开）：受保护端点 `GET /v1/models` 在**未配置任何 token**的实例上、携带未配置的 bearer 时返回 503 + `auth_not_configured`（运行期无凭据可用，拒绝而非放行）。
 - 明确不测什么 / 失败含义：不证明 **错误 bearer** 在**已配置**实例上被拒（ST-AUTH-002）、**空 bearer** 被拒（ST-AUTH-006）、**data token 访问 admin 面**被拒（ST-AUTH-003）、**缺/非法凭据→401**（ST-AUTH-010）、**无 token 的 LAN trust** 免登录（ST-AUTH-001/04）。特别地，本 case **不**证明"未配置鉴权时公共端点也 503"——`/healthz`/`/readyz` 永不进入鉴权（ST-AUTH-005/ST-HEALTH-006）。
 
@@ -65,7 +65,7 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=§2.1 附加（B 类）；使用 `llmtier_b_no_auth` fixture：`LLMTierInstance(_NO_AUTH_SETTINGS, dev_mode=False)`，启动时清除全部 `LLMTIER_*` 环境变量（`conftest.py`），且 `dev_mode=False` **不**写 token/`LLMTIER_DEV_MODE`，故 `_configured_token()` 必返回 `None`。初始状态=空库（`_NO_AUTH_SETTINGS`：无 provider/deployment/service-level）；本 case 使用 `admin_client_b_no_auth` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=计划 §3 附加（B 类）；使用 `llmtier_b_no_auth` fixture：`LLMTierInstance(_NO_AUTH_SETTINGS, dev_mode=False)`，启动时清除全部 `LLMTIER_*` 环境变量（`conftest.py`），且 `dev_mode=False` **不**写 token/`LLMTIER_DEV_MODE`，故 `_configured_token()` 必返回 `None`。初始状态=空库（`_NO_AUTH_SETTINGS`：无 provider/deployment/service-level）；本 case 使用 `admin_client_b_no_auth` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。
 
 ## 3. 输入构造
 
@@ -117,6 +117,6 @@ fixture 已保证；③ **不得跑于 A 类**——m5air 已配置 token，本 
 
 - **证据与 Run**：保存启动参数快照（证明 `dev_mode=False` 且无 `LLMTIER_*` token）、原始命令、发送 headers 快照（证明携带 bearer）、HTTP status/headers/body、临时实例端口、exit code、`elapsed`、`/healthz` 快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/B-api`，`environment:"b"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：B 类临时实例可启动（[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go)）；fixture `llmtier_b_no_auth` 与 `admin_client_b_no_auth`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)，[`conftest.py`](../../../../tests/system/conftest.py)）；自动化入口 [`ST-AUTH-007.py`](../../../../tests/system/cases/ST-AUTH-007.py)。**不依赖**其它 Case；与 ST-AUTH-002/ST-AUTH-003/ST-AUTH-010 构成"凭据状态→状态码"矩阵但各自独立执行、互不关闭。
+- **依赖**：B 类临时实例可启动（[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go)）；fixture `llmtier_b_no_auth` 与 `admin_client_b_no_auth`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)，[`conftest.py`](../../../../tests/system/conftest.py)）；自动化入口 [`ST-AUTH-007.py`](../../../../tests/system/cases/ST-AUTH-007.py)。**不依赖**其它 Case；与 ST-AUTH-002/ST-AUTH-003/ST-AUTH-010 构成"凭据状态→状态码"矩阵但各自独立执行、互不关闭。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

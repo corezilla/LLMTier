@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-API-010` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`UT-API-010`）；责任摘要、分类与优先级以 [单元测试方案 §3](../llmtier-unit-test-scheme.md) 清单行为准。
+- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`UT-API-010`）；责任摘要、分类与优先级以 [单元测试方案 §6](../llmtier-unit-test-scheme.md) 清单行为准。
 - **来源**：模块设计 [http-api](../../../40_module_design/http-api-design.md) §14 / ISD [http-api.isd.md](../../../50_implementation_design/http-api.isd.md) §9.1，设计验证项 `VRC-API-004`（固定版本 `http-api 0.1.0-draft.2`）。
 - **裁剪说明**：本 Case 是项目级合并方案 `llmtier-unit-test-scheme` 的模块切片 `http_api`；裁剪依据见 [STD 裁剪清单](../../../00_management/std-tailoring.md)。
 
@@ -45,10 +45,10 @@
 
 ## 1. Case 概述与责任
 
-- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-API-010` / M001 http-api §14.1 · `Handler._static` v0.1.0-draft.2 / `VRC-API-004` / security / P1（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：鉴权/脱敏/注入边界冒烟（目录穿越/静态/readyz）（主要手段：直接调用 + 冻结向量 + 替身注入）
+- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-API-010` / M001 http-api §14.1 · `Handler._static` v0.1.0-draft.2 / `VRC-API-004` / security / P1（[方案清单 §6](../llmtier-unit-test-scheme.md)）。
+- **测试方法（§2.1 方法表行）**：鉴权/脱敏/注入边界冒烟（目录穿越/静态/readyz）（主要手段：直接调用 + 冻结向量 + 替身注入）
 - 要测什么（责任展开）：被测：`Handler._static` 对 `../` 目录穿越 → 404；`/ui/` 命中 `index.html`；`/readyz` 空库 not_ready → 503。
-- 明确不测什么 / 失败含义：不测：mime/`Cache-Control` exact 字节（方案 §4 Tailored-N/A，归系统/契约层）。失败含义＝静态交付安全或就绪映射实现错误。
+- 明确不测什么 / 失败含义：不测：mime/`Cache-Control` exact 字节（方案 §7 Tailored-N/A，归系统/契约层）。失败含义＝静态交付安全或就绪映射实现错误。
 
 ## 2. 被测入口与前置
 

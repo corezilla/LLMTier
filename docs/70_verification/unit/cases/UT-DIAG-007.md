@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-DIAG-007` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`UT-DIAG-007`）；责任摘要、分类与优先级以 [单元测试方案 §3](../llmtier-unit-test-scheme.md) 清单行为准。
+- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`UT-DIAG-007`）；责任摘要、分类与优先级以 [单元测试方案 §6](../llmtier-unit-test-scheme.md) 清单行为准。
 - **来源**：模块设计 [libdiag](../../../40_module_design/libdiag-design.md) §14 / ISD [libdiag.isd.md](../../../50_implementation_design/libdiag.isd.md) §9.1，设计验证项 `VRC-DIAG-003`（固定版本 `libdiag 0.1.0-draft.6`）。
 - **裁剪说明**：本 Case 是项目级合并方案 `llmtier-unit-test-scheme` 的模块切片 `libdiag`；裁剪依据见 [STD 裁剪清单](../../../00_management/std-tailoring.md)。
 
@@ -45,8 +45,8 @@
 
 ## 1. Case 概述与责任
 
-- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-DIAG-007` / M006 libdiag §14.3 · 写入失败降级 v0.1.0-draft.6 / `VRC-DIAG-003` / recovery / P1（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：故障注入 + 异常路径恢复（record/capture/cleanup 失败不阻断）（主要手段：直接调用 + 冻结向量）
+- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-DIAG-007` / M006 libdiag §14.3 · 写入失败降级 v0.1.0-draft.6 / `VRC-DIAG-003` / recovery / P1（[方案清单 §6](../llmtier-unit-test-scheme.md)）。
+- **测试方法（§2.1 方法表行）**：故障注入 + 异常路径恢复（record/capture/cleanup 失败不阻断）（主要手段：直接调用 + 冻结向量）
 - 要测什么（责任展开）：被测：`record_trace`/`record_latency`/`capture_snapshot` 写入失败不阻断；cleanup 失败返回 0；`_UnavailableDiagnostics` 全方法降级。
 - 明确不测什么 / 失败含义：不测：正常记录（UT-DIAG-002）；不测推理 fail-open（UT-INF-005）。失败含义＝写入失败降级或 cleanup 容错实现错误。
 

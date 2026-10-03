@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-RESP-006` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -27,17 +27,17 @@
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
-> 本 Case 文档绑定：系统设计经 `--parent-document-id`、所属方案经方案清单行引用写入 metadata；Document ID＝Case ID。方案清单行见[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)。
+> 本 Case 文档绑定：系统设计经 `--parent-document-id`、所属方案经方案清单行引用写入 metadata；Document ID＝Case ID。方案清单行见[系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)。
 
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-RESP-006` / 系统设计 §8 Responses 接口（POST /v1/responses） / `VRC-INF-001` / `normal` / `P0`。本文件名 `st-resp-006.md`，与 Case ID 唯一对应。
-- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对 + 状态机驱动（SSE 事件序列/唯一 terminal）
+- **测试方法（§2.2 方法表行）**：等价类划分 + 契约字段比对 + 状态机驱动（SSE 事件序列/唯一 terminal）
 - 要测什么（责任展开）：`POST /v1/responses` 显式 `stream=true`：受理并返回合法 SSE（唯一受理形态的正向基线）。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明事件序列的完整逐帧 identity（ST-RESP-001 承担）、不证明 `stream=false`/`store=true` 被拒（ST-RESP-002/07）、不证明截断（ST-RESP-010）或异常路径；不证明模型答案。**失败含义＝受理形态契约破坏**。
 
 **目的（被测契约）**：验证 Data Plane `POST /v1/responses` 的**唯一受理形态**：`stream=true` + `store=false` 被接受并返回标准 SSE。被测端点/规则：`POST /v1/responses`；
-设计验证项 `VRC-INF-001`；机制 `T-STREAM`（[inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）；OpenAPI `ResponsesRequest.stream.const=true`（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+设计验证项 `VRC-INF-001`；机制 `T-STREAM`（[inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）；OpenAPI `ResponsesRequest.stream.const=true`（[系统测试方案 §6](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
 **不证明什么**：不证明事件序列的完整逐帧 identity（ST-RESP-001 承担）、不证明 `stream=false`/`store=true` 被拒（ST-RESP-002/07）、不证明截断（ST-RESP-010）或异常路径；
 不证明模型答案。
 
@@ -120,11 +120,11 @@
 ## 6. 错误路径、副作用与清理
 
 - **错误出口与表现**：无 SSE / `response.completed` 缺失 / `[DONE]` 缺失按 §5 判 FAIL 并保留逐帧现场。被拒形态见 ST-RESP-002/07。
-- **副作用断言与清理**：**无需 teardown**——`store=false`、环境 A 无状态；退出前确认 `/readyz` 仍 7 tier；若被误跑于 B 类临时实例，则按[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md) 整班销毁。
+- **副作用断言与清理**：**无需 teardown**——`store=false`、环境 A 无状态；退出前确认 `/readyz` 仍 7 tier；若被误跑于 B 类临时实例，则按[系统测试方案 §4 测试环境类型](../llmtier-system-test-scheme.md) 整班销毁。
 
 ## 7. 自动化位置与状态
 
-- **证据与 Run**：证据与 Run 契约见[§4.8/§10](../llmtier-system-test-scheme.md)：保存请求 body、HTTP status/headers、原始 SSE、发出命令、exit code、环境快照；manifest 与报告落位见 §4.8/§10（本 case `environment:"a"`）；失败现场不截断。
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client`（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）；上游 tier `Worker`；自动化入口 [`ST-RESP-006.py`](../../../../tests/system/cases/ST-RESP-006.py)。**不依赖**其它 Case；与 ST-RESP-001 共享 SSE 机制但断言范围更窄（受理 + terminal 存在）。
+- **证据与 Run**：证据与 Run 契约见[计划 §7/§10](../llmtier-system-test-scheme.md)：保存请求 body、HTTP status/headers、原始 SSE、发出命令、exit code、环境快照；manifest 与报告落位见计划 §7/§10（本 case `environment:"a"`）；失败现场不截断。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client`（[系统测试方案 §4 测试环境类型](../llmtier-system-test-scheme.md)）；上游 tier `Worker`；自动化入口 [`ST-RESP-006.py`](../../../../tests/system/cases/ST-RESP-006.py)。**不依赖**其它 Case；与 ST-RESP-001 共享 SSE 机制但断言范围更窄（受理 + terminal 存在）。
 
 > 实现状态：Implemented（`ST-RESP-006.py` 已断言本 case 契约）；执行状态与 Verdict 只在 Run 报告。

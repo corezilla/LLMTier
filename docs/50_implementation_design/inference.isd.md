@@ -1265,7 +1265,7 @@ flowchart TD
 ### 10.2.1 `SC-INF` · 状态一致性复核
 
 - **上游承接状态 / 固定来源**：模块 `inference` §15.ISD 声明 `separate`
-- **本层派生状态 / 事实依据**：代码**均已实现**；全部 `src/inference/*` 现有实现；VRC-INF-001..005 由测试方案承接（部分向量覆盖由测试方案 §3 登记）
+- **本层派生状态 / 事实依据**：代码**均已实现**；全部 `src/inference/*` 现有实现；VRC-INF-001..005 由测试方案承接（部分向量覆盖由测试方案 §6 登记）
 - **§2 Current / Target**：N/A（greenfield；无既有待改实现，见 §2.1）
 - **§3 / §5 文件与函数状态**：IMPLEMENTED
 - **§10 汇总状态**：IMPLEMENTED

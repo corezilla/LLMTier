@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `MT-MGMT-011` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-10-02` |
-| Last Modified Date | `2026-10-02` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.module-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`MT-MGMT-011`）；责任摘要、分类与优先级以 [模块测试方案 §3](../llmtier-module-test-scheme.md) 清单行为准，不在本文档重复维护。
+- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`MT-MGMT-011`）；责任摘要、分类与优先级以 [模块测试方案 §6](../llmtier-module-test-scheme.md) 清单行为准，不在本文档重复维护。
 - **测试脚本的唯一依据**：编码者按本文档写测试代码；§7 指向已实现脚本 `tests/module/cases/MT-MGMT-011.py`。
 - **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
 
@@ -43,10 +43,10 @@
 
 ## 1. Case 概述与责任
 
-- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-MGMT-011` / M004 固定 tier 删除分支：固定 service level→409 `fixed_service_level`（组装） v0.1.0-draft.3 / VRC-MGMT-002（management-design §14 / management.isd §9.1，management 0.1.0-draft.3） / VRC-MGMT-002 / negative / P1（[方案清单 §3](../llmtier-module-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（非法字段/凭据/引用/类型/顺序）+ 判定表组合（主要手段：无边界替身，全真实（仅 ENV-1/ENV-2 真实实现））
-- **覆盖的分支 / 组合 / 迁移 ID**：分支：M004-固定 tier 删除 `fixed_service_level`（§1.5.1 a16）
-- 要测什么（责任展开）：删除固定 tier（固定 service level）→409 `fixed_service_level`，资源不变；对照 `src/management/registry.py:379`（§1.5.1 a16）（本 Case 责任：删除固定 service level→409 `fixed_service_level`；资源内容与版本逐字段不变）
+- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-MGMT-011` / M004 固定 tier 删除分支：固定 service level→409 `fixed_service_level`（组装） v0.1.0-draft.3 / VRC-MGMT-002（management-design §14 / management.isd §9.1，management 0.1.0-draft.3） / VRC-MGMT-002 / negative / P1（[方案清单 §6](../llmtier-module-test-scheme.md)）。
+- **测试方法（§2.4 方法表行）**：错误猜测 + 反例驱动（非法字段/凭据/引用/类型/顺序）+ 判定表组合（主要手段：无边界替身，全真实（仅 ENV-1/ENV-2 真实实现））
+- **覆盖的分支 / 组合 / 迁移 ID**：分支：M004-固定 tier 删除 `fixed_service_level`（§2.3 a16）
+- 要测什么（责任展开）：删除固定 tier（固定 service level）→409 `fixed_service_level`，资源不变；对照 `src/management/registry.py:379`（§2.3 a16）（本 Case 责任：删除固定 service level→409 `fixed_service_level`；资源内容与版本逐字段不变）
 - 明确不测什么 / 失败含义：不测跨模块系统级流程、真实上游 provider 协议、浏览器 E2E（归系统层 `ST-*` 与契约层）；本层只断言组装后成立的分支走向、状态迁移与调用序。失败含义＝management 组装后固定 tier 不可删与设计不一致。
 
 ## 2. 被测入口与前置
@@ -77,7 +77,7 @@ delete_service_level(rid, if_match) -> 无条件 409
 
 ## 5. 独立 Oracle 与预期结果
 
-- 独立 Oracle 来源与推导：方案 §1.5.1 a16 + management 模块设计 §14.2（固定 Tier 不可删）；按 `delete_service_level` 的无条件 `raise` 人工推导
+- 独立 Oracle 来源与推导：方案 §2.3 a16 + management 模块设计 §14.2（固定 Tier 不可删）；按 `delete_service_level` 的无条件 `raise` 人工推导
 - 互斥预期（成功 / 各错误分支）：固定 tier 恒不可删；拒绝无副作用
 
 ## 6. 错误路径、副作用与清理

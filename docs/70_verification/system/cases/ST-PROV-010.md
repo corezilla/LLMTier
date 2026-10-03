@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-PROV-010` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-PROV-010`）；责任摘要、分类与优先级以 [系统测试方案 §3](../llmtier-system-test-scheme.md) 清单行为准。
+- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-PROV-010`）；责任摘要、分类与优先级以 [系统测试方案 §6](../llmtier-system-test-scheme.md) 清单行为准。
 - **来源**：系统设计 §8 Provider CRUD 接口（/v1/providers）（parent `llmtier-system-design`），设计验证项 `VRC-MGMT-001`；所属方案 `llmtier-system-test-scheme`。
 - **边界**：系统层 Case（整软件系统组装，被测为 m5air 真实部署或按 tests.asset-design 约束的替身）；本文档持有实现状态，执行状态与 Verdict 只在 Run 报告。
 
@@ -48,21 +48,21 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-PROV-010` / 系统设计 §8 Provider CRUD 接口（/v1/providers） / `VRC-MGMT-001` / `negative` / `P1`
-- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
-- 方案清单登记：`ST-PROV-010`（与 §3.2 权威清单一致；本文件名 `st-prov-010.md`，唯一对应）。
+- **测试方法（§2.2 方法表行）**：错误猜测 + 反例驱动（ERR-*）
+- 方案清单登记：`ST-PROV-010`（与 计划 §3 权威清单一致；本文件名 `st-prov-010.md`，唯一对应）。
 - 要测什么（责任展开）：`DELETE /v1/providers/{id}` 删除被活动 deployment 引用的 provider：HTTP 409 + `error.code=="resource_in_use"`，provider 保留。
 - 明确不测什么 / 失败含义：不证明 成功删除（ST-PROV-008）、不证明缺/过期 If-Match 412（ST-PROV-009）、不证明 deployment 侧删除被 service-level 引用的 409；本 case 依赖 baseline `prov_b → depl_b` 的引用关系，不删除任何资源（删除必然被拒）。
-  > 规范注记：§3.2 行与 §11.1 均记本 case 错误码为 `resource_in_use`（`ERR-INUSE`）；实现与 [`ST-PROV-010.py`](../../../../tests/system/cases/ST-PROV-010.py) 一致。若外部简报把它写作 `resource_conflict`，以 `openapi` enum + 源码为准（`resource_conflict` 是**重名/已存在**语义，见 ST-PROV-002 重名分支，非引用保护）。
+  > 规范注记：方案 §6 行与 §11.1 均记本 case 错误码为 `resource_in_use`（`ERR-INUSE`）；实现与 [`ST-PROV-010.py`](../../../../tests/system/cases/ST-PROV-010.py) 一致。若外部简报把它写作 `resource_conflict`，以 `openapi` enum + 源码为准（`resource_conflict` 是**重名/已存在**语义，见 ST-PROV-002 重名分支，非引用保护）。
 
 **目的（被测契约）**：验证 Management Provider CRUD 的**引用完整性（删除引用保护）契约**。被测端点/规则：`DELETE /v1/providers/{id}`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `deleteProvider`，`security=AdminBearerAuth`）；
 当该 provider 被任一 deployment 引用时，[`registry.delete_provider`](../../../../src/management/registry.py) 抛 `ApiError(409, "resource_in_use", "Provider is referenced by a deployment")`；
 前提是 `If-Match` 已匹配（否则先 412）。设计验证项 `VRC-MGMT-001`；错误目录 `ERR-INUSE` → `resource_in_use`；机制 `T-CFG-DELREF`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`CT-ADMIN-001`。
 **不证明什么**：不证明成功删除（ST-PROV-008）、不证明缺/过期 If-Match 412（ST-PROV-009）、不证明 deployment 侧删除被 service-level 引用的 409；本 case 依赖 baseline `prov_b → depl_b` 的引用关系，不删除任何资源（删除必然被拒）。
-  > 规范注记：§3.2 行与 §11.1 均记本 case 错误码为 `resource_in_use`（`ERR-INUSE`）；实现与 [`ST-PROV-010.py`](../../../../tests/system/cases/ST-PROV-010.py) 一致。若外部简报把它写作 `resource_conflict`，以 `openapi` enum + 源码为准（`resource_conflict` 是**重名/已存在**语义，见 ST-PROV-002 重名分支，非引用保护）。
+  > 规范注记：方案 §6 行与 §11.1 均记本 case 错误码为 `resource_in_use`（`ERR-INUSE`）；实现与 [`ST-PROV-010.py`](../../../../tests/system/cases/ST-PROV-010.py) 一致。若外部简报把它写作 `resource_conflict`，以 `openapi` enum + 源码为准（`resource_conflict` 是**重名/已存在**语义，见 ST-PROV-002 重名分支，非引用保护）。
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)/§2.4）。执行前须满足[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go)(../llmtier-system-test-scheme.md) **附加（B 类）**：实例 `/healthz` 200；`_baseline_settings` 注入 1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier。fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）：`llmtier_b`、`admin_client_b`。初始状态：1 provider（`prov_b`）/ 1 deployment（`depl_b`）/ 7 fixed tier。`depl_b.provider_id == "prov_b"`、7 tier 的 `deployment_ids` 均指向 `depl_b`；`_probe_deployment(depl_b)` 断言 `healthy`。**本 case 不新建资源，直接对 baseline `prov_b` 发删除**（预期被拒，故不破坏基线）。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。执行前须满足[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) **附加（B 类）**：实例 `/healthz` 200；`_baseline_settings` 注入 1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier。fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）：`llmtier_b`、`admin_client_b`。初始状态：1 provider（`prov_b`）/ 1 deployment（`depl_b`）/ 7 fixed tier。`depl_b.provider_id == "prov_b"`、7 tier 的 `deployment_ids` 均指向 `depl_b`；`_probe_deployment(depl_b)` 断言 `healthy`。**本 case 不新建资源，直接对 baseline `prov_b` 发删除**（预期被拒，故不破坏基线）。
 
 ## 3. 输入构造
 
@@ -104,16 +104,16 @@
   - **BLOCKED**：无法执行/无法判定且可重试（fixture 缺 `prov_b`/`depl_b` 引用、断言逻辑问题）——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **SKIP**：B 类临时实例/fixture 不可用，或 `prov_b`/`depl_b` 基线未建立——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **INVALID**：伪造 409、或真正删除基线后以 mock 冒充——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：本 Case 有实现（§3.2 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
+  - **NOT_RUN**：本 Case 有实现（计划 §3 实现盘点 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
 
 ## 6. 错误路径、副作用与清理
 
-- **清理与复位**：**无需 teardown**——删除被拒，`prov_b`/`depl_b` 与 7 tier 均未变；不写注入。B 类整班结束由 fixture `stop()` + `rm -rf` 销毁（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）。离开前确认 `prov_b` 仍在、`/readyz` 7 tier。
+- **清理与复位**：**无需 teardown**——删除被拒，`prov_b`/`depl_b` 与 7 tier 均未变；不写注入。B 类整班结束由 fixture `stop()` + `rm -rf` 销毁（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。离开前确认 `prov_b` 仍在、`/readyz` 7 tier。
 
 ## 7. 自动化位置与状态
 
-- **证据与 Run**：证据与 Run 契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)(../llmtier-system-test-scheme.md)：Run ID=`<date>/B-api`；保存请求与原始响应（脱敏后）、发出命令、exit code、`elapsed`、环境快照；`manifest.json` 必填字段与报告落位（`tests/system/reports/...`）见 §4.8/§10；失败现场不截断。**本 case 额外证据**：`GET prov_b`（含 ETag）、`DELETE` 请求与 409 原始响应、拒绝后回读、`GET /v1/deployments/depl_b` 引用快照。
+- **证据与 Run**：证据与 Run 契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)：Run ID=`<date>/B-api`；保存请求与原始响应（脱敏后）、发出命令、exit code、`elapsed`、环境快照；`manifest.json` 必填字段与报告落位（`tests/system/reports/...`）见计划 §7/§10；失败现场不截断。**本 case 额外证据**：`GET prov_b`（含 ETag）、`DELETE` 请求与 409 原始响应、拒绝后回读、`GET /v1/deployments/depl_b` 引用快照。
 
-- **依赖**：B 类 fixture `llmtier_b` / `admin_client_b` 与 baseline `prov_b`+`depl_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`deleteProvider`/`ErrorEnvelope` 机器契约；`registry.delete_provider` 引用检查；机制 `T-CFG-DELREF`；错误目录 `ERR-INUSE`；自动化入口 [`ST-PROV-010.py`](../../../../tests/system/cases/ST-PROV-010.py)。**不依赖**其它 Case（依赖 baseline 引用关系，而非某 case 先跑）；与 ST-PROV-008/09 互补但各自独立。
+- **依赖**：B 类 fixture `llmtier_b` / `admin_client_b` 与 baseline `prov_b`+`depl_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；`deleteProvider`/`ErrorEnvelope` 机器契约；`registry.delete_provider` 引用检查；机制 `T-CFG-DELREF`；错误目录 `ERR-INUSE`；自动化入口 [`ST-PROV-010.py`](../../../../tests/system/cases/ST-PROV-010.py)。**不依赖**其它 Case（依赖 baseline 引用关系，而非某 case 先跑）；与 ST-PROV-008/09 互补但各自独立。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

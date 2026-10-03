@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-EMB-001` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-EMB-001`）；责任摘要、分类与优先级以 [系统测试方案 §3](../llmtier-system-test-scheme.md) 清单行为准。
+- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-EMB-001`）；责任摘要、分类与优先级以 [系统测试方案 §6](../llmtier-system-test-scheme.md) 清单行为准。
 - **来源**：系统设计 §8 Embeddings 接口（parent `llmtier-system-design`），设计验证项 `VRC-INF-001`、`VRC-INF-002`；所属方案 `llmtier-system-test-scheme`。
 - **边界**：系统层 Case（整软件系统组装，被测为 m5air 真实部署或按 tests.asset-design 约束的替身）；本文档持有实现状态，执行状态与 Verdict 只在 Run 报告。
 
@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-EMB-001` / 系统设计 §8 Embeddings 接口 / `VRC-INF-001`、`VRC-INF-002` / normal / P0（[方案清单 `ST-EMB-001`](../llmtier-system-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
+- **测试方法（§2.2 方法表行）**：等价类划分 + 契约字段比对
 - 要测什么（责任展开）：`POST /v1/embeddings` 基本 embedding：`Embedding-v1`（bge-m3，冻结空间 `bge-m3-dense-1024-v1`）成功返回，`object="list"`、`data[0].object="embedding"`、`embedding` 为 1024 个有限数值。
   `model="Embedding-v1"`、`input` 为字符串、`encoding_format` 缺省（默认 `float`）；成功返回 OpenAPI `EmbeddingResponse`（顶层键 `{object,data,model,usage}`）。
   需求 `LT-FUN-003`/`LT-OPEN-02`；机制需求 `R-INF-04`/`R-INF-05`/`R-INF-07`（[inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）；
@@ -86,7 +86,7 @@ Accept: application/json
 
 | Step | 动作 | 观察点 |
 |---|---|---|
-| 1 | `GET /healthz`、`GET /readyz`（由 `pytest_configure` 自动执行） | §2.1 基线 |
+| 1 | `GET /healthz`、`GET /readyz`（由 `pytest_configure` 自动执行） | 计划 §2 基线 |
 | 2 | `resp = api_client.post("/v1/embeddings", json={"model": "Embedding-v1", "input": "Hello world"})` | status / `Content-Type` / `X-Request-ID` / body |
 | 3 | 断言 status 与形态 | `status_code == 200` 且 content-type 含 `application/json`；body **不是** `{"error":{...}}` |
 | 4 | 顶层键集**恰为** `{object, data, model, usage}`（`additionalProperties:false`） | `object == "list"`；`model == "Embedding-v1"` |

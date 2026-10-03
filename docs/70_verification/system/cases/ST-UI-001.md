@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-UI-001` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-10-01` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -31,7 +31,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-UI-001`）；责任摘要、分类与优先级以 [系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
+- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-UI-001`）；责任摘要、分类与优先级以 [系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
 - **测试脚本的唯一依据**：编码者按本文档写测试代码，不需要回读方案或设计正文猜测意图。
 - **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
 
@@ -49,7 +49,7 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-UI-001` / 模块设计 web-ui §14（ISD §9.1） / `VRC-UI-001` / `normal` / `P1`
 - 方案清单登记：`ST-UI-001`
-- **UI 方法模式（§1.5 方法表行）**：**数据呈现（渲染）**——构造底层数据（临时实例播种 + API 返回），打开页面，断言真实 DOM 与数据一致。
+- **UI 方法模式（§2.2 方法表行）**：**数据呈现（渲染）**——构造底层数据（临时实例播种 + API 返回），打开页面，断言真实 DOM 与数据一致。
 - **六要素映射（约束「每 Case 必须写明」）**：模式＝本节；构造的状态＝§3（播种 `prov_b`/`depl_b` + fake 上游）；执行的操作＝§4 Step 1–2（navigate + 点击 Providers）；DOM 断言＝§4 Step 3/5（`document.title`、5 个 nav、`#home.page.active`、tier 树、provider 行文本）；网络断言＝§4 Step 6（`GET /v1/providers`→200）；证据位置＝§7（PNG + 网络日志）。
 - 要测什么（责任展开）：在真实浏览器中加载 `/ui/`：断言 `document.title`、5 个 `nav button[data-page]`、Home 默认激活、tier 树已渲染；切到 Providers 后 provider 行由 `GET /v1/providers` 的真实响应渲染（断言行内文本 `Baseline Provider B` 与 CDP 记录的 200 响应并存），而非源码字符串。
 - 明确不测什么 / 失败含义：不证明其它 provider 的账户用量刷新（ST-PUSAGE-*）、不证明表单保存（ST-PROV-005/16）。
@@ -110,9 +110,9 @@
   ```
 - 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/cases -m ui -q -k ST-UI-001`
 - 实现状态：`Implemented`（`tests/system/cases/` (ST-UI-*) 已建并本地 PASS）；执行状态与 Verdict 归 Run 报告。
-- **证据与 Run**：截图 `tests/system/artifacts/ST-UI-001/ST-UI-001.png`与网络日志 `ST-UI-001.network.json`。测试包 `tests/system/cases`（ST-UI-*） 为独立 `-m ui` 标记，不并入 A/B 系统班；`RISK-UI-EXEC-1` 关闭证据见系统方案 §4 与系统计划 §10-O6。
+- **证据与 Run**：截图 `tests/system/artifacts/ST-UI-001/ST-UI-001.png`与网络日志 `ST-UI-001.network.json`。测试包 `tests/system/cases`（ST-UI-*） 为独立 `-m ui` 标记，不并入 A/B 系统班；`RISK-UI-EXEC-1` 关闭证据见系统方案 §7 与系统计划 §10-O6。
 
 ## 8. 需求与设计可追溯
 
 - 设计验证项：`VRC-UI-001`（模块设计 web-ui §14 / [web-ui ISD §9.1](../../../50_implementation_design/web-ui.isd.md)）。
-- 需求链：`LT-FUN-*`（控制台）/ `LT-OPS-*`（可观测）/ `R-OBS-05`（诊断页），以系统方案 §3.6 映射为准。本 Case 关闭 `RISK-UI-EXEC-1`（Owner M002 web-ui/共同 M005）。
+- 需求链：`LT-FUN-*`（控制台）/ `LT-OPS-*`（可观测）/ `R-OBS-05`（诊断页），以系统方案 §6.1 映射为准。本 Case 关闭 `RISK-UI-EXEC-1`（Owner M002 web-ui/共同 M005）。

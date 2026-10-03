@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-HEALTH-002` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -27,19 +27,19 @@
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
-> 本 Case 文档绑定：系统设计经 `--parent-document-id`、所属方案经方案清单行引用写入 metadata；Document ID＝Case ID。方案清单行见[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)。
+> 本 Case 文档绑定：系统设计经 `--parent-document-id`、所属方案经方案清单行引用写入 metadata；Document ID＝Case ID。方案清单行见[系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)。
 
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-HEALTH-002` / 系统设计 §8 健康/就绪接口（/healthz、/readyz） / `VRC-MGMT-003`（另记 `VRC-UTIL-001/002`） / `normal` / `P0`。本文件名 `st-health-002.md`，与 Case ID 唯一对应。
-- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
+- **测试方法（§2.2 方法表行）**：等价类划分 + 契约字段比对
 - 要测什么（责任展开）：`GET /readyz` 在全部 7 个 fixed tier 均 `available` 时返回 HTTP 200 + `ReadinessView{status:"ready", models[7]}`。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明降级 `degraded`（ST-HEALTH-003）、无 deployment `not_ready`（ST-HEALTH-004）、bootstrap 失败（ST-HEALTH-005）、health 端点的鉴权行为（ST-HEALTH-006/ST-AUTH-005）；不证明 `models[]` 中每 tier 的路由/推理可用（只证明 readiness 聚合字段）；不触发 provider 计费调用（`LT-OPS-001`）。**失败含义＝就绪聚合契约破坏**。
 
 **目的（被测契约）**：验证 IF-HEALTH 的**就绪聚合**契约。端点 `GET /readyz`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getReadiness`，`security:[]`，200 = `ReadinessView`）。
 实现 [`readiness_view`](../../../../src/http_api/health.py) 对 7 个 `FIXED_TIERS` 逐个聚合：某 tier 的候选 deployment `health=="healthy"` 计数 >0 ⇒ `availability="available"`；
 全部 7 个 `available` ⇒ `status="ready"`、HTTP 200（否则 503，见 ST-HEALTH-003/04/05）。设计验证项 `VRC-MGMT-003`；机制 `T-OBS`（见 [observability 机制](../../../20_system_design/mechanisms/observability.md)）与 `T-CFG-BOOT`/`R-CFG-02`（见 [config-lifecycle 机制](../../../20_system_design/mechanisms/config-lifecycle.md)）；
-需求链 `LT-FUN-006`/`LT-OPS-001`、`VRC-UTIL-001/002`、`CT-OPS-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+需求链 `LT-FUN-006`/`LT-OPS-001`、`VRC-UTIL-001/002`、`CT-OPS-001`（[系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
 **不证明什么**：不证明降级 `degraded`（ST-HEALTH-003）、无 deployment `not_ready`（ST-HEALTH-004）、bootstrap 失败（ST-HEALTH-005）、health 端点的鉴权行为（ST-HEALTH-006/ST-AUTH-005）；
 不证明 `models[]` 中每 tier 的路由/推理可用（只证明 readiness 聚合字段）；不触发 provider 计费调用（`LT-OPS-001`）。
 
@@ -54,7 +54,7 @@
   Accept: application/json
   ```
 
-- **初态构造与客户端**：状态型初态由 m5air 基线资源与既有探测保证（不在本 case 重新 probe）；本 case 的零凭据契约点必须用**裸客户端**（**不用** `api_client`，其注入 `Authorization`）；具体 fixture/客户端构造见[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)。
+- **初态构造与客户端**：状态型初态由 m5air 基线资源与既有探测保证（不在本 case 重新 probe）；本 case 的零凭据契约点必须用**裸客户端**（**不用** `api_client`，其注入 `Authorization`）；具体 fixture/客户端构造见[系统测试方案 §4 测试环境类型](../llmtier-system-test-scheme.md)。
 - **依赖的测试资产（tests.asset-design 文档）**：本阶段 `tests.asset-design` 文档尚未建立（系统测试资产以 `tests/system/conftest.py` 的 `LLMTierInstance` / `provider_endpoint_*` 夹具承载，契约见方案 §4）；引用其版本而不复制字节。
 
 ## 3. 输入构造
@@ -114,11 +114,11 @@
 ## 6. 错误路径、副作用与清理
 
 - **错误出口与表现**：本 case 为纯读成功路径；非 200/非法 body 时按 §5 判 FAIL 并保留失败现场。状态互斥（ready / degraded / not_ready）见 ST-HEALTH-003/04/05。
-- **清理与复位**：**无需 teardown**——纯读、无副作用、无凭据；不创建/修改资源、不写注入、不改 deployment health。退出前确认 `/readyz` 仍显示 7 tier 且无未清空注入项（本 case 不注入）；若被误跑于 B 类临时实例，则按[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md) 整班销毁。
+- **清理与复位**：**无需 teardown**——纯读、无副作用、无凭据；不创建/修改资源、不写注入、不改 deployment health。退出前确认 `/readyz` 仍显示 7 tier 且无未清空注入项（本 case 不注入）；若被误跑于 B 类临时实例，则按[系统测试方案 §4 测试环境类型](../llmtier-system-test-scheme.md) 整班销毁。
 
 ## 7. 自动化位置与状态
 
-- **证据与 Run**：证据与 Run 契约见[§4.8/§10](../llmtier-system-test-scheme.md)：保存命令、exit code、原始 HTTP status/headers/body、`elapsed`、环境快照（`/healthz`/`/readyz` + provider/deployment 列表）；manifest 与报告落位（`tests/system/reports/...`）见 §4.8/§10（本 case `environment:"a"`）；失败现场不截断。
+- **证据与 Run**：证据与 Run 契约见[计划 §7/§10](../llmtier-system-test-scheme.md)：保存命令、exit code、原始 HTTP status/headers/body、`elapsed`、环境快照（`/healthz`/`/readyz` + provider/deployment 列表）；manifest 与报告落位（`tests/system/reports/...`）见计划 §7/§10（本 case `environment:"a"`）；失败现场不截断。
 - **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；**裸 `httpx` 客户端**（`M5AIR_BASE` 直连、无 `Authorization`；**不用** `api_client`）；`ReadinessView`（[`openapi`](../../../../interfaces/openapi/llmtier.openapi.json)）；实现 [`health.py`](../../../../src/http_api/health.py)；自动化入口 [`ST-HEALTH-002.py`](../../../../tests/system/cases/ST-HEALTH-002.py)。**不依赖**其它 Case；与 ST-HEALTH-003/04/05 同入口但状态互斥。
 
 > 实现状态：Implemented（`ST-HEALTH-002.py` 已断言本 case 契约）；执行状态与 Verdict 只在 Run 报告。

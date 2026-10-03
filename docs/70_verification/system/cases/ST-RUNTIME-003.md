@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-RUNTIME-003` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -32,7 +32,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-RUNTIME-003` / 系统设计 §8 运行态接口（GET /v1/runtime） / `VRC-API-002` / security / P2（[方案清单 `ST-RUNTIME-003`](../llmtier-system-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：鉴权/授权冒烟（缺/非法凭据 401）
+- **测试方法（§2.2 方法表行）**：鉴权/授权冒烟（缺/非法凭据 401）
 
 - 要测什么（责任展开）：受保护端点 `GET /v1/runtime` 在**携带非法授权方案**（`Authorization: Basic …`）时返回 401 + `authentication_required`。
 
@@ -45,7 +45,7 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `none`）。前置 = §2.1 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；本 case **不复用** `api_client`/`admin_client`（它们注入合法 bearer 会 200），使用独立 `httpx.Client`（无默认头）并显式设置 `Basic` 方案；初始状态 = §2.3 A 类基线。本 case 为只读拒绝路径，**零副作用**。
+- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `none`）。前置 = 计划 §3 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；本 case **不复用** `api_client`/`admin_client`（它们注入合法 bearer 会 200），使用独立 `httpx.Client`（无默认头）并显式设置 `Basic` 方案；初始状态 = §2.3 A 类基线。本 case 为只读拒绝路径，**零副作用**。
 - **被测入口**：
 
   ```http
@@ -69,7 +69,7 @@
 ## 4. 执行步骤与观察点
 
 - **执行过程（逐步调用）**：
-  1. `GET /healthz`、`GET /readyz` —— 确认 §2.1 基线（由 `pytest_configure` 自动执行）。
+  1. `GET /healthz`、`GET /readyz` —— 确认 计划 §2 基线（由 `pytest_configure` 自动执行）。
   2. 建立独立客户端：`httpx.Client(base_url="http://192.168.1.9:8181", timeout=10.0)`，**不设默认 `Authorization`**。
   3. `resp = client.get("/v1/runtime", headers={"Authorization": "Basic ZGV2LWRhdGE="})`；记录 status、headers、body。
   4. 断言 `resp.status_code == 401`（**不是** 403，也不是 200）。
@@ -91,7 +91,7 @@
   - **PASS**：`status==401` 且 `error.code=="authentication_required"` 且 `error.type=="request_error"` 且信封恰 5 键。
   - **FAIL**：返回 200/403/其它 status，或 code/信封不符。
   - **BLOCKED**：若执行者只尝试"完全无头"路径并因 A/B 恒 200 而无法触达 401，判 BLOCKED（构造失败），并说明非受信来源不可得。
-  - **SKIP**：§2.1 前置不满足。
+  - **SKIP**：计划 §3 前置不满足。
   - **INVALID**：用 `127.0.0.1`/mock/替代路径冒充，或以 `X-Forwarded-For`/改 `client_address` 伪造来源，或以错误/空 bearer 冒充。
   - **NOT_RUN**：有实现但本轮未执行。
 

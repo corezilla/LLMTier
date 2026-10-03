@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-AUSAGE-001` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -31,7 +31,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-AUSAGE-001`）；责任摘要、分类与优先级以 [系统测试方案 §3](../llmtier-system-test-scheme.md) 清单行为准。
+- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-AUSAGE-001`）；责任摘要、分类与优先级以 [系统测试方案 §6](../llmtier-system-test-scheme.md) 清单行为准。
 - **来源**：系统设计 §8 管理 usage 接口（GET/DELETE /v1/usage）（parent `llmtier-system-design`），设计验证项 `VRC-MGMT-006`；所属方案 `llmtier-system-test-scheme`。
 - **边界**：系统层 Case（整软件系统组装，被测为 m5air 真实部署或按 tests.asset-design 约束的替身）；本文档持有实现状态，执行状态与 Verdict 只在 Run 报告。
 
@@ -48,8 +48,8 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-AUSAGE-001` / 系统设计 §8 管理 usage 接口（GET/DELETE /v1/usage） / `VRC-MGMT-006` / `normal` / `P1`
-- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
-- 方案清单登记：`ST-AUSAGE-001`（与 §3.2 权威清单一致；本文件名 `st-ausage-001.md`，对应 §3.4 索引 `cases/st-ausage-001.md`）。
+- **测试方法（§2.2 方法表行）**：等价类划分 + 契约字段比对
+- 方案清单登记：`ST-AUSAGE-001`（与 计划 §3 权威清单一致；本文件名 `st-ausage-001.md`，对应 §3.4 索引 `cases/st-ausage-001.md`）。
 - 要测什么（责任展开）：`GET /v1/usage?from&to`（admin 视角）返回聚合用量页：HTTP 200 + `UsagePage`（`data`/`next_cursor`/`has_more`/`snapshot_id`/`snapshot_at`）。
 - 明确不测什么 / 失败含义：不证明 cursor 分页边界（ST-AUSAGE-002）、不证明 `DELETE /v1/usage` 清空（ST-AUSAGE-003）、不证明 data 主体隔离（ST-USAGE-006）、不证明 cursor 过期（ST-USAGE-004）、不证明缺窗 400（`/v1/usage` 缺 `from`/`to` 由 `app.py` 拒绝，未单独构 case）。
 
@@ -59,7 +59,7 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `admin`，只读；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=§2.1 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；fixture `admin_client`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；时间窗用动态 [`recent_window()`](../../../../tests/system/constants.py)；初始状态=§2.3 A 类基线。
+- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `admin`，只读；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=计划 §3 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；fixture `admin_client`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；时间窗用动态 [`recent_window()`](../../../../tests/system/constants.py)；初始状态=§2.3 A 类基线。
   > **实现注记**：无 `cursor` 的 usage 查询会向 `query_snapshots`/`query_snapshot_items` 写入一条 kind=`usage` 的冻结快照（10 min TTL，`next_cursor` 指向它）。这是读操作的持久化副作用；本 case 不断言它，清理见"清理与复位"。
 
 ## 3. 输入构造
@@ -76,7 +76,7 @@
 ## 4. 执行步骤与观察点
 
 - **执行过程（逐步调用）**：
-  1. `GET /healthz`、`GET /readyz` —— 确认 §2.1 基线（由 `pytest_configure` 自动执行，本 case 不重复）。
+  1. `GET /healthz`、`GET /readyz` —— 确认 计划 §2 基线（由 `pytest_configure` 自动执行，本 case 不重复）。
   2. `since, until = recent_window()`；`resp = admin_client.get("/v1/usage", params={"from": since, "to": until})`。
   3. 断言 `resp.status_code == 200` 且 `content-type` 含 `application/json`。
   4. 解析 body：断言五键齐全 `{data,next_cursor,has_more,snapshot_id,snapshot_at}`（`UsagePage.required`）；`data` 为数组、`has_more` 为 bool、`snapshot_id` 为非空字符串、`snapshot_at` 为 RFC3339 字符串。
@@ -100,9 +100,9 @@
   - **PASS**：`200` + 五键齐全 + 类型正确 + `has_more`/`next_cursor` 一致 + `data` 元素含 `UsageRecord` 键。
   - **FAIL**：status 非 200、缺任一页字段、类型错、一致性违反、或出现错误信封。
   - **BLOCKED**：fixture/断言逻辑问题——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **SKIP**：§2.1 前置不满足——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
+  - **SKIP**：计划 §3 前置不满足——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **INVALID**：用 `127.0.0.1`/mock 冒充真实 m5air，或硬编码时间窗——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：本 Case 有实现（§3.2 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
+  - **NOT_RUN**：本 Case 有实现（计划 §3 实现盘点 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
 
 ## 6. 错误路径、副作用与清理
 
@@ -112,6 +112,6 @@
 
 - **证据与 Run**：保存请求 URL（含 from/to）、原始 HTTP status/body、`snapshot_id`/`snapshot_at`、发出命令、exit code、`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`constants.recent_window`；`UsagePage`/`UsageRecord` 机器契约；`UsageRecorder._page`；机制 `R-MET-02`/`T-MET-FINAL`。自动化入口 [`ST-AUSAGE-001.py`](../../../../tests/system/cases/ST-AUSAGE-001.py)。**不依赖**其它 Case；与 ST-AUSAGE-002/03 互补。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；`constants.recent_window`；`UsagePage`/`UsageRecord` 机器契约；`UsageRecorder._page`；机制 `R-MET-02`/`T-MET-FINAL`。自动化入口 [`ST-AUSAGE-001.py`](../../../../tests/system/cases/ST-AUSAGE-001.py)。**不依赖**其它 Case；与 ST-AUSAGE-002/03 互补。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

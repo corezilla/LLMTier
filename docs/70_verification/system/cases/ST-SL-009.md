@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-SL-009` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -32,7 +32,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-SL-009` / 系统设计 §8 Service Level CRUD 接口（/v1/service-levels） / `VRC-MGMT-002` / negative / P1（[方案清单 `ST-SL-009`](../llmtier-system-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：鉴权/角色隔离冒烟（data→admin 面 403）+ 错误猜测 + 反例驱动
+- **测试方法（§2.2 方法表行）**：鉴权/角色隔离冒烟（data→admin 面 403）+ 错误猜测 + 反例驱动
 
 - 要测什么（责任展开）：`POST /v1/service-levels` 携带**有效 data token** 时被拒，返回 403 + `permission_denied`（data 角色不授权管理写面）；拒绝发生在任何 body 解析/资源变更之前，**零副作用**。
 
@@ -44,7 +44,7 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `data`）。前置 = §2.1 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；本 case **使用** `api_client` fixture（其 `Authorization: Bearer dev-data` 即被测输入），**不得**改用 `admin_client`（会以 `dev-admin` 通过，令本 case 失去意义）；初始状态 = §2.3 A 类基线（3 provider / 4 deployment / 7 fixed tier）。本 case 为拒绝路径，**零副作用**。
+- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `data`）。前置 = 计划 §3 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；本 case **使用** `api_client` fixture（其 `Authorization: Bearer dev-data` 即被测输入），**不得**改用 `admin_client`（会以 `dev-admin` 通过，令本 case 失去意义）；初始状态 = §2.3 A 类基线（3 provider / 4 deployment / 7 fixed tier）。本 case 为拒绝路径，**零副作用**。
 - **被测入口**：
 
   ```http
@@ -65,7 +65,7 @@
 ## 4. 执行步骤与观察点
 
 - **执行过程（逐步调用）**：
-  1. `GET /healthz`、`GET /readyz` —— 确认 §2.1 基线（由 `pytest_configure` 自动执行，本 case 不重复）。
+  1. `GET /healthz`、`GET /readyz` —— 确认 计划 §2 基线（由 `pytest_configure` 自动执行，本 case 不重复）。
   2. `resp = api_client.post("/v1/service-levels", json={"id": "x", "deployment_ids": []})`；记录 status、headers、body。
   3. 断言 `resp.status_code == 403`（data token 不满足 admin 角色；不是 200/201/204、不是 401）。
   4. 解析 body 的 `error` 信封，断言 `error.code == "permission_denied"`、`error.type == "request_error"`、`error.param is None`、`error.retryable is False`，且恰含 5 个键。
@@ -85,7 +85,7 @@
   - **PASS**：`status==403` 且 `error.code=="permission_denied"` 且 `error.type=="request_error"` 且信封恰 5 键。
   - **FAIL**：返回 200/201/204/401/其它 status，或 code/信封不符；须给预期 vs 实际与 `reproduction_cmd`。
   - **BLOCKED**：测试代码/契约本身问题（如误用 admin 凭据）。
-  - **SKIP**：§2.1 前置不满足。
+  - **SKIP**：计划 §3 前置不满足。
   - **INVALID**：用 `127.0.0.1`/mock/替代路径冒充真实 m5air 路径，或以 admin/错误凭据冒充。
   - **NOT_RUN**：有实现但本轮未执行。
 

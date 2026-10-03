@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "llmtier-unit-test-scheme",
   "document_type": "tests.unit-test-scheme",
-  "document_version": "0.1.0-draft.13",
+  "document_version": "0.1.0-draft.14",
   "title": "LLMTier V0.3 Unit Test Scheme",
   "document_owner": "LLMTier",
   "authors": [
@@ -11,7 +11,7 @@
   ],
   "template_id": "tests.unit-test-scheme",
   "template_version": "0.6.1",
-  "template_sha256": "6a199d8afe1c050601b3cd8edcde9b70d968fc9ae5441677d5f3f61eec3507e7",
+  "template_sha256": "5563cf65b2cdc2e08c8114b6ee4f9b339f766037d86a46d9d6d4b00ee24a5250",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,

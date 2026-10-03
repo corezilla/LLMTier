@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-TOOL-002` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-10-01` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -29,8 +29,8 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`UT-TOOL-002`）；责任摘要、分类与优先级以 [单元测试方案 §3](../llmtier-unit-test-scheme.md) 清单行为准。
-- **来源**：本项目**验证工具（verification tooling）**，非 8 个软件模块（`M001-M008`）之一：被测为 `tools/check_env.py`（系统计划 §3 Go/No-Go 的可执行实现）、`tools/reset_env.py`（系统计划 §6 复位阶梯可执行实现）、`tools/deploy.py`（`m5air-deploy-guide.md` 部署脚本化）。该 Case 不归属任何模块设计 §14 VRC（工具不实现产品行为），作为方案 §3 的独立「TOOL 家族」登记，**不改变** 33 个模块 VRC 的分母。
+- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`UT-TOOL-002`）；责任摘要、分类与优先级以 [单元测试方案 §6](../llmtier-unit-test-scheme.md) 清单行为准。
+- **来源**：本项目**验证工具（verification tooling）**，非 8 个软件模块（`M001-M008`）之一：被测为 `tools/check_env.py`（系统计划 §3 Go/No-Go 的可执行实现）、`tools/reset_env.py`（系统计划 §6 复位阶梯可执行实现）、`tools/deploy.py`（`m5air-deploy-guide.md` 部署脚本化）。该 Case 不归属任何模块设计 §14 VRC（工具不实现产品行为），作为方案 §6 的独立「TOOL 家族」登记，**不改变** 33 个模块 VRC 的分母。
 - **裁剪说明**：本 Case 是项目级合并方案 `llmtier-unit-test-scheme` 的工具切片 `TOOL`；裁剪依据见 [STD 裁剪清单](../../../00_management/std-tailoring.md)。
 
 ### 状态语义：实现状态
@@ -45,8 +45,8 @@
 
 ## 1. Case 概述与责任
 
-- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-TOOL-002` / M-TOOL `tools/check_env.py`＋`tools/reset_env.py`＋`tools/deploy.py`（系统计划 §3 Go/No-Go、§6 环境操作）/ none（工具，无模块 VRC）/ normal / P1（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对（工具纯逻辑）（主要手段：直接调用 + 冻结向量 + 替身注入）
+- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-TOOL-002` / M-TOOL `tools/check_env.py`＋`tools/reset_env.py`＋`tools/deploy.py`（系统计划 §3 Go/No-Go、§6 环境操作）/ none（工具，无模块 VRC）/ normal / P1（[方案清单 §6](../llmtier-unit-test-scheme.md)）。
+- **测试方法（§2.1 方法表行）**：等价类划分 + 契约字段比对（工具纯逻辑）（主要手段：直接调用 + 冻结向量 + 替身注入）
 - 要测什么（责任展开）：
   - `tools/check_env.py`：A/B 检查聚合（`summarize` 计数与 `all_pass`）、`--class a|b|all` 选择、检查异常不崩溃、exit 码（0 全过 / 2 任一失败）、`detect_lan_ip` override（TS-003）。
   - `tools/reset_env.py`：复位阶梯顺序（backup→restore/rebuild→clear-injections→reset-ledger→kill-leftovers→recheck）、`--dry-run` 不触网/不改、`--yes` 非交互 guard、sqlite backup API 备份、`--restore`/`--rebuild` 互斥与效果、注入清空 `PATCH {"items":[]}`＋断言空、`DELETE /v1/usage`、遗留测试进程解析。

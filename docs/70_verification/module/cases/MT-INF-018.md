@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `MT-INF-018` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-10-02` |
-| Last Modified Date | `2026-10-02` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.module-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`MT-INF-018`）；责任摘要、分类与优先级以 [模块测试方案 §3](../llmtier-module-test-scheme.md) 清单行为准，不在本文档重复维护。
+- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`MT-INF-018`）；责任摘要、分类与优先级以 [模块测试方案 §6](../llmtier-module-test-scheme.md) 清单行为准，不在本文档重复维护。
 - **测试脚本的唯一依据**：编码者按本文档写测试代码；§7 指向已实现脚本 `tests/module/cases/MT-INF-018.py`。
 - **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
 
@@ -43,10 +43,10 @@
 
 ## 1. Case 概述与责任
 
-- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-INF-018` / M003 并发超时 + 许可泄漏分支：队列等待超时后许可归零（组装，ENV-1） v0.1.0-draft.1 / VRC-INF-004（inference-design §14 / inference.isd §9.1，inference 0.1.0-draft.1） / VRC-INF-004 / concurrency / P1（[方案清单 §3](../llmtier-module-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：线程对偶 + 确定性交错 + 调用序断言（主要手段：边界外协作者用进程内 `FakeAdapter`（`ResponsesService._test_adapter` seam，资产 `llmtier-unit-fakes`））
-- **覆盖的分支 / 组合 / 迁移 ID**：分支：M003-并发超时 + 许可泄漏（§1.5.1 c8）
-- 要测什么（责任展开）：`Router.admit` 等待超 `30 s`→429 `rate_limit_exceeded`+`Retry-After`；`_inflight` 归零、无许可泄漏（§1.5.1 c8）（本 Case 责任：受控时钟下等待超 30s→429 + `Retry-After:1`；`_inflight` 归零、无许可泄漏）
+- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-INF-018` / M003 并发超时 + 许可泄漏分支：队列等待超时后许可归零（组装，ENV-1） v0.1.0-draft.1 / VRC-INF-004（inference-design §14 / inference.isd §9.1，inference 0.1.0-draft.1） / VRC-INF-004 / concurrency / P1（[方案清单 §6](../llmtier-module-test-scheme.md)）。
+- **测试方法（§2.4 方法表行）**：线程对偶 + 确定性交错 + 调用序断言（主要手段：边界外协作者用进程内 `FakeAdapter`（`ResponsesService._test_adapter` seam，资产 `llmtier-unit-fakes`））
+- **覆盖的分支 / 组合 / 迁移 ID**：分支：M003-并发超时 + 许可泄漏（§2.3 c8）
+- 要测什么（责任展开）：`Router.admit` 等待超 `30 s`→429 `rate_limit_exceeded`+`Retry-After`；`_inflight` 归零、无许可泄漏（§2.3 c8）（本 Case 责任：受控时钟下等待超 30s→429 + `Retry-After:1`；`_inflight` 归零、无许可泄漏）
 - 明确不测什么 / 失败含义：不测跨模块系统级流程、真实上游 provider 协议、浏览器 E2E（归系统层 `ST-*` 与契约层）；本层只断言组装后成立的分支走向、状态迁移与调用序。失败含义＝inference 组装后等待超时出口与许可归还与设计不一致。
 
 ## 2. 被测入口与前置
@@ -77,7 +77,7 @@ admit(level_id)  # 受控时钟推进越过 30s deadline
 
 ## 5. 独立 Oracle 与预期结果
 
-- 独立 Oracle 来源与推导：方案 §1.5.1 c8 + a20 + inference 模块设计 §14.4；按 `admit` 的 `remaining <= 0` 分支与 `Retry-After` 字面量人工推导
+- 独立 Oracle 来源与推导：方案 §2.3 c8 + a20 + inference 模块设计 §14.4；按 `admit` 的 `remaining <= 0` 分支与 `Retry-After` 字面量人工推导
 - 互斥预期（成功 / 各错误分支）：等待超时码与 `Retry-After` 精确；许可归零；后续请求不受影响
 
 ## 6. 错误路径、副作用与清理

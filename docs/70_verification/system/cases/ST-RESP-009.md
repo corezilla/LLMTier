@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-RESP-009` |
-| Document Version | `0.1.0-draft.4` |
+| Document Version | `0.1.0-draft.5` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -27,18 +27,18 @@
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
-> 本 Case 文档绑定：系统设计经 `--parent-document-id`、所属方案经方案清单行引用写入 metadata；Document ID＝Case ID。方案清单行见[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)。
+> 本 Case 文档绑定：系统设计经 `--parent-document-id`、所属方案经方案清单行引用写入 metadata；Document ID＝Case ID。方案清单行见[系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)。
 
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-RESP-009` / 系统设计 §8 Responses 接口（POST /v1/responses） / `VRC-INF-001` / `negative` / `P0`。本文件名 `st-resp-009.md`，与 Case ID 唯一对应。
-- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
+- **测试方法（§2.2 方法表行）**：错误猜测 + 反例驱动（ERR-*）
 - 要测什么（责任展开）：`POST /v1/responses` 携带禁字段 `previous_response_id`：`400 unsupported_field`（`param="previous_response_id"`），零副作用。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明未知/多余字段的拒绝（本 case 只覆盖显式禁字段清单；`additionalProperties:false` 路径见 ST-RESP-012..15 等）；不证明合法续写（本版本不存在）；不证明上游调用或答案。**失败含义＝禁用字段契约破坏**。
 
 **目的（被测契约）**：验证 Data Plane `POST /v1/responses` 的**禁用字段契约**：provider 续写/缓存类字段 `prompt_cache_key`/`prompt_cache_retention`/`previous_response_id` 出现即拒绝（本版本无 conversation 续写）。
 被测端点/规则：`POST /v1/responses`；需求 `LT-FUN-001`；设计验证项 `VRC-INF-001`；错误目录 `ERR-REQ-FIELD` → wire `code=unsupported_field`、`param`=该禁字段名；
-实现 `src/inference/responses.py`（`FORBIDDEN_FIELDS`，`require(forbidden is None, 400, "unsupported_field", "Unsupported provider continuation or cache field", forbidden)`）（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+实现 `src/inference/responses.py`（`FORBIDDEN_FIELDS`，`require(forbidden is None, 400, "unsupported_field", "Unsupported provider continuation or cache field", forbidden)`）（[系统测试方案 §6](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
 **不证明什么**：不证明未知/多余字段的拒绝（本 case 只覆盖显式禁字段清单；`additionalProperties:false` 路径见 ST-RESP-012..15 等）；不证明合法续写（本版本不存在）；不证明上游调用或答案。
 
 ## 2. 被测入口与前置
@@ -125,7 +125,7 @@
 
 ## 7. 自动化位置与状态
 
-- **证据与 Run**：证据与 Run 契约见[§4.8/§10](../llmtier-system-test-scheme.md)：保存请求 body、HTTP status/headers、原始错误信封、发出命令、exit code、环境快照；manifest 与报告落位见 §4.8/§10（本 case `environment:"a"`）；失败现场不截断。
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client`（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）；需求 `LT-FUN-001`；自动化入口 [`ST-RESP-009.py`](../../../../tests/system/cases/ST-RESP-009.py)。**不依赖**其它 Case；与 ST-RESP-012..15（未知字段路径）区分：本 case 命中显式禁字段清单，错误码为 `unsupported_field`。
+- **证据与 Run**：证据与 Run 契约见[计划 §7/§10](../llmtier-system-test-scheme.md)：保存请求 body、HTTP status/headers、原始错误信封、发出命令、exit code、环境快照；manifest 与报告落位见计划 §7/§10（本 case `environment:"a"`）；失败现场不截断。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client`（[系统测试方案 §4 测试环境类型](../llmtier-system-test-scheme.md)）；需求 `LT-FUN-001`；自动化入口 [`ST-RESP-009.py`](../../../../tests/system/cases/ST-RESP-009.py)。**不依赖**其它 Case；与 ST-RESP-012..15（未知字段路径）区分：本 case 命中显式禁字段清单，错误码为 `unsupported_field`。
 
 > 实现状态：Implemented（`ST-RESP-009.py` 已断言本 case 契约）；执行状态与 Verdict 只在 Run 报告。

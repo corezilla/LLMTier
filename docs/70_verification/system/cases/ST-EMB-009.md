@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-EMB-009` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -32,7 +32,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-EMB-009` / 系统设计 §8 Embeddings 接口（POST /v1/embeddings） / `VRC-INF-001` / recovery / P1（[方案清单 `ST-EMB-009`](../llmtier-system-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：故障注入（上游契约错误 → 502）+ 复位阶梯
+- **测试方法（§2.2 方法表行）**：故障注入（上游契约错误 → 502）+ 复位阶梯
 
 - 要测什么（责任展开）：`POST /v1/embeddings` 上游响应无法归一：`502 provider_contract_error`。上游返回非 `object:list` 或 `data` 非数组时，适配层拒绝。需求 `R-INF-05`；
   错误目录 `ERR-PROVIDER-CONTRACT` → wire `code=provider_contract_error`；实现 `src/inference/providers/openai.py::embed`（`data.get("object")!

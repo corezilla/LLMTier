@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-DEPL-002` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-DEPL-002`）；责任摘要、分类与优先级以 [系统测试方案 §3](../llmtier-system-test-scheme.md) 清单行为准。
+- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-DEPL-002`）；责任摘要、分类与优先级以 [系统测试方案 §6](../llmtier-system-test-scheme.md) 清单行为准。
 - **来源**：系统设计 §8 Deployment CRUD 接口（/v1/deployments）（parent `llmtier-system-design`），设计验证项 `VRC-MGMT-001`；所属方案 `llmtier-system-test-scheme`。
 - **边界**：系统层 Case（整软件系统组装，被测为 m5air 真实部署或按 tests.asset-design 约束的替身）；本文档持有实现状态，执行状态与 Verdict 只在 Run 报告。
 
@@ -48,8 +48,8 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-DEPL-002` / 系统设计 §8 Deployment CRUD 接口（/v1/deployments） / `VRC-MGMT-001` / `normal` / `P0`
-- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
-- 方案清单登记：`ST-DEPL-002`（与 §3.2 权威清单一致；本文件名 `st-depl-002.md`，唯一对应）。
+- **测试方法（§2.2 方法表行）**：等价类划分 + 契约字段比对
+- 方案清单登记：`ST-DEPL-002`（与 计划 §3 权威清单一致；本文件名 `st-depl-002.md`，唯一对应）。
 - 要测什么（责任展开）：`POST /v1/deployments` 创建 deployment：HTTP 201 + 自动 id + 完整 `DeploymentView` + `ETag`；`capabilities` 恰为 12 键全集。
 - 明确不测什么 / 失败含义：不证明 列表/详情（ST-DEPL-001/03）、不证明更新/删除（ST-DEPL-004/05）、不证明 capabilities 缺/多字段的 400（ST-DEPL-006/07）、不证明 provider 引用不存在（ST-DEPL-008）、不证明 `provider_id` PATCH 行为（ST-DEPL-009）；本 case 只创建、不触上游。
 
@@ -62,7 +62,7 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)/§2.4）。执行前须满足[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go)(../llmtier-system-test-scheme.md) **附加（B 类）**：实例 `/healthz` 200；`_baseline_settings` 注入 1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier。fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）：`llmtier_b`、`admin_client_b`。初始状态：1 provider（`prov_b`）/ 1 deployment（`depl_b`）/ 7 fixed tier。`llmtier_b` 对 `depl_b` 的 probe 返回 `healthy`；**TS-003**：`prov_b.endpoint` 必须是 LAN IP 上的 fake provider，**禁止 `127.0.0.1` 作为被测服务的上游 endpoint**。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。执行前须满足[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) **附加（B 类）**：实例 `/healthz` 200；`_baseline_settings` 注入 1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier。fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）：`llmtier_b`、`admin_client_b`。初始状态：1 provider（`prov_b`）/ 1 deployment（`depl_b`）/ 7 fixed tier。`llmtier_b` 对 `depl_b` 的 probe 返回 `healthy`；**TS-003**：`prov_b.endpoint` 必须是 LAN IP 上的 fake provider，**禁止 `127.0.0.1` 作为被测服务的上游 endpoint**。
 
 ## 3. 输入构造
 
@@ -100,7 +100,7 @@
   5. 断言响应头含 `ETag`，且等于 `f'"{data["id"]}.v{data["version"]}"'`（含双引号）；`GET /v1/deployments/{id}` 断言 `200` 且 `ETag` 与创建一致。
   6. （teardown，`finally` 内）以创建响应的 `ETag` `DELETE /v1/deployments/{id}`，断言 `204`；随后 `GET` 断言 `404`。
 
-**重点关注步骤**：① **201 + 自动 id**——不是 200，id 由服务端生成（`deployment_<hex>`）；② **`capabilities` 12 键等值**——`DeploymentWrite` 要求全集，缺/多即 400（由 ST-DEPL-006/07 覆盖），创建成功必须原样回显；③ **ETag 格式**——`"<id>.v<N>"` **含双引号**，新建为 `.v1`，且 `GET` 回读一致；④ **引用既存 provider**——`prov_b` 必须存在（§2.1 附加）；未知 provider 属 ST-DEPL-008；⑤ **零污染**——创建后必须 teardown 删除本次创建物，不删除基线 `depl_b`；⑥ **不触上游**——创建只写注册表，不调 `prov_b.endpoint`。
+**重点关注步骤**：① **201 + 自动 id**——不是 200，id 由服务端生成（`deployment_<hex>`）；② **`capabilities` 12 键等值**——`DeploymentWrite` 要求全集，缺/多即 400（由 ST-DEPL-006/07 覆盖），创建成功必须原样回显；③ **ETag 格式**——`"<id>.v<N>"` **含双引号**，新建为 `.v1`，且 `GET` 回读一致；④ **引用既存 provider**——`prov_b` 必须存在（计划 §3 附加）；未知 provider 属 ST-DEPL-008；⑤ **零污染**——创建后必须 teardown 删除本次创建物，不删除基线 `depl_b`；⑥ **不触上游**——创建只写注册表，不调 `prov_b.endpoint`。
 
 ## 5. 独立 Oracle 与预期结果
 
@@ -118,17 +118,17 @@
   - **BLOCKED**：无法执行/无法判定且可重试（fixture/断言逻辑问题）——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **SKIP**：B 类临时实例/fixture 不可用——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **INVALID**：用 `127.0.0.1`/mock 当上游 endpoint 或伪造 201——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：本 Case 有实现（§3.2 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
+  - **NOT_RUN**：本 Case 有实现（计划 §3 实现盘点 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
 
 ## 6. 错误路径、副作用与清理
 
-- **清理与复位**：**必须 teardown（`finally` 强制）**——`DELETE /v1/deployments/{id}`（用创建响应的 `If-Match`）删除本 case 创建物，随后 `GET` 校验 `404`；不删除基线 `depl_b`（其被 7 tier 引用，删除会 409 `resource_in_use`）、不改 `prov_b`/7 tier、不写注入。B 类整班结束由 fixture `stop()`（`terminate`→等待 5s→`kill`）+ `rm -rf` 临时目录销毁（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)/[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）。离开前确认无本次创建物残留。
+- **清理与复位**：**必须 teardown（`finally` 强制）**——`DELETE /v1/deployments/{id}`（用创建响应的 `If-Match`）删除本 case 创建物，随后 `GET` 校验 `404`；不删除基线 `depl_b`（其被 7 tier 引用，删除会 409 `resource_in_use`）、不改 `prov_b`/7 tier、不写注入。B 类整班结束由 fixture `stop()`（`terminate`→等待 5s→`kill`）+ `rm -rf` 临时目录销毁（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)/[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。离开前确认无本次创建物残留。
 
 ## 7. 自动化位置与状态
 
-- **证据与 Run**：证据与 Run 契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)(../llmtier-system-test-scheme.md)：Run ID=`<date>/B-api`；保存请求与原始响应（脱敏后）、发出命令、exit code、`elapsed`、环境快照；`manifest.json` 必填字段与报告落位（`tests/system/reports/...`）见 §4.8/§10；失败现场不截断。**本 case 额外证据**：创建请求/原始响应（含 `ETag`）、回读、teardown 的 `DELETE` 与随后 `GET`。
+- **证据与 Run**：证据与 Run 契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)：Run ID=`<date>/B-api`；保存请求与原始响应（脱敏后）、发出命令、exit code、`elapsed`、环境快照；`manifest.json` 必填字段与报告落位（`tests/system/reports/...`）见计划 §7/§10；失败现场不截断。**本 case 额外证据**：创建请求/原始响应（含 `ETag`）、回读、teardown 的 `DELETE` 与随后 `GET`。
   > **脚本覆盖缺口（登记，不在本 case 失败面）**：现有 [`ST-DEPL-002.py`](../../../../tests/system/cases/ST-DEPL-002.py) 创建后仅 `GET` 回读，**未 teardown 删除**本次创建物（依赖整班 B 类临时实例销毁兜底）；按本设计需在 `finally` 中删除后方为完整。
 
-- **依赖**：B 类 fixture `llmtier_b`/`admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；基线 provider `prov_b`（§2.1 附加）；`DeploymentWrite`/`DeploymentView` 机器契约；实现 `src/management/registry.py` `create_deployment`/`_etag`；自动化入口 [`ST-DEPL-002.py`](../../../../tests/system/cases/ST-DEPL-002.py)。**不依赖**其它 Case（自建被测 deployment）；与 ST-DEPL-004/05 共享创建前置但各自独立执行。
+- **依赖**：B 类 fixture `llmtier_b`/`admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；基线 provider `prov_b`（计划 §3 附加）；`DeploymentWrite`/`DeploymentView` 机器契约；实现 `src/management/registry.py` `create_deployment`/`_etag`；自动化入口 [`ST-DEPL-002.py`](../../../../tests/system/cases/ST-DEPL-002.py)。**不依赖**其它 Case（自建被测 deployment）；与 ST-DEPL-004/05 共享创建前置但各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

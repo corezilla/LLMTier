@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-EMB-004` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-EMB-004`）；责任摘要、分类与优先级以 [系统测试方案 §3](../llmtier-system-test-scheme.md) 清单行为准。
+- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-EMB-004`）；责任摘要、分类与优先级以 [系统测试方案 §6](../llmtier-system-test-scheme.md) 清单行为准。
 - **来源**：系统设计 §8 Embeddings 接口（parent `llmtier-system-design`），设计验证项 `VRC-INF-001`；所属方案 `llmtier-system-test-scheme`。
 - **边界**：系统层 Case（整软件系统组装，被测为 m5air 真实部署或按 tests.asset-design 约束的替身）；本文档持有实现状态，执行状态与 Verdict 只在 Run 报告。
 
@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-EMB-004` / 系统设计 §8 Embeddings 接口 / `VRC-INF-001` / negative / P0（[方案清单 `ST-EMB-004`](../llmtier-system-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-MODEL）
+- **测试方法（§2.2 方法表行）**：错误猜测 + 反例驱动（ERR-MODEL）
 - 要测什么（责任展开）：`POST /v1/embeddings` 请求未知逻辑 model：返回 `404 model_not_found`（统一错误信封），不触上游。端点在**准入/路由之前**以 OpenAPI `ErrorEnvelope` 返回 HTTP `404` 且 `error.code=="model_not_found"`（`ERR-MODEL-NOTFOUND`，系统设计 §7.8）；
   `type=="request_error"`（status<500）、`param==null`、`retryable==false`。需求 `LT-FUN-003`；机制需求 `R-INF-04`（[inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）；
   契约 `CT-EMB-001`。**权威码确认**：`src/inference/embeddings.py` 第 36–39 行捕获 `registry.get_service_level()` 的 `ApiError(404,"not_found")` 并**重映射为 `ApiError(404,"model_not_found")`**；
@@ -86,7 +86,7 @@ Accept: application/json
 
 | Step | 动作 | 观察点 |
 |---|---|---|
-| 1 | `GET /healthz`、`GET /readyz`（`pytest_configure` 自动执行） | §2.1 基线 |
+| 1 | `GET /healthz`、`GET /readyz`（`pytest_configure` 自动执行） | 计划 §2 基线 |
 | 2 | （可选）`GET /v1/usage` 记录 usage 基线 | 用于事后证明无新增账本义务 |
 | 3 | `resp = api_client.post("/v1/embeddings", json={"model": "NonExistentModel", "input": "hello"})` | status / headers / body |
 | 4 | 断言 `resp.status_code == 404` | `body` 不含成功字段（无顶层 `data`/`object`），是错误信封 |

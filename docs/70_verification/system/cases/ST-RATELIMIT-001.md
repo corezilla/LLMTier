@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-RATELIMIT-001` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-10-01` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -31,7 +31,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-RATELIMIT-001`）；责任摘要、分类与优先级以 [系统测试方案 §3](../llmtier-system-test-scheme.md) 清单行为准。
+- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-RATELIMIT-001`）；责任摘要、分类与优先级以 [系统测试方案 §6](../llmtier-system-test-scheme.md) 清单行为准。
 - **来源**：系统设计 §8 Responses 接口（`POST /v1/responses`）准入队列；机制 `inference-stream` 准入；所属方案 `llmtier-system-test-scheme`。
 - **边界**：系统层 Case（整软件系统组装，被测为临时替身实例）；本文档持有实现状态，执行状态与 Verdict 只在 Run 报告。
 
@@ -46,14 +46,14 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-RATELIMIT-001` / 系统设计 §8 Responses 接口（`POST /v1/responses`）准入队列 / `VRC-INF-004` / `concurrency` / `P1`
-- **测试方法（§1.5 方法表行）**：状态机驱动 + 固定并发度/种子（准入许可=1 的单槽排队排空）
+- **测试方法（§2.2 方法表行）**：状态机驱动 + 固定并发度/种子（准入许可=1 的单槽排队排空）
 - 方案清单登记：`ST-RATELIMIT-001`（与 §3 权威清单一致；本文件名 `st-ratelimit-001.md`，唯一对应）。
 - 要测什么（责任展开）：provider `max_concurrent_requests=1` 时，6 个并发 Responses 请求被准入队列**吸收**——全部最终 200、无 429；总耗时随许可数串行化（证明经过队列而非并发直通）。
 - 明确不测什么 / 失败含义：不测队列满→429（ST-RESP-020）、不测 embeddings 准入饱和（ST-EMB-008）、不测 `Retry-After` 值。失败含义＝单槽排队语义破坏（spurious 429 或并发直通绕过许可）。
 
 **目的（被测契约）**：验证准入层的**正向排队语义**。被测端点/规则：`POST /v1/responses`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `createResponse`）；
 [`Router.admit`](../../../../src/inference/routing.py) 以 provider `max_concurrent_requests`（单槽=1）与部署 `max_in_flight` 为并发许可，超限请求进入 32 深队列等待而非立即 429。
-设计验证项 `VRC-INF-004`（准入饱和/候选健康）；机制 `T-QUEUE`（[系统测试方案 §3.6](../llmtier-system-test-scheme.md#36-需求lt--到-case-的可追溯映射3-的-36-等价节)）、`CT-DP-001`。
+设计验证项 `VRC-INF-004`（准入饱和/候选健康）；机制 `T-QUEUE`（[系统测试方案 §6.6](../llmtier-system-test-scheme.md#36-需求lt--到-case-的可追溯映射3-的-36-等价节)）、`CT-DP-001`。
 **不证明什么**：不证明队列满→429（ST-RESP-020）、不证明 embeddings 饱和（ST-EMB-008）、不发布任何吞吐/延迟 SLO（方案 §4 容量/耐久裁决）。
 
 ## 2. 被测入口与前置
@@ -82,7 +82,7 @@
   - **PASS**：全部 200 且耗时 > 4s。
   - **FAIL**：任一非 200（含 429）或耗时 ≤ 4s（并发直通/许可未生效）。
   - **BLOCKED**：fixture/断言逻辑问题——见[系统测试计划 §7](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **SKIP**：§2.1/§2.9 前置不满足——见[系统测试计划 §7](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
+  - **SKIP**：计划 §3 前置不满足——见[系统测试计划 §7](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **INVALID**：用真实网络抖动冒充排队（须以 SlowAdapter 确定性时延构造）——见[系统测试计划 §7](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
 
 ## 6. 错误路径、副作用与清理

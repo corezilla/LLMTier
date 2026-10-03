@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-OBSTRACE-002` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -31,7 +31,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-OBSTRACE-002`）；责任摘要、分类与优先级以 [系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
+- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-OBSTRACE-002`）；责任摘要、分类与优先级以 [系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
 - **测试脚本的唯一依据**：编码者按本文档写测试代码，不需要回读方案或设计正文猜测意图。
 - **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
 
@@ -48,7 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-OBSTRACE-002` / 系统设计 §8 诊断 trace 接口（/v1/diagnostics/traces） / `VRC-DIAG-002` / `recovery` / `P2`
-- **测试方法（§1.5 方法表行）**：边界值抽样（limit=1 分页）+ 错误猜测 + 反例驱动（ERR-CURSOR）+ 对照复位
+- **测试方法（§2.2 方法表行）**：边界值抽样（limit=1 分页）+ 错误猜测 + 反例驱动（ERR-CURSOR）+ 对照复位
 - 方案清单登记：`ST-OBSTRACE-002`
 - 要测什么（责任展开）：`GET /v1/diagnostics/traces` `limit=1` 稳定分页 + 无效/过期 cursor → `400 cursor_expired`（`ERR-CURSOR`）。
 - 明确不测什么 / 失败含义：不证明 去重/正向页（ST-OBSTRACE-001）、不证明快照 cursor（ST-OBSSNAP-002）、不证明别名等价（ST-OBSALIAS-006）、不证明 `limit=abc` 的 `invalid_request`（属 `_int_param`，非本 case 的 `cursor_expired`）。
@@ -56,17 +56,17 @@
   含 `"|"` 的 `"<first_ts>|<rid>"` 才作为合法游标用于 `(first_ts,rid)<(?,?)`。故"400 `cursor_expired`"与实现一致。
 
 **目的（被测契约）**：验证 `GET /v1/diagnostics/traces` 的**分页与 cursor 负向契约**。被测端点/规则：`limit∈[1,500]`（实现 `max(1,min(limit,500))`），`limit=1` 时单页至多 1 项、`has_more`/`next_cursor` 与数据量一致；
-cursor 稳定基于 `(first_ts, request_id)`（`"<first_ts>|<rid>"`）；**无效/过期 cursor → `400 cursor_expired`**（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) ST-OBSTRACE-002；
+cursor 稳定基于 `(first_ts, request_id)`（`"<first_ts>|<rid>"`）；**无效/过期 cursor → `400 cursor_expired`**（[系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) ST-OBSTRACE-002；
 §3.5 `/v1/diagnostics/traces` 覆盖 `cursor_expired`；§11.1 `ERR-CURSOR → ST-USAGE-004、ST-OBSSNAP-002、ST-OBSTRACE-002`）；openapi `/v1/diagnostics/traces` **声明 400**（`BadRequest`）；
 认证 `admin`；统一信封 5 键。设计验证项 `VRC-DIAG-002`；机制 `T-OBS-TRACE` + `T-MET-PAGE`（[observability 机制](../../../20_system_design/mechanisms/observability.md)）；
-需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
 **不证明什么**：不证明去重/正向页（ST-OBSTRACE-001）、不证明快照 cursor（ST-OBSSNAP-002）、不证明别名等价（ST-OBSALIAS-006）、不证明 `limit=abc` 的 `invalid_request`（属 `_int_param`，非本 case 的 `cursor_expired`）。
 **实现现状（已对齐契约）**：当前实现 [`traces`](../../../../src/libdiag/traces.py) **已校验 cursor**——cursor 不含 `"|"` 即抛 `ApiError(400, "cursor_expired", ...)`（`traces.py:85-88`）；
 含 `"|"` 的 `"<first_ts>|<rid>"` 才作为合法游标用于 `(first_ts,rid)<(?,?)`。故"400 `cursor_expired`"与实现一致。
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=§2.1 附加（B 类）；fixture：`llmtier_b` + `admin_client_b`/`api_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。为产生可分页的 trace，**先制造 >1 个带 `request_id` 的 trace**：对 `depl_b` 发起 ≥2 次 `POST /v1/responses`（`api_client_b`，`stream=true`,`store=false`；`depl_b` 为 healthy，响应为 SSE 或可解释错误），入口对每次请求写 `received`（及可能的 `completed`）`trace_events`，即使响应非 200 也会有 trace（trace 始终写）。若制造失败无法得到 ≥2 个 trace，则退化为仅测无效 cursor（仍有效）并在报告说明数据限制。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=计划 §3 附加（B 类）；fixture：`llmtier_b` + `admin_client_b`/`api_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。为产生可分页的 trace，**先制造 >1 个带 `request_id` 的 trace**：对 `depl_b` 发起 ≥2 次 `POST /v1/responses`（`api_client_b`，`stream=true`,`store=false`；`depl_b` 为 healthy，响应为 SSE 或可解释错误），入口对每次请求写 `received`（及可能的 `completed`）`trace_events`，即使响应非 200 也会有 trace（trace 始终写）。若制造失败无法得到 ≥2 个 trace，则退化为仅测无效 cursor（仍有效）并在报告说明数据限制。
 
 ## 3. 输入构造
 
@@ -117,6 +117,6 @@ cursor 稳定基于 `(first_ts, request_id)`（`"<first_ts>|<rid>"`）；**无�
 
 - **证据与 Run**：保存制造 trace 的请求、`limit=1` 两页响应、跨页 `request_id` 对比、每个无效 cursor 的原始 400（或当前实现的 200 实测）、命令/exit code/`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/B-api`，`environment:"b"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go)（B 类附加）；`llmtier_b`/`admin_client_b`/`api_client_b` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`ERR-CURSOR`；实现 [`src/libdiag/traces.py`](../../../../src/libdiag/traces.py)（`traces.py:85-88` 校验 cursor，与契约一致）、[`src/http_api/app.py`](../../../../src/http_api/app.py)。自动化入口 `ST-OBSTRACE-002.py`（已实现）。**不依赖**其它 Case；与 ST-OBSTRACE-001（去重/正向页）、ST-OBSSNAP-002（快照 cursor）互补但各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go)（B 类附加）；`llmtier_b`/`admin_client_b`/`api_client_b` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；`ERR-CURSOR`；实现 [`src/libdiag/traces.py`](../../../../src/libdiag/traces.py)（`traces.py:85-88` 校验 cursor，与契约一致）、[`src/http_api/app.py`](../../../../src/http_api/app.py)。自动化入口 `ST-OBSTRACE-002.py`（已实现）。**不依赖**其它 Case；与 ST-OBSTRACE-001（去重/正向页）、ST-OBSSNAP-002（快照 cursor）互补但各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "llmtier-system-test-plan",
   "document_type": "tests.system-test-plan",
-  "document_version": "0.1.0-draft.10",
+  "document_version": "0.1.0-draft.11",
   "title": "LLMTier V0.3 System Test Plan",
   "document_owner": "LLMTier",
   "authors": [
@@ -11,7 +11,7 @@
   ],
   "template_id": "tests.system-test-plan",
   "template_version": "0.9.2",
-  "template_sha256": "3d7aeaa87cb3c88e38b74f259554ab9ac6d540112d2d7799524f14b263ff82be",
+  "template_sha256": "ab1d4c9ed2ba68f77c25da0186d6f2bccd15dee275d55913a6f40858d5439556",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": "llmtier-api-test-plan, llmtier-api-test-execution, llmtier-test-plan, llmtier-vv-plan",
@@ -27,5 +27,5 @@
   "parent_document_id": "llmtier-system-design",
   "supersedes": null,
   "created_at": "2026-09-29",
-  "last_modified_at": "2026-10-01"
+  "last_modified_at": "2026-10-03"
 }

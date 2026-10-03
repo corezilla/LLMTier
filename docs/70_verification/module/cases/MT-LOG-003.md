@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `MT-LOG-003` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-10-02` |
-| Last Modified Date | `2026-10-02` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.module-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`MT-LOG-003`）；责任摘要、分类与优先级以 [模块测试方案 §3](../llmtier-module-test-scheme.md) 清单行为准，不在本文档重复维护。
+- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`MT-LOG-003`）；责任摘要、分类与优先级以 [模块测试方案 §6](../llmtier-module-test-scheme.md) 清单行为准，不在本文档重复维护。
 - **测试脚本的唯一依据**：编码者按本文档写测试代码；§7 指向已实现脚本 `tests/module/cases/MT-LOG-003.py`。
 - **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
 
@@ -43,8 +43,8 @@
 
 ## 1. Case 概述与责任
 
-- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-LOG-003` / M008 `page` 分支：缺 since/until→400 + limit 夹取 + 过滤（组装） v0.1.0-draft.1 / VRC-LOG-001（log-design §14 / log.isd §9.1，log 0.1.0-draft.1） / VRC-LOG-001 / negative / P1（[方案清单 §3](../llmtier-module-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（非法字段/凭据/引用/类型/顺序）+ 判定表组合（主要手段：无边界替身，全真实（仅 ENV-1/ENV-2 真实实现））
+- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-LOG-003` / M008 `page` 分支：缺 since/until→400 + limit 夹取 + 过滤（组装） v0.1.0-draft.1 / VRC-LOG-001（log-design §14 / log.isd §9.1，log 0.1.0-draft.1） / VRC-LOG-001 / negative / P1（[方案清单 §6](../llmtier-module-test-scheme.md)）。
+- **测试方法（§2.4 方法表行）**：错误猜测 + 反例驱动（非法字段/凭据/引用/类型/顺序）+ 判定表组合（主要手段：无边界替身，全真实（仅 ENV-1/ENV-2 真实实现））
 - **覆盖的分支 / 组合 / 迁移 ID**：分支：M008-page 三分支；迁移：T14
 - 要测什么（责任展开）：缺参→400；`limit` 夹到 [1,200]；level/module/request_id 过滤；DESC 顺序（本 Case 责任：缺参 400、limit 夹取、三类过滤、DESC 顺序稳定（T14））
 - 明确不测什么 / 失败含义：不测跨模块系统级流程、真实上游 provider 协议、浏览器 E2E（归系统层 `ST-*` 与契约层）；本层只断言组装后成立的分支走向、状态迁移与调用序。失败含义＝log 组装后查询分支与顺序稳定性与设计不一致。
@@ -78,7 +78,7 @@ page(limit, level, module, request_id, since, until) -> {"data", "page"}
 
 ## 5. 独立 Oracle 与预期结果
 
-- 独立 Oracle 来源与推导：log 模块设计 §14.1 + 方案 §3.4 T14；按 `ORDER BY created_at DESC, id DESC` 与 `max(1, min(limit, 200))` 人工推导
+- 独立 Oracle 来源与推导：log 模块设计 §14.1 + 方案 §6.4 T14；按 `ORDER BY created_at DESC, id DESC` 与 `max(1, min(limit, 200))` 人工推导
 - 互斥预期（成功 / 各错误分支）：三处缺参→400；`limit` 夹取；三种过滤与组合正确；倒序稳定可复现
 
 ## 6. 错误路径、副作用与清理

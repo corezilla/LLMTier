@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-OBSSNAP-002` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -31,7 +31,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-OBSSNAP-002`）；责任摘要、分类与优先级以 [系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
+- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-OBSSNAP-002`）；责任摘要、分类与优先级以 [系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
 - **测试脚本的唯一依据**：编码者按本文档写测试代码，不需要回读方案或设计正文猜测意图。
 - **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
 
@@ -48,21 +48,21 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-OBSSNAP-002` / 系统设计 §8 诊断快照接口（/v1/diagnostics/snapshots） / `VRC-DIAG-002` / `recovery` / `P2`
-- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-CURSOR）+ 对照复位
+- **测试方法（§2.2 方法表行）**：错误猜测 + 反例驱动（ERR-CURSOR）+ 对照复位
 - 方案清单登记：`ST-OBSSNAP-002`
 - 要测什么（责任展开）：`GET /v1/diagnostics/snapshots` 提交无效/过期 cursor：HTTP 400 `cursor_expired`（`ERR-CURSOR`），不返回被游标解引用为零匹配的"假空页"。
 - 明确不测什么 / 失败含义：不证明 正向页/脱敏（ST-OBSSNAP-001）、不证明 trace 分页（ST-OBSTRACE-002）、不证明别名等价（ST-OBSALIAS-002）、不证明 `limit` 非法值的 400（`_int_param` → `invalid_request`，非本 case 的 `cursor_expired`）。**实现现状（已对齐契约）**：当前实现 [`snapshots_page`](../../../../src/libdiag/snapshots.py) **已校验 cursor**——不存在/失效 cursor 显式抛 `ApiError(400, "cursor_expired")`（`snapshots.py:49-51`），不会返回"假空页"。因此本 case 的"400 `cursor_expired`"与实现一致。
 
-**目的（被测契约）**：验证 `GET /v1/diagnostics/snapshots` 的**分页 cursor 负向契约**。被测端点/规则：非法/不可解析/已失效 cursor → `400 cursor_expired`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) ST-OBSSNAP-002；
+**目的（被测契约）**：验证 `GET /v1/diagnostics/snapshots` 的**分页 cursor 负向契约**。被测端点/规则：非法/不可解析/已失效 cursor → `400 cursor_expired`（[系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) ST-OBSSNAP-002；
 §3.5 `/v1/diagnostics/snapshots` 覆盖 `cursor_expired`；§11.1 `ERR-CURSOR → ST-USAGE-004、ST-OBSSNAP-002、ST-OBSTRACE-002`）；稳定排序基于 `(captured_at, id)`（[`src/libdiag/snapshots.py`](../../../../src/libdiag/snapshots.py) `ORDER BY captured_at DESC,id DESC`，cursor 谓词 `(captured_at||id) < (SELECT ... WHERE id=?)
 `）；认证 `admin`；统一错误信封 5 键。设计验证项 `VRC-DIAG-002`；机制 `T-OBS-SNAP` + 分页语义 `T-MET-PAGE`（[observability 机制](../../../20_system_design/mechanisms/observability.md) §4.2 `D-OBS-PAGE`、[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；
-需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
 **不证明什么**：不证明正向页/脱敏（ST-OBSSNAP-001）、不证明 trace 分页（ST-OBSTRACE-002）、不证明别名等价（ST-OBSALIAS-002）、不证明 `limit` 非法值的 400（`_int_param` → `invalid_request`，非本 case 的 `cursor_expired`）。
 **实现现状（已对齐契约）**：当前实现 [`snapshots_page`](../../../../src/libdiag/snapshots.py) **已校验 cursor**——不存在/失效 cursor 显式抛 `ApiError(400, "cursor_expired")`（`snapshots.py:49-51`），不会返回"假空页"。
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=§2.1 附加（B 类）；执行前附加（B 类）；fixture：`llmtier_b` + `admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。初始状态=基线；本 case 只读（仅 GET），不改变任何状态；本 case 以**语法无效/不存在**的 cursor 为充分输入（快照 cursor 不落 `query_snapshots`，与 ST-USAGE-004 不同）。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=计划 §3 附加（B 类）；执行前附加（B 类）；fixture：`llmtier_b` + `admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。初始状态=基线；本 case 只读（仅 GET），不改变任何状态；本 case 以**语法无效/不存在**的 cursor 为充分输入（快照 cursor 不落 `query_snapshots`，与 ST-USAGE-004 不同）。
 
 ## 3. 输入构造
 
@@ -116,6 +116,6 @@
 
 - **证据与 Run**：保存每个无效 cursor 的原始 400 信封（或当前实现的 200 空页实测）、正向对照、命令/exit code/`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/B-api`，`environment:"b"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go)（B 类附加）；`llmtier_b`/`admin_client_b` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`ERR-CURSOR`（[系统设计 §7.8](../../../20_system_design/llmtier-system-design.md)）；实现 [`src/libdiag/snapshots.py`](../../../../src/libdiag/snapshots.py)（`snapshots.py:49-51` 校验 cursor，与契约一致）、[`src/http_api/app.py`](../../../../src/http_api/app.py)。自动化入口 `ST-OBSSNAP-002.py`（已实现）。**不依赖**其它 Case；与 ST-OBSSNAP-001（正向页）、ST-OBSTRACE-002（trace cursor）互补但各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go)（B 类附加）；`llmtier_b`/`admin_client_b` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；`ERR-CURSOR`（[系统设计 §7.8](../../../20_system_design/llmtier-system-design.md)）；实现 [`src/libdiag/snapshots.py`](../../../../src/libdiag/snapshots.py)（`snapshots.py:49-51` 校验 cursor，与契约一致）、[`src/http_api/app.py`](../../../../src/http_api/app.py)。自动化入口 `ST-OBSSNAP-002.py`（已实现）。**不依赖**其它 Case；与 ST-OBSSNAP-001（正向页）、ST-OBSTRACE-002（trace cursor）互补但各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-USAGE-009` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -32,7 +32,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-USAGE-009` / 系统设计 §8 Usage 查询接口（GET /v1/usage）；机制 §15 计量（T-MET-CRASH） / `VRC-INF-004、VRC-MGMT-006` / recovery / P0（[方案清单 `ST-USAGE-009`](../llmtier-system-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：故障注入（进程崩溃/重启）+ 复位阶梯（账本不变量）
+- **测试方法（§2.2 方法表行）**：故障注入（进程崩溃/重启）+ 复位阶梯（账本不变量）
 
 - 要测什么（责任展开）：账本核心不变量：`authorize_dispatch` 在 dispatch 前提交**义务 + v1 `unknown` + head=1**（单事务）；此后进程崩溃/重启，该 orphan unknown **仍在**且**绝不回填为 0**；
   `GET /v1/usage` 仍返回该 `request_id`，`measurement_status=unknown`、token 全为 NULL、`is_final=false`。需求 `R-MET-04`；机制 `T-MET-CRASH`（[usage-metering §9/§14.3](../../../20_system_design/mechanisms/usage-metering.md)）；

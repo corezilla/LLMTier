@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-TOOL-001` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -29,8 +29,8 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`UT-TOOL-001`）；责任摘要、分类与优先级以 [单元测试方案 §3](../llmtier-unit-test-scheme.md) 清单行为准。
-- **来源**：本项目**验证工具（verification tooling）**，非 8 个软件模块（`M001-M008`）之一：被测为 `tools/test_report.py`（证据链工具，见 [单元测试计划](../llmtier-unit-test-plan.md) §7 状态映射规则）。该 Case 不归属任何模块设计 §14 VRC（工具不实现产品行为），作为方案 §3 的独立「TOOL 家族」登记，**不改变** 33 个模块 VRC 的分母。
+- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`UT-TOOL-001`）；责任摘要、分类与优先级以 [单元测试方案 §6](../llmtier-unit-test-scheme.md) 清单行为准。
+- **来源**：本项目**验证工具（verification tooling）**，非 8 个软件模块（`M001-M008`）之一：被测为 `tools/test_report.py`（证据链工具，见 [单元测试计划](../llmtier-unit-test-plan.md) §7 状态映射规则）。该 Case 不归属任何模块设计 §14 VRC（工具不实现产品行为），作为方案 §6 的独立「TOOL 家族」登记，**不改变** 33 个模块 VRC 的分母。
 - **裁剪说明**：本 Case 是项目级合并方案 `llmtier-unit-test-scheme` 的工具切片 `TOOL`；裁剪依据见 [STD 裁剪清单](../../../00_management/std-tailoring.md)。
 
 ### 状态语义：实现状态
@@ -45,8 +45,8 @@
 
 ## 1. Case 概述与责任
 
-- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-TOOL-001` / M-TOOL `tools/test_report.py`（单元计划 §7 状态映射）/ none（工具，无模块 VRC）/ normal / P1（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对（工具纯逻辑）（主要手段：直接调用 + 冻结向量）
+- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-TOOL-001` / M-TOOL `tools/test_report.py`（单元计划 §7 状态映射）/ none（工具，无模块 VRC）/ normal / P1（[方案清单 §6](../llmtier-unit-test-scheme.md)）。
+- **测试方法（§2.1 方法表行）**：等价类划分 + 契约字段比对（工具纯逻辑）（主要手段：直接调用 + 冻结向量）
 - 要测什么（责任展开）：被测：`tools/test_report.py` 的 JUnit→状态映射（`passed→PASS`、`failed→FAIL`、`xfailed→BLOCKED`（原因取自 `BLOCKED (...)`）、`xpassed→XPASS`（绝不 PASS）、环境 `skipped→SKIP` / 计划 `skipped→NOT_RUN`、`errored→BLOCKED`）、运行级 SKIP 上限（A≤5 / B≤3）、`case_id_from_source`（docstring 头 / 路径回退）、`build_report` 计数与阻塞口径、`emit_manifests` 逐 Case manifest 产出。
 - 明确不测什么 / 失败含义：不测：pytest 自身执行语义；不测被测产品行为。失败含义＝状态映射错误导致 Run 证据失真（假 PASS / 漏 BLOCKED）。
 

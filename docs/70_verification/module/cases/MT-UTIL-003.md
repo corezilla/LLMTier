@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `MT-UTIL-003` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-10-02` |
-| Last Modified Date | `2026-10-02` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.module-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`MT-UTIL-003`）；责任摘要、分类与优先级以 [模块测试方案 §3](../llmtier-module-test-scheme.md) 清单行为准，不在本文档重复维护。
+- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`MT-UTIL-003`）；责任摘要、分类与优先级以 [模块测试方案 §6](../llmtier-module-test-scheme.md) 清单行为准，不在本文档重复维护。
 - **测试脚本的唯一依据**：编码者按本文档写测试代码；§7 指向已实现脚本 `tests/module/cases/MT-UTIL-003.py`。
 - **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
 
@@ -43,8 +43,8 @@
 
 ## 1. Case 概述与责任
 
-- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-UTIL-003` / M007 连接分支：symlink 503/world-writable/fd 基线/close 异常（组装） v0.1.0-draft.2 / VRC-UTIL-001（util-design §14 / util.isd §9.1，util 0.1.0-draft.2） / VRC-UTIL-001 / boundary / P0（[方案清单 §3](../llmtier-module-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：边界值（上限/零/空/刚好满、长度、分页越界）+ 条件边界（主要手段：无边界替身，全真实（仅 ENV-1/ENV-2 真实实现））
+- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-UTIL-003` / M007 连接分支：symlink 503/world-writable/fd 基线/close 异常（组装） v0.1.0-draft.2 / VRC-UTIL-001（util-design §14 / util.isd §9.1，util 0.1.0-draft.2） / VRC-UTIL-001 / boundary / P0（[方案清单 §6](../llmtier-module-test-scheme.md)）。
+- **测试方法（§2.4 方法表行）**：边界值（上限/零/空/刚好满、长度、分页越界）+ 条件边界（主要手段：无边界替身，全真实（仅 ENV-1/ENV-2 真实实现））
 - **覆盖的分支 / 组合 / 迁移 ID**：分支：M007-连接四分支
 - 要测什么（责任展开）：symlink→503 `store_path_unsafe`；world-writable 警告；多请求 fd 基线不泄漏；close 异常上抛（本 Case 责任：symlink 拒绝、world-writable 告警、连接回收、close 幂等）
 - 明确不测什么 / 失败含义：不测跨模块系统级流程、真实上游 provider 协议、浏览器 E2E（归系统层 `ST-*` 与契约层）；本层只断言组装后成立的分支走向、状态迁移与调用序。失败含义＝util 组装后连接建立前的拒绝与告警分支与设计不一致。
@@ -57,7 +57,7 @@
 Store(path)  # _precheck: symlink 拒绝 / world-writable 告警
 ```
 
-- 初态构造（经公开入口）：临时目录 + 真实文件（symlink/权限经文件系统注入，方案 §1.5 存储面）
+- 初态构造（经公开入口）：临时目录 + 真实文件（symlink/权限经文件系统注入，方案 §2.2 存储面）
 - 环境类型 + ENV 实例编号（引用 [模块测试计划 §4](../llmtier-module-test-plan.md) 分配）：ENV-1 组装隔离库
 - 依赖的测试资产（tests.asset-design 文档）：无（全部真实实现；不经替身）
 

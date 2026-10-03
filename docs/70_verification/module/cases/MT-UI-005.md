@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `MT-UI-005` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-10-02` |
-| Last Modified Date | `2026-10-02` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.module-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`MT-UI-005`）；责任摘要、分类与优先级以 [模块测试方案 §3](../llmtier-module-test-scheme.md) 清单行为准，不在本文档重复维护。
+- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`MT-UI-005`）；责任摘要、分类与优先级以 [模块测试方案 §6](../llmtier-module-test-scheme.md) 清单行为准，不在本文档重复维护。
 - **测试脚本的唯一依据**：编码者按本文档写测试代码；§7 指向已实现脚本 `tests/module/cases/MT-UI-005.py`。
 - **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
 
@@ -43,8 +43,8 @@
 
 ## 1. Case 概述与责任
 
-- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-UI-005` / M002 `usageSummary` 分支：not_refreshed/unlimited/Unavailable/percent-null（组装契约） v0.1.0-draft.2 / VRC-UI-004（web-ui-design §14 / web-ui.isd §9.1，web-ui 0.1.0-draft.2） / VRC-UI-004 / boundary / P1（[方案清单 §3](../llmtier-module-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：边界值（上限/零/空/刚好满、长度、分页越界）+ 条件边界（主要手段：无边界替身，全真实（仅 ENV-1/ENV-2 真实实现与真实静态产物））
+- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-UI-005` / M002 `usageSummary` 分支：not_refreshed/unlimited/Unavailable/percent-null（组装契约） v0.1.0-draft.2 / VRC-UI-004（web-ui-design §14 / web-ui.isd §9.1，web-ui 0.1.0-draft.2） / VRC-UI-004 / boundary / P1（[方案清单 §6](../llmtier-module-test-scheme.md)）。
+- **测试方法（§2.4 方法表行）**：边界值（上限/零/空/刚好满、长度、分页越界）+ 条件边界（主要手段：无边界替身，全真实（仅 ENV-1/ENV-2 真实实现与真实静态产物））
 - **覆盖的分支 / 组合 / 迁移 ID**：分支：M002-usageSummary 四态
 - 要测什么（责任展开）：四态渲染；Unknown≠0；版本替换去重；503 显式化不显示空表（本 Case 责任：not_refreshed/unlimited/Unavailable/ok 四类呈现互斥；Unknown≠0；503 显式化不显示空表）
 - 明确不测什么 / 失败含义：不测跨模块系统级流程、真实上游 provider 协议、浏览器 E2E（归系统层 `ST-*` 与契约层）；本层只断言组装后成立的分支走向、状态迁移与调用序。失败含义＝web-ui 组装后账号用量四类呈现与设计不一致。
@@ -71,7 +71,7 @@ usageSummary(snapshot) -> html
 
 | Step | 动作 | 观察点 |
 |---|---|---|
-| 1 | 四类分支渲染 | 标签逐条断言（`ok` 分支只做静态断言，见 §4 `O-UI-USAGEOK-1`） |
+| 1 | 四类分支渲染 | 标签逐条断言（`ok` 分支只做静态断言，见 §7 `O-UI-USAGEOK-1`） |
 | 2 | `percent=null` | 渲染 `Unknown` |
 | 3 | `windows=[]` + `percent=null` | 不渲染空 window |
 | 4 | 真实三快照 | 三种 status 落进三个不同渲染分支；仅 `ok` 渲染 window |

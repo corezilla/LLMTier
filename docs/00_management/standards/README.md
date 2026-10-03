@@ -31,4 +31,4 @@
 - [STD 裁剪清单](../std-tailoring.md)
 - [v0.3 实现计划](../llmtier-implementation-plan.md)
 - [系统测试计划](../../70_verification/system/llmtier-system-test-plan.md)
-- [测试规范（STD test-standard）](https://github.com/corezilla/STD/blob/eaca6dcb9ca990bfb9b68ae1c08dfb5d9d4b5da9/docs/test-standard.md)
+- [测试规范（STD test-standard）](https://github.com/corezilla/STD/blob/f07339644221f694f38e7bdda63cf5364114599b/docs/test-standard.md)

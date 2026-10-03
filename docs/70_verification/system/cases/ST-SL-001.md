@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-SL-001` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -31,7 +31,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-SL-001`）；责任摘要、分类与优先级以 [系统测试方案 §3](../llmtier-system-test-scheme.md) 清单行为准。
+- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-SL-001`）；责任摘要、分类与优先级以 [系统测试方案 §6](../llmtier-system-test-scheme.md) 清单行为准。
 - **来源**：系统设计 §8 Service Level CRUD 接口（/v1/service-levels）（parent `llmtier-system-design`），设计验证项 `VRC-MGMT-002`；所属方案 `llmtier-system-test-scheme`。
 - **边界**：系统层 Case（整软件系统组装，被测为 m5air 真实部署或按 tests.asset-design 约束的替身）；本文档持有实现状态，执行状态与 Verdict 只在 Run 报告。
 
@@ -48,19 +48,19 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-SL-001` / 系统设计 §8 Service Level CRUD 接口（/v1/service-levels） / `VRC-MGMT-002` / `normal` / `P0`
-- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
-- 方案清单登记：`ST-SL-001`（与 §3.2 权威清单一致；本文件名 `st-sl-001.md`，唯一对应）。
+- **测试方法（§2.2 方法表行）**：等价类划分 + 契约字段比对
+- 方案清单登记：`ST-SL-001`（与 计划 §3 权威清单一致；本文件名 `st-sl-001.md`，唯一对应）。
 - 要测什么（责任展开）：`GET /v1/service-levels` 返回全部固定 Tier：HTTP 200 + `ServiceLevelPage` 的 `data[]` 含 7 个 `FIXED_TIERS`。
 - 明确不测什么 / 失败含义：不证明 单条详情（ST-SL-003）、不证明创建/更新/删除（ST-SL-002/02b/04/04b/05/06/07/08）、不证明分页 cursor 语义（本 case 7 条 < 默认 limit 100，`has_more=false`）、不证明成员能力交集计算（ST-SL-006）。
 
 **目的（被测契约）**：验证 Management Service Level CRUD 的**列表契约**。被测端点/规则：`GET /v1/service-levels`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listServiceLevels`，`security=AdminBearerAuth`，query `cursor`/`limit`），成功 `200` + `ServiceLevelPage`（`{data:[ServiceLevelView], page:{has_more,next_cursor}}`，`additionalProperties:false`）；
 `data[]` 为固定 Tier 集合（`Senior/Junior/Worker/Associate/Engineer/Executor/Embedding-v1`，[`registry.list_service_levels`](../../../../src/management/registry.py) 按 `FIXED_TIERS` 顺序、只列已存在者）。
-设计验证项 `VRC-MGMT-002`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`T-CFG-CAS`、`T-CFG-SPACE`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+设计验证项 `VRC-MGMT-002`；需求/机制链 `LT-FUN-005`、`R-CFG-01`、`T-CFG-CAS`、`T-CFG-SPACE`、`CT-ADMIN-001`（[系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
 **不证明什么**：不证明单条详情（ST-SL-003）、不证明创建/更新/删除（ST-SL-002/02b/04/04b/05/06/07/08）、不证明分页 cursor 语义（本 case 7 条 < 默认 limit 100，`has_more=false`）、不证明成员能力交集计算（ST-SL-006）。
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `admin`，只读；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=§2.1 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；fixture `admin_client`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；初始状态=§2.3 A 类基线（3 provider / 4 deployment / 7 fixed tier）。
+- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `admin`，只读；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=计划 §3 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；fixture `admin_client`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；初始状态=§2.3 A 类基线（3 provider / 4 deployment / 7 fixed tier）。
   > **实现注记**：列表走 [`AdminService.page`](../../../../src/management/admin.py) 的 cursor 冻结页，**无 cursor 时会向 `query_snapshots`/`query_snapshot_items` 写入一条 kind=`admin:service-levels` 的临时快照**（10 min TTL）。这是读操作的实现副作用，非被测契约；本 case 不断言该写，清理见"清理与复位"。
 
 ## 3. 输入构造
@@ -77,7 +77,7 @@
 ## 4. 执行步骤与观察点
 
 - **执行过程（逐步调用）**：
-  1. `GET /healthz`、`GET /readyz` —— 确认 §2.1 基线（由 `pytest_configure` 自动执行，本 case 不重复）。
+  1. `GET /healthz`、`GET /readyz` —— 确认 计划 §2 基线（由 `pytest_configure` 自动执行，本 case 不重复）。
   2. `resp = admin_client.get("/v1/service-levels")`；记录 status、headers、body。
   3. 断言 `resp.status_code == 200` 且 `content-type` 含 `application/json`。
   4. 解析 body：断言为对象、含 `data`（数组）与 `page`（对象）；`page` 键集恰为 `{has_more,next_cursor}`（`AdminPageMeta`）。
@@ -102,9 +102,9 @@
   - **PASS**：`status==200` 且 `data` 为数组、7 个固定 Tier 齐全、元素含 `ServiceLevelView` 必填键、`page` 键集正确。
   - **FAIL**：任一断言不符（status 错、缺 Tier、`data`/`page` 形状不符、出现错误信封）。
   - **BLOCKED**：测试代码/契约本身问题（fixture 写不出、断言逻辑错）——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **SKIP**：§2.1 前置不满足（m5air 不可达、`/readyz` 非 7 tier）——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
+  - **SKIP**：计划 §3 前置不满足（m5air 不可达、`/readyz` 非 7 tier）——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **INVALID**：用 `127.0.0.1`/mock/替代路径冒充真实 m5air 路径——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：本 Case 有实现（§3.2 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
+  - **NOT_RUN**：本 Case 有实现（计划 §3 实现盘点 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
 
 ## 6. 错误路径、副作用与清理
 
@@ -114,6 +114,6 @@
 
 - **证据与 Run**：保存原始 HTTP status/headers/body、发出命令、exit code、`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`ServiceLevelPage` 机器契约；`registry.list_service_levels`/`FIXED_TIERS`。自动化入口 [`ST-SL-001.py`](../../../../tests/system/cases/ST-SL-001.py)。**不依赖**其它 Case；与 ST-SL-003（单条详情）互补。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；`ServiceLevelPage` 机器契约；`registry.list_service_levels`/`FIXED_TIERS`。自动化入口 [`ST-SL-001.py`](../../../../tests/system/cases/ST-SL-001.py)。**不依赖**其它 Case；与 ST-SL-003（单条详情）互补。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-test-scheme` |
-| Document Version | `0.1.0-draft.12` |
+| Document Version | `0.1.0-draft.13` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-test-scheme` |
 | Template Version | `0.6.1` |
 | Template Conformance | `native` |
@@ -49,7 +49,7 @@
 
 | 状态 | 取值 | 唯一权威记录处 | 禁止 |
 |---|---|---|---|
-| 用例状态 | `Designed` / `Gap`（具名缺口）/ `Tailored-N/A` | 本方案 §3 清单 | 未设计写成已设计；N/A 无设计事实依据 |
+| 用例状态 | `Designed` / `Gap`（具名缺口）/ `Tailored-N/A` | 本方案 §6 清单 | 未设计写成已设计；N/A 无设计事实依据 |
 
 <span style="color:#1f6feb"><em>**完成条件**：任一 Case 在本方案中只报设计状态；实现与执行状态可沿 Case ID 追到 case-design 文档与 Run 报告。</em></span>
 
@@ -62,14 +62,14 @@
 
 - **被测对象、设计基线与父对象**：LLMTier V0.3 **软件系统**在安装后的**运行形态**——LAN 上的 `http_api` 网关进程（HTTP 入口/鉴权/序列化、推理编排与上游适配、Registry、观测读/写/注入、SQLite Store 等真实子系统）。设计基线 = `llmtier-system-design`（系统设计，本方案 `parent_document_id`）；被测运行版本以每次 Run 的 artifact pin 锁定（`git_commit` + `db_schema_version` + `openapi_version`），不以下游分支名代替。外部接口的**机器权威**是 `interfaces/openapi/llmtier.openapi.json`。
 - **本阶段测试边界（真实组成 / 边界替身）**：被测路径上**全部真实子系统**——真实 HTTP 服务进程、真实 Registry 与 SQLite、真实鉴权与角色解析、真实 SSE 流。外部依赖按两类：**真实外部系统**（m5air/m5mac 上的 OMLX 上游 provider，经 LAN 以真实协议访问）与**受控边界替身**（B 类临时实例的 `_baseline_settings` 种子注册表与本地假上游 provider，其替身只证明**本服务**行为、不证明上游模型推理正确性）。两个环境：**A 类** = m5air 已部署实例（只读/观察/一次性无状态写，不污染 SQLite）；**B 类** = 临时本地实例（临时端口 + 临时 SQLite，承载创建/修改/删除/空库/无鉴权/注入/并发）。A/B 不共享 SQLite/端口/进程，A 类 PASS 不关闭 B 类，反之亦然。
-- **不证明的组合保证及承接入口**：本方案不证明真实生产环境（生产 TLS/SSO/MFA、浏览器无 bearer）、不证明上游模型答案质量与推理正确性、不证明 FD 泄漏/30min 耐久/50 并发等容量结论、不证明备份/恢复演练与进程 crash/restart 后的只读运维保证。**真实生产环境与客户/项目验收**不在 tests 家族，按项目 tailoring 由验收活动承接（见 §4）。静态契约一致（`CT-*` 静态 PASS）不等于运行行为 PASS，反之亦然；本层 PASS 不关闭上层组合目标。
+- **不证明的组合保证及承接入口**：本方案不证明真实生产环境（生产 TLS/SSO/MFA、浏览器无 bearer）、不证明上游模型答案质量与推理正确性、不证明 FD 泄漏/30min 耐久/50 并发等容量结论、不证明备份/恢复演练与进程 crash/restart 后的只读运维保证。**真实生产环境与客户/项目验收**不在 tests 家族，按项目 tailoring 由验收活动承接（见 §7）。静态契约一致（`CT-*` 静态 PASS）不等于运行行为 PASS，反之亦然；本层 PASS 不关闭上层组合目标。
 
-## 1.5 测试方法与测试设计技术
+## 2. 测试方法与测试设计技术
 
 <span style="color:#1f6feb"><em>**本节目相**：固定系统层"怎么测"的方法论——单元层测试设计技术比较单一（mock 为主），上游测试常**多方法共存**，需逐一描述与边界。</em></span>
 <span style="color:#1f6feb"><em>**必须写清楚**：测试设计技术（按 Case 家族用哪些——等价类划分/边界值/状态转换/决策表/错误猜测/属性测试/变异测试等，写明对哪些 family 用哪种及不用哪种）；入场标准（设计文档到位、方案清单冻结、Case 实现就绪、替身 Verified、环境齐）；离场标准（分母每条来源有 Case 或缺口、Verdict 齐全、缺口有主、设计变更触发重跑）；自动化策略（哪些进 CI、单 Case 选择入口、断点/重跑规则、flaky 不掩盖根因）。</em></span>
 <span style="color:#1f6feb"><em>**抽象示例**：见下方灰字——系统层方法（含注入/边界/调用序等具体细节）。</em></span>
-<span style="color:#1f6feb"><em>**完成条件**：每个 §3 Case 行能指出所用方法与环境类型；入场/离场可判定；环境类型与 asset-design 契约对应；无未声明的环境依赖。</em></span>
+<span style="color:#1f6feb"><em>**完成条件**：每个 §6 Case 行能指出所用方法与环境类型；入场/离场可判定；环境类型与 asset-design 契约对应；无未声明的环境依赖。</em></span>
 
 | Case 家族 | 测试设计技术 | 环境类型引用 | 自动化与判定规则 |
 |---|---|---|---|
@@ -79,7 +79,7 @@
 | recovery | 故障注入（`fault_502`/`fault_503`/`stream_terminate`/`malformed_event`）+ 客户端断开 | B 类临时实例 | 注入须命中计数>0，否则标 INVALID；复现状态与修复状态分开记录 |
 | security | 鉴权/授权/脱敏冒烟 + 角色隔离（`none`/`data`/`admin`） | A/B 类 | 断言 401/403 与脱敏；缺关键替身时降级为 Blocked |
 
-### UI 类测试方法（按行为模式；规定 Case 怎么写与约束）
+### 2.1 UI 类测试方法（按行为模式；规定 Case 怎么写与约束）
 
 <span style="color:#1f6feb"><em>**本节目的**：把 UI 行为按**模式**固定下来——每种模式规定「构造什么状态 → 做什么操作 → 断言哪个 DOM → 断言哪个网络调用 → 什么证据」。UI Case 一律按本表择模式撰写；本表同时是 Case 的**约束**（不满足即视为 Case 不完备）。</em></span>
 
@@ -120,9 +120,9 @@
 | 幂等 / 防重 | `ST-UI-009`（连点一次有效调用、页面不重复追加） |
 | 边界呈现 | `ST-UI-010`（极值文本不溢出/不注入） |
 
-### 测试设计技术选型表（按 Case 家族）
+### 2.2 测试设计技术选型表（按 Case 家族）
 
-<span style="color:#1f6feb"><em>**本节目的**：固定本层"怎么测"——按 Case 家族显式选用的设计技术与反模式；技术选择归本表不在 §1.5 灰例中重复。</em></span>
+<span style="color:#1f6feb"><em>**本节目的**：固定本层"怎么测"——按 Case 家族显式选用的设计技术与反模式；技术选择归本表不在 §2 灰例中重复。</em></span>
 
 | Case 家族 | 选用的设计技术 | 选用理由 | 不选用的反模式 |
 |---|---|---|---|
@@ -131,15 +131,15 @@
 | negative | 错误猜测 + 反例驱动（错误目录 `ERR-*`） | 异常路径以设计已识别的反例为准 | 不用模糊异常注入（无 Oracle / 无归因） |
 | concurrency | 状态机驱动 + 固定并发度/种子 | 并发语义需可控时序；`If-Match`/412 串行化 | 不用随机并发（不可复现 + flaky） |
 | recovery | 故障注入 + 有界重试 + 复位阶梯 | 恢复路径与回滚基线需在失败路径覆盖 | 不用"重试即可"模拟恢复（掩盖根因） |
-| performance | 单 Case 基线采样 + 观察断言（准入上限/超时/`Retry-After`） | 本层只保留时序/预算类可观察断言，非容量结论 | 不用负载/容量压测（本层不负责系统预算，见 §4 容量/耐久裁决） |
+| performance | 单 Case 基线采样 + 观察断言（准入上限/超时/`Retry-After`） | 本层只保留时序/预算类可观察断言，非容量结论 | 不用负载/容量压测（本层不负责系统预算，见 §7 容量/耐久裁决） |
 | security | 鉴权/授权/脱敏冒烟 + 角色隔离 | 上游/集成层已覆盖语义，本层验证暴露面 | 不用模糊安全测试（不可复现 + 上游责任） |
 
-## 1.6 替身使用策略与边界
+## 3. 替身使用策略与边界
 
-<span style="color:#1f6feb"><em>**本节目相**：固定系统层替身的使用，让 §3 清单的替身选择可解释可复核。</em></span>
-<span style="color:#1f6feb"><em>**必须写清楚**：替身决策准则（按所有权/可控性/真实性分类——内部真实/边界 fake/真协议测试实例/容器等）；替身形态（mock/fake/stub/spy 的取舍与代价）；替身保真度——契约与自检归 `tests.asset-design`（一资产一文档），方案与 Case 只引用其 ID 不复制行为；交互断言 vs 返回值断言（优先返回值，必要时断言关键调用序，但不耦合内部实现）；反模式（不 mock 你不拥有的接口、不 mock 值对象/纯数据、不为凑覆盖率而 mock、不过度断言内部细节）；与 §1 边界、§3 Case 清单、`tests.system-case` §2 替身选择一致。</em></span>
+<span style="color:#1f6feb"><em>**本节目相**：固定系统层替身的使用，让 §6 清单的替身选择可解释可复核。</em></span>
+<span style="color:#1f6feb"><em>**必须写清楚**：替身决策准则（按所有权/可控性/真实性分类——内部真实/边界 fake/真协议测试实例/容器等）；替身形态（mock/fake/stub/spy 的取舍与代价）；替身保真度——契约与自检归 `tests.asset-design`（一资产一文档），方案与 Case 只引用其 ID 不复制行为；交互断言 vs 返回值断言（优先返回值，必要时断言关键调用序，但不耦合内部实现）；反模式（不 mock 你不拥有的接口、不 mock 值对象/纯数据、不为凑覆盖率而 mock、不过度断言内部细节）；与 §1 边界、§6 Case 清单、`tests.system-case` §2 替身选择一致。</em></span>
 <span style="color:#1f6feb"><em>**抽象示例**：见下方灰字——系统层替身矩阵。</em></span>
-<span style="color:#1f6feb"><em>**完成条件**：每个 §3 Case 行能指出替身类型与契约文档 ID；替身矩阵与 asset-design 一一对应；反模式逐项被排除并有理由。</em></span>
+<span style="color:#1f6feb"><em>**完成条件**：每个 §6 Case 行能指出替身类型与契约文档 ID；替身矩阵与 asset-design 一一对应；反模式逐项被排除并有理由。</em></span>
 
 | 协作者类型 | 替身形态 | 替身契约文档（tests.asset-design） | 决策理由 |
 |---|---|---|---|
@@ -147,11 +147,11 @@
 | 上游 OMLX provider（`192.168.1.9:9000`/`192.168.1.8:9000`） | 真协议访问（A 类）；受控假上游（B 类） | 假上游契约（tests.asset-design） | 只证明本服务行为，不证明模型推理正确性 |
 | 时钟/时间窗 | 真实系统时间 + 相对窗口断言 | — | 系统层不推进时钟，只用相对时间窗 |
 
-## 1.7 测试环境类型（方案定义）
+## 4. 测试环境类型（方案定义）
 
 <span style="color:#1f6feb"><em>**本节目相**：固定本层"在哪类环境上跑"——列出环境**类型**（抽象类别）及其行为/真伪与契约文档（tests.asset-design 或产品规范）；同一类型可多套实例（多 docker 用于并行），具体**实例编号与分配**由 `tests.system-test-plan` §4 编排，Case 在 §2 通过「环境类型 + ENV 实例编号」引用，不在本文档重复描述环境本身。</em></span>
 <span style="color:#1f6feb"><em>**抽象示例**：见下方灰字——系统层测试环境类型（含契约与用法具体细节）+ 环境拓扑（ENV 类型 → ENV 实例 → 被测对象）。</em></span>
-<span style="color:#1f6feb"><em>**完成条件**：每个 §3 Case 行能指出所用环境类型；类型与 asset-design 契约对应；无未声明的环境依赖。</em></span>
+<span style="color:#1f6feb"><em>**完成条件**：每个 §6 Case 行能指出所用环境类型；类型与 asset-design 契约对应；无未声明的环境依赖。</em></span>
 
 | 环境类型 | 行为/真伪 | 契约文档 | 在本层用例中的角色 |
 |---|---|---|---|
@@ -168,12 +168,12 @@
 
 > 环境拓扑（ENV 类型 → ENV 实例 → 被测对象）以本表与上下两条为准；STD 模板附带的 `system-env-topology.svg` 为虚构教学图，本项目未引入（项目图资产统一存 `docs/assets/diagrams/`）。
 
-## 2. 测试分类体系
+## 5. 测试分类体系
 
 <span style="color:#1f6feb"><em>**本节目的**：固定本阶段的测试分类体系与适用裁剪。</em></span>
-<span style="color:#1f6feb"><em>**必须写清楚**：采用 STD 统一家族词表（normal/boundary/negative/concurrency/recovery/security/performance/endurance），逐类声明本阶段适用性与裁剪依据；不适用不等于没写 Case，须在 §4 给事实。</em></span>
+<span style="color:#1f6feb"><em>**必须写清楚**：采用 STD 统一家族词表（normal/boundary/negative/concurrency/recovery/security/performance/endurance），逐类声明本阶段适用性与裁剪依据；不适用不等于没写 Case，须在 §7 给事实。</em></span>
 <span style="color:#1f6feb"><em>**抽象示例**：见下方灰字分类示例。</em></span>
-<span style="color:#1f6feb"><em>**完成条件**：分类体系可裁剪可追溯，每个适用分类在 §3 清单中至少有 Case 或缺口。</em></span>
+<span style="color:#1f6feb"><em>**完成条件**：分类体系可裁剪可追溯，每个适用分类在 §6 清单中至少有 Case 或缺口。</em></span>
 
 | 分类（STD 家族词表） | 本阶段适用性 | 裁剪依据 |
 |---|---|---|
@@ -183,21 +183,21 @@
 | concurrency | 适用 | 8 个 Case：准入饱和 429+`Retry-After`（`ST-RESP-020`、`ST-EMB-008`）、单槽队列排空（`ST-RATELIMIT-001`）、`If-Match`/412 串行化并发编辑、注入变更与在途流（`ST-PROV-005/06/07`、`ST-DEPL-004`、`ST-SL-004`）。 |
 | recovery | 适用 | 27 个 Case：故障注入（`fault_502`/`fault_503`/`stream_terminate`/`malformed_event`）、上游/存储失败、客户端断开、账本崩溃/重启恢复（`ST-USAGE-009`）、`/readyz` degraded/not_ready、schema 引导不可用。 |
 | security | 适用 | 17 个 Case：认证/授权/角色隔离、LAN trust、无鉴权配置、secret 不泄露、审计与日志脱敏、别名命名空间鉴权。 |
-| performance | 裁剪 | 纯软件、无 FPGA/硬件时序；本阶段只保留**时序/预算类可观察断言**（准入队列上限、超时路径、`Retry-After`），**不发布 SLO/容量结论**。功耗/容量压测（FD 泄漏、30min 耐久、50 并发）不在本方案分母内；原 `llmtier-test-plan`（已退役）的 ST-18/19/21 容量项现按 §4 Tailored-N/A（非缺口）由运维/性能专项承接（tailoring）。 |
-| endurance | 裁剪 | 长稳/耐久另立专项，不在本方案分母内（tailoring）；见 §4 容量/耐久裁决（Tailored-N/A）。 |
+| performance | 裁剪 | 纯软件、无 FPGA/硬件时序；本阶段只保留**时序/预算类可观察断言**（准入队列上限、超时路径、`Retry-After`），**不发布 SLO/容量结论**。功耗/容量压测（FD 泄漏、30min 耐久、50 并发）不在本方案分母内；原 `llmtier-test-plan`（已退役）的 ST-18/19/21 容量项现按 §7 Tailored-N/A（非缺口）由运维/性能专项承接（tailoring）。 |
+| endurance | 裁剪 | 长稳/耐久另立专项，不在本方案分母内（tailoring）；见 §7 容量/耐久裁决（Tailored-N/A）。 |
 
-> 上表与 §3 清单交叉核对：normal 54 + boundary 12 + negative 57 + concurrency 8 + recovery 27 + security 17 = **175**（含真实浏览器 UI 10）。未列入的任何 STD 家族分类在本阶段**不适用**（见 §4 裁决）。
+> 上表与 §6 清单交叉核对：normal 54 + boundary 12 + negative 57 + concurrency 8 + recovery 27 + security 17 = **175**（含真实浏览器 UI 10）。未列入的任何 STD 家族分类在本阶段**不适用**（见 §7 裁决）。
 
 
 
-## 3. 覆盖分母与 Case 清单
+## 6. 覆盖分母与 Case 清单
 
 <span style="color:#1f6feb"><em>**本节目的**：把 design.software-system 的适用来源 ID 转成 Case 清单——测试分母的唯一登记。</em></span>
-<span style="color:#1f6feb"><em>**必须写清楚**：一个来源 ID 至少一条记录（可多 Case 分担，分别写责任摘要）；以设计文档（design §12/§14）的验证项 VRC 清单为分母逐项对账：每个 VRC 至少一个 Case——验证项是设计声明的必测点，本清单只引用其 ID 不复制定义、不做附录；Case ID 稳定且唯一（ST-<对象>-<NNN>）；责任摘要只写“要测什么、边界在哪”，不写输入与 Oracle；设计状态按状态语义；未实现与 NOT_RUN 不删；不适用转 §4。</em></span>
+<span style="color:#1f6feb"><em>**必须写清楚**：一个来源 ID 至少一条记录（可多 Case 分担，分别写责任摘要）；以设计文档（design §12/§14）的验证项 VRC 清单为分母逐项对账：每个 VRC 至少一个 Case——验证项是设计声明的必测点，本清单只引用其 ID 不复制定义、不做附录；Case ID 稳定且唯一（ST-<对象>-<NNN>）；责任摘要只写“要测什么、边界在哪”，不写输入与 Oracle；设计状态按状态语义；未实现与 NOT_RUN 不删；不适用转 §7。</em></span>
 
 > 来源 ID 与设计验证项（VRC）的边界：本表登记 ID+责任摘要；判据/Oracle/Owner/契约权威归 design 与 tests.asset-design，不在此行复写；变更设计时同步 VRC 同步本清单。
 <span style="color:#1f6feb"><em>**抽象示例**：见下表灰字。</em></span>
-<span style="color:#1f6feb"><em>**完成条件**：每个适用来源 ID 有 Case 或缺口；每个设计验证项（VRC）至少一个 Case 或在 §4 登记缺口；每个 Case ID 可追到（或计划有）case-design 文档。</em></span>
+<span style="color:#1f6feb"><em>**完成条件**：每个适用来源 ID 有 Case 或缺口；每个设计验证项（VRC）至少一个 Case 或在 §7 登记缺口；每个 Case ID 可追到（或计划有）case-design 文档。</em></span>
 
 | 来源 ID / 固定版本 | 设计验证项 ID | Case ID | 分类（STD 家族） | 优先级 | 责任摘要（要测什么） | 设计状态 | 上级组合验证入口 |
 |---|---|---|---|---|---|---|---|
@@ -235,7 +235,7 @@
 | 系统设计 §8 Responses 接口（POST /v1/responses） | VRC-INF-004 | ST-RESP-019 | recovery | P1 | 全部候选不健康 | 已设计 | — |
 | 系统设计 §8 Responses 接口（POST /v1/responses） | VRC-INF-004 | ST-RESP-020 | concurrency | P1 | 准入饱和 → 429 | 已设计 | — |
 | 系统设计 §8 Responses 接口（POST /v1/responses） | VRC-INF-004 | ST-RATELIMIT-001 | concurrency | P1 | 并发许可=1 队列排空（全部 200，无 429） | 已设计 | — |
-| 系统设计 §8 接口面（absence 静态契约） | 无（见 §4 裁决） | ST-SCAN-001 | boundary | P1 | 退役路径/响应头 absence 扫描（OpenAPI/清单/活体头） | 已设计 | — |
+| 系统设计 §8 接口面（absence 静态契约） | 无（见 §7 裁决） | ST-SCAN-001 | boundary | P1 | 退役路径/响应头 absence 扫描（OpenAPI/清单/活体头） | 已设计 | — |
 | 系统设计 §8 Responses 接口（POST /v1/responses） | VRC-INF-001 | ST-RESP-021 | recovery | P1 | 客户端中途断开 | 已设计 | — |
 | 系统设计 §8 Responses 接口（POST /v1/responses） | VRC-DIAG-004 | ST-RESP-022 | recovery | P1 | 注入上游 503 → provider_unavailable | 已设计 | — |
 | 系统设计 §8 Responses 接口（POST /v1/responses） | VRC-INF-003 | ST-RESP-023 | recovery | P1 | 上游非 5xx → provider_error | 已设计 | — |
@@ -373,21 +373,21 @@
 | 模块设计 web-ui §14（ISD §9.1）；`RULE-UI-PROBE` | VRC-UI-005 | ST-UI-005 | boundary | P1 | 真实浏览器未确认探测不触网、确认后 POST | 已设计 | — |
 | 模块设计 web-ui §14（ISD §9.1）；`F-UI-DIAG`/`R-OBS-05` | VRC-UI-006 | ST-UI-006 | normal | P1 | 真实浏览器诊断页 4 tabs 与 Disabled 视觉 | 已设计 | — |
 | 模块设计 web-ui §14（ISD §9.1）；`RULE-UI-TIERSTATE`/`reportLoadFailure` | VRC-UI-002 | ST-UI-007 | recovery | P0 | 真实浏览器注入 API 错误显示错误态并保留上一屏（并可恢复） | 已设计 | — |
-| 模块设计 web-ui §14（ISD §9.1）；系统设计 §8 同源 `/ui/` 静态服务；脱敏契约（provider 视图仅暴露 `has_secret`） | VRC-UI-001 | ST-UI-008 | security | P1 | 真实浏览器配了 secret 的 provider 只显示脱敏标记，secret 值不落 DOM/URL/日志（§1.5 脱敏/安全呈现模式） | 已设计 | — |
-| 模块设计 web-ui §14（ISD §9.1）；`RULE-UI-PROBE` | VRC-UI-005 | ST-UI-009 | boundary | P1 | 真实浏览器探测按钮连点只发一次有效调用、页面不重复追加（§1.5 幂等/防重模式） | 已设计 | — |
-| 模块设计 web-ui §14（ISD §9.1）；`esc()` 转义契约 | VRC-UI-001 | ST-UI-010 | boundary | P2 | 真实浏览器极值文本渲染不溢出、不注入、不破坏布局（§1.5 边界呈现模式） | 已设计 | — |
+| 模块设计 web-ui §14（ISD §9.1）；系统设计 §8 同源 `/ui/` 静态服务；脱敏契约（provider 视图仅暴露 `has_secret`） | VRC-UI-001 | ST-UI-008 | security | P1 | 真实浏览器配了 secret 的 provider 只显示脱敏标记，secret 值不落 DOM/URL/日志（§2.1 脱敏/安全呈现模式） | 已设计 | — |
+| 模块设计 web-ui §14（ISD §9.1）；`RULE-UI-PROBE` | VRC-UI-005 | ST-UI-009 | boundary | P1 | 真实浏览器探测按钮连点只发一次有效调用、页面不重复追加（§2.1 幂等/防重模式） | 已设计 | — |
+| 模块设计 web-ui §14（ISD §9.1）；`esc()` 转义契约 | VRC-UI-001 | ST-UI-010 | boundary | P2 | 真实浏览器极值文本渲染不溢出、不注入、不破坏布局（§2.1 边界呈现模式） | 已设计 | — |
 
 **Case 总数：175（设计数）**（分类：normal 54 / boundary 12 / negative 57 / concurrency 8 / recovery 27 / security 17；环境 A 102 / B 63 / UI 10（collect：`-m api_a`=105 / `-m api_b`=76 / `-m ui`=10）；
 Priority P0 48 / P1 102 / P2 25）。**设计数 = 已实现数 175**：全部 175 个设计 Case 均有 `ST-*.py`（文件名＝Case ID）自动化入口；**真实浏览器 UI Case（`ST-UI-001..010`，环境列 `UI`/`-m ui`）由 `tests/system/cases/ST-UI-001.py` + `tests/common/drivers/browser_driver.mjs`（headless Chrome over CDP）实现**，取代此前仅有的源码字符串契约（关闭 `RISK-UI-EXEC-1`）。
 **本版迁移**：退役 legacy `tests/system/st_*.py` 家族（11 个脚本 / 30 测试）——`ST-SCAN-001`（源 `ST-04`）与 `ST-RATELIMIT-001`（源 `ST-22`）为**新登记** Case（173 → 175）；
-其余 9 个脚本经逐项核对**已被现有设计 Case 覆盖**后退役（映射见 §4「legacy `st_*.py`（ST-01..ST-26）退役与覆盖映射」）。逐 Case 的输入/执行/Oracle/判定/证据/清理见 `tests.system-case` 文档（`cases/<lowercased-case-id>.md`），本方案不展开。
+其余 9 个脚本经逐项核对**已被现有设计 Case 覆盖**后退役（映射见 §7「legacy `st_*.py`（ST-01..ST-26）退役与覆盖映射」）。逐 Case 的输入/执行/Oracle/判定/证据/清理见 `tests.system-case` 文档（`cases/<lowercased-case-id>.md`），本方案不展开。
 
 **设计验证项覆盖**：本清单 `设计验证项 ID` 取自各 Case 的 `tests.system-case` 文档所声明的设计验证项（`ST-RESP-016`/`ST-RESP-023` 两 Case 的 case 文档未声明，按系统设计 §7.8 错误目录 `ERR-REQ-JSON`→`VRC-INF-001`、`ERR-PROVIDER-FAIL`→`VRC-INF-003` 反查补全；
-未新增任何 VRC ID）。设计文档（系统设计 §7/§8/§14、机制 §15、模块设计 §14、ISD §9.1）共声明 **33 个设计验证项**；本清单覆盖 **20 个**（较上版新增 `VRC-UI-001..006` 六项——由新增的真实浏览器 Case `ST-UI-001..010` 直接承接），**13 个无系统层 Case**（逐项裁决见 §4 本版审计重分类：**13 项为 (a) COVERED**——模块级验证项有真实**单元行为测试**直接断言，指向具体 `test_*`；
+未新增任何 VRC ID）。设计文档（系统设计 §7/§8/§14、机制 §15、模块设计 §14、ISD §9.1）共声明 **33 个设计验证项**；本清单覆盖 **20 个**（较上版新增 `VRC-UI-001..006` 六项——由新增的真实浏览器 Case `ST-UI-001..010` 直接承接），**13 个无系统层 Case**（逐项裁决见 §7 本版审计重分类：**13 项为 (a) COVERED**——模块级验证项有真实**单元行为测试**直接断言，指向具体 `test_*`；
 原 3 项 (c) REAL HOLE 中 `VRC-UI-001..006` 已由真实浏览器执行关闭 `RISK-UI-EXEC-1`，`VRC-OBS-*` 纯视觉子项中「诊断页 tabs/Disabled 实际渲染」已由 `ST-UI-006` 承接、其余视觉子项已由 `ST-UI-002/006` 覆盖诊断页渲染）。
 逐项覆盖数：`VRC-INF-001` 31、`VRC-MGMT-006` 21、`VRC-MGMT-001` 22、`VRC-MGMT-002` 22、`VRC-API-002` 13、`VRC-DIAG-002` 15、`VRC-DIAG-004` 15、`VRC-MGMT-003` 9、`VRC-INF-002` 5、`VRC-DIAG-001` 4、`VRC-INF-004` 7、`VRC-UI-001` 4、`VRC-UI-002` 1、`VRC-UI-003` 1、`VRC-UI-004` 1、`VRC-UI-005` 2、`VRC-UI-006` 1、`VRC-LOG-001` 3、`VRC-UTIL-001` 2、`VRC-INF-003` 1。
 
-### 3.6 需求（`LT-*`）到 Case 的可追溯映射（§3 的 §3.6-等价节）
+### 6.1 需求（`LT-*`）到 Case 的可追溯映射
 
 > 命名沿用已退役 `llmtier-api-test-specification` §3.6 的链式定义（`LT-*` → `R-*` → `VRC-*` → `T-*` → `CT-*` → Case 家族），**不新增顶层章节**（本节是 §3 的子节）。链的**唯一权威来源**是需求文档 [`llmtier-requirements.md`](../../10_requirements/llmtier-requirements.md) 的 `LT-*` 条目、系统设计、机制需求与 `CT-*` 静态契约；本节只登记映射，不复制定义。Case 家族按 Case ID 前缀分组，成员以 §3 清单为准（含本版新增 23 个 Case）。任一 case 文档的"目的/来源"字段可回指本表。
 
@@ -397,7 +397,7 @@ Priority P0 48 / P1 102 / P2 25）。**设计数 = 已实现数 175**：全部 1
 | `ST-MODEL-*` | LT-FUN-002 | R-INF-04、R-INF-07 | VRC-INF-001/002 | T-TRUST-ENDPOINTS | CT-MODEL-001 |
 | `ST-RESP-*` | LT-FUN-001/008、LT-INT-001/006、LT-PERF-001、LT-REL-001 | R-INF-01..06、R-TRUST-01、R-TRUST-02 | VRC-INF-001/003/004、VRC-DIAG-004 | T-STREAM、T-TOOLS、T-QUEUE、T-TIMEOUT、T-DISCONNECT、T-OBS-INJECT | CT-DP-001、CT-BOUNDARY-001、CT-ADM-001 |
 | `ST-RATELIMIT-*` | LT-PERF-001、LT-REL-001 | R-INF-04 | VRC-INF-004 | T-QUEUE（准入许可/队列） | CT-DP-001 |
-| `ST-SCAN-*` | LT-FUN-007、LT-INT-003、LT-REL-002（absence） | — | —（见 §4 裁决） | — | CT-SCOPE-001、CT-BOUNDARY-001 |
+| `ST-SCAN-*` | LT-FUN-007、LT-INT-003、LT-REL-002（absence） | — | —（见 §7 裁决） | — | CT-SCOPE-001、CT-BOUNDARY-001 |
 | `ST-EMB-*` | LT-FUN-003、LT-OPEN-02 | R-INF-04/05/07 | VRC-INF-001/002/004 | T-QUEUE（准入）、T-STREAM（无） | CT-EMB-001 |
 | `ST-USAGE-*` | LT-FUN-004、LT-INT-004/005/007、LT-REL-003 | R-MET-01..04 | VRC-MGMT-006、VRC-INF-004 | T-MET-FINAL、T-MET-PAGE、T-MET-RESET、T-MET-UNKNOWN、T-MET-CRASH（`ST-USAGE-009`） | CT-USAGE-001、CT-STORE-001 |
 | `ST-PROV-*` | LT-FUN-005、LT-SEC-001、LT-INT-008、LT-REL-004 | R-CFG-01、R-CFG-03 | VRC-MGMT-001/002 | T-CFG-CAS、T-CFG-SECRET、T-CFG-DELREF、T-CFG-BADREF、T-TRUST-ENDPOINTS | CT-ADMIN-001 |
@@ -415,7 +415,7 @@ Priority P0 48 / P1 102 / P2 25）。**设计数 = 已实现数 175**：全部 1
 **家族级覆盖 ≠ 逐 Case 文档均引用该 `LT-*`**：本表是设计级映射权威，不要求每个 case 文档重复列出家族内全部 `LT-*`；case 文档按需引用其直接相关者。原评审以"逐 case 文档字面出现"计数（18/35）低估了这些家族级承接；
 本表按 STD 需求→Case 追溯语义重建。
 
-## 4. 不适用与缺口裁决
+## 7. 不适用与缺口裁决
 
 <span style="color:#1f6feb"><em>**本节目的**：区分“不适用”与“尚未设计”。</em></span>
 <span style="color:#1f6feb"><em>**必须写清楚**：Tailored-N/A 必须引用设计章节事实；Gap 须有 Owner 与恢复条件；两者都不从分母静默消失。</em></span>
@@ -483,9 +483,9 @@ Priority P0 48 / P1 102 / P2 25）。**设计数 = 已实现数 175**：全部 1
 
 > **退役不做双登记**：被覆盖项不写入 §3 清单（避免同一行为重复计数）；其历史 Run 证据保留在 `tests/system/reports/`（STD `repository-layout.md` §4.1.1）。
 
-### 需求缺口裁决（`LT-*`，对照 §3.6）
+### 需求缺口裁决（`LT-*`，对照 §6.1）
 
-`LT-*` 需求共 **35 项**；§3.6 家族级重建后 **26 项有 Case 家族承接**，下列 **9 项**无本运行层 Case，按事实逐项**定稿裁决**（**全部 Tailored-N/A，非 Gap**）：4 项为 absence/声明性静态契约（由 `CT-*` 与单元契约测试承接），4 项为运维/生产部署活动、1 项为实现 Gate，均不在 tests 家族分母（权威：`std-tailoring.md` `LT-TL-020`/`LT-TL-022`）。**本表无具名 Gap**。
+`LT-*` 需求共 **35 项**；§6.1 家族级重建后 **26 项有 Case 家族承接**，下列 **9 项**无本运行层 Case，按事实逐项**定稿裁决**（**全部 Tailored-N/A，非 Gap**）：4 项为 absence/声明性静态契约（由 `CT-*` 与单元契约测试承接），4 项为运维/生产部署活动、1 项为实现 Gate，均不在 tests 家族分母（权威：`std-tailoring.md` `LT-TL-020`/`LT-TL-022`）。**本表无具名 Gap**。
 
 | 需求 `LT-*` / 事实依据 | 裁决（Tailored-N/A） | Owner / 权威与恢复条件 |
 |---|---|---|
@@ -499,7 +499,7 @@ Priority P0 48 / P1 102 / P2 25）。**设计数 = 已实现数 175**：全部 1
 | `LT-OPS-005`（单节点 systemd 基线、优雅摘流 ≤60s、QuerySnapshot TTL 15min、Usage/Audit 保留 30/90 天、加密备份 7日+4周、RPO 24h/RTO 4h、release 前隔离 restore 演练） | **Tailored-N/A（定稿；运维承接；非 Gap；TTL 已间接触及）** | Owner：运维。**权威**：`llmtier-release-and-operations.md` §9（retention TTL、加密备份 7日+4周、RPO 24h/RTO 4h、release 前隔离 restore）、§10（systemd、摘流 ≤60s）；`m5air-operations-manual.md` §12/§14。**事实**：systemd/保留策略/加密备份/restore rehearsal 属运维专项，本层无对应 harness；QuerySnapshot TTL 由本层 `ST-USAGE-004`（过期 cursor→400）间接验证；Usage/Audit 保留期由 `UT-MGMT-009`（`reset_usage` 范围）与 `UT-LOG-002`（`page` 边界）在单元层部分承接。恢复条件＝真实 systemd/备份密钥/restore rehearsal 交付后由运维专项执行（`LT-OPEN-03`）。 |
 | `LT-OPEN-03`（单节点 Linux + TLS 反代 + systemd + 加密备份 + runbook；design closed / implementation gate） | **Tailored-N/A（定稿；实现 Gate，非测试缺口）** | Owner：LLMTier。**权威**：`llmtier-requirements.md` §11（`LT-OPEN-03` 设计已关闭、待实施证据）＋ `llmtier-system-design` §16（`LT-OPEN-03` design closed / implementation gate）＋ `llmtier-release-and-operations.md` §10（"真实 systemd unit、代理/SSO 配置、备份密钥和 restore rehearsal 尚未交付，因此 activation 仍 BLOCKED"）。**事实**：这是**实现/部署 Gate**，不是测试设计缺口——设计已关闭，缺的是部署证据（真实单节点 Linux 基线 + TLS/systemd/加密备份）。本方案（测试方案）不承载部署证据；恢复条件＝runtime activation 前完成部署证据。 |
 
-## 5. 文档联动与清单变更规则
+## 8. 文档联动与清单变更规则
 
 <span style="color:#1f6feb"><em>**本节目的**：固定方案—用例—计划的联动规则，防三处漂移。</em></span>
 <span style="color:#1f6feb"><em>**必须写清楚**：新 Case 先入本清单再建 case-design 文档（文档 ID＝Case ID）；清单变更须同步计划构成表；写明方案冻结/版本规则。</em></span>
@@ -508,16 +508,16 @@ Priority P0 48 / P1 102 / P2 25）。**设计数 = 已实现数 175**：全部 1
 
 - **方案冻结与变更规则**：Case 清单随系统设计基线**冻结**；系统设计或机制变更导致分母变化时，本方案升版并同步 `tests.system-test-plan` 的构成表。Case ID 一经登记**不复用、不改名**；新增 Case 取同家族下一个未占用序号（含补丁后缀，如 `ST-SL-012`）；废弃 Case 标 `superseded`，不删除、不重编号。
 - **与 case-design / 计划的同步规则**：**新 Case 先入本清单 §3，再建 case-design 文档**；case-design 文档路径固定为 `docs/70_verification/system/cases/<lowercased-case-id>.md`（例：`ST-RESP-001` → `cases/st-resp-001.md`），文档 ID = Case ID；`tests.system-test-plan` 只引用本方案版本，不复制 Case 清单。本方案只登记 Case **设计状态**（Designed/Gap/Tailored-N/A），不承载实现状态（在 case-design 文档）与执行状态/Verdict（只在 Run 报告）。
-- **case 文档的测试方法声明（强制契约条款）**：每份 `tests.system-case` 文档 §1 **必须**含一条 `- **测试方法（§1.5 方法表行）**：<technique(s)>` 列表项（**不新增章节**），指名本方案 §1.5 家族表/UI 方法表的**确切技术行**；技术须由该 Case 的**实际分类 + 步骤/断言**推导，跨两类时并列，**禁止**按分类照抄而不读步骤。该条款与 `system/cases/README.md`「模板契约」一致；缺失或不诚实声明即视为 Case 不完备。
-- **本方案的退役与吸收映射**：本方案**唯一吸收并取代**旧 `assurance.test-specification` 家族的 `llmtier-api-test-specification`（140-Case 权威清单、定量覆盖模型、Traceability、环境与共同机制）与 `llmtier-contract-test-specification`（静态契约 `CT-*` 的 runtime 落地边界）。二者已从 `docs/70_verification/specifications/` 退役（git rm）；其原 Case ID 与数量（140）作为基线**保持不变**（不重命名、不重编号），逐 Case 细节现由 `tests.system-case` 文档承载；本版在该基线上按覆盖洞评审（`coverage_review`）**新增 23 个 Case**（`ST-EMB-008..10`、`ST-PROV-015..`、`ST-OBS*-003..`、`ST-USAGE-009`、`ST-RESP-026/27` 等，见 §3），清单总数 140 → 163；**其后再新增真实浏览器 UI 10（`ST-UI-001..010`）与 legacy `st_*.py` 收口所得 `ST-SCAN-001`/`ST-RATELIMIT-001`（见 §4），现总数 175**。
-- **需求到本方案的可追溯入口**：本方案各 Case 家族的追溯链 `LT-*` → `R-*` → `VRC-*` → `T-*` → `CT-*` → Case **已重建并落于 §3.6**（由退役 `llmtier-api-test-specification` §3.6 与需求文档重建；不再依赖已退役 source）。需求缺口（9 项 `LT-*`）见 §4「需求缺口裁决」；逐 Case 的 Run 侧追迹另由 case 文档与 Run manifest 的 `target_artifact` 锁定。
+- **case 文档的测试方法声明（强制契约条款）**：每份 `tests.system-case` 文档 §1 **必须**含一条 `- **测试方法（§2.2 方法表行）**：<technique(s)>` 列表项（**不新增章节**），指名本方案 §2.2 家族表/§2.1 UI 方法表的**确切技术行**；技术须由该 Case 的**实际分类 + 步骤/断言**推导，跨两类时并列，**禁止**按分类照抄而不读步骤。该条款与 `system/cases/README.md`「模板契约」一致；缺失或不诚实声明即视为 Case 不完备。
+- **本方案的退役与吸收映射**：本方案**唯一吸收并取代**旧 `assurance.test-specification` 家族的 `llmtier-api-test-specification`（140-Case 权威清单、定量覆盖模型、Traceability、环境与共同机制）与 `llmtier-contract-test-specification`（静态契约 `CT-*` 的 runtime 落地边界）。二者已从 `docs/70_verification/specifications/` 退役（git rm）；其原 Case ID 与数量（140）作为基线**保持不变**（不重命名、不重编号），逐 Case 细节现由 `tests.system-case` 文档承载；本版在该基线上按覆盖洞评审（`coverage_review`）**新增 23 个 Case**（`ST-EMB-008..10`、`ST-PROV-015..`、`ST-OBS*-003..`、`ST-USAGE-009`、`ST-RESP-026/27` 等，见 §3），清单总数 140 → 163；**其后再新增真实浏览器 UI 10（`ST-UI-001..010`）与 legacy `st_*.py` 收口所得 `ST-SCAN-001`/`ST-RATELIMIT-001`（见 §7），现总数 175**。
+- **需求到本方案的可追溯入口**：本方案各 Case 家族的追溯链 `LT-*` → `R-*` → `VRC-*` → `T-*` → `CT-*` → Case **已重建并落于 §6.1**（由退役 `llmtier-api-test-specification` §3.6 与需求文档重建；不再依赖已退役 source）。需求缺口（9 项 `LT-*`）见 §4「需求缺口裁决」；逐 Case 的 Run 侧追迹另由 case 文档与 Run manifest 的 `target_artifact` 锁定。
 
 ### 未决项与歧义记录（本方案自记录）
 
 > 以下为实施本方案时发现的 STD 读数歧义；本方案按"采取 STD 读数并显式登记"处理，未静默猜测。列出以提请 STD 维护者裁决。
 
 1. **（已关闭）Case ID 命名语法**：原模板 §3 示例使用 `SYS-<对象>-<NNN>` 语法，与 LLMTier 既有 Case ID 前缀（`ST-HEALTH-*`/`DP-*`/`ADM-*`/`OBS-*`/`ST-AUTH-*`/`ST-UI-*`）不一致。**关闭事实**：STD `78876c9` 在 `docs/software-object-identifiers.md` §2 正式codify Case ID 格式为 **`<阶段前缀>-<对象>-<NNN>`**（系统测试 `ST`；`<对象>`＝被测对象 token；`<NNN>` 三位十进制）。本方案**已按新规范完成迁移**：全部系统层 Case ID 由旧族名重命名为 `ST-<对象>-<NNN>`（对象 token 映射见 §3 及各 case 文档），Stage 前缀为 `ST`（不再是 `SYS`）。旧 ID→新 ID 映射记录于 `docs/98_migration/llmtier-case-id-migration.md`（迁移记录，非现行引用）。
-2. **"未决项章节"**：任务要求"在方案的未决项章节记录歧义"，但 `tests.system-test-scheme` 模板**没有**未决项章节（正文仅 §1–§5，另有附录 A）。**采取读数**：遵守"匹配模板精确章节集、不得自创章节"，将未决项作为 §5 内的具名小节记录，而非新增顶层章节。
+2. **"未决项章节"**：任务要求"在方案的未决项章节记录歧义"，但 `tests.system-test-scheme` 模板**没有**未决项章节（正文仅 §1–§8，另有附录 A）。**采取读数**：遵守"匹配模板精确章节集、不得自创章节"，将未决项作为 §8 内的具名小节记录，而非新增顶层章节。
 3. **`来源 ID` 粒度**：模板要求"一个来源 ID 至少一条记录"。原规格以 route×method×role×error-code 为覆盖分母，未给"来源 ID"独立编号。**采取读数**：按系统设计 §8 接口/机制分组作为来源 ID（如"系统设计 §8 Responses 接口"），一个来源对应多条 Case；不新造记录编号。
 4. **`design_level` 取值**：`new-design` 对 `tests.system-test-scheme` 未在层级映射中登记，生成默认 `cross-level`；STD 指南称系统方案"对应 design.software-system（系统设计阶段）"。**采取读数**：metadata 置 `design_level=system`、`domain=[software]`（与系统层语义一致）；`validate-design` 不对此强制，故为语义读数而非工具强制。
 5. **（已关闭）逐 Case 设计文档的入站链接（跨任务移交）**：原记录为"140 份 `tests.system-case` 文档仍指向已退役的 `../llmtier-api-test-specification.md`，重写前 `validate-design docs` 会报告 `link.missing`"。**关闭事实**：并行工作项已完成 case 文档重写——当时全部 141 份 case 文档（140 Case + README）**均不再**引用任何退役规格（0 处），且全部以真实路径引用本方案（`llmtier-system-test-scheme.md`）；`validate-design docs` 不再报告该类 `link.missing`。本条歧义已消解，保留以存档（其后按覆盖洞新增的 23 份 case 文档同样不引用退役规格）。
@@ -548,14 +548,14 @@ Priority P0 48 / P1 102 / P2 25）。**设计数 = 已实现数 175**：全部 1
 | `VRC-DIAG-004` | 故障注入配置与探测 | 系统设计 §12 | ST-RESP-011/22/26/27、ST-PUSAGE-002/03、ST-PROBE-001..03、ST-OBSDEPL-001..05、ST-OBSALIAS-004 |
 | `VRC-LOG-001` | 日志/审计脱敏 | 系统设计 §12 | ST-LOGS-001..03 |
 | `VRC-UTIL-001` | 存储引导/就绪引导表现 | 系统设计 §12 | ST-HEALTH-004/05 |
-| `VRC-INF-005`、`VRC-UTIL-002`、`VRC-API-001/003/004`、`VRC-MGMT-004/005`、`VRC-DIAG-003`、`VRC-OBS-001..005`（行为级） | 模块级验证项（无系统层 Case；**行为级由单元层真实行为测试覆盖**） | 模块设计 §14、ISD §9.1 | §4 裁决：**(a) COVERED**——逐项列为真实 `test_*`（见 §4 表），非字符串契约 |
+| `VRC-INF-005`、`VRC-UTIL-002`、`VRC-API-001/003/004`、`VRC-MGMT-004/005`、`VRC-DIAG-003`、`VRC-OBS-001..005`（行为级） | 模块级验证项（无系统层 Case；**行为级由单元层真实行为测试覆盖**） | 模块设计 §14、ISD §9.1 | §7 裁决：**(a) COVERED**——逐项列为真实 `test_*`（见 §7 表），非字符串契约 |
 | `VRC-UI-001` | M002 web-ui 加载与状态 | 模块设计 web-ui §14.1、ISD §9.1.1 | ST-UI-001、ST-UI-002、ST-UI-008、ST-UI-010 |
 | `VRC-UI-002` | M002 web-ui 编辑/鉴权 | 模块设计 web-ui §14.2、ISD §9.1.2 | ST-UI-007 |
 | `VRC-UI-003` | M002 web-ui Pause 边界 | 模块设计 web-ui §14.3、ISD §9.1.3 | ST-UI-003 |
 | `VRC-UI-004` | M002 web-ui 用量未知不填零 | 模块设计 web-ui §14.5、ISD §9.1.4 | ST-UI-004 |
 | `VRC-UI-005` | M002 web-ui 探测付费确认 | 模块设计 web-ui §14.4、ISD §9.1.5 | ST-UI-005、ST-UI-009 |
 | `VRC-UI-006` | M002 web-ui 诊断页 | 模块设计 web-ui §14.7、ISD §9.1.6 | ST-UI-006 |
-| `VRC-OBS-*` 纯视觉子项 | M005 诊断页 tabs/Disabled 真实渲染 | 模块设计 observability §14、ISD §9.1 | §4 裁决：**(a) COVERED**——由真实浏览器 `ST-UI-006`（4 tabs/Disabled 真实绘制）与 `ST-UI-002` 承接；原 `RISK-UI-EXEC-1` 已关闭 |
+| `VRC-OBS-*` 纯视觉子项 | M005 诊断页 tabs/Disabled 真实渲染 | 模块设计 observability §14、ISD §9.1 | §7 裁决：**(a) COVERED**——由真实浏览器 `ST-UI-006`（4 tabs/Disabled 真实绘制）与 `ST-UI-002` 承接；原 `RISK-UI-EXEC-1` 已关闭 |
 
 
 

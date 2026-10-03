@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-PROV-014` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-PROV-014`）；责任摘要、分类与优先级以 [系统测试方案 §3](../llmtier-system-test-scheme.md) 清单行为准。
+- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-PROV-014`）；责任摘要、分类与优先级以 [系统测试方案 §6](../llmtier-system-test-scheme.md) 清单行为准。
 - **来源**：系统设计 §8 Provider CRUD 接口（/v1/providers）（parent `llmtier-system-design`），设计验证项 `VRC-MGMT-001`；所属方案 `llmtier-system-test-scheme`。
 - **边界**：系统层 Case（整软件系统组装，被测为 m5air 真实部署或按 tests.asset-design 约束的替身）；本文档持有实现状态，执行状态与 Verdict 只在 Run 报告。
 
@@ -48,22 +48,22 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-PROV-014` / 系统设计 §8 Provider CRUD 接口（/v1/providers） / `VRC-MGMT-001` / `security` / `P0`
-- **测试方法（§1.5 方法表行）**：鉴权/授权/脱敏冒烟（secret/PII 不泄露）+ 角色隔离
-- 方案清单登记：`ST-PROV-014`（与 §3.2 权威清单一致；本文件名 `st-prov-014.md`，唯一对应）。
+- **测试方法（§2.2 方法表行）**：鉴权/授权/脱敏冒烟（secret/PII 不泄露）+ 角色隔离
+- 方案清单登记：`ST-PROV-014`（与 计划 §3 权威清单一致；本文件名 `st-prov-014.md`，唯一对应）。
 - 要测什么（责任展开）：`GET /v1/providers` 与 `GET /v1/providers/{id}` **响应永不回显 secret 值**——仅 `has_secret` 布尔与（写-only 的）`secret_ref` 引用，响应体不含解析后的秘密。
 - 明确不测什么 / 失败含义：不证明 写入/更新（ST-PROV-002/05）、不证明 `secret_ref` 格式校验（ST-PROV-012）、不证明审计/日志脱敏（ST-AUDIT-001、ST-LOGS-001）、不证明 `/v1/providers/{id}/models` 或 `/usage` 的出站凭据处理；本 case 只覆盖 provider **读取响应体**的安全不变量。
   > 实现状态：本 case 的自动化入口为 **`Implemented`**（`ST-PROV-014.py`，A 类）；实现状态以 §7 为唯一权威，执行状态与 Verdict 只在 Run 报告。
 
 **目的（被测契约）**：验证 Management Provider CRUD 的**秘密不泄露契约**。被测端点/规则：`GET /v1/providers`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listProviders`）与 `GET /v1/providers/{id}`（`getProvider`），角色 `admin`；
 `ProviderView` 为 `additionalProperties:false`，**不含 `secret_ref` 键**，仅以 `has_secret:boolean` 表达"是否配置了秘密"；[`registry.get_provider`](../../../../src/management/registry.py) 只拼装 `has_secret = bool(row["secret_ref"])`，从不解引用/回传秘密值或引用串。
-设计验证项 `VRC-MGMT-001`；机制 `T-CFG-SECRET`；需求/机制链 `LT-FUN-005`、`LT-SEC-001`、`R-CFG-01`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+设计验证项 `VRC-MGMT-001`；机制 `T-CFG-SECRET`；需求/机制链 `LT-FUN-005`、`LT-SEC-001`、`R-CFG-01`、`CT-ADMIN-001`（[系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
 **不证明什么**：不证明写入/更新（ST-PROV-002/05）、不证明 `secret_ref` 格式校验（ST-PROV-012）、不证明审计/日志脱敏（ST-AUDIT-001、ST-LOGS-001）、不证明 `/v1/providers/{id}/models` 或 `/usage` 的出站凭据处理；
 本 case 只覆盖 provider **读取响应体**的安全不变量。
   > 实现状态：本 case 的自动化入口为 **`Implemented`**（`ST-PROV-014.py`，A 类）；实现状态以 §7 为唯一权威，执行状态与 Verdict 只在 Run 报告。
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 A**（m5air 已部署实例；角色 `admin`，只读；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）。执行前必须通过[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go)(../llmtier-system-test-scheme.md) 的 6 项就绪检查（详见 §2.1）；任一失败 → 整班 BLOCKED/SKIP，不得改用模拟路径。fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）：`admin_client`。初始状态：m5air 现有 3 provider / 4 deployment / 7 tier；至少一个 provider（`provider_omlx_m5mac`）具有秘密引用。**§2.1.5** 已保证 `provider_omlx_m5mac` 的 `GET` 返回 `has_secret=true` 且 `secret_ref` 为 `file:` 引用（本 case 的天然被测样本）。
+- **前置与环境**：**环境 A**（m5air 已部署实例；角色 `admin`，只读；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。执行前必须通过[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 的 6 项就绪检查（详见计划 §3）；任一失败 → 整班 BLOCKED/SKIP，不得改用模拟路径。fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）：`admin_client`。初始状态：m5air 现有 3 provider / 4 deployment / 7 tier；至少一个 provider（`provider_omlx_m5mac`）具有秘密引用。**§2.1.5** 已保证 `provider_omlx_m5mac` 的 `GET` 返回 `has_secret=true` 且 `secret_ref` 为 `file:` 引用（本 case 的天然被测样本）。
 
 ## 3. 输入构造
 
@@ -84,7 +84,7 @@
 ## 4. 执行步骤与观察点
 
 - **执行过程（逐步调用）**：
-  1. `GET /healthz`、`GET /readyz` —— 确认 §2.1 基线（`pytest_configure` 自动执行，本 case 不重复）。
+  1. `GET /healthz`、`GET /readyz` —— 确认 计划 §2 基线（`pytest_configure` 自动执行，本 case 不重复）。
   2. `list_resp = admin_client.get("/v1/providers")`；断言 `200`；解析 `data[]`。
   3. 断言每个元素**不含**顶层或嵌套键 `secret_ref`，且无任何字段携带形如秘密值/`env:`/`file:` 引用串的值（`endpoint`/`name`/`id` 等业务字段除外，但它们不得等于解析后的秘密）。
   4. `detail_resp = admin_client.get("/v1/providers/provider_omlx_m5mac")`；断言 `200`。
@@ -106,19 +106,19 @@
   - **PASS**：列表与详情均 `200`、键集恰为 `ProviderView`、无 `secret_ref`、`has_secret` 正确，且原始响应否定扫描通过。
   - **FAIL**：任一读路径回显 `secret_ref`/秘密值/`9832`，或键集不符——安全不变量回归，须给预期 vs 实际与 `reproduction_cmd`（**不得**在证据中留存真实秘密）。
   - **BLOCKED**：无法执行/无法判定且可重试（断言不可实现、秘密来源不可解析导致无法做否定扫描）——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **SKIP**：§2.1 前置不满足（含 §2.1.5 `provider_omlx_m5mac` 秘密不可用）——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
+  - **SKIP**：计划 §3 前置不满足（含 §2.1.5 `provider_omlx_m5mac` 秘密不可用）——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **INVALID**：用 `127.0.0.1`/mock/替代路径冒充真实 m5air，或伪造否定扫描结论——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **NOT_RUN**：本 Case 有实现（§7，`ST-PROV-014.py`），本轮未执行时按 §9 记 `NOT_RUN`；不得以未跑冒充 PASS。
 
 ## 6. 错误路径、副作用与清理
 
-- **清理与复位**：**无需 teardown**——纯读，不改 provider/deployment、不写注入。退出前确认 `/readyz` 仍 7 tier、无未清空注入项；若误跑于 B 类实例，则按[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md) 整班 `stop()` + `rm -rf`。确认证据已完成脱敏。
+- **清理与复位**：**无需 teardown**——纯读，不改 provider/deployment、不写注入。退出前确认 `/readyz` 仍 7 tier、无未清空注入项；若误跑于 B 类实例，则按[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理) 整班 `stop()` + `rm -rf`。确认证据已完成脱敏。
 
 ## 7. 自动化位置与状态
 
-- **证据与 Run**：证据与 Run 契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)(../llmtier-system-test-scheme.md)：Run ID=`<date>/A-api`；保存原始 status/headers/body（脱敏后）、发出命令、exit code、`elapsed`、环境快照；`manifest.json` 必填字段与报告落位（`tests/system/reports/...`）见 §4.8/§10；失败现场不截断。**本 case 额外证据**：列表/详情原始 status/headers/body（**脱敏后**：`Authorization`、`9832`、key 文件内容 → `<redacted>`）、否定扫描方法与被扫字符串的哈希/占位；`redactions` 必须显式列出上述三项。
+- **证据与 Run**：证据与 Run 契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)：Run ID=`<date>/A-api`；保存原始 status/headers/body（脱敏后）、发出命令、exit code、`elapsed`、环境快照；`manifest.json` 必填字段与报告落位（`tests/system/reports/...`）见计划 §7/§10；失败现场不截断。**本 case 额外证据**：列表/详情原始 status/headers/body（**脱敏后**：`Authorization`、`9832`、key 文件内容 → `<redacted>`）、否定扫描方法与被扫字符串的哈希/占位；`redactions` 必须显式列出上述三项。
   > 自动化入口：`ST-PROV-014.py`（A 类，`admin_client`）；实现状态见文末。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查，尤其 **§2.1.5**（`provider_omlx_m5mac` `has_secret=true`、`secret_ref` 为 `file:`）；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`ProviderView` 机器契约（`interfaces/openapi/llmtier.openapi.json`）；`registry.get_provider`/`list_providers`；机制 `T-CFG-SECRET`；自动化入口 `ST-PROV-014.py`。**不依赖**其它 Case；与 ST-PROV-001/03 共享读路径，但承担其安全断言；与 ST-AUDIT-001/ST-LOGS-001（审计/日志脱敏）互补但各自独立。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查，尤其 **§2.1.5**（`provider_omlx_m5mac` `has_secret=true`、`secret_ref` 为 `file:`）；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；`ProviderView` 机器契约（`interfaces/openapi/llmtier.openapi.json`）；`registry.get_provider`/`list_providers`；机制 `T-CFG-SECRET`；自动化入口 `ST-PROV-014.py`。**不依赖**其它 Case；与 ST-PROV-001/03 共享读路径，但承担其安全断言；与 ST-AUDIT-001/ST-LOGS-001（审计/日志脱敏）互补但各自独立。
 
 > 实现状态：Implemented（`ST-PROV-014.py`）；执行状态与 Verdict 只在 Run 报告。

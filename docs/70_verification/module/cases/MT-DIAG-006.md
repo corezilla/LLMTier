@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `MT-DIAG-006` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-10-02` |
-| Last Modified Date | `2026-10-02` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.module-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`MT-DIAG-006`）；责任摘要、分类与优先级以 [模块测试方案 §3](../llmtier-module-test-scheme.md) 清单行为准，不在本文档重复维护。
+- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`MT-DIAG-006`）；责任摘要、分类与优先级以 [模块测试方案 §6](../llmtier-module-test-scheme.md) 清单行为准，不在本文档重复维护。
 - **测试脚本的唯一依据**：编码者按本文档写测试代码；§7 指向已实现脚本 `tests/module/cases/MT-DIAG-006.py`。
 - **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
 
@@ -43,8 +43,8 @@
 
 ## 1. Case 概述与责任
 
-- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-DIAG-006` / M006 游标分支：traces/snapshots 非法 cursor→400（组装） v0.1.0-draft.6 / VRC-DIAG-002（libdiag-design §14 / libdiag.isd §9.1，libdiag 0.1.0-draft.6） / VRC-DIAG-002 / boundary / P1（[方案清单 §3](../llmtier-module-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：边界值（上限/零/空/刚好满、长度、分页越界）+ 条件边界（主要手段：无边界替身，全真实（仅 ENV-1/ENV-2 真实实现））
+- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-DIAG-006` / M006 游标分支：traces/snapshots 非法 cursor→400（组装） v0.1.0-draft.6 / VRC-DIAG-002（libdiag-design §14 / libdiag.isd §9.1，libdiag 0.1.0-draft.6） / VRC-DIAG-002 / boundary / P1（[方案清单 §6](../llmtier-module-test-scheme.md)）。
+- **测试方法（§2.4 方法表行）**：边界值（上限/零/空/刚好满、长度、分页越界）+ 条件边界（主要手段：无边界替身，全真实（仅 ENV-1/ENV-2 真实实现））
 - **覆盖的分支 / 组合 / 迁移 ID**：分支：M006-游标分支；组合：K9
 - 要测什么（责任展开）：非法 cursor→400 `cursor_expired`；`next_cursor`/`has_more` 稳定；时间窗越界为空（本 Case 责任：K9 四行全覆盖；两查询面游标语义各自正确；窗口/limit/过滤一致；分页稳定）
 - 明确不测什么 / 失败含义：不测跨模块系统级流程、真实上游 provider 协议、浏览器 E2E（归系统层 `ST-*` 与契约层）；本层只断言组装后成立的分支走向、状态迁移与调用序。失败含义＝libdiag 组装后两查询面的游标与窗口与设计不一致。
@@ -80,7 +80,7 @@ traces(since, until, deployment_id, model, limit, cursor); snapshots_page(since,
 
 ## 5. 独立 Oracle 与预期结果
 
-- 独立 Oracle 来源与推导：libdiag 模块设计 §14.2 + 方案 §3.3 K9；按两查询面的游标形态差异（`ts|rid` vs snapshot id）与 `max(1,min(limit,500))` 人工推导
+- 独立 Oracle 来源与推导：libdiag 模块设计 §14.2 + 方案 §6.3 K9；按两查询面的游标形态差异（`ts|rid` vs snapshot id）与 `max(1,min(limit,500))` 人工推导
 - 互斥预期（成功 / 各错误分支）：K9 四行全覆盖；两查询面游标语义各自正确；窗口/limit/过滤一致
 
 ## 6. 错误路径、副作用与清理

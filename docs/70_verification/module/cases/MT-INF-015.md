@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `MT-INF-015` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-10-02` |
-| Last Modified Date | `2026-10-02` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.module-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`MT-INF-015`）；责任摘要、分类与优先级以 [模块测试方案 §3](../llmtier-module-test-scheme.md) 清单行为准，不在本文档重复维护。
+- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`MT-INF-015`）；责任摘要、分类与优先级以 [模块测试方案 §6](../llmtier-module-test-scheme.md) 清单行为准，不在本文档重复维护。
 - **测试脚本的唯一依据**：编码者按本文档写测试代码；§7 指向已实现脚本 `tests/module/cases/MT-INF-015.py`。
 - **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
 
@@ -43,10 +43,10 @@
 
 ## 1. Case 概述与责任
 
-- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-INF-015` / M003 超大 response 分支：超长/超大上游响应体归一（组装，ENV-3） v0.1.0-draft.1 / VRC-INF-003（inference-design §14 / inference.isd §9.1，inference 0.1.0-draft.1） / VRC-INF-003 / boundary / P1（[方案清单 §3](../llmtier-module-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：边界值（上限/零/空/刚好满、长度、分页越界）+ 条件边界（主要手段：边界外协作者用 loopback `FakeUpstream`（真实 `ThreadingHTTPServer` 上的 OpenAI 兼容假上游，经公开 Registry 入口接线，资产 `llmtier-unit-fakes`））
-- **覆盖的分支 / 组合 / 迁移 ID**：分支：M003-超大 response 归一（§1.5.1 c3）
-- 要测什么（责任展开）：超大 body / 极长 SSE 单帧 / 超多事件在模块边界内完整归一、不越界崩溃；超 2 MB 下游响应归系统层（§1.5.1 c3）（本 Case 责任：2 MiB 输出与 3000 事件在模块边界内完整归一、不越界崩溃；下游预算归系统层）
+- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-INF-015` / M003 超大 response 分支：超长/超大上游响应体归一（组装，ENV-3） v0.1.0-draft.1 / VRC-INF-003（inference-design §14 / inference.isd §9.1，inference 0.1.0-draft.1） / VRC-INF-003 / boundary / P1（[方案清单 §6](../llmtier-module-test-scheme.md)）。
+- **测试方法（§2.4 方法表行）**：边界值（上限/零/空/刚好满、长度、分页越界）+ 条件边界（主要手段：边界外协作者用 loopback `FakeUpstream`（真实 `ThreadingHTTPServer` 上的 OpenAI 兼容假上游，经公开 Registry 入口接线，资产 `llmtier-unit-fakes`））
+- **覆盖的分支 / 组合 / 迁移 ID**：分支：M003-超大 response 归一（§2.3 c3）
+- 要测什么（责任展开）：超大 body / 极长 SSE 单帧 / 超多事件在模块边界内完整归一、不越界崩溃；超 2 MB 下游响应归系统层（§2.3 c3）（本 Case 责任：2 MiB 输出与 3000 事件在模块边界内完整归一、不越界崩溃；下游预算归系统层）
 - 明确不测什么 / 失败含义：不测跨模块系统级流程、真实上游 provider 协议、浏览器 E2E（归系统层 `ST-*` 与契约层）；本层只断言组装后成立的分支走向、状态迁移与调用序。失败含义＝inference 组装后超大响应的边界内归一与设计不一致。
 
 ## 2. 被测入口与前置
@@ -77,7 +77,7 @@ create(...)  # 上游 2 MiB 输出 / 3000 事件
 
 ## 5. 独立 Oracle 与预期结果
 
-- 独立 Oracle 来源与推导：方案 §1.5.1 c3 + inference 模块设计 §14.3；按「模块边界内完整归一」与下游预算归系统层的分工人工推导
+- 独立 Oracle 来源与推导：方案 §2.3 c3 + inference 模块设计 §14.3；按「模块边界内完整归一」与下游预算归系统层的分工人工推导
 - 互斥预期（成功 / 各错误分支）：超大输入在模块内被完整归一，不越界崩溃；恰好一个 terminal
 
 ## 6. 错误路径、副作用与清理

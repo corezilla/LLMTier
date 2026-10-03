@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-OBSSTATS-003` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -32,7 +32,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-OBSSTATS-003` / 系统设计 §8 诊断统计接口（GET /v1/diagnostics/stats） / `VRC-DIAG-002` / recovery / P1（[方案清单 `ST-OBSSTATS-003`](../llmtier-system-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：故障注入（诊断存储不可用 → 503）+ 复位阶梯
+- **测试方法（§2.2 方法表行）**：故障注入（诊断存储不可用 → 503）+ 复位阶梯
 
 - 要测什么（责任展开）：诊断 store 不可用时 `GET /v1/diagnostics/stats?since=2020-01-01T00:00:00Z&until=2030-01-01T00:00:00Z` 返回 `503 usage_store_unavailable`（typed server error），**不得**以 200/空结果冒充"无数据"；恢复存储后回到 200。实现经 [`_store_read`](../../../../src/http_api/app.py) 或 `mutate` 把存储异常收敛为 `usage_store_unavailable`。
 

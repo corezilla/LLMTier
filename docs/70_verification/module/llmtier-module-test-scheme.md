@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-module-test-scheme` |
-| Document Version | `0.1.0-draft.11` |
+| Document Version | `0.1.0-draft.12` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -27,9 +27,9 @@
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
-> 本方案绑定软件模块集合：本方案覆盖 8 个软件模块 `M001-M008`（见 §1）；`design_object_id` 为本项目元数据可选字段，本方案 metadata 未写入该字段（合并方案跨 8 模块，单一 `design_object_id` 无法承载），模块归属改由 §3「来源 ID / 固定版本」列与 Case ID 前缀承担；模块/ISD 基线在 §1.5 固定；实现状态与执行结果不进本方案。
-> 本文档对设计验证项（VRC）的引用规则：只引用 ID 与状态，不复制定义/判据/Owner；判据与契约权威归 design 与 tests.asset-design，本文档若细化执行断言需在变更时回溯设计修订并记录。**VRC 在本层只作追溯列/附 A，不作分母**（见 §3）。
-> **裁剪说明（tailored）**：模板默认“本方案绑定单一软件模块”。本项目按用户授权将 8 个模块的模块层 Case 清单合并为一份项目级方案（`M001-M008` 一次登记），逐模块归属由 §3 的「来源 ID / 固定版本」列与 Case ID 前缀承担；该合并只关清单登记位置，不改变 Case 与模块设计分支/接口的追溯。裁剪依据见 [STD 裁剪清单](../../00_management/std-tailoring.md) `LT-TL-025`。
+> 本方案绑定软件模块集合：本方案覆盖 8 个软件模块 `M001-M008`（见 §1）；`design_object_id` 为本项目元数据可选字段，本方案 metadata 未写入该字段（合并方案跨 8 模块，单一 `design_object_id` 无法承载），模块归属改由 §6「来源 ID / 固定版本」列与 Case ID 前缀承担；模块/ISD 基线在 §2 固定；实现状态与执行结果不进本方案。
+> 本文档对设计验证项（VRC）的引用规则：只引用 ID 与状态，不复制定义/判据/Owner；判据与契约权威归 design 与 tests.asset-design，本文档若细化执行断言需在变更时回溯设计修订并记录。**VRC 在本层只作追溯列/附 A，不作分母**（见 §6）。
+> **裁剪说明（tailored）**：模板默认“本方案绑定单一软件模块”。本项目按用户授权将 8 个模块的模块层 Case 清单合并为一份项目级方案（`M001-M008` 一次登记），逐模块归属由 §6 的「来源 ID / 固定版本」列与 Case ID 前缀承担；该合并只关清单登记位置，不改变 Case 与模块设计分支/接口的追溯。裁剪依据见 [STD 裁剪清单](../../00_management/std-tailoring.md) `LT-TL-025`。
 
 ### 模板定位：方案、用例与计划的边界
 
@@ -41,48 +41,48 @@
 
 | 状态 | 取值 | 唯一权威记录处 | 禁止 |
 |---|---|---|---|
-| 用例状态 | `Designed` / `Gap`（具名缺口）/ `Tailored-N/A` | 本方案 §3 清单 | 未设计写成已设计；N/A 无设计事实依据 |
+| 用例状态 | `Designed` / `Gap`（具名缺口）/ `Tailored-N/A` | 本方案 §6 清单 | 未设计写成已设计；N/A 无设计事实依据 |
 
 任一 Case 在本方案中只报设计状态；实现与执行状态可沿 Case ID 追到 case-design 文档与 Run 报告。
 
 ## 1. 目标、范围与被测对象
 
 - 被测对象、设计基线与父对象：LLMTier 8 个软件模块——M001 `http-api`（`src/http_api/`）、M002 `web-ui`（`src/web_ui/`）、M003 `inference`（`src/inference/`）、M004 `management`（`src/management/`）、M005 `observability`（`src/observability/`）、M006 `libdiag`（`src/libdiag/`）、M007 `util`（`src/util/`）、M008 `log`（`src/log/`）；
-  父对象为软件系统设计 `llmtier-system-design`；模块/ISD 基线见 §1.5。**M005 `src/observability/` 无独立实现文件**（仅空 `__init__.py`），其模块行为落在 M001 `app.py` 的诊断路由与 M006 `diagnostics.py` 查询面（见 M005 设计 §3/§4；
-  本方案 §3 的 M005 行据此归属）。
-- **本层定位＝灰盒（gray-box），主要手段＝公开入口 + 边界替身**（对齐 STD [test-standard.md](https://github.com/corezilla/STD/blob/eaca6dcb9ca990bfb9b68ae1c08dfb5d9d4b5da9/docs/test-standard.md) §3）：模块层经**公开入口**驱动（HTTP 端点 / 服务方法 / `Store` 公开方法——这是黑盒刺激），但被测模块**内部单元真实**，且**允许并鼓励断言模块内部分支、内部状态与内部调用序**（白盒观测）。
+  父对象为软件系统设计 `llmtier-system-design`；模块/ISD 基线见 §2。**M005 `src/observability/` 无独立实现文件**（仅空 `__init__.py`），其模块行为落在 M001 `app.py` 的诊断路由与 M006 `diagnostics.py` 查询面（见 M005 设计 §3/§4；
+  本方案 §6 的 M005 行据此归属）。
+- **本层定位＝灰盒（gray-box），主要手段＝公开入口 + 边界替身**（对齐 STD [test-standard.md](https://github.com/corezilla/STD/blob/f07339644221f694f38e7bdda63cf5364114599b/docs/test-standard.md) §3）：模块层经**公开入口**驱动（HTTP 端点 / 服务方法 / `Store` 公开方法——这是黑盒刺激），但被测模块**内部单元真实**，且**允许并鼓励断言模块内部分支、内部状态与内部调用序**（白盒观测）。
   **边界替身**只在模块边界以外注入（上游 provider 用进程内 `FakeAdapter`；真实网络端口仅绑 loopback 测试实例 `127.0.0.1:0`）；**不测**跨模块协议与边界外真实依赖（归系统层 `ST-*`）。
   这与单元层的区别不在“测不测内部”，而在：
   - **单元层**逐函数/逐类验证单函数分支（mock 协作者），命令入口是函数调用；
-  - **模块层**验证**组装后**才成立的保证——同一公开刺激下，内部真实单元之间的**分支走向、状态迁移与有序接线**是否与设计一致，以及**UT 各自 PASS 但组装后可能不成立**的分支/组合/接线点（见 §3 与 §5 去重规则）。
+  - **模块层**验证**组装后**才成立的保证——同一公开刺激下，内部真实单元之间的**分支走向、状态迁移与有序接线**是否与设计一致，以及**UT 各自 PASS 但组装后可能不成立**的分支/组合/接线点（见 §6 与 §8 去重规则）。
 - **灰盒边界（可断言 seam vs 不耦合的实现细节）**：**可断言的内部 seam**＝模块内公开类型/方法（如 `Router.admit` 上下文、`UsageRecorder` 账本行、`Registry` 版本号、`DiagnosticsService` 开关列、`Store` 连接 PRAGMA）与**模块内序列**（先鉴权后分发、先 `admit` 后 dispatch、审计与业务同事务、路由→服务→存储）；**不耦合的实现细节**＝私有函数名、变量名、SQL 文本、日志措辞、内部数据结构的偶发形状——这些不作为断言对象。断言优先“模块公开返回/wire 信封/落库行 + 关键内部 seam 的状态/调用序”。
 - **内部真实、仅边界替身**：模块内部全部真实（真实 `Store` + 隔离临时库、真实 `Registry`/`Router`/`UsageRecorder`/`AuditLog`/`OperationalLog`/`DiagnosticsService`、真实 `ThreadingHTTPServer` handler 栈、真实 `webui/` 静态产物），**禁止**对被测模块内部单元或内部字段打桩；仅模块**边界以外**的协作者使用替身（上游 provider 用进程内 `FakeAdapter`，真实网络端口仅绑 loopback 测试实例 `127.0.0.1:0`）。
-- **状态型初态必须经公开入口构造**：凡构造模块初态（造数据、造开关、造用量、造审计、造诊断样本、造注入、造配置）**必须调用被测模块公开入口**（HTTP 端点 / 服务方法 / `Store` 公开方法）；**禁止**测试直写表、直改内部字段或实例属性来建立初态（见 §1.5 规则 1）。
+- **状态型初态必须经公开入口构造**：凡构造模块初态（造数据、造开关、造用量、造审计、造诊断样本、造注入、造配置）**必须调用被测模块公开入口**（HTTP 端点 / 服务方法 / `Store` 公开方法）；**禁止**测试直写表、直改内部字段或实例属性来建立初态（见 §2 规则 1）。
 - 不证明的组合保证及承接入口：跨模块系统级流程（启动/systemd、反向代理、Piko 联调）、wire 互操作与 OpenAPI 端到端一致性、真实上游 provider 协议、浏览器 E2E；承接＝系统测试方案/计划（`llmtier-system-test-scheme`/`-plan`）与契约层。**下层（单元）PASS 不关闭本层**，**本层 PASS 不关闭上层**。
 - 被测入口集合（每个 Case 的具体入口见对应 module-case §2）：M001 `app.py` `Handler` 对外 HTTP 端点 + `errors.py`/`auth.py`/`sse.py`/`health.py`；
   M002 `webui/index.html` + `webui/app.js` 对外 DOM/API 契约；M003 `ResponsesService.create`/`EmbeddingsService.create` + `Router.admit` + `UsageRecorder.*`；
   M004 `Registry.*`/`AdminService.*`/`AccountUsage.refresh`；M005 诊断端点（经 M001 `app.py` 路由）；M006 `DiagnosticsService.*`；M007 `Store.*`；
   M008 `OperationalLog.record/page`。
 
-## 1.5 测试方法与测试设计技术
+## 2. 测试方法与测试设计技术
 
 - **模块/ISD 基线**：M001 `http-api` v0.1.0-draft.2 / ISD `http-api-isd`；M002 `web-ui` v0.1.0-draft.2 / `web-ui-isd`；M003 `inference` v0.1.0-draft.1 / `inference-isd`；M004 `management` v0.1.0-draft.3 / `management-isd`；M005 `observability` v0.1.0-draft.6 / `observability-isd`；M006 `libdiag` v0.1.0-draft.6 / `libdiag-isd`；M007 `util` v0.1.0-draft.2 / `util-isd`；M008 `log` v0.1.0-draft.1 / `log-isd`。设计要求见各模块设计 §14 与 ISD §9.1。
 - **模块层专属规则（强制）**：
   1. **状态只经公开入口**——凡构造模块初态必须调用被测模块公开入口（HTTP 端点 / 服务方法 / `Store` 公开方法）；**禁止**测试直接写表、直改内部字段或实例属性来建立初态。
   2. **内部真实、边界替身**——模块内部协作者一律真实实例；只有模块边界以外（真实上游 provider、真实网络对端）可替换为替身，且替身交互契约以 `tests.asset-design` 为唯一 authority。
-  3. **组装保证优先**——一个模块层 Case 必须断言**组装后**才成立的保证（分支走向、状态迁移、调用链顺序、跨单元失败传播、模块间接口契约），不得退化为单元层已覆盖的单函数行为复测（UT 去重见 §5）。
-  4. **分支/组合/迁移必覆盖**——§3 列出的每个模块内**判定分支**、每条**组合行**与**状态迁移**都必须映射到 ≥1 个 Case；未覆盖者须在 §4 具名或标 `Tailored-N/A`（依据设计事实），不得静默消失。
-- **入场标准**：模块设计 §14 与 ISD §9.1 到位；本方案 §3 分母（接口行为 + 分支 + 组合/迁移 + 组装边界）冻结、无未登记缺口；对应 module-case 文档已建且其测试代码 `Implemented`；边界替身契约在 `tests.asset-design` 就位且自检 Verified；ENV（§1.7）就绪。
-- **离场标准**：§3 四层分母每层每条至少一个 Case 已判定；全部 Case Verdict 齐全；缺口有具名 Owner 与恢复条件（§4）；模块设计或 ISD 变更触发受影响 Case 重跑。
+  3. **组装保证优先**——一个模块层 Case 必须断言**组装后**才成立的保证（分支走向、状态迁移、调用链顺序、跨单元失败传播、模块间接口契约），不得退化为单元层已覆盖的单函数行为复测（UT 去重见 §8）。
+  4. **分支/组合/迁移必覆盖**——§6 列出的每个模块内**判定分支**、每条**组合行**与**状态迁移**都必须映射到 ≥1 个 Case；未覆盖者须在 §7 具名或标 `Tailored-N/A`（依据设计事实），不得静默消失。
+- **入场标准**：模块设计 §14 与 ISD §9.1 到位；本方案 §6 分母（接口行为 + 分支 + 组合/迁移 + 组装边界）冻结、无未登记缺口；对应 module-case 文档已建且其测试代码 `Implemented`；边界替身契约在 `tests.asset-design` 就位且自检 Verified；ENV（§4）就绪。
+- **离场标准**：§6 四层分母每层每条至少一个 Case 已判定；全部 Case Verdict 齐全；缺口有具名 Owner 与恢复条件（§7）；模块设计或 ISD 变更触发受影响 Case 重跑。
 - **自动化策略**：`PYTHONPATH=src python3 -m pytest tests/module/cases -q` 进 CI，整批运行；单 Case 用其文档 §7 的 `-k`/文件路径入口选择；失败不阻断后续 Case（除环境性 BLOCKED）；flaky 不掩盖根因（INVALID 单独登记复现状态）。
 
-### 模块层专门测试技术（选型与设计）
+### 2.1 模块层专门测试技术（选型与设计）
 
-模块层在等价类/边界/错误猜测之上，**必须**使用以下四类以覆盖“组装后才成立”的保证；每类给出分母并在 §3 逐条映射到 Case：
+模块层在等价类/边界/错误猜测之上，**必须**使用以下四类以覆盖“组装后才成立”的保证；每类给出分母并在 §6 逐条映射到 Case：
 
-1. **分支 / 条件覆盖（branch/condition coverage）**：把模块内每一处**判定分支**列为一条，**每个分支至少一条 Case**，给出分支分母并要求全覆盖。模块内判定分支（清单见 §3.2）：M001 鉴权三态（401/403/503）、`_auth_either` 优先级、SSE terminal 三态（completed/aborted-by-client/aborted-by-error）、路由命中/未命中、`_body` 413/非法 JSON/非法 Content-Length、`_static` 穿越/未命中、`_run` 500/503 出口；M003 校验顺序四出口、准入四出口（404/429 队列满/503 全不健康/429 超时）、注入四态、admitted 真/假副作用分支；M004 bootstrap 五出口、CRUD 412/409-conflict/409-in-use/404、分页 cursor 四态、refresh 四态；M006 注入六类 × 校验出口、fail-open 三分支、stream_wrapper 三态；M007 migrate 四拒绝出口、事务嵌套 409；M008 脱敏命中/未命中 × `page` 400/夹取。
-2. **组合（判定表 / 配对 pairwise）**：对**相互独立**的判定做组合，用**判定表**列出行，用 **pairwise** 削减全组合规模；给组合矩阵并说明选组合的理由。组合行清单见 §3.3：M001 鉴权结果 × 端点类别、SSE body 形态 × 终止界定、分页 cursor 状态 × 越界；M003 注入类型 × 准入阶段、能力档 × 请求形态；M004 资源类别 × 错误码、账号用量 provider × 凭据 × 确认；M006 注入类型 × config 合法性、游标状态 × 查询面。
-3. **状态转换覆盖（state-transition coverage）**：模块内状态机每条**迁移**至少一条 Case，给迁移表。迁移清单见 §3.4：M003 账本 `unknown→final`、Router 槽位持有→释放、队列 push→pop/超时；M004 bootstrap 空→就绪/失败回滚、资源版本 vN→vN+1；M005/M006 开关 off↔on（关闭零写入）；M007 库 空→初始化→迁移→关闭/回滚；M008 日志追加顺序。
+1. **分支 / 条件覆盖（branch/condition coverage）**：把模块内每一处**判定分支**列为一条，**每个分支至少一条 Case**，给出分支分母并要求全覆盖。模块内判定分支（清单见 §6.2）：M001 鉴权三态（401/403/503）、`_auth_either` 优先级、SSE terminal 三态（completed/aborted-by-client/aborted-by-error）、路由命中/未命中、`_body` 413/非法 JSON/非法 Content-Length、`_static` 穿越/未命中、`_run` 500/503 出口；M003 校验顺序四出口、准入四出口（404/429 队列满/503 全不健康/429 超时）、注入四态、admitted 真/假副作用分支；M004 bootstrap 五出口、CRUD 412/409-conflict/409-in-use/404、分页 cursor 四态、refresh 四态；M006 注入六类 × 校验出口、fail-open 三分支、stream_wrapper 三态；M007 migrate 四拒绝出口、事务嵌套 409；M008 脱敏命中/未命中 × `page` 400/夹取。
+2. **组合（判定表 / 配对 pairwise）**：对**相互独立**的判定做组合，用**判定表**列出行，用 **pairwise** 削减全组合规模；给组合矩阵并说明选组合的理由。组合行清单见 §6.3：M001 鉴权结果 × 端点类别、SSE body 形态 × 终止界定、分页 cursor 状态 × 越界；M003 注入类型 × 准入阶段、能力档 × 请求形态；M004 资源类别 × 错误码、账号用量 provider × 凭据 × 确认；M006 注入类型 × config 合法性、游标状态 × 查询面。
+3. **状态转换覆盖（state-transition coverage）**：模块内状态机每条**迁移**至少一条 Case，给迁移表。迁移清单见 §6.4：M003 账本 `unknown→final`、Router 槽位持有→释放、队列 push→pop/超时；M004 bootstrap 空→就绪/失败回滚、资源版本 vN→vN+1；M005/M006 开关 off↔on（关闭零写入）；M007 库 空→初始化→迁移→关闭/回滚；M008 日志追加顺序。
 4. **调用序 / 接线断言（ordering & wiring）**：跨内部单元/模块接口断言**有序调用与次数**——先 `_auth` 后 `_dispatch`、先 `Router.admit` 后 dispatch、审计与业务**同事务**、路由→服务→存储路径、诊断 trace stage 有序、幂等（重复启动/bootstrap no-op、重复 revoke）。
 5. **等价类 / 边界 / 错误猜测 / 故障注入 / 并发**：**保留但重定位为灰盒**——注入与观测均经公开入口与内部 seam，断言组装后的分支与状态，而非单函数返回值。
 
@@ -103,15 +103,15 @@
 | performance | 不在本层 | 性能预算归系统层 | 不用负载/容量测试（本层不负责系统预算） |
 | endurance | 不在本层 | 耐久/长稳归系统层 | 不用长跑（本层不负责） |
 
-### 注入类方法（错误/故障注入 + 数据注入）
+### 2.2 注入类方法（错误/故障注入 + 数据注入）
 
-> **本节目的**：把模块层**注入类方法**（means）固定下来——注入是**跨家族应用的构造/刺激手段**（不新增 Case 家族、不单独设 Case），其落点映射到 §3 四层分母的既有行（family 加/recovery/negative/security + 分支/组合/迁移分母）。
+> **本节目的**：把模块层**注入类方法**（means）固定下来——注入是**跨家族应用的构造/刺激手段**（不新增 Case 家族、不单独设 Case），其落点映射到 §6 四层分母的既有行（family 加/recovery/negative/security + 分支/组合/迁移分母）。
 > **主要手段＝边界替身（mock/fake）返回错误数据/行为**：模块层的错误注入**以边界替身为主**——由 `FakeAdapter`（进程内 fake）**返回坏数据或产生错误行为**（bad data / quota exhausted / timeout / disconnect / malformed stream），断言模块对该错误的**映射与处理**（分支走向、错误码、状态回滚）。**产品 diagnostics 注入（`fault_502`/`fault_503`/`delay`/`rate_limit`/`stream_terminate`/`malformed_event`）是可选补充**：仅当产品注入能力可用时才作为额外手段，**不是基线**；产品注入未命中（或能力不可用）**不使基线 Case 失效**——基线由边界替身保证。
-> **完成条件**：本节每个「mock 返回类型」与数据注入类型均映射到 ≥1 个 §3 行（见「方法 → Case 落点」表）；**用边界替身返回错误时，判定＝模块对该错误的映射**（命中即以替身确实返回了配置错误为准）；**用产品注入时未命中即判 `INVALID`**（不得以“重试即恢复”掩盖根因）。
+> **完成条件**：本节每个「mock 返回类型」与数据注入类型均映射到 ≥1 个 §6 行（见「方法 → Case 落点」表）；**用边界替身返回错误时，判定＝模块对该错误的映射**（命中即以替身确实返回了配置错误为准）；**用产品注入时未命中即判 `INVALID`**（不得以“重试即恢复”掩盖根因）。
 
-#### 错误 / 故障注入（按「边界替身返回什么」组织；产品注入为可选补充）
+**错误 / 故障注入（按「边界替身返回什么」组织；产品注入为可选补充）。**
 
-| mock 返回（主手段）| 边界替身返回的错误数据/行为 | 产品注入（可选补充）| 落点（§3 分母行 → Case） |
+| mock 返回（主手段）| 边界替身返回的错误数据/行为 | 产品注入（可选补充）| 落点（§6 分母行 → Case） |
 |---|---|---|---|
 | **5xx（上游错误响应）** | `FakeAdapter`/`FakeResponse` 返回 500/502/503 或抛对应 `ApiError` | `fault_502`/`fault_503` | MT-INF-003（recovery）、MT-INF-008（注入四态 recovery） |
 | **超时** | `FakeAdapter` 挂起 > 连接/流空闲超时（或本地 stub 不返回） | `delay` | MT-INF-003（recovery）、MT-INF-008（recovery） |
@@ -123,23 +123,29 @@
 - **存储面 / 传输面 / 准入面（非上游替身返回值）**：存储面（库写失败/表损坏/迁移中途失败）与传输面（客户端中途断开/超大流）不经上游替身，直接在真实 `Store`/ENV-2 真实 socket 上触发；准入面（队列饱和/全不健康/等待超时）经 `Router` 公开 `admit` 上下文或（可选）`rate_limit`+`delay` 产品注入制造。落点：MT-INF-009/MT-DIAG-007/MT-OBS-004/MT-UTIL-004/MT-UTIL-005（存储面 recovery）、MT-API-008/MT-API-007（传输面 recovery/boundary）、MT-INF-007/MT-INF-004/K4（准入面 concurrency/组合）。
 - **判定规则（强制）**：**用边界替身注入**——替身按配置返回了错误即视为「命中」，判定＝模块对该错误的**映射/处理**（错误码、分支走向、回滚、`unknown` 不补零）；**用产品注入**——**注入命中（命中计数 > 0）方可判定**，注入计数为 0、并发未交错、故障未实际触发 → 该 Case 记 `INVALID`（不记 PASS）；**不得用“重试即恢复”掩盖根因**——须断言注入发生后的分支走向、状态回滚/无半写、`unknown` 不补零与调用序，而非仅“再次调用成功”。
 
-#### 数据注入（data injection，按数据类型与用途）
+**数据注入（data injection，按数据类型与用途）。**
 
 > **初态/边界数据经公开入口构造（+ 可选 mock）**：初态数据与边界数据**必须经被测模块公开入口**构造（HTTP 端点 / 服务方法 / `Store` 公开方法；`AppFixture.seed`），**边界替身（mock）只作可选补充**去近似边界来源（如本地 `FakeResponse` 返回边界响应体）——**禁止**测试直写表/直改内部字段。
 
-| 数据类型 / 用途 | 注入内容 | 手段（公开入口 ① / 边界替身 ②） | 落点（§3 分母行 → Case） |
+| 数据类型 / 用途 | 注入内容 | 手段（公开入口 ① / 边界替身 ②） | 落点（§6 分母行 → Case） |
 |---|---|---|---|
-| **① 初态数据** | 固定 tier/deployment/账本/snapshot/injection 行 | ① **经公开入口播种**（HTTP 端点 / 服务方法 / `Store` 公开方法；`AppFixture.seed`）——**禁止直接写表** | 一切需初态的 Case 的**公开入口前置**（§1.5 规则 1）；代表行 MT-MGMT-001/006、MT-INF-003/004、MT-DIAG-004、MT-OBS-002 |
+| **① 初态数据** | 固定 tier/deployment/账本/snapshot/injection 行 | ① **经公开入口播种**（HTTP 端点 / 服务方法 / `Store` 公开方法；`AppFixture.seed`）——**禁止直接写表** | 一切需初态的 Case 的**公开入口前置**（§2 规则 1）；代表行 MT-MGMT-001/006、MT-INF-003/004、MT-DIAG-004、MT-OBS-002 |
 | **② 边界数据** | 2 MB body、`limit` 上限、512 字符、极值/空/未知 | ① 公开请求参数/正文；边界由模块公开入口构造 | MT-API-007（413 boundary）、MT-MGMT-009（cursor/limit boundary）、MT-LOG-001/003（512/limit 夹取 boundary）、K3/K5 |
 | **③ 诊断数据注入** | deployment 级注入配置 | ① `PATCH /v1/deployments/{id}/diagnostics`（诊断注入 API，≥1 项） | MT-DIAG-002（注入配置 negative）、MT-DIAG-003/004（注入校验/撤销 negative）、MT-OBS-004（注入分支 recovery）、K4/K8 |
 | **④ 冻结向量** | SSE 字节帧、32-hex `traceparent`、base64 向量、UI 资产字符串 | ① 固定 request/header；② 本地 `FakeAdapter`/`FakeResponse` 只代返回值 | MT-API-008（SSE 帧 recovery）、MT-API-010（traceparent 分支 normal）、MT-INF-002/010（base64 向量 boundary）、MT-UI-001/002（UI 资产字符串契约）、K2/K10 |
 
 - **判定规则（强制）**：数据注入的注入值/观测**严格相等**（wire 信封、落库行、内部 seam 状态逐字段比对）；**未知值不补零**（`unknown` / `Unknown` / NULL 落库，绝不以 0 代替）；初态注入**必须经公开入口**（`Store` 公开方法或 HTTP/服务方法），**禁止**测试直写表/直改内部字段。
 
-#### 1.5.1 异常 / 错误注入矩阵（全量封闭：每个对外 error code、上游 4xx/5xx/配额/坏数据/凭据、传输/时间病态）
+**方法 → Case 落点说明。**
 
-> **本矩阵目的**：把「异常 / 错误」按**来源**穷举为三组，并把每一行**唯一地**映射到「mock 如何注入 → 被测模块应映射为（code/status，per CODE in `src/`）→ MT case」。**Oracle ＝ `src/` 实际实现**（`src/http_api/errors.py` 的信封 + 各模块 `ApiError(...)` 调用点），**系统设计 §7.8 错误目录为对照**；若二者不一致，以 `src/` 为准并在 §4 登记 design-vs-code 缺口。
-> **封闭判据**：本矩阵 = (a) 对外 error code 全集 ∪ (b) 上游异常类别 ∪ (c) 传输/时间病态。**每一行必须映射到 ≥1 个 `MT-*` case 或一个具名 Gap**（既有 case 命中或本变更新增 case 均可）；**0 静默缺失**。§3.7 增设「异常/错误注入矩阵 → Case 核对块」与本节同口径。
+- 本节的**注入类方法**是**跨家族应用的构造与刺激手段**，不新增 Case 家族、不单独设 Case：按上面的「落点」列映射到 §6 的既有行——**family 加/recovery/negative/security** 表行（§2.4 家族表）+ **分支**（§6.2）/ **组合**（§6.3，K1–K10）/ **迁移**（§6.4，T1–T14）分母。
+- **主/补充手段口径**：错误注入**以边界替身返回错误数据/行为为主手段**（5xx/超时/断连/配额耗尽/坏数据/畸形流六类），**产品 diagnostics 注入为可选补充**；同一落点可由主手段独立成立，产品注入可用时叠加验证。
+- 覆盖核对：上两表每个「mock 返回类型」/注入面/数据类型均映射到 ≥1 个 §6 行；§6.7 新增「注入面/数据类型 → Case」核对块，与分支/组合/迁移核对同口径，**0 未映射**。
+
+### 2.3 异常 / 错误注入矩阵（全量封闭：每个对外 error code、上游 4xx/5xx/配额/坏数据/凭据、传输/时间病态）
+
+> **本矩阵目的**：把「异常 / 错误」按**来源**穷举为三组，并把每一行**唯一地**映射到「mock 如何注入 → 被测模块应映射为（code/status，per CODE in `src/`）→ MT case」。**Oracle ＝ `src/` 实际实现**（`src/http_api/errors.py` 的信封 + 各模块 `ApiError(...)` 调用点），**系统设计 §7.8 错误目录为对照**；若二者不一致，以 `src/` 为准并在 §7 登记 design-vs-code 缺口。
+> **封闭判据**：本矩阵 = (a) 对外 error code 全集 ∪ (b) 上游异常类别 ∪ (c) 传输/时间病态。**每一行必须映射到 ≥1 个 `MT-*` case 或一个具名 Gap**（既有 case 命中或本变更新增 case 均可）；**0 静默缺失**。§6.7 增设「异常/错误注入矩阵 → Case 核对块」与本节同口径。
 
 **（a）每个对外 error code（Oracle ＝ `src/`；逐一登记，不接受“某类已覆盖”的合并）**
 
@@ -171,7 +177,7 @@
 | a24 | `provider_secret_unavailable` | 503 | `secret_ref` 为 `env:` 无值 / `file:` 不可读 / 非法引用 | **MT-INF-019（新增）** |
 | a25 | `provider_contract_error` | 502 | 非 SSE / 多 terminal / 无合法 terminal / terminal 与 status 矛盾 / 非法 base64·向量 / 截断流 / 畸形帧 | MT-INF-010 / MT-DIAG-005 / MT-INF-016 / MT-INF-017 |
 | a26 | `model_unavailable` | 503 | 全部候选不健康/禁用 | MT-INF-007 |
-| a27 | `usage_store_unavailable` | 503 | SQLite 读/写异常（经 `_store_read`/`_run`） | MT-API-005 / MT-OBS-003（诊断查询面复用同 code，见 §4 O-OBS-STORECODE-1） |
+| a27 | `usage_store_unavailable` | 503 | SQLite 读/写异常（经 `_store_read`/`_run`） | MT-API-005 / MT-OBS-003（诊断查询面复用同 code，见 §7 O-OBS-STORECODE-1） |
 | a28 | `internal_error` | 500 | 未捕获异常 | MT-API-005 |
 | a29 | `bootstrap_required` | 503 | 空库无 settings | MT-MGMT-001 |
 | a30 | `bootstrap_invalid` | 503 | settings 缺节 / `env:` 空 / `file:` 不存在 / 事务失败 | MT-MGMT-001 / MT-MGMT-006 |
@@ -218,13 +224,8 @@
 
 **（a)/(b)/(c) 汇总计数：37 + 8 + 8 = 53 条异常/错误项**；新增 **10 个 `MT-*` case**（MT-MGMT-011、MT-INF-013…019、MT-API-012…013）承接其中 20 条（a16/a24、b4/b8、c1–c8），其余 33 条由既有 case 承接。**0 静默缺失。**
 
-#### 方法 → Case 落点说明
 
-- 本节的**注入类方法**是**跨家族应用的构造与刺激手段**，不新增 Case 家族、不单独设 Case：按上面的「落点」列映射到 §3 的既有行——**family 加/recovery/negative/security** 表行（§1.5 家族表）+ **分支**（§3.2）/ **组合**（§3.3，K1–K10）/ **迁移**（§3.4，T1–T14）分母。
-- **主/补充手段口径**：错误注入**以边界替身返回错误数据/行为为主手段**（5xx/超时/断连/配额耗尽/坏数据/畸形流六类），**产品 diagnostics 注入为可选补充**；同一落点可由主手段独立成立，产品注入可用时叠加验证。
-- 覆盖核对：上两表每个「mock 返回类型」/注入面/数据类型均映射到 ≥1 个 §3 行；§3.7 新增「注入面/数据类型 → Case」核对块，与分支/组合/迁移核对同口径，**0 未映射**。
-
-### 测试设计技术选型表（按 Case 家族）
+### 2.4 测试设计技术选型表（按 Case 家族）
 
 | Case 家族 | 选用的设计技术 | 选用理由 | 不选用的反模式 |
 |---|---|---|---|
@@ -237,13 +238,13 @@
 | performance | 不在本层 | 性能预算归系统层 | 不用负载/容量测试（本层不负责系统预算） |
 | endurance | 不在本层 | 耐久/长稳归系统层 | 不用长跑（本层不负责） |
 
-## 1.6 替身使用策略与边界
+## 3. 替身使用策略与边界
 
 - **决策准则**：按所有权/可控性/真实性分类——模块内部协作者（`Store`、`Registry`、`Router`、`UsageRecorder`、`AuditLog`、`OperationalLog`、`DiagnosticsService`、`sse`、`auth`、`health`）**全部真实**；只有模块边界以外、不属于被测模块且不可控的对象（真实上游 provider、真实网络对端）才用替身。
 - **替身形态**：`FakeAdapter` 为进程内 fake（只代返回值/异常/终态，定义于 `tests/common/fakes.py`）；`FakeResponse` 为各测试模块**本地**定义的 HTTP 响应 stub（用于 account-usage HTTP 与 OpenAI SSE 响应），非共享资产成员；不用 mock 框架打桩被测自身。
-- **替身保真度与契约**：替身契约与自检归 `tests.asset-design`（一资产一文档），本方案与 Case 只引用其 ID 不复制行为。**资产实例已建立**：`llmtier-unit-fakes`（`docs/70_verification/unit/assets/llmtier-unit-fakes.md`，覆盖 `FakeAdapter`/`AppFixture`，候选 ID `FAKE-LLMTIER-ADAPTER`）。模块层**复用**该资产（同一进程内 fake 与组装夹具），不另立重复资产；`FakeResponse` 在该资产 §2/§3 已声明为各模块本地 stub、非本资产成员。§3 各 Case 只引用该文档 ID。
+- **替身保真度与契约**：替身契约与自检归 `tests.asset-design`（一资产一文档），本方案与 Case 只引用其 ID 不复制行为。**资产实例已建立**：`llmtier-unit-fakes`（`docs/70_verification/unit/assets/llmtier-unit-fakes.md`，覆盖 `FakeAdapter`/`AppFixture`，候选 ID `FAKE-LLMTIER-ADAPTER`）。模块层**复用**该资产（同一进程内 fake 与组装夹具），不另立重复资产；`FakeResponse` 在该资产 §2/§3 已声明为各模块本地 stub、非本资产成员。§6 各 Case 只引用该文档 ID。
 - **交互断言 vs 返回值断言**：优先断言模块公开返回值、wire 信封、落库行；**模块层允许并鼓励**断言**模块内公开 seam 的状态与模块间接口的调用序/次数**（如先 `_auth` 后 `_dispatch`、先 `Router.admit` 后 dispatch、审计与业务同事务、路由→服务→存储），但**不耦合**私有函数名、变量名、SQL 文本、日志措辞等实现细节。
-- **反模式（逐项排除）**：不 mock 被测拥有的接口；不 mock 值对象/纯数据（dict/JSON 直接构造）；不为凑覆盖率而 mock；不过度断言内部实现细节；不直改被测内部字段建立初态（见 §1.5 规则 1）。
+- **反模式（逐项排除）**：不 mock 被测拥有的接口；不 mock 值对象/纯数据（dict/JSON 直接构造）；不为凑覆盖率而 mock；不过度断言内部实现细节；不直改被测内部字段建立初态（见 §2 规则 1）。
 
 | 协作者类型 | 替身形态 | 替身契约文档（tests.asset-design） | 决策理由 |
 |---|---|---|---|
@@ -253,7 +254,7 @@
 | HTTP 监听端口 | 真实 `ThreadingHTTPServer`（`127.0.0.1:0`） | 不适用（真实网络） | 端口是真实路径，仅绑 loopback 临时端口 |
 | Web UI 静态产物 | 真实文件读取（`Path.read_text`） | 不适用（真实产物） | UI 契约对真实 `index.html`/`app.js` 断言 |
 
-## 1.7 测试环境类型（方案定义）
+## 4. 测试环境类型（方案定义）
 
 | 环境类型 | 行为/真伪 | 契约文档 | 在本层用例中的角色 |
 |---|---|---|---|
@@ -267,7 +268,7 @@
 
 **总体说明**：Python 3.14（`python3 -m pytest`），`PYTHONPATH=src`；组装夹具来源为 `tests/common/fakes.py`（`AppFixture`/`FakeAdapter`）；替身资产契约见 `llmtier-unit-fakes`（`docs/70_verification/unit/assets/`，`Implemented`/`Unverified`）；CI 入口为 `PYTHONPATH=src python3 -m pytest tests/module/cases -q`（或按 `-k` 选单 Case）；并行隔离按临时库实例 + loopback 随机端口；缺 Python/依赖记 Blocked，不静默换环境。
 
-## 2. 测试分类体系
+## 5. 测试分类体系
 
 | 分类（STD 家族词表） | 本阶段适用性 | 裁剪依据 |
 |---|---|---|
@@ -280,19 +281,19 @@
 | performance | 不在本层 | 性能预算归系统测试方案 |
 | endurance | 不在本层 | 耐久/长稳归系统层 |
 
-## 3. 覆盖分母与 Case 清单
+## 6. 覆盖分母与 Case 清单
 
 > 来源 ID 与设计验证项（VRC）的边界：本表登记 ID+责任摘要；判据/Oracle/Owner/契约权威归 design 与 tests.asset-design，不在此行复写；变更设计时同步 VRC 同步本清单。
-> **分母不再是“一行一 VRC”**：VRC 在本层**只作追溯列与附 A**（见 §3.5 与附录 A），**不作分母**。本层分母为**四层**，逐层计数并在 §3.6 汇总：
-> - **① 对外接口端到端行为**（模块设计 §9 对外接口的组装后行为）——§3.1；
-> - **② 内部分支**（每个判定分支 1 Case）——§3.2；
-> - **③ 组合 / 状态转换**（判定表/迁移表的行）——§3.3 / §3.4；
-> - **④ 组装边界替身注入**（边界替身注入并断言命中计数）——§3.1/§3.2 中的边界 Case。
-> 分母来源为被测源码的判定分支、判定表与状态迁移（可核验于 `src/<module>/`），非复制 VRC 判据。**来源 ID 读法**：来源 ID 指向被测模块/模块组装本体——「模块设计 §14 验证项 / 组装入口（分支/组合/迁移）」，固定版本随模块行首标注。**版本以 §1.5「模块/ISD 基线」为准**；下表行末版本标签为清单登记时点的模块设计版本标签。
+> **分母不再是“一行一 VRC”**：VRC 在本层**只作追溯列与附 A**（见 §6.5 与附录 A），**不作分母**。本层分母为**四层**，逐层计数并在 §6.6 汇总：
+> - **① 对外接口端到端行为**（模块设计 §9 对外接口的组装后行为）——§6.1；
+> - **② 内部分支**（每个判定分支 1 Case）——§6.2；
+> - **③ 组合 / 状态转换**（判定表/迁移表的行）——§6.3 / §6.4；
+> - **④ 组装边界替身注入**（边界替身注入并断言命中计数）——§6.1/§6.2 中的边界 Case。
+> 分母来源为被测源码的判定分支、判定表与状态迁移（可核验于 `src/<module>/`），非复制 VRC 判据。**来源 ID 读法**：来源 ID 指向被测模块/模块组装本体——「模块设计 §14 验证项 / 组装入口（分支/组合/迁移）」，固定版本随模块行首标注。**版本以 §2「模块/ISD 基线」为准**；下表行末版本标签为清单登记时点的模块设计版本标签。
 > **用例归属（本项目合并方案的补充列）**：M001→`MT-API-*`；M002→`MT-UI-*`；M003→`MT-INF-*`；M004→`MT-MGMT-*`；M005→`MT-OBS-*`；M006→`MT-DIAG-*`；M007→`MT-UTIL-*`；M008→`MT-LOG-*`（token 与单元方案一致，便于反查映射）。
-> **模块层责任**：每条 Case 的责任摘要限定为**组装后**才成立的保证（分支走向/状态迁移/调用序），单元层已覆盖且组装不改判的单函数分支不在本层重复登记（UT 去重见 §5）。
+> **模块层责任**：每条 Case 的责任摘要限定为**组装后**才成立的保证（分支走向/状态迁移/调用序），单元层已覆盖且组装不改判的单函数分支不在本层重复登记（UT 去重见 §8）。
 
-### 3.1 层①对外接口端到端行为（接口行为分母）
+### 6.1 层①对外接口端到端行为（接口行为分母）
 
 > 分母＝模块设计 §9 对外接口在**组装后**的端到端行为，每条至少 1 Case。本层是“黑盒刺激 + 灰盒观测”的基线。
 
@@ -324,9 +325,9 @@
 
 **层①计数：23 条接口行为**（M001 3 / M002 2 / M003 4 / M004 8 / M005 1 / M006 2 / M007 2 / M008 1）。
 
-### 3.2 层②内部分支（每分支 1 Case）
+### 6.2 层②内部分支（每分支 1 Case）
 
-> 分母＝被测源码的判定分支（可核验于 `src/<module>/`）。**每个分支至少 1 Case**；同模块内分支可合并为一条 Case（多分支断言），但每个分支必须在 §3.7 分支分母表的“映射 Case”列被点名。
+> 分母＝被测源码的判定分支（可核验于 `src/<module>/`）。**每个分支至少 1 Case**；同模块内分支可合并为一条 Case（多分支断言），但每个分支必须在 §6.7 分支分母表的“映射 Case”列被点名。
 
 | 来源 ID（分支） / 固定版本 | 追溯 VRC | Case ID | 分类 | 优先级 | 责任摘要（要测什么） | 设计状态 |
 |---|---|---|---|---|---|---|
@@ -367,22 +368,22 @@
 | M007 事务分支：嵌套 409 + 迁移中途失败回滚（组装） v0.1.0-draft.2 | VRC-UTIL-002 | MT-UTIL-005 | recovery | P1 | 嵌套事务→409 `E-UTIL-NESTED-TXN`；迁移中途失败回滚为可启动空库 | Designed |
 | M008 脱敏分支：五种敏感模式命中 + 未命中（组装） v0.1.0-draft.1 | VRC-LOG-001 | MT-LOG-002 | security | P0 | Bearer/api_key/token/authorization/secret 命中→`[REDACTED]`；普通文本不误伤；长度 ≤512 | Designed |
 | M008 `page` 分支：缺 since/until→400 + limit 夹取 + 过滤（组装） v0.1.0-draft.1 | VRC-LOG-001 | MT-LOG-003 | negative | P1 | 缺参→400；`limit` 夹到 [1,200]；level/module/request_id 过滤；DESC 顺序 | Designed |
-| M004 固定 tier 删除分支：固定 service level→409 `fixed_service_level`（组装） v0.1.0-draft.3 | VRC-MGMT-002 | MT-MGMT-011 | negative | P1 | 删除固定 tier（固定 service level）→409 `fixed_service_level`，资源不变；对照 `src/management/registry.py:379`（§1.5.1 a16） | Designed |
-| M001 客户端中途断开分支：broken pipe / client disconnect mid-stream（组装，ENV-2 真实 socket） v0.1.0-draft.2 | VRC-API-003 | MT-API-012 | recovery | P0 | SSE 已开始后客户端 `close()`→`aborted(client disconnected)`；无 500、无 fd 泄漏、账本不变（§1.5.1 c4） | Designed |
-| M001 连接重置分支：connection reset (RST) mid-stream（组装，ENV-2 真实 socket） v0.1.0-draft.2 | VRC-API-003 | MT-API-013 | recovery | P1 | 客户端 `SO_LINGER 0` 关闭触发 RST→`aborted`；进程不崩溃、许可/fd 释放（§1.5.1 c5） | Designed |
-| M003 stall/hang 分支：上游建连成功但永不响应→超时（组装，ENV-3） v0.1.0-draft.1 | VRC-INF-003 | MT-INF-013 | recovery | P0 | 上游 `accept` 后不回字节，`connect_timeout`/`stream_idle_timeout` 命中→503 `provider_unavailable`（retryable）；账本 `unknown` 收敛、Router 许可释放（§1.5.1 c1） | Designed |
-| M003 slow-response 分支：慢速 trickle 超过流空闲超时（组装，ENV-3） v0.1.0-draft.1 | VRC-INF-003 | MT-INF-014 | recovery | P1 | 上游分片慢发、片间隔 > `stream_idle_timeout_ms`→503 `provider_unavailable`；无半写账本、许可释放（§1.5.1 c2） | Designed |
-| M003 超大 response 分支：超长/超大上游响应体归一（组装，ENV-3） v0.1.0-draft.1 | VRC-INF-003 | MT-INF-015 | boundary | P1 | 超大 body / 极长 SSE 单帧 / 超多事件在模块边界内完整归一、不越界崩溃；超 2 MB 下游响应归系统层（§1.5.1 c3） | Designed |
-| M003 截断流分支：terminal 前 early EOF→契约错误（组装，ENV-3） v0.1.0-draft.1 | VRC-INF-003 | MT-INF-016 | recovery | P0 | 上游在最后一个 terminal 事件前 `EOF`→502 `provider_contract_error`（无合法 terminal）；账本收敛（§1.5.1 c6） | Designed |
-| M003 畸形帧分支：非 JSON `data:` 行 / 坏 SSE 块（组装，ENV-3） v0.1.0-draft.1 | VRC-INF-003 | MT-INF-017 | negative | P0 | `data: {not json}` 或坏块→502 `provider_contract_error`；不伪装成功（§1.5.1 c7） | Designed |
-| M003 并发超时 + 许可泄漏分支：队列等待超时后许可归零（组装，ENV-1） v0.1.0-draft.1 | VRC-INF-004 | MT-INF-018 | concurrency | P1 | `Router.admit` 等待超 `30 s`→429 `rate_limit_exceeded`+`Retry-After`；`_inflight` 归零、无许可泄漏（§1.5.1 c8） | Designed |
-| M003 provider 凭据解析分支：`env:` 无值 / `file:` 不可读 / 非法引用→凭据缺失（组装，ENV-3） v0.1.0-draft.1 | VRC-INF-003 | MT-INF-019 | negative | P1 | `secret_ref` 为 `env:` 空值 / `file:` 不可读 / 非法 scheme→503 `provider_secret_unavailable`；不 dispatch、无义务（§1.5.1 a24/b8） | Designed |
+| M004 固定 tier 删除分支：固定 service level→409 `fixed_service_level`（组装） v0.1.0-draft.3 | VRC-MGMT-002 | MT-MGMT-011 | negative | P1 | 删除固定 tier（固定 service level）→409 `fixed_service_level`，资源不变；对照 `src/management/registry.py:379`（§2.3 a16） | Designed |
+| M001 客户端中途断开分支：broken pipe / client disconnect mid-stream（组装，ENV-2 真实 socket） v0.1.0-draft.2 | VRC-API-003 | MT-API-012 | recovery | P0 | SSE 已开始后客户端 `close()`→`aborted(client disconnected)`；无 500、无 fd 泄漏、账本不变（§2.3 c4） | Designed |
+| M001 连接重置分支：connection reset (RST) mid-stream（组装，ENV-2 真实 socket） v0.1.0-draft.2 | VRC-API-003 | MT-API-013 | recovery | P1 | 客户端 `SO_LINGER 0` 关闭触发 RST→`aborted`；进程不崩溃、许可/fd 释放（§2.3 c5） | Designed |
+| M003 stall/hang 分支：上游建连成功但永不响应→超时（组装，ENV-3） v0.1.0-draft.1 | VRC-INF-003 | MT-INF-013 | recovery | P0 | 上游 `accept` 后不回字节，`connect_timeout`/`stream_idle_timeout` 命中→503 `provider_unavailable`（retryable）；账本 `unknown` 收敛、Router 许可释放（§2.3 c1） | Designed |
+| M003 slow-response 分支：慢速 trickle 超过流空闲超时（组装，ENV-3） v0.1.0-draft.1 | VRC-INF-003 | MT-INF-014 | recovery | P1 | 上游分片慢发、片间隔 > `stream_idle_timeout_ms`→503 `provider_unavailable`；无半写账本、许可释放（§2.3 c2） | Designed |
+| M003 超大 response 分支：超长/超大上游响应体归一（组装，ENV-3） v0.1.0-draft.1 | VRC-INF-003 | MT-INF-015 | boundary | P1 | 超大 body / 极长 SSE 单帧 / 超多事件在模块边界内完整归一、不越界崩溃；超 2 MB 下游响应归系统层（§2.3 c3） | Designed |
+| M003 截断流分支：terminal 前 early EOF→契约错误（组装，ENV-3） v0.1.0-draft.1 | VRC-INF-003 | MT-INF-016 | recovery | P0 | 上游在最后一个 terminal 事件前 `EOF`→502 `provider_contract_error`（无合法 terminal）；账本收敛（§2.3 c6） | Designed |
+| M003 畸形帧分支：非 JSON `data:` 行 / 坏 SSE 块（组装，ENV-3） v0.1.0-draft.1 | VRC-INF-003 | MT-INF-017 | negative | P0 | `data: {not json}` 或坏块→502 `provider_contract_error`；不伪装成功（§2.3 c7） | Designed |
+| M003 并发超时 + 许可泄漏分支：队列等待超时后许可归零（组装，ENV-1） v0.1.0-draft.1 | VRC-INF-004 | MT-INF-018 | concurrency | P1 | `Router.admit` 等待超 `30 s`→429 `rate_limit_exceeded`+`Retry-After`；`_inflight` 归零、无许可泄漏（§2.3 c8） | Designed |
+| M003 provider 凭据解析分支：`env:` 无值 / `file:` 不可读 / 非法引用→凭据缺失（组装，ENV-3） v0.1.0-draft.1 | VRC-INF-003 | MT-INF-019 | negative | P1 | `secret_ref` 为 `env:` 空值 / `file:` 不可读 / 非法 scheme→503 `provider_secret_unavailable`；不 dispatch、无义务（§2.3 a24/b8） | Designed |
 | M003 provider adapter 重取分支：endpoint/secret_ref 每请求重读（组装，ENV-3） v0.1.0-draft.1 | VRC-INF-001 | MT-INF-020 | normal | P0 | **配置变更→接线**：provider endpoint 或 secret_ref 经公开入口变更后，下一次请求使用新值（打到新上游且旧上游不再命中）；无 adapter/连接缓存跨请求复用 | Designed |
 | M001 鉴权结果 × 端点类别组合（K1，组装） v0.1.0-draft.2 | VRC-API-002 | MT-API-011 | security | P0 | pairwise 组合行：(data-ok, data 端点) / (admin-ok, admin 端点) / (data-cred, admin 端点)→403 / (无凭据, 非受信)→401 / (未配置, 任一端点)→503，断言组装路径上拒绝先于业务 | Designed |
 
-**层②计数：48 条分支**（M001 9 / M002 4 / M003 16 / M004 6 / M005 3 / M006 5 / M007 3 / M008 2），较 `0.1.0-draft.10` 增 **1 条**（M003 provider adapter 重取 `MT-INF-020`；`0.1.0-draft.6` 起的 10 条传输/上游/时间病态与固定 tier 变更见 §1.5.1（a)-(c)）。§3.2 表内另含 **1 条组合落地 Case**（`MT-API-011`，对应 §3.3 K1），其独自分母计入层③，不重复计入层②。
+**层②计数：48 条分支**（M001 9 / M002 4 / M003 16 / M004 6 / M005 3 / M006 5 / M007 3 / M008 2），较 `0.1.0-draft.10` 增 **1 条**（M003 provider adapter 重取 `MT-INF-020`；`0.1.0-draft.6` 起的 10 条传输/上游/时间病态与固定 tier 变更见 §2.3（a)-(c)）。§6.2 表内另含 **1 条组合落地 Case**（`MT-API-011`，对应 §6.3 K1），其独自分母计入层③，不重复计入层②。
 
-### 3.3 层③组合（判定表 / 配对 pairwise 的行）
+### 6.3 层③组合（判定表 / 配对 pairwise 的行）
 
 > 分母＝相互独立判定的组合行（判定表/配对矩阵），每行至少 1 Case。**不做全组合**，用 pairwise 削减；给出选组合的理由。
 
@@ -401,7 +402,7 @@
 
 **层③计数：10 条组合行（跨 8 模块，共 10 组）**。
 
-### 3.4 层④状态转换（迁移表的行）
+### 6.4 层④状态转换（迁移表的行）
 
 > 分母＝模块内状态机的迁移行，每条迁移至少 1 Case。给迁移表（当前态 → 事件 → 次态 / 可观测）。
 
@@ -424,33 +425,33 @@
 
 **层④计数：14 条状态迁移**（M003 5 / M004 3 / M005+M006 3 / M007 2 / M008 1）。
 
-### 3.5 VRC 追溯（不作分母）
+### 6.5 VRC 追溯（不作分母）
 
-> 本层 VRC 对照见附录 A；VRC 在 §3.1–§3.4 只作**追溯列**。33 个模块设计 §14 验证项全部在 §3 有追溯（见附录 A）。
-> **注意**：33/33 为**设计验证项追溯覆盖**；行为覆盖由四层分母（层①23 + 层②48 + 层③10 + 层④14）共同确证。M002 `VRC-UI-001..006` 的模块层 Case 为**静态产物/契约**层面的组装验证；其**真实 JS 行为级**由系统层真实浏览器 `ST-UI-001..010` 承接（见 `llmtier-system-test-scheme` §4）。
+> 本层 VRC 对照见附录 A；VRC 在 §6.1–§6.4 只作**追溯列**。33 个模块设计 §14 验证项全部在 §6 有追溯（见附录 A）。
+> **注意**：33/33 为**设计验证项追溯覆盖**；行为覆盖由四层分母（层①23 + 层②48 + 层③10 + 层④14）共同确证。M002 `VRC-UI-001..006` 的模块层 Case 为**静态产物/契约**层面的组装验证；其**真实 JS 行为级**由系统层真实浏览器 `ST-UI-001..010` 承接（见 `llmtier-system-test-scheme` §7）。
 
-### 3.6 分母计数汇总
+### 6.6 分母计数汇总
 
 | 层 | 分母（条/行） | 说明 |
 |---|---|---|
-| ① 对外接口端到端行为 | 23 | §3.1（模块设计 §9 接口行为） |
-| ② 内部分支 | 48 | §3.2（每个判定分支 1 Case） |
-| ③ 组合（判定表/配对） | 10 | §3.3（组合行） |
-| ④ 状态转换（迁移表） | 14 | §3.4（迁移行） |
+| ① 对外接口端到端行为 | 23 | §6.1（模块设计 §9 接口行为） |
+| ② 内部分支 | 48 | §6.2（每个判定分支 1 Case） |
+| ③ 组合（判定表/配对） | 10 | §6.3（组合行） |
+| ④ 状态转换（迁移表） | 14 | §6.4（迁移行） |
 | **合计分母** | **95** | 四层相加 |
 | **模块 Case 总数** | **72** | 见下 |
 
-**Case 总数：72**（分类：negative 21 / boundary 13 / normal 12 / recovery 17 / security 6 / concurrency 3；Priority P0 41 / P1 31）。全部归属 8 模块（`M001-M008`），无工具 Case。较 `0.1.0-draft.6`：既有 68 Case ＋ `0.1.0-draft.6` 新增 10 个（`MT-MGMT-011`、`MT-API-012/013`、`MT-INF-013…019`，来自 §1.5.1 a16/a24、b4/b8、c1–c8）＋ `0.1.0-draft.11` 新增 4 个（`MT-MGMT-012/013/014`、`MT-INF-020`，来自"配置变更→运行态"与次要端点组装面反向核对，见 §4 缺口 G-MT-COVERAGE-1）。
+**Case 总数：72**（分类：negative 21 / boundary 13 / normal 12 / recovery 17 / security 6 / concurrency 3；Priority P0 41 / P1 31）。全部归属 8 模块（`M001-M008`），无工具 Case。较 `0.1.0-draft.6`：既有 68 Case ＋ `0.1.0-draft.6` 新增 10 个（`MT-MGMT-011`、`MT-API-012/013`、`MT-INF-013…019`，来自 §2.3 a16/a24、b4/b8、c1–c8）＋ `0.1.0-draft.12` 新增 4 个（`MT-MGMT-012/013/014`、`MT-INF-020`，来自"配置变更→运行态"与次要端点组装面反向核对，见 §7 缺口 G-MT-COVERAGE-1）。
 
-> **分母→Case 说明（多分支/多行合并为 1 Case）**：四层分母 95 条并非 95 个 Case——按 §1.5 “分支/组合/迁移必覆盖”原则，**同模块内相互接近的分支/组合行/迁移可合并入 1 个 Case**，但每一行都必须在 §3.2/§3.3/§3.4 的“映射 Case”列或 §3.7 分支分母表被点名。反向核对：95 条分母每条都映射到 ≥1 个 `MT-*` Case（见 §3.7）。
-> **注入类方法不增分母**：§1.5「注入类方法」的「mock 返回」六类、存储/传输/准入面与数据注入 4 类是**跨家族应用的构造/刺激手段**，其落点映射到四层分母的既有行（见 §3.7 注入面/数据类型核对块）；**§1.5.1「异常/错误注入矩阵」** 是同一手段口径的**全量封闭清单**（37 code + 8 上游类 + 8 传输/时间病态），其落点同样映射到既有/新增分支行——其中 a16/a24、b4/b8、c1–c8 由 **10 个新增分支 Case** 承接（计入层②），其余由既有 Case 承接；矩阵本身不另设 Case、不重复计分母。
+> **分母→Case 说明（多分支/多行合并为 1 Case）**：四层分母 95 条并非 95 个 Case——按 §2.1 “分支/组合/迁移必覆盖”原则，**同模块内相互接近的分支/组合行/迁移可合并入 1 个 Case**，但每一行都必须在 §6.2/§6.3/§6.4 的“映射 Case”列或 §6.7 分支分母表被点名。反向核对：95 条分母每条都映射到 ≥1 个 `MT-*` Case（见 §6.7）。
+> **注入类方法不增分母**：§2.2「注入类方法」的「mock 返回」六类、存储/传输/准入面与数据注入 4 类是**跨家族应用的构造/刺激手段**，其落点映射到四层分母的既有行（见 §6.7 注入面/数据类型核对块）；**§2.3「异常/错误注入矩阵」** 是同一手段口径的**全量封闭清单**（37 code + 8 上游类 + 8 传输/时间病态），其落点同样映射到既有/新增分支行——其中 a16/a24、b4/b8、c1–c8 由 **10 个新增分支 Case** 承接（计入层②），其余由既有 Case 承接；矩阵本身不另设 Case、不重复计分母。
 > **module-case 文档映射**：本清单 72 个 Case，对应 72 份 `tests.module-case` 文档（`docs/70_verification/module/cases/MT-<OBJ>-<NNN>.md`）与 72 个可执行脚本（`tests/module/cases/MT-*.py`），**已全部建立（72/72）**（分批入库：`f83f8da` 起 68、`eb62302` 增 4；文档状态 `Draft`/`0.1.0-draft.1`，各 §7 指向对应脚本）。
   模块层 Run 证据共 **8** 个（`run-20261002-01`…`run-20261002-08`，按模块计划 §7「重跑不覆盖旧失败」全部保留）：`run-01`/`run-03` 为 RED（`MT-INF-015` 读阶段 60s `TimeoutError`→503 `provider_unavailable`，根因在 ENV-3 测试替身写侧的 `Content-Length` 大 body 形态、非产品缺陷，方案的 `stream_idle_timeout` 语义正确），`run-02` 为假绿（仅做 64 KiB 分块缓解、缺陷条件仍在），`run-04` 首次根除（替身改 `Transfer-Encoding: chunked` + 16 KiB 分片），`run-05`/`run-07` 复跑确认但 pin 与执行树不一致（执行树含未入库修复，不可作最终 pin 依据），`run-06` 为 68 Case 基线的可采信最终 Run（报告 `llmtier-module-test-report-2026-10-02-06`）；**`run-20261002-08` 为覆盖补齐（95 条分母/72 Case）后的最终 Run**（72/72 Case `PASS`、371/371 测试函数、`release_blocking=false`、pin `e27dca9` 与被测树逐字一致，证据可采信；
   正式报告 `llmtier-module-test-report-2026-10-02-08` 判 Gate 闭合）。缺陷 `D-MT-INF-015-1` 已 CLOSED。本表**设计**状态仍全部为 `Designed`（设计状态不因执行结果改写），执行 Verdict 的唯一权威在测试报告与 Run 证据，本方案不预填任何结果。
 
-### 3.7 分支 / 组合 / 迁移分母→Case 映射核对表（全覆盖核对）
+### 6.7 分支 / 组合 / 迁移分母→Case 映射核对表（全覆盖核对）
 
-> 本表逐条列出 §3.2/§3.3/§3.4 的全部分支/组合/迁移分母，并给出映射 Case；**任何一条未映射即缺口**（须在 §4 具名或 `Tailored-N/A`）。
+> 本表逐条列出 §6.2/§6.3/§6.4 的全部分支/组合/迁移分母，并给出映射 Case；**任何一条未映射即缺口**（须在 §7 具名或 `Tailored-N/A`）。
 
 | 分母层 | 分母 ID（模块） | 映射 Case |
 |---|---|---|
@@ -491,16 +492,16 @@
 | 分支 | M007-嵌套 409/迁移回滚 | MT-UTIL-005 |
 | 分支 | M008-脱敏五模式 | MT-LOG-002 |
 | 分支 | M008-page 三分支 | MT-LOG-003 |
-| 分支 | M004-固定 tier 删除 `fixed_service_level`（§1.5.1 a16） | MT-MGMT-011 |
-| 分支 | M001-客户端中途断开 broken pipe（§1.5.1 c4） | MT-API-012 |
-| 分支 | M001-连接重置 RST mid-stream（§1.5.1 c5） | MT-API-013 |
-| 分支 | M003-stall/hang 超时（§1.5.1 c1） | MT-INF-013 |
-| 分支 | M003-slow-response 流空闲超时（§1.5.1 c2） | MT-INF-014 |
-| 分支 | M003-超大 response 归一（§1.5.1 c3） | MT-INF-015 |
-| 分支 | M003-截断流/early EOF（§1.5.1 c6） | MT-INF-016 |
-| 分支 | M003-畸形帧（§1.5.1 c7） | MT-INF-017 |
-| 分支 | M003-并发超时 + 许可泄漏（§1.5.1 c8） | MT-INF-018 |
-| 分支 | M003-provider 凭据解析 `provider_secret_unavailable`（§1.5.1 a24/b8） | MT-INF-019 |
+| 分支 | M004-固定 tier 删除 `fixed_service_level`（§2.3 a16） | MT-MGMT-011 |
+| 分支 | M001-客户端中途断开 broken pipe（§2.3 c4） | MT-API-012 |
+| 分支 | M001-连接重置 RST mid-stream（§2.3 c5） | MT-API-013 |
+| 分支 | M003-stall/hang 超时（§2.3 c1） | MT-INF-013 |
+| 分支 | M003-slow-response 流空闲超时（§2.3 c2） | MT-INF-014 |
+| 分支 | M003-超大 response 归一（§2.3 c3） | MT-INF-015 |
+| 分支 | M003-截断流/early EOF（§2.3 c6） | MT-INF-016 |
+| 分支 | M003-畸形帧（§2.3 c7） | MT-INF-017 |
+| 分支 | M003-并发超时 + 许可泄漏（§2.3 c8） | MT-INF-018 |
+| 分支 | M003-provider 凭据解析 `provider_secret_unavailable`（§2.3 a24/b8） | MT-INF-019 |
 | 分支 | M003-provider adapter 重取（endpoint/secret 每请求重读） | MT-INF-020 |
 | 接口行为 | M004-资源启用态 × 请求准入（禁用三态→404） | MT-MGMT-012 |
 | 接口行为 | M004-provider 模型目录 `/v1/providers/{id}/models` | MT-MGMT-013 |
@@ -527,7 +528,7 @@
 
 **核对结论**：层②48 条分支、层③10 条组合行、层④14 条迁移行**全部映射到 ≥1 Case**（0 未映射）。
 
-**注入面 / 数据类型 → Case 核对块**（§1.5「注入类方法」的落点核对；不新增分母、不新增 Case，注入是跨家族手段）：
+**注入面 / 数据类型 → Case 核对块**（§2.2「注入类方法」的落点核对；不新增分母、不新增 Case，注入是跨家族手段）：
 
 | 注入分类 | 注入面 / 数据类型 | 映射 Case |
 |---|---|---|
@@ -545,61 +546,61 @@
 | 数据注入 | 诊断数据注入（`PATCH /v1/deployments/{id}/diagnostics`） | MT-DIAG-002 / MT-DIAG-003 / MT-DIAG-004 / MT-OBS-004 |
 | 数据注入 | 冻结向量（SSE 字节帧 / 32-hex traceparent / base64 / UI 资产字符串） | MT-API-008 / MT-API-010 / MT-INF-002 / MT-INF-010 / MT-UI-001 / MT-UI-002 |
 
-**注入面核对结论**：上述「mock 返回」6 类 + 存储/传输/准入 3 面 + 数据注入 4 类**全部映射到 ≥1 Case**（0 未映射）；边界替身按配置返回错误即命中（判定＝模块对该错误的映射），产品注入未命中即 `INVALID`（见 §5）。
+**注入面核对结论**：上述「mock 返回」6 类 + 存储/传输/准入 3 面 + 数据注入 4 类**全部映射到 ≥1 Case**（0 未映射）；边界替身按配置返回错误即命中（判定＝模块对该错误的映射），产品注入未命中即 `INVALID`（见 §8）。
 
-**异常 / 错误注入矩阵 → Case 核对块**（§1.5.1（a)/(b)/(c) 的全量封闭核对；Oracle ＝ `src/`）：
+**异常 / 错误注入矩阵 → Case 核对块**（§2.3（a)/(b)/(c) 的全量封闭核对；Oracle ＝ `src/`）：
 
 | 矩阵组 | 条目 | 映射 Case / 具名 Gap |
 |---|---|---|
-| (a) 对外 error code | a1–a37 全部 37 个 `code` | 见 §1.5.1（a）逐行；a16→MT-MGMT-011、a24→MT-INF-019，其余 35 个命中既有 Case |
+| (a) 对外 error code | a1–a37 全部 37 个 `code` | 见 §2.3（a）逐行；a16→MT-MGMT-011、a24→MT-INF-019，其余 35 个命中既有 Case |
 | (b) 上游异常类别 | b1 上游 4xx / b2 上游 5xx / b3 配额耗尽 / b4 非 JSON / b5 非 SS 帧 / b6 坏向量 / b7 非法 base64 / b8 凭据缺失 | MT-INF-012 / MT-INF-003·008 / MT-INF-012 / **MT-INF-017** / MT-DIAG-005·**MT-INF-016** / MT-INF-010 / MT-INF-010 / **MT-INF-019** |
 | (c) 传输/时间病态 | c1 stall/hang / c2 slow-response / c3 超长超大 / c4 broken pipe / c5 RST / c6 截断流 / c7 畸形帧 / c8 并发超时+许可泄漏 | **MT-INF-013** / **MT-INF-014** / **MT-INF-015** / **MT-API-012** / **MT-API-013** / **MT-INF-016** / **MT-INF-017** / **MT-INF-018** |
 
 **异常/错误矩阵核对结论**：(a) 37 个对外 `code` + (b) 8 类上游异常 + (c) 8 类传输/时间病态 = **53 条全部映射到 ≥1 Case 或具名 Gap（0 静默缺失）**；其中 10 个新增分支 Case（`MT-MGMT-011`、`MT-API-012/013`、`MT-INF-013…019`）承接 20 条（a16/a24、b4/b8、c1–c8）。
 
-**design-vs-code 缺口（Oracle 对照）**：`src/` 实现与系统设计 §7.8 目录一致，未发现 `code` 值分歧；**但 §7.8 未决项（`interfaces/error-codes/` 机器目录未建）** 使 `code` 的机器权威仍为 `openapi` response schema——本矩阵以 `src/` 为 Oracle 登记，若后续建立 `interfaces/error-codes/` 须回溯本矩阵与 §1.5.1。**Named Gap（模块层不可测）**：c3「超 2 MB 下游响应预算」为系统层资源预算（归 `llmtier-system-test-scheme`），本层只断言模块内归一不崩溃——具名见 §4。
+**design-vs-code 缺口（Oracle 对照）**：`src/` 实现与系统设计 §7.8 目录一致，未发现 `code` 值分歧；**但 §7.8 未决项（`interfaces/error-codes/` 机器目录未建）** 使 `code` 的机器权威仍为 `openapi` response schema——本矩阵以 `src/` 为 Oracle 登记，若后续建立 `interfaces/error-codes/` 须回溯本矩阵与 §2.3。**Named Gap（模块层不可测）**：c3「超 2 MB 下游响应预算」为系统层资源预算（归 `llmtier-system-test-scheme`），本层只断言模块内归一不崩溃——具名见 §7。
 
-## 4. 不适用与缺口裁决
+## 7. 不适用与缺口裁决
 
 > **本表口径**：Tailored-N/A 必须引用设计章节事实；Gap 须有 Owner 与恢复条件；两者都不从分母静默消失。本层四层分母全部登记 Case；下列为**本层不承接的组合保证**（非分母条目）与**design-vs-code 缺口/观察项**（反向核对与 72 Case 实测发现，Oracle ＝ `src/`）。
-> **缺口分类**：`G-*` ＝需回溯设计修订的实质缺口；`O-*` ＝实现现状与规格措辞不一致但不阻断本层判定的观察项。两者都不改变 §3 四层分母与 Case 清单，只约束 Oracle 取值与断言深度。
+> **缺口分类**：`G-*` ＝需回溯设计修订的实质缺口；`O-*` ＝实现现状与规格措辞不一致但不阻断本层判定的观察项。两者都不改变 §6 四层分母与 Case 清单，只约束 Oracle 取值与断言深度。
 
 | 来源 ID / 事实依据 | 裁决（Tailored-N/A / Gap） | Owner / 恢复条件 |
 |---|---|---|
-| 反向核对（自 `src/` 提取组装面维度，对照 §3 四层分母）发现：**"配置变更→运行态"类组装保证未登记为分母维度**——禁用 provider/deployment/service_level 后请求行为、endpoint/secret 变更后新请求接线、两个次要端点（`/v1/providers/{id}/models`、`/v1/stats`）、`atomic=False` 审计例外均无 Case | **覆盖缺口 G-MT-COVERAGE-1（已修复）** | Owner：LLMTier。**事实**：原四层分母只含"分支/组合/状态迁移"，未把"资源启用/禁用状态变更 × 请求路径"与"配置变更 × 接线"登记为维度；次要端点因 §3.1 从设计 §9 提取接口清单时遗漏。**处置（`0.1.0-draft.11`）**：新增 `MT-MGMT-012`（禁用三态×请求拒绝）、`MT-INF-020`（adapter 重取接线）、`MT-MGMT-013`（provider 模型目录）、`MT-MGMT-014`（`/v1/stats`），并扩充 `MT-MGMT-005`（`atomic=False` 审计）。分母 91→95、Case 68→72。**恢复条件**：已闭合；后续若新增"运行态可变配置"维度须同步登记。 |
+| 反向核对（自 `src/` 提取组装面维度，对照 §6 四层分母）发现：**"配置变更→运行态"类组装保证未登记为分母维度**——禁用 provider/deployment/service_level 后请求行为、endpoint/secret 变更后新请求接线、两个次要端点（`/v1/providers/{id}/models`、`/v1/stats`）、`atomic=False` 审计例外均无 Case | **覆盖缺口 G-MT-COVERAGE-1（已修复）** | Owner：LLMTier。**事实**：原四层分母只含"分支/组合/状态迁移"，未把"资源启用/禁用状态变更 × 请求路径"与"配置变更 × 接线"登记为维度；次要端点因 §6.1 从设计 §9 提取接口清单时遗漏。**处置（`0.1.0-draft.12`）**：新增 `MT-MGMT-012`（禁用三态×请求拒绝）、`MT-INF-020`（adapter 重取接线）、`MT-MGMT-013`（provider 模型目录）、`MT-MGMT-014`（`/v1/stats`），并扩充 `MT-MGMT-005`（`atomic=False` 审计）。分母 91→95、Case 68→72。**恢复条件**：已闭合；后续若新增"运行态可变配置"维度须同步登记。 |
 | 跨模块系统级流程、systemd/反向代理、Piko 联调 | Tailored-N/A（本层不测；各模块设计 §14「父级组合验证交接」已列承接方） | 归系统测试方案（`llmtier-system-test-scheme`） |
 | 真实上游 provider 协议与 wire 互操作、浏览器 E2E | Tailored-N/A（本层不测；系统方案已承接） | 归契约层与 `llmtier-system-test-scheme` |
-| M002 `VRC-UI-001..006` 的**行为级**（真实 JS 执行） | Tailored-N/A（本层仅静态产物/契约组装；行为级归系统层） | Owner：M002 web-ui。**事实**：`MT-UI-*` 为组装契约层验证；行为级由系统层真实浏览器 `ST-UI-001..010`（headless Chrome over CDP）承接，原 `RISK-UI-EXEC-1` 已关闭（见 `llmtier-system-test-scheme` §4）。 |
-| performance / endurance 分类 | Tailored-N/A（本层不纳入；见 §2 裁剪依据） | 归系统测试方案 |
-| §1.5.1 a25 / b4 / c7：非 JSON `data:` 帧、非 JSON embeddings 响应体 → 预期 `502 provider_contract_error` | **design-vs-code 缺口 G-INF-NONJSON-MAPPING-1**（Oracle ＝ `src/`，实测为准） | Owner：M003 inference ＋ 系统设计 §7.8。**事实**：`OpenAIProvider.complete/_request` 把 `json.JSONDecodeError` 归入传输异常类 → 实测映射 `503 provider_unavailable`（retryable），而非矩阵预期的 `502 provider_contract_error`（对比：非 SSE Content-Type、多 terminal、terminal/status 矛盾、无合法 terminal 确为 502）。`MT-INF-017` 按 `src/` 断言并在此登记偏差。**恢复条件**：设计侧确认权威映射（503 或改实现为 502）后回溯修订 §1.5.1（a25/b4/c7）与本行；若建立 `interfaces/error-codes/` 目录，以其为准。 |
+| M002 `VRC-UI-001..006` 的**行为级**（真实 JS 执行） | Tailored-N/A（本层仅静态产物/契约组装；行为级归系统层） | Owner：M002 web-ui。**事实**：`MT-UI-*` 为组装契约层验证；行为级由系统层真实浏览器 `ST-UI-001..010`（headless Chrome over CDP）承接，原 `RISK-UI-EXEC-1` 已关闭（见 `llmtier-system-test-scheme` §7）。 |
+| performance / endurance 分类 | Tailored-N/A（本层不纳入；见 §5 裁剪依据） | 归系统测试方案 |
+| §2.3 a25 / b4 / c7：非 JSON `data:` 帧、非 JSON embeddings 响应体 → 预期 `502 provider_contract_error` | **design-vs-code 缺口 G-INF-NONJSON-MAPPING-1**（Oracle ＝ `src/`，实测为准） | Owner：M003 inference ＋ 系统设计 §7.8。**事实**：`OpenAIProvider.complete/_request` 把 `json.JSONDecodeError` 归入传输异常类 → 实测映射 `503 provider_unavailable`（retryable），而非矩阵预期的 `502 provider_contract_error`（对比：非 SSE Content-Type、多 terminal、terminal/status 矛盾、无合法 terminal 确为 502）。`MT-INF-017` 按 `src/` 断言并在此登记偏差。**恢复条件**：设计侧确认权威映射（503 或改实现为 502）后回溯修订 §2.3（a25/b4/c7）与本行；若建立 `interfaces/error-codes/` 目录，以其为准。 |
 | `VRC-OBS-004` trace stage 因果序（"诊断 trace stage 有序"） | **design-vs-code 缺口 G-OBS-STAGE-ORDER-1** | Owner：M006 libdiag。**事实**：`libdiag/common.now()` 为毫秒精度，`TraceDiagnostics._trace_view` 按 `(stage_timestamp, id)` 排序而 `id` 为随机 `tev_<uuid4>`；快请求各 stage 落在同一毫秒时返回乱序（实测 40 次中 18 次乱）。`MT-OBS-001` 因此只断言 stage 集合与非递减时戳，不断言位置序。**恢复条件**：增加每请求单调序号列或改 `ORDER BY rowid` 后，回溯修订 `VRC-OBS-004` 并把位置序断言补入 `MT-OBS-001`。 |
 | M002 `app.js` 的 `LOGIN_URL='/login'`（ ISD §5.1 401 跳转） | **design-vs-code 缺口 G-UI-LOGIN-ROUTE-1** | Owner：M002 web-ui ＋ M001 http-api。**事实**：`_static` 只放行 `/`、`/ui`、`/ui/*`，M001 无 `/login` 路由 → loopback 实测 `GET /login` 为 404 `not_found`。`MT-UI-003` 的 401 分支只做静态契约断言与服务端锚点。**恢复条件**：M001 提供 `/login`（或 ISD 改指真实登录入口）后，补 `/login` 端到端断言。 |
-| M001 `_store_read` 统一映射存储读失败为 `usage_store_unavailable`（`app.py:144`），被诊断查询面复用 | **观察项 O-OBS-STORECODE-1**（非阻断，映射行为与契约一致） | Owner：M001。**事实**：§1.5.1 a27 原只映射 `MT-API-005`；实测 `MT-OBS-003` 是同一 `code` 的第二个映射点（诊断快照/统计/traces 查询面）。**恢复条件**：若错误目录按面细分 `code`，回溯修订 a27 与本行；否则把 a27 的映射 Case 补记 `MT-OBS-003`。 |
+| M001 `_store_read` 统一映射存储读失败为 `usage_store_unavailable`（`app.py:144`），被诊断查询面复用 | **观察项 O-OBS-STORECODE-1**（非阻断，映射行为与契约一致） | Owner：M001。**事实**：§2.3 a27 原只映射 `MT-API-005`；实测 `MT-OBS-003` 是同一 `code` 的第二个映射点（诊断快照/统计/traces 查询面）。**恢复条件**：若错误目录按面细分 `code`，回溯修订 a27 与本行；否则把 a27 的映射 Case 补记 `MT-OBS-003`。 |
 | M002 `backendState` 的 4 个 health 分支（`running`/`probing`/`exhausted`/`unreachable`）与 `health.py` 允许的 `degraded` | **观察项 O-UI-HEALTHDOMAIN-1** | Owner：M002 web-ui。**事实**：产品对 `deployments.health` 的全部写点只有 migration 默认 `'unknown'` 与 `apply_probe_result`（`healthy`/`unhealthy`）；`probing`/`exhausted`/`unreachable`/`running` 在 `src/` 内无写点，`degraded` 合法但 UI 无分支（落 Unknown）。`MT-UI-004` 对无写点取值只做静态契约断言。**恢复条件**：health 域扩展（如探测中态写入）后在 `MT-UI-004` 补行为级断言。 |
 | M002 `usageSummary` 的 `ok` 分支（逐 window/percent 渲染） | **观察项 O-UI-USAGEOK-1** | Owner：M002 ＋ M004。**事实**：`ok` 只由真实 MiniMax/Volcengine 响应产生，M004 的 provider HTTP 面无边界替身资产可注入；本层只静态断言渲染分支。**恢复条件**：为 account-usage 面建 `tests.asset-design` 替身后补行为级断言。 |
 | M003 `stream_idle_timeout_ms` 生效性 | 已修（`src/inference/providers/openai.py::_stream_read_timeout`） | **事实**：Python 3.14 `SocketIO` 无 `settimeout`，原实现静默 no-op → 读阶段回落到 `connect_timeout`（默认 30s），`stream_idle_timeout` 形同虚设。已补 `_sock.settimeout` 兜底；`MT-INF-014` 据此在 0.4s 内命中流空闲超时。**恢复条件**：无（已随本轮 fix 落地，见提交记录）。 |
-| §1.5.1（c3）超 2 MB **下游响应**资源预算（超大流的下游预算，非模块内归一） | Gap（G-TRANSPORT-BUDGET-1） | Owner：LLMTier（系统层）。**事实**：模块层仅断言「模块内归一不崩溃」（MT-INF-015）；下游 2 MB/带宽预算属系统层资源预算，归 `llmtier-system-test-scheme`；恢复条件：系统层预算用例建立并引用本行。 |
-| §1.5.1（c4/c5）真实 **跨主机** 网络 RST/半开连接（非 loopback） | Tailored-N/A（本层仅 loopback ENV-2 真实 socket） | Owner：LLMTier。**事实**：模块层用 loopback `127.0.0.1:0` 真实 socket 触发 `BrokenPipeError`/`ConnectionResetError`（MT-API-012/013 已覆盖进程内可复现断连）；跨主机链路病态归系统/运维层。 |
+| §2.3（c3）超 2 MB **下游响应**资源预算（超大流的下游预算，非模块内归一） | Gap（G-TRANSPORT-BUDGET-1） | Owner：LLMTier（系统层）。**事实**：模块层仅断言「模块内归一不崩溃」（MT-INF-015）；下游 2 MB/带宽预算属系统层资源预算，归 `llmtier-system-test-scheme`；恢复条件：系统层预算用例建立并引用本行。 |
+| §2.3（c4/c5）真实 **跨主机** 网络 RST/半开连接（非 loopback） | Tailored-N/A（本层仅 loopback ENV-2 真实 socket） | Owner：LLMTier。**事实**：模块层用 loopback `127.0.0.1:0` 真实 socket 触发 `BrokenPipeError`/`ConnectionResetError`（MT-API-012/013 已覆盖进程内可复现断连）；跨主机链路病态归系统/运维层。 |
 
-## 5. 文档联动与清单变更规则
+## 8. 文档联动与清单变更规则
 
-- 方案冻结与变更规则：清单随各模块设计/ISD 基线冻结；新增 Case 先在本清单登记再建 `tests.module-case` 文档；分支/组合/迁移变更时同步 §3.2–§3.4 与 §3.7；Case ID 一经登记不复用、不改名。
+- 方案冻结与变更规则：清单随各模块设计/ISD 基线冻结；新增 Case 先在本清单登记再建 `tests.module-case` 文档；分支/组合/迁移变更时同步 §6.2–§6.4 与 §6.7；Case ID 一经登记不复用、不改名。
 - **与单元层（UT）去重规则（强制）**：
-  1. **UT 已证的单函数分支不在 MT 重复**——单元层已覆盖且组装不改判的**单函数分支**，模块层不重复登记；模块层引用其 Case ID 而不复写断言（比对 `llmtier-unit-test-scheme` §3）。
+  1. **UT 已证的单函数分支不在 MT 重复**——单元层已覆盖且组装不改判的**单函数分支**，模块层不重复登记；模块层引用其 Case ID 而不复写断言（比对 `llmtier-unit-test-scheme` §6）。
   2. **MT 只测“UT 各自 PASS 但组装后可能不成立”的点**——即**分支在组装路径上的走向**、**组合交叉**、**跨单元状态迁移**与**调用序/接线**（先 auth 后 dispatch、先 admit 后 dispatch、审计同事务、路由→服务→存储）。这是模块层存在的理由。
-  3. **判定方法**：若某断言可由单一函数在 mock 环境下等价复现，则归 UT；只有当断言依赖**真实内部协作者组合**（真实 `Store`/`Registry`/`Router`/`UsageRecorder`/`DiagnosticsService` 同栈）才归 MT。§3.2/§3.3/§3.4 的分母均为**跨单元组装面**，已在选行时据此过滤。
-- **注入类方法规则（强制，见 §1.5）**：
+  3. **判定方法**：若某断言可由单一函数在 mock 环境下等价复现，则归 UT；只有当断言依赖**真实内部协作者组合**（真实 `Store`/`Registry`/`Router`/`UsageRecorder`/`DiagnosticsService` 同栈）才归 MT。§6.2/§6.3/§6.4 的分母均为**跨单元组装面**，已在选行时据此过滤。
+- **注入类方法规则（强制，见 §2）**：
   1. **注入命中否则 INVALID**——凡使用故障/延迟/流截断/畸形事件等注入的 Case，**必须**断言注入命中（命中计数 > 0）；注入计数为 0、并发未交错或故障未实际触发 → 该 Case 记 `INVALID`（**不记 PASS**）；**不得用“重试即恢复”掩盖根因**（须断言注入后的分支走向/回滚/无半写/`unknown` 不补零）。
   2. **数据注入经公开入口 + 未知不补零**——数据注入（初态/边界/诊断/冻结向量）**必须经公开入口**驱动（HTTP 端点 / 服务方法 / `Store` 公开方法），**禁止**测试直写表或直改内部字段建立初态；注入值与观测**严格相等**，未知/缺失值以 `unknown`/`Unknown`/NULL 表达，**绝不补零**。
-  3. **异常/错误注入矩阵封闭（强制，见 §1.5.1）**——(a) 每个对外 `code`、(b) 上游异常类别、(c) 传输/时间病态**必须各自映射到 ≥1 Case 或具名 Gap**，以 `src/` 为 Oracle；新增/变更 `ApiError(...)` 调用点即触发矩阵回归。**真实 socket 病态（c4/c5）必须用 ENV-2 真实客户端中途断开/RST**，不得以进程内对象模拟替代。
-- 与 case-design / 计划的同步规则：Case 文档 ID＝Case ID；`tests.module-test-plan` 构成表引用本方案版本；本方案合并 8 模块，逐模块切片由 Case ID 前缀承担。**case 文档的测试方法声明（强制契约条款）**：每份 `tests.module-case` 文档 §1 **必须**含一条 `- **测试方法（§1.5 方法表行）**：<technique(s)>` 列表项（**不新增章节**），指名本方案 §1.5 家族表的**确切技术行**；
+  3. **异常/错误注入矩阵封闭（强制，见 §2.3）**——(a) 每个对外 `code`、(b) 上游异常类别、(c) 传输/时间病态**必须各自映射到 ≥1 Case 或具名 Gap**，以 `src/` 为 Oracle；新增/变更 `ApiError(...)` 调用点即触发矩阵回归。**真实 socket 病态（c4/c5）必须用 ENV-2 真实客户端中途断开/RST**，不得以进程内对象模拟替代。
+- 与 case-design / 计划的同步规则：Case 文档 ID＝Case ID；`tests.module-test-plan` 构成表引用本方案版本；本方案合并 8 模块，逐模块切片由 Case ID 前缀承担。**case 文档的测试方法声明（强制契约条款）**：每份 `tests.module-case` 文档 §1 **必须**含一条 `- **测试方法（§2.4 方法表行）**：<technique(s)>` 列表项（**不新增章节**），指名本方案 §2.4 家族表的**确切技术行**；
   技术须由该 Case 的**实际分类 + 步骤/断言**推导，跨两类时并列；该条**必须**同时点名 STD test-standard §3 规定的模块**主要手段**（**公开入口** + **边界替身**：声明经哪个公开入口驱动、边界外协作者用何替身，或声明「无边界替身、全真实」）；
-  若该 Case 覆盖分支/组合/迁移，须另在 §1 声明其覆盖的**分支 ID / 组合 ID / 迁移 ID**（取自 §3.7）；缺失或不诚实声明即视为 Case 不完备。
-- 新增 Case 示例：`0.1.0-draft.6` 已按 §1.5.1 新增 `MT-MGMT-011`（固定 tier 删除 `fixed_service_level`）、`MT-API-012/013`（真实 socket broken pipe / RST）、`MT-INF-013…019`（stall/hang、slow-response、超大 response、截断流、畸形帧、并发超时+许可泄漏、凭据缺失）——先入本清单再建 `tests.module-case` 文档；模块计划引用本方案 `0.1.0-draft.6`。
+  若该 Case 覆盖分支/组合/迁移，须另在 §1 声明其覆盖的**分支 ID / 组合 ID / 迁移 ID**（取自 §6.7）；缺失或不诚实声明即视为 Case 不完备。
+- 新增 Case 示例：`0.1.0-draft.6` 已按 §2.3 新增 `MT-MGMT-011`（固定 tier 删除 `fixed_service_level`）、`MT-API-012/013`（真实 socket broken pipe / RST）、`MT-INF-013…019`（stall/hang、slow-response、超大 response、截断流、畸形帧、并发超时+许可泄漏、凭据缺失）——先入本清单再建 `tests.module-case` 文档；模块计划引用本方案 `0.1.0-draft.6`。
 
 ## 附录 A. 本层设计验证项 VRC 汇集（对照用）
 
-| 设计验证项 ID | 要验证什么（名称/责任） | 设计来源 | §3 Case 覆盖（追溯，非分母） |
+| 设计验证项 ID | 要验证什么（名称/责任） | 设计来源 | §6 Case 覆盖（追溯，非分母） |
 |---|---|---|---|
 | VRC-API-001 | 分发/错误/资源 | `http-api-design` §14.1 / `http-api-isd` §9.1.1 | MT-API-001/002/004/005 |
 | VRC-API-002 | 鉴权 | `http-api-design` §14.2 / `http-api-isd` §9.1.2 | MT-API-006/011 |

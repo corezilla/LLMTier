@@ -11,7 +11,7 @@
   ],
   "template_id": "tests.system-test-report",
   "template_version": "0.3.1",
-  "template_sha256": "dac71140a01f02b8fbe23fc84fbf8efca22842333f0c3094f6795f6ba9260a28",
+  "template_sha256": "015b098c1944fd2a8c4947758ec06f838b456b0afda764b23c9d216ba4692e0b",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,

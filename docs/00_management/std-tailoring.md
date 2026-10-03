@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `std-tailoring` |
-| Document Version | `0.1.6-draft.2` |
+| Document Version | `0.1.6-draft.3` |
 | Status | `In Review` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -14,7 +14,7 @@
 | Approver |  |
 | Approval Date |  |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-10-02` |
+| Last Modified Date | `2026-10-03` |
 | Template Version | `0.2.0` |
 | Template ID | `management.tailoring` |
 | Template Conformance | `native` |
@@ -41,7 +41,7 @@
   把 LLMTier 降级为其内部 subsystem
 - 安全或业务关键性：模型服务控制面和数据面；涉及 credential、跨 Client 隔离、容量与恢复
 - STD 采用来源由 README 与 `docs/std.lock.json` 管理；当前锁定 `0.1.0-draft.72` 开发行、完整 commit
-  `eaca6dcb9ca990bfb9b68ae1c08dfb5d9d4b5da9`（含测试体系入口规范 `docs/test-standard.md`：分层总览、每层职责含**主要手段**、分层原则、通用规范 §6）
+  `f07339644221f694f38e7bdda63cf5364114599b`（含测试体系入口规范 `docs/test-standard.md`：分层总览、每层职责含**主要手段**、分层原则、通用规范 §6）
 - 当前目录裁剪：正式 prose 使用编号化 `docs/`，机器契约集中到 `interfaces/`，历史/非权威资料
   集中到 `docs/99_reference/`；不改变 Scope B 或任何机器契约字节
 
@@ -73,7 +73,7 @@
 | `tests.unit-test-report` | software | 是，首个 Run 已产出（Markdown 汇总待 Gate） | 首个 Run `run-20260930-01` 存于 `tests/unit/v03/reports/`（证据根见单元计划 §7 位置决定） | `tests/unit/v03/reports/` | LLMTier |
 | `tests.asset-design` | software | 是（已建立 `llmtier-unit-fakes`） | 单元替身（`FakeAdapter`/`AppFixture`）契约与自检；`FakeResponse` 为各测试模块本地 stub（非本资产）；模块层复用同一资产 | `docs/70_verification/unit/assets/llmtier-unit-fakes.md` | LLMTier |
 | `tests.module-test-scheme` | software | 是（新建） | 模块 Case 清单唯一登记；本项目按授权合并 M001-M008 为一份（LT-TL-025） | [llmtier-module-test-scheme](../70_verification/module/llmtier-module-test-scheme.md) | LLMTier |
-| `tests.module-case` | software | 是（下一交付步建立，57 份） | 模块逐 Case 设计（一 Case 一文档，按方案 §3 四层分母 80 条展开为 57 Case） | `docs/70_verification/module/cases/MT-<OBJ>-<NNN>.md` | LLMTier |
+| `tests.module-case` | software | 是（已建，68 份） | 模块逐 Case 设计（一 Case 一文档，按方案 §6 四层分母 91 条展开为 68 Case） | `docs/70_verification/module/cases/MT-<OBJ>-<NNN>.md` | LLMTier |
 | `tests.module-test-plan` | software | 是（新建） | 模块测试可执行作业指令；本项目按授权合并 M001-M008 为一份（LT-TL-025） | [llmtier-module-test-plan](../70_verification/module/llmtier-module-test-plan.md) | LLMTier |
 | `tests.module-test-report` | software | 是（首次执行时产出） | 模块 Run 报告；按 Run ID 存于 `tests/module/reports/<run-id>/` | `tests/module/reports/` | LLMTier |
 | `assurance.test-specification` | software | 已退役 | 140-Case 权威清单已迁入 `tests.system-test-scheme` §3（见 LT-TL-019） | LLMTier |
@@ -114,7 +114,7 @@
 | LT-TL-022 | 验收活动（acceptance / validation）承接 | **deferred（按 tailoring 承接，不在 tests 家族）** | 原 `assurance.vv-plan` 的 validation 目标（Piko 完整输入 text/tool loop、Slinky Memory 获得 embedding、Operator Web UI 一屏 tier 状态/CRUD/脱敏日志、服务恢复后分层确认）与验收判据**不属于 tests 家族**。按 `template-selection.md` 与 `repository-layout.md` §4.1.1，正式验收使用 `tests/acceptance/reports/<run-id>/`，报告模板由验收活动按项目 tailoring 选择；**当前 V0.3 candidate 阶段尚未启动正式验收**，系统测试 Gate 只给放行建议、不等于验收或上线授权。启动条件：真实 Piko / 真 Slinky Memory 联调可用且 `runtime_activation` 决策启动时。Owner：LLMTier + Piko + Slinky（consumer reviewer）。 | 把系统测试 PASS 误当客户验收，或把验收结论泄进 tests 家族 | 本轮 review | 启动验收时新增 ADR |
 | LT-TL-023 | 单元测试方案/计划合并登记（`tests.unit-test-scheme`/`tests.unit-test-plan` 模板默认“单一模块/一模块一份”） | **tailored（合并为项目级一份，逐模块切片由 Case ID 前缀承担）** | `tests.unit-test-scheme` 模板要求绑定单一软件模块、`tests.unit-test-plan` 模板要求一模块一份。LLMTier 8 个模块（M001-M008）边界清晰，用户授权将单元层 Case 清单与作业编排合并为项目级一份，避免 8 份碎片文档；逐模块访问由 Case ID 前缀 `UT-API-*`/`UT-UI-*`/`UT-INF-*`/`UT-MGMT-*`/`UT-OBS-*`/`UT-DIAG-*`/`UT-UTIL-*`/`UT-LOG-*` 与来源列承担。合并只关登记位置，不改变 Case↔VRC 追溯。另：锁定模板 `tests.unit-case@2.3.2` 一 Case 一文档，本项目按“一个设计验证项（VRC）一个 Case”实现（当前 66 份，含覆盖洞新增与 2 个工具 Case），未按单个测试函数拆分为上百份。 | 8 份碎片文档造成清单漂移；或误按测试函数粒度产生大量无独立 Oracle 的 Case | 本轮 review | N/A |
 | LT-TL-024 | 测试范围裁剪的**定稿 N/A**（系统方案 §4 与单元方案 §4 的收口） | **Tailored-N/A（不在 tests 家族；权威本表）** | 经代码/设计复核，以下条目按事实定稿（本表为其权威记录；各方案 §4 只引用本表）：①**浏览器/JS 宿主 → 已建立，RISK 关闭**——M002 `VRC-UI-001..006` 行为级与 M005 诊断页视觉子项（`VRC-OBS-001..005` 视觉部分）原登记为具名开放 RISK **`RISK-UI-EXEC-1`**（`UT-UI-001..010`/`UT-OBS-*` 仅做源码字符串契约，不执行 JS）。**本版已关闭**：引入真实浏览器 harness（headless Chrome over CDP，`tests/common/drivers/browser_driver.mjs`，node ≥ 22 内置 WebSocket，无 npm/下载）并在系统层新增真实执行 Case `ST-UI-001..010`（`tests/system/cases/ST-UI-001.py`，`-m ui`），在真实 DOM 与网络记录上执行 `VRC-UI-001..006` 与诊断页视觉子项；`UT-UI-*` 字符串契约保留为快速下位防线（权威登记见系统方案 §4、单元方案 §4、系统计划 §10-O6）。②**生产部署面**（`LT-SEC-003` TLS/SSO/MFA/CSRF、真实生产环境）——归验收活动（`LT-TL-022`）与运维手册，非 HTTP 黑盒分母。③**运维/恢复/容量活动**（`LT-OPS-003/004/005`、进程 crash/restart 恢复、备份/恢复演练、容量/耐久 FD/30min/50并发）——归运维手册与性能专项（`LT-TL-020`）。④**声明性/absence 约束**（`LT-PERF-003` 未测量不宣称 SLO、`LT-FUN-007`/`LT-INT-003`/`LT-REL-002` absence）——由静态契约与发布声明承接。⑤**上游模型答案质量**——内容非 Oracle（系统设计 §1）。⑥**实现/部署 Gate**（`LT-OPEN-03`）——设计已关闭、待部署证据。⑦**子系统测试级别**——无 `design.subsystem` 对象（`LT-TL-003`）。⑧**误报偏差**（OpenAPI `422`/probes `502`/Embeddings `provider_failure`）——经复核无偏差或已改声明对齐，无 Case 需要。 | 把 N/A 当 Gap 反复挂起，或误把视觉/运维活动写进运行层分母产生空 Case | 本轮 review | N/A |
-| LT-TL-025 | 模块测试方案/计划合并登记（`tests.module-test-scheme`/`tests.module-test-plan` 模板默认“绑定单一软件模块/一模块一份”） | **tailored（合并为项目级一份，逐模块切片由 Case ID 前缀承担）** | `tests.module-test-scheme` 模板要求绑定单一软件模块、`tests.module-test-plan` 模板要求一模块一份。LLMTier 8 个模块（M001-M008）边界清晰，用户授权将模块层 Case 清单与作业编排合并为项目级一份，避免 8 份碎片文档（与单元层 **LT-TL-023** 同一处理方式）；逐模块访问由 Case ID 前缀 `MT-API-*`/`MT-UI-*`/`MT-INF-*`/`MT-MGMT-*`/`MT-OBS-*`/`MT-DIAG-*`/`MT-UTIL-*`/`MT-LOG-*` 与来源列承担（token 与单元方案一致，便于反查映射）。合并只关登记位置，不改变 Case↔VRC 追溯。模块层分母＝**四层**（方案 §3）：① 对外接口端到端行为 20 ＋ ② 内部分支 47 ＋ ③ 组合（判定表/配对）10 ＋ ④ 状态转换（迁移表）14 ＝ **91 条分母**，展开为 **68 个 Case**（方案 v0.1.0-draft.9；已全部建立并执行，报告 `llmtier-module-test-report-2026-10-02-04` 判 68/68 Case `PASS`）；8 个模块设计 §14 / ISD §9.1 的 33 个验证项（与单元层同一 VRC 集合）在本层只作**追溯**（附录 A），**不作分母**。测试边界＝整模块组装（内部单元真实、仅边界外替身，状态只经公开入口）。 | 8 份碎片文档造成清单漂移；或模块层退化为单元层复测 | 本轮 review | N/A |
+| LT-TL-025 | 模块测试方案/计划合并登记（`tests.module-test-scheme`/`tests.module-test-plan` 模板默认“绑定单一软件模块/一模块一份”） | **tailored（合并为项目级一份，逐模块切片由 Case ID 前缀承担）** | `tests.module-test-scheme` 模板要求绑定单一软件模块、`tests.module-test-plan` 模板要求一模块一份。LLMTier 8 个模块（M001-M008）边界清晰，用户授权将模块层 Case 清单与作业编排合并为项目级一份，避免 8 份碎片文档（与单元层 **LT-TL-023** 同一处理方式）；逐模块访问由 Case ID 前缀 `MT-API-*`/`MT-UI-*`/`MT-INF-*`/`MT-MGMT-*`/`MT-OBS-*`/`MT-DIAG-*`/`MT-UTIL-*`/`MT-LOG-*` 与来源列承担（token 与单元方案一致，便于反查映射）。合并只关登记位置，不改变 Case↔VRC 追溯。模块层分母＝**四层**（方案 §6）：① 对外接口端到端行为 20 ＋ ② 内部分支 47 ＋ ③ 组合（判定表/配对）10 ＋ ④ 状态转换（迁移表）14 ＝ **91 条分母**，展开为 **68 个 Case**（方案 v0.1.0-draft.9；已全部建立并执行，报告 `llmtier-module-test-report-2026-10-02-04` 判 68/68 Case `PASS`）；8 个模块设计 §14 / ISD §9.1 的 33 个验证项（与单元层同一 VRC 集合）在本层只作**追溯**（附录 A），**不作分母**。测试边界＝整模块组装（内部单元真实、仅边界外替身，状态只经公开入口）。 | 8 份碎片文档造成清单漂移；或模块层退化为单元层复测 | 本轮 review | N/A |
 | LT-TL-026 | 测试方案/计划工件文件名（STD test-standard §6.4 建议 `<stage>-test-scheme.md` / `<stage>-test-plan.md`，无独立前缀） | **tailored（保留项目前缀 `llmtier-<stage>-test-…`）** | 本项目自采用 STD 起即用 `llmtier-<stage>-test-scheme.md` / `llmtier-<stage>-test-plan.md`（如 `llmtier-unit-test-scheme.md`），与全仓设计/管理文档的项目前缀命名一致，且被 plan §7/报告与数百处交叉引用锚定。按 STD test-standard §6.4，scheme/plan「每阶段一份、用文件名 `<stage>-test-scheme.md` / `<stage>-test-plan.md` 引用」；本项目保留 `llmtier-` 前缀属**文件名裁剪**，Case 文件仍严格 `＝Case ID`（`UT-<OBJ>-<NNN>.py/.md`、`MT-…`、`ST-…`），**不改** Case 命名与工件落位。 | 若强制改名为无前缀会大面积断链且与项目文档命名惯例冲突；Case 命名不受影响 | 本轮 review | 若 STD 提供 scheme/plan 前缀的 project-namespace 机制则重审 |
 
 ## 4. 禁止裁剪项
@@ -148,6 +148,7 @@
 | 2026-09-25 | draft.34 | draft.31–34：数据/接口/公共错误码统一、模块源码路径、ISD 编码就绪 | 见下 | `81e01c112676aea0814abcacbd3fc0cf461a10a0` |
 | 2026-10-01 | draft.72 (`e424728`) | draft.72 `eef5c9d`：IT/ST case 脚本命名与报告结构对齐 UT/MT（`fix: MT review — reconcile support docs + template cross-refs`）；模块层测试方案/计划落地（LT-TL-025）；模板文件（`module-*`/`system-case`/`subsystem-case`/`unit-case`）哈希刷新，全项目 metadata `template_sha256` 同步 | 测试模板族 hash 更新 + 模块层新建 | `eef5c9d2e8f238d6884e84a85837565f5a4502f4` |
 | 2026-10-02 | draft.72 (`eef5c9d`) | draft.72 `eaca6dc`：新增测试体系入口规范 `docs/test-standard.md`（分层总览、每层职责含**主要手段**、分层原则、通用规范 §6）；Case/工件命名与对象 ID 拆出至测试规范 §6.4（`software-object-identifiers.md` 收敛）；测试模板族清单指向测试规范 | 新增 `test-standard.md`，无模板哈希变化（仅 docs 变更）；本清单 §2 测试模板族与各方案/计划按主要手段复核 | `eaca6dcb9ca990bfb9b68ae1c08dfb5d9d4b5da9` |
+| 2026-10-03 | draft.72 (`eaca6dc`) | draft.72 `f073396`：STD 重排 scheme 模板章节编号（1→8 连续，弃 1.5/1.6/1.7）并对账标题层级规则（叙述 ≤2 级、记录型 `#### N.N.N` 为锚点）；项目三层 scheme/plan/case 的章节引用随迁（方案 §1.5→§2、§3→§6、§4→§7、§5→§8；矩阵→§2.3；方法表→§2.4/§2.1/§2.2）；同版重锁附带修复 ST case 存量坏链（双 URL 尾巴与 §2.1/§2.4/§3.2/§4.8 悬空锚改指计划 §2/§3/§7 与方案 §6） | 模板仅叙述编号/空行变化、无字段语义变化；`verify-source-manifest` 通过 | `f07339644221f694f38e7bdda63cf5364114599b` |
 
 **draft.26 tag → HEAD 变更要点**（22 commits）：
 - `tests/` 子目录加 `unit/<module-id>/`、`{contract,integration,system,acceptance}/reports/`；测试报告（`assurance.test-report`）路径由 `docs/70_verification/reports/` 改为 `tests/{level}/reports/<run-id>/`

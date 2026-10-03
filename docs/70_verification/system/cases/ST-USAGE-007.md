@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-USAGE-007` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-USAGE-007`）；责任摘要、分类与优先级以 [系统测试方案 §3](../llmtier-system-test-scheme.md) 清单行为准。
+- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-USAGE-007`）；责任摘要、分类与优先级以 [系统测试方案 §6](../llmtier-system-test-scheme.md) 清单行为准。
 - **来源**：系统设计 §8 Usage 查询接口（parent `llmtier-system-design`），设计验证项 `VRC-MGMT-006`；所属方案 `llmtier-system-test-scheme`。
 - **边界**：系统层 Case（整软件系统组装，被测为 m5air 真实部署或按 tests.asset-design 约束的替身）；本文档持有实现状态，执行状态与 Verdict 只在 Run 报告。
 
@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-USAGE-007` / 系统设计 §8 Usage 查询接口 / `VRC-MGMT-006` / boundary / P1（[方案清单 `ST-USAGE-007`](../llmtier-system-test-scheme.md)，**新增 Case**）；机制 `T-MET-PAGE`（[usage-metering 机制](../../../20_system_design/mechanisms/usage-metering.md) §4.7/CON-METER-004，INV-6「旧页不受后续更正影响」、Step 5 冻结视图）。
-- **测试方法（§1.5 方法表行）**：边界值抽样（cursor 重放幂等/冻结视图）+ 契约字段比对
+- **测试方法（§2.2 方法表行）**：边界值抽样（cursor 重放幂等/冻结视图）+ 契约字段比对
 - 要测什么（责任展开）：同一 usage `cursor` **重放**返回同一冻结的 record version 成员：后续页重放逐字段相同，不新建 `snapshot`、不推进 head；首屏冻结后新增记录对旧页不可见。首屏在单事务内写 `query_snapshots` 并冻结有序成员 `(principal, request_id, record_version)`；
   后续页仅按 `<snapshot_id>:<offset>` 读**冻结视图** `query_snapshot_items`（含 `frozen_view_json`）；读操作不写账本。实现 `src/inference/usage.py::UsageRecorder._page`。
   机制需求 `R-MET-02`；需求链 `LT-FUN-004`、`LT-INT-004/005/007`、`CT-USAGE-001`。
@@ -77,7 +77,7 @@ GET /v1/usage?from=<w>&to=<w>&limit=1&cursor=<sid>:1  → page2''（追加一条
 
 | Step | 动作 | 观察点 |
 |---|---|---|
-| 1 | `GET /healthz`/`GET /readyz`（`pytest_configure` 完成，不重复） | §2.1 基线 |
+| 1 | `GET /healthz`/`GET /readyz`（`pytest_configure` 完成，不重复） | 计划 §2 基线 |
 | 2 | 发 3 次 embeddings，断 200 | 捕获 `rid_1..rid_3` |
 | 3 | `page1 = GET ?from&to&limit=1` | 200，`snapshot_id=sid`，`next_cursor=c`（形如 `<sid>:1`） |
 | 4 | `page2 = GET ?...&cursor=c` | 200 且 `snapshot_id==sid`，记录 `page2.data`（含 `request_id`+`record_version`）与 `next_cursor`/`has_more` |

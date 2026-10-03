@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "llmtier-module-test-scheme",
   "document_type": "tests.module-test-scheme",
-  "document_version": "0.1.0-draft.11",
+  "document_version": "0.1.0-draft.12",
   "title": "LLMTier V0.3 Module Test Scheme",
   "document_owner": "LLMTier",
   "authors": [
@@ -11,7 +11,7 @@
   ],
   "template_id": "tests.module-test-scheme",
   "template_version": "0.6.1",
-  "template_sha256": "6d1bd8444f0f90a76f9b1e637a88a66f046193a3031a05daa9fe1f95353c01c8",
+  "template_sha256": "7da0b172cd9b67e4b20ae01298a50d0d261a4b010cf86a077e19e64afc403711",
   "template_conformance": "tailored",
   "tailoring_ref": "std-tailoring",
   "migration_map_ref": null,

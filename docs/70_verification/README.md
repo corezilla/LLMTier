@@ -1,7 +1,7 @@
 # LLMTier 验证域总索引（docs/70_verification）
 
 > STD 使用入口：[项目采用说明与标准导航](../../README.md#std-entry)。本目录按 **测试阶段** 组织
-> （STD `0.1.0-draft.72` / `eaca6dc`，见 `docs/std.lock.json`；布局依据 STD
+> （STD `0.1.0-draft.72` / `f073396`，见 `docs/std.lock.json`；布局依据 STD
 > `docs/repository-layout.md` §4「测试authority / 按测试类型保存报告」与 §4.1.2 文件级示例）。
 
 本目录承载 LLMTier 的**测试方案（scheme）**、**用例详细设计（case）**、**测试计划（plan）** 与

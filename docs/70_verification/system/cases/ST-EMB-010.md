@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-EMB-010` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -32,7 +32,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-EMB-010` / 系统设计 §8 Embeddings 接口（POST /v1/embeddings） / `VRC-INF-004` / recovery / P1（[方案清单 `ST-EMB-010`](../llmtier-system-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：故障注入（上游 5xx/不可达 → 503）+ 复位阶梯
+- **测试方法（§2.2 方法表行）**：故障注入（上游 5xx/不可达 → 503）+ 复位阶梯
 
 - 要测什么（责任展开）：`POST /v1/embeddings` 上游 5xx/不可达：`503 provider_unavailable`。适配层把上游 `HTTPError>=500`、`URLError`、超时、JSON 解码失败统一映射为 `503 provider_unavailable`。
   需求 `R-INF-05`；错误目录 `ERR-PROVIDER-UNAVAIL` → wire `code=provider_unavailable`；实现 `src/inference/providers/openai.py::_request`（`except HTTPError: exc.code>=500 → ApiError(503, "provider_unavailable", retryable=True)`；

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-RESP-001` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -27,18 +27,18 @@
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
-> 本 Case 文档绑定：系统设计经 `--parent-document-id`、所属方案经方案清单行引用写入 metadata；Document ID＝Case ID。方案清单行见[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)。
+> 本 Case 文档绑定：系统设计经 `--parent-document-id`、所属方案经方案清单行引用写入 metadata；Document ID＝Case ID。方案清单行见[系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)。
 
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-RESP-001` / 系统设计 §8 Responses 接口（POST /v1/responses） / `VRC-INF-001` / `normal` / `P0`。本文件名 `st-resp-001.md`，与 Case ID 唯一对应。
-- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对 + 状态机驱动（SSE 事件序列/唯一 terminal）
+- **测试方法（§2.2 方法表行）**：等价类划分 + 契约字段比对 + 状态机驱动（SSE 事件序列/唯一 terminal）
 - 要测什么（责任展开）：`POST /v1/responses` 流式成功：SSE 事件序列有序、恰好一个 terminal、`[DONE]` 收尾、usage 非空。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明上游模型答案正确性或文本内容（只断言结构/事件序列），不证明 `stream_terminate`/`malformed_event`/客户端断开等异常路径（见 ST-RESP-010/11/21），不证明 `store=true`/`stream=false` 等被拒形态（ST-RESP-002/06/07），不发布时延 SLO（只记录 `elapsed`）。**失败含义＝流式成功契约破坏**。
 
 **目的（被测契约）**：验证 Data Plane `POST /v1/responses`（`stream=true`）的 **SSE 成功路径契约**。被测端点/规则：`POST /v1/responses`，事件序列 `response.created → response.output_item.added → response.output_text.delta×N → response.output_item.done → response.completed`（或 `response.incomplete`/`response.failed`）`→ data: [DONE]`；
 恰好一个终态事件，`sequence_number` 自 0 严格递增，`response.completed.response.usage.{input_tokens,output_tokens,total_tokens}` 非 null。
-设计验证项 `VRC-INF-001`；机制 `T-STREAM`（见 [inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）；响应头 `Content-Type: text/event-stream`（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+设计验证项 `VRC-INF-001`；机制 `T-STREAM`（见 [inference-stream 机制](../../../20_system_design/mechanisms/inference-stream.md)）；响应头 `Content-Type: text/event-stream`（[系统测试方案 §6](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
 **不证明什么**：不证明上游模型答案正确性或文本内容（只断言结构/事件序列），不证明异常路径（ST-RESP-010/11/21），不证明被拒形态（ST-RESP-002/06/07），不发布时延 SLO。
 
 ## 2. 被测入口与前置
@@ -54,7 +54,7 @@
   Accept: text/event-stream
   ```
 
-- **初态构造与客户端**：只读无状态；凭据固定 `data`（经 `api_client` 注入）；固定 prompt 见 [系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)。
+- **初态构造与客户端**：只读无状态；凭据固定 `data`（经 `api_client` 注入）；固定 prompt 见 [系统测试方案 §4 测试环境类型](../llmtier-system-test-scheme.md)。
 - **依赖的测试资产（tests.asset-design 文档）**：本阶段 `tests.asset-design` 文档尚未建立；`api_client` 等夹具契约见方案 §4。
 
 ## 3. 输入构造
@@ -127,11 +127,11 @@
 ## 6. 错误路径、副作用与清理
 
 - **错误出口与表现**：本 case 为成功路径；SSE 序列断裂、terminal 缺失/重复、`[DONE]` 缺失按 §5 判 FAIL 并保留原始逐帧现场。异常路径（断开/注入/截断）见 ST-RESP-010/11/21。
-- **副作用断言与清理**：**无需 teardown**——`store=false`、环境 A 只读/无状态，不创建/修改 provider/deployment/service-level，不写注入项，不删除任何既有资源或用户 usage。退出前确认无未清空的注入项（本 case 不注入）、`/readyz` 仍显示 7 tier；若被误跑于 B 类临时实例，则按[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md) 整班 `stop()` + `rm -rf` 临时目录。
+- **副作用断言与清理**：**无需 teardown**——`store=false`、环境 A 只读/无状态，不创建/修改 provider/deployment/service-level，不写注入项，不删除任何既有资源或用户 usage。退出前确认无未清空的注入项（本 case 不注入）、`/readyz` 仍显示 7 tier；若被误跑于 B 类临时实例，则按[系统测试方案 §4 测试环境类型](../llmtier-system-test-scheme.md) 整班 `stop()` + `rm -rf` 临时目录。
 
 ## 7. 自动化位置与状态
 
-- **证据与 Run**：证据与 Run 契约见[§4.8/§10](../llmtier-system-test-scheme.md)：保存原始 SSE 逐帧、HTTP status/headers、发出命令、exit code、`elapsed`、环境快照（`/healthz`/`/readyz`）；manifest 与报告落位见 §4.8/§10（本 case `environment:"a"`）；失败现场不截断。
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查（m5air `/healthz`、`/readyz` 7 tier、双 OMLX、`provider_omlx_m5mac` secret）；`api_client` fixture（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）；responses-capable 上游 tier `Worker`；自动化入口 [`ST-RESP-001.py`](../../../../tests/system/cases/ST-RESP-001.py)（case 级）与 [`tools/inference_smoke.py`](../../../../tools/inference_smoke.py)（smoke 级交叉核对，不替代断言）。**不依赖**其它 Case；与 ST-USAGE-002（成功后可见记录）共享同一成功请求语义，但各自独立执行。
+- **证据与 Run**：证据与 Run 契约见[计划 §7/§10](../llmtier-system-test-scheme.md)：保存原始 SSE 逐帧、HTTP status/headers、发出命令、exit code、`elapsed`、环境快照（`/healthz`/`/readyz`）；manifest 与报告落位见计划 §7/§10（本 case `environment:"a"`）；失败现场不截断。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查（m5air `/healthz`、`/readyz` 7 tier、双 OMLX、`provider_omlx_m5mac` secret）；`api_client` fixture（[系统测试方案 §4 测试环境类型](../llmtier-system-test-scheme.md)）；responses-capable 上游 tier `Worker`；自动化入口 [`ST-RESP-001.py`](../../../../tests/system/cases/ST-RESP-001.py)（case 级）与 [`tools/inference_smoke.py`](../../../../tools/inference_smoke.py)（smoke 级交叉核对，不替代断言）。**不依赖**其它 Case；与 ST-USAGE-002（成功后可见记录）共享同一成功请求语义，但各自独立执行。
 
 > 实现状态：Implemented（`ST-RESP-001.py` 已断言本 case 契约）；执行状态与 Verdict 只在 Run 报告。

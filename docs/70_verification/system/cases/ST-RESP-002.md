@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-RESP-002` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -27,18 +27,18 @@
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
-> 本 Case 文档绑定：系统设计经 `--parent-document-id`、所属方案经方案清单行引用写入 metadata；Document ID＝Case ID。方案清单行见[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)。
+> 本 Case 文档绑定：系统设计经 `--parent-document-id`、所属方案经方案清单行引用写入 metadata；Document ID＝Case ID。方案清单行见[系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)。
 
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-RESP-002` / 系统设计 §8 Responses 接口（POST /v1/responses） / `VRC-INF-001` / `negative` / `P0`。本文件名 `st-resp-002.md`，与 Case ID 唯一对应。
-- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
+- **测试方法（§2.2 方法表行）**：错误猜测 + 反例驱动（ERR-*）
 - 要测什么（责任展开）：`POST /v1/responses` 传 `stream=false`：在 dispatch 前返回 `400 unsupported_request`，零副作用。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明 `store=true` 被拒（ST-RESP-007，反向约束）；不证明合法流式成功与事件序列（ST-RESP-001/06）；不证明上游调用、模型答案或账本行为（本 case 在 dispatch 前拒绝）。**失败含义＝`stream` 跨字段硬约束破坏**。
 
 **目的（被测契约）**：验证 Data Plane `POST /v1/responses` 的 **`stream` 跨字段硬约束**——本版本仅受理 `stream=true`（OpenAPI `ResponsesRequest.stream` 为 `const:true`；
 ISD M003 `additionalProperties:false` + 跨字段硬约束）。被测端点/规则：`POST /v1/responses`；设计验证项 `VRC-INF-001`；错误目录 `ERR-REQ-UNSUPPORTED` → wire `code=unsupported_request`（[llmtier-system-design.md](../../../20_system_design/llmtier-system-design.md) §7.8）；
-实现 `src/inference/responses.py`（`require(body.get("stream") is True and body.get("store") is False, 400, "unsupported_request", "Only stream=true and store=false are supported")`）（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+实现 `src/inference/responses.py`（`require(body.get("stream") is True and body.get("store") is False, 400, "unsupported_request", "Only stream=true and store=false are supported")`）（[系统测试方案 §6](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
 **不证明什么**：不证明 `store=true` 被拒（ST-RESP-007，反向约束）；不证明合法流式成功与事件序列（ST-RESP-001/06）；不证明上游调用、模型答案或账本行为（本 case 在 dispatch 前拒绝）。
 
 ## 2. 被测入口与前置
@@ -124,7 +124,7 @@ ISD M003 `additionalProperties:false` + 跨字段硬约束）。被测端点/规
 
 ## 7. 自动化位置与状态
 
-- **证据与 Run**：证据与 Run 契约见[§4.8/§10](../llmtier-system-test-scheme.md)：保存请求 body、HTTP status/headers、原始错误信封（脱敏后）、发出命令、exit code、环境快照（`/healthz`/`/readyz`）；manifest 与报告落位见 §4.8/§10（本 case `environment:"a"`）；失败现场不截断。
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client` fixture（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）；responses-capable tier `Worker`；自动化入口 [`ST-RESP-002.py`](../../../../tests/system/cases/ST-RESP-002.py)。**不依赖**其它 Case；与 ST-RESP-007（`store=true`）互补但各自独立执行。
+- **证据与 Run**：证据与 Run 契约见[计划 §7/§10](../llmtier-system-test-scheme.md)：保存请求 body、HTTP status/headers、原始错误信封（脱敏后）、发出命令、exit code、环境快照（`/healthz`/`/readyz`）；manifest 与报告落位见计划 §7/§10（本 case `environment:"a"`）；失败现场不截断。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client` fixture（[系统测试方案 §4 测试环境类型](../llmtier-system-test-scheme.md)）；responses-capable tier `Worker`；自动化入口 [`ST-RESP-002.py`](../../../../tests/system/cases/ST-RESP-002.py)。**不依赖**其它 Case；与 ST-RESP-007（`store=true`）互补但各自独立执行。
 
 > 实现状态：Implemented（`ST-RESP-002.py` 已断言本 case 契约）；执行状态与 Verdict 只在 Run 报告。

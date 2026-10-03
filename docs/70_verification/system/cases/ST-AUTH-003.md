@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-AUTH-003` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -31,7 +31,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-AUTH-003`）；责任摘要、分类与优先级以 [系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
+- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-AUTH-003`）；责任摘要、分类与优先级以 [系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
 - **测试脚本的唯一依据**：编码者按本文档写测试代码，不需要回读方案或设计正文猜测意图。
 - **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
 
@@ -48,8 +48,8 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-AUTH-003` / 系统设计 §8 认证与授权跨切面（角色/LAN trust/无鉴权） / `VRC-API-002` / `security` / `P0`
-- **测试方法（§1.5 方法表行）**：鉴权/授权/脱敏冒烟 + 角色隔离
-- 方案清单登记：`ST-AUTH-003`（与 §3.2 权威清单一致；本文件名 `st-auth-003.md`，唯一对应）。
+- **测试方法（§2.2 方法表行）**：鉴权/授权/脱敏冒烟 + 角色隔离
+- 方案清单登记：`ST-AUTH-003`（与 计划 §3 权威清单一致；本文件名 `st-auth-003.md`，唯一对应）。
 - 要测什么（责任展开）：`GET /v1/providers` 在**携带有效 data token**时被拒，返回 403 + `permission_denied`（data 角色不授权 admin 面）。
 - 明确不测什么 / 失败含义：不证明 **无 token 的 LAN trust** 是否受理 admin 面（ST-AUTH-004）、**管理面未授权优先于资源存在性**（ST-AUTH-009）、**别名命名空间**需 admin（ST-AUTH-008）、**错误 bearer** 被拒（ST-AUTH-002）、**缺/非法凭据→401**（ST-AUTH-010）、**未配置鉴权→503**（ST-AUTH-007）；也不证明 `permission_denied` 的具体比较是否恒定时间（INV-2）。
 
@@ -61,7 +61,7 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `data`（§3.2）；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=§2.1 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；本 case **使用** `api_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)），其 `Authorization: Bearer dev-data` 正是被测输入；**不得**改用 `admin_client`（会以 `dev-admin` 通过，令本 case 失去意义）；初始状态=§2.3 A 类基线（3 provider / 4 deployment / 7 fixed tier）。
+- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `data`（方案 §6 清单行）；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=计划 §3 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；本 case **使用** `api_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)），其 `Authorization: Bearer dev-data` 正是被测输入；**不得**改用 `admin_client`（会以 `dev-admin` 通过，令本 case 失去意义）；初始状态=§2.3 A 类基线（3 provider / 4 deployment / 7 fixed tier）。
 
 ## 3. 输入构造
 
@@ -77,7 +77,7 @@
 ## 4. 执行步骤与观察点
 
 - **执行过程（逐步调用）**：
-  1. `GET /healthz`、`GET /readyz` —— 确认 §2.1 基线（由 `pytest_configure` 自动执行，本 case 不重复）。
+  1. `GET /healthz`、`GET /readyz` —— 确认 计划 §2 基线（由 `pytest_configure` 自动执行，本 case 不重复）。
   2. `resp = api_client.get("/v1/providers")`（fixture 已带 `Authorization: Bearer dev-data`）；记录 status、headers、body。
   3. 断言 `resp.status_code == 403`（data token 不满足 admin 角色 ⇒ 403；不是 200、不是 401）。
   4. 解析 body 的 `error` 信封，断言 `error.code == "permission_denied"`、`error.type == "request_error"`、`error.param is None`、`error.retryable is False`，且 `error` 恰含 5 个键。
@@ -99,9 +99,9 @@
   - **PASS**：`status==403` 且 `error.code=="permission_denied"` 且 `error.type=="request_error"` 且信封恰 5 键。
   - **FAIL**：返回 200（角色隔离失效）/401/其它 status，或 `error.code` 不符、信封缺/多键；须给预期 vs 实际与 `reproduction_cmd`。
   - **BLOCKED**：测试代码/契约本身问题（如误用 admin 凭据、断言不可实现）——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **SKIP**：§2.1 前置不满足（如 m5air 未配置 dev-data）——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
+  - **SKIP**：计划 §3 前置不满足（如 m5air 未配置 dev-data）——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **INVALID**：用 `127.0.0.1`/mock/替代路径冒充真实 m5air 路径，或以 admin/错误凭据冒充本 case——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：Case 已定义但本轮未执行（例如 suite 因 §2.1 失败整班 skip）。
+  - **NOT_RUN**：Case 已定义但本轮未执行（例如 suite 因计划 §3 失败整班 skip）。
 
 ## 6. 错误路径、副作用与清理
 
@@ -111,6 +111,6 @@
 
 - **证据与 Run**：保存原始命令、发送 headers 快照（证明为 `Bearer dev-data`）、HTTP status/headers/body、执行机 LAN IP、exit code、`elapsed`、环境快照（`/healthz`/`/readyz`）；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client` fixture（带 `dev-data`，[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；m5air admin 端点 `/v1/providers` 可用；自动化入口 [`ST-AUTH-003.py`](../../../../tests/system/cases/ST-AUTH-003.py)。**不依赖**其它 Case；与 ST-AUTH-004/ST-AUTH-008/ST-AUTH-009 共享 admin 面鉴权但各自独立执行、互不关闭。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client` fixture（带 `dev-data`，[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；m5air admin 端点 `/v1/providers` 可用；自动化入口 [`ST-AUTH-003.py`](../../../../tests/system/cases/ST-AUTH-003.py)。**不依赖**其它 Case；与 ST-AUTH-004/ST-AUTH-008/ST-AUTH-009 共享 admin 面鉴权但各自独立执行、互不关闭。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

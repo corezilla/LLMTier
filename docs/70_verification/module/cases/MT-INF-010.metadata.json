@@ -19,9 +19,9 @@
   "parent_document_id": "llmtier-module-test-scheme",
   "supersedes": null,
   "created_at": "2026-10-02",
-  "last_modified_at": "2026-10-02",
+  "last_modified_at": "2026-10-03",
   "document_id": "MT-INF-010",
-  "document_version": "0.1.0-draft.1",
+  "document_version": "0.1.0-draft.2",
   "title": "MT-INF-010 — Embeddings 分支矩阵",
   "document_owner": "LLMTier",
   "authors": [

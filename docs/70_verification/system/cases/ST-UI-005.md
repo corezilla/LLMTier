@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-UI-005` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-10-01` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -31,7 +31,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-UI-005`）；责任摘要、分类与优先级以 [系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
+- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-UI-005`）；责任摘要、分类与优先级以 [系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
 - **测试脚本的唯一依据**：编码者按本文档写测试代码，不需要回读方案或设计正文猜测意图。
 - **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
 
@@ -49,7 +49,7 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-UI-005` / 模块设计 web-ui §14（ISD §9.1） / `VRC-UI-005` / `boundary` / `P1`
 - 方案清单登记：`ST-UI-005`
-- **UI 方法模式（§1.5 方法表行）**：**门控 / 确认（破坏性/开销性动作）**——先**不确认**点击（断言零调用）→ 再确认（断言调用且成功）。
+- **UI 方法模式（§2.2 方法表行）**：**门控 / 确认（破坏性/开销性动作）**——先**不确认**点击（断言零调用）→ 再确认（断言调用且成功）。
 - **六要素映射（约束「每 Case 必须写明」）**：模式＝本节；构造的状态＝§3（探测为显式付费动作、可操作）；执行的操作＝§4（confirm=false 点击 → confirm=true 点击）；DOM 断言＝§4（confirm 计数 ≥1；按钮存在）；网络断言＝§4（未确认 `assertNoNetwork POST /v1/probes`（零调用）、确认后 `POST /v1/probes`→200 且计数 =1）；证据位置＝§7。
 - 要测什么（责任展开）：点击后端 Probe：`window.confirm` 返回 false 时 **不得**发出 `POST /v1/probes`；确认后发出 `POST /v1/probes` 并得到 200。
 - 明确不测什么 / 失败含义：不证明探测结果到状态的映射（ST-PROBE-002）。
@@ -106,9 +106,9 @@
   ```
 - 单 Case 执行命令：`PYTHONPATH=src python3 -m pytest tests/system/cases -m ui -q -k ST-UI-005`
 - 实现状态：`Implemented`（`tests/system/cases/` (ST-UI-*) 已建并本地 PASS）；执行状态与 Verdict 归 Run 报告。
-- **证据与 Run**：截图 `tests/system/artifacts/ST-UI-005/ST-UI-005.png`与网络日志 `ST-UI-005.network.json`。测试包 `tests/system/cases`（ST-UI-*） 为独立 `-m ui` 标记，不并入 A/B 系统班；`RISK-UI-EXEC-1` 关闭证据见系统方案 §4 与系统计划 §10-O6。
+- **证据与 Run**：截图 `tests/system/artifacts/ST-UI-005/ST-UI-005.png`与网络日志 `ST-UI-005.network.json`。测试包 `tests/system/cases`（ST-UI-*） 为独立 `-m ui` 标记，不并入 A/B 系统班；`RISK-UI-EXEC-1` 关闭证据见系统方案 §7 与系统计划 §10-O6。
 
 ## 8. 需求与设计可追溯
 
 - 设计验证项：`VRC-UI-005`（模块设计 web-ui §14 / [web-ui ISD §9.1](../../../50_implementation_design/web-ui.isd.md)）。
-- 需求链：`LT-FUN-*`（控制台）/ `LT-OPS-*`（可观测）/ `R-OBS-05`（诊断页），以系统方案 §3.6 映射为准。本 Case 关闭 `RISK-UI-EXEC-1`（Owner M002 web-ui/共同 M005）。
+- 需求链：`LT-FUN-*`（控制台）/ `LT-OPS-*`（可观测）/ `R-OBS-05`（诊断页），以系统方案 §6.1 映射为准。本 Case 关闭 `RISK-UI-EXEC-1`（Owner M002 web-ui/共同 M005）。

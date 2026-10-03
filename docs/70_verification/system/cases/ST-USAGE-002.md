@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-USAGE-002` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-USAGE-002`）；责任摘要、分类与优先级以 [系统测试方案 §3](../llmtier-system-test-scheme.md) 清单行为准。
+- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-USAGE-002`）；责任摘要、分类与优先级以 [系统测试方案 §6](../llmtier-system-test-scheme.md) 清单行为准。
 - **来源**：系统设计 §8 Usage 查询接口（parent `llmtier-system-design`），设计验证项 `VRC-MGMT-006`；所属方案 `llmtier-system-test-scheme`。
 - **边界**：系统层 Case（整软件系统组装，被测为 m5air 真实部署或按 tests.asset-design 约束的替身）；本文档持有实现状态，执行状态与 Verdict 只在 Run 报告。
 
@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-USAGE-002` / 系统设计 §8 Usage 查询接口 / `VRC-MGMT-006` / normal / P1（[方案清单 `ST-USAGE-002`](../llmtier-system-test-scheme.md)）；机制 `T-MET-FINAL`（[usage-metering 机制](../../../20_system_design/mechanisms/usage-metering.md) §4.5/§4.6 CON-METER-001..003，INV-1/2/3）。
-- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
+- **测试方法（§2.2 方法表行）**：等价类划分 + 契约字段比对
 - 要测什么（责任展开）：一次成功的 `POST /v1/embeddings` 之后，其 `request_id` 在同一动态窗口的 `GET /v1/usage` 中可见，记录为 head 终态（`is_final=true`）、`endpoint`/`model` 与调用一致。
   前置 `POST /v1/embeddings`（生成一条账本义务并 `finish` 为终态版本），随后 `GET /v1/usage`（支持 `request_id` 过滤）读取。实现为 `src/inference/usage.py`：dispatch 前 `authorize_dispatch` 写 `usage_obligations` v1（`unknown`），成功 `finish` 追加 v2（`measured`，head 单调推进，读取只取 head 单条、不累加）。
   机制需求 `R-MET-01`/`R-MET-02`；需求链 `LT-FUN-004`、`LT-INT-004/005/007`、`CT-USAGE-001`。
@@ -83,7 +83,7 @@ Authorization: Bearer dev-data
 
 | Step | 动作 | 观察点 |
 |---|---|---|
-| 1 | `GET /healthz`、`GET /readyz`（`pytest_configure` 完成，本 case 不重复） | §2.1 基线 |
+| 1 | `GET /healthz`、`GET /readyz`（`pytest_configure` 完成，本 case 不重复） | 计划 §2 基线 |
 | 2 | `emb = api_client.post("/v1/embeddings", json={...})` | `emb.status_code == 200`；`rid = emb.headers["X-Request-ID"]` 非空（服务端恒发该头） |
 | 3 | `since, until = recent_window()`；`resp = api_client.get("/v1/usage", params={"from": since, "to": until, "request_id": rid})` | `200` |
 | 4 | `body = resp.json()` | `len(body["data"]) == 1` 且 `body["data"][0]["request_id"] == rid` |

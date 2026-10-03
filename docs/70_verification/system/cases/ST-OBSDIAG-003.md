@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-OBSDIAG-003` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -31,7 +31,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-OBSDIAG-003`）；责任摘要、分类与优先级以 [系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
+- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-OBSDIAG-003`）；责任摘要、分类与优先级以 [系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
 - **测试脚本的唯一依据**：编码者按本文档写测试代码，不需要回读方案或设计正文猜测意图。
 - **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
 
@@ -48,7 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-OBSDIAG-003` / 系统设计 §8 诊断开关接口（/v1/diagnostics） / `VRC-DIAG-001` / `negative` / `P2`
-- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
+- **测试方法（§2.2 方法表行）**：错误猜测 + 反例驱动（ERR-*）
 - 方案清单登记：`ST-OBSDIAG-003`
 - 要测什么（责任展开）：`PATCH /v1/diagnostics` 提交非布尔开关值（含 `null`）：HTTP 400 `invalid_request`（`param` 指向被拒键），开关状态不变、无部分写入。`null` 在 HTTP 层 `_optional_boolean`（`app.py:165-171`）即被 400 拒绝（键在 body 且值非 bool），**不**到达 libdiag `set_switches`，与 openapi `boolean` 一致。
 - 明确不测什么 / 失败含义：不证明 合法更新的成功/审计（ST-OBSDIAG-002）、不证明 GET 读契约（ST-OBSDIAG-001）、不证明**未知键**被拒（openapi 虽声明 `additionalProperties:false`，当前 handler 不校验多余键——见重点关注，作为实现/openapi 不一致单独登记）、不证明认证负向（ST-AUTH-008/ST-OBSREQTRACE-003 风格）。**实现现状（已对齐 openapi）**：HTTP 层 `_optional_boolean`（`app.py:165-171`）对 `key in body` 且值非 bool（含 `null`）先抛 400 `invalid_request` `param=key`，故 openapi `boolean` 要求的 400 得到满足。
@@ -57,14 +57,14 @@
 错误走统一信封 `{error:{message,type,code,param,retryable}}`（`type="request_error"`，`retryable=false`）；校验发生在事务之前，**零副作用**（`diagnostic_settings` 不变、无成功审计；
 `app.admin.mutate` 失败路径会记一条 `result="failed"` 审计）。设计验证项 `VRC-DIAG-001`；机制 `T-OBS-SWITCH`（[observability 机制](../../../20_system_design/mechanisms/observability.md) §4.3.1/§5.1，`IF-OBS-SWITCH` "校验=非 bool 且非 None → 拒绝；
 失败无副作用"）；错误目录 `ERR-REQ-VALIDATION` → wire `code=invalid_request`（[系统设计 §7.8](../../../20_system_design/llmtier-system-design.md)）；
-需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01`/`R-OBS-02`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；
+需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01`/`R-OBS-02`、`CT-ADMIN-001`（[系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；
 机器契约 [`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`DiagnosticsSwitchPatch`，400 → `BadRequest`）。
 **不证明什么**：不证明合法更新的成功/审计（ST-OBSDIAG-002）、不证明 GET 读契约（ST-OBSDIAG-001）、不证明**未知键**被拒（openapi 虽声明 `additionalProperties:false`，当前 handler 不校验多余键——见重点关注，作为实现/openapi 不一致单独登记）、不证明认证负向（ST-AUTH-008/ST-OBSREQTRACE-003 风格）。
 **实现现状（已对齐 openapi）**：HTTP 层 `_optional_boolean`（`app.py:165-171`）对 `key in body` 且值非 bool（含 `null`）先抛 400 `invalid_request` `param=key`，故 openapi `boolean` 要求的 400 得到满足。
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=§2.1 附加（B 类）；执行前附加（B 类）实例可启动、`/healthz` 200、`prov_b`+`depl_b`+7 tier、`depl_b` healthy、LAN fake provider；fixture：`llmtier_b` + `admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。初始状态=基线；`diagnostic_settings` 单行默认 `{false,false}`。本 case 期望零写入，故**不改变开头状态**；仍须在结尾核验状态未变。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=计划 §3 附加（B 类）；执行前附加（B 类）实例可启动、`/healthz` 200、`prov_b`+`depl_b`+7 tier、`depl_b` healthy、LAN fake provider；fixture：`llmtier_b` + `admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。初始状态=基线；`diagnostic_settings` 单行默认 `{false,false}`。本 case 期望零写入，故**不改变开头状态**；仍须在结尾核验状态未变。
 
 ## 3. 输入构造
 
@@ -125,6 +125,6 @@
 
 - **证据与 Run**：保存每个非法请求 body 与原始 400 信封、`GET` 前后 `orig_raw` 对比、失败审计行（可选）、`null` 对照、命令/exit code/`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/B-api`，`environment:"b"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go)（B 类附加）；`llmtier_b`/`admin_client_b` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`diagnostic_settings`；`DiagnosticsSwitchPatch` 机器契约（`boolean`、`additionalProperties:false`，`null` 由 HTTP 层 400）；实现 [`src/libdiag/settings.py`](../../../../src/libdiag/settings.py)、[`src/http_api/app.py`](../../../../src/http_api/app.py)（`_optional_boolean` `app.py:165-171`）。自动化入口 `ST-OBSDIAG-003.py`（已实现）。**不依赖**其它 Case；与 ST-OBSDIAG-002（合法更新成功）互为正向/负向，各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go)（B 类附加）；`llmtier_b`/`admin_client_b` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；`diagnostic_settings`；`DiagnosticsSwitchPatch` 机器契约（`boolean`、`additionalProperties:false`，`null` 由 HTTP 层 400）；实现 [`src/libdiag/settings.py`](../../../../src/libdiag/settings.py)、[`src/http_api/app.py`](../../../../src/http_api/app.py)（`_optional_boolean` `app.py:165-171`）。自动化入口 `ST-OBSDIAG-003.py`（已实现）。**不依赖**其它 Case；与 ST-OBSDIAG-002（合法更新成功）互为正向/负向，各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

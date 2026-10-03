@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-RESP-024` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -30,7 +30,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-RESP-024` / 系统设计 §8 Responses 接口 / `VRC-INF-001` / recovery / P1（[方案清单 `ST-RESP-024`](../llmtier-system-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：故障注入（provider 凭据缺失）+ 复位阶梯
+- **测试方法（§2.2 方法表行）**：故障注入（provider 凭据缺失）+ 复位阶梯
 - 要测什么（责任展开）：`POST /v1/responses` provider `secret_ref` 不可解析：`503 provider_secret_unavailable`（自动化入口 `ST-RESP-024.py`）。所选 provider 的 `secret_ref` 指向缺失/不可读的凭据时，适配层在建立上游请求前抛 `503 provider_secret_unavailable`。
   需求 `R-INF-05`；错误目录 `ERR-PROVIDER-SECRET` → wire `code=provider_secret_unavailable`；实现 `src/inference/providers/openai.py`（`_secret()`：`file:` 读取 `OSError` → `ApiError(503, "provider_secret_unavailable", "Provider secret file is unreadable")`；
   非 `env:`/`file:` → "Unsupported provider secret reference"）。

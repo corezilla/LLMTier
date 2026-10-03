@@ -19,9 +19,9 @@
   "parent_document_id": "llmtier-module-test-scheme",
   "supersedes": null,
   "created_at": "2026-10-02",
-  "last_modified_at": "2026-10-02",
+  "last_modified_at": "2026-10-03",
   "document_id": "MT-API-013",
-  "document_version": "0.1.0-draft.1",
+  "document_version": "0.1.0-draft.2",
   "title": "MT-API-013 — 连接重置（RST）mid-stream",
   "document_owner": "LLMTier",
   "authors": [

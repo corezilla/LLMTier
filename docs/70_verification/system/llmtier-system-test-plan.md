@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-system-test-plan` |
-| Document Version | `0.1.0-draft.10` |
+| Document Version | `0.1.0-draft.11` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-test-plan` |
 | Template Version | `0.9.2` |
 | Template Conformance | `tailored` |
@@ -53,8 +53,8 @@
 **不证明什么**：本计划不证明 Web UI 行为、FD 泄漏、30min 耐久、性能 SLO 校准、上游模型答案质量与上游 provider 实际推理正确性；也不证明静态契约一致（后者由 `docs/60_interfaces/contracts/llmtier-contract-specification.md` 与静态契约测试承接）。**静态契约 PASS ≠ 运行行为 PASS**，反之亦然。
 
 **测试策略**：单服务 / 单进程 / 单 SQLite 部署边界内的 runtime 端到端；unit mock 与假上游 provider 仅用于无法隔离的子路径（如 SSE stream、限速注入）。**浏览器 UI 行为级（真实 headless Chrome over CDP，`ST-UI-*`，`-m ui`）在本层**；
-生产 TLS/SSO/CSRF、`runtime_activation=true`、多实例/HA、跨系统恢复不在本层（见 scheme §4 裁决与 §9）。覆盖模型＝surface → contract → case：每个对外 surface（启服/健康就绪、Data Plane、Embedding、Admin CRUD/probe/refresh、Audit/Log、观测诊断、Auth/TRUSTED_LAN）映射到来源 ID 与契约（`CT-*`），再落到 scheme §3 的 Case ID；
-缺口显式列入 scheme §4，不静默从分母消失。
+生产 TLS/SSO/CSRF、`runtime_activation=true`、多实例/HA、跨系统恢复不在本层（见 scheme §7 裁决与 §9）。覆盖模型＝surface → contract → case：每个对外 surface（启服/健康就绪、Data Plane、Embedding、Admin CRUD/probe/refresh、Audit/Log、观测诊断、Auth/TRUSTED_LAN）映射到来源 ID 与契约（`CT-*`），再落到 scheme §6 的 Case ID；
+缺口显式列入 scheme §7，不静默从分母消失。
 
 **构成清单**（只索引，不复制清单或 Case 细节）：
 
@@ -73,7 +73,7 @@
 | 系统（本计划） | LLMTier | 本 Run 证据 + `tests.system-test-report` | 运行中 HTTP API 行为 |
 | Contract static（`CT-*`） | LLMTier | `tests/contract/` + fixtures | 静态契约一致；**不替代**运行行为 |
 | Provider adapter | LLMTier | 受控捕获（假上游） | 本层替身边界，只证明本服务行为 |
-| Piko consumer | Piko | Responses SDK/agent test | 真实 consumer 联调，非本层分母（scheme §4 验收交接，`std-tailoring` `LT-TL-022`） |
+| Piko consumer | Piko | Responses SDK/agent test | 真实 consumer 联调，非本层分母（scheme §7 验收交接，`std-tailoring` `LT-TL-022`） |
 | Embeddings consumer | Slinky | Memory integration test | 同上 |
 | Admin UI/operations | LLMTier | browser/API/security test | Web UI 行为不在本层 |
 | 验收活动 | LLMTier + Piko + Slinky | 验收报告 | **不在 tests 家族**，按 tailoring 承接（见 std-tailoring） |
@@ -97,8 +97,8 @@
 
 | 前检项 | 判定事实 | 通过条件 | 不满足时 |
 |---|---|---|---|
-| 方案就绪度 | `llmtier-system-test-scheme` §3 权威清单 175 条（**设计数**：A 102 / B 63 / UI 10）、计数与 A/B/UI、P0/P1/P2 分布固定；与 §2 分类体系交叉核对 | 清单无未登记缺口、版本固定 | No-Go：Blocked＋缺口语义（§9-O1） |
-| Case 实现状态盘点 | **设计数 = 已实现数 175（A 102 / B 63 / UI 10）**：175 个设计 Case 均有 `ST-*.py`（文件名＝Case ID）自动化入口（`--collect-only` 实际 collect 数含参数化/双臂测试——`-m api_a`＝105、`-m api_b`＝76）；**真实浏览器 UI Case `ST-UI-001..010`（`-m ui`，`tests/system/cases/ST-UI-001.py`）**，**无 MISSING**。逐 Case 清单见 `llmtier-system-test-scheme` §3 与逐 Case 设计文档 | 全部已实现；无 P0 缺口 | No-Go 或按 §4 记 NOT_RUN 缺口 |
+| 方案就绪度 | `llmtier-system-test-scheme` §3 权威清单 175 条（**设计数**：A 102 / B 63 / UI 10）、计数与 A/B/UI、P0/P1/P2 分布固定；与 §5 分类体系交叉核对 | 清单无未登记缺口、版本固定 | No-Go：Blocked＋缺口语义（§9-O1） |
+| Case 实现状态盘点 | **设计数 = 已实现数 175（A 102 / B 63 / UI 10）**：175 个设计 Case 均有 `ST-*.py`（文件名＝Case ID）自动化入口（`--collect-only` 实际 collect 数含参数化/双臂测试——`-m api_a`＝105、`-m api_b`＝76）；**真实浏览器 UI Case `ST-UI-001..010`（`-m ui`，`tests/system/cases/ST-UI-001.py`）**，**无 MISSING**。逐 Case 清单见 `llmtier-system-test-scheme` §6 与逐 Case 设计文档 | 全部已实现；无 P0 缺口 | No-Go 或按 §4 记 NOT_RUN 缺口 |
 | 环境与工具（引用 `tests.asset-design` 的 Verified 状态） | A 类：m5air `/healthz`、`/readyz`(7 tier)、双 OMLX、`provider_omlx_m5mac` 已注册且 `has_secret=true`（`secret_ref` 只写不返回）、provider/deployment 就绪（6 项，§6）；B 类：执行机临时实例（`tests/fixtures/models/v03_fake_provider.py`＋`llmtier_b` fixtures 已在位）。**可执行实现**：`tools/check_env.py`（§3 前检 Go/No-Go 的独立入口，`--class a\|b\|all`，human table＋`--json`，exit 0 全过 / 2 任一失败）复算上述 6 项 A 检查与 2 项 B 前置 | A 类：`pytest_configure` 6 项全过（或 `tools/check_env.py --class a` exit 0）；B 类：执行机具 LAN IP（`_detect_lan_ip()` 命中 RFC1918）且临时实例可启停（或 `tools/check_env.py --class b` exit 0） | **按类分别判定**：A 类 6 项不过 → 仅 A 类 Blocked/Skip（§6，不静默降级）；B 类无 LAN IP／临时实例不可用／`llmtier_b` 基线 probe 不健康 → B 类整体 Blocked（§6-B，见 §3 Exit 与 §9 风险） |
 | 构建接线（全量交付构建 / 消费者链接实际库） | m5air 部署版本已 pin 且与执行机同步来源一致；解释器为 Python 3.14（禁系统 3.9）；`schema_version=2` | pin 三项可解析；服务可服务 | 按 §6 恢复（重启／schema 二选一）；仍失败 → Blocked |
 
@@ -121,10 +121,10 @@
 
 ## 4. 环境实例分配（plan 编排）
 
-<span style="color:#1f6feb"><em>**本节目相**：把方案 §1.7 的环境类型落实为具体的**实例编号**，并分配给具体 Case——同一类型可多套（如多 docker 用于并行），编号与分配是 plan 的责任，Case 只引用编号。</em></span>
-<span style="color:#1f6feb"><em>**必须写清楚**：列出本计划分配的全部 ENV 实例（编号 + 类型 + 具体配置/位置 + Owner + 分配给哪些 Case + 准备时限 + 状态）；ENV 实例类型与方案 §1.7 类型一致；准备失败标 Blocked 并登记缺口，不静默换其他实例。</em></span>
+<span style="color:#1f6feb"><em>**本节目相**：把方案 §4 的环境类型落实为具体的**实例编号**，并分配给具体 Case——同一类型可多套（如多 docker 用于并行），编号与分配是 plan 的责任，Case 只引用编号。</em></span>
+<span style="color:#1f6feb"><em>**必须写清楚**：列出本计划分配的全部 ENV 实例（编号 + 类型 + 具体配置/位置 + Owner + 分配给哪些 Case + 准备时限 + 状态）；ENV 实例类型与方案 §4 类型一致；准备失败标 Blocked 并登记缺口，不静默换其他实例。</em></span>
 <span style="color:#1f6feb"><em>**抽象示例**：见下方灰字——系统层 ENV 实例分配（同一类型多套用于并行/隔离，多 Case 复用同一实例）。</em></span>
-<span style="color:#1f6feb"><em>**完成条件**：每个 §3.1 的 Case 在本表有 ENV 实例；类型一致；准备未完成标 Blocked 并登记缺口，不静默换实例。</em></span>
+<span style="color:#1f6feb"><em>**完成条件**：每个 §6 的 Case 在本表有 ENV 实例；类型一致；准备未完成标 Blocked 并登记缺口，不静默换实例。</em></span>
 
 | ENV 实例编号 | 环境类型 | 具体配置/位置 | Owner | 分配给哪些 Case | 准备时限 | 状态 |
 |---|---|---|---|---|---|---|
@@ -132,14 +132,14 @@
 | ENV-B | B 类执行机临时实例 | 随机空闲端口＋临时 SQLite（`tempfile.mkdtemp(prefix="llmtier_b_")`）＋LAN 绑定的假上游（`tests/fixtures/models/v03_fake_provider.py`） | 执行者 | CRUD/空库/无鉴权/注入/并发/absence 扫描（**设计 B 类 63，已实现 63**（`-m api_b` collect=76）） | Step 0 前 | Ready（fixtures/假上游已在位、`llmtier_b` 可启停）；**运行期若执行机无 RFC1918 LAN IP 或基线 probe 不健康 → 整类 Blocked**（§6-B，非 asset-design 缺口） |
 | ENV-UI | 真实浏览器 UI 执行环境（复用 ENV-B 的临时实例＋假上游；新增 headless 浏览器） | 临时 `LLMTierInstance`（loopback）＋ LAN 假上游 ＋ headless Chrome/chrome-headless-shell（`LLMTIER_BROWSER`，默认 `/Applications/Google Chrome.app/...` 或缓存）＋ node ≥ 22（`LLMTIER_NODE`，内置 WebSocket，无 npm） | 执行者 | UI 行为级（**设计 10，已实现 10**：`ST-UI-001..010`，`-m ui`） | 环境新增后（本轮） | Ready（`tests/system/cases/` (ST-UI-*) 已在位，本地 10/10 PASS）；**运行期若执行机无浏览器可执行文件或 node<22 → 整类 SKIP**（`ui_browser`/`ui_node` fixture 主动 skip，非覆盖缺口） |
 
-> ENV-A 与 ENV-B 不共享 SQLite/端口/进程且不并行（方案 §1.7）；A 类 PASS 不关闭 B 类，反之亦然。准备未完成标 Blocked 并登记缺口，不静默以 A 类替代 B 类。**B 类不依赖 `tests.asset-design` 文档**：其 fixtures（假上游＋`llmtier_b`）已在 `tests/system/conftest.py` 实现，契约见 `testing-standard.md` TS-002/TS-003；资产文档 `llmtier-unit-fakes`（O2 已关闭）覆盖单元替身，与 B 类执行互不阻断。
+> ENV-A 与 ENV-B 不共享 SQLite/端口/进程且不并行（方案 §4）；A 类 PASS 不关闭 B 类，反之亦然。准备未完成标 Blocked 并登记缺口，不静默以 A 类替代 B 类。**B 类不依赖 `tests.asset-design` 文档**：其 fixtures（假上游＋`llmtier_b`）已在 `tests/system/conftest.py` 实现，契约见 `testing-standard.md` TS-002/TS-003；资产文档 `llmtier-unit-fakes`（O2 已关闭）覆盖单元替身，与 B 类执行互不阻断。
 
 ## 5. 执行流程（逐 Case 作业序列）
 
 | Step | 动作 | 输入 / 依据 | 产出 |
 |---|---|---|---|
 | 0 | 资产就位：按消费索引构建全部依赖测试资产（harness、客户端、假上游、受控构造）并跑自检 | `llmtier-unit-fakes`（`docs/70_verification/unit/assets/`）＋B 类 fixture（`conftest.py`） | 就绪清单（Verified）；自检不过即环境性 Blocked，不进入 Case 执行 |
-| 1 | 读取方案清单并按优先级排序（A 先于 B，家族内按依赖） | 方案 §3（`llmtier-system-test-scheme`） | 执行队列 |
+| 1 | 读取方案清单并按优先级排序（A 先于 B，家族内按依赖） | 方案 §6（`llmtier-system-test-scheme`） | 执行队列 |
 | 2 | 逐 Case：定位 Case 文档（`cases/<lowercased-case-id>.md`） | Case ID | 实施依据 |
 | 3 | 按 Case 文档执行前检与运行（A 类按 §6 打 m5air；B 类临时实例） | Case 文档 §2–§7 | Run 记录 |
 | 4 | 判定并分路（PASS/FAIL/BLOCKED/SKIP/INVALID/NOT_RUN） | 断言与环境事实 | Verdict 归报告 |
@@ -167,7 +167,7 @@
   B 类 `stop()`（`terminate`→等 5 s→`kill`）＋`rm -rf` 临时目录。**不得删除 m5air 既有 provider/deployment/service-level 或用户 usage。** **可执行实现**：`tools/reset_env.py`（幂等、安全）——先 sqlite backup API 备份 DB（`--no-backup` 跳过）→ 可选 `--restore <bak>` / `--rebuild` → 逐 deployment `GET diagnostics` 后 `PATCH {"items":[]}` 并断言为空 → `DELETE /v1/usage`（`--no-ledger` 跳过）→ 杀死遗留本地测试 `LLMTierInstance`/临时实例进程并释放临时端口 → 末尾重跑 `tools/check_env.py`；
   `--dry-run` 只打印动作、`--yes` 为非交互 guard，任一步失败退出非零。
 - 复位阶梯与时限（软复位→重启→驱动恢复）：
-  1. **case 前检查**：跑 §3 A 类 6 项（`pytest_configure` 自动执行；或 `tools/check_env.py --class a`）；**不通过只 skip A 类**（`pytest_collection_modifyitems` 只对非 `api_b` 用例加 skip），**B 类用各自临时实例照跑**——不存在“整班 Blocked/Skip”，A 与 B 独立判定（方案 §1.7）。
+  1. **case 前检查**：跑 §3 A 类 6 项（`pytest_configure` 自动执行；或 `tools/check_env.py --class a`）；**不通过只 skip A 类**（`pytest_collection_modifyitems` 只对非 `api_b` 用例加 skip），**B 类用各自临时实例照跑**——不存在“整班 Blocked/Skip”，A 与 B 独立判定（方案 §4）。
   2. **软复位**：A 类每个写 Case 后恢复被改字段（带正确 `If-Match` 的 `PATCH`）、清注入（`PATCH …/diagnostics {"items":[]}` 后 `GET` 确认空）、`DELETE /v1/usage`；B 类丢弃临时 DB 重起。**可执行实现**：`tools/reset_env.py` 步骤 (c)/(d)，见上。
   3. **重启**：`/healthz` 不通或 schema/版本不匹配 → A 类按 §6 重启；schema 不匹配走**显式二选一**（fresh-DB rebuild / offline migration），`--settings` 仅空库首启有效，禁止删 `schema_meta` 行当未知库。**可执行实现**：`tools/deploy.py`（重启）与 `tools/reset_env.py --rebuild`｜`--restore <bak>`（二选一）。
   4. **驱动恢复/时限**：上游超时→调大 deployment runtime profile（`connect_timeout_ms`/`stream_idle_timeout_ms`，默认 30000/60000）＋有界重试 ≤3；store 锁→退避重试（1→2→4 s，≤3 次）；flaky→有限重试 ≤3 并记录并发度与时间窗。
@@ -198,8 +198,8 @@ B 类的"可运行"取决于**执行机网络与基线 probe**，非 `tests.asse
 - 报告生成时机与模板：全部 Case 走完（或按 Exit 出口准则提前结束）后生成 `tests.system-test-report` 实例（Gate 是 release 决策，"本轮跑完"是执行里程碑，二者不得互相替代）；报告只汇总实际运行，分开预期/实际结果、未运行、阻塞与失败，引用 Run 证据不复制原始输出。
 - Gate 建议规则（报告只按规则给建议，**不越权批准**）：
   - **适用 Case**（默认全部 175，仅经批准裁剪可标 N/A）全 PASS，且 FAIL/BLOCKED/INVALID＝0，且 SKIP 在上限内（A ≤5 / B ≤3）。
-  - **P0 MISSING 阻断**（MISSING＝NOT_RUN 缺口，非 SKIP）；非 P0 MISSING 与具名缺口（scheme §4 裁决的 `ERR-BOOT`/`ERR-SCHEMA`/`ERR-PATH-UNSAFE`/`ERR-UTIL-TXN` 已于本版按单元宿主关闭为 Tailored-N/A 下层承接，见 scheme §4）需具名批准（owner/ETA）。
-  - 覆盖复算：路由×方法×角色×错误码四维下限满足（scheme §3 分类计数与逐 Case 责任摘要）。
+  - **P0 MISSING 阻断**（MISSING＝NOT_RUN 缺口，非 SKIP）；非 P0 MISSING 与具名缺口（scheme §7 裁决的 `ERR-BOOT`/`ERR-SCHEMA`/`ERR-PATH-UNSAFE`/`ERR-UTIL-TXN` 已于本版按单元宿主关闭为 Tailored-N/A 下层承接，见 scheme §7）需具名批准（owner/ETA）。
+  - 覆盖复算：路由×方法×角色×错误码四维下限满足（scheme §6 分类计数与逐 Case 责任摘要）。
   - 报告给出覆盖数（应跑/已跑/PASS/FAIL/SKIP/BLOCKED/INVALID/NOT_RUN）、未关闭缺陷、MISSING 与具名缺口清单；Gate Owner/Approver/Baseline Run ID 进入 Gate 状态时填写，不伪造。
 
 ## 9. 责任、排期与风险
@@ -226,8 +226,8 @@ B 类的"可运行"取决于**执行机网络与基线 probe**，非 `tests.asse
 |---|---|---|
 | O1（已关闭）：`llmtier-system-test-scheme` 已填充并成为 Case 清单唯一登记（原 163 条，现 175）；原 `llmtier-api-test-specification` §3.2 已退役并迁入 scheme §3 | 测试设计 Owner / 进入 Gate 前 | 权威清单现为 scheme §3；本计划引用 scheme 版本，不再引用已退役规格 |
 | O2（已关闭/已修复）：`tests.asset-design` 测试资产文档 | 测试设计 Owner / Step 0 执行前 | **已建立** `llmtier-unit-fakes`（`docs/70_verification/unit/assets/llmtier-unit-fakes.md`），覆盖单元层 `FakeAdapter`/`AppFixture`；**系统 B 类假上游/harness** 的真实契约归 `tests/fixtures/models/v03_fake_provider.py`＋`tests/system/conftest.py`（实现）＋`testing-standard.md` TS-002/TS-003（依赖头部与 LAN IP 约束），B 类 fixture 已在位且已在 §4 ENV-B 登记。§5 Step 0 现可判定就绪（单元资产 `Unverified`，自检 Run 待录制，记于资产 §7）。 |
-| O3（最终决定，非开放项）：A 类沿用 m5air 现有实例，不另建专用测试部署 | 环境 Owner / 拓扑变更时重评 | **决定**：A 类只做只读/观察/一次性无状态写（方案 §1.7、§6），不污染 m5air 既有 state；B 类以临时实例承载有状态写。故无需专用 A 类部署。重评触发＝出现"需有状态写／现 state 视为不可污染生产数据／A-B 需并行"任一情形（同 std-tailoring 重评触发 4/7）。 |
-| O4（最终决定，非开放项）：LLMTier 单服务无独立子系统测试层 | 测试设计 Owner / 若引入子系统时 | **决定**：无 `design.subsystem` 对象（单服务，模块 M001–M008 直接归系统设计），子系统计划引用**保持空并具名登记**（与 scheme §4「子系统测试级别」Tailored-N/A 一致）；引入子系统时补 `tests.subsystem-test-plan` 引用。 |
-| O5（已关闭）：设计 175（A 102 / B 63 / UI 10）已全部实现——175 个自动化入口（`tests/system/cases/ST-*.py`），无 MISSING；逐 Case 见 `llmtier-system-test-scheme` §3 与逐 Case 设计文档 | Case 作者 / 进入 Gate 前 | **关闭事实**：175 个设计 Case 均有自动化入口。legacy `tests/system/st_*.py` 家族（11 脚本）已按 STD `78876c9` 迁移/退役：2 个迁入新 Case（`ST-SCAN-001`/`ST-RATELIMIT-001`），9 个覆盖性退役（映射见 scheme §4）。后续无 MISSING 排期项。 |
+| O3（最终决定，非开放项）：A 类沿用 m5air 现有实例，不另建专用测试部署 | 环境 Owner / 拓扑变更时重评 | **决定**：A 类只做只读/观察/一次性无状态写（方案 §4、§6），不污染 m5air 既有 state；B 类以临时实例承载有状态写。故无需专用 A 类部署。重评触发＝出现"需有状态写／现 state 视为不可污染生产数据／A-B 需并行"任一情形（同 std-tailoring 重评触发 4/7）。 |
+| O4（最终决定，非开放项）：LLMTier 单服务无独立子系统测试层 | 测试设计 Owner / 若引入子系统时 | **决定**：无 `design.subsystem` 对象（单服务，模块 M001–M008 直接归系统设计），子系统计划引用**保持空并具名登记**（与 scheme §7「子系统测试级别」Tailored-N/A 一致）；引入子系统时补 `tests.subsystem-test-plan` 引用。 |
+| O5（已关闭）：设计 175（A 102 / B 63 / UI 10）已全部实现——175 个自动化入口（`tests/system/cases/ST-*.py`），无 MISSING；逐 Case 见 `llmtier-system-test-scheme` §6 与逐 Case 设计文档 | Case 作者 / 进入 Gate 前 | **关闭事实**：175 个设计 Case 均有自动化入口。legacy `tests/system/st_*.py` 家族（11 脚本）已按 STD `78876c9` 迁移/退役：2 个迁入新 Case（`ST-SCAN-001`/`ST-RATELIMIT-001`），9 个覆盖性退役（映射见 scheme §7）。后续无 MISSING 排期项。 |
 | **O6（已关闭）：`RISK-UI-EXEC-1` — Web UI 真实 JS 执行验证已建立** | **M002 web-ui（共同 Owner M005） / 已关闭** | **原风险事实**：`VRC-UI-001..006`（M002）与 M005 诊断页视觉子项的行为级原仅由 `UT-UI-001..010`/`UT-OBS-*` 的源码字符串契约（`assertIn`）覆盖，不执行 JS，行为回归可在系统 165/165 + 单元全绿下漏检。**关闭事实（本版）**：引入真实浏览器 harness（headless Chrome over CDP，`tests/common/drivers/browser_driver.mjs`，node ≥ 22 内置 WebSocket，无 npm/下载依赖），在**系统层新增真实执行 Case `ST-UI-001..010`**（本版由 7 增至 10：补齐脱敏/幂等/边界呈现，并使数据变更两侧与错误恢复落地）（`tests/system/cases/ST-UI-001.py`，hermetic 临时 `LLMTierInstance` + LAN fake provider，`-m ui` 标记），在真实 DOM 与 CDP 网络记录上断言：页面渲染 + Provider 行来自 API、tab 切换改可见区并触发 API、确认门控 Pause 发 `If-Match` PATCH 并重渲染、用量未知渲染 Unknown、未确认探测不触网、诊断页 4 tabs 与 Disabled 视觉、注入 API 错误显示错误态并保留上一屏。每 Case 产出 PNG 截图 + 网络日志证据。`VRC-UI-001..006` 与诊断页视觉子项现**已由真实执行验证**，`RISK-UI-EXEC-1` 从 `llmtier-unit-test-scheme` §4 与 `llmtier-system-test-scheme` §4 关闭。**关闭条件达成**：原条件＝引入浏览器/JS 宿主并升级 `UT-UI-*` 为真实执行断言——已由系统层浏览器执行替代（`UT-UI-*` 字符串契约保留为快速下位防线）。**重评触发**：新增/修改任一 UI 行为分支时须同步 `ST-UI-*`。 |
 

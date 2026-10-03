@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-RESP-017` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -30,7 +30,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-RESP-017` / 系统设计 §8 Responses 接口 / `VRC-INF-001` / recovery / P1（[方案清单 `ST-RESP-017`](../llmtier-system-test-scheme.md)）；机制 `T-STREAM`。
-- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-MODEL：embedding-only 等级发 Responses）
+- **测试方法（§2.2 方法表行）**：错误猜测 + 反例驱动（ERR-MODEL：embedding-only 等级发 Responses）
 - 要测什么（责任展开）：`POST /v1/responses` 使用 embedding-only 等级：`400 unsupported_model`（`param=model`）（自动化入口 `ST-RESP-017.py`）。所选 model 的能力声明必须 `capabilities.responses == true`，否则在 dispatch 前拒绝。
   错误目录 `ERR-REQ-MODEL` → wire `code=unsupported_model`；实现 `src/inference/responses.py`（`require(caps.get("responses") is True, 400, "unsupported_model", "Selected model does not support Responses", "model")`）；
   需求链 `LT-FUN-001`/`LT-INT-001`、`R-INF-01`。
@@ -70,7 +70,7 @@ Content-Type: application/json
 
 | Step | 动作 | 观察点 |
 |---|---|---|
-| 1 | `GET /healthz`、`GET /readyz`（由 `pytest_configure` 自动执行） | §2.1 基线及 `Embedding-v1` 存在 |
+| 1 | `GET /healthz`、`GET /readyz`（由 `pytest_configure` 自动执行） | 计划 §2 基线及 `Embedding-v1` 存在 |
 | 2 | `POST /v1/responses`（上表 body） | status / Content-Type / body |
 | 3 | 断言观测形态 | `status_code == 400`，JSON 错误信封（非 SSE） |
 | 4 | 解析 `error` | `code=="unsupported_model"`、`param=="model"`、`type=="request_error"`、`retryable is False`，键集恰 5 键 |

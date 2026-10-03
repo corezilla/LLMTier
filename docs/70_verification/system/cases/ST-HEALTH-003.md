@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-HEALTH-003` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -27,12 +27,12 @@
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
-> 本 Case 文档绑定：系统设计经 `--parent-document-id`、所属方案经方案清单行引用写入 metadata；Document ID＝Case ID。方案清单行见[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)。
+> 本 Case 文档绑定：系统设计经 `--parent-document-id`、所属方案经方案清单行引用写入 metadata；Document ID＝Case ID。方案清单行见[系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)。
 
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-HEALTH-003` / 系统设计 §8 健康/就绪接口（/healthz、/readyz） / `VRC-MGMT-003`（另记 `VRC-UTIL-001/002`） / `recovery` / `P1`。本文件名 `st-health-003.md`，与 Case ID 唯一对应。
-- **测试方法（§1.5 方法表行）**：状态机驱动（就绪态构造 degraded）+ 契约字段比对
+- **测试方法（§2.2 方法表行）**：状态机驱动（就绪态构造 degraded）+ 契约字段比对
 - 要测什么（责任展开）：`GET /readyz` 在某 tier 存在候选 deployment 但无 `healthy` 候选时返回 HTTP 503 + `ReadinessView{status:"degraded", models[7]}`（各 tier `availability="degraded"`）。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明全可用 `ready`（ST-HEALTH-002）、无候选 `not_ready`（ST-HEALTH-004）、bootstrap 失败（ST-HEALTH-005）；不证明探测/健康转换过程（`POST /v1/probes` 属 ST-PROBE-*）、不证明推理路由可用；不触发 provider 计费调用（`LT-OPS-001`）。**失败含义＝降级就绪聚合契约破坏**。
 
@@ -40,7 +40,7 @@
 实现 [`readiness_view`](../../../../src/http_api/health.py)：某 fixed tier 的候选 deployment 列表非空但 `health=="healthy"` 计数为 0 ⇒ 该 tier `availability="degraded"`；
 只要存在非 `unavailable` 且非全部 `available` ⇒ `status="degraded"`、HTTP 503。系统设计 §8.1 明确"bootstrap 成功后 deployments 初始 `health=unknown`，故先为 `degraded`"（[llmtier-system-design.md](../../../20_system_design/llmtier-system-design.md)）。
 设计验证项 `VRC-MGMT-003`；机制 `T-OBS`（[observability 机制](../../../20_system_design/mechanisms/observability.md)）、`T-CFG-BOOT`/`R-CFG-02`（[config-lifecycle 机制](../../../20_system_design/mechanisms/config-lifecycle.md)）；
-需求链 `LT-FUN-006`/`LT-OPS-001`、`VRC-UTIL-001/002`、`CT-OPS-001`（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+需求链 `LT-FUN-006`/`LT-OPS-001`、`VRC-UTIL-001/002`、`CT-OPS-001`（[系统测试方案 §6](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
 **不证明什么**：不证明全可用 `ready`（ST-HEALTH-002）、无候选 `not_ready`（ST-HEALTH-004）、bootstrap 失败（ST-HEALTH-005）；不证明探测/健康转换过程、不证明推理路由可用；
 不触发 provider 计费调用（`LT-OPS-001`）。
 
@@ -56,7 +56,7 @@
   ```
 
 - **初态构造（经公开入口）**：构造"有候选但无健康候选"——由 bootstrap 插入 `depl_b` 时 `health` 初始为 `"unknown"`（[`registry.py`](../../../../src/management/registry.py) `bootstrap_settings` 的 `INSERT INTO deployments ... 'unknown'`），且 7 tier 的 `deployment_ids` 均为 `["depl_b"]`，故每 tier `candidates` 非空、`healthy` 计数为 0 ⇒ `availability="degraded"`。**不在本 case 调用 `POST /v1/probes`**（保持 `unknown`，避免翻成 `healthy`）。备选构造：探测指向不可达上游的 `depl_b` 使其 `health` 变为 `unhealthy`（仍 `degraded`，因候选存在而健康为 0）；但"未探测"更确定、无上游依赖，优先。不注入故障；不构造非法输入。
-- **Fixture / 向量及版本**：`llmtier_b_unprobed` fixture 与 `_baseline_settings(provider_endpoint_b)`（LAN fake provider，TS-003）（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）。
+- **Fixture / 向量及版本**：`llmtier_b_unprobed` fixture 与 `_baseline_settings(provider_endpoint_b)`（LAN fake provider，TS-003）（[系统测试方案 §4 测试环境类型](../llmtier-system-test-scheme.md)）。
 - **依赖的测试资产（tests.asset-design 文档）**：本阶段 `tests.asset-design` 文档尚未建立；B 类实例与 fake provider 夹具契约见方案 §4，引用其版本而不复制字节。
 
 ## 3. 输入构造
@@ -121,7 +121,7 @@
 
 ## 7. 自动化位置与状态
 
-- **证据与 Run**：证据与 Run 契约见[§4.8/§10](../llmtier-system-test-scheme.md)：保存实例启动参数/settings（`_baseline_settings` 内容，脱敏后）、确认"未探测"的证据（未调用 `POST /v1/probes` 的请求日志）、原始 HTTP status/headers/body、`elapsed`、环境快照（`/healthz` + `/readyz`）；manifest 与报告落位（`tests/system/reports/...`）见 §4.8/§10（本 case `environment:"b"`）；失败现场不截断。
-- **依赖**：B 类 fixture `llmtier_b_unprobed`（[`conftest.py`](../../../../tests/system/conftest.py)：session-scope `LLMTierInstance(_baseline_settings(provider_endpoint_b))`，`start()` 后跳过 `_probe_deployment`）；**不可复用** `llmtier_b`（启动即 probe 成 `healthy`）。另依赖 `_baseline_settings`/`provider_endpoint_b`（LAN fake provider，TS-003）（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）；`ReadinessView`（[`openapi`](../../../../interfaces/openapi/llmtier.openapi.json)）；实现 [`health.py`](../../../../src/http_api/health.py)；系统设计 §8.1 的 `degraded` 初始态（[llmtier-system-design.md](../../../20_system_design/llmtier-system-design.md)）；自动化入口 [`ST-HEALTH-003.py`](../../../../tests/system/cases/ST-HEALTH-003.py)（`ST-HEALTH-004.py` 承接 ST-HEALTH-004，本 case 用 `ST-HEALTH-003.py`，不与其冲突）。**不依赖**其它 Case；与 ST-HEALTH-002/04/05 同入口但状态互斥。
+- **证据与 Run**：证据与 Run 契约见[计划 §7/§10](../llmtier-system-test-scheme.md)：保存实例启动参数/settings（`_baseline_settings` 内容，脱敏后）、确认"未探测"的证据（未调用 `POST /v1/probes` 的请求日志）、原始 HTTP status/headers/body、`elapsed`、环境快照（`/healthz` + `/readyz`）；manifest 与报告落位（`tests/system/reports/...`）见计划 §7/§10（本 case `environment:"b"`）；失败现场不截断。
+- **依赖**：B 类 fixture `llmtier_b_unprobed`（[`conftest.py`](../../../../tests/system/conftest.py)：session-scope `LLMTierInstance(_baseline_settings(provider_endpoint_b))`，`start()` 后跳过 `_probe_deployment`）；**不可复用** `llmtier_b`（启动即 probe 成 `healthy`）。另依赖 `_baseline_settings`/`provider_endpoint_b`（LAN fake provider，TS-003）（[系统测试方案 §4 测试环境类型](../llmtier-system-test-scheme.md)）；`ReadinessView`（[`openapi`](../../../../interfaces/openapi/llmtier.openapi.json)）；实现 [`health.py`](../../../../src/http_api/health.py)；系统设计 §8.1 的 `degraded` 初始态（[llmtier-system-design.md](../../../20_system_design/llmtier-system-design.md)）；自动化入口 [`ST-HEALTH-003.py`](../../../../tests/system/cases/ST-HEALTH-003.py)（`ST-HEALTH-004.py` 承接 ST-HEALTH-004，本 case 用 `ST-HEALTH-003.py`，不与其冲突）。**不依赖**其它 Case；与 ST-HEALTH-002/04/05 同入口但状态互斥。
 
 > 实现状态：Implemented（`ST-HEALTH-003.py` 已断言 503 + `degraded` + 7×`degraded`）；执行状态与 Verdict 只在 Run 报告。

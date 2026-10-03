@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `MT-API-013` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-10-02` |
-| Last Modified Date | `2026-10-02` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.module-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`MT-API-013`）；责任摘要、分类与优先级以 [模块测试方案 §3](../llmtier-module-test-scheme.md) 清单行为准，不在本文档重复维护。
+- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`MT-API-013`）；责任摘要、分类与优先级以 [模块测试方案 §6](../llmtier-module-test-scheme.md) 清单行为准，不在本文档重复维护。
 - **测试脚本的唯一依据**：编码者按本文档写测试代码；§7 指向已实现脚本 `tests/module/cases/MT-API-013.py`。
 - **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
 
@@ -43,10 +43,10 @@
 
 ## 1. Case 概述与责任
 
-- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-API-013` / M001 连接重置分支：connection reset (RST) mid-stream（组装，ENV-2 真实 socket） v0.1.0-draft.2 / VRC-API-003（http-api-design §14 / http-api.isd §9.1，http-api 0.1.0-draft.2） / VRC-API-003 / recovery / P1（[方案清单 §3](../llmtier-module-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：故障注入 + 异常路径回滚 + 状态迁移断言（主要手段：边界外协作者用进程内 `FakeAdapter`（`ResponsesService._test_adapter` seam，资产 `llmtier-unit-fakes`）；`LargeFakeAdapter` 为其长流子类）
-- **覆盖的分支 / 组合 / 迁移 ID**：分支：M001-连接重置 RST mid-stream（§1.5.1 c5）
-- 要测什么（责任展开）：客户端 `SO_LINGER 0` 关闭触发 RST→`aborted`；进程不崩溃、许可/fd 释放（§1.5.1 c5）（本 Case 责任：`SO_LINGER 0` 触发的 RST 与 FIN 断开同样落 `aborted`；进程不崩、许可/fd 释放）
+- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-API-013` / M001 连接重置分支：connection reset (RST) mid-stream（组装，ENV-2 真实 socket） v0.1.0-draft.2 / VRC-API-003（http-api-design §14 / http-api.isd §9.1，http-api 0.1.0-draft.2） / VRC-API-003 / recovery / P1（[方案清单 §6](../llmtier-module-test-scheme.md)）。
+- **测试方法（§2.4 方法表行）**：故障注入 + 异常路径回滚 + 状态迁移断言（主要手段：边界外协作者用进程内 `FakeAdapter`（`ResponsesService._test_adapter` seam，资产 `llmtier-unit-fakes`）；`LargeFakeAdapter` 为其长流子类）
+- **覆盖的分支 / 组合 / 迁移 ID**：分支：M001-连接重置 RST mid-stream（§2.3 c5）
+- 要测什么（责任展开）：客户端 `SO_LINGER 0` 关闭触发 RST→`aborted`；进程不崩溃、许可/fd 释放（§2.3 c5）（本 Case 责任：`SO_LINGER 0` 触发的 RST 与 FIN 断开同样落 `aborted`；进程不崩、许可/fd 释放）
 - 明确不测什么 / 失败含义：不测跨模块系统级流程、真实上游 provider 协议、浏览器 E2E（归系统层 `ST-*` 与契约层）；本层只断言组装后成立的分支走向、状态迁移与调用序。失败含义＝http-api 组装后RST 的终态与资源归还与设计不一致。
 
 ## 2. 被测入口与前置
@@ -63,7 +63,7 @@ POST /v1/responses（SO_LINGER 0 关闭触发 RST）; GET /v1/trace/{id}, /v1/ru
 
 ## 3. 输入构造
 
-- 逐参数输入构造：排空在途字节后 `setsockopt(SO_LINGER, {1,0})` + `close()`（方案 §1.5.1 c5）
+- 逐参数输入构造：排空在途字节后 `setsockopt(SO_LINGER, {1,0})` + `close()`（方案 §2.3 c5）
 - 边界/非法取值及理由：`aborted(client disconnected)`；进程存活；许可归零；fd 不增长
 - 规模 / 时间域（数量、分页、复杂度、观测开销）：1 次长流 + 3 次观测请求；O(n) 帧
 
@@ -78,7 +78,7 @@ POST /v1/responses（SO_LINGER 0 关闭触发 RST）; GET /v1/trace/{id}, /v1/ru
 
 ## 5. 独立 Oracle 与预期结果
 
-- 独立 Oracle 来源与推导：方案 §1.5.1 c5 + http-api 模块设计 §14.4；按 RST 触发 `ConnectionResetError` 的分支人工推导
+- 独立 Oracle 来源与推导：方案 §2.3 c5 + http-api 模块设计 §14.4；按 RST 触发 `ConnectionResetError` 的分支人工推导
 - 互斥预期（成功 / 各错误分支）：RST 与 FIN 断开同样落 `aborted`；进程与许可面无副作用
 
 ## 6. 错误路径、副作用与清理

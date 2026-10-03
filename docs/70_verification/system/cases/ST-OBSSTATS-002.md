@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-OBSSTATS-002` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -31,7 +31,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-OBSSTATS-002`）；责任摘要、分类与优先级以 [系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
+- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-OBSSTATS-002`）；责任摘要、分类与优先级以 [系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
 - **测试脚本的唯一依据**：编码者按本文档写测试代码，不需要回读方案或设计正文猜测意图。
 - **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
 
@@ -48,7 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-OBSSTATS-002` / 系统设计 §8 诊断统计接口（/v1/diagnostics/stats） / `VRC-DIAG-002` / `negative` / `P1`
-- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
+- **测试方法（§2.2 方法表行）**：错误猜测 + 反例驱动（ERR-*）
 - 方案清单登记：`ST-OBSSTATS-002`
 - 要测什么（责任展开）：`GET /v1/diagnostics/stats` 缺少必填 `since`/`until`：HTTP 400 `invalid_request`，且不落到空窗口的 `200`。
 - 明确不测什么 / 失败含义：不证明 正向聚合窗口（ST-OBSSTATS-001）、不证明 `from`/`to`（那是 `/v1/usage`、`/v1/stats` 的约定，本端点**不是** `from`/`to`）、不证明 `limit`/cursor（本端点无分页）、不证明别名等价（ST-OBSALIAS-005）。
@@ -57,12 +57,12 @@
 handler 在读取存储前校验 `if not since or not until: raise ApiError(400, "invalid_request", "since and until are required")`（[`src/http_api/app.py`](../../../../src/http_api/app.py)）；
 错误信封恰 5 键（`type="request_error"`，`retryable=false`，`param=null`）；校验先于 `_store_read`，**零副作用**。设计验证项 `VRC-DIAG-002`；机制/错误 `ERR-REQ-VALIDATION` → `invalid_request`（[系统设计 §7.8](../../../20_system_design/llmtier-system-design.md)）；
 分页时间参数约定 `since`/`until`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)：`/v1/diagnostics/stats` 用 `since`/`until`，缺 → 400 `invalid_request`）；
-需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
+需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01..06`、`CT-ADMIN-001`（[系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。
 **不证明什么**：不证明正向聚合窗口（ST-OBSSTATS-001）、不证明 `from`/`to`（那是 `/v1/usage`、`/v1/stats` 的约定，本端点**不是** `from`/`to`）、不证明 `limit`/cursor（本端点无分页）、不证明别名等价（ST-OBSALIAS-005）。
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `admin`；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=§2.1 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；fixture `admin_client`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；本 case 纯 GET、期望零写入，初态即终态。
+- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `admin`；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=计划 §3 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；fixture `admin_client`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；本 case 纯 GET、期望零写入，初态即终态。
 
 ## 3. 输入构造
 
@@ -101,7 +101,7 @@ handler 在读取存储前校验 `if not since or not until: raise ApiError(400,
   - **PASS**：三种缺参（及空串）均 `400 + invalid_request + type=request_error + retryable=false`，且对照 200 正确；无空页冒充。
   - **FAIL**：任一缺参返回 200（含空 `windows`）或其他状态/code。
   - **BLOCKED**：测试代码/契约问题或正相对照遇存储不可达 `503 usage_store_unavailable`——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **SKIP**：§2.1 前置不满足——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
+  - **SKIP**：计划 §3 前置不满足——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **NOT_RUN**：无（自动化入口已实现；执行状态见 Run 报告）。
   - **INVALID**：用 `127.0.0.1`/mock/替代路径冒充真实 m5air，或未真正提交缺参却按行为判定——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
 
@@ -113,6 +113,6 @@ handler 在读取存储前校验 `if not since or not until: raise ApiError(400,
 
 - **证据与 Run**：保存三种缺参请求与原始 400 信封、空串边界、正相对照 200、命令/exit code/`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 6 项就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`since`/`until` required 机器契约；实现 [`src/http_api/app.py`](../../../../src/http_api/app.py)（行 320–321 校验）。自动化入口 `ST-OBSSTATS-002.py`（已实现）。**不依赖**其它 Case；与 ST-OBSSTATS-001（正向窗口）互为正向/负向，各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 6 项就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；`since`/`until` required 机器契约；实现 [`src/http_api/app.py`](../../../../src/http_api/app.py)（行 320–321 校验）。自动化入口 `ST-OBSSTATS-002.py`（已实现）。**不依赖**其它 Case；与 ST-OBSSTATS-001（正向窗口）互为正向/负向，各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

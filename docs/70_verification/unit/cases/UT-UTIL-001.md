@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-UTIL-001` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-30` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.unit-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`UT-UTIL-001`）；责任摘要、分类与优先级以 [单元测试方案 §3](../llmtier-unit-test-scheme.md) 清单行为准。
+- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`UT-UTIL-001`）；责任摘要、分类与优先级以 [单元测试方案 §6](../llmtier-unit-test-scheme.md) 清单行为准。
 - **来源**：模块设计 [util-design.md](../../../40_module_design/util-design.md) §14 / ISD [util.isd.md](../../../50_implementation_design/util.isd.md) §9.1，设计验证项 `VRC-UTIL-001`（固定版本 `util 0.1.0-draft.1`）。
 - **裁剪说明**：本 Case 是项目级合并方案 `llmtier-unit-test-scheme` 的模块切片 `UTIL`；裁剪依据见 [STD 裁剪清单](../../../00_management/std-tailoring.md)。
 
@@ -45,8 +45,8 @@
 
 ## 1. Case 概述与责任
 
-- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-UTIL-001` / `VRC-UTIL-001`（util 模块设计 §14 / util-isd §9.1，util 0.1.0-draft.1） / `VRC-UTIL-001` / boundary / P0（[方案清单 §3](../llmtier-unit-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：边界值（PRAGMA/回收/fd 基线/symlink 拒绝）（主要手段：直接调用 + 冻结向量）
+- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`UT-UTIL-001` / `VRC-UTIL-001`（util 模块设计 §14 / util-isd §9.1，util 0.1.0-draft.1） / `VRC-UTIL-001` / boundary / P0（[方案清单 §6](../llmtier-unit-test-scheme.md)）。
+- **测试方法（§2.1 方法表行）**：边界值（PRAGMA/回收/fd 基线/symlink 拒绝）（主要手段：直接调用 + 冻结向量）
 - 要测什么（责任展开）：被测：`Store` 连接/PRAGMA（`foreign_keys=1`、`journal_mode=wal`）、fd 不随请求增长、事务提交、线程连接、symlink 拒绝。
 - 明确不测什么 / 失败含义：不测：真实高并发压测（系统层）；不测迁移（UT-UTIL-002）。失败含义＝连接/PRAGMA/安全实现错误。
 

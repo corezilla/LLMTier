@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-SL-012` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -31,7 +31,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-SL-012`）；责任摘要、分类与优先级以 [系统测试方案 §3](../llmtier-system-test-scheme.md) 清单行为准。
+- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-SL-012`）；责任摘要、分类与优先级以 [系统测试方案 §6](../llmtier-system-test-scheme.md) 清单行为准。
 - **来源**：系统设计 §8 Service Level CRUD 接口（/v1/service-levels）（parent `llmtier-system-design`），设计验证项 `VRC-MGMT-002`；所属方案 `llmtier-system-test-scheme`。
 - **边界**：系统层 Case（整软件系统组装，被测为 m5air 真实部署或按 tests.asset-design 约束的替身）；本文档持有实现状态，执行状态与 Verdict 只在 Run 报告。
 
@@ -48,8 +48,8 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-SL-012` / 系统设计 §8 Service Level CRUD 接口（/v1/service-levels） / `VRC-MGMT-002` / `negative` / `P1`
-- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
-- 方案清单登记：`ST-SL-012`（与 §3.2 权威清单一致；本文件名 `st-sl-012.md`，唯一对应）。
+- **测试方法（§2.2 方法表行）**：错误猜测 + 反例驱动（ERR-*）
+- 方案清单登记：`ST-SL-012`（与 计划 §3 权威清单一致；本文件名 `st-sl-012.md`，唯一对应）。
 - 要测什么（责任展开）：`POST /v1/service-levels` 用已存在的固定 Tier `id`（`Senior`）创建：HTTP 409 `resource_conflict`。
 - 明确不测什么 / 失败含义：不证明 非白名单 id 的 400（ST-SL-002）、不证明成员能力/向量空间校验（ST-SL-006/07）、不证明 PATCH/DELETE（ST-SL-004/05）。本 case **只**锁 409 `resource_conflict`。
 
@@ -61,7 +61,7 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=§2.1 附加（B 类）；fixture `admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；初始状态=`Senior` 已由 bootstrap 预创建（`_baseline_settings` 的 7 tier 各含 `["depl_b"]`、`enabled=true`）。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=计划 §3 附加（B 类）；fixture `admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；初始状态=`Senior` 已由 bootstrap 预创建（`_baseline_settings` 的 7 tier 各含 `["depl_b"]`、`enabled=true`）。
 
 ## 3. 输入构造
 
@@ -102,7 +102,7 @@
   - **BLOCKED**：fixture/断言逻辑问题——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **SKIP**：B 类临时实例不可用——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **INVALID**：用 `127.0.0.1`/mock 冒充，或未命中真实唯一性约束——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：本 Case 有实现（§3.2 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
+  - **NOT_RUN**：本 Case 有实现（计划 §3 实现盘点 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
 
 ## 6. 错误路径、副作用与清理
 
@@ -112,6 +112,6 @@
 
 - **证据与 Run**：保存POST 请求/原始 409 响应（脱敏后）、POST 前后 `GET /v1/service-levels/Senior`（含 ETag/version）、发出命令、exit code、`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/B-api`，`environment:"b"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：B 类 fixture `llmtier_b` / `admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`ServiceLevelWrite` 机器契约；`registry.create_service_level` 的 UNIQUE 分支；错误目录 `ERR-CONFLICT`。自动化入口 [`ST-SL-012.py`](../../../../tests/system/cases/ST-SL-012.py)。**不依赖**其它 Case；与 ST-SL-002（非白名单→400）互补但各自独立执行。
+- **依赖**：B 类 fixture `llmtier_b` / `admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；`ServiceLevelWrite` 机器契约；`registry.create_service_level` 的 UNIQUE 分支；错误目录 `ERR-CONFLICT`。自动化入口 [`ST-SL-012.py`](../../../../tests/system/cases/ST-SL-012.py)。**不依赖**其它 Case；与 ST-SL-002（非白名单→400）互补但各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

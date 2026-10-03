@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `MT-OBS-003` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-10-02` |
-| Last Modified Date | `2026-10-02` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.module-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`MT-OBS-003`）；责任摘要、分类与优先级以 [模块测试方案 §3](../llmtier-module-test-scheme.md) 清单行为准，不在本文档重复维护。
+- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`MT-OBS-003`）；责任摘要、分类与优先级以 [模块测试方案 §6](../llmtier-module-test-scheme.md) 清单行为准，不在本文档重复维护。
 - **测试脚本的唯一依据**：编码者按本文档写测试代码；§7 指向已实现脚本 `tests/module/cases/MT-OBS-003.py`。
 - **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
 
@@ -43,8 +43,8 @@
 
 ## 1. Case 概述与责任
 
-- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-OBS-003` / M005 查询分支：快照/统计字段 + 去 query + 存储不可读 503（组装） v0.1.0-draft.6 / VRC-OBS-002（observability-design §14 / observability.isd §9.1，observability 0.1.0-draft.6） / VRC-OBS-002 / boundary / P1（[方案清单 §3](../llmtier-module-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：边界值（上限/零/空/刚好满、长度、分页越界）+ 条件边界（主要手段：边界外协作者用进程内 `FakeAdapter`（`ResponsesService._test_adapter` seam，资产 `llmtier-unit-fakes`））
+- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-OBS-003` / M005 查询分支：快照/统计字段 + 去 query + 存储不可读 503（组装） v0.1.0-draft.6 / VRC-OBS-002（observability-design §14 / observability.isd §9.1，observability 0.1.0-draft.6） / VRC-OBS-002 / boundary / P1（[方案清单 §6](../llmtier-module-test-scheme.md)）。
+- **测试方法（§2.4 方法表行）**：边界值（上限/零/空/刚好满、长度、分页越界）+ 条件边界（主要手段：边界外协作者用进程内 `FakeAdapter`（`ResponsesService._test_adapter` seam，资产 `llmtier-unit-fakes`））
 - **覆盖的分支 / 组合 / 迁移 ID**：分支：M005-查询三分支
 - 要测什么（责任展开）：字段完整、URL 去 query（`?token=` 不落库）、存储不可读→503 不伪装空页（本 Case 责任：三面字段完整；窗口/limit 校验一致；query 脱敏到位；存储不可读→503 不伪装空页）
 - 明确不测什么 / 失败含义：不测跨模块系统级流程、真实上游 provider 协议、浏览器 E2E（归系统层 `ST-*` 与契约层）；本层只断言组装后成立的分支走向、状态迁移与调用序。失败含义＝observability 组装后查询面字段、脱敏与存储故障与设计不一致。
@@ -64,7 +64,7 @@ GET /v1/diagnostics/{snapshots,stats,traces}; 存储不可读注入
 ## 3. 输入构造
 
 - 逐参数输入构造：快照/统计/trace 三页字段；`limit` 夹取与非整数；stats 缺 `since/until`；endpoint 带 `?token=`；DROP 诊断表；`chmod 000` 库文件
-- 边界/非法取值及理由：三页字段集完整；`limit` 夹取 [1,500]；非整数→400 `invalid_request`；缺窗→400；`upstream_url` 不含 query、`token=` 不出现在任何诊断页；存储不可读→503 `usage_store_unavailable`（非空页，见 §4 `O-OBS-STORECODE-1`）
+- 边界/非法取值及理由：三页字段集完整；`limit` 夹取 [1,500]；非整数→400 `invalid_request`；缺窗→400；`upstream_url` 不含 query、`token=` 不出现在任何诊断页；存储不可读→503 `usage_store_unavailable`（非空页，见 §7 `O-OBS-STORECODE-1`）
 - 规模 / 时间域（数量、分页、复杂度、观测开销）：10 个测试方法；O(1)
 
 ## 4. 执行步骤与观察点
@@ -80,7 +80,7 @@ GET /v1/diagnostics/{snapshots,stats,traces}; 存储不可读注入
 
 ## 5. 独立 Oracle 与预期结果
 
-- 独立 Oracle 来源与推导：observability 模块设计 §14.2 + 方案 §1.5.1 a27；按 `_store_read` 的异常映射与三视图字段契约人工推导
+- 独立 Oracle 来源与推导：observability 模块设计 §14.2 + 方案 §2.3 a27；按 `_store_read` 的异常映射与三视图字段契约人工推导
 - 互斥预期（成功 / 各错误分支）：字段完整；窗口/limit 校验一致；query 脱敏到位；存储故障显式 503 不静默
 
 ## 6. 错误路径、副作用与清理

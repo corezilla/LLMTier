@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-HEALTH-004` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -27,24 +27,24 @@
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
-> 本 Case 文档绑定：系统设计经 `--parent-document-id`、所属方案经方案清单行引用写入 metadata；Document ID＝Case ID。方案清单行见[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)。
+> 本 Case 文档绑定：系统设计经 `--parent-document-id`、所属方案经方案清单行引用写入 metadata；Document ID＝Case ID。方案清单行见[系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)。
 
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-HEALTH-004` / 系统设计 §8 健康/就绪接口（/healthz、/readyz） / `VRC-MGMT-003`（另记 `VRC-UTIL-001/002`） / `recovery` / `P0`。本文件名 `st-health-004.md`，与 Case ID 唯一对应。
-- **测试方法（§1.5 方法表行）**：状态机驱动（就绪态构造 not_ready/无候选）+ 契约字段比对
+- **测试方法（§2.2 方法表行）**：状态机驱动（就绪态构造 not_ready/无候选）+ 契约字段比对
 - 要测什么（责任展开）：`GET /readyz` 在无任何 deployment（无候选）时返回 HTTP 503 + `ReadinessView{status:"not_ready", models[7]}`（7 个 fixed tier 全 `availability="unavailable"`）。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明有候选但无健康候选的 `degraded`（ST-HEALTH-003）、bootstrap 失败的 `not_ready`（ST-HEALTH-005，后者 body 的 `models` 为空 `[]`）；不证明鉴权行为（ST-HEALTH-006/ST-AUTH-*）；不证明 `/v1/*` 的行为；不触发 provider 计费调用（`LT-OPS-001`）。**失败含义＝不可用就绪聚合契约破坏**。
 
 **目的（被测契约）**：验证 IF-HEALTH 的**不可用就绪**契约。端点 `GET /readyz`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `getReadiness`）。
 实现 [`readiness_view`](../../../../src/http_api/health.py)：fixed tier 无候选 deployment ⇒ `availability="unavailable"`；全部 tier `unavailable` ⇒ `status="not_ready"`、HTTP 503。
 设计验证项 `VRC-MGMT-003` 与 `VRC-UTIL-001/002`；机制 `T-OBS`（[observability 机制](../../../20_system_design/mechanisms/observability.md)）、`T-CFG-BOOT`/`R-CFG-02`（[config-lifecycle 机制](../../../20_system_design/mechanisms/config-lifecycle.md)）；
-需求链 `LT-FUN-006`/`LT-OPS-001`、`CT-OPS-001`（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明有候选但无健康候选的 `degraded`（ST-HEALTH-003）、bootstrap 失败的 `not_ready`（ST-HEALTH-005，后者 body 的 `models` 为空 `[]`）；
+需求链 `LT-FUN-006`/`LT-OPS-001`、`CT-OPS-001`（[系统测试方案 §6](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明有候选但无健康候选的 `degraded`（ST-HEALTH-003）、bootstrap 失败的 `not_ready`（ST-HEALTH-005，后者 body 的 `models` 为空 `[]`）；
 不证明鉴权行为（ST-HEALTH-006/ST-AUTH-*）；不证明 `/v1/*` 的行为；不触发 provider 计费调用（`LT-OPS-001`）。
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 B**（临时 LLMTier 实例，见[系统测试方案 §1 测试边界](../llmtier-system-test-scheme.md)）。执行前必须满足方案 §5 **附加（B 类）**：临时实例可启动且 `GET /healthz` 200。fixture 见[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)：`llmtier_b_empty`（`_EMPTY_SETTINGS` = 三个空 section）与 `admin_client_b_empty`（[`conftest.py`](../../../../tests/system/conftest.py)）。初始状态的关键机制：`_EMPTY_SETTINGS` 是**合法 bootstrap**（含 `providers`/`deployments`/`service_levels` 三空 section，[`registry.py`](../../../../src/management/registry.py) `bootstrap_settings` 校验全通过），故 `app.bootstrap_error` 为 `None`；随后 `ensure_fixed_tiers()` 插入 7 个空 `service_levels`（`deployment_ids` 为空）。于是 7 tier 均无候选 ⇒ 全 `unavailable` ⇒ `not_ready`、503。**这与 ST-HEALTH-005（bootstrap 失败 → `models:[]`）必须区分。**
+- **前置与环境**：**环境 B**（临时 LLMTier 实例，见[系统测试方案 §1 测试边界](../llmtier-system-test-scheme.md)）。执行前必须满足方案 §5 **附加（B 类）**：临时实例可启动且 `GET /healthz` 200。fixture 见[系统测试方案 §4 测试环境类型](../llmtier-system-test-scheme.md)：`llmtier_b_empty`（`_EMPTY_SETTINGS` = 三个空 section）与 `admin_client_b_empty`（[`conftest.py`](../../../../tests/system/conftest.py)）。初始状态的关键机制：`_EMPTY_SETTINGS` 是**合法 bootstrap**（含 `providers`/`deployments`/`service_levels` 三空 section，[`registry.py`](../../../../src/management/registry.py) `bootstrap_settings` 校验全通过），故 `app.bootstrap_error` 为 `None`；随后 `ensure_fixed_tiers()` 插入 7 个空 `service_levels`（`deployment_ids` 为空）。于是 7 tier 均无候选 ⇒ 全 `unavailable` ⇒ `not_ready`、503。**这与 ST-HEALTH-005（bootstrap 失败 → `models:[]`）必须区分。**
 - **被测入口**：
 
   ```http
@@ -54,7 +54,7 @@
   ```
 
 - **初态构造（经公开入口）**：空库 + `_EMPTY_SETTINGS`，无 provider/deployment；`ensure_fixed_tiers()` 保证仍有 7 个 fixed tier 条目（但无 deployment 关联）。**不携带凭据**（端点 `security:[]`）。不注入故障；不构造非法输入。
-- **Fixture / 向量及版本**：`llmtier_b_empty` / `admin_client_b_empty` fixture 与 `_EMPTY_SETTINGS`（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）。
+- **Fixture / 向量及版本**：`llmtier_b_empty` / `admin_client_b_empty` fixture 与 `_EMPTY_SETTINGS`（[系统测试方案 §4 测试环境类型](../llmtier-system-test-scheme.md)）。
 - **依赖的测试资产（tests.asset-design 文档）**：本阶段 `tests.asset-design` 文档尚未建立；B 类实例夹具契约见方案 §4，引用其版本而不复制字节。
 
 ## 3. 输入构造
@@ -120,7 +120,7 @@ ST-HEALTH-005 的 bootstrap 失败才是 `models:[]`（[`app.py:188-189`](../../
 
 ## 7. 自动化位置与状态
 
-- **证据与 Run**：证据与 Run 契约见[§4.8/§10](../llmtier-system-test-scheme.md)：保存 `_EMPTY_SETTINGS` 内容、实例启动证据、原始 HTTP status/headers/body、`elapsed`、环境快照（`/healthz` + `/readyz`）；manifest 与报告落位（`tests/system/reports/...`）见 §4.8/§10（本 case `environment:"b"`）；失败现场不截断。
-- **依赖**：`llmtier_b_empty` / `admin_client_b_empty` fixture 与 `_EMPTY_SETTINGS`（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）；`ensure_fixed_tiers()` 的 7 tier 播种（[`registry.py`](../../../../src/management/registry.py)）；`ReadinessView`（[`openapi`](../../../../interfaces/openapi/llmtier.openapi.json)）；实现 [`health.py`](../../../../src/http_api/health.py) 与 [`app.py:188-190`](../../../../src/http_api/app.py)；自动化入口 [`ST-HEALTH-004.py`](../../../../tests/system/cases/ST-HEALTH-004.py)。**不依赖**其它 Case；与 ST-HEALTH-003（degraded）、ST-HEALTH-005（bootstrap 失败，`models:[]`）同入口但状态/body 互斥，各自独立执行。
+- **证据与 Run**：证据与 Run 契约见[计划 §7/§10](../llmtier-system-test-scheme.md)：保存 `_EMPTY_SETTINGS` 内容、实例启动证据、原始 HTTP status/headers/body、`elapsed`、环境快照（`/healthz` + `/readyz`）；manifest 与报告落位（`tests/system/reports/...`）见计划 §7/§10（本 case `environment:"b"`）；失败现场不截断。
+- **依赖**：`llmtier_b_empty` / `admin_client_b_empty` fixture 与 `_EMPTY_SETTINGS`（[系统测试方案 §4 测试环境类型](../llmtier-system-test-scheme.md)）；`ensure_fixed_tiers()` 的 7 tier 播种（[`registry.py`](../../../../src/management/registry.py)）；`ReadinessView`（[`openapi`](../../../../interfaces/openapi/llmtier.openapi.json)）；实现 [`health.py`](../../../../src/http_api/health.py) 与 [`app.py:188-190`](../../../../src/http_api/app.py)；自动化入口 [`ST-HEALTH-004.py`](../../../../tests/system/cases/ST-HEALTH-004.py)。**不依赖**其它 Case；与 ST-HEALTH-003（degraded）、ST-HEALTH-005（bootstrap 失败，`models:[]`）同入口但状态/body 互斥，各自独立执行。
 
 > 实现状态：Implemented（`ST-HEALTH-004.py` 已断言 503 + `not_ready` + 7×`unavailable`）；执行状态与 Verdict 只在 Run 报告。

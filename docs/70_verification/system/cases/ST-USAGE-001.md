@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-USAGE-001` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-USAGE-001`）；责任摘要、分类与优先级以 [系统测试方案 §3](../llmtier-system-test-scheme.md) 清单行为准。
+- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-USAGE-001`）；责任摘要、分类与优先级以 [系统测试方案 §6](../llmtier-system-test-scheme.md) 清单行为准。
 - **来源**：系统设计 §8 Usage 查询接口（parent `llmtier-system-design`），设计验证项 `VRC-MGMT-006`；所属方案 `llmtier-system-test-scheme`。
 - **边界**：系统层 Case（整软件系统组装，被测为 m5air 真实部署或按 tests.asset-design 约束的替身）；本文档持有实现状态，执行状态与 Verdict 只在 Run 报告。
 
@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-USAGE-001` / 系统设计 §8 Usage 查询接口 / `VRC-MGMT-006` / normal / P0（[方案清单 `ST-USAGE-001`](../llmtier-system-test-scheme.md)）；机制 `T-MET-PAGE`、`T-MET-FINAL`（[usage-metering 机制](../../../20_system_design/mechanisms/usage-metering.md) §4.5/§4.7 CON-METER-004）。
-- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
+- **测试方法（§2.2 方法表行）**：等价类划分 + 契约字段比对
 - 要测什么（责任展开）：`GET /v1/usage` 以**动态时间窗**查询返回合法 `UsagePage`：`from`/`to` 必填且 `from<to`，`data[]` 全部落在 `[from,to)`，`next_cursor`/`has_more` 同步、含 `snapshot_id`/`snapshot_at`。
   `from`/`to` **必填** `date-time`，服务端按 `[from,to)`（`from` 含、`to` 不含）与稳定排序 `(recorded_at,request_id)` 返回 `UsagePage`（`data[]` + `next_cursor` + `has_more` + `snapshot_id` + `snapshot_at`，`additionalProperties:false`）；
   首屏在单事务内创建 `query_snapshots` 并冻结有序成员（实现 `src/inference/usage.py::UsageRecorder._page`）。机制需求 `R-MET-02`；需求链 `LT-FUN-004`、`LT-INT-004/005/007`、`CT-USAGE-001`/`CT-STORE-001`；
@@ -77,7 +77,7 @@ Accept: application/json
 
 | Step | 动作 | 观察点 |
 |---|---|---|
-| 1 | `GET /healthz`、`GET /readyz`（`pytest_configure` 自动执行） | §2.1 基线 |
+| 1 | `GET /healthz`、`GET /readyz`（`pytest_configure` 自动执行） | 计划 §2 基线 |
 | 2 | `since, until = recent_window()`；`resp = api_client.get("/v1/usage", params={"from": since, "to": until})` | status/headers |
 | 3 | 断言 status 与形态 | `status_code == 200` 且 content-type 含 `application/json`（非错误信封） |
 | 4 | 解析 body，键集**恰为** `{data,next_cursor,has_more,snapshot_id,snapshot_at}`（`additionalProperties:false`） | 键集精确 |

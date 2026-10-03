@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-PMOD-002` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-PMOD-002`）；责任摘要、分类与优先级以 [系统测试方案 §3](../llmtier-system-test-scheme.md) 清单行为准。
+- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-PMOD-002`）；责任摘要、分类与优先级以 [系统测试方案 §6](../llmtier-system-test-scheme.md) 清单行为准。
 - **来源**：系统设计 §8 provider 上游模型目录接口（GET /v1/providers/{id}/models）（parent `llmtier-system-design`），设计验证项 `VRC-MGMT-001`；所属方案 `llmtier-system-test-scheme`。
 - **边界**：系统层 Case（整软件系统组装，被测为 m5air 真实部署或按 tests.asset-design 约束的替身）；本文档持有实现状态，执行状态与 Verdict 只在 Run 报告。
 
@@ -48,8 +48,8 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-PMOD-002` / 系统设计 §8 provider 上游模型目录接口（GET /v1/providers/{id}/models） / `VRC-MGMT-001` / `negative` / `P1`
-- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
-- 方案清单登记：`ST-PMOD-002`（与 §3.2 权威清单一致；本文件名 `st-pmod-002.md`，唯一对应）。
+- **测试方法（§2.2 方法表行）**：错误猜测 + 反例驱动（ERR-*）
+- 方案清单登记：`ST-PMOD-002`（与 计划 §3 权威清单一致；本文件名 `st-pmod-002.md`，唯一对应）。
 - 要测什么（责任展开）：`GET /v1/providers/{id}/models` 读取不存在 provider 的上游模型目录：HTTP 404 + `error.code=="not_found"`，统一错误信封，无副作用。
 - 明确不测什么 / 失败含义：不证明 既存 provider 的正常目录（ST-PMOD-001）、不证明 provider 详情/usage 子路径的 404（ST-PROV-004、ST-PUSAGE-004）、不证明鉴权优先于存在性（ST-AUTH-009）、不证明上游不可用路径（不在本负向 case 范围）。
 
@@ -60,7 +60,7 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 A**（m5air 已部署实例；角色 `admin`，只读；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）。执行前必须通过[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go)(../llmtier-system-test-scheme.md) 的 6 项就绪检查（详见 §2.1）；任一失败 → 整班 BLOCKED/SKIP，不得改用模拟路径。fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）：`admin_client`。初始状态：m5air 现有 3 provider / 4 deployment / 7 fixed tier。**自动化入口 `ST-PMOD-002.py` 为 `Implemented`（A 类）。**
+- **前置与环境**：**环境 A**（m5air 已部署实例；角色 `admin`，只读；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。执行前必须通过[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 的 6 项就绪检查（详见计划 §3）；任一失败 → 整班 BLOCKED/SKIP，不得改用模拟路径。fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）：`admin_client`。初始状态：m5air 现有 3 provider / 4 deployment / 7 fixed tier。**自动化入口 `ST-PMOD-002.py` 为 `Implemented`（A 类）。**
 
 ## 3. 输入构造
 
@@ -71,12 +71,12 @@
   Authorization: Bearer dev-admin
   Accept: application/json
   ```
-  构造点：`{provider_id}` 取 `provider_does_not_exist_xyz`（不在 §2.1 基线，也不在上游目录）；无 body；不注入故障。**关键顺序**：该端点先经 `get_provider` 解析存在性，未知 id 在触上游 `/models` **之前**即 404（不得让上游请求先发生）。
+  构造点：`{provider_id}` 取 `provider_does_not_exist_xyz`（不在 计划 §2 基线，也不在上游目录）；无 body；不注入故障。**关键顺序**：该端点先经 `get_provider` 解析存在性，未知 id 在触上游 `/models` **之前**即 404（不得让上游请求先发生）。
 
 ## 4. 执行步骤与观察点
 
 - **执行过程（逐步调用）**：
-  1. `GET /healthz`、`GET /readyz` —— 确认 §2.1 基线（由 `pytest_configure` 自动执行，本 case 不重复）。
+  1. `GET /healthz`、`GET /readyz` —— 确认 计划 §2 基线（由 `pytest_configure` 自动执行，本 case 不重复）。
   2. `resp = admin_client.get("/v1/providers/provider_does_not_exist_xyz/models")`；记录 status、headers、body。
   3. 断言 `resp.status_code == 404`。
   4. `err = resp.json()["error"]`：断言键集恰为 `{message,type,code,param,retryable}`；`err["code"] == "not_found"`、`err["type"] == "request_error"`、`err["param"] is None`、`err["retryable"] is False`。
@@ -97,7 +97,7 @@
   - **PASS**：`status==404` 且 `error.code=="not_found"` 且信封 5 键、`type=="request_error"`、`param is None`、`retryable is False`，且无副作用。
   - **FAIL**：status 非 404（如 200/500）、`code` 不符、信封缺/多键、`type` 错，或未知 id 却触发了上游请求。
   - **BLOCKED**：测试代码/契约本身问题——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **SKIP**：§2.1 前置不满足——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
+  - **SKIP**：计划 §3 前置不满足——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **INVALID**：用替代路径/伪造 404 冒充——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **NOT_RUN**：本 Case 有实现（§7，`ST-PMOD-002.py`），本轮未执行时按 §9 记 `NOT_RUN`。
 
@@ -107,8 +107,8 @@
 
 ## 7. 自动化位置与状态
 
-- **证据与 Run**：证据与 Run 契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)(../llmtier-system-test-scheme.md)：Run ID=`<date>/A-api`；保存原始 status/headers/body（脱敏后）、发出命令、exit code、`elapsed`、环境快照；`manifest.json` 必填字段与报告落位（`tests/system/reports/...`）见 §4.8/§10；失败现场不截断。**本 case 额外证据**：`inputs` 为未知 `provider_id`。
+- **证据与 Run**：证据与 Run 契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)：Run ID=`<date>/A-api`；保存原始 status/headers/body（脱敏后）、发出命令、exit code、`elapsed`、环境快照；`manifest.json` 必填字段与报告落位（`tests/system/reports/...`）见计划 §7/§10；失败现场不截断。**本 case 额外证据**：`inputs` 为未知 `provider_id`。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`ErrorEnvelope` 机器契约；实现 `src/management/registry.py` / `src/management/admin.py`；自动化入口 `ST-PMOD-002.py`（`Implemented`）。**不依赖**其它 Case；与 ST-PMOD-001 成对但各自独立。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；`ErrorEnvelope` 机器契约；实现 `src/management/registry.py` / `src/management/admin.py`；自动化入口 `ST-PMOD-002.py`（`Implemented`）。**不依赖**其它 Case；与 ST-PMOD-001 成对但各自独立。
 
 > 实现状态：Implemented（`ST-PMOD-002.py`）；执行状态与 Verdict 只在 Run 报告。

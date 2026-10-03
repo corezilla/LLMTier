@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-SL-003` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -31,7 +31,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-SL-003`）；责任摘要、分类与优先级以 [系统测试方案 §3](../llmtier-system-test-scheme.md) 清单行为准。
+- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-SL-003`）；责任摘要、分类与优先级以 [系统测试方案 §6](../llmtier-system-test-scheme.md) 清单行为准。
 - **来源**：系统设计 §8 Service Level CRUD 接口（/v1/service-levels）（parent `llmtier-system-design`），设计验证项 `VRC-MGMT-002`；所属方案 `llmtier-system-test-scheme`。
 - **边界**：系统层 Case（整软件系统组装，被测为 m5air 真实部署或按 tests.asset-design 约束的替身）；本文档持有实现状态，执行状态与 Verdict 只在 Run 报告。
 
@@ -48,8 +48,8 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-SL-003` / 系统设计 §8 Service Level CRUD 接口（/v1/service-levels） / `VRC-MGMT-002` / `normal` / `P0`
-- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
-- 方案清单登记：`ST-SL-003`（与 §3.2 权威清单一致；本文件名 `st-sl-003.md`，唯一对应）。
+- **测试方法（§2.2 方法表行）**：等价类划分 + 契约字段比对
+- 方案清单登记：`ST-SL-003`（与 计划 §3 权威清单一致；本文件名 `st-sl-003.md`，唯一对应）。
 - 要测什么（责任展开）：`GET /v1/service-levels/{id}` 精确返回单个固定 Tier：HTTP 200 + `ServiceLevelView` + `ETag`。
 - 明确不测什么 / 失败含义：不证明 列表（ST-SL-001）、不证明更新/删除（ST-SL-004/04b/05/06/07/08）、不证明不存在 id 的 404（未单独构 case；由 `registry.get_service_level` 的 `not_found` 语义承载）、不证明 If-Match/CAS（ST-SL-004）。
 
@@ -59,7 +59,7 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `admin`，只读；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=§2.1 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；fixture `admin_client`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；初始状态=§2.3 A 类基线（7 fixed tier）。本 case 选 `Worker`（responses-capable 固定 Tier，A 类必在）。
+- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `admin`，只读；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=计划 §3 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；fixture `admin_client`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；初始状态=§2.3 A 类基线（7 fixed tier）。本 case 选 `Worker`（responses-capable 固定 Tier，A 类必在）。
 
 ## 3. 输入构造
 
@@ -75,7 +75,7 @@
 ## 4. 执行步骤与观察点
 
 - **执行过程（逐步调用）**：
-  1. `GET /healthz`、`GET /readyz` —— 确认 §2.1 基线（由 `pytest_configure` 自动执行，本 case 不重复）。
+  1. `GET /healthz`、`GET /readyz` —— 确认 计划 §2 基线（由 `pytest_configure` 自动执行，本 case 不重复）。
   2. `resp = admin_client.get("/v1/service-levels/Worker")`；记录 status、headers、body。
   3. 断言 `resp.status_code == 200`。
   4. 解析 body：断言键集**恰为** `{id,deployment_ids,enabled,capabilities,version}`（`additionalProperties:false`）；`id=="Worker"`、`deployment_ids` 为数组、`enabled` 为 bool、`version` 为 int ≥1、`capabilities` 为 12 键 `ModelCapabilities`。
@@ -96,9 +96,9 @@
   - **PASS**：`200` + `ServiceLevelView` 键集/类型正确 + `id=="Worker"` + `ETag=="Worker.v<N>"` 且与 `version` 一致。
   - **FAIL**：status 非 200、键集不符、`id` 错、ETag 缺失/格式错/与 version 不一致。
   - **BLOCKED**：fixture/断言逻辑问题——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **SKIP**：§2.1 前置不满足——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
+  - **SKIP**：计划 §3 前置不满足——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **INVALID**：用 `127.0.0.1`/mock 冒充真实 m5air——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：本 Case 有实现（§3.2 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
+  - **NOT_RUN**：本 Case 有实现（计划 §3 实现盘点 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
 
 ## 6. 错误路径、副作用与清理
 
@@ -108,6 +108,6 @@
 
 - **证据与 Run**：保存原始 HTTP status/headers（含 `ETag`）/body、发出命令、exit code、`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`ServiceLevelView` 机器契约；`registry.get_service_level`/`_etag`。自动化入口 [`ST-SL-003.py`](../../../../tests/system/cases/ST-SL-003.py)。**不依赖**其它 Case；其 ETag 语义被 ST-SL-004/04b/05 复用但各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；`ServiceLevelView` 机器契约；`registry.get_service_level`/`_etag`。自动化入口 [`ST-SL-003.py`](../../../../tests/system/cases/ST-SL-003.py)。**不依赖**其它 Case；其 ETag 语义被 ST-SL-004/04b/05 复用但各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-DEPL-009` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-DEPL-009`）；责任摘要、分类与优先级以 [系统测试方案 §3](../llmtier-system-test-scheme.md) 清单行为准。
+- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-DEPL-009`）；责任摘要、分类与优先级以 [系统测试方案 §6](../llmtier-system-test-scheme.md) 清单行为准。
 - **来源**：系统设计 §8 Deployment CRUD 接口（/v1/deployments）（parent `llmtier-system-design`），设计验证项 `VRC-MGMT-002`；所属方案 `llmtier-system-test-scheme`。
 - **边界**：系统层 Case（整软件系统组装，被测为 m5air 真实部署或按 tests.asset-design 约束的替身）；本文档持有实现状态，执行状态与 Verdict 只在 Run 报告。
 
@@ -48,8 +48,8 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-DEPL-009` / 系统设计 §8 Deployment CRUD 接口（/v1/deployments） / `VRC-MGMT-002` / `negative` / `P1`
-- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
-- 方案清单登记：`ST-DEPL-009`（与 §3.2 权威清单一致；本文件名 `st-depl-009.md`，唯一对应）。
+- **测试方法（§2.2 方法表行）**：错误猜测 + 反例驱动（ERR-*）
+- 方案清单登记：`ST-DEPL-009`（与 计划 §3 权威清单一致；本文件名 `st-depl-009.md`，唯一对应）。
 - 要测什么（责任展开）：`PATCH /v1/deployments/{id}` 试图把 `provider_id` 改为**另一个已存在**的 provider：HTTP 400 + `error.code=="invalid_request"`、`param=="provider_id"`，统一错误信封，`provider_id`/`version`/ETag 不变。（用既存 provider 作目标值，确保唯一命中 immutability 分支而非"未知 provider"分支。）
 - 明确不测什么 / 失败含义：不证明 正常更新（ST-DEPL-004）、不证明缺/过期 `If-Match` 的 412（本 case 用正确 ETag）、不证明删除（ST-DEPL-005）、不证明 provider CRUD（ST-PROV-*）；本 case 为纯负向，**不得**改动 deployment。
 
@@ -62,7 +62,7 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)/§2.4）。执行前须满足[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go)(../llmtier-system-test-scheme.md) **附加（B 类）**：实例 `/healthz` 200；`_baseline_settings` 注入 1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier。fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）：`llmtier_b`、`admin_client_b`。初始状态：m5air 上级基线由 `_baseline_settings` 提供；`depl_b` probe `healthy`。**被测对象**：基线 `depl_b`（provider_id 原值 `prov_b`），本 case 只 PATCH 一个非法 `provider_id`，不改动 baseline。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。执行前须满足[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) **附加（B 类）**：实例 `/healthz` 200；`_baseline_settings` 注入 1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier。fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）：`llmtier_b`、`admin_client_b`。初始状态：m5air 上级基线由 `_baseline_settings` 提供；`depl_b` probe `healthy`。**被测对象**：基线 `depl_b`（provider_id 原值 `prov_b`），本 case 只 PATCH 一个非法 `provider_id`，不改动 baseline。
 
 ## 3. 输入构造
 
@@ -96,7 +96,7 @@
 **重点关注步骤**：① **先 GET 再 PATCH**——`If-Match` 必须真实有效，否则会先命中 412 而测不到本 case 的 400（`update_deployment` 的 `If-Match` 校验先于 provider 校验）；
 ② **400 + code + param 三断言**——`param=="provider_id"` 定位字段，且**不是 404**；③ **拒绝零副作用**——校验在 `UPDATE` 之前，第 7 步证明 `provider_id`/`version`/ETag 均未变；
 ④ **只改一个字段**——PATCH 体仅 `provider_id`，避免与 capabilities 重算路径混淆；⑤ **不依赖 message 文本**——只断言 code/type/param/retryable；⑥ **目标是既存 provider**——保证唯一命中 immutability 分支。
-  > **契约与实现（已对齐）**：§3.2 `ST-DEPL-009` 标题为"`provider_id` 不可 PATCH"，即 `provider_id` 为不可变字段。实际 [`registry.update_deployment`](../../../../src/management/registry.py) 在 `If-Match` 校验后**强制**该不变量：`if "provider_id" in body and body["provider_id"] !
+  > **契约与实现（已对齐）**：方案 §6 `ST-DEPL-009` 标题为"`provider_id` 不可 PATCH"，即 `provider_id` 为不可变字段。实际 [`registry.update_deployment`](../../../../src/management/registry.py) 在 `If-Match` 校验后**强制**该不变量：`if "provider_id" in body and body["provider_id"] !
     = row["provider_id"]: raise ApiError(400, "invalid_request", "Deployment provider_id cannot be changed", "provider_id")`（L266-267）。
     把 `provider_id` 改为另一个**既存** provider 同样被拒（同一 immutability 分支），仅**同值** no-op 被允许；换成不存在 provider 也 400（本 case 覆盖该值）。故本 case 以**已存在**的另一 provider id 作 PATCH 值，唯一命中 immutability 分支，判别力真实；"
     不可变"语义已被实现。脚本同时断言 `error.param=="provider_id"`、5 键信封、`type`/`retryable` 与零副作用（`provider_id`/`version`/ETag 不变）。
@@ -116,17 +116,17 @@
   - **BLOCKED**：无法执行/无法判定且可重试——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **SKIP**：B 类临时实例/fixture 不可用——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **INVALID**：硬编码/伪造 `If-Match`（绕过真实 GET），或伪造 400——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：本 Case 有实现（§3.2 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
+  - **NOT_RUN**：本 Case 有实现（计划 §3 实现盘点 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
 
 ## 6. 错误路径、副作用与清理
 
-- **清理与复位**：**无需 teardown**——负向拒绝无写副作用，基线 `depl_b` 保持原值。退出前确认 `depl_b` 的 `provider_id=="prov_b"`、`version`/ETag 与执行前一致、7 tier 仍在、无未清空注入。B 类整班结束由 fixture `stop()` + `rm -rf`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）。
+- **清理与复位**：**无需 teardown**——负向拒绝无写副作用，基线 `depl_b` 保持原值。退出前确认 `depl_b` 的 `provider_id=="prov_b"`、`version`/ETag 与执行前一致、7 tier 仍在、无未清空注入。B 类整班结束由 fixture `stop()` + `rm -rf`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。
 
 ## 7. 自动化位置与状态
 
-- **证据与 Run**：证据与 Run 契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)(../llmtier-system-test-scheme.md)：Run ID=`<date>/B-api`；保存请求与原始响应（脱敏后）、发出命令、exit code、`elapsed`、环境快照；`manifest.json` 必填字段与报告落位（`tests/system/reports/...`）见 §4.8/§10；失败现场不截断。**本 case 额外证据**：`GET`（取 ETag）、PATCH 请求/原始响应、PATCH 后 `GET`（证明零副作用）。
+- **证据与 Run**：证据与 Run 契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)：Run ID=`<date>/B-api`；保存请求与原始响应（脱敏后）、发出命令、exit code、`elapsed`、环境快照；`manifest.json` 必填字段与报告落位（`tests/system/reports/...`）见计划 §7/§10；失败现场不截断。**本 case 额外证据**：`GET`（取 ETag）、PATCH 请求/原始响应、PATCH 后 `GET`（证明零副作用）。
   > **脚本覆盖（已对齐）**：现有 [`ST-DEPL-009.py`](../../../../tests/system/cases/ST-DEPL-009.py) 断言 `400` + `code=="invalid_request"` + `param=="provider_id"` + 5 键信封 + `type`/`retryable`，并回读证明 `provider_id`/`version`/ETag 未变；PATCH 目标为**另一个既存 provider**（本 case 自建并在 `finally` 删除），从而唯一命中 immutability 分支。
 
-- **依赖**：B 类 fixture `llmtier_b`/`admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；基线 provider `prov_b` / deployment `depl_b`；`DeploymentPatch`/`ErrorEnvelope` 机器契约；ETag/CAS 规则 `registry.update_deployment`/`_etag`；机制 `T-CFG-CAS`；自动化入口 [`ST-DEPL-009.py`](../../../../tests/system/cases/ST-DEPL-009.py)。**不依赖**其它 Case；与 ST-DEPL-004（正常 PATCH）互补但各自独立执行。
+- **依赖**：B 类 fixture `llmtier_b`/`admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；基线 provider `prov_b` / deployment `depl_b`；`DeploymentPatch`/`ErrorEnvelope` 机器契约；ETag/CAS 规则 `registry.update_deployment`/`_etag`；机制 `T-CFG-CAS`；自动化入口 [`ST-DEPL-009.py`](../../../../tests/system/cases/ST-DEPL-009.py)。**不依赖**其它 Case；与 ST-DEPL-004（正常 PATCH）互补但各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

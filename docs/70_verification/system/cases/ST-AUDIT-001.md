@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-AUDIT-001` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -31,7 +31,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-AUDIT-001`）；责任摘要、分类与优先级以 [系统测试方案 §3](../llmtier-system-test-scheme.md) 清单行为准。
+- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-AUDIT-001`）；责任摘要、分类与优先级以 [系统测试方案 §6](../llmtier-system-test-scheme.md) 清单行为准。
 - **来源**：系统设计 §8 审计接口（GET /v1/audit）（parent `llmtier-system-design`），设计验证项 `VRC-MGMT-003`；所属方案 `llmtier-system-test-scheme`。
 - **边界**：系统层 Case（整软件系统组装，被测为 m5air 真实部署或按 tests.asset-design 约束的替身）；本文档持有实现状态，执行状态与 Verdict 只在 Run 报告。
 
@@ -48,8 +48,8 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-AUDIT-001` / 系统设计 §8 审计接口（GET /v1/audit） / `VRC-MGMT-003` / `security` / `P0`
-- **测试方法（§1.5 方法表行）**：鉴权/授权/脱敏冒烟（secret/PII 不泄露）+ 角色隔离
-- 方案清单登记：`ST-AUDIT-001`（与 §3.2 权威清单一致；本文件名 `st-audit-001.md`，唯一对应）。
+- **测试方法（§2.2 方法表行）**：鉴权/授权/脱敏冒烟（secret/PII 不泄露）+ 角色隔离
+- 方案清单登记：`ST-AUDIT-001`（与 计划 §3 权威清单一致；本文件名 `st-audit-001.md`，唯一对应）。
 - 要测什么（责任展开）：`GET /v1/audit` 返回字段齐全（含 `request_id`）且脱敏的审计事件：HTTP 200 + `AuditPage`，默认 `limit=50`。
 - 明确不测什么 / 失败含义：不证明 `limit=1` 分页（ST-AUDIT-002）、不证明非法 `limit` 400（ST-AUDIT-003）、不证明 operational logs 脱敏（ST-LOGS-001）、不证明 provider 读取不回显 secret（ST-PROV-014）。本 case 锁定"字段齐全 + 无 secret 泄露 + 默认 limit"。
 
@@ -61,7 +61,7 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `admin`，只读；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=§2.1 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；fixture `admin_client`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；初始状态：m5air 审计表非空（bootstrap 及既往管理操作已写 `audit_events`）。本 case 只读。
+- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `admin`，只读；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=计划 §3 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；fixture `admin_client`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；初始状态：m5air 审计表非空（bootstrap 及既往管理操作已写 `audit_events`）。本 case 只读。
 
 ## 3. 输入构造
 
@@ -77,7 +77,7 @@
 ## 4. 执行步骤与观察点
 
 - **执行过程（逐步调用）**：
-  1. `GET /healthz`、`GET /readyz` —— 确认 §2.1 基线（由 `pytest_configure` 自动执行，本 case 不重复）。
+  1. `GET /healthz`、`GET /readyz` —— 确认 计划 §2 基线（由 `pytest_configure` 自动执行，本 case 不重复）。
   2. `resp = admin_client.get("/v1/audit")`；记录 status、body 原文（`resp.text` 用于脱敏扫描）。
   3. 断言 `resp.status_code == 200` 且 `content-type` 含 `application/json`。
   4. 解析 body：断言含 `data`（数组）与 `page`；`page` 键集恰 `{has_more,next_cursor}`。
@@ -101,9 +101,9 @@
   - **PASS**：`200` + `data` 数组 + 每条 7 键齐全（含 `request_id`）+ `len(data)≤50` + 无敏感字面。
   - **FAIL**：status 非 200、`page`/`data` 形状错、缺 `request_id` 或任一 `AuditEvent` 键、`len(data)>50`、或含敏感字面。
   - **BLOCKED**：fixture/断言逻辑问题——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **SKIP**：§2.1 前置不满足——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
+  - **SKIP**：计划 §3 前置不满足——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **INVALID**：用 `127.0.0.1`/mock 冒充真实 m5air，或把脱敏扫描当作"注入命中"——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：本 Case 有实现（§3.2 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
+  - **NOT_RUN**：本 Case 有实现（计划 §3 实现盘点 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
 
 ## 6. 错误路径、副作用与清理
 
@@ -113,6 +113,6 @@
 
 - **证据与 Run**：保存原始 HTTP status/headers/body（入库前将 Authorization、`9832`、key 文件内容脱敏）、发出命令、exit code、`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`AuditPage`/`AuditEvent` 机器契约；`AuditLog.page`；机制 `R-OBS-01`/`T-TRUST-LEAK`。自动化入口 [`ST-AUDIT-001.py`](../../../../tests/system/cases/ST-AUDIT-001.py)（**须补齐 7 字段断言后方可判 PASS**）。**不依赖**其它 Case；与 ST-AUDIT-002/03、ST-LOGS-001 互补。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`admin_client` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；`AuditPage`/`AuditEvent` 机器契约；`AuditLog.page`；机制 `R-OBS-01`/`T-TRUST-LEAK`。自动化入口 [`ST-AUDIT-001.py`](../../../../tests/system/cases/ST-AUDIT-001.py)（**须补齐 7 字段断言后方可判 PASS**）。**不依赖**其它 Case；与 ST-AUDIT-002/03、ST-LOGS-001 互补。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

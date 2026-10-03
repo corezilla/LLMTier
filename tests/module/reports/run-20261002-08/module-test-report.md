@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `llmtier-module-test-report-2026-10-02-08` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-10-02` |
-| Last Modified Date | `2026-10-02` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.module-test-report` |
 | Template Version | `0.3.1` |
 | Template Conformance | `tailored` |
@@ -48,7 +48,7 @@
 ### 1.1 范围与执行
 
 - 报告范围（计划/方案版本）：
-  - 方案：`llmtier-module-test-scheme`（[docs/70_verification/module/llmtier-module-test-scheme.md](../../../../docs/70_verification/module/llmtier-module-test-scheme.md)，`0.1.0-draft.11`，Template `tests.module-test-scheme` v0.6.1；**四层分母 95 条 → 72 个 Case**：① 接口行为 23 / ② 内部分支 48 / ③ 组合 10 / ④ 状态迁移 14；§3 为 Case 清单唯一登记处，§3.7 为分母→Case 核对表，§1.5.1 为异常/错误注入矩阵（(a) 37 个对外 `code` ＋ (b) 8 类上游异常 ＋ (c) 8 类传输/时间病态 ＝ 53 条），§4 为缺口裁决，含本轮修复的 `G-MT-COVERAGE-1`）。
+  - 方案：`llmtier-module-test-scheme`（[docs/70_verification/module/llmtier-module-test-scheme.md](../../../../docs/70_verification/module/llmtier-module-test-scheme.md)，`0.1.0-draft.11`，Template `tests.module-test-scheme` v0.6.1；**四层分母 95 条 → 72 个 Case**：① 接口行为 23 / ② 内部分支 48 / ③ 组合 10 / ④ 状态迁移 14；§6 为 Case 清单唯一登记处，§6.7 为分母→Case 核对表，§2.3 为异常/错误注入矩阵（(a) 37 个对外 `code` ＋ (b) 8 类上游异常 ＋ (c) 8 类传输/时间病态 ＝ 53 条），§4 为缺口裁决，含本轮修复的 `G-MT-COVERAGE-1`）。
   - 计划：`llmtier-module-test-plan`（[docs/70_verification/module/llmtier-module-test-plan.md](../../../../docs/70_verification/module/llmtier-module-test-plan.md)，`0.1.0-draft.12`，Template `tests.module-test-plan` v0.9.2；执行批次见其 §5.1，证据规则见其 §7，Gate 规则见其 §8，未决项见其 §10）。
   - 机器契约 pin（取自 `test-run.env`）：`schema_version=2`、`openapi_version=0.3-simplified-candidate.8`。
 - 被测对象：8 个软件模块 `M001`–`M008`（`M001 http-api`、`M002 web-ui`、`M003 inference`、`M004 management`、`M005 observability`、`M006 libdiag`、`M007 util`、`M008 log`；`M005 src/observability/` 无独立实现文件，其行为落在 M001 诊断路由与 M006 查询面，见方案 §1）。
@@ -59,7 +59,7 @@
 - **Case 粒度：72 个 Case 全部收集、全部执行、全部 `PASS`**；`NOT_RUN=0`、`BLOCKED=0`、`INVALID=0`（逐 Case `MT-*.json` 与 `case-status.json` 的 `cases` 段逐条一致，后者 `status` 计数为 `PASS=371`）。
 - **测试函数粒度：371 collected、371 passed、0 failed、0 skipped、0 errors、0 xpassed；套件 113.159s**（`artifacts/junit.xml` testsuite `tests="371" failures="0" errors="0" skipped="0" time="113.159"`；`artifacts/pytest.log` 首部 `collected 371 items`、末行 `371 passed in 113.16s (0:01:53)`）。`case-status.json.counts` 记 `PASS=371 / FAIL=0 / BLOCKED=0 / INVALID=0 / NOT_RUN=0 / SKIP=0 / XPASS=0`，并置 `release_blocking=false`（无 `FAIL`/`BLOCKED`/`INVALID` 记录）。
 - 四层分母 95 条**全部映射到已执行的 Case，未覆盖 0 条**（见 §5.1）；异常/错误注入矩阵 53 条**全部映射到已执行 Case 且全部 `PASS`**（见 §5.2，含 c3「超长/超大 response」→ `MT-INF-015`，该行在 run-01/run-03 为失败事实、在本 Run 为 `PASS`）。
-- 优先级与分类分布（方案 §3.6，与本 Run 逐 Case `status` 复算一致）：**P0 41 / P1 31**；negative 21 / boundary 13 / normal 12 / recovery 17 / security 6 / concurrency 3。
+- 优先级与分类分布（方案 §6.6，与本 Run 逐 Case `status` 复算一致）：**P0 41 / P1 31**；negative 21 / boundary 13 / normal 12 / recovery 17 / security 6 / concurrency 3。
 - **本 Run 相对 run-06 的变化不在既有产品行为**：分母由 91→95、Case 由 68→72 的 4 个新增 Case（`MT-MGMT-012`、`MT-MGMT-013`、`MT-MGMT-014`、`MT-INF-020`）与 `MT-MGMT-005` 扩充，来自 `eb62302` 的「反向核对补齐组装覆盖缺口」；同提交另含 `src/inference/providers/openai.py` 的 adapter 重取修复（§1.3.8、§6.2）。
 
 ### 1.3 模块层 Run 历史（8 个 Run，逐一如实叙述）
@@ -93,7 +93,7 @@
 
 **1.3.8 `run-20261002-08`（最终 Run，pin 与被测树一致）**——在上述新脚本与 openai 修复全部入库（提交 `eb62302`，`test(module): 反向核对补齐 5 个组装覆盖缺口（分母 91→95，Case 68→72）`；以及 `e27dca9`，`docs(module-test): 修正反向核对补齐的计数、VRC 追溯与计划同步`）后整批复跑。**pin 自洽性（本 Run 最重要的证据属性）**：`test-run.env.git_commit=e27dca9d7bc04a4bbc91e2b34d661298c25c2f88` 恰为执行时的 `HEAD`，且 `git status --porcelain` 对 `src/`、`tests/module/cases`、`tests/common/`、`tools/` 均为空（唯一未跟踪项是本 Run 自己的证据目录 `tests/module/reports/run-20261002-08/`），即**被测树与 pin 逐字一致，证据可采信**。与前序 Run 对照：run-05 的 pin `f83f8da`、run-07 的 pin `998d879` 均不含执行时实际生效的未入库测试资产/源码修复。运行结果：`artifacts/junit.xml` `tests=371 failures=0 errors=0 skipped=0 time=113.159`，`artifacts/pytest.log` 末行 `371 passed in 113.16s (0:01:53)`，`case-status.json` 72/72 `PASS`、`counts.PASS=371 / FAIL=0`、`release_blocking=false`；`MT-INF-015` 的三个测试函数耗时 0.524s / 0.534s / 0.524s（无一进入 60s 量级），新增 `MT-INF-020` 1.021s、`MT-MGMT-013` 1.019s、`MT-MGMT-012` 0.523s、`MT-MGMT-014` 0.515s，均正常。**跨 Run 可比性**：`git diff --stat a1cb672 e27dca9` 在被测面（`src/`、`tests/module/cases`、`tests/common`、`tools/`、`pyproject.toml`）含 `src/inference/providers/openai.py`（adapter 重取修复）、`tests/module/cases/` 的 4 个新增脚本与 `MT-MGMT-005` 扩充，其余为文档；即本 Run 相对 run-06 的产品差异仅为该修复，分母 91→95 与 Case 68→72 的变化来自测试资产（§1.2）。
 
-**1.3.9 缺陷不是产品缺陷；产品的超时行为正确**——读阶段 60s 无进展即返回 503 `provider_unavailable`，是 `stream_idle_timeout`（默认 60s）对「已建连但长期无字节进展的上游」的设计行为，**与方案 §1.5.1 c1/c2 的病态设定一致**（`MT-INF-013` stall/hang、`MT-INF-014` 慢速 trickle 均按此命中并 `PASS`）。缺陷位于**测试替身的写侧**（ENV-3 `FakeUpstream`），不是 `src/` 的读侧：`src/inference/providers/openai.py` 的读路径在本 Run 面对 2 MiB chunked 流 0 失败。因此 `D-MT-INF-015-1` 记为 **CLOSED（根因在测试替身，非产品）**，且**不改判产品的超时语义、不下调该超时**。
+**1.3.9 缺陷不是产品缺陷；产品的超时行为正确**——读阶段 60s 无进展即返回 503 `provider_unavailable`，是 `stream_idle_timeout`（默认 60s）对「已建连但长期无字节进展的上游」的设计行为，**与方案 §2.3 c1/c2 的病态设定一致**（`MT-INF-013` stall/hang、`MT-INF-014` 慢速 trickle 均按此命中并 `PASS`）。缺陷位于**测试替身的写侧**（ENV-3 `FakeUpstream`），不是 `src/` 的读侧：`src/inference/providers/openai.py` 的读路径在本 Run 面对 2 MiB chunked 流 0 失败。因此 `D-MT-INF-015-1` 记为 **CLOSED（根因在测试替身，非产品）**，且**不改判产品的超时语义、不下调该超时**。
 
 **1.3.10 旧 Run 证据全部保留**——按计划 §7「重跑生成新 Run，不覆盖旧失败」：`tests/module/reports/run-20261002-01/`…`-07/` 七个目录（含各自 `MT-*.json`、`case-status.json`、`test-run.env`、`artifacts/{junit.xml,pytest.log}`）**本交付未改动其中任何证据文件**；`-02/`、`-04/`、`-06/` 的 `module-test-report.md` 及其 `module-test-report.metadata.json`（`document_id` 分别为 `llmtier-module-test-report-2026-10-02-02`、`-2026-10-02-04`、`-2026-10-02-06`）作为历史记录保留。本报告的 `document_id` 带 Run 后缀 `-08`，遵循「每 Run 一份报告、一个带 Run 后缀的 id」的仓库惯例（对齐 `llmtier-unit-test-report-2026-10-01-04` 等）。
 
@@ -108,7 +108,7 @@
 
 ### 1.4 Gate 达成情况
 
-- **闭合——按计划 §8 给出「接受（模块层闭合）」建议（Gate 建议，非批准）**。闭合分母＝方案 §3 的 **72 个 Case**（非 33 个 VRC），闭合条件＝「全部 72 Case 有 `PASS`」：本 Run **72/72 `PASS`，条件满足**；`FAIL=0`、`NOT_RUN=0`、`BLOCKED=0`、`INVALID=0`（P0 硬门、分支/组合/迁移覆盖达标门、注入类方法命中门、异常/错误矩阵封闭门均满足，见 §7）。
+- **闭合——按计划 §8 给出「接受（模块层闭合）」建议（Gate 建议，非批准）**。闭合分母＝方案 §6 的 **72 个 Case**（非 33 个 VRC），闭合条件＝「全部 72 Case 有 `PASS`」：本 Run **72/72 `PASS`，条件满足**；`FAIL=0`、`NOT_RUN=0`、`BLOCKED=0`、`INVALID=0`（P0 硬门、分支/组合/迁移覆盖达标门、注入类方法命中门、异常/错误矩阵封闭门均满足，见 §7）。
 - **层级边界（必须随结论一起读）：module PASS ≠ system PASS**；**下层单元 PASS 不关闭本层**（本层分母独立来自模块设计 §9/§14 与 `src/` 分支），**本层 PASS 不关闭上层**（wire 互操作、OpenAPI 端到端一致性、真实上游 provider 协议、浏览器 E2E、性能耐久由 `llmtier-system-test-scheme` 承接）（计划 §8）。
 
 ## 2. 被测基线与实际环境
@@ -137,27 +137,27 @@
   | **`run-20261002-08`** | `src` | `0` | `0` | `2026-10-02T14:00:46Z` | 12 |
 
   即：**run-01 与 run-02 的 `test-run.env` 无这四个字段（记录粒度缺口，其退出码事实只能由 `artifacts/pytest.log` 与 `release_blocking` 间接判定）；run-03 起（含 run-04…08）四字段齐备**。旧 Run 的字段缺失**不补写、不追认**。
-- 设计/模块基线（方案 §1.5，报告不预填结果、只引用版本）：M001 `http-api` v0.1.0-draft.2 / ISD `http-api-isd`；M002 `web-ui` v0.1.0-draft.2 / `web-ui-isd`；M003 `inference` v0.1.0-draft.1 / `inference-isd`；M004 `management` v0.1.0-draft.3 / `management-isd`；M005 `observability` v0.1.0-draft.6 / `observability-isd`；M006 `libdiag` v0.1.0-draft.6 / `libdiag-isd`；M007 `util` v0.1.0-draft.2 / `util-isd`；M008 `log` v0.1.0-draft.1 / `log-isd`。
-- 与计划 §2 基线一致：被测为 `tests/module/cases` 全量；模块层为**本机隔离套件**——provider 为进程内 `FakeAdapter` 与 loopback `FakeUpstream`，HTTP 仅绑 `127.0.0.1:0` 临时端口（ENV-2），不触 LAN/m5air/真实 provider（方案 §1.6/§1.7）。本层 `127.0.0.1` 仅为 loopback 测试 HTTP 实例与占位 provider endpoint（不真正拨号到生产 provider），TS-003 的 LAN IP 约束在系统/契约层强制（计划 §9）。
+- 设计/模块基线（方案 §2，报告不预填结果、只引用版本）：M001 `http-api` v0.1.0-draft.2 / ISD `http-api-isd`；M002 `web-ui` v0.1.0-draft.2 / `web-ui-isd`；M003 `inference` v0.1.0-draft.1 / `inference-isd`；M004 `management` v0.1.0-draft.3 / `management-isd`；M005 `observability` v0.1.0-draft.6 / `observability-isd`；M006 `libdiag` v0.1.0-draft.6 / `libdiag-isd`；M007 `util` v0.1.0-draft.2 / `util-isd`；M008 `log` v0.1.0-draft.1 / `log-isd`。
+- 与计划 §2 基线一致：被测为 `tests/module/cases` 全量；模块层为**本机隔离套件**——provider 为进程内 `FakeAdapter` 与 loopback `FakeUpstream`，HTTP 仅绑 `127.0.0.1:0` 临时端口（ENV-2），不触 LAN/m5air/真实 provider（方案 §6/§7）。本层 `127.0.0.1` 仅为 loopback 测试 HTTP 实例与占位 provider endpoint（不真正拨号到生产 provider），TS-003 的 LAN IP 约束在系统/契约层强制（计划 §9）。
 - 环境偏差及影响：
   - **被测树与 pin 逐字一致（本 Run 无偏差）**：`git_commit=e27dca9` 即执行时 `HEAD`；`git status --porcelain src/ tests/module/cases tests/common tools/` 输出为空，唯一未跟踪项为本 Run 自己的证据目录。故产品代码、测试资产、报告生成器三者均被该 pin 完整覆盖，**这是 run-05 与 run-07 未达到的证据属性**（对照见 §1.3 表与 §4.2）。
   - **跨 Run 差异已核实**：`git diff --stat a1cb672 e27dca9` 在被测面（`src/`、`tests/module/cases`、`tests/common`、`tools/`、`pyproject.toml`）含 `src/inference/providers/openai.py`（adapter 重取修复）、`tests/module/cases/` 的 4 个新增脚本与 `MT-MGMT-005` 扩充；其余变更在 `docs/` 与各 Run 证据。因此 run-06 的 354/354 与本 Run 的 371/371 **差异可解释为测试资产扩充与一处源码修复**，非既有 68 Case 的行为变化。
   - **替身资产自检状态**：计划 §4 记 ENV-3/ENV-4 契约 `llmtier-unit-fakes` 为 `Ready（契约已建；自检 Run 待录制）`、`Unverified`；本 Run 使用其 `AppFixture`/`FakeAdapter` 与各测试模块本地 `FakeUpstream`/`FakeResponse` stub，**资产自检 Run 仍未录制**（不改变本 Run 判定，登记于 §6.3/§8）。
-  - **文档版本漂移（不影响本 Run 判定）**：方案 §3.6 仍把 `run-20261002-06` 记为「最终 Run」且写「共 **6** 个 Run（`…-01`…`-06`）」——**该计数与真实 Run 数（8）不一致**，且未含 run-07/run-08；本报告不动方案（交付边界），如实登记于 §4.2/§6.3/§8。计划侧的同一批引用（§1/§3/§7/§10）已随本次交付同步到 run-08 并关闭 §10 的 run-07 报告未决项。
+  - **文档版本漂移（不影响本 Run 判定）**：方案 §6.6 仍把 `run-20261002-06` 记为「最终 Run」且写「共 **6** 个 Run（`…-01`…`-06`）」——**该计数与真实 Run 数（8）不一致**，且未含 run-07/run-08；本报告不动方案（交付边界），如实登记于报告 §4.2/§6.3/§8。计划侧的同一批引用（§1/§3/§7/§10）已随本次交付同步到 run-08 并关闭 §10 的 run-07 报告未决项。
 - 证据版本绑定与待重验：
   - 本报告结论仅对「被测产品树＝`e27dca9`（含 `src/inference/providers/openai.py` 的 adapter 重取修复）」＋ ENV-3 替身 chunked 形态 ＋ `schema_version=2` ＋ `openapi_version=0.3-simplified-candidate.8` ＋ Python `3.14.3` 有效；`src/<module>/`、落库 schema、`interfaces/` 或 `pyproject.toml` 收集规则变更后须重跑并标「待重验」，不同基线的结果不合并统计。
   - 本 Run 无 `FAIL` 需保持 RED；其相对 run-06 的变化是**测试资产扩充（+4 Case 与 `MT-MGMT-005` 扩充）与一处源码修复**（§1.3.8）。
 
 ## 3. 逐 Case 执行记录
 
-本 Run 一条命令串行执行 `tests/module/cases` 全量，收集 371 个 pytest 测试函数。§3.1 按计划 §5.1 的模块批次汇总，§3.2 按方案 §3 的 72 个 Case 逐条列出。**每个 Case 的 Verdict 逐条读自 `tests/module/reports/run-20261002-08/<Case ID>.json` 的 `status` 字段**；逐测试函数的机器记录见 `artifacts/junit.xml` 与 `artifacts/pytest.log`。
+本 Run 一条命令串行执行 `tests/module/cases` 全量，收集 371 个 pytest 测试函数。§6.1 按计划 §5.1 的模块批次汇总，§6.2 按方案 §6 的 72 个 Case 逐条列出。**每个 Case 的 Verdict 逐条读自 `tests/module/reports/run-20261002-08/<Case ID>.json` 的 `status` 字段**；逐测试函数的机器记录见 `artifacts/junit.xml` 与 `artifacts/pytest.log`。
 
-> **粒度注（371 vs 72）**：方案 §3 的设计分母是 **72 个 Case**；`371` 是这 72 个 Case 的测试函数展开数（1–12 个/Case）。`case-status.json` 的 `counts` 按**测试函数**计数（`PASS=371`），其 `cases` 段按 **Case ID** 给出 72 条记录（72 `PASS`）。
+> **粒度注（371 vs 72）**：方案 §6 的设计分母是 **72 个 Case**；`371` 是这 72 个 Case 的测试函数展开数（1–12 个/Case）。`case-status.json` 的 `counts` 按**测试函数**计数（`PASS=371`），其 `cases` 段按 **Case ID** 给出 72 条记录（72 `PASS`）。
 > **记录口径（承 run-06 工具修复）**：`tools/test_report.py` 现按 `case_id` 聚合后**取最严重状态**作为 Case 级 `status`，并为**多测试函数**的 Case 落 `test_functions` 明细。因此：① Case 级 `PASS` 现在蕴含「该 Case 全部测试函数均非 `FAIL`/`BLOCKED`/`INVALID`」，run-03 那种「`counts.FAIL=1` 而 `cases[…].status=PASS`」的自相矛盾不可能再出现；② `case-status.json.cases.<Case ID>` 与 `MT-<Case ID>.json` 的 `node_id`/`time_seconds` 仍只登记该 Case 的**一个代表测试函数**（同分值时取首个），**不是该 Case 的耗时合计**（如 `MT-INF-015` 记 0.524s，而该 Case 三个函数在 junit 中的耗时合计为 1.582s）；③ `test_functions` 仅在该 Case 有 **>1** 个测试函数时落盘，故 `MT-API-012`（`test_client_disconnect_mid_stream`）与 `MT-API-013`（`test_rst_mid_stream_aborts_without_crash`）两个单函数 Case **无该字段**——这是工具的既定行为而非证据缺失，两者的函数级结果仍完整记录在 `node_id`/`status` 与 `artifacts/junit.xml` 中。72 个 Case 的全部 371 个测试函数均在 `artifacts/junit.xml` 中有独立记录。
 
-### 3.1 按模块 / 批次分组（方案 §3 × 计划 §5.1）
+### 3.1 按模块 / 批次分组（方案 §6 × 计划 §5.1）
 
-| 批次 | 模块（M-id） | Case 范围 | 分母层 / 分母行（方案 §3.7） | Case 数 | 测试函数数 | 执行状态 | Verdict | Run ID / 证据 |
+| 批次 | 模块（M-id） | Case 范围 | 分母层 / 分母行（方案 §6.7） | Case 数 | 测试函数数 | 执行状态 | Verdict | Run ID / 证据 |
 |---|---|---|---|---|---|---|---|---|
 | B1 | `util`（M007） | MT-UTIL-001..005 | ① MT-UTIL-001/002；②×3；④ T12-T13 | 5 | 19 | 全部执行 | PASS 5/5 | run-20261002-08 |
 | B2 | `log`（M008） | MT-LOG-001..003 | ① MT-LOG-001；②×2；③ K10；④ T14 | 3 | 17 | 全部执行 | PASS 3/3 | run-20261002-08 |
@@ -169,11 +169,11 @@
 | B8 | `web-ui`（M002） | MT-UI-001..006 | ①×2；②×4 | 6 | 61 | 全部执行 | PASS 6/6 | run-20261002-08 |
 | BALL | 全量回归（8 模块） | 全部 72 Case | 95 条分母全覆盖 | 72 | 371 | 全部执行 | **PASS 72 / FAIL 0** | run-20261002-08 |
 
-> Case 数与测试函数数逐批次取自 `artifacts/junit.xml`（按 `classname` 前缀 `MT-<OBJ>-<NNN>` 聚合）与 72 份 `MT-*.json`；合计 72 Case / 371 测试函数与套件 `tests="371"` 一致。P0 41 个 Case 全部 `PASS`、P1 31 个 Case 全部 `PASS`；分类分布（方案 §3.6）：negative 21 / boundary 13 / normal 12 / recovery 17 / security 6 / concurrency 3；本报告按逐 Case `status` 复算的分布与之一致。
+> Case 数与测试函数数逐批次取自 `artifacts/junit.xml`（按 `classname` 前缀 `MT-<OBJ>-<NNN>` 聚合）与 72 份 `MT-*.json`；合计 72 Case / 371 测试函数与套件 `tests="371"` 一致。P0 41 个 Case 全部 `PASS`、P1 31 个 Case 全部 `PASS`；分类分布（方案 §6.6）：negative 21 / boundary 13 / normal 12 / recovery 17 / security 6 / concurrency 3；本报告按逐 Case `status` 复算的分布与之一致。
 
 ### 3.2 逐 Case 明细（72 条，Verdict 取自 `run-20261002-08/MT-*.json`）
 
-| Case ID | 模块 | 分母层（方案 §3） | 分类 | 优先级 | Verdict | Run 证据 | 测试函数数 |
+| Case ID | 模块 | 分母层（方案 §6） | 分类 | 优先级 | Verdict | Run 证据 | 测试函数数 |
 |---|---|---|---|---|---|---|---|
 | MT-UTIL-001 | M007 util | ① | boundary | P0 | PASS | `MT-UTIL-001.json` | 4 |
 | MT-UTIL-002 | M007 util | ①（④T12） | recovery | P0 | PASS | `MT-UTIL-002.json` | 4 |
@@ -248,13 +248,13 @@
 | MT-UI-005 | M002 web-ui | ② | boundary | P1 | PASS | `MT-UI-005.json` | 9 |
 | MT-UI-006 | M002 web-ui | ② | negative | P1 | PASS | `MT-UI-006.json` | 10 |
 
-> 72 份 `MT-*.json` 的 `status` 全为 `PASS`、`reason` 字段全为空串（无失败/阻塞/无效原因），`artifacts` 与 `redactions` 均为空数组，`started_at` 全部为 `2026-10-02T13:58:52Z`，`git_commit` 全部为 `e27dca9d7bc04a4bbc91e2b34d661298c25c2f88`。「测试函数数」列取自 `artifacts/junit.xml` 按 Case 聚合（非估算），与 `MT-*.json` 的 `test_functions` 条目数一致（两个单函数 Case 除外，见本节粒度注③）；分类/优先级/分母层列与方案 §3.1–§3.4 清单逐条复算一致（0 处偏差）。`MT-MGMT-005` 因 `eb62302` 的 `atomic=False` 审计例外扩充为 7 个测试函数（原 5 个）；新增 `MT-MGMT-012/013/014`、`MT-INF-020` 的 `test_functions` 数分别为 6/8/5/5。
+> 72 份 `MT-*.json` 的 `status` 全为 `PASS`、`reason` 字段全为空串（无失败/阻塞/无效原因），`artifacts` 与 `redactions` 均为空数组，`started_at` 全部为 `2026-10-02T13:58:52Z`，`git_commit` 全部为 `e27dca9d7bc04a4bbc91e2b34d661298c25c2f88`。「测试函数数」列取自 `artifacts/junit.xml` 按 Case 聚合（非估算），与 `MT-*.json` 的 `test_functions` 条目数一致（两个单函数 Case 除外，见本节粒度注③）；分类/优先级/分母层列与方案 §6.1–§6.4 清单逐条复算一致（0 处偏差）。`MT-MGMT-005` 因 `eb62302` 的 `atomic=False` 审计例外扩充为 7 个测试函数（原 5 个）；新增 `MT-MGMT-012/013/014`、`MT-INF-020` 的 `test_functions` 数分别为 6/8/5/5。
 
 ### 3.3 副作用与清理（逐 Case 口径）
 
 | 项目 | 结果已知性 | 副作用 | 清理状态 |
 |---|---|---|---|
-| 全部 72 Case（ENV-1 组装隔离库为主） | 可独立判定：经被测模块公开入口驱动，断言 wire 信封 / 公开返回 / 落库行 + 关键内部 seam | 每 Case 在 `setUp` 新建 `tempfile.TemporaryDirectory` + 新 SQLite + 真实组装栈（`tests/common/fakes.py::AppFixture`）；初态经公开入口播种（方案 §1.5 规则 1） | 每 Case `tearDown` 调 `AppFixture.close()`（`store.close()` + `temp.cleanup()`）销毁临时目录；Case 间无共享可变状态 |
+| 全部 72 Case（ENV-1 组装隔离库为主） | 可独立判定：经被测模块公开入口驱动，断言 wire 信封 / 公开返回 / 落库行 + 关键内部 seam | 每 Case 在 `setUp` 新建 `tempfile.TemporaryDirectory` + 新 SQLite + 真实组装栈（`tests/common/fakes.py::AppFixture`）；初态经公开入口播种（方案 §2 规则 1） | 每 Case `tearDown` 调 `AppFixture.close()`（`store.close()` + `temp.cleanup()`）销毁临时目录；Case 间无共享可变状态 |
 | 经 HTTP 的 Case（ENV-2，`MT-API-*`/`MT-OBS-*`/经 HTTP 的 `MT-MGMT-*`/`MT-DIAG-*`） | 可独立判定（真实 socket + 真实 `ThreadingHTTPServer` handler 栈） | loopback `127.0.0.1:0` 随机端口上的真实请求 | `tearDownClass`/`tearDown` 调 `server.shutdown()` + `server_close()` + `AppFixture.close()`（`tests/module/cases/support/http_env.py`） |
 | `MT-INF-*`（ENV-3 loopback `FakeUpstream` / `FakeAdapter`） | 可独立判定（真实 `OpenAIProvider` 传输 + 边界外替身） | loopback 临时端口 + 经公开 Registry 入口接线的假上游 | `InferenceEnv.tearDown` 停上游；`AppFixture.close()` 销毁临时库。替身每响应以 `Connection: close` 收尾并置 `close_connection=True`，连接不再复用，端口随 `stop()`/`shutdown()` 释放 |
 | 存储面注入 Case（`MT-UTIL-004/005`、`MT-DIAG-007`、`MT-OBS-004`、`MT-INF-009`） | 可独立判定（真实写失败/损坏/回滚） | 仅作用于该 Case 自己的临时库（`DROP TABLE`、损坏库、迁移中途失败） | 随临时目录销毁；无跨 Case 残留 |
@@ -268,7 +268,7 @@
 
 | 偏差 / 无效项 | 原因 | 影响 Case | 处置与重跑 Run |
 |---|---|---|---|
-| **`run-20261002-01` 的 FAIL**：`MT-INF-015` `OversizeTests::test_two_megabyte_output_normalized`，`ApiError: (503, 'provider_unavailable', 'Provider streaming request failed: TimeoutError: timed out')`，节点耗时 60.133s | ENV-3 边界替身 `tests/module/cases/support/upstream.py::Handler._send` 以 `Content-Length` 声明长度并**单次写出整个 2 MiB body**；在 macOS loopback 上间歇性不推进，读侧 60s 无进展 → 回落到流空闲超时 | MT-INF-015（层②，boundary，P1；方案 §1.5.1 c3） | 首次处置（`f83f8da`）：改为 64 KiB 分块写 + 逐块 `flush()` → 以 `run-20261002-02` 复跑取得全绿，**但为假绿**（替身仍非流式形态） |
+| **`run-20261002-01` 的 FAIL**：`MT-INF-015` `OversizeTests::test_two_megabyte_output_normalized`，`ApiError: (503, 'provider_unavailable', 'Provider streaming request failed: TimeoutError: timed out')`，节点耗时 60.133s | ENV-3 边界替身 `tests/module/cases/support/upstream.py::Handler._send` 以 `Content-Length` 声明长度并**单次写出整个 2 MiB body**；在 macOS loopback 上间歇性不推进，读侧 60s 无进展 → 回落到流空闲超时 | MT-INF-015（层②，boundary，P1；方案 §2.3 c3） | 首次处置（`f83f8da`）：改为 64 KiB 分块写 + 逐块 `flush()` → 以 `run-20261002-02` 复跑取得全绿，**但为假绿**（替身仍非流式形态） |
 | **`run-20261002-03` 的 FAIL**：`MT-INF-015` `OversizeTests::test_service_remains_healthy_after_oversize`，同一 `ApiError`（503 `provider_unavailable` / `TimeoutError`），节点耗时 60.126s | 同一根因未消除（02 的分块 flush 形态仍以 `Content-Length` 单连接大 body 写出），负载下再次复现 | MT-INF-015（同上） | **根除处置**：替身改为 `Transfer-Encoding: chunked` + 16 KiB 分片（真实流式上游形态）→ 以 `run-20261002-04` 复跑，`failures="0"`、354/354 passed、`MT-INF-015` 三函数 0.52s 级（§1.3.4/§6.1）。后续 `run-05`/`run-06` 两轮全量复跑持续为 354/354；修复随 `a1cb672` 入库，pin 覆盖问题在 run-06 消除；扩充资产后 `run-07`/`run-08` 继续 371/371。按计划 §7「重跑生成新 Run，不覆盖旧失败」，`run-20261002-01/` 与 `run-20261002-03/` 的全部原始证据（`MT-INF-015.json`、`case-status.json`、`artifacts/junit.xml`、`artifacts/pytest.log`）**原样保留** |
 | `run-20261002-02` 的**假绿**（非 FAIL 记录，但为方法论缺陷） | 以「一次全绿」判定缺陷关闭，未验证替身写形态是否已对齐真实上游；缺陷条件仍成立，故 run-03 复现 | MT-INF-015 所在族 | 已在本报告显式记为**假绿**并给出判据：缺陷关闭须同时具备（a）确定根因、（b）消除根因条件的改动、（c）新 Run 复跑证据；仅（c）不成立。run-04/05/06 三轮零失败 ＋ 入库后 pin 自洽（run-06）＋ run-07/08 两轮零失败共同满足三项 |
 
@@ -279,8 +279,8 @@
 | **证据内部不一致（前序 Run `run-20261002-03`）**：`case-status.json.cases` 记 68/68 `PASS`（含 `MT-INF-015`），而 `counts.FAIL=1`、`release_blocking=true`，junit 的 failure 落在同 Case 的**另一个**测试函数上 | `tools/test_report.py::build_report` 以 `cases[record["case_id"]] = {...}` 收敛，Case 级 `status`/`node_id`/`time_seconds` 只保留该 Case **最后一个被采集**的测试函数；Case 内任一函数失败不会翻转 Case 级状态（`counts` 与 `release_blocking` 仍按测试函数统计，故不受影响） | 记录口径影响全部 68 Case（工具侧，非产品行为） | **已于 run-06 轮修复**（§6.2）：Case 级取最严重状态 ＋ 多函数 Case 落 `test_functions`；本 Run 证据无该不一致（`counts.FAIL=0` 与 `cases` 72 `PASS` 一致，`artifacts/junit.xml` `failures="0"`）。**旧 Run（`-01`/`-03`）的 `case-status.json`/`MT-*.json` 不追溯改写** |
 | **前序 Run `run-20261002-05` 的 pin 与执行树不一致**：`test-run.env.git_commit=f83f8da`，而执行树含未入库的 ENV-3 替身 chunked 化、`run_harness.sh` 四字段补录、`tools/test_report.py` 修复 | 修复未入库即执行 Run（登记于 run-04 报告 §2/§4.2） | 无（`src/` 无未提交改动，产品代码与 pin 一致；替身属测试资产） | **已于 run-06 消除**：三处修复入库为 `a1cb672` 后重跑（run-06）。run-05 证据原样保留，但其 `git_commit` **不作为最终 pin 依据** |
 | **前序 Run `run-20261002-07` 的 pin 与执行树不一致**：`test-run.env.git_commit=998d879`，而执行树含未提交的 4 个新脚本（`MT-MGMT-012/013/014`、`MT-INF-020`）、`MT-MGMT-005` 扩充与 `src/inference/providers/openai.py` 修复 | 新脚本与修复未入库即执行 Run（由 `eb62302` 才提交） | 无（这些资产是新增/修复面，产品代码与执行树之间的差异即为该未入库修复） | **本 Run 已消除**：新脚本与 openai 修复入库为 `eb62302`（并经 `e27dca9` 修正计数/追溯/计划同步）后重跑，`test-run.env.git_commit=e27dca9` ＝ 执行时 `HEAD`、工作树无未提交改动（§1.3.8/§2）。run-07 证据原样保留，但其 `git_commit` **不作为最终 pin 依据**，也未为其生成报告实例（§4.3） |
-| **方案 §3.6 的 Run 现状描述过期**：`run-20261002-06` 仍被记为「最终 Run」，且写「共 **6** 个 Run（`…-01`…`-06`）」——与真实 Run 数（8）不一致，run-07/run-08 均未列入 | 方案文档在 run-06 之后未再同步 | 无（设计文档不预填 Verdict） | 本交付不改方案（边界约束），如实登记于 §6.3/§8；计划侧同一批引用已随本次交付同步到 run-08（§7/§10 关闭） |
-| **单测试函数 Case 无 `test_functions` 明细**：`MT-API-012`、`MT-API-013` 的 `MT-*.json` 只有 `node_id`/`status`，无 `test_functions` 数组 | `tools/test_report.py::emit_manifests` 仅在 `len(group) > 1` 时落该字段 | 仅这 2 个 Case 的记录形态（非覆盖缺口） | 工具既定行为，不改工具；两 Case 各 1 个测试函数的结果已由 `node_id`/`status=PASS` 与 `artifacts/junit.xml` 完整落证（§3 粒度注③） |
+| **方案 §6.6 的 Run 现状描述过期**：`run-20261002-06` 仍被记为「最终 Run」，且写「共 **6** 个 Run（`…-01`…`-06`）」——与真实 Run 数（8）不一致，run-07/run-08 均未列入 | 方案文档在 run-06 之后未再同步 | 无（设计文档不预填 Verdict） | 本交付不改方案（边界约束），如实登记于 §6.3/§8；计划侧同一批引用已随本次交付同步到 run-08（§7/§10 关闭） |
+| **单测试函数 Case 无 `test_functions` 明细**：`MT-API-012`、`MT-API-013` 的 `MT-*.json` 只有 `node_id`/`status`，无 `test_functions` 数组 | `tools/test_report.py::emit_manifests` 仅在 `len(group) > 1` 时落该字段 | 仅这 2 个 Case 的记录形态（非覆盖缺口） | 工具既定行为，不改工具；两 Case 各 1 个测试函数的结果已由 `node_id`/`status=PASS` 与 `artifacts/junit.xml` 完整落证（§6 粒度注③） |
 | **替身资产自检 Run 未录制**（ENV-3/ENV-4 契约 `llmtier-unit-fakes` 为 `Implemented`/`Unverified`） | 资产自检属独立 Gate，尚未安排 | 无 | 登记于 §6.3/§8；不改变本 Run 判定 |
 | 无失败（`FAIL`） | 本 Run 72 Case 全 `PASS`，`counts.FAIL=0`、`release_blocking=false`、`junit failures="0"` | — | — |
 | 无无效执行（`INVALID`） | 注入类 Case 均以注入生效的可观测后果断言（见 §5.3），未出现「配置但未生效」 | — | — |
@@ -293,25 +293,25 @@
 
 ## 5. 覆盖复算（对照方案分母）
 
-分母权威＝方案 `llmtier-module-test-scheme` v0.1.0-draft.11 §3（四层：① 接口行为 23 ＋ ② 内部分支 48 ＋ ③ 组合 10 ＋ ④ 状态迁移 14 ＝ **95 条**），展开为 §3 的 **72 个 Case**；VRC 只作追溯（方案 §3.5/附录 A），不作分母。分母＝95 条，Case＝72 个，二者不同粒度。
+分母权威＝方案 `llmtier-module-test-scheme` v0.1.0-draft.12 §6（四层：① 接口行为 23 ＋ ② 内部分支 48 ＋ ③ 组合 10 ＋ ④ 状态迁移 14 ＝ **95 条**），展开为 §6 的 **72 个 Case**；VRC 只作追溯（方案 §6.5/附录 A），不作分母。分母＝95 条，Case＝72 个，二者不同粒度。
 
 ### 5.1 四层分母闭合表
 
-| 分母层 | 分母数（方案 §3.6） | 映射到的 Case 数 | 已执行 Case | 其中 `PASS` | 其中 `FAIL` | 未覆盖（分母无 Case / Case 未执行） |
+| 分母层 | 分母数（方案 §6.6） | 映射到的 Case 数 | 已执行 Case | 其中 `PASS` | 其中 `FAIL` | 未覆盖（分母无 Case / Case 未执行） |
 |---|---|---|---|---|---|---|
-| ① 对外接口端到端行为（§3.1） | 23 | 23（1:1） | 23 | 23 | 0 | **0** |
-| ② 内部分支（§3.2） | 48 | 48（每分支 1 Case） | 48 | 48 | 0 | **0** |
-| ③ 组合行（§3.3 K1–K10） | 10 | 12（含 K1 落地的 `MT-API-011`，其分母计入本层） | 12 | 12 | 0 | **0** |
-| ④ 状态迁移（§3.4 T1–T14） | 14 | 13（T1/T2/T3 合并到 `MT-INF-003`＋`MT-INF-009` 等） | 13 | 13 | 0 | **0** |
+| ① 对外接口端到端行为（§6.1） | 23 | 23（1:1） | 23 | 23 | 0 | **0** |
+| ② 内部分支（§6.2） | 48 | 48（每分支 1 Case） | 48 | 48 | 0 | **0** |
+| ③ 组合行（§6.3 K1–K10） | 10 | 12（含 K1 落地的 `MT-API-011`，其分母计入本层） | 12 | 12 | 0 | **0** |
+| ④ 状态迁移（§6.4 T1–T14） | 14 | 13（T1/T2/T3 合并到 `MT-INF-003`＋`MT-INF-009` 等） | 13 | 13 | 0 | **0** |
 | **合计** | **95** | **72 个去重 Case** | **72** | **72** | **0** | **0** |
 
-- 粒度说明：层② 48 条 = 方案 §3.2 的 49 行减去 1 条「组合落地 Case」`MT-API-011`（方案 §3.2 尾注：其独自分母计入层③）；因此 23（①）＋ 48（②）＋ 1（`MT-API-011` 归③）＝ 72 个 Case，无重复计分母、无遗漏。
-- 逐层未覆盖复核：95 条分母每条的「映射 Case」列（方案 §3.2/§3.3/§3.4/§3.7）在本 Run **全部有对应 Case 且该 Case 已执行并出 `PASS`**；**未覆盖 0 条、无静默消失的分支/组合/迁移**（计划 §8「分支/组合/迁移覆盖达标门」满足）。本轮 `G-MT-COVERAGE-1` 修复新增的 4 个 Case 与 `MT-MGMT-005` 扩充均在本 Run 执行并 `PASS`。
-- 逐层 Verdict 偏差：**0 条**。层② 的 `M003-超大 response 归一`（方案 §1.5.1 c3）→ `MT-INF-015` 在本 Run 为 `PASS`（三个测试函数 0.524s / 0.534s / 0.524s）；该行在 run-01（60.133s `FAIL`）与 run-03（60.126s `FAIL`）的失败事实已在 §4.1 登记并关闭，**本 Run 不再是例外行**。
+- 粒度说明：层② 48 条 = 方案 §6.2 的 49 行减去 1 条「组合落地 Case」`MT-API-011`（方案 §6.2 尾注：其独自分母计入层③）；因此 23（①）＋ 48（②）＋ 1（`MT-API-011` 归③）＝ 72 个 Case，无重复计分母、无遗漏。
+- 逐层未覆盖复核：95 条分母每条的「映射 Case」列（方案 §6.2/§6.3/§6.4/§6.7）在本 Run **全部有对应 Case 且该 Case 已执行并出 `PASS`**；**未覆盖 0 条、无静默消失的分支/组合/迁移**（计划 §8「分支/组合/迁移覆盖达标门」满足）。本轮 `G-MT-COVERAGE-1` 修复新增的 4 个 Case 与 `MT-MGMT-005` 扩充均在本 Run 执行并 `PASS`。
+- 逐层 Verdict 偏差：**0 条**。层② 的 `M003-超大 response 归一`（方案 §2.3 c3）→ `MT-INF-015` 在本 Run 为 `PASS`（三个测试函数 0.524s / 0.534s / 0.524s）；该行在 run-01（60.133s `FAIL`）与 run-03（60.126s `FAIL`）的失败事实已在 §4.1 登记并关闭，**本 Run 不再是例外行**。
 
-### 5.2 异常/错误注入矩阵封闭核对（方案 §1.5.1，53 条；Oracle ＝ `src/`）
+### 5.2 异常/错误注入矩阵封闭核对（方案 §2.3，53 条；Oracle ＝ `src/`）
 
-封闭判据：每行必须映射到 ≥1 个 `MT-*` Case 或具名 Gap；**0 静默缺失**。本 Run 逐行核对结果如下（Verdict 取自对应 `MT-*.json`，本 Run 全部 `PASS`；矩阵行数按方案 §1.5.1 复算为 (a)37＋(b)8＋(c)8＝53，与方案声明一致）。
+封闭判据：每行必须映射到 ≥1 个 `MT-*` Case 或具名 Gap；**0 静默缺失**。本 Run 逐行核对结果如下（Verdict 取自对应 `MT-*.json`，本 Run 全部 `PASS`；矩阵行数按方案 §2.3 复算为 (a)37＋(b)8＋(c)8＝53，与方案声明一致）。
 
 **(a) 每个对外 error code（37 条）**
 
@@ -385,9 +385,9 @@
 
 - **(a)/(b)/(c) 汇总核对**：37 ＋ 8 ＋ 8 ＝ **53 条，每条均映射到已执行 Case，0 静默缺失、0 映射 Case 非 `PASS`**。10 个新增分支 Case（`MT-MGMT-011`、`MT-API-012/013`、`MT-INF-013…019`）承接 a16/a24、b4/b8、c1–c8 共 20 条；本轮 `MT-MGMT-012/013/014` 另承接 a11/a12/a21/a1 的增量映射，本 Run 全部 `PASS`。
 - **真实 socket 专证（c4/c5，计划 §7/§8 要求）**：`MT-API-012`（客户端读首帧后 `close()`）与 `MT-API-013`（`SO_LINGER 0` 后 `close()` 触发 RST）均在 ENV-2 `ThreadingHTTPServer` 的真实 socket 上以真实客户端执行（未用进程内对象替代），本 Run 均 `PASS`；两 Case 自身在断开前后取 `/dev/fd` 基线（`_fds()`）并断言无 fd 泄漏，同时经 `/v1/runtime` 断言 `running` 归零（Router 许可释放）、账本不变。c1/c2 由 `MT-INF-013/014` 命中建连/流空闲超时；c3 由 `MT-INF-015` 的 2 MiB 响应归一承接（替身改 chunked 16 KiB 后三个函数 0.52s 级，见 §1.3.8）；c8 由 `MT-INF-018` 断言 429 + `Retry-After` 与许可归零，全部 `PASS`。
-- **design-vs-code 偏差的处置（`G-INF-NONJSON-MAPPING-1`）**：方案 §1.5.1 的 a25/b4/c7 三行把「非 JSON `data:` 帧 / 非 JSON embeddings 响应体」预期为 `502 provider_contract_error`；`src/` 实测为 **`503 provider_unavailable`（`retryable=true`）**，因 `OpenAIProvider.complete/_request` 把 `json.JSONDecodeError` 归入传输异常类。按方案 §4 的裁决（**Oracle ＝ `src/`，实测为准**），`MT-INF-017` 以 `src/` 断言：非 SSE Content-Type/多 terminal/terminal-status 矛盾/无合法 terminal → 502；非 JSON `data:` 帧 → 503；embeddings 非 JSON 体 → 503；且断言账本不伪装成功（`measurement_status=unknown`、tokens 为 NULL 不补零）。本 Run `MT-INF-017` **4 个测试函数全 `PASS`**，即该偏差**按设计侧登记、以 `src/` 为准断言通过**，未被改判为 PASS 掩盖、未把 503 写成 502。恢复条件（设计侧确认权威映射、或建立 `interfaces/error-codes/` 机器目录）挂在 §8。
+- **design-vs-code 偏差的处置（`G-INF-NONJSON-MAPPING-1`）**：方案 §2.3 的 a25/b4/c7 三行把「非 JSON `data:` 帧 / 非 JSON embeddings 响应体」预期为 `502 provider_contract_error`；`src/` 实测为 **`503 provider_unavailable`（`retryable=true`）**，因 `OpenAIProvider.complete/_request` 把 `json.JSONDecodeError` 归入传输异常类。按方案 §7 的裁决（**Oracle ＝ `src/`，实测为准**），`MT-INF-017` 以 `src/` 断言：非 SSE Content-Type/多 terminal/terminal-status 矛盾/无合法 terminal → 502；非 JSON `data:` 帧 → 503；embeddings 非 JSON 体 → 503；且断言账本不伪装成功（`measurement_status=unknown`、tokens 为 NULL 不补零）。本 Run `MT-INF-017` **4 个测试函数全 `PASS`**，即该偏差**按设计侧登记、以 `src/` 为准断言通过**，未被改判为 PASS 掩盖、未把 503 写成 502。恢复条件（设计侧确认权威映射、或建立 `interfaces/error-codes/` 机器目录）挂在 §8。
 
-### 5.3 注入类方法命中门（方案 §1.5/§3.7 注入面核对块；计划 §8）
+### 5.3 注入类方法命中门（方案 §2/§6.7 注入面核对块；计划 §8）
 
 主手段＝边界替身返回错误数据/行为；产品 diagnostics 注入为**可选补充**（ENV-4）。判定规则：替身按配置返回错误即视为命中，判定＝模块对该错误的映射；产品注入须命中方可判定，未命中即 `INVALID`。本 Run `INVALID=0`，注入类方法逐面命中如下：
 
@@ -414,7 +414,7 @@
 
 ### 5.4 设计验证项（VRC）追溯复核（33 项，非分母）
 
-方案 §3.5/附录 A：VRC 在本层只作追溯列。33 项 `VRC-*` 每项至少映射 1 个本层 Case（映射列取自方案附录 A 的「§3 Case 覆盖」列）：
+方案 §6.5/附录 A：VRC 在本层只作追溯列。33 项 `VRC-*` 每项至少映射 1 个本层 Case（映射列取自方案附录 A 的「§6 Case 覆盖」列）：
 
 | VRC ID | 要验证什么 | 设计来源 | 本层 Case | 本 Run Verdict |
 |---|---|---|---|---|
@@ -452,7 +452,7 @@
 | VRC-UTIL-002 | 事务与迁移 | `util-design` §14.2 / `util-isd` §9.1.2 | `MT-UTIL-002` / `MT-UTIL-004` / `MT-UTIL-005` | PASS |
 | VRC-LOG-001 | 脱敏与查询 | `log-design` §14.1 / `log-isd` §9.1.1 | `MT-LOG-001` / `MT-LOG-002` / `MT-LOG-003` | PASS |
 
-> 33/33 `VRC-*` 均有本层 Case 且已执行并 `PASS`。追溯覆盖 ＝ 33/33，**不替代四层分母（95 条）的行为覆盖结论**（方案 §3.5 注）。本轮 `eb62302` 补齐后，VRC-MGMT-002 增 `MT-MGMT-012/013`、VRC-MGMT-003 增 `MT-MGMT-005`（`atomic=False`）、VRC-MGMT-004 增 `MT-MGMT-014`、VRC-INF-001 增 `MT-INF-020`（`e27dca9` 的 VRC 追溯修正）。
+> 33/33 `VRC-*` 均有本层 Case 且已执行并 `PASS`。追溯覆盖 ＝ 33/33，**不替代四层分母（95 条）的行为覆盖结论**（方案 §6.5 注）。本轮 `eb62302` 补齐后，VRC-MGMT-002 增 `MT-MGMT-012/013`、VRC-MGMT-003 增 `MT-MGMT-005`（`atomic=False`）、VRC-MGMT-004 增 `MT-MGMT-014`、VRC-INF-001 增 `MT-INF-020`（`e27dca9` 的 VRC 追溯修正）。
 
 ### 5.5 覆盖复算小结
 
@@ -467,7 +467,7 @@
 
 | 缺陷 ID | 关联 Case / Run | 严重度 | 状态 | 事实（取自 Run 证据） | Owner / 关闭事实 |
 |---|---|---|---|---|---|
-| `D-MT-INF-015-1` | `MT-INF-015`（层②，boundary，P1；方案 §1.5.1 c3）／发现于 `run-20261002-01`，**复现于 `run-20261002-03`**，根除于 `run-20261002-04`，**pin 自洽确认于 `run-20261002-06`，最终 Run 复核于 `run-20261002-08`** | 中（P1；不涉及 P0 分母、鉴权或数据正确性） | **CLOSED（根因在测试替身，非产品）** | 原始事实（`run-20261002-01`）：`OversizeTests::test_two_megabyte_output_normalized` `FAIL`，`http_api.errors.ApiError: (503, 'provider_unavailable', 'Provider streaming request failed: TimeoutError: timed out')`，节点耗时 60.133s。二次事实（`run-20261002-03`）：同 Case 的 `test_service_remains_healthy_after_oversize` `FAIL`，同一 `ApiError`，耗时 60.126s。**根因在 ENV-3 夹具写侧**（`tests/module/cases/support/upstream.py::Handler._send` 以 `Content-Length` 声明长度、单条连接写出 2 MiB body，间歇性不推进 → 读侧 60s 无进展 → `stream_idle_timeout`（默认 60s）→ 503），**非被测实现缺陷**。中间处置（`f83f8da` 起的 64 KiB 分块 flush）为**缓解**，run-03 证明其不足。**关闭事实（`run-20261002-08`）**：替身 chunked 化已随 `a1cb672` 入库，pin 与被测树一致；`MT-INF-015.json` `status=PASS`、`reason` 空，三个测试函数 0.524s / 0.534s / 0.524s | Owner：LLMTier（M003 inference ＋ ENV-3 loopback `FakeUpstream` 夹具）。**关闭依据**：`run-20261002-08/MT-INF-015.json`（`status=PASS`）、`case-status.json`（`counts.FAIL=0`、`release_blocking=false`、`cases.72/72 PASS`）、`artifacts/junit.xml`（`tests="371" failures="0" errors="0" skipped="0"`）、`artifacts/pytest.log`（`371 passed in 113.16s`）、`test-run.env`（`git_commit=e27dca9…` ＝ 执行时 `HEAD`，工作树干净）。**旧 Run 证据不覆盖**（计划 §7）：`run-20261002-01/`、`-03/` 的失败记录原样保留 |
+| `D-MT-INF-015-1` | `MT-INF-015`（层②，boundary，P1；方案 §2.3 c3）／发现于 `run-20261002-01`，**复现于 `run-20261002-03`**，根除于 `run-20261002-04`，**pin 自洽确认于 `run-20261002-06`，最终 Run 复核于 `run-20261002-08`** | 中（P1；不涉及 P0 分母、鉴权或数据正确性） | **CLOSED（根因在测试替身，非产品）** | 原始事实（`run-20261002-01`）：`OversizeTests::test_two_megabyte_output_normalized` `FAIL`，`http_api.errors.ApiError: (503, 'provider_unavailable', 'Provider streaming request failed: TimeoutError: timed out')`，节点耗时 60.133s。二次事实（`run-20261002-03`）：同 Case 的 `test_service_remains_healthy_after_oversize` `FAIL`，同一 `ApiError`，耗时 60.126s。**根因在 ENV-3 夹具写侧**（`tests/module/cases/support/upstream.py::Handler._send` 以 `Content-Length` 声明长度、单条连接写出 2 MiB body，间歇性不推进 → 读侧 60s 无进展 → `stream_idle_timeout`（默认 60s）→ 503），**非被测实现缺陷**。中间处置（`f83f8da` 起的 64 KiB 分块 flush）为**缓解**，run-03 证明其不足。**关闭事实（`run-20261002-08`）**：替身 chunked 化已随 `a1cb672` 入库，pin 与被测树一致；`MT-INF-015.json` `status=PASS`、`reason` 空，三个测试函数 0.524s / 0.534s / 0.524s | Owner：LLMTier（M003 inference ＋ ENV-3 loopback `FakeUpstream` 夹具）。**关闭依据**：`run-20261002-08/MT-INF-015.json`（`status=PASS`）、`case-status.json`（`counts.FAIL=0`、`release_blocking=false`、`cases.72/72 PASS`）、`artifacts/junit.xml`（`tests="371" failures="0" errors="0" skipped="0"`）、`artifacts/pytest.log`（`371 passed in 113.16s`）、`test-run.env`（`git_commit=e27dca9…` ＝ 执行时 `HEAD`，工作树干净）。**旧 Run 证据不覆盖**（计划 §7）：`run-20261002-01/`、`-03/` 的失败记录原样保留 |
 
 **复现率证据（关闭判据的支撑，标注证据等级）**
 
@@ -490,7 +490,7 @@
 | 已修项 | 事实 | 回归证据（本 Run） |
 |---|---|---|
 | ENV-3 `FakeUpstream` 大 body 写侧（`tests/module/cases/support/upstream.py::Handler._send`） | 真实 SSE 上游是流式投递的；三阶段演进：run-01「`Content-Length` + 单次 `write(2 MiB)`」→ run-02/03「`Content-Length` + 64 KiB 分块 + `flush()`」（**缓解，未根除**）→ run-04 起「`Transfer-Encoding: chunked` + 16 KiB 分片 + 逐片 `flush()` + 终止块」（真实流式上游形态，根除） | `MT-INF-015` 3 个测试函数全 `PASS`（0.524s / 0.534s / 0.524s）；`artifacts/junit.xml` `failures="0"`；原缺陷 `D-MT-INF-015-1` 关闭（§6.1） |
-| `stream_idle_timeout` 静默 no-op（`src/inference/providers/openai.py::_stream_read_timeout`） | Python 3.14 `SocketIO` 无 `settimeout`，原实现 `except: pass` 静默 no-op → 读阶段回落到 `connect_timeout`（默认 30s），`stream_idle_timeout` 形同虚设；已补 `response.fp.raw._sock.settimeout(...)` 兜底（方案 §4 记「已修」，无恢复条件） | `MT-INF-014` 命中流空闲超时并 `PASS`；`MT-INF-013/016/017` 同族 `PASS`。**注**：本 Run 的 60s 超时路径因此是**按设计生效**的（§1.3.9） |
+| `stream_idle_timeout` 静默 no-op（`src/inference/providers/openai.py::_stream_read_timeout`） | Python 3.14 `SocketIO` 无 `settimeout`，原实现 `except: pass` 静默 no-op → 读阶段回落到 `connect_timeout`（默认 30s），`stream_idle_timeout` 形同虚设；已补 `response.fp.raw._sock.settimeout(...)` 兜底（方案 §7 记「已修」，无恢复条件） | `MT-INF-014` 命中流空闲超时并 `PASS`；`MT-INF-013/016/017` 同族 `PASS`。**注**：本 Run 的 60s 超时路径因此是**按设计生效**的（§1.3.9） |
 | provider adapter 每请求重取（`src/inference/providers/openai.py`，`eb62302` 修复） | endpoint/secret_ref 经公开入口变更后，下一次请求须使用新值，不得跨请求复用 adapter/连接缓存 | `MT-INF-020` `test_endpoint_change_routes_next_request_to_new_upstream` 等 5 个测试函数全 `PASS`（代表节点 1.021s） |
 | 覆盖缺口补齐（`tests/module/cases/MT-MGMT-012/013/014.py`、`MT-INF-020.py`、`MT-MGMT-005.py` 扩充，`eb62302`） | 「配置变更→运行态」与次要端点组装面反向核对新增 4 个 Case 并扩充 1 个 | `MT-MGMT-012` 6/6、`MT-MGMT-013` 8/8、`MT-MGMT-014` 5/5、`MT-INF-020` 5/5、`MT-MGMT-005` 7/7 全 `PASS`；72/72 Case、371/371 测试函数 |
 | 模块用例无法被目录发现收集（`pyproject.toml` `python_files`） | 收集规则缺 `MT-*.py`，`pytest tests/module/cases` 收不到模块用例 | 本 Run `collected 371 items`（`artifacts/pytest.log`） |
@@ -504,12 +504,12 @@
 
 > **未修、按设计侧/实现侧具名挂起**（不改判本 Run 判定）：trace stage 同毫秒乱序（`G-OBS-STAGE-ORDER-1`，`MT-OBS-001` 只断言 stage 集合与非递减时戳，不断言位置序）；`/login` 路由缺失（`G-UI-LOGIN-ROUTE-1`，loopback `GET /login` 实测 404 `not_found`，`MT-UI-003` 的 401 分支只做静态契约断言与服务端锚点）。
 
-### 6.3 方案 §4 缺口与观察项在本 Run 的落点
+### 6.3 方案 §7 缺口与观察项在本 Run 的落点
 
 | 项 | 分类 | 本 Run 事实 | Owner | 恢复条件 |
 |---|---|---|---|---|
 | `G-MT-COVERAGE-1`（"配置变更→运行态"类组装保证未登记为分母维度；两个次要端点遗漏） | 覆盖缺口（**已修复**，`0.1.0-draft.11`） | 已新增 `MT-MGMT-012`（禁用三态→404）、`MT-INF-020`（adapter 重取）、`MT-MGMT-013`（provider 模型目录）、`MT-MGMT-014`（`/v1/stats`）并扩充 `MT-MGMT-005`（`atomic=False` 审计）；分母 91→95、Case 68→72；本 Run 5 个 Case 全 `PASS` | LLMTier | 已闭合；设计侧后续若新增"运行态可变配置"维度须同步登记 |
-| `G-INF-NONJSON-MAPPING-1`（非 JSON `data:` 帧 / 非 JSON embeddings 体：矩阵预期 502，`src/` 实测 503） | design-vs-code 缺口 | `MT-INF-017` 按 Oracle＝`src/` 断言 503 并 4/4 `PASS`；偏差未被掩盖（见 §5.2） | M003 inference ＋ 系统设计 §7.8 | 设计侧确认权威映射（503，或改实现为 502）后回溯修订 §1.5.1 a25/b4/c7；若建立 `interfaces/error-codes/` 目录以其为准 |
+| `G-INF-NONJSON-MAPPING-1`（非 JSON `data:` 帧 / 非 JSON embeddings 体：矩阵预期 502，`src/` 实测 503） | design-vs-code 缺口 | `MT-INF-017` 按 Oracle＝`src/` 断言 503 并 4/4 `PASS`；偏差未被掩盖（见 §5.2） | M003 inference ＋ 系统设计 §7.8 | 设计侧确认权威映射（503，或改实现为 502）后回溯修订 §2.3 a25/b4/c7；若建立 `interfaces/error-codes/` 目录以其为准 |
 | `G-OBS-STAGE-ORDER-1`（trace stage 因果序：毫秒精度 + 随机 `tev_<uuid4>` 主键 → 同毫秒乱序） | design-vs-code 缺口 | `MT-OBS-001` 只断言 stage 集合与非递减时戳，**位置序未断言**；本 Run `PASS` | M006 libdiag | 增加每请求单调序号列或改 `ORDER BY rowid` 后，回溯修订 `VRC-OBS-004` 并把位置序断言补入 `MT-OBS-001` |
 | `G-UI-LOGIN-ROUTE-1`（`app.js` `LOGIN_URL='/login'`，M001 无 `/login` 路由） | design-vs-code 缺口 | `MT-UI-003` 的 401 分支只做静态契约断言与服务端锚点，未做 `/login` 端到端；本 Run `PASS` | M002 web-ui ＋ M001 http-api | M001 提供 `/login`（或 ISD 改指真实登录入口）后，补 `/login` 端到端断言 |
 | `O-OBS-STORECODE-1`（`_store_read` 把存储读失败统一映射 `usage_store_unavailable`，诊断查询面复用同 code） | 观察项（非阻断） | 第二个映射点为 `MT-OBS-003`（存储不可读 → 503 不伪装空页），本 Run `PASS` | M001 | 错误目录按面细分 `code` 时回溯修订 a27；否则把 a27 映射 Case 补记 `MT-OBS-003` |
@@ -521,14 +521,14 @@
 | performance / endurance 分类 | Tailored-N/A | 本层不纳入（方案 §2） | 系统测试方案 | 同上 |
 | M002 `VRC-UI-001..006` 的**行为级**（真实 JS 执行） | Tailored-N/A | 本层 `MT-UI-*` 为静态产物/契约组装（61 个测试函数全 `PASS`）；行为级由系统层真实浏览器 `ST-UI-001..010` 承接 | M002 web-ui ＋ 系统层 | 已在系统层承接（`RISK-UI-EXEC-1` 已关闭） |
 | ENV-3/ENV-4 契约 `llmtier-unit-fakes` 自检 Run 未录制（`Implemented`/`Unverified`） | 资产 Gate 未闭合（不改变本 Run 判定） | 本 Run 使用其 `AppFixture`/`FakeAdapter` 与各 Case 本地 stub；**替身自检仍无独立 Run 证据** | LLMTier | 录制 assets self-check Run 并置 `Verified`（§8） |
-| **方案 §3.6 的 Run 现状描述过期**（仍记 run-06 为「最终 Run」，且「共 6 个 Run」与真实 8 个不符，run-07/run-08 未列入） | 文档漂移（不改变本 Run 判定） | 实际已有 8 个 Run 目录；本报告不动方案，如实登记（§4.2） | LLMTier | 下一次方案修订时同步为 8 个 Run（`-01`…`-08`）与 run-08 的正式报告 |
+| **方案 §6.6 的 Run 现状描述过期**（仍记 run-06 为「最终 Run」，且「共 6 个 Run」与真实 8 个不符，run-07/run-08 未列入） | 文档漂移（不改变本 Run 判定） | 实际已有 8 个 Run 目录；本报告不动方案，如实登记（§4.2） | LLMTier | 下一次方案修订时同步为 8 个 Run（`-01`…`-08`）与 run-08 的正式报告 |
 
 ### 6.4 残余风险与本层已知限制
 
 - **层级边界（最重要）**：**module PASS ≠ system PASS**；本层 `PASS` 不替代也不蕴含系统层结论。**下层单元 PASS 不关闭本层**（本层分母独立来自模块设计 §9/§14 与 `src/` 分支），**本层 PASS 不关闭上层**（wire 互操作、OpenAPI 端到端一致性、真实上游 provider 协议、浏览器 E2E 由 `llmtier-system-test-scheme` 承接）。
 - **本层不测的范围**：跨模块系统级流程与进程装配（启动/systemd/反向代理/Piko 联调）；真实 provider 协议与 wire/OpenAPI 端到端一致性；浏览器 E2E 与真实 JS 行为级（归系统层 `ST-UI-*`，`MT-UI-*` 仅为静态产物/契约层快速下位防线）；性能/耐久/容量预算（归系统层）。
 - **替身边界**：上游 provider 为进程内 `FakeAdapter` 与 loopback `FakeUpstream`，**不证明真实 provider 协议**；M004 account-usage HTTP 面的本地 stub 无共享资产契约（`O-UI-USAGEOK-1`）。ENV-3 夹具写侧连续两轮修复（§1.3、§6.2）说明**替身自身的传输行为是本层判定的前置条件**：替身缺陷会被记为被测 Case 的 `FAIL`，须按 §4.1 的方式归因区分「替身缺陷」与「实现缺陷」；本轮证据同时说明**替身形态向真实上游形态靠拢（chunked）能降低此类误判**。
-- **Case 级记录口径（承 run-06 已闭合）**：`MT-*.json` / `case-status.json.cases` 的 `node_id`/`time_seconds` 仍只记每个 Case 的一个代表测试函数，**不代表该 Case 的函数级明细**；但 Case 级 `status` 已取最严重状态，且多函数 Case 另有 `test_functions` 全量落证，故 run-03 那种 Case 级与 `counts` 矛盾的情形已不可复现。判定仍以 `artifacts/junit.xml` 的函数级 `failures/errors` 为最终依据（§3 粒度注、§4.2）。
+- **Case 级记录口径（承 run-06 已闭合）**：`MT-*.json` / `case-status.json.cases` 的 `node_id`/`time_seconds` 仍只记每个 Case 的一个代表测试函数，**不代表该 Case 的函数级明细**；但 Case 级 `status` 已取最严重状态，且多函数 Case 另有 `test_functions` 全量落证，故 run-03 那种 Case 级与 `counts` 矛盾的情形已不可复现。判定仍以 `artifacts/junit.xml` 的函数级 `failures/errors` 为最终依据（§6 粒度注、§4.2）。
 - **已被削弱/未覆盖的断言（诚实保留）**：`MT-OBS-001` 未断言 trace stage 位置序（`G-OBS-STAGE-ORDER-1`）；`MT-UI-003/004/005/006` 的部分分支为静态契约断言而非行为级（`G-UI-LOGIN-ROUTE-1`、`O-UI-HEALTHDOMAIN-1`、`O-UI-USAGEOK-1`）。
 - **替身资产未自检**：ENV-3/ENV-4 契约 `llmtier-unit-fakes` 仍为 `Implemented`/`Unverified`，资产自检 Run 未录制；本 Run 的 `PASS` 结论以「替身按设计返回」为前提，该前提尚无独立 Run 证据。
 - **历史 flake 已归因关闭，非「未复现」类 RED**：`D-MT-INF-015-1` 有确定根因（ENV-3 替身写侧非流式形态）、有根除性修复（chunked，已入库）、有连续五轮 Run 复跑证据（run-01 60.133s `FAIL` → run-04/05/06 ＋ run-07/08 `MT-INF-015` 三函数 0.52s `PASS`），属**已关闭**；本 Run 证据中无「未复现/未关闭」类 RED 需保留。**限定**：修前形态在定稿复测中未复现停顿，故「根除」的强度受可复现性限制（§1.3.11、§6.1）。
@@ -538,7 +538,7 @@
 ## 7. Gate 结论与建议
 
 - Gate 结论（接受/条件接受/拒绝）：**接受（模块层闭合）**——按计划 §8 口径给出，**非批准**。
-  - 闭合分母＝方案 §3 的 **72 个 Case**（非 33 个 VRC）：**72/72 `PASS`**，满足「全部 72 Case 有 `PASS`」的闭合条件，故**判闭合**。
+  - 闭合分母＝方案 §6 的 **72 个 Case**（非 33 个 VRC）：**72/72 `PASS`**，满足「全部 72 Case 有 `PASS`」的闭合条件，故**判闭合**。
   - `FAIL=0`、`BLOCKED=0`、`INVALID=0`、`NOT_RUN=0`、`SKIP=0`、`XPASS=0`（`case-status.json.counts`；`release_blocking=false`；函数级 `artifacts/junit.xml` `failures="0" errors="0" skipped="0"`，`artifacts/pytest.log` `371 passed`）。
   - **P0 41 个 Case 全部 `PASS`**，无任一 P0 处于 `NOT_RUN`/`BLOCKED`（计划 §8 的 P0 硬门满足）。
   - **分支/组合/迁移覆盖达标门满足**：95 条四层分母（①23/②48/③10/④14）**全部映射到已执行 Case，0 未覆盖**；33/33 `VRC-*` 追溯覆盖（追溯非分母）。
@@ -546,12 +546,12 @@
   - **异常/错误矩阵封闭门满足**：53 条（(a)37＋(b)8＋(c)8）全部逐行映射，0 静默缺失，**53/53 映射 Case 均 `PASS`**（含 c3 → `MT-INF-015`：该行在 run-01/run-03 为 `FAIL`、本 Run 已 `PASS`）；`G-INF-NONJSON-MAPPING-1` 按 Oracle＝`src/` 断言并具名登记。
   - **证据可采信性满足**：pin `e27dca9` ＝ 执行时 `HEAD`，工作树无未提交改动，72 脚本与 openai 修复均在 pin 内（§1.3.8/§2）——本 Run 可作模块层**最终 pin 依据**。
   - **覆盖缺口已闭合**：`G-MT-COVERAGE-1` 的 4 个新增 Case ＋ `MT-MGMT-005` 扩充在本 Run 全 `PASS`，分母 95/72 相对旧版 91/68 的增量已被覆盖（§5.1/§6.3）。
-  - **闭合不影响未决项**：`D-MT-INF-015-1` 已关闭（根因在测试替身）；§6.3 的 `G-*`/`O-*` 与 Tailored-N/A 项、替身资产自检、方案 §3.6 文档漂移、run-01/run-02 字段缺失仍按 §8 跟踪，闭合的是**本层 72 Case 的行为覆盖**。
+  - **闭合不影响未决项**：`D-MT-INF-015-1` 已关闭（根因在测试替身）；§6.3 的 `G-*`/`O-*` 与 Tailored-N/A 项、替身资产自检、方案 §6.6 文档漂移、run-01/run-02 字段缺失仍按 §8 跟踪，闭合的是**本层 72 Case 的行为覆盖**。
   - **层级边界**：**module PASS ≠ system PASS**；下层单元 PASS 不关闭本层，本层 PASS 不关闭上层。
 - 开放问题与责任方：
-  - 方案 §4 的 `G-*`/`O-*` 与 Tailored-N/A 项 → Owner 见 §6.3，最晚 Gate：对应设计修订或系统层承接。
+  - 方案 §7 的 `G-*`/`O-*` 与 Tailored-N/A 项 → Owner 见 §6.3，最晚 Gate：对应设计修订或系统层承接。
   - 替身资产 `llmtier-unit-fakes` 自检 Run 未录制 → Owner LLMTier（§8）。
-  - 方案 §3.6 的 Run 现状描述与计数过期 → Owner LLMTier（§8；本交付按边界不改方案）。
+  - 方案 §6.6 的 Run 现状描述与计数过期 → Owner LLMTier（§8；本交付按边界不改方案）。
   - 上层 wire/E2E/真实 provider 协议/性能耐久 → 系统测试方案/计划与契约层承接，不在本层分母。
   - 本报告不授权 release，不代替批准决定。
 
@@ -566,8 +566,8 @@
 | ~~`G-MT-COVERAGE-1`：配置变更→运行态与次要端点组装覆盖缺口~~ | — | **已闭合**（§6.3）：`0.1.0-draft.11` 新增 `MT-MGMT-012/013/014`、`MT-INF-020` 并扩充 `MT-MGMT-005`，分母 91→95、Case 68→72；本 Run 5 个 Case 全 `PASS` |
 | ~~Case 级状态收敛口径（Case 内任一函数失败不翻转 Case 级状态）~~ | — | **已关闭**（§6.2）：`build_report`/`emit_manifests` 改为 Case 级取最严重状态并落 `test_functions`；本 Run `counts` 与 `cases` 一致。**旧 Run 证据不追溯改写**，报告判定仍以 `artifacts/junit.xml` 为最终依据 |
 | Run 证据 `pythonpath`/退出码/`finished_at` 字段 | LLMTier / 本 Run 已闭合 | **run-03…run-08 的 `test-run.env` 已含四字段**（12 字段）→ 该项对 run-08 关闭；**run-01/run-02 无此字段，属历史记录粒度缺口，不补造** |
-| 方案 §3.6 的 Run 现状描述与计数过期（记 run-06 为「最终 Run」、报告「已闭合」，且「共 6 个 Run」与真实 8 个不符，run-07/run-08 未列入） | LLMTier / 下一次方案修订 | 同步为 8 个 Run（`run-20261002-01`…`-08`）的真实历史与 run-08 正式报告；分母 95/72 与 Case 清单不动。本交付按边界不改方案 |
-| `G-INF-NONJSON-MAPPING-1`：非 JSON 帧/体 503 vs 矩阵预期 502 | M003 inference ＋ 系统设计 §7.8 / 设计修订 | 设计侧确认权威映射或改实现；回溯修订 §1.5.1 a25/b4/c7；建立 `interfaces/error-codes/` 后以其为准 |
+| 方案 §6.6 的 Run 现状描述与计数过期（记 run-06 为「最终 Run」、报告「已闭合」，且「共 6 个 Run」与真实 8 个不符，run-07/run-08 未列入） | LLMTier / 下一次方案修订 | 同步为 8 个 Run（`run-20261002-01`…`-08`）的真实历史与 run-08 正式报告；分母 95/72 与 Case 清单不动。本交付按边界不改方案 |
+| `G-INF-NONJSON-MAPPING-1`：非 JSON 帧/体 503 vs 矩阵预期 502 | M003 inference ＋ 系统设计 §7.8 / 设计修订 | 设计侧确认权威映射或改实现；回溯修订 §2.3 a25/b4/c7；建立 `interfaces/error-codes/` 后以其为准 |
 | `G-OBS-STAGE-ORDER-1`：trace stage 同毫秒乱序，位置序未断言 | M006 libdiag / 设计修订 | 增单调序号或改 `ORDER BY rowid`；修订 `VRC-OBS-004` 并把位置序断言补入 `MT-OBS-001` |
 | `G-UI-LOGIN-ROUTE-1`：`/login` 未实现（404） | M002 web-ui ＋ M001 http-api / 设计或实现修订 | 提供 `/login` 路由或 ISD 改指真实入口；补 `/login` 端到端断言 |
 | `O-OBS-STORECODE-1` / `O-UI-HEALTHDOMAIN-1` / `O-UI-USAGEOK-1`：观察项 | M001 / M002 ＋ M004 / 设计或替身资产补齐 | 错误目录细分 `code`；health 域扩展；为 account-usage 面建 `tests.asset-design` 替身后补行为级断言 |
@@ -577,4 +577,4 @@
 | 修前形态未在定稿复测中复现：间歇性 flake 的受控对照缺失（修前复刻 0/100、0/100 无停顿） | LLMTier / 可选 | 若需更强证据，在受控负载下重复修前/修后对照并落为 Run 证据；否则维持本报告的限定表述 |
 | 上层承接（wire 互操作/真实 provider 协议/浏览器 E2E/性能耐久） | 系统测试方案与计划、契约层 / 系统层 Gate | 由 `llmtier-system-test-scheme`/`-plan` 建立对应用例；不在本层分母，本层不代为关闭 |
 
-<!-- 交付自查：任一 Verdict 能否定位唯一 Run 与原始证据（是：§3.2 每条指向 `run-20261002-08/MT-<Case>.json`，函数级指向 `artifacts/junit.xml`）；失败与 NOT_RUN 是否如实保留（前序 run-01/run-03 的 FAIL 已显式登记、run-02 的假绿、run-05/run-07 的 pin 不一致均已显式登记、旧证据未覆盖）；复现率是否区分证据等级（是：§1.3.11/§6.1 分「权威 Run 证据」与「参考复测」两栏，修前形态未复现已如实写明）；报告是否越权写成批准（否：Gate 为「建议接受」，明写非批准、不授权 release）。 -->
+<!-- 交付自查：任一 Verdict 能否定位唯一 Run 与原始证据（是：§6.2 每条指向 `run-20261002-08/MT-<Case>.json`，函数级指向 `artifacts/junit.xml`）；失败与 NOT_RUN 是否如实保留（前序 run-01/run-03 的 FAIL 已显式登记、run-02 的假绿、run-05/run-07 的 pin 不一致均已显式登记、旧证据未覆盖）；复现率是否区分证据等级（是：§1.3.11/§6.1 分「权威 Run 证据」与「参考复测」两栏，修前形态未复现已如实写明）；报告是否越权写成批准（否：Gate 为「建议接受」，明写非批准、不授权 release）。 -->

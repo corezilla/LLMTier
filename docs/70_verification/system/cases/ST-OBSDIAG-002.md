@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-OBSDIAG-002` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -31,7 +31,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-OBSDIAG-002`）；责任摘要、分类与优先级以 [系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
+- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-OBSDIAG-002`）；责任摘要、分类与优先级以 [系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
 - **测试脚本的唯一依据**：编码者按本文档写测试代码，不需要回读方案或设计正文猜测意图。
 - **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
 
@@ -48,7 +48,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-OBSDIAG-002` / 系统设计 §8 诊断开关接口（/v1/diagnostics） / `VRC-DIAG-001` / `normal` / `P1`
-- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
+- **测试方法（§2.2 方法表行）**：等价类划分 + 契约字段比对
 - 方案清单登记：`ST-OBSDIAG-002`
 - 要测什么（责任展开）：`PATCH /v1/diagnostics` 更新全局诊断开关：HTTP 200 + 返回更新后的精确 `SwitchState`，开关持久化到 `diagnostic_settings` 单行，且副作用 = **同事务审计**（`action=diagnostics.switch.update`，`target=diagnostics`）。
 - 明确不测什么 / 失败含义：不证明 非法值的 400 拒绝（ST-OBSDIAG-003）、不证明 GET 纯读无副作用（ST-OBSDIAG-001）、不证明别名 PATCH 逐字节等价（ST-OBSALIAS-001）、不证明开关对快照/统计**写入门控**的业务效果（由 ST-OBSSNAP-001、ST-OBSSTATS-001 的数据断言与 observability 机制 `INV-4`/`CON-OBS-001` 承接）、不证明 trace 无开关始终写。
@@ -57,13 +57,13 @@
 `、`stats_enabled?` 两个可选布尔，`additionalProperties:false`）；部分更新语义（缺省键保持原值）；成功返回 `SwitchState`（恰 2 个 JSON 布尔）；写 `diagnostic_settings.singleton=1` 单行并**在同一事务**写审计；
 非法值（非布尔）→ 400 `invalid_request`（属 ST-OBSDIAG-003，本 case 只走合法输入）；认证角色 `admin`；失败走统一错误信封 `{error:{message,type,code,param,retryable}}`（401 `authentication_required` / 403 `permission_denied` / 503 `usage_store_unavailable`）。
 设计验证项 `VRC-DIAG-001`；机制 `T-OBS-SWITCH`（见[observability 机制](../../../20_system_design/mechanisms/observability.md) §4.3.1/§5.1，`IF-OBS-API-SWITCH`/`IF-OBS-SWITCH`，副作用=同事务审计）；
-需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01`/`R-OBS-02`、`CT-ADMIN-001`/`CT-LOG-001`（[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；
+需求链 `LT-FUN-005`/`LT-OPS-006`/`LT-INT-007`、`R-OBS-01`/`R-OBS-02`、`CT-ADMIN-001`/`CT-LOG-001`（[系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）；
 机器契约 [`interfaces/openapi/llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)（`SwitchState`/`DiagnosticsSwitchPatch`，`security=AdminBearerAuth`）。
 **不证明什么**：不证明非法值的 400 拒绝（ST-OBSDIAG-003）、不证明 GET 纯读无副作用（ST-OBSDIAG-001）、不证明别名 PATCH 逐字节等价（ST-OBSALIAS-001）、不证明开关对快照/统计**写入门控**的业务效果（由 ST-OBSSNAP-001、ST-OBSSTATS-001 的数据断言与 observability 机制 `INV-4`/`CON-OBS-001` 承接）、不证明 trace 无开关始终写。
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=§2.1 附加（B 类）；`_baseline_settings` 注入 1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier；`llmtier_b` fixture 的 `depl_b` probe 为 `healthy`；`prov_b.endpoint` 为 LAN IP 上的 fake provider（TS-003）。fixture：`llmtier_b`、`admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。初始状态=1 provider / 1 deployment / 7 tier，`diagnostic_settings` 单行默认 `{snapshots_enabled:false, stats_enabled:false}`。**写 case：本 case 改变开关，必须 teardown 恢复原值**（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=计划 §3 附加（B 类）；`_baseline_settings` 注入 1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier；`llmtier_b` fixture 的 `depl_b` probe 为 `healthy`；`prov_b.endpoint` 为 LAN IP 上的 fake provider（TS-003）。fixture：`llmtier_b`、`admin_client_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。初始状态=1 provider / 1 deployment / 7 tier，`diagnostic_settings` 单行默认 `{snapshots_enabled:false, stats_enabled:false}`。**写 case：本 case 改变开关，必须 teardown 恢复原值**（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。
 
 ## 3. 输入构造
 
@@ -122,6 +122,6 @@
 
 - **证据与 Run**：保存 `GET` 原值、三条 `PATCH` 请求/响应（status/headers/body）、二次 `GET` 复核、`GET /v1/audit` 审计行、teardown `PATCH` 与最终 `GET`、命令/exit code/`elapsed`、环境快照；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/B-api`，`environment:"b"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查（B 类附加）；`llmtier_b`/`admin_client_b` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；M007 `diagnostic_settings` 单行（`002_observability.sql`）；`SwitchState`/`DiagnosticsSwitchPatch` 机器契约（[`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)）；实现 [`src/libdiag/settings.py`](../../../../src/libdiag/settings.py)、[`src/http_api/app.py`](../../../../src/http_api/app.py)（`app.admin.mutate` 同事务审计）。自动化入口 `ST-OBSDIAG-002.py`（已实现）。**不依赖**其它 Case；与 ST-OBSDIAG-001（GET 纯读）、ST-OBSDIAG-003（非法值 400）、ST-OBSALIAS-001（别名 PATCH 等价）语义相邻但各自独立执行。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查（B 类附加）；`llmtier_b`/`admin_client_b` fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；M007 `diagnostic_settings` 单行（`002_observability.sql`）；`SwitchState`/`DiagnosticsSwitchPatch` 机器契约（[`llmtier.openapi.json`](../../../../interfaces/openapi/llmtier.openapi.json)）；实现 [`src/libdiag/settings.py`](../../../../src/libdiag/settings.py)、[`src/http_api/app.py`](../../../../src/http_api/app.py)（`app.admin.mutate` 同事务审计）。自动化入口 `ST-OBSDIAG-002.py`（已实现）。**不依赖**其它 Case；与 ST-OBSDIAG-001（GET 纯读）、ST-OBSDIAG-003（非法值 400）、ST-OBSALIAS-001（别名 PATCH 等价）语义相邻但各自独立执行。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-PROV-013` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-PROV-013`）；责任摘要、分类与优先级以 [系统测试方案 §3](../llmtier-system-test-scheme.md) 清单行为准。
+- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-PROV-013`）；责任摘要、分类与优先级以 [系统测试方案 §6](../llmtier-system-test-scheme.md) 清单行为准。
 - **来源**：系统设计 §8 Provider CRUD 接口（/v1/providers）（parent `llmtier-system-design`），设计验证项 `VRC-MGMT-002`；所属方案 `llmtier-system-test-scheme`。
 - **边界**：系统层 Case（整软件系统组装，被测为 m5air 真实部署或按 tests.asset-design 约束的替身）；本文档持有实现状态，执行状态与 Verdict 只在 Run 报告。
 
@@ -48,8 +48,8 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-PROV-013` / 系统设计 §8 Provider CRUD 接口（/v1/providers） / `VRC-MGMT-002` / `normal` / `P2`
-- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对
-- 方案清单登记：`ST-PROV-013`（与 §3.2 权威清单一致；本文件名 `st-prov-013.md`，唯一对应）。
+- **测试方法（§2.2 方法表行）**：等价类划分 + 契约字段比对
+- 方案清单登记：`ST-PROV-013`（与 计划 §3 权威清单一致；本文件名 `st-prov-013.md`，唯一对应）。
 - 要测什么（责任展开）：`PATCH /v1/providers/{id}` 更新 `usage` 子对象（`max_concurrent_requests`）：HTTP 200，且回读可见新值，随后复位。
 - 明确不测什么 / 失败含义：不证明 标量字段更新（ST-PROV-005）、不证明 `usage` 校验负向（非法 `usage_provider`/`*_ref`/负值 → 400，见 `_usage_values`，未单列 case）、不证明 `/v1/providers/{id}/usage` 快照刷新（ST-PUSAGE-*）；本 case 只验证合法 `usage` 子对象的持久化与复位。
 
@@ -61,7 +61,7 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)/§2.4）。执行前须满足[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go)(../llmtier-system-test-scheme.md) **附加（B 类）**：实例 `/healthz` 200；`_baseline_settings` 注入 1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier。fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）：`llmtier_b`、`admin_client_b`。初始状态：m5air 上级基线由 `_baseline_settings` 提供；`depl_b` probe `healthy`。本 case 直接更新 baseline `prov_b` 的 usage（**必须复位**，见清理）。
+- **前置与环境**：**环境 B**（临时 LLMTier 实例 + 临时 SQLite；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。执行前须满足[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) **附加（B 类）**：实例 `/healthz` 200；`_baseline_settings` 注入 1 provider（`prov_b`）+ 1 deployment（`depl_b`）+ 7 fixed tier。fixture（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）：`llmtier_b`、`admin_client_b`。初始状态：m5air 上级基线由 `_baseline_settings` 提供；`depl_b` probe `healthy`。本 case 直接更新 baseline `prov_b` 的 usage（**必须复位**，见清理）。
 
 ## 3. 输入构造
 
@@ -110,16 +110,16 @@
   - **BLOCKED**：无法执行/无法判定且可重试（fixture/断言逻辑问题）——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **SKIP**：B 类临时实例/fixture 不可用——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **INVALID**：硬编码/伪造 ETag 绕过 CAS、或用 mock 冒充——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：本 Case 有实现（§3.2 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
+  - **NOT_RUN**：本 Case 有实现（计划 §3 实现盘点 `RUN`），本轮未执行时按 §9 记 `NOT_RUN`。
 
 ## 6. 错误路径、副作用与清理
 
-- **清理与复位**：**必须 teardown（`finally` 强制）**——把 `prov_b.usage.max_concurrent_requests` 恢复为初始 `original`（先 `GET` 取新 ETag 再 PATCH）；不改 `prov_b` 其它字段/`depl_b`、不写注入。B 类整班结束由 fixture `stop()` + `rm -rf` 销毁（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）。离开前 `GET` 确认已复位、`/readyz` 7 tier。
+- **清理与复位**：**必须 teardown（`finally` 强制）**——把 `prov_b.usage.max_concurrent_requests` 恢复为初始 `original`（先 `GET` 取新 ETag 再 PATCH）；不改 `prov_b` 其它字段/`depl_b`、不写注入。B 类整班结束由 fixture `stop()` + `rm -rf` 销毁（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）。离开前 `GET` 确认已复位、`/readyz` 7 tier。
 
 ## 7. 自动化位置与状态
 
-- **证据与 Run**：证据与 Run 契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)(../llmtier-system-test-scheme.md)：Run ID=`<date>/B-api`；保存请求与原始响应（脱敏后）、发出命令、exit code、`elapsed`、环境快照；`manifest.json` 必填字段与报告落位（`tests/system/reports/...`）见 §4.8/§10；失败现场不截断。**本 case 额外证据**：初始 GET、PATCH 请求/响应（含 `If-Match`/`ETag`）、回读、复位 PATCH/回读。
+- **证据与 Run**：证据与 Run 契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)：Run ID=`<date>/B-api`；保存请求与原始响应（脱敏后）、发出命令、exit code、`elapsed`、环境快照；`manifest.json` 必填字段与报告落位（`tests/system/reports/...`）见计划 §7/§10；失败现场不截断。**本 case 额外证据**：初始 GET、PATCH 请求/响应（含 `If-Match`/`ETag`）、回读、复位 PATCH/回读。
 
-- **依赖**：B 类 fixture `llmtier_b` / `admin_client_b` 与 baseline `prov_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)(../llmtier-system-test-scheme.md)）；`ProviderPatch`/`ProviderUsageProfileWrite`/`ProviderUsageProfileView` 机器契约；`registry.update_provider`/`_usage_values`；机制 `T-CFG-CAS`；自动化入口 [`ST-PROV-013.py`](../../../../tests/system/cases/ST-PROV-013.py)。**不依赖**其它 Case（自复位）；与 ST-PROV-005 同属 PATCH 但本 case 专测嵌套 `usage`。
+- **依赖**：B 类 fixture `llmtier_b` / `admin_client_b` 与 baseline `prov_b`（[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；`ProviderPatch`/`ProviderUsageProfileWrite`/`ProviderUsageProfileView` 机器契约；`registry.update_provider`/`_usage_values`；机制 `T-CFG-CAS`；自动化入口 [`ST-PROV-013.py`](../../../../tests/system/cases/ST-PROV-013.py)。**不依赖**其它 Case（自复位）；与 ST-PROV-005 同属 PATCH 但本 case 专测嵌套 `usage`。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

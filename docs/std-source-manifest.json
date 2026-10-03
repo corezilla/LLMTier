@@ -2,9 +2,9 @@
   "schema_version": "std-source-manifest.v1",
   "std_version": "0.1.0-draft.72",
   "source_repository": "corezilla/STD",
-  "source_revision": "e1ea56822de4852b3cba68be651b5e06856c1584",
+  "source_revision": "f07339644221f694f38e7bdda63cf5364114599b",
   "source_tag": null,
-  "generated_at": "2026-10-02",
+  "generated_at": "2026-10-03",
   "artifacts": [
     {
       "path": "README.md",
@@ -284,7 +284,7 @@
     {
       "path": "docs/design-writing-guide.md",
       "role": "guidance",
-      "sha256": "e1309028351a3e0dd638509d2c0e22bddf79a472e624349143c39166b24c88e5"
+      "sha256": "f3614cc3a491a87ef114a3472ee5710026c3f180ab3bb2ff51600a27b3205e9c"
     },
     {
       "path": "docs/document-control.md",
@@ -1074,17 +1074,17 @@
     {
       "path": "templates/tests/module-test-plan.md",
       "role": "template",
-      "sha256": "512b89575ea7b160287b0c317cfea8cbdb23cd55475c9be83fd5f027b5cb9a5e"
+      "sha256": "7d2cdd67b0715a71dab66c55feb92f1b9561b833a1bfec32d9fa66b5a77fd2cc"
     },
     {
       "path": "templates/tests/module-test-report.md",
       "role": "template",
-      "sha256": "d5154fe0663870439f5549ddb4dcb4be6be897fab4be70872afcf765b117b8c6"
+      "sha256": "7b08777fd6bd35042197a61d17059001a2900cb71013a75d86bad1ef872b5ab4"
     },
     {
       "path": "templates/tests/module-test-scheme.md",
       "role": "template",
-      "sha256": "6d1bd8444f0f90a76f9b1e637a88a66f046193a3031a05daa9fe1f95353c01c8"
+      "sha256": "7da0b172cd9b67e4b20ae01298a50d0d261a4b010cf86a077e19e64afc403711"
     },
     {
       "path": "templates/tests/subsystem-case.md",
@@ -1094,17 +1094,17 @@
     {
       "path": "templates/tests/subsystem-test-plan.md",
       "role": "template",
-      "sha256": "b76ff128fc1b5c652672b1791c4712a1b8503227ae97cf126980da68d4b16832"
+      "sha256": "5dfe9fd1b613d03fab144c95e57a77a4b403b55496c8d8a75e5faeb0bf4f212f"
     },
     {
       "path": "templates/tests/subsystem-test-report.md",
       "role": "template",
-      "sha256": "b85fc734c7e8dae48eff28447c5d80925461717c5fc8bb963c3a06595f9ae4fc"
+      "sha256": "eeb8df365122fc02bb011dcf1bcc25be919e92880bef9f5bf16c281a257e2ee3"
     },
     {
       "path": "templates/tests/subsystem-test-scheme.md",
       "role": "template",
-      "sha256": "c3444cb9f209f4cc36ff3868627a689302833c9bdb3428d45a9cfc9e53272fdc"
+      "sha256": "84f7b3086e67d09aa3eb1527f209d1d48062a44472f1fb9a98c92a1addbbd1c0"
     },
     {
       "path": "templates/tests/system-case.md",
@@ -1114,17 +1114,17 @@
     {
       "path": "templates/tests/system-test-plan.md",
       "role": "template",
-      "sha256": "3d7aeaa87cb3c88e38b74f259554ab9ac6d540112d2d7799524f14b263ff82be"
+      "sha256": "ab1d4c9ed2ba68f77c25da0186d6f2bccd15dee275d55913a6f40858d5439556"
     },
     {
       "path": "templates/tests/system-test-report.md",
       "role": "template",
-      "sha256": "dac71140a01f02b8fbe23fc84fbf8efca22842333f0c3094f6795f6ba9260a28"
+      "sha256": "015b098c1944fd2a8c4947758ec06f838b456b0afda764b23c9d216ba4692e0b"
     },
     {
       "path": "templates/tests/system-test-scheme.md",
       "role": "template",
-      "sha256": "d4ba841ebe617fa88ed438f3ee81cd944373e87e19017150ba7fdd04a07a222e"
+      "sha256": "912bf35de065c21d90ba664fca2d9af7412cec8b5d89cc763368fc97cfb876a9"
     },
     {
       "path": "templates/tests/unit-case.md",
@@ -1134,17 +1134,17 @@
     {
       "path": "templates/tests/unit-test-plan.md",
       "role": "template",
-      "sha256": "4632562bd4e71e6365fd81d99e4a4f9ddb377de8a0a33ca5f29213bdb4c93b6c"
+      "sha256": "5fe22ea3c3a6b20ef23069ba90a6b4f3b51b278b817cef600b8977ce06508163"
     },
     {
       "path": "templates/tests/unit-test-report.md",
       "role": "template",
-      "sha256": "023c0c956e088d87818530adb59eb355c6045b5068801df6089a2022f254d191"
+      "sha256": "aa85832c6a998285b029da1d0b6b70a2f2cbaa25d00ec24911b9f2b0ff95e94d"
     },
     {
       "path": "templates/tests/unit-test-scheme.md",
       "role": "template",
-      "sha256": "6a199d8afe1c050601b3cd8edcde9b70d968fc9ae5441677d5f3f61eec3507e7"
+      "sha256": "5563cf65b2cdc2e08c8114b6ee4f9b339f766037d86a46d9d6d4b00ee24a5250"
     }
   ]
 }

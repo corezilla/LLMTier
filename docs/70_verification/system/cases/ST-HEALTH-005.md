@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-HEALTH-005` |
-| Document Version | `0.1.0-draft.4` |
+| Document Version | `0.1.0-draft.5` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -27,12 +27,12 @@
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
-> 本 Case 文档绑定：系统设计经 `--parent-document-id`、所属方案经方案清单行引用写入 metadata；Document ID＝Case ID。方案清单行见[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)。
+> 本 Case 文档绑定：系统设计经 `--parent-document-id`、所属方案经方案清单行引用写入 metadata；Document ID＝Case ID。方案清单行见[系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)。
 
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-HEALTH-005` / 系统设计 §8 健康/就绪接口（/healthz、/readyz） / `VRC-MGMT-003`（另记 `VRC-UTIL-001/002`） / `recovery` / `P1`。本文件名 `st-health-005.md`，与 Case ID 唯一对应。
-- **测试方法（§1.5 方法表行）**：状态机驱动（bootstrap 失败 → not_ready）+ 契约字段比对
+- **测试方法（§2.2 方法表行）**：状态机驱动（bootstrap 失败 → not_ready）+ 契约字段比对
 - 要测什么（责任展开）：空库在缺一次性 bootstrap 或 bootstrap 非法时，`GET /readyz` 返回 HTTP 503 + `{status:"not_ready", models:[]}`（空 `models`）；同时 `GET /healthz` 仍为 200（进程存活）。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明无 deployment 但 bootstrap 成功时的 `not_ready`（ST-HEALTH-004，其 `models` 为 7 个 `unavailable`，非 `[]`）；
   不证明健康端点无需鉴权（ST-HEALTH-006）；不证明错误信封 code——**`ERR-BOOT`（`bootstrap_required`/`bootstrap_invalid`）的 wire envelope code 不在本 case 断言**：它已在单元层关闭（`UT-MGMT-001::test_empty_store_without_settings_is_bootstrap_required`/`test_missing_section_fails` 等直接断言 `ApiError.status/code`，见[系统测试方案 §4](../llmtier-system-test-scheme.md)），本 case 只覆盖 `/readyz not_ready` 的表现，不断言其 envelope 码；
@@ -42,7 +42,7 @@
 实现 [`Application.__init__`](../../../../src/http_api/app.py) 捕获 `registry.bootstrap_settings()`/`ensure_fixed_tiers()` 抛出的 `ApiError` 到 `app.bootstrap_error`（[`registry.py`](../../../../src/management/registry.py)：空库缺 settings → `bootstrap_required`；
 settings 读/解析/校验失败 → `bootstrap_invalid`）；随后 [`app.py:188-189`](../../../../src/http_api/app.py) 在 `/readyz` 短路返回 `_json(503, {"status":"not_ready","models":[]})`。
 设计验证项 `VRC-MGMT-003`、`VRC-UTIL-001/002`；机制 `T-CFG-BOOT`/`R-CFG-02`（[config-lifecycle 机制](../../../20_system_design/mechanisms/config-lifecycle.md)）；
-需求链 `LT-FUN-006`/`LT-OPS-001`、`CT-OPS-001`（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明无 deployment 但 bootstrap 成功时的 `not_ready`（ST-HEALTH-004）；
+需求链 `LT-FUN-006`/`LT-OPS-001`、`CT-OPS-001`（[系统测试方案 §6](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明无 deployment 但 bootstrap 成功时的 `not_ready`（ST-HEALTH-004）；
 不证明健康端点无需鉴权（ST-HEALTH-006）；不证明错误信封 code——`ERR-BOOT` 的 wire envelope code 不在本 case 断言（其单元层宿主见 §1，[系统测试方案 §4](../llmtier-system-test-scheme.md) 已按单元覆盖关闭），本 case 只覆盖 `/readyz not_ready` 的表现，不断言其 envelope 码；
 不证明 schema 不兼容（`ERR-SCHEMA`）；不触发 provider 计费调用（`LT-OPS-001`）。
 
@@ -69,7 +69,7 @@ settings 读/解析/校验失败 → `bootstrap_invalid`）；随后 [`app.py:18
   ```
 
 - **初态构造（经公开入口）**：空库 + 无/坏 bootstrap；**不**提供合法 settings；不创建任何 provider/deployment/service-level；不注入故障；不构造非法 query（非法输入不在本 case 范围）。
-- **Fixture / 向量及版本**：B 类 fixture `llmtier_b_no_bootstrap` 已落地（见 §2）；依赖 [`registry.py`](../../../../src/management/registry.py) 的 `bootstrap_required`/`bootstrap_invalid` 与 [`app.py:188-189`](../../../../src/http_api/app.py) 的短路（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）。
+- **Fixture / 向量及版本**：B 类 fixture `llmtier_b_no_bootstrap` 已落地（见 §2）；依赖 [`registry.py`](../../../../src/management/registry.py) 的 `bootstrap_required`/`bootstrap_invalid` 与 [`app.py:188-189`](../../../../src/http_api/app.py) 的短路（[系统测试方案 §4 测试环境类型](../llmtier-system-test-scheme.md)）。
 - **依赖的测试资产（tests.asset-design 文档）**：本阶段 `tests.asset-design` 文档尚未建立；B 类实例夹具契约见方案 §4，引用其版本而不复制字节。
 
 ## 3. 输入构造
@@ -138,7 +138,7 @@ settings 读/解析/校验失败 → `bootstrap_invalid`）；随后 [`app.py:18
 
 ## 7. 自动化位置与状态
 
-- **证据与 Run**：证据与 Run 契约见[§4.8/§10](../llmtier-system-test-scheme.md)：保存构造证据（选 (a)/(b)、坏 settings 内容或"未提供 settings"、DB 为空且无 `bootstrap_sha256`）、`/healthz` 与 `/readyz` 的原始 HTTP status/headers/body、`elapsed`；manifest 与报告落位（`tests/system/reports/...`）见 §4.8/§10（本 case `environment:"b"`）；失败现场不截断。
-- **依赖**：B 类 fixture `llmtier_b_no_bootstrap`（[`conftest.py`](../../../../tests/system/conftest.py)：(a) `LLMTierInstance(settings=None)` 空库 → `bootstrap_required`；**(b) 臂可选**）；**不可复用** `llmtier_b`/`llmtier_b_empty`（bootstrap 均成功）。另依赖[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)；[`registry.py`](../../../../src/management/registry.py) 的 `bootstrap_required`/`bootstrap_invalid` 与 [`app.py:188-189`](../../../../src/http_api/app.py) 的短路；系统设计 `ERR-BOOT` 与 §8.1（[llmtier-system-design.md](../../../20_system_design/llmtier-system-design.md)；`ERR-BOOT` envelope 码的单元层宿主见 §1）；自动化入口 [`ST-HEALTH-005.py`](../../../../tests/system/cases/ST-HEALTH-005.py)。**不依赖**其它 Case；与 ST-HEALTH-004 同 `not_ready` 但 `models` 形态互斥（空 vs 7×`unavailable`），各自独立执行。
+- **证据与 Run**：证据与 Run 契约见[计划 §7/§10](../llmtier-system-test-scheme.md)：保存构造证据（选 (a)/(b)、坏 settings 内容或"未提供 settings"、DB 为空且无 `bootstrap_sha256`）、`/healthz` 与 `/readyz` 的原始 HTTP status/headers/body、`elapsed`；manifest 与报告落位（`tests/system/reports/...`）见计划 §7/§10（本 case `environment:"b"`）；失败现场不截断。
+- **依赖**：B 类 fixture `llmtier_b_no_bootstrap`（[`conftest.py`](../../../../tests/system/conftest.py)：(a) `LLMTierInstance(settings=None)` 空库 → `bootstrap_required`；**(b) 臂可选**）；**不可复用** `llmtier_b`/`llmtier_b_empty`（bootstrap 均成功）。另依赖[系统测试方案 §4 测试环境类型](../llmtier-system-test-scheme.md)；[`registry.py`](../../../../src/management/registry.py) 的 `bootstrap_required`/`bootstrap_invalid` 与 [`app.py:188-189`](../../../../src/http_api/app.py) 的短路；系统设计 `ERR-BOOT` 与 §8.1（[llmtier-system-design.md](../../../20_system_design/llmtier-system-design.md)；`ERR-BOOT` envelope 码的单元层宿主见 §1）；自动化入口 [`ST-HEALTH-005.py`](../../../../tests/system/cases/ST-HEALTH-005.py)。**不依赖**其它 Case；与 ST-HEALTH-004 同 `not_ready` 但 `models` 形态互斥（空 vs 7×`unavailable`），各自独立执行。
 
 > 实现状态：Implemented（`ST-HEALTH-005.py` 已断言 `/healthz` 200 + `/readyz` 503 `not_ready` + `models==[]`）；执行状态与 Verdict 只在 Run 报告。

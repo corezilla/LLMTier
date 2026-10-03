@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-AUTH-002` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -31,7 +31,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-AUTH-002`）；责任摘要、分类与优先级以 [系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
+- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-AUTH-002`）；责任摘要、分类与优先级以 [系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
 - **测试脚本的唯一依据**：编码者按本文档写测试代码，不需要回读方案或设计正文猜测意图。
 - **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
 
@@ -48,14 +48,14 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-AUTH-002` / 系统设计 §8 认证与授权跨切面（角色/LAN trust/无鉴权） / `VRC-API-002` / `security` / `P0`
-- **测试方法（§1.5 方法表行）**：鉴权/授权/脱敏冒烟 + 角色隔离
-- 方案清单登记：`ST-AUTH-002`（与 §3.2 权威清单一致；本文件名 `st-auth-002.md`，唯一对应）。
+- **测试方法（§2.2 方法表行）**：鉴权/授权/脱敏冒烟 + 角色隔离
+- 方案清单登记：`ST-AUTH-002`（与 计划 §3 权威清单一致；本文件名 `st-auth-002.md`，唯一对应）。
 - 要测什么（责任展开）：`GET /v1/models` 在**携带 Authorization 头但 bearer 值错误**时被拒，返回 403 + `permission_denied`（凭据不匹配 ≠ 缺凭据）。
 - 明确不测什么 / 失败含义：不证明 **空 bearer** 被拒（ST-AUTH-006）、**无 Authorization 头**的 LAN trust 免登录（ST-AUTH-001）、**data token 访问 admin 面**被拒（ST-AUTH-003）、**管理面未授权优先于资源存在性**（ST-AUTH-009）、**未配置鉴权→503**（ST-AUTH-007）、**缺/非法凭据→401**（ST-AUTH-010）；也不证明 `hmac.compare_digest` 的恒定时间性（INV-2 需专门时序测量，不属本 case）。
 
 **目的（被测契约）**：验证 access-trust 机制的 **bearer 不匹配判定路径**。被测端点/规则：`GET /v1/models`（[openapi](../../../../interfaces/openapi/llmtier.openapi.json) `listModels`，securityScheme `BearerAuth`）；
 入口 [`_auth()`](../../../../src/http_api/app.py)（默认 role=`data`）先经 [`unauthenticated_principal()`](../../../../src/http_api/auth.py) 判空，因 `Authorization` 头存在而返回 `None`，再落入 [`authenticate()`](../../../../src/http_api/auth.py)，以 `hmac.compare_digest(supplied, configured)` 比较（`auth.py:56-57`），不匹配则抛 `ApiError(403, "permission_denied")`。
-**角色澄清**：§3.2 把本 Case 角色记为 `data`（`/v1/models` 的默认 role），实际观测点是"错误 bearer 被拒"，与是否具备 data 权限无关。设计验证项 `VRC-API-002`；机制 `T-TRUST-BEARER`（机制需求 `R-TRUST-01`：错误凭据→403，见 [access-trust 机制 §5.1/§8 INV-2](../../../20_system_design/mechanisms/access-trust.md)）；
+**角色澄清**：方案 §6 把本 Case 角色记为 `data`（`/v1/models` 的默认 role），实际观测点是"错误 bearer 被拒"，与是否具备 data 权限无关。设计验证项 `VRC-API-002`；机制 `T-TRUST-BEARER`（机制需求 `R-TRUST-01`：错误凭据→403，见 [access-trust 机制 §5.1/§8 INV-2](../../../20_system_design/mechanisms/access-trust.md)）；
 错误信封 `{error:{message,type,code,param,retryable}}`（[errors.py](../../../../src/http_api/errors.py)）。
 
   > **契约一致性登记（openapi gap）**：openapi `listModels` 的 responses **仅有 `200` 与 `401`**，**未声明 `403`**；本 case 依赖的 403 `permission_denied` 由机制 `T-TRUST-BEARER`（`R-TRUST-01`：错误凭据→403）与实现 [`auth.py`](../../../../src/http_api/auth.py) 保障，属机器契约未表达的路径。本 case 的 Oracle 仍为 403，并把该 openapi 缺口**登记**为已知差异；`X-Request-ID` 亦仅在 openapi 声明的 200 响应头中出现、**非契约**。
@@ -63,7 +63,7 @@
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `data`（§3.2；wire 契约=错误 bearer 被拒），只读；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=§2.1 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；本 case **不复用** `api_client`（其已注入 `Authorization: Bearer dev-data`，会走**正确凭据**路径而得到 200），使用独立 `httpx.Client`（无默认头）并显式设置错误 bearer；初始状态=§2.3 A 类基线（3 provider / 4 deployment / 7 fixed tier）。
+- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `data`（方案 §6 清单行；wire 契约=错误 bearer 被拒），只读；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=计划 §3 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；本 case **不复用** `api_client`（其已注入 `Authorization: Bearer dev-data`，会走**正确凭据**路径而得到 200），使用独立 `httpx.Client`（无默认头）并显式设置错误 bearer；初始状态=§2.3 A 类基线（3 provider / 4 deployment / 7 fixed tier）。
 
 ## 3. 输入构造
 
@@ -79,7 +79,7 @@
 ## 4. 执行步骤与观察点
 
 - **执行过程（逐步调用）**：
-  1. `GET /healthz`、`GET /readyz` —— 确认 §2.1 基线（由 `pytest_configure` 自动执行，本 case 不重复）。
+  1. `GET /healthz`、`GET /readyz` —— 确认 计划 §2 基线（由 `pytest_configure` 自动执行，本 case 不重复）。
   2. 建立独立客户端：`httpx.Client(base_url="http://192.168.1.9:8181", timeout=10.0)`，**不设默认 `Authorization`**。
   3. `resp = client.get("/v1/models", headers={"Authorization": "Bearer bogus-token-xxx"})`；记录 status、headers、body。
   4. 断言 `resp.status_code == 403`（凭据不匹配 ⇒ 403；**不是** 401，401 仅用于缺 Bearer 前缀/未命中免登录，属 ST-AUTH-010）。
@@ -104,9 +104,9 @@
   - **PASS**：`status==403` 且 `error.code=="permission_denied"` 且 `error.type=="request_error"` 且信封恰 5 键。
   - **FAIL**：返回 200/401/其它 status，或 `error.code` 不符（如落为 `authentication_required`），或信封缺/多键；须给预期 vs 实际与 `reproduction_cmd`。
   - **BLOCKED**：测试代码/契约本身问题（如客户端把错误 bearer 换成 dev-data、断言不可实现）——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **SKIP**：§2.1 前置不满足——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
+  - **SKIP**：计划 §3 前置不满足——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **INVALID**：用 `127.0.0.1`/mock/替代路径冒充真实 m5air 路径，或以**空/缺** Authorization 冒充本 case——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **NOT_RUN**：Case 已定义但本轮未执行（例如 suite 因 §2.1 失败整班 skip）。
+  - **NOT_RUN**：Case 已定义但本轮未执行（例如 suite 因计划 §3 失败整班 skip）。
 
 ## 6. 错误路径、副作用与清理
 

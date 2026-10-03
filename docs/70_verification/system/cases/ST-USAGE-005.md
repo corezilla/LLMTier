@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-USAGE-005` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-USAGE-005`）；责任摘要、分类与优先级以 [系统测试方案 §3](../llmtier-system-test-scheme.md) 清单行为准。
+- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-USAGE-005`）；责任摘要、分类与优先级以 [系统测试方案 §6](../llmtier-system-test-scheme.md) 清单行为准。
 - **来源**：系统设计 §8 Usage 查询接口（parent `llmtier-system-design`），设计验证项 `VRC-MGMT-006`；所属方案 `llmtier-system-test-scheme`。
 - **边界**：系统层 Case（整软件系统组装，被测为 m5air 真实部署或按 tests.asset-design 约束的替身）；本文档持有实现状态，执行状态与 Verdict 只在 Run 报告。
 
@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-USAGE-005` / 系统设计 §8 Usage 查询接口 / `VRC-MGMT-006` / negative / P1（[方案清单 `ST-USAGE-005`](../llmtier-system-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
+- **测试方法（§2.2 方法表行）**：错误猜测 + 反例驱动（ERR-*）
 - 要测什么（责任展开）：`GET /v1/usage` 缺 `from` 或 `to`（或二者）→ `400 invalid_request`；非法 `date-time` 或 `from >= to` 同样 400，且在**建 snapshot / 读账本之前**被拒（零副作用）。
   `from`/`to` **required** `date-time`。实现：handler `src/http_api/app.py` 在 `not since or not until` 时直接 `ApiError(400,"invalid_request","from and to are required")`（在建快照前）；
   `src/inference/usage.py::_page` 在做 `from`/`to` 解析失败或 `start >= end` 时 `ApiError(400,"invalid_request",...)`（仍在 `query_snapshots` 写入前）。
@@ -90,7 +90,7 @@ Authorization: Bearer dev-data
 
 | Step | 动作 | 观察点 |
 |---|---|---|
-| 1 | `GET /healthz`/`GET /readyz`（`pytest_configure` 完成，不重复） | §2.1 基线 |
+| 1 | `GET /healthz`/`GET /readyz`（`pytest_configure` 完成，不重复） | 计划 §2 基线 |
 | 2 | 逐个变体发 `GET /v1/usage` | `status_code == 400` |
 | 3 | 对每个响应断言 `err = body["error"]` | `err["code"] == "invalid_request"`、`err["type"] == "request_error"`、信封键集恰 `{message,type,code,param,retryable}`；`param` 为 `null`（实现未设 param，不强制其它值） |
 | 4 | （零副作用交叉核对，可选）若具备 `ssh m5air sqlite3`，在变体前后 `SELECT COUNT(*) FROM query_snapshots;` | 计数**不变**（校验"校验先于建 snapshot"）；无 SSH 权限时跳过该子检查，**不**因此判变体失败 |

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-USAGE-006` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-USAGE-006`）；责任摘要、分类与优先级以 [系统测试方案 §3](../llmtier-system-test-scheme.md) 清单行为准。
+- **一 Case 一文档**：本 Case 文档 ID＝Case ID（`ST-USAGE-006`）；责任摘要、分类与优先级以 [系统测试方案 §6](../llmtier-system-test-scheme.md) 清单行为准。
 - **来源**：系统设计 §8 Usage 查询接口（parent `llmtier-system-design`），设计验证项 `VRC-MGMT-006`；所属方案 `llmtier-system-test-scheme`。
 - **边界**：系统层 Case（整软件系统组装，被测为 m5air 真实部署或按 tests.asset-design 约束的替身）；本文档持有实现状态，执行状态与 Verdict 只在 Run 报告。
 
@@ -46,7 +46,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-USAGE-006` / 系统设计 §8 Usage 查询接口 / `VRC-MGMT-006` / normal / P1（[方案清单 `ST-USAGE-006`](../llmtier-system-test-scheme.md)）；机制 `T-TRUST-SHARED`、`R-MET-02`（[usage-metering 机制](../../../20_system_design/mechanisms/usage-metering.md) §4.6/§4.7 与 [access-trust 机制](../../../20_system_design/mechanisms/access-trust.md)）。
-- **测试方法（§1.5 方法表行）**：等价类划分 + 契约字段比对 + 鉴权/角色隔离冒烟（主体隔离）
+- **测试方法（§2.2 方法表行）**：等价类划分 + 契约字段比对 + 鉴权/角色隔离冒烟（主体隔离）
 - 要测什么（责任展开）：`GET /v1/usage` 的主体隔离：`data` 凭据只见到本主体的 record（脚本以 `X-Principal-ID` 指派两个不同 data 主体），`admin` 凭据见到全局，`data` 结果集 ⊆ `admin` 结果集；
   data 产生的 cursor 以 admin 重放被拒 `403 permission_denied`。OpenAPI `listUsage` description 明确 "With a data credential the caller sees only its own records; with the admin credential the response includes all principals"；
   实现 `src/http_api/app.py` 经 `_auth_either()`→`authenticate_any()` 得 `is_admin`，`src/inference/usage.py::_page` 在 `not admin` 时追加 `h.principal_id=?
@@ -96,7 +96,7 @@ GET  /v1/usage?from=<w>&to=<w>&request_id=<rid_b>   (admin) → 期望 1 条
 
 | Step | 动作 | 观察点 |
 |---|---|---|
-| 1 | `GET /healthz`/`GET /readyz`（`pytest_configure` 完成，不重复） | §2.1 基线 |
+| 1 | `GET /healthz`/`GET /readyz`（`pytest_configure` 完成，不重复） | 计划 §2 基线 |
 | 2 | 以 `api_client` + `X-Principal-ID=A` 发 embeddings 取 `rid_a`；以 `X-Principal-ID=B` 取 `rid_b` | 两者非空且不同 |
 | 3 | `own = api_client.get("/v1/usage", params={"from":w0,"to":w1,"request_id":rid_a}, headers=A)` | 200 且可见集合恰 `{rid_a}` |
 | 4 | `other = api_client.get(..., request_id=rid_b, headers=A)` | 200 且 `data == []`（A 不见 B 主体记录） |

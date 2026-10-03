@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `MT-OBS-001` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-10-02` |
-| Last Modified Date | `2026-10-02` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.module-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -29,7 +29,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`MT-OBS-001`）；责任摘要、分类与优先级以 [模块测试方案 §3](../llmtier-module-test-scheme.md) 清单行为准，不在本文档重复维护。
+- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`MT-OBS-001`）；责任摘要、分类与优先级以 [模块测试方案 §6](../llmtier-module-test-scheme.md) 清单行为准，不在本文档重复维护。
 - **测试脚本的唯一依据**：编码者按本文档写测试代码；§7 指向已实现脚本 `tests/module/cases/MT-OBS-001.py`。
 - **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
 
@@ -43,8 +43,8 @@
 
 ## 1. Case 概述与责任
 
-- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-OBS-001` / M005 observability §9 · 诊断端点（组装） v0.1.0-draft.6 / VRC-OBS-001..005（observability-design §14 / observability.isd §9.1，observability 0.1.0-draft.6） / VRC-OBS-001..005 / normal / P1（[方案清单 §3](../llmtier-module-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：组装后真实调用 + 等价类划分 + 分支覆盖（主要手段：边界外协作者用进程内 `FakeAdapter`（`ResponsesService._test_adapter` seam，资产 `llmtier-unit-fakes`））
+- Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`MT-OBS-001` / M005 observability §9 · 诊断端点（组装） v0.1.0-draft.6 / VRC-OBS-001..005（observability-design §14 / observability.isd §9.1，observability 0.1.0-draft.6） / VRC-OBS-001..005 / normal / P1（[方案清单 §6](../llmtier-module-test-scheme.md)）。
+- **测试方法（§2.4 方法表行）**：组装后真实调用 + 等价类划分 + 分支覆盖（主要手段：边界外协作者用进程内 `FakeAdapter`（`ResponsesService._test_adapter` seam，资产 `llmtier-unit-fakes`））
 - **覆盖的分支 / 组合 / 迁移 ID**：无（层① 接口行为分母行）
 - 要测什么（责任展开）：组装后诊断端到端：经 M001 路由 → M006 `DiagnosticsService`，开关/快照/统计/trace/时间窗全链生效（本 Case 责任：经 M001 路由 → M006 服务，开关/快照/统计/trace/时间窗五面全链生效）
 - 明确不测什么 / 失败含义：不测跨模块系统级流程、真实上游 provider 协议、浏览器 E2E（归系统层 `ST-*` 与契约层）；本层只断言组装后成立的分支走向、状态迁移与调用序。失败含义＝observability 组装后诊断五面端到端贯通与设计不一致。
@@ -64,7 +64,7 @@ PATCH /v1/diagnostics; POST /v1/responses; GET /v1/diagnostics/{snapshots,stats,
 ## 3. 输入构造
 
 - 逐参数输入构造：开两个开关 → 一次推理 → 查 snapshots/stats/traces/单 trace；时间窗内/外各查一次
-- 边界/非法取值及理由：开关开启后三面均有行且字段完整；单 trace 的 stages 覆盖 `received`…`completed`；时间窗外为空（stage 位置序不断言，见方案 §4 `G-OBS-STAGE-ORDER-1`）
+- 边界/非法取值及理由：开关开启后三面均有行且字段完整；单 trace 的 stages 覆盖 `received`…`completed`；时间窗外为空（stage 位置序不断言，见方案 §7 `G-OBS-STAGE-ORDER-1`）
 - 规模 / 时间域（数量、分页、复杂度、观测开销）：1 次推理 + 5 次查询；O(1)
 
 ## 4. 执行步骤与观察点

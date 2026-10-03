@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-RESP-014` |
-| Document Version | `0.1.0-draft.4` |
+| Document Version | `0.1.0-draft.5` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -30,7 +30,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-RESP-014` / 系统设计 §8 Responses 接口 / `VRC-INF-001` / negative / P2（[方案清单 `ST-RESP-014`](../llmtier-system-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
+- **测试方法（§2.2 方法表行）**：错误猜测 + 反例驱动（ERR-*）
 - 要测什么（责任展开）：`POST /v1/responses` 携带 `max_tokens`（非 `max_output_tokens`）：不存在别名，`400 unsupported_field`（"Request body contains unknown fields"，`param="max_tokens"`）。OpenAPI `ResponsesRequest` 仅声明 `max_output_tokens`，且实现 `src/inference/responses.py` 的 `ALLOWED_FIELDS` 不含 `max_tokens`，`require(unknown is None, 400, "unsupported_field", ...)` 将其作为未知顶层字段拒绝。
 - 明确不测什么 / 失败含义：不测截断语义（ST-RESP-010 用 `max_output_tokens`）；不测别名映射（本版本无映射）；不测合法流式成功（ST-RESP-001/06）。失败含义＝`max_tokens` 被当作别名接受。
 
@@ -69,7 +69,7 @@ Content-Type: application/json
 
 | Step | 动作 | 观察点 |
 |---|---|---|
-| 1 | `GET /healthz`、`GET /readyz`（由 `pytest_configure` 自动执行） | §2.1 基线 |
+| 1 | `GET /healthz`、`GET /readyz`（由 `pytest_configure` 自动执行） | 计划 §2 基线 |
 | 2 | `POST /v1/responses`（上表 body） | status / Content-Type / body |
 | 3 | 断言观测形态，按当前机器契约判定 | `status_code == 400`，JSON 错误信封（非 SSE） |
 | 4 | 解析 `resp.json()["error"]` | `code=="unsupported_field"`、`message` 含 `"unknown fields"`、`type=="request_error"`、`param=="max_tokens"`、`retryable is False`，键集恰 5 键 |

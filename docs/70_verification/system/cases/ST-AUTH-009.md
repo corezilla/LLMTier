@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-AUTH-009` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -31,7 +31,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-AUTH-009`）；责任摘要、分类与优先级以 [系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
+- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-AUTH-009`）；责任摘要、分类与优先级以 [系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
 - **测试脚本的唯一依据**：编码者按本文档写测试代码，不需要回读方案或设计正文猜测意图。
 - **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
 
@@ -48,8 +48,8 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-AUTH-009` / 系统设计 §8 认证与授权跨切面（角色/LAN trust/无鉴权） / `VRC-API-002` / `security` / `P1`
-- **测试方法（§1.5 方法表行）**：鉴权/授权/脱敏冒烟 + 角色隔离
-- 方案清单登记：`ST-AUTH-009`（与 §3.2 权威清单一致；本文件名 `st-auth-009.md`，唯一对应）。
+- **测试方法（§2.2 方法表行）**：鉴权/授权/脱敏冒烟 + 角色隔离
+- 方案清单登记：`ST-AUTH-009`（与 计划 §3 权威清单一致；本文件名 `st-auth-009.md`，唯一对应）。
 - 要测什么（责任展开）：`GET /v1/providers/{id}` 在**携带有效 data token**时，**无论 `{id}` 是否存在**都先返回 403 + `permission_denied`，不泄露 `not_found`（授权先于资源存在性）。
 - 明确不测什么 / 失败含义：不证明 **admin 凭据下不存在的 provider→404 `not_found`**（ST-PROV-004）、**data token 访问 provider 列表**被拒（ST-AUTH-003）、**别名命名空间**需 admin（ST-AUTH-008）、**错误 bearer** 被拒（ST-AUTH-002）、**缺/非法凭据→401**（ST-AUTH-010）、**未配置鉴权→503**（ST-AUTH-007）。本 case **只**断言认证拒绝发生在资源存在性判定之前、且拒绝形态不因存在性而异。
 
@@ -66,7 +66,7 @@ data token（`dev-data`）对 `admin` role 不匹配 ⇒ [`authenticate()`](../.
 
 ## 2. 被测入口与前置
 
-- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `data`（§3.2）；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=§2.1 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；就绪检查含 §2.1.6 必需 provider 已注册（供"存在 id"对照）。本 case 使用独立 `httpx.Client`（无默认头）并显式设置 `Authorization: Bearer dev-data`（或复用 `api_client`）；**不得**使用 `admin_client`；初始状态=§2.3 A 类基线（含 `provider_local`）。
+- **前置与环境**：**环境 A**（m5air 已部署实例，角色 `data`（方案 §6 清单行）；见[系统测试计划 §5 环境操作](../llmtier-system-test-plan.md#5-环境操作搭建--复位--隔离--清理)）；前置=计划 §3 就绪检查（A 类 6 项，`pytest_configure` 自动执行，任一失败→整班 BLOCKED/SKIP）；就绪检查含 计划 §3 必需 provider 已注册（供"存在 id"对照）。本 case 使用独立 `httpx.Client`（无默认头）并显式设置 `Authorization: Bearer dev-data`（或复用 `api_client`）；**不得**使用 `admin_client`；初始状态=§2.3 A 类基线（含 `provider_local`）。
 
 ## 3. 输入构造
 
@@ -81,12 +81,12 @@ data token（`dev-data`）对 `admin` role 不匹配 ⇒ [`authenticate()`](../.
   Host: 192.168.1.9:8181
   Authorization: Bearer dev-data
   ```
-  构造点：**存在 id** = m5air 基线 `provider_local`（§2.1.6 保证注册）；**不存在 id** = 明确未注册的字面量 `provider_does_not_exist_auth09`（不得使用真实 prefix 冒充，避免歧义）。两者都携带 **data 凭据** `dev-data`。二者响应必须同为 403 `permission_denied`——存在性差异不得体现在 status/code/body。不注入故障；不构造非法输入。
+  构造点：**存在 id** = m5air 基线 `provider_local`（计划 §3 保证注册）；**不存在 id** = 明确未注册的字面量 `provider_does_not_exist_auth09`（不得使用真实 prefix 冒充，避免歧义）。两者都携带 **data 凭据** `dev-data`。二者响应必须同为 403 `permission_denied`——存在性差异不得体现在 status/code/body。不注入故障；不构造非法输入。
 
 ## 4. 执行步骤与观察点
 
 - **执行过程（逐步调用）**：
-  1. `GET /healthz`、`GET /readyz` —— 确认 §2.1 基线（由 `pytest_configure` 自动执行，本 case 不重复）。
+  1. `GET /healthz`、`GET /readyz` —— 确认 计划 §2 基线（由 `pytest_configure` 自动执行，本 case 不重复）。
   2. 建立独立客户端：`httpx.Client(base_url="http://192.168.1.9:8181", timeout=10.0)`，`headers={"Authorization": "Bearer dev-data"}`。
   3. `r_exist = client.get("/v1/providers/provider_local")`；`r_missing = client.get("/v1/providers/provider_does_not_exist_auth09")`；分别记录 status、headers、body。
   4. 断言**两者** `status_code == 403`（授权先于存在性；不存在的 id 也**不**得 404）。
@@ -113,7 +113,7 @@ data token（`dev-data`）对 `admin` role 不匹配 ⇒ [`authenticate()`](../.
   - **PASS**：存在 id 与不存在 id **均** `status==403` 且 `error.code=="permission_denied"`，且两条响应在 status/`code` 上不可区分。
   - **FAIL**：任一返回 200/401/404/其它 status，或不存在 id 落为 `not_found`（存在性泄露），或两条响应可区分、信封缺/多键；须给预期 vs 实际与 `reproduction_cmd`。
   - **BLOCKED**：测试代码/契约本身问题（如误用 admin 凭据、不存在 id 构造错、断言不可实现）——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
-  - **SKIP**：§2.1 前置不满足（如 m5air 缺少 `provider_local` 基线）——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
+  - **SKIP**：计划 §3 前置不满足（如 m5air 缺少 `provider_local` 基线）——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **INVALID**：用 `127.0.0.1`/mock/替代路径冒充真实 m5air 路径，或以 admin/错误凭据冒充本 case——见[系统测试计划 §7 报告产出与 Gate 规则](../llmtier-system-test-plan.md#7-报告产出与-gate-规则)。
   - **NOT_RUN**：无（自动化入口已实现；执行状态见 Run 报告）。
 
@@ -125,6 +125,6 @@ data token（`dev-data`）对 `admin` role 不匹配 ⇒ [`authenticate()`](../.
 
 - **证据与 Run**：保存两条原始命令、发送 headers 快照（证明 `Bearer dev-data`）、两组 HTTP status/headers/body、执行机 LAN IP、exit code、`elapsed`、环境快照（`/healthz`/`/readyz` + provider 列表）；落位与契约见[系统测试计划 §6 证据与 Run 记录规则](../llmtier-system-test-plan.md#6-证据与-run-记录规则)（Run ID=`<date>/A-api`，`environment:"a"`，`manifest.json` 含 `target_artifact`/`redactions`/`reproduction_cmd`）。
 
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查（含 §2.1.6 `provider_local` 注册）；独立 `httpx` 客户端或 `api_client`（带 `dev-data`）；m5air `GET /v1/providers/{id}` 可用；自动化入口 `tests/system/cases/ST-AUTH-009.py`（已实现）。**不依赖**其它 Case；与 ST-AUTH-003/ST-AUTH-008 共享 admin 面角色隔离，与 ST-PROV-004（admin 正向 not_found）互补但独立执行、互不关闭。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查（含 计划 §3 `provider_local` 注册）；独立 `httpx` 客户端或 `api_client`（带 `dev-data`）；m5air `GET /v1/providers/{id}` 可用；自动化入口 `tests/system/cases/ST-AUTH-009.py`（已实现）。**不依赖**其它 Case；与 ST-AUTH-003/ST-AUTH-008 共享 admin 面角色隔离，与 ST-PROV-004（admin 正向 not_found）互补但独立执行、互不关闭。
 
 > 实现状态：见上文「证据与 Run」与「依赖」中的自动化入口（Planned/Implemented）；执行状态与 Verdict 只在 Run 报告。

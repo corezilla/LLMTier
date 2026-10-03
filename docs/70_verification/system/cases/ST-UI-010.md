@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-UI-010` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-10-01` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -31,7 +31,7 @@
 
 ### 模板定位：方案、用例与计划的边界
 
-- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-UI-010`）；责任摘要、分类与优先级以 [系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
+- **一 Case 一文档**：本文档只展开一个 Case；Document ID＝Case ID（`ST-UI-010`）；责任摘要、分类与优先级以 [系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单) 清单行为准。
 - **测试脚本的唯一依据**：编码者按本文档写测试代码，不需要回读方案或设计正文猜测意图。
 - **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
 
@@ -49,7 +49,7 @@
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-UI-010` / 模块设计 web-ui §14（ISD §9.1） / `VRC-UI-001` / `boundary` / `P2`
 - 方案清单登记：`ST-UI-010`
-- **UI 方法模式（§1.5 方法表行）**：**边界呈现**——极值数据（超长文本、HTML 元字符、空字段），打开该区域，断言不溢出/不错位/不被解析为标记，与契约呈现规则一致。
+- **UI 方法模式（§2.2 方法表行）**：**边界呈现**——极值数据（超长文本、HTML 元字符、空字段），打开该区域，断言不溢出/不错位/不被解析为标记，与契约呈现规则一致。
 - **六要素映射（约束「每 Case 必须写明」）**：模式＝本节；构造的状态＝§3（播种超长且含 `<img onerror>`/`&`/引号的 deployment 名称与 backend_model）；执行的操作＝§4（打开 Home）；DOM 断言＝§4（精确文本以**文本**形式存在、无注入 `<img>`、无水平溢出）；网络断言＝§4（对应 GET 200）；证据位置＝§7（含 `boundary` 额外截图）。
 - 要测什么（责任展开）：极端文本必须按契约转义为文本（不解析为标记）、完整呈现、且不使页面水平溢出。
 - 明确不测什么 / 失败含义：不证明大数值/科学计数的格式化（本 UI 的数值经 `metric()` 原样呈现，无科学计数逻辑；见下「不适用项说明」）。失败含义＝极值输入导致 XSS/布局破坏/呈现失真。
@@ -114,4 +114,4 @@
 ## 8. 需求与设计可追溯
 
 - 设计验证项：`VRC-UI-001`（模块设计 web-ui §14.1 / [web-ui ISD §9.1](../../../50_implementation_design/web-ui.isd.md)）。
-- 需求链：`LT-FUN-*`（控制台），以系统方案 §3.6 映射为准。本 Case 补充覆盖 §1.5「边界呈现」模式（原 UI 类无此模式 Case）。
+- 需求链：`LT-FUN-*`（控制台），以系统方案 §6.1 映射为准。本 Case 补充覆盖 §2.1「边界呈现」模式（原 UI 类无此模式 Case）。

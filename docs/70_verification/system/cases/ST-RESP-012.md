@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-RESP-012` |
-| Document Version | `0.1.0-draft.4` |
+| Document Version | `0.1.0-draft.5` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `native` |
@@ -27,17 +27,17 @@
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
-> 本 Case 文档绑定：系统设计经 `--parent-document-id`、所属方案经方案清单行引用写入 metadata；Document ID＝Case ID。方案清单行见[系统测试方案 §3 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)。
+> 本 Case 文档绑定：系统设计经 `--parent-document-id`、所属方案经方案清单行引用写入 metadata；Document ID＝Case ID。方案清单行见[系统测试方案 §6 覆盖分母与 Case 清单](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)。
 
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-RESP-012` / 系统设计 §8 Responses 接口（POST /v1/responses） / `VRC-INF-001` / `negative` / `P2`。本文件名 `st-resp-012.md`，与 Case ID 唯一对应。
-- **测试方法（§1.5 方法表行）**：错误猜测 + 反例驱动（ERR-*）
+- **测试方法（§2.2 方法表行）**：错误猜测 + 反例驱动（ERR-*）
 - 要测什么（责任展开）：`POST /v1/responses` 携带 `conversation_id`（未知顶层字段）：`400 unsupported_field`（"Request body contains unknown fields"，`param="conversation_id"`），dispatch 前拒绝、零副作用。
 - 明确不测什么 / 失败含义：**不证明什么**——不证明任何 conversation 持久化/续写（本版本不存在，[piko-data-plane-control.md](../../../60_interfaces/piko-data-plane-control.md)）；不证明禁字段清单路径（ST-RESP-009，`previous_response_id` 命中 `unsupported_field`）；不证明合法流式成功（ST-RESP-001/06）。**失败含义＝未知字段拒绝契约破坏**。
 
 **目的（被测契约）**：验证 Data Plane `POST /v1/responses` 对**非请求字段 `conversation_id`** 的处理契约。契约由 OpenAPI `ResponsesRequest.additionalProperties:false` + 实现 `src/inference/responses.py` 的 `ALLOWED_FIELDS`（不含 `conversation_id`）与 `require(unknown is None, 400, "unsupported_field", "Request body contains unknown fields", unknown)` 共同定义：未知顶层字段在 dispatch 前被拒，`code=unsupported_field`、`param`=首个未知字段名。
-设计验证项 `VRC-INF-001`（[系统测试方案 §3](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明任何 conversation 持久化/续写（本版本不存在）；
+设计验证项 `VRC-INF-001`（[系统测试方案 §6](../llmtier-system-test-scheme.md#3-覆盖分母与-case-清单)）。**不证明什么**：不证明任何 conversation 持久化/续写（本版本不存在）；
 不证明禁字段清单路径（ST-RESP-009，`previous_response_id` 命中 `unsupported_field`）；不证明合法流式成功（ST-RESP-001/06）。
 
 ## 2. 被测入口与前置
@@ -122,7 +122,7 @@
 
 ## 7. 自动化位置与状态
 
-- **证据与 Run**：证据与 Run 契约见[§4.8/§10](../llmtier-system-test-scheme.md)：保存请求 body、HTTP status/headers、原始错误信封、可选对照请求响应、发出命令、exit code、环境快照；manifest 与报告落位见 §4.8/§10（本 case `environment:"a"`）；失败现场不截断。
-- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client`（[系统测试方案 §4 共同机制](../llmtier-system-test-scheme.md)）；OpenAPI `ResponsesRequest`；实现 `src/inference/responses.py`（`ALLOWED_FIELDS`）；自动化入口 [`ST-RESP-012.py`](../../../../tests/system/cases/ST-RESP-012.py)（已断言 `400 unsupported_field` + `param=="conversation_id"`）。**不依赖**其它 Case；与 ST-RESP-013/14 同类（未知字段），与 ST-RESP-009（显式禁字段）区分。
+- **证据与 Run**：证据与 Run 契约见[计划 §7/§10](../llmtier-system-test-scheme.md)：保存请求 body、HTTP status/headers、原始错误信封、可选对照请求响应、发出命令、exit code、环境快照；manifest 与报告落位见计划 §7/§10（本 case `environment:"a"`）；失败现场不截断。
+- **依赖**：[系统测试计划 §3 执行前检](../llmtier-system-test-plan.md#3-执行前检go--no-go) 就绪检查；`api_client`（[系统测试方案 §4 测试环境类型](../llmtier-system-test-scheme.md)）；OpenAPI `ResponsesRequest`；实现 `src/inference/responses.py`（`ALLOWED_FIELDS`）；自动化入口 [`ST-RESP-012.py`](../../../../tests/system/cases/ST-RESP-012.py)（已断言 `400 unsupported_field` + `param=="conversation_id"`）。**不依赖**其它 Case；与 ST-RESP-013/14 同类（未知字段），与 ST-RESP-009（显式禁字段）区分。
 
 > 实现状态：Implemented（`ST-RESP-012.py` 已断言本 case 契约）；执行状态与 Verdict 只在 Run 报告。

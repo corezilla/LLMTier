@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `ST-RESP-018` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
 | Document Owner | LLMTier |
 | Authors | LLMTier |
 | Created Date | `2026-09-29` |
-| Last Modified Date | `2026-10-01` |
+| Last Modified Date | `2026-10-03` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.3.2` |
 | Template Conformance | `tailored` |
@@ -30,7 +30,7 @@
 ## 1. Case 概述与责任
 
 - Case ID / 来源 ID / 设计验证项 / 分类 / 优先级（引用方案清单）：`ST-RESP-018` / 系统设计 §8 Responses 接口 / `VRC-INF-001` / recovery / P2（[方案清单 `ST-RESP-018`](../llmtier-system-test-scheme.md)）。
-- **测试方法（§1.5 方法表行）**：边界值抽样（body 2 MB 边界）+ 错误猜测 + 反例驱动
+- **测试方法（§2.2 方法表行）**：边界值抽样（body 2 MB 边界）+ 错误猜测 + 反例驱动
 - 要测什么（责任展开）：`POST /v1/responses` body 超过 2 MB：`413 request_too_large`，读取前拒绝（自动化入口 `ST-RESP-018.py`）。`Content-Length > 2 MiB` 时在解析业务体前返回 `413 request_too_large`。错误目录 `ERR-REQ-TOO-LARGE` → wire `code=request_too_large`；实现 `src/http_api/app.py` `_body()`（`if int(Content-Length) > 2 * 1024 * 1024: raise ApiError(413, "request_too_large", "Request body is too large")`，系统设计 §11.1）。
 - 明确不测什么 / 失败含义：不测非法 `Content-Length`（`400 invalid_request`）或非法 JSON（ST-RESP-016）；不测上游调用。恰好 2 MiB 的边界（`== 2097152` 应受理）作为本 case 的边界子测。失败含义＝请求体上限制破坏。
 
