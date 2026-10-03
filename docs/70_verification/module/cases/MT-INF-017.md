@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `MT-INF-017` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -79,7 +79,7 @@ create(...) / create(...embeddings)  # 上游返回非 SSE / 非 JSON 帧 / 非 
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：方案 §2.3 b4/b5/c7（Oracle ＝ `src/`，偏差见 §7 `G-INF-NONJSON-MAPPING-1`）；按 `complete` 的 Content-Type 显式 raise 与 `JSONDecodeError` 归类人工推导
-- 互斥预期（成功 / 各错误分支）：非 SSE→502；非 JSON→503（以实现为准，偏差已具名）；不伪装成功
+- 互斥预期（成功 / 各错误分支）：非 SSE→502；非 JSON→503（以实现为准，偏差已具名）；不伪装成功。账本不得出现 `measured`（只允许 `unknown`），不伪装成功
 
 ## 6. 错误路径、副作用与清理
 

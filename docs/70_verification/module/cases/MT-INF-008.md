@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `MT-INF-008` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -80,7 +80,7 @@ create(...)  # 注入经 diagnostics.set_injections 配置
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：方案 §6.3 K4 + inference 模块设计 §14.3；按注入优先级与错误码契约人工推导
-- 互斥预期（成功 / 各错误分支）：五个注入态全部命中且映射正确；注入命中可观测
+- 互斥预期（成功 / 各错误分支）：五个注入态全部命中且映射正确；注入命中可观测。注入失败路径账本收敛 `unknown` 且 `source=injected`；正常路径 `measured`
 
 ## 6. 错误路径、副作用与清理
 

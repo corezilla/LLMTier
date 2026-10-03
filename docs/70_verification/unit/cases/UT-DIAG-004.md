@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-DIAG-004` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -81,7 +81,7 @@
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：`F-DIAG-INJECT/STREAM/TRACES`/`RULE-DIAG-INJECT`；人工推导。**判据语义以设计验证项 `VRC-DIAG-004` 为唯一权威**；本节仅细化不改写，冲突回溯设计修订。
-- 互斥预期（成功 / 各错误分支）：fault→502 且 usage unknown；rate_limit→429 带 Retry-After；delay→完成；缺 items/非布尔→400；空 items→200
+- 互斥预期（成功 / 各错误分支）：fault→502 且 usage unknown；rate_limit→429 带 Retry-After；delay→完成；缺 items/非布尔→400；空 items→200。`fault_502`→502 `provider_failure` 且账本 `source=injected`；非布尔 `enabled`→400 `invalid_injection`；缺 `items`→400 `invalid_request`；`delay` 路径推理 `completed`
 
 ## 6. 错误路径、副作用与清理
 

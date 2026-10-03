@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-MGMT-007` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -81,7 +81,7 @@ Registry.bootstrap_settings(settings) ; Registry.ensure_fixed_tiers(conn=None)
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：`T-MGMT-01/02/04` + `CON-CFG-001/2` + 人工推导；不调用被测复算。**判据语义以设计验证项 `VRC-MGMT-001` 为唯一权威**；本节仅细化不改写，冲突回溯设计修订。
-- 互斥预期（成功 / 各错误分支）：合法成功；重复 no-op；失败空库回滚 + not_ready；二次补建幂等；互斥
+- 互斥预期（成功 / 各错误分支）：合法成功；重复 no-op；失败空库回滚 + not_ready；二次补建幂等；互斥。引导失败（缺节／`env:` 空／`file:` 缺失）→503 `bootstrap_invalid`
 
 ## 6. 错误路径、副作用与清理
 

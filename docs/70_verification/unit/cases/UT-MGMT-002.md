@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-MGMT-002` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -83,7 +83,7 @@ create_provider/update_provider/create_deployment/update_service_level/get_servi
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：`RULE-MGMT-CAPS/ETAG/REF`；人工推导。**判据语义以设计验证项 `VRC-MGMT-002` 为唯一权威**；本节仅细化不改写，冲突回溯设计修订。
-- 互斥预期（成功 / 各错误分支）：重复 409、stale 412；`secret_ref` 不回显且 `has_secret=True`；能力不精确拒绝；冻结 space 拒绝；冲突回滚后 deployment 不变
+- 互斥预期（成功 / 各错误分支）：重复 409、stale 412；`secret_ref` 不回显且 `has_secret=True`；能力不精确拒绝；冻结 space 拒绝；冲突回滚后 deployment 不变。删除固定 tier→409 `fixed_service_level`；非法 patch→400 `invalid_request`
 
 ## 6. 错误路径、副作用与清理
 

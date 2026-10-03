@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `MT-INF-016` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -78,7 +78,7 @@ create(...)  # 上游在 terminal 前 EOF
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：方案 §2.3 c6 + a25 + inference 模块设计 §14.3；按 `complete` 的 terminal 校验分支人工推导
-- 互斥预期（成功 / 各错误分支）：截断流被识别为契约错误而非成功；账本收敛
+- 互斥预期（成功 / 各错误分支）：截断流被识别为契约错误而非成功；账本收敛。恢复后正常路径 `status=completed`
 
 ## 6. 错误路径、副作用与清理
 

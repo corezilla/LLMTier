@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "UT-MGMT-005",
   "document_type": "tests.unit-case",
-  "document_version": "0.1.0-draft.3",
+  "document_version": "0.1.0-draft.4",
   "title": "UT-MGMT-005 — probe 探测与健康落库",
   "document_owner": "LLMTier",
   "authors": [

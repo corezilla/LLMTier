@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "UT-DIAG-004",
   "document_type": "tests.unit-case",
-  "document_version": "0.1.0-draft.3",
+  "document_version": "0.1.0-draft.4",
   "title": "UT-DIAG-004 — 注入执行与 HTTP 注入契约",
   "document_owner": "LLMTier",
   "authors": [

@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-MGMT-011` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -82,7 +82,7 @@ AccountUsage.latest(provider_id) -> dict; AccountUsage.refresh(principal_id, pro
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：`RULE-MGMT-USAGE-REFRESH` + OpenAPI 状态码 + 人工推导；不调用被测复算。**判据语义以设计验证项 `VRC-MGMT-006` 为唯一权威**；本节仅细化不改写，冲突回溯设计修订。
-- 互斥预期（成功 / 各错误分支）：GET 不触网；`not_refreshed`；`credentials_missing`；未确认 400；provider 报错 `unavailable`+`error`（`""`）持久；互斥
+- 互斥预期（成功 / 各错误分支）：GET 不触网；`not_refreshed`；`credentials_missing`；未确认 400；provider 报错 `unavailable`+`error`（`""`）持久；互斥。未确认刷新→400 `confirmation_required`
 
 ## 6. 错误路径、副作用与清理
 

@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "UT-OBS-003",
   "document_type": "tests.unit-case",
-  "document_version": "0.1.0-draft.3",
+  "document_version": "0.1.0-draft.4",
   "title": "UT-OBS-003 — 注入配置与 fail-open",
   "document_owner": "LLMTier",
   "authors": [

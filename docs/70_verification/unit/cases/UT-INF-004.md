@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-INF-004` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -83,7 +83,7 @@ Router.admit(level_id) -> context manager; ModelCatalog.list()/get(id)
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：`RULE-INF-ROUTE/MODELS`；人工推导。**判据语义以设计验证项 `VRC-INF-004` 为唯一权威**；本节仅细化不改写，冲突回溯设计修订。
-- 互斥预期（成功 / 各错误分支）：健康候选准入且释放；missing 404、unhealthy 503、unknown 不合格；FIFO 顺序 a→b；7 tier；health=unknown→degraded
+- 互斥预期（成功 / 各错误分支）：健康候选准入且释放；missing 404、unhealthy 503、unknown 不合格；FIFO 顺序 a→b；7 tier；health=unknown→degraded。未知 tier→404 `model_not_found`
 
 ## 6. 错误路径、副作用与清理
 

@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-API-008` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -81,7 +81,7 @@ Handler._auth(role="data"); Handler._auth_either() -> (Principal, is_admin)
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：T-API-02/03 授权顺序 + `CON-TRUST-001` + 人工推导；不调用被测复算。**判据语义以设计验证项 `VRC-API-002` 为唯一权威**；本节仅细化不改写，冲突回溯设计修订。
-- 互斥预期（成功 / 各错误分支）：data→admin 端点 403；admin→admin 端点 200；401/403 不可区分资源存在性；互斥
+- 互斥预期（成功 / 各错误分支）：data→admin 端点 403；admin→admin 端点 200；401/403 不可区分资源存在性；互斥。403 出口码名 `permission_denied`（不泄露资源存在性）
 
 ## 6. 错误路径、副作用与清理
 

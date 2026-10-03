@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-API-010` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -80,7 +80,7 @@ Handler._static(path: str) -> None; readiness_view(registry) -> (dict, int)
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：`IF-API-STATIC`/`IF-API-HEALTH` 规则 + 人工推导；不调用被测复算。**判据语义以设计验证项 `VRC-API-004` 为唯一权威**；本节仅细化不改写，冲突回溯设计修订。
-- 互斥预期（成功 / 各错误分支）：穿越 404；`/ui/` 200 index；空库 readyz 503 not_ready；互斥
+- 互斥预期（成功 / 各错误分支）：穿越 404；`/ui/` 200 index；空库 readyz 503 not_ready；互斥。存在候选但全不健康时就绪视图为 `degraded`（与空库 `not_ready` 区分）
 
 ## 6. 错误路径、副作用与清理
 

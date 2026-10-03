@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "UT-DIAG-001",
   "document_type": "tests.unit-case",
-  "document_version": "0.1.0-draft.3",
+  "document_version": "0.1.0-draft.4",
   "title": "UT-DIAG-001 — 诊断开关默认/切换/零写入",
   "document_owner": "LLMTier",
   "authors": [

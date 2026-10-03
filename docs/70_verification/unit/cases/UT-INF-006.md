@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-INF-006` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -82,7 +82,7 @@ _validate(body, caps)  # 顺序：required/stream-store → unknown fields → r
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：`RULE-INF-VALIDATE` 校验顺序 + OpenAPI 错误码 + 人工推导；不调用被测复算。**判据语义以设计验证项 `VRC-INF-001` 为唯一权威**；本节仅细化不改写，冲突回溯设计修订。
-- 互斥预期（成功 / 各错误分支）：未知字段/禁字段`unsupported_field`（`param`=违规字段名）；tools 无能力`unsupported_request`；max tokens 非法`invalid_request`；无 responses 能力`unsupported_model`；合法接受；互斥
+- 互斥预期（成功 / 各错误分支）：未知字段/禁字段`unsupported_field`（`param`=违规字段名）；tools 无能力`unsupported_request`；max tokens 非法`invalid_request`；无 responses 能力`unsupported_model`；合法接受；互斥。未知 tier→404 `model_not_found`
 
 ## 6. 错误路径、副作用与清理
 

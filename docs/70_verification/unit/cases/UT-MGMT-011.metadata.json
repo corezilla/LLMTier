@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "UT-MGMT-011",
   "document_type": "tests.unit-case",
-  "document_version": "0.1.0-draft.3",
+  "document_version": "0.1.0-draft.4",
   "title": "UT-MGMT-011 — 账号用量刷新分支与错误快照",
   "document_owner": "LLMTier",
   "authors": [

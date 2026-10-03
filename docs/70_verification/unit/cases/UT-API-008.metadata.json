@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "UT-API-008",
   "document_type": "tests.unit-case",
-  "document_version": "0.1.0-draft.3",
+  "document_version": "0.1.0-draft.4",
   "title": "UT-API-008 — 分发层鉴权角色与 admin-first 选择",
   "document_owner": "LLMTier",
   "authors": [

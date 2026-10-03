@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-MGMT-005` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -80,7 +80,7 @@ AdminService.probe(principal, body, request_id); apply_probe_result(registry, de
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：`RULE-MGMT-PROBE`；人工推导。**判据语义以设计验证项 `VRC-MGMT-005` 为唯一权威**；本节仅细化不改写，冲突回溯设计修订。
-- 互斥预期（成功 / 各错误分支）：未确认→400；确认→探测并落 healthy；未知部署/非法 status→错误
+- 互斥预期（成功 / 各错误分支）：未确认→400；确认→探测并落 healthy；未知部署/非法 status→错误。未确认探测→400 `confirmation_required`
 
 ## 6. 错误路径、副作用与清理
 

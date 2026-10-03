@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `MT-INF-019` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -79,7 +79,7 @@ _secret() -> str | None（env: 取值 / file: 读取 / 其他 503）
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：方案 §2.3 a24/b8 + inference 模块设计 §14.3；按 `_secret` 三分支人工推导
-- 互斥预期（成功 / 各错误分支）：`file:` 不可读→503 且不触网；`env:` 空/有值行为与实现一致；账本收敛
+- 互斥预期（成功 / 各错误分支）：`file:` 不可读→503 且不触网；`env:` 空/有值行为与实现一致；账本收敛。`env:` 有值路径 `status=completed`；失败路径账本 `unknown`
 
 ## 6. 错误路径、副作用与清理
 

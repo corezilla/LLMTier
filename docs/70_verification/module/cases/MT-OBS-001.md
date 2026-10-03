@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `MT-OBS-001` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -81,7 +81,7 @@ PATCH /v1/diagnostics; POST /v1/responses; GET /v1/diagnostics/{snapshots,stats,
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：observability 模块设计 §14.1–§14.5；按 M001 路由 → M006 服务的字段契约人工推导（stage 位置序见 §4 具名缺口）
-- 互斥预期（成功 / 各错误分支）：全链贯通：三面查询均反映同一请求；字段完整；时间窗生效
+- 互斥预期（成功 / 各错误分支）：全链贯通：三面查询均反映同一请求；字段完整；时间窗生效。被观测请求的推理终态 `status=completed`；usage 视图 `measurement_status=measured`
 
 ## 6. 错误路径、副作用与清理
 

@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-API-002` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -84,7 +84,7 @@ authenticate(headers, config, remote_addr) -> Principal
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：auth 规则 `RULE-API-ROLE/TRUST` + 系统 §11；独立期望为状态码/角色，不从被测复算。**判据语义以设计验证项 `VRC-API-002` 为唯一权威**；本节仅细化不改写，冲突回溯设计修订。
-- 互斥预期（成功 / 各错误分支）：缺配置 503；缺 Bearer 401；错 token 403；data 访问 admin → 403 且响应不泄露资源存在性；受信私网地址免登录
+- 互斥预期（成功 / 各错误分支）：缺配置 503；缺 Bearer 401；错 token 403；data 访问 admin → 403 且响应不泄露资源存在性；受信私网地址免登录。401 出口码名 `authentication_required`（与 503 `auth_not_configured`、403 `permission_denied` 互斥）
 
 ## 6. 错误路径、副作用与清理
 

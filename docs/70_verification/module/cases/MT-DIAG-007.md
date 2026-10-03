@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `MT-DIAG-007` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -81,7 +81,7 @@ record_trace/capture_snapshot/record_latency/cleanup 写失败时的返回与告
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：libdiag 模块设计 §14.3 + 方案 §6.7（`_UnavailableDiagnostics` 降级由 UT-API-005 覆盖，本层不重复登记）；按各写方法的 `try/except + warn` 结构人工推导
-- 互斥预期（成功 / 各错误分支）：观测面任何写失败都不外溢；失败可观测（warn）；推理不受影响
+- 互斥预期（成功 / 各错误分支）：观测面任何写失败都不外溢；失败可观测（warn）；推理不受影响。观测写失败时推理仍成功（`status=completed`）
 
 ## 6. 错误路径、副作用与清理
 

@@ -21,7 +21,7 @@
   "created_at": "2026-10-02",
   "last_modified_at": "2026-10-03",
   "document_id": "MT-INF-018",
-  "document_version": "0.1.0-draft.2",
+  "document_version": "0.1.0-draft.3",
   "title": "MT-INF-018 — 队列等待超时与许可泄漏",
   "document_owner": "LLMTier",
   "authors": [

@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-INF-005` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -79,7 +79,7 @@ ResponsesService.create(..., diagnostics=...)
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：`CON-INFER-005`/`R-OBS-03`；人工推导（对照正常路径结果）。**判据语义以设计验证项 `VRC-INF-005` 为唯一权威**；本节仅细化不改写，冲突回溯设计修订。
-- 互斥预期（成功 / 各错误分支）：注入观测故障后 Responses 返回与正常路径一致；推理路径无鉴权调用点（`http_api.auth` 的三个入口被 patch 为抛错后推理仍完成；`inference.routing`/`responses` 导入不拉入 `http_api.auth`）
+- 互斥预期（成功 / 各错误分支）：注入观测故障后 Responses 返回与正常路径一致；推理路径无鉴权调用点（`http_api.auth` 的三个入口被 patch 为抛错后推理仍完成；`inference.routing`/`responses` 导入不拉入 `http_api.auth`）。注入观测故障的出口码 `provider_unavailable`（推理路径不因此变更）
 
 ## 6. 错误路径、副作用与清理
 

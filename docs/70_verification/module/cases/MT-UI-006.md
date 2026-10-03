@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `MT-UI-006` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -82,7 +82,7 @@ reportLoadFailure(error) —— 抑制集判定 + markStale
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：web-ui 模块设计 §14.2 + ISD 失败呈现契约；按 `reportLoadFailure` 的状态判定与 `markStale`/`clearStale` 语义人工推导
-- 互斥预期（成功 / 各错误分支）：抑制与 stale 两分支互斥且分工清晰；失败时保留上一屏数据
+- 互斥预期（成功 / 各错误分支）：抑制与 stale 两分支互斥且分工清晰；失败时保留上一屏数据。抑制集外：400 `invalid_request`、404 `not_found`；抑制集内：409 `resource_in_use`、412 `version_conflict`；500 `internal_error`／503 `usage_store_unavailable` 走 stale 而非横幅
 
 ## 6. 错误路径、副作用与清理
 

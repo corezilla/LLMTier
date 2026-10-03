@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-OBS-002` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -83,7 +83,7 @@ DiagnosticsService.page_snapshots/stats(...)
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：`FUNC-OBS-QUERY`/`CON-OBS-003`；人工推导。**判据语义以设计验证项 `VRC-OBS-002` 为唯一权威**；本节仅细化不改写，冲突回溯设计修订。
-- 互斥预期（成功 / 各错误分支）：字段完整；URL 去 query；按 tier/deployment 聚合正确；非法 group_by 拒绝；空记录返回空
+- 互斥预期（成功 / 各错误分支）：字段完整；URL 去 query；按 tier/deployment 聚合正确；非法 group_by 拒绝；空记录返回空。非法 `group_by`→400 `invalid_request`
 
 ## 6. 错误路径、副作用与清理
 

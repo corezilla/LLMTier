@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "UT-INF-007",
   "document_type": "tests.unit-case",
-  "document_version": "0.1.0-draft.3",
+  "document_version": "0.1.0-draft.4",
   "title": "UT-INF-007 — Embeddings 失败分支与维度错误码",
   "document_owner": "LLMTier",
   "authors": [

@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `MT-INF-018` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -78,7 +78,7 @@ admit(level_id)  # 受控时钟推进越过 30s deadline
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：方案 §2.3 c8 + a20 + inference 模块设计 §14.4；按 `admit` 的 `remaining <= 0` 分支与 `Retry-After` 字面量人工推导
-- 互斥预期（成功 / 各错误分支）：等待超时码与 `Retry-After` 精确；许可归零；后续请求不受影响
+- 互斥预期（成功 / 各错误分支）：等待超时码与 `Retry-After` 精确；许可归零；后续请求不受影响。等待超时出口：429 `rate_limit_exceeded` + `Retry-After: 1`（区别队列满的 30）
 
 ## 6. 错误路径、副作用与清理
 

@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `MT-UI-004` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -82,7 +82,7 @@ backendState(deployment, provider, runtime) -> [label, tone]; tierState(tier) ->
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：web-ui 模块设计 §14.1 + M001/M004 字段契约；按 `app.js` 两个映射函数逐分支与真实响应字段人工推导
-- 互斥预期（成功 / 各错误分支）：五/七分支全覆盖；优先级与 Unknown≠Idle 成立；字段契约对齐
+- 互斥预期（成功 / 各错误分支）：五/七分支全覆盖；优先级与 Unknown≠Idle 成立；字段契约对齐。health 取 `unknown` 时落 `Unknown`（≠`Idle`）
 
 ## 6. 错误路径、副作用与清理
 

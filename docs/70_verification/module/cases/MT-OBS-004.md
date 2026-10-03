@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `MT-OBS-004` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.6` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -82,7 +82,7 @@ GET/PATCH /v1/deployments/{id}/diagnostics; POST /v1/responses
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：observability 模块设计 §14.3 + inference 模块设计 §14.5；按注入校验与 fail-open 契约人工推导
-- 互斥预期（成功 / 各错误分支）：注入四态互斥且命中可观测（GET 读回 `config` 与注入体逐字段一致、推理错误 message 回显注入 body、账本 `source=injected`）；观测失败绝不改变推理结果
+- 互斥预期（成功 / 各错误分支）：注入四态互斥且命中可观测——`GET` 读回 `config` 逐字段一致、推理错误 message 回显注入 body、账本 `source=injected` 且 `measurement_status=unknown`；非法注入与未知 deployment 各落审计 `result=failed`；观测写失败时推理仍 200、账本 `measurement_status=measured`，诊断查询面 503 `usage_store_unavailable`
 
 ## 6. 错误路径、副作用与清理
 

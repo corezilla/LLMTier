@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-DIAG-001` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -81,7 +81,7 @@ switches()/set_switches()
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：`F-DIAG-SWITCH`/`RULE-DIAG-SWITCH`；人工推导。**判据语义以设计验证项 `VRC-DIAG-001` 为唯一权威**；本节仅细化不改写，冲突回溯设计修订。
-- 互斥预期（成功 / 各错误分支）：默认 `{False,False}`；切换生效；关闭时零新行
+- 互斥预期（成功 / 各错误分支）：默认 `{False,False}`；切换生效；关闭时零新行。非布尔开关→400 `invalid_request`
 
 ## 6. 错误路径、副作用与清理
 

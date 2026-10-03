@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "UT-API-010",
   "document_type": "tests.unit-case",
-  "document_version": "0.1.0-draft.3",
+  "document_version": "0.1.0-draft.4",
   "title": "UT-API-010 — 静态资源目录穿越与 readyz 映射",
   "document_owner": "LLMTier",
   "authors": [

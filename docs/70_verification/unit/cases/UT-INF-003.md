@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-INF-003` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -81,7 +81,7 @@ authorize_dispatch(principal, request_id, model, endpoint); finish(principal, re
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：`RULE-INF-TERMINAL` + M-METER 账本语义；人工推导。**判据语义以设计验证项 `VRC-INF-003` 为唯一权威**；本节仅细化不改写，冲突回溯设计修订。
-- 互斥预期（成功 / 各错误分支）：unknown 时 `total_tokens is None`；measured 时 `record_version=2`；版本不可变（2 行）；重复 terminal 拒绝
+- 互斥预期（成功 / 各错误分支）：unknown 时 `total_tokens is None`；measured 时 `record_version=2`；版本不可变（2 行）；重复 terminal 拒绝。契约违规（多 terminal／终态矛盾）→502 `provider_contract_error`
 
 ## 6. 错误路径、副作用与清理
 

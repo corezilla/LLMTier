@@ -3,7 +3,7 @@
   "authority": "LLMTier",
   "document_id": "UT-API-002",
   "document_type": "tests.unit-case",
-  "document_version": "0.1.0-draft.3",
+  "document_version": "0.1.0-draft.4",
   "title": "UT-API-002 — 访问信任与鉴权矩阵",
   "document_owner": "LLMTier",
   "authors": [

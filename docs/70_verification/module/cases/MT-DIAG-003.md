@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `MT-DIAG-003` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -84,7 +84,7 @@ _validate(item) -> {"type", "config", "enabled"}
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：libdiag 模块设计 §14.4 + 方案 §6.3 K8；按 `_validate` 的六个 `require` 顺序与 `_RANGES` 上下界人工推导
-- 互斥预期（成功 / 各错误分支）：六类校验出口全覆盖；截断与边界值处理正确；原子性（全批成功或全批不写）
+- 互斥预期（成功 / 各错误分支）：六类校验出口全覆盖；截断与边界值处理正确；原子性（全批成功或全批不写）。校验失败出口码 `invalid_injection`（六类同码，`param` 指向违规字段）
 
 ## 6. 错误路径、副作用与清理
 

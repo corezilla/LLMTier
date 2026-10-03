@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-OBS-003` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -82,7 +82,7 @@ InjectionConfig upsert/revoke; unknown type reject
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：`FUNC-OBS-INJECT`/`CON-OBS-002/4`；人工推导。**判据语义以设计验证项 `VRC-OBS-003` 为唯一权威**；本节仅细化不改写，冲突回溯设计修订。
-- 互斥预期（成功 / 各错误分支）：非法注入 400；显式空 items 撤销成功；部分更新保留其它类型
+- 互斥预期（成功 / 各错误分支）：非法注入 400；显式空 items 撤销成功；部分更新保留其它类型。非法注入类型→400 `invalid_injection`
 
 ## 6. 错误路径、副作用与清理
 

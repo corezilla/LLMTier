@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `MT-UI-003` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `LLMTier` |
 | Authority | `LLMTier` |
@@ -82,7 +82,7 @@ dispatchUiError(error) —— 状态码 → 呈现行为
 ## 5. 独立 Oracle 与预期结果
 
 - 独立 Oracle 来源与推导：web-ui 模块设计 §14.2 + 错误信封契约；按 `dispatchUiError` 的 `if` 链与服务端真实状态码人工推导（`/login` 路由缺失见 §7 `G-UI-LOGIN-ROUTE-1`）
-- 互斥预期（成功 / 各错误分支）：五分支互斥且文案固定；`Retry-After` 取值路径正确；403 不泄露存在性
+- 互斥预期（成功 / 各错误分支）：五分支互斥且文案固定；`Retry-After` 取值路径正确；403 不泄露存在性。逐分支出口码：401 `authentication_required`、403 `permission_denied`、409 `resource_conflict`/`resource_in_use`、412 `version_conflict`、429 `rate_limit_exceeded`；信封形状对照含 `not_found`/`usage_store_unavailable`/`internal_error`；真实 401/403 共用同一信封形状；`Retry-After` 只取自响应头
 
 ## 6. 错误路径、副作用与清理
 
